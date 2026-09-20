@@ -29,7 +29,7 @@
 | `loop-008` | `ACCEPTED` | `ACCEPTED` | Short TP0 torch-NPU profile separates warm and cold CPU scopes and device kernels, locating 0.436s nested aten::item within warm prepare input and 1.379s rank-local device inactivity; source and exposure remain unresolved, but the diagnostic design goal is satisfied. |
 | `loop-009` | `PIVOTED` | `PIVOTED` | with_modules stack profiler crashed all workers during stop_profile; offline parser warned of lost data and exported no FRAMEWORK operator events, so item callsites remain unidentified |
 | `loop-010` | `ACCEPTED` | `ACCEPTED` | Targeted wrapper found exact DSA CP QLI NPU item callsite and matching CPU local maxima already available; warm/cold rank timing supports a falsifiable candidate, without claiming E2E gain |
-| `loop-011` | `RUNNING` | `PENDING` | 执行 Run qli-cpu-candidate-20260920：bash scripts/run_qli_candidate.sh |
+| `loop-011` | `EVALUATING` | `PENDING` | 审查 Run qli-cpu-candidate-20260920 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
