@@ -29,3 +29,7 @@ A profiled cold 4×32K→128 c1 set took 18.915 s E2E; TP0 event span 18.583 s, 
 ## Update 2026-09-20 16:39 UTC — Loop 004 bound status
 
 No runtime bound changed: FlashComm1-off alone failed before execution because DSA CP requires SP. The measured 1.165 s warm-window TP0 HCCL activity cannot be assumed removable by this invalid configuration. The pending coupled-path A/B will test whether an alternative valid execution trades communication for compute and improves E2E.
+
+## Update 2026-09-20 16:55 UTC — Loop 005 bound status
+
+The coupled-path service loaded, but the benchmark was gated by invalid exact-output matching before performance measurement. Runtime and bound estimates remain unchanged. A functional check will permit exploratory E2E comparison; no candidate can be marked KEEP until correctness is established with a stable gate.

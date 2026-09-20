@@ -44,3 +44,7 @@ The isolated FlashComm1-off service failed during worker initialization before w
 ## Live checkpoint 2026-09-20 16:42 UTC — Loop 005 running
 
 After Loop 004 pivot, launched valid coupled-path candidate with `FLASHCOMM1_ENABLED=false`, `DSA_CP_ENABLED=false`, DP1/TP8 and all other frozen serving settings. The API PID inside `dsv4ab` is 722334; service log: `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_P0-SP-DSACP-OFF-20260920.log`. A detached `scripts/run_flashcomm_candidate.sh` waits for readiness, checks golden4, warms the full dataset, then performs three 48-request passes into `evidence/20260920_sp_dsa_off/`. Check `runner.log` and `times.txt` there before restarting anything. At this checkpoint the service is still initializing and no result exists.
+
+## Update 2026-09-20 16:55 UTC — Loop 005 pivot
+
+The coupled SP/DSA-CP-off service is healthy on port 8080. The benchmark runner stopped at its strict golden4 gate; no full benchmark ran. All four long-prompt outputs differed from the baseline, but repeating golden4 on the same unchanged candidate also differed 4/4. Thus exact reasoning-text equality is not a valid correctness gate for this setup. Keep the service running; next loop establishes a functional check and measures E2E, with numerical equivalence still required before KEEP. Evidence: `evidence/20260920_sp_dsa_off/golden_check.json`, `golden4.json`, `golden4_repeat.json`.

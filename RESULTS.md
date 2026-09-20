@@ -37,3 +37,7 @@ Union times can overlap and do not prove removability. The warm trace has only ~
 ## 2026-09-20 — Loop 004 pivoted: invalid FlashComm1-only configuration
 
 The service command confirmed DP1/TP8 and `enable_flashcomm1=false` with all other options frozen. All workers failed before model load with `ValueError: DSA CP requires SP to be enabled`. No correctness or performance request was issued; the waiting benchmark was stopped. This is an invalid intervention, not a REJECT on performance. Exact failure excerpt and full log SHA256 are under `evidence/20260920_flashcomm_off/`. Next loop tests the coupled FlashComm1-off/DSA-CP-off path explicitly.
+
+## 2026-09-20 — Loop 005 pivoted: exact golden is nondeterministic
+
+The coupled FlashComm1-off/DSA-CP-off service loaded and became healthy at 16:52:57 UTC. Its four 32K prompt outputs did not match the frozen baseline hashes. Repeating those same prompts on the unchanged candidate also yielded 4/4 different hashes, with all prompts equal and all completions at 128 tokens. The strict reasoning-text gate is invalid for this setup; no official throughput benchmark ran. This is not evidence of a semantic or numerical regression. Raw responses and gate results are in `evidence/20260920_sp_dsa_off/`. Next: stable functional checks, exploratory E2E benchmark, then stronger correctness validation if the candidate is performant.

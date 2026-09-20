@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-005`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Make DSA CP env-toggle default true, launch both false, run full correctness/warmup/benchmark script
-- 更新时间：`2026-09-20T16:39:46Z`
+- 下一步：Define robust functional and numerical correctness gate, then benchmark current coupled-path service
+- 更新时间：`2026-09-20T16:55:31Z`
 
 ## 最近 Loop
 
@@ -24,7 +24,7 @@
 | `loop-002` | `ACCEPTED` | `ACCEPTED` | Three corrected 48/48 warm-cache runs, golden 4/4; invalid parser run isolated in pivoted Loop 001 |
 | `loop-003` | `PIVOTED` | `PIVOTED` | TP0 msprof distinguishes cold and warm compute/HCCL; warm HCCL union 1.165s of 3.401s with ~0.054s compute overlap, justifying a falsifiable FlashComm1 A/B; no same-condition optimization comparison yet |
 | `loop-004` | `PIVOTED` | `PIVOTED` | FlashComm1-off alone violates vllm-ascend DSA CP requires SP constraint; config failed during worker init before performance measurement |
-| `loop-005` | `RUNNING` | `PENDING` | 执行 Run sp-dsacp-off-20260920：bash scripts/run_flashcomm_candidate.sh |
+| `loop-005` | `PIVOTED` | `PIVOTED` | Strict golden4 exact-output gate is invalid: 4/4 mismatch even between repeat runs on unchanged candidate; cannot infer candidate correctness failure or performance |
 
 ## 阻塞项
 
