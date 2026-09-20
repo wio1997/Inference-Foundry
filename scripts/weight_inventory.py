@@ -18,8 +18,10 @@ for file in sorted(glob.glob(str(root / '*.safetensors'))):
         size = bits[meta['dtype']]
         for dim in meta['shape']:
             size *= dim
-        if '.ffn.experts.' in name:
-            group = 'routed_experts'
+        if name.startswith('mtp.'):
+            group = 'mtp_routed_experts' if '.ffn.experts.' in name else 'mtp_other'
+        elif '.ffn.experts.' in name:
+            group = 'target_routed_experts'
         elif '.ffn.shared_experts.' in name:
             group = 'shared_experts'
         elif '.ffn.' in name:
@@ -32,5 +34,6 @@ for file in sorted(glob.glob(str(root / '*.safetensors'))):
         tensors += 1
 output = {'file_count': len(glob.glob(str(root / '*.safetensors'))), 'tensor_count': tensors,
           'groups_bytes': dict(groups), 'total_bytes': sum(groups.values()),
-          'active_weight_bytes_approx': sum(groups.values()) - groups['routed_experts'] * (1 - 6/256)}
+          'target_selected_weight_bytes_approx': sum(v for k, v in groups.items() if not k.startswith('mtp_')) - groups['target_routed_experts'] * (1 - 6/256),
+          'mtp_selected_weight_bytes_approx': groups['mtp_other'] + groups['mtp_routed_experts'] * 6/256}
 print(json.dumps(output, indent=2))
