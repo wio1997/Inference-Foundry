@@ -109,3 +109,7 @@ Captured index uniqueness on one call per rank makes a direct scatter specializa
 ## Live checkpoint 2026-09-20 21:43 UTC — Loop016 candidate bound not yet promoted
 
 Isolated SWA scatter saved about0.83ms per representative call with page-interleaved simulated cache and index flatten, but old full-request profile call counts and multistream overlap make summed savings an invalid E2E bound. The exact cold c1 TTFT bound and mixed throughput bound remain UNKNOWN until service A/B confirms this candidate on the actual cache layout and workload.
+
+## Live checkpoint 2026-09-20 21:47 UTC — no bound update
+
+Loop016 service A/B has started but produced no E2E measurement. Achievable bounds remain UNKNOWN.

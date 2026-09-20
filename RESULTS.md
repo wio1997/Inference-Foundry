@@ -141,3 +141,7 @@ Functional gate passed; diagnostic cold offset24 32851-token input to 128-token 
 ## Live checkpoint 2026-09-20 21:43 UTC — Loop016 experimental SWA prefill index_copy
 
 Corrected captured-op attribution to SWA prefill. Captured c1 index mapping was unique on8 ranks; source provenance is scheduler slot mapping, not compressor_metadata. Single-NPU screens with captured indices and matching shape: built-in scatter ratio0.981 versus SK; contiguous index_copy0.510ms versus SK1.428ms; simulated stride32768 with per-call flatten0.694ms versus SK1.528ms, all bit-equal. Source patch is flag-gated and limited to one unpadded SWA prefill via CPU metadata; other paths retain SK. No service A/B or KEEP yet. TaskCtl Loop016 active.
+
+## Live checkpoint 2026-09-20 21:47 UTC — Loop016 full-service test launched
+
+API PID809483 and detached A/B runner PID2207198 started after8 NPU idle check. Candidate flag absent by default. Runner will require exact four-prompt long output parity and eight rank fast-path traces before eight alternated cold pairs. Pending, no performance verdict.
