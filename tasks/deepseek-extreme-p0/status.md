@@ -29,7 +29,7 @@
 | `loop-009` | `PIVOTED` | `PIVOTED` | with_modules stack profiler crashed all workers during stop_profile; offline parser warned of lost data and exported no FRAMEWORK operator events, so item callsites remain unidentified |
 | `loop-010` | `ACCEPTED` | `ACCEPTED` | Targeted wrapper found exact DSA CP QLI NPU item callsite and matching CPU local maxima already available; warm/cold rank timing supports a falsifiable candidate, without claiming E2E gain |
 | `loop-011` | `PIVOTED` | `PIVOTED` | All-step QLI CPU-max candidate passed >=192 per-rank parity checks and improved exact same cold prompts 8/8 by mean284.83ms (-10.81%), but paired mixed TPS +0.52% is noise and median mean TTFT worsened11.9%; refine to prefill-only rather than KEEP |
-| `loop-012` | `FROZEN` | `PENDING` | Stop current baseline, apply prefill-only source patch, restart DP1TP8, validate function and run warmed full benchmark plus fresh paired cold prompts |
+| `loop-012` | `RUNNING` | `PENDING` | 执行 Run qli-prefill-candidate-20260920：bash scripts/run_qli_prefill_candidate.sh |
 
 ## 阻塞项
 
