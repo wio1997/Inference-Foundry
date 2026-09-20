@@ -41,3 +41,16 @@ The service command confirmed DP1/TP8 and `enable_flashcomm1=false` with all oth
 ## 2026-09-20 — Loop 005 pivoted: exact golden is nondeterministic
 
 The coupled FlashComm1-off/DSA-CP-off service loaded and became healthy at 16:52:57 UTC. Its four 32K prompt outputs did not match the frozen baseline hashes. Repeating those same prompts on the unchanged candidate also yielded 4/4 different hashes, with all prompts equal and all completions at 128 tokens. The strict reasoning-text gate is invalid for this setup; no official throughput benchmark ran. This is not evidence of a semantic or numerical regression. Raw responses and gate results are in `evidence/20260920_sp_dsa_off/`. Next: stable functional checks, exploratory E2E benchmark, then stronger correctness validation if the candidate is performant.
+
+## 2026-09-20 — Loop 006 REJECT: coupled SP/DSA CP off
+
+The valid coupled path passed functional checks (long 4/4 at 128 tokens; exact short answers 42, OK, 4). A full-dataset warmup ran before three official, same-protocol 48×32K→1024 c12 passes. Each pass succeeded 48/48.
+
+| Pass | Output TPS | Mean TTFT | Mean TPOT |
+|---|---:|---:|---:|
+| 1 | 524.41 tok/s | 1475.53 ms | 20.04 ms |
+| 2 | 541.05 tok/s | 1435.47 ms | 19.87 ms |
+| 3 | 534.88 tok/s | 1400.30 ms | 19.72 ms |
+| median | 534.88 tok/s | 1435.47 ms | 19.87 ms |
+
+Versus frozen baseline medians 543.65 tok/s, 1331.80 ms, 19.73 ms: throughput -1.61%, TTFT +7.8%, TPOT +0.7%. The throughput change is within the baseline three-run 4.3% spread. **REJECT** as a performance optimization; no numerical equivalence claim. DSpark counters across the candidate warmup plus three passes show ~41.8% acceptance and 2.927 accepted tokens/draft, close to baseline, but that counter window includes warmup. Full evidence: `evidence/20260920_sp_dsa_off_perf/analysis.json`, `functional_check.json`, individual passes and metrics snapshots.

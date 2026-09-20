@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-006`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Add stable functional suite, run full-dataset warmup and three same-protocol passes on current healthy service
-- 更新时间：`2026-09-20T16:56:35Z`
+- 下一步：Restore FlashComm1 and isolate DSA CP toggle, or profile target/draft host gap if isolate also fails
+- 更新时间：`2026-09-20T17:05:15Z`
 
 ## 最近 Loop
 
@@ -25,7 +25,7 @@
 | `loop-003` | `PIVOTED` | `PIVOTED` | TP0 msprof distinguishes cold and warm compute/HCCL; warm HCCL union 1.165s of 3.401s with ~0.054s compute overlap, justifying a falsifiable FlashComm1 A/B; no same-condition optimization comparison yet |
 | `loop-004` | `PIVOTED` | `PIVOTED` | FlashComm1-off alone violates vllm-ascend DSA CP requires SP constraint; config failed during worker init before performance measurement |
 | `loop-005` | `PIVOTED` | `PIVOTED` | Strict golden4 exact-output gate is invalid: 4/4 mismatch even between repeat runs on unchanged candidate; cannot infer candidate correctness failure or performance |
-| `loop-006` | `RUNNING` | `PENDING` | 执行 Run sp-dsacp-functional-perf-20260920：ALLOW_NONDETERMINISTIC_GOLDEN=1 CANDIDATE_OUT=/data/wio/Inference_Foundry/evidence/20260920_sp_dsa_off_perf bash scripts/run_flashcomm_candidate.sh |
+| `loop-006` | `REJECTED` | `REJECTED` | Coupled SP/DSA-CP-off path has no robust E2E benefit: median output TPS -1.61% vs baseline and inside observed noise; TTFT median worsened ~7.8%, TPOT ~0.7%. Functional check passed but numerical equivalence remains unproven. |
 
 ## 阻塞项
 

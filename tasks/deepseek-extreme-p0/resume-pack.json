@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-20T16:57:36Z",
+  "generated_at": "2026-09-20T17:05:15Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-006",
-    "next_action": "Add stable functional suite, run full-dataset warmup and three same-protocol passes on current healthy service",
+    "active_loop": null,
+    "next_action": "Restore FlashComm1 and isolate DSA CP toggle, or profile target/draft host gap if isolate also fails",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,21 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-001",
-      "title": "Freeze current DP1 TP8 baseline",
-      "mode": "baseline",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "Current exact runtime can serve correctly and produce repeatable TTFT TPOT TPS on protected workload",
-      "verdict": "PIVOTED",
-      "reason": "Initial SSE client omitted DeepSeek reasoning deltas, making first TTFT/TPOT invalid; corrected parser and preserved evidence",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_baseline/bench48_invalid_1.json"
-      ],
-      "decided_at": "2026-09-20T15:58:54Z"
-    },
-    {
       "loop_id": "loop-002",
       "title": "Accept corrected warm-cache DP1 TP8 baseline",
       "mode": "baseline",
@@ -213,34 +198,30 @@
         "/data/wio/Inference_Foundry/evidence/20260920_sp_dsa_off/golden_check.json"
       ],
       "decided_at": "2026-09-20T16:55:31Z"
+    },
+    {
+      "loop_id": "loop-006",
+      "title": "Benchmark valid coupled path with stable functional gate",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "After replacing invalid exact reasoning-text equality with stable API functional checks, the runnable SP/DSA-CP-off path may reduce exposed TP8 communication enough to improve warmed full E2E throughput",
+      "verdict": "REJECTED",
+      "reason": "Coupled SP/DSA-CP-off path has no robust E2E benefit: median output TPS -1.61% vs baseline and inside observed noise; TTFT median worsened ~7.8%, TPOT ~0.7%. Functional check passed but numerical equivalence remains unproven.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_sp_dsa_off_perf/analysis.json"
+      ],
+      "decided_at": "2026-09-20T17:05:15Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-006",
-    "title": "Benchmark valid coupled path with stable functional gate",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run sp-dsacp-functional-perf-20260920：ALLOW_NONDETERMINISTIC_GOLDEN=1 CANDIDATE_OUT=/data/wio/Inference_Foundry/evidence/20260920_sp_dsa_off_perf bash scripts/run_flashcomm_candidate.sh",
-    "cases": [
-      "mixed_32k_1024_c12",
-      "correctness_short"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-20T16:57:36Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-006/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-006/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-006/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-006/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-006/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-006/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

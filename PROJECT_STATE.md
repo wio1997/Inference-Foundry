@@ -48,3 +48,7 @@ After Loop 004 pivot, launched valid coupled-path candidate with `FLASHCOMM1_ENA
 ## Update 2026-09-20 16:55 UTC — Loop 005 pivot
 
 The coupled SP/DSA-CP-off service is healthy on port 8080. The benchmark runner stopped at its strict golden4 gate; no full benchmark ran. All four long-prompt outputs differed from the baseline, but repeating golden4 on the same unchanged candidate also differed 4/4. Thus exact reasoning-text equality is not a valid correctness gate for this setup. Keep the service running; next loop establishes a functional check and measures E2E, with numerical equivalence still required before KEEP. Evidence: `evidence/20260920_sp_dsa_off/golden_check.json`, `golden4.json`, `golden4_repeat.json`.
+
+## Update 2026-09-20 17:06 UTC — Loop 006 REJECT
+
+The current healthy service is the SP/DSA-CP-off candidate (API PID 722334). Functional gate passed: four full 128-token long outputs and exact short answers 42, OK, 4. Full-dataset warmup then three 48×32K→1024 c12 passes yielded 524.41, 541.05, 534.88 tok/s (median 534.88), versus frozen baseline median 543.65. The -1.61% change is inside baseline noise; TPOT median 19.87 vs 19.73 ms and TTFT median 1.435 vs 1.332 s. REJECT this coupled path. Numerical equivalence was not established and is unnecessary for a rejected performance candidate. Evidence: `evidence/20260920_sp_dsa_off_perf/`. Next isolate `enable_dsa_cp=false` with FlashComm1 restored to true; compare under the same protocol. Stop only PID 722334 before restart.
