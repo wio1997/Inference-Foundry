@@ -60,3 +60,7 @@ The rejected coupled service was stopped and all eight NPUs returned to idle HBM
 ## Update 2026-09-20 17:27 UTC — Loop 007 REJECT
 
 DSA CP off alone, FlashComm1 on, passed the functional gate and three full warmed 48/48 runs. Output TPS 535.16, 518.10, 514.23 (median 518.10), down 4.70% from baseline 543.65. TTFT median 1.533 s versus 1.332 s; TPOT median 20.48 versus 19.73 ms. REJECT. The current service on port 8080 is this rejected candidate, API PID 732566; stop only that PID before restart. Next restore both baseline flags true and measure target/draft/host and cold-prefill critical path. No candidate has earned KEEP yet.
+
+## Live checkpoint 2026-09-20 17:29 UTC — Loop 008 scope profiling
+
+The rejected DSA-CP-off service was stopped; 8 NPUs returned to ~3.4 GB idle HBM. A baseline-flag service (FlashComm1=true, DSA CP=true, DP1/TP8, same model/source) is starting with torch-NPU profiler enabled for diagnostics only. API PID 739569, log `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_P0-SCOPE-20260920.log`. Detached `scripts/profile_scopes.py` PID 1976075 waits for readiness, warms 4 short prompts, then profiles warm 4×128 c4 and cold 2×32K→128 c1 in one scope window. Outputs: `evidence/20260920_scope_profile/run1/`; large raw profiler files are ignored under `raw/`. Check runner and service logs before restarting. No profile result yet.
