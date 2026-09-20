@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run stack-profile-20260920：python3 scripts/profile_scopes.py --out evidence/20260920_stack_profile/run1 --warm-only
-- 更新时间：`2026-09-20T18:01:28Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Loop010: instrument Tensor.item calls only during prepare input, record callsite/device/duration with no torch profiler, then choose minimal safe change
+- 更新时间：`2026-09-20T18:17:50Z`
 
 ## Run 记录
 

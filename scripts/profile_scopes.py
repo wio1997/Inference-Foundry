@@ -13,7 +13,7 @@ p.add_argument('--root', default='/data/wio/Inference_Foundry')
 p.add_argument('--warm-only', action='store_true')
 a = p.parse_args()
 root = Path(a.root)
-out = Path(a.out)
+out = Path(a.out).resolve()
 out.mkdir(parents=True, exist_ok=True)
 base = 'http://127.0.0.1:8080'
 warm = '/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl'
