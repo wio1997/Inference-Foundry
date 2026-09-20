@@ -40,3 +40,7 @@ Next: make a single-variable FlashComm1-off A/B while preserving DP1/TP8, W4A8, 
 ## Update 2026-09-20 16:39 UTC — Loop 004 pivot
 
 The isolated FlashComm1-off service failed during worker initialization before weights loaded or any request ran. `enable_dsa_cp=true` requires sequence parallelism; both must be disabled to test the non-SP path. The waiting benchmark runner was stopped, port 8080 is down, and all eight NPUs returned to ~3.4 GB idle HBM. The next loop will test the explicitly combined FlashComm1-off/DSA-CP-off path. Evidence: `evidence/20260920_flashcomm_off/startup_failure.txt`; full startup log is under ignored `logs/` with committed SHA256.
+
+## Live checkpoint 2026-09-20 16:42 UTC — Loop 005 running
+
+After Loop 004 pivot, launched valid coupled-path candidate with `FLASHCOMM1_ENABLED=false`, `DSA_CP_ENABLED=false`, DP1/TP8 and all other frozen serving settings. The API PID inside `dsv4ab` is 722334; service log: `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_P0-SP-DSACP-OFF-20260920.log`. A detached `scripts/run_flashcomm_candidate.sh` waits for readiness, checks golden4, warms the full dataset, then performs three 48-request passes into `evidence/20260920_sp_dsa_off/`. Check `runner.log` and `times.txt` there before restarting anything. At this checkpoint the service is still initializing and no result exists.
