@@ -52,3 +52,7 @@ The coupled SP/DSA-CP-off service is healthy on port 8080. The benchmark runner 
 ## Update 2026-09-20 17:06 UTC — Loop 006 REJECT
 
 The current healthy service is the SP/DSA-CP-off candidate (API PID 722334). Functional gate passed: four full 128-token long outputs and exact short answers 42, OK, 4. Full-dataset warmup then three 48×32K→1024 c12 passes yielded 524.41, 541.05, 534.88 tok/s (median 534.88), versus frozen baseline median 543.65. The -1.61% change is inside baseline noise; TPOT median 19.87 vs 19.73 ms and TTFT median 1.435 vs 1.332 s. REJECT this coupled path. Numerical equivalence was not established and is unnecessary for a rejected performance candidate. Evidence: `evidence/20260920_sp_dsa_off_perf/`. Next isolate `enable_dsa_cp=false` with FlashComm1 restored to true; compare under the same protocol. Stop only PID 722334 before restart.
+
+## Live checkpoint 2026-09-20 17:08 UTC — Loop 007 running
+
+The rejected coupled service was stopped and all eight NPUs returned to idle HBM. A new service is starting in `dsv4ab`, API PID 732566, with FlashComm1 true and only DSA CP false; all other serving settings remain frozen. Log: `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_P0-DSACP-OFF-20260920.log`. Detached runner `scripts/run_flashcomm_candidate.sh` is waiting for readiness; output directory `evidence/20260920_dsa_cp_off/`, runner PID 1955064. Check those files before restarting. No Loop 007 result exists yet.
