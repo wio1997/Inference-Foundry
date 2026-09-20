@@ -161,3 +161,8 @@ Third service API PID822276 and runner PID2242486 loading; no candidate E2E resu
 ## Update 2026-09-20 22:39 UTC — Loop016 E2E rejection
 
 Cold c1 32851→128, same prompts offsets8–15, eight requests, no prefix hits: no-flag baseline mean TTFT2367.81ms; active DSA-CP index_copy candidate2438.00ms; delta +70.19ms / +2.9642% (worse), 0/8 improved. All eight ranks recorded fast-path activation, cache stride=(16384,512,512,1). Candidate not kept. Isolated operator index_copy0.510ms versus SK1.428ms was not predictive of full-service TTFT; overlap, launch and host effects remain unmeasured. Next map target: Compressor ratio4 cold prefill shape[8096,4096], old msprof 336 calls/four full requests, median task1.503ms; attribute which calls are prefill and on critical path before claiming opportunity.
+
+
+## Live checkpoint 2026-09-20 22:46 UTC — Loop017 Compressor clustering
+
+Original-source cold profile four-request time clusters: Compressor [8096,4096;1024,4096] 84 calls/request, median1.503ms/task, 126.3–126.6ms summed device task/request; [8096,4096;512,4096] 80 calls/request, ~40.0ms sum; [8096,4096;256,4096] 84 calls/request, ~29.8ms sum. Source CSV and exact per-cluster stats: evidence/20260920_loop017_compressor/profile_clusters.json. Ratios and totals cannot be added directly to TTFT because of overlapped streams and downstream dependencies. E2E cold baseline remains Loop016 no-flag2367.81ms on offsets8–15; kept QLI Loop012 vs original cold comparison remains authoritative.

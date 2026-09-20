@@ -134,3 +134,8 @@ Active DSA-CP candidate is loading; no achieved E2E delta or bound update yet.
 ## Update 2026-09-20 22:39 UTC — Loop016 bound unchanged
 
 The tested direct SWA scatter specialization made cold TTFT 2.9642% worse on eight exact-prompt requests, with zero prefix hits and eight-rank activation. Its isolated ~0.9ms/operator saving is excluded from achievable E2E bound because full-service work can overlap and incurs unmeasured cost. Cold TTFT and mixed TPS achievable bounds remain UNKNOWN; no new lower bound is claimed. Compressor ratio4 old-profile task totals are a screening signal only, not additive TTFT savings.
+
+
+## Live checkpoint 2026-09-20 22:46 UTC — Compressor screening envelope
+
+Ratio4 Compressor [8096,4096;1024,4096] occupies ~126.4ms of summed device task time per profiled cold request across84 calls. This is only a gross per-request operator-time envelope, not a TTFT achievable saving or hardware bound; overlap and AIV/CUBE attribution still need measurement. Achievable cold TTFT and mixed throughput bounds remain UNKNOWN.

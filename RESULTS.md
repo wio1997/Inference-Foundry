@@ -166,3 +166,8 @@ Active DSA-CP patch service PID822276 and detached runner PID2242486 started aft
 ## 2026-09-20 22:39 UTC — Loop016 REJECT
 
 Candidate: flag-gated SWA prefill index_copy in active DSA-CP callsite, patch patches/loop016_swa_prefill_index_copy_v3.patch. Functional request passed and all eight TP ranks traced fast path; eight cold 32851→128 candidate requests succeeded. Same prompts/no-repeat offsets8–15 versus saved no-flag baseline, prefix hits0 before and after: baseline TTFT mean2367.8107ms, candidate2437.9979ms, delta+70.1872ms (+2.9642%, slower), pairs improved0/8. Per-prompt pairs and metrics: evidence/20260920_loop016_direct_scatter/service_ab3/. Reject candidate; isolated screen was faster but E2E effect falsified. Experimental API stopped, eight NPUs idle, framework clean at kept commit36589852. TaskCtl Loop016 verdict rejected. Next inspect Compressor ratio4 prefill critical path.
+
+
+## Live checkpoint 2026-09-20 22:46 UTC — Loop017 profile reuse
+
+Started Loop017 and distilled frozen original-source cold msprof CSV with scripts/analyze_loop017_compressor.py. Four cold request clusters each contain84 main ratio4 Compressor tasks, ~126.4ms summed task time/request, median task1.503ms. Secondary [512,4096] shape80 calls/request/~40ms sum and [256,4096] shape84 calls/request/~29.8ms sum. Evidence evidence/20260920_loop017_compressor/profile_clusters.json; TaskCtl profile run passed. No implementation or E2E claim. Next attribute critical path and isolate one safe optimization.
