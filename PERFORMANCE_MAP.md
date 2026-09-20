@@ -104,3 +104,7 @@ After 48×128 full prefix warmup, a 12×512 c12 sample succeeded 12/12 under tor
 | Device inactive within16.459 s window | 3.421 s | 3.142–6.787 s |
 
 TP0 HCCL duration by type: reduce-scatter3.117 s, all-gather1.677 s, all-to-all0.715 s, with task waiting and overlap; these sums are not independent E2E costs. TP0 top compute/copy task types include GroupedMatmulSwigluQuantV2 1.034 s, QuantBatchMatmulV3 0.882 s, GroupedMatmul0.584 s, Compressor0.568 s. A TP0 host trace scanned5.79M events: prepare-input171 scopes sum3.729 s (median21.42 ms); draft170 scopes sum9.036 s (median52.89 ms); forward170 scopes sum2.244 s but median1.90 ms and occasional prefill outliers. Typical draft nested scopes: three moe_forward_shared total15.77 ms and three dsa_forward total10.09 ms. Across the full trace, 682 MoE calls have host self-time1.397 s and 682 DSA calls0.964 s. These are candidate pools, not removable times. Next resolve which host self operations or cross-rank waits are on the unprofiled decode critical path.
+
+## Live update 2026-09-20 20:30 UTC — decode host attribution still open
+
+Loop014 source audit shows prepare-input host self median9.57 ms among170 c12 steps, while a typical nested NPU item call was0.70 ms. The broad prepare scope includes _update_states, _prepare_inputs, Mamba preprocessing, attention metadata and _preprocess. The current trace cannot assign that self time to a single removable function; a low-overhead stage timer is the next discriminator. No change to measured E2E performance.
