@@ -5,14 +5,14 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：Enable torch profiler with_modules stack for a short warm window; inspect item call stacks and exact source before any patch
-- 更新时间：`2026-09-20T17:59:53Z`
+- 下一步：执行 Run stack-profile-20260920：python3 scripts/profile_scopes.py --out evidence/20260920_stack_profile/run1 --warm-only
+- 更新时间：`2026-09-20T18:01:28Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/stack-profile-20260920`
 
 ## 阻塞项
 
