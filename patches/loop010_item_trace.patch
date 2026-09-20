@@ -1,0 +1,68 @@
+diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
+index fd5463845..6fb290c79 100644
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -18,6 +18,7 @@
+ #
+ 
+ import logging
++import os
+ import math
+ import sys
+ import time
+@@ -230,6 +231,46 @@ PerLayerAttnMetadata: TypeAlias = list[AttnMetadataDict] | AttnMetadataDict
+ SEQ_LEN_WITH_MAX_PA_WORKSPACE = 6144
+ 
+ 
++_TRACE_PREPARE_ITEMS = os.environ.get("TRACE_PREPARE_ITEMS") == "1"
++_ITEM_TRACE_STATS = defaultdict(lambda: [0, 0, 0])
++_ITEM_TRACE_STEPS = 0
++
++
++@contextmanager
++def _trace_prepare_items():
++    """Diagnostic only: attribute Python Tensor.item calls during input prep."""
++    if not _TRACE_PREPARE_ITEMS:
++        yield
++        return
++    global _ITEM_TRACE_STEPS
++    original = torch.Tensor.item
++
++    def traced(tensor, *args, **kwargs):
++        frame = sys._getframe(1)
++        key = (frame.f_code.co_filename, frame.f_lineno, str(tensor.device))
++        start = time.perf_counter_ns()
++        try:
++            return original(tensor, *args, **kwargs)
++        finally:
++            elapsed = time.perf_counter_ns() - start
++            row = _ITEM_TRACE_STATS[key]
++            row[0] += 1
++            row[1] += elapsed
++            row[2] = max(row[2], elapsed)
++
++    torch.Tensor.item = traced
++    try:
++        yield
++    finally:
++        torch.Tensor.item = original
++        _ITEM_TRACE_STEPS += 1
++        if _ITEM_TRACE_STEPS % 8 == 0:
++            rows = sorted(_ITEM_TRACE_STATS.items(), key=lambda x: x[1][1], reverse=True)
++            logger.warning("ITEM_TRACE steps=%d rows=%s", _ITEM_TRACE_STEPS,
++                           [(k, v[0], round(v[1] / 1e6, 3), round(v[2] / 1e6, 3))
++                            for k, v in rows[:20]])
++
++
+ @dataclass
+ class GraphCaptureContext:
+     stream: torch.npu.Stream
+@@ -1856,7 +1897,7 @@ class NPUModelRunner(GPUModelRunner):
+             get_kv_transfer_group().handle_preemptions(kv_connector_metadata)
+ 
+         num_scheduled_tokens = scheduler_output.total_num_scheduled_tokens
+-        with record_function_or_nullcontext("prepare input"):
++        with record_function_or_nullcontext("prepare input"), _trace_prepare_items():
+             with self.synchronize_input_prep():
+                 # Fix up prev_req_id_to_index for requests that were discarded
+                 # in the previous sample_tokens step. If a request has
