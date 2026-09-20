@@ -120,3 +120,7 @@ Loop014 no-profiler tracer, 157 pure decode steps per rank in successful c12 sam
 ## Live checkpoint 2026-09-20 20:51 UTC — builder trace loading
 
 Loop014 second diagnostic will split the 10.80-14.17ms rank-median compression/attention stage into DCP setup, per-attention-builder calls and residual work. Prior first-stage trace remains the current measured map until this succeeds.
+
+## Update 2026-09-20 21:08 UTC — Loop014 PIVOT
+
+Loop014 builder trace on 143 pure-decode steps/rank: eight DSA-CP metadata builders per step. TP0 median metadata total15.165ms, builder calls14.025ms, DCP0.002ms, residual1.117ms. First builder7.860ms, seven others0.725-1.096ms. The builder uses common_ratio_to_sas_metadata and cached local metadata across groups. Inclusive host duration is not a directly removable gap; no mixed TPS optimization was kept. Next prioritizes cold prefill device critical path.

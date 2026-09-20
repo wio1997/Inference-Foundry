@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-20T20:49:56Z",
+  "generated_at": "2026-09-20T21:04:13Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-014",
-    "next_action": "Inspect model_runner_v1.py prepare-input call chain and trace operator self-times; locate one repeated metadata operation with a measurable upper bound before editing.",
+    "active_loop": null,
+    "next_action": "Restore diagnostic patch and baseline-flag service, then Loop015 examine cold prefill ScatterNdUpdateSk/Compressor and HCCL critical path for a falsifiable improvement.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,22 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-009",
-      "title": "Locate repeated prepare input scalar sync",
-      "mode": "design",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The 29 repeated aten::item calls per warmed decode step arise from a small number of CPU metadata construction sites, and at least one blocks device progress enough to justify a safe minimal removal",
-      "verdict": "PIVOTED",
-      "reason": "with_modules stack profiler crashed all workers during stop_profile; offline parser warned of lost data and exported no FRAMEWORK operator events, so item callsites remain unidentified",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_stack_profile/run1/phase_times.json",
-        "/data/wio/Inference_Foundry/evidence/20260920_stack_profile/run1/stop_failure_excerpt.txt"
-      ],
-      "decided_at": "2026-09-20T18:17:50Z"
-    },
-    {
       "loop_id": "loop-010",
       "title": "Trace prepare input item callsites without profiler",
       "mode": "design",
@@ -220,34 +204,31 @@
         "/data/wio/Inference_Foundry/evidence/20260920_decode_c12_profile/run4/host_scope_c12_summary.json"
       ],
       "decided_at": "2026-09-20T20:26:35Z"
+    },
+    {
+      "loop_id": "loop-014",
+      "title": "Find exposed decode metadata host work",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "Warm DP1TP8 c12 input preparation repeats Python metadata work across 170 decode iterations; at least one deterministic repeated operation can be safely cached or vectorized and reduce E2E output latency beyond benchmark noise.",
+      "verdict": "PIVOTED",
+      "reason": "No supported >=5% mixed TPS candidate emerged. The 8 metadata builders are group-specific and shared local/ratio state is already cached. First builder timing may include required device synchronization; Loop011 all-step QLI substitution did not improve mixed throughput. Avoid changing semantics merely to reduce inclusive host spans.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop014_prepare_trace/run2/builder_summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260920_loop014_prepare_trace/run1/stage_summary.json"
+      ],
+      "decided_at": "2026-09-20T21:04:13Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-014",
-    "title": "Find exposed decode metadata host work",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run attention-builder-trace-20260920：Same no-profiler functional+48x128 warmup+12x512 c12 sample, with per-builder stage timers",
-    "cases": [
-      "mixed_32k_1024_c12",
-      "correctness_short"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-20T20:49:56Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-014/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-014/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-014/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-014/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-014/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-014/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

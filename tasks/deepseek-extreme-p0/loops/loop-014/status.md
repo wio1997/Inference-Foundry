@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run attention-builder-trace-20260920：Same no-profiler functional+48x128 warmup+12x512 c12 sample, with per-builder stage timers
-- 更新时间：`2026-09-20T20:49:56Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Restore diagnostic patch and baseline-flag service, then Loop015 examine cold prefill ScatterNdUpdateSk/Compressor and HCCL critical path for a falsifiable improvement.
+- 更新时间：`2026-09-20T21:04:13Z`
 
 ## Run 记录
 

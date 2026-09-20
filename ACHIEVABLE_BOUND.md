@@ -93,3 +93,7 @@ Loop014 measured a 10.80-14.17ms median per-rank host span for compression-posit
 ## Live checkpoint 2026-09-20 20:51 UTC — builder trace loading
 
 Per-builder timing is pending and cannot change the mixed achievable bound. The 10.80-14.17ms metadata span remains a candidate envelope only.
+
+## Update 2026-09-20 21:08 UTC — Loop014 PIVOT
+
+Loop014 found no safe way to convert the 15.165ms TP0 metadata host span into an E2E speedup: eight builders are group-specific, shared state is cached and the first builder may wait for prior device work. No change to official mixed achievable bound UNKNOWN. The remaining cold prefill wall (~2.36s) also lacks a credible lower bound; Loop015 should measure stage critical path before estimating.
