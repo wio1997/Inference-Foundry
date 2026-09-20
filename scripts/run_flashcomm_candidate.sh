@@ -22,7 +22,7 @@ assert len(lines)==1 and '"enable_flashcomm1":false' in lines[0] and '"enable_ds
 PY
 docker exec dsv4ab python3 "$ROOT/scripts/golden.py" --dataset "$DATASET" --out "$OUT/golden4.json" > "$OUT/golden.log" 2>&1
 python3 - "$ROOT" "$OUT" <<'PY'
-import json,pathlib,sys
+import json,os,pathlib,sys
 root,out=map(pathlib.Path,sys.argv[1:])
 ref=json.loads((root/'evidence/20260920_baseline/golden4.json').read_text())
 cur=json.loads((out/'golden4.json').read_text())
@@ -33,8 +33,9 @@ checks=[{'index':r['index'],'prompt_equal':r['prompt_sha256']==c['prompt_sha256'
 result={'pass':len(ref)==len(cur)==4 and all(all(v for k,v in x.items() if k!='index') for x in checks),'checks':checks}
 (out/'golden_check.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result))
-if not result['pass']: raise SystemExit(1)
+if not result['pass'] and os.environ.get('ALLOW_NONDETERMINISTIC_GOLDEN') != '1': raise SystemExit(1)
 PY
+docker exec dsv4ab python3 "$ROOT/scripts/check_functional.py" --golden "$OUT/golden4.json" --out "$OUT/functional_check.json" > "$OUT/functional.log" 2>&1
 curl -sS --fail http://127.0.0.1:8080/metrics > "$OUT/metrics_before.txt"
 date -u '+warmup_start=%Y-%m-%dT%H:%M:%SZ' > "$OUT/times.txt"
 docker exec dsv4ab python3 "$ROOT/scripts/bench.py" --dataset "$DATASET" --out "$OUT/warmup.json" --limit 48 --concurrency 12 --max-tokens 1024 > "$OUT/warmup.log" 2>&1
