@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`DESIGNING`
-- 活动 Loop：`loop-010`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Apply reversible Tensor.item wrapper only during prepare input, restart without profiler, capture warm short workload and source line timing
-- 更新时间：`2026-09-20T18:18:35Z`
+- 下一步：Loop011: replace both QLI NPU scalar maxima with CPU local maxima, verify parity on live warm/cold requests, benchmark full frozen workload, KEEP/REJECT
+- 更新时间：`2026-09-20T18:35:39Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-007` | `REJECTED` | `REJECTED` | DSA CP off alone regressed full warmed E2E performance: median output TPS -4.70%, TTFT +15.1%, TPOT +3.8%; no >5% gain. Functional gate passed; numerical equivalence not needed for rejected candidate. |
 | `loop-008` | `ACCEPTED` | `ACCEPTED` | Short TP0 torch-NPU profile separates warm and cold CPU scopes and device kernels, locating 0.436s nested aten::item within warm prepare input and 1.379s rank-local device inactivity; source and exposure remain unresolved, but the diagnostic design goal is satisfied. |
 | `loop-009` | `PIVOTED` | `PIVOTED` | with_modules stack profiler crashed all workers during stop_profile; offline parser warned of lost data and exported no FRAMEWORK operator events, so item callsites remain unidentified |
-| `loop-010` | `RUNNING` | `PENDING` | 执行 Run itemtrace-20260920：python3 scripts/run_item_trace.py --out evidence/20260920_item_trace/run1 |
+| `loop-010` | `ACCEPTED` | `ACCEPTED` | Targeted wrapper found exact DSA CP QLI NPU item callsite and matching CPU local maxima already available; warm/cold rank timing supports a falsifiable candidate, without claiming E2E gain |
 
 ## 阻塞项
 
