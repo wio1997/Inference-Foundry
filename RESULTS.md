@@ -129,3 +129,7 @@ Loop014 builder-level trace patch compiled and passed diff check. Same DP1/TP8 n
 ## Update 2026-09-20 21:08 UTC — Loop014 PIVOT
 
 Loop014 PIVOT after two successful no-profiler diagnostic runs. Second run passed functional and 12/12 c12x512; 143 pure-decode builder steps per rank, eight groups per step. TP0 median attention metadata15.165ms, builder calls14.025ms, DCP0.002ms, residual1.117ms; first builder7.860ms, later each0.725-1.096ms. Source already caches common state across groups; prior all-step decode QLI scalar replacement did not yield mixed TPS gain. No semantics patch or throughput KEEP. Service stopped, 8 NPUs idle, diagnostic patch reverted; kept framework commit36589852 is clean. Evidence under evidence/20260920_loop014_prepare_trace/run2/ and patches/loop014_builder_trace.patch.
+
+## Live checkpoint 2026-09-20 21:13 UTC — Loop015 diagnostic in flight
+
+Shape audit script and compact JSON frozen. One-shot slot probe patch compiled and runs only after a flag is placed before the cold request; probe runner PID2173051 waits for DP1/TP8 API PID802820 to become healthy, then performs functional gate and one cold request. This run is diagnostic because the probe synchronizes once. TaskCtl Loop015 scatter-slot-uniqueness Run ongoing. No KEEP/REJECT yet.

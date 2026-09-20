@@ -124,3 +124,7 @@ Loop014 second diagnostic will split the 10.80-14.17ms rank-median compression/a
 ## Update 2026-09-20 21:08 UTC — Loop014 PIVOT
 
 Loop014 builder trace on 143 pure-decode steps/rank: eight DSA-CP metadata builders per step. TP0 median metadata total15.165ms, builder calls14.025ms, DCP0.002ms, residual1.117ms. First builder7.860ms, seven others0.725-1.096ms. The builder uses common_ratio_to_sas_metadata and cached local metadata across groups. Inclusive host duration is not a directly removable gap; no mixed TPS optimization was kept. Next prioritizes cold prefill device critical path.
+
+## Live checkpoint 2026-09-20 21:13 UTC — Loop015 cold kernel candidates
+
+Prior original-source cold msprof shape audit across four 32K->128 c1 requests found dominant ScatterNdUpdateSk [8096,2] index shape: 736 calls, 760.8ms summed task time, median1017us. Compressor ratio4 shape [8096,4096]: 336 calls, 505.7ms summed task time, median1503us. The totals span prefill and decode and overlap other ranks/operations. An on-request slot uniqueness probe is running; no removable time or throughput improvement established. See evidence/20260920_loop015_cold_kernels/shape_summary.json.
