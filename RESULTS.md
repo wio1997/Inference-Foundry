@@ -67,3 +67,9 @@ With FlashComm1 restored to true and only DSA CP false, functional checks passed
 | median | 518.10 tok/s | 1532.98 ms | 20.48 ms |
 
 Versus baseline medians 543.65 tok/s, 1331.80 ms, 19.73 ms: TPS -4.70%, TTFT +15.1%, TPOT +3.8%. **REJECT**. Full warmup, exact configuration command, functional check, individual responses and metrics snapshots: `evidence/20260920_dsa_cp_off/`. No numerical equivalence claim is needed for a rejected performance path.
+
+## 2026-09-20 17:59 UTC — Loop 008 accepted diagnostic
+
+Restored baseline FlashComm1 and DSA CP, started torch-NPU profiling on the same DP1/TP8 W4A8 service, and completed warm 4×128 c4 (4/4) and cold distinct 2×32K→128 c1 (2/2). `phase_times.json`, `scope_summary.json`, `scope_children.json`, `prepare_item.json`, `device_phase_summary.json`, and `raw_index.json` preserve the reproducible analysis and raw trace hashes. Torch-NPU offline analysis was needed after background parsing failed.
+
+Warm wall 5.473 s; TP0 device union 4.094 s, HCCL 2.269 s (reduce-scatter 1.146 s, all-gather 0.756 s, all-to-all 0.372 s), compute/copy 1.876 s. CPU prepare 1.320 s, draft 2.237 s; nested `aten::item` 0.436 s across 1364 calls. Cold wall 11.178 s; TP0 device union 9.481 s, HCCL 4.640 s, compute/copy 5.203 s. CPU forward 4.293 s, prepare 2.384 s, draft 3.405 s. Overlaps mean these sums are not additive. This is a diagnosis, not a performance optimization. Next identify the repeated `item` callsite and quantify exposed synchronization without profiler, then test a minimal safe change.

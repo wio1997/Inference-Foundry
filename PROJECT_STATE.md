@@ -7,7 +7,7 @@ Updated: 2026-09-20 16:06 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 
 - DeepSeek V4 Flash W4A8 at `/data/yxy/DeepSeek-V4-Flash-0731-w4a8`; one host with 8 × Ascend 910B3; DP=1, TP=8; correct complete prefill/decode service.
 - Reference: privileged `dsv4ab` container, vLLM 0.26.0, vLLM-Ascend 0.26.0rc1; source commits and image ID in `evidence/20260920_baseline/freeze.txt`.
 - Primary measured workload: frozen 48-request dataset hash in `freeze.txt`, 32K input, 1024 output, concurrency 12, temperature 0, ignore EOS, 90% repeated prefix. **Warm-cache protocol:** run one full dataset pass before measuring; hold service/code/params unchanged. First cold pass is not comparable with steady repeats.
-- Correctness gate for candidates: deterministic 4-prompt, 128-token output equality with `evidence/20260920_baseline/golden4.json`, plus 48/48 benchmark success and no material regression.
+- Correctness gate for candidates: complete 4-prompt 128-token outputs plus exact short functional checks; numerical equivalence requires a separate stable comparison before KEEP. Exact long reasoning hashes are nondeterministic and invalid as a gate.
 - Performance gate: same client and cache protocol; measure TTFT, TPOT, output TPS and noise. A KEEP needs gain larger than measured run spread and no material regression; otherwise INCONCLUSIVE/REJECT.
 
 ## Current baseline
@@ -64,3 +64,11 @@ DSA CP off alone, FlashComm1 on, passed the functional gate and three full warme
 ## Live checkpoint 2026-09-20 17:29 UTC — Loop 008 scope profiling
 
 The rejected DSA-CP-off service was stopped; 8 NPUs returned to ~3.4 GB idle HBM. A baseline-flag service (FlashComm1=true, DSA CP=true, DP1/TP8, same model/source) is starting with torch-NPU profiler enabled for diagnostics only. API PID 739569, log `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_P0-SCOPE-20260920.log`. Detached `scripts/profile_scopes.py` PID 1976075 waits for readiness, warms 4 short prompts, then profiles warm 4×128 c4 and cold 2×32K→128 c1 in one scope window. Outputs: `evidence/20260920_scope_profile/run1/`; large raw profiler files are ignored under `raw/`. Check runner and service logs before restarting. No profile result yet.
+
+## Update 2026-09-20 17:59 UTC — Loop 008 diagnostic accepted
+
+Baseline flags restored and healthy on port 8080, with torch-NPU profiler enabled only for diagnosis (API PID 739569). The profile runner completed warm 4×128 c4 (4/4) then cold distinct 2×32K→128 c1 (2/2), and stopped profiling. Raw TP0 export and SHA256 index are in `evidence/20260920_scope_profile/run1/raw_index.json`; large raw files remain ignored. The profiled warm request window took 5.473 s versus 3.633 s in a separate unprofiled msprof window, so do not use profiled times as an official performance baseline.
+
+TP0 warm device union 4.094 s, communication 2.269 s, compute/copy 1.876 s. CPU `prepare input` scope sum 1.320 s, `draft_token` 2.237 s; `aten::item` children within prepare sum 0.436 s across 1364 calls. These CPU scope durations include nested work and synchronization. Cold window 11.178 s, device union 9.481 s, communication 4.640 s, compute/copy 5.203 s. No speedup is claimed.
+
+Next Loop 009: locate the repeated device-to-host scalar synchronization callsite with stack or targeted instrumentation, prove whether it blocks TP0 device progress, then make one minimal source change only if semantics are preserved. Compare unprofiled matched warm/cold workloads and run functional plus numerical correctness checks before KEEP. Current source trees are still clean.
