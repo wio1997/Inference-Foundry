@@ -129,3 +129,8 @@ A/B2 was invalid because the edited dsa_v1 path was not active under DSA-CP. The
 ## Live checkpoint 2026-09-20 22:29 UTC — bound unchanged
 
 Active DSA-CP candidate is loading; no achieved E2E delta or bound update yet.
+
+
+## Update 2026-09-20 22:39 UTC — Loop016 bound unchanged
+
+The tested direct SWA scatter specialization made cold TTFT 2.9642% worse on eight exact-prompt requests, with zero prefix hits and eight-rank activation. Its isolated ~0.9ms/operator saving is excluded from achievable E2E bound because full-service work can overlap and incurs unmeasured cost. Cold TTFT and mixed TPS achievable bounds remain UNKNOWN; no new lower bound is claimed. Compressor ratio4 old-profile task totals are a screening signal only, not additive TTFT savings.

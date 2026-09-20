@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`cold_32k_128_c1`, `mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run swa-cp-index-copy-ab3-20260920：DP1TP8 DSA-CP path patch, scripts/run_loop016_cp.py, 8 rank fast trace then same-prompt cold offset8-15 against baseline
-- 更新时间：`2026-09-20T22:24:48Z`
+- 状态：`REJECTED`
+- 结论：`REJECTED`
+- 下一步：Start Loop017: attribute Compressor ratio4 cold prefill cost and test only a bounded candidate with correctness and same-prompt E2E benchmark.
+- 更新时间：`2026-09-20T22:41:58Z`
 
 ## Run 记录
 

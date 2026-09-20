@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-20T22:24:48Z",
+  "generated_at": "2026-09-20T22:42:28Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-016",
-    "next_action": "Trace generation of DSA compressor slot mapping through scheduler and metadata, then decide legal fast-path guard and prototype isolated kernel.",
+    "active_loop": null,
+    "next_action": "Start Loop017: attribute Compressor ratio4 cold prefill cost and test only a bounded candidate with correctness and same-prompt E2E benchmark.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,25 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-011",
-      "title": "Remove QLI metadata NPU scalar synchronization",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "cold_32k_128_c1",
-        "correctness_short"
-      ],
-      "hypothesis": "Using already computed CPU local query/key maxima for DSA CP QLI metadata removes two NPU item synchronizations per step without changing numeric metadata and improves mixed E2E throughput or cold TTFT",
-      "verdict": "PIVOTED",
-      "reason": "All-step QLI CPU-max candidate passed >=192 per-rank parity checks and improved exact same cold prompts 8/8 by mean284.83ms (-10.81%), but paired mixed TPS +0.52% is noise and median mean TTFT worsened11.9%; refine to prefill-only rather than KEEP",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_qli_pair_baseline/comparison.json",
-        "/data/wio/Inference_Foundry/evidence/20260920_qli_pair_baseline/cold/metrics_before.txt",
-        "/data/wio/Inference_Foundry/evidence/20260920_qli_pair_baseline/cold/metrics_after.txt"
-      ],
-      "decided_at": "2026-09-20T19:20:20Z"
-    },
-    {
       "loop_id": "loop-012",
       "title": "Use CPU QLI maxima only for prefill",
       "mode": "optimization",
@@ -223,35 +204,31 @@
         "/data/wio/Inference_Foundry/evidence/20260920_loop015_cold_kernels/scatter_v2_screen.json"
       ],
       "decided_at": "2026-09-20T21:28:18Z"
+    },
+    {
+      "loop_id": "loop-016",
+      "title": "Direct unique-index DSA scatter feasibility",
+      "mode": "optimization",
+      "cases": [
+        "cold_32k_128_c1",
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "Long-prefill DSA compressor slot mapping is unique by construction, allowing a single-pass direct scatter to remove SK sort and cross-core sync on a measurable cold TTFT critical path, with a safe fallback for duplicate or invalid cases.",
+      "verdict": "REJECTED",
+      "reason": "Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop016_direct_scatter/service_ab3/summary.json"
+      ],
+      "decided_at": "2026-09-20T22:41:58Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-016",
-    "title": "Direct unique-index DSA scatter feasibility",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run swa-cp-index-copy-ab3-20260920：DP1TP8 DSA-CP path patch, scripts/run_loop016_cp.py, 8 rank fast trace then same-prompt cold offset8-15 against baseline",
-    "cases": [
-      "cold_32k_128_c1",
-      "mixed_32k_1024_c12",
-      "correctness_short"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-20T22:24:48Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-016/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-016/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-016/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-016/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-016/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-016/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

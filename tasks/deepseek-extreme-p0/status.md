@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-016`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Trace generation of DSA compressor slot mapping through scheduler and metadata, then decide legal fast-path guard and prototype isolated kernel.
-- 更新时间：`2026-09-20T21:29:38Z`
+- 下一步：Start Loop017: attribute Compressor ratio4 cold prefill cost and test only a bounded candidate with correctness and same-prompt E2E benchmark.
+- 更新时间：`2026-09-20T22:41:58Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-013` | `PIVOTED` | `PIVOTED` | Valid c12 trace isolates large draft host and TP8 HCCL/idle envelopes but does not prove either removable. The candidate DSpark draft graph path is hard-disabled in source; prior upstream graph attempt was reverted. Further source-level cause and numerical constraints are needed before an E2E optimization. |
 | `loop-014` | `PIVOTED` | `PIVOTED` | No supported >=5% mixed TPS candidate emerged. The 8 metadata builders are group-specific and shared local/ratio state is already cached. First builder timing may include required device synchronization; Loop011 all-step QLI substitution did not improve mixed throughput. Avoid changing semantics merely to reduce inclusive host spans. |
 | `loop-015` | `PIVOTED` | `PIVOTED` | Captured one real 8096-row long-prefill scatter mapping per rank: all unique, but uniqueness not yet a general invariant. Existing V2 op gave bit-equal output and was 69% slower than SK in 25-call isolated NPU timing; no safe E2E patch or paired TTFT gain. Source SK deterministic sort+SyncAll suggests a direct unique-index path merits a separate build experiment. |
-| `loop-016` | `RUNNING` | `PENDING` | 执行 Run swa-cp-index-copy-ab3-20260920：DP1TP8 DSA-CP path patch, scripts/run_loop016_cp.py, 8 rank fast trace then same-prompt cold offset8-15 against baseline |
+| `loop-016` | `REJECTED` | `REJECTED` | Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain. |
 
 ## 阻塞项
 

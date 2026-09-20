@@ -156,3 +156,8 @@ A/B2 did not invoke dsa_v1 fast path under the enabled DSA-CP backend. Actual [8
 ## Live checkpoint 2026-09-20 22:29 UTC — DSA-CP A/B3 loading
 
 Third service API PID822276 and runner PID2242486 loading; no candidate E2E result yet.
+
+
+## Update 2026-09-20 22:39 UTC — Loop016 E2E rejection
+
+Cold c1 32851→128, same prompts offsets8–15, eight requests, no prefix hits: no-flag baseline mean TTFT2367.81ms; active DSA-CP index_copy candidate2438.00ms; delta +70.19ms / +2.9642% (worse), 0/8 improved. All eight ranks recorded fast-path activation, cache stride=(16384,512,512,1). Candidate not kept. Isolated operator index_copy0.510ms versus SK1.428ms was not predictive of full-service TTFT; overlap, launch and host effects remain unmeasured. Next map target: Compressor ratio4 cold prefill shape[8096,4096], old msprof 336 calls/four full requests, median task1.503ms; attribute which calls are prefill and on critical path before claiming opportunity.

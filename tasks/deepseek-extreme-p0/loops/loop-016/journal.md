@@ -23,3 +23,7 @@
 - `2026-09-20T22:24:48Z` Run `swa-prefill-index-copy-ab2-20260920` 记录为 `invalid`；正确性为 `invalid`。Second service functional passed and candidate probe request succeeded, but 0/8 fast traces and 0/8 dsa_v1 metadata traces: enabled DSA context-parallel backend invokes dsa_cp.py, so edited dsa_v1.py path was inactive. No candidate timing or correctness claim; API stopped cleanly.
 
 - `2026-09-20T22:24:48Z` 为用例 `cold_32k_128_c1` 创建 Run `swa-cp-index-copy-ab3-20260920`（benchmark）。
+
+- `2026-09-20T22:41:58Z` Run `swa-cp-index-copy-ab3-20260920` 记录为 `pass`；正确性为 `pass`。Active DSA-CP fast path on all eight ranks; eight same-prompt cold requests succeeded with zero prefix hits. Candidate TTFT +2.9642 percent, 0/8 faster; reject E2E candidate.
+
+- `2026-09-20T22:41:58Z` 主控结论为 `REJECTED`。Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain.
