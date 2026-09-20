@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-20T16:35:57Z",
+  "generated_at": "2026-09-20T16:39:05Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-004",
-    "next_action": "Make FlashComm1 a single env toggle; restart with false; warm, check golden, benchmark three passes",
+    "active_loop": null,
+    "next_action": "Test FlashComm1 and dependent DSA CP both disabled, as an explicitly combined path A/B",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -181,34 +181,30 @@
         "/data/wio/Inference_Foundry/evidence/20260920_diagnostic/app_profile_index.json"
       ],
       "decided_at": "2026-09-20T16:31:52Z"
+    },
+    {
+      "loop_id": "loop-004",
+      "title": "Test FlashComm1-off on TP8",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "FlashComm1 sequence-parallel reduce-scatter and MTP all-gather create removable exposed communication time on this TP8 topology; disabling FlashComm1 improves full E2E throughput",
+      "verdict": "PIVOTED",
+      "reason": "FlashComm1-off alone violates vllm-ascend DSA CP requires SP constraint; config failed during worker init before performance measurement",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_flashcomm_off/startup_failure.txt"
+      ],
+      "decided_at": "2026-09-20T16:39:05Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-004",
-    "title": "Test FlashComm1-off on TP8",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run flashcomm-off-20260920：bash scripts/run_flashcomm_candidate.sh",
-    "cases": [
-      "mixed_32k_1024_c12",
-      "correctness_short"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-20T16:35:57Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-004/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-004/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-004/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-004/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-004/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-004/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

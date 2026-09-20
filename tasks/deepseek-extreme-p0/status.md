@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-004`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Make FlashComm1 a single env toggle; restart with false; warm, check golden, benchmark three passes
-- 更新时间：`2026-09-20T16:32:38Z`
+- 下一步：Test FlashComm1 and dependent DSA CP both disabled, as an explicitly combined path A/B
+- 更新时间：`2026-09-20T16:39:05Z`
 
 ## 最近 Loop
 
@@ -23,7 +23,7 @@
 | `loop-001` | `PIVOTED` | `PIVOTED` | Initial SSE client omitted DeepSeek reasoning deltas, making first TTFT/TPOT invalid; corrected parser and preserved evidence |
 | `loop-002` | `ACCEPTED` | `ACCEPTED` | Three corrected 48/48 warm-cache runs, golden 4/4; invalid parser run isolated in pivoted Loop 001 |
 | `loop-003` | `PIVOTED` | `PIVOTED` | TP0 msprof distinguishes cold and warm compute/HCCL; warm HCCL union 1.165s of 3.401s with ~0.054s compute overlap, justifying a falsifiable FlashComm1 A/B; no same-condition optimization comparison yet |
-| `loop-004` | `RUNNING` | `PENDING` | 执行 Run flashcomm-off-20260920：bash scripts/run_flashcomm_candidate.sh |
+| `loop-004` | `PIVOTED` | `PIVOTED` | FlashComm1-off alone violates vllm-ascend DSA CP requires SP constraint; config failed during worker init before performance measurement |
 
 ## 阻塞项
 

@@ -36,3 +36,7 @@ The diagnostic service with `PROFILING_MODE=dynamic` became healthy at 16:17:54 
 Cold TP0 event span 18.583 s: compute/copy union 10.829 s, HCCL union 6.386 s, all-op union 16.510 s. Warm TP0 event span 3.401 s: compute/copy union 1.688 s, HCCL union 1.165 s, all-op union 2.799 s. These are rank-local profiled activity spans, not E2E causal attribution. Communication is nearly serial with compute in the warm sample. FlashComm1 reduce-scatter/all-gather is the next falsifiable candidate.
 
 Next: make a single-variable FlashComm1-off A/B while preserving DP1/TP8, W4A8, DSpark 7, graph mode and workload. Restart takes ~12 min. Check golden4 exact outputs, then three corrected full 48-request warm passes after a full-dataset warmup. KEEP requires robust TPS gain beyond the 4.3% baseline spread and no material TTFT/TPOT regression. Restore FlashComm1 if rejected. Do not launch another service over the current one.
+
+## Update 2026-09-20 16:39 UTC — Loop 004 pivot
+
+The isolated FlashComm1-off service failed during worker initialization before weights loaded or any request ran. `enable_dsa_cp=true` requires sequence parallelism; both must be disabled to test the non-SP path. The waiting benchmark runner was stopped, port 8080 is down, and all eight NPUs returned to ~3.4 GB idle HBM. The next loop will test the explicitly combined FlashComm1-off/DSA-CP-off path. Evidence: `evidence/20260920_flashcomm_off/startup_failure.txt`; full startup log is under ignored `logs/` with committed SHA256.
