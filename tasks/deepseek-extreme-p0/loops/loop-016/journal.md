@@ -15,3 +15,7 @@
 - `2026-09-20T21:43:50Z` Run `strided-index-copy-screen-20260920` 记录为 `pass`；正确性为 `pass`。Simulated first-axis stride32768 with real captured indices: as_strided physical-row index_copy_ bit-equal to SK, including per-call index flatten device median0.694ms vs SK1.528ms over20 calls. Isolated screen, not real cache layout or E2E.
 
 - `2026-09-20T21:43:50Z` 为用例 `cold_32k_128_c1` 创建 Run `swa-prefill-index-copy-ab-20260920`（benchmark）。
+
+- `2026-09-20T22:08:05Z` Run `swa-prefill-index-copy-ab-20260920` 记录为 `invalid`；正确性为 `invalid`。A/B harness halted before timing: golden reference came from repeatRate0.9 dataset but runner used no-repeat dataset (4/4 prompt hashes mismatch). Correct-dataset retry had 4/4 prompt hashes match but output hashes differ, consistent with previously documented same-service long-text nondeterminism. Fast path did not trigger (0/8 traces), so this run cannot judge candidate. Saved 8 cold no-flag baseline requests mean TTFT2367.81ms.
+
+- `2026-09-20T22:08:05Z` 为用例 `cold_32k_128_c1` 创建 Run `swa-prefill-index-copy-ab2-20260920`（benchmark）。

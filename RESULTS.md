@@ -145,3 +145,7 @@ Corrected captured-op attribution to SWA prefill. Captured c1 index mapping was 
 ## Live checkpoint 2026-09-20 21:47 UTC — Loop016 full-service test launched
 
 API PID809483 and detached A/B runner PID2207198 started after8 NPU idle check. Candidate flag absent by default. Runner will require exact four-prompt long output parity and eight rank fast-path traces before eight alternated cold pairs. Pending, no performance verdict.
+
+## 2026-09-20 22:08 UTC — Loop016 invalid first service gate
+
+Short functional check passed. Initial long golden comparison used mismatched datasets (4/4 prompt hash mismatch); correct-dataset retry matched prompt hashes but differed in all output hashes, consistent with documented nondeterministic long reasoning text even under unchanged service. No fast path trace (0/8), so candidate did not run. Saved no-flag cold offsets8–15 baseline8/8, mean TTFT2367.81ms. Stopped service, eight NPUs idle; revised patch and runner frozen. A/B2 pending. No performance verdict.

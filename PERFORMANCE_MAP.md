@@ -140,3 +140,7 @@ The 8096-row shape is SWA prefill scatter. On captured unique indices with match
 ## Live checkpoint 2026-09-20 21:47 UTC — Loop016 A/B pending
 
 Full-service candidate parity and paired cold TTFT are now queued on API PID809483. No new measured E2E result yet; isolated screen remains the map.
+
+## Update 2026-09-20 22:08 UTC — Loop016 cold no-flag baseline
+
+Same current source with candidate flag absent, fresh service, no-repeat dataset offsets8–15 c1, all eight 32851→128 succeeded: mean TTFT2367.81ms, individual 2334.5/2326.9/2371.8/2404.3/2332.2/2375.0/2396.1/2401.6ms. This is the exact prompt set for revised candidate run. The first attempted candidate did not activate (0/8 rank traces), so no E2E delta yet.

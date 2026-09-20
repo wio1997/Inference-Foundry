@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：执行 Run swa-prefill-index-copy-ab-20260920：DP1TP8 flag-gated no-profiler service, functional gate, paired distinct cold prompts baseline/candidate with flag toggles, cache-stride trace and prefix metrics
-- 更新时间：`2026-09-20T21:43:50Z`
+- 下一步：执行 Run swa-prefill-index-copy-ab2-20260920：Revised flag-gated DP1TP8 service and scripts/run_loop016_recovery.py; require 8 rank fast traces then exact same prompt offset8-15 cold TTFT comparison against saved no-flag baseline
+- 更新时间：`2026-09-20T22:08:05Z`
 
 ## Run 记录
 
@@ -16,6 +16,7 @@
 - `runs/cold_32k_128_c1/index-copy-screen-20260920`
 - `runs/cold_32k_128_c1/strided-index-copy-screen-20260920`
 - `runs/cold_32k_128_c1/swa-prefill-index-copy-ab-20260920`
+- `runs/cold_32k_128_c1/swa-prefill-index-copy-ab2-20260920`
 
 ## 阻塞项
 
