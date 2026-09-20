@@ -70,3 +70,7 @@ Loop 010 used no torch profiler. A temporary wrapper around Python `Tensor.item`
 ## Live update 2026-09-20 18:58 UTC — QLI candidate pending cold pairing
 
 Replacing QLI NPU scalar maxima with CPU local maxima passed >=192 runtime parity checks per rank over warm/cold requests and the functional gate. Full mixed 48×32K→1024 c12 warmed median output TPS is 540.40 vs baseline543.65 (-0.60%, no gain). Two candidate cold 4×32K→128 c1 groups at new offsets24 and28 have mean TTFT 2.338/2.360 s. The previous baseline groups used different prompts and had 2.663/2.627 s. Same-offset baseline is required before attributing this apparent cold difference. Do not convert it into a component Gap or bound yet.
+
+## Update 2026-09-20 19:20 UTC — paired QLI result
+
+The QLI CPU-max change was verified numerically on warm/cold metadata (>=192 checks per rank), then benchmarked without verification overhead. Full warmed mixed output TPS median540.40 vs paired original537.60 (+0.52%, below noise); candidate mean TTFT median1413.44 vs original1262.74 ms, so the all-step path lacks a safe mixed benefit. Exact same cold prompts24-31 gave candidate TTFT mean2349.06 vs original2633.90 ms (-10.81%); all eight improved205–343 ms and original prefix hits were0/262808 queried tokens. This localizes a useful cold-prefill opportunity. Next keep original decode path and apply CPU maxima only when DSA CP builder reports prefill; then retest mixed and cold.

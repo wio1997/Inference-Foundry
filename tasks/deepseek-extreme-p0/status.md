@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-011`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Stop tracer service, restore framework source, implement CPU-max QLI candidate with controlled parity verification, restart DP1TP8 and measure
-- 更新时间：`2026-09-20T18:35:51Z`
+- 下一步：Loop012: apply CPU QLI maxima only when num_prefills>0; verify parity and matched mixed/cold workloads while leaving decode path original
+- 更新时间：`2026-09-20T19:20:20Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-008` | `ACCEPTED` | `ACCEPTED` | Short TP0 torch-NPU profile separates warm and cold CPU scopes and device kernels, locating 0.436s nested aten::item within warm prepare input and 1.379s rank-local device inactivity; source and exposure remain unresolved, but the diagnostic design goal is satisfied. |
 | `loop-009` | `PIVOTED` | `PIVOTED` | with_modules stack profiler crashed all workers during stop_profile; offline parser warned of lost data and exported no FRAMEWORK operator events, so item callsites remain unidentified |
 | `loop-010` | `ACCEPTED` | `ACCEPTED` | Targeted wrapper found exact DSA CP QLI NPU item callsite and matching CPU local maxima already available; warm/cold rank timing supports a falsifiable candidate, without claiming E2E gain |
-| `loop-011` | `RUNNING` | `PENDING` | 执行 Run paired-baseline-20260920：bash scripts/run_qli_pair_baseline.sh |
+| `loop-011` | `PIVOTED` | `PIVOTED` | All-step QLI CPU-max candidate passed >=192 per-rank parity checks and improved exact same cold prompts 8/8 by mean284.83ms (-10.81%), but paired mixed TPS +0.52% is noise and median mean TTFT worsened11.9%; refine to prefill-only rather than KEEP |
 
 ## 阻塞项
 
