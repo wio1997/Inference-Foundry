@@ -22,7 +22,7 @@ async def main():
     p.add_argument('--concurrency', type=int, default=12)
     p.add_argument('--max-tokens', type=int, default=1024)
     a = p.parse_args()
-    prompts = [json.loads(x)['question'] for x in Path(a.dataset).read_text().splitlines()[:a.limit]]
+    prompts = [json.loads(x)['question'] for x in Path(a.dataset).read_text().splitlines()[a.offset:a.offset + a.limit]]
     sem = asyncio.Semaphore(a.concurrency)
     timeout = aiohttp.ClientTimeout(total=1800)
     async with aiohttp.ClientSession(timeout=timeout) as session:
