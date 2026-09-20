@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-20T15:59:15Z",
+  "generated_at": "2026-09-20T15:59:58Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -18,24 +18,43 @@
     "framework": "vllm-ascend",
     "source_root": "/data/wio/Inference_Foundry",
     "status": "ACTIVE",
-    "phase": "BASELINING",
+    "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": null,
-    "next_action": "Profile current DP1 TP8 warm decode and cold prefill, then select largest eliminable gap",
+    "active_loop": "loop-003",
+    "next_action": "Run cold four-prompt baseline, then system profile or restart with app profiler if needed",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": null,
+      "decision": "kernel-optimization",
       "execution": null
     }
   },
   "case_summary": {
-    "total": 2,
+    "total": 3,
     "groups": {
       "mixed": 1,
-      "correctness": 1
+      "correctness": 1,
+      "cold_prefill": 1
     },
     "selected": [
+      {
+        "id": "cold_32k_128_c1",
+        "shape": [
+          4,
+          32768,
+          128
+        ],
+        "numel": 16777216,
+        "dtype": "w4a8",
+        "layout": "DP1TP8",
+        "attributes": {},
+        "weight": 1.0,
+        "group": "cold_prefill",
+        "protected": true,
+        "reason": "Distinct uncached 32K prompts expose prefill critical path",
+        "created_at": "2026-09-20T15:59:58Z",
+        "updated_at": "2026-09-20T15:59:58Z"
+      },
       {
         "id": "mixed_32k_1024_c12",
         "shape": [
@@ -148,12 +167,32 @@
       "decided_at": "2026-09-20T15:59:15Z"
     }
   ],
-  "active_loop_summary": null,
+  "active_loop_summary": {
+    "loop_id": "loop-003",
+    "title": "Diagnose current TP8 cold prefill and warm decode gaps",
+    "mode": "optimization",
+    "status": "FROZEN",
+    "verdict": "PENDING",
+    "reason": "",
+    "next_action": "Run cold four-prompt baseline, then system profile or restart with app profiler if needed",
+    "cases": [
+      "cold_32k_128_c1",
+      "mixed_32k_1024_c12"
+    ],
+    "execution_skill": null,
+    "updated_at": "2026-09-20T15:59:58Z"
+  },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-003/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-003/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-003/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-003/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-003/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-003/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
