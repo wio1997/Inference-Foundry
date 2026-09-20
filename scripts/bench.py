@@ -19,6 +19,7 @@ async def main():
     p.add_argument('--out', required=True)
     p.add_argument('--url', default='http://127.0.0.1:8080/v1/chat/completions')
     p.add_argument('--limit', type=int, default=48)
+    p.add_argument('--offset', type=int, default=0)
     p.add_argument('--concurrency', type=int, default=12)
     p.add_argument('--max-tokens', type=int, default=1024)
     a = p.parse_args()
