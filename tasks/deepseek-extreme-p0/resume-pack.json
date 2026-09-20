@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-20T19:24:14Z",
+  "generated_at": "2026-09-20T19:47:44Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-012",
-    "next_action": "Stop current baseline, apply prefill-only source patch, restart DP1TP8, validate function and run warmed full benchmark plus fresh paired cold prompts",
+    "active_loop": null,
+    "next_action": "Investigate the warm mixed decode critical path and find an intervention with measurable output TPS gain; retain prefill-only QLI patch.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,22 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-007",
-      "title": "Isolate DSA CP off with FlashComm1 on",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "The coupled-path no-gain result may hide a DSA CP tradeoff; with FlashComm1 kept on, disabling only DSA CP may reduce exposed decode cost or reveal which component offset communication savings",
-      "verdict": "REJECTED",
-      "reason": "DSA CP off alone regressed full warmed E2E performance: median output TPS -4.70%, TTFT +15.1%, TPOT +3.8%; no >5% gain. Functional gate passed; numerical equivalence not needed for rejected candidate.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_dsa_cp_off/analysis.json"
-      ],
-      "decided_at": "2026-09-20T17:26:36Z"
-    },
-    {
       "loop_id": "loop-008",
       "title": "Resolve target draft host and cold prefill critical path",
       "mode": "design",
@@ -220,35 +204,32 @@
         "/data/wio/Inference_Foundry/evidence/20260920_qli_pair_baseline/cold/metrics_after.txt"
       ],
       "decided_at": "2026-09-20T19:20:20Z"
+    },
+    {
+      "loop_id": "loop-012",
+      "title": "Use CPU QLI maxima only for prefill",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "cold_32k_128_c1",
+        "correctness_short"
+      ],
+      "hypothesis": "Restricting QLI CPU local maxima to steps with num_prefills>0 preserves the measured 10.8 percent cold TTFT gain while restoring original pure-decode timing and eliminating mixed TTFT uncertainty",
+      "verdict": "ACCEPTED",
+      "reason": "Runtime CPU/NPU QLI maxima parity passed on all eight ranks in Loop011. Prefill-only patch passed functional gate. Same 16 cold prompts all improved: 2626.03 to 2362.89 ms mean TTFT (-10.02%) with no prefix cache hits. Full mixed median output TPS 547.55 versus paired original 537.60 is within baseline noise; median TTFT 1143.58 versus 1262.74 ms shows no observed regression.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_qli_prefill_only/comparison.json",
+        "/data/wio/Inference_Foundry/patches/loop012_qli_prefill_only.patch"
+      ],
+      "decided_at": "2026-09-20T19:47:44Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-012",
-    "title": "Use CPU QLI maxima only for prefill",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run qli-prefill-candidate-20260920：bash scripts/run_qli_prefill_candidate.sh",
-    "cases": [
-      "mixed_32k_1024_c12",
-      "cold_32k_128_c1",
-      "correctness_short"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-20T19:24:14Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-012/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-012/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-012/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-012/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-012/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-012/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

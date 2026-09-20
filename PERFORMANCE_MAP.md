@@ -74,3 +74,15 @@ Replacing QLI NPU scalar maxima with CPU local maxima passed >=192 runtime parit
 ## Update 2026-09-20 19:20 UTC — paired QLI result
 
 The QLI CPU-max change was verified numerically on warm/cold metadata (>=192 checks per rank), then benchmarked without verification overhead. Full warmed mixed output TPS median540.40 vs paired original537.60 (+0.52%, below noise); candidate mean TTFT median1413.44 vs original1262.74 ms, so the all-step path lacks a safe mixed benefit. Exact same cold prompts24-31 gave candidate TTFT mean2349.06 vs original2633.90 ms (-10.81%); all eight improved205–343 ms and original prefix hits were0/262808 queried tokens. This localizes a useful cold-prefill opportunity. Next keep original decode path and apply CPU maxima only when DSA CP builder reports prefill; then retest mixed and cold.
+
+
+## Update 2026-09-20 19:48 UTC — Loop 012 prefill-only QLI KEEP
+
+| Case | Original source | Prefill-only candidate | Interpretation |
+|---|---:|---:|---|
+| Cold 16 distinct 32851-token prompts, c1→128, mean TTFT | 2626.03 ms | 2362.89 ms | -263.14 ms (-10.02%); all 16 faster, no prefix hits |
+| Warmed mixed 48×32K→1024 c12, median output TPS, 3 passes | 537.60 | 547.55 | +1.85%, inside the 4.3% baseline spread |
+| Same mixed passes, median request-mean TTFT | 1262.74 ms | 1143.58 ms | No observed TTFT regression |
+| Same mixed passes, median request-mean TPOT | 19.503 ms | 19.252 ms | Within noise |
+
+The exact same 16 cold prompts were paired; candidate per-prompt deltas range -355.75 to -202.61 ms. This change removes a prefill QLI NPU scalar read using CPU maxima already computed in the same builder, with prior runtime equality checks on all eight ranks. Pure decode is unchanged. The main unsolved performance gap is warm mixed output throughput; existing HCCL and device profiles show a large communication envelope but no proven removable component. Next loop must localize an exposed decode critical path before changing code.

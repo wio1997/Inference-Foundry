@@ -5,14 +5,16 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `cold_32k_128_c1`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run qli-prefill-candidate-20260920：bash scripts/run_qli_prefill_candidate.sh
-- 更新时间：`2026-09-20T19:24:14Z`
+- 状态：`ACCEPTED`
+- 结论：`ACCEPTED`
+- 下一步：Investigate the warm mixed decode critical path and find an intervention with measurable output TPS gain; retain prefill-only QLI patch.
+- 更新时间：`2026-09-20T19:47:44Z`
 
 ## Run 记录
 
 - `runs/mixed_32k_1024_c12/qli-prefill-candidate-20260920`
+- `runs/cold_32k_128_c1/qli-prefill-cold-20260920`
+- `runs/cold_32k_128_c1/original-cold16-20260920`
 
 ## 阻塞项
 
