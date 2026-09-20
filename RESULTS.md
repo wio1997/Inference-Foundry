@@ -157,3 +157,7 @@ After eight NPU idle check, no-profiler DP1/TP8 service PID815939 and detached r
 ## 2026-09-20 22:25 UTC — Loop016 A/B2 invalid, active DSA-CP caller found
 
 Functional check and candidate probe request passed, but 0/8 rank and 0/8 metadata traces; enabled DSA-CP dispatches to dsa_cp.py:1522, bypassing edited dsa_v1.py. No candidate result. API stopped, eight NPUs idle. Third patch moves guard to DSA-CP caller and restores dsa_v1; syntax/diff checks pass. A/B3 queued with same cold prompt baseline.
+
+## Live checkpoint 2026-09-20 22:29 UTC — A/B3 launched
+
+Active DSA-CP patch service PID822276 and detached runner PID2242486 started after eight NPU idle check. Pending functional, 8-rank fast trace and exact-prompt cold A/B. No verdict.

@@ -125,3 +125,7 @@ No new bound until candidate path traces and same-prompt E2E run complete.
 ## Update 2026-09-20 22:25 UTC — bound unchanged
 
 A/B2 was invalid because the edited dsa_v1 path was not active under DSA-CP. The active DSA-CP callsite is now patched for A/B3. No candidate E2E measurement yet, so achievable bounds remain UNKNOWN.
+
+## Live checkpoint 2026-09-20 22:29 UTC — bound unchanged
+
+Active DSA-CP candidate is loading; no achieved E2E delta or bound update yet.

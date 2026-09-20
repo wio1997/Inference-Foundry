@@ -152,3 +152,7 @@ API PID815939 and runner PID2226077 are loading. No candidate E2E result yet.
 ## Update 2026-09-20 22:25 UTC — DSA-CP dispatch identified
 
 A/B2 did not invoke dsa_v1 fast path under the enabled DSA-CP backend. Actual [8096,2] SWA scatter caller is dsa_cp.py:1522. Previous isolated kernel screens remain valid for the operator shape; no new full-service candidate timing. Third patch targets the active caller, pending A/B3.
+
+## Live checkpoint 2026-09-20 22:29 UTC — DSA-CP A/B3 loading
+
+Third service API PID822276 and runner PID2242486 loading; no candidate E2E result yet.
