@@ -60,7 +60,7 @@ async def main():
                                             usage = data['usage']
                                         for choice in data.get('choices', []):
                                             delta = choice.get('delta') or {}
-                                            if delta.get('content') or delta.get('reasoning_content'):
+                                            if delta.get('content') or delta.get('reasoning_content') or delta.get('reasoning'):
                                                 now = time.perf_counter()
                                                 if first is None:
                                                     first = now
