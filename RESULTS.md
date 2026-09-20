@@ -98,3 +98,7 @@ Source commit `36589852a1eb8f5e842ad920f7c80ebdf1376ee9`; patch `patches/loop012
 After full-dataset warmup and three mixed 48/48 passes, candidate output TPS was 547.5468/538.5285/553.3549, median 547.5468. Paired original was 537.6045/524.6297/543.6665, median 537.6045. The +1.85% median change is within baseline spread; no mixed throughput gain is claimed. Candidate median request-mean TTFT was 1143.58 vs original 1262.74 ms and TPOT 19.252 vs 19.503 ms.
 
 Four cold groups (offsets24,28,40,44) compared the exact same 16 prompts, each 32851 input tokens, c1→128 output, with no cache hits and all requests successful. Original mean TTFT2626.0327 ms, candidate2362.8907 ms; -263.1420 ms (-10.0205%), all16 faster, range -355.75 to -202.61 ms. This supports KEEP specifically for cold prefill. Full paired data: `evidence/20260920_qli_prefill_only/comparison.json`; service log checksum and functional/perf/cold results in the same evidence directory. TaskCtl Loop012 verdict accepted. Next investigate warm mixed decode throughput.
+
+## 2026-09-20 19:56 UTC — Loop013 diagnostic in progress
+
+Two msprof dynamic attach attempts to the healthy TP0 worker exited255 with Argument --pid: no valid pid values and were recorded invalid. The previous service was stopped cleanly, all eight NPUs returned idle, and a new same-source DP1/TP8 torch-NPU no-stack service PID780818 is loading. scripts/profile_decode_c12.py runner PID2105542 will collect full warmup, warm12×128 c12, and profiled 12×512 c12. No performance verdict yet.

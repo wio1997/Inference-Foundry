@@ -86,3 +86,7 @@ The QLI CPU-max change was verified numerically on warm/cold metadata (>=192 che
 | Same mixed passes, median request-mean TPOT | 19.503 ms | 19.252 ms | Within noise |
 
 The exact same 16 cold prompts were paired; candidate per-prompt deltas range -355.75 to -202.61 ms. This change removes a prefill QLI NPU scalar read using CPU maxima already computed in the same builder, with prior runtime equality checks on all eight ranks. Pure decode is unchanged. The main unsolved performance gap is warm mixed output throughput; existing HCCL and device profiles show a large communication envelope but no proven removable component. Next loop must localize an exposed decode critical path before changing code.
+
+## Live update 2026-09-20 19:56 UTC — warm decode diagnostic pending
+
+The existing 4×128 c4 short torch profile placed 2.237 s of 5.473 s wall in TP0 draft_token host scope and 2.269 s in HCCL union, with overlap and profiler overhead. These are not exposed c12 critical-path costs. Loop013 is collecting a warm 12×512 c12 trace on the kept prefill-only QLI source to distinguish device activity and gaps. Dynamic msprof attach failed twice with no valid pid values; these attempts produced no timing claim.
