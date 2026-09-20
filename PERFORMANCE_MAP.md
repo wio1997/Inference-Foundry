@@ -116,3 +116,7 @@ Loop014 env-gated no-profiler prepare-input stage timestamps pending. They will 
 ## Update 2026-09-20 20:47 UTC — Loop014 first stage trace
 
 Loop014 no-profiler tracer, 157 pure decode steps per rank in successful c12 sample: TP0 median prepare19.55ms; state update0.78, input assembly4.81, dispatch/Mamba0.19, compression plus attention metadata12.99, preprocess0.31ms. Eight-rank dominant substage median10.80-14.17ms. This localizes an investigation target. It does not establish removable time or official 48x1024 throughput gain. Short diagnostic output TPS471.14 cannot be compared with frozen baseline because request count/output length differ and tracing is active.
+
+## Live checkpoint 2026-09-20 20:51 UTC — builder trace loading
+
+Loop014 second diagnostic will split the 10.80-14.17ms rank-median compression/attention stage into DCP setup, per-attention-builder calls and residual work. Prior first-stage trace remains the current measured map until this succeeds.
