@@ -29,7 +29,7 @@
 | `loop-013` | `PIVOTED` | `PIVOTED` | Valid c12 trace isolates large draft host and TP8 HCCL/idle envelopes but does not prove either removable. The candidate DSpark draft graph path is hard-disabled in source; prior upstream graph attempt was reverted. Further source-level cause and numerical constraints are needed before an E2E optimization. |
 | `loop-014` | `PIVOTED` | `PIVOTED` | No supported >=5% mixed TPS candidate emerged. The 8 metadata builders are group-specific and shared local/ratio state is already cached. First builder timing may include required device synchronization; Loop011 all-step QLI substitution did not improve mixed throughput. Avoid changing semantics merely to reduce inclusive host spans. |
 | `loop-015` | `PIVOTED` | `PIVOTED` | Captured one real 8096-row long-prefill scatter mapping per rank: all unique, but uniqueness not yet a general invariant. Existing V2 op gave bit-equal output and was 69% slower than SK in 25-call isolated NPU timing; no safe E2E patch or paired TTFT gain. Source SK deterministic sort+SyncAll suggests a direct unique-index path merits a separate build experiment. |
-| `loop-016` | `RUNNING` | `PENDING` | 执行 Run swa-prefill-index-copy-ab2-20260920：Revised flag-gated DP1TP8 service and scripts/run_loop016_recovery.py; require 8 rank fast traces then exact same prompt offset8-15 cold TTFT comparison against saved no-flag baseline |
+| `loop-016` | `RUNNING` | `PENDING` | 执行 Run swa-cp-index-copy-ab3-20260920：DP1TP8 DSA-CP path patch, scripts/run_loop016_cp.py, 8 rank fast trace then same-prompt cold offset8-15 against baseline |
 
 ## 阻塞项
 

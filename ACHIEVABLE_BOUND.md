@@ -121,3 +121,7 @@ The first service A/B stopped before candidate timing because of a dataset misma
 ## Live checkpoint 2026-09-20 22:12 UTC — revised A/B loading
 
 No new bound until candidate path traces and same-prompt E2E run complete.
+
+## Update 2026-09-20 22:25 UTC — bound unchanged
+
+A/B2 was invalid because the edited dsa_v1 path was not active under DSA-CP. The active DSA-CP callsite is now patched for A/B3. No candidate E2E measurement yet, so achievable bounds remain UNKNOWN.

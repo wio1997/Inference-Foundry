@@ -153,3 +153,7 @@ Short functional check passed. Initial long golden comparison used mismatched da
 ## Live checkpoint 2026-09-20 22:12 UTC — revised A/B launched
 
 After eight NPU idle check, no-profiler DP1/TP8 service PID815939 and detached runner PID2226077 started. Pending path activation and same-prompt candidate cold TTFT. No verdict.
+
+## 2026-09-20 22:25 UTC — Loop016 A/B2 invalid, active DSA-CP caller found
+
+Functional check and candidate probe request passed, but 0/8 rank and 0/8 metadata traces; enabled DSA-CP dispatches to dsa_cp.py:1522, bypassing edited dsa_v1.py. No candidate result. API stopped, eight NPUs idle. Third patch moves guard to DSA-CP caller and restores dsa_v1; syntax/diff checks pass. A/B3 queued with same cold prompt baseline.

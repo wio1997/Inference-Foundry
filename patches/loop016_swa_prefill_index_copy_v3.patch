@@ -1,0 +1,115 @@
+diff --git a/vllm_ascend/attention/context_parallel/dsa_cp.py b/vllm_ascend/attention/context_parallel/dsa_cp.py
+index 6fff48f9f..3917150ba 100644
+--- a/vllm_ascend/attention/context_parallel/dsa_cp.py
++++ b/vllm_ascend/attention/context_parallel/dsa_cp.py
+@@ -1,4 +1,5 @@
+ import math
++import os
+ from dataclasses import dataclass
+ from typing import ClassVar, TypeVar
+ 
+@@ -1519,7 +1520,33 @@ class AscendDSACPImpl(DSAAttentionImpl):
+             rotary_mode="interleave",
+             partial_slice=[self.nope_head_dim, self.head_dim],
+         )
+-        DeviceOperator.dsa_kv_compress_scatter(swa_kv_cache, kv, swa_metadata.req_metadata.slot_mapping)
++        # Only the single unpadded prefill request may use the unique-slot
++        # experiment. Mixed/decode/speculative batches retain deterministic SK.
++        swa_slots = swa_req_metadata.slot_mapping
++        unique_swa_slots = (
++            has_prefill
++            and swa_metadata.num_prefills == 1
++            and swa_metadata.num_decodes == 0
++            and swa_req_metadata.num_reqs_actual == 1
++            and swa_slots is not None
++            and swa_slots.shape[0] == kv.shape[0] == swa_metadata.num_actual_tokens
++        )
++        trace_dir = os.environ.get("LOOP016_INDEX_COPY_TRACE_DIR")
++        flag = os.environ.get("LOOP016_INDEX_COPY_FLAG")
++        if trace_dir and flag and os.path.exists(flag) and kv.shape[0] >= 1024:
++            trace_path = os.path.join(trace_dir, f"meta_{os.getpid()}.txt")
++            if not os.path.exists(trace_path):
++                with open(trace_path, "w") as trace_file:
++                    trace_file.write(
++                        f"prefills={swa_metadata.num_prefills} decodes={swa_metadata.num_decodes} "
++                        f"num_reqs_actual={swa_req_metadata.num_reqs_actual} "
++                        f"num_actual_tokens={swa_metadata.num_actual_tokens} "
++                        f"kv_rows={kv.shape[0]} slot_shape={tuple(swa_slots.shape) if swa_slots is not None else None} "
++                        f"unique_flag={unique_swa_slots}\n"
++                    )
++        DeviceOperator.dsa_kv_compress_scatter(
++            swa_kv_cache, kv, swa_slots, unique_write_slots=unique_swa_slots,
++        )
+ 
+         compress_topk_idxs = None
+         if self.compress_ratio > 1:
+diff --git a/vllm_ascend/device/device_op.py b/vllm_ascend/device/device_op.py
+index 8b7d5b606..2a618cbfc 100644
+--- a/vllm_ascend/device/device_op.py
++++ b/vllm_ascend/device/device_op.py
+@@ -35,6 +35,8 @@ from vllm_ascend.ops.triton.fused_gdn_gating import fused_gdn_gating_patch
+ from vllm_ascend.quantization.quant_type import QuantType
+ from vllm_ascend.utils import AscendDeviceType, get_ascend_device_type
+ 
++_LOOP016_SCATTER_RECORDED = False
++
+ 
+ def _npu_mla_prolog_v3_no_rope(**kwargs):
+     """Call the AscendC MLA prolog that supports no-RoPE inputs."""
+@@ -707,8 +709,46 @@ class BaseDeviceAdaptor:
+     # ===== SWA / Compressor KV Scatter =====
+ 
+     @staticmethod
+-    def dsa_kv_compress_scatter(cache, x, slot_mapping):
++    def dsa_kv_compress_scatter(cache, x, slot_mapping, unique_write_slots=False):
+         """Scatter KV into cache. Non-A5: simple scatter of pre-quantized tensor."""
++        global _LOOP016_SCATTER_RECORDED
++        flag = os.environ.get("LOOP016_INDEX_COPY_FLAG")
++        if (
++            unique_write_slots
++            and flag
++            and os.path.exists(flag)
++            and x.shape[0] >= 1024
++            and slot_mapping.ndim == 2
++            and slot_mapping.shape[1] == 2
++            and cache.ndim == 4
++            and cache.shape[2:] == x.shape[1:]
++        ):
++            row_width = x.shape[1] * x.shape[2]
++            if (
++                cache.stride(3) == 1
++                and cache.stride(2) == row_width
++                and cache.stride(0) % row_width == 0
++                and cache.stride(1) % row_width == 0
++            ):
++                block_stride = cache.stride(0) // row_width
++                offset_stride = cache.stride(1) // row_width
++                span = (cache.shape[0] - 1) * block_stride + (cache.shape[1] - 1) * offset_stride + 1
++                rows = cache.as_strided((span, row_width), (row_width, 1))
++                physical_index = (
++                    slot_mapping[:, 0] * block_stride + slot_mapping[:, 1] * offset_stride
++                ).contiguous()
++                rows.index_copy_(0, physical_index, x.reshape(-1, row_width))
++                if not _LOOP016_SCATTER_RECORDED:
++                    _LOOP016_SCATTER_RECORDED = True
++                    trace_dir = os.environ.get("LOOP016_INDEX_COPY_TRACE_DIR")
++                    if trace_dir:
++                        with open(os.path.join(trace_dir, f"rank_{os.getpid()}.txt"), "w") as trace_file:
++                            trace_file.write(
++                                f"cache_shape={tuple(cache.shape)} cache_stride={cache.stride()} "
++                                f"x_shape={tuple(x.shape)} slot_shape={tuple(slot_mapping.shape)} "
++                                f"block_stride={block_stride} offset_stride={offset_stride} span={span}\n"
++                            )
++                return
+         torch.ops._C_ascend.npu_scatter_nd_update_sk(cache, slot_mapping, x)
+ 
+     # ===== Indexer Quant + Scatter =====
+@@ -1511,7 +1551,7 @@ class A5DeviceAdaptor(BaseDeviceAdaptor):
+     # ===== SWA / Compressor KV Scatter =====
+ 
+     @staticmethod
+-    def dsa_kv_compress_scatter(cache, x, slot_mapping):
++    def dsa_kv_compress_scatter(cache, x, slot_mapping, unique_write_slots=False):
+         """Scatter KV into cache with fused quantization+compression.
+         A5: kv_compress_epilog handles quant/compress/scatter internally.
+         Input x is unquantized bf16; cache shape is [..., head_dim]."""

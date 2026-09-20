@@ -19,3 +19,7 @@
 - `2026-09-20T22:08:05Z` Run `swa-prefill-index-copy-ab-20260920` 记录为 `invalid`；正确性为 `invalid`。A/B harness halted before timing: golden reference came from repeatRate0.9 dataset but runner used no-repeat dataset (4/4 prompt hashes mismatch). Correct-dataset retry had 4/4 prompt hashes match but output hashes differ, consistent with previously documented same-service long-text nondeterminism. Fast path did not trigger (0/8 traces), so this run cannot judge candidate. Saved 8 cold no-flag baseline requests mean TTFT2367.81ms.
 
 - `2026-09-20T22:08:05Z` 为用例 `cold_32k_128_c1` 创建 Run `swa-prefill-index-copy-ab2-20260920`（benchmark）。
+
+- `2026-09-20T22:24:48Z` Run `swa-prefill-index-copy-ab2-20260920` 记录为 `invalid`；正确性为 `invalid`。Second service functional passed and candidate probe request succeeded, but 0/8 fast traces and 0/8 dsa_v1 metadata traces: enabled DSA context-parallel backend invokes dsa_cp.py, so edited dsa_v1.py path was inactive. No candidate timing or correctness claim; API stopped cleanly.
+
+- `2026-09-20T22:24:48Z` 为用例 `cold_32k_128_c1` 创建 Run `swa-cp-index-copy-ab3-20260920`（benchmark）。
