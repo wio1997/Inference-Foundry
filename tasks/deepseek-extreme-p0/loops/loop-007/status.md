@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run dsa-cp-off-20260920：EXPECTED_FLASHCOMM1=true EXPECTED_DSA_CP=false ALLOW_NONDETERMINISTIC_GOLDEN=1 CANDIDATE_OUT=evidence/20260920_dsa_cp_off bash scripts/run_flashcomm_candidate.sh
-- 更新时间：`2026-09-20T17:07:40Z`
+- 状态：`REJECTED`
+- 结论：`REJECTED`
+- 下一步：Restore baseline FlashComm1/DSA CP on and profile target, draft, host and cold prefill critical path before another implementation
+- 更新时间：`2026-09-20T17:26:36Z`
 
 ## Run 记录
 

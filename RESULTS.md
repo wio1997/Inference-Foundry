@@ -54,3 +54,16 @@ The valid coupled path passed functional checks (long 4/4 at 128 tokens; exact s
 | median | 534.88 tok/s | 1435.47 ms | 19.87 ms |
 
 Versus frozen baseline medians 543.65 tok/s, 1331.80 ms, 19.73 ms: throughput -1.61%, TTFT +7.8%, TPOT +0.7%. The throughput change is within the baseline three-run 4.3% spread. **REJECT** as a performance optimization; no numerical equivalence claim. DSpark counters across the candidate warmup plus three passes show ~41.8% acceptance and 2.927 accepted tokens/draft, close to baseline, but that counter window includes warmup. Full evidence: `evidence/20260920_sp_dsa_off_perf/analysis.json`, `functional_check.json`, individual passes and metrics snapshots.
+
+## 2026-09-20 — Loop 007 REJECT: DSA CP off alone
+
+With FlashComm1 restored to true and only DSA CP false, functional checks passed and three full warmed 48×32K→1024 c12 passes completed 48/48 each.
+
+| Pass | Output TPS | Mean TTFT | Mean TPOT |
+|---|---:|---:|---:|
+| 1 | 535.16 tok/s | 1532.98 ms | 19.88 ms |
+| 2 | 518.10 tok/s | 1605.03 ms | 20.48 ms |
+| 3 | 514.23 tok/s | 1435.82 ms | 20.48 ms |
+| median | 518.10 tok/s | 1532.98 ms | 20.48 ms |
+
+Versus baseline medians 543.65 tok/s, 1331.80 ms, 19.73 ms: TPS -4.70%, TTFT +15.1%, TPOT +3.8%. **REJECT**. Full warmup, exact configuration command, functional check, individual responses and metrics snapshots: `evidence/20260920_dsa_cp_off/`. No numerical equivalence claim is needed for a rejected performance path.
