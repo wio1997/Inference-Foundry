@@ -5,14 +5,16 @@
 - 模式：`optimization`
 - 目标用例：`cold_32k_128_c1`, `mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run cold four-prompt baseline, then system profile or restart with app profiler if needed
-- 更新时间：`2026-09-20T15:59:58Z`
+- 下一步：审查 Run run-20260920T160449Z 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-20T16:05:00Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/cold_32k_128_c1/run-20260920T160025Z`
+- `runs/cold_32k_128_c1/run-20260920T160125Z`
+- `runs/cold_32k_128_c1/run-20260920T160449Z`
 
 ## 阻塞项
 

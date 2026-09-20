@@ -22,7 +22,7 @@
 | --- | --- | --- | --- |
 | `loop-001` | `PIVOTED` | `PIVOTED` | Initial SSE client omitted DeepSeek reasoning deltas, making first TTFT/TPOT invalid; corrected parser and preserved evidence |
 | `loop-002` | `ACCEPTED` | `ACCEPTED` | Three corrected 48/48 warm-cache runs, golden 4/4; invalid parser run isolated in pivoted Loop 001 |
-| `loop-003` | `FROZEN` | `PENDING` | Run cold four-prompt baseline, then system profile or restart with app profiler if needed |
+| `loop-003` | `EVALUATING` | `PENDING` | 审查 Run run-20260920T160449Z 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
