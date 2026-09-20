@@ -28,3 +28,11 @@ Updated: 2026-09-20 16:06 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 
 ## Resume
 
 Run `git log -3 --oneline` and `python3 scripts/taskctl.py resume --task-dir tasks/deepseek-extreme-p0`. Read only this file, `PERFORMANCE_MAP.md`, `ACHIEVABLE_BOUND.md`, `RESULTS.md`, and paths in the resume pack. Check `npu-smi info`, `docker ps`, port 8080, and source Git status before work. Framework trees are shared bind mounts; do not edit them in place during a live baseline. Current raw service log is in `logs/` (ignored); committed measurement evidence is in `evidence/`.
+
+## Update 2026-09-20 16:30 UTC — Loop 003 pivoted after diagnostic
+
+The diagnostic service with `PROFILING_MODE=dynamic` became healthy at 16:17:54 UTC and remains on port 8080. TP0 application profiles for four cold 32K→128 c1 and four exact-repeat warm 128-token c4 requests both passed 4/4. Raw traces remain on host; `evidence/20260920_diagnostic/app_profile_index.json` records paths and SHA256. Reproduce summaries with `scripts/analyze_profile.py`.
+
+Cold TP0 event span 18.583 s: compute/copy union 10.829 s, HCCL union 6.386 s, all-op union 16.510 s. Warm TP0 event span 3.401 s: compute/copy union 1.688 s, HCCL union 1.165 s, all-op union 2.799 s. These are rank-local profiled activity spans, not E2E causal attribution. Communication is nearly serial with compute in the warm sample. FlashComm1 reduce-scatter/all-gather is the next falsifiable candidate.
+
+Next: make a single-variable FlashComm1-off A/B while preserving DP1/TP8, W4A8, DSpark 7, graph mode and workload. Restart takes ~12 min. Check golden4 exact outputs, then three corrected full 48-request warm passes after a full-dataset warmup. KEEP requires robust TPS gain beyond the 4.3% baseline spread and no material TTFT/TPOT regression. Restore FlashComm1 if rejected. Do not launch another service over the current one.

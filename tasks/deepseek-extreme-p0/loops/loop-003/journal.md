@@ -13,3 +13,5 @@
 - `2026-09-20T16:04:49Z` 为用例 `cold_32k_128_c1` 创建 Run `run-20260920T160449Z`（profile）。
 
 - `2026-09-20T16:05:00Z` Run `run-20260920T160449Z` 记录为 `pass`；正确性为 `pass`。System-level msprof on device0 collected HBM/HCCS/AICore during four cold prompts; no per-op kernel timeline, so insufficient for causal selection
+
+- `2026-09-20T16:31:52Z` 主控结论为 `PIVOTED`。TP0 msprof distinguishes cold and warm compute/HCCL; warm HCCL union 1.165s of 3.401s with ~0.054s compute overlap, justifying a falsifiable FlashComm1 A/B; no same-condition optimization comparison yet

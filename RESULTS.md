@@ -22,3 +22,14 @@ Next: current-topology profiling and a separate cold-prefill measurement. Rank D
 ## 2026-09-20 — Loop 003 diagnostic in progress
 
 Two disjoint uncached 32K→128 c1 groups each passed 4/4; TTFT mean 2662.7 and 2627.2 ms. The second group had 0 cache hits over 131,404 queried tokens. System msprof on device 0 succeeded during a third group (4/4); output is indexed under `evidence/20260920_diagnostic/`, but no per-op kernel timeline was captured. Baseline service was stopped by terminating its own API process; all 8 NPU process lists cleared, container remained running. The same serving configuration has been relaunched with `PROFILING_MODE=dynamic` for current-topology application profiling. No performance KEEP/REJECT yet.
+
+## 2026-09-20 — Loop 003 pivoted after diagnostic diagnostic: TP0 application profile
+
+The service was restarted with frozen DP1/TP8 serving parameters plus `PROFILING_MODE=dynamic`, ready at 16:17:54 UTC. Dynamic `msprof` attached to TP0 worker. First profile attempt used a wrong dataset path and issued no request; its small failure log is retained. The corrected cold profile used four new distinct 32K→128 c1 prompts: 4/4, mean TTFT 2719.5 ms under profiler. A separate exact-repeat warm profile used four 128-token requests at c4: 4/4, 140.94 output tok/s under profiler. Neither is directly comparable to the official 48×1024 c12 baseline.
+
+| TP0 trace | Event span | Compute/copy union | HCCL union | All-op union | Largest HCCL types |
+|---|---:|---:|---:|---:|---|
+| cold 4×32K→128 c1 | 18.583 s | 10.829 s | 6.386 s | 16.510 s | reduce-scatter 3.588 s, all-gather 1.934 s, all-to-all 0.864 s |
+| warm 4×128 c4 | 3.401 s | 1.688 s | 1.165 s | 2.799 s | reduce-scatter 0.577 s, all-gather 0.356 s, all-to-all 0.231 s |
+
+Union times can overlap and do not prove removability. The warm trace has only ~0.054 s compute/HCCL overlap and 0.602 s with no recorded device op. FlashComm1 sequence-parallel reductions occur in layers and an all-gather feeds MTP (`models/deepseek_v4.py:1144` in the bound source). This justifies a single-variable FlashComm1-off experiment, not a performance claim. Raw paths and op-summary hashes are in `evidence/20260920_diagnostic/app_profile_index.json`; summarize again with `scripts/analyze_profile.py`. No performance KEEP has been earned.
