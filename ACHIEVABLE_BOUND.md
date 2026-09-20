@@ -81,3 +81,7 @@ A profiled 12×512 c12 window gave TP0 device active13.038/16.459 s, compute/cop
 ## Live update 2026-09-20 20:30 UTC — no host speedup inferred
 
 The 9.57 ms median prepare-input host self time and 52.89 ms median draft host total are inclusive diagnostic durations, not proven critical-path savings. Loop014 will measure substage spans and require a paired unprofiled E2E improvement before promoting any reducible-time or bound claim. Official mixed bound remains UNKNOWN.
+
+## Live checkpoint 2026-09-20 20:33 UTC — Loop014 stage tracer
+
+Loop014 tracer host spans are diagnostic; a large stage duration alone does not set a removable E2E bound. Official mixed achievable bound remains UNKNOWN until a correct paired unprofiled intervention.

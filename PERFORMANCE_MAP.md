@@ -108,3 +108,7 @@ TP0 HCCL duration by type: reduce-scatter3.117 s, all-gather1.677 s, all-to-all0
 ## Live update 2026-09-20 20:30 UTC — decode host attribution still open
 
 Loop014 source audit shows prepare-input host self median9.57 ms among170 c12 steps, while a typical nested NPU item call was0.70 ms. The broad prepare scope includes _update_states, _prepare_inputs, Mamba preprocessing, attention metadata and _preprocess. The current trace cannot assign that self time to a single removable function; a low-overhead stage timer is the next discriminator. No change to measured E2E performance.
+
+## Live checkpoint 2026-09-20 20:33 UTC — Loop014 stage tracer
+
+Loop014 env-gated no-profiler prepare-input stage timestamps pending. They will split the prior 21.42 ms median c12 prepare scope into state update, input assembly, Mamba/dispatch, attention metadata and preprocess. No new measured gap yet.
