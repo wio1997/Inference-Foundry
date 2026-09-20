@@ -6,21 +6,20 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`NONE`
+- 活动 Loop：`loop-012`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Loop012: apply CPU QLI maxima only when num_prefills>0; verify parity and matched mixed/cold workloads while leaving decode path original
-- 更新时间：`2026-09-20T19:20:20Z`
+- 下一步：Stop current baseline, apply prefill-only source patch, restart DP1TP8, validate function and run warmed full benchmark plus fresh paired cold prompts
+- 更新时间：`2026-09-20T19:20:35Z`
 
 ## 最近 Loop
 
-共 `11` 个 Loop；完整索引见 `loop-index.jsonl`。
+共 `12` 个 Loop；完整索引见 `loop-index.jsonl`。
 
 | Loop | 状态 | 结论 | 决定/下一步 |
 | --- | --- | --- | --- |
-| `loop-002` | `ACCEPTED` | `ACCEPTED` | Three corrected 48/48 warm-cache runs, golden 4/4; invalid parser run isolated in pivoted Loop 001 |
 | `loop-003` | `PIVOTED` | `PIVOTED` | TP0 msprof distinguishes cold and warm compute/HCCL; warm HCCL union 1.165s of 3.401s with ~0.054s compute overlap, justifying a falsifiable FlashComm1 A/B; no same-condition optimization comparison yet |
 | `loop-004` | `PIVOTED` | `PIVOTED` | FlashComm1-off alone violates vllm-ascend DSA CP requires SP constraint; config failed during worker init before performance measurement |
 | `loop-005` | `PIVOTED` | `PIVOTED` | Strict golden4 exact-output gate is invalid: 4/4 mismatch even between repeat runs on unchanged candidate; cannot infer candidate correctness failure or performance |
@@ -30,6 +29,7 @@
 | `loop-009` | `PIVOTED` | `PIVOTED` | with_modules stack profiler crashed all workers during stop_profile; offline parser warned of lost data and exported no FRAMEWORK operator events, so item callsites remain unidentified |
 | `loop-010` | `ACCEPTED` | `ACCEPTED` | Targeted wrapper found exact DSA CP QLI NPU item callsite and matching CPU local maxima already available; warm/cold rank timing supports a falsifiable candidate, without claiming E2E gain |
 | `loop-011` | `PIVOTED` | `PIVOTED` | All-step QLI CPU-max candidate passed >=192 per-rank parity checks and improved exact same cold prompts 8/8 by mean284.83ms (-10.81%), but paired mixed TPS +0.52% is noise and median mean TTFT worsened11.9%; refine to prefill-only rather than KEEP |
+| `loop-012` | `FROZEN` | `PENDING` | Stop current baseline, apply prefill-only source patch, restart DP1TP8, validate function and run warmed full benchmark plus fresh paired cold prompts |
 
 ## 阻塞项
 
