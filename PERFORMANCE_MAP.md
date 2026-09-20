@@ -1,17 +1,16 @@
 # Performance Map V0
 
-Updated: 2026-09-20 UTC. Evidence maturity: E0 until the current DP1/TP8 baseline completes.
+Updated: 2026-09-20 15:57 UTC. Current evidence: 3 warm-cache DP1/TP8 end-to-end runs; no current kernel/HCCL timeline yet.
 
-| Stage / mechanism | Current measurement | Evidence | Gap or unknown |
+| Component | Observed current runtime | Evidence and confidence | Remaining Gap / next discrimination |
 |---|---:|---|---|
-| End-to-end 48×32K→1024, c12 | pending | `scripts/bench.py`, frozen dataset hash in `evidence/20260920_baseline/freeze.txt` | TTFT, TPOT, output TPS, run variance |
-| Prefill device | pending | service and future trace | per chunk kernel/HCCL split, critical path |
-| Decode target/draft | pending | service and future trace | target versus speculative draft, graph coverage, token acceptance |
-| W4A8 weight traffic | ~21.1 GB active model weights per selected-expert path (model-wide approximation) | `evidence/20260920_baseline/weight_inventory.json` | true rank sharding, cache reuse, batch expert overlap, draft pass count |
-| TP8 communication | pending | future HCCL trace | bytes, latency, overlap |
-| Host / metadata / D2H | pending | future timestamps and source | exposed host overhead, synchronization migration |
-| HBM bandwidth reference | 1.3 TB/s observed by older RMS kernel, not current workload | `/data/wio/vllm_ascend_26/results/r16_prefill_device_forward_candidate/evidence/RUN.md:81` | repeat on this source and relevant access pattern |
+| E2E warm mixed workload, 48×32K→1024, c12 | output TPS 543.65 median (range 523.15–545.85); TTFT mean 1.33 s median; TPOT mean 19.73 ms median | `evidence/20260920_baseline/bench48_[123].json`, high confidence in order of magnitude, ~4.3% TPS range | Separate cold and warm phases; quantify repeat noise before accepting small gains |
+| Prefix reuse | 99.75% hit on measured passes | before/after Prometheus counters; high | This measured workload is decode-heavy after warmup; first-pass prefill must be measured separately |
+| DSpark speculation | accepted 2.94 tokens/draft, 42.0% acceptance (runs 1–2); 41.2% run 3 | `analysis.json`, Prometheus; high for counters | Measure draft and target spans/bytes; compare speculation against a correctness-preserving control only if predicted gain is large |
+| Device occupancy | AICore median 77%, p90 83%; HBM occupancy ~60.3 GB/card | `npu_samples.txt`, 5 s snapshots during runs 1–2; medium | Identify idle/serial gaps, memory or communication stalls; utilization alone is not root cause |
+| Prefill kernels / KV | not yet measured on current topology | historical R16 is DP2/TP4 only | Cold 32K prefill chunk timeline, KV/indexer copies, critical path |
+| Decode kernels, graph, host | not yet measured on current topology | historical R08 is DP2/TP4 c1 only | Draft/target split, launch and D2H/sync migration |
+| TP8 HCCL | not yet measured | historical R39 shows contention in DP2/TP4, not transferable | Actual TP8 communication duration, bytes, overlap |
+| W4A8 weight traffic | ~21.1 GB selected weights per token model-wide before batch reuse | `weight_inventory.json`; approximate | Actual rank-local selected experts, cache reuse, draft pass count |
 
-Historical constraints: DP2/TP4 R39 retained R17+R20 and rejected R29 for c12 throughput; R23 target decode Super Kernel regressed TPOT. These are workload/topology dependent and do not settle DP1/TP8.
-
-Priority after E2 baseline: diagnose the largest exposed term rather than patching a presumed kernel. Do not assign a Compute or Framework label before matching device and host evidence.
+Do not infer Compute Gap versus Framework Gap from AICore utilization alone. The next diagnostic must explain exposed time at the same workload. Historical R23 Super Kernel regression and R39 R29 regression make those paths lower-priority unless current trace contradicts prior mechanisms.

@@ -5,7 +5,7 @@ from pathlib import Path
 
 root = Path('/data/wio/Inference_Foundry/evidence/20260920_baseline')
 runs = []
-for n in (1, 2):
+for n in (1, 2, 3):
     path = root / f'bench48_{n}.json'
     if path.exists():
         data = json.loads(path.read_text())
@@ -14,7 +14,7 @@ for n in (1, 2):
                      'input_tokens': sum((r['input_tokens'] or 0) for r in data['requests'] if not r['error'])})
 
 metrics = {}
-for stage in ('before', 'after'):
+for stage in ('before', 'after', 'before_3', 'after_3'):
     path = root / f'metrics_{stage}.txt'
     if not path.exists():
         continue
@@ -37,6 +37,8 @@ for stage in ('before', 'after'):
 
 diff = {k: metrics.get('after', {}).get(k, 0) - metrics.get('before', {}).get(k, 0)
         for k in metrics.get('after', {})}
+diff3 = {k: metrics.get('after_3', {}).get(k, 0) - metrics.get('before_3', {}).get(k, 0)
+         for k in metrics.get('after_3', {})}
 drafts = diff.get('vllm:spec_decode_num_drafts_total', 0)
 draft_tokens = diff.get('vllm:spec_decode_num_draft_tokens_total', 0)
 accepted = diff.get('vllm:spec_decode_num_accepted_tokens_total', 0)
@@ -54,10 +56,12 @@ if path.exists():
             util.append(int(m.group(1)))
             hbm.append(int(m.group(2)))
 
-result = {'runs': runs, 'metrics_delta': diff,
+result = {'runs': runs, 'metrics_delta': diff, 'metrics_delta_run3': diff3,
           'spec_acceptance': accepted / draft_tokens if draft_tokens else None,
           'accepted_per_draft': accepted / drafts if drafts else None,
           'prefix_hit_rate': hits / queries if queries else None,
+          'spec_acceptance_run3': diff3.get('vllm:spec_decode_num_accepted_tokens_total', 0) / diff3.get('vllm:spec_decode_num_draft_tokens_total', 1),
+          'prefix_hit_rate_run3': diff3.get('vllm:prefix_cache_hits_total', 0) / diff3.get('vllm:prefix_cache_queries_total', 1),
           'npu_ai_core_samples': len(util),
           'npu_ai_core_median': statistics.median(util) if util else None,
           'npu_ai_core_p90': sorted(util)[int(.9 * (len(util)-1))] if util else None,

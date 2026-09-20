@@ -20,7 +20,7 @@
 
 | Loop | 状态 | 结论 | 决定/下一步 |
 | --- | --- | --- | --- |
-| `loop-001` | `RUNNING` | `PENDING` | 执行 Run run-20260920T155037Z：bash scripts/run_baseline.sh (validated reasoning parser; two 48-request rounds) |
+| `loop-001` | `EVALUATING` | `PENDING` | 审查 Run run-20260920T155718Z 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
