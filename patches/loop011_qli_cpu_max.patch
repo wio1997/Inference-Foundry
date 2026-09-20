@@ -1,0 +1,68 @@
+diff --git a/vllm_ascend/attention/context_parallel/dsa_cp.py b/vllm_ascend/attention/context_parallel/dsa_cp.py
+index 5b8eebabf..3cf2f97c9 100644
+--- a/vllm_ascend/attention/context_parallel/dsa_cp.py
++++ b/vllm_ascend/attention/context_parallel/dsa_cp.py
+@@ -1,4 +1,5 @@
+ import math
++import os
+ from dataclasses import dataclass
+ from typing import ClassVar, TypeVar
+ 
+@@ -43,6 +44,10 @@ from vllm_ascend.utils import (
+ )
+ 
+ 
++_QLI_VERIFY_FILE = os.environ.get("QLI_VERIFY_FILE")
++_QLI_PARITY_COUNT = 0
++
++
+ def hadamard_transform_ref(
+     x: torch.Tensor,
+     hadamard: torch.Tensor,
+@@ -778,6 +783,8 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             seq_lens=local_seq_lens,
+             seq_lens_q=local_seq_lens_q,
+             num_reqs=num_reqs,
++            max_seqlen_q_cpu=max_local_query_len,
++            max_seqlen_k_cpu=max_local_seq_lens,
+         )
+ 
+         cp_metadata = DSACPMetadata(
+@@ -997,7 +1004,10 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         self.req_sas_metadata[:1024] = metadata
+         return self.req_sas_metadata[:1024]
+ 
+-    def _build_qli_metadata(self, query_start_loc, seq_lens, seq_lens_q, num_reqs):
++    def _build_qli_metadata(
++        self, query_start_loc, seq_lens, seq_lens_q, num_reqs,
++        max_seqlen_q_cpu, max_seqlen_k_cpu,
++    ):
+         if self.compressor_ratio != 4:
+             return None
+ 
+@@ -1005,8 +1015,23 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         metadata = self.common_ratio_to_sas_metadata.get(cache_key)
+ 
+         if metadata is None:
+-            max_seqlen_q = max(1, int(seq_lens_q.max().item()))
+-            max_seqlen_k = max(1, int(seq_lens.max().item()))
++            # The CPU local metadata uses the same partition formula as the
++            # device local metadata. Reuse its maxima to avoid two NPU->CPU
++            # scalar synchronizations on every QLI metadata build.
++            max_seqlen_q = max_seqlen_q_cpu
++            max_seqlen_k = max_seqlen_k_cpu
++            if _QLI_VERIFY_FILE and os.path.exists(_QLI_VERIFY_FILE):
++                old_q = max(1, int(seq_lens_q.max().item()))
++                old_k = max(1, int(seq_lens.max().item()))
++                if (max_seqlen_q, max_seqlen_k) != (old_q, old_k):
++                    raise AssertionError(
++                        f"QLI CPU/NPU max mismatch: CPU={(max_seqlen_q, max_seqlen_k)}, "
++                        f"NPU={(old_q, old_k)}"
++                    )
++                global _QLI_PARITY_COUNT
++                _QLI_PARITY_COUNT += 1
++                if _QLI_PARITY_COUNT % 32 == 0:
++                    print(f"QLI_PARITY_PASS count={_QLI_PARITY_COUNT}", flush=True)
+             metadata = torch.ops._C_ascend.npu_vllm_quant_lightning_indexer_metadata(
+                 actual_seq_lengths_query=query_start_loc[1:].clone(),
+                 actual_seq_lengths_key=seq_lens.clone(),
