@@ -74,6 +74,7 @@ export VLLM_PREFIX_CACHE_RETENTION_INTERVAL=16384
 # 权重加载约 6~7 分钟（169.7GB / 8 卡）+ 首次编译 mega_moe，默认 600s 就绪握手偏紧，放宽到 1800s
 export VLLM_ENGINE_READY_TIMEOUT_S=1800
 export FLASHCOMM1_ENABLED="${FLASHCOMM1_ENABLED:-true}"
+export DSA_CP_ENABLED="${DSA_CP_ENABLED:-true}"
 # ASCEND_RT_VISIBLE_DEVICES / SOC_VERSION 由容器 env 传入
 
 # ---------- 启动 ----------
@@ -115,7 +116,7 @@ nohup vllm serve "${MODEL_PATH}" \
     --host 0.0.0.0 \
     --port "${HOST_PORT}" \
     --block-size 32 \
-    --additional-config "{\"ascend_compilation_config\":{\"enable_npugraph_ex\":true,\"enable_static_kernel\":false},\"enable_flashcomm1\":${FLASHCOMM1_ENABLED},\"enable_dsa_cp\":true,\"enable_cpu_binding\":true,\"multistream_overlap_shared_expert\":true}" \
+    --additional-config "{\"ascend_compilation_config\":{\"enable_npugraph_ex\":true,\"enable_static_kernel\":false},\"enable_flashcomm1\":${FLASHCOMM1_ENABLED},\"enable_dsa_cp\":${DSA_CP_ENABLED},\"enable_cpu_binding\":true,\"multistream_overlap_shared_expert\":true}" \
     ${EXTRA_SERVE_ARGS:-} \
     > "${SERVE_LOG}" 2>&1 &
 

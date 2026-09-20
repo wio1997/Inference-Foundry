@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=/data/wio/Inference_Foundry
-OUT="$ROOT/evidence/20260920_flashcomm_off"
+OUT="${CANDIDATE_OUT:-$ROOT/evidence/20260920_sp_dsa_off}"
 DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl
 mkdir -p "$OUT"
 for i in $(seq 1 180); do
@@ -18,7 +18,7 @@ out=pathlib.Path(sys.argv[1])
 ps=subprocess.check_output(['docker','exec','dsv4ab','ps','-eo','pid,args'],text=True)
 lines=[x for x in ps.splitlines() if 'vllm serve ' in x and 'grep' not in x]
 (out/'serve_command.txt').write_text('\n'.join(lines)+'\n')
-assert len(lines)==1 and '"enable_flashcomm1":false' in lines[0], lines
+assert len(lines)==1 and '"enable_flashcomm1":false' in lines[0] and '"enable_dsa_cp":false' in lines[0], lines
 PY
 docker exec dsv4ab python3 "$ROOT/scripts/golden.py" --dataset "$DATASET" --out "$OUT/golden4.json" > "$OUT/golden.log" 2>&1
 python3 - "$ROOT" "$OUT" <<'PY'
