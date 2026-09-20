@@ -20,7 +20,7 @@ Updated: 2026-09-20 15:57 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 
 
 ## Next loop
 
-1. Complete Loop 001 verdict, commit this state and evidence.
+1. Loop 001 is pivoted after the invalid parser run; Loop 002 accepts the corrected baseline. Preserve both decisions and evidence.
 2. Profile/diagnose current DP1/TP8 **without treating older DP2/TP4 results as current truth**. Separate warm decode and cold prefill, inspect draft/target spans, HCCL, kernels and host; use profiler only outside official benchmark windows.
 3. Rank the largest eliminable Gap. Historical evidence points to DSpark efficiency and TP communication/compute contention as candidates, but they are unproven for this run.
 4. Freeze one mechanism hypothesis, minimal candidate, correctness, same-protocol A/B, KEEP/REJECT, update all four state files and commit. Continue while a testable high-value gap remains.

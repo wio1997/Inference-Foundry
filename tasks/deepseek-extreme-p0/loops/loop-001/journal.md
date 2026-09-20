@@ -17,3 +17,5 @@
 - `2026-09-20T15:58:30Z` 暂存用例 `mixed_32k_1024_c12` 的基线变化，来源 Run `run-20260920T155037Z`。
 
 - `2026-09-20T15:58:30Z` 暂存知识变化 `warm_cache_baseline`：At current DP1 TP8 source, warm-cache 48x32K-to-1024 c12 median output TPS is 543.65 across three corrected 48/48 runs; TPOT mean median 19.73ms; run TPS span 4.3%.
+
+- `2026-09-20T15:58:54Z` 主控结论为 `PIVOTED`。Initial SSE client omitted DeepSeek reasoning deltas, making first TTFT/TPOT invalid; corrected parser and preserved evidence

@@ -6,21 +6,22 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`BASELINING`
-- 活动 Loop：`loop-001`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
-- 证据成熟度：`E0_SPEC_ONLY`
+- 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`2`
-- 当前知识条目：`0`
-- 下一步：Wait for service ready, deterministic smoke, then frozen 48-request benchmark
-- 更新时间：`2026-09-20T15:39:40Z`
+- 当前知识条目：`1`
+- 下一步：Profile current DP1 TP8 warm decode and cold prefill, then select largest eliminable gap
+- 更新时间：`2026-09-20T15:59:15Z`
 
 ## 最近 Loop
 
-共 `1` 个 Loop；完整索引见 `loop-index.jsonl`。
+共 `2` 个 Loop；完整索引见 `loop-index.jsonl`。
 
 | Loop | 状态 | 结论 | 决定/下一步 |
 | --- | --- | --- | --- |
-| `loop-001` | `EVALUATING` | `PENDING` | 审查 Run run-20260920T155718Z 的证据，并判断是否需要更多 Run |
+| `loop-001` | `PIVOTED` | `PIVOTED` | Initial SSE client omitted DeepSeek reasoning deltas, making first TTFT/TPOT invalid; corrected parser and preserved evidence |
+| `loop-002` | `ACCEPTED` | `ACCEPTED` | Three corrected 48/48 warm-cache runs, golden 4/4; invalid parser run isolated in pivoted Loop 001 |
 
 ## 阻塞项
 

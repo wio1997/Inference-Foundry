@@ -1,6 +1,6 @@
 # Results
 
-## 2026-09-20 — Loop 001: environment freeze and DP1/TP8 baseline
+## 2026-09-20 — Loop 002: corrected DP1/TP8 baseline (Loop 001 pivoted after parser failure)
 
 **Outcome: accepted warm-cache baseline, 48/48 on each of three corrected passes.** No performance optimization is claimed yet.
 
