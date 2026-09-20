@@ -20,7 +20,7 @@
 
 | Loop | 状态 | 结论 | 决定/下一步 |
 | --- | --- | --- | --- |
-| `loop-001` | `FROZEN` | `PENDING` | Wait for service ready, deterministic smoke, then frozen 48-request benchmark |
+| `loop-001` | `RUNNING` | `PENDING` | 执行 Run run-20260920T154106Z：docker exec dsv4ab python3 /data/wio/Inference_Foundry/scripts/bench.py --dataset /data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl --out /data/wio/Inference_Foundry/evidence/20260920_baseline/bench48.json --limit 48 --concurrency 12 --max-tokens 1024 |
 
 ## 阻塞项
 
