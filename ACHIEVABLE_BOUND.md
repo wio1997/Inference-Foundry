@@ -117,3 +117,7 @@ Loop016 service A/B has started but produced no E2E measurement. Achievable boun
 ## Update 2026-09-20 22:08 UTC — Loop016 bound still unknown
 
 The first service A/B stopped before candidate timing because of a dataset mismatch in the parity harness and a candidate guard that did not activate. Saved clean no-flag cold TTFT is2367.81ms over eight exact prompts. This is a comparison baseline, not an achievable lower bound. Revised candidate run pending; bounds remain UNKNOWN.
+
+## Live checkpoint 2026-09-20 22:12 UTC — revised A/B loading
+
+No new bound until candidate path traces and same-prompt E2E run complete.
