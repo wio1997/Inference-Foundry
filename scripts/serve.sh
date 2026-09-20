@@ -89,7 +89,8 @@ export DSA_CP_ENABLED="${DSA_CP_ENABLED:-true}"
 if [ -n "${PROFILER_DIR:-}" ]; then
     mkdir -p "${PROFILER_DIR}"
     export VLLM_CUSTOM_SCOPES_FOR_PROFILING=1
-    EXTRA_SERVE_ARGS="--profiler-config {\"profiler\":\"torch\",\"torch_profiler_dir\":\"${PROFILER_DIR}\",\"torch_profiler_with_stack\":false}"
+    PROFILE_WITH_STACK="${PROFILE_WITH_STACK:-false}"
+    EXTRA_SERVE_ARGS="--profiler-config {\"profiler\":\"torch\",\"torch_profiler_dir\":\"${PROFILER_DIR}\",\"torch_profiler_with_stack\":${PROFILE_WITH_STACK}}"
     echo "[02] profiler 已启用：dir=${PROFILER_DIR}"
 fi
 

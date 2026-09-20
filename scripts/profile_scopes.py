@@ -10,6 +10,7 @@ import requests
 p = argparse.ArgumentParser()
 p.add_argument('--out', required=True)
 p.add_argument('--root', default='/data/wio/Inference_Foundry')
+p.add_argument('--warm-only', action='store_true')
 a = p.parse_args()
 root = Path(a.root)
 out = Path(a.out)
@@ -48,9 +49,10 @@ try:
     marks['warm_start_utc'] = now()
     bench('warm_profile', warm, 0, 4, 4, 128)
     marks['warm_end_utc'] = now()
-    marks['cold_start_utc'] = now()
-    bench('cold_profile', cold, 20, 2, 1, 128)
-    marks['cold_end_utc'] = now()
+    if not a.warm_only:
+        marks['cold_start_utc'] = now()
+        bench('cold_profile', cold, 20, 2, 1, 128)
+        marks['cold_end_utc'] = now()
 finally:
     marks['profile_stop_request_utc'] = now()
     try:
