@@ -29,7 +29,7 @@
 | `loop-011` | `PIVOTED` | `PIVOTED` | All-step QLI CPU-max candidate passed >=192 per-rank parity checks and improved exact same cold prompts 8/8 by mean284.83ms (-10.81%), but paired mixed TPS +0.52% is noise and median mean TTFT worsened11.9%; refine to prefill-only rather than KEEP |
 | `loop-012` | `ACCEPTED` | `ACCEPTED` | Runtime CPU/NPU QLI maxima parity passed on all eight ranks in Loop011. Prefill-only patch passed functional gate. Same 16 cold prompts all improved: 2626.03 to 2362.89 ms mean TTFT (-10.02%) with no prefix cache hits. Full mixed median output TPS 547.55 versus paired original 537.60 is within baseline noise; median TTFT 1143.58 versus 1262.74 ms shows no observed regression. |
 | `loop-013` | `PIVOTED` | `PIVOTED` | Valid c12 trace isolates large draft host and TP8 HCCL/idle envelopes but does not prove either removable. The candidate DSpark draft graph path is hard-disabled in source; prior upstream graph attempt was reverted. Further source-level cause and numerical constraints are needed before an E2E optimization. |
-| `loop-014` | `RUNNING` | `PENDING` | 执行 Run prepare-stage-trace-20260920：Run env-gated perf_counter stage trace under unprofiled DP1TP8 service; functional gate, 48×128 warmup, 12×512 c12 sample |
+| `loop-014` | `EVALUATING` | `PENDING` | 审查 Run prepare-stage-trace-20260920 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

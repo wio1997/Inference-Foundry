@@ -85,3 +85,7 @@ The 9.57 ms median prepare-input host self time and 52.89 ms median draft host t
 ## Live checkpoint 2026-09-20 20:33 UTC — Loop014 stage tracer
 
 Loop014 tracer host spans are diagnostic; a large stage duration alone does not set a removable E2E bound. Official mixed achievable bound remains UNKNOWN until a correct paired unprofiled intervention.
+
+## Update 2026-09-20 20:47 UTC — Loop014 first stage trace
+
+Loop014 measured a 10.80-14.17ms median per-rank host span for compression-position and attention metadata construction in pure decode, but the span contains required work, possible async waits and cross-rank overlap. It is a candidate envelope only. No achievable-bound update; official mixed bound remains UNKNOWN until a specific change passes numerical correctness and paired unprofiled 48x1024 benchmark.

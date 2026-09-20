@@ -112,3 +112,7 @@ Loop014 source audit shows prepare-input host self median9.57 ms among170 c12 st
 ## Live checkpoint 2026-09-20 20:33 UTC — Loop014 stage tracer
 
 Loop014 env-gated no-profiler prepare-input stage timestamps pending. They will split the prior 21.42 ms median c12 prepare scope into state update, input assembly, Mamba/dispatch, attention metadata and preprocess. No new measured gap yet.
+
+## Update 2026-09-20 20:47 UTC — Loop014 first stage trace
+
+Loop014 no-profiler tracer, 157 pure decode steps per rank in successful c12 sample: TP0 median prepare19.55ms; state update0.78, input assembly4.81, dispatch/Mamba0.19, compression plus attention metadata12.99, preprocess0.31ms. Eight-rank dominant substage median10.80-14.17ms. This localizes an investigation target. It does not establish removable time or official 48x1024 throughput gain. Short diagnostic output TPS471.14 cannot be compared with frozen baseline because request count/output length differ and tracing is active.

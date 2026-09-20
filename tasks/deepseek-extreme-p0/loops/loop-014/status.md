@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：执行 Run prepare-stage-trace-20260920：Run env-gated perf_counter stage trace under unprofiled DP1TP8 service; functional gate, 48×128 warmup, 12×512 c12 sample
-- 更新时间：`2026-09-20T20:32:27Z`
+- 下一步：审查 Run prepare-stage-trace-20260920 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-20T20:46:24Z`
 
 ## Run 记录
 

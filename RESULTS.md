@@ -117,3 +117,7 @@ Read model_runner_v1.py prepare-input path and Loop013 host trace. The typical p
 ## Live checkpoint 2026-09-20 20:33 UTC — Loop014 stage tracer
 
 Loop014 applied 17-line diagnostic patch, syntax and diff checks passed. New no-profiler DP1/TP8 tracer service PID789878 loading. Runner PID2135816 pending functional, full warmup and c12 diagnostic. No performance verdict.
+
+## Update 2026-09-20 20:47 UTC — Loop014 first stage trace
+
+Loop014 first stage tracer run passed functional gate (long complete 128-token responses and short exact 42/OK/4), 48/48 warmup and 12/12 c12x512 sample. All eight rank traces complete; 157 pure-decode steps per rank. TP0 median prepare19.55ms, dominant compression plus attention metadata12.99ms, input assembly4.81ms, all other measured stages under0.8ms each. Rank medians for dominant stage10.80-14.17ms. Evidence: evidence/20260920_loop014_prepare_trace/run1/{stage_summary.json,raw_index.json,functional_check.json,decode_c12.json} and raw rank CSVs. No optimization verdict. Next split attention metadata builders to find a single correct candidate.
