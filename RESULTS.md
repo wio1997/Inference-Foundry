@@ -102,3 +102,10 @@ Four cold groups (offsets24,28,40,44) compared the exact same 16 prompts, each 3
 ## 2026-09-20 19:56 UTC — Loop013 diagnostic in progress
 
 Two msprof dynamic attach attempts to the healthy TP0 worker exited255 with Argument --pid: no valid pid values and were recorded invalid. The previous service was stopped cleanly, all eight NPUs returned idle, and a new same-source DP1/TP8 torch-NPU no-stack service PID780818 is loading. scripts/profile_decode_c12.py runner PID2105542 will collect full warmup, warm12×128 c12, and profiled 12×512 c12. No performance verdict yet.
+
+
+## 2026-09-20 20:24 UTC — Loop013 PIVOT: warm c12 decode trace
+
+Two msprof dynamic-attach attempts exited255 before sampling; one torch-run warmup used one output token per request and was invalid only under bench.py's success definition because TPOT needs at least two tokens. Corrected 128-token warmup, reused the healthy profiler-enabled DP1/TP8 service with the kept QLI source, and completed 48/48 warmup, 12/12 warm c12, 12/12 profiled 512-token c12. Profile API start and stop succeeded.
+
+Derived data: 16.459 s window, TP0 device busy13.038 s, communication union5.510 s, compute/copy7.736 s; across eight ranks compute/copy7.631–7.745 s and HCCL2.236–5.843 s. TP0 170 draft host scopes sum9.036 s, median52.894 ms; typical draft has three MoE shared scopes15.774 ms total and three DSA scopes10.093 ms total. TP0 MoE self-time1.397 s across682 calls and DSA self-time0.964 s across682 calls. The profiled short run gave387.7 TPS, not comparable to the official unprofiled baseline. Evidence: run4/decode_c12.json, phase_times.json, device_c12_summary.json, host_scope_c12_summary.json, host_children_c12_summary.json, host_operator_self.json and raw_index.json under evidence/20260920_decode_c12_profile/. Raw traces remain on disk, excluded from Git. No KEEP/REJECT optimization claim; Loop013 PIVOT to source-level host/launch and rank-wait investigation.

@@ -43,7 +43,7 @@ else:
     raise RuntimeError("service readiness timeout")
 
 marks = {"ready_utc": now()}
-bench("full_warmup", 48, 12, 1)
+bench("full_warmup", 48, 12, 128)
 marks["full_warmup_done_utc"] = now()
 bench("warm_c12", 12, 12, 128)
 marks["warm_c12_done_utc"] = now()

@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-013`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Prewarm 12 prompts and attach msprof to the live TP0 worker during a short c12 decode sample without restarting the service.
-- 更新时间：`2026-09-20T19:49:37Z`
+- 下一步：Loop014: inspect repeated draft MoE/DSA host self time and cross-rank synchronization; identify a minimal correctness-preserving change with predicted measurable TPS benefit or pivot again.
+- 更新时间：`2026-09-20T20:26:35Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-010` | `ACCEPTED` | `ACCEPTED` | Targeted wrapper found exact DSA CP QLI NPU item callsite and matching CPU local maxima already available; warm/cold rank timing supports a falsifiable candidate, without claiming E2E gain |
 | `loop-011` | `PIVOTED` | `PIVOTED` | All-step QLI CPU-max candidate passed >=192 per-rank parity checks and improved exact same cold prompts 8/8 by mean284.83ms (-10.81%), but paired mixed TPS +0.52% is noise and median mean TTFT worsened11.9%; refine to prefill-only rather than KEEP |
 | `loop-012` | `ACCEPTED` | `ACCEPTED` | Runtime CPU/NPU QLI maxima parity passed on all eight ranks in Loop011. Prefill-only patch passed functional gate. Same 16 cold prompts all improved: 2626.03 to 2362.89 ms mean TTFT (-10.02%) with no prefix cache hits. Full mixed median output TPS 547.55 versus paired original 537.60 is within baseline noise; median TTFT 1143.58 versus 1262.74 ms shows no observed regression. |
-| `loop-013` | `RUNNING` | `PENDING` | 执行 Run decode-c12-torch-profile-20260920：Restart baseline-flag service with torch-NPU profiler without stacks; scripts/profile_decode_c12.py full warmup then 12×512 c12 profile |
+| `loop-013` | `PIVOTED` | `PIVOTED` | Valid c12 trace isolates large draft host and TP8 HCCL/idle envelopes but does not prove either removable. The candidate DSpark draft graph path is hard-disabled in source; prior upstream graph attempt was reverted. Further source-level cause and numerical constraints are needed before an E2E optimization. |
 
 ## 阻塞项
 

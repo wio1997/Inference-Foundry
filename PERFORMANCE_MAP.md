@@ -90,3 +90,17 @@ The exact same 16 cold prompts were paired; candidate per-prompt deltas range -3
 ## Live update 2026-09-20 19:56 UTC — warm decode diagnostic pending
 
 The existing 4×128 c4 short torch profile placed 2.237 s of 5.473 s wall in TP0 draft_token host scope and 2.269 s in HCCL union, with overlap and profiler overhead. These are not exposed c12 critical-path costs. Loop013 is collecting a warm 12×512 c12 trace on the kept prefill-only QLI source to distinguish device activity and gaps. Dynamic msprof attach failed twice with no valid pid values; these attempts produced no timing claim.
+
+
+## Update 2026-09-20 20:24 UTC — c12 decode window across eight ranks
+
+After 48×128 full prefix warmup, a 12×512 c12 sample succeeded 12/12 under torch-NPU profiler. The request window was16.459 s, while the bench itself reported15.847 s and387.7 output tok/s; profiler overhead and changed request length make this TPS non-comparable with the official 48×1024 baseline.
+
+| Rank/window metric | TP0 | Eight-rank range |
+|---|---:|---:|
+| Device busy union | 13.038 s | 9.672–13.317 s |
+| Compute/copy union | 7.736 s | 7.631–7.745 s |
+| HCCL union | 5.510 s | 2.236–5.843 s |
+| Device inactive within16.459 s window | 3.421 s | 3.142–6.787 s |
+
+TP0 HCCL duration by type: reduce-scatter3.117 s, all-gather1.677 s, all-to-all0.715 s, with task waiting and overlap; these sums are not independent E2E costs. TP0 top compute/copy task types include GroupedMatmulSwigluQuantV2 1.034 s, QuantBatchMatmulV3 0.882 s, GroupedMatmul0.584 s, Compressor0.568 s. A TP0 host trace scanned5.79M events: prepare-input171 scopes sum3.729 s (median21.42 ms); draft170 scopes sum9.036 s (median52.89 ms); forward170 scopes sum2.244 s but median1.90 ms and occasional prefill outliers. Typical draft nested scopes: three moe_forward_shared total15.77 ms and three dsa_forward total10.09 ms. Across the full trace, 682 MoE calls have host self-time1.397 s and 682 DSA calls0.964 s. These are candidate pools, not removable times. Next resolve which host self operations or cross-rank waits are on the unprofiled decode critical path.

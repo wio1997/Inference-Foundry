@@ -5,16 +5,17 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run decode-c12-torch-profile-20260920：Restart baseline-flag service with torch-NPU profiler without stacks; scripts/profile_decode_c12.py full warmup then 12×512 c12 profile
-- 更新时间：`2026-09-20T19:53:48Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Loop014: inspect repeated draft MoE/DSA host self time and cross-rank synchronization; identify a minimal correctness-preserving change with predicted measurable TPS benefit or pivot again.
+- 更新时间：`2026-09-20T20:26:35Z`
 
 ## Run 记录
 
 - `runs/mixed_32k_1024_c12/decode-c12-msprof-20260920`
 - `runs/mixed_32k_1024_c12/decode-c12-msprof-absolute-20260920`
 - `runs/mixed_32k_1024_c12/decode-c12-torch-profile-20260920`
+- `runs/mixed_32k_1024_c12/decode-c12-torch-profile-retry-20260920`
 
 ## 阻塞项
 
