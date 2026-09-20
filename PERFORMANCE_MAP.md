@@ -128,3 +128,7 @@ Loop014 builder trace on 143 pure-decode steps/rank: eight DSA-CP metadata build
 ## Live checkpoint 2026-09-20 21:13 UTC — Loop015 cold kernel candidates
 
 Prior original-source cold msprof shape audit across four 32K->128 c1 requests found dominant ScatterNdUpdateSk [8096,2] index shape: 736 calls, 760.8ms summed task time, median1017us. Compressor ratio4 shape [8096,4096]: 336 calls, 505.7ms summed task time, median1503us. The totals span prefill and decode and overlap other ranks/operations. An on-request slot uniqueness probe is running; no removable time or throughput improvement established. See evidence/20260920_loop015_cold_kernels/shape_summary.json.
+
+## Update 2026-09-20 21:29 UTC — Loop015 scatter screen
+
+Eight rank captures of one real long-prefill SK call each: 8096/8096 valid and unique slot pairs, 0 duplicates. The representative TP0 index stream is block-local ordered but globally not sorted. In a single-NPU 25-call isolated screen using captured indices and matching cache/update shapes, SK device median1.427ms and V2 device median2.415ms, ratio1.692; output bit-equal. V2 is rejected. The old-profile SK shape median task1.017ms was from loaded full-service execution; different measurement settings mean it should not be directly compared to the isolated1.427ms. No E2E improvement or established critical-path saving.

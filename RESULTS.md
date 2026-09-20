@@ -133,3 +133,7 @@ Loop014 PIVOT after two successful no-profiler diagnostic runs. Second run passe
 ## Live checkpoint 2026-09-20 21:13 UTC — Loop015 diagnostic in flight
 
 Shape audit script and compact JSON frozen. One-shot slot probe patch compiled and runs only after a flag is placed before the cold request; probe runner PID2173051 waits for DP1/TP8 API PID802820 to become healthy, then performs functional gate and one cold request. This run is diagnostic because the probe synchronizes once. TaskCtl Loop015 scatter-slot-uniqueness Run ongoing. No KEEP/REJECT yet.
+
+## 2026-09-20 21:29 UTC — Loop015 PIVOT: scatter evidence and rejected V2
+
+Functional gate passed; diagnostic cold offset24 32851-token input to 128-token output succeeded with 2471.76ms TTFT, not comparable because probe CPU sync. Every one-shot rank capture had 8096 valid unique pairs and no duplicates, matching [34091,32,1,512] cache and [8096,1,512] updates. The service was stopped, 8 NPUs idle, diagnostic patch removed; framework clean at kept commit36589852. In single-NPU 25-call screen with captured TP0 indices, SK and V2 caches were bit-equal; SK device median1.427ms, V2 median2.415ms (+69%), so V2 replacement REJECT. No E2E KEEP. Evidence and reproduction script under evidence/20260920_loop015_cold_kernels/ and scripts/bench_loop015_scatter_v2.py. TaskCtl Loop015 PIVOT, next inspect direct scatter feasibility and duplicate-safe fallback.

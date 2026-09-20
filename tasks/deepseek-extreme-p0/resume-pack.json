@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-20T21:12:01Z",
+  "generated_at": "2026-09-20T21:28:18Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-015",
-    "next_action": "Revisit retained cold TP0 trace and per-request TTFT alignment, inspect ScatterNdUpdateSk and Compressor call sites, then select one falsifiable prefill intervention.",
+    "active_loop": null,
+    "next_action": "Loop016: inspect slot mapping construction and prototype a direct unique-index scatter path; require duplicate-safe fallback, per-call correctness, and paired cold TTFT before KEEP.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,22 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-010",
-      "title": "Trace prepare input item callsites without profiler",
-      "mode": "design",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "Repeated prepare input Tensor.item calls concentrate in a few host metadata callsites; device and elapsed-time attribution can identify a safe >=5 percent candidate",
-      "verdict": "ACCEPTED",
-      "reason": "Targeted wrapper found exact DSA CP QLI NPU item callsite and matching CPU local maxima already available; warm/cold rank timing supports a falsifiable candidate, without claiming E2E gain",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_item_trace/run1/item_summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260920_item_trace/run1/item_trace_lines.log"
-      ],
-      "decided_at": "2026-09-20T18:35:39Z"
-    },
-    {
       "loop_id": "loop-011",
       "title": "Remove QLI metadata NPU scalar synchronization",
       "mode": "optimization",
@@ -221,35 +205,32 @@
         "/data/wio/Inference_Foundry/evidence/20260920_loop014_prepare_trace/run1/stage_summary.json"
       ],
       "decided_at": "2026-09-20T21:04:13Z"
+    },
+    {
+      "loop_id": "loop-015",
+      "title": "Isolate cold prefill device critical path",
+      "mode": "optimization",
+      "cases": [
+        "cold_32k_128_c1",
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "After the kept QLI prefill change, cold 32K TTFT has a removable device-side ScatterNdUpdateSk or Compressor cost that can be isolated from HCCL waiting and reduced without changing model numerics.",
+      "verdict": "PIVOTED",
+      "reason": "Captured one real 8096-row long-prefill scatter mapping per rank: all unique, but uniqueness not yet a general invariant. Existing V2 op gave bit-equal output and was 69% slower than SK in 25-call isolated NPU timing; no safe E2E patch or paired TTFT gain. Source SK deterministic sort+SyncAll suggests a direct unique-index path merits a separate build experiment.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop015_cold_kernels/probe",
+        "/data/wio/Inference_Foundry/evidence/20260920_loop015_cold_kernels/scatter_v2_screen.json"
+      ],
+      "decided_at": "2026-09-20T21:28:18Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-015",
-    "title": "Isolate cold prefill device critical path",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run scatter-slot-uniqueness-20260920：Run gated one-shot capture of actual long-prefill dsa_kv_compress_scatter slot_mapping on all ranks; functional gate and cold offset24 32Kx128 c1",
-    "cases": [
-      "cold_32k_128_c1",
-      "mixed_32k_1024_c12",
-      "correctness_short"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-20T21:12:01Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-015/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-015/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-015/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-015/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-015/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-015/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

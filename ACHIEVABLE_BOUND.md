@@ -101,3 +101,7 @@ Loop014 found no safe way to convert the 15.165ms TP0 metadata host span into an
 ## Live checkpoint 2026-09-20 21:13 UTC — Loop015 bound remains open
 
 Cold-profile kernel totals cannot be subtracted from 2.36s kept-source TTFT: calls include post-first-token decode, rank overlap and dependency waits. The pending slot-index probe tests whether a specialized scatter path is legal. No new achievable bound; official mixed bound UNKNOWN.
+
+## Update 2026-09-20 21:29 UTC — no bound promotion from Loop015
+
+Captured index uniqueness on one call per rank makes a direct scatter specialization plausible only if the construction invariant and fallback are established. V2 was 69% slower than SK in an isolated kernel screen, so it cannot tighten the cold TTFT bound. Existing scatter task totals remain only a potential envelope with prefill/decode overlap unresolved. Cold and mixed achievable bounds remain UNKNOWN; Loop016 must establish a correct candidate and paired E2E effect.
