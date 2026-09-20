@@ -171,3 +171,8 @@ Candidate: flag-gated SWA prefill index_copy in active DSA-CP callsite, patch pa
 ## Live checkpoint 2026-09-20 22:46 UTC — Loop017 profile reuse
 
 Started Loop017 and distilled frozen original-source cold msprof CSV with scripts/analyze_loop017_compressor.py. Four cold request clusters each contain84 main ratio4 Compressor tasks, ~126.4ms summed task time/request, median task1.503ms. Secondary [512,4096] shape80 calls/request/~40ms sum and [256,4096] shape84 calls/request/~29.8ms sum. Evidence evidence/20260920_loop017_compressor/profile_clusters.json; TaskCtl profile run passed. No implementation or E2E claim. Next attribute critical path and isolate one safe optimization.
+
+
+## Live checkpoint 2026-09-20 22:50 UTC — Loop017 stream order
+
+scripts/analyze_loop017_stream.py scanned frozen original-source cold msprof CSV. For all336 main-shape ratio4 Compressor calls, next same-stream task is ScatterNdUpdateSk and second is SparseAttnSharedkv. Median end-to-next gap0.00287ms; median Compressor-start to attention-start1.84475ms. JSON evidence/20260920_loop017_compressor/stream_order.json, TaskCtl profile run passed. This supports local serialization; no E2E improvement claim or source change.

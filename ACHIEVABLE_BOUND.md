@@ -139,3 +139,8 @@ The tested direct SWA scatter specialization made cold TTFT 2.9642% worse on eig
 ## Live checkpoint 2026-09-20 22:46 UTC — Compressor screening envelope
 
 Ratio4 Compressor [8096,4096;1024,4096] occupies ~126.4ms of summed device task time per profiled cold request across84 calls. This is only a gross per-request operator-time envelope, not a TTFT achievable saving or hardware bound; overlap and AIV/CUBE attribution still need measurement. Achievable cold TTFT and mixed throughput bounds remain UNKNOWN.
+
+
+## Live checkpoint 2026-09-20 22:50 UTC — local dependency verified
+
+The ~126.4ms/request Compressor task sum belongs to84 serial per-layer Compressor→scatter→attention chains on the profiled device stream. It is a local path envelope: perfect removal of this operator on that stream could save no more than its occupied time before considering cross-stream overlap, launch overhead and changed scheduling. This is not a measured achievable lower bound; cold and mixed bounds remain UNKNOWN.

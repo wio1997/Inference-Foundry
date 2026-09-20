@@ -188,3 +188,8 @@ The active DSA-CP SWA prefill index_copy candidate ran on all eight TP ranks and
 ## Live checkpoint 2026-09-20 22:46 UTC — Loop017 Compressor attribution
 
 Loop017 started after Loop016 rejection. No service running; eight NPUs idle; framework clean at kept commit36589852. Existing original-source cold msprof op_summary was distilled by scripts/analyze_loop017_compressor.py into evidence/20260920_loop017_compressor/profile_clusters.json. The ratio4 Compressor [8096,4096;1024,4096] has four clusters of84 calls, one cluster per cold request, with ~126.4ms summed device task time/request and median1.503ms/call. Another [512,4096] weight shape has80 calls/request and ~40ms/task sum; [256,4096] has84 and ~29.8ms. These are occupancy, not proven TTFT critical-path savings. Next inspect stream order/dependencies and kernel bottleneck, then freeze a bounded candidate; do not modify framework before attribution.
+
+
+## Live checkpoint 2026-09-20 22:50 UTC — Loop017 same-stream dependency
+
+Frozen original-source cold msprof ordering, distilled by scripts/analyze_loop017_stream.py: all336 ratio4 main-shape Compressor tasks are immediately followed on the same device stream by ScatterNdUpdateSk and then SparseAttnSharedkv. Median Compressor-end to next-start gap2.87us; Compressor-start to attention-start1.84475ms. Evidence evidence/20260920_loop017_compressor/stream_order.json. This strengthens the serial per-layer opportunity, but global E2E savings still depend on cross-stream overlap and actual implementation. No framework changes or active service. Next inspect compressor kernel tiling and bound a small operator-level optimization, followed by full-service correctness/E2E.
