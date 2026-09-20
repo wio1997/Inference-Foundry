@@ -13,12 +13,14 @@ for i in $(seq 1 180); do
     sleep 10
 done
 python3 - "$OUT" <<'PY'
-import json, pathlib, subprocess, sys
+import json, os, pathlib, subprocess, sys
 out=pathlib.Path(sys.argv[1])
 ps=subprocess.check_output(['docker','exec','dsv4ab','ps','-eo','pid,args'],text=True)
 lines=[x for x in ps.splitlines() if 'vllm serve ' in x and 'grep' not in x]
 (out/'serve_command.txt').write_text('\n'.join(lines)+'\n')
-assert len(lines)==1 and '"enable_flashcomm1":false' in lines[0] and '"enable_dsa_cp":false' in lines[0], lines
+expected_fc=os.environ.get('EXPECTED_FLASHCOMM1','false')
+expected_dsa=os.environ.get('EXPECTED_DSA_CP','false')
+assert len(lines)==1 and f'\"enable_flashcomm1\":{expected_fc}' in lines[0] and f'\"enable_dsa_cp\":{expected_dsa}' in lines[0], lines
 PY
 docker exec dsv4ab python3 "$ROOT/scripts/golden.py" --dataset "$DATASET" --out "$OUT/golden4.json" > "$OUT/golden.log" 2>&1
 python3 - "$ROOT" "$OUT" <<'PY'
