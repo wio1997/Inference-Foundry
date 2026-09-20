@@ -105,3 +105,7 @@ Cold-profile kernel totals cannot be subtracted from 2.36s kept-source TTFT: cal
 ## Update 2026-09-20 21:29 UTC — no bound promotion from Loop015
 
 Captured index uniqueness on one call per rank makes a direct scatter specialization plausible only if the construction invariant and fallback are established. V2 was 69% slower than SK in an isolated kernel screen, so it cannot tighten the cold TTFT bound. Existing scatter task totals remain only a potential envelope with prefill/decode overlap unresolved. Cold and mixed achievable bounds remain UNKNOWN; Loop016 must establish a correct candidate and paired E2E effect.
+
+## Live checkpoint 2026-09-20 21:43 UTC — Loop016 candidate bound not yet promoted
+
+Isolated SWA scatter saved about0.83ms per representative call with page-interleaved simulated cache and index flatten, but old full-request profile call counts and multistream overlap make summed savings an invalid E2E bound. The exact cold c1 TTFT bound and mixed throughput bound remain UNKNOWN until service A/B confirms this candidate on the actual cache layout and workload.

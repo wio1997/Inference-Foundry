@@ -132,3 +132,7 @@ Prior original-source cold msprof shape audit across four 32K->128 c1 requests f
 ## Update 2026-09-20 21:29 UTC — Loop015 scatter screen
 
 Eight rank captures of one real long-prefill SK call each: 8096/8096 valid and unique slot pairs, 0 duplicates. The representative TP0 index stream is block-local ordered but globally not sorted. In a single-NPU 25-call isolated screen using captured indices and matching cache/update shapes, SK device median1.427ms and V2 device median2.415ms, ratio1.692; output bit-equal. V2 is rejected. The old-profile SK shape median task1.017ms was from loaded full-service execution; different measurement settings mean it should not be directly compared to the isolated1.427ms. No E2E improvement or established critical-path saving.
+
+## Live checkpoint 2026-09-20 21:43 UTC — Loop016 SWA index_copy screen
+
+The 8096-row shape is SWA prefill scatter. On captured unique indices with matching cache/update shapes, isolated contiguous SK1.428ms versus precomputed-flat index_copy0.510ms device median (25 calls); built-in npu_scatter_nd_update_1.402ms (25 calls). Simulated page-interleaved stride32768 with flatten computed each call: SK1.528ms versus index_copy0.694ms (20 calls), bit-exact logical cache. This suggests a sizeable candidate on cold c1 prefill but excludes model overlap and true cache stride. Candidate flag-gated service A/B and exact output parity pending.
