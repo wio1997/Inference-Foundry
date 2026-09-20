@@ -5,3 +5,5 @@
 - `2026-09-20T18:38:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `qli-cpu-candidate-20260920`（benchmark）。
 
 - `2026-09-20T18:58:14Z` Run `qli-cpu-candidate-20260920` 记录为 `pass`；正确性为 `pass`。QLI CPU maxima candidate parity >=192 per rank on warm/cold, functional pass, 3x48/48 mixed passes median540.40 TPS (-0.60% vs frozen baseline); two cold candidate groups mean TTFT2338/2360ms require same-offset baseline
+
+- `2026-09-20T18:59:31Z` 为用例 `cold_32k_128_c1` 创建 Run `paired-baseline-20260920`（benchmark）。
