@@ -1,0 +1,33 @@
+diff --git a/vllm_ascend/models/deepseek_v4_dspark.py b/vllm_ascend/models/deepseek_v4_dspark.py
+index 8515fbb46..95c724b03 100644
+--- a/vllm_ascend/models/deepseek_v4_dspark.py
++++ b/vllm_ascend/models/deepseek_v4_dspark.py
+@@ -8,6 +8,7 @@ module. The target model provides selected layer hidden states; this model
+ projects them into the draft attention context and emits a full draft block.
+ """
+ 
++import os
+ import typing
+ from collections.abc import Iterable
+ 
+@@ -99,6 +100,9 @@ class DeepseekV4DSparkModel(nn.Module):
+         self.block_size = int(config.dspark_block_size)
+         self.target_layer_ids = list(config.dspark_target_layer_ids)
+         self.num_dspark_layers = _get_dspark_num_mtp_layers(config)
++        self.skip_middle_layer = os.environ.get("VLLM_ASCEND_DSPARK_SKIP_MIDDLE_LAYER") == "1"
++        if self.skip_middle_layer and self.num_dspark_layers != 3:
++            raise ValueError("DSpark middle-layer bypass requires exactly three draft layers")
+         self.mtp_start_layer_idx = config.num_hidden_layers
+ 
+         self.embed_tokens = VocabParallelEmbedding(
+@@ -225,7 +229,9 @@ class DeepseekV4DSparkModel(nn.Module):
+     ) -> torch.Tensor:
+         hidden_states = self.embed_tokens(input_ids).unsqueeze(-2).repeat(1, self.hc_mult, 1)
+         residual = None
+-        for layer in self.layers.values():
++        for layer_offset, layer in enumerate(self.layers.values()):
++            if self.skip_middle_layer and layer_offset == 1:
++                continue
+             hidden_states, residual = layer(positions, hidden_states, residual, llama_4_scaling=None)
+         head_hidden = self.hc_head(hidden_states, self.hc_head_fn, self.hc_head_scale, self.hc_head_base)
+         return head_hidden

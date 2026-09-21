@@ -29,7 +29,7 @@
 | `loop-023` | `REJECTED` | `REJECTED` | k5 is not a runnable TP8 configuration in the current vLLM 0.26 path: graph shapes must be divisible by both 6 and 8. The service failed during KV/backend initialization, so there is no correctness or performance comparison. With model dspark_block_size>=5, the next smaller valid k below7 does not exist under this invariant. |
 | `loop-024` | `REJECTED` | `REJECTED` | The capacity change is functional and removes the8096 warning, but the bounded c12 screen is within prior k7 variability:472.871 tok/s, +2.77% vs diagnostic median and -3.83% vs closest same-runner Loop020 control. It does not exceed the4.3% promotion threshold, so avoid an expensive full benchmark. |
 | `loop-025` | `ACCEPTED` | `ACCEPTED` | Matched no-spec control proves k7 DSpark is architecturally valuable:491.698 versus208.047 tok/s (2.363x) and17.554 versus54.333ms TPOT (-67.69%). The difference dwarfs4.3% noise. Retain DSpark; optimize proposer necessary compute/acceptance rather than exit speculative decoding. |
-| `loop-026` | `FROZEN` | `PENDING` | Freeze the cycle-time/acceptance break-even model from saved evidence, audit the three-layer forward dependencies, then implement an environment-gated skip of only the middle draft layer for a no-profiler correctness and c12 screen. |
+| `loop-026` | `RUNNING` | `PENDING` | 执行 Run skip-middle-screen-20260921：VLLM_ASCEND_DSPARK_SKIP_MIDDLE_LAYER=1 LOOP020_DRAFT_TRACE_DIR=evidence/20260921_loop026_layer_bypass/raw bash scripts/serve.sh; run_loop014_prepare_trace |
 
 ## 阻塞项
 
