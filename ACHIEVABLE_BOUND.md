@@ -179,3 +179,8 @@ First DSA-CP builder timing (up to6.50ms median/rank) is an inclusive host span,
 ## Live checkpoint 2026-09-21 02:13 UTC
 
 QLI first-builder median host span1.735–4.306ms/rank may include synchronization and scheduling; it is not a removable bound or measured E2E opportunity. No cold or mixed attainable hardware-bound update.
+
+
+## Update 2026-09-21 03:11 UTC — QLI gap not promoted
+
+First QLI scalar host wait reaches3.716ms median/rank, but Loop011 removed the reads without a robust mixed TPS gain. Therefore no sum of QLI wait times is admitted as an attainable E2E bound. Metadata op host call ~0.36–0.41ms is also not a proven saving. Mixed hardware bound remains UNKNOWN; next quantify DSpark work and acceptance.

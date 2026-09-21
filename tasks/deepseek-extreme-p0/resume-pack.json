@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T02:59:31Z",
+  "generated_at": "2026-09-21T03:15:03Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-019",
-    "next_action": "Inspect Loop014 no-profiler builder traces and active DSA-CP builder source; quantify repeated allocations/work by shape before editing.",
+    "active_loop": null,
+    "next_action": "Start Loop020: attribute DSpark proposer and target verification device/host critical path in warm mixed c12; quantify acceptance and exposed work before choosing implementation.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,23 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-014",
-      "title": "Find exposed decode metadata host work",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "Warm DP1TP8 c12 input preparation repeats Python metadata work across 170 decode iterations; at least one deterministic repeated operation can be safely cached or vectorized and reduce E2E output latency beyond benchmark noise.",
-      "verdict": "PIVOTED",
-      "reason": "No supported >=5% mixed TPS candidate emerged. The 8 metadata builders are group-specific and shared local/ratio state is already cached. First builder timing may include required device synchronization; Loop011 all-step QLI substitution did not improve mixed throughput. Avoid changing semantics merely to reduce inclusive host spans.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_loop014_prepare_trace/run2/builder_summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260920_loop014_prepare_trace/run1/stage_summary.json"
-      ],
-      "decided_at": "2026-09-20T21:04:13Z"
-    },
-    {
       "loop_id": "loop-015",
       "title": "Isolate cold prefill device critical path",
       "mode": "optimization",
@@ -219,33 +202,30 @@
         "/data/wio/Inference_Foundry/evidence/20260921_decode_comm_audit/collective_clock_sensitivity.json"
       ],
       "decided_at": "2026-09-21T01:13:02Z"
+    },
+    {
+      "loop_id": "loop-019",
+      "title": "Warm decode DSA-CP metadata builder active-path attribution",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "A reusable or vectorizable part of eight DSA-CP metadata builders dominates the no-profiler TP0 prepare span and can reduce full-service warm decode latency.",
+      "verdict": "PIVOTED",
+      "reason": "QLI first NPU scalar read accounts for most measured first-builder host time, but the already-tested all-step CPU-max removal passed parity and gave no robust mixed TPS gain (+0.52% within noise, TTFT worse). Metadata op itself is only ~0.4ms/call. No new semantics-safe, high-value decode patch justified; host span is not a removable E2E bound.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_loop019_qli_subphase/qli_subphase_summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260920_qli_pair_baseline/comparison.json"
+      ],
+      "decided_at": "2026-09-21T03:14:26Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-019",
-    "title": "Warm decode DSA-CP metadata builder active-path attribution",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run qli-scalar-versus-op-trace-20260921：LOOP019_QLI_TRACE_DIR=... docker exec dsv4ab bash scripts/serve.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop019_qli_subphase/run3",
-    "cases": [
-      "mixed_32k_1024_c12"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-21T02:59:05Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-019`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Inspect Loop014 no-profiler builder traces and active DSA-CP builder source; quantify repeated allocations/work by shape before editing.
-- 更新时间：`2026-09-21T01:13:57Z`
+- 下一步：Start Loop020: attribute DSpark proposer and target verification device/host critical path in warm mixed c12; quantify acceptance and exposed work before choosing implementation.
+- 更新时间：`2026-09-21T03:14:26Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-016` | `REJECTED` | `REJECTED` | Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain. |
 | `loop-017` | `REJECTED` | `REJECTED` | mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed. |
 | `loop-018` | `PIVOTED` | `PIVOTED` | Saved cross-rank timestamps are confounded by stable ~579us rank6 clock offset plus residual ~206us end spread. Communication elapsed is Idle-only, so collective arrival skew cannot be separated from clock/reporting artifacts or translated to a safe high-value change using current evidence. |
-| `loop-019` | `RUNNING` | `PENDING` | 执行 Run qli-scalar-versus-op-trace-20260921：LOOP019_QLI_TRACE_DIR=... docker exec dsv4ab bash scripts/serve.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop019_qli_subphase/run3 |
+| `loop-019` | `PIVOTED` | `PIVOTED` | QLI first NPU scalar read accounts for most measured first-builder host time, but the already-tested all-step CPU-max removal passed parity and gave no robust mixed TPS gain (+0.52% within noise, TTFT worse). Metadata op itself is only ~0.4ms/call. No new semantics-safe, high-value decode patch justified; host span is not a removable E2E bound. |
 
 ## 阻塞项
 

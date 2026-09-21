@@ -208,3 +208,8 @@ No-profiler sample 12×32K→512 c12, 174 pure-decode steps/rank: first active D
 ## Live checkpoint 2026-09-21 02:13 UTC — first-builder QLI stage
 
 Loop019 no-profiler first DSA-CP build_req_metadata subphase audit (169–170 pure decode steps/rank): QLI median1.735–4.306ms/rank, device-local0.477–0.548ms, CPU-local0.255–0.292ms, SAS0.422–0.485ms. Rank variation is substantial; QLI may include .item() device synchronization and metadata op cost. These are inclusive host scopes, not additive to 19.55ms prepare or E2E savings. Prior Loop011 all-step CPU maxima had no robust mixed TPS win; next isolate QLI suboperations and graph/host overlap before choosing a patch. Evidence evidence/20260921_loop019_builder_req/request_subphases_summary.json.
+
+
+## Update 2026-09-21 03:11 UTC — QLI host sync isolated, not priority
+
+Loop019 QLI subphase (155–156 uncached pure-decode calls/rank): first q.max().item median0.402–3.716ms/rank, second k.max().item0.110–0.135ms, metadata op+clones0.356–0.411ms. Rank variance suggests synchronization waits on prior device work; direct replacement with CPU maxima already failed mixed E2E gate in Loop011 (+0.52% TPS within noise, TTFT worse). Exclude these host spans from available savings. Re-rank next warm gap toward DSpark proposer/target work: old c12 TP0 host draft scopes9.036s in16.459s profile window, but overlap and device attribution unresolved.
