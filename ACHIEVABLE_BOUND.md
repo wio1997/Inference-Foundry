@@ -219,3 +219,7 @@ k5 cannot establish a lower-work bound because it is invalid under TP8 sequence-
 ## Bound update — scheduler reserve (2026-09-21 08:14 UTC)
 
 Restoring scheduled capacity8096→8192 produced no screen gain beyond observed variability, so the96-slot reservation is excluded from the verified achievable gap. The next bound is architectural: compare total target-only step cost against k7 proposer+verification cost per accepted token. Do not infer this from inclusive scopes; measure matched service E2E.
+
+## Bound update — DSpark versus target-only (2026-09-21 09:09 UTC)
+
+Target-only54.333ms/token versus k7 DSpark17.554ms/token proves verification amortization is necessary and rules out exiting speculative decoding. Using3.64 advanced tokens and17.554ms TPOT gives an approximate63.9ms speculative cycle. Balanced attribution of the three draft layers suggests an8.62ms one-layer opportunity and a rough3.15 advanced-token break-even after bypass. These are cross-run/inclusive estimates and are not added to the verified achievable gap; Loop026 E2E and acceptance measurements must validate them.

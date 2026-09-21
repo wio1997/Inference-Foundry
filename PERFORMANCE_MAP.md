@@ -264,3 +264,10 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - Bounded c12 result:472.871 tok/s, TTFT mean2007.49ms, TPOT mean17.300ms.
 - Relative to six prior k7 diagnostic screens: +2.77% versus median, -3.83% versus closest Loop020 screen; within4.3% noise. This capacity gap is not a verified E2E lever.
 - Next decisive system question: net k7 DSpark value versus target-only decode under matched settings.
+
+## Loop025 DSpark net value — 2026-09-21 09:09 UTC
+
+- Target-only matched screen:208.047 tok/s, TPOT54.333ms, TTFT1644.40ms.
+- k7 DSpark matched screen:491.698 tok/s, TPOT17.554ms, TTFT1981.90ms.
+- DSpark provides2.363x output TPS and67.69% lower TPOT, while short-screen TTFT rises20.52%. The speculative path is decisively valuable for decode.
+- Draft model source contains three sequential DSpark layers; prior profiled nested MoE+DSA host scopes total about25.86ms across them. Loop026 tests whether removing only the middle layer improves cost/advanced token.

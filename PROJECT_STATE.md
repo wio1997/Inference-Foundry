@@ -322,3 +322,7 @@ The k7/max-batched8288 service passed correctness and12/12 c12 screen; the8096 s
 ## Live checkpoint 2026-09-21 08:07 UTC — Loop025 target-only screen loading
 
 Loop024 was rejected and its service stopped. A target-only control now launches with the frozen DP1/TP8 W4A8 configuration and the sole semantic change of removing `--speculative-config`; max batched tokens remains8192. Container API PID878239, host runner PID2600192. Evidence: `evidence/20260921_loop025_nospec/`; service log: `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP025-NOSPEC-20260921.log`. Runner performs the identical correctness,48x128 warmup and12x32K→512 c12 screen. Do not start a competing service. This experiment measures DSpark net E2E value; no result yet.
+
+## Update 2026-09-21 09:09 UTC — Loop025 ACCEPT; Loop026 active
+
+Matched target-only control passed correctness and12/12 c12 but delivered only208.047 tok/s and54.333ms TPOT. Matched k7 DSpark control delivered491.698 tok/s and17.554ms TPOT:2.363x throughput and67.69% lower TPOT, far beyond4.3% noise; short-screen TTFT was20.52% worse. Loop025 accepted: retain DSpark and optimize proposer/verification organization. DeepSeek V4 DSpark has exactly three draft layers. Loop026 tests a flag-gated middle-layer bypass; target verification preserves final model semantics even if proposal quality falls. A rough falsification gate estimates acceptance must remain above3.15 advanced tokens/cycle versus current3.64; this is not a performance claim and E2E decides. No service active; framework clean.

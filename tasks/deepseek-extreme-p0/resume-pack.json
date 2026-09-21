@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T08:07:54Z",
+  "generated_at": "2026-09-21T09:08:09Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-025",
-    "next_action": "Create a launcher removing only speculative-config, run the same correctness/warmup/12x32K-to-512 c12 screen, and compare to k7 screens before any full benchmark.",
+    "active_loop": "loop-026",
+    "next_action": "Freeze the cycle-time/acceptance break-even model from saved evidence, audit the three-layer forward dependencies, then implement an environment-gated skip of only the middle draft layer for a no-profiler correctness and c12 screen.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -137,23 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-020",
-      "title": "Warm c12 DSpark draft and target verification critical-path attribution",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "Low draft acceptance or proposer scheduling exposes a service-level cost larger than current measured run spread; saved host and device traces can isolate it before changing code.",
-      "verdict": "PIVOTED",
-      "reason": "TP0 trace flows causally join all 121038 async launches whose CPU origin is inside a draft_token scope to device X tasks at exact timestamps. Across 170 scopes, device-task union clipped to the host scope is median 51.661 ms versus 52.894 ms host scope, so proposer time is predominantly device-active rather than a removable host-only bubble. Draft acceptance advances only 3.54-3.64 tokens for 7 drafted tokens, but no safe material scheduling intervention is identified; DSpark ACLGraph is explicitly unsupported/eager.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260921_dspark_audit/async_flow_attribution_tp0.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_loop020_draft_stage/draft_stage_summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_dspark_audit/acceptance_profile.json"
-      ],
-      "decided_at": "2026-09-21T04:04:17Z"
-    },
-    {
       "loop_id": "loop-021",
       "title": "DSpark eager device fragmentation critical path",
       "mode": "optimization",
@@ -219,34 +202,51 @@
         "/data/wio/Inference_Foundry/evidence/20260921_loop024_tokens8288/run1/decode_c12.json"
       ],
       "decided_at": "2026-09-21T08:05:27Z"
+    },
+    {
+      "loop_id": "loop-025",
+      "title": "Bound DSpark net E2E value against target-only",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "Valid k7 DSpark materially improves mixed c12 output TPS over target-only decoding; a matched no-spec screen can quantify its net value and decide whether to optimize proposer/verification or exit the speculative path.",
+      "verdict": "ACCEPTED",
+      "reason": "Matched no-spec control proves k7 DSpark is architecturally valuable:491.698 versus208.047 tok/s (2.363x) and17.554 versus54.333ms TPOT (-67.69%). The difference dwarfs4.3% noise. Retain DSpark; optimize proposer necessary compute/acceptance rather than exit speculative decoding.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_loop025_nospec/comparison.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop025_nospec/run1/decode_c12.json"
+      ],
+      "decided_at": "2026-09-21T09:07:34Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-025",
-    "title": "Bound DSpark net E2E value against target-only",
+    "loop_id": "loop-026",
+    "title": "DSpark middle-layer cost versus acceptance",
     "mode": "optimization",
-    "status": "RUNNING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "执行 Run nospec-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP025-NOSPEC-20260921 bash scripts/serve_loop025_nospec.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop025_nospec/run1",
+    "next_action": "Freeze the cycle-time/acceptance break-even model from saved evidence, audit the three-layer forward dependencies, then implement an environment-gated skip of only the middle draft layer for a no-profiler correctness and c12 screen.",
     "cases": [
       "mixed_32k_1024_c12",
       "correctness_short"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-21T08:06:34Z"
+    "updated_at": "2026-09-21T09:07:34Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-025/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-025/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-025/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-025/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-025/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-025/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

@@ -253,3 +253,7 @@ DSpark k5 failed before readiness with the exact invariant that graph shapes mus
 ## 2026-09-21 08:14 UTC — Loop024 REJECT
 
 Candidate max-batched8288 passed correctness and removed the scheduler warning. Its12-request c12 screen delivered472.871 tok/s with17.300ms mean TPOT, only +2.77% versus prior-screen median and -3.83% versus closest Loop020. The result is inside4.3% noise, so it was not promoted to full frozen benchmark. Evidence: `evidence/20260921_loop024_tokens8288/screen_comparison.json`. Loop025 compares k7 DSpark with target-only decoding.
+
+## 2026-09-21 09:09 UTC — Loop025 ACCEPT
+
+Matched target-only decode achieved208.047 tok/s and54.333ms TPOT; k7 DSpark achieved491.698 tok/s and17.554ms TPOT under the same12-request c12 runner. This is +136.34% TPS and -67.69% TPOT, decisively beyond noise. Correctness passed for both. Evidence: `evidence/20260921_loop025_nospec/comparison.json`. Retain DSpark; Loop026 evaluates the cost/acceptance tradeoff of bypassing its middle draft layer.
