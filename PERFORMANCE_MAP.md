@@ -213,3 +213,8 @@ Loop019 no-profiler first DSA-CP build_req_metadata subphase audit (169–170 pu
 ## Update 2026-09-21 03:11 UTC — QLI host sync isolated, not priority
 
 Loop019 QLI subphase (155–156 uncached pure-decode calls/rank): first q.max().item median0.402–3.716ms/rank, second k.max().item0.110–0.135ms, metadata op+clones0.356–0.411ms. Rank variance suggests synchronization waits on prior device work; direct replacement with CPU maxima already failed mixed E2E gate in Loop011 (+0.52% TPS within noise, TTFT worse). Exclude these host spans from available savings. Re-rank next warm gap toward DSpark proposer/target work: old c12 TP0 host draft scopes9.036s in16.459s profile window, but overlap and device attribution unresolved.
+
+
+## Live checkpoint 2026-09-21 03:20 UTC — DSpark co-occurrence
+
+Saved profiled c12 TP0: draft_token host median52.894ms across170 scopes; temporally coincident device union median41.860ms, compute37.641ms, HCCL5.272ms. Thus treating all draft host time as framework waste is invalid. Async target work may overlap draft scope; next no-profiler proposer stage trace will separate metadata preparation from model run on host. Evidence evidence/20260921_dspark_audit/host_device_scope_overlap_tp0.json.

@@ -218,3 +218,8 @@ Flag-gated request-metadata trace passed short functional and12/12 c12×512 samp
 ## 2026-09-21 03:11 UTC — Loop019 PIVOT
 
 Three no-profiler diagnostics localized first DSA-CP builder cost. Final QLI trace passed short functional and12/12 c12×512; 155–156 uncached pure-decode calls/rank. Median first q.max().item0.402–3.716ms/rank, second k.max().item0.110–0.135ms, metadata op+clones0.356–0.411ms. Earlier Loop011 all-step CPU maxima had verified parity but only+0.52% mixed TPS within noise and worse TTFT; no new patch kept. TaskCtl Loop019 pivoted. Raw eight-rank CSV, sample, and summary: evidence/20260921_loop019_qli_subphase/. Service stopped, all NPUs idle, framework clean36589852. Next DSpark/target critical path.
+
+
+## Live checkpoint 2026-09-21 03:20 UTC — Loop020 attribution
+
+Read-only saved c12 analysis passed: 170 TP0 draft_token scopes median52.894ms; device activity coincident inside them median41.860ms union. No candidate gain claim. Flag-gated proposer stage service loading DP1/TP8; API PID856647, runner PID2439916. Raw and distilled saved-profile evidence in evidence/20260921_dspark_audit/.

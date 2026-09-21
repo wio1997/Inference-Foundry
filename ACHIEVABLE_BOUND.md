@@ -184,3 +184,8 @@ QLI first-builder median host span1.735–4.306ms/rank may include synchronizati
 ## Update 2026-09-21 03:11 UTC — QLI gap not promoted
 
 First QLI scalar host wait reaches3.716ms median/rank, but Loop011 removed the reads without a robust mixed TPS gain. Therefore no sum of QLI wait times is admitted as an attainable E2E bound. Metadata op host call ~0.36–0.41ms is also not a proven saving. Mixed hardware bound remains UNKNOWN; next quantify DSpark work and acceptance.
+
+
+## Live checkpoint 2026-09-21 03:20 UTC
+
+The 52.894ms median draft_token host scope coincides with41.860ms median device busy union on TP0, but async ownership is unknown. Their difference is not an achievable saving. No bound promoted.

@@ -1,0 +1,74 @@
+diff --git a/vllm_ascend/spec_decode/llm_base_proposer.py b/vllm_ascend/spec_decode/llm_base_proposer.py
+index a108c1e66..220a96eb5 100644
+--- a/vllm_ascend/spec_decode/llm_base_proposer.py
++++ b/vllm_ascend/spec_decode/llm_base_proposer.py
+@@ -1,5 +1,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ import copy
++import os
++import time
+ from collections.abc import Callable
+ from contextlib import AbstractContextManager, nullcontext
+ from functools import partial
+@@ -1019,6 +1021,7 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+         num_rejected_tokens_gpu: torch.Tensor | None = None,
+         num_draft_tokens_cpu: list[int] | None = None,
+     ) -> torch.Tensor:
++        _l20_t0 = time.perf_counter_ns()
+         batch_size = common_attn_metadata.batch_size()
+ 
+         if token_indices_to_sample is None:
+@@ -1053,6 +1056,7 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+             num_prefill_reqs=num_prefill_reqs,
+             num_decode_reqs=num_decode_reqs,
+         )
++        _l20_t_set_inputs = time.perf_counter_ns()
+         assert self.runner is not None
+         dcp_manager = getattr(self.runner, "dcp_manager", None)
+         if dcp_manager is not None:
+@@ -1178,10 +1182,12 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+         common_attn_metadata.num_input_tokens = num_input_tokens
+ 
+         self._pad_draft_buffers(num_tokens, num_input_tokens)
++        _l20_t_pre_attn = time.perf_counter_ns()
+         multi_steps_attn_metadata, attn_metadata_i = self.build_draft_attn_metadata(
+             common_attn_metadata, num_input_tokens, num_tokens
+         )
+ 
++        _l20_t_attn0 = time.perf_counter_ns()
+         if self.uses_mrope:
+             used_update_positions = self.mrope_positions[:, token_indices_to_sample]
+         else:
+@@ -1248,10 +1254,12 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+                         per_layer_attn_metadata[layer_name] = attn_metadata
+                 multi_steps_attn_metadata.append(per_layer_attn_metadata)
+ 
++        _l20_t_attn_all = time.perf_counter_ns()
+         token_indices_to_sample_len = token_indices_to_sample.shape[0]
+         self.token_indices_to_sample[:token_indices_to_sample_len].copy_(token_indices_to_sample)
+         self.token_indices_to_sample[token_indices_to_sample_len:].fill_(0)
+ 
++        _l20_t_pre_model = time.perf_counter_ns()
+         with set_ascend_forward_context(
+             multi_steps_attn_metadata[0],
+             self.vllm_config,
+@@ -1290,6 +1298,19 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+             else:
+                 draft_token_ids = run_draft()
+                 self._update_full_graph_params_if_needed(forward_context, num_input_tokens, multi_steps_attn_metadata)
++        _l20_t_done = time.perf_counter_ns()
++        _l20_dir = os.environ.get("LOOP020_DRAFT_TRACE_DIR")
++        if _l20_dir:
++            _l20_path = os.path.join(
++                _l20_dir, f"rank{get_tp_group().rank_in_group}_pid{os.getpid()}.csv"
++            )
++            with open(_l20_path, "a") as _l20_file:
++                _l20_file.write(
++                    f"{_l20_t0},{_l20_t_set_inputs},{_l20_t_pre_attn},"
++                    f"{_l20_t_attn0},{_l20_t_attn_all},{_l20_t_pre_model},{_l20_t_done},"
++                    f"{batch_size},{num_tokens},{num_input_tokens},"
++                    f"{int(is_prefill_batch)},{int(self.use_cuda_graph)}\n"
++                )
+         return draft_token_ids
+ 
+     def compute_draft_token_ids(self, hidden_states: torch.Tensor):
