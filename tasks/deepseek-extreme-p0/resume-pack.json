@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T12:29:03Z",
+  "generated_at": "2026-09-21T12:51:39Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "DESIGNING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-028",
-    "next_action": "Map the exact legacy warm-decode call graph and tensor mutation boundary from proposer input through target verification and acceptance; classify constant, device-resident, derived and host-visible state before writing the replay harness.",
+    "active_loop": null,
+    "next_action": "PAUSED by user after Loop028 commit. On resume, extend the proven proposer boundary through target verification, device-side acceptance and explicit state/KV mutation parity before claiming a standalone full cycle.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -110,8 +110,31 @@
     }
   ],
   "knowledge_summary": {
-    "total": 1,
+    "total": 3,
     "selected": [
+      {
+        "id": "loop028-c12-pointer-contract",
+        "kind": "fact",
+        "statement": "At the legacy DSpark proposer boundary for warm c12 pure decode, all observed tensor shapes and strides were fixed over 172 calls per rank; ten fields kept one address per rank while target_token_ids and target_positions changed address.",
+        "status": "accepted",
+        "confidence": "high",
+        "scope": {
+          "model": "DeepSeek V4 Flash W4A8",
+          "parallelism": "DP1TP8",
+          "speculation": "DSpark7",
+          "batch_size": 12
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260921_loop028_runtime_contract/pointer_stability_summary.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "loop-028",
+        "staged_at": "2026-09-21T12:51:38Z",
+        "verdict": "PIVOTED",
+        "updated_at": "2026-09-21T12:51:38Z"
+      },
       {
         "id": "warm_cache_baseline",
         "kind": "fact",
@@ -132,27 +155,33 @@
         "staged_at": "2026-09-20T15:59:15Z",
         "verdict": "ACCEPTED",
         "updated_at": "2026-09-20T15:59:15Z"
+      },
+      {
+        "id": "loop028-proposer-replay-boundary",
+        "kind": "fact",
+        "statement": "The already-materialized c12 real-weight DSpark proposer closure can execute twice without intervening scheduler/request preparation and produces exactly equal 12x7 draft token tensors on all eight TP ranks; this does not establish parity for target verification, acceptance, or complete cycle state mutation.",
+        "status": "limited",
+        "confidence": "high",
+        "scope": {
+          "model": "DeepSeek V4 Flash W4A8",
+          "parallelism": "DP1TP8",
+          "speculation": "DSpark7",
+          "boundary": "proposer only"
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260921_loop028_runtime_contract/fixed_cycle_replay_summary.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "loop-028",
+        "staged_at": "2026-09-21T12:51:38Z",
+        "verdict": "PIVOTED",
+        "updated_at": "2026-09-21T12:51:38Z"
       }
     ]
   },
   "recent_loops": [
-    {
-      "loop_id": "loop-023",
-      "title": "DSpark speculative length efficiency sweep",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "With only 3.54-3.64 mean tokens advanced from seven-token drafts, a smaller speculative length reduces wasted draft and verification work enough to improve frozen mixed output TPS beyond run noise while preserving correctness.",
-      "verdict": "REJECTED",
-      "reason": "k5 is not a runnable TP8 configuration in the current vLLM 0.26 path: graph shapes must be divisible by both 6 and 8. The service failed during KV/backend initialization, so there is no correctness or performance comparison. With model dspark_block_size>=5, the next smaller valid k below7 does not exist under this invariant.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260921_loop023_k5_screen/startup_failure.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_loop023_k5_screen/runner.log"
-      ],
-      "decided_at": "2026-09-21T06:53:47Z"
-    },
     {
       "loop_id": "loop-024",
       "title": "Restore speculative scheduler token capacity",
@@ -220,34 +249,32 @@
         "/data/wio/Inference_Foundry/evidence/20260921_loop027_graph_feasibility/startup_failure.json"
       ],
       "decided_at": "2026-09-21T12:04:20Z"
+    },
+    {
+      "loop_id": "loop-028",
+      "title": "Fixed decode-cycle contract extraction",
+      "mode": "design",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "For the frozen DP1TP8 DSpark7 serving envelope, one warm decode cycle can be expressed as a stable set of preallocated device buffers, fixed collectives and explicit mutations without per-step scheduler/request objects or dynamic metadata construction.",
+      "verdict": "PIVOTED",
+      "reason": "Loop028 established a fixed-shape c12 proposer contract and an executable exact in-process replay boundary on 8/8 ranks, but the frozen success gate required target verification, accepted-token parity and complete mutated-state comparison. Those boundaries were not captured, so the full standalone fixed-cycle claim is not yet supported.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_loop028_runtime_contract/source_contract_v0.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop028_runtime_contract/pointer_stability_summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop028_runtime_contract/fixed_cycle_replay_summary.json"
+      ],
+      "decided_at": "2026-09-21T12:51:38Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-028",
-    "title": "Fixed decode-cycle contract extraction",
-    "mode": "design",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run fixed-cycle-replay-20260921：Combined pointer-stability trace plus in-process exact fixed-cycle double replay at c12",
-    "cases": [
-      "mixed_32k_1024_c12",
-      "correctness_short"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-21T12:27:51Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

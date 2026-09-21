@@ -266,3 +266,14 @@ Bypassing only the middle DSpark layer saved23.21% proposer model time but reduc
 ## 2026-09-21 11:18 UTC — Loop027 PIVOT
 
 The bounded v2 DSpark graph probe failed before service readiness. Target architecture resolved as `DeepseekV4ForCausalLM`, draft architecture as `DeepSeekV4MTPModel`, and generic v2 `set_attn` found no draft KV group, raising `No draft attention groups found`. Graph capture, correctness and benchmark were not reached. Evidence: `evidence/20260921_loop027_graph_feasibility/startup_failure.json`. This closes the immediate stock-v2 route and triggers the specialized-runtime path: use the working legacy implementation as semantic/operator oracle, extract a fixed decode-cycle contract, then remove scheduler, dynamic metadata and orchestration behind exact parity gates.
+
+## 2026-09-21 — Loop028 PIVOT: fixed proposer replay established, full cycle incomplete
+
+- Source contract maps target forward/verification, acceptance, proposer input preparation, the three-layer DSpark backbone, Markov7 drafting and state publication.
+- Corrected diagnostic passed short functional checks and recorded 172 c12 pure-decode calls per rank.
+- All traced shapes/strides were fixed. Ten fields had one address per rank; target token IDs and positions changed allocation address.
+- The real-weight, TP8, already-materialized proposer closure replayed once without scheduler/request rebuilding and returned exactly equal `[12,7]` draft tokens on all eight ranks.
+- Verdict: **PIVOTED / partially supported**. The proposer is a valid executable replay segment, while the frozen Loop028 success gate also required target verification, accepted-token parity and full mutated-state parity. Those comparisons were not implemented.
+- Performance: no claim. The 12×32K→512 diagnostic produced 412.50 tok/s with tracing and a duplicate proposer invocation, so it is not comparable with the frozen 543.65 tok/s baseline.
+- Cleanup: service stopped, no NPU processes, framework restored clean at `36589852a`.
+- Work paused after the Loop028 commit at the user's request. Resume from the target verification/acceptance/state boundary; do not repeat pointer discovery.

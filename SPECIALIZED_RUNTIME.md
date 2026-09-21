@@ -61,3 +61,11 @@ Add the minimum admission, prefix plan, slot lifecycle and output drain required
 - No performance KEEP from microbenchmarks alone
 - Full E2E improvement must exceed the measured 4.3% baseline noise and repeat
 - New achievable-gap entries require causal evidence that time is removable or overlap can increase
+
+## Loop028 checkpoint and paused boundary
+
+The first executable specialized-runtime segment is now proven at c12: once proposer inputs and metadata are materialized, the exact real-weight three-layer DSpark7 closure can run again on TP8 and reproduce all draft tokens on 8/8 ranks. Most observed proposer inputs already have fixed process-local addresses; dedicated stable buffers are still required for target token IDs and target positions.
+
+Phase B remains incomplete for the whole decode cycle. The next implementation boundary is target verification → acceptance → device-resident sequence/KV advance → next proposer inputs, with explicit parity for accepted tokens and all mutated state. Only after that boundary is exact should segmented graph, persistent replay or wider fused regions receive an E2E performance gate.
+
+Work is paused after Loop028 by user request.

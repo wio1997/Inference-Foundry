@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`DESIGNING`
-- 活动 Loop：`loop-028`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
-- 当前知识条目：`1`
-- 下一步：Map the exact legacy warm-decode call graph and tensor mutation boundary from proposer input through target verification and acceptance; classify constant, device-resident, derived and host-visible state before writing the replay harness.
-- 更新时间：`2026-09-21T12:06:00Z`
+- 当前知识条目：`3`
+- 下一步：PAUSED by user after Loop028 commit. On resume, extend the proven proposer boundary through target verification, device-side acceptance and explicit state/KV mutation parity before claiming a standalone full cycle.
+- 更新时间：`2026-09-21T12:51:38Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-025` | `ACCEPTED` | `ACCEPTED` | Matched no-spec control proves k7 DSpark is architecturally valuable:491.698 versus208.047 tok/s (2.363x) and17.554 versus54.333ms TPOT (-67.69%). The difference dwarfs4.3% noise. Retain DSpark; optimize proposer necessary compute/acceptance rather than exit speculative decoding. |
 | `loop-026` | `REJECTED` | `REJECTED` | Removing one of three trained draft layers saves23.21% proposer model time but destroys proposal quality: advanced tokens fall to1.363/cycle, far below3.15 break-even; output TPS drops55.85% to217.092, close to target-only208.047. Full three-layer semantics are necessary. |
 | `loop-027` | `PIVOTED` | `PIVOTED` | Legacy DSpark is hard-disabled from graph; the available v2 DSpark graph path fails before capture because generic KV-group discovery finds no draft attention group for this DeepSeek V4 checkpoint. Stock v2 integration is therefore not an immediately runnable graph solution. Use the working legacy path as semantic/operator oracle and extract the fixed proposer-target execution contract for a specialized runtime. |
-| `loop-028` | `RUNNING` | `PENDING` | 执行 Run fixed-cycle-replay-20260921：Combined pointer-stability trace plus in-process exact fixed-cycle double replay at c12 |
+| `loop-028` | `PIVOTED` | `PIVOTED` | Loop028 established a fixed-shape c12 proposer contract and an executable exact in-process replay boundary on 8/8 ranks, but the frozen success gate required target verification, accepted-token parity and complete mutated-state comparison. Those boundaries were not captured, so the full standalone fixed-cycle claim is not yet supported. |
 
 ## 阻塞项
 

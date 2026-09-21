@@ -286,3 +286,14 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - The v2 probe fails during `initialize_kv_cache`, before graph capture or correctness: `AssertionError: No draft attention groups found.` This is a framework integration gap, not measured evidence that the model or Ascend graph mechanism is infeasible.
 - All failed worker processes were removed and all eight NPUs returned to idle.
 - The optimization boundary is now the fixed product runtime. Highest-value next unknown: the minimum explicit device-state and mutation contract for one correct proposer→verification→acceptance cycle, independent of generic scheduler and request abstractions.
+
+## Loop028 — fixed c12 proposer replay boundary (2026-09-21)
+
+- Scope: legacy DSpark proposer entry during warm pure decode, DP1×TP8, DSpark7, c12.
+- Observations: 172 calls per rank across all eight TP ranks; `num_tokens=84`, one metadata step, fixed tensor shapes and strides.
+- Stable process-local addresses on every rank: block table, draft-token buffer, hidden-state buffer, input-id buffer, position buffer, query start locations, sample indices, sequence lengths, slot mapping and target hidden states.
+- Dynamic addresses: target token IDs and target positions. A specialized runtime therefore needs explicit stable owner buffers or copies for these two inputs before graph capture.
+- Exact replay: one immediate repeat of the already-materialized proposer closure matched the `[12,7]` draft token tensor exactly on 8/8 ranks. First execution median was 37.021 ms and replay median 31.102 ms, but these one-shot synchronized diagnostics are not benchmark values or removable-time estimates.
+- Proven graph/replay candidate: the full three-layer DSpark proposer after its inputs and metadata have been materialized.
+- Still outside the proven boundary: target verification, rejection sampling/acceptance, sequence advance, target/draft KV state comparison, output publication and next-cycle input mutation.
+- The traced decode sample is invalid for E2E comparison because tracing and a duplicate proposer call were enabled. No change to the accepted 543.65 tok/s baseline.

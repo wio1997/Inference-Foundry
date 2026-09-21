@@ -1,0 +1,82 @@
+{
+  "version": "v0",
+  "principle": "Regions are selected by stable data dependencies and KV/HCCL boundaries, not existing module ownership.",
+  "regions": [
+    {
+      "id": "R0",
+      "name": "device_state_advance",
+      "span": "rejection sampler -> accepted count -> sequence/slot advance -> next-cycle compact state",
+      "candidate": [
+        "persistent execution",
+        "fused device kernel"
+      ],
+      "hard_boundaries": [
+        "batched output drain"
+      ],
+      "priority": "high",
+      "next_test": "enumerate remaining CPU reads and prove a fixed-slot state transition"
+    },
+    {
+      "id": "R1",
+      "name": "fixed_proposer_input_materialization",
+      "span": "prepare_inputs_padded -> set_inputs_first_pass -> slot/seq/query buffers -> draft metadata",
+      "candidate": [
+        "static metadata",
+        "preallocated device buffers",
+        "fused update kernel"
+      ],
+      "hard_boundaries": [
+        "KV slot ownership",
+        "active request mask"
+      ],
+      "priority": "high",
+      "next_test": "pointer-stability trace and mutation inventory"
+    },
+    {
+      "id": "R2",
+      "name": "three_layer_dspark_backbone",
+      "span": "embedding/main projection -> three draft decoder layers -> hc_head/lm_head",
+      "candidate": [
+        "segmented graph",
+        "persistent replay",
+        "cross-op fused regions inside each layer"
+      ],
+      "hard_boundaries": [
+        "DSA/SWA KV write",
+        "MoE HCCL/EP collectives",
+        "inter-layer hidden dependency"
+      ],
+      "priority": "highest",
+      "next_test": "exact fixed-cycle double replay, then capture segments around KV/HCCL boundaries"
+    },
+    {
+      "id": "R3",
+      "name": "markov_draft_chain",
+      "span": "seed token -> six markov_embed + markov_bias + argmax + token writes",
+      "candidate": [
+        "SuperKernel",
+        "single fused region"
+      ],
+      "hard_boundaries": [],
+      "priority": "medium",
+      "next_test": "measure isolated share of proposer critical path before implementation"
+    },
+    {
+      "id": "R4",
+      "name": "verification_and_acceptance",
+      "span": "target logits for 7 drafts -> rejection sampler -> accepted tokens",
+      "candidate": [
+        "segmented graph",
+        "fused verification/acceptance kernel",
+        "device-resident state"
+      ],
+      "hard_boundaries": [
+        "target model KV mutation",
+        "next request output visibility"
+      ],
+      "priority": "high",
+      "next_test": "extract exact tensors and keep accepted count on device through R0"
+    }
+  ],
+  "non_claim": "No region time is currently counted as achievable savings."
+}
