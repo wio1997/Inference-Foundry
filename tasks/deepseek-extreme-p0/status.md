@@ -29,7 +29,7 @@
 | `loop-017` | `REJECTED` | `REJECTED` | mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed. |
 | `loop-018` | `PIVOTED` | `PIVOTED` | Saved cross-rank timestamps are confounded by stable ~579us rank6 clock offset plus residual ~206us end spread. Communication elapsed is Idle-only, so collective arrival skew cannot be separated from clock/reporting artifacts or translated to a safe high-value change using current evidence. |
 | `loop-019` | `PIVOTED` | `PIVOTED` | QLI first NPU scalar read accounts for most measured first-builder host time, but the already-tested all-step CPU-max removal passed parity and gave no robust mixed TPS gain (+0.52% within noise, TTFT worse). Metadata op itself is only ~0.4ms/call. No new semantics-safe, high-value decode patch justified; host span is not a removable E2E bound. |
-| `loop-020` | `RUNNING` | `PENDING` | 执行 Run active-dspark-draft-stage-20260921：LOOP020_DRAFT_TRACE_DIR=... docker exec dsv4ab bash scripts/serve.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop020_draft_stage/run1 |
+| `loop-020` | `EVALUATING` | `PENDING` | 审查 Run active-dspark-draft-stage-20260921 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

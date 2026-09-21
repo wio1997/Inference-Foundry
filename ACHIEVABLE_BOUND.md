@@ -189,3 +189,8 @@ First QLI scalar host wait reaches3.716ms median/rank, but Loop011 removed the r
 ## Live checkpoint 2026-09-21 03:20 UTC
 
 The 52.894ms median draft_token host scope coincides with41.860ms median device busy union on TP0, but async ownership is unknown. Their difference is not an achievable saving. No bound promoted.
+
+
+## Live checkpoint 2026-09-21 03:36 UTC
+
+DSpark proposer host run_draft28.43–32.69ms and attention metadata5.67–6.41ms per step are gross inclusive spans, not achievable reductions. The draft acceptance mean3.54–3.64 for7 speculative tokens informs token efficiency but alone yields no hardware lower bound. Mixed achievable bound remains UNKNOWN.

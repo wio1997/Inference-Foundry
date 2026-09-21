@@ -223,3 +223,8 @@ Three no-profiler diagnostics localized first DSA-CP builder cost. Final QLI tra
 ## Live checkpoint 2026-09-21 03:20 UTC — Loop020 attribution
 
 Read-only saved c12 analysis passed: 170 TP0 draft_token scopes median52.894ms; device activity coincident inside them median41.860ms union. No candidate gain claim. Flag-gated proposer stage service loading DP1/TP8; API PID856647, runner PID2439916. Raw and distilled saved-profile evidence in evidence/20260921_dspark_audit/.
+
+
+## Live checkpoint 2026-09-21 03:36 UTC — Loop020 diagnostic
+
+Flag-gated proposer stage trace passed short functional and12/12 c12×512. Across160 pure decode calls/rank, eager _propose median36.11–41.38ms, run_draft28.43–32.69ms, step0 all-group attention metadata5.67–6.41ms, set_inputs1.47–1.66ms. Eight rank CSVs and summary in evidence/20260921_loop020_draft_stage/. Saved profiled acceptance buckets in evidence/20260921_dspark_audit/acceptance_profile.json. No optimization or E2E gain claim. Service stopped; framework clean and NPUs idle.

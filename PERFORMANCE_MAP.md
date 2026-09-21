@@ -218,3 +218,8 @@ Loop019 QLI subphase (155–156 uncached pure-decode calls/rank): first q.max().
 ## Live checkpoint 2026-09-21 03:20 UTC — DSpark co-occurrence
 
 Saved profiled c12 TP0: draft_token host median52.894ms across170 scopes; temporally coincident device union median41.860ms, compute37.641ms, HCCL5.272ms. Thus treating all draft host time as framework waste is invalid. Async target work may overlap draft scope; next no-profiler proposer stage trace will separate metadata preparation from model run on host. Evidence evidence/20260921_dspark_audit/host_device_scope_overlap_tp0.json.
+
+
+## Live checkpoint 2026-09-21 03:36 UTC — DSpark stage map
+
+No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose median36.11–41.38ms; eager run_draft28.43–32.69ms (~78–80% of proposer wall), step0 all-group attention metadata5.67–6.41ms (~15–16%), set_inputs1.47–1.66ms. Saved profiled 10-second acceptance buckets: mean3.54–3.64 advanced tokens per7 drafted, per-position acceptance declines to~8% at seventh. Scope/device temporal co-occurrence is not ownership; next isolate model-owned device work and evaluate graph feasibility or metadata repetition.
