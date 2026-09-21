@@ -1,0 +1,72 @@
+diff --git a/vllm_ascend/spec_decode/llm_base_proposer.py b/vllm_ascend/spec_decode/llm_base_proposer.py
+index a108c1e66..dfd641471 100644
+--- a/vllm_ascend/spec_decode/llm_base_proposer.py
++++ b/vllm_ascend/spec_decode/llm_base_proposer.py
+@@ -1,5 +1,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ import copy
++import json
++import os
+ from collections.abc import Callable
+ from contextlib import AbstractContextManager, nullcontext
+ from functools import partial
+@@ -901,6 +903,43 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+ 
+         self.token_indices_to_sample.fill_(0)
+ 
++        _loop028_trace_dir = os.getenv("LOOP028_CONTRACT_TRACE_DIR")
++        if _loop028_trace_dir and not is_prefill_batch:
++            def _loop028_tensor_desc(value):
++                if not torch.is_tensor(value):
++                    return None
++                return {
++                    "shape": list(value.shape),
++                    "dtype": str(value.dtype),
++                    "device": str(value.device),
++                    "data_ptr": int(value.data_ptr()),
++                    "stride": list(value.stride()),
++                }
++
++            _loop028_index = getattr(self, "_loop028_trace_index", 0)
++            self._loop028_trace_index = _loop028_index + 1
++            self._loop028_trace_row = {
++                "index": _loop028_index,
++                "rank": int(get_world_group().rank),
++                "batch_size": int(batch_size),
++                "num_tokens": int(num_tokens),
++                "num_input_tokens": int(num_input_tokens),
++                "num_reqs_padded": int(num_reqs_padded),
++                "token_indices_to_sample_len": int(token_indices_to_sample_len),
++                "metadata_steps": len(multi_steps_attn_metadata),
++                "target_token_ids": _loop028_tensor_desc(target_token_ids),
++                "target_positions": _loop028_tensor_desc(target_positions),
++                "target_hidden_states": _loop028_tensor_desc(target_hidden_states),
++                "input_ids_buffer": _loop028_tensor_desc(self.input_ids),
++                "positions_buffer": _loop028_tensor_desc(self.positions),
++                "hidden_states_buffer": _loop028_tensor_desc(self.hidden_states),
++                "slot_mapping": _loop028_tensor_desc(common_attn_metadata.slot_mapping),
++                "seq_lens": _loop028_tensor_desc(common_attn_metadata.seq_lens),
++                "query_start_loc": _loop028_tensor_desc(common_attn_metadata.query_start_loc),
++                "block_table": _loop028_tensor_desc(common_attn_metadata.block_table_tensor),
++                "sample_indices": _loop028_tensor_desc(self.token_indices_to_sample),
++            }
++
+         with set_ascend_forward_context(
+             multi_steps_attn_metadata[0] if multi_steps_attn_metadata else None,
+             self.vllm_config,
+@@ -1290,6 +1329,15 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+             else:
+                 draft_token_ids = run_draft()
+                 self._update_full_graph_params_if_needed(forward_context, num_input_tokens, multi_steps_attn_metadata)
++        if _loop028_trace_dir and not is_prefill_batch:
++            _loop028_row = self._loop028_trace_row
++            _loop028_row["draft_token_ids"] = _loop028_tensor_desc(draft_token_ids)
++            os.makedirs(_loop028_trace_dir, exist_ok=True)
++            _loop028_path = os.path.join(
++                _loop028_trace_dir, f"rank{int(get_world_group().rank)}.jsonl"
++            )
++            with open(_loop028_path, "a", encoding="utf-8") as _loop028_file:
++                _loop028_file.write(json.dumps(_loop028_row, sort_keys=True) + "\n")
+         return draft_token_ids
+ 
+     def compute_draft_token_ids(self, hidden_states: torch.Tensor):

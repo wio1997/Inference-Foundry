@@ -29,7 +29,7 @@
 | `loop-025` | `ACCEPTED` | `ACCEPTED` | Matched no-spec control proves k7 DSpark is architecturally valuable:491.698 versus208.047 tok/s (2.363x) and17.554 versus54.333ms TPOT (-67.69%). The difference dwarfs4.3% noise. Retain DSpark; optimize proposer necessary compute/acceptance rather than exit speculative decoding. |
 | `loop-026` | `REJECTED` | `REJECTED` | Removing one of three trained draft layers saves23.21% proposer model time but destroys proposal quality: advanced tokens fall to1.363/cycle, far below3.15 break-even; output TPS drops55.85% to217.092, close to target-only208.047. Full three-layer semantics are necessary. |
 | `loop-027` | `PIVOTED` | `PIVOTED` | Legacy DSpark is hard-disabled from graph; the available v2 DSpark graph path fails before capture because generic KV-group discovery finds no draft attention group for this DeepSeek V4 checkpoint. Stock v2 integration is therefore not an immediately runnable graph solution. Use the working legacy path as semantic/operator oracle and extract the fixed proposer-target execution contract for a specialized runtime. |
-| `loop-028` | `FROZEN` | `PENDING` | Map the exact legacy warm-decode call graph and tensor mutation boundary from proposer input through target verification and acceptance; classify constant, device-resident, derived and host-visible state before writing the replay harness. |
+| `loop-028` | `RUNNING` | `PENDING` | 执行 Run pointer-stability-20260921：Flag-gated no-D2H shape/data-pointer trace across warm pure-decode steps |
 
 ## 阻塞项
 

@@ -1,0 +1,140 @@
+{
+  "contract_version": "v0-source",
+  "code_ref": {
+    "vllm_ascend": "36589852a",
+    "root": "acc3a9f"
+  },
+  "fixed_envelope": {
+    "model": "DeepSeek V4 Flash W4A8",
+    "dp": 1,
+    "tp": 8,
+    "speculative_tokens": 7,
+    "trained_draft_layers": 3,
+    "max_num_seqs": 16,
+    "primary_concurrency": 12
+  },
+  "cycle": [
+    {
+      "stage": 1,
+      "name": "target_forward",
+      "outputs": [
+        "target logits",
+        "target hidden states",
+        "aux hidden states from target layer ids",
+        "target KV mutations"
+      ],
+      "required": true
+    },
+    {
+      "stage": 2,
+      "name": "target_sample_or_verify",
+      "operation": "AscendRejectionSampler when prior draft metadata exists",
+      "outputs": [
+        "sampled_token_ids including accepted prefix",
+        "valid_sampled_token_count"
+      ],
+      "required": true
+    },
+    {
+      "stage": 3,
+      "name": "prepare_proposer_inputs",
+      "operations": [
+        "prepare_inputs_padded",
+        "set_inputs_first_pass",
+        "combine_hidden_states",
+        "build_draft_attn_metadata"
+      ],
+      "outputs": [
+        "fixed query block ids/positions",
+        "draft slot mappings",
+        "seq lens/query starts/block tables",
+        "three target hidden-state projection"
+      ],
+      "removal_target": "replace scheduler/request-derived construction with fixed-slot device buffers"
+    },
+    {
+      "stage": 4,
+      "name": "three_layer_dspark",
+      "operations": [
+        "embedding",
+        "main projection/norm",
+        "three sequential draft decoder layers",
+        "DSA/SWA KV writes",
+        "MoE TP/EP collectives",
+        "hc_head",
+        "lm_head"
+      ],
+      "required": true
+    },
+    {
+      "stage": 5,
+      "name": "markov_argmax",
+      "operation": "seed first draft then six sequential markov_embed/markov_bias/argmax updates",
+      "outputs": [
+        "[batch,7] draft token ids"
+      ],
+      "required": true
+    },
+    {
+      "stage": 6,
+      "name": "state_publish",
+      "operations": [
+        "draft token D2H copy for generic scheduler",
+        "async state update",
+        "next cycle metadata rebuild"
+      ],
+      "removal_target": "keep acceptance/sequence advance/device buffers resident and drain output separately"
+    }
+  ],
+  "state_classes": {
+    "constant": [
+      "weights",
+      "TP/EP groups",
+      "RoPE tables",
+      "draft layer topology",
+      "k=7",
+      "block size",
+      "capture sizes"
+    ],
+    "device_resident": [
+      "input ids",
+      "positions",
+      "target/aux hidden buffers",
+      "draft ids",
+      "KV caches",
+      "block tables",
+      "slot mappings",
+      "seq lens",
+      "query starts",
+      "acceptance counts",
+      "RNG state"
+    ],
+    "per_cycle_derived": [
+      "active request mask",
+      "sample indices",
+      "target logits indices",
+      "next slot offsets"
+    ],
+    "host_visible_minimum": [
+      "admission/completion events",
+      "batched emitted token ids",
+      "fatal error state"
+    ],
+    "generic_framework_candidates_for_removal": [
+      "SchedulerOutput object",
+      "CachedRequestState objects",
+      "per-step metadata object trees",
+      "backend dispatch",
+      "dynamic shape selection",
+      "per-step draft D2H for scheduler bookkeeping"
+    ]
+  },
+  "source_boundaries": [
+    "vllm_ascend/worker/model_runner_v1.py:2240-2482",
+    "vllm_ascend/worker/model_runner_v1.py:1505-1721",
+    "vllm_ascend/spec_decode/llm_base_proposer.py:998-1293",
+    "vllm_ascend/spec_decode/llm_base_proposer.py:1310-1455",
+    "vllm_ascend/models/deepseek_v4_dspark.py:91-230"
+  ],
+  "next_probe": "measure shape and data-pointer stability across warm pure-decode steps without tensor D2H"
+}
