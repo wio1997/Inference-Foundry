@@ -154,3 +154,8 @@ Shape-matched isolated Compressor timing1.630ms/call corroborates the old full-s
 ## Live checkpoint 2026-09-21 00:06 UTC — no candidate bound
 
 An isolated mBase256 tiling package is compiling. The stock same-seed reference device median is1.514ms. No candidate timing or end-to-end measurement exists, so no achievable-bound change.
+
+
+## Live checkpoint 2026-09-21 00:22 UTC
+
+No bound change while isolated mBase256 build is pending. Candidate must demonstrate correct isolated output and a material operator gain before any E2E extrapolation or service run.

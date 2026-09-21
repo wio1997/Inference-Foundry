@@ -181,3 +181,8 @@ Single-NPU synthetic shape-matched ratio4/coff2 Compressor baseline: device medi
 ## Live checkpoint 2026-09-21 00:06 UTC — candidate pending
 
 Stock Compressor one-NPU fixed-seed reference screen has device median1.514ms on25 calls, finite output, exact shape/config from cold profile. Earlier independent synthetic screen median1.630ms shows isolated-run variation. Do not compare candidate to cross-run values without the saved fixed-seed reference. mBase256 tiling candidate is compiling; no measured delta.
+
+
+## Live checkpoint 2026-09-21 00:22 UTC
+
+No new measured performance. Isolated mBase256 package build ongoing; watchdog will run numerical and single-NPU comparison on completion. Preserve stock reference1.514ms median as only current same-seed micro baseline.
