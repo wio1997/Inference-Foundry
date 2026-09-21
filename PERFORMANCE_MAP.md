@@ -256,3 +256,11 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - Model draft block requires k>=5, so k7 is the minimum valid value satisfying `(k+1) % 8 == 0`.
 - vLLM reserves `max_num_new_slots_for_drafting * max_num_seqs = 6*16 = 96`; current max batched8192 therefore limits scheduled tokens to8096 and warns of suboptimal performance.
 - Loop024 changes only max batched tokens to8288 to restore scheduled capacity8192 and measures the end-to-end effect.
+
+
+## Loop024 scheduler capacity screen — 2026-09-21 08:14 UTC
+
+- Raising max batched8192→8288 removes the8096 scheduled-token warning and passes correctness.
+- Bounded c12 result:472.871 tok/s, TTFT mean2007.49ms, TPOT mean17.300ms.
+- Relative to six prior k7 diagnostic screens: +2.77% versus median, -3.83% versus closest Loop020 screen; within4.3% noise. This capacity gap is not a verified E2E lever.
+- Next decisive system question: net k7 DSpark value versus target-only decode under matched settings.

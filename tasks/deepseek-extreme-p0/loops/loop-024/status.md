@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run tokens8288-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP024-8288-20260921 bash scripts/serve_loop024_tokens8288.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop024_tokens8288/run1
-- 更新时间：`2026-09-21T06:54:45Z`
+- 状态：`REJECTED`
+- 结论：`REJECTED`
+- 下一步：Measure the net E2E value of DSpark itself with a matched target-only no-spec screen; this bounds whether proposer/verification organization is helping before deeper optimization.
+- 更新时间：`2026-09-21T08:05:27Z`
 
 ## Run 记录
 

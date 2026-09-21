@@ -214,3 +214,8 @@ The 53–54 ms outer event waits are on two copy streams and gate asynchronous m
 ## Constraint update — speculative length (2026-09-21 07:07 UTC)
 
 k5 cannot establish a lower-work bound because it is invalid under TP8 sequence-parallel graph divisibility. k7 is the minimum runnable length with draft block>=5. A concrete framework capacity gap remains:96 reserved draft slots reduce the configured8192 batch budget to8096 scheduled tokens. Raising the physical budget to8288 should restore8192 scheduled tokens; its achievable E2E value remains unmeasured until Loop024.
+
+
+## Bound update — scheduler reserve (2026-09-21 08:14 UTC)
+
+Restoring scheduled capacity8096→8192 produced no screen gain beyond observed variability, so the96-slot reservation is excluded from the verified achievable gap. The next bound is architectural: compare total target-only step cost against k7 proposer+verification cost per accepted token. Do not infer this from inclusive scopes; measure matched service E2E.

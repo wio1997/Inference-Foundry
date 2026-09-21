@@ -313,3 +313,8 @@ The k5 service never reached readiness. vLLM rejected graph shapes during TP8 in
 ## Live checkpoint 2026-09-21 07:14 UTC — Loop024 8288-token screen loading
 
 Loop023 k5 workers were explicitly terminated after their startup error left ~29GB/card allocated; only that failed experiment process group was killed. HBM returned to ~3.4GB/card. Loop024 relaunched successfully with valid k7 and the sole configuration change `max_num_batched_tokens=8288`; container service PID869225, host runner PID2554536. Runner waits for health, correctness smoke, 48x128 warmup and12x32K→512 c12 screen under `evidence/20260921_loop024_tokens8288/run1/`. Service log must confirm resolved max scheduled capacity8192 before performance is accepted. No result yet; do not start a competing service.
+
+
+## Update 2026-09-21 08:14 UTC — Loop024 REJECT; Loop025 active
+
+The k7/max-batched8288 service passed correctness and12/12 c12 screen; the8096 scheduled-token warning disappeared, confirming capacity restoration. Screen result:472.871 output tok/s, TTFT mean2007.49ms, TPOT mean17.300ms. This is +2.77% versus the median of six prior k7 diagnostic screens but -3.83% versus the closest Loop020 same-runner screen, within the frozen4.3% noise threshold. No expensive full benchmark; Loop024 rejected and service stopped. Loop025 now measures DSpark net value against a matched target-only no-spec screen before spending more effort inside proposer/verification. Framework clean; NPUs returning idle.

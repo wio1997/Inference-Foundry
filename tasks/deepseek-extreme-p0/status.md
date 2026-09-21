@@ -6,21 +6,20 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-024`
+- 活动 Loop：`loop-025`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Create a k7 launcher changing only max_num_batched_tokens to8288, verify resolved scheduled capacity in logs, then run correctness and the bounded c12 screen.
-- 更新时间：`2026-09-21T06:53:47Z`
+- 下一步：Create a launcher removing only speculative-config, run the same correctness/warmup/12x32K-to-512 c12 screen, and compare to k7 screens before any full benchmark.
+- 更新时间：`2026-09-21T08:05:27Z`
 
 ## 最近 Loop
 
-共 `24` 个 Loop；完整索引见 `loop-index.jsonl`。
+共 `25` 个 Loop；完整索引见 `loop-index.jsonl`。
 
 | Loop | 状态 | 结论 | 决定/下一步 |
 | --- | --- | --- | --- |
-| `loop-015` | `PIVOTED` | `PIVOTED` | Captured one real 8096-row long-prefill scatter mapping per rank: all unique, but uniqueness not yet a general invariant. Existing V2 op gave bit-equal output and was 69% slower than SK in 25-call isolated NPU timing; no safe E2E patch or paired TTFT gain. Source SK deterministic sort+SyncAll suggests a direct unique-index path merits a separate build experiment. |
 | `loop-016` | `REJECTED` | `REJECTED` | Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain. |
 | `loop-017` | `REJECTED` | `REJECTED` | mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed. |
 | `loop-018` | `PIVOTED` | `PIVOTED` | Saved cross-rank timestamps are confounded by stable ~579us rank6 clock offset plus residual ~206us end spread. Communication elapsed is Idle-only, so collective arrival skew cannot be separated from clock/reporting artifacts or translated to a safe high-value change using current evidence. |
@@ -29,7 +28,8 @@
 | `loop-021` | `REJECTED` | `REJECTED` | Exact flow attribution falsifies the proposed Index/Pad/Copy chain as a material standalone target: aclnnIndex clipped device union is 0.545 ms median when present and ConstantPadNd 0.337 ms, both below the 4.3 percent frozen TPS spread. The dominant apparent span is EVENT_WAIT, chiefly 51.169 ms at outer draft scope and 26.595 ms under moe_forward_shared; event waits are stream dependencies and cannot be counted as compute or removable time. |
 | `loop-022` | `REJECTED` | `REJECTED` | Exact stream neighbors falsify a material main-path MoE wait. The two 53-54 ms outer waits gate MEMCPY_ASYNC on auxiliary streams 42/43. The apparent 25.734 ms MoE wait is shared stream36 waiting at the next layer before dynamic quant; default stream47 waits for shared output are about 0.00002 ms. Intra-call synchronization medians are 0.191, 0.051 and 0.011 ms, below baseline noise. |
 | `loop-023` | `REJECTED` | `REJECTED` | k5 is not a runnable TP8 configuration in the current vLLM 0.26 path: graph shapes must be divisible by both 6 and 8. The service failed during KV/backend initialization, so there is no correctness or performance comparison. With model dspark_block_size>=5, the next smaller valid k below7 does not exist under this invariant. |
-| `loop-024` | `RUNNING` | `PENDING` | 执行 Run tokens8288-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP024-8288-20260921 bash scripts/serve_loop024_tokens8288.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop024_tokens8288/run1 |
+| `loop-024` | `REJECTED` | `REJECTED` | The capacity change is functional and removes the8096 warning, but the bounded c12 screen is within prior k7 variability:472.871 tok/s, +2.77% vs diagnostic median and -3.83% vs closest same-runner Loop020 control. It does not exceed the4.3% promotion threshold, so avoid an expensive full benchmark. |
+| `loop-025` | `FROZEN` | `PENDING` | Create a launcher removing only speculative-config, run the same correctness/warmup/12x32K-to-512 c12 screen, and compare to k7 screens before any full benchmark. |
 
 ## 阻塞项
 

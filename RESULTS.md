@@ -248,3 +248,8 @@ Exact same-stream neighbors and source alignment with `_forward_shared_experts` 
 ## 2026-09-21 07:07 UTC — Loop023 REJECT
 
 DSpark k5 failed before readiness with the exact invariant that graph shapes must be divisible by both k+1=6 and TP8. No correctness, warmup or performance request ran, so no comparative claim is made. Evidence: `evidence/20260921_loop023_k5_screen/startup_failure.json` and service log. The next experiment keeps valid k7 and tests max batched8288 to recover the96 slots reserved for drafting.
+
+
+## 2026-09-21 08:14 UTC — Loop024 REJECT
+
+Candidate max-batched8288 passed correctness and removed the scheduler warning. Its12-request c12 screen delivered472.871 tok/s with17.300ms mean TPOT, only +2.77% versus prior-screen median and -3.83% versus closest Loop020. The result is inside4.3% noise, so it was not promoted to full frozen benchmark. Evidence: `evidence/20260921_loop024_tokens8288/screen_comparison.json`. Loop025 compares k7 DSpark with target-only decoding.
