@@ -1,0 +1,47 @@
+diff --git a/vllm_ascend/attention/context_parallel/dsa_cp.py b/vllm_ascend/attention/context_parallel/dsa_cp.py
+index 6fff48f9f..4b47fb608 100644
+--- a/vllm_ascend/attention/context_parallel/dsa_cp.py
++++ b/vllm_ascend/attention/context_parallel/dsa_cp.py
+@@ -1,4 +1,6 @@
+ import math
++import os
++import time
+ from dataclasses import dataclass
+ from typing import ClassVar, TypeVar
+ 
+@@ -1011,6 +1013,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         metadata = self.common_ratio_to_sas_metadata.get(cache_key)
+ 
+         if metadata is None:
++            _l19q_t0 = time.perf_counter_ns()
+             if has_prefill:
+                 # CPU local metadata is built from the same partition formula.
+                 # Use its maxima to avoid NPU scalar sync on the cold path.
+@@ -1019,7 +1022,9 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             else:
+                 # Keep the original decode path unchanged.
+                 max_seqlen_q = max(1, int(seq_lens_q.max().item()))
++                _l19q_t_q = time.perf_counter_ns()
+                 max_seqlen_k = max(1, int(seq_lens.max().item()))
++            _l19q_t_max = time.perf_counter_ns()
+             metadata = torch.ops._C_ascend.npu_vllm_quant_lightning_indexer_metadata(
+                 actual_seq_lengths_query=query_start_loc[1:].clone(),
+                 actual_seq_lengths_key=seq_lens.clone(),
+@@ -1040,6 +1045,17 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+                 cmp_ratio=4,
+                 device=str(self.seqused_q.device),
+             )
++            _l19q_t_op = time.perf_counter_ns()
++            _l19q_dir = os.environ.get("LOOP019_QLI_TRACE_DIR")
++            if _l19q_dir and not has_prefill:
++                _l19q_path = os.path.join(
++                    _l19q_dir, f"rank{get_tp_group().rank_in_group}_pid{os.getpid()}.csv"
++                )
++                with open(_l19q_path, "a") as _l19q_file:
++                    _l19q_file.write(
++                        f"{_l19q_t0},{_l19q_t_q},{_l19q_t_max},{_l19q_t_op},"
++                        f"{num_reqs},{max_seqlen_q},{max_seqlen_k}\n"
++                    )
+         self.common_ratio_to_sas_metadata[cache_key] = metadata
+         self.req_qli_metadata[:1024] = metadata
+         return self.req_qli_metadata[:1024]

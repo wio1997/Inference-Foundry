@@ -265,3 +265,8 @@ User explicitly authorized push to GitHub main. After committing Loop019 second 
 ## GitHub main published 2026-09-21 02:16 UTC
 
 After explicit user authorization, merged local project and remote README histories and fast-forward pushed GitHub main to14baeb0d985dca31b4156cee0bc2149350cf4b79. git ls-remote origin refs/heads/main verified the same SHA; public raw PROJECT_STATE.md returned HTTP200. Server local main fast-forwarded to the same commit. No force push. Continue using origin=https://github.com/wio1997/Inference-Foundry.git; future pushes should first fetch and require fast-forward.
+
+
+## Live checkpoint 2026-09-21 03:02 UTC — Loop019 QLI scalar/op trace loading
+
+Loop011 established that replacing both decode QLI NPU scalar maxima with CPU maxima gave parity but no robust mixed TPS benefit (+0.52%, TTFT worse). Loop019 therefore decomposes QLI before another intervention. Flag-gated patch patches/loop019_qli_subphase_trace.patch applied only to dsa_cp.py; it timestamps first and second .item() and the following QLI metadata op without changing arguments. py_compile and diff check passed. No prior service on8080, 8 NPUs idle before launch. Privileged dsv4ab DP1/TP8 API PID850293 is loading, log logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP019-QLI-20260921.log. Runner PID2416955 waits for health, short functional, full warmup and 12×32K→512 c12 sample; outputs evidence/20260921_loop019_qli_subphase/run3/, raw per-rank QLI traces in raw/, runner.log. TaskCtl run qli-scalar-versus-op-trace-20260921 pending. Do not reset patched source or launch competing service until runner result. GitHub main is configured/tracked and was synced at1931d54 before this new local work.
