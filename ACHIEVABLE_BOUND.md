@@ -228,3 +228,7 @@ Target-only54.333ms/token versus k7 DSpark17.554ms/token proves verification amo
 ## Bound update — draft-layer ablation (2026-09-21 10:09 UTC)
 
 One layer accounts for a measured7.22ms of proposer model time, but it is not removable: bypass reduces advanced tokens from3.54–3.64 to1.363 and destroys E2E throughput. Exclude this7.22ms from achievable savings. The exact three-layer model still spends roughly31.1ms in proposer model execution; any future bound must preserve its logits/acceptance and target graph/runtime overhead rather than remove trained computation.
+
+## Bound update — specialized runtime boundary (2026-09-21 11:18 UTC)
+
+The failed v2 startup provides no numeric speedup bound because graph capture was never reached. It does establish that stock generic KV grouping is not a usable route for this checkpoint without integration work. Framework abstractions are no longer assumed necessary. The roughly31.1ms exact three-layer proposer execution remains required work until a parity-preserving replay measures otherwise; metadata, launch, dispatch and synchronization portions must be isolated by the standalone fixed-cycle contract before entering the achievable gap. No startup or inclusive host duration is added as removable time.

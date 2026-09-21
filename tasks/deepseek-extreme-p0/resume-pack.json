@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T10:07:33Z",
+  "generated_at": "2026-09-21T12:06:13Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -18,14 +18,14 @@
     "framework": "vllm-ascend",
     "source_root": "/data/wio/Inference_Foundry",
     "status": "ACTIVE",
-    "phase": "OPTIMIZING",
+    "phase": "DESIGNING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-027",
-    "next_action": "Audit the three-layer forward for graph-unsafe state/HCCL/KV mutations and run the smallest exact-shape capture feasibility probe; do not enable unsupported full proposer graph in production.",
+    "active_loop": "loop-028",
+    "next_action": "Map the exact legacy warm-decode call graph and tensor mutation boundary from proposer input through target verification and acceptance; classify constant, device-resident, derived and host-visible state before writing the replay harness.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,23 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-022",
-      "title": "DSpark MoE event dependency critical path",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The large EVENT_WAIT spans attributed to vllm::moe_forward_shared reflect a main-path stream dependency or load imbalance that can be reduced by a bounded scheduling change without altering MoE numerics.",
-      "verdict": "REJECTED",
-      "reason": "Exact stream neighbors falsify a material main-path MoE wait. The two 53-54 ms outer waits gate MEMCPY_ASYNC on auxiliary streams 42/43. The apparent 25.734 ms MoE wait is shared stream36 waiting at the next layer before dynamic quant; default stream47 waits for shared output are about 0.00002 ms. Intra-call synchronization medians are 0.191, 0.051 and 0.011 ms, below baseline noise.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260921_loop021_device_parent/event_wait_streams_tp0.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_loop022_event_dependency/wait_stream_neighbors_tp0.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_loop022_event_dependency/moe_wait_stages_tp0.json"
-      ],
-      "decided_at": "2026-09-21T06:05:32Z"
-    },
-    {
       "loop_id": "loop-023",
       "title": "DSpark speculative length efficiency sweep",
       "mode": "optimization",
@@ -220,34 +203,51 @@
         "/data/wio/Inference_Foundry/evidence/20260921_loop026_layer_bypass/acceptance_delta.json"
       ],
       "decided_at": "2026-09-21T10:07:04Z"
+    },
+    {
+      "loop_id": "loop-027",
+      "title": "Exact three-layer DSpark graph feasibility",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "A fixed-shape pure-decode DSpark proposer can preserve all three trained layers and exact outputs while moving a material part of its eager-only execution into a captured or standalone replay path, reducing proposer cost enough to improve E2E.",
+      "verdict": "PIVOTED",
+      "reason": "Legacy DSpark is hard-disabled from graph; the available v2 DSpark graph path fails before capture because generic KV-group discovery finds no draft attention group for this DeepSeek V4 checkpoint. Stock v2 integration is therefore not an immediately runnable graph solution. Use the working legacy path as semantic/operator oracle and extract the fixed proposer-target execution contract for a specialized runtime.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_loop027_graph_feasibility/source_audit.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop027_graph_feasibility/startup_failure.json"
+      ],
+      "decided_at": "2026-09-21T12:04:20Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-027",
-    "title": "Exact three-layer DSpark graph feasibility",
-    "mode": "optimization",
+    "loop_id": "loop-028",
+    "title": "Fixed decode-cycle contract extraction",
+    "mode": "design",
     "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Audit the three-layer forward for graph-unsafe state/HCCL/KV mutations and run the smallest exact-shape capture feasibility probe; do not enable unsupported full proposer graph in production.",
+    "next_action": "Map the exact legacy warm-decode call graph and tensor mutation boundary from proposer input through target verification and acceptance; classify constant, device-resident, derived and host-visible state before writing the replay harness.",
     "cases": [
       "mixed_32k_1024_c12",
       "correctness_short"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-21T10:07:05Z"
+    "updated_at": "2026-09-21T12:06:00Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-028/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

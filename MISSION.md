@@ -140,3 +140,9 @@ DeepSeek Extreme P0 必须是完整可运行的 DeepSeek，而不仅是 microben
 
 但当前先把第一款产品做出来。
 
+
+## 专项 Runtime 产品边界（2026-09-21 冻结）
+
+DeepSeek Extreme P0 的交付物是只服务以下固定产品配置的专项推理 Runtime：DeepSeek V4 Flash W4A8、8×Ascend 910B3、DP1×TP8、DSpark7。vLLM/vLLM-Ascend 只承担参考实现、正确性 oracle、权重/算子加载来源和公平 Baseline 的角色，不构成架构边界。
+
+任何通用 Scheduler、ModelRunner、metadata builder、request object、动态 batch/shape、backend dispatch、兼容分支、通用 KV 管理、Python orchestration、CPU bookkeeping 和 Host↔Device 状态同步，只要没有被真实模型语义、硬件约束或 serving 合约证明为必要，就应通过删除、静态化、预计算、合并、Device 常驻、Graph、persistent execution 或专项实现消除。最终 KEEP 仍由冻结 workload 的正确性和可重复 E2E 性能决定。

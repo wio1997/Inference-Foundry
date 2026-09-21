@@ -279,3 +279,10 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - Acceptance collapses to0.363 accepted drafts and1.363 advanced tokens/cycle, below3.15 estimated break-even. Positions0–3 acceptance becomes30.54%,4.82%,0.80%,0.16%; positions4–6 zero.
 - E2E:491.698→217.092 tok/s (-55.85%); TPOT17.554→47.972ms (+173.29%).
 - Conclusion: full three-layer learned computation is necessary. Remaining proposer opportunity must preserve exact semantics; fixed-shape eager execution is now the primary framework-level candidate.
+
+## Loop027 graph-path and runtime-boundary update — 2026-09-21 11:18 UTC
+
+- Legacy Ascend DSpark explicitly forces eager execution. The available v2 DSpark implementation contains an Ascend graph manager, but the exact DeepSeek V4 checkpoint resolves its draft architecture as `DeepSeekV4MTPModel` and v2 KV discovery produces no draft attention groups.
+- The v2 probe fails during `initialize_kv_cache`, before graph capture or correctness: `AssertionError: No draft attention groups found.` This is a framework integration gap, not measured evidence that the model or Ascend graph mechanism is infeasible.
+- All failed worker processes were removed and all eight NPUs returned to idle.
+- The optimization boundary is now the fixed product runtime. Highest-value next unknown: the minimum explicit device-state and mutation contract for one correct proposer→verification→acceptance cycle, independent of generic scheduler and request abstractions.

@@ -262,3 +262,7 @@ Matched target-only decode achieved208.047 tok/s and54.333ms TPOT; k7 DSpark ach
 ## 2026-09-21 10:09 UTC — Loop026 REJECT
 
 Bypassing only the middle DSpark layer saved23.21% proposer model time but reduced advanced tokens to1.363/cycle and output TPS to217.092 (-55.85% versus491.698 control). Correctness passed through target verification, proving this is a proposal-quality failure rather than semantic corruption. The full three-layer drafter is necessary. Evidence: `evidence/20260921_loop026_layer_bypass/comparison.json`. Loop027 evaluates exact three-layer captured/standalone execution feasibility.
+
+## 2026-09-21 11:18 UTC — Loop027 PIVOT
+
+The bounded v2 DSpark graph probe failed before service readiness. Target architecture resolved as `DeepseekV4ForCausalLM`, draft architecture as `DeepSeekV4MTPModel`, and generic v2 `set_attn` found no draft KV group, raising `No draft attention groups found`. Graph capture, correctness and benchmark were not reached. Evidence: `evidence/20260921_loop027_graph_feasibility/startup_failure.json`. This closes the immediate stock-v2 route and triggers the specialized-runtime path: use the working legacy implementation as semantic/operator oracle, extract a fixed decode-cycle contract, then remove scheduler, dynamic metadata and orchestration behind exact parity gates.

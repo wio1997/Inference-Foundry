@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
-- 结论：`PENDING`
-- 下一步：Wait for the bounded v2 DSpark graph startup probe; require graph capture evidence and functional correctness before any performance screen.
-- 更新时间：`2026-09-21T10:07:05Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Freeze the specialized runtime contract and map the minimum fixed-shape decode execution chain, beginning with device buffers, KV mutations, proposer inputs/outputs, target verification, and required collectives.
+- 更新时间：`2026-09-21T12:04:20Z`
 
 ## Run 记录
 
-- v2 DSpark graph startup probe: API PID 891755 loading; evidence/20260921_loop027_graph_feasibility/launcher.log
+- `runs/mixed_32k_1024_c12/v2-graph-startup-20260921`
 
 ## 阻塞项
 
