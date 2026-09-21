@@ -1,0 +1,126 @@
+diff --git a/vllm_ascend/spec_decode/llm_base_proposer.py b/vllm_ascend/spec_decode/llm_base_proposer.py
+index a108c1e66..06c51e66f 100644
+--- a/vllm_ascend/spec_decode/llm_base_proposer.py
++++ b/vllm_ascend/spec_decode/llm_base_proposer.py
+@@ -1,5 +1,8 @@
+ # SPDX-License-Identifier: Apache-2.0
+ import copy
++import json
++import os
++import time
+ from collections.abc import Callable
+ from contextlib import AbstractContextManager, nullcontext
+ from functools import partial
+@@ -1252,6 +1255,43 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+         self.token_indices_to_sample[:token_indices_to_sample_len].copy_(token_indices_to_sample)
+         self.token_indices_to_sample[token_indices_to_sample_len:].fill_(0)
+ 
++        _loop028_trace_dir = os.getenv("LOOP028_CONTRACT_TRACE_DIR")
++        if _loop028_trace_dir and not is_prefill_batch:
++            def _loop028_tensor_desc(value):
++                if not torch.is_tensor(value):
++                    return None
++                return {
++                    "shape": list(value.shape),
++                    "dtype": str(value.dtype),
++                    "device": str(value.device),
++                    "data_ptr": int(value.data_ptr()),
++                    "stride": list(value.stride()),
++                }
++
++            _loop028_index = getattr(self, "_loop028_trace_index", 0)
++            self._loop028_trace_index = _loop028_index + 1
++            self._loop028_trace_row = {
++                "index": _loop028_index,
++                "rank": int(get_world_group().rank),
++                "batch_size": int(batch_size),
++                "num_tokens": int(num_tokens),
++                "num_input_tokens": int(num_input_tokens),
++                "num_reqs_padded": int(num_reqs_padded),
++                "token_indices_to_sample_len": int(token_indices_to_sample_len),
++                "metadata_steps": len(multi_steps_attn_metadata),
++                "target_token_ids": _loop028_tensor_desc(target_token_ids),
++                "target_positions": _loop028_tensor_desc(target_positions),
++                "target_hidden_states": _loop028_tensor_desc(target_hidden_states),
++                "input_ids_buffer": _loop028_tensor_desc(self.input_ids),
++                "positions_buffer": _loop028_tensor_desc(self.positions),
++                "hidden_states_buffer": _loop028_tensor_desc(self.hidden_states),
++                "slot_mapping": _loop028_tensor_desc(common_attn_metadata.slot_mapping),
++                "seq_lens": _loop028_tensor_desc(common_attn_metadata.seq_lens),
++                "query_start_loc": _loop028_tensor_desc(common_attn_metadata.query_start_loc),
++                "block_table": _loop028_tensor_desc(common_attn_metadata.block_table_tensor),
++                "sample_indices": _loop028_tensor_desc(self.token_indices_to_sample),
++            }
++
+         with set_ascend_forward_context(
+             multi_steps_attn_metadata[0],
+             self.vllm_config,
+@@ -1286,10 +1326,67 @@ class AscendSpecDecodeBaseProposer(SpecDecodeBaseProposer):
+ 
+             if self.enable_enpu:
+                 self._update_full_graph_params_if_needed(forward_context, num_input_tokens, multi_steps_attn_metadata)
+-                draft_token_ids = run_draft()
++
++            _loop028_replay = (
++                os.getenv("LOOP028_FIXED_CYCLE_REPLAY") == "1"
++                and not is_prefill_batch
++                and batch_size == int(os.getenv("LOOP028_REPLAY_BATCH_SIZE", "12"))
++                and not getattr(self, "_loop028_replay_done", False)
++            )
++            if _loop028_replay:
++                # Execute the already-materialized fixed cycle twice. This bypasses
++                # scheduler/request preparation between calls while retaining the
++                # exact real model, collectives, metadata objects and KV buffers.
++                # Rewriting identical KV slots is expected to be idempotent; the
++                # equality gate plus subsequent service correctness verify that.
++                torch.npu.synchronize()
++                _loop028_t0 = time.perf_counter()
++                _loop028_first = run_draft()
++                torch.npu.synchronize()
++                _loop028_t1 = time.perf_counter()
++                _loop028_second = run_draft()
++                torch.npu.synchronize()
++                _loop028_t2 = time.perf_counter()
++                _loop028_equal = bool(torch.equal(_loop028_first, _loop028_second))
++                _loop028_replay_dir = os.getenv("LOOP028_REPLAY_RESULT_DIR")
++                if _loop028_replay_dir:
++                    os.makedirs(_loop028_replay_dir, exist_ok=True)
++                    _loop028_result = {
++                        "rank": int(get_world_group().rank),
++                        "batch_size": int(batch_size),
++                        "num_tokens": int(num_tokens),
++                        "num_input_tokens": int(num_input_tokens),
++                        "first_ms": (_loop028_t1 - _loop028_t0) * 1000.0,
++                        "replay_ms": (_loop028_t2 - _loop028_t1) * 1000.0,
++                        "draft_equal": _loop028_equal,
++                        "draft_shape": list(_loop028_second.shape),
++                        "metadata_steps": len(multi_steps_attn_metadata),
++                    }
++                    _loop028_result_path = os.path.join(
++                        _loop028_replay_dir,
++                        f"rank{int(get_world_group().rank)}.json",
++                    )
++                    with open(_loop028_result_path, "w", encoding="utf-8") as _loop028_file:
++                        json.dump(_loop028_result, _loop028_file, indent=2, sort_keys=True)
++                        _loop028_file.write("\n")
++                if not _loop028_equal:
++                    raise RuntimeError("Loop028 fixed-cycle replay changed DSpark draft tokens")
++                self._loop028_replay_done = True
++                draft_token_ids = _loop028_second
+             else:
+                 draft_token_ids = run_draft()
++
++            if not self.enable_enpu:
+                 self._update_full_graph_params_if_needed(forward_context, num_input_tokens, multi_steps_attn_metadata)
++        if _loop028_trace_dir and not is_prefill_batch:
++            _loop028_row = self._loop028_trace_row
++            _loop028_row["draft_token_ids"] = _loop028_tensor_desc(draft_token_ids)
++            os.makedirs(_loop028_trace_dir, exist_ok=True)
++            _loop028_path = os.path.join(
++                _loop028_trace_dir, f"rank{int(get_world_group().rank)}.jsonl"
++            )
++            with open(_loop028_path, "a", encoding="utf-8") as _loop028_file:
++                _loop028_file.write(json.dumps(_loop028_row, sort_keys=True) + "\n")
+         return draft_token_ids
+ 
+     def compute_draft_token_ids(self, hidden_states: torch.Tensor):
