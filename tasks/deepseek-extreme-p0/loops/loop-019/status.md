@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：执行 Run active-dsacp-request-subphases-20260921：LOOP019_REQ_TRACE_DIR=... docker exec dsv4ab bash scripts/serve.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop019_builder_req/run2
-- 更新时间：`2026-09-21T02:00:18Z`
+- 下一步：审查 Run active-dsacp-request-subphases-20260921 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-21T02:49:27Z`
 
 ## Run 记录
 

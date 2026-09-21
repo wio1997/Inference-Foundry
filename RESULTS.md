@@ -208,3 +208,8 @@ Read-only eight-rank c12 communication audit: 48,960 collective types align exac
 ## Live checkpoint 2026-09-21 01:59 UTC — Loop019 stage trace
 
 Diagnostic only, no optimization candidate yet. Flag-gated DSA-CP builder trace on DP1/TP8 passed short functional and12/12 no-profiler c12×512 requests. Pure decode174 steps/rank; first builder median total3.61–6.50ms with request-metadata2.74–5.74ms, shared setup0.57–0.66ms. All eight raw rank CSVs and summary in evidence/20260921_loop019_builder_stage/. API stopped; all NPUs idle. Next test expands request-metadata stage timing using patches/loop019_builder_req_trace.patch.
+
+
+## Live checkpoint 2026-09-21 02:13 UTC — Loop019 second diagnostic
+
+Flag-gated request-metadata trace passed short functional and12/12 c12×512 sample. First-builder QLI subphase median1.735–4.306ms/rank across169–170 pure-decode steps; device-local0.477–0.548ms, CPU-local0.255–0.292ms, SAS0.422–0.485ms. No performance candidate, no KEEP/REJECT yet. Raw eight-rank traces and summary in evidence/20260921_loop019_builder_req/. Service stopped; framework clean at36589852, all8 NPUs idle.

@@ -250,3 +250,8 @@ First Loop019 diagnostic committed at cddd081. Second service API PID843805 load
 ## GitHub sync note 2026-09-21 02:04 UTC
 
 User pointed to https://github.com/wio1997/Inference-Foundry and asked why work is absent. The server repository previously had no remote; all commits through6643648 were local. Added origin URL and fetched remote main (1b0b48e; two README-only commits, unrelated history). Prepared a local merge worktree /tmp/inference-foundry-github-sync on branch github-sync-20260921, merge commit59b5148 joining remote README history and local project through6643648. No push has occurred. Await user answer to the explicit publish choice (main / review branch / hold). Do not force-push or publish without that answer; ongoing Loop019 work stays on local main.
+
+
+## Live checkpoint 2026-09-21 02:13 UTC — Loop019 QLI subphase identified
+
+Second no-profiler DP1/TP8 request-metadata trace finished: short functional passed, 12/12 c12×512 sample passed. Across169–170 pure-decode first-builder steps/rank, QLI subphase median1.735–4.306ms/rank dominates first build_req_metadata; device-local0.477–0.548ms, CPU-local0.255–0.292ms, SAS0.422–0.485ms. These inclusive host spans do not establish removable E2E cost. Evidence evidence/20260921_loop019_builder_req/request_subphases_summary.json plus all8 raw rank CSV and sample. API PID843805 stopped, port8080 down, all8 NPUs idle (~3.4GB HBM), framework restored clean at36589852. Loop019 remains active: decompose QLI decode path without repeating previously rejected all-step CPU-maxima experiment (Loop011); freeze only a causally testable minimal change.
