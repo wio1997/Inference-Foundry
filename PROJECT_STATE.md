@@ -255,3 +255,8 @@ User pointed to https://github.com/wio1997/Inference-Foundry and asked why work 
 ## Live checkpoint 2026-09-21 02:13 UTC — Loop019 QLI subphase identified
 
 Second no-profiler DP1/TP8 request-metadata trace finished: short functional passed, 12/12 c12×512 sample passed. Across169–170 pure-decode first-builder steps/rank, QLI subphase median1.735–4.306ms/rank dominates first build_req_metadata; device-local0.477–0.548ms, CPU-local0.255–0.292ms, SAS0.422–0.485ms. These inclusive host spans do not establish removable E2E cost. Evidence evidence/20260921_loop019_builder_req/request_subphases_summary.json plus all8 raw rank CSV and sample. API PID843805 stopped, port8080 down, all8 NPUs idle (~3.4GB HBM), framework restored clean at36589852. Loop019 remains active: decompose QLI decode path without repeating previously rejected all-step CPU-maxima experiment (Loop011); freeze only a causally testable minimal change.
+
+
+## GitHub publication authorization 2026-09-21 02:14 UTC
+
+User explicitly authorized push to GitHub main. After committing Loop019 second diagnostic at934fba2, update local github-sync-20260921 merge worktree from main, verify origin/main still1b0b48e, then push merge HEAD to origin main as a fast-forward. This preserves remote README and local history. Record pushed commit hash and verify remote SHA afterward.
