@@ -56,6 +56,7 @@ fingerprint=hashlib.sha256(x[:4].view(torch.uint16).cpu().numpy().tobytes()).hex
 result={
  "input_sha256_first_four_rows":fingerprint,
  "isolated_vendor":os.environ.get("ASCEND_CUSTOM_OPP_PATH") if os.environ.get("LOOP017_ISOLATED_VENDOR") == "1" else None,
+ "loaded_opapi_libraries":sorted(set(line.rsplit(" ",1)[-1].strip() for line in Path("/proc/self/maps").read_text().splitlines() if "libcust_opapi.so" in line)),
  "shape":{"x":[8096,4096],"w":[1024,4096],"state":[34091,2,2048],
           "ape":[4,1024],"norm":[512],"rope":[2025,64],"blocks":[1,524288]},
  "config":{"cmp_ratio":4,"coff":2,"rope_head_dim":64,"cache_mode":1,"block_size":2,"start_pos":0},
