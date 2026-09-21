@@ -169,3 +169,8 @@ Loop017 mBase256 produced no valid candidate latency, numerical equivalence or E
 ## Update 2026-09-21 01:15 UTC — no communication bound
 
 Loop018 demonstrates a ~579us rank6 device timestamp offset under a common-end calibration hypothesis and residual ~206us median end spread. The profiler does not independently synchronize clocks or separate network transit from Idle Time. Neither raw nor corrected rank start spread is an achievable communication saving. Cold and mixed hardware-attainable bounds remain UNKNOWN.
+
+
+## Live checkpoint 2026-09-21 01:59 UTC
+
+First DSA-CP builder timing (up to6.50ms median/rank) is an inclusive host span, not an achievable saving; device operation enqueue/synchronization and cross-rank overlap remain unresolved. No cold or mixed E2E bound update.

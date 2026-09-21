@@ -29,7 +29,7 @@
 | `loop-016` | `REJECTED` | `REJECTED` | Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain. |
 | `loop-017` | `REJECTED` | `REJECTED` | mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed. |
 | `loop-018` | `PIVOTED` | `PIVOTED` | Saved cross-rank timestamps are confounded by stable ~579us rank6 clock offset plus residual ~206us end spread. Communication elapsed is Idle-only, so collective arrival skew cannot be separated from clock/reporting artifacts or translated to a safe high-value change using current evidence. |
-| `loop-019` | `RUNNING` | `PENDING` | 执行 Run active-dsacp-builder-stage-20260921：LOOP019_BUILDER_TRACE_DIR=... docker exec dsv4ab bash scripts/serve.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop019_builder_stage/run1 |
+| `loop-019` | `EVALUATING` | `PENDING` | 审查 Run active-dsacp-builder-stage-20260921 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

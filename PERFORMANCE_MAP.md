@@ -198,3 +198,8 @@ Saved c12 8-rank communication.json has identical per-rank counts: allGather2516
 ## Update 2026-09-21 01:15 UTC — collective timestamps confounded
 
 Loop018 aligned48,960 identical collective types across8 ranks. Raw start/end rank spread medians0.6105/0.583ms; rank6 earliest in48,829 starts. Median-end offset sensitivity estimates rank6 -579.172us, with corrected start/end spread medians0.2175/0.206ms. Since corrected end spread is similar to corrected start spread and independent device clock synchronization is absent, rank arrival skew cannot be promoted to a critical-path savings claim. HCCL report is entirely Idle Time. Next candidate search returns to host metadata, previously measured at15.165ms of19.55ms pure decode prepare on TP0, eight DSA-CP builders14.025ms; these are inclusive spans and need active-callsite, no-profiler A/B verification. Evidence evidence/20260921_decode_comm_audit/collective_arrival_skew.json and collective_clock_sensitivity.json.
+
+
+## Live checkpoint 2026-09-21 01:59 UTC — first DSA-CP builder dominates
+
+No-profiler sample 12×32K→512 c12, 174 pure-decode steps/rank: first active DSA-CP builder median total3.61–6.50ms/rank; build_req_metadata2.74–5.74ms, shared setup0.57–0.66ms, slot format~0.18–0.21ms. Other seven builder median total0.67–0.85ms. This is host inclusive timing with rank variation and trace I/O; no E2E saving claim. The first builder's request-metadata path is next attribution target. Evidence evidence/20260921_loop019_builder_stage/stage_summary.json.

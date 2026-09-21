@@ -1,0 +1,142 @@
+diff --git a/vllm_ascend/attention/context_parallel/dsa_cp.py b/vllm_ascend/attention/context_parallel/dsa_cp.py
+index 6fff48f9f..bcc0d7c4b 100644
+--- a/vllm_ascend/attention/context_parallel/dsa_cp.py
++++ b/vllm_ascend/attention/context_parallel/dsa_cp.py
+@@ -1,4 +1,6 @@
+ import math
++import os
++import time
+ from dataclasses import dataclass
+ from typing import ClassVar, TypeVar
+ 
+@@ -287,6 +289,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         fast_build: bool = False,
+         **kwargs,
+     ) -> AscendDSAMetadata:
++        _l19_t0 = time.perf_counter_ns()
+         num_reqs = common_attn_metadata.num_reqs
+         query_start_loc = common_attn_metadata.query_start_loc
+         num_reqs_actual = kwargs.get("num_reqs_actual")
+@@ -295,6 +298,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         common_ratio_to_sas_metadata = kwargs.get("common_ratio_to_sas_metadata")
+         assert common_ratio_to_sas_metadata is not None
+         self.common_ratio_to_sas_metadata = common_ratio_to_sas_metadata
++        _l19_first = self.common_ratio_to_sas_metadata.get("input_positions") is None
+         self.num_actual_tokens = common_attn_metadata.num_actual_tokens
+         attn_state = kwargs.get("attn_state", common_attn_metadata.attn_state)
+ 
+@@ -341,9 +345,11 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             self.seq_lens = self.common_ratio_to_sas_metadata["seq_lens"]
+             self.seq_lens_cpu = self.common_ratio_to_sas_metadata["seq_lens_cpu"]
+ 
++        _l19_t_shared = time.perf_counter_ns()
+         slot_mapping = common_attn_metadata.slot_mapping[:num_input_tokens]
+         self.slot_mapping[:num_input_tokens] = DeviceOperator.format_dsa_slot_mapping(slot_mapping, self.block_size)
+ 
++        _l19_t_slot = time.perf_counter_ns()
+         self.block_table = common_attn_metadata.block_table_tensor[:num_reqs]
+ 
+         req_metadata = self.build_req_metadata(
+@@ -356,6 +362,18 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             sin=sin,
+         )
+ 
++        _l19_t_req = time.perf_counter_ns()
++        _l19_dir = os.environ.get("LOOP019_BUILDER_TRACE_DIR")
++        if _l19_dir:
++            _l19_path = os.path.join(
++                _l19_dir, f"rank{get_tp_group().rank_in_group}_pid{os.getpid()}.csv"
++            )
++            with open(_l19_path, "a") as _l19_file:
++                _l19_file.write(
++                    f"{_l19_t0},{_l19_t_shared},{_l19_t_slot},{_l19_t_req},"
++                    f"{int(_l19_first)},{num_reqs},{num_input_tokens},"
++                    f"{self.compressor_ratio},{self.cache_group_key}\n"
++                )
+         return self.metadata_cls(  # type: ignore
+             num_input_tokens=common_attn_metadata.num_input_tokens,
+             num_actual_tokens=self.num_actual_tokens,
+@@ -675,6 +693,8 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         sin: RopeDataProxy,
+     ) -> AscendDSAReqMetadata:
+         """Build a single unified metadata for all requests (prefill + decode)."""
++        _l19r_t0 = time.perf_counter_ns()
++        _l19r_first = self.common_ratio_to_sas_metadata.get("_device_local") is None
+         num_reqs = common_attn_metadata.num_reqs
+         has_prefill = self.num_prefills > 0
+         query_start_loc = common_attn_metadata.query_start_loc
+@@ -695,6 +715,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             seq_lens=self.seq_lens[:num_reqs],
+         )
+ 
++        _l19r_t_device = time.perf_counter_ns()
+         # RoPE local slices (cached across kv-cache groups: same cos/sin,
+         # num_tokens_pad, local_start, local_end_with_pad for all groups)
+         if input_positions is not None:
+@@ -710,6 +731,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             local_cos = None
+             local_sin = None
+ 
++        _l19r_t_rope = time.perf_counter_ns()
+         # ── CPU local metadata (cached) ──
+         cpu_cache = self.common_ratio_to_sas_metadata.get("_cpu_local")
+         if cpu_cache is None:
+@@ -727,11 +749,13 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             assert cpu_cache is not None
+             local_query_start_loc_cpu = cpu_cache["qsl_cpu"]
+             local_seq_lens_cpu = cpu_cache["sl_cpu"]
++        _l19r_t_cpu = time.perf_counter_ns()
+         local_seq_lens_q = local_query_start_loc[1 : num_reqs + 1] - local_query_start_loc[:num_reqs]
+         local_seq_lens_q_cpu = local_query_start_loc_cpu[1 : num_reqs + 1] - local_query_start_loc_cpu[:num_reqs]
+         max_local_query_len = max(1, int(local_seq_lens_q_cpu.max().item()))
+         max_local_seq_lens = max(1, int(local_seq_lens_cpu.max().item()))
+ 
++        _l19r_t_max = time.perf_counter_ns()
+         if num_reqs_actual is None:
+             num_reqs_actual = num_reqs
+         else:
+@@ -755,6 +779,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             num_compressed_tokens = None
+             slot_mapping = self.slot_mapping[: self.num_actual_tokens]
+ 
++        _l19r_t_cmp = time.perf_counter_ns()
+         # --- SAS metadata (all requests combined) ---
+         num_heads = self.model_config.hf_config.num_attention_heads
+         index_topk = self.model_config.hf_config.index_topk
+@@ -772,6 +797,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             cu_cmp_seqlen_list=cu_cmp_seqlens,
+         )
+ 
++        _l19r_t_sas = time.perf_counter_ns()
+         # --- QLI metadata (all requests combined) ---
+         qli_metadata = self._build_qli_metadata(
+             query_start_loc=local_query_start_loc,
+@@ -783,6 +809,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             max_seqlen_k_cpu=max_local_seq_lens,
+         )
+ 
++        _l19r_t_qli = time.perf_counter_ns()
+         cp_metadata = DSACPMetadata(
+             local_query_start_loc=local_query_start_loc,
+             local_seq_lens=local_seq_lens,
+@@ -794,6 +821,20 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             local_cos=local_cos,
+         )
+ 
++        _l19r_t_end = time.perf_counter_ns()
++        _l19r_dir = os.environ.get("LOOP019_REQ_TRACE_DIR")
++        if _l19r_dir:
++            _l19r_path = os.path.join(
++                _l19r_dir, f"rank{get_tp_group().rank_in_group}_pid{os.getpid()}.csv"
++            )
++            with open(_l19r_path, "a") as _l19r_file:
++                _l19r_file.write(
++                    f"{_l19r_t0},{_l19r_t_device},{_l19r_t_rope},"
++                    f"{_l19r_t_cpu},{_l19r_t_max},{_l19r_t_cmp},"
++                    f"{_l19r_t_sas},{_l19r_t_qli},{_l19r_t_end},"
++                    f"{int(_l19r_first)},{num_reqs},{num_input_tokens},"
++                    f"{self.compressor_ratio},{self.cache_group_key}\n"
++                )
+         return AscendDSAReqMetadata(
+             input_positions=input_positions,
+             block_table=self.block_table[:num_reqs, ...],

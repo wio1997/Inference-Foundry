@@ -203,3 +203,8 @@ Read-only c12 communication audit of saved eight rank profiles: all ranks contai
 ## 2026-09-21 01:15 UTC — Loop018 PIVOT
 
 Read-only eight-rank c12 communication audit: 48,960 collective types align exactly by sequence. Raw start spread median0.6105ms, end spread0.583ms. Rank6 appears earliest in48,829/48,960 calls; a shared-end timestamp calibration estimates -579.172us offset versus rank0, yielding corrected start/end medians0.2175/0.206ms. Calibration is a sensitivity test, not proof of clock sync. No causal communication savings or patch established. TaskCtl Loop018 pivoted; scripts/analyze_collective_arrivals.py and scripts/analyze_collective_clock.py reproduce evidence/20260921_decode_comm_audit/. No service or framework modification.
+
+
+## Live checkpoint 2026-09-21 01:59 UTC — Loop019 stage trace
+
+Diagnostic only, no optimization candidate yet. Flag-gated DSA-CP builder trace on DP1/TP8 passed short functional and12/12 no-profiler c12×512 requests. Pure decode174 steps/rank; first builder median total3.61–6.50ms with request-metadata2.74–5.74ms, shared setup0.57–0.66ms. All eight raw rank CSVs and summary in evidence/20260921_loop019_builder_stage/. API stopped; all NPUs idle. Next test expands request-metadata stage timing using patches/loop019_builder_req_trace.patch.
