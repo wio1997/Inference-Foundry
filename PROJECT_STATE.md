@@ -245,3 +245,18 @@ First no-profiler DP1/TP8 stage trace finished: short functional passed, 12/12 s
 ## Live checkpoint 2026-09-21 02:01 UTC — Loop019 request subphase service loading
 
 First Loop019 diagnostic committed at cddd081. Second service API PID843805 loading in privileged dsv4ab, port8080; flags LOOP019_BUILDER_TRACE_DIR and LOOP019_REQ_TRACE_DIR point to evidence/20260921_loop019_builder_req/raw and raw_req. Runner PID2379121 waits for health, functional gate, full warmup and12×32K→512 c12 sample; output run2/, runner.log. Log logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP019-REQ-20260921.log. Framework has expanded diagnostic patch patches/loop019_builder_req_trace.patch (uncommitted in its source tree), no behavioral optimization. Do not reset framework or start competing service. TaskCtl run active-dsacp-request-subphases-20260921 pending.
+
+
+## GitHub sync note 2026-09-21 02:04 UTC
+
+User pointed to https://github.com/wio1997/Inference-Foundry and asked why work is absent. The server repository previously had no remote; all commits through6643648 were local. Added origin URL and fetched remote main (1b0b48e; two README-only commits, unrelated history). Prepared a local merge worktree /tmp/inference-foundry-github-sync on branch github-sync-20260921, merge commit59b5148 joining remote README history and local project through6643648. No push has occurred. Await user answer to the explicit publish choice (main / review branch / hold). Do not force-push or publish without that answer; ongoing Loop019 work stays on local main.
+
+
+## Live checkpoint 2026-09-21 02:13 UTC — Loop019 QLI subphase identified
+
+Second no-profiler DP1/TP8 request-metadata trace finished: short functional passed, 12/12 c12×512 sample passed. Across169–170 pure-decode first-builder steps/rank, QLI subphase median1.735–4.306ms/rank dominates first build_req_metadata; device-local0.477–0.548ms, CPU-local0.255–0.292ms, SAS0.422–0.485ms. These inclusive host spans do not establish removable E2E cost. Evidence evidence/20260921_loop019_builder_req/request_subphases_summary.json plus all8 raw rank CSV and sample. API PID843805 stopped, port8080 down, all8 NPUs idle (~3.4GB HBM), framework restored clean at36589852. Loop019 remains active: decompose QLI decode path without repeating previously rejected all-step CPU-maxima experiment (Loop011); freeze only a causally testable minimal change.
+
+
+## GitHub publication authorization 2026-09-21 02:14 UTC
+
+User explicitly authorized push to GitHub main. After committing Loop019 second diagnostic at934fba2, update local github-sync-20260921 merge worktree from main, verify origin/main still1b0b48e, then push merge HEAD to origin main as a fast-forward. This preserves remote README and local history. Record pushed commit hash and verify remote SHA afterward.

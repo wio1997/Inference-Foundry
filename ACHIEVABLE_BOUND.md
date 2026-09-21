@@ -174,3 +174,8 @@ Loop018 demonstrates a ~579us rank6 device timestamp offset under a common-end c
 ## Live checkpoint 2026-09-21 01:59 UTC
 
 First DSA-CP builder timing (up to6.50ms median/rank) is an inclusive host span, not an achievable saving; device operation enqueue/synchronization and cross-rank overlap remain unresolved. No cold or mixed E2E bound update.
+
+
+## Live checkpoint 2026-09-21 02:13 UTC
+
+QLI first-builder median host span1.735–4.306ms/rank may include synchronization and scheduling; it is not a removable bound or measured E2E opportunity. No cold or mixed attainable hardware-bound update.

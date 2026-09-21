@@ -203,3 +203,8 @@ Loop018 aligned48,960 identical collective types across8 ranks. Raw start/end ra
 ## Live checkpoint 2026-09-21 01:59 UTC — first DSA-CP builder dominates
 
 No-profiler sample 12×32K→512 c12, 174 pure-decode steps/rank: first active DSA-CP builder median total3.61–6.50ms/rank; build_req_metadata2.74–5.74ms, shared setup0.57–0.66ms, slot format~0.18–0.21ms. Other seven builder median total0.67–0.85ms. This is host inclusive timing with rank variation and trace I/O; no E2E saving claim. The first builder's request-metadata path is next attribution target. Evidence evidence/20260921_loop019_builder_stage/stage_summary.json.
+
+
+## Live checkpoint 2026-09-21 02:13 UTC — first-builder QLI stage
+
+Loop019 no-profiler first DSA-CP build_req_metadata subphase audit (169–170 pure decode steps/rank): QLI median1.735–4.306ms/rank, device-local0.477–0.548ms, CPU-local0.255–0.292ms, SAS0.422–0.485ms. Rank variation is substantial; QLI may include .item() device synchronization and metadata op cost. These are inclusive host scopes, not additive to 19.55ms prepare or E2E savings. Prior Loop011 all-step CPU maxima had no robust mixed TPS win; next isolate QLI suboperations and graph/host overlap before choosing a patch. Evidence evidence/20260921_loop019_builder_req/request_subphases_summary.json.
