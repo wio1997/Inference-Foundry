@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T01:09:19Z",
+  "generated_at": "2026-09-21T01:13:45Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -21,7 +21,7 @@
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
     "active_loop": null,
-    "next_action": "Start Loop018: attribute warm c12 TP communication critical path and rank skew from saved profile, then select a falsifiable service-level candidate.",
+    "next_action": "Start Loop019: measure warm decode host metadata builder cost with paired no-profiler service traces and seek an active-callsite caching or vectorization candidate.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -137,22 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-013",
-      "title": "Locate warm TP8 decode critical path",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "A short warmed c12 TP0 trace plus host and HCCL timing can isolate a high-value exposed decode gap; prior c4 draft_token CPU scope was about 47 ms per iteration but is not a device critical-path attribution.",
-      "verdict": "PIVOTED",
-      "reason": "Valid c12 trace isolates large draft host and TP8 HCCL/idle envelopes but does not prove either removable. The candidate DSpark draft graph path is hard-disabled in source; prior upstream graph attempt was reverted. Further source-level cause and numerical constraints are needed before an E2E optimization.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_decode_c12_profile/run4/device_c12_summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260920_decode_c12_profile/run4/host_scope_c12_summary.json"
-      ],
-      "decided_at": "2026-09-20T20:26:35Z"
-    },
-    {
       "loop_id": "loop-014",
       "title": "Find exposed decode metadata host work",
       "mode": "optimization",
@@ -219,6 +203,22 @@
         "/data/wio/Inference_Foundry/evidence/20260920_loop017_compressor/candidate_run.log"
       ],
       "decided_at": "2026-09-21T01:08:26Z"
+    },
+    {
+      "loop_id": "loop-018",
+      "title": "Warm c12 decode critical path attribution",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "Saved eight-rank profiler traces can identify a measured and testable service-level arrival or overlap bottleneck; communication elapsed alone is not removable time.",
+      "verdict": "PIVOTED",
+      "reason": "Saved cross-rank timestamps are confounded by stable ~579us rank6 clock offset plus residual ~206us end spread. Communication elapsed is Idle-only, so collective arrival skew cannot be separated from clock/reporting artifacts or translated to a safe high-value change using current evidence.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_decode_comm_audit/collective_arrival_skew.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_decode_comm_audit/collective_clock_sensitivity.json"
+      ],
+      "decided_at": "2026-09-21T01:13:02Z"
     }
   ],
   "active_loop_summary": null,
