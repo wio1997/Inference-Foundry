@@ -204,3 +204,8 @@ For TP0 warm c12, median `draft_token` host time is 52.894 ms and device tasks c
 ## Bound correction — EVENT_WAIT is not active compute (2026-09-21 05:10 UTC)
 
 Loop020's 51.661 ms causal device-task union cannot bound necessary compute because it includes long `EVENT_WAIT` tasks. Loop021 attributes 51.169 ms median clipped union to outer draft waits and 26.595 ms to waits under `vllm::moe_forward_shared`; overlapping waits across streams may double-count wall time. The Index and Pad candidates provide at most sub-millisecond observed unions when present. Therefore the host-only residual estimate of 1.233 ms is withdrawn. Achievable decode bound remains UNKNOWN until event producer/consumer streams are resolved and wait overlap with useful compute is measured.
+
+
+## Bound refinement — event waits are overlapped (2026-09-21 06:10 UTC)
+
+The 53–54 ms outer event waits are on two copy streams and gate asynchronous memcpy; the 25.734 ms MoE wait is on the shared-expert stream between layer invocations. Neither is an additive main-path saving. Measured intra-call MoE dependencies are sub-0.2 ms median and the main-stream final wait is effectively zero. Remove event-wait occupancy from compute-gap estimates. The dominant bound uncertainty is now useful accepted tokens per proposer/verification work; a k5/k7 service comparison is required.

@@ -240,3 +240,11 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - Repeated leaf chains are individually small: Index clipped union median 0.545 ms when present; Pad 0.337 ms; InplaceCopy 0.112 ms. They do not justify a standalone service patch against 4.3% baseline TPS spread.
 - The prior 51.661 ms causal task union is dominated by device `EVENT_WAIT`. Outer draft wait union is 51.169 ms median across 170 scopes; MoE semantic-scope wait union is 26.595 ms. These are stream dependency spans, not AICore occupancy.
 - Highest-value unknown moves to MoE event topology: whether producer lag or stream ordering stalls the critical compute stream, versus an intended wait on an auxiliary stream hidden by useful work.
+
+
+## Loop022 event dependency resolution — 2026-09-21 06:10 UTC
+
+- Outer draft `EVENT_WAIT`: streams42/43, one each per step, 53.104/54.095 ms median, always followed immediately by `MEMCPY_ASYNC`; auxiliary copy dependency, not main-stream serialization.
+- MoE shared stream36 has four waits per shared-expert call. The long boundary wait (qmatmul → next layer dynamic quant) is 25.734 ms median and represents the shared stream idling until the next layer input is produced.
+- Within a shared-expert call, wait medians are 0.191 ms before activation, 0.051 ms before down projection and 0.011 ms before gate projection. Main stream47 final wait is about 0.00002 ms. No material removable MoE synchronization gap is established.
+- Next highest verifiable system lever: speculative length. k7 advances only 3.54–3.64 tokens, so Loop023 benchmarks whether k5 reduces rejected-token work.

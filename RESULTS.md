@@ -238,3 +238,8 @@ A reproducible TP0 flow analysis maps every async finish to a same-stream device
 ## 2026-09-21 05:10 UTC — Loop021 REJECT
 
 A reproducible trace join assigned all 121,038 draft-owned launches to an innermost CPU leaf, semantic vLLM scope and exact device task. The hypothesized Index/Pad/Copy critical chain is below decision value: Index median clipped union 0.545 ms when present, Pad 0.337 ms, InplaceCopy 0.112 ms. The large causal union from Loop020 is instead dominated by `EVENT_WAIT`: 51.169 ms median at outer draft scope and 26.595 ms under MoE. These values are dependency occupancy and can overlap; they are not performance gains. No implementation was attempted. Evidence: `evidence/20260921_loop021_device_parent/`. Loop022 now tests whether MoE event waits serialize the critical stream.
+
+
+## 2026-09-21 06:10 UTC — Loop022 REJECT
+
+Exact same-stream neighbors and source alignment with `_forward_shared_experts` show no material main-path event stall. Streams42/43 wait 53–54 ms only before asynchronous memcpy. Shared stream36 waits 25.734 ms between layer invocations for the next hidden state; its intra-call event waits are 0.191/0.051/0.011 ms, while stream47 final waits are ~0.00002 ms. The MoE scheduling hypothesis is falsified and no patch was made. Evidence: `evidence/20260921_loop022_event_dependency/`. Loop023 begins a controlled speculative-length efficiency screen.

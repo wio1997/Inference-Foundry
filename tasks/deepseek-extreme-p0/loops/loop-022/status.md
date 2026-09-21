@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
-- 结论：`PENDING`
-- 下一步：Distinguish EVENT_WAIT device streams and event producer tasks for outer draft and moe_forward_shared waits, then align them with fused_moe.py event callsites.
-- 更新时间：`2026-09-21T05:07:33Z`
+- 状态：`REJECTED`
+- 结论：`REJECTED`
+- 下一步：Test whether seven-token drafting is overlong for measured 3.54-3.64 token advancement by benchmarking a bounded speculative-length sweep under the frozen mixed workload.
+- 更新时间：`2026-09-21T06:05:32Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/tp0-event-topology-20260921`
 
 ## 阻塞项
 
