@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
-- 结论：`PENDING`
-- 下一步：Join exact async flow launches to their innermost CPU op parent inside draft_token, rank candidate chains by clipped device union and inspect the corresponding source callsites.
-- 更新时间：`2026-09-21T04:04:17Z`
+- 状态：`REJECTED`
+- 结论：`REJECTED`
+- 下一步：Map MoE EVENT_WAIT producer/consumer streams and event source lines; measure whether waits serialize the main critical stream or only represent intended asynchronous overlap.
+- 更新时间：`2026-09-21T05:07:33Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/tp0-cpu-device-parent-20260921`
 
 ## 阻塞项
 

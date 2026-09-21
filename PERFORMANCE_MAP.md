@@ -232,3 +232,11 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - Causal device union clipped to draft scope: median 51.661 ms (p90 52.713 ms); including tasks extending after scope: median 63.259 ms. This is device-active time, not an additive saving.
 - Highest launch counts in draft include EVENT_WAIT 18,795, IndexCheck 5,566, Index 5,095, MEMCPY_ASYNC 4,352, Cast 3,894 and Pad/MemSet 3,718 each. Counts alone do not prove critical-path savings.
 - Current largest verifiable gap: eager draft device fragmentation and low acceptance efficiency. ACLGraph is explicitly disabled/unsupported on this DSpark path, so Loop021 must isolate a bounded source-level chain before implementation.
+
+
+## Loop021 event-aware draft map — 2026-09-21 05:10 UTC
+
+- All 121,038 draft-owned async flows exact-match device tasks; no unmatched flow or task.
+- Repeated leaf chains are individually small: Index clipped union median 0.545 ms when present; Pad 0.337 ms; InplaceCopy 0.112 ms. They do not justify a standalone service patch against 4.3% baseline TPS spread.
+- The prior 51.661 ms causal task union is dominated by device `EVENT_WAIT`. Outer draft wait union is 51.169 ms median across 170 scopes; MoE semantic-scope wait union is 26.595 ms. These are stream dependency spans, not AICore occupancy.
+- Highest-value unknown moves to MoE event topology: whether producer lag or stream ordering stalls the critical compute stream, versus an intended wait on an auxiliary stream hidden by useful work.

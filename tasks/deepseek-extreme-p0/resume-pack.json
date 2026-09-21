@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T04:04:42Z",
+  "generated_at": "2026-09-21T05:08:01Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-021",
-    "next_action": "Join exact async flow launches to their innermost CPU op parent inside draft_token, rank candidate chains by clipped device union and inspect the corresponding source callsites.",
+    "active_loop": "loop-022",
+    "next_action": "Distinguish EVENT_WAIT device streams and event producer tasks for outer draft and moe_forward_shared waits, then align them with fused_moe.py event callsites.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -137,23 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-016",
-      "title": "Direct unique-index DSA scatter feasibility",
-      "mode": "optimization",
-      "cases": [
-        "cold_32k_128_c1",
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "Long-prefill DSA compressor slot mapping is unique by construction, allowing a single-pass direct scatter to remove SK sort and cross-core sync on a measurable cold TTFT critical path, with a safe fallback for duplicate or invalid cases.",
-      "verdict": "REJECTED",
-      "reason": "Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_loop016_direct_scatter/service_ab3/summary.json"
-      ],
-      "decided_at": "2026-09-20T22:41:58Z"
-    },
-    {
       "loop_id": "loop-017",
       "title": "Compressor ratio4 cold prefill critical path",
       "mode": "optimization",
@@ -217,33 +200,49 @@
         "/data/wio/Inference_Foundry/evidence/20260921_dspark_audit/acceptance_profile.json"
       ],
       "decided_at": "2026-09-21T04:04:17Z"
+    },
+    {
+      "loop_id": "loop-021",
+      "title": "DSpark eager device fragmentation critical path",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "The eager DSpark draft path launches a repeated Index/Pad/Copy/event task chain on its critical path; exact CPU-parent and source attribution can isolate a bounded fusion or reuse candidate with material mixed-workload value.",
+      "verdict": "REJECTED",
+      "reason": "Exact flow attribution falsifies the proposed Index/Pad/Copy chain as a material standalone target: aclnnIndex clipped device union is 0.545 ms median when present and ConstantPadNd 0.337 ms, both below the 4.3 percent frozen TPS spread. The dominant apparent span is EVENT_WAIT, chiefly 51.169 ms at outer draft scope and 26.595 ms under moe_forward_shared; event waits are stream dependencies and cannot be counted as compute or removable time.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_loop021_device_parent/cpu_parent_attribution_tp0.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop021_device_parent/semantic_leaf_attribution_tp0.json"
+      ],
+      "decided_at": "2026-09-21T05:07:33Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-021",
-    "title": "DSpark eager device fragmentation critical path",
+    "loop_id": "loop-022",
+    "title": "DSpark MoE event dependency critical path",
     "mode": "optimization",
     "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Join exact async flow launches to their innermost CPU op parent inside draft_token, rank candidate chains by clipped device union and inspect the corresponding source callsites.",
+    "next_action": "Distinguish EVENT_WAIT device streams and event producer tasks for outer draft and moe_forward_shared waits, then align them with fused_moe.py event callsites.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-21T04:04:17Z"
+    "updated_at": "2026-09-21T05:07:33Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-022/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-022/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-022/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-022/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-022/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-022/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

@@ -199,3 +199,8 @@ DSpark proposer host run_draft28.43–32.69ms and attention metadata5.67–6.41m
 ## Bound refinement — Loop020 causal draft attribution (2026-09-21 04:09 UTC)
 
 For TP0 warm c12, median `draft_token` host time is 52.894 ms and device tasks causally launched inside that same-thread scope occupy 51.661 ms of clipped wall-time union. Therefore the directly observed host-only residual is at most 1.233 ms at the median under this trace accounting; it is not a guaranteed saving because trace scopes and device queues overlap. The earlier 5.67–6.41 ms host attention-metadata span cannot be treated as an independent E2E bound. The remaining achievable bound is still UNKNOWN until device task dependencies and required work per accepted token are separated.
+
+
+## Bound correction — EVENT_WAIT is not active compute (2026-09-21 05:10 UTC)
+
+Loop020's 51.661 ms causal device-task union cannot bound necessary compute because it includes long `EVENT_WAIT` tasks. Loop021 attributes 51.169 ms median clipped union to outer draft waits and 26.595 ms to waits under `vllm::moe_forward_shared`; overlapping waits across streams may double-count wall time. The Index and Pad candidates provide at most sub-millisecond observed unions when present. Therefore the host-only residual estimate of 1.233 ms is withdrawn. Achievable decode bound remains UNKNOWN until event producer/consumer streams are resolved and wait overlap with useful compute is measured.

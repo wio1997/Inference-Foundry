@@ -233,3 +233,8 @@ Flag-gated proposer stage trace passed short functional and12/12 c12×512. Acros
 ## 2026-09-21 04:09 UTC — Loop020 PIVOT
 
 A reproducible TP0 flow analysis maps every async finish to a same-stream device task start exactly and restricts ownership to CPU flow origins inside the same-thread `draft_token` scope. For 170 scopes, causal device union clipped to the host interval is median 51.661 ms versus 52.894 ms host duration; device launches extend beyond the scope to 63.259 ms median union. This supports a device-active eager proposer bottleneck and rejects treating inclusive host metadata timings as removable idle time. Acceptance is 3.54–3.64 advanced tokens per 7 drafted. No code candidate or E2E gain was claimed. Evidence: `evidence/20260921_dspark_audit/async_flow_attribution_tp0.json`, stage and acceptance summaries. Loop021 begins source attribution of repeated Index/Pad/Copy/event chains.
+
+
+## 2026-09-21 05:10 UTC — Loop021 REJECT
+
+A reproducible trace join assigned all 121,038 draft-owned launches to an innermost CPU leaf, semantic vLLM scope and exact device task. The hypothesized Index/Pad/Copy critical chain is below decision value: Index median clipped union 0.545 ms when present, Pad 0.337 ms, InplaceCopy 0.112 ms. The large causal union from Loop020 is instead dominated by `EVENT_WAIT`: 51.169 ms median at outer draft scope and 26.595 ms under MoE. These values are dependency occupancy and can overlap; they are not performance gains. No implementation was attempted. Evidence: `evidence/20260921_loop021_device_parent/`. Loop022 now tests whether MoE event waits serialize the critical stream.
