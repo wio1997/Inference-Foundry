@@ -223,3 +223,8 @@ Restoring scheduled capacity8096→8192 produced no screen gain beyond observed 
 ## Bound update — DSpark versus target-only (2026-09-21 09:09 UTC)
 
 Target-only54.333ms/token versus k7 DSpark17.554ms/token proves verification amortization is necessary and rules out exiting speculative decoding. Using3.64 advanced tokens and17.554ms TPOT gives an approximate63.9ms speculative cycle. Balanced attribution of the three draft layers suggests an8.62ms one-layer opportunity and a rough3.15 advanced-token break-even after bypass. These are cross-run/inclusive estimates and are not added to the verified achievable gap; Loop026 E2E and acceptance measurements must validate them.
+
+
+## Bound update — draft-layer ablation (2026-09-21 10:09 UTC)
+
+One layer accounts for a measured7.22ms of proposer model time, but it is not removable: bypass reduces advanced tokens from3.54–3.64 to1.363 and destroys E2E throughput. Exclude this7.22ms from achievable savings. The exact three-layer model still spends roughly31.1ms in proposer model execution; any future bound must preserve its logits/acceptance and target graph/runtime overhead rather than remove trained computation.

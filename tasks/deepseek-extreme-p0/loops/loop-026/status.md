@@ -5,14 +5,15 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run skip-middle-screen-20260921：VLLM_ASCEND_DSPARK_SKIP_MIDDLE_LAYER=1 LOOP020_DRAFT_TRACE_DIR=evidence/20260921_loop026_layer_bypass/raw bash scripts/serve.sh; run_loop014_prepare_trace
-- 更新时间：`2026-09-21T09:10:11Z`
+- 状态：`REJECTED`
+- 结论：`REJECTED`
+- 下一步：Preserve all three trained layers and test the major framework gap: fixed-shape DSpark remains eager-only. Establish whether a segmented graph or standalone proposer replay can capture exact three-layer execution and reduce launch/runtime overhead without changing logits.
+- 更新时间：`2026-09-21T10:07:04Z`
 
 ## Run 记录
 
 - `runs/mixed_32k_1024_c12/skip-middle-screen-20260921`
+- `runs/mixed_32k_1024_c12/k7-reference-loop020`
 
 ## 阻塞项
 

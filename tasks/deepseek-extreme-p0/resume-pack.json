@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T09:11:02Z",
+  "generated_at": "2026-09-21T10:07:33Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-026",
-    "next_action": "Freeze the cycle-time/acceptance break-even model from saved evidence, audit the three-layer forward dependencies, then implement an environment-gated skip of only the middle draft layer for a no-profiler correctness and c12 screen.",
+    "active_loop": "loop-027",
+    "next_action": "Audit the three-layer forward for graph-unsafe state/HCCL/KV mutations and run the smallest exact-shape capture feasibility probe; do not enable unsupported full proposer graph in production.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -137,22 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-021",
-      "title": "DSpark eager device fragmentation critical path",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The eager DSpark draft path launches a repeated Index/Pad/Copy/event task chain on its critical path; exact CPU-parent and source attribution can isolate a bounded fusion or reuse candidate with material mixed-workload value.",
-      "verdict": "REJECTED",
-      "reason": "Exact flow attribution falsifies the proposed Index/Pad/Copy chain as a material standalone target: aclnnIndex clipped device union is 0.545 ms median when present and ConstantPadNd 0.337 ms, both below the 4.3 percent frozen TPS spread. The dominant apparent span is EVENT_WAIT, chiefly 51.169 ms at outer draft scope and 26.595 ms under moe_forward_shared; event waits are stream dependencies and cannot be counted as compute or removable time.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260921_loop021_device_parent/cpu_parent_attribution_tp0.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_loop021_device_parent/semantic_leaf_attribution_tp0.json"
-      ],
-      "decided_at": "2026-09-21T05:07:33Z"
-    },
-    {
       "loop_id": "loop-022",
       "title": "DSpark MoE event dependency critical path",
       "mode": "optimization",
@@ -219,34 +203,51 @@
         "/data/wio/Inference_Foundry/evidence/20260921_loop025_nospec/run1/decode_c12.json"
       ],
       "decided_at": "2026-09-21T09:07:34Z"
+    },
+    {
+      "loop_id": "loop-026",
+      "title": "DSpark middle-layer cost versus acceptance",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "The middle of three DSpark draft layers can be bypassed to remove roughly one third of proposer model work while retaining enough proposal quality to improve cost per advanced token and mixed E2E throughput.",
+      "verdict": "REJECTED",
+      "reason": "Removing one of three trained draft layers saves23.21% proposer model time but destroys proposal quality: advanced tokens fall to1.363/cycle, far below3.15 break-even; output TPS drops55.85% to217.092, close to target-only208.047. Full three-layer semantics are necessary.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_loop026_layer_bypass/comparison.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop026_layer_bypass/acceptance_delta.json"
+      ],
+      "decided_at": "2026-09-21T10:07:04Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-026",
-    "title": "DSpark middle-layer cost versus acceptance",
+    "loop_id": "loop-027",
+    "title": "Exact three-layer DSpark graph feasibility",
     "mode": "optimization",
-    "status": "RUNNING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "执行 Run skip-middle-screen-20260921：VLLM_ASCEND_DSPARK_SKIP_MIDDLE_LAYER=1 LOOP020_DRAFT_TRACE_DIR=evidence/20260921_loop026_layer_bypass/raw bash scripts/serve.sh; run_loop014_prepare_trace",
+    "next_action": "Audit the three-layer forward for graph-unsafe state/HCCL/KV mutations and run the smallest exact-shape capture feasibility probe; do not enable unsupported full proposer graph in production.",
     "cases": [
       "mixed_32k_1024_c12",
       "correctness_short"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-21T09:10:11Z"
+    "updated_at": "2026-09-21T10:07:05Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-026/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-027/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

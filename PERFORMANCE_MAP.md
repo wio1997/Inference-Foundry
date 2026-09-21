@@ -271,3 +271,11 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - k7 DSpark matched screen:491.698 tok/s, TPOT17.554ms, TTFT1981.90ms.
 - DSpark provides2.363x output TPS and67.69% lower TPOT, while short-screen TTFT rises20.52%. The speculative path is decisively valuable for decode.
 - Draft model source contains three sequential DSpark layers; prior profiled nested MoE+DSA host scopes total about25.86ms across them. Loop026 tests whether removing only the middle layer improves cost/advanced token.
+
+
+## Loop026 trained-layer necessity — 2026-09-21 10:09 UTC
+
+- Skip-middle proposer model time:31.106→23.887ms rank median (-23.21%); total proposer39.545→32.298ms.
+- Acceptance collapses to0.363 accepted drafts and1.363 advanced tokens/cycle, below3.15 estimated break-even. Positions0–3 acceptance becomes30.54%,4.82%,0.80%,0.16%; positions4–6 zero.
+- E2E:491.698→217.092 tok/s (-55.85%); TPOT17.554→47.972ms (+173.29%).
+- Conclusion: full three-layer learned computation is necessary. Remaining proposer opportunity must preserve exact semantics; fixed-shape eager execution is now the primary framework-level candidate.

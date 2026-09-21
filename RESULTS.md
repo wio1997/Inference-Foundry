@@ -257,3 +257,8 @@ Candidate max-batched8288 passed correctness and removed the scheduler warning. 
 ## 2026-09-21 09:09 UTC — Loop025 ACCEPT
 
 Matched target-only decode achieved208.047 tok/s and54.333ms TPOT; k7 DSpark achieved491.698 tok/s and17.554ms TPOT under the same12-request c12 runner. This is +136.34% TPS and -67.69% TPOT, decisively beyond noise. Correctness passed for both. Evidence: `evidence/20260921_loop025_nospec/comparison.json`. Retain DSpark; Loop026 evaluates the cost/acceptance tradeoff of bypassing its middle draft layer.
+
+
+## 2026-09-21 10:09 UTC — Loop026 REJECT
+
+Bypassing only the middle DSpark layer saved23.21% proposer model time but reduced advanced tokens to1.363/cycle and output TPS to217.092 (-55.85% versus491.698 control). Correctness passed through target verification, proving this is a proposal-quality failure rather than semantic corruption. The full three-layer drafter is necessary. Evidence: `evidence/20260921_loop026_layer_bypass/comparison.json`. Loop027 evaluates exact three-layer captured/standalone execution feasibility.
