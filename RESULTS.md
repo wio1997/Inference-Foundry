@@ -285,3 +285,10 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Scope limitation: target/DSpark forward, KV cache, recurrent/GDN state, collectives, and weights are still executed/owned by the oracle. Therefore this is an accepted execution-contract result, not a completed standalone runtime and not a performance result.
 - Diagnostic throughput 130.44 tok/s is excluded from all baseline comparisons because the hook performs synchronous equality checks and JSONL writes every cycle.
 - Next implementation gate: runtime-owned fixed KV/recurrent storage plus a direct target operator adapter, followed by at least eight causally connected real cycles with token and state-fingerprint parity.
+
+## 2026-09-21 15:23 UTC — Loop029 independent control plane
+
+- `ExtremeDecodeRuntime` owns cycle ordering and executes without importing vLLM.
+- CPU and Ascend NPU standalone runs completed eight continuous cycles; target and proposer were each invoked eight times.
+- Runtime-owned cache references enforce stable address/shape/stride and support exact selected-element fingerprints for touched physical cache locations.
+- Current operators/caches in this test are deterministic/synthetic. Live DeepSeek weights, TP/EP collectives and DSA cache tensors remain the next correctness gate; no performance claim is made.
