@@ -230,3 +230,8 @@ Created Loop019 after Loop018 pivot. Existing no-profiler pure-decode c12 trace 
 ## Live checkpoint 2026-09-21 01:25 UTC — Loop019 stage trace ready
 
 Flag-gated diagnostic patch patches/loop019_builder_stage_trace.patch is applied only to framework dsa_cp.py on kept source36589852. It records four host timestamps around shared input/RoPE setup, DSA slot formatting and build_req_metadata, plus first-builder flag and shape. py_compile and git diff --check pass. No behavior branch changes when the environment flag is absent. Framework working tree is dirty only by this patch; do not start a different service or reset it while the Loop019 trace service is active. Trace output planned under evidence/20260921_loop019_builder_stage/raw/.
+
+
+## Live checkpoint 2026-09-21 01:22 UTC — Loop019 service loading
+
+No existing port8080 listener; all8 910B3 at ~3.4GB idle HBM before launch. Privileged dsv4ab diagnostic API PID837367 started with DP1/TP8, W4A8, 1M maxlen and flag LOOP019_BUILDER_TRACE_DIR. Log logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP019-STAGE-20260921.log. Framework has only patches/loop019_builder_stage_trace.patch applied; active source dirty by design. Background runner PID2352861 (launch shell) executes scripts/run_loop014_prepare_trace.py with output evidence/20260921_loop019_builder_stage/run1/; runner log evidence/20260921_loop019_builder_stage/runner.log. It waits for health, runs short functional, warmup48x128, then no-profiler c12 12x512 stage sample. Raw per-rank CSV under evidence/20260921_loop019_builder_stage/raw/. Do not launch another service or reset framework before runner result. TaskCtl Loop019 run active-dsacp-builder-stage-20260921 created but not finished.
