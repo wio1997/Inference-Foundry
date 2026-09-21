@@ -29,7 +29,7 @@
 | `loop-021` | `REJECTED` | `REJECTED` | Exact flow attribution falsifies the proposed Index/Pad/Copy chain as a material standalone target: aclnnIndex clipped device union is 0.545 ms median when present and ConstantPadNd 0.337 ms, both below the 4.3 percent frozen TPS spread. The dominant apparent span is EVENT_WAIT, chiefly 51.169 ms at outer draft scope and 26.595 ms under moe_forward_shared; event waits are stream dependencies and cannot be counted as compute or removable time. |
 | `loop-022` | `REJECTED` | `REJECTED` | Exact stream neighbors falsify a material main-path MoE wait. The two 53-54 ms outer waits gate MEMCPY_ASYNC on auxiliary streams 42/43. The apparent 25.734 ms MoE wait is shared stream36 waiting at the next layer before dynamic quant; default stream47 waits for shared output are about 0.00002 ms. Intra-call synchronization medians are 0.191, 0.051 and 0.011 ms, below baseline noise. |
 | `loop-023` | `REJECTED` | `REJECTED` | k5 is not a runnable TP8 configuration in the current vLLM 0.26 path: graph shapes must be divisible by both 6 and 8. The service failed during KV/backend initialization, so there is no correctness or performance comparison. With model dspark_block_size>=5, the next smaller valid k below7 does not exist under this invariant. |
-| `loop-024` | `FROZEN` | `PENDING` | Create a k7 launcher changing only max_num_batched_tokens to8288, verify resolved scheduled capacity in logs, then run correctness and the bounded c12 screen. |
+| `loop-024` | `RUNNING` | `PENDING` | 执行 Run tokens8288-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP024-8288-20260921 bash scripts/serve_loop024_tokens8288.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop024_tokens8288/run1 |
 
 ## 阻塞项
 

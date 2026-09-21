@@ -309,3 +309,7 @@ After Loop022 rejection, a bounded speculative-length screen started. `scripts/s
 ## Update 2026-09-21 07:07 UTC — Loop023 REJECT; Loop024 active
 
 The k5 service never reached readiness. vLLM rejected graph shapes during TP8 initialization because `(k+1)=6` and sequence-parallel TP8 require a common divisible capture shape; runner timed out without correctness or benchmark. With model `dspark_block_size>=5`, there is no smaller valid k below7 under this invariant. Loop023 rejected as invalid comparison; port8080 is down and all NPUs are idle. Source inspection confirms k7/max_seqs16 reserves96 draft slots: max batched8192 becomes max scheduled8096 and emits an explicit suboptimal warning. Loop024 tests the minimal scheduler-only correction, max batched8288, restoring max scheduled8192 with k7 unchanged.
+
+## Live checkpoint 2026-09-21 07:14 UTC — Loop024 8288-token screen loading
+
+Loop023 k5 workers were explicitly terminated after their startup error left ~29GB/card allocated; only that failed experiment process group was killed. HBM returned to ~3.4GB/card. Loop024 relaunched successfully with valid k7 and the sole configuration change `max_num_batched_tokens=8288`; container service PID869225, host runner PID2554536. Runner waits for health, correctness smoke, 48x128 warmup and12x32K→512 c12 screen under `evidence/20260921_loop024_tokens8288/run1/`. Service log must confirm resolved max scheduled capacity8192 before performance is accepted. No result yet; do not start a competing service.

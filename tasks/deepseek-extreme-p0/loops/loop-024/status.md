@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：Create a k7 launcher changing only max_num_batched_tokens to8288, verify resolved scheduled capacity in logs, then run correctness and the bounded c12 screen.
-- 更新时间：`2026-09-21T06:53:47Z`
+- 下一步：执行 Run tokens8288-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP024-8288-20260921 bash scripts/serve_loop024_tokens8288.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop024_tokens8288/run1
+- 更新时间：`2026-09-21T06:54:45Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/tokens8288-screen-20260921`
 
 ## 阻塞项
 
