@@ -1,0 +1,58 @@
+diff --git a/vllm_ascend/attention/context_parallel/dsa_cp.py b/vllm_ascend/attention/context_parallel/dsa_cp.py
+index 6fff48f9f..f3c54ec77 100644
+--- a/vllm_ascend/attention/context_parallel/dsa_cp.py
++++ b/vllm_ascend/attention/context_parallel/dsa_cp.py
+@@ -1,4 +1,6 @@
+ import math
++import os
++import time
+ from dataclasses import dataclass
+ from typing import ClassVar, TypeVar
+ 
+@@ -287,6 +289,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         fast_build: bool = False,
+         **kwargs,
+     ) -> AscendDSAMetadata:
++        _l19_t0 = time.perf_counter_ns()
+         num_reqs = common_attn_metadata.num_reqs
+         query_start_loc = common_attn_metadata.query_start_loc
+         num_reqs_actual = kwargs.get("num_reqs_actual")
+@@ -295,6 +298,7 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         common_ratio_to_sas_metadata = kwargs.get("common_ratio_to_sas_metadata")
+         assert common_ratio_to_sas_metadata is not None
+         self.common_ratio_to_sas_metadata = common_ratio_to_sas_metadata
++        _l19_first = self.common_ratio_to_sas_metadata.get("input_positions") is None
+         self.num_actual_tokens = common_attn_metadata.num_actual_tokens
+         attn_state = kwargs.get("attn_state", common_attn_metadata.attn_state)
+ 
+@@ -341,9 +345,11 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             self.seq_lens = self.common_ratio_to_sas_metadata["seq_lens"]
+             self.seq_lens_cpu = self.common_ratio_to_sas_metadata["seq_lens_cpu"]
+ 
++        _l19_t_shared = time.perf_counter_ns()
+         slot_mapping = common_attn_metadata.slot_mapping[:num_input_tokens]
+         self.slot_mapping[:num_input_tokens] = DeviceOperator.format_dsa_slot_mapping(slot_mapping, self.block_size)
+ 
++        _l19_t_slot = time.perf_counter_ns()
+         self.block_table = common_attn_metadata.block_table_tensor[:num_reqs]
+ 
+         req_metadata = self.build_req_metadata(
+@@ -356,6 +362,18 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             sin=sin,
+         )
+ 
++        _l19_t_req = time.perf_counter_ns()
++        _l19_dir = os.environ.get("LOOP019_BUILDER_TRACE_DIR")
++        if _l19_dir:
++            _l19_path = os.path.join(
++                _l19_dir, f"rank{get_tp_group().rank_in_group}_pid{os.getpid()}.csv"
++            )
++            with open(_l19_path, "a") as _l19_file:
++                _l19_file.write(
++                    f"{_l19_t0},{_l19_t_shared},{_l19_t_slot},{_l19_t_req},"
++                    f"{int(_l19_first)},{num_reqs},{num_input_tokens},"
++                    f"{self.compressor_ratio},{self.cache_group_key}\n"
++                )
+         return self.metadata_cls(  # type: ignore
+             num_input_tokens=common_attn_metadata.num_input_tokens,
+             num_actual_tokens=self.num_actual_tokens,

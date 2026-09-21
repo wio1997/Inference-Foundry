@@ -1,0 +1,255 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-09-21T02:00:50Z",
+  "context_policy": {
+    "max_knowledge": 20,
+    "max_loops": 5,
+    "max_cases": 12,
+    "dtype_filter": null,
+    "case_group_filter": null,
+    "raw_runs_loaded": false
+  },
+  "task": {
+    "task_dir": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0",
+    "task_id": "deepseek-extreme-p0",
+    "title": "DeepSeek Extreme P0",
+    "goal": "Correct full DP1 TP8 prefill and decode inference with E2E throughput materially above frozen baseline and closer to measured hardware bound",
+    "operator": "deepseek_v4_flash_w4a8",
+    "framework": "vllm-ascend",
+    "source_root": "/data/wio/Inference_Foundry",
+    "status": "ACTIVE",
+    "phase": "OPTIMIZING",
+    "evidence_level": "E2_BENCHMARKED",
+    "active_loop": "loop-019",
+    "next_action": "Inspect Loop014 no-profiler builder traces and active DSA-CP builder source; quantify repeated allocations/work by shape before editing.",
+    "blockers": [],
+    "skill_route": {
+      "coordinator": "operator-task-loop",
+      "decision": "kernel-optimization",
+      "execution": null
+    }
+  },
+  "case_summary": {
+    "total": 3,
+    "groups": {
+      "mixed": 1,
+      "correctness": 1,
+      "cold_prefill": 1
+    },
+    "selected": [
+      {
+        "id": "cold_32k_128_c1",
+        "shape": [
+          4,
+          32768,
+          128
+        ],
+        "numel": 16777216,
+        "dtype": "w4a8",
+        "layout": "DP1TP8",
+        "attributes": {},
+        "weight": 1.0,
+        "group": "cold_prefill",
+        "protected": true,
+        "reason": "Distinct uncached 32K prompts expose prefill critical path",
+        "created_at": "2026-09-20T15:59:58Z",
+        "updated_at": "2026-09-20T15:59:58Z"
+      },
+      {
+        "id": "mixed_32k_1024_c12",
+        "shape": [
+          48,
+          32768,
+          1024
+        ],
+        "numel": 1610612736,
+        "dtype": "w4a8",
+        "layout": "DP1TP8",
+        "attributes": {},
+        "weight": 1.0,
+        "group": "mixed",
+        "protected": true,
+        "reason": "Primary fixed mixed prefill/decode E2E workload with 90 percent repeated prefix",
+        "created_at": "2026-09-20T15:39:40Z",
+        "updated_at": "2026-09-20T15:39:40Z"
+      },
+      {
+        "id": "correctness_short",
+        "shape": [
+          1,
+          128,
+          16
+        ],
+        "numel": 2048,
+        "dtype": "w4a8",
+        "layout": "DP1TP8",
+        "attributes": {},
+        "weight": 0.0,
+        "group": "correctness",
+        "protected": true,
+        "reason": "Deterministic service correctness smoke",
+        "created_at": "2026-09-20T15:39:40Z",
+        "updated_at": "2026-09-20T15:39:40Z"
+      }
+    ]
+  },
+  "baseline_summary": [
+    {
+      "case_id": "mixed_32k_1024_c12",
+      "run_dir": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-002/runs/mixed_32k_1024_c12/run-20260920T155914Z",
+      "code_ref": "vllm=568afb3a vllm-ascend=32e850493 bench=b4baa57",
+      "metric": {
+        "name": "output_tps",
+        "value": 543.6546,
+        "unit": "tok/s"
+      },
+      "reason": "Median output TPS of three corrected warm-cache runs, with spread in analysis.json",
+      "source_loop": "loop-002",
+      "staged_at": "2026-09-20T15:59:14Z",
+      "accepted_at": "2026-09-20T15:59:15Z"
+    }
+  ],
+  "knowledge_summary": {
+    "total": 1,
+    "selected": [
+      {
+        "id": "warm_cache_baseline",
+        "kind": "fact",
+        "statement": "DP1 TP8 warm-cache 48x32K-to-1024 c12 median output TPS 543.65 across three 48/48 runs; TPOT mean median 19.73ms; TPS span 4.3%.",
+        "status": "accepted",
+        "confidence": "high",
+        "scope": {
+          "case_group": "mixed",
+          "cache": "warm"
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260920_baseline/analysis.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "loop-002",
+        "staged_at": "2026-09-20T15:59:15Z",
+        "verdict": "ACCEPTED",
+        "updated_at": "2026-09-20T15:59:15Z"
+      }
+    ]
+  },
+  "recent_loops": [
+    {
+      "loop_id": "loop-014",
+      "title": "Find exposed decode metadata host work",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "Warm DP1TP8 c12 input preparation repeats Python metadata work across 170 decode iterations; at least one deterministic repeated operation can be safely cached or vectorized and reduce E2E output latency beyond benchmark noise.",
+      "verdict": "PIVOTED",
+      "reason": "No supported >=5% mixed TPS candidate emerged. The 8 metadata builders are group-specific and shared local/ratio state is already cached. First builder timing may include required device synchronization; Loop011 all-step QLI substitution did not improve mixed throughput. Avoid changing semantics merely to reduce inclusive host spans.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop014_prepare_trace/run2/builder_summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260920_loop014_prepare_trace/run1/stage_summary.json"
+      ],
+      "decided_at": "2026-09-20T21:04:13Z"
+    },
+    {
+      "loop_id": "loop-015",
+      "title": "Isolate cold prefill device critical path",
+      "mode": "optimization",
+      "cases": [
+        "cold_32k_128_c1",
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "After the kept QLI prefill change, cold 32K TTFT has a removable device-side ScatterNdUpdateSk or Compressor cost that can be isolated from HCCL waiting and reduced without changing model numerics.",
+      "verdict": "PIVOTED",
+      "reason": "Captured one real 8096-row long-prefill scatter mapping per rank: all unique, but uniqueness not yet a general invariant. Existing V2 op gave bit-equal output and was 69% slower than SK in 25-call isolated NPU timing; no safe E2E patch or paired TTFT gain. Source SK deterministic sort+SyncAll suggests a direct unique-index path merits a separate build experiment.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop015_cold_kernels/probe",
+        "/data/wio/Inference_Foundry/evidence/20260920_loop015_cold_kernels/scatter_v2_screen.json"
+      ],
+      "decided_at": "2026-09-20T21:28:18Z"
+    },
+    {
+      "loop_id": "loop-016",
+      "title": "Direct unique-index DSA scatter feasibility",
+      "mode": "optimization",
+      "cases": [
+        "cold_32k_128_c1",
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "Long-prefill DSA compressor slot mapping is unique by construction, allowing a single-pass direct scatter to remove SK sort and cross-core sync on a measurable cold TTFT critical path, with a safe fallback for duplicate or invalid cases.",
+      "verdict": "REJECTED",
+      "reason": "Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop016_direct_scatter/service_ab3/summary.json"
+      ],
+      "decided_at": "2026-09-20T22:41:58Z"
+    },
+    {
+      "loop_id": "loop-017",
+      "title": "Compressor ratio4 cold prefill critical path",
+      "mode": "optimization",
+      "cases": [
+        "cold_32k_128_c1"
+      ],
+      "hypothesis": "Compressor ratio4 costs material cold prefill critical-path time that a bounded change can reduce without harming correctness or mixed throughput.",
+      "verdict": "REJECTED",
+      "reason": "mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop017_compressor/candidate_observation.json",
+        "/data/wio/Inference_Foundry/evidence/20260920_loop017_compressor/candidate_run.log"
+      ],
+      "decided_at": "2026-09-21T01:08:26Z"
+    },
+    {
+      "loop_id": "loop-018",
+      "title": "Warm c12 decode critical path attribution",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "Saved eight-rank profiler traces can identify a measured and testable service-level arrival or overlap bottleneck; communication elapsed alone is not removable time.",
+      "verdict": "PIVOTED",
+      "reason": "Saved cross-rank timestamps are confounded by stable ~579us rank6 clock offset plus residual ~206us end spread. Communication elapsed is Idle-only, so collective arrival skew cannot be separated from clock/reporting artifacts or translated to a safe high-value change using current evidence.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_decode_comm_audit/collective_arrival_skew.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_decode_comm_audit/collective_clock_sensitivity.json"
+      ],
+      "decided_at": "2026-09-21T01:13:02Z"
+    }
+  ],
+  "active_loop_summary": {
+    "loop_id": "loop-019",
+    "title": "Warm decode DSA-CP metadata builder active-path attribution",
+    "mode": "optimization",
+    "status": "RUNNING",
+    "verdict": "PENDING",
+    "reason": "",
+    "next_action": "执行 Run active-dsacp-request-subphases-20260921：LOOP019_REQ_TRACE_DIR=... docker exec dsv4ab bash scripts/serve.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop019_builder_req/run2",
+    "cases": [
+      "mixed_32k_1024_c12"
+    ],
+    "execution_skill": null,
+    "updated_at": "2026-09-21T02:00:18Z"
+  },
+  "read_first": [
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-019/knowledge-delta.json"
+  ],
+  "history_indexes": {
+    "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
+    "knowledge": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-events.jsonl",
+    "task_events": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/task-events.jsonl"
+  }
+}

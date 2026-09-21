@@ -1,0 +1,73 @@
+diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
+index fd5463845..1ee6d88e2 100644
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -19,6 +19,7 @@
+ 
+ import logging
+ import math
++import os
+ import sys
+ import time
+ from collections import defaultdict
+@@ -1857,6 +1858,7 @@ class NPUModelRunner(GPUModelRunner):
+ 
+         num_scheduled_tokens = scheduler_output.total_num_scheduled_tokens
+         with record_function_or_nullcontext("prepare input"):
++            _l14_t0 = time.perf_counter_ns()
+             with self.synchronize_input_prep():
+                 # Fix up prev_req_id_to_index for requests that were discarded
+                 # in the previous sample_tokens step. If a request has
+@@ -1881,6 +1883,7 @@ class NPUModelRunner(GPUModelRunner):
+                 deferred_state_corrections_fn = self._update_states(
+                     scheduler_output
+                 )
++                _l14_t_states = time.perf_counter_ns()
+ 
+                 if has_ec_transfer() and not get_ec_transfer().is_consumer:
+                     self._start_dump_data()
+@@ -1934,6 +1937,7 @@ class NPUModelRunner(GPUModelRunner):
+                     scheduler_output,
+                     num_scheduled_tokens_np,
+                 )
++                _l14_t_inputs = time.perf_counter_ns()
+ 
+                 num_tokens_unpadded = scheduler_output.total_num_scheduled_tokens
+                 cascade_attn_prefix_lens = None
+@@ -2029,6 +2033,7 @@ class NPUModelRunner(GPUModelRunner):
+                             self.requests,
+                             self.mamba_state_idx,
+                         )
++                _l14_t_mamba = time.perf_counter_ns()
+                 if self.use_compress:
+                     if deferred_state_corrections_fn:
+                         deferred_state_corrections_fn()
+@@ -2075,6 +2080,7 @@ class NPUModelRunner(GPUModelRunner):
+                     num_scheduled_tokens_np=num_scheduled_tokens_np,
+                     cascade_attn_prefix_lens=cascade_attn_prefix_lens,
+                 )
++                _l14_t_attn = time.perf_counter_ns()
+ 
+                 self._sanitize_placeholder_input_ids_for_forward(
+                     scheduler_output,
+@@ -2093,9 +2099,20 @@ class NPUModelRunner(GPUModelRunner):
+                 num_tokens_padded,
+                 intermediate_tensors,
+             )
++            _l14_t_preprocess = time.perf_counter_ns()
+ 
+             # update global cos, sin
+             update_cos_sin(positions)
++            _l14_t_end = time.perf_counter_ns()
++            _l14_dir = os.environ.get("LOOP014_TRACE_DIR")
++            if _l14_dir:
++                _l14_path = os.path.join(_l14_dir, f"rank{get_tensor_model_parallel_rank()}_pid{os.getpid()}.csv")
++                with open(_l14_path, "a") as _l14_file:
++                    _l14_file.write(
++                        f"{_l14_t0},{_l14_t_states},{_l14_t_inputs},{_l14_t_mamba},"
++                        f"{_l14_t_attn},{_l14_t_preprocess},{_l14_t_end},"
++                        f"{num_reqs},{num_tokens_unpadded},{int(self.with_prefill)}\n"
++                    )
+ 
+         if self.dynamic_eplb:
+             self.eplb_updator.forward_before()

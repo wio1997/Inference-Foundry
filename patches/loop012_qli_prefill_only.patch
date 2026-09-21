@@ -1,0 +1,44 @@
+diff --git a/vllm_ascend/attention/context_parallel/dsa_cp.py b/vllm_ascend/attention/context_parallel/dsa_cp.py
+index 5b8eebabf..6fff48f9f 100644
+--- a/vllm_ascend/attention/context_parallel/dsa_cp.py
++++ b/vllm_ascend/attention/context_parallel/dsa_cp.py
+@@ -778,6 +778,9 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+             seq_lens=local_seq_lens,
+             seq_lens_q=local_seq_lens_q,
+             num_reqs=num_reqs,
++            has_prefill=has_prefill,
++            max_seqlen_q_cpu=max_local_query_len,
++            max_seqlen_k_cpu=max_local_seq_lens,
+         )
+ 
+         cp_metadata = DSACPMetadata(
+@@ -997,7 +1000,10 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         self.req_sas_metadata[:1024] = metadata
+         return self.req_sas_metadata[:1024]
+ 
+-    def _build_qli_metadata(self, query_start_loc, seq_lens, seq_lens_q, num_reqs):
++    def _build_qli_metadata(
++        self, query_start_loc, seq_lens, seq_lens_q, num_reqs,
++        has_prefill, max_seqlen_q_cpu, max_seqlen_k_cpu,
++    ):
+         if self.compressor_ratio != 4:
+             return None
+ 
+@@ -1005,8 +1011,15 @@ class AscendDSACPMetadataBuilder(AttentionMetadataBuilder[AscendDSAMetadata]):
+         metadata = self.common_ratio_to_sas_metadata.get(cache_key)
+ 
+         if metadata is None:
+-            max_seqlen_q = max(1, int(seq_lens_q.max().item()))
+-            max_seqlen_k = max(1, int(seq_lens.max().item()))
++            if has_prefill:
++                # CPU local metadata is built from the same partition formula.
++                # Use its maxima to avoid NPU scalar sync on the cold path.
++                max_seqlen_q = max_seqlen_q_cpu
++                max_seqlen_k = max_seqlen_k_cpu
++            else:
++                # Keep the original decode path unchanged.
++                max_seqlen_q = max(1, int(seq_lens_q.max().item()))
++                max_seqlen_k = max(1, int(seq_lens.max().item()))
+             metadata = torch.ops._C_ascend.npu_vllm_quant_lightning_indexer_metadata(
+                 actual_seq_lengths_query=query_start_loc[1:].clone(),
+                 actual_seq_lengths_key=seq_lens.clone(),
