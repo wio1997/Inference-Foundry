@@ -36,23 +36,45 @@ The runtime preserves model semantics, quantized weights, TP8 communication, KV 
 
 Each removal candidate requires an exact contract, a minimal implementation, correctness evidence and an E2E result. Inclusive profiler time is not a savings estimate.
 
-## Build phases
+## Parallel build tracks
 
-### Phase A — semantic contract extraction
+These are concurrent workstreams, not serial gates. Contract extraction is
+performed only where the standalone implementation needs a semantic answer.
+The runtime should become executable as early as possible and then absorb more
+of the real decode DAG behind parity checks.
 
-Record the exact tensors, mutations, collectives and ordering for one warm pure-decode cycle: target hidden-state handoff, DSpark inputs, three-layer proposer, draft tokens/logits, target verification, acceptance, KV writes and sequence advance. Classify every input as constant, per-request device state, per-step derived state or host-visible output.
+### Runtime-owned decode loop
 
-### Phase B — standalone fixed-cycle replay
+Build a fixed-buffer, continuous multi-cycle entry for c12. Weight/operator
+bootstrap may initially come from the oracle process, but no SchedulerOutput,
+request object, dynamic batch selection or generic ModelRunner dispatch belongs
+inside the cycle.
 
-Instantiate real weights and Ascend operators while bypassing scheduler/request objects. Replay one fixed batch cycle from preallocated buffers and compare draft logits/tokens, accepted tokens, target outputs and KV/state mutations against the oracle.
+### Semantic migration
 
-### Phase C — graph and device-resident state
+Move target verification, greedy acceptance, sequence advance, target/draft KV
+and recurrent-state mutations into runtime-owned buffers as needed by the live
+implementation. Compare consecutive outputs and touched state against the
+oracle; do not wait for unrelated serving or prefill contracts.
 
-Capture graph-safe segments, retain mutable state in fixed-address buffers, eliminate repeated metadata construction and reduce host launch/synchronization boundaries. Benchmark cost per advanced token before service integration.
+### Execution restructuring
 
-### Phase D — fixed serving runtime
+Continuously evaluate fixed replay, segmented/full graph, persistent execution,
+communication/compute overlap and device-resident control. No mechanism is
+mandatory; the real DAG and E2E result decide.
 
-Add the minimum admission, prefix plan, slot lifecycle and output drain required for the frozen mixed workload. Compare full correctness, TTFT, TPOT and Output TPS against the accepted vLLM-Ascend baseline.
+### Fusion and kernels
+
+Search across existing operator boundaries for fusion regions and SuperKernels,
+especially verification/acceptance/state advance/next-input preparation,
+Markov7, layer-local quant/norm/MoE communication, and target-to-proposer hidden
+handoff. Local kernels are promoted only when they serve the runtime DAG.
+
+### Minimal serving shell
+
+Admission/reset, frozen 32K prefix plans, slot lifecycle and output draining are
+added around the working decode loop. They do not block early decode-runtime
+bring-up.
 
 ## Promotion gates
 
@@ -62,10 +84,16 @@ Add the minimum admission, prefix plan, slot lifecycle and output drain required
 - Full E2E improvement must exceed the measured 4.3% baseline noise and repeat
 - New achievable-gap entries require causal evidence that time is removable or overlap can increase
 
-## Loop028 checkpoint and paused boundary
+## Loop028 boundary
 
 The first executable specialized-runtime segment is now proven at c12: once proposer inputs and metadata are materialized, the exact real-weight three-layer DSpark7 closure can run again on TP8 and reproduce all draft tokens on 8/8 ranks. Most observed proposer inputs already have fixed process-local addresses; dedicated stable buffers are still required for target token IDs and target positions.
 
-Phase B remains incomplete for the whole decode cycle. The next implementation boundary is target verification → acceptance → device-resident sequence/KV advance → next proposer inputs, with explicit parity for accepted tokens and all mutated state. Only after that boundary is exact should segmented graph, persistent replay or wider fused regions receive an E2E performance gate.
+The proposer region is reusable evidence, not the architecture boundary.
 
-Work is paused after Loop028 by user request.
+## Loop029 live objective
+
+Run the first continuous multi-cycle decode path through `runtime/` using fixed
+c12 buffers. The implementation, semantic extraction and fusion-region search
+advance together. The immediate migration order is whichever dependency is
+needed to make the next real cycle executable: target forward, greedy
+verification/acceptance, KV/recurrent state advance and DSpark proposal.

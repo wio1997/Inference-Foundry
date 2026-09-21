@@ -1,0 +1,156 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -19,6 +19,8 @@
+ 
+ import logging
+ import math
++import json
++import os
+ import sys
+ import time
+ from collections import defaultdict
+@@ -203,7 +205,10 @@
+ 
+ from vllm.model_executor.models.interfaces import supports_multimodal_pruning
+ 
+-from vllm_ascend.sample.rejection_sampler import AscendRejectionSampler
++from vllm_ascend.sample.rejection_sampler import (
++    AscendRejectionSampler,
++    greedy_sample as ascend_greedy_sample,
++)
+ 
+ if TYPE_CHECKING:
+     import xgrammar as xgr  # type: ignore[import-untyped]
+@@ -2076,6 +2081,60 @@
+                     cascade_attn_prefix_lens=cascade_attn_prefix_lens,
+                 )
+ 
++                _loop029_shadow_dir = os.getenv("LOOP029_STANDALONE_SHADOW_DIR")
++                if (
++                    _loop029_shadow_dir
++                    and use_spec_decode
++                    and num_reqs == 12
++                    and total_num_scheduled_tokens == 96
++                    and spec_decode_common_attn_metadata is not None
++                ):
++                    if not hasattr(self, "_loop029_fixed_shadow"):
++                        _runtime_root = "/data/wio/Inference_Foundry"
++                        if _runtime_root not in sys.path:
++                            sys.path.insert(0, _runtime_root)
++                        from runtime.fixed_decode import FixedDecodeConfig
++                        from runtime.oracle_shadow import FixedDecodeOracleShadow
++
++                        self._loop029_fixed_shadow = FixedDecodeOracleShadow(
++                            FixedDecodeConfig()
++                        )
++                    _loop029_comparison = (
++                        self._loop029_fixed_shadow.observe_target_inputs(
++                            block_table=(
++                                spec_decode_common_attn_metadata.block_table_tensor[:12]
++                            ),
++                            input_ids=self.input_ids.gpu[:96],
++                            positions=self.positions[:96],
++                            query_start_loc=self.query_start_loc.gpu[:13],
++                            seq_lens=spec_decode_common_attn_metadata.seq_lens[:12],
++                            slot_mapping=(
++                                spec_decode_common_attn_metadata.slot_mapping[:96]
++                            ),
++                        )
++                    )
++                    if _loop029_comparison is not None:
++                        os.makedirs(_loop029_shadow_dir, exist_ok=True)
++                        _loop029_row = {
++                            "rank": int(get_tp_group().rank_in_group),
++                            "cycle": _loop029_comparison.cycle,
++                            "input_ids_equal": _loop029_comparison.input_ids_equal,
++                            "positions_equal": _loop029_comparison.positions_equal,
++                            "query_start_equal": _loop029_comparison.query_start_equal,
++                            "seq_lens_equal": _loop029_comparison.seq_lens_equal,
++                            "slot_mapping_equal": _loop029_comparison.slot_mapping_equal,
++                            "exact": _loop029_comparison.exact,
++                        }
++                        with open(
++                            os.path.join(
++                                _loop029_shadow_dir,
++                                f"rank{int(get_tp_group().rank_in_group)}.jsonl",
++                            ),
++                            "a",
++                            encoding="utf-8",
++                        ) as _loop029_file:
++                            _loop029_file.write(json.dumps(_loop029_row) + "\n")
++
+                 self._sanitize_placeholder_input_ids_for_forward(
+                     scheduler_output,
+                     num_tokens_padded,
+@@ -2364,6 +2423,17 @@
+                         draft_by_req_id.get(req_id, [])
+                         for req_id in req_ids_output_copy
+                     ]
++
++        if (
++            hasattr(self, "_loop029_fixed_shadow")
++            and torch.is_tensor(self._draft_token_ids)
++            and self._draft_token_ids.shape[0] == 12
++            and sampler_output.sampled_token_ids.shape[0] == 12
++        ):
++            self._loop029_fixed_shadow.observe_cycle_outputs(
++                sampler_output.sampled_token_ids,
++                self._draft_token_ids,
++            )
+ 
+         model_runner_output = ModelRunnerOutput(
+             req_ids=req_ids_output_copy,
+@@ -2479,6 +2549,53 @@
+             logits,
+             sampling_metadata,
+         )
++        _loop029_shadow_dir = os.getenv("LOOP029_STANDALONE_SHADOW_DIR")
++        if (
++            _loop029_shadow_dir
++            and sampling_metadata.all_greedy
++            and len(spec_decode_metadata.num_draft_tokens) == 12
++            and min(spec_decode_metadata.num_draft_tokens) == 7
++            and max(spec_decode_metadata.num_draft_tokens) == 7
++        ):
++            _runtime_root = "/data/wio/Inference_Foundry"
++            if _runtime_root not in sys.path:
++                sys.path.insert(0, _runtime_root)
++            from runtime.greedy_accept import greedy_accept
++
++            _loop029_target_argmax = ascend_greedy_sample(
++                logits[spec_decode_metadata.target_logits_indices].to(torch.float32)
++            ).view(12, 7)
++            _loop029_bonus = ascend_greedy_sample(
++                logits[spec_decode_metadata.bonus_logits_indices]
++            ).view(12)
++            _loop029_drafts = spec_decode_metadata.draft_token_ids.view(12, 7)
++            _loop029_accepted, _loop029_counts = greedy_accept(
++                _loop029_drafts,
++                _loop029_target_argmax,
++                _loop029_bonus,
++            )
++            _loop029_accept_row = {
++                "rank": int(get_tp_group().rank_in_group),
++                "accepted_tokens_equal": bool(
++                    torch.equal(_loop029_accepted, sampler_output.sampled_token_ids)
++                ),
++                "accepted_counts_equal": bool(
++                    torch.equal(
++                        _loop029_counts,
++                        sampler_output.sampled_token_ids.ne(-1).sum(dim=1).to(torch.int32),
++                    )
++                ),
++            }
++            os.makedirs(_loop029_shadow_dir, exist_ok=True)
++            with open(
++                os.path.join(
++                    _loop029_shadow_dir,
++                    f"accept_rank{int(get_tp_group().rank_in_group)}.jsonl",
++                ),
++                "a",
++                encoding="utf-8",
++            ) as _loop029_file:
++                _loop029_file.write(json.dumps(_loop029_accept_row) + "\n")
+         return sampler_output
+ 
+     # TODO: remove this func after eagle_proposer is refactored and

@@ -277,3 +277,11 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Performance: no claim. The 12×32K→512 diagnostic produced 412.50 tok/s with tracing and a duplicate proposer invocation, so it is not comparable with the frozen 543.65 tok/s baseline.
 - Cleanup: service stopped, no NPU processes, framework restored clean at `36589852a`.
 - Work paused after the Loop028 commit at the user's request. Resume from the target verification/acceptance/state boundary; do not repeat pointer discovery.
+## 2026-09-21 14:35 UTC — Loop029 standalone state and acceptance parity
+
+- Added a product-owned fixed decode scaffold with fixed c12 device state, next-target ABI materialization, and temperature-0 greedy speculative acceptance. Its control loop does not construct vLLM scheduler outputs, request objects, input batches, or model runners.
+- Eight-cycle CPU and Ascend NPU semantic tests pass.
+- Real DeepSeek V4 Flash W4A8, 8×910B3, DP1×TP8, DSpark7 c12 oracle-shadow result: 12/12 requests completed; next-target ABI exact in 224/224 rank-cycle comparisons; independent accepted tokens and counts exact in 232/232 rank-cycle comparisons.
+- Scope limitation: target/DSpark forward, KV cache, recurrent/GDN state, collectives, and weights are still executed/owned by the oracle. Therefore this is an accepted execution-contract result, not a completed standalone runtime and not a performance result.
+- Diagnostic throughput 130.44 tok/s is excluded from all baseline comparisons because the hook performs synchronous equality checks and JSONL writes every cycle.
+- Next implementation gate: runtime-owned fixed KV/recurrent storage plus a direct target operator adapter, followed by at least eight causally connected real cycles with token and state-fingerprint parity.

@@ -297,3 +297,6 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - Proven graph/replay candidate: the full three-layer DSpark proposer after its inputs and metadata have been materialized.
 - Still outside the proven boundary: target verification, rejection sampling/acceptance, sequence advance, target/draft KV state comparison, output publication and next-cycle input mutation.
 - The traced decode sample is invalid for E2E comparison because tracing and a duplicate proposer call were enabled. No change to the accepted 543.65 tok/s baseline.
+## 2026-09-21 Loop029 architecture boundary
+
+The first product-owned fixed execution region is now semantically closed across all TP ranks: greedy acceptance → accepted-count calculation → sequence/position advance → next target-input ABI construction. This region is a candidate for one device-resident fused transition/SuperKernel because its shapes and temperature-0 semantics are frozen. No speedup is claimed yet. The immediate critical path is outside this region: direct target forward, target KV/recurrent/GDN mutation, DSpark proposal, and their TP collective boundaries must be moved under runtime ownership before graph/replay or cross-operator fusion can be measured honestly.
