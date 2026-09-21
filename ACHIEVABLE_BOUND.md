@@ -194,3 +194,8 @@ The 52.894ms median draft_token host scope coincides with41.860ms median device 
 ## Live checkpoint 2026-09-21 03:36 UTC
 
 DSpark proposer host run_draft28.43–32.69ms and attention metadata5.67–6.41ms per step are gross inclusive spans, not achievable reductions. The draft acceptance mean3.54–3.64 for7 speculative tokens informs token efficiency but alone yields no hardware lower bound. Mixed achievable bound remains UNKNOWN.
+
+
+## Bound refinement — Loop020 causal draft attribution (2026-09-21 04:09 UTC)
+
+For TP0 warm c12, median `draft_token` host time is 52.894 ms and device tasks causally launched inside that same-thread scope occupy 51.661 ms of clipped wall-time union. Therefore the directly observed host-only residual is at most 1.233 ms at the median under this trace accounting; it is not a guaranteed saving because trace scopes and device queues overlap. The earlier 5.67–6.41 ms host attention-metadata span cannot be treated as an independent E2E bound. The remaining achievable bound is still UNKNOWN until device task dependencies and required work per accepted token are separated.

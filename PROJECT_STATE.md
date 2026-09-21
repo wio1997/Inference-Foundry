@@ -285,3 +285,8 @@ Loop020 started. Saved TP0 c12 profiler has170 draft_token host scopes median52.
 ## Live checkpoint 2026-09-21 03:36 UTC — Loop020 DSpark proposer stages
 
 DP1/TP8 no-profiler DSpark diagnostic passed short functional and12/12 c12×512. For160 no-prefill proposer calls/rank, graph_values=[0] (eager). _propose median36.11–41.38ms/rank; run_draft28.43–32.69ms, build_draft_attn_metadata across all attention groups5.67–6.41ms, set_inputs1.47–1.66ms. These are inclusive host times and do not identify removable device work. Saved profiled c12 acceptance buckets have mean advancement3.54–3.64 tokens for 7-token drafts; evidence evidence/20260921_dspark_audit/acceptance_profile.json. API PID856647 stopped, all8 NPUs idle, framework restored clean36589852. Next attribute which device tasks are owned by run_draft (rather than temporally coincident), and inspect whether step0 metadata can safely avoid repeated work; no patch candidate yet.
+
+
+## Update 2026-09-21 04:09 UTC — Loop020 PIVOT; Loop021 active
+
+TP0 async-flow attribution now causally joins 121,038 launches whose CPU flow origin is inside the same-thread `draft_token` scope to device tasks at an exact timestamp match. Across 170 scopes, causal device-task union clipped to each host scope is median 51.661 ms versus 52.894 ms host duration; launched work extends to 63.259 ms median union beyond the scope. This rules out a large host-idle interpretation of the proposer span. Loop020 pivoted: DSpark is eager-only, acceptance advances 3.54–3.64 tokens per 7-token draft, and no safe scheduling patch exceeds noise yet. Loop021 targets exact CPU-parent/source attribution for repeated Index/Pad/Copy/event chains. No service on port 8080; eight NPUs idle; framework clean at kept commit 36589852a.

@@ -223,3 +223,12 @@ Saved profiled c12 TP0: draft_token host median52.894ms across170 scopes; tempor
 ## Live checkpoint 2026-09-21 03:36 UTC — DSpark stage map
 
 No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose median36.11–41.38ms; eager run_draft28.43–32.69ms (~78–80% of proposer wall), step0 all-group attention metadata5.67–6.41ms (~15–16%), set_inputs1.47–1.66ms. Saved profiled 10-second acceptance buckets: mean3.54–3.64 advanced tokens per7 drafted, per-position acceptance declines to~8% at seventh. Scope/device temporal co-occurrence is not ownership; next isolate model-owned device work and evaluate graph feasibility or metadata repetition.
+
+
+## Loop020 causal DSpark map — 2026-09-21 04:09 UTC
+
+- TP0 saved trace: 170 `draft_token` scopes, host median 52.894 ms.
+- Trace-flow integrity: 183,679 async finishes map to same-stream device X starts with 0.0 us median/p99 delta; 121,038 launches originate within same-thread draft scopes.
+- Causal device union clipped to draft scope: median 51.661 ms (p90 52.713 ms); including tasks extending after scope: median 63.259 ms. This is device-active time, not an additive saving.
+- Highest launch counts in draft include EVENT_WAIT 18,795, IndexCheck 5,566, Index 5,095, MEMCPY_ASYNC 4,352, Cast 3,894 and Pad/MemSet 3,718 each. Counts alone do not prove critical-path savings.
+- Current largest verifiable gap: eager draft device fragmentation and low acceptance efficiency. ACLGraph is explicitly disabled/unsupported on this DSpark path, so Loop021 must isolate a bounded source-level chain before implementation.

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T03:37:33Z",
+  "generated_at": "2026-09-21T04:04:42Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-020",
-    "next_action": "Inspect saved c12 host scopes, per-step DSpark acceptance counters and device event alignment; do not infer removable time from inclusive scopes.",
+    "active_loop": "loop-021",
+    "next_action": "Join exact async flow launches to their innermost CPU op parent inside draft_token, rank candidate chains by clipped device union and inspect the corresponding source callsites.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -137,24 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-015",
-      "title": "Isolate cold prefill device critical path",
-      "mode": "optimization",
-      "cases": [
-        "cold_32k_128_c1",
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "After the kept QLI prefill change, cold 32K TTFT has a removable device-side ScatterNdUpdateSk or Compressor cost that can be isolated from HCCL waiting and reduced without changing model numerics.",
-      "verdict": "PIVOTED",
-      "reason": "Captured one real 8096-row long-prefill scatter mapping per rank: all unique, but uniqueness not yet a general invariant. Existing V2 op gave bit-equal output and was 69% slower than SK in 25-call isolated NPU timing; no safe E2E patch or paired TTFT gain. Source SK deterministic sort+SyncAll suggests a direct unique-index path merits a separate build experiment.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_loop015_cold_kernels/probe",
-        "/data/wio/Inference_Foundry/evidence/20260920_loop015_cold_kernels/scatter_v2_screen.json"
-      ],
-      "decided_at": "2026-09-20T21:28:18Z"
-    },
-    {
       "loop_id": "loop-016",
       "title": "Direct unique-index DSA scatter feasibility",
       "mode": "optimization",
@@ -218,33 +200,50 @@
         "/data/wio/Inference_Foundry/evidence/20260920_qli_pair_baseline/comparison.json"
       ],
       "decided_at": "2026-09-21T03:14:26Z"
+    },
+    {
+      "loop_id": "loop-020",
+      "title": "Warm c12 DSpark draft and target verification critical-path attribution",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "Low draft acceptance or proposer scheduling exposes a service-level cost larger than current measured run spread; saved host and device traces can isolate it before changing code.",
+      "verdict": "PIVOTED",
+      "reason": "TP0 trace flows causally join all 121038 async launches whose CPU origin is inside a draft_token scope to device X tasks at exact timestamps. Across 170 scopes, device-task union clipped to the host scope is median 51.661 ms versus 52.894 ms host scope, so proposer time is predominantly device-active rather than a removable host-only bubble. Draft acceptance advances only 3.54-3.64 tokens for 7 drafted tokens, but no safe material scheduling intervention is identified; DSpark ACLGraph is explicitly unsupported/eager.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_dspark_audit/async_flow_attribution_tp0.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop020_draft_stage/draft_stage_summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_dspark_audit/acceptance_profile.json"
+      ],
+      "decided_at": "2026-09-21T04:04:17Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-020",
-    "title": "Warm c12 DSpark draft and target verification critical-path attribution",
+    "loop_id": "loop-021",
+    "title": "DSpark eager device fragmentation critical path",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "审查 Run active-dspark-draft-stage-20260921 的证据，并判断是否需要更多 Run",
+    "next_action": "Join exact async flow launches to their innermost CPU op parent inside draft_token, rank candidate chains by clipped device union and inspect the corresponding source callsites.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-21T03:35:55Z"
+    "updated_at": "2026-09-21T04:04:17Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-020/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-020/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-020/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-020/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-020/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-020/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-021/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

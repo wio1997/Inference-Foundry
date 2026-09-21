@@ -228,3 +228,8 @@ Read-only saved c12 analysis passed: 170 TP0 draft_token scopes median52.894ms; 
 ## Live checkpoint 2026-09-21 03:36 UTC — Loop020 diagnostic
 
 Flag-gated proposer stage trace passed short functional and12/12 c12×512. Across160 pure decode calls/rank, eager _propose median36.11–41.38ms, run_draft28.43–32.69ms, step0 all-group attention metadata5.67–6.41ms, set_inputs1.47–1.66ms. Eight rank CSVs and summary in evidence/20260921_loop020_draft_stage/. Saved profiled acceptance buckets in evidence/20260921_dspark_audit/acceptance_profile.json. No optimization or E2E gain claim. Service stopped; framework clean and NPUs idle.
+
+
+## 2026-09-21 04:09 UTC — Loop020 PIVOT
+
+A reproducible TP0 flow analysis maps every async finish to a same-stream device task start exactly and restricts ownership to CPU flow origins inside the same-thread `draft_token` scope. For 170 scopes, causal device union clipped to the host interval is median 51.661 ms versus 52.894 ms host duration; device launches extend beyond the scope to 63.259 ms median union. This supports a device-active eager proposer bottleneck and rejects treating inclusive host metadata timings as removable idle time. Acceptance is 3.54–3.64 advanced tokens per 7 drafted. No code candidate or E2E gain was claimed. Evidence: `evidence/20260921_dspark_audit/async_flow_attribution_tp0.json`, stage and acceptance summaries. Loop021 begins source attribution of repeated Index/Pad/Copy/event chains.
