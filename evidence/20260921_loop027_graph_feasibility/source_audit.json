@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-09-21T11:10:00Z",
+  "legacy_path": {
+    "file": "vllm_ascend/spec_decode/dspark_proposer.py",
+    "finding": "unconditionally sets self.use_cuda_graph=False",
+    "implication": "legacy proposer cannot probe graph by only changing enforce_eager"
+  },
+  "v2_path": {
+    "files": [
+      "vllm_ascend/worker/v2/spec_decode/dspark/speculator.py",
+      "vllm_ascend/worker/v2/spec_decode/__init__.py"
+    ],
+    "finding": "AscendDSparkSpeculator is registered and wires query_cudagraph_manager to Ascend update stream",
+    "implication": "repository already contains intended DSpark graph path"
+  },
+  "activation": {
+    "env": "VLLM_USE_V2_MODEL_RUNNER=1",
+    "speculative_config": "enforce_eager=false",
+    "graph_mode": "FULL_DECODE_ONLY"
+  },
+  "frozen_invariants": {
+    "dp": 1,
+    "tp": 8,
+    "num_speculative_tokens": 7,
+    "model": "DeepSeek-V4-Flash-0731-w4a8",
+    "max_num_batched_tokens": 8192
+  },
+  "probe_gate": "startup and correctness only before any performance promotion"
+}

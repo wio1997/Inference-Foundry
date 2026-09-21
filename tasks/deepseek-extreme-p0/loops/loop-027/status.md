@@ -7,12 +7,12 @@
 - 执行 Skill：`NONE`
 - 状态：`FROZEN`
 - 结论：`PENDING`
-- 下一步：Audit the three-layer forward for graph-unsafe state/HCCL/KV mutations and run the smallest exact-shape capture feasibility probe; do not enable unsupported full proposer graph in production.
+- 下一步：Wait for the bounded v2 DSpark graph startup probe; require graph capture evidence and functional correctness before any performance screen.
 - 更新时间：`2026-09-21T10:07:05Z`
 
 ## Run 记录
 
-- 暂无
+- v2 DSpark graph startup probe: API PID 891755 loading; evidence/20260921_loop027_graph_feasibility/launcher.log
 
 ## 阻塞项
 
