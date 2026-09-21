@@ -171,3 +171,8 @@ Original-source cold profile four-request time clusters: Compressor [8096,4096;1
 ## Live checkpoint 2026-09-20 22:50 UTC — serial Compressor chain
 
 All336 main-shape ratio4 Compressor tasks in frozen four-cold-request profile are followed on the same device stream by ScatterNdUpdateSk then SparseAttnSharedkv (336/336 each). Median gap to next task2.87us; median Compressor-start to SparseAttn-start1.84475ms. This is a per-layer serial chain, materially stronger than aggregate op time alone. It does not quantify cross-stream overlap or guaranteed TTFT saving. See evidence/20260920_loop017_compressor/stream_order.json.
+
+
+## Live checkpoint 2026-09-20 23:59 UTC — shape-matched Compressor screen
+
+Single-NPU synthetic shape-matched ratio4/coff2 Compressor baseline: device median1.630ms across25 event-timed calls, min1.499ms; old full-service cold profile median task1.503ms. Synthetic values and isolated scheduling differ, so only compare future isolated candidates to this screen. The operator produced finite [2025,512] output on scaled inputs; exact model numerical parity untested. Source arch32 tiling uses mBaseSize128 for coff2, nSize2, 20 AIC blocks; large8096-token case retains base M tile and runs repeated cross-core sync.

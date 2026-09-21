@@ -9,3 +9,7 @@
 - `2026-09-20T22:48:20Z` 为用例 `cold_32k_128_c1` 创建 Run `compressor-stream-order-20260920`（profile）。
 
 - `2026-09-20T22:48:20Z` Run `compressor-stream-order-20260920` 记录为 `pass`；正确性为 `not-applicable`。All336 main ratio4 Compressor tasks on frozen original-source profile are immediately followed on same device stream by ScatterNdUpdateSk then SparseAttnSharedkv; median next-task gap2.87us and Compressor-to-attention start1.845ms. This establishes serial local dependency, not global E2E achievable savings.
+
+- `2026-09-20T23:55:53Z` 为用例 `cold_32k_128_c1` 创建 Run `compressor-shape-operator-20260920`（benchmark）。
+
+- `2026-09-20T23:57:59Z` Run `compressor-shape-operator-20260920` 记录为 `pass`；正确性为 `pass`。One-NPU synthetic inputs matching frozen cold ratio4 Compressor shapes and configuration produce finite output [2025,512]; 25 timed calls device median1.630ms, minimum1.499ms. Isolated screen is not E2E or exact model-input parity. Initial oversized random activation gave nonfinite output and was discarded; corrected scaled input/weights is benchmark.

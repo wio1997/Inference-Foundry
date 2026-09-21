@@ -176,3 +176,8 @@ Started Loop017 and distilled frozen original-source cold msprof CSV with script
 ## Live checkpoint 2026-09-20 22:50 UTC — Loop017 stream order
 
 scripts/analyze_loop017_stream.py scanned frozen original-source cold msprof CSV. For all336 main-shape ratio4 Compressor calls, next same-stream task is ScatterNdUpdateSk and second is SparseAttnSharedkv. Median end-to-next gap0.00287ms; median Compressor-start to attention-start1.84475ms. JSON evidence/20260920_loop017_compressor/stream_order.json, TaskCtl profile run passed. This supports local serialization; no E2E improvement claim or source change.
+
+
+## Live checkpoint 2026-09-20 23:59 UTC — Loop017 operator screen
+
+One-NPU 25-call synthetic Compressor ratio4/coff2 shape-matched screen: finite [2025,512] output, device median1.630ms/min1.499ms, wall median1.810ms. Script scripts/bench_loop017_compressor.py; evidence evidence/20260920_loop017_compressor/shape_matched_operator.json. Initial unscaled random data gave nonfinite output, preserved separately and excluded. No reference-output correctness test and no full-service gain claim. Operator source/installed package untouched. Investigating safe isolated mBase/nSize tiling sweep; global-vendor replacement is not authorized by this screen.

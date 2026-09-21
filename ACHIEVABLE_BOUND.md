@@ -144,3 +144,8 @@ Ratio4 Compressor [8096,4096;1024,4096] occupies ~126.4ms of summed device task 
 ## Live checkpoint 2026-09-20 22:50 UTC — local dependency verified
 
 The ~126.4ms/request Compressor task sum belongs to84 serial per-layer Compressor→scatter→attention chains on the profiled device stream. It is a local path envelope: perfect removal of this operator on that stream could save no more than its occupied time before considering cross-stream overlap, launch overhead and changed scheduling. This is not a measured achievable lower bound; cold and mixed bounds remain UNKNOWN.
+
+
+## Live checkpoint 2026-09-20 23:59 UTC — no E2E bound promotion
+
+Shape-matched isolated Compressor timing1.630ms/call corroborates the old full-service1.503ms/call order of magnitude, but does not imply 84×isolated latency is removable from TTFT. The existing ~126.4ms/request main-shape task sum is at most 5.3% of the ~2.368s cold TTFT before overlap and redesign costs. A 25% isolated operator reduction would be only ~31.6ms gross, ~1.3% of cold TTFT, prior to overlap; this is a screening estimate, not an achievable bound. Cold and mixed attainable E2E bounds remain UNKNOWN.
