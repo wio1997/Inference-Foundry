@@ -225,3 +225,8 @@ Saved c12 TP8 collective sequences aligned exactly across all eight ranks (48,96
 ## Live checkpoint 2026-09-21 01:19 UTC — Loop019 active
 
 Created Loop019 after Loop018 pivot. Existing no-profiler pure-decode c12 trace (evidence/20260920_loop014_prepare_trace/run2/builder_summary.json) has143 matched steps on TP0. Eight AscendDSACPMetadataBuilder calls per step; group0:0 median7.859927ms versus each of the other seven ~0.75–1.10ms. Source vllm_ascend/attention/context_parallel/dsa_cp.py is active and already caches common device local, RoPE local and CPU local metadata across cache groups in build_req_metadata. The first builder additionally establishes input positions, cos/sin and shared metadata. Thus avoid a blind all-builder cache patch. Next instrument first-builder substage timings in a flag-gated local patch and no-profiler service run, then choose a semantics-safe minimal change if one stage dominates. Framework remains clean at36589852; no service on8080 and NPUs idle at last check.
+
+
+## Live checkpoint 2026-09-21 01:25 UTC — Loop019 stage trace ready
+
+Flag-gated diagnostic patch patches/loop019_builder_stage_trace.patch is applied only to framework dsa_cp.py on kept source36589852. It records four host timestamps around shared input/RoPE setup, DSA slot formatting and build_req_metadata, plus first-builder flag and shape. py_compile and git diff --check pass. No behavior branch changes when the environment flag is absent. Framework working tree is dirty only by this patch; do not start a different service or reset it while the Loop019 trace service is active. Trace output planned under evidence/20260921_loop019_builder_stage/raw/.
