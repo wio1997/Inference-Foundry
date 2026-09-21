@@ -8,6 +8,7 @@ import sys
 
 import torch
 
+from runtime.assets import OwnedCacheTensor, RuntimeAssets
 from runtime.extreme_decode import ExtremeDecodeRuntime
 from runtime.fixed_decode import AcceptanceOutput, FixedDecodeConfig, FixedDecodeState
 from runtime.greedy_accept import greedy_accept
@@ -71,6 +72,22 @@ def main() -> None:
         device=device,
     )
     state = FixedDecodeState.allocate(cfg, block_table, seq, last, draft)
+    target_cache = torch.arange(256, dtype=torch.int32, device=device)
+    proposer_cache = torch.arange(128, dtype=torch.int32, device=device)
+    assets = RuntimeAssets(
+        [
+            OwnedCacheTensor.take("target.cache", target_cache),
+            OwnedCacheTensor.take("proposer.cache", proposer_cache),
+        ]
+    )
+    cache_fingerprint = assets.exact_fingerprint(
+        {
+            "target.cache": torch.tensor([0, 31, 255], device=device),
+            "proposer.cache": torch.tensor([1, 63, 127], device=device),
+        }
+    )
+    assert cache_fingerprint["target.cache"].tolist() == [0, 31, 255]
+    assert cache_fingerprint["proposer.cache"].tolist() == [1, 63, 127]
 
     target_calls = torch.zeros((), dtype=torch.int32, device=device)
 
@@ -124,6 +141,7 @@ def main() -> None:
             "target_calls": int(target_calls.cpu()),
             "proposer_calls": int(proposer.calls.cpu()),
             "vllm_imported": False,
+            "owned_cache_tensors": len(assets.caches),
             "device": str(device),
         }
     )

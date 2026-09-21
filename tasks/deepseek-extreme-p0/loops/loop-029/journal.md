@@ -31,3 +31,7 @@
 - `2026-09-21T15:19:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260921T151948Z`（test）。
 
 - `2026-09-21T15:19:56Z` Run `run-20260921T151948Z` 记录为 `pass`；正确性为 `not-applicable`。Product-owned ExtremeDecodeRuntime drove 8 continuous cycles on CPU and Ascend NPU with fixed state and explicit prepare-target, target, acceptance, state-advance, proposer ordering. Target and proposer each ran 8 times. The standalone process imported no vLLM modules. Operators were deterministic test bindings, so this proves control-plane independence, not real-weight correctness.
+
+- `2026-09-21T15:22:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260921T152244Z`（test）。
+
+- `2026-09-21T15:22:52Z` Run `run-20260921T152244Z` 记录为 `pass`；正确性为 `not-applicable`。Ascend NPU standalone driver retained direct ownership of fixed cache tensor references, checked address/shape/stride stability, and cloned selected physical elements for exact parity fingerprints across its 8-cycle run. Synthetic caches only; live DSA cache handoff remains pending.
