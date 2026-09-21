@@ -240,3 +240,8 @@ No existing port8080 listener; all8 910B3 at ~3.4GB idle HBM before launch. Priv
 ## Live checkpoint 2026-09-21 01:59 UTC — Loop019 first diagnostic done
 
 First no-profiler DP1/TP8 stage trace finished: short functional passed, 12/12 sample requests succeeded. Across174 pure-decode steps/rank, first DSA-CP builder median total3.61–6.50ms, including build_req_metadata2.74–5.74ms and shared setup0.57–0.66ms; other builder median0.67–0.85ms. Evidence evidence/20260921_loop019_builder_stage/stage_summary.json, raw eight-rank CSVs and sample client. API PID837367 stopped after sample, all8 NPUs returned to idle. A second flag-gated patch patches/loop019_builder_req_trace.patch is applied in framework, expanding timing inside build_req_metadata (device-local, RoPE, CPU-local, max, compressor, SAS, QLI). py_compile/diff checks pass; no service running. Next relaunch same frozen service and sample with LOOP019_REQ_TRACE_DIR to isolate the dominant substage, then decide minimal candidate.
+
+
+## Live checkpoint 2026-09-21 02:01 UTC — Loop019 request subphase service loading
+
+First Loop019 diagnostic committed at cddd081. Second service API PID843805 loading in privileged dsv4ab, port8080; flags LOOP019_BUILDER_TRACE_DIR and LOOP019_REQ_TRACE_DIR point to evidence/20260921_loop019_builder_req/raw and raw_req. Runner PID2379121 waits for health, functional gate, full warmup and12×32K→512 c12 sample; output run2/, runner.log. Log logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP019-REQ-20260921.log. Framework has expanded diagnostic patch patches/loop019_builder_req_trace.patch (uncommitted in its source tree), no behavioral optimization. Do not reset framework or start competing service. TaskCtl run active-dsacp-request-subphases-20260921 pending.
