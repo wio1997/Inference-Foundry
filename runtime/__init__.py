@@ -8,6 +8,7 @@ from .fixed_decode import (
     TargetOutput,
 )
 from .greedy_accept import greedy_accept
+from .target_adapter import FixedTargetAdapter, FixedTargetBinding
 
 __all__ = [
     "AcceptanceOutput",
@@ -16,4 +17,6 @@ __all__ = [
     "FixedDecodeState",
     "TargetOutput",
     "greedy_accept",
+    "FixedTargetAdapter",
+    "FixedTargetBinding",
 ]

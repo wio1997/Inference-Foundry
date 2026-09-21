@@ -27,6 +27,12 @@ temporary bridge: it predicts the next target input from standalone state and
 compares it with the oracle's next cycle.  It must not become a production
 dependency.
 
+`target_adapter.py` is the runtime-owned direct target entry. It binds loaded
+weights, the fixed Ascend attention context, and physical KV tensors once, then
+accepts only preallocated token/position buffers per cycle. The current smoke
+uses a synthetic binding; the next integration run substitutes the live
+DeepSeek binding and fingerprints the touched DSA cache groups.
+
 For the frozen greedy workload, `greedy_accept.py` replaces the general
 rejection-sampling stack with a fixed operation: TP-global target argmax,
 leading draft-prefix acceptance, mismatch recovery or all-accepted bonus, and
@@ -38,9 +44,11 @@ main boundary to evaluate for overlap or integration.
 
 - The fixed ABI has executed eight causally connected cycles with deterministic
   operators.
-- Real-weight next-cycle target input parity is the active gate.
-- After that gate, target forward, verification, and DSpark are attached as
-  operator adapters and invoked from `FixedDecodeRuntime.run_cycle`.
+- Real-weight next-cycle target input and greedy acceptance parity have passed
+  on all eight ranks.
+- The fixed target adapter ABI passes CPU and Ascend NPU structure tests; live
+  target weights, attention context and physical cache tensors are the active
+  binding gate.
 - KV and recurrent-state fingerprints are required before claiming real-model
   multi-cycle correctness.
 

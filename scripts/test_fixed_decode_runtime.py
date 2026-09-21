@@ -21,6 +21,7 @@ from runtime.fixed_decode import (
 )
 from runtime.oracle_shadow import FixedDecodeOracleShadow
 from runtime.greedy_accept import greedy_accept
+from runtime.target_adapter import FixedTargetAdapter, FixedTargetBinding
 
 
 class DeterministicOperators:
@@ -182,6 +183,35 @@ def main() -> None:
         [20, 21, 22, 23, 24, 25, 26, 88],
     ]
     assert counts.tolist() == [3, 8]
+
+    target_forward_calls = 0
+
+    def target_forward(input_ids: torch.Tensor, positions: torch.Tensor):
+        nonlocal target_forward_calls
+        target_forward_calls += 1
+        hidden = torch.stack((input_ids, positions.to(input_ids.dtype)), dim=1)
+        return hidden, [hidden + 1]
+
+    target_adapter = FixedTargetAdapter(
+        cfg,
+        FixedTargetBinding(
+            forward=target_forward,
+            compute_logits=lambda hidden: hidden.to(torch.float32),
+            state_fingerprint=lambda: {
+                "cycle": torch.tensor(target_forward_calls, device=device)
+            },
+        ),
+    )
+    target_output = target_adapter.execute(runtime.state)
+    assert target_output.hidden_states.shape == (cfg.target_token_count, 2)
+    assert target_output.logits.shape == (cfg.target_token_count, 2)
+    assert len(target_output.aux_hidden_states) == 1
+    first_input_ptr = runtime.state.target_input_ids.data_ptr()
+    first_position_ptr = runtime.state.target_positions.data_ptr()
+    target_adapter.execute(runtime.state)
+    assert runtime.state.target_input_ids.data_ptr() == first_input_ptr
+    assert runtime.state.target_positions.data_ptr() == first_position_ptr
+    assert target_forward_calls == 2
     print(
         {
             "pass": True,
@@ -191,6 +221,7 @@ def main() -> None:
             "advanced_per_request": expected_advance,
             "shadow_next_cycle_exact": comparison.exact,
             "greedy_accept_exact": True,
+            "fixed_target_adapter_calls": target_forward_calls,
             "device": str(device),
         }
     )

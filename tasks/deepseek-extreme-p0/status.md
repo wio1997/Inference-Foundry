@@ -29,7 +29,7 @@
 | `loop-026` | `REJECTED` | `REJECTED` | Removing one of three trained draft layers saves23.21% proposer model time but destroys proposal quality: advanced tokens fall to1.363/cycle, far below3.15 break-even; output TPS drops55.85% to217.092, close to target-only208.047. Full three-layer semantics are necessary. |
 | `loop-027` | `PIVOTED` | `PIVOTED` | Legacy DSpark is hard-disabled from graph; the available v2 DSpark graph path fails before capture because generic KV-group discovery finds no draft attention group for this DeepSeek V4 checkpoint. Stock v2 integration is therefore not an immediately runnable graph solution. Use the working legacy path as semantic/operator oracle and extract the fixed proposer-target execution contract for a specialized runtime. |
 | `loop-028` | `PIVOTED` | `PIVOTED` | Loop028 established a fixed-shape c12 proposer contract and an executable exact in-process replay boundary on 8/8 ranks, but the frozen success gate required target verification, accepted-token parity and complete mutated-state comparison. Those boundaries were not captured, so the full standalone fixed-cycle claim is not yet supported. |
-| `loop-029` | `EVALUATING` | `PENDING` | 审查 Run run-20260921T143422Z 的证据，并判断是否需要更多 Run |
+| `loop-029` | `EVALUATING` | `PENDING` | 审查 Run run-20260921T151406Z 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
