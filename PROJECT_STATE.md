@@ -245,3 +245,8 @@ First no-profiler DP1/TP8 stage trace finished: short functional passed, 12/12 s
 ## Live checkpoint 2026-09-21 02:01 UTC — Loop019 request subphase service loading
 
 First Loop019 diagnostic committed at cddd081. Second service API PID843805 loading in privileged dsv4ab, port8080; flags LOOP019_BUILDER_TRACE_DIR and LOOP019_REQ_TRACE_DIR point to evidence/20260921_loop019_builder_req/raw and raw_req. Runner PID2379121 waits for health, functional gate, full warmup and12×32K→512 c12 sample; output run2/, runner.log. Log logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP019-REQ-20260921.log. Framework has expanded diagnostic patch patches/loop019_builder_req_trace.patch (uncommitted in its source tree), no behavioral optimization. Do not reset framework or start competing service. TaskCtl run active-dsacp-request-subphases-20260921 pending.
+
+
+## GitHub sync note 2026-09-21 02:04 UTC
+
+User pointed to https://github.com/wio1997/Inference-Foundry and asked why work is absent. The server repository previously had no remote; all commits through6643648 were local. Added origin URL and fetched remote main (1b0b48e; two README-only commits, unrelated history). Prepared a local merge worktree /tmp/inference-foundry-github-sync on branch github-sync-20260921, merge commit59b5148 joining remote README history and local project through6643648. No push has occurred. Await user answer to the explicit publish choice (main / review branch / hold). Do not force-push or publish without that answer; ongoing Loop019 work stays on local main.
