@@ -5,16 +5,17 @@
 - 模式：`optimization`
 - 目标用例：`cold_32k_128_c1`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run compressor-shape-operator-20260920 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-20T23:57:59Z`
+- 下一步：执行 Run compressor-mbase256-isolated-build-20260920：docker exec dsv4ab bash /data/wio/Inference_Foundry/scripts/build_loop017_mbase256.sh
+- 更新时间：`2026-09-21T00:03:10Z`
 
 ## Run 记录
 
 - `runs/cold_32k_128_c1/compressor-cold-clusters-20260920`
 - `runs/cold_32k_128_c1/compressor-stream-order-20260920`
 - `runs/cold_32k_128_c1/compressor-shape-operator-20260920`
+- `runs/cold_32k_128_c1/compressor-mbase256-isolated-build-20260920`
 
 ## 阻塞项
 

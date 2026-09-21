@@ -149,3 +149,8 @@ The ~126.4ms/request Compressor task sum belongs to84 serial per-layer Compresso
 ## Live checkpoint 2026-09-20 23:59 UTC — no E2E bound promotion
 
 Shape-matched isolated Compressor timing1.630ms/call corroborates the old full-service1.503ms/call order of magnitude, but does not imply 84×isolated latency is removable from TTFT. The existing ~126.4ms/request main-shape task sum is at most 5.3% of the ~2.368s cold TTFT before overlap and redesign costs. A 25% isolated operator reduction would be only ~31.6ms gross, ~1.3% of cold TTFT, prior to overlap; this is a screening estimate, not an achievable bound. Cold and mixed attainable E2E bounds remain UNKNOWN.
+
+
+## Live checkpoint 2026-09-21 00:06 UTC — no candidate bound
+
+An isolated mBase256 tiling package is compiling. The stock same-seed reference device median is1.514ms. No candidate timing or end-to-end measurement exists, so no achievable-bound change.

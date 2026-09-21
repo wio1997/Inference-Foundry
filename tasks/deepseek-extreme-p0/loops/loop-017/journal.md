@@ -13,3 +13,5 @@
 - `2026-09-20T23:55:53Z` 为用例 `cold_32k_128_c1` 创建 Run `compressor-shape-operator-20260920`（benchmark）。
 
 - `2026-09-20T23:57:59Z` Run `compressor-shape-operator-20260920` 记录为 `pass`；正确性为 `pass`。One-NPU synthetic inputs matching frozen cold ratio4 Compressor shapes and configuration produce finite output [2025,512]; 25 timed calls device median1.630ms, minimum1.499ms. Isolated screen is not E2E or exact model-input parity. Initial oversized random activation gave nonfinite output and was discarded; corrected scaled input/weights is benchmark.
+
+- `2026-09-21T00:03:10Z` 为用例 `cold_32k_128_c1` 创建 Run `compressor-mbase256-isolated-build-20260920`（build）。

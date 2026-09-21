@@ -176,3 +176,8 @@ All336 main-shape ratio4 Compressor tasks in frozen four-cold-request profile ar
 ## Live checkpoint 2026-09-20 23:59 UTC — shape-matched Compressor screen
 
 Single-NPU synthetic shape-matched ratio4/coff2 Compressor baseline: device median1.630ms across25 event-timed calls, min1.499ms; old full-service cold profile median task1.503ms. Synthetic values and isolated scheduling differ, so only compare future isolated candidates to this screen. The operator produced finite [2025,512] output on scaled inputs; exact model numerical parity untested. Source arch32 tiling uses mBaseSize128 for coff2, nSize2, 20 AIC blocks; large8096-token case retains base M tile and runs repeated cross-core sync.
+
+
+## Live checkpoint 2026-09-21 00:06 UTC — candidate pending
+
+Stock Compressor one-NPU fixed-seed reference screen has device median1.514ms on25 calls, finite output, exact shape/config from cold profile. Earlier independent synthetic screen median1.630ms shows isolated-run variation. Do not compare candidate to cross-run values without the saved fixed-seed reference. mBase256 tiling candidate is compiling; no measured delta.

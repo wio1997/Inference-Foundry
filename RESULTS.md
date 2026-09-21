@@ -181,3 +181,8 @@ scripts/analyze_loop017_stream.py scanned frozen original-source cold msprof CSV
 ## Live checkpoint 2026-09-20 23:59 UTC — Loop017 operator screen
 
 One-NPU 25-call synthetic Compressor ratio4/coff2 shape-matched screen: finite [2025,512] output, device median1.630ms/min1.499ms, wall median1.810ms. Script scripts/bench_loop017_compressor.py; evidence evidence/20260920_loop017_compressor/shape_matched_operator.json. Initial unscaled random data gave nonfinite output, preserved separately and excluded. No reference-output correctness test and no full-service gain claim. Operator source/installed package untouched. Investigating safe isolated mBase/nSize tiling sweep; global-vendor replacement is not authorized by this screen.
+
+
+## Live checkpoint 2026-09-21 00:06 UTC — mBase256 build underway
+
+Rebuilt stock synthetic reference with fixed seed: finite output, operator device median1.514ms/25 calls; output and first4096 cache blocks saved in ignored artifacts/loop017_compressor_reference_output.pt, SHA256 e5dc8cfee73cec0bb80a5ce95dbf48ed3222a4d7f628ce6e381a615b56cbb0ec. Input fingerprint in evidence/20260920_loop017_compressor/reference_screen.json. Isolated candidate patch mBaseSize128→256 in patches/loop017_compressor_mbase256.patch; build script/log/prefix recorded. Package compilation ongoing. No verdict.

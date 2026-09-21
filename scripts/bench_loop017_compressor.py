@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """One-NPU shape-matched Compressor screen; operator timing is not E2E TTFT."""
 import json
+import os
+import hashlib
 import statistics
 import time
 from pathlib import Path
@@ -9,10 +11,13 @@ import torch
 import torch_npu  # noqa: F401
 from vllm_ascend.utils import enable_custom_op
 
-enable_custom_op()
+if os.environ.get("LOOP017_ISOLATED_VENDOR") == "1":
+    import vllm_ascend.vllm_ascend_C  # noqa: F401
+else:
+    enable_custom_op()
 torch.npu.set_device(0)
 root=Path("/data/wio/Inference_Foundry")
-out=root/"evidence/20260920_loop017_compressor/shape_matched_operator.json"
+out=Path(os.environ.get("LOOP017_OUT", str(root/"evidence/20260920_loop017_compressor/shape_matched_operator.json")))
 device="npu:0"
 torch.manual_seed(1701)
 x=torch.randn((8096,4096),dtype=torch.bfloat16,device=device)*0.02
@@ -47,7 +52,10 @@ for _ in range(25):
     torch.npu.synchronize()
     device_ms.append(begin.elapsed_time(end))
     wall_ms.append((time.perf_counter()-t0)*1000)
+fingerprint=hashlib.sha256(x[:4].view(torch.uint16).cpu().numpy().tobytes()).hexdigest()
 result={
+ "input_sha256_first_four_rows":fingerprint,
+ "isolated_vendor":os.environ.get("ASCEND_CUSTOM_OPP_PATH") if os.environ.get("LOOP017_ISOLATED_VENDOR") == "1" else None,
  "shape":{"x":[8096,4096],"w":[1024,4096],"state":[34091,2,2048],
           "ape":[4,1024],"norm":[512],"rope":[2025,64],"blocks":[1,524288]},
  "config":{"cmp_ratio":4,"coff":2,"rope_head_dim":64,"cache_mode":1,"block_size":2,"start_pos":0},
@@ -55,5 +63,20 @@ result={
  "device_ms_median":statistics.median(device_ms),"device_ms_min":min(device_ms),
  "wall_ms_median":statistics.median(wall_ms),
  "device_ms":device_ms,"wall_ms":wall_ms}
+reference_out=os.environ.get("LOOP017_REFERENCE_OUT")
+if reference_out:
+    torch.save({"fingerprint":fingerprint,"y":y.cpu(),"state":state[:4096].cpu()},reference_out)
+reference_path=os.environ.get("LOOP017_REFERENCE")
+if reference_path:
+    reference=torch.load(reference_path,map_location="cpu",weights_only=True)
+    result["reference_input_equal"]=fingerprint==reference["fingerprint"]
+    output=y.cpu()
+    cache=state[:4096].cpu()
+    result["reference_y_allclose"]=bool(torch.allclose(output,reference["y"],rtol=0.01,atol=0.01,equal_nan=False))
+    result["reference_state_allclose"]=bool(torch.allclose(cache,reference["state"],rtol=0.01,atol=0.01,equal_nan=False))
+    result["reference_y_max_abs"]=float((output.float()-reference["y"].float()).abs().max())
+    result["reference_state_max_abs"]=float((cache-reference["state"]).abs().max())
 out.write_text(json.dumps(result,indent=2)+"\n")
+if reference_path and not (result["reference_input_equal"] and result["reference_y_allclose"] and result["reference_state_allclose"]):
+    raise RuntimeError("isolated operator differs from reference")
 print(json.dumps({k:v for k,v in result.items() if k not in ("device_ms","wall_ms")},indent=2))
