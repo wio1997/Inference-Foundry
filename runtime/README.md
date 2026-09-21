@@ -33,6 +33,11 @@ accepts only preallocated token/position buffers per cycle. The current smoke
 uses a synthetic binding; the next integration run substitutes the live
 DeepSeek binding and fingerprints the touched DSA cache groups.
 
+`extreme_decode.py` is the product control-plane boundary. It owns the fixed
+stage order and never imports vLLM. The bootstrap layer is allowed to transfer
+loaded operator callables, communication groups and cache tensors once, but a
+ModelRunner, SchedulerOutput or request object cannot enter `step()`.
+
 For the frozen greedy workload, `greedy_accept.py` replaces the general
 rejection-sampling stack with a fixed operation: TP-global target argmax,
 leading draft-prefix acceptance, mismatch recovery or all-accepted bonus, and

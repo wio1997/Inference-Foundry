@@ -34,6 +34,13 @@ DeepSeek V4 Flash in this checkout is not on the generic hybrid Mamba/GDN state
 postprocess path. The state parity gate therefore fingerprints the physical DSA
 cache groups rather than inventing a separate recurrent-state object.
 
+The current oracle stores these physical tensors in its `kv_caches` list and
+binds the same tensors into each layer of `static_forward_context`. The
+bootstrap migration point is therefore after cache allocation/binding, not
+inside `execute_model`: transfer the model callable, TP/EP groups, bound layer
+operators and cache tensor tree to Extreme Runtime, then discard the generic
+runner control objects before entering the continuous loop.
+
 ## Current implementation boundary
 
 `runtime/target_adapter.py` enforces fixed token counts and stable input buffer

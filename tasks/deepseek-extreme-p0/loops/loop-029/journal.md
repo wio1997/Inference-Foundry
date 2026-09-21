@@ -27,3 +27,7 @@
 - `2026-09-21T15:14:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260921T151406Z`（test）。
 
 - `2026-09-21T15:14:15Z` Run `run-20260921T151406Z` 记录为 `pass`；正确性为 `not-applicable`。Fixed target adapter ABI passed CPU and Ascend NPU semantic tests: two direct calls reused stable input and position buffer addresses, returned fixed 96-token hidden/logit tensors, and exposed a cache-fingerprint hook. This is structure validation only; live DeepSeek weights, attention context, and physical KV cache are not yet bound.
+
+- `2026-09-21T15:19:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260921T151948Z`（test）。
+
+- `2026-09-21T15:19:56Z` Run `run-20260921T151948Z` 记录为 `pass`；正确性为 `not-applicable`。Product-owned ExtremeDecodeRuntime drove 8 continuous cycles on CPU and Ascend NPU with fixed state and explicit prepare-target, target, acceptance, state-advance, proposer ordering. Target and proposer each ran 8 times. The standalone process imported no vLLM modules. Operators were deterministic test bindings, so this proves control-plane independence, not real-weight correctness.

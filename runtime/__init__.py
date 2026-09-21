@@ -9,6 +9,7 @@ from .fixed_decode import (
 )
 from .greedy_accept import greedy_accept
 from .target_adapter import FixedTargetAdapter, FixedTargetBinding
+from .extreme_decode import CycleResult, ExtremeDecodeRuntime
 
 __all__ = [
     "AcceptanceOutput",
@@ -19,4 +20,6 @@ __all__ = [
     "greedy_accept",
     "FixedTargetAdapter",
     "FixedTargetBinding",
+    "CycleResult",
+    "ExtremeDecodeRuntime",
 ]
