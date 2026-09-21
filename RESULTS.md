@@ -191,3 +191,10 @@ Rebuilt stock synthetic reference with fixed seed: finite output, operator devic
 ## Live checkpoint 2026-09-21 00:22 UTC
 
 Isolated mBase256 build still active after ~19 minutes, CPU compilation progressing. Watcher scripts/watch_loop017_build.sh will automatically write candidate_run.log and candidate_exit_code.txt after build termination; no candidate result yet. Source and installed operator remain at kept baseline.
+
+
+## 2026-09-21 01:10 UTC — Loop017 REJECT and communication audit
+
+Candidate: Compressor arch32 coff2 mBaseSize128→256, reproducible patch patches/loop017_compressor_mbase256.patch. Private package build succeeded; fixed-seed stock reference device median1.51436ms. Candidate loaded private libcust_opapi.so but produced no result after >8 minutes; interrupted SIGINT/exit130, all8 NPUs idle. No numerical comparison, candidate time or service benchmark exists. TaskCtl verdict rejected, comparability invalid, causal conclusion not identifiable. Raw logs and structured observation in evidence/20260920_loop017_compressor/. Installed operator and framework unchanged.
+
+Read-only c12 communication audit of saved eight rank profiles: all ranks contain 25160 allGather, 7820 alltoall, 15980 reduceScatter entries in the selected window. Reported elapsed is wholly Idle Time for every entry; Transit and Wait are zero. The audit cannot quantify removable communication latency. Evidence evidence/20260921_decode_comm_audit/collective_time_components.json; script scripts/analyze_hccl_comm.py. Loop018 will attribute rank arrival and critical path before implementation.

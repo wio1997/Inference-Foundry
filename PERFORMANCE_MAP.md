@@ -186,3 +186,10 @@ Stock Compressor one-NPU fixed-seed reference screen has device median1.514ms on
 ## Live checkpoint 2026-09-21 00:22 UTC
 
 No new measured performance. Isolated mBase256 package build ongoing; watchdog will run numerical and single-NPU comparison on completion. Preserve stock reference1.514ms median as only current same-seed micro baseline.
+
+
+## Update 2026-09-21 01:10 UTC — Loop017 rejected; c12 communication audit
+
+Isolated stock Compressor fixed-seed reference 1.51436ms/device-call median. The mBase256 candidate has no completed screen, no numerical comparison and no E2E result; it is excluded from performance comparisons. Eight-minute stall is an operational failure of this isolated implementation, with cause unidentified. Cold Compressor gross ~126.4ms/request envelope (~5.3% of 2367.81ms TTFT) remains a screening estimate, not a realized gain.
+
+Saved c12 8-rank communication.json has identical per-rank counts: allGather25160, alltoall7820, reduceScatter15980. Apparent HCCL elapsed differs by rank, but each entry has Elapse Time=Idle Time and Transit/Wait=0. Thus these fields cannot establish wire time, critical path, or removable HCCL duration. Next gap is service-level decode rank arrival/collective overlap attribution; no patch chosen yet. Evidence: evidence/20260921_decode_comm_audit/collective_time_components.json.

@@ -159,3 +159,8 @@ An isolated mBase256 tiling package is compiling. The stock same-seed reference 
 ## Live checkpoint 2026-09-21 00:22 UTC
 
 No bound change while isolated mBase256 build is pending. Candidate must demonstrate correct isolated output and a material operator gain before any E2E extrapolation or service run.
+
+
+## Update 2026-09-21 01:10 UTC — bounds unchanged
+
+Loop017 mBase256 produced no valid candidate latency, numerical equivalence or E2E benchmark, so it supplies no achievable improvement bound. The 126.4ms/request main Compressor task sum remains only a gross cold screening envelope; the ~5.3% cold TTFT ratio assumes complete removal before overlap and is not attainable evidence. c12 communication.json time is entirely classified Idle, so its elapsed totals cannot be subtracted from mixed runtime. Cold TTFT and mixed throughput achievable hardware bounds remain UNKNOWN.

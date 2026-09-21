@@ -15,3 +15,11 @@
 - `2026-09-20T23:57:59Z` Run `compressor-shape-operator-20260920` 记录为 `pass`；正确性为 `pass`。One-NPU synthetic inputs matching frozen cold ratio4 Compressor shapes and configuration produce finite output [2025,512]; 25 timed calls device median1.630ms, minimum1.499ms. Isolated screen is not E2E or exact model-input parity. Initial oversized random activation gave nonfinite output and was discarded; corrected scaled input/weights is benchmark.
 
 - `2026-09-21T00:03:10Z` 为用例 `cold_32k_128_c1` 创建 Run `compressor-mbase256-isolated-build-20260920`（build）。
+
+- `2026-09-21T01:06:15Z` Run `compressor-mbase256-isolated-build-20260920` 记录为 `pass`；正确性为 `not-applicable`。Isolated csrc --ops=compressor package built successfully from /tmp copy and installed under ignored artifacts prefix; system vendor and framework source unchanged. Build took about 52 minutes; no benchmark result implied.
+
+- `2026-09-21T01:06:15Z` 为用例 `cold_32k_128_c1` 创建 Run `compressor-mbase256-isolated-screen-20260921`（benchmark）。
+
+- `2026-09-21T01:08:26Z` Run `compressor-mbase256-isolated-screen-20260921` 记录为 `error`；正确性为 `invalid`。Isolated mBase256 package loaded but single-NPU screen produced no result after >8 minutes; interrupted with SIGINT/exit130. Correctness and performance comparability invalid; cause not identifiable.
+
+- `2026-09-21T01:08:26Z` 主控结论为 `REJECTED`。mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed.

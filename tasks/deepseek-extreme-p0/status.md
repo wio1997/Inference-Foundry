@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-017`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E2_BENCHMARKED`
 - 用例数：`3`
 - 当前知识条目：`1`
-- 下一步：Inspect existing msprof timeline and Compressor ratio4 callsite; design a prefill-only critical-path measurement before any optimization.
-- 更新时间：`2026-09-20T22:42:42Z`
+- 下一步：Start Loop018: attribute warm c12 TP communication critical path and rank skew from saved profile, then select a falsifiable service-level candidate.
+- 更新时间：`2026-09-21T01:08:26Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-014` | `PIVOTED` | `PIVOTED` | No supported >=5% mixed TPS candidate emerged. The 8 metadata builders are group-specific and shared local/ratio state is already cached. First builder timing may include required device synchronization; Loop011 all-step QLI substitution did not improve mixed throughput. Avoid changing semantics merely to reduce inclusive host spans. |
 | `loop-015` | `PIVOTED` | `PIVOTED` | Captured one real 8096-row long-prefill scatter mapping per rank: all unique, but uniqueness not yet a general invariant. Existing V2 op gave bit-equal output and was 69% slower than SK in 25-call isolated NPU timing; no safe E2E patch or paired TTFT gain. Source SK deterministic sort+SyncAll suggests a direct unique-index path merits a separate build experiment. |
 | `loop-016` | `REJECTED` | `REJECTED` | Captured-shape isolated kernel was faster, but actual DSA-CP fast path activated on eight ranks and same-prompt cold TTFT worsened by 70.19ms mean (+2.9642 percent), 0/8 pairs improved, zero prefix hits. No E2E gain. |
-| `loop-017` | `RUNNING` | `PENDING` | 执行 Run compressor-mbase256-isolated-build-20260920：docker exec dsv4ab bash /data/wio/Inference_Foundry/scripts/build_loop017_mbase256.sh |
+| `loop-017` | `REJECTED` | `REJECTED` | mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed. |
 
 ## 阻塞项
 

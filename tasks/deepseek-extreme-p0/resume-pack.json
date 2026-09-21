@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T00:06:42Z",
+  "generated_at": "2026-09-21T01:09:19Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,12 +20,12 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-017",
-    "next_action": "Inspect existing msprof timeline and Compressor ratio4 callsite; design a prefill-only critical-path measurement before any optimization.",
+    "active_loop": null,
+    "next_action": "Start Loop018: attribute warm c12 TP communication critical path and rank skew from saved profile, then select a falsifiable service-level candidate.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
-      "decision": "kernel-optimization",
+      "decision": null,
       "execution": null
     }
   },
@@ -137,24 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-012",
-      "title": "Use CPU QLI maxima only for prefill",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "cold_32k_128_c1",
-        "correctness_short"
-      ],
-      "hypothesis": "Restricting QLI CPU local maxima to steps with num_prefills>0 preserves the measured 10.8 percent cold TTFT gain while restoring original pure-decode timing and eliminating mixed TTFT uncertainty",
-      "verdict": "ACCEPTED",
-      "reason": "Runtime CPU/NPU QLI maxima parity passed on all eight ranks in Loop011. Prefill-only patch passed functional gate. Same 16 cold prompts all improved: 2626.03 to 2362.89 ms mean TTFT (-10.02%) with no prefix cache hits. Full mixed median output TPS 547.55 versus paired original 537.60 is within baseline noise; median TTFT 1143.58 versus 1262.74 ms shows no observed regression.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260920_qli_prefill_only/comparison.json",
-        "/data/wio/Inference_Foundry/patches/loop012_qli_prefill_only.patch"
-      ],
-      "decided_at": "2026-09-20T19:47:44Z"
-    },
-    {
       "loop_id": "loop-013",
       "title": "Locate warm TP8 decode critical path",
       "mode": "optimization",
@@ -221,33 +203,30 @@
         "/data/wio/Inference_Foundry/evidence/20260920_loop016_direct_scatter/service_ab3/summary.json"
       ],
       "decided_at": "2026-09-20T22:41:58Z"
+    },
+    {
+      "loop_id": "loop-017",
+      "title": "Compressor ratio4 cold prefill critical path",
+      "mode": "optimization",
+      "cases": [
+        "cold_32k_128_c1"
+      ],
+      "hypothesis": "Compressor ratio4 costs material cold prefill critical-path time that a bounded change can reduce without harming correctness or mixed throughput.",
+      "verdict": "REJECTED",
+      "reason": "mBase256 isolated candidate built, but first comparable exact-shape screen never completed after >8 minutes versus stock ~1.514ms/call; runtime/integration/tiling cause cannot be distinguished. No E2E or correctness evidence; operational gate failed.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260920_loop017_compressor/candidate_observation.json",
+        "/data/wio/Inference_Foundry/evidence/20260920_loop017_compressor/candidate_run.log"
+      ],
+      "decided_at": "2026-09-21T01:08:26Z"
     }
   ],
-  "active_loop_summary": {
-    "loop_id": "loop-017",
-    "title": "Compressor ratio4 cold prefill critical path",
-    "mode": "optimization",
-    "status": "RUNNING",
-    "verdict": "PENDING",
-    "reason": "",
-    "next_action": "执行 Run compressor-mbase256-isolated-build-20260920：docker exec dsv4ab bash /data/wio/Inference_Foundry/scripts/build_loop017_mbase256.sh",
-    "cases": [
-      "cold_32k_128_c1"
-    ],
-    "execution_skill": null,
-    "updated_at": "2026-09-21T00:03:10Z"
-  },
+  "active_loop_summary": null,
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-017/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-017/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-017/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-017/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-017/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-017/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
