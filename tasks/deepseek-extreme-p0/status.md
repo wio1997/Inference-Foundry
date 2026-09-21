@@ -29,7 +29,7 @@
 | `loop-022` | `REJECTED` | `REJECTED` | Exact stream neighbors falsify a material main-path MoE wait. The two 53-54 ms outer waits gate MEMCPY_ASYNC on auxiliary streams 42/43. The apparent 25.734 ms MoE wait is shared stream36 waiting at the next layer before dynamic quant; default stream47 waits for shared output are about 0.00002 ms. Intra-call synchronization medians are 0.191, 0.051 and 0.011 ms, below baseline noise. |
 | `loop-023` | `REJECTED` | `REJECTED` | k5 is not a runnable TP8 configuration in the current vLLM 0.26 path: graph shapes must be divisible by both 6 and 8. The service failed during KV/backend initialization, so there is no correctness or performance comparison. With model dspark_block_size>=5, the next smaller valid k below7 does not exist under this invariant. |
 | `loop-024` | `REJECTED` | `REJECTED` | The capacity change is functional and removes the8096 warning, but the bounded c12 screen is within prior k7 variability:472.871 tok/s, +2.77% vs diagnostic median and -3.83% vs closest same-runner Loop020 control. It does not exceed the4.3% promotion threshold, so avoid an expensive full benchmark. |
-| `loop-025` | `FROZEN` | `PENDING` | Create a launcher removing only speculative-config, run the same correctness/warmup/12x32K-to-512 c12 screen, and compare to k7 screens before any full benchmark. |
+| `loop-025` | `RUNNING` | `PENDING` | 执行 Run nospec-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP025-NOSPEC-20260921 bash scripts/serve_loop025_nospec.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop025_nospec/run1 |
 
 ## 阻塞项
 

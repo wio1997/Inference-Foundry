@@ -318,3 +318,7 @@ Loop023 k5 workers were explicitly terminated after their startup error left ~29
 ## Update 2026-09-21 08:14 UTC — Loop024 REJECT; Loop025 active
 
 The k7/max-batched8288 service passed correctness and12/12 c12 screen; the8096 scheduled-token warning disappeared, confirming capacity restoration. Screen result:472.871 output tok/s, TTFT mean2007.49ms, TPOT mean17.300ms. This is +2.77% versus the median of six prior k7 diagnostic screens but -3.83% versus the closest Loop020 same-runner screen, within the frozen4.3% noise threshold. No expensive full benchmark; Loop024 rejected and service stopped. Loop025 now measures DSpark net value against a matched target-only no-spec screen before spending more effort inside proposer/verification. Framework clean; NPUs returning idle.
+
+## Live checkpoint 2026-09-21 08:07 UTC — Loop025 target-only screen loading
+
+Loop024 was rejected and its service stopped. A target-only control now launches with the frozen DP1/TP8 W4A8 configuration and the sole semantic change of removing `--speculative-config`; max batched tokens remains8192. Container API PID878239, host runner PID2600192. Evidence: `evidence/20260921_loop025_nospec/`; service log: `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP025-NOSPEC-20260921.log`. Runner performs the identical correctness,48x128 warmup and12x32K→512 c12 screen. Do not start a competing service. This experiment measures DSpark net E2E value; no result yet.
