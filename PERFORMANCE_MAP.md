@@ -248,3 +248,11 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 - MoE shared stream36 has four waits per shared-expert call. The long boundary wait (qmatmul → next layer dynamic quant) is 25.734 ms median and represents the shared stream idling until the next layer input is produced.
 - Within a shared-expert call, wait medians are 0.191 ms before activation, 0.051 ms before down projection and 0.011 ms before gate projection. Main stream47 final wait is about 0.00002 ms. No material removable MoE synchronization gap is established.
 - Next highest verifiable system lever: speculative length. k7 advances only 3.54–3.64 tokens, so Loop023 benchmarks whether k5 reduces rejected-token work.
+
+
+## Loop023 speculative-length constraint — 2026-09-21 07:07 UTC
+
+- k5 is unrunnable at TP8 in the current graph/sequence-parallel path: `(k+1)=6` conflicts with TP divisor8 during worker initialization. No benchmark data exists.
+- Model draft block requires k>=5, so k7 is the minimum valid value satisfying `(k+1) % 8 == 0`.
+- vLLM reserves `max_num_new_slots_for_drafting * max_num_seqs = 6*16 = 96`; current max batched8192 therefore limits scheduled tokens to8096 and warns of suboptimal performance.
+- Loop024 changes only max batched tokens to8288 to restore scheduled capacity8192 and measures the end-to-end effect.

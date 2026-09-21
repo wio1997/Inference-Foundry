@@ -304,3 +304,8 @@ Event topology resolves the large draft waits. Two outer waits occur once per st
 ## Live checkpoint 2026-09-21 06:19 UTC — Loop023 k5 screen loading
 
 After Loop022 rejection, a bounded speculative-length screen started. `scripts/serve_loop023_k5.sh` differs from the frozen launcher only by DSpark `num_speculative_tokens=5` (model `dspark_block_size=5`; SP is disabled). Privileged `dsv4ab` launches DP1/TP8, W4A8, 1M max length on port8080; service launcher host PID2529097, runner PID2529098. Log: `logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP023-K5-20260921.log`; evidence: `evidence/20260921_loop023_k5_screen/`. Runner waits for health, passes correctness smoke, warms 48x128 c12, then runs 12x32K→512 c12. TaskCtl run `k5-screen-20260921` is active. Do not launch a competing service. Compare to k7 only after successful completion; no performance claim yet.
+
+
+## Update 2026-09-21 07:07 UTC — Loop023 REJECT; Loop024 active
+
+The k5 service never reached readiness. vLLM rejected graph shapes during TP8 initialization because `(k+1)=6` and sequence-parallel TP8 require a common divisible capture shape; runner timed out without correctness or benchmark. With model `dspark_block_size>=5`, there is no smaller valid k below7 under this invariant. Loop023 rejected as invalid comparison; port8080 is down and all NPUs are idle. Source inspection confirms k7/max_seqs16 reserves96 draft slots: max batched8192 becomes max scheduled8096 and emits an explicit suboptimal warning. Loop024 tests the minimal scheduler-only correction, max batched8288, restoring max scheduled8192 with k7 unchanged.

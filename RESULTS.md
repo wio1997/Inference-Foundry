@@ -243,3 +243,8 @@ A reproducible trace join assigned all 121,038 draft-owned launches to an innerm
 ## 2026-09-21 06:10 UTC — Loop022 REJECT
 
 Exact same-stream neighbors and source alignment with `_forward_shared_experts` show no material main-path event stall. Streams42/43 wait 53–54 ms only before asynchronous memcpy. Shared stream36 waits 25.734 ms between layer invocations for the next hidden state; its intra-call event waits are 0.191/0.051/0.011 ms, while stream47 final waits are ~0.00002 ms. The MoE scheduling hypothesis is falsified and no patch was made. Evidence: `evidence/20260921_loop022_event_dependency/`. Loop023 begins a controlled speculative-length efficiency screen.
+
+
+## 2026-09-21 07:07 UTC — Loop023 REJECT
+
+DSpark k5 failed before readiness with the exact invariant that graph shapes must be divisible by both k+1=6 and TP8. No correctness, warmup or performance request ran, so no comparative claim is made. Evidence: `evidence/20260921_loop023_k5_screen/startup_failure.json` and service log. The next experiment keeps valid k7 and tests max batched8288 to recover the96 slots reserved for drafting.

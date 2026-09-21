@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-21T06:08:51Z",
+  "generated_at": "2026-09-21T06:54:16Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-023",
-    "next_action": "Audit the frozen launch command and DSpark configuration path, then run a bounded no-profiler k5 screen against k7 with identical warmup and 12x32K-to-512 c12 requests before a full repeated benchmark.",
+    "active_loop": "loop-024",
+    "next_action": "Create a k7 launcher changing only max_num_batched_tokens to8288, verify resolved scheduled capacity in logs, then run correctness and the bounded c12 screen.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -137,22 +137,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-018",
-      "title": "Warm c12 decode critical path attribution",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "Saved eight-rank profiler traces can identify a measured and testable service-level arrival or overlap bottleneck; communication elapsed alone is not removable time.",
-      "verdict": "PIVOTED",
-      "reason": "Saved cross-rank timestamps are confounded by stable ~579us rank6 clock offset plus residual ~206us end spread. Communication elapsed is Idle-only, so collective arrival skew cannot be separated from clock/reporting artifacts or translated to a safe high-value change using current evidence.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260921_decode_comm_audit/collective_arrival_skew.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_decode_comm_audit/collective_clock_sensitivity.json"
-      ],
-      "decided_at": "2026-09-21T01:13:02Z"
-    },
-    {
       "loop_id": "loop-019",
       "title": "Warm decode DSA-CP metadata builder active-path attribution",
       "mode": "optimization",
@@ -217,34 +201,51 @@
         "/data/wio/Inference_Foundry/evidence/20260921_loop022_event_dependency/moe_wait_stages_tp0.json"
       ],
       "decided_at": "2026-09-21T06:05:32Z"
+    },
+    {
+      "loop_id": "loop-023",
+      "title": "DSpark speculative length efficiency sweep",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "With only 3.54-3.64 mean tokens advanced from seven-token drafts, a smaller speculative length reduces wasted draft and verification work enough to improve frozen mixed output TPS beyond run noise while preserving correctness.",
+      "verdict": "REJECTED",
+      "reason": "k5 is not a runnable TP8 configuration in the current vLLM 0.26 path: graph shapes must be divisible by both 6 and 8. The service failed during KV/backend initialization, so there is no correctness or performance comparison. With model dspark_block_size>=5, the next smaller valid k below7 does not exist under this invariant.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260921_loop023_k5_screen/startup_failure.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop023_k5_screen/runner.log"
+      ],
+      "decided_at": "2026-09-21T06:53:47Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-023",
-    "title": "DSpark speculative length efficiency sweep",
+    "loop_id": "loop-024",
+    "title": "Restore speculative scheduler token capacity",
     "mode": "optimization",
-    "status": "RUNNING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "执行 Run k5-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP023-K5-20260921 bash scripts/serve_loop023_k5.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop023_k5_screen/run1",
+    "next_action": "Create a k7 launcher changing only max_num_batched_tokens to8288, verify resolved scheduled capacity in logs, then run correctness and the bounded c12 screen.",
     "cases": [
       "mixed_32k_1024_c12",
       "correctness_short"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-21T06:08:15Z"
+    "updated_at": "2026-09-21T06:53:47Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-023/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-023/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-023/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-023/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-023/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-023/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-024/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-024/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-024/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-024/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-024/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-024/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

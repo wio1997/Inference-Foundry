@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run k5-screen-20260921：MAX_MODEL_LEN=1048576 RUN_TS=LOOP023-K5-20260921 bash scripts/serve_loop023_k5.sh; python3 scripts/run_loop014_prepare_trace.py --out evidence/20260921_loop023_k5_screen/run1
-- 更新时间：`2026-09-21T06:08:15Z`
+- 状态：`REJECTED`
+- 结论：`REJECTED`
+- 下一步：Restore k7 and test the explicit scheduler warning by raising max_num_batched_tokens from8192 to8288, which restores max_num_scheduled_tokens from8096 to8192 while retaining 96 draft slots.
+- 更新时间：`2026-09-21T06:53:47Z`
 
 ## Run 记录
 
