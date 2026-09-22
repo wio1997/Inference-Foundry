@@ -300,3 +300,16 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 ## 2026-09-21 Loop029 architecture boundary
 
 The first product-owned fixed execution region is now semantically closed across all TP ranks: greedy acceptance → accepted-count calculation → sequence/position advance → next target-input ABI construction. This region is a candidate for one device-resident fused transition/SuperKernel because its shapes and temperature-0 semantics are frozen. No speedup is claimed yet. The immediate critical path is outside this region: direct target forward, target KV/recurrent/GDN mutation, DSpark proposal, and their TP collective boundaries must be moved under runtime ownership before graph/replay or cross-operator fusion can be measured honestly.
+
+## 2026-09-22 Loop034 serving boundary (active)
+
+- Decode hot path: one admitted c12 cohort remains inside Extreme Runtime until
+  its 1024-token product limit; Scheduler/ModelRunner do not execute per cycle.
+- Output drain: fixed device history plus one terminal D2H; exact per-slot trim
+  is proven on CPU for uniform and varying acceptance counts.
+- KV ownership: bootstrap reserves 1024 lookahead tokens per request before
+  handoff, making the long-run block table a real allocation contract.
+- Serving residue: generic prefill/admission and final HTTP publication remain
+  between cohorts and will be included in the formal E2E metric.
+- Measurement blocker: an unrelated W8A8 service currently occupies all eight
+  NPUs. No Extreme NPU performance result exists for Loop034 yet.

@@ -5,22 +5,21 @@
 - 算子：`deepseek_v4_flash_w4a8`
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
-- 阶段：`OPTIMIZING`
-- 活动 Loop：`NONE`
+- 阶段：`INTEGRATING`
+- 活动 Loop：`loop-034`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
 - 当前知识条目：`9`
-- 下一步：Add the runtime-owned fixed 48-request slot refill and output-drain shell, then run the first comparable 48x32K-to-1024 c12 E2E A/B against 543.65 tok/s; profile the remaining ~53 ms cycle to choose proposer/communication/fusion work.
-- 更新时间：`2026-09-22T10:44:21Z`
+- 下一步：Implement a fixed device output drain and cohort-to-limit driver, then add the minimal bootstrap/control-plane return contract and run CPU tests before the NPU A/B.
+- 更新时间：`2026-09-22T13:06:57Z`
 
 ## 最近 Loop
 
-共 `33` 个 Loop；完整索引见 `loop-index.jsonl`。
+共 `34` 个 Loop；完整索引见 `loop-index.jsonl`。
 
 | Loop | 状态 | 结论 | 决定/下一步 |
 | --- | --- | --- | --- |
-| `loop-024` | `REJECTED` | `REJECTED` | The capacity change is functional and removes the8096 warning, but the bounded c12 screen is within prior k7 variability:472.871 tok/s, +2.77% vs diagnostic median and -3.83% vs closest same-runner Loop020 control. It does not exceed the4.3% promotion threshold, so avoid an expensive full benchmark. |
 | `loop-025` | `ACCEPTED` | `ACCEPTED` | Matched no-spec control proves k7 DSpark is architecturally valuable:491.698 versus208.047 tok/s (2.363x) and17.554 versus54.333ms TPOT (-67.69%). The difference dwarfs4.3% noise. Retain DSpark; optimize proposer necessary compute/acceptance rather than exit speculative decoding. |
 | `loop-026` | `REJECTED` | `REJECTED` | Removing one of three trained draft layers saves23.21% proposer model time but destroys proposal quality: advanced tokens fall to1.363/cycle, far below3.15 break-even; output TPS drops55.85% to217.092, close to target-only208.047. Full three-layer semantics are necessary. |
 | `loop-027` | `PIVOTED` | `PIVOTED` | Legacy DSpark is hard-disabled from graph; the available v2 DSpark graph path fails before capture because generic KV-group discovery finds no draft attention group for this DeepSeek V4 checkpoint. Stock v2 integration is therefore not an immediately runnable graph solution. Use the working legacy path as semantic/operator oracle and extract the fixed proposer-target execution contract for a specialized runtime. |
@@ -30,6 +29,7 @@
 | `loop-031` | `ACCEPTED` | `ACCEPTED` | All eight ranks produced parsed runtime-only traces with correctness preserved. Scope and device-union analysis identifies the target/proposer critical path and isolates DSpark CPU mirror refresh as a removable synchronization residue, satisfying the frozen attribution and candidate-selection goal. |
 | `loop-032` | `PIVOTED` | `PIVOTED` | The structural hypothesis is supported: real-weight correctness holds for 64 cycles, all runtime-owned host mirrors equal device state, and the matched profile shows the DSpark refresh barrier falling by 12.117 ms median with a 7.495 ms (-1.40%) full-cycle median reduction. TaskCtl cannot register an accepted optimization verdict because the already-recorded Loop031 profile Run omitted a metric field; the evidence comparison remains preserved explicitly and the implementation is retained. |
 | `loop-033` | `ACCEPTED` | `ACCEPTED` | Matched 64-cycle real-weight runs establish both correctness and causality. Reusing the fixed target graph from Extreme-owned buffers preserves exact state/mirror/rank invariants and cuts cycle wall 87.71%, raising internal decode-window throughput 669.2%, with no ModelRunner or Scheduler retained in the cycle. |
+| `loop-034` | `EVALUATING` | `PENDING` | 审查 Run run-20260922T134109Z 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

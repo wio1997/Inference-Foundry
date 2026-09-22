@@ -2,6 +2,13 @@
 
 Updated: 2026-09-22 08:16 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 service and **E2** for the first real-weight Extreme Runtime decode chain; runtime performance remains unmeasured.
 
+> Latest checkpoint (2026-09-22 13:31 UTC): Loop034 is active. The fixed
+> cohort serving shell, bulk completion transport and 1024-token KV reservation
+> are implemented; CPU semantic/serialization gates pass. The formal NPU E2E
+> run is waiting for an unrelated W8A8 job on port 8300 to release all eight
+> cards. Do not stop that external job. Resume with
+> `scripts/run_loop034_extreme_e2e.sh` after a stable-free hardware check.
+
 ## Fixed contract
 
 - DeepSeek V4 Flash W4A8 at `/data/yxy/DeepSeek-V4-Flash-0731-w4a8`; one host with 8 × Ascend 910B3; DP=1, TP=8; correct complete prefill/decode service.

@@ -1,0 +1,54 @@
+diff --git a/vllm/v1/core/sched/scheduler.py b/vllm/v1/core/sched/scheduler.py
+index b77d014..f52b6f6 100644
+--- a/vllm/v1/core/sched/scheduler.py
++++ b/vllm/v1/core/sched/scheduler.py
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+ import itertools
++import os
+ import time
+ from collections import defaultdict, deque
+ from collections.abc import Iterable
+@@ -261,6 +262,17 @@ class Scheduler(SchedulerInterface):
+                 # anchor itself is the first prediction position (no separate bonus
+                 # query), so it needs exactly num_spec_tokens lookahead slots.
+                 self.num_lookahead_tokens = self.num_spec_tokens
++        if os.getenv("EXTREME_RUNTIME_SERVE") == "1":
++            reserve_tokens = int(
++                os.getenv("EXTREME_RUNTIME_RESERVE_TOKENS", "1024")
++            )
++            if reserve_tokens < 1024:
++                raise ValueError(
++                    "Extreme serving requires at least 1024 reserved KV tokens"
++                )
++            self.num_lookahead_tokens = max(
++                self.num_lookahead_tokens, reserve_tokens
++            )
+ 
+         # Create the KV cache manager.
+         if hash_block_size is None:
+@@ -1681,6 +1693,7 @@ class Scheduler(SchedulerInterface):
+                 scheduled_spec_token_ids
+                 and (generated_token_ids or self.num_sampled_tokens_per_step == 0)
+                 and request.async_tokens_to_discard == 0
++                and not model_runner_output.extreme_bulk_output
+             ):
+                 num_draft_tokens = len(scheduled_spec_token_ids)
+                 num_sampled = self.num_sampled_tokens_per_step
+diff --git a/vllm/v1/outputs.py b/vllm/v1/outputs.py
+index 9f13ad9..3325dc8 100644
+--- a/vllm/v1/outputs.py
++++ b/vllm/v1/outputs.py
+@@ -280,6 +280,11 @@ class ModelRunnerOutput:
+     # ``None`` when ``enable_return_routed_experts`` is off.
+     routed_experts: RoutedExpertsLists | None = None
+ 
++    # A product runtime may execute many fixed decode cycles before returning
++    # one completion frame. The scheduler uses this marker to bypass the
++    # single-step speculative-acceptance accounting for that frame.
++    extreme_bulk_output: bool = False
++
+     @staticmethod
+     def with_kv_conn_output_only(
+         kv_connector_output: KVConnectorOutput | None,

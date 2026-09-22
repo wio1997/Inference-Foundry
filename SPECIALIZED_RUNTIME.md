@@ -156,3 +156,28 @@ architecture. It is still not the formal product E2E number: the remaining
 boundary is the fixed 48-request admission/refill and output-drain shell needed
 to execute the frozen 48×32K→1024 c12 protocol and compare directly with Stock
 543.65 tok/s.
+
+## Loop034 fixed serving shell — active 2026-09-22
+
+The first serving boundary keeps an admitted 12-request cohort inside Extreme
+Runtime until every slot has produced its frozen 1024-token limit. Accepted
+tokens are staged in fixed device history buffers and copied to Host once at
+cohort completion. A lagged 12-count Host progress mirror, already required by
+DSpark common state, terminates the loop without synchronizing the proposer on
+every cycle. The scheduler is entered only between completed cohorts, not on
+the decode hot path.
+
+The one-time bootstrap now reserves 1024 KV/DSA lookahead tokens per admitted
+request before handoff, so long decode does not address unallocated block-table
+entries. A bulk completion frame lets the existing HTTP/output control plane
+publish the completed cohort; its normal one-step speculative accounting is
+explicitly bypassed for this marked frame. CPU tests cover exact per-slot
+trimming, different acceptance counts, one-cycle-lag completion and output
+transport serialization.
+
+The NPU E2E gate is prepared but not yet run. Another W8A8 job currently owns
+all eight 910B3 cards on port 8300; it is external to this project and must not
+be terminated. When the cards remain free for the launcher's 60-second safety
+window, `scripts/run_loop034_extreme_e2e.sh` performs the full warmup plus three
+48×32K→1024 c12 measurements and compares their median directly with Stock
+543.65 tok/s.

@@ -5,13 +5,15 @@ from __future__ import annotations
 
 import argparse
 import sys
+from types import SimpleNamespace
 
 import torch
 
 from runtime.assets import OwnedCacheTensor, RuntimeAssets
 from runtime.extreme_decode import ExtremeDecodeRuntime
 from runtime.fixed_acceptance import FixedGreedyAcceptance
-from runtime.fixed_decode import FixedDecodeConfig, FixedDecodeState
+from runtime.fixed_decode import AcceptanceOutput, FixedDecodeConfig, FixedDecodeState
+from runtime.fixed_serving import FixedCohortServing
 from runtime.target_adapter import FixedTargetAdapter, FixedTargetBinding
 
 
@@ -19,9 +21,11 @@ class FixedProposer:
     def __init__(self, config: FixedDecodeConfig, device: torch.device) -> None:
         self.config = config
         self.calls = torch.zeros((), dtype=torch.int32, device=device)
+        self._committed = torch.zeros(config.batch_size, dtype=torch.int64)
 
     def execute(self, state, target, acceptance):
         self.calls.add_(1)
+        self._committed.add_(acceptance.num_sampled.cpu())
         offsets = torch.arange(
             1,
             self.config.speculative_tokens + 1,
@@ -32,6 +36,60 @@ class FixedProposer:
 
     def state_fingerprint(self):
         return {"calls": self.calls.clone()}
+
+    def committed_emitted_token_count(self):
+        return self._committed
+
+
+class LaggedProgressProposer:
+    def __init__(self, config: FixedDecodeConfig) -> None:
+        self._committed = torch.zeros(config.batch_size, dtype=torch.int64)
+        self._pending = None
+
+    def advance(self) -> None:
+        if self._pending is not None:
+            self._committed.add_(self._pending)
+            self._pending = None
+
+    def stage(self, counts: torch.Tensor) -> None:
+        self._pending = counts.to(torch.int64).clone()
+
+    def committed_emitted_token_count(self):
+        return self._committed
+
+
+class PatternServingRuntime:
+    """CPU-only shell double with the same one-cycle Host progress lag."""
+
+    def __init__(self, config: FixedDecodeConfig) -> None:
+        self.config = config
+        self.proposer = LaggedProgressProposer(config)
+        self.state = SimpleNamespace(
+            accepted_tokens=torch.empty(
+                config.batch_size,
+                config.target_tokens_per_request,
+                dtype=torch.int64,
+            ),
+            emitted_token_count=torch.zeros(config.batch_size, dtype=torch.int32),
+        )
+        self.cycle = 0
+
+    def step(self):
+        self.proposer.advance()
+        width = self.config.target_tokens_per_request
+        counts = (
+            torch.arange(self.config.batch_size, dtype=torch.int32)
+            + self.cycle
+        ).remainder(width) + 1
+        tokens = torch.full_like(self.state.accepted_tokens, -1)
+        for slot, count in enumerate(counts.tolist()):
+            tokens[slot, :count] = 1000 * self.cycle + 10 * slot + torch.arange(
+                count, dtype=torch.int64
+            )
+        self.proposer.stage(counts)
+        self.state.emitted_token_count.add_(counts)
+        self.cycle += 1
+        return SimpleNamespace(acceptance=AcceptanceOutput(tokens, counts))
 
 
 def main() -> None:
@@ -112,6 +170,27 @@ def main() -> None:
     assert all(int(result.acceptance.num_sampled[0]) == 8 for result in results)
     assert int(target_calls.cpu()) == args.cycles
     assert int(proposer.calls.cpu()) == args.cycles
+
+    serving = FixedCohortServing(
+        runtime,
+        initial_output_counts=[3] * cfg.batch_size,
+        max_output_tokens=19,
+    ).run()
+    assert serving.generated_output_counts == [16] * cfg.batch_size
+    assert all(len(tokens) == 16 for tokens in serving.token_ids)
+    assert serving.cycles == 2
+    assert serving.overshoot_tokens == 0
+
+    varied_remaining = [17 + slot for slot in range(cfg.batch_size)]
+    varied = FixedCohortServing(
+        PatternServingRuntime(cfg),
+        initial_output_counts=[5] * cfg.batch_size,
+        max_output_tokens=5 + max(varied_remaining),
+    ).run()
+    # All slots use the same absolute limit; exact output trimming must hold
+    # even though their acceptance counts and completion cycles differ.
+    assert varied.generated_output_counts == [max(varied_remaining)] * 12
+    assert varied.overshoot_tokens > 0
     assert not any(name == "vllm" or name.startswith("vllm.") for name in sys.modules)
     print(
         {
@@ -120,6 +199,10 @@ def main() -> None:
             "stage_order": runtime.stage_order,
             "target_calls": int(target_calls.cpu()),
             "proposer_calls": int(proposer.calls.cpu()),
+            "serving_cycles": serving.cycles,
+            "serving_output_tokens": sum(serving.generated_output_counts),
+            "varied_serving_cycles": varied.cycles,
+            "varied_serving_overshoot": varied.overshoot_tokens,
             "vllm_imported": False,
             "owned_cache_tensors": len(assets.caches),
             "device": str(device),

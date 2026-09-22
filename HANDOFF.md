@@ -25,21 +25,24 @@ docker ps -a --filter name=dsv4ab
 git status --short
 ```
 
-Current checkpoint is the Loop029 real-weight standalone decode milestone. The
-accepted mixed stock baseline remains `543.65 tok/s`; no Extreme Runtime
-performance number exists yet. Run17 passed on all eight ranks with real W4A8
-weights, TP8/EP communication, 67 physical KV/DSA caches and eight continuous
-runtime-owned cycles. Handoff occurs before generic `ModelRunner` target
-forward; zero oracle target calls occur afterward and no `ModelRunner` is
-retained. Evidence is under
-`evidence/20260922_loop029_real_runtime/run17/`.
+Current checkpoint is active Loop034. Loop033 already promoted fixed target
+graph replay: 64 real-weight cycles passed on all eight ranks, with exact state
+and Host mirrors, 53.286 ms median cycle wall and 294.400 tok/s internal decode
+window. This internal number is not comparable with the accepted Stock E2E
+baseline `543.65 tok/s`.
 
-Resume from the owned runtime, not from vLLM audit. First profile the standalone
-eight-cycle DAG, then migrate the remaining prebuilt attention metadata and
-DSpark CPU common-state refresh into fixed/device-resident state. Use the trace
-to choose graph/replay, persistent execution and fusion/SuperKernel regions.
-Do not redo CPU/NPU eight-cycle tests, target ABI, acceptance parity, cache
-layout discovery or transaction replay diagnostics.
+Loop034 implements the first fixed serving shell: c12 remains inside Extreme
+Runtime until the 1024-token limit, accepted tokens drain once from fixed device
+history, and the serving control plane receives one bulk completion frame.
+Bootstrap reserves 1024 KV/DSA lookahead tokens per request before handoff.
+CPU exact-trim, varied-acceptance and serialization gates pass. Evidence is in
+`evidence/20260922_loop034_fixed_serving/run1/`.
+
+The formal warmup plus three-run 48×32K→1024 c12 A/B is prepared in
+`scripts/run_loop034_extreme_e2e.sh`. At the latest checkpoint an unrelated
+W8A8 service on port 8300 owns all eight NPUs. Do not terminate it. Once the
+cards are stably free, run the launcher; it includes a 60-second safety check.
+Do not redo Loop029–033 correctness/profile experiments.
 
 ## Start baseline service
 
@@ -68,4 +71,4 @@ npu-smi info
 
 ## Minimal prompt for a new conversation
 
-> SSH `61.241.77.34-60008`, continue `/data/wio/Inference_Foundry` from `main`. Read root `AGENTS.md`, `HANDOFF.md` and the TaskCtl resume pack. Continue from the passed Loop029 real-weight Extreme Runtime boundary. Profile and simplify the owned decode DAG; do not return to generic vLLM hotspot loops or redo validated contracts. Preserve evidence/state/commit discipline.
+> SSH `61.241.77.34-60008`, continue `/data/wio/Inference_Foundry` from `main`. Read root `AGENTS.md`, `HANDOFF.md` and the TaskCtl resume pack. Continue active Loop034. After confirming the external port-8300 W8A8 job has released all eight cards, run `scripts/run_loop034_extreme_e2e.sh` for the formal warm-cache 48×32K→1024 c12 A/B. Do not redo Loop029–033 evidence.

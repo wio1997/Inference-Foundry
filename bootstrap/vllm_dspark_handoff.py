@@ -107,6 +107,9 @@ class DirectDSparkHandoff:
         self._host_copy_stream: Any = None
         self._host_copy_event: Any = None
         self._host_copy_pending = False
+        self._committed_emitted_count = torch.zeros(
+            config.batch_size, dtype=torch.int64
+        )
         if self.common_attn_metadata.query_start_loc_cpu is None:
             raise ValueError("fixed DSpark requires a bootstrap query-start host mirror")
         if getattr(self.common_attn_metadata, "_seq_lens_cpu", None) is None:
@@ -186,6 +189,7 @@ class DirectDSparkHandoff:
         self._host_copy_event.synchronize()
         batch = self.config.batch_size
         counts = self._host_count_copy[:batch]
+        self._committed_emitted_count[:batch].add_(counts)
         for mirror in self._unique_host_mirrors(
             self.common_attn_metadata,
             ("seq_lens_cpu", "_seq_lens_cpu", "seq_lens_cpu_upper_bound"),
@@ -197,6 +201,11 @@ class DirectDSparkHandoff:
             ("num_computed_tokens_cpu", "_num_computed_tokens_cpu"),
         ):
             mirror[:batch].add_(counts)
+
+    def committed_emitted_token_count(self) -> torch.Tensor:
+        """Return lagged Host progress without synchronizing the proposer."""
+
+        return self._committed_emitted_count
 
     def validate_host_mirrors(self, state: FixedDecodeState) -> bool:
         """Post-run correctness gate; never called on the timed hot path."""
@@ -213,6 +222,12 @@ class DirectDSparkHandoff:
                 query,
             )
         ]
+        checks.append(
+            torch.equal(
+                self._committed_emitted_count[:batch],
+                state.emitted_token_count.cpu().to(torch.int64),
+            )
+        )
         for mirror in self._unique_host_mirrors(
             self.common_attn_metadata,
             ("seq_lens_cpu", "_seq_lens_cpu", "seq_lens_cpu_upper_bound"),
