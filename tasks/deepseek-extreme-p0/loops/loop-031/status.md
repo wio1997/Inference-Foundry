@@ -5,14 +5,14 @@
 - 模式：`integration`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
-- 结论：`PENDING`
-- 下一步：Add low-overhead stage markers around the Extreme-owned chain and capture an eight-rank runtime-only trace; attribute target, TP/EP communication, acceptance/state advance, DSpark common refresh and proposer regions before selecting an implementation change.
-- 更新时间：`2026-09-22T08:23:32Z`
+- 状态：`ACCEPTED`
+- 结论：`ACCEPTED`
+- 下一步：Replace per-cycle query/sequence/computed D2H refresh with runtime-owned fixed host metadata and one side-stream acceptance-count handoff, then validate 8-rank real-weight parity and measure the structural delta.
+- 更新时间：`2026-09-22T09:27:35Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/runtime-only-profile-20260922`
 
 ## 阻塞项
 
@@ -20,5 +20,5 @@
 
 ## 待归约知识
 
-- 知识变化：`0`
+- 知识变化：`2`
 - 基线变化：`0`

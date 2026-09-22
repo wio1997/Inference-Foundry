@@ -114,3 +114,45 @@ move is to replace those refreshes with fixed/device-resident runtime state,
 then profile the owned DAG and evaluate graph/replay, persistence and cross-op
 fusion. Eager direct target execution is current fact, not a commitment against
 later graph execution.
+
+## Loop031–032 profiled boundary — 2026-09-22
+
+Eight-rank runtime-only tracing now covers target, TP/EP communication,
+acceptance, state advance, DSpark common refresh, all three trained proposer
+layers, and host launch/synchronization regions. The first profiling-driven
+runtime change removes the three per-cycle device-to-host common-state pulls.
+Extreme Runtime keeps the fixed bootstrap CPU metadata, transfers only the 12
+acceptance counts on a side stream, and consumes that transfer one target cycle
+later immediately before its next DSpark consumer.
+
+The matched traces reduce `dspark_refresh_common` median from 12.483 ms to
+0.366 ms, proposer median from 66.825 ms to 52.170 ms, and the profiled cycle
+median from 536.705 ms to 529.211 ms. A 64-cycle real-weight burn-in passes on
+all eight ranks with identical final state and exact post-window CPU/device
+mirror parity. Its 38.27 tok/s internal decode-window rate is not an E2E claim:
+the current bootstrap harness does not yet implement fixed 48-request refill or
+user-visible output draining.
+
+The dominant measured gap is now target verification: 469.789 ms host median
+and 465.056 ms device-union median for the fixed 96-token target region. The
+current handoff explicitly uses eager `CUDAGraphMode.NONE` with
+`skip_compiled=True`. The next structural experiment is therefore a
+runtime-owned fixed target replay/graph boundary, followed by the fixed refill
+and output sink required for a comparable 48×32K→1024 c12 E2E A/B against
+543.65 tok/s Stock.
+
+## Loop033 target replay boundary — 2026-09-22
+
+The fixed 96-token target region now reuses the dispatcher-captured decode
+graph from Extreme-owned buffers and metadata. The continuous cycle still
+retains no `ModelRunner` or `Scheduler`; the bootstrap lends the compiled graph
+and graph-metadata updater once, just as it lends weights and operators.
+
+A matched, unprofiled 64-cycle A/B preserves exact device state, Host mirrors
+and rank parity on all eight ranks. Median cycle wall falls from 433.587 ms to
+53.286 ms (-87.71%), while the internal decode-window rate rises from 38.271 to
+294.400 accepted tok/s (+669.2%). This promotes target replay into the runtime
+architecture. It is still not the formal product E2E number: the remaining
+boundary is the fixed 48-request admission/refill and output-drain shell needed
+to execute the frozen 48×32K→1024 c12 protocol and compare directly with Stock
+543.65 tok/s.
