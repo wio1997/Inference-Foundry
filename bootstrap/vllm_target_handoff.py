@@ -64,24 +64,39 @@ def _gather_output(output):
     return _gather_hidden(output)
 
 
-def _flatten_cache_tree(tree: list[Any]) -> list[OwnedCacheTensor]:
+def _flatten_cache_tree(
+    tree: list[Any],
+    slot_specs: list[tuple[torch.Tensor, int]] | None = None,
+) -> tuple[list[OwnedCacheTensor], dict[str, tuple[torch.Tensor, int]]]:
     owned: list[OwnedCacheTensor] = []
+    owned_specs: dict[str, tuple[torch.Tensor, int]] = {}
+    if slot_specs is not None and len(slot_specs) != len(tree):
+        raise ValueError(
+            f"cache slot spec count {len(slot_specs)} != cache tree {len(tree)}"
+        )
     seen: set[int] = set()
 
-    def visit(value: Any, name: str) -> None:
+    def visit(
+        value: Any,
+        name: str,
+        slot_spec: tuple[torch.Tensor, int] | None,
+    ) -> None:
         if torch.is_tensor(value):
             pointer = value.data_ptr()
             if pointer not in seen:
                 seen.add(pointer)
                 owned.append(OwnedCacheTensor.take(name, value))
+                if slot_spec is not None:
+                    owned_specs[name] = slot_spec
             return
         if isinstance(value, (list, tuple)):
             for index, child in enumerate(value):
-                visit(child, f"{name}.{index}")
+                visit(child, f"{name}.{index}", slot_spec)
 
     for index, value in enumerate(tree):
-        visit(value, f"kv_cache.{index}")
-    return owned
+        slot_spec = None if slot_specs is None else slot_specs[index]
+        visit(value, f"kv_cache.{index}", slot_spec)
+    return owned, owned_specs
 
 
 @dataclass(frozen=True)
@@ -99,6 +114,9 @@ class TargetHandoffInputs:
     eplb_heat_collection_status: bool = False
     graph_update: Callable[[Any, int], None] | None = None
     graph_update_before: bool = False
+    model_kwargs: dict[str, Any] | None = None
+    mutable_tensors: list[tuple[str, torch.Tensor]] | None = None
+    cache_slot_specs: list[tuple[torch.Tensor, int]] | None = None
 
 
 class DirectTargetHandoff:
@@ -117,7 +135,18 @@ class DirectTargetHandoff:
         self.eplb_heat_collection_status = inputs.eplb_heat_collection_status
         self.graph_update = inputs.graph_update
         self.graph_update_before = inputs.graph_update_before
-        self.assets = RuntimeAssets(_flatten_cache_tree(inputs.kv_cache_tree))
+        self.model_kwargs = dict(inputs.model_kwargs or {})
+        caches, cache_slot_specs = _flatten_cache_tree(
+            inputs.kv_cache_tree, inputs.cache_slot_specs
+        )
+        self.assets = RuntimeAssets(
+            caches,
+            [
+                OwnedCacheTensor.take(name, tensor)
+                for name, tensor in (inputs.mutable_tensors or [])
+            ],
+            cache_slot_specs,
+        )
 
     def forward(self, input_ids: torch.Tensor, positions: torch.Tensor):
         num_tokens = input_ids.shape[0]
@@ -147,6 +176,7 @@ class DirectTargetHandoff:
                 positions=positions,
                 intermediate_tensors=None,
                 inputs_embeds=None,
+                **self.model_kwargs,
             )
             if self.graph_update is not None and not self.graph_update_before:
                 self.graph_update(context, num_tokens)

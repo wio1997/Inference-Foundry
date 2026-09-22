@@ -292,3 +292,27 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - CPU and Ascend NPU standalone runs completed eight continuous cycles; target and proposer were each invoked eight times.
 - Runtime-owned cache references enforce stable address/shape/stride and support exact selected-element fingerprints for touched physical cache locations.
 - Current operators/caches in this test are deterministic/synthetic. Live DeepSeek weights, TP/EP collectives and DSA cache tensors remain the next correctness gate; no performance claim is made.
+
+## 2026-09-22 08:16 UTC — Loop029 real-weight standalone decode milestone PASS
+
+- One-time bootstrap transferred the real DeepSeek V4 Flash W4A8 target,
+  TP8/EP communication context, 67 deduplicated KV/DSA cache tensors, fixed c12
+  buffers and DSpark7 into the Extreme Runtime boundary.
+- The handoff occurred before the generic `ModelRunner` target forward. Evidence
+  records `oracle_target_calls_after_handoff=0`, no retained `ModelRunner`, and
+  `_DP1RunnerShim` rather than the generic runner in the proposer boundary.
+- All eight Ascend 910B3 ranks completed eight continuous runtime-owned cycles
+  with the fixed stage order. State advance was exact, acceptance counts stayed
+  within the 1..8 contract, 163 tokens were accepted/emitted, and final state
+  was identical across ranks.
+- Transaction diagnostics restored 69/69 mutable state entries exactly. Stock
+  graph self-replay changed 2/96 argmax decisions and accepted-token values;
+  direct eager self-replay changed 3/96 argmax decisions while retaining the
+  accepted result. Strict repeated-forward equality is therefore not used as a
+  gate beyond the existing target ABI and acceptance parity evidence.
+- Evidence: `evidence/20260922_loop029_real_runtime/run17/summary.json`, rank
+  records in the same directory, run16 replay audit, and TaskCtl run
+  `real-extreme-runtime-pre-modelrunner-handoff-20260922`.
+- Performance: no claim. The surrounding API request is intentionally failed
+  after evidence capture and is not comparable with the 543.65 tok/s baseline.
+  Performance work starts only on the runtime-owned DAG.

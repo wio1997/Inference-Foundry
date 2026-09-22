@@ -25,7 +25,21 @@ docker ps -a --filter name=dsv4ab
 git status --short
 ```
 
-Current checkpoint: `24f9625`. Loop028 is PIVOTED and work is paused. The accepted mixed baseline remains `543.65 tok/s`. Resume by extending the proven fixed c12 proposer replay through target verification, acceptance and explicit KV/state parity. Do not redo pointer discovery or start Loop029 before reading the resume pack.
+Current checkpoint is the Loop029 real-weight standalone decode milestone. The
+accepted mixed stock baseline remains `543.65 tok/s`; no Extreme Runtime
+performance number exists yet. Run17 passed on all eight ranks with real W4A8
+weights, TP8/EP communication, 67 physical KV/DSA caches and eight continuous
+runtime-owned cycles. Handoff occurs before generic `ModelRunner` target
+forward; zero oracle target calls occur afterward and no `ModelRunner` is
+retained. Evidence is under
+`evidence/20260922_loop029_real_runtime/run17/`.
+
+Resume from the owned runtime, not from vLLM audit. First profile the standalone
+eight-cycle DAG, then migrate the remaining prebuilt attention metadata and
+DSpark CPU common-state refresh into fixed/device-resident state. Use the trace
+to choose graph/replay, persistent execution and fusion/SuperKernel regions.
+Do not redo CPU/NPU eight-cycle tests, target ABI, acceptance parity, cache
+layout discovery or transaction replay diagnostics.
 
 ## Start baseline service
 
@@ -54,4 +68,4 @@ npu-smi info
 
 ## Minimal prompt for a new conversation
 
-> SSH `61.241.77.34-60008`, continue `/data/wio/Inference_Foundry` from `main`. Read root `AGENTS.md`, `HANDOFF.md` and the TaskCtl resume pack. Continue DeepSeek Extreme P0 from the Loop028 boundary; preserve evidence/state/commit discipline. I will append further instructions below.
+> SSH `61.241.77.34-60008`, continue `/data/wio/Inference_Foundry` from `main`. Read root `AGENTS.md`, `HANDOFF.md` and the TaskCtl resume pack. Continue from the passed Loop029 real-weight Extreme Runtime boundary. Profile and simplify the owned decode DAG; do not return to generic vLLM hotspot loops or redo validated contracts. Preserve evidence/state/commit discipline.

@@ -57,3 +57,67 @@
 - `2026-09-22T04:09:04Z` Run `real-extreme-runtime-8cycle-20260922` 记录为 `error`；正确性为 `invalid`。8/8 ranks built the Extreme Runtime and reached its first direct target call; graph metadata update exposed an implicit thread-local current_vllm_config dependency. Explicit target/DSpark config contexts added; no continuous-cycle correctness result yet.
 
 - `2026-09-22T04:09:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-config-context-20260922`（test）。
+
+- `2026-09-22T04:26:56Z` Run `real-extreme-runtime-config-context-20260922` 记录为 `pass`；正确性为 `pass`。8/8 TP ranks completed 8 continuous Extreme-owned cycles with identical accepted-token counts and final state; 162 accepted/emitted tokens total, ModelRunner not retained, DSpark runner replaced by _DP1RunnerShim, 67 real cache tensors bound and 46 slot-addressable tensors handed off transactionally.
+
+- `2026-09-22T04:29:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-validated-20260922`（test）。
+
+- `2026-09-22T04:49:11Z` Run `real-extreme-runtime-validated-20260922` 记录为 `fail`；正确性为 `fail`。8-cycle TP8 execution and cross-rank state parity passed, but transactional oracle/direct target parity failed because snapshot covered only 46/67 hybrid KV/DSA cache tensors; first acceptance differed.
+
+- `2026-09-22T04:49:11Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-multigroup-state-20260922`（test）。
+
+- `2026-09-22T05:02:55Z` Run `real-extreme-runtime-multigroup-state-20260922` 记录为 `error`；正确性为 `invalid`。Integration scope error before validation: all-group slot mappings were local to metadata builder and unavailable in execute_model; no runtime evidence produced.
+
+- `2026-09-22T05:02:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-multigroup-state-v2-20260922`（test）。
+
+- `2026-09-22T05:16:40Z` Run `real-extreme-runtime-multigroup-state-v2-20260922` 记录为 `fail`；正确性为 `fail`。8-cycle TP8 and cross-rank parity passed, but 21/67 tensors were still skipped because snapshot incorrectly required every foreign group mapping to fit each tensor; oracle/direct and first acceptance parity failed.
+
+- `2026-09-22T05:16:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-valid-subsets-20260922`（test）。
+
+- `2026-09-22T05:32:22Z` Run `real-extreme-runtime-valid-subsets-20260922` 记录为 `fail`；正确性为 `fail`。All 67 physical cache tensors restored and 8-cycle TP8 remained cross-rank consistent, but oracle/direct target and first acceptance parity still failed; remaining cause is outside physical KV/DSA state.
+
+- `2026-09-22T05:32:22Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-model-kwargs-20260922`（test）。
+
+- `2026-09-22T05:48:37Z` Run `real-extreme-runtime-model-kwargs-20260922` 记录为 `fail`；正确性为 `fail`。All 67 KV/DSA tensors restored; model_kwargs was empty; oracle _model_forward replay itself diverged, proving the missing state is outside KV tree/wrapper kwargs.
+
+- `2026-09-22T05:48:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-model-state-20260922`（test）。
+
+- `2026-09-22T06:04:43Z` Run `real-extreme-runtime-model-state-20260922` 记录为 `fail`；正确性为 `fail`。Snapshotting all 67 caches plus target topk_indices_buffer and MTP hidden buffer did not restore oracle replay parity; cache-to-group physical layout mapping remained approximate.
+
+- `2026-09-22T06:04:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-exact-cache-layout-20260922`（test）。
+
+- `2026-09-22T06:18:46Z` Run `real-extreme-runtime-exact-cache-layout-20260922` 记录为 `fail`；正确性为 `fail`。Exact cache-to-group slot mapping and logical-to-physical block translation still did not make oracle graph replay self-consistent; hidden graph workspace/state remains outside the explicit execution contract.
+
+- `2026-09-22T06:18:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-eager-boundary-20260922`（test）。
+
+- `2026-09-22T06:32:24Z` Run `real-extreme-runtime-eager-boundary-20260922` 记录为 `fail`；正确性为 `fail`。Standalone eager target completed 8 TP8 cycles, but graph-oracle parity remained invalid; graph oracle replay was itself non-repeatable under the explicit state transaction, so it is not a valid strict comparator.
+
+- `2026-09-22T06:32:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-eager-replay-20260922`（test）。
+
+- `2026-09-22T06:45:55Z` Run `real-extreme-runtime-eager-replay-20260922` 记录为 `fail`；正确性为 `fail`。Same-prestate direct eager replay still diverged; evidence points to transactional restore racing DSA overlap-stream cache writes because target forward completion was not fenced.
+
+- `2026-09-22T06:45:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-fenced-state-20260922`（test）。
+
+- `2026-09-22T06:59:30Z` Run `real-extreme-runtime-fenced-state-20260922` 记录为 `fail`；正确性为 `fail`。Overlap-stream fencing did not restore direct replay parity. Exact per-group mapping covered only 62/67 cache tensors (64 rows including two model buffers); five specialized layouts remain unmapped.
+
+- `2026-09-22T06:59:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-layout-diagnostic-20260922`（test）。
+
+- `2026-09-22T07:13:00Z` Run `real-extreme-runtime-layout-diagnostic-20260922` 记录为 `fail`；正确性为 `fail`。Identified five unmapped padded-page caches: shape [34091,2,1,512], stride [1040,512,512,1], logical block size 32. The second dimension is page payload, not token block size; restore must address whole logical pages.
+
+- `2026-09-22T07:13:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-padded-pages-20260922`（test）。
+
+- `2026-09-22T07:28:25Z` Run `real-extreme-runtime-padded-pages-20260922` 记录为 `fail`；正确性为 `fail`。Real-weight TP8 8-cycle completed with 67 physical caches plus topk/MTP buffers snapshotted and no skipped cache layouts; all ranks stayed identical, but same-prestate direct-eager replay remained numerically divergent and first acceptance mismatched.
+
+- `2026-09-22T07:33:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-restore-audit-20260922`（test）。
+
+- `2026-09-22T07:47:25Z` Run `real-extreme-runtime-restore-audit-20260922` 记录为 `fail`；正确性为 `fail`。All 8 ranks completed 8 cycles with identical state. Restore audit flagged only NaN-containing selections because torch.equal treats paired NaNs as unequal; no registered model buffer version changed. Stock oracle replay and direct eager replay both drifted at the same scale, so acceptance-level self-noise must be measured before defining the standalone correctness comparator.
+
+- `2026-09-22T07:48:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-self-noise-20260922`（test）。
+
+- `2026-09-22T08:05:07Z` Run `real-extreme-runtime-self-noise-20260922` 记录为 `pass`；正确性为 `pass`。Diagnostic objective passed: all four NaN-aware restores were exact for 69 state entries; no registered model buffers changed; stock graph self-replay predicted 94/96 tokens identically and changed accepted token values despite equal counts, while direct eager predicted 93/96 and retained acceptance. This establishes intrinsic replay noise and invalidates strict first-vs-third-call equality as the standalone gate.
+
+- `2026-09-22T08:05:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-pre-modelrunner-handoff-20260922`（test）。
+
+- `2026-09-22T08:16:51Z` Run `real-extreme-runtime-pre-modelrunner-handoff-20260922` 记录为 `pass`；正确性为 `pass`。Milestone passed on 8x Ascend 910B3: one-time real W4A8/TP8/EP/DSA bootstrap handed control to Extreme Runtime before generic ModelRunner target forward. Eight ranks completed 8 runtime-owned proposer-target-acceptance-state cycles with 67 physical caches, no retained ModelRunner, zero oracle target calls after handoff, exact state advancement, 163 emitted/accepted tokens, and identical rank state.
+
+- `2026-09-22T08:23:02Z` 主控结论为 `PIVOTED`。The product milestone is satisfied by run17, but this implementation loop intentionally preserves earlier failed diagnostic runs for cache layout and replay hypotheses; TaskCtl therefore cannot label the mixed-history loop accepted. Run17 completed eight real-weight Extreme-owned cycles on all eight ranks before generic ModelRunner target forward, with exact state advance and identical rank state.

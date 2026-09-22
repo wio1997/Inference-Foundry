@@ -97,3 +97,20 @@ c12 buffers. The implementation, semantic extraction and fusion-region search
 advance together. The immediate migration order is whichever dependency is
 needed to make the next real cycle executable: target forward, greedy
 verification/acceptance, KV/recurrent state advance and DSpark proposal.
+
+## Loop029 achieved boundary — 2026-09-22
+
+The first real-weight boundary is executable. One-time bootstrap supplies the
+loaded model/operator objects, TP8/EP groups, 67 physical KV/DSA cache tensors,
+fixed c12 buffers and DSpark7. `ExtremeDecodeRuntime` then takes control before
+the generic target forward and owns eight continuous cycles. The verified run
+retains no `ModelRunner`, performs no oracle target call after handoff, advances
+state exactly and finishes with identical state on all eight ranks.
+
+This is the new implementation base, not a vLLM hook optimization. The remaining
+borrowed pieces are bootstrap-only model/operator construction, prebuilt
+attention metadata and CPU-backed DSpark common-state refresh. The next boundary
+move is to replace those refreshes with fixed/device-resident runtime state,
+then profile the owned DAG and evaluate graph/replay, persistence and cross-op
+fusion. Eager direct target execution is current fact, not a commitment against
+later graph execution.

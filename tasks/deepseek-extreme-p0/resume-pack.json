@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-22T04:09:17Z",
+  "generated_at": "2026-09-22T08:23:32Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -18,10 +18,10 @@
     "framework": "vllm-ascend",
     "source_root": "/data/wio/Inference_Foundry",
     "status": "ACTIVE",
-    "phase": "IMPLEMENTING",
-    "evidence_level": "E2_BENCHMARKED",
-    "active_loop": "loop-029",
-    "next_action": "Define the runtime-owned fixed state ABI and implement the first direct multi-cycle harness around existing target/proposer operators, adding only the missing verification/acceptance/KV-state semantics needed to make cycle t+1 consume cycle t output.",
+    "phase": "INTEGRATING",
+    "evidence_level": "E1_RUNNABLE",
+    "active_loop": "loop-031",
+    "next_action": "Add low-overhead stage markers around the Extreme-owned chain and capture an eight-rank runtime-only trace; attribute target, TP/EP communication, acceptance/state advance, DSpark common refresh and proposer regions before selecting an implementation change.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -110,7 +110,7 @@
     }
   ],
   "knowledge_summary": {
-    "total": 3,
+    "total": 4,
     "selected": [
       {
         "id": "loop028-c12-pointer-contract",
@@ -134,6 +134,31 @@
         "staged_at": "2026-09-21T12:51:38Z",
         "verdict": "PIVOTED",
         "updated_at": "2026-09-21T12:51:38Z"
+      },
+      {
+        "id": "loop029-fixed-state-acceptance-parity",
+        "kind": "fact",
+        "statement": "For frozen DeepSeek V4 Flash W4A8 c12 decode, fixed device tensors reproduce next target input ABI and temperature-0 greedy acceptance exactly across consecutive cycles on all 8 TP ranks; target, DSpark, and KV execution are not yet runtime-owned.",
+        "status": "accepted",
+        "confidence": "high",
+        "scope": {
+          "model": "DeepSeek-V4-Flash-W4A8",
+          "hardware": "8xAscend-910B3",
+          "parallel": "DP1xTP8",
+          "batch": 12,
+          "spec_tokens": 7,
+          "temperature": 0
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260921_loop029_standalone_v0/shadow_summary_attempt4.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": true,
+        "source_loop": "loop-029",
+        "staged_at": "2026-09-21T14:34:38Z",
+        "verdict": "PIVOTED",
+        "updated_at": "2026-09-22T08:23:02Z"
       },
       {
         "id": "warm_cache_baseline",
@@ -182,40 +207,6 @@
     ]
   },
   "recent_loops": [
-    {
-      "loop_id": "loop-024",
-      "title": "Restore speculative scheduler token capacity",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "At k7/max_seqs16, raising max_num_batched_tokens from8192 to8288 restores max_num_scheduled_tokens from8096 to8192 and improves the frozen mixed workload without changing model semantics.",
-      "verdict": "REJECTED",
-      "reason": "The capacity change is functional and removes the8096 warning, but the bounded c12 screen is within prior k7 variability:472.871 tok/s, +2.77% vs diagnostic median and -3.83% vs closest same-runner Loop020 control. It does not exceed the4.3% promotion threshold, so avoid an expensive full benchmark.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260921_loop024_tokens8288/screen_comparison.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_loop024_tokens8288/run1/decode_c12.json"
-      ],
-      "decided_at": "2026-09-21T08:05:27Z"
-    },
-    {
-      "loop_id": "loop-025",
-      "title": "Bound DSpark net E2E value against target-only",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "Valid k7 DSpark materially improves mixed c12 output TPS over target-only decoding; a matched no-spec screen can quantify its net value and decide whether to optimize proposer/verification or exit the speculative path.",
-      "verdict": "ACCEPTED",
-      "reason": "Matched no-spec control proves k7 DSpark is architecturally valuable:491.698 versus208.047 tok/s (2.363x) and17.554 versus54.333ms TPOT (-67.69%). The difference dwarfs4.3% noise. Retain DSpark; optimize proposer necessary compute/acceptance rather than exit speculative decoding.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260921_loop025_nospec/comparison.json",
-        "/data/wio/Inference_Foundry/evidence/20260921_loop025_nospec/run1/decode_c12.json"
-      ],
-      "decided_at": "2026-09-21T09:07:34Z"
-    },
     {
       "loop_id": "loop-026",
       "title": "DSpark middle-layer cost versus acceptance",
@@ -267,34 +258,68 @@
         "/data/wio/Inference_Foundry/evidence/20260921_loop028_runtime_contract/fixed_cycle_replay_summary.json"
       ],
       "decided_at": "2026-09-21T12:51:38Z"
+    },
+    {
+      "loop_id": "loop-029",
+      "title": "Standalone multi-cycle decode runtime v0",
+      "mode": "implementation",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "For the frozen c12 DeepSeek V4 Flash W4A8 DP1TP8 DSpark7 envelope, a dedicated fixed-buffer runtime can execute consecutive target verification, acceptance, state advance and three-layer proposal cycles with the existing weights/operators while bypassing per-cycle SchedulerOutput, request objects, dynamic metadata construction and generic model-runner dispatch.",
+      "verdict": "PIVOTED",
+      "reason": "The product milestone is satisfied by run17, but this implementation loop intentionally preserves earlier failed diagnostic runs for cache layout and replay hypotheses; TaskCtl therefore cannot label the mixed-history loop accepted. Run17 completed eight real-weight Extreme-owned cycles on all eight ranks before generic ModelRunner target forward, with exact state advance and identical rank state.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260922_loop029_real_runtime/run17/summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260922_loop029_real_runtime/run16/rank0.json",
+        "/data/wio/Inference_Foundry/evidence/20260921_loop029_standalone_v0/shadow_summary_attempt4.json"
+      ],
+      "decided_at": "2026-09-22T08:23:02Z"
+    },
+    {
+      "loop_id": "loop-030",
+      "title": "Certify real-weight Extreme Runtime milestone",
+      "mode": "correctness",
+      "cases": [
+        "mixed_32k_1024_c12",
+        "correctness_short"
+      ],
+      "hypothesis": "The existing run17 records are sufficient to certify the first real-weight standalone continuous decode milestone without repeating validated hardware experiments.",
+      "verdict": "ACCEPTED",
+      "reason": "Read-only certification confirms all eight run17 ranks passed eight real-weight runtime-owned cycles with pre-ModelRunner handoff, zero post-handoff oracle target calls, no retained ModelRunner, 67 caches, exact state advance and identical rank state.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260922_loop029_real_runtime/run17/summary.json"
+      ],
+      "decided_at": "2026-09-22T08:23:03Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-029",
-    "title": "Standalone multi-cycle decode runtime v0",
-    "mode": "implementation",
-    "status": "RUNNING",
+    "loop_id": "loop-031",
+    "title": "Profile and close the runtime-owned decode DAG",
+    "mode": "integration",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "执行 Run real-extreme-runtime-config-context-20260922：Extreme-owned real target-accept-state-proposer 8 cycles with explicit borrowed-operator config context",
+    "next_action": "Add low-overhead stage markers around the Extreme-owned chain and capture an eight-rank runtime-only trace; attribute target, TP/EP communication, acceptance/state advance, DSpark common refresh and proposer regions before selecting an implementation change.",
     "cases": [
       "mixed_32k_1024_c12",
       "correctness_short"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-22T04:09:17Z"
+    "updated_at": "2026-09-22T08:23:32Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-029/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-029/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-029/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-029/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-029/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-029/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-031/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-031/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-031/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-031/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-031/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-031/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

@@ -1,6 +1,6 @@
 # DeepSeek Extreme P0 — Project State
 
-Updated: 2026-09-20 16:06 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 service; prefill and critical-path mechanism remain unmeasured.
+Updated: 2026-09-22 08:16 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 service and **E2** for the first real-weight Extreme Runtime decode chain; runtime performance remains unmeasured.
 
 ## Fixed contract
 
@@ -374,3 +374,36 @@ Evidence: `evidence/20260921_loop029_standalone_v0/shadow_summary_attempt4.json`
 `runtime/extreme_decode.py` now owns the continuous fixed decode stage order and imports no vLLM code. Standalone CPU and Ascend NPU processes completed eight cycles with explicit prepare-target, target, acceptance, state-advance and proposer stages; target and proposer each executed eight times. `runtime/assets.py` adds direct ownership checks for physical cache tensors and exact selected-element fingerprints derived from touched slot locations. These tests use deterministic operators and synthetic caches, so they prove control-plane independence and the ownership ABI, not real-weight correctness.
 
 The only allowed vLLM role in the next integration is one-time bootstrap after weight/process-group/cache initialization. The transfer point is the oracle's physical `kv_caches` tensor tree plus already-bound layer operators; no ModelRunner, SchedulerOutput, request object or metadata builder may enter `ExtremeDecodeRuntime.step()`. Next bind the live target model, TP/EP collectives and DSA compressor/indexer/SWA caches, then run real-weight continuous cycles and exact touched-cache parity.
+
+## Update 2026-09-22 08:16 UTC — first real-weight Extreme Runtime chain passed
+
+Loop029 now has a true runtime-owned continuous decode chain. The one-time
+bootstrap transfers the loaded DeepSeek V4 Flash W4A8 model, TP8/EP process
+groups, 67 deduplicated physical KV/DSA cache tensors, fixed c12 buffers and the
+DSpark7 proposer. Control is handed to `ExtremeDecodeRuntime` before the generic
+`ModelRunner` target forward. After handoff the run records zero oracle target
+calls and retains no `ModelRunner`.
+
+Run17 passed on all eight 910B3 ranks: eight consecutive
+prepare-target → target → acceptance → state-advance → proposer cycles, 163
+accepted/emitted tokens, exact `num_computed_tokens = initial + emitted`, valid
+acceptance counts and identical final rank state. Target execution currently
+uses an eager direct model binding; graph/replay is deliberately deferred until
+this owned path is profiled. The bootstrap still borrows prebuilt attention
+metadata and the DSpark adapter still refreshes some common CPU mirrors, so the
+serving shell is not yet fully independent.
+
+The strict transaction replay gate was retired with evidence, not waived:
+run16 restored all 69 captured state entries exactly (67 caches plus top-k and
+MTP buffers), but the stock graph replay itself changed two of 96 argmax tokens
+and accepted token values. Direct eager replay changed three argmax tokens while
+preserving acceptance. This establishes intrinsic execution replay noise; the
+accepted runtime gate is continuous state correctness and cross-rank agreement,
+building on the already-proven target ABI and acceptance parity.
+
+No performance result is claimed. The 12-request trigger intentionally aborts
+the surrounding service after writing evidence, so its client timing is invalid
+for comparison with the 543.65 tok/s stock baseline. Next profile only the
+runtime-owned eight-cycle DAG, migrate remaining metadata/CPU refresh state into
+fixed device buffers, and choose graph/replay, persistent execution and fusion
+regions from that trace.

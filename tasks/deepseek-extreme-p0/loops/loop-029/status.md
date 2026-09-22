@@ -5,10 +5,10 @@
 - 模式：`implementation`
 - 目标用例：`mixed_32k_1024_c12`, `correctness_short`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run real-extreme-runtime-config-context-20260922：Extreme-owned real target-accept-state-proposer 8 cycles with explicit borrowed-operator config context
-- 更新时间：`2026-09-22T04:09:17Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Certify the existing run17 evidence in a bounded review loop without rerunning hardware, then profile the runtime-owned DAG.
+- 更新时间：`2026-09-22T08:23:02Z`
 
 ## Run 记录
 
@@ -26,6 +26,21 @@
 - `runs/mixed_32k_1024_c12/real-target-transactional-cache-20260922`
 - `runs/mixed_32k_1024_c12/real-extreme-runtime-8cycle-20260922`
 - `runs/mixed_32k_1024_c12/real-extreme-runtime-config-context-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-validated-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-multigroup-state-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-multigroup-state-v2-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-valid-subsets-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-model-kwargs-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-model-state-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-exact-cache-layout-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-eager-boundary-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-eager-replay-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-fenced-state-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-layout-diagnostic-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-padded-pages-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-restore-audit-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-self-noise-20260922`
+- `runs/mixed_32k_1024_c12/real-extreme-runtime-pre-modelrunner-handoff-20260922`
 
 ## 阻塞项
 

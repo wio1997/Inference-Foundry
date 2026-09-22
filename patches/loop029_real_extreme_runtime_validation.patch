@@ -1,0 +1,100 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -2148,6 +2148,7 @@
+                 bind_graph_update,
+             )
+             from runtime.fixed_decode import FixedDecodeConfig
++            from runtime.greedy_accept import greedy_accept
+
+             _cfg = FixedDecodeConfig()
+             _target_inputs = TargetHandoffInputs(
+@@ -2234,7 +2235,65 @@
+             )
+             if _extreme_runtime_inputs is not None:
+                 assert _extreme_prestate is not None
++                if isinstance(hidden_states, tuple):
++                    _oracle_main = hidden_states[0].clone()
++                    _oracle_aux = [_value.clone() for _value in hidden_states[1]]
++                else:
++                    _oracle_main, _oracle_aux = hidden_states.clone(), []
++                _oracle_logits = self.model.compute_logits(
++                    _oracle_main[_extreme_runtime_inputs.target_logits_indices]
++                )
++                _oracle_predicted = _oracle_logits.argmax(dim=-1).view(12, 8)
++                _oracle_accepted, _oracle_counts = greedy_accept(
++                    _extreme_runtime_inputs.draft_tokens,
++                    _oracle_predicted[:, :7],
++                    _oracle_predicted[:, 7],
++                )
+                 _extreme_prestate.restore()
++                _direct_validation = _target_handoff.forward(
++                    _extreme_runtime_inputs.target_input_ids,
++                    _extreme_runtime_inputs.target_positions,
++                )
++                if isinstance(_direct_validation, tuple):
++                    _direct_main = _direct_validation[0].clone()
++                    _direct_aux = [
++                        _value.clone() for _value in _direct_validation[1]
++                    ]
++                else:
++                    _direct_main, _direct_aux = _direct_validation.clone(), []
++                _direct_logits = self.model.compute_logits(
++                    _direct_main[_extreme_runtime_inputs.target_logits_indices]
++                )
++
++                def _comparison(_left, _right):
++                    _delta = (_left.float() - _right.float()).abs()
++                    return {
++                        "exact": bool(torch.equal(_left, _right)),
++                        "allclose": bool(
++                            torch.allclose(_left, _right, rtol=1e-3, atol=1e-3)
++                        ),
++                        "max_abs": float(_delta.max().item()),
++                    }
++
++                _target_validation = {
++                    "main": _comparison(_oracle_main, _direct_main),
++                    "logits": _comparison(_oracle_logits, _direct_logits),
++                    "aux_count_equal": len(_oracle_aux) == len(_direct_aux),
++                    "aux": [
++                        _comparison(_left, _right)
++                        for _left, _right in zip(_oracle_aux, _direct_aux)
++                    ],
++                }
++                _target_validation["pass"] = (
++                    _target_validation["main"]["allclose"]
++                    and _target_validation["logits"]["allclose"]
++                    and _target_validation["aux_count_equal"]
++                    and all(
++                        _value["allclose"]
++                        for _value in _target_validation["aux"]
++                    )
++                )
++                _extreme_prestate.restore()
+                 _extreme_runtime = build_extreme_runtime(
+                     _extreme_runtime_inputs,
+                     _cfg,
+@@ -2282,8 +2341,22 @@
+                     "final_num_computed_tokens": (
+                         _extreme_runtime.state.num_computed_tokens.cpu().tolist()
+                     ),
+-                    "pass": True,
++                    "target_validation": _target_validation,
++                    "first_acceptance_equal": bool(
++                        torch.equal(
++                            _extreme_results[0].acceptance.sampled_token_ids,
++                            _oracle_accepted,
++                        )
++                        and torch.equal(
++                            _extreme_results[0].acceptance.num_sampled,
++                            _oracle_counts,
++                        )
++                    ),
+                 }
++                _row["pass"] = (
++                    _target_validation["pass"]
++                    and _row["first_acceptance_equal"]
++                )
+                 os.makedirs(_extreme_run_dir, exist_ok=True)
+                 with open(
+                     os.path.join(
