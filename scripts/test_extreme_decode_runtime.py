@@ -10,25 +10,9 @@ import torch
 
 from runtime.assets import OwnedCacheTensor, RuntimeAssets
 from runtime.extreme_decode import ExtremeDecodeRuntime
-from runtime.fixed_decode import AcceptanceOutput, FixedDecodeConfig, FixedDecodeState
-from runtime.greedy_accept import greedy_accept
+from runtime.fixed_acceptance import FixedGreedyAcceptance
+from runtime.fixed_decode import FixedDecodeConfig, FixedDecodeState
 from runtime.target_adapter import FixedTargetAdapter, FixedTargetBinding
-
-
-class GreedyAcceptance:
-    def __init__(self, config: FixedDecodeConfig) -> None:
-        self.config = config
-
-    def execute(self, state, target):
-        cfg = self.config
-        target_argmax = target.logits[:, 0].view(
-            cfg.batch_size, cfg.target_tokens_per_request
-        )[:, : cfg.speculative_tokens]
-        bonus = target.logits[:, 0].view(
-            cfg.batch_size, cfg.target_tokens_per_request
-        )[:, -1]
-        tokens, counts = greedy_accept(state.draft_tokens, target_argmax, bonus)
-        return AcceptanceOutput(tokens, counts)
 
 
 class FixedProposer:
@@ -98,22 +82,18 @@ def main() -> None:
         hidden = torch.stack((ids.to(torch.int64), positions), dim=1)
         return hidden
 
+    def compute_logits(hidden: torch.Tensor) -> torch.Tensor:
+        ids = hidden[:, 0].view(cfg.batch_size, cfg.target_tokens_per_request)
+        predicted = torch.cat((ids[:, 1:], ids[:, -1:] + 1), dim=1).reshape(-1)
+        logits = torch.full((predicted.numel(), 256), -1.0, device=device)
+        logits.scatter_(1, predicted.unsqueeze(1), 1.0)
+        return logits
+
     target = FixedTargetAdapter(
         cfg,
         FixedTargetBinding(
             forward=target_forward,
-            compute_logits=lambda hidden: torch.cat(
-                (
-                    hidden[:, 0]
-                    .view(cfg.batch_size, cfg.target_tokens_per_request)[:, 1:],
-                    (
-                        hidden[:, 0]
-                        .view(cfg.batch_size, cfg.target_tokens_per_request)[:, -1:]
-                        + 1
-                    ),
-                ),
-                dim=1,
-            ).reshape(-1, 1),
+            compute_logits=compute_logits,
             state_fingerprint=lambda: {"calls": target_calls.clone()},
         ),
     )
@@ -122,7 +102,7 @@ def main() -> None:
         cfg,
         state,
         target,
-        GreedyAcceptance(cfg),
+        FixedGreedyAcceptance(cfg),
         proposer,
     )
     results = runtime.run(args.cycles)

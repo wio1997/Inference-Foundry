@@ -35,3 +35,25 @@
 - `2026-09-21T15:22:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260921T152244Z`（test）。
 
 - `2026-09-21T15:22:52Z` Run `run-20260921T152244Z` 记录为 `pass`；正确性为 `not-applicable`。Ascend NPU standalone driver retained direct ownership of fixed cache tensor references, checked address/shape/stride stability, and cloned selected physical elements for exact parity fingerprints across its 8-cycle run. Synthetic caches only; live DSA cache handoff remains pending.
+
+- `2026-09-22T02:48:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-target-handoff-20260922`（test）。
+
+- `2026-09-22T03:03:57Z` Run `real-target-handoff-20260922` 记录为 `fail`；正确性为 `fail`。8/8 ranks bound 67 real cache tensors and completed request, but direct replay diverged from graph oracle: hidden max_abs 0.7919921875 and logits max_abs 3.5 identically on all ranks; forward-context parity and double-write effect must be isolated.
+
+- `2026-09-22T03:09:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-target-context-parity-20260922`（test）。
+
+- `2026-09-22T03:15:01Z` Run `real-target-context-parity-20260922` 记录为 `invalid`；正确性为 `invalid`。Stopped during startup: graph outputs may alias static buffers, so the v2 probe required snapshots before subsequent direct calls.
+
+- `2026-09-22T03:18:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-target-snapshot-parity-20260922`（test）。
+
+- `2026-09-22T03:32:26Z` Run `real-target-snapshot-parity-20260922` 记录为 `fail`；正确性为 `fail`。Independent snapshots prove replay from an already-mutated live cache is invalid: FULL-context oracle/direct hidden max_abs 0.505859375, logits 3.5, and direct/direct hidden 0.62939453125 identically on 8/8 ranks. Target writes are non-idempotent; validation must restore touched DSA/KV slots to the same pre-state.
+
+- `2026-09-22T03:36:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-target-transactional-cache-20260922`（test）。
+
+- `2026-09-22T03:53:59Z` Run `real-target-transactional-cache-20260922` 记录为 `error`；正确性为 `invalid`。All 8 ranks reached real cache snapshot; non-contiguous [block,32,...] cache views rejected slot flattening before target replay. No parity result; fixed by stride-preserving block/offset indexing.
+
+- `2026-09-22T03:54:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-8cycle-20260922`（test）。
+
+- `2026-09-22T04:09:04Z` Run `real-extreme-runtime-8cycle-20260922` 记录为 `error`；正确性为 `invalid`。8/8 ranks built the Extreme Runtime and reached its first direct target call; graph metadata update exposed an implicit thread-local current_vllm_config dependency. Explicit target/DSpark config contexts added; no continuous-cycle correctness result yet.
+
+- `2026-09-22T04:09:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `real-extreme-runtime-config-context-20260922`（test）。

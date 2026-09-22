@@ -1,0 +1,102 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -17,8 +17,10 @@
+ # Adapted from vllm-project/vllm/vllm/worker/gpu_model_runner.py
+ #
+ 
++import json
+ import logging
+ import math
++import os
+ import sys
+ import time
+ from collections import defaultdict
+@@ -2144,6 +2146,88 @@
+             hidden_states = self._model_forward(
+                 num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
+             )
++            _extreme_handoff_dir = os.getenv("EXTREME_TARGET_HANDOFF_DIR")
++            if (
++                _extreme_handoff_dir
++                and use_spec_decode
++                and num_reqs == 12
++                and scheduler_output.total_num_scheduled_tokens == 96
++                and not hasattr(self, "_extreme_target_handoff_checked")
++            ):
++                # This diagnostic executes through the product bootstrap
++                # boundary, not through _model_forward.  The second write to
++                # the same fixed decode slots is intentional: it tests that a
++                # direct real-weight target invocation can reproduce the
++                # oracle result while addressing the physical cache tree.
++                self._extreme_target_handoff_checked = True
++                _runtime_root = "/data/wio/Inference_Foundry"
++                if _runtime_root not in sys.path:
++                    sys.path.insert(0, _runtime_root)
++                from bootstrap.vllm_target_handoff import (
++                    DirectTargetHandoff,
++                    TargetHandoffInputs,
++                )
++
++                _handoff = DirectTargetHandoff(
++                    TargetHandoffInputs(
++                        model=self.model,
++                        vllm_config=self.vllm_config,
++                        attn_metadata=attn_metadata,
++                        batch_descriptor=batch_desc,
++                        has_sinks=self._has_sinks,
++                        kv_cache_tree=self.kv_caches,
++                    )
++                )
++                _direct_output = _handoff.forward(input_ids, positions)
++                if isinstance(hidden_states, tuple):
++                    _oracle_main, _oracle_aux = hidden_states
++                    _direct_main, _direct_aux = _direct_output
++                else:
++                    _oracle_main, _oracle_aux = hidden_states, []
++                    _direct_main, _direct_aux = _direct_output, []
++                _oracle_logits = self.model.compute_logits(
++                    _oracle_main[logits_indices]
++                )
++                _direct_logits = self.model.compute_logits(
++                    _direct_main[logits_indices]
++                )
++
++                def _comparison(_left, _right):
++                    _delta = (_left.float() - _right.float()).abs()
++                    return {
++                        "shape_equal": tuple(_left.shape) == tuple(_right.shape),
++                        "exact": bool(torch.equal(_left, _right)),
++                        "allclose": bool(torch.allclose(_left, _right, rtol=1e-3, atol=1e-3)),
++                        "max_abs": float(_delta.max().item()),
++                    }
++
++                _row = {
++                    "rank": int(get_tp_group().rank_in_group),
++                    "num_cache_tensors": len(_handoff.assets.caches),
++                    "main": _comparison(_oracle_main, _direct_main),
++                    "logits": _comparison(_oracle_logits, _direct_logits),
++                    "aux_count_equal": len(_oracle_aux) == len(_direct_aux),
++                    "aux": [
++                        _comparison(_left, _right)
++                        for _left, _right in zip(_oracle_aux, _direct_aux)
++                    ],
++                }
++                _row["pass"] = (
++                    _row["main"]["allclose"]
++                    and _row["logits"]["allclose"]
++                    and _row["aux_count_equal"]
++                    and all(_item["allclose"] for _item in _row["aux"])
++                )
++                os.makedirs(_extreme_handoff_dir, exist_ok=True)
++                with open(
++                    os.path.join(
++                        _extreme_handoff_dir,
++                        f"rank{int(get_tp_group().rank_in_group)}.json",
++                    ),
++                    "w",
++                    encoding="utf-8",
++                ) as _file:
++                    json.dump(_row, _file, indent=2)
+         with record_function_or_nullcontext("post process"):
+             aux_hidden_states = None
+             if self.use_aux_hidden_state_outputs:

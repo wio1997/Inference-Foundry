@@ -1,0 +1,176 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -17,8 +17,10 @@
+ # Adapted from vllm-project/vllm/vllm/worker/gpu_model_runner.py
+ #
+ 
++import json
+ import logging
+ import math
++import os
+ import sys
+ import time
+ from collections import defaultdict
+@@ -2116,6 +2118,92 @@
+         defer_kv_connector_finalize = self.speculative_config is not None and (
+             get_pp_group().is_last_rank or self.broadcast_pp_output
+         )
++        _extreme_runtime = None
++        _extreme_prestate = None
++        _extreme_runtime_inputs = None
++        _extreme_run_dir = os.getenv("EXTREME_RUNTIME_RUN_DIR")
++        if (
++            _extreme_run_dir
++            and use_spec_decode
++            and num_reqs == 12
++            and scheduler_output.total_num_scheduled_tokens == 96
++            and spec_decode_common_attn_metadata is not None
++            and not hasattr(self, "_extreme_runtime_started")
++        ):
++            self._extreme_runtime_started = True
++            _runtime_root = "/data/wio/Inference_Foundry"
++            if _runtime_root not in sys.path:
++                sys.path.insert(0, _runtime_root)
++            from bootstrap.vllm_dspark_handoff import (
++                DSparkHandoffInputs,
++                refresh_fixed_common,
++            )
++            from bootstrap.vllm_extreme_handoff import (
++                ExtremeHandoffInputs,
++                build_extreme_runtime,
++            )
++            from bootstrap.vllm_target_handoff import (
++                DirectTargetHandoff,
++                TargetHandoffInputs,
++                bind_graph_update,
++            )
++            from runtime.fixed_decode import FixedDecodeConfig
++
++            _cfg = FixedDecodeConfig()
++            _target_inputs = TargetHandoffInputs(
++                model=self.model,
++                vllm_config=self.vllm_config,
++                attn_metadata=attn_metadata,
++                batch_descriptor=batch_desc,
++                has_sinks=self._has_sinks,
++                kv_cache_tree=self.kv_caches,
++                num_tokens_across_dp=num_tokens_across_dp,
++                aclgraph_runtime_mode=cudagraph_mode,
++                num_actual_tokens=scheduler_output.total_num_scheduled_tokens,
++                skip_compiled=has_encoder_input,
++                eplb_heat_collection_status=(
++                    self.eplb_heat_collection_status
++                    if self.dynamic_eplb
++                    else False
++                ),
++                graph_update=bind_graph_update(
++                    self.attn_backend,
++                    self.update_stream,
++                    self.vllm_config,
++                ),
++                graph_update_before=self.enable_enpu,
++            )
++            _target_handoff = DirectTargetHandoff(_target_inputs)
++            _extreme_prestate = _target_handoff.assets.snapshot_slots(
++                spec_decode_common_attn_metadata.slot_mapping[:96]
++            )
++            _ids_2d = input_ids[:96].view(12, 8)
++            _pos_2d = positions[:96].view(12, 8)
++            _extreme_runtime_inputs = ExtremeHandoffInputs(
++                target=_target_inputs,
++                dspark=DSparkHandoffInputs(
++                    proposer=self.drafter,
++                    common_attn_metadata=spec_decode_common_attn_metadata,
++                    sampling_metadata=self.input_batch.sampling_metadata,
++                    target_model_batch_desc=batch_desc,
++                    actual_seq_lengths_q=self.actual_seq_lengths_q,
++                    attn_state=self.attn_state,
++                    decode_token_per_req=self.decode_token_per_req,
++                    refresh_common=refresh_fixed_common,
++                ),
++                block_table=spec_decode_common_attn_metadata.block_table_tensor[:12],
++                num_computed_tokens=_pos_2d[:, 0].to(torch.int32).clone(),
++                last_sampled_tokens=_ids_2d[:, 0].to(torch.int64).clone(),
++                draft_tokens=_ids_2d[:, 1:].to(torch.int64).clone(),
++                target_input_ids=input_ids[:96],
++                target_positions=positions[:96],
++                target_query_start_loc=spec_decode_common_attn_metadata.query_start_loc[:13],
++                target_seq_lens=spec_decode_common_attn_metadata.seq_lens[:12],
++                target_slot_mapping=spec_decode_common_attn_metadata.slot_mapping[:96],
++                target_logits_indices=torch.arange(
++                    96, dtype=torch.int64, device=input_ids.device
++                ),
++            )
+         with (
+             record_function_or_nullcontext("forward"),
+             set_ascend_forward_context(
+@@ -2144,6 +2232,69 @@
+             hidden_states = self._model_forward(
+                 num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
+             )
++            if _extreme_runtime_inputs is not None:
++                assert _extreme_prestate is not None
++                _extreme_prestate.restore()
++                _extreme_runtime = build_extreme_runtime(
++                    _extreme_runtime_inputs,
++                    _cfg,
++                )
++                try:
++                    _extreme_results = _extreme_runtime.run(8)
++                except Exception as _extreme_error:
++                    os.makedirs(_extreme_run_dir, exist_ok=True)
++                    with open(
++                        os.path.join(
++                            _extreme_run_dir,
++                            f"rank{int(get_tp_group().rank_in_group)}_error.json",
++                        ),
++                        "w",
++                        encoding="utf-8",
++                    ) as _file:
++                        json.dump(
++                            {
++                                "rank": int(get_tp_group().rank_in_group),
++                                "pass": False,
++                                "error": repr(_extreme_error),
++                            },
++                            _file,
++                            indent=2,
++                        )
++                    raise
++                torch.npu.synchronize()
++                _row = {
++                    "rank": int(get_tp_group().rank_in_group),
++                    "cycles": len(_extreme_results),
++                    "stage_order": list(_extreme_runtime.stage_order),
++                    "model_runner_retained": False,
++                    "proposer_runner_type": type(
++                        _extreme_runtime.proposer.proposer.runner
++                    ).__name__,
++                    "cache_tensors": len(_extreme_runtime.target.binding.forward.__self__.assets.caches),
++                    "snapshotted_cache_tensors": len(_extreme_prestate.rows),
++                    "accepted_counts": [
++                        _result.acceptance.num_sampled.cpu().tolist()
++                        for _result in _extreme_results
++                    ],
++                    "emitted_token_count": (
++                        _extreme_runtime.state.emitted_token_count.cpu().tolist()
++                    ),
++                    "final_num_computed_tokens": (
++                        _extreme_runtime.state.num_computed_tokens.cpu().tolist()
++                    ),
++                    "pass": True,
++                }
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(
++                    os.path.join(
++                        _extreme_run_dir,
++                        f"rank{int(get_tp_group().rank_in_group)}.json",
++                    ),
++                    "w",
++                    encoding="utf-8",
++                ) as _file:
++                    json.dump(_row, _file, indent=2)
++                raise RuntimeError("EXTREME_RUNTIME_STANDALONE_COMPLETE")
+         with record_function_or_nullcontext("post process"):
+             aux_hidden_states = None
+             if self.use_aux_hidden_state_outputs:

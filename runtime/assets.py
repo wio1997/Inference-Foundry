@@ -36,6 +36,28 @@ class OwnedCacheTensor:
             raise RuntimeError(f"cache tensor stride changed: {self.name}")
 
 
+@dataclass(frozen=True)
+class CacheSlotSnapshot:
+    """Transactional copy of touched physical cache rows."""
+
+    rows: tuple[
+        tuple[
+            OwnedCacheTensor,
+            torch.Tensor,
+            torch.Tensor | None,
+            torch.Tensor,
+        ],
+        ...,
+    ]
+
+    def restore(self) -> None:
+        for cache, first, second, values in self.rows:
+            if second is None:
+                cache.tensor.index_copy_(0, first, values)
+            else:
+                cache.tensor[first, second] = values
+
+
 class RuntimeAssets:
     """Runtime-owned references after the oracle bootstrap handoff.
 
@@ -78,3 +100,55 @@ class RuntimeAssets:
             flat = cache.tensor.view(-1)
             result[name] = flat.index_select(0, selected.to(torch.int64)).clone()
         return result
+
+    def snapshot_slots(
+        self,
+        slot_mapping: torch.Tensor,
+        *,
+        block_size: int = 32,
+    ) -> CacheSlotSnapshot:
+        """Snapshot only cache rows addressed by a fixed target cycle."""
+
+        self.assert_stable()
+        slots = torch.unique(slot_mapping.to(torch.int64))
+        slots = slots[slots >= 0]
+        rows: list[
+            tuple[
+                OwnedCacheTensor,
+                torch.Tensor,
+                torch.Tensor | None,
+                torch.Tensor,
+            ]
+        ] = []
+        for cache in self._caches:
+            tensor = cache.tensor
+            if tensor.ndim == 0:
+                continue
+            if tensor.ndim >= 2 and tensor.shape[1] == block_size:
+                block_indices = torch.div(
+                    slots,
+                    block_size,
+                    rounding_mode="floor",
+                )
+                offsets = slots.remainder(block_size)
+                valid_mask = block_indices < tensor.shape[0]
+                block_indices = block_indices[valid_mask]
+                offsets = offsets[valid_mask]
+                if block_indices.numel() == slots.numel():
+                    rows.append(
+                        (
+                            cache,
+                            block_indices,
+                            offsets,
+                            tensor[block_indices, offsets].clone(),
+                        )
+                    )
+            else:
+                valid = slots[slots < tensor.shape[0]]
+                if valid.numel() == slots.numel():
+                    rows.append(
+                        (cache, valid, None, tensor.index_select(0, valid).clone())
+                    )
+        if not rows:
+            raise RuntimeError("no physical cache tensor accepted target slots")
+        return CacheSlotSnapshot(tuple(rows))

@@ -81,6 +81,77 @@ class FixedDecodeState:
     cycle_index: int = 0
 
     @classmethod
+    def bind(
+        cls,
+        config: FixedDecodeConfig,
+        *,
+        block_table: torch.Tensor,
+        num_computed_tokens: torch.Tensor,
+        last_sampled_tokens: torch.Tensor,
+        draft_tokens: torch.Tensor,
+        target_input_ids: torch.Tensor,
+        target_positions: torch.Tensor,
+        target_query_start_loc: torch.Tensor,
+        target_seq_lens: torch.Tensor,
+        target_slot_mapping: torch.Tensor,
+        target_logits_indices: torch.Tensor,
+        accepted_tokens: torch.Tensor | None = None,
+        num_sampled: torch.Tensor | None = None,
+        num_rejected: torch.Tensor | None = None,
+        emitted_token_count: torch.Tensor | None = None,
+    ) -> "FixedDecodeState":
+        """Take over bootstrap buffers without copying or retaining an owner."""
+
+        batch = config.batch_size
+        width = config.target_tokens_per_request
+        total = config.target_token_count
+        required = {
+            "block_table": (block_table, batch),
+            "num_computed_tokens": (num_computed_tokens, batch),
+            "last_sampled_tokens": (last_sampled_tokens, batch),
+            "draft_tokens": (draft_tokens, batch * config.speculative_tokens),
+            "target_input_ids": (target_input_ids, total),
+            "target_positions": (target_positions, total),
+            "target_query_start_loc": (target_query_start_loc, batch + 1),
+            "target_seq_lens": (target_seq_lens, batch),
+            "target_slot_mapping": (target_slot_mapping, total),
+            "target_logits_indices": (target_logits_indices, total),
+        }
+        for name, (tensor, minimum) in required.items():
+            if tensor.numel() < minimum:
+                raise ValueError(f"{name} bootstrap buffer is too small")
+
+        device = target_input_ids.device
+        if accepted_tokens is None:
+            accepted_tokens = torch.full(
+                (batch, width), -1, dtype=torch.int64, device=device
+            )
+        if num_sampled is None:
+            num_sampled = torch.empty(batch, dtype=torch.int32, device=device)
+        if num_rejected is None:
+            num_rejected = torch.empty(batch, dtype=torch.int32, device=device)
+        if emitted_token_count is None:
+            emitted_token_count = torch.zeros(
+                batch, dtype=torch.int32, device=device
+            )
+        return cls(
+            block_table=block_table[:batch],
+            num_computed_tokens=num_computed_tokens[:batch],
+            last_sampled_tokens=last_sampled_tokens[:batch],
+            draft_tokens=draft_tokens[:batch, : config.speculative_tokens],
+            target_input_ids=target_input_ids[:total],
+            target_positions=target_positions[:total],
+            target_query_start_loc=target_query_start_loc[: batch + 1],
+            target_seq_lens=target_seq_lens[:batch],
+            target_slot_mapping=target_slot_mapping[:total],
+            target_logits_indices=target_logits_indices[:total],
+            accepted_tokens=accepted_tokens,
+            num_sampled=num_sampled,
+            num_rejected=num_rejected,
+            emitted_token_count=emitted_token_count,
+        )
+
+    @classmethod
     def allocate(
         cls,
         config: FixedDecodeConfig,
