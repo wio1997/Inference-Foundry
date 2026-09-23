@@ -233,3 +233,7 @@ At the 128th fixed Stock decode cycle, native-DSA direct target B was run betwee
 ## Loop035 Run50 post-target KV write control (2026-09-23 17:24 UTC)
 
 At Stock fixed cycle128, Stock A/direct B/Stock C touched-cache writes were compared after each target from the same pre-state. All 8 ranks restored 69 selected rows exactly between calls; first target token matched 12/12 A/B and A/C. A/B and Stock A/C each differed in the same 19/69 cache rows, with broadly comparable element counts. Raw cache value equality is dominated by Stock self-replay noise and does not identify a direct target cache-write defect. Next implement a dedicated continuous lockstep harness to compare causal state/KV transitions and effective accepted tokens, rather than adding further ad hoc ModelRunner branches. Evidence: `run50/summary.json`.
+
+## Loop035 Run51 late DSA field parity (2026-09-23 17:40 UTC)
+
+After 129 native-DSA FULL-graph continuous cycles, reference/native/reference metadata comparison sampled cycles 0,1,64,128. On all 8 ranks at every sample, all 45 non-SAS/QLI fields matched exactly; each of three SAS operator calls had identical arguments and identical first32 output values. The remaining ten SAS/QLI tensor tails were unequal even in reference self-replay, so they cannot establish native divergence. Host mirrors remained exact. This narrows the continuous acceptance investigation to block allocation/physical KV or other long-lived binding state; next audit the fixed Runtime block table through 1024 output. `run51/summary.json`.
