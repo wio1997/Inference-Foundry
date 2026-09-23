@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run-20260923T094511Z 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-23T10:01:23Z`
+- 下一步：执行 Run run-20260923T102151Z：EXTREME_DSA_BUILDER_ORACLE=1 target metadata builder only, c12 32K 256 cycles eager target; require 256 refresh calls
+- 更新时间：`2026-09-23T10:21:51Z`
 
 ## Run 记录
 
@@ -37,6 +37,8 @@
 - `runs/mixed_32k_1024_c12/run-20260923T091429Z`
 - `runs/mixed_32k_1024_c12/run-20260923T092814Z`
 - `runs/mixed_32k_1024_c12/run-20260923T094511Z`
+- `runs/mixed_32k_1024_c12/run-20260923T100552Z`
+- `runs/mixed_32k_1024_c12/run-20260923T102151Z`
 
 ## 阻塞项
 

@@ -354,3 +354,5 @@ Stock's first 8 cycles in its 64-cycle trace averaged 2.135, with later
 about 3.908 outputs/slot/iteration. The first short-cycle deficit alone is
 not a sufficient divergence locator; long-running derived target and draft
 state need a paired oracle.
+
+Loop035 correction (2026-09-23): the DSA/GDN metadata-builder conclusions attributed to Run12/13/19/21 are invalid because DirectTargetHandoff.forward never invoked the assigned diagnostic callback. Their raw acceptance measurements still describe eager direct-target execution. Run22 confirmed the unexercised callback by an empty audit; Run23 will test the connected hook.

@@ -103,3 +103,13 @@
 - `2026-09-23T09:45:11Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T094511Z`（test）。
 
 - `2026-09-23T10:01:23Z` Run `run-20260923T094511Z` 记录为 `invalid`；正确性为 `invalid`。Run22 completed 8x256 cycles but oracle callback was never invoked; target slot hypothesis untested; hook wiring required.
+
+- `2026-09-23T10:05:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T100552Z`（test）。
+
+- 2026-09-23 correction: DirectTargetHandoff.forward did not invoke diagnostic_metadata_refresh before a11a71b. Run12/13/19/21 metadata-builder claims were unexercised; preserve their raw cycle/state evidence but withdraw causal conclusions. Run22 is invalid for the same reason. Run23 has the callback connected.
+
+- `2026-09-23T10:20:19Z` Run `run-20260923T100552Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks completed 256 cycles; connected oracle audit confirms cycle0 group parity and cycle1 slot changes. Combined DSA+GDN builder plus target slot refresh reached 7.48 outputs/slot/cycle in cycles128-191; token-level oracle and causal isolation remain open.
+
+- `2026-09-23T10:21:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T102151Z`（test）。
+
+Run23 (connected combined oracle) passed 8/8 rank local gates for 256 eager target cycles. All six target slot groups matched at cycle 0; five groups changed 96/96 slots by cycle 1, and the audit contained 24 entries/rank. Outputs/slot/cycle reached 7.480 in cycles 128-191 and 7.728 in 192-255, with long stretches where all 12 slots accepted all eight outputs. This is a strong combined-effect signal but suspiciously exceeds Stock's roughly 3.908 long-run output rate; false acceptance or degenerate token loops remain possible. Do not claim a semantic fix or E2E improvement. Run24 isolates connected DSA+GDN builder refresh without slot recomputation, requiring 256 callback invocations; a token-level oracle remains necessary.

@@ -347,3 +347,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
   Run21 combined it with target DSA+GDN metadata rebuild and still reached
   1.003 outputs/slot/cycle in cycles 128–191. Both were 8-rank, 256-cycle
   diagnostics with local state gates; no product KEEP or E2E claim.
+
+- Loop035 evidence correction (2026-09-23): Run12/13/19/21 did not execute the intended DSA/GDN diagnostic refresh. Prior builder-effect claims above are withdrawn; cycle completion, state checks, and raw acceptance measurements remain valid. Run22 was explicitly marked invalid after all eight rank files had an empty target-slot audit. Commit a11a71b connected the callback; Run23 will require a nonempty audit and a cycle-0 mapping equality gate.
