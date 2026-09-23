@@ -78,6 +78,7 @@ class FixedDecodeState:
     num_sampled: torch.Tensor
     num_rejected: torch.Tensor
     emitted_token_count: torch.Tensor
+    active_mask: torch.Tensor
 
     cycle_index: int = 0
 
@@ -150,6 +151,7 @@ class FixedDecodeState:
             num_sampled=num_sampled,
             num_rejected=num_rejected,
             emitted_token_count=emitted_token_count,
+            active_mask=torch.ones(batch, dtype=torch.bool, device=device),
         )
 
     @classmethod
@@ -199,6 +201,7 @@ class FixedDecodeState:
             num_sampled=torch.empty(batch, dtype=torch.int32, device=device),
             num_rejected=torch.empty(batch, dtype=torch.int32, device=device),
             emitted_token_count=torch.zeros(batch, dtype=torch.int32, device=device),
+            active_mask=torch.ones(batch, dtype=torch.bool, device=device),
         )
 
 
@@ -307,7 +310,9 @@ class FixedDecodeRuntime:
             raise ValueError("accepted token tensor shape mismatch")
 
         state.accepted_tokens.copy_(sampled)
-        state.num_sampled.copy_(acceptance.num_sampled.to(torch.int32))
+        state.num_sampled.copy_(
+            torch.where(state.active_mask, acceptance.num_sampled, 0).to(torch.int32)
+        )
         state.num_rejected.copy_(
             cfg.target_tokens_per_request - state.num_sampled
         )

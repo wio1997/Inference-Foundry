@@ -204,6 +204,30 @@ class DirectDSparkHandoff:
         ):
             mirror[:batch].add_(counts)
 
+    def park_completed_slots(
+        self, slots: list[int], positions: list[int]
+    ) -> None:
+        """Move completed fixed slots to owned KV space between cycles."""
+
+        if not slots:
+            return
+        # Include the current cycle's pending count before changing the
+        # sequence-position mirrors. Subsequent copies are zero for parked slots.
+        self._commit_host_mirrors()
+        width = self.config.target_tokens_per_request
+        for mirror in self._unique_host_mirrors(
+            self.common_attn_metadata,
+            ("seq_lens_cpu", "_seq_lens_cpu", "seq_lens_cpu_upper_bound"),
+        ):
+            for slot, position in zip(slots, positions):
+                mirror[slot] = position + width
+        for mirror in self._unique_host_mirrors(
+            self.common_attn_metadata,
+            ("num_computed_tokens_cpu", "_num_computed_tokens_cpu"),
+        ):
+            for slot, position in zip(slots, positions):
+                mirror[slot] = position
+
     def committed_emitted_token_count(self) -> torch.Tensor:
         """Return lagged Host progress without synchronizing the proposer."""
 
@@ -270,7 +294,7 @@ class DirectDSparkHandoff:
         with self._scope("extreme::dspark_host_mirror_commit"):
             self._commit_host_mirrors()
         with self._scope("extreme::dspark_host_mirror_launch"):
-            self._launch_host_count_copy(acceptance.num_sampled)
+            self._launch_host_count_copy(state.num_sampled)
         mark("host_mirror")
         with self._scope("extreme::dspark_refresh_common"):
             self.refresh_common(state, self.common_attn_metadata)

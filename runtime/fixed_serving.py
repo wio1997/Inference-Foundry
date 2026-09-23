@@ -9,6 +9,7 @@ the serving control plane is not re-entered between cycles.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from typing import Sequence
 
 import torch
@@ -51,6 +52,17 @@ class FixedCohortServing:
         self.initial_output_counts = initial
         self.remaining = remaining
         self._progress_baseline = self._committed_progress()
+        self._initial_positions = [
+            int(value) for value in runtime.state.num_computed_tokens.cpu().tolist()
+        ]
+        self._parked = [False] * self.config.batch_size
+        # The final valid target may cross the exact output boundary by seven
+        # positions. Serving must reserve at least two extra KV blocks.
+        if os.getenv("EXTREME_RUNTIME_SERVE") != "1":
+            raise ValueError("fixed serving requires scheduler KV reservation")
+        reserve = int(os.getenv("EXTREME_RUNTIME_RESERVE_TOKENS", "0"))
+        if reserve < max(remaining) + 2 * self.config.block_size:
+            raise ValueError("fixed serving requires output limit plus two KV blocks")
         # Greedy verification emits at least one token per live slot per cycle.
         # The DSpark Host progress mirror trails by one cycle, hence +1.
         self.max_cycles = max(remaining) + 1
@@ -69,6 +81,34 @@ class FixedCohortServing:
             int(value)
             for value in self.runtime.state.emitted_token_count.tolist()
         ]
+
+    def _park_completed(self, progress: list[int]) -> None:
+        slots = [
+            slot for slot in range(self.config.batch_size)
+            if not self._parked[slot]
+            and progress[slot] - self._progress_baseline[slot]
+            >= self.remaining[slot]
+        ]
+        if not slots:
+            return
+        # Fixed shape requires parked slots to keep executing. Rewind each to
+        # its own reserved KV blocks and freeze its logical output progress.
+        positions = [
+            self._initial_positions[slot] + max(
+                0, self.remaining[slot] - 2 * self.config.block_size
+            )
+            for slot in slots
+        ]
+        self.runtime.proposer.park_completed_slots(slots, positions)
+        device = self.runtime.state.num_computed_tokens.device
+        idx = torch.tensor(slots, dtype=torch.long, device=device)
+        values = torch.tensor(
+            positions, dtype=self.runtime.state.num_computed_tokens.dtype, device=device
+        )
+        self.runtime.state.num_computed_tokens[idx] = values
+        self.runtime.state.active_mask[idx] = False
+        for slot in slots:
+            self._parked[slot] = True
 
     @torch.inference_mode()
     def run(self) -> FixedCohortOutput:
@@ -92,9 +132,10 @@ class FixedCohortServing:
             # Acceptance aliases the reusable runtime buffer. Stage it on
             # device before the next cycle overwrites that buffer.
             token_history[index].copy_(result.acceptance.sampled_token_ids)
-            count_history[index].copy_(result.acceptance.num_sampled)
+            count_history[index].copy_(self.runtime.state.num_sampled)
             cycles = index + 1
             progress = self._committed_progress()
+            self._park_completed(progress)
             if all(
                 progress[slot] - self._progress_baseline[slot]
                 >= self.remaining[slot]
@@ -111,7 +152,7 @@ class FixedCohortServing:
         for cycle in range(cycles):
             for slot in range(cfg.batch_size):
                 count = int(counts_cpu[cycle, slot])
-                if count < 1 or count > width:
+                if count < 0 or count > width:
                     raise RuntimeError("acceptance count left the fixed contract")
                 row = tokens_cpu[cycle, slot, :count].tolist()
                 if any(token < 0 for token in row):

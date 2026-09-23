@@ -243,3 +243,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T18:00:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T180026Z`（test）。
 
 - `2026-09-23T18:17:55Z` Run `run-20260923T180026Z` 记录为 `fail`；正确性为 `fail`。12/12 clients returned 1024, but completed slots kept decoding; cycle256 slot2 targeted physical block0 and rank0 staged 2564 tokens for that slot. Reserved serving semantic failure. Single audited cohort TPS is diagnostic only.
+
+- `2026-09-23T18:19:35Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T184500Z`（test）。
+
+- `2026-09-23T18:33:40Z` Run `run-20260923T184500Z` 记录为 `pass`；正确性为 `pass`。Run54 fixed-slot functional gate: 12/12 exact outputs, 8/8 rank and Host mirrors, overshoot 2149->49; sampled block0 absent through cycle256. Late physical KV audit and long token oracle remain open; 360.33 TPS is diagnostic only.
