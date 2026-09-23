@@ -255,3 +255,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T18:49:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T185000Z`（test）。
 
 - `2026-09-23T19:03:49Z` Run `run-20260923T185000Z` 记录为 `invalid`；正确性为 `invalid`。Missing EXTREME_DSA_BUILDER_ORACLE=1; all 8 ranks fail explicit reference metadata callback gate before target A/B/C; no target or acceptance conclusion.
+
+- `2026-09-23T19:03:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T190500Z`（test）。
+
+- `2026-09-23T19:17:46Z` Run `run-20260923T190500Z` 记录为 `pass`；正确性为 `pass`。Reserved 257-cycle A/reference B/native C/reference target control passes 8/8 rank restores and host gates. At cycles64/128/256 native target and accepted counts stay within self-replay noise; no sustained native DSA target split. Client sentinel TPS invalid; continuous Stock-vs-Extreme token oracle remains open.
