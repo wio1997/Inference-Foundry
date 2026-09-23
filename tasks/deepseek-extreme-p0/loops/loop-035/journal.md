@@ -45,3 +45,7 @@
 - `2026-09-23T06:22:50Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T062250Z`（test）。
 
 - `2026-09-23T06:35:13Z` Run `run-20260923T062250Z` 记录为 `pass`；正确性为 `not-applicable`。8-rank 8-cycle DSA-CP refresh completed; start_pos and local_seq_lens track cycle, but acceptance stayed near one output/slot/cycle from cycle 3. Isolated candidate rejected; no paired throughput conclusion.
+
+- `2026-09-23T06:38:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T063847Z`（review）。
+
+- `2026-09-23T06:38:54Z` Run `run-20260923T063847Z` 记录为 `pass`；正确性为 `pass`。Across three 8-cycle real-weight traces, draft carry, accepted last-token carry and num_computed advance each exact in 84/84 adjacent slot transitions. First-draft/target first prediction match falls to 0-4/12 in many cycles after cycle 0; this localizes low acceptance upstream of state carry, without distinguishing target from proposer.
