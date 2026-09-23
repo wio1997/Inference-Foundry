@@ -399,3 +399,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Loop035 Run46: late cycle128 Product/Stock DSpark proposer first drafts matched 12/12 on all 8 ranks; 83/84 full drafts matched versus Stock self-replay 79/84. Inputs, prepare fields and KV restoration were exact. Product proposer difference is not a supported explanation for low acceptance at this sampled state.
 
 - Loop035 Run47: Stock output self-control invalidated independent exact-text oracle. Two identical 12-request 1024-token cohorts completed, but 0/12 texts matched exactly; common prefix ranged 38–920 characters. Same-state KV-restored Stock/direct target control is required.
+
+- Loop035 Run48: INVALID before target A/B/C on 8/8 ranks due missing diagnostic group common view. Gate corrected for Run49; no target or acceptance inference.

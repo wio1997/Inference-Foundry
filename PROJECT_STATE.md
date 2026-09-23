@@ -557,3 +557,5 @@ Run45 FULL-graph late native DSA A/B/C sampled cycles 0,1,64,128 for 129 continu
 Run46 late same-state Product/Stock/Stock proposer control at cycle128 passed on all 8 ranks with exact inputs, prepare fields and KV restore. First draft token matches 12/12; full Product/Stock 83/84 versus Stock self79/84. The proposer implementation difference at this state is within self-replay noise. Low acceptance likely requires full trajectory target/KV/acceptance discrimination, not isolated late proposer patching. Evidence `run46/summary.json`.
 
 Run47 independent exact-text oracle gate failed: two Stock 12×32K→1024 c12 cohorts each completed 12/12, but 0/12 output texts were exactly equal; longest common prefix 38–920 characters. Do not infer Runtime first divergence from independent output strings. Move to same-state Stock/direct target A/B/C and effective token comparison. Evidence `run47/summary.json`.
+
+Run48 INVALID before Stock/direct/Stock target A/B/C: diagnostic mode did not initialize `_extreme_group_common_metadata` on 8/8 ranks. Capture gate corrected; Run49 repeats cycle128. No product Runtime change and no target inference from Run48.

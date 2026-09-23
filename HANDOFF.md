@@ -221,3 +221,7 @@ After 128 continuous native-DSA FULL-graph cycles, all 8 ranks passed same-state
 ## Loop035 Run47 Stock output self-control (2026-09-23 16:39 UTC)
 
 Identical 12×32K→1024 c12 Stock requests were submitted twice to one service with temperature0 and ignore_eos. Both were 12/12 complete and 1024 tokens/request, yet exact output text matched 0/12; earliest differing character across requests was 38, longest common prefix ranged 38–920. Independent Stock-vs-Extreme output text cannot serve as a first-divergence oracle. Run47 is INVALID for that method. Next perform Stock/direct target A/B/C within one fixed KV state with Stock self-replay control, comparing first/effective target tokens, accepted counts and physical cache restores. Evidence: `run47/summary.json`.
+
+## Loop035 Run48 diagnostic binding correction (2026-09-23 16:56 UTC)
+
+Run48 Stock/direct/Stock target control reached its diagnostic bootstrap on all 8 ranks but failed before target A/B/C because the new mode did not request the per-group common metadata views from the Stock builder. No target conclusion follows. The diagnostic gate now captures those views when `EXTREME_STOCK_TARGET_ABA=1`; Run49 is starting with the same cycle128 and fixed cohort protocol. Product Runtime code is unchanged. Evidence: `run48/summary.json`.

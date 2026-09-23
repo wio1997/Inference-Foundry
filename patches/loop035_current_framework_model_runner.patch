@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..96c56f405 100644
+index fd5463845..7e04a4974 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..96c56f405 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,1220 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1343 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -32,6 +32,16 @@ index fd5463845..96c56f405 100644
 +            if _extreme_serve
 +            else not hasattr(self, "_extreme_runtime_started")
 +        )
++        if os.getenv("EXTREME_STOCK_TARGET_ABA") == "1":
++            _stock_fixed_cycle = getattr(self, "_extreme_stock_fixed_cycle", 0)
++            if (use_spec_decode and num_reqs == 12
++                    and scheduler_output.total_num_scheduled_tokens == 96
++                    and spec_decode_common_attn_metadata is not None):
++                self._extreme_stock_fixed_cycle = _stock_fixed_cycle + 1
++                _extreme_can_start = (_extreme_can_start and _stock_fixed_cycle
++                    == int(os.getenv("EXTREME_STOCK_TARGET_ABA_CYCLE", "0")))
++            else:
++                _extreme_can_start = False
 +        if (
 +            _extreme_run_dir
 +            and use_spec_decode
@@ -166,6 +176,119 @@ index fd5463845..96c56f405 100644
 +                _extreme_runtime_inputs,
 +                _cfg,
 +            )
++            if os.getenv("EXTREME_STOCK_TARGET_ABA") == "1":
++                # Stock A / independent target B / restored Stock C at one
++                # real Stock decode state. This is a diagnostic sentinel.
++                _st = _extreme_runtime.state
++                _extreme_runtime._state_machine.prepare_target_inputs()
++                if not (torch.equal(_st.target_input_ids, input_ids[:96])
++                        and torch.equal(_st.target_positions, positions[:96])):
++                    raise RuntimeError("Stock target A/B/C bootstrap inputs differ")
++                _handoff = _extreme_runtime.target.binding.forward.__self__
++                _assets = _handoff.assets
++                _baseline_meta = dict(_handoff.attn_metadata)
++                _meta_tensors = []
++                _seen = set()
++                def _save_meta(_obj):
++                    if id(_obj) in _seen:
++                        return
++                    _seen.add(id(_obj))
++                    if isinstance(_obj, torch.Tensor):
++                        if _obj.numel() <= 2_000_000:
++                            _meta_tensors.append((_obj, _obj.clone()))
++                    elif isinstance(_obj, dict):
++                        for _v in _obj.values(): _save_meta(_v)
++                    elif isinstance(_obj, (tuple, list)):
++                        for _v in _obj: _save_meta(_v)
++                    elif hasattr(_obj, "__dict__") and _obj.__class__.__module__.startswith("vllm_ascend"):
++                        for _v in vars(_obj).values(): _save_meta(_v)
++                _save_meta(_baseline_meta)
++                _common_before = [
++                    (_cm.positions[:96].clone(), _cm.seq_lens[:12].clone(),
++                     _cm.slot_mapping[:96].clone())
++                    for _cm in self._extreme_group_common_metadata
++                ]
++                _kv = _assets.snapshot_slots(
++                    self._extreme_all_slot_mappings, num_tokens=96
++                )
++                def _stock_target_once():
++                    with set_ascend_forward_context(
++                        attn_metadata, self.vllm_config,
++                        num_tokens=num_tokens_padded,
++                        num_tokens_across_dp=num_tokens_across_dp,
++                        aclgraph_runtime_mode=cudagraph_mode,
++                        batch_descriptor=batch_desc,
++                        num_actual_tokens=scheduler_output.total_num_scheduled_tokens,
++                        model_instance=self.model,
++                        skip_compiled=has_encoder_input,
++                        has_sinks=self._has_sinks,
++                        input_ids=input_ids,
++                        eplb_heat_collection_status=(self.eplb_heat_collection_status
++                            if self.dynamic_eplb else False),
++                    ):
++                        _hidden = self._model_forward(
++                            num_tokens_padded, input_ids, positions,
++                            intermediate_tensors, inputs_embeds, **model_kwargs
++                        )
++                    _main = _hidden[0] if isinstance(_hidden, tuple) else _hidden
++                    _logits = self.model.compute_logits(_main[:96])
++                    _pred = _logits.argmax(dim=-1).view(12, 8).clone()
++                    _tokens, _counts = greedy_accept(
++                        _st.draft_tokens, _pred[:, :7], _pred[:, 7]
++                    )
++                    return _pred, _tokens.clone(), _counts.clone()
++                def _restore_stock():
++                    _kv.restore()
++                    _handoff.attn_metadata.clear()
++                    _handoff.attn_metadata.update(_baseline_meta)
++                    for _tensor, _old in _meta_tensors: _tensor.copy_(_old)
++                    for _cm, (_pos, _seq, _slot) in zip(
++                        self._extreme_group_common_metadata, _common_before
++                    ):
++                        _cm.positions[:96].copy_(_pos)
++                        _cm.seq_lens[:12].copy_(_seq)
++                        _cm.slot_mapping[:96].copy_(_slot)
++                    return _kv.verify_restored()
++                _pa, _ta, _ca = _stock_target_once()
++                _ra = _restore_stock()
++                if _extreme_runtime.target_metadata is not None:
++                    _extreme_runtime.target_metadata.update(_st)
++                _tb = _extreme_runtime.target.execute(_st)
++                _pb = _tb.logits.argmax(dim=-1).view(12, 8).clone()
++                _tb_tokens, _cb = greedy_accept(
++                    _st.draft_tokens, _pb[:, :7], _pb[:, 7]
++                )
++                _rb = _restore_stock()
++                _pc, _tc, _cc = _stock_target_once()
++                _rc = _restore_stock()
++                _first = torch.arange(12, device=input_ids.device) * 8
++                _row = {
++                    "rank": int(get_tp_group().rank_in_group),
++                    "sampled_stock_fixed_cycle": _stock_fixed_cycle,
++                    "target_graph_mode": str(cudagraph_mode),
++                    "native_metadata_active": _extreme_runtime.target_metadata is not None,
++                    "restores": [_ra, _rb, _rc],
++                    "metadata_tensors_restored": all(torch.equal(t,v) for t,v in _meta_tensors),
++                    "first_target_equal_ab": int((_pa.flatten()[_first] == _pb.flatten()[_first]).sum().item()),
++                    "first_target_equal_ac": int((_pa.flatten()[_first] == _pc.flatten()[_first]).sum().item()),
++                    "argmax_equal_ab": int((_pa == _pb).sum().item()),
++                    "argmax_equal_ac": int((_pa == _pc).sum().item()),
++                    "accepted_equal_ab": int((_ta == _tb_tokens).sum().item()),
++                    "accepted_equal_ac": int((_ta == _tc).sum().item()),
++                    "counts_a": _ca.cpu().tolist(),
++                    "counts_b": _cb.cpu().tolist(),
++                    "counts_c": _cc.cpu().tolist(),
++                    "argmax_a": _pa.cpu().tolist(),
++                    "argmax_b": _pb.cpu().tolist(),
++                    "argmax_c": _pc.cpu().tolist(),
++                }
++                _row["pass"] = bool(all(x["exact"] for x in _row["restores"])
++                    and _row["metadata_tensors_restored"])
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(os.path.join(_extreme_run_dir, f"rank{_row['rank']}.json"),
++                          "w", encoding="utf-8") as _file:
++                    json.dump(_row, _file, indent=2)
++                raise RuntimeError("EXTREME_STOCK_TARGET_ABA_COMPLETE")
 +            if os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1":
 +                _diagnostic_target_handoff = (
 +                    _extreme_runtime.target.binding.forward.__self__
@@ -1234,7 +1357,7 @@ index fd5463845..96c56f405 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3360,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3483,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1520,7 +1643,7 @@ index fd5463845..96c56f405 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3713,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3836,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1533,7 +1656,7 @@ index fd5463845..96c56f405 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3866,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3989,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1573,23 +1696,25 @@ index fd5463845..96c56f405 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4678,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4801,11 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
 +        self._extreme_all_slot_mappings = []
 +        self._extreme_cache_slot_specs = []
-+        if os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1":
++        if (os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1"
++                or os.getenv("EXTREME_STOCK_TARGET_ABA") == "1"):
 +            self._extreme_group_common_metadata = []
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4707,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4831,15 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )
 +            self._extreme_all_slot_mappings.append(cm.slot_mapping)
-+            if os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1":
++            if (os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1"
++                    or os.getenv("EXTREME_STOCK_TARGET_ABA") == "1"):
 +                self._extreme_group_common_metadata.append(cm)
 +            self._extreme_cache_slot_specs.extend(
 +                (cm.slot_mapping, kv_cache_group.kv_cache_spec.block_size)

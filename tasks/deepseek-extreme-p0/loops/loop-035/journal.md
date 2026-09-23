@@ -219,3 +219,9 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T16:25:16Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T162516Z`（test）。
 
 - `2026-09-23T16:40:35Z` Run `run-20260923T162516Z` 记录为 `invalid`；正确性为 `invalid`。Independent exact-text oracle gate failed: 0/12 Stock outputs matched Stock self-replay, earliest text divergence 38 chars; use same-state Stock/direct target control
+
+- `2026-09-23T16:42:32Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T164232Z`（test）。
+
+- `2026-09-23T16:56:16Z` Run `run-20260923T164232Z` 记录为 `invalid`；正确性为 `invalid`。Diagnostic group common metadata view missing on 8 ranks before target A/B/C; capture gate corrected for Run49
+
+- `2026-09-23T16:56:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T165629Z`（test）。
