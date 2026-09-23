@@ -235,3 +235,9 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T17:27:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T172707Z`（test）。
 
 - `2026-09-23T17:42:27Z` Run `run-20260923T172707Z` 记录为 `pass`；正确性为 `pass`。8/8 rank cycles0,1,64,128: all 45 non-sparse DSA fields and 3 SAS op inputs/output first32 match; sparse tails self-noisy; low acceptance unresolved
+
+- `2026-09-23T17:44:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T174424Z`（test）。
+
+- `2026-09-23T17:59:55Z` Run `run-20260923T174424Z` 记录为 `fail`；正确性为 `fail`。Standalone no-reservation block-table failure: 8/8 ranks physical block0 in 66/96 target positions at cycle16 and 96/96 from cycle32; formal serving has separate 1024-token reservation and remains unproven
+
+- `2026-09-23T18:00:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T180026Z`（test）。

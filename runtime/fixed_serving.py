@@ -25,6 +25,7 @@ class FixedCohortOutput:
     generated_output_counts: list[int]
     staged_output_counts: list[int]
     overshoot_tokens: int
+    acceptance_window_means: dict[str, float]
 
 
 class FixedCohortServing:
@@ -120,6 +121,17 @@ class FixedCohortServing:
                 if needed > 0:
                     output[slot].extend(int(token) for token in row[:needed])
 
+        acceptance_window_means = {}
+        for start, end in ((0, 8), (8, 64), (64, 128),
+                           (128, 192), (192, 256), (256, 512),
+                           (512, 768), (768, 1024)):
+            if start >= cycles:
+                continue
+            stop = min(end, cycles)
+            acceptance_window_means[f"{start}-{stop - 1}"] = float(
+                counts_cpu[start:stop].sum().item()
+                / ((stop - start) * cfg.batch_size)
+            )
         generated = [len(row) for row in output]
         if generated != self.remaining:
             raise RuntimeError(
@@ -133,4 +145,5 @@ class FixedCohortServing:
             generated_output_counts=generated,
             staged_output_counts=staged,
             overshoot_tokens=sum(staged) - sum(generated),
+            acceptance_window_means=acceptance_window_means,
         )

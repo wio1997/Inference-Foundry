@@ -13,6 +13,7 @@ mask rather than by changing tensor shapes.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -240,6 +241,12 @@ class FixedDecodeRuntime:
             dtype=torch.int64,
             device=state.block_table.device,
         ).unsqueeze(0)
+        self.block_table_audit: list[dict[str, object]] = []
+        self._block_table_audit_samples = {
+            int(value) for value in os.getenv(
+                "EXTREME_RUNTIME_BLOCK_TABLE_AUDIT_SAMPLES", ""
+            ).split(",") if value.strip()
+        } if os.getenv("EXTREME_RUNTIME_BLOCK_TABLE_AUDIT") == "1" else set()
 
     def prepare_target_inputs(self) -> None:
         """Materialize the next fixed 12x8 target verification block on device."""
@@ -265,6 +272,24 @@ class FixedDecodeRuntime:
             positions, cfg.block_size, rounding_mode="floor"
         ).to(torch.int64)
         physical_blocks = state.block_table[self._request_index, logical_blocks]
+        if state.cycle_index in self._block_table_audit_samples:
+            first_logical = logical_blocks[:, 0]
+            lookahead = first_logical.unsqueeze(1) + torch.arange(
+                8, device=state.block_table.device, dtype=torch.int64
+            ).unsqueeze(0)
+            if bool((lookahead >= state.block_table.shape[1]).any()):
+                raise RuntimeError("block table audit lookahead outside buffer")
+            self.block_table_audit.append({
+                "cycle": state.cycle_index,
+                "block_table_shape": list(state.block_table.shape),
+                "first_position": positions[:, 0].cpu().tolist(),
+                "first_logical_block": first_logical.cpu().tolist(),
+                "target_physical_blocks": physical_blocks.cpu().tolist(),
+                "next_physical_blocks": state.block_table[
+                    self._request_index, lookahead
+                ].cpu().tolist(),
+                "negative_target_block_count": int((physical_blocks < 0).sum().item()),
+            })
         slots = physical_blocks.to(torch.int64) * cfg.block_size
         slots.add_(positions.remainder(cfg.block_size))
         state.target_slot_mapping.copy_(slots.flatten().to(torch.int32))

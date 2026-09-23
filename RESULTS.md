@@ -407,3 +407,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Loop035 Run50: post-target touched-cache A/B and Stock A/C each matched 50/69 rows, with the same 19 mismatch names on 8/8 ranks. Restoration exact; raw cache write differences are within substantial Stock self-replay noise and do not isolate a Runtime defect.
 
 - Loop035 Run51: 8/8 rank native/reference DSA metadata parity at cycles0,1,64,128 passed all 45 non-sparse fields and three SAS operator argument/output-head controls. SAS/QLI tails are self-replay noisy. No deterministic late DSA metadata split found in sampled fields.
+
+- Loop035 Run52: standalone no-reservation correctness FAIL. Physical block0 appeared in 66/96 target positions at cycle16 and 96/96 from cycle32 on all 8 ranks, despite state/host count gates. Formal Loop034 serving uses 1024-token scheduler reservation, so this result is not its acceptance root.
