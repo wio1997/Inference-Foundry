@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：执行 Run run-20260923T091429Z：EXTREME_DRAFT_GROUP_SLOT_REFRESH=1 target FULL graph c12 32K 256 cycles, bootstrap parity gate
-- 更新时间：`2026-09-23T09:14:29Z`
+- 下一步：执行 Run run-20260923T092814Z：EXTREME_DSA_BUILDER_ORACLE=1 EXTREME_DRAFT_GROUP_SLOT_REFRESH=1 eager target c12 32K 256 cycles
+- 更新时间：`2026-09-23T09:28:14Z`
 
 ## Run 记录
 
@@ -35,6 +35,7 @@
 - `runs/mixed_32k_1024_c12/run-20260923T084346Z`
 - `runs/mixed_32k_1024_c12/run-20260923T085924Z`
 - `runs/mixed_32k_1024_c12/run-20260923T091429Z`
+- `runs/mixed_32k_1024_c12/run-20260923T092814Z`
 
 ## 阻塞项
 
