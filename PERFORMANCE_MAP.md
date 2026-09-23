@@ -330,3 +330,5 @@ The first product-owned fixed execution region is now semantically closed across
 | State advance | 0.02 ms |
 
 This is a short diagnostic, not the full 1024-cycle critical path. The dominant immediate E2E gap remains acceptance/progress, not these small transition stages. The first confirmed stale target fields are DSA-CP start_pos and local_seq_lens from cycle 1; refreshing only them did not recover acceptance. Stock's warm 12-request long cohort achieved 2.908 accepted drafts/iteration versus Extreme near one output/slot/cycle later in its short diagnostic. SAS/QLI derived metadata and same-state target/proposer comparison are the next discriminators. Sources: evidence/20260923_loop035_diagnostic/.
+
+Loop035 oracle metadata control: per-cycle DSA builder refresh passed local state gates at 209 outputs/8×12 slots; adding GDN builder yielded 215, with unordered prompts. Direct eager target and builder overhead make these diagnostic outputs unsuitable for throughput comparison. The remaining semantic gap is first draft/target mismatch; next compare Extreme and Stock proposer on identical target hidden states, accepted tokens, and restored draft caches.

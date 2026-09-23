@@ -325,3 +325,6 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 
 - Loop035 SWA-only slot refresh: exact bootstrap parity, all eight TP ranks passed, 161 outputs over 8×12 slot cycles, no acceptance recovery. Candidate reverted; TaskCtl run run-20260923T064032Z.
 - Product state carry checks across three traces: draft, last token and num_computed each 84/84 consecutive-slot transitions exact. First draft/target argmax match degrades after cycle 0, so target/proposer comparison is the next semantic gate.
+
+- Loop035 Run11 DSA builder oracle with shared CPU mirror was INVALID (host_mirror_exact=False); 211 outputs are excluded from causal interpretation.
+- Loop035 Run12 corrected DSA builder oracle passed 8/8 local gates and emitted 209 outputs/8 cycles. Run13 DSA+GDN builder oracle likewise passed and emitted 215. Both use direct eager target and unordered prompt admission, so no Stock parity or throughput claim follows.

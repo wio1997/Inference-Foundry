@@ -55,3 +55,15 @@
 - `2026-09-23T06:53:18Z` Run `run-20260923T064032Z` 记录为 `pass`；正确性为 `not-applicable`。SWA slot refresh passed exact bootstrap gate and eight real-weight cycles on all ranks, but continued low acceptance (roughly 1.25-1.83 outputs/slot/cycle after cycle0). Isolated candidate rejected, no E2E claim.
 
 - 2026-09-23 06:54 UTC: corrected transcription of Run10 total_outputs_8_cycles from 173 to 161 using rank0 per-cycle counts; summary.json and all eight rank records are the source. No experiment or verdict changed.
+
+- `2026-09-23T06:56:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T065610Z`（test）。
+
+- `2026-09-23T07:09:47Z` Run `run-20260923T065610Z` 记录为 `invalid`；正确性为 `fail`。Oracle DSA builder refresh executed 8 cycles, but host mirror exactness failed on all ranks because diagnostic callback wrote shared DSpark CPU seq_lens mirror. 211-output trend is invalid; retry with private builder common metadata.
+
+- `2026-09-23T07:09:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T070959Z`（test）。
+
+- `2026-09-23T07:24:22Z` Run `run-20260923T070959Z` 记录为 `pass`；正确性为 `not-applicable`。Private-mirror DSA builder oracle diagnostic passed local state gates on all eight ranks; 209 outputs over eight cycles, but Stock same-state token oracle and GDN metadata parity remain open. Eager diagnostic is not a performance candidate.
+
+- `2026-09-23T07:25:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T072512Z`（test）。
+
+- `2026-09-23T07:39:57Z` Run `run-20260923T072512Z` 记录为 `pass`；正确性为 `not-applicable`。DSA+GDN per-cycle builder oracle diagnostic passed local gates on all eight ranks; 215 outputs over eight cycles versus unordered DSA-only 209, no major recovery toward Stock and no same-state token parity claim.

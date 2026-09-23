@@ -1,0 +1,14 @@
+diff --git a/bootstrap/vllm_target_handoff.py b/bootstrap/vllm_target_handoff.py
+index 707fc13..0dce74f 100644
+--- a/bootstrap/vllm_target_handoff.py
++++ b/bootstrap/vllm_target_handoff.py
+@@ -149,6 +149,9 @@ class DirectTargetHandoff:
+         )
+
+     def forward(self, input_ids: torch.Tensor, positions: torch.Tensor):
++        diagnostic_refresh = getattr(self, "diagnostic_metadata_refresh", None)
++        if diagnostic_refresh is not None:
++            diagnostic_refresh(positions)
+         num_tokens = input_ids.shape[0]
+         update_cos_sin(positions)
+         context_kwargs = {}
