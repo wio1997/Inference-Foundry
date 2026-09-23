@@ -101,3 +101,5 @@
 - `2026-09-23T09:42:30Z` Run `run-20260923T092814Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks passed 256 cycles with combined DSA+GDN builder and draft gid2 slot refresh; bootstrap slot parity exact, gid2 stale 96/96 at cycle1. Outputs/slot/cycle still 1.013 in cycles64-127 and 1.003 in 128-191. Reject metadata patch route.
 
 - `2026-09-23T09:45:11Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T094511Z`（test）。
+
+- `2026-09-23T10:01:23Z` Run `run-20260923T094511Z` 记录为 `invalid`；正确性为 `invalid`。Run22 completed 8x256 cycles but oracle callback was never invoked; target slot hypothesis untested; hook wiring required.

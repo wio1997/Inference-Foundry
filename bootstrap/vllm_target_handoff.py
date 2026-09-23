@@ -149,6 +149,10 @@ class DirectTargetHandoff:
         )
 
     def forward(self, input_ids: torch.Tensor, positions: torch.Tensor):
+        # Optional bootstrap-only diagnostic. Product runs leave this unset.
+        diagnostic_refresh = getattr(self, "diagnostic_metadata_refresh", None)
+        if diagnostic_refresh is not None:
+            diagnostic_refresh(positions)
         num_tokens = input_ids.shape[0]
         update_cos_sin(positions)
         context_kwargs = {}
