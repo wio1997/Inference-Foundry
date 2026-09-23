@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..a230458a6 100644
+index fd5463845..9099e7659 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..a230458a6 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,679 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,758 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -425,6 +425,85 @@ index fd5463845..a230458a6 100644
 +                with open(os.path.join(_extreme_run_dir, "rank%d.json" % _row["rank"]), "w") as _file:
 +                    json.dump(_row, _file, indent=2)
 +                raise RuntimeError("EXTREME_PROPOSER_PARITY_COMPLETE")
++            if os.getenv("EXTREME_TARGET_SELF_PARITY") == "1":
++                # Diagnostic only: replay the same target state after an exact
++                # touched-cache restore, then advance the real Runtime once.
++                _target_assets = (
++                    _extreme_runtime.target.binding.forward.__self__.assets
++                )
++                _self_rows = []
++                _self_initial_num_computed = _extreme_runtime.state.num_computed_tokens.clone()
++                _self_cycles = int(os.getenv("EXTREME_TARGET_SELF_CYCLES", "8"))
++                for _cycle in range(_self_cycles):
++                    _extreme_runtime._state_machine.prepare_target_inputs()
++                    _snapshot = _target_assets.snapshot_slots(
++                        self._extreme_all_slot_mappings,
++                        num_tokens=96,
++                    )
++                    _first = _extreme_runtime.target.execute(_extreme_runtime.state)
++                    _first_pred = _first.logits.argmax(dim=-1).clone()
++                    _first_accept = _extreme_runtime.acceptance.execute(
++                        _extreme_runtime.state, _first
++                    )
++                    _first_counts = _first_accept.num_sampled.clone()
++                    _first_tokens = _first_accept.sampled_token_ids.clone()
++                    torch.npu.synchronize()
++                    _snapshot.restore()
++                    _restore_first = _snapshot.verify_restored()
++                    _second = _extreme_runtime.target.execute(_extreme_runtime.state)
++                    _second_pred = _second.logits.argmax(dim=-1).clone()
++                    _second_accept = _extreme_runtime.acceptance.execute(
++                        _extreme_runtime.state, _second
++                    )
++                    _second_counts = _second_accept.num_sampled.clone()
++                    _second_tokens = _second_accept.sampled_token_ids.clone()
++                    torch.npu.synchronize()
++                    _snapshot.restore()
++                    _restore_second = _snapshot.verify_restored()
++                    _self_rows.append({
++                        "cycle": _cycle,
++                        "snapshot_entries": len(_snapshot.rows),
++                        "snapshot_skipped": _snapshot.skipped,
++                        "restore_first": _restore_first,
++                        "restore_second": _restore_second,
++                        "target_argmax_equal": int((_first_pred == _second_pred).sum().item()),
++                        "target_argmax_total": int(_first_pred.numel()),
++                        "acceptance_count_equal": int((_first_counts == _second_counts).sum().item()),
++                        "acceptance_token_equal": int((_first_tokens == _second_tokens).sum().item()),
++                        "first_counts": _first_counts.cpu().tolist(),
++                        "second_counts": _second_counts.cpu().tolist(),
++                    })
++                    _extreme_runtime.step()
++                _rank = int(get_tp_group().rank_in_group)
++                _self_result = {
++                    "rank": _rank,
++                    "cycles": _self_cycles,
++                    "rows": _self_rows,
++                    "state_advance_exact": bool(torch.equal(
++                        _extreme_runtime.state.num_computed_tokens,
++                        _extreme_runtime.state.emitted_token_count
++                        + _self_initial_num_computed,
++                    )),
++                    "host_mirror_exact": bool(
++                        _extreme_runtime.proposer.validate_host_mirrors(
++                            _extreme_runtime.state
++                        )
++                    ),
++                }
++                _self_result["pass"] = bool(
++                    all(row["restore_first"]["exact"]
++                        and row["restore_second"]["exact"]
++                        and not row["snapshot_skipped"]
++                        for row in _self_rows)
++                    and _self_result["host_mirror_exact"]
++                )
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(
++                    os.path.join(_extreme_run_dir, f"rank{_rank}.json"),
++                    "w", encoding="utf-8",
++                ) as _file:
++                    json.dump(_self_result, _file, indent=2)
++                raise RuntimeError("EXTREME_TARGET_SELF_PARITY_COMPLETE")
 +            if _extreme_serve:
 +                _sampling_params = [
 +                    self.requests[_req_id].sampling_params
@@ -693,7 +772,7 @@ index fd5463845..a230458a6 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +2819,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +2898,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -979,7 +1058,7 @@ index fd5463845..a230458a6 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3172,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3251,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -992,7 +1071,7 @@ index fd5463845..a230458a6 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3325,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3404,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1032,7 +1111,7 @@ index fd5463845..a230458a6 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4137,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4216,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1043,7 +1122,7 @@ index fd5463845..a230458a6 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4166,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4245,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )
