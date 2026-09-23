@@ -119,3 +119,9 @@ Run23 (connected combined oracle) passed 8/8 rank local gates for 256 eager targ
 - `2026-09-23T10:37:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T103729Z`（test）。
 
 Run24 isolated the connected DSA+GDN builder callback: all 8 ranks completed 256 eager target cycles, with exactly 256 callback invocations/rank, exact state/mirror checks, and no target-slot audit entries. Outputs/slot/cycle were 1.836 in cycles 128-191 and 1.814 in 192-255. This does not show Run23's late near-all-accepted behavior. Run25 will isolate the reference all-group physical slot update while leaving existing metadata objects unchanged, to distinguish slot effect from the combination. Different prompt admission prevents a strict paired numerical delta; token-level API oracle remains mandatory.
+
+- `2026-09-23T10:52:30Z` Run `run-20260923T103729Z` 记录为 `pass`；正确性为 `pass`。8/8 rank 256-cycle slot-only control, 256 callback calls/rank and cycle0 slot parity. Outputs/slot/cycle 1.065 in cycles128-191; no Run23 near-all-accepted regime. Combined interaction and token correctness remain open.
+
+- `2026-09-23T10:52:50Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T105250Z`（test）。
+
+Run25 isolated reference all-group target slot refresh with builder rebuild skipped: 8/8 ranks passed 256 eager cycles, with 256 callback calls, 24 audit entries/rank, and cycle-0 equality. At cycle 1 five groups changed 96/96 slots, while group 3 remained equal. Yet outputs/slot/cycle fell to 1.065 in cycles 128-191 and 1.079 in 192-255. Run23's near-all-accepted regime therefore requires the combination of metadata rebuild and slot refresh on these request cohorts; it is not a validated semantic fix. Run26 now collects exact 12x32K->1024 Stock token IDs through the API return_token_ids option. A matched Extreme serving capture and first-divergence comparison follow.

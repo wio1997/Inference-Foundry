@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..d9f484001 100644
+index fd5463845..a230458a6 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..d9f484001 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,667 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,679 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -191,6 +191,12 @@ index fd5463845..d9f484001 100644
 +                                        "changed": _changed,
 +                                    }
 +                                )
++                    if os.getenv("EXTREME_TARGET_SLOT_ONLY_ORACLE") == "1":
++                        if os.getenv("EXTREME_TARGET_SLOT_ORACLE") != "1":
++                            raise RuntimeError("slot-only oracle requires slot refresh")
++                        _diagnostic_refresh_count[0] += 1
++                        _diagnostic_target_handoff.diagnostic_refresh_calls = _diagnostic_refresh_count[0]
++                        return
 +                    for _gid, _cm in enumerate(self._extreme_group_common_metadata):
 +                        _cm_work = copy(_cm)
 +                        _cm_work.positions[:96].copy_(_state.target_positions)
@@ -248,6 +254,7 @@ index fd5463845..d9f484001 100644
 +                    if not _rebuilt:
 +                        raise RuntimeError("oracle DSA builder refresh found no group")
 +                    _diagnostic_refresh_count[0] += 1
++                    _diagnostic_target_handoff.diagnostic_refresh_calls = _diagnostic_refresh_count[0]
 +
 +                _diagnostic_target_handoff.diagnostic_metadata_refresh = (
 +                    _oracle_refresh_dsa_metadata
@@ -634,6 +641,11 @@ index fd5463845..d9f484001 100644
 +                    _result.acceptance.num_sampled.cpu().tolist()
 +                    for _result in _extreme_results
 +                ],
++                "diagnostic_refresh_calls": getattr(
++                    _extreme_runtime.target.binding.forward.__self__,
++                    "diagnostic_refresh_calls",
++                    0,
++                ),
 +                "target_slot_oracle_audit": getattr(
 +                    _extreme_runtime.target.binding.forward.__self__,
 +                    "target_slot_oracle_audit",
@@ -681,7 +693,7 @@ index fd5463845..d9f484001 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +2807,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +2819,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -967,7 +979,7 @@ index fd5463845..d9f484001 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3160,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3172,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -980,7 +992,7 @@ index fd5463845..d9f484001 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3313,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3325,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1020,7 +1032,7 @@ index fd5463845..d9f484001 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4125,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4137,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1031,7 +1043,7 @@ index fd5463845..d9f484001 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4154,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4166,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )
