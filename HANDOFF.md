@@ -225,3 +225,7 @@ Identical 12×32K→1024 c12 Stock requests were submitted twice to one service 
 ## Loop035 Run48 diagnostic binding correction (2026-09-23 16:56 UTC)
 
 Run48 Stock/direct/Stock target control reached its diagnostic bootstrap on all 8 ranks but failed before target A/B/C because the new mode did not request the per-group common metadata views from the Stock builder. No target conclusion follows. The diagnostic gate now captures those views when `EXTREME_STOCK_TARGET_ABA=1`; Run49 is starting with the same cycle128 and fixed cohort protocol. Product Runtime code is unchanged. Evidence: `run48/summary.json`.
+
+## Loop035 Run49 late Stock/direct target control (2026-09-23 17:10 UTC)
+
+At the 128th fixed Stock decode cycle, native-DSA direct target B was run between Stock target A and restored Stock C on the exact same physical KV and metadata state. All 8 ranks passed physical KV, metadata and common-field restore gates. A/B first target token matched 12/12, full argmax 96/96, accepted tokens 96/96 and all 12 accepted counts; A/C full argmax was 95/96. Stock counts were [6,4,6,8,7,6,1,7,6,4,8,1]. This excludes a direct target invocation discrepancy on that sampled Stock state. It does not prove continuous Extreme state evolution; next compare KV/DSA and state transition writes after the first target/proposer cycle against Stock, then trace first split. The intentional sentinel truncated client streams, so bench output is not throughput evidence. `run49/summary.json`.

@@ -401,3 +401,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Loop035 Run47: Stock output self-control invalidated independent exact-text oracle. Two identical 12-request 1024-token cohorts completed, but 0/12 texts matched exactly; common prefix ranged 38–920 characters. Same-state KV-restored Stock/direct target control is required.
 
 - Loop035 Run48: INVALID before target A/B/C on 8/8 ranks due missing diagnostic group common view. Gate corrected for Run49; no target or acceptance inference.
+
+- Loop035 Run49: on a shared Stock cycle128 KV state, native-DSA direct target matched Stock target 96/96 argmax, 12/12 first target token, 96/96 accepted tokens and 12/12 counts on all 8 ranks; Stock self-replay matched 95/96 argmax. KV and metadata restores exact. Continuous trajectory remains unverified.
