@@ -125,3 +125,9 @@ Run24 isolated the connected DSA+GDN builder callback: all 8 ranks completed 256
 - `2026-09-23T10:52:50Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T105250Z`（test）。
 
 Run25 isolated reference all-group target slot refresh with builder rebuild skipped: 8/8 ranks passed 256 eager cycles, with 256 callback calls, 24 audit entries/rank, and cycle-0 equality. At cycle 1 five groups changed 96/96 slots, while group 3 remained equal. Yet outputs/slot/cycle fell to 1.065 in cycles 128-191 and 1.079 in 192-255. Run23's near-all-accepted regime therefore requires the combination of metadata rebuild and slot refresh on these request cohorts; it is not a validated semantic fix. Run26 now collects exact 12x32K->1024 Stock token IDs through the API return_token_ids option. A matched Extreme serving capture and first-divergence comparison follow.
+
+- `2026-09-23T11:06:03Z` Run `run-20260923T105250Z` 记录为 `pass`；正确性为 `pass`。Stock API token oracle returned 12/12 unique prompt hashes and exact 1024 output token IDs/request, all finish_reason=length; paired Extreme capture pending.
+
+- `2026-09-23T11:06:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T110633Z`（test）。
+
+Run26 collected Stock exact token oracle through Chat Completions return_token_ids: all 12 fixed dataset requests succeeded, all 12 prompt token hashes were unique, prompt lengths were 32,851 for eleven requests and 32,853 for one, and every response contained exactly 1,024 token IDs with finish_reason=length. This is a correctness reference only, not a repeated throughput baseline. Run27 is loading combined metadata+slot oracle Extreme serving for a same-request API token comparison.

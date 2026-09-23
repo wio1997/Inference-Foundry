@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：执行 Run run-20260923T105250Z：Stock reference 12x32K->1024 greedy ignore-EOS; nonstream API return_token_ids=true; prompt hash + output token IDs
-- 更新时间：`2026-09-23T10:52:50Z`
+- 下一步：执行 Run run-20260923T110633Z：EXTREME_RUNTIME_SERVE=1 plus connected DSA+GDN builder and target slot oracle; exact 12x32K->1024 API token IDs versus Stock
+- 更新时间：`2026-09-23T11:06:33Z`
 
 ## Run 记录
 
@@ -41,6 +41,7 @@
 - `runs/mixed_32k_1024_c12/run-20260923T102151Z`
 - `runs/mixed_32k_1024_c12/run-20260923T103729Z`
 - `runs/mixed_32k_1024_c12/run-20260923T105250Z`
+- `runs/mixed_32k_1024_c12/run-20260923T110633Z`
 
 ## 阻塞项
 
