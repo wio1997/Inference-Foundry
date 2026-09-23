@@ -1,0 +1,59 @@
+diff --git a/bootstrap/vllm_target_handoff.py b/bootstrap/vllm_target_handoff.py
+index 707fc13..25008bb 100644
+--- a/bootstrap/vllm_target_handoff.py
++++ b/bootstrap/vllm_target_handoff.py
+@@ -9,6 +9,7 @@ not retain or invoke ModelRunner/Scheduler objects per decode cycle.
+ from __future__ import annotations
+
+ from dataclasses import dataclass
++import os
+ from collections.abc import Callable
+ from typing import Any
+
+@@ -149,6 +150,8 @@ class DirectTargetHandoff:
+         )
+
+     def forward(self, input_ids: torch.Tensor, positions: torch.Tensor):
++        if os.getenv("EXTREME_SWA_SLOT_REFRESH") == "1":
++            self._refresh_swa_slots(positions)
+         num_tokens = input_ids.shape[0]
+         update_cos_sin(positions)
+         context_kwargs = {}
+@@ -184,6 +187,37 @@ class DirectTargetHandoff:
+                 output = _gather_output(output)
+         return output
+
++    def _refresh_swa_slots(self, positions: torch.Tensor) -> None:
++        # Diagnostic ablation only: ordinary SWA groups have token slots;
++        # compressed DSA groups require their own compressor metadata op.
++        batch, width = 12, 8
++        pos = positions.view(batch, width)
++        req_index = torch.arange(batch, device=positions.device).unsqueeze(1)
++        touched = 0
++        initial = not hasattr(self, "_swa_slot_initialized")
++        seen = set()
++        for key, metadata in self.attn_metadata.items():
++            if not key.endswith("swa_cache"):
++                continue
++            req = metadata.req_metadata
++            slots = req.slot_mapping
++            if slots is None or slots.data_ptr() in seen:
++                continue
++            seen.add(slots.data_ptr())
++            block_size = int(req.block_size)
++            block_index = torch.div(pos, block_size, rounding_mode="floor")
++            if bool((block_index >= req.block_table.shape[1]).any()):
++                raise RuntimeError(f"SWA block table too narrow: {key}")
++            blocks = req.block_table[req_index, block_index]
++            expected = torch.stack((blocks, pos.remainder(block_size)), dim=-1).to(slots.dtype)
++            if initial and not torch.equal(slots[:batch*width], expected.view(-1, 2)):
++                raise RuntimeError(f"SWA initial slot parity failed: {key}")
++            slots[:batch*width].copy_(expected.view(-1, 2))
++            touched += 1
++        if touched == 0:
++            raise RuntimeError("no SWA slot mapping bound")
++        self._swa_slot_initialized = True
++
+     def binding(self) -> FixedTargetBinding:
+         return FixedTargetBinding(
+             forward=self.forward,

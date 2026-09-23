@@ -322,3 +322,6 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Warm Stock single-cohort 12×32K→1024 c12: 12/12 complete, 553.76 tok/s, 2.908 accepted drafts/iteration from counter deltas. This reinforces sustained Stock acceptance; it does not replace Loop034 formal 48-request baseline.
 - DSA-CP start_pos and local_seq_lens were found stale from cycle 1. Refreshing both kept them current but produced only 127 outputs across 8×12 Extreme slot cycles; the isolated candidate was rejected. All eight rank records passed the local state contract, which is weaker than token-level oracle parity.
 - Rejected/invalid probes and raw traces are indexed in TaskCtl Loop035. No structural performance KEEP or formal A/B rerun yet.
+
+- Loop035 SWA-only slot refresh: exact bootstrap parity, all eight TP ranks passed, 161 outputs over 8×12 slot cycles, no acceptance recovery. Candidate reverted; TaskCtl run run-20260923T064032Z.
+- Product state carry checks across three traces: draft, last token and num_computed each 84/84 consecutive-slot transitions exact. First draft/target argmax match degrades after cycle 0, so target/proposer comparison is the next semantic gate.
