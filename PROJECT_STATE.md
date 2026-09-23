@@ -1,13 +1,12 @@
 # DeepSeek Extreme P0 — Project State
 
-Updated: 2026-09-22 08:16 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 service and **E2** for the first real-weight Extreme Runtime decode chain; runtime performance remains unmeasured.
+Updated: 2026-09-23 03:04 UTC. Evidence maturity: **E2** for both Stock and the first full-serving Extreme Runtime under the frozen warm-cache DP1/TP8 protocol.
 
-> Latest checkpoint (2026-09-22 13:31 UTC): Loop034 is active. The fixed
-> cohort serving shell, bulk completion transport and 1024-token KV reservation
-> are implemented; CPU semantic/serialization gates pass. The formal NPU E2E
-> run is waiting for an unrelated W8A8 job on port 8300 to release all eight
-> cards. Do not stop that external job. Resume with
-> `scripts/run_loop034_extreme_e2e.sh` after a stable-free hardware check.
+> Latest checkpoint (2026-09-23 03:04 UTC): Loop034 completed the first formal
+> Extreme E2E A/B. All three measured runs passed 48/48 at exactly 1024 output
+> tokens; median output TPS is 217.342 versus Stock 543.655 (-60.022%). The
+> fixed serving boundary is correct, but sustained runtime decode is not yet
+> competitive. Next profile the complete 1024-cycle runtime-owned chain.
 
 ## Fixed contract
 
@@ -27,10 +26,16 @@ Updated: 2026-09-22 08:16 UTC. Evidence maturity: **E2** for warm-cache DP1/TP8 
 
 ## Next loop
 
-1. Loop 001 is pivoted after the invalid parser run; Loop 002 accepts the corrected baseline. Preserve both decisions and evidence.
-2. Two disjoint cold 32K×128 c1 groups finished: TTFT 2662.7/2627.2 ms, second group 0/131404 prefix hits. System msprof captured HBM/HCCS/AICore only; application profile restart now loading. Profile/diagnose current DP1/TP8 **without treating older DP2/TP4 results as current truth**. Separate warm decode and cold prefill, inspect draft/target spans, HCCL, kernels and host; use profiler only outside official benchmark windows.
-3. Rank the largest eliminable Gap. Historical evidence points to DSpark efficiency and TP communication/compute contention as candidates, but they are unproven for this run.
-4. Freeze one mechanism hypothesis, minimal candidate, correctness, same-protocol A/B, KEEP/REJECT, update all four state files and commit. Continue while a testable high-value gap remains.
+1. Preserve Loop034 as the serving-correctness and formal performance point;
+   do not repeat its warmup or three-run A/B without a new candidate.
+2. Profile the complete runtime-owned 1024-cycle chain, not generic vLLM.
+   Attribute the 53.373 s cohort wall across target replay, proposer, TP/EP
+   communication, acceptance/state, output staging and Host launch/sync gaps.
+3. Choose the largest causally removable region from that profile. Device
+   residence, graph/persistent execution, communication overlap and
+   cross-operator fusion/SuperKernel remain candidates, not assumptions.
+4. Validate continuous correctness first, then repeat the frozen E2E protocol
+   only for a structurally meaningful candidate.
 
 ## Resume
 

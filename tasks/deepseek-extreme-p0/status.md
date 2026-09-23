@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`INTEGRATING`
-- 活动 Loop：`loop-034`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
-- 当前知识条目：`9`
-- 下一步：Implement a fixed device output drain and cohort-to-limit driver, then add the minimal bootstrap/control-plane return contract and run CPU tests before the NPU A/B.
-- 更新时间：`2026-09-22T13:06:57Z`
+- 当前知识条目：`10`
+- 下一步：Open a profile-driven optimization Loop over the full 1024-cycle Extreme-owned chain; attribute the 53.373 s cohort wall across target graph replay, proposer, communication, acceptance/state and launch gaps before selecting the next structural change.
+- 更新时间：`2026-09-23T03:03:46Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-031` | `ACCEPTED` | `ACCEPTED` | All eight ranks produced parsed runtime-only traces with correctness preserved. Scope and device-union analysis identifies the target/proposer critical path and isolates DSpark CPU mirror refresh as a removable synchronization residue, satisfying the frozen attribution and candidate-selection goal. |
 | `loop-032` | `PIVOTED` | `PIVOTED` | The structural hypothesis is supported: real-weight correctness holds for 64 cycles, all runtime-owned host mirrors equal device state, and the matched profile shows the DSpark refresh barrier falling by 12.117 ms median with a 7.495 ms (-1.40%) full-cycle median reduction. TaskCtl cannot register an accepted optimization verdict because the already-recorded Loop031 profile Run omitted a metric field; the evidence comparison remains preserved explicitly and the implementation is retained. |
 | `loop-033` | `ACCEPTED` | `ACCEPTED` | Matched 64-cycle real-weight runs establish both correctness and causality. Reusing the fixed target graph from Extreme-owned buffers preserves exact state/mirror/rank invariants and cuts cycle wall 87.71%, raising internal decode-window throughput 669.2%, with no ModelRunner or Scheduler retained in the cycle. |
-| `loop-034` | `EVALUATING` | `PENDING` | 审查 Run run-20260922T134109Z 的证据，并判断是否需要更多 Run |
+| `loop-034` | `PIVOTED` | `PIVOTED` | The frozen milestone is satisfied: CPU gates pass, every official run completes 48/48 requests at exactly 1024 tokens, and 128 rank/cohort records pass with no per-cycle ModelRunner/Scheduler re-entry. TaskCtl cannot mark the mixed-history loop accepted because the preserved collision attempt is invalid; that attempt is environmental, while the formal run is valid and shows Extreme at 217.342 tok/s, 60.022% below Stock. |
 
 ## 阻塞项
 

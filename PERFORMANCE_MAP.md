@@ -301,7 +301,7 @@ No-profiler warm c12×512 sample,160 pure decode proposer calls/rank: _propose m
 
 The first product-owned fixed execution region is now semantically closed across all TP ranks: greedy acceptance → accepted-count calculation → sequence/position advance → next target-input ABI construction. This region is a candidate for one device-resident fused transition/SuperKernel because its shapes and temperature-0 semantics are frozen. No speedup is claimed yet. The immediate critical path is outside this region: direct target forward, target KV/recurrent/GDN mutation, DSpark proposal, and their TP collective boundaries must be moved under runtime ownership before graph/replay or cross-operator fusion can be measured honestly.
 
-## 2026-09-22 Loop034 serving boundary (active)
+## 2026-09-23 Loop034 formal serving result
 
 - Decode hot path: one admitted c12 cohort remains inside Extreme Runtime until
   its 1024-token product limit; Scheduler/ModelRunner do not execute per cycle.
@@ -310,6 +310,12 @@ The first product-owned fixed execution region is now semantically closed across
 - KV ownership: bootstrap reserves 1024 lookahead tokens per request before
   handoff, making the long-run block table a real allocation contract.
 - Serving residue: generic prefill/admission and final HTTP publication remain
-  between cohorts and will be included in the formal E2E metric.
-- Measurement blocker: an unrelated W8A8 service currently occupies all eight
-  NPUs. No Extreme NPU performance result exists for Loop034 yet.
+  between cohorts, but the decode cycles themselves stay runtime-owned.
+- Formal warm-cache output TPS: `217.342 / 218.884 / 215.889`, median
+  `217.342 tok/s`, versus Stock `543.655 tok/s` (`-60.022%`). All runs passed
+  48/48 requests at exactly 1024 output tokens.
+- Median-of-runs TTFT p50 is `1942.120 ms`; TPOT p50 is `53.298 ms`. Rank-0
+  cohort wall median is `53.373 s` for about 1025 cycles.
+- Interpretation: the serving shell is correct, but it did not close the
+  sustained decode gap. The next evidence target is a full-chain runtime-only
+  profile, not more control-plane compatibility work.

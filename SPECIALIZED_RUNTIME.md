@@ -157,7 +157,7 @@ boundary is the fixed 48-request admission/refill and output-drain shell needed
 to execute the frozen 48×32K→1024 c12 protocol and compare directly with Stock
 543.65 tok/s.
 
-## Loop034 fixed serving shell — active 2026-09-22
+## Loop034 fixed serving shell — completed 2026-09-23
 
 The first serving boundary keeps an admitted 12-request cohort inside Extreme
 Runtime until every slot has produced its frozen 1024-token limit. Accepted
@@ -175,9 +175,16 @@ explicitly bypassed for this marked frame. CPU tests cover exact per-slot
 trimming, different acceptance counts, one-cycle-lag completion and output
 transport serialization.
 
-The NPU E2E gate is prepared but not yet run. Another W8A8 job currently owns
-all eight 910B3 cards on port 8300; it is external to this project and must not
-be terminated. When the cards remain free for the launcher's 60-second safety
-window, `scripts/run_loop034_extreme_e2e.sh` performs the full warmup plus three
-48×32K→1024 c12 measurements and compares their median directly with Stock
-543.65 tok/s.
+The NPU E2E gate passed. Warmup plus three `48×32K→1024, c12` measurements all
+completed 48/48 requests at exactly 1024 tokens. Sixteen cohorts across the
+four workloads produced 128 passing rank records, with exact Host mirrors and
+zero post-handoff ModelRunner cycles. Formal median output TPS is
+`217.342 tok/s`; TTFT p50 is `1942.120 ms` and TPOT p50 `53.298 ms`. Against
+Stock `543.655 tok/s`, the current runtime is `60.022%` slower.
+
+The bulk serving boundary is therefore promoted for correctness but not for
+performance. Rank-0 cohort wall median is `53.373 s` for roughly 1025 cycles,
+which localizes the dominant gap to sustained target/proposer/communication
+execution rather than Scheduler or HTTP publication. The next runtime loop
+must profile that complete chain and select a structural intervention from the
+measured critical path.

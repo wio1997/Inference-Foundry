@@ -1,3 +1,44 @@
+diff --git a/vllm_ascend/patch/platform/patch_kv_delivery_preemption.py b/vllm_ascend/patch/platform/patch_kv_delivery_preemption.py
+index e348910d9..ed0d0dad1 100644
+--- a/vllm_ascend/patch/platform/patch_kv_delivery_preemption.py
++++ b/vllm_ascend/patch/platform/patch_kv_delivery_preemption.py
+@@ -925,7 +925,11 @@ class KVDeliveryScheduler(Scheduler):
+             generated_token_ids = sampled_token_ids[req_index] if sampled_token_ids else []
+ 
+             scheduled_spec_token_ids = scheduler_output.scheduled_spec_decode_tokens.get(req_id)
+-            if scheduled_spec_token_ids and (generated_token_ids or self.num_sampled_tokens_per_step == 0):
++            if (
++                scheduled_spec_token_ids
++                and (generated_token_ids or self.num_sampled_tokens_per_step == 0)
++                and not model_runner_output.extreme_bulk_output
++            ):
+                 num_draft_tokens = len(scheduled_spec_token_ids)
+                 num_sampled = self.num_sampled_tokens_per_step
+                 num_accepted = max(len(generated_token_ids) - num_sampled, 0)
+@@ -963,9 +967,20 @@ class KVDeliveryScheduler(Scheduler):
+ 
+             # Check for stop and update request status.
+             if new_token_ids:
+-                new_token_ids, stopped = self._update_request_with_output(
+-                    request, new_token_ids, is_stale=output_is_stale
+-                )
++                if model_runner_output.extreme_bulk_output:
++                    # Extreme Runtime owns all intermediate decode cycles. Its
++                    # terminal frame is not backed by the async scheduler's
++                    # one-step placeholder list, so append/stop directly and
++                    # bypass placeholder decrement/cache bookkeeping.
++                    new_token_ids, stopped = (
++                        KVDeliveryScheduler._update_request_with_output(
++                            self, request, new_token_ids
++                        )
++                    )
++                else:
++                    new_token_ids, stopped = self._update_request_with_output(
++                        request, new_token_ids, is_stale=output_is_stale
++                    )
+             elif request.pooling_params and pooler_output is not None:
+                 # Pooling stops as soon as there is output.
+                 request.status = RequestStatus.FINISHED_STOPPED
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
 index fd5463845..5e1282e95 100644
 --- a/vllm_ascend/worker/model_runner_v1.py

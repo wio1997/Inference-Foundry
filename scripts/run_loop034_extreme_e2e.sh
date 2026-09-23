@@ -20,6 +20,15 @@ for _ in $(seq 1 6); do
     sleep 10
 done
 
+# The repository and NPU devices are mounted into the frozen vLLM-Ascend 0.26
+# container, while the SSH host intentionally has no CANN toolkit. Re-enter
+# this exact script in that container after the host-side occupancy gate so the
+# benchmark cannot accidentally use a different framework checkout.
+if [ ! -f /usr/local/Ascend/ascend-toolkit/set_env.sh ]; then
+    exec docker exec -i vllm-ascend26-dsv4f-w4a8 \
+        bash -lc "cd '${ROOT}' && ./scripts/run_loop034_extreme_e2e.sh '${OUT}'"
+fi
+
 export MAX_MODEL_LEN=1048576
 export RUN_TS=LOOP034-EXTREME-E2E-$(date +%Y%m%d-%H%M)
 export EXTREME_RUNTIME_RUN_DIR=${OUT}/runtime
