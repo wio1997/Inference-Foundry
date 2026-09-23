@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..c75cb42b1 100644
+index fd5463845..6663ff793 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,10 +13,49 @@ index fd5463845..c75cb42b1 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,1396 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1435 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
++        # One fixed lifecycle bridge into the dedicated continuous Stock
++        # state/ownership observer. The observer never mutates model or KV.
++        _stock_shadow_dir = os.getenv("EXTREME_STOCK_SHADOW_DIR")
++        if (
++            _stock_shadow_dir
++            and use_spec_decode
++            and num_reqs == 12
++            and scheduler_output.total_num_scheduled_tokens == 96
++            and spec_decode_common_attn_metadata is not None
++            and not getattr(self, "_stock_shadow_done", False)
++        ):
++            _runtime_root = "/data/wio/Inference_Foundry"
++            if _runtime_root not in sys.path:
++                sys.path.insert(0, _runtime_root)
++            if not hasattr(self, "_stock_continuous_shadow"):
++                from diagnostics.continuous_stock_shadow import ContinuousStockShadow
++                self._stock_continuous_shadow = ContinuousStockShadow(
++                    _stock_shadow_dir,
++                    limit=int(os.getenv("EXTREME_STOCK_SHADOW_CYCLES", "256")),
++                )
++            self._stock_continuous_shadow.before_target(
++                rank=int(get_tp_group().rank_in_group),
++                request_ids=self.input_batch.req_ids[:num_reqs],
++                block_table=spec_decode_common_attn_metadata.block_table_tensor[:12],
++                input_ids=input_ids[:96],
++                positions=positions[:96],
++                query_start_loc=spec_decode_common_attn_metadata.query_start_loc[:13],
++                seq_lens=spec_decode_common_attn_metadata.seq_lens[:12],
++                slot_mapping=spec_decode_common_attn_metadata.slot_mapping[:96],
++                group_block_tables=[
++                    self.input_batch.block_table[_gid].get_device_tensor()[:12]
++                    for _gid in range(len(self.kv_cache_config.kv_cache_groups))
++                ],
++                group_slot_mappings=self._extreme_all_slot_mappings,
++                group_block_sizes=[
++                    _group.kv_cache_spec.block_size
++                    for _group in self.kv_cache_config.kv_cache_groups
++                ],
++            )
 +        _extreme_runtime = None
 +        _extreme_prestate = None
 +        _extreme_runtime_inputs = None
@@ -1410,7 +1449,7 @@ index fd5463845..c75cb42b1 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3536,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3575,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1696,7 +1735,7 @@ index fd5463845..c75cb42b1 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3889,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3928,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1709,7 +1748,7 @@ index fd5463845..c75cb42b1 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +4042,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +4081,50 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1746,10 +1785,21 @@ index fd5463845..c75cb42b1 100644
 +                    _trace_file.write(json.dumps(_trace_row) + "\n")
 +            self._extreme_oracle_trace_steps = _trace_step + 1
 +
++        if hasattr(self, "_stock_continuous_shadow"):
++            _observer = self._stock_continuous_shadow
++            if _observer.pending:
++                if not isinstance(self._draft_token_ids, torch.Tensor):
++                    raise RuntimeError("Stock shadow draft output missing")
++                _observer.after_cycle(
++                    sampler_output.sampled_token_ids, self._draft_token_ids
++                )
++                if _observer.done:
++                    self._stock_shadow_done = True
++
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4854,11 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4904,11 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1761,7 +1811,7 @@ index fd5463845..c75cb42b1 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4884,15 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4934,15 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )
