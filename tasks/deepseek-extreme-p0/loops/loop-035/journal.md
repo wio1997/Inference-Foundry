@@ -275,3 +275,11 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T20:11:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T201100Z`（test）。
 
 - `2026-09-23T20:26:09Z` Run `run-20260923T201100Z` 记录为 `pass`；正确性为 `pass`。8/8 rank 128 consecutive fixed-c12 Stock target ABI exact; 5/6 KV group slot mappings exact with no negative physical blocks. Group1 256-column state/window table lacks applicable formula. Client 12/12 exact 1024. Long Product-vs-Stock token oracle open.
+
+- `2026-09-23T20:30:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T203000Z`（test）。
+
+- `2026-09-23T20:44:15Z` Run `run-20260923T203000Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks recorded 32 fixed-c12 Stock cycles with exact target ABI and complete target-input/argmax/acceptance/next-draft trace. Client 12/12 exact 1024; group1 mapping geometry remains unverified.
+
+- `2026-09-23T20:44:16Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T204300Z`（test）。
+
+- `2026-09-23T20:59:46Z` Run `run-20260923T204300Z` 记录为 `pass`；正确性为 `pass`。Extreme 8/8 rank serving gates and 12/12 clients exact1024; first32 Product trace captured. Paired Stock Run62 initial full batch differs in 9/12 slots; 3 aligned slots show target/draft clues, not causal proof. Same-state ABA next.
