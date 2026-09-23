@@ -100,15 +100,17 @@ configuration. Run29 used same-state target self-replay with exact restoration
 of 69 touched cache/mutable entries: target argmax still differed at 1-9 of
 96 positions per cycle, while all 12 acceptance counts stayed equal.
 
-Run30 and Run31 A/B/C discriminators completed on all eight ranks. Both
-restored the 138 captured physical KV entries exactly. Run31 also restored
-common positions and seq_lens exactly, but cycle-1 target A/C argmax matched
-only 71/96, the same as A/B; these candidate deltas are invalid because old
-attention metadata or another target-write alias remains contaminated. Run32
-is loading to snapshot every bounded tensor reachable from old attention
-metadata, report which changed, and restore them before C. Active TaskCtl Run:
-run-20260923T122713Z. Service log:
-logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP035-TARGET-ABA-META-20260923-1227.log.
+Run30/31 A/B/C controls were invalid because old attention metadata held
+mutable tensor aliases. Run32 snapshotted 72 tensors reachable from the old
+metadata, then restored them with common fields and 138 physical KV entries.
+All eight ranks agreed: at cycle 1 A/C target argmax matched 92/96, within
+Run29 self-replay noise, while A/B matched only 75/96. Combined DSA/GDN builder
+plus target-slot refresh therefore changes target predictions causally from
+cycle 1. It changed two of 12 acceptance counts downward in this cohort, so
+this is not yet a semantic or sustained acceptance fix. Run33 is loading an
+isolated builder-only same-state A/B/C control. Active TaskCtl Run:
+run-20260923T124051Z. Service log:
+logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP035-TARGET-ABA-BUILDER-20260923-1240.log.
 No formal E2E A/B has run after Loop034. Refresh
 patches/loop035_current_framework_model_runner.patch after diagnostic edits.
 

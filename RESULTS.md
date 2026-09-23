@@ -349,3 +349,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
   diagnostics with local state gates; no product KEEP or E2E claim.
 
 - Loop035 evidence correction (2026-09-23): Run12/13/19/21 did not execute the intended DSA/GDN diagnostic refresh. Prior builder-effect claims above are withdrawn; cycle completion, state checks, and raw acceptance measurements remain valid. Run22 was explicitly marked invalid after all eight rank files had an empty target-slot audit. Commit a11a71b connected the callback; Run23 will require a nonempty audit and a cycle-0 mapping equality gate.
+
+- Loop035 Run32 A/B/C control, 8×910B3: exact 72 old metadata tensor and 138 touched physical-entry restorations; at cycle1 target argmax A/C 92/96, A/B 75/96. Combined builder+slot refresh has a causal target effect, but two acceptance counts decreased in this cohort and correctness is unresolved. Run33 isolates builder-only before any structural KEEP or E2E rerun.
