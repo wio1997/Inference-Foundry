@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run-20260923T114128Z 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-23T11:55:01Z`
+- 下一步：执行 Run run-20260923T122713Z：EXTREME_TARGET_ABA_PARITY=1 cycle0/1 old attention metadata reachable-tensor snapshot/restore plus common fields and physical KV
+- 更新时间：`2026-09-23T12:27:13Z`
 
 ## Run 记录
 
@@ -44,6 +44,9 @@
 - `runs/mixed_32k_1024_c12/run-20260923T110633Z`
 - `runs/mixed_32k_1024_c12/run-20260923T112521Z`
 - `runs/mixed_32k_1024_c12/run-20260923T114128Z`
+- `runs/mixed_32k_1024_c12/run-20260923T115657Z`
+- `runs/mixed_32k_1024_c12/run-20260923T121330Z`
+- `runs/mixed_32k_1024_c12/run-20260923T122713Z`
 
 ## 阻塞项
 

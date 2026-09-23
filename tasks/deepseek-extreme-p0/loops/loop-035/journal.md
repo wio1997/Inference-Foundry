@@ -147,3 +147,13 @@ Run28 Stock same-service self-repeat returned two complete 12-request, 1,024-tok
 - `2026-09-23T11:55:01Z` Run `run-20260923T114128Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks passed 8-cycle same-state target self-replay, 69 snapshot entries, no skipped rows and exact restores. Target argmax differs 1-9/96 positions/cycle despite exact state; acceptance counts equal 12/12. Establishes paired noise baseline for A-B-A metadata discriminator.
 
 Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 c12 cycles. Each target A/B pair used the same fixed inputs, with 69 physical cache/mutable snapshots, zero skipped cache entries, and exact restoration before and after replay. State advance and Host mirrors remained exact. Yet target argmax matched only 87-95 of 96 positions by cycle; 12/12 acceptance counts matched every cycle and sampled output differed in at most one padded position in three cycles. Thus cross-run token variability has an in-process target source even after KV restoration. Candidate metadata/slot effects must be compared using A-B-A within the same state, with A-C establishing noise and restoration validity.
+
+- `2026-09-23T11:56:57Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T115657Z`（test）。
+
+- `2026-09-23T12:10:04Z` Run `run-20260923T115657Z` 记录为 `invalid`；正确性为 `invalid`。Run30 8/8 rank physical KV snapshots restored exactly, but cycle1 A-C target argmax match only 66/96 versus A-B 70/96; B-C 87/96. Metadata builder mutates shared derived tensors not restored by old dict/slot values, so candidate delta cannot be interpreted. Trace alias and rerun A-B-C.
+
+- `2026-09-23T12:13:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T121330Z`（test）。
+
+- `2026-09-23T12:26:40Z` Run `run-20260923T121330Z` 记录为 `invalid`；正确性为 `invalid`。Run31 8-rank A/B/C local integrity passes, common positions/seq_lens and 138 physical KV entries restore exactly; cycle1 A/C target argmax still 71/96 (A/B 71/96), so mutable metadata or untracked KV aliases invalidate candidate discrimination
+
+- `2026-09-23T12:27:13Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T122713Z`（test）。

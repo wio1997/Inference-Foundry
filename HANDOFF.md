@@ -76,3 +76,44 @@ npu-smi info
 ## Loop035 checkpoint (2026-09-23 06:36 UTC)
 
 The first short real-weight Extreme DAG profile found target ~45.07 ms/cycle and proposer ~5.93 ms/cycle (NPU event medians); the dominant gap remains low accepted outputs. Stock warm 12-request long decode accepted 2.908 drafts/iteration. At Extreme cycle 1, target position/seq_len advance while DSA-CP start_pos and local_seq_lens remain at bootstrap values. Updating only those fields did not recover acceptance, so the candidate was reverted. See PROJECT_STATE.md and evidence/20260923_loop035_diagnostic/. Next obtain same-state target/proposer discrimination and inspect SAS/QLI derived metadata. Do not repeat formal Loop034 A/B until acceptance and long token correctness improve.
+
+## Loop035 checkpoint (2026-09-23 11:57 UTC)
+
+The specialized Runtime 1024-cycle DAG profile (Run18) found target 45.510 ms,
+DSpark proposer 5.943 ms and acceptance 0.305 ms median NPU time. Acceptance
+fell to exactly 1.000 output/slot/cycle late in the run. Formal E2E remains
+Loop034 Extreme 217.342 versus Stock 543.655 tok/s; no new formal A/B has run.
+
+Run22 revealed that an intended bootstrap diagnostic metadata callback had
+never been invoked. Claims of DSA/GDN builder effectiveness from Runs12/13/19/21
+were corrected in PROJECT_STATE.md and RESULTS.md. The hook was connected in
+a11a71b. Connected builder-only Run24 reached 1.836 output/slot/cycle in
+cycles128-191; target-slot-only Run25 reached 1.065. Their combination Run23
+reached 7.480, but this unusually high acceptance is not yet a semantic fix.
+
+Exact API token captures for the same 12 prompts and 1024 outputs were made for
+Stock and combined-oracle Extreme. Both returned 12/12 length-exact outputs,
+but 0/12 matched across services. Crucially, Extreme self-repeat and Stock
+same-service self-repeat also matched 0/12; Stock first output mismatch was
+token 7-78. Thus cross-run generation is not a causal token oracle on this
+configuration. Run29 used same-state target self-replay with exact restoration
+of 69 touched cache/mutable entries: target argmax still differed at 1-9 of
+96 positions per cycle, while all 12 acceptance counts stayed equal.
+
+Run30 and Run31 A/B/C discriminators completed on all eight ranks. Both
+restored the 138 captured physical KV entries exactly. Run31 also restored
+common positions and seq_lens exactly, but cycle-1 target A/C argmax matched
+only 71/96, the same as A/B; these candidate deltas are invalid because old
+attention metadata or another target-write alias remains contaminated. Run32
+is loading to snapshot every bounded tensor reachable from old attention
+metadata, report which changed, and restore them before C. Active TaskCtl Run:
+run-20260923T122713Z. Service log:
+logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP035-TARGET-ABA-META-20260923-1227.log.
+No formal E2E A/B has run after Loop034. Refresh
+patches/loop035_current_framework_model_runner.patch after diagnostic edits.
+
+Agent orchestration was repaired independently in b53b912. The active main
+agent is GPT-6 Sol. The new scripts/delegate_zcode.py ran an actual read-only
+DeepSeek Flash Zcode task; its session ID, provider model I/O trace, response
+and exit status are in evidence/20260923_agent_orchestration/probe1/.
+TaskCtl remains an evidence manager, not a model router.
