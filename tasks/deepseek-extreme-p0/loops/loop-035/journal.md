@@ -241,3 +241,5 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T17:59:55Z` Run `run-20260923T174424Z` 记录为 `fail`；正确性为 `fail`。Standalone no-reservation block-table failure: 8/8 ranks physical block0 in 66/96 target positions at cycle16 and 96/96 from cycle32; formal serving has separate 1024-token reservation and remains unproven
 
 - `2026-09-23T18:00:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T180026Z`（test）。
+
+- `2026-09-23T18:17:55Z` Run `run-20260923T180026Z` 记录为 `fail`；正确性为 `fail`。12/12 clients returned 1024, but completed slots kept decoding; cycle256 slot2 targeted physical block0 and rank0 staged 2564 tokens for that slot. Reserved serving semantic failure. Single audited cohort TPS is diagnostic only.
