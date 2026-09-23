@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..9099e7659 100644
+index fd5463845..a2e5ab89b 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..9099e7659 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,758 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,941 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -504,6 +504,189 @@ index fd5463845..9099e7659 100644
 +                ) as _file:
 +                    json.dump(_self_result, _file, indent=2)
 +                raise RuntimeError("EXTREME_TARGET_SELF_PARITY_COMPLETE")
++            if os.getenv("EXTREME_TARGET_ABA_PARITY") == "1":
++                # Diagnostic discriminator at one fixed state: stale target A,
++                # refreshed DSA/GDN+slots B, restored stale target C.
++                from runtime.assets import CacheSlotSnapshot
++
++                _handoff = _extreme_runtime.target.binding.forward.__self__
++                _refresh = getattr(_handoff, "diagnostic_metadata_refresh", None)
++                if _refresh is None:
++                    raise RuntimeError("A-B-A requires connected metadata refresh callback")
++                _handoff.diagnostic_metadata_refresh = None
++                if not isinstance(_handoff.attn_metadata, dict):
++                    raise RuntimeError("A-B-A expects dictionary attention metadata")
++                _assets = _handoff.assets
++                _initial_computed = _extreme_runtime.state.num_computed_tokens.clone()
++                _aba_rows = []
++
++                def _invoke_target():
++                    _result = _extreme_runtime.target.execute(_extreme_runtime.state)
++                    _pred = _result.logits.argmax(dim=-1).clone()
++                    _accept = _extreme_runtime.acceptance.execute(
++                        _extreme_runtime.state, _result
++                    )
++                    return (
++                        _pred,
++                        _accept.num_sampled.clone(),
++                        _accept.sampled_token_ids.clone(),
++                    )
++
++                for _cycle in range(2):
++                    _extreme_runtime._state_machine.prepare_target_inputs()
++                    _old_slots = [
++                        _cm.slot_mapping[:96].clone()
++                        for _cm in self._extreme_group_common_metadata
++                    ]
++                    _old_meta = dict(_handoff.attn_metadata)
++                    _old_meta_tensors = []
++                    _seen_metadata_objects = set()
++                    _metadata_snapshot_skipped = []
++
++                    def _snapshot_metadata_tensors(_obj, _path):
++                        _obj_id = id(_obj)
++                        if _obj_id in _seen_metadata_objects:
++                            return
++                        _seen_metadata_objects.add(_obj_id)
++                        if isinstance(_obj, torch.Tensor):
++                            if _obj.numel() > 2_000_000:
++                                _metadata_snapshot_skipped.append(_path)
++                            else:
++                                _old_meta_tensors.append((_path, _obj, _obj.clone()))
++                        elif isinstance(_obj, dict):
++                            for _key, _value in _obj.items():
++                                _snapshot_metadata_tensors(_value, f"{_path}.{_key}")
++                        elif isinstance(_obj, (list, tuple)):
++                            for _index, _value in enumerate(_obj):
++                                _snapshot_metadata_tensors(_value, f"{_path}[{_index}]")
++                        elif hasattr(_obj, "__dict__") and _obj.__class__.__module__.startswith(
++                            "vllm_ascend"
++                        ):
++                            for _key, _value in vars(_obj).items():
++                                _snapshot_metadata_tensors(_value, f"{_path}.{_key}")
++
++                    _snapshot_metadata_tensors(_old_meta, "attention")
++                    _old_common_fields = [
++                        (_cm.positions[:96].clone(), _cm.seq_lens[:12].clone())
++                        for _cm in self._extreme_group_common_metadata
++                    ]
++                    _old_snapshot = _assets.snapshot_slots(
++                        self._extreme_all_slot_mappings, num_tokens=96
++                    )
++                    _pred_a, _counts_a, _tokens_a = _invoke_target()
++                    _old_snapshot.restore()
++                    _restore_a = _old_snapshot.verify_restored()
++                    _refresh(_extreme_runtime.state.target_positions)
++                    _fresh_slots = [
++                        _cm.slot_mapping[:96].clone()
++                        for _cm in self._extreme_group_common_metadata
++                    ]
++                    _fresh_meta = dict(_handoff.attn_metadata)
++                    _fresh_snapshot = _assets.snapshot_slots(
++                        self._extreme_all_slot_mappings, num_tokens=96
++                    )
++                    _snapshot = CacheSlotSnapshot(
++                        _old_snapshot.rows + _fresh_snapshot.rows,
++                        _old_snapshot.skipped + _fresh_snapshot.skipped,
++                    )
++                    _slot_changes = [
++                        int((_old != _fresh).sum().item())
++                        for _old, _fresh in zip(_old_slots, _fresh_slots)
++                    ]
++
++                    def _install(slots, metadata):
++                        for _cm, _values in zip(
++                            self._extreme_group_common_metadata, slots
++                        ):
++                            _cm.slot_mapping[:96].copy_(_values)
++                        _handoff.attn_metadata.clear()
++                        _handoff.attn_metadata.update(metadata)
++
++                    _install(_fresh_slots, _fresh_meta)
++                    _pred_b, _counts_b, _tokens_b = _invoke_target()
++                    _snapshot.restore()
++                    _restore_b = _snapshot.verify_restored()
++                    _install(_old_slots, _old_meta)
++                    _metadata_changed_before_restore = [
++                        _path for _path, _tensor, _old_value in _old_meta_tensors
++                        if not torch.equal(_tensor, _old_value)
++                    ]
++                    for _path, _tensor, _old_value in _old_meta_tensors:
++                        _tensor.copy_(_old_value)
++                    for _cm, (_old_positions, _old_seq_lens) in zip(
++                        self._extreme_group_common_metadata, _old_common_fields
++                    ):
++                        _cm.positions[:96].copy_(_old_positions)
++                        _cm.seq_lens[:12].copy_(_old_seq_lens)
++                    _pred_c, _counts_c, _tokens_c = _invoke_target()
++                    _snapshot.restore()
++                    _restore_c = _snapshot.verify_restored()
++                    _aba_rows.append({
++                        "cycle": _cycle,
++                        "slot_changes_by_group": _slot_changes,
++                        "metadata_tensors_snapshotted": len(_old_meta_tensors),
++                        "metadata_snapshot_skipped": _metadata_snapshot_skipped,
++                        "metadata_changed_before_restore": _metadata_changed_before_restore,
++                        "metadata_tensors_restored": all(
++                            torch.equal(_tensor, _old_value)
++                            for _path, _tensor, _old_value in _old_meta_tensors
++                        ),
++                        "common_fields_restored": all(
++                            torch.equal(_cm.positions[:96], _old_positions)
++                            and torch.equal(_cm.seq_lens[:12], _old_seq_lens)
++                            for _cm, (_old_positions, _old_seq_lens) in zip(
++                                self._extreme_group_common_metadata, _old_common_fields
++                            )
++                        ),
++                        "snapshot_entries": len(_snapshot.rows),
++                        "snapshot_skipped": _snapshot.skipped,
++                        "restores": [_restore_a, _restore_b, _restore_c],
++                        "argmax_equal_ab": int((_pred_a == _pred_b).sum().item()),
++                        "argmax_equal_ac": int((_pred_a == _pred_c).sum().item()),
++                        "argmax_equal_bc": int((_pred_b == _pred_c).sum().item()),
++                        "argmax_a": _pred_a.cpu().tolist(),
++                        "argmax_b": _pred_b.cpu().tolist(),
++                        "argmax_c": _pred_c.cpu().tolist(),
++                        "counts_a": _counts_a.cpu().tolist(),
++                        "counts_b": _counts_b.cpu().tolist(),
++                        "counts_c": _counts_c.cpu().tolist(),
++                        "accepted_equal_ab": int((_tokens_a == _tokens_b).sum().item()),
++                        "accepted_equal_ac": int((_tokens_a == _tokens_c).sum().item()),
++                    })
++                    _extreme_runtime.step()
++
++                _rank = int(get_tp_group().rank_in_group)
++                _aba_result = {
++                    "rank": _rank,
++                    "cycles": 2,
++                    "rows": _aba_rows,
++                    "state_advance_exact": bool(torch.equal(
++                        _extreme_runtime.state.num_computed_tokens,
++                        _initial_computed
++                        + _extreme_runtime.state.emitted_token_count,
++                    )),
++                    "host_mirror_exact": bool(
++                        _extreme_runtime.proposer.validate_host_mirrors(
++                            _extreme_runtime.state
++                        )
++                    ),
++                }
++                _aba_result["pass"] = bool(
++                    all(
++                        not row["snapshot_skipped"]
++                        and all(restore["exact"] for restore in row["restores"])
++                        for row in _aba_rows
++                    )
++                    and _aba_result["state_advance_exact"]
++                    and _aba_result["host_mirror_exact"]
++                )
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(
++                    os.path.join(_extreme_run_dir, f"rank{_rank}.json"),
++                    "w", encoding="utf-8",
++                ) as _file:
++                    json.dump(_aba_result, _file, indent=2)
++                raise RuntimeError("EXTREME_TARGET_ABA_PARITY_COMPLETE")
 +            if _extreme_serve:
 +                _sampling_params = [
 +                    self.requests[_req_id].sampling_params
@@ -772,7 +955,7 @@ index fd5463845..9099e7659 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +2898,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3081,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1058,7 +1241,7 @@ index fd5463845..9099e7659 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3251,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3434,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1071,7 +1254,7 @@ index fd5463845..9099e7659 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3404,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3587,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1111,7 +1294,7 @@ index fd5463845..9099e7659 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4216,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4399,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1122,7 +1305,7 @@ index fd5463845..9099e7659 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4245,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4428,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )

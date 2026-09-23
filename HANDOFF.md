@@ -100,17 +100,18 @@ configuration. Run29 used same-state target self-replay with exact restoration
 of 69 touched cache/mutable entries: target argmax still differed at 1-9 of
 96 positions per cycle, while all 12 acceptance counts stayed equal.
 
-Run30/31 A/B/C controls were invalid due old metadata tensor aliases. Run32
-fixed this and established a valid combined builder+slot target effect: cycle-1
-A/C 92/96 target argmax, A/B 75/96, all eight ranks, exact physical KV and
-metadata restores. Run33 isolated the builder path: A/C 91/96, A/B 64/96;
-two acceptance counts changed. This builder path also rewrites SWA group-2
-slots 96/96, so it is not a pure metadata-only intervention. Run34 is loading
-a slot-only A/B/C control with the same full restore. Active TaskCtl Run:
-run-20260923T125344Z. Service log:
-logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_LOOP035-TARGET-ABA-SLOT-20260923-1253.log.
-No formal E2E A/B has run after Loop034. Refresh
-patches/loop035_current_framework_model_runner.patch after diagnostic edits.
+Run30/31 A/B/C controls were invalid due old metadata tensor aliases. Runs32-34
+used a valid A/C self-replay control on all eight ranks. At cycle 1, combined
+builder+slots gave A/B 75/96 and A/C 92/96 target argmax; builder path gave
+A/B 64/96 and A/C 91/96; slot-only gave A/B 88/96 and A/C 88/96.
+Thus the builder-derived DSA/GDN state is the first detectable target
+prediction divergence; generic slot mapping alone did not exceed replay noise.
+The builder path also rewrites SWA group-2 slots, so it is not purely metadata.
+No semantic correctness or sustained acceptance fix is established. Next build
+a minimal Runtime-owned derived-state updater from source, compare tensor/state
+parity to the builder oracle, and validate continuous decode before formal E2E
+A/B. No service is currently running. The framework diagnostic patch snapshot
+is patches/loop035_current_framework_model_runner.patch.
 
 Agent orchestration was repaired independently in b53b912. The active main
 agent is GPT-6 Sol. The new scripts/delegate_zcode.py ran an actual read-only
