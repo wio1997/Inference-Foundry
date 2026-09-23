@@ -213,3 +213,7 @@ causal controls. Evidence: run43/summary.json and run44/summary.json.
 ## Loop035 Run45 late native DSA control (2026-09-23 16:05 UTC)
 
 FULL-graph 129-cycle A/reference, B/native, C/restored-reference target control sampled cycles 0,1,64,128. All 8 ranks passed physical KV restoration, metadata restoration, exact state advance and host mirrors. At cycle64 A/B argmax was 74/96 versus A/C 72/96; at cycle128 78/96 versus 76/96. Accepted-token equality was 90/96 versus 90/96, then 89/96 versus 91/96. Native DSA difference is within reference self-replay noise at sampled late states; reference self-replay is too noisy to certify long token equivalence. Sustained low acceptance remains unresolved. Next discriminate DSpark proposal and target/KV using effective tokens and controlled same-state replay. Evidence: `evidence/20260923_loop035_diagnostic/run45/summary.json`.
+
+## Loop035 Run46 late DSpark proposer control (2026-09-23 16:22 UTC)
+
+After 128 continuous native-DSA FULL-graph cycles, all 8 ranks passed same-state Product/Stock/Stock proposer input, prepare-field and physical KV restoration gates. Product/Stock first draft token was 12/12 equal; full draft 83/84 equal versus Stock self-replay 79/84. Thus sampled late Product proposer implementation is not the observed low-acceptance root. This does not compare full serving trajectories: next establish effective token-level Stock oracle and first target/KV state divergence from the shared initial state. Evidence: `evidence/20260923_loop035_diagnostic/run46/summary.json`.

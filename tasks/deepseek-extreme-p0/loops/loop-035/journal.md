@@ -211,3 +211,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T15:52:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T155245Z`（test）。
 
 - `2026-09-23T16:05:29Z` Run `run-20260923T155245Z` 记录为 `pass`；正确性为 `pass`。8/8 rank late native DSA A/B/C at cycles 0,1,64,128 passed state and KV restore; native difference remains within noisy reference self-replay; no long semantic or acceptance claim
+
+- `2026-09-23T16:08:28Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T160828Z`（test）。
+
+- `2026-09-23T16:21:50Z` Run `run-20260923T160828Z` 记录为 `pass`；正确性为 `pass`。8/8 rank cycle128 Product/Stock proposer first drafts 12/12; full draft83/84 vs Stock self79/84; inputs and KV restores exact; trajectory root remains open

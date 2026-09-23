@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..f233e1cb1 100644
+index fd5463845..96c56f405 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..f233e1cb1 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,1210 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1220 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -283,11 +283,19 @@ index fd5463845..f233e1cb1 100644
 +                    _oracle_refresh_dsa_metadata
 +                )
 +            if os.getenv("EXTREME_PROPOSER_PARITY") == "1":
-+                # One-time oracle discriminator. The target and acceptance are
-+                # executed once, then both proposal paths consume the exact
-+                # same hidden tensors and accepted-token state.
++                # Product/Stock/Stock proposal replay at one chosen continuous
++                # state. Advance with the product Runtime before sampling.
++                _parity_advance_cycles = int(os.getenv(
++                    "EXTREME_PROPOSER_PARITY_ADVANCE_CYCLES", "0"
++                ))
++                if _parity_advance_cycles < 0:
++                    raise ValueError("negative proposer parity advance")
++                for _ in range(_parity_advance_cycles):
++                    _extreme_runtime.step()
 +                _parity_state = _extreme_runtime.state
 +                _extreme_runtime._state_machine.prepare_target_inputs()
++                if _extreme_runtime.target_metadata is not None:
++                    _extreme_runtime.target_metadata.update(_parity_state)
 +                _parity_target = _extreme_runtime.target.execute(_parity_state)
 +                _parity_acceptance = _extreme_runtime.acceptance.execute(
 +                    _parity_state, _parity_target
@@ -428,6 +436,8 @@ index fd5463845..f233e1cb1 100644
 +                torch.npu.synchronize()
 +                _row = {
 +                    "rank": int(get_tp_group().rank_in_group),
++                    "advance_cycles": _parity_advance_cycles,
++                    "target_metadata_active": _extreme_runtime.target_metadata is not None,
 +                    "extended_cache_specs": _extended_cache_specs,
 +                    "draft_gids": sorted(_draft_gids),
 +                    "draft_kernel_block_sizes": {str(g): self.drafter._per_group_kernel_block_sizes[g] for g in _draft_gids},
@@ -1224,7 +1234,7 @@ index fd5463845..f233e1cb1 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3350,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3360,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1510,7 +1520,7 @@ index fd5463845..f233e1cb1 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3703,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3713,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1523,7 +1533,7 @@ index fd5463845..f233e1cb1 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3856,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3866,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1563,7 +1573,7 @@ index fd5463845..f233e1cb1 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4668,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4678,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1574,7 +1584,7 @@ index fd5463845..f233e1cb1 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4697,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4707,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )
