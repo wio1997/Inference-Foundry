@@ -332,3 +332,25 @@ The first product-owned fixed execution region is now semantically closed across
 This is a short diagnostic, not the full 1024-cycle critical path. The dominant immediate E2E gap remains acceptance/progress, not these small transition stages. The first confirmed stale target fields are DSA-CP start_pos and local_seq_lens from cycle 1; refreshing only them did not recover acceptance. Stock's warm 12-request long cohort achieved 2.908 accepted drafts/iteration versus Extreme near one output/slot/cycle later in its short diagnostic. SAS/QLI derived metadata and same-state target/proposer comparison are the next discriminators. Sources: evidence/20260923_loop035_diagnostic/.
 
 Loop035 oracle metadata control: per-cycle DSA builder refresh passed local state gates at 209 outputs/8×12 slots; adding GDN builder yielded 215, with unordered prompts. Direct eager target and builder overhead make these diagnostic outputs unsuitable for throughput comparison. The remaining semantic gap is first draft/target mismatch; next compare Extreme and Stock proposer on identical target hidden states, accepted tokens, and restored draft caches.
+
+## Loop035 sustained Extreme-owned DAG, 1024 cycles (2026-09-23)
+
+Run18 completed 1024 c12 cycles on all eight 910B3 ranks with target FULL graph,
+exact fixed-state advance and host mirrors. Across ranks and cycles 16–1023,
+NPU event medians (p90) were target 45.510 (45.984) ms, DSpark proposer
+5.943 (6.028) ms, acceptance 0.305 (0.340) ms, prepare target
+0.210 (0.254) ms, state advance 0.020 (0.020) ms. Within DSpark,
+the borrowed model took 5.865 ms median; hidden packing 0.073 ms and
+input preparation 0.004 ms. The profile is a standalone one-cohort diagnostic,
+not a formal 48-request A/B.
+
+The limiting semantic trend is progressive loss of speculation: rank-identical
+outputs/slot/cycle fell from 1.625 in cycles 0–7 to 1.099 in 64–127,
+1.012 in 512–575, and exactly 1.000 in 960–1023. Overall 1.0419
+outputs/slot/cycle. Rank-0 emitted 12,797 tokens in 53.571 s, 238.99 tok/s
+diagnostic; client TPS after intentional standalone abort is invalid.
+Stock's first 8 cycles in its 64-cycle trace averaged 2.135, with later
+8-cycle windows up to 4.094. The existing Stock long-run counter gives
+about 3.908 outputs/slot/iteration. The first short-cycle deficit alone is
+not a sufficient divergence locator; long-running derived target and draft
+state need a paired oracle.

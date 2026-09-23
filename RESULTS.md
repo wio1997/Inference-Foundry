@@ -330,3 +330,10 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Loop035 Run12 corrected DSA builder oracle passed 8/8 local gates and emitted 209 outputs/8 cycles. Run13 DSA+GDN builder oracle likewise passed and emitted 215. Both use direct eager target and unordered prompt admission, so no Stock parity or throughput claim follows.
 
 - Loop035 same-state proposer Run14: 69/69 touched-cache and mutable entries restored exactly on all eight ranks; Product/Stock draft outputs matched 71/84, with differences only in two count=1 slots. Proposer-private state and self-replay controls remain open; no causal root or KEEP claimed.
+- Loop035 Run18: eight-rank, 1024-cycle Extreme-owned diagnostic passed state
+  and host-mirror gates. Rank-0 12,797 emitted tokens/53.571 s
+  (238.99 tok/s diagnostic). NPU event medians after cycle 16:
+  target 45.510 ms, DSpark 5.943 ms, acceptance 0.305 ms.
+  Outputs/slot/cycle decayed to exactly 1.000 for cycles 960–1023.
+  This does not supersede formal Loop034 E2E 217.342 versus 543.655 tok/s.
+  Evidence: evidence/20260923_loop035_diagnostic/run18/summary.json.

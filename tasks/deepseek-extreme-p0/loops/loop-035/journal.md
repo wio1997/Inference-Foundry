@@ -85,3 +85,5 @@
 - `2026-09-23T08:43:27Z` Run `run-20260923T083039Z` 记录为 `pass`；正确性为 `invalid`。All 8 ranks: kernel-block-aware 16-cache snapshot exact; Stock self replay 75/84, Product/Stock 67/84, but all 12 first draft tokens equal in both comparisons. Deterministic full draft parity remains invalid.
 
 - `2026-09-23T08:43:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T084346Z`（profile）。
+
+- `2026-09-23T08:57:45Z` Run `run-20260923T084346Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks completed 1024 Extreme-owned cycles with exact state/mirrors. NPU event medians after warmup: target 45.51ms, proposer 5.94ms, acceptance 0.305ms. Outputs/slot/cycle decay from 1.625 in cycles0-7 to exactly1.000 in cycles960-1023; diagnostic TPS is not formal E2E.
