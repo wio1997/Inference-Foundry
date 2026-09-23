@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run-20260923T084346Z 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-23T08:57:45Z`
+- 下一步：执行 Run run-20260923T091429Z：EXTREME_DRAFT_GROUP_SLOT_REFRESH=1 target FULL graph c12 32K 256 cycles, bootstrap parity gate
+- 更新时间：`2026-09-23T09:14:29Z`
 
 ## Run 记录
 
@@ -33,6 +33,8 @@
 - `runs/mixed_32k_1024_c12/run-20260923T081604Z`
 - `runs/mixed_32k_1024_c12/run-20260923T083039Z`
 - `runs/mixed_32k_1024_c12/run-20260923T084346Z`
+- `runs/mixed_32k_1024_c12/run-20260923T085924Z`
+- `runs/mixed_32k_1024_c12/run-20260923T091429Z`
 
 ## 阻塞项
 

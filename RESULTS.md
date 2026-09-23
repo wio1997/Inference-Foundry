@@ -337,3 +337,8 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
   Outputs/slot/cycle decayed to exactly 1.000 for cycles 960–1023.
   This does not supersede formal Loop034 E2E 217.342 versus 543.655 tok/s.
   Evidence: evidence/20260923_loop035_diagnostic/run18/summary.json.
+- Loop035 Run19: per-cycle DSA+GDN builder refresh passed 256 direct eager
+  target cycles on all eight ranks, but outputs/slot/cycle declined to 1.036
+  in cycles 128–191. Target metadata rebuild alone did not prevent the
+  long-run collapse. Different prompt ordering and eager execution preclude
+  a paired quantitative comparison to Run18. No E2E throughput claim.

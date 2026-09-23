@@ -94,6 +94,8 @@ class DirectDSparkHandoff:
         self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
         self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
         self.dag_events: list[list[tuple[str, Any]]] = []
+        self._draft_group_slot_refresh = os.getenv("EXTREME_DRAFT_GROUP_SLOT_REFRESH") == "1"
+        self.draft_group_slot_audit: list[dict[str, Any]] = []
         self.proposer.runner = _DP1RunnerShim(inputs)
         draft_counts = torch.full(
             (config.batch_size,),
@@ -275,6 +277,46 @@ class DirectDSparkHandoff:
         with self._scope("extreme::dspark_refresh_common"):
             self.refresh_common(state, self.common_attn_metadata)
         mark("refresh_common")
+        if self._draft_group_slot_refresh:
+            positions = state.target_positions.view(self.config.batch_size, -1)
+            request_index = torch.arange(
+                self.config.batch_size, device=positions.device
+            ).unsqueeze(1)
+            for gid in sorted(self.proposer._per_group_slot_mappings):
+                if gid not in {
+                    group.kv_cache_group_id
+                    for group in self.proposer.draft_attn_groups
+                }:
+                    continue
+                block_size = self.proposer._per_group_kernel_block_sizes[gid]
+                block_table = self.proposer._per_group_block_tables[gid]
+                block_index = torch.div(
+                    positions, block_size, rounding_mode="floor"
+                )
+                if bool((block_index >= block_table.shape[1]).any()):
+                    raise RuntimeError(f"draft group {gid} block table too narrow")
+                physical = block_table[request_index, block_index]
+                expected = (
+                    physical * block_size + positions.remainder(block_size)
+                ).flatten().to(torch.int32)
+                actual = self.proposer._per_group_slot_mappings[gid]
+                equal = torch.equal(actual[:expected.numel()], expected)
+                if len(self.draft_group_slot_audit) < 24:
+                    self.draft_group_slot_audit.append(
+                        {
+                            "cycle": state.cycle_index,
+                            "gid": gid,
+                            "equal_before": bool(equal),
+                            "mismatch_count": int(
+                                (actual[:expected.numel()] != expected).sum().item()
+                            ),
+                        }
+                    )
+                if state.cycle_index == 0 and not equal:
+                    raise RuntimeError(
+                        f"draft group {gid} initial slot mapping disagrees with oracle"
+                    )
+                actual[:expected.numel()].copy_(expected)
         with self._scope("extreme::dspark_prepare_inputs"):
             (
                 common,
