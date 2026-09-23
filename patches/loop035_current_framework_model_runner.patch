@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..461c96350 100644
+index fd5463845..fce84ab11 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..461c96350 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,1439 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1450 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -1249,6 +1249,17 @@ index fd5463845..461c96350 100644
 +                    and _cohort_output.generated_output_counts
 +                    == [1024] * _cfg.batch_size
 +                )
++                if _rank == 0 and os.getenv("EXTREME_RUNTIME_DIAGNOSE") == "1":
++                    _trace = [
++                        {key: value.cpu().tolist() for key, value in cycle.items()}
++                        for cycle in _extreme_runtime.diagnostic_cycles
++                    ]
++                    os.makedirs(_extreme_run_dir, exist_ok=True)
++                    with open(
++                        os.path.join(_extreme_run_dir, "trace_rank0.json"),
++                        "w", encoding="utf-8",
++                    ) as _trace_file:
++                        json.dump(_trace, _trace_file, separators=(",", ":"))
 +                os.makedirs(_extreme_run_dir, exist_ok=True)
 +                with open(
 +                    os.path.join(
@@ -1453,7 +1464,7 @@ index fd5463845..461c96350 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3579,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3590,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1739,7 +1750,7 @@ index fd5463845..461c96350 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3932,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3943,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1752,7 +1763,7 @@ index fd5463845..461c96350 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +4085,50 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +4096,51 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1795,7 +1806,8 @@ index fd5463845..461c96350 100644
 +                if not isinstance(self._draft_token_ids, torch.Tensor):
 +                    raise RuntimeError("Stock shadow draft output missing")
 +                _observer.after_cycle(
-+                    sampler_output.sampled_token_ids, self._draft_token_ids
++                    sampler_output.sampled_token_ids, self._draft_token_ids,
++                    logits,
 +                )
 +                if _observer.done:
 +                    self._stock_shadow_done = True
@@ -1803,7 +1815,7 @@ index fd5463845..461c96350 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4908,11 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4920,11 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1815,7 +1827,7 @@ index fd5463845..461c96350 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4938,15 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4950,15 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )

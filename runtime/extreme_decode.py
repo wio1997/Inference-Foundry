@@ -90,6 +90,7 @@ class ExtremeDecodeRuntime:
             )
         self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
         self._diagnose = os.getenv("EXTREME_RUNTIME_DIAGNOSE") == "1"
+        self._diagnose_limit = int(os.getenv("EXTREME_RUNTIME_TRACE_CYCLES", "1024"))
         self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
         self.diagnostic_cycles = []
         self.diagnostic_events = []
@@ -108,7 +109,10 @@ class ExtremeDecodeRuntime:
 
     @torch.inference_mode()
     def step(self) -> CycleResult:
-        diag = {} if self._diagnose else None
+        diag = (
+            {} if self._diagnose and len(self.diagnostic_cycles) < self._diagnose_limit
+            else None
+        )
         markers = []
         def mark(label):
             if diag is not None or self._profile_dag:
@@ -124,6 +128,13 @@ class ExtremeDecodeRuntime:
             with self._scope("extreme::prepare_target"):
                 self._state_machine.prepare_target_inputs()
             mark("prepare_target")
+            if diag is not None:
+                diag["target_input_ids"] = self.state.target_input_ids.view(
+                    self.config.batch_size, self.config.target_tokens_per_request
+                ).clone()
+                diag["target_positions"] = self.state.target_positions.view(
+                    self.config.batch_size, self.config.target_tokens_per_request
+                ).clone()
             if self.target_metadata is not None:
                 with self._scope("extreme::derived_target_metadata"):
                     self.target_metadata.update(self.state)

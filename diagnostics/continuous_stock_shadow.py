@@ -106,6 +106,8 @@ class ContinuousStockShadow:
             groups.append(group)
         row = {
             "cycle": len(self.rows),
+            "target_input_ids": input_ids[:96].view(12, 8).tolist(),
+            "target_positions": pos.tolist(),
             "target_abi_exact": None if comparison is None else comparison.exact,
             "input_ids_equal": None if comparison is None else comparison.input_ids_equal,
             "positions_equal": None if comparison is None else comparison.positions_equal,
@@ -125,7 +127,8 @@ class ContinuousStockShadow:
 
     @torch.inference_mode()
     def after_cycle(
-        self, sampled_token_ids: torch.Tensor, next_draft_tokens: torch.Tensor
+        self, sampled_token_ids: torch.Tensor, next_draft_tokens: torch.Tensor,
+        logits: torch.Tensor,
     ) -> None:
         if self.done or not self.pending:
             return
@@ -133,6 +136,9 @@ class ContinuousStockShadow:
             raise RuntimeError("Stock shadow accepted-token shape changed")
         if tuple(next_draft_tokens.shape[:2]) != (12, 7):
             raise RuntimeError("Stock shadow draft-token shape changed")
+        self.rows[-1]["target_argmax"] = logits[:96].argmax(dim=-1).view(12, 8).tolist()
+        self.rows[-1]["sampled"] = sampled_token_ids[:12, :8].tolist()
+        self.rows[-1]["next_draft"] = next_draft_tokens[:12, :7].tolist()
         self.shadow.observe_cycle_outputs(sampled_token_ids, next_draft_tokens)
         self.pending = False
         if len(self.rows) % 32 == 0 and len(self.rows) < self.limit:
