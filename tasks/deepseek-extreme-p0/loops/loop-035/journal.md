@@ -113,3 +113,9 @@
 - `2026-09-23T10:21:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T102151Z`（test）。
 
 Run23 (connected combined oracle) passed 8/8 rank local gates for 256 eager target cycles. All six target slot groups matched at cycle 0; five groups changed 96/96 slots by cycle 1, and the audit contained 24 entries/rank. Outputs/slot/cycle reached 7.480 in cycles 128-191 and 7.728 in 192-255, with long stretches where all 12 slots accepted all eight outputs. This is a strong combined-effect signal but suspiciously exceeds Stock's roughly 3.908 long-run output rate; false acceptance or degenerate token loops remain possible. Do not claim a semantic fix or E2E improvement. Run24 isolates connected DSA+GDN builder refresh without slot recomputation, requiring 256 callback invocations; a token-level oracle remains necessary.
+
+- `2026-09-23T10:37:10Z` Run `run-20260923T102151Z` 记录为 `pass`；正确性为 `pass`。8/8 rank 256-cycle builder-only control; 256 callback calls/rank. Outputs/slot/cycle 1.836 in cycles128-191, no Run23 near-all-accepted regime; slot-only isolation and long token oracle required.
+
+- `2026-09-23T10:37:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T103729Z`（test）。
+
+Run24 isolated the connected DSA+GDN builder callback: all 8 ranks completed 256 eager target cycles, with exactly 256 callback invocations/rank, exact state/mirror checks, and no target-slot audit entries. Outputs/slot/cycle were 1.836 in cycles 128-191 and 1.814 in 192-255. This does not show Run23's late near-all-accepted behavior. Run25 will isolate the reference all-group physical slot update while leaving existing metadata objects unchanged, to distinguish slot effect from the combination. Different prompt admission prevents a strict paired numerical delta; token-level API oracle remains mandatory.
