@@ -79,6 +79,7 @@ class ExtremeDecodeRuntime:
         self.proposer = proposer
         self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
         self._diagnose = os.getenv("EXTREME_RUNTIME_DIAGNOSE") == "1"
+        self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
         self.diagnostic_cycles = []
         self.diagnostic_events = []
         # Reuse the proven fixed-buffer preparation and state transition, not
@@ -99,7 +100,7 @@ class ExtremeDecodeRuntime:
         diag = {} if self._diagnose else None
         markers = []
         def mark(label):
-            if diag is not None:
+            if diag is not None or self._profile_dag:
                 event = torch.npu.Event(enable_timing=True)
                 event.record()
                 markers.append((label, event))
@@ -149,6 +150,7 @@ class ExtremeDecodeRuntime:
             mark("draft_commit")
             if diag is not None:
                 self.diagnostic_cycles.append(diag)
+            if markers:
                 self.diagnostic_events.append(markers)
             return CycleResult(
                 cycle=self.state.cycle_index,

@@ -92,6 +92,8 @@ class DirectDSparkHandoff:
         self.target_model_batch_desc = inputs.target_model_batch_desc
         self.refresh_common = inputs.refresh_common
         self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
+        self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
+        self.dag_events: list[list[tuple[str, Any]]] = []
         self.proposer.runner = _DP1RunnerShim(inputs)
         draft_counts = torch.full(
             (config.batch_size,),
@@ -255,6 +257,13 @@ class DirectDSparkHandoff:
         target: TargetOutput,
         acceptance: AcceptanceOutput,
     ) -> torch.Tensor:
+        markers: list[tuple[str, Any]] = []
+        def mark(label: str) -> None:
+            if self._profile_dag:
+                event = torch.npu.Event(enable_timing=True)
+                event.record()
+                markers.append((label, event))
+        mark("begin")
         # Consume the previous cycle's count copy only after the next target
         # pass has given the side stream hundreds of milliseconds to finish.
         # The current cycle's copy remains pending until the following cycle.
@@ -262,8 +271,10 @@ class DirectDSparkHandoff:
             self._commit_host_mirrors()
         with self._scope("extreme::dspark_host_mirror_launch"):
             self._launch_host_count_copy(acceptance.num_sampled)
+        mark("host_mirror")
         with self._scope("extreme::dspark_refresh_common"):
             self.refresh_common(state, self.common_attn_metadata)
+        mark("refresh_common")
         with self._scope("extreme::dspark_prepare_inputs"):
             (
                 common,
@@ -275,6 +286,15 @@ class DirectDSparkHandoff:
                 self._spec_metadata,
                 acceptance.num_sampled,
             )
+        mark("prepare_inputs")
+        if os.getenv("EXTREME_PROPOSER_PARITY") == "1":
+            self.parity_prepare = {
+                "token_indices": token_indices.clone(),
+                "sample_indices": token_indices_to_sample.clone(),
+                "num_rejected": num_rejected.clone(),
+                "query_start_loc": common.query_start_loc.clone(),
+                "seq_lens": common.seq_lens.clone(),
+            }
         with self._scope("extreme::dspark_pack_hidden"):
             hidden = (
                 torch.cat(target.aux_hidden_states, dim=-1)
@@ -284,6 +304,14 @@ class DirectDSparkHandoff:
             target_token_ids = state.target_input_ids[token_indices]
             target_positions = state.target_positions[token_indices]
             target_hidden_states = hidden[token_indices]
+        mark("pack_hidden")
+        if os.getenv("EXTREME_PROPOSER_PARITY") == "1":
+            self.parity_inputs = {
+                "target_token_ids": target_token_ids.clone(),
+                "target_positions": target_positions.clone(),
+                "target_hidden_states": target_hidden_states.clone(),
+                "next_token_ids": state.last_sampled_tokens.clone(),
+            }
         with self._scope("extreme::dspark_model"):
             next_draft = self.proposer._propose(
                 target_token_ids=target_token_ids,
@@ -300,6 +328,9 @@ class DirectDSparkHandoff:
                     self.config.speculative_tokens
                 ] * self.config.batch_size,
             )
+        mark("model")
+        if markers:
+            self.dag_events.append(markers)
         return next_draft
 
     @staticmethod

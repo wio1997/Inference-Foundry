@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：执行 Run run-20260923T075837Z：Same-target Product/Stock proposer field parity plus transactional Stock self-replay on 8 ranks
-- 更新时间：`2026-09-23T07:58:37Z`
+- 下一步：执行 Run run-20260923T084346Z：EXTREME_RUNTIME_PROFILE_DAG=1 EXTREME_RUNTIME_CYCLES=1024 c12 32K standalone stage-event profile
+- 更新时间：`2026-09-23T08:43:46Z`
 
 ## Run 记录
 
@@ -30,6 +30,9 @@
 - `runs/mixed_32k_1024_c12/run-20260923T072512Z`
 - `runs/mixed_32k_1024_c12/run-20260923T074250Z`
 - `runs/mixed_32k_1024_c12/run-20260923T075837Z`
+- `runs/mixed_32k_1024_c12/run-20260923T081604Z`
+- `runs/mixed_32k_1024_c12/run-20260923T083039Z`
+- `runs/mixed_32k_1024_c12/run-20260923T084346Z`
 
 ## 阻塞项
 

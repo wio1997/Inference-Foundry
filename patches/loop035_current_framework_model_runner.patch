@@ -1,0 +1,1013 @@
+diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
+index fd5463845..a1657720d 100644
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -17,8 +17,10 @@
+ # Adapted from vllm-project/vllm/vllm/worker/gpu_model_runner.py
+ #
+ 
++import json
+ import logging
+ import math
++import os
+ import sys
+ import time
+ from collections import defaultdict
+@@ -2116,6 +2118,632 @@ class NPUModelRunner(GPUModelRunner):
+         defer_kv_connector_finalize = self.speculative_config is not None and (
+             get_pp_group().is_last_rank or self.broadcast_pp_output
+         )
++        _extreme_runtime = None
++        _extreme_prestate = None
++        _extreme_runtime_inputs = None
++        _extreme_buffer_versions = None
++        _extreme_run_dir = os.getenv("EXTREME_RUNTIME_RUN_DIR")
++        _extreme_serve = os.getenv("EXTREME_RUNTIME_SERVE") == "1"
++        _extreme_req_ids = tuple(self.input_batch.req_ids[:num_reqs])
++        _extreme_served_cohorts = getattr(
++            self, "_extreme_served_cohorts", set()
++        )
++        _extreme_can_start = (
++            _extreme_req_ids not in _extreme_served_cohorts
++            if _extreme_serve
++            else not hasattr(self, "_extreme_runtime_started")
++        )
++        if (
++            _extreme_run_dir
++            and use_spec_decode
++            and num_reqs == 12
++            and scheduler_output.total_num_scheduled_tokens == 96
++            and spec_decode_common_attn_metadata is not None
++            and _extreme_can_start
++        ):
++            self._extreme_runtime_started = True
++            if _extreme_serve:
++                self._extreme_served_cohorts = _extreme_served_cohorts
++                self._extreme_served_cohorts.add(_extreme_req_ids)
++            _runtime_root = "/data/wio/Inference_Foundry"
++            if _runtime_root not in sys.path:
++                sys.path.insert(0, _runtime_root)
++            from bootstrap.vllm_dspark_handoff import (
++                DSparkHandoffInputs,
++                refresh_fixed_common,
++            )
++            from bootstrap.vllm_extreme_handoff import (
++                ExtremeHandoffInputs,
++                build_extreme_runtime,
++            )
++            from bootstrap.vllm_target_handoff import (
++                DirectTargetHandoff,
++                TargetHandoffInputs,
++                bind_graph_update,
++            )
++            from runtime.fixed_decode import FixedDecodeConfig
++            from runtime.fixed_serving import FixedCohortServing
++            from runtime.greedy_accept import greedy_accept
++
++            _cfg = FixedDecodeConfig()
++            _extreme_target_graph = (
++                os.getenv("EXTREME_RUNTIME_TARGET_GRAPH") == "1"
++            )
++            _target_inputs = TargetHandoffInputs(
++                model=self.model,
++                vllm_config=self.vllm_config,
++                attn_metadata=attn_metadata,
++                batch_descriptor=batch_desc,
++                has_sinks=self._has_sinks,
++                kv_cache_tree=self.kv_caches,
++                num_tokens_across_dp=num_tokens_across_dp,
++                aclgraph_runtime_mode=(
++                    cudagraph_mode
++                    if _extreme_target_graph
++                    else CUDAGraphMode.NONE
++                ),
++                num_actual_tokens=scheduler_output.total_num_scheduled_tokens,
++                skip_compiled=not _extreme_target_graph,
++                eplb_heat_collection_status=(
++                    self.eplb_heat_collection_status
++                    if self.dynamic_eplb
++                    else False
++                ),
++                graph_update=(
++                    bind_graph_update(
++                        self.attn_backend,
++                        self.update_stream,
++                        self.vllm_config,
++                    )
++                    if _extreme_target_graph
++                    else None
++                ),
++                graph_update_before=self.enable_enpu,
++                model_kwargs=model_kwargs,
++                mutable_tensors=[
++                    ("topk_indices_buffer", self.model.model.topk_indices_buffer),
++                    ("mtp_hidden_buffer", self.model.model._mtp_hidden_buffer),
++                ],
++                cache_slot_specs=self._extreme_cache_slot_specs,
++            )
++            _ids_2d = input_ids[:96].view(12, 8)
++            _pos_2d = positions[:96].view(12, 8)
++            _extreme_runtime_inputs = ExtremeHandoffInputs(
++                target=_target_inputs,
++                dspark=DSparkHandoffInputs(
++                    proposer=self.drafter,
++                    common_attn_metadata=spec_decode_common_attn_metadata,
++                    sampling_metadata=self.input_batch.sampling_metadata,
++                    target_model_batch_desc=batch_desc,
++                    actual_seq_lengths_q=self.actual_seq_lengths_q,
++                    attn_state=self.attn_state,
++                    decode_token_per_req=self.decode_token_per_req,
++                    refresh_common=refresh_fixed_common,
++                ),
++                block_table=spec_decode_common_attn_metadata.block_table_tensor[:12],
++                num_computed_tokens=_pos_2d[:, 0].to(torch.int32).clone(),
++                last_sampled_tokens=_ids_2d[:, 0].to(torch.int64).clone(),
++                draft_tokens=_ids_2d[:, 1:].to(torch.int64).clone(),
++                target_input_ids=input_ids[:96],
++                target_positions=positions[:96],
++                target_query_start_loc=spec_decode_common_attn_metadata.query_start_loc[:13],
++                target_seq_lens=spec_decode_common_attn_metadata.seq_lens[:12],
++                target_slot_mapping=spec_decode_common_attn_metadata.slot_mapping[:96],
++                target_logits_indices=torch.arange(
++                    96, dtype=torch.int64, device=input_ids.device
++                ),
++            )
++            # This is the bootstrap boundary: after the fixed assets and
++            # buffers have been handed off, the generic ModelRunner target
++            # hot path below is never entered.  Extreme Runtime owns the
++            # execution order and advances its fixed device state directly.
++            _original_proposer_runner = (
++                self.drafter.runner
++                if os.getenv("EXTREME_PROPOSER_PARITY") == "1"
++                else None
++            )
++            _extreme_runtime = build_extreme_runtime(
++                _extreme_runtime_inputs,
++                _cfg,
++            )
++            if os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1":
++                _diagnostic_target_handoff = (
++                    _extreme_runtime.target.binding.forward.__self__
++                )
++                _diagnostic_refresh_count = [0]
++
++                def _oracle_refresh_dsa_metadata(_positions):
++                    _state = _extreme_runtime.state
++                    _rank = int(get_tp_group().rank_in_group)
++                    _req_index = torch.arange(12, device=_positions.device).unsqueeze(1)
++                    _pos = _positions.view(12, 8)
++                    _shared_sas = {}
++                    _shared_prefill = {}
++                    _shared_decode = {}
++                    _rebuilt = 0
++                    _private_seq_cpu = _state.target_seq_lens.cpu()
++                    for _gid, _cm in enumerate(self._extreme_group_common_metadata):
++                        _cm_work = copy(_cm)
++                        _cm_work.positions[:96].copy_(_state.target_positions)
++                        _cm_work.seq_lens[:12].copy_(_state.target_seq_lens)
++                        _cm_work._seq_lens_cpu = _private_seq_cpu
++                        _cm_work.seq_lens_cpu = _private_seq_cpu
++                        _cm_work.seq_lens_cpu_upper_bound = _private_seq_cpu
++                        _cm_work.num_reqs = 12
++                        _cm_work.num_input_tokens = 96
++                        _cm_work.num_actual_tokens = 96
++                        _cm_work.max_query_len = 8
++                        for _group in self.attn_groups[_gid]:
++                            _builder = _group.get_metadata_builder(0)
++                            if isinstance(_builder, GDNAttentionMetadataBuilder):
++                                _prior_counts = (
++                                    self.num_accepted_tokens.gpu[:12]
++                                    if _diagnostic_refresh_count[0] == 0
++                                    else _state.num_sampled
++                                )
++                                _fresh = _builder.build(
++                                    common_prefix_len=0,
++                                    common_attn_metadata=_cm_work,
++                                    num_accepted_tokens=_prior_counts,
++                                    num_decode_draft_tokens_cpu=self.num_decode_draft_tokens.cpu[:12],
++                                )
++                                for _name in _group.layer_names:
++                                    _diagnostic_target_handoff.attn_metadata[_name] = _fresh
++                                _rebuilt += 1
++                                continue
++                            if not isinstance(
++                                _builder,
++                                (AscendDSAMetadataBuilder, AscendDSACPMetadataBuilder),
++                            ):
++                                continue
++                            if any(_name.endswith("swa_cache") for _name in _group.layer_names):
++                                _bs = _group.kv_cache_spec.block_size
++                                _block_idx = torch.div(_pos, _bs, rounding_mode="floor")
++                                if bool((_block_idx >= _cm_work.block_table_tensor.shape[1]).any()):
++                                    raise RuntimeError("oracle SWA block table too narrow")
++                                _blocks = _cm_work.block_table_tensor[_req_index, _block_idx]
++                                _raw_slots = (_blocks * _bs + _pos.remainder(_bs)).flatten()
++                                _cm_work.slot_mapping[:96].copy_(_raw_slots.to(_cm_work.slot_mapping.dtype))
++                            _fresh = _builder.build(
++                                common_prefix_len=0,
++                                common_attn_metadata=_cm_work,
++                                num_reqs_actual=12,
++                                prefill_ratio_to_sas_metadata=_shared_prefill,
++                                decode_ratio_to_sas_metadata=_shared_decode,
++                                common_ratio_to_sas_metadata=_shared_sas,
++                                block_size=_group.kv_cache_spec.block_size,
++                            )
++                            for _name in _group.layer_names:
++                                _diagnostic_target_handoff.attn_metadata[_name] = _fresh
++                            _rebuilt += 1
++                    if not _rebuilt:
++                        raise RuntimeError("oracle DSA builder refresh found no group")
++                    _diagnostic_refresh_count[0] += 1
++
++                _diagnostic_target_handoff.diagnostic_metadata_refresh = (
++                    _oracle_refresh_dsa_metadata
++                )
++            if os.getenv("EXTREME_PROPOSER_PARITY") == "1":
++                # One-time oracle discriminator. The target and acceptance are
++                # executed once, then both proposal paths consume the exact
++                # same hidden tensors and accepted-token state.
++                _parity_state = _extreme_runtime.state
++                _extreme_runtime._state_machine.prepare_target_inputs()
++                _parity_target = _extreme_runtime.target.execute(_parity_state)
++                _parity_acceptance = _extreme_runtime.acceptance.execute(
++                    _parity_state, _parity_target
++                )
++                _extreme_runtime._state_machine.advance_state(_parity_acceptance)
++                _parity_main = _parity_target.hidden_states.clone()
++                _parity_aux = [v.clone() for v in _parity_target.aux_hidden_states]
++                _parity_counts = _parity_acceptance.num_sampled.clone()
++                _parity_assets = (
++                    _extreme_runtime.target.binding.forward.__self__.assets
++                )
++                # Replay snapshots must include seven future DSpark KV writes.
++                _draft_gids = {
++                    group.kv_cache_group_id
++                    for group in self.drafter.draft_attn_groups
++                }
++                _draft_future_slots = {}
++                _parity_position_range = (
++                    _parity_state.target_positions.view(12, 8)[:, :1]
++                    + torch.arange(32, device=input_ids.device).view(1, 32)
++                )
++                for _gid in _draft_gids:
++                    _group = self.kv_cache_config.kv_cache_groups[_gid]
++                    _bs = self.drafter._per_group_kernel_block_sizes[_gid]
++                    _table = self.drafter._per_group_block_tables[_gid]
++                    _blocks = torch.div(
++                        _parity_position_range, _bs, rounding_mode="floor"
++                    )
++                    if bool((_blocks >= _table.shape[1]).any()):
++                        raise RuntimeError("draft replay block table too narrow")
++                    _physical = _table.gather(1, _blocks)
++                    _draft_future_slots[_gid] = (
++                        _physical * _bs + _parity_position_range.remainder(_bs)
++                    ).flatten().to(torch.int32)
++                _extended_cache_specs = 0
++                for _name, (_mapping, _bs) in tuple(
++                    _parity_assets._cache_slot_specs.items()
++                ):
++                    for _gid, _future in _draft_future_slots.items():
++                        if _mapping.data_ptr() == self.drafter._per_group_slot_mappings[_gid].data_ptr():
++                            _parity_assets._cache_slot_specs[_name] = (
++                                torch.cat((_mapping[:96], _future)), self.drafter._per_group_kernel_block_sizes[_gid]
++                            )
++                            _extended_cache_specs += 1
++                            break
++                _parity_snapshot = _parity_assets.snapshot_slots(
++                    self._extreme_all_slot_mappings,
++                    num_tokens=96,
++                )
++                _product_draft = _extreme_runtime.proposer.execute(
++                    _parity_state, _parity_target, _parity_acceptance
++                ).clone()
++                _product_prepare = _extreme_runtime.proposer.parity_prepare
++                _product_inputs = _extreme_runtime.proposer.parity_inputs
++                torch.npu.synchronize()
++                _parity_snapshot.restore()
++                _restore_report = _parity_snapshot.verify_restored()
++                assert _original_proposer_runner is not None
++                self.drafter.runner = _original_proposer_runner
++                _stock_common, _stock_indices, _stock_sample_indices, _stock_rejected = (
++                    self.drafter.prepare_inputs_padded(
++                        spec_decode_common_attn_metadata,
++                        spec_decode_metadata,
++                        _parity_counts,
++                    )
++                )
++                _parity_hidden = (
++                    torch.cat(_parity_aux, dim=-1) if _parity_aux else _parity_main
++                )
++                _stock_inputs = {
++                    "target_token_ids": _parity_state.target_input_ids[_stock_indices].clone(),
++                    "target_positions": _parity_state.target_positions[_stock_indices].clone(),
++                    "target_hidden_states": _parity_hidden[_stock_indices].clone(),
++                    "next_token_ids": _parity_state.last_sampled_tokens.clone(),
++                }
++                _input_field_equal = {
++                    _name: bool(torch.equal(_product_inputs[_name], _value))
++                    for _name, _value in _stock_inputs.items()
++                }
++                _prepare_field_equal = {
++                    "token_indices": bool(torch.equal(_product_prepare["token_indices"], _stock_indices)),
++                    "sample_indices": bool(torch.equal(_product_prepare["sample_indices"], _stock_sample_indices)),
++                    "num_rejected": bool(torch.equal(_product_prepare["num_rejected"], _stock_rejected)),
++                    "query_start_loc": bool(torch.equal(_product_prepare["query_start_loc"], _stock_common.query_start_loc)),
++                    "seq_lens": bool(torch.equal(_product_prepare["seq_lens"], _stock_common.seq_lens)),
++                    "cu_num_draft_tokens": bool(torch.equal(
++                        _extreme_runtime.proposer._spec_metadata.cu_num_draft_tokens,
++                        spec_decode_metadata.cu_num_draft_tokens,
++                    )),
++                }
++                _stock_draft = self.drafter._propose(
++                    target_token_ids=_parity_state.target_input_ids[_stock_indices],
++                    target_positions=_parity_state.target_positions[_stock_indices],
++                    target_hidden_states=_parity_hidden[_stock_indices],
++                    next_token_ids=_parity_state.last_sampled_tokens,
++                    token_indices_to_sample=_stock_sample_indices,
++                    common_attn_metadata=_stock_common,
++                    target_model_batch_desc=batch_desc,
++                    sampling_metadata=self.input_batch.sampling_metadata,
++                    req_scheduled_tokens=scheduler_output.num_scheduled_tokens,
++                    long_seq_metadata=None,
++                    num_prefill_reqs=0,
++                    num_decode_reqs=0,
++                    scheduler_output=scheduler_output,
++                    num_scheduled_tokens=96,
++                    num_rejected_tokens_gpu=_stock_rejected,
++                    num_draft_tokens_cpu=spec_decode_metadata.num_draft_tokens,
++                )
++                _stock_draft = _stock_draft.clone()
++                torch.npu.synchronize()
++                _parity_snapshot.restore()
++                _second_restore_report = _parity_snapshot.verify_restored()
++                _stock_common2, _stock_indices2, _stock_sample_indices2, _stock_rejected2 = (
++                    self.drafter.prepare_inputs_padded(
++                        spec_decode_common_attn_metadata,
++                        spec_decode_metadata,
++                        _parity_counts,
++                    )
++                )
++                _stock_repeat = self.drafter._propose(
++                    target_token_ids=_parity_state.target_input_ids[_stock_indices2],
++                    target_positions=_parity_state.target_positions[_stock_indices2],
++                    target_hidden_states=_parity_hidden[_stock_indices2],
++                    next_token_ids=_parity_state.last_sampled_tokens,
++                    token_indices_to_sample=_stock_sample_indices2,
++                    common_attn_metadata=_stock_common2,
++                    target_model_batch_desc=batch_desc,
++                    sampling_metadata=self.input_batch.sampling_metadata,
++                    req_scheduled_tokens=scheduler_output.num_scheduled_tokens,
++                    long_seq_metadata=None,
++                    num_prefill_reqs=0,
++                    num_decode_reqs=0,
++                    scheduler_output=scheduler_output,
++                    num_scheduled_tokens=96,
++                    num_rejected_tokens_gpu=_stock_rejected2,
++                    num_draft_tokens_cpu=spec_decode_metadata.num_draft_tokens,
++                ).clone()
++                torch.npu.synchronize()
++                _row = {
++                    "rank": int(get_tp_group().rank_in_group),
++                    "extended_cache_specs": _extended_cache_specs,
++                    "draft_gids": sorted(_draft_gids),
++                    "draft_kernel_block_sizes": {str(g): self.drafter._per_group_kernel_block_sizes[g] for g in _draft_gids},
++                    "snapshot_restore": _restore_report,
++                    "second_snapshot_restore": _second_restore_report,
++                    "input_field_equal": _input_field_equal,
++                    "prepare_field_equal": _prepare_field_equal,
++                    "stock_self_equal_tokens": int((_stock_draft == _stock_repeat).sum().item()),
++                    "stock_repeat": _stock_repeat.cpu().tolist(),
++                    "sampled_counts": _parity_counts.cpu().tolist(),
++                    "product_draft": _product_draft.cpu().tolist(),
++                    "stock_draft": _stock_draft.cpu().tolist(),
++                    "draft_equal_tokens": int((_product_draft == _stock_draft).sum().item()),
++                    "draft_total_tokens": int(_product_draft.numel()),
++                    "pass": bool(_restore_report["exact"] and torch.equal(_product_draft, _stock_draft)),
++                }
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(os.path.join(_extreme_run_dir, "rank%d.json" % _row["rank"]), "w") as _file:
++                    json.dump(_row, _file, indent=2)
++                raise RuntimeError("EXTREME_PROPOSER_PARITY_COMPLETE")
++            if _extreme_serve:
++                _sampling_params = [
++                    self.requests[_req_id].sampling_params
++                    for _req_id in _extreme_req_ids
++                ]
++                if any(_params is None for _params in _sampling_params):
++                    raise ValueError("Extreme serving requires sampling params")
++                _max_output_tokens = {
++                    int(_params.max_tokens) for _params in _sampling_params
++                }
++                if _max_output_tokens != {1024}:
++                    raise ValueError(
++                        "Extreme serving is frozen to max_tokens=1024"
++                    )
++                if any(
++                    not _params.ignore_eos or _params.temperature != 0
++                    for _params in _sampling_params
++                ):
++                    raise ValueError(
++                        "Extreme serving requires greedy ignore-EOS requests"
++                    )
++                _extreme_wall_start = time.perf_counter()
++                _cohort_output = FixedCohortServing(
++                    _extreme_runtime,
++                    initial_output_counts=[0] * _cfg.batch_size,
++                    max_output_tokens=1024,
++                ).run()
++                torch.npu.synchronize()
++                _extreme_wall_seconds = (
++                    time.perf_counter() - _extreme_wall_start
++                )
++                _host_mirror_exact = (
++                    _extreme_runtime.proposer.validate_host_mirrors(
++                        _extreme_runtime.state
++                    )
++                )
++                _rank = int(get_tp_group().rank_in_group)
++                _cohort_index = len(self._extreme_served_cohorts)
++                _row = {
++                    "rank": _rank,
++                    "cohort": _cohort_index,
++                    "req_ids": list(_extreme_req_ids),
++                    "cycles": _cohort_output.cycles,
++                    "handoff_before_model_forward": True,
++                    "oracle_target_calls_after_handoff": 0,
++                    "model_runner_cycles_after_handoff": 0,
++                    "target_graph_requested": _extreme_target_graph,
++                    "target_graph_mode": str(
++                        _target_inputs.aclgraph_runtime_mode
++                    ),
++                    "wall_seconds": _extreme_wall_seconds,
++                    "generated_output_counts": (
++                        _cohort_output.generated_output_counts
++                    ),
++                    "staged_output_counts": (
++                        _cohort_output.staged_output_counts
++                    ),
++                    "overshoot_tokens": _cohort_output.overshoot_tokens,
++                    "host_mirror_exact": bool(_host_mirror_exact),
++                }
++                _row["pass"] = bool(
++                    _host_mirror_exact
++                    and _cohort_output.generated_output_counts
++                    == [1024] * _cfg.batch_size
++                )
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(
++                    os.path.join(
++                        _extreme_run_dir,
++                        f"rank{_rank}_cohort{_cohort_index}.json",
++                    ),
++                    "w",
++                    encoding="utf-8",
++                ) as _file:
++                    json.dump(_row, _file, indent=2)
++                self._extreme_serving_output = ModelRunnerOutput(
++                    req_ids=list(_extreme_req_ids),
++                    req_id_to_index={
++                        _req_id: _index
++                        for _index, _req_id in enumerate(_extreme_req_ids)
++                    },
++                    sampled_token_ids=_cohort_output.token_ids,
++                    logprobs=None,
++                    prompt_logprobs_dict={},
++                    pooler_output=[],
++                    kv_connector_output=None,
++                    ec_connector_output=None,
++                    cudagraph_stats=None,
++                    routed_experts=None,
++                    extreme_bulk_output=True,
++                )
++                return None
++            _initial_num_computed = (
++                _extreme_runtime.state.num_computed_tokens.clone()
++            )
++            _extreme_profile_root = os.getenv("EXTREME_RUNTIME_PROFILE_DIR")
++            _extreme_profile_dir = None
++            _extreme_cycles = int(os.getenv("EXTREME_RUNTIME_CYCLES", "8"))
++            if _extreme_cycles <= 0:
++                raise ValueError("EXTREME_RUNTIME_CYCLES must be positive")
++            try:
++                _extreme_wall_start = time.perf_counter()
++                if _extreme_profile_root:
++                    import torch_npu
++
++                    _extreme_rank = int(get_tp_group().rank_in_group)
++                    _extreme_profile_dir = os.path.join(
++                        _extreme_profile_root, f"rank{_extreme_rank}"
++                    )
++                    os.makedirs(_extreme_profile_dir, exist_ok=True)
++                    _activities = [
++                        torch_npu.profiler.ProfilerActivity.CPU,
++                        torch_npu.profiler.ProfilerActivity.NPU,
++                    ]
++                    _schedule = torch_npu.profiler.schedule(
++                        wait=0, warmup=0, active=1, repeat=1
++                    )
++                    _handler = torch_npu.profiler.tensorboard_trace_handler(
++                        _extreme_profile_dir,
++                        worker_name=f"rank{_extreme_rank}",
++                        analyse_flag=True,
++                        async_mode=False,
++                    )
++                    with torch_npu.profiler.profile(
++                        activities=_activities,
++                        schedule=_schedule,
++                        on_trace_ready=_handler,
++                        record_shapes=False,
++                        profile_memory=False,
++                        with_stack=False,
++                        with_modules=False,
++                        experimental_config=torch_npu.profiler._ExperimentalConfig(
++                            profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
++                            aic_metrics=None,
++                            data_simplification=True,
++                        ),
++                    ) as _profiler:
++                        _extreme_results = _extreme_runtime.run(_extreme_cycles)
++                        torch.npu.synchronize()
++                        _profiler.step()
++                else:
++                    _extreme_results = _extreme_runtime.run(_extreme_cycles)
++                    torch.npu.synchronize()
++                _extreme_wall_seconds = time.perf_counter() - _extreme_wall_start
++            except Exception as _extreme_error:
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(
++                    os.path.join(
++                        _extreme_run_dir,
++                        f"rank{int(get_tp_group().rank_in_group)}_error.json",
++                    ),
++                    "w",
++                    encoding="utf-8",
++                ) as _file:
++                    json.dump(
++                        {
++                            "rank": int(get_tp_group().rank_in_group),
++                            "pass": False,
++                            "handoff_before_model_forward": True,
++                            "oracle_target_calls_after_handoff": 0,
++                            "error": repr(_extreme_error),
++                        },
++                        _file,
++                        indent=2,
++                    )
++                raise
++            torch.npu.synchronize()
++            _target_assets = (
++                _extreme_runtime.target.binding.forward.__self__.assets
++            )
++            _target_assets.assert_stable()
++            _state_advance_exact = torch.equal(
++                _extreme_runtime.state.num_computed_tokens,
++                _initial_num_computed
++                + _extreme_runtime.state.emitted_token_count,
++            )
++            _host_mirror_exact = (
++                _extreme_runtime.proposer.validate_host_mirrors(
++                    _extreme_runtime.state
++                )
++            )
++            _counts_in_contract = all(
++                bool(
++                    ((_result.acceptance.num_sampled >= 1)
++                     & (_result.acceptance.num_sampled <= 8)).all()
++                )
++                for _result in _extreme_results
++            )
++            _row = {
++                "rank": int(get_tp_group().rank_in_group),
++                "cycles": len(_extreme_results),
++                "cycle_index": _extreme_runtime.state.cycle_index,
++                "stage_order": list(_extreme_runtime.stage_order),
++                "handoff_before_model_forward": True,
++                "oracle_target_calls_after_handoff": 0,
++                "model_runner_retained": False,
++                "proposer_runner_type": type(
++                    _extreme_runtime.proposer.proposer.runner
++                ).__name__,
++                "cache_tensors": len(_target_assets.caches),
++                "transactional_validation_in_hot_path": False,
++                "target_graph_requested": _extreme_target_graph,
++                "target_graph_mode": str(_target_inputs.aclgraph_runtime_mode),
++                "profile_dir": _extreme_profile_dir,
++                "profiled_wall_seconds": _extreme_wall_seconds,
++                "emitted_tokens_per_second": float(
++                    _extreme_runtime.state.emitted_token_count.sum().item()
++                    / _extreme_wall_seconds
++                ),
++                "state_advance_exact": bool(_state_advance_exact),
++                "host_mirror_exact": bool(_host_mirror_exact),
++                "acceptance_counts_in_contract": _counts_in_contract,
++                "accepted_counts": [
++                    _result.acceptance.num_sampled.cpu().tolist()
++                    for _result in _extreme_results
++                ],
++                "diagnostic_cycles": [
++                    {name: tensor.cpu().tolist() for name, tensor in cycle.items()}
++                    for cycle in _extreme_runtime.diagnostic_cycles
++                ],
++                "diagnostic_stage_ms": [
++                    {events[i][0]: events[i-1][1].elapsed_time(events[i][1])
++                     for i in range(1, len(events))}
++                    for events in _extreme_runtime.diagnostic_events
++                ],
++                "dspark_stage_ms": [
++                    {events[i][0]: events[i-1][1].elapsed_time(events[i][1])
++                     for i in range(1, len(events))}
++                    for events in _extreme_runtime.proposer.dag_events
++                ],
++                "emitted_token_count": (
++                    _extreme_runtime.state.emitted_token_count.cpu().tolist()
++                ),
++                "final_num_computed_tokens": (
++                    _extreme_runtime.state.num_computed_tokens.cpu().tolist()
++                ),
++            }
++            _row["pass"] = bool(
++                len(_extreme_results) == _extreme_cycles
++                and _extreme_runtime.state.cycle_index == _extreme_cycles
++                and _state_advance_exact
++                and _host_mirror_exact
++                and _counts_in_contract
++            )
++            os.makedirs(_extreme_run_dir, exist_ok=True)
++            with open(
++                os.path.join(
++                    _extreme_run_dir,
++                    f"rank{int(get_tp_group().rank_in_group)}.json",
++                ),
++                "w",
++                encoding="utf-8",
++            ) as _file:
++                json.dump(_row, _file, indent=2)
++            raise RuntimeError("EXTREME_RUNTIME_STANDALONE_COMPLETE")
+         with (
+             record_function_or_nullcontext("forward"),
+             set_ascend_forward_context(
+@@ -2144,6 +2772,285 @@ class NPUModelRunner(GPUModelRunner):
+             hidden_states = self._model_forward(
+                 num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
+             )
++            if _extreme_runtime_inputs is not None:
++                assert _extreme_prestate is not None
++                if isinstance(hidden_states, tuple):
++                    _oracle_main = hidden_states[0].clone()
++                    _oracle_aux = [_value.clone() for _value in hidden_states[1]]
++                else:
++                    _oracle_main, _oracle_aux = hidden_states.clone(), []
++                _oracle_logits = self.model.compute_logits(
++                    _oracle_main[_extreme_runtime_inputs.target_logits_indices]
++                )
++                _oracle_predicted = _oracle_logits.argmax(dim=-1).view(12, 8)
++                _oracle_accepted, _oracle_counts = greedy_accept(
++                    _extreme_runtime_inputs.draft_tokens,
++                    _oracle_predicted[:, :7],
++                    _oracle_predicted[:, 7],
++                )
++                _changed_model_buffers = [
++                    _name
++                    for _name, _buffer in self.model.named_buffers()
++                    if _extreme_buffer_versions is not None
++                    and _buffer._version != _extreme_buffer_versions.get(_name)
++                ]
++                _restore_verifications = []
++                _extreme_prestate.restore()
++                _restore_verifications.append(_extreme_prestate.verify_restored())
++                _oracle_replay = self._model_forward(
++                    num_tokens_padded,
++                    input_ids,
++                    positions,
++                    intermediate_tensors,
++                    inputs_embeds,
++                    **model_kwargs,
++                )
++                if isinstance(_oracle_replay, tuple):
++                    _replay_main = _oracle_replay[0].clone()
++                    _replay_aux = [_value.clone() for _value in _oracle_replay[1]]
++                else:
++                    _replay_main, _replay_aux = _oracle_replay.clone(), []
++                _replay_logits = self.model.compute_logits(
++                    _replay_main[_extreme_runtime_inputs.target_logits_indices]
++                )
++                _replay_predicted = _replay_logits.argmax(dim=-1).view(12, 8)
++                _replay_accepted, _replay_counts = greedy_accept(
++                    _extreme_runtime_inputs.draft_tokens,
++                    _replay_predicted[:, :7],
++                    _replay_predicted[:, 7],
++                )
++                _extreme_prestate.restore()
++                _restore_verifications.append(_extreme_prestate.verify_restored())
++                _direct_validation = _target_handoff.forward(
++                    _extreme_runtime_inputs.target_input_ids,
++                    _extreme_runtime_inputs.target_positions,
++                )
++                if isinstance(_direct_validation, tuple):
++                    _direct_main = _direct_validation[0].clone()
++                    _direct_aux = [
++                        _value.clone() for _value in _direct_validation[1]
++                    ]
++                else:
++                    _direct_main, _direct_aux = _direct_validation.clone(), []
++                _direct_logits = self.model.compute_logits(
++                    _direct_main[_extreme_runtime_inputs.target_logits_indices]
++                )
++                _direct_predicted = _direct_logits.argmax(dim=-1).view(12, 8)
++                _direct_accepted, _direct_counts = greedy_accept(
++                    _extreme_runtime_inputs.draft_tokens,
++                    _direct_predicted[:, :7],
++                    _direct_predicted[:, 7],
++                )
++                _extreme_prestate.restore()
++                _restore_verifications.append(_extreme_prestate.verify_restored())
++                _direct_replay = _target_handoff.forward(
++                    _extreme_runtime_inputs.target_input_ids,
++                    _extreme_runtime_inputs.target_positions,
++                )
++                if isinstance(_direct_replay, tuple):
++                    _direct_replay_main = _direct_replay[0].clone()
++                    _direct_replay_aux = [
++                        _value.clone() for _value in _direct_replay[1]
++                    ]
++                else:
++                    _direct_replay_main, _direct_replay_aux = (
++                        _direct_replay.clone(),
++                        [],
++                    )
++                _direct_replay_logits = self.model.compute_logits(
++                    _direct_replay_main[
++                        _extreme_runtime_inputs.target_logits_indices
++                    ]
++                )
++                _direct_replay_predicted = _direct_replay_logits.argmax(
++                    dim=-1
++                ).view(12, 8)
++                _direct_replay_accepted, _direct_replay_counts = greedy_accept(
++                    _extreme_runtime_inputs.draft_tokens,
++                    _direct_replay_predicted[:, :7],
++                    _direct_replay_predicted[:, 7],
++                )
++
++                def _comparison(_left, _right):
++                    _delta = (_left.float() - _right.float()).abs()
++                    return {
++                        "exact": bool(torch.equal(_left, _right)),
++                        "allclose": bool(
++                            torch.allclose(_left, _right, rtol=1e-3, atol=1e-3)
++                        ),
++                        "max_abs": float(_delta.max().item()),
++                    }
++
++                def _decision_comparison(
++                    _left_predicted,
++                    _right_predicted,
++                    _left_accepted,
++                    _right_accepted,
++                    _left_counts,
++                    _right_counts,
++                ):
++                    return {
++                        "predicted_equal": int(
++                            (_left_predicted == _right_predicted).sum().item()
++                        ),
++                        "predicted_total": int(_left_predicted.numel()),
++                        "accepted_exact": bool(
++                            torch.equal(_left_accepted, _right_accepted)
++                        ),
++                        "counts_equal": int(
++                            (_left_counts == _right_counts).sum().item()
++                        ),
++                        "counts_total": int(_left_counts.numel()),
++                    }
++
++                _target_validation = {
++                    "main": _comparison(_oracle_main, _direct_main),
++                    "logits": _comparison(_oracle_logits, _direct_logits),
++                    "aux_count_equal": len(_oracle_aux) == len(_direct_aux),
++                    "aux": [
++                        _comparison(_left, _right)
++                        for _left, _right in zip(_oracle_aux, _direct_aux)
++                    ],
++                    "oracle_replay": {
++                        "main": _comparison(_oracle_main, _replay_main),
++                        "logits": _comparison(_oracle_logits, _replay_logits),
++                        "aux_count_equal": len(_oracle_aux) == len(_replay_aux),
++                        "aux": [
++                            _comparison(_left, _right)
++                            for _left, _right in zip(_oracle_aux, _replay_aux)
++                        ],
++                    },
++                    "direct_replay": {
++                        "main": _comparison(_direct_main, _direct_replay_main),
++                        "logits": _comparison(
++                            _direct_logits, _direct_replay_logits
++                        ),
++                        "aux_count_equal": (
++                            len(_direct_aux) == len(_direct_replay_aux)
++                        ),
++                        "aux": [
++                            _comparison(_left, _right)
++                            for _left, _right in zip(
++                                _direct_aux, _direct_replay_aux
++                            )
++                        ],
++                    },
++                    "oracle_replay_decisions": _decision_comparison(
++                        _oracle_predicted,
++                        _replay_predicted,
++                        _oracle_accepted,
++                        _replay_accepted,
++                        _oracle_counts,
++                        _replay_counts,
++                    ),
++                    "direct_replay_decisions": _decision_comparison(
++                        _direct_predicted,
++                        _direct_replay_predicted,
++                        _direct_accepted,
++                        _direct_replay_accepted,
++                        _direct_counts,
++                        _direct_replay_counts,
++                    ),
++                }
++                _target_validation["pass"] = (
++                    _target_validation["direct_replay"]["main"]["allclose"]
++                    and _target_validation["direct_replay"]["logits"]["allclose"]
++                    and _target_validation["direct_replay"]["aux_count_equal"]
++                    and all(
++                        _value["allclose"]
++                        for _value in _target_validation["direct_replay"]["aux"]
++                    )
++                )
++                _extreme_prestate.restore()
++                _restore_verifications.append(_extreme_prestate.verify_restored())
++                _extreme_runtime = build_extreme_runtime(
++                    _extreme_runtime_inputs,
++                    _cfg,
++                )
++                try:
++                    _extreme_results = _extreme_runtime.run(8)
++                except Exception as _extreme_error:
++                    os.makedirs(_extreme_run_dir, exist_ok=True)
++                    with open(
++                        os.path.join(
++                            _extreme_run_dir,
++                            f"rank{int(get_tp_group().rank_in_group)}_error.json",
++                        ),
++                        "w",
++                        encoding="utf-8",
++                    ) as _file:
++                        json.dump(
++                            {
++                                "rank": int(get_tp_group().rank_in_group),
++                                "pass": False,
++                                "error": repr(_extreme_error),
++                            },
++                            _file,
++                            indent=2,
++                        )
++                    raise
++                torch.npu.synchronize()
++                _row = {
++                    "rank": int(get_tp_group().rank_in_group),
++                    "cycles": len(_extreme_results),
++                    "stage_order": list(_extreme_runtime.stage_order),
++                    "model_runner_retained": False,
++                    "proposer_runner_type": type(
++                        _extreme_runtime.proposer.proposer.runner
++                    ).__name__,
++                    "cache_tensors": len(_extreme_runtime.target.binding.forward.__self__.assets.caches),
++                    "snapshotted_cache_tensors": len(_extreme_prestate.rows),
++                    "snapshot_skipped": list(_extreme_prestate.skipped),
++                    "restore_verifications": _restore_verifications,
++                    "changed_model_buffers": _changed_model_buffers,
++                    "target_model_kwargs": sorted(model_kwargs),
++                    "accepted_counts": [
++                        _result.acceptance.num_sampled.cpu().tolist()
++                        for _result in _extreme_results
++                    ],
++                    "emitted_token_count": (
++                        _extreme_runtime.state.emitted_token_count.cpu().tolist()
++                    ),
++                    "final_num_computed_tokens": (
++                        _extreme_runtime.state.num_computed_tokens.cpu().tolist()
++                    ),
++                    "target_validation": _target_validation,
++                    "first_acceptance_equal": bool(
++                        torch.equal(
++                            _extreme_results[0].acceptance.sampled_token_ids,
++                            _direct_accepted,
++                        )
++                        and torch.equal(
++                            _extreme_results[0].acceptance.num_sampled,
++                            _direct_counts,
++                        )
++                    ),
++                    "first_acceptance_vs_direct_replay": bool(
++                        torch.equal(
++                            _extreme_results[0].acceptance.sampled_token_ids,
++                            _direct_replay_accepted,
++                        )
++                        and torch.equal(
++                            _extreme_results[0].acceptance.num_sampled,
++                            _direct_replay_counts,
++                        )
++                    ),
++                }
++                _row["pass"] = (
++                    _target_validation["pass"]
++                    and _row["first_acceptance_equal"]
++                )
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(
++                    os.path.join(
++                        _extreme_run_dir,
++                        f"rank{int(get_tp_group().rank_in_group)}.json",
++                    ),
++                    "w",
++                    encoding="utf-8",
++                ) as _file:
++                    json.dump(_row, _file, indent=2)
++                raise RuntimeError("EXTREME_RUNTIME_STANDALONE_COMPLETE")
+         with record_function_or_nullcontext("post process"):
+             aux_hidden_states = None
+             if self.use_aux_hidden_state_outputs:
+@@ -2218,6 +3125,12 @@ class NPUModelRunner(GPUModelRunner):
+     def sample_tokens(
+         self, grammar_output: "GrammarOutput | None"
+     ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
++        if hasattr(self, "_extreme_serving_output"):
++            output = self._extreme_serving_output
++            del self._extreme_serving_output
++            self.execute_model_state = None
++            self.kv_connector_output = None
++            return output
+         kv_connector_output = self.kv_connector_output
+         self.kv_connector_output = None
+         pp = get_pp_group()
+@@ -2365,6 +3278,39 @@ class NPUModelRunner(GPUModelRunner):
+                         for req_id in req_ids_output_copy
+                     ]
+ 
++        _oracle_trace_dir = os.getenv("EXTREME_ORACLE_TRACE_DIR")
++        if (
++            _oracle_trace_dir
++            and int(get_tp_group().rank_in_group) == 0
++            and scheduler_output.total_num_scheduled_tokens == 96
++            and len(req_ids_output_copy) == 12
++            and logits is not None
++            and logits.shape[0] == 96
++        ):
++            _trace_step = getattr(self, "_extreme_oracle_trace_steps", 0)
++            if _trace_step < 64:
++                os.makedirs(_oracle_trace_dir, exist_ok=True)
++                _trace_row = {
++                    "step": _trace_step,
++                    "req_ids": req_ids_output_copy,
++                    "input_ids": self.input_ids.gpu[:96].view(12, 8).cpu().tolist(),
++                    "positions": positions[:96].view(12, 8).cpu().tolist(),
++                    "target_argmax": logits.argmax(dim=-1).view(12, 8).cpu().tolist(),
++                    "sampled": sampler_output.sampled_token_ids.cpu().tolist(),
++                    "next_draft": (
++                        self._draft_token_ids.cpu().tolist()
++                        if isinstance(self._draft_token_ids, torch.Tensor)
++                        else self._draft_token_ids
++                    ),
++                }
++                with open(
++                    os.path.join(_oracle_trace_dir, "rank0_cycles.jsonl"),
++                    "a",
++                    encoding="utf-8",
++                ) as _trace_file:
++                    _trace_file.write(json.dumps(_trace_row) + "\n")
++            self._extreme_oracle_trace_steps = _trace_step + 1
++
+         model_runner_output = ModelRunnerOutput(
+             req_ids=req_ids_output_copy,
+             req_id_to_index=req_id_to_index_output_copy,
+@@ -3144,6 +4090,10 @@ class NPUModelRunner(GPUModelRunner):
+         decode_ratio_to_sas_metadata: dict[Any, Any] = {}
+         common_ratio_to_sas_metadata: dict[Any, Any] = {}
+         spec_decode_common_attn_metadata = None
++        self._extreme_all_slot_mappings = []
++        self._extreme_cache_slot_specs = []
++        if os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1":
++            self._extreme_group_common_metadata = []
+         for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
+             cm = copy(cm_base)  # shallow copy
+             # Basically only the encoder seq_lens, block_table and slot_mapping change
+@@ -3169,6 +4119,14 @@ class NPUModelRunner(GPUModelRunner):
+                 cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
+                     kv_cache_gid
+                 )
++            self._extreme_all_slot_mappings.append(cm.slot_mapping)
++            if os.getenv("EXTREME_DSA_BUILDER_ORACLE") == "1":
++                self._extreme_group_common_metadata.append(cm)
++            self._extreme_cache_slot_specs.extend(
++                (cm.slot_mapping, kv_cache_group.kv_cache_spec.block_size)
++                for layer_name in kv_cache_group.layer_names
++                if layer_name not in self.runner_only_attn_layers
++            )
+             if self.speculative_config and isinstance(self.drafter, (AscendStep3p5MTPProposer, AscendDSparkProposer)):
+                 # step3p5 MTP draft layers span multiple KV cache groups; capture
+                 # each group's block table / slot mapping so the proposer can

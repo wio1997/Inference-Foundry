@@ -73,3 +73,15 @@
 - `2026-09-23T07:57:40Z` Run `run-20260923T074250Z` 记录为 `pass`；正确性为 `fail`。Same-target/same-acceptance proposer comparison restored 69 captured state entries exactly on all ranks, but Product and Stock drafts matched only 71/84 tokens; two count=1 slots differed. Need input-field and Stock self-replay controls before attributing semantic mismatch.
 
 - `2026-09-23T07:58:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T075837Z`（test）。
+
+- `2026-09-23T08:14:34Z` Run `run-20260923T075837Z` 记录为 `pass`；正确性为 `invalid`。All 8 ranks matched Product/Stock proposer input and prepare fields; target-cache restore exact, but Stock self-replay differs 17/84 tokens because future proposer KV slots were not captured. Draft parity remains unproven.
+
+- `2026-09-23T08:16:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T081604Z`（test）。
+
+- `2026-09-23T08:29:08Z` Run `run-20260923T081604Z` 记录为 `pass`；正确性为 `invalid`。All 8 ranks: draft groups 2/3 and 16 cache specs extended to future slots, snapshots restore exactly, yet Stock self-replay matches only 69/84 tokens. Product/Stock 77/84; parity control still invalid.
+
+- `2026-09-23T08:30:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T083039Z`（test）。
+
+- `2026-09-23T08:43:27Z` Run `run-20260923T083039Z` 记录为 `pass`；正确性为 `invalid`。All 8 ranks: kernel-block-aware 16-cache snapshot exact; Stock self replay 75/84, Product/Stock 67/84, but all 12 first draft tokens equal in both comparisons. Deterministic full draft parity remains invalid.
+
+- `2026-09-23T08:43:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T084346Z`（profile）。
