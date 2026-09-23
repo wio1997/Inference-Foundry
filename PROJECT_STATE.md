@@ -485,7 +485,7 @@ established. The binder now updates raw slots only for actual SWA cache names;
 Run38 traces reference/native sparse metadata operator arguments before the
 next semantic claim. Neither acceptance repair nor formal E2E improvement is
 claimed. Evidence: evidence/20260923_loop035_diagnostic/run35–run37.
-EOF'
+
 Run38 isolated a concrete native SAS argument bug on all eight ranks: all
 three c1/c4/c128 reference/native calls had identical scalar arguments and
 tensor values, but native `cu_seqlens_q` was int64 while reference used int32.
@@ -494,7 +494,7 @@ int64. Raw SWA slot binding was also limited to `swa_cache`, removing all
 three compressed state-cache slot differences observed in Run37. Both changes
 are opt-in prototype changes pending Run39 reference field parity and later
 continuous decode/acceptance gates. Evidence: run38/summary.json.
-EOF'
+
 Run39 validated the int32 fix over 8 ranks and two c12 cycles: all SAS
 operator input arguments and first 32 output words matched reference for
 c1/c4/c128. All 45 non-SAS/QLI metadata fields per cycle matched. SAS/QLI
@@ -503,7 +503,7 @@ reference self-replay is also unstable. This establishes header/input parity,
 not full target or acceptance equivalence. Next same-state target A/native
 B/reference C with exact metadata/KV restoration, followed by continuous
 decode and only then formal E2E A/B. Evidence: run39/summary.json.
-EOF'
+
 Run40 same-state DSA-only target control passed on all 8 ranks and two cycles:
 reference A/native B argmax 92/96,94/96 versus reference A/restored reference
 C 93/96,92/96; all 12 A/B acceptance counts matched in each cycle. Physical
@@ -513,4 +513,41 @@ native target divergence at the sampled states. It does not validate GDN
 metadata, continuous acceptance or long token oracle. Run41 now profiles 256
 continuous FULL-graph cycles with native DSA and records the derived-metadata
 stage separately. Evidence: run40/summary.json.
-EOF'
+
+Run41 native DSA continuous eager check passed exact state and host mirrors on
+all 8 ranks for 256 cycles. It was not a comparable critical-path profile:
+`EXTREME_RUNTIME_TARGET_GRAPH` was omitted and recorded mode was NONE. Rank0
+emitted 5,370 tokens; late 192–255 output/slot/cycle was 1.729. Eager target
+412.5ms and proposer41.1ms medians cannot be compared with Run18 FULL-graph
+45.510/5.943ms. Run42 explicitly enables FULL graph and uses lightweight DAG
+events to obtain the relevant 256-cycle acceptance and metadata-stage profile.
+Evidence: run41/summary.json.
+
+Run42 corrected the graph protocol: 8/8 ranks completed 256 FULL-graph
+native-DSA cycles, with exact state/host mirrors. NPU event medians were
+metadata8.616ms, target46.201ms, proposer5.880ms, acceptance0.331ms. The
+late 192–255 window remained at1.594 outputs/slot/cycle, so DSA-only native
+refresh has not solved sustained progress. Rank0 standalone diagnostic
+309.16tok/s over15.830s is not comparable to formal Loop034 E2E. The next
+candidate is GDN's per-cycle prior accepted-count buffer, bound as a stable
+Runtime tensor and gated by same-state reference/native/reference target and
+acceptance evidence in Run43. Evidence: run42/summary.json.
+
+Run43 GDN binding attempt was invalid before target comparison: initial
+attention metadata exposed no speculative GDN count consumer on any rank.
+No acceptance conclusion follows. The source-backed handoff now borrows only
+`GDNAttentionMetadataBuilder.num_accepted_tokens`, the stable int32 graph
+buffer, once at bootstrap; Runtime holds the tensor, not the builder. Run44
+records its initial/reference/native values and repeats combined DSA+GDN
+same-state target A/B/C. Evidence: run43/summary.json.
+
+GDN hypothesis retracted (Runs43–44, 2026-09-23): the DeepSeek V4 Flash
+attention groups contain no GDN metadata builder or initial GDN count view;
+`config.json` and the model source have no GDN architecture. Both opt-in
+binding tests were INVALID before target A/B/C. Earlier shorthand
+"DSA+GDN builder" referred to a generic diagnostic callback whose GDN branch
+was not executed on this model; its observed effects came from active DSA/SWA
+metadata and slots. The inapplicable GDN Runtime code was removed. Next sample
+reference/native/reference DSA target and acceptance at late continuous cycles,
+then discriminate target KV versus DSpark proposal. Evidence: run43 and run44
+summaries plus model config/source audit.

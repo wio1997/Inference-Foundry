@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..4ca1ba34a 100644
+index fd5463845..f233e1cb1 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..4ca1ba34a 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,1198 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1210 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -732,6 +732,14 @@ index fd5463845..4ca1ba34a 100644
 +                _assets = _handoff.assets
 +                _initial_computed = _extreme_runtime.state.num_computed_tokens.clone()
 +                _aba_rows = []
++                _aba_total_cycles = int(os.getenv("EXTREME_NATIVE_TARGET_ABA_CYCLES", "2"))
++                _aba_samples = {
++                    int(_value) for _value in os.getenv(
++                        "EXTREME_NATIVE_TARGET_ABA_SAMPLES", "0,1"
++                    ).split(",") if _value.strip()
++                }
++                if not _aba_samples or min(_aba_samples) < 0 or max(_aba_samples) >= _aba_total_cycles:
++                    raise ValueError("native target A/B/C sample cycles outside run")
 +
 +                def _invoke_target():
 +                    _result = _extreme_runtime.target.execute(_extreme_runtime.state)
@@ -745,7 +753,10 @@ index fd5463845..4ca1ba34a 100644
 +                        _accept.sampled_token_ids.clone(),
 +                    )
 +
-+                for _cycle in range(2):
++                for _cycle in range(_aba_total_cycles):
++                    if _cycle not in _aba_samples:
++                        _extreme_runtime.step()
++                        continue
 +                    _extreme_runtime._state_machine.prepare_target_inputs()
 +                    if _native_aba:
 +                        _baseline_meta = dict(_handoff.attn_metadata)
@@ -915,7 +926,8 @@ index fd5463845..4ca1ba34a 100644
 +                _rank = int(get_tp_group().rank_in_group)
 +                _aba_result = {
 +                    "rank": _rank,
-+                    "cycles": 2,
++                    "cycles": _aba_total_cycles,
++                    "sampled_cycles": sorted(_aba_samples),
 +                    "rows": _aba_rows,
 +                    "state_advance_exact": bool(torch.equal(
 +                        _extreme_runtime.state.num_computed_tokens,
@@ -1212,7 +1224,7 @@ index fd5463845..4ca1ba34a 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3338,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3350,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1498,7 +1510,7 @@ index fd5463845..4ca1ba34a 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3691,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3703,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1511,7 +1523,7 @@ index fd5463845..4ca1ba34a 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3844,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3856,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1551,7 +1563,7 @@ index fd5463845..4ca1ba34a 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4656,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4668,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1562,7 +1574,7 @@ index fd5463845..4ca1ba34a 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4685,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4697,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )

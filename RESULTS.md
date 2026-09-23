@@ -364,17 +364,32 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
   differ before self-replay noise, and compressed slot differences are native
   only. The 11/12 client success count is from intentional diagnostic abort,
   not a serving benchmark. No formal throughput claim.
-EOF'- Loop035 Run38 SAS operator trace, 8/8 ranks: reference/native arguments
+- Loop035 Run38 SAS operator trace, 8/8 ranks: reference/native arguments
   matched except fixed local `cu_seqlens_q` dtype int32/int64 across c1/c4/c128.
   SWA scope correction removed the three compressed slot mismatches. Runtime
   cumsum now preserves int32; correctness awaits Run39 and continuous gates.
-EOF'- Loop035 Run39 int32 cumsum correction, 8/8 ranks and two cycles: all c1/c4/c128
+- Loop035 Run39 int32 cumsum correction, 8/8 ranks and two cycles: all c1/c4/c128
   SAS operator inputs and first 32 outputs match reference; all 45 other fields
   match per cycle. SAS/QLI tails remain self-replay unstable. This is a metadata
   header gate only, not target/acceptance or long-token correctness.
-EOF'- Loop035 Run40 DSA-only same-state target A/native B/reference C: 8/8 ranks,
+- Loop035 Run40 DSA-only same-state target A/native B/reference C: 8/8 ranks,
   two cycles, A/B argmax 92/96 and 94/96 versus A/C 93/96 and 92/96. A/B
   acceptance counts 12/12 each cycle; exact physical/old metadata restores.
   Candidate effect stays within self-replay noise. Long semantic correctness
   and acceptance recovery remain unverified.
-EOF'
+- Loop035 Run41: 8/8 ranks passed 256 native-DSA eager cycles with exact state
+  and host mirrors, but target graph was NONE. Its 45.2 tok/s diagnostic and
+  412.5/41.1ms target/proposer event medians are excluded from FULL-graph and
+  formal E2E comparisons. Run42 corrects the graph mode.
+- Loop035 Run42: corrected FULL-graph 256-cycle native-DSA profile passed on
+  8/8 ranks. NPU medians metadata8.616ms,target46.201ms,proposer5.880ms;
+  late acceptance1.594 outputs/slot/cycle. Short standalone309.16tok/s is
+  not a formal same-protocol E2E result; no acceptance repair claimed.
+- Loop035 Run43 combined DSA+GDN A/B/C: INVALID before target comparison on
+  8/8 ranks because initial attention metadata had no exposed GDN count view.
+  The next run binds the builder-owned stable tensor at bootstrap only.
+- Loop035 Run44 GDN builder-count handoff: INVALID before target comparison on
+  8/8 ranks because this DeepSeek V4 Flash path has no active GDN builder.
+  The optional GDN Runtime binding was removed. All older "DSA+GDN" diagnostic
+  descriptions are corrected: the GDN callback branch did not run for this
+  model, so those measurements characterize DSA/SWA effects only.

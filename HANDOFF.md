@@ -136,7 +136,7 @@ A source-backed binder correction now restricts raw SWA slot updates to layer
 names ending `swa_cache`. Run38 is in progress with an operator argument trace
 to locate the first SAS header mismatch. No new formal E2E A/B has run; the
 Loop034 baseline remains Extreme 217.342 versus Stock 543.655 tok/s.
-EOF'
+
 Run38 traced all SAS metadata operator arguments on 8 ranks for c1/c4/c128.
 Reference/native scalar arguments and tensor values matched; the sole input
 difference was `cu_seqlens_q` dtype: reference int32, native int64. PyTorch
@@ -146,7 +146,7 @@ raw SWA writes restricted to actual `swa_cache` groups, Run38 no longer had the
 three compressed state-cache slot differences seen in Run37. Do not infer
 long-running acceptance or token correctness from this two-cycle field gate.
 Evidence: `evidence/20260923_loop035_diagnostic/run38/summary.json`.
-EOF'
+
 Run39 completed the int32 correction on all eight ranks and two cycles. For
 all c1/c4/c128 SAS calls, reference/native operator arguments and first 32
 output values now match exactly. All 45 non-SAS/QLI fields in each cycle match;
@@ -156,7 +156,7 @@ header/input gate, but full-buffer and target/acceptance semantic equivalence
 remain open. Next perform same-state target reference/native/reference control
 with exact old metadata and physical KV restoration, then continuous decode.
 Evidence: `evidence/20260923_loop035_diagnostic/run39/summary.json`.
-EOF'
+
 Run40 completed an 8-rank same-state DSA-only target A/native B/restored
 reference C control. Per cycle, A/B argmax matched 92/96 and 94/96; A/C
 self-replay matched 93/96 and 92/96. A/B acceptance counts matched 12/12 in
@@ -168,4 +168,44 @@ native DSA target/acceptance parity for two cycles, not long token equivalence.
 Run41 is now measuring 256 continuous FULL-graph cycles with native DSA,
 including the new metadata stage in the Runtime DAG profile.
 Evidence: `evidence/20260923_loop035_diagnostic/run40/summary.json`.
-EOF'
+
+Run41 completed 256 native-DSA c12 cycles on all 8 ranks with exact state and
+host mirrors. Its target graph flag was omitted: records explicitly show
+`target_graph_requested=false`, `target_graph_mode=NONE`. This eager trace is
+not comparable with Run18 FULL-graph stage times or formal E2E. It emitted
+5,370 tokens/rank, with outputs/slot/cycle 1.940 in cycles128–191 and 1.729
+in cycles192–255, but no long semantic oracle was run. Run42 is the corrected
+FULL-graph 256-cycle native-DSA profile, with no extra diagnostic clones.
+Evidence: `evidence/20260923_loop035_diagnostic/run41/summary.json`.
+
+Run42 corrected the graph flag and completed 256 FULL-graph native-DSA cycles
+on all 8 ranks with exact state and host mirrors. NPU event medians (after 16
+cycles) were derived metadata 8.616ms, target46.201ms, proposer5.880ms,
+acceptance0.331ms. Rank0 emitted4,894 tokens in15.830s (309.16tok/s short
+standalone diagnostic). Outputs/slot/cycle were1.665 in cycles128–191 and
+1.594 in192–255. This short run is not the formal 48-request E2E protocol;
+acceptance remains low. Run43 tests native GDN prior accepted-count binding
+alongside native DSA in same-state reference/native/reference target control.
+Evidence: `evidence/20260923_loop035_diagnostic/run42/summary.json`.
+
+Run43 did not reach target A/B/C: on all 8 ranks, bootstrap rejected the
+assumption that the initial `attn_metadata` dict already exposed a GDN
+speculative count view. It is INVALID and has no target/acceptance inference.
+Source inspection identified the graph-stable `num_accepted_tokens` buffer on
+`GDNAttentionMetadataBuilder`; bootstrap now hands that tensor over once,
+without retaining the builder in Runtime. Run44 is redoing the two-cycle
+combined DSA+GDN same-state control, including count values before reference,
+after reference A, and after native B. Evidence: run43/summary.json.
+
+## Loop035 GDN hypothesis correction (2026-09-23 15:50 UTC)
+
+Run43 and Run44 both failed their explicit bootstrap gate before target work.
+Run43 found no GDN count view in the initial metadata; Run44 found no GDN
+metadata builder among active attention groups on all eight ranks. The model
+config and `vllm/vllm/models/deepseek_v4/` source contain no GDN architecture.
+Thus prior descriptions of a "DSA+GDN builder" control overstate what was
+executed for DeepSeek V4 Flash: the connected callback rebuilt active DSA/SWA
+metadata, while its generic GDN branch was not taken. No earlier acceptance
+or target result is evidence about GDN. The optional GDN Runtime binding has
+been removed. Return to DSA, SWA/compressed KV, target and DSpark proposal
+causal controls. Evidence: run43/summary.json and run44/summary.json.
