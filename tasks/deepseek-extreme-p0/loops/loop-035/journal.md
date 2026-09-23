@@ -193,3 +193,21 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T14:50:17Z` Run `run-20260923T143658Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks DSA-only same-state target A=reference B=native C=restored reference: AB argmax 92/96,94/96 vs AC 93/96,92/96; AB acceptance counts 12/12 both cycles; 138 physical KV entries restored exactly, old metadata restored, host mirrors/state exact. Isolated two-cycle parity passes within replay noise; long semantics/GDN still open.
 
 - `2026-09-23T14:50:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T145045Z`（profile）。
+
+- `2026-09-23T15:06:24Z` Run `run-20260923T145045Z` 记录为 `pass`；正确性为 `pass`。Native DSA completed 256 c12 eager cycles on 8/8 ranks with exact state and host mirrors. Target graph env was omitted, so target mode NONE; 412.5ms target,41.1ms proposer and 45.2 tok/s diagnostic are incomparable to Run18 FULL graph/formal E2E. Run42 corrects target graph and removes extra diagnostic clones.
+
+- `2026-09-23T15:06:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T150644Z`（profile）。
+
+- `2026-09-23T15:19:43Z` Run `run-20260923T150644Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks 256 native-DSA FULL-graph c12 cycles, exact state/host mirrors. NPU median derived metadata8.616ms,target46.201ms,proposer5.880ms. Late cycles192-255 acceptance1.594 outputs/slot/cycle, so sustained progress remains low. Short diagnostic309tok/s is not formal E2E or paired throughput. Next GDN dynamic prior-count parity and metadata synchronization cost.
+
+- `2026-09-23T15:21:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T152154Z`（test）。
+
+- `2026-09-23T15:35:31Z` Run `run-20260923T152154Z` 记录为 `invalid`；正确性为 `invalid`。All eight ranks failed bootstrap before target A/B/C: initial attention metadata exposes no speculative GDN count consumer. Bind builder-owned stable int32 num_accepted_tokens buffer once into Runtime and rerun; no semantic or acceptance conclusion.
+
+- `2026-09-23T15:36:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T153654Z`（test）。
+
+- `2026-09-23T15:50:52Z` Run `run-20260923T153654Z` 记录为 `invalid`；正确性为 `invalid`。8/8 ranks failed bootstrap with no GDN builder count source. DeepSeek V4 Flash config/source and prior metadata records show no active GDN group; generic callback GDN branch was not executed. Retract GDN hypothesis, remove optional binding, continue actual DSA/DSpark/KV diagnostics.
+
+- `2026-09-23T15:52:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T155245Z`（test）。
+
+- `2026-09-23T16:05:29Z` Run `run-20260923T155245Z` 记录为 `pass`；正确性为 `pass`。8/8 rank late native DSA A/B/C at cycles 0,1,64,128 passed state and KV restore; native difference remains within noisy reference self-replay; no long semantic or acceptance claim

@@ -551,3 +551,5 @@ metadata and slots. The inapplicable GDN Runtime code was removed. Next sample
 reference/native/reference DSA target and acceptance at late continuous cycles,
 then discriminate target KV versus DSpark proposal. Evidence: run43 and run44
 summaries plus model config/source audit.
+
+Run45 FULL-graph late native DSA A/B/C sampled cycles 0,1,64,128 for 129 continuous cycles, 8/8 rank state/host/KV restoration gates passed. At cycle64 A/B versus A/C argmax=74/96 versus72/96; cycle128=78/96 versus76/96. Accepted-token equality 90/96 versus90/96 and89/96 versus91/96. Native difference remains within reference replay noise; late A/C noise is large, so no long semantic correctness claim. Next isolate effective target/KV and DSpark proposal under same-state controls. `run45/summary.json`.

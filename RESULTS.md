@@ -393,3 +393,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
   The optional GDN Runtime binding was removed. All older "DSA+GDN" diagnostic
   descriptions are corrected: the GDN callback branch did not run for this
   model, so those measurements characterize DSA/SWA effects only.
+
+- Loop035 Run45: 8/8 ranks passed late sampled FULL-graph native DSA target A/B/C and state/KV restore gates through 129 cycles. Native A/B differences at cycles64,128 remained within reference A/C replay noise (argmax74 vs72 and78 vs76 of96). The replay noise is too large to establish long token equivalence; low acceptance remains unresolved.

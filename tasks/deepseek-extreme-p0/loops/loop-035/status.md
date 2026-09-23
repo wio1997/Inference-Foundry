@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：执行 Run run-20260923T145045Z：EXTREME_NATIVE_TARGET_METADATA=1 EXTREME_RUNTIME_DIAGNOSE=1 EXTREME_RUNTIME_CYCLES=256 bash scripts/serve.sh; 12x128 trigger
-- 更新时间：`2026-09-23T14:50:45Z`
+- 下一步：审查 Run run-20260923T155245Z 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-23T16:05:29Z`
 
 ## Run 记录
 
@@ -56,6 +56,10 @@
 - `runs/mixed_32k_1024_c12/run-20260923T142018Z`
 - `runs/mixed_32k_1024_c12/run-20260923T143658Z`
 - `runs/mixed_32k_1024_c12/run-20260923T145045Z`
+- `runs/mixed_32k_1024_c12/run-20260923T150644Z`
+- `runs/mixed_32k_1024_c12/run-20260923T152154Z`
+- `runs/mixed_32k_1024_c12/run-20260923T153654Z`
+- `runs/mixed_32k_1024_c12/run-20260923T155245Z`
 
 ## 阻塞项
 

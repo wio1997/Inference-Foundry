@@ -209,3 +209,7 @@ metadata, while its generic GDN branch was not taken. No earlier acceptance
 or target result is evidence about GDN. The optional GDN Runtime binding has
 been removed. Return to DSA, SWA/compressed KV, target and DSpark proposal
 causal controls. Evidence: run43/summary.json and run44/summary.json.
+
+## Loop035 Run45 late native DSA control (2026-09-23 16:05 UTC)
+
+FULL-graph 129-cycle A/reference, B/native, C/restored-reference target control sampled cycles 0,1,64,128. All 8 ranks passed physical KV restoration, metadata restoration, exact state advance and host mirrors. At cycle64 A/B argmax was 74/96 versus A/C 72/96; at cycle128 78/96 versus 76/96. Accepted-token equality was 90/96 versus 90/96, then 89/96 versus 91/96. Native DSA difference is within reference self-replay noise at sampled late states; reference self-replay is too noisy to certify long token equivalence. Sustained low acceptance remains unresolved. Next discriminate DSpark proposal and target/KV using effective tokens and controlled same-state replay. Evidence: `evidence/20260923_loop035_diagnostic/run45/summary.json`.
