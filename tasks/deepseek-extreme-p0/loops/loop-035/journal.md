@@ -247,3 +247,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T18:19:35Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T184500Z`（test）。
 
 - `2026-09-23T18:33:40Z` Run `run-20260923T184500Z` 记录为 `pass`；正确性为 `pass`。Run54 fixed-slot functional gate: 12/12 exact outputs, 8/8 rank and Host mirrors, overshoot 2149->49; sampled block0 absent through cycle256. Late physical KV audit and long token oracle remain open; 360.33 TPS is diagnostic only.
+
+- `2026-09-23T18:34:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T184000Z`（test）。
+
+- `2026-09-23T18:48:31Z` Run `run-20260923T184000Z` 记录为 `pass`；正确性为 `pass`。Run55 sampled late KV safety passes: 8 ranks, cycles 0/128/256/320/360/384/400/420, no physical block0 or negative target mappings, parked positions stable, host mirrors exact; 12/12 1024-token clients. Long token-level oracle and acceptance gap remain open.
