@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..4a19a6115 100644
+index fd5463845..d9f484001 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..4a19a6115 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,633 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,667 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -161,6 +161,36 @@ index fd5463845..4a19a6115 100644
 +                    _shared_decode = {}
 +                    _rebuilt = 0
 +                    _private_seq_cpu = _state.target_seq_lens.cpu()
++                    if os.getenv("EXTREME_TARGET_SLOT_ORACLE") == "1":
++                        _prior_slots = [
++                            _cm.slot_mapping[:96].clone()
++                            for _cm in self._extreme_group_common_metadata
++                        ]
++                        self.input_batch.block_table.compute_slot_mapping(
++                            12,
++                            _state.target_query_start_loc,
++                            _state.target_positions,
++                        )
++                        if not hasattr(_diagnostic_target_handoff, "target_slot_oracle_audit"):
++                            _diagnostic_target_handoff.target_slot_oracle_audit = []
++                        for _gid, (_before, _cm) in enumerate(
++                            zip(_prior_slots, self._extreme_group_common_metadata)
++                        ):
++                            _changed = int(
++                                (_before != _cm.slot_mapping[:96]).sum().item()
++                            )
++                            if _diagnostic_refresh_count[0] == 0 and _changed:
++                                raise RuntimeError(
++                                    f"target group {_gid} bootstrap slot oracle mismatch: {_changed}"
++                                )
++                            if _diagnostic_refresh_count[0] < 4:
++                                _diagnostic_target_handoff.target_slot_oracle_audit.append(
++                                    {
++                                        "cycle": _diagnostic_refresh_count[0],
++                                        "gid": _gid,
++                                        "changed": _changed,
++                                    }
++                                )
 +                    for _gid, _cm in enumerate(self._extreme_group_common_metadata):
 +                        _cm_work = copy(_cm)
 +                        _cm_work.positions[:96].copy_(_state.target_positions)
@@ -604,11 +634,15 @@ index fd5463845..4a19a6115 100644
 +                    _result.acceptance.num_sampled.cpu().tolist()
 +                    for _result in _extreme_results
 +                ],
++                "target_slot_oracle_audit": getattr(
++                    _extreme_runtime.target.binding.forward.__self__,
++                    "target_slot_oracle_audit",
++                    [],
++                ),
 +                "diagnostic_cycles": [
 +                    {name: tensor.cpu().tolist() for name, tensor in cycle.items()}
 +                    for cycle in _extreme_runtime.diagnostic_cycles
 +                ],
-+                "draft_group_slot_audit": _extreme_runtime.proposer.draft_group_slot_audit,
 +                "diagnostic_stage_ms": [
 +                    {events[i][0]: events[i-1][1].elapsed_time(events[i][1])
 +                     for i in range(1, len(events))}
@@ -647,7 +681,7 @@ index fd5463845..4a19a6115 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +2773,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +2807,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -933,7 +967,7 @@ index fd5463845..4a19a6115 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3126,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3160,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -946,7 +980,7 @@ index fd5463845..4a19a6115 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3279,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3313,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -986,7 +1020,7 @@ index fd5463845..4a19a6115 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4091,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4125,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -997,7 +1031,7 @@ index fd5463845..4a19a6115 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4120,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4154,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )

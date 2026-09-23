@@ -342,3 +342,8 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
   in cycles 128–191. Target metadata rebuild alone did not prevent the
   long-run collapse. Different prompt ordering and eager execution preclude
   a paired quantitative comparison to Run18. No E2E throughput claim.
+- Loop035 Run20 confirmed draft gid2 context slot mapping stale in 96/96 positions
+  from cycle 1, but isolated refresh did not prevent acceptance collapse.
+  Run21 combined it with target DSA+GDN metadata rebuild and still reached
+  1.003 outputs/slot/cycle in cycles 128–191. Both were 8-rank, 256-cycle
+  diagnostics with local state gates; no product KEEP or E2E claim.

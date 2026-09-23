@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：执行 Run run-20260923T092814Z：EXTREME_DSA_BUILDER_ORACLE=1 EXTREME_DRAFT_GROUP_SLOT_REFRESH=1 eager target c12 32K 256 cycles
-- 更新时间：`2026-09-23T09:28:14Z`
+- 下一步：执行 Run run-20260923T094511Z：EXTREME_TARGET_SLOT_ORACLE=1 EXTREME_DSA_BUILDER_ORACLE=1 c12 32K 256 cycles eager target
+- 更新时间：`2026-09-23T09:45:11Z`
 
 ## Run 记录
 
@@ -36,6 +36,7 @@
 - `runs/mixed_32k_1024_c12/run-20260923T085924Z`
 - `runs/mixed_32k_1024_c12/run-20260923T091429Z`
 - `runs/mixed_32k_1024_c12/run-20260923T092814Z`
+- `runs/mixed_32k_1024_c12/run-20260923T094511Z`
 
 ## 阻塞项
 
