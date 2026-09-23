@@ -397,3 +397,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Loop035 Run45: 8/8 ranks passed late sampled FULL-graph native DSA target A/B/C and state/KV restore gates through 129 cycles. Native A/B differences at cycles64,128 remained within reference A/C replay noise (argmax74 vs72 and78 vs76 of96). The replay noise is too large to establish long token equivalence; low acceptance remains unresolved.
 
 - Loop035 Run46: late cycle128 Product/Stock DSpark proposer first drafts matched 12/12 on all 8 ranks; 83/84 full drafts matched versus Stock self-replay 79/84. Inputs, prepare fields and KV restoration were exact. Product proposer difference is not a supported explanation for low acceptance at this sampled state.
+
+- Loop035 Run47: Stock output self-control invalidated independent exact-text oracle. Two identical 12-request 1024-token cohorts completed, but 0/12 texts matched exactly; common prefix ranged 38–920 characters. Same-state KV-restored Stock/direct target control is required.

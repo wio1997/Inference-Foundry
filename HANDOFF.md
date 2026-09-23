@@ -217,3 +217,7 @@ FULL-graph 129-cycle A/reference, B/native, C/restored-reference target control 
 ## Loop035 Run46 late DSpark proposer control (2026-09-23 16:22 UTC)
 
 After 128 continuous native-DSA FULL-graph cycles, all 8 ranks passed same-state Product/Stock/Stock proposer input, prepare-field and physical KV restoration gates. Product/Stock first draft token was 12/12 equal; full draft 83/84 equal versus Stock self-replay 79/84. Thus sampled late Product proposer implementation is not the observed low-acceptance root. This does not compare full serving trajectories: next establish effective token-level Stock oracle and first target/KV state divergence from the shared initial state. Evidence: `evidence/20260923_loop035_diagnostic/run46/summary.json`.
+
+## Loop035 Run47 Stock output self-control (2026-09-23 16:39 UTC)
+
+Identical 12×32K→1024 c12 Stock requests were submitted twice to one service with temperature0 and ignore_eos. Both were 12/12 complete and 1024 tokens/request, yet exact output text matched 0/12; earliest differing character across requests was 38, longest common prefix ranged 38–920. Independent Stock-vs-Extreme output text cannot serve as a first-divergence oracle. Run47 is INVALID for that method. Next perform Stock/direct target A/B/C within one fixed KV state with Stock self-replay control, comparing first/effective target tokens, accepted counts and physical cache restores. Evidence: `run47/summary.json`.
