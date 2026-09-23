@@ -251,3 +251,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T18:34:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T184000Z`（test）。
 
 - `2026-09-23T18:48:31Z` Run `run-20260923T184000Z` 记录为 `pass`；正确性为 `pass`。Run55 sampled late KV safety passes: 8 ranks, cycles 0/128/256/320/360/384/400/420, no physical block0 or negative target mappings, parked positions stable, host mirrors exact; 12/12 1024-token clients. Long token-level oracle and acceptance gap remain open.
+
+- `2026-09-23T18:49:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T185000Z`（test）。
+
+- `2026-09-23T19:03:49Z` Run `run-20260923T185000Z` 记录为 `invalid`；正确性为 `invalid`。Missing EXTREME_DSA_BUILDER_ORACLE=1; all 8 ranks fail explicit reference metadata callback gate before target A/B/C; no target or acceptance conclusion.
