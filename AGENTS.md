@@ -59,71 +59,13 @@ Observe
 
 ## 模型使用
 
-优先把低价值、高确定性工作交给低成本模型。
+默认主 Agent 是 GPT-6 Sol，负责 Runtime 方向、实验裁决、代码审查与结果整合。模型路由由主 Agent 按任务边界决定，不按关键词或配额强制委派。
 
-### Zcode / DeepSeek
+只有任务明确、独立、低风险且有可验证交付物时，才可委派给 Zcode / DeepSeek。例如限定文件范围的源码定位、日志提取、数据汇总、简单脚本检查。委派时写明输入、允许读取的范围、预期输出和验收方式；先用只读 plan 模式。可执行入口为 `scripts/delegate_zcode.py`，执行记录应包含实际模型、退出码和输出文件。主 Agent 必须审阅结果，再写入 TaskCtl 的 Run 证据；TaskCtl 本身只管理状态，不负责模型调度。
 
-优先处理：
+GPT-6 Sol 继续处理跨模块实现、诊断归因和通常的优化设计。只有高复杂度、关键架构或高不确定性决策才考虑升级 GPT-6 Astra 等更强模型，并记录升级理由。模型不可用或委派失败时，主 Agent 直接完成任务；不得为了满足路由比例机械调用子 Agent。
 
-* grep/find
-* Git
-* 编译
-* 命令执行
-* benchmark
-* profiling
-* 日志提取
-* 数据整理
-* 简单 patch
-
-### Astra 6 Light
-
-优先处理：
-
-* 大日志压缩
-* 局部源码摘要
-* 文件筛选
-* 简单调用关系
-* profiling 摘要
-
-### Astra 6 Medium
-
-优先处理：
-
-* 性能问题调查
-* 完整调用链
-* HBM/数据流
-* 通信/同步
-* Graph 边界
-* profiling 根因
-* 优化候选分析
-
-### GPT-5.6 Medium
-
-优先处理：
-
-* 优化方案设计
-* Kernel/SuperKernel 实现
-* Ascend C 实现
-* Graph 改造
-* Runtime 修改
-* 跨模块但范围明确的代码修改
-* 性能模型
-
-### GPT-5.6 High
-
-仅在高价值、高不确定性问题上使用，例如：
-
-* 主要瓶颈无法判断；
-* 重大架构路线选择；
-* 局部收益无法传递到 E2E；
-* Framework Gap 与 Compute Gap 难以区分；
-* 是否应该脱离 vLLM-Ascend Hot Path；
-* 是否应该进入 Persistent/MegaKernel/Standalone Runtime；
-* 一个错误决定可能浪费大量后续工程时间。
-
-不要让 High 做 grep、编译和日志整理。
-
-这只是成本策略，不是能力限制。如果低成本模型无法可靠解决问题，应主动升级。
+具体调用与验收约定见 `docs/agent_orchestration.md`。
 
 ## 上下文控制
 
