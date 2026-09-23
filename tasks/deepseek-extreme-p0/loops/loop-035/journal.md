@@ -131,3 +131,9 @@ Run25 isolated reference all-group target slot refresh with builder rebuild skip
 - `2026-09-23T11:06:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T110633Z`（test）。
 
 Run26 collected Stock exact token oracle through Chat Completions return_token_ids: all 12 fixed dataset requests succeeded, all 12 prompt token hashes were unique, prompt lengths were 32,851 for eleven requests and 32,853 for one, and every response contained exactly 1,024 token IDs with finish_reason=length. This is a correctness reference only, not a repeated throughput baseline. Run27 is loading combined metadata+slot oracle Extreme serving for a same-request API token comparison.
+
+- `2026-09-23T11:25:02Z` Run `run-20260923T110633Z` 记录为 `pass`；正确性为 `invalid`。Extreme combined oracle serving completed 12/12 1024-token outputs on 8 ranks, 292 cycles first cohort. Stock-vs-Extreme matched all prompt hashes but 0/12 exact; Extreme self-repeat also 0/12 exact, so cross-run token mismatch cannot assign a semantic cause. Stock self-repeat and same-state control next.
+
+- `2026-09-23T11:25:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T112521Z`（test）。
+
+Run27 combined metadata+slot oracle in Extreme serving returned 12/12 length-exact 1,024-token API outputs on all eight ranks (first cohort 292 cycles, 139.5 s). Prompt token hashes matched Stock for all 12 requests, but no complete output sequence matched; first cross-service mismatch positions were 7-106. An Extreme self-repeat in the same service also produced 0/12 exact sequences with first mismatches 9-163. Therefore cross-run token differences are confounded by observed self-replay variation and cannot by themselves prove a product semantic error or correctness of Run23's high acceptance. Stock same-service self-repeat is now running; afterward use same-state target/proposer/acceptance gates rather than unrelated service generations to locate a causal first divergence.

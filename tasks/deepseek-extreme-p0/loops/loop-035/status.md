@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：执行 Run run-20260923T110633Z：EXTREME_RUNTIME_SERVE=1 plus connected DSA+GDN builder and target slot oracle; exact 12x32K->1024 API token IDs versus Stock
-- 更新时间：`2026-09-23T11:06:33Z`
+- 下一步：执行 Run run-20260923T112521Z：Stock same-service self-repeat exact API output token IDs; two 12x32K->1024 cohorts with distinct request IDs
+- 更新时间：`2026-09-23T11:25:21Z`
 
 ## Run 记录
 
@@ -42,6 +42,7 @@
 - `runs/mixed_32k_1024_c12/run-20260923T103729Z`
 - `runs/mixed_32k_1024_c12/run-20260923T105250Z`
 - `runs/mixed_32k_1024_c12/run-20260923T110633Z`
+- `runs/mixed_32k_1024_c12/run-20260923T112521Z`
 
 ## 阻塞项
 

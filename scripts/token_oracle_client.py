@@ -24,6 +24,7 @@ async def main() -> None:
     parser.add_argument("--url", default="http://127.0.0.1:8080/v1/chat/completions")
     parser.add_argument("--limit", type=int, default=12)
     parser.add_argument("--max-tokens", type=int, default=1024)
+    parser.add_argument("--request-prefix", default="token-oracle")
     args = parser.parse_args()
     prompts = [
         json.loads(line)["question"]
@@ -40,7 +41,7 @@ async def main() -> None:
                 "ignore_eos": True,
                 "stream": False,
                 "return_token_ids": True,
-                "request_id": f"token-oracle-{index:03d}",
+                "request_id": f"{args.request_prefix}-{index:03d}",
             }
             try:
                 async with session.post(args.url, json=body) as response:
