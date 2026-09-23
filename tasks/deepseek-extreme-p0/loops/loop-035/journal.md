@@ -161,3 +161,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T12:40:11Z` Run `run-20260923T122713Z` 记录为 `pass`；正确性为 `invalid`。Run32 valid 8-rank same-state A/B/C discriminator: exact physical KV, common and 72 old metadata tensor restores; cycle1 A/C 92/96 target argmax versus A/B 75/96, two acceptance-count slots changed. Combined metadata+slot refresh causally changes target, but semantic correctness and long-run acceptance remain unverified.
 
 - `2026-09-23T12:40:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T124051Z`（test）。
+
+- `2026-09-23T12:53:36Z` Run `run-20260923T124051Z` 记录为 `pass`；正确性为 `invalid`。Run33 builder path same-state A/B/C on 8 ranks: cycle1 A/C 91/96 within replay noise, A/B 64/96, two acceptance counts changed; builder also rewrote SWA group2 slots 96/96. Causal target effect, no semantic correctness or acceptance recovery claim.
+
+- `2026-09-23T12:53:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T125344Z`（test）。
