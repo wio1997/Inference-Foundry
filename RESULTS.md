@@ -328,3 +328,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 
 - Loop035 Run11 DSA builder oracle with shared CPU mirror was INVALID (host_mirror_exact=False); 211 outputs are excluded from causal interpretation.
 - Loop035 Run12 corrected DSA builder oracle passed 8/8 local gates and emitted 209 outputs/8 cycles. Run13 DSA+GDN builder oracle likewise passed and emitted 215. Both use direct eager target and unordered prompt admission, so no Stock parity or throughput claim follows.
+
+- Loop035 same-state proposer Run14: 69/69 touched-cache and mutable entries restored exactly on all eight ranks; Product/Stock draft outputs matched 71/84, with differences only in two count=1 slots. Proposer-private state and self-replay controls remain open; no causal root or KEEP claimed.

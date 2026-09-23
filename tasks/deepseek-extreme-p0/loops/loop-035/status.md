@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run-20260923T072512Z 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-23T07:39:57Z`
+- 下一步：执行 Run run-20260923T075837Z：Same-target Product/Stock proposer field parity plus transactional Stock self-replay on 8 ranks
+- 更新时间：`2026-09-23T07:58:37Z`
 
 ## Run 记录
 
@@ -28,6 +28,8 @@
 - `runs/mixed_32k_1024_c12/run-20260923T065610Z`
 - `runs/mixed_32k_1024_c12/run-20260923T070959Z`
 - `runs/mixed_32k_1024_c12/run-20260923T072512Z`
+- `runs/mixed_32k_1024_c12/run-20260923T074250Z`
+- `runs/mixed_32k_1024_c12/run-20260923T075837Z`
 
 ## 阻塞项
 

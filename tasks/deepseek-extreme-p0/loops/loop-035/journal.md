@@ -67,3 +67,9 @@
 - `2026-09-23T07:25:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T072512Z`（test）。
 
 - `2026-09-23T07:39:57Z` Run `run-20260923T072512Z` 记录为 `pass`；正确性为 `not-applicable`。DSA+GDN per-cycle builder oracle diagnostic passed local gates on all eight ranks; 215 outputs over eight cycles versus unordered DSA-only 209, no major recovery toward Stock and no same-state token parity claim.
+
+- `2026-09-23T07:42:50Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T074250Z`（test）。
+
+- `2026-09-23T07:57:40Z` Run `run-20260923T074250Z` 记录为 `pass`；正确性为 `fail`。Same-target/same-acceptance proposer comparison restored 69 captured state entries exactly on all ranks, but Product and Stock drafts matched only 71/84 tokens; two count=1 slots differed. Need input-field and Stock self-replay controls before attributing semantic mismatch.
+
+- `2026-09-23T07:58:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T075837Z`（test）。
