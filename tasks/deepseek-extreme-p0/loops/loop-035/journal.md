@@ -259,3 +259,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T19:03:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T190500Z`（test）。
 
 - `2026-09-23T19:17:46Z` Run `run-20260923T190500Z` 记录为 `pass`；正确性为 `pass`。Reserved 257-cycle A/reference B/native C/reference target control passes 8/8 rank restores and host gates. At cycles64/128/256 native target and accepted counts stay within self-replay noise; no sustained native DSA target split. Client sentinel TPS invalid; continuous Stock-vs-Extreme token oracle remains open.
+
+- `2026-09-23T19:24:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T192500Z`（test）。
+
+- `2026-09-23T19:37:45Z` Run `run-20260923T192500Z` 记录为 `pass`；正确性为 `pass`。Strengthened partial KV snapshot coverage gate: zero skipped/partial snapshots on 8 ranks at cycles0/1/64/128/256; all restores exact. Native DSA target remains within self-replay noise. Does not establish full mutable-state coverage or long Stock token equivalence.
