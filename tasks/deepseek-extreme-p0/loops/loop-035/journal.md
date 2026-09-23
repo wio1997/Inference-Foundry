@@ -283,3 +283,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T20:44:16Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T204300Z`（test）。
 
 - `2026-09-23T20:59:46Z` Run `run-20260923T204300Z` 记录为 `pass`；正确性为 `pass`。Extreme 8/8 rank serving gates and 12/12 clients exact1024; first32 Product trace captured. Paired Stock Run62 initial full batch differs in 9/12 slots; 3 aligned slots show target/draft clues, not causal proof. Same-state ABA next.
+
+- `2026-09-23T21:03:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T210000Z`（test）。
+
+- `2026-09-23T21:16:44Z` Run `run-20260923T210000Z` 记录为 `pass`；正确性为 `pass`。8/8 rank cycle1 same-state A/B/C: Extreme B vs Stock A accepted96/96 and counts12/12 equal, while Stock self C accepted91/96; target argmax AB89/96 vs AC88/96; touched KV write equal rows50/69 for both, same mismatch names; all restores exact. No early candidate-specific target/DSA split.
