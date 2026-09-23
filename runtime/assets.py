@@ -246,7 +246,17 @@ class RuntimeAssets:
                 else:
                     block_indices = logical_blocks
                     offsets = logical_offsets
-                valid_mask = block_indices < tensor.shape[0]
+                valid_mask = (block_indices >= 0) & (block_indices < tensor.shape[0])
+                if not bool(valid_mask.all()):
+                    invalid = block_indices[~valid_mask]
+                    skipped.append({
+                        "name": cache.name,
+                        "reason": "partial_block_index_out_of_bounds",
+                        "invalid_count": int(invalid.numel()),
+                        "min_invalid_block": int(invalid.min().item()),
+                        "max_invalid_block": int(invalid.max().item()),
+                        "cache_blocks": int(tensor.shape[0]),
+                    })
                 block_indices = block_indices[valid_mask]
                 offsets = offsets[valid_mask]
                 if block_indices.numel() > 0:
@@ -271,7 +281,18 @@ class RuntimeAssets:
                         }
                     )
             else:
-                valid = slots[slots < tensor.shape[0]]
+                valid_mask = slots < tensor.shape[0]
+                if not bool(valid_mask.all()):
+                    invalid = slots[~valid_mask]
+                    skipped.append({
+                        "name": cache.name,
+                        "reason": "partial_flat_index_out_of_bounds",
+                        "invalid_count": int(invalid.numel()),
+                        "min_invalid_slot": int(invalid.min().item()),
+                        "max_invalid_slot": int(invalid.max().item()),
+                        "cache_slots": int(tensor.shape[0]),
+                    })
+                valid = slots[valid_mask]
                 if valid.numel() > 0:
                     rows.append(
                         (cache, valid, None, tensor.index_select(0, valid).clone())
