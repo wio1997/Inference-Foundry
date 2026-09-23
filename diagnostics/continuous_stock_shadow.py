@@ -43,6 +43,7 @@ class ContinuousStockShadow:
         group_block_tables: Sequence[torch.Tensor],
         group_slot_mappings: Sequence[torch.Tensor],
         group_block_sizes: Sequence[int],
+        group_spec_types: Sequence[str],
     ) -> None:
         if self.done:
             return
@@ -57,7 +58,7 @@ class ContinuousStockShadow:
         elif ids != self.request_ids or rank != self.rank:
             raise RuntimeError("Stock shadow request-slot order changed")
         if not (len(group_block_tables) == len(group_slot_mappings)
-                == len(group_block_sizes)):
+                == len(group_block_sizes) == len(group_spec_types)):
             raise RuntimeError("Stock shadow group bindings are incomplete")
         if not group_block_tables:
             raise RuntimeError("Stock shadow has no KV groups")
@@ -79,18 +80,30 @@ class ContinuousStockShadow:
             if size <= 0:
                 raise RuntimeError(f"Stock shadow invalid block size in group {gid}")
             logical = torch.div(pos, size, rounding_mode="floor")
-            if bool((logical < 0).any()) or bool((logical >= table.shape[1]).any()):
-                raise RuntimeError(f"Stock shadow logical block outside group {gid}")
-            physical = table[req, logical].to(torch.int64)
-            expected = physical * size + pos.remainder(size)
-            actual = mapping[:96].view(12, 8).to(torch.int64)
-            groups.append({
+            in_range = bool((logical >= 0).all() and
+                            (logical < table.shape[1]).all())
+            scalar_mapping = mapping[:96].numel() == 96
+            group = {
                 "group": gid,
+                "spec_type": group_spec_types[gid],
                 "block_size": int(size),
-                "mapping_equal": bool(torch.equal(expected, actual)),
-                "negative_physical": int((physical < 0).sum().item()),
-                "zero_physical": int((physical == 0).sum().item()),
-            })
+                "table_shape": list(table.shape),
+                "mapping_shape": list(mapping.shape),
+                "logical_min": int(logical.min().item()),
+                "logical_max": int(logical.max().item()),
+                "mapping_supported": in_range and scalar_mapping,
+                "mapping_equal": None,
+                "negative_physical": None,
+                "zero_physical": None,
+            }
+            if in_range and scalar_mapping:
+                physical = table[req, logical].to(torch.int64)
+                expected = physical * size + pos.remainder(size)
+                actual = mapping[:96].view(12, 8).to(torch.int64)
+                group["mapping_equal"] = bool(torch.equal(expected, actual))
+                group["negative_physical"] = int((physical < 0).sum().item())
+                group["zero_physical"] = int((physical == 0).sum().item())
+            groups.append(group)
         row = {
             "cycle": len(self.rows),
             "target_abi_exact": None if comparison is None else comparison.exact,
@@ -103,7 +116,7 @@ class ContinuousStockShadow:
         }
         self.rows.append(row)
         if (comparison is not None and not comparison.exact) or any(
-            not g["mapping_equal"] or g["negative_physical"]
+            (g["mapping_supported"] and (not g["mapping_equal"] or g["negative_physical"]))
             for g in groups
         ):
             self._write("FAIL", "first_integer_or_ownership_divergence")
@@ -122,8 +135,18 @@ class ContinuousStockShadow:
             raise RuntimeError("Stock shadow draft-token shape changed")
         self.shadow.observe_cycle_outputs(sampled_token_ids, next_draft_tokens)
         self.pending = False
+        if len(self.rows) % 32 == 0 and len(self.rows) < self.limit:
+            self._write("CHECKPOINT", "continuous_integer_shadow_in_progress")
         if len(self.rows) == self.limit:
-            self._write("PASS", "continuous_integer_shadow_complete")
+            unsupported = any(
+                not group["mapping_supported"]
+                for row in self.rows for group in row["groups"]
+            )
+            self._write(
+                "PARTIAL" if unsupported else "PASS",
+                "continuous_integer_shadow_complete_with_unsupported_group_geometry"
+                if unsupported else "continuous_integer_shadow_complete",
+            )
             self.done = True
 
     def _write(self, status: str, reason: str) -> None:
@@ -138,5 +161,5 @@ class ContinuousStockShadow:
             "rows": self.rows,
         }
         (self.output_dir / f"rank{self.rank}.json").write_text(
-            json.dumps(result, indent=2) + "\n"
+            json.dumps(result, separators=(",", ":")) + "\n"
         )

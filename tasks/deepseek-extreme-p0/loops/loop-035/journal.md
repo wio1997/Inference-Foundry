@@ -263,3 +263,15 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T19:24:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T192500Z`（test）。
 
 - `2026-09-23T19:37:45Z` Run `run-20260923T192500Z` 记录为 `pass`；正确性为 `pass`。Strengthened partial KV snapshot coverage gate: zero skipped/partial snapshots on 8 ranks at cycles0/1/64/128/256; all restores exact. Native DSA target remains within self-replay noise. Does not establish full mutable-state coverage or long Stock token equivalence.
+
+- `2026-09-23T19:40:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T194500Z`（test）。
+
+- `2026-09-23T19:56:03Z` Run `run-20260923T194500Z` 记录为 `invalid`；正确性为 `invalid`。Run59 observer assumed every KV group uses absolute position/block_size; group1 table bounds disproved that assumption at first cycle. EngineCore exited; client 11/12 partial, no model semantic conclusion.
+
+- `2026-09-23T19:56:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T195600Z`（test）。
+
+- `2026-09-23T20:11:03Z` Run `run-20260923T195600Z` 记录为 `invalid`；正确性为 `invalid`。Run60 Stock client 12/12 exact 1024, but shadow never reached write-at-256 and produced no rank files; no continuous-equivalence conclusion. Added periodic checkpoints and group spec types for Run61.
+
+- `2026-09-23T20:11:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T201100Z`（test）。
+
+- `2026-09-23T20:26:09Z` Run `run-20260923T201100Z` 记录为 `pass`；正确性为 `pass`。8/8 rank 128 consecutive fixed-c12 Stock target ABI exact; 5/6 KV group slot mappings exact with no negative physical blocks. Group1 256-column state/window table lacks applicable formula. Client 12/12 exact 1024. Long Product-vs-Stock token oracle open.
