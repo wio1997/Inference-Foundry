@@ -157,3 +157,15 @@ remain open. Next perform same-state target reference/native/reference control
 with exact old metadata and physical KV restoration, then continuous decode.
 Evidence: `evidence/20260923_loop035_diagnostic/run39/summary.json`.
 EOF'
+Run40 completed an 8-rank same-state DSA-only target A/native B/restored
+reference C control. Per cycle, A/B argmax matched 92/96 and 94/96; A/C
+self-replay matched 93/96 and 92/96. A/B acceptance counts matched 12/12 in
+both cycles; A/C differed in one count in cycle0. All 138 physical KV entries,
+old metadata tensors and common fields were restored, and each rank passed the
+host mirror/state gates. Four large reused metadata tensors were excluded from
+snapshot, with A/C returning to normal replay noise. This supports isolated
+native DSA target/acceptance parity for two cycles, not long token equivalence.
+Run41 is now measuring 256 continuous FULL-graph cycles with native DSA,
+including the new metadata stage in the Runtime DAG profile.
+Evidence: `evidence/20260923_loop035_diagnostic/run40/summary.json`.
+EOF'

@@ -187,3 +187,9 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T14:20:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T142018Z`（test）。
 
 - `2026-09-23T14:34:35Z` Run `run-20260923T142018Z` 记录为 `pass`；正确性为 `invalid`。8/8 ranks two cycles: reference/native SAS inputs and output first32 match for c1/c4/c128; all 45 non-SAS/QLI fields exact. SAS first mismatch >=97, QLI >=25 in self-unstable tails. Full target/acceptance parity still open; next same-state A/B/C.
+
+- `2026-09-23T14:36:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T143658Z`（test）。
+
+- `2026-09-23T14:50:17Z` Run `run-20260923T143658Z` 记录为 `pass`；正确性为 `pass`。8/8 ranks DSA-only same-state target A=reference B=native C=restored reference: AB argmax 92/96,94/96 vs AC 93/96,92/96; AB acceptance counts 12/12 both cycles; 138 physical KV entries restored exactly, old metadata restored, host mirrors/state exact. Isolated two-cycle parity passes within replay noise; long semantics/GDN still open.
+
+- `2026-09-23T14:50:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T145045Z`（profile）。

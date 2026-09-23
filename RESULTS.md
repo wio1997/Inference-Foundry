@@ -372,4 +372,9 @@ EOF'- Loop035 Run39 int32 cumsum correction, 8/8 ranks and two cycles: all c1/c4
   SAS operator inputs and first 32 outputs match reference; all 45 other fields
   match per cycle. SAS/QLI tails remain self-replay unstable. This is a metadata
   header gate only, not target/acceptance or long-token correctness.
+EOF'- Loop035 Run40 DSA-only same-state target A/native B/reference C: 8/8 ranks,
+  two cycles, A/B argmax 92/96 and 94/96 versus A/C 93/96 and 92/96. A/B
+  acceptance counts 12/12 each cycle; exact physical/old metadata restores.
+  Candidate effect stays within self-replay noise. Long semantic correctness
+  and acceptance recovery remain unverified.
 EOF'

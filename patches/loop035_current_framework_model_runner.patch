@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..3861e78d2 100644
+index fd5463845..4ca1ba34a 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..3861e78d2 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,1146 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1198 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -232,6 +232,8 @@ index fd5463845..3861e78d2 100644
 +                        for _group in self.attn_groups[_gid]:
 +                            _builder = _group.get_metadata_builder(0)
 +                            if isinstance(_builder, GDNAttentionMetadataBuilder):
++                                if os.getenv("EXTREME_SKIP_GDN_BUILDER") == "1":
++                                    continue
 +                                _prior_counts = (
 +                                    self.num_accepted_tokens.gpu[:12]
 +                                    if _diagnostic_refresh_count[0] == 0
@@ -709,9 +711,15 @@ index fd5463845..3861e78d2 100644
 +                ) as _file:
 +                    json.dump(_self_result, _file, indent=2)
 +                raise RuntimeError("EXTREME_TARGET_SELF_PARITY_COMPLETE")
-+            if os.getenv("EXTREME_TARGET_ABA_PARITY") == "1":
-+                # Diagnostic discriminator at one fixed state: stale target A,
-+                # refreshed DSA/GDN+slots B, restored stale target C.
++            if (os.getenv("EXTREME_TARGET_ABA_PARITY") == "1"
++                    or os.getenv("EXTREME_NATIVE_TARGET_ABA") == "1"):
++                # Same-state target factor control with exact old metadata and
++                # physical KV restoration. Native mode: DSA reference A,
++                # independent Runtime metadata B, restored reference C.
++                _native_aba = os.getenv("EXTREME_NATIVE_TARGET_ABA") == "1"
++                _native_refresh = _extreme_runtime.target_metadata if _native_aba else None
++                if _native_aba and _native_refresh is None:
++                    raise RuntimeError("native target A/B/C requires native metadata updater")
 +                from runtime.assets import CacheSlotSnapshot
 +
 +                _handoff = _extreme_runtime.target.binding.forward.__self__
@@ -739,6 +747,33 @@ index fd5463845..3861e78d2 100644
 +
 +                for _cycle in range(2):
 +                    _extreme_runtime._state_machine.prepare_target_inputs()
++                    if _native_aba:
++                        _baseline_meta = dict(_handoff.attn_metadata)
++                        _baseline_common = [
++                            (_cm.positions[:96].clone(), _cm.seq_lens[:12].clone(),
++                             _cm.slot_mapping[:96].clone())
++                            for _cm in self._extreme_group_common_metadata
++                        ]
++                        _baseline_tensors = []
++                        _baseline_seen = set()
++                        def _capture_baseline(_obj):
++                            if id(_obj) in _baseline_seen:
++                                return
++                            _baseline_seen.add(id(_obj))
++                            if isinstance(_obj, torch.Tensor):
++                                if _obj.numel() <= 2_000_000:
++                                    _baseline_tensors.append((_obj, _obj.clone()))
++                            elif isinstance(_obj, dict):
++                                for _value in _obj.values():
++                                    _capture_baseline(_value)
++                            elif isinstance(_obj, (tuple, list)):
++                                for _value in _obj:
++                                    _capture_baseline(_value)
++                            elif hasattr(_obj, "__dict__") and _obj.__class__.__module__.startswith("vllm_ascend"):
++                                for _value in vars(_obj).values():
++                                    _capture_baseline(_value)
++                        _capture_baseline(_baseline_meta)
++                        _refresh(_extreme_runtime.state.target_positions)
 +                    _old_slots = [
 +                        _cm.slot_mapping[:96].clone()
 +                        for _cm in self._extreme_group_common_metadata
@@ -781,7 +816,20 @@ index fd5463845..3861e78d2 100644
 +                    _pred_a, _counts_a, _tokens_a = _invoke_target()
 +                    _old_snapshot.restore()
 +                    _restore_a = _old_snapshot.verify_restored()
-+                    _refresh(_extreme_runtime.state.target_positions)
++                    if _native_aba:
++                        _handoff.attn_metadata.clear()
++                        _handoff.attn_metadata.update(_baseline_meta)
++                        for _tensor, _old in _baseline_tensors:
++                            _tensor.copy_(_old)
++                        for _cm, (_pos, _seq, _slots) in zip(
++                            self._extreme_group_common_metadata, _baseline_common
++                        ):
++                            _cm.positions[:96].copy_(_pos)
++                            _cm.seq_lens[:12].copy_(_seq)
++                            _cm.slot_mapping[:96].copy_(_slots)
++                        _native_refresh.update(_extreme_runtime.state)
++                    else:
++                        _refresh(_extreme_runtime.state.target_positions)
 +                    _fresh_slots = [
 +                        _cm.slot_mapping[:96].clone()
 +                        for _cm in self._extreme_group_common_metadata
@@ -828,6 +876,7 @@ index fd5463845..3861e78d2 100644
 +                    _restore_c = _snapshot.verify_restored()
 +                    _aba_rows.append({
 +                        "cycle": _cycle,
++                        "candidate": "native_dsa_metadata" if _native_aba else "reference_oracle",
 +                        "slot_changes_by_group": _slot_changes,
 +                        "metadata_tensors_snapshotted": len(_old_meta_tensors),
 +                        "metadata_snapshot_skipped": _metadata_snapshot_skipped,
@@ -858,6 +907,9 @@ index fd5463845..3861e78d2 100644
 +                        "accepted_equal_ab": int((_tokens_a == _tokens_b).sum().item()),
 +                        "accepted_equal_ac": int((_tokens_a == _tokens_c).sum().item()),
 +                    })
++                    if _native_aba:
++                        _handoff.attn_metadata.clear()
++                        _handoff.attn_metadata.update(_baseline_meta)
 +                    _extreme_runtime.step()
 +
 +                _rank = int(get_tp_group().rank_in_group)
@@ -1160,7 +1212,7 @@ index fd5463845..3861e78d2 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3286,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3338,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1446,7 +1498,7 @@ index fd5463845..3861e78d2 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3639,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3691,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1459,7 +1511,7 @@ index fd5463845..3861e78d2 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3792,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3844,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1499,7 +1551,7 @@ index fd5463845..3861e78d2 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4604,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4656,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1510,7 +1562,7 @@ index fd5463845..3861e78d2 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4633,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4685,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )

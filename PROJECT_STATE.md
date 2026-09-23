@@ -504,3 +504,13 @@ not full target or acceptance equivalence. Next same-state target A/native
 B/reference C with exact metadata/KV restoration, followed by continuous
 decode and only then formal E2E A/B. Evidence: run39/summary.json.
 EOF'
+Run40 same-state DSA-only target control passed on all 8 ranks and two cycles:
+reference A/native B argmax 92/96,94/96 versus reference A/restored reference
+C 93/96,92/96; all 12 A/B acceptance counts matched in each cycle. Physical
+KV (138 entries), old metadata tensors and common fields restored exactly;
+A/C recovered within Run29 noise. This rules out a detectable two-cycle DSA
+native target divergence at the sampled states. It does not validate GDN
+metadata, continuous acceptance or long token oracle. Run41 now profiles 256
+continuous FULL-graph cycles with native DSA and records the derived-metadata
+stage separately. Evidence: run40/summary.json.
+EOF'
