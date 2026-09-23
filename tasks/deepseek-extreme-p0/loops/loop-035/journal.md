@@ -227,3 +227,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T16:56:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T165629Z`（test）。
 
 - `2026-09-23T17:10:20Z` Run `run-20260923T165629Z` 记录为 `pass`；正确性为 `pass`。8/8 rank Stock cycle128 same-KV A/direct B/Stock C: B equals A 96/96 argmax, 12/12 first target, accepted tokens/counts exact; Stock self95/96; KV/metadata restore exact
+
+- `2026-09-23T17:11:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T171148Z`（test）。
+
+- `2026-09-23T17:25:41Z` Run `run-20260923T171148Z` 记录为 `pass`；正确性为 `pass`。8/8 rank target writes: A/B and Stock A/C both 50/69 cache rows exact, same 19 mismatch names; raw cache self-replay noise prevents candidate-specific conclusion

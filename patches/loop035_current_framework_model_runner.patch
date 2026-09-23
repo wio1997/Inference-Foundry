@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..7e04a4974 100644
+index fd5463845..a4c9c603e 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..7e04a4974 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,1343 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1377 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -249,7 +249,37 @@ index fd5463845..7e04a4974 100644
 +                        _cm.seq_lens[:12].copy_(_seq)
 +                        _cm.slot_mapping[:96].copy_(_slot)
 +                    return _kv.verify_restored()
++                def _capture_post_writes():
++                    torch.npu.synchronize()
++                    return [
++                        (_cache.name, (
++                            _cache.tensor.index_select(0, _first)
++                            if _second is None else _cache.tensor[_first, _second]
++                        ).clone())
++                        for _cache, _first, _second, _old in _kv.rows
++                    ]
++                def _compare_post_writes(_left, _right):
++                    _details = []
++                    for (_name, _l), (_other, _r) in zip(_left, _right):
++                        if _name != _other or _l.shape != _r.shape:
++                            raise RuntimeError("target post-write cache schema changed")
++                        _same = (_l == _r)
++                        if _l.is_floating_point():
++                            _same = _same | (torch.isnan(_l) & torch.isnan(_r))
++                        _mismatch = int((~_same).sum().item())
++                        if _mismatch:
++                            _delta = (_l.float() - _r.float()).abs()
++                            _finite = _delta[torch.isfinite(_delta)]
++                            _details.append({
++                                "name": _name, "mismatched_elements": _mismatch,
++                                "total_elements": _l.numel(),
++                                "max_abs": (float(_finite.max().item())
++                                    if _finite.numel() else None),
++                            })
++                    return {"equal_rows": len(_left)-len(_details),
++                            "total_rows": len(_left), "mismatches": _details}
 +                _pa, _ta, _ca = _stock_target_once()
++                _post_a = _capture_post_writes()
 +                _ra = _restore_stock()
 +                if _extreme_runtime.target_metadata is not None:
 +                    _extreme_runtime.target_metadata.update(_st)
@@ -258,8 +288,10 @@ index fd5463845..7e04a4974 100644
 +                _tb_tokens, _cb = greedy_accept(
 +                    _st.draft_tokens, _pb[:, :7], _pb[:, 7]
 +                )
++                _post_b = _capture_post_writes()
 +                _rb = _restore_stock()
 +                _pc, _tc, _cc = _stock_target_once()
++                _post_c = _capture_post_writes()
 +                _rc = _restore_stock()
 +                _first = torch.arange(12, device=input_ids.device) * 8
 +                _row = {
@@ -268,6 +300,8 @@ index fd5463845..7e04a4974 100644
 +                    "target_graph_mode": str(cudagraph_mode),
 +                    "native_metadata_active": _extreme_runtime.target_metadata is not None,
 +                    "restores": [_ra, _rb, _rc],
++                    "post_write_ab": _compare_post_writes(_post_a, _post_b),
++                    "post_write_ac": _compare_post_writes(_post_a, _post_c),
 +                    "metadata_tensors_restored": all(torch.equal(t,v) for t,v in _meta_tensors),
 +                    "first_target_equal_ab": int((_pa.flatten()[_first] == _pb.flatten()[_first]).sum().item()),
 +                    "first_target_equal_ac": int((_pa.flatten()[_first] == _pc.flatten()[_first]).sum().item()),
@@ -1357,7 +1391,7 @@ index fd5463845..7e04a4974 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3483,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3517,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1643,7 +1677,7 @@ index fd5463845..7e04a4974 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3836,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3870,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1656,7 +1690,7 @@ index fd5463845..7e04a4974 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3989,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +4023,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1696,7 +1730,7 @@ index fd5463845..7e04a4974 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4801,11 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4835,11 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1708,7 +1742,7 @@ index fd5463845..7e04a4974 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4831,15 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4865,15 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )

@@ -403,3 +403,5 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Loop035 Run48: INVALID before target A/B/C on 8/8 ranks due missing diagnostic group common view. Gate corrected for Run49; no target or acceptance inference.
 
 - Loop035 Run49: on a shared Stock cycle128 KV state, native-DSA direct target matched Stock target 96/96 argmax, 12/12 first target token, 96/96 accepted tokens and 12/12 counts on all 8 ranks; Stock self-replay matched 95/96 argmax. KV and metadata restores exact. Continuous trajectory remains unverified.
+
+- Loop035 Run50: post-target touched-cache A/B and Stock A/C each matched 50/69 rows, with the same 19 mismatch names on 8/8 ranks. Restoration exact; raw cache write differences are within substantial Stock self-replay noise and do not isolate a Runtime defect.
