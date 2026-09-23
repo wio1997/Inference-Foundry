@@ -34,6 +34,10 @@ class AcceptanceOperator(Protocol):
     ) -> AcceptanceOutput: ...
 
 
+class TargetMetadataOperator(Protocol):
+    def update(self, state: FixedDecodeState) -> None: ...
+
+
 class ProposerOperator(Protocol):
     def execute(
         self,
@@ -71,12 +75,19 @@ class ExtremeDecodeRuntime:
         target: FixedTargetAdapter,
         acceptance: AcceptanceOperator,
         proposer: ProposerOperator,
+        target_metadata: TargetMetadataOperator | None = None,
     ) -> None:
         self.config = config
         self.state = state
         self.target = target
         self.acceptance = acceptance
         self.proposer = proposer
+        self.target_metadata = target_metadata
+        if target_metadata is not None:
+            self.stage_order = (
+                "prepare_target", "derived_target_metadata", "target",
+                "acceptance", "state_advance", "proposer",
+            )
         self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
         self._diagnose = os.getenv("EXTREME_RUNTIME_DIAGNOSE") == "1"
         self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
@@ -113,6 +124,10 @@ class ExtremeDecodeRuntime:
             with self._scope("extreme::prepare_target"):
                 self._state_machine.prepare_target_inputs()
             mark("prepare_target")
+            if self.target_metadata is not None:
+                with self._scope("extreme::derived_target_metadata"):
+                    self.target_metadata.update(self.state)
+                mark("derived_target_metadata")
             with self._scope("extreme::target"):
                 target_output = self.target.execute(self.state)
             mark("target")

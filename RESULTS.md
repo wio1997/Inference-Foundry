@@ -353,3 +353,23 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Loop035 Run32 A/B/C control, 8×910B3: exact 72 old metadata tensor and 138 touched physical-entry restorations; at cycle1 target argmax A/C 92/96, A/B 75/96. Combined builder+slot refresh has a causal target effect, but two acceptance counts decreased in this cohort and correctness is unresolved. Run33 isolates builder-only before any structural KEEP or E2E rerun.
 
 - Loop035 Run34 slot-only A/B/C control, 8×910B3: five target cache groups changed all 96 slots at cycle1, but target A/B and A/C both matched 88/96. No slot-only effect above replay noise was resolved. Run33 builder path remains the first detectable target difference; no semantic or throughput KEEP yet.
+
+- Loop035 Run35 native metadata parity: invalid before comparison (attention
+  group nesting error); no correctness result.
+- Loop035 Run36 native/reference two-cycle field comparison: 8/8 ranks wrote
+  evidence, 45/55 fields exact in cycle0, 42/55 in cycle1. Full SAS/QLI and
+  three compressed slot fields differed; no semantic KEEP.
+- Loop035 Run37 reference self-replay control: 8/8 ranks complete. SAS/QLI
+  tails are unstable within reference itself, but native SAS/QLI header bytes
+  differ before self-replay noise, and compressed slot differences are native
+  only. The 11/12 client success count is from intentional diagnostic abort,
+  not a serving benchmark. No formal throughput claim.
+EOF'- Loop035 Run38 SAS operator trace, 8/8 ranks: reference/native arguments
+  matched except fixed local `cu_seqlens_q` dtype int32/int64 across c1/c4/c128.
+  SWA scope correction removed the three compressed slot mismatches. Runtime
+  cumsum now preserves int32; correctness awaits Run39 and continuous gates.
+EOF'- Loop035 Run39 int32 cumsum correction, 8/8 ranks and two cycles: all c1/c4/c128
+  SAS operator inputs and first 32 outputs match reference; all 45 other fields
+  match per cycle. SAS/QLI tails remain self-replay unstable. This is a metadata
+  header gate only, not target/acceptance or long-token correctness.
+EOF'

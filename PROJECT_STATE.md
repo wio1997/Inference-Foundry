@@ -470,3 +470,37 @@ Run32 established a valid same-state causal target effect for combined DSA/GDN m
 Run33 isolated the DSA/GDN builder path from the all-target-slot refresh. Across 8 ranks, cycle-1 A/C target argmax matched 91/96 within self-replay noise, while A/B matched 64/96; 72 metadata tensors and 138 physical entries restored exactly. Acceptance counts changed in two slots, one up and one down. The builder itself rewrote SWA group-2 slots 96/96 even with the generic slot oracle disabled, so this is a builder-path effect rather than pure metadata-only effect. Run34 now isolates generic target-slot refresh without builder. Evidence: evidence/20260923_loop035_diagnostic/run33/summary.json.
 
 Run34 isolated generic all-group target slot refresh without DSA/GDN metadata building. Across eight ranks, cycle1 slots changed 96/96 in groups 0,1,2,4,5; all old metadata tensors and 138 physical cache entries restored exactly. Target argmax A/B and A/C both matched 88/96, within Run29 self-replay noise. One acceptance count changed A/B, so the small local effect is not denied, but slot-only cannot explain the large causal target difference in Run33. The first detected target-derived-state divergence is the DSA/GDN builder path; its SWA group-2 slot mutation is part of that path. Next implement an independent fixed-shape updater with reference-builder parity and continuous semantic gates, then rerun formal E2E only after acceptance is credible. Evidence: evidence/20260923_loop035_diagnostic/run34/summary.json.
+
+Run35–37 native metadata parity checkpoint (2026-09-23): The independent
+Runtime now has an opt-in fixed-shape DSA-CP updater that owns target metadata
+refresh without a builder/ModelRunner in the decode loop. Run35 failed before
+comparison from a bootstrap attention-group nesting error and is invalid.
+Run36 compared two cycles on all 8 ranks: 45/55 fields exact at cycle0,
+42/55 at cycle1. Run37 restored old metadata aliases and common fields for a
+reference A/native B/reference C control. SAS/QLI full buffers have unstable
+tails even for A/C, but native SAS header index4 and QLI header index12 differ
+before the A/C first mismatch on every rank. Three compressed state-cache slot
+mappings differ only on B in cycle1. Therefore native semantic parity is not
+established. The binder now updates raw slots only for actual SWA cache names;
+Run38 traces reference/native sparse metadata operator arguments before the
+next semantic claim. Neither acceptance repair nor formal E2E improvement is
+claimed. Evidence: evidence/20260923_loop035_diagnostic/run35–run37.
+EOF'
+Run38 isolated a concrete native SAS argument bug on all eight ranks: all
+three c1/c4/c128 reference/native calls had identical scalar arguments and
+tensor values, but native `cu_seqlens_q` was int64 while reference used int32.
+The Runtime fixed local query-start cumsum inherited PyTorch promotion to
+int64. Raw SWA slot binding was also limited to `swa_cache`, removing all
+three compressed state-cache slot differences observed in Run37. Both changes
+are opt-in prototype changes pending Run39 reference field parity and later
+continuous decode/acceptance gates. Evidence: run38/summary.json.
+EOF'
+Run39 validated the int32 fix over 8 ranks and two c12 cycles: all SAS
+operator input arguments and first 32 output words matched reference for
+c1/c4/c128. All 45 non-SAS/QLI metadata fields per cycle matched. SAS/QLI
+full buffers remained non-exact beyond indices 97/25 respectively, where
+reference self-replay is also unstable. This establishes header/input parity,
+not full target or acceptance equivalence. Next same-state target A/native
+B/reference C with exact metadata/KV restoration, followed by continuous
+decode and only then formal E2E A/B. Evidence: run39/summary.json.
+EOF'

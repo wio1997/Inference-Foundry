@@ -167,3 +167,23 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T12:53:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T125344Z`（test）。
 
 - `2026-09-23T13:06:17Z` Run `run-20260923T125344Z` 记录为 `pass`；正确性为 `invalid`。Run34 slot-only A/B/C 8-rank valid restore: cycle1 five group slots changed 96/96, but target argmax A/B=88/96 and A/C=88/96; no detectable target effect beyond self-replay noise. Builder path remains first causal divergence; semantic correctness open.
+
+- `2026-09-23T13:18:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T131858Z`（test）。
+
+- `2026-09-23T13:34:34Z` Run `run-20260923T131858Z` 记录为 `invalid`；正确性为 `invalid`。Run35 native target metadata parity did not execute: 8-rank bootstrap failed because attn_groups outer element is a list; fixed nested traversal for Run36. No semantic inference.
+
+- `2026-09-23T13:34:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T133444Z`（test）。
+
+- `2026-09-23T13:47:25Z` Run `run-20260923T133444Z` 记录为 `pass`；正确性为 `invalid`。Run36 native-vs-reference two-cycle tensor comparison executed on 8 ranks: 45/55 fields exact cycle0, 42/55 cycle1, host mirrors exact. SAS/QLI 1024-element outputs differ widely, plus three slot buffers at cycle1. Reference self-repeat control required before assigning semantic fault; no acceptance claim.
+
+- `2026-09-23T13:50:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T135010Z`（test）。
+
+- `2026-09-23T14:04:34Z` Run `run-20260923T135010Z` 记录为 `pass`；正确性为 `invalid`。8/8 rank two-cycle reference A/native B/reference C field control completed. SAS and QLI self-replay tails are unstable; native SAS header index4 and QLI header index12 differ before self-noise. Three compressed state-cache slot mappings differ only in native cycle1. Native semantic parity remains invalid.
+
+- `2026-09-23T14:06:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T140620Z`（test）。
+
+- `2026-09-23T14:19:38Z` Run `run-20260923T140620Z` 记录为 `pass`；正确性为 `invalid`。8/8 ranks: SAS reference/native operator inputs differ only in cu_seqlens_q dtype int32 vs int64 for ratios 1,4,128. Native SAS header and QLI header differ; SWA-only binding removes all three compressed slot mismatches. Fix cumsum dtype and revalidate.
+
+- `2026-09-23T14:20:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T142018Z`（test）。
+
+- `2026-09-23T14:34:35Z` Run `run-20260923T142018Z` 记录为 `pass`；正确性为 `invalid`。8/8 ranks two cycles: reference/native SAS inputs and output first32 match for c1/c4/c128; all 45 non-SAS/QLI fields exact. SAS first mismatch >=97, QLI >=25 in self-unstable tails. Full target/acceptance parity still open; next same-state A/B/C.

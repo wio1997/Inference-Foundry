@@ -118,3 +118,42 @@ agent is GPT-6 Sol. The new scripts/delegate_zcode.py ran an actual read-only
 DeepSeek Flash Zcode task; its session ID, provider model I/O trace, response
 and exit status are in evidence/20260923_agent_orchestration/probe1/.
 TaskCtl remains an evidence manager, not a model router.
+
+## Loop035 native target metadata checkpoint (2026-09-23 14:06 UTC)
+
+Runs35–37 are opt-in correctness diagnostics for a Runtime-owned fixed c12/TP8
+DSA-CP metadata updater. Run35 was invalid due an outer-list traversal bug in
+bootstrap source extraction. Run36 completed two cycles on all eight ranks:
+45/55 fields exact at cycle0 and 42/55 at cycle1; SAS/QLI buffers and three
+compressed state-cache slot mappings differed. Run37 added reference-to-reference
+self-replay from the same restored old metadata tensors. SAS/QLI tails were
+non-exact even on self-replay, but native SAS header index4 and QLI header
+index12 differed before that noise on all ranks; the three compressed slots
+were native-only differences at cycle1. Native semantic parity is not proven.
+Evidence is `evidence/20260923_loop035_diagnostic/run35/` through `run37/`.
+
+A source-backed binder correction now restricts raw SWA slot updates to layer
+names ending `swa_cache`. Run38 is in progress with an operator argument trace
+to locate the first SAS header mismatch. No new formal E2E A/B has run; the
+Loop034 baseline remains Extreme 217.342 versus Stock 543.655 tok/s.
+EOF'
+Run38 traced all SAS metadata operator arguments on 8 ranks for c1/c4/c128.
+Reference/native scalar arguments and tensor values matched; the sole input
+difference was `cu_seqlens_q` dtype: reference int32, native int64. PyTorch
+`cumsum` had promoted the fixed local query-start vector. The native Runtime
+now requests int32 cumsum explicitly; Run39 is validating field parity. With
+raw SWA writes restricted to actual `swa_cache` groups, Run38 no longer had the
+three compressed state-cache slot differences seen in Run37. Do not infer
+long-running acceptance or token correctness from this two-cycle field gate.
+Evidence: `evidence/20260923_loop035_diagnostic/run38/summary.json`.
+EOF'
+Run39 completed the int32 correction on all eight ranks and two cycles. For
+all c1/c4/c128 SAS calls, reference/native operator arguments and first 32
+output values now match exactly. All 45 non-SAS/QLI fields in each cycle match;
+SAS first difference is index 97 or later, QLI index 25 or later, in regions
+that are unstable under reference self-replay. This passes the defined metadata
+header/input gate, but full-buffer and target/acceptance semantic equivalence
+remain open. Next perform same-state target reference/native/reference control
+with exact old metadata and physical KV restoration, then continuous decode.
+Evidence: `evidence/20260923_loop035_diagnostic/run39/summary.json`.
+EOF'

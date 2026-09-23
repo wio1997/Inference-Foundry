@@ -1,5 +1,5 @@
 diff --git a/vllm_ascend/worker/model_runner_v1.py b/vllm_ascend/worker/model_runner_v1.py
-index fd5463845..a2e5ab89b 100644
+index fd5463845..3861e78d2 100644
 --- a/vllm_ascend/worker/model_runner_v1.py
 +++ b/vllm_ascend/worker/model_runner_v1.py
 @@ -17,8 +17,10 @@
@@ -13,7 +13,7 @@ index fd5463845..a2e5ab89b 100644
  import sys
  import time
  from collections import defaultdict
-@@ -2116,6 +2118,941 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2116,6 +2118,1146 @@ class NPUModelRunner(GPUModelRunner):
          defer_kv_connector_finalize = self.speculative_config is not None and (
              get_pp_group().is_last_rank or self.broadcast_pp_output
          )
@@ -61,6 +61,7 @@ index fd5463845..a2e5ab89b 100644
 +                bind_graph_update,
 +            )
 +            from runtime.fixed_decode import FixedDecodeConfig
++            from bootstrap.vllm_target_metadata_handoff import TargetMetadataSource
 +            from runtime.fixed_serving import FixedCohortServing
 +            from runtime.greedy_accept import greedy_accept
 +
@@ -105,6 +106,23 @@ index fd5463845..a2e5ab89b 100644
 +                ],
 +                cache_slot_specs=self._extreme_cache_slot_specs,
 +            )
++            _target_metadata_sources = []
++            if os.getenv("EXTREME_NATIVE_TARGET_METADATA") == "1":
++                for _cache_groups in self.attn_groups:
++                    for _group in _cache_groups:
++                        _builder = _group.get_metadata_builder(0)
++                        if not all(hasattr(_builder, _field) for _field in (
++                            "cu_seqlens_ori_kv", "cu_seqlens_cmp_kv", "seqused_q",
++                        )):
++                            continue
++                        _target_metadata_sources.append(TargetMetadataSource(
++                            layer_name=_group.layer_names[0],
++                            ratio=int(getattr(_group.kv_cache_spec, "compress_ratio", 1) or 1),
++                            block_size=int(_group.kv_cache_spec.block_size),
++                            cu_seqlens_ori_kv=_builder.cu_seqlens_ori_kv,
++                            cu_seqlens_cmp_kv=_builder.cu_seqlens_cmp_kv,
++                            seqused_q=_builder.seqused_q,
++                        ))
 +            _ids_2d = input_ids[:96].view(12, 8)
 +            _pos_2d = positions[:96].view(12, 8)
 +            _extreme_runtime_inputs = ExtremeHandoffInputs(
@@ -131,6 +149,9 @@ index fd5463845..a2e5ab89b 100644
 +                target_logits_indices=torch.arange(
 +                    96, dtype=torch.int64, device=input_ids.device
 +                ),
++                target_metadata_sources=tuple(_target_metadata_sources),
++                target_tp_rank=int(get_tp_group().rank_in_group),
++                target_tp_size=int(get_tp_group().world_size),
 +            )
 +            # This is the bootstrap boundary: after the fixed assets and
 +            # buffers have been handed off, the generic ModelRunner target
@@ -425,6 +446,190 @@ index fd5463845..a2e5ab89b 100644
 +                with open(os.path.join(_extreme_run_dir, "rank%d.json" % _row["rank"]), "w") as _file:
 +                    json.dump(_row, _file, indent=2)
 +                raise RuntimeError("EXTREME_PROPOSER_PARITY_COMPLETE")
++            if os.getenv("EXTREME_NATIVE_METADATA_PARITY") == "1":
++                _handoff = _extreme_runtime.target.binding.forward.__self__
++                _reference_refresh = getattr(_handoff, "diagnostic_metadata_refresh", None)
++                _native_refresh = _extreme_runtime.target_metadata
++                if _reference_refresh is None or _native_refresh is None:
++                    raise RuntimeError("native metadata parity needs both refresh paths")
++                _handoff.diagnostic_metadata_refresh = None
++                _native_rows = []
++                from vllm_ascend.device.device_op import DeviceOperator
++                _actual_sas = _native_refresh.ops.sas
++                _sas_trace = []
++
++                def _traced_sas(_phase):
++                    def _call(**_kwargs):
++                        _input = {}
++                        for _key, _value in _kwargs.items():
++                            if isinstance(_value, torch.Tensor):
++                                _input[_key] = {
++                                    "shape": list(_value.shape),
++                                    "dtype": str(_value.dtype),
++                                    "head": _value.reshape(-1)[:16].cpu().tolist(),
++                                }
++                            else:
++                                _input[_key] = _value
++                        _result = _actual_sas(**_kwargs)
++                        _sas_trace.append({
++                            "phase": _phase,
++                            "inputs": _input,
++                            "output_head": _result.reshape(-1)[:32].cpu().tolist(),
++                        })
++                        return _result
++                    return _call
++
++                _native_fields = (
++                    "seq_lens", "input_positions", "start_pos", "slot_mapping",
++                    "sas_metadata", "qli_metadata",
++                )
++
++                def _capture_native_metadata():
++                    _captured = {}
++                    for _source in _extreme_runtime_inputs.target_metadata_sources:
++                        _meta = _handoff.attn_metadata.get(_source.layer_name)
++                        _req = getattr(_meta, "req_metadata", None)
++                        if _req is None:
++                            continue
++                        _cp = _req.cp_metadata
++                        for _field in _native_fields:
++                            _tensor = getattr(_req, _field, None)
++                            if isinstance(_tensor, torch.Tensor):
++                                _captured[f"{_source.layer_name}.{_field}"] = _tensor.clone()
++                        for _field in ("local_query_start_loc", "local_seq_lens"):
++                            _tensor = getattr(_cp, _field, None)
++                            if isinstance(_tensor, torch.Tensor):
++                                _captured[f"{_source.layer_name}.{_field}"] = _tensor.clone()
++                    return _captured
++
++                for _cycle in range(2):
++                    _sas_trace = []
++                    _extreme_runtime._state_machine.prepare_target_inputs()
++                    _old_meta = dict(_handoff.attn_metadata)
++                    _old_common = [
++                        (_cm.positions[:96].clone(), _cm.seq_lens[:12].clone(),
++                         _cm.slot_mapping[:96].clone())
++                        for _cm in self._extreme_group_common_metadata
++                    ]
++                    _old_tensors = []
++                    _seen = set()
++                    def _capture_aliases(_obj):
++                        if id(_obj) in _seen:
++                            return
++                        _seen.add(id(_obj))
++                        if isinstance(_obj, torch.Tensor):
++                            if _obj.numel() <= 2_000_000:
++                                _old_tensors.append((_obj, _obj.clone()))
++                        elif isinstance(_obj, dict):
++                            for _value in _obj.values():
++                                _capture_aliases(_value)
++                        elif isinstance(_obj, (list, tuple)):
++                            for _value in _obj:
++                                _capture_aliases(_value)
++                        elif hasattr(_obj, "__dict__") and _obj.__class__.__module__.startswith("vllm_ascend"):
++                            for _value in vars(_obj).values():
++                                _capture_aliases(_value)
++                    _capture_aliases(_old_meta)
++                    def _restore_native_snapshot():
++                        _handoff.attn_metadata.clear()
++                        _handoff.attn_metadata.update(_old_meta)
++                        for _tensor, _old in _old_tensors:
++                            _tensor.copy_(_old)
++                        for _cm, (_positions, _seq_lens, _slots) in zip(
++                            self._extreme_group_common_metadata, _old_common
++                        ):
++                            _cm.positions[:96].copy_(_positions)
++                            _cm.seq_lens[:12].copy_(_seq_lens)
++                            _cm.slot_mapping[:96].copy_(_slots)
++
++                    _old_factory = DeviceOperator.get_dsa_sparse_attn_metadata_op
++                    DeviceOperator.get_dsa_sparse_attn_metadata_op = staticmethod(
++                        lambda: _traced_sas("reference")
++                    )
++                    try:
++                        _reference_refresh(_extreme_runtime.state.target_positions)
++                    finally:
++                        DeviceOperator.get_dsa_sparse_attn_metadata_op = staticmethod(_old_factory)
++                    _reference = _capture_native_metadata()
++                    _restore_native_snapshot()
++                    _old_ops = _native_refresh.ops
++                    _native_refresh.ops = replace(_old_ops, sas=_traced_sas("native"))
++                    try:
++                        _native_refresh.update(_extreme_runtime.state)
++                    finally:
++                        _native_refresh.ops = _old_ops
++                    _native = _capture_native_metadata()
++                    _restore_native_snapshot()
++                    DeviceOperator.get_dsa_sparse_attn_metadata_op = staticmethod(
++                        lambda: _traced_sas("reference_repeat")
++                    )
++                    try:
++                        _reference_refresh(_extreme_runtime.state.target_positions)
++                    finally:
++                        DeviceOperator.get_dsa_sparse_attn_metadata_op = staticmethod(_old_factory)
++                    _reference_repeat = _capture_native_metadata()
++                    _restore_native_snapshot()
++
++                    def _compare_fields(_expected, _actual):
++                        _compared = {}
++                        for _name in sorted(set(_expected) | set(_actual)):
++                            _ref = _expected.get(_name)
++                            _got = _actual.get(_name)
++                            _same_shape = bool(
++                                _ref is not None and _got is not None
++                                and _ref.shape == _got.shape
++                            )
++                            _entry = {
++                                "present_both": _ref is not None and _got is not None,
++                                "shape_equal": _same_shape,
++                                "equal_elements": int((_ref == _got).sum().item()) if _same_shape else None,
++                                "elements": _ref.numel() if _ref is not None else None,
++                            }
++                            if _same_shape and _entry["equal_elements"] != _entry["elements"]:
++                                _ref_flat = _ref.reshape(-1)
++                                _got_flat = _got.reshape(-1)
++                                _indices = torch.nonzero(_ref_flat != _got_flat).reshape(-1)[:8].tolist()
++                                _entry["first_differences"] = [
++                                    [int(_idx), _ref_flat[_idx].item(), _got_flat[_idx].item()]
++                                    for _idx in _indices
++                                ]
++                                _entry["expected_head"] = _ref_flat[:32].cpu().tolist()
++                                _entry["actual_head"] = _got_flat[:32].cpu().tolist()
++                            _compared[_name] = _entry
++                        return _compared
++
++                    _native_compared = _compare_fields(_reference, _native)
++                    _self_compared = _compare_fields(_reference, _reference_repeat)
++                    _native_rows.append({
++                        "cycle": _cycle,
++                        "fields": _native_compared,
++                        "reference_self_fields": _self_compared,
++                        "sas_operator_trace": _sas_trace,
++                        "all_equal": all(
++                            _row["present_both"] and _row["shape_equal"]
++                            and _row["equal_elements"] == _row["elements"]
++                            for _row in _native_compared.values()
++                        ),
++                        "reference_self_all_equal": all(
++                            _row["present_both"] and _row["shape_equal"]
++                            and _row["equal_elements"] == _row["elements"]
++                            for _row in _self_compared.values()
++                        ),
++                    })
++                    _extreme_runtime.step()
++                _rank = int(get_tp_group().rank_in_group)
++                _native_result = {
++                    "rank": _rank,
++                    "rows": _native_rows,
++                    "all_fields_equal": all(_row["all_equal"] for _row in _native_rows),
++                    "host_mirror_exact": bool(
++                        _extreme_runtime.proposer.validate_host_mirrors(_extreme_runtime.state)
++                    ),
++                }
++                os.makedirs(_extreme_run_dir, exist_ok=True)
++                with open(os.path.join(_extreme_run_dir, f"rank{_rank}.json"), "w", encoding="utf-8") as _file:
++                    json.dump(_native_result, _file, indent=2)
++                raise RuntimeError("EXTREME_NATIVE_METADATA_PARITY_COMPLETE")
 +            if os.getenv("EXTREME_TARGET_SELF_PARITY") == "1":
 +                # Diagnostic only: replay the same target state after an exact
 +                # touched-cache restore, then advance the real Runtime once.
@@ -955,7 +1160,7 @@ index fd5463845..a2e5ab89b 100644
          with (
              record_function_or_nullcontext("forward"),
              set_ascend_forward_context(
-@@ -2144,6 +3081,285 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2144,6 +3286,285 @@ class NPUModelRunner(GPUModelRunner):
              hidden_states = self._model_forward(
                  num_tokens_padded, input_ids, positions, intermediate_tensors, inputs_embeds, **model_kwargs
              )
@@ -1241,7 +1446,7 @@ index fd5463845..a2e5ab89b 100644
          with record_function_or_nullcontext("post process"):
              aux_hidden_states = None
              if self.use_aux_hidden_state_outputs:
-@@ -2218,6 +3434,12 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2218,6 +3639,12 @@ class NPUModelRunner(GPUModelRunner):
      def sample_tokens(
          self, grammar_output: "GrammarOutput | None"
      ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
@@ -1254,7 +1459,7 @@ index fd5463845..a2e5ab89b 100644
          kv_connector_output = self.kv_connector_output
          self.kv_connector_output = None
          pp = get_pp_group()
-@@ -2365,6 +3587,39 @@ class NPUModelRunner(GPUModelRunner):
+@@ -2365,6 +3792,39 @@ class NPUModelRunner(GPUModelRunner):
                          for req_id in req_ids_output_copy
                      ]
  
@@ -1294,7 +1499,7 @@ index fd5463845..a2e5ab89b 100644
          model_runner_output = ModelRunnerOutput(
              req_ids=req_ids_output_copy,
              req_id_to_index=req_id_to_index_output_copy,
-@@ -3144,6 +4399,10 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3144,6 +4604,10 @@ class NPUModelRunner(GPUModelRunner):
          decode_ratio_to_sas_metadata: dict[Any, Any] = {}
          common_ratio_to_sas_metadata: dict[Any, Any] = {}
          spec_decode_common_attn_metadata = None
@@ -1305,7 +1510,7 @@ index fd5463845..a2e5ab89b 100644
          for kv_cache_gid, kv_cache_group in enumerate(self.kv_cache_config.kv_cache_groups):
              cm = copy(cm_base)  # shallow copy
              # Basically only the encoder seq_lens, block_table and slot_mapping change
-@@ -3169,6 +4428,14 @@ class NPUModelRunner(GPUModelRunner):
+@@ -3169,6 +4633,14 @@ class NPUModelRunner(GPUModelRunner):
                  cm.block_table_tensor, cm.slot_mapping = _get_block_table_and_slot_mapping(
                      kv_cache_gid
                  )
