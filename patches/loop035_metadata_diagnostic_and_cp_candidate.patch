@@ -1,0 +1,123 @@
+diff --git a/bootstrap/vllm_target_handoff.py b/bootstrap/vllm_target_handoff.py
+index 707fc13..e5bcc98 100644
+--- a/bootstrap/vllm_target_handoff.py
++++ b/bootstrap/vllm_target_handoff.py
+@@ -9,6 +9,8 @@ not retain or invoke ModelRunner/Scheduler objects per decode cycle.
+ from __future__ import annotations
+
+ from dataclasses import dataclass
++import json
++import os
+ from collections.abc import Callable
+ from typing import Any
+
+@@ -149,6 +151,10 @@ class DirectTargetHandoff:
+         )
+
+     def forward(self, input_ids: torch.Tensor, positions: torch.Tensor):
++        if os.getenv("EXTREME_DSA_CP_REFRESH") == "1":
++            self._refresh_dsa_cp_metadata()
++        if os.getenv("EXTREME_METADATA_DIAGNOSE") == "1":
++            self._diagnose_metadata(positions)
+         num_tokens = input_ids.shape[0]
+         update_cos_sin(positions)
+         context_kwargs = {}
+@@ -184,6 +190,98 @@ class DirectTargetHandoff:
+                 output = _gather_output(output)
+         return output
+
++    def _refresh_dsa_cp_metadata(self) -> None:
++        # Isolated diagnostic ablation: update exactly the derived DSA-CP
++        # tensors that the Stock builder rewrites each decode iteration.
++        seen = set()
++        rank = torch.distributed.get_rank()
++        world = torch.distributed.get_world_size()
++        def visit(value, depth):
++            if depth > 5 or id(value) in seen:
++                return
++            seen.add(id(value))
++            if isinstance(value, dict):
++                for child in value.values():
++                    visit(child, depth+1)
++            elif isinstance(value, (list, tuple)):
++                for child in value:
++                    visit(child, depth+1)
++            else:
++                req = getattr(value, "req_metadata", None)
++                if req is not None:
++                    cp = getattr(req, "cp_metadata", None)
++                    if cp is not None and torch.is_tensor(getattr(cp, "local_seq_lens", None)):
++                        qsl = req.query_start_loc
++                        seq = req.seq_lens
++                        num_reqs = seq.numel()
++                        num_tokens = qsl[-1]
++                        # Fixed c12 x 8 qsl: 96 tokens, 12 per TP rank.
++                        local_start = rank * (96 // world)
++                        local_end = local_start + 96 // world
++                        local_q_start = qsl[:-1].clamp(local_start, local_end)
++                        local_q_end = qsl[1:].clamp(local_start, local_end)
++                        local_q_len = local_q_end - local_q_start
++                        offset = qsl[1:] - local_q_end
++                        expected = torch.where(local_q_len > 0,
++                                               (seq - offset).clamp_min(0),
++                                               torch.zeros_like(seq))
++                        cp.local_seq_lens[:num_reqs].copy_(expected)
++                        if torch.is_tensor(getattr(req, "start_pos", None)):
++                            req.start_pos[:num_reqs].copy_(seq - (qsl[1:] - qsl[:-1]))
++                for attr in ("decode", "prefill", "req_metadata", "cp_metadata"):
++                    if hasattr(value, attr):
++                        visit(getattr(value, attr), depth+1)
++        visit(self.attn_metadata, 0)
++
++    def _diagnose_metadata(self, positions: torch.Tensor) -> None:
++        # Diagnostic only: compact CPU materialization before each target call.
++        if torch.distributed.get_rank() != 0:
++            return
++        count = getattr(self, "_metadata_diagnostic_count", 0)
++        self._metadata_diagnostic_count = count + 1
++        if count >= 8:
++            return
++        def brief(value):
++            if not torch.is_tensor(value):
++                return None
++            flat = value.detach().flatten()
++            first = flat[:min(flat.numel(), 12)].cpu().tolist()
++            tail = flat[-min(flat.numel(), 3):].cpu().tolist()
++            return {"shape": list(value.shape), "first": first,
++                    "last": tail, "ptr": value.data_ptr()}
++        rows = []
++        seen = set()
++        def visit(value, path, depth):
++            if depth > 5 or id(value) in seen:
++                return
++            seen.add(id(value))
++            if isinstance(value, dict):
++                for key, child in value.items():
++                    visit(child, f"{path}.{key}", depth+1)
++            elif isinstance(value, (list, tuple)):
++                for i, child in enumerate(value):
++                    visit(child, f"{path}.{i}", depth+1)
++            else:
++                data = {"path": path, "type": type(value).__name__}
++                for name in ("input_positions", "seq_lens", "start_pos",
++                             "local_query_start_loc", "local_seq_lens",
++                             "sas_metadata", "qli_metadata", "slot_mapping"):
++                    if hasattr(value, name):
++                        item = brief(getattr(value, name))
++                        if item is not None:
++                            data[name] = item
++                if len(data) > 2:
++                    rows.append(data)
++                for name in ("decode", "prefill", "req_metadata", "cp_metadata"):
++                    if hasattr(value, name):
++                        visit(getattr(value, name), f"{path}.{name}", depth+1)
++        visit(self.attn_metadata, "attn_metadata", 0)
++        root = os.getenv("EXTREME_RUNTIME_RUN_DIR")
++        os.makedirs(root, exist_ok=True)
++        with open(os.path.join(root, "rank0_metadata.jsonl"), "a") as file:
++            file.write(json.dumps({"cycle": count, "target_positions": brief(positions),
++                                   "rows": rows}) + "\n")
++
+     def binding(self) -> FixedTargetBinding:
+         return FixedTargetBinding(
+             forward=self.forward,

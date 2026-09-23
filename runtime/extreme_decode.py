@@ -78,6 +78,9 @@ class ExtremeDecodeRuntime:
         self.acceptance = acceptance
         self.proposer = proposer
         self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
+        self._diagnose = os.getenv("EXTREME_RUNTIME_DIAGNOSE") == "1"
+        self.diagnostic_cycles = []
+        self.diagnostic_events = []
         # Reuse the proven fixed-buffer preparation and state transition, not
         # its older bundled operator dispatch.
         self._state_machine = FixedDecodeRuntime(
@@ -93,23 +96,49 @@ class ExtremeDecodeRuntime:
 
     @torch.inference_mode()
     def step(self) -> CycleResult:
+        diag = {} if self._diagnose else None
+        markers = []
+        def mark(label):
+            if diag is not None:
+                event = torch.npu.Event(enable_timing=True)
+                event.record()
+                markers.append((label, event))
         with self._scope("extreme::cycle"):
+            if diag is not None:
+                diag["num_computed_before"] = self.state.num_computed_tokens.clone()
+                diag["last_token_before"] = self.state.last_sampled_tokens.clone()
+                diag["draft_before"] = self.state.draft_tokens.clone()
+            mark("begin")
             with self._scope("extreme::prepare_target"):
                 self._state_machine.prepare_target_inputs()
+            mark("prepare_target")
             with self._scope("extreme::target"):
                 target_output = self.target.execute(self.state)
+            mark("target")
+            if diag is not None:
+                diag["target_argmax"] = target_output.logits.argmax(dim=-1).view(
+                    self.config.batch_size, self.config.target_tokens_per_request
+                ).clone()
             with self._scope("extreme::acceptance"):
                 acceptance_output = self.acceptance.execute(
                     self.state, target_output
                 )
+            mark("acceptance")
+            if diag is not None:
+                diag["accepted"] = acceptance_output.sampled_token_ids.clone()
+                diag["counts"] = acceptance_output.num_sampled.clone()
             with self._scope("extreme::state_advance"):
                 self._state_machine.advance_state(acceptance_output)
+            mark("state_advance")
             with self._scope("extreme::proposer"):
                 next_draft = self.proposer.execute(
                     self.state,
                     target_output,
                     acceptance_output,
                 )
+            mark("proposer")
+            if diag is not None:
+                diag["next_draft"] = next_draft.clone()
             with self._scope("extreme::draft_commit"):
                 if tuple(next_draft.shape) != tuple(
                     self.state.draft_tokens.shape
@@ -117,6 +146,10 @@ class ExtremeDecodeRuntime:
                     raise ValueError("DSpark draft tensor shape changed")
                 self.state.draft_tokens.copy_(next_draft)
                 self.state.cycle_index += 1
+            mark("draft_commit")
+            if diag is not None:
+                self.diagnostic_cycles.append(diag)
+                self.diagnostic_events.append(markers)
             return CycleResult(
                 cycle=self.state.cycle_index,
                 acceptance=acceptance_output,

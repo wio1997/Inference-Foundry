@@ -316,3 +316,9 @@ The bounded v2 DSpark graph probe failed before service readiness. Target archit
 - Performance: no claim. The surrounding API request is intentionally failed
   after evidence capture and is not comparable with the 543.65 tok/s baseline.
   Performance work starts only on the runtime-owned DAG.
+## 2026-09-23 Loop035 diagnostic checkpoint
+
+- Eight-rank Extreme short c12 DAG event medians: target45.07 ms, proposer5.93 ms, acceptance0.38 ms, prepare0.27 ms, advance0.02 ms. These are diagnostic NPU events, not removable E2E costs.
+- Warm Stock single-cohort 12×32K→1024 c12: 12/12 complete, 553.76 tok/s, 2.908 accepted drafts/iteration from counter deltas. This reinforces sustained Stock acceptance; it does not replace Loop034 formal 48-request baseline.
+- DSA-CP start_pos and local_seq_lens were found stale from cycle 1. Refreshing both kept them current but produced only 127 outputs across 8×12 Extreme slot cycles; the isolated candidate was rejected. All eight rank records passed the local state contract, which is weaker than token-level oracle parity.
+- Rejected/invalid probes and raw traces are indexed in TaskCtl Loop035. No structural performance KEEP or formal A/B rerun yet.

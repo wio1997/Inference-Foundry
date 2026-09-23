@@ -319,3 +319,14 @@ The first product-owned fixed execution region is now semantically closed across
 - Interpretation: the serving shell is correct, but it did not close the
   sustained decode gap. The next evidence target is a full-chain runtime-only
   profile, not more control-plane compatibility work.
+## Update 2026-09-23 06:36 UTC — Loop035 Extreme decode DAG and state
+
+| Extreme short c12 stage (eight real-weight cycles) | Median NPU event time across rank/cycle |
+|---|---:|
+| Target | 45.07 ms |
+| DSpark proposer | 5.93 ms |
+| Acceptance | 0.38 ms |
+| Prepare target | 0.27 ms |
+| State advance | 0.02 ms |
+
+This is a short diagnostic, not the full 1024-cycle critical path. The dominant immediate E2E gap remains acceptance/progress, not these small transition stages. The first confirmed stale target fields are DSA-CP start_pos and local_seq_lens from cycle 1; refreshing only them did not recover acceptance. Stock's warm 12-request long cohort achieved 2.908 accepted drafts/iteration versus Extreme near one output/slot/cycle later in its short diagnostic. SAS/QLI derived metadata and same-state target/proposer comparison are the next discriminators. Sources: evidence/20260923_loop035_diagnostic/.

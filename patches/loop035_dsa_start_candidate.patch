@@ -1,0 +1,72 @@
+diff --git a/bootstrap/vllm_target_handoff.py b/bootstrap/vllm_target_handoff.py
+index 707fc13..537f484 100644
+--- a/bootstrap/vllm_target_handoff.py
++++ b/bootstrap/vllm_target_handoff.py
+@@ -185,8 +185,34 @@ class DirectTargetHandoff:
+         return output
+
+     def binding(self) -> FixedTargetBinding:
++        start_pos_buffers = []
++        seen = set()
++        metadata_values = []
++        pending = [self.attn_metadata]
++        seen_containers = set()
++        while pending:
++            current = pending.pop()
++            if id(current) in seen_containers:
++                continue
++            seen_containers.add(id(current))
++            if isinstance(current, dict):
++                pending.extend(current.values())
++            elif isinstance(current, (list, tuple)):
++                pending.extend(current)
++            else:
++                metadata_values.append(current)
++        for metadata in metadata_values:
++            for owner in (
++                getattr(metadata, "decode", None),
++                getattr(metadata, "req_metadata", None),
++            ):
++                start_pos = getattr(owner, "start_pos", None)
++                if torch.is_tensor(start_pos) and start_pos.data_ptr() not in seen:
++                    seen.add(start_pos.data_ptr())
++                    start_pos_buffers.append(start_pos)
+         return FixedTargetBinding(
+             forward=self.forward,
+             compute_logits=self.model.compute_logits,
+             state_fingerprint=lambda: {},
++            dsa_start_pos_buffers=tuple(start_pos_buffers),
+         )
+diff --git a/runtime/target_adapter.py b/runtime/target_adapter.py
+index 3a48a34..43c7f8f 100644
+--- a/runtime/target_adapter.py
++++ b/runtime/target_adapter.py
+@@ -10,6 +10,7 @@ from __future__ import annotations
+
+ from collections.abc import Callable
+ from dataclasses import dataclass
++import os
+
+ import torch
+
+@@ -26,6 +27,7 @@ class FixedTargetBinding:
+     ]
+     compute_logits: Callable[[torch.Tensor], torch.Tensor]
+     state_fingerprint: Callable[[], dict[str, torch.Tensor]]
++    dsa_start_pos_buffers: tuple[torch.Tensor, ...] = ()
+
+
+ class FixedTargetAdapter:
+@@ -61,6 +63,12 @@ class FixedTargetAdapter:
+         elif input_ptr != self._input_ptr or position_ptr != self._position_ptr:
+             raise RuntimeError("fixed target input buffer address changed")
+
++        if os.getenv("EXTREME_RUNTIME_DSA_START_REFRESH") == "1":
++            if not self.binding.dsa_start_pos_buffers:
++                raise RuntimeError("no fixed DSA decode start_pos buffers were bound")
++            for start_pos in self.binding.dsa_start_pos_buffers:
++                start_pos.copy_(state.num_computed_tokens.to(start_pos.dtype))
++
+         model_output = self.binding.forward(
+             state.target_input_ids,
+             state.target_positions,
