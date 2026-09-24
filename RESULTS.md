@@ -465,3 +465,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run85 (diagnostic): 12/12 x 1024 c12 Stock continuous shadow, 160 cycles/rank, 122,880/122,880 same-input accepted output cells and all accepted counts exact; generic group1 compressed KV mapping unsupported. 407.71 tok/s includes shadow overhead, not a formal A/B value. evidence/20260924_loop035_diagnostic/run85/summary.json.
 
 - Loop035 Run87 (diagnostic DAG): 8 ranks x 301 cycles, 12/12x1024. Steady event stage medians target47.702 ms, metadata8.673 ms, proposer6.359 ms, acceptance0.337 ms. Single-cohort 469.17 tok/s is not formal A/B. evidence/20260924_loop035_diagnostic/run87/summary.json.
+
+- Loop035 Run88 (strict diagnostic, cycle128): 8/8 rank restores exact across 67 KV views, 69 entries, 76 metadata tensors. Target argmax AB=92/96 and Stock AC=92/96; accepted cells AB=92/96, AC=95/96, with a B-only slot2 first-token/count split. KV post-write mismatches AB16.437M vs AC16.443M. No independent equivalence verdict yet. evidence/20260924_loop035_diagnostic/run88/summary.json.

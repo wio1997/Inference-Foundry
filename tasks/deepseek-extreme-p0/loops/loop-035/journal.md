@@ -379,3 +379,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T08:31:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T083600Z`（profile）。
 
 - `2026-09-24T08:47:22Z` Run `run-20260924T083600Z` 记录为 `pass`；正确性为 `pass`。Run87 corrected serving-path DAG export: 12/12x1024, 8 ranks x 301 cycles. Steady NPU event medians target 47.702 ms, derived target metadata 8.673 ms, proposer 6.359 ms, acceptance 0.337 ms; late low acceptance reflects parked completed slots. Diagnostic TPS 469.17 is not formal A/B.
+
+- `2026-09-24T08:55:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T090000Z`（test）。
+
+- `2026-09-24T09:13:06Z` Run `run-20260924T090000Z` 记录为 `pass`；正确性为 `pass`。Run88 strict Stock A/Product B/Stock C at continuous cycle128: all 8 ranks capture 67 cache views/69 entries and 76 metadata tensors, all restores exact. Argmax AB and Stock AC each 92/96; B-only slot2 first-token and accepted-count split remains inconclusive. Cache post-write mismatch counts AB 16,437,317 vs AC 16,443,266 under Stock self-replay floor.

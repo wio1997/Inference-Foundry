@@ -599,3 +599,22 @@ slots and is not evidence of live-request acceptance collapse. Diagnostic
 Evidence: evidence/20260924_loop035_diagnostic/run87/summary.json and dag/rank*.json.
 Next: use the measured target and metadata stages to choose a structural
 optimization, while retaining the independent KV-value/Stock semantic caveat.
+
+## Loop035 Run88 strict Stock/Product/Stock at cycle128 (2026-09-24 09:13 UTC)
+
+A diagnostic-only Stock ABA hook now uses the existing source-backed TargetPageAudit
+manifest rather than the incomplete generic slot snapshot. Stock advanced 128
+continuous fixed decode cycles, then all eight ranks captured all 67 physical
+cache views (69 entries including two mutable buffers), all 76 attention
+metadata tensors and actual compressor slot candidates; all three restores
+were exact. At the same frozen state, Stock A versus Product B and Stock A
+versus Stock C each matched 92/96 target argmax positions. Accepted cells
+matched 92/96 AB versus 95/96 AC. Product B alone differed at request slot2,
+first target position, changing one accepted count. This is a possible first
+semantic fork, not yet proven because exact same-source target replay has
+known nondeterminism. Post-target cache values differed widely on both AB
+(16,437,317 elements) and Stock AC (16,443,266); AB is not worse by this
+aggregate and raw mismatches cannot be ascribed to Product. Next obtain
+same-state repeated Stock and Product target samples with top-2 logits at
+the disputed coordinate, preserving this strict snapshot/restore gate.
+Evidence: evidence/20260924_loop035_diagnostic/run88/summary.json.
