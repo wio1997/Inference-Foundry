@@ -529,3 +529,20 @@ uncaptured state, not evidence of Stock/Product semantic divergence. Run82
 margins, take A/B/C same-source replay samples and validate a self-replay
 floor before Stock/Product/Stock comparison. Evidence:
 `evidence/20260924_loop035_diagnostic/run82/summary.json`.
+
+## Loop035 Run83 strict triple target self replay (2026-09-24 07:16 UTC)
+
+Fixed c12 12/12x1024 completed. At sampled continuous target cycles0/1,
+all eight ranks restored 67 cache views and all 76 metadata tensors exactly
+between A/B/C direct target executions. Rank results were identical. Target
+argmax equality A/B, A/C, B/C was 92/96, 92/96, 91/96 at cycle0 and 88/96,
+94/96, 90/96 at cycle1. Accepted-token equality was 93/96, 95/96, 94/96
+and 89/96, 96/96, 89/96 respectively; counts also varied across replays.
+Mismatch top-2 logits and request/position coordinates are in rank artifacts;
+the largest top-1 margin at a changed argmax was 1.0. Therefore strict
+captured-state restoration does not make target/acceptance deterministic, and
+an isolated candidate mismatch must be judged against same-source A/C noise.
+This repeats no further as a standalone control. The next investigation is
+continuous Stock-authoritative state/DSpark/KV lockstep and first sustained
+acceptance split, using this replay floor. Diagnostic 461.41 tok/s is not
+formal A/B. Evidence: `evidence/20260924_loop035_diagnostic/run83/summary.json`.
