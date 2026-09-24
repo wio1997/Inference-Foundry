@@ -835,3 +835,15 @@ TaskCtl marks profile attribution INVALID though request correctness passed.
 No kernel/communication conclusion. Next use a subsecond window while a
 48-request workload keeps c12 decode active through the profiler start RPC.
 Compact evidence: `evidence/20260924_loop037_target/run101/summary.json`.
+
+## Loop037 Run102 wrong-phase short profile (2026-09-24)
+
+Subsecond profiling during a legal 48×1024 workload produced parsable traces
+(~28 MB raw/rank), and all 48 requests completed. Yet all eight rank traces
+contain zero `extreme::cycle` and zero `extreme::target` scopes; the window
+landed at a cohort boundary and showed only a few DSpark layer scopes.
+TaskCtl marks target attribution INVALID, correctness PASS. Parsed raw trace
+is under `evidence/20260924_loop037_target/run100/profile/*20260924134249*_ascend_pt`;
+compact count summary is `run102/summary.json`. Next start the profiler RPC
+immediately after launching one legal 12-request cohort, so its ~13-second
+handshake returns while that same cohort remains in Extreme decode.

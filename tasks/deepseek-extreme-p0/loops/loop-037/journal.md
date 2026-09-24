@@ -9,3 +9,7 @@
 - `2026-09-24T13:37:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run101`（profile）。
 
 - `2026-09-24T13:41:38Z` Run `run101` 记录为 `invalid`；正确性为 `pass`。Legal 12x1024 cohort and Runtime path succeeded; profiler activated before benchmark, but 8-second trace produced approximately 11 GiB raw across 8 ranks and offline parse warned >30 min per rank. Analysis terminated during rank0; no trustworthy target kernel attribution. Next use subsecond profile window during 48-request decode.
+
+- `2026-09-24T13:42:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run102`（profile）。
+
+- `2026-09-24T13:48:04Z` Run `run102` 记录为 `invalid`；正确性为 `pass`。Legal 48x1024 profiled cohort completed 48/48 and parsed 8-rank kernel traces, but every rank has zero Extreme cycle and target scopes. Short window hit cohort boundary/non-target stage; no target attribution. Run103 will use one c12 cohort and activate profiler immediately at request launch.
