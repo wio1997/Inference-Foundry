@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import torch
@@ -18,6 +19,8 @@ class KVSlotAudit:
         self.rank = rank
         self.limit = limit
         self.rows = []
+        self.stream = os.getenv("EXTREME_KV_SLOT_AUDIT_STREAM") == "1"
+        self._slot_owner: dict[int, dict[int, int]] = {}
 
     @torch.inference_mode()
     def observe(self, cycle: int, positions: torch.Tensor) -> None:
@@ -51,9 +54,10 @@ class KVSlotAudit:
             groups.append(row)
         self.rows.append({"cycle": cycle, "groups": groups})
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        payload = {"rank": self.rank, "cycles_recorded": len(self.rows),
-                   "limit": self.limit, "rows": self.rows}
-        self._flush()
+        if self.stream:
+            self._append("pre_target", self.rows[-1])
+        else:
+            self._flush()
 
     @torch.inference_mode()
     def observe_dspark_context(self, cycle: int, positions: torch.Tensor, proposer) -> None:
@@ -80,13 +84,32 @@ class KVSlotAudit:
             expected = (physical * size + pos.remainder(size)).flatten()
             actual = context[:96].to(torch.int64)
             source = mapping[:96].to(torch.int64)
+            actual_cpu = actual.cpu().tolist()
+            owner = self._slot_owner.setdefault(gid, {})
+            owner_conflicts = 0
+            for index, address in enumerate(actual_cpu):
+                prior = owner.setdefault(address, index // 8)
+                if prior != index // 8:
+                    owner_conflicts += 1
             groups.append({"gid": gid, "context_vs_expected": int((actual != expected).sum().item()),
                            "context_vs_source": int((actual != source).sum().item()),
                            "source_vs_expected": int((source != expected).sum().item()),
+                           "context_negative": int((actual < 0).sum().item()),
+                           "context_zero": int((actual == 0).sum().item()),
+                           "same_cycle_duplicate_slots": 96 - int(torch.unique(actual).numel()),
+                           "cross_request_owner_conflicts": owner_conflicts,
                            "first_context": actual.view(12, 8)[:, 0].cpu().tolist(),
                            "first_expected": expected.view(12, 8)[:, 0].cpu().tolist()})
         self.rows[cycle]["dspark_context"] = groups
-        self._flush()
+        if self.stream:
+            self._append("post_proposer", self.rows[cycle])
+        else:
+            self._flush()
+
+    def _append(self, phase: str, row: dict) -> None:
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        with (self.output_dir / f"rank{self.rank}.jsonl").open("a") as stream:
+            stream.write(json.dumps({"rank": self.rank, "phase": phase, **row}, separators=(",", ":")) + "\n")
 
     def _flush(self) -> None:
         payload = {"rank": self.rank, "cycles_recorded": len(self.rows),
