@@ -767,3 +767,5 @@ cycles, but same-source target A/B/C replay itself changed argmax and some
 accepted tokens. A single token mismatch is therefore not a Stock/Product
 semantic verdict. Continue Stock-authoritative continuous state/KV comparison;
 formal E2E remains gated. See HANDOFF.md and Run84 summary.
+
+- Loop035 Run85: Stock-authoritative continuous same-input greedy acceptance matched 122,880/122,880 output cells and all counts over 160 cycles x 8 ranks; target integer ABI and supported generic KV groups exact. Group1 compressed geometry remains outside the generic mapping checker. Run67-72 established the DSpark gid2 stale slot correction and full observed gid2/3 write-address trajectory; Run84 certified all 67 target cache view page candidates over 256 cycles/rank. Independent long Product/Stock token and KV-value equivalence remains unproven under the measured target self-replay nondeterminism. Evidence: evidence/20260924_loop035_diagnostic/run85/summary.json.

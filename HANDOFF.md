@@ -566,3 +566,17 @@ DSpark gid2/3 context write addresses. Next compare continuous Stock-owned
 state and physical KV/DSpark trajectories using these certified write sets;
 do not repeat standalone target replay or run formal 48-request A/B yet.
 Evidence: `evidence/20260924_loop035_diagnostic/run84/summary.json`.
+
+## Loop035 Run85 Stock-authoritative acceptance (2026-09-24 08:08 UTC)
+
+A 12x1024 c12 Stock-only continuous shadow compared Extreme greedy acceptance
+with Stock's actual sampler using the same target logits and draft IDs over
+160 cycles on all eight ranks. All 122,880 output cells and every accepted
+count matched. The target integer ABI and five supported generic KV group
+mappings matched; group1's compressed table geometry remains unsupported by
+this generic checker. This establishes the acceptance implementation for this
+frozen greedy contract, not independent Product/Stock logits or KV-value
+equivalence. Zcode was actually invoked as deepseek/deepseek-flash in read-only
+plan mode for a bounded source audit, timed out after 180 s, and supplied no
+usable analysis; the main Agent completed and reviewed the audit.
+Evidence: evidence/20260924_loop035_diagnostic/run85/summary.json.

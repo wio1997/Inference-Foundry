@@ -461,3 +461,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run81: 8-rank cycles0/1 strict target page and compressor side-output parity; zero missing/extra pages. Diagnostic only. `evidence/20260924_loop035_diagnostic/run81/summary.json`.
 - Loop035 Run82/83: exact captured KV/metadata restoration but same-source A/B/C target and acceptance replay differences; establishes a self-replay noise floor, not Stock/Product parity. `evidence/20260924_loop035_diagnostic/run83/summary.json`.
 - Loop035 Run84: 8x256 continuous target cycles, 67/67 cache views each, 6,144 compressor signature checks, zero missing/extra pages; c128 first writes cycle8. 12/12x1024 complete. TPS invalid for comparison due audit overhead. `evidence/20260924_loop035_diagnostic/run84/summary.json`.
+
+- Loop035 Run85 (diagnostic): 12/12 x 1024 c12 Stock continuous shadow, 160 cycles/rank, 122,880/122,880 same-input accepted output cells and all accepted counts exact; generic group1 compressed KV mapping unsupported. 407.71 tok/s includes shadow overhead, not a formal A/B value. evidence/20260924_loop035_diagnostic/run85/summary.json.
