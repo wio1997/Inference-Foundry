@@ -170,6 +170,12 @@ class ExtremeDecodeRuntime:
                     acceptance_output,
                 )
             mark("proposer")
+            if self.kv_slot_audit is not None:
+                self.kv_slot_audit.observe_dspark_context(
+                    self.state.cycle_index,
+                    self.state.target_positions,
+                    self.proposer.proposer,
+                )
             if diag is not None:
                 diag["next_draft"] = next_draft.clone()
             with self._scope("extreme::draft_commit"):

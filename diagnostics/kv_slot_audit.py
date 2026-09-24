@@ -53,5 +53,43 @@ class KVSlotAudit:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         payload = {"rank": self.rank, "cycles_recorded": len(self.rows),
                    "limit": self.limit, "rows": self.rows}
+        self._flush()
+
+    @torch.inference_mode()
+    def observe_dspark_context(self, cycle: int, positions: torch.Tensor, proposer) -> None:
+        """Check the actual DSpark context-scatter slot input after proposal."""
+        if cycle >= self.limit:
+            return
+        if cycle >= len(self.rows) or self.rows[cycle]["cycle"] != cycle:
+            raise RuntimeError("DSpark context audit has no matching target cycle")
+        pos = positions.view(12, 8).to(torch.int64)
+        req = torch.arange(12, device=pos.device).unsqueeze(1)
+        groups = []
+        for group in proposer.draft_attn_groups:
+            gid = group.kv_cache_group_id
+            table = proposer._per_group_block_tables[gid]
+            mapping = proposer._per_group_slot_mappings[gid]
+            context = proposer._per_group_context_slot_mapping_buffers[gid]
+            size = proposer._per_group_kernel_block_sizes[gid]
+            logical = torch.div(pos, size, rounding_mode="floor")
+            if not bool((logical >= 0).all() and (logical < table.shape[1]).all()):
+                raise RuntimeError(f"DSpark group {gid} context positions outside table")
+            physical = table[req, logical].to(torch.int64)
+            if not bool((physical > 0).all()):
+                raise RuntimeError(f"DSpark group {gid} context uses unowned physical block")
+            expected = (physical * size + pos.remainder(size)).flatten()
+            actual = context[:96].to(torch.int64)
+            source = mapping[:96].to(torch.int64)
+            groups.append({"gid": gid, "context_vs_expected": int((actual != expected).sum().item()),
+                           "context_vs_source": int((actual != source).sum().item()),
+                           "source_vs_expected": int((source != expected).sum().item()),
+                           "first_context": actual.view(12, 8)[:, 0].cpu().tolist(),
+                           "first_expected": expected.view(12, 8)[:, 0].cpu().tolist()})
+        self.rows[cycle]["dspark_context"] = groups
+        self._flush()
+
+    def _flush(self) -> None:
+        payload = {"rank": self.rank, "cycles_recorded": len(self.rows),
+                   "limit": self.limit, "rows": self.rows}
         (self.output_dir / f"rank{self.rank}.json").write_text(
             json.dumps(payload, separators=(",", ":")) + "\n")
