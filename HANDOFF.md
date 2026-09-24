@@ -948,3 +948,16 @@ Do not preserve genericity or abstractions without product value. Loop039’s
 a terminal target; the grouped-matmul hypothesis can be rejected or outranked
 by a larger cross-module opportunity. The current credible whole-product
 hardware bound is unknown. Run99 remains the official571.681 tok/s result.
+
+## Loop039 Run109 active branch correction (2026-09-24)
+
+Run108’s 43+43 target kernel counts remain valid, but its GMM1 Python
+call-path attribution was too broad. The frozen quant description has
+group_size=0, so W4A8 weights are per-channel; the active GMM1 branch is
+`moe_mlp.py` custom `grouped_matmul_swiglu_quant_v2`, and GMM2 uses
+`DeviceOperator.npu_grouped_matmul_gmm2`. Checkpoint packed-I8 layer0
+expert0 shapes are w1/w3 [1024,4096], w2 [2048,2048]. Exact routed live
+input shapes, graph addresses and a faster parity-preserving replacement
+remain unmeasured. Do not use Run108’s GMM1 `DeviceOperator` mapping.
+TaskCtl Run109 PASS design-check. Evidence:
+`evidence/20260924_loop039_gmm/run109/active_branch.json`.
