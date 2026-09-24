@@ -922,3 +922,16 @@ formal product result remains Run99 median571.681 tok/s, +5.155% vs Stock;
 no new formal E2E or Stock baseline was run. Service was stopped and NPUs
 are idle after Run107. The last agent work used the default Sol main role;
 no Astra or Zcode call was made in Loops037–038.
+
+## Loop039 Run108 source and trace map (2026-09-24)
+
+Read-only audit confirms the model config has43 hidden layers and, in each
+of the eight canonical rank cycle64 target windows, exactly43 GMM1 fused
+SwigluQuantWeightNzV2 kernels plus43 GMM2 GroupedMatmulWeightNz kernels.
+Rank0 summed durations are6.425 and3.646 ms. The borrowed implementation
+enters `DeviceOperator.npu_grouped_matmul_swiglu_quant` and
+`DeviceOperator.npu_grouped_matmul_gmm2` from `moe_mlp.py`; this is a
+source/trace mapping, not proof that a replacement will save time. Exact
+runtime tensor shapes and a semantics-preserving faster backend are still
+unmeasured. TaskCtl Run108 PASS (design-check only), evidence:
+`evidence/20260924_loop039_gmm/run108/source_audit.json`.

@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Read borrowed target grouped-matmul implementation and trace 86 calls to exact layer, shape, dtype and backend; rank candidate substitutions by device bound.
-- 更新时间：`2026-09-24T15:17:37Z`
+- 下一步：审查 Run run108 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-24T15:21:10Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run108`
 
 ## 阻塞项
 
