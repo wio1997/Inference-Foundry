@@ -13,3 +13,7 @@
 - `2026-09-24T16:10:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run110`（review）。
 
 - `2026-09-24T16:15:25Z` Run `run110` 记录为 `invalid`；正确性为 `invalid`。Bounded Zcode environment check exited 0 after 188.845s and 27 provider requests, but headless build mode denied docker exec, npu-smi and HTTP access (No permission client configured for Bash). Configured model deepseek/deepseek-flash; actual model was not independently observed in output, so model_verified=false. HEAD 1b7c0e0 and 8 profile windows matched direct Sol recheck; Sol directly verified all eight NPUs idle and service stopped. Delegated result is partial and excluded from product evidence.
+
+- `2026-09-24T16:56:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run111`（review）。
+
+- `2026-09-24T16:57:50Z` Run `run111` 记录为 `pass`；正确性为 `not-applicable`。Minimal Zcode plan-mode ping succeeded: exit 0, 14.735 s, one provider request, exact sentinel response. Independent local model I/O record identifies request provider deepseek/model deepseek-flash and response modelId deepseek-flash. This validates short text connectivity only; Run110 tool permissions remain blocked and this is not product performance evidence.

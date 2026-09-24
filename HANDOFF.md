@@ -974,3 +974,17 @@ INVALID. Sol directly rechecked HEAD1b7c0e0, 8 profile window files, 8/8
 idle NPUs and stopped service. Do not delegate service/NPU operations to
 this Zcode configuration until permission behavior is fixed and actual-model
 provenance is verifiable; direct execution is the current fallback.
+
+## Zcode DeepSeek connectivity Run111 (2026-09-25)
+
+At user request, a no-tool, no-file-change Zcode plan-mode ping returned the
+exact sentinel `DEEPSEEK_PING_20260925` with exit 0 in 14.735 s and one
+provider request. The local Zcode model-I/O record for that session identifies
+request provider `deepseek`, request model `deepseek-flash`, and response
+modelId `deepseek-flash`; the sanitized evidence is
+`evidence/20260925_loop039_delegate/run111/model_io_summary.json`.
+TaskCtl Run111 PASS for short-text connectivity only. Run110 remains INVALID:
+headless build-mode Bash permissions denied docker/NPU/HTTP operations. This
+ping does not establish tool execution viability, Runtime correctness, or
+performance. Loop039 product work resumes from Run109 live routed shapes and
+same-state eight-rank correctness; Run99 remains the official E2E result.
