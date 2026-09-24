@@ -401,3 +401,18 @@ The 8.0056 ms/cycle metadata-stage reduction translated into frozen warm-cache
 6.391 ms and metadata0.667 ms follow. Above-Stock margin is real under this
 protocol but still modest, so next optimization should diagnose target device
 work/communication rather than revisit metadata sync.
+
+## Loop038 Run106 bounded target trace (2026-09-24)
+
+A legal 8-rank 12×1024 c12 profile captured two steady cycles per rank
+without HTTP control latency. Profiler target-attributed device total median
+is 51.144 ms (range46.255–56.502) under instrumentation, consistent in scale
+with unprofiled Run98 target event median46.560 ms. CPU target scope median
+6.103 ms only measures graph enqueue; direct timestamp clipping cannot map
+asynchronous graph kernels. Target-nested wait_event median50.134 ms exposes
+completion of preceding device work, whereas actual nested HCCL all-gather
+sum is0.247 ms. Whole-trace grouped matmul kernels sum20.592 ms across two
+cycles, including target and proposer; it is a candidate family rather than
+a measured target-only removable bound. Compute/communication overlap requires
+correlation-aware attribution. Source:
+evidence/20260924_loop038_cycle/run106/attribution.json.

@@ -880,3 +880,20 @@ Run105 was recorded before launch. Its direct script invocation failed with
 exit 126 because the new script lacked executable mode. No service, workload,
 or profiler started. TaskCtl marks Run105 INVALID. Run106 will invoke the
 script through bash and preserve the legal 12x1024 TP8 profile protocol.
+
+## Loop038 Run106 bounded cycle profile (2026-09-24)
+
+Run106 completed one legal 12×1024 c12 TP8 cohort: 12/12 exact-length
+requests, 8/8 Runtime gates, 289 cycles/rank. Each rank captured target
+scopes at cycles64–65; raw profiles were only ~5.6 MB/rank and parsed in
+~6 seconds/rank. The per-target profiler device-total median is 51.144 ms
+(range46.255–56.502), while CPU scope median is only 6.103 ms. The nested
+wait_event median is 50.134 ms and nested HCCL all-gather sum is 0.247 ms;
+CPU-scope timestamp clipping misses asynchronous graph execution and is not
+valid target device attribution. Across the entire two-cycle trace, grouped
+matmul kernel sums have median20.592 ms, but include target and proposer.
+No target-only optimization bound is established yet. The single-cohort
+508.89 tok/s includes profiler overhead and is not a Stock comparison.
+Evidence: evidence/20260924_loop038_cycle/run106/attribution.json. A next
+pass must link graph kernels to the target replay or use NPU event stage
+boundaries before choosing a kernel edit. Service was stopped after Run106.
