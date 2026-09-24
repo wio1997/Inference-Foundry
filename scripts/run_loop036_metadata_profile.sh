@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=/data/wio/Inference_Foundry
-OUT=${ROOT}/evidence/20260924_loop036_metadata/run97
+OUT=${ROOT}/evidence/20260924_loop036_metadata/run98
 DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl
 mkdir -p "${OUT}/runtime"
 export MAX_MODEL_LEN=1048576
-export RUN_TS=LOOP036-RUN97
+export RUN_TS=LOOP036-RUN98
 export EXTREME_RUNTIME_RUN_DIR=${OUT}/runtime
 export EXTREME_RUNTIME_SERVE=1
 export EXTREME_RUNTIME_RESERVE_TOKENS=1088

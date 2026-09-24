@@ -754,3 +754,20 @@ dynamic A/static B/dynamic C on identical input and report first differing
 index and header parity before accepting or rejecting the scalar candidate.
 `evidence/20260924_loop036_metadata/run96/summary.json` records the compact
 evidence. Static candidate remains opt-in and unvalidated; no profile/E2E.
+
+## Loop036 Run97 continuous A/B/C metadata gate (2026-09-24)
+
+The legal 12×1024, c12, TP8 DSpark7 Run97 completed 299 Runtime-owned decode
+cycles on all eight ranks; 12/12 clients and all rank records passed at exactly
+1024 output tokens. Every cycle checked dynamic A/static B/dynamic C metadata.
+SAS positions 0–96 and QLI positions 0–24 matched exactly; markers at cycles
+1/64/128/256 exist on every rank. Full 1024-element buffers are not equal,
+but dynamic A/C self-replay also differs after those stable headers. This is a
+bounded stable-field parity gate, not full-buffer exact parity or independent
+long-token semantic proof. Shadow instrumentation invalidates its TPS as a
+performance comparison. Source audit still finds the static scalar fallback
+unreachable with actual per-request length tensors. Compact evidence:
+`evidence/20260924_loop036_metadata/run97/summary.json`. Next run the
+prewritten no-shadow static DAG profile, compare with Run87 under the same
+single-cohort contract, and only proceed to formal E2E if timing gain is
+material and correctness remains intact.
