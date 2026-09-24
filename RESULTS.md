@@ -454,3 +454,6 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run76: offline alias check passed 8/8 rank structural equality and corrected prior cache ownership: 31/67 positional labels wrong, 42/67 views alias multiple groups, 67 views share 46 storage allocations. Run73 group counts are not a per-cache write-set certificate. evidence/20260924_loop035_diagnostic/run76/alias_check.json.
 
 - Loop035 Run77: strict page snapshot primitive passed a synthetic shared-storage restore and missing/out-of-range/empty rejection gate. This does not certify live target or DSpark write-set coverage. evidence/20260924_loop035_diagnostic/run77_page_snapshot.json.
+
+- Loop035 Runs78/79 INVALID: diagnostic binding dependency then post-snapshot accounting error; neither yielded target/acceptance inference.
+- Loop035 Run80: valid 12/12x1024 cohort, 8/8 rank/Host gates, and cycle0/1 strict pre-target NPU snapshots of 67/67 cache views from 170 actual aliases with zero skipped pages. 4166/4274 candidate page entries across views. No restore/Stock oracle; diagnostic TPS is not formal. evidence/20260924_loop035_diagnostic/run80/summary.json.

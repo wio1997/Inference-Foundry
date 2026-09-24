@@ -482,3 +482,16 @@ shared-storage restore plus missing/out-of-range/empty rejection passed.
 It is not yet used by a live oracle. Next derive the per-view page union
 from all actual layer aliases and compressed/state/SWA write producers,
 then execute the strict NPU transaction.
+
+## Loop035 Run80 strict target candidate pages (2026-09-24 06:18 UTC)
+
+Run80 passed a fixed 12x1024 diagnostic cohort and all eight rank/Host gates.
+At target cycles0/1, source-derived page candidates from 170 actual layer
+aliases covered all 67 physical cache views with strict NPU snapshot and no
+skips. Twenty compressed source layers had zero writes at each sampled cycle;
+all 67 views still had pages through shared aliases. This is candidate
+coverage only. Before Stock/Product/Stock same-state oracle, compare
+compressor_metadata side-output slots to candidate pages, restore all
+physical pages and mutable metadata aliases, then run A/C self replay.
+Runs78/79 were invalid diagnostic wiring/accounting attempts.
+Evidence: evidence/20260924_loop035_diagnostic/run80/summary.json.

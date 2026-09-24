@@ -734,3 +734,24 @@ restore and rejection gate passed. This is only the transaction primitive;
 actual per-layer alias page candidates, live NPU restore, and Stock/Product
 oracle are still pending. Evidence:
 evidence/20260924_loop035_diagnostic/run77_page_snapshot.json.
+
+## Loop035 Run78-80 target page candidate coverage (2026-09-24 06:18 UTC)
+
+Run78 was INVALID before decode because the diagnostic expected all-group
+bindings gated by the older slot-audit switch. Run79 constructed and executed
+the strict snapshot at cycle0 on all ranks, then failed a post-snapshot
+diagnostic count that included two mutable tensors among cache names; it is
+INVALID and has no target result. Run80 corrected the accounting and completed
+the fixed 12x1024 cohort: 12/12 exact-length clients, 8/8 FULL-graph runtime
+and Host mirror gates, rank0 286 cycles. On all eight ranks, the source-derived
+page candidate set covered all 67 cache views from 170 layer aliases at
+cycles0/1, with zero skipped pages. Candidate page entries summed over views
+were 4166 and 4274; 20 compressed source layers had zero writes in each
+sampled cycle, but shared aliases supplied pages to every cache view.
+The strict NPU snapshot executed before target on both cycles. This certifies
+candidate bounds and complete view selection under the source model, not
+actual compressed operator side-output parity, post-target restoration,
+Stock token equivalence, or a formal E2E gain. Next compare generated
+compressor slots to the source-derived pages and complete metadata plus
+physical cache restore before A/Product B/Stock C.
+Evidence: evidence/20260924_loop035_diagnostic/run80/summary.json.

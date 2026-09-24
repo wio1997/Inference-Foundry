@@ -349,3 +349,5 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T06:03:09Z` Run `run-20260924T054800Z` 记录为 `invalid`；正确性为 `invalid`。Run79 reached cycle0 and strict snapshot_pages returned on eight ranks, then diagnostic cache count erroneously included two mutable tensor names; service aborted before target and no page record or acceptance result was emitted.
 
 - `2026-09-24T06:03:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T060300Z`（test）。
+
+- `2026-09-24T06:18:43Z` Run `run-20260924T060300Z` 记录为 `pass`；正确性为 `pass`。Run80 valid 12x1024 diagnostic: 8/8 ranks cycle0/1 source-derived strict target page snapshots cover 67/67 cache views from 170 layer aliases, no skipped pages; 12/12 clients exact 1024 and 8/8 Host/rank gates. No restore or Stock token oracle.
