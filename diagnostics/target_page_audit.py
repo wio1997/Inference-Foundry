@@ -19,6 +19,9 @@ class TargetPageAudit:
         self.limit = limit
         self.rows = []
         self.verify_compressor_operator = os.getenv("EXTREME_COMPRESSOR_SLOT_VERIFY") == "1"
+        self.self_replay = os.getenv("EXTREME_TARGET_SELF_REPLAY") == "1"
+        self.pending_snapshot = None
+        self.pending_metadata = None
         self.table_to_gid = {
             int(table.data_ptr()): gid
             for gid, (table, _mapping, _size) in enumerate(group_bindings)
@@ -219,6 +222,32 @@ class TargetPageAudit:
         snapshot = self.assets.snapshot_pages(
             pages_by_cache, strict=True, no_write_caches=no_write
         )
+        if self.self_replay:
+            if self.pending_snapshot is not None:
+                raise RuntimeError("unconsumed target self-replay snapshot")
+            metadata = []
+            seen = set()
+
+            def capture(value, path):
+                if id(value) in seen:
+                    return
+                seen.add(id(value))
+                if torch.is_tensor(value):
+                    metadata.append((path, value, value.clone()))
+                elif isinstance(value, dict):
+                    for key, child in value.items():
+                        capture(child, f"{path}.{key}")
+                elif isinstance(value, (list, tuple)):
+                    for index, child in enumerate(value):
+                        capture(child, f"{path}[{index}]")
+                elif (hasattr(value, "__dict__") and
+                      value.__class__.__module__.startswith("vllm_ascend")):
+                    for key, child in vars(value).items():
+                        capture(child, f"{path}.{key}")
+
+            capture(self.attn_metadata, "attention")
+            self.pending_snapshot = snapshot
+            self.pending_metadata = metadata
         coverage = snapshot.coverage()
         operator_checks = self._operator_checks(source_cache)
         cache_names = set(self.cache_aliases)
@@ -232,6 +261,9 @@ class TargetPageAudit:
             "snapshot_entries": coverage["captured_rows"],
             "skipped": coverage["skipped"],
             "operator_checks": operator_checks,
+            "metadata_tensor_count": len(self.pending_metadata or ()),
+            "metadata_bytes": sum(value.numel() * value.element_size()
+                                  for _, value, _ in (self.pending_metadata or ())),
             "operator_missing_actual_pages": sum(
                 item["missing_actual_pages"] for item in operator_checks
             ),
@@ -257,3 +289,48 @@ class TargetPageAudit:
                 f"compressor operator wrote outside candidate pages: {row['operator_missing_actual_pages']}"
             )
 
+    @torch.inference_mode()
+    def execute_with_self_replay(self, target, state, acceptance):
+        """Replay the sampled live target from its exact pre-target state."""
+        if self.pending_snapshot is None or self.pending_metadata is None:
+            raise RuntimeError("target self-replay missing pre-target snapshot")
+        snapshot = self.pending_snapshot
+        metadata = self.pending_metadata
+        first = target.execute(state)
+        first_argmax = first.logits.argmax(dim=-1).clone()
+        first_accept = acceptance.execute(state, first)
+        first_counts = first_accept.num_sampled.clone()
+        first_tokens = first_accept.sampled_token_ids.clone()
+        changed = [path for path, tensor, value in metadata
+                   if not torch.equal(tensor, value)]
+        snapshot.restore()
+        for _, tensor, value in metadata:
+            tensor.copy_(value)
+        restored_pages = snapshot.verify_restored()
+        restored_metadata = all(torch.equal(tensor, value)
+                                for _, tensor, value in metadata)
+        if not restored_pages["exact"] or not restored_metadata:
+            raise RuntimeError("target self-replay pre-state restoration failed")
+        second = target.execute(state)
+        second_accept = acceptance.execute(state, second)
+        second_argmax = second.logits.argmax(dim=-1)
+        row = self.rows[-1]
+        row["self_replay"] = {
+            "metadata_changed_by_first_target": changed,
+            "metadata_restored_exact": restored_metadata,
+            "cache_restored": restored_pages,
+            "argmax_equal": int((first_argmax == second_argmax).sum().item()),
+            "argmax_total": int(first_argmax.numel()),
+            "counts_equal": int((first_counts == second_accept.num_sampled).sum().item()),
+            "counts_total": int(first_counts.numel()),
+            "accepted_equal": int((first_tokens == second_accept.sampled_token_ids).sum().item()),
+            "accepted_total": int(first_tokens.numel()),
+            "counts_first": first_counts.cpu().tolist(),
+            "counts_second": second_accept.num_sampled.cpu().tolist(),
+        }
+        (self.output_dir / f"rank{self.rank}.json").write_text(
+            json.dumps({"rank": self.rank, "rows": self.rows}, indent=2) + "\n"
+        )
+        self.pending_snapshot = None
+        self.pending_metadata = None
+        return second, second_accept

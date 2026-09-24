@@ -149,17 +149,28 @@ class ExtremeDecodeRuntime:
                 )
             if self.target_page_audit is not None:
                 self.target_page_audit.observe(self.state.cycle_index)
-            with self._scope("extreme::target"):
-                target_output = self.target.execute(self.state)
-            mark("target")
+            if (self.target_page_audit is not None and
+                    self.target_page_audit.self_replay and
+                    self.state.cycle_index < self.target_page_audit.limit):
+                with self._scope("extreme::target_self_replay"):
+                    target_output, acceptance_output = (
+                        self.target_page_audit.execute_with_self_replay(
+                            self.target, self.state, self.acceptance
+                        )
+                    )
+                mark("target")
+            else:
+                with self._scope("extreme::target"):
+                    target_output = self.target.execute(self.state)
+                mark("target")
+                with self._scope("extreme::acceptance"):
+                    acceptance_output = self.acceptance.execute(
+                        self.state, target_output
+                    )
             if diag is not None:
                 diag["target_argmax"] = target_output.logits.argmax(dim=-1).view(
                     self.config.batch_size, self.config.target_tokens_per_request
                 ).clone()
-            with self._scope("extreme::acceptance"):
-                acceptance_output = self.acceptance.execute(
-                    self.state, target_output
-                )
             mark("acceptance")
             if diag is not None:
                 diag["accepted"] = acceptance_output.sampled_token_ids.clone()
