@@ -356,3 +356,13 @@ not a sufficient divergence locator; long-running derived target and draft
 state need a paired oracle.
 
 Loop035 correction (2026-09-23): the DSA/GDN metadata-builder conclusions attributed to Run12/13/19/21 are invalid because DirectTargetHandoff.forward never invoked the assigned diagnostic callback. Their raw acceptance measurements still describe eager direct-target execution. Run22 confirmed the unexercised callback by an empty audit; Run23 will test the connected hook.
+
+## Loop035 current acceptance context (2026-09-24)
+
+The frozen Loop034 formal Extreme cohorts had median 1025 cycles and median
+1.278 staged tokens/slot/cycle across 16 rank0 cohort records. Current
+flag-on c12 diagnostics finish near 289-303 cycles, but they use different
+service timing and instrumentation. Run84 adds heavy per-cycle page snapshots
+and its 128.83 tok/s is explicitly not performance evidence. The established
+Extreme-owned DAG target/proposer critical path still guides optimization
+after continuous semantic and acceptance gates pass.

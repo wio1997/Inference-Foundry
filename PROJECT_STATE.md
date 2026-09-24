@@ -755,3 +755,15 @@ Stock token equivalence, or a formal E2E gain. Next compare generated
 compressor slots to the source-derived pages and complete metadata plus
 physical cache restore before A/Product B/Stock C.
 Evidence: evidence/20260924_loop035_diagnostic/run80/summary.json.
+
+## Loop035 Run81-84 strict target write-address evidence (2026-09-24)
+
+Run81/84 verified compressor operator side-output against source-derived
+physical pages, including 132 c128 write cycles per rank in Run84. Run84
+covered target cycles0-255 on all eight ranks with 67/67 cache views per
+strict snapshot and no missing or extra operator pages. Run82/83 restored
+all 67 views and 76 attention metadata tensors exactly at early sampled
+cycles, but same-source target A/B/C replay itself changed argmax and some
+accepted tokens. A single token mismatch is therefore not a Stock/Product
+semantic verdict. Continue Stock-authoritative continuous state/KV comparison;
+formal E2E remains gated. See HANDOFF.md and Run84 summary.

@@ -546,3 +546,23 @@ This repeats no further as a standalone control. The next investigation is
 continuous Stock-authoritative state/DSpark/KV lockstep and first sustained
 acceptance split, using this replay floor. Diagnostic 461.41 tok/s is not
 formal A/B. Evidence: `evidence/20260924_loop035_diagnostic/run83/summary.json`.
+
+## Loop035 Run84 continuous target write-page trajectory (2026-09-24 07:41 UTC)
+
+Run84 completed 12/12x1024 and all eight Runtime/Host gates. A compact,
+read-only audit sampled every target cycle0-255 on every rank: 2,048 strict
+pre-target snapshots, each covering all 67 physical cache views from actual
+layer aliases with 69 captured entries including mutable tensors, zero skips
+and zero out-of-range pages. The actual compressor_metadata side-output was
+checked for three signatures per rank-cycle (6,144 checks): no missing actual
+page and no extra candidate page. Unlike Run81, c128 wrote during this
+trajectory: first valid write at cycle8, 132 valid cycles and 198 valid slot
+rows per rank across the 256-cycle window. The full Runtime cohort took 303
+cycles; 47 late cycles were outside this audit. This certifies the sampled
+target write-address candidates, not KV values, post-target restoration or
+Stock token equivalence. The 128.83 tok/s result includes 2,048 snapshot
+clones and is not a performance measurement. Run72 already covers full
+DSpark gid2/3 context write addresses. Next compare continuous Stock-owned
+state and physical KV/DSpark trajectories using these certified write sets;
+do not repeat standalone target replay or run formal 48-request A/B yet.
+Evidence: `evidence/20260924_loop035_diagnostic/run84/summary.json`.

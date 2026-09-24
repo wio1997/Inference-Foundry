@@ -457,3 +457,7 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 
 - Loop035 Runs78/79 INVALID: diagnostic binding dependency then post-snapshot accounting error; neither yielded target/acceptance inference.
 - Loop035 Run80: valid 12/12x1024 cohort, 8/8 rank/Host gates, and cycle0/1 strict pre-target NPU snapshots of 67/67 cache views from 170 actual aliases with zero skipped pages. 4166/4274 candidate page entries across views. No restore/Stock oracle; diagnostic TPS is not formal. evidence/20260924_loop035_diagnostic/run80/summary.json.
+
+- Loop035 Run81: 8-rank cycles0/1 strict target page and compressor side-output parity; zero missing/extra pages. Diagnostic only. `evidence/20260924_loop035_diagnostic/run81/summary.json`.
+- Loop035 Run82/83: exact captured KV/metadata restoration but same-source A/B/C target and acceptance replay differences; establishes a self-replay noise floor, not Stock/Product parity. `evidence/20260924_loop035_diagnostic/run83/summary.json`.
+- Loop035 Run84: 8x256 continuous target cycles, 67/67 cache views each, 6,144 compressor signature checks, zero missing/extra pages; c128 first writes cycle8. 12/12x1024 complete. TPS invalid for comparison due audit overhead. `evidence/20260924_loop035_diagnostic/run84/summary.json`.

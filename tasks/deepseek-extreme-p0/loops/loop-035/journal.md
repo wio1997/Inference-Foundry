@@ -365,3 +365,5 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T07:17:17Z` Run `run-20260924T070200Z` 记录为 `pass`；正确性为 `pass`。Run83 triple same-source A/B/C completed 12/12x1024. All eight ranks and cycles0/1 restored 67 cache views and 76 metadata tensors exactly twice. A/C argmax 92/96 and 94/96; A/C accepted 95/96 and 96/96. Adjacent A/B and B/C differed more (cycle1 accepted 89/96). Same-source nondeterminism floor established; no Stock/Product attribution yet. Mismatch positions and top2 margins saved.
 
 - `2026-09-24T07:22:22Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T072300Z`（test）。
+
+- `2026-09-24T07:40:30Z` Run `run-20260924T072300Z` 记录为 `pass`；正确性为 `pass`。Run84 12/12x1024 complete, 8 ranks x 256 target cycles = 2048 strict snapshots of all 67 cache views with zero skips. Direct compressor side-output parity had zero missing/extra pages across 6144 signature checks. c128 first wrote at cycle8, with 132 valid cycles and 198 valid rows per rank. Runtime ran 303 cycles, all rank/Host gates pass. TPS 128.83 is audit-overhead diagnostic, not performance. No Stock oracle/post-target restore.
