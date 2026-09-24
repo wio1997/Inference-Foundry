@@ -435,3 +435,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run66: valid reserved cycle0/1 all-group slot-refresh A/B/C passed 8/8 rank restore gates. At cycle1 A/B argmax92/96 vs self-replay91/96; accepted92/96 both. No candidate-specific immediate target effect; large metadata snapshot exclusions limit inference. `evidence/20260924_loop035_diagnostic/run66/summary.json`.
 
 - Loop035 Run67: opt-in DSpark context slot refresh, two 12-request reserved cohorts 300/325 cycles and 467.92/484.46 diagnostic tok/s, 12/12 exact outputs and 8/8 rank gates each; gid2 mapping corrected 96/96 slots from cycle1. Separate-service comparison to Run65 is indicative only; semantic oracle remains open. `evidence/20260924_loop035_diagnostic/run67/summary.json`.
+
+- Loop035 Run68: same-code DSpark slot-refresh flag-off two-cohort control passed 12/12×1024 and 8/8 ranks each, 458/423 cycles and 342.17/410.12 diagnostic tok/s. Run67 flag-on was 300/325 cycles and 467.92/484.46. Semantic oracle pending. `evidence/20260924_loop035_diagnostic/run68/summary.json`.

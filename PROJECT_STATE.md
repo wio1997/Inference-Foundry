@@ -593,3 +593,12 @@ Loop035 Run65 (2026-09-24): valid reserved-serving, read-only 8-cycle all-group 
 Loop035 Run66 (2026-09-24): reserved-serving product-state cycle0/1 A/reference all-group slot refresh, B/native stale slots, C/restored reference. 8/8 rank cache restore and Host gates pass. At cycle1 A/B target argmax92/96 vs A/C91/96, accepted92/96 both; no direct target split above self noise. Four large metadata tensors excluded from snapshot. The Run65 mapping staleness is real but still not a proven low-acceptance cause. Next inspect continuous KV/proposer trajectory, not an isolated slot-only throughput rerun. See run66/summary.json.
 
 Loop035 Run67 (2026-09-24): opt-in Runtime-owned DSpark gid2/3 context slot refresh under valid reserved serving. Source confirms gid2 mapping is consumed by the context-KV input/scatter path. Two same-service 12-request cohorts passed 8/8 rank and exact 1024-token client gates, with 300/325 cycles and 467.92/484.46 diagnostic tok/s; gid2 refreshed 96/96 slots from cycle1, gid3 unchanged. Run65 flag-off first cohort was 435 cycles/357.08 tok/s, but separate-service noise and missing long token oracle prohibit a formal performance/semantic claim. Next same-code flag-off control and long state oracle. See run67/summary.json.
+
+
+Run68 same-code flag-off control completed two valid 12×32K→1024 cohorts:
+458/423 cycles and 342.17/410.12 diagnostic tok/s, all 12/12 client lengths
+and 8/8 rank/Host gates per cohort. Run67 flag-on needed 300/325 cycles
+(34.50%/23.17% fewer). This strongly implicates DSpark draft gid2 context
+slot staleness in the sustained acceptance gap. Long token semantics and full
+continuous KV write/state ownership remain unproven; inspect those next before
+formal E2E. `evidence/20260924_loop035_diagnostic/run68/summary.json`.

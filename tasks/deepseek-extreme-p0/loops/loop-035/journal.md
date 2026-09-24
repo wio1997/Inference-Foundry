@@ -299,3 +299,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T02:55:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T030000Z`（test）。
 
 - `2026-09-24T03:10:15Z` Run `run-20260924T030000Z` 记录为 `pass`；正确性为 `not-applicable`。Run67 opt-in DSpark gid2/3 context slot refresh passed 8/8 ranks and two 12/12 length-exact cohorts; gid2 refreshed 96/96 slots from cycle1, gid3 unchanged; cycles300/325, diagnostic TPS467.9/484.5. Same-code flag-off and long token oracle still required.
+
+- `2026-09-24T03:11:23Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T031500Z`（test）。
+
+- `2026-09-24T03:25:35Z` Run `run-20260924T031500Z` 记录为 `pass`；正确性为 `not-applicable`。Same-code two-cohort DSpark slot-refresh flag-off control: 12/12x1024, 8/8 rank and Host gates; 458/423 cycles vs Run67 flag-on 300/325. Continuous acceptance benefit supported; long token oracle pending.

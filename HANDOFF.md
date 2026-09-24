@@ -340,3 +340,20 @@ Target group mappings still appear stale before target, so do not claim full
 semantic repair. Next collect a same-code flag-off control, then an effective
 long token/state oracle before promoting the fix or running formal 48-request
 E2E. Evidence: `evidence/20260924_loop035_diagnostic/run67/summary.json`.
+
+
+## Loop035 Run68 same-code flag-off DSpark control (2026-09-24 03:25 UTC)
+
+Run68 kept the Run67 code, serving reservation, target graph, dataset,
+12-request concurrency and two-cohort service, but disabled only the opt-in
+DSpark context slot refresh. Both cohorts passed 12/12 exact 1024-token client
+lengths and all 8 rank/Host gates. They needed 458 and 423 cycles, versus
+Run67 flag-on 300 and 325 cycles (34.50% and 23.17% fewer cycles). Diagnostic
+output TPS was 342.17/410.12 flag-off versus 467.92/484.46 flag-on. The
+repeated controlled direction supports draft gid2 slot staleness as a major
+continuous acceptance loss. Independent service generation remains
+nondeterministic; no long token-level oracle equivalence is established. Do
+not promote a semantic fix or run formal 48-request A/B yet. Next inspect
+continuous DSpark KV write ownership and full-state snapshots, then use a
+strict long-trajectory oracle with Stock self-replay. Evidence:
+`evidence/20260924_loop035_diagnostic/run68/summary.json`.
