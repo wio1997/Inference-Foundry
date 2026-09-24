@@ -38,6 +38,7 @@ class ExtremeHandoffInputs:
     target_metadata_sources: tuple[TargetMetadataSource, ...] = ()
     target_tp_rank: int | None = None
     target_tp_size: int | None = None
+    group_slot_audit_bindings: tuple = ()
 
 
 def build_extreme_runtime(
@@ -75,6 +76,15 @@ def build_extreme_runtime(
             tp_rank=inputs.target_tp_rank,
             tp_size=inputs.target_tp_size,
         )
+    kv_slot_audit = None
+    if os.getenv("EXTREME_KV_SLOT_AUDIT_DIR"):
+        from diagnostics.kv_slot_audit import KVSlotAudit
+        kv_slot_audit = KVSlotAudit(
+            inputs.group_slot_audit_bindings,
+            os.environ["EXTREME_KV_SLOT_AUDIT_DIR"],
+            int(inputs.target_tp_rank),
+            int(os.getenv("EXTREME_KV_SLOT_AUDIT_CYCLES", "8")),
+        )
     return ExtremeDecodeRuntime(
         config,
         state,
@@ -82,4 +92,5 @@ def build_extreme_runtime(
         FixedGreedyAcceptance(config),
         DirectDSparkHandoff(config, inputs.dspark),
         target_metadata=metadata_updater,
+        kv_slot_audit=kv_slot_audit,
     )
