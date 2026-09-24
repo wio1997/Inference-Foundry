@@ -1045,3 +1045,15 @@ parity and GMM interval / full target-stage reduction. If the candidate
 cannot plausibly save >=5 ms/cycle locally or the saving does not reach the
 target stage, pivot to communication and non-GMM attribution. This local
 screen is not the product's terminal goal. Formal E2E remains Run99.
+
+## Continuous execution rule (2026-09-25)
+
+User clarified that evidence, TaskCtl, recovery pack, Git push, interim
+conclusions, and service cleanup are checkpoints, not handoff triggers.
+After each, Sol revisits the maximum removable Gap and next_action and
+continues when high-value work is clear and unblocked. Run116 already
+identifies comparable GMM and exposed-communication candidates; proceed
+to discriminating evidence and Sol's own decision. Stop only for the
+specific external, user-information, irresolvable architecture, material-risk,
+or forced-runtime conditions recorded in AGENTS.md. Product objective,
+model division, correctness and formal E2E standards are unchanged.

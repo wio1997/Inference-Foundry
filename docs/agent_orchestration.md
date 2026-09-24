@@ -5,6 +5,21 @@ performance attribution, experiment variables, Runtime and cross-module work,
 architecture choices, achievable-bound judgement and KEEP/REJECT/PIVOT. All
 other model outputs are inputs to Sol review, not project decisions.
 
+## Checkpoint continuity
+
+Evidence capture, TaskCtl updates, recovery-pack compaction, Git commit/push,
+interim conclusions, and service cleanup are checkpoints within the active
+turn. After each checkpoint, Sol rechecks the largest removable gap, evidence
+and next_action. If the next step is clear, executable, high value and
+unblocked, continue in the same turn. Sol resolves competing candidates such
+as GMM compute versus exposed communication by obtaining discriminating
+evidence and making the product decision. End the turn only for a genuine
+external permission/resource need, indispensable user information, a major
+architecture fork not decidable from available evidence, material execution
+risk, or a forced runtime boundary. This rule changes stopping behavior only;
+the frozen product objective, model roles, correctness gate and formal E2E
+standard remain in force.
+
 ## Review models
 
 Use GPT-6 Astra Medium for independent checks on important conclusions,

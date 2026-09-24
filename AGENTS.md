@@ -76,6 +76,21 @@ Observe
 
 Loop / Run 只是实验和证据编号，不代表产品路线。
 
+### 执行连续性
+
+保存 evidence、更新 TaskCtl、重建 recovery pack、Git commit/push、形成
+阶段性结论、实验后停止服务，均为 checkpoint，不代表当前执行回合结束。
+每个 checkpoint 后，Sol 必须重新检查当前最大可消除 Gap、证据和
+next_action。只要没有真实 blocker，且下一步明确、可执行、具有较高
+预期价值，就继续推进；不因一个 Run、Loop 或 commit 完成而默认交班。
+
+例如 GMM compute 与 exposed communication 同量级时，继续获取可区分
+两者可消除收益的证据，由 Sol 自主裁决，不等待用户选择。只有需要
+外部权限或资源、必须由用户提供信息、存在无法依据现有证据自行裁决
+的重大架构分叉、继续执行有明显风险，或运行环境强制结束时，才结束
+当前执行回合。本规则只规定停止时机，不改变极限性能目标、模型分工、
+correctness 门槛和正式 E2E 裁决标准。
+
 遇到 correctness、KV、state、acceptance 或执行语义异常时，优先使用 vLLM-Ascend 做同 state、同 cycle、同输入的 differential comparison，寻找第一处真实分叉，而不是靠逐项猜测修改。
 
 ---
