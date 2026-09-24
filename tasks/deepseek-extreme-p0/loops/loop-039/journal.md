@@ -17,3 +17,15 @@
 - `2026-09-24T16:56:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run111`（review）。
 
 - `2026-09-24T16:57:50Z` Run `run111` 记录为 `pass`；正确性为 `not-applicable`。Minimal Zcode plan-mode ping succeeded: exit 0, 14.735 s, one provider request, exact sentinel response. Independent local model I/O record identifies request provider deepseek/model deepseek-flash and response modelId deepseek-flash. This validates short text connectivity only; Run110 tool permissions remain blocked and this is not product performance evidence.
+
+- `2026-09-24T17:00:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run112`（review）。
+
+- `2026-09-24T17:02:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run113`（review）。
+
+- `2026-09-24T17:03:13Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run114`（review）。
+
+- `2026-09-24T17:05:10Z` Run `run112` 记录为 `pass`；正确性为 `not-applicable`。Zcode DeepSeek build-mode minimal Bash pwd executed successfully (tool result /data/wio/Inference_Foundry, no error), proving Bash is not globally broken. Two provider requests, exit 0. Local model I/O confirms deepseek/deepseek-flash request and deepseek-flash response.
+
+- `2026-09-24T17:05:10Z` Run `run113` 记录为 `pass`；正确性为 `not-applicable`。Isolated read-only direct Zcode yolo diagnostic: DeepSeek called Bash once for docker inspect and received exit 0/status running. This establishes the permission-mode contrast only; yolo was diagnostic, not adopted for delegation or product evidence.
+
+- `2026-09-24T17:05:10Z` Run `run114` 记录为 `pass`；正确性为 `not-applicable`。Controlled Zcode build-mode docker inspect was blocked before execution with No permission client configured for Bash; CLI exit 0 only reports the agent response, not tool success. The contrast with Run113 confirms the headless build permission client gap. DeepSeek model identity verified from local model I/O.

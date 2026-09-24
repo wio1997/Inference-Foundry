@@ -43,15 +43,27 @@ necessary evidence to main. Keep credentials out of task files and committed
 outputs. Agent execution logs are provenance; they enter product evidence only
 after Sol validates the result.
 
-## Current headless execution limitation (Run110, 2026-09-25)
+## Headless permission diagnosis (Runs110-114, 2026-09-25)
 
-The local Zcode CLI accepted --mode build and completed a bounded check, but
-its headless permission layer denied docker exec, npu-smi and local HTTP with
-"No permission client configured for Bash". Its JSON output had no provider
-model identifier; a self-reported model in the answer is not independent
-execution evidence. The run took188.845s and27 provider requests for a
-simple check. Treat this route as unavailable for service/NPU operations until
-permissions and actual-model reporting are verified. Sol uses direct tools
-for time-sensitive mechanical work when this fallback is necessary, while
-preserving TaskCtl and Git evidence. Run110 is INVALID, not an endorsement
-of those delegated results.
+Run110 remains INVALID for its delegated task: in headless `--mode build`,
+26 Bash calls and one WebFetch call requiring permission were denied with
+`No permission client configured`. A retrospective audit of Zcode's local
+runtime log independently confirms all 27 model streams used DeepSeek
+`deepseek-flash`; the earlier claim that its actual model was unknown is
+superseded by `evidence/20260925_loop039_delegate/run110/model_permission_audit.json`.
+
+Run112 proves Bash itself works in build mode for a simple `pwd`. Runs113
+and 114 compare the same read-only Docker status query: direct headless
+`--mode yolo` executed it successfully (`running`), whereas `--mode
+build` stopped it before execution with the permission-client error. Zcode
+CLI help says headless `--prompt` defaults to yolo; the delegation wrapper
+sets build explicitly. This mode change explains the observed regression.
+The earlier exact invocation history is not fully established, so avoid
+claiming every prior success used yolo.
+
+Do not treat a Zcode process exit code of zero as proof a tool ran: inspect
+the model I/O tool result and command exit status. The yolo trial was an
+isolated, read-only diagnostic. Keep scoped production delegation on build
+unless an interactive approval client is available or the execution policy
+is deliberately changed and reviewed. Sol executes blocked commands
+directly meanwhile, with TaskCtl and Git evidence.

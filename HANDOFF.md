@@ -988,3 +988,21 @@ headless build-mode Bash permissions denied docker/NPU/HTTP operations. This
 ping does not establish tool execution viability, Runtime correctness, or
 performance. Loop039 product work resumes from Run109 live routed shapes and
 same-state eight-rank correctness; Run99 remains the official E2E result.
+
+## Zcode headless permission root cause (Runs112-114, 2026-09-25)
+
+Run112: `--mode build` / Bash `pwd` succeeded with exact cwd and exit0.
+Run113: isolated direct `--mode yolo` / one read-only Docker status command
+succeeded and returned `running`. Run114: `--mode build` / Docker status
+was denied before command execution with `No permission client configured
+for Bash`; Zcode process exit0 did not imply tool success. All three local
+model-I/O records identify DeepSeek/deepseek-flash. Retrospective Zcode runtime
+log audit also confirms Run110 made27 DeepSeek model streams; its task result
+stays INVALID because26 Bash and one WebFetch permission requests were
+denied. Root cause: headless build mode has no approval client for commands
+that need approval; simple preapproved commands work. CLI headless prompt
+defaults to yolo, while the wrapper explicitly selected build. The exact
+prior successful invocation mode is not independently known. See
+`docs/agent_orchestration.md` and
+`evidence/20260925_loop039_delegate/run11{0,2,3,4}/`.
+No product benchmark or Runtime change was made.
