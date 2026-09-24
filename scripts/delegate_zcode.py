@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one explicitly selected, read-only Zcode subtask and record provenance.
+"""Run one explicitly selected bounded Zcode subtask and record provenance.
 
 The primary agent makes the routing decision. This script only executes a
 bounded task; it does not alter TaskCtl or choose a model by task keywords.
@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import time
@@ -23,6 +24,7 @@ def main() -> int:
     parser.add_argument("--record-dir", required=True, type=Path)
     parser.add_argument("--cwd", type=Path, default=Path.cwd())
     parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--mode", choices=("plan", "build"), default="plan")
     args = parser.parse_args()
 
     task = args.task_file.resolve().read_text(encoding="utf-8").strip()
@@ -41,7 +43,7 @@ def main() -> int:
         parser.error("zcode executable unavailable")
 
     command = [
-        zcode, "--cwd", str(cwd), "--mode", "plan", "--json",
+        zcode, "--cwd", str(cwd), "--mode", args.mode, "--json",
         "--prompt", task,
     ]
     start = datetime.now(timezone.utc).isoformat()
@@ -64,16 +66,38 @@ def main() -> int:
         response = json.loads(stdout)
     except json.JSONDecodeError:
         response = {}
+    if not isinstance(response, dict):
+        response = {}
     (record_dir / "stderr.txt").write_text(stderr, encoding="utf-8")
+    observed_model = None
+    observed_source = None
+    for key in ("model", "providerModel", "modelId"):
+        value = response.get(key)
+        if isinstance(value, str) and value:
+            observed_model, observed_source = value, f"stdout.{key}"
+            break
+    if observed_model is None:
+        match = re.search(r"anthropic\.messages / ([A-Za-z0-9_.-]+)", stderr)
+        if match:
+            observed_model = match.group(1)
+            observed_source = "stderr.provider_warning"
+    model_verified = bool(
+        observed_model and (
+            observed_model == model or observed_model == model.rsplit("/", 1)[-1]
+        )
+    )
     record = {
         "started_at": start,
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "duration_seconds": round(time.monotonic() - start_mono, 3),
         "route": "zcode",
-        "provider_model": model,
+        "configured_main_model": model,
+        "observed_model": observed_model,
+        "observed_model_source": observed_source,
+        "model_verified": model_verified,
         "executable": zcode,
         "cwd": str(cwd),
-        "mode": "plan",
+        "mode": args.mode,
         "task_file": str(args.task_file.resolve()),
         "task_sha256": hashlib.sha256(task.encode()).hexdigest(),
         "spawn_mechanism": "subprocess.run",

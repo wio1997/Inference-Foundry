@@ -143,38 +143,20 @@ Astra Medium / High 的结果都属于独立分析输入，最终仍由 Sol 根�
 
 ### DeepSeek / Zcode
 
-DeepSeek 通过 Zcode 调用。
+DeepSeek 通过 scripts/delegate_zcode.py 调用。边界明确、低风险且容易验收
+的机械执行应尽量交给 Zcode：环境与服务部署、启动/停止服务、按冻结参数
+执行 benchmark 和重复测试、运行已有脚本、采集 profiling/日志/trace、
+检查进程和设备、提取数据、整理结果、限定范围源码定位及简单验证。
 
-执行入口：
+委派必须写明输入、命令或允许操作范围、输出路径和验收条件。只读调查用
+plan；明确授权的命令执行用 build。执行记录分开保留配置模型和从
+实际输出观察到的模型、退出码、超时、日志及产物。配置为 DeepSeek
+并不等于证明本次实际调用；超时结果不可采信为任务结论。
 
-`scripts/delegate_zcode.py`
-
-适合并行处理边界明确、结果可验证的任务，例如：
-
-* 限定范围的源码调查；
-* vLLM / vLLM-Ascend 实现对照；
-* 某条执行链的源码追踪；
-* profiling、日志和 benchmark 数据整理；
-* evidence 提取和归纳；
-* 独立寻找遗漏的根因或优化机会；
-* 局部设计方案；
-* 简单脚本、检查或验证任务。
-
-复杂问题也可以交给 DeepSeek，只要任务边界清楚并且结果可以独立验证。
-
-委派时给出必要上下文、允许读取范围、问题目标、预期输出和验收方式，优先使用只读 / plan 模式。
-
-执行记录应保留实际模型、退出码和输出文件。
-
-DeepSeek / Zcode 的结果属于候选证据，必须由 Sol 审阅后才能进入项目结论、TaskCtl 或实现主线。
-
-模型不可用、超时或结果质量不足时，Sol 直接继续。
-
-不得为了满足模型调用比例机械委派。
-
-具体调用和验收约定见：
-
-`docs/agent_orchestration.md`
+Sol 审阅执行产物后才可纳入 TaskCtl 和正式证据链。跨模块修改、性能
+根因判断、实验变量选择、KEEP/REJECT/PIVOT、架构和性能极限判断
+仍由 Sol 主导；Astra Medium/High 按上面的独立审查边界使用。
+不得为了调用比例机械委派。详细约定见 docs/agent_orchestration.md。
 
 ---
 

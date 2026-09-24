@@ -1,30 +1,44 @@
 # Agent orchestration
 
-The active Codex session is the GPT-6 Sol primary agent. It chooses and reviews
-every task. The repository TaskCtl records Task/Loop/Run evidence; it is not a
-model router and its schema remains unchanged.
+The primary agent is GPT-6 Sol. It owns the DeepSeek Extreme product line,
+performance attribution, experiment variables, Runtime and cross-module work,
+architecture choices, achievable-bound judgement and KEEP/REJECT/PIVOT. All
+other model outputs are inputs to Sol review, not project decisions.
 
-For a bounded, independently verifiable task with a concrete acceptance
-check, create a task text file and run:
+## Review models
 
-    python3 scripts/delegate_zcode.py --task-file TASK.txt --record-dir RECORD_DIR
+Use GPT-6 Astra Medium for independent checks on important conclusions,
+complex profiling attribution, experiment design and competing root causes.
+Use GPT-6 Astra High for key architecture questions, long-running failure to
+converge, and independent review of the achievable bound or proximity to the
+performance limit. No invocation quota applies; select a task with a clear
+question, evidence set and acceptance criteria. Record the actual model used.
 
-The wrapper verifies the configured Zcode main model is a DeepSeek model, then
-spawns one Zcode CLI process in plan mode. It stores its exit status, elapsed
-time, selected model name, task digest, stdout, and stderr. Keep task text
-specific and review the output against the requested check. A successful
-process exit alone does not establish correctness. If the task needs an edit,
-the primary agent applies and verifies the change.
+## Zcode + DeepSeek execution
 
-Use GPT-6 Sol as the primary agent for investigation, Runtime changes,
-integration and final decisions. Astra Medium can supply an independent review
-of important evidence or experiment design; Astra High is reserved for costly
-architectural choices or unresolved, high-uncertainty failures. DeepSeek/Zcode
-can handle clearly scoped verifiable work, including a complex investigation
-when its boundary and acceptance check are explicit. No model has a required
-invocation quota. The primary agent reviews every delegated result and may
-execute the task itself when that is clearer or faster.
+Prefer Zcode for bounded, low-risk work with an objective completion check:
+environment and service setup, start/stop, benchmark and repeat runs under
+already-frozen parameters, existing scripts, profile/log/trace capture,
+process/NPU checks, data extraction, result organization, narrow source
+location and simple validation. Give it the exact input, command or allowed
+operations, output path and acceptance check. Do not default to Zcode for
+cross-module edits, performance root-cause judgement, variable selection,
+KEEP/REJECT/PIVOT, architecture or limit decisions.
 
-Do not put credentials in task files or committed output. Keep agent evidence
-separate from Runtime experimental results; add a TaskCtl artifact reference
-only when an agent result materially contributes to a Run.
+For a read-only investigation, create a task file and call:
+
+    python3 scripts/delegate_zcode.py --task-file TASK.txt --record-dir RECORD_DIR --mode plan
+
+For explicitly scoped shell execution, use --mode build and state allowed
+commands and paths in the task file. Never use Zcode's yolo mode through the
+wrapper. The wrapper records configured and observed model identities
+separately, exit code, timeout, task digest, stdout and stderr. Check
+model_verified from actual output before attributing a result to DeepSeek;
+a configured model alone is insufficient. A timeout or successful process
+exit alone does not establish task correctness.
+
+Sol reviews produced files, logs, exact parameters and invariants, then
+records valid/invalid Runs in TaskCtl and commits the recovery package and
+necessary evidence to main. Keep credentials out of task files and committed
+outputs. Agent execution logs are provenance; they enter product evidence only
+after Sol validates the result.
