@@ -287,3 +287,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-23T21:03:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260923T210000Z`（test）。
 
 - `2026-09-23T21:16:44Z` Run `run-20260923T210000Z` 记录为 `pass`；正确性为 `pass`。8/8 rank cycle1 same-state A/B/C: Extreme B vs Stock A accepted96/96 and counts12/12 equal, while Stock self C accepted91/96; target argmax AB89/96 vs AC88/96; touched KV write equal rows50/69 for both, same mismatch names; all restores exact. No early candidate-specific target/DSA split.
+
+- `2026-09-24T02:02:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T020000Z`（test）。
+
+- `2026-09-24T02:16:41Z` Run `run-20260924T020000Z` 记录为 `pass`；正确性为 `not-applicable`。Run65 read-only reserved-serving KV slot audit: 8/8 ranks and 12/12 clients complete 1024 tokens; first all-rank mapping mismatch at cycle1 in groups0,2,4,5 (96/96 each), group3 exact, group1 unsupported geometry; consumption/semantics still unproven

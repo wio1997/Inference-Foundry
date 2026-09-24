@@ -278,3 +278,23 @@ Run64 reused the existing same-state Stock A / independent native-DSA FULL targe
 Next implement a dedicated continuous Stock-authoritative lockstep observer that checks product state transitions and KV ownership/write coverage per cycle, with Stock self-replay as noise control. Reuse Run20's confirmed draft group2 slot staleness and Run23–25's combined-effect but semantically unverified controls; do not repeat their isolated experiments. Only after the continuous semantic/acceptance cause is identified should the prepared 48×32K→1024 formal A/B script run.
 
 Agent routing: root AGENTS.md was read and now names GPT-6 Sol as default main Agent, Zcode/DeepSeek only for bounded read-only tasks, and TaskCtl as state/evidence manager rather than model scheduler. evidence/20260923_agent_orchestration/probe1/execution.json records a successful deepseek/deepseek-flash provider call (2 requests); run54_readonly_review records 11 provider requests but a 180-second wrapper timeout. These are actual route records, not merely configuration text.
+
+## Loop035 Run65 continuous target-slot ownership audit (2026-09-24 02:16 UTC)
+
+Run65 added a read-only, Runtime-side audit of all six KV-group slot mappings
+for the first eight cycles of a real reserved-serving 12×32K→1024 cohort. All
+8 ranks passed the 435-cycle serving and Host-mirror gates; all 12 clients
+returned exactly 1024 tokens. At cycle0, the five groups with supported
+absolute-position geometry matched their block-table-derived mapping. At
+cycle1, groups0/2/4/5 each differed in 96/96 mappings on every rank, and
+remained stale through cycle7; group3 matched throughout. Group1 has a
+256-column table that cannot be indexed by the absolute positions in this
+observer, so its mapping is unclassified. The diagnostic does not mutate KV
+or attention state. This is the first repeatable continuous target-slot
+divergence under valid scheduler reservation, but it does not yet prove that
+every stale buffer is consumed by the active target path or that it causes low
+acceptance. Source shows DSA builder formats common slot mappings and decode
+operators consume SWA slot mappings; next map each group to live layer
+metadata and perform a same-state causal A/B/self-replay with exact cache
+restoration. Do not infer long token equivalence or rerun formal E2E yet.
+Evidence: `evidence/20260924_loop035_diagnostic/run65/summary.json`.
