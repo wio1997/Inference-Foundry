@@ -872,3 +872,11 @@ profiler activation/deactivation latency is unstable relative to a 20-second
 cohort. Next use a Runtime cycle marker to start/stop a bounded 8-rank trace
 inside a selected cycle window, or a profiler mode that can export only those
 cycles. Keep the verified Run99 formal 571.681 tok/s as current P0 result.
+
+## Loop038 Run105 launch setup invalid (2026-09-24)
+
+The cycle-scheduled profiler implementation was committed at d5e2651 and
+Run105 was recorded before launch. Its direct script invocation failed with
+exit 126 because the new script lacked executable mode. No service, workload,
+or profiler started. TaskCtl marks Run105 INVALID. Run106 will invoke the
+script through bash and preserve the legal 12x1024 TP8 profile protocol.
