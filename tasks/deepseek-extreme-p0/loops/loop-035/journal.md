@@ -363,3 +363,5 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T07:00:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T070200Z`（test）。
 
 - `2026-09-24T07:17:17Z` Run `run-20260924T070200Z` 记录为 `pass`；正确性为 `pass`。Run83 triple same-source A/B/C completed 12/12x1024. All eight ranks and cycles0/1 restored 67 cache views and 76 metadata tensors exactly twice. A/C argmax 92/96 and 94/96; A/C accepted 95/96 and 96/96. Adjacent A/B and B/C differed more (cycle1 accepted 89/96). Same-source nondeterminism floor established; no Stock/Product attribution yet. Mismatch positions and top2 margins saved.
+
+- `2026-09-24T07:22:22Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T072300Z`（test）。

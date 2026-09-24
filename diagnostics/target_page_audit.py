@@ -20,6 +20,9 @@ class TargetPageAudit:
         self.rows = []
         self.verify_compressor_operator = os.getenv("EXTREME_COMPRESSOR_SLOT_VERIFY") == "1"
         self.self_replay = os.getenv("EXTREME_TARGET_SELF_REPLAY") == "1"
+        self.continuous = os.getenv("EXTREME_TARGET_PAGE_AUDIT_CONTINUOUS") == "1"
+        if self.continuous and self.self_replay:
+            raise ValueError("continuous page audit cannot self-replay every cycle")
         self.pending_snapshot = None
         self.pending_metadata = None
         self.table_to_gid = {
@@ -270,20 +273,26 @@ class TargetPageAudit:
             "page_count_min": min(int(x.numel()) for x in pages_by_cache.values()),
             "page_count_max": max(int(x.numel()) for x in pages_by_cache.values()),
             "page_count_sum": sum(int(x.numel()) for x in pages_by_cache.values()),
-            "sources": [
+            "sources": [] if self.continuous else [
                 {"layer": name, "gid": gid, "kind": kind, "physical_pages": int(pages.numel())}
                 for name, (gid, kind, pages) in sorted(source_cache.items())
             ],
+            "source_kind_counts": {
+                kind: sum(source_kind == kind for _, source_kind, _ in source_cache.values())
+                for kind in sorted({source_kind for _, source_kind, _ in source_cache.values()})
+            },
             "scope": "pre-target candidate pages; no KV value or post-target restore",
         }
         if (row["cache_views_snapshotted"] +
                 row["cache_views_certified_no_write"] != len(self.assets.caches)):
             raise RuntimeError("target page snapshot missed a cache view")
         self.rows.append(row)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        (self.output_dir / f"rank{self.rank}.json").write_text(
-            json.dumps({"rank": self.rank, "rows": self.rows}, indent=2) + "\n"
-        )
+        if (not self.continuous or (cycle + 1) % 8 == 0 or
+                cycle + 1 == self.limit or row["operator_missing_actual_pages"]):
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            (self.output_dir / f"rank{self.rank}.json").write_text(
+                json.dumps({"rank": self.rank, "rows": self.rows}, indent=2) + "\n"
+            )
         if row["operator_missing_actual_pages"]:
             raise RuntimeError(
                 f"compressor operator wrote outside candidate pages: {row['operator_missing_actual_pages']}"
