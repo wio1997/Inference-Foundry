@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 import os
+from pathlib import Path
 
 import torch
 
@@ -76,6 +78,55 @@ def build_extreme_runtime(
             tp_rank=inputs.target_tp_rank,
             tp_size=inputs.target_tp_size,
         )
+    if os.getenv("EXTREME_CACHE_MANIFEST_DIR"):
+        if len(inputs.group_slot_audit_bindings) == 0:
+            raise RuntimeError("cache manifest requires all group slot bindings")
+        group_rows = []
+        mapping_to_gid = {}
+        table_to_gid = {}
+        for gid, (table, mapping, size) in enumerate(inputs.group_slot_audit_bindings):
+            group_rows.append({"gid": gid, "block_size": int(size),
+                               "table_shape": list(table.shape),
+                               "mapping_shape": list(mapping.shape),
+                               "table_ptr": int(table.data_ptr()),
+                               "mapping_ptr": int(mapping.data_ptr())})
+            mapping_to_gid[int(mapping.data_ptr())] = gid
+            table_to_gid[int(table.data_ptr())] = gid
+        cache_rows = []
+        for cache in target_handoff.assets.caches:
+            spec = target_handoff.assets._cache_slot_specs.get(cache.name)
+            cache_rows.append({"name": cache.name, "shape": list(cache.shape),
+                               "stride": list(cache.stride),
+                               "dtype": str(cache.tensor.dtype),
+                               "group": None if spec is None else mapping_to_gid.get(int(spec[0].data_ptr())),
+                               "slot_block_size": None if spec is None else int(spec[1]),
+                               "has_slot_spec": spec is not None})
+        source_rows = []
+        for source in inputs.target_metadata_sources:
+            metadata = target_handoff.attn_metadata.get(source.layer_name)
+            req = getattr(metadata, "req_metadata", None)
+            table = getattr(req, "block_table", None)
+            slots = getattr(req, "slot_mapping", None)
+            source_rows.append({"layer": source.layer_name,
+                                "ratio": int(source.ratio),
+                                "block_size": int(source.block_size),
+                                "metadata_type": None if metadata is None else type(metadata).__name__,
+                                "req_metadata_type": None if req is None else type(req).__name__,
+                                "table_shape": None if table is None else list(table.shape),
+                                "table_group": None if table is None else table_to_gid.get(int(table.data_ptr())),
+                                "slot_shape": None if slots is None else list(slots.shape),
+                                "slot_ptr": None if slots is None else int(slots.data_ptr())})
+        draft_rows = [{"gid": int(gid), "block_size": int(size),
+                       "table_group": table_to_gid.get(int(table.data_ptr())),
+                       "mapping_group": mapping_to_gid.get(int(mapping.data_ptr()))}
+                      for gid, table, mapping, size in inputs.dspark.group_slot_bindings]
+        payload = {"rank": int(inputs.target_tp_rank), "groups": group_rows,
+                   "target_caches": cache_rows, "target_sources": source_rows,
+                   "draft_groups": draft_rows}
+        output_dir = Path(os.environ["EXTREME_CACHE_MANIFEST_DIR"])
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / f"rank{inputs.target_tp_rank}.json").write_text(
+            json.dumps(payload, indent=2) + "\n")
     kv_slot_audit = None
     if os.getenv("EXTREME_KV_SLOT_AUDIT_DIR"):
         from diagnostics.kv_slot_audit import KVSlotAudit
