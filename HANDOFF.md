@@ -318,3 +318,25 @@ state/KV-write trajectory check, especially the DSpark context cache and
 physical ownership. Do not promote all-group slot refresh as a semantic fix
 from Run65 or Run66. Evidence:
 `evidence/20260924_loop035_diagnostic/run66/summary.json`.
+
+## Loop035 Run67 DSpark context slot refresh (2026-09-24 03:10 UTC)
+
+Source ties the previously observed stale DSpark draft gid2 mapping to the
+input kernel in `dspark_proposer.py`; that kernel builds the per-layer context
+slot mappings used by the Ascend DSpark context-KV scatter. An opt-in
+Runtime-owned refresh now updates only draft gid2/3 mappings from the borrowed
+block tables immediately before DSpark preparation. It retains no ModelRunner
+and is disabled by default pending validation.
+
+Two 12×32K→1024 cohorts in one reserved-serving service passed 12/12 exact
+client lengths and 8/8 rank/Host gates each. Gid2 needed 96/96 slot updates
+from cycle1 through the sampled first eight cycles, gid3 needed none, and
+sampled physical blocks were nonzero. Cohort cycles were 300 and 325;
+diagnostic output TPS was 467.92 and 484.46. Run65 without this opt-in took
+435 cycles and 357.08 tok/s in its first diagnostic cohort. This is a strong
+acceptance signal, not a formal matched A/B: the services were separate,
+independent generations are nondeterministic, and the diagnostic has overhead.
+Target group mappings still appear stale before target, so do not claim full
+semantic repair. Next collect a same-code flag-off control, then an effective
+long token/state oracle before promoting the fix or running formal 48-request
+E2E. Evidence: `evidence/20260924_loop035_diagnostic/run67/summary.json`.

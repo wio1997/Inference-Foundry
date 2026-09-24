@@ -295,3 +295,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T02:21:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T022000Z`（test）。
 
 - `2026-09-24T02:34:22Z` Run `run-20260924T022000Z` 记录为 `pass`；正确性为 `not-applicable`。Run66 8/8 same-state reserved cycle0/1 A/B/C passed KV restore and Host gates. At cycle1 all-group slots changed 96/96 except group3; A/B argmax92/96 vs A/C91/96, accepted92/96 for both, so no candidate-specific direct target split. Large metadata snapshot exclusions remain; client TPS invalid due intentional sentinel.
+
+- `2026-09-24T02:55:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T030000Z`（test）。
+
+- `2026-09-24T03:10:15Z` Run `run-20260924T030000Z` 记录为 `pass`；正确性为 `not-applicable`。Run67 opt-in DSpark gid2/3 context slot refresh passed 8/8 ranks and two 12/12 length-exact cohorts; gid2 refreshed 96/96 slots from cycle1, gid3 unchanged; cycles300/325, diagnostic TPS467.9/484.5. Same-code flag-off and long token oracle still required.
