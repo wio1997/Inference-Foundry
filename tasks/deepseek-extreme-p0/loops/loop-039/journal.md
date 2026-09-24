@@ -29,3 +29,7 @@
 - `2026-09-24T17:05:10Z` Run `run113` 记录为 `pass`；正确性为 `not-applicable`。Isolated read-only direct Zcode yolo diagnostic: DeepSeek called Bash once for docker inspect and received exit 0/status running. This establishes the permission-mode contrast only; yolo was diagnostic, not adopted for delegation or product evidence.
 
 - `2026-09-24T17:05:10Z` Run `run114` 记录为 `pass`；正确性为 `not-applicable`。Controlled Zcode build-mode docker inspect was blocked before execution with No permission client configured for Bash; CLI exit 0 only reports the agent response, not tool success. The contrast with Run113 confirms the headless build permission client gap. DeepSeek model identity verified from local model I/O.
+
+- `2026-09-24T17:14:08Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run115`（profile）。
+
+- `2026-09-24T17:33:02Z` Run `run115` 记录为 `pass`；正确性为 `not-applicable`。Eight-rank diagnostic shape capture completed under legal 12x1024 requests (12/12 success). Each TP/EP rank records the fixed 96-token target graph MoE envelope as int8 [576,4096], group_list int64 [32] count mode, 32 local experts, packed w1 int32 [32,4096,512], w2 int32 [32,2048,512]. Shapes identical across ranks; live per-expert counts are not captured. Temporary borrowed source restored byte-identically, service stopped. 544.725 diagnostic tok/s is not formal E2E.

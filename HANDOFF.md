@@ -1006,3 +1006,25 @@ prior successful invocation mode is not independently known. See
 `docs/agent_orchestration.md` and
 `evidence/20260925_loop039_delegate/run11{0,2,3,4}/`.
 No product benchmark or Runtime change was made.
+
+## Loop039 Run115 live shape envelope (2026-09-25)
+
+A temporary, shape-only probe at borrowed `quant_apply_mlp` ran the legal
+12×1024 DP1×TP8 DSpark7 diagnostic workload. All12 requests succeeded;
+8/8 workers wrote 33 unique shape signatures with the same shape set.
+The 96-token target graph (top_k=6) maps to MoE input int8 [576,4096],
+per-token scale float32 [576], local expert count32 with count-mode
+group_list int64 [32]. Packed grouped weights at the call site are w1
+int32 [32,4096,512] and w2 int32 [32,2048,512], with corresponding
+per-channel scale tensors. This is a static envelope: the probe did not
+copy live per-expert token counts during graph replay, so effective active
+work per rank remains unknown. Run115 diagnostic output TPS544.725 is not
+formal E2E and is not compared to Stock. The borrowed source was restored
+byte-identically (SHA256 5b537cc4...), the service was stopped, and 8 NPUs
+returned to idle HBM. TaskCtl Run115 PASS profile only. Evidence:
+`evidence/20260925_loop039_gmm/run115/shape_summary.json`.
+
+Next: use Run107 target trace and this shape envelope to estimate how much
+of ~10 ms/cycle grouped-matmul duration can actually be removed for the
+frozen product. In parallel assess communication and non-GMM target costs;
+choose one bounded same-state correctness experiment before any E2E.
