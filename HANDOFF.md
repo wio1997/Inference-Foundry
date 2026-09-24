@@ -827,7 +827,7 @@ the sampled cohort, then stop after a bounded number of decode seconds.
 
 Run101 started profiler before a legal 12×1024 cohort, so its window did
 include execution; the cohort completed 12/12. Eight seconds generated roughly
-11 GiB raw trace across eight TP ranks. Offline `torch_npu.profiler.analyse`
+13.6 GiB raw trace across eight TP ranks. Offline `torch_npu.profiler.analyse`
 warned parsing could exceed 30 minutes per rank and had not finished rank0;
 the parser was terminated, with raw files preserved under
 `evidence/20260924_loop037_target/run100/profile/*20260924133739*_ascend_pt`.
@@ -858,3 +858,17 @@ under `evidence/20260924_loop037_target/run100/profile/*20260924134850*_ascend_p
 compact counts in `run103/summary.json`. The next window should request
 profiler start about 3 seconds after cohort launch; both immediate and delayed
 RPC return should then fall within the 20-second continuous decode interval.
+
+## Loop037 Run104 oversized stop window (2026-09-24)
+
+The 3-second delayed start attempt completed a legal 12×1024 cohort, but
+`/stop_profile` returned about 23 seconds after the stop request, expanding
+the intended 0.5-second capture to a multi-GiB trace across 8 ranks. It has
+not been parsed to target operator attribution; TaskCtl marks the profile
+INVALID, request correctness PASS. Raw trace:
+`evidence/20260924_loop037_target/run100/profile/*20260924135309*_ascend_pt`.
+Compact evidence: `run104/summary.json`. Runs100–104 demonstrate that HTTP
+profiler activation/deactivation latency is unstable relative to a 20-second
+cohort. Next use a Runtime cycle marker to start/stop a bounded 8-rank trace
+inside a selected cycle window, or a profiler mode that can export only those
+cycles. Keep the verified Run99 formal 571.681 tok/s as current P0 result.
