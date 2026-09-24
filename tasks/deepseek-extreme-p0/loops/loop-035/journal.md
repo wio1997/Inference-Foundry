@@ -319,3 +319,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T04:20:28Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T042000Z`（test）。
 
 - `2026-09-24T04:36:32Z` Run `run-20260924T042000Z` 记录为 `pass`；正确性为 `not-applicable`。285-cycle all-rank DSpark context write-address trajectory: gid2/3 exact every cycle, no invalid/duplicate/cross-request ownership; 4560 phase records complete, 12x1024 client gates pass. Target consumers and Stock token/KV value parity pending.
+
+- `2026-09-24T04:42:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T044500Z`（design-check）。
+
+- `2026-09-24T04:57:36Z` Run `run-20260924T044500Z` 记录为 `pass`；正确性为 `not-applicable`。8-rank one-time cache alias inventory: all 67 target cache tensors mapped; c4/c128 compressed groups0/1, SWA/draft2/3, compressor state4/5. Existing common slot snapshots cannot certify compressed write sets; exact write-set construction remains before ABA.

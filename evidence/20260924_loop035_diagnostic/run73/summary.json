@@ -1,0 +1,50 @@
+{
+  "run": "Loop035 Run73",
+  "code_ref": "1e432d4",
+  "diagnostic": "one-time target cache and active metadata alias manifest at Runtime handoff under valid reserved serving",
+  "rank_manifests": 8,
+  "rank_structure_equal": true,
+  "target_cache_tensors": 67,
+  "unmapped_target_cache_tensors": 0,
+  "target_source_layers": 8,
+  "cache_group_counts": {
+    "0": 16,
+    "1": 8,
+    "2": 8,
+    "3": 8,
+    "4": 17,
+    "5": 10
+  },
+  "target_layer_group_map": {
+    "0": [
+      "model.layers.2.self_attn.attn",
+      "model.layers.2.self_attn.indexer.k_cache"
+    ],
+    "1": [
+      "model.layers.3.self_attn.attn"
+    ],
+    "2": [
+      "model.layers.0.self_attn.swa_cache"
+    ],
+    "3": [
+      "model.layers.1.self_attn.swa_cache"
+    ],
+    "4": [
+      "model.layers.2.self_attn.compressor.state_cache",
+      "model.layers.2.self_attn.indexer.compressor.state_cache"
+    ],
+    "5": [
+      "model.layers.3.self_attn.compressor.state_cache"
+    ]
+  },
+  "source_layers_without_slot_tensor": 3,
+  "draft_groups": [
+    2,
+    3
+  ],
+  "client_success": 12,
+  "rank_pass": 8,
+  "cycles": 289,
+  "exact_client_output_lengths": true,
+  "interpretation": "Group0 owns c4 indexer/attention caches; group1 owns c128 attention; groups2/3 are active SWA and DSpark draft caches; groups4/5 own compressor state caches. All 67 physical target cache tensors map to one group. The three compressed attention/indexer metadata sources have no direct slot tensor; source shows their scatter/state addresses derive from compressor metadata, start position and block tables. Thus Run72 common slot mismatches cannot by themselves identify target write errors. Snapshot strictness now requires a write-set manifest for compressed and state cache addresses, not only common mappings. No KV value or long Stock token parity is established."
+}

@@ -434,3 +434,25 @@ A CPU synthetic restore/out-of-bounds gate passed. This is a prerequisite for
 the next same-state Stock/Product/Stock transaction; the caller must still
 supply a complete target and DSpark write-set manifest before claiming full
 snapshot coverage.
+
+
+## Loop035 Run73 cache/metadata alias inventory (2026-09-24 04:57 UTC)
+
+The one-time Runtime handoff emitted cache/metadata pointer manifests on all
+8 ranks. Their structures matched: 67 target cache tensors, all mapped to a
+KV group. Group0 owns c4 attention/indexer caches (16 tensors), group1 c128
+attention (8), groups2/3 SWA and DSpark draft (8 each), and groups4/5
+compressor state caches (17/10). The three compressed attention/indexer
+metadata sources have no direct slot tensor. Their actual scatter/state
+addresses derive from compressor metadata, start position and block tables;
+source shows SWA scatter uses req_metadata.slot_mapping, which the native
+updater refreshes. Therefore the stale generic pre-target mappings observed
+in Run65/72 do not by themselves establish active target write corruption.
+The current cache snapshot helper maps physical cache tensors to groups but
+its common-slot selection does not certify compressed/state writes. Next
+construct a complete candidate write-set from active req_metadata and
+compressor output, then use strict snapshot coverage for same-state Stock
+A/Product B/Stock C. Run73 passed 12/12×1024 clients and 8/8 rank/Host gates;
+its TPS is diagnostic. Evidence:
+`evidence/20260924_loop035_diagnostic/run73/summary.json` and
+`evidence/20260924_loop035_diagnostic/run73/manifest_check.json`.
