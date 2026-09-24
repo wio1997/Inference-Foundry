@@ -495,3 +495,21 @@ compressor_metadata side-output slots to candidate pages, restore all
 physical pages and mutable metadata aliases, then run A/C self replay.
 Runs78/79 were invalid diagnostic wiring/accounting attempts.
 Evidence: evidence/20260924_loop035_diagnostic/run80/summary.json.
+
+## Loop035 Run81 compressor operator page parity (2026-09-24 06:39 UTC)
+
+Fixed 12x1024 c12 diagnostic completed 12/12 requests. On all eight ranks at target
+cycles 0/1, strict pre-target snapshots covered 67/67 physical cache views
+through 170 actual layer aliases, with no skipped views. The exact
+`torch.ops._C_ascend.compressor_metadata` slot side output was compared with
+the source-derived compressed page candidates for each of three unique
+metadata signatures per rank-cycle (48 checks total): zero missing actual
+pages and zero extra candidate pages. c4 produced valid compressed writes;
+c128 produced none at the sampled cycles. This validates the candidate write
+page set for sampled target cycles only. It does not establish restored KV or
+metadata state, Stock token equivalence, or long-run acceptance. Run81
+464.73 tok/s is diagnostic and must not be compared to the formal Loop034 A/B.
+Next: include all mutable metadata aliases in the transactional snapshot,
+verify exact restoration after live target, then run continuous same-state
+Stock A/Product B/Stock C with A/C self-replay floor.
+Evidence: `evidence/20260924_loop035_diagnostic/run81/summary.json`.
