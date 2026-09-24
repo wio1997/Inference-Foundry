@@ -311,3 +311,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T03:45:36Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T035000Z`（test）。
 
 - `2026-09-24T03:59:50Z` Run `run-20260924T035000Z` 记录为 `pass`；正确性为 `not-applicable`。Refreshed DSpark context slots exact 96/96 for gid2 and gid3 at cycles0-7 on all 8 ranks; 12/12x1024 and 8/8 rank gates pass; 295 cycles vs paired flag-off Run69 458. Long token oracle pending.
+
+- `2026-09-24T04:04:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T040500Z`（test）。
+
+- `2026-09-24T04:19:09Z` Run `run-20260924T040500Z` 记录为 `pass`；正确性为 `not-applicable`。294-cycle rank0 product trajectory passed 3528 slot-cycle arithmetic/greedy checks and 12x1024 token coverage; all 8 rank/Host gates pass. Stock oracle and KV write-value parity pending.

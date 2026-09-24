@@ -636,3 +636,21 @@ are established for the sampled early cycles. Full continuous KV state and
 long token-level Stock oracle equivalence remain open. Formal 48-request A/B
 must wait for that gate. Evidence:
 `evidence/20260924_loop035_diagnostic/run70/summary.json`.
+
+
+## Loop035 Run71 full product trace gate (2026-09-24 04:19 UTC)
+
+A dedicated offline verifier checked every cycle of a valid refreshed-slot
+12×32K→1024 reserved-serving cohort. Rank0 saved 294 consecutive cycles of
+target input IDs/positions, target argmax, accepted token rows/counts, and next
+draft. All 3,528 slot-cycles satisfied the independent Python greedy-prefix
+rule and target-input/state ABI. The checker covered 3,039 active state
+transitions and 477 completion-or-park transitions; each of 12 slots reached
+1024 client tokens. All 8 ranks passed the original exact-length/Host gates.
+Diagnostic throughput was 467.27 tok/s. This establishes continuous internal
+Product acceptance and state-machine consistency; it does not compare target
+KV values or long token sequence against a Stock same-state oracle. Next
+complete physical KV ownership/write coverage and transactional Stock
+A/Product B/Stock C replay with complete snapshot coverage. Evidence:
+`evidence/20260924_loop035_diagnostic/run71/summary.json` and
+`evidence/20260924_loop035_diagnostic/run71/trace_check.json`.
