@@ -77,6 +77,7 @@ class ExtremeDecodeRuntime:
         proposer: ProposerOperator,
         target_metadata: TargetMetadataOperator | None = None,
         kv_slot_audit=None,
+        target_page_audit=None,
     ) -> None:
         self.config = config
         self.state = state
@@ -85,6 +86,7 @@ class ExtremeDecodeRuntime:
         self.proposer = proposer
         self.target_metadata = target_metadata
         self.kv_slot_audit = kv_slot_audit
+        self.target_page_audit = target_page_audit
         if target_metadata is not None:
             self.stage_order = (
                 "prepare_target", "derived_target_metadata", "target",
@@ -145,6 +147,8 @@ class ExtremeDecodeRuntime:
                 self.kv_slot_audit.observe(
                     self.state.cycle_index, self.state.target_positions
                 )
+            if self.target_page_audit is not None:
+                self.target_page_audit.observe(self.state.cycle_index)
             with self._scope("extreme::target"):
                 target_output = self.target.execute(self.state)
             mark("target")

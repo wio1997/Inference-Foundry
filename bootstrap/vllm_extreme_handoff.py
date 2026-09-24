@@ -152,6 +152,19 @@ def build_extreme_runtime(
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / f"rank{inputs.target_tp_rank}.json").write_text(
             json.dumps(payload, indent=2) + "\n")
+    target_page_audit = None
+    if os.getenv("EXTREME_TARGET_PAGE_AUDIT_DIR"):
+        from diagnostics.target_page_audit import TargetPageAudit
+        target_page_audit = TargetPageAudit(
+            assets=target_handoff.assets,
+            attn_metadata=target_handoff.attn_metadata,
+            static_context=inputs.target.vllm_config.compilation_config.static_forward_context,
+            group_bindings=inputs.group_slot_audit_bindings,
+            metadata_sources=inputs.target_metadata_sources,
+            output_dir=os.environ["EXTREME_TARGET_PAGE_AUDIT_DIR"],
+            rank=int(inputs.target_tp_rank),
+            limit=int(os.getenv("EXTREME_TARGET_PAGE_AUDIT_CYCLES", "2")),
+        )
     kv_slot_audit = None
     if os.getenv("EXTREME_KV_SLOT_AUDIT_DIR"):
         from diagnostics.kv_slot_audit import KVSlotAudit
@@ -169,4 +182,5 @@ def build_extreme_runtime(
         DirectDSparkHandoff(config, inputs.dspark),
         target_metadata=metadata_updater,
         kv_slot_audit=kv_slot_audit,
+        target_page_audit=target_page_audit,
     )

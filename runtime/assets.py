@@ -50,6 +50,7 @@ class CacheSlotSnapshot:
         ...,
     ]
     skipped: tuple[dict[str, object], ...] = ()
+    no_write: tuple[str, ...] = ()
 
     def restore(self) -> None:
         # DSA cache writes may still be in flight on its overlap stream when
@@ -68,7 +69,8 @@ class CacheSlotSnapshot:
 
     def coverage(self) -> dict[str, object]:
         return {"captured_names": sorted({cache.name for cache, _, _, _ in self.rows}),
-                "captured_rows": len(self.rows), "skipped": list(self.skipped)}
+                "captured_rows": len(self.rows), "skipped": list(self.skipped),
+                "certified_no_write": list(self.no_write)}
 
     def verify_restored(self) -> dict[str, object]:
         """Verify that every captured row currently matches its pre-state."""
@@ -162,6 +164,7 @@ class RuntimeAssets:
         pages_by_cache: dict[str, torch.Tensor],
         *,
         strict: bool = True,
+        no_write_caches: set[str] | None = None,
     ) -> CacheSlotSnapshot:
         """Clone complete physical pages selected by an external write-set proof.
 
@@ -174,12 +177,14 @@ class RuntimeAssets:
         if self._caches[0].tensor.device.type == "npu":
             torch.npu.synchronize()
         expected = set(self._by_name)
-        supplied = set(pages_by_cache)
+        no_write = set(no_write_caches or ())
+        supplied = set(pages_by_cache) | no_write
+        overlap = sorted(set(pages_by_cache) & no_write)
         unknown = sorted(supplied - expected)
         missing = sorted(expected - supplied)
-        if unknown or (strict and missing):
+        if overlap or unknown or (strict and missing):
             raise RuntimeError(
-                f"incomplete physical page manifest: unknown={unknown}, missing={missing}"
+                f"incomplete physical page manifest: overlap={overlap}, unknown={unknown}, missing={missing}"
             )
         rows = []
         skipped = []
@@ -216,7 +221,7 @@ class RuntimeAssets:
             raise RuntimeError(f"incomplete physical page snapshot: {skipped}")
         if not rows:
             raise RuntimeError("no physical pages captured")
-        return CacheSlotSnapshot(tuple(rows), tuple(skipped))
+        return CacheSlotSnapshot(tuple(rows), tuple(skipped), tuple(sorted(no_write)))
 
     def snapshot_slots(
         self,

@@ -339,3 +339,9 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T05:25:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T053500Z`（test）。
 
 - `2026-09-24T05:26:06Z` Run `run-20260924T053500Z` 记录为 `pass`；正确性为 `pass`。Strict per-cache physical page snapshot passed synthetic CPU shared-storage restore, mutable restore, and missing/out-of-range/empty rejection. Live per-alias page manifest and NPU transactional ABA remain pending.
+
+- `2026-09-24T05:32:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T053300Z`（test）。
+
+- `2026-09-24T05:47:45Z` Run `run-20260924T053300Z` 记录为 `invalid`；正确性为 `invalid`。Run78 valid 12x1024 client reached bootstrap, but target page audit constructor depended on all-group bindings gated by EXTREME_KV_SLOT_AUDIT_DIR; no page or decode evidence was emitted. Correct diagnostic binding without changing Runtime hot path.
+
+- `2026-09-24T05:48:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T054800Z`（test）。
