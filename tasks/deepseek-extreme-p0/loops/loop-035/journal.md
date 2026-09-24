@@ -367,3 +367,5 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T07:22:22Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T072300Z`（test）。
 
 - `2026-09-24T07:40:30Z` Run `run-20260924T072300Z` 记录为 `pass`；正确性为 `pass`。Run84 12/12x1024 complete, 8 ranks x 256 target cycles = 2048 strict snapshots of all 67 cache views with zero skips. Direct compressor side-output parity had zero missing/extra pages across 6144 signature checks. c128 first wrote at cycle8, with 132 valid cycles and 198 valid rows per rank. Runtime ran 303 cycles, all rank/Host gates pass. TPS 128.83 is audit-overhead diagnostic, not performance. No Stock oracle/post-target restore.
+
+- `2026-09-24T07:51:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T075300Z`（test）。

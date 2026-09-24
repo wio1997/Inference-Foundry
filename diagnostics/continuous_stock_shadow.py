@@ -12,6 +12,7 @@ from typing import Sequence
 import torch
 
 from runtime.fixed_decode import FixedDecodeConfig
+from runtime.greedy_accept import greedy_accept
 from runtime.oracle_shadow import FixedDecodeOracleShadow
 
 
@@ -27,6 +28,8 @@ class ContinuousStockShadow:
         self.rows: list[dict[str, object]] = []
         self.pending = False
         self.done = False
+        self._draft_tokens: torch.Tensor | None = None
+        self.first_acceptance_divergence: dict[str, object] | None = None
 
     @torch.inference_mode()
     def before_target(
@@ -123,6 +126,7 @@ class ContinuousStockShadow:
         ):
             self._write("FAIL", "first_integer_or_ownership_divergence")
             raise RuntimeError("Stock continuous shadow first divergence")
+        self._draft_tokens = input_ids[:96].view(12, 8)[:, 1:].clone()
         self.pending = True
 
     @torch.inference_mode()
@@ -136,10 +140,34 @@ class ContinuousStockShadow:
             raise RuntimeError("Stock shadow accepted-token shape changed")
         if tuple(next_draft_tokens.shape[:2]) != (12, 7):
             raise RuntimeError("Stock shadow draft-token shape changed")
-        self.rows[-1]["target_argmax"] = logits[:96].argmax(dim=-1).view(12, 8).tolist()
-        self.rows[-1]["sampled"] = sampled_token_ids[:12, :8].tolist()
-        self.rows[-1]["next_draft"] = next_draft_tokens[:12, :7].tolist()
+        if self._draft_tokens is None or logits.shape[0] < 96:
+            raise RuntimeError("Stock shadow acceptance inputs missing")
+        predicted = logits[:96].argmax(dim=-1).view(12, 8)
+        expected, expected_counts = greedy_accept(
+            self._draft_tokens, predicted[:, :7], predicted[:, 7]
+        )
+        actual = sampled_token_ids[:12, :8]
+        actual_counts = actual.ne(-1).sum(dim=1).to(torch.int32)
+        mismatch = expected.to(torch.int64) != actual.to(torch.int64)
+        row = self.rows[-1]
+        row["target_argmax"] = predicted.tolist()
+        row["sampled"] = actual.tolist()
+        row["next_draft"] = next_draft_tokens[:12, :7].tolist()
+        row["acceptance_equal"] = not bool(mismatch.any())
+        row["acceptance_mismatch_count"] = int(mismatch.sum().item())
+        row["greedy_counts"] = expected_counts.tolist()
+        row["stock_counts"] = actual_counts.tolist()
+        if bool(mismatch.any()) and self.first_acceptance_divergence is None:
+            slot, position = mismatch.nonzero()[0].tolist()
+            self.first_acceptance_divergence = {
+                "cycle": row["cycle"], "slot": slot, "position": position,
+                "greedy_token": int(expected[slot, position].item()),
+                "stock_token": int(actual[slot, position].item()),
+                "greedy_counts": expected_counts.tolist(),
+                "stock_counts": actual_counts.tolist(),
+            }
         self.shadow.observe_cycle_outputs(sampled_token_ids, next_draft_tokens)
+        self._draft_tokens = None
         self.pending = False
         if len(self.rows) % 32 == 0 and len(self.rows) < self.limit:
             self._write("CHECKPOINT", "continuous_integer_shadow_in_progress")
@@ -149,9 +177,12 @@ class ContinuousStockShadow:
                 for row in self.rows for group in row["groups"]
             )
             self._write(
-                "PARTIAL" if unsupported else "PASS",
-                "continuous_integer_shadow_complete_with_unsupported_group_geometry"
-                if unsupported else "continuous_integer_shadow_complete",
+                "FAIL" if self.first_acceptance_divergence else
+                ("PARTIAL" if unsupported else "PASS"),
+                "stock_vs_fixed_greedy_acceptance_divergence"
+                if self.first_acceptance_divergence else
+                ("continuous_integer_shadow_complete_with_unsupported_group_geometry"
+                 if unsupported else "continuous_integer_shadow_complete"),
             )
             self.done = True
 
@@ -164,6 +195,7 @@ class ContinuousStockShadow:
             "limit": self.limit,
             "cycles_recorded": len(self.rows),
             "request_ids": self.request_ids,
+            "first_acceptance_divergence": self.first_acceptance_divergence,
             "rows": self.rows,
         }
         (self.output_dir / f"rank{self.rank}.json").write_text(
