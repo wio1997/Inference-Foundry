@@ -371,3 +371,11 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T07:51:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T075300Z`（test）。
 
 - `2026-09-24T08:08:51Z` Run `run-20260924T075300Z` 记录为 `pass`；正确性为 `pass`。Run85 Stock-authoritative fixed c12 160 continuous cycles on 8 ranks: 122880 same-logits/draft accepted output cells and all per-slot counts exactly match Extreme fixed greedy acceptance, zero ABI or supported-group mapping divergences. Group1 generic mapping geometry remains unsupported (shadow PARTIAL); no target/KV token oracle claim. 12/12x1024 complete. Zcode read-only route invoked deepseek/deepseek-flash but timed out without usable analysis; primary source audit supplied the gate.
+
+- `2026-09-24T08:14:13Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T082300Z`（profile）。
+
+- `2026-09-24T08:31:52Z` Run `run-20260924T082300Z` 记录为 `invalid`；正确性为 `pass`。Run86 served 12/12x1024 over 290 cycles, but serving writer omitted already-recorded DAG events; no stage data persisted. Rerun with dedicated FixedCohortServing diagnostic export.
+
+- `2026-09-24T08:31:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T083600Z`（profile）。
+
+- `2026-09-24T08:47:22Z` Run `run-20260924T083600Z` 记录为 `pass`；正确性为 `pass`。Run87 corrected serving-path DAG export: 12/12x1024, 8 ranks x 301 cycles. Steady NPU event medians target 47.702 ms, derived target metadata 8.673 ms, proposer 6.359 ms, acceptance 0.337 ms; late low acceptance reflects parked completed slots. Diagnostic TPS 469.17 is not formal A/B.

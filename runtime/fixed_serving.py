@@ -9,7 +9,9 @@ the serving control plane is not re-entered between cycles.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 import os
+from pathlib import Path
 from typing import Sequence
 
 import torch
@@ -178,6 +180,24 @@ class FixedCohortServing:
             raise RuntimeError(
                 f"cohort output is incomplete: {generated} != {self.remaining}"
             )
+        dag_dir = os.getenv("EXTREME_RUNTIME_DAG_DIR")
+        if dag_dir:
+            torch.npu.synchronize()
+            rank = torch.distributed.get_rank()
+            path = Path(dag_dir)
+            path.mkdir(parents=True, exist_ok=True)
+            def stage_ms(events):
+                return [
+                    {row[i][0]: row[i - 1][1].elapsed_time(row[i][1])
+                     for i in range(1, len(row))}
+                    for row in events
+                ]
+            (path / f"rank{rank}.json").write_text(json.dumps({
+                "rank": rank,
+                "cycles": cycles,
+                "runtime_stage_ms": stage_ms(self.runtime.diagnostic_events),
+                "dspark_stage_ms": stage_ms(self.runtime.proposer.dag_events),
+            }))
         return FixedCohortOutput(
             token_ids=output,
             cycles=cycles,

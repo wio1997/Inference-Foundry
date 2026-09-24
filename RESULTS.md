@@ -463,3 +463,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run84: 8x256 continuous target cycles, 67/67 cache views each, 6,144 compressor signature checks, zero missing/extra pages; c128 first writes cycle8. 12/12x1024 complete. TPS invalid for comparison due audit overhead. `evidence/20260924_loop035_diagnostic/run84/summary.json`.
 
 - Loop035 Run85 (diagnostic): 12/12 x 1024 c12 Stock continuous shadow, 160 cycles/rank, 122,880/122,880 same-input accepted output cells and all accepted counts exact; generic group1 compressed KV mapping unsupported. 407.71 tok/s includes shadow overhead, not a formal A/B value. evidence/20260924_loop035_diagnostic/run85/summary.json.
+
+- Loop035 Run87 (diagnostic DAG): 8 ranks x 301 cycles, 12/12x1024. Steady event stage medians target47.702 ms, metadata8.673 ms, proposer6.359 ms, acceptance0.337 ms. Single-cohort 469.17 tok/s is not formal A/B. evidence/20260924_loop035_diagnostic/run87/summary.json.

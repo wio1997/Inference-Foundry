@@ -580,3 +580,22 @@ equivalence. Zcode was actually invoked as deepseek/deepseek-flash in read-only
 plan mode for a bounded source audit, timed out after 180 s, and supplied no
 usable analysis; the main Agent completed and reviewed the audit.
 Evidence: evidence/20260924_loop035_diagnostic/run85/summary.json.
+
+## Loop035 Run87 serving decode DAG stage profile (2026-09-24 08:46 UTC)
+
+A dedicated FixedCohortServing diagnostic exporter captured per-cycle NPU event
+intervals for all eight ranks over 301 continuous c12 cycles; 12/12 requests
+produced exactly 1024 tokens. Across steady cycles1-300, stage medians were
+target47.702 ms, derived target metadata8.673 ms, proposer6.359 ms,
+acceptance0.337 ms, prepare target0.207 ms and state advance0.024 ms.
+Within proposer, DSpark model5.939 ms dominates. Target remains the largest
+serial stage, while metadata is the second-largest. Run86 completed 12/12 but
+was marked invalid as a profile because its serving path did not persist the
+existing event markers; Run87 added the exporter in dedicated Runtime code,
+without a generic ModelRunner change. Rank0 accepted-count windows rose from
+2.07 (cycles0-7) to 5.20 (128-191); late decline follows parking of completed
+slots and is not evidence of live-request acceptance collapse. Diagnostic
+469.17 tok/s includes instrumentation and one cohort, not formal A/B.
+Evidence: evidence/20260924_loop035_diagnostic/run87/summary.json and dag/rank*.json.
+Next: use the measured target and metadata stages to choose a structural
+optimization, while retaining the independent KV-value/Stock semantic caveat.
