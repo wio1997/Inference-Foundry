@@ -811,3 +811,14 @@ bounded Loop037 will attribute the remaining 46.560 ms/cycle target graph
 stage with a legal one-cohort Runtime-only NPU profile across 8 ranks. It
 must separate compute/communication overlap and device gaps before choosing
 another optimization. No target performance claim exists yet.
+
+## Loop037 Run100 invalid profile window (2026-09-24)
+
+Both legal 12×1024 cohorts and 16 Runtime rank records passed, but the
+`/start_profile` request blocked roughly 14 seconds and only returned as the
+sampled cohort finished. Eight offline-parsed rank traces contain zero
+`extreme::target` scopes and zero kernel rows. TaskCtl marks Run100 INVALID
+for target attribution; its diagnostic TPS has no comparison role. Raw trace
+remains at `evidence/20260924_loop037_target/run100/profile/`, compact
+reason at `run100/summary.json`. Run101 must activate profiler before sending
+the sampled cohort, then stop after a bounded number of decode seconds.

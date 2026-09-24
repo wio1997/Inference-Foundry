@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Build a bounded, legal one-cohort Runtime-only target profile using PROFILER_DIR and the existing scope markers; verify parser mapping before any code optimization.
-- 更新时间：`2026-09-24T13:13:41Z`
+- 下一步：审查 Run run100 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-24T13:36:53Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run100`
 
 ## 阻塞项
 
