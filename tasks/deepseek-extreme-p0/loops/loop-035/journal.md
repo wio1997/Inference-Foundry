@@ -357,3 +357,5 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T06:37:53Z` Run `run-20260924T062200Z` 记录为 `pass`；正确性为 `pass`。Run81 fixed c12 passed 12/12x1024. Eight ranks x cycles0/1: strict snapshot covered 67/67 cache views, 170 layer aliases, 69 entries incl mutable per rank-cycle; 48 compressor signature checks had zero missing or extra physical pages. c128 compressed scatter had zero valid writes at these cycles. This validates candidate page set only, not restored state or Stock oracle. Diagnostic TPS 464.73 is not formal A/B.
 
 - `2026-09-24T06:42:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T064500Z`（test）。
+
+- `2026-09-24T06:59:04Z` Run `run-20260924T064500Z` 记录为 `fail`；正确性为 `fail`。Run82 12/12x1024 completed. Eight rank x cycles0/1 strict 67-view cache and 76-tensor metadata restores exact (597641348 B metadata each). But same-source target replay differs at 6/96 and 4/96 argmax, with cycle1 accepted 95/96. Counts 12/12 equal both cycles. No metadata values changed by first target. Treat as self-replay floor/uncaptured state until triple replay and margin audit; not Stock/Product divergence.

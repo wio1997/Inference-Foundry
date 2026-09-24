@@ -513,3 +513,19 @@ Next: include all mutable metadata aliases in the transactional snapshot,
 verify exact restoration after live target, then run continuous same-state
 Stock A/Product B/Stock C with A/C self-replay floor.
 Evidence: `evidence/20260924_loop035_diagnostic/run81/summary.json`.
+
+## Loop035 Run82 live same-source target replay (2026-09-24 07:00 UTC)
+
+Fixed c12 diagnostic completed 12/12x1024. On all eight ranks and target
+cycles0/1, 67/67 cache views plus 76 deduplicated attention metadata tensors
+(597,641,348 bytes per rank snapshot) restored exactly after the first target.
+No captured metadata tensor changed during target. The same source target
+replayed from restored state nevertheless changed 6/96 and 4/96 argmax
+positions (cycle0/1 respectively); acceptance counts matched 12/12, but
+cycle1 accepted token IDs matched only 95/96. All eight ranks reported the
+same comparison counts. This is an observed same-source replay floor or
+uncaptured state, not evidence of Stock/Product semantic divergence. Run82
+444.35 tok/s is diagnostic. Next locate the mismatch positions and logits
+margins, take A/B/C same-source replay samples and validate a self-replay
+floor before Stock/Product/Stock comparison. Evidence:
+`evidence/20260924_loop035_diagnostic/run82/summary.json`.
