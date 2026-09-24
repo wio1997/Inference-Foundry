@@ -449,3 +449,6 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run73: 8-rank cache alias manifests agree; all 67 target cache tensors mapped to c4/c128/SWA/compressor-state groups. Compressed write rows must be derived from active metadata before strict A/B/C. 12/12×1024, 8/8 rank/Host gates. `evidence/20260924_loop035_diagnostic/run73/summary.json`.
 
 - Loop035 Run74: source audit mapped all 67 target cache tensors to compressed scatter, SWA/DSpark, or compressor state write addresses; generic mappings cannot certify a full snapshot for groups0/1/4/5. No NPU validation or semantic claim. evidence/20260924_loop035_diagnostic/run74/write_set_audit.md.
+
+- Loop035 Run75 INVALID: diagnostic request asked for 64 tokens against the frozen 1024-token service; 8-rank one-time alias manifests were emitted before the failure. No inference result.
+- Loop035 Run76: offline alias check passed 8/8 rank structural equality and corrected prior cache ownership: 31/67 positional labels wrong, 42/67 views alias multiple groups, 67 views share 46 storage allocations. Run73 group counts are not a per-cache write-set certificate. evidence/20260924_loop035_diagnostic/run76/alias_check.json.

@@ -21,3 +21,12 @@ Source anchors:
 The common group slot mappings used by RuntimeAssets.snapshot_slots do not certify these writes for groups 0, 1, 4, or 5. strict=True currently proves only that the supplied candidate indices are in bounds and nonempty. A completed Stock A / Product B / Stock C control must construct per-cache candidates from the actual active metadata and physical group source, count all cache tensors, reject invalid generated slots only when proven padding, and restore all mutated metadata aliases. Four large metadata tensors omitted by Run66 must be identified and either copied or shown immutable across all three legs. The A/C replay noise remains the comparison floor.
 
 No semantic equivalence, acceptance recovery, or E2E performance conclusion follows from this source audit.
+
+## Superseded by Run76
+
+The source-level write-address families remain valid, but the Run73 per-cache
+group labels came from a positional zip between two differently ordered lists.
+Run76 proves 31 of 67 labels exclude the actual alias groups, and 42 cache
+views alias layers in multiple groups. Do not apply the table above to
+individual physical cache tensors using the Run73 group field. Build each
+physical page candidate from the full layer-alias set and its group block table.

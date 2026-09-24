@@ -705,3 +705,21 @@ its TPS is diagnostic. Evidence:
 ## Loop035 Run74 source write-set audit (2026-09-24 05:00 UTC)
 
 The active DSA-CP/Ascend C source resolves Run73 cache groups to four physical write-address families: c4/c128 compressed scatter from compressor_metadata output (groups0/1), SWA target and DSpark draft slots (groups2/3), and uncompressed-position state pages from start_pos plus state_block_table (groups4/5). Ascend C WriteToCacheState iterates physical pages over each query interval and skips block ID zero. The generic group slot tensor is insufficient for groups0/1/4/5 even with strict snapshot mode. Run74 records the complete candidate construction and metadata alias gate for a Stock A/Product B/Stock C transaction. It is a source design check, not a new NPU or semantic result. Evidence: evidence/20260924_loop035_diagnostic/run74/write_set_audit.md.
+
+## Loop035 Run75/76 alias correction (2026-09-24 05:25 UTC)
+
+Run75 used max_tokens=64, violating the frozen 1024-token serving contract;
+the request failed and is TaskCtl INVALID. Its one-time manifest was emitted
+before the request on all eight ranks. Run76 checked those manifests offline.
+The positional slot-spec list is ordered by KV group, while the actual
+kv_caches tree is sorted by model layer. Consequently 31/67 cache tensor views
+have a legacy group label outside every actual layer alias group. Moreover
+42/67 views alias layers in multiple groups, and 67 views share only 46
+storage allocations. Rank structures agree 8/8. This supersedes Run73
+per-cache group ownership and invalidates using the old group spec to claim
+Run66 or later cache snapshot completeness. The generic mapping staleness
+observations remain observations about those buffers, not proven active
+physical writes. Next use the actual layer-alias union and group block tables
+to select physical pages for a strict transactional snapshot. No new semantic
+or performance result follows from Run75/76.
+Evidence: evidence/20260924_loop035_diagnostic/run76/alias_check.json.

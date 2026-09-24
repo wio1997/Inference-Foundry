@@ -93,14 +93,39 @@ def build_extreme_runtime(
             mapping_to_gid[int(mapping.data_ptr())] = gid
             table_to_gid[int(table.data_ptr())] = gid
         cache_rows = []
+        layer_aliases = {}
+        static_context = inputs.target.vllm_config.compilation_config.static_forward_context
+        def visit_cache(value, layer_name):
+            if torch.is_tensor(value):
+                layer_aliases.setdefault(int(value.data_ptr()), set()).add(layer_name)
+            elif isinstance(value, (list, tuple)):
+                for child in value:
+                    visit_cache(child, layer_name)
+        for layer_name, layer in static_context.items():
+            value = getattr(layer, "kv_cache", None)
+            if value is not None:
+                visit_cache(value, layer_name)
         for cache in target_handoff.assets.caches:
             spec = target_handoff.assets._cache_slot_specs.get(cache.name)
+            aliases = []
+            for layer_name in sorted(layer_aliases.get(int(cache.data_ptr), ())):
+                metadata = target_handoff.attn_metadata.get(layer_name)
+                req = getattr(metadata, "req_metadata", None)
+                table = getattr(req, "block_table", None)
+                aliases.append({
+                    "layer": layer_name,
+                    "table_group": None if table is None else table_to_gid.get(int(table.data_ptr())),
+                    "table_ptr": None if table is None else int(table.data_ptr()),
+                })
             cache_rows.append({"name": cache.name, "shape": list(cache.shape),
                                "stride": list(cache.stride),
                                "dtype": str(cache.tensor.dtype),
                                "group": None if spec is None else mapping_to_gid.get(int(spec[0].data_ptr())),
                                "slot_block_size": None if spec is None else int(spec[1]),
-                               "has_slot_spec": spec is not None})
+                               "has_slot_spec": spec is not None,
+                               "storage_ptr": int(cache.tensor.untyped_storage().data_ptr()),
+                               "storage_offset": int(cache.tensor.storage_offset()),
+                               "layer_aliases": aliases})
         source_rows = []
         for source in inputs.target_metadata_sources:
             metadata = target_handoff.attn_metadata.get(source.layer_name)

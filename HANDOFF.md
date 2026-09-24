@@ -460,3 +460,16 @@ its TPS is diagnostic. Evidence:
 ## Loop035 Run74 write-set audit (2026-09-24 05:00 UTC)
 
 Source-backed physical writes: group0/1 compressed scatter slots come from compressor_metadata outputs, group2/3 SWA and DSpark slots from active req metadata, and group4/5 compressor state pages from start_pos plus state_block_table. The current strict snapshot validates supplied candidates but cannot certify compressed/state coverage from generic group slots. Before Stock A/Product B/Stock C, construct per-cache write candidates from active source metadata, verify all 67 physical caches and mutable aliases, and restore the four large metadata tensors omitted by Run66 or prove them immutable. Run74 is a design check only. See evidence/20260924_loop035_diagnostic/run74/write_set_audit.md.
+
+## Loop035 Run76 alias correction (2026-09-24 05:25 UTC)
+
+Run75 short request was INVALID because serving requires max_tokens=1024,
+but all 8 manifests were captured before request execution. Run76 found the
+old cache_slot_specs positional binding mismatched the sorted kv_caches tree:
+31/67 view group labels were outside actual aliases; 42/67 views alias
+multiple groups; 67 views use 46 storage allocations. The earlier Run73/74
+per-cache group ownership inference and Run66 cache snapshot completeness
+must not be used. Source write-address formulas still apply per actual layer
+alias. Next implement page-level strict snapshots from the union of each
+view actual layer aliases and block tables, then continuous Stock/Product
+oracle. evidence/20260924_loop035_diagnostic/run76/alias_check.json.
