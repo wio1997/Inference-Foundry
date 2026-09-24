@@ -103,6 +103,8 @@ class ExtremeDecodeRuntime:
             "EXTREME_RUNTIME_CYCLE_PROFILE_START", "64"))
         self._cycle_profile_count = int(os.getenv(
             "EXTREME_RUNTIME_CYCLE_PROFILE_COUNT", "2"))
+        self._cycle_profile_sync_target = (
+            os.getenv("EXTREME_RUNTIME_CYCLE_PROFILE_SYNC_TARGET") == "1")
         if self._cycle_profile_dir and (
             self._cycle_profile_start < 0 or self._cycle_profile_count < 1
         ):
@@ -218,7 +220,11 @@ class ExtremeDecodeRuntime:
                 mark("target")
             else:
                 with self._scope("extreme::target"):
+                    if self._cycle_profiler and self._cycle_profile_sync_target:
+                        torch.npu.synchronize()
                     target_output = self.target.execute(self.state)
+                    if self._cycle_profiler and self._cycle_profile_sync_target:
+                        torch.npu.synchronize()
                 mark("target")
                 with self._scope("extreme::acceptance"):
                     acceptance_output = self.acceptance.execute(

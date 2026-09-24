@@ -5,15 +5,16 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run106 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-24T14:53:38Z`
+- 下一步：执行 Run run107：docker exec vllm-ascend26-dsv4f-w4a8 bash -lc /data/wio/Inference_Foundry/scripts/run_loop038_cycle_profile_sync.sh
+- 更新时间：`2026-09-24T14:55:22Z`
 
 ## Run 记录
 
 - `runs/mixed_32k_1024_c12/run105`
 - `runs/mixed_32k_1024_c12/run106`
+- `runs/mixed_32k_1024_c12/run107`
 
 ## 阻塞项
 
