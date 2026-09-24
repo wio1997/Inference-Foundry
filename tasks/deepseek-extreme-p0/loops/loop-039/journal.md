@@ -33,3 +33,7 @@
 - `2026-09-24T17:14:08Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run115`（profile）。
 
 - `2026-09-24T17:33:02Z` Run `run115` 记录为 `pass`；正确性为 `not-applicable`。Eight-rank diagnostic shape capture completed under legal 12x1024 requests (12/12 success). Each TP/EP rank records the fixed 96-token target graph MoE envelope as int8 [576,4096], group_list int64 [32] count mode, 32 local experts, packed w1 int32 [32,4096,512], w2 int32 [32,2048,512]. Shapes identical across ranks; live per-expert counts are not captured. Temporary borrowed source restored byte-identically, service stopped. 544.725 diagnostic tok/s is not formal E2E.
+
+- `2026-09-24T17:36:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run116`（design-check）。
+
+- `2026-09-24T17:37:13Z` Run `run116` 记录为 `pass`；正确性为 `not-applicable`。Independent Sol recomputation over 15 valid synchronized Run107 windows: median GMM kernel sum 9.96625 ms, communication union outside compute overlap 10.2475 ms, and non-GMM compute-union lower bound 29.97925 ms. GMM remains bounded candidate, not proven highest value. Run115 provides static [576,4096]/32 expert shape envelope but no live counts. Requested Astra Medium second view had no independently observable model ID and is advisory only. No product benchmark or Runtime mutation.

@@ -1028,3 +1028,20 @@ Next: use Run107 target trace and this shape envelope to estimate how much
 of ~10 ms/cycle grouped-matmul duration can actually be removed for the
 frozen product. In parallel assess communication and non-GMM target costs;
 choose one bounded same-state correctness experiment before any E2E.
+
+## Loop039 Run116 opportunity audit (2026-09-25)
+
+Sol recomputed 15 valid synchronized Run107 windows: median GMM kernel
+duration sum9.96625 ms, communication union not overlapped by compute
+10.2475 ms, and non-GMM compute-union lower bound29.97925 ms. These are
+diagnostic interval/sum quantities, not directly realizable E2E savings.
+GMM remains a bounded candidate but is not established as the largest
+product opportunity. A requested Astra Medium second view agreed with the
+caution, but no service-side model ID was exposed; its model identity is
+unverified and that review is advisory only. Run116 PASS design-check.
+Next experiment must first find a semantics-valid per-channel W4A8
+substitute and observe real expert counts, then eight-rank same-state A/B/A
+parity and GMM interval / full target-stage reduction. If the candidate
+cannot plausibly save >=5 ms/cycle locally or the saving does not reach the
+target stage, pivot to communication and non-GMM attribution. This local
+screen is not the product's terminal goal. Formal E2E remains Run99.
