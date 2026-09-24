@@ -715,17 +715,20 @@ path. Do not repeat Loop034 or Run93 formal E2E until there is a validated
 structural improvement.
 
 The user requested that work stop after Run94 and resume in a new dialogue.
-At handoff no benchmark or vLLM service remains running. The current heartbeat
-automation must be paused. Agent routing: an external/concurrent uncommitted edit to root
+At handoff no benchmark or vLLM service remains running. The heartbeat
+automation is paused. Agent routing: a concurrent edit to root
 `AGENTS.md` appeared at 11:12:54 UTC during Run94. Its current text names
 GPT-6 Sol as primary, Astra Medium/High as optional independent perspectives,
 and DeepSeek/Zcode for bounded verifiable work, including complex tasks when
-clearly scoped. `docs/agent_orchestration.md` still describes only low-risk
-read-only Zcode tasks; reconcile these documents in the next session after
-checking who owns the concurrent `AGENTS.md` edit. Earlier default-model
+clearly scoped. The user subsequently directed that the revised
+`AGENTS.md` be committed and pushed; its broader routing guidance is now
+authoritative. `docs/agent_orchestration.md` was reconciled in the same
+commit. Earlier default-model
 change alone did not implement actual routing; `scripts/delegate_zcode.py`
 was subsequently added. Run85 really invoked `deepseek/deepseek-flash`
 through Zcode (return code 124 after 180 s timeout); no DeepSeek conclusion
 was accepted. TaskCtl records state, not model dispatch. No subagent was
-called in this Loop036 session. Do not stage the concurrent `AGENTS.md`
-working-tree change as part of the Loop036 commit.
+called in this Loop036 session. The user explicitly requires every subsequent
+Run record, TaskCtl resume state, HANDOFF update and necessary small evidence
+summary to be committed and pushed to this GitHub repository so a new
+dialogue can resume from `main`.
