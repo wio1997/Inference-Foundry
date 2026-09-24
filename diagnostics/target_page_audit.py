@@ -296,41 +296,75 @@ class TargetPageAudit:
             raise RuntimeError("target self-replay missing pre-target snapshot")
         snapshot = self.pending_snapshot
         metadata = self.pending_metadata
-        first = target.execute(state)
-        first_argmax = first.logits.argmax(dim=-1).clone()
-        first_accept = acceptance.execute(state, first)
-        first_counts = first_accept.num_sampled.clone()
-        first_tokens = first_accept.sampled_token_ids.clone()
+        def execute():
+            output = target.execute(state)
+            accepted = acceptance.execute(state, output)
+            top2 = torch.topk(output.logits, k=2, dim=-1)
+            return output, accepted, (
+                top2.indices.clone(), top2.values.clone(),
+                accepted.num_sampled.clone(), accepted.sampled_token_ids.clone(),
+            )
+
+        def restore():
+            snapshot.restore()
+            for _, tensor, value in metadata:
+                tensor.copy_(value)
+            pages = snapshot.verify_restored()
+            metadata_exact = all(torch.equal(tensor, value)
+                                 for _, tensor, value in metadata)
+            if not pages["exact"] or not metadata_exact:
+                raise RuntimeError("target self-replay pre-state restoration failed")
+            return pages, metadata_exact
+
+        first, first_accept, first_values = execute()
         changed = [path for path, tensor, value in metadata
                    if not torch.equal(tensor, value)]
-        snapshot.restore()
-        for _, tensor, value in metadata:
-            tensor.copy_(value)
-        restored_pages = snapshot.verify_restored()
-        restored_metadata = all(torch.equal(tensor, value)
-                                for _, tensor, value in metadata)
-        if not restored_pages["exact"] or not restored_metadata:
-            raise RuntimeError("target self-replay pre-state restoration failed")
-        second = target.execute(state)
-        second_accept = acceptance.execute(state, second)
-        second_argmax = second.logits.argmax(dim=-1)
+        restored_pages, restored_metadata = restore()
+        second, second_accept, second_values = execute()
+        second_restore, second_metadata_exact = restore()
+        third, third_accept, third_values = execute()
+
+        def compare(left, right):
+            ids_l, scores_l, counts_l, tokens_l = left
+            ids_r, scores_r, counts_r, tokens_r = right
+            mismatch = (ids_l[:, 0] != ids_r[:, 0]).nonzero().flatten().cpu().tolist()
+            details = [{
+                "flat_position": int(i),
+                "request_slot": int(i // 8),
+                "draft_position": int(i % 8),
+                "left_top2_ids": ids_l[i].cpu().tolist(),
+                "right_top2_ids": ids_r[i].cpu().tolist(),
+                "left_top2_scores": scores_l[i].float().cpu().tolist(),
+                "right_top2_scores": scores_r[i].float().cpu().tolist(),
+            } for i in mismatch]
+            return {
+                "argmax_equal": int((ids_l[:, 0] == ids_r[:, 0]).sum().item()),
+                "counts_equal": int((counts_l == counts_r).sum().item()),
+                "accepted_equal": int((tokens_l == tokens_r).sum().item()),
+                "argmax_mismatches": details,
+                "accepted_mismatch_positions":
+                    (tokens_l != tokens_r).nonzero().cpu().tolist(),
+            }
+
         row = self.rows[-1]
         row["self_replay"] = {
             "metadata_changed_by_first_target": changed,
             "metadata_restored_exact": restored_metadata,
             "cache_restored": restored_pages,
-            "argmax_equal": int((first_argmax == second_argmax).sum().item()),
-            "argmax_total": int(first_argmax.numel()),
-            "counts_equal": int((first_counts == second_accept.num_sampled).sum().item()),
-            "counts_total": int(first_counts.numel()),
-            "accepted_equal": int((first_tokens == second_accept.sampled_token_ids).sum().item()),
-            "accepted_total": int(first_tokens.numel()),
-            "counts_first": first_counts.cpu().tolist(),
-            "counts_second": second_accept.num_sampled.cpu().tolist(),
+            "second_metadata_restored_exact": second_metadata_exact,
+            "second_cache_restored": second_restore,
+            "argmax_total": int(first_values[0].shape[0]),
+            "counts_total": int(first_values[2].numel()),
+            "accepted_total": int(first_values[3].numel()),
+            "ab": compare(first_values, second_values),
+            "ac": compare(first_values, third_values),
+            "bc": compare(second_values, third_values),
+            "counts": [values[2].cpu().tolist() for values in
+                       (first_values, second_values, third_values)],
         }
         (self.output_dir / f"rank{self.rank}.json").write_text(
             json.dumps({"rank": self.rank, "rows": self.rows}, indent=2) + "\n"
         )
         self.pending_snapshot = None
         self.pending_metadata = None
-        return second, second_accept
+        return third, third_accept
