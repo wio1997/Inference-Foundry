@@ -8,7 +8,9 @@ after that, this driver owns every decode-cycle transition.
 
 from __future__ import annotations
 
+import json
 import os
+import time
 from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Protocol
@@ -96,6 +98,18 @@ class ExtremeDecodeRuntime:
         self._diagnose = os.getenv("EXTREME_RUNTIME_DIAGNOSE") == "1"
         self._diagnose_limit = int(os.getenv("EXTREME_RUNTIME_TRACE_CYCLES", "1024"))
         self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
+        self._cycle_profile_dir = os.getenv("EXTREME_RUNTIME_CYCLE_PROFILE_DIR")
+        self._cycle_profile_start = int(os.getenv(
+            "EXTREME_RUNTIME_CYCLE_PROFILE_START", "64"))
+        self._cycle_profile_count = int(os.getenv(
+            "EXTREME_RUNTIME_CYCLE_PROFILE_COUNT", "2"))
+        if self._cycle_profile_dir and (
+            self._cycle_profile_start < 0 or self._cycle_profile_count < 1
+        ):
+            raise ValueError("invalid Extreme cycle profiler window")
+        self._cycle_profiler = None
+        self._cycle_profile_rank = None
+        self._cycle_profile_started_ns = None
         self.diagnostic_cycles = []
         self.diagnostic_events = []
         # Reuse the proven fixed-buffer preparation and state transition, not
@@ -111,8 +125,51 @@ class ExtremeDecodeRuntime:
             return record_function(name)
         return nullcontext()
 
+    def _profile_cycle_begin(self) -> None:
+        if (not self._cycle_profile_dir or
+                self.state.cycle_index != self._cycle_profile_start):
+            return
+        from torch_npu.profiler import (
+            ProfilerActivity, profile, tensorboard_trace_handler,
+        )
+        rank = (torch.distributed.get_rank()
+                if torch.distributed.is_initialized() else os.getpid())
+        self._cycle_profile_rank = rank
+        os.makedirs(self._cycle_profile_dir, exist_ok=True)
+        self._cycle_profiler = profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.NPU],
+            on_trace_ready=tensorboard_trace_handler(
+                dir_name=self._cycle_profile_dir,
+                worker_name=f"rank{rank}", analyse_flag=False,
+            ),
+            record_shapes=False, profile_memory=False, with_stack=False,
+        )
+        self._cycle_profile_started_ns = time.time_ns()
+        self._cycle_profiler.start()
+
+    def _profile_cycle_end(self) -> None:
+        if (self._cycle_profiler is None or
+                self.state.cycle_index !=
+                self._cycle_profile_start + self._cycle_profile_count):
+            return
+        self._cycle_profiler.stop()
+        path = os.path.join(
+            self._cycle_profile_dir,
+            f"rank{self._cycle_profile_rank}_window.json",
+        )
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump({
+                "rank": self._cycle_profile_rank,
+                "first_cycle": self._cycle_profile_start,
+                "cycle_count": self._cycle_profile_count,
+                "started_ns": self._cycle_profile_started_ns,
+                "stopped_ns": time.time_ns(),
+            }, handle, indent=2)
+        self._cycle_profiler = None
+
     @torch.inference_mode()
     def step(self) -> CycleResult:
+        self._profile_cycle_begin()
         diag = (
             {} if self._diagnose and len(self.diagnostic_cycles) < self._diagnose_limit
             else None
@@ -205,6 +262,7 @@ class ExtremeDecodeRuntime:
                 self.diagnostic_cycles.append(diag)
             if markers:
                 self.diagnostic_events.append(markers)
+            self._profile_cycle_end()
             return CycleResult(
                 cycle=self.state.cycle_index,
                 acceptance=acceptance_output,

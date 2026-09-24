@@ -21,3 +21,5 @@
 - `2026-09-24T13:52:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run104`（profile）。
 
 - `2026-09-24T13:54:42Z` Run `run104` 记录为 `invalid`；正确性为 `pass`。Legal c12 12x1024 cohort passed 12/12, but stop_profile RPC took 23 seconds despite intended 0.5-second window and generated oversized 8-rank raw trace. Target kernel attribution not parsed; no performance inference. Next instrumentation needs cycle-triggered bounded capture rather than HTTP timing.
+
+- `2026-09-24T14:23:03Z` 主控结论为 `PIVOTED`。Runs100-104 passed legal serving but HTTP profiler RPC activation/stop latency varied from immediate to 23 seconds, missing decode or generating 10+ GiB traces; no bounded eight-rank target attribution. The profiler control boundary must move into the Runtime cycle.

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-24T13:54:43Z",
+  "generated_at": "2026-09-24T14:26:06Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-037",
-    "next_action": "Build a bounded, legal one-cohort Runtime-only target profile using PROFILER_DIR and the existing scope markers; verify parser mapping before any code optimization.",
+    "active_loop": "loop-038",
+    "next_action": "Implement opt-in cycle-scheduled profiling in ExtremeDecodeRuntime and launch one legal cohort.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -374,22 +374,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-032",
-      "title": "Move DSpark host mirrors behind the proposer",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "For fixed c12 DSpark7, bootstrap CPU metadata plus a side-stream copy of the 12 acceptance counts can advance exact DSA host mirrors for the next cycle, eliminating the three-tensor synchronous refresh from the current proposer critical path without changing tokens, KV state, or rank parity.",
-      "verdict": "PIVOTED",
-      "reason": "The structural hypothesis is supported: real-weight correctness holds for 64 cycles, all runtime-owned host mirrors equal device state, and the matched profile shows the DSpark refresh barrier falling by 12.117 ms median with a 7.495 ms (-1.40%) full-cycle median reduction. TaskCtl cannot register an accepted optimization verdict because the already-recorded Loop031 profile Run omitted a metric field; the evidence comparison remains preserved explicitly and the implementation is retained.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260922_loop032_host_mirror/profile_comparison.json",
-        "/data/wio/Inference_Foundry/evidence/20260922_loop032_host_mirror/run3/burnin_summary.json"
-      ],
-      "decided_at": "2026-09-22T10:13:31Z"
-    },
-    {
       "loop_id": "loop-033",
       "title": "Own and replay the fixed target verification region",
       "mode": "optimization",
@@ -454,33 +438,48 @@
         "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run98/summary.json"
       ],
       "decided_at": "2026-09-24T13:12:32Z"
+    },
+    {
+      "loop_id": "loop-037",
+      "title": "Attribute the remaining target graph critical path",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "After static metadata removes the 8 ms sync, the fixed 96-token target graph still consumes about 46.56 ms/cycle. A runtime-only NPU trace can separate its exposed compute, communication, overlap, and gaps and identify a removable component large enough to make above-Stock throughput robust.",
+      "verdict": "PIVOTED",
+      "reason": "Runs100-104 passed legal serving but HTTP profiler RPC activation/stop latency varied from immediate to 23 seconds, missing decode or generating 10+ GiB traces; no bounded eight-rank target attribution. The profiler control boundary must move into the Runtime cycle.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260924_loop037_target/run104/summary.json"
+      ],
+      "decided_at": "2026-09-24T14:23:03Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-037",
-    "title": "Attribute the remaining target graph critical path",
+    "loop_id": "loop-038",
+    "title": "Capture a bounded target graph cycle trace",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "RUNNING",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "审查 Run run104 的证据，并判断是否需要更多 Run",
+    "next_action": "执行 Run run105：docker exec vllm-ascend26-dsv4f-w4a8 bash -lc /data/wio/Inference_Foundry/scripts/run_loop038_cycle_profile.sh",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-24T13:54:42Z"
+    "updated_at": "2026-09-24T14:26:06Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
