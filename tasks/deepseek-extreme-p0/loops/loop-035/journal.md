@@ -383,3 +383,11 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T08:55:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T090000Z`（test）。
 
 - `2026-09-24T09:13:06Z` Run `run-20260924T090000Z` 记录为 `pass`；正确性为 `pass`。Run88 strict Stock A/Product B/Stock C at continuous cycle128: all 8 ranks capture 67 cache views/69 entries and 76 metadata tensors, all restores exact. Argmax AB and Stock AC each 92/96; B-only slot2 first-token and accepted-count split remains inconclusive. Cache post-write mismatch counts AB 16,437,317 vs AC 16,443,266 under Stock self-replay floor.
+
+- `2026-09-24T09:14:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T092500Z`（test）。
+
+- `2026-09-24T09:29:39Z` Run `run-20260924T092500Z` 记录为 `invalid`；正确性为 `invalid`。Run89 reached Stock cycle128 but the five-pass diagnostic retained additional full KV post-write copies; comparison allocation of 1 GiB OOMed before rank records, so no semantic verdict. Fixed by comparing and releasing A/B/C post-write copies before B2/C2.
+
+- `2026-09-24T09:29:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T094000Z`（test）。
+
+- `2026-09-24T09:46:33Z` Run `run-20260924T094000Z` 记录为 `pass`；正确性为 `pass`。Run90 strict five-way same-state cycle128 replay passes all 8 ranks and 5 exact restores, 67 cache views, 76 metadata tensors. Only stable Product-only argmax is slot7,draft2: Stock A/C/C2 tie at 270 vs 4888; Product B/B2 select 4888 by 0.125. All changed argmax positions have top2 margins <=0.5 with Stock self variation. No high-margin semantic fork established; exact long-token parity remains open.

@@ -618,3 +618,25 @@ aggregate and raw mismatches cannot be ascribed to Product. Next obtain
 same-state repeated Stock and Product target samples with top-2 logits at
 the disputed coordinate, preserving this strict snapshot/restore gate.
 Evidence: evidence/20260924_loop035_diagnostic/run88/summary.json.
+
+## Loop035 Run89/90 bounded same-state repeat (2026-09-24 09:46 UTC)
+
+Run89 reached Stock cycle128 but the optional five-pass diagnostic retained
+additional full KV post-write copies and OOMed on a 1 GiB comparison
+allocation. It is invalid for semantic inference. Run90 compared and
+released A/B/C post-write copies before repeating the targets. On all eight
+ranks, Stock advanced 128 continuous cycles, strict snapshots covered all
+67 cache views (69 entries) and 76 metadata tensors, and all five restores
+were exact. Rank metrics were identical across ranks. Against Stock A,
+Product B matched 92/96 argmax positions and Stock C 93/96; Product B/B2
+matched 92/96 and Stock C/C2 94/96. The sole position where both Product
+replays agreed and all three Stock replays agreed on another token was
+request slot7, draft position2. Stock A/C/C2 tied tokens 270 and 4888 at
+top-2 logits; Product B/B2 selected 4888 by 0.125. All argmax disagreement
+positions had top-2 margins at most 0.5; Stock self-replay also changed
+tokens. This does not establish a high-margin Product semantic fork or exact
+long-run token parity. The real first question is numerical/tie behavior
+under the same captured state, not the fixed greedy acceptance algorithm.
+Keep formal A/B gated pending continuous semantics decision; no more
+standalone self-replay controls without a concrete new state hypothesis.
+Evidence: evidence/20260924_loop035_diagnostic/run90/summary.json.
