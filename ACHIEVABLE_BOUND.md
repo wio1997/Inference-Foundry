@@ -238,3 +238,17 @@ The failed v2 startup provides no numeric speedup bound because graph capture wa
 The c12 proposer inputs are structurally close to a fixed-address execution contract: every observed shape/stride is fixed and ten of twelve traced tensor fields already keep one address per rank. Two changing input allocations (`target_token_ids`, `target_positions`) are concrete state-layout work for a dedicated runtime. Exact 8-rank proposer replay shows that repeating the materialized operator/HCCL/KV segment is semantically stable at its draft-token output boundary.
 
 No time is added to the achievable gap. The synchronized 37.021 ms first-call and 31.102 ms replay medians do not isolate launch, metadata or compute savings, and the run did not compare accepted tokens or complete state mutation. A numeric bound requires a standalone or segmented replay with explicit state inputs, target verification/acceptance parity and matched timing against the oracle.
+
+## 2026-09-24 product-bound checkpoint
+
+The official mixed-workload achievable hardware throughput bound is still
+UNKNOWN. Run107’s synchronized, profiled target window reports median
+compute union39.932 ms, communication union11.547 ms, overlap1.292 ms and
+86 grouped-matmul kernel durations summing9.966 ms/cycle. These values are
+instrumented activity and summed task cost, not independently removable wall
+or a formal E2E lower bound. Run99’s valid571.681 tok/s establishes only the
+current implemented point relative to Stock543.655. A credible bound must
+separate required W4A8 target/DSpark work, per-rank HBM and HCCL traffic,
+critical-path waits and serving overhead under the frozen contract. Local
+Loop thresholds, including 15% over Stock, do not define the achievable
+limit or terminate optimization.

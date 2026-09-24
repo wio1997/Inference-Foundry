@@ -805,3 +805,18 @@ See `HANDOFF.md` and TaskCtl Loop036; avoid repeating Loop034/Run93.
 - Loop036 Run98: no-shadow static DAG profile passed 8×300 cycles and 12×1024 clients. Derived metadata event median 8.6730→0.6674 ms versus Run87 (-92.3%, -8.0056 ms); target46.560 ms, proposer6.391 ms. Single-cohort TPS diagnostic only; formal E2E pending.
 
 - Loop036 Run99 FORMAL: frozen warm-cache 48×32K→1024 c12 Extreme with static metadata, warmup plus three measured runs, all 48/48 length-exact and 128/128 rank/cohort pass. TPS 612.962/567.573/571.681, median571.681: +5.155% versus frozen Stock543.655, +8.806% versus Run93 Extreme525.417. First above-Stock same-protocol result; margin modest, target stage46.560 ms remains dominant. Full independent long-token identity limited by Stock numerical self-replay and AICPU metadata tail nondeterminism.
+
+## Product objective clarification (2026-09-24)
+
+The frozen DeepSeek V4 Flash W4A8 / 8×910B3 / DP1×TP8 / DSpark7 product
+contract governs all Loops. Correctness is a hard gate and repeatable formal
+same-protocol E2E is the final performance judge. The objective is to move
+Extreme as close as practicable to this model/hardware achievable limit by
+removing framework, Host, scheduler, communication, synchronization and
+execution waste. Generic framework flexibility has no independent value.
+Loop039’s 5 ms target-stage and 15%-over-Stock figures are local test gates,
+not the product objective or a stopping rule. Run99 formal median remains
+571.681 tok/s versus Stock543.655 (+5.155%); this is a milestone, not the
+performance ceiling. The credible full E2E hardware bound is still unknown.
+Next compare candidate value on the frozen workload, preserve correctness,
+and continue after any local KEEP if material reducible gap remains.

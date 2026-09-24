@@ -935,3 +935,16 @@ source/trace mapping, not proof that a replacement will save time. Exact
 runtime tensor shapes and a semantics-preserving faster backend are still
 unmeasured. TaskCtl Run108 PASS (design-check only), evidence:
 `evidence/20260924_loop039_gmm/run108/source_audit.json`.
+
+## Governing objective clarification (2026-09-24)
+
+User reaffirmed the frozen-product objective: DeepSeek V4 Flash W4A8 on
+8×Ascend 910B3, DP1×TP8, DSpark7; correctness is mandatory, and repeatable
+formal E2E is the final judge. Keep removing framework, Host, scheduling,
+communication, synchronization and execution redundancy until the product is
+as close as practicable to the credible hardware/model achievable limit.
+Do not preserve genericity or abstractions without product value. Loop039’s
+5 ms target-stage / 15%-over-Stock gate is a local falsifiable screen, not
+a terminal target; the grouped-matmul hypothesis can be rejected or outranked
+by a larger cross-module opportunity. The current credible whole-product
+hardware bound is unknown. Run99 remains the official571.681 tok/s result.
