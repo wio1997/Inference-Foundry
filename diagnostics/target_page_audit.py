@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import torch
@@ -17,6 +18,7 @@ class TargetPageAudit:
         self.rank = rank
         self.limit = limit
         self.rows = []
+        self.verify_compressor_operator = os.getenv("EXTREME_COMPRESSOR_SLOT_VERIFY") == "1"
         self.table_to_gid = {
             int(table.data_ptr()): gid
             for gid, (table, _mapping, _size) in enumerate(group_bindings)
@@ -125,6 +127,74 @@ class TargetPageAudit:
         return gid, kind, pages
 
     @torch.inference_mode()
+    def _operator_checks(self, source_cache):
+        if not self.verify_compressor_operator:
+            return []
+        from vllm_ascend.device.device_op import DeviceOperator
+
+        checked = {}
+        records = []
+        for name, (gid, kind, candidate_pages) in sorted(source_cache.items()):
+            if kind != "compressed_scatter":
+                continue
+            req = self.attn_metadata[name].req_metadata
+            ratio = self.ratio_by_gid[gid]
+            signature = (
+                int(req.block_table.data_ptr()),
+                int(req.start_pos.data_ptr()),
+                int(req.query_start_loc.data_ptr()),
+                int(req.block_size),
+                int(ratio),
+                int(req.num_compressed_tokens),
+                int(req.num_reqs_actual),
+            )
+            if signature in checked:
+                checked[signature]["source_layers"] += 1
+                continue
+            cos = req.full_compress_cos.view(
+                req.full_compress_cos.shape[0], req.full_compress_cos.shape[-1]
+            )
+            sin = req.full_compress_sin.view(
+                req.full_compress_sin.shape[0], req.full_compress_sin.shape[-1]
+            )
+            generated = torch.ops._C_ascend.compressor_metadata(
+                cos, sin, req.query_start_loc, req.start_pos, req.block_table,
+                req.block_size,
+                DeviceOperator.get_dsa_compressor_slot_mapping_format(),
+                ratio, req.num_compressed_tokens, req.num_reqs_actual,
+            )[2]
+            if generated.ndim == 2 and generated.shape[1] == 2:
+                physical_pages = generated[:, 0].to(torch.int64)
+            elif generated.ndim == 1:
+                physical_pages = torch.div(
+                    generated.to(torch.int64), int(req.block_size),
+                    rounding_mode="floor",
+                )
+            else:
+                raise RuntimeError(f"compressor slot output shape changed: {tuple(generated.shape)}")
+            valid = physical_pages[physical_pages >= 0]
+            actual_pages = set(torch.unique(valid).cpu().tolist())
+            candidate = set(torch.unique(candidate_pages).cpu().tolist())
+            missing = sorted(actual_pages - candidate)
+            extra = sorted(candidate - actual_pages)
+            record = {
+                "layer": name,
+                "gid": gid,
+                "ratio": ratio,
+                "source_layers": 1,
+                "generated_rows": int(physical_pages.numel()),
+                "valid_rows": int(valid.numel()),
+                "actual_pages": len(actual_pages),
+                "candidate_pages": len(candidate),
+                "missing_actual_pages": len(missing),
+                "extra_candidate_pages": len(extra),
+                "first_missing_pages": missing[:8],
+            }
+            checked[signature] = record
+            records.append(record)
+        return records
+
+    @torch.inference_mode()
     def observe(self, cycle):
         if cycle >= self.limit:
             return
@@ -150,6 +220,7 @@ class TargetPageAudit:
             pages_by_cache, strict=True, no_write_caches=no_write
         )
         coverage = snapshot.coverage()
+        operator_checks = self._operator_checks(source_cache)
         cache_names = set(self.cache_aliases)
         captured_cache_names = cache_names & set(coverage["captured_names"])
         row = {
@@ -160,6 +231,10 @@ class TargetPageAudit:
             "cache_views_certified_no_write": len(coverage["certified_no_write"]),
             "snapshot_entries": coverage["captured_rows"],
             "skipped": coverage["skipped"],
+            "operator_checks": operator_checks,
+            "operator_missing_actual_pages": sum(
+                item["missing_actual_pages"] for item in operator_checks
+            ),
             "page_count_min": min(int(x.numel()) for x in pages_by_cache.values()),
             "page_count_max": max(int(x.numel()) for x in pages_by_cache.values()),
             "page_count_sum": sum(int(x.numel()) for x in pages_by_cache.values()),
@@ -177,4 +252,8 @@ class TargetPageAudit:
         (self.output_dir / f"rank{self.rank}.json").write_text(
             json.dumps({"rank": self.rank, "rows": self.rows}, indent=2) + "\n"
         )
+        if row["operator_missing_actual_pages"]:
+            raise RuntimeError(
+                f"compressor operator wrote outside candidate pages: {row['operator_missing_actual_pages']}"
+            )
 
