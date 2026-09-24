@@ -323,3 +323,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T04:42:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T044500Z`（design-check）。
 
 - `2026-09-24T04:57:36Z` Run `run-20260924T044500Z` 记录为 `pass`；正确性为 `not-applicable`。8-rank one-time cache alias inventory: all 67 target cache tensors mapped; c4/c128 compressed groups0/1, SWA/draft2/3, compressor state4/5. Existing common slot snapshots cannot certify compressed write sets; exact write-set construction remains before ABA.
+
+- `2026-09-24T05:01:28Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T050000Z`（design-check）。
+
+- `2026-09-24T05:01:35Z` Run `run-20260924T050000Z` 记录为 `pass`；正确性为 `not-applicable`。Run74 source audit maps all 67 target cache tensors to actual write-address producers; generic group mappings cannot certify compressed KV or compressor state. Full ABA needs generated compressed slots and state pages plus metadata alias restoration.

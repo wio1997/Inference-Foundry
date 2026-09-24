@@ -456,3 +456,7 @@ A/Product B/Stock C. Run73 passed 12/12×1024 clients and 8/8 rank/Host gates;
 its TPS is diagnostic. Evidence:
 `evidence/20260924_loop035_diagnostic/run73/summary.json` and
 `evidence/20260924_loop035_diagnostic/run73/manifest_check.json`.
+
+## Loop035 Run74 write-set audit (2026-09-24 05:00 UTC)
+
+Source-backed physical writes: group0/1 compressed scatter slots come from compressor_metadata outputs, group2/3 SWA and DSpark slots from active req metadata, and group4/5 compressor state pages from start_pos plus state_block_table. The current strict snapshot validates supplied candidates but cannot certify compressed/state coverage from generic group slots. Before Stock A/Product B/Stock C, construct per-cache write candidates from active source metadata, verify all 67 physical caches and mutable aliases, and restore the four large metadata tensors omitted by Run66 or prove them immutable. Run74 is a design check only. See evidence/20260924_loop035_diagnostic/run74/write_set_audit.md.

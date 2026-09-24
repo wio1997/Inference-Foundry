@@ -701,3 +701,7 @@ A/Product B/Stock C. Run73 passed 12/12×1024 clients and 8/8 rank/Host gates;
 its TPS is diagnostic. Evidence:
 `evidence/20260924_loop035_diagnostic/run73/summary.json` and
 `evidence/20260924_loop035_diagnostic/run73/manifest_check.json`.
+
+## Loop035 Run74 source write-set audit (2026-09-24 05:00 UTC)
+
+The active DSA-CP/Ascend C source resolves Run73 cache groups to four physical write-address families: c4/c128 compressed scatter from compressor_metadata output (groups0/1), SWA target and DSpark draft slots (groups2/3), and uncompressed-position state pages from start_pos plus state_block_table (groups4/5). Ascend C WriteToCacheState iterates physical pages over each query interval and skips block ID zero. The generic group slot tensor is insufficient for groups0/1/4/5 even with strict snapshot mode. Run74 records the complete candidate construction and metadata alias gate for a Stock A/Product B/Stock C transaction. It is a source design check, not a new NPU or semantic result. Evidence: evidence/20260924_loop035_diagnostic/run74/write_set_audit.md.

@@ -447,3 +447,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run72: 285-cycle, 8-rank DSpark gid2/3 context write addresses exact throughout; 4,560 phase records, no invalid/duplicate/cross-request draft addresses, 12/12×1024. Target group consumption and Stock token/KV value parity pending. `evidence/20260924_loop035_diagnostic/run72/summary.json`.
 
 - Loop035 Run73: 8-rank cache alias manifests agree; all 67 target cache tensors mapped to c4/c128/SWA/compressor-state groups. Compressed write rows must be derived from active metadata before strict A/B/C. 12/12×1024, 8/8 rank/Host gates. `evidence/20260924_loop035_diagnostic/run73/summary.json`.
+
+- Loop035 Run74: source audit mapped all 67 target cache tensors to compressed scatter, SWA/DSpark, or compressor state write addresses; generic mappings cannot certify a full snapshot for groups0/1/4/5. No NPU validation or semantic claim. evidence/20260924_loop035_diagnostic/run74/write_set_audit.md.
