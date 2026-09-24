@@ -723,3 +723,14 @@ physical writes. Next use the actual layer-alias union and group block tables
 to select physical pages for a strict transactional snapshot. No new semantic
 or performance result follows from Run75/76.
 Evidence: evidence/20260924_loop035_diagnostic/run76/alias_check.json.
+
+## Loop035 Run77 page snapshot primitive (2026-09-24 05:35 UTC)
+
+RuntimeAssets now has strict snapshot_pages(pages_by_cache), which copies
+complete physical page rows per named tensor view plus all mutable tensor rows.
+It rejects omitted, empty, or out-of-bounds cache page sets and does not use
+the incorrect positional cache group mapping. A CPU shared-storage alias
+restore and rejection gate passed. This is only the transaction primitive;
+actual per-layer alias page candidates, live NPU restore, and Stock/Product
+oracle are still pending. Evidence:
+evidence/20260924_loop035_diagnostic/run77_page_snapshot.json.

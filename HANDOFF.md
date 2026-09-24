@@ -473,3 +473,12 @@ must not be used. Source write-address formulas still apply per actual layer
 alias. Next implement page-level strict snapshots from the union of each
 view actual layer aliases and block tables, then continuous Stock/Product
 oracle. evidence/20260924_loop035_diagnostic/run76/alias_check.json.
+
+## Loop035 Run77 strict page snapshot (2026-09-24 05:35 UTC)
+
+RuntimeAssets.snapshot_pages now accepts explicit physical page IDs for
+each named cache tensor view and snapshots full mutable rows. Synthetic
+shared-storage restore plus missing/out-of-range/empty rejection passed.
+It is not yet used by a live oracle. Next derive the per-view page union
+from all actual layer aliases and compressed/state/SWA write producers,
+then execute the strict NPU transaction.

@@ -452,3 +452,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 
 - Loop035 Run75 INVALID: diagnostic request asked for 64 tokens against the frozen 1024-token service; 8-rank one-time alias manifests were emitted before the failure. No inference result.
 - Loop035 Run76: offline alias check passed 8/8 rank structural equality and corrected prior cache ownership: 31/67 positional labels wrong, 42/67 views alias multiple groups, 67 views share 46 storage allocations. Run73 group counts are not a per-cache write-set certificate. evidence/20260924_loop035_diagnostic/run76/alias_check.json.
+
+- Loop035 Run77: strict page snapshot primitive passed a synthetic shared-storage restore and missing/out-of-range/empty rejection gate. This does not certify live target or DSpark write-set coverage. evidence/20260924_loop035_diagnostic/run77_page_snapshot.json.

@@ -157,6 +157,67 @@ class RuntimeAssets:
             result[name] = flat.index_select(0, selected.to(torch.int64)).clone()
         return result
 
+    def snapshot_pages(
+        self,
+        pages_by_cache: dict[str, torch.Tensor],
+        *,
+        strict: bool = True,
+    ) -> CacheSlotSnapshot:
+        """Clone complete physical pages selected by an external write-set proof.
+
+        A cache tensor may alias layers in several KV groups with different
+        logical block sizes. The caller must union the actual layer write pages
+        for each cache view. This method deliberately does not infer pages from
+        positional group slot specs.
+        """
+        self.assert_stable()
+        if self._caches[0].tensor.device.type == "npu":
+            torch.npu.synchronize()
+        expected = set(self._by_name)
+        supplied = set(pages_by_cache)
+        unknown = sorted(supplied - expected)
+        missing = sorted(expected - supplied)
+        if unknown or (strict and missing):
+            raise RuntimeError(
+                f"incomplete physical page manifest: unknown={unknown}, missing={missing}"
+            )
+        rows = []
+        skipped = []
+        for cache in self._caches:
+            if cache.name not in pages_by_cache:
+                continue
+            tensor = cache.tensor
+            if tensor.ndim == 0:
+                skipped.append({"name": cache.name, "reason": "scalar_cache"})
+                continue
+            pages = torch.unique(
+                pages_by_cache[cache.name].to(device=tensor.device, dtype=torch.int64).flatten()
+            )
+            if pages.numel() == 0:
+                skipped.append({"name": cache.name, "reason": "empty_page_set"})
+                continue
+            valid = (pages >= 0) & (pages < tensor.shape[0])
+            if not bool(valid.all()):
+                skipped.append({
+                    "name": cache.name,
+                    "reason": "page_out_of_bounds",
+                    "invalid_count": int((~valid).sum().item()),
+                })
+                pages = pages[valid]
+            if pages.numel():
+                rows.append((cache, pages, None, tensor.index_select(0, pages).clone()))
+        for mutable in self._mutable_tensors:
+            tensor = mutable.tensor
+            if tensor.ndim == 0:
+                raise RuntimeError(f"scalar mutable tensor cannot be page-restored: {mutable.name}")
+            indices = torch.arange(tensor.shape[0], device=tensor.device, dtype=torch.int64)
+            rows.append((mutable, indices, None, tensor.index_select(0, indices).clone()))
+        if strict and skipped:
+            raise RuntimeError(f"incomplete physical page snapshot: {skipped}")
+        if not rows:
+            raise RuntimeError("no physical pages captured")
+        return CacheSlotSnapshot(tuple(rows), tuple(skipped))
+
     def snapshot_slots(
         self,
         slot_mappings: torch.Tensor | list[torch.Tensor] | tuple[torch.Tensor, ...],

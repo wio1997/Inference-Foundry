@@ -335,3 +335,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T05:22:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T052500Z`（design-check）。
 
 - `2026-09-24T05:23:37Z` Run `run-20260924T052500Z` 记录为 `pass`；正确性为 `not-applicable`。Run76 8-rank alias inventory proves positional cache-slot group labels are invalid: 31/67 labels are outside actual alias groups, 42/67 cache views alias multiple groups, 67 views share 46 storage allocations. Prior Run73 group counts cannot certify physical write ownership or Run66 snapshot completeness.
+
+- `2026-09-24T05:25:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T053500Z`（test）。
+
+- `2026-09-24T05:26:06Z` Run `run-20260924T053500Z` 记录为 `pass`；正确性为 `pass`。Strict per-cache physical page snapshot passed synthetic CPU shared-storage restore, mutable restore, and missing/out-of-range/empty rejection. Live per-alias page manifest and NPU transactional ABA remain pending.
