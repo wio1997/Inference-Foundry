@@ -291,3 +291,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T02:02:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T020000Z`（test）。
 
 - `2026-09-24T02:16:41Z` Run `run-20260924T020000Z` 记录为 `pass`；正确性为 `not-applicable`。Run65 read-only reserved-serving KV slot audit: 8/8 ranks and 12/12 clients complete 1024 tokens; first all-rank mapping mismatch at cycle1 in groups0,2,4,5 (96/96 each), group3 exact, group1 unsupported geometry; consumption/semantics still unproven
+
+- `2026-09-24T02:21:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T022000Z`（test）。
+
+- `2026-09-24T02:34:22Z` Run `run-20260924T022000Z` 记录为 `pass`；正确性为 `not-applicable`。Run66 8/8 same-state reserved cycle0/1 A/B/C passed KV restore and Host gates. At cycle1 all-group slots changed 96/96 except group3; A/B argmax92/96 vs A/C91/96, accepted92/96 for both, so no candidate-specific direct target split. Large metadata snapshot exclusions remain; client TPS invalid due intentional sentinel.

@@ -298,3 +298,23 @@ operators consume SWA slot mappings; next map each group to live layer
 metadata and perform a same-state causal A/B/self-replay with exact cache
 restoration. Do not infer long token equivalence or rerun formal E2E yet.
 Evidence: `evidence/20260924_loop035_diagnostic/run65/summary.json`.
+
+## Loop035 Run66 slot-refresh same-state target control (2026-09-24 02:34 UTC)
+
+Run66 used valid 1088-token scheduler reservation and sampled product cycles0/1
+with target A/reference builder plus all-group slot refresh, B/native DSA
+metadata with the existing mappings, C/restored reference. All eight ranks
+passed touched physical KV restores, no skipped cache rows, state advance and
+Host mirrors. At cycle1, reference refresh changed all 96 mappings in groups
+0/1/2/4/5 and none in group3. A/B argmax matched 92/96, versus A/C
+self-replay 91/96; accepted tokens matched 92/96 for both comparisons. At
+cycle0, when no slots changed, A/B argmax was 93/96 versus A/C 90/96.
+The candidate therefore has no clear direct target/acceptance signal beyond
+reference self-replay noise in these two cycles. Four large metadata tensors
+were omitted from metadata snapshots, so full mutable-state equivalence is
+not certified. The diagnostic intentionally terminated client streams and
+has no TPS validity. Continue with a dedicated continuous two-lane
+state/KV-write trajectory check, especially the DSpark context cache and
+physical ownership. Do not promote all-group slot refresh as a semantic fix
+from Run65 or Run66. Evidence:
+`evidence/20260924_loop035_diagnostic/run66/summary.json`.
