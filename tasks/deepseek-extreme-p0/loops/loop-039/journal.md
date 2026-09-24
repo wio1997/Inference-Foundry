@@ -37,3 +37,15 @@
 - `2026-09-24T17:36:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run116`（design-check）。
 
 - `2026-09-24T17:37:13Z` Run `run116` 记录为 `pass`；正确性为 `not-applicable`。Independent Sol recomputation over 15 valid synchronized Run107 windows: median GMM kernel sum 9.96625 ms, communication union outside compute overlap 10.2475 ms, and non-GMM compute-union lower bound 29.97925 ms. GMM remains bounded candidate, not proven highest value. Run115 provides static [576,4096]/32 expert shape envelope but no live counts. Requested Astra Medium second view had no independently observable model ID and is advisory only. No product benchmark or Runtime mutation.
+
+- `2026-09-24T23:41:38Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run117`（profile）。
+
+- `2026-09-24T23:44:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run118`（profile）。
+
+- `2026-09-24T23:46:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run119`（design-check）。
+
+- `2026-09-24T23:46:47Z` Run `run117` 记录为 `pass`；正确性为 `not-applicable`。Synchronized Run107 first reduce-scatter across eight ranks: cycle64 start skew20.533ms/end skew0.010ms, cycle65 start skew9.370ms/end skew0.017ms. Earlier ranks wait inside same collective, so measured communication union is not directly removable transfer time. Diagnostic synchronization may amplify skew.
+
+- `2026-09-24T23:46:47Z` Run `run118` 记录为 `pass`；正确性为 `not-applicable`。Unsynchronized Run106 confirms first collective peer-wait signature: two profiled cycles start skew10.193/9.735ms and end skew0.0065/0.01175ms. Prepare_target entry already has9.637/10.510ms rank skew; cycle64 proposer-end skew10.466ms propagates to next prepare entry10.510ms. Profiled cycles only; do not generalize proposer duration to steady product.
+
+- `2026-09-24T23:46:47Z` Run `run119` 记录为 `pass`；正确性为 `not-applicable`。Eight-rank steady Run98 cycles64-255 show target median46.575ms and proposer6.400ms, DSpark model5.987ms. Formal Run99 cohort wall median57.044ms/cycle is consistent. Thus profiled first-collective wait is not a demonstrated ~10ms intrinsic communication opportunity; prioritize bounded target GMM candidate over HCCL transfer tuning, while preserving whole-stage correctness and measurement gates.

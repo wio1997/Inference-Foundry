@@ -1057,3 +1057,26 @@ to discriminating evidence and Sol's own decision. Stop only for the
 specific external, user-information, irresolvable architecture, material-risk,
 or forced-runtime conditions recorded in AGENTS.md. Product objective,
 model division, correctness and formal E2E standards are unchanged.
+
+## Loop039 Runs117-119 communication versus GMM adjudication (2026-09-25)
+
+Run117 shows the first target reduce-scatter in synchronized Run107 has
+20.533/9.370 ms start skew across ranks for cycles64/65, but only
+0.010/0.017 ms end skew. Early ranks wait for late arrivals inside the
+collective; measured HCCL duration is not intrinsic transfer cost.
+Run118 finds the same signature in Run106 without target synchronization:
+first-collective start skew10.193/9.735 ms and end skew0.0065/0.01175 ms.
+Rank skew is already present at prepare_target entry
+(9.637/10.510 ms), before target execution. The cycle64 proposer-end
+skew10.466 ms propagates to the next prepare entry10.510 ms, but these
+two profiled cycles cannot establish a steady product proposer cost.
+
+Run119 corrects that inference with eight-rank Run98 steady cycles64-255:
+target event median46.575 ms, proposer6.400 ms, DSpark model5.987 ms.
+Formal Run99 cohort wall median57.044 ms/cycle is consistent with this
+scale. Sol decision: the exposed-communication ~10 ms from Run107 is a
+peer-wait symptom in diagnostic windows, not a demonstrated independent
+HCCL transfer opportunity. Keep target GMM as the next bounded
+semantics-preserving candidate; do not assume its ~9.97 ms kernel sum can
+all be removed. The larger non-GMM target compute remains under review.
+No new E2E was run. TaskCtl Runs117-119 PASS as profile/design audits.
