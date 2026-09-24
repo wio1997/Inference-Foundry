@@ -619,3 +619,20 @@ concrete stale-address path and its sustained acceptance cost. It does not
 certify target writes or long token-level oracle equivalence. Next perform
 strict continuous KV ownership/write trajectory and Stock self-replay control
 before formal E2E. Evidence: `evidence/20260924_loop035_diagnostic/run69/summary.json`.
+
+
+## Loop035 Run70 refreshed context-write slot control (2026-09-24 03:59 UTC)
+
+Run70 repeated the Run69 read-only context-slot observer with only the
+Runtime draft slot refresh enabled. Across cycles0–7, both gid2 and gid3
+actual DSpark context-scatter slots matched their current block-table-derived
+physical slots in all 96 positions on all 8 ranks. Gid2 source refresh
+changed 96 slots each cycle from cycle1; no sampled physical block was zero.
+The cohort passed 12/12 exact 1024-token clients and 8/8 rank/Host gates,
+using 295 cycles and 473.02 diagnostic tok/s. Matched observer Run69 flag-off
+needed 458 cycles and 341.43 diagnostic tok/s, with stale gid2 context slots
+at cycles1–7. Thus the context write-address path and its acceptance effect
+are established for the sampled early cycles. Full continuous KV state and
+long token-level Stock oracle equivalence remain open. Formal 48-request A/B
+must wait for that gate. Evidence:
+`evidence/20260924_loop035_diagnostic/run70/summary.json`.

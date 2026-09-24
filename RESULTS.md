@@ -439,3 +439,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run68: same-code DSpark slot-refresh flag-off two-cohort control passed 12/12×1024 and 8/8 ranks each, 458/423 cycles and 342.17/410.12 diagnostic tok/s. Run67 flag-on was 300/325 cycles and 467.92/484.46. Semantic oracle pending. `evidence/20260924_loop035_diagnostic/run68/summary.json`.
 
 - Loop035 Run69: actual DSpark context-scatter slot input copied stale gid2 mapping on cycles1–7, 96/96 per rank, all 8 ranks; gid3 matched. 12/12×1024, 8/8 rank/Host gates. Long semantic oracle pending. `evidence/20260924_loop035_diagnostic/run69/summary.json`.
+
+- Loop035 Run70: flag-on DSpark context-scatter slots matched current physical slots for gid2/3, 96/96 across cycles0–7 on all 8 ranks. 12/12×1024, 8/8 rank/Host gates, 295 cycles/473.02 diagnostic tok/s vs matched flag-off Run69 458/341.43. Long token oracle pending. `evidence/20260924_loop035_diagnostic/run70/summary.json`.
