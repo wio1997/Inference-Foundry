@@ -724,7 +724,7 @@ to select physical pages for a strict transactional snapshot. No new semantic
 or performance result follows from Run75/76.
 Evidence: evidence/20260924_loop035_diagnostic/run76/alias_check.json.
 
-## Loop035 Run77 page snapshot primitive (2026-09-24 05:35 UTC)
+## Loop035 Run77 page snapshot primitive (2026-09-24 05:26 UTC)
 
 RuntimeAssets now has strict snapshot_pages(pages_by_cache), which copies
 complete physical page rows per named tensor view plus all mutable tensor rows.
