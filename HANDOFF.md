@@ -357,3 +357,20 @@ not promote a semantic fix or run formal 48-request A/B yet. Next inspect
 continuous DSpark KV write ownership and full-state snapshots, then use a
 strict long-trajectory oracle with Stock self-replay. Evidence:
 `evidence/20260924_loop035_diagnostic/run68/summary.json`.
+
+
+## Loop035 Run69 DSpark context-write slot provenance (2026-09-24 03:45 UTC)
+
+A dedicated read-only Runtime observer captured the actual DSpark context-slot
+buffer after proposal in a flag-off 12×32K→1024 reserved-serving cohort. All
+12 clients and 8 ranks passed exact-length/Host gates, with 458 cycles. At
+cycle0 both draft groups matched the current block tables. At cycles1–7,
+gid2 context slots differed from the current physical slot in 96/96 entries
+on every rank, and matched the stale source mapping 96/96; gid3 remained
+exact. No sampled draft physical block was zero or negative. The DSpark source
+passes this context buffer to `precompute_and_store_context_kv`, which scatters
+shared SWA KV using those slots. Combined with Run67/68, this establishes a
+concrete stale-address path and its sustained acceptance cost. It does not
+certify target writes or long token-level oracle equivalence. Next perform
+strict continuous KV ownership/write trajectory and Stock self-replay control
+before formal E2E. Evidence: `evidence/20260924_loop035_diagnostic/run69/summary.json`.
