@@ -51,6 +51,7 @@ class DSparkHandoffInputs:
     attn_state: Any
     decode_token_per_req: Any
     refresh_common: Callable[[FixedDecodeState, Any], None]
+    group_slot_bindings: tuple[tuple[int, torch.Tensor, torch.Tensor, int], ...] = ()
 
 
 class _DP1RunnerShim:
@@ -91,6 +92,18 @@ class DirectDSparkHandoff:
         self.sampling_metadata = inputs.sampling_metadata
         self.target_model_batch_desc = inputs.target_model_batch_desc
         self.refresh_common = inputs.refresh_common
+        self._group_slot_bindings = inputs.group_slot_bindings
+        self._refresh_draft_slots = os.getenv("EXTREME_DSPARK_SLOT_REFRESH") == "1"
+        self.slot_refresh_audit: list[dict[str, object]] = []
+        if self._refresh_draft_slots:
+            expected_gids = {group.kv_cache_group_id for group in inputs.proposer.draft_attn_groups}
+            bound_gids = {gid for gid, _, _, _ in self._group_slot_bindings}
+            if expected_gids != bound_gids:
+                raise ValueError(f"draft slot bindings {bound_gids} != {expected_gids}")
+            for gid, _, mapping, _ in self._group_slot_bindings:
+                actual = inputs.proposer._per_group_slot_mappings[gid]
+                if actual.data_ptr() != mapping.data_ptr():
+                    raise RuntimeError(f"draft group {gid} slot mapping lost bootstrap alias")
         self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
         self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
         self.dag_events: list[list[tuple[str, Any]]] = []
@@ -266,6 +279,27 @@ class DirectDSparkHandoff:
             checks.append(torch.equal(mirror[:batch], computed))
         return all(checks)
 
+    @torch.inference_mode()
+    def _refresh_draft_context_slots(self, state: FixedDecodeState) -> None:
+        if not self._refresh_draft_slots:
+            return
+        positions = state.target_positions.view(self.config.batch_size, 8).to(torch.int64)
+        requests = torch.arange(self.config.batch_size, device=positions.device).unsqueeze(1)
+        for gid, table, mapping, block_size in self._group_slot_bindings:
+            logical = torch.div(positions, block_size, rounding_mode="floor")
+            if state.cycle_index < 8 and bool((logical < 0).any() or (logical >= table.shape[1]).any()):
+                raise RuntimeError(f"draft group {gid} block table outside reserved range")
+            blocks = table[requests, logical].to(torch.int64)
+            if state.cycle_index < 8 and bool((blocks < 0).any()):
+                raise RuntimeError(f"draft group {gid} has negative physical block")
+            expected = (blocks * block_size + positions.remainder(block_size)).flatten()
+            changed = int((mapping[:96].to(torch.int64) != expected).sum().item()) if state.cycle_index < 8 else None
+            mapping[:96].copy_(expected.to(mapping.dtype))
+            if changed is not None:
+                self.slot_refresh_audit.append({"cycle": state.cycle_index, "gid": gid,
+                                                "changed": changed,
+                                                "zero_blocks": int((blocks == 0).sum().item())})
+
     def execute(
         self,
         state: FixedDecodeState,
@@ -299,6 +333,8 @@ class DirectDSparkHandoff:
         with self._scope("extreme::dspark_refresh_common"):
             self.refresh_common(state, self.common_attn_metadata)
         mark("refresh_common")
+        with self._scope("extreme::dspark_context_slots"):
+            self._refresh_draft_context_slots(state)
         with self._scope("extreme::dspark_prepare_inputs"):
             (
                 common,
