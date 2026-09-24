@@ -416,3 +416,18 @@ cycles, including target and proposer; it is a candidate family rather than
 a measured target-only removable bound. Compute/communication overlap requires
 correlation-aware attribution. Source:
 evidence/20260924_loop038_cycle/run106/attribution.json.
+
+## Loop038 Run107 synchronized target graph attribution
+
+Under a two-cycle opt-in profiler/synchronization window, 15 canonical target
+windows across eight TP ranks contain2,836 kernels/cycle. The target device
+interval union median is50.281 ms, comprising compute union39.932 ms and
+communication union11.547 ms with1.292 ms overlap. Communication union varies
+5.085–25.923 ms across rank/cycle; compute union is stable39.480–40.232 ms.
+The W4A8 grouped-matmul family executes86 kernels/cycle and sums9.966 ms
+(median), about25% of the compute union; this is a high-value operator
+candidate but its summed kernel time is only an upper limit on removable
+critical-path time. One rank1 cycle65 window had143 extra kernels and is
+excluded. Profiler/sync perturbs latency; unprofiled Run98 target event median
+46.560 ms remains the comparable stage baseline. Evidence:
+evidence/20260924_loop038_cycle/run107/target_window.json.

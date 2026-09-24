@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-24T14:55:22Z",
+  "generated_at": "2026-09-24T15:17:37Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-038",
-    "next_action": "Implement opt-in cycle-scheduled profiling in ExtremeDecodeRuntime and launch one legal cohort.",
+    "active_loop": "loop-039",
+    "next_action": "Read borrowed target grouped-matmul implementation and trace 86 calls to exact layer, shape, dtype and backend; rank candidate substitutions by device bound.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -110,7 +110,7 @@
     }
   ],
   "knowledge_summary": {
-    "total": 11,
+    "total": 12,
     "selected": [
       {
         "id": "dspark-host-mirror-barrier-20260922",
@@ -369,26 +369,37 @@
         "staged_at": "2026-09-24T13:12:32Z",
         "verdict": "PIVOTED",
         "updated_at": "2026-09-24T13:12:32Z"
+      },
+      {
+        "id": "loop038-target-graph-compute-profile",
+        "kind": "fact",
+        "statement": "In a synchronized two-cycle legal c12 TP8 target trace, 15 canonical target windows across all eight ranks contain 2836 kernels each; target device union median is 50.281 ms, compute union 39.932 ms, communication union 11.547 ms, overlap 1.292 ms, and 86 grouped-matmul kernels sum 9.966 ms per cycle. These are diagnostic upper bounds under profiler/synchronization overhead, not formal E2E gains.",
+        "status": "limited",
+        "confidence": "high",
+        "scope": {
+          "model": "DeepSeek-V4-Flash-W4A8",
+          "hardware": "8x910B3",
+          "batch": 12,
+          "tp": 8,
+          "cycles": [
+            64,
+            65
+          ]
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260924_loop038_cycle/run107/target_window.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "loop-038",
+        "staged_at": "2026-09-24T15:17:36Z",
+        "verdict": "PIVOTED",
+        "updated_at": "2026-09-24T15:17:37Z"
       }
     ]
   },
   "recent_loops": [
-    {
-      "loop_id": "loop-033",
-      "title": "Own and replay the fixed target verification region",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The dominant 96-token target region can be captured or replayed from Extreme-owned fixed buffers and metadata without the generic ModelRunner, preserving mutable KV/DSA semantics while eliminating eager Python launch and the current CUDAGraphMode.NONE/skip_compiled restriction.",
-      "verdict": "ACCEPTED",
-      "reason": "Matched 64-cycle real-weight runs establish both correctness and causality. Reusing the fixed target graph from Extreme-owned buffers preserves exact state/mirror/rank invariants and cuts cycle wall 87.71%, raising internal decode-window throughput 669.2%, with no ModelRunner or Scheduler retained in the cycle.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260922_loop033_target_replay/run2/summary_burnin.json",
-        "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-033/comparisons.jsonl"
-      ],
-      "decided_at": "2026-09-22T10:44:21Z"
-    },
     {
       "loop_id": "loop-034",
       "title": "Serve fixed 48-request cohorts through Extreme Runtime",
@@ -453,33 +464,48 @@
         "/data/wio/Inference_Foundry/evidence/20260924_loop037_target/run104/summary.json"
       ],
       "decided_at": "2026-09-24T14:23:03Z"
+    },
+    {
+      "loop_id": "loop-038",
+      "title": "Capture a bounded target graph cycle trace",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "Starting and stopping torch_npu.profiler on a Runtime cycle schedule can capture a few steady 96-token target cycles on all eight TP ranks without unstable HTTP RPC timing; bounded traces can expose target compute, HCCL overlap and gaps.",
+      "verdict": "PIVOTED",
+      "reason": "Cycle-scheduled profiling met the technical attribution goal in Run107: legal 8-rank cohort and 15 canonical synchronized target windows isolate 2836 kernels/cycle and quantify compute, communication, overlap, and a 9.966 ms grouped-matmul family. Run105 invalid launcher remains preserved, so the mixed-history Loop is pivoted; forced synchronization makes performance diagnostic only.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260924_loop038_cycle/run107/target_window.json"
+      ],
+      "decided_at": "2026-09-24T15:17:37Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-038",
-    "title": "Capture a bounded target graph cycle trace",
+    "loop_id": "loop-039",
+    "title": "Reduce target MoE grouped matmul cost",
     "mode": "optimization",
-    "status": "RUNNING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "执行 Run run107：docker exec vllm-ascend26-dsv4f-w4a8 bash -lc /data/wio/Inference_Foundry/scripts/run_loop038_cycle_profile_sync.sh",
+    "next_action": "Read borrowed target grouped-matmul implementation and trace 86 calls to exact layer, shape, dtype and backend; rank candidate substitutions by device bound.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-24T14:55:22Z"
+    "updated_at": "2026-09-24T15:17:37Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-038/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

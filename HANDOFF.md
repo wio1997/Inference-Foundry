@@ -897,3 +897,28 @@ No target-only optimization bound is established yet. The single-cohort
 Evidence: evidence/20260924_loop038_cycle/run106/attribution.json. A next
 pass must link graph kernels to the target replay or use NPU event stage
 boundaries before choosing a kernel edit. Service was stopped after Run106.
+
+## Loop038 Run107 synchronized target window (2026-09-24)
+
+Run107 completed a legal 12×1024 c12 cohort, 12/12 exact-length requests,
+8/8 Runtime pass, 301 cycles/rank. Only cycles64–65 used NPU synchronize
+around target, so client 494.03 tok/s is diagnostic and cannot be compared
+with Stock. All eight cycle64 traces have exactly 2,836 target kernels;
+rank1 cycle65 includes an extra 143 and was excluded. In 15 canonical
+windows the median target device interval union is50.281 ms, compute union
+39.932 ms, communication union11.547 ms, compute/communication overlap
+1.292 ms. The 86 grouped-matmul kernels sum9.966 ms/cycle (kernel sums
+are not additive across streams). This provides a bounded candidate with
+roughly 10 ms/cycle upper limit, not an achieved saving. Raw profiles are
+about5 MB/rank, parsed successfully. Evidence:
+`evidence/20260924_loop038_cycle/run107/target_window.json`.
+
+Loop038 technical attribution goal is met and TaskCtl verdict is PIVOTED
+because the invalid Run105 launcher remains in its history. Loop039 is
+active: inspect actual W4A8 target grouped-matmul call sites/shapes and
+backend alternatives, establish same-state eight-rank correctness, then
+measure stage reduction before any formal 48-request E2E. Current accepted
+formal product result remains Run99 median571.681 tok/s, +5.155% vs Stock;
+no new formal E2E or Stock baseline was run. Service was stopped and NPUs
+are idle after Run107. The last agent work used the default Sol main role;
+no Astra or Zcode call was made in Loops037–038.
