@@ -688,3 +688,44 @@ Evidence: evidence/20260924_loop035_formal/run93/summary.json and
 tasks/deepseek-extreme-p0/loops/loop-035/comparisons.jsonl.
 Next optimization should test the dedicated target/metadata critical path
 with a frozen correctness gate, not resume generic ModelRunner patches.
+
+## Loop036 Run94 invalid control and requested pause (2026-09-24 11:17 UTC)
+
+After Loop035 Run93, Loop036 was frozen to remove the per-cycle
+`local_seq_lens.max().item()` sync from the dedicated target metadata updater.
+A source audit in `tasks/deepseek-extreme-p0/loops/loop-036/doc/source_audit.md`
+found that the two scalar max-K attributes only feed fallback branches when
+actual per-request length tensors are absent. The opt-in
+`EXTREME_TARGET_METADATA_STATIC_KV_MAX=1` candidate sets the scalar attrs
+to 1; `EXTREME_TARGET_METADATA_SHADOW=1` compares the generated SAS/QLI
+metadata with the old dynamic call. Both flags default off, so Run93 behavior
+is untouched.
+
+Run94 attempted a 12-request 2048-token continuous shadow to cover 256 live
+cycles, but the installed Extreme serving contract explicitly rejects
+`max_tokens != 1024` at `model_runner_v1.py:3379`. The service exited with
+that ValueError/EngineDeadError before any metadata shadow marker. TaskCtl
+marks Run94 INVALID; 11/12 client success in the partial bench is not a
+correctness or performance result. No shadow parity or stage timing claim
+exists yet. The prepared `scripts/run_loop036_metadata_profile.sh` is not
+executed. Next session should either construct a 1024-token-valid continuous
+control (cohort shape may change before cycle256) or an explicitly diagnostic
+guard bypass, then verify 8-rank metadata parity before measuring the static
+path. Do not repeat Loop034 or Run93 formal E2E until there is a validated
+structural improvement.
+
+The user requested that work stop after Run94 and resume in a new dialogue.
+At handoff no benchmark or vLLM service remains running. The current heartbeat
+automation must be paused. Agent routing: an external/concurrent uncommitted edit to root
+`AGENTS.md` appeared at 11:12:54 UTC during Run94. Its current text names
+GPT-6 Sol as primary, Astra Medium/High as optional independent perspectives,
+and DeepSeek/Zcode for bounded verifiable work, including complex tasks when
+clearly scoped. `docs/agent_orchestration.md` still describes only low-risk
+read-only Zcode tasks; reconcile these documents in the next session after
+checking who owns the concurrent `AGENTS.md` edit. Earlier default-model
+change alone did not implement actual routing; `scripts/delegate_zcode.py`
+was subsequently added. Run85 really invoked `deepseek/deepseek-flash`
+through Zcode (return code 124 after 180 s timeout); no DeepSeek conclusion
+was accepted. TaskCtl records state, not model dispatch. No subagent was
+called in this Loop036 session. Do not stage the concurrent `AGENTS.md`
+working-tree change as part of the Loop036 commit.

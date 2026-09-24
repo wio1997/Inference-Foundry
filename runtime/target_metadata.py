@@ -8,6 +8,7 @@ stable addresses consumed by the bound target for the c12 x 8-token TP8 path.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from typing import Callable
 
 import torch
@@ -84,6 +85,11 @@ class FixedTargetMetadataUpdater:
         self._device = query_start_loc.device
         self._tp_rank = tp_rank
         self._tp_size = tp_size
+        self._static_kv_max = os.getenv("EXTREME_TARGET_METADATA_STATIC_KV_MAX") == "1"
+        self._shadow_dynamic = os.getenv("EXTREME_TARGET_METADATA_SHADOW") == "1"
+        self._shadow_checks = 0
+        if self._shadow_dynamic and not self._static_kv_max:
+            raise ValueError("metadata shadow requires the static KV bound")
         tokens_per_rank = (self.target_tokens + tp_size - 1) // tp_size
         self.local_start = tp_rank * tokens_per_rank
         self.local_end = self.local_start + tokens_per_rank
@@ -113,7 +119,15 @@ class FixedTargetMetadataUpdater:
             (state.target_seq_lens - self._local_offset).clamp_min(0),
             torch.zeros_like(state.target_seq_lens),
         ))
-        max_local_seq_len = max(1, int(self.local_seq_lens.max().item()))
+        # Both operators receive actual KV lengths in this fixed path. Their
+        # scalar max is a fallback only when the length tensor is absent.
+        # Keep the dynamic value for an opt-in exact shadow, never on the
+        # measured static path.
+        dynamic_kv_max = (
+            max(1, int(self.local_seq_lens.max().item()))
+            if not self._static_kv_max or self._shadow_dynamic else None
+        )
+        max_local_seq_len = 1 if self._static_kv_max else dynamic_kv_max
         for binding in self.rotary:
             cos = binding.full_cos.index_select(0, state.target_positions.long())
             sin = binding.full_sin.index_select(0, state.target_positions.long())
@@ -143,7 +157,7 @@ class FixedTargetMetadataUpdater:
                 group.swa_slot_mapping[:96].copy_(formatted.to(group.swa_slot_mapping.dtype))
             ratio = group.ratio
             if ratio not in seen_sas:
-                sas = self.ops.sas(
+                sas_args = dict(
                     device=self.ops.device_name,
                     num_heads_q=self.ops.num_heads,
                     num_heads_kv=1,
@@ -167,6 +181,14 @@ class FixedTargetMetadataUpdater:
                     **({"cmp_mask_mode": 3} if ratio > 1 else {}),
                     **({"cmp_topk": self.ops.index_topk} if ratio == 4 else {}),
                 )
+                sas = self.ops.sas(**sas_args)
+                if self._shadow_dynamic:
+                    sas_args["max_seqlen_kv"] = dynamic_kv_max
+                    sas_dynamic = self.ops.sas(**sas_args)
+                    if not torch.equal(sas[:1024], sas_dynamic[:1024]):
+                        raise AssertionError(
+                            f"SAS metadata static/dynamic mismatch: ratio={ratio}"
+                        )
                 group.sas_metadata[:1024].copy_(sas[:1024])
                 seen_sas.add(ratio)
             else:
@@ -174,7 +196,7 @@ class FixedTargetMetadataUpdater:
                 group.sas_metadata[:1024].copy_(source[:1024])
             if ratio == 4 and group.qli_metadata is not None:
                 if ratio not in seen_qli:
-                    qli = self.ops.qli(
+                    qli_args = dict(
                         actual_seq_lengths_query=self.local_query_start_loc[1:].clone(),
                         actual_seq_lengths_key=self.local_seq_lens.clone(),
                         num_heads_q=self.ops.index_n_heads,
@@ -194,8 +216,22 @@ class FixedTargetMetadataUpdater:
                         cmp_ratio=4,
                         device=self.ops.device_name,
                     )
+                    qli = self.ops.qli(**qli_args)
+                    if self._shadow_dynamic:
+                        qli_args["max_seqlen_k"] = dynamic_kv_max
+                        qli_dynamic = self.ops.qli(**qli_args)
+                        if not torch.equal(qli[:1024], qli_dynamic[:1024]):
+                            raise AssertionError("QLI metadata static/dynamic mismatch")
                     group.qli_metadata[:1024].copy_(qli[:1024])
                     seen_qli.add(ratio)
                 else:
                     source = next(g.qli_metadata for g in self.groups if g.ratio == ratio)
                     group.qli_metadata[:1024].copy_(source[:1024])
+        if self._shadow_dynamic:
+            self._shadow_checks += 1
+            if self._shadow_checks in (1, 64, 128, 256):
+                print(
+                    f"EXTREME_METADATA_SHADOW rank={self._tp_rank} "
+                    f"checks={self._shadow_checks} pass=1",
+                    flush=True,
+                )

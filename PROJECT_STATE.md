@@ -779,3 +779,24 @@ formal E2E remains gated. See HANDOFF.md and Run84 summary.
 - Loop035 bounded semantic gate: Run92 strict five-way cycle256 on an extended-cap Stock diagnostic passes 8 ranks/all restores, no stable Product-only argmax, accepted Product B vs Stock A 96/96 versus Stock AC 92/96; every disagreement margin <=0.25. Run85 exact same-input acceptance, Run72/84 continuous write-address coverage and Run67 causal DSpark slot fix support formal performance reevaluation. Exact independent long-token identity remains unproven. Run91 1024-cap late oracle invalid because Stock c12 shape ended before cycle256.
 
 - Loop035 formal Run93: fixed 48x32K-to-1024 c12 warm-cache Extreme 48/48 exact outputs on all three official runs, median 525.417 tok/s (samples 517.880/525.417/534.744). +141.747% versus Loop034 Extreme 217.342; 3.355% below frozen Stock 543.655. All 128 rank/cohort rows pass with zero post-handoff ModelRunner/Stock oracle target calls; rank0 median cycles 1025 to300.5, staged tokens/slot/cycle 1.194 to3.427. Remaining measured serial stages: target47.702 ms, derived metadata8.673 ms, proposer6.359 ms. P0 objective remains open. evidence/20260924_loop035_formal/run93/summary.json.
+
+## Update 2026-09-24 11:17 UTC — Loop035 formal milestone and Loop036 paused
+
+Loop035 Run93 is the accepted formal Extreme result: 48/48 × 1024 in each of
+three warmed 48-request runs; output TPS 517.880 / 525.417 / 534.744,
+median 525.417. This is 2.417× Loop034 Extreme 217.342 and 3.355% below
+frozen Stock 543.655. Continuous semantic/acceptance controls Run85/90/92
+passed bounded gates; exact independent long-token equivalence remains
+unproven due Stock self-replay numerical ties. Run87's largest measured
+serial stages are target 47.702 ms/cycle and derived target metadata
+8.673 ms/cycle.
+
+Loop036 investigates the updater's per-cycle `max().item()` NPU-to-host
+synchronization. Source audit supports a static scalar max-K fallback value
+when actual length tensors are passed, but the candidate is opt-in and NOT
+validated. Run94, intended as a 256-cycle 8-rank exact metadata shadow,
+was INVALID because its 2048-token request violated the serving hard guard
+`max_tokens=1024`. It produced no shadow parity markers. No Run95 profile
+or further formal E2E has run. User requested stop after this Run and resume
+from a new dialogue. No benchmark/service is active at this checkpoint.
+See `HANDOFF.md` and TaskCtl Loop036; avoid repeating Loop034/Run93.
