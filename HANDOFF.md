@@ -732,3 +732,12 @@ called in this Loop036 session. The user explicitly requires every subsequent
 Run record, TaskCtl resume state, HANDOFF update and necessary small evidence
 summary to be committed and pushed to this GitHub repository so a new
 dialogue can resume from `main`.
+
+## Loop036 Run95 host-launch invalid (2026-09-24)
+
+Run95 corrected the request cap to the 1024-token serving contract but was
+invoked on the host. `scripts/serve.sh` failed before model start because the
+Ascend toolkit environment is available inside container
+`vllm-ascend26-dsv4f-w4a8`, not on the host. TaskCtl records INVALID; no
+metadata parity or performance inference. Next invoke the corrected shadow
+script inside the container as Run96.

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=/data/wio/Inference_Foundry
-OUT=${ROOT}/evidence/20260924_loop036_metadata/run94
+OUT=${ROOT}/evidence/20260924_loop036_metadata/run95
 DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl
 mkdir -p "${OUT}/runtime"
 export MAX_MODEL_LEN=1048576
-export RUN_TS=LOOP036-RUN94
+export RUN_TS=LOOP036-RUN95
 export EXTREME_RUNTIME_RUN_DIR=${OUT}/runtime
 export EXTREME_RUNTIME_SERVE=1
-export EXTREME_RUNTIME_RESERVE_TOKENS=2112
+export EXTREME_RUNTIME_RESERVE_TOKENS=1088
 export EXTREME_NATIVE_TARGET_METADATA=1
 export EXTREME_RUNTIME_TARGET_GRAPH=1
 export EXTREME_DSPARK_SLOT_REFRESH=1
@@ -21,4 +21,4 @@ for _ in $(seq 1 180); do
     sleep 10
 done
 curl -fsS http://127.0.0.1:8080/health >/dev/null
-python3 scripts/bench.py --dataset "${DATASET}" --out "${OUT}/bench.json" --limit 12 --concurrency 12 --max-tokens 2048 >"${OUT}/bench.log" 2>&1
+python3 scripts/bench.py --dataset "${DATASET}" --out "${OUT}/bench.json" --limit 12 --concurrency 12 --max-tokens 1024 >"${OUT}/bench.log" 2>&1
