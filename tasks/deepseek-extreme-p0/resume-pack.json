@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-24T13:10:48Z",
+  "generated_at": "2026-09-24T13:13:41Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-036",
-    "next_action": "Source-audit max_seqlen_k consumers and derive a safe per-cohort bound; first add an opt-in exact metadata shadow against the existing dynamic path in the dedicated Runtime, then measure matched c12 stage timing.",
+    "active_loop": "loop-037",
+    "next_action": "Build a bounded, legal one-cohort Runtime-only target profile using PROFILER_DIR and the existing scope markers; verify parser mapping before any code optimization.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -110,7 +110,7 @@
     }
   ],
   "knowledge_summary": {
-    "total": 10,
+    "total": 11,
     "selected": [
       {
         "id": "dspark-host-mirror-barrier-20260922",
@@ -342,27 +342,37 @@
         "staged_at": "2026-09-21T12:51:38Z",
         "verdict": "PIVOTED",
         "updated_at": "2026-09-21T12:51:38Z"
+      },
+      {
+        "id": "loop036-static-kv-max-fallback",
+        "kind": "fact",
+        "statement": "For the fixed c12 TP8 DeepSeek V4 Flash W4A8 target metadata path, per-request SAS and QLI length tensors make the scalar max-K fallback unnecessary. The opt-in static scalar removes an approximately 8.006 ms/cycle metadata synchronization, passes 8x299-cycle stable-field shadow and formal 48x1024 serving, and raises official median output TPS from 525.417 to 571.681; full AICPU tails are nondeterministic under self-replay.",
+        "status": "limited",
+        "confidence": "high",
+        "scope": {
+          "model": "DeepSeek-V4-Flash-W4A8",
+          "hardware": "8x910B3",
+          "batch": 12,
+          "tp": 8,
+          "speculation": "DSpark7",
+          "output_tokens": 1024
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run97/summary.json",
+          "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run98/summary.json",
+          "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run99/summary.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "loop-036",
+        "staged_at": "2026-09-24T13:12:32Z",
+        "verdict": "PIVOTED",
+        "updated_at": "2026-09-24T13:12:32Z"
       }
     ]
   },
   "recent_loops": [
-    {
-      "loop_id": "loop-031",
-      "title": "Profile and close the runtime-owned decode DAG",
-      "mode": "integration",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "The certified Extreme-owned chain can be traced without re-entering generic ModelRunner target execution, exposing the remaining CPU metadata refresh, launch, communication and operator regions needed to choose the first device-resident, replay/persistent or fusion implementation step.",
-      "verdict": "ACCEPTED",
-      "reason": "All eight ranks produced parsed runtime-only traces with correctness preserved. Scope and device-union analysis identifies the target/proposer critical path and isolates DSpark CPU mirror refresh as a removable synchronization residue, satisfying the frozen attribution and candidate-selection goal.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260922_loop031_runtime_profile/run1/summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260922_loop031_runtime_profile/runtime_profile_summary.json"
-      ],
-      "decided_at": "2026-09-22T09:27:35Z"
-    },
     {
       "loop_id": "loop-032",
       "title": "Move DSpark host mirrors behind the proposer",
@@ -428,33 +438,49 @@
         "/data/wio/Inference_Foundry/evidence/20260924_loop035_diagnostic/run92/summary.json"
       ],
       "decided_at": "2026-09-24T10:52:29Z"
+    },
+    {
+      "loop_id": "loop-036",
+      "title": "Remove per-cycle target metadata synchronization",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "The fixed c12 target metadata updater performs a per-cycle NPU-to-host max().item synchronization to choose max_local_seq_len, contributing materially to the measured 8.673 ms metadata stage. A conservative cohort-fixed bound can remove this synchronization while preserving exact target metadata and long-run KV/DSpark semantics.",
+      "verdict": "PIVOTED",
+      "reason": "The frozen technical goal passes: legal 8-rank 299-cycle stable metadata header shadow and full serving gates, same-contract metadata stage 8.6730 to 0.6674 ms, and formal 48-request median 525.417 to 571.681 tok/s (+8.805%) above Stock by 5.155%. Preserved Run94/95 invalid setup and Run96 full-buffer failure prevent treating every mixed-history Run as pass; full AICPU tails have dynamic self-replay noise. Retain static implementation and pivot to target stage attribution.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run99/summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run98/summary.json"
+      ],
+      "decided_at": "2026-09-24T13:12:32Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-036",
-    "title": "Remove per-cycle target metadata synchronization",
+    "loop_id": "loop-037",
+    "title": "Attribute the remaining target graph critical path",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "审查 Run run99 的证据，并判断是否需要更多 Run",
+    "next_action": "Build a bounded, legal one-cohort Runtime-only target profile using PROFILER_DIR and the existing scope markers; verify parser mapping before any code optimization.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-24T13:10:48Z"
+    "updated_at": "2026-09-24T13:13:41Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-036/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-036/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-036/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-036/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-036/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-036/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-037/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

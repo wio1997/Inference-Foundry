@@ -802,3 +802,12 @@ long-token identity remains a limitation. Evidence:
 `evidence/20260924_loop036_metadata/run99/summary.json`. Next update the
 Performance Map and investigate the 46.56 ms target critical path, with no
 repeat of reliable formal baselines unless a new candidate clears correctness.
+
+## Loop037 opened (2026-09-24)
+
+Loop036 is technically satisfied but TaskCtl verdict is PIVOTED because
+invalid setup and full-buffer shadow attempts remain preserved. The next
+bounded Loop037 will attribute the remaining 46.560 ms/cycle target graph
+stage with a legal one-cohort Runtime-only NPU profile across 8 ranks. It
+must separate compute/communication overlap and device gaps before choosing
+another optimization. No target performance claim exists yet.

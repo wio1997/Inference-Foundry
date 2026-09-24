@@ -25,3 +25,7 @@
 - `2026-09-24T12:40:14Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run99`（benchmark）。
 
 - `2026-09-24T13:10:48Z` Run `run99` 记录为 `pass`；正确性为 `pass`。Frozen warm-cache 48x32K-to-1024 c12 static-metadata Extreme warmup plus 3 formal runs all 48/48 length-exact; output TPS 612.962/567.573/571.681 median 571.681, +5.155% vs reliable Stock 543.655 and +8.806% vs Run93 525.417. All 128 rank/cohort records pass. Above-Stock margin remains modest; no Stock rerun.
+
+- `2026-09-24T13:12:32Z` 暂存知识变化 `loop036-static-kv-max-fallback`：For the fixed c12 TP8 DeepSeek V4 Flash W4A8 target metadata path, per-request SAS and QLI length tensors make the scalar max-K fallback unnecessary. The opt-in static scalar removes an approximately 8.006 ms/cycle metadata synchronization, passes 8x299-cycle stable-field shadow and formal 48x1024 serving, and raises official median output TPS from 525.417 to 571.681; full AICPU tails are nondeterministic under self-replay.
+
+- `2026-09-24T13:12:32Z` 主控结论为 `PIVOTED`。The frozen technical goal passes: legal 8-rank 299-cycle stable metadata header shadow and full serving gates, same-contract metadata stage 8.6730 to 0.6674 ms, and formal 48-request median 525.417 to 571.681 tok/s (+8.805%) above Stock by 5.155%. Preserved Run94/95 invalid setup and Run96 full-buffer failure prevent treating every mixed-history Run as pass; full AICPU tails have dynamic self-replay noise. Retain static implementation and pivot to target stage attribution.

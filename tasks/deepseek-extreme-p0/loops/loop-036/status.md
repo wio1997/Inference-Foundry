@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run99 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-24T13:10:48Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Open a target-graph critical-path profiling loop around the remaining 46.560 ms/cycle stage, then optimize only a measured removable component.
+- 更新时间：`2026-09-24T13:12:32Z`
 
 ## Run 记录
 
@@ -25,5 +25,5 @@
 
 ## 待归约知识
 
-- 知识变化：`0`
+- 知识变化：`1`
 - 基线变化：`0`
