@@ -640,3 +640,25 @@ under the same captured state, not the fixed greedy acceptance algorithm.
 Keep formal A/B gated pending continuous semantics decision; no more
 standalone self-replay controls without a concrete new state hypothesis.
 Evidence: evidence/20260924_loop035_diagnostic/run90/summary.json.
+
+## Loop035 Run91/92 late continuous semantic gate (2026-09-24 10:22 UTC)
+
+Run91 attempted a Stock fixed-c12 ABA sample at cycle256 with the frozen
+1024-token output cap. All 12 requests completed, but the Stock scheduler
+changed shape after the first completion, so no fixed 12x8 sample existed
+at cycle256; Run91 is invalid as an ABA diagnostic and its throughput is not
+formal. Run92 changed only the diagnostic request cap to 2048, keeping all
+12 slots live through cycle256. On all eight ranks, strict five-way
+Stock A/Product B/Stock C/Product B2/Stock C2 snapshots covered 67 cache
+views, 69 entries and 76 metadata tensors with exact restoration each time.
+There was no stable Product-only argmax position. Product B matched Stock A
+accepted output 96/96, while Stock C matched 92/96. All argmax differences
+had top-2 margin <=0.25. Together with Run85 same-logits acceptance parity,
+Run72 full DSpark gid2/3 write addresses, Run84 target page trajectory and
+Run87 phase profile, this passes a bounded continuous semantic/acceptance
+gate for formal performance evaluation. It does not prove independent
+long-sequence token identity: Stock self-replay is non-deterministic and
+Run92s 2048 cap is a diagnostic control, not the frozen formal workload.
+Evidence: evidence/20260924_loop035_diagnostic/run92/summary.json.
+The next formal Extreme script now enables the causal gid2 slot refresh.
+Use the existing reliable Stock 543.65 tok/s baseline; do not rerun Loop034.

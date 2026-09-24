@@ -391,3 +391,11 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T09:29:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T094000Z`（test）。
 
 - `2026-09-24T09:46:33Z` Run `run-20260924T094000Z` 记录为 `pass`；正确性为 `pass`。Run90 strict five-way same-state cycle128 replay passes all 8 ranks and 5 exact restores, 67 cache views, 76 metadata tensors. Only stable Product-only argmax is slot7,draft2: Stock A/C/C2 tie at 270 vs 4888; Product B/B2 select 4888 by 0.125. All changed argmax positions have top2 margins <=0.5 with Stock self variation. No high-margin semantic fork established; exact long-token parity remains open.
+
+- `2026-09-24T09:48:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T100000Z`（test）。
+
+- `2026-09-24T10:05:09Z` Run `run-20260924T100000Z` 记录为 `invalid`；正确性为 `not-applicable`。Run91 requested strict ABA at Stock fixed c12 cycle256 with max_tokens1024. All 12 requests completed, but the 12-slot/96-token Stock shape ended before that cycle, so the diagnostic hook never fired. The Stock dynamic cohort cannot serve as a fixed c12 late oracle after a request finishes. Use a longer diagnostic output cap for a cycle256 state sample; this is not a formal workload.
+
+- `2026-09-24T10:05:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T102000Z`（test）。
+
+- `2026-09-24T10:22:23Z` Run `run-20260924T102000Z` 记录为 `pass`；正确性为 `pass`。Run92 Stock continuous cycle256 strict five-way replay with 2048-token diagnostic cap: 8 ranks, 67 views/76 metadata tensors, 5 restores exact. Product B vs Stock A accepted output 96/96; Stock A/C 92/96. No stable Product-only argmax; all argmax disagreement margins <=0.25. Bounded semantic/acceptance gate supports formal Extreme E2E while exact independent long token parity remains unproven.
