@@ -345,3 +345,7 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T05:47:45Z` Run `run-20260924T053300Z` 记录为 `invalid`；正确性为 `invalid`。Run78 valid 12x1024 client reached bootstrap, but target page audit constructor depended on all-group bindings gated by EXTREME_KV_SLOT_AUDIT_DIR; no page or decode evidence was emitted. Correct diagnostic binding without changing Runtime hot path.
 
 - `2026-09-24T05:48:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T054800Z`（test）。
+
+- `2026-09-24T06:03:09Z` Run `run-20260924T054800Z` 记录为 `invalid`；正确性为 `invalid`。Run79 reached cycle0 and strict snapshot_pages returned on eight ranks, then diagnostic cache count erroneously included two mutable tensor names; service aborted before target and no page record or acceptance result was emitted.
+
+- `2026-09-24T06:03:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T060300Z`（test）。

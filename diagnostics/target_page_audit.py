@@ -150,11 +150,13 @@ class TargetPageAudit:
             pages_by_cache, strict=True, no_write_caches=no_write
         )
         coverage = snapshot.coverage()
+        cache_names = set(self.cache_aliases)
+        captured_cache_names = cache_names & set(coverage["captured_names"])
         row = {
             "cycle": cycle, "rank": self.rank,
             "source_layers": len(source_cache),
             "cache_views": len(self.assets.caches),
-            "cache_views_snapshotted": len(coverage["captured_names"]),
+            "cache_views_snapshotted": len(captured_cache_names),
             "cache_views_certified_no_write": len(coverage["certified_no_write"]),
             "snapshot_entries": coverage["captured_rows"],
             "skipped": coverage["skipped"],
