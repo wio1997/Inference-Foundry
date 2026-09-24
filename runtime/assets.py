@@ -66,6 +66,10 @@ class CacheSlotSnapshot:
         if self.rows and self.rows[0][0].tensor.device.type == "npu":
             torch.npu.synchronize()
 
+    def coverage(self) -> dict[str, object]:
+        return {"captured_names": sorted({cache.name for cache, _, _, _ in self.rows}),
+                "captured_rows": len(self.rows), "skipped": list(self.skipped)}
+
     def verify_restored(self) -> dict[str, object]:
         """Verify that every captured row currently matches its pre-state."""
 
@@ -158,6 +162,7 @@ class RuntimeAssets:
         slot_mappings: torch.Tensor | list[torch.Tensor] | tuple[torch.Tensor, ...],
         *,
         num_tokens: int | None = None,
+        strict: bool = False,
     ) -> CacheSlotSnapshot:
         """Snapshot cache rows addressed by every KV-cache group.
 
@@ -182,9 +187,10 @@ class RuntimeAssets:
             ]
         ] = []
         skipped: list[dict[str, object]] = []
-        if num_tokens is not None:
+        if num_tokens is not None or strict:
             for mutable in self._mutable_tensors:
-                count = min(num_tokens, mutable.tensor.shape[0])
+                count = (mutable.tensor.shape[0] if strict else
+                         min(num_tokens, mutable.tensor.shape[0]))
                 indices = torch.arange(
                     count, dtype=torch.int64, device=mutable.tensor.device
                 )
@@ -205,6 +211,9 @@ class RuntimeAssets:
             slots = torch.unique(
                 torch.cat([mapping.to(torch.int64).flatten() for mapping in mappings])
             )
+            if strict and bool((slots < 0).any()):
+                skipped.append({"name": cache.name, "reason": "negative_candidate_slot",
+                                "invalid_count": int((slots < 0).sum().item())})
             slots = slots[slots >= 0]
             if tensor.ndim >= 2:
                 logical_block_size = (
@@ -299,4 +308,9 @@ class RuntimeAssets:
                     )
         if not rows:
             raise RuntimeError("no physical cache tensor accepted target slots")
+        if strict:
+            captured = {cache.name for cache, _, _, _ in rows}
+            missing = sorted(cache.name for cache in self._caches if cache.name not in captured)
+            if skipped or missing:
+                raise RuntimeError(f"incomplete cache snapshot: missing={missing}, skipped={skipped}")
         return CacheSlotSnapshot(tuple(rows), tuple(skipped))

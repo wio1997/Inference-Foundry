@@ -409,3 +409,28 @@ complete physical KV ownership/write coverage and transactional Stock
 A/Product B/Stock C replay with complete snapshot coverage. Evidence:
 `evidence/20260924_loop035_diagnostic/run71/summary.json` and
 `evidence/20260924_loop035_diagnostic/run71/trace_check.json`.
+
+
+## Loop035 Run72 full DSpark write-address trajectory (2026-09-24 04:36 UTC)
+
+A streaming read-only audit covered all 285 cycles of a refreshed-slot
+12×32K→1024 reserved-serving cohort on all 8 ranks: 4,560 ordered
+pre-target/post-proposer records, 12/12 exact-length clients, and 8/8
+rank/Host gates. Draft gid2/3 actual context-scatter slots matched the
+current physical block tables in every cycle. The audit found no negative,
+block0, same-cycle duplicate, or cross-request owner-conflicting draft
+address. This extends the early Run70 write-address result through completion
+and parked slots. Generic pre-target mappings for groups0/2/4/5 were stale
+from cycle1 through cycle284; group3 matched. Group0 physical block0 is also
+present in Stock Run61, and group1 table geometry is not classified, so these
+common-buffer observations do not prove active target writes are wrong.
+The full-audit 409.40 tok/s is overhead-contaminated and not a performance
+comparison. Physical KV values and long Stock token parity remain open.
+Evidence: `evidence/20260924_loop035_diagnostic/run72/summary.json`.
+
+`RuntimeAssets.snapshot_slots(strict=True)` now rejects incomplete cache
+selection and invalid candidate slots, and captures full mutable tensor rows.
+A CPU synthetic restore/out-of-bounds gate passed. This is a prerequisite for
+the next same-state Stock/Product/Stock transaction; the caller must still
+supply a complete target and DSpark write-set manifest before claiming full
+snapshot coverage.

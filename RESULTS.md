@@ -443,3 +443,5 @@ The transactional cache snapshot now reports partial out-of-range indices as ski
 - Loop035 Run70: flag-on DSpark context-scatter slots matched current physical slots for gid2/3, 96/96 across cycles0–7 on all 8 ranks. 12/12×1024, 8/8 rank/Host gates, 295 cycles/473.02 diagnostic tok/s vs matched flag-off Run69 458/341.43. Long token oracle pending. `evidence/20260924_loop035_diagnostic/run70/summary.json`.
 
 - Loop035 Run71: 294-cycle rank0 full-product trace passed 3,528 slot-cycle greedy/state ABI checks and 12×1024 token coverage; all 8 rank/Host gates passed. Stock token/KV parity pending. `evidence/20260924_loop035_diagnostic/run71/summary.json`.
+
+- Loop035 Run72: 285-cycle, 8-rank DSpark gid2/3 context write addresses exact throughout; 4,560 phase records, no invalid/duplicate/cross-request draft addresses, 12/12×1024. Target group consumption and Stock token/KV value parity pending. `evidence/20260924_loop035_diagnostic/run72/summary.json`.
