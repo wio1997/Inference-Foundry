@@ -741,3 +741,16 @@ Ascend toolkit environment is available inside container
 `vllm-ascend26-dsv4f-w4a8`, not on the host. TaskCtl records INVALID; no
 metadata parity or performance inference. Next invoke the corrected shadow
 script inside the container as Run96.
+
+## Loop036 Run96 shadow failure (2026-09-24)
+
+The first legal container-side 12×1024 shadow reached the target metadata
+updater. On all eight TP ranks the `ratio=4` SAS static/dynamic comparison
+failed during the first update and aborted the service. TaskCtl records FAIL;
+partial client outputs and TPS are invalid. The first shadow only compared
+full 1024-element outputs and did not record mismatch positions or a dynamic
+self-replay control. Given prior SAS tail nondeterminism, next run must compare
+dynamic A/static B/dynamic C on identical input and report first differing
+index and header parity before accepting or rejecting the scalar candidate.
+`evidence/20260924_loop036_metadata/run96/summary.json` records the compact
+evidence. Static candidate remains opt-in and unvalidated; no profile/E2E.
