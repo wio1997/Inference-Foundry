@@ -21,3 +21,7 @@
 - `2026-09-24T12:14:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run98`（profile）。
 
 - `2026-09-24T12:32:03Z` Run `run98` 记录为 `pass`；正确性为 `pass`。8-rank 300-cycle no-shadow static metadata DAG profile passed 12/12x1024 outputs and Runtime gates. Derived target metadata event median 0.6674 ms versus matched Run87 dynamic 8.6730 ms (-92.3%, -8.006 ms/cycle); target 46.56 ms, proposer 6.391 ms. Single-cohort TPS diagnostic only; formal E2E next.
+
+- `2026-09-24T12:40:14Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run99`（benchmark）。
+
+- `2026-09-24T13:10:48Z` Run `run99` 记录为 `pass`；正确性为 `pass`。Frozen warm-cache 48x32K-to-1024 c12 static-metadata Extreme warmup plus 3 formal runs all 48/48 length-exact; output TPS 612.962/567.573/571.681 median 571.681, +5.155% vs reliable Stock 543.655 and +8.806% vs Run93 525.417. All 128 rank/cohort records pass. Above-Stock margin remains modest; no Stock rerun.

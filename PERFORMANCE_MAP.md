@@ -390,3 +390,14 @@ metadata event median from Run87 8.6730 to 0.6674 ms/cycle (-8.0056 ms,
 -92.3%). Target remains 46.560 ms and DSpark proposer 6.391 ms median.
 The static path passed 300 continuous cycles on all 8 ranks; formal 48-request
 E2E is still required before attributing product throughput gain.
+
+## Loop036 Run99 formal product effect
+
+The 8.0056 ms/cycle metadata-stage reduction translated into frozen warm-cache
+48×32K→1024 c12 output TPS median 571.681 (three samples 612.962,
+567.573, 571.681), versus Run93 Extreme 525.417 (+8.806%) and Stock
+543.655 (+5.155%). All 128 rank/cohort rows passed. Target graph replay at
+46.560 ms/cycle is now the largest measured serial stage; DSpark proposer
+6.391 ms and metadata0.667 ms follow. Above-Stock margin is real under this
+protocol but still modest, so next optimization should diagnose target device
+work/communication rather than revisit metadata sync.

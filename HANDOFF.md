@@ -785,3 +785,20 @@ SAS/QLI tail identity remains limited by dynamic self-replay noise. Next
 run the frozen warm-cache 48×32K→1024 c12 warmup plus three official
 measurements, with no Stock rerun. Evidence:
 `evidence/20260924_loop036_metadata/run98/summary.json`.
+
+## Loop036 Run99 formal static-metadata E2E (2026-09-24)
+
+The frozen warm-cache 48×32K→1024 c12 protocol ran one warmup and three
+measured Extreme runs with static metadata and no shadow. All measured runs
+completed 48/48 requests at exactly 1024 tokens; all 128 rank/cohort Runtime
+records pass. Output TPS: 612.962 / 567.573 / 571.681, median 571.681.
+This is 5.155% above the reliable frozen Stock 543.655 and 8.806% above
+Run93 Extreme 525.417. Stock and Loop034/Run93 were not rerun. This is the
+first valid same-protocol above-Stock P0 result, but its 5.2% margin is
+modest and the target remains the dominant 46.56 ms/cycle stage. Stable
+metadata fields passed the 8×299-cycle Run97 A/B/C gate; full AICPU output
+tails remain nondeterministic even under dynamic self-replay, so independent
+long-token identity remains a limitation. Evidence:
+`evidence/20260924_loop036_metadata/run99/summary.json`. Next update the
+Performance Map and investigate the 46.56 ms target critical path, with no
+repeat of reliable formal baselines unless a new candidate clears correctness.
