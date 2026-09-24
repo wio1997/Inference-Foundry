@@ -17,3 +17,7 @@
 - `2026-09-24T11:57:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run97`（test）。
 
 - `2026-09-24T12:13:39Z` Run `run97` 记录为 `pass`；正确性为 `pass`。Legal 12x1024 cohort passed on all 8 TP ranks for 299 continuous cycles, all clients 1024 tokens, host/runtime gates pass. At every cycle static B and dynamic A/C SAS first 97 and QLI first 25 stable fields equal. Full 1024 outputs differ, but dynamic A/C also differs in the same tail; full-buffer equivalence remains unproven and diagnostic TPS is invalid for performance.
+
+- `2026-09-24T12:14:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run98`（profile）。
+
+- `2026-09-24T12:32:03Z` Run `run98` 记录为 `pass`；正确性为 `pass`。8-rank 300-cycle no-shadow static metadata DAG profile passed 12/12x1024 outputs and Runtime gates. Derived target metadata event median 0.6674 ms versus matched Run87 dynamic 8.6730 ms (-92.3%, -8.006 ms/cycle); target 46.56 ms, proposer 6.391 ms. Single-cohort TPS diagnostic only; formal E2E next.

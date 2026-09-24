@@ -771,3 +771,17 @@ unreachable with actual per-request length tensors. Compact evidence:
 prewritten no-shadow static DAG profile, compare with Run87 under the same
 single-cohort contract, and only proceed to formal E2E if timing gain is
 material and correctness remains intact.
+
+## Loop036 Run98 no-shadow DAG profile (2026-09-24)
+
+Static metadata with shadow off completed one legal 12×1024 c12 cohort: all
+8 ranks ran 300 continuous cycles and passed Runtime gates; all clients
+finished at exact output length. The median derived metadata event stage
+fell from matched Run87 8.6730 to 0.6674 ms/cycle, a reduction of 8.0056 ms
+(92.3%). Target was 46.560 ms and proposer 6.391 ms. The single-cohort
+517.63 tok/s is diagnostic, not the formal product result. Run97 stable
+header parity and the source fallback audit support a formal E2E test; full
+SAS/QLI tail identity remains limited by dynamic self-replay noise. Next
+run the frozen warm-cache 48×32K→1024 c12 warmup plus three official
+measurements, with no Stock rerun. Evidence:
+`evidence/20260924_loop036_metadata/run98/summary.json`.

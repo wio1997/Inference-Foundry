@@ -381,3 +381,12 @@ target execution and the metadata update, while preserving c12 KV/DSpark
 semantics. Formal evidence:
 evidence/20260924_loop035_formal/run93/summary.json;
 stage evidence: evidence/20260924_loop035_diagnostic/run87/summary.json.
+
+## Loop036 Run98 static target metadata profile
+
+On the same 12×1024 c12 DP1×TP8 diagnostic contract, removing the per-cycle
+`local_seq_lens.max().item()` fallback scalar sync reduced the derived target
+metadata event median from Run87 8.6730 to 0.6674 ms/cycle (-8.0056 ms,
+-92.3%). Target remains 46.560 ms and DSpark proposer 6.391 ms median.
+The static path passed 300 continuous cycles on all 8 ranks; formal 48-request
+E2E is still required before attributing product throughput gain.

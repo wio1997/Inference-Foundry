@@ -800,3 +800,6 @@ was INVALID because its 2048-token request violated the serving hard guard
 or further formal E2E has run. User requested stop after this Run and resume
 from a new dialogue. No benchmark/service is active at this checkpoint.
 See `HANDOFF.md` and TaskCtl Loop036; avoid repeating Loop034/Run93.
+
+- Loop036 Run97: legal 12×1024 c12 cohort completed 299 cycles on 8 ranks with static/dynamic A/C shadow. SAS stable first 97 and QLI stable first 25 fields equal every cycle; full tails differ under dynamic A/C self-replay too. All 12 clients length-exact. Bounded metadata parity, not full-buffer identity.
+- Loop036 Run98: no-shadow static DAG profile passed 8×300 cycles and 12×1024 clients. Derived metadata event median 8.6730→0.6674 ms versus Run87 (-92.3%, -8.0056 ms); target46.560 ms, proposer6.391 ms. Single-cohort TPS diagnostic only; formal E2E pending.
