@@ -822,3 +822,16 @@ for target attribution; its diagnostic TPS has no comparison role. Raw trace
 remains at `evidence/20260924_loop037_target/run100/profile/`, compact
 reason at `run100/summary.json`. Run101 must activate profiler before sending
 the sampled cohort, then stop after a bounded number of decode seconds.
+
+## Loop037 Run101 oversized target profile (2026-09-24)
+
+Run101 started profiler before a legal 12×1024 cohort, so its window did
+include execution; the cohort completed 12/12. Eight seconds generated roughly
+11 GiB raw trace across eight TP ranks. Offline `torch_npu.profiler.analyse`
+warned parsing could exceed 30 minutes per rank and had not finished rank0;
+the parser was terminated, with raw files preserved under
+`evidence/20260924_loop037_target/run100/profile/*20260924133739*_ascend_pt`.
+TaskCtl marks profile attribution INVALID though request correctness passed.
+No kernel/communication conclusion. Next use a subsecond window while a
+48-request workload keeps c12 decode active through the profiler start RPC.
+Compact evidence: `evidence/20260924_loop037_target/run101/summary.json`.
