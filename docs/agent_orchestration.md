@@ -42,3 +42,16 @@ records valid/invalid Runs in TaskCtl and commits the recovery package and
 necessary evidence to main. Keep credentials out of task files and committed
 outputs. Agent execution logs are provenance; they enter product evidence only
 after Sol validates the result.
+
+## Current headless execution limitation (Run110, 2026-09-25)
+
+The local Zcode CLI accepted --mode build and completed a bounded check, but
+its headless permission layer denied docker exec, npu-smi and local HTTP with
+"No permission client configured for Bash". Its JSON output had no provider
+model identifier; a self-reported model in the answer is not independent
+execution evidence. The run took188.845s and27 provider requests for a
+simple check. Treat this route as unavailable for service/NPU operations until
+permissions and actual-model reporting are verified. Sol uses direct tools
+for time-sensitive mechanical work when this fallback is necessary, while
+preserving TaskCtl and Git evidence. Run110 is INVALID, not an endorsement
+of those delegated results.

@@ -961,3 +961,16 @@ input shapes, graph addresses and a faster parity-preserving replacement
 remain unmeasured. Do not use Run108’s GMM1 `DeviceOperator` mapping.
 TaskCtl Run109 PASS design-check. Evidence:
 `evidence/20260924_loop039_gmm/run109/active_branch.json`.
+
+## Zcode execution trial Run110 (2026-09-25)
+
+After updating AGENTS/docs to prefer Zcode for bounded low-risk execution,
+Run110 delegated a read-only environment check with explicit inputs and
+acceptance fields. Zcode exit0 after188.845s/27 provider requests, but
+headless build mode denied docker exec, npu-smi and local HTTP. The wrapper
+recorded configured `deepseek/deepseek-flash` and observed_model=null; the
+model cannot be independently attributed from this run. TaskCtl marks Run110
+INVALID. Sol directly rechecked HEAD1b7c0e0, 8 profile window files, 8/8
+idle NPUs and stopped service. Do not delegate service/NPU operations to
+this Zcode configuration until permission behavior is fixed and actual-model
+provenance is verifiable; direct execution is the current fallback.
