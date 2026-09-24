@@ -847,3 +847,14 @@ is under `evidence/20260924_loop037_target/run100/profile/*20260924134249*_ascen
 compact count summary is `run102/summary.json`. Next start the profiler RPC
 immediately after launching one legal 12-request cohort, so its ~13-second
 handshake returns while that same cohort remains in Extreme decode.
+
+## Loop037 Run103 early prefill profile (2026-09-24)
+
+Run103 again completed legal 12×1024 requests, but `/start_profile` returned
+immediately this time, so the 0.5-second trace captured prefill. All eight
+parsed ranks have zero `extreme::cycle` and zero `extreme::target` scopes;
+TaskCtl marks target attribution INVALID, correctness PASS. Raw traces are
+under `evidence/20260924_loop037_target/run100/profile/*20260924134850*_ascend_pt`,
+compact counts in `run103/summary.json`. The next window should request
+profiler start about 3 seconds after cohort launch; both immediate and delayed
+RPC return should then fall within the 20-second continuous decode interval.

@@ -13,3 +13,7 @@
 - `2026-09-24T13:42:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run102`（profile）。
 
 - `2026-09-24T13:48:04Z` Run `run102` 记录为 `invalid`；正确性为 `pass`。Legal 48x1024 profiled cohort completed 48/48 and parsed 8-rank kernel traces, but every rank has zero Extreme cycle and target scopes. Short window hit cohort boundary/non-target stage; no target attribution. Run103 will use one c12 cohort and activate profiler immediately at request launch.
+
+- `2026-09-24T13:48:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run103`（profile）。
+
+- `2026-09-24T13:52:33Z` Run `run103` 记录为 `invalid`；正确性为 `pass`。Legal c12 12x1024 cohort completed 12/12, but profiler start returned immediately and 0.5-second trace stayed in prefill. Eight parsed ranks each have zero Extreme cycle/target scopes despite kernels; no target attribution. Next request profiling 3 seconds after cohort launch.
