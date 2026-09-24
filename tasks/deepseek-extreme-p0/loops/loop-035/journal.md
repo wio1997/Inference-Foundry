@@ -399,3 +399,11 @@ Run29 established a same-state target replay noise baseline on 8 TP ranks for 8 
 - `2026-09-24T10:05:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T102000Z`（test）。
 
 - `2026-09-24T10:22:23Z` Run `run-20260924T102000Z` 记录为 `pass`；正确性为 `pass`。Run92 Stock continuous cycle256 strict five-way replay with 2048-token diagnostic cap: 8 ranks, 67 views/76 metadata tensors, 5 restores exact. Product B vs Stock A accepted output 96/96; Stock A/C 92/96. No stable Product-only argmax; all argmax disagreement margins <=0.25. Bounded semantic/acceptance gate supports formal Extreme E2E while exact independent long token parity remains unproven.
+
+- `2026-09-24T10:23:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run-20260924T103000Z`（benchmark）。
+
+- `2026-09-24T10:49:57Z` Run `run-20260924T103000Z` 记录为 `pass`；正确性为 `pass`。Formal fixed 48x32K-to-1024 c12 warm-cache Extreme after causal DSpark gid2 slot refresh: three official 48/48x1024 runs 517.880/525.417/534.744 tok/s, median 525.417. All 128 rank/cohort rows pass, host mirrors exact, zero post-handoff ModelRunner/Stock target cycles. Versus Loop034 Extreme 217.342 +141.747%; versus frozen Stock 543.655 -3.355%.
+
+- `2026-09-24T10:50:30Z` 已记录对比（`comparable=yes`）：Same model, hardware, dataset, 48x32K-to-1024 c12 warm-cache official protocol: Extreme median 217.342 to 525.417 tok/s (+141.747%). Causal DSpark gid2 context slot refresh removes the continuous acceptance collapse; rank0 cohort median cycles 1025 to 300.5. New Extreme remains 3.355% below reliable frozen Stock 543.655 tok/s. Exact independent token identity remains bounded by measured Stock self-replay nondeterminism.
+
+- `2026-09-24T10:52:29Z` 主控结论为 `PIVOTED`。Frozen Loop035 technical goal is met: causal DSpark gid2 slot refresh fixes sustained acceptance; Run85/72/84/90/92 bounded correctness and Run87 DAG profile pass; formal 48x32K-to-1024 c12 Extreme median improves 217.342 to 525.417 tok/s (+141.747%), 128/128 rank/cohort rows pass. TaskCtl cannot mark accepted because preserved invalid diagnostic attempts (including Run89 OOM and Run91 unreachable fixed Stock shape) remain in this Loop; those attempts do not invalidate the official benchmark. P0 above-Stock target remains open.

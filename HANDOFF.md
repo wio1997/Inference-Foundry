@@ -662,3 +662,29 @@ Run92s 2048 cap is a diagnostic control, not the frozen formal workload.
 Evidence: evidence/20260924_loop035_diagnostic/run92/summary.json.
 The next formal Extreme script now enables the causal gid2 slot refresh.
 Use the existing reliable Stock 543.65 tok/s baseline; do not rerun Loop034.
+
+## Loop035 Run93 formal Extreme serving A/B against frozen Stock (2026-09-24 10:51 UTC)
+
+After the bounded continuous semantic gate (Run85/90/92), the exact frozen
+48x32K-to-1024 c12 warm-cache protocol was run once for warmup and three
+official Extreme measurements with EXTREME_DSPARK_SLOT_REFRESH=1. All three
+completed 48/48 requests at exactly 1024 tokens: 517.880, 525.417 and
+534.744 tok/s, median 525.417. The comparable Loop034 Extreme median was
+217.342, so the slot-refresh version improves output TPS 141.747% (2.417x).
+It remains 3.355% below the reliable frozen Stock 543.655 tok/s baseline;
+Stock was not rerun. All 128 rank/cohort rows pass, all host mirrors exact,
+FULL target graph, zero post-handoff ModelRunner cycles and oracle target
+calls, with 2,048 slot-refresh audit entries. Rank0 cohort cycle median
+fell from 1025.0 to 300.5; rank0 median staged output/slot/cycle is 3.427
+versus the original 1.194. Continuous acceptance window medians across
+16 rank0 cohorts are 3.519 at cycles8-63, 4.257 at64-127, and 4.163
+at128-191. Run87 DAG profile now points to target47.702 ms/cycle and
+derived metadata8.673 ms as remaining serial stages, versus proposer6.359
+ms and acceptance0.337 ms. This passes Loop035s frozen acceptance and
+cycle-attribution goal. Exact independent long token identity is still
+limited by Stock self-replay nondeterminism, and the present performance
+still misses the P0 above-baseline goal.
+Evidence: evidence/20260924_loop035_formal/run93/summary.json and
+tasks/deepseek-extreme-p0/loops/loop-035/comparisons.jsonl.
+Next optimization should test the dedicated target/metadata critical path
+with a frozen correctness gate, not resume generic ModelRunner patches.

@@ -366,3 +366,18 @@ service timing and instrumentation. Run84 adds heavy per-cycle page snapshots
 and its 128.83 tok/s is explicitly not performance evidence. The established
 Extreme-owned DAG target/proposer critical path still guides optimization
 after continuous semantic and acceptance gates pass.
+
+## Loop035 post-fix serving critical path (2026-09-24)
+
+The full-serving DSpark gid2 slot correction raises formal Extreme median from
+217.342 to525.417 tok/s and reduces rank0 median cohort cycles from1025 to
+300.5. A real-weight eight-rank event profile after the correction measured
+steady per-cycle serial stages: target47.702 ms, target metadata8.673 ms,
+DSpark proposer6.359 ms (model5.939 ms), acceptance0.337 ms, target
+preparation0.207 ms, state advance0.024 ms. These event intervals are
+diagnostic and must not be added to official client latency. The target
+graph is already FULL; the next removable-gap analysis should focus on
+target execution and the metadata update, while preserving c12 KV/DSpark
+semantics. Formal evidence:
+evidence/20260924_loop035_formal/run93/summary.json;
+stage evidence: evidence/20260924_loop035_diagnostic/run87/summary.json.

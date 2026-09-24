@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run-20260924T102000Z 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-24T10:22:23Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Open a new loop to reduce measured target47.702 ms and derived metadata8.673 ms decode stages; retain continuous semantic gates and rerun formal E2E only for a validated structural gain.
+- 更新时间：`2026-09-24T10:52:29Z`
 
 ## Run 记录
 
@@ -107,6 +107,7 @@
 - `runs/mixed_32k_1024_c12/run-20260924T094000Z`
 - `runs/mixed_32k_1024_c12/run-20260924T100000Z`
 - `runs/mixed_32k_1024_c12/run-20260924T102000Z`
+- `runs/mixed_32k_1024_c12/run-20260924T103000Z`
 
 ## 阻塞项
 
