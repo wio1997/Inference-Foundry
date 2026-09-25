@@ -467,3 +467,7 @@ Run107 profiled first reduce-scatter durations reflect rank arrival: start skew8
 ## Loop051 Run197 compressor cache-write screen (2026-09-25)
 
 A precise source/trace match bounds c128 compressor-following scatter to20 kernels and0.337ms profiled summed device time/cycle; c4 adds42 kernels and0.793ms. The full compressor-scatter family1.123ms is less than half Run143's all-scatter2.344ms. Direct destination writes require a custom compressor kernel/interface change, not merely removing a Python call, and cannot save required cache writes. No achievable product gain is established; this path has lower priority than the unlocalized prefill active-submission cost.
+
+## Loop052 Run200-202 prefill stream/event closure (2026-09-25)
+
+Prefill-only auxiliary-stream removal activated on8 ranks in legal same-service A/B/A-prime; shape-matched B8-call max-rank forward sum3.075s versus control A-prime3.057s, with no material client improvement. A one-card same-stream record+wait Host microbench gives15.65µs/pair net; two pairs×43 layers would be1.35ms/forward gross. Existing stream/event plumbing does not explain the3.4s/cohort prefill Host exposure. Exact candidate output parity was not established because control response hashes were unstable across cohorts; no patch kept or formal E2E run.

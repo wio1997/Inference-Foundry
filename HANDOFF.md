@@ -1844,3 +1844,7 @@ Reversible candidate disabled shared-expert auxiliary stream only during eager p
 ## Loop052 Run201 invalid one-card event microbench (2026-09-25)
 
 The event loop executed but evidence write raised `FileNotFoundError` because `docker exec` used the container default cwd rather than `/data/wio/Inference_Foundry`. No numerical result was saved or used. The process exited and no service was started. Repeat with explicit workdir as Run202. Evidence: `evidence/20260925_loop052_prefill_submission/run201/bench.log`.
+
+## Loop052 Run202 same-stream event Host cost and pivot (2026-09-25)
+
+Single-card eager microbench,12 repeats×1000 pairs: `record_event+wait_event` thread-CPU median15.696µs/pair versus empty loop0.043µs. Even two redundant pairs per43-layer prefill forward screen only1.346ms/forward before device/dependency effects, about12ms over Run186's nine calls. This is isolated Host enqueue cost, not a service bound. With Run200's activated but slower same-stream B, Sol pivots Loop052 and will inspect broader fixed-model prefill submission specialization. No service was started for Run202; NPU process exited. Evidence: `evidence/20260925_loop052_prefill_submission/run202/analysis.json`.

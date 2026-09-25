@@ -28,5 +28,5 @@ torch.npu.synchronize()
 raw={k:measure(k) for k in ('empty','record','record_wait')}
 summary={k:{'median_thread_cpu_us_per_pair':statistics.median(x['thread_cpu_us_per_pair'] for x in v),'median_wall_us_per_pair':statistics.median(x['wall_us_per_pair'] for x in v)} for k,v in raw.items()}
 result={'run':'run201','environment':'single Ascend 910B3, container torch_npu, service stopped','iterations_per_rep':N,'reps':REPS,'summary':summary,'raw':raw,'derived':{'same_stream_record_wait_minus_empty_thread_cpu_us':summary['record_wait']['median_thread_cpu_us_per_pair']-summary['empty']['median_thread_cpu_us_per_pair'],'illustrative_43_layers_2_pairs_per_forward_ms':(summary['record_wait']['median_thread_cpu_us_per_pair']-summary['empty']['median_thread_cpu_us_per_pair'])*86/1000},'limits':['Isolated eager enqueue, not Run200 full model or8-card critical path.','Profiler Run181 event count includes necessary cross-stream dependencies; this only bounds same-stream no-op opportunity.','No source change, correctness or E2E measurement.']}
-Path('evidence/20260925_loop052_prefill_submission/run201/analysis.json').write_text(json.dumps(result,indent=2)+'\n')
+Path('evidence/20260925_loop052_prefill_submission/run202/analysis.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps({'summary':summary,'derived':result['derived']},indent=2))
