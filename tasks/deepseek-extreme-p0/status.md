@@ -29,7 +29,7 @@
 | `loop-038` | `PIVOTED` | `PIVOTED` | Cycle-scheduled profiling met the technical attribution goal in Run107: legal 8-rank cohort and 15 canonical synchronized target windows isolate 2836 kernels/cycle and quantify compute, communication, overlap, and a 9.966 ms grouped-matmul family. Run105 invalid launcher remains preserved, so the mixed-history Loop is pivoted; forced synchronization makes performance diagnostic only. |
 | `loop-039` | `PIVOTED` | `PIVOTED` | Current fused W4A8 GMM1 already skips empty experts; one-card synthetic route test gives no graph-level >=5ms candidate. Run107 GMM sums are diagnostic, not removable benefit. Highest next discriminating work is non-GMM quant matmul call attribution; GMM and communication remain open. |
 | `loop-040` | `PIVOTED` | `PIVOTED` | Run131 mapped 236 quant kernels/target and alternating c4/c128 pattern. Run132 8-rank legal call probe covered wkv but no new shared-input pair. Run133 source audit shows the apparent split/indexer repeats already share quantization; no semantics-valid projection fusion candidate currently warrants another 8-rank service run. Shift to HC/clone/cache source and trace attribution; quant family remains later candidate if a concrete legal replacement appears. |
-| `loop-041` | `FROZEN` | `PENDING` | Run134: offline Run107 device kernel and source audit of HcPre, RMSNorm, clone/copy and cache scatter inside valid target windows; no service restart. |
+| `loop-041` | `EVALUATING` | `PENDING` | Run135: offline source/trace mapping of 126 cache scatter kernels to frozen DSA/QLI cache families and write slots; test whether any writes are duplicate or unnecessary before an online edit. No service restart. |
 
 ## 阻塞项
 

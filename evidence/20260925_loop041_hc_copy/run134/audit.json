@@ -1,0 +1,925 @@
+{
+  "run": "run134",
+  "source": "Run107 cycle-synchronized trace, 15 valid target rank-cycle scopes",
+  "caveat": "Kernel duration sums can overlap and are not removable wall time; profiler/forced sync distort duration. CPU aten::clone counts during graph replay do not count graph-build clones. Device copy-kernel names do not identify the originating source clone.",
+  "source_findings": [
+    "deepseek_v4.py decoder forward clones hidden_states twice per layer around two hc_pre calls, then separate RMSNorm and HC post; graph replay can elide source-level clones.",
+    "hc_pre_inv_rms custom op takes only x and epsilon and returns y; it cannot replace HC pre with its hc_fn/scale/base inputs and three outputs.",
+    "device_op.py stores cache with npu_scatter_nd_update_sk; attention/sfa_v1.py also has scatter update paths. Kernel count alone does not prove redundant writes."
+  ],
+  "summary": {
+    "hc_pre": {
+      "count_median": 86,
+      "count_range": [
+        86,
+        86
+      ],
+      "kernel_sum_ms_median": 2.961601,
+      "kernel_sum_ms_range": [
+        2.801154499999999,
+        3.0490015000000015
+      ]
+    },
+    "hc_post": {
+      "count_median": 86,
+      "count_range": [
+        86,
+        86
+      ],
+      "kernel_sum_ms_median": 0.687853,
+      "kernel_sum_ms_range": [
+        0.6605360000000001,
+        0.7077540000000001
+      ]
+    },
+    "rms_norm": {
+      "count_median": 130,
+      "count_range": [
+        130,
+        130
+      ],
+      "kernel_sum_ms_median": 0.9399799999999999,
+      "kernel_sum_ms_range": [
+        0.9205965000000004,
+        0.9470380000000004
+      ]
+    },
+    "triton_rms": {
+      "count_median": 43,
+      "count_range": [
+        43,
+        43
+      ],
+      "kernel_sum_ms_median": 0.5675689999999998,
+      "kernel_sum_ms_range": [
+        0.501314,
+        0.5761905
+      ]
+    },
+    "rms_dynamic_quant": {
+      "count_median": 43,
+      "count_range": [
+        43,
+        43
+      ],
+      "kernel_sum_ms_median": 0.31091000000000013,
+      "kernel_sum_ms_range": [
+        0.2824055000000001,
+        0.3264275
+      ]
+    },
+    "compressor": {
+      "count_median": 62,
+      "count_range": [
+        62,
+        62
+      ],
+      "kernel_sum_ms_median": 3.3655674999999996,
+      "kernel_sum_ms_range": [
+        3.255344499999999,
+        3.451089499999999
+      ]
+    },
+    "cache_scatter_sk": {
+      "count_median": 126,
+      "count_range": [
+        126,
+        126
+      ],
+      "kernel_sum_ms_median": 2.343586,
+      "kernel_sum_ms_range": [
+        2.250648499999999,
+        2.3994640000000005
+      ]
+    },
+    "copy_cast": {
+      "count_median": 156,
+      "count_range": [
+        156,
+        156
+      ],
+      "kernel_sum_ms_median": 0.4100079999999998,
+      "kernel_sum_ms_range": [
+        0.37800750000000016,
+        0.42404399999999975
+      ]
+    },
+    "copy_transpose": {
+      "count_median": 44,
+      "count_range": [
+        44,
+        44
+      ],
+      "kernel_sum_ms_median": 0.5652105000000001,
+      "kernel_sum_ms_range": [
+        0.5500490000000001,
+        0.6312705
+      ]
+    },
+    "copy_tensor_move": {
+      "count_median": 4,
+      "count_range": [
+        4,
+        4
+      ],
+      "kernel_sum_ms_median": 0.8123965,
+      "kernel_sum_ms_range": [
+        0.809296,
+        0.8164365
+      ]
+    },
+    "memcpy_async": {
+      "count_median": 43,
+      "count_range": [
+        43,
+        43
+      ],
+      "kernel_sum_ms_median": 0.03130049999999999,
+      "kernel_sum_ms_range": [
+        0.031100499999999975,
+        0.031539999999999985
+      ]
+    },
+    "cpu_clone_count": {
+      "median": 1,
+      "range": [
+        1,
+        1
+      ]
+    },
+    "cpu_copy_count": {
+      "median": 5,
+      "range": [
+        5,
+        5
+      ]
+    }
+  },
+  "windows": [
+    {
+      "rank": 0,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 3.0292799999999995
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6943755000000001
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9374210000000003
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.574771
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.31480550000000007
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.2776864999999993
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.3945045
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.3841125000000001
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.5566114999999999
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.811096
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.031100499999999975
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 0,
+      "cycle": 65,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 3.0387199999999996
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.692955
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9418565
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5761905
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.31722449999999985
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.378746999999999
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.392588000000001
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.38322849999999975
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.559111
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.812416
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03120199999999999
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 1,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.9337574999999987
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.7026944999999999
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9290964999999998
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5052684999999998
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.3264275
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.255344499999999
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.250648499999999
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.37800750000000016
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.5541315000000001
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.809296
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.031340499999999986
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 2,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 3.045805000000001
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.699374
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9431369999999998
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.501314
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.31091000000000013
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.3030635000000004
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.3084830000000003
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.4184665000000001
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.5652105000000001
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8118565
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03136099999999998
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 2,
+      "cycle": 65,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 3.0490015000000015
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6997950000000001
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9443015000000001
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5013690000000002
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.3092665
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.406486
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.3238839999999996
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.4186679999999999
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.5668304999999999
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8123965
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.031539999999999985
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 3,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.8256379999999996
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6624095000000002
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9205965000000004
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.573492
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.31354850000000006
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.393888000000001
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.310026
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.4191860000000001
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.5622510000000001
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8164365
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03130049999999999
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 3,
+      "cycle": 65,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.825455500000001
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6605360000000001
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9225180000000001
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5752109999999999
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.31446549999999995
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.451089499999999
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.308783000000002
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.4183874999999999
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.5584525
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8133364999999999
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.031240999999999988
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 4,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.8111145
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6690950000000002
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9405004999999997
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5735100000000001
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.284885
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.3655674999999996
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.3438315
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.41032849999999976
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.6254704999999999
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8132765
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.031219999999999977
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 4,
+      "cycle": 65,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.801154499999999
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6709344999999998
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9470380000000004
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5748719999999998
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.284648
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.437630000000001
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.343586
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.4100079999999998
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.6312705
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8119565
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03126049999999998
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 5,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.9668569999999996
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.7077540000000001
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9426204999999999
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.568751
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.2845440000000001
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.3452260000000003
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.373283999999999
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.3816494999999998
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.6277949999999999
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8144359999999999
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03118099999999998
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 5,
+      "cycle": 65,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.961601
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.7027315
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9399799999999999
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5675689999999998
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.2824055000000001
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.4130125000000002
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.3791100000000007
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.38100600000000007
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.6292125000000001
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8145560000000001
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03130049999999998
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 6,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.8228905000000006
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6638114999999999
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.944861
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.560878
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.28770900000000005
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.2876870000000005
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.399086
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.42404399999999975
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.6288759999999999
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8103279999999999
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03135849999999998
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 6,
+      "cycle": 65,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.812223999999999
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6648544999999998
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9383840000000003
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5629769999999998
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.28492799999999996
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.3822440000000005
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.3994640000000005
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.4215205000000002
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.628954
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8119675
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03131899999999998
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 7,
+      "cycle": 64,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.9972030000000003
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.687853
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9207190000000001
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.5112705
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.315607
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.268522000000001
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.295027
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.4058870000000001
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.5500490000000001
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8160175000000001
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03134149999999999
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    },
+    {
+      "rank": 7,
+      "cycle": 65,
+      "device_kernel_count": 2614,
+      "hc_pre": {
+        "count": 86,
+        "kernel_sum_ms": 2.9994565
+      },
+      "hc_post": {
+        "count": 86,
+        "kernel_sum_ms": 0.6866760000000002
+      },
+      "rms_norm": {
+        "count": 130,
+        "kernel_sum_ms": 0.9243409999999996
+      },
+      "triton_rms": {
+        "count": 43,
+        "kernel_sum_ms": 0.512911
+      },
+      "rms_dynamic_quant": {
+        "count": 43,
+        "kernel_sum_ms": 0.3182075000000001
+      },
+      "compressor": {
+        "count": 62,
+        "kernel_sum_ms": 3.3640485
+      },
+      "cache_scatter_sk": {
+        "count": 126,
+        "kernel_sum_ms": 2.3088630000000006
+      },
+      "copy_cast": {
+        "count": 156,
+        "kernel_sum_ms": 0.40666749999999996
+      },
+      "copy_transpose": {
+        "count": 44,
+        "kernel_sum_ms": 0.550072
+      },
+      "copy_tensor_move": {
+        "count": 4,
+        "kernel_sum_ms": 0.8122965000000001
+      },
+      "memcpy_async": {
+        "count": 43,
+        "kernel_sum_ms": 0.03132049999999998
+      },
+      "cpu_clone_count": 1,
+      "cpu_copy_count": 5
+    }
+  ]
+}

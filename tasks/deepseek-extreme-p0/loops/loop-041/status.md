@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run134: offline Run107 device kernel and source audit of HcPre, RMSNorm, clone/copy and cache scatter inside valid target windows; no service restart.
-- 更新时间：`2026-09-25T01:20:35Z`
+- 下一步：审查 Run run134 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T01:25:28Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run134`
 
 ## 阻塞项
 

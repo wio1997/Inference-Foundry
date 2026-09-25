@@ -1243,3 +1243,17 @@ clone/copy, RMSNorm and cache-write device costs before changing model
 semantics. A >=2 ms unprofiled target-stage improvement plus legal
 E2E gain is an incremental product gate; ultimate >=15% over Stock
 remains the cumulative target. No new formal E2E was run.
+
+## Loop041 Run134 HC/copy/cache census (2026-09-25)
+
+Run134 audited all 15 valid, synchronized Run107 target windows offline.
+Each contains 86 HcPre (kernel sum median 2.962 ms), 86 HcPost
+(0.688 ms), 130 RmsNorm (0.940 ms), and 126 ScatterNdUpdateSk
+(2.344 ms). These kernel sums overlap and are not removable wall time.
+The decoder source clones hidden state twice per layer, but replay shows
+only one CPU aten::clone and copy kernel names cannot be attributed to
+those source clones. The available HcPreInvRms op accepts x/epsilon
+only, so it cannot directly replace HcPreV2's HC transform. No safe
+HC/copy edit is established. Run135 maps cache scatter ownership and
+checks for duplicate or unnecessary writes; service stays stopped.
+This commit is a checkpoint, not an execution stop.
