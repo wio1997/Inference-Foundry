@@ -53,3 +53,7 @@
 - `2026-09-24T23:49:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run120`（profile）。
 
 - `2026-09-25T00:07:15Z` Run `run120` 记录为 `invalid`；正确性为 `invalid`。Run120 invalid: request max_tokens=384 violated frozen Extreme serving exact max_tokens=1024 guard; engine exited, 11/12 success is unusable, no live counts. Temporary probe restored, 8 NPUs idle.
+
+- `2026-09-25T00:08:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run121`（profile）。
+
+- `2026-09-25T00:28:36Z` Run `run121` 记录为 `pass`；正确性为 `not-applicable`。Legal 12/12 1024-token requests; 16 snapshots across 8 ranks at cycles64/65. Exactly 43 live and 43 static refs; all 43 live ordinals change on every rank, cross-rank token count 576 per layer, active experts median 15/32 per rank-layer (688 samples). Diagnostic only, no E2E comparison.

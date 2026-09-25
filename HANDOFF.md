@@ -1092,3 +1092,21 @@ SHA256, the stop script released all eight NPUs to below 3.5 GB, and the
 root-cause excerpt is saved. Next action: Run121 with the exact 1024-token
 request contract, same bounded probe and validation. This checkpoint does
 not end the execution turn.
+
+## Loop039 Run121 live expert counts (2026-09-25)
+
+Run121 obeyed the exact 1024-token serving guard: 12/12 requests succeeded.
+Temporary probes saved 16 group_list snapshots (8 ranks, cycles64/65).
+Each rank retained 86 refs; ordinals0-42 are unchanged graph-build refs,
+whereas ordinals43-85 change between the two cycles on all eight ranks.
+For each of the 43 live layers and both cycles, all 8 ranks together route
+exactly 576 assignments (96 tokens × top_k6). On 688 rank-layer samples,
+active experts range 7-29 of 32, median15, mean15.663; global layer
+active experts median121 of 256. Actual local tokens per layer median69,
+mean72, range23-186. These are valid live routing facts, not a claim that
+the present GMM computes empty experts or that half its time is removable.
+The probe's 526.360 tok/s is diagnostic and not a formal E2E verdict.
+Both patched sources were restored to the exact original hashes; stop
+script released all eight NPUs below 3.5GB. Next Run122 checks whether
+the real count sparsity offers any extra GMM opportunity beyond what the
+existing fused operator already handles.
