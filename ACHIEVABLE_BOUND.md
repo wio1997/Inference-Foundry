@@ -260,3 +260,7 @@ Run175 observed18.525% parked slot-cycles in one legal warmed cohort (44 cycles 
 ## Loop047 Run180 marginal target-size screen (2026-09-25)
 
 Run180 repeats c12 after smaller graph sizes in one service and finds+1.536ms c12 endpoint drift. Using early/late c12 baselines and Run155 measured active counts gives0.471–0.602s/cohort of *zero-cost Stock target event* screen. It cannot be promoted to an Extreme achievable bound: graph/metadata bank selection, live-row packing, KV remapping and canonical-slot scatter are unmeasured, and the sampled `_model_forward` scope differs from Extreme target.execute. This small screened benefit justifies deprioritizing compaction; the frozen-product achievable throughput bound remains UNKNOWN.
+
+## Loop048 Run184 prefill Host exposure (2026-09-25)
+
+In one legal warmed Extreme cohort, five prefill `_model_forward` calls have per-call maximum-rank wall summing1.901s. DSA+MoE inclusive CPU scopes occupy87.7–88.0% of individual forward wall, but include required exact-state operator dispatch and synchronization. Neither the1.901s nor its scope fraction is a removable saving; comparison with Run165's profiler-perturbed 401ms device-free span cannot establish one. Official achievable bound remains UNKNOWN.
