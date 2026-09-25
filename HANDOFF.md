@@ -1617,3 +1617,16 @@ the same backup path, causing timing install to fail before startup.
 Trap restored stage and boundary patches to original SHA and stopped
 service. Run160 is invalid in TaskCtl; failure logs preserved. Run161
 will give patches distinct backup paths and repeat the legal probe.
+
+## Loop045 Run161 prefill stage split (2026-09-25)
+
+Legal8-rank48×1024 warmup and12×1024 measured diagnostic passed
+60/60, all40 rank-cohort records. Across ranks, measured prefill
+execute_model median3.397 s, with `_model_forward` Python wall3.122 s
+(~91.9%) and preparation0.258 s. The large pre-handoff gap is
+inside model-forward invocation, not mainly request admission or
+Runtime construction. This is Python wall, not device-only time;
+forward can include NPU work, HCCL and waits. Diagnostic TPS580.055
+is not formal E2E. All patches restored and service stopped with8
+NPUs idle. Run162 should obtain device-level prefill evidence before
+any code change.

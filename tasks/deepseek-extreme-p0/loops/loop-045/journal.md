@@ -29,3 +29,7 @@
 - `2026-09-25T04:50:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run160`（profile）。
 
 - `2026-09-25T04:50:54Z` Run `run160` 记录为 `invalid`；正确性为 `invalid`。No service or NPU work. Temporary stage patch installed, then timing patch install failed because both used the same /tmp backup path. Trap restored stage and boundary sources to original SHA and stopped service. No throughput/stage data; fix backup collision in Run161.
+
+- `2026-09-25T04:51:08Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run161`（profile）。
+
+- `2026-09-25T05:11:07Z` Run `run161` 记录为 `pass`；正确性为 `pass`。Legal 8-rank warmed-service diagnostic 60/60 success and 40 rank-cohort records pass. In measured cohort, median prefill execute_model wall3.397s, of which _model_forward Python wall3.122s (~91.9%) and preparation0.258s. Device/communication split unresolved; diagnostic TPS580.055 not formal E2E. Temporary sources restored, service stopped, 8 NPU idle.
