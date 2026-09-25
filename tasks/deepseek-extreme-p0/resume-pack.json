@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-25T01:17:19Z",
+  "generated_at": "2026-09-25T01:20:35Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-040",
-    "next_action": "Run131: parse Run107 bounded trace to map 96-token target quant-matmul device kernels to CPU operator calls and shapes; use source audit, no service restart.",
+    "active_loop": "loop-041",
+    "next_action": "Run134: offline Run107 device kernel and source audit of HcPre, RMSNorm, clone/copy and cache scatter inside valid target windows; no service restart.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -401,23 +401,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-035",
-      "title": "Extreme full-chain acceptance and cycle attribution",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The formal throughput gap is dominated by sustained proposal acceptance collapse and/or excess per-cycle runtime cost; existing E2E records can separate the two before any architectural rewrite.",
-      "verdict": "PIVOTED",
-      "reason": "Frozen Loop035 technical goal is met: causal DSpark gid2 slot refresh fixes sustained acceptance; Run85/72/84/90/92 bounded correctness and Run87 DAG profile pass; formal 48x32K-to-1024 c12 Extreme median improves 217.342 to 525.417 tok/s (+141.747%), 128/128 rank/cohort rows pass. TaskCtl cannot mark accepted because preserved invalid diagnostic attempts (including Run89 OOM and Run91 unreachable fixed Stock shape) remain in this Loop; those attempts do not invalidate the official benchmark. P0 above-Stock target remains open.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260924_loop035_formal/run93/summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260924_loop035_diagnostic/run87/summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260924_loop035_diagnostic/run92/summary.json"
-      ],
-      "decided_at": "2026-09-24T10:52:29Z"
-    },
-    {
       "loop_id": "loop-036",
       "title": "Remove per-cycle target metadata synchronization",
       "mode": "optimization",
@@ -478,33 +461,50 @@
         "/data/wio/Inference_Foundry/evidence/20260925_loop039_gmm/run128_result.json"
       ],
       "decided_at": "2026-09-25T00:48:01Z"
+    },
+    {
+      "loop_id": "loop-040",
+      "title": "Map and reduce target quantized projection redundancy",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "In frozen DeepSeek V4 c12 target execution, repeat quantized projections or quantization/input movement in the ~4.82ms quant-matmul family may expose a semantics-preserving fusion or scheduling improvement that reduces target stage by at least 5ms and survives eight-rank formal E2E.",
+      "verdict": "PIVOTED",
+      "reason": "Run131 mapped 236 quant kernels/target and alternating c4/c128 pattern. Run132 8-rank legal call probe covered wkv but no new shared-input pair. Run133 source audit shows the apparent split/indexer repeats already share quantization; no semantics-valid projection fusion candidate currently warrants another 8-rank service run. Shift to HC/clone/cache source and trace attribution; quant family remains later candidate if a concrete legal replacement appears.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260925_loop040_quant/run131/trace_map.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop040_quant/run132/call_summary.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop040_quant/run133/source_audit.json"
+      ],
+      "decided_at": "2026-09-25T01:20:35Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-040",
-    "title": "Map and reduce target quantized projection redundancy",
+    "loop_id": "loop-041",
+    "title": "Remove target HC and cache execution redundancy",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Run133: source-backed exact per-layer quant-matmul call accounting across DSA CP wq_a, split wq_b, wkv, output and c4 indexer; test whether any same-input dynamic quant remains duplicated before another 8-rank capture.",
+    "next_action": "Run134: offline Run107 device kernel and source audit of HcPre, RMSNorm, clone/copy and cache scatter inside valid target windows; no service restart.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-25T01:17:19Z"
+    "updated_at": "2026-09-25T01:20:35Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

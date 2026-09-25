@@ -1,0 +1,28 @@
+{
+  "run": "run133",
+  "kind": "source_and_call_accounting",
+  "sources": {
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py": "27cbbf92a02f16301aad2a35091e258b8459dc77744bd8294f2f11a4c126004e",
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/models/deepseek_v4.py": "11dd3e983dc1d628bf42a95581f9617861471b1f658739db44c20df886147247",
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/quantization/methods/w8a8_dynamic.py": "ac9bd6ec05356b639665ec05ae21b19e1d0f0dc6723f7568b2f0ab70821285de",
+    "/data/wio/Inference_Foundry/scripts/serve.sh": "31a35adb4fd7be073a3bbd43417a63320015e2bd81dabb8a86842503120da773"
+  },
+  "frozen_serve_flags": {
+    "enable_dsa_cp": true,
+    "enable_flashcomm1": true
+  },
+  "facts": [
+    "wq_a consumes hidden_states_local; wkv consumes hidden_states_cache after maybe_all_gather_and_maybe_unpad, so they are not an obvious same tensor reuse pair under TP8 FlashComm1.",
+    "DSA CP quantizes q_a with npu_rms_norm_dynamic_quant once; both wq_b weight_1/weight_2 quant matmuls consume qr_local and qr_pertoken_scale_local.",
+    "For c4 indexer, indexer wq_b direct quant matmul also consumes qr and qr_pertoken_scale_local.",
+    "weights_proj is declared quant_config=None and is not a W8A8 dynamic-quant reuse partner.",
+    "Run132 96-token W8A8 apply probe logs one wkv module per target layer during graph setup; it excludes local-token wq_a and direct quant matmul calls."
+  ],
+  "quant_kernel_pattern": "Run131 236/target: c4 adds one quant-matmul relative to c128, consistent with indexer wq_b; exact mapping of every kernel to call still lacks direct runtime call tags.",
+  "decision": "Reject the specific same-input repeated dynamic quantization hypothesis for the obvious DSA CP pairs. Do not undertake an 8-rank fusion experiment without a distinct shared-input pair. Prioritize a bounded trace/source audit of HC pre, residual clone, normalization and cache-write path.",
+  "limits": [
+    "Source proves call dataflow under stated flags but does not give runtime tensor identity for every branch.",
+    "Run132 diagnostic logging did not cover local-token or direct quant matmul calls.",
+    "No candidate implementation or formal E2E."
+  ]
+}

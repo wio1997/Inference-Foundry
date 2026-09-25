@@ -1229,3 +1229,17 @@ diagnostic value is not formal E2E. Borrowed source hash restored,
 stop script released all eight NPUs below 3.5GB. Next Run133 is
 a source-backed accounting of direct DSA CP quant calls and shared
 quantization before another costly service capture.
+
+## Loop040 PIVOT and Loop041 opening (2026-09-25)
+
+Run133 source audit under frozen DSA CP/FlashComm1 flags explains the
+obvious quant projection pairs: two wq_b chunks and the c4 indexer
+query share one qr dynamic quant; wq_a uses local tokens, wkv uses
+gathered cache tokens, and weights_proj is unquantized. Run131's
+236 quant kernels are real, but no same-input duplicate quantization
+candidate is established. Loop040 is PIVOTED, not a proof that quant
+matmul is at bound. Loop041 will map actual HC pre/post, residual
+clone/copy, RMSNorm and cache-write device costs before changing model
+semantics. A >=2 ms unprofiled target-stage improvement plus legal
+E2E gain is an incremental product gate; ultimate >=15% over Stock
+remains the cumulative target. No new formal E2E was run.
