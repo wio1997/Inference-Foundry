@@ -1,0 +1,45 @@
+{
+  "run": 228,
+  "kind": "read_only_source_and_bound",
+  "contract": "Frozen W4A8 8x910B3 DP1TP8 DSpark7 c12 1024 serving; no service or NPU experiment",
+  "source": {
+    "installed_v1_proposer": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+    "sha256": "e3e1ff579e67f845f155c983294ae5546e6ee76ba330098d7867e870c3f9f6e4",
+    "community_main": "2bb3f44716f3505d2723a4e5badb10211a6c5589"
+  },
+  "prior_evidence": {
+    "run98_stages_ms": {
+      "acceptance": 0.32818999886512756,
+      "derived_target_metadata": 0.6673699915409088,
+      "draft_commit": 0.003920000046491623,
+      "prepare_target": 0.20295999944210052,
+      "proposer": 6.391319990158081,
+      "state_advance": 0.023679999634623528,
+      "target": 46.55997085571289
+    },
+    "run98_sum_stage_medians_ms": 54.177410835400224,
+    "run142_draft_runnable_device_event_ms": 4.69017999060452,
+    "run142_model_device_event_ms": 2.794540047645569,
+    "run142_markov_device_event_ms": 0.695250004529953,
+    "run195_proposer_rank_spread_median_ms": 0.06304001808166504
+  },
+  "screening_bounds": {
+    "entire_proposer_zero_time_ms": 6.391319990158081,
+    "ratio_if_full_proposer_zero": 1.1337485422454145,
+    "runnable_host_submission_minus_device_event_ms": 26.360031009395485,
+    "caveat": "Host-vs-device difference is not exposed cycle saving; different diagnostic runs; interval sums and device events are not official E2E bounds"
+  },
+  "mapping": {
+    "installed_v1": "llm_base_proposer.py:183 uses enforce_eager to disable draft graph; :1310-1450 runs context slot prep, model, LMHead and seven Markov steps; product service sets enforce_eager true",
+    "community_v2": "worker/v2/spec_decode/dspark/speculator.py:84-92 graph manager unless enforce_eager; dflash/aclgraph.py:86-138 builds runtime draft metadata and updates graph; DSpark padded query lengths corrected at :270-314",
+    "dynamic_obligations": [
+      "target hidden/token/position into draft",
+      "per-step query/sequence lengths",
+      "block table and slot mapping contents",
+      "KV cache writes and stream order",
+      "LMHead/Markov logits and seed refresh",
+      "graph output ownership and consumer completion"
+    ]
+  },
+  "decision": "Do not migrate service or assume draft graph saves 30ms from Host CPU. Existing low-overhead proposer is about6.39ms of a54.17ms stage-sum, while draft runnable device interval is4.69ms in a separate diagnostic. MRV2 is a concrete reuse asset; an isolated fixed-shape shadow graph could be justified only after current-state ABI/ownership proof and a >=1ms latest-rank stage effect screen. Target ~46.56ms remains dominant."
+}

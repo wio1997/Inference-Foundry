@@ -69,3 +69,5 @@
 - `2026-09-25T14:40:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run227`（test）。
 
 - `2026-09-25T15:01:38Z` Run `run227` 记录为 `fail`；正确性为 `invalid`。All8 captured first88 MoE layers0-16 then layer17 graph capture OOM; warmup48/48 legal, A0/12, B and G/E not run; stopped/restored; pivot to decode DAG and bound
+
+- `2026-09-25T15:06:00Z` 主控结论为 `PIVOTED`。One-graph-per-layer all43 first88 bank failed synchronized OOM at layer17 on all8; sparse first88 call frequency and four-layer diagnostic imply smaller bank lacks material product E2E headroom. Community MRV2 source confirms reusable target/draft graph machinery but not this fixed DSA-CP whole-prefill contract.
