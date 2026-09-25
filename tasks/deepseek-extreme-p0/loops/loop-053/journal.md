@@ -17,3 +17,7 @@
 - `2026-09-25T10:22:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run206`（profile）。
 
 - `2026-09-25T10:23:52Z` Run `run206` 记录为 `invalid`；正确性为 `invalid`。Preflight direct import model_runner_v1 hit borrowed circular import DeviceOperator from partially initialized device_op before service startup; zero requests, no metadata. Patch exact restored SHA004dbd0, no service. Retry with validated import order as Run207.
+
+- `2026-09-25T10:24:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run207`（profile）。
+
+- `2026-09-25T10:41:52Z` Run `run207` 记录为 `invalid`；正确性为 `invalid`。Warmup48+A12+B12 legal72/72 and runtime complete, but first88 fingerprint probe produced0/16 files because its trigger was overconstrained; no metadata comparison. Runner restored exact SHA004dbd0, service stopped. Retry first eager prefill capture with recorded actual fields.

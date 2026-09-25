@@ -1864,3 +1864,7 @@ Borrowed DSA-CP graph builder explicitly rejects prefill and `serve.sh` uses FUL
 ## Loop053 Run206 invalid fingerprint preflight (2026-09-25)
 
 Before service startup, direct `import vllm_ascend.worker.model_runner_v1` triggered a borrowed `device_op`/`experts_selector` circular import. No request, fingerprint or benchmark ran. Runner source restored SHA `004dbd0...`, service stopped/not started. Run207 will preflight using the import order that worked in Run200, then repeat the same read-only first88-token fingerprint design. Evidence: `evidence/20260925_loop053_native_prefill/run206/preflight.log`.
+
+## Loop053 Run207 invalid first88 fingerprint trigger (2026-09-25)
+
+Revised import preflight and full service succeeded: warmup48+A12+B12 all72 legal requests completed. However A/B fingerprint files were0/16 because the probe's `(padded88, context.actual88, req1, mode NONE)` trigger never matched. Prior phase tools used a fallback for missing/zero `num_actual_tokens`; this Run did not log the raw field, so the exact mismatch cannot be proven. No metadata evidence or performance conclusion. Runner source exact SHA `004dbd0...` restored, service stopped. Run208 captures the first eager prefill regardless of shape and records both padded/raw actual fields, guaranteeing trigger diagnostics. Evidence: `evidence/20260925_loop053_native_prefill/run207/`.
