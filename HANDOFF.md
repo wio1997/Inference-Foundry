@@ -1732,3 +1732,7 @@ Legal8-rank48+12 passed60/60 with40 runtime cohort files. Five initial waits wer
 ## Loop046 Run174 review and verdict (2026-09-25)
 
 Configured Astra Medium read-only review agrees tested250/500ms Core admission holds have no supported net frozen-product value. Separate-service Run173 had311 decode cycles versus Run171292, so runtime loss cannot be causally assigned solely to waiting. Sol rejects the opt-in admission hold; borrowed source is restored/default off and no formal E2E is warranted. Existing prefill graph route also lacks exact-state shape reuse. Loop046 PIVOTED; Loop047 now quantifies the product-specific inactive-slot target tail before any compaction implementation. Reviewer model ID is configured but not independently verifiable. Evidence: `evidence/20260925_loop046_prefill/run174/independent_review.md`.
+
+## Loop047 Run175 active-slot tail census (2026-09-25)
+
+Offline from legal Run155 eight-rank boundary park logs: measured cohort5 had296 cycles, first park at173, median18.525% parked slot-cycles, with44 cycles active<=6,27 active<=3 and16 active<=1. Across four warmup cohorts, parked fractions are9.68%,10.60%,11.62%,19.47% (all ranks agree within cohort). Multiplying measured parked fraction by Run98's46.560ms target stage gives2.553s/cohort only under an impossible ideal of linear target scaling and no switching overhead; it is NOT an achievable bound. Next audit exact c12 state/graph shape and get marginal target latency before implementing compaction. Evidence: `evidence/20260925_loop047_tail/run175/active_tail_census.json`.

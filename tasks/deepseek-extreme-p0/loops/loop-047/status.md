@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run175 offline eight-rank tail active-slot census and safe upper-bound triage from Run154/155 and Run99.
-- 更新时间：`2026-09-25T07:03:24Z`
+- 下一步：审查 Run run175 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T07:05:13Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run175`
 
 ## 阻塞项
 
