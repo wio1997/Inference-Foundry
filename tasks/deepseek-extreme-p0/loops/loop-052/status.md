@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run198 source and existing Run186/184 Host trace audit: quantify per-layer exclusive DSA/MoE Python/native dispatch call families and identify a repeatable specialization no wider than one layer segment.
-- 更新时间：`2026-09-25T09:46:03Z`
+- 下一步：审查 Run run198 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T09:48:44Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run198`
 
 ## 阻塞项
 
