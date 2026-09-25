@@ -1329,3 +1329,21 @@ will instrument actual `set_inputs_first_pass`,
 `build_draft_attn_metadata`, `_runnable`, and
 `compute_draft_token_ids` methods after preflight verification.
 This failure is a TaskCtl checkpoint, not an execution stop.
+
+## Loop042 Run140 and Loop043 opening (2026-09-25)
+
+After invalid Run139 was preserved, Run140 corrected temporary wrappers to
+the actual AscendDSparkProposer methods and passed 12/12 exact1024
+requests on eight ranks, with 290 cycles/rank. Across 1536 steady
+rank-cycles, proposer model Host wall/thread CPU medians are
+39.571/39.544 ms; nested `_runnable` 30.297/30.283 ms,
+`build_draft_attn_metadata` 6.306/6.294 ms, and
+`set_inputs_first_pass` 1.085/1.083 ms. Nested values are not
+additive. Latest-rank proposer-end cadence median53.824 ms and
+mean54.741 ms/cycle. Diagnostic TPS534.467 is not formal E2E.
+Patch hashes restored and stop script released eight NPUs to idle.
+Loop042 PIVOTED: phase skew alone does not support a scheduler edit.
+Loop043 audits a product-specific DSpark fixed replay/execution boundary
+against actual dynamic metadata and KV state before implementation.
+Astra High read-only architecture review was requested; its model ID
+is configured, not independently verified. Sol retains final decision.

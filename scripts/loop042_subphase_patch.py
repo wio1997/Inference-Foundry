@@ -15,7 +15,9 @@ def patch_handoff(s):
         self.subphase_rows = []
         self._subphase_current = None
         if self._subphase_capture:
-            for name in ("set_inputs_first_pass", "_build_step_attn_metadatas", "_runnable", "_run_window_draft_steps"):
+            for name in ("set_inputs_first_pass", "build_draft_attn_metadata", "_runnable", "compute_draft_token_ids"):
+                if not hasattr(self.proposer, name):
+                    continue
                 original = getattr(self.proposer, name)
                 def timed(*args, _name=name, _original=original, **kwargs):
                     wall0 = time.perf_counter_ns()

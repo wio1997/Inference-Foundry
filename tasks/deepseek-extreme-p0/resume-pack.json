@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-25T02:16:08Z",
+  "generated_at": "2026-09-25T02:35:37Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-042",
-    "next_action": "Run136: reconstruct per-rank absolute prepare/target/proposer event timing and first-collective intervals from Run106/107 and Run98; distinguish fixed offset from cycle growth and identify the latest rank.",
+    "active_loop": "loop-043",
+    "next_action": "Run141: offline source/call-graph audit of actual AscendDSparkProposer _runnable and metadata build, map dynamic inputs, side effects and potential fixed replay boundary; use Run140/Run98 timings to bound achievable cycle gain.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -401,21 +401,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-037",
-      "title": "Attribute the remaining target graph critical path",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "After static metadata removes the 8 ms sync, the fixed 96-token target graph still consumes about 46.56 ms/cycle. A runtime-only NPU trace can separate its exposed compute, communication, overlap, and gaps and identify a removable component large enough to make above-Stock throughput robust.",
-      "verdict": "PIVOTED",
-      "reason": "Runs100-104 passed legal serving but HTTP profiler RPC activation/stop latency varied from immediate to 23 seconds, missing decode or generating 10+ GiB traces; no bounded eight-rank target attribution. The profiler control boundary must move into the Runtime cycle.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260924_loop037_target/run104/summary.json"
-      ],
-      "decided_at": "2026-09-24T14:23:03Z"
-    },
-    {
       "loop_id": "loop-038",
       "title": "Capture a bounded target graph cycle trace",
       "mode": "optimization",
@@ -478,33 +463,49 @@
         "/data/wio/Inference_Foundry/evidence/20260925_loop041_hc_copy/run135/cache_scatter_map.json"
       ],
       "decided_at": "2026-09-25T01:28:26Z"
+    },
+    {
+      "loop_id": "loop-042",
+      "title": "Attribute and remove target rank phase skew",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "A persistent inter-rank phase offset entering each c12 target cycle makes early TP ranks wait in the first reduce-scatter; synchronizing or pacing launch without changing token semantics can remove exposed wait from the cohort critical path, provided the late-rank arrival itself can move earlier.",
+      "verdict": "PIVOTED",
+      "reason": "Run137 host phase skew narrows during target and reappears after proposer, but latest-rank cadence ~54ms and no safe scheduler edit show skew alone is not a removable critical-path claim. Run140 identifies a concrete CPU-heavy eager DSpark path, directing next product-specific audit there.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260925_loop042_phase/run140/subphase_analysis.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop042_phase/run137/phase_analysis.json"
+      ],
+      "decided_at": "2026-09-25T02:35:37Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-042",
-    "title": "Attribute and remove target rank phase skew",
+    "loop_id": "loop-043",
+    "title": "Reduce eager DSpark Host dispatch cost",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Run140: correct temporary instrumentation to actual AscendDSparkProposer methods, statically verify method presence, then repeat one legal 8-rank 12x1024 no-barrier subphase capture; restore sources and stop service.",
+    "next_action": "Run141: offline source/call-graph audit of actual AscendDSparkProposer _runnable and metadata build, map dynamic inputs, side effects and potential fixed replay boundary; use Run140/Run98 timings to bound achievable cycle gain.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-25T02:16:08Z"
+    "updated_at": "2026-09-25T02:35:37Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

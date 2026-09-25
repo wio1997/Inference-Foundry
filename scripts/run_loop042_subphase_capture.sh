@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=/data/wio/Inference_Foundry
-OUT=${ROOT}/evidence/20260925_loop042_phase/run139
+OUT=${1:-${ROOT}/evidence/20260925_loop042_phase/run140}
 DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl
 CONTAINER=vllm-ascend26-dsv4f-w4a8
 mkdir -p "${OUT}/runtime" "${OUT}/subphase"
@@ -13,7 +13,7 @@ trap cleanup EXIT
 python3 "${ROOT}/scripts/loop042_subphase_patch.py" install --record "${OUT}/patch_record.json" >"${OUT}/install.log"
 docker exec \
     -e MAX_MODEL_LEN=1048576 \
-    -e RUN_TS=LOOP042-RUN139 \
+    -e RUN_TS=LOOP042-RUN140 \
     -e EXTREME_RUNTIME_RUN_DIR="${OUT}/runtime" \
     -e EXTREME_RUNTIME_SERVE=1 \
     -e EXTREME_RUNTIME_RESERVE_TOKENS=1088 \

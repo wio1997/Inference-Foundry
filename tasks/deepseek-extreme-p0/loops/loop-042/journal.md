@@ -17,3 +17,9 @@
 - `2026-09-25T01:56:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run139`（profile）。
 
 - `2026-09-25T02:16:08Z` Run `run139` 记录为 `invalid`；正确性为 `invalid`。Temporary proposer subphase patch assumed Step3p5 method _build_step_attn_metadatas on actual AscendDSparkProposer; first request raised AttributeError and killed EngineCore. 11/12 partial responses and 7.27 tok/s are invalid. No subphase files. Source hashes restored and service stopped.
+
+- `2026-09-25T02:16:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run140`（profile）。
+
+- `2026-09-25T02:35:36Z` Run `run140` 记录为 `pass`；正确性为 `not-applicable`。Legal 12/12 exact1024 TP8, 290 cycles/rank; 1536 steady rank-cycles. Proposer model Host wall median39.571ms and thread CPU39.544ms; nested _runnable wall30.297/CPU30.283ms, metadata build wall6.306/CPU6.294ms, set_inputs1.085ms. Latest-rank proposer end cadence53.824ms. This is CPU work but not wholly removable critical path; no implementation or formal E2E. Borrowed sources restored, service stopped and idle8.
+
+- `2026-09-25T02:35:37Z` 主控结论为 `PIVOTED`。Run137 host phase skew narrows during target and reappears after proposer, but latest-rank cadence ~54ms and no safe scheduler edit show skew alone is not a removable critical-path claim. Run140 identifies a concrete CPU-heavy eager DSpark path, directing next product-specific audit there.
