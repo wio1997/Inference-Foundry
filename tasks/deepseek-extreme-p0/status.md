@@ -29,7 +29,7 @@
 | `loop-057` | `PIVOTED` | `PIVOTED` | Run233 captured surrogate at synthetic96 rows saved0.45us/call; Run235 real-local12-row surrogate fails FP32 router-output numerical gate before timing; official MRV2 fused op is unregistered in installed runtime. Read-only Run234 source/census found no defensible >=1ms/cycle target replacement; task sums and shared graph pool are not product savings. |
 | `loop-058` | `PIVOTED` | `PIVOTED` | Executable V0 replay closes Run99 formal samples exactly and preserves trajectory; TP8 chain and wave audit constrain communication capacity and locate E2E variability, but scenario savings and true hardware bound remain unvalidated |
 | `loop-059` | `PIVOTED` | `PIVOTED` | Legal all-rank boundary pass localizes Run99 residual to variable prefill and decode work rather than small publication/admission edges; Run188 shows phase reductions couple to decode cycles, and no true hardware floor or E2E candidate has been established |
-| `loop-060` | `EVALUATING` | `PENDING` | 审查 Run graph-memory-counter-design 的证据，并判断是否需要更多 Run |
+| `loop-060` | `EVALUATING` | `PENDING` | 审查 Run full-graph-memory-counters 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

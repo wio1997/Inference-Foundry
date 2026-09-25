@@ -13,3 +13,7 @@
 - `2026-09-25T16:53:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `graph-memory-counter-design`（design-check）。
 
 - `2026-09-25T16:55:11Z` Run `graph-memory-counter-design` 记录为 `pass`；正确性为 `not-applicable`。Frozen 8-rank two-cycle FULL target graph Level1 MemoryAccess diagnostic with 48-request warmup, 12/12 correctness, per-family counter/count gates and no E2E claim; product source opt-in default unchanged and service cleanup required
+
+- `2026-09-25T16:56:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `full-graph-memory-counters`（profile）。
+
+- `2026-09-25T16:57:50Z` Run `full-graph-memory-counters` 记录为 `invalid`；正确性为 `invalid`。Exit1 before model load or requests: host invoked inherited Run107 script that sources container-only /usr/local/Ascend/ascend-toolkit/set_env.sh; no profile or performance data. Stop trap ran, NPU idle. Retry via docker exec boundary.

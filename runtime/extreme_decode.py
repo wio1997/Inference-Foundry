@@ -138,6 +138,15 @@ class ExtremeDecodeRuntime:
                 if torch.distributed.is_initialized() else os.getpid())
         self._cycle_profile_rank = rank
         os.makedirs(self._cycle_profile_dir, exist_ok=True)
+        profile_kwargs = {}
+        if os.getenv("EXTREME_RUNTIME_CYCLE_PROFILE_MEMORY_ACCESS") == "1":
+            from torch_npu.profiler import (
+                AiCMetrics, ProfilerLevel, _ExperimentalConfig,
+            )
+            profile_kwargs["experimental_config"] = _ExperimentalConfig(
+                profiler_level=ProfilerLevel.Level1,
+                aic_metrics=AiCMetrics.MemoryAccess,
+            )
         self._cycle_profiler = profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.NPU],
             on_trace_ready=tensorboard_trace_handler(
@@ -145,6 +154,7 @@ class ExtremeDecodeRuntime:
                 worker_name=f"rank{rank}", analyse_flag=False,
             ),
             record_shapes=False, profile_memory=False, with_stack=False,
+            **profile_kwargs,
         )
         self._cycle_profile_started_ns = time.time_ns()
         self._cycle_profiler.start()

@@ -2037,3 +2037,7 @@ At fixed cycles and unchanged semantics, a hypothetical 0.5s/cohort exposed pref
 ## Loop060 Run244 graph memory-counter diagnostic design (2026-09-26)
 
 Frozen a two-cycle, eight-rank Level1 MemoryAccess capture on the actual target FULL graph at cycles64–65, after legal warmup48 and with 12/12×1024 diagnostic correctness. Only an opt-in profiler setting in runtime code is permitted; no framework source edit or formal E2E claim. Analysis must clip kernel_details to exact `extreme::target` scopes, gate family counts, and report per-family HBM bytes separately from HCCL/overlap. Design, success/failure criteria and cleanup: `evidence/20260926_loop060_resource/run244/design.md`. Next implement the opt-in, preflight source/idle, run bounded diagnostic, then reassess the largest Current-to-Bound gap.
+
+## Loop060 Run245 invalid launcher boundary (2026-09-26)
+
+An opt-in Level1 MemoryAccess profiler setting was added to `runtime/extreme_decode.py`; default serving behavior is unchanged and both Python compile and shell syntax checks passed. The first Run107-derived launcher was mistakenly invoked on the host. `scripts/serve.sh` failed before model load because `/usr/local/Ascend/ascend-toolkit/set_env.sh` exists only inside the serving container. Recorded exit 1, no requests/profile/performance result. Cleanup ran and eight NPUs were idle. TaskCtl marks Run245 INVALID. Next retry wraps the same diagnostic inside `docker exec vllm-ascend26-dsv4f-w4a8` with host-side service cleanup. Evidence: `evidence/20260926_loop060_resource/run245/`.
