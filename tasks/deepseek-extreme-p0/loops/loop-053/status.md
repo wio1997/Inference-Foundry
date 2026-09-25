@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run208 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-25T11:01:32Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Open Loop054: low-overhead target GMM versus exposed communication benefit discriminator using saved Run116/Run107/Run98 evidence, then bounded intervention.
+- 更新时间：`2026-09-25T11:04:22Z`
 
 ## Run 记录
 
@@ -18,6 +18,7 @@
 - `runs/mixed_32k_1024_c12/run206`
 - `runs/mixed_32k_1024_c12/run207`
 - `runs/mixed_32k_1024_c12/run208`
+- `runs/mixed_32k_1024_c12/run209`
 
 ## 阻塞项
 

@@ -1872,3 +1872,8 @@ Revised import preflight and full service succeeded: warmup48+A12+B12 all72 lega
 ## Loop053 Run208 first eager prefill fingerprint (2026-09-25)
 
 Run208 legal warmup48+A12+B12 succeeded72/72; 8-rank Runtime cohort5/6 checks pass. All16 first eager prefill fingerprints are padded88/one request. Run207 missed these because raw ctx.num_actual_tokens is None. Across A/B, each rank has107 common tensor fields with stable layout/address, but8 selected integer metadata hashes change, including slot mappings, block table and SAS/QLI fields. Stable shape/address does not make KV/state replay safe; no capture or performance claim. Probe source restored exact SHA, service stopped. Next map producer updates and full prefill write ownership before a bounded capture test. Evidence: `evidence/20260925_loop053_native_prefill/run208/analysis.json`, `interpretation.md`.
+
+
+## Loop053 Run209 source audit and pivot (2026-09-25)
+
+Run209 maps first88 prefill dynamic producers to runner slot/block/position preparation and DSA-CP SAS/QLI metadata, and write ownership to SWA, compressed KV, compressor state and c4 indexer caches. Run208's stable addresses with changing values do not establish safe graph replay. A whole-forward capture needs cross-module input refresh and capture-warmup state restoration without a demonstrated >=0.5s/cohort removable Host segment. Loop053 PIVOTED; no graph or formal E2E. Next Loop054 will use low-overhead evidence to distinguish target GMM compute from exposed communication before choosing a bounded implementation. Evidence: evidence/20260925_loop053_native_prefill/run209_source_audit.md.

@@ -25,3 +25,9 @@
 - `2026-09-25T10:44:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run208`（profile）。
 
 - `2026-09-25T11:01:32Z` Run `run208` 记录为 `pass`；正确性为 `pass`。72/72 legal requests and 8-rank Runtime pass; 16 first eager prefill fingerprints at 88 tokens show stable layout/address but 8 changed dynamic metadata hashes per rank; no capture or performance claim
+
+- `2026-09-25T11:02:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run209`（design-check）。
+
+- `2026-09-25T11:03:55Z` Run `run209` 记录为 `pass`；正确性为 `not-applicable`。Source maps refreshed prefill slot/block/SAS/QLI metadata and SWA/compressor/indexer writes; no bounded >=0.5s/cohort safe graph candidate; pivot from Loop053
+
+- `2026-09-25T11:04:22Z` 主控结论为 `PIVOTED`。Run208 verifies fixed shape/address but changing slot/block/SAS/QLI values; Run209 maps fresh metadata producers and SWA/compressor/indexer writes. No isolated >=0.5s/cohort removable Host segment or bounded safe prefill graph capture; defer invasive cross-module replay.

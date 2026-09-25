@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`DESIGNING`
-- 活动 Loop：`loop-053`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
 - 当前知识条目：`12`
-- 下一步：Run203 offline map Run181 profiled direct-child calls against Run186 low-overhead prefill layer costs and borrowed source; identify one precise repeated segment and quantify only an optimistic call-overhead screen.
-- 更新时间：`2026-09-25T10:13:50Z`
+- 下一步：Open Loop054: low-overhead target GMM versus exposed communication benefit discriminator using saved Run116/Run107/Run98 evidence, then bounded intervention.
+- 更新时间：`2026-09-25T11:04:22Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-050` | `PIVOTED` | `PIVOTED` | Run192/193 profiled first-collective wait traces target arrival skew, but Run194 proposer scope is8.62x Run98 low-overhead event, so profile skew cannot be promoted to product savings. Run195 low-overhead8-rank proposer duration spread median0.063ms and target0.090ms across260 steady cycles; no persistent large imbalance. Remaining HCCL kernels sum only about5.2ms in profile and have no concrete removable mechanism. Pivot from arrival skew toward required target compute/traffic and independent bound review. |
 | `loop-051` | `PIVOTED` | `PIVOTED` | Run197 maps exact source/trace chain and finds c128 20 scatter kernels only0.337ms/cycle gross profiled, while all c128+c4 matched scatter is1.123ms/cycle. Compressor ABI has cmp_kv/state_cache outputs but no final cache/slot inputs; direct-write needs intrusive kernel/tiling integration and state parity. This is too small a screened return for next implementation compared with prefill Host exposure, not proof of hardware bound. No product gain or E2E candidate. |
 | `loop-052` | `PIVOTED` | `PIVOTED` | Run200 legal same-service prefill-only same-stream candidate activated8/8 but B shape-matched forward wall is18.4ms slower than A2; client changes confounded by decode cycles and response hashes unstable even between controls. Run202 one-card same-stream event pair Host cost15.65us, making even2 redundant pairs per43 layers ~1.35ms/forward gross, ~12ms/9-call cohort. Event/stream simplification has no material observed product value. Remaining prefill active CPU is broader operator submission; pursue bounded fixed-model native path only if its removable fraction can be demonstrated. |
-| `loop-053` | `EVALUATING` | `PENDING` | 审查 Run run208 的证据，并判断是否需要更多 Run |
+| `loop-053` | `PIVOTED` | `PIVOTED` | Run208 verifies fixed shape/address but changing slot/block/SAS/QLI values; Run209 maps fresh metadata producers and SWA/compressor/indexer writes. No isolated >=0.5s/cohort removable Host segment or bounded safe prefill graph capture; defer invasive cross-module replay. |
 
 ## 阻塞项
 
