@@ -1188,3 +1188,17 @@ removable transfer without further evidence, but communication remains
 an unresolved candidate. A second-view read-only review agrees on this
 qualification; its actual service model ID is not independently
 verifiable, so model_verified=false and Sol owns the decision.
+
+## Loop039 PIVOT and Loop040 opening (2026-09-25)
+
+Run130 is Sol's evidence review. A requested Astra Medium read-only
+second view has no independently visible actual service model ID:
+model_verified=false; its advice is not formal evidence. Sol pivots
+Loop039 because GMM1 already skips empty experts and no legal faster
+replacement has shown a plausible >=5 ms target-stage reduction.
+This is a priority decision, not proof that GMM is at hardware bound.
+The Run107 HCCL peer-wait remains unresolved as intrinsic transfer
+versus fixed arrival offset. Loop040 first maps the stable 4.8205 ms
+quant-matmul family per call and exact shape using existing Run107 trace,
+then tests a concrete semantics-preserving repeated-projection/fusion
+hypothesis. Correctness and official E2E gates remain unchanged.

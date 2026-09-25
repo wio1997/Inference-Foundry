@@ -89,3 +89,9 @@
 - `2026-09-25T00:45:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run129`（design-check）。
 
 - `2026-09-25T00:47:09Z` Run `run129` 记录为 `pass`；正确性为 `not-applicable`。Run98 unprofiled steady cycles64-255: target median46.5868ms and rank duration spread median0.0812ms; proposer median6.4062ms and spread0.0603ms. Duration spread lacks synchronized absolute arrival timestamps; cannot rule out fixed rank arrival skew.
+
+- `2026-09-25T00:48:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run130`（review）。
+
+- `2026-09-25T00:48:01Z` Run `run130` 记录为 `pass`；正确性为 `not-applicable`。Sol review pivots from GMM tuning without a concrete replacement to quant matmul call attribution. Second-view requested Astra Medium, actual service model ID unavailable, model_verified=false and advisory only. No new E2E.
+
+- `2026-09-25T00:48:01Z` 主控结论为 `PIVOTED`。Current fused W4A8 GMM1 already skips empty experts; one-card synthetic route test gives no graph-level >=5ms candidate. Run107 GMM sums are diagnostic, not removable benefit. Highest next discriminating work is non-GMM quant matmul call attribution; GMM and communication remain open.

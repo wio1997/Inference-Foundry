@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-25T00:47:09Z",
+  "generated_at": "2026-09-25T00:48:01Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-039",
-    "next_action": "Read borrowed target grouped-matmul implementation and trace 86 calls to exact layer, shape, dtype and backend; rank candidate substitutions by device bound.",
+    "active_loop": "loop-040",
+    "next_action": "Run131: parse Run107 bounded trace to map 96-token target quant-matmul device kernels to CPU operator calls and shapes; use source audit, no service restart.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -401,23 +401,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-034",
-      "title": "Serve fixed 48-request cohorts through Extreme Runtime",
-      "mode": "integration",
-      "cases": [
-        "mixed_32k_1024_c12",
-        "correctness_short"
-      ],
-      "hypothesis": "For the frozen greedy 48x32K-to-1024 c12 workload, each 12-request cohort can remain inside the Extreme-owned decode loop until its exact per-request output limit, drain device outputs once, and return one bulk completion frame to the serving control plane; this preserves request outputs while keeping ModelRunner and Scheduler off the per-cycle hot path.",
-      "verdict": "PIVOTED",
-      "reason": "The frozen milestone is satisfied: CPU gates pass, every official run completes 48/48 requests at exactly 1024 tokens, and 128 rank/cohort records pass with no per-cycle ModelRunner/Scheduler re-entry. TaskCtl cannot mark the mixed-history loop accepted because the preserved collision attempt is invalid; that attempt is environmental, while the formal run is valid and shows Extreme at 217.342 tok/s, 60.022% below Stock.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260922_loop034_fixed_serving/e2e/summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260922_loop034_fixed_serving/e2e/runtime/rank0_cohort9.json"
-      ],
-      "decided_at": "2026-09-23T03:03:46Z"
-    },
-    {
       "loop_id": "loop-035",
       "title": "Extreme full-chain acceptance and cycle attribution",
       "mode": "optimization",
@@ -479,33 +462,49 @@
         "/data/wio/Inference_Foundry/evidence/20260924_loop038_cycle/run107/target_window.json"
       ],
       "decided_at": "2026-09-24T15:17:37Z"
+    },
+    {
+      "loop_id": "loop-039",
+      "title": "Reduce target MoE grouped matmul cost",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "The target graph contains 86 grouped-matmul kernels per c12 cycle summing about 9.97 ms in synchronized traces; a lower-cost backend or better fusion for the W4A8 MoE grouped-matmul path can remove at least 5 ms from the 46.56 ms unprofiled target stage without changing model state or outputs.",
+      "verdict": "PIVOTED",
+      "reason": "Current fused W4A8 GMM1 already skips empty experts; one-card synthetic route test gives no graph-level >=5ms candidate. Run107 GMM sums are diagnostic, not removable benefit. Highest next discriminating work is non-GMM quant matmul call attribution; GMM and communication remain open.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260925_loop039_gmm/run130/decision_review.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop039_gmm/run128_result.json"
+      ],
+      "decided_at": "2026-09-25T00:48:01Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-039",
-    "title": "Reduce target MoE grouped matmul cost",
+    "loop_id": "loop-040",
+    "title": "Map and reduce target quantized projection redundancy",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Run130: Sol decision audit with unverified second-view provenance; pivot from no-candidate GMM tuning to exact per-call quant matmul mapping, preserving communication as unresolved.",
+    "next_action": "Run131: parse Run107 bounded trace to map 96-token target quant-matmul device kernels to CPU operator calls and shapes; use source audit, no service restart.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-25T00:47:09Z"
+    "updated_at": "2026-09-25T00:48:01Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-039/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-040/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
