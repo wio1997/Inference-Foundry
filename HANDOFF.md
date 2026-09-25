@@ -1407,3 +1407,18 @@ No single other-compute name has >=5 ms coverage. Summing mandatory
 DSA stages is not a causal savings estimate. Run145 will discriminate
 communication peer wait against GMM compute on matching windows.
 This was offline only; service remains stopped.
+
+## Loop044 Run145 communication versus GMM (2026-09-25)
+
+On the same 15 valid Run107 target windows, 260 HCCL kernels per
+window total median 11.281 ms, while 86 GMM kernels total 9.966 ms.
+The first reduce-scatter dominates communication dispersion. Across
+ranks its start skew is 20.533/8.650 ms in cycles64/65, but its end
+skew is 0.010/0.0135 ms. The latest rank enters this collective in
+~0.035 ms, whereas earlier ranks wait. The other 259 HCCL kernels sum
+roughly 4.8–5.7 ms per rank. Reducing early-rank wait alone cannot move
+collective completion. This profiled synchronization is diagnostic;
+it does not prove the scheduler has no room. GMM is the larger stable
+compute exposure, but 9.966 ms is not a removable bound. Run146 will
+audit product GMM hardware efficiency and exact code path before an
+edit. Offline only; service remains stopped.

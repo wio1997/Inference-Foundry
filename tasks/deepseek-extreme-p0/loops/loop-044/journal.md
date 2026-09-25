@@ -9,3 +9,7 @@
 - `2026-09-25T03:02:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run144`（profile）。
 
 - `2026-09-25T03:05:43Z` Run `run144` 记录为 `pass`；正确性为 `not-applicable`。15 valid target windows contain 48 other-compute kernel names; largest exact-name exclusive coverage is VllmQuantLightningIndexer 1.7465ms, then generic MatMul 1.68925ms, SparseAttn 1.62025ms. No single >=5ms other-compute target; multiple mandatory DSA operations cannot be summed as removable benefit. Continue peer-wait versus GMM discrimination.
+
+- `2026-09-25T03:06:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run145`（profile）。
+
+- `2026-09-25T03:08:08Z` Run `run145` 记录为 `pass`；正确性为 `not-applicable`。In 15 Run107 windows, HCCL sum median 11.281ms versus GMM sum 9.966ms. First reduce-scatter accounts for almost all HCCL variability: cross-rank start skew 20.533/8.650ms in cycles64/65 but end skew 0.010/0.0135ms. Later-rank first-call duration ~0.035ms; early-rank wait is not independent savings. Other 259 HCCL calls total stable ~4.8-5.7ms. Prioritize GMM headroom audit.
