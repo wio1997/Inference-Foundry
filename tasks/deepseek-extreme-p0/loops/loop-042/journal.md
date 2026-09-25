@@ -9,3 +9,7 @@
 - `2026-09-25T01:31:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run137`（profile）。
 
 - `2026-09-25T01:50:50Z` Run `run137` 记录为 `pass`；正确性为 `not-applicable`。Legal 12/12 exact1024 TP8 diagnostic. Each rank produced 294 cycles, 192 steady cycles64-255 analyzed. Host begin skew median3.944ms, post-target skew0.991ms, post-proposer skew3.928ms; cohort host wall median58.130ms. Target graph catches up rank phase; proposer reintroduces skew. Timestamps are host asynchronous dispatch markers, not device collective interval or removable wall. Borrowed sources restored to original SHA and service stopped.
+
+- `2026-09-25T01:51:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run138`（design-check）。
+
+- `2026-09-25T01:55:13Z` Run `run138` 记录为 `pass`；正确性为 `not-applicable`。Run137 Host target/proposer scopes median4.872/41.992ms, but Run98 NPU target/proposer durations46.575/6.400ms and rank-median host target+proposer ~47ms show asynchronous timing debt. Run106 profiled DSpark model/_propose scope median50.201ms, wrappers individually <=1.284ms. Latest-rank end cadence median54.082ms, not 58.130ms cross-rank envelope. No removable phase or CPU cost yet proven; next bounded wall/thread-CPU subphase capture.

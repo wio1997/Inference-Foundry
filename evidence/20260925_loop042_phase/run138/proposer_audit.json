@@ -1,0 +1,70 @@
+{
+  "run": "run138",
+  "source": "Run137 legal 8-rank host timestamps cycles64-255 plus Run98 unprofiled NPU events",
+  "host_target_proposer_duration_correlation": -0.12796424914857288,
+  "latest_rank_end_cadence_median_ms": 54.082352,
+  "latest_rank_end_total_span_ms_per_cycle": 54.8773180052356,
+  "run106_profiled_host_dspark_scope_median_ms": {
+    "extreme::dspark_host_mirror_commit": 0.26099,
+    "extreme::dspark_host_mirror_launch": 0.55101,
+    "extreme::dspark_refresh_common": 0.36006,
+    "extreme::dspark_context_slots": 1.2842950000000002,
+    "extreme::dspark_prepare_inputs": 0.534395,
+    "extreme::dspark_pack_hidden": 0.269,
+    "extreme::dspark_model": 50.20112
+  },
+  "by_rank": {
+    "0": {
+      "target_host_median_ms": 7.7580655,
+      "proposer_host_median_ms": 39.012784499999995,
+      "sum_host_median_ms": 47.0491385
+    },
+    "1": {
+      "target_host_median_ms": 7.137426,
+      "proposer_host_median_ms": 39.762985,
+      "sum_host_median_ms": 47.45042000000001
+    },
+    "2": {
+      "target_host_median_ms": 4.278953,
+      "proposer_host_median_ms": 42.182224500000004,
+      "sum_host_median_ms": 47.0033835
+    },
+    "3": {
+      "target_host_median_ms": 3.8078744999999996,
+      "proposer_host_median_ms": 42.7270885,
+      "sum_host_median_ms": 46.8954315
+    },
+    "4": {
+      "target_host_median_ms": 3.8705249999999998,
+      "proposer_host_median_ms": 42.625651500000004,
+      "sum_host_median_ms": 46.7935345
+    },
+    "5": {
+      "target_host_median_ms": 4.546625,
+      "proposer_host_median_ms": 42.1706845,
+      "sum_host_median_ms": 47.1276015
+    },
+    "6": {
+      "target_host_median_ms": 4.4188495,
+      "proposer_host_median_ms": 42.45832,
+      "sum_host_median_ms": 47.022683
+    },
+    "7": {
+      "target_host_median_ms": 4.419424,
+      "proposer_host_median_ms": 42.2636755,
+      "sum_host_median_ms": 46.849757
+    }
+  },
+  "host_target_plus_proposer_median_ms": 47.041672999999996,
+  "host_target_median_ms": 4.872088,
+  "host_proposer_median_ms": 41.9922035,
+  "device_target_median_ms_run98": 46.57468032836914,
+  "device_proposer_median_ms_run98": 6.400399923324585,
+  "source_findings": [
+    "bootstrap/vllm_dspark_handoff.py _execute commits a one-cycle-delayed 12-count Host mirror via event synchronize, refreshes metadata and draft slots, prepares inputs, packs target hidden, then calls borrowed proposer._propose.",
+    "Run98 NPU event proposer median is ~6.4ms, while Run137 Host proposer scope median is ~42ms; asynchronous execution and waiting on prior target work make these different quantities.",
+    "DSpark borrowed proposer is eager (DirectDSparkHandoff rejects use_cuda_graph). Run106 profiled CPU scopes show model/_propose dominates Host proposer time, but these two profiled cycles are not steady unprofiled evidence; deeper model subphase timing is needed."
+  ],
+  "interpretation": "Across rank medians, slower Host target scope corresponds to faster Host proposer scope and the sum is near 47ms, close to Run98 target NPU event duration. Host proposer 42ms cannot be treated as removable overhead. Run106 model/_propose scope dominates profiled Host proposer; bounded subphase wall and thread CPU timing must localize wait before an edit.",
+  "limits": "Run98 and Run137 are separate cohorts; no exact shared-cycle device/host alignment. Host timestamps are asynchronous dispatch marks and include waits. Cross-rank cycle_wall is an envelope, not repeatable steady cadence; use latest-rank end cadence for steady progress."
+}

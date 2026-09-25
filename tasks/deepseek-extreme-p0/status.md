@@ -29,7 +29,7 @@
 | `loop-039` | `PIVOTED` | `PIVOTED` | Current fused W4A8 GMM1 already skips empty experts; one-card synthetic route test gives no graph-level >=5ms candidate. Run107 GMM sums are diagnostic, not removable benefit. Highest next discriminating work is non-GMM quant matmul call attribution; GMM and communication remain open. |
 | `loop-040` | `PIVOTED` | `PIVOTED` | Run131 mapped 236 quant kernels/target and alternating c4/c128 pattern. Run132 8-rank legal call probe covered wkv but no new shared-input pair. Run133 source audit shows the apparent split/indexer repeats already share quantization; no semantics-valid projection fusion candidate currently warrants another 8-rank service run. Shift to HC/clone/cache source and trace attribution; quant family remains later candidate if a concrete legal replacement appears. |
 | `loop-041` | `PIVOTED` | `PIVOTED` | Run134 HC/copy census and Run135 cache scatter map reveal no source-backed semantics-safe >=2ms edit. 126 cache scatters match SWA/compressed/indexer distinct writes by layer; clone device attribution is inconclusive. The larger remaining exposed HCCL/phase skew needs causal analysis before implementation. |
-| `loop-042` | `EVALUATING` | `PENDING` | Run138: offline source and Run137 rank-stage analysis of proposer host blocking and phase regeneration; identify specific sync/Host gap before another online edit. |
+| `loop-042` | `EVALUATING` | `PENDING` | Run139: bounded legal 8-rank proposer subphase capture with paired host wall/thread CPU timestamps around mirror commit, prepare, pack and borrowed _propose set_inputs/metadata/runnable; no device barrier; restore patches and stop service. Compare latest-rank steady cadence and acceptance. |
 
 ## 阻塞项
 

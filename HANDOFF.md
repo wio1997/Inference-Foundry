@@ -1300,3 +1300,18 @@ runtime/fixed_serving source restored to recorded original SHA256 and
 stop script returned all NPUs to about3.4GB idle. Run138 will locate
 proposer host blocking and quantify candidate host critical-path time.
 No scheduler edit is justified by phase skew alone.
+
+## Loop042 Run138 proposer source/timing audit (2026-09-25)
+
+Run138 found Run137 Host target/proposer scope medians4.872/41.992 ms,
+while separate Run98 NPU event medians are target46.575/proposer6.400 ms.
+The Host target+proposer rank medians are tightly near47 ms: the 42 ms
+Host proposer scope is not removable CPU time. Run106 two profiled
+cycles put median50.201 ms in borrowed _propose/model, with each outer
+handoff wrapper <=1.284 ms. The more meaningful latest-rank end cadence
+in Run137 is median54.082 ms and total-span mean54.877 ms/cycle; its
+58.130 ms cross-rank cycle envelope is not a steady throughput period.
+Astra Medium read-only review challenged the inference of a removable
+phase gap and recommended a no-barrier wall/thread-CPU subphase capture.
+Requested Astra model is not independently verified by tool metadata.
+Run139 will locate wait versus CPU activity before any scheduler edit.
