@@ -9,3 +9,9 @@
 - `2026-09-25T09:27:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run190`（review）。
 
 - `2026-09-25T09:27:46Z` Run `run190` 记录为 `pass`；正确性为 `not-applicable`。Static expert_map_path changes Ascend execution map but inspected checkpoint loader retains default physical slot mapping; nonidentity map unsafe without loader/reorder integration. No service/source change.
+
+- `2026-09-25T09:29:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run191`（simulation）。
+
+- `2026-09-25T09:29:42Z` Run `run191` 记录为 `pass`；正确性为 `not-applicable`。Fixed 32-expert/rank map trained on Run121 cycle64 gains57 active reads in train but only3 on held-out65; reverse gains78 in train and loses1 on held-out64. Static placement has no robust demonstrated balance gain; no service was started.
+
+- `2026-09-25T09:29:43Z` 主控结论为 `PIVOTED`。Run190 finds static expert_map execution/weight-loader mismatch needing substantial correctness integration. Run191 fixed-map pair-swap simulation over two captured cycles gains57/78 active reads in sample but only+3/-1 on the other cycle; no robust transferable reduction. Run189 ideal2.0-2.2ms/cycle is unattainable arithmetic, and separate-service GMM rank spread<0.45ms. Deprioritize placement; no code or formal E2E.
