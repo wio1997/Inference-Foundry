@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run181 offline correlate Run165 prefill CPU trace and HostToDevice flows to source callsites for the 83-token forward; estimate path-specific removable time and select a narrowly instrumented legal 8-rank follow-up
-- 更新时间：`2026-09-25T07:51:07Z`
+- 下一步：审查 Run run181 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T07:55:59Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run181`
 
 ## 阻塞项
 
