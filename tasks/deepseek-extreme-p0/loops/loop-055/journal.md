@@ -25,3 +25,7 @@
 - `2026-09-25T12:09:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run216`（test）。
 
 - `2026-09-25T12:28:56Z` Run `run216` 记录为 `pass`；正确性为 `pass`。8/8 first88 MoE graph capture and second-cohort replay;72/72 legal requests and6x8 Runtime pass; shared bit-exact, routed graph maxabs0.0078125 within observed eager self order; A/B input distinctness and product saving unproven
+
+- `2026-09-25T12:32:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run217`（test）。
+
+- `2026-09-25T12:53:41Z` Run `run217` 记录为 `pass`；正确性为 `pass`。72/72 legal requests and48/48 eight-rank Runtime records pass; all8 first88 layer0 graphs capture A/replay B with distinct input/output hashes; shared exact, routed maxabs0.0078125 vs eager self max0.015625; one-layer diagnostic only, no stage/E2E claim

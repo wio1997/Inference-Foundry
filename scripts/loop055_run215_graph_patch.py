@@ -15,7 +15,7 @@ def _moe_forward_shared(
     layer_name: _layer_name_type,
     hidden_dim_unpadded: int,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    import builtins as _bi, json as _json, time as _time
+    import builtins as _bi, json as _json, time as _time, hashlib as _hashlib
     from pathlib import Path as _Path
     from vllm.distributed import get_tp_group as _get_tp_group
     state=getattr(_bi,"_extreme_run215_state",None)
@@ -36,9 +36,13 @@ def _moe_forward_shared(
         return _extreme_run215_orig_moe(hidden_states,router_logits,shared_experts_input,input_ids,layer_name,hidden_dim_unpadded)
     source=hidden_states.detach().clone()
     torch.npu.synchronize()
+    row["input_sha256"]=_hashlib.sha256(source.contiguous().view(torch.uint8).cpu().numpy().tobytes()).hexdigest()
     mem_before=int(torch.npu.memory_allocated())
+    prod_t0=_time.perf_counter()
     prod=_extreme_run215_orig_moe(hidden_states,router_logits,shared_experts_input,input_ids,layer_name,hidden_dim_unpadded)
     torch.npu.synchronize()
+    row["eager_wall_ms"]=(_time.perf_counter()-prod_t0)*1000
+    row["eager_output_sha256"]=[_hashlib.sha256(v.detach().contiguous().view(torch.uint8).cpu().numpy().tobytes()).hexdigest() for v in prod]
     prod_cpu=[v.detach().to(torch.float32).cpu().clone() for v in prod]
     try:
         ctrl=_extreme_run215_orig_moe(source,source,source,None,layer_name,hidden_dim_unpadded)
@@ -63,12 +67,16 @@ def _moe_forward_shared(
         else:
             if graph_state is None or graph_state["layer"]!=str(name):
                 raise RuntimeError("missing A graph")
+            refresh_t0=_time.perf_counter()
             graph_state["input"].copy_(source)
+            torch.npu.synchronize()
+            row["refresh_wall_ms"]=(_time.perf_counter()-refresh_t0)*1000
         torch.npu.synchronize()
         t0=_time.perf_counter()
         graph_state["graph"].replay()
         torch.npu.synchronize()
         row["replay_wall_ms"]=(_time.perf_counter()-t0)*1000
+        row["graph_output_sha256"]=[_hashlib.sha256(v.detach().contiguous().view(torch.uint8).cpu().numpy().tobytes()).hexdigest() for v in graph_state["output"]]
         replay_cpu=[v.detach().to(torch.float32).cpu().clone() for v in graph_state["output"]]
         row["status"]="captured" if tag=="A" else "replayed"
         row["comparisons"]=[]
