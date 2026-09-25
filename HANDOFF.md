@@ -1215,3 +1215,17 @@ This is device-order association, not exact Python module/shape mapping.
 Run132 will use a temporary borrowed W8A8 apply probe only at 96-token
 capture to test same-input repeated quantization; legal 12x1024 requests,
 source restore and service stop are mandatory. No formal E2E yet.
+
+## Loop040 Run132 W8A8 call probe (2026-09-25)
+
+Legal 12x1024 requests succeeded on eight ranks. Every rank logged
+899 W8A8 apply calls with x[96,4096] and weight[4096,512]:
+43 target self_attn.wkv module prefixes occurred twice each in graph
+setup, and three MTP wkv prefixes occurred 271 times each during the
+run. This probe covered only wkv, not the other 236 quant-matmul target
+kernels; cross-layer repeated tensor addresses cannot prove same
+semantic input because graph memory is reused. The 556.756 tok/s
+diagnostic value is not formal E2E. Borrowed source hash restored,
+stop script released all eight NPUs below 3.5GB. Next Run133 is
+a source-backed accounting of direct DSA CP quant calls and shared
+quantization before another costly service capture.
