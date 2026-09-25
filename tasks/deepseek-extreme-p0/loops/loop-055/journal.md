@@ -53,3 +53,7 @@
 - `2026-09-25T13:52:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run223`（test）。
 
 - `2026-09-25T14:12:18Z` Run `run223` 记录为 `pass`；正确性为 `pass`。72/72 legal and48/48 eight-rank Runtime pass; A/B context input IDs same pointer/different hashes; valid shadow ID mutation changes routed graph output on all8 and matches modified eager maxabs0.001953125; IDs fully restored
+
+- `2026-09-25T14:13:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run224`（design-check）。
+
+- `2026-09-25T14:13:16Z` Run `run224` 记录为 `pass`；正确性为 `not-applicable`。Frozen first88 layer0-3 MoE graph test: A capture, B eight-rank same-input shadow controls, gated C four-layer substitution, D eager, whole-forward completion envelope and exact source restore; no formal E2E

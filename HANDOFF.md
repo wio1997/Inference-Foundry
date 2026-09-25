@@ -1947,3 +1947,8 @@ Read-only audit of Run204:53 prefill forwards across7 cohorts, first88 once per 
 ## Loop055 Run223 hidden hash-routing input stress (2026-09-25)
 
 Legal warmup48+A12+B12 completed72/72 with48/48 eight-rank Runtime pass. Production stayed eager. A/B first88 layer0 forward_context.input_ids pointer remained identical on each rank while hashes differed. Temporarily filling valid token ID42 in B changed the ID hash and routed graph output hash on all8 ranks; graph versus same modified-ID eager maxabs0.001953125. Finally restored original input IDs hash exactly on all8. This closes observed implicit hash-input refresh for layer0/first88, not other layers/shapes or in-flight output ownership. Borrowed sources restored exact SHA; service stopped. Next bounded four-layer hash0-2/nonhash3 graph test before broad bank. Evidence: evidence/20260925_loop055_moe_replay/run223/analysis.json and interpretation.md.
+
+
+## Loop055 Run224 four-layer graph test design (2026-09-25)
+
+Sol freezes first88 local11x4096 BF16 model.layers.0-3.mlp.experts graph test with separate storage per layer: hash layers0-2, nonhash3. A captures all4 while serving eager; B replays each against same-input eager and returns eager; only eight-rank B parity gates C four-layer serving substitution; D is eager control. C/D whole first88 model-forward sync measures slowest-rank completion, not formal E2E. Legal warmup48+A/B/C/D12, Runtime and exact source restore required. Next implement and preflight Run225. Evidence: evidence/20260925_loop055_moe_replay/run224/four_layer_design.md.
