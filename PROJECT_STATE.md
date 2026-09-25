@@ -828,3 +828,7 @@ Run171 legal60/60 shows client starts within12ms but Core add_request processing
 ## Loop047 Run180 and Loop048 (2026-09-25)
 
 Run180 same-service c12 early/late control passed legal 1024-token requests and eight-rank 24-call samples per size; c12 drift+1.536ms, target-tail zero-cost bucket screen0.471–0.602s/cohort. Source restored, service stopped. Loop047 PIVOTED because broad c12 ABI compaction has low expected value under this screening; no direct Extreme gain or formal E2E claim. Prior Run145-152 already show GMM and communication candidates are real costs but not verified removable savings. Loop048 will locate warmed prefill Host submission/dependency costs from existing Run165/166 data, then choose a narrow intervention. Current official Extreme Run99 median571.681tok/s vs Stock543.655tok/s.
+
+## Loop048 closure and Loop049 opening (2026-09-25)
+
+Run186 showed prefill forward thread CPU effectively equals wall time, rejecting a large blocked-thread hypothesis. Run188 waited1.089s to gather all12 and reduced eager prefill calls7/8→1, but legal diagnostic client envelopes20.822/20.769/21.042s show no material net gain; B decode331 cycles versus controls299. The candidate is disabled, sources restored, service stopped. Loop048 PIVOTED without formal E2E. Loop049 now screens whether static linear expert placement yields a reducible critical-rank target GMM/collective arrival imbalance, beginning offline with Run121 and Run107 same-cycle evidence. Formal product record remains Run99 Extreme571.681tok/s versus Stock543.655tok/s.

@@ -447,3 +447,7 @@ A legal warmed Extreme 12-request cohort has five rank-matched prefill forward s
 ## Loop048 Run186 prefill Host activity (2026-09-25)
 
 A legal same-service Extreme detailed cohort had nine eager prefill calls on all8 ranks. Per-call max-rank forward wall summed3.424s and thread CPU3.416s; per-rank median CPU/wall was99.70–99.98%. The Run165 device-free spans are therefore consistent with active Host submission, not a large off-CPU sleep, in this newer cohort. Control had six eager prefill calls plus three FULL forwards, detailed had nine eager calls; different shapes and sequential order prevent a causal perturbation or admission gain claim. To recover0.5s from nine calls requires roughly55.6ms less critical-path wall per call, about15% of the observed forward wall, with exact state preserved. No such edit is yet validated.
+
+## Loop048 Run188 admission closure (2026-09-25)
+
+A same-service A/B/A-prime legal Extreme diagnostic gathered all12 Core requests after1.089s wait and reduced prefill forwards7/8→1, saving gross max-rank prefill wall2.359–2.592s. Complete client envelope changed only20.822/20.769/21.042s; B decode was331 cycles versus controls299 and its latest-rank Runtime wall rose18.685s versus16.930/17.019s. Local prefill elimination is not a proxy for throughput gain. Keep the admission hold disabled. Next target-stage screen tests active expert weight-load imbalance against same-cycle GMM/HCCL timing; do not treat HCCL peer wait or GMM kernel sums as independently removable.

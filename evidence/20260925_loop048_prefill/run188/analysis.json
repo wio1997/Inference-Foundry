@@ -1,0 +1,141 @@
+{
+  "run": "run188",
+  "route": "same-service legal warmed Extreme no-wait A / <=2s Core first-cohort wait B / no-wait A-prime",
+  "bench": {
+    "warmup48": {
+      "n": 48,
+      "success": 48,
+      "fail": 0,
+      "concurrency": 12,
+      "max_tokens": 1024,
+      "duration_s": 89.03871449129656,
+      "output_tps": 552.0295332296668,
+      "ttft_ms_mean": 3274.9790824212446,
+      "ttft_ms_p50": 3235.9121618792415,
+      "ttft_ms_p90": 4972.496303264052,
+      "tpot_ms_mean": 18.552707806840687,
+      "tpot_ms_p50": 18.35121554645727,
+      "tpot_ms_p90": 20.197026909967175
+    },
+    "A": {
+      "n": 12,
+      "success": 12,
+      "fail": 0,
+      "concurrency": 12,
+      "max_tokens": 1024,
+      "duration_s": 20.821524844970554,
+      "output_tps": 590.1585062329463,
+      "ttft_ms_mean": 2266.0638178155446,
+      "ttft_ms_p50": 1923.3813029713929,
+      "ttft_ms_p90": 3300.9847910143435,
+      "tpot_ms_mean": 18.130912001635583,
+      "tpot_ms_p50": 18.044639081545792,
+      "tpot_ms_p90": 18.990058501051667
+    },
+    "B": {
+      "n": 12,
+      "success": 12,
+      "fail": 0,
+      "concurrency": 12,
+      "max_tokens": 1024,
+      "duration_s": 20.768829863052815,
+      "output_tps": 591.655865112556,
+      "ttft_ms_mean": 2243.530784306737,
+      "ttft_ms_p50": 2243.122461717576,
+      "ttft_ms_p90": 2245.9644661284983,
+      "tpot_ms_mean": 18.101177470708183,
+      "tpot_ms_p50": 18.10116557184086,
+      "tpot_ms_p90": 18.101248875595374
+    },
+    "A2": {
+      "n": 12,
+      "success": 12,
+      "fail": 0,
+      "concurrency": 12,
+      "max_tokens": 1024,
+      "duration_s": 21.04178053000942,
+      "output_tps": 583.9809983035927,
+      "ttft_ms_mean": 2363.099239883013,
+      "ttft_ms_p50": 2131.88801612705,
+      "ttft_ms_p90": 3440.490103792399,
+      "tpot_ms_mean": 18.251062941912874,
+      "tpot_ms_p50": 18.094267101661607,
+      "tpot_ms_p90": 19.353625946336827
+    }
+  },
+  "wait": [
+    {
+      "t": 3981292.8672167,
+      "wait_s": 1.0885121929459274,
+      "counts_before": [
+        0,
+        1
+      ],
+      "counts_after": [
+        0,
+        12
+      ]
+    }
+  ],
+  "phase_summary": {
+    "A": {
+      "client_envelope_s": 20.821524844970554,
+      "client_output_tps_diagnostic": 590.1585062329463,
+      "ttft_p50_ms": 1923.3813029713929,
+      "prefill_calls": 7,
+      "prefill_tokens": [
+        88,
+        264,
+        200,
+        136,
+        224,
+        240,
+        176
+      ],
+      "max_rank_prefill_forward_wall_sum_s": 2.736710008,
+      "decode_cycles": 299,
+      "latest_rank_runtime_wall_s": 16.929681248031557
+    },
+    "B": {
+      "client_envelope_s": 20.768829863052815,
+      "client_output_tps_diagnostic": 591.655865112556,
+      "ttft_p50_ms": 2243.122461717576,
+      "prefill_calls": 1,
+      "prefill_tokens": [
+        1000
+      ],
+      "max_rank_prefill_forward_wall_sum_s": 0.377499492,
+      "decode_cycles": 331,
+      "latest_rank_runtime_wall_s": 18.685412062797695
+    },
+    "A2": {
+      "client_envelope_s": 21.04178053000942,
+      "client_output_tps_diagnostic": 583.9809983035927,
+      "ttft_p50_ms": 2131.88801612705,
+      "prefill_calls": 8,
+      "prefill_tokens": [
+        88,
+        176,
+        112,
+        200,
+        136,
+        224,
+        240,
+        176
+      ],
+      "max_rank_prefill_forward_wall_sum_s": 2.969481463,
+      "decode_cycles": 299,
+      "latest_rank_runtime_wall_s": 17.018808185122907
+    }
+  },
+  "B_client_envelope_delta_vs_control_mean_s": -0.16282282443717122,
+  "runtime_record_count": 56,
+  "sources_restored": true,
+  "decision": "REJECT 2s initial admission wait as a product candidate: exact full-cohort consolidation occurred, but only a 0.163s diagnostic client-envelope improvement versus the two-control mean, not material or formal; B also had 32 more decode cycles and longer Runtime wall. No formal E2E warranted.",
+  "limits": [
+    "Single service, one B cohort and sequential A/B/A-prime; decode acceptance/route variation and cache state may differ. Do not causally attribute all 32 extra cycles to waiting.",
+    "Client envelope differences of 0.05-0.27s are smaller than prior diagnostic variability and do not prove product gain.",
+    "Requests passed length/Runtime gates, not independent full semantic equivalence.",
+    "Local prefill wall and Core wait are not additive end-to-end savings; scheduler and device work overlap."
+  ]
+}

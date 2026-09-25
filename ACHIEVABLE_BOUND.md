@@ -268,3 +268,7 @@ In one legal warmed Extreme cohort, five prefill `_model_forward` calls have per
 ## Loop048 Run186 Host CPU bound caution (2026-09-25)
 
 Detailed legal Extreme prefill forward wall/thread CPU per-call rank-max sums3.424/3.416s, with per-rank median ratios99.70–99.98%. The small wall-minus-thread-CPU difference rejects a large blocked-thread opportunity, but active CPU time includes required operator launch and collective/event dependency work. It is not an attainable savings bound. Different control/detailed prefill batch shapes preclude an intervention effect. The frozen-product hardware throughput bound remains UNKNOWN.
+
+## Loop048 Run188 whole-cohort admission test (2026-09-25)
+
+Full-cohort consolidation eliminated6–7 eager prefill calls but improved one diagnostic client envelope only0.163s versus two-control mean, while decode cycles differed32. This rules out promoting the gross2.36–2.59s prefill wall reduction to an E2E achievable saving. Single sequential A/B/A-prime does not establish a positive formal gain. Official hardware-attainable throughput bound remains UNKNOWN.

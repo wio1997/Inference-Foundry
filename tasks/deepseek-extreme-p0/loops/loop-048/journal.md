@@ -29,3 +29,9 @@
 - `2026-09-25T09:01:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run187`（design-check）。
 
 - `2026-09-25T09:01:12Z` Run `run187` 记录为 `pass`；正确性为 `not-applicable`。Run171 Core processed 12 over1.696s; 500ms prior hold gathered5-7 and failed net. Run186 nine-call cohort ideal 2s wait/one-forward arithmetic leaves roughly1.04s, six-call cohort near-neutral. Same-service no-wait/wait/no-wait test justified as nonlinear threshold falsification, not predicted gain.
+
+- `2026-09-25T09:02:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run188`（benchmark）。
+
+- `2026-09-25T09:20:12Z` Run `run188` 记录为 `pass`；正确性为 `pass`。Legal same-service warmed48+A12+B12+A2 12 passed84/84,56 Runtime rows. B waited1.089s to gather12, reduced prefill calls7/8 to1; client envelopes20.822/20.769/21.042s and decode cycles299/331/299. No material net diagnostic gain; candidate rejected, no formal E2E.
+
+- `2026-09-25T09:20:12Z` 主控结论为 `PIVOTED`。Run186 shows prefill forward thread CPU near wall but no concrete removable inner-layer fraction; Run188 proves full-cohort consolidation from7/8 to1 prefill call after1.089s wait yet only0.163s diagnostic envelope improvement vs no-wait A/A2 mean, with32 extra decode cycles. No justified formal E2E or KEEP candidate.
