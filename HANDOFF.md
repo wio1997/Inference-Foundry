@@ -1272,3 +1272,16 @@ implementation or E2E claim. Loop042 now tests whether the roughly
 skew or a critical-path-neutral wait. First Run136 uses existing
 traces and DAG timestamps; no service restart yet. Every checkpoint
 requires reassessing the highest gap and continuing while unblocked.
+
+## Loop042 Run136 phase audit (2026-09-25)
+
+Run136 reanalysed Run106's two unsynchronized profiled cycles.
+Prepare entry skew was 9.637 and 10.510 ms; first reduce-scatter
+start skew 10.193 and 9.735 ms, while end skew was only 0.0065 and
+0.0118 ms. The latest rank changed from rank3 to rank0. Run98 steady
+cycles64-255 show tiny per-cycle rank duration spreads (target median
+0.0812 ms, proposer 0.0603 ms), but save no shared absolute timestamps.
+Therefore an unprofiled steady phase offset and its effect on cohort
+wall remain unknown. Run137 will use opt-in lightweight host timestamps
+at stage boundaries in a legal eight-rank c12 run, without profiler or
+forced NPU sync. Only then choose a scheduler or communication edit.
