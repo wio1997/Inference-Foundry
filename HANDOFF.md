@@ -1816,3 +1816,7 @@ Run107 target entry cross-rank skew20.532ms (cycle64) and8.624ms (cycle65) close
 ## Loop050 Run194 profiler perturbation guard (2026-09-25)
 
 Run107 profiled/synchronized proposer CPU scopes at cycles64/65 have median55.644ms (51.628–63.213); Run98 low-overhead proposer device event at the same ordinal cycles on a separate service has median6.454ms (6.369–6.530), an8.62× difference. Distinct timing primitives and services prevent a precise overhead subtraction, but the Run107 8–11ms rank-arrival skew cannot be promoted as an unprofiled product Gap. Run192-193 remain valid *profile-trace structural* observations only. Next inspect Run98's full300-cycle 8-rank stage variation before selecting any communication intervention. Evidence: `evidence/20260925_loop050_target_dependency/run194/analysis.json`.
+
+## Loop050 Run195 low-overhead rank spread and pivot (2026-09-25)
+
+Run98 unprofiled event DAG over260 steady ordinal cycles: eight-rank proposer-duration spread median0.063ms (p90 0.106ms), target-duration spread median0.090ms (p90 2.329ms). The large Run107 first-collective skew is not a persistent measured product imbalance; Run107 proposer scope is8.62× the separate-service low-overhead event interval. Loop050 PIVOTED; no service or formal E2E. Sol requests an independent Astra High architecture/bound review of remaining target work before choosing the next intervention. Evidence: `evidence/20260925_loop050_target_dependency/run195/analysis.json`.

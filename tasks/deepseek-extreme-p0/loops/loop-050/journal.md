@@ -13,3 +13,9 @@
 - `2026-09-25T09:34:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run194`（review）。
 
 - `2026-09-25T09:34:49Z` Run `run194` 记录为 `pass`；正确性为 `not-applicable`。Run107 proposer profiled/synchronized CPU scope median55.644ms versus separate-service Run98 low-overhead proposer event6.454ms (8.62x); Run107 rank-arrival skew cannot be promoted to product removable gap. No service started.
+
+- `2026-09-25T09:35:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run195`（review）。
+
+- `2026-09-25T09:35:42Z` Run `run195` 记录为 `pass`；正确性为 `not-applicable`。Run98 low-overhead steady cycles20-279: eight-rank proposer duration spread median0.063ms, target0.090ms, p90 target2.329ms. No persistent large rank imbalance; Run107 arrival skew is not product gap. No service started.
+
+- `2026-09-25T09:35:42Z` 主控结论为 `PIVOTED`。Run192/193 profiled first-collective wait traces target arrival skew, but Run194 proposer scope is8.62x Run98 low-overhead event, so profile skew cannot be promoted to product savings. Run195 low-overhead8-rank proposer duration spread median0.063ms and target0.090ms across260 steady cycles; no persistent large imbalance. Remaining HCCL kernels sum only about5.2ms in profile and have no concrete removable mechanism. Pivot from arrival skew toward required target compute/traffic and independent bound review.

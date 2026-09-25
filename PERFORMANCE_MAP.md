@@ -459,3 +459,7 @@ Run121 cycles64/65 rank aggregate active expert-layer counts span645–697 and65
 ## Loop049 Run190-191 static placement screen (2026-09-25)
 
 The available `expert_map_path` changes Ascend execution routing without changing upstream checkpoint physical weight placement, so arbitrary static remap is unsafe without loader integration. Fixed per-layer 32-expert/rank maps tuned on one Run121 cycle saved57/78 active reads in sample but transferred only+3/-1 reads to the other captured cycle; those read counts correspond to roughly+0.038/-0.013ms at the illustrative1TB/s before routing and implementation costs. Two cycles are insufficient to establish a general placement bound, but do not justify an invasive correctness-sensitive remap. Pivot to same-state target communication/compute attribution; formal Run99 remains571.681tok/s.
+
+## Loop050 Run192-195 target arrival correction (2026-09-25)
+
+Run107 profiled first reduce-scatter durations reflect rank arrival: start skew8.65–20.53ms, end skew<=0.014ms; following259 HCCL tasks sum median5.205ms. The prior proposer appears to propagate target-entry skew *inside that profile*, but Run107 proposer CPU scope median55.644ms is8.62× Run98 low-overhead event median6.454ms on separate services. In Run98's260 steady cycles, proposer eight-rank duration spread median0.063ms and target0.090ms. Do not count profiled arrival skew as removable product time. Target graph remains the largest measured serial stage, with its GMM/other compute and required communication still unbounded for achievable throughput.

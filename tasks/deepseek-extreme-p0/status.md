@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`OPTIMIZING`
-- 活动 Loop：`loop-050`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
 - 当前知识条目：`12`
-- 下一步：Run192 offline audit of Run107 target trace interval causality: first collective boundary, remaining per-layer communication, overlap and rank skew; then choose a specific intervention or pivot.
-- 更新时间：`2026-09-25T09:30:31Z`
+- 下一步：Solicit Astra High independent achievable-bound/architecture review for frozen product, using Run99, Run107, Run145-152, Run188, Run190-195; Sol then select a specific next mechanism or evidence collection.
+- 更新时间：`2026-09-25T09:35:42Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-047` | `PIVOTED` | `PIVOTED` | Run175 tail has 122 partial cycles but Run180 matched same-service Stock target-size event screen gives only 0.471-0.602s/cohort before substantial c12 ABI packing and state costs; direct Extreme benefit unproven and broad implementation has low expected product value relative to prefill Host work |
 | `loop-048` | `PIVOTED` | `PIVOTED` | Run186 shows prefill forward thread CPU near wall but no concrete removable inner-layer fraction; Run188 proves full-cohort consolidation from7/8 to1 prefill call after1.089s wait yet only0.163s diagnostic envelope improvement vs no-wait A/A2 mean, with32 extra decode cycles. No justified formal E2E or KEEP candidate. |
 | `loop-049` | `PIVOTED` | `PIVOTED` | Run190 finds static expert_map execution/weight-loader mismatch needing substantial correctness integration. Run191 fixed-map pair-swap simulation over two captured cycles gains57/78 active reads in sample but only+3/-1 on the other cycle; no robust transferable reduction. Run189 ideal2.0-2.2ms/cycle is unattainable arithmetic, and separate-service GMM rank spread<0.45ms. Deprioritize placement; no code or formal E2E. |
-| `loop-050` | `EVALUATING` | `PENDING` | 审查 Run run194 的证据，并判断是否需要更多 Run |
+| `loop-050` | `PIVOTED` | `PIVOTED` | Run192/193 profiled first-collective wait traces target arrival skew, but Run194 proposer scope is8.62x Run98 low-overhead event, so profile skew cannot be promoted to product savings. Run195 low-overhead8-rank proposer duration spread median0.063ms and target0.090ms across260 steady cycles; no persistent large imbalance. Remaining HCCL kernels sum only about5.2ms in profile and have no concrete removable mechanism. Pivot from arrival skew toward required target compute/traffic and independent bound review. |
 
 ## 阻塞项
 
