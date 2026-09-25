@@ -1609,3 +1609,11 @@ inside the worker without synchronization, excluding the final
 Extreme handoff call. Python wall will locate Host-facing stage
 latency but cannot establish device kernel time. Probe design and
 source anchors are in run159 evidence.
+
+## Loop045 Run160 invalid patch collision (2026-09-25)
+
+No service or NPU work. Stage and timing temporary patches shared
+the same backup path, causing timing install to fail before startup.
+Trap restored stage and boundary patches to original SHA and stopped
+service. Run160 is invalid in TaskCtl; failure logs preserved. Run161
+will give patches distinct backup paths and repeat the legal probe.

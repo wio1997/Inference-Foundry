@@ -25,3 +25,7 @@
 - `2026-09-25T04:49:28Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run159`（design-check）。
 
 - `2026-09-25T04:49:28Z` Run `run159` 记录为 `pass`；正确性为 `not-applicable`。Inspected NPUModelRunner prefill source boundaries. Run160 will timestamp method entry, prepare end, model forward entry/exit and method exit without device synchronization, excluding final Extreme handoff call. Attribution limited to Python wall; device time still requires NPU events/profile.
+
+- `2026-09-25T04:50:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run160`（profile）。
+
+- `2026-09-25T04:50:54Z` Run `run160` 记录为 `invalid`；正确性为 `invalid`。No service or NPU work. Temporary stage patch installed, then timing patch install failed because both used the same /tmp backup path. Trap restored stage and boundary sources to original SHA and stopped service. No throughput/stage data; fix backup collision in Run161.
