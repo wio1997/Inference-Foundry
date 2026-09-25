@@ -1,0 +1,54 @@
+{
+  "run": "run187",
+  "kind": "offline hypothesis/feasibility audit",
+  "source_runs": [
+    "run171",
+    "run172",
+    "run173",
+    "run186"
+  ],
+  "observations": {
+    "run171_measured_core_add_span_s": 1.6955376113764942,
+    "run171_last_core_add_after_client_start_s": 1.9215149469673634,
+    "run173_500ms_initial_wait_counts": [
+      [
+        0,
+        7
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        5
+      ]
+    ],
+    "run173_measured_prefill_calls": 4,
+    "run186_control_prefill_calls": 6,
+    "run186_detailed_prefill_calls": 9,
+    "run186_detailed_rank_max_forward_sum_s": 3.4236298229999997,
+    "run186_detailed_mean_rank_max_forward_s": 0.38040331366666663
+  },
+  "screening_scenarios": {
+    "nine_to_one_if_wait_1p7_s": 1.343226509333333,
+    "nine_to_one_if_wait_2_s": 1.043226509333333,
+    "six_to_one_at_same_forward_mean_if_wait_1p7_s": 0.20201656833333304,
+    "six_to_one_at_same_forward_mean_if_wait_2_s": -0.09798343166666701
+  },
+  "decision": "Test a bounded <=2s Core input-queue drain only when the 12-request fixed cohort first becomes runnable, with same-service no-wait A / wait B / no-wait A-prime. Measure exact wait, requests gathered, prefill call count and latest-rank runtime/client envelope. This is a nonlinear threshold hypothesis after 250/500ms failed; reject if B does not gather nearly all requests or lacks material net benefit.",
+  "limits": [
+    "Run171 Core add_request is processing time, not frontend arrival; a 2s wait may not gather all 12.",
+    "Run186 control and detailed cohorts have different admission shapes and are not a causal no-wait baseline.",
+    "Scenario arithmetic assumes identical per-forward cost and ignores scheduler, decode, cache and client effects; it is not an achievable bound.",
+    "Run173 500ms no-net result remains the prior negative evidence."
+  ]
+}

@@ -25,3 +25,7 @@
 - `2026-09-25T08:41:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run186`（profile）。
 
 - `2026-09-25T08:59:23Z` Run `run186` 记录为 `pass`；正确性为 `pass`。Same-service legal Extreme warmup48/control12/detailed12 passed72/72 and48 rank/cohort records. Detailed nine prefill calls have per-call max-rank wall3.424s vs thread CPU3.416s (CPU/wall medians99.70-99.98%); off-CPU blocking not dominant. Control had six eager prefill and three FULL calls, detailed nine eager prefill; no causal TPS A/B. Source restored/service stopped.
+
+- `2026-09-25T09:01:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run187`（design-check）。
+
+- `2026-09-25T09:01:12Z` Run `run187` 记录为 `pass`；正确性为 `not-applicable`。Run171 Core processed 12 over1.696s; 500ms prior hold gathered5-7 and failed net. Run186 nine-call cohort ideal 2s wait/one-forward arithmetic leaves roughly1.04s, six-call cohort near-neutral. Same-service no-wait/wait/no-wait test justified as nonlinear threshold falsification, not predicted gain.
