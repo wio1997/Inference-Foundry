@@ -49,3 +49,7 @@
 - `2026-09-25T13:49:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run222`（design-check）。
 
 - `2026-09-25T13:49:41Z` Run `run222` 记录为 `pass`；正确性为 `not-applicable`。Read-only Run204 bank audit:53 prefill forwards/7 cohorts, first88 once/cohort;43 MoE layers; exact top3 train signatures cover1-3 heldout calls; implicit context input_ids in first3 hash layers requires live closure before graph bank
+
+- `2026-09-25T13:52:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run223`（test）。
+
+- `2026-09-25T14:12:18Z` Run `run223` 记录为 `pass`；正确性为 `pass`。72/72 legal and48/48 eight-rank Runtime pass; A/B context input IDs same pointer/different hashes; valid shadow ID mutation changes routed graph output on all8 and matches modified eager maxabs0.001953125; IDs fully restored
