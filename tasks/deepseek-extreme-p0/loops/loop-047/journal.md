@@ -13,3 +13,7 @@
 - `2026-09-25T07:11:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run177`（profile）。
 
 - `2026-09-25T07:28:31Z` Run `run177` 记录为 `pass`；正确性为 `pass`。Stock-only same-service legal c12,c8,c6,c4,c1 warmup+measured cohorts all pass, 24 FULL graph event samples per size/rank. Critical event medians53.944,49.672,49.647,47.155,39.903ms. Run155 measured tail bucket-mapped target screen0.570s/cohort before any switching/packing; impossible all-tail-c1 endpoint1.713s. Sequential order, sync perturbation and stock/Extreme boundary differences require repeat c12/drift check. Borrowed source restored/service stopped.
+
+- `2026-09-25T07:30:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run178`（review）。
+
+- `2026-09-25T07:30:56Z` Run `run178` 记录为 `pass`；正确性为 `not-applicable`。Review finds 0.570 s/cohort zero-cost bucket screen, c12 drift control needed; no implementation verdict yet; actual model ID unverified
