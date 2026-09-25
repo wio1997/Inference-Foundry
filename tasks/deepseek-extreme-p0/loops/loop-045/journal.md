@@ -37,3 +37,7 @@
 - `2026-09-25T05:12:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run162`（profile）。
 
 - `2026-09-25T05:27:14Z` Run `run162` 记录为 `invalid`；正确性为 `invalid`。Service startup failed before any benchmark or profiler capture: Worker TP6 KV block table CpuGpuBuffer pin_memory allocation raised torch.OutOfMemoryError aclrtMallocHostWithCfg 207001. Host memory at failure ~16Gi free and swap full; root cause/ownership not established. Stopped service, restored temporary sources, 8 NPU idle. No performance conclusion.
+
+- `2026-09-25T05:27:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run163`（profile）。
+
+- `2026-09-25T05:30:53Z` Run `run163` 记录为 `pass`；正确性为 `not-applicable`。Read-only resource audit after Run162: dedicated vllm container cgroup has 3646 live process IDs, including 3270 multiprocessing.forkserver processes (~716GiB aggregate RSS), 327 spawn processes (~194GiB) and 8 python stdin processes (~59GiB). Host swap 71GiB full; no container memory cap and 8 NPU idle. Strong resource pressure explanation for pinned Host allocation failure, not direct proof. Next controlled container restart after stopped-service check.

@@ -1643,3 +1643,16 @@ its detached health-check shell cleaned, source patches restored to
 original SHA, service stopped and8 NPUs idle. Run162 is invalid in
 TaskCtl. Next Run163 is read-only resource audit before considering a
 new service attempt; do not kill unrelated processes.
+
+## Loop045 Run163 Host resource audit (2026-09-25)
+
+Read-only audit of the stopped dedicated
+`vllm-ascend26-dsv4f-w4a8` container found3646 live cgroup PIDs:
+3270 multiprocessing.forkserver processes (~716 GiB summed RSS),
+327 spawn processes (~194 GiB), eight `python3 -` (~59 GiB), plus
+trackers/init. Host swap71 GiB is full; cgroup reports ~985 GB
+current and no configured memory.max. These residual processes create
+strong pressure and plausibly explain Run162 pinned Host allocation
+failure, but direct allocator causality is unproven. No active service
+or NPU process. Run164 will restart only this dedicated stopped
+container and verify resource recovery before retrying the profiler.
