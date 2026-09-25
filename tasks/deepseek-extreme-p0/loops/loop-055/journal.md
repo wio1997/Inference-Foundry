@@ -5,3 +5,7 @@
 - `2026-09-25T11:12:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run211`（design-check）。
 
 - `2026-09-25T11:13:35Z` Run `run211` 记录为 `pass`；正确性为 `not-applicable`。MoE custom-op source closure excludes direct DSA/KV but has forward-context index, DP/SP sizes, routing, multistream/HCCL and possible mutable counters; live ABI/state probe required before capture
+
+- `2026-09-25T11:17:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run212`（profile）。
+
+- `2026-09-25T11:20:16Z` Run `run212` 记录为 `invalid`；正确性为 `invalid`。Stopped before requests after detecting probe BF16-to-NumPy hash incompatibility; dry import passed but no ABI data, no benchmark; exact source restore and service stop verified

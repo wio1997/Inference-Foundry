@@ -1887,3 +1887,8 @@ Run116's about9.97ms GMM sum and10.25ms exposed communication in a synchronized 
 ## Loop055 Run211 prefill MoE source closure (2026-09-25)
 
 One-layer vllm.moe_forward_shared custom op has no direct DSA/KV argument or write in inspected source, so it is a narrower graph test than whole-prefill capture. It still depends on routed/shared input tensors, forward-context layer index, DP/SP local sizes, communication mode, stream events and possibly EPLB/LoRA state. Frozen dynamic EPLB is disabled by logs, but actual first88 layer ABI must be observed. ACLGraphWrapper does not refresh replay inputs. Sol gates capture on a live read-only eight-rank one-layer ABI/mutable-state probe in Run212. No service run or performance claim in Run211. Evidence: evidence/20260925_loop055_moe_replay/run211/source_closure.md.
+
+
+## Loop055 Run212 invalid probe launch (2026-09-25)
+
+Run212 patch/install/import dry preflight passed, but Sol found its hash probe could call NumPy directly on BF16 tensors. The service was stopped during weight load before benchmark requests; no ABI or timing result. The launcher restored MoE runner SHA3c000e17... and model runner SHA004dbd0... exactly; no vLLM service remains. TaskCtl marks invalid. Probe now hashes a uint8 view; Run213 will test BF16 hashing directly before the same legal eight-rank collection. Evidence: evidence/20260925_loop055_moe_replay/run212/invalid.md and patch_restore.json.
