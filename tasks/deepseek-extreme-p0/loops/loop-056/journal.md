@@ -9,3 +9,5 @@
 - `2026-09-25T15:09:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run229`（review）。
 
 - `2026-09-25T15:15:25Z` Run `run229` 记录为 `pass`；正确性为 `not-applicable`。Read-only DSpark mutable ABI closure: V1 handoff rejects graph and per-step DSA-CP/KV/slot metadata is dynamic; no safe direct graph-on switch or >=1ms Markov-only mechanism; pivot target bound
+
+- `2026-09-25T15:16:47Z` 主控结论为 `PIVOTED`。Community MRV2 DSpark graph management exists but current frozen V1 handoff lacks recursive dynamic metadata/KV/slot/output ownership; Run142/98 do not prove >=1ms exposed gain. Model-only shadow remains deferred option; target46.56ms dominates.
