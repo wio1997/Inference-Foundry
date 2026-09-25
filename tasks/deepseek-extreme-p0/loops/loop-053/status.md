@@ -5,14 +5,14 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run203 offline map Run181 profiled direct-child calls against Run186 low-overhead prefill layer costs and borrowed source; identify one precise repeated segment and quantify only an optimistic call-overhead screen.
-- 更新时间：`2026-09-25T10:13:50Z`
+- 下一步：审查 Run run203 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T10:16:38Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run203`
 
 ## 阻塞项
 
