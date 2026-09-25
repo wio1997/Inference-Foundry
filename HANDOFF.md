@@ -1922,3 +1922,8 @@ Legal warmup48+A12+B12 completed72/72 at max_tokens1024, with48/48 eight-rank Ru
 ## Loop055 Run218 invalid launcher (2026-09-25)
 
 Run218 exited code2 before patch install or serving because the launcher referenced nonexistent loop055_run218_graph_patch.py; generated patch is loop055_run218_substitute_patch.py. No graph substitution or performance evidence. Dry import passed after correcting import order. Borrowed source hashes remain exact originals and service is stopped. TaskCtl marks invalid. Correct launcher and execute new Run219. Evidence: evidence/20260925_loop055_moe_replay/run218/invalid.md.
+
+
+## Loop055 Run219 one-layer serving graph substitution (2026-09-25)
+
+Legal warmup48+A/B/C/D12 completed96/96 with64/64 eight-rank Runtime records passing. A captured graph, B returned graph output with same-input eager numerical control, C returned graph output without per-call sync/hash, D returned eager; all8 ranks activated each phase. B shared output bit-exact and routed maxabs0.0078125, matching max eager self-control. B synchronized eager median4.551ms vs graph replay2.086ms; C Host submission median0.137ms vs D4.116ms, one call/rank. C/D client TPS/TTFT are order and cache confounded; no stage or E2E gain claim, no exact full-token oracle differential. Both borrowed files restored exact SHA and service stopped. Next repeated matched stage-completion and numerical gate with graph-capture amortization before expanding all layers. Evidence: evidence/20260925_loop055_moe_replay/run219/analysis.json and interpretation.md.

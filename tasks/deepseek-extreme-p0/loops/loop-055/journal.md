@@ -33,3 +33,7 @@
 - `2026-09-25T12:56:31Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run218`（test）。
 
 - `2026-09-25T12:59:17Z` Run `run218` 记录为 `invalid`；正确性为 `invalid`。Launcher referenced nonexistent patch file and exited2 before source install or requests; no graph substitution result; original source hashes and stopped service verified
+
+- `2026-09-25T12:59:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run219`（test）。
+
+- `2026-09-25T13:19:10Z` Run `run219` 记录为 `pass`；正确性为 `pass`。96/96 legal requests and64/64 eight-rank Runtime pass; first88 layer0 graph outputs served on B/C, B shared exact and routed maxabs0.0078125; one-call local timing plausible but no causal stage/E2E gain

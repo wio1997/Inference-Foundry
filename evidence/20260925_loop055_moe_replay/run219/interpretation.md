@@ -1,0 +1,7 @@
+# Run219 bounded serving substitution
+
+Legal warmup48 plus A/B/C/D12 cohorts completed96/96 with max_tokens1024. All64 rank/cohort Runtime records passed Host mirror and target handoff checks. On all8 ranks, A captured the first layer0 prefill MoE shape, B returned the graph result to serving while retaining a same-input eager control, C returned the graph result with no per-call sync or hashes, and D returned eager. B shared output was exact; routed maximum absolute graph/eager difference was0.0078125, within the same order as the eager self-control.
+
+The single-call C Host submission was0.118-0.139ms/rank and D eager submission3.595-4.291ms/rank. B synchronized graph replay took1.322-2.273ms/rank versus synchronized eager4.354-5.602ms/rank. These are local diagnostic measurements, not a measured E2E gain. C/D client TPS and TTFT differ substantially, but cohort order, prefix-cache state and only one switched op per cohort prevent causal attribution. No exact output-token or oracle logit differential was captured.
+
+Sol judgment: the graph substitute is feasible at one fixed layer and has a plausible local completion saving. Next gate must measure repeated, matched stage completion under alternating graph/eager calls or cohorts, with graph capture amortization and numerical correctness. Expansion to all layers or formal E2E is premature until that gate demonstrates a material exposed saving.
