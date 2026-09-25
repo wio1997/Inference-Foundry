@@ -13,3 +13,7 @@
 - `2026-09-25T01:51:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run138`（design-check）。
 
 - `2026-09-25T01:55:13Z` Run `run138` 记录为 `pass`；正确性为 `not-applicable`。Run137 Host target/proposer scopes median4.872/41.992ms, but Run98 NPU target/proposer durations46.575/6.400ms and rank-median host target+proposer ~47ms show asynchronous timing debt. Run106 profiled DSpark model/_propose scope median50.201ms, wrappers individually <=1.284ms. Latest-rank end cadence median54.082ms, not 58.130ms cross-rank envelope. No removable phase or CPU cost yet proven; next bounded wall/thread-CPU subphase capture.
+
+- `2026-09-25T01:56:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run139`（profile）。
+
+- `2026-09-25T02:16:08Z` Run `run139` 记录为 `invalid`；正确性为 `invalid`。Temporary proposer subphase patch assumed Step3p5 method _build_step_attn_metadatas on actual AscendDSparkProposer; first request raised AttributeError and killed EngineCore. 11/12 partial responses and 7.27 tok/s are invalid. No subphase files. Source hashes restored and service stopped.

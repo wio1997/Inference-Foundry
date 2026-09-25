@@ -1315,3 +1315,17 @@ Astra Medium read-only review challenged the inference of a removable
 phase gap and recommended a no-barrier wall/thread-CPU subphase capture.
 Requested Astra model is not independently verified by tool metadata.
 Run139 will locate wait versus CPU activity before any scheduler edit.
+
+## Loop042 Run139 INVALID instrumentation mismatch (2026-09-25)
+
+Run139 started eight-rank serving, but the first request raised
+AttributeError because the temporary timing wrapper assumed the Step3p5
+method `_build_step_attn_metadatas` existed on the actual
+AscendDSparkProposer. It does not. EngineCore died; 11/12 partial
+responses and 7.27 tok/s are invalid, and no subphase trace was
+produced. The patch record confirms original SHA256 restored for both
+borrowed files; stop script released all eight NPUs to idle. Run140
+will instrument actual `set_inputs_first_pass`,
+`build_draft_attn_metadata`, `_runnable`, and
+`compute_draft_token_ids` methods after preflight verification.
+This failure is a TaskCtl checkpoint, not an execution stop.
