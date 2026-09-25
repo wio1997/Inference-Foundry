@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reversible first88-token prefill metadata/address fingerprint probe."""
+"""Reversible first eager prefill metadata/address fingerprint probe."""
 import argparse,hashlib,json
 from pathlib import Path
 SRC=Path('/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py')
@@ -48,8 +48,7 @@ if os.getenv('EXTREME_RUN206_OUT_DIR'):
         if not tagpath or not os.path.exists(tagpath):
             return _extreme_run206_orig_forward(self,num_tokens_padded,*args,**kwargs)
         ctx=get_forward_context()
-        if not (num_tokens_padded==88 and str(getattr(ctx,'cudagraph_runtime_mode',''))=='NONE'
-                and int(getattr(ctx,'num_actual_tokens',0))==88 and int(self.input_batch.num_reqs)==1):
+        if str(getattr(ctx,'cudagraph_runtime_mode',''))!='NONE':
             return _extreme_run206_orig_forward(self,num_tokens_padded,*args,**kwargs)
         tag=_Path(tagpath).read_text().strip()
         rank=int(get_tp_group().rank_in_group)
@@ -57,7 +56,7 @@ if os.getenv('EXTREME_RUN206_OUT_DIR'):
         if out.exists():
             return _extreme_run206_orig_forward(self,num_tokens_padded,*args,**kwargs)
         budget=[5000];hashes=[0];seen=set()
-        snapshot={'rank':rank,'tag':tag,'num_tokens_padded':88,'num_actual_tokens':88,'num_reqs':1,
+        snapshot={'rank':rank,'tag':tag,'num_tokens_padded':int(num_tokens_padded),'num_actual_tokens_raw':repr(getattr(ctx,'num_actual_tokens',None)),'num_actual_tokens':int(getattr(ctx,'num_actual_tokens',None) or num_tokens_padded),'num_reqs':int(self.input_batch.num_reqs),'cudagraph_runtime_mode':str(getattr(ctx,'cudagraph_runtime_mode','')),
                   'args':_extreme_run206_fingerprint(args,'args',0,seen,budget,hashes),
                   'kwargs':_extreme_run206_fingerprint(kwargs,'kwargs',0,seen,budget,hashes),
                   'attn_metadata':_extreme_run206_fingerprint(getattr(ctx,'attn_metadata',None),'attn_metadata',0,seen,budget,hashes),

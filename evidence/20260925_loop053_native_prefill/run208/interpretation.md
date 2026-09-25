@@ -1,0 +1,8 @@
+# Run208 first eager prefill metadata fingerprint
+
+- Frozen service: DeepSeek V4 Flash W4A8, 8x910B3 DP1xTP8, DSpark7, MAX_MODEL_LEN=1048576. Warmup48+A12+B12, max_tokens1024, 72/72 requests succeeded. All eight Runtime cohort5/6 checks passed.
+- Source probe captured the first eager prefill after each cohort tag on every rank. All16 snapshots are padded88, one request, mode NONE. Raw forward context num_actual_tokens is None; this explains the false trigger in Run207.
+- In each rank, A and B expose 107 common tensor fields, with identical shape, dtype, stride, and address for every field. Eight selected small integer metadata hashes change. They include SWA and compressor slot_mapping, indexer SAS/QLI metadata, and attention block_table. Thus a shape/address-stable invocation still targets different KV/cache state.
+- The snapshot covers the first eager call per tag, selected reachable metadata up to depth7 and 5000 nodes, and at most64 small integer tensor hashes. It is not a complete tensor-value or write-set proof. Stable addresses here are consistent with runner buffer reuse; they do not prove that graph replay refreshes values.
+- No graph capture, graph replay, performance saving, or formal E2E claim. This is a design gate. Next inspect the exact producer/update path for these changed metadata fields and prefill write ownership. Only attempt graph capture if all dynamic inputs and side effects can be explicitly refreshed/restored with a bounded test.
+- Probe disabled after service exit. Runner restored SHA256 004dbd0d5b1a5c3f9533fa1d12327bd0ae421fe24bb2674544b2c4a25d74aaba; service stopped.

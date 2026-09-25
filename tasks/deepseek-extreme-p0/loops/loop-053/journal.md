@@ -21,3 +21,7 @@
 - `2026-09-25T10:24:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run207`（profile）。
 
 - `2026-09-25T10:41:52Z` Run `run207` 记录为 `invalid`；正确性为 `invalid`。Warmup48+A12+B12 legal72/72 and runtime complete, but first88 fingerprint probe produced0/16 files because its trigger was overconstrained; no metadata comparison. Runner restored exact SHA004dbd0, service stopped. Retry first eager prefill capture with recorded actual fields.
+
+- `2026-09-25T10:44:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run208`（profile）。
+
+- `2026-09-25T11:01:32Z` Run `run208` 记录为 `pass`；正确性为 `pass`。72/72 legal requests and 8-rank Runtime pass; 16 first eager prefill fingerprints at 88 tokens show stable layout/address but 8 changed dynamic metadata hashes per rank; no capture or performance claim
