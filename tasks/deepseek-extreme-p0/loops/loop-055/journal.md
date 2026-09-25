@@ -65,3 +65,7 @@
 - `2026-09-25T14:38:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run226`（design-check）。
 
 - `2026-09-25T14:38:09Z` Run `run226` 记录为 `pass`；正确性为 `not-applicable`。Frozen one-shape all43 MoE graph A capture/B 344-record parity gate, then four interleaved G/E paired whole-forward completion screens; legal request and Runtime hard gates, no formal E2E claim
+
+- `2026-09-25T14:40:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run227`（test）。
+
+- `2026-09-25T15:01:38Z` Run `run227` 记录为 `fail`；正确性为 `invalid`。All8 captured first88 MoE layers0-16 then layer17 graph capture OOM; warmup48/48 legal, A0/12, B and G/E not run; stopped/restored; pivot to decode DAG and bound
