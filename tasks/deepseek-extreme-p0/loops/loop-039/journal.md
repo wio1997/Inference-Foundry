@@ -69,3 +69,7 @@
 - `2026-09-25T00:37:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run124`（benchmark）。
 
 - `2026-09-25T00:38:47Z` Run `run124` 记录为 `invalid`；正确性为 `invalid`。Single-card GMM1 smoke invalid: synthetic int32 weight had 1-D storage shape, but product WeightNzV2 requires 5-D NZ storage; no timing data. Process exited, no serving service, NPUs idle.
+
+- `2026-09-25T00:39:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run125`（benchmark）。
+
+- `2026-09-25T00:39:56Z` Run `run125` 记录为 `invalid`；正确性为 `invalid`。NZ cast attempt invalid: torch_npu reported allow_internal_format=False, get_npu_format(w)=2, WeightNzV2 still rejected 1-D storage. No timing; process exited and no service.

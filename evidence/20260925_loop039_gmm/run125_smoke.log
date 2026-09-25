@@ -1,0 +1,23 @@
+INFO 09-25 00:39:15 [__init__.py:52] Available plugins for group vllm.platform_plugins:
+INFO 09-25 00:39:15 [__init__.py:54] - ascend -> vllm_ascend:register
+INFO 09-25 00:39:15 [__init__.py:57] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 09-25 00:39:15 [__init__.py:237] Platform plugin ascend is activated
+INFO 09-25 00:39:15 [platform.py:61] Breakable cudagraph is force disabled on Ascend because DeepSeek V4 PIECEWISE cudagraph is not supported yet.
+{"product_x_shape": [576, 4096], "product_w1_shape": [32, 4096, 512], "real_counts": [0, 10, 4, 1, 0, 2, 0, 5, 1, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 1, 0, 5, 2, 0, 4, 0, 1, 0, 6, 13, 0], "real_m": 60, "active_real": 15, "active_dense": 32, "active_single": 1}
+[W925 00:39:16.251908218 NPUCachingAllocator.cpp:202] Warning: The current CANN and HDK(driver) versions require processing for 32 padding size, with memory allocation. (function operator())
+[W925 00:39:16.621335211 TensorFactories.cpp:423] Warning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (function operator())
+{"w_format": 2, "w_shape": [32, 4096, 512]}
+Traceback (most recent call last):
+  File "/data/wio/Inference_Foundry/scripts/loop039_gmm1_microbench_run125.py", line 35, in <module>
+    shapes=invoke(counts)
+           ^^^^^^^^^^^^^^
+  File "/data/wio/Inference_Foundry/scripts/loop039_gmm1_microbench_run125.py", line 28, in invoke
+    out,scale=torch.ops._C_ascend.grouped_matmul_swiglu_quant_v2(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_ops.py", line 1209, in __call__
+    return self._op(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: call aclnnGroupedMatmulSwigluQuantWeightNzV2 failed, detail:[PID: 2219229] 2026-09-25-00:39:21.949.240 AclNN_Parameter_Error(EZ1001): aclnnGroupedMatmulSwigluQuantWeightNzV2, The dimnum of storageShape for second input (weight)must be 5. 
+ But StorageShape got [67108864] , and dimNum is 1.
+
+[ERROR] 2026-09-25-00:39:23 (PID:2219229, Device:0, RankID:-1) ERR99999 UNKNOWN applicaiton exception

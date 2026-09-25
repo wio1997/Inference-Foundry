@@ -1140,3 +1140,10 @@ the aclnn argument check before timing: synthetic int32 W1 had 1-D
 storageShape; WeightNzV2 requires 5-D NZ storage. No latency evidence.
 Process exited, no serving service remained, all NPUs at idle power.
 Run125 will construct product-compatible NZ storage and retry.
+
+## Loop039 Run125 invalid NZ cast (2026-09-25)
+
+Run125 still did not time the fused GMM1: torch_npu warned
+allow_internal_format=False, npu_format_cast yielded format2, and
+WeightNzV2 rejected its 1-D storage. No service remained. Run126 will
+enable internal format before allocating W1 and verify format29.
