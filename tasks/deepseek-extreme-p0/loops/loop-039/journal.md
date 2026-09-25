@@ -49,3 +49,7 @@
 - `2026-09-24T23:46:47Z` Run `run118` 记录为 `pass`；正确性为 `not-applicable`。Unsynchronized Run106 confirms first collective peer-wait signature: two profiled cycles start skew10.193/9.735ms and end skew0.0065/0.01175ms. Prepare_target entry already has9.637/10.510ms rank skew; cycle64 proposer-end skew10.466ms propagates to next prepare entry10.510ms. Profiled cycles only; do not generalize proposer duration to steady product.
 
 - `2026-09-24T23:46:47Z` Run `run119` 记录为 `pass`；正确性为 `not-applicable`。Eight-rank steady Run98 cycles64-255 show target median46.575ms and proposer6.400ms, DSpark model5.987ms. Formal Run99 cohort wall median57.044ms/cycle is consistent. Thus profiled first-collective wait is not a demonstrated ~10ms intrinsic communication opportunity; prioritize bounded target GMM candidate over HCCL transfer tuning, while preserving whole-stage correctness and measurement gates.
+
+- `2026-09-24T23:49:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run120`（profile）。
+
+- `2026-09-25T00:07:15Z` Run `run120` 记录为 `invalid`；正确性为 `invalid`。Run120 invalid: request max_tokens=384 violated frozen Extreme serving exact max_tokens=1024 guard; engine exited, 11/12 success is unusable, no live counts. Temporary probe restored, 8 NPUs idle.

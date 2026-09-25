@@ -1080,3 +1080,15 @@ HCCL transfer opportunity. Keep target GMM as the next bounded
 semantics-preserving candidate; do not assume its ~9.97 ms kernel sum can
 all be removed. The larger non-GMM target compute remains under review.
 No new E2E was run. TaskCtl Runs117-119 PASS as profile/design audits.
+
+## Loop039 Run120 checkpoint (2026-09-25)
+
+Run120 online group_list capture was INVALID because the benchmark launcher
+sent max_tokens=384, while the frozen Extreme serving path requires exactly
+max_tokens=1024. EngineCore raised that guard; 11/12 partial request success
+and 7.38 tok/s cannot be used. No cycle64/65 counts were captured. Both
+temporary instrumented sources were restored to their recorded original
+SHA256, the stop script released all eight NPUs to below 3.5 GB, and the
+root-cause excerpt is saved. Next action: Run121 with the exact 1024-token
+request contract, same bounded probe and validation. This checkpoint does
+not end the execution turn.
