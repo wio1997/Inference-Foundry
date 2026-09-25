@@ -1,0 +1,7 @@
+# Run225 four-layer first88 MoE graph result
+
+Legal warmup48+A/B/C/D12 finished96/96 at max_tokens1024, and64/64 eight-rank Runtime records passed. A captured distinct graph/input/output storage for hash layers0-2 and nonhash layer3 on all8 ranks. B same-input eager/graph controls passed all32 layer/rank comparisons; shared output was exact and routed maximum absolute differences were0.01171875 for layer0 and0.00390625 for layers1-3. The B gate passed before C. C returned graph outputs for all four layers on all8 ranks; D used eager. All borrowed source files restored exact SHA and service stopped.
+
+The synchronized whole first88 model-forward slowest-rank completion was354.987ms in C versus371.648ms in D, a16.661ms diagnostic reduction. This is larger than the isolated four times three ms screen, but C/D are sequential cohorts and no exact full-forward same-state differential was captured. Client output TPS was605.23 C versus592.07 D, inside known run-to-run variation and not a formal E2E result. The numerical gate proves independent same-input MoE output parity per layer; accumulated model logits, accepted tokens and output lifetime under concurrent replays remain open.
+
+Sol conclusion: the four-layer test supports a bounded all43-layer first88 feasibility expansion. Keep the graph path experimental and gated. Then measure full first88 completion, all8-rank Runtime and exact same-state model output/logit differences before building a multi-shape bank or running formal E2E.

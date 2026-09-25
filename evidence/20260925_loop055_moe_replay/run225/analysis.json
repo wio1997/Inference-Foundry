@@ -1,0 +1,122 @@
+{
+  "run": "run225",
+  "scope": "first88 prefill local11x4096 BF16 four-layer MoE graph; A capture B shadow C graph serving D eager",
+  "requests": {
+    "warmup48": {
+      "n": 48,
+      "success": 48,
+      "fail": 0,
+      "max_tokens": 1024,
+      "duration_s": 87.67119291378185,
+      "output_tps": 560.6402555550643,
+      "ttft_ms_mean": 3390.2136069373228
+    },
+    "A": {
+      "n": 12,
+      "success": 12,
+      "fail": 0,
+      "max_tokens": 1024,
+      "duration_s": 20.278597387019545,
+      "output_tps": 605.9590693321632,
+      "ttft_ms_mean": 1969.3420766852796
+    },
+    "B": {
+      "n": 12,
+      "success": 12,
+      "fail": 0,
+      "max_tokens": 1024,
+      "duration_s": 20.718484609853476,
+      "output_tps": 593.0935698914952,
+      "ttft_ms_mean": 2112.258473488813
+    },
+    "C": {
+      "n": 12,
+      "success": 12,
+      "fail": 0,
+      "max_tokens": 1024,
+      "duration_s": 20.302945208735764,
+      "output_tps": 605.2323874032243,
+      "ttft_ms_mean": 2182.234859171634
+    },
+    "D": {
+      "n": 12,
+      "success": 12,
+      "fail": 0,
+      "max_tokens": 1024,
+      "duration_s": 20.754383374005556,
+      "output_tps": 592.0676985947205,
+      "ttft_ms_mean": 2114.8915147641674
+    }
+  },
+  "runtime_records_passed": 64,
+  "gate": "pass",
+  "layers": {
+    "0": {
+      "capture_ranks": 8,
+      "B_replay_ranks": 8,
+      "C_substitution_ranks": 8,
+      "B_routed_graph_max_abs": 0.01171875,
+      "B_routed_self_max_abs": 0.0078125
+    },
+    "1": {
+      "capture_ranks": 8,
+      "B_replay_ranks": 8,
+      "C_substitution_ranks": 8,
+      "B_routed_graph_max_abs": 0.00390625,
+      "B_routed_self_max_abs": 0.00390625
+    },
+    "2": {
+      "capture_ranks": 8,
+      "B_replay_ranks": 8,
+      "C_substitution_ranks": 8,
+      "B_routed_graph_max_abs": 0.00390625,
+      "B_routed_self_max_abs": 0.00390625
+    },
+    "3": {
+      "capture_ranks": 8,
+      "B_replay_ranks": 8,
+      "C_substitution_ranks": 8,
+      "B_routed_graph_max_abs": 0.00390625,
+      "B_routed_self_max_abs": 0.001953125
+    }
+  },
+  "whole_first88_forward_completion_ms": {
+    "A": {
+      "min": 560.0920813158154,
+      "median": 561.4522178657353,
+      "max": 563.5889517143369
+    },
+    "B": {
+      "min": 404.9965441226959,
+      "median": 405.78556014224887,
+      "max": 407.24633960053325
+    },
+    "C": {
+      "min": 352.10154904052615,
+      "median": 352.79523744247854,
+      "max": 354.98689487576485
+    },
+    "D": {
+      "min": 369.3704539909959,
+      "median": 369.9203853029758,
+      "max": 371.6479758732021
+    }
+  },
+  "C_vs_D_slowest_rank_saving_ms": 16.66108099743724,
+  "source_restore": {
+    "moe": {
+      "patched_sha256": "a0163b4e8d1ba477a66495dcf5cb9192bd6131c5772264a5256b1ea9d94d1587",
+      "restored_sha256": "3c000e17f726c9995a9a950db952415a4b2198d0778e3cedda96355421edfdae"
+    },
+    "runner": {
+      "patched_sha256": "c78380131f5d9f85058183d24e8c7939876dd9d2d21f2fe303c2e1c1931ed7e2",
+      "restored_sha256": "004dbd0d5b1a5c3f9533fa1d12327bd0ae421fe24bb2674544b2c4a25d74aaba"
+    }
+  },
+  "limitations": [
+    "One first88 forward per cohort and only first4 of43 layers",
+    "C and D are sequential diagnostic cohorts; stage delta should be repeated before causal promotion",
+    "No exact full-logit/token differential, all-layer state ownership or shape bank admission",
+    "Client TPS is not formal repeated 48x1024 E2E"
+  ]
+}

@@ -57,3 +57,7 @@
 - `2026-09-25T14:13:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run224`（design-check）。
 
 - `2026-09-25T14:13:16Z` Run `run224` 记录为 `pass`；正确性为 `not-applicable`。Frozen first88 layer0-3 MoE graph test: A capture, B eight-rank same-input shadow controls, gated C four-layer substitution, D eager, whole-forward completion envelope and exact source restore; no formal E2E
+
+- `2026-09-25T14:15:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run225`（test）。
+
+- `2026-09-25T14:36:27Z` Run `run225` 记录为 `pass`；正确性为 `pass`。96/96 legal and64/64 eight-rank Runtime pass; A four graphs, B32/32 layer/rank parity gate, C four-layer serving graph; first88 forward slowest-rank C354.987ms vs D371.648ms diagnostic, no formal E2E
