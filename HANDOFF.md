@@ -1987,3 +1987,8 @@ Read-only target Current-to-Achievable screen: Run98 target46.560ms of54.177ms s
 ## Loop057 Run231 unavailable fused op preflight (2026-09-25)
 
 No service/NPU benchmark. Installed runtime lacks registered `_C_ascend.npu_rms_norm_cast` despite 910B3 kernel artifacts, so planned source-parity microbench cannot execute; TaskCtl invalid. Available `torch.ops.npu.npu_add_rms_norm_cast` has a different four-output add+RMS+cast ABI. Next Run232 checks its semantics with zero addend and paired one-card cost versus current RMS+float, then rejects if saving <=23.26us/call. Evidence: evidence/20260925_loop057_target_bound/run231/invalid.md.
+
+
+## Loop057 Run232 eager add+RMS+cast screen (2026-09-25)
+
+Service remained stopped. Registered torch_npu npu_add_rms_norm_cast with zero addend has BF16/FP32 outputs matching separate RMSNorm+float within maxabs0.00390625 for BF16[96,4096] one-card synthetic.400 alternating eager event pairs:201.45us separate vs161.04us fused, paired median saving39.33us. Initial shell redirection setup failed before benchmark, then corrected. Product target is full Graph replay so eager Host gaps cannot be credited. Next Run233 capture both as one-card Graphs and measure replay difference; threshold23.26us/call to justify43-layer >=1ms stage probe. No all-rank or E2E claim. Evidence: evidence/20260925_loop057_target_bound/run232/analysis.json and interpretation.md.

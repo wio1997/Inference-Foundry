@@ -9,3 +9,7 @@
 - `2026-09-25T15:28:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run231`（benchmark）。
 
 - `2026-09-25T15:30:50Z` Run `run231` 记录为 `invalid`；正确性为 `invalid`。Official npu_rms_norm_cast not registered in installed runtime; no numerical or timing data; no service started; alternate registered op deferred to Run232
+
+- `2026-09-25T15:32:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run232`（benchmark）。
+
+- `2026-09-25T15:33:51Z` Run `run232` 记录为 `pass`；正确性为 `pass`。One-card BF16 local parity maxabs0.00390625; eager paired saving39.33us/call, confounded by Host launch; graph replay screen required before product decision

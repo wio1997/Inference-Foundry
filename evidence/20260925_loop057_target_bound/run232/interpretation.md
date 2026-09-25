@@ -1,0 +1,5 @@
+# Run232 add+RMS+cast eager operator screen
+
+The installed `torch.ops.npu.npu_add_rms_norm_cast` is callable on one 910B3 with BF16[96,4096] input, zero addend and BF16 weight. Output1 BF16 and output0 FP32 each differ from separate `npu_rms_norm` plus cast by maxabs0.00390625, within the local screening tolerance. Four hundred alternating NPU-event pairs give eager median201.45us versus fused161.04us and paired median39.33us saving. No service, no multi-rank correctness, no accepted-token comparison or formal E2E. An initial shell redirection failed because the evidence directory had not been created; it executed no benchmark; the corrected command ran once.
+
+The target product already replays a full decode Graph, so eager operator timing may include Host launch gaps that vanish in Graph. This result does **not** pass the product >=23.26us/call gate. Run233 must capture separate versus fused operators into fixed one-card graphs with persistent inputs and compare replay device time, plus parity. If Graph savings fall below23.26us, reject the cross-module integration. If above, design an eight-rank same-state model-forward/acceptance test before any E2E.
