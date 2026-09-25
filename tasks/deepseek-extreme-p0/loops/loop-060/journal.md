@@ -25,3 +25,7 @@
 - `2026-09-25T17:21:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `export-graph-memory-counters`（profile）。
 
 - `2026-09-25T17:26:39Z` Run `export-graph-memory-counters` 记录为 `pass`；正确性为 `not-applicable`。Run246 profile export exit0; all80 rank-cycle target windows valid, latest16 across8 ranks; AIC+AIV total read18.965GB/write2.380GB, GMM read9.244GB or1.092x active packed. Offline parser, no new correctness or formal E2E claim.
+
+- `2026-09-25T17:28:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `graph-traffic-attribution`（design-check）。
+
+- `2026-09-25T17:30:30Z` Run `graph-traffic-attribution` 记录为 `pass`；正确性为 `not-applicable`。Run247 latest16 graph windows reattributed and byte-reconciled; gross read+write21.344GB/rank-cycle and non-GMM families identified. Byte/rate screens are nonbinding; hardware bound UNKNOWN.

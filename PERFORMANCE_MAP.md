@@ -501,3 +501,7 @@ At fixed cycles and unchanged semantics, a hypothetical 0.5s/cohort exposed pref
 ## Loop060 Run247 product-graph memory counters
 
 All 80 exported eight-rank target windows passed exact family counts; 16 latest-cohort rank-cycle windows are valid. Latest medians per rank-cycle: GMM 9.244GB read (1.092× active packed estimate), quant matmul 3.465GB, compressor 1.530GB, sparse attention 1.062GB, other 3.618GB; total AIC+AIV reads 18.965GB and writes 2.380GB. HCCL 265 tasks/window has no link-byte counter. The substantial non-GMM and unclassified traffic moves next analysis to DSA/quant/attention dataflow and dependency mapping. The 54.796ms profiled target-scope median and kernel-duration sums cannot be treated as formal E2E or exposed savings. See `evidence/20260926_loop060_resource/run247/findings.md`.
+
+## Loop060 Run248 next bottleneck screen
+
+Reconciled latest 16 rank-cycle graph windows attribute the Run247 `other` 3.618GB read mainly to plain/transpose matmuls1.788GB combined, inplace copy0.618GB and AivKernel/Hc* names0.756GB. Quant matmul3.465GB, compressor1.530GB and sparse attention1.062GB are separately measured. GMM's 9.244GB read is 1.092× active packed weights, making weight reread reduction a narrow gross traffic target. HCCL link bytes are still unavailable. Byte/rate sensitivity of total 21.344GB traffic is only illustrative and does not establish a full-graph bound. Choose a non-GMM same-shape intervention and judge it by correctness and formal E2E. See `evidence/20260926_loop060_resource/run248/findings.md`.

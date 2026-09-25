@@ -509,3 +509,7 @@ At fixed cycles and unchanged semantics, a hypothetical 0.5s/cohort exposed pref
 ## Loop060 Run247 memory-counter export
 
 Run246 raw Level1 capture exported successfully; all 80 target rank-cycle windows passed parser gates, latest 16 across eight ranks. AIC+AIV latest medians: GMM read 9.244GB/rank-cycle (1.092× active packed estimate), total read 18.965GB and write 2.380GB. HCCL link traffic and unique compulsory bytes remain unknown. Instrumented target time is not a formal E2E result. Evidence: `evidence/20260926_loop060_resource/run247/`.
+
+## Loop060 Run248 resource sensitivity
+
+Latest 16 graph windows reconcile against Run247. The non-GMM `other` 3.618GB read group is now decomposed; gross target AIC+AIV read+write is 21.344GB per rank-cycle. Hypothetical 1.0/1.3/1.6TB/s byte/rate screens are 21.344/16.419/13.340ms, not hardware floors or formal throughput claims. Bound remains unknown. Evidence: `evidence/20260926_loop060_resource/run248/`.

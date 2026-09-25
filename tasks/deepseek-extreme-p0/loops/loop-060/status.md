@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run export-graph-memory-counters 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-25T17:26:39Z`
+- 下一步：审查 Run graph-traffic-attribution 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T17:30:30Z`
 
 ## Run 记录
 
@@ -18,6 +18,7 @@
 - `runs/mixed_32k_1024_c12/full-graph-memory-counters`
 - `runs/mixed_32k_1024_c12/container-graph-memory-counters`
 - `runs/mixed_32k_1024_c12/export-graph-memory-counters`
+- `runs/mixed_32k_1024_c12/graph-traffic-attribution`
 
 ## 阻塞项
 
