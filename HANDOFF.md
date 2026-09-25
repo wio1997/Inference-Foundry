@@ -1892,3 +1892,8 @@ One-layer vllm.moe_forward_shared custom op has no direct DSA/KV argument or wri
 ## Loop055 Run212 invalid probe launch (2026-09-25)
 
 Run212 patch/install/import dry preflight passed, but Sol found its hash probe could call NumPy directly on BF16 tensors. The service was stopped during weight load before benchmark requests; no ABI or timing result. The launcher restored MoE runner SHA3c000e17... and model runner SHA004dbd0... exactly; no vLLM service remains. TaskCtl marks invalid. Probe now hashes a uint8 view; Run213 will test BF16 hashing directly before the same legal eight-rank collection. Evidence: evidence/20260925_loop055_moe_replay/run212/invalid.md and patch_restore.json.
+
+
+## Loop055 Run213 first88 MoE ABI (2026-09-25)
+
+Legal Extreme warmup48+A12+B12 all72 succeeded;8-rank Runtime checks passed for3 observed cohorts. All16 first matching MoE records are model.layers.0.mlp.experts, local11x4096 BF16, with hidden/router/shared input aliasing, no input_ids. A/B layout/address/context stable on all ranks but input and both output hashes change. Actual context is W4A8, ALLGATHER, FlashComm1, shared multistream, dynamic EPLB off, LoRA absent, dp_metadata None, layer index0 unchanged. This supports a narrow one-layer shadow graph feasibility test, not replay correctness or speed. Probe hashing perturbs timing. Service stopped and both borrowed sources restored to exact SHA. Next Run214 will test isolated single-shape graph capture and same-state parity on8 ranks, with persistent input/output ownership and no live state double-apply; stop at first capture/semantic obstruction. Evidence: evidence/20260925_loop055_moe_replay/run213/analysis.json and interpretation.md.
