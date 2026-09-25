@@ -1257,3 +1257,18 @@ only, so it cannot directly replace HcPreV2's HC transform. No safe
 HC/copy edit is established. Run135 maps cache scatter ownership and
 checks for duplicate or unnecessary writes; service stays stopped.
 This commit is a checkpoint, not an execution stop.
+
+## Loop041 Run135 decision and Loop042 opening (2026-09-25)
+
+Run135 mapped 126 cache scatter kernels per target in every one of
+15 valid windows. Ordered counts are 1,1 for the initial c0 layers,
+4 for each of 21 c4 layers, and 2 for each of 20 c128 layers.
+The frozen DSA CP source accounts for one SWA write per layer, one
+compressed-KV write for ratio>1, and two indexer K/scale writes for
+c4. No duplicate-write candidate exists from these counts; removing
+one would risk persistent cache semantics. Loop041 PIVOTED without an
+implementation or E2E claim. Loop042 now tests whether the roughly
+10 ms apparent communication exposure is a removable inter-rank phase
+skew or a critical-path-neutral wait. First Run136 uses existing
+traces and DAG timestamps; no service restart yet. Every checkpoint
+requires reassessing the highest gap and continuing while unblocked.

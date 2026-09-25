@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-25T01:25:57Z",
+  "generated_at": "2026-09-25T01:28:26Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-041",
-    "next_action": "Run134: offline Run107 device kernel and source audit of HcPre, RMSNorm, clone/copy and cache scatter inside valid target windows; no service restart.",
+    "active_loop": "loop-042",
+    "next_action": "Run136: reconstruct per-rank absolute prepare/target/proposer event timing and first-collective intervals from Run106/107 and Run98; distinguish fixed offset from cycle growth and identify the latest rank.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -401,22 +401,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-036",
-      "title": "Remove per-cycle target metadata synchronization",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The fixed c12 target metadata updater performs a per-cycle NPU-to-host max().item synchronization to choose max_local_seq_len, contributing materially to the measured 8.673 ms metadata stage. A conservative cohort-fixed bound can remove this synchronization while preserving exact target metadata and long-run KV/DSpark semantics.",
-      "verdict": "PIVOTED",
-      "reason": "The frozen technical goal passes: legal 8-rank 299-cycle stable metadata header shadow and full serving gates, same-contract metadata stage 8.6730 to 0.6674 ms, and formal 48-request median 525.417 to 571.681 tok/s (+8.805%) above Stock by 5.155%. Preserved Run94/95 invalid setup and Run96 full-buffer failure prevent treating every mixed-history Run as pass; full AICPU tails have dynamic self-replay noise. Retain static implementation and pivot to target stage attribution.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run99/summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run98/summary.json"
-      ],
-      "decided_at": "2026-09-24T13:12:32Z"
-    },
-    {
       "loop_id": "loop-037",
       "title": "Attribute the remaining target graph critical path",
       "mode": "optimization",
@@ -478,33 +462,49 @@
         "/data/wio/Inference_Foundry/evidence/20260925_loop040_quant/run133/source_audit.json"
       ],
       "decided_at": "2026-09-25T01:20:35Z"
+    },
+    {
+      "loop_id": "loop-041",
+      "title": "Remove target HC and cache execution redundancy",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "For frozen DeepSeek V4 c12 target graph, repeated hyperconnection pre/post, residual copies, RMSNorm or cache-write operations may include semantics-preserving redundant launches or movement that can be removed in a product-specialized runtime.",
+      "verdict": "PIVOTED",
+      "reason": "Run134 HC/copy census and Run135 cache scatter map reveal no source-backed semantics-safe >=2ms edit. 126 cache scatters match SWA/compressed/indexer distinct writes by layer; clone device attribution is inconclusive. The larger remaining exposed HCCL/phase skew needs causal analysis before implementation.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260925_loop041_hc_copy/run134/audit.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop041_hc_copy/run135/cache_scatter_map.json"
+      ],
+      "decided_at": "2026-09-25T01:28:26Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-041",
-    "title": "Remove target HC and cache execution redundancy",
+    "loop_id": "loop-042",
+    "title": "Attribute and remove target rank phase skew",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Run135: offline source/trace mapping of 126 cache scatter kernels to frozen DSA/QLI cache families and write slots; test whether any writes are duplicate or unnecessary before an online edit. No service restart.",
+    "next_action": "Run136: reconstruct per-rank absolute prepare/target/proposer event timing and first-collective intervals from Run106/107 and Run98; distinguish fixed offset from cycle growth and identify the latest rank.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-25T01:25:28Z"
+    "updated_at": "2026-09-25T01:28:26Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-041/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-042/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
