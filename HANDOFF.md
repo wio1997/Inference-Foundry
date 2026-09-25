@@ -1444,3 +1444,16 @@ directory did not exist. Docker exec and the GMM profiler script never
 started, so Run147 has no counter or correctness result. TaskCtl marks
 it invalid. Run148 creates the directory before execution; service
 remains stopped.
+
+## Loop044 Run148 GMM1 memory counter (2026-09-25)
+
+One-card Level1 MemoryAccess capture succeeded after the invalid Run147
+launch. Four product-shape synthetic-weight calls using a real Run121
+route (60 tokens, 15 active experts) have median118.743 us GMM1 kernel
+duration, 129681 KB main-memory read and 2012.5 KB write. Read traffic
+is 1.055× the packed W1 bytes for 15 active experts; effective
+in-kernel read is 1118 GB/s. This supports weight traffic as the
+dominant cost and confirms zero experts are largely skipped in this
+synthetic case. It is not device peak or an eight-rank achievable
+bound, and differs from the live target route. Run149 will profile
+GMM2 with the same route. No serving service ran; NPUs idle.

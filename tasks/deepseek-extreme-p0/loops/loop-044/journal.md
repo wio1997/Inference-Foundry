@@ -21,3 +21,7 @@
 - `2026-09-25T03:13:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run147`（profile）。
 
 - `2026-09-25T03:14:46Z` Run `run147` 记录为 `invalid`；正确性为 `invalid`。Shell failed before docker exec because profile.log parent directory was absent. No GMM invocation or profiler counters. Retry with mkdir in Run148.
+
+- `2026-09-25T03:14:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run148`（profile）。
+
+- `2026-09-25T03:16:39Z` Run `run148` 记录为 `pass`；正确性为 `not-applicable`。One-card GMM1 product-shape synthetic-weight MemoryAccess profile with real 60-token/15-active-expert route: 4 samples median118.743us, main memory read129681KB, write2012.5KB, effective read1118GB/s. Read is 1.055x active W1 packed bytes. This supports weight traffic dominance but does not establish device peak or a service-level bound. Eight NPUs idle after run.

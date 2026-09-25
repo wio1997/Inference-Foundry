@@ -9,7 +9,7 @@ assert enable_custom_op()
 torch.npu.config.allow_internal_format=True
 torch.npu.set_device(0)
 root=Path('/data/wio/Inference_Foundry')
-out=root/'evidence/20260925_loop044_target/run147/profile'
+out=root/'evidence/20260925_loop044_target/run148/profile'
 out.mkdir(parents=True,exist_ok=True)
 snap=json.loads((root/'evidence/20260925_loop039_gmm/run121/counts/rank0_cycle64.json').read_text())
 rows=[row['counts'] for row in snap['rows'][43:]]
@@ -38,6 +38,6 @@ with profile(activities=[ProfilerActivity.CPU,ProfilerActivity.NPU],
   invoke()
   prof.step()
 torch.npu.synchronize()
-summary={'run':'run147','device':'npu:0','kernel':'grouped_matmul_swiglu_quant_v2','counts':real,'tokens':sum(real),'active_experts':sum(c>0 for c in real),'input_shape':[576,4096],'weight_shape':[32,4096,512],'weight_format':29,'profiler_level':'Level1','aic_metrics':'MemoryAccess'}
-(root/'evidence/20260925_loop044_target/run147/profile_request.json').write_text(json.dumps(summary,indent=2)+'\n')
+summary={'run':'run148','device':'npu:0','kernel':'grouped_matmul_swiglu_quant_v2','counts':real,'tokens':sum(real),'active_experts':sum(c>0 for c in real),'input_shape':[576,4096],'weight_shape':[32,4096,512],'weight_format':29,'profiler_level':'Level1','aic_metrics':'MemoryAccess'}
+(root/'evidence/20260925_loop044_target/run148/profile_request.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary),flush=True)
