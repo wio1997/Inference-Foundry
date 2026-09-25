@@ -29,7 +29,7 @@
 | `loop-054` | `PIVOTED` | `PIVOTED` | Generic GMM-versus-communication timing would repeat prior evidence without a changeable mechanism. Existing GMM traffic is near packed active bytes in one-card screens; first HCCL span is arrival wait in perturbed profile. Independent review and Sol select a bounded prefill MoE-only graph feasibility test. |
 | `loop-055` | `PIVOTED` | `PIVOTED` | One-graph-per-layer all43 first88 bank failed synchronized OOM at layer17 on all8; sparse first88 call frequency and four-layer diagnostic imply smaller bank lacks material product E2E headroom. Community MRV2 source confirms reusable target/draft graph machinery but not this fixed DSA-CP whole-prefill contract. |
 | `loop-056` | `PIVOTED` | `PIVOTED` | Community MRV2 DSpark graph management exists but current frozen V1 handoff lacks recursive dynamic metadata/KV/slot/output ownership; Run142/98 do not prove >=1ms exposed gain. Model-only shadow remains deferred option; target46.56ms dominates. |
-| `loop-057` | `EVALUATING` | `PENDING` | 审查 Run run230 的证据，并判断是否需要更多 Run |
+| `loop-057` | `EVALUATING` | `PENDING` | 审查 Run run231 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
