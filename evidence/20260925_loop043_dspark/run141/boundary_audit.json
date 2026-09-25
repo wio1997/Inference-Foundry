@@ -1,0 +1,55 @@
+{
+  "run": "run141",
+  "product": "DeepSeek V4 Flash W4A8, 8x910B3, DP1TP8, c12, DSpark7",
+  "source_refs": {
+    "proposer": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+    "proposer_sha256": "e3e1ff579e67f845f155c983294ae5546e6ee76ba330098d7867e870c3f9f6e4",
+    "model": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/models/deepseek_v4_dspark.py",
+    "model_sha256": "b459fa373e89da1722085cffa63a9959502dd29fb1a0cf4b8f073e431d811867"
+  },
+  "actual_path": "AscendDSparkProposer inherits eager llm_base_proposer._propose/_run_merged_draft; DirectDSparkHandoff rejects use_cuda_graph. Step3p5 is not this path.",
+  "segments": [
+    {
+      "name": "context_kv_prepare",
+      "boundary": "_run_merged_draft build_model_inputs_first_pass",
+      "state": "dynamic target hidden, token/position and KV group slot writes; not pure replay"
+    },
+    {
+      "name": "draft_forward",
+      "boundary": "self.model(**model_kwargs)",
+      "state": "three borrowed DSpark layers, attention and KV state; needs full same-state validation"
+    },
+    {
+      "name": "lmhead",
+      "boundary": "gather sample_hidden_states then model.compute_logits",
+      "state": "depends on target and draft forward outputs; TP collectives may occur"
+    },
+    {
+      "name": "markov_tail",
+      "boundary": "seed buffer copy then seven sequential markov_embed -> markov_bias -> logits.add_ -> argmax -> next token",
+      "state": "fixed B12 K7; no attention metadata/KV writes or inter-rank communication in replicated Markov head; logits are mutated in place and must be refreshed on every replay"
+    }
+  ],
+  "timing": {
+    "run140_runnable_host_thread_cpu_ms": 30.283375,
+    "run140_metadata_host_thread_cpu_ms": 6.294475,
+    "run140_latest_rank_span_mean_ms": 54.74066442931937,
+    "run98_device_stage_medians_ms": {
+      "prepare_target": 0.2021699994802475,
+      "derived_target_metadata": 0.6663199961185455,
+      "target": 46.57468032836914,
+      "acceptance": 0.3280300050973892,
+      "state_advance": 0.023679999634623528,
+      "proposer": 6.400399923324585,
+      "draft_commit": 0.003920000046491623
+    },
+    "run98_sum_of_stage_medians_ms": 54.19920025207102
+  },
+  "inference": "Separate cohorts and asynchronous overlap prevent subtracting Host CPU from cycle time or treating the stage-sum as a strict bound. The fixed Markov tail is the smallest correctness-contained replay candidate, but its exposed fraction is unmeasured. Before implementation, Run142 must split proposer into context-KV, model, LMHead and Markov tail with Host wall/thread CPU plus NPU events and steady cadence.",
+  "review": {
+    "requested_model": "gpt-6-astra high",
+    "actual_model_verified": false,
+    "role": "read-only architecture challenge; Sol decision remains authoritative"
+  },
+  "next_action": "Run142 legal eight-rank bounded subphase and NPU-event capture at four actual proposer boundaries, no device sync in timed path."
+}

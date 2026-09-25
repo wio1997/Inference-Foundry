@@ -1347,3 +1347,19 @@ Loop043 audits a product-specific DSpark fixed replay/execution boundary
 against actual dynamic metadata and KV state before implementation.
 Astra High read-only architecture review was requested; its model ID
 is configured, not independently verified. Sol retains final decision.
+
+## Loop043 Run141 DSpark replay boundary audit (2026-09-25)
+
+Run141 confirmed the actual AscendDSparkProposer inherits eager
+llm_base_proposer, rather than Step3p5. `_runnable` contains dynamic
+context-KV input preparation and writes, three-layer model forward,
+gather/LMHead, then a fixed seven-step Markov correction. The Markov
+head uses replicated weights and has no attention metadata, KV write
+or inter-rank communication inside that tail. It mutates logits via
+`add_`; every replay must refresh raw logits, and output buffers must
+remain live through acceptance. Run98 device stage medians sum54.199 ms
+versus Run140 latest-rank proposer-end span mean54.741 ms/cycle, but
+those are different cohorts and cannot be subtracted as a gain bound.
+Astra High read-only review recommends timing the four actual segments
+before a replay implementation; requested model is not independently
+verified. Run142 is the next legal no-barrier eight-rank capture.

@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run141: offline source/call-graph audit of actual AscendDSparkProposer _runnable and metadata build, map dynamic inputs, side effects and potential fixed replay boundary; use Run140/Run98 timings to bound achievable cycle gain.
-- 更新时间：`2026-09-25T02:35:37Z`
+- 下一步：审查 Run run141 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T02:38:26Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run141`
 
 ## 阻塞项
 
