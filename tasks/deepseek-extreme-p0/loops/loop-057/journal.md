@@ -17,3 +17,7 @@
 - `2026-09-25T15:35:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run233`（benchmark）。
 
 - `2026-09-25T15:36:35Z` Run `run233` 记录为 `pass`；正确性为 `pass`。One-card captured RMS+cast parity maxabs0.0009766; paired graph replay saving0.45us/call vs23.26us gate, reject product integration
+
+- `2026-09-25T15:42:38Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run234`（review）。
+
+- `2026-09-25T15:44:01Z` Run `run234` 记录为 `pass`；正确性为 `not-applicable`。Read-only Run107 target kernel-name census and official/shared graph-pool audit; shared pool may address Run227 OOM but first88 frequency makes product headroom modest; Run233 claim scoped to surrogate/global shape; exact-shape screen next
