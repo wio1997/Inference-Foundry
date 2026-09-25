@@ -1531,3 +1531,21 @@ benefit cannot be quantified. Loop044 PIVOTED and Loop045 opened for
 one legal diagnostic capture. Independent Astra High review was
 read-only; configured model cannot be independently verified and Sol
 owns this decision. No formal Run99/Stock rerun.
+
+## Loop045 Run154 cold boundary and parked-slot capture (2026-09-25)
+
+A legal eight-rank 12×1024 diagnostic completed 12/12 with eight
+boundary and runtime files. Same-host clock medians: client-to-first
+worker execute0.383 s; first execute-to-handoff5.954 s;
+handoff-to-runtime-build0.083 s; build_extreme_runtime0.041 s;
+FixedCohortServing16.636 s; worker publication-to-client end0.175 s.
+First-token scope is mainly pre-handoff prefill/model execution in
+this cold-service run, not runtime construction. Parked slots account
+for 14.484% of fixed slot-cycles; this is wasted-shape exposure,
+not achievable speedup. Diagnostic TPS527.999 is not formal E2E.
+All sources restored to original SHA and eight NPUs idle. A later
+EngineDeadError in service log occurred after the 12 successful
+responses; preserved excerpt, no claim about its cause. Run99 formal
+was warm-cache, so Run155 will warm with 48 legal requests before
+measuring one 12-request cohort in the same service. No reliable
+formal E2E rerun.

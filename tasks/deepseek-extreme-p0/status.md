@@ -29,7 +29,7 @@
 | `loop-042` | `PIVOTED` | `PIVOTED` | Run137 host phase skew narrows during target and reappears after proposer, but latest-rank cadence ~54ms and no safe scheduler edit show skew alone is not a removable critical-path claim. Run140 identifies a concrete CPU-heavy eager DSpark path, directing next product-specific audit there. |
 | `loop-043` | `PIVOTED` | `PIVOTED` | Run142 legal eight-rank segment timing shows the smallest safe replay boundary (Markov tail) has only ~0.695ms device interval; its 2.655ms Host work appears largely overlapped with target. Whole DSpark graph requires dynamic KV/metadata semantics and remains unproven. No high-value exposed DSpark replay candidate currently justifies implementation versus the ~46.6ms target stage. |
 | `loop-044` | `PIVOTED` | `PIVOTED` | Target-stage families were decomposed through Run143-152: GMM reads active W4 weights at about 1TB/s in one-card product-shape counters, peer wait dominates apparent HCCL variation, DSA compressor calls are distinct, and small mixed-dtype allGather pairs have no large direct saving. No semantics-safe >=5ms target edit is established. Run153 identifies a larger unlocalized first-token E2E range, so pivot to E2E boundary attribution. |
-| `loop-045` | `FROZEN` | `PENDING` | Run154: add temporary common-clock marks at vLLM admission/prefill/handoff/runtime-build/FixedCohort completion/publication, and persist per-slot count history after cohort; run one legal 8-rank 12x1024 diagnostic, restore borrowed sources and stop service. |
+| `loop-045` | `EVALUATING` | `PENDING` | 审查 Run run154 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
