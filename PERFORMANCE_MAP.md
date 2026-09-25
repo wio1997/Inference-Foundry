@@ -463,3 +463,7 @@ The available `expert_map_path` changes Ascend execution routing without changin
 ## Loop050 Run192-195 target arrival correction (2026-09-25)
 
 Run107 profiled first reduce-scatter durations reflect rank arrival: start skew8.65–20.53ms, end skew<=0.014ms; following259 HCCL tasks sum median5.205ms. The prior proposer appears to propagate target-entry skew *inside that profile*, but Run107 proposer CPU scope median55.644ms is8.62× Run98 low-overhead event median6.454ms on separate services. In Run98's260 steady cycles, proposer eight-rank duration spread median0.063ms and target0.090ms. Do not count profiled arrival skew as removable product time. Target graph remains the largest measured serial stage, with its GMM/other compute and required communication still unbounded for achievable throughput.
+
+## Loop051 Run197 compressor cache-write screen (2026-09-25)
+
+A precise source/trace match bounds c128 compressor-following scatter to20 kernels and0.337ms profiled summed device time/cycle; c4 adds42 kernels and0.793ms. The full compressor-scatter family1.123ms is less than half Run143's all-scatter2.344ms. Direct destination writes require a custom compressor kernel/interface change, not merely removing a Python call, and cannot save required cache writes. No achievable product gain is established; this path has lower priority than the unlocalized prefill active-submission cost.
