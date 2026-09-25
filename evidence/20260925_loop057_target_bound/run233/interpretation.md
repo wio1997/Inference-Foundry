@@ -1,0 +1,3 @@
+# Run233 captured operator replay screen
+
+One-card BF16[96,4096] with persistent x/zero/weight, separate `npu_rms_norm` plus `.float()` and available `npu_add_rms_norm_cast` each captured as its own NPUGraph. Post-replay BF16 and FP32 selected outputs differ by maxabs0.0009765625. Across600 alternating graph-replay NPU-event pairs, separate median75.34us, combined74.72us, paired saving median0.45us; paired p10=-16.06us and p90=19.30us. This is below the frozen23.26us/call threshold needed to plausibly save1ms across43 target FFN boundaries, even before integration overhead. Run232 eager39.33us saving was predominantly submission-sensitive and does not transfer to existing target full-graph replay. Reject this source port. No service, multi-rank or E2E run was warranted.

@@ -1992,3 +1992,8 @@ No service/NPU benchmark. Installed runtime lacks registered `_C_ascend.npu_rms_
 ## Loop057 Run232 eager add+RMS+cast screen (2026-09-25)
 
 Service remained stopped. Registered torch_npu npu_add_rms_norm_cast with zero addend has BF16/FP32 outputs matching separate RMSNorm+float within maxabs0.00390625 for BF16[96,4096] one-card synthetic.400 alternating eager event pairs:201.45us separate vs161.04us fused, paired median saving39.33us. Initial shell redirection setup failed before benchmark, then corrected. Product target is full Graph replay so eager Host gaps cannot be credited. Next Run233 capture both as one-card Graphs and measure replay difference; threshold23.26us/call to justify43-layer >=1ms stage probe. No all-rank or E2E claim. Evidence: evidence/20260925_loop057_target_bound/run232/analysis.json and interpretation.md.
+
+
+## Loop057 Run233 captured RMS+cast screen (2026-09-25)
+
+One-card BF16[96,4096] separate RMS+float versus installed add-zero RMS+cast each captured as NPUGraph; no service. Graph output local maxabs0.0009765625.600 alternating replay pairs give paired median saving0.45us/call (separate75.34us, fused74.72us medians), far below23.26us/call needed for a plausible43-layer1ms target gain. Reject RMS+cast integration; Run232 eager39.33us was Host-submission-sensitive. Need reassess target mechanism/achievable bound; no all-rank or E2E warranted. Evidence: evidence/20260925_loop057_target_bound/run233/analysis.json and interpretation.md.

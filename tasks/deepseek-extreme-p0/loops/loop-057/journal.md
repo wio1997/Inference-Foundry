@@ -13,3 +13,7 @@
 - `2026-09-25T15:32:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run232`（benchmark）。
 
 - `2026-09-25T15:33:51Z` Run `run232` 记录为 `pass`；正确性为 `pass`。One-card BF16 local parity maxabs0.00390625; eager paired saving39.33us/call, confounded by Host launch; graph replay screen required before product decision
+
+- `2026-09-25T15:35:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run233`（benchmark）。
+
+- `2026-09-25T15:36:35Z` Run `run233` 记录为 `pass`；正确性为 `pass`。One-card captured RMS+cast parity maxabs0.0009766; paired graph replay saving0.45us/call vs23.26us gate, reject product integration
