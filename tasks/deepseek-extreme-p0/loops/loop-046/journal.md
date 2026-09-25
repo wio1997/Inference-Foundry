@@ -21,3 +21,7 @@
 - `2026-09-25T06:30:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run172`（benchmark）。
 
 - `2026-09-25T06:45:31Z` Run `run172` 记录为 `pass`；正确性为 `pass`。Legal8-rank48+12 passes60/60 and40 rank-cohort records. Bounded250ms Core drain collected3-4 initial requests and measured prehandoff execute sequence249,107,449,321 on all ranks. Measured diagnostic envelope19.278s vs separate-service Run17119.368s; 0.090s net difference is noise-sized, TTFT p50 worsened. Borrowed Core/model sources restored and service stopped. No formal E2E claim; test one bounded500ms dose.
+
+- `2026-09-25T06:46:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run173`（benchmark）。
+
+- `2026-09-25T07:01:07Z` Run `run173` 记录为 `pass`；正确性为 `pass`。Legal8-rank48+12 passed60/60 and40 rank-cohort records. 500ms initial Core drain gathered5-7 requests but still yielded four prehandoff forwards415,123,465,171. Diagnostic envelope20.494s, slower than separate-service Run171 no-wait19.368s and Run172 250ms19.278s. Borrowed Core/model sources restored, service stopped. No supported net gain; reject coalescing pending independent review.
