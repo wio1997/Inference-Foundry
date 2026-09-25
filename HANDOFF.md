@@ -1498,3 +1498,18 @@ metadata-kernel count failed because metadata kernels are not present
 at every compressor call; corrected script classified only actual
 compressor/indexer kernels and passed. Run152 audits repeated TP8
 collectives for coalescing. Offline only, service remains stopped.
+
+## Loop044 Run152 TP collective adjacency (2026-09-25)
+
+In 15 valid Run107 windows, 33–41 per-window allGather pairs are
+strictly adjacent (median36). Their payloads are BF16 49152 elements
+and FP32 3072 elements. The second FP32 calls total median0.257 ms
+per window. Different dtypes prevent trivial coalescing, and other
+collectives interleave dependent compute. The first script assertion
+incorrectly expected 43 strictly adjacent pairs; the corrected
+audit reports the actual range. No safe large TP8 collective edit
+emerged. Independent read-only bound review then highlighted a
+possibly larger formal E2E range gap: Run99 client request duration
+exceeds FixedCohortServing.run wall by 11–17 s across repeats.
+That is only accounting until stages are localized. Run153 will
+reconcile existing Run99 timestamps and tail utilization offline.

@@ -37,3 +37,7 @@
 - `2026-09-25T03:22:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run151`（design-check）。
 
 - `2026-09-25T03:25:34Z` Run `run151` 记录为 `pass`；正确性为 `not-applicable`。15 valid Run107 target windows show exact 43-layer DSA pattern: 2 c0 layers with no compressor/indexer, 21 c4 with two distinct compressors plus indexer, 20 c128 with one compressor and no indexer. Per-window compressor3.366ms, indexer1.746ms, sparse1.621ms. Post-sparse transpose occurs after alltoall in all 645 layers, so not a DSA pre-attention fusion member. No redundant compressor or semantics-safe >=5ms DSA fusion found. Initial metadata-count assertion failed and was corrected within Run151.
+
+- `2026-09-25T03:26:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run152`（design-check）。
+
+- `2026-09-25T03:28:27Z` Run `run152` 记录为 `pass`；正确性为 `not-applicable`。Run107 15 valid target windows have 33-41 strictly adjacent BF16+FP32 allGather pairs (median36), each BF16 49152 elements and FP32 3072. FP32 second calls total median0.257ms/window; mixed dtypes prevent trivial coalescing. Remaining collectives interleave compute. No >=5ms safe collective edit. Initial 43-pair assertion corrected within Run152. New formal Run99 accounting indicates larger pre/post-runtime gap; pursue Run153 offline.
