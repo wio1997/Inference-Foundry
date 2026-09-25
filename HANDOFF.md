@@ -1176,3 +1176,15 @@ replacement has been established. Next Run129 revisits steady product
 rank dispersion to rule out the profiled HCCL wait as the larger gap
 before Sol's priority decision. Read-only second-view review requested;
 unverified model provenance cannot enter formal evidence.
+
+## Loop039 Run129 unprofiled rank dispersion (2026-09-25)
+
+Run98 unprofiled steady cycles64-255: target median46.5868 ms,
+proposer6.4062 ms; median per-cycle rank duration spreads are 0.0812
+and 0.0603 ms respectively. These duration data have no synchronized
+absolute timestamps and cannot exclude a fixed cross-rank arrival
+offset. Run107 HCCL wait should not be interpreted as independently
+removable transfer without further evidence, but communication remains
+an unresolved candidate. A second-view read-only review agrees on this
+qualification; its actual service model ID is not independently
+verifiable, so model_verified=false and Sol owns the decision.

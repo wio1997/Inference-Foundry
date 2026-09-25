@@ -85,3 +85,7 @@
 - `2026-09-25T00:43:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run128`（benchmark）。
 
 - `2026-09-25T00:44:53Z` Run `run128` 记录为 `pass`；正确性为 `not-applicable`。Single-NPU synthetic W4A8 GMM1 device-event A/B/A: same 60 active tokens, real 15 experts median0.37385/0.38910ms, dense 32 experts0.45886ms, single expert0.33789ms. Existing operator is route-sensitive; eager synthetic timings cannot be projected to target stage or formal E2E.
+
+- `2026-09-25T00:45:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run129`（design-check）。
+
+- `2026-09-25T00:47:09Z` Run `run129` 记录为 `pass`；正确性为 `not-applicable`。Run98 unprofiled steady cycles64-255: target median46.5868ms and rank duration spread median0.0812ms; proposer median6.4062ms and spread0.0603ms. Duration spread lacks synchronized absolute arrival timestamps; cannot rule out fixed rank arrival skew.
