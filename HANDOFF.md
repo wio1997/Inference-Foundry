@@ -1917,3 +1917,8 @@ Corrected hook captured model.layers.0.mlp.experts local11x4096 BF16 graph on al
 ## Loop055 Run217 distinct-input one-layer MoE replay (2026-09-25)
 
 Legal warmup48+A12+B12 completed72/72 at max_tokens1024, with48/48 eight-rank Runtime records passing and exact Host mirror. All8 layer0 first88 graphs captured in A and replayed in B. Each rank's A/B input hashes and both graph output hashes differ. Shared output is bit-exact; routed graph/eager maxabs0.0078125 versus eager self-repeat max0.015625 (some individual ranks have graph error above their own self-error). Production remained eager. B one-layer diagnostic medians: eager4.225ms, input refresh0.139ms, replay1.621ms; these synchronized, instrumented times imply no stage or E2E result. Both borrowed source files restored exactly and service stopped. Sol next tests a warmed one-layer graph substitution in serving with full Runtime correctness and low-overhead stage timing, then decides whether to expand or reject. Evidence: evidence/20260925_loop055_moe_replay/run217/analysis.json and interpretation.md.
+
+
+## Loop055 Run218 invalid launcher (2026-09-25)
+
+Run218 exited code2 before patch install or serving because the launcher referenced nonexistent loop055_run218_graph_patch.py; generated patch is loop055_run218_substitute_patch.py. No graph substitution or performance evidence. Dry import passed after correcting import order. Borrowed source hashes remain exact originals and service is stopped. TaskCtl marks invalid. Correct launcher and execute new Run219. Evidence: evidence/20260925_loop055_moe_replay/run218/invalid.md.
