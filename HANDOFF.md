@@ -1704,3 +1704,7 @@ before Sol selects a correctness-gated prefill execution experiment.
 ## Loop045 Run167 independent architecture review (2026-09-25)
 
 Configured GPT-6 Astra High read-only reviewer recommends a narrow exact-state, eight-rank genuine prefill `_model_forward` capture feasibility experiment, with full metadata and prefill write-set restoration and A/B/A-prime correctness. Existing DSA CP graph capture rejects prefill; do not force decode dispatcher. Run165/166 Host-flow evidence is one perturbed rank0 call and cannot establish an E2E speedup. Sol accepts source/write-set feasibility audit as the next step. Reviewer model ID is configured but not independently visible in the execution record. Details: `evidence/20260925_loop045_boundary/run167/architecture_review.md`.
+
+## Loop046 Run168 prefill capture source audit (2026-09-25)
+
+Read-only audit confirmed the stock DSA CP graph capture rejects prefill, while a separate exact-state closure must preserve actual forward context, rank-local metadata, all SWA/compressed KV/compressor/c4 indexer writes, async gather and connector order. The A5-only full o-proj weight pointer switch is not expected on 910B3. Capture compatibility and shape reuse remain unproven. Run169 should quantify natural prefill batch-state frequency and unprofiled latest-rank cost from existing legal evidence before building a costly full-state graph probe. See `evidence/20260925_loop046_prefill/run168/source_audit.md`.
