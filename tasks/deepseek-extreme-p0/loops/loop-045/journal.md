@@ -33,3 +33,7 @@
 - `2026-09-25T04:51:08Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run161`（profile）。
 
 - `2026-09-25T05:11:07Z` Run `run161` 记录为 `pass`；正确性为 `pass`。Legal 8-rank warmed-service diagnostic 60/60 success and 40 rank-cohort records pass. In measured cohort, median prefill execute_model wall3.397s, of which _model_forward Python wall3.122s (~91.9%) and preparation0.258s. Device/communication split unresolved; diagnostic TPS580.055 not formal E2E. Temporary sources restored, service stopped, 8 NPU idle.
+
+- `2026-09-25T05:12:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run162`（profile）。
+
+- `2026-09-25T05:27:14Z` Run `run162` 记录为 `invalid`；正确性为 `invalid`。Service startup failed before any benchmark or profiler capture: Worker TP6 KV block table CpuGpuBuffer pin_memory allocation raised torch.OutOfMemoryError aclrtMallocHostWithCfg 207001. Host memory at failure ~16Gi free and swap full; root cause/ownership not established. Stopped service, restored temporary sources, 8 NPU idle. No performance conclusion.

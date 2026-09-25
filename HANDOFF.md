@@ -1630,3 +1630,16 @@ forward can include NPU work, HCCL and waits. Diagnostic TPS580.055
 is not formal E2E. All patches restored and service stopped with8
 NPUs idle. Run162 should obtain device-level prefill evidence before
 any code change.
+
+## Loop045 Run162 invalid Host pinned-memory startup (2026-09-25)
+
+The rank0 single-forward profiler was installed but service failed
+before health check or benchmark. Worker TP6 KV block-table pinned
+Host buffer allocation raised `torch.OutOfMemoryError` from
+`aclrtMallocHostWithCfg` error207001. At failure Host had about16 GiB
+free and full71 GiB swap, but root resource ownership is not yet
+proven. No NPU trace or performance result exists. Runner terminated,
+its detached health-check shell cleaned, source patches restored to
+original SHA, service stopped and8 NPUs idle. Run162 is invalid in
+TaskCtl. Next Run163 is read-only resource audit before considering a
+new service attempt; do not kill unrelated processes.
