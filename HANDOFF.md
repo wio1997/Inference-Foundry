@@ -1586,3 +1586,17 @@ inter-call scheduler/admission wait. Run158 will temporarily wrap
 NPUModelRunner.execute_model to record same-host entry/exit on all8
 ranks in a legal warmed service. No device synchronization; in-call
 wall is not device-only time. Design evidence in run157.
+
+## Loop045 Run158 worker call timing (2026-09-25)
+
+Legal 8-rank same-service48×1024 warmup plus12×1024 measured
+diagnostic:60/60 successful, all40 rank-cohort records and8 rank
+method logs complete. Measured pre-handoff median3.433 s, including
+10 prefill execute_model calls totaling2.928 s and inter-execute
+gaps0.478 s; sample_tokens totals0.447 s within those gaps. Final
+handoff preamble0.026 s. The large latency is inside worker calls,
+not primarily scheduler/admission idle. Python wall is not NPU
+device-only time. Diagnostic measured TPS622.761 is not formal E2E.
+All temporary source restored; service stopped and8 NPUs idle.
+Next Run159 inspects prefill execute_model internals and designs a
+minimal Host-versus-device timing probe before runtime changes.

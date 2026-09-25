@@ -17,3 +17,7 @@
 - `2026-09-25T04:27:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run157`（design-check）。
 
 - `2026-09-25T04:27:48Z` Run `run157` 记录为 `pass`；正确性为 `not-applicable`。Source inspection found 12 client requests launch within milliseconds while Run155 measured cohort uses 12 pre-handoff execute calls. Existing boundary patch only marks entry; Run158 will record entry/exit across 8 ranks to split in-call wall from inter-call gap. No device-time claim without NPU events.
+
+- `2026-09-25T04:28:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run158`（profile）。
+
+- `2026-09-25T04:48:17Z` Run `run158` 记录为 `pass`；正确性为 `pass`。Legal 8-rank 48x1024 warmup + 12x1024 measured diagnostic: 60/60 success, all 40 rank-cohort records pass, 8 rank timing logs. Across ranks median measured pre-handoff span3.433s: 10 prefill execute_model calls total2.928s, inter-execute gaps0.478s of which sample_tokens0.447s, final handoff preamble0.026s. Dominant worker in-call; no device-only claim. Restored sources, stopped service, 8 NPU idle. Diagnostic TPS622.761 not formal E2E.
