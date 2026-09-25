@@ -13,3 +13,7 @@
 - `2026-09-25T09:53:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run200`（benchmark）。
 
 - `2026-09-25T10:11:08Z` Run `run200` 记录为 `pass`；正确性为 `invalid`。Legal warmup48+A12/B12/A2 12 all84 pass; 8/8 B prefill-only candidate marks; B/A2 identical8-call shapes but B max-rank forward sum3.0750s vs A2 3.0566s (slower18.4ms). Output hashes unstable even A/A2 (0/12), so exact parity not established. Runtime 8-rank pass; candidate rejected, no formal E2E. Sources restored, service stopped.
+
+- `2026-09-25T10:11:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run201`（benchmark）。
+
+- `2026-09-25T10:12:26Z` Run `run201` 记录为 `invalid`；正确性为 `invalid`。One-card event loop executed but evidence write failed because docker exec cwd was not repository; no analyzable result. Process exited, no service running. Repeat with explicit -w as Run202.
