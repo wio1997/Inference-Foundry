@@ -1600,3 +1600,12 @@ device-only time. Diagnostic measured TPS622.761 is not formal E2E.
 All temporary source restored; service stopped and8 NPUs idle.
 Next Run159 inspects prefill execute_model internals and designs a
 minimal Host-versus-device timing probe before runtime changes.
+
+## Loop045 Run159 prefill stage probe design (2026-09-25)
+
+Source inspection identifies execute_model preparation, normal model
+forward and post-process boundaries. Run160 will timestamp these
+inside the worker without synchronization, excluding the final
+Extreme handoff call. Python wall will locate Host-facing stage
+latency but cannot establish device kernel time. Probe design and
+source anchors are in run159 evidence.

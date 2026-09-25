@@ -1,0 +1,7 @@
+# Run159: worker in-call stage boundary
+
+Source inspected: borrowed `vllm_ascend/worker/model_runner_v1.py`, NPUModelRunner.execute_model lines 1794–4023. Prefill follows `record_function_or_nullcontext("prepare input")` at ~1861, `_preprocess` and `update_cos_sin(positions)` through ~2095, then Stock/Extreme bridge checks; normal forward begins at `with (record_function_or_nullcontext("forward"), ...)` ~3648, calls `self._model_forward` ~3673, and normal post process begins ~3955. The Extreme handoff returns before this normal forward on the 96-token transition; that handoff call must be excluded from prefill stage medians.
+
+Run160 should instrument four monotonic boundaries for each prefill execute call on all eight ranks: method entry, end of preparation, entry/exit of `_model_forward`, and method exit. The delta from method entry through preparation captures Host and asynchronous enqueues; `_model_forward` Python wall captures launch/blocking but is not device time; residual includes bridge/context/post process. No NPU synchronization should be inserted because it would alter scheduling. Correlate with Run158-compatible call index and tokens. If model-forward Python wall dominates, obtain NPU profiler or events in a subsequent targeted run before code changes. If preparation dominates, target the exact Host function next.
+
+Keep the same legal 48×1024 warmup and 12×1024 measured diagnostic, verify all 8 ranks and 60 responses, then restore borrowed source and stop service. Formal E2E follows only a correctness-proven implementation.

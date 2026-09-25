@@ -21,3 +21,7 @@
 - `2026-09-25T04:28:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run158`（profile）。
 
 - `2026-09-25T04:48:17Z` Run `run158` 记录为 `pass`；正确性为 `pass`。Legal 8-rank 48x1024 warmup + 12x1024 measured diagnostic: 60/60 success, all 40 rank-cohort records pass, 8 rank timing logs. Across ranks median measured pre-handoff span3.433s: 10 prefill execute_model calls total2.928s, inter-execute gaps0.478s of which sample_tokens0.447s, final handoff preamble0.026s. Dominant worker in-call; no device-only claim. Restored sources, stopped service, 8 NPU idle. Diagnostic TPS622.761 not formal E2E.
+
+- `2026-09-25T04:49:28Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run159`（design-check）。
+
+- `2026-09-25T04:49:28Z` Run `run159` 记录为 `pass`；正确性为 `not-applicable`。Inspected NPUModelRunner prefill source boundaries. Run160 will timestamp method entry, prepare end, model forward entry/exit and method exit without device synchronization, excluding final Extreme handoff call. Attribution limited to Python wall; device time still requires NPU events/profile.
