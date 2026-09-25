@@ -1285,3 +1285,18 @@ Therefore an unprofiled steady phase offset and its effect on cohort
 wall remain unknown. Run137 will use opt-in lightweight host timestamps
 at stage boundaries in a legal eight-rank c12 run, without profiler or
 forced NPU sync. Only then choose a scheduler or communication edit.
+
+## Loop042 Run137 legal steady host phase capture (2026-09-25)
+
+Run137 completed all 12 exact-1024 requests on eight ranks; each rank
+recorded 294 cycles. Across cycles64-255, shared-host absolute stage
+marks show median begin skew3.944 ms, after-target skew0.991 ms, and
+after-proposer skew3.928 ms. The latest begin rank changes across
+cycles, mainly rank3/4; target execution narrows rank phase, proposer
+widens it again. Cohort host wall median58.130 ms. The timestamps are
+host marks after asynchronous graph dispatch, not direct NPU collective
+or removable time. Diagnostic TPS529.742 is not formal E2E. Temporary
+runtime/fixed_serving source restored to recorded original SHA256 and
+stop script returned all NPUs to about3.4GB idle. Run138 will locate
+proposer host blocking and quantify candidate host critical-path time.
+No scheduler edit is justified by phase skew alone.
