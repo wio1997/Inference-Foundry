@@ -1436,3 +1436,11 @@ torch_npu grouped matmul. Run107 profiling requested task_trace and
 has no AI-core memory counters. Run147 will profile a one-card
 product-shape GMM1 route with memory-access counters. Service remains
 stopped.
+
+## Loop044 Run147 invalid profiler launch (2026-09-25)
+
+The shell could not open profile.log because the Run147 evidence parent
+directory did not exist. Docker exec and the GMM profiler script never
+started, so Run147 has no counter or correctness result. TaskCtl marks
+it invalid. Run148 creates the directory before execution; service
+remains stopped.

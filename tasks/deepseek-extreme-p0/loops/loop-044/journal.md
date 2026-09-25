@@ -17,3 +17,7 @@
 - `2026-09-25T03:08:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run146`（design-check）。
 
 - `2026-09-25T03:13:29Z` Run `run146` 记录为 `pass`；正确性为 `not-applicable`。Run115 product packed weights have 8MiB W1 + 4MiB W2 per expert; Run121 active expert-layer pairs median 672.5 per rank-cycle gives conditional packed footprint 7.881GiB. Against Run107 GMM median 9.966ms this implies ~849GB/s if each active weight were loaded once. Different cohorts and no memory counters mean this is diagnostic, not a hardware bound. GMM1 skips zero-M in source; GMM2 calls torch_npu grouped matmul. Next capture actual counters.
+
+- `2026-09-25T03:13:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run147`（profile）。
+
+- `2026-09-25T03:14:46Z` Run `run147` 记录为 `invalid`；正确性为 `invalid`。Shell failed before docker exec because profile.log parent directory was absent. No GMM invocation or profiler counters. Retry with mkdir in Run148.
