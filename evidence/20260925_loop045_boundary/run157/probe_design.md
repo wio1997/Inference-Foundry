@@ -1,0 +1,7 @@
+# Run157: pre-handoff call timing design
+
+Source checked: `scripts/bench.py` launches 12 requests with `asyncio.gather`, semaphore capacity 12 and same-host `perf_counter` start stamps. Run155 measured starts are within milliseconds, so the 12 serial-ish prefill executes are not explained by client-side semaphore staggering.
+
+`NPUModelRunner.execute_model` begins at line 1794 of the borrowed `vllm_ascend/worker/model_runner_v1.py`; existing Run155 temporary patch records each entry and scheduled token count. It does not record exit. The next probe should temporarily wrap this method at module import only under a diagnostic env var, record entry and exit monotonic ns, scheduled token count, rank, and request IDs for all eight ranks. The wrapper writes JSONL to distinct rank files at each return and restores the borrowed source after service stop. This directly partitions start-to-start time into in-call wall time and inter-call gap; no device synchronization is added, so in-call wall is not isolated device time. If in-call dominates, next instrument model-forward/device events; if inter-call dominates, inspect scheduler and tokenization/arrival marks.
+
+Run158 should repeat legal 48x1024 warmup then 12x1024 measured in one 8-rank service. Validate 60/60 requests, all eight rank files, source SHA restore, stopped service, and persist TaskCtl/evidence before any follow-on decision. Existing Run155 scripts are a template. Formal E2E remains reserved for a correctness-proven runtime change.

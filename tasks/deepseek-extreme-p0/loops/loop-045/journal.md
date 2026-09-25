@@ -13,3 +13,7 @@
 - `2026-09-25T04:24:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run156`（profile）。
 
 - `2026-09-25T04:25:44Z` Run `run156` 记录为 `pass`；正确性为 `not-applicable`。Offline 8-rank Run155 cohort audit: warm cohorts3/4 each ~50.6k scheduled prefill tokens in 11 calls, first execute-to-handoff ~3.66s; measured cohort5 only 1.63k tokens in 12 calls, ~3.62s. Prefill latency is not explained by token volume alone; direct per-call admission/tokenization/device timing needed. Parked slots 9.7-19.5% of cycles across cohorts, exposure not speedup.
+
+- `2026-09-25T04:27:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run157`（design-check）。
+
+- `2026-09-25T04:27:48Z` Run `run157` 记录为 `pass`；正确性为 `not-applicable`。Source inspection found 12 client requests launch within milliseconds while Run155 measured cohort uses 12 pre-handoff execute calls. Existing boundary patch only marks entry; Run158 will record entry/exit across 8 ranks to split in-call wall from inter-call gap. No device-time claim without NPU events.

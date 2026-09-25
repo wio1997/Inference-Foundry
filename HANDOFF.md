@@ -1576,3 +1576,13 @@ time are unresolved; direct stage timing is the next high-value probe.
 Parked slot exposure spans9.7–19.5% across five cohorts; it is not
 a measured compaction speedup. Run157 will inspect source and design
 minimal timing probes before another NPU run.
+
+## Loop045 Run157 pre-handoff timing design (2026-09-25)
+
+`bench.py` launches12 requests concurrently; Run155 measured client
+starts differ by milliseconds. The worker boundary logs execute entry
+but not exit, so each ~0.4 s start spacing can be worker work or
+inter-call scheduler/admission wait. Run158 will temporarily wrap
+NPUModelRunner.execute_model to record same-host entry/exit on all8
+ranks in a legal warmed service. No device synchronization; in-call
+wall is not device-only time. Design evidence in run157.
