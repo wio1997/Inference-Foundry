@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "contract": "DeepSeek V4 Flash W4A8; 8x910B3 DP1TP8 DSpark7; 48x32K->1024 c12",
+  "source_sha256": {
+    "/data/yxy/DeepSeek-V4-Flash-0731-w4a8/config.json": "6c6cdc4a47e00e41137081429b95bd5c1cf91ba62e87309d1398431de7f4a8e1",
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/models/deepseek_v4.py": "11dd3e983dc1d628bf42a95581f9617861471b1f658739db44c20df886147247",
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/models/layer/attention/layer.py": "b49b68afbfe1879cdf145302985b96eec48d0c3020ba89595263845c28d17753"
+  },
+  "target": {
+    "layers": {
+      "value": 43,
+      "status": "observed",
+      "evidence": "config.json num_hidden_layers"
+    },
+    "compression_ratio_counts": {
+      "value": {
+        "0": 2,
+        "4": 21,
+        "128": 20
+      },
+      "status": "observed",
+      "evidence": "config.json compress_ratios[:43]"
+    },
+    "target_rows_per_cycle": {
+      "value": 96,
+      "status": "observed_fixed_shape",
+      "evidence": "Run115/Run98 fixed c12 graph"
+    },
+    "gmm": {
+      "w1_shape": {
+        "value": [
+          32,
+          4096,
+          512
+        ],
+        "status": "observed",
+        "evidence": "Run115"
+      },
+      "w2_shape": {
+        "value": [
+          32,
+          2048,
+          512
+        ],
+        "status": "observed",
+        "evidence": "Run115"
+      },
+      "routed_tokens_per_rank_cycle": {
+        "value": 3093.0,
+        "status": "observed",
+        "evidence": "Run146 distinct diagnostic cycles"
+      },
+      "active_expert_layer_pairs_per_rank_cycle": {
+        "value": 672.5,
+        "status": "observed",
+        "evidence": "Run146"
+      },
+      "packed_active_weight_bytes_per_rank_cycle": {
+        "value": 8462008320.0,
+        "status": "observed",
+        "evidence": "Run146"
+      },
+      "packed_scale_bytes_if_once_per_active_expert": {
+        "value": 44072960.0,
+        "status": "conditional",
+        "evidence": "Run115 shapes; conditional read"
+      },
+      "logical_matmul_flops_per_rank_cycle": {
+        "value": 155675787264.0,
+        "status": "conditional",
+        "evidence": "Run115 packed shapes and Run146 routed tokens"
+      },
+      "one_card_counter_bw_GBps": {
+        "value": {
+          "w1": 1118.3320193019006,
+          "w2": 994.8601656518916
+        },
+        "status": "conditional",
+        "evidence": "Runs148/150 synthetic one-card"
+      },
+      "one_card_packed_read_time_ms": {
+        "value": 7.879664328096915,
+        "status": "conditional_not_e2e_floor",
+        "evidence": "Run146 active bytes divided by Runs148/150 counter bandwidth"
+      },
+      "profiled_kernel_sum_ms": {
+        "value": 9.96625,
+        "status": "profiled_not_exposed",
+        "evidence": "Run107 synchronized 15 target windows"
+      }
+    },
+    "other_kernel_families": {
+      "value": {
+        "compressor": 3.3655674999999996,
+        "hc_post": 0.687853,
+        "hc_pre": 2.9616009999999995,
+        "other_compute": 15.280973499999963,
+        "quant_matmul": 4.822277500000001,
+        "rms_family": 1.793448000000001,
+        "scatter_sk": 2.3435860000000006,
+        "sdma": 0.03130049999999999
+      },
+      "status": "diagnostic_only",
+      "evidence": "Run143 task sums; overlap and profiler perturbation"
+    },
+    "cache_specs": {
+      "value": {
+        "c4": {
+          "layers": 21,
+          "state_dim": 2048,
+          "dtype": "float32",
+          "effective_block_size_at_service_block32": 2,
+          "page_size_padded": 4160
+        },
+        "c128": {
+          "layers": 20,
+          "state_dim": 1024,
+          "dtype": "float32",
+          "effective_block_size_at_service_block32": 8,
+          "page_size_padded": 32768
+        },
+        "swa": {
+          "head_dim": 512,
+          "dtype": "bfloat16",
+          "window": 128,
+          "block_size_at_service_block32": 32
+        },
+        "indexer": {
+          "head_dim": 128,
+          "dtype": "int8_on_910B3",
+          "compression_ratio": 4,
+          "enabled_at_runtime": "UNKNOWN"
+        }
+      },
+      "status": "source_spec_not_traffic",
+      "evidence": "deepseek_v4.py and DSV4_BLOCK_SIZES; service --block-size 32"
+    },
+    "dependencies": {
+      "value": [
+        "43 ordered target layers",
+        "within routed MoE GMM1 -> GMM2",
+        "compressor -> cache scatter -> attention for c4/c128 (Run197)",
+        "collectives wait for all participating ranks"
+      ],
+      "status": "partial_order_only",
+      "evidence": "model source/Run197/Run145"
+    }
+  },
+  "communication": {
+    "profiled_adjacent_gather_pairs_per_target_window": {
+      "value": {
+        "median": 36,
+        "min": 33,
+        "max": 41
+      },
+      "status": "observed",
+      "evidence": "Run152"
+    },
+    "profiled_adjacent_pair_task_ms_median": {
+      "value": 0.02288156944444445,
+      "status": "profiled_not_link_floor",
+      "evidence": "Run152 per-window tasks"
+    },
+    "remaining_hccl_task_sum_ms": {
+      "value": 5.2050285,
+      "status": "profiled_not_link_floor",
+      "evidence": "Run145 excludes first arrival-heavy reduce-scatter"
+    },
+    "actual_collective_network_bytes": "UNKNOWN",
+    "graph_path_capacity": "UNKNOWN; Run237 eager API invalid for product calibration"
+  },
+  "prefill": {
+    "observed_run239_wave_shapes": {
+      "value": [
+        {
+          "cohort": 5,
+          "scheduled_token_counts": [
+            83,
+            8,
+            257,
+            115,
+            457,
+            246,
+            96
+          ],
+          "prefill_to_handoff_s": 2.3559247381053865
+        },
+        {
+          "cohort": 6,
+          "scheduled_token_counts": [
+            83,
+            8,
+            91,
+            16,
+            182,
+            115,
+            206,
+            222,
+            238,
+            171,
+            96
+          ],
+          "prefill_to_handoff_s": 3.7472995282150805
+        },
+        {
+          "cohort": 7,
+          "scheduled_token_counts": [
+            83,
+            8,
+            91,
+            16,
+            182,
+            115,
+            123,
+            214,
+            147,
+            238,
+            171,
+            96
+          ],
+          "prefill_to_handoff_s": 4.115179731044918
+        },
+        {
+          "cohort": 8,
+          "scheduled_token_counts": [
+            83,
+            8,
+            174,
+            24,
+            273,
+            132,
+            222,
+            238,
+            171,
+            96
+          ],
+          "prefill_to_handoff_s": 3.318051605951041
+        }
+      ],
+      "status": "separate_diagnostic_pass",
+      "evidence": "Run239 rank0 scheduled token records"
+    },
+    "required_HBM_bytes": "UNKNOWN",
+    "per_shape_FLOPs": "UNKNOWN",
+    "KV_read_write_bytes": "UNKNOWN"
+  },
+  "unknowns": [
+    "Exact per-layer KV/cache read/write bytes, page padding and reuse under c12 real sequence lengths",
+    "Per-node non-GMM HBM and FLOP counters at target real shapes",
+    "Graph-path TP8 network bytes/service-time capacity without peer-arrival wait",
+    "Resource/stream dependencies and overlap under uninstrumented graph execution",
+    "Prefill source-level work and phase capacity across the observed changing shapes",
+    "Cycle acceptance/route response to candidate architecture changes"
+  ],
+  "interpretation": "Only W4A8 GMM has a quantitative conditional capacity screen. No complete target, prefill or E2E achievable upper bound follows from this inventory."
+}
