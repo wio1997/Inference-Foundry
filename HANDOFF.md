@@ -1122,3 +1122,13 @@ source audit does not prove GMM2 behavior or bound all possible replacement
 kernels. No semantics-valid operator replacement with >=5 ms/cycle saving
 has been identified. Next: source-backed ranking of the ~30 ms non-GMM
 compute families before allocating a costly eight-rank GMM A/B/A run.
+
+## Loop039 Run123 non-GMM ranking (2026-09-25)
+
+In Run107's 15 valid synchronized target windows, stable non-GMM kernel
+sums are quant matmul4.8205 ms, Compressor3.36575 ms, HC pre2.961 ms,
+scatter cache2.34275 ms, then smaller DSA/indexer families. These sums
+are not independent removability or stage critical-path reductions.
+No single non-GMM family already establishes a >=5 ms/cycle opportunity.
+Before pivoting Loop039, Run124 will test the existing fused W4A8 GMM1
+on one 910B3 with real Run121 expert counts versus controlled layouts.

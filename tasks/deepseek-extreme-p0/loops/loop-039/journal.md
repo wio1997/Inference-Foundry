@@ -61,3 +61,7 @@
 - `2026-09-25T00:31:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run122`（design-check）。
 
 - `2026-09-25T00:32:09Z` Run `run122` 记录为 `pass`；正确性为 `not-applicable`。Run107 15 synchronized windows: GMM1 median6.3785ms, GMM2 median3.58775ms, sum9.96625ms. Borrowed A8W4 GMM1 kernel reads live count and skips MatMul for zero-M experts, so Run121 sparse routing is already accounted for in GMM1. No >=5ms replacement established.
+
+- `2026-09-25T00:34:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run123`（design-check）。
+
+- `2026-09-25T00:37:09Z` Run `run123` 记录为 `pass`；正确性为 `not-applicable`。Run107 stable non-GMM target families across 15 synchronized windows: quant matmul4.8205ms, Compressor3.36575ms, HC pre2.961ms, scatter cache2.34275ms. These are sums, not removable critical-path benefits; no single family >5ms. Next bound GMM1 route sensitivity.

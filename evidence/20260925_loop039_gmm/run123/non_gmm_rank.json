@@ -1,0 +1,86 @@
+{
+  "run": "run123",
+  "source": "Run107 15 valid synchronized target windows",
+  "method": "Top 15 kernel-duration families per window; require appearance in all 15; report per-family sums, not union or removable benefit.",
+  "non_gmm_compute_union_lower_bound_median_ms": 29.97925,
+  "families": [
+    {
+      "kernel": "aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "median_ms": 4.8205,
+      "min_ms": 4.736,
+      "max_ms": 4.88575,
+      "range_over_median": 0.03106524219479308,
+      "source_mapping": "multiple quantized Linear projections; exact per-layer calls unresolved"
+    },
+    {
+      "kernel": "Compressor",
+      "median_ms": 3.36575,
+      "min_ms": 3.256,
+      "max_ms": 3.45175,
+      "range_over_median": 0.058159399836589264,
+      "source_mapping": "DeepSeek V4 compressor path; vllm_ascend/models/deepseek_v4.py Compressor"
+    },
+    {
+      "kernel": "HcPre",
+      "median_ms": 2.961,
+      "min_ms": 2.80175,
+      "max_ms": 3.0485,
+      "range_over_median": 0.08333333333333334,
+      "source_mapping": "DeepSeek V4 hyper-connection pre; deepseek_v4.py hc_pre calls npu_hc_pre_v2 twice per layer"
+    },
+    {
+      "kernel": "aclnnScatterNdUpdateSk_ScatterNdUpdateSkAiCore_ScatterNdUpdateSk",
+      "median_ms": 2.34275,
+      "min_ms": 2.2505,
+      "max_ms": 2.40025,
+      "range_over_median": 0.06392060612528014,
+      "source_mapping": "cache writes; device/device_op.py npu_scatter_nd_update_sk calls"
+    },
+    {
+      "kernel": "aclnnMatmul_MatMulCommon_MatMulV2",
+      "median_ms": 1.90325,
+      "min_ms": 1.8295,
+      "max_ms": 1.931,
+      "range_over_median": 0.05332983055300152,
+      "source_mapping": "not yet resolved"
+    },
+    {
+      "kernel": "VllmQuantLightningIndexer",
+      "median_ms": 1.7465,
+      "min_ms": 1.72575,
+      "max_ms": 1.7655,
+      "range_over_median": 0.022759805324935687,
+      "source_mapping": "DSA indexer; device/device_op.py quant lightning indexer"
+    },
+    {
+      "kernel": "SparseAttnSharedkv",
+      "median_ms": 1.62025,
+      "min_ms": 1.58775,
+      "max_ms": 1.6615,
+      "range_over_median": 0.0455176670266934,
+      "source_mapping": "DSA attention; device/device_op.py sparse attention"
+    },
+    {
+      "kernel": "aclnnTransposeBatchMatMul_TransposeBatchMatMul_TransposeBatchMatMul",
+      "median_ms": 1.46525,
+      "min_ms": 1.44225,
+      "max_ms": 1.50575,
+      "range_over_median": 0.04333731445145872,
+      "source_mapping": "not yet resolved"
+    },
+    {
+      "kernel": "aclnnMoeInitRoutingV3_MoeInitRoutingV3_MoeInitRoutingV3",
+      "median_ms": 1.05525,
+      "min_ms": 1.0375,
+      "max_ms": 1.3115,
+      "range_over_median": 0.25965411040037906,
+      "source_mapping": "not yet resolved"
+    }
+  ],
+  "decision": "Prioritize a concrete target-stage intervention only after separating critical-path overlap and validating semantics. No single non-GMM family exceeds 5ms; Compressor+HcPre total is ~6.3ms kernel sum but are distinct mandatory model operations, not jointly removable by default.",
+  "limits": [
+    "Top-15 truncates smaller families.",
+    "Profiled synchronized cycles, not formal E2E.",
+    "Source mapping is at Python call-family level, not a unique kernel-to-call proof."
+  ]
+}
