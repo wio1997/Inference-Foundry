@@ -1481,3 +1481,20 @@ semantics-safe >=5 ms GMM edit under frozen W4A8. This is not a
 hardware peak proof. Sol pivots Run151 to the DSA Compressor/indexer/
 attention/transpose sequence for a source-backed removable
 intermediate or fusion opportunity. Serving remains stopped, NPUs idle.
+
+## Loop044 Run151 DSA chain audit (2026-09-25)
+
+All 15 Run107 valid windows show 43 sparse-attention calls: two c0
+layers without compressor/indexer, 21 c4 layers with two distinct
+compressors and one lightning indexer, and 20 c128 layers with one
+compressor. The 62 compressor calls are exactly c4×2 plus c128×1:
+attention compressed KV and indexer compressed state are distinct.
+Per-window medians are Compressor3.366 ms, Indexer1.746 ms,
+SparseAttn1.621 ms. Every transpose batch matmul follows an HCCL
+alltoall after sparse attention, so it is not a pre-attention DSA
+fusion step. Source and trace do not show a redundant compressor or
+semantics-safe large DSA fusion. The first script assertion on
+metadata-kernel count failed because metadata kernels are not present
+at every compressor call; corrected script classified only actual
+compressor/indexer kernels and passed. Run152 audits repeated TP8
+collectives for coalescing. Offline only, service remains stopped.

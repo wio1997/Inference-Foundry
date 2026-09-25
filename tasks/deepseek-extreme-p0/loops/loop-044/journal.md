@@ -33,3 +33,7 @@
 - `2026-09-25T03:20:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run150`（profile）。
 
 - `2026-09-25T03:22:02Z` Run `run150` 记录为 `pass`；正确性为 `not-applicable`。Corrected one-card GMM2 with W4A8 bias and GMM1-produced input/scale: four samples median ~68us, main-memory read ~66MB, close to active packed W2 bytes and comparable order to Run107 live ~83us/layer. Together with Run148 GMM1, both are weight-read dominated at ~1TB/s effective counter rate. No demonstrated >=5ms safe GMM edit; pivot to DSA chain audit.
+
+- `2026-09-25T03:22:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run151`（design-check）。
+
+- `2026-09-25T03:25:34Z` Run `run151` 记录为 `pass`；正确性为 `not-applicable`。15 valid Run107 target windows show exact 43-layer DSA pattern: 2 c0 layers with no compressor/indexer, 21 c4 with two distinct compressors plus indexer, 20 c128 with one compressor and no indexer. Per-window compressor3.366ms, indexer1.746ms, sparse1.621ms. Post-sparse transpose occurs after alltoall in all 645 layers, so not a DSA pre-attention fusion member. No redundant compressor or semantics-safe >=5ms DSA fusion found. Initial metadata-count assertion failed and was corrected within Run151.
