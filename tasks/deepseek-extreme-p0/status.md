@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`DESIGNING`
-- 活动 Loop：`loop-059`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
-- 当前知识条目：`14`
-- 下一步：Reuse and verify Loop045 reversible boundary patch; run one legal warmed 48-request diagnostic with four cohort boundary captures, then audit all-rank phase wall against client timestamps
-- 更新时间：`2026-09-25T16:20:51Z`
+- 当前知识条目：`15`
+- 下一步：Build source-and-measurement-backed target plus prefill resource-DAG workload inventory with W4A8 weight, KV/cache and TP8 bytes at real shapes; calibrate representative non-GMM dependency chain, then replace arbitrary scenario deltas with attainable capacity ranges
+- 更新时间：`2026-09-25T16:44:21Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-056` | `PIVOTED` | `PIVOTED` | Community MRV2 DSpark graph management exists but current frozen V1 handoff lacks recursive dynamic metadata/KV/slot/output ownership; Run142/98 do not prove >=1ms exposed gain. Model-only shadow remains deferred option; target46.56ms dominates. |
 | `loop-057` | `PIVOTED` | `PIVOTED` | Run233 captured surrogate at synthetic96 rows saved0.45us/call; Run235 real-local12-row surrogate fails FP32 router-output numerical gate before timing; official MRV2 fused op is unregistered in installed runtime. Read-only Run234 source/census found no defensible >=1ms/cycle target replacement; task sums and shared graph pool are not product savings. |
 | `loop-058` | `PIVOTED` | `PIVOTED` | Executable V0 replay closes Run99 formal samples exactly and preserves trajectory; TP8 chain and wave audit constrain communication capacity and locate E2E variability, but scenario savings and true hardware bound remain unvalidated |
-| `loop-059` | `EVALUATING` | `PENDING` | 审查 Run collective-unit-correction 的证据，并判断是否需要更多 Run |
+| `loop-059` | `PIVOTED` | `PIVOTED` | Legal all-rank boundary pass localizes Run99 residual to variable prefill and decode work rather than small publication/admission edges; Run188 shows phase reductions couple to decode cycles, and no true hardware floor or E2E candidate has been established |
 
 ## 阻塞项
 
