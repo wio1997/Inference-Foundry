@@ -1932,3 +1932,8 @@ Legal warmup48+A/B/C/D12 completed96/96 with64/64 eight-rank Runtime records pas
 ## Loop055 Run220 interleaved completion screen design (2026-09-25)
 
 Run219 one-call Host submission and ordered C/D cohorts cannot establish exposed stage saving. Sol freezes a same-service eight-rank G1,E1,E2,G2,G3,E3,E4,G4 screen after A graph capture, each legal12x1024, with pre/post NPU synchronization around the one layer0 first88 MoE call and full Runtime checks. Four paired slowest-rank completion comparisons must each favor graph by at least0.5ms to justify multi-layer expansion. Client TPS and summed local savings are not a product verdict. Next implement and execute Run221. Evidence: evidence/20260925_loop055_moe_replay/run220/stage_design.md.
+
+
+## Loop055 Run221 interleaved one-layer completion screen (2026-09-25)
+
+Legal warmup48+A12+8x12 G/E cohorts completed156/156;104/104 eight-rank Runtime records passed. One layer0 first88 [11,4096] BF16 graph was captured on all8 and returned to serving in every G phase. Four interleaved paired slowest-rank synchronized completion savings were2.920,3.078,3.114,3.069ms per one MoE call, all above frozen0.5ms screen. Client throughput fluctuated and does not prove full-stage/E2E gain; this covers one shape/one layer/one call per cohort and no multi-call output ownership. Borrowed sources restored exact SHA and service stopped. Next Sol evaluates actual covered call frequency and product headroom versus decode before expanding graph bank. Evidence: evidence/20260925_loop055_moe_replay/run221/analysis.json and interpretation.md.

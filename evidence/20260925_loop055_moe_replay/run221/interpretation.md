@@ -1,0 +1,7 @@
+# Run221 interleaved one-layer completion result
+
+Legal warmup48, A12, and eight G/E12 cohorts completed156/156 at max_tokens1024. All104 rank/cohort Runtime records passed. A captured all8 graphs, and every G/E phase triggered the intended layer0 [11,4096] BF16 path on all8 ranks. The graph result was returned to serving in G phases. Four paired slowest-rank completion savings were about2.9-3.1ms per one MoE call, above the frozen0.5ms screen. The pre/post NPU synchronization includes input refresh, graph replay and device completion on the graph path; eager has the analogous completion boundary.
+
+This establishes a repeatable local stage saving for one fixed shape and layer, not whole-prefill or formal E2E throughput. Client TPS fluctuated across interleaved phases and did not show a consistent graph win; one switched call is too small relative to full request duration. The captured graph is reused only after each cohort has finished, so this run does not establish safe storage ownership for multiple in-flight calls. A graph bank across layers and shapes, capture cost amortization and exact output-token differential remain open.
+
+Sol next evaluates whether the number and frequency of covered prefill MoE calls can yield a material frozen-product gain before implementing a multi-layer path. If exposure is small versus decode, pivot; if material, bound graph ownership, memory and shape coverage and then build a correctness-gated multi-layer candidate.
