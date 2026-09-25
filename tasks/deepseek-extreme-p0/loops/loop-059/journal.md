@@ -5,3 +5,7 @@
 - `2026-09-25T16:21:14Z` 为用例 `mixed_32k_1024_c12` 创建 Run `legal-formal-boundary-pass`（profile）。
 
 - `2026-09-25T16:39:35Z` Run `legal-formal-boundary-pass` 记录为 `pass`；正确性为 `pass`。Exit0; warmup and measured diagnostic each 48/48 exact1024; measured 592.618 TPS with instrumentation; four cohort prefill-to-handoff 2.356-4.115s, serve 16.241-17.504s, client-to-execute and publication-to-client-end each about0.2s; all8 ranks pass, borrowed source restored exact SHA, service stopped
+
+- `2026-09-25T16:40:53Z` 为用例 `mixed_32k_1024_c12` 创建 Run `collective-unit-correction`（review）。
+
+- `2026-09-25T16:42:07Z` Run `collective-unit-correction` 记录为 `pass`；正确性为 `not-applicable`。Run152 0.83810ms is total of 33-41 adjacent graph pair tasks/window, median task pair0.02288ms; Run237 eager latest-rank pair0.53549ms is 23.4x slower and path/payload semantics differ. Comparison invalid for product capacity or E2E saving; prior docs corrected.
