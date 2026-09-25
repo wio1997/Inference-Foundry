@@ -1202,3 +1202,16 @@ versus fixed arrival offset. Loop040 first maps the stable 4.8205 ms
 quant-matmul family per call and exact shape using existing Run107 trace,
 then tests a concrete semantics-preserving repeated-projection/fusion
 hypothesis. Correctness and official E2E gates remain unchanged.
+
+## Loop040 Run131 quant-matmul trace map (2026-09-25)
+
+Across all 15 valid Run107 synchronized rank-cycle windows, target
+contains exactly 236 QuantMatmulWeightNz kernels and 43 fused GMM1 layer
+markers. Per-layer ordered bins match the frozen config's c4/c128
+alternation: two initial c0 layers 4/5 calls, 21 c4 layers six calls,
+20 c128 layers five calls, plus one tail call. Quant family kernel sum
+median4.8223 ms/cycle; c4 layer median120.28 us, c128 103.83 us.
+This is device-order association, not exact Python module/shape mapping.
+Run132 will use a temporary borrowed W8A8 apply probe only at 96-token
+capture to test same-input repeated quantization; legal 12x1024 requests,
+source restore and service stop are mandatory. No formal E2E yet.

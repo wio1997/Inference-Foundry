@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run131: parse Run107 bounded trace to map 96-token target quant-matmul device kernels to CPU operator calls and shapes; use source audit, no service restart.
-- 更新时间：`2026-09-25T00:48:01Z`
+- 下一步：审查 Run run131 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T00:54:57Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run131`
 
 ## 阻塞项
 
