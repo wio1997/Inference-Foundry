@@ -31,22 +31,26 @@ def main():
    if len(scopes)!=2:invalid.append(dict(rank=rank,capture=capture,reason=f'target_scope_count_{len(scopes)}'));continue
    with csvpath.open(newline='') as f:
     reader=csv.DictReader(f);headers=reader.fieldnames or []
-    needed=['Start Time(us)','Name','Duration(us)','aic_read_main_memory_datas(KB)','aic_write_main_memory_datas(KB)']
+    needed=['Start Time(us)','Name','Duration(us)','aic_read_main_memory_datas(KB)','aic_write_main_memory_datas(KB)','aiv_read_main_memory_datas(KB)','aiv_write_main_memory_datas(KB)']
     if any(k not in headers for k in needed):invalid.append(dict(rank=rank,capture=capture,reason='missing_memory_columns',headers=headers));continue
     kernel=list(reader)
    for cycle,scope in enumerate(scopes):
-    start=float(scope['ts']);end=start+float(scope['dur']);families=defaultdict(lambda:dict(count=0,read_KB=0.0,write_KB=0.0,kernel_sum_ms=0.0))
+    start=float(scope['ts']);end=start+float(scope['dur']);families=defaultdict(lambda:dict(count=0,read_KB=0.0,write_KB=0.0,aic_read_KB=0.0,aiv_read_KB=0.0,aic_write_KB=0.0,aiv_write_KB=0.0,kernel_sum_ms=0.0))
     for row in kernel:
      ts=val(row,'Start Time(us)')
      if not start<=ts<end:continue
      name=row['Name'];fam=classify(name);v=families[fam]
-     v['count']+=1;v['read_KB']+=val(row,'aic_read_main_memory_datas(KB)')
-     v['write_KB']+=val(row,'aic_write_main_memory_datas(KB)')
+     v['count']+=1
+     for core in ('aic','aiv'):
+      v[f'{core}_read_KB']+=val(row,f'{core}_read_main_memory_datas(KB)')
+      v[f'{core}_write_KB']+=val(row,f'{core}_write_main_memory_datas(KB)')
+     v['read_KB']=v['aic_read_KB']+v['aiv_read_KB']
+     v['write_KB']=v['aic_write_KB']+v['aiv_write_KB']
      v['kernel_sum_ms']+=val(row,'Duration(us)')/1000
     expected={'gmm1':43,'gmm2':43,'quant_matmul':236,'compressor':62,'scatter_sk':126,'sparse_attention':43}
     bad={k:dict(actual=families[k]['count'],expected=n) for k,n in expected.items() if families[k]['count']!=n}
     if bad:invalid.append(dict(rank=rank,capture=capture,cycle=cycle,reason='family_count',detail=bad));continue
-    if any(families[k]['read_KB']<=0 for k in ('gmm1','gmm2','quant_matmul','compressor','sparse_attention')):
+    if any(families[k]['read_KB']<=0 for k in ('gmm1','gmm2','quant_matmul','compressor','sparse_attention')) or families['scatter_sk']['write_KB']<=0:
      invalid.append(dict(rank=rank,capture=capture,cycle=cycle,reason='missing_positive_family_read'));continue
     windows.append(dict(rank=rank,capture=capture,cycle=cycle,scope_ms=(end-start)/1000,families=dict(families)))
  latest=max((w['capture'] for w in windows),default=-1)
@@ -58,10 +62,10 @@ def main():
  for k in keys:
   rows=[w['families'].get(k,{}) for w in selected]
   summary[k]={name:{'median':statistics.median(v),'min':min(v),'max':max(v)} for name,v in
-              ((name,[r.get(name,0) for r in rows]) for name in ('count','read_KB','write_KB','kernel_sum_ms'))}
+              ((name,[r.get(name,0) for r in rows]) for name in ('count','read_KB','write_KB','aic_read_KB','aiv_read_KB','aic_write_KB','aiv_write_KB','kernel_sum_ms'))}
  out=dict(status=status,all_valid_windows=len(windows),latest_capture=latest,latest_valid_windows=len(selected),
           latest_ranks=sorted({w['rank'] for w in selected}),summary=summary,invalid=invalid[:40],sources=sources,
-          windows=selected,limit='Level1 profiler/synchronized diagnostic; bytes are AICore task counters, not necessarily unique compulsory HBM bytes. No HCCL link bytes or formal E2E conclusion.')
+          windows=selected,limit='Level1 profiler/synchronized diagnostic; bytes sum AIC and AIV task counters, not necessarily unique compulsory HBM bytes. No HCCL link bytes or formal E2E conclusion.')
  a.output.write_text(json.dumps(out,indent=2)+'\n')
  print(json.dumps(dict(status=status,all_valid_windows=len(windows),latest_valid_windows=len(selected),
                        gmm_read_GB=(summary.get('gmm1',{}).get('read_KB',{}).get('median',0)+summary.get('gmm2',{}).get('read_KB',{}).get('median',0))*1024/1e9,

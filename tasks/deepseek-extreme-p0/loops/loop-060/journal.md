@@ -21,3 +21,7 @@
 - `2026-09-25T16:58:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `container-graph-memory-counters`（profile）。
 
 - `2026-09-25T17:20:03Z` Run `container-graph-memory-counters` 记录为 `pass`；正确性为 `pass`。Exit0 after manual host stop corrected container cleanup; legal warmup48/48 and diagnostic12/12 exact1024, 40/40 rank-cohort runtime records pass, 40 raw Level1 profile dirs captured (~473MB), no CSV exported yet; service stopped, NPU idle. Instrumented 560.174 TPS not comparable E2E.
+
+- `2026-09-25T17:21:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `export-graph-memory-counters`（profile）。
+
+- `2026-09-25T17:26:39Z` Run `export-graph-memory-counters` 记录为 `pass`；正确性为 `not-applicable`。Run246 profile export exit0; all80 rank-cycle target windows valid, latest16 across8 ranks; AIC+AIV total read18.965GB/write2.380GB, GMM read9.244GB or1.092x active packed. Offline parser, no new correctness or formal E2E claim.
