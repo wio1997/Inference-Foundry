@@ -9,3 +9,7 @@
 - `2026-09-25T09:33:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run193`（review）。
 
 - `2026-09-25T09:33:24Z` Run `run193` 记录为 `pass`；正确性为 `not-applicable`。Run107 target-entry skew20.532/8.624ms tracks first RS start skew; first RS end aligns. Cycle65 prior proposer durations span55.036-63.213ms and proposer-end to target-entry gap is mostly7.5-7.8ms. Suggest upstream proposer timing, not wire transfer, drives arrival exposure; causal intervention not yet established.
+
+- `2026-09-25T09:34:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run194`（review）。
+
+- `2026-09-25T09:34:49Z` Run `run194` 记录为 `pass`；正确性为 `not-applicable`。Run107 proposer profiled/synchronized CPU scope median55.644ms versus separate-service Run98 low-overhead proposer event6.454ms (8.62x); Run107 rank-arrival skew cannot be promoted to product removable gap. No service started.
