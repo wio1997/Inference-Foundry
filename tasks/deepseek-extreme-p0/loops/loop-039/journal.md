@@ -81,3 +81,7 @@
 - `2026-09-25T00:42:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run127`（benchmark）。
 
 - `2026-09-25T00:43:02Z` Run `run127` 记录为 `pass`；正确性为 `not-applicable`。Product logical W4A8 GMM1 shapes, NZ format29 and [32,4096] assist matrix accepted. Real/dense/single expert count variants returned [576,2048] and [576] outputs. First-call wall includes compile; no latency conclusion.
+
+- `2026-09-25T00:43:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run128`（benchmark）。
+
+- `2026-09-25T00:44:53Z` Run `run128` 记录为 `pass`；正确性为 `not-applicable`。Single-NPU synthetic W4A8 GMM1 device-event A/B/A: same 60 active tokens, real 15 experts median0.37385/0.38910ms, dense 32 experts0.45886ms, single expert0.33789ms. Existing operator is route-sensitive; eager synthetic timings cannot be projected to target stage or formal E2E.

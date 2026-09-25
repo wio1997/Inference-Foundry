@@ -1163,3 +1163,16 @@ WeightNzV2 GMM1 returns correctly shaped tensors for real Run121,
 same-token dense, and single-expert count vectors. First-call wall
 includes compile, so Run127 establishes interface validity only.
 Run128 will use device-event A/B/A timing; no serving service ran.
+
+## Loop039 Run128 single-NPU GMM1 route sensitivity (2026-09-25)
+
+Synthetic product-shape W4A8 fused GMM1 with 60 valid tokens and 50
+device-event samples per A/B/A block: real 15-active-expert distribution
+median0.37385/0.38910 ms, dense 32-expert0.45886 ms, single-expert
+0.33789 ms. The operator already responds to group-list sparsity.
+The values are eager, synthetic-weight, one-card diagnostics and cannot
+be scaled to Run107 graph GMM1 sum or formal E2E. No legal faster
+replacement has been established. Next Run129 revisits steady product
+rank dispersion to rule out the profiled HCCL wait as the larger gap
+before Sol's priority decision. Read-only second-view review requested;
+unverified model provenance cannot enter formal evidence.
