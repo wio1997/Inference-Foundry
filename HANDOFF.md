@@ -1132,3 +1132,11 @@ are not independent removability or stage critical-path reductions.
 No single non-GMM family already establishes a >=5 ms/cycle opportunity.
 Before pivoting Loop039, Run124 will test the existing fused W4A8 GMM1
 on one 910B3 with real Run121 expert counts versus controlled layouts.
+
+## Loop039 Run124 invalid GMM1 smoke (2026-09-25)
+
+A single-910B3 call to the product fused GMM1 custom operator failed at
+the aclnn argument check before timing: synthetic int32 W1 had 1-D
+storageShape; WeightNzV2 requires 5-D NZ storage. No latency evidence.
+Process exited, no serving service remained, all NPUs at idle power.
+Run125 will construct product-compatible NZ storage and retry.

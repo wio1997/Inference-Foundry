@@ -1,0 +1,21 @@
+INFO 09-25 00:37:48 [__init__.py:52] Available plugins for group vllm.platform_plugins:
+INFO 09-25 00:37:48 [__init__.py:54] - ascend -> vllm_ascend:register
+INFO 09-25 00:37:48 [__init__.py:57] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 09-25 00:37:48 [__init__.py:237] Platform plugin ascend is activated
+INFO 09-25 00:37:48 [platform.py:61] Breakable cudagraph is force disabled on Ascend because DeepSeek V4 PIECEWISE cudagraph is not supported yet.
+{"product_x_shape": [576, 4096], "product_w1_shape": [32, 4096, 512], "real_counts": [0, 10, 4, 1, 0, 2, 0, 5, 1, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 1, 0, 5, 2, 0, 4, 0, 1, 0, 6, 13, 0], "real_m": 60, "active_real": 15, "active_dense": 32, "active_single": 1}
+[W925 00:37:50.905615070 NPUCachingAllocator.cpp:202] Warning: The current CANN and HDK(driver) versions require processing for 32 padding size, with memory allocation. (function operator())
+Traceback (most recent call last):
+  File "/data/wio/Inference_Foundry/scripts/loop039_gmm1_microbench.py", line 33, in <module>
+    shapes=invoke(counts)
+           ^^^^^^^^^^^^^^
+  File "/data/wio/Inference_Foundry/scripts/loop039_gmm1_microbench.py", line 26, in invoke
+    out,scale=torch.ops._C_ascend.grouped_matmul_swiglu_quant_v2(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_ops.py", line 1209, in __call__
+    return self._op(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: call aclnnGroupedMatmulSwigluQuantWeightNzV2 failed, detail:[PID: 2219106] 2026-09-25-00:37:50.640.485 AclNN_Parameter_Error(EZ1001): aclnnGroupedMatmulSwigluQuantWeightNzV2, The dimnum of storageShape for second input (weight)must be 5. 
+ But StorageShape got [67108864] , and dimNum is 1.
+
+[ERROR] 2026-09-25-00:37:51 (PID:2219106, Device:0, RankID:-1) ERR99999 UNKNOWN applicaiton exception

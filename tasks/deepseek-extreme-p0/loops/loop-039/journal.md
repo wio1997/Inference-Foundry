@@ -65,3 +65,7 @@
 - `2026-09-25T00:34:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run123`（design-check）。
 
 - `2026-09-25T00:37:09Z` Run `run123` 记录为 `pass`；正确性为 `not-applicable`。Run107 stable non-GMM target families across 15 synchronized windows: quant matmul4.8205ms, Compressor3.36575ms, HC pre2.961ms, scatter cache2.34275ms. These are sums, not removable critical-path benefits; no single family >5ms. Next bound GMM1 route sensitivity.
+
+- `2026-09-25T00:37:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run124`（benchmark）。
+
+- `2026-09-25T00:38:47Z` Run `run124` 记录为 `invalid`；正确性为 `invalid`。Single-card GMM1 smoke invalid: synthetic int32 weight had 1-D storage shape, but product WeightNzV2 requires 5-D NZ storage; no timing data. Process exited, no serving service, NPUs idle.
