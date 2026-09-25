@@ -29,3 +29,7 @@
 - `2026-09-25T03:17:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run149`（profile）。
 
 - `2026-09-25T03:19:47Z` Run `run149` 记录为 `invalid`；正确性为 `invalid`。GMM2 profiler completed but synthetic call omitted product W4A8 w2_scale_bias; median794us is ~10x Run107 live GMM2 ~83us/layer. Counters invalid for product attribution. Preserve full profile and retry Run150 with bias plus GMM1-produced activation/scale.
+
+- `2026-09-25T03:20:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run150`（profile）。
+
+- `2026-09-25T03:22:02Z` Run `run150` 记录为 `pass`；正确性为 `not-applicable`。Corrected one-card GMM2 with W4A8 bias and GMM1-produced input/scale: four samples median ~68us, main-memory read ~66MB, close to active packed W2 bytes and comparable order to Run107 live ~83us/layer. Together with Run148 GMM1, both are weight-read dominated at ~1TB/s effective counter rate. No demonstrated >=5ms safe GMM edit; pivot to DSA chain audit.

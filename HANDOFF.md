@@ -1467,3 +1467,17 @@ The counters therefore cannot bound live GMM2. TaskCtl marks Run149
 invalid for product attribution and preserves the profile. Run150
 will pass bias and feed GMM1-produced activation/scale. No serving
 service ran; eight NPUs returned idle.
+
+## Loop044 Run150 corrected GMM2 counter and next target gap (2026-09-25)
+
+Adding product W4A8 bias2 and GMM1-produced activation/scale corrected
+the one-card GMM2 path. Four samples have ~68 us median, ~66 MB
+main-memory read and ~1 TB/s effective in-kernel read. Counter read
+is close to the packed W2 bytes for 15 active experts. This is
+comparable order to Run107 live ~83 us/layer, unlike invalid Run149
+~794 us. Together with Run148, the two GMM kernels mostly read active
+packed weights and already avoid empty experts. We have no demonstrated
+semantics-safe >=5 ms GMM edit under frozen W4A8. This is not a
+hardware peak proof. Sol pivots Run151 to the DSA Compressor/indexer/
+attention/transpose sequence for a source-backed removable
+intermediate or fusion opportunity. Serving remains stopped, NPUs idle.
