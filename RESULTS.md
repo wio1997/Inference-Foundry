@@ -513,3 +513,7 @@ Run246 raw Level1 capture exported successfully; all 80 target rank-cycle window
 ## Loop060 Run248 resource sensitivity
 
 Latest 16 graph windows reconcile against Run247. The non-GMM `other` 3.618GB read group is now decomposed; gross target AIC+AIV read+write is 21.344GB per rank-cycle. Hypothetical 1.0/1.3/1.6TB/s byte/rate screens are 21.344/16.419/13.340ms, not hardware floors or formal throughput claims. Bound remains unknown. Evidence: `evidence/20260926_loop060_resource/run248/`.
+
+## Loop060 Run249 shape screen
+
+Sixteen latest target windows identify exact non-GMM shapes. Largest quant matmul reports1.043TB/s counter rate; Compressor main shapes report0.303–0.531TB/s. Rates are profiled byte/task-time ratios and yield no exposed product gain. No candidate promoted; hardware bound remains unknown. Evidence: `evidence/20260926_loop060_resource/run249/`.

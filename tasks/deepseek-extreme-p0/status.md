@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`DESIGNING`
-- 活动 Loop：`loop-060`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
-- 当前知识条目：`15`
-- 下一步：Extract real config and source/Run146 route bytes; reconcile GMM floor, KV/cache and TP8 payload definitions, then freeze a representative layer dependency measurement
-- 更新时间：`2026-09-25T16:44:51Z`
+- 当前知识条目：`17`
+- 下一步：Develop one numerically equivalent non-GMM same-shape kernel or dependency intervention, prove local correctness, run legal warmed eight-rank diagnostic, then repeated formal E2E; retain Run99 571.681 tok/s median and mark true hardware bound UNKNOWN meanwhile.
+- 更新时间：`2026-09-25T17:33:15Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-057` | `PIVOTED` | `PIVOTED` | Run233 captured surrogate at synthetic96 rows saved0.45us/call; Run235 real-local12-row surrogate fails FP32 router-output numerical gate before timing; official MRV2 fused op is unregistered in installed runtime. Read-only Run234 source/census found no defensible >=1ms/cycle target replacement; task sums and shared graph pool are not product savings. |
 | `loop-058` | `PIVOTED` | `PIVOTED` | Executable V0 replay closes Run99 formal samples exactly and preserves trajectory; TP8 chain and wave audit constrain communication capacity and locate E2E variability, but scenario savings and true hardware bound remain unvalidated |
 | `loop-059` | `PIVOTED` | `PIVOTED` | Legal all-rank boundary pass localizes Run99 residual to variable prefill and decode work rather than small publication/admission edges; Run188 shows phase reductions couple to decode cycles, and no true hardware floor or E2E candidate has been established |
-| `loop-060` | `EVALUATING` | `PENDING` | 审查 Run graph-traffic-attribution 的证据，并判断是否需要更多 Run |
+| `loop-060` | `PIVOTED` | `PIVOTED` | Real eight-rank graph HBM task counters and exact shapes are measured, but unique compulsory traffic, HCCL link bytes, attainable graph bandwidth and dependency-critical exposure remain unproved; no correctness-preserving same-shape candidate has passed a formal E2E intervention. The frozen-product hardware-attainable throughput bound is not identifiable from these measurements. |
 
 ## 阻塞项
 

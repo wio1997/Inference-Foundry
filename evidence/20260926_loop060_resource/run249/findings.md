@@ -1,0 +1,9 @@
+# Run249 non-GMM shape and counter-rate audit
+
+The latest Run247 cohort's 16 valid target rank-cycle windows were grouped by exact exported input shape. Reported read bytes divided by summed profiler task duration gives a counter rate for each shape, not exposed latency or attainable bandwidth.
+
+Leading quant matmul shape `12,1024;1024,64,16,32;32768;12` appears 43 times/window, reads 1.533GB, sums 1.469ms and reports 1.043TB/s. The next 43-call quant shape reads 0.772GB in 0.943ms (0.819TB/s). This weakens a generic weight-read reduction argument for the largest quant path.
+
+The three main Compressor shapes are 21 c4 state/cache calls (0.679GB/1.283ms, 0.529TB/s), 20 c128 calls (0.505GB/0.951ms, 0.531TB/s) and 21 c4 smaller-product calls (0.347GB/1.145ms, 0.303TB/s). Transpose batch matmul's 43 calls read 0.639GB in 1.484ms (0.431TB/s). Sparse attention's 21 c4 calls read 0.674GB in 0.919ms (0.733TB/s); its 20 c128 calls read 0.373GB in 0.666ms (0.561TB/s). These are shape-specific diagnostic rates under a synchronized profiler. Smaller shapes and required arithmetic can depress byte/time without implying avoidable bandwidth waste.
+
+Prior Loop044 established that the 62 main Compressor invocations make distinct mandatory products (21 c4 times two, 20 c128 times one). Run197 found direct compressed-cache writes require a custom op ABI/kernel change and cannot remove required cache writes. Thus neither low Compressor counter rate nor task time justifies a source-level bypass. A falsifiable next performance candidate requires a numerical equivalent replacement of one exact shape or a same-state critical-path intervention; it must pass local correctness, legal fixed serving, then repeated formal E2E. No such candidate was implemented in this audit. Hardware-attainable product throughput remains UNKNOWN.

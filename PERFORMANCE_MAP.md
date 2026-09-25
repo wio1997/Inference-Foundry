@@ -505,3 +505,7 @@ All 80 exported eight-rank target windows passed exact family counts; 16 latest-
 ## Loop060 Run248 next bottleneck screen
 
 Reconciled latest 16 rank-cycle graph windows attribute the Run247 `other` 3.618GB read mainly to plain/transpose matmuls1.788GB combined, inplace copy0.618GB and AivKernel/Hc* names0.756GB. Quant matmul3.465GB, compressor1.530GB and sparse attention1.062GB are separately measured. GMM's 9.244GB read is 1.092× active packed weights, making weight reread reduction a narrow gross traffic target. HCCL link bytes are still unavailable. Byte/rate sensitivity of total 21.344GB traffic is only illustrative and does not establish a full-graph bound. Choose a non-GMM same-shape intervention and judge it by correctness and formal E2E. See `evidence/20260926_loop060_resource/run248/findings.md`.
+
+## Loop060 Run249 exact non-GMM shapes
+
+Latest 16-window counter-rate audit: leading quant matmul shape 1.043TB/s across43 calls, Compressor main shapes0.529/0.531/0.303TB/s, transpose matmul0.431TB/s. These are reported read divided by summed profiled task time. Required arithmetic and distinct output products prevent treating lower ratios as waste. Loop044/Run197 found no safe source-level Compressor bypass; a custom numerically equivalent intervention is needed before formal E2E testing. Evidence: `evidence/20260926_loop060_resource/run249/findings.md`.

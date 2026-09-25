@@ -29,3 +29,13 @@
 - `2026-09-25T17:28:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `graph-traffic-attribution`（design-check）。
 
 - `2026-09-25T17:30:30Z` Run `graph-traffic-attribution` 记录为 `pass`；正确性为 `not-applicable`。Run247 latest16 graph windows reattributed and byte-reconciled; gross read+write21.344GB/rank-cycle and non-GMM families identified. Byte/rate screens are nonbinding; hardware bound UNKNOWN.
+
+- `2026-09-25T17:31:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `nongmm-shape-rate-audit`（design-check）。
+
+- `2026-09-25T17:32:39Z` Run `nongmm-shape-rate-audit` 记录为 `pass`；正确性为 `not-applicable`。Latest16 graph windows exact-shape audit: leading quant matmul counter rate1.043TB/s; Compressor main shapes0.303-0.531TB/s. Required-output and dependency evidence prevents source-level speedup claim; no candidate promoted; hardware bound UNKNOWN.
+
+- `2026-09-25T17:33:15Z` 暂存知识变化 `real-graph-target-memory-counters`：On the frozen DeepSeek V4 Flash W4A8 c12 eight-rank FULL target graph, Run246/247 Level1 MemoryAccess reports latest-cohort median AIC+AIV per-rank-cycle reads 9.244GB GMM and 18.965GB total, writes 2.380GB total; GMM read is 1.092x the Run146 active packed estimate. These are task counters under synchronization, not unique compulsory traffic or E2E latency.
+
+- `2026-09-25T17:33:15Z` 暂存知识变化 `graph-link-bytes-unmeasured`：The exported graph MemoryAccess counters exclude HCCL link bytes; inspected communication.json transit-size fields were zero. Do not infer product TP8 link capacity or full resource bound from AIC+AIV counters.
+
+- `2026-09-25T17:33:15Z` 主控结论为 `PIVOTED`。Real eight-rank graph HBM task counters and exact shapes are measured, but unique compulsory traffic, HCCL link bytes, attainable graph bandwidth and dependency-critical exposure remain unproved; no correctness-preserving same-shape candidate has passed a formal E2E intervention. The frozen-product hardware-attainable throughput bound is not identifiable from these measurements.

@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run graph-traffic-attribution 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-25T17:30:30Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Develop one numerically equivalent non-GMM same-shape kernel or dependency intervention, prove local correctness, run legal warmed eight-rank diagnostic, then repeated formal E2E; retain Run99 571.681 tok/s median and mark true hardware bound UNKNOWN meanwhile.
+- 更新时间：`2026-09-25T17:33:15Z`
 
 ## Run 记录
 
@@ -19,6 +19,7 @@
 - `runs/mixed_32k_1024_c12/container-graph-memory-counters`
 - `runs/mixed_32k_1024_c12/export-graph-memory-counters`
 - `runs/mixed_32k_1024_c12/graph-traffic-attribution`
+- `runs/mixed_32k_1024_c12/nongmm-shape-rate-audit`
 
 ## 阻塞项
 
@@ -26,5 +27,5 @@
 
 ## 待归约知识
 
-- 知识变化：`0`
+- 知识变化：`2`
 - 基线变化：`0`
