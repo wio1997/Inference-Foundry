@@ -13,3 +13,7 @@
 - `2026-09-25T11:21:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run213`（profile）。
 
 - `2026-09-25T11:41:10Z` Run `run213` 记录为 `pass`；正确性为 `pass`。72/72 legal requests and8-rank Runtime pass; first88 MoE layer0 per-rank [11,4096] BF16 stable alias/address/context with changing inputs and outputs; no graph/performance claim
+
+- `2026-09-25T11:44:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run214`（design-check）。
+
+- `2026-09-25T11:44:44Z` Run `run214` 记录为 `pass`；正确性为 `not-applicable`。Bound one layer/shape shadow graph capture with two distinct real inputs, eager self-noise controls, retained serving eager output and all8-rank collective gates; no performance claim
