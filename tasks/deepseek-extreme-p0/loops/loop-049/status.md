@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run189 offline align Run121 cycle64/65 per-expert count matrices with Run107/116 per-rank target/GMM/communication windows; quantify actual active-weight load imbalance and a safe static expert remapping screen
-- 更新时间：`2026-09-25T09:20:12Z`
+- 下一步：审查 Run run189 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T09:23:29Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run189`
 
 ## 阻塞项
 

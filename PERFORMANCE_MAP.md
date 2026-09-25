@@ -451,3 +451,7 @@ A legal same-service Extreme detailed cohort had nine eager prefill calls on all
 ## Loop048 Run188 admission closure (2026-09-25)
 
 A same-service A/B/A-prime legal Extreme diagnostic gathered all12 Core requests after1.089s wait and reduced prefill forwards7/8→1, saving gross max-rank prefill wall2.359–2.592s. Complete client envelope changed only20.822/20.769/21.042s; B decode was331 cycles versus controls299 and its latest-rank Runtime wall rose18.685s versus16.930/17.019s. Local prefill elimination is not a proxy for throughput gain. Keep the admission hold disabled. Next target-stage screen tests active expert weight-load imbalance against same-cycle GMM/HCCL timing; do not treat HCCL peer wait or GMM kernel sums as independently removable.
+
+## Loop049 Run189 active expert balance screen (2026-09-25)
+
+Run121 cycles64/65 rank aggregate active expert-layer counts span645–697 and655–712. A physically impossible per-layer perfect balance would remove161/175 packed expert reads, roughly2.0–2.2ms at a representative1TB/s; this is not a removable latency bound. Separate-service Run107 GMM rank-sum spread is only0.39–0.44ms. Expert placement may redistribute layer maxima but no same-state timing correlation or cheap supported remap is established. Audit existing placement support before implementing anything.
