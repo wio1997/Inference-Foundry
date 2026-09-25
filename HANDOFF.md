@@ -1927,3 +1927,8 @@ Run218 exited code2 before patch install or serving because the launcher referen
 ## Loop055 Run219 one-layer serving graph substitution (2026-09-25)
 
 Legal warmup48+A/B/C/D12 completed96/96 with64/64 eight-rank Runtime records passing. A captured graph, B returned graph output with same-input eager numerical control, C returned graph output without per-call sync/hash, D returned eager; all8 ranks activated each phase. B shared output bit-exact and routed maxabs0.0078125, matching max eager self-control. B synchronized eager median4.551ms vs graph replay2.086ms; C Host submission median0.137ms vs D4.116ms, one call/rank. C/D client TPS/TTFT are order and cache confounded; no stage or E2E gain claim, no exact full-token oracle differential. Both borrowed files restored exact SHA and service stopped. Next repeated matched stage-completion and numerical gate with graph-capture amortization before expanding all layers. Evidence: evidence/20260925_loop055_moe_replay/run219/analysis.json and interpretation.md.
+
+
+## Loop055 Run220 interleaved completion screen design (2026-09-25)
+
+Run219 one-call Host submission and ordered C/D cohorts cannot establish exposed stage saving. Sol freezes a same-service eight-rank G1,E1,E2,G2,G3,E3,E4,G4 screen after A graph capture, each legal12x1024, with pre/post NPU synchronization around the one layer0 first88 MoE call and full Runtime checks. Four paired slowest-rank completion comparisons must each favor graph by at least0.5ms to justify multi-layer expansion. Client TPS and summed local savings are not a product verdict. Next implement and execute Run221. Evidence: evidence/20260925_loop055_moe_replay/run220/stage_design.md.

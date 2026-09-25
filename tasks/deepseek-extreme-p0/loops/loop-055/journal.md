@@ -37,3 +37,7 @@
 - `2026-09-25T12:59:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run219`（test）。
 
 - `2026-09-25T13:19:10Z` Run `run219` 记录为 `pass`；正确性为 `pass`。96/96 legal requests and64/64 eight-rank Runtime pass; first88 layer0 graph outputs served on B/C, B shared exact and routed maxabs0.0078125; one-call local timing plausible but no causal stage/E2E gain
+
+- `2026-09-25T13:20:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run220`（design-check）。
+
+- `2026-09-25T13:20:17Z` Run `run220` 记录为 `pass`；正确性为 `not-applicable`。Frozen eight-rank interleaved G/E/E/G/G/E/E/G one-layer synchronized completion screen with four paired slowest-rank comparisons, legal48+8x12 requests, Runtime and exact source restore gates; no E2E claim
