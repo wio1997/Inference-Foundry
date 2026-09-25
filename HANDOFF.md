@@ -1716,3 +1716,7 @@ Offline eight-rank Run158/161 measured warmed cohorts have10/12 pre-handoff call
 ## Loop046 Run170 invalid shell setup (2026-09-25)
 
 The admission-trace runner never began: shell redirection to its driver log failed because the run170 evidence directory did not exist. No borrowed source patch, service or NPU work occurred. TaskCtl marks Run170 invalid. Run171 creates its evidence directory first and runs the same bounded opt-in scheduler trace.
+
+## Loop046 Run171 Core admission trace (2026-09-25)
+
+Legal8-rank48×1024 warmup and12×1024 measured diagnostic passed60/60 with40 rank-cohort runtime records. Client request start times span12ms, but measured Core `add_request` processing spans1.696s, first at+0.226s and last at+1.922s after first client start. The Core running count advances0→10 between additions. This is consistent with execution interleaving blocking Core request handling, but Core `add_request` is not wire arrival or frontend tokenization; attempted scheduler `schedule` rows were absent, so exact scheduler budget is unmeasured. Diagnostic TPS634.456 is not formal. Borrowed scheduler SHA restored, service stopped. Next: bounded Core input-queue drain/coalescing experiment with an env-gated <=250ms initial wait, while retaining all request semantics and measuring latest-rank prefill completion. See `evidence/20260925_loop046_prefill/run171/admission_analysis.json`.

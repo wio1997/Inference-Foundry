@@ -13,3 +13,7 @@
 - `2026-09-25T06:12:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run170`（profile）。
 
 - `2026-09-25T06:13:14Z` Run `run170` 记录为 `invalid`；正确性为 `invalid`。Shell redirection failed before runner start because run170 output directory did not exist; no source patch, service or NPU work. Retry as Run171 after creating output directory.
+
+- `2026-09-25T06:13:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run171`（profile）。
+
+- `2026-09-25T06:28:53Z` Run `run171` 记录为 `pass`；正确性为 `pass`。Legal warmed 48+12 requests pass 60/60 and 40 rank-cohort runtime records. Measured client starts span12ms; Core add_request processing spans1.696s, from0.226s to1.922s after client start, with running count advancing0->10. Schedule rows absent, so exact queue arrival and scheduler budget unmeasured. Borrowed scheduler restored and service stopped. Diagnostic TPS634.456 not formal.
