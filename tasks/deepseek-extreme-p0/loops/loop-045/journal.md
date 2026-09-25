@@ -45,3 +45,7 @@
 - `2026-09-25T05:31:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run164`（test）。
 
 - `2026-09-25T05:33:18Z` Run `run164` 记录为 `pass`；正确性为 `not-applicable`。Controlled cleanup of stopped dedicated container: docker restart first exited1 (daemon did not receive exit event), but released most orphan memory; explicit docker stop exited0 and docker start exited0. Cgroup process count3646->1, Host used memory841GiB->20GiB, swap71GiB->749MiB. Mounts and source SHA verified, service stopped, 8 NPU idle. Initial restart error preserved.
+
+- `2026-09-25T05:34:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run165`（profile）。
+
+- `2026-09-25T05:52:42Z` Run `run165` 记录为 `pass`；正确性为 `pass`。Legal 8-rank warmed-service 48x1024+12x1024 diagnostic, 60/60 success and all 40 rank-cohort records pass. One rank0 measured prefill _model_forward profile captured after four cohorts. CANN step trace: stage444.180ms, compute39.597ms, exposed communication2.862ms, Free/no recorded kernel401.721ms (90.44%). 264 paired HCCL/Aiv logical duplicates removed in independent kernel-union check. Single rank/call profiler with synchronization, no formal E2E or achievable speedup claim. Source restored, service stopped, 8 NPU idle.

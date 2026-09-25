@@ -1668,3 +1668,19 @@ to749 MiB. Mounts, original model-runner/fixed-serving SHA, stopped
 service and8 idle NPUs verified. Run164 passed overall with the
 initial daemon error preserved. Run165 will retry the prefill profiler
 as a new legal 8-rank diagnostic.
+
+## Loop045 Run165 rank0 prefill device trace (2026-09-25)
+
+After dedicated-container recovery, legal8-rank48×1024 warmup
+plus12×1024 measured diagnostic passed60/60 and all40 rank-cohort
+records. One rank0 measured prefill `_model_forward` was profiled.
+CANN step trace: stage444.180 ms, compute39.597 ms, exposed
+communication2.862 ms, Free/no recorded device task401.721 ms
+(90.44%). Independent kernel-interval union agrees after removing
+264 HCCL/Aiv duplicate labels. This is one rank, one call with
+profiler initialization and explicit sync; no formal E2E or speedup
+claim. It strongly motivates Host/launch/dependency attribution,
+not GMM/HCCL kernel tuning for this prefill call. Diagnostic
+TPS635.156 is not formal. Sources restored, service stopped,8 NPUs
+idle. Run166 will inspect CPU/API and all device-task timing offline
+before selecting a prefill execution intervention.
