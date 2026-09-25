@@ -1457,3 +1457,13 @@ dominant cost and confirms zero experts are largely skipped in this
 synthetic case. It is not device peak or an eight-rank achievable
 bound, and differs from the live target route. Run149 will profile
 GMM2 with the same route. No serving service ran; NPUs idle.
+
+## Loop044 Run149 invalid GMM2 attribution (2026-09-25)
+
+The one-card GMM2 profiler executed, but median kernel duration was
+~794 us versus ~83 us per live Run107 layer. Its synthetic call omitted
+the W4A8 per-channel w2_scale_bias passed by the product source.
+The counters therefore cannot bound live GMM2. TaskCtl marks Run149
+invalid for product attribution and preserves the profile. Run150
+will pass bias and feed GMM1-produced activation/scale. No serving
+service ran; eight NPUs returned idle.

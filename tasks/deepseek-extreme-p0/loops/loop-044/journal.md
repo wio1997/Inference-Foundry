@@ -25,3 +25,7 @@
 - `2026-09-25T03:14:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run148`（profile）。
 
 - `2026-09-25T03:16:39Z` Run `run148` 记录为 `pass`；正确性为 `not-applicable`。One-card GMM1 product-shape synthetic-weight MemoryAccess profile with real 60-token/15-active-expert route: 4 samples median118.743us, main memory read129681KB, write2012.5KB, effective read1118GB/s. Read is 1.055x active W1 packed bytes. This supports weight traffic dominance but does not establish device peak or a service-level bound. Eight NPUs idle after run.
+
+- `2026-09-25T03:17:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run149`（profile）。
+
+- `2026-09-25T03:19:47Z` Run `run149` 记录为 `invalid`；正确性为 `invalid`。GMM2 profiler completed but synthetic call omitted product W4A8 w2_scale_bias; median794us is ~10x Run107 live GMM2 ~83us/layer. Counters invalid for product attribution. Preserve full profile and retry Run150 with bias plus GMM1-produced activation/scale.
