@@ -1549,3 +1549,18 @@ responses; preserved excerpt, no claim about its cause. Run99 formal
 was warm-cache, so Run155 will warm with 48 legal requests before
 measuring one 12-request cohort in the same service. No reliable
 formal E2E rerun.
+
+## Loop045 Run155 warm boundary (2026-09-25)
+
+Legal 8-rank same-service 48×1024 warmup plus 12×1024 measured
+diagnostic: 60/60 requests succeeded and all 40 rank-cohort runtime
+records passed. Warm measured client envelope20.779 s and diagnostic
+TPS591.369; neither is formal E2E. Cohort5 boundary starts with one
+trailing warmup execute before measured client start; analyzer selects
+first execute at/after measured start. Same-host medians: client-to-
+first execute0.241 s; first execute-to-handoff3.621 s; runtime build
+0.00264 s; fixed serving16.728 s; publication-to-client end0.184 s.
+Runtime construction cannot explain a multi-second E2E gap. Measured
+parked slot-cycles18.525%, exposure only. Temporary source restored,
+service stopped, 8 NPUs idle. Next Run156 is offline to discriminate
+prefill work and tail opportunity before another NPU intervention.
