@@ -9,3 +9,7 @@
 - `2026-09-25T16:50:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `kv-write-row-census`（design-check）。
 
 - `2026-09-25T16:51:39Z` Run `kv-write-row-census` 记录为 `pass`；正确性为 `not-applicable`。Run84 legal eight-rank 256-cycle page audit reused: steady cycles64-255 c4 compressor/indexer valid rows each24 per rank-cycle (504 layer-rows across21 layers each), c128 valid rows median1, mean0.698 per rank-cycle (20 layer-rows median); first c128 write at cycle8 all ranks. Counts are writes, not KV HBM bytes or read traffic.
+
+- `2026-09-25T16:53:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `graph-memory-counter-design`（design-check）。
+
+- `2026-09-25T16:55:11Z` Run `graph-memory-counter-design` 记录为 `pass`；正确性为 `not-applicable`。Frozen 8-rank two-cycle FULL target graph Level1 MemoryAccess diagnostic with 48-request warmup, 12/12 correctness, per-family counter/count gates and no E2E claim; product source opt-in default unchanged and service cleanup required
