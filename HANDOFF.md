@@ -1832,3 +1832,7 @@ Run107's exact target trace has20 c128 compressor-following scatter calls/cycle,
 ## Loop052 Run198 prefill MoE event source audit (2026-09-25)
 
 Frozen serve enables shared-expert multistream overlap. Run181's profiler-perturbed83-token forward shows MoE `Event::record`258 calls22.67ms and `Event::wait`215 calls14.79ms, but source uses them for real shared/routed dependencies. Run186 unprofiled forward thread CPU≈wall supports active submission, not event removability. A prefill-only same-stream variant may save Host event calls and lose device overlap; net effect unknown. Sol will first inspect saved Run165 per-stream device overlap, then decide whether a legal same-service bounded A/B is worthwhile. Evidence: `evidence/20260925_loop052_prefill_submission/run198/source_audit.md`.
+
+## Loop052 Run199 prefill shared-stream device screen (2026-09-25)
+
+In Run165's profiler-perturbed rank0 83-token prefill, stream36 has172 shared expert kernels (four×43 layers), summed/union2.1ms within the437ms DSA/MoE CPU-scope envelope; trace interval intersection with main stream47 and stream38 is zero. This does not prove the unprofiled eight-rank runtime has no overlap, but it makes a bounded prefill-only same-stream experiment worthwhile. Do not alter decode stream configuration. Next build a reversible env-gated patch, exact source restore, legal warmed48+12 same-service controls,8-rank correctness and latest-rank wall checks. Evidence: `evidence/20260925_loop052_prefill_submission/run199/analysis.json`.
