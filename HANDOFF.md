@@ -1907,3 +1907,8 @@ Run213 measured a stable layer0/11x4096 BF16 alias ABI with changing A/B inputs.
 ## Loop055 Run215 invalid shadow activation (2026-09-25)
 
 Run215 legal warmup48+A12+B12 completed72/72 with8-rank Runtime checks, but zero graph files were produced. Generated wrapper retained lowercase builtins._extreme_run212_state while MoE hook read _extreme_run215_state; no shadow code ran. Thus no graph/correctness/performance conclusion. TaskCtl invalid; source restored exact MoE/model runner SHA and service stopped. Patch generator now replaces lowercase too, with prelaunch assertion required in Run216. Evidence: evidence/20260925_loop055_moe_replay/run215/invalid.md and patch_restore.json.
+
+
+## Loop055 Run216 actual one-layer MoE shadow graph (2026-09-25)
+
+Corrected hook captured model.layers.0.mlp.experts local11x4096 BF16 graph on all8 ranks in A and replayed on all8 in B. Legal warmup48+A12+B12 all72 succeeded;6 observed8-rank Runtime cohorts passed with exact Host mirror/FULL target. Production used eager result. Shared graph output bit-equal; routed maxabs graph-vs-eager0.0078125, same order as eager self-replay max0.0078125, but not exact. Graph-related memory delta about634KB/rank in A. B replay diagnostic0.694-1.617ms/rank includes sync but excludes input refresh and is no stage saving. A/B input hashes were not saved, so distinct-value response is unproven; full acceptance/state and product E2E remain untested. Service stopped, source restored exact SHA. Next Run217 capture input/output hashes and verify B is distinct and graph responds correctly, then a low-overhead copy-inclusive stage test. Evidence: evidence/20260925_loop055_moe_replay/run216/analysis.json and interpretation.md.

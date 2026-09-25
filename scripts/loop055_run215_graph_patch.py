@@ -30,7 +30,8 @@ def _moe_forward_shared(
     if name!="model.layers.0.mlp.experts" or tuple(hidden_states.shape)!=(11,4096) or router_logits.data_ptr()!=hidden_states.data_ptr() or shared_experts_input is None or shared_experts_input.data_ptr()!=hidden_states.data_ptr() or input_ids is not None:
         row["status"]="signature_mismatch"
         outpath.parent.mkdir(parents=True,exist_ok=True)
-        outpath.write_text(_json.dumps(row)+"\n")
+        with (outpath.parent/f"{tag}_rank{rank}_mismatch.jsonl").open("a") as f:
+            f.write(_json.dumps(row)+"\n")
         state["captured"]=True
         return _extreme_run215_orig_moe(hidden_states,router_logits,shared_experts_input,input_ids,layer_name,hidden_dim_unpadded)
     source=hidden_states.detach().clone()
@@ -87,6 +88,7 @@ def _moe_forward_shared(
 """
 RUNNER=BASE_RUNNER.replace("RUN212","RUN215").replace("run212","run215")
 RUNNER=RUNNER.replace('state={"out":str(out),"captured":False}','state={"out":str(out),"tag":tag,"captured":False}')
+RUNNER=RUNNER.replace(" or int(num_tokens_padded)!=88","")
 def sha(b):return hashlib.sha256(b).hexdigest()
 def main():
  p=argparse.ArgumentParser();p.add_argument("action",choices=["install","restore"]);p.add_argument("--record",required=True);a=p.parse_args()

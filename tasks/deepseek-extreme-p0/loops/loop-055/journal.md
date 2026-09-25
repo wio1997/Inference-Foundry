@@ -21,3 +21,7 @@
 - `2026-09-25T11:47:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run215`（test）。
 
 - `2026-09-25T12:06:08Z` Run `run215` 记录为 `invalid`；正确性为 `invalid`。72/72 legal requests succeeded, but zero graph fingerprint files: wrapper lowercase run212 state name was not changed to run215, so MoE hook never armed; no capture/parity/performance result
+
+- `2026-09-25T12:09:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run216`（test）。
+
+- `2026-09-25T12:28:56Z` Run `run216` 记录为 `pass`；正确性为 `pass`。8/8 first88 MoE graph capture and second-cohort replay;72/72 legal requests and6x8 Runtime pass; shared bit-exact, routed graph maxabs0.0078125 within observed eager self order; A/B input distinctness and product saving unproven
