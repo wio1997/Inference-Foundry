@@ -1766,3 +1766,7 @@ Run165 single profiled rank0 83-token warmed prefill forward has43 `vllm::dsa_fo
 ## Loop048 Run182 invalid custom-op wrapper (2026-09-25)
 
 The temporary DSA/MoE timing wrapper used varargs; `direct_register_custom_op`/PyTorch `infer_schema` rejected the signature during service import before model load or benchmark. No timing result. Sol stopped the service and restored DSA, MoE runner and model runner to their recorded original hashes; eight NPUs idle. Run183 will preserve exact typed signatures and preflight imports before weight loading. Evidence: `evidence/20260925_loop048_prefill/run182/invalid.md`.
+
+## Loop048 Run183 Stock prefill phase baseline (2026-09-25)
+
+Typed custom-op import preflight passed. Legal warmed48+12 requests passed, with8 ranks×10 prefill forwards recorded; each forward executed43 DSA and43 MoE Python custom-op bodies. Per-rank median forward wall0.339–0.376s, DSA+MoE scope sum0.299–0.332s. **This service omitted Extreme Runtime flags and therefore ran Stock**, so it is a Stock host-phase reference only. Measured12 diagnostic envelope34.680s and TTFT9.780s mean are not comparable to Extreme Run171; no performance claim. Three borrowed source files restored to exact hashes, service stopped,8 NPUs idle. Run184 repeats with all frozen Extreme flags. Evidence: `evidence/20260925_loop048_prefill/run183/analysis.json`.
