@@ -17,3 +17,7 @@
 - `2026-09-25T06:13:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run171`（profile）。
 
 - `2026-09-25T06:28:53Z` Run `run171` 记录为 `pass`；正确性为 `pass`。Legal warmed 48+12 requests pass 60/60 and 40 rank-cohort runtime records. Measured client starts span12ms; Core add_request processing spans1.696s, from0.226s to1.922s after client start, with running count advancing0->10. Schedule rows absent, so exact queue arrival and scheduler budget unmeasured. Borrowed scheduler restored and service stopped. Diagnostic TPS634.456 not formal.
+
+- `2026-09-25T06:30:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run172`（benchmark）。
+
+- `2026-09-25T06:45:31Z` Run `run172` 记录为 `pass`；正确性为 `pass`。Legal8-rank48+12 passes60/60 and40 rank-cohort records. Bounded250ms Core drain collected3-4 initial requests and measured prehandoff execute sequence249,107,449,321 on all ranks. Measured diagnostic envelope19.278s vs separate-service Run17119.368s; 0.090s net difference is noise-sized, TTFT p50 worsened. Borrowed Core/model sources restored and service stopped. No formal E2E claim; test one bounded500ms dose.
