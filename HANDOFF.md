@@ -1564,3 +1564,15 @@ Runtime construction cannot explain a multi-second E2E gap. Measured
 parked slot-cycles18.525%, exposure only. Temporary source restored,
 service stopped, 8 NPUs idle. Next Run156 is offline to discriminate
 prefill work and tail opportunity before another NPU intervention.
+
+## Loop045 Run156 cohort accounting (2026-09-25)
+
+Offline Run155 8-rank audit: warmed cohorts3/4 each schedule about
+50.6k prefill tokens across 11 calls and take3.66 s from first
+execute to handoff. Measured cohort5 schedules only1.63k tokens
+across12 calls yet takes3.62 s. Volume alone cannot explain the
+pre-handoff delay. Per-call admission/tokenization, Host and device
+time are unresolved; direct stage timing is the next high-value probe.
+Parked slot exposure spans9.7–19.5% across five cohorts; it is not
+a measured compaction speedup. Run157 will inspect source and design
+minimal timing probes before another NPU run.

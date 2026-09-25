@@ -9,3 +9,7 @@
 - `2026-09-25T04:03:23Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run155`（profile）。
 
 - `2026-09-25T04:23:39Z` Run `run155` 记录为 `pass`；正确性为 `pass`。Legal 8-rank 48x1024 warmup + 12x1024 measured diagnostic, all 60 requests and 40 rank-cohort traces pass. Warm measured client envelope20.779s; client-to-first execute0.241s, pre-handoff model execution3.621s, runtime construction0.00264s, fixed decode16.728s, publication-to-client0.184s. Parked slot-cycles18.525%, exposure only; no formal E2E claim. Source restored and service stopped.
+
+- `2026-09-25T04:24:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run156`（profile）。
+
+- `2026-09-25T04:25:44Z` Run `run156` 记录为 `pass`；正确性为 `not-applicable`。Offline 8-rank Run155 cohort audit: warm cohorts3/4 each ~50.6k scheduled prefill tokens in 11 calls, first execute-to-handoff ~3.66s; measured cohort5 only 1.63k tokens in 12 calls, ~3.62s. Prefill latency is not explained by token volume alone; direct per-call admission/tokenization/device timing needed. Parked slots 9.7-19.5% of cycles across cohorts, exposure not speedup.
