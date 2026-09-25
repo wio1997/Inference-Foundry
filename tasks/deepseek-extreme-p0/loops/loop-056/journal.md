@@ -5,3 +5,7 @@
 - `2026-09-25T15:06:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run228`（review）。
 
 - `2026-09-25T15:09:00Z` Run `run228` 记录为 `pass`；正确性为 `not-applicable`。Read-only MRV2 draft graph mapping: community supports graph manager but product recipe eager; prior low-overhead proposer6.391ms vs target46.560ms, no exposed 30ms Host saving proof; narrow ABI screen only
+
+- `2026-09-25T15:09:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run229`（review）。
+
+- `2026-09-25T15:15:25Z` Run `run229` 记录为 `pass`；正确性为 `not-applicable`。Read-only DSpark mutable ABI closure: V1 handoff rejects graph and per-step DSA-CP/KV/slot metadata is dynamic; no safe direct graph-on switch or >=1ms Markov-only mechanism; pivot target bound

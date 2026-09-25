@@ -1,0 +1,33 @@
+{
+  "run": 229,
+  "status": "read_only_valid",
+  "sources": {
+    "handoff": {
+      "path": "bootstrap/vllm_dspark_handoff.py",
+      "sha256": "fe7039361894acd70666f72c3089efd635404f1fe9cbc685db21272d946a317e"
+    },
+    "proposer": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "e3e1ff579e67f845f155c983294ae5546e6ee76ba330098d7867e870c3f9f6e4"
+    },
+    "dspark": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "e9163996db794c5fba777ea55a5374283780a2fd3404778f5369caea76f9344f"
+    },
+    "dsa_cp": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "sha256": "27cbbf92a02f16301aad2a35091e258b8459dc77744bd8294f2f11a4c126004e"
+    }
+  },
+  "fixed_contract": {
+    "target_rows": 96,
+    "draft_query_rows_expected": 84,
+    "basis": "dspark_proposer.py:53-57 default sample_from_anchor=True => B12*K7; requires live shape confirmation",
+    "metadata": "refresh_fixed_common copies target QSL, seq lengths, slot mapping, positions, block table; DirectDSparkHandoff separately refreshes draft context slots and host mirrors",
+    "dynamic_v1": "_propose/set_inputs_first_pass rebuilds query/sequence/slot groups, clones block table and per-step DSA-CP metadata; build_for_drafting constructs dynamic rope, SWA indices, SAS metadata and KV slots",
+    "graph_gate": "DirectDSparkHandoff explicitly rejects use_cuda_graph; _DP1RunnerShim lacks graph dispatcher, graph update stream and V2 manager"
+  },
+  "community": "MRV2 draft graph manager and padded FIA lengths are concrete reuse assets, but V2 DSA-CP TODO and tutorial enforce_eager leave frozen product unverified",
+  "decision": "No currently safe direct graph ABI on V1. Full _propose/_runnable capture would freeze dynamic metadata and mutable KV/slot state; model-only capture still needs persistent recursive tensor ABI and output ownership. Markov-only graph has prior 0.695ms device interval, below >=1ms screen before replay overhead. Do not run blind graph enable. Next challenge target compute/communication achievable bound and identify a concrete >=1ms target mechanism; revisit DSpark graph only if a bounded V2-assisted prototype has explicit dataflow and measured stage gain.",
+  "review": "Astra High requested read-only; actual backend identity not independently verifiable; advisory weighed by Sol"
+}
