@@ -1902,3 +1902,8 @@ Legal Extreme warmup48+A12+B12 all72 succeeded;8-rank Runtime checks passed for3
 ## Loop055 Run214 one-layer shadow capture design (2026-09-25)
 
 Run213 measured a stable layer0/11x4096 BF16 alias ABI with changing A/B inputs. Run214 freezes a single-graph-per-rank shadow experiment: production remains eager; capture only the first prefill MoE custom-op body on a persistent aliased input, compare A and B replay against eager self-replay controls, retain outputs and graph storage, and require all8-rank collective/stream completion. No attention/KV operation is included. Capture and synchronization perturb timing, so this run will not claim performance; a separate low-overhead stage A/B/A is required before formal E2E. Evidence: evidence/20260925_loop055_moe_replay/run214/shadow_capture_design.md. Next implement and preflight Run215.
+
+
+## Loop055 Run215 invalid shadow activation (2026-09-25)
+
+Run215 legal warmup48+A12+B12 completed72/72 with8-rank Runtime checks, but zero graph files were produced. Generated wrapper retained lowercase builtins._extreme_run212_state while MoE hook read _extreme_run215_state; no shadow code ran. Thus no graph/correctness/performance conclusion. TaskCtl invalid; source restored exact MoE/model runner SHA and service stopped. Patch generator now replaces lowercase too, with prelaunch assertion required in Run216. Evidence: evidence/20260925_loop055_moe_replay/run215/invalid.md and patch_restore.json.

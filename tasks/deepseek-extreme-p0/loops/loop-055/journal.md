@@ -17,3 +17,7 @@
 - `2026-09-25T11:44:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run214`（design-check）。
 
 - `2026-09-25T11:44:44Z` Run `run214` 记录为 `pass`；正确性为 `not-applicable`。Bound one layer/shape shadow graph capture with two distinct real inputs, eager self-noise controls, retained serving eager output and all8-rank collective gates; no performance claim
+
+- `2026-09-25T11:47:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run215`（test）。
+
+- `2026-09-25T12:06:08Z` Run `run215` 记录为 `invalid`；正确性为 `invalid`。72/72 legal requests succeeded, but zero graph fingerprint files: wrapper lowercase run212 state name was not changed to run215, so MoE hook never armed; no capture/parity/performance result
