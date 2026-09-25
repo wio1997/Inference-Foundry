@@ -13,3 +13,7 @@
 - `2026-09-25T03:06:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run145`（profile）。
 
 - `2026-09-25T03:08:08Z` Run `run145` 记录为 `pass`；正确性为 `not-applicable`。In 15 Run107 windows, HCCL sum median 11.281ms versus GMM sum 9.966ms. First reduce-scatter accounts for almost all HCCL variability: cross-rank start skew 20.533/8.650ms in cycles64/65 but end skew 0.010/0.0135ms. Later-rank first-call duration ~0.035ms; early-rank wait is not independent savings. Other 259 HCCL calls total stable ~4.8-5.7ms. Prioritize GMM headroom audit.
+
+- `2026-09-25T03:08:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run146`（design-check）。
+
+- `2026-09-25T03:13:29Z` Run `run146` 记录为 `pass`；正确性为 `not-applicable`。Run115 product packed weights have 8MiB W1 + 4MiB W2 per expert; Run121 active expert-layer pairs median 672.5 per rank-cycle gives conditional packed footprint 7.881GiB. Against Run107 GMM median 9.966ms this implies ~849GB/s if each active weight were loaded once. Different cohorts and no memory counters mean this is diagnostic, not a hardware bound. GMM1 skips zero-M in source; GMM2 calls torch_npu grouped matmul. Next capture actual counters.

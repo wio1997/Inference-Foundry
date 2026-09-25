@@ -1422,3 +1422,17 @@ it does not prove the scheduler has no room. GMM is the larger stable
 compute exposure, but 9.966 ms is not a removable bound. Run146 will
 audit product GMM hardware efficiency and exact code path before an
 edit. Offline only; service remains stopped.
+
+## Loop044 Run146 product GMM traffic estimate (2026-09-25)
+
+Run115 product shape has W1 packed 8 MiB and W2 packed 4 MiB per
+expert. Run121 live routing has median672.5 active expert-layer pairs
+per rank-cycle, corresponding to 7.881 GiB packed weights if each
+active matrix is read once. Combining with Run107 GMM median9.966 ms
+would imply ~849 GB/s, conditional on actual memory loads and across
+different diagnostic cohorts. This is not measured HBM traffic or an
+achievable bound. GMM1 source skips zero-M experts; GMM2 calls
+torch_npu grouped matmul. Run107 profiling requested task_trace and
+has no AI-core memory counters. Run147 will profile a one-card
+product-shape GMM1 route with memory-access counters. Service remains
+stopped.
