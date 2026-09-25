@@ -17,3 +17,7 @@
 - `2026-09-25T07:30:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run178`（review）。
 
 - `2026-09-25T07:30:56Z` Run `run178` 记录为 `pass`；正确性为 `not-applicable`。Review finds 0.570 s/cohort zero-cost bucket screen, c12 drift control needed; no implementation verdict yet; actual model ID unverified
+
+- `2026-09-25T07:31:50Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run179`（profile）。
+
+- `2026-09-25T07:32:05Z` Run `run179` 记录为 `invalid`；正确性为 `invalid`。Shell redirection failed before runner: output directory absent; no patch, service, benchmark or NPU work

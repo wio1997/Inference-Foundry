@@ -1748,3 +1748,7 @@ Same-service Stock-only legal warmed c12,c8,c6,c4,c1 diagnostic passed all reque
 ## Loop047 Run178 independent architecture review (2026-09-25)
 
 Configured GPT-6 Astra High read-only review accepts Run177 as screening only. Observed122 partial cycles require >8.20ms average target saving for >1s/cohort before compaction costs; Run177 bucket-weighted zero-cost screen is0.570s, while c12→c1 endpoint14.041ms does not by itself falsify larger gain. Stock scope, sequential-order drift, and broad c12 ABI work prevent a decision. Sol will run a same-service c12 early/late control, then decide whether compaction has product value. Reviewer actual model ID is not independently exposed. Evidence: `evidence/20260925_loop047_tail/run178/independent_review.md`.
+
+## Loop047 Run179 invalid shell setup (2026-09-25)
+
+The invoking shell could not open the driver log because the Run179 evidence directory was absent. The runner did not start; no patch, service or NPU work occurred. TaskCtl marks Run179 invalid. Run180 creates its output directory before redirection and executes the same same-service c12 early/late drift control.
