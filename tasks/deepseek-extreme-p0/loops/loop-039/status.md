@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run126 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-25T00:41:42Z`
+- 下一步：审查 Run run127 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T00:43:02Z`
 
 ## Run 记录
 
@@ -31,6 +31,7 @@
 - `runs/mixed_32k_1024_c12/run124`
 - `runs/mixed_32k_1024_c12/run125`
 - `runs/mixed_32k_1024_c12/run126`
+- `runs/mixed_32k_1024_c12/run127`
 
 ## 阻塞项
 

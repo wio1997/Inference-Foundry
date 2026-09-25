@@ -77,3 +77,7 @@
 - `2026-09-25T00:40:13Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run126`（benchmark）。
 
 - `2026-09-25T00:41:42Z` Run `run126` 记录为 `invalid`；正确性为 `invalid`。Run126 synthetic W1 reached NZ format29 but WeightNzV2 rejected missing required W4A8 weightAssistMatrix; no timing. Source W4A8 update_bias indicates per-expert output-channel scale bias.
+
+- `2026-09-25T00:42:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run127`（benchmark）。
+
+- `2026-09-25T00:43:02Z` Run `run127` 记录为 `pass`；正确性为 `not-applicable`。Product logical W4A8 GMM1 shapes, NZ format29 and [32,4096] assist matrix accepted. Real/dense/single expert count variants returned [576,2048] and [576] outputs. First-call wall includes compile; no latency conclusion.

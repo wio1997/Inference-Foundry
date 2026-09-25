@@ -1154,3 +1154,12 @@ Run126 reached W1 NZ format29, then WeightNzV2 required
 weightAssistMatrix for A8W4. No timing. Borrowed W4A8 weight preparation
 builds w13_scale_bias per expert/output channel; Run127 will supply a
 [32,4096] float32 scale-bias tensor as the assist matrix.
+
+## Loop039 Run127 product-shape GMM1 smoke (2026-09-25)
+
+With torch_npu internal format enabled, synthetic W1 in NZ format29,
+[32,4096] float32 assist matrix, and product logical shapes, the fused
+WeightNzV2 GMM1 returns correctly shaped tensors for real Run121,
+same-token dense, and single-expert count vectors. First-call wall
+includes compile, so Run127 establishes interface validity only.
+Run128 will use device-event A/B/A timing; no serving service ran.
