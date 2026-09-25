@@ -25,3 +25,9 @@
 - `2026-09-25T06:46:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run173`（benchmark）。
 
 - `2026-09-25T07:01:07Z` Run `run173` 记录为 `pass`；正确性为 `pass`。Legal8-rank48+12 passed60/60 and40 rank-cohort records. 500ms initial Core drain gathered5-7 requests but still yielded four prehandoff forwards415,123,465,171. Diagnostic envelope20.494s, slower than separate-service Run171 no-wait19.368s and Run172 250ms19.278s. Borrowed Core/model sources restored, service stopped. No supported net gain; reject coalescing pending independent review.
+
+- `2026-09-25T07:03:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run174`（review）。
+
+- `2026-09-25T07:03:24Z` Run `run174` 记录为 `pass`；正确性为 `not-applicable`。Independent review agrees no net product value is established for 250/500ms Core hold; different service runs and speculative cycle drift limit causality. Sol rejects candidate and reopens target/tail opportunity. Configured reviewer identity not independently verified.
+
+- `2026-09-25T07:03:24Z` 主控结论为 `PIVOTED`。Exact-state prefill graph has no within-cohort shape reuse; existing DSA CP graph rejects prefill. Legal250/500ms Core admission holds aggregate requests but yield no material net diagnostic envelope gain and worsen or preserve four prefill calls. No correctness-gated formal E2E-worthy candidate. Return to dominant ~46.56ms target and inactive-slot tail.
