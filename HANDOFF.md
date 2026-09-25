@@ -1393,3 +1393,17 @@ causal latency gain. Run98 unprofiled target median remains46.575 ms.
 Run144 will split the 1413 other-compute kernels by exact operation and
 source role before choosing a product-specific intervention. No service
 run or formal E2E in Run143.
+
+## Loop044 Run144 other-compute source grouping (2026-09-25)
+
+Across 15 valid Run107 target windows, the 1413 other-compute kernels
+have 48 exact names. Largest median exclusive timeline coverage is
+VllmQuantLightningIndexer 1.7465 ms, generic MatMul 1.6893 ms,
+SparseAttnSharedkv 1.6203 ms, transpose batch matmul 1.4643 ms,
+MoeInitRouting 1.0553 ms, and rotary 1.0375 ms. Source mapping places
+the indexer/attention in DSA and routing in MoE; generic MatMul and
+rotary are shared implementations with unresolved unique callsites.
+No single other-compute name has >=5 ms coverage. Summing mandatory
+DSA stages is not a causal savings estimate. Run145 will discriminate
+communication peer wait against GMM compute on matching windows.
+This was offline only; service remains stopped.

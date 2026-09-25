@@ -29,7 +29,7 @@
 | `loop-041` | `PIVOTED` | `PIVOTED` | Run134 HC/copy census and Run135 cache scatter map reveal no source-backed semantics-safe >=2ms edit. 126 cache scatters match SWA/compressed/indexer distinct writes by layer; clone device attribution is inconclusive. The larger remaining exposed HCCL/phase skew needs causal analysis before implementation. |
 | `loop-042` | `PIVOTED` | `PIVOTED` | Run137 host phase skew narrows during target and reappears after proposer, but latest-rank cadence ~54ms and no safe scheduler edit show skew alone is not a removable critical-path claim. Run140 identifies a concrete CPU-heavy eager DSpark path, directing next product-specific audit there. |
 | `loop-043` | `PIVOTED` | `PIVOTED` | Run142 legal eight-rank segment timing shows the smallest safe replay boundary (Markov tail) has only ~0.695ms device interval; its 2.655ms Host work appears largely overlapped with target. Whole DSpark graph requires dynamic KV/metadata semantics and remains unproven. No high-value exposed DSpark replay candidate currently justifies implementation versus the ~46.6ms target stage. |
-| `loop-044` | `EVALUATING` | `PENDING` | Run144: break 1413 other-compute kernels per target into exact-name/source families across 15 valid Run107 windows; rank stable device coverage and identify a specific source-backed >=5ms candidate. No service restart. |
+| `loop-044` | `EVALUATING` | `PENDING` | 审查 Run run144 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
