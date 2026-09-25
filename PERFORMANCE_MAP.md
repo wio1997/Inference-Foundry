@@ -431,3 +431,7 @@ critical-path time. One rank1 cycle65 window had143 extra kernels and is
 excluded. Profiler/sync perturbs latency; unprofiled Run98 target event median
 46.560 ms remains the comparable stage baseline. Evidence:
 evidence/20260924_loop038_cycle/run107/target_window.json.
+
+## Loop045-047 warmed cohort prefill and target tail (2026-09-25)
+
+Legal warmed cohort diagnostics localize about3.4s pre-handoff execution to repeated `_model_forward` calls; one profiler-perturbed 83-token call spent90.4% of its device span with no recorded kernel, mostly before the next HostToDevice flow. This is a Host submission hypothesis, not removable-time proof. Exact-state prefill graph lacks within-cohort shape reuse, and tested250/500ms Core admission holds produced no material net diagnostic gain (Run171/172/173 client envelopes19.368/19.278/20.494s); leave them disabled. Inactive-slot tail exposure in Run155 measured cohort is18.525% slot-cycles, with44 of296 cycles at<=6 active slots. Its2.553s ideal-linear target arithmetic is not an achievable saving: target GMM weight traffic and fixed c12 metadata/graph/state may remain constant. Measure real smaller-batch target graph marginal latest-rank latency before investing in c6/c3 runtime variants. Run99 formal571.681tok/s remains the accepted product point.

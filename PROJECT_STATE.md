@@ -820,3 +820,7 @@ not the product objective or a stopping rule. Run99 formal median remains
 performance ceiling. The credible full E2E hardware bound is still unknown.
 Next compare candidate value on the frozen workload, preserve correctness,
 and continue after any local KEEP if material reducible gap remains.
+
+## Loop046-047 checkpoint (2026-09-25)
+
+Run171 legal60/60 shows client starts within12ms but Core add_request processing spans1.696s while execution progresses. Run172 250ms admission hold and Run173 500ms hold each pass60/60 but have no supported net benefit; candidate remains disabled. Loop046 PIVOTED. Loop047 Run175 finds18.525% parked slot-cycles in one measured warmed cohort; Run176 confirms c6 target compaction would cross fixed runtime/metadata/DSpark state ABI. Next gate is matched real-weight TP8 c12 versus c6/c3 target graph latency, not a full compaction implementation. Current formal product record remains Run99 median571.681tok/s versus Stock543.655tok/s. No service active after Run173; borrowed sources restored.

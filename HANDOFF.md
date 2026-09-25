@@ -1736,3 +1736,7 @@ Configured Astra Medium read-only review agrees tested250/500ms Core admission h
 ## Loop047 Run175 active-slot tail census (2026-09-25)
 
 Offline from legal Run155 eight-rank boundary park logs: measured cohort5 had296 cycles, first park at173, median18.525% parked slot-cycles, with44 cycles active<=6,27 active<=3 and16 active<=1. Across four warmup cohorts, parked fractions are9.68%,10.60%,11.62%,19.47% (all ranks agree within cohort). Multiplying measured parked fraction by Run98's46.560ms target stage gives2.553s/cohort only under an impossible ideal of linear target scaling and no switching overhead; it is NOT an achievable bound. Next audit exact c12 state/graph shape and get marginal target latency before implementing compaction. Evidence: `evidence/20260925_loop047_tail/run175/active_tail_census.json`.
+
+## Loop047 Run176 source feasibility (2026-09-25)
+
+Read-only audit found active-slot compaction crosses the full c12/96-token state ABI: fixed_decode, target_adapter, target_metadata, acceptance, DSpark and physical KV parking. Stock startup captured graph token sizes including48, but the current Extreme target closure and metadata are bound to96. Run150 GMM weight traffic may be batch-insensitive. Sol will first seek a legal matched-KV c12 versus c6/c3 real-weight TP8 target graph marginal-latency measurement before implementation. Run175's2.553s/cohort ideal-linear exposure is not an achievable bound. Details: `evidence/20260925_loop047_tail/run176/source_feasibility.md`.

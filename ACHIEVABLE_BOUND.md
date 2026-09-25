@@ -252,3 +252,7 @@ separate required W4A8 target/DSpark work, per-rank HBM and HCCL traffic,
 critical-path waits and serving overhead under the frozen contract. Local
 Loop thresholds, including 15% over Stock, do not define the achievable
 limit or terminate optimization.
+
+## Loop047 tail exposure correction (2026-09-25)
+
+Run175 observed18.525% parked slot-cycles in one legal warmed cohort (44 cycles with<=6 active slots). Multiplying this by the separate Run98 target event median46.560ms gives2.553s/cohort only under ideal linear target scaling and zero switching overhead. GMM shared W4 weight reads, HCCL and the fixed c12 graph may be insensitive to active slots; no c6/c12 matched target latency is measured. Do not add2.553s to the achievable gap. Run171-173 admission hold experiments establish no verified net speedup. Hardware/product achievable throughput bound remains UNKNOWN.
