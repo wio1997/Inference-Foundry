@@ -9,3 +9,7 @@
 - `2026-09-25T10:18:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run204`（review）。
 
 - `2026-09-25T10:18:47Z` Run `run204` 记录为 `pass`；正确性为 `not-applicable`。Seven legal saved cohorts have53 eager prefill calls and20 unique (actual_tokens,num_reqs) signatures; 45/53 fall in repeated signatures. This is necessary shape reuse only, not exact-state replay feasibility; DSA-CP capture builder rejects prefill. Next inventory mutable input/write-set ABI.
+
+- `2026-09-25T10:20:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run205`（review）。
+
+- `2026-09-25T10:20:09Z` Run `run205` 记录为 `pass`；正确性为 `not-applicable`。Stock graph builder rejects prefill; repeated (tokens,reqs) signatures omit dynamic query/slot/block/CP metadata and KV write state. Next collect two real88-token call fingerprints across8 ranks before capture design.

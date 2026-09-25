@@ -1,0 +1,10 @@
+# Run205: first frozen prefill graph contract source audit
+
+Read-only audit, no service, patch or NPU work.
+
+- The current compiled vLLM path uses `FULL_DECODE_ONLY` in `scripts/serve.sh`; DSA-CP declares `AttentionCGSupport.UNIFORM_BATCH`, and `AscendDSACPMetadataBuilder.build_for_graph_capture` in `vllm_ascend/attention/context_parallel/dsa_cp.py:1047-1064` explicitly raises for every state other than DecodeOnly/SpecDecoding. Calling the stock graph builder for prefill cannot work.
+- The ordinary prefill builder (`dsa_cp.py:285-384,~650-735`) depends on request count, query-start vector, per-request sequence lengths, actual token count, positions/RoPE, slot mapping, block tables, CP-local query/seq lengths and CPU-derived max lengths. A repeated `(num_actual_tokens,num_reqs)` from Run204 is insufficient to replay the same graph.
+- `vllm_ascend/attention/dsa_v1.py:1825-1870` branches on prefill/decode counts and assembles output by slice; `:2050-2220` writes SWA cache, compressed KV cache and compressor state, and c4 additionally maintains indexer cache/scale/state before QLI. Correct replay needs fresh input/metadata tensors and exact KV write ownership, not only logits comparison.
+- The borrowed `_model_forward` call includes the DSA/MoE layer chain and final gather; a separate diagnostic graph would need stable tensor addresses for every input/output/cache and a complete restore of writes during capture warmup. The current evidence has no saved per-request query lengths, block/slot tables or tensor-address inventory for the repeated first88-token calls.
+
+Next bounded evidence collection: on a legal warmed service, record a read-only first88-token prefill metadata/address/slot fingerprint on all8 ranks in two 12-request cohorts, with no graph capture and no semantic change. Compare two calls with identical `(88,1)` signature to identify which dynamic fields and addresses differ. Only after this can Sol design a same-state capture/restore test. This is a scope precondition, not a performance gain.
