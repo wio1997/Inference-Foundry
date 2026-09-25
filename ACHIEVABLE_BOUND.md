@@ -264,3 +264,7 @@ Run180 repeats c12 after smaller graph sizes in one service and finds+1.536ms c1
 ## Loop048 Run184 prefill Host exposure (2026-09-25)
 
 In one legal warmed Extreme cohort, five prefill `_model_forward` calls have per-call maximum-rank wall summing1.901s. DSA+MoE inclusive CPU scopes occupy87.7–88.0% of individual forward wall, but include required exact-state operator dispatch and synchronization. Neither the1.901s nor its scope fraction is a removable saving; comparison with Run165's profiler-perturbed 401ms device-free span cannot establish one. Official achievable bound remains UNKNOWN.
+
+## Loop048 Run186 Host CPU bound caution (2026-09-25)
+
+Detailed legal Extreme prefill forward wall/thread CPU per-call rank-max sums3.424/3.416s, with per-rank median ratios99.70–99.98%. The small wall-minus-thread-CPU difference rejects a large blocked-thread opportunity, but active CPU time includes required operator launch and collective/event dependency work. It is not an attainable savings bound. Different control/detailed prefill batch shapes preclude an intervention effect. The frozen-product hardware throughput bound remains UNKNOWN.

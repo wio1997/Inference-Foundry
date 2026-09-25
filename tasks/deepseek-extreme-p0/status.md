@@ -29,7 +29,7 @@
 | `loop-045` | `PIVOTED` | `PIVOTED` | Legal diagnostics localize pre-handoff wall to prefill _model_forward, with one profiled call showing Host submission pacing; no safe removable prefill edit or formal E2E gain yet. Tail parked-slot fraction is 18.525%, but source-safe compaction remains unproven. Move to exact-state prefill execution feasibility. |
 | `loop-046` | `PIVOTED` | `PIVOTED` | Exact-state prefill graph has no within-cohort shape reuse; existing DSA CP graph rejects prefill. Legal250/500ms Core admission holds aggregate requests but yield no material net diagnostic envelope gain and worsen or preserve four prefill calls. No correctness-gated formal E2E-worthy candidate. Return to dominant ~46.56ms target and inactive-slot tail. |
 | `loop-047` | `PIVOTED` | `PIVOTED` | Run175 tail has 122 partial cycles but Run180 matched same-service Stock target-size event screen gives only 0.471-0.602s/cohort before substantial c12 ABI packing and state costs; direct Extreme benefit unproven and broad implementation has low expected product value relative to prefill Host work |
-| `loop-048` | `EVALUATING` | `PENDING` | 审查 Run run185 的证据，并判断是否需要更多 Run |
+| `loop-048` | `EVALUATING` | `PENDING` | 审查 Run run186 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
