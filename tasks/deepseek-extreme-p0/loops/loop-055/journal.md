@@ -61,3 +61,7 @@
 - `2026-09-25T14:15:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run225`（test）。
 
 - `2026-09-25T14:36:27Z` Run `run225` 记录为 `pass`；正确性为 `pass`。96/96 legal and64/64 eight-rank Runtime pass; A four graphs, B32/32 layer/rank parity gate, C four-layer serving graph; first88 forward slowest-rank C354.987ms vs D371.648ms diagnostic, no formal E2E
+
+- `2026-09-25T14:38:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run226`（design-check）。
+
+- `2026-09-25T14:38:09Z` Run `run226` 记录为 `pass`；正确性为 `not-applicable`。Frozen one-shape all43 MoE graph A capture/B 344-record parity gate, then four interleaved G/E paired whole-forward completion screens; legal request and Runtime hard gates, no formal E2E claim

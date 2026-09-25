@@ -1957,3 +1957,8 @@ Sol freezes first88 local11x4096 BF16 model.layers.0-3.mlp.experts graph test wi
 ## Loop055 Run225 four-layer first88 MoE graph (2026-09-25)
 
 Legal warmup48+A/B/C/D12 completed96/96;64/64 eight-rank Runtime records passed. A captured separate graphs for layers0-3 on all8; B32/32 layer/rank same-input graph/eager controls passed shared-exact and routed maxabs<=0.01171875; C returned graph results for all4 and D used eager. First88 whole-model-forward slowest-rank synchronized completion C354.987ms vs D371.648ms, a16.661ms diagnostic delta. C/D sequential cohort and output TPS605.23 vs592.07 are not formal E2E; accumulated logits, exact tokens and concurrent graph output ownership remain unproved. Borrowed sources restored exact SHA; service stopped. Next bounded all43-layer first88 expansion with stronger end-forward numerical gate before broad shape bank. Evidence: evidence/20260925_loop055_moe_replay/run225/analysis.json and interpretation.md.
+
+
+## Loop055 Run226 all43 first88 graph design (2026-09-25)
+
+Run225 four-layer serving test passed. Sol freezes layer-axis-only expansion to all43 first88 local11x4096 MoE calls with separate graph storage: A capture/eager, B all344 layer/rank same-input parity records and eager; B gate requires shared exact and routed maxabs<=max(0.015625,2x self max) with hard0.03125 ceiling. Only passing B allows G1,E1,E2,G2,G3,E3,E4,G4 same-service12x1024 cohorts, measuring all8 synchronized whole-forward completion; each paired slowest-rank saving must exceed0.5ms. Formal E2E and same-state logits remain separate. Next implement Run227, legal requests, Runtime and source restore mandatory. Evidence: evidence/20260925_loop055_moe_replay/run226/all43_design.md.
