@@ -13,3 +13,7 @@
 - `2026-09-25T10:20:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run205`（review）。
 
 - `2026-09-25T10:20:09Z` Run `run205` 记录为 `pass`；正确性为 `not-applicable`。Stock graph builder rejects prefill; repeated (tokens,reqs) signatures omit dynamic query/slot/block/CP metadata and KV write state. Next collect two real88-token call fingerprints across8 ranks before capture design.
+
+- `2026-09-25T10:22:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run206`（profile）。
+
+- `2026-09-25T10:23:52Z` Run `run206` 记录为 `invalid`；正确性为 `invalid`。Preflight direct import model_runner_v1 hit borrowed circular import DeviceOperator from partially initialized device_op before service startup; zero requests, no metadata. Patch exact restored SHA004dbd0, no service. Retry with validated import order as Run207.

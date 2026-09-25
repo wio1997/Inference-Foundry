@@ -1860,3 +1860,7 @@ Seven saved legal cohorts (Run184, Run186, Run188 A/A-prime, Run200 A/B/A-prime)
 ## Loop053 Run205 first prefill graph contract audit (2026-09-25)
 
 Borrowed DSA-CP graph builder explicitly rejects prefill and `serve.sh` uses FULL_DECODE_ONLY. A separate exact-state prefill graph would need stable/refreshed request query lengths, positions/RoPE, block/slot tables, CP-local lengths, output storage and all SWA/compressor/indexer KV writes. Run204's repeated `(tokens,requests)` signatures do not establish these invariants. Sol will collect first88-token metadata/address/slot fingerprints from two legal warmed cohorts across8 ranks without graph capture, then choose a bounded implementation test. Evidence: `evidence/20260925_loop053_native_prefill/run205/capture_contract_audit.md`.
+
+## Loop053 Run206 invalid fingerprint preflight (2026-09-25)
+
+Before service startup, direct `import vllm_ascend.worker.model_runner_v1` triggered a borrowed `device_op`/`experts_selector` circular import. No request, fingerprint or benchmark ran. Runner source restored SHA `004dbd0...`, service stopped/not started. Run207 will preflight using the import order that worked in Run200, then repeat the same read-only first88-token fingerprint design. Evidence: `evidence/20260925_loop053_native_prefill/run206/preflight.log`.
