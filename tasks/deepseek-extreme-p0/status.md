@@ -5,22 +5,21 @@
 - 算子：`deepseek_v4_flash_w4a8`
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
-- 阶段：`OPTIMIZING`
-- 活动 Loop：`NONE`
+- 阶段：`DESIGNING`
+- 活动 Loop：`loop-053`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
 - 当前知识条目：`12`
-- 下一步：Open Loop053 for fixed-model prefill DSA/MoE submission feasibility: map exact per-layer Python/native boundary and choose one no-sync segment for a small same-state prototype or falsify.
-- 更新时间：`2026-09-25T10:13:33Z`
+- 下一步：Run203 offline map Run181 profiled direct-child calls against Run186 low-overhead prefill layer costs and borrowed source; identify one precise repeated segment and quantify only an optimistic call-overhead screen.
+- 更新时间：`2026-09-25T10:13:50Z`
 
 ## 最近 Loop
 
-共 `52` 个 Loop；完整索引见 `loop-index.jsonl`。
+共 `53` 个 Loop；完整索引见 `loop-index.jsonl`。
 
 | Loop | 状态 | 结论 | 决定/下一步 |
 | --- | --- | --- | --- |
-| `loop-043` | `PIVOTED` | `PIVOTED` | Run142 legal eight-rank segment timing shows the smallest safe replay boundary (Markov tail) has only ~0.695ms device interval; its 2.655ms Host work appears largely overlapped with target. Whole DSpark graph requires dynamic KV/metadata semantics and remains unproven. No high-value exposed DSpark replay candidate currently justifies implementation versus the ~46.6ms target stage. |
 | `loop-044` | `PIVOTED` | `PIVOTED` | Target-stage families were decomposed through Run143-152: GMM reads active W4 weights at about 1TB/s in one-card product-shape counters, peer wait dominates apparent HCCL variation, DSA compressor calls are distinct, and small mixed-dtype allGather pairs have no large direct saving. No semantics-safe >=5ms target edit is established. Run153 identifies a larger unlocalized first-token E2E range, so pivot to E2E boundary attribution. |
 | `loop-045` | `PIVOTED` | `PIVOTED` | Legal diagnostics localize pre-handoff wall to prefill _model_forward, with one profiled call showing Host submission pacing; no safe removable prefill edit or formal E2E gain yet. Tail parked-slot fraction is 18.525%, but source-safe compaction remains unproven. Move to exact-state prefill execution feasibility. |
 | `loop-046` | `PIVOTED` | `PIVOTED` | Exact-state prefill graph has no within-cohort shape reuse; existing DSA CP graph rejects prefill. Legal250/500ms Core admission holds aggregate requests but yield no material net diagnostic envelope gain and worsen or preserve four prefill calls. No correctness-gated formal E2E-worthy candidate. Return to dominant ~46.56ms target and inactive-slot tail. |
@@ -30,6 +29,7 @@
 | `loop-050` | `PIVOTED` | `PIVOTED` | Run192/193 profiled first-collective wait traces target arrival skew, but Run194 proposer scope is8.62x Run98 low-overhead event, so profile skew cannot be promoted to product savings. Run195 low-overhead8-rank proposer duration spread median0.063ms and target0.090ms across260 steady cycles; no persistent large imbalance. Remaining HCCL kernels sum only about5.2ms in profile and have no concrete removable mechanism. Pivot from arrival skew toward required target compute/traffic and independent bound review. |
 | `loop-051` | `PIVOTED` | `PIVOTED` | Run197 maps exact source/trace chain and finds c128 20 scatter kernels only0.337ms/cycle gross profiled, while all c128+c4 matched scatter is1.123ms/cycle. Compressor ABI has cmp_kv/state_cache outputs but no final cache/slot inputs; direct-write needs intrusive kernel/tiling integration and state parity. This is too small a screened return for next implementation compared with prefill Host exposure, not proof of hardware bound. No product gain or E2E candidate. |
 | `loop-052` | `PIVOTED` | `PIVOTED` | Run200 legal same-service prefill-only same-stream candidate activated8/8 but B shape-matched forward wall is18.4ms slower than A2; client changes confounded by decode cycles and response hashes unstable even between controls. Run202 one-card same-stream event pair Host cost15.65us, making even2 redundant pairs per43 layers ~1.35ms/forward gross, ~12ms/9-call cohort. Event/stream simplification has no material observed product value. Remaining prefill active CPU is broader operator submission; pursue bounded fixed-model native path only if its removable fraction can be demonstrated. |
+| `loop-053` | `FROZEN` | `PENDING` | Run203 offline map Run181 profiled direct-child calls against Run186 low-overhead prefill layer costs and borrowed source; identify one precise repeated segment and quantify only an optimistic call-overhead screen. |
 
 ## 阻塞项
 
