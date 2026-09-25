@@ -21,3 +21,9 @@
 - `2026-09-25T15:42:38Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run234`（review）。
 
 - `2026-09-25T15:44:01Z` Run `run234` 记录为 `pass`；正确性为 `not-applicable`。Read-only Run107 target kernel-name census and official/shared graph-pool audit; shared pool may address Run227 OOM but first88 frequency makes product headroom modest; Run233 claim scoped to surrogate/global shape; exact-shape screen next
+
+- `2026-09-25T15:44:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run235`（test）。
+
+- `2026-09-25T15:45:57Z` Run `run235` 记录为 `fail`；正确性为 `fail`。Local BF16[12,4096] Graph surrogate BF16 output exact but FP32 router output maxabs0.0251045 exceeds0.015625 gate; timing never executed; no service or product conclusion
+
+- `2026-09-25T15:46:30Z` 主控结论为 `PIVOTED`。Run233 captured surrogate at synthetic96 rows saved0.45us/call; Run235 real-local12-row surrogate fails FP32 router-output numerical gate before timing; official MRV2 fused op is unregistered in installed runtime. Read-only Run234 source/census found no defensible >=1ms/cycle target replacement; task sums and shared graph pool are not product savings.

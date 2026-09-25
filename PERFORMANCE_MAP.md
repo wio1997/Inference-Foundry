@@ -471,3 +471,7 @@ A precise source/trace match bounds c128 compressor-following scatter to20 kerne
 ## Loop052 Run200-202 prefill stream/event closure (2026-09-25)
 
 Prefill-only auxiliary-stream removal activated on8 ranks in legal same-service A/B/A-prime; shape-matched B8-call max-rank forward sum3.075s versus control A-prime3.057s, with no material client improvement. A one-card same-stream record+wait Host microbench gives15.65µs/pair net; two pairs×43 layers would be1.35ms/forward gross. Existing stream/event plumbing does not explain the3.4s/cohort prefill Host exposure. Exact candidate output parity was not established because control response hashes were unstable across cohorts; no patch kept or formal E2E run.
+
+## 2026-09-25 Loop057 target mechanism checkpoint
+
+Run107/143 synchronized target-window median device union50.313ms: GMM1+2 summed9.966ms, quant matmul4.822ms, Compressor3.366ms, HC-pre2.962ms, scatter2.344ms, Indexer1.746ms, SparseAttn1.621ms, routing init1.056ms. HCCL reduce-scatter8.771ms includes rank arrival wait. These profiled task sums overlap and cannot be subtracted from cycle wall. Run98 unprofiled target event median46.560ms remains the stage reference. Run233 Graph surrogate at synthetic96-row shape saved only0.45us/call; Run235 local12-row FP32 numerical gate failed before timing. No target candidate was promoted. See evidence/20260925_loop057_target_bound/run234/ and run235/.

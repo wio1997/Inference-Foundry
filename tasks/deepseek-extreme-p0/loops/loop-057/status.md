@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run234 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-25T15:44:01Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Find a concrete executable graph-compatible target or DSpark mechanism with source-backed >=1ms/cycle exposed saving and same-state correctness plan before starting another service; current Run107/98 profiles and MRV2 audit are reusable, avoid repeat census or Run93 E2E
+- 更新时间：`2026-09-25T15:46:30Z`
 
 ## Run 记录
 
@@ -17,6 +17,7 @@
 - `runs/mixed_32k_1024_c12/run232`
 - `runs/mixed_32k_1024_c12/run233`
 - `runs/mixed_32k_1024_c12/run234`
+- `runs/mixed_32k_1024_c12/run235`
 
 ## 阻塞项
 

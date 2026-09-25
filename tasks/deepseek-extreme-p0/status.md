@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`DESIGNING`
-- 活动 Loop：`loop-057`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
 - 当前知识条目：`12`
-- 下一步：Run230 read-only target profile/source reconciliation against pinned community MRV2 to rank specific changeable mechanisms, not generic kernel census
-- 更新时间：`2026-09-25T15:16:47Z`
+- 下一步：Find a concrete executable graph-compatible target or DSpark mechanism with source-backed >=1ms/cycle exposed saving and same-state correctness plan before starting another service; current Run107/98 profiles and MRV2 audit are reusable, avoid repeat census or Run93 E2E
+- 更新时间：`2026-09-25T15:46:30Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-054` | `PIVOTED` | `PIVOTED` | Generic GMM-versus-communication timing would repeat prior evidence without a changeable mechanism. Existing GMM traffic is near packed active bytes in one-card screens; first HCCL span is arrival wait in perturbed profile. Independent review and Sol select a bounded prefill MoE-only graph feasibility test. |
 | `loop-055` | `PIVOTED` | `PIVOTED` | One-graph-per-layer all43 first88 bank failed synchronized OOM at layer17 on all8; sparse first88 call frequency and four-layer diagnostic imply smaller bank lacks material product E2E headroom. Community MRV2 source confirms reusable target/draft graph machinery but not this fixed DSA-CP whole-prefill contract. |
 | `loop-056` | `PIVOTED` | `PIVOTED` | Community MRV2 DSpark graph management exists but current frozen V1 handoff lacks recursive dynamic metadata/KV/slot/output ownership; Run142/98 do not prove >=1ms exposed gain. Model-only shadow remains deferred option; target46.56ms dominates. |
-| `loop-057` | `EVALUATING` | `PENDING` | 审查 Run run234 的证据，并判断是否需要更多 Run |
+| `loop-057` | `PIVOTED` | `PIVOTED` | Run233 captured surrogate at synthetic96 rows saved0.45us/call; Run235 real-local12-row surrogate fails FP32 router-output numerical gate before timing; official MRV2 fused op is unregistered in installed runtime. Read-only Run234 source/census found no defensible >=1ms/cycle target replacement; task sums and shared graph pool are not product savings. |
 
 ## 阻塞项
 

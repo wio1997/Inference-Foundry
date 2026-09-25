@@ -832,3 +832,7 @@ Run180 same-service c12 early/late control passed legal 1024-token requests and 
 ## Loop048 closure and Loop049 opening (2026-09-25)
 
 Run186 showed prefill forward thread CPU effectively equals wall time, rejecting a large blocked-thread hypothesis. Run188 waited1.089s to gather all12 and reduced eager prefill calls7/8→1, but legal diagnostic client envelopes20.822/20.769/21.042s show no material net gain; B decode331 cycles versus controls299. The candidate is disabled, sources restored, service stopped. Loop048 PIVOTED without formal E2E. Loop049 now screens whether static linear expert placement yields a reducible critical-rank target GMM/collective arrival imbalance, beginning offline with Run121 and Run107 same-cycle evidence. Formal product record remains Run99 Extreme571.681tok/s versus Stock543.655tok/s.
+
+## 2026-09-25 Loop057 checkpoint
+
+HEAD after Run235 pending commit. Formal current Extreme571.681 tok/s versus Stock543.655; correctness/full E2E claim remains Run99 only. Latest pinned official vllm-ascend MRV2 graph audit in evidence/20260925_loop055_moe_replay/run227/community_mrv2_audit.md; Run234 adds graph pool and target kernel census. Run235 one-card local-shape RMS+cast surrogate failed FP32 parity before timing. Loop057 pivoted; no clear source-backed >=1ms/cycle replacement from current data. Serving stopped/source untouched. Resume via tasks/deepseek-extreme-p0/resume-pack.json; avoid repeating reliable Loop034/Run93 E2E or treating diagnostic sums as savings.

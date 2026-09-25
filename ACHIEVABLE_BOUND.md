@@ -272,3 +272,7 @@ Detailed legal Extreme prefill forward wall/thread CPU per-call rank-max sums3.4
 ## Loop048 Run188 whole-cohort admission test (2026-09-25)
 
 Full-cohort consolidation eliminated6–7 eager prefill calls but improved one diagnostic client envelope only0.163s versus two-control mean, while decode cycles differed32. This rules out promoting the gross2.36–2.59s prefill wall reduction to an E2E achievable saving. Single sequential A/B/A-prime does not establish a positive formal gain. Official hardware-attainable throughput bound remains UNKNOWN.
+
+## Loop057 bound status (2026-09-25)
+
+Official frozen-product achievable throughput bound remains UNKNOWN. Run234 target-name census does not convert kernel task sums into critical-path savings. Community shared graph pool could change the Run227 prefill MoE bank memory result, but first88 occurs only once per observed 12-request cohort and a linear extrapolation of Run225 four-layer diagnostic is ~179ms against a ~20.3s diagnostic cohort, without all43 correctness or formal E2E. Run235 fails the FP32 numerical gate for the only registered RMS+cast surrogate at local12-row shape; Run23396-row speed result does not bound the unavailable official op. No >=1ms/cycle target saving is currently source-backed.
