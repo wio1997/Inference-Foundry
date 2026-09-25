@@ -1363,3 +1363,19 @@ those are different cohorts and cannot be subtracted as a gain bound.
 Astra High read-only review recommends timing the four actual segments
 before a replay implementation; requested model is not independently
 verified. Run142 is the next legal no-barrier eight-rank capture.
+
+## Loop043 Run142 decision and Loop044 opening (2026-09-25)
+
+Run142 passed 12/12 legal exact1024 requests on eight ranks and captured
+64 consecutive steady DSpark segment samples per rank. Median Host wall/
+thread CPU/device event times: context-KV2.992/2.992/0.733 ms,
+three-layer model23.930/23.901/2.795 ms, gather0.775/0.774/0.055 ms,
+LMHead0.663/0.663/0.411 ms, seven-step Markov2.655/2.655/0.695 ms.
+Event sums can overlap and are diagnostic. The safe Markov replay
+boundary is <1 ms of measured device interval and its Host work is
+largely concurrent with target; no compelling exposed >=5ms savings.
+Source hashes restored and service stopped, idle8 verified. Loop043
+PIVOTED without implementation or formal E2E. Loop044 returns to the
+~46.6 ms target device stage and will reconstruct exposed per-family
+critical path before selecting an edit. Astra High was read-only input,
+actual service model not independently verified; Sol made the verdict.

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-25T02:38:26Z",
+  "generated_at": "2026-09-25T02:59:00Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-043",
-    "next_action": "Run141: offline source/call-graph audit of actual AscendDSparkProposer _runnable and metadata build, map dynamic inputs, side effects and potential fixed replay boundary; use Run140/Run98 timings to bound achievable cycle gain.",
+    "active_loop": "loop-044",
+    "next_action": "Run143: reconstruct ordered target compute/communication intervals in all 15 valid Run107 windows, attribute layer-family exposure and compare unprofiled Run98 stage; estimate candidate bounds without summing overlapping kernels.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -401,21 +401,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-038",
-      "title": "Capture a bounded target graph cycle trace",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "Starting and stopping torch_npu.profiler on a Runtime cycle schedule can capture a few steady 96-token target cycles on all eight TP ranks without unstable HTTP RPC timing; bounded traces can expose target compute, HCCL overlap and gaps.",
-      "verdict": "PIVOTED",
-      "reason": "Cycle-scheduled profiling met the technical attribution goal in Run107: legal 8-rank cohort and 15 canonical synchronized target windows isolate 2836 kernels/cycle and quantify compute, communication, overlap, and a 9.966 ms grouped-matmul family. Run105 invalid launcher remains preserved, so the mixed-history Loop is pivoted; forced synchronization makes performance diagnostic only.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260924_loop038_cycle/run107/target_window.json"
-      ],
-      "decided_at": "2026-09-24T15:17:37Z"
-    },
-    {
       "loop_id": "loop-039",
       "title": "Reduce target MoE grouped matmul cost",
       "mode": "optimization",
@@ -479,33 +464,48 @@
         "/data/wio/Inference_Foundry/evidence/20260925_loop042_phase/run137/phase_analysis.json"
       ],
       "decided_at": "2026-09-25T02:35:37Z"
+    },
+    {
+      "loop_id": "loop-043",
+      "title": "Reduce eager DSpark Host dispatch cost",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "The frozen c12 DSpark7 proposer retains repeated eager Python, attention-metadata and operator launch work (Run140 ~39.6ms Host CPU within proposer model, ~30.3ms in _runnable), and a product-specific fixed replay or execution image can shorten the actual latest-rank cycle cadence while preserving draft and KV state.",
+      "verdict": "PIVOTED",
+      "reason": "Run142 legal eight-rank segment timing shows the smallest safe replay boundary (Markov tail) has only ~0.695ms device interval; its 2.655ms Host work appears largely overlapped with target. Whole DSpark graph requires dynamic KV/metadata semantics and remains unproven. No high-value exposed DSpark replay candidate currently justifies implementation versus the ~46.6ms target stage.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260925_loop043_dspark/run142/segment_analysis.json"
+      ],
+      "decided_at": "2026-09-25T02:59:00Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-043",
-    "title": "Reduce eager DSpark Host dispatch cost",
+    "loop_id": "loop-044",
+    "title": "Find removable target device critical path",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Run142: temporary source markers around actual DSpark context-KV, draft forward, LMHead and seven-step Markov tail; legal 8-rank 12x1024, Host wall/thread CPU plus NPU events recorded without timed-path sync; restore sources and stop service. Use critical-path fraction to decide replay.",
+    "next_action": "Run143: reconstruct ordered target compute/communication intervals in all 15 valid Run107 windows, attribute layer-family exposure and compare unprofiled Run98 stage; estimate candidate bounds without summing overlapping kernels.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-25T02:38:26Z"
+    "updated_at": "2026-09-25T02:59:00Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-043/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-044/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-044/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-044/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-044/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-044/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-044/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
