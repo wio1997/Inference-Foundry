@@ -17,3 +17,7 @@
 - `2026-09-25T08:19:36Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run184`（profile）。
 
 - `2026-09-25T08:36:30Z` Run `run184` 记录为 `pass`；正确性为 `pass`。Legal Extreme 48+12 passed60/60, 40 rank/cohort records and Host mirror exact. Five prefill shapes88/264/368/152/328 tokens all ranks; per-call max forward walls sum1.901s; DSA+MoE inclusive CPU scopes cover87.7-88.0% of forward wall, not removable-time proof. Source restored/service stopped.
+
+- `2026-09-25T08:40:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run185`（review）。
+
+- `2026-09-25T08:40:10Z` Run `run185` 记录为 `pass`；正确性为 `not-applicable`。Independent review recommends one legal Extreme wall-versus-thread-CPU prefill discrimination with same-service control; actual model ID unverified; no removable-time or E2E claim
