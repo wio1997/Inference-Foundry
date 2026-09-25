@@ -5,14 +5,14 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`FROZEN`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：Run143: reconstruct ordered target compute/communication intervals in all 15 valid Run107 windows, attribute layer-family exposure and compare unprofiled Run98 stage; estimate candidate bounds without summing overlapping kernels.
-- 更新时间：`2026-09-25T02:59:00Z`
+- 下一步：审查 Run run143 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-25T03:00:54Z`
 
 ## Run 记录
 
-- 暂无
+- `runs/mixed_32k_1024_c12/run143`
 
 ## 阻塞项
 

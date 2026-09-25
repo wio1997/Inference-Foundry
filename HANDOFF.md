@@ -1379,3 +1379,17 @@ PIVOTED without implementation or formal E2E. Loop044 returns to the
 ~46.6 ms target device stage and will reconstruct exposed per-family
 critical path before selecting an edit. Astra High was read-only input,
 actual service model not independently verified; Sol made the verdict.
+
+## Loop044 Run143 target timeline coverage (2026-09-25)
+
+Run143 swept device intervals in all 15 valid synchronized Run107 target
+windows. Median device union50.314 ms. Timeline-exclusive coverage:
+GMM1 6.379 ms, GMM2 3.134 ms, quant matmul3.253 ms,
+compressor3.366 ms, HC pre2.961 ms, cache scatter2.343 ms,
+other compute14.099 ms. Communication10.248 ms exclusive includes
+peer wait. This is a descriptive trace decomposition: deleting a
+family would shift dependent kernels, so exclusive coverage is not
+causal latency gain. Run98 unprofiled target median remains46.575 ms.
+Run144 will split the 1413 other-compute kernels by exact operation and
+source role before choosing a product-specific intervention. No service
+run or formal E2E in Run143.
