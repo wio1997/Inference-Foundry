@@ -1684,3 +1684,19 @@ not GMM/HCCL kernel tuning for this prefill call. Diagnostic
 TPS635.156 is not formal. Sources restored, service stopped,8 NPUs
 idle. Run166 will inspect CPU/API and all device-task timing offline
 before selecting a prefill execution intervention.
+
+## Loop045 Run166 Host-to-device gap correlation (2026-09-25)
+
+Offline exact-timestamp analysis of Run165's one rank0,83-token
+profiled prefill forward:2825 kernel rows,2561 unique intervals,
+444.124 ms first-to-last device span and401.665 ms without a
+recorded kernel. All kernel starts match HostToDevice flow endpoints.
+Conservatively using the earliest matching flow for each next task,
+357.603 ms (89.0%) of device-free gaps lie before the reported Host
+flow start;44.062 ms lie afterward. This strongly favors Host
+submission pacing in the profiled call over pure device compute or
+HCCL. The profiler perturbs this matched shape (Run161 unprofiled
+rank0 83-token `_model_forward` ~0.320 s versus profiled stage
+0.444 s), so357.6 ms is not removable-time or formal E2E proof.
+Run167 requests Astra High independent architecture/bound review
+before Sol selects a correctness-gated prefill execution experiment.

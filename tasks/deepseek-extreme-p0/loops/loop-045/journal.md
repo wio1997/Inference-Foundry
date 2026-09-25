@@ -49,3 +49,7 @@
 - `2026-09-25T05:34:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run165`（profile）。
 
 - `2026-09-25T05:52:42Z` Run `run165` 记录为 `pass`；正确性为 `pass`。Legal 8-rank warmed-service 48x1024+12x1024 diagnostic, 60/60 success and all 40 rank-cohort records pass. One rank0 measured prefill _model_forward profile captured after four cohorts. CANN step trace: stage444.180ms, compute39.597ms, exposed communication2.862ms, Free/no recorded kernel401.721ms (90.44%). 264 paired HCCL/Aiv logical duplicates removed in independent kernel-union check. Single rank/call profiler with synchronization, no formal E2E or achievable speedup claim. Source restored, service stopped, 8 NPU idle.
+
+- `2026-09-25T05:53:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run166`（profile）。
+
+- `2026-09-25T05:55:55Z` Run `run166` 记录为 `pass`；正确性为 `not-applicable`。Offline exact-timestamp Run165 rank0 one-call trace correlation: 2825 kernel rows, 2561 unique device intervals; 444.124ms first-to-last device span, 401.665ms no recorded kernel. Exact HostToDevice flow matches all 2825 kernel rows; 357.603ms (89.0%) of free intervals precede flow start for next task, 44.062ms follow. Strong evidence of Host submission pacing in this profiled 83-token call; not exact cause or achievable speedup. Matched unprofiled Run161 forward ~0.320s vs profiled stage0.444s.
