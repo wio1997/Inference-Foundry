@@ -53,3 +53,9 @@
 - `2026-09-25T05:53:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run166`（profile）。
 
 - `2026-09-25T05:55:55Z` Run `run166` 记录为 `pass`；正确性为 `not-applicable`。Offline exact-timestamp Run165 rank0 one-call trace correlation: 2825 kernel rows, 2561 unique device intervals; 444.124ms first-to-last device span, 401.665ms no recorded kernel. Exact HostToDevice flow matches all 2825 kernel rows; 357.603ms (89.0%) of free intervals precede flow start for next task, 44.062ms follow. Strong evidence of Host submission pacing in this profiled 83-token call; not exact cause or achievable speedup. Matched unprofiled Run161 forward ~0.320s vs profiled stage0.444s.
+
+- `2026-09-25T06:02:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run167`（review）。
+
+- `2026-09-25T06:02:06Z` Run `run167` 记录为 `pass`；正确性为 `not-applicable`。Independent review favors exact-state 8-rank prefill forward graph feasibility; source blocks existing decode dispatcher for prefill, write-set and collective safety must be proven; no numerical E2E gain established. Configured Astra High model identity not independently verifiable.
+
+- `2026-09-25T06:02:29Z` 主控结论为 `PIVOTED`。Legal diagnostics localize pre-handoff wall to prefill _model_forward, with one profiled call showing Host submission pacing; no safe removable prefill edit or formal E2E gain yet. Tail parked-slot fraction is 18.525%, but source-safe compaction remains unproven. Move to exact-state prefill execution feasibility.

@@ -294,7 +294,9 @@ Diagnostic TPS、短请求 TPS、内部 accepted-token TPS 不能直接作为最
 
 ## 工作持续性
 
-完成一个实验后不要默认停止。
+完成一个实验后不要默认停止。Evidence 保存、TaskCtl 更新、recovery pack、Git commit、阶段性结论以及实验后停止服务都只是 checkpoint，不代表当前执行回合结束。每完成一个 checkpoint，Sol 都要重新检查当前最大 Gap、已有证据和 next_action；只要不存在真实 blocker，且下一步明确、可执行、具有较高预期价值，就继续推进，不因为完成 Run、Loop 或 commit 而默认向用户交班。多个同量级候选应继续取证，并由 Sol 根据可消除收益自主裁决。
+
+只有需要外部权限或资源、必须由用户提供信息、存在无法依据现有证据自行裁决的重大架构分叉、继续执行可能造成明显风险，或运行环境本身强制结束时，才结束当前回合。此规则只决定何时停止，不改变冻结产品极限性能目标、Sol/Astra/Zcode 分工、correctness 门槛及正式 E2E 裁决标准。
 
 只有在以下情况才需要暂停：
 

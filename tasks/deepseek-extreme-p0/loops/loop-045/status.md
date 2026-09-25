@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run166 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-25T05:55:55Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Loop046 Run168: read-only source and trace audit of genuine prefill _model_forward capture inputs, metadata, dynamic outputs, collectives and complete write set; then decide minimal eight-rank feasibility probe.
+- 更新时间：`2026-09-25T06:02:29Z`
 
 ## Run 记录
 
@@ -25,6 +25,7 @@
 - `runs/mixed_32k_1024_c12/run164`
 - `runs/mixed_32k_1024_c12/run165`
 - `runs/mixed_32k_1024_c12/run166`
+- `runs/mixed_32k_1024_c12/run167`
 
 ## 阻塞项
 

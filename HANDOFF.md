@@ -1700,3 +1700,7 @@ rank0 83-token `_model_forward` ~0.320 s versus profiled stage
 0.444 s), so357.6 ms is not removable-time or formal E2E proof.
 Run167 requests Astra High independent architecture/bound review
 before Sol selects a correctness-gated prefill execution experiment.
+
+## Loop045 Run167 independent architecture review (2026-09-25)
+
+Configured GPT-6 Astra High read-only reviewer recommends a narrow exact-state, eight-rank genuine prefill `_model_forward` capture feasibility experiment, with full metadata and prefill write-set restoration and A/B/A-prime correctness. Existing DSA CP graph capture rejects prefill; do not force decode dispatcher. Run165/166 Host-flow evidence is one perturbed rank0 call and cannot establish an E2E speedup. Sol accepts source/write-set feasibility audit as the next step. Reviewer model ID is configured but not independently visible in the execution record. Details: `evidence/20260925_loop045_boundary/run167/architecture_review.md`.

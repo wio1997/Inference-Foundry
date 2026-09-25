@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-25T05:55:55Z",
+  "generated_at": "2026-09-25T06:02:29Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-045",
-    "next_action": "Run154: add temporary common-clock marks at vLLM admission/prefill/handoff/runtime-build/FixedCohort completion/publication, and persist per-slot count history after cohort; run one legal 8-rank 12x1024 diagnostic, restore borrowed sources and stop service.",
+    "active_loop": "loop-046",
+    "next_action": "Run168 read-only source/write-set and metadata feasibility audit for first warmed measured genuine prefill forward.",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -401,23 +401,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-040",
-      "title": "Map and reduce target quantized projection redundancy",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "In frozen DeepSeek V4 c12 target execution, repeat quantized projections or quantization/input movement in the ~4.82ms quant-matmul family may expose a semantics-preserving fusion or scheduling improvement that reduces target stage by at least 5ms and survives eight-rank formal E2E.",
-      "verdict": "PIVOTED",
-      "reason": "Run131 mapped 236 quant kernels/target and alternating c4/c128 pattern. Run132 8-rank legal call probe covered wkv but no new shared-input pair. Run133 source audit shows the apparent split/indexer repeats already share quantization; no semantics-valid projection fusion candidate currently warrants another 8-rank service run. Shift to HC/clone/cache source and trace attribution; quant family remains later candidate if a concrete legal replacement appears.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260925_loop040_quant/run131/trace_map.json",
-        "/data/wio/Inference_Foundry/evidence/20260925_loop040_quant/run132/call_summary.json",
-        "/data/wio/Inference_Foundry/evidence/20260925_loop040_quant/run133/source_audit.json"
-      ],
-      "decided_at": "2026-09-25T01:20:35Z"
-    },
-    {
       "loop_id": "loop-041",
       "title": "Remove target HC and cache execution redundancy",
       "mode": "optimization",
@@ -480,33 +463,51 @@
         "/data/wio/Inference_Foundry/evidence/20260925_loop044_target/run153/e2e_accounting.json"
       ],
       "decided_at": "2026-09-25T03:39:51Z"
+    },
+    {
+      "loop_id": "loop-045",
+      "title": "Localize first-token and cohort-tail E2E gap",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "Frozen product E2E contains avoidable per-cohort bootstrap or parked-slot execution beyond necessary prefill and decode work.",
+      "verdict": "PIVOTED",
+      "reason": "Legal diagnostics localize pre-handoff wall to prefill _model_forward, with one profiled call showing Host submission pacing; no safe removable prefill edit or formal E2E gain yet. Tail parked-slot fraction is 18.525%, but source-safe compaction remains unproven. Move to exact-state prefill execution feasibility.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260925_loop045_boundary/run161/stage_analysis.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop045_boundary/run165/prefill_trace_analysis.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop045_boundary/run165/prefill_host_gap_analysis.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop045_boundary/run167/architecture_review.md"
+      ],
+      "decided_at": "2026-09-25T06:02:29Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-045",
-    "title": "Localize first-token and cohort-tail E2E gap",
+    "loop_id": "loop-046",
+    "title": "Reduce genuine prefill Host submission cost",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "Run167: Astra High independent read-only architecture/bound review of product-specific prefill launch reduction (graph/capture vs safer alternatives) using Run155-166; then Sol chooses narrow correctness-gated implementation.",
+    "next_action": "Run168 read-only source/write-set and metadata feasibility audit for first warmed measured genuine prefill forward.",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-25T05:55:55Z"
+    "updated_at": "2026-09-25T06:02:29Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-045/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-045/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-045/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-045/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-045/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-045/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-046/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-046/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-046/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-046/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-046/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-046/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",
