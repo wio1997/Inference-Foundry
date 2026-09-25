@@ -1147,3 +1147,10 @@ Run125 still did not time the fused GMM1: torch_npu warned
 allow_internal_format=False, npu_format_cast yielded format2, and
 WeightNzV2 rejected its 1-D storage. No service remained. Run126 will
 enable internal format before allocating W1 and verify format29.
+
+## Loop039 Run126 invalid missing scale bias (2026-09-25)
+
+Run126 reached W1 NZ format29, then WeightNzV2 required
+weightAssistMatrix for A8W4. No timing. Borrowed W4A8 weight preparation
+builds w13_scale_bias per expert/output channel; Run127 will supply a
+[32,4096] float32 scale-bias tensor as the assist matrix.

@@ -73,3 +73,7 @@
 - `2026-09-25T00:39:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run125`（benchmark）。
 
 - `2026-09-25T00:39:56Z` Run `run125` 记录为 `invalid`；正确性为 `invalid`。NZ cast attempt invalid: torch_npu reported allow_internal_format=False, get_npu_format(w)=2, WeightNzV2 still rejected 1-D storage. No timing; process exited and no service.
+
+- `2026-09-25T00:40:13Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run126`（benchmark）。
+
+- `2026-09-25T00:41:42Z` Run `run126` 记录为 `invalid`；正确性为 `invalid`。Run126 synthetic W1 reached NZ format29 but WeightNzV2 rejected missing required W4A8 weightAssistMatrix; no timing. Source W4A8 update_bias indicates per-expert output-channel scale bias.
