@@ -17,3 +17,7 @@
 - `2026-09-25T16:56:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `full-graph-memory-counters`（profile）。
 
 - `2026-09-25T16:57:50Z` Run `full-graph-memory-counters` 记录为 `invalid`；正确性为 `invalid`。Exit1 before model load or requests: host invoked inherited Run107 script that sources container-only /usr/local/Ascend/ascend-toolkit/set_env.sh; no profile or performance data. Stop trap ran, NPU idle. Retry via docker exec boundary.
+
+- `2026-09-25T16:58:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `container-graph-memory-counters`（profile）。
+
+- `2026-09-25T17:20:03Z` Run `container-graph-memory-counters` 记录为 `pass`；正确性为 `pass`。Exit0 after manual host stop corrected container cleanup; legal warmup48/48 and diagnostic12/12 exact1024, 40/40 rank-cohort runtime records pass, 40 raw Level1 profile dirs captured (~473MB), no CSV exported yet; service stopped, NPU idle. Instrumented 560.174 TPS not comparable E2E.

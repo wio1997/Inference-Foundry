@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=/data/wio/Inference_Foundry
-OUT=${ROOT}/evidence/20260926_loop060_resource/run245
+OUT=${ROOT}/evidence/20260926_loop060_resource/run246
 DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl
 mkdir -p "${OUT}/runtime" "${OUT}/profile"
 cleanup() { bash /data/wio/vllm_ascend_26/scripts/99_stop_service.sh >"${OUT}/stop.log" 2>&1 || true; }
 trap cleanup EXIT
 export MAX_MODEL_LEN=1048576
-export RUN_TS=LOOP060-RUN245
+export RUN_TS=LOOP060-RUN246
 export EXTREME_RUNTIME_RUN_DIR="${OUT}/runtime"
 export EXTREME_RUNTIME_SERVE=1
 export EXTREME_RUNTIME_RESERVE_TOKENS=1088
