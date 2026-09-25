@@ -1513,3 +1513,21 @@ possibly larger formal E2E range gap: Run99 client request duration
 exceeds FixedCohortServing.run wall by 11–17 s across repeats.
 That is only accounting until stages are localized. Run153 will
 reconcile existing Run99 timestamps and tail utilization offline.
+
+## Loop044 Run153 E2E scope reconciliation and Loop045 (2026-09-25)
+
+Run99 formal client median85.978 s versus four rank0 FixedCohortServing
+walls69.040 s leaves16.938 s (19.7%) outside the internal timer.
+Across 12 cohorts, subtracting maximum client TTFT from each
+request-envelope-minus-runtime difference leaves median0.140 s
+(range0.074–0.172). The gap is primarily in first-token scope,
+not established wasted serving time. Stock baseline on another date
+had cohort maximum TTFT median1.514 s versus Run99 Extreme3.922 s;
+that comparison motivates direct capture but is not causal.
+The timer starts after build_extreme_runtime. Existing JSON lacks
+common-clock admission, prefill, handoff, construction and publication
+marks; per-slot count_history was not persisted, so tail compaction
+benefit cannot be quantified. Loop044 PIVOTED and Loop045 opened for
+one legal diagnostic capture. Independent Astra High review was
+read-only; configured model cannot be independently verified and Sol
+owns this decision. No formal Run99/Stock rerun.

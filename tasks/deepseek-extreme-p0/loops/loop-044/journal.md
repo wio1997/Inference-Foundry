@@ -41,3 +41,9 @@
 - `2026-09-25T03:26:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run152`（design-check）。
 
 - `2026-09-25T03:28:27Z` Run `run152` 记录为 `pass`；正确性为 `not-applicable`。Run107 15 valid target windows have 33-41 strictly adjacent BF16+FP32 allGather pairs (median36), each BF16 49152 elements and FP32 3072. FP32 second calls total median0.257ms/window; mixed dtypes prevent trivial coalescing. Remaining collectives interleave compute. No >=5ms safe collective edit. Initial 43-pair assertion corrected within Run152. New formal Run99 accounting indicates larger pre/post-runtime gap; pursue Run153 offline.
+
+- `2026-09-25T03:29:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run153`（profile）。
+
+- `2026-09-25T03:39:51Z` Run `run153` 记录为 `pass`；正确性为 `not-applicable`。Run99 formal median client85.978s versus four rank0 FixedCohort walls69.040s leaves16.938s outside timer (19.7%), but cohort gap minus max TTFT median0.140s (range0.074-0.172); most belongs to first-token range. Stock cross-date cohort max TTFT median1.514s versus Run99 Extreme3.922s. Causal prefill/bootstrap split unavailable; next legal diagnostic must timestamp boundaries. No formal E2E rerun.
+
+- `2026-09-25T03:39:51Z` 主控结论为 `PIVOTED`。Target-stage families were decomposed through Run143-152: GMM reads active W4 weights at about 1TB/s in one-card product-shape counters, peer wait dominates apparent HCCL variation, DSA compressor calls are distinct, and small mixed-dtype allGather pairs have no large direct saving. No semantics-safe >=5ms target edit is established. Run153 identifies a larger unlocalized first-token E2E range, so pivot to E2E boundary attribution.
