@@ -57,3 +57,7 @@
 - `2026-09-25T00:08:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run121`（profile）。
 
 - `2026-09-25T00:28:36Z` Run `run121` 记录为 `pass`；正确性为 `not-applicable`。Legal 12/12 1024-token requests; 16 snapshots across 8 ranks at cycles64/65. Exactly 43 live and 43 static refs; all 43 live ordinals change on every rank, cross-rank token count 576 per layer, active experts median 15/32 per rank-layer (688 samples). Diagnostic only, no E2E comparison.
+
+- `2026-09-25T00:31:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run122`（design-check）。
+
+- `2026-09-25T00:32:09Z` Run `run122` 记录为 `pass`；正确性为 `not-applicable`。Run107 15 synchronized windows: GMM1 median6.3785ms, GMM2 median3.58775ms, sum9.96625ms. Borrowed A8W4 GMM1 kernel reads live count and skips MatMul for zero-M experts, so Run121 sparse routing is already accounted for in GMM1. No >=5ms replacement established.

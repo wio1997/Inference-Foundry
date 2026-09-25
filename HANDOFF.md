@@ -1110,3 +1110,15 @@ Both patched sources were restored to the exact original hashes; stop
 script released all eight NPUs below 3.5GB. Next Run122 checks whether
 the real count sparsity offers any extra GMM opportunity beyond what the
 existing fused operator already handles.
+
+## Loop039 Run122 GMM path audit (2026-09-25)
+
+Run107's 15 synchronized target windows split the 9.96625 ms median GMM
+kernel sum into GMM1 fused SwiGLU/quant 6.3785 ms and GMM2 3.58775 ms.
+The borrowed Ascend A8W4 GMM1 kernel computes each expert's M from the
+live group_list and skips MatMul when M<=0; Run121's 15/32 median active
+experts therefore do not provide a new 50% skipping opportunity. This
+source audit does not prove GMM2 behavior or bound all possible replacement
+kernels. No semantics-valid operator replacement with >=5 ms/cycle saving
+has been identified. Next: source-backed ranking of the ~30 ms non-GMM
+compute families before allocating a costly eight-rank GMM A/B/A run.
