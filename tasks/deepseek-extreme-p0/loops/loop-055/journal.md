@@ -45,3 +45,7 @@
 - `2026-09-25T13:21:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run221`（test）。
 
 - `2026-09-25T13:42:19Z` Run `run221` 记录为 `pass`；正确性为 `pass`。156/156 legal requests and104/104 eight-rank Runtime pass; four interleaved graph/eager slowest-rank one-layer completion pairs each save2.9-3.1ms, exceeding0.5ms screen; no whole-stage/E2E claim
+
+- `2026-09-25T13:49:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run222`（design-check）。
+
+- `2026-09-25T13:49:41Z` Run `run222` 记录为 `pass`；正确性为 `not-applicable`。Read-only Run204 bank audit:53 prefill forwards/7 cohorts, first88 once/cohort;43 MoE layers; exact top3 train signatures cover1-3 heldout calls; implicit context input_ids in first3 hash layers requires live closure before graph bank
