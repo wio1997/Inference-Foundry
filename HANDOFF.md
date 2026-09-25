@@ -1712,3 +1712,7 @@ Read-only audit confirmed the stock DSA CP graph capture rejects prefill, while 
 ## Loop046 Run169 natural prefill shape frequency (2026-09-25)
 
 Offline eight-rank Run158/161 measured warmed cohorts have10/12 pre-handoff calls respectively; every unpadded token count is unique within each cohort. Seven/eight large calls consume median2.729/2.928 s of their respective measured wall metrics, but these are opportunity ceilings, not removable time. Across runs only token counts8,83 and155 repeat, with metadata equivalence unproven. A separate exact-state graph for each one-off shape has no demonstrated amortization. Sol shifts next to locating the scheduler/admission cause of repeated expensive forwards and a bounded coalescing test; no graph or E2E gain claim. Evidence: `evidence/20260925_loop046_prefill/run169/frequency_analysis.json`.
+
+## Loop046 Run170 invalid shell setup (2026-09-25)
+
+The admission-trace runner never began: shell redirection to its driver log failed because the run170 evidence directory did not exist. No borrowed source patch, service or NPU work occurred. TaskCtl marks Run170 invalid. Run171 creates its evidence directory first and runs the same bounded opt-in scheduler trace.
