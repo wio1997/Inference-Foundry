@@ -41,3 +41,7 @@
 - `2026-09-25T05:27:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run163`（profile）。
 
 - `2026-09-25T05:30:53Z` Run `run163` 记录为 `pass`；正确性为 `not-applicable`。Read-only resource audit after Run162: dedicated vllm container cgroup has 3646 live process IDs, including 3270 multiprocessing.forkserver processes (~716GiB aggregate RSS), 327 spawn processes (~194GiB) and 8 python stdin processes (~59GiB). Host swap 71GiB full; no container memory cap and 8 NPU idle. Strong resource pressure explanation for pinned Host allocation failure, not direct proof. Next controlled container restart after stopped-service check.
+
+- `2026-09-25T05:31:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run164`（test）。
+
+- `2026-09-25T05:33:18Z` Run `run164` 记录为 `pass`；正确性为 `not-applicable`。Controlled cleanup of stopped dedicated container: docker restart first exited1 (daemon did not receive exit event), but released most orphan memory; explicit docker stop exited0 and docker start exited0. Cgroup process count3646->1, Host used memory841GiB->20GiB, swap71GiB->749MiB. Mounts and source SHA verified, service stopped, 8 NPU idle. Initial restart error preserved.

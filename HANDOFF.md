@@ -1656,3 +1656,15 @@ strong pressure and plausibly explain Run162 pinned Host allocation
 failure, but direct allocator causality is unproven. No active service
 or NPU process. Run164 will restart only this dedicated stopped
 container and verify resource recovery before retrying the profiler.
+
+## Loop045 Run164 dedicated container resource recovery (2026-09-25)
+
+`docker restart --time 10` first exited1 because daemon did not
+receive an exit event, but its stop attempt removed most residual
+processes. Explicit `docker stop --timeout 30` then `docker start`
+both exited0. Dedicated container cgroup fell from3646 to1 PID;
+Host memory used fell from841 GiB to20 GiB and swap from71 GiB
+to749 MiB. Mounts, original model-runner/fixed-serving SHA, stopped
+service and8 idle NPUs verified. Run164 passed overall with the
+initial daemon error preserved. Run165 will retry the prefill profiler
+as a new legal 8-rank diagnostic.
