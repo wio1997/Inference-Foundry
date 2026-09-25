@@ -824,3 +824,7 @@ and continue after any local KEEP if material reducible gap remains.
 ## Loop046-047 checkpoint (2026-09-25)
 
 Run171 legal60/60 shows client starts within12ms but Core add_request processing spans1.696s while execution progresses. Run172 250ms admission hold and Run173 500ms hold each pass60/60 but have no supported net benefit; candidate remains disabled. Loop046 PIVOTED. Loop047 Run175 finds18.525% parked slot-cycles in one measured warmed cohort; Run176 confirms c6 target compaction would cross fixed runtime/metadata/DSpark state ABI. Next gate is matched real-weight TP8 c12 versus c6/c3 target graph latency, not a full compaction implementation. Current formal product record remains Run99 median571.681tok/s versus Stock543.655tok/s. No service active after Run173; borrowed sources restored.
+
+## Loop047 Run180 and Loop048 (2026-09-25)
+
+Run180 same-service c12 early/late control passed legal 1024-token requests and eight-rank 24-call samples per size; c12 drift+1.536ms, target-tail zero-cost bucket screen0.471–0.602s/cohort. Source restored, service stopped. Loop047 PIVOTED because broad c12 ABI compaction has low expected value under this screening; no direct Extreme gain or formal E2E claim. Prior Run145-152 already show GMM and communication candidates are real costs but not verified removable savings. Loop048 will locate warmed prefill Host submission/dependency costs from existing Run165/166 data, then choose a narrow intervention. Current official Extreme Run99 median571.681tok/s vs Stock543.655tok/s.

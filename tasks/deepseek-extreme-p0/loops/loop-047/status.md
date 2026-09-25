@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run179 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-25T07:32:05Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Loop048: locate unprofiled legal warmed prefill Host submission and dependency costs from Run165/166 trace, choose a narrow source-backed intervention; keep target-tail compaction unimplemented
+- 更新时间：`2026-09-25T07:51:07Z`
 
 ## Run 记录
 
@@ -17,6 +17,7 @@
 - `runs/mixed_32k_1024_c12/run177`
 - `runs/mixed_32k_1024_c12/run178`
 - `runs/mixed_32k_1024_c12/run179`
+- `runs/mixed_32k_1024_c12/run180`
 
 ## 阻塞项
 

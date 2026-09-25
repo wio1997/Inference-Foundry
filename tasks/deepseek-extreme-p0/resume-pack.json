@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-25T07:32:05Z",
+  "generated_at": "2026-09-25T07:51:07Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "OPTIMIZING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-047",
-    "next_action": "Run175 offline eight-rank tail active-slot census and safe upper-bound triage from Run154/155 and Run99.",
+    "active_loop": "loop-048",
+    "next_action": "Run181 offline correlate Run165 prefill CPU trace and HostToDevice flows to source callsites for the 83-token forward; estimate path-specific removable time and select a narrowly instrumented legal 8-rank follow-up",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -401,22 +401,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-042",
-      "title": "Attribute and remove target rank phase skew",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "A persistent inter-rank phase offset entering each c12 target cycle makes early TP ranks wait in the first reduce-scatter; synchronizing or pacing launch without changing token semantics can remove exposed wait from the cohort critical path, provided the late-rank arrival itself can move earlier.",
-      "verdict": "PIVOTED",
-      "reason": "Run137 host phase skew narrows during target and reappears after proposer, but latest-rank cadence ~54ms and no safe scheduler edit show skew alone is not a removable critical-path claim. Run140 identifies a concrete CPU-heavy eager DSpark path, directing next product-specific audit there.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260925_loop042_phase/run140/subphase_analysis.json",
-        "/data/wio/Inference_Foundry/evidence/20260925_loop042_phase/run137/phase_analysis.json"
-      ],
-      "decided_at": "2026-09-25T02:35:37Z"
-    },
-    {
       "loop_id": "loop-043",
       "title": "Reduce eager DSpark Host dispatch cost",
       "mode": "optimization",
@@ -484,33 +468,49 @@
         "/data/wio/Inference_Foundry/evidence/20260925_loop046_prefill/run174/independent_review.md"
       ],
       "decided_at": "2026-09-25T07:03:24Z"
+    },
+    {
+      "loop_id": "loop-047",
+      "title": "Quantify and remove inactive-slot target tail",
+      "mode": "optimization",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "In the frozen c12 DeepSeek Extreme cohort, inactive slots after early completion still consume material 96-token target graph work; a product-specific active-slot execution image can shorten latest-rank cohort wall while preserving all remaining slot/KV/DSpark state.",
+      "verdict": "PIVOTED",
+      "reason": "Run175 tail has 122 partial cycles but Run180 matched same-service Stock target-size event screen gives only 0.471-0.602s/cohort before substantial c12 ABI packing and state costs; direct Extreme benefit unproven and broad implementation has low expected product value relative to prefill Host work",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260925_loop047_tail/run175/active_tail_census.json",
+        "/data/wio/Inference_Foundry/evidence/20260925_loop047_tail/run180/analysis.json"
+      ],
+      "decided_at": "2026-09-25T07:51:07Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-047",
-    "title": "Quantify and remove inactive-slot target tail",
+    "loop_id": "loop-048",
+    "title": "Warmed prefill Host execution critical path",
     "mode": "optimization",
-    "status": "EVALUATING",
+    "status": "FROZEN",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "审查 Run run179 的证据，并判断是否需要更多 Run",
+    "next_action": "Run181 offline correlate Run165 prefill CPU trace and HostToDevice flows to source callsites for the 83-token forward; estimate path-specific removable time and select a narrowly instrumented legal 8-rank follow-up",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-25T07:32:05Z"
+    "updated_at": "2026-09-25T07:51:07Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-047/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-047/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-047/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-047/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-047/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-047/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-048/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-048/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-048/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-048/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-048/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-048/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

@@ -21,3 +21,9 @@
 - `2026-09-25T07:31:50Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run179`（profile）。
 
 - `2026-09-25T07:32:05Z` Run `run179` 记录为 `invalid`；正确性为 `invalid`。Shell redirection failed before runner: output directory absent; no patch, service, benchmark or NPU work
+
+- `2026-09-25T07:32:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run180`（profile）。
+
+- `2026-09-25T07:51:06Z` Run `run180` 记录为 `pass`；正确性为 `pass`。Same-service c12 early/late Stock FULL graph diagnostic: 6 warmup+measured epochs legal, 8 ranks x24 synced calls each; c12 drift +1.536ms, measured tail zero-cost bucket screen 0.471-0.602s/cohort; borrowed source restored, service stopped; no formal E2E or semantic parity claim
+
+- `2026-09-25T07:51:07Z` 主控结论为 `PIVOTED`。Run175 tail has 122 partial cycles but Run180 matched same-service Stock target-size event screen gives only 0.471-0.602s/cohort before substantial c12 ABI packing and state costs; direct Extreme benefit unproven and broad implementation has low expected product value relative to prefill Host work
