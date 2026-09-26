@@ -1,0 +1,10 @@
+# Run320 — real parked layer4 MoE eager fixture, shape gate
+
+- **Scope:** 12×32K→1024 c12 diagnostic carrier, Target Graph disabled, frozen DP1×TP8 + DSpark7. The original Target remained authoritative. This is not the formal 48×32K→1024 E2E protocol.
+- **Result:** 12/12 requests completed at 1024 output tokens. At cycle 272, all eight ranks saw the same active mask `[1,0,1,0,0,1,0,1,1,0,1,0]` (six active requests). All eight preflights skipped extra MoE because the actual layer4 input was **(12,4096)**, not the fixture's assumed (96,4096). No B output, numerical parity or performance result exists.
+- **Root cause:** The fixture assumed layer4 would see the full 96-token Target tensor. Source review shows FlashComm1 reduce-scatter partitions that tensor across TP8 before layer4, yielding 12 **local** rows per rank while the outer context may still represent 96 global tokens. Thus Run320 does not support either the original local 96→48 implementation or a direct local 12→6 request-mask slice. Row ownership and context require a separate census before any compaction arm.
+- **Validity:** Checker failed as intended. The 81.989 tok/s carrier throughput includes eager Target and an all-rank fixture collective on every layer4 call; it is not comparable to formal Product E2E or usable in any Bound.
+- **Safety:** Service stopped; borrowed `bootstrap/vllm_extreme_handoff.py` SHA restored to `f644bd14ac1cb9c8365ba2464abbff989d7f2c4c2d58279a8e18a5bce918716f`; all eight cards idle. The operator sent TERM near checker exit, so shell exit 255 is not an inference failure; bench and rank evidence are complete.
+- **Next:** Run321 direct local 12→6 design was invalidated by independent source review before execution. Run322 will record real per-rank row ownership, global context, MoE communication mode and sequence-parallel setting without an intervention. A future candidate may need full 96-row gather, 48 active-row selection and balanced TP8 repartition, with all redistribution cost included.
+
+Evidence: `bench12.json`, `fixture/rank*_cohort1.json`, `fixture_check.json`, `install.log`, `restore.log`, `stop.log`, `runtime/rank*_cohort*.json`.

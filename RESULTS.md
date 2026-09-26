@@ -584,3 +584,7 @@ Run315 checked conditional typed byte coverage on 72 selected backing-page sampl
 ## Run318–319: parked-tail MoE architecture screen
 
 Run318 original-path active-mask census agrees on all8 ranks: 1,496 cycles, 2,989/17,952 parked slot-cycles (16.65%) and 678 cycles with fewer than12 active. Run319 source review selects non-hash layer4 full MoE and identifies a compact forward context/independent Graph requirement for B. Neither proves removable compute, HBM or latency; no service was run. See `evidence/20260926_loop071_two_cycle/run318/` and `evidence/20260926_loop072_parked_moe/run319/`.
+
+## Run320–323: parked MoE geometry, no candidate TPS (2026-09-27)
+
+Run320 diagnostic 12×1024 completed but all8 fixture preflights skipped B on actual local12 shape. Run321 direct local12→6 design was rejected before service. Run322 all8 read-only real parked census passed: outer96/local12, FlashComm1 ALLGATHER, local active rows `[8,0,4,12,4,12,8,0]`. Run323 remapped existing 1,496 original Graph cycles and found 579/678 parked cycles with max-local12; 2.875% is only a conditional local-row-stage proxy. No candidate correctness, performance or Bound promotion. Diagnostic carrier throughput is excluded; Current Formal is Run99 571.681 tok/s.

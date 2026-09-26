@@ -29,7 +29,7 @@
 | `loop-069` | `PIVOTED` | `PIVOTED` | Run311 integrates owner16 full producer in all8 FULL Graph Runtime ranks and completes 12x1024, but content differs cross-service; Run310 vs unchanged original Run312 also differs in all12 reasoning hashes and cycles315 vs290. Candidate correctness and wall benefit are not identifiable. Run311 wall/cycle 56.810ms exceeds original 56.545/56.643ms; no Product gain promoted. Next isolate dynamic metadata inside Graph on same prestate. |
 | `loop-070` | `PIVOTED` | `PIVOTED` | Real-entry private Graph parity 8/8; synthetic shifts create nonfinite Sparse in original A, so no further synthetic repeats or Product claim |
 | `loop-071` | `PIVOTED` | `PIVOTED` | Run315-317 show complete two-cycle restore spans Target metadata, Draft/Host and distinct Graphs; owner16 local 24-32us/layer is a small conditional screen, while Run318 original FULL Graph has 2989 parked slot-cycles across 1496 cycles. Astra High independently prioritizes complete MoE parked-row experiment. Owner remains unresolved, not rejected. |
-| `loop-072` | `EVALUATING` | `PENDING` | 审查 Run run319 的证据，并判断是否需要更多 Run |
+| `loop-072` | `EVALUATING` | `PENDING` | 审查 Run run323 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

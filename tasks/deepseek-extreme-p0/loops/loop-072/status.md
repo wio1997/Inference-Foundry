@@ -7,12 +7,16 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run319 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-26T16:00:25Z`
+- 下一步：审查 Run run323 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-26T17:05:03Z`
 
 ## Run 记录
 
 - `runs/mixed_32k_1024_c12/run319`
+- `runs/mixed_32k_1024_c12/run320`
+- `runs/mixed_32k_1024_c12/run321`
+- `runs/mixed_32k_1024_c12/run322`
+- `runs/mixed_32k_1024_c12/run323`
 
 ## 阻塞项
 
