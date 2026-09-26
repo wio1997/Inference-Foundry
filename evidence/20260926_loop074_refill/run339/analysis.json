@@ -1,0 +1,179 @@
+{
+  "status": "complete_three_independent_hccl_test_runs",
+  "environment": {
+    "npu": "8x Ascend 910B3",
+    "driver": "26.0.rc1",
+    "cann": "9.1.0",
+    "mpi": "Open MPI 4.1.2",
+    "HCCL_BUFFSIZE": 1024,
+    "TASK_QUEUE_ENABLE": 1,
+    "HCCL_OP_EXPANSION_MODE": "AIV",
+    "HCCL_INTRA_ROCE_ENABLE": 1,
+    "HCCL_RDMA_CONNECT_TIMEOUT": 17,
+    "device_time_flag": 1,
+    "warmup_iters": 5,
+    "measured_iters": 30,
+    "result_check": 1
+  },
+  "scope": "isolated same-topology/dtype/size HCCL Test service, not model DAG or physical link floor",
+  "cases": {
+    "ag_hidden_bf16": {
+      "binary": "all_gather_test",
+      "test_bytes": 720896,
+      "api_input_bytes": 90112,
+      "dtype": "bfp16",
+      "count_per_forward": 90,
+      "note": "47 wrapped plus 43 source-inferred DSA AG",
+      "repeats": [
+        {
+          "repeat": 1,
+          "test_reported_bytes": 720896,
+          "device_time_us": 10.97,
+          "test_algorithm_bandwidth_GBps": 65.69925
+        },
+        {
+          "repeat": 2,
+          "test_reported_bytes": 720896,
+          "device_time_us": 11.07,
+          "test_algorithm_bandwidth_GBps": 65.11767
+        },
+        {
+          "repeat": 3,
+          "test_reported_bytes": 720896,
+          "device_time_us": 11.03,
+          "test_algorithm_bandwidth_GBps": 65.37356
+        }
+      ],
+      "min_us": 10.97,
+      "median_us": 11.03,
+      "max_us": 11.07
+    },
+    "ag_router_fp32": {
+      "binary": "all_gather_test",
+      "test_bytes": 90112,
+      "api_input_bytes": 11264,
+      "dtype": "fp32",
+      "count_per_forward": 43,
+      "repeats": [
+        {
+          "repeat": 1,
+          "test_reported_bytes": 90112,
+          "device_time_us": 4.87,
+          "test_algorithm_bandwidth_GBps": 18.49843
+        },
+        {
+          "repeat": 2,
+          "test_reported_bytes": 90112,
+          "device_time_us": 5.0,
+          "test_algorithm_bandwidth_GBps": 18.01519
+        },
+        {
+          "repeat": 3,
+          "test_reported_bytes": 90112,
+          "device_time_us": 4.95,
+          "test_algorithm_bandwidth_GBps": 18.1873
+        }
+      ],
+      "min_us": 4.87,
+      "median_us": 4.95,
+      "max_us": 5.0
+    },
+    "ag_extra_bf16": {
+      "binary": "all_gather_test",
+      "test_bytes": 2883584,
+      "api_input_bytes": 360448,
+      "dtype": "bfp16",
+      "count_per_forward": 1,
+      "repeats": [
+        {
+          "repeat": 1,
+          "test_reported_bytes": 2883584,
+          "device_time_us": 32.1,
+          "test_algorithm_bandwidth_GBps": 89.84434
+        },
+        {
+          "repeat": 2,
+          "test_reported_bytes": 2883584,
+          "device_time_us": 32.2,
+          "test_algorithm_bandwidth_GBps": 89.56157
+        },
+        {
+          "repeat": 3,
+          "test_reported_bytes": 2883584,
+          "device_time_us": 31.81,
+          "test_algorithm_bandwidth_GBps": 90.64834
+        }
+      ],
+      "min_us": 31.81,
+      "median_us": 32.1,
+      "max_us": 32.2
+    },
+    "rs_bf16": {
+      "binary": "reduce_scatter_test",
+      "test_bytes": 720896,
+      "api_input_bytes": 720896,
+      "dtype": "bfp16",
+      "count_per_forward": 87,
+      "repeats": [
+        {
+          "repeat": 1,
+          "test_reported_bytes": 720896,
+          "device_time_us": 11.81,
+          "test_algorithm_bandwidth_GBps": 61.02048
+        },
+        {
+          "repeat": 2,
+          "test_reported_bytes": 720896,
+          "device_time_us": 11.92,
+          "test_algorithm_bandwidth_GBps": 60.45418
+        },
+        {
+          "repeat": 3,
+          "test_reported_bytes": 720896,
+          "device_time_us": 11.77,
+          "test_algorithm_bandwidth_GBps": 61.22432
+        }
+      ],
+      "min_us": 11.77,
+      "median_us": 11.81,
+      "max_us": 11.92
+    },
+    "a2a_bf16": {
+      "binary": "alltoall_test",
+      "test_bytes": 720896,
+      "api_input_bytes": 720896,
+      "dtype": "bfp16",
+      "count_per_forward": 43,
+      "repeats": [
+        {
+          "repeat": 1,
+          "test_reported_bytes": 720896,
+          "device_time_us": 12.51,
+          "test_algorithm_bandwidth_GBps": 57.60409
+        },
+        {
+          "repeat": 2,
+          "test_reported_bytes": 720896,
+          "device_time_us": 12.43,
+          "test_algorithm_bandwidth_GBps": 57.98713
+        },
+        {
+          "repeat": 3,
+          "test_reported_bytes": 720896,
+          "device_time_us": 12.43,
+          "test_algorithm_bandwidth_GBps": 58.00268
+        }
+      ],
+      "min_us": 12.43,
+      "median_us": 12.43,
+      "max_us": 12.51
+    }
+  },
+  "limits": [
+    "HCCL Test `data_size` equals full AG output, full RS input, and A2A input/output; not universally per-rank API input.",
+    "Tool may choose a different communication algorithm or buffer lifecycle from the Extreme Runtime.",
+    "No producer-arrival, model compute/HBM contention, Graph scheduling, 264-op chain or Product E2E included.",
+    "Do not add isolated service medians and call the sum a critical-path or hardware lower bound.",
+    "Run337 wrapper omitted 43 AG; their count/size attribution is source and profiled-sequence inference, not captured by Run337 Host wrapper."
+  ]
+}

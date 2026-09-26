@@ -588,3 +588,7 @@ Run318 original-path active-mask census agrees on all8 ranks: 1,496 cycles, 2,98
 ## Run320–323: parked MoE geometry, no candidate TPS (2026-09-27)
 
 Run320 diagnostic 12×1024 completed but all8 fixture preflights skipped B on actual local12 shape. Run321 direct local12→6 design was rejected before service. Run322 all8 read-only real parked census passed: outer96/local12, FlashComm1 ALLGATHER, local active rows `[8,0,4,12,4,12,8,0]`. Run323 remapped existing 1,496 original Graph cycles and found 579/678 parked cycles with max-local12; 2.875% is only a conditional local-row-stage proxy. No candidate correctness, performance or Bound promotion. Diagnostic carrier throughput is excluded; Current Formal is Run99 571.681 tok/s.
+
+## Loop074 Resource/Scheduling diagnostics (2026-09-27)
+
+Run339 official HCCL Test exact TP8 payloads:15/15 independent checked runs exit0, isolated device medians AG hidden BF16 11.03µs, AG router FP32 4.95µs, AG extra BF16 32.10µs, RS BF16 11.81µs, A2A BF16 12.43µs. Run341 original48+48 diagnostic all clients and eight-rank FULL Graph Runtime passed, source restored;26 naturally prompt-bearing1–3-request forwards max-rank Host353–384ms/current-stream354–411ms. No intervention, repeated formal E2E or numerical achievable-bound promotion. Formal Current stays571.681 tok/s. Evidence and interpretation: `run339/findings.md`, `run340/findings.md`, `run341/findings.md` under `evidence/20260926_loop074_refill/`.

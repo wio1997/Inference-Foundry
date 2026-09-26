@@ -133,6 +133,13 @@ def main():
  compressor=json.loads((ROOT/'evidence/20260926_loop062_nongmm/run256/census.json').read_text())
  counters=json.loads((ROOT/'evidence/20260926_loop060_resource/run247/analysis.json').read_text())
  hccl=json.loads((ROOT/'evidence/20260926_loop061_bound/run250/payload.json').read_text())
+ hccl_test339=json.loads((ROOT/'evidence/20260926_loop074_refill/run339/analysis.json').read_text())
+ refill340=json.loads((ROOT/'evidence/20260926_loop074_refill/run340/analysis.json').read_text())
+ refill341=json.loads((ROOT/'evidence/20260926_loop074_refill/run341/phase_analysis.json').read_text())
+ assert refill341['status']=='valid_original_path_host_and_current_stream_call_marks' and len(refill341['cohorts'])==4
+ assert refill340['status']=='conditional_source_and_accounting_preflight' and len(refill340['rows'])==3
+ assert hccl_test339['status']=='complete_three_independent_hccl_test_runs'
+ assert len(hccl_test339['cases'])==5 and all(len(c['repeats'])==3 for c in hccl_test339['cases'].values())
  ownership=json.loads((ROOT/'evidence/20260926_loop064_cp/astra_cp_request_ownership_screen.json').read_text())
  owner287=json.loads((ROOT/'evidence/20260926_loop064_cp/run287/analysis.json').read_text())
  handoff=json.loads((ROOT/'evidence/20260926_loop064_cp/run283/analysis.json').read_text())
@@ -254,6 +261,7 @@ def main():
    'write_sum_of_family_medians':sum(v['write_KB']['median'] for name,v in counters['summary'].items() if name!='communication')*1024/1e9,
    'scope':'Run247 observed task counters, not compulsory traffic; median of sums differs from sum of family medians'},
   'HCCL_reported_operation_payload_bytes_per_rank_target_cycle':hccl['latest_reported_payload_bytes_per_rank_cycle'],
+  'run339_isolated_actual_payload_hccl_test':{'cases':{name:{'api_input_bytes_per_rank':c['api_input_bytes'],'dtype':c['dtype'],'count_per_warmed_padded88_prefill':c['count_per_forward'],'independent_device_time_us':[r['device_time_us'] for r in c['repeats']],'median_device_time_us':c['median_us']} for name,c in hccl_test339['cases'].items()},'environment':hccl_test339['environment'],'scope':'attained isolated service observations; not strict physical lower bound, mixed chain capacity, additive DAG cost or Product E2E saving','evidence':'Run339 installed CANN9.1.0 HCCL Test and analysis.json'},
   'conditional_CP_request_ownership_screen':ownership,
   'observed_CP_request_ownership_run287':observed_ownership,
   'unknown':'full target/prefill/DSpark necessary arithmetic, unique HBM/KV traffic, physical link bytes and concurrent attainable capacity'}
@@ -289,6 +297,8 @@ def main():
   'run308_private_full_producer_owner_screen':{'status':'local_execution_reducible_not_product_proven','layer':'Target layer2 c4','eager_same_prestate_all_rank_exact':True,'graph_post_replay_persistent_owner_exact':True,'strict_B_faster_pairs':[77,80],'pair_total_each':80,'diagnostic_max_rank_paired_median_us':[-31.65,-24.46],'live_rank_cycle_gain_proven':False,'formal_E2E_gain_proven':False,'evidence':'Run305/307/308 fixture and graph_analysis'},
   'run303_source_bound_state_liveness':{'status':'sampled_source_bound_screen_pass','full_prefix_page_hits':3094,'inside_conservative_native_source_window':0,'source_sha256':'ebe567933371481de1067cfd78d88ad84900ed51cfc9fddf68de47dcb5d73823','binary_attested':False,'compulsory_traffic_reduction_proven':False,'product_gain_proven':False,'evidence':'Run301/302 cross-layer census and Run303 state_window_analysis.json'},
   'partial_resource_inventory':partial_resource,
+  'refill_scheduling_screen_run340':{'conditional_rows':refill340['rows'],'later_three_original_host_preparation_envelopes_s':refill340['original_run332_later_three_prepare_envelopes_s'],'limits':refill340['limits'],'status':'cross_run_screen_only_not_attainable_bound','evidence':'Run330/331/332/340 and Run99 observed per-cycle wall'},
+  'run341_natural_warm_partial_admission':{'cohorts':[{'cohort':c['cohort'],'forward_calls':c['all_rank_call_count'],'new_request_group_sizes':c['new_request_group_sizes'],'prompt_calls':[{'new_requests':x['new_request_count'],'prompt_tokens':x['prompt_residual_scheduled_tokens'],'max_rank_host_wall_ms':x['max_rank_host_wall_ms'],'max_rank_current_stream_event_ms':x['max_rank_current_stream_event_ms'],'host_entry_spread_ms':x['host_entry_spread_ms'],'host_return_spread_ms':x['host_return_spread_ms']} for x in c['calls'] if x['prompt_residual_scheduled_tokens']>0]} for c in refill341['cohorts']],'limits':refill341['limits'],'scope':'original c12 preparation, not incremental refill, complete seed-ready or Product bound','evidence':'Run341 all8 original-path phase_analysis and scheduler_analysis'},
   'observed_request_progress':{'run287_instrumented_trajectory':parked['aggregate'],
     'scope':'slot-cycle capacity accounting only; no necessary FLOPs, traffic or TPS deduction',
     'evidence':'Run287 all8 ownership JSONL; independent Astra acceptance screen'},
