@@ -5,15 +5,17 @@
 - 模式：`integration`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
-- 结论：`PENDING`
-- 下一步：执行 Run run310：bash scripts/run_loop069_content_baseline.sh run310
-- 更新时间：`2026-09-26T14:03:41Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Loop070 dynamic metadata same-prestate private Graph A/B/A gate
+- 更新时间：`2026-09-26T14:56:56Z`
 
 ## Run 记录
 
 - `runs/mixed_32k_1024_c12/run309`
 - `runs/mixed_32k_1024_c12/run310`
+- `runs/mixed_32k_1024_c12/run311`
+- `runs/mixed_32k_1024_c12/run312`
 
 ## 阻塞项
 

@@ -10,13 +10,25 @@ ACTIVE="$OUT/active"
 : > "$ACTIVE"
 SERVICE_STARTED=0
 cleanup() {
+  status=$?
+  trap - EXIT
   rm -f "$ACTIVE"
   if [ "$SERVICE_STARTED" = 1 ]; then
-    bash /data/wio/vllm_ascend_26/scripts/99_stop_service.sh >"$OUT/stop.log" 2>&1 || true
+    bash /data/wio/vllm_ascend_26/scripts/99_stop_service.sh >"$OUT/stop.log" 2>&1 || status=1
   fi
   if [ -f "$OUT/patch.json" ]; then
-    python3 "$PATCH" restore --record "$OUT/patch.json" >"$OUT/restore.log" 2>&1 || true
+    python3 "$PATCH" restore --record "$OUT/patch.json" >"$OUT/restore.log" 2>&1 || status=1
   fi
+  python3 - "$OUT/patch.json" <<'PY' || status=1
+import hashlib, json, pathlib, sys
+p = pathlib.Path(sys.argv[1])
+if p.exists():
+    for name, item in json.loads(p.read_text()).items():
+        actual = hashlib.sha256(pathlib.Path(item['source']).read_bytes()).hexdigest()
+        if actual != item['base_sha']:
+            raise SystemExit(f'{name} restoration failed: {actual}')
+PY
+  exit "$status"
 }
 trap cleanup EXIT
 for _ in $(seq 1 6); do
@@ -37,7 +49,7 @@ docker exec -e MAX_MODEL_LEN=1048576 -e RUN_TS="LOOP069OWNER-${RUN_ID}" \
   -e EXTREME_TARGET_METADATA_STATIC_KV_MAX=1 \
   -e EXTREME_SCHEDULE_NEXT_TARGET_METADATA=off \
   -e EXTREME_LIVE_OWNER_LAYER2=1 -e EXTREME_LIVE_OWNER_TRACE_DIR="$OUT/owner_trace" \
-  -e OUT="$OUT" -e DATASET="$DATASET" vllm-ascend26-dsv4f-w4a8 bash -lc '
+  -e ROOT="$ROOT" -e OUT="$OUT" -e DATASET="$DATASET" vllm-ascend26-dsv4f-w4a8 bash -lc '
     set -euo pipefail
     cd /data/wio/Inference_Foundry
     bash scripts/serve.sh >"$OUT/launcher.log" 2>&1

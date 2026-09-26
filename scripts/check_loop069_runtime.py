@@ -26,8 +26,26 @@ def main():
         for rank in range(8):
             path = root / 'owner_trace' / f'rank{rank}.jsonl'
             events = [json.loads(x) for x in path.read_text().splitlines()]
-            if not any(x['capturing'] and x['full_shape'] == [96, 4096] for x in events):
-                raise RuntimeError(f'rank{rank} owner path not captured in FULL Graph')
+            handoff = json.loads((root / 'owner_trace' / f'handoff_rank{rank}.json').read_text())
+            replay = json.loads((root / 'owner_trace' / f'replay_rank{rank}.json').read_text())
+            key = [96, 12, True, False, 0]
+            owner_requests = [(rank * 12) // 8, (rank * 12 + 11) // 8]
+            if (handoff['graph_key'] != key
+                    or handoff['query_start_loc'] != list(range(0, 97, 8))
+                    or handoff['owner_requests'] != owner_requests
+                    or handoff['owner_rows'] != [16, 4096]
+                    or not handoff['target_graph_requested']):
+                raise RuntimeError(f'rank{rank} replay handoff contract mismatch')
+            if (replay['rank'] != rank or replay['graph_key'] != key
+                    or replay['num_tokens'] != 96
+                    or replay['num_actual_tokens'] != 96
+                    or not replay['compiled']):
+                raise RuntimeError(f'rank{rank} actual replay dispatch mismatch')
+            if not any(x['capturing'] and x['phase'] == 'producer_complete'
+                       and x['graph_key'] == key
+                       and x['owner_requests'] == owner_requests
+                       and x['owner_rows'] == [16, 4096] for x in events):
+                raise RuntimeError(f'rank{rank} complete owner producer not captured for replay key')
             trace[rank] = events
         compare = json.loads((root / 'content_compare.json').read_text())
         if compare['status'] != 'same_prompt_content_exact':

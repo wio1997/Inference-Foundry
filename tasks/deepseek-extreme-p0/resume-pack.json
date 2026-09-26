@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-26T14:03:41Z",
+  "generated_at": "2026-09-26T15:44:09Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -18,15 +18,15 @@
     "framework": "vllm-ascend",
     "source_root": "/data/wio/Inference_Foundry",
     "status": "ACTIVE",
-    "phase": "INTEGRATING",
+    "phase": "DESIGNING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-069",
-    "next_action": "Run309 SHA/source and contract preflight; Run310 original FULL Graph content baseline; Run311 reversible owner candidate and same-prompt content/rank gate",
+    "active_loop": "loop-071",
+    "next_action": "Run315 read-only source and Run299/301 descriptor audit for two-cycle snapshot coverage; no service until A/A restore plan is complete",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
       "decision": null,
-      "execution": "NONE"
+      "execution": null
     }
   },
   "case_summary": {
@@ -574,39 +574,6 @@
   },
   "recent_loops": [
     {
-      "loop_id": "loop-064",
-      "title": "Frozen c4 DSA CP fan-out scheduling and resource-constrained E2E calibration",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "Decode currently completes hidden AllGather before independent local Q projection. Existing async helper already supports the same TP collective family. One-layer immediate-wait versus delayed-wait controls can test whether HCCL progress and Q compute overlap in FULL Graph without lengthening shared AIV/HBM service or delaying the next collective. Keep collective order and compare all-rank full Target/cycle; no benefit is assumed. See Astra High hidden-gather review.",
-      "verdict": "PIVOTED",
-      "reason": "Run284 local CP overlap advanced matched join but Run285 numerical gate is inconclusive; Run287 original FULL Graph confirms 16 owner full update rows per rank over 11968 rank-cycles yet native/lifetime consumers remain open. Astra High independently selects H003 hidden AllGather and local Q overlap as shorter-closure next scheduling test. No E2E gain or numeric ceiling.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260926_loop064_cp/run287/findings.md",
-        "/data/wio/Inference_Foundry/evidence/20260926_loop064_cp/run287/astra_review.md"
-      ],
-      "decided_at": "2026-09-26T07:33:47Z"
-    },
-    {
-      "loop_id": "loop-065",
-      "title": "Target decode hidden AllGather and local Q scheduling",
-      "mode": "optimization",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The decode hidden AllGather completion to local Q start is an implementation edge; delaying wait until first gathered-hidden consumer can advance latest-rank Target path without changing model work.",
-      "verdict": "PIVOTED",
-      "reason": "H003 delayed hidden gather overlaps local Q on all8 and advances one-layer next AllToAll by paired median10.125us versus async-immediate; full Target/cycle and Product gain unproven, same-state typed parity pending. Run287 owner and parking evidence suggests larger architectural gap",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260926_loop065_gather/run292/findings.md",
-        "/data/wio/Inference_Foundry/evidence/20260926_loop065_gather/run293/astra_matched_review.md",
-        "/data/wio/Inference_Foundry/evidence/20260926_loop065_gather/astra_dual_bound_next_review.md"
-      ],
-      "decided_at": "2026-09-26T09:23:46Z"
-    },
-    {
       "loop_id": "loop-066",
       "title": "c4 owner compact update semantic and resource closure",
       "mode": "optimization",
@@ -650,33 +617,66 @@
         "/data/wio/Inference_Foundry/evidence/20260926_loop068_producer/run308/graph_analysis.json"
       ],
       "decided_at": "2026-09-26T14:02:08Z"
+    },
+    {
+      "loop_id": "loop-069",
+      "title": "Live layer2 owner16 full producer integration",
+      "mode": "integration",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "Replacing only Target layer2 c4 replicated full96 producer work with owner16 on live caches preserves frozen c12 outputs and FULL Graph execution; local Run307/308 gain may advance a downstream rank-critical-path endpoint",
+      "verdict": "PIVOTED",
+      "reason": "Run311 integrates owner16 full producer in all8 FULL Graph Runtime ranks and completes 12x1024, but content differs cross-service; Run310 vs unchanged original Run312 also differs in all12 reasoning hashes and cycles315 vs290. Candidate correctness and wall benefit are not identifiable. Run311 wall/cycle 56.810ms exceeds original 56.545/56.643ms; no Product gain promoted. Next isolate dynamic metadata inside Graph on same prestate.",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260926_loop069_live_owner/findings.md",
+        "/data/wio/Inference_Foundry/evidence/20260926_loop069_live_owner/run311/content_compare.json",
+        "/data/wio/Inference_Foundry/evidence/20260926_loop069_live_owner/run312/content_vs_run310.json"
+      ],
+      "decided_at": "2026-09-26T14:56:56Z"
+    },
+    {
+      "loop_id": "loop-070",
+      "title": "Dynamic owner metadata Graph same-prestate gate",
+      "mode": "correctness",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "Run311 differs from Run307 by capturing native compressor_metadata inside the real Graph; dynamic metadata binding may be stale or coupled to the live forward cache. A private same-prestate Graph with fresh native A/B metadata and synthetic start shifts can isolate this mechanism without live KV mutation.",
+      "verdict": "PIVOTED",
+      "reason": "Real-entry private Graph parity 8/8; synthetic shifts create nonfinite Sparse in original A, so no further synthetic repeats or Product claim",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260926_loop070_dynamic_metadata/findings.md",
+        "/data/wio/Inference_Foundry/evidence/20260926_loop071_two_cycle/design.md"
+      ],
+      "decided_at": "2026-09-26T15:40:22Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-069",
-    "title": "Live layer2 owner16 full producer integration",
-    "mode": "integration",
-    "status": "RUNNING",
+    "loop_id": "loop-071",
+    "title": "Real two-cycle persistent owner state and full critical path",
+    "mode": "design",
+    "status": "EVALUATING",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "执行 Run run310：bash scripts/run_loop069_content_baseline.sh run310",
+    "next_action": "审查 Run run315 的证据，并判断是否需要更多 Run",
     "cases": [
       "mixed_32k_1024_c12"
     ],
-    "execution_skill": "NONE",
-    "updated_at": "2026-09-26T14:03:41Z"
+    "execution_skill": null,
+    "updated_at": "2026-09-26T15:44:09Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-069/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-069/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-069/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-069/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-069/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-069/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-071/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-071/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-071/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-071/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-071/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-071/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

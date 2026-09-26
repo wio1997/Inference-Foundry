@@ -80,7 +80,58 @@ SOURCES = {
                 cu_seqlens=owner_qsl if owner_layer else actual_seq_lengths_query,
                 seqused=None,
                 start_pos=owner_start if owner_layer else req_metadata.start_pos,
+'''), (
+            '''            DeviceOperator.dsa_kv_compress_scatter(compress_kv_cache, compressed_kv, compress_slot_mapping)
+''',
+            '''            DeviceOperator.dsa_kv_compress_scatter(compress_kv_cache, compressed_kv, compress_slot_mapping)
+            if owner_layer:
+                from scripts.loop069_live_owner import record_producer_complete
+                record_producer_complete(owner_ctx)
 ''')]},
+    'handoff': {
+        'path': ROOT / 'bootstrap/vllm_extreme_handoff.py',
+        'base_sha': 'f644bd14ac1cb9c8365ba2464abbff989d7f2c4c2d58279a8e18a5bce918716f',
+        'replacements': [(
+            '''    target_handoff = DirectTargetHandoff(inputs.target)
+''',
+            '''    from scripts.loop069_live_owner import verify_handoff
+    verify_handoff(inputs, state, config)
+    target_handoff = DirectTargetHandoff(inputs.target)
+''')],
+    },
+    'target_handoff': {
+        'path': ROOT / 'bootstrap/vllm_target_handoff.py',
+        'base_sha': '2053dafbd46638d0da23e14b96c59ea01995ec2f0441d01928f1c9484c7b4ed5',
+        'replacements': [(
+            '''        num_tokens = input_ids.shape[0]
+        update_cos_sin(positions)
+''',
+            '''        num_tokens = input_ids.shape[0]
+        from scripts.loop069_live_owner import verify_replay_dispatch
+        verify_replay_dispatch(self, num_tokens)
+        update_cos_sin(positions)
+''')],
+    },
+    'runner': {
+        'path': Path('/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py'),
+        'base_sha': '004dbd0d5b1a5c3f9533fa1d12327bd0ae421fe24bb2674544b2c4a25d74aaba',
+        'replacements': [(
+            '''                    num_encoder_reqs=len(scheduler_output.scheduled_encoder_inputs),
+                )
+
+                if logger.isEnabledFor(logging.DEBUG):
+''',
+            '''                    num_encoder_reqs=len(scheduler_output.scheduled_encoder_inputs),
+                )
+                from scripts.loop069_live_owner import verify_generic_graph_dispatch
+                verify_generic_graph_dispatch(
+                    batch_desc, cudagraph_mode, num_reqs,
+                    num_tokens_unpadded, num_scheduled_tokens_np,
+                )
+
+                if logger.isEnabledFor(logging.DEBUG):
+''')],
+    },
 }
 
 
@@ -128,12 +179,21 @@ def main():
         if not args.record:
             raise SystemExit('--record required')
         info = json.loads(Path(args.record).read_text())
+        errors = []
         for name, spec in SOURCES.items():
             backup = Path(info[name]['backup']).read_bytes()
-            if sha(backup) != spec['base_sha'] or sha(spec['path'].read_bytes()) != info[name]['patched_sha']:
-                raise SystemExit(f'{name} restore SHA guard failed')
-            spec['path'].write_bytes(backup)
-            print(f'restored {name} {sha(backup)}')
+            actual = sha(spec['path'].read_bytes())
+            if sha(backup) != spec['base_sha']:
+                errors.append(f'{name} backup SHA mismatch')
+            elif actual == spec['base_sha']:
+                print(f'already restored {name} {actual}')
+            elif actual == info[name]['patched_sha']:
+                spec['path'].write_bytes(backup)
+                print(f'restored {name} {sha(backup)}')
+            else:
+                errors.append(f'{name} source SHA mismatch {actual}')
+        if errors:
+            raise SystemExit('; '.join(errors))
 
 
 if __name__ == '__main__':

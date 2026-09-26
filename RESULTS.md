@@ -571,3 +571,8 @@ Run301 live runner exited1 only because the post-check expected the wrong layer0
 ## Loop068 private full-producer result (2026-09-26)
 
 Run305 exact same-prestate all8 layer2 WKV/SWA, main Compressor, indexer/QLI and Sparse owner16 versus full96 gate. Run307/308 private Graph A/B/A screens kept all8 Sparse/QLI and (Run308) every-replay persistent owner cache write domains exact. Paired B faster than both A controls 77/80 then 80/80; diagnostic max-rank paired medians −31.65 and −24.46 µs. This is reproducible *local* producer→Sparse work reduction. It excludes AllGather, local Q, rank rendezvous, full Target/cycle and serving. Astra High supports a single-layer live Target test with communication unchanged. Current Formal 571.681 tok/s and numeric Resource/Hardware, Scheduling-aware and Product bounds remain unknown. See PK-009 and `evidence/20260926_loop068_producer/run307/findings.md`.
+
+
+## Runs310–314: owner16 live Graph and dynamic metadata diagnosis
+
+Run310/311/312 12×1024 diagnostic carriers completed; Run311 one-layer owner16 FULL Graph capture and replay passed 8/8, but original A/A separate services differed in content and cycle counts. Latest-rank ms/cycle original 56.545/56.643 versus owner 56.810; no Product KEEP. Run313/314 private Graph delta0 full A/owner B/A2 exact on eight ranks, including native dynamic metadata, typed owner writes, QLI and Sparse. In Run314 five ranks failed on synthetic full A with NaN Sparse in both eager and Graph A; the carrier then failed and no E2E metric is valid. These shifts did not advance the full Runtime state. Current Formal stays 571.681 tok/s. Evidence and limits: `evidence/20260926_loop070_dynamic_metadata/findings.md`.
