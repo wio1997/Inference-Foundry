@@ -29,7 +29,7 @@
 | `loop-071` | `PIVOTED` | `PIVOTED` | Run315-317 show complete two-cycle restore spans Target metadata, Draft/Host and distinct Graphs; owner16 local 24-32us/layer is a small conditional screen, while Run318 original FULL Graph has 2989 parked slot-cycles across 1496 cycles. Astra High independently prioritizes complete MoE parked-row experiment. Owner remains unresolved, not rejected. |
 | `loop-072` | `PIVOTED` | `PIVOTED` | Run326 all8 same-prestate complete MoE Graph A/A_repeat/B/A2 showed routed48 B slower than independent A controls in 10/10 paired max-rank endpoints, median +49.585us; numerical control envelope failed on 6/7 nonempty ranks. Reject this implementation, not all parked schedules or a hardware bound. |
 | `loop-073` | `PIVOTED` | `PIVOTED` | Run328 all8 same-state full-active layer4 Graph proves replicated gate weights and exact routing IDs, but B gate placement shows 0/10 strict complete-MoE wins and variable paired B-minus-A time; one rank narrowly misses output control envelope. Do not integrate this B schedule; exchange law and alternate overlap remain open. |
-| `loop-074` | `EVALUATING` | `PENDING` | 审查 Run run344 的证据，并判断是否需要更多 Run |
+| `loop-074` | `EVALUATING` | `PENDING` | 审查 Run run345 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

@@ -1,0 +1,190 @@
+{
+  "schema_version": 3,
+  "contract": "DeepSeek V4 W4A8, 8x910B3, DP1TP8, DSpark7, 48x32K->1024 c12",
+  "current": {
+    "accepted_formal_tps": 571.681,
+    "implied_wall_s_for_49152_tokens": 85.97801921001397,
+    "formal_repeat_client_wall_s": [
+      80.18766115419567,
+      86.60024501523003,
+      85.97796410089359
+    ],
+    "formal_repeat_cycles": [
+      1217,
+      1212,
+      1206
+    ],
+    "source": "Run99 formal; dual_bound_v2 current_formal_observed_wall_envelope",
+    "confidence": "high for measured Current, not an upper bound"
+  },
+  "bound_ladder": {
+    "algorithm_resource": {
+      "latency_floor_s": null,
+      "compulsory_work_complete": false,
+      "current_runtime_cardinality_min_cycles": 512,
+      "cardinality_scope": "four current zero-output handoff cohorts; if handoff/seed changes, recompute from real remaining external tokens and already generated output",
+      "run239_same_trace_acceptance": {
+        "requested_and_useful_output_tokens": 49152,
+        "observed_target_cycles": 1195,
+        "observed_mean_useful_tokens_per_cycle": 41.131380753138075,
+        "fixed_cohort_duration_capacity_relaxation_cycles": 1046,
+        "arbitrary_refill_duration_capacity_relaxation_cycles": 1045,
+        "current_handoff_cardinality_relaxation_cycles": 512,
+        "capacity_relaxation_scope": "fixed cohort = sum_c ceil(sum_i observed completion cycles / 12); arbitrary refill = ceil(sum_all / 12); both ignore arrival/preparation/contention and are not feasible schedules or Product bounds",
+        "all_rank_count_parity": true,
+        "all_48_exact": true
+      },
+      "known_partial": {
+        "routed_GMM_conditional_route_sample": 155.675787264,
+        "compressor_fixed_shapes": 58.38471168,
+        "scope": "partial known operators only; not a proof of minimum possible algorithmic operations",
+        "evidence": "Run242 GMM route/shape inventory; Run256 exact Compressor shape count"
+      },
+      "missing": [
+        "full Target and DSpark FLOPs at actual active shapes",
+        "unique necessary packed weights/activation/KV/metadata bytes",
+        "prefix-cache-conditioned 32K prompt and residual prefill work",
+        "necessary TP8 link bytes and collective order",
+        "acceptance-dependent executed work"
+      ],
+      "confidence": "low; incomplete numerator"
+    },
+    "hardware_resource": {
+      "latency_floor_s": null,
+      "attainable_910B3_capacity_complete": false,
+      "current_full_graph_counter_GB_per_rank_cycle": {
+        "read_median_whole_window": 18.9497552,
+        "write_median_whole_window": 2.3803265280000003,
+        "read_sum_of_family_medians": 18.965061632,
+        "write_sum_of_family_medians": 2.380235712,
+        "scope": "Run247 observed task counters, not compulsory traffic; median of sums differs from sum of family medians"
+      },
+      "isolated_hccl_actual_payload_us": {
+        "ag_hidden_bf16": 11.03,
+        "ag_router_fp32": 4.95,
+        "ag_extra_bf16": 32.1,
+        "rs_bf16": 11.81,
+        "a2a_bf16": 12.43
+      },
+      "isolated_hccl_scope": "Run339 five warmed padded88 prefill collective shapes; not a mixed decode chain or physical link floor",
+      "missing": [
+        "same-shape concurrent FULL Graph AIC/AIV/HBM capacity",
+        "mixed 264-collective service and topology link bytes",
+        "rank arrival and compute/communication contention"
+      ],
+      "confidence": "low; isolated HCCL timings are attainable samples, not a physical floor"
+    },
+    "scheduling_execution": {
+      "latency_floor_s": null,
+      "conditional_cycle_screen": {
+        "source": "Run287 original warmup48 all-rank trajectory; Run329/330/331 offline replay",
+        "observed_cycles": 1203,
+        "slot_busy_cycles": 12170,
+        "slot_free_cycles": 2266,
+        "slot_free_fraction": 0.156968689387642,
+        "fixed_duration_relaxation_cycles": {
+          "instant_completion": 1011,
+          "host_mirror_release": 1015,
+          "derivation_instant": "ceil(12122 occupied slot-cycles / 12 slots) = 1011",
+          "derivation_host_mirror": "ceil(12170 occupied slot-cycles / 12 slots) = 1015",
+          "scope": "capacity relaxation for fixed Run287 request durations, not an achievable schedule"
+        },
+        "zero_incremental_cost_fifo_cycles": {
+          "instant_completion": 1118,
+          "host_mirror_release": 1122,
+          "scope": "constructed FIFO schedule under zero incremental cost, not a universal lower bound"
+        },
+        "batched_refill_host_mirror_cycles": {
+          "2": 1138,
+          "3": 1141,
+          "4": 1149,
+          "6": 1177,
+          "12": 1203
+        },
+        "not_product_bound": [
+          "new prompts arrive only after early HTTP stream completion",
+          "32K prefix and residual prefill, DSpark seed, KV/state transaction omitted",
+          "resource contention and changed acceptance/duration omitted",
+          "Run287 diagnostic trajectory is not Run99 formal trajectory"
+        ]
+      },
+      "refill_break_even_sensitivity": [
+        {
+          "refill_batch_size": 2,
+          "conditional_saved_cycles": 65,
+          "screening_gross_wall_budget_s": [
+            3.6692764349419646,
+            3.7419518982444133
+          ],
+          "run332_later_three_serial_prepare_s": 6.9350000000000005,
+          "required_hidden_prepare_fraction_if_same_work": [
+            0.46042510479532617,
+            0.47090462365652996
+          ],
+          "scope": "cross-run break-even sensitivity, not attainable overlap or TPS"
+        },
+        {
+          "refill_batch_size": 3,
+          "conditional_saved_cycles": 62,
+          "screening_gross_wall_budget_s": [
+            3.4999252148677202,
+            3.569246426017748
+          ],
+          "run332_later_three_serial_prepare_s": 6.9350000000000005,
+          "required_hidden_prepare_fraction_if_same_work": [
+            0.48532856149708037,
+            0.4953244102569978
+          ],
+          "scope": "cross-run break-even sensitivity, not attainable overlap or TPS"
+        },
+        {
+          "refill_batch_size": 4,
+          "conditional_saved_cycles": 54,
+          "screening_gross_wall_budget_s": [
+            3.048321961336401,
+            3.1086985000799743
+          ],
+          "run332_later_three_serial_prepare_s": 6.9350000000000005,
+          "required_hidden_prepare_fraction_if_same_work": [
+            0.5517377793684248,
+            0.5604438411915789
+          ],
+          "scope": "cross-run break-even sensitivity, not attainable overlap or TPS"
+        }
+      ],
+      "missing": [
+        "same-state legal-arrival/prefill/seed/first-Target timeline",
+        "all-rank resource-constrained DAG costs",
+        "actual concurrent resource contention",
+        "cycle duration and useful-token changes under refill"
+      ],
+      "confidence": "low for attainable Product; medium for offline cycle arithmetic"
+    },
+    "product_e2e": {
+      "finite_tps_upper_bound": null,
+      "demonstrated_current_tps": 571.681,
+      "unresolved_gap_tps": null,
+      "missing": [
+        "legal arrival and output publication trajectory",
+        "prefill/seed/decode overlap",
+        "repeatable corrected E2E intervention",
+        "complete hardware and scheduling bounds"
+      ],
+      "confidence": "high for Current; no defensible finite upper interval endpoint yet"
+    }
+  },
+  "next_measurement": {
+    "priority": "pin full-workload mandatory-work and same-path concurrent capacity before promoting a numeric bound",
+    "specific_gate": "all-eight rank-cycle stage/traffic ledger with Target, DSpark, KV, HCCL payload and overlap, plus actual-arrival-to-first-new-Target only if refill is tested",
+    "decision_rule": "numeric Product bound requires a legal resource-constrained DAG and unchanged-contract corrected E2E calibration"
+  },
+  "input_paths": [
+    "evidence/20260926_loop064_cp/dual_bound_v2.json",
+    "evidence/20260926_loop074_refill/run329/counterfactual.json",
+    "evidence/20260926_loop074_refill/run330/counterfactual.json",
+    "evidence/20260926_loop074_refill/run331/granularity.json",
+    "evidence/20260926_loop074_refill/run339/analysis.json",
+    "evidence/20260926_loop074_refill/run340/analysis.json",
+    "evidence/20260926_loop074_refill/run347/acceptance_reanalysis.json"
+  ]
+}

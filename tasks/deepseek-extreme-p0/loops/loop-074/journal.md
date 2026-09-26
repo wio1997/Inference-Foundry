@@ -65,3 +65,19 @@
 - `2026-09-26T23:23:53Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run344`（design-check）。
 
 - `2026-09-26T23:30:00Z` Run `run344` 记录为 `pass`；正确性为 `not-applicable`。Source audit and no-NPU ghost publication protocol ledger pass five groups; exact final Scheduler settlement and real arrival remain unimplemented live gates.
+
+- `2026-09-26T23:31:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run345`（build）。
+
+- `2026-09-26T23:40:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run346`（design-check）。
+
+- `2026-09-26T23:42:15Z` Run `run346` 记录为 `pass`；正确性为 `not-applicable`。Pinned read-only Dual-Bound V3: Run287 1011/1015 capacity relaxation, 1118/1122 constructed FIFO, Run99 512 current-runtime cardinality; no finite Product TPS upper bound; b2-4 break-even sensitivity and prioritized correlated ledger
+
+## Loop074 Run346 Bound V3 priority correction
+
+Run346 makes the main uncertainty explicit: Current Formal571.681tok/s is established, but no defensible finite overall TPS ceiling exists yet. Run287 fixed-duration1011/1015 cycles are capacity relaxations; zero-cost FIFO1118/1122 are constructed conditional schedules; Run99's512 is a cardinality floor for the current four zero-output handoff cohorts. None includes the complete legal product DAG. The cross-run b2/b3/b4 break-even screen requires hiding about46–56% of Run332's6.935s later-wave preparation if that same work is needed. This is useful for ranking measurements, not a refill performance forecast. Prioritize a correlated formal48 request work/dependency ledger joining real arrival, prefix/residual prefill, seed-ready, useful acceptance, Target/DSpark resource work, collective joins, state/KV and final publication. Run345 segmented publication remains a narrow legal-arrival gate, pending this Bound audit; its partial code has no correctness or E2E result. See `evidence/20260926_loop074_refill/run346/findings.md` and `bound_calibration_v3.json`.
+
+- `2026-09-26T23:44:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run347`（design-check）。
+
+- `2026-09-26T23:46:06Z` Run `run347` 记录为 `pass`；正确性为 `not-applicable`。Saved Run239 all8 exact count reanalysis: 1195 cycles, 49152 useful tokens, fixed-duration 1046/1045 capacity relaxations, one post-completion cycle per cohort; no Product bound promotion
+
+- `2026-09-26T23:47:52Z` Run `run345` 记录为 `invalid`；正确性为 `not-applicable`。Design preflight only: draft segmented serving source was not installed, no service or NPU run occurred. Paused after priority correction to Bound-first Run346/347; no live publication, arrival, correctness or TPS evidence.
