@@ -1,0 +1,9 @@
+# Run305 — full layer2 producer private same-prestate value gate
+
+The actual DP1×TP8 c12 service returned 12/12 requests with exactly 1024 tokens; all eight Runtime rank reports passed. Before the original live layer2 update, each rank cloned the three unique underlying backing stores once (1,117,061,120 + 1,117,061,120 + 141,814,400 bytes) and reconstructed the six typed cache views with their original storage offsets and strides. Each A96/A2-96/B16/A3-96 arm restored this one private bank from the still-unmodified live prestate, so no arm changed the live cache.
+
+The private chain included WKV→SWA scatter, indexer Compressor→key/scale scatter→native QLI, main Compressor→compressed KV scatter, then the actual local Q and Sparse attention. All eight ranks reported exact equality to first A for every arm in QLI `[12,1,512]`, Sparse `[12,64,512]`, SWA 16 owner slots, compressed KV four owner slots, indexer key and scale four owner slots, and both main/indexer state current-write slots (16 each). The second and final full A controls were also exact. Source hooks were restored to their original SHA256 values; eight cards returned idle after cleanup.
+
+This proves one real layer2 eager same-prestate consumer equivalence, including all three producer branches, for one sampled cycle per rank. It does not prove later cross-cycle cache semantics, all 21 c4 layers, FULL Graph integration, link traffic removal, or Product E2E gain. Run307 is the single bounded private Graph replay cost screen. Historical R21/R28 Compressor overlap regressions remain resource-competition priors, not a verdict on owner reduction.
+
+Evidence: `fixture_check.json`, `fixture/rank0.json` through `rank7.json`, `bench12.json`, eight `runtime/rank*_cohort1.json`, `patch.json`, `restore.log`, and `stop.log` on the experiment host.
