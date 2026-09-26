@@ -76,6 +76,10 @@ Observe
 
 Loop / Run 只是实验和证据编号，不代表产品路线。
 
+### Performance Knowledge 检索门槛
+
+提出新的 Graph、overlap、fusion、通信调度、DSA、DSpark、SuperKernel、Host/runtime 候选前，先用 `scripts/performance_knowledge.py search` 按机制检索 `performance_knowledge/sources.json` 钉住的历史 Round，再按需打开相关 evidence。设计记录旧环境/shape/并行方式、机制、实测结果、已证明的失败根因或 E2E 未兑现原因，以及当前 DP1×TP8 条件变化后的重验条件；无相关记录则写明未命中。历史 KEEP/REVERT 仅是 hypothesis prior，不替代本项目 Correctness、critical path 与重复正式 E2E。新 Run 按同一字段增量沉淀到 `performance_knowledge/entries.jsonl`，不批量重写历史。
+
 ### 执行连续性
 
 保存 evidence、更新 TaskCtl、重建 recovery pack、Git commit/push、形成
