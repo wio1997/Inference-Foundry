@@ -135,6 +135,7 @@ def main():
  hccl=json.loads((ROOT/'evidence/20260926_loop061_bound/run250/payload.json').read_text())
  hccl_test339=json.loads((ROOT/'evidence/20260926_loop074_refill/run339/analysis.json').read_text())
  refill340=json.loads((ROOT/'evidence/20260926_loop074_refill/run340/analysis.json').read_text())
+ fence343=json.loads((ROOT/'evidence/20260926_loop074_refill/run343/analysis.json').read_text())
  refill330=json.loads((ROOT/'evidence/20260926_loop074_refill/run330/counterfactual.json').read_text())
  refill341=json.loads((ROOT/'evidence/20260926_loop074_refill/run341/phase_analysis.json').read_text())
  assert refill341['status']=='valid_original_path_host_and_current_stream_call_marks' and len(refill341['cohorts'])==4
@@ -308,6 +309,18 @@ def main():
     'first_gate':'early real publication with original Runtime continuation and queued-only new requests; no new prefill or slot reuse',
     'scope':'source audit and Run287 conditional cycles, no implemented gate, measured arrival, Product gain or attainable bound',
     'evidence':'Run342 findings, Run330 original Run287 trajectory, frozen bench.py and serving/runner/engine/scheduler sources'},
+  'async_queue_fence_run343':{
+    'status':fence343['status'],
+    'current_async_batch_queue_capacity':2,
+    'pre_submission_fence_predicate':'Extreme diagnostic enabled and SchedulerOutput total_num_scheduled_tokens == 96',
+    'fence_acquire_release_pairs':fence343['fence']['acquires'],
+    'original_bulk_handoffs_covered':fence343['fence']['releases'],
+    'all8_runtime_rank_cohorts_pass':fence343['runtime']['rank_cohort_files'],
+    'formal_fence_only_tps':fence343['formal']['repeat_tps'],
+    'formal_fence_only_target_cycles':[x['cycles'] for x in fence343['formal']['repeat_accounting']],
+    'limits':fence343['limits'],
+    'scope':'pre-submission scheduling gate verified with original bulk; no early publication, real refill, paired fence-cost estimate or attainable Product Bound',
+    'evidence':'Run343 analysis, 48 warmup and three formal 48-request repeats, 16 fence pairs'},
   'observed_request_progress':{'run287_instrumented_trajectory':parked['aggregate'],
     'scope':'slot-cycle capacity accounting only; no necessary FLOPs, traffic or TPS deduction',
     'evidence':'Run287 all8 ownership JSONL; independent Astra acceptance screen'},
@@ -341,7 +354,7 @@ def main():
   'symbolic_constraints':{'resource_physical_floor':'max over shared resources of compulsory work / defensible hardware capacity UPPER bound; an observed attained bandwidth is not automatically such an upper bound','resource_attainable_scenario':'use same-shape concurrent capacity measurements to build an executable resource allocation; empirical attained capacity alone is not a strict latency lower bound','scheduling_relaxation':'max(physical resource floor, legal dependency critical path with collective rendezvous); resource-constrained executable makespan also includes interference, streams, storage and event overhead','product_throughput':'49152 / finite frozen client wall time after prefill, decode, parking, useful tokens/cycle and publication DAG; no additive phase shortcut'},
   'current_dag':analyse(CURRENT,costs),'overlap_dag':analyse(OVERLAP,costs),
   'already_measured_removable_node':{'name':'DSpark-unused MTP stash','necessary_math_flops':0,'necessary_bytes':0,'current_reported_read_GB':0.537537728,'current_reported_write_GB':0.537424896,'current_task_sum_ms':0.7993415,'causal_candidate_copies_per_cycle':0,'exposed_ms':None,'evidence':'Run257, Run260-263'},
-  'unresolved':['current per-node same-path timings with async join','Run275 candidate-consumed 8-rank continuous metadata/alias gate passed; verification-free A0/B timing and hidden native workspace remain open','necessary target+DSpark FLOPs/unique traffic','8-rank FULL Graph compute/HBM/HCCL attainable capacity','HCCL physical link bytes/arrival/overlap','CP c4 indexer/main compressor same-path service costs, Graph concurrency and resource contention','Run294/295 owner16 private Compressor outputs exact all8 and B-changed bytes match A; full current write/live8 read domain, typed scatter/QLI/Sparse, prefix/lifetime and exposed cycle remain open before interpreting replica updates as removable compulsory work','DSpark useful tokens/cycle upper limit','prefill/admission/output product trajectory and Run342 segmented-publication/continuation/KV pin ownership before any real b3 refill','Run281 only 2/5 expected fixed cohorts; original-path Run283 had 5/5 and exact gate shape trajectory, cross-run cause remains unknown','one-layer CP fork eager A0/overlap/A0 Run285 inconclusive; local fork-entry typed numerical gate remains open before FULL Graph/all21 promotion','decode hidden AllGather/local Q semantic overlap requires FULL Graph capture/replay validation'],
+  'unresolved':['current per-node same-path timings with async join','Run275 candidate-consumed 8-rank continuous metadata/alias gate passed; verification-free A0/B timing and hidden native workspace remain open','necessary target+DSpark FLOPs/unique traffic','8-rank FULL Graph compute/HBM/HCCL attainable capacity','HCCL physical link bytes/arrival/overlap','CP c4 indexer/main compressor same-path service costs, Graph concurrency and resource contention','Run294/295 owner16 private Compressor outputs exact all8 and B-changed bytes match A; full current write/live8 read domain, typed scatter/QLI/Sparse, prefix/lifetime and exposed cycle remain open before interpreting replica updates as removable compulsory work','DSpark useful tokens/cycle upper limit','prefill/admission/output product trajectory; Run343 pre-submission queue fence validated, but segmented-publication/continuation/KV pin ownership before any real b3 refill remain open','Run281 only 2/5 expected fixed cohorts; original-path Run283 had 5/5 and exact gate shape trajectory, cross-run cause remains unknown','one-layer CP fork eager A0/overlap/A0 Run285 inconclusive; local fork-entry typed numerical gate remains open before FULL Graph/all21 promotion','decode hidden AllGather/local Q semantic overlap requires FULL Graph capture/replay validation'],
   'limits':['A DAG with isolated duration inputs is only an optimistic no-contention relaxation, not a hardware ceiling.','Current graph edges include implementation ordering; metadata_overlap_edges require private scratch and parking invalidation.','Temporal profiler task sums and AIC+AIV bytes are not compulsory work or exposed wall time.','No TPS result is emitted from an incomplete dependency or capacity model.']}
  Path(a.output).parent.mkdir(parents=True,exist_ok=True);Path(a.output).write_text(json.dumps(out,indent=2)+'\n')
  print(json.dumps({'current_dag':out['current_dag'],'overlap_dag':out['overlap_dag'],'bounds':out['bounds']},indent=2))

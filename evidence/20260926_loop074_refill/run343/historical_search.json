@@ -1,0 +1,270 @@
+{
+  "query": "async scheduling queue batch speculative",
+  "source_commit": "db3beef223e0b5acd81ccccb444600c1b22aac8a",
+  "results": [
+    {
+      "round": "R06_dp_prefill_padding_accounting",
+      "score": 60,
+      "matched_terms": 5,
+      "snippets": [
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 15,
+          "text": "- `model_runner_v1.py:_determine_batch_execution_and_padding()` 先对本 DP rank 的 scheduled tokens 做 TP4 对齐，再由 `_sync_metadata_across_dp()` 在 CPU group 上收集各 DP rank 数量；`enable_sp=true` 使两个 DP rank 的 `batch_desc.num_tokens` 取跨 rank 最大值。"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 18,
+          "text": "- 当前 profiler 不能可靠导出 timeline；仅给 Python 各层加 `perf_counter` 会测到 enqueue/背压，不能证明 device compute/communication 占比。"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 42,
+          "text": "- `_determine_batch_execution_and_padding()`"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 10,
+          "text": "invalid forward token slots to justify a next round of scheduling/implementation work?"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 49,
+          "text": "-> batch_descriptor.num_tokens = p = num_tokens_padded"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 80,
+          "text": "a_r == 8*num_reqs`, with `8 = 1 + K` from the frozen DSpark `num_speculative_tokens=7`)."
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R06_dp_prefill_padding_accounting/REPORT.md"
+    },
+    {
+      "round": "R36_remove_async_dspark_scheduler_deepcopy",
+      "score": 79,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 1,
+          "text": "# R36 — 移除 async DSpark 冗余 SchedulerOutput deepcopy"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 3,
+          "text": "> 状态：CLOSED / REVERT。单一候选：在 `NPUModelRunner.execute_model` 的 async-scheduling + speculative decode + `_draft_token_ids is None` 分支移除整棵 `scheduler_output` 的 `deepcopy`；保留 PP 专用的独立 copy 分支。"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 7,
+          "text": "`R36_remove_async_dspark_scheduler_deepcopy`"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 1,
+          "text": "# INVESTIGATION R36 — async DSpark SchedulerOutput deepcopy"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 5,
+          "text": "**REVERT**。候选来自上游 v0.26 后 `92ea871b2/#14643`：删除 `NPUModelRunner.execute_model` 中 async speculative、`_draft_token_ids is None` 时对整棵 `scheduler_output` 的 deepcopy。静态上当前协议已由 worker draft tensor + EngineCore 更新 token，PP=1 的冻结路径也不需要借副本保护 mutatio"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 7,
+          "text": "合成 CPU probe 证明潜在成本很大：12×32851 新请求中位578.900ms，代表 cached batch为22.617ms。但该数字只是条件命中上限。真实冻结服务同会话 A/B 显示，c=1配对中位仅+0.815%、c=12反而−0.206%，两档都只有2/4同向。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md"
+    },
+    {
+      "round": "R08_decode_postprocess_decomposition",
+      "score": 52,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 40,
+          "text": "| 收尾/簿记 | `_bookkeeping_sync`（`--async-scheduling` 走异步分支，无 `_to_list()` 阻塞） | `:2316-2330`、`:2486`、`:2554-2568` |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 43,
+          "text": "| 状态更新 | `sampling_done_event.record()` → `async_state_update` 内 `_update_states_after_model_execute` | `:2271-2274`、`:2392-2399` |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 44,
+          "text": "| 输出封装 | `AsyncGPUModelRunnerOutput(...)` + `set_async_sampled_token_ids(...)` | `:2435-2447` |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 31,
+          "text": "| D6 输出封装/异步 D2H/状态更新（`:2435/:1460/:2392`） | `S5_async_output` 0.285 ms（S6 无数据） | 0.43% | 0.285 ms = **0.43%** | <5% |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 50,
+          "text": "`max_num_batched_tokens=8192`、`max_num_seqs=16`、`gpu_memory_utilization=0.9`、`async_scheduling=True`、"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 51,
+          "text": "`enable_prefix_caching=True`、`speculative_config={'method':'dspark','num_speculative_tokens':7,'enforce_eager':True}`、"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R08_decode_postprocess_decomposition/REPORT.md"
+    },
+    {
+      "round": "R13_target_attn_metadata",
+      "score": 52,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 51,
+          "text": "| DSpark | `num_speculative_tokens=7`、`enforce_eager=true` | 同上 |"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 52,
+          "text": "| 其它 | `enable_dsa_cp=true`、`enable_flashcomm1=true`、`multistream_overlap_shared_expert=true`、`FULL_DECODE_ONLY`、`--async-scheduling`、`--enable-prefix-caching`、`max_model_len=1048576`、`max_num_batched_tokens=8192`、`block_size=32` | 同上 |"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 145,
+          "text": "| **`db5f9e023`** | 2026-09-04 | `[Performance][Worker] Build DeepSeek V4 metadata asynchronously (#15443)` | **是**：`dsa_cp.py +296`、`worker/model_runner_v1.py +63`、**新增 `worker/device_metadata.py +141`**、`dsa_v1.py +285`、`llm_base_proposer"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 149,
+          "text": "| `8f94f0a58` | 2026-09-04 | `[BugFix] Retain async speculative metadata copies (#15719)` | 部分（`model_runner_v1.py +47`）但为**正确性**修复 | 不选 |"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 157,
+          "text": "`vllm/v1/worker/gpu_input_batch.py` 的 `BlockTable.slot_mapping` / `get_device_tensor()`："
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/RESULT.md",
+          "line": 90,
+          "text": "asynchronously」**（`dsa_cp.py +296`、`model_runner_v1.py +63`、**新增 `worker/device_metadata.py +141`**、"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R13_target_attn_metadata/REPORT.md"
+    },
+    {
+      "round": "R22_decode_prep_in_slot_mapping_fusion",
+      "score": 46,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/TASK.md",
+          "line": 35,
+          "text": "`prep_in` 包含 `_update_states`、CPU tokens/NumPy 构造、`_prepare_inputs`、batch/padding 决策等，结束于"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/TASK.md",
+          "line": 39,
+          "text": "3. 上游 `#15584/71e8389d6` 的 async metadata 主要把 metadata device op 放 aux stream；它不天然删除"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/TASK.md",
+          "line": 72,
+          "text": "bit-exact，两轮反序，分别报告 host enqueue、batch NPU-event 与 kernel 数量。"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/REPORT.md",
+          "line": 27,
+          "text": "host enqueue 两轮分别省 `0.661735/0.661145 ms`，与 pooled NPU-event 节省 `0.663891 ms` 一致，"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/REPORT.md",
+          "line": 35,
+          "text": "由于固定 token E2E wall 受 speculative acceptance/流式 chunk 数变化影响而方向冲突，升级到正式 benchmark。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R22_decode_prep_in_slot_mapping_fusion/REPORT.md"
+    },
+    {
+      "round": "R07_dsa_cp_draft_metadata_cache",
+      "score": 44,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/REPORT.md",
+          "line": 61,
+          "text": "`/proc/1851484/cmdline` 一致，8×910B3、DP2×TP4/EP8、`--max-model-len 1048576`、batched-tokens 8192、"
+        },
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/REPORT.md",
+          "line": 62,
+          "text": "block 32、DSpark `num_speculative_tokens=7`、`FULL_DECODE_ONLY`、prefix caching、async scheduling、"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R07_dsa_cp_draft_metadata_cache/REPORT.md"
+    },
+    {
+      "round": "R31_r29_o_proj_weight_ag_scheduling",
+      "score": 69,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 3,
+          "text": "> 状态：ACTIVE。单一候选；先做 shape-faithful TP4 NPU scheduling probe，证据成立后才允许最小生产实现。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 7,
+          "text": "`R31_r29_o_proj_weight_ag_scheduling`"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 17,
+          "text": "- 当前实现先启动 hidden-state AG，执行本地 Q 链，再连续 enqueue wo_a 与 wo_b AG；两次 weight AG 直到 o-proj 前才 wait。启动点可能不是最优，也可能与 hidden AG 争用同一 communicator。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/REPORT.md",
+          "line": 1,
+          "text": "# R31 — R29 o-proj weight all-gather scheduling"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/REPORT.md",
+          "line": 5,
+          "text": "在实际 TP4 production shapes 上，比较 current、early-both、stagger 三种调度，并扫 0/1/2/4 段后续计算窗口。全部 gather 内容逐元素正确；但提前启动只在反序无 tail 情况偶发 1–2% 小收益，正序不复现。tail2/tail4 的 device 与 wall、正反顺序全部退化，最大约 7.5%。原因是更早 enqueue 增加了 TP collective 与 Q/后续 device work 的竞争，现有 "
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/REPORT.md",
+          "line": 7,
+          "text": "完整证据见 `results/r31_r29_o_proj_weight_ag_scheduling/evidence/RESULT.final.md`。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R31_r29_o_proj_weight_ag_scheduling/REPORT.md"
+    },
+    {
+      "round": "R09_draft_forward_decomposition",
+      "score": 36,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R09_draft_forward_decomposition/REPORT.md",
+          "line": 9,
+          "text": "- **口径**：同一会话内（8×910B3、DP2×TP4/EP8、`max_model_len=1048576`、`num_speculative_tokens=7`、"
+        },
+        {
+          "path": "rounds/R09_draft_forward_decomposition/REPORT.md",
+          "line": 10,
+          "text": "`enforce_eager=true`、`enable_dsa_cp`+`enable_flashcomm1`、`FULL_DECODE_ONLY`、`--async-scheduling`、"
+        },
+        {
+          "path": "rounds/R09_draft_forward_decomposition/REPORT.md",
+          "line": 121,
+          "text": "| `S5_async_output` | 0.294 | 0.283 | 0.304 | 0.43 | 0.293 | 0.997 | WORK |"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R09_draft_forward_decomposition/REPORT.md"
+    }
+  ]
+}
