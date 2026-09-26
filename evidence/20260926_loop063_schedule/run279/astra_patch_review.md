@@ -1,0 +1,7 @@
+# Run279 independent Astra High patch review
+
+Read-only review of `scripts/loop063_cp_fork_patch.py` rendered source, its actual CP `_forward` and design; no installation or NPU use. The original indexer cache update remains before the fork, main compressor and QLI each execute once, and sparse attention/collectives remain after the join. No definite stream RAW violation was found.
+
+Required corrections, now applied to the preview: Target-only guard includes `get_forward_context().is_draft_model == false` and frozen `model.layers.<0..42>` prefix; a shape-only guard could capture draft calls. The `immediate` mode reverses original indexer→compressor launch order, so A0→immediate includes reordering/cache effects as well as stream overhead. Immediate→overlap holds launch order and auxiliary stream fixed and moves the join; A0→overlap is the product comparison. The visible KV alias audit now also includes a nonempty indexer full cache.
+
+Graph capture is selected by Python/environment at capture time. A first-use log can establish branch selection but not device replay overlap. Each mode requires separate capture identity and actual stream-timeline evidence. The keepalive reference covers compressor output/metadata through join; visible storage audit cannot prove undocumented native workspace safety. One Target c4 layer first, then all21 after correctness, complete Target/cycle timing and full E2E gates. No hardware result or TPS projection follows from this review.

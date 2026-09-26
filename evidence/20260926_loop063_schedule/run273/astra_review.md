@@ -1,0 +1,11 @@
+# Astra High independent scheduling prototype review (2026-09-26)
+
+Read-only review of Loop063 source and Run269 design while Run270 serial 8-rank diagnostic was starting. No file edits or NPU use by the reviewer.
+
+P0 verification blocker: `_verify_scheduled_target()` snapshots candidate metadata, rebuilds serial reference through `active.update`, compares, then lets Target consume the reference. Run270 is parity-only: geometry, RoPE and stable SAS/QLI headers may match, but it does not validate candidate-consumed Target or performance. After comparison, restore all candidate geometry and full 1024-entry SAS/QLI from scratch before Target, then run continuous `verify=0` correctness and performance separately. Stable-header parity does not prove deterministic metadata tails.
+
+The explicit stream ordering is source-sound with high confidence: side waits for advance; scratch writes private tensors; DSpark reads old active state; next main waits for scratch before commit; following scratch launch waits for main; parking drains and invalidates before rewriting counts; cohort exit drains unused scratch. The shared `cu_seqlens_ori_kv`, `cu_seqlens_cmp_kv`, `seqused_q` values are created as empty read-only placeholders in the inspected DSA source. Native SAS/QLI hidden workspace and side-stream reentrancy remain empirical risks.
+
+Before B formal timing, audit actual storage intervals using base storage pointer, offset, shape and stride for scratch writes versus active Target/DSpark/KV; exercise 8-rank c4/c128 and parking/exit with candidate consumed, acceptance/draft/KV gates, invalidation and fallback counts. A versus B isolates scheduling, but A0 versus B decides product value; timing runs must have verification disabled. Measure latest-rank full cycle, DSpark delay, side completion, join/commit, cohorts and actual cycle count. No HCCL order change was found in this metadata path.
+
+A possible larger architecture gap is DSA query/KV/indexer/main-compressor fan-out and sparse-attention join, where hidden-state branches may have avoidable implementation ordering. Its true dependency and resource contention need a separate DAG and Graph-path test; failure of metadata overlap cannot imply a scheduling ceiling. Resource/Hardware bound still lacks compulsory traffic and concurrent capacity.

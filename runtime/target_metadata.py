@@ -108,6 +108,79 @@ class FixedTargetMetadataUpdater:
         self.start_pos = torch.empty(12, dtype=query_start_loc.dtype, device=self._device)
         self._request_index = torch.arange(12, device=self._device).unsqueeze(1)
 
+    def make_scratch(self) -> "FixedTargetMetadataUpdater":
+        """Create private outputs; immutable caches and block tables remain shared."""
+        def private_prefix(tensor: torch.Tensor, count: int) -> torch.Tensor:
+            return torch.empty_like(tensor[:count])
+
+        groups = tuple(CPGroupBinding(
+            ratio=group.ratio,
+            seq_lens=private_prefix(group.seq_lens, 12),
+            input_positions=private_prefix(group.input_positions, 96),
+            start_pos=private_prefix(group.start_pos, 12),
+            local_query_start_loc=private_prefix(group.local_query_start_loc, 13),
+            local_seq_lens=private_prefix(group.local_seq_lens, 12),
+            sas_metadata=private_prefix(group.sas_metadata, 1024),
+            qli_metadata=(None if group.qli_metadata is None else
+                          private_prefix(group.qli_metadata, 1024)),
+            swa_slot_mapping=(None if group.swa_slot_mapping is None else
+                              private_prefix(group.swa_slot_mapping, 96)),
+            swa_block_table=group.swa_block_table,
+            swa_block_size=group.swa_block_size,
+        ) for group in self.groups)
+        rotary = tuple(RotaryBinding(
+            full_cos=binding.full_cos,
+            full_sin=binding.full_sin,
+            target_cos=private_prefix(binding.target_cos, 96),
+            target_sin=private_prefix(binding.target_sin, 96),
+            local_cos=(None if binding.local_cos is None else
+                       torch.empty_like(binding.local_cos)),
+            local_sin=(None if binding.local_sin is None else
+                       torch.empty_like(binding.local_sin)),
+        ) for binding in self.rotary)
+        scratch = FixedTargetMetadataUpdater(
+            tp_rank=self._tp_rank,
+            tp_size=self._tp_size,
+            query_start_loc=self._query_start_loc,
+            groups=groups,
+            rotary=rotary,
+            operators=self.ops,
+        )
+        if scratch._static_kv_max != self._static_kv_max:
+            raise RuntimeError("scratch KV max mode differs from active target")
+        return scratch
+
+    def commit_from(self, scratch: "FixedTargetMetadataUpdater") -> None:
+        """Copy finished private results to stable Graph-addressed destinations."""
+        if len(self.groups) != len(scratch.groups) or len(self.rotary) != len(scratch.rotary):
+            raise RuntimeError("scratch metadata binding count changed")
+        self.start_pos.copy_(scratch.start_pos)
+        self.local_seq_lens.copy_(scratch.local_seq_lens)
+        for active, private in zip(self.rotary, scratch.rotary):
+            active.target_cos[:96].copy_(private.target_cos[:96])
+            active.target_sin[:96].copy_(private.target_sin[:96])
+            if active.local_cos is not None:
+                if private.local_cos is None or private.local_sin is None:
+                    raise RuntimeError("scratch local RoPE storage missing")
+                active.local_cos.copy_(private.local_cos)
+                active.local_sin.copy_(private.local_sin)
+        for active, private in zip(self.groups, scratch.groups):
+            if active.ratio != private.ratio:
+                raise RuntimeError("scratch DSA ratio changed")
+            for name, count in (("seq_lens",12), ("input_positions",96),
+                                ("start_pos",12), ("local_query_start_loc",13),
+                                ("local_seq_lens",12), ("sas_metadata",1024),
+                                ("qli_metadata",1024), ("swa_slot_mapping",96)):
+                destination = getattr(active, name)
+                source = getattr(private, name)
+                if destination is None:
+                    if source is not None:
+                        raise RuntimeError(f"unexpected scratch {name}")
+                    continue
+                if source is None:
+                    raise RuntimeError(f"missing scratch {name}")
+                destination[:count].copy_(source[:count])
+
     def _audit_shadow(self, name: str, static: torch.Tensor,
                       dynamic_a: torch.Tensor, dynamic_c: torch.Tensor,
                       stable_header: int) -> None:

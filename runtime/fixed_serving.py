@@ -93,6 +93,10 @@ class FixedCohortServing:
         ]
         if not slots:
             return
+        # Next-target scratch was computed from the pre-parking token counts.
+        # Finish any side-stream readers before rewinding those counts, then
+        # force the following target to rebuild its geometry and metadata.
+        self.runtime.invalidate_scheduled_metadata()
         # Fixed shape requires parked slots to keep executing. Rewind each to
         # its own reserved KV blocks and freeze its logical output progress.
         positions = [
@@ -147,6 +151,14 @@ class FixedCohortServing:
         else:
             raise RuntimeError("fixed cohort did not reach its output limits")
 
+        # The last speculative preparation has no consumer in this cohort.
+        # Drain its side stream before releasing its private tensors.
+        self.runtime.invalidate_scheduled_metadata()
+        if self.runtime._schedule_mode != "off":
+            print("EXTREME_SCHEDULE_LIFETIME "
+                  f"rank={torch.distributed.get_rank()} "
+                  f"cycles={cycles} counts={self.runtime.schedule_lifetime()}",
+                  flush=True)
         tokens_cpu = token_history[:cycles].cpu()
         counts_cpu = count_history[:cycles].cpu()
         output: list[list[int]] = [[] for _ in range(cfg.batch_size)]

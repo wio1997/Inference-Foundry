@@ -297,6 +297,37 @@ class FixedDecodeRuntime:
         slots.add_(positions.remainder(cfg.block_size))
         state.target_slot_mapping.copy_(slots.flatten().to(torch.int32))
 
+    def prepare_target_ids(self) -> None:
+        """Fill only token IDs after the next DSpark draft has committed."""
+        cfg = self.config
+        state = self.state
+        ids = state.target_input_ids.view(cfg.batch_size, cfg.target_tokens_per_request)
+        ids[:, 0].copy_(state.last_sampled_tokens.to(torch.int32))
+        ids[:, 1:].copy_(state.draft_tokens.to(torch.int32))
+
+    def prepare_target_geometry_to(
+        self,
+        positions: torch.Tensor,
+        seq_lens: torch.Tensor,
+        slot_mapping: torch.Tensor,
+    ) -> None:
+        """Derive target geometry from advanced counts into private storage."""
+        cfg = self.config
+        state = self.state
+        width = cfg.target_tokens_per_request
+        pos = positions.view(cfg.batch_size, width)
+        torch.add(
+            state.num_computed_tokens.to(torch.int64).unsqueeze(1),
+            self._position_offsets,
+            out=pos,
+        )
+        seq_lens.copy_(state.num_computed_tokens + width)
+        logical = torch.div(pos, cfg.block_size, rounding_mode="floor").to(torch.int64)
+        blocks = state.block_table[self._request_index, logical]
+        slots = blocks.to(torch.int64) * cfg.block_size
+        slots.add_(pos.remainder(cfg.block_size))
+        slot_mapping.copy_(slots.flatten().to(torch.int32))
+
     def advance_state(self, acceptance: AcceptanceOutput) -> None:
         """Commit acceptance entirely in fixed device tensors."""
 

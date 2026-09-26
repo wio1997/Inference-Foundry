@@ -52,8 +52,10 @@
 
 - `2026-09-26T02:52:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run268`（design-check）。
 
-- `2026-09-26T02:52:05Z` Run `run268` 记录为 `pass`；正确性为 `not-applicable`。Candidate/control medians differ +11.282 tok/s, but per-pass latest-rank runtime normalized to observed cycles is -0.660/-0.093/+0.671 ms per cycle and client residual shifts; exposed wall benefit not established
+- `2026-09-26T02:52:05Z` Run `run268` 记录为 `pass`；正确性为 `not-applicable`。Candidate/control medians differ +11.282 tok/s, but per-pass latest-rank runtime normalized to observed cycles is -0.093/+0.671/-0.150 ms per cycle and client residual shifts; exposed wall benefit not established
 
 - `2026-09-26T02:52:34Z` 已记录对比（`comparable=yes`）：Same frozen formal protocol and host; candidate median +11.282 tok/s but sequential runs have trajectory and prefill residual variation, and normalized runtime cost has mixed signs; resource removal causal, E2E benefit unresolved
 
 - `2026-09-26T02:53:35Z` 主控结论为 `PIVOTED`。Causal DSpark-unused MTP stash traffic/collective removal passed correctness, but same-host repeated formal median advantage is confounded; normalized runtime per cycle has mixed signs. Numeric resource and scheduling bounds remain unknown. Pivot to complete execution dependency scheduling rather than promoting an unproved TPS gain.
+
+- `2026-09-26T03:25:00Z` Run268 clerical correction: the first comparison incorrectly aligned formal pass1 with warmup cohorts1–4. Corrected script and compare.json now use formal cohorts5–8/9–12/13–16. Result summary numbers and docs were updated; TPS samples and PIVOT verdict unchanged. See `evidence/20260926_loop062_nongmm/run268/correction.md`.

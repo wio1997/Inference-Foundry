@@ -183,4 +183,9 @@ def build_extreme_runtime(
         target_metadata=metadata_updater,
         kv_slot_audit=kv_slot_audit,
         target_page_audit=target_page_audit,
+        protected_kv_tensors=(
+            tuple(cache.tensor for cache in target_handoff.assets.caches)
+            if os.getenv("EXTREME_SCHEDULE_NEXT_TARGET_METADATA", "off") != "off"
+            else ()
+        ),
     )

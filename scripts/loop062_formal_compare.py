@@ -17,7 +17,7 @@ def load(root: Path):
     passes=[]
     for index in range(3):
         cohorts=[]
-        for cohort in range(1+4*index,5+4*index):
+        for cohort in range(5+4*index,9+4*index):
             x=rows[cohort]
             cycle_values={r["cycles"] for r in x}
             assert len(cycle_values)==1
