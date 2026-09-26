@@ -53,3 +53,7 @@
 - `2026-09-26T21:08:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run341`（profile）。
 
 - `2026-09-26T21:30:38Z` Run `run341` 记录为 `pass`；正确性为 `not-applicable`。Original 48+48 all8 FULL Graph/exact1024,35 allrank forward calls;26 natural prompt-bearing1-3 request calls Host max353-384ms/current-stream354-411ms, no incremental refill or seed-ready; source restored, exit0
+
+- `2026-09-26T21:36:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run342`（design-check）。
+
+- `2026-09-26T21:43:57Z` Run `run342` 记录为 `pass`；正确性为 `not-applicable`。Source audit confirmed Current bulk-return prevents real b3 arrival; corrected Dual-Bound model and selected segmented-publication continuation gate. No service or E2E claim.

@@ -1,0 +1,432 @@
+{
+  "query": "scheduler output early return refill",
+  "source_commit": "db3beef223e0b5acd81ccccb444600c1b22aac8a",
+  "results": [
+    {
+      "round": "R06_dp_prefill_padding_accounting",
+      "score": 69,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 1,
+          "text": "# TASK.md —— R06 DP prefill padding accounting"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 3,
+          "text": "**TASK_ID: R06_DP_PREFILL_PADDING_ACCOUNTING**"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 7,
+          "text": "本轮最终只回答一个问题：在冻结配置的代表性 concurrency=12 prefill 调度中，DP2 跨 rank 取最大值、FlashComm1 TP4 对齐与 DSA-CP 切分，是否造成足够大的无效 forward token slots，值得下一轮研究调度/实现优化？"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 1,
+          "text": "# R06 — DP prefill padding accounting (DP2 × TP4, FlashComm1 SP, DSA-CP)"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 3,
+          "text": "Date: 2026-09-12 (Asia/Shanghai). Round task: `current/TASK.md` = `R06_DP_PREFILL_PADDING_ACCOUNTING`."
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 4,
+          "text": "Executor: ZCode (on-site). Evidence: `results/r06_dp_prefill_padding_accounting/evidence/`."
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R06_dp_prefill_padding_accounting/REPORT.md"
+    },
+    {
+      "round": "R36_remove_async_dspark_scheduler_deepcopy",
+      "score": 67,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 1,
+          "text": "# R36 — 移除 async DSpark 冗余 SchedulerOutput deepcopy"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 3,
+          "text": "> 状态：CLOSED / REVERT。单一候选：在 `NPUModelRunner.execute_model` 的 async-scheduling + speculative decode + `_draft_token_ids is None` 分支移除整棵 `scheduler_output` 的 `deepcopy`；保留 PP 专用的独立 copy 分支。"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 7,
+          "text": "`R36_remove_async_dspark_scheduler_deepcopy`"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 1,
+          "text": "# INVESTIGATION R36 — async DSpark SchedulerOutput deepcopy"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 5,
+          "text": "**REVERT**。候选来自上游 v0.26 后 `92ea871b2/#14643`：删除 `NPUModelRunner.execute_model` 中 async speculative、`_draft_token_ids is None` 时对整棵 `scheduler_output` 的 deepcopy。静态上当前协议已由 worker draft tensor + EngineCore 更新 token，PP=1 的冻结路径也不需要借副本保护 mutatio"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/RESULT.md",
+          "line": 1,
+          "text": "# R36 RESULT — 移除 async DSpark SchedulerOutput deepcopy"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md"
+    },
+    {
+      "round": "R32_flashcomm1_dp_identity_prefill_fastpath",
+      "score": 65,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R32_flashcomm1_dp_identity_prefill_fastpath/TASK.md",
+          "line": 1,
+          "text": "# R32 — FlashComm1 DP2 identity reorder/restore fast-path（prefill）"
+        },
+        {
+          "path": "rounds/R32_flashcomm1_dp_identity_prefill_fastpath/TASK.md",
+          "line": 3,
+          "text": "> 状态：ACTIVE。单一融合候选；复用 R14 已验证正确性的最小实现，只评估 R30 新暴露出的冷 32K prefill device-copy 收益。"
+        },
+        {
+          "path": "rounds/R32_flashcomm1_dp_identity_prefill_fastpath/TASK.md",
+          "line": 7,
+          "text": "`R32_flashcomm1_dp_identity_prefill_fastpath`"
+        },
+        {
+          "path": "rounds/R32_flashcomm1_dp_identity_prefill_fastpath/REPORT.md",
+          "line": 1,
+          "text": "# R32 — FlashComm1 DP2 identity prefill fast-path"
+        },
+        {
+          "path": "rounds/R32_flashcomm1_dp_identity_prefill_fastpath/REPORT.md",
+          "line": 5,
+          "text": "R30 新暴露出 cold-32K prefill 每个完整 chunk 约 18.9 ms 的 TensorMove。对 DP2 等长且无 slack 的 FlashComm1 布局，all-gather 后的 unpad/reorder 与 reduce-scatter 前的 pad/restore 都是严格 identity。复用 R14/R15 已验证的 strict predicate，命中时直接复用原 tensor，消除每层大 tensor copy、分配和 la"
+        },
+        {
+          "path": "rounds/R32_flashcomm1_dp_identity_prefill_fastpath/REPORT.md",
+          "line": 9,
+          "text": "最终代码删除 A/B switch，只保留 strict identity fast-path。完整证据见 `results/r32_flashcomm1_dp_identity_prefill_fastpath/evidence/RESULT.final.md`。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R32_flashcomm1_dp_identity_prefill_fastpath/REPORT.md"
+    },
+    {
+      "round": "R02_a1_a2_dspark_swa_markov",
+      "score": 37,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 43,
+          "text": "`return envs.VLLM_USE_V2_MODEL_RUNNER if not None else False` —— **上游\"method==dspark 强制走 V2\"的规则在 Ascend 上被绕过**。"
+        },
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 162,
+          "text": "- 对照冻结协议的判定分辨率：v1 报告写 ±5%，而实测同配置两次运行 **output_throughput 差 19%**（§6）→ **即使把这 0.4% 全部拿到，也无法在正式协议下被测量出来**。"
+        },
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 196,
+          "text": "| 运行 | max_model_len | TTFT avg | TPOT avg | benchmark 时长 | output_throughput |"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R02_a1_a2_dspark_swa_markov/REPORT.md"
+    },
+    {
+      "round": "R03_c1_residual_clone",
+      "score": 37,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R03_c1_residual_clone/REPORT.md",
+          "line": 4,
+          "text": "- 目标：先确认这两处 clone 在**当前实际 V1 服务的 32K prefill 路径**中真实执行，再回答"
+        },
+        {
+          "path": "rounds/R03_c1_residual_clone/REPORT.md",
+          "line": 5,
+          "text": "① 实际耗时、占 prefill / TTFT 多少；② 能否安全改成 `residual = hidden_states` 而不改变数值。"
+        },
+        {
+          "path": "rounds/R03_c1_residual_clone/REPORT.md",
+          "line": 6,
+          "text": "- 判定口径：**只看 TTFT / prefill**，不看 output throughput（用户要求）。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R03_c1_residual_clone/REPORT.md"
+    },
+    {
+      "round": "R29_dsa_cp_a2_prefill_o_proj_weight_switch",
+      "score": 56,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/TASK.md",
+          "line": 1,
+          "text": "# R29 — DSA-CP A2 prefill full o-proj weight switch"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/TASK.md",
+          "line": 3,
+          "text": "> **状态：COMPLETE / KEEP（2026-09-14）**。本轮只推进消除 DSA-CP prefill"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/TASK.md",
+          "line": 8,
+          "text": "`R29_dsa_cp_a2_prefill_o_proj_weight_switch`"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/REPORT.md",
+          "line": 1,
+          "text": "# INVESTIGATION R29 — DSA-CP A2 prefill full o-proj weight switch"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/REPORT.md",
+          "line": 22,
+          "text": "`wo_a` 和 `wo_b` 的分片轴不同，因此不能只删除 A5 条件：前者沿 output dim0，后者沿 input dim1；"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/REPORT.md",
+          "line": 32,
+          "text": "`results/r29_dsa_cp_a2_prefill_o_proj_weight_switch/evidence/`。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/REPORT.md"
+    },
+    {
+      "round": "R30_post_r29_prefill_device_critical_path",
+      "score": 55,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R30_post_r29_prefill_device_critical_path/TASK.md",
+          "line": 1,
+          "text": "# R30 — R29 后 32K prefill device critical-path rediscovery"
+        },
+        {
+          "path": "rounds/R30_post_r29_prefill_device_critical_path/TASK.md",
+          "line": 7,
+          "text": "`R30_post_r29_prefill_device_critical_path`"
+        },
+        {
+          "path": "rounds/R30_post_r29_prefill_device_critical_path/TASK.md",
+          "line": 11,
+          "text": "在 R17、R20、R29 三项 KEEP 同时生效的真实生产路径上，对冻结冷 32K chunked prefill 采集一条最小 device timeline，找出 R29 删除输出 activation A2A、改为权重 all-gather 后新的最大暴露 critical-path block。本轮只能选择一个后续候选。"
+        },
+        {
+          "path": "rounds/R30_post_r29_prefill_device_critical_path/REPORT.md",
+          "line": 1,
+          "text": "# R30 — Post-R29 32K prefill device critical path"
+        },
+        {
+          "path": "rounds/R30_post_r29_prefill_device_critical_path/REPORT.md",
+          "line": 3,
+          "text": "R30 的完整结论见 `results/r30_post_r29_prefill_device_critical_path/evidence/RESULT.final.md`。"
+        },
+        {
+          "path": "rounds/R30_post_r29_prefill_device_critical_path/RESULT.md",
+          "line": 1,
+          "text": "# R30 RESULT — R29 后 32K prefill device critical-path rediscovery"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R30_post_r29_prefill_device_critical_path/REPORT.md"
+    },
+    {
+      "round": "R27_post_keep_prefill_device_critical_path",
+      "score": 54,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R27_post_keep_prefill_device_critical_path/TASK.md",
+          "line": 1,
+          "text": "# R27 — R17+R20 后 32K prefill device critical-path rediscovery"
+        },
+        {
+          "path": "rounds/R27_post_keep_prefill_device_critical_path/TASK.md",
+          "line": 8,
+          "text": "`R27_post_keep_prefill_device_critical_path`"
+        },
+        {
+          "path": "rounds/R27_post_keep_prefill_device_critical_path/TASK.md",
+          "line": 13,
+          "text": "真实代码状态上，对冻结冷 32K chunked prefill 采一条最小 device timeline，选择优化后新的最大暴露"
+        },
+        {
+          "path": "rounds/R27_post_keep_prefill_device_critical_path/REPORT.md",
+          "line": 1,
+          "text": "# R27：R17+R20 后 32K prefill device critical path"
+        },
+        {
+          "path": "rounds/R27_post_keep_prefill_device_critical_path/REPORT.md",
+          "line": 6,
+          "text": "8096-token chunk 暴露 124–147 ms（14%–16%）。它是 routed output 到 residual/下一层的硬依赖，"
+        },
+        {
+          "path": "rounds/R27_post_keep_prefill_device_critical_path/RESULT.md",
+          "line": 1,
+          "text": "# R27 RESULT — R17+R20 后 32K prefill device critical-path rediscovery"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R27_post_keep_prefill_device_critical_path/REPORT.md"
+    },
+    {
+      "round": "R08_decode_postprocess_decomposition",
+      "score": 26,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 20,
+          "text": "`docs/RECON_prefill_forward_decomposition.md` §5 第 ② 行同样把该候选标为\"TPOT 口径抖动仅 ±4%，结论更可靠\"。"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 44,
+          "text": "| 输出封装 | `AsyncGPUModelRunnerOutput(...)` + `set_async_sampled_token_ids(...)` | `:2435-2447` |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 56,
+          "text": "| 每次 `build_for_drafting` 的设备/主机动作（`dsa_cp.py`）：CPU 镜像长度 → `positions.long()` → `get_cos_and_sin_dsa(use_cache=False)` → `format_dsa_slot_mapping` → local token metadata（含 device 张量 clone）→ SAS metadata →（compressor 分支仅 prefill/ratio>1，draf"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 31,
+          "text": "| D6 输出封装/异步 D2H/状态更新（`:2435/:1460/:2392`） | `S5_async_output` 0.285 ms（S6 无数据） | 0.43% | 0.285 ms = **0.43%** | <5% |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 63,
+          "text": "（TTFT 4528/735/721 ms，DP1 组冷 prefill），pass 2 tag `r08b`（复跑，用于补上宿主 CPU 旁路，"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 92,
+          "text": "| └ `S5_async_output` | 0.285 | 0.276 | 0.300 | 0.43 | 0.287 | 1.007 | WORK |"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R08_decode_postprocess_decomposition/REPORT.md"
+    },
+    {
+      "round": "R13_target_attn_metadata",
+      "score": 26,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 36,
+          "text": "R07（DSA-CP drafting metadata 跨 group 复用）、R04/R05（QLI `.item()`）、R06（DP prefill padding）、"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 92,
+          "text": "`results/r11_draft_moe_op_decomp/profile/dp0_pp0_tp0_dcp0_ep0_rank0_83899_20260912230255222_ascend_pt/ASCEND_PROFILER_OUTPUT/trace_view.json`"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 187,
+          "text": "5. 本区域在**其他负载形态**（长 prefill、混合 batch、更大并发）下是否仍是同一成本结构**未测**；"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/RESULT.md",
+          "line": 282,
+          "text": "窗口 35–44 ms → 属 target/prefill。"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/RESULT.md",
+          "line": 308,
+          "text": "| profile 采集 | 8 个 rank 全部导出 `ASCEND_PROFILER_OUTPUT/`（离线 `analyse()`，非 daemon 进程） |"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/RESULT.md",
+          "line": 339,
+          "text": "5. **部分未解释**：1977 次 MoE 前向 vs rank0 上 1196 次同构 kernel 启动（差 781，应为 prefill/warmup"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R13_target_attn_metadata/REPORT.md"
+    },
+    {
+      "round": "R25_dsv4_rmsnorm_fp32_cast_fusion",
+      "score": 26,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R25_dsv4_rmsnorm_fp32_cast_fusion/TASK.md",
+          "line": 33,
+          "text": "5. R16 prefill trace 中全部 RMSNorm 约 5.4 ms/chunk；相关 cast 只是 `aclnnInplaceCopy` 族的一部分，"
+        },
+        {
+          "path": "rounds/R25_dsv4_rmsnorm_fp32_cast_fusion/TASK.md",
+          "line": 34,
+          "text": "因而 prefill 收益上限预计较小，不作为主要立项依据。"
+        },
+        {
+          "path": "rounds/R25_dsv4_rmsnorm_fp32_cast_fusion/REPORT.md",
+          "line": 13,
+          "text": "生成 BF16 normalized output 和它的 exact FP32 widening，理论上每层减少一个 standalone cast kernel、"
+        },
+        {
+          "path": "rounds/R25_dsv4_rmsnorm_fp32_cast_fusion/REPORT.md",
+          "line": 33,
+          "text": "| tokens | baseline µs | fused µs | saved µs | speedup | low output |"
+        },
+        {
+          "path": "rounds/R25_dsv4_rmsnorm_fp32_cast_fusion/REPORT.md",
+          "line": 46,
+          "text": "节省约 40µs/层，足以进入服务验证；大 prefill shape 的局部退化约 43×35µs≈1.5ms/chunk，不能单凭"
+        },
+        {
+          "path": "rounds/R25_dsv4_rmsnorm_fp32_cast_fusion/RESULT.md",
+          "line": 17,
+          "text": "output throughput `45.4413→48.2614 tok/s`（以 baseline→candidate 口径，候选退化 **5.84%**）。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R25_dsv4_rmsnorm_fp32_cast_fusion/REPORT.md"
+    },
+    {
+      "round": "R31_r29_o_proj_weight_ag_scheduling",
+      "score": 26,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 11,
+          "text": "调整 R29 A2 prefill full o-proj 的 wo_a/wo_b 两次 TP all-gather 相对 hidden-state all-gather、Q 链和后续 attention 的启动次序，减少同一 TP communicator 上的串行/竞争以及 `_switch_o_proj_to_full_weight()` 前的等待尾部。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 22,
+          "text": "1. 冻结路径为 DSV4 Flash W4A8_DYNAMIC、DP2×TP4/EP8、DSA-CP、FlashComm1、32K chunked prefill。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 40,
+          "text": "保守上限是 R30 中可归因于新 weight gather 的剩余暴露尾部，约 10–37 ms/chunk（约 1.3%–4.8%）。它属于 R29 同一机制优化族，不以单点 5% 直接淘汰；最终只有真实 TTFT/prefill period 正向才 KEEP。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/REPORT.md",
+          "line": 5,
+          "text": "在实际 TP4 production shapes 上，比较 current、early-both、stagger 三种调度，并扫 0/1/2/4 段后续计算窗口。全部 gather 内容逐元素正确；但提前启动只在反序无 tail 情况偶发 1–2% 小收益，正序不复现。tail2/tail4 的 device 与 wall、正反顺序全部退化，最大约 7.5%。原因是更早 enqueue 增加了 TP collective 与 Q/后续 device work 的竞争，现有 "
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/RESULT.md",
+          "line": 16,
+          "text": "- 三种 arm：`current`、`early_both`、`stagger`；后续计算窗口 `t={0,1,2,4}`。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/RESULT.md",
+          "line": 24,
+          "text": "| metric / round | tail | early_both | stagger |"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R31_r29_o_proj_weight_ag_scheduling/REPORT.md"
+    }
+  ]
+}
