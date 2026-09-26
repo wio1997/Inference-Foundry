@@ -1,0 +1,215 @@
+{
+  "query": "dynamic batch admission",
+  "source_commit": "db3beef223e0b5acd81ccccb444600c1b22aac8a",
+  "results": [
+    {
+      "round": "R12_draft_attention_qkv",
+      "score": 26,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R12_draft_attention_qkv/REPORT.md",
+          "line": 75,
+          "text": "| 2 | `wq_a` / `q_norm` / `wq_b` | `dsa_cp.py:1424–1469` | 每层：`npu_dynamic_quant` ×1 + `npu_quant_matmul` ×1（wq_a）→ `npu_rms_norm_dynamic_quant` ×1 → `npu_quant_matmul` ×1（wq_b）。kernel 证据：`QuantBatchMatmulV3` `\"2,4096;32,256,16,32;1024;2\" -"
+        },
+        {
+          "path": "rounds/R12_draft_attention_qkv/REPORT.md",
+          "line": 78,
+          "text": "| 5 | kv 投影 + norm + scatter | `dsa_cp.py:1484–1487`、`:1495` | `npu_dynamic_quant`（kv 侧）+ `npu_quant_matmul`（wkv）×1/层；`npu_rms_norm` ×1/层，kernel `RmsNorm` `\"8,512;512\" -> \"8,512;8,1\"`；`npu_scatter_nd_update_v2` ×1/层，kernel `ScatterNdUpdateV"
+        },
+        {
+          "path": "rounds/R12_draft_attention_qkv/REPORT.md",
+          "line": 87,
+          "text": "| `q_norm` + per-token 动态量化融合成 1 个 op | `npu_rms_norm_dynamic_quant` ×1/层，权重直接传 `self.q_norm.weight`（`dsa_cp.py:1428`） | 归一化与量化**已合并**，且不物化独立权重张量 |"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R12_draft_attention_qkv/REPORT.md"
+    },
+    {
+      "round": "R16_prefill_device_forward_candidate",
+      "score": 26,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R16_prefill_device_forward_candidate/REPORT.md",
+          "line": 30,
+          "text": "`--enable-prefix-caching`、`max_num_batched_tokens=8192`、`max_model_len=1048576`、`block_size=32`。"
+        },
+        {
+          "path": "rounds/R16_prefill_device_forward_candidate/REPORT.md",
+          "line": 98,
+          "text": "2. Q 链（只用 LOCAL hidden）：wq_a quant → wq_a mm → npu_rms_norm_dynamic_quant"
+        },
+        {
+          "path": "rounds/R16_prefill_device_forward_candidate/REPORT.md",
+          "line": 106,
+          "text": "8. wo_a（TransposeBatchMatMul + MatMulV3）→ wo_b → maybe_pad_and_reduce  → TP RS (dom503)"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R16_prefill_device_forward_candidate/REPORT.md"
+    },
+    {
+      "round": "R13_target_attn_metadata",
+      "score": 25,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 48,
+          "text": "| 模型 / 量化 | DeepSeek-V4-Flash-0731-w4a8（`W4A8_DYNAMIC`） | `HANDOFF.md` §1 |"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 52,
+          "text": "| 其它 | `enable_dsa_cp=true`、`enable_flashcomm1=true`、`multistream_overlap_shared_expert=true`、`FULL_DECODE_ONLY`、`--async-scheduling`、`--enable-prefix-caching`、`max_model_len=1048576`、`max_num_batched_tokens=8192`、`block_size=32` | 同上 |"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 157,
+          "text": "`vllm/v1/worker/gpu_input_batch.py` 的 `BlockTable.slot_mapping` / `get_device_tensor()`："
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 187,
+          "text": "5. 本区域在**其他负载形态**（长 prefill、混合 batch、更大并发）下是否仍是同一成本结构**未测**；"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/RESULT.md",
+          "line": 98,
+          "text": "`vllm/v1/worker/gpu_input_batch.py`；GitHub API 查该文件 `since=2026-09-01` 仅 1 个无关提交"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/RESULT.md",
+          "line": 162,
+          "text": "**【事实】该段已高度融合、无结构性缺口**：`npu_rms_norm_dynamic_quant`（q_norm+量化合并、权重直接传）、"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R13_target_attn_metadata/REPORT.md"
+    },
+    {
+      "round": "R31_r29_o_proj_weight_ag_scheduling",
+      "score": 25,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 22,
+          "text": "1. 冻结路径为 DSV4 Flash W4A8_DYNAMIC、DP2×TP4/EP8、DSA-CP、FlashComm1、32K chunked prefill。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 48,
+          "text": "2. 每个 arm 计时必须包含所有 handle wait 与最终 device synchronize；固定 warmup，正反 arm 顺序，各至少 5 batch×6 iter。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/TASK.md",
+          "line": 49,
+          "text": "3. 所有 rank 校验 hidden、wo_a、wo_b gather 结果；记录各 rank raw iteration、batch median、跨 rank max wall。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/RESULT.md",
+          "line": 15,
+          "text": "- Q 链复用 R20/R29 的 production-shape dynamic-quant + 两段 quant-matmul。"
+        },
+        {
+          "path": "rounds/R31_r29_o_proj_weight_ag_scheduling/RESULT.md",
+          "line": 17,
+          "text": "- warmup=5；正反 arm 顺序各一轮；每轮 7 batch×8 iter；计时包含全部 handle wait。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R31_r29_o_proj_weight_ag_scheduling/REPORT.md"
+    },
+    {
+      "round": "R21_dsa_cp_compressor_wkv_overlap",
+      "score": 23,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R21_dsa_cp_compressor_wkv_overlap/REPORT.md",
+          "line": 18,
+          "text": "- 独立工作：`[8096,4096] BF16` dynamic quant + W4A8 quant matmul。"
+        },
+        {
+          "path": "rounds/R21_dsa_cp_compressor_wkv_overlap/REPORT.md",
+          "line": 22,
+          "text": "- 测量：NPU Event，两轮反序，每轮 5 个 batch、每 batch 10 次；完整有效 Compressor 输出和主链输出"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R21_dsa_cp_compressor_wkv_overlap/REPORT.md"
+    },
+    {
+      "round": "R35_mixed_dtype_ep_allgather_coalescing",
+      "score": 23,
+      "matched_terms": 2,
+      "snippets": [
+        {
+          "path": "rounds/R35_mixed_dtype_ep_allgather_coalescing/TASK.md",
+          "line": 16,
+          "text": "2. W4A8_DYNAMIC 不在 prepare 的预量化分支，因此首个最小候选只有 hidden states 与 router logits 两个 tensor，没有 per-token scale。"
+        },
+        {
+          "path": "rounds/R35_mixed_dtype_ep_allgather_coalescing/REPORT.md",
+          "line": 11,
+          "text": "代码入口是 `vllm_ascend/ops/fused_moe/prepare_finalize.py:_prepare_with_ep_group`：W4A8_DYNAMIC 路径连续对 hidden states 和 router logits 调用 `maybe_all_gather_and_maybe_unpad(..., is_ep_comm=True)`。R32 在严格 identity DP 布局下跳过 reorder/restore，但不合并两个 custo"
+        },
+        {
+          "path": "rounds/R35_mixed_dtype_ep_allgather_coalescing/REPORT.md",
+          "line": 25,
+          "text": "- 环境：8×910B3，HCCL world=8；30 warmup、120 alternating windows、batch=10。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R35_mixed_dtype_ep_allgather_coalescing/REPORT.md"
+    },
+    {
+      "round": "R02_a1_a2_dspark_swa_markov",
+      "score": 13,
+      "matched_terms": 1,
+      "snippets": [
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 102,
+          "text": "- 【事实】N = 该步调度到的上下文 token 数（`dspark_proposer.py:280 _dflash_num_context = cad.query_start_loc_cpu[batch_size]`），解码期就是这一小批 token，不是整段上下文。"
+        },
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 186,
+          "text": "> `max_num_scheduled_tokens is set to 8096 based on the speculative decoding settings. This may lead to suboptimal performance. Consider increasing max_num_batched_tokens to accommodate the additional draft token slots, or decrease num_spec"
+        },
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 188,
+          "text": "即当前 `max-num-batched-tokens=8192` 与 DSpark=7 组合下，调度 token 预算被压到 8096。这是**服务配置项**，属冻结基线定义（改动需重测基线），本轮不动，仅记录。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R02_a1_a2_dspark_swa_markov/REPORT.md"
+    },
+    {
+      "round": "R06_dp_prefill_padding_accounting",
+      "score": 13,
+      "matched_terms": 1,
+      "snippets": [
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 15,
+          "text": "- `model_runner_v1.py:_determine_batch_execution_and_padding()` 先对本 DP rank 的 scheduled tokens 做 TP4 对齐，再由 `_sync_metadata_across_dp()` 在 CPU group 上收集各 DP rank 数量；`enable_sp=true` 使两个 DP rank 的 `batch_desc.num_tokens` 取跨 rank 最大值。"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 42,
+          "text": "- `_determine_batch_execution_and_padding()`"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 87,
+          "text": "- 至少记录：monotonic timestamp、PID、iteration sequence、DP rank、TP rank、prefill-containing/decode-only/dummy、`scheduler_actual`、TP4 对齐后的 `pre_dp_tokens`、CPU collective 中 padding 前的各 DP rank counts、`dp_max_tokens`、`batch_desc.num_tokens`/`num_toke"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 49,
+          "text": "-> batch_descriptor.num_tokens = p = num_tokens_padded"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R06_dp_prefill_padding_accounting/REPORT.md"
+    }
+  ]
+}

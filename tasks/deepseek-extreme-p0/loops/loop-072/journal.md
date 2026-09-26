@@ -21,3 +21,17 @@
 - `2026-09-26T17:04:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run323`（simulation）。
 
 - `2026-09-26T17:05:03Z` Run `run323` 记录为 `pass`；正确性为 `not-applicable`。Read-only Run287 mask remap: 579/678 parked cycles retain max local12, only 99/1496 cycles below12; 2.875% is max-local row-linear screening proxy, not E2E bound.
+
+- `2026-09-26T17:13:14Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run324`（design-check）。
+
+- `2026-09-26T17:13:14Z` Run `run324` 记录为 `pass`；正确性为 `not-applicable`。Astra High and Sol source gate passed: existing ALLGATHER prepares global96, routed apply token axes x/router_logits/per-token scale can select active48, restore routed96 before original finalize; all-rank trigger and SHA restore syntax pass. No service or candidate parity.
+
+- `2026-09-26T17:13:14Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run325`（test）。
+
+- `2026-09-26T17:33:22Z` Run `run325` 记录为 `invalid`；正确性为 `invalid`。8-rank private routed96-to48-to96 B executed with finite active output; original A/A_repeat and A/A2 non-bit-exact all ranks (0.0039-0.0078 max), so checker exit1 and B semantic gate inconclusive. 12x1024 carrier passed; source restored/cards idle.
+
+- `2026-09-26T17:41:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run326`（test）。
+
+- `2026-09-26T18:02:09Z` Run `run326` 记录为 `pass`；正确性为 `invalid`。All8 private full-MoE Graph screen completed; B post-gather routed48 is 10/10 slower than independent A/A2 paired controls (median +49.585us max-rank), only 1/7 nonempty ranks within predeclared numerical control envelope; REJECT this implementation, pivot gate placement; no bound or formal E2E update
+
+- `2026-09-26T18:05:15Z` 主控结论为 `PIVOTED`。Run326 all8 same-prestate complete MoE Graph A/A_repeat/B/A2 showed routed48 B slower than independent A controls in 10/10 paired max-rank endpoints, median +49.585us; numerical control envelope failed on 6/7 nonempty ranks. Reject this implementation, not all parked schedules or a hardware bound.
