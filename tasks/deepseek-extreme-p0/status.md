@@ -6,13 +6,13 @@
 - 开发框架：`vllm-ascend`
 - 状态：`ACTIVE`
 - 阶段：`DESIGNING`
-- 活动 Loop：`loop-067`
+- 活动 Loop：`NONE`
 - 已接受基线：`NONE`
 - 证据成熟度：`E1_RUNNABLE`
 - 用例数：`3`
-- 当前知识条目：`18`
-- 下一步：Inspect Run299 registry and sampled pre-target metadata, then classify byte intervals and decide minimal value gate
-- 更新时间：`2026-09-26T11:51:31Z`
+- 当前知识条目：`19`
+- 下一步：Run304 one-layer full three-producer same-prestate private A/A/B/A Sparse and typed state value gate; if pass, one private Graph downstream cost screen
+- 更新时间：`2026-09-26T12:58:09Z`
 
 ## 最近 Loop
 
@@ -29,7 +29,7 @@
 | `loop-064` | `PIVOTED` | `PIVOTED` | Run284 local CP overlap advanced matched join but Run285 numerical gate is inconclusive; Run287 original FULL Graph confirms 16 owner full update rows per rank over 11968 rank-cycles yet native/lifetime consumers remain open. Astra High independently selects H003 hidden AllGather and local Q overlap as shorter-closure next scheduling test. No E2E gain or numeric ceiling. |
 | `loop-065` | `PIVOTED` | `PIVOTED` | H003 delayed hidden gather overlaps local Q on all8 and advances one-layer next AllToAll by paired median10.125us versus async-immediate; full Target/cycle and Product gain unproven, same-state typed parity pending. Run287 owner and parking evidence suggests larger architectural gap |
 | `loop-066` | `PIVOTED` | `PIVOTED` | Run296 typed consumer semantics pass, Run297 eager no stable gain, Run298 private Graph small gain below control drift; owner16 immediate method remains valid locally but complete producer/lifetime and Product gain unproved |
-| `loop-067` | `EVALUATING` | `PENDING` | 审查 Run run299 的证据，并判断是否需要更多 Run |
+| `loop-067` | `PIVOTED` | `PIVOTED` | Sampled storage liveness census plus source-bound state window removes concrete cross-layer RAW obstacle; persistent full-producer correctness and wall benefit still unproved |
 
 ## 阻塞项
 

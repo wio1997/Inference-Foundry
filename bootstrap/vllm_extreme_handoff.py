@@ -153,7 +153,20 @@ def build_extreme_runtime(
         (output_dir / f"rank{inputs.target_tp_rank}.json").write_text(
             json.dumps(payload, indent=2) + "\n")
     target_page_audit = None
+    if os.getenv("EXTREME_CROSS_LAYER_LIVENESS_DIR"):
+        from diagnostics.cross_layer_liveness_census import CrossLayerLivenessCensus
+        target_page_audit = CrossLayerLivenessCensus(
+            static_context=inputs.target.vllm_config.compilation_config.static_forward_context,
+            attn_metadata=target_handoff.attn_metadata,
+            target_model=inputs.target.model,
+            proposer=inputs.dspark.proposer,
+            metadata_sources=inputs.target_metadata_sources,
+            output_dir=os.environ["EXTREME_CROSS_LAYER_LIVENESS_DIR"],
+            rank=int(inputs.target_tp_rank),
+        )
     if os.getenv("EXTREME_STORAGE_LIVENESS_DIR"):
+        if target_page_audit is not None:
+            raise ValueError("only one liveness diagnostic may be enabled")
         from diagnostics.storage_liveness_census import StorageLivenessCensus
         target_page_audit = StorageLivenessCensus(
             static_context=inputs.target.vllm_config.compilation_config.static_forward_context,
