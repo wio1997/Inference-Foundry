@@ -6,7 +6,7 @@ RUN_ID=${3:?run id required}
 case "$MODE" in immediate|overlap) ;; *) exit 64 ;; esac
 case "$SCOPE" in one|all) ;; *) exit 64 ;; esac
 ROOT=/data/wio/Inference_Foundry
-OUT="$ROOT/evidence/20260926_loop063_schedule/$RUN_ID"
+OUT="$ROOT/evidence/20260926_loop064_cp/$RUN_ID"
 DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl
 PATCH="$ROOT/scripts/loop063_cp_fork_patch.py"
 mkdir -p "$OUT/runtime"

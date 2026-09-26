@@ -25,6 +25,13 @@ class TargetPageAudit:
             raise ValueError("continuous page audit cannot self-replay every cycle")
         self.pending_snapshot = None
         self.pending_metadata = None
+        self.ownership_probe = os.getenv("EXTREME_CP_OWNERSHIP_PROBE") == "1"
+        if self.ownership_probe:
+            number = getattr(TargetPageAudit, "_ownership_cohort_seq", 0)
+            TargetPageAudit._ownership_cohort_seq = number + 1
+            self.ownership_cohort_seq = number
+            self._ownership_previous = {}
+            self._ownership_last_cycle = -1
         self.table_to_gid = {
             int(table.data_ptr()): gid
             for gid, (table, _mapping, _size) in enumerate(group_bindings)
@@ -201,7 +208,118 @@ class TargetPageAudit:
         return records
 
     @torch.inference_mode()
-    def observe(self, cycle):
+    def observe_ownership(self, cycle, state):
+        """Read-only fixed-c12 request-owner and physical-frontier census."""
+        if cycle != self._ownership_last_cycle + 1:
+            raise RuntimeError("ownership probe cycle discontinuity")
+        self._ownership_last_cycle = cycle
+        name = "model.layers.2.self_attn.attn"
+        req = self.attn_metadata[name].req_metadata
+        cp = req.cp_metadata
+        n = int(req.num_reqs_actual)
+        if n != 12 or int(self.attn_metadata[name].num_actual_tokens) != 96:
+            raise RuntimeError("ownership probe frozen target shape changed")
+
+        def values(tensor, count=None):
+            if tensor is None:
+                return None
+            if count is not None:
+                tensor = tensor[:count]
+            return tensor.to("cpu", dtype=torch.int64).flatten().tolist()
+
+        qsl = values(req.query_start_loc, n + 1)
+        local_qsl = values(cp.local_query_start_loc, n + 1)
+        seq = values(req.seq_lens, n)
+        local_seq = values(cp.local_seq_lens, n)
+        start = values(req.start_pos, n)
+        a, b = int(cp.local_start), int(cp.local_end)
+        if qsl[0] != 0 or qsl[-1] != 96 or b - a != 12:
+            raise RuntimeError("ownership probe CP partition changed")
+        local_counts = [max(0, min(b, qsl[i + 1]) - max(a, qsl[i]))
+                        for i in range(n)]
+        if local_qsl != [sum(local_counts[:i]) for i in range(n + 1)]:
+            raise RuntimeError("ownership probe local query prefix disagrees")
+        owners = [i for i, count in enumerate(local_counts) if count]
+        full_rows = sum(qsl[i + 1] - qsl[i] for i in owners)
+        if state is None:
+            raise RuntimeError("ownership probe requires FixedDecodeState")
+        metadata = {
+            "active_mask": values(state.active_mask, n),
+            "num_computed_tokens": values(state.num_computed_tokens, n),
+            "emitted_token_count": values(state.emitted_token_count, n),
+            "state_target_positions": values(state.target_positions, 96),
+            "rank": self.rank, "local_constructor_cohort_seq": self.ownership_cohort_seq,
+            "cycle": cycle, "global_qsl": qsl, "local_qsl": local_qsl,
+            "global_seq_lens": seq, "local_seq_lens": local_seq,
+            "start_pos": start, "cp_local_start_end": [a, b],
+            "local_query_rows": sum(local_counts), "local_query_lengths": local_counts,
+            "owner_request_slots": owners, "owner_full_update_rows": full_rows,
+            "nonowner_full_update_rows": 96 - full_rows,
+            "target_input_positions": values(req.input_positions, 96),
+            "source_count": len(self.cache_aliases),
+            "physical_frontiers": [],
+        }
+        if cycle == 0:
+            metadata["layer2_cache_views"] = [
+                {"name": cache.name, "aliases": list(self.cache_aliases[cache.name]),
+                 "storage_ptr": int(cache.tensor.untyped_storage().data_ptr()),
+                 "storage_nbytes": int(cache.tensor.untyped_storage().nbytes()),
+                 "storage_offset": int(cache.tensor.storage_offset()),
+                 "data_ptr": int(cache.tensor.data_ptr()),
+                 "shape": list(cache.tensor.shape), "stride": list(cache.tensor.stride()),
+                 "dtype": str(cache.tensor.dtype)}
+                for cache in self.assets.caches
+                if any(name.startswith("model.layers.2.")
+                       for name in self.cache_aliases[cache.name])]
+        for layer in ("model.layers.2.self_attn.indexer.k_cache",
+                      "model.layers.2.self_attn.attn",
+                      "model.layers.2.self_attn.compressor.state_cache",
+                      "model.layers.2.self_attn.indexer.compressor.state_cache"):
+            source = self.attn_metadata.get(layer)
+            if source is None:
+                raise RuntimeError(f"ownership source missing {layer}")
+            r = source.req_metadata
+            ratio = 4 if (layer.endswith(".attn") or layer.endswith("indexer.k_cache")) else 1
+            block_size = int(r.block_size)
+            table = r.block_table
+            row = {"layer": layer, "ratio": ratio, "block_size": block_size,
+                   "table_ptr": int(table.data_ptr()), "table_shape": list(table.shape),
+                   "consumer_history_read_scope": "unknown_historical_state_read;new_input_pages_only" if ratio == 1 else "conservative_prefix_page_envelope_including_partial"}
+            ranges = []
+            for i in range(n):
+                if ratio == 4:
+                    end = max(seq[i], start[i] + qsl[i + 1] - qsl[i])
+                    count = (end + ratio * block_size - 1) // (ratio * block_size)
+                    first = 0
+                else:
+                    length = qsl[i + 1] - qsl[i]
+                    first = max(0, start[i] // block_size)
+                    count = (start[i] + length + block_size - 1) // block_size
+                if count > table.shape[1] or first > count:
+                    raise RuntimeError(f"ownership table frontier outside storage: {layer}, request {i}")
+                ranges.append((first, count))
+            fingerprint = (tuple(ranges), tuple(tuple(values(table[i, lo:hi]))
+                                                for i, (lo, hi) in enumerate(ranges)))
+            previous = self._ownership_previous.get(layer)
+            changed = previous != fingerprint
+            self._ownership_previous[layer] = fingerprint
+            row["changed"] = changed
+            row["page_counts"] = [hi - lo for lo, hi in ranges]
+            if changed or cycle == 0:
+                row["physical_pages_by_request"] = [
+                    {"request_slot": i, "logical_interval": [lo, hi],
+                     "physical_pages": list(fingerprint[1][i])}
+                    for i, (lo, hi) in enumerate(ranges)]
+            metadata["physical_frontiers"].append(row)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        path = self.output_dir / f"rank{self.rank}_cohort{self.ownership_cohort_seq}.jsonl"
+        with path.open("a") as handle:
+            handle.write(json.dumps(metadata, separators=(",", ":")) + "\n")
+
+    @torch.inference_mode()
+    def observe(self, cycle, state=None):
+        if self.ownership_probe:
+            self.observe_ownership(cycle, state)
         if cycle >= self.limit:
             return
         if cycle != len(self.rows):
@@ -299,8 +417,106 @@ class TargetPageAudit:
             )
 
     @torch.inference_mode()
+    def _execute_cp_fork_parity(self, target, state, acceptance):
+        """One-layer eager A0/B/A0/immediate/A0 from one physical pre-state."""
+        if os.getenv("EXTREME_RUNTIME_TARGET_GRAPH") == "1":
+            raise RuntimeError("CP parity requires eager target; env cannot select a captured graph")
+        if os.getenv("EXTREME_CP_FORK_SCOPE") != "one":
+            raise RuntimeError("CP parity requires one-layer scope")
+        if self.pending_snapshot is None or self.pending_metadata is None:
+            raise RuntimeError("CP parity missing pre-target snapshot")
+        snapshot, metadata = self.pending_snapshot, self.pending_metadata
+        prior_mode = os.getenv("EXTREME_CP_FORK_MODE")
+        selected = [row for row in snapshot.rows
+                    if any(name.startswith("model.layers.2.")
+                           for name in self.cache_aliases.get(row[0].name, ()))]
+        if not selected:
+            raise RuntimeError("CP parity has no layer2 cache rows")
+
+        def restore():
+            snapshot.restore()
+            for _, tensor, value in metadata:
+                tensor.copy_(value)
+            status = snapshot.verify_restored()
+            if not status["exact"] or not all(torch.equal(t, v) for _, t, v in metadata):
+                raise RuntimeError("CP parity failed to restore pre-state")
+
+        def execute(mode):
+            os.environ["EXTREME_CP_FORK_MODE"] = mode
+            output = target.execute(state)
+            accepted = acceptance.execute(state, output)
+            torch.npu.synchronize()
+            values = {
+                "logits": output.logits.clone(),
+                "hidden": output.hidden_states.clone(),
+                "aux_hidden": tuple(x.clone() for x in output.aux_hidden_states),
+                "counts": accepted.num_sampled.clone(),
+                "tokens": accepted.sampled_token_ids.clone(),
+                "post_cache": [(row[0].name, row[0].tensor.index_select(0, row[1]).clone())
+                               for row in selected],
+            }
+            return output, accepted, values
+
+        def tensor_comparison(a, b):
+            same = torch.equal(a, b)
+            af, bf = a.float(), b.float()
+            diff = (af - bf).abs()
+            finite = diff[torch.isfinite(diff)]
+            return {"exact": bool(same), "shape": list(a.shape),
+                    "different": int(torch.count_nonzero(a != b).item()),
+                    "max_abs": float(finite.max().item()) if finite.numel() else None}
+
+        def compare(left, right):
+            result = {key: tensor_comparison(left[key], right[key])
+                      for key in ("logits", "hidden", "counts", "tokens")}
+            if len(left["aux_hidden"]) != len(right["aux_hidden"]):
+                raise RuntimeError("CP parity aux hidden count changed")
+            result["aux_hidden"] = [tensor_comparison(a, b)
+                                    for a, b in zip(left["aux_hidden"], right["aux_hidden"])]
+            if [x[0] for x in left["post_cache"]] != [x[0] for x in right["post_cache"]]:
+                raise RuntimeError("CP parity cache inventory changed")
+            result["post_cache"] = [dict(name=name, **tensor_comparison(a, b))
+                                    for (name, a), (_, b) in zip(left["post_cache"], right["post_cache"])]
+            result["argmax_equal"] = int((left["logits"].argmax(-1) ==
+                                            right["logits"].argmax(-1)).sum().item())
+            result["argmax_total"] = int(left["logits"].shape[0])
+            return result
+
+        try:
+            modes = ("off", "overlap", "off", "immediate", "off")
+            executions = []
+            for index, mode in enumerate(modes):
+                if index:
+                    restore()
+                executions.append(execute(mode))
+            summaries = [x[2] for x in executions]
+            row = self.rows[-1]
+            row["cp_fork_parity"] = {
+                "modes": list(modes),
+                "cache_views": [x[0] for x in summaries[0]["post_cache"]],
+                "a0_repeat_0_2": compare(summaries[0], summaries[2]),
+                "a0_repeat_0_4": compare(summaries[0], summaries[4]),
+                "overlap_vs_a0": compare(summaries[0], summaries[1]),
+                "immediate_vs_a0": compare(summaries[0], summaries[3]),
+                "overlap_vs_immediate": compare(summaries[1], summaries[3]),
+            }
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            (self.output_dir / f"rank{self.rank}.json").write_text(
+                json.dumps({"rank": self.rank, "rows": self.rows}, indent=2) + "\n")
+            self.pending_snapshot = None
+            self.pending_metadata = None
+            return executions[4][0], executions[4][1]
+        finally:
+            if prior_mode is None:
+                os.environ.pop("EXTREME_CP_FORK_MODE", None)
+            else:
+                os.environ["EXTREME_CP_FORK_MODE"] = prior_mode
+
+    @torch.inference_mode()
     def execute_with_self_replay(self, target, state, acceptance):
         """Replay the sampled live target from its exact pre-target state."""
+        if os.getenv("EXTREME_CP_FORK_PARITY") == "1":
+            return self._execute_cp_fork_parity(target, state, acceptance)
         if self.pending_snapshot is None or self.pending_metadata is None:
             raise RuntimeError("target self-replay missing pre-target snapshot")
         snapshot = self.pending_snapshot

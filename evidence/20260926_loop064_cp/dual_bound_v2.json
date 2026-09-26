@@ -1,0 +1,1451 @@
+{
+  "schema_version": 1,
+  "contract": "DeepSeek V4 W4A8, 8x910B3, DP1TP8, DSpark7, 48x32K->1024 c12",
+  "current_formal_tps": 571.681,
+  "algorithmic_token_accounting": {
+    "total_useful_output_tokens": 49152,
+    "max_target_outputs_per_request_cycle": 8,
+    "max_concurrent_requests": 12,
+    "absolute_min_target_cycles": 512,
+    "current_Run99_formal_cycles": [
+      1217,
+      1212,
+      1206
+    ],
+    "lower_bound_formula": "sum over cohorts max_i ceil((1024-initial_output_count_ci)/8)",
+    "Run99_initial_output_counts_per_slot": 0,
+    "scope": "loose DSpark7/Target8 acceptance cardinality limit, not achievable acceptance or latency/TPS bound",
+    "evidence": "frozen 48x1024 c12 contract; FixedDecodeConfig and Run99"
+  },
+  "candidate_formal_observation": {
+    "tps": 594.1334346560858,
+    "control_tps": 582.8518793259907,
+    "status": "exposed_gain_not_established_Run268"
+  },
+  "bounds": {
+    "current": {
+      "formal_tps": 571.681,
+      "source": "Run99 three formal repeats, 48x32K->1024 c12, 8-rank FULL Graph gates",
+      "status": "measured"
+    },
+    "hardware_resource": {
+      "physical_capacity_lower_bound_ms": null,
+      "attainable_engineering_scenario_ms": null,
+      "status": "unknown_missing_compulsory_work_and_full_graph_capacity"
+    },
+    "scheduling_aware": {
+      "dependency_relaxation_ms": null,
+      "resource_constrained_achievable_ms": null,
+      "status": "unknown_missing_node_costs_resource_contention_and_alias_proof"
+    },
+    "product_e2e": {
+      "tps_upper_bound": null,
+      "status": "unknown_missing_prefill_trajectory_acceptance_and_serving_edges"
+    }
+  },
+  "nodes": {
+    "target_k": {
+      "resource": [
+        "AIC",
+        "AIV",
+        "HBM",
+        "HCCL"
+      ],
+      "meaning": "target verified hidden/logits and target KV writes"
+    },
+    "acceptance_k": {
+      "resource": [
+        "AIV",
+        "HBM"
+      ],
+      "meaning": "accepted counts, last sampled token, selection"
+    },
+    "state_advance_k": {
+      "resource": [
+        "AIV",
+        "HBM"
+      ],
+      "meaning": "advance computed tokens and fixed state"
+    },
+    "dspark_old_state_k": {
+      "resource": [
+        "AIV",
+        "HBM",
+        "CPU"
+      ],
+      "meaning": "refresh common, context slots, gather old target hidden/ids/positions"
+    },
+    "dspark_model_k": {
+      "resource": [
+        "AIC",
+        "AIV",
+        "HBM",
+        "HCCL",
+        "CPU"
+      ],
+      "meaning": "draft7 model and next draft output"
+    },
+    "metadata_k1": {
+      "resource": [
+        "AIV",
+        "AICPU",
+        "HBM",
+        "CPU"
+      ],
+      "meaning": "next positions/lengths/slots/RoPE/SAS/QLI"
+    },
+    "metadata_commit_k1": {
+      "resource": [
+        "AIV",
+        "HBM"
+      ],
+      "meaning": "copy next scratch to fixed Graph addresses; zero in current serial layout"
+    },
+    "next_ids_k1": {
+      "resource": [
+        "AIV",
+        "HBM"
+      ],
+      "meaning": "next target ids from accepted token and DSpark draft"
+    },
+    "target_k1": {
+      "resource": [
+        "AIC",
+        "AIV",
+        "HBM",
+        "HCCL"
+      ],
+      "meaning": "following target verification"
+    }
+  },
+  "node_cost_ledger": {
+    "target_k": {
+      "observed_diagnostic_current_ms": 46.55997085571289,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "Run98 eight-rank 300-cycle stage-event median",
+      "confidence": "medium for Run98 stage median, low for Run99 same-cycle transfer",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "acceptance_k": {
+      "observed_diagnostic_current_ms": 0.32818999886512756,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "Run98 eight-rank 300-cycle stage-event median",
+      "confidence": "medium for Run98 stage median, low for Run99 same-cycle transfer",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "state_advance_k": {
+      "observed_diagnostic_current_ms": 0.023679999634623528,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "Run98 eight-rank 300-cycle stage-event median",
+      "confidence": "medium for Run98 stage median, low for Run99 same-cycle transfer",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "dspark_old_state_k": {
+      "observed_diagnostic_current_ms": null,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "not yet isolated on same path",
+      "confidence": "unknown",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "dspark_model_k": {
+      "observed_diagnostic_current_ms": 5.977759838104248,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "Run98 eight-rank 300-cycle stage-event median",
+      "confidence": "medium for Run98 stage median, low for Run99 same-cycle transfer",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "metadata_k1": {
+      "observed_diagnostic_current_ms": 0.6673699915409088,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "Run98 eight-rank 300-cycle stage-event median",
+      "confidence": "medium for Run98 stage median, low for Run99 same-cycle transfer",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "metadata_commit_k1": {
+      "observed_diagnostic_current_ms": null,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "not yet isolated on same path",
+      "confidence": "unknown",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "next_ids_k1": {
+      "observed_diagnostic_current_ms": 0.003920000046491623,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "Run98 eight-rank 300-cycle stage-event median",
+      "confidence": "medium for Run98 stage median, low for Run99 same-cycle transfer",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    },
+    "target_k1": {
+      "observed_diagnostic_current_ms": null,
+      "engineering_bound_ms": null,
+      "aggressive_bound_ms": null,
+      "evidence": "not yet isolated on same path",
+      "confidence": "unknown",
+      "scope": "marginal stage medians, not additive same-cycle DAG costs"
+    }
+  },
+  "semantic_edges": [
+    [
+      "target_k",
+      "acceptance_k",
+      "semantic_RAW"
+    ],
+    [
+      "target_k",
+      "dspark_old_state_k",
+      "semantic_RAW"
+    ],
+    [
+      "acceptance_k",
+      "state_advance_k",
+      "semantic_RAW"
+    ],
+    [
+      "state_advance_k",
+      "dspark_old_state_k",
+      "semantic_RAW"
+    ],
+    [
+      "dspark_old_state_k",
+      "dspark_model_k",
+      "semantic_RAW"
+    ],
+    [
+      "dspark_model_k",
+      "next_ids_k1",
+      "semantic_RAW"
+    ],
+    [
+      "next_ids_k1",
+      "target_k1",
+      "semantic_RAW"
+    ],
+    [
+      "target_k",
+      "target_k1",
+      "KV_state_RAW"
+    ],
+    [
+      "state_advance_k",
+      "metadata_k1",
+      "semantic_RAW"
+    ],
+    [
+      "metadata_k1",
+      "metadata_commit_k1",
+      "semantic_RAW"
+    ],
+    [
+      "metadata_commit_k1",
+      "target_k1",
+      "semantic_RAW"
+    ]
+  ],
+  "partial_resource_inventory": {
+    "canonical_matmul_arithmetic_Gflop_per_rank_target_cycle": {
+      "routed_GMM_conditional_route_sample": 155.675787264,
+      "compressor_fixed_shapes": 58.38471168,
+      "scope": "partial known operators only; not a proof of minimum possible algorithmic operations",
+      "evidence": "Run242 GMM route/shape inventory; Run256 exact Compressor shape count"
+    },
+    "parameter_tensor_footprint_GB_per_rank_target_cycle": {
+      "routed_GMM_active_packed_cross_sample": 8.46200832,
+      "compressor_two_BF16_weights": 0.60817408,
+      "scope": "distinct tensor footprint screen, not compulsory HBM read bytes",
+      "evidence": "Run242 and Run256"
+    },
+    "current_FULL_Graph_counter_GB_per_rank_target_cycle": {
+      "read_median_whole_window": 18.9497552,
+      "write_median_whole_window": 2.3803265280000003,
+      "read_sum_of_family_medians": 18.965061632,
+      "write_sum_of_family_medians": 2.380235712,
+      "scope": "Run247 observed task counters, not compulsory traffic; median of sums differs from sum of family medians"
+    },
+    "HCCL_reported_operation_payload_bytes_per_rank_target_cycle": 25651200.0,
+    "conditional_CP_request_ownership_screen": {
+      "status": "conditional_static_shape_screen",
+      "assumptions": [
+        "actual query_start_loc == [0,8,...,96] throughout frozen Runtime",
+        "fixed logical slot order; no request migration until cohort ends"
+      ],
+      "rank_rows": [
+        {
+          "rank": 0,
+          "query_flat_interval": [
+            0,
+            12
+          ],
+          "local_query_lengths_by_request": [
+            8,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "request_owners": [
+            0,
+            1
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        },
+        {
+          "rank": 1,
+          "query_flat_interval": [
+            12,
+            24
+          ],
+          "local_query_lengths_by_request": [
+            0,
+            4,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "request_owners": [
+            1,
+            2
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        },
+        {
+          "rank": 2,
+          "query_flat_interval": [
+            24,
+            36
+          ],
+          "local_query_lengths_by_request": [
+            0,
+            0,
+            0,
+            8,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "request_owners": [
+            3,
+            4
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        },
+        {
+          "rank": 3,
+          "query_flat_interval": [
+            36,
+            48
+          ],
+          "local_query_lengths_by_request": [
+            0,
+            0,
+            0,
+            0,
+            4,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "request_owners": [
+            4,
+            5
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        },
+        {
+          "rank": 4,
+          "query_flat_interval": [
+            48,
+            60
+          ],
+          "local_query_lengths_by_request": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            8,
+            4,
+            0,
+            0,
+            0,
+            0
+          ],
+          "request_owners": [
+            6,
+            7
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        },
+        {
+          "rank": 5,
+          "query_flat_interval": [
+            60,
+            72
+          ],
+          "local_query_lengths_by_request": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            8,
+            0,
+            0,
+            0
+          ],
+          "request_owners": [
+            7,
+            8
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        },
+        {
+          "rank": 6,
+          "query_flat_interval": [
+            72,
+            84
+          ],
+          "local_query_lengths_by_request": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            8,
+            4,
+            0
+          ],
+          "request_owners": [
+            9,
+            10
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        },
+        {
+          "rank": 7,
+          "query_flat_interval": [
+            84,
+            96
+          ],
+          "local_query_lengths_by_request": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            8
+          ],
+          "request_owners": [
+            10,
+            11
+          ],
+          "full_current_block_rows_for_owned_requests": 16
+        }
+      ],
+      "current_full_request_rank_memberships": 96,
+      "conditional_owned_request_rank_memberships": 16,
+      "meaning": "Logical query ownership only, NOT a KV consumer/alias proof and NOT a byte or latency bound."
+    },
+    "observed_CP_request_ownership_run287": {
+      "status": "original_path_geometry_observed_consumer_closure_unknown",
+      "evidence": "Run287 original FULL Graph all8 x five cohorts, 11968 rank-cycles; 40/40 Runtime pass",
+      "rank_cohort_files": 40,
+      "rank_cycles": 11968,
+      "global_query_rows_per_cycle": 96,
+      "local_query_rows_per_rank_cycle": 12,
+      "owner_request_slots_per_rank_cycle": 2,
+      "owner_full_update_rows_per_rank_cycle": 16,
+      "logical_nonowner_new_rows_per_rank_cycle": 80,
+      "owner_slots_by_rank": {
+        "0": [
+          0,
+          1
+        ],
+        "1": [
+          1,
+          2
+        ],
+        "2": [
+          3,
+          4
+        ],
+        "3": [
+          4,
+          5
+        ],
+        "4": [
+          6,
+          7
+        ],
+        "5": [
+          7,
+          8
+        ],
+        "6": [
+          9,
+          10
+        ],
+        "7": [
+          10,
+          11
+        ]
+      },
+      "compressed_owner_history_vs_derived_nonowner_new_page_overlap": false,
+      "confidence": "medium for frozen cohort geometry; low for removable physical traffic",
+      "limits": "Derived page envelope, not actual native scatter/state/DSpark/prefix consumer closure or an E2E saving"
+    },
+    "unknown": "full target/prefill/DSpark necessary arithmetic, unique HBM/KV traffic, physical link bytes and concurrent attainable capacity"
+  },
+  "current_formal_observed_wall_envelope": [
+    {
+      "repeat": 1,
+      "client_wall_s": 80.18766115419567,
+      "client_output_tps": 612.9621352278114,
+      "cohorts": [
+        {
+          "cohort": 5,
+          "cycles": 304,
+          "max_rank_runtime_wall_s": 17.160923634190112,
+          "observed_runtime_wall_ms_per_cycle": 56.45040669141484
+        },
+        {
+          "cohort": 6,
+          "cycles": 299,
+          "max_rank_runtime_wall_s": 16.955346601083875,
+          "observed_runtime_wall_ms_per_cycle": 56.70684481967851
+        },
+        {
+          "cohort": 7,
+          "cycles": 302,
+          "max_rank_runtime_wall_s": 17.110430866014212,
+          "observed_runtime_wall_ms_per_cycle": 56.65705584772918
+        },
+        {
+          "cohort": 8,
+          "cycles": 312,
+          "max_rank_runtime_wall_s": 17.83469390682876,
+          "observed_runtime_wall_ms_per_cycle": 57.162480470605004
+        }
+      ],
+      "sum_cohort_max_rank_runtime_wall_s": 69.06139500811696,
+      "client_minus_runtime_envelope_s": 11.126266146078706,
+      "scope": "descriptive cross-clock residual; not proven removable and not an additive timing model"
+    },
+    {
+      "repeat": 2,
+      "client_wall_s": 86.60024501523003,
+      "client_output_tps": 567.5734519152439,
+      "cohorts": [
+        {
+          "cohort": 9,
+          "cycles": 279,
+          "max_rank_runtime_wall_s": 16.061608917079866,
+          "observed_runtime_wall_ms_per_cycle": 57.56849074222174
+        },
+        {
+          "cohort": 10,
+          "cycles": 307,
+          "max_rank_runtime_wall_s": 17.611099602188915,
+          "observed_runtime_wall_ms_per_cycle": 57.36514528400298
+        },
+        {
+          "cohort": 11,
+          "cycles": 305,
+          "max_rank_runtime_wall_s": 17.457927972078323,
+          "observed_runtime_wall_ms_per_cycle": 57.23910810517483
+        },
+        {
+          "cohort": 12,
+          "cycles": 321,
+          "max_rank_runtime_wall_s": 18.34590207785368,
+          "observed_runtime_wall_ms_per_cycle": 57.15234292166255
+        }
+      ],
+      "sum_cohort_max_rank_runtime_wall_s": 69.47653856920078,
+      "client_minus_runtime_envelope_s": 17.123706446029246,
+      "scope": "descriptive cross-clock residual; not proven removable and not an additive timing model"
+    },
+    {
+      "repeat": 3,
+      "client_wall_s": 85.97796410089359,
+      "client_output_tps": 571.6813664292052,
+      "cohorts": [
+        {
+          "cohort": 13,
+          "cycles": 293,
+          "max_rank_runtime_wall_s": 16.805933319032192,
+          "observed_runtime_wall_ms_per_cycle": 57.35813419464912
+        },
+        {
+          "cohort": 14,
+          "cycles": 296,
+          "max_rank_runtime_wall_s": 16.914497757330537,
+          "observed_runtime_wall_ms_per_cycle": 57.14357350449506
+        },
+        {
+          "cohort": 15,
+          "cycles": 307,
+          "max_rank_runtime_wall_s": 17.49764567427337,
+          "observed_runtime_wall_ms_per_cycle": 56.99558851554844
+        },
+        {
+          "cohort": 16,
+          "cycles": 310,
+          "max_rank_runtime_wall_s": 17.830458231270313,
+          "observed_runtime_wall_ms_per_cycle": 57.51760719764617
+        }
+      ],
+      "sum_cohort_max_rank_runtime_wall_s": 69.04853498190641,
+      "client_minus_runtime_envelope_s": 16.929429118987173,
+      "scope": "descriptive cross-clock residual; not proven removable and not an additive timing model"
+    }
+  ],
+  "product_handoff_gate_diagnostic": {
+    "ready_cohorts": 5,
+    "rank_cohort_pass": 40,
+    "sample_reason_counts": {
+      "spec": 6,
+      "req12": 28,
+      "total96": 5,
+      "ready": 5
+    },
+    "scope": "Run283 original CP, rank0 Host instrumentation, not formal throughput or proof of candidate coverage"
+  },
+  "current_edges": [
+    [
+      "target_k",
+      "acceptance_k",
+      "semantic_RAW"
+    ],
+    [
+      "target_k",
+      "dspark_old_state_k",
+      "semantic_RAW"
+    ],
+    [
+      "acceptance_k",
+      "state_advance_k",
+      "semantic_RAW"
+    ],
+    [
+      "state_advance_k",
+      "dspark_old_state_k",
+      "semantic_RAW"
+    ],
+    [
+      "dspark_old_state_k",
+      "dspark_model_k",
+      "semantic_RAW"
+    ],
+    [
+      "dspark_model_k",
+      "next_ids_k1",
+      "semantic_RAW"
+    ],
+    [
+      "next_ids_k1",
+      "target_k1",
+      "semantic_RAW"
+    ],
+    [
+      "target_k",
+      "target_k1",
+      "KV_state_RAW"
+    ],
+    [
+      "dspark_model_k",
+      "metadata_k1",
+      "implementation_order"
+    ],
+    [
+      "next_ids_k1",
+      "metadata_k1",
+      "implementation_order"
+    ],
+    [
+      "state_advance_k",
+      "metadata_k1",
+      "semantic_RAW"
+    ],
+    [
+      "metadata_k1",
+      "target_k1",
+      "semantic_RAW"
+    ]
+  ],
+  "metadata_overlap_edges": [
+    [
+      "target_k",
+      "acceptance_k",
+      "semantic_RAW"
+    ],
+    [
+      "target_k",
+      "dspark_old_state_k",
+      "semantic_RAW"
+    ],
+    [
+      "acceptance_k",
+      "state_advance_k",
+      "semantic_RAW"
+    ],
+    [
+      "state_advance_k",
+      "dspark_old_state_k",
+      "semantic_RAW"
+    ],
+    [
+      "dspark_old_state_k",
+      "dspark_model_k",
+      "semantic_RAW"
+    ],
+    [
+      "dspark_model_k",
+      "next_ids_k1",
+      "semantic_RAW"
+    ],
+    [
+      "next_ids_k1",
+      "target_k1",
+      "semantic_RAW"
+    ],
+    [
+      "target_k",
+      "target_k1",
+      "KV_state_RAW"
+    ],
+    [
+      "state_advance_k",
+      "metadata_k1",
+      "semantic_RAW"
+    ],
+    [
+      "metadata_k1",
+      "metadata_commit_k1",
+      "semantic_RAW"
+    ],
+    [
+      "dspark_model_k",
+      "metadata_commit_k1",
+      "storage_WAR_guard"
+    ],
+    [
+      "metadata_commit_k1",
+      "next_ids_k1",
+      "implementation_order"
+    ],
+    [
+      "metadata_commit_k1",
+      "target_k1",
+      "semantic_RAW"
+    ]
+  ],
+  "cp_c4_target": {
+    "source": "frozen enable_dsa_cp: context_parallel/dsa_cp.py:1400-1805",
+    "nodes": {
+      "h_local": {
+        "resource": [],
+        "meaning": "already available local hidden input"
+      },
+      "h_full": {
+        "resource": [
+          "HCCL",
+          "HBM"
+        ],
+        "meaning": "gathered full hidden for KV/cache updates"
+      },
+      "q_local": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "local Q projection, RMS, RoPE"
+      },
+      "swa_kv": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "SWA KV projection, RoPE, cache scatter"
+      },
+      "indexer_cache": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "indexer compressor, rotate/quant and key/scale scatter"
+      },
+      "indexer_qli": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "indexer query/weights and QLI topk"
+      },
+      "main_compressor": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "main compressor and compressed KV scatter"
+      },
+      "sparse_attention": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "join of Q, SWA KV, topk and compressed KV"
+      },
+      "output": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM",
+          "HCCL"
+        ],
+        "meaning": "restore head layout and output projection"
+      }
+    },
+    "semantic_edges": [
+      [
+        "h_local",
+        "h_full",
+        "semantic_RAW"
+      ],
+      [
+        "h_local",
+        "q_local",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "swa_kv",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "indexer_cache",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_cache",
+        "indexer_qli",
+        "semantic_RAW"
+      ],
+      [
+        "q_local",
+        "indexer_qli",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "main_compressor",
+        "semantic_RAW"
+      ],
+      [
+        "q_local",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "swa_kv",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_qli",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "main_compressor",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "sparse_attention",
+        "output",
+        "semantic_RAW"
+      ]
+    ],
+    "current_edges": [
+      [
+        "h_local",
+        "h_full",
+        "semantic_RAW"
+      ],
+      [
+        "h_local",
+        "q_local",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "swa_kv",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "indexer_cache",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_cache",
+        "indexer_qli",
+        "semantic_RAW"
+      ],
+      [
+        "q_local",
+        "indexer_qli",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "main_compressor",
+        "semantic_RAW"
+      ],
+      [
+        "q_local",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "swa_kv",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_qli",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "main_compressor",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "sparse_attention",
+        "output",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "q_local",
+        "implementation_order"
+      ],
+      [
+        "q_local",
+        "swa_kv",
+        "implementation_order"
+      ],
+      [
+        "swa_kv",
+        "indexer_cache",
+        "implementation_order"
+      ],
+      [
+        "indexer_qli",
+        "main_compressor",
+        "implementation_order"
+      ]
+    ],
+    "fork_edges": [
+      [
+        "h_local",
+        "h_full",
+        "semantic_RAW"
+      ],
+      [
+        "h_local",
+        "q_local",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "swa_kv",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "indexer_cache",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_cache",
+        "indexer_qli",
+        "semantic_RAW"
+      ],
+      [
+        "q_local",
+        "indexer_qli",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "main_compressor",
+        "semantic_RAW"
+      ],
+      [
+        "q_local",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "swa_kv",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_qli",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "main_compressor",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "sparse_attention",
+        "output",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "q_local",
+        "implementation_order"
+      ],
+      [
+        "q_local",
+        "swa_kv",
+        "implementation_order"
+      ],
+      [
+        "swa_kv",
+        "indexer_cache",
+        "implementation_order"
+      ],
+      [
+        "indexer_cache",
+        "main_compressor",
+        "fork_after_indexer_cache"
+      ]
+    ],
+    "fine_semantic_nodes": {
+      "h_local": {
+        "resource": [],
+        "meaning": "local hidden input"
+      },
+      "h_full": {
+        "resource": [
+          "HCCL",
+          "HBM"
+        ],
+        "meaning": "gathered hidden"
+      },
+      "qr_local": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "q_a and normalization yielding qr"
+      },
+      "q_complete": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "main q_b, RMS and RoPE after qr"
+      },
+      "swa_kv": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "SWA KV projection and cache update"
+      },
+      "indexer_cache": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "indexer cache update"
+      },
+      "indexer_query": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "indexer query and weights from local hidden and qr"
+      },
+      "qli": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "indexer selection reads updated cache and prepared query"
+      },
+      "main_compressor": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "main compressor and compressed KV scatter"
+      },
+      "sparse_attention": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM"
+        ],
+        "meaning": "join of Q, SWA KV, topk and compressed KV"
+      },
+      "output": {
+        "resource": [
+          "AIC",
+          "AIV",
+          "HBM",
+          "HCCL"
+        ],
+        "meaning": "output projection and collective"
+      }
+    },
+    "fine_semantic_edges": [
+      [
+        "h_local",
+        "h_full",
+        "semantic_RAW"
+      ],
+      [
+        "h_local",
+        "qr_local",
+        "semantic_RAW"
+      ],
+      [
+        "qr_local",
+        "q_complete",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "swa_kv",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "indexer_cache",
+        "semantic_RAW"
+      ],
+      [
+        "h_full",
+        "main_compressor",
+        "semantic_RAW"
+      ],
+      [
+        "h_local",
+        "indexer_query",
+        "semantic_RAW"
+      ],
+      [
+        "qr_local",
+        "indexer_query",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_cache",
+        "qli",
+        "semantic_RAW"
+      ],
+      [
+        "indexer_query",
+        "qli",
+        "semantic_RAW"
+      ],
+      [
+        "q_complete",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "swa_kv",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "qli",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "main_compressor",
+        "sparse_attention",
+        "semantic_RAW"
+      ],
+      [
+        "sparse_attention",
+        "output",
+        "semantic_RAW"
+      ]
+    ],
+    "fine_semantic_dag": {
+      "topological_order": [
+        "h_local",
+        "h_full",
+        "qr_local",
+        "indexer_cache",
+        "indexer_query",
+        "main_compressor",
+        "q_complete",
+        "swa_kv",
+        "qli",
+        "sparse_attention",
+        "output"
+      ],
+      "critical_path_ms": null,
+      "missing_node_costs": [
+        "h_local",
+        "h_full",
+        "qr_local",
+        "indexer_cache",
+        "indexer_query",
+        "main_compressor",
+        "q_complete",
+        "swa_kv",
+        "qli",
+        "sparse_attention",
+        "output"
+      ]
+    },
+    "run282_single_layer_overlap_screen": {
+      "aux_compressor_median_us": 65.98,
+      "cross_stream_overlap_median_us": 65.0,
+      "historical_first_c4_rotary_median_us": 5.67,
+      "concurrent_rotary_median_us": 64.19,
+      "status": "actual_overlap_no_exposed_saving_proven",
+      "matched_control": {
+        "run": "Run284 immediate same profiler, not original A0",
+        "paired_rank_cycle_next_AllToAll_delta_median_us": -39.875,
+        "samples": 16,
+        "improved_samples": 16,
+        "same_state": false,
+        "whole_cycle_gain_proven": false,
+        "formal_E2E_gain_proven": false,
+        "note": "immediate reorders original QLI->main Compressor to main Compressor->join->QLI"
+      },
+      "evidence": "Run282/284 matched traces and Astra High independent review"
+    },
+    "run285_eager_numerical_gate": {
+      "status": "inconclusive",
+      "cohort_clients_exact1024": 12,
+      "ranks_with_five_pass_rows": 8,
+      "modes": [
+        "off",
+        "overlap",
+        "off",
+        "immediate",
+        "off"
+      ],
+      "off0_vs_off2_argmax_equal": 96,
+      "off0_vs_off4_argmax_equal": 94,
+      "overlap_vs_off0_argmax_equal": 93,
+      "note": "later off follows candidate, so divergence may be self-replay noise or uncaptured persistent effects; mixed cache-view max-abs invalid as layer2-only error",
+      "product_gain_claim": false,
+      "evidence": "Run285 pages/analysis and Astra High numerical review"
+    },
+    "current_dag": {
+      "topological_order": [
+        "h_local",
+        "h_full",
+        "q_local",
+        "swa_kv",
+        "indexer_cache",
+        "indexer_qli",
+        "main_compressor",
+        "sparse_attention",
+        "output"
+      ],
+      "critical_path_ms": null,
+      "missing_node_costs": [
+        "h_local",
+        "h_full",
+        "q_local",
+        "swa_kv",
+        "indexer_cache",
+        "indexer_qli",
+        "main_compressor",
+        "sparse_attention",
+        "output"
+      ]
+    },
+    "fork_dag": {
+      "topological_order": [
+        "h_local",
+        "h_full",
+        "q_local",
+        "swa_kv",
+        "indexer_cache",
+        "indexer_qli",
+        "main_compressor",
+        "sparse_attention",
+        "output"
+      ],
+      "critical_path_ms": null,
+      "missing_node_costs": [
+        "h_local",
+        "h_full",
+        "q_local",
+        "swa_kv",
+        "indexer_cache",
+        "indexer_qli",
+        "main_compressor",
+        "sparse_attention",
+        "output"
+      ]
+    },
+    "scope": "coarse current/fork graphs model restricted implemented schedules; fine semantic graph removes false qr/Q and query/QLI barriers; all need same-path cost, contention and all-rank join evidence",
+    "evidence": "Run276 Astra High source audit"
+  },
+  "symbolic_constraints": {
+    "resource_physical_floor": "max over shared resources of compulsory work / defensible hardware capacity UPPER bound; an observed attained bandwidth is not automatically such an upper bound",
+    "resource_attainable_scenario": "use same-shape concurrent capacity measurements to build an executable resource allocation; empirical attained capacity alone is not a strict latency lower bound",
+    "scheduling_relaxation": "max(physical resource floor, legal dependency critical path with collective rendezvous); resource-constrained executable makespan also includes interference, streams, storage and event overhead",
+    "product_throughput": "49152 / finite frozen client wall time after prefill, decode, parking, useful tokens/cycle and publication DAG; no additive phase shortcut"
+  },
+  "current_dag": {
+    "topological_order": [
+      "target_k",
+      "acceptance_k",
+      "state_advance_k",
+      "dspark_old_state_k",
+      "dspark_model_k",
+      "next_ids_k1",
+      "metadata_k1",
+      "target_k1"
+    ],
+    "critical_path_ms": null,
+    "missing_node_costs": [
+      "target_k",
+      "acceptance_k",
+      "state_advance_k",
+      "dspark_old_state_k",
+      "dspark_model_k",
+      "next_ids_k1",
+      "metadata_k1",
+      "target_k1"
+    ]
+  },
+  "overlap_dag": {
+    "topological_order": [
+      "target_k",
+      "acceptance_k",
+      "state_advance_k",
+      "dspark_old_state_k",
+      "metadata_k1",
+      "dspark_model_k",
+      "metadata_commit_k1",
+      "next_ids_k1",
+      "target_k1"
+    ],
+    "critical_path_ms": null,
+    "missing_node_costs": [
+      "target_k",
+      "acceptance_k",
+      "state_advance_k",
+      "dspark_old_state_k",
+      "metadata_k1",
+      "dspark_model_k",
+      "metadata_commit_k1",
+      "next_ids_k1",
+      "target_k1"
+    ]
+  },
+  "already_measured_removable_node": {
+    "name": "DSpark-unused MTP stash",
+    "necessary_math_flops": 0,
+    "necessary_bytes": 0,
+    "current_reported_read_GB": 0.537537728,
+    "current_reported_write_GB": 0.537424896,
+    "current_task_sum_ms": 0.7993415,
+    "causal_candidate_copies_per_cycle": 0,
+    "exposed_ms": null,
+    "evidence": "Run257, Run260-263"
+  },
+  "unresolved": [
+    "current per-node same-path timings with async join",
+    "Run275 candidate-consumed 8-rank continuous metadata/alias gate passed; verification-free A0/B timing and hidden native workspace remain open",
+    "necessary target+DSpark FLOPs/unique traffic",
+    "8-rank FULL Graph compute/HBM/HCCL attainable capacity",
+    "HCCL physical link bytes/arrival/overlap",
+    "CP c4 indexer/main compressor same-path service costs, Graph concurrency and resource contention",
+    "Run287 confirms CP request ownership geometry; actual native scatter, recursive state, physical alias, DSpark and prefix-lifetime consumer closure remains open before interpreting 96-row replica updates as compulsory",
+    "DSpark useful tokens/cycle upper limit",
+    "prefill/admission/output product trajectory",
+    "Run281 only 2/5 expected fixed cohorts; original-path Run283 had 5/5 and exact gate shape trajectory, cross-run cause remains unknown",
+    "one-layer CP fork eager A0/overlap/A0 Run285 inconclusive; local fork-entry typed numerical gate remains open before FULL Graph/all21 promotion",
+    "decode hidden AllGather/local Q semantic overlap requires FULL Graph capture/replay validation"
+  ],
+  "limits": [
+    "A DAG with isolated duration inputs is only an optimistic no-contention relaxation, not a hardware ceiling.",
+    "Current graph edges include implementation ordering; metadata_overlap_edges require private scratch and parking invalidation.",
+    "Temporal profiler task sums and AIC+AIV bytes are not compulsory work or exposed wall time.",
+    "No TPS result is emitted from an incomplete dependency or capacity model."
+  ]
+}

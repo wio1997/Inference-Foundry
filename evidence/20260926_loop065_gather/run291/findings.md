@@ -1,0 +1,7 @@
+# Run291 isolated async-immediate H003 Graph gate
+
+After Run289/290 cross-run client contamination was diagnosed, the launcher used an active marker and matched the healthy vllm process RUN_TS before starting clients. The server logged exactly 60 POSTs, the expected 48+12; no older Run produced new benchmark output. Both client sets completed 1024 tokens/request. All8 ranks logged selected layer2 async-immediate hidden gather during FULL Graph capture, with local BF16 [12,4096], gathered [96,4096], pad=0.
+
+All 40 rank-cohort Runtime reports passed FULL Graph/host-mirror checks: cohorts1–5 present on every rank, generated counts all exact1024, no oracle Target/model-runner calls after handoff. Launcher exit0, cleanup removed active marker, restored borrowed dsa_cp.py to SHA27cbbf92, and returned eight NPUs idle. Warmup568.814 and bench589.044 tok/s are diagnostic single-run figures; they do not replace formal Current Run99 median571.681 nor constitute A1 gain. No A0 versus A1 same-state numerical comparison or complete formally repeated E2E has been done.
+
+Decision: async helper with immediate wait is executable on this fixed one-layer FULL Graph path and supplies a clean control for delayed wait B. Next gate: B with independently captured Graph, all8 actual HCCL progress, local-Q and first-wkv join timeline, complete cohort boundary and exact client outputs; then same-state gathered-hidden/Q/cache/logit parity and A0 control before any KEEP or E2E promotion.

@@ -1,0 +1,12 @@
+# Run290 async-immediate H003 graph smoke; frozen cohort gate invalid
+
+After removing 336 orphaned container multiprocessing workers, the same frozen 8x910B3 service passed the previously failing pinned Host KV block-table allocation. Launcher exit 0; service stopped; borrowed dsa_cp.py restored to base SHA 27cbbf92a02f16301aad2a35091e258b8459dc77744bd8294f2f11a4c126004e; NPUs idle. All8 ranks printed the selected layer2 async-immediate branch during FULL Graph capture with local BF16 [12,4096], gathered [96,4096] and pad=0. Shape guard runs before collective submission.
+
+Warmup48 and bench12 each completed every request with exact 1024 output tokens. Only two of the expected five 12-request cohorts entered fixed Extreme handoff (16/16 rank-cohort Runtime reports FULL/pass, cycles 295/296, no oracle/model-runner after handoff). Warmup and bench diagnostic throughput 312.030/299.645 tok/s and long TTFT are therefore not comparable with formal Current 571.681 or Run287 original-path 5/5. This run verifies the async-immediate Graph branch can capture/replay and serve two complete cohorts, not that the frozen product protocol is met.
+
+No same-state gathered-hidden/local-Q/logit numerical comparison was taken. No delayed-wait arm or device overlap trace was measured. The missing three cohorts need handoff/admission diagnosis before H003 E2E judgment; do not attribute their loss to the one-layer helper from this run alone. Evidence: launcher/serve logs, warmup48.json, bench12.json, runtime/rank*_cohort*.json.
+
+
+## Contamination correction
+
+Independent log and artifact audit subsequently found **120** POST requests at the Run290 server, exactly two 48+12 client suites. Run289's warmup48/bench12 files were created at precisely the same timestamps as Run290's despite Run289 having failed before health. The Run289 container-side docker-exec shell survived outer termination, waited for Run290's healthy service, and submitted its own 60 requests. Both suites had up to 24 concurrent requests. Accordingly Run290's 2 fixed cohorts and 312/300 tok/s reflect a mixed 120-request trajectory, not a clean failed 5-cohort candidate. The all8 target-layer FULL Graph capture marker remains valid because it preceded client traffic; post-capture correctness and throughput are invalid for the frozen protocol. Corrected runner now requires an active marker and healthy-service RUN_TS identity before bench. Astra High independent review: run290/astra_review.md.

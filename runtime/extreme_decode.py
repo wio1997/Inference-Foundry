@@ -415,7 +415,7 @@ class ExtremeDecodeRuntime:
                     self.state.cycle_index, self.state.target_positions
                 )
             if self.target_page_audit is not None:
-                self.target_page_audit.observe(self.state.cycle_index)
+                self.target_page_audit.observe(self.state.cycle_index, self.state)
             if (self.target_page_audit is not None and
                     self.target_page_audit.self_replay and
                     self.state.cycle_index < self.target_page_audit.limit):

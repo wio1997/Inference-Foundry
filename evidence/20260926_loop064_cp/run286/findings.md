@@ -1,0 +1,3 @@
+# Run286 invalid ownership probe startup
+
+The service loaded and reached the first fixed-cohort handoff, but the optional `EXTREME_CACHE_MANIFEST_DIR` flag triggered `RuntimeError: cache manifest requires all group slot bindings` in `bootstrap/vllm_extreme_handoff.py:83`. This diagnostic did not supply that optional inventory's binding set. No ownership JSONL was emitted, no client benchmark completed, and no resource or performance conclusion follows. The launcher exited 1; cleanup stopped the service and the eight NPUs were idle. The ownership probe itself already records layer2 cache storage identities. Run287 removes only the extra cache-manifest flag and retries the original-path read-only census.

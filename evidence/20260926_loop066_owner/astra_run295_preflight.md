@@ -1,0 +1,5 @@
+# Astra independent Run295 byte-mask preflight
+
+Read-only review found no hard blocker before startup. The hook does not write the live cache; A/A2/B/A3 each use a private complete untyped backing store preserving FP32 state, INT8 key and FP16 scale aliases. After device synchronization, `raw_live` still represents the same prestate for the private comparisons. The new masks can distinguish B-changed bytes matching A from A-only changes, but a write of identical bytes is invisible to a prestate-difference mask.
+
+Native `WriteToCacheState` uses the state block table, start position, block size and two state halves (`coff=2`), covering 2048B per logical new position and skipping page0 writes. Entire owner block tables include historical and reserved pages; an owner/nonowner page intersection alone cannot establish a prefix collision or write elimination. The fixture now records twelve start positions, block size, first physical differing byte with request/block aliases and first256 changed page IDs. Run295 remains diagnostic; typed scatter and future consumers require separate evidence.

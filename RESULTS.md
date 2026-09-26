@@ -529,3 +529,25 @@ Run260/261 eliminated two DSpark-unused 256MiB BF16 target copies and Run262 one
 ## Loop063 Scheduling-aware metadata test and CP pivot (2026-09-26)
 
 Candidate-consumed overlap metadata Run275 passed eight-rank correctness and storage gates; no verifier-on throughput inference. Verification-free B Run277 passed 48/48 exact output and 64/64 FULL Graph rows, but latest-rank runtime was 58.351ms/cycle. Contemporary A0 Run278 complete benchmark/rank artifacts gave56.879ms/cycle; launcher exit127 after a live-script edit invalidates formal status. All four B cohort normalized runtimes were slower (+0.866 to+2.024ms/cycle), despite B client605.801 versus A0 574.437tok/s; client-minus-runtime residual differed −6.233s. PIVOT this candidate, retain formal Current571.681. Astra High identified actual c4 DSA CP Target indexer/Compressor fork/join as next scheduling experiment; bounds still unquantified. See `evidence/20260926_loop063_schedule/findings.md`.
+
+## Loop064 Run284–285 diagnostic only (2026-09-26)
+
+Run284 eight-rank matched profiler: delayed versus immediate CP join reached the selected layer's next AllToAll 39.875 µs earlier at paired median (16/16 samples), without same-state or original-A0 E2E attribution. Run285 eager same-prestate five-pass: 12/12 exact1024 clients, eight rank audit rows, numerical parity inconclusive because later off after candidate also diverged. No KEEP and no new formal throughput. Formal Current remains Run99 571.681 tok/s. Evidence: `evidence/20260926_loop064_cp/run284/` and `run285/`.
+
+## Run287 ownership census
+
+Original Target FULL Graph, 8 ranks x 5 cohorts: 40/40 Runtime pass, 60/60 client requests exact 1024, 11,968 rank-cycles sampled. Per-rank owner request count 2 and full update rows 16 in every sampled cycle. Layer2 compressed owner-history versus derived nonowner-new page envelopes do not intersect; actual native state/consumer closure remains unknown. Instrumented 490.677 warmup and 523.454 bench tok/s are diagnostic, not formal. No performance change; formal Current 571.681 tok/s.
+
+## 2026-09-26 Loop065–066 checkpoint
+
+Formal Current remains Run99 median 571.681 tok/s. H003 hidden-gather/local-Q overlap is device-real at Target layer2: Run292 delayed 16/16 all-rank sampled intervals overlap, and matched Run293 async-immediate control shows paired−17.0µs to first WKV and−10.125µs to next AllToAll completion. Complete Target/cycle gain, same-entry numerical parity, original A0 and repeated formal E2E are not established; instrumented client TPS is excluded. Loop065 PIVOTs without rejecting the scheduling mechanism.
+
+Astra's Run287 reconstruction finds 16.65% parked slot-cycles on that instrumented trajectory, highlighting request-level execution slack that has no direct TPS interpretation. Loop066 is testing owner full16 versus replicated full96 indexer Compressor update through a private real-entry fixture. Resource, Scheduling-aware and Product E2E numeric bounds remain unknown. Evidence: `evidence/20260926_loop065_gather/`, `evidence/20260926_loop066_owner/`.
+
+### Run294 — owner16 private native Compressor diagnostic
+
+8/8 ranks: four valid owner output slots bit-exact to full96 and A/A2/A3 self-controls stable. Whole owner state page bytes differ on ranks0–6; gate fails, candidate state semantics unresolved. Eager 12×1024 client outputs and 8/8 Runtime gates pass; diagnostic 83.299 tok/s is noncomparable. Both borrowed sources restored; NPUs idle. Full evidence: `evidence/20260926_loop066_owner/run294/findings.md`. The pinned historical experience library and on-demand query/curation workflow are in `performance_knowledge/`; old Round results remain priors only.
+
+### Run295 — owner state delta diagnostic
+
+8/8 owner Compressor outputs bit-exact. Every B prestate-changed byte matches A; whole owner-table differences are A-only changes on ranks0–6, with each first difference mapped to a nonowner current write alias. Old broad gate exits1; live8 state, typed scatter/QLI and lifetime remain open. Eager12×1024 and 8/8 Runtime gates pass; 81.376 tok/s is diagnostic only. Source restored; `evidence/20260926_loop066_owner/run295/findings.md`.
