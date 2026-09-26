@@ -21,3 +21,7 @@
 - `2026-09-26T11:18:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run298`（benchmark）。
 
 - `2026-09-26T11:37:21Z` Run `run298` 记录为 `pass`；正确性为 `pass`。Private A96/B16/A2 Graph capture/replay all8 semantic gates pass; B local replay signal ~4–6us below 8.24us control drift, no Product gain; pivot whole DSA producer alias closure
+
+- `2026-09-26T11:51:06Z` 暂存知识变化 `extreme-owner16-graph-local`：Run298 current TP8 layer2 owner16 private Graph matches typed state/scatter/QLI but paired replay gain is smaller than A/A2 control drift; full producer and persistent alias closure remain open
+
+- `2026-09-26T11:51:06Z` 主控结论为 `PIVOTED`。Run296 typed consumer semantics pass, Run297 eager no stable gain, Run298 private Graph small gain below control drift; owner16 immediate method remains valid locally but complete producer/lifetime and Product gain unproved

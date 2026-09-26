@@ -880,3 +880,7 @@ Run297 exits0 with exact all8 private typed consumer/topk controls, 12×1024 eag
 ## Loop066 Run298 pass and Run299 direction
 
 Run298 exits0: all8 private owner16 Graph capture/replay topk/state/typed parity exact; carrier 12×1024 and all8 Runtime pass; source SHA restored, NPUs idle. Private replay B signal −5.645 μs pooled is smaller than 8.240 μs A/A2 drift, 40/80 strict pair wins. No current native owner16 Product KEEP. Independent Astra High recommends pivot to whole DSA producer dependency and shared storage liveness. Run287 40/40 alias census finds 3 backings totaling 2.376 GB/rank. Run299 will be graph-outside read-only typed view, write/read byte provenance and adjacent-cycle/parking census; no full backing clone or formal TPS claim.
+
+## Loop067 Run299 checkpoint (2026-09-26)
+
+Read-only original FULL Graph typed-cache census passed 12/12×1024 and all eight Runtime rank gates; runner exit0, service stopped, cards idle. Each rank registered196 typed KV leaves, three Draft leaves with no overlap to the three layer2-related backings, and ten selected cycles including first parking192→193. Same-layer2 source-derived nonowner-write versus owner bounded-read page domains are disjoint in those 80 samples, but adjacent Target layers share two backings and their live metadata is unmeasured. No formal TPS or numeric bound changes. Run300 will capture compact live domains for all14 alias sources; then decide the smallest value-level semantic experiment. `evidence/20260926_loop067_liveness/run299/findings.md`.

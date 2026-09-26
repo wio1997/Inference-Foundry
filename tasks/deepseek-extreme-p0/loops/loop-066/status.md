@@ -5,10 +5,10 @@
 - 模式：`optimization`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run298 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-26T11:37:21Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Run299 full typed view and byte-liveness census on original FULL Graph across adjacent cycles and first parking
+- 更新时间：`2026-09-26T11:51:06Z`
 
 ## Run 记录
 
@@ -24,5 +24,5 @@
 
 ## 待归约知识
 
-- 知识变化：`0`
+- 知识变化：`1`
 - 基线变化：`0`
