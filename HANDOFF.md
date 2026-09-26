@@ -2074,3 +2074,11 @@ Run275 next-target private-metadata side-stream B passed candidate-consumed 8-ra
 ## Loop070 handoff (2026-09-26)
 
 Run314 exited1 after synthetic-start NaN Sparse in original A on five ranks. Its real-entry delta0 private Graph A/B/A2 passed all fields 8/8; this does not prove persistent successive-cycle correctness. The service was stopped, reversible borrowed dsa_cp and target-handoff sources exactly restored, eight cards idle. Loop070 is pivoted. Next: Loop071 real two-step A→A/B→B, first inventory backing-level mutable writes and validate A/A recovery. Keep TP8 collective order and unchanged AllGather; compare typed state and actual Graph dispatch before full-cycle timing. Design at `evidence/20260926_loop071_two_cycle/design.md`. Formal Current 571.681 tok/s; numeric bounds unknown.
+
+## Loop071 source and address audit (2026-09-26)
+
+Run315–317 completed offline; no service. Selected layer2 backing typed views conditionally cover full pages, but the current snapshot helper omits metadata, Draft and Host state. Run301 14-source real adjacent-cycle byte-envelope unions are 7.18–7.71MB/rank on three selected backings, not HBM traffic or full state. PK-012 records the limitation. Before a two-cycle owner intervention, close all mutation and Graph dispatch keys and prove repeated A→A restore. Current Formal 571.681 tok/s and all numeric bounds unchanged. Service stopped, all cards idle, borrowed sources at original SHA.
+
+## Loop072 parked-MoE next action (2026-09-27)
+
+Loop071 PIVOT, not owner REJECT. Run318 8-rank original-mask census: 1,496 cycles, 2,989 parked slot-cycles, 678 cycles with fewer than12 active. Astra High prioritizes a state-free full-MoE active-row A/A/B/A over completing the expensive owner persistent transaction. Loop072 design: `evidence/20260926_loop072_parked_moe/design.md`. Run319 source audit: layer4 is non-hash; private B needs `N_active*8` context and independent Graph/HCCL, not a sliced tensor in the 96-row context. Service stopped, borrowed sources pristine; next implement reversible diagnostic after source preflight. PK-013 records old R14/R35 conditions and why Host-only gains may not reach E2E. Formal Current and numeric bounds unchanged.

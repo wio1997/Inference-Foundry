@@ -1,0 +1,19 @@
+# Loop072 — parked-tail full-MoE active-row screen
+
+## Evidence and hypothesis
+
+Run287 original FULL Graph sampled 1,496 cycles across five cohorts with all-eight-rank identical active masks. Run318 counts 2,989/17,952 parked slot-cycles; 678 cycles have fewer than 12 active. The fraction is a scheduling opportunity screen, not a compute/byte/time saving. Run247 counted 9.244GB GMM read/rank-cycle in profiled target windows; it does not reveal how much parked rows cause. Run307/308 owner16 savings are a small local alternative and remain unpromoted. Astra High independently recommends this larger execution-level candidate.
+
+Historical pinned R14 DP-layout fast path hit mostly request entry and yielded only 0.40% decode-period improvement; R35 mixed-dtype EP gather coalescing saved Host enqueue but not synchronized wall or robust E2E. Both old DP2×TP4/EP8 cases are methodology/negative priors. They did not test current DP1×TP8 active-only rows. See PK-013.
+
+## First causal experiment
+
+Use frozen model layer4 (`num_hash_layers=3`; layer4 is non-hash) at a real parked cycle in eager diagnostic carrier, without changing the original Target. Capture its pre-MoE hidden `[96,4096]`, active request mask and exact model/module objects. All eight ranks must select the same cycle/arm and collective order. Form an active-row gather selecting all eight token positions of each active request, in original request order. A invokes the complete original `DeepseekV4MoE.forward` on all 96 rows. B invokes the **same complete module** on compacted active rows, then scatters B active results to original positions; inactive output need not match because those slots are parked and never accepted. The module includes router, shared/routed experts, dispatch/combine, EP communication and final output. Do not substitute an isolated GMM or remove a collective.
+
+Before Graph capture, inspect `DeepseekV4MoE` and selected `FusedMoE` for cross-token capacity, normalization, random state, EPLB updates and zero-row rank behavior. Reject the row-independence premise if active output depends on inactive rows. Graph A and B require distinct identities/shapes and logged dispatch; A2 repeats full A as a same-prestate numerical control. Use A/A/B/A alternating replay with the same hidden/mask/weights and no KV mutation. Verify active outputs against A/A drift, routing topk/expert-count changes for active rows, finite values and output shape. Because regrouping may change accumulation order, define the numerical tolerance from exact A/A controls and the frozen model correctness requirement before looking at B. Preserve per-rank all-collective participation; reject any divergent rank path.
+
+Only if active semantics pass, measure common-entry to final MoE communication/output completion on all eight ranks, with gather/scatter and Graph dispatch included. Record actual active expert-weight set and packed bytes for both arms, per-rank routed counts, HCCL sizes and slowest-rank wall. A local win must beat A/A drift and shorten the rank rendezvous endpoint. Then integrate one layer into live FULL Target with persistent correctness, inspect whole Target/cycle, and finally repeat frozen formal 48×32K→1024 c12 E2E if exposed benefit remains. A private MoE result alone does not update Current or any numeric Bound.
+
+## Fail-closed controls
+
+Use reversible SHA-guarded source instrumentation; stop service and restore after every diagnostic. No source edit during a live benchmark. Require 8/8 fixture artifacts, exact active mask/rank/cycle keys, distinct Graph captures, finite output, original 12×1024 carrier correctness and Runtime ownership. If a selected cycle is missing or zero-active participation is unsupported, mark the run invalid and preserve evidence. Do not infer that all 16.65% parked slots are removable work or that one layer scales to all43.

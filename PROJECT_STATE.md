@@ -897,3 +897,11 @@ Run305 exact same-prestate all8 layer2 WKV/SWA, main Compressor, indexer/QLI and
 ## Loop069–070 checkpoint (2026-09-26)
 
 Run311 one-layer live owner Graph captured/replayed on all eight ranks and served a 12×1024 diagnostic cohort, but separate-service original A/A output and cycle trajectories vary; no candidate semantic or Product gain is identified. Run314 private real-entry metadata-in-Graph A/B/A2 passed exact all-eight typed producer/QLI/Sparse parity at delta0. Synthetic start shifts triggered nonfinite Sparse in original A on five ranks, then the carrier failed; this is not a real successive-cycle verdict. All reversible borrowed sources were restored and eight NPUs idle. Loop070 PIVOT; next Loop071 inventories mutable state and tests real adjacent-cycle A→A/B→B without between-step reset. Historical PK-010/011 and the pinned old Round source are searchable. Formal Current 571.681 tok/s; numeric Resource/Scheduling/Product bounds unknown.
+
+## Loop071 Run315–317 checkpoint (2026-09-26)
+
+Source/descriptor audit found a tractable selected layer0–5 two-cycle shared-backing byte envelope (7.18–7.71MB/rank across 40 real rank-pairs) but no complete Runtime snapshot: Fixed state, Target metadata/RoPE, Draft KV and Host async mirrors still need explicit restoration. No service or E2E claim; next close state registry and A/A restore before B/B. PK-012 added. Formal Current and all numeric bounds unchanged.
+
+## Loop072 architecture pivot (2026-09-27)
+
+Run318 validated parked-tail masks on eight ranks and source-only Run319 selected the layer4 full-MoE boundary. Loop071 owner persistent branch is retained but deferred after Astra High review of small one-layer local gain versus extensive state transaction. New candidate removes inactive parked rows through the entire router/expert/dispatch/finalize block, with distinct compact forward context and Graph, then judges all-rank endpoint and eventually formal E2E. No candidate performance or bound promotion yet. PK-013 is the pinned historical prior.

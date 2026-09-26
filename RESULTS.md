@@ -576,3 +576,11 @@ Run305 exact same-prestate all8 layer2 WKV/SWA, main Compressor, indexer/QLI and
 ## Runs310–314: owner16 live Graph and dynamic metadata diagnosis
 
 Run310/311/312 12×1024 diagnostic carriers completed; Run311 one-layer owner16 FULL Graph capture and replay passed 8/8, but original A/A separate services differed in content and cycle counts. Latest-rank ms/cycle original 56.545/56.643 versus owner 56.810; no Product KEEP. Run313/314 private Graph delta0 full A/owner B/A2 exact on eight ranks, including native dynamic metadata, typed owner writes, QLI and Sparse. In Run314 five ranks failed on synthetic full A with NaN Sparse in both eager and Graph A; the carrier then failed and no E2E metric is valid. These shifts did not advance the full Runtime state. Current Formal stays 571.681 tok/s. Evidence and limits: `evidence/20260926_loop070_dynamic_metadata/findings.md`.
+
+## Runs315–317: two-cycle preflight (offline)
+
+Run315 checked conditional typed byte coverage on 72 selected backing-page samples across eight ranks. Run316 source-audited missing Target metadata, Draft, Host and serving state outside the current cache snapshot. Run317 merged Run301 real adjacent-cycle metadata write envelopes for 14 selected sources: 7.181–7.705MB/rank across five pairs and eight ranks. These are recovery-design facts, not native traffic, kernel timing or Product TPS. Evidence: `evidence/20260926_loop071_two_cycle/run315/`, `run316/`, `run317/`.
+
+## Run318–319: parked-tail MoE architecture screen
+
+Run318 original-path active-mask census agrees on all8 ranks: 1,496 cycles, 2,989/17,952 parked slot-cycles (16.65%) and 678 cycles with fewer than12 active. Run319 source review selects non-hash layer4 full MoE and identifies a compact forward context/independent Graph requirement for B. Neither proves removable compute, HBM or latency; no service was run. See `evidence/20260926_loop071_two_cycle/run318/` and `evidence/20260926_loop072_parked_moe/run319/`.

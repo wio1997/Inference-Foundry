@@ -5,14 +5,17 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run315 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-26T15:44:09Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Loop072: historical R14/R35 prior, real parked-tail non-hash layer4 full-MoE active-only A/A/B/A private Graph semantics and common entry to final communication timing; preserve all8 collectives
+- 更新时间：`2026-09-26T15:57:11Z`
 
 ## Run 记录
 
 - `runs/mixed_32k_1024_c12/run315`
+- `runs/mixed_32k_1024_c12/run316`
+- `runs/mixed_32k_1024_c12/run317`
+- `runs/mixed_32k_1024_c12/run318`
 
 ## 阻塞项
 
