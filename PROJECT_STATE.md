@@ -868,3 +868,15 @@ Run294 real layer2 eager private owner16 fixture: exact native output slot parit
 ## Loop066 Run295 checkpoint
 
 Run295 on the real eager Target layer2 repeated all8 private owner16 output parity. Prestate-relative byte masks show all B-changed bytes match A, while whole-table mismatches are exclusively A-only changes; each first mismatch lands in a nonowner current write domain aliased at an old owner table position. The original broad gate still exits1; candidate full semantics are not yet proved. Exact12×1024 clients and 8/8 Runtime reports pass; source SHA restored and NPUs idle. Next: source-derived owner write/live8 read full-byte parity, then alias-preserving rotate/quant/scatter and fixed-query QLI. Hardware/Resource and Scheduling/Product numeric bounds remain unknown; formal Current571.681 unchanged. Historical PK-003 is a method prior, not a current verdict.
+
+## Loop066 Run296 pass; Run297 active
+
+Run296 exits0: all8 private same-prestate layer2 owner16 output/current state write/live8 read/typed key-scale/native QLI topk gates pass; 12×1024 eager carrier and 8/8 Runtime pass. Borrowed source SHA independently restored, eight NPUs idle. This supports the indexer ownership hypothesis at one immediate consumer only. It has no exposed cycle or Product gain. Run297 is the next minimal paired A96/B16/A96 native-chain event-span screen; it first repeats the Run296 semantic gate, resets full private backing outside timed windows and checks both update and QLI endpoints. Current Formal remains571.681 tok/s; all numeric ceilings remain unknown.
+
+## Loop066 Run297 result; Run298 Graph disambiguation
+
+Run297 exits0 with exact all8 private typed consumer/topk controls, 12×1024 eager carrier and all8 Runtime pass; sources restored and NPUs idle. Its A96/B16/A2 event spans show no stable B advantage, with A/A drift larger than the paired effect. The current eager implementation is not a performance KEEP. Run298 is one private same-prestate Graph replay to remove per-op Host dispatch ambiguity; capture failure will fail closed. Product Current 571.681 tok/s and all numeric bounds remain unchanged.
+
+## Loop066 Run298 pass and Run299 direction
+
+Run298 exits0: all8 private owner16 Graph capture/replay topk/state/typed parity exact; carrier 12×1024 and all8 Runtime pass; source SHA restored, NPUs idle. Private replay B signal −5.645 μs pooled is smaller than 8.240 μs A/A2 drift, 40/80 strict pair wins. No current native owner16 Product KEEP. Independent Astra High recommends pivot to whole DSA producer dependency and shared storage liveness. Run287 40/40 alias census finds 3 backings totaling 2.376 GB/rank. Run299 will be graph-outside read-only typed view, write/read byte provenance and adjacent-cycle/parking census; no full backing clone or formal TPS claim.

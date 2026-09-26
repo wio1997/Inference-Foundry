@@ -173,24 +173,60 @@ def main():
   'limits':'Derived page envelope, not actual native scatter/state/DSpark/prefix consumer closure or an E2E saving'}
  owner294=[json.loads((ROOT/f'evidence/20260926_loop066_owner/run294/fixture/rank{rank}.json').read_text()) for rank in range(8)]
  owner295=[json.loads((ROOT/f'evidence/20260926_loop066_owner/run295/fixture/rank{rank}.json').read_text()) for rank in range(8)]
+ owner296=[json.loads((ROOT/f'evidence/20260926_loop066_owner/run296/fixture/rank{rank}.json').read_text()) for rank in range(8)]
+ owner297=json.loads((ROOT/'evidence/20260926_loop066_owner/run297/timing_analysis.json').read_text())
+ owner298=json.loads((ROOT/'evidence/20260926_loop066_owner/run298/graph_analysis.json').read_text())
+ owner_alias=json.loads((ROOT/'evidence/20260926_loop066_owner/alias_census_run287.json').read_text())
  assert all(row['rank']==rank and row['A_B_owner_output']['matched_values_exact'] and
             row['A_B_owner_output']['other_valid_slots']==4 and
             row['A_A_output']['matched_values_exact'] and
             row['A_after_B_output']['matched_values_exact']
             for group in (owner294,owner295) for rank,row in enumerate(group))
  assert all(row['owner_state_delta']['B_changed_bytes_different_in_A']==0 for row in owner295)
+ assert all(row['rank']==rank and row['stage']=='complete' and row['gate_pass'] and
+            row['qli_output_shape']==[12,1,512] and row['qli_A_B_exact'] and
+            row['owner_typed_slot']['key_scale_exact'] and
+            all(domain['A_B_exact'] for domain in row['state_domains'].values()) and
+            all(domain['A_B_exact'] for domain in row['post_scatter_state_domains'].values())
+            for rank,row in enumerate(owner296))
+ assert owner297['status']=='valid_private_eager_event_span' and len(owner297['ranks'])==8
+ assert all(len(row['pairs'])==5 for row in owner297['ranks'])
+ assert owner298['status']=='valid_private_graph_replay' and len(owner298['ranks'])==8
+ assert owner298['aggregate']['pairs']==80
+ assert owner_alias['summary']['rank_cohort_files']==40 and owner_alias['summary']['unique_storage_layout_patterns']==1
  observed_ownership['private_layer2_owner16_fixture']={
-  'status':'output_exact_state_live_domain_and_consumers_open',
+  'status':'same_prestate_layer2_indexer_graph_exact_local_gain_unresolved_whole_producer_lifetime_open',
   'output_exact_ranks_run294':8,'output_exact_ranks_run295':8,
   'whole_historical_owner_page_state_exact_ranks_run295':sum(row['A_B_owner_state_bytes_exact'] for row in owner295),
   'B_prestate_changed_bytes_different_in_A_by_rank':[row['owner_state_delta']['B_changed_bytes_different_in_A'] for row in owner295],
   'A_only_prestate_changed_bytes_in_owner_table_pages_by_rank':[row['owner_state_delta']['A_only_changed_bytes'] for row in owner295],
   'first_difference_nonowner_current_write_alias_ranks':7,
-  'state_current_write_read_domain_exact':None,
-  'typed_scatter_QLI_Sparse_lifetime_closed':False,
+  'state_current_write_read_domain_exact':True,
+  'state_domain_exact_ranks_run296':8,
+  'typed_key_scale_owner_slot_exact_ranks_run296':8,
+  'native_QLI_topk_exact_ranks_run296':8,
+  'private_eager_native_chain_run297':{
+   'parity_ranks':8,'paired_triplets_per_rank':5,
+   'update_B_minus_full_rank_median_ms':owner297['aggregate']['update_ms']['all_rank_paired_B_minus_full_median_ms'],
+   'through_QLI_B_minus_full_rank_median_ms':owner297['aggregate']['through_qli_ms']['all_rank_paired_B_minus_full_median_ms'],
+   'through_QLI_B_faster_than_both_pairs':owner297['aggregate']['through_qli_ms']['all_rank_both_control_pair_wins'],
+   'scope':'eager event span may include Host launch gaps; no stable local benefit, not Graph/Hardware/Product bound'},
+  'private_graph_chain_run298':{
+   'parity_ranks':8,'paired_triplets_per_rank':10,
+   'pooled_B_minus_full_replay_ms':owner298['aggregate']['pooled_paired_B_minus_full_median_ms'],
+   'pooled_A_A2_abs_drift_ms':owner298['aggregate']['pooled_A_A2_abs_drift_median_ms'],
+   'B_faster_than_both_pairs':owner298['aggregate']['B_faster_than_both_pairs'],
+   'scope':'private one-layer Graph replay, small signal below control drift; no Product gain'},
+  'whole_producer_alias_census_run287':{
+   'rank_cohort_files':40,
+   'unique_storage_layout_patterns':1,
+   'relevant_unique_backing_bytes_per_rank':owner_alias['summary']['total_unique_backing_bytes_per_rank_cohort'][0],
+   'relevant_backing_count':len(owner_alias['summary']['representative_backings']),
+   'scope':'three layer2-related backings include cross-layer aliases; byte-level liveness and Draft views unknown'},
+  'Sparse_and_cross_cycle_lifetime_closed':False,
   'exposed_target_cycle_ms':None,'formal_E2E_gain_tps':None,
-  'scope':'private one-call eager c4 Compressor at real layer2, not compulsory-byte or exposed-wall estimate',
-  'evidence':'Run294/295 all8 fixture JSON, Run295 analysis and Astra independent review'}
+  'scope':'private one-call eager c4 indexer at real layer2 through typed scatter and native QLI; not compulsory-byte or exposed-wall estimate',
+  'evidence':'Run294–298 fixtures and paired analyses, Run287 alias census and Astra independent review'}
  assert compressor['status']=='valid' and counters['status']=='valid' and hccl['status']=='valid'
  gmm=inventory['target']['gmm']
  latest=[w for w in counters['windows'] if w['capture']==counters['latest_capture']]

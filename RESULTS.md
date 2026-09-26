@@ -551,3 +551,15 @@ Astra's Run287 reconstruction finds 16.65% parked slot-cycles on that instrument
 ### Run295 — owner state delta diagnostic
 
 8/8 owner Compressor outputs bit-exact. Every B prestate-changed byte matches A; whole owner-table differences are A-only changes on ranks0–6, with each first difference mapped to a nonowner current write alias. Old broad gate exits1; live8 state, typed scatter/QLI and lifetime remain open. Eager12×1024 and 8/8 Runtime gates pass; 81.376 tok/s is diagnostic only. Source restored; `evidence/20260926_loop066_owner/run295/findings.md`.
+
+### Run296 — owner16 private typed consumer closure
+
+Runner exit0; all8 real eager Target layer2 fixtures pass exact owner current write/live8 read state bytes before/after typed scatter, four key/scale owner slots and fixed-query native QLI topk `[12,1,512]` versus full96. 12/12×1024 carrier and all8 Runtime pass; diagnostic 87.229 tok/s is not comparable to formal FULL Graph. Sources restored and cards idle. No Product performance claim. See `evidence/20260926_loop066_owner/run296/findings.md`. Run297 paired native-chain event spans are the next cost test.
+
+### Run297 — owner16 paired eager native-chain timing
+
+All8 private parity and 21 topk repeats/rank pass; carrier 12/12×1024 and Runtime 8/8 pass. Paired B−full rank medians: update +0.00303 ms, through QLI +0.00016 ms; B beats both A controls in 9/40 pairs, below A/A2 drift. Diagnostic 83.473 tok/s is not Product. See `evidence/20260926_loop066_owner/run297/findings.md`. Next: one private Graph replay disambiguation.
+
+### Run298 — owner16 private Graph replay
+
+All8 captured private A96/B16/A2 indexer→QLI graphs pass exact topk, state and typed slot gates; 12/12×1024 carrier and Runtime 8/8 pass. B−full replay median −5.645 μs pooled, but only 40/80 both-control wins and A/A2 drift 8.240 μs; no stable Product gain. Source restored and NPUs idle. See `evidence/20260926_loop066_owner/run298/findings.md`. Pivot to Run299 full producer alias/liveness census.

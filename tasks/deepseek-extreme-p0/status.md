@@ -29,7 +29,7 @@
 | `loop-063` | `PIVOTED` | `PIVOTED` | Run275 candidate-consumed continuous correctness/alias passed, but no-verifier B versus A0 latest-rank runtime was +1.472ms/cycle slower across all four cohorts; client TPS difference tracked -6.233s residual, not exposed decode saving. Run278 launcher exit127 after active-script edit makes comparison diagnostic-only. No formal baseline promotion. |
 | `loop-064` | `PIVOTED` | `PIVOTED` | Run284 local CP overlap advanced matched join but Run285 numerical gate is inconclusive; Run287 original FULL Graph confirms 16 owner full update rows per rank over 11968 rank-cycles yet native/lifetime consumers remain open. Astra High independently selects H003 hidden AllGather and local Q overlap as shorter-closure next scheduling test. No E2E gain or numeric ceiling. |
 | `loop-065` | `PIVOTED` | `PIVOTED` | H003 delayed hidden gather overlaps local Q on all8 and advances one-layer next AllToAll by paired median10.125us versus async-immediate; full Target/cycle and Product gain unproven, same-state typed parity pending. Run287 owner and parking evidence suggests larger architectural gap |
-| `loop-066` | `EVALUATING` | `PENDING` | 审查 Run run295 的证据，并判断是否需要更多 Run |
+| `loop-066` | `EVALUATING` | `PENDING` | 审查 Run run298 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

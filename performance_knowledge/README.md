@@ -18,7 +18,7 @@ This is the decision layer between raw Runs and new performance hypotheses. The 
 4. Use the current Dual-Bound DAG to check whether the candidate changes necessary work, a legal schedule, useful tokens/cycle or serving wall. A historical verdict does not replace current same-state correctness and repeated frozen formal E2E.
 5. After a new Run, add or update one concise `entries.jsonl` record with source Run/evidence and the observed applicability limit. Validate with `python3 scripts/performance_knowledge.py validate`; link it from TaskCtl and the current Performance Map/Bound when it changes a decision.
 
-The first five entries cover the currently active DSA overlap and owner-compact questions. They were selected **on demand**; this catalog is not a summary of every historical Round. `entries.jsonl` records factual observations and test conditions. A `status` of `prior` is historical only; `current_diagnostic` does not assert Product gain.
+The first seven entries cover the currently active DSA overlap and owner-compact questions. They were selected **on demand**; this catalog is not a summary of every historical Round. `entries.jsonl` records factual observations and test conditions. A `status` of `prior` is historical only; `current_diagnostic` does not assert Product gain.
 
 ## Record fields
 
