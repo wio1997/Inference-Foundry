@@ -61,3 +61,7 @@
 - `2026-09-26T21:47:31Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run343`（design-check）。
 
 - `2026-09-26T23:20:56Z` Run `run343` 记录为 `pass`；正确性为 `pass`。Fence-only original bulk path passed 48 warmup + three formal 48-request repeats; all 128 rank-cohort FULL Graph gates pass; 16/16 fence bulk pairs; median 575.709 TPS versus prior-session Current 571.681, no causal gain claim; source restored and service stopped.
+
+- `2026-09-26T23:23:53Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run344`（design-check）。
+
+- `2026-09-26T23:30:00Z` Run `run344` 记录为 `pass`；正确性为 `not-applicable`。Source audit and no-NPU ghost publication protocol ledger pass five groups; exact final Scheduler settlement and real arrival remain unimplemented live gates.

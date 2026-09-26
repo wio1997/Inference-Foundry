@@ -1,0 +1,361 @@
+{
+  "query": "early output scheduler KV cache async continuation",
+  "source_commit": "db3beef223e0b5acd81ccccb444600c1b22aac8a",
+  "results": [
+    {
+      "round": "R06_dp_prefill_padding_accounting",
+      "score": 61,
+      "matched_terms": 5,
+      "snippets": [
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 34,
+          "text": "- Scheduler token budget 与输出："
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 35,
+          "text": "- `framework/vllm/vllm/v1/core/sched/scheduler.py`"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/TASK.md",
+          "line": 36,
+          "text": "- `framework/vllm-ascend/vllm_ascend/patch/scheduler/patch_kv_delivery_preemption.py`"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 44,
+          "text": "a_r = scheduler_output.total_num_scheduled_tokens        (useful tokens, per DP rank)"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 70,
+          "text": "| `useful` | `sum_r a_r` | tokens the scheduler had real work for |"
+        },
+        {
+          "path": "rounds/R06_dp_prefill_padding_accounting/REPORT.md",
+          "line": 85,
+          "text": "4 sequential requests (cold, prefix caching on), inputs ~32.8K tokens each, 8 output tokens,"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R06_dp_prefill_padding_accounting/REPORT.md"
+    },
+    {
+      "round": "R36_remove_async_dspark_scheduler_deepcopy",
+      "score": 112,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 1,
+          "text": "# R36 — 移除 async DSpark 冗余 SchedulerOutput deepcopy"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 3,
+          "text": "> 状态：CLOSED / REVERT。单一候选：在 `NPUModelRunner.execute_model` 的 async-scheduling + speculative decode + `_draft_token_ids is None` 分支移除整棵 `scheduler_output` 的 `deepcopy`；保留 PP 专用的独立 copy 分支。"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/TASK.md",
+          "line": 7,
+          "text": "`R36_remove_async_dspark_scheduler_deepcopy`"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 1,
+          "text": "# INVESTIGATION R36 — async DSpark SchedulerOutput deepcopy"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 5,
+          "text": "**REVERT**。候选来自上游 v0.26 后 `92ea871b2/#14643`：删除 `NPUModelRunner.execute_model` 中 async speculative、`_draft_token_ids is None` 时对整棵 `scheduler_output` 的 deepcopy。静态上当前协议已由 worker draft tensor + EngineCore 更新 token，PP=1 的冻结路径也不需要借副本保护 mutatio"
+        },
+        {
+          "path": "rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md",
+          "line": 7,
+          "text": "合成 CPU probe 证明潜在成本很大：12×32851 新请求中位578.900ms，代表 cached batch为22.617ms。但该数字只是条件命中上限。真实冻结服务同会话 A/B 显示，c=1配对中位仅+0.815%、c=12反而−0.206%，两档都只有2/4同向。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R36_remove_async_dspark_scheduler_deepcopy/REPORT.md"
+    },
+    {
+      "round": "R07_dsa_cp_draft_metadata_cache",
+      "score": 80,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/TASK.md",
+          "line": 5,
+          "text": "- 报告：`R07_dsa_cp_draft_metadata_cache/REPORT.md`"
+        },
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/TASK.md",
+          "line": 6,
+          "text": "- 证据：`R07_dsa_cp_draft_metadata_cache/evidence/RUN.md`"
+        },
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/TASK.md",
+          "line": 7,
+          "text": "- 结论摘录（来自本轮 manifest / RUN.md）：手工 backport 上游 a25f98fbb9(#14916) 让 DSpark draft step 跨 KV-cache group 复用 group-invariant DSA-CP drafting metadata：局部 loop_ms 中位 6.5072→4.7063 ms（−27.7%）、短链路 ITL −6.47%/−6.77%，但同会话两次正式 48×1024 吞吐 511.99→482.98"
+        },
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/REPORT.md",
+          "line": 1,
+          "text": "# R07 —— DSA-CP drafting metadata 跨 KV-cache group 复用（手工 backport #14916）"
+        },
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/REPORT.md",
+          "line": 6,
+          "text": "- 证据：`results/r07_dsa_cp_draft_metadata_cache/evidence/`（索引与复现命令见其 `RUN.md`）"
+        },
+        {
+          "path": "rounds/R07_dsa_cp_draft_metadata_cache/REPORT.md",
+          "line": 11,
+          "text": "TASK 问：把上游 `a25f98fbb9`（#14916，\"Cache group-invariant DSA-CP drafting metadata across kv-cache"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R07_dsa_cp_draft_metadata_cache/REPORT.md"
+    },
+    {
+      "round": "R08_decode_postprocess_decomposition",
+      "score": 52,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 40,
+          "text": "| 收尾/簿记 | `_bookkeeping_sync`（`--async-scheduling` 走异步分支，无 `_to_list()` 阻塞） | `:2316-2330`、`:2486`、`:2554-2568` |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 43,
+          "text": "| 状态更新 | `sampling_done_event.record()` → `async_state_update` 内 `_update_states_after_model_execute` | `:2271-2274`、`:2392-2399` |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/TASK.md",
+          "line": 44,
+          "text": "| 输出封装 | `AsyncGPUModelRunnerOutput(...)` + `set_async_sampled_token_ids(...)` | `:2435-2447` |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 31,
+          "text": "| D6 输出封装/异步 D2H/状态更新（`:2435/:1460/:2392`） | `S5_async_output` 0.285 ms（S6 无数据） | 0.43% | 0.285 ms = **0.43%** | <5% |"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 50,
+          "text": "`max_num_batched_tokens=8192`、`max_num_seqs=16`、`gpu_memory_utilization=0.9`、`async_scheduling=True`、"
+        },
+        {
+          "path": "rounds/R08_decode_postprocess_decomposition/REPORT.md",
+          "line": 92,
+          "text": "| └ `S5_async_output` | 0.285 | 0.276 | 0.300 | 0.43 | 0.287 | 1.007 | WORK |"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R08_decode_postprocess_decomposition/REPORT.md"
+    },
+    {
+      "round": "R13_target_attn_metadata",
+      "score": 52,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 30,
+          "text": "**主假设（待检验，不是结论）**：该段 9.810 ms 要么是\"每个 kv-cache group 都必须付的 slot / block-table"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 37,
+          "text": "R08（`build_for_drafting` 错误假设）、R11/R12（draft MoE / draft attention QKV 的 host glue 小项）。"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/TASK.md",
+          "line": 52,
+          "text": "| 其它 | `enable_dsa_cp=true`、`enable_flashcomm1=true`、`multistream_overlap_shared_expert=true`、`FULL_DECODE_ONLY`、`--async-scheduling`、`--enable-prefix-caching`、`max_model_len=1048576`、`max_num_batched_tokens=8192`、`block_size=32` | 同上 |"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 14,
+          "text": "而是 `8 × (每个 kv-cache group 一次 builder 调用)` 铺出来的 host 下发马赛克**："
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 47,
+          "text": "| R13 trace 普查（torch_npu profiler，25 迭代） | **25/25 迭代**均为：`floor_divide`=8、`stack`=8、`remainder`=8（= 8 次 `format_dsa_slot_mapping`）、`aten::item`=22、`_C_ascend::npu_sparse_attn_sharedkv_metadata`=3、`npu_vllm_quant_lightning_indexer_metadata`"
+        },
+        {
+          "path": "rounds/R13_target_attn_metadata/REPORT.md",
+          "line": 50,
+          "text": "**结论**：target 的 group 循环每迭代 8 次 (kv_cache_gid, attn_gid) 组合，但只有 **3 个不同 `compressor_ratio`**"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R13_target_attn_metadata/REPORT.md"
+    },
+    {
+      "round": "R22_decode_prep_in_slot_mapping_fusion",
+      "score": 50,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/TASK.md",
+          "line": 19,
+          "text": "`323e857ed/#15530`，把 `MultiGroupBlockTable.compute_slot_mapping()` 对六个 DSV4 KV-cache group 的"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/TASK.md",
+          "line": 39,
+          "text": "3. 上游 `#15584/71e8389d6` 的 async metadata 主要把 metadata device op 放 aux stream；它不天然删除"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/TASK.md",
+          "line": 58,
+          "text": "- 排除 R02–R21 已结案机制，尤其 S2 pack/unpack、QLI `.item()`、target attnMeta 单点、DSpark QKV/TP 细分。"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/REPORT.md",
+          "line": 19,
+          "text": "v1 因按 profiler 泛型元数据误用了 int64 output，每组恰有 8 个 mismatch；源码确认生产"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/REPORT.md",
+          "line": 20,
+          "text": "`BlockTable.slot_mapping` 明确为 int32 后，v2 更正并完整重跑。v2 六组 full output mismatch 全为 0。"
+        },
+        {
+          "path": "rounds/R22_decode_prep_in_slot_mapping_fusion/REPORT.md",
+          "line": 39,
+          "text": "参数冻结为 32K input、1024 output、48 请求、concurrency=12、request_rate=0、prefix repeat=0.9、"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R22_decode_prep_in_slot_mapping_fusion/REPORT.md"
+    },
+    {
+      "round": "R29_dsa_cp_a2_prefill_o_proj_weight_switch",
+      "score": 50,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/TASK.md",
+          "line": 29,
+          "text": "2. `wo_a` 是 output-sharded，完整权重沿逻辑 dim0 gather；`wo_b` 是 input-sharded，必须沿逻辑"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/TASK.md",
+          "line": 32,
+          "text": "来自把 weight gather 提前与 KV/attention device work 重叠，而不是宣称通信字节消失。"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/TASK.md",
+          "line": 39,
+          "text": "`wo_a(dim0)+wo_b(dim1)` 两次 async all-gather，验证重排后的完整权重逐位一致，并测无 overlap 与"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/REPORT.md",
+          "line": 21,
+          "text": "两个 weight AG 移到 WKV/Compressor/indexer/sparse-attention 之前发起，以长 attention 主链覆盖通信。"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/REPORT.md",
+          "line": 22,
+          "text": "`wo_a` 和 `wo_b` 的分片轴不同，因此不能只删除 A5 条件：前者沿 output dim0，后者沿 input dim1；"
+        },
+        {
+          "path": "rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/RESULT.md",
+          "line": 12,
+          "text": "- `wo_a` 是 output-sharded，沿逻辑 dim0 gather，并在完整路径重排为 `[group,input,rank]`。"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R29_dsa_cp_a2_prefill_o_proj_weight_switch/REPORT.md"
+    },
+    {
+      "round": "R28_dsa_cp_compressor_qtail_overlap",
+      "score": 48,
+      "matched_terms": 4,
+      "snippets": [
+        {
+          "path": "rounds/R28_dsa_cp_compressor_qtail_overlap/TASK.md",
+          "line": 13,
+          "text": "RoPE；在进入 WKV 之前 join Compressor。不得把 Compressor 延伸到 WKV/indexer 区间。"
+        },
+        {
+          "path": "rounds/R28_dsa_cp_compressor_qtail_overlap/TASK.md",
+          "line": 21,
+          "text": "- R21 的负结论来自 Compressor 与 W4A8 WKV Cube 链竞争；本轮在 WKV 前 join，只测试 Compressor"
+        },
+        {
+          "path": "rounds/R28_dsa_cp_compressor_qtail_overlap/TASK.md",
+          "line": 26,
+          "text": "1. 冻结配置命中 `AscendDSACPImpl._forward()`，R20 prefill async TP gather 已保留。"
+        },
+        {
+          "path": "rounds/R28_dsa_cp_compressor_qtail_overlap/REPORT.md",
+          "line": 6,
+          "text": "partial RoPE tail 重叠，并在 WKV 前 join。它不同于 R21 已失败的 Compressor/WKV Cube 重叠，也不改"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R28_dsa_cp_compressor_qtail_overlap/REPORT.md"
+    },
+    {
+      "round": "R12_draft_attention_qkv",
+      "score": 68,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R12_draft_attention_qkv/TASK.md",
+          "line": 5,
+          "text": "- 报告：`R12_draft_attention_qkv/REPORT.md`"
+        },
+        {
+          "path": "rounds/R12_draft_attention_qkv/TASK.md",
+          "line": 6,
+          "text": "- 证据：`R12_draft_attention_qkv/evidence/RUN.md`"
+        },
+        {
+          "path": "rounds/R12_draft_attention_qkv/TASK.md",
+          "line": 7,
+          "text": "- 结论摘录（来自本轮 manifest / RUN.md）：零起服、零改码，复用 R11 已离线导出的 trace 把 78 个 vllm::dsa_forward span 按 op 身份切成四段（gather 390.0 / qkv 1529.2 / core 85.2 / o_proj 1258.8 µs/层）并下钻 qkv 段：该段整段只有 3.777 ms = 5.50% of period，单点候选需去掉整段的 90.9% → 算术上不可达；qkv 段 1529"
+        },
+        {
+          "path": "rounds/R12_draft_attention_qkv/REPORT.md",
+          "line": 1,
+          "text": "# R12 —— DSpark draft attention **QKV 投影**段的单点发现（唯一候选）"
+        },
+        {
+          "path": "rounds/R12_draft_attention_qkv/REPORT.md",
+          "line": 7,
+          "text": "- 证据：`results/r12_draft_attn_qkv/evidence/`（索引与复现命令见其 `RUN.md`）"
+        },
+        {
+          "path": "rounds/R12_draft_attention_qkv/REPORT.md",
+          "line": 14,
+          "text": "**TASK 问**：R09 测出的 draft attention **QKV 投影 3.777 ms = 5.50% of period**（单层 1.252–1.265 ms）里，"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R12_draft_attention_qkv/REPORT.md"
+    },
+    {
+      "round": "R02_a1_a2_dspark_swa_markov",
+      "score": 39,
+      "matched_terms": 3,
+      "snippets": [
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 30,
+          "text": "5. 读草稿模型实现：`models/deepseek_v4_dspark.py`（SWA KV 写入、markov head）。"
+        },
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 54,
+          "text": "| 草稿模型（SWA KV 写入、Markov head、logits） | `vllm_ascend/models/deepseek_v4_dspark.py` |"
+        },
+        {
+          "path": "rounds/R02_a1_a2_dspark_swa_markov/REPORT.md",
+          "line": 67,
+          "text": "- 全仓 SWA 标识检索后，与草稿滑动窗口索引对应的实现只有 `spec_decode/utils.py` 的 `SlidingWindowAdapter`（类定义 :103，注释 :104-119，`compute_sliding_window_block_table` :140-168，`apply` :170-198）。它做两件事：(a) 把完整 block table **裁剪成窗口内的块索引**；(b) 把 FIA 能读到的各 KV 长度张量（GPU `seq_l"
+        }
+      ],
+      "report_url": "https://github.com/wio1997/dsv4f-w4a8-ascend-logs/blob/db3beef223e0b5acd81ccccb444600c1b22aac8a/rounds/R02_a1_a2_dspark_swa_markov/REPORT.md"
+    }
+  ]
+}
