@@ -836,3 +836,7 @@ Run186 showed prefill forward thread CPU effectively equals wall time, rejecting
 ## 2026-09-25 Loop057 checkpoint
 
 HEAD after Run235 pending commit. Formal current Extreme571.681 tok/s versus Stock543.655; correctness/full E2E claim remains Run99 only. Latest pinned official vllm-ascend MRV2 graph audit in evidence/20260925_loop055_moe_replay/run227/community_mrv2_audit.md; Run234 adds graph pool and target kernel census. Run235 one-card local-shape RMS+cast surrogate failed FP32 parity before timing. Loop057 pivoted; no clear source-backed >=1ms/cycle replacement from current data. Serving stopped/source untouched. Resume via tasks/deepseek-extreme-p0/resume-pack.json; avoid repeating reliable Loop034/Run93 E2E or treating diagnostic sums as savings.
+
+## Latest checkpoint — Loop061 (2026-09-26)
+
+Formal Extreme remains 571.681 tok/s median under the frozen product contract. Eight-rank Graph HCCL payload inventory and CANN9.1 standalone HCCL Test are recorded in evidence/20260926_loop061_bound/findings.md. Operation payload is not physical link traffic; independent tool latency is not Graph critical-path time. Astra High review leaves Engineering, Aggressive and Hardware/Algorithmic bounds UNKNOWN. Next: source-level compulsory-work/read census, then a same-state Graph-path intervention selected by exposure and correctness evidence; use repeated formal E2E for KEEP. Service stopped, 8 NPUs idle.

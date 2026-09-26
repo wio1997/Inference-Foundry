@@ -508,7 +508,7 @@ At fixed cycles and unchanged semantics, a hypothetical 0.5s/cohort exposed pref
 
 ## Loop060 Run247 memory-counter export
 
-Run246 raw Level1 capture exported successfully; all 80 target rank-cycle windows passed parser gates, latest 16 across eight ranks. AIC+AIV latest medians: GMM read 9.244GB/rank-cycle (1.092× active packed estimate), total read 18.965GB and write 2.380GB. HCCL link traffic and unique compulsory bytes remain unknown. Instrumented target time is not a formal E2E result. Evidence: `evidence/20260926_loop060_resource/run247/`.
+Run246 raw Level1 capture exported successfully; all 80 target rank-cycle windows passed parser gates, latest 16 across eight ranks. AIC+AIV latest medians: GMM read 9.244GB/rank-cycle (1.092 cross-sample ratio to active packed estimate; not same-cycle amplification), total read 18.965GB and write 2.380GB. HCCL link traffic and unique compulsory bytes remain unknown. Instrumented target time is not a formal E2E result. Evidence: `evidence/20260926_loop060_resource/run247/`.
 
 ## Loop060 Run248 resource sensitivity
 
@@ -517,3 +517,7 @@ Latest 16 graph windows reconcile against Run247. The non-GMM `other` 3.618GB re
 ## Loop060 Run249 shape screen
 
 Sixteen latest target windows identify exact non-GMM shapes. Largest quant matmul reports1.043TB/s counter rate; Compressor main shapes report0.303–0.531TB/s. Rates are profiled byte/task-time ratios and yield no exposed product gain. No candidate promoted; hardware bound remains unknown. Evidence: `evidence/20260926_loop060_resource/run249/`.
+
+## Loop061 Runs250–255 (2026-09-26)
+
+Run250: offline target Graph HCCL payload audit passed 80/80 rank-cycle windows across 8 ranks; 265 events, 25,651,200B reported Size(Byte) per rank-cycle, physical link bytes unknown. Run251: CANN9.1 bundled HCCL Test built in dedicated container with local temporary Makefile linker fix; no source toolkit edit. Run252: -i0 caused indefinite repetition; interrupted, recorded INVALID, NPUs idle. Run253: six exact-payload 8-rank HCCL Test cases exit0/correct; 96KiB BF16 normal AllGather/ReduceScatter/AllToAll 159.32/114.36/211.07us. Run254: paired 256MB-buffer -t0/-t1 96KiB tests all correct; device-only 40.03/39.74/62.17us. These are standalone tool measurements, not Graph-path link bytes or product latency. Run255: Astra High independent Bound Review keeps all three future Bound levels UNKNOWN; V0 ranges remain sensitivity scenarios. No Runtime candidate or new formal E2E result. Evidence: evidence/20260926_loop061_bound/findings.md.
