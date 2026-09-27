@@ -567,3 +567,27 @@
 - `2026-09-27T14:51:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run554`（review）。
 
 - `2026-09-27T14:51:02Z` Run `run554` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS conditional source result: draft D2H may early-return; parent GPU scatter and DCP branch confirmed; DCP CPU fallback can indirectly read draft tensor, valid-count and draft events distinct; actual branch/generation remains unmeasured.
+
+- `2026-09-27T15:35:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run555`（design-check）。
+
+- `2026-09-27T15:35:13Z` Run `run555` 记录为 `pass`；正确性为 `not-applicable`。Guarded reversible collector PASS; current-stream and Host lineage only; no live NPU or finite Bound.
+
+- `2026-09-27T15:35:13Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run556`（benchmark）。
+
+- `2026-09-27T15:35:14Z` Run `run556` 记录为 `invalid`；正确性为 `invalid`。Preflight rejected 91 residual container forkserver processes before patch/service; no sample.
+
+- `2026-09-27T15:35:14Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run557`（benchmark）。
+
+- `2026-09-27T15:35:15Z` Run `run557` 记录为 `invalid`；正确性为 `invalid`。All48 warmup finished; stale exact client scope validator failed before measured phase; cleanup/restore passed.
+
+- `2026-09-27T15:43:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run558`（profile）。
+
+- `2026-09-27T15:43:59Z` Run `run558` 记录为 `pass`；正确性为 `pass`。Guarded full48+48 diagnostic admitted all8 cohort5/6, exact output/c12 and complete restore; slot5 Runtime1024 crossing cycle188/299; all finite Bounds remain null.
+
+- `2026-09-27T15:49:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run559`（review）。
+
+- `2026-09-27T15:49:21Z` Run `run559` 记录为 `pass`；正确性为 `not-applicable`。V3.30 reproduces admitted Run558 structure, 28 null injections reject and all 19 proof nodes remain false; no finite Bound endpoint or formal Current change.
+
+- `2026-09-27T15:54:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run560`（review）。
+
+- `2026-09-27T15:54:50Z` Run `run560` 记录为 `pass`；正确性为 `not-applicable`。V3.31 freezes DSpark7 logical work/acceptance/output W0 while permitting execution reordering/fusion; 13 null injections and prior pin reject; no finite Bound.
