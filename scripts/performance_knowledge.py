@@ -112,6 +112,9 @@ def validate():
             'conditional_resource_relaxation', 'source_constraint',
             'conditional_observation', 'scoped_observation',
             'environment_constraint',
+            'conditional_source_contract', 'conditional_graph_structure',
+            'conditional_live_diagnostic', 'attained_isolated_engineering_service',
+            'partial_counter_diagnostic',
         ):
             raise SystemExit(f'entry line {number} invalid status')
         count += 1

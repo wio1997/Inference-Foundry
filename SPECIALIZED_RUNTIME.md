@@ -188,3 +188,7 @@ which localizes the dominant gap to sustained target/proposer/communication
 execution rather than Scheduler or HTTP publication. The next runtime loop
 must profile that complete chain and select a structural intervention from the
 measured critical path.
+
+## Run578 resource-counter checkpoint
+
+Real loaded W4A8 Target weights and Run576 route groups under a private terminal Graph yield two complete CANN9.1 GMM MemoryAccess counter windows per rank after offline parse. The all8 read range8.878–9.504GB/replay is current implementation traffic. No same-run A0/A1 timing survived, so do not infer bandwidth, compulsory bytes or Product critical-path savings. Service stopped, restored and idle. V3.34 keeps finite strict Bound endpoints null.

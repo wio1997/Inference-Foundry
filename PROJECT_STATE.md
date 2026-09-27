@@ -1053,3 +1053,7 @@ All8 guarded first-post-park capture, 48+48 c12/1024 client/Runtime/capture join
 ## Run577 terminal real-weight service checkpoint
 
 Guarded live diagnostic, CPU negative gates, client 48+48/c12/1024, all64 Runtime cohorts, last-cohort terminal all8 barrier, 43-pair private Graph, 20 event samples/rank, post-stop POST96, all8 idle and exact source/script restoration passed. Astra independent scoped review approves an attained isolated Engineering service point only: rank median9.672–10.131ms, slowest10.1311698ms. The input is production W4A8 weights plus Run576 groups and synthetic nonzero activation; no physical HBM counters or mixed work. V3.33 keeps all strict finite Bound endpoints and Current→limit gap null; Current Formal571.681tok/s. Next pair this fixture with actual GMM HBM counters and all8 mixed service, while formal W₀/C⁺ remain independent.
+
+## Run578 partial counter diagnostic
+
+Guarded terminal acquisition completed96 requests/all64 Runtime records, but online CANN profiler parse failed; controller exit1, controlled stop/restore/idle gates all0. Offline parsing recovered complete all8 two-replay 43 GMM1+43 GMM2 MemoryAccess windows. Counter-reported reads median9.156191GB and writes median0.213860GB per rank/replay; A0 timing unpersisted, A1 not executed. Astra scoped review of repaired reducer PASS. V3.34 keeps every strict finite Bound and Current→limit distance null. Current Formal571.681tok/s. Next fixed-work mixed GMM×HCCL contention/dependency evidence and independent formal W-minus/C⁺/B.

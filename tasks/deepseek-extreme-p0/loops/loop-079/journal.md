@@ -659,3 +659,7 @@
 - `2026-09-27T20:41:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run577`（profile）。
 
 - `2026-09-27T20:41:21Z` Run `run577` 记录为 `pass`；正确性为 `pass`。Scoped terminal all8 real-production-weight 43-layer GMM Graph service PASS; synthetic activation, 20 replays/rank, slowest median10.1311698ms; not formal W0/E2E, strict endpoints null
+
+- `2026-09-27T21:19:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run578`（profile）。
+
+- `2026-09-27T21:19:13Z` Run `run578` 记录为 `invalid`；正确性为 `not-applicable`。Original paired A0/P/A1 service diagnostic failed online parser and controller exit1; offline recovered all8 exact two-replay real-weight GMM MemoryAccess counter-only evidence, read median9.156191GB/replay, no A0/A1 time; strict bounds null; stop/restore/idle0

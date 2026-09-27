@@ -714,3 +714,7 @@ The warm48 + measured48/c12/1024 all8 run, first post-park cycle170 capture and 
 ## Run577 terminal GMM service diagnostic (2026-09-28)
 
 All8 guarded 48+48/c12/1024 diagnostic and terminal 43-layer real-weight private GMM Graph passed client/Runtime/fixture/service/post-stop admission. Twenty replay samples/rank: median range9.672–10.131ms, slowest rank10.1311698ms. Source/script restore and eight-NPU idle passed. This is real-weight, synthetic-activation isolated Engineering service, with no formal TPS or strict Bound promotion. Formal Current remains571.681tok/s. Evidence: `evidence/20260928_loop080_bound/run577/`.
+
+## Run578 partial diagnostic
+
+After an online profiler parse failure, CANN9.1 offline export recovered two complete 43-pair GMM Graph MemoryAccess replay windows on all8 ranks. Counter-reported main-memory read8.878–9.504GB/rank/replay and write0.197–0.227GB; no paired A0/A1 timing or TPS. Controller exit1; stop/restore/idle0. V3.34 strict bounds and numeric Current→limit distance null. Formal571.681tok/s.

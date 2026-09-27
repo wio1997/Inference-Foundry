@@ -762,3 +762,7 @@ The live first-post-park census joins all8 Target/Draft route ownership and W4A8
 ## Run577 Engineering service calibration
 
 The terminal eight-rank 43-layer real-weight, synthetic-activation GMM Graph provides one attained isolated service point: slowest rank median10.1311698ms/replay (20 samples/rank). It addresses production weight residency and cross-layer working-set transfer from Run571, but lacks physical traffic and concurrent Target/Draft/KV/HCCL contention. A 156.482ms common Host submission window is not calibrated device overlap. This service time cannot be summed with profiler stage intervals or subtracted from Product wall-time. Strict Resource capacity C⁺/B, Scheduling critical path and numeric Current→credible-limit distance remain unknown. See PK-078.
+
+## Run578 partial MemoryAccess evidence
+
+CANN9.1 offline recovery from a failed online profiler produced two exact43-pair real-weight/private-synthetic-input GMM Graph replay CSVs per rank. Eight-rank per-replay counter-reported main-memory read8.878–9.504GB, write0.197–0.227GB; cross-rank medians9.156191/0.213860GB. A0 was not persisted and A1 not run, so this is counter-only evidence, not attained bandwidth. The traffic is neither certified physical HBM nor compulsory W₀. V3.34 strict Resource/Scheduling/Product endpoints and numeric Current→limit gap stay null; Formal Current571.681tok/s. Next bound discriminator: same-work GMM×HCCL four-condition mixed service plus production dependency witness. See PK-079/Run578.
