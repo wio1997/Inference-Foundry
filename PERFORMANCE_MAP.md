@@ -746,3 +746,7 @@ Run246/247 latest FULL Graph windows contain paired HCCL `AivKernel` execution r
 ## Run573 Resource numerator identity gate
 
 Run403 routing/ownership can become a semantic active/parked expert-set census only after each router row is joined to the actual Target candidate identity in the same admitted trajectory. Run573's source index and synthetic primitive map rejects wrong DSA/dispatch/layer maps but does not establish the actual 43-layer composition. A diagnostic must capture production handoff, first post-park Graph replay, rank/pad/branch maps, all43 router inputs and Target/Draft packed-weight metadata. This is a Resource identity gate, not a clairvoyant retained-prefix optimization or a Bound time. All finite endpoints stay null.
+
+## Run574 source-level native attention row order
+
+Reviewed SCFA/SWA TND `FLASH_DECODE=0` source writes attention output at the Query token/head offset; package objects match build objects and the container imports the audited source tree. This is a conditional local mapping only. Actual loaded B1-targeted binary on 910B3, tiling/metadata, Graph generation, DSA TP8 A2A/wo_b and all43 router rows are still open. Resource numerator and Current→credible-limit numerical gap remain unknown; next evidence should bind real loaded branch and one same-trajectory first-post-parking row/weight witness. See PK-075 and Run574.

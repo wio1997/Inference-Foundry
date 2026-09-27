@@ -698,3 +698,7 @@ Run568 no-publication single-arm diagnostic passed warm48+measured48/c12/1024, a
 ## Run570 offline row census (2026-09-28)
 
 No new model run. All8 admitted Run566 A0 diagnostic traces imply per-rank 115,776 current Target input rows, including 98,496 active-slot and 17,280 parked-slot rows. Astra independently verified source formulas and output files. This is not formal Run99 W₀, compulsory work, a measured saving or E2E result. Formal Current remains571.681tok/s; finite strict Bound endpoints remain unknown.
+
+## Run574 native Query coordinate audit (2026-09-28)
+
+Source/build/package hash and negative gates passed; independent Astra replay reproduced the output byte-for-byte and rejected eight extra mutations. The reviewed TND SCFA/SWA native path preserves Query token/head output coordinates, conditional on actual production dispatch. There was no model or NPU run and no E2E measurement. The Ascend910B1 compiler target and unresolved live binary/tiling binding preclude a production row-identity claim. Formal Current remains571.681tok/s; all finite Bound endpoints remain unknown. Evidence: `evidence/20260928_loop080_bound/run574/`.

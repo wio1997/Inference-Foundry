@@ -643,3 +643,7 @@
 - `2026-09-27T18:56:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run573`（design-check）。
 
 - `2026-09-27T18:57:05Z` Run `run573` 记录为 `pass`；正确性为 `not-applicable`。16-source conditional TP8 row-map preflight and independent Astra negative review PASS as idealized primitives only; status not_live_ready; no actual per-layer router identity or Bound promotion
+
+- `2026-09-27T19:09:35Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run574`（design-check）。
+
+- `2026-09-27T19:11:05Z` Run `run574` 记录为 `pass`；正确性为 `not-applicable`。Conditional native TND Query-output source contract plus build/package/container binding; independent Astra replay PASS; B1-targeted object actual B3 dispatch and full row map unresolved; no Bound promotion

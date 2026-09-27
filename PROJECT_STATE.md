@@ -1037,3 +1037,7 @@ Offline reducer and Astra review PASS after correcting two important profiling i
 ## Run573 source preflight for candidate-row identity
 
 Offline 16-source SHA-pinned row-map model and Astra independent review PASS only as idealized primitives; `preflight.json` explicitly says not live-ready. It identifies the missing production first-park Graph replay, runtime branch/pad/rank order, native query-output, per-layer row maps and actual expert formats. The next Resource experiment is a guarded one-cohort post-park Target/Draft witness with no timing claim. No service or NPU was run. Formal Current571.681tok/s; finite Bound endpoints and numerical gap remain null. See Run573 findings and PK-074.
+
+## Run574 conditional native row-order checkpoint
+
+Run574 offline audit and Astra High independent replay PASS at source/build/package scope. SCFA/SWA TND native output shares Query coordinates under supported `FLASH_DECODE=0`; the compile command targets Ascend910B1, and real 910B3 loaded object/tiling plus source→object build provenance remain open. No live service or formal E2E was run. All strict finite Bound endpoints and Current→credible-limit distance stay null; Formal Current571.681tok/s. Next bind actual loaded op/branch and implement a reversible same-trajectory first-post-parking all43 row/expert/packed-format witness; separately continue mixed-resource and exact-board C⁺/B tracks.
