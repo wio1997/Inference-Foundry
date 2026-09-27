@@ -758,3 +758,7 @@ An eight-rank Run502 Graph→Run574 package join identifies 344 selected BF16 sp
 ## Run576 conditional Resource geometry
 
 The live first-post-park census joins all8 Target/Draft route ownership and W4A8 entry operand geometry to one diagnostic cohort. Selected-slice arithmetic (~8.36–8.89GB Target plus~0.29–0.48GB Draft per rank) is neither actual GMM traffic nor compulsory traffic; it cannot be compared causally to Run247–249 GMM counter reads across trajectories. It reduces uncertainty about the working set a matched Engineering service test should reproduce. It does not resolve formal W₀ necessary bytes, attainable all8 mixed capacity, communication overlap or a legal Scheduling makespan. Current571.681tok/s; all strict numerical Bound intervals and Current→credible-limit distance remain null. See PK-077 and Run576.
+
+## Run577 Engineering service calibration
+
+The terminal eight-rank 43-layer real-weight, synthetic-activation GMM Graph provides one attained isolated service point: slowest rank median10.1311698ms/replay (20 samples/rank). It addresses production weight residency and cross-layer working-set transfer from Run571, but lacks physical traffic and concurrent Target/Draft/KV/HCCL contention. A 156.482ms common Host submission window is not calibrated device overlap. This service time cannot be summed with profiler stage intervals or subtracted from Product wall-time. Strict Resource capacity C⁺/B, Scheduling critical path and numeric Current→credible-limit distance remain unknown. See PK-078.

@@ -710,3 +710,7 @@ All8 admitted Run502 FULL96 Graph dumps contain 43 sparse-attention MIX_AIC task
 ## Run576 guarded diagnostic (2026-09-28)
 
 The warm48 + measured48/c12/1024 all8 run, first post-park cycle170 capture and client→Runtime→Graph join passed, with all borrowed files restored and service stopped. Target24,768 and Draft1,512 global route incidences conserve across eight ranks. Resident backing and selected-slice arithmetic are conditional operand data, not HBM traffic. Astra independent scoped PASS covered reducer and V3.32 SHA-pinned model. No formal E2E performance was measured; Current remains571.681tok/s and strict Bound endpoints are null. Evidence: `evidence/20260928_loop080_bound/run576/`.
+
+## Run577 terminal GMM service diagnostic (2026-09-28)
+
+All8 guarded 48+48/c12/1024 diagnostic and terminal 43-layer real-weight private GMM Graph passed client/Runtime/fixture/service/post-stop admission. Twenty replay samples/rank: median range9.672–10.131ms, slowest rank10.1311698ms. Source/script restore and eight-NPU idle passed. This is real-weight, synthetic-activation isolated Engineering service, with no formal TPS or strict Bound promotion. Formal Current remains571.681tok/s. Evidence: `evidence/20260928_loop080_bound/run577/`.

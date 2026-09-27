@@ -655,3 +655,7 @@
 - `2026-09-27T20:05:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run576`（profile）。
 
 - `2026-09-27T20:05:30Z` Run `run576` 记录为 `pass`；正确性为 `pass`。Scoped diagnostic admission PASS: all8 first-post-park route/operand capture and client/runtime/output ledger, not formal same-W0 E2E or compulsory traffic; endpoints null
+
+- `2026-09-27T20:41:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run577`（profile）。
+
+- `2026-09-27T20:41:21Z` Run `run577` 记录为 `pass`；正确性为 `pass`。Scoped terminal all8 real-production-weight 43-layer GMM Graph service PASS; synthetic activation, 20 replays/rank, slowest median10.1311698ms; not formal W0/E2E, strict endpoints null
