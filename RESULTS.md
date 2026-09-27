@@ -690,3 +690,7 @@ Run563 `check` compiled the proposed ModelRunner/segmented sources without insta
 ## Run564–566 diagnostic, 2026-09-28
 
 Run564 source/CPU gate PASS. Run565 INVALID before service due89 Run558-tagged helper processes; targeted cleanup succeeded. Run566 controller exit0: all three 48+48/c12/1024 arms, all8 rank admissions, coherent B pause at cycle218 slot4, eight-card idle and source/script SHA restoration. Matched cohort cycles A0/B/A1 were318/297/300; first observed difference was cycle0 `num_computed_before` on every rank for every arm pair. Hence cross-arm fixed-W₀ comparison REJECT and all wall deltas are descriptive only. No new formal TPS; Current Run99 median571.681tok/s and strict Bound endpoints unchanged.
+
+## Run568/569 diagnostic evidence (2026-09-28)
+
+Run568 no-publication single-arm diagnostic passed warm48+measured48/c12/1024, all8 client/runtime/trace admission and cleanup. At cohort5 cycle187 slot4, 60 enumerated tensors and captured state were unchanged across pause-only handling; full KV/fixed-W₀ and numerical performance implications are unproven. Run569 offline conditional work/traffic census passed expanded negative gates and Astra independent review. Neither is a formal E2E run. Formal Current remains **571.681 tok/s**; all finite strict Bound endpoints remain unknown.

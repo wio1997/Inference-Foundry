@@ -615,3 +615,15 @@
 - `2026-09-27T17:34:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run566`（test）。
 
 - `2026-09-27T17:34:13Z` Run `run566` 记录为 `pass`；正确性为 `invalid`。All8 A0/B/A1 each admitted and stop/restore SHA pass, but same semantic cohort differs at cycle0 on all8 including A0/A1; fixed-W0 timing comparison REJECT, Bound endpoints null
+
+- `2026-09-27T17:55:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run567`（test）。
+
+- `2026-09-27T17:55:51Z` Run `run567` 记录为 `pass`；正确性为 `not-applicable`。Source-only scoped same-S* pause-state probe: CPU gate exit0 after realistic group-key repair; Astra source preflight PASS; no live or numeric Bound claim
+
+- `2026-09-27T18:03:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run569`（design-check）。
+
+- `2026-09-27T18:03:31Z` Run `run569` 记录为 `pass`；正确性为 `not-applicable`。Offline diagnostic fixed-work V0 census: 344 BF16 groups, 258 W4A8 incidences, 16 independent current counter windows; all strict Bound endpoints remain null
+
+- `2026-09-27T18:11:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run568`（test）。
+
+- `2026-09-27T18:11:53Z` Run `run568` 记录为 `pass`；正确性为 `pass`。All8 same-S* scoped captured-state pause noninterference PASS at measured cohort5 cycle187 slot4; client and stop/restore admission exit0; full KV/fixed-W0 and numeric Bound remain unproven

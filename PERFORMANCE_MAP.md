@@ -724,3 +724,9 @@ The no-publication A0/B/A1 control is a necessary semantic screen before the mor
 ## Run566 fixed-work diagnostic mapping
 
 A0/B/A1 complete service and all8 self-consistency gates pass, but their matched cohort entries already differ at cycle0 in computed positions, Target input and Draft seed. B's descriptive longer wall and different cycles are therefore not a removable Runtime gap for frozen W₀. The current largest **uncertainty** is legal same-state Scheduling: dynamic first-completion parking→pause noninterference→normal API publication/c12 release→successor ADD and mixed resource service. Use a single natural S* with complete model-readable state/ownership checks; do not rerun cross-service A/B as a causal pause timing test. Resource compulsory work/traffic and matching exact-board C⁺/B remain independent open gaps.
+
+## Run568/569 Current→Bound classification
+
+Run568 eliminates one narrow same-S* pause mutation concern: the 60 enumerated tensors and captured scalars/identities were unchanged on all8 at cohort5 cycle187 slot4. It does **not** measure removable execution time or certify full KV/fixed-W₀ continuation, normal API release, successor ADD or all8 mixed service. The legal schedule and Product E2E gap remain unknown.
+
+Run569 separates per-fresh-row BF16 `wo_a` and W4A8 routed MoE formulas, current 96-row geometry, checkpoint operand footprints, and 16 instrumented current counter windows. The 18.965GB-class current read cannot be promoted to compulsory traffic; HCCL link bytes remain unavailable. The largest Bound uncertainty is now broad formal W₀ required work plus exact-board cumulative capacity/residency and mixed resource service/critical-path timing. Formal Current571.681tok/s; numerical Current→credible-limit gap and every finite strict endpoint remain null.
