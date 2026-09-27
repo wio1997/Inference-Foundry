@@ -599,3 +599,7 @@
 - `2026-09-27T16:13:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run562`（test）。
 
 - `2026-09-27T16:13:58Z` Run `run562` 记录为 `pass`；正确性为 `not-applicable`。CPU-only one-slot pause component source gate exit0 and Astra PASS; live admission REJECT; no NPU model, API transaction, fixed-W0 or numeric Bound
+
+- `2026-09-27T16:23:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run563`（design-check）。
+
+- `2026-09-27T16:23:52Z` Run `run563` 记录为 `pass`；正确性为 `not-applicable`。Source-only patch/atomic restore gate and Astra PASS; live controller REJECT, no fixed-W0 or numeric Bound

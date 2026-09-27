@@ -682,3 +682,7 @@ V3.31 source/model review PASS: logical DSpark7 evaluations, acceptance/count, o
 ## Run561–562 one-slot Scheduling source gate
 
 Run561 design-check PASS only as source plan; live rejected. Run562 candidate (SHA `169a6ad7…`) remains uninstalled. In the target container, its CPU fake twelve-slot test exited0 for Host-mirror flush/stop-decision, generation and duplicate guards, eight-rank branch/digest divergence and wrong-group negatives. Astra independently replayed exit0 and accepted source-only scope. This supplies no live correctness, Product TPS or finite Bound. Formal Current Run99 median remains **571.681 tok/s**. Evidence: `evidence/20260928_loop080_bound/run561/design.md`, `run562/findings.md` and `run562/astra_review.md`.
+
+## Run563 source-only no-publication preflight
+
+Run563 `check` compiled the proposed ModelRunner/segmented sources without installation. Temp-copy patch test exited0, covering atomic install/restore and manifest/source/helper negatives; Astra independently replayed exit0. The actual Runner and segmented draft retained their original SHAs. Live A0/B/A1, correctness and E2E were **not** run. No Bound or formal TPS change. Evidence: `evidence/20260928_loop080_bound/run563/findings.md`.

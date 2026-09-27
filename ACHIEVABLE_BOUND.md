@@ -798,3 +798,7 @@ The active performance question freezes logical DSpark7 algorithm work and accep
 ## Run561–562 fixed-`W₀` Scheduling witness status
 
 Run558's selected slot completion remains a diagnostic workload fact, not an executable Product release. Run561 defines a legal one-slot arrival transaction; Run562 establishes only the uninstalled pause component's CPU-level control flow and sampled/count export. The latter is insufficient to prove identical Target/Draft evaluations, state/KV and all8 ownership, and it has no external response/permit/ADD evidence. Thus it cannot shorten the fixed-`W₀` Scheduling lower-time interval or set a finite Product upper-throughput bound. The conditional legal-schedule class must include the real pause/HCCL/D2H/RPC/Host overhead and regenerated c12 releases. Formal Current571.681tok/s; all finite Hardware/Resource, Scheduling/Execution and Product endpoints remain null. See Run561–562 evidence and Astra review.
+
+## Run563 observed-trajectory control status
+
+Run563 provides a source-pinned acquisition path to compare per-cycle observed Target inputs/positions, acceptance and sampled output for a no-publication pause/resume control. This can falsify fixed work if trajectories diverge; equality alone is insufficient without KV, Draft context, mutable-state and request/entry-state certification. The patcher and restore gate passed offline only. There is no new legal schedule, measured lower time, Hardware/Resource capacity or Product E2E bound. All finite endpoints remain null; Current Formal is571.681tok/s.
