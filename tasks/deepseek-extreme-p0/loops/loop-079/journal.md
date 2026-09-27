@@ -53,3 +53,83 @@
 - `2026-09-27T05:46:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run431`（review）。
 
 - `2026-09-27T05:47:12Z` Run `run431` 记录为 `pass`；正确性为 `not-applicable`。Board/OEM/clock/HBM identity pinned; exact matching BF16/W4A8 genuine maximum C_plus remains unbound; no numeric ceiling
+
+- `2026-09-27T05:49:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run430`（review）。
+
+- `2026-09-27T05:49:49Z` Run `run430` 记录为 `pass`；正确性为 `not-applicable`。Installed CANN9.1/torch_npu native source reviewed, DSA CPU map 4608 PASS; all43 identity CONDITIONAL_NATIVE, first gap partial-EP V3 index/abs/masked unpermute
+
+- `2026-09-27T05:52:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run432`（test）。
+
+- `2026-09-27T05:53:42Z` Run `run432` 记录为 `pass`；正确性为 `pass`。Isolated single-910B3 eager CANN9.1 partial-EP quant_mode1 routing→abs→masked unpermute semantic sentinel passed 4x2 and actual96x6 rank0/nonzero EP ranges; no Graph/all43 promotion
+
+- `2026-09-27T05:55:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run433`（test）。
+
+- `2026-09-27T05:57:31Z` Run `run433` 记录为 `pass`；正确性为 `pass`。Single-device 96x6 quant1 partial-EP Graph replay three generations passed; fixed-address input changed routes 85→69→85 and returned SHA, scoped native ABI only
+
+- `2026-09-27T05:59:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run434`（review）。
+
+- `2026-09-27T05:59:07Z` Run `run434` 记录为 `pass`；正确性为 `not-applicable`。V3.14 adds explicit evidence-status proof-obligation DAG; sampled MoE ABI/graph refresh promoted narrowly; strict resource and achievable Product endpoints remain null
+
+- `2026-09-27T06:02:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run435`（review）。
+
+- `2026-09-27T06:02:25Z` Run `run435` 记录为 `pass`；正确性为 `not-applicable`。V3.15 separates strict W/C ceiling, scheduling latency relaxation and attainable schedule gates with 15-node validated proof dependency graph; no numeric endpoint promoted
+
+- `2026-09-27T06:02:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run436`（test）。
+
+- `2026-09-27T06:02:47Z` Run `run436` 记录为 `pass`；正确性为 `pass`。Validated V3.15 actual 17-node proof DAG: dangling, cycle and scope mutations reject; one W alternative without C does not promote strict ceiling; Run435 summary node count corrected here
+
+- `2026-09-27T06:11:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run437`（benchmark）。
+
+- `2026-09-27T06:21:20Z` 暂存知识变化 `PK-044`：On installed CANN9.1/torch_npu2.10, isolated 910B3 quant_mode1 partial-EP MoE routing sampled eager 4x2/96x6 and fixed-storage graph 96x6 across three generations preserve token and expert-segment row mapping with masked unpermute; this does not certify the production all43 FULL Graph or a compulsory retained-route numerator.
+
+- `2026-09-27T06:24:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run438`（review）。
+
+- `2026-09-27T06:24:27Z` Run `run438` 记录为 `pass`；正确性为 `not-applicable`。Independent review prioritizes original-path mixed-service seam for useful scheduling range; one fresh required BF16 projection plus exact-board C_plus for loose strict ceiling. All numeric endpoints stay null; Run437 cannot promote all43.
+
+- `2026-09-27T06:34:29Z` Run `run437` 记录为 `pass`；正确性为 `pass`。Clean 48+12 c12 diagnostic, exact60 successful POST and 40 all8 FULL capture/runtime files; explicit input/position storage and CP prefix values validated. Cleanup/source SHA gates pass. all43 row identity remains conditional; no formal TPS or numeric Bound promotion.
+
+- `2026-09-27T06:34:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run439`（design-check）。
+
+- `2026-09-27T06:34:31Z` Run `run439` 记录为 `pass`；正确性为 `not-applicable`。Selected terminal logits AllGather→argmax original-path slice; native completion join is prerequisite, A0-B-A1 controls frozen; design only and no timing claim.
+
+- `2026-09-27T06:34:31Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run440`（review）。
+
+- `2026-09-27T06:34:32Z` Run `run440` 记录为 `pass`；正确性为 `not-applicable`。Astra accepted Run437 scoped FULL input/CP diagnostic and reproduced validator; pointer/CP mutations reject, common row permutation passes, so all43 and numeric Bound remain open.
+
+- `2026-09-27T06:34:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run441`（benchmark）。
+
+- `2026-09-27T06:34:33Z` Run `run441` 记录为 `pass`；正确性为 `pass`。Three exact-payload all8 BF16 HCCL Test isolated host-inclusive averages 221.77/179.45/205.78us, all correctness success; attained isolated point only, no current native join, compulsory traffic or Product ceiling.
+
+- `2026-09-27T06:45:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run442`（simulation）。
+
+- `2026-09-27T06:45:57Z` Run `run442` 记录为 `invalid`；正确性为 `invalid`。Initial V3.16 Run442 used Run441 CLI aggregate bytes as per-rank input and described wrong message shape; superseded by corrected Run444/445. No numeric endpoint had been promoted.
+
+- `2026-09-27T06:45:57Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run444`（benchmark）。
+
+- `2026-09-27T06:45:58Z` Run `run444` 记录为 `pass`；正确性为 `pass`。Corrected installed AllGather CLI size 24821760B gives 3102720B/rank input; three root-rank ACL event-loop averages 235.63/261.26/238.76us, all success. Isolated attainable point only; no Bound endpoint.
+
+- `2026-09-27T06:45:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run445`（simulation）。
+
+- `2026-09-27T06:49:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run443`（review）。
+
+- `2026-09-27T06:49:20Z` Run `run443` 记录为 `pass`；正确性为 `not-applicable`。Astra found Run441 CLI data_size is aggregate AllGather output, eightfold smaller per-rank input than claimed; initial Run442 invalidated, numeric guard gaps identified.
+
+- `2026-09-27T06:49:20Z` Run `run445` 记录为 `pass`；正确性为 `not-applicable`。Corrected V3.16 rev2 uses Run444 exact 3102720B/rank isolated HCCL observation, adds parsed source/command/log gates and null endpoint guards; all19 proof certifications false, Current571.681.
+
+- `2026-09-27T06:49:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run446`（review）。
+
+- `2026-09-27T06:49:25Z` Run `run446` 记录为 `pass`；正确性为 `not-applicable`。Astra accepts corrected 19-node all-open ledger; numeric escapes, payload, source hash and malformed timing mutations reject. No finite Bound promoted.
+
+- `2026-09-27T06:49:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run447`（review）。
+
+- `2026-09-27T06:49:26Z` Run `run447` 记录为 `pass`；正确性为 `not-applicable`。Installed Python and torch_npu exact-commit source conditionally shows caller-stream→HCCL→caller-stream event chain for synchronous all_gather_into_tensor. Actual runtime branch/group/stream still requires dynamic binding; no timing or Bound promotion.
+
+- `2026-09-27T06:49:41Z` 暂存知识变化 `PK-045`：Clean Run437 production FULL Graph samples bind explicit input_ids/positions storage and five CP metadata value prefixes across five cohorts/eight ranks; a common router-row permutation still passes, so all43 row identity and retained-route compulsory work remain conditional.
+
+- `2026-09-27T06:49:42Z` 暂存知识变化 `PK-046`：Installed CANN9.1 HCCL Test AllGather CLI data_size is aggregate output bytes, divided by TP8 for per-rank input. Correct exact logits input3102720B/rank requires CLI24821760B; three isolated root-rank ACL event-loop averages are235.63/261.26/238.76us, not a strict latency floor or exposed E2E cost. Run441 smaller-payload interpretation is superseded.
+
+- `2026-09-27T06:52:57Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run448`（review）。
+
+- `2026-09-27T06:52:58Z` Run `run448` 记录为 `pass`；正确性为 `not-applicable`。Astra accepts conditional caller-stream→HCCL→caller-stream source join and identifies actual-path gates: no torch override/coalescing/capture substitution, same consumer stream; no duration or numeric Bound.
+
+- `2026-09-27T06:53:09Z` 暂存知识变化 `PK-047`：Installed torch_npu2.10.0.post4 git commit5dd8ef3 ordinary synchronous all_gather_into_tensor source records caller→HCCL and HCCL-end→caller stream event dependencies; Extreme terminal logits can use this conditionally only when actual branch excludes torch override/coalescing/graph substitution and consumer remains on the joined stream. No Host-completion timestamp or E2E saving follows.
