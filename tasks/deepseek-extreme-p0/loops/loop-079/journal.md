@@ -635,3 +635,7 @@
 - `2026-09-27T18:34:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run571`（review）。
 
 - `2026-09-27T18:35:02Z` Run `run571` 记录为 `pass`；正确性为 `not-applicable`。Offline source-pinned empirical matrix: 18 isolated attained-service rows plus five instrumented Current rows; Astra independent byte-exact replay and negative gates PASS; no strict capacity or Product Bound promotion; Formal Current571.681tok/s and finite endpoints null
+
+- `2026-09-27T18:45:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run572`（review）。
+
+- `2026-09-27T18:45:31Z` Run `run572` 记录为 `pass`；正确性为 `not-applicable`。Offline rank-local Run246/247 FULL Graph profiler interval audit: all16 SHA-gated windows, 2836 tasks each, distinct 265 HCCL AivKernel and 265 hcom pseudo envelopes, zero carry-in/cross-end, Astra review PASS; cross-rank overlap and finite Bound endpoints null
