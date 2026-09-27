@@ -1,0 +1,80 @@
+--- a/scripts/run_loop078_count_marker_arm.sh
++++ b/scripts/run_loop078_count_marker_arm.sh
+@@ -24,14 +24,75 @@
+   echo "orphan bench process" >&2; exit 1
+ fi
+ RUN_STARTED=0
++verify_stopped() {
++  docker exec "${CONTAINER}" python3 -c '
++import pathlib, sys
++live = []
++for p in pathlib.Path("/proc").iterdir():
++    if not p.name.isdigit():
++        continue
++    try:
++        comm = (p / "comm").read_text().strip()
++        status = (p / "status").read_text()
++    except (FileNotFoundError, ProcessLookupError):
++        continue
++    state = next((line.split()[1] for line in status.splitlines() if line.startswith("State:")), None)
++    if state is None:
++        raise RuntimeError("cannot establish process state for " + p.name)
++    if state == "Z":
++        continue
++    if comm.startswith("VLLM::") or comm == "vllm":
++        live.append((p.name, comm))
++print(live)
++sys.exit(bool(live))
++' >"${OUT}/stop_process_probe.txt" 2>&1 || return $?
++  npu-smi info >"${OUT}/stop_npu_probe.txt" 2>&1 || return $?
++  python3 - "${OUT}/stop_npu_probe.txt" <<'CHECK_STOP'
++import pathlib, re, sys
++text = pathlib.Path(sys.argv[1]).read_text()
++used = [int(x) for x in re.findall(r"(\d+)\s*/\s*65536", text)]
++print({"used_mb": used, "VLLM_rows_present": "VLLM" in text})
++assert len(used) == 8 and max(used) < 6144 and "VLLM" not in text, "stop not established"
++CHECK_STOP
++}
+ cleanup() {
++  local run_rc=$?
++  trap - EXIT
++  set +e
++  local stop_rc=0 verify_rc=0 restore_rc=not_needed sha_rc=0 compare_rc=not_checked
++  local final_rc=${run_rc}
+   if [[ "${RUN_STARTED}" == 1 ]]; then
+-    bash /data/wio/vllm_ascend_26/scripts/99_stop_service.sh >"${OUT}/stop.log" 2>&1 || true
++    bash /data/wio/vllm_ascend_26/scripts/99_stop_service.sh >"${OUT}/stop.log" 2>&1
++    stop_rc=$?
++    if [[ "${stop_rc}" == 0 ]]; then
++      verify_stopped >>"${OUT}/stop.log" 2>&1
++      verify_rc=$?
++    else
++      verify_rc=not_attempted
++    fi
+   fi
+   if [[ "${ARM}" == B && -f "${OUT}/patch_state/manifest.json" ]]; then
+-    python3 "${ROOT}/scripts/loop078_count_markers_patch.py" restore --state-dir "${OUT}/patch_state" --record "${OUT}/restore.json" >"${OUT}/restore.log" 2>&1 || true
++    if [[ "${stop_rc}" == 0 && "${verify_rc}" == 0 ]]; then
++      python3 "${ROOT}/scripts/loop078_count_markers_patch.py" restore --state-dir "${OUT}/patch_state" --record "${OUT}/restore.json" >"${OUT}/restore.log" 2>&1
++      restore_rc=$?
++    else
++      restore_rc=skipped_service_stop_unproven
++      echo "Refusing source restore: service stop failed or is unproven; preserve patch and backups." >&2
++    fi
+   fi
+   sha256sum "${SOURCES[@]}" >"${OUT}/source_after.sha256"
++  sha_rc=$?
++  if [[ "${sha_rc}" == 0 ]]; then
++    cmp -s "${OUT}/source_before.sha256" "${OUT}/source_after.sha256"
++    compare_rc=$?
++  fi
++  if [[ "${stop_rc}" != 0 || "${verify_rc}" != 0 || "${sha_rc}" != 0 || "${compare_rc}" != 0 || ( "${restore_rc}" != not_needed && "${restore_rc}" != 0 ) ]]; then
++    if [[ "${final_rc}" == 0 ]]; then final_rc=1; fi
++  fi
++  printf 'run_exit=%s\nstop_exit=%s\nstop_verify_exit=%s\nrestore_exit=%s\nsha_exit=%s\nsha_compare_exit=%s\nfinal_exit=%s\n' \
++    "${run_rc}" "${stop_rc}" "${verify_rc}" "${restore_rc}" "${sha_rc}" "${compare_rc}" "${final_rc}" \
++    | tee "${OUT}/cleanup_status.txt" >&2
++  exit "${final_rc}"
+ }
+ trap cleanup EXIT
+ sha256sum "${SOURCES[@]}" >"${OUT}/source_before.sha256"

@@ -1,0 +1,319 @@
+{
+  "status": "source_pinned_partial_two_cycle_dag",
+  "edge_semantics": "Mixed host enqueue/source order and device completion dependencies. Do not run a finish-to-start longest-path solver on all edges. Only a source skeleton; split enqueue/wait-return/completion endpoints before numeric scheduling.",
+  "conditional_context": {
+    "graph_pre_replay_sync": "replay branch && runtime_mode FULL && !(is_draft_model && use_eagle) && !enable_enpu",
+    "next_target_metadata_schedule": "off/serial/overlap instantiation not established by this source skeleton; overlap adds private-stream edges",
+    "parking": "conditional edges apply only when new slots park"
+  },
+  "sources": {
+    "runtime": {
+      "path": "/data/wio/Inference_Foundry/runtime/extreme_decode.py",
+      "sha256": "eb4b5142cc475a51e06c6eec8238e9cfeb918b568e8a5f27b0a4bc7d26963499",
+      "anchors": 6
+    },
+    "proposer": {
+      "path": "/data/wio/Inference_Foundry/bootstrap/vllm_dspark_handoff.py",
+      "sha256": "fe7039361894acd70666f72c3089efd635404f1fe9cbc685db21272d946a317e",
+      "anchors": 7
+    },
+    "serving": {
+      "path": "/data/wio/Inference_Foundry/runtime/fixed_serving.py",
+      "sha256": "137f1cc6a460700e6f26e5837aa062022eb621198e33099b85988f8b7ef6743a",
+      "anchors": 5
+    },
+    "graph": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/compilation/acl_graph.py",
+      "sha256": "6396ca409d633ee61c4433a762982cf901b893f252c864c0ff05ac17bdbdb3f6",
+      "anchors": 4
+    },
+    "state": {
+      "path": "/data/wio/Inference_Foundry/runtime/fixed_decode.py",
+      "sha256": "7d74f4cbba380ff0a9296cc06d86e0cb9c9c921b6213b7965700831a29a6bafa",
+      "anchors": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "c_target_prepare",
+      "resource": "current_stream",
+      "meaning": "Target input and metadata preparation",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_graph_pre_replay_sync",
+      "resource": "host_wait",
+      "meaning": "FULL Graph wrapper conditional current-stream synchronize",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_target_graph_logits",
+      "resource": "graph_and_current_stream",
+      "meaning": "Target FULL Graph plus logits binding",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_acceptance",
+      "resource": "current_stream",
+      "meaning": "Accept and update sampled counts",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_state_advance",
+      "resource": "current_stream",
+      "meaning": "Advance state and accepted output",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_proposer_host_commit_prev",
+      "resource": "host_wait",
+      "meaning": "Commit previous count-copy event before Draft consumer",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_count_copy_launch",
+      "resource": "side_stream",
+      "meaning": "Current count copy enqueued after wait_stream",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_count_copy_complete",
+      "resource": "side_stream",
+      "meaning": "Current count copy event has completed",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_draft_prepare_model",
+      "resource": "current_stream",
+      "meaning": "Draft prepare, body, seven Markov feedback steps",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_draft_commit",
+      "resource": "current_stream",
+      "meaning": "Commit draft tokens and increment cycle",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_serving_stage",
+      "resource": "current_stream",
+      "meaning": "Stage accepted tokens/counts before buffer reuse",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c_serving_progress_park",
+      "resource": "host_and_current_stream",
+      "meaning": "Host mirror progress and optional park",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c1_target_prepare",
+      "resource": "current_stream",
+      "meaning": "Next Target state and metadata preparation",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c1_graph_pre_replay_sync",
+      "resource": "host_wait",
+      "meaning": "Next FULL Graph wrapper conditional current-stream synchronize",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c1_target_graph_logits",
+      "resource": "graph_and_current_stream",
+      "meaning": "Next Target FULL Graph plus logits",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c1_acceptance",
+      "resource": "current_stream",
+      "meaning": "Next acceptance and sampled counts",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c1_state_advance",
+      "resource": "current_stream",
+      "meaning": "Next state advance",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c1_proposer_host_commit_c",
+      "resource": "host_wait",
+      "meaning": "Wait for c count-copy event and update Draft Host mirror",
+      "duration_floor_ms": null
+    },
+    {
+      "id": "c1_draft_prepare_model",
+      "resource": "current_stream",
+      "meaning": "Next Draft consumer",
+      "duration_floor_ms": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "c_target_prepare",
+      "to": "c_graph_pre_replay_sync",
+      "kind": "source_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_graph_pre_replay_sync",
+      "to": "c_target_graph_logits",
+      "kind": "host_sync",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_target_graph_logits",
+      "to": "c_acceptance",
+      "kind": "data",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_acceptance",
+      "to": "c_state_advance",
+      "kind": "data",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_state_advance",
+      "to": "c_proposer_host_commit_prev",
+      "kind": "source_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_proposer_host_commit_prev",
+      "to": "c_count_copy_launch",
+      "kind": "host_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_state_advance",
+      "to": "c_count_copy_launch",
+      "kind": "side_stream_wait_on_current",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_count_copy_launch",
+      "to": "c_count_copy_complete",
+      "kind": "side_stream_service",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_count_copy_launch",
+      "to": "c_draft_prepare_model",
+      "kind": "host_order_only_side_copy_async",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_state_advance",
+      "to": "c_draft_prepare_model",
+      "kind": "data",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_draft_prepare_model",
+      "to": "c_draft_commit",
+      "kind": "data",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_draft_commit",
+      "to": "c_serving_stage",
+      "kind": "source_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_serving_stage",
+      "to": "c_serving_progress_park",
+      "kind": "source_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_serving_progress_park",
+      "to": "c1_target_prepare",
+      "kind": "source_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c1_target_prepare",
+      "to": "c1_graph_pre_replay_sync",
+      "kind": "source_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c1_graph_pre_replay_sync",
+      "to": "c1_target_graph_logits",
+      "kind": "host_sync",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c1_target_graph_logits",
+      "to": "c1_acceptance",
+      "kind": "data",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c1_acceptance",
+      "to": "c1_state_advance",
+      "kind": "data",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c1_state_advance",
+      "to": "c1_proposer_host_commit_c",
+      "kind": "source_order",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c_count_copy_complete",
+      "to": "c1_proposer_host_commit_c",
+      "kind": "side_stream_event_completion",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c1_proposer_host_commit_c",
+      "to": "c1_draft_prepare_model",
+      "kind": "host_mirror_data",
+      "measured_delay_ms": null
+    },
+    {
+      "from": "c1_state_advance",
+      "to": "c1_draft_prepare_model",
+      "kind": "data",
+      "measured_delay_ms": null
+    }
+  ],
+  "conditional_edges": [
+    {
+      "from": "c_count_copy_complete",
+      "to": "c_serving_progress_park",
+      "condition": "park_completed_slots invokes _commit_host_mirrors for nonempty newly completed slots",
+      "kind": "host_wait_on_current_copy_completion"
+    }
+  ],
+  "unproven_hazards": [
+    {
+      "reader": "c_count_copy_launch_to_complete",
+      "writer": "c1_state_advance",
+      "tensor": "state.num_sampled reused NPU buffer",
+      "required_safe_order": "copy_complete(c) before next overwrite",
+      "current_explicit_wait": "not found before c1 advance_state; normally large Target interval, but no source-level proof for arbitrary reschedule"
+    }
+  ],
+  "observed_run395_current_stream_median_ms": {
+    "begin64_to_begin65": 56.54833984375,
+    "pre_target_to_target": 49.46484375,
+    "state_advance_to_proposer": 6.39697265625,
+    "source": "Run395 clean sparse events; instrumented observed intervals, not node floors"
+  },
+  "gates_before_finite_bound": [
+    "Graph internal/HCCL producer and completion events plus all8 collective arrival",
+    "Host copy side-stream record/complete and next Draft consumer timestamp",
+    "Copy-complete before state.num_sampled buffer reuse, including parking-conditional synchronous wait",
+    "Per-rank near-in-time clock calibration and stream identity",
+    "Sparse marker A/A overhead; source schedule mode and enable_enpu runtime value",
+    "Complete per-node compulsory work/traffic and mixed attainable capacities",
+    "Legal prefill/seed/arrival/output drain and held-out E2E calibration"
+  ],
+  "scope": "Source-order/data skeleton only. No duration lower bound or all8 makespan. The current-stream stage medians are not added as disjoint costs."
+}

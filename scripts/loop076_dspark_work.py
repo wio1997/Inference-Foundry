@@ -12,6 +12,12 @@ from loop076_dense_matmul_work import dims, FAMILIES
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "evidence/20260926_loop060_resource/run246/profile"
+TAIL_INPUT_SHAPES = {
+    "12,256;129280,256",   # seven serial Markov-bias projections
+    "84,4096;16160,4096", # prior Draft body projection
+    "11,16384;4,16384",  # small Draft projection
+}
+
 
 
 def num(row, key):
@@ -41,12 +47,19 @@ def main():
             start = float(scope["ts"])
             end = start + float(scope["dur"])
             chosen = [row for row in kernels if start <= num(row, "Start Time(us)") < end]
-            # Device tasks may outlive the Host proposer scope. Complete only the
-            # three distinctive DSpark tail families; the next Target can begin
-            # within this extension, so a blanket 6ms window would double count.
+            # Host proposer return may precede queued Draft device tasks.
+            # The 6ms window is a search range, not attribution by itself.
             tail = [row for row in kernels if end <= num(row, "Start Time(us)") < end + 6000
                     and row["Name"].startswith("aclnnMatmul_")
-                    and ("129280" in row["Input Shapes"] or "16160" in row["Input Shapes"] or "11,16384;4,16384" in row["Input Shapes"])]
+                    and row["Input Shapes"].strip().strip(chr(34)) in TAIL_INPUT_SHAPES]
+            assert all(row["Stream ID"] == "47" for row in tail)
+            tail_provenance = [
+                {"model_id": row["Model ID"], "task_id": row["Task ID"],
+                 "stream_id": row["Stream ID"], "input_shapes": row["Input Shapes"],
+                 "start_us_after_host_exit": num(row, "Start Time(us)") - end,
+                 "duration_us": num(row, "Duration(us)")}
+                for row in tail
+            ]
             chosen += tail
             families = {name: {"count": 0, "standard_Gflop": 0.0, "shape_groups": {}} for name in FAMILIES}
             gmm = {"gmm1": {"count": 0, "AIC_read_GB": 0.0}, "gmm2": {"count": 0, "AIC_read_GB": 0.0}}
@@ -79,6 +92,7 @@ def main():
             assert gmm["gmm1"]["count"] == gmm["gmm2"]["count"] == 3
             windows.append({"rank": rank, "cycle": cycle,
                             "proposer_host_scope_ms_profiled": float(scope["dur"]) / 1000,
+                            "tail_tasks": tail_provenance,
                             "families": families, "gmm": gmm,
                             "dense_standard_Gflop_partial": sum(x["standard_Gflop"] for x in families.values())})
     values = [row["dense_standard_Gflop_partial"] for row in windows]
@@ -90,7 +104,8 @@ def main():
                        "dense_standard_Gflop_partial_median": statistics.median(values)},
            "limits": [
                "GMM routed counts and math for three DSpark layers are missing; 504 padded input rows must not be treated as actual routed tokens.",
-               "Host-scope-only census falsely varied 7-16: same-cycle device output-head and M84_K4096_N16160 tasks run up to 5.03ms after Host scope exit. A shape-filtered 6ms tail completes sixteen plain MatMul tasks; blanket extension includes next Target tasks. This is a device-task attribution correction, not a scheduling saving.",
+               "Host-scope-only census falsely varied 7-16: selected Draft device tasks, including seven serial Markov-bias projections and M84_K4096_N16160, start up to 5.03ms and finish up to 5.06ms after Host scope exit. Exact-shape-filtered 6ms search completes sixteen plain MatMul tasks; it is not a generic task-owner proof. In this selected trace, next Target Host scope starts at least 6.76ms after proposer Host exit. This is a device-task attribution correction, not a scheduling saving.",
+               "Tail Model ID=4294967295 and stream47 do not prove Graph capture; the seven Markov-bias projections have serial token feedback via bias/add/argmax.",
                "Dense 2MNK is executed-shape standard arithmetic, not a strict mathematical operation lower bound. Attention, nonlinear, quantization, KV/state and other custom kernels remain outside this subtotal.",
                "Profiled Host scope/task times are perturbed and not used as attainable service; Run246 is a diagnostic cohort, not formal Run99.",
                "No useful accepted tokens per same cycle, compulsory HBM bytes, or Product TPS bound follows.",

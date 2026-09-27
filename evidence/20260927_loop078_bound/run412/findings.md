@@ -1,0 +1,19 @@
+# Loop078 Run410/412/413/417 — count-copy scheduling certificate
+
+## Verdict
+
+The scoped B-arm observation is accepted: in 40 of 40 selected rank/cohort records, the generation-64 `state.num_sampled` D2H read completed before the generation-65 overwrite expression began on the same device. The recorded original synchronization precedes the first numeric Host count update and sequence-mirror update. The direct event margin is 53.333221–54.525200 ms, median 53.746910 ms. This is observed slack in the instrumented normal branch, not removable cycle time or a source-level universal happens-before edge.
+
+The combined A0/B/A1 gate is **INCONCLUSIVE** for original-schedule extrapolation and downstream Draft/DSA consumption. The fixed padded/nonasync path bypassed the hooked ordinary clone/add sites and the drafting-specific DSA builder was not hooked; `first_clone` and `downstream` are absent in all 40 B captures. A0 and A1 do not retain per-cycle acceptance trajectories. A1 Run411 failed before any POST with pinned Host memory OOM; Run417 succeeded only after the dedicated container was reset, so it is not an environment-matched A/A control for B. No finite Algorithm/Resource, Hardware, Scheduling/Execution or Product E2E bound is promoted.
+
+## Frozen diagnostic and provenance
+
+Run413 A0, Run410 B and Run417 A1 each completed exactly 48 warmup plus 12 diagnostic requests, 1024 output tokens per request, at most 12 concurrent clients, 60 server POSTs, five cohorts with eight passing FULL Graph Runtime reports each, exact Host mirror checks and zero post-handoff oracle calls. The runner stopped the serving process, found all eight NPUs idle, and source-before and source-after SHA lists match. Diagnostic throughput and summed latest-rank Runtime walls are not formal E2E. A0/B/A1 wall sums were 82.233/85.746/86.180 s; they do not establish an instrumentation correction because request trajectories and environment differ.
+
+Run411 A1 failed in `CpuGpuBuffer` block-table initialization at `aclrtMallocHostWithCfg` error 207001, with zero benchmark POSTs. After stop, the dedicated container still had 9,756 processes and consumed 885.6 GiB Host memory, with swap full. A direct container stop/start reduced it to one process and about 1.5 MiB; Run417 then launched successfully. This supports resource pressure from residual processes as the operational explanation but does not prove the exact allocator limit. The service stop check had tested VLLM processes and NPU HBM, not orphaned Python worker processes. After Run417 stop, 212 processes and 39.84 GiB remained; a second direct stop/start returned the container to one process. Future formal/diagnostic runs need an idle-container process and Host memory gate in addition to health, no-orphan-bench, source SHA and NPU checks.
+
+## Bound impact and next measurement
+
+Run410 removes uncertainty about local normal-path read/overwrite ordering at the sampled original timing. It does not establish the Draft metadata consumer, parking/terminal joins, all-rank Graph/HCCL critical path, or a legal accelerated schedule. V3.11 records this limited closure with all finite endpoints null. The independent Run416 review ranks actual Target/Draft row identity, expert format and external retained-output ledger first; physical transport/cache accounting and capacity second; then typed all-eight execution joins. A strict but loose finite ceiling requires a proved positive necessary-work subset and a matching capacity upper cap. Current observed API bytes and task reads do not yet meet that gate.
+
+Evidence: Run410 capture and gate, Run412 manifest/analysis/local summary and independent `astra_b_review.md`, Run413/417 gates, Run411 Host process census and startup log, Run416 independent Bound review, Run418 V3.11 calibration. Formal Current remains Run99 median 571.681 tok/s; the valid 612.962 tok/s single repeat remains an observed point, not a repeatable ceiling.

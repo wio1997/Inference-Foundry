@@ -610,3 +610,41 @@ The executable V3.3 Bound model records this as a **conditional Resource/Hardwar
 ## Loop076 Resource/Scheduling evidence (2026-09-27)
 
 Matched original FULL Graph cycle64/65 Target route→GMM task counters closes a current-work attribution, not compulsory HBM: 141.029–170.020 GFLOP/rank-cycle GMM standard arithmetic, 8.946–9.576GB active packed weights, median1.0711 task read/active-footprint ratio. Fixed Target dense170.204 and separately sourced Compressor58.385 GFLOP/rank-cycle remain partial. Corrected Draft dense is28.8053 GFLOP/rank-cycle; Host scope excluded some queued device tail tasks. Instrumented Target timing is perturbed by hot-path D2H/sync, so no Scheduling-aware or Product numeric ceiling is promoted. Priority is full compulsory work and unperturbed resource-constrained DAG, then Current→Bound Gap ranking. Evidence Run368/370/372/373, PK-032.
+
+## Loop077 Run391 HCCL ABI closure
+
+The ordered current Target chain now has a source/ABI-consistent tensor ledger: RS87, AG135, A2A43; API input115.10784MB and output145.342464MB per rank-cycle. It closes the previous `count` convention uncertainty for the current schedule, while compulsory logical bytes and physical link service remain open. Direct actual DSA CP path, embedding zero mask and derived router outputs prevent treating this as an architecture-independent communication floor. Run391 findings and PK-033 contain the exact 265-task map.
+
+## Loop077 Run393 measurement validity correction
+
+A terminated outer `docker exec` left Run386s inner health-wait/bench shell alive. When Run389 service became healthy it sent another60 requests. Run389 logged120 POST, and saved Run386/389 client windows overlap almost exactly with combined inflight24. Run389/390 event calculations are numerically valid for the contaminated load but **INVALID for frozen c12 Current or Scheduling Bound**; the initial TaskCtl pass statuses were corrected, and V3.7 Run392 was rejected before promotion. Run394 repeats after a no-orphan/health000/source-SHA preflight and enforces exactly60 POST. Run393 is the forensic evidence.
+
+## Loop077 Run397 conditional retained-row work
+
+Current padded Target routed GMM is1,246.614GFLOP/TP8-cycle; 12.985565GFLOP per candidate row under the conventional six-expert algorithm. Run397 converts ten actual route histograms and Runtime-clipped useful counts into broad retained-row expert-union packed-footprint relaxations, with strict per-layer count and Run380 footprint checks. This quantifies a missing Algorithm/Resource numerator, not attainable HBM or wall-time reduction. Next capture per-token route identity, retained mask and Draft live rows in one original cycle before estimating a new architecture or finite Hardware/Scheduling Bound.
+
+## Loop077 Run394–396 clean Current envelope
+
+Clean exact60-POST, five-cohort original FULL Graph event capture replaces invalid Run389/390 timing. Across 40 same-rank cycle64→65 pairs, current-stream median 56.548 ms; across 80 selected rank-cycles, Target-label median 49.465 ms and proposer-label median 6.397 ms. This narrows the observed Current scheduling path under sparse instrumentation. It does not close side-stream or cross-rank critical path, compulsory work/traffic, mixed resource capacity or attainable Product ceiling. V3.7 retains null finite upper endpoints and Formal Current571.681 tok/s. See Run394–396 evidence.
+
+Run99 also includes a valid one-run 612.962tok/s observation (80.188s), now explicit in V3.7. It constrains claims about a hard Product ceiling but does not replace the formal571.681tok/s median or establish repeatability.
+
+## Loop078 dependency structure and unresolved storage order
+
+Run400 independently reviewed source inventory records a normal cycle c count-copy side stream that can overlap next Target and normally gates c+1 Draft Host mirrors, plus same-cycle parking's conditional join. It also records an unproved num_sampled D2H-read versus next overwrite constraint. Run401 is a measurement design only; no ordering margin has been observed. Run402 V3.8 therefore improves the structural Scheduling model without a new numerical floor or Product ceiling.
+
+## Loop078 Run403–406 route numerator correction (2026-09-27)
+
+Clean Run403 48+12 exact1024 c12 diagnostic produced 60 POSTs, five cohorts × eight ranks, 40 Target/Draft route captures and 40 passing FULL Graph reports; six borrowed sources were restored and service stopped. Astra independently accepts route/count/ownership arithmetic but finds cross-layer row identity incomplete under active FlashComm1/DSA CP/chunk paths. Target current standard routed GMM is1246.614GFLOP and its selected active packed weight set63.141–70.414GB/TP8-cycle. The retained-prefix 42.203–58.246GB selected set is conditional on unproven all-layer slot-major mapping and clairvoyant rejection knowledge; it is neither compulsory HBM nor an executable saving. Draft84-query partial routed estimate is format-conditional and excludes much of Draft. Run406 V3.9 therefore leaves all finite Algorithm/Hardware/Scheduling/Product ceilings UNKNOWN. Formal Current stays Run99 median571.681tok/s; Run403 diagnostic TPS is excluded. Next close actual row labels and Run401 copy/overwrite dependency before deriving a numeric interval. See `evidence/20260927_loop078_bound/run405/findings.md` and PK-038.
+
+## Loop078 Run407 row-identity closure decision
+
+Independent Astra source audit finds ordered FlashComm1 gather/pad/chunk and DSA CP query/head all-to-all maps that could, with actual branch/group/Graph certificates and trusted native row-order contracts, prove all43 Target router row identities without a redundant per-layer device label collective. Current Run403 lacks those dynamic branch and compiled/native dispatch records, so the retained expert union remains conditional. The next Resource numerator measurement should capture the actual target_logits_indices, embedding/sequence-parallel/FlashComm/DSA CP/prepare paths and group rank order once per graph entry, bind them to selected replays, then add shadow row labels only at unresolved transforms. This is a Bound proof task, not a local speed candidate. See `evidence/20260927_loop078_bound/run407/design.md`.
+
+## Loop078 Run414–415 communication cut qualification
+
+Astra independently classified the265 ordered Target HCCL calls in Run391. Current per-rank API tensor inventory is115.108MB input/145.342MB output; neither is physical or compulsory wire traffic. Under an explicitly restrictive fixed-dense, opaque-payload, no-reuse/recompute/compression/placement-change scenario, a logical 4|4 rank cut carries306.659328MB/Target-cycle both directions combined. This is only a conditional transport census. Embedding zeros, derivable router logits, an unused MTP stash and alternative output/ownership representations disprove promotion of all265 current materializations to a model-semantic minimum. Run246 all8 transport exports are empty; zeros in transit fields mean unavailable measurement. The saved HCCS adjacency does not establish cut capacity. V3.10 stores this scenario with no compulsory communication bytes, latency floor or Product ceiling. The next minimal communication measurement must first prove native peer/bytes/path export on one actual DSA A2A, then derive physical capacity and legal information cuts. See `evidence/20260927_loop078_bound/run414/astra_comm_resource_review.md` and PK-039.
+
+## Loop078 Run412 local scheduling closure and next Bound gate
+
+B-arm 40/40 same-device read-complete before next overwrite-start, median direct margin53.747 ms, with first Host count/sequence-mirror consumers recorded. Draft/DSA downstream and parking/terminal paths remain open. A1 Run411 startup pinned Host OOM; Run417 passed after container reset, which invalidates A/A overhead comparison. No Current→Bound wall-time saving or finite ceiling follows. Resource priority: prove all43 router row maps and external output ledger; Hardware priority: distinguish physical HBM/link traffic and valid capacity upper caps; Scheduling priority: all8 typed Graph/HCCL and actual Draft joins. Evidence Run412/416/418. Formal Current571.681tok/s.

@@ -35,6 +35,10 @@ def main():
     joint368 = read("evidence/20260927_loop076_bound/run368/analysis.json")
     dense370 = read("evidence/20260927_loop076_bound/run370/analysis.json")
     dspark372 = read("evidence/20260927_loop076_bound/run372/analysis.json")
+    markov376 = read("evidence/20260927_loop077_bound/run376/analysis.json")
+    hccl378 = read("evidence/20260927_loop077_bound/run378/ledger.json")
+    joined380 = read("evidence/20260927_loop077_bound/run380/analysis.json")
+    hccl_graph = [read(f"evidence/20260927_loop077_bound/run{run}/chain.json") for run in (382, 383, 384)]
     assert dual["current_formal_tps"] == 571.681
     assert fixed["observed_cohort_wave_cycles"] == fifo["observed_cohort_wave_cycles"] == 1203
     assert fifo["instant_completion_zero_incremental_cost_fifo_cycles"] == 1118
@@ -52,6 +56,10 @@ def main():
     assert dense370["summary"]["valid_rank_cycles"] == 16
     assert dspark372["status"] == "DSpark_proposer_partial_GEMM_work_census_corrected_device_tail"
     assert dspark372["summary"]["rank_cycles"] == 16
+    assert markov376["summary"]["samples"] == 16
+    assert hccl378["summary"]["rank_cycles_identical"] == 16
+    assert joined380["summary"]["rank_cycles"] == 80
+    assert all(x["result_checks_passed"] and x["collectives_per_chain"] == 265 for x in hccl_graph)
     assert sum(sum(row["immediate_completion_cycles"]) for row in fifo["cohorts"]) == 12122
 
     formal = dual["current_formal_observed_wall_envelope"]
@@ -134,6 +142,13 @@ def main():
                 "cardinality_scope": "four current zero-output handoff cohorts; if handoff/seed changes, recompute from real remaining external tokens and already generated output",
                 "run239_same_trace_acceptance": acceptance239["aggregate"],
                 "known_partial": inventory["canonical_matmul_arithmetic_Gflop_per_rank_target_cycle"],
+                "same_cycle_target_route_useful_output_diagnostic": {
+                    "source": "Run375/380 no Level1 profiler, selected cycle64/65 across five 12-request cohorts and all8 ranks",
+                    "TP8_target_GMM_standard_Gflop_each_cycle": joined380["summary"]["TP8_target_GMM_standard_Gflop_each_cycle"],
+                    "useful_tokens_by_cohort_cycle64_65": joined380["summary"]["useful_clipped_tokens_cycle64_65_by_cohort"],
+                    "TP8_target_GMM_Gflop_per_useful_token_range": joined380["summary"]["TP8_target_GMM_Gflop_per_useful_token_range"],
+                    "scope": "Current fixed padded Target work and clipped Runtime useful output on ten diagnostic cycles; route-stack operation adds selected-cycle device work. Not compulsory model FLOPs or formal Run99 trajectory.",
+                },
                 "dspark_partial_dense_standard_GEMM_Gflop_per_rank_cycle": {"observed": draft_dense_work, "source": "Run372 corrected device-tail census from Run246 original FULL Graph", "scope": "18 quant + 16 plain + 3 transpose; not compulsory or total draft work; three GMM1/GMM2 routed counts, attention/KV/state omitted"},
                 "same_trajectory_standard_GEMM_equivalent_partial_Gflop_per_rank_cycle": {
                     "GMM_route_dependent_range": gmm_work,
@@ -158,6 +173,13 @@ def main():
                     "scope": "Run368 matched route/task Level1 current traffic; non-weight reads included, cache/physical HBM unresolved. Replaces cross-run 1.092 ratio for same-trajectory interpretation.",
                 },
                 "isolated_hccl_actual_payload_us": {k: v["median_us"] for k, v in hccl["cases"].items()},
+                "exact_order_265_HCCL_graph_service_attained_ms": {
+                    "independent_process_medians": [x["latest_rank_device_median_ms"] for x in hccl_graph],
+                    "source": "Run378 allrank reported task order; Run381 four-class Graph semantic gate; Run382-384 ordered-signature synthetic Graph replay with final reused buffer check per signature",
+                    "scope": "Isolated synthetic Graph with conditional ABI task kind/count/dtype/order, final reused buffer check per signature, no per-operation native identity proof or rank-synchronized makespan; no model compute/HBM or producer arrivals. Attained service only, not physical floor or exposed Product cost.",
+                },
+                "target_hccl_reported_payload_bytes_per_rank_cycle": hccl378["summary"]["reported_chunk_bytes_sum"],
+                "target_hccl_conditional_API_input_bytes_per_rank_cycle": hccl378["summary"]["conditional_API_input_bytes_sum"],
                 "isolated_hccl_scope": "Run339 five warmed padded88 prefill collective shapes; not a mixed decode chain or physical link floor",
                 "all8_GMM_graph_isolated_attained_service_us": {
                     name: row["all8_A2_rank_median_us_range"] for name, row in gmm352["cases"].items()
@@ -178,12 +200,19 @@ def main():
                     "aiv_read_main_memory_KB_per_native_task": prof360["median_counter_comparison"]["aiv_read_main_memory_datas(KB)"],
                     "scope": "AIC byte counters unchanged despite timing sensitivity; no L2 hit/physical HBM attribution. Profiler Host/NPU flow parse failed and profiler timing is excluded from attained service.",
                 },
-                "missing": ["same-shape concurrent FULL Graph AIC/AIV/HBM capacity and cache residency", "mixed 264-collective service and topology link bytes", "rank arrival and compute/communication contention"],
+                "missing": ["same-shape concurrent FULL Graph AIC/AIV/HBM capacity and cache residency", "physical topology link bytes and mixed compute-contended 265-collective service", "rank arrival and compute/communication contention"],
                 "confidence": "low; isolated HCCL timings are attainable samples, not a physical floor",
             },
             "scheduling_execution": {
                 "latency_floor_s": None,
                 "conditional_cycle_screen": cycle_screen,
+                "current_DSpark_Markov_feedback": {
+                    "source": "Run372/376 corrected device-tail and llm_base_proposer.py:1422-1436",
+                    "seven_bias_task_span_us_profiled_range": markov376["summary"]["span_us_range"],
+                    "seven_bias_task_read_counter_GB_median": markov376["summary"]["seven_task_read_counter_GB_median"],
+                    "dependency": "draft[idx] -> embedding -> bias -> add -> argmax -> draft[idx+1] under current algorithm",
+                    "scope": "Serial feedback in current proposer; profiled span not a floor, and alternate space-for-time algorithms may change work/storage.",
+                },
                 "refill_break_even_sensitivity": break_even,
                 "missing": ["same-state legal-arrival/prefill/seed/first-Target timeline", "all-rank resource-constrained DAG costs including GMM weight residency", "actual concurrent resource contention", "cycle duration and useful-token changes under refill"],
                 "confidence": "low for attainable Product; medium for offline cycle arithmetic",
@@ -198,7 +227,7 @@ def main():
         },
         "next_measurement": {
             "priority": "pin full-workload mandatory-work and same-path concurrent capacity before promoting a numeric bound",
-            "specific_gate": "extend matched Target GMM work/counters to non-GMM and DSpark standard work, cycle64/65 useful acceptance, necessary KV/HCCL bytes, and unperturbed all-rank device join/attainable compute-HBM capacity; legal arrival-to-first-Target if refill is tested",
+            "specific_gate": "unperturbed all-rank full-cycle Target/acceptance/state/Draft/next-Target device join, direct decode HCCL ABI/physical bytes, Draft GMM/KV/prefill compulsory work and mixed compute-HBM-HCCL capacity; legal arrival-to-first-Target if refill is tested",
             "decision_rule": "numeric Product bound requires a legal resource-constrained DAG and unchanged-contract corrected E2E calibration",
         },
         "input_paths": [
@@ -216,6 +245,12 @@ def main():
             "evidence/20260927_loop076_bound/run368/analysis.json",
             "evidence/20260927_loop076_bound/run370/analysis.json",
             "evidence/20260927_loop076_bound/run372/analysis.json",
+            "evidence/20260927_loop077_bound/run376/analysis.json",
+            "evidence/20260927_loop077_bound/run378/ledger.json",
+            "evidence/20260927_loop077_bound/run380/analysis.json",
+            "evidence/20260927_loop077_bound/run382/chain.json",
+            "evidence/20260927_loop077_bound/run383/chain.json",
+            "evidence/20260927_loop077_bound/run384/chain.json",
         ],
     }
     dest = Path(args.output)
