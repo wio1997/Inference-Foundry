@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run448 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-27T06:52:58Z`
+- 下一步：审查 Run run496 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-27T10:22:03Z`
 
 ## Run 记录
 
@@ -42,6 +42,52 @@
 - `runs/mixed_32k_1024_c12/run446`
 - `runs/mixed_32k_1024_c12/run447`
 - `runs/mixed_32k_1024_c12/run448`
+- `runs/mixed_32k_1024_c12/run449`
+- `runs/mixed_32k_1024_c12/run450`
+- `runs/mixed_32k_1024_c12/run453`
+- `runs/mixed_32k_1024_c12/run451`
+- `runs/mixed_32k_1024_c12/run454`
+- `runs/mixed_32k_1024_c12/run455`
+- `runs/mixed_32k_1024_c12/run456`
+- `runs/mixed_32k_1024_c12/run458`
+- `runs/mixed_32k_1024_c12/run457`
+- `runs/mixed_32k_1024_c12/run460`
+- `runs/mixed_32k_1024_c12/run459`
+- `runs/mixed_32k_1024_c12/run461`
+- `runs/mixed_32k_1024_c12/run462`
+- `runs/mixed_32k_1024_c12/run463`
+- `runs/mixed_32k_1024_c12/run464`
+- `runs/mixed_32k_1024_c12/run465`
+- `runs/mixed_32k_1024_c12/run466`
+- `runs/mixed_32k_1024_c12/run467`
+- `runs/mixed_32k_1024_c12/run468`
+- `runs/mixed_32k_1024_c12/run469`
+- `runs/mixed_32k_1024_c12/run470`
+- `runs/mixed_32k_1024_c12/run471`
+- `runs/mixed_32k_1024_c12/run472`
+- `runs/mixed_32k_1024_c12/run473`
+- `runs/mixed_32k_1024_c12/run475`
+- `runs/mixed_32k_1024_c12/run476`
+- `runs/mixed_32k_1024_c12/run477`
+- `runs/mixed_32k_1024_c12/run479`
+- `runs/mixed_32k_1024_c12/run478`
+- `runs/mixed_32k_1024_c12/run480`
+- `runs/mixed_32k_1024_c12/run481`
+- `runs/mixed_32k_1024_c12/run482`
+- `runs/mixed_32k_1024_c12/run483`
+- `runs/mixed_32k_1024_c12/run484`
+- `runs/mixed_32k_1024_c12/run485`
+- `runs/mixed_32k_1024_c12/run486`
+- `runs/mixed_32k_1024_c12/run487`
+- `runs/mixed_32k_1024_c12/run488`
+- `runs/mixed_32k_1024_c12/run489`
+- `runs/mixed_32k_1024_c12/run490`
+- `runs/mixed_32k_1024_c12/run491`
+- `runs/mixed_32k_1024_c12/run492`
+- `runs/mixed_32k_1024_c12/run493`
+- `runs/mixed_32k_1024_c12/run495`
+- `runs/mixed_32k_1024_c12/run497`
+- `runs/mixed_32k_1024_c12/run496`
 
 ## 阻塞项
 
@@ -49,5 +95,5 @@
 
 ## 待归约知识
 
-- 知识变化：`6`
+- 知识变化：`11`
 - 基线变化：`0`

@@ -106,7 +106,13 @@ def validate():
         src = obj['source']
         if not isinstance(src, list) or not src or any(not item.get('path') or not item.get('ref') for item in src):
             raise SystemExit(f'entry line {number} needs source path and ref')
-        if obj['status'] not in ('prior', 'current_diagnostic', 'current_formal', 'rejected', 'conditional'):
+        if obj['status'] not in (
+            'prior', 'current_diagnostic', 'current_formal', 'rejected',
+            'conditional', 'measurement_invalidity',
+            'conditional_resource_relaxation', 'source_constraint',
+            'conditional_observation', 'scoped_observation',
+            'environment_constraint',
+        ):
             raise SystemExit(f'entry line {number} invalid status')
         count += 1
     print(json.dumps({'entries': count, 'valid': True}, ensure_ascii=False))

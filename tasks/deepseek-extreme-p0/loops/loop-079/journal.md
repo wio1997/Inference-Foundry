@@ -133,3 +133,195 @@
 - `2026-09-27T06:52:58Z` Run `run448` 记录为 `pass`；正确性为 `not-applicable`。Astra accepts conditional caller-stream→HCCL→caller-stream source join and identifies actual-path gates: no torch override/coalescing/capture substitution, same consumer stream; no duration or numeric Bound.
 
 - `2026-09-27T06:53:09Z` 暂存知识变化 `PK-047`：Installed torch_npu2.10.0.post4 git commit5dd8ef3 ordinary synchronous all_gather_into_tensor source records caller→HCCL and HCCL-end→caller stream event dependencies; Extreme terminal logits can use this conditionally only when actual branch excludes torch override/coalescing/graph substitution and consumer remains on the joined stream. No Host-completion timestamp or E2E saving follows.
+
+- `2026-09-27T07:05:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run449`（review）。
+
+- `2026-09-27T07:05:55Z` Run `run449` 记录为 `pass`；正确性为 `not-applicable`。Installed 910B3 maps to 2201 BF16 Cube 16x16x16; configured 1800MHz is not certified maximum, aggregate C+ and numeric TPS ceiling remain null
+
+- `2026-09-27T07:06:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run450`（review）。
+
+- `2026-09-27T07:06:07Z` Run `run450` 记录为 `pass`；正确性为 `not-applicable`。Full terminal logits AllGather is not compulsory for argmax-only Target consumer; conditional pair construction has 768B/rank input versus current 3102720B/rank, with exact numeric and tie gates still open; no E2E or latency gain claimed
+
+- `2026-09-27T07:06:14Z` 暂存知识变化 `PK-048`：Installed CANN9.1 910B3 binds to NpuArch2201 with BF16 Cube 16x16x16 ideal parallelism, but cube_freq1800 and DCMI type9 rated frequency do not certify maximum clock or all-engine aggregate C+; hardware/Product numeric ceilings remain open
+
+- `2026-09-27T07:06:21Z` 暂存知识变化 `PK-049`：Frozen Target logits are consumed as greedy argmax; installed distributed get_top_tokens pair method constructs a conditional exact alternative to current full BF16 logits AllGather with 768B/rank pair input versus 3102720B/rank full input. This is not compulsory communication, latency reduction, or E2E gain until runtime numeric and tie gates pass
+
+- `2026-09-27T07:12:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run453`（simulation）。
+
+- `2026-09-27T07:12:54Z` Run `run453` 记录为 `pass`；正确性为 `not-applicable`。V3.17 adds symbolic 910B3 BF16 Cube formula and conditional pair-argmax payload construction; all strict and Product numeric endpoints remain null pending independent Run454 review
+
+- `2026-09-27T07:13:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run451`（review）。
+
+- `2026-09-27T07:13:05Z` Run `run451` 记录为 `pass`；正确性为 `not-applicable`。Review completed and Run439 B preflight failed: cleanup HBM parser fail-open, cycle64 profiler, stream/event, dispatch and validator gates require repairs before service
+
+- `2026-09-27T07:21:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run454`（review）。
+
+- `2026-09-27T07:22:06Z` Run `run454` 记录为 `pass`；正确性为 `not-applicable`。Astra accepted V3.17 symbolic Cube and conditional argmax arithmetic; archived installed source recheck passes corrupted/archive-swap negative tests and byte-identical regeneration; finite endpoints remain null
+
+- `2026-09-27T07:22:11Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run455`（review）。
+
+- `2026-09-27T07:22:16Z` Run `run455` 记录为 `pass`；正确性为 `not-applicable`。Five Run451 blockers repaired and independently checked with source compile, CPU/adversarial tests; staged B permitted only as instrumented local-envelope acquisition
+
+- `2026-09-27T07:23:53Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run456`（review）。
+
+- `2026-09-27T07:24:02Z` Run `run456` 记录为 `pass`；正确性为 `not-applicable`。Run439 B first attempt rejected at preflight with 91 active dedicated-container processes; no patch/service/NPU, then idle container reset and six source hashes verified unchanged
+
+- `2026-09-27T07:37:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run458`（benchmark）。
+
+- `2026-09-27T07:37:58Z` Run `run458` 记录为 `invalid`；正确性为 `invalid`。First warmup aborted on instrumentation C10D wrapper hash gate; no selected slices or formal result. Stop/restore/SHA zero, revised wrapper plus unwrapped source check moved to pre-service
+
+- `2026-09-27T07:41:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run457`（review）。
+
+- `2026-09-27T07:41:11Z` Run `run457` 记录为 `pass`；正确性为 `not-applicable`。Public C10D logger wrapper and unwrapped implementation source pinned separately; controller pre-service check and fresh retry identity pass; no valid timing until live acquisition
+
+- `2026-09-27T07:41:21Z` 暂存知识变化 `PK-050`：Installed PyTorch public all_gather_into_tensor is decorated by c10d_logger.py; inspect.getsourcefile on the public function identifies wrapper, while inspect.unwrap identifies distributed_c10d.py. Provenance gates must pin both wrapper and underlying implementation and run before costly service startup
+
+- `2026-09-27T07:54:38Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run460`（benchmark）。
+
+- `2026-09-27T07:54:38Z` Run `run460` 记录为 `invalid`；正确性为 `invalid`。Run439 B retry rejected: generic communicator hook captured out-of-scope Target hidden/aux AllGather before terminal logits. 11/48 warmup succeeded; no complete selected slices, no timing or E2E inference. Stop, restore, source SHA checks zero. Scoped marker now filters unselected native calls.
+
+- `2026-09-27T07:55:05Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run459`（review）。
+
+- `2026-09-27T07:55:05Z` Run `run459` 记录为 `pass`；正确性为 `not-applicable`。Astra High PASS: off-scope earlier hidden AllGather ignored; lost intended scope, duplicate scoped native and broken event chain reject. Fresh retry2 path and CPU/source/controller gates accepted. This is preflight, not timing or E2E evidence.
+
+- `2026-09-27T07:57:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run461`（review）。
+
+- `2026-09-27T07:57:02Z` Run `run461` 记录为 `pass`；正确性为 `not-applicable`。All finite Algorithm/Resource, Hardware/Resource, Scheduling/Execution, Product E2E endpoints remain unresolved. Run458/460 invalid; corrected B is highest-information local scheduling measurement, but no strict ceiling or formal TPS promotion without controls and causal proof.
+
+- `2026-09-27T08:00:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run462`（review）。
+
+- `2026-09-27T08:00:59Z` Run `run462` 记录为 `pass`；正确性为 `not-applicable`。No valid aggregate C+ yet: TOPS_DETAILS enum unsupported by A2 get-LP, computing_power API exposes core count only, driver frequency categories do not cap maximum, S900K3 whitepaper requires login. Hardware strict endpoint stays null; exact OEM max frequency, BF16 issue/engines certificate needed.
+
+- `2026-09-27T08:09:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run463`（benchmark）。
+
+- `2026-09-27T08:09:30Z` Run `run463` 记录为 `pass`；正确性为 `pass`。Exactly60 POST, 60 correct 1024-token outputs, five cohorts x eight ranks =40 validated cycle64 slices; ordinary scoped logits AllGather branch and same-stream event chain accepted. Stop, verify, source restore/SHA and final admission all zero. Diagnostic B only; no matched A0/A1 or formal TPS claim.
+
+- `2026-09-27T08:13:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run464`（review）。
+
+- `2026-09-27T08:13:18Z` Run `run464` 记录为 `pass`；正确性为 `not-applicable`。ACCEPT 40 instrumented same-device local slices; P-J median200.40us, J-G30.96us, C0-C153.07us; P-C1 260.50-296.00us. Current 24.82176MB layout materialization. G-C0 below calibrated resolution; no finite Bound or E2E inference.
+
+- `2026-09-27T08:13:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run465`（review）。
+
+- `2026-09-27T08:13:18Z` Run `run465` 记录为 `pass`；正确性为 `not-applicable`。Target pre-replay wait through FULL Graph completion, hidden/aux gather and first hidden consumer is next highest-information scheduling seam. Historic R13/R37/R21/R28 are hypothesis priors only; require exact graph completion semantics, matched controls and no hot-path sync. Terminal pair-argmax performance deprioritized, not excluded.
+
+- `2026-09-27T08:16:44Z` 暂存知识变化 `PK-051`：Run463/464 admitted selected cycle64 terminal full-logits TP8 path: marked same-device P-J median0.20040ms, J-G0.03096ms, C0-C10.05307ms and current24.82176MB layout materialization. This narrows Current local dependency only; no A0/A1, compulsory floor, E2E saving or finite Bound.
+
+- `2026-09-27T08:18:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run466`（simulation）。
+
+- `2026-09-27T08:18:17Z` Run `run466` 记录为 `pass`；正确性为 `not-applicable`。V3.18 reproduces 40 instrumented local slices, sets next Target FULL replay frontier and leaves every finite Algorithm/Hardware/Scheduling/Product endpoint null; formal Current571.681tok/s.
+
+- `2026-09-27T08:18:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run467`（review）。
+
+- `2026-09-27T08:18:17Z` Run `run467` 记录为 `pass`；正确性为 `not-applicable`。ACCEPT: 29 CPU checks; 40 raw hashes and stats verified; byte-identical regeneration; all19 proof nodes false. Local0.26050-0.29600ms remains marked Current only, no numeric Bound or E2E gain.
+
+- `2026-09-27T08:18:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run468`（design-check）。
+
+- `2026-09-27T08:18:54Z` Run `run468` 记录为 `pass`；正确性为 `not-applicable`。Scoped T to existing FULL pre-replay Host sync to graph replay R0/R1 to conditional hidden/aux gather H and first sampled-hidden consumer U, with capture generation, storage/stream identity, A0-B-A1 and cleanup gates. Native graph output-completion still requires proof; no device or numeric Bound.
+
+- `2026-09-27T08:27:36Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run469`（review）。
+
+- `2026-09-27T08:27:37Z` Run `run469` 记录为 `pass`；正确性为 `not-applicable`。PASS source-only Run468 implementation with mandatory logical stream IDs, no selected npu_stream getter. Exact torch_npu getter drains Host submission queue; Run439 had nine selected conversions/slice, so Run463/464 timing downgraded to queue-drained diagnostic. CANN9.1 gives conditional graph producer→replay-stream event ordering, actual output/loaded-library gates remain.
+
+- `2026-09-27T08:28:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run470`（review）。
+
+- `2026-09-27T08:28:47Z` Run `run470` 记录为 `pass`；正确性为 `not-applicable`。Nine selected npu_stream getter reads can drain Host submission queue. Run463/464 raw and lineage valid only for perturbed diagnostic; withdraw V3.18 passive Current timing and Run465 terminal-small priority transfer. Clean no-getter B plus matched controls needed; finite Bounds unchanged.
+
+- `2026-09-27T08:29:43Z` 暂存知识变化 `PK-052`：Installed torch_npu Stream.npu_stream getter can drain the Host task queue; Run439 selected-path checks call it nine times/slice. Run463/464 timings are queue-drained diagnostic only; use direct logical stream identity and a negative getter mock before clean Bound capture.
+
+- `2026-09-27T08:33:32Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run471`（simulation）。
+
+- `2026-09-27T08:33:32Z` Run `run471` 记录为 `pass`；正确性为 `not-applicable`。V3.19 preserves Run463 intervals as queue-drained diagnostic only, disables uninstrumented Current/priority transfer, adds conditional Target graph frontier, and keeps all finite Bound endpoints null and19 proof nodes false.
+
+- `2026-09-27T08:33:32Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run472`（design-check）。
+
+- `2026-09-27T08:33:32Z` Run `run472` 记录为 `pass`；正确性为 `not-applicable`。Versioned helper/patcher/validator use direct immutable stream identity; mock npu_stream property raises, full scoped chain passes with zero getter calls. Patcher check, py_compile, runtime and validator CPU mocks exit0. No install, controller, service or NPU run.
+
+- `2026-09-27T08:33:32Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run473`（review）。
+
+- `2026-09-27T08:33:32Z` Run `run473` 记录为 `pass`；正确性为 `not-applicable`。ACCEPT:25 CPU checks, byte-identical regeneration, all19 proof nodes false and finite endpoints null; Run467 semantic timing applicability superseded, arithmetic retained as perturbed diagnostic.
+
+- `2026-09-27T08:40:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run475`（benchmark）。
+
+- `2026-09-27T08:42:07Z` Run `run475` 记录为 `invalid`；正确性为 `invalid`。Preflight global process-count gate invalid: 91 persistent container helper processes; no source install, service, NPU or benchmark. Fresh retry after focused review.
+
+- `2026-09-27T08:42:13Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run476`（review）。
+
+- `2026-09-27T08:43:18Z` Run `run476` 记录为 `pass`；正确性为 `not-applicable`。Astra controller-only PASS after Run475 preflight: removed unrelated total-process threshold, retained explicit live-service/client/NPU/Host gates, new paths fresh; no workload.
+
+- `2026-09-27T08:43:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run477`（benchmark）。
+
+- `2026-09-27T08:54:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run479`（review）。
+
+- `2026-09-27T08:54:54Z` Run `run479` 记录为 `pass`；正确性为 `not-applicable`。Independent Bound review: one fresh retained wo_a group gives only class-conditional 8,388,608 BF16 conventional ops; exact-board C-plus and fresh external-output lineage remain open. No finite strict endpoint.
+
+- `2026-09-27T08:59:03Z` Run `run477` 记录为 `pass`；正确性为 `pass`。No-getter clean terminal B2 admitted: exact60 correct responses, 40 all-rank c64 slices, post-stop/restore/SHA gates exit0. Instrumented P-C1 median0.26736ms; no uninstrumented cost or finite Bound.
+
+- `2026-09-27T08:59:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run478`（design-check）。
+
+- `2026-09-27T09:04:08Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run480`（review）。
+
+- `2026-09-27T09:04:08Z` Run `run480` 记录为 `pass`；正确性为 `not-applicable`。Independent diagnostic admission PASS; P-C1 median267.36us with no-getter, structural DAG only, no numerical Bound; old/new trajectories differ.
+
+- `2026-09-27T09:07:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run481`（review）。
+
+- `2026-09-27T09:07:04Z` Run `run481` 记录为 `invalid`；正确性为 `invalid`。Run478 preflight FAIL: non-sync replay helper unbound, disabled capture side effect, wrong remaining gate, insufficient lineage/runtime/cleanup admission. No patch/service/NPU.
+
+- `2026-09-27T09:07:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run482`（design-check）。
+
+- `2026-09-27T09:11:10Z` Run `run482` 记录为 `pass`；正确性为 `not-applicable`。V3.20 calibrates clean no-getter terminal observation and Run479 hardware audit without finite endpoint promotion; 19 proof nodes false.
+
+- `2026-09-27T09:11:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run483`（review）。
+
+- `2026-09-27T09:11:11Z` Run `run483` 记录为 `pass`；正确性为 `not-applicable`。Independent V3.20 PASS: six input/40 raw hashes, interval recompute, ten negative controls; Current571.681, all numeric endpoints null.
+
+- `2026-09-27T09:28:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run484`（design-check）。
+
+- `2026-09-27T09:28:48Z` Run `run484` 记录为 `pass`；正确性为 `not-applicable`。Source-only startup c96 FULL capture repair, six-file check, CPU branch/cleanup negatives and controller syntax pass; no service/NPU run; Astra independent preflight still required before launch.
+
+- `2026-09-27T09:28:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run485`（review）。
+
+- `2026-09-27T09:31:06Z` Run `run485` 记录为 `invalid`；正确性为 `invalid`。Astra preflight FAIL: hidden view/timing, Runtime staged count, six-source restore SHA manifests, selected graph-update source hash read; no service/NPU.
+
+- `2026-09-27T09:32:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run486`（review）。
+
+- `2026-09-27T09:36:05Z` Run `run486` 记录为 `pass`；正确性为 `not-applicable`。Astra High source-only preflight PASS for guarded B launch: 33 validator negatives, runtime/cleanup CPU, live six-source check and controller syntax; no Bound promotion.
+
+- `2026-09-27T09:36:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run487`（profile）。
+
+- `2026-09-27T09:51:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run488`（review）。
+
+- `2026-09-27T09:51:48Z` Run `run487` 记录为 `pass`；正确性为 `pass`。Guarded Target FULL frontier B acquisition exit0: exact60 HTTP200/1024, 40 capture+Runtime all8, final admission and six-source restore pass. Local event intervals remain instrumented diagnostic; independent Bound review pending.
+
+- `2026-09-27T09:58:03Z` Run `run488` 记录为 `pass`；正确性为 `not-applicable`。Astra High independent Run487 diagnostic admission PASS: 86 hashes, 40 local slices, 60 POST, source restore; replay median45.986019ms is instrumented caller-stream envelope only; all finite Bounds null.
+
+- `2026-09-27T09:59:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run489`（design-check）。
+
+- `2026-09-27T09:59:25Z` Run `run489` 记录为 `pass`；正确性为 `not-applicable`。V3.21 pins Run487/488 conditional Target frontier, keeps all strict/practical finite Bounds null and Current Formal571.681; independent model audit pending.
+
+- `2026-09-27T09:59:38Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run490`（review）。
+
+- `2026-09-27T10:02:23Z` Run `run490` 记录为 `pass`；正确性为 `not-applicable`。Astra High V3.21 ACCEPT: byte-identical rebuild, 25 CPU checks, 86 raw pins, 19 proof nodes false; all numeric Bound endpoints null, Current571.681.
+
+- `2026-09-27T10:02:50Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run491`（test）。
+
+- `2026-09-27T10:03:30Z` Run `run491` 记录为 `invalid`；正确性为 `invalid`。One-card debug_dump probe failed before container/NPU action because evidence/run491 output directory was absent for host redirection; no device workload.
+
+- `2026-09-27T10:03:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run492`（test）。
+
+- `2026-09-27T10:04:37Z` Run `run492` 记录为 `pass`；正确性为 `pass`。Installed torch_npu2.10.0.post4 NPUGraph.debug_dump succeeds after a tiny one-card graph; JSON exposes stream/task IDs, task types and kernel argument address text; output parity passes. This is method capability, not Extreme producer proof.
+
+- `2026-09-27T10:05:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run493`（test）。
+
+- `2026-09-27T10:05:55Z` Run `run493` 记录为 `pass`；正确性为 `pass`。Installed CANN9.1 graph JSON records two streams and EVENT_RECORD/WAIT/RESET task IDs for a correct tiny cross-stream graph; method supports explicit child-join reconstruction, but production output writers remain unproved.
+
+- `2026-09-27T10:18:16Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run495`（design-check）。
+
+- `2026-09-27T10:18:22Z` Run `run495` 记录为 `pass`；正确性为 `not-applicable`。Astra High source-only design: active-slot first sampled token equals Target argmax first position; external retained/publication/freshness and exact-board C_plus remain open; no numeric endpoint
+
+- `2026-09-27T10:20:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run497`（test）。
+
+- `2026-09-27T10:20:11Z` Run `run497` 记录为 `pass`；正确性为 `not-applicable`。CPU pinned-source 128/128 first-position identity and active/count/clip negative controls pass. External publication, freshness, conventional-class necessity and C_plus unproved; no numeric Bound promotion
+
+- `2026-09-27T10:21:57Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run496`（review）。
+
+- `2026-09-27T10:22:03Z` Run `run496` 记录为 `fail`；正确性为 `invalid`。Independent source-only preflight FAIL: serving patched SHA truncated, graph task IDs/schema too weak, actual selected update backend not certified; Run494 launch blocked until repaired and re-reviewed
