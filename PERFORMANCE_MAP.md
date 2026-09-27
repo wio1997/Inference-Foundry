@@ -734,3 +734,7 @@ Run569 separates per-fresh-row BF16 `wo_a` and W4A8 routed MoE formulas, current
 ## Run570 observed parked-row distinction
 
 Run566 A0 all8 row census separates 98,496 active-slot rows from 17,280 parked-slot rows within 115,776 current physical Target inputs/rank over four diagnostic cohorts. The parked share 14.92537% is a current geometry observation. Whether variable-active-row execution reduces compute/HBM or critical-path wall requires compatible Graph/layout, same fixed W₀ and all8 mixed-resource measurement; no such gain or Product Bound is inferred. The Resource gap remains dominated by formal W₀ necessary-work/traffic and matching C⁺/B uncertainty.
+
+## Run571 empirical service versus strict capacity
+
+The source-pinned matrix has 18 isolated service priors and five instrumented Current rows, with per-row shape, source SHA and transfer restrictions. The GMM2 bank8 +8.037% median effect (8/8 strict) confirms working-set sensitivity only under synthetic-zero independent Graph timing. Official isolated HCCL Test t1 values and Run395/487 current intervals are different timing classes. No row supports a strict cumulative C⁺/B or removable Product wall-time claim; do not sum cross-run medians. The dominant uncertainty remains same-W₀ real-data/residency-matched all8 mixed resource service, while the independent strict Resource track still lacks complete compulsory work/traffic and matching exact-board capacity. All finite Bound endpoints remain null.
