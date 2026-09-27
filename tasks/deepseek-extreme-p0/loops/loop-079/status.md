@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run496 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-27T10:22:03Z`
+- 下一步：审查 Run run515 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-27T12:33:46Z`
 
 ## Run 记录
 
@@ -88,6 +88,25 @@
 - `runs/mixed_32k_1024_c12/run495`
 - `runs/mixed_32k_1024_c12/run497`
 - `runs/mixed_32k_1024_c12/run496`
+- `runs/mixed_32k_1024_c12/run498`
+- `runs/mixed_32k_1024_c12/run499`
+- `runs/mixed_32k_1024_c12/run494`
+- `runs/mixed_32k_1024_c12/run500`
+- `runs/mixed_32k_1024_c12/run501`
+- `runs/mixed_32k_1024_c12/run502`
+- `runs/mixed_32k_1024_c12/run503`
+- `runs/mixed_32k_1024_c12/run504`
+- `runs/mixed_32k_1024_c12/run505`
+- `runs/mixed_32k_1024_c12/run506`
+- `runs/mixed_32k_1024_c12/run507`
+- `runs/mixed_32k_1024_c12/run509`
+- `runs/mixed_32k_1024_c12/run508`
+- `runs/mixed_32k_1024_c12/run511`
+- `runs/mixed_32k_1024_c12/run512`
+- `runs/mixed_32k_1024_c12/run513`
+- `runs/mixed_32k_1024_c12/run510`
+- `runs/mixed_32k_1024_c12/run514`
+- `runs/mixed_32k_1024_c12/run515`
 
 ## 阻塞项
 

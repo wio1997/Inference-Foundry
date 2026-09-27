@@ -1,0 +1,30 @@
+--- run494/controller
++++ run502/controller
+@@ -1,9 +1,9 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+ ROOT=/data/wio/Inference_Foundry
+-OUT=${ROOT}/evidence/20260927_loop079_identity/run494/b_candidate
++OUT=${ROOT}/evidence/20260927_loop079_identity/run502/b_candidate
+ CONTAINER=vllm-ascend26-dsv4f-w4a8
+-RUN_TS=LOOP079-RUN494-DUMP-B
++RUN_TS=LOOP079-RUN502-DUMP-B
+ DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-0731-w4a8-repeatRate0.9.jsonl
+ FRAME=/data/wio/vllm_ascend_26/framework
+ SOURCES=(
+@@ -15,12 +15,12 @@
+     "${FRAME}/vllm/vllm/distributed/device_communicators/base_device_communicator.py"
+ )
+ LOG=${ROOT}/logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_${RUN_TS}.log
+-if [[ -e "${OUT}" ]]; then echo "Run494 dump B output already exists" >&2; exit 1; fi
+-if [[ -e "${LOG}" ]]; then echo "Run494 server log already exists" >&2; exit 1; fi
++if [[ -e "${OUT}" ]]; then echo "Run502 dump B output already exists" >&2; exit 1; fi
++if [[ -e "${LOG}" ]]; then echo "Run502 server log already exists" >&2; exit 1; fi
+ mkdir -p "${OUT}/runtime" "${OUT}/capture" "${OUT}/graph_dump"
+ if [[ -e "${OUT}/patch_state" || -e "${OUT}/bench.json" || -e "${OUT}/warmup48.json" ]] || \
+    find "${OUT}/runtime" "${OUT}/capture" "${OUT}/graph_dump" -mindepth 1 -print -quit | grep -q .; then
+-    echo "Run494 dump B output directory is not a fresh acquisition" >&2; exit 1
++    echo "Run502 dump B output directory is not a fresh acquisition" >&2; exit 1
+ fi
+ 
+ if curl -fsS --max-time 2 http://127.0.0.1:8080/health >/dev/null 2>&1; then

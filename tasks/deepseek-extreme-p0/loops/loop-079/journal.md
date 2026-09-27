@@ -325,3 +325,79 @@
 - `2026-09-27T10:21:57Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run496`（review）。
 
 - `2026-09-27T10:22:03Z` Run `run496` 记录为 `fail`；正确性为 `invalid`。Independent source-only preflight FAIL: serving patched SHA truncated, graph task IDs/schema too weak, actual selected update backend not certified; Run494 launch blocked until repaired and re-reviewed
+
+- `2026-09-27T10:33:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run498`（review）。
+
+- `2026-09-27T10:33:31Z` Run `run498` 记录为 `fail`；正确性为 `invalid`。Frozen v2 independent preflight FAIL: same debug_dump implementation bound to a different graph receiver was accepted; Run496 three blockers repaired but production launch remains blocked
+
+- `2026-09-27T10:35:57Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run499`（review）。
+
+- `2026-09-27T10:36:03Z` Run `run499` 记录为 `pass`；正确性为 `not-applicable`。Independent frozen-v3 source-only preflight PASS for one guarded Run494 diagnostic launch; graph task-type whitelist may conservatively reject unobserved FULL types, with raw-only invalid fallback
+
+- `2026-09-27T10:36:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run494`（profile）。
+
+- `2026-09-27T10:51:03Z` Run `run494` 记录为 `invalid`；正确性为 `invalid`。Guarded exact48+12 diagnostic exited1 at conservative graph task schema: MEMCPY_ASYNC absent from Run493-derived whitelist; all8 raw dumps 5412 tasks retained but cohort5 capture/meta absent, bench12 truncated. Stop/restore/source SHA succeeded; no Bound promotion
+
+- `2026-09-27T10:54:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run500`（review）。
+
+- `2026-09-27T10:54:51Z` Run `run500` 记录为 `pass`；正确性为 `not-applicable`。Read-only invalid-Run494 raw schema audit: all8 5412 tasks, only MEMCPY_ASYNC x43/rank newly required; in-memory exact-token whitelist makes helper/offline schema pass, but no metadata/cohort5/external correctness and no Bound promotion
+
+- `2026-09-27T10:59:31Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run501`（review）。
+
+- `2026-09-27T10:59:31Z` Run `run501` 记录为 `pass`；正确性为 `not-applicable`。Independent frozen-v4 source-only preflight PASS for one guarded Run502; actual client/all8/dump/final gates remain required
+
+- `2026-09-27T10:59:36Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run502`（profile）。
+
+- `2026-09-27T11:14:04Z` Run `run502` 记录为 `pass`；正确性为 `pass`。Guarded exact48+12 diagnostic exit0: 60 HTTP200/1024, 40 all8 capture+Runtime, eight same-acquisition FULL graph dumps/meta, validator/final/stop/restore/source SHA pass. Scoped length/count/Host mirror only; no fresh semantic token oracle or formal TPS/Bound promotion
+
+- `2026-09-27T11:23:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run503`（review）。
+
+- `2026-09-27T11:23:46Z` Run `run503` 记录为 `pass`；正确性为 `not-applicable`。Astra accepts Run502 source-bound post-drain diagnostic and conditional Current structure; all four typed last-writers, effective MLA update, external event generation and graph terminal-to-caller R1 remain open; no finite Bound
+
+- `2026-09-27T11:32:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run504`（design-check）。
+
+- `2026-09-27T11:32:10Z` Run `run504` 记录为 `pass`；正确性为 `not-applicable`。V3.22 preserves Formal Current 571.681 and all finite Bound endpoints null; adds scoped first-position, Graph structure and MLA update unknowns without cross-run timing transfer
+
+- `2026-09-27T11:32:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run505`（review）。
+
+- `2026-09-27T11:32:10Z` Run `run505` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS: 145 input hashes, 41 assertions, byte-identical model, 19 proof nodes false; generic checker does not cover future new field names but current pinned generator retains null endpoints
+
+- `2026-09-27T11:32:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run506`（design-check）。
+
+- `2026-09-27T11:32:10Z` Run `run506` 记录为 `pass`；正确性为 `not-applicable`。Async model submission and cross-stream capture contract reviewed; ReduceMean MIX placeholder ABI remains untyped; next certificate is actual update count/object generation then output producer/terminal join
+
+- `2026-09-27T12:01:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run507`（profile）。
+
+- `2026-09-27T12:01:44Z` Run `run507` 记录为 `invalid`；正确性为 `invalid`。Run507 workload completed but controller validation import failed (ModuleNotFoundError: scripts); final admission exit1. Service stopped and six sources restored/SHA matched. Observed update counts remain inadmissible; fresh Run508 required.
+
+- `2026-09-27T12:09:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run509`（review）。
+
+- `2026-09-27T12:09:11Z` Run `run509` 记录为 `pass`；正确性为 `not-applicable`。Independent review: no certified positive formal-window W-minus/matching aggregate C-plus; one fresh retained first-position BF16 wo_a group remains class-conditional, exact-board maximum capacity and interval boundary service B unresolved. No finite Bound promotion.
+
+- `2026-09-27T12:09:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run508`（profile）。
+
+- `2026-09-27T12:20:20Z` Run `run508` 记录为 `pass`；正确性为 `pass`。Fresh 48+12 diagnostic controller exit0: 60 HTTP200/1024, 40 all8 capture/Runtime rows, eight FULL Graph dumps/meta, update and final validation pass; service stopped, six borrowed sources restored/SHA matched. Selected MLA update zip loop0 in all40; independent review pending. Diagnostic scope only, no formal TPS or finite Bound promotion.
+
+- `2026-09-27T12:23:58Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run511`（review）。
+
+- `2026-09-27T12:23:58Z` Run `run511` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS scoped: fresh Run508 all8/40 selected MLA calls have 170 keys, empty params/handles/events and source-inferred zero update loop/event record; stream context, other private work, typed writers, terminal-to-caller and all finite Bounds remain unresolved. Eight post-shutdown ERROR lines preserved.
+
+- `2026-09-27T12:28:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run512`（design-check）。
+
+- `2026-09-27T12:28:03Z` Run `run512` 记录为 `pass`；正确性为 `not-applicable`。V3.23 admits only Run508 selected MLA zero loop into conditional Current Scheduling DAG; Run509 interval-service/B certificate obligation propagated through Resource/Product proof gates. All19 nodes false, finite endpoints null, Current571.681 unchanged.
+
+- `2026-09-27T12:28:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run513`（review）。
+
+- `2026-09-27T12:28:03Z` Run `run513` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS: byte-identical V3.23 rebuild, 33 checks, 19 proof nodes false, all recognized endpoints and new unknowns null, Current571.681 unchanged. B obligation propagated after independent challenge.
+
+- `2026-09-27T12:28:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run510`（review）。
+
+- `2026-09-27T12:28:40Z` Run `run510` 记录为 `pass`；正确性为 `not-applicable`。Official v9.1.0 source supports general model end-notify to execution-stream wait; exporter placeholder labels consume no argument bytes and aux candidate is raw byte24. Exact installed B243 backend/notify object and typed MIX output role remain unproved; no Bound promotion.
+
+- `2026-09-27T12:33:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run514`（design-check）。
+
+- `2026-09-27T12:33:46Z` Run `run514` 记录为 `pass`；正确性为 `not-applicable`。V3.24 adds CANN9.1 release-source general model end-notify to execution-stream wait and Run502 raw MIX byte24 candidate, preserving exact installed backend/typed writer/native terminal as unknown. Current571.681, all finite Bound endpoints null.
+
+- `2026-09-27T12:33:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run515`（review）。
+
+- `2026-09-27T12:33:46Z` Run `run515` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS: byte-identical V3.24, Run502 byte24 not transferred to Run508, typed writer/terminal identity still null, 19 proof nodes false, Current571.681 and all endpoints unchanged.
