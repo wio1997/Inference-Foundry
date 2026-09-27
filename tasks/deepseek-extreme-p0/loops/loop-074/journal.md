@@ -81,3 +81,7 @@ Run346 makes the main uncertainty explicit: Current Formal571.681tok/s is establ
 - `2026-09-26T23:46:06Z` Run `run347` 记录为 `pass`；正确性为 `not-applicable`。Saved Run239 all8 exact count reanalysis: 1195 cycles, 49152 useful tokens, fixed-duration 1046/1045 capacity relaxations, one post-completion cycle per cohort; no Product bound promotion
 
 - `2026-09-26T23:47:52Z` Run `run345` 记录为 `invalid`；正确性为 `not-applicable`。Design preflight only: draft segmented serving source was not installed, no service or NPU run occurred. Paused after priority correction to Bound-first Run346/347; no live publication, arrival, correctness or TPS evidence.
+
+- `2026-09-26T23:49:54Z` 主控结论为 `PIVOTED`。Run346/347 show 1118 FIFO and 1011-1015 capacity relaxations do not close necessary prefill/seed/resource and real-arrival costs; user prioritizes credible Bound interval. Run345 was never installed; keep legal-refill hypothesis open, pivot next measurement to all8 concurrent resource capacity and full work ledger.
+
+- 2026-09-27 Run347 result summary corrected after Astra High: Runtime-retained suffix is distinct from external output; request serial chains dominate fixed-cohort capacity. Original TaskCtl event remains in task-events history; corrected result and evidence are authoritative.

@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
-- 结论：`PENDING`
-- 下一步：审查 Run run345 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-26T23:47:52Z`
+- 状态：`PIVOTED`
+- 结论：`PIVOTED`
+- 下一步：Loop075 measure same-shape all8 GMM/HBM capacity and compulsory work ledger, then revisit Run345 only if it closes dominant Bound uncertainty
+- 更新时间：`2026-09-26T23:49:54Z`
 
 ## Run 记录
 

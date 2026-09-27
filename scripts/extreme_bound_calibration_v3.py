@@ -28,6 +28,10 @@ def main():
     prep = read("evidence/20260926_loop074_refill/run340/analysis.json")
     hccl = read("evidence/20260926_loop074_refill/run339/analysis.json")
     acceptance239 = read("evidence/20260926_loop074_refill/run347/acceptance_reanalysis.json")
+    gmm352 = read("evidence/20260927_loop075_bound/run352/analysis.json")
+    banks357 = read("evidence/20260927_loop075_bound/run357/analysis.json")
+    prof360 = read("evidence/20260927_loop075_bound/run360/analysis.json")
+    binding365 = read("evidence/20260927_loop075_bound/run365/summary.json")
     assert dual["current_formal_tps"] == 571.681
     assert fixed["observed_cohort_wave_cycles"] == fifo["observed_cohort_wave_cycles"] == 1203
     assert fifo["instant_completion_zero_incremental_cost_fifo_cycles"] == 1118
@@ -35,6 +39,11 @@ def main():
     assert fifo["instant_completion_fixed_duration_floor_cycles"] == 1011
     assert len(hccl["cases"]) == 5
     assert acceptance239["aggregate"]["all_rank_count_parity"]
+    assert gmm352["status"] == "valid_isolated_graph_shape_service_ABA_no_product_bound"
+    assert banks357["status"] == "valid_same_layer_bank_A_B_A2_timing_only"
+    assert prof360["status"] == "verified_two_complete_graph_replays_each_condition"
+    assert binding365["banks"] == 8 and binding365["all_bank_active_prefix_match"]
+    assert binding365["active_prefix_max_abs_diff"] == 0.0
     assert sum(sum(row["immediate_completion_cycles"]) for row in fifo["cohorts"]) == 12122
 
     formal = dual["current_formal_observed_wall_envelope"]
@@ -122,14 +131,33 @@ def main():
                 "current_full_graph_counter_GB_per_rank_cycle": inventory["current_FULL_Graph_counter_GB_per_rank_target_cycle"],
                 "isolated_hccl_actual_payload_us": {k: v["median_us"] for k, v in hccl["cases"].items()},
                 "isolated_hccl_scope": "Run339 five warmed padded88 prefill collective shapes; not a mixed decode chain or physical link floor",
-                "missing": ["same-shape concurrent FULL Graph AIC/AIV/HBM capacity", "mixed 264-collective service and topology link bytes", "rank arrival and compute/communication contention"],
+                "all8_GMM_graph_isolated_attained_service_us": {
+                    name: row["all8_A2_rank_median_us_range"] for name, row in gmm352["cases"].items()
+                },
+                "all8_GMM_scope": "Run349/350/351 synthetic Graph A/B/A each rank selected a different Run121 ordinal layer; repeat one weight, 16 captured same-shape calls/replay. Host windows overlap, device per-replay overlap unproved. No FULL Graph mixed contention or physical peak.",
+                "same_layer_weight_bank_sensitivity": {
+                    "source": "Run354/355/356 ordinal64 all8 A=1/B=8/A2=1 independent packed-weight banks, 16 calls/replay; Run357 analysis",
+                    "gmm1_median_B_vs_A_midpoint_percent": banks357["cases"]["gmm1"]["median_B_vs_A_midpoint_percent"],
+                    "gmm1_strict_slower_ranks": banks357["cases"]["gmm1"]["strict_B_slower_ranks"],
+                    "gmm2_median_B_vs_A_midpoint_percent": banks357["cases"]["gmm2"]["median_B_vs_A_midpoint_percent"],
+                    "gmm2_strict_slower_ranks": banks357["cases"]["gmm2"]["strict_B_slower_ranks"],
+                    "scope": "isolated synthetic zero-input Graph service; does not enclose actual Runtime GMM cost, compulsory traffic, or Product path. Distinct bank pointers and separate Run365 nonzero eight-bank active-prefix Graph/eager binding validated.",
+                },
+                "onecard_GMM2_bank_memoryaccess": {
+                    "source": "Run358/359 Level1 rank4 ordinal64; Run360 verified final two 16-task native replay groups per condition",
+                    "aic_read_main_memory_KB_per_native_task": prof360["median_counter_comparison"]["aic_read_main_memory_datas(KB)"],
+                    "aic_GM_to_L1_KB_per_native_task": prof360["median_counter_comparison"]["aic_GM_to_L1_datas(KB)"],
+                    "aiv_read_main_memory_KB_per_native_task": prof360["median_counter_comparison"]["aiv_read_main_memory_datas(KB)"],
+                    "scope": "AIC byte counters unchanged despite timing sensitivity; no L2 hit/physical HBM attribution. Profiler Host/NPU flow parse failed and profiler timing is excluded from attained service.",
+                },
+                "missing": ["same-shape concurrent FULL Graph AIC/AIV/HBM capacity and cache residency", "mixed 264-collective service and topology link bytes", "rank arrival and compute/communication contention"],
                 "confidence": "low; isolated HCCL timings are attainable samples, not a physical floor",
             },
             "scheduling_execution": {
                 "latency_floor_s": None,
                 "conditional_cycle_screen": cycle_screen,
                 "refill_break_even_sensitivity": break_even,
-                "missing": ["same-state legal-arrival/prefill/seed/first-Target timeline", "all-rank resource-constrained DAG costs", "actual concurrent resource contention", "cycle duration and useful-token changes under refill"],
+                "missing": ["same-state legal-arrival/prefill/seed/first-Target timeline", "all-rank resource-constrained DAG costs including GMM weight residency", "actual concurrent resource contention", "cycle duration and useful-token changes under refill"],
                 "confidence": "low for attainable Product; medium for offline cycle arithmetic",
             },
             "product_e2e": {
@@ -153,6 +181,10 @@ def main():
             "evidence/20260926_loop074_refill/run339/analysis.json",
             "evidence/20260926_loop074_refill/run340/analysis.json",
             "evidence/20260926_loop074_refill/run347/acceptance_reanalysis.json",
+            "evidence/20260927_loop075_bound/run352/analysis.json",
+            "evidence/20260927_loop075_bound/run357/analysis.json",
+            "evidence/20260927_loop075_bound/run360/analysis.json",
+            "evidence/20260927_loop075_bound/run365/summary.json",
         ],
     }
     dest = Path(args.output)
