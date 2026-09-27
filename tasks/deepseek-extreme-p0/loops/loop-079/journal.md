@@ -31,3 +31,25 @@
 - `2026-09-27T05:12:21Z` Run `run425` 记录为 `pass`；正确性为 `not-applicable`。V3.12 records Run421 terminal 584 generated tokens clipped from 61440 Runtime output, preserves unknown handoff generated/published counts and null finite Product ceiling, and adds strict W-minus/C-plus sufficiency gate.
 
 - `2026-09-27T05:14:24Z` 暂存知识变化 `PK-042`：Run421 clean frozen diagnostic observed 584 Scheduler generated tokens before terminal bulk, causing 584 of 61440 Runtime IDs to be clipped; handoff-time generated and API-published counts remain unknown.
+
+- `2026-09-27T05:23:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run426`（design-check）。
+
+- `2026-09-27T05:23:44Z` Run `run426` 记录为 `pass`；正确性为 `not-applicable`。Design separates device-completed, Scheduler-committed, OutputProcessor-received, API-consumed and SSE-yielded states with clock/ordinal gates; raw token publication cannot be inferred from parser consumption alone.
+
+- `2026-09-27T05:23:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run427`（benchmark）。
+
+- `2026-09-27T05:34:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run428`（review）。
+
+- `2026-09-27T05:38:39Z` Run `run427` 记录为 `pass`；正确性为 `pass`。Clean frozen 48+12 c12 diagnostic, exact60 POST and 40 all8 FULL Runtime reports, four-source SHA restore and idle NPUs. Host timeline digest/clock gate: terminal Scheduler prior796; global H_probe committed interval[795,796], API raw consumed conservative[674,796], generated-output yield event count[213,268]. No formal timing/ceiling promotion.
+
+- `2026-09-27T05:43:20Z` Run `run428` 记录为 `pass`；正确性为 `not-applicable`。Independent Astra accepted Run427 scoped Host ledger: G(H_probe) [795,796], API raw consumed [674,796], Chat generated-output yields [213,268], at least 50 requests/213 nonempty reasoning yields; no finite bound or client receipt promotion
+
+- `2026-09-27T05:44:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run429`（review）。
+
+- `2026-09-27T05:44:06Z` Run `run429` 记录为 `pass`；正确性为 `not-applicable`。V3.13 promoted only reviewed Run427 Host cutoff intervals; all finite Bound endpoints remain null and formal Current remains 571.681
+
+- `2026-09-27T05:45:42Z` 暂存知识变化 `PK-043`：Run427 Host diagnostic proves cohort H_probe Scheduler G=[795,796], Chat raw consumed A=[674,796], and at least 213 nonempty reasoning generator yields from at least 50 requests, but no device completion, literal raw-token publication or finite TPS Bound
+
+- `2026-09-27T05:46:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run431`（review）。
+
+- `2026-09-27T05:47:12Z` Run `run431` 记录为 `pass`；正确性为 `not-applicable`。Board/OEM/clock/HBM identity pinned; exact matching BF16/W4A8 genuine maximum C_plus remains unbound; no numeric ceiling

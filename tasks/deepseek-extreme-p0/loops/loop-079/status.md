@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run425 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-27T05:12:21Z`
+- 下一步：审查 Run run431 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-27T05:47:12Z`
 
 ## Run 记录
 
@@ -19,6 +19,11 @@
 - `runs/mixed_32k_1024_c12/run423`
 - `runs/mixed_32k_1024_c12/run424`
 - `runs/mixed_32k_1024_c12/run425`
+- `runs/mixed_32k_1024_c12/run426`
+- `runs/mixed_32k_1024_c12/run427`
+- `runs/mixed_32k_1024_c12/run428`
+- `runs/mixed_32k_1024_c12/run429`
+- `runs/mixed_32k_1024_c12/run431`
 
 ## 阻塞项
 
@@ -26,5 +31,5 @@
 
 ## 待归约知识
 
-- 知识变化：`1`
+- 知识变化：`2`
 - 基线变化：`0`

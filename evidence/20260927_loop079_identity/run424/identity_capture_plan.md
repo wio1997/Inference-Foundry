@@ -242,7 +242,6 @@ Performance-knowledge search `row identity FlashComm graph` found R14's warning
 against false identity from equal total row counts and R35's concrete separate
 hidden/router EP gather path. These are historical mechanisms, not runtime
 certificates for current DP1×TP8. Current source and the new joined records decide.
-MD'
 ## Current host-source SHA256 (not loaded-runtime attestation)
 
 ```text
