@@ -702,3 +702,7 @@ No new model run. All8 admitted Run566 A0 diagnostic traces imply per-rank 115,7
 ## Run574 native Query coordinate audit (2026-09-28)
 
 Source/build/package hash and negative gates passed; independent Astra replay reproduced the output byte-for-byte and rejected eight extra mutations. The reviewed TND SCFA/SWA native path preserves Query token/head output coordinates, conditional on actual production dispatch. There was no model or NPU run and no E2E measurement. The Ascend910B1 compiler target and unresolved live binary/tiling binding preclude a production row-identity claim. Formal Current remains571.681tok/s; all finite Bound endpoints remain unknown. Evidence: `evidence/20260928_loop080_bound/run574/`.
+
+## Run575 offline Graph/package/tiling join (2026-09-28)
+
+All8 admitted Run502 FULL96 Graph dumps contain 43 sparse-attention MIX_AIC tasks/rank. Their names join one installed BF16 package object; keys2/514/1026 decode to FD0/TND/PA_ND and SWA/CFA/SCFA, with counts2/20/21 per rank. Astra independently reproduced the output and negative gates. No model run, performance measurement or numeric Bound promotion occurred. Formal Current remains571.681tok/s. Evidence: `evidence/20260928_loop080_bound/run575/`.

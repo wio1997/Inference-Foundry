@@ -647,3 +647,7 @@
 - `2026-09-27T19:09:35Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run574`（design-check）。
 
 - `2026-09-27T19:11:05Z` Run `run574` 记录为 `pass`；正确性为 `not-applicable`。Conditional native TND Query-output source contract plus build/package/container binding; independent Astra replay PASS; B1-targeted object actual B3 dispatch and full row map unresolved; no Bound promotion
+
+- `2026-09-27T19:18:38Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run575`（design-check）。
+
+- `2026-09-27T19:19:59Z` Run `run575` 记录为 `pass`；正确性为 `not-applicable`。All8 selected FULL96 Graph 43 native sparse tasks/rank join BF16 package and FD0/TND/PA_ND SWA2/CFA20/SCFA21 tiling; independent Astra PASS; dynamic row map and all Bound times unresolved

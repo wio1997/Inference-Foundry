@@ -1041,3 +1041,7 @@ Offline 16-source SHA-pinned row-map model and Astra independent review PASS onl
 ## Run574 conditional native row-order checkpoint
 
 Run574 offline audit and Astra High independent replay PASS at source/build/package scope. SCFA/SWA TND native output shares Query coordinates under supported `FLASH_DECODE=0`; the compile command targets Ascend910B1, and real 910B3 loaded object/tiling plus source→object build provenance remain open. No live service or formal E2E was run. All strict finite Bound endpoints and Current→credible-limit distance stay null; Formal Current571.681tok/s. Next bind actual loaded op/branch and implement a reversible same-trajectory first-post-parking all43 row/expert/packed-format witness; separately continue mixed-resource and exact-board C⁺/B tracks.
+
+## Run575 selected Graph native branch checkpoint
+
+Offline Run575 and Astra independent replay PASS. The selected Run502 FULL96 Graph's all8 native sparse attention task names join the packaged BF16 object and CANN9.1-decoded FD0/TND/PA_ND templates (2 SWA,20 CFA,21 SCFA per rank). The dump is structural after later replays, not cycle64 dynamic metadata; no service/NPU run occurred. Formal Current571.681tok/s, every finite Bound endpoint and the numerical Current→credible-limit distance remain null. Next Resource witness: actual first-post-parking branch/prefix/group, all43 semantic router rows and Target/Draft packed formats in one all8 trajectory; independently pursue fixed-W₀ mixed service and exact-board capacity.

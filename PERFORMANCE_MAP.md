@@ -750,3 +750,7 @@ Run403 routing/ownership can become a semantic active/parked expert-set census o
 ## Run574 source-level native attention row order
 
 Reviewed SCFA/SWA TND `FLASH_DECODE=0` source writes attention output at the Query token/head offset; package objects match build objects and the container imports the audited source tree. This is a conditional local mapping only. Actual loaded B1-targeted binary on 910B3, tiling/metadata, Graph generation, DSA TP8 A2A/wo_b and all43 router rows are still open. Resource numerator and Current→credible-limit numerical gap remain unknown; next evidence should bind real loaded branch and one same-trajectory first-post-parking row/weight witness. See PK-075 and Run574.
+
+## Run575 Graph/package branch evidence
+
+An eight-rank Run502 Graph→Run574 package join identifies 344 selected BF16 sparse-attention tasks, 43/rank, with key distribution SWA2/CFA20/SCFA21 and static FD0/TND/PA_ND branch under the installed CANN9.1 encoder. This supports the native Query-row preservation hypothesis for that Graph, but dynamic prefix/head/group, actual loaded object bytes and all-layer router provenance still need an admitted same-trajectory witness. It is structural Bound calibration, not a latency or savings measurement. See PK-076.

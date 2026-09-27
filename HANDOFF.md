@@ -2206,3 +2206,7 @@ Run573 finished a source-only, 16-file pinned idealized row-map model. Independe
 ## Run574 Bound checkpoint
 
 Run574 source/build/package native row-coordinate audit and independent Astra replay PASS with scope limits. Script SHA5db08117…, JSON SHAff86c527…; build generators target Ascend910B1 and production 910B3 object/tiling selection is unbound. The `FLASH_DECODE=0` TND SCFA/SWA source preserves Query coordinates, but it does not provide the first-post-parking all43 row map. Service remains stopped; borrowed sources remain pristine. Next bind actual op-api/tiling/kernel load and replay generation, branch/prefix/group metadata, then a guarded same-trajectory row/expert/weight collector; retain independent all8 mixed-resource and strict C⁺/B work. Formal Current571.681tok/s, every finite strict endpoint null.
+
+## Run575 Bound checkpoint
+
+Run575 source-pinned offline Graph/package/CANN-key join and Astra review PASS. The selected FULL96 Graph structurally chooses 43 BF16 sparse-attention tasks/rank with FD0/TND/PA_ND SWA2/CFA20/SCFA21 branches; actual device-loaded bytes, dynamic prefix/head metadata and 43-layer semantic row map remain open. No NPU service was started. The next live Resource acquisition should be one guarded all8 first-post-parking same-trajectory row/expert/weight witness; Resource capacity and Scheduling mixed-service/critical-path tracks continue independently. Strict numerical Bound endpoints and Current→limit distance remain null; Formal Current571.681tok/s.
