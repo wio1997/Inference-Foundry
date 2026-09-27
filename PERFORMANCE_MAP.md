@@ -720,3 +720,7 @@ The first dynamically completed slot is a **candidate** c12 release window, not 
 ## Run563 Scheduling preflight
 
 The no-publication A0/B/A1 control is a necessary semantic screen before the more complex Run561 early-publication transaction. Its approved source-only patch preserves one ordinary final Scheduler/API result and restores fixed source hashes in temp-copy tests. A valid live run would test the **segmented plus per-cycle consensus bundle** against matched entry semantics, not isolate pause latency or establish a Scheduling bound. No live result yet; Resource/Hardware C⁺/B and full critical path remain separate open gates. Current571.681tok/s and numerical gap remain unknown.
+
+## Run566 fixed-work diagnostic mapping
+
+A0/B/A1 complete service and all8 self-consistency gates pass, but their matched cohort entries already differ at cycle0 in computed positions, Target input and Draft seed. B's descriptive longer wall and different cycles are therefore not a removable Runtime gap for frozen W₀. The current largest **uncertainty** is legal same-state Scheduling: dynamic first-completion parking→pause noninterference→normal API publication/c12 release→successor ADD and mixed resource service. Use a single natural S* with complete model-readable state/ownership checks; do not rerun cross-service A/B as a causal pause timing test. Resource compulsory work/traffic and matching exact-board C⁺/B remain independent open gaps.

@@ -1,0 +1,5 @@
+# Run564 — matched-cohort admission and reducer source gate
+
+Source-only PASS. The temporary patcher exports all four measured-cohort traces on all eight ranks; the admission script joins the worker request IDs to the client response IDs by a unique `response_id + "-"` prefix and checks exact measured48 coverage, each trace with `check_loop035_trace`, the selected B segment, sampled/count reconstruction, all-rank consensus and file hashes. The reducer matches B's selected semantic request order to unique A0/A1 cohorts, then reports first differences of observed per-cycle fields. The CPU identity/negative gate exits 0, and a real Run558 ID fixture matches 12 unique requests. Astra High source preflight PASS; no service ran for Run564 alone.
+
+This is an observed-field acquisition gate. It does not certify complete KV/Draft context or fixed W₀. A wall delta is not comparable unless both controls and B share the same observed trajectory and an additional full-state witness is obtained. Run566 later demonstrated why this caveat matters. See `identity_gate.py`, `real_run558_id_fixture.json`, and the SHA-pinned Run566 script list.

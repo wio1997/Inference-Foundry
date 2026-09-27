@@ -603,3 +603,15 @@
 - `2026-09-27T16:23:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run563`（design-check）。
 
 - `2026-09-27T16:23:52Z` Run `run563` 记录为 `pass`；正确性为 `not-applicable`。Source-only patch/atomic restore gate and Astra PASS; live controller REJECT, no fixed-W0 or numeric Bound
+
+- `2026-09-27T17:33:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run564`（design-check）。
+
+- `2026-09-27T17:33:48Z` Run `run564` 记录为 `pass`；正确性为 `not-applicable`。Source-only all8 matched-cohort admission/reducer CPU gates PASS; not fixed-W0 or numerical Bound
+
+- `2026-09-27T17:33:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run565`（test）。
+
+- `2026-09-27T17:34:00Z` Run `run565` 记录为 `invalid`；正确性为 `invalid`。Exited before service/patch at conservative 91-process gate; identified and cleaned 89 Run558-tagged multiprocessing helpers, all8 NPU idle; no Bound update
+
+- `2026-09-27T17:34:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run566`（test）。
+
+- `2026-09-27T17:34:13Z` Run `run566` 记录为 `pass`；正确性为 `invalid`。All8 A0/B/A1 each admitted and stop/restore SHA pass, but same semantic cohort differs at cycle0 on all8 including A0/A1; fixed-W0 timing comparison REJECT, Bound endpoints null

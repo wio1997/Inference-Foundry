@@ -686,3 +686,7 @@ Run561 design-check PASS only as source plan; live rejected. Run562 candidate (S
 ## Run563 source-only no-publication preflight
 
 Run563 `check` compiled the proposed ModelRunner/segmented sources without installation. Temp-copy patch test exited0, covering atomic install/restore and manifest/source/helper negatives; Astra independently replayed exit0. The actual Runner and segmented draft retained their original SHAs. Live A0/B/A1, correctness and E2E were **not** run. No Bound or formal TPS change. Evidence: `evidence/20260928_loop080_bound/run563/findings.md`.
+
+## Run564–566 diagnostic, 2026-09-28
+
+Run564 source/CPU gate PASS. Run565 INVALID before service due89 Run558-tagged helper processes; targeted cleanup succeeded. Run566 controller exit0: all three 48+48/c12/1024 arms, all8 rank admissions, coherent B pause at cycle218 slot4, eight-card idle and source/script SHA restoration. Matched cohort cycles A0/B/A1 were318/297/300; first observed difference was cycle0 `num_computed_before` on every rank for every arm pair. Hence cross-arm fixed-W₀ comparison REJECT and all wall deltas are descriptive only. No new formal TPS; Current Run99 median571.681tok/s and strict Bound endpoints unchanged.

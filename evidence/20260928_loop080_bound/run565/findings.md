@@ -1,0 +1,5 @@
+# Run565 — INVALID before service
+
+Controller exited 1 in `verify_prestart`: 91 live container processes exceeded the conservative <=10 process gate. No source patch was installed, service was not started and no NPU model work was performed. VLLM process/health and all-eight NPU idle checks passed; cleanup confirmed idle. `cleanup_status.txt` records `restore_exit=not_needed` and the missing before-hash comparisons because preflight ended first.
+
+Inspection identified 89 surviving Python multiprocessing helpers carrying only the old `RUN_TS=LOOP080-RUN558` tag (about 32.5 GiB summed RSS); the remaining container processes were PID1 sleep and the inspector. These were old experiment processes despite Run558's earlier service stop. We killed only the 89 tag-matched multiprocessing helpers (TERM, then bounded KILL if needed), verified zero remain, and observed two active processes in the follow-up inspection. Run566 added tag-scoped helper cleanup and residual-tag verification. Run565 is retained as INVALID, not silently rerun in its directory. No Bound endpoint changes.

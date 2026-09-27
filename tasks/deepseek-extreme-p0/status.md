@@ -29,7 +29,7 @@
 | `loop-076` | `ACCEPTED` | `ACCEPTED` | Same-run Target route/native GMM counter attribution and corrected Draft device-tail work census are validated; timing and Product ceiling remain uncalibrated due hot-path snapshot sync and incomplete work/dependency inventory |
 | `loop-077` | `INCONCLUSIVE` | `INCONCLUSIVE` | Clean Current route, HCCL ABI and sparse phase evidence narrows conditional numerators and observed cadence, but complete compulsory work, mixed attainable capacity and all8 DAG remain missing; no finite Product ceiling or performance KEEP |
 | `loop-078` | `INCONCLUSIVE` | `INCONCLUSIVE` | Exact clean route and local count-copy observations narrow Current numerator and normal-path ordering, but all-layer row identity, downstream Draft/DSA consumption, A/A acceptance parity and all8 typed joins are incomplete. Run411 startup OOM and Run417 container reset invalidate combined timing calibration. V3.11 has no matched necessary-work/capacity certificate or finite Product ceiling. |
-| `loop-079` | `EVALUATING` | `PENDING` | 审查 Run run563 的证据，并判断是否需要更多 Run |
+| `loop-079` | `EVALUATING` | `PENDING` | 审查 Run run566 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 
