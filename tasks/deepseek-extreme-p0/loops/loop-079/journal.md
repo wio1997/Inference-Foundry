@@ -663,3 +663,5 @@
 - `2026-09-27T21:19:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run578`（profile）。
 
 - `2026-09-27T21:19:13Z` Run `run578` 记录为 `invalid`；正确性为 `not-applicable`。Original paired A0/P/A1 service diagnostic failed online parser and controller exit1; offline recovered all8 exact two-replay real-weight GMM MemoryAccess counter-only evidence, read median9.156191GB/replay, no A0/A1 time; strict bounds null; stop/restore/idle0
+
+- `2026-09-27T21:56:03Z` 主控结论为 `INCONCLUSIVE`。Run576-578 narrow current route, resident GMM service and counter traffic, but formal W-minus/C-plus and Product DAG remain incomplete; Run578 original paired timing invalid and strict endpoints null

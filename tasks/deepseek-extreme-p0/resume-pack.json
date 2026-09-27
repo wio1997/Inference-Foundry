@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-27T21:19:19Z",
+  "generated_at": "2026-09-27T21:57:29Z",
   "context_policy": {
     "max_knowledge": 20,
     "max_loops": 5,
@@ -20,8 +20,8 @@
     "status": "ACTIVE",
     "phase": "DESIGNING",
     "evidence_level": "E1_RUNNABLE",
-    "active_loop": "loop-079",
-    "next_action": "Read-only source/Graph branch audit and exact minimal instrumentation plan; reuse Run403 route evidence and Run407 design before any service launch.",
+    "active_loop": "loop-080",
+    "next_action": "Admit Run579; decompose serial/concurrent task ordering with short-window all8 trace, then map legal production producer/consumer DAG",
     "blockers": [],
     "skill_route": {
       "coordinator": "operator-task-loop",
@@ -110,8 +110,49 @@
     }
   ],
   "knowledge_summary": {
-    "total": 27,
+    "total": 42,
     "selected": [
+      {
+        "id": "PK-050",
+        "kind": "constraint",
+        "statement": "Installed PyTorch public all_gather_into_tensor is decorated by c10d_logger.py; inspect.getsourcefile on the public function identifies wrapper, while inspect.unwrap identifies distributed_c10d.py. Provenance gates must pin both wrapper and underlying implementation and run before costly service startup",
+        "status": "accepted",
+        "confidence": "high",
+        "scope": {},
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run457/astra_c10d_wrapper_recheck.md",
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run458_findings.md"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": true,
+        "source_loop": "loop-079",
+        "staged_at": "2026-09-27T07:41:21Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-09-27T21:56:03Z"
+      },
+      {
+        "id": "PK-052",
+        "kind": "constraint",
+        "statement": "Installed torch_npu Stream.npu_stream getter can drain the Host task queue; Run439 selected-path checks call it nine times/slice. Run463/464 timings are queue-drained diagnostic only; use direct logical stream identity and a negative getter mock before clean Bound capture.",
+        "status": "accepted",
+        "confidence": "high",
+        "scope": {
+          "backend": "torch_npu2.10.0.post4",
+          "runtime": "Extreme DP1TP8 task-queue-enabled service"
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run469/astra_frontier_review.md",
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run470/astra_instrumentation_correction_review.md"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": true,
+        "source_loop": "loop-079",
+        "staged_at": "2026-09-27T08:29:43Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-09-27T21:56:03Z"
+      },
       {
         "id": "dspark-host-mirror-barrier-20260922",
         "kind": "strategy",
@@ -446,147 +487,76 @@
         "updated_at": "2026-09-27T04:39:43Z"
       },
       {
-        "id": "extreme-owner16-graph-local",
+        "id": "PK-042",
         "kind": "fact",
-        "statement": "Run298 current TP8 layer2 owner16 private Graph matches typed state/scatter/QLI but paired replay gain is smaller than A/A2 control drift; full producer and persistent alias closure remain open",
+        "statement": "Run421 clean frozen diagnostic observed 584 Scheduler generated tokens before terminal bulk, causing 584 of 61440 Runtime IDs to be clipped; handoff-time generated and API-published counts remain unknown.",
         "status": "limited",
         "confidence": "high",
         "scope": {
-          "model": "DeepSeek-V4-Flash-W4A8",
-          "tp": 8,
-          "layer": 2,
-          "mode": "private_graph"
+          "run": "421",
+          "workload": "48+12 c12 DSpark7",
+          "transfer_to_formal": false
         },
         "supporting_evidence": [
-          "/data/wio/Inference_Foundry/evidence/20260926_loop066_owner/run298/findings.md"
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run421/analysis.json",
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run422/astra_ledger_review.md"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": true,
+        "source_loop": "loop-079",
+        "staged_at": "2026-09-27T05:14:24Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-09-27T21:56:03Z"
+      },
+      {
+        "id": "PK-043",
+        "kind": "fact",
+        "statement": "Run427 Host diagnostic proves cohort H_probe Scheduler G=[795,796], Chat raw consumed A=[674,796], and at least 213 nonempty reasoning generator yields from at least 50 requests, but no device completion, literal raw-token publication or finite TPS Bound",
+        "status": "limited",
+        "confidence": "high",
+        "scope": {
+          "workload": "DeepSeek V4 W4A8 8x910B3 DP1TP8 DSpark7 48+12 exact1024 c12 Run427 diagnostic"
+        },
+        "supporting_evidence": [
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run427/analysis.json",
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run428/astra_timeline_pre_review.md"
         ],
         "contradicting_evidence": [],
         "replaces": [],
         "global_candidate": false,
-        "source_loop": "loop-066",
-        "staged_at": "2026-09-26T11:51:06Z",
-        "verdict": "PIVOTED",
-        "updated_at": "2026-09-26T11:51:06Z"
+        "source_loop": "loop-079",
+        "staged_at": "2026-09-27T05:45:42Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-09-27T21:56:03Z"
       },
       {
-        "id": "loop028-proposer-replay-boundary",
+        "id": "PK-045",
         "kind": "fact",
-        "statement": "The already-materialized c12 real-weight DSpark proposer closure can execute twice without intervening scheduler/request preparation and produces exactly equal 12x7 draft token tensors on all eight TP ranks; this does not establish parity for target verification, acceptance, or complete cycle state mutation.",
+        "statement": "Clean Run437 production FULL Graph samples bind explicit input_ids/positions storage and five CP metadata value prefixes across five cohorts/eight ranks; a common router-row permutation still passes, so all43 row identity and retained-route compulsory work remain conditional.",
         "status": "limited",
         "confidence": "high",
         "scope": {
           "model": "DeepSeek V4 Flash W4A8",
           "parallelism": "DP1TP8",
-          "speculation": "DSpark7",
-          "boundary": "proposer only"
+          "boundary": "selected Target FULL graph cycles64/65"
         },
         "supporting_evidence": [
-          "/data/wio/Inference_Foundry/evidence/20260921_loop028_runtime_contract/fixed_cycle_replay_summary.json"
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run437/validation.json",
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run437/findings.md",
+          "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run440/astra_run437_review.md"
         ],
         "contradicting_evidence": [],
         "replaces": [],
         "global_candidate": false,
-        "source_loop": "loop-028",
-        "staged_at": "2026-09-21T12:51:38Z",
-        "verdict": "PIVOTED",
-        "updated_at": "2026-09-21T12:51:38Z"
-      },
-      {
-        "id": "loop036-static-kv-max-fallback",
-        "kind": "fact",
-        "statement": "For the fixed c12 TP8 DeepSeek V4 Flash W4A8 target metadata path, per-request SAS and QLI length tensors make the scalar max-K fallback unnecessary. The opt-in static scalar removes an approximately 8.006 ms/cycle metadata synchronization, passes 8x299-cycle stable-field shadow and formal 48x1024 serving, and raises official median output TPS from 525.417 to 571.681; full AICPU tails are nondeterministic under self-replay.",
-        "status": "limited",
-        "confidence": "high",
-        "scope": {
-          "model": "DeepSeek-V4-Flash-W4A8",
-          "hardware": "8x910B3",
-          "batch": 12,
-          "tp": 8,
-          "speculation": "DSpark7",
-          "output_tokens": 1024
-        },
-        "supporting_evidence": [
-          "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run97/summary.json",
-          "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run98/summary.json",
-          "/data/wio/Inference_Foundry/evidence/20260924_loop036_metadata/run99/summary.json"
-        ],
-        "contradicting_evidence": [],
-        "replaces": [],
-        "global_candidate": false,
-        "source_loop": "loop-036",
-        "staged_at": "2026-09-24T13:12:32Z",
-        "verdict": "PIVOTED",
-        "updated_at": "2026-09-24T13:12:32Z"
-      },
-      {
-        "id": "loop038-target-graph-compute-profile",
-        "kind": "fact",
-        "statement": "In a synchronized two-cycle legal c12 TP8 target trace, 15 canonical target windows across all eight ranks contain 2836 kernels each; target device union median is 50.281 ms, compute union 39.932 ms, communication union 11.547 ms, overlap 1.292 ms, and 86 grouped-matmul kernels sum 9.966 ms per cycle. These are diagnostic upper bounds under profiler/synchronization overhead, not formal E2E gains.",
-        "status": "limited",
-        "confidence": "high",
-        "scope": {
-          "model": "DeepSeek-V4-Flash-W4A8",
-          "hardware": "8x910B3",
-          "batch": 12,
-          "tp": 8,
-          "cycles": [
-            64,
-            65
-          ]
-        },
-        "supporting_evidence": [
-          "/data/wio/Inference_Foundry/evidence/20260924_loop038_cycle/run107/target_window.json"
-        ],
-        "contradicting_evidence": [],
-        "replaces": [],
-        "global_candidate": false,
-        "source_loop": "loop-038",
-        "staged_at": "2026-09-24T15:17:36Z",
-        "verdict": "PIVOTED",
-        "updated_at": "2026-09-24T15:17:37Z"
-      },
-      {
-        "id": "loop059-phase-coupling",
-        "kind": "fact",
-        "statement": "Legal warmed 48-request diagnostic attributes 13.536s to prefill-to-handoff and 67.813s to runtime serve over 82.940s; Run188 admission hold shows gross prefill reduction can be canceled by more decode cycles and overlap, so fixed-cycle scenario projections are conditional.",
-        "status": "limited",
-        "confidence": "high",
-        "scope": {
-          "model": "DeepSeek-V4-Flash-W4A8",
-          "workload": "48x32K-1024-c12",
-          "hardware": "8x910B3"
-        },
-        "supporting_evidence": [
-          "/data/wio/Inference_Foundry/evidence/20260926_loop059_boundary/run239/phase_analysis.json",
-          "/data/wio/Inference_Foundry/evidence/20260926_loop059_boundary/run241/calibration.json"
-        ],
-        "contradicting_evidence": [],
-        "replaces": [],
-        "global_candidate": false,
-        "source_loop": "loop-059",
-        "staged_at": "2026-09-25T16:44:21Z",
-        "verdict": "PIVOTED",
-        "updated_at": "2026-09-25T16:44:21Z"
+        "source_loop": "loop-079",
+        "staged_at": "2026-09-27T06:49:41Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-09-27T21:56:03Z"
       }
     ]
   },
   "recent_loops": [
-    {
-      "loop_id": "loop-074",
-      "title": "Cohort completion barrier and FIFO slot-refill scheduling bound",
-      "mode": "design",
-      "cases": [
-        "mixed_32k_1024_c12"
-      ],
-      "hypothesis": "The fixed 12-slot cohort publication barrier leaves completed slots idle while 48-request c12 client work remains; conditional per-request release/refill could shorten Product E2E if incremental prefill, seed, state and Graph costs fit the available scheduling window",
-      "verdict": "PIVOTED",
-      "reason": "Run346/347 show 1118 FIFO and 1011-1015 capacity relaxations do not close necessary prefill/seed/resource and real-arrival costs; user prioritizes credible Bound interval. Run345 was never installed; keep legal-refill hypothesis open, pivot next measurement to all8 concurrent resource capacity and full work ledger.",
-      "evidence_paths": [
-        "/data/wio/Inference_Foundry/evidence/20260926_loop074_refill/run346/findings.md",
-        "/data/wio/Inference_Foundry/evidence/20260926_loop074_refill/run347/findings.md"
-      ],
-      "decided_at": "2026-09-26T23:49:54Z"
-    },
     {
       "loop_id": "loop-075",
       "title": "Eight-rank attainable resource capacity and compulsory-work calibration",
@@ -650,33 +620,49 @@
         "/data/wio/Inference_Foundry/evidence/20260927_loop078_bound/run418/bound_calibration_v3_11.json"
       ],
       "decided_at": "2026-09-27T04:39:43Z"
+    },
+    {
+      "loop_id": "loop-079",
+      "title": "Bound certificate: actual Target/Draft row identity and external output ledger",
+      "mode": "design",
+      "cases": [
+        "mixed_32k_1024_c12"
+      ],
+      "hypothesis": "The active FULL Graph branch, real partition metadata and selected replay bindings can establish all43 Target router row identities and the Draft/output attribution without assuming slot-major layout; unresolved native transforms can be isolated to a minimal semantic gate.",
+      "verdict": "INCONCLUSIVE",
+      "reason": "Run576-578 narrow current route, resident GMM service and counter traffic, but formal W-minus/C-plus and Product DAG remain incomplete; Run578 original paired timing invalid and strict endpoints null",
+      "evidence_paths": [
+        "/data/wio/Inference_Foundry/evidence/20260928_loop080_bound/run578/counter_salvage.json",
+        "/data/wio/Inference_Foundry/evidence/20260928_loop080_bound/run578/bound_calibration_v3_34.json"
+      ],
+      "decided_at": "2026-09-27T21:56:03Z"
     }
   ],
   "active_loop_summary": {
-    "loop_id": "loop-079",
-    "title": "Bound certificate: actual Target/Draft row identity and external output ledger",
+    "loop_id": "loop-080",
+    "title": "Fixed-algorithm Resource and Scheduling Bound mixed-service calibration",
     "mode": "design",
     "status": "EVALUATING",
     "verdict": "PENDING",
     "reason": "",
-    "next_action": "审查 Run run578 的证据，并判断是否需要更多 Run",
+    "next_action": "审查 Run run579 的证据，并判断是否需要更多 Run",
     "cases": [
       "mixed_32k_1024_c12"
     ],
     "execution_skill": null,
-    "updated_at": "2026-09-27T21:19:13Z"
+    "updated_at": "2026-09-27T21:56:17Z"
   },
   "read_first": [
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/README.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/index.json",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/status.md",
     "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/knowledge-state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-079/goal.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-079/state.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-079/hypotheses.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-079/decision.json",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-079/status.md",
-    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-079/knowledge-delta.json"
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-080/goal.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-080/state.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-080/hypotheses.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-080/decision.json",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-080/status.md",
+    "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loops/loop-080/knowledge-delta.json"
   ],
   "history_indexes": {
     "loops": "/data/wio/Inference_Foundry/tasks/deepseek-extreme-p0/loop-index.jsonl",

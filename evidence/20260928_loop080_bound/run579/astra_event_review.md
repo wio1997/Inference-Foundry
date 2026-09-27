@@ -1,0 +1,7 @@
+# Astra High independent Run579 event-gate review
+
+**Scoped PASS for the tested BF16 AG Graph path.** Script SHA `cef56ce56c25c38baeabbd69574ccd4210ace166b3ec48f933f7f13fccb2db97`; controller SHA `5534b2d89b8b4dd2086400a7d1b4876eafe79179c0499fca8a0157544e5c8fba`. Eight ranks × three fresh input generations all have zero element mismatches; independently recomputed sums agree. Fresh directory, common run tag, script SHA before/after and run/stop/idle exits all pass; final eight NPUs have no processes.
+
+The consumer comparison was submitted on the join stream after waiting for the communication branch event, and only the consumer end event was synchronized before `.item()`. A later scalar read cannot repair an already incorrect device comparison. This validates fresh output consumption for the **tested path**. Expected-tensor construction in the join path adds delay, so it does not prove the branch event alone is a universal exact HCCL internal-stream completion certificate.
+
+Before full mixed-service timing: prepare expected buffers/check workspace outside the critical consumer path; validate fresh/poisoned output of all265 distinct AG/RS/A2A calls and dtype/size classes inside the actual dual-Graph configuration; establish common start, branch completion and joint end stream ownership; keep per-rank local event times and fail-closed terminal cleanup. Stage1 adds no finite Resource, Scheduling or Product Bound endpoint and no formal TPS result.
