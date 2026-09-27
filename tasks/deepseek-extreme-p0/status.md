@@ -29,7 +29,7 @@
 | `loop-077` | `INCONCLUSIVE` | `INCONCLUSIVE` | Clean Current route, HCCL ABI and sparse phase evidence narrows conditional numerators and observed cadence, but complete compulsory work, mixed attainable capacity and all8 DAG remain missing; no finite Product ceiling or performance KEEP |
 | `loop-078` | `INCONCLUSIVE` | `INCONCLUSIVE` | Exact clean route and local count-copy observations narrow Current numerator and normal-path ordering, but all-layer row identity, downstream Draft/DSA consumption, A/A acceptance parity and all8 typed joins are incomplete. Run411 startup OOM and Run417 container reset invalidate combined timing calibration. V3.11 has no matched necessary-work/capacity certificate or finite Product ceiling. |
 | `loop-079` | `INCONCLUSIVE` | `INCONCLUSIVE` | Run576-578 narrow current route, resident GMM service and counter traffic, but formal W-minus/C-plus and Product DAG remain incomplete; Run578 original paired timing invalid and strict endpoints null |
-| `loop-080` | `EVALUATING` | `PENDING` | 审查 Run run579 的证据，并判断是否需要更多 Run |
+| `loop-080` | `EVALUATING` | `PENDING` | 审查 Run run580 的证据，并判断是否需要更多 Run |
 
 ## 阻塞项
 

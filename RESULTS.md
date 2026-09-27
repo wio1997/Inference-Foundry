@@ -718,3 +718,9 @@ All8 guarded 48+48/c12/1024 diagnostic and terminal 43-layer real-weight private
 ## Run578 partial diagnostic
 
 After an online profiler parse failure, CANN9.1 offline export recovered two complete 43-pair GMM Graph MemoryAccess replay windows on all8 ranks. Counter-reported main-memory read8.878–9.504GB/rank/replay and write0.197–0.227GB; no paired A0/A1 timing or TPS. Controller exit1; stop/restore/idle0. V3.34 strict bounds and numeric Current→limit distance null. Formal571.681tok/s.
+
+## Run579–580 conditional mixed-service Bound calibration
+
+Run579 and Run580 completed guarded warm48+measured48/c12/1024, then terminal all8 real-weight Target GMM × full265 TP8 HCCL Graph diagnostics with fresh output checks and source restoration. Run579 unprofiled slowest-rank medians: GMM10.266ms, HCCL4.180ms, serial14.402ms, concurrent16.205ms. Run580 replicated: 10.312/4.282/14.573/16.242ms. These are conditional independent-ready service results, not formal E2E TPS; Run99 Formal Current remains571.681tok/s.
+
+Run580's copied Level0 trace identifies complete Model33 86-task GMM and Model32 265-task HCCL replays on each rank, excluding barriers. Concurrent HCCL begins0.37–0.42ms after GMM; exported task intervals overlap12.12–12.61ms, but matched first84/86 HCCL task-time medians inflate from13.34–14.36µs serial to144.73–146.40µs concurrent. Task interval inflation during coexistence rejects naive whole-chain ideal overlap for this fixture but cannot identify precise physical contention or production legal overlap. V3.36 keeps all strict Resource/Hardware, Scheduling/Execution and Product E2E finite endpoints, and numeric Current→limit distance, null. Next measure one fixed-W₀ producer→collective→consumer production dependency slice. See PK-080/081 and Run579/580 final admissions.
