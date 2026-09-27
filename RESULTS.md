@@ -678,3 +678,7 @@ Run555 source-only collector passed independent preflight. Run556 preflight and 
 ## Run560 fixed-work Bound scope
 
 V3.31 source/model review PASS: logical DSpark7 evaluations, acceptance/count, output and state are held fixed as `W₀`; physical fusion, layout, Graph and scheduling remain free. Astra reproduced output byte-for-byte and rejected prior-pin plus 13 non-null endpoint injections. No new performance measurement or finite Bound followed. Run558 is diagnostic and not Run99 formal `W₀`; Current Formal remains571.681tok/s. See `evidence/20260927_loop080_bound/run560/findings.md`.
+
+## Run561–562 one-slot Scheduling source gate
+
+Run561 design-check PASS only as source plan; live rejected. Run562 candidate (SHA `169a6ad7…`) remains uninstalled. In the target container, its CPU fake twelve-slot test exited0 for Host-mirror flush/stop-decision, generation and duplicate guards, eight-rank branch/digest divergence and wrong-group negatives. Astra independently replayed exit0 and accepted source-only scope. This supplies no live correctness, Product TPS or finite Bound. Formal Current Run99 median remains **571.681 tok/s**. Evidence: `evidence/20260928_loop080_bound/run561/design.md`, `run562/findings.md` and `run562/astra_review.md`.

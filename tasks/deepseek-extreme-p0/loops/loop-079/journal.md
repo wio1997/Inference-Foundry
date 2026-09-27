@@ -591,3 +591,11 @@
 - `2026-09-27T15:54:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run560`（review）。
 
 - `2026-09-27T15:54:50Z` Run `run560` 记录为 `pass`；正确性为 `not-applicable`。V3.31 freezes DSpark7 logical work/acceptance/output W0 while permitting execution reordering/fusion; 13 null injections and prior pin reject; no finite Bound.
+
+- `2026-09-27T16:02:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run561`（design-check）。
+
+- `2026-09-27T16:02:16Z` Run `run561` 记录为 `pass`；正确性为 `not-applicable`。Source-only transaction design PASS; live gate REJECT until atomic patch, partial-before-settlement, direct output queue, all8 ack, owned continuation, fixed-W0 controls and restoration pass.
+
+- `2026-09-27T16:13:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run562`（test）。
+
+- `2026-09-27T16:13:58Z` Run `run562` 记录为 `pass`；正确性为 `not-applicable`。CPU-only one-slot pause component source gate exit0 and Astra PASS; live admission REJECT; no NPU model, API transaction, fixed-W0 or numeric Bound
