@@ -1,0 +1,5 @@
+# Run533 — preflight rejected before acquisition
+
+2026-09-27. Guarded controller exited 1 at its active-container-process gate: `preflight_process.txt` records 625 live processes, mostly residual Python multiprocessing forkserver/spawn workers. No five-source patch was installed, no vLLM service or NPU workload was launched, and no Bound output was acquired. Cleanup recorded `restore_exit=not_needed`, all8 idle HBM about 3.4 GiB, and no NPU processes. A fresh read-only five-source `patch check` returned the original manifest SHA256 `db0692b35d83d3f264cb3b0d9d6aa84f9fc1d805101004737b500b24271e3bfe`.
+
+The dedicated container used `sleep infinity` as PID1. Inspection found roughly 624 non-zombie processes, mostly forkserver/spawn children, plus zombies from earlier work. `docker restart vllm-ascend26-dsv4f-w4a8` succeeded; afterward only PID1 and the inspection process were live, all8 NPU devices remained idle, and the source manifest was unchanged. Run533 is **INVALID** as an acquisition. A separately named Run542 reuses the independently reviewed controller with only output path, run ID and its self-file path changed; Astra preflight passed that exact diff.

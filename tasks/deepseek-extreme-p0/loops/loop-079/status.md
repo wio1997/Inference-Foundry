@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run515 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-27T12:33:46Z`
+- 下一步：审查 Run run554 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-27T14:51:02Z`
 
 ## Run 记录
 
@@ -107,6 +107,45 @@
 - `runs/mixed_32k_1024_c12/run510`
 - `runs/mixed_32k_1024_c12/run514`
 - `runs/mixed_32k_1024_c12/run515`
+- `runs/mixed_32k_1024_c12/run516`
+- `runs/mixed_32k_1024_c12/run517`
+- `runs/mixed_32k_1024_c12/run518`
+- `runs/mixed_32k_1024_c12/run519`
+- `runs/mixed_32k_1024_c12/run520`
+- `runs/mixed_32k_1024_c12/run521`
+- `runs/mixed_32k_1024_c12/run522`
+- `runs/mixed_32k_1024_c12/run524`
+- `runs/mixed_32k_1024_c12/run523`
+- `runs/mixed_32k_1024_c12/run525`
+- `runs/mixed_32k_1024_c12/run526`
+- `runs/mixed_32k_1024_c12/run527`
+- `runs/mixed_32k_1024_c12/run528`
+- `runs/mixed_32k_1024_c12/run530`
+- `runs/mixed_32k_1024_c12/run531`
+- `runs/mixed_32k_1024_c12/run529`
+- `runs/mixed_32k_1024_c12/run532`
+- `runs/mixed_32k_1024_c12/run534`
+- `runs/mixed_32k_1024_c12/run535`
+- `runs/mixed_32k_1024_c12/run536`
+- `runs/mixed_32k_1024_c12/run537`
+- `runs/mixed_32k_1024_c12/run538`
+- `runs/mixed_32k_1024_c12/run540`
+- `runs/mixed_32k_1024_c12/run541`
+- `runs/mixed_32k_1024_c12/run539`
+- `runs/mixed_32k_1024_c12/run533`
+- `runs/mixed_32k_1024_c12/run542`
+- `runs/mixed_32k_1024_c12/run543`
+- `runs/mixed_32k_1024_c12/run544`
+- `runs/mixed_32k_1024_c12/run545`
+- `runs/mixed_32k_1024_c12/run546`
+- `runs/mixed_32k_1024_c12/run547`
+- `runs/mixed_32k_1024_c12/run548`
+- `runs/mixed_32k_1024_c12/run549`
+- `runs/mixed_32k_1024_c12/run550`
+- `runs/mixed_32k_1024_c12/run551`
+- `runs/mixed_32k_1024_c12/run552`
+- `runs/mixed_32k_1024_c12/run553`
+- `runs/mixed_32k_1024_c12/run554`
 
 ## 阻塞项
 
@@ -114,5 +153,5 @@
 
 ## 待归约知识
 
-- 知识变化：`11`
+- 知识变化：`15`
 - 基线变化：`0`

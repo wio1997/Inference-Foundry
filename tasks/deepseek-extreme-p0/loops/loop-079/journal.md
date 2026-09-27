@@ -401,3 +401,169 @@
 - `2026-09-27T12:33:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run515`（review）。
 
 - `2026-09-27T12:33:46Z` Run `run515` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS: byte-identical V3.24, Run502 byte24 not transferred to Run508, typed writer/terminal identity still null, 19 proof nodes false, Current571.681 and all endpoints unchanged.
+
+- `2026-09-27T12:48:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run516`（design-check）。
+
+- `2026-09-27T12:48:42Z` Run `run516` 记录为 `pass`；正确性为 `not-applicable`。Accepted Run99 saved-artifact inventory: 132 JSON inputs reproduce formal Current571.681 but lack request/raw-token/G/generation/typed fresh group chain for positive formal W-minus; no service or Bound promotion.
+
+- `2026-09-27T12:48:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run517`（review）。
+
+- `2026-09-27T12:48:42Z` Run `run517` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS revised inventory: 132 inputs plus all138 Run99 files/server log reviewed; no complete formal W witness, no universal absence claim. Recursive union fixes initial single-row/nested false negative; smallest formal48 witness source owners documented.
+
+- `2026-09-27T12:52:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run518`（design-check）。
+
+- `2026-09-27T12:52:46Z` Run `run518` 记录为 `pass`；正确性为 `not-applicable`。V3.25 records accepted Run99 saved-artifact W-minus incompleteness only; one selected formal48 witness still needed, exact-board C-plus plus interval guarantee/B independent. Current571.681, all19 proof nodes false and finite endpoints null.
+
+- `2026-09-27T12:52:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run519`（review）。
+
+- `2026-09-27T12:52:47Z` Run `run519` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS corrected V3.25: byte-identical rebuild, 36 checks, Current571.681, 19 false nodes/all null endpoints. Single group may be numerically vacuous and B may exceed W-minus; no formal-to-diagnostic transfer.
+
+- `2026-09-27T13:01:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run520`（review）。
+
+- `2026-09-27T13:01:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run521`（design-check）。
+
+- `2026-09-27T13:01:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run522`（design-check）。
+
+- `2026-09-27T13:01:57Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run524`（test）。
+
+- `2026-09-27T13:02:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run523`（review）。
+
+- `2026-09-27T13:02:16Z` Run `run520` 记录为 `pass`；正确性为 `not-applicable`。Astra independent static census: 43 BF16 wo_a tensors, 344 groups and 2.885681152G conventional ops per fresh required Target row; MoE 12.985565184G conventional units; formal F and C-plus/B unresolved.
+
+- `2026-09-27T13:02:16Z` Run `run521` 记录为 `pass`；正确性为 `not-applicable`。Pinned conditional work ledger generated: 344 BF16 entries and 258 MoE incidences; all F, compulsory traffic and finite endpoints null.
+
+- `2026-09-27T13:02:17Z` Run `run522` 记录为 `pass`；正确性为 `not-applicable`。V3.26 records class-labelled row census only; Current571.681, 19 proof nodes false and all finite Bound endpoints null.
+
+- `2026-09-27T13:02:17Z` Run `run523` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS limited: 206 checks, deterministic V3.26/hash negatives; no endpoint promotion. Formal retained-output F census ranked before one tiny witness.
+
+- `2026-09-27T13:02:18Z` Run `run524` 记录为 `pass`；正确性为 `not-applicable`。Pinned CPU greedy 128 patterns/255 retained positions pass; sampled j=0..A equals Target argmax j. External lineage, freshness and numerical Bound remain open.
+
+- `2026-09-27T13:03:35Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run525`（review）。
+
+- `2026-09-27T13:03:36Z` Run `run525` 记录为 `pass`；正确性为 `not-applicable`。Astra High prioritizes one correlated instrumented full48 product-boundary and fresh semantic work ledger, then selected all8 mixed-service frontier, then only needed typed native identity. No numeric endpoint or formal TPS change.
+
+- `2026-09-27T13:05:20Z` 暂存知识变化 `PK-063`：All43x8 BF16 wo_a uses 2.885681152G conventional ops per fresh required Target row in an explicit ordinary dense class; formal F, compulsory HBM and matching C-plus/B remain unproved.
+
+- `2026-09-27T13:13:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run526`（review）。
+
+- `2026-09-27T13:13:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run527`（test）。
+
+- `2026-09-27T13:13:12Z` Run `run526` 记录为 `pass`；正确性为 `not-applicable`。Astra source-only preflight maps minimum formal48 request/Scheduler G/Runtime q and raw API-client lineage, cache/prefill/seed boundaries and warmup reuse class. No service or numeric bound.
+
+- `2026-09-27T13:13:13Z` Run `run527` 记录为 `pass`；正确性为 `not-applicable`。Instrumented bound-diagnostic client preserves frozen request body and captures SSE payloads; parser CPU selftest 3 positive/7 negative, syntax pass. Live acquisition remains unrun and independent preflight pending.
+
+- `2026-09-27T13:15:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run528`（review）。
+
+- `2026-09-27T13:15:20Z` Run `run528` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS scoped final client: 17 fake-transport cases and 10 container selftests; body parity, strict usage/ID/DONE, error preservation, clock and post-wall writes. Controller/server fields and full48 live gates remain pending.
+
+- `2026-09-27T13:17:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run530`（design-check）。
+
+- `2026-09-27T13:17:02Z` Run `run530` 记录为 `pass`；正确性为 `not-applicable`。V3.27 distinguishes unrestricted semantic reuse, declared online inference, and ordinary dense BF16 classes under identical full48 warmup; formal F and all finite endpoints remain null. Independent review pending.
+
+- `2026-09-27T13:19:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run531`（review）。
+
+- `2026-09-27T13:19:50Z` Run `run531` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS scoped V3.27: 29 checks, 133 pins, byte-identical rebuild/hash negatives, all19 proof nodes false and endpoints null. Warmup reuse class gate valid; full48+48 calibrates only one measured trajectory, not repeat2/3.
+
+- `2026-09-27T13:22:51Z` 暂存知识变化 `PK-064`：Identical full48 output warmup requires explicit legal pre-window result reuse policy; measured Target launches are current work, not automatically universal compulsory F.
+
+- `2026-09-27T13:24:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run529`（design-check）。
+
+- `2026-09-27T13:24:52Z` Run `run529` 记录为 `pass`；正确性为 `not-applicable`。Source-only five-file reversible Host ledger patch, phase marker, CPU fixture and partial-install restoration pass in target container; no live source install/service/NPU. Sparse fresh Target and device-ready remain unknown.
+
+- `2026-09-27T13:24:53Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run532`（review）。
+
+- `2026-09-27T13:24:53Z` Run `run532` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS scoped client admission: 20 synthetic cases, frozen dataset/body, two full48 phases/96 IDs, exact SSE event/usage/DONE/timing and actual c12; controller/server joins remain pending.
+
+- `2026-09-27T13:28:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run534`（review）。
+
+- `2026-09-27T13:28:55Z` Run `run534` 记录为 `pass`；正确性为 `not-applicable`。Astra source-only review completed; live readiness FAIL for baseline Run529: atomic install/restore, external/internal API ID, ledger footer and full controller/reducer gates required. Later edits not certified; no live install.
+
+- `2026-09-27T13:54:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run535`（review）。
+
+- `2026-09-27T13:55:02Z` Run `run535` 记录为 `pass`；正确性为 `not-applicable`。Astra final source-only PASS for guarded Host lineage diagnostic; final reducer 1+10-, barrier 1+5-, final admission 2+8-; device freshness and Product Bound still unknown.
+
+- `2026-09-27T13:55:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run536`（test）。
+
+- `2026-09-27T13:55:25Z` Run `run536` 记录为 `pass`；正确性为 `not-applicable`。Host/container CPU synthetic 96-request all8 validator 1 positive 10 negatives pass; live service not yet admitted.
+
+- `2026-09-27T13:55:29Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run537`（review）。
+
+- `2026-09-27T13:55:30Z` Run `run537` 记录为 `pass`；正确性为 `not-applicable`。V3.27 formulas scoped; c12 successor release endogenous and compute traffic variants must remain compatible; no finite overall ceiling.
+
+- `2026-09-27T13:55:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run538`（review）。
+
+- `2026-09-27T13:55:31Z` Run `run538` 记录为 `pass`；正确性为 `not-applicable`。Host first-retained Target argmax is source conditional; warmup reuse and device generation unproved; F remains null.
+
+- `2026-09-27T13:55:32Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run540`（design-check）。
+
+- `2026-09-27T13:55:32Z` Run `run540` 记录为 `pass`；正确性为 `not-applicable`。V3.28 records legal variant infimum, c12 endogenous release and strict versus empirical schedule layers; all endpoints null.
+
+- `2026-09-27T13:55:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run541`（review）。
+
+- `2026-09-27T13:55:34Z` Run `run541` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS 25 checks 133 hashes 11 negative endpoint injections; 19 proof nodes false and finite endpoints null.
+
+- `2026-09-27T13:55:56Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run539`（test）。
+
+- `2026-09-27T13:55:56Z` Run `run539` 记录为 `pass`；正确性为 `not-applicable`。Post-cleanup final admission host/container 2 positive and 8 negative CPU cases pass; rejects stop idle restore SHA helper drift server ledger and POST failures.
+
+- `2026-09-27T13:58:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run533`（test）。
+
+- `2026-09-27T13:58:20Z` Run `run533` 记录为 `invalid`；正确性为 `invalid`。Preflight rejected 625 active dedicated-container processes before patch install/service/NPU; controller exit1, stop verified, restore not needed, no bound data. Container reset cleared residual forkserver/spawn processes; new Run542 will use fresh path.
+
+- `2026-09-27T14:01:39Z` 暂存知识变化 `PK-065`：Historical TP4 R31 early weight all-gather preserved bytes yet worsened some prefill device/wall tails up to about 7.5%; current DP1TP8 overlap must be measured under joint all8 resource contention and consumer-visible completion, not inferred from enqueue order.
+
+- `2026-09-27T14:02:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run542`（test）。
+
+- `2026-09-27T14:20:44Z` Run `run542` 记录为 `invalid`；正确性为 `invalid`。Full 96-request Host acquisition completed, but original controller exit1 because validator expected enum repr rather than actual FULL; stop/restore and SHA checks all passed. Raw Host ledger only posthoc-admitted by Run543/544.
+
+- `2026-09-27T14:20:44Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run543`（test）。
+
+- `2026-09-27T14:20:45Z` Run `run543` 记录为 `pass`；正确性为 `not-applicable`。Offline corrected validator string mode FULL replayed original Run542 raw 96-request ledger: 22120 events, 10 processes, 64 rank-cohorts, exact client SSE and Scheduler/Runtime/API raw lineage pass; original Run542 controller failure retained.
+
+- `2026-09-27T14:20:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run544`（review）。
+
+- `2026-09-27T14:20:46Z` Run `run544` 记录为 `pass`；正确性为 `not-applicable`。Astra independent PASS posthoc Host-lineage admission: original failure reproduced, correction minimal, client replay byte-identical, 137 raw/input hashes, cleanup and source restoration verified; no formal TPS or finite Bound promotion.
+
+- `2026-09-27T14:29:11Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run545`（review）。
+
+- `2026-09-27T14:29:11Z` Run `run545` 记录为 `pass`；正确性为 `not-applicable`。Astra independently accepted Run543/544 posthoc Host lineage: measured G at handoff400 versus terminal prebulk401, q49462/R49152/bulk48751, conditional cycles508/510/512/1035/1206; all strict endpoints null.
+
+- `2026-09-27T14:29:11Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run546`（design-check）。
+
+- `2026-09-27T14:29:11Z` Run `run546` 记录为 `pass`；正确性为 `not-applicable`。Clock-gated admitted 48+48 Host metrics and OutputProcessor PrefillStats; measured residual83-85 total3987 and exact q/R/G/bulk; diagnostic only.
+
+- `2026-09-27T14:29:11Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run547`（design-check）。
+
+- `2026-09-27T14:29:11Z` Run `run547` 记录为 `pass`；正确性为 `not-applicable`。V3.29 deterministic Host observation layer; all strict endpoints and fresh F null.
+
+- `2026-09-27T14:29:12Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run548`（review）。
+
+- `2026-09-27T14:29:12Z` Run `run548` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS:25 checks,19 endpoint injections,146 hashes; G_H400/G_prebulk401 and q/R/bulk verified; all finite bounds null.
+
+- `2026-09-27T14:36:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run549`（design-check）。
+
+- `2026-09-27T14:36:10Z` Run `run549` 记录为 `pass`；正确性为 `not-applicable`。Selected measured cohort1-to-2 all8 cached residual83-85 preparation, seed/KV, retained-output and legal release frontier; design only; no finite Bound.
+
+- `2026-09-27T14:36:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run550`（review）。
+
+- `2026-09-27T14:36:10Z` Run `run550` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS direction; live acquisition gated on exact completion contracts, prior-slot output-ready witness, per-field admission and A0/A1 controls; B remains conditional until legal release.
+
+- Run546 command metadata corrected before commit to the absolute-path invocation actually used for the successful replay; original relative-path invocation failed linkage and was not used as evidence.
+
+- `2026-09-27T14:42:50Z` 暂存知识变化 `PK-066`：Historical R20 gained59.163ms short-service TTFT from prefill AG/Q overlap while R28 slowed9.60-23.00% under Compressor/Q-tail contention; current DP1TP8 cached-residual overlap requires legal release, consumer joins, joint all8 service and formal E2E.
+
+- `2026-09-27T14:43:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run551`（design-check）。
+
+- `2026-09-27T14:43:21Z` Run `run551` 记录为 `pass`；正确性为 `not-applicable`。Source-only per-cut readiness/early-publication contract; client anonymous semaphore eligible release lineage passed48-request fake and17 regressions; no live service or Bound endpoint.
+
+- `2026-09-27T14:48:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run552`（review）。
+
+- `2026-09-27T14:48:40Z` Run `run552` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS client chronology only: real asyncio Semaphore48 acquire/release brackets, five extra marker negatives, seven validator negatives, seventeen transport cases; eligible sets conservative and no live readiness.
+
+- `2026-09-27T14:48:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run553`（design-check）。
+
+- `2026-09-27T14:48:40Z` Run `run553` 记录为 `pass`；正确性为 `not-applicable`。Source correction: async scheduling can bypass draft D2H copy and scatter device-resident draft IDs into next input; DCP rebuild has alternate device/CPU wait paths, so seed-ready branch must be captured dynamically.
+
+- `2026-09-27T14:51:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run554`（review）。
+
+- `2026-09-27T14:51:02Z` Run `run554` 记录为 `pass`；正确性为 `not-applicable`。Astra PASS conditional source result: draft D2H may early-return; parent GPU scatter and DCP branch confirmed; DCP CPU fallback can indirectly read draft tensor, valid-count and draft events distinct; actual branch/generation remains unmeasured.

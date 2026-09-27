@@ -1,0 +1,7 @@
+# Run547 — Bound V3.29 Host-lineage calibration
+
+`scripts/extreme_bound_calibration_v3_29.py` SHA256 `cd4d1f67c1c9292b7a44a4f3aa73aa87066e7ab41232e03ff7ca9a29797e08f1` deterministically generated `bound_calibration_v3_29.json` SHA256 `b2da7fde8ed8779fdc691984f9df72d7007dc62ef62a82cdd64456d2b8cc1154` from pinned V3.28, Run546 metrics, Run544 admission and Run545 independent review. It explicitly checks inherited and new unproved endpoints remain null.
+
+The model now has one same-run observation layer: measured `q→R→bulk` output accounting, `G` at handoff versus terminal prebulk, measured cache/residual `PrefillStats`, scoped Host intervals and conditional count-domain relaxations. It does **not** infer necessary model work, physical HBM/HCCL traffic, device-ready time, a feasible alternative schedule or a Product E2E ceiling. Formal Current remains Run99 median571.681 tok/s; the distance to a credible overall limit remains numerically unknown.
+
+Next Bound acquisition should identify residual83–85-token preparation completion, seed and KV readiness and first useful Target on all8 ranks with explicit device/Host clock and stream joins. A resource-contended mixed-service test then estimates compatible preparation/Target/DSpark service under legal successor release. In parallel, obtain a matching certified exact-board cumulative-capacity C⁺/B envelope and complete compulsory work/traffic under an explicit legal architecture class.
