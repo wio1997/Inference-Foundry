@@ -1,0 +1,154 @@
+{
+  "conditional_result": "Idealized primitive identity examples under contiguous12-row RS, matching group-relative AG/A2A order, zero pad and assumed native query-order; no per-layer Runtime composition or actual router-row certificate.",
+  "contract": "DeepSeek V4 Flash W4A8 8x910B3 DP1TP8 DSpark7 fixed W0",
+  "finite_product_tps_ceiling": null,
+  "finite_resource_floor_s": null,
+  "finite_scheduling_floor_s": null,
+  "formal_current_tps": 571.681,
+  "modelled_primitives": [
+    "contiguous 96-to-8x12 split and same-order concatenate",
+    "synthetic dispatcher permutation and exact inverse",
+    "synthetic DSA local query chunks and head-owner concatenate",
+    "synthetic target logits index selection"
+  ],
+  "prohibited": [
+    "promote old Run403 retained-set array-index attribution to semantic token identity",
+    "treat clairvoyant retained-prefix work reduction as fixed-W0 target",
+    "infer compulsory HBM from unique packed-set footprint",
+    "claim numeric Resource/Scheduling/Product Bound"
+  ],
+  "run403_source_manifest_sha256": "e06aa6a98b8d3816af5ca051d518d8ee981ca0443f1f2801e9d6ff34e7ed6618",
+  "runtime_fields_required": [
+    "same cohort/rank/replay generation and startup FULL Graph key",
+    "request-to-slot, active mask, Target input ids/positions/query boundaries and logits indices",
+    "actual FlashComm1/SP/PCP/DP/EP branch flags, pad lengths and group global-rank ordering",
+    "per-layer MoE prepare input/output query rows, router input pointer and exact pre-dispatch row map",
+    "native sparse-attention output query-order contract and DSA A2A/wo_b RS send/recv row map",
+    "Target/Draft expert weight shape/dtype/packed format/scale/owner",
+    "full route/group/acceptance/parking source and output joins"
+  ],
+  "schema": 2,
+  "source": {
+    "/data/wio/Inference_Foundry/runtime/extreme_decode.py": {
+      "anchors": [
+        "target_output = self.target.execute(self.state)"
+      ],
+      "sha256": "eb4b5142cc475a51e06c6eec8238e9cfeb918b568e8a5f27b0a4bc7d26963499"
+    },
+    "/data/wio/Inference_Foundry/runtime/fixed_decode.py": {
+      "anchors": [
+        "target_logits_indices=torch.arange(total",
+        "target_query_start_loc=query_start"
+      ],
+      "sha256": "7d74f4cbba380ff0a9296cc06d86e0cb9c9c921b6213b7965700831a29a6bafa"
+    },
+    "/data/wio/Inference_Foundry/runtime/fixed_serving.py": {
+      "anchors": [
+        "def _park_completed",
+        "self.runtime.state.active_mask[idx] = False"
+      ],
+      "sha256": "137f1cc6a460700e6f26e5837aa062022eb621198e33099b85988f8b7ef6743a"
+    },
+    "/data/wio/Inference_Foundry/runtime/target_adapter.py": {
+      "anchors": [
+        "sample_hidden = hidden_states[state.target_logits_indices]"
+      ],
+      "sha256": "c46d60318098077064c0ff57eae98bc937dcf943bda531918388be4e9128acd5"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py": {
+      "anchors": [
+        ".permute(1, 0, 2, 3)",
+        "dist.all_to_all_single(recv, send",
+        "local_attn_output, o_proj_full_handles"
+      ],
+      "sha256": "27cbbf92a02f16301aad2a35091e258b8459dc77744bd8294f2f11a4c126004e"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/compilation/acl_graph.py": {
+      "anchors": [
+        "entry.aclgraph.replay()"
+      ],
+      "sha256": "6396ca409d633ee61c4433a762982cf901b893f252c864c0ff05ac17bdbdb3f6"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/models/deepseek_v4.py": {
+      "anchors": [
+        "hidden_states = sequence_parallel_chunk(hidden_states)",
+        "tensor_model_parallel_all_gather(final_hidden_states, 0)"
+      ],
+      "sha256": "11dd3e983dc1d628bf42a95581f9617861471b1f658739db44c20df886147247"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ops/fused_moe/prepare_finalize.py": {
+      "anchors": [
+        "maybe_all_gather_and_maybe_unpad(hidden_states, True, True)",
+        "get_pcp_group().all_gather",
+        "maybe_pad_and_reduce(hidden_states, True)"
+      ],
+      "sha256": "c467d0ed0a0d41525aa90008aafbfd26bdbb718b0e29db7de2bed9abe09cabdd"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ops/fused_moe/token_dispatcher.py": {
+      "anchors": [
+        "npu_moe_init_routing",
+        "npu_moe_token_unpermute"
+      ],
+      "sha256": "80c7061b59d4593f55ce5c18d601bdc7b1831bfe9c268c5bc8129d733d09c215"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ops/linear_op.py": {
+      "anchors": [
+        "class SequenceRowParallelOp",
+        "matmul_and_reduce(input_parallel"
+      ],
+      "sha256": "599f85b8dd4c13f72aa458e21ae7fa13e18548a645fd03b8a534a6b951e7ee02"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ops/register_custom_ops.py": {
+      "anchors": [
+        "tensor_model_parallel_all_gather(x, 0)",
+        "x = x[:-pad_size]",
+        "tensor_model_parallel_reduce_scatter(x, 0)"
+      ],
+      "sha256": "ab93899f54889999cd767b0db01334ad46f20e29fca0d96ce0fee31538fe2a52"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ops/vocab_parallel_embedding.py": {
+      "anchors": [
+        "dist.reduce_scatter_tensor(self._embed_rs_out_buf"
+      ],
+      "sha256": "a4a8517abc3a4f8494f27cc4cc3a876264ef8fea8cfc6de9abdbaf75d42c3b24"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/quantization/methods/w4a8.py": {
+      "anchors": [
+        "topk_weights, topk_ids = select_experts",
+        "w1 = [layer.w13_weight]",
+        "w2 = [layer.w2_weight]"
+      ],
+      "sha256": "1cda64ddb13a88f2fe86ccdb59b6555864148e3994022631915720114d7fb2e5"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py": {
+      "anchors": [
+        "target_logits_indices=torch.arange(",
+        "target_graph_requested",
+        "ExtremeHandoffInputs("
+      ],
+      "sha256": "004dbd0d5b1a5c3f9533fa1d12327bd0ae421fe24bb2674544b2c4a25d74aaba"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm/vllm/distributed/parallel_state.py": {
+      "anchors": [
+        "def all_gather(self, input_",
+        "def reduce_scatter(self, input_"
+      ],
+      "sha256": "ecfa5eeda697e9982591c93eca835fcc53463267c1c22110700819efcecee74f"
+    },
+    "/data/wio/vllm_ascend_26/framework/vllm/vllm/model_executor/models/utils.py": {
+      "anchors": [
+        "def sequence_parallel_chunk_impl(",
+        "start = tp_rank * chunk"
+      ],
+      "sha256": "f06d1a1a8d92e6ab39ebf7931d3eb3d6688d212606b1c409d7bed8eed5ba1fc2"
+    }
+  },
+  "status": "source_index_and_idealized_primitives_not_live_ready",
+  "unmodelled_nodes": [
+    "production ModelRunner->ExtremeHandoffInputs->FixedDecodeState.bind entry values",
+    "actual FlashComm1/sequence-parallel branch and nonzero padding/unpadding",
+    "DSA native sparse-attention output query order, A2A rank order and wo_b RS",
+    "43-layer query-row map composition and native MoE dispatcher semantics",
+    "physical Target/Draft expert weight format and group ownership"
+  ]
+}

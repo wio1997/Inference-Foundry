@@ -742,3 +742,7 @@ The source-pinned matrix has 18 isolated service priors and five instrumented Cu
 ## Run572 exported task intervals, current diagnostic only
 
 Run246/247 latest FULL Graph windows contain paired HCCL `AivKernel` execution rows and `hcom_*` pseudo envelopes (265 of each per rank Target scope). A prior category-only reading would fabricate ~10ms of apparent communication with no AI; the corrected rank-local interval reducer finds zero pseudo-envelope-only time because exported AI task intervals cover it. This does not prove link work is hidden or no communication Gap exists. The 5.250ms median no-exported-task coverage gap is not removable device idle. Cross-rank clock/makespan is unvalidated. Scheduling priority is a producer/arrival/HCCL/device-completion DAG and same-W₀ mixed service, not a sum of profiler categories. No numeric Bound update.
+
+## Run573 Resource numerator identity gate
+
+Run403 routing/ownership can become a semantic active/parked expert-set census only after each router row is joined to the actual Target candidate identity in the same admitted trajectory. Run573's source index and synthetic primitive map rejects wrong DSA/dispatch/layer maps but does not establish the actual 43-layer composition. A diagnostic must capture production handoff, first post-park Graph replay, rank/pad/branch maps, all43 router inputs and Target/Draft packed-weight metadata. This is a Resource identity gate, not a clairvoyant retained-prefix optimization or a Bound time. All finite endpoints stay null.

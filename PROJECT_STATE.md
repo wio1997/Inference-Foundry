@@ -1033,3 +1033,7 @@ The offline reducer and Astra independent replay PASS: 23 provenance-pinned rows
 ## Run572 rank-local overlap audit
 
 Offline reducer and Astra review PASS after correcting two important profiling interpretations: cross-rank exported timestamps cannot certify all8 concurrency without clock calibration; `COMMUNICATION` consists of HCCL AIV kernels plus pseudo envelopes. Sixteen source-pinned latest Target windows contain2,836 tasks each and zero boundary carry-in/cross-end. Rank-local exported interval unions describe marked Current only; strict Resource/Hardware, Scheduling/Execution, Product endpoints and numeric Current→limit gap stay null. Formal Current571.681tok/s. Next resolve exact collective dependency/arrival and all8 mixed service; formal necessary work/traffic and exact-board C⁺/B remain independent. See Run572 findings, Astra review and PK-073.
+
+## Run573 source preflight for candidate-row identity
+
+Offline 16-source SHA-pinned row-map model and Astra independent review PASS only as idealized primitives; `preflight.json` explicitly says not live-ready. It identifies the missing production first-park Graph replay, runtime branch/pad/rank order, native query-output, per-layer row maps and actual expert formats. The next Resource experiment is a guarded one-cohort post-park Target/Draft witness with no timing claim. No service or NPU was run. Formal Current571.681tok/s; finite Bound endpoints and numerical gap remain null. See Run573 findings and PK-074.

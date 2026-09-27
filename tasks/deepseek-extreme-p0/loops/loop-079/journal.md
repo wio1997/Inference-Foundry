@@ -639,3 +639,7 @@
 - `2026-09-27T18:45:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run572`（review）。
 
 - `2026-09-27T18:45:31Z` Run `run572` 记录为 `pass`；正确性为 `not-applicable`。Offline rank-local Run246/247 FULL Graph profiler interval audit: all16 SHA-gated windows, 2836 tasks each, distinct 265 HCCL AivKernel and 265 hcom pseudo envelopes, zero carry-in/cross-end, Astra review PASS; cross-rank overlap and finite Bound endpoints null
+
+- `2026-09-27T18:56:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run573`（design-check）。
+
+- `2026-09-27T18:57:05Z` Run `run573` 记录为 `pass`；正确性为 `not-applicable`。16-source conditional TP8 row-map preflight and independent Astra negative review PASS as idealized primitives only; status not_live_ready; no actual per-layer router identity or Bound promotion
