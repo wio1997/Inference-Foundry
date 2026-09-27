@@ -32,6 +32,9 @@ def main():
     banks357 = read("evidence/20260927_loop075_bound/run357/analysis.json")
     prof360 = read("evidence/20260927_loop075_bound/run360/analysis.json")
     binding365 = read("evidence/20260927_loop075_bound/run365/summary.json")
+    joint368 = read("evidence/20260927_loop076_bound/run368/analysis.json")
+    dense370 = read("evidence/20260927_loop076_bound/run370/analysis.json")
+    dspark372 = read("evidence/20260927_loop076_bound/run372/analysis.json")
     assert dual["current_formal_tps"] == 571.681
     assert fixed["observed_cohort_wave_cycles"] == fifo["observed_cohort_wave_cycles"] == 1203
     assert fifo["instant_completion_zero_incremental_cost_fifo_cycles"] == 1118
@@ -44,6 +47,11 @@ def main():
     assert prof360["status"] == "verified_two_complete_graph_replays_each_condition"
     assert binding365["banks"] == 8 and binding365["all_bank_active_prefix_match"]
     assert binding365["active_prefix_max_abs_diff"] == 0.0
+    assert joint368["status"] == "same_run_same_cycle_route_counter_join_instrumented"
+    assert joint368["summary"]["samples"] == 16
+    assert dense370["summary"]["valid_rank_cycles"] == 16
+    assert dspark372["status"] == "DSpark_proposer_partial_GEMM_work_census_corrected_device_tail"
+    assert dspark372["summary"]["rank_cycles"] == 16
     assert sum(sum(row["immediate_completion_cycles"]) for row in fifo["cohorts"]) == 12122
 
     formal = dual["current_formal_observed_wall_envelope"]
@@ -110,6 +118,10 @@ def main():
         })
 
     inventory = dual["partial_resource_inventory"]
+    gmm_work = joint368["summary"]["all43_standard_GMM_Gflop_per_rank_cycle_range"]
+    dense_work = dense370["summary"]["sum_standard_Gflop_median"]
+    compressor_work = inventory["canonical_matmul_arithmetic_Gflop_per_rank_target_cycle"]["compressor_fixed_shapes"]
+    draft_dense_work = dspark372["summary"]["dense_standard_Gflop_partial_median"]
     output = {
         "schema_version": 3,
         "contract": dual["contract"],
@@ -122,6 +134,16 @@ def main():
                 "cardinality_scope": "four current zero-output handoff cohorts; if handoff/seed changes, recompute from real remaining external tokens and already generated output",
                 "run239_same_trace_acceptance": acceptance239["aggregate"],
                 "known_partial": inventory["canonical_matmul_arithmetic_Gflop_per_rank_target_cycle"],
+                "dspark_partial_dense_standard_GEMM_Gflop_per_rank_cycle": {"observed": draft_dense_work, "source": "Run372 corrected device-tail census from Run246 original FULL Graph", "scope": "18 quant + 16 plain + 3 transpose; not compulsory or total draft work; three GMM1/GMM2 routed counts, attention/KV/state omitted"},
+                "same_trajectory_standard_GEMM_equivalent_partial_Gflop_per_rank_cycle": {
+                    "GMM_route_dependent_range": gmm_work,
+                    "fixed_dense_quant_plain_transpose": dense_work,
+                    "compressor_fixed_shape_separate_source": compressor_work,
+                    "sum_partial_range_cross_source": [gmm_work[0] + dense_work + compressor_work, gmm_work[1] + dense_work + compressor_work],
+                    "GMM_active_packed_weight_footprint_GB_range": joint368["summary"]["all43_active_packed_weight_GB_per_rank_cycle_range"],
+                    "source": "Run368 same-run same-cycle original FULL Graph live route for 43 GMM pairs; Run370 fixed-shape dense families from prior Run246; Run256 Compressor arithmetic",
+                    "scope": "current-route standard GEMM-equivalent arithmetic and storage footprint; not complete compulsory work, not a strict algorithmic arithmetic or HBM-read minimum. Cross-source sum assumes frozen fixed dense/Compressor shapes.",
+                },
                 "missing": ["full Target and DSpark FLOPs at actual active shapes", "unique necessary packed weights/activation/KV/metadata bytes", "prefix-cache-conditioned 32K prompt and residual prefill work", "necessary TP8 link bytes and collective order", "acceptance-dependent executed work"],
                 "confidence": "low; incomplete numerator",
             },
@@ -129,6 +151,12 @@ def main():
                 "latency_floor_s": None,
                 "attainable_910B3_capacity_complete": False,
                 "current_full_graph_counter_GB_per_rank_cycle": inventory["current_FULL_Graph_counter_GB_per_rank_target_cycle"],
+                "same_trajectory_GMM_counter_to_active_packed_weight_ratio": {
+                    "AIC_plus_AIV_read_range": joint368["summary"]["all43_AIC_AIV_read_to_active_packed_weight_ratio_range"],
+                    "median": joint368["summary"]["all43_AIC_AIV_read_to_active_packed_weight_ratio_median"],
+                    "same_ordinal_active_expert_read_correlations": joint368["summary"]["same_ordinal_active_expert_to_AIC_read_pearson_688_pairs"],
+                    "scope": "Run368 matched route/task Level1 current traffic; non-weight reads included, cache/physical HBM unresolved. Replaces cross-run 1.092 ratio for same-trajectory interpretation.",
+                },
                 "isolated_hccl_actual_payload_us": {k: v["median_us"] for k, v in hccl["cases"].items()},
                 "isolated_hccl_scope": "Run339 five warmed padded88 prefill collective shapes; not a mixed decode chain or physical link floor",
                 "all8_GMM_graph_isolated_attained_service_us": {
@@ -170,7 +198,7 @@ def main():
         },
         "next_measurement": {
             "priority": "pin full-workload mandatory-work and same-path concurrent capacity before promoting a numeric bound",
-            "specific_gate": "all-eight rank-cycle stage/traffic ledger with Target, DSpark, KV, HCCL payload and overlap, plus actual-arrival-to-first-new-Target only if refill is tested",
+            "specific_gate": "extend matched Target GMM work/counters to non-GMM and DSpark standard work, cycle64/65 useful acceptance, necessary KV/HCCL bytes, and unperturbed all-rank device join/attainable compute-HBM capacity; legal arrival-to-first-Target if refill is tested",
             "decision_rule": "numeric Product bound requires a legal resource-constrained DAG and unchanged-contract corrected E2E calibration",
         },
         "input_paths": [
@@ -185,6 +213,9 @@ def main():
             "evidence/20260927_loop075_bound/run357/analysis.json",
             "evidence/20260927_loop075_bound/run360/analysis.json",
             "evidence/20260927_loop075_bound/run365/summary.json",
+            "evidence/20260927_loop076_bound/run368/analysis.json",
+            "evidence/20260927_loop076_bound/run370/analysis.json",
+            "evidence/20260927_loop076_bound/run372/analysis.json",
         ],
     }
     dest = Path(args.output)

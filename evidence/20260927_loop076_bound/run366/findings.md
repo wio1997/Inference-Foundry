@@ -1,0 +1,9 @@
+# Loop076 Run366 — saved FULL Graph trace join audit
+
+Read-only inspection of Run246 latest eight-rank MemoryAccess capture found two original Target and proposer Host scopes per rank. Each Target scope contains exactly43 ordered native GMM1 and43 GMM2 tasks. The GMM2 ordinal21 (global ordinal64) profiled durations span74.437–93.682µs in the first Target and75.497–91.862µs in the second across eight ranks; rank4 AIC read is82,202KB then70,034KB. These are profiler-perturbed task observations, not attained service or critical-path sums.
+
+Run121 stored per-rank group-list counts at nominal cycle64, but it was a separate service run. Same cycle and ordinal labels do not prove the same routes or state in Run246. Run246 has no per-operator route values or packed-weight address/cache-hit ledger. Host target/proposer scopes and task start times are joinable within that trace, but device-ready→downstream-join events and physical HBM/L2 attribution remain incomplete. Therefore bank1/bank8 isolated service points cannot be mapped to the actual FULL Graph cost, and neither Resource/Hardware nor Scheduling/Product Bound gets a numeric update.
+
+Next capture one original warmed all-eight FULL Graph cohort with Run121 count instrumentation and the already validated Run246 Level1 profiler plus built-in Runtime DAG event marks. Count snapshotting after Target perturbs the acceptance/proposer gap, so use the combined trace for route/counter alignment and the event ledger only as an instrumented dependency topology. Keep uninstrumented Run99 and prior DAG controls separate; do not infer Product TPS from this diagnostic. Source must be restored and service stopped after capture.
+
+Evidence: `run366/audit.json`, Run246 raw exported profiler CSV and trace, Run121 saved counts. Script: `scripts/loop076_trace_join_audit.py`.
