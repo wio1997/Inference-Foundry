@@ -627,3 +627,7 @@
 - `2026-09-27T18:11:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run568`（test）。
 
 - `2026-09-27T18:11:53Z` Run `run568` 记录为 `pass`；正确性为 `pass`。All8 same-S* scoped captured-state pause noninterference PASS at measured cohort5 cycle187 slot4; client and stop/restore admission exit0; full KV/fixed-W0 and numeric Bound remain unproven
+
+- `2026-09-27T18:23:24Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run570`（design-check）。
+
+- `2026-09-27T18:23:24Z` Run `run570` 记录为 `pass`；正确性为 `not-applicable`。A0 diagnostic all8 source-pinned row census: per rank physical115776 active98496 parked17280 (14.92537%); neither compulsory work nor wall saving nor Run99 W0

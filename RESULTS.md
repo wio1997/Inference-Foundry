@@ -694,3 +694,7 @@ Run564 source/CPU gate PASS. Run565 INVALID before service due89 Run558-tagged h
 ## Run568/569 diagnostic evidence (2026-09-28)
 
 Run568 no-publication single-arm diagnostic passed warm48+measured48/c12/1024, all8 client/runtime/trace admission and cleanup. At cohort5 cycle187 slot4, 60 enumerated tensors and captured state were unchanged across pause-only handling; full KV/fixed-W₀ and numerical performance implications are unproven. Run569 offline conditional work/traffic census passed expanded negative gates and Astra independent review. Neither is a formal E2E run. Formal Current remains **571.681 tok/s**; all finite strict Bound endpoints remain unknown.
+
+## Run570 offline row census (2026-09-28)
+
+No new model run. All8 admitted Run566 A0 diagnostic traces imply per-rank 115,776 current Target input rows, including 98,496 active-slot and 17,280 parked-slot rows. Astra independently verified source formulas and output files. This is not formal Run99 W₀, compulsory work, a measured saving or E2E result. Formal Current remains571.681tok/s; finite strict Bound endpoints remain unknown.
