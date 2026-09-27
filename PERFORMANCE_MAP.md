@@ -754,3 +754,7 @@ Reviewed SCFA/SWA TND `FLASH_DECODE=0` source writes attention output at the Que
 ## Run575 Graph/package branch evidence
 
 An eight-rank Run502 Graph→Run574 package join identifies 344 selected BF16 sparse-attention tasks, 43/rank, with key distribution SWA2/CFA20/SCFA21 and static FD0/TND/PA_ND branch under the installed CANN9.1 encoder. This supports the native Query-row preservation hypothesis for that Graph, but dynamic prefix/head/group, actual loaded object bytes and all-layer router provenance still need an admitted same-trajectory witness. It is structural Bound calibration, not a latency or savings measurement. See PK-076.
+
+## Run576 conditional Resource geometry
+
+The live first-post-park census joins all8 Target/Draft route ownership and W4A8 entry operand geometry to one diagnostic cohort. Selected-slice arithmetic (~8.36–8.89GB Target plus~0.29–0.48GB Draft per rank) is neither actual GMM traffic nor compulsory traffic; it cannot be compared causally to Run247–249 GMM counter reads across trajectories. It reduces uncertainty about the working set a matched Engineering service test should reproduce. It does not resolve formal W₀ necessary bytes, attainable all8 mixed capacity, communication overlap or a legal Scheduling makespan. Current571.681tok/s; all strict numerical Bound intervals and Current→credible-limit distance remain null. See PK-077 and Run576.

@@ -651,3 +651,7 @@
 - `2026-09-27T19:18:38Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run575`（design-check）。
 
 - `2026-09-27T19:19:59Z` Run `run575` 记录为 `pass`；正确性为 `not-applicable`。All8 selected FULL96 Graph 43 native sparse tasks/rank join BF16 package and FD0/TND/PA_ND SWA2/CFA20/SCFA21 tiling; independent Astra PASS; dynamic row map and all Bound times unresolved
+
+- `2026-09-27T20:05:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run576`（profile）。
+
+- `2026-09-27T20:05:30Z` Run `run576` 记录为 `pass`；正确性为 `pass`。Scoped diagnostic admission PASS: all8 first-post-park route/operand capture and client/runtime/output ledger, not formal same-W0 E2E or compulsory traffic; endpoints null

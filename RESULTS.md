@@ -706,3 +706,7 @@ Source/build/package hash and negative gates passed; independent Astra replay re
 ## Run575 offline Graph/package/tiling join (2026-09-28)
 
 All8 admitted Run502 FULL96 Graph dumps contain 43 sparse-attention MIX_AIC tasks/rank. Their names join one installed BF16 package object; keys2/514/1026 decode to FD0/TND/PA_ND and SWA/CFA/SCFA, with counts2/20/21 per rank. Astra independently reproduced the output and negative gates. No model run, performance measurement or numeric Bound promotion occurred. Formal Current remains571.681tok/s. Evidence: `evidence/20260928_loop080_bound/run575/`.
+
+## Run576 guarded diagnostic (2026-09-28)
+
+The warm48 + measured48/c12/1024 all8 run, first post-park cycle170 capture and client→Runtime→Graph join passed, with all borrowed files restored and service stopped. Target24,768 and Draft1,512 global route incidences conserve across eight ranks. Resident backing and selected-slice arithmetic are conditional operand data, not HBM traffic. Astra independent scoped PASS covered reducer and V3.32 SHA-pinned model. No formal E2E performance was measured; Current remains571.681tok/s and strict Bound endpoints are null. Evidence: `evidence/20260928_loop080_bound/run576/`.
