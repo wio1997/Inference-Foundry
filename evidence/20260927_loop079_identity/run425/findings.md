@@ -1,0 +1,22 @@
+# Loop079 Run419–425: terminal token ledger and minimal Bound certificate
+
+## Decision
+
+Run421 is a valid frozen **diagnostic**, not a formal E2E replacement. It passed 48+12 streaming clients, c12, exact 1024 output tokens each, 60 server POSTs, five cohorts × eight ranks of FULL Graph Runtime reports, source restoration and idle NPU cleanup. Its Host-only Scheduler hook recorded one terminal `extreme_bulk_output` append per request, joined by exact Runtime request ID. The dedicated container was reset only after service stop because it retained 212 processes and 20.55 GiB; post-reset it had one process and 1.238 MiB.
+
+Every one of the 60 requests had **1–33 previously generated Scheduler tokens at the terminal bulk call**, totaling **584**. Runtime submitted **61,440** token IDs, Scheduler admitted **60,856** and clipped **584** at max_tokens=1024. The five cohort prior-count sums were 121, 120, 110, 134 and 99. All requests were non-resumable, non-stale, and finished by length cap. The ledger does not locate those earlier tokens at the **handoff instant**, nor does it establish whether or when the API published them. Therefore `g_i^H` (already generated at handoff) and `p_i^H` (API published at handoff) remain unknown; `g_before_bulk` is a separate observed variable. No Run421 count is transferred to Run403, Run239 or formal Run99.
+
+This falsifies the implicit identification of Runtime-retained 1024 with externally newly admitted 1024 for the Run421 trajectory. It does not imply an E2E speed gain from removing 584 clipped IDs: earlier generation, accept/stop trajectories, dependency and wall-time conversion must be tested. Run421's Host JSONL writes also preclude timing promotion. The correct next Algorithm/Resource numerator experiment records request-correlated handoff generation state and API publication ordinals, with the terminal ledger as an end check.
+
+## Bound updates
+
+- **Algorithm/Resource:** Run421 closes terminal token accounting for one diagnostic trajectory; handoff-time generated and published counts, full necessary work, retained-router row identity and Draft remain open. Run424 identifies a concrete row-proof gap: ACLGraph address checks omit keyword Target inputs, and actual Runtime CP query geometry plus native row-order contracts must be bound to the selected replay.
+- **Hardware/Resource:** Run423 independently corrected the minimum strict-ceiling gate. One proved positive compulsory subset `W_minus` and a matching true aggregate capacity upper cap `C_plus` suffice for `T >= W_minus/C_plus`, even with all omitted work ideally overlapped. The observed BF16 `wo_a` group-row has 8,388,608 conventional operations, but its universal necessity and this host's matching 910B3 maximum rate are not certified. The official Atlas800T A2 white paper lists options without identifying the installed SKU. Numeric strict ceiling remains null.
+- **Scheduling/Execution:** Run421 does not measure a Current→Bound scheduling saving. The next ledger must join handoff, queued/generated/published output, Graph identity and all-rank dependency evidence before changing the critical-path floor.
+- **Product E2E:** Formal Current remains Run99 median **571.681 tok/s**; its best valid single repeat **612.962 tok/s** is an observation, not a guaranteed floor. Engineering, Aggressive, Hardware/Algorithmic and Product finite upper endpoints remain unknown. Scenario projections are unchanged and are not ceilings.
+
+Executable model: `scripts/extreme_bound_calibration_v3_12.py` → `run425/bound_calibration_v3_12.json`. Core evidence: Run421 raw Host ledger and `analysis.json`; Run422 independent review; Run423 minimal Resource certificate; Run424 row-identity plan. Run419/420 explain why the earlier internal zero-output field was not an external-output certificate.
+
+## Next gate
+
+In a clean exact60-POST diagnostic, record per-request handoff-time ModelRunner cached generated count and generation/position identity; the Scheduler's pre-bulk cumulative count; OutputProcessor queue ordinals; and API streaming generated-token ordinals at yield or send boundary, all with request IDs and host monotonic timestamps. Avoid hot-path NPU synchronization. A value generated but not yet published must be counted as already computed for a work numerator while retaining its actual publication boundary for Product E2E. Keep all43 router row proof and the minimal SKU-bound hardware capacity certificate as parallel Bound tracks.

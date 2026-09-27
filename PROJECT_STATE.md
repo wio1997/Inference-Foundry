@@ -945,3 +945,7 @@ Astra independently classified the265 ordered Target HCCL calls in Run391. Curre
 ## Loop078 Run412/418 checkpoint
 
 Run410 local normal-path count-copy read-before-next-overwrite holds in40/40 sampled rank/cohort records; later Draft/DSA consumption and original-schedule extrapolation remain INCONCLUSIVE. Run411 A1 failed before POST under residual dedicated-container Host-memory pressure; container reset restored service and Run417 passed frozen diagnostic, then container was reset again after observing residual Python processes. Run418 V3.11 and independent Run416 retain UNKNOWN finite Algorithm/Resource, Hardware, Scheduling and Product ceilings. Next priority is row identity plus external retained-output ledger, followed by physical capacity semantics and all8 typed DAG. See evidence/20260927_loop078_bound/run412/findings.md.
+
+## Loop079 Bound checkpoint (Run421–425)
+
+Run421 clean exact60 Host diagnostic establishes terminal Scheduler prior-generated total584, Runtime incoming61,440, admitted60,856 and clipped584. Handoff-time generated/published counts remain unknown; no formal TPS or finite Bound promotion. Independent Run422/423/424 reviews and V3.12 model are saved under `evidence/20260927_loop079_identity`. Continue handoff/API ledger and full43 row identity while separately binding a minimal necessary-work subset to an actual910B3 maximum capacity certificate.

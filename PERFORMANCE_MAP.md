@@ -648,3 +648,7 @@ Astra independently classified the265 ordered Target HCCL calls in Run391. Curre
 ## Loop078 Run412 local scheduling closure and next Bound gate
 
 B-arm 40/40 same-device read-complete before next overwrite-start, median direct margin53.747 ms, with first Host count/sequence-mirror consumers recorded. Draft/DSA downstream and parking/terminal paths remain open. A1 Run411 startup pinned Host OOM; Run417 passed after container reset, which invalidates A/A overhead comparison. No Current→Bound wall-time saving or finite ceiling follows. Resource priority: prove all43 router row maps and external output ledger; Hardware priority: distinguish physical HBM/link traffic and valid capacity upper caps; Scheduling priority: all8 typed Graph/HCCL and actual Draft joins. Evidence Run412/416/418. Formal Current571.681tok/s.
+
+## Loop079 Run421–425 terminal output ledger
+
+The frozen diagnostic has 584 Scheduler-generated tokens before terminal bulk processing, so its61,440 Runtime-retained IDs are not all externally newly admitted:60,856 were admitted and584 length-clipped. The handoff-time already-generated and API-published counts remain distinct unknowns. Resource ceiling requires a matched necessary W-minus / maximum C-plus certificate, not a measured kernel peak; Run423 found the smallest candidate but no certified numeric pair. Scheduling saving and full router identity remain unproved. Next: request-correlated handoff+publication ledger, row/Graph/native certificate, and 910B3 SKU capacity binding. Evidence Run421–425/PK-042.

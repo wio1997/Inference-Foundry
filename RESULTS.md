@@ -624,3 +624,7 @@ Astra independently classified the265 ordered Target HCCL calls in Run391. Curre
 ## Loop078 Run410/412/417/418 (2026-09-27)
 
 Run410 B: 40/40 local count-copy read-complete before next overwrite-start, direct margin53.333–54.525 ms; downstream Draft/DSA consumer unobserved. A0 Run413 and A1 Run417 frozen diagnostic controls passed, but Run417 followed a container reset after invalid Run411 pinned Host OOM; combined A/A/B gate INCONCLUSIVE. No formal E2E or numeric Bound promotion. Run418 V3.11 retains Current Formal571.681tok/s and null finite ceiling. Source: evidence/20260927_loop078_bound/run412/findings.md.
+
+## Loop079 Run421 diagnostic (not formal)
+
+Exact60 requests,48+12,c12,all8 FULL Graph,source restored/NPUs idle. Terminal Scheduler ledger:584 previously generated tokens,61,440 Runtime bulk IDs,60,856 admitted,584 clipped. No handoff-time or API-published count and no performance-bound endpoint follow. Formal Run99 median remains571.681tok/s. Details: `evidence/20260927_loop079_identity/run425/findings.md`.

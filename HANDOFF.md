@@ -2114,3 +2114,7 @@ Astra independently classified the265 ordered Target HCCL calls in Run391. Curre
 ## Loop078 Run412 continuation (2026-09-27)
 
 A0 Run413, B Run410 and reset-environment A1 Run417 passed exact60 diagnostic requests and all8 FULL Graph reports. Run411 A1 failed before POST from pinned Host memory OOM with 9756 residual dedicated-container processes; direct container stop/start cleared them. Run410 local 40/40 count-copy ordering and first Host numeric consumers pass, but combined Run412 analysis is INCONCLUSIVE: downstream Draft/DSA hook coverage0/40, A0/A1 per-cycle acceptance absent and container reset splits A/A environment. V3.11 floors/ceiling remain null. Next Bound task: Run407 row identity plus external retained-output ledger, then physical transfer/capacity and typed all8 joins. Current571.681tok/s; no new formal E2E.
+
+## Loop079 Run421–425 terminal output ledger
+
+Run421 clean diagnostic:60/60 terminal Scheduler `g_before_bulk>0`, sum584; Runtime incoming61,440, admitted60,856,clipped584. Handoff generated `g_i^H` and API-published `p_i^H` are unknown; do not transfer counts to Run403/239/99. Source restored, service stopped, NPU idle; post-stop container retained212 processes/20.55GiB and was reset to one process/1.238MiB. V3.12 has no new finite endpoint. Run422 Astra review, Run423 minimal strict W/C gate, Run424 all43 row-identity design, Run425 findings/model. Next clean exact60 request-correlated handoff+OutputProcessor/API ledger; preserve independent SKU capacity and router identity tracks.
