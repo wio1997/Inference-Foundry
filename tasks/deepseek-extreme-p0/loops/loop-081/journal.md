@@ -257,3 +257,27 @@
 - `2026-09-28T10:31:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run637`（design-check）。
 
 - `2026-09-28T10:31:15Z` Run `run637` 记录为 `pass`；正确性为 `not-applicable`。Bounded observer source candidate and CPU10 negative checks; Astra source-only SCOPED PASS/NOT LIVE-READY; no service/NPU or numeric Bound.
+
+- `2026-09-28T11:36:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run638`（profile）。
+
+- `2026-09-28T11:36:33Z` Run `run638` 记录为 `invalid`；正确性为 `invalid`。OFF/ON/OFF each arm client/Runtime/packet scoped admission passes; cross-arm fixed W0 fails (0/48 matching text, cycle totals1175/1227/1179); controller run/final1, all cleanup/restore0, no observer timing transfer. Runtime bulk hash is not final API token ledger.
+
+- `2026-09-28T11:36:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run639`（simulation）。
+
+- `2026-09-28T11:36:34Z` Run `run639` 记录为 `pass`；正确性为 `not-applicable`。Historical Run592 local 16 chain paired envelope-minus-sum median2.160us, range1.2195-3.6195us; conditional local relaxation only, different W0 and peer-wait risk, no E2E extrapolation.
+
+- `2026-09-28T11:36:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run640`（simulation）。
+
+- `2026-09-28T11:36:34Z` Run `run640` 记录为 `pass`；正确性为 `not-applicable`。All8 Run611 rank-local interval unions independently confirmed; physical and EVENT_WAIT overlap140.946-198.821ms; wait-only6.173-7.103ms. Partial instrumented window, no removable wait or Product bound.
+
+- `2026-09-28T11:43:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run641`（simulation）。
+
+- `2026-09-28T11:43:49Z` Run `run641` 记录为 `pass`；正确性为 `not-applicable`。All8x3 Model45 5412-task fixed observed-cost stream relaxation: span45.102-72.209ms, max stream36.905-38.083ms, conditional difference median15.819ms. HCCL stream0 wholly inside stream1 waits, zero overlap with stream1 physical. No legal schedule/E2E bound; peer wait/contending service untyped.
+
+- `2026-09-28T11:45:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run642`（review）。
+
+- `2026-09-28T11:45:34Z` Run `run642` 记录为 `pass`；正确性为 `not-applicable`。Astra independently recomputed Run638/640/641. Run641 restricted fixed-stream mathematical lower makespan valid, not legal schedule/Product Bound; HCOM coverage serial Current, no removable wait proof. Requested replay SHA/static-key guards added, identical JSON SHA.
+
+- `2026-09-28T11:45:54Z` 暂存知识变化 `framework-only-run638-crossarm`：Run638 OFF/ON/OFF arms each pass scoped admission, but fixed W0 fails; no observer-effect or Product timing transfer. Runtime bulk hash is not final API token-ID ledger.
+
+- `2026-09-28T11:45:54Z` 暂存知识变化 `framework-only-run641-target-stream`：In 24 Run611 instrumented Target Graphs, HCCL-named stream0 tasks have zero overlap with stream1 physical tasks and full coverage by stream1 waits; max physical stream sum36.905-38.083ms is a restricted fixed-observed-cost relaxation only.

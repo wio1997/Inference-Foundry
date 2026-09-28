@@ -1,0 +1,5 @@
+# Run641 Target fixed-stream relaxation
+
+Run611 same-W₀ all8×3 Model45 occurrence replay, 5,412 tasks each; trace_view SHA pinned. Under frozen *observed* physical task duration and stream affinity, erase cross-stream waits and resource conflicts. Longest stream physical sum36.905–38.083ms, observed Graph span45.102–72.209ms, conditional difference8.193–34.186ms (median15.819ms). This is deliberately optimistic and **not a legal schedule, intrinsic-service lower bound or Product TPS saving**. HCCL task duration can contain peer wait.
+
+All24 longest physical streams are stream1. HCCL-named tasks all execute on stream0, total5.792–31.714ms (median13.666ms). In the recorded timeline, HCCL intervals have zero overlap with stream1 physical tasks and lie wholly inside stream1 waits. This is Current ordering/coverage evidence, not evidence that all HCCL can overlap with GMM. Run579/580 actually showed joint GMM/HCCL fixture cost worse than serial. Next type one producer→collective→consumer chain and peer-wait/active service; retain unknown dependencies and resource interference in `E_must/E_safe` variants.

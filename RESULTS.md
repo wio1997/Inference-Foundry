@@ -796,3 +796,7 @@ Read-only all8 existing-trace analysis:144 eager scatter plus72 sparse attention
 ## Run614 read-only typed-KV packet design
 
 Astra Scheduling and Resource scoped design checks PASS after the packet separates Scheduling capture from fresh-work PASS/NO_WITNESS/UNKNOWN. This is not a live result or W⁻ certificate. Source/clock/flow, allocation and row generations, ABI read-domain and bounded same-stream snapshots remain implementation gates. No service ran, no formal TPS or numerical Bound changed. Formal Current571.681tok/s.
+
+## Framework-only Bound evidence — Runs638–641
+
+Formal Current remains **571.681 tok/s**. Run638 cross-arm fixed W₀ failed; no observer-effect comparison or E2E gain. Arm-scoped ON packet passes but hashes Runtime bulk IDs, not final API token IDs. Run639/640/641 are conditional local replay/relaxations; Run641 shows HCCL-named stream0 tasks wholly covered by stream1 waits and no stream1 physical overlap in 24 instrumented Target Graphs. These do not give a Framework-only Product TPS bound. See `FRAMEWORK_SCHEDULING_BOUND.md`.
