@@ -195,3 +195,13 @@
 - `2026-09-28T08:44:22Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run624`（design-check）。
 
 - `2026-09-28T08:44:22Z` Run `run624` 记录为 `pass`；正确性为 `not-applicable`。V3.43 all strict and conditional numeric endpoints null; Astra High SCOPED PASS and 16 negative injections. Formal Current571.681.
+
+- `2026-09-28T08:56:31Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run625`（design-check）。
+
+- `2026-09-28T08:56:31Z` Run `run625` 记录为 `pass`；正确性为 `not-applicable`。Astra High scoped pass: 82-node/106-edge untimed partial DAG, metadata readiness unknown, no numerical Bound.
+
+- `2026-09-28T08:59:21Z` 暂存知识变化 `PK-114`：Run625 partial DAG identifies conditional context/Q/KV parallelism, but unknown metadata readiness and resource contention bar a timed Scheduling Bound; R20/R21 are priors under different configurations.
+
+- `2026-09-28T09:00:23Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run626`（design-check）。
+
+- `2026-09-28T09:00:23Z` Run `run626` 记录为 `pass`；正确性为 `not-applicable`。V3.44 partial Runtime DAG pinned; Astra High 14 negative injections pass, all numeric Bound fields remain null.
