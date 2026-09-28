@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run603 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-28T04:00:44Z`
+- 下一步：审查 Run run606 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-28T05:26:46Z`
 
 ## Run 记录
 
@@ -34,6 +34,9 @@
 - `runs/mixed_32k_1024_c12/run601`
 - `runs/mixed_32k_1024_c12/run602`
 - `runs/mixed_32k_1024_c12/run603`
+- `runs/mixed_32k_1024_c12/run604`
+- `runs/mixed_32k_1024_c12/run605`
+- `runs/mixed_32k_1024_c12/run606`
 
 ## 阻塞项
 

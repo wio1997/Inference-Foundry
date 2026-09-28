@@ -89,3 +89,15 @@
 - `2026-09-28T04:00:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run603`（design-check）。
 
 - `2026-09-28T04:00:44Z` Run `run603` 记录为 `pass`；正确性为 `not-applicable`。Run602 same-W0 all8 admitted current prep census:71 ordinary Target/proposal pairs,3 zero-token executes,4 96-token handoffs,7283 ordinary scheduled and7496 Target padded rows per rank; not compulsory or a critical-path Bound.
+
+- `2026-09-28T04:11:04Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run604`（review）。
+
+- `2026-09-28T04:11:13Z` Run `run604` 记录为 `pass`；正确性为 `not-applicable`。Astra High 25-SHA source/history preflight: ordinary DSpark eager; Target Graph replay/conditional existing sync and DSA_CP is_prefilling require actual branch witness; minimal full-preparation packet can piggyback conditional Resource freshness; no service or numeric Bound.
+
+- `2026-09-28T05:05:21Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run605`（profile）。
+
+- `2026-09-28T05:05:28Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run606`（profile）。
+
+- `2026-09-28T05:07:16Z` Run `run605` 记录为 `invalid`；正确性为 `invalid`。Basis/Product PASS but full dispatch INVALID: ordinary Draft/context observer silently skipped after warmup proposer.runner shim; 44 Target pairs/rank, no complete DAG. Seven cleanup/restore gates zero; run/final exits one. No Bound update.
+
+- `2026-09-28T05:26:46Z` Run `run606` 记录为 `pass`；正确性为 `pass`。Scoped all8 diagnostic W0: 97 Basis/281 Product/64 dispatch SHA and four admissions pass; 40 ordinary pairs/rank, 24 NONE,16 FULL replay sync, Q7 context5675/query1813, Product564+48588=49152; observer timing not formal, no finite Bound.
