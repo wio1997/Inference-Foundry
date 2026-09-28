@@ -1125,3 +1125,11 @@ Run611 separately admitted604 immutable raw files, all8 offline parsed traces, a
 ## Latest Bound checkpoint — Run612 / V3.39
 
 Read-only same-W₀ native reducer and independent Astra review admit three all8 Model45 occurrences of5,412 static tasks each, with260 communication-named events per occurrence. The45.102–72.209ms exported envelopes are instrumented Current, not physical completion, legal overlap savings or a strict latency floor. `connection_id` alone is unsafe across replay. V3.39 preserves Formal Current571.681tok/s and strict Resource/Scheduling/Product endpoints and numeric gap null. Next type eager Draft KV storage generations and first query consumer from existing traces/source; acquire certified Resource W⁻/C⁺/B in parallel. No new live service or intervention.
+
+## Latest Bound checkpoint — Run613 / V3.40
+
+Read-only all8 `torch_to_npu` flow joins prove exported Host→native ownership for144 Draft eager scatters and72 sparse attention calls. Source establishes intended SWA cache alias, but actual cache allocation/row generation and first reader remain unmeasured; rank5 native scatters cross the next Target Host start without proving removable device overlap. Astra independently reviewed ownership. V3.40 leaves strict endpoints and numerical Gap null; Formal Current571.681tok/s. Next bounded typed KV witness should also pin one actual fresh context projection for partial arithmetic W⁻, while certified exact-board C⁺/B continues independently. No live intervention yet.
+
+## Latest Bound design checkpoint — Run614
+
+Astra Resource review confirms no current small peak/traffic test can certify `C⁺,B` or universal necessary `W⁻`. The highest-information next packet combines actual cache/row-generation and first consumed-read evidence with one conditional fresh context projection/entry-credit audit. Run614 revised design received independent Astra scoped PASS but is NOT LIVE-READY. Scheduling identity and conditional fresh-work outcomes are separate; legal reuse/overwrite can yield NO_WITNESS without invalidating Scheduling capture. No service ran. V3.40 Formal Current571.681tok/s and strict Resource/Scheduling/Product endpoints/numeric gap remain null. Next implement reversible observer, budget/selftest/negative controls, then guarded live if preflight passes.

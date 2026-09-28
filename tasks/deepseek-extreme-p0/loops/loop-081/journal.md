@@ -133,3 +133,15 @@
 - `2026-09-28T06:50:10Z` Run `run612` 记录为 `pass`；正确性为 `not-applicable`。Read-only all8 Run611 native replay reducer and independent Astra PASS: Model45 5412 static tasks times3/rank, 260 hcom-named events/replay; exported envelope45.102-72.209ms instrumented Current, not physical completion or Bound. V3.39 keeps all strict endpoints/gap null.
 
 - `2026-09-28T06:50:46Z` 暂存知识变化 `PK-106`：Run611 Level0 Model45 connection_id recurs across three replays; all8 native identity requires static-task occurrence and temporal start anchor. Exported envelope is instrumented Current only.
+
+- `2026-09-28T06:56:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run613`（design-check）。
+
+- `2026-09-28T07:06:43Z` Run `run613` 记录为 `pass`；正确性为 `not-applicable`。Read-only all8 same-W0 exact torch_to_npu flow joins 144 eager scatters+72 sparse attention Host/native events, Astra scoped PASS. Source-level SWA alias only; actual allocation/row generation/read set absent. Rank5 native scatter crosses next Target Host start, no device overlap or saving claim. V3.40 strict endpoints/gap null.
+
+- `2026-09-28T07:07:50Z` 暂存知识变化 `PK-107`：Run613 exact all8 216 eager scatter/attention CPU-to-native flow joins establish exported ownership, not actual cache allocation/slot generation or mandatory cross-cycle seriality. Host-cycle timestamp bins are invalid for native ownership.
+
+- `2026-09-28T07:10:32Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run614`（design-check）。
+
+- `2026-09-28T07:18:31Z` Run `run614` 记录为 `pass`；正确性为 `not-applicable`。Read-only combined Scheduling typed-KV and Resource partial-W-minus design gate, revised after Astra High reviews. SCOPED DESIGN PASS, NOT LIVE-READY. Separate Scheduling identity from fresh-work PASS/NO_WITNESS/UNKNOWN; 128KiB/rank selected-row scratch. No live service, no Bound promotion; V3.40 strict endpoints/gap null.
+
+- `2026-09-28T07:20:14Z` 暂存知识变化 `PK-108`：Run614 typed-KV Scheduling identity admission remains valid even if selected fresh-work Resource witness is reused/overwritten/masked; conditional W-minus needs consumed new semantic value and full entry credit. Design passed, not live-ready.

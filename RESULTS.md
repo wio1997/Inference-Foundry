@@ -788,3 +788,11 @@ Run610 client48+48 and all8 Basis/Product/dispatch admissions passed, but origin
 ## Run612 read-only native occurrence
 
 All8 parsed Model45 native events separate into three5,412-task occurrences/rank using static key occurrence and time anchors. Each has260 hcom-named events. Astra independent scoped review PASS. Instrumented exported envelope45.102–72.209ms is not physical completion or a Bound; connection_id recurs across replay. V3.39 leaves strict Resource/Scheduling/Product endpoints and numeric gap null. Formal Current571.681tok/s. No live test or intervention.
+
+## Run613 exact flow and V3.40
+
+Read-only all8 existing-trace analysis:144 eager scatter plus72 sparse attention CPU/native pairs uniquely joined by `torch_to_npu` s/f flow. Astra scoped source/native and model reviews PASS. First three scatters/proposer are source-consistent context KV writes; later three and attention are layer43/44/45 scoped. Actual cache allocation/generation and first read set remain unknown. V3.40 strict Bound endpoints and numeric gap null; Formal Current571.681tok/s. No live benchmark or intervention.
+
+## Run614 read-only typed-KV packet design
+
+Astra Scheduling and Resource scoped design checks PASS after the packet separates Scheduling capture from fresh-work PASS/NO_WITNESS/UNKNOWN. This is not a live result or W⁻ certificate. Source/clock/flow, allocation and row generations, ABI read-domain and bounded same-stream snapshots remain implementation gates. No service ran, no formal TPS or numerical Bound changed. Formal Current571.681tok/s.
