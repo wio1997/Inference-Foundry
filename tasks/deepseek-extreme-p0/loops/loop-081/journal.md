@@ -327,3 +327,9 @@
 - `2026-09-28T12:50:47Z` Run `run651` 记录为 `pass`；正确性为 `not-applicable`。Run638 ON same-W0 12 all8 Host-submit groups: Target before->return skew median -3.397ms in11/12, proposer before->after +2.772ms in12/12; 8 successor pairs all retain/increase spread, latest rank rotates. Astra scoped pass. No removable wall or Product TPS transfer.
 
 - `2026-09-28T12:51:05Z` 暂存知识变化 `framework-only-late-rank-rotates`：Within Run638 ON selected early cycles, all8 Host-submit skew shrinks across Target forward and grows across proposer, carrying to next Target; latest rank rotates across 1/2/4/6, so Run611 rank7 must not be hardcoded as bottleneck.
+
+- `2026-09-28T12:57:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run652`（profile）。
+
+- `2026-09-28T12:57:54Z` Run `run652` 记录为 `pass`；正确性为 `not-applicable`。Run638 ON 64 rank-local cycle handoffs: Host submit interval median6.265ms, same-stream Event interval0.873ms, paired gap5.195ms; Host>Event64/64. Astra scoped pass; difference not idle or saving, no Product transfer.
+
+- `2026-09-28T12:57:54Z` 暂存知识变化 `framework-only-host-event-not-disjoint`：Run638 ON same-current-stream proposer-to-next-Target Event intervals median0.873ms while paired Host marker intervals median6.265ms; the Host interval cannot be inserted as disjoint exposed stream or Product cost.
