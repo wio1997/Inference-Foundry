@@ -1,2354 +1,434 @@
-# DeepSeek Extreme P0 — Short Handoff
-
-## Entry
-
-- SSH: `ssh 61.241.77.34-60008`
-- Repo: `/data/wio/Inference_Foundry`
-- GitHub: `https://github.com/wio1997/Inference-Foundry`, branch `main`
-- Container: `vllm-ascend26-dsv4f-w4a8` (privileged, host network)
-- Image: `quay.io/ascend/vllm-ascend:v0.26.0rc1`
-- Model: `/data/yxy/DeepSeek-V4-Flash-0731-w4a8`
-- Framework: `/data/wio/vllm_ascend_26/framework/{vllm,vllm-ascend}` with the
-  Loop034 serving patches preserved in `patches/`
-
-GitHub contains the project state, scripts and committed evidence. Continuing experiments also requires this server: model weights, image, framework checkout and NPUs are not stored in the GitHub repo.
-
-## Resume
-
-```bash
-ssh 61.241.77.34-60008
-cd /data/wio/Inference_Foundry
-git pull --ff-only
-cat AGENTS.md HANDOFF.md PROJECT_STATE.md PERFORMANCE_MAP.md ACHIEVABLE_BOUND.md RESULTS.md
-python3 scripts/taskctl.py resume --task-dir tasks/deepseek-extreme-p0
-npu-smi info
-docker ps -a --filter name=vllm-ascend26-dsv4f-w4a8
-git status --short
-```
-
-Loop034 is complete. The first full-serving Extreme Runtime passed the frozen
-warm-cache `48×32K→1024, c12` protocol: warmup plus three measured runs all
-finished 48/48 requests at exactly 1024 output tokens. Across all four
-workloads, 16 cohorts produced 128 passing rank records; each cohort stayed in
-the runtime-owned decode loop and returned one terminal bulk frame, with no
-per-cycle ModelRunner/Scheduler re-entry.
-
-Formal output TPS was `217.342 / 218.884 / 215.889`, median `217.342 tok/s`.
-Median-of-runs TTFT p50 was `1942.120 ms` and TPOT p50 `53.298 ms`. This is a
-valid same-protocol result and is `60.022%` below Stock `543.655 tok/s`.
-Rank-0 cohort wall median was `53.373 s` for about 1025 cycles, so serving
-bookkeeping is no longer the principal gap; sustained Extreme decode is.
-Evidence is under `evidence/20260922_loop034_fixed_serving/e2e/`.
-
-Next open a profile-driven loop over the full 1024-cycle runtime chain and
-attribute target graph replay, proposer, TP/EP communication, acceptance/state
-and launch gaps before choosing a structural optimization. Do not redo
-Loop029–034 correctness or the formal A/B.
-
-## Start baseline service
-
-The container already exists. If stopped:
-
-```bash
-docker start vllm-ascend26-dsv4f-w4a8
-```
-
-After confirming all eight NPUs are free, start the frozen DP1×TP8 DSpark7 service:
-
-```bash
-docker exec vllm-ascend26-dsv4f-w4a8 bash -lc 'cd /data/wio/Inference_Foundry && MAX_MODEL_LEN=1048576 RUN_TS=RESUME-$(date +%Y%m%d-%H%M) bash scripts/serve.sh'
-tail -f logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_RESUME-*.log
-curl -f http://127.0.0.1:8080/health
-```
-
-Startup normally takes several minutes. Do not launch a second service while port 8080 or an NPU process is active.
-
-## Stop service
-
-```bash
-docker exec vllm-ascend26-dsv4f-w4a8 bash -lc 'pkill -9 -x "VLLM::EngineCor" 2>/dev/null || true; pkill -9 -x "VLLM::DPCoordin" 2>/dev/null || true; pkill -9 -x "VLLM::Worker_DP" 2>/dev/null || true; pkill -9 -x "VLLM::APIServer" 2>/dev/null || true; pkill -9 -x vllm 2>/dev/null || true'
-npu-smi info
-```
-
-## Minimal prompt for a new conversation
-
-> SSH `61.241.77.34-60008`, continue `/data/wio/Inference_Foundry` from `main`. Read root `AGENTS.md`, `HANDOFF.md` and the TaskCtl resume pack. Loop034 has completed the formal warm-cache A/B at median 217.342 tok/s versus Stock 543.655. Start the next profile-driven loop on the full 1024-cycle Extreme-owned chain, then choose the highest-value structural optimization from evidence. Do not redo Loop029–034 evidence.
-## Loop035 checkpoint (2026-09-23 06:36 UTC)
-
-The first short real-weight Extreme DAG profile found target ~45.07 ms/cycle and proposer ~5.93 ms/cycle (NPU event medians); the dominant gap remains low accepted outputs. Stock warm 12-request long decode accepted 2.908 drafts/iteration. At Extreme cycle 1, target position/seq_len advance while DSA-CP start_pos and local_seq_lens remain at bootstrap values. Updating only those fields did not recover acceptance, so the candidate was reverted. See PROJECT_STATE.md and evidence/20260923_loop035_diagnostic/. Next obtain same-state target/proposer discrimination and inspect SAS/QLI derived metadata. Do not repeat formal Loop034 A/B until acceptance and long token correctness improve.
-
-## Loop035 checkpoint (2026-09-23 11:57 UTC)
-
-The specialized Runtime 1024-cycle DAG profile (Run18) found target 45.510 ms,
-DSpark proposer 5.943 ms and acceptance 0.305 ms median NPU time. Acceptance
-fell to exactly 1.000 output/slot/cycle late in the run. Formal E2E remains
-Loop034 Extreme 217.342 versus Stock 543.655 tok/s; no new formal A/B has run.
-
-Run22 revealed that an intended bootstrap diagnostic metadata callback had
-never been invoked. Claims of DSA/GDN builder effectiveness from Runs12/13/19/21
-were corrected in PROJECT_STATE.md and RESULTS.md. The hook was connected in
-a11a71b. Connected builder-only Run24 reached 1.836 output/slot/cycle in
-cycles128-191; target-slot-only Run25 reached 1.065. Their combination Run23
-reached 7.480, but this unusually high acceptance is not yet a semantic fix.
-
-Exact API token captures for the same 12 prompts and 1024 outputs were made for
-Stock and combined-oracle Extreme. Both returned 12/12 length-exact outputs,
-but 0/12 matched across services. Crucially, Extreme self-repeat and Stock
-same-service self-repeat also matched 0/12; Stock first output mismatch was
-token 7-78. Thus cross-run generation is not a causal token oracle on this
-configuration. Run29 used same-state target self-replay with exact restoration
-of 69 touched cache/mutable entries: target argmax still differed at 1-9 of
-96 positions per cycle, while all 12 acceptance counts stayed equal.
-
-Run30/31 A/B/C controls were invalid due old metadata tensor aliases. Runs32-34
-used a valid A/C self-replay control on all eight ranks. At cycle 1, combined
-builder+slots gave A/B 75/96 and A/C 92/96 target argmax; builder path gave
-A/B 64/96 and A/C 91/96; slot-only gave A/B 88/96 and A/C 88/96.
-Thus the builder-derived DSA/GDN state is the first detectable target
-prediction divergence; generic slot mapping alone did not exceed replay noise.
-The builder path also rewrites SWA group-2 slots, so it is not purely metadata.
-No semantic correctness or sustained acceptance fix is established. Next build
-a minimal Runtime-owned derived-state updater from source, compare tensor/state
-parity to the builder oracle, and validate continuous decode before formal E2E
-A/B. No service is currently running. The framework diagnostic patch snapshot
-is patches/loop035_current_framework_model_runner.patch.
-
-Agent orchestration was repaired independently in b53b912. The active main
-agent is GPT-6 Sol. The new scripts/delegate_zcode.py ran an actual read-only
-DeepSeek Flash Zcode task; its session ID, provider model I/O trace, response
-and exit status are in evidence/20260923_agent_orchestration/probe1/.
-TaskCtl remains an evidence manager, not a model router.
-
-## Loop035 native target metadata checkpoint (2026-09-23 14:06 UTC)
-
-Runs35–37 are opt-in correctness diagnostics for a Runtime-owned fixed c12/TP8
-DSA-CP metadata updater. Run35 was invalid due an outer-list traversal bug in
-bootstrap source extraction. Run36 completed two cycles on all eight ranks:
-45/55 fields exact at cycle0 and 42/55 at cycle1; SAS/QLI buffers and three
-compressed state-cache slot mappings differed. Run37 added reference-to-reference
-self-replay from the same restored old metadata tensors. SAS/QLI tails were
-non-exact even on self-replay, but native SAS header index4 and QLI header
-index12 differed before that noise on all ranks; the three compressed slots
-were native-only differences at cycle1. Native semantic parity is not proven.
-Evidence is `evidence/20260923_loop035_diagnostic/run35/` through `run37/`.
-
-A source-backed binder correction now restricts raw SWA slot updates to layer
-names ending `swa_cache`. Run38 is in progress with an operator argument trace
-to locate the first SAS header mismatch. No new formal E2E A/B has run; the
-Loop034 baseline remains Extreme 217.342 versus Stock 543.655 tok/s.
-
-Run38 traced all SAS metadata operator arguments on 8 ranks for c1/c4/c128.
-Reference/native scalar arguments and tensor values matched; the sole input
-difference was `cu_seqlens_q` dtype: reference int32, native int64. PyTorch
-`cumsum` had promoted the fixed local query-start vector. The native Runtime
-now requests int32 cumsum explicitly; Run39 is validating field parity. With
-raw SWA writes restricted to actual `swa_cache` groups, Run38 no longer had the
-three compressed state-cache slot differences seen in Run37. Do not infer
-long-running acceptance or token correctness from this two-cycle field gate.
-Evidence: `evidence/20260923_loop035_diagnostic/run38/summary.json`.
-
-Run39 completed the int32 correction on all eight ranks and two cycles. For
-all c1/c4/c128 SAS calls, reference/native operator arguments and first 32
-output values now match exactly. All 45 non-SAS/QLI fields in each cycle match;
-SAS first difference is index 97 or later, QLI index 25 or later, in regions
-that are unstable under reference self-replay. This passes the defined metadata
-header/input gate, but full-buffer and target/acceptance semantic equivalence
-remain open. Next perform same-state target reference/native/reference control
-with exact old metadata and physical KV restoration, then continuous decode.
-Evidence: `evidence/20260923_loop035_diagnostic/run39/summary.json`.
-
-Run40 completed an 8-rank same-state DSA-only target A/native B/restored
-reference C control. Per cycle, A/B argmax matched 92/96 and 94/96; A/C
-self-replay matched 93/96 and 92/96. A/B acceptance counts matched 12/12 in
-both cycles; A/C differed in one count in cycle0. All 138 physical KV entries,
-old metadata tensors and common fields were restored, and each rank passed the
-host mirror/state gates. Four large reused metadata tensors were excluded from
-snapshot, with A/C returning to normal replay noise. This supports isolated
-native DSA target/acceptance parity for two cycles, not long token equivalence.
-Run41 is now measuring 256 continuous FULL-graph cycles with native DSA,
-including the new metadata stage in the Runtime DAG profile.
-Evidence: `evidence/20260923_loop035_diagnostic/run40/summary.json`.
+# Inference Foundry / DeepSeek Extreme — HANDOFF
 
-Run41 completed 256 native-DSA c12 cycles on all 8 ranks with exact state and
-host mirrors. Its target graph flag was omitted: records explicitly show
-`target_graph_requested=false`, `target_graph_mode=NONE`. This eager trace is
-not comparable with Run18 FULL-graph stage times or formal E2E. It emitted
-5,370 tokens/rank, with outputs/slot/cycle 1.940 in cycles128–191 and 1.729
-in cycles192–255, but no long semantic oracle was run. Run42 is the corrected
-FULL-graph 256-cycle native-DSA profile, with no extra diagnostic clones.
-Evidence: `evidence/20260923_loop035_diagnostic/run41/summary.json`.
+> Purpose: 新对话、新 Agent、新机器或长时间中断后的唯一恢复入口。  
+> Rule: 每次重要 checkpoint 后更新本文件，并与代码/evidence 一起 commit + push。  
+> 本文件应保持“短、准、可执行”，不要变成历史日志；历史细节放 `PROJECT_STATE.md`、TaskCtl 和 `evidence/`。
 
-Run42 corrected the graph flag and completed 256 FULL-graph native-DSA cycles
-on all 8 ranks with exact state and host mirrors. NPU event medians (after 16
-cycles) were derived metadata 8.616ms, target46.201ms, proposer5.880ms,
-acceptance0.331ms. Rank0 emitted4,894 tokens in15.830s (309.16tok/s short
-standalone diagnostic). Outputs/slot/cycle were1.665 in cycles128–191 and
-1.594 in192–255. This short run is not the formal 48-request E2E protocol;
-acceptance remains low. Run43 tests native GDN prior accepted-count binding
-alongside native DSA in same-state reference/native/reference target control.
-Evidence: `evidence/20260923_loop035_diagnostic/run42/summary.json`.
+---
 
-Run43 did not reach target A/B/C: on all 8 ranks, bootstrap rejected the
-assumption that the initial `attn_metadata` dict already exposed a GDN
-speculative count view. It is INVALID and has no target/acceptance inference.
-Source inspection identified the graph-stable `num_accepted_tokens` buffer on
-`GDNAttentionMetadataBuilder`; bootstrap now hands that tensor over once,
-without retaining the builder in Runtime. Run44 is redoing the two-cycle
-combined DSA+GDN same-state control, including count values before reference,
-after reference A, and after native B. Evidence: run43/summary.json.
+# 1. Project identity
 
-## Loop035 GDN hypothesis correction (2026-09-23 15:50 UTC)
+项目：**Inference Foundry / DeepSeek Extreme P0**
 
-Run43 and Run44 both failed their explicit bootstrap gate before target work.
-Run43 found no GDN count view in the initial metadata; Run44 found no GDN
-metadata builder among active attention groups on all eight ranks. The model
-config and `vllm/vllm/models/deepseek_v4/` source contain no GDN architecture.
-Thus prior descriptions of a "DSA+GDN builder" control overstate what was
-executed for DeepSeek V4 Flash: the connected callback rebuilt active DSA/SWA
-metadata, while its generic GDN branch was not taken. No earlier acceptance
-or target result is evidence about GDN. The optional GDN Runtime binding has
-been removed. Return to DSA, SWA/compressed KV, target and DSpark proposal
-causal controls. Evidence: run43/summary.json and run44/summary.json.
-
-## Loop035 Run45 late native DSA control (2026-09-23 16:05 UTC)
-
-FULL-graph 129-cycle A/reference, B/native, C/restored-reference target control sampled cycles 0,1,64,128. All 8 ranks passed physical KV restoration, metadata restoration, exact state advance and host mirrors. At cycle64 A/B argmax was 74/96 versus A/C 72/96; at cycle128 78/96 versus 76/96. Accepted-token equality was 90/96 versus 90/96, then 89/96 versus 91/96. Native DSA difference is within reference self-replay noise at sampled late states; reference self-replay is too noisy to certify long token equivalence. Sustained low acceptance remains unresolved. Next discriminate DSpark proposal and target/KV using effective tokens and controlled same-state replay. Evidence: `evidence/20260923_loop035_diagnostic/run45/summary.json`.
-
-## Loop035 Run46 late DSpark proposer control (2026-09-23 16:22 UTC)
-
-After 128 continuous native-DSA FULL-graph cycles, all 8 ranks passed same-state Product/Stock/Stock proposer input, prepare-field and physical KV restoration gates. Product/Stock first draft token was 12/12 equal; full draft 83/84 equal versus Stock self-replay 79/84. Thus sampled late Product proposer implementation is not the observed low-acceptance root. This does not compare full serving trajectories: next establish effective token-level Stock oracle and first target/KV state divergence from the shared initial state. Evidence: `evidence/20260923_loop035_diagnostic/run46/summary.json`.
-
-## Loop035 Run47 Stock output self-control (2026-09-23 16:39 UTC)
-
-Identical 12×32K→1024 c12 Stock requests were submitted twice to one service with temperature0 and ignore_eos. Both were 12/12 complete and 1024 tokens/request, yet exact output text matched 0/12; earliest differing character across requests was 38, longest common prefix ranged 38–920. Independent Stock-vs-Extreme output text cannot serve as a first-divergence oracle. Run47 is INVALID for that method. Next perform Stock/direct target A/B/C within one fixed KV state with Stock self-replay control, comparing first/effective target tokens, accepted counts and physical cache restores. Evidence: `run47/summary.json`.
-
-## Loop035 Run48 diagnostic binding correction (2026-09-23 16:56 UTC)
-
-Run48 Stock/direct/Stock target control reached its diagnostic bootstrap on all 8 ranks but failed before target A/B/C because the new mode did not request the per-group common metadata views from the Stock builder. No target conclusion follows. The diagnostic gate now captures those views when `EXTREME_STOCK_TARGET_ABA=1`; Run49 is starting with the same cycle128 and fixed cohort protocol. Product Runtime code is unchanged. Evidence: `run48/summary.json`.
-
-## Loop035 Run49 late Stock/direct target control (2026-09-23 17:10 UTC)
-
-At the 128th fixed Stock decode cycle, native-DSA direct target B was run between Stock target A and restored Stock C on the exact same physical KV and metadata state. All 8 ranks passed physical KV, metadata and common-field restore gates. A/B first target token matched 12/12, full argmax 96/96, accepted tokens 96/96 and all 12 accepted counts; A/C full argmax was 95/96. Stock counts were [6,4,6,8,7,6,1,7,6,4,8,1]. This excludes a direct target invocation discrepancy on that sampled Stock state. It does not prove continuous Extreme state evolution; next compare KV/DSA and state transition writes after the first target/proposer cycle against Stock, then trace first split. The intentional sentinel truncated client streams, so bench output is not throughput evidence. `run49/summary.json`.
-
-## Loop035 Run50 post-target KV write control (2026-09-23 17:24 UTC)
-
-At Stock fixed cycle128, Stock A/direct B/Stock C touched-cache writes were compared after each target from the same pre-state. All 8 ranks restored 69 selected rows exactly between calls; first target token matched 12/12 A/B and A/C. A/B and Stock A/C each differed in the same 19/69 cache rows, with broadly comparable element counts. Raw cache value equality is dominated by Stock self-replay noise and does not identify a direct target cache-write defect. Next implement a dedicated continuous lockstep harness to compare causal state/KV transitions and effective accepted tokens, rather than adding further ad hoc ModelRunner branches. Evidence: `run50/summary.json`.
-
-## Loop035 Run51 late DSA field parity (2026-09-23 17:40 UTC)
-
-After 129 native-DSA FULL-graph continuous cycles, reference/native/reference metadata comparison sampled cycles 0,1,64,128. On all 8 ranks at every sample, all 45 non-SAS/QLI fields matched exactly; each of three SAS operator calls had identical arguments and identical first32 output values. The remaining ten SAS/QLI tensor tails were unequal even in reference self-replay, so they cannot establish native divergence. Host mirrors remained exact. This narrows the continuous acceptance investigation to block allocation/physical KV or other long-lived binding state; next audit the fixed Runtime block table through 1024 output. `run51/summary.json`.
-
-## Loop035 Run52 standalone KV allocation failure and protocol correction (2026-09-23 17:58 UTC)
-
-An opt-in audit inside `FixedDecodeRuntime.prepare_target_inputs()` sampled 256 native-DSA FULL-graph standalone cycles. On all 8 ranks, the borrowed bootstrap block table supplied physical block0 to 66/96 target positions at cycle16 and 96/96 from cycle32, across 12 slots. Thus standalone state/host counters were insufficient: without allocator ownership, later KV writes alias block0. This Run is a correctness FAIL for the standalone no-reservation protocol. Crucial scope: Loop034 formal Extreme serving sets `EXTREME_RUNTIME_SERVE=1` and `EXTREME_RUNTIME_RESERVE_TOKENS=1024`; the vLLM scheduler uses that to preallocate lookahead blocks. Run52 cannot explain formal E2E low acceptance. Run53 now audits the reserved serving path with native DSA and reports acceptance windows before choosing a fix. Evidence `run52/summary.json`.
-
-## Loop035 Run53 reserved-serving completion failure (2026-09-23 18:25 UTC)
-
-Run53 used 1024-token scheduler reservation, native DSA and a fixed 12×32K→1024 FULL-graph cohort. All 12 clients returned exactly 1024 tokens, and eight rank gates passed. Audit found no physical block0 target positions through cycle128, but at cycle256 completed slot2 targeted block0 in all eight positions. Rank0 staged 2564 tokens internally for that slot and 2149 excess tokens across the cohort. The shell kept completed slots running until the slowest slot finished. This is a serving KV correctness failure despite client lengths; its single-cohort 366.47 tok/s with auditing is diagnostic, not a formal A/B. Run53 is TaskCtl FAIL. A fixed-slot parking/mask fix is in progress, with 64 extra reserved tokens for the final valid target boundary. Verify on all ranks before repeating formal 48-request A/B. Evidence: `evidence/20260923_loop035_diagnostic/run53/summary.json`.
-
-## Loop035 Run54 fixed-slot parking (2026-09-23 18:36 UTC)
-
-The dedicated Runtime now freezes completed slots' logical output counters and parks their fixed-shape target/proposer replay inside their own reserved KV region. The DSpark Host mirrors are committed and reset to the same parked position; serving requires 1088 scheduler-reserved tokens for a 1024-token output. The first real 12×32K→1024 c12 cohort passed 12/12 client lengths and all eight rank/Host gates. Rank0 excess staged tokens fell from Run53 2149 to 49. Physical block0 was absent at sampled cycles0,1,128,256, but the audit did not sample late cycles257–433; Run55 must sample that interval before formal A/B. Run54's 360.33 tok/s is a single audited cohort, not a same-protocol formal result. See `evidence/20260923_loop035_diagnostic/run54/summary.json`. A separate Zcode/DeepSeek read-only review produced a response but its wrapper timed out at 180 seconds; the main Agent reviewed two applicable guard gaps and added a scheduler-reservation switch check and a short-request parking clamp. This review is not a Runtime correctness gate.
-
-## Loop035 Run55 late parked-slot KV audit (2026-09-23 18:49 UTC)
-
-With 1088-token scheduler reservation and the completed-slot mask/parking fix, a real 12×32K→1024 c12 cohort finished 12/12 requests at exact length. All eight ranks passed Host mirror and execution gates. Physical target block0 and negative mappings were absent at sampled cycles 0,128,256,320,360,384,400,420 on every rank. Multiple rank0 slots show stable parked positions at cycles384–420, rather than advancing beyond reservation. Rank0 staged only 53 excess tokens at completion boundaries. This passes the sampled late KV safety gate. The single-cohort 359.51 tok/s is diagnostic; long token-level semantic equivalence and the acceptance gap versus Stock remain open. Next use valid reserved-serving same-state A/reference, B/native, C/reference target controls at later cycles; do not restart generic ModelRunner patch churn. Evidence: `evidence/20260923_loop035_diagnostic/run55/summary.json`.
-
-## Loop035 Run56 invalid diagnostic gate (2026-09-23 19:03 UTC)
-
-Reserved-serving native target A/B/C did not reach target calls: the reference DSA builder callback requires `EXTREME_DSA_BUILDER_ORACLE=1`, which Run56 omitted. All eight ranks failed the same explicit bootstrap gate. The client benchmark subsequently could not write its JSON because the diagnostic directory had not been created; that is not the rank root cause. Run56 is INVALID and has no target/acceptance inference. Run57 will add the existing builder flag and precreate the directory. Evidence: `evidence/20260923_loop035_diagnostic/run56/summary.json`.
-
-## Loop035 Run57 reserved same-state native DSA target control (2026-09-23 19:17 UTC)
-
-Run57 added the required reference builder callback and sampled target A/reference, B/native DSA, C/restored reference at cycles0,1,64,128,256 after continuous FULL-graph decode with 1088 scheduler-reserved KV tokens. All eight ranks passed physical KV/metadata restores, state advance and Host mirrors. At cycles64/128/256 A/B argmax matched 95/96,93/96,94/96 against A/C self-replay 94/96,93/96,93/96; accepted counts matched all 12 slots for both comparisons. The early c0/c1 small count differences need the self-replay control and do not establish a persistent split. Native DSA target behavior remains within reference replay noise on a valid reserved state. Client sentinel output and TPS are invalid. This does not prove continuous Stock-vs-Extreme token equivalence or explain the remaining acceptance gap. Next trace the first continuous Stock/Product state divergence in a dedicated lockstep harness, with integer positions/slot mappings/counts and cache ownership before expensive value comparisons. Evidence: `evidence/20260923_loop035_diagnostic/run57/summary.json`.
-
-## Loop035 Run58 partial KV snapshot coverage audit (2026-09-23 19:37 UTC)
-
-The transactional cache snapshot now reports partial out-of-range indices as skipped coverage, so a restore can no longer silently look complete when only some mapped rows were captured. A synthetic CPU case passed. Run58 repeated the reserved 257-cycle target A/reference, B/native DSA, C/reference control with this stronger gate. All eight ranks passed, with zero skipped/partial snapshots and exact restores at cycles0,1,64,128,256. At cycles64/128/256 A/B argmax was94/96 each; A/C self replay was95/96,93/96,93/96, and accepted counts matched. This confirms the sampled native DSA result under the stronger recorded-row coverage gate, while full mutable-state coverage and long Stock token equivalence remain open. The diagnostic client's sentinel TPS is invalid. Next inspect continuous Stock input/state and DSpark proposer trajectories; do not repeat the same isolated target parity sample. Evidence: `evidence/20260923_loop035_diagnostic/run58/summary.json`.
-
-
-## Loop035 Run59–64 continuous state and early target gate (2026-09-23 21:17 UTC)
-
-Run59's read-only Stock observer incorrectly indexed every KV group by absolute position; group1 has a 256-column table, so the observer aborted before inference. Run60 completed 12/12 clients but wrote no 256-cycle shadow file because the fixed c12 window ended earlier. Both are TaskCtl INVALID for their intended shadow gates. Run61 added periodic checkpoints and recorded 128 consecutive fixed c12 cycles on all eight ranks: target input ABI stayed exact, and group0/2/3/4/5 table-to-slot mappings matched with no negative physical blocks. Group1 geometry remains unverified. This does not compare Stock and Product physical trajectories. See run61/summary.json.
-
-Run62 captured the first 32 Stock c12 cycles (target input IDs/positions, argmax, accepted tokens, next draft) on all eight ranks. Run63 captured the first 32 Extreme serving cycles and completed 12/12 requests at 1024 tokens. Only 3/12 slots had identical full target input and positions at cycle0 across these independent services. In aligned slots, Stock/Extreme draft and one target token differed, but Run28/47 already established cross-run Stock non-determinism; this paired trace is a clue, not a causal oracle. Run63 acceptance was 2.55 outputs/slot/cycle over cycles192–255 and 1.78 over cycles256–452 in this diagnostic cohort, not a formal throughput result. Evidence: run62/summary.json and run63/paired_summary.json.
-
-Run64 reused the existing same-state Stock A / independent native-DSA FULL target B / restored Stock C diagnostic at fixed cycle1. All eight ranks passed KV and metadata restoration. A/B target argmax matched 89/96 versus A/C 88/96; A/B accepted tokens matched 96/96 and all 12 counts, versus A/C 91/96. Both A/B and A/C post-target writes matched 50/69 captured rows and had identical mismatch row names. Together with Run49/50 at cycle128 and Run57/58 in reserved Product state, this rules out a clear candidate-specific target/DSA split at sampled early and late states. The intentional sentinel makes client TPS invalid. Evidence: run64/summary.json.
-
-Next implement a dedicated continuous Stock-authoritative lockstep observer that checks product state transitions and KV ownership/write coverage per cycle, with Stock self-replay as noise control. Reuse Run20's confirmed draft group2 slot staleness and Run23–25's combined-effect but semantically unverified controls; do not repeat their isolated experiments. Only after the continuous semantic/acceptance cause is identified should the prepared 48×32K→1024 formal A/B script run.
-
-Agent routing: root AGENTS.md was read and now names GPT-6 Sol as default main Agent, Zcode/DeepSeek only for bounded read-only tasks, and TaskCtl as state/evidence manager rather than model scheduler. evidence/20260923_agent_orchestration/probe1/execution.json records a successful deepseek/deepseek-flash provider call (2 requests); run54_readonly_review records 11 provider requests but a 180-second wrapper timeout. These are actual route records, not merely configuration text.
-
-## Loop035 Run65 continuous target-slot ownership audit (2026-09-24 02:16 UTC)
-
-Run65 added a read-only, Runtime-side audit of all six KV-group slot mappings
-for the first eight cycles of a real reserved-serving 12×32K→1024 cohort. All
-8 ranks passed the 435-cycle serving and Host-mirror gates; all 12 clients
-returned exactly 1024 tokens. At cycle0, the five groups with supported
-absolute-position geometry matched their block-table-derived mapping. At
-cycle1, groups0/2/4/5 each differed in 96/96 mappings on every rank, and
-remained stale through cycle7; group3 matched throughout. Group1 has a
-256-column table that cannot be indexed by the absolute positions in this
-observer, so its mapping is unclassified. The diagnostic does not mutate KV
-or attention state. This is the first repeatable continuous target-slot
-divergence under valid scheduler reservation, but it does not yet prove that
-every stale buffer is consumed by the active target path or that it causes low
-acceptance. Source shows DSA builder formats common slot mappings and decode
-operators consume SWA slot mappings; next map each group to live layer
-metadata and perform a same-state causal A/B/self-replay with exact cache
-restoration. Do not infer long token equivalence or rerun formal E2E yet.
-Evidence: `evidence/20260924_loop035_diagnostic/run65/summary.json`.
-
-## Loop035 Run66 slot-refresh same-state target control (2026-09-24 02:34 UTC)
-
-Run66 used valid 1088-token scheduler reservation and sampled product cycles0/1
-with target A/reference builder plus all-group slot refresh, B/native DSA
-metadata with the existing mappings, C/restored reference. All eight ranks
-passed touched physical KV restores, no skipped cache rows, state advance and
-Host mirrors. At cycle1, reference refresh changed all 96 mappings in groups
-0/1/2/4/5 and none in group3. A/B argmax matched 92/96, versus A/C
-self-replay 91/96; accepted tokens matched 92/96 for both comparisons. At
-cycle0, when no slots changed, A/B argmax was 93/96 versus A/C 90/96.
-The candidate therefore has no clear direct target/acceptance signal beyond
-reference self-replay noise in these two cycles. Four large metadata tensors
-were omitted from metadata snapshots, so full mutable-state equivalence is
-not certified. The diagnostic intentionally terminated client streams and
-has no TPS validity. Continue with a dedicated continuous two-lane
-state/KV-write trajectory check, especially the DSpark context cache and
-physical ownership. Do not promote all-group slot refresh as a semantic fix
-from Run65 or Run66. Evidence:
-`evidence/20260924_loop035_diagnostic/run66/summary.json`.
-
-## Loop035 Run67 DSpark context slot refresh (2026-09-24 03:10 UTC)
-
-Source ties the previously observed stale DSpark draft gid2 mapping to the
-input kernel in `dspark_proposer.py`; that kernel builds the per-layer context
-slot mappings used by the Ascend DSpark context-KV scatter. An opt-in
-Runtime-owned refresh now updates only draft gid2/3 mappings from the borrowed
-block tables immediately before DSpark preparation. It retains no ModelRunner
-and is disabled by default pending validation.
-
-Two 12×32K→1024 cohorts in one reserved-serving service passed 12/12 exact
-client lengths and 8/8 rank/Host gates each. Gid2 needed 96/96 slot updates
-from cycle1 through the sampled first eight cycles, gid3 needed none, and
-sampled physical blocks were nonzero. Cohort cycles were 300 and 325;
-diagnostic output TPS was 467.92 and 484.46. Run65 without this opt-in took
-435 cycles and 357.08 tok/s in its first diagnostic cohort. This is a strong
-acceptance signal, not a formal matched A/B: the services were separate,
-independent generations are nondeterministic, and the diagnostic has overhead.
-Target group mappings still appear stale before target, so do not claim full
-semantic repair. Next collect a same-code flag-off control, then an effective
-long token/state oracle before promoting the fix or running formal 48-request
-E2E. Evidence: `evidence/20260924_loop035_diagnostic/run67/summary.json`.
-
-
-## Loop035 Run68 same-code flag-off DSpark control (2026-09-24 03:25 UTC)
-
-Run68 kept the Run67 code, serving reservation, target graph, dataset,
-12-request concurrency and two-cohort service, but disabled only the opt-in
-DSpark context slot refresh. Both cohorts passed 12/12 exact 1024-token client
-lengths and all 8 rank/Host gates. They needed 458 and 423 cycles, versus
-Run67 flag-on 300 and 325 cycles (34.50% and 23.17% fewer cycles). Diagnostic
-output TPS was 342.17/410.12 flag-off versus 467.92/484.46 flag-on. The
-repeated controlled direction supports draft gid2 slot staleness as a major
-continuous acceptance loss. Independent service generation remains
-nondeterministic; no long token-level oracle equivalence is established. Do
-not promote a semantic fix or run formal 48-request A/B yet. Next inspect
-continuous DSpark KV write ownership and full-state snapshots, then use a
-strict long-trajectory oracle with Stock self-replay. Evidence:
-`evidence/20260924_loop035_diagnostic/run68/summary.json`.
-
-
-## Loop035 Run69 DSpark context-write slot provenance (2026-09-24 03:45 UTC)
-
-A dedicated read-only Runtime observer captured the actual DSpark context-slot
-buffer after proposal in a flag-off 12×32K→1024 reserved-serving cohort. All
-12 clients and 8 ranks passed exact-length/Host gates, with 458 cycles. At
-cycle0 both draft groups matched the current block tables. At cycles1–7,
-gid2 context slots differed from the current physical slot in 96/96 entries
-on every rank, and matched the stale source mapping 96/96; gid3 remained
-exact. No sampled draft physical block was zero or negative. The DSpark source
-passes this context buffer to `precompute_and_store_context_kv`, which scatters
-shared SWA KV using those slots. Combined with Run67/68, this establishes a
-concrete stale-address path and its sustained acceptance cost. It does not
-certify target writes or long token-level oracle equivalence. Next perform
-strict continuous KV ownership/write trajectory and Stock self-replay control
-before formal E2E. Evidence: `evidence/20260924_loop035_diagnostic/run69/summary.json`.
-
-
-## Loop035 Run70 refreshed context-write slot control (2026-09-24 03:59 UTC)
-
-Run70 repeated the Run69 read-only context-slot observer with only the
-Runtime draft slot refresh enabled. Across cycles0–7, both gid2 and gid3
-actual DSpark context-scatter slots matched their current block-table-derived
-physical slots in all 96 positions on all 8 ranks. Gid2 source refresh
-changed 96 slots each cycle from cycle1; no sampled physical block was zero.
-The cohort passed 12/12 exact 1024-token clients and 8/8 rank/Host gates,
-using 295 cycles and 473.02 diagnostic tok/s. Matched observer Run69 flag-off
-needed 458 cycles and 341.43 diagnostic tok/s, with stale gid2 context slots
-at cycles1–7. Thus the context write-address path and its acceptance effect
-are established for the sampled early cycles. Full continuous KV state and
-long token-level Stock oracle equivalence remain open. Formal 48-request A/B
-must wait for that gate. Evidence:
-`evidence/20260924_loop035_diagnostic/run70/summary.json`.
-
-
-## Loop035 Run71 full product trace gate (2026-09-24 04:19 UTC)
-
-A dedicated offline verifier checked every cycle of a valid refreshed-slot
-12×32K→1024 reserved-serving cohort. Rank0 saved 294 consecutive cycles of
-target input IDs/positions, target argmax, accepted token rows/counts, and next
-draft. All 3,528 slot-cycles satisfied the independent Python greedy-prefix
-rule and target-input/state ABI. The checker covered 3,039 active state
-transitions and 477 completion-or-park transitions; each of 12 slots reached
-1024 client tokens. All 8 ranks passed the original exact-length/Host gates.
-Diagnostic throughput was 467.27 tok/s. This establishes continuous internal
-Product acceptance and state-machine consistency; it does not compare target
-KV values or long token sequence against a Stock same-state oracle. Next
-complete physical KV ownership/write coverage and transactional Stock
-A/Product B/Stock C replay with complete snapshot coverage. Evidence:
-`evidence/20260924_loop035_diagnostic/run71/summary.json` and
-`evidence/20260924_loop035_diagnostic/run71/trace_check.json`.
-
-
-## Loop035 Run72 full DSpark write-address trajectory (2026-09-24 04:36 UTC)
-
-A streaming read-only audit covered all 285 cycles of a refreshed-slot
-12×32K→1024 reserved-serving cohort on all 8 ranks: 4,560 ordered
-pre-target/post-proposer records, 12/12 exact-length clients, and 8/8
-rank/Host gates. Draft gid2/3 actual context-scatter slots matched the
-current physical block tables in every cycle. The audit found no negative,
-block0, same-cycle duplicate, or cross-request owner-conflicting draft
-address. This extends the early Run70 write-address result through completion
-and parked slots. Generic pre-target mappings for groups0/2/4/5 were stale
-from cycle1 through cycle284; group3 matched. Group0 physical block0 is also
-present in Stock Run61, and group1 table geometry is not classified, so these
-common-buffer observations do not prove active target writes are wrong.
-The full-audit 409.40 tok/s is overhead-contaminated and not a performance
-comparison. Physical KV values and long Stock token parity remain open.
-Evidence: `evidence/20260924_loop035_diagnostic/run72/summary.json`.
-
-`RuntimeAssets.snapshot_slots(strict=True)` now rejects incomplete cache
-selection and invalid candidate slots, and captures full mutable tensor rows.
-A CPU synthetic restore/out-of-bounds gate passed. This is a prerequisite for
-the next same-state Stock/Product/Stock transaction; the caller must still
-supply a complete target and DSpark write-set manifest before claiming full
-snapshot coverage.
-
-
-## Loop035 Run73 cache/metadata alias inventory (2026-09-24 04:57 UTC)
-
-The one-time Runtime handoff emitted cache/metadata pointer manifests on all
-8 ranks. Their structures matched: 67 target cache tensors, all mapped to a
-KV group. Group0 owns c4 attention/indexer caches (16 tensors), group1 c128
-attention (8), groups2/3 SWA and DSpark draft (8 each), and groups4/5
-compressor state caches (17/10). The three compressed attention/indexer
-metadata sources have no direct slot tensor. Their actual scatter/state
-addresses derive from compressor metadata, start position and block tables;
-source shows SWA scatter uses req_metadata.slot_mapping, which the native
-updater refreshes. Therefore the stale generic pre-target mappings observed
-in Run65/72 do not by themselves establish active target write corruption.
-The current cache snapshot helper maps physical cache tensors to groups but
-its common-slot selection does not certify compressed/state writes. Next
-construct a complete candidate write-set from active req_metadata and
-compressor output, then use strict snapshot coverage for same-state Stock
-A/Product B/Stock C. Run73 passed 12/12×1024 clients and 8/8 rank/Host gates;
-its TPS is diagnostic. Evidence:
-`evidence/20260924_loop035_diagnostic/run73/summary.json` and
-`evidence/20260924_loop035_diagnostic/run73/manifest_check.json`.
-
-## Loop035 Run74 write-set audit (2026-09-24 05:00 UTC)
-
-Source-backed physical writes: group0/1 compressed scatter slots come from compressor_metadata outputs, group2/3 SWA and DSpark slots from active req metadata, and group4/5 compressor state pages from start_pos plus state_block_table. The current strict snapshot validates supplied candidates but cannot certify compressed/state coverage from generic group slots. Before Stock A/Product B/Stock C, construct per-cache write candidates from active source metadata, verify all 67 physical caches and mutable aliases, and restore the four large metadata tensors omitted by Run66 or prove them immutable. Run74 is a design check only. See evidence/20260924_loop035_diagnostic/run74/write_set_audit.md.
-
-## Loop035 Run76 alias correction (2026-09-24 05:25 UTC)
-
-Run75 short request was INVALID because serving requires max_tokens=1024,
-but all 8 manifests were captured before request execution. Run76 found the
-old cache_slot_specs positional binding mismatched the sorted kv_caches tree:
-31/67 view group labels were outside actual aliases; 42/67 views alias
-multiple groups; 67 views use 46 storage allocations. The earlier Run73/74
-per-cache group ownership inference and Run66 cache snapshot completeness
-must not be used. Source write-address formulas still apply per actual layer
-alias. Next implement page-level strict snapshots from the union of each
-view actual layer aliases and block tables, then continuous Stock/Product
-oracle. evidence/20260924_loop035_diagnostic/run76/alias_check.json.
-
-## Loop035 Run77 strict page snapshot (2026-09-24 05:26 UTC)
-
-RuntimeAssets.snapshot_pages now accepts explicit physical page IDs for
-each named cache tensor view and snapshots full mutable rows. Synthetic
-shared-storage restore plus missing/out-of-range/empty rejection passed.
-It is not yet used by a live oracle. Next derive the per-view page union
-from all actual layer aliases and compressed/state/SWA write producers,
-then execute the strict NPU transaction.
-
-## Loop035 Run80 strict target candidate pages (2026-09-24 06:18 UTC)
-
-Run80 passed a fixed 12x1024 diagnostic cohort and all eight rank/Host gates.
-At target cycles0/1, source-derived page candidates from 170 actual layer
-aliases covered all 67 physical cache views with strict NPU snapshot and no
-skips. Twenty compressed source layers had zero writes at each sampled cycle;
-all 67 views still had pages through shared aliases. This is candidate
-coverage only. Before Stock/Product/Stock same-state oracle, compare
-compressor_metadata side-output slots to candidate pages, restore all
-physical pages and mutable metadata aliases, then run A/C self replay.
-Runs78/79 were invalid diagnostic wiring/accounting attempts.
-Evidence: evidence/20260924_loop035_diagnostic/run80/summary.json.
-
-## Loop035 Run81 compressor operator page parity (2026-09-24 06:39 UTC)
-
-Fixed 12x1024 c12 diagnostic completed 12/12 requests. On all eight ranks at target
-cycles 0/1, strict pre-target snapshots covered 67/67 physical cache views
-through 170 actual layer aliases, with no skipped views. The exact
-`torch.ops._C_ascend.compressor_metadata` slot side output was compared with
-the source-derived compressed page candidates for each of three unique
-metadata signatures per rank-cycle (48 checks total): zero missing actual
-pages and zero extra candidate pages. c4 produced valid compressed writes;
-c128 produced none at the sampled cycles. This validates the candidate write
-page set for sampled target cycles only. It does not establish restored KV or
-metadata state, Stock token equivalence, or long-run acceptance. Run81
-464.73 tok/s is diagnostic and must not be compared to the formal Loop034 A/B.
-Next: include all mutable metadata aliases in the transactional snapshot,
-verify exact restoration after live target, then run continuous same-state
-Stock A/Product B/Stock C with A/C self-replay floor.
-Evidence: `evidence/20260924_loop035_diagnostic/run81/summary.json`.
-
-## Loop035 Run82 live same-source target replay (2026-09-24 07:00 UTC)
-
-Fixed c12 diagnostic completed 12/12x1024. On all eight ranks and target
-cycles0/1, 67/67 cache views plus 76 deduplicated attention metadata tensors
-(597,641,348 bytes per rank snapshot) restored exactly after the first target.
-No captured metadata tensor changed during target. The same source target
-replayed from restored state nevertheless changed 6/96 and 4/96 argmax
-positions (cycle0/1 respectively); acceptance counts matched 12/12, but
-cycle1 accepted token IDs matched only 95/96. All eight ranks reported the
-same comparison counts. This is an observed same-source replay floor or
-uncaptured state, not evidence of Stock/Product semantic divergence. Run82
-444.35 tok/s is diagnostic. Next locate the mismatch positions and logits
-margins, take A/B/C same-source replay samples and validate a self-replay
-floor before Stock/Product/Stock comparison. Evidence:
-`evidence/20260924_loop035_diagnostic/run82/summary.json`.
-
-## Loop035 Run83 strict triple target self replay (2026-09-24 07:16 UTC)
-
-Fixed c12 12/12x1024 completed. At sampled continuous target cycles0/1,
-all eight ranks restored 67 cache views and all 76 metadata tensors exactly
-between A/B/C direct target executions. Rank results were identical. Target
-argmax equality A/B, A/C, B/C was 92/96, 92/96, 91/96 at cycle0 and 88/96,
-94/96, 90/96 at cycle1. Accepted-token equality was 93/96, 95/96, 94/96
-and 89/96, 96/96, 89/96 respectively; counts also varied across replays.
-Mismatch top-2 logits and request/position coordinates are in rank artifacts;
-the largest top-1 margin at a changed argmax was 1.0. Therefore strict
-captured-state restoration does not make target/acceptance deterministic, and
-an isolated candidate mismatch must be judged against same-source A/C noise.
-This repeats no further as a standalone control. The next investigation is
-continuous Stock-authoritative state/DSpark/KV lockstep and first sustained
-acceptance split, using this replay floor. Diagnostic 461.41 tok/s is not
-formal A/B. Evidence: `evidence/20260924_loop035_diagnostic/run83/summary.json`.
-
-## Loop035 Run84 continuous target write-page trajectory (2026-09-24 07:41 UTC)
-
-Run84 completed 12/12x1024 and all eight Runtime/Host gates. A compact,
-read-only audit sampled every target cycle0-255 on every rank: 2,048 strict
-pre-target snapshots, each covering all 67 physical cache views from actual
-layer aliases with 69 captured entries including mutable tensors, zero skips
-and zero out-of-range pages. The actual compressor_metadata side-output was
-checked for three signatures per rank-cycle (6,144 checks): no missing actual
-page and no extra candidate page. Unlike Run81, c128 wrote during this
-trajectory: first valid write at cycle8, 132 valid cycles and 198 valid slot
-rows per rank across the 256-cycle window. The full Runtime cohort took 303
-cycles; 47 late cycles were outside this audit. This certifies the sampled
-target write-address candidates, not KV values, post-target restoration or
-Stock token equivalence. The 128.83 tok/s result includes 2,048 snapshot
-clones and is not a performance measurement. Run72 already covers full
-DSpark gid2/3 context write addresses. Next compare continuous Stock-owned
-state and physical KV/DSpark trajectories using these certified write sets;
-do not repeat standalone target replay or run formal 48-request A/B yet.
-Evidence: `evidence/20260924_loop035_diagnostic/run84/summary.json`.
-
-## Loop035 Run85 Stock-authoritative acceptance (2026-09-24 08:08 UTC)
-
-A 12x1024 c12 Stock-only continuous shadow compared Extreme greedy acceptance
-with Stock's actual sampler using the same target logits and draft IDs over
-160 cycles on all eight ranks. All 122,880 output cells and every accepted
-count matched. The target integer ABI and five supported generic KV group
-mappings matched; group1's compressed table geometry remains unsupported by
-this generic checker. This establishes the acceptance implementation for this
-frozen greedy contract, not independent Product/Stock logits or KV-value
-equivalence. Zcode was actually invoked as deepseek/deepseek-flash in read-only
-plan mode for a bounded source audit, timed out after 180 s, and supplied no
-usable analysis; the main Agent completed and reviewed the audit.
-Evidence: evidence/20260924_loop035_diagnostic/run85/summary.json.
-
-## Loop035 Run87 serving decode DAG stage profile (2026-09-24 08:46 UTC)
-
-A dedicated FixedCohortServing diagnostic exporter captured per-cycle NPU event
-intervals for all eight ranks over 301 continuous c12 cycles; 12/12 requests
-produced exactly 1024 tokens. Across steady cycles1-300, stage medians were
-target47.702 ms, derived target metadata8.673 ms, proposer6.359 ms,
-acceptance0.337 ms, prepare target0.207 ms and state advance0.024 ms.
-Within proposer, DSpark model5.939 ms dominates. Target remains the largest
-serial stage, while metadata is the second-largest. Run86 completed 12/12 but
-was marked invalid as a profile because its serving path did not persist the
-existing event markers; Run87 added the exporter in dedicated Runtime code,
-without a generic ModelRunner change. Rank0 accepted-count windows rose from
-2.07 (cycles0-7) to 5.20 (128-191); late decline follows parking of completed
-slots and is not evidence of live-request acceptance collapse. Diagnostic
-469.17 tok/s includes instrumentation and one cohort, not formal A/B.
-Evidence: evidence/20260924_loop035_diagnostic/run87/summary.json and dag/rank*.json.
-Next: use the measured target and metadata stages to choose a structural
-optimization, while retaining the independent KV-value/Stock semantic caveat.
-
-## Loop035 Run88 strict Stock/Product/Stock at cycle128 (2026-09-24 09:13 UTC)
-
-A diagnostic-only Stock ABA hook now uses the existing source-backed TargetPageAudit
-manifest rather than the incomplete generic slot snapshot. Stock advanced 128
-continuous fixed decode cycles, then all eight ranks captured all 67 physical
-cache views (69 entries including two mutable buffers), all 76 attention
-metadata tensors and actual compressor slot candidates; all three restores
-were exact. At the same frozen state, Stock A versus Product B and Stock A
-versus Stock C each matched 92/96 target argmax positions. Accepted cells
-matched 92/96 AB versus 95/96 AC. Product B alone differed at request slot2,
-first target position, changing one accepted count. This is a possible first
-semantic fork, not yet proven because exact same-source target replay has
-known nondeterminism. Post-target cache values differed widely on both AB
-(16,437,317 elements) and Stock AC (16,443,266); AB is not worse by this
-aggregate and raw mismatches cannot be ascribed to Product. Next obtain
-same-state repeated Stock and Product target samples with top-2 logits at
-the disputed coordinate, preserving this strict snapshot/restore gate.
-Evidence: evidence/20260924_loop035_diagnostic/run88/summary.json.
-
-## Loop035 Run89/90 bounded same-state repeat (2026-09-24 09:46 UTC)
-
-Run89 reached Stock cycle128 but the optional five-pass diagnostic retained
-additional full KV post-write copies and OOMed on a 1 GiB comparison
-allocation. It is invalid for semantic inference. Run90 compared and
-released A/B/C post-write copies before repeating the targets. On all eight
-ranks, Stock advanced 128 continuous cycles, strict snapshots covered all
-67 cache views (69 entries) and 76 metadata tensors, and all five restores
-were exact. Rank metrics were identical across ranks. Against Stock A,
-Product B matched 92/96 argmax positions and Stock C 93/96; Product B/B2
-matched 92/96 and Stock C/C2 94/96. The sole position where both Product
-replays agreed and all three Stock replays agreed on another token was
-request slot7, draft position2. Stock A/C/C2 tied tokens 270 and 4888 at
-top-2 logits; Product B/B2 selected 4888 by 0.125. All argmax disagreement
-positions had top-2 margins at most 0.5; Stock self-replay also changed
-tokens. This does not establish a high-margin Product semantic fork or exact
-long-run token parity. The real first question is numerical/tie behavior
-under the same captured state, not the fixed greedy acceptance algorithm.
-Keep formal A/B gated pending continuous semantics decision; no more
-standalone self-replay controls without a concrete new state hypothesis.
-Evidence: evidence/20260924_loop035_diagnostic/run90/summary.json.
-
-## Loop035 Run91/92 late continuous semantic gate (2026-09-24 10:22 UTC)
-
-Run91 attempted a Stock fixed-c12 ABA sample at cycle256 with the frozen
-1024-token output cap. All 12 requests completed, but the Stock scheduler
-changed shape after the first completion, so no fixed 12x8 sample existed
-at cycle256; Run91 is invalid as an ABA diagnostic and its throughput is not
-formal. Run92 changed only the diagnostic request cap to 2048, keeping all
-12 slots live through cycle256. On all eight ranks, strict five-way
-Stock A/Product B/Stock C/Product B2/Stock C2 snapshots covered 67 cache
-views, 69 entries and 76 metadata tensors with exact restoration each time.
-There was no stable Product-only argmax position. Product B matched Stock A
-accepted output 96/96, while Stock C matched 92/96. All argmax differences
-had top-2 margin <=0.25. Together with Run85 same-logits acceptance parity,
-Run72 full DSpark gid2/3 write addresses, Run84 target page trajectory and
-Run87 phase profile, this passes a bounded continuous semantic/acceptance
-gate for formal performance evaluation. It does not prove independent
-long-sequence token identity: Stock self-replay is non-deterministic and
-Run92s 2048 cap is a diagnostic control, not the frozen formal workload.
-Evidence: evidence/20260924_loop035_diagnostic/run92/summary.json.
-The next formal Extreme script now enables the causal gid2 slot refresh.
-Use the existing reliable Stock 543.65 tok/s baseline; do not rerun Loop034.
-
-## Loop035 Run93 formal Extreme serving A/B against frozen Stock (2026-09-24 10:51 UTC)
-
-After the bounded continuous semantic gate (Run85/90/92), the exact frozen
-48x32K-to-1024 c12 warm-cache protocol was run once for warmup and three
-official Extreme measurements with EXTREME_DSPARK_SLOT_REFRESH=1. All three
-completed 48/48 requests at exactly 1024 tokens: 517.880, 525.417 and
-534.744 tok/s, median 525.417. The comparable Loop034 Extreme median was
-217.342, so the slot-refresh version improves output TPS 141.747% (2.417x).
-It remains 3.355% below the reliable frozen Stock 543.655 tok/s baseline;
-Stock was not rerun. All 128 rank/cohort rows pass, all host mirrors exact,
-FULL target graph, zero post-handoff ModelRunner cycles and oracle target
-calls, with 2,048 slot-refresh audit entries. Rank0 cohort cycle median
-fell from 1025.0 to 300.5; rank0 median staged output/slot/cycle is 3.427
-versus the original 1.194. Continuous acceptance window medians across
-16 rank0 cohorts are 3.519 at cycles8-63, 4.257 at64-127, and 4.163
-at128-191. Run87 DAG profile now points to target47.702 ms/cycle and
-derived metadata8.673 ms as remaining serial stages, versus proposer6.359
-ms and acceptance0.337 ms. This passes Loop035s frozen acceptance and
-cycle-attribution goal. Exact independent long token identity is still
-limited by Stock self-replay nondeterminism, and the present performance
-still misses the P0 above-baseline goal.
-Evidence: evidence/20260924_loop035_formal/run93/summary.json and
-tasks/deepseek-extreme-p0/loops/loop-035/comparisons.jsonl.
-Next optimization should test the dedicated target/metadata critical path
-with a frozen correctness gate, not resume generic ModelRunner patches.
-
-## Loop036 Run94 invalid control and requested pause (2026-09-24 11:17 UTC)
-
-After Loop035 Run93, Loop036 was frozen to remove the per-cycle
-`local_seq_lens.max().item()` sync from the dedicated target metadata updater.
-A source audit in `tasks/deepseek-extreme-p0/loops/loop-036/doc/source_audit.md`
-found that the two scalar max-K attributes only feed fallback branches when
-actual per-request length tensors are absent. The opt-in
-`EXTREME_TARGET_METADATA_STATIC_KV_MAX=1` candidate sets the scalar attrs
-to 1; `EXTREME_TARGET_METADATA_SHADOW=1` compares the generated SAS/QLI
-metadata with the old dynamic call. Both flags default off, so Run93 behavior
-is untouched.
-
-Run94 attempted a 12-request 2048-token continuous shadow to cover 256 live
-cycles, but the installed Extreme serving contract explicitly rejects
-`max_tokens != 1024` at `model_runner_v1.py:3379`. The service exited with
-that ValueError/EngineDeadError before any metadata shadow marker. TaskCtl
-marks Run94 INVALID; 11/12 client success in the partial bench is not a
-correctness or performance result. No shadow parity or stage timing claim
-exists yet. The prepared `scripts/run_loop036_metadata_profile.sh` is not
-executed. Next session should either construct a 1024-token-valid continuous
-control (cohort shape may change before cycle256) or an explicitly diagnostic
-guard bypass, then verify 8-rank metadata parity before measuring the static
-path. Do not repeat Loop034 or Run93 formal E2E until there is a validated
-structural improvement.
-
-The user requested that work stop after Run94 and resume in a new dialogue.
-At handoff no benchmark or vLLM service remains running. The heartbeat
-automation is paused. Agent routing: a concurrent edit to root
-`AGENTS.md` appeared at 11:12:54 UTC during Run94. Its current text names
-GPT-6 Sol as primary, Astra Medium/High as optional independent perspectives,
-and DeepSeek/Zcode for bounded verifiable work, including complex tasks when
-clearly scoped. The user subsequently directed that the revised
-`AGENTS.md` be committed and pushed; its broader routing guidance is now
-authoritative. `docs/agent_orchestration.md` was reconciled in the same
-commit. Earlier default-model
-change alone did not implement actual routing; `scripts/delegate_zcode.py`
-was subsequently added. Run85 really invoked `deepseek/deepseek-flash`
-through Zcode (return code 124 after 180 s timeout); no DeepSeek conclusion
-was accepted. TaskCtl records state, not model dispatch. No subagent was
-called in this Loop036 session. The user explicitly requires every subsequent
-Run record, TaskCtl resume state, HANDOFF update and necessary small evidence
-summary to be committed and pushed to this GitHub repository so a new
-dialogue can resume from `main`.
-
-## Loop036 Run95 host-launch invalid (2026-09-24)
-
-Run95 corrected the request cap to the 1024-token serving contract but was
-invoked on the host. `scripts/serve.sh` failed before model start because the
-Ascend toolkit environment is available inside container
-`vllm-ascend26-dsv4f-w4a8`, not on the host. TaskCtl records INVALID; no
-metadata parity or performance inference. Next invoke the corrected shadow
-script inside the container as Run96.
-
-## Loop036 Run96 shadow failure (2026-09-24)
-
-The first legal container-side 12×1024 shadow reached the target metadata
-updater. On all eight TP ranks the `ratio=4` SAS static/dynamic comparison
-failed during the first update and aborted the service. TaskCtl records FAIL;
-partial client outputs and TPS are invalid. The first shadow only compared
-full 1024-element outputs and did not record mismatch positions or a dynamic
-self-replay control. Given prior SAS tail nondeterminism, next run must compare
-dynamic A/static B/dynamic C on identical input and report first differing
-index and header parity before accepting or rejecting the scalar candidate.
-`evidence/20260924_loop036_metadata/run96/summary.json` records the compact
-evidence. Static candidate remains opt-in and unvalidated; no profile/E2E.
-
-## Loop036 Run97 continuous A/B/C metadata gate (2026-09-24)
-
-The legal 12×1024, c12, TP8 DSpark7 Run97 completed 299 Runtime-owned decode
-cycles on all eight ranks; 12/12 clients and all rank records passed at exactly
-1024 output tokens. Every cycle checked dynamic A/static B/dynamic C metadata.
-SAS positions 0–96 and QLI positions 0–24 matched exactly; markers at cycles
-1/64/128/256 exist on every rank. Full 1024-element buffers are not equal,
-but dynamic A/C self-replay also differs after those stable headers. This is a
-bounded stable-field parity gate, not full-buffer exact parity or independent
-long-token semantic proof. Shadow instrumentation invalidates its TPS as a
-performance comparison. Source audit still finds the static scalar fallback
-unreachable with actual per-request length tensors. Compact evidence:
-`evidence/20260924_loop036_metadata/run97/summary.json`. Next run the
-prewritten no-shadow static DAG profile, compare with Run87 under the same
-single-cohort contract, and only proceed to formal E2E if timing gain is
-material and correctness remains intact.
-
-## Loop036 Run98 no-shadow DAG profile (2026-09-24)
-
-Static metadata with shadow off completed one legal 12×1024 c12 cohort: all
-8 ranks ran 300 continuous cycles and passed Runtime gates; all clients
-finished at exact output length. The median derived metadata event stage
-fell from matched Run87 8.6730 to 0.6674 ms/cycle, a reduction of 8.0056 ms
-(92.3%). Target was 46.560 ms and proposer 6.391 ms. The single-cohort
-517.63 tok/s is diagnostic, not the formal product result. Run97 stable
-header parity and the source fallback audit support a formal E2E test; full
-SAS/QLI tail identity remains limited by dynamic self-replay noise. Next
-run the frozen warm-cache 48×32K→1024 c12 warmup plus three official
-measurements, with no Stock rerun. Evidence:
-`evidence/20260924_loop036_metadata/run98/summary.json`.
-
-## Loop036 Run99 formal static-metadata E2E (2026-09-24)
-
-The frozen warm-cache 48×32K→1024 c12 protocol ran one warmup and three
-measured Extreme runs with static metadata and no shadow. All measured runs
-completed 48/48 requests at exactly 1024 tokens; all 128 rank/cohort Runtime
-records pass. Output TPS: 612.962 / 567.573 / 571.681, median 571.681.
-This is 5.155% above the reliable frozen Stock 543.655 and 8.806% above
-Run93 Extreme 525.417. Stock and Loop034/Run93 were not rerun. This is the
-first valid same-protocol above-Stock P0 result, but its 5.2% margin is
-modest and the target remains the dominant 46.56 ms/cycle stage. Stable
-metadata fields passed the 8×299-cycle Run97 A/B/C gate; full AICPU output
-tails remain nondeterministic even under dynamic self-replay, so independent
-long-token identity remains a limitation. Evidence:
-`evidence/20260924_loop036_metadata/run99/summary.json`. Next update the
-Performance Map and investigate the 46.56 ms target critical path, with no
-repeat of reliable formal baselines unless a new candidate clears correctness.
-
-## Loop037 opened (2026-09-24)
-
-Loop036 is technically satisfied but TaskCtl verdict is PIVOTED because
-invalid setup and full-buffer shadow attempts remain preserved. The next
-bounded Loop037 will attribute the remaining 46.560 ms/cycle target graph
-stage with a legal one-cohort Runtime-only NPU profile across 8 ranks. It
-must separate compute/communication overlap and device gaps before choosing
-another optimization. No target performance claim exists yet.
-
-## Loop037 Run100 invalid profile window (2026-09-24)
-
-Both legal 12×1024 cohorts and 16 Runtime rank records passed, but the
-`/start_profile` request blocked roughly 14 seconds and only returned as the
-sampled cohort finished. Eight offline-parsed rank traces contain zero
-`extreme::target` scopes and zero kernel rows. TaskCtl marks Run100 INVALID
-for target attribution; its diagnostic TPS has no comparison role. Raw trace
-remains at `evidence/20260924_loop037_target/run100/profile/`, compact
-reason at `run100/summary.json`. Run101 must activate profiler before sending
-the sampled cohort, then stop after a bounded number of decode seconds.
-
-## Loop037 Run101 oversized target profile (2026-09-24)
-
-Run101 started profiler before a legal 12×1024 cohort, so its window did
-include execution; the cohort completed 12/12. Eight seconds generated roughly
-13.6 GiB raw trace across eight TP ranks. Offline `torch_npu.profiler.analyse`
-warned parsing could exceed 30 minutes per rank and had not finished rank0;
-the parser was terminated, with raw files preserved under
-`evidence/20260924_loop037_target/run100/profile/*20260924133739*_ascend_pt`.
-TaskCtl marks profile attribution INVALID though request correctness passed.
-No kernel/communication conclusion. Next use a subsecond window while a
-48-request workload keeps c12 decode active through the profiler start RPC.
-Compact evidence: `evidence/20260924_loop037_target/run101/summary.json`.
-
-## Loop037 Run102 wrong-phase short profile (2026-09-24)
-
-Subsecond profiling during a legal 48×1024 workload produced parsable traces
-(~28 MB raw/rank), and all 48 requests completed. Yet all eight rank traces
-contain zero `extreme::cycle` and zero `extreme::target` scopes; the window
-landed at a cohort boundary and showed only a few DSpark layer scopes.
-TaskCtl marks target attribution INVALID, correctness PASS. Parsed raw trace
-is under `evidence/20260924_loop037_target/run100/profile/*20260924134249*_ascend_pt`;
-compact count summary is `run102/summary.json`. Next start the profiler RPC
-immediately after launching one legal 12-request cohort, so its ~13-second
-handshake returns while that same cohort remains in Extreme decode.
-
-## Loop037 Run103 early prefill profile (2026-09-24)
-
-Run103 again completed legal 12×1024 requests, but `/start_profile` returned
-immediately this time, so the 0.5-second trace captured prefill. All eight
-parsed ranks have zero `extreme::cycle` and zero `extreme::target` scopes;
-TaskCtl marks target attribution INVALID, correctness PASS. Raw traces are
-under `evidence/20260924_loop037_target/run100/profile/*20260924134850*_ascend_pt`,
-compact counts in `run103/summary.json`. The next window should request
-profiler start about 3 seconds after cohort launch; both immediate and delayed
-RPC return should then fall within the 20-second continuous decode interval.
-
-## Loop037 Run104 oversized stop window (2026-09-24)
-
-The 3-second delayed start attempt completed a legal 12×1024 cohort, but
-`/stop_profile` returned about 23 seconds after the stop request, expanding
-the intended 0.5-second capture to a multi-GiB trace across 8 ranks. It has
-not been parsed to target operator attribution; TaskCtl marks the profile
-INVALID, request correctness PASS. Raw trace:
-`evidence/20260924_loop037_target/run100/profile/*20260924135309*_ascend_pt`.
-Compact evidence: `run104/summary.json`. Runs100–104 demonstrate that HTTP
-profiler activation/deactivation latency is unstable relative to a 20-second
-cohort. Next use a Runtime cycle marker to start/stop a bounded 8-rank trace
-inside a selected cycle window, or a profiler mode that can export only those
-cycles. Keep the verified Run99 formal 571.681 tok/s as current P0 result.
-
-## Loop038 Run105 launch setup invalid (2026-09-24)
-
-The cycle-scheduled profiler implementation was committed at d5e2651 and
-Run105 was recorded before launch. Its direct script invocation failed with
-exit 126 because the new script lacked executable mode. No service, workload,
-or profiler started. TaskCtl marks Run105 INVALID. Run106 will invoke the
-script through bash and preserve the legal 12x1024 TP8 profile protocol.
-
-## Loop038 Run106 bounded cycle profile (2026-09-24)
-
-Run106 completed one legal 12×1024 c12 TP8 cohort: 12/12 exact-length
-requests, 8/8 Runtime gates, 289 cycles/rank. Each rank captured target
-scopes at cycles64–65; raw profiles were only ~5.6 MB/rank and parsed in
-~6 seconds/rank. The per-target profiler device-total median is 51.144 ms
-(range46.255–56.502), while CPU scope median is only 6.103 ms. The nested
-wait_event median is 50.134 ms and nested HCCL all-gather sum is 0.247 ms;
-CPU-scope timestamp clipping misses asynchronous graph execution and is not
-valid target device attribution. Across the entire two-cycle trace, grouped
-matmul kernel sums have median20.592 ms, but include target and proposer.
-No target-only optimization bound is established yet. The single-cohort
-508.89 tok/s includes profiler overhead and is not a Stock comparison.
-Evidence: evidence/20260924_loop038_cycle/run106/attribution.json. A next
-pass must link graph kernels to the target replay or use NPU event stage
-boundaries before choosing a kernel edit. Service was stopped after Run106.
-
-## Loop038 Run107 synchronized target window (2026-09-24)
-
-Run107 completed a legal 12×1024 c12 cohort, 12/12 exact-length requests,
-8/8 Runtime pass, 301 cycles/rank. Only cycles64–65 used NPU synchronize
-around target, so client 494.03 tok/s is diagnostic and cannot be compared
-with Stock. All eight cycle64 traces have exactly 2,836 target kernels;
-rank1 cycle65 includes an extra 143 and was excluded. In 15 canonical
-windows the median target device interval union is50.281 ms, compute union
-39.932 ms, communication union11.547 ms, compute/communication overlap
-1.292 ms. The 86 grouped-matmul kernels sum9.966 ms/cycle (kernel sums
-are not additive across streams). This provides a bounded candidate with
-roughly 10 ms/cycle upper limit, not an achieved saving. Raw profiles are
-about5 MB/rank, parsed successfully. Evidence:
-`evidence/20260924_loop038_cycle/run107/target_window.json`.
-
-Loop038 technical attribution goal is met and TaskCtl verdict is PIVOTED
-because the invalid Run105 launcher remains in its history. Loop039 is
-active: inspect actual W4A8 target grouped-matmul call sites/shapes and
-backend alternatives, establish same-state eight-rank correctness, then
-measure stage reduction before any formal 48-request E2E. Current accepted
-formal product result remains Run99 median571.681 tok/s, +5.155% vs Stock;
-no new formal E2E or Stock baseline was run. Service was stopped and NPUs
-are idle after Run107. The last agent work used the default Sol main role;
-no Astra or Zcode call was made in Loops037–038.
-
-## Loop039 Run108 source and trace map (2026-09-24)
-
-Read-only audit confirms the model config has43 hidden layers and, in each
-of the eight canonical rank cycle64 target windows, exactly43 GMM1 fused
-SwigluQuantWeightNzV2 kernels plus43 GMM2 GroupedMatmulWeightNz kernels.
-Rank0 summed durations are6.425 and3.646 ms. The borrowed implementation
-enters `DeviceOperator.npu_grouped_matmul_swiglu_quant` and
-`DeviceOperator.npu_grouped_matmul_gmm2` from `moe_mlp.py`; this is a
-source/trace mapping, not proof that a replacement will save time. Exact
-runtime tensor shapes and a semantics-preserving faster backend are still
-unmeasured. TaskCtl Run108 PASS (design-check only), evidence:
-`evidence/20260924_loop039_gmm/run108/source_audit.json`.
-
-## Governing objective clarification (2026-09-24)
-
-User reaffirmed the frozen-product objective: DeepSeek V4 Flash W4A8 on
-8×Ascend 910B3, DP1×TP8, DSpark7; correctness is mandatory, and repeatable
-formal E2E is the final judge. Keep removing framework, Host, scheduling,
-communication, synchronization and execution redundancy until the product is
-as close as practicable to the credible hardware/model achievable limit.
-Do not preserve genericity or abstractions without product value. Loop039’s
-5 ms target-stage / 15%-over-Stock gate is a local falsifiable screen, not
-a terminal target; the grouped-matmul hypothesis can be rejected or outranked
-by a larger cross-module opportunity. The current credible whole-product
-hardware bound is unknown. Run99 remains the official571.681 tok/s result.
-
-## Loop039 Run109 active branch correction (2026-09-24)
-
-Run108’s 43+43 target kernel counts remain valid, but its GMM1 Python
-call-path attribution was too broad. The frozen quant description has
-group_size=0, so W4A8 weights are per-channel; the active GMM1 branch is
-`moe_mlp.py` custom `grouped_matmul_swiglu_quant_v2`, and GMM2 uses
-`DeviceOperator.npu_grouped_matmul_gmm2`. Checkpoint packed-I8 layer0
-expert0 shapes are w1/w3 [1024,4096], w2 [2048,2048]. Exact routed live
-input shapes, graph addresses and a faster parity-preserving replacement
-remain unmeasured. Do not use Run108’s GMM1 `DeviceOperator` mapping.
-TaskCtl Run109 PASS design-check. Evidence:
-`evidence/20260924_loop039_gmm/run109/active_branch.json`.
-
-## Zcode execution trial Run110 (2026-09-25)
-
-After updating AGENTS/docs to prefer Zcode for bounded low-risk execution,
-Run110 delegated a read-only environment check with explicit inputs and
-acceptance fields. Zcode exit0 after188.845s/27 provider requests, but
-headless build mode denied docker exec, npu-smi and local HTTP. The wrapper
-recorded configured `deepseek/deepseek-flash` and observed_model=null; the
-model cannot be independently attributed from this run. TaskCtl marks Run110
-INVALID. Sol directly rechecked HEAD1b7c0e0, 8 profile window files, 8/8
-idle NPUs and stopped service. Do not delegate service/NPU operations to
-this Zcode configuration until permission behavior is fixed and actual-model
-provenance is verifiable; direct execution is the current fallback.
-
-## Zcode DeepSeek connectivity Run111 (2026-09-25)
-
-At user request, a no-tool, no-file-change Zcode plan-mode ping returned the
-exact sentinel `DEEPSEEK_PING_20260925` with exit 0 in 14.735 s and one
-provider request. The local Zcode model-I/O record for that session identifies
-request provider `deepseek`, request model `deepseek-flash`, and response
-modelId `deepseek-flash`; the sanitized evidence is
-`evidence/20260925_loop039_delegate/run111/model_io_summary.json`.
-TaskCtl Run111 PASS for short-text connectivity only. Run110 remains INVALID:
-headless build-mode Bash permissions denied docker/NPU/HTTP operations. This
-ping does not establish tool execution viability, Runtime correctness, or
-performance. Loop039 product work resumes from Run109 live routed shapes and
-same-state eight-rank correctness; Run99 remains the official E2E result.
-
-## Zcode headless permission root cause (Runs112-114, 2026-09-25)
-
-Run112: `--mode build` / Bash `pwd` succeeded with exact cwd and exit0.
-Run113: isolated direct `--mode yolo` / one read-only Docker status command
-succeeded and returned `running`. Run114: `--mode build` / Docker status
-was denied before command execution with `No permission client configured
-for Bash`; Zcode process exit0 did not imply tool success. All three local
-model-I/O records identify DeepSeek/deepseek-flash. Retrospective Zcode runtime
-log audit also confirms Run110 made27 DeepSeek model streams; its task result
-stays INVALID because26 Bash and one WebFetch permission requests were
-denied. Root cause: headless build mode has no approval client for commands
-that need approval; simple preapproved commands work. CLI headless prompt
-defaults to yolo, while the wrapper explicitly selected build. The exact
-prior successful invocation mode is not independently known. See
-`docs/agent_orchestration.md` and
-`evidence/20260925_loop039_delegate/run11{0,2,3,4}/`.
-No product benchmark or Runtime change was made.
-
-## Loop039 Run115 live shape envelope (2026-09-25)
-
-A temporary, shape-only probe at borrowed `quant_apply_mlp` ran the legal
-12×1024 DP1×TP8 DSpark7 diagnostic workload. All12 requests succeeded;
-8/8 workers wrote 33 unique shape signatures with the same shape set.
-The 96-token target graph (top_k=6) maps to MoE input int8 [576,4096],
-per-token scale float32 [576], local expert count32 with count-mode
-group_list int64 [32]. Packed grouped weights at the call site are w1
-int32 [32,4096,512] and w2 int32 [32,2048,512], with corresponding
-per-channel scale tensors. This is a static envelope: the probe did not
-copy live per-expert token counts during graph replay, so effective active
-work per rank remains unknown. Run115 diagnostic output TPS544.725 is not
-formal E2E and is not compared to Stock. The borrowed source was restored
-byte-identically (SHA256 5b537cc4...), the service was stopped, and 8 NPUs
-returned to idle HBM. TaskCtl Run115 PASS profile only. Evidence:
-`evidence/20260925_loop039_gmm/run115/shape_summary.json`.
-
-Next: use Run107 target trace and this shape envelope to estimate how much
-of ~10 ms/cycle grouped-matmul duration can actually be removed for the
-frozen product. In parallel assess communication and non-GMM target costs;
-choose one bounded same-state correctness experiment before any E2E.
-
-## Loop039 Run116 opportunity audit (2026-09-25)
-
-Sol recomputed 15 valid synchronized Run107 windows: median GMM kernel
-duration sum9.96625 ms, communication union not overlapped by compute
-10.2475 ms, and non-GMM compute-union lower bound29.97925 ms. These are
-diagnostic interval/sum quantities, not directly realizable E2E savings.
-GMM remains a bounded candidate but is not established as the largest
-product opportunity. A requested Astra Medium second view agreed with the
-caution, but no service-side model ID was exposed; its model identity is
-unverified and that review is advisory only. Run116 PASS design-check.
-Next experiment must first find a semantics-valid per-channel W4A8
-substitute and observe real expert counts, then eight-rank same-state A/B/A
-parity and GMM interval / full target-stage reduction. If the candidate
-cannot plausibly save >=5 ms/cycle locally or the saving does not reach the
-target stage, pivot to communication and non-GMM attribution. This local
-screen is not the product's terminal goal. Formal E2E remains Run99.
-
-## Continuous execution rule (2026-09-25)
-
-User clarified that evidence, TaskCtl, recovery pack, Git push, interim
-conclusions, and service cleanup are checkpoints, not handoff triggers.
-After each, Sol revisits the maximum removable Gap and next_action and
-continues when high-value work is clear and unblocked. Run116 already
-identifies comparable GMM and exposed-communication candidates; proceed
-to discriminating evidence and Sol's own decision. Stop only for the
-specific external, user-information, irresolvable architecture, material-risk,
-or forced-runtime conditions recorded in AGENTS.md. Product objective,
-model division, correctness and formal E2E standards are unchanged.
-
-## Loop039 Runs117-119 communication versus GMM adjudication (2026-09-25)
-
-Run117 shows the first target reduce-scatter in synchronized Run107 has
-20.533/9.370 ms start skew across ranks for cycles64/65, but only
-0.010/0.017 ms end skew. Early ranks wait for late arrivals inside the
-collective; measured HCCL duration is not intrinsic transfer cost.
-Run118 finds the same signature in Run106 without target synchronization:
-first-collective start skew10.193/9.735 ms and end skew0.0065/0.01175 ms.
-Rank skew is already present at prepare_target entry
-(9.637/10.510 ms), before target execution. The cycle64 proposer-end
-skew10.466 ms propagates to the next prepare entry10.510 ms, but these
-two profiled cycles cannot establish a steady product proposer cost.
-
-Run119 corrects that inference with eight-rank Run98 steady cycles64-255:
-target event median46.575 ms, proposer6.400 ms, DSpark model5.987 ms.
-Formal Run99 cohort wall median57.044 ms/cycle is consistent with this
-scale. Sol decision: the exposed-communication ~10 ms from Run107 is a
-peer-wait symptom in diagnostic windows, not a demonstrated independent
-HCCL transfer opportunity. Keep target GMM as the next bounded
-semantics-preserving candidate; do not assume its ~9.97 ms kernel sum can
-all be removed. The larger non-GMM target compute remains under review.
-No new E2E was run. TaskCtl Runs117-119 PASS as profile/design audits.
-
-## Loop039 Run120 checkpoint (2026-09-25)
-
-Run120 online group_list capture was INVALID because the benchmark launcher
-sent max_tokens=384, while the frozen Extreme serving path requires exactly
-max_tokens=1024. EngineCore raised that guard; 11/12 partial request success
-and 7.38 tok/s cannot be used. No cycle64/65 counts were captured. Both
-temporary instrumented sources were restored to their recorded original
-SHA256, the stop script released all eight NPUs to below 3.5 GB, and the
-root-cause excerpt is saved. Next action: Run121 with the exact 1024-token
-request contract, same bounded probe and validation. This checkpoint does
-not end the execution turn.
-
-## Loop039 Run121 live expert counts (2026-09-25)
-
-Run121 obeyed the exact 1024-token serving guard: 12/12 requests succeeded.
-Temporary probes saved 16 group_list snapshots (8 ranks, cycles64/65).
-Each rank retained 86 refs; ordinals0-42 are unchanged graph-build refs,
-whereas ordinals43-85 change between the two cycles on all eight ranks.
-For each of the 43 live layers and both cycles, all 8 ranks together route
-exactly 576 assignments (96 tokens × top_k6). On 688 rank-layer samples,
-active experts range 7-29 of 32, median15, mean15.663; global layer
-active experts median121 of 256. Actual local tokens per layer median69,
-mean72, range23-186. These are valid live routing facts, not a claim that
-the present GMM computes empty experts or that half its time is removable.
-The probe's 526.360 tok/s is diagnostic and not a formal E2E verdict.
-Both patched sources were restored to the exact original hashes; stop
-script released all eight NPUs below 3.5GB. Next Run122 checks whether
-the real count sparsity offers any extra GMM opportunity beyond what the
-existing fused operator already handles.
-
-## Loop039 Run122 GMM path audit (2026-09-25)
-
-Run107's 15 synchronized target windows split the 9.96625 ms median GMM
-kernel sum into GMM1 fused SwiGLU/quant 6.3785 ms and GMM2 3.58775 ms.
-The borrowed Ascend A8W4 GMM1 kernel computes each expert's M from the
-live group_list and skips MatMul when M<=0; Run121's 15/32 median active
-experts therefore do not provide a new 50% skipping opportunity. This
-source audit does not prove GMM2 behavior or bound all possible replacement
-kernels. No semantics-valid operator replacement with >=5 ms/cycle saving
-has been identified. Next: source-backed ranking of the ~30 ms non-GMM
-compute families before allocating a costly eight-rank GMM A/B/A run.
-
-## Loop039 Run123 non-GMM ranking (2026-09-25)
-
-In Run107's 15 valid synchronized target windows, stable non-GMM kernel
-sums are quant matmul4.8205 ms, Compressor3.36575 ms, HC pre2.961 ms,
-scatter cache2.34275 ms, then smaller DSA/indexer families. These sums
-are not independent removability or stage critical-path reductions.
-No single non-GMM family already establishes a >=5 ms/cycle opportunity.
-Before pivoting Loop039, Run124 will test the existing fused W4A8 GMM1
-on one 910B3 with real Run121 expert counts versus controlled layouts.
-
-## Loop039 Run124 invalid GMM1 smoke (2026-09-25)
-
-A single-910B3 call to the product fused GMM1 custom operator failed at
-the aclnn argument check before timing: synthetic int32 W1 had 1-D
-storageShape; WeightNzV2 requires 5-D NZ storage. No latency evidence.
-Process exited, no serving service remained, all NPUs at idle power.
-Run125 will construct product-compatible NZ storage and retry.
-
-## Loop039 Run125 invalid NZ cast (2026-09-25)
-
-Run125 still did not time the fused GMM1: torch_npu warned
-allow_internal_format=False, npu_format_cast yielded format2, and
-WeightNzV2 rejected its 1-D storage. No service remained. Run126 will
-enable internal format before allocating W1 and verify format29.
-
-## Loop039 Run126 invalid missing scale bias (2026-09-25)
-
-Run126 reached W1 NZ format29, then WeightNzV2 required
-weightAssistMatrix for A8W4. No timing. Borrowed W4A8 weight preparation
-builds w13_scale_bias per expert/output channel; Run127 will supply a
-[32,4096] float32 scale-bias tensor as the assist matrix.
-
-## Loop039 Run127 product-shape GMM1 smoke (2026-09-25)
-
-With torch_npu internal format enabled, synthetic W1 in NZ format29,
-[32,4096] float32 assist matrix, and product logical shapes, the fused
-WeightNzV2 GMM1 returns correctly shaped tensors for real Run121,
-same-token dense, and single-expert count vectors. First-call wall
-includes compile, so Run127 establishes interface validity only.
-Run128 will use device-event A/B/A timing; no serving service ran.
-
-## Loop039 Run128 single-NPU GMM1 route sensitivity (2026-09-25)
-
-Synthetic product-shape W4A8 fused GMM1 with 60 valid tokens and 50
-device-event samples per A/B/A block: real 15-active-expert distribution
-median0.37385/0.38910 ms, dense 32-expert0.45886 ms, single-expert
-0.33789 ms. The operator already responds to group-list sparsity.
-The values are eager, synthetic-weight, one-card diagnostics and cannot
-be scaled to Run107 graph GMM1 sum or formal E2E. No legal faster
-replacement has been established. Next Run129 revisits steady product
-rank dispersion to rule out the profiled HCCL wait as the larger gap
-before Sol's priority decision. Read-only second-view review requested;
-unverified model provenance cannot enter formal evidence.
-
-## Loop039 Run129 unprofiled rank dispersion (2026-09-25)
-
-Run98 unprofiled steady cycles64-255: target median46.5868 ms,
-proposer6.4062 ms; median per-cycle rank duration spreads are 0.0812
-and 0.0603 ms respectively. These duration data have no synchronized
-absolute timestamps and cannot exclude a fixed cross-rank arrival
-offset. Run107 HCCL wait should not be interpreted as independently
-removable transfer without further evidence, but communication remains
-an unresolved candidate. A second-view read-only review agrees on this
-qualification; its actual service model ID is not independently
-verifiable, so model_verified=false and Sol owns the decision.
-
-## Loop039 PIVOT and Loop040 opening (2026-09-25)
-
-Run130 is Sol's evidence review. A requested Astra Medium read-only
-second view has no independently visible actual service model ID:
-model_verified=false; its advice is not formal evidence. Sol pivots
-Loop039 because GMM1 already skips empty experts and no legal faster
-replacement has shown a plausible >=5 ms target-stage reduction.
-This is a priority decision, not proof that GMM is at hardware bound.
-The Run107 HCCL peer-wait remains unresolved as intrinsic transfer
-versus fixed arrival offset. Loop040 first maps the stable 4.8205 ms
-quant-matmul family per call and exact shape using existing Run107 trace,
-then tests a concrete semantics-preserving repeated-projection/fusion
-hypothesis. Correctness and official E2E gates remain unchanged.
-
-## Loop040 Run131 quant-matmul trace map (2026-09-25)
-
-Across all 15 valid Run107 synchronized rank-cycle windows, target
-contains exactly 236 QuantMatmulWeightNz kernels and 43 fused GMM1 layer
-markers. Per-layer ordered bins match the frozen config's c4/c128
-alternation: two initial c0 layers 4/5 calls, 21 c4 layers six calls,
-20 c128 layers five calls, plus one tail call. Quant family kernel sum
-median4.8223 ms/cycle; c4 layer median120.28 us, c128 103.83 us.
-This is device-order association, not exact Python module/shape mapping.
-Run132 will use a temporary borrowed W8A8 apply probe only at 96-token
-capture to test same-input repeated quantization; legal 12x1024 requests,
-source restore and service stop are mandatory. No formal E2E yet.
-
-## Loop040 Run132 W8A8 call probe (2026-09-25)
-
-Legal 12x1024 requests succeeded on eight ranks. Every rank logged
-899 W8A8 apply calls with x[96,4096] and weight[4096,512]:
-43 target self_attn.wkv module prefixes occurred twice each in graph
-setup, and three MTP wkv prefixes occurred 271 times each during the
-run. This probe covered only wkv, not the other 236 quant-matmul target
-kernels; cross-layer repeated tensor addresses cannot prove same
-semantic input because graph memory is reused. The 556.756 tok/s
-diagnostic value is not formal E2E. Borrowed source hash restored,
-stop script released all eight NPUs below 3.5GB. Next Run133 is
-a source-backed accounting of direct DSA CP quant calls and shared
-quantization before another costly service capture.
-
-## Loop040 PIVOT and Loop041 opening (2026-09-25)
-
-Run133 source audit under frozen DSA CP/FlashComm1 flags explains the
-obvious quant projection pairs: two wq_b chunks and the c4 indexer
-query share one qr dynamic quant; wq_a uses local tokens, wkv uses
-gathered cache tokens, and weights_proj is unquantized. Run131's
-236 quant kernels are real, but no same-input duplicate quantization
-candidate is established. Loop040 is PIVOTED, not a proof that quant
-matmul is at bound. Loop041 will map actual HC pre/post, residual
-clone/copy, RMSNorm and cache-write device costs before changing model
-semantics. A >=2 ms unprofiled target-stage improvement plus legal
-E2E gain is an incremental product gate; ultimate >=15% over Stock
-remains the cumulative target. No new formal E2E was run.
-
-## Loop041 Run134 HC/copy/cache census (2026-09-25)
-
-Run134 audited all 15 valid, synchronized Run107 target windows offline.
-Each contains 86 HcPre (kernel sum median 2.962 ms), 86 HcPost
-(0.688 ms), 130 RmsNorm (0.940 ms), and 126 ScatterNdUpdateSk
-(2.344 ms). These kernel sums overlap and are not removable wall time.
-The decoder source clones hidden state twice per layer, but replay shows
-only one CPU aten::clone and copy kernel names cannot be attributed to
-those source clones. The available HcPreInvRms op accepts x/epsilon
-only, so it cannot directly replace HcPreV2's HC transform. No safe
-HC/copy edit is established. Run135 maps cache scatter ownership and
-checks for duplicate or unnecessary writes; service stays stopped.
-This commit is a checkpoint, not an execution stop.
-
-## Loop041 Run135 decision and Loop042 opening (2026-09-25)
-
-Run135 mapped 126 cache scatter kernels per target in every one of
-15 valid windows. Ordered counts are 1,1 for the initial c0 layers,
-4 for each of 21 c4 layers, and 2 for each of 20 c128 layers.
-The frozen DSA CP source accounts for one SWA write per layer, one
-compressed-KV write for ratio>1, and two indexer K/scale writes for
-c4. No duplicate-write candidate exists from these counts; removing
-one would risk persistent cache semantics. Loop041 PIVOTED without an
-implementation or E2E claim. Loop042 now tests whether the roughly
-10 ms apparent communication exposure is a removable inter-rank phase
-skew or a critical-path-neutral wait. First Run136 uses existing
-traces and DAG timestamps; no service restart yet. Every checkpoint
-requires reassessing the highest gap and continuing while unblocked.
-
-## Loop042 Run136 phase audit (2026-09-25)
-
-Run136 reanalysed Run106's two unsynchronized profiled cycles.
-Prepare entry skew was 9.637 and 10.510 ms; first reduce-scatter
-start skew 10.193 and 9.735 ms, while end skew was only 0.0065 and
-0.0118 ms. The latest rank changed from rank3 to rank0. Run98 steady
-cycles64-255 show tiny per-cycle rank duration spreads (target median
-0.0812 ms, proposer 0.0603 ms), but save no shared absolute timestamps.
-Therefore an unprofiled steady phase offset and its effect on cohort
-wall remain unknown. Run137 will use opt-in lightweight host timestamps
-at stage boundaries in a legal eight-rank c12 run, without profiler or
-forced NPU sync. Only then choose a scheduler or communication edit.
-
-## Loop042 Run137 legal steady host phase capture (2026-09-25)
-
-Run137 completed all 12 exact-1024 requests on eight ranks; each rank
-recorded 294 cycles. Across cycles64-255, shared-host absolute stage
-marks show median begin skew3.944 ms, after-target skew0.991 ms, and
-after-proposer skew3.928 ms. The latest begin rank changes across
-cycles, mainly rank3/4; target execution narrows rank phase, proposer
-widens it again. Cohort host wall median58.130 ms. The timestamps are
-host marks after asynchronous graph dispatch, not direct NPU collective
-or removable time. Diagnostic TPS529.742 is not formal E2E. Temporary
-runtime/fixed_serving source restored to recorded original SHA256 and
-stop script returned all NPUs to about3.4GB idle. Run138 will locate
-proposer host blocking and quantify candidate host critical-path time.
-No scheduler edit is justified by phase skew alone.
-
-## Loop042 Run138 proposer source/timing audit (2026-09-25)
-
-Run138 found Run137 Host target/proposer scope medians4.872/41.992 ms,
-while separate Run98 NPU event medians are target46.575/proposer6.400 ms.
-The Host target+proposer rank medians are tightly near47 ms: the 42 ms
-Host proposer scope is not removable CPU time. Run106 two profiled
-cycles put median50.201 ms in borrowed _propose/model, with each outer
-handoff wrapper <=1.284 ms. The more meaningful latest-rank end cadence
-in Run137 is median54.082 ms and total-span mean54.877 ms/cycle; its
-58.130 ms cross-rank cycle envelope is not a steady throughput period.
-Astra Medium read-only review challenged the inference of a removable
-phase gap and recommended a no-barrier wall/thread-CPU subphase capture.
-Requested Astra model is not independently verified by tool metadata.
-Run139 will locate wait versus CPU activity before any scheduler edit.
-
-## Loop042 Run139 INVALID instrumentation mismatch (2026-09-25)
-
-Run139 started eight-rank serving, but the first request raised
-AttributeError because the temporary timing wrapper assumed the Step3p5
-method `_build_step_attn_metadatas` existed on the actual
-AscendDSparkProposer. It does not. EngineCore died; 11/12 partial
-responses and 7.27 tok/s are invalid, and no subphase trace was
-produced. The patch record confirms original SHA256 restored for both
-borrowed files; stop script released all eight NPUs to idle. Run140
-will instrument actual `set_inputs_first_pass`,
-`build_draft_attn_metadata`, `_runnable`, and
-`compute_draft_token_ids` methods after preflight verification.
-This failure is a TaskCtl checkpoint, not an execution stop.
-
-## Loop042 Run140 and Loop043 opening (2026-09-25)
-
-After invalid Run139 was preserved, Run140 corrected temporary wrappers to
-the actual AscendDSparkProposer methods and passed 12/12 exact1024
-requests on eight ranks, with 290 cycles/rank. Across 1536 steady
-rank-cycles, proposer model Host wall/thread CPU medians are
-39.571/39.544 ms; nested `_runnable` 30.297/30.283 ms,
-`build_draft_attn_metadata` 6.306/6.294 ms, and
-`set_inputs_first_pass` 1.085/1.083 ms. Nested values are not
-additive. Latest-rank proposer-end cadence median53.824 ms and
-mean54.741 ms/cycle. Diagnostic TPS534.467 is not formal E2E.
-Patch hashes restored and stop script released eight NPUs to idle.
-Loop042 PIVOTED: phase skew alone does not support a scheduler edit.
-Loop043 audits a product-specific DSpark fixed replay/execution boundary
-against actual dynamic metadata and KV state before implementation.
-Astra High read-only architecture review was requested; its model ID
-is configured, not independently verified. Sol retains final decision.
-
-## Loop043 Run141 DSpark replay boundary audit (2026-09-25)
-
-Run141 confirmed the actual AscendDSparkProposer inherits eager
-llm_base_proposer, rather than Step3p5. `_runnable` contains dynamic
-context-KV input preparation and writes, three-layer model forward,
-gather/LMHead, then a fixed seven-step Markov correction. The Markov
-head uses replicated weights and has no attention metadata, KV write
-or inter-rank communication inside that tail. It mutates logits via
-`add_`; every replay must refresh raw logits, and output buffers must
-remain live through acceptance. Run98 device stage medians sum54.199 ms
-versus Run140 latest-rank proposer-end span mean54.741 ms/cycle, but
-those are different cohorts and cannot be subtracted as a gain bound.
-Astra High read-only review recommends timing the four actual segments
-before a replay implementation; requested model is not independently
-verified. Run142 is the next legal no-barrier eight-rank capture.
-
-## Loop043 Run142 decision and Loop044 opening (2026-09-25)
-
-Run142 passed 12/12 legal exact1024 requests on eight ranks and captured
-64 consecutive steady DSpark segment samples per rank. Median Host wall/
-thread CPU/device event times: context-KV2.992/2.992/0.733 ms,
-three-layer model23.930/23.901/2.795 ms, gather0.775/0.774/0.055 ms,
-LMHead0.663/0.663/0.411 ms, seven-step Markov2.655/2.655/0.695 ms.
-Event sums can overlap and are diagnostic. The safe Markov replay
-boundary is <1 ms of measured device interval and its Host work is
-largely concurrent with target; no compelling exposed >=5ms savings.
-Source hashes restored and service stopped, idle8 verified. Loop043
-PIVOTED without implementation or formal E2E. Loop044 returns to the
-~46.6 ms target device stage and will reconstruct exposed per-family
-critical path before selecting an edit. Astra High was read-only input,
-actual service model not independently verified; Sol made the verdict.
-
-## Loop044 Run143 target timeline coverage (2026-09-25)
-
-Run143 swept device intervals in all 15 valid synchronized Run107 target
-windows. Median device union50.314 ms. Timeline-exclusive coverage:
-GMM1 6.379 ms, GMM2 3.134 ms, quant matmul3.253 ms,
-compressor3.366 ms, HC pre2.961 ms, cache scatter2.343 ms,
-other compute14.099 ms. Communication10.248 ms exclusive includes
-peer wait. This is a descriptive trace decomposition: deleting a
-family would shift dependent kernels, so exclusive coverage is not
-causal latency gain. Run98 unprofiled target median remains46.575 ms.
-Run144 will split the 1413 other-compute kernels by exact operation and
-source role before choosing a product-specific intervention. No service
-run or formal E2E in Run143.
-
-## Loop044 Run144 other-compute source grouping (2026-09-25)
-
-Across 15 valid Run107 target windows, the 1413 other-compute kernels
-have 48 exact names. Largest median exclusive timeline coverage is
-VllmQuantLightningIndexer 1.7465 ms, generic MatMul 1.6893 ms,
-SparseAttnSharedkv 1.6203 ms, transpose batch matmul 1.4643 ms,
-MoeInitRouting 1.0553 ms, and rotary 1.0375 ms. Source mapping places
-the indexer/attention in DSA and routing in MoE; generic MatMul and
-rotary are shared implementations with unresolved unique callsites.
-No single other-compute name has >=5 ms coverage. Summing mandatory
-DSA stages is not a causal savings estimate. Run145 will discriminate
-communication peer wait against GMM compute on matching windows.
-This was offline only; service remains stopped.
-
-## Loop044 Run145 communication versus GMM (2026-09-25)
-
-On the same 15 valid Run107 target windows, 260 HCCL kernels per
-window total median 11.281 ms, while 86 GMM kernels total 9.966 ms.
-The first reduce-scatter dominates communication dispersion. Across
-ranks its start skew is 20.533/8.650 ms in cycles64/65, but its end
-skew is 0.010/0.0135 ms. The latest rank enters this collective in
-~0.035 ms, whereas earlier ranks wait. The other 259 HCCL kernels sum
-roughly 4.8–5.7 ms per rank. Reducing early-rank wait alone cannot move
-collective completion. This profiled synchronization is diagnostic;
-it does not prove the scheduler has no room. GMM is the larger stable
-compute exposure, but 9.966 ms is not a removable bound. Run146 will
-audit product GMM hardware efficiency and exact code path before an
-edit. Offline only; service remains stopped.
-
-## Loop044 Run146 product GMM traffic estimate (2026-09-25)
-
-Run115 product shape has W1 packed 8 MiB and W2 packed 4 MiB per
-expert. Run121 live routing has median672.5 active expert-layer pairs
-per rank-cycle, corresponding to 7.881 GiB packed weights if each
-active matrix is read once. Combining with Run107 GMM median9.966 ms
-would imply ~849 GB/s, conditional on actual memory loads and across
-different diagnostic cohorts. This is not measured HBM traffic or an
-achievable bound. GMM1 source skips zero-M experts; GMM2 calls
-torch_npu grouped matmul. Run107 profiling requested task_trace and
-has no AI-core memory counters. Run147 will profile a one-card
-product-shape GMM1 route with memory-access counters. Service remains
-stopped.
-
-## Loop044 Run147 invalid profiler launch (2026-09-25)
-
-The shell could not open profile.log because the Run147 evidence parent
-directory did not exist. Docker exec and the GMM profiler script never
-started, so Run147 has no counter or correctness result. TaskCtl marks
-it invalid. Run148 creates the directory before execution; service
-remains stopped.
-
-## Loop044 Run148 GMM1 memory counter (2026-09-25)
-
-One-card Level1 MemoryAccess capture succeeded after the invalid Run147
-launch. Four product-shape synthetic-weight calls using a real Run121
-route (60 tokens, 15 active experts) have median118.743 us GMM1 kernel
-duration, 129681 KB main-memory read and 2012.5 KB write. Read traffic
-is 1.055× the packed W1 bytes for 15 active experts; effective
-in-kernel read is 1118 GB/s. This supports weight traffic as the
-dominant cost and confirms zero experts are largely skipped in this
-synthetic case. It is not device peak or an eight-rank achievable
-bound, and differs from the live target route. Run149 will profile
-GMM2 with the same route. No serving service ran; NPUs idle.
-
-## Loop044 Run149 invalid GMM2 attribution (2026-09-25)
-
-The one-card GMM2 profiler executed, but median kernel duration was
-~794 us versus ~83 us per live Run107 layer. Its synthetic call omitted
-the W4A8 per-channel w2_scale_bias passed by the product source.
-The counters therefore cannot bound live GMM2. TaskCtl marks Run149
-invalid for product attribution and preserves the profile. Run150
-will pass bias and feed GMM1-produced activation/scale. No serving
-service ran; eight NPUs returned idle.
-
-## Loop044 Run150 corrected GMM2 counter and next target gap (2026-09-25)
-
-Adding product W4A8 bias2 and GMM1-produced activation/scale corrected
-the one-card GMM2 path. Four samples have ~68 us median, ~66 MB
-main-memory read and ~1 TB/s effective in-kernel read. Counter read
-is close to the packed W2 bytes for 15 active experts. This is
-comparable order to Run107 live ~83 us/layer, unlike invalid Run149
-~794 us. Together with Run148, the two GMM kernels mostly read active
-packed weights and already avoid empty experts. We have no demonstrated
-semantics-safe >=5 ms GMM edit under frozen W4A8. This is not a
-hardware peak proof. Sol pivots Run151 to the DSA Compressor/indexer/
-attention/transpose sequence for a source-backed removable
-intermediate or fusion opportunity. Serving remains stopped, NPUs idle.
-
-## Loop044 Run151 DSA chain audit (2026-09-25)
-
-All 15 Run107 valid windows show 43 sparse-attention calls: two c0
-layers without compressor/indexer, 21 c4 layers with two distinct
-compressors and one lightning indexer, and 20 c128 layers with one
-compressor. The 62 compressor calls are exactly c4×2 plus c128×1:
-attention compressed KV and indexer compressed state are distinct.
-Per-window medians are Compressor3.366 ms, Indexer1.746 ms,
-SparseAttn1.621 ms. Every transpose batch matmul follows an HCCL
-alltoall after sparse attention, so it is not a pre-attention DSA
-fusion step. Source and trace do not show a redundant compressor or
-semantics-safe large DSA fusion. The first script assertion on
-metadata-kernel count failed because metadata kernels are not present
-at every compressor call; corrected script classified only actual
-compressor/indexer kernels and passed. Run152 audits repeated TP8
-collectives for coalescing. Offline only, service remains stopped.
-
-## Loop044 Run152 TP collective adjacency (2026-09-25)
-
-In 15 valid Run107 windows, 33–41 per-window allGather pairs are
-strictly adjacent (median36). Their payloads are BF16 49152 elements
-and FP32 3072 elements. The second FP32 calls total median0.257 ms
-per window. Different dtypes prevent trivial coalescing, and other
-collectives interleave dependent compute. The first script assertion
-incorrectly expected 43 strictly adjacent pairs; the corrected
-audit reports the actual range. No safe large TP8 collective edit
-emerged. Independent read-only bound review then highlighted a
-possibly larger formal E2E range gap: Run99 client request duration
-exceeds FixedCohortServing.run wall by 11–17 s across repeats.
-That is only accounting until stages are localized. Run153 will
-reconcile existing Run99 timestamps and tail utilization offline.
-
-## Loop044 Run153 E2E scope reconciliation and Loop045 (2026-09-25)
-
-Run99 formal client median85.978 s versus four rank0 FixedCohortServing
-walls69.040 s leaves16.938 s (19.7%) outside the internal timer.
-Across 12 cohorts, subtracting maximum client TTFT from each
-request-envelope-minus-runtime difference leaves median0.140 s
-(range0.074–0.172). The gap is primarily in first-token scope,
-not established wasted serving time. Stock baseline on another date
-had cohort maximum TTFT median1.514 s versus Run99 Extreme3.922 s;
-that comparison motivates direct capture but is not causal.
-The timer starts after build_extreme_runtime. Existing JSON lacks
-common-clock admission, prefill, handoff, construction and publication
-marks; per-slot count_history was not persisted, so tail compaction
-benefit cannot be quantified. Loop044 PIVOTED and Loop045 opened for
-one legal diagnostic capture. Independent Astra High review was
-read-only; configured model cannot be independently verified and Sol
-owns this decision. No formal Run99/Stock rerun.
-
-## Loop045 Run154 cold boundary and parked-slot capture (2026-09-25)
-
-A legal eight-rank 12×1024 diagnostic completed 12/12 with eight
-boundary and runtime files. Same-host clock medians: client-to-first
-worker execute0.383 s; first execute-to-handoff5.954 s;
-handoff-to-runtime-build0.083 s; build_extreme_runtime0.041 s;
-FixedCohortServing16.636 s; worker publication-to-client end0.175 s.
-First-token scope is mainly pre-handoff prefill/model execution in
-this cold-service run, not runtime construction. Parked slots account
-for 14.484% of fixed slot-cycles; this is wasted-shape exposure,
-not achievable speedup. Diagnostic TPS527.999 is not formal E2E.
-All sources restored to original SHA and eight NPUs idle. A later
-EngineDeadError in service log occurred after the 12 successful
-responses; preserved excerpt, no claim about its cause. Run99 formal
-was warm-cache, so Run155 will warm with 48 legal requests before
-measuring one 12-request cohort in the same service. No reliable
-formal E2E rerun.
-
-## Loop045 Run155 warm boundary (2026-09-25)
-
-Legal 8-rank same-service 48×1024 warmup plus 12×1024 measured
-diagnostic: 60/60 requests succeeded and all 40 rank-cohort runtime
-records passed. Warm measured client envelope20.779 s and diagnostic
-TPS591.369; neither is formal E2E. Cohort5 boundary starts with one
-trailing warmup execute before measured client start; analyzer selects
-first execute at/after measured start. Same-host medians: client-to-
-first execute0.241 s; first execute-to-handoff3.621 s; runtime build
-0.00264 s; fixed serving16.728 s; publication-to-client end0.184 s.
-Runtime construction cannot explain a multi-second E2E gap. Measured
-parked slot-cycles18.525%, exposure only. Temporary source restored,
-service stopped, 8 NPUs idle. Next Run156 is offline to discriminate
-prefill work and tail opportunity before another NPU intervention.
-
-## Loop045 Run156 cohort accounting (2026-09-25)
-
-Offline Run155 8-rank audit: warmed cohorts3/4 each schedule about
-50.6k prefill tokens across 11 calls and take3.66 s from first
-execute to handoff. Measured cohort5 schedules only1.63k tokens
-across12 calls yet takes3.62 s. Volume alone cannot explain the
-pre-handoff delay. Per-call admission/tokenization, Host and device
-time are unresolved; direct stage timing is the next high-value probe.
-Parked slot exposure spans9.7–19.5% across five cohorts; it is not
-a measured compaction speedup. Run157 will inspect source and design
-minimal timing probes before another NPU run.
-
-## Loop045 Run157 pre-handoff timing design (2026-09-25)
-
-`bench.py` launches12 requests concurrently; Run155 measured client
-starts differ by milliseconds. The worker boundary logs execute entry
-but not exit, so each ~0.4 s start spacing can be worker work or
-inter-call scheduler/admission wait. Run158 will temporarily wrap
-NPUModelRunner.execute_model to record same-host entry/exit on all8
-ranks in a legal warmed service. No device synchronization; in-call
-wall is not device-only time. Design evidence in run157.
-
-## Loop045 Run158 worker call timing (2026-09-25)
-
-Legal 8-rank same-service48×1024 warmup plus12×1024 measured
-diagnostic:60/60 successful, all40 rank-cohort records and8 rank
-method logs complete. Measured pre-handoff median3.433 s, including
-10 prefill execute_model calls totaling2.928 s and inter-execute
-gaps0.478 s; sample_tokens totals0.447 s within those gaps. Final
-handoff preamble0.026 s. The large latency is inside worker calls,
-not primarily scheduler/admission idle. Python wall is not NPU
-device-only time. Diagnostic measured TPS622.761 is not formal E2E.
-All temporary source restored; service stopped and8 NPUs idle.
-Next Run159 inspects prefill execute_model internals and designs a
-minimal Host-versus-device timing probe before runtime changes.
-
-## Loop045 Run159 prefill stage probe design (2026-09-25)
-
-Source inspection identifies execute_model preparation, normal model
-forward and post-process boundaries. Run160 will timestamp these
-inside the worker without synchronization, excluding the final
-Extreme handoff call. Python wall will locate Host-facing stage
-latency but cannot establish device kernel time. Probe design and
-source anchors are in run159 evidence.
-
-## Loop045 Run160 invalid patch collision (2026-09-25)
-
-No service or NPU work. Stage and timing temporary patches shared
-the same backup path, causing timing install to fail before startup.
-Trap restored stage and boundary patches to original SHA and stopped
-service. Run160 is invalid in TaskCtl; failure logs preserved. Run161
-will give patches distinct backup paths and repeat the legal probe.
-
-## Loop045 Run161 prefill stage split (2026-09-25)
-
-Legal8-rank48×1024 warmup and12×1024 measured diagnostic passed
-60/60, all40 rank-cohort records. Across ranks, measured prefill
-execute_model median3.397 s, with `_model_forward` Python wall3.122 s
-(~91.9%) and preparation0.258 s. The large pre-handoff gap is
-inside model-forward invocation, not mainly request admission or
-Runtime construction. This is Python wall, not device-only time;
-forward can include NPU work, HCCL and waits. Diagnostic TPS580.055
-is not formal E2E. All patches restored and service stopped with8
-NPUs idle. Run162 should obtain device-level prefill evidence before
-any code change.
-
-## Loop045 Run162 invalid Host pinned-memory startup (2026-09-25)
-
-The rank0 single-forward profiler was installed but service failed
-before health check or benchmark. Worker TP6 KV block-table pinned
-Host buffer allocation raised `torch.OutOfMemoryError` from
-`aclrtMallocHostWithCfg` error207001. At failure Host had about16 GiB
-free and full71 GiB swap, but root resource ownership is not yet
-proven. No NPU trace or performance result exists. Runner terminated,
-its detached health-check shell cleaned, source patches restored to
-original SHA, service stopped and8 NPUs idle. Run162 is invalid in
-TaskCtl. Next Run163 is read-only resource audit before considering a
-new service attempt; do not kill unrelated processes.
-
-## Loop045 Run163 Host resource audit (2026-09-25)
-
-Read-only audit of the stopped dedicated
-`vllm-ascend26-dsv4f-w4a8` container found3646 live cgroup PIDs:
-3270 multiprocessing.forkserver processes (~716 GiB summed RSS),
-327 spawn processes (~194 GiB), eight `python3 -` (~59 GiB), plus
-trackers/init. Host swap71 GiB is full; cgroup reports ~985 GB
-current and no configured memory.max. These residual processes create
-strong pressure and plausibly explain Run162 pinned Host allocation
-failure, but direct allocator causality is unproven. No active service
-or NPU process. Run164 will restart only this dedicated stopped
-container and verify resource recovery before retrying the profiler.
-
-## Loop045 Run164 dedicated container resource recovery (2026-09-25)
-
-`docker restart --time 10` first exited1 because daemon did not
-receive an exit event, but its stop attempt removed most residual
-processes. Explicit `docker stop --timeout 30` then `docker start`
-both exited0. Dedicated container cgroup fell from3646 to1 PID;
-Host memory used fell from841 GiB to20 GiB and swap from71 GiB
-to749 MiB. Mounts, original model-runner/fixed-serving SHA, stopped
-service and8 idle NPUs verified. Run164 passed overall with the
-initial daemon error preserved. Run165 will retry the prefill profiler
-as a new legal 8-rank diagnostic.
-
-## Loop045 Run165 rank0 prefill device trace (2026-09-25)
-
-After dedicated-container recovery, legal8-rank48×1024 warmup
-plus12×1024 measured diagnostic passed60/60 and all40 rank-cohort
-records. One rank0 measured prefill `_model_forward` was profiled.
-CANN step trace: stage444.180 ms, compute39.597 ms, exposed
-communication2.862 ms, Free/no recorded device task401.721 ms
-(90.44%). Independent kernel-interval union agrees after removing
-264 HCCL/Aiv duplicate labels. This is one rank, one call with
-profiler initialization and explicit sync; no formal E2E or speedup
-claim. It strongly motivates Host/launch/dependency attribution,
-not GMM/HCCL kernel tuning for this prefill call. Diagnostic
-TPS635.156 is not formal. Sources restored, service stopped,8 NPUs
-idle. Run166 will inspect CPU/API and all device-task timing offline
-before selecting a prefill execution intervention.
-
-## Loop045 Run166 Host-to-device gap correlation (2026-09-25)
-
-Offline exact-timestamp analysis of Run165's one rank0,83-token
-profiled prefill forward:2825 kernel rows,2561 unique intervals,
-444.124 ms first-to-last device span and401.665 ms without a
-recorded kernel. All kernel starts match HostToDevice flow endpoints.
-Conservatively using the earliest matching flow for each next task,
-357.603 ms (89.0%) of device-free gaps lie before the reported Host
-flow start;44.062 ms lie afterward. This strongly favors Host
-submission pacing in the profiled call over pure device compute or
-HCCL. The profiler perturbs this matched shape (Run161 unprofiled
-rank0 83-token `_model_forward` ~0.320 s versus profiled stage
-0.444 s), so357.6 ms is not removable-time or formal E2E proof.
-Run167 requests Astra High independent architecture/bound review
-before Sol selects a correctness-gated prefill execution experiment.
-
-## Loop045 Run167 independent architecture review (2026-09-25)
-
-Configured GPT-6 Astra High read-only reviewer recommends a narrow exact-state, eight-rank genuine prefill `_model_forward` capture feasibility experiment, with full metadata and prefill write-set restoration and A/B/A-prime correctness. Existing DSA CP graph capture rejects prefill; do not force decode dispatcher. Run165/166 Host-flow evidence is one perturbed rank0 call and cannot establish an E2E speedup. Sol accepts source/write-set feasibility audit as the next step. Reviewer model ID is configured but not independently visible in the execution record. Details: `evidence/20260925_loop045_boundary/run167/architecture_review.md`.
-
-## Loop046 Run168 prefill capture source audit (2026-09-25)
-
-Read-only audit confirmed the stock DSA CP graph capture rejects prefill, while a separate exact-state closure must preserve actual forward context, rank-local metadata, all SWA/compressed KV/compressor/c4 indexer writes, async gather and connector order. The A5-only full o-proj weight pointer switch is not expected on 910B3. Capture compatibility and shape reuse remain unproven. Run169 should quantify natural prefill batch-state frequency and unprofiled latest-rank cost from existing legal evidence before building a costly full-state graph probe. See `evidence/20260925_loop046_prefill/run168/source_audit.md`.
-
-## Loop046 Run169 natural prefill shape frequency (2026-09-25)
-
-Offline eight-rank Run158/161 measured warmed cohorts have10/12 pre-handoff calls respectively; every unpadded token count is unique within each cohort. Seven/eight large calls consume median2.729/2.928 s of their respective measured wall metrics, but these are opportunity ceilings, not removable time. Across runs only token counts8,83 and155 repeat, with metadata equivalence unproven. A separate exact-state graph for each one-off shape has no demonstrated amortization. Sol shifts next to locating the scheduler/admission cause of repeated expensive forwards and a bounded coalescing test; no graph or E2E gain claim. Evidence: `evidence/20260925_loop046_prefill/run169/frequency_analysis.json`.
-
-## Loop046 Run170 invalid shell setup (2026-09-25)
-
-The admission-trace runner never began: shell redirection to its driver log failed because the run170 evidence directory did not exist. No borrowed source patch, service or NPU work occurred. TaskCtl marks Run170 invalid. Run171 creates its evidence directory first and runs the same bounded opt-in scheduler trace.
-
-## Loop046 Run171 Core admission trace (2026-09-25)
-
-Legal8-rank48×1024 warmup and12×1024 measured diagnostic passed60/60 with40 rank-cohort runtime records. Client request start times span12ms, but measured Core `add_request` processing spans1.696s, first at+0.226s and last at+1.922s after first client start. The Core running count advances0→10 between additions. This is consistent with execution interleaving blocking Core request handling, but Core `add_request` is not wire arrival or frontend tokenization; attempted scheduler `schedule` rows were absent, so exact scheduler budget is unmeasured. Diagnostic TPS634.456 is not formal. Borrowed scheduler SHA restored, service stopped. Next: bounded Core input-queue drain/coalescing experiment with an env-gated <=250ms initial wait, while retaining all request semantics and measuring latest-rank prefill completion. See `evidence/20260925_loop046_prefill/run171/admission_analysis.json`.
-
-## Loop046 Run172 bounded 250ms cohort drain (2026-09-25)
-
-Env-gated Core input-queue drain waited about251-258ms at each of five first-cohort admissions, gathering3-4 requests from initial1. Legal8-rank48+12 requests passed60/60 with40 runtime cohort files. Measured prehandoff execute sequence was249,107,449,321 tokens on all8 ranks. Diagnostic measured envelope19.278s versus separate-service Run17119.368s, only0.090s better; TTFT p50 worsened1449→2092ms and latest-rank Runtime wall worsened16.388→16.690s. These runs have different instrumentation and are not formal E2E. Both borrowed Core/model sources restored, service stopped,8 NPUs idle. One bounded500ms dose test is warranted to see whether larger initial aggregation creates material net gain; reject if it does not. Evidence: `evidence/20260925_loop046_prefill/run172/analysis.json`.
-
-## Loop046 Run173 bounded 500ms cohort drain (2026-09-25)
-
-Legal8-rank48+12 passed60/60 with40 runtime cohort files. Five initial waits were about501-509ms and gathered5-7 of12 requests, but measured prehandoff remained four forward calls (415,123,465,171 tokens) across all ranks. Diagnostic envelope20.494s versus Run171 no-wait19.368s and Run172 250ms19.278s; latest-rank Runtime wall17.645s versus16.388/16.690s. Separate-service and decode variance prevent attributing the full loss to waiting, but neither dose shows material net gain. Sol provisionally rejects this Core delay and requested Astra Medium read-only review. Both borrowed sources restored, service stopped,8 NPUs idle. Evidence: `evidence/20260925_loop046_prefill/run173/analysis.json`.
-
-## Loop046 Run174 review and verdict (2026-09-25)
-
-Configured Astra Medium read-only review agrees tested250/500ms Core admission holds have no supported net frozen-product value. Separate-service Run173 had311 decode cycles versus Run171292, so runtime loss cannot be causally assigned solely to waiting. Sol rejects the opt-in admission hold; borrowed source is restored/default off and no formal E2E is warranted. Existing prefill graph route also lacks exact-state shape reuse. Loop046 PIVOTED; Loop047 now quantifies the product-specific inactive-slot target tail before any compaction implementation. Reviewer model ID is configured but not independently verifiable. Evidence: `evidence/20260925_loop046_prefill/run174/independent_review.md`.
-
-## Loop047 Run175 active-slot tail census (2026-09-25)
-
-Offline from legal Run155 eight-rank boundary park logs: measured cohort5 had296 cycles, first park at173, median18.525% parked slot-cycles, with44 cycles active<=6,27 active<=3 and16 active<=1. Across four warmup cohorts, parked fractions are9.68%,10.60%,11.62%,19.47% (all ranks agree within cohort). Multiplying measured parked fraction by Run98's46.560ms target stage gives2.553s/cohort only under an impossible ideal of linear target scaling and no switching overhead; it is NOT an achievable bound. Next audit exact c12 state/graph shape and get marginal target latency before implementing compaction. Evidence: `evidence/20260925_loop047_tail/run175/active_tail_census.json`.
-
-## Loop047 Run176 source feasibility (2026-09-25)
-
-Read-only audit found active-slot compaction crosses the full c12/96-token state ABI: fixed_decode, target_adapter, target_metadata, acceptance, DSpark and physical KV parking. Stock startup captured graph token sizes including48, but the current Extreme target closure and metadata are bound to96. Run150 GMM weight traffic may be batch-insensitive. Sol will first seek a legal matched-KV c12 versus c6/c3 real-weight TP8 target graph marginal-latency measurement before implementation. Run175's2.553s/cohort ideal-linear exposure is not an achievable bound. Details: `evidence/20260925_loop047_tail/run176/source_feasibility.md`.
-
-## Loop047 Run177 real-weight target size slope (2026-09-25)
-
-Same-service Stock-only legal warmed c12,c8,c6,c4,c1 diagnostic passed all request counts (12+8+6+4+1 in both warmup and measured). Each size has24 explicitly synchronized `_model_forward` FULL graph event samples per rank, actual tokens8×active requests, CPU computed positions ~33K. Median of per-call eight-rank maxima: c12 53.944ms, c8 49.672ms, c6 49.647ms, c4 47.155ms, c1 39.903ms. Under zero switching/packing cost, mapping Run155 measured tail to the sampled graph buckets screens only~0.570s/cohort of target event difference; assigning c1 to every partial cycle gives an impossible optimistic1.713s endpoint. Neither is an achieved speedup/bound. No c12 repeat after smaller sizes, explicit sync perturbs cadence, and Stock/Extreme boundaries differ. Need same-service order-drift control before rejecting or implementing compaction. Borrowed model source restored, service stopped,8 NPUs idle. Evidence: `evidence/20260925_loop047_tail/run177/analysis.json`.
-
-## Loop047 Run178 independent architecture review (2026-09-25)
-
-Configured GPT-6 Astra High read-only review accepts Run177 as screening only. Observed122 partial cycles require >8.20ms average target saving for >1s/cohort before compaction costs; Run177 bucket-weighted zero-cost screen is0.570s, while c12→c1 endpoint14.041ms does not by itself falsify larger gain. Stock scope, sequential-order drift, and broad c12 ABI work prevent a decision. Sol will run a same-service c12 early/late control, then decide whether compaction has product value. Reviewer actual model ID is not independently exposed. Evidence: `evidence/20260925_loop047_tail/run178/independent_review.md`.
-
-## Loop047 Run179 invalid shell setup (2026-09-25)
-
-The invoking shell could not open the driver log because the Run179 evidence directory was absent. The runner did not start; no patch, service or NPU work occurred. TaskCtl marks Run179 invalid. Run180 creates its output directory before redirection and executes the same same-service c12 early/late drift control.
-
-## Loop047 Run180 c12 drift control and Loop048 opening (2026-09-25)
-
-Same-service Stock-only legal warmed c12a,c8,c6,c4,c1,c12b completed all requests and 8 ranks×24 synchronized FULL graph samples per epoch. Median per-call eight-rank max events:53.461,50.787,49.020,47.379,40.678,54.996ms. c12 early/late drift is+1.536ms. Run155 measured-tail active histogram mapped to these buckets gives only0.471–0.602s/cohort zero-overhead target event screen (mean-baseline0.537s). It excludes packing, graph/metadata selection, KV and canonical-slot scatter and is Stock-only. Sol pivots Loop047 without a compaction implementation; this is prioritization, not proof no Extreme gain. Borrowed source SHA004dbd0 restored, service stopped,8 NPUs idle. Evidence: `evidence/20260925_loop047_tail/run180/analysis.json`.
-
-Reassessment: Run116's roughly10ms GMM sum and10ms exposed communication were investigated through Run145-152. The first reduce-scatter variation largely reflects early-rank arrival wait (collective ends aligned), and product-shape GMM1/GMM2 weight reads are near packed-weight bytes at roughly1TB/s, without a legal faster candidate. Neither is a proven removable10ms. Warmed prefill Run161/165/166 shows about3s/cohort repeated forward time and a profiled83-token call with large Host submission gaps, still unproven as removable. Loop048 begins with offline CPU/flow source attribution before selecting a correctness-gated Host intervention. Run99 formal571.681tok/s remains the product record; no new formal E2E.
-
-## Loop048 Run181 offline prefill CPU scope map (2026-09-25)
-
-Run165 single profiled rank0 83-token warmed prefill forward has43 `vllm::dsa_forward` CPU scopes totaling187.371ms and43 `vllm::moe_forward_shared` scopes totaling207.733ms; the two families do not overlap on the traced Python thread and together cover395.104ms of the ~444.180ms profiled stage. Direct-child-uncovered spans are80.091/82.923ms respectively, but include uninstrumented code and profiler overhead. MoE direct children include86 gather/unpad scopes25.082ms,258 Event::record22.668ms,215 Event::wait14.795ms; DSA has 43 matmul/reduce scopes21.198ms. Run161 matched unprofiled call was~0.320s, so this trace does not prove a 163ms removable Python gap. Next: low-overhead legal eight-rank measured forward phase timing to test whether DSA/MoE Host time persists without torch profiler and where latest-rank prefill time sits. Evidence: `evidence/20260925_loop048_prefill/run181/analysis.json`.
-
-## Loop048 Run182 invalid custom-op wrapper (2026-09-25)
-
-The temporary DSA/MoE timing wrapper used varargs; `direct_register_custom_op`/PyTorch `infer_schema` rejected the signature during service import before model load or benchmark. No timing result. Sol stopped the service and restored DSA, MoE runner and model runner to their recorded original hashes; eight NPUs idle. Run183 will preserve exact typed signatures and preflight imports before weight loading. Evidence: `evidence/20260925_loop048_prefill/run182/invalid.md`.
-
-## Loop048 Run183 Stock prefill phase baseline (2026-09-25)
-
-Typed custom-op import preflight passed. Legal warmed48+12 requests passed, with8 ranks×10 prefill forwards recorded; each forward executed43 DSA and43 MoE Python custom-op bodies. Per-rank median forward wall0.339–0.376s, DSA+MoE scope sum0.299–0.332s. **This service omitted Extreme Runtime flags and therefore ran Stock**, so it is a Stock host-phase reference only. Measured12 diagnostic envelope34.680s and TTFT9.780s mean are not comparable to Extreme Run171; no performance claim. Three borrowed source files restored to exact hashes, service stopped,8 NPUs idle. Run184 repeats with all frozen Extreme flags. Evidence: `evidence/20260925_loop048_prefill/run183/analysis.json`.
-
-## Loop048 Run184 legal Extreme prefill Host phase (2026-09-25)
-
-Frozen Extreme flags enabled. Legal warmed48×1024 and measured12×1024 passed60/60;40 rank/cohort Runtime rows passed with exact Host mirror and zero Stock target calls after handoff. Five prefill `_model_forward` token sizes88/264/368/152/328 matched all8 ranks. Low-overhead CPU wall probes found43 DSA and43 MoE custom-op bodies per call. Their summed inclusive walls occupy87.7–88.0% of per-rank forward walls; per-call max-rank forward wall sums1.901s/cohort, versus latest-rank decode Runtime wall16.307s. This is exposure, not removable time: scopes contain required operator dispatch, waits and exact state work. Diagnostic measured client envelope19.237s is not formal E2E. Three borrowed sources restored, service stopped,8 NPUs idle. Sol is independently reviewing whether the remaining Host cost or target device work has the largest plausible removable fraction before selecting another edit. Evidence: `evidence/20260925_loop048_prefill/run184/analysis.json`.
-
-## Loop048 Run185 independent bound review (2026-09-25)
-
-Configured Astra High read-only review accepts Run184 as genuine Extreme but stresses1.901s prefill forward exposure and87.7–88.0% DSA+MoE scope coverage are not removable time. Even impossible full removal would yield only about11% diagnostic TPS upside. Run107/116 GMM and communication costs remain unproven savings, with later Run145-152 constraints; tail screen is smaller and broad to implement. Sol will make one low-overhead same-service uninstrumented/instrumented Extreme wall-versus-thread-CPU comparison without per-layer device synchronization. A concrete avoidable candidate near0.5s/cohort would justify further work; otherwise pivot to target mechanism. This is a prioritization screen only. Actual reviewer backend model ID is not independently exposed. Evidence: `evidence/20260925_loop048_prefill/run185/independent_bound_review.md`.
-
-## Loop048 Run186 wall versus thread CPU (2026-09-25)
-
-Same-service legal Extreme warmup48, control12 and detailed12 passed72/72;48 rank/cohort Runtime records passed. Control logged nine `_model_forward` calls/rank, of which six were eager prefill and three FULL; detailed cohort logged nine eager prefill calls/rank, each with43 DSA+43 MoE bodies. All8 ranks agreed on call token shapes within each cohort, but control and detailed shapes differ. In detailed cohort the sum of per-call max-rank forward wall was3.424s and corresponding thread CPU3.416s; per-rank median thread-CPU/wall ratios99.70–99.98%. This falsifies substantial off-CPU blocking in the measured prefill forward and favors active Host/Python/native dispatch as the wall cost. It does **not** establish a removable3.4s: exact DSA/MoE work and HCCL/event dependency submission remain required. The detailed client envelope20.978s versus control20.220s is not causal due different batching and order. Three borrowed files restored, service stopped,8 NPUs idle. Next: bound whether specialized admission can convert many one-off eager forwards into fewer calls without adding more wait than saved submission, or find a concrete inside-layer call family with >=0.5s/cohort plausible benefit. Evidence: `evidence/20260925_loop048_prefill/run186/analysis.json`.
-
-## Loop048 Run187 bounded admission threshold audit (2026-09-25)
-
-Offline evidence gives a narrow reason to test a longer initial cohort drain despite rejected250/500ms holds: Run171 measured Core `add_request` processing spans1.696s; Run173 500ms gathered5–7 but still needed four prefill calls; Run186 no-wait cohorts had six or nine eager prefill calls. With Run186 nine-call per-call maximum-rank wall sum3.424s, a *hypothetical* collapse to one call after a full2s wait leaves about1.043s before all other effects; starting from six calls leaves roughly-0.098s under the same average. This arithmetic is neither an achievable bound nor a gain prediction. Sol will run one same-service legal no-wait A / <=2s wait B / no-wait A-prime diagnostic with exact admission counts, prefill call counts, latest-rank/runtime and client envelope. Reject if full-cohort consolidation or material net benefit fails. Evidence: `evidence/20260925_loop048_prefill/run187/admission_threshold_audit.json`.
-
-## Loop048 Run188 full-cohort admission A/B/A and Loop049 (2026-09-25)
-
-Same-service legal Extreme warmup48+A12+B12+A-prime12 passed84/84 and56 rank/cohort records. B's bounded wait was1.089s and gathered all12 from an initial1 request. It collapsed eager prefill from A/A-prime7/8 calls (max-rank wall sums2.737/2.969s) to one1000-token call (0.377s). Despite this clear local effect, measured client envelopes were20.822/20.769/21.042s, so B improved only0.163s against two-control mean; TTFT p50 was1.923/2.243/2.132s. B decode required331 cycles and18.685s latest-rank Runtime versus controls299 cycles and16.930/17.019s. Do not causally assign all acceptance variation to waiting, but full-product diagnostic did not show material benefit. Sol rejects2s admission wait; no formal E2E. Core and runner restored to exact hashes, service stopped,8 NPUs idle. Loop048 PIVOTED. Run99 formal571.681tok/s remains best Extreme vs Stock543.655. Evidence: `evidence/20260925_loop048_prefill/run188/analysis.json`.
-
-Next largest specific unexplored target mechanism is whether frozen linear expert placement creates critical-rank active-weight imbalance and HCCL arrival delay. Loop049 first correlates existing Run121 live expert counts with Run107/145 per-rank windows and screens a static balanced placement offline. It will not assume Run116's roughly10ms GMM/communication figures are removable savings.
-
-## Loop049 Run189 active-weight placement screen (2026-09-25)
-
-Offline Run121 live counts at cycles64/65 show rank-summed active expert-layer pairs of645–697 and655–712 respectively. Sum of each layer's maximum active-rank count exceeds its rank mean by161/175 packed expert-weight reads. At an illustrative1TB/s and12MiB packed W1+W2 per expert, even impossible perfect *per-layer* balance corresponds to only2.026/2.202ms/cycle before routing, remapping, collectives and implementation cost. Run107/116 separate-service profiled GMM rank-sum spreads are0.441/0.390ms, with no persistent hot rank established. Shared cycle numbers do not make these runs same-state, so no causal correlation. This lowers static expert remap priority but a low-cost built-in placement mode could still merit a bounded test; Run190 audits source support and cost before deciding. Evidence: `evidence/20260925_loop049_expert_balance/run189/analysis.json`.
-
-## Loop049 Run190 static expert placement source audit (2026-09-25)
-
-Read-only source audit finds `expert_map_path` is used in Ascend execution routing, while upstream checkpoint loading still assigns physical expert slots in original logical order. A nonidentity custom 8-rank placement is therefore unsafe without loader integration or a postload weight-and-scale permutation followed by exact 8-rank correctness validation. This is source-path evidence, not a runtime reproduction. Static placement is not a zero-code toggle; Run189's impossible balance screen does not yet justify that architecture work. Next: offline cross-cycle placement simulation using existing Run121 routing evidence, then reassess target priority. Evidence: `evidence/20260925_loop049_expert_balance/run190/static_placement_source_audit.md`.
-
-## Loop049 Run191 fixed-placement cross-cycle screen and pivot (2026-09-25)
-
-Deterministic per-layer pair-swap simulation preserved32 experts/rank. Training on Run121 cycle64 reduced summed per-layer maximum active reads831→774, but held-out cycle65 only852→849 (+3 reads, illustrative0.038ms at1TB/s). Reversing training reduced852→774, but held-out cycle64 worsened831→832 (-1 read). This is just two consecutive cycle samples, not workload generalization proof, but the fixed map shows no robust gain. With Run190's loader/execution mismatch, Sol pivots Loop049; no service run or formal E2E. Next isolate target graph's exposed communication against same-state compute and identify a concrete mechanism before editing. Evidence: `evidence/20260925_loop049_expert_balance/run191/analysis.json`.
-
-## Loop050 Run192 first collective arrival audit (2026-09-25)
-
-Read-only Run107 15-window trace analysis: first reduce-scatter starts skew20.533ms in cycle64 and8.650ms in cycle65, but ends align within0.010/0.014ms. Its duration median6.223ms largely represents peer arrival exposure; following259 collectives sum median5.205ms. The last noncommunication kernel before the first collective is MaskedFill on every valid rank window, and no preceding noncommunication kernel overlaps its start. Profiler/sync perturbs timing and cross-rank clock alignment is not proven. Next locate target entry skew and preceding proposer/host stages before attributing cause. Evidence: `evidence/20260925_loop050_target_dependency/run192/analysis.json`.
-
-## Loop050 Run193 target entry and prior proposer screen (2026-09-25)
-
-Run107 target entry cross-rank skew20.532ms (cycle64) and8.624ms (cycle65) closely matches first reduce-scatter start skew, while its completion aligns. Cycle65's prior proposer durations across seven valid ranks span55.036–63.213ms, and proposer-end to next target-entry gap is mostly7.5–7.8ms. An additional read-only check found the prior proposer start skew2.787ms and end skew11.363ms across all ranks, consistent with proposer duration imbalance propagating to target arrival. The trace cannot isolate the proposer substage or prove a removable gain. Next split proposer model/host and device duration by rank and compare with arrival. Evidence: `evidence/20260925_loop050_target_dependency/run193/analysis.json`.
-
-## Loop050 Run194 profiler perturbation guard (2026-09-25)
-
-Run107 profiled/synchronized proposer CPU scopes at cycles64/65 have median55.644ms (51.628–63.213); Run98 low-overhead proposer device event at the same ordinal cycles on a separate service has median6.454ms (6.369–6.530), an8.62× difference. Distinct timing primitives and services prevent a precise overhead subtraction, but the Run107 8–11ms rank-arrival skew cannot be promoted as an unprofiled product Gap. Run192-193 remain valid *profile-trace structural* observations only. Next inspect Run98's full300-cycle 8-rank stage variation before selecting any communication intervention. Evidence: `evidence/20260925_loop050_target_dependency/run194/analysis.json`.
-
-## Loop050 Run195 low-overhead rank spread and pivot (2026-09-25)
-
-Run98 unprofiled event DAG over260 steady ordinal cycles: eight-rank proposer-duration spread median0.063ms (p90 0.106ms), target-duration spread median0.090ms (p90 2.329ms). The large Run107 first-collective skew is not a persistent measured product imbalance; Run107 proposer scope is8.62× the separate-service low-overhead event interval. Loop050 PIVOTED; no service or formal E2E. Sol requests an independent Astra High architecture/bound review of remaining target work before choosing the next intervention. Evidence: `evidence/20260925_loop050_target_dependency/run195/analysis.json`.
-
-## Loop051 Run196 independent architecture/bound review (2026-09-25)
-
-Configured Astra High read-only reviewer reports no defensible claim that current Run99 571.681tok/s is near hardware/product achievable bound. GMM active weight traffic is close to packed bytes in one-card screens, profiler communication skew is not product savings, and prefill coalescing had no net diagnostic gain. Reviewer prioritizes the fixed target c128 compressor temporary→scatter/cache-write chain, with exact state ownership and whole-target cadence gates; Run143's full scatter family2.343ms/cycle is not this candidate's saving. Sol opened Loop051 and will audit source/trace before editing. Actual reviewer backend model ID cannot be independently verified. Evidence: `evidence/20260925_loop050_target_dependency/run196/independent_bound_review.md`.
-
-## Loop051 Run197 compressor→scatter screen and pivot (2026-09-25)
-
-Run107's exact target trace has20 c128 compressor-following scatter calls/cycle, summed median0.337ms; including42 c4 calls gives1.123ms/cycle, whereas all126 scatter calls are2.344ms. These are profiler kernel sums, not removable savings. Compressor C++ op ABI exposes dense `cmp_kv` and state output but takes no destination cache or slot mapping; direct writes require custom-op ABI/kernel/tiling work and exact state correctness. Even impossible c128 scatter deletion screens only~0.10s per300-cycle cohort before overlap, far below the prefill Host exposure. Sol pivots Loop051, deferring this invasive route. No service run or formal E2E. Evidence: `evidence/20260925_loop051_compressor_cache/run197/analysis.json`.
-
-## Loop052 Run198 prefill MoE event source audit (2026-09-25)
-
-Frozen serve enables shared-expert multistream overlap. Run181's profiler-perturbed83-token forward shows MoE `Event::record`258 calls22.67ms and `Event::wait`215 calls14.79ms, but source uses them for real shared/routed dependencies. Run186 unprofiled forward thread CPU≈wall supports active submission, not event removability. A prefill-only same-stream variant may save Host event calls and lose device overlap; net effect unknown. Sol will first inspect saved Run165 per-stream device overlap, then decide whether a legal same-service bounded A/B is worthwhile. Evidence: `evidence/20260925_loop052_prefill_submission/run198/source_audit.md`.
-
-## Loop052 Run199 prefill shared-stream device screen (2026-09-25)
-
-In Run165's profiler-perturbed rank0 83-token prefill, stream36 has172 shared expert kernels (four×43 layers), summed/union2.1ms within the437ms DSA/MoE CPU-scope envelope; trace interval intersection with main stream47 and stream38 is zero. This does not prove the unprofiled eight-rank runtime has no overlap, but it makes a bounded prefill-only same-stream experiment worthwhile. Do not alter decode stream configuration. Next build a reversible env-gated patch, exact source restore, legal warmed48+12 same-service controls,8-rank correctness and latest-rank wall checks. Evidence: `evidence/20260925_loop052_prefill_submission/run199/analysis.json`.
-
-## Loop052 Run200 prefill-only same-stream A/B/A diagnostic (2026-09-25)
-
-Reversible candidate disabled shared-expert auxiliary stream only during eager prefill; events remained. Legal same-service warmup48+A12/B12/A-prime12 all84 succeeded with8/8 candidate rank marks and8-rank Runtime checks. B and A-prime had identical8 prefill token shapes. Their per-call maximum-rank forward wall sums were3.0750s B versus3.0566s A-prime, so candidate was18.4ms slower locally. A was3.0859s with different shapes. Client envelopes A22.602/B22.551/A-prime21.330s are confounded by326/323/299 decode cycles; no positive product signal. Response hashes match only1/12 A-B and0/12 A-A-prime, so client hash is not a stable exact oracle for these changing cohorts. Runtime exact Host mirror passed but candidate-specific exact tensor/output parity is unproven; reject, no formal E2E. All borrowed source SHA values restored, service stopped,8 NPUs idle~3.4GB. Evidence: `evidence/20260925_loop052_prefill_submission/run200/analysis.json` and raw files in that directory. Next quantify same-stream event submission cost in a one-card controlled microbench before considering any deeper event rewrite.
-
-## Loop052 Run201 invalid one-card event microbench (2026-09-25)
-
-The event loop executed but evidence write raised `FileNotFoundError` because `docker exec` used the container default cwd rather than `/data/wio/Inference_Foundry`. No numerical result was saved or used. The process exited and no service was started. Repeat with explicit workdir as Run202. Evidence: `evidence/20260925_loop052_prefill_submission/run201/bench.log`.
-
-## Loop052 Run202 same-stream event Host cost and pivot (2026-09-25)
-
-Single-card eager microbench,12 repeats×1000 pairs: `record_event+wait_event` thread-CPU median15.696µs/pair versus empty loop0.043µs. Even two redundant pairs per43-layer prefill forward screen only1.346ms/forward before device/dependency effects, about12ms over Run186's nine calls. This is isolated Host enqueue cost, not a service bound. With Run200's activated but slower same-stream B, Sol pivots Loop052 and will inspect broader fixed-model prefill submission specialization. No service was started for Run202; NPU process exited. Evidence: `evidence/20260925_loop052_prefill_submission/run202/analysis.json`.
-
-## Loop053 Run203 fixed prefill Host boundary map (2026-09-25)
-
-Run186 low-overhead8-rank,9-call cohort has43 DSA+43 MoE bodies per eager forward. Static model classes:21 c4 DSA layers median4.558ms/layer;20 c128 median3.105ms;2 c0 median3.018ms. MoE layer medians are~3.52ms for c4/c128. Run181 profiler-perturbed direct-child-uncovered DSA80.1ms and MoE82.9ms cannot be credited to Python rewrite because native dispatch, callbacks and required work remain. Borrowed wrappers resolve metadata/KV and then submit many operators, but no bounded single call family with>=0.5s/cohort saving is established. Next audit exact prefill shape recurrence across saved legal cohorts to judge fixed-shape graph amortization before attempting broad capture. Evidence: `evidence/20260925_loop053_native_prefill/run203/analysis.json`.
-
-## Loop053 Run204 prefill graph-signature recurrence (2026-09-25)
-
-Seven saved legal cohorts (Run184, Run186, Run188 A/A-prime, Run200 A/B/A-prime) contain53 eager forwards but only20 distinct `(actual_tokens, num_reqs)` pairs;45/53 calls share a pair with another call, including seven `(88,1)`. This is only a necessary capture-shape screen: per-request query lengths, CP partitions, slot/block tables, compression cardinalities, tensor addresses and KV write sets were not saved, and DSA-CP `build_for_graph_capture` currently rejects prefill states. No graph reuse or saving is claimed. Next inventory the exact prefill state ABI for one88-token call and identify whether a safe single-shape capture can be bounded. Evidence: `evidence/20260925_loop053_native_prefill/run204/analysis.json`.
-
-## Loop053 Run205 first prefill graph contract audit (2026-09-25)
-
-Borrowed DSA-CP graph builder explicitly rejects prefill and `serve.sh` uses FULL_DECODE_ONLY. A separate exact-state prefill graph would need stable/refreshed request query lengths, positions/RoPE, block/slot tables, CP-local lengths, output storage and all SWA/compressor/indexer KV writes. Run204's repeated `(tokens,requests)` signatures do not establish these invariants. Sol will collect first88-token metadata/address/slot fingerprints from two legal warmed cohorts across8 ranks without graph capture, then choose a bounded implementation test. Evidence: `evidence/20260925_loop053_native_prefill/run205/capture_contract_audit.md`.
-
-## Loop053 Run206 invalid fingerprint preflight (2026-09-25)
-
-Before service startup, direct `import vllm_ascend.worker.model_runner_v1` triggered a borrowed `device_op`/`experts_selector` circular import. No request, fingerprint or benchmark ran. Runner source restored SHA `004dbd0...`, service stopped/not started. Run207 will preflight using the import order that worked in Run200, then repeat the same read-only first88-token fingerprint design. Evidence: `evidence/20260925_loop053_native_prefill/run206/preflight.log`.
-
-## Loop053 Run207 invalid first88 fingerprint trigger (2026-09-25)
-
-Revised import preflight and full service succeeded: warmup48+A12+B12 all72 legal requests completed. However A/B fingerprint files were0/16 because the probe's `(padded88, context.actual88, req1, mode NONE)` trigger never matched. Prior phase tools used a fallback for missing/zero `num_actual_tokens`; this Run did not log the raw field, so the exact mismatch cannot be proven. No metadata evidence or performance conclusion. Runner source exact SHA `004dbd0...` restored, service stopped. Run208 captures the first eager prefill regardless of shape and records both padded/raw actual fields, guaranteeing trigger diagnostics. Evidence: `evidence/20260925_loop053_native_prefill/run207/`.
-
-## Loop053 Run208 first eager prefill fingerprint (2026-09-25)
-
-Run208 legal warmup48+A12+B12 succeeded72/72; 8-rank Runtime cohort5/6 checks pass. All16 first eager prefill fingerprints are padded88/one request. Run207 missed these because raw ctx.num_actual_tokens is None. Across A/B, each rank has107 common tensor fields with stable layout/address, but8 selected integer metadata hashes change, including slot mappings, block table and SAS/QLI fields. Stable shape/address does not make KV/state replay safe; no capture or performance claim. Probe source restored exact SHA, service stopped. Next map producer updates and full prefill write ownership before a bounded capture test. Evidence: `evidence/20260925_loop053_native_prefill/run208/analysis.json`, `interpretation.md`.
-
-
-## Loop053 Run209 source audit and pivot (2026-09-25)
-
-Run209 maps first88 prefill dynamic producers to runner slot/block/position preparation and DSA-CP SAS/QLI metadata, and write ownership to SWA, compressed KV, compressor state and c4 indexer caches. Run208's stable addresses with changing values do not establish safe graph replay. A whole-forward capture needs cross-module input refresh and capture-warmup state restoration without a demonstrated >=0.5s/cohort removable Host segment. Loop053 PIVOTED; no graph or formal E2E. Next Loop054 will use low-overhead evidence to distinguish target GMM compute from exposed communication before choosing a bounded implementation. Evidence: evidence/20260925_loop053_native_prefill/run209_source_audit.md.
-
-
-## Loop054 Run210 target priority reassessment and pivot (2026-09-25)
-
-Run116's about9.97ms GMM sum and10.25ms exposed communication in a synchronized profile cannot be promoted to savings: Run145/192 identify first-RS arrival wait, Run194 shows profiler-perturbed proposer Host time8.62x low-overhead, Run195 steady target duration spread median0.090ms, and Run148/150 product-shape GMM reads are close to active packed bytes in one-card counters. Run107 non-GMM family census is exposure without a new replaceable mechanism. Configured Astra High read-only reviewer (actual backend ID unverified) challenged repeating GMM-versus-communication timing and proposed one-layer, one-shape prefill MoE-only replay feasibility, avoiding DSA/KV write ownership while retaining routing, events and collectives. Sol accepts this as a bounded experiment, not a product gain. Loop054 PIVOTED; next Loop055 source-closure gate. Evidence: evidence/20260925_loop054_priority/run210/reassessment.md and independent_arch_review.md.
-
-
-## Loop055 Run211 prefill MoE source closure (2026-09-25)
-
-One-layer vllm.moe_forward_shared custom op has no direct DSA/KV argument or write in inspected source, so it is a narrower graph test than whole-prefill capture. It still depends on routed/shared input tensors, forward-context layer index, DP/SP local sizes, communication mode, stream events and possibly EPLB/LoRA state. Frozen dynamic EPLB is disabled by logs, but actual first88 layer ABI must be observed. ACLGraphWrapper does not refresh replay inputs. Sol gates capture on a live read-only eight-rank one-layer ABI/mutable-state probe in Run212. No service run or performance claim in Run211. Evidence: evidence/20260925_loop055_moe_replay/run211/source_closure.md.
-
-
-## Loop055 Run212 invalid probe launch (2026-09-25)
-
-Run212 patch/install/import dry preflight passed, but Sol found its hash probe could call NumPy directly on BF16 tensors. The service was stopped during weight load before benchmark requests; no ABI or timing result. The launcher restored MoE runner SHA3c000e17... and model runner SHA004dbd0... exactly; no vLLM service remains. TaskCtl marks invalid. Probe now hashes a uint8 view; Run213 will test BF16 hashing directly before the same legal eight-rank collection. Evidence: evidence/20260925_loop055_moe_replay/run212/invalid.md and patch_restore.json.
-
-
-## Loop055 Run213 first88 MoE ABI (2026-09-25)
-
-Legal Extreme warmup48+A12+B12 all72 succeeded;8-rank Runtime checks passed for3 observed cohorts. All16 first matching MoE records are model.layers.0.mlp.experts, local11x4096 BF16, with hidden/router/shared input aliasing, no input_ids. A/B layout/address/context stable on all ranks but input and both output hashes change. Actual context is W4A8, ALLGATHER, FlashComm1, shared multistream, dynamic EPLB off, LoRA absent, dp_metadata None, layer index0 unchanged. This supports a narrow one-layer shadow graph feasibility test, not replay correctness or speed. Probe hashing perturbs timing. Service stopped and both borrowed sources restored to exact SHA. Next Run214 will test isolated single-shape graph capture and same-state parity on8 ranks, with persistent input/output ownership and no live state double-apply; stop at first capture/semantic obstruction. Evidence: evidence/20260925_loop055_moe_replay/run213/analysis.json and interpretation.md.
-
-
-## Loop055 Run214 one-layer shadow capture design (2026-09-25)
-
-Run213 measured a stable layer0/11x4096 BF16 alias ABI with changing A/B inputs. Run214 freezes a single-graph-per-rank shadow experiment: production remains eager; capture only the first prefill MoE custom-op body on a persistent aliased input, compare A and B replay against eager self-replay controls, retain outputs and graph storage, and require all8-rank collective/stream completion. No attention/KV operation is included. Capture and synchronization perturb timing, so this run will not claim performance; a separate low-overhead stage A/B/A is required before formal E2E. Evidence: evidence/20260925_loop055_moe_replay/run214/shadow_capture_design.md. Next implement and preflight Run215.
-
-
-## Loop055 Run215 invalid shadow activation (2026-09-25)
-
-Run215 legal warmup48+A12+B12 completed72/72 with8-rank Runtime checks, but zero graph files were produced. Generated wrapper retained lowercase builtins._extreme_run212_state while MoE hook read _extreme_run215_state; no shadow code ran. Thus no graph/correctness/performance conclusion. TaskCtl invalid; source restored exact MoE/model runner SHA and service stopped. Patch generator now replaces lowercase too, with prelaunch assertion required in Run216. Evidence: evidence/20260925_loop055_moe_replay/run215/invalid.md and patch_restore.json.
-
-
-## Loop055 Run216 actual one-layer MoE shadow graph (2026-09-25)
-
-Corrected hook captured model.layers.0.mlp.experts local11x4096 BF16 graph on all8 ranks in A and replayed on all8 in B. Legal warmup48+A12+B12 all72 succeeded;6 observed8-rank Runtime cohorts passed with exact Host mirror/FULL target. Production used eager result. Shared graph output bit-equal; routed maxabs graph-vs-eager0.0078125, same order as eager self-replay max0.0078125, but not exact. Graph-related memory delta about634KB/rank in A. B replay diagnostic0.694-1.617ms/rank includes sync but excludes input refresh and is no stage saving. A/B input hashes were not saved, so distinct-value response is unproven; full acceptance/state and product E2E remain untested. Service stopped, source restored exact SHA. Next Run217 capture input/output hashes and verify B is distinct and graph responds correctly, then a low-overhead copy-inclusive stage test. Evidence: evidence/20260925_loop055_moe_replay/run216/analysis.json and interpretation.md.
-
-
-## Loop055 Run217 distinct-input one-layer MoE replay (2026-09-25)
-
-Legal warmup48+A12+B12 completed72/72 at max_tokens1024, with48/48 eight-rank Runtime records passing and exact Host mirror. All8 layer0 first88 graphs captured in A and replayed in B. Each rank's A/B input hashes and both graph output hashes differ. Shared output is bit-exact; routed graph/eager maxabs0.0078125 versus eager self-repeat max0.015625 (some individual ranks have graph error above their own self-error). Production remained eager. B one-layer diagnostic medians: eager4.225ms, input refresh0.139ms, replay1.621ms; these synchronized, instrumented times imply no stage or E2E result. Both borrowed source files restored exactly and service stopped. Sol next tests a warmed one-layer graph substitution in serving with full Runtime correctness and low-overhead stage timing, then decides whether to expand or reject. Evidence: evidence/20260925_loop055_moe_replay/run217/analysis.json and interpretation.md.
-
-
-## Loop055 Run218 invalid launcher (2026-09-25)
-
-Run218 exited code2 before patch install or serving because the launcher referenced nonexistent loop055_run218_graph_patch.py; generated patch is loop055_run218_substitute_patch.py. No graph substitution or performance evidence. Dry import passed after correcting import order. Borrowed source hashes remain exact originals and service is stopped. TaskCtl marks invalid. Correct launcher and execute new Run219. Evidence: evidence/20260925_loop055_moe_replay/run218/invalid.md.
-
-
-## Loop055 Run219 one-layer serving graph substitution (2026-09-25)
-
-Legal warmup48+A/B/C/D12 completed96/96 with64/64 eight-rank Runtime records passing. A captured graph, B returned graph output with same-input eager numerical control, C returned graph output without per-call sync/hash, D returned eager; all8 ranks activated each phase. B shared output bit-exact and routed maxabs0.0078125, matching max eager self-control. B synchronized eager median4.551ms vs graph replay2.086ms; C Host submission median0.137ms vs D4.116ms, one call/rank. C/D client TPS/TTFT are order and cache confounded; no stage or E2E gain claim, no exact full-token oracle differential. Both borrowed files restored exact SHA and service stopped. Next repeated matched stage-completion and numerical gate with graph-capture amortization before expanding all layers. Evidence: evidence/20260925_loop055_moe_replay/run219/analysis.json and interpretation.md.
-
-
-## Loop055 Run220 interleaved completion screen design (2026-09-25)
-
-Run219 one-call Host submission and ordered C/D cohorts cannot establish exposed stage saving. Sol freezes a same-service eight-rank G1,E1,E2,G2,G3,E3,E4,G4 screen after A graph capture, each legal12x1024, with pre/post NPU synchronization around the one layer0 first88 MoE call and full Runtime checks. Four paired slowest-rank completion comparisons must each favor graph by at least0.5ms to justify multi-layer expansion. Client TPS and summed local savings are not a product verdict. Next implement and execute Run221. Evidence: evidence/20260925_loop055_moe_replay/run220/stage_design.md.
-
-
-## Loop055 Run221 interleaved one-layer completion screen (2026-09-25)
-
-Legal warmup48+A12+8x12 G/E cohorts completed156/156;104/104 eight-rank Runtime records passed. One layer0 first88 [11,4096] BF16 graph was captured on all8 and returned to serving in every G phase. Four interleaved paired slowest-rank synchronized completion savings were2.920,3.078,3.114,3.069ms per one MoE call, all above frozen0.5ms screen. Client throughput fluctuated and does not prove full-stage/E2E gain; this covers one shape/one layer/one call per cohort and no multi-call output ownership. Borrowed sources restored exact SHA and service stopped. Next Sol evaluates actual covered call frequency and product headroom versus decode before expanding graph bank. Evidence: evidence/20260925_loop055_moe_replay/run221/analysis.json and interpretation.md.
-
-
-## Loop055 Run222 bank coverage and implicit input audit (2026-09-25)
-
-Read-only audit of Run204:53 prefill forwards across7 cohorts, first88 once per cohort; all43 decoder layers instantiate MoE. Run221 one-call saving does not linearly establish product gain. Training Run184/186/188_A top3 exact token/request signatures covers only1-3 forwards in four held-out cohorts; even12 entries cover3-4. First3 hash MoE layers read forward_context.input_ids despite custom-op input_ids=None. Source shows persistent CpuGpuBuffer and per-forward refresh, but Run219/221 did not log actual ID address/value under replay, nor output lifetime across multiple calls. Capture amortization roughly17-21 reuses per layer entry is an estimate. Sol next performs bounded live ABI/ID-refresh and call-frequency probe before building a graph bank. Astra High read-only review requested; actual backend model ID not independently verifiable. Evidence: evidence/20260925_loop055_moe_replay/run222/analysis.json and interpretation.md.
-
-
-## Loop055 Run223 hidden hash-routing input stress (2026-09-25)
-
-Legal warmup48+A12+B12 completed72/72 with48/48 eight-rank Runtime pass. Production stayed eager. A/B first88 layer0 forward_context.input_ids pointer remained identical on each rank while hashes differed. Temporarily filling valid token ID42 in B changed the ID hash and routed graph output hash on all8 ranks; graph versus same modified-ID eager maxabs0.001953125. Finally restored original input IDs hash exactly on all8. This closes observed implicit hash-input refresh for layer0/first88, not other layers/shapes or in-flight output ownership. Borrowed sources restored exact SHA; service stopped. Next bounded four-layer hash0-2/nonhash3 graph test before broad bank. Evidence: evidence/20260925_loop055_moe_replay/run223/analysis.json and interpretation.md.
-
-
-## Loop055 Run224 four-layer graph test design (2026-09-25)
-
-Sol freezes first88 local11x4096 BF16 model.layers.0-3.mlp.experts graph test with separate storage per layer: hash layers0-2, nonhash3. A captures all4 while serving eager; B replays each against same-input eager and returns eager; only eight-rank B parity gates C four-layer serving substitution; D is eager control. C/D whole first88 model-forward sync measures slowest-rank completion, not formal E2E. Legal warmup48+A/B/C/D12, Runtime and exact source restore required. Next implement and preflight Run225. Evidence: evidence/20260925_loop055_moe_replay/run224/four_layer_design.md.
-
-
-## Loop055 Run225 four-layer first88 MoE graph (2026-09-25)
-
-Legal warmup48+A/B/C/D12 completed96/96;64/64 eight-rank Runtime records passed. A captured separate graphs for layers0-3 on all8; B32/32 layer/rank same-input graph/eager controls passed shared-exact and routed maxabs<=0.01171875; C returned graph results for all4 and D used eager. First88 whole-model-forward slowest-rank synchronized completion C354.987ms vs D371.648ms, a16.661ms diagnostic delta. C/D sequential cohort and output TPS605.23 vs592.07 are not formal E2E; accumulated logits, exact tokens and concurrent graph output ownership remain unproved. Borrowed sources restored exact SHA; service stopped. Next bounded all43-layer first88 expansion with stronger end-forward numerical gate before broad shape bank. Evidence: evidence/20260925_loop055_moe_replay/run225/analysis.json and interpretation.md.
-
-
-## Loop055 Run226 all43 first88 graph design (2026-09-25)
-
-Run225 four-layer serving test passed. Sol freezes layer-axis-only expansion to all43 first88 local11x4096 MoE calls with separate graph storage: A capture/eager, B all344 layer/rank same-input parity records and eager; B gate requires shared exact and routed maxabs<=max(0.015625,2x self max) with hard0.03125 ceiling. Only passing B allows G1,E1,E2,G2,G3,E3,E4,G4 same-service12x1024 cohorts, measuring all8 synchronized whole-forward completion; each paired slowest-rank saving must exceed0.5ms. Formal E2E and same-state logits remain separate. Next implement Run227, legal requests, Runtime and source restore mandatory. Evidence: evidence/20260925_loop055_moe_replay/run226/all43_design.md.
-
-
-## Loop055 Run227 all43 graph memory failure and MRV2 source audit (2026-09-25)
-
-Frozen legal service warmup48/48 succeeded. A first88 MoE graph bank captured layers0-16 on all8, then layer17 capture failed on all8 with torch_npu ExpandableSegment AclrtReserveMemAddress OOM 207001. A0/12; B numerical gate and G/E stage never executed. TaskCtl fail/correctness invalid. Cleanup stopped service and restored borrowed MoE/model-runner exact SHA. The one-graph-per-layer all43 bank is infeasible under this service memory budget; do not treat partial capture as correctness or speed evidence. Sol pivots from sparse first88 bank expansion to decode/DSpark DAG phase measurement and exposed-communication bound before selecting a product-value optimization. Latest official vllm-ascend ModelRunner V2 pinned2bb3f44716f3505d2723a4e5badb10211a6c5589: target decode and DSpark draft graph paths exist, but published V4 Flash DSpark recipe remains eager and DSA CP whole-prefill graph is not proven. Runtime block/slot/KV, hash-routing input IDs and graph output lifetime remain dynamic obligations. Source matrix: evidence/20260925_loop055_moe_replay/run227/community_mrv2_audit.md. Next: inspect prior decode DAG evidence/current gap, freeze a low-overhead stage profiling Run; avoid reliable Loop034/Run93 E2E repeat.
-
-
-## Loop056 Run228 MRV2 DSpark graph bound (2026-09-25)
-
-Read-only source/bound Run, no service/NPU. Installed V1 product DSpark uses enforce_eager:true; community MRV2 at pinned2bb3f44716f3505d2723a4e5badb10211a6c5589 implements DSpark graph manager and draft metadata refresh, but published V4 recipe still eager. Run98 low-overhead proposer6.391ms vs target46.560ms, stage-median sum54.177ms. Run142 separate draft runnable4.690ms device interval vs31.050ms Host submission; Host minus device is not exposed cycle savings. Zero proposer would imply only a screening13.37% cycle-rate ceiling, actual graph opportunity smaller with required device work. No blind V2 migration; next Run229 read-only mutable ABI/ownership map to judge bounded draft graph probe, while keeping target critical path as larger Gap. Evidence: evidence/20260925_loop056_dspark_graph/run228/analysis.json and interpretation.md.
-
-
-## Loop056 Run229 DSpark mutable ABI closure (2026-09-25)
-
-Read-only source review, no service/NPU. Current DirectDSparkHandoff rejects graph; per-cycle target/common and draft context slot updates plus V1 proposer and DSA-CP per-step tensor clones, RoPE, SWA sparse indices, SAS metadata and KV writes make graph-on unsafe. Draft query likely84 rows (B12xK7) versus target96. Requested Astra High independent review (actual backend identity unverified) proposes only a future one-shape three-layer model-forward shadow with recursive metadata ABI, exact physical KV-row rollback, A/G/A-prime parity, then latest-rank timing. Sol defers that weakly supported >=1ms candidate and prioritizes target46.56ms Current-to-Achievable Bound and concrete operator mechanism. Evidence: evidence/20260925_loop056_dspark_graph/run229/analysis.json and interpretation.md.
-
-
-## Loop057 Run230 target bound and RMS+cast discriminator (2026-09-25)
-
-Read-only target Current-to-Achievable screen: Run98 target46.560ms of54.177ms sum-of-stage medians. Run107/143 GMM9.966ms profiled; active packed weights8.462GB/rank/cycle and Run148/150 single-card measured bandwidth imply conditional GMM gross1.593-2.086ms only, not achievable lower bound or E2E. Run145 communication inflated by arrival wait; Run152/197 small gather/cache scatters bounded. Independent Astra High review requested, actual backend identity unverified; no source-backed >=1ms target saving yet. Official pinned MRV2 DeepSeek V4 uses fused npu_rms_norm_cast before MoE; installed V1 uses separate post-attention RMSNorm and router FP32 cast, and has compiled 910B3 op artifacts. Next Run231 one-card BF16[96,4096] fused/separate numerical and alternating event time screen; need >23.26us/call for a plausible 43-layer1ms target gain before all-rank test. Fused MC2 flag-only AB rejected because B3/A2 EP8/32 selector stays ALLGATHER and flag disables shared multistream. Evidence: evidence/20260925_loop057_target_bound/run230/analysis.json and interpretation.md.
-
-
-## Loop057 Run231 unavailable fused op preflight (2026-09-25)
-
-No service/NPU benchmark. Installed runtime lacks registered `_C_ascend.npu_rms_norm_cast` despite 910B3 kernel artifacts, so planned source-parity microbench cannot execute; TaskCtl invalid. Available `torch.ops.npu.npu_add_rms_norm_cast` has a different four-output add+RMS+cast ABI. Next Run232 checks its semantics with zero addend and paired one-card cost versus current RMS+float, then rejects if saving <=23.26us/call. Evidence: evidence/20260925_loop057_target_bound/run231/invalid.md.
-
-
-## Loop057 Run232 eager add+RMS+cast screen (2026-09-25)
-
-Service remained stopped. Registered torch_npu npu_add_rms_norm_cast with zero addend has BF16/FP32 outputs matching separate RMSNorm+float within maxabs0.00390625 for BF16[96,4096] one-card synthetic.400 alternating eager event pairs:201.45us separate vs161.04us fused, paired median saving39.33us. Initial shell redirection setup failed before benchmark, then corrected. Product target is full Graph replay so eager Host gaps cannot be credited. Next Run233 capture both as one-card Graphs and measure replay difference; threshold23.26us/call to justify43-layer >=1ms stage probe. No all-rank or E2E claim. Evidence: evidence/20260925_loop057_target_bound/run232/analysis.json and interpretation.md.
-
-
-## Loop057 Run233 captured RMS+cast screen (2026-09-25)
-
-One-card BF16[96,4096] separate RMS+float versus installed add-zero RMS+cast each captured as NPUGraph; no service. Graph output local maxabs0.0009765625.600 alternating replay pairs give paired median saving0.45us/call (separate75.34us, fused74.72us medians), far below23.26us/call needed for a plausible43-layer1ms target gain. Reject RMS+cast integration; Run232 eager39.33us was Host-submission-sensitive. Need reassess target mechanism/achievable bound; no all-rank or E2E warranted. Evidence: evidence/20260925_loop057_target_bound/run233/analysis.json and interpretation.md.
-
-## Loop057 Run234 community shared graph pool and target census (2026-09-25)
-
-Read-only pinned official source audit found MRV2 graph wrapper captures in a shared global pool; Extreme Run227 used separate graph pools, so layer17 OOM does not prove a pooled bank impossible. However first88 appears once per 12-request cohort in seven observed cases; Run225 four-layer diagnostic16.661ms extrapolates only ~179ms/cohort if linear, versus ~20.3s cohort, with no all43 correctness or formal E2E. Do not spend an eight-card service cycle solely on pool replacement yet. Run107 15-window kernel-name census places target GMM9.966ms, quant matmul4.822ms, Compressor3.366ms, HcPre2.962ms, Scatter2.344ms, Indexer1.746ms, SparseAttn1.621ms, routing init1.056ms in profiled task sums; these are not removable critical-path savings. Run233 rejection is scoped to installed add-zero RMS+cast surrogate at synthetic[96,4096], not unavailable official op or real local target shape. Next bounded Run235 one-card[12,4096] graph-replay surrogate screen; accept only if parity and >23.26us/call. No service or NPU used in Run234. Evidence: evidence/20260925_loop057_target_bound/run234/interpretation.md and kernel_name_census.json.
-
-## Loop057 Run235 local-shape numerical gate and pivot (2026-09-25)
-
-One-card no-service captured Graph test at layer-local BF16[12,4096] compared separate RMSNorm+FP32 cast with installed add-zero RMSNorm+cast surrogate. BF16 outputs exact; FP32 output maxabs0.0251045 exceeded0.015625 local gate, so Run235 failed before timing. This is an operator numerical gate failure, not full-model correctness failure. Official MRV2 `_C_ascend.npu_rms_norm_cast` remains unregistered (Run231); Run233 global96-row0.45us saving cannot represent real-local timing. Loop057 PIVOTED: no presently source-backed >=1ms/cycle target intervention from current evidence. Current official throughput remains571.681 tok/s versus Stock543.655; achievable hardware bound UNKNOWN. Service stopped, no live vLLM serving process, source untouched. Next seek a concrete executable graph-compatible target or DSpark mechanism and same-state parity plan before consuming another service cycle. Evidence: evidence/20260925_loop057_target_bound/run235/{analysis.json,interpretation.md}; TaskCtl loop-057 decision and resume pack.
-
-## Loop058 Extreme Performance Model V0 checkpoint (2026-09-26)
-
-Start remote HEAD f12c350984bf51c099390594786ddcbef9edcf12; eight 910B3 healthy and idle, no live NPU-serving process. Historical untracked raw evidence untouched. New bound phase supersedes old local-kernel next_action. Independent review requested as Astra High; backend variant was not independently observable. The read-only review highlighted formal trajectory variability and rejected cross-Run kernel sums as hardware floors.
-
-Run236 executable replay exactly reproduces formal Run99 612.962/567.573/571.681 TPS, and gives conditional median-trajectory Engineering 581–607 and Aggressive 616–682 TPS scenarios. True hardware limit remains UNKNOWN. Run237 TP8 no-service collective chain exited 0, forty BF16+FP32 all-gather pairs latest-rank median 21.420ms / 0.53549ms per pair over 30 repeats; devices returned idle. Run238 saved formal wave audit gives client-minus-decode windows 2.545–4.521s and <=0.019s cross-rank decode-wall spread. Method and evidence: `evidence/20260926_loop058_bound/run236/method_evidence.md`. Next: capture prefill, admission, queueing and publication boundaries at low overhead on a legal warmed formal schedule before choosing the largest exposed gap. No repeat of Run93 or generic target hotspot census.
-
-## Loop059 Run239 legal boundary pass (2026-09-26)
-
-The reused Loop045 reversible patch was applied to exact prior source SHA and removed after the run. Warmup and diagnostic pass each completed 48/48 exact 1024 output; measured pass 592.618 tok/s is instrumented and not a new formal product point. Across measured cohorts 5–8, same-host all-rank boundaries give client-to-first-execute 0.207–0.234s, first-execute-to-handoff 2.356/3.747/4.115/3.318s, runtime serve 16.800/17.504/16.241/17.268s, and publication-to-client-end 0.173–0.178s. Handoff/build and serve/publication edges are <=0.007s. All eight rank runtime rows passed. The full phase records and client requests are at `evidence/20260926_loop059_boundary/run239/`; raw service log is retained by SHA index. Exit 0, service stopped, source hashes restored, eight NPUs idle.
-
-This calibrates the V0 residual: prefill-to-handoff and decode work both vary substantially across cohorts; admission and output publication are small, stable in this one pass. It does not identify removable prefill time or a hardware upper bound. Next update the executable model with measured phase distributions and compare counterfactual savings against full-cohort dependency and Run188 admission tradeoff; only then rank prefill architecture against target DAG.
-
-## Loop059 Run240 communication comparability correction (2026-09-26)
-
-Run152's 0.83810ms is the **sum across 33–41 adjacent BF16/FP32 all-gather pairs in a target window**, median ~0.02288ms per product HCCL task pair. Run237 measured 0.53549ms per pair through eager `torch.distributed.all_gather_into_tensor`, about 23.4× slower. Graph replay, host dispatch, surrounding compute and even the profiler count-to-buffer interpretation differ. Run237 remains a valid measurement of that standalone eager API path, but is **invalid as a calibration of product TP8 communication capacity or removable E2E time**. The previous per-pair reading of Run152 was corrected in the V0 evidence matrix, ACHIEVABLE_BOUND and PERFORMANCE_MAP. Evidence: `evidence/20260926_loop059_boundary/run240/analysis.json`.
-
-## Loop059 Run241 phase calibration and trajectory coupling (2026-09-26)
-
-`scripts/extreme_bound_phase_calibrate.py` reads Run239 same-host all-rank boundaries and Run188 admission A/B/A-prime. The 82.940s instrumented pass contains 13.536s first-execute-to-handoff prefill (16.32%), 67.813s runtime serve (81.76%), and 1.600s in the measured client/admission/build/publication edges (1.93%). Across 1195 decode cycles, latest-rank runtime wall is 56.782ms/cycle on this trajectory. This is phase accounting, not necessary-work or removable-time attribution.
-
-At fixed cycles and unchanged semantics, a hypothetical 0.5s/cohort exposed prefill saving would project 607.261 TPS from diagnostic 592.618. Adding 8 decode cycles/cohort reduces that projection to 593.928 TPS. Run188 actual admission hold removed 2.476s gross prefill forward wall but added 32 decode cycles and 1.711s runtime wall; observed client improvement was only 0.163s versus controls. The simple gross prefill minus runtime arithmetic predicts 0.764s improvement and misses the observed outcome by ~0.602s, due to overlap, changing shapes/acceptance and other boundary effects. Therefore fixed-trajectory Engineering/Aggressive scenarios remain conditional and cannot be promoted to achievable product bounds. Evidence: `evidence/20260926_loop059_boundary/run241/calibration.json`.
-
-## Loop060 Runs242–243 resource inventory (2026-09-26)
-
-`extreme_resource_inventory.py` records source hashes, 43 target layers (21 c4, 20 c128, 2 uncompressed), Run115 product W4A8 shapes and Run146 real c12 routes. The target GMM has 8.462GB active packed expert weights and about 155.676GFLOP logical matmul/rank/cycle; applying Runs148/150 one-card counter bandwidth gives a conditional 7.880ms packed read estimate versus Run107 profiled 9.966ms GMM task sum. Different cohorts and concurrency prevent turning the 2.086ms difference into exposed gain. Cache ABI records c4/c128 state dimensions, BF16 SWA and block-size-32 mappings, but actual KV HBM bytes and attention reads remain UNKNOWN. Four Run239 warmed prefill cohorts have 7/11/12/10 scheduled-token calls, not a single repeatable prefill shape. Evidence: `evidence/20260926_loop060_resource/run242/inventory.json`.
-
-`extreme_kv_row_census.py` reuses Run84 eight-rank 256-cycle legal page audit without service. Over cycles64–255, c4 compressor and indexer each emit exactly24 valid rows/rank/cycle (504 layer-rows across21 layers), while c128 compressor emits median1, mean0.698 valid rows/rank/cycle (20 layer-rows median across20 layers); first c128 write is cycle8 on all ranks. Page candidate counts and row cardinalities are not HBM transactions. SWA, MTP, cache read reuse and physical page padding must be accounted before converting these to bytes. Evidence: `evidence/20260926_loop060_resource/run243/kv_rows.json`. The largest unresolved target resource term remains non-GMM DSA/quant/attention execution and actual KV read traffic; next measurement must preserve real shapes, dependencies and graph path.
-
-## Loop060 Run244 graph memory-counter diagnostic design (2026-09-26)
-
-Frozen a two-cycle, eight-rank Level1 MemoryAccess capture on the actual target FULL graph at cycles64–65, after legal warmup48 and with 12/12×1024 diagnostic correctness. Only an opt-in profiler setting in runtime code is permitted; no framework source edit or formal E2E claim. Analysis must clip kernel_details to exact `extreme::target` scopes, gate family counts, and report per-family HBM bytes separately from HCCL/overlap. Design, success/failure criteria and cleanup: `evidence/20260926_loop060_resource/run244/design.md`. Next implement the opt-in, preflight source/idle, run bounded diagnostic, then reassess the largest Current-to-Bound gap.
-
-## Loop060 Run245 invalid launcher boundary (2026-09-26)
-
-An opt-in Level1 MemoryAccess profiler setting was added to `runtime/extreme_decode.py`; default serving behavior is unchanged and both Python compile and shell syntax checks passed. The first Run107-derived launcher was mistakenly invoked on the host. `scripts/serve.sh` failed before model load because `/usr/local/Ascend/ascend-toolkit/set_env.sh` exists only inside the serving container. Recorded exit 1, no requests/profile/performance result. Cleanup ran and eight NPUs were idle. TaskCtl marks Run245 INVALID. Next retry wraps the same diagnostic inside `docker exec vllm-ascend26-dsv4f-w4a8` with host-side service cleanup. Evidence: `evidence/20260926_loop060_resource/run245/`.
-
-## Loop060 Run246 container graph capture (2026-09-26)
-
-The corrected host wrapper launched the opt-in Level1 MemoryAccess diagnostic inside the serving container. Legal warmup completed 48/48; diagnostic completed 12/12 with exact 1024 output tokens. All 40 rank-cohort runtime records passed, and 40 raw profiler directories (~483MB decimal) were captured. The instrumented diagnostic measured 560.174 tok/s and is not a formal E2E point. Container-local cleanup could not access Docker, so the host stop script was run manually; outer launcher exit was 0 and all eight NPUs were idle. Run246 TaskCtl status is pass/correctness pass. Small reproducibility evidence is under `evidence/20260926_loop060_resource/run246/`; raw profile remains on disk and indexed but is not committed. Next export the profiler text tables offline, apply target-scope and family count gates, and classify whether the HBM counters are usable for a conditional resource bound.
-
-## Loop060 Run247 exported graph counters (2026-09-26)
-
-Profiler text export from Run246 exited 0. After correcting the parser to sum AIC and AIV counters, all 80 rank-cycle windows passed the target-scope/count/positive-counter gates; latest cohort has 16 windows across eight ranks. Latest per rank-cycle medians: 18.965GB read and 2.380GB written across classified AICore/vector tasks; GMM 9.244GB read, a 1.092 cross-sample ratio to the 8.462GB active packed estimate rather than same-cycle amplification; non-GMM 9.722GB read. HCCL link bytes are unavailable. Target scope median is 54.796ms under profiling and synchronization and is not a formal E2E point. Raw/exported profiles remain on disk with SHA index; compact analysis is `evidence/20260926_loop060_resource/run247/analysis.json`, interpretation in `findings.md`. Need decompose substantial `other` group and resolve real resource/dependency limits before promoting any hardware bound.
-
-## Loop060 Run248 graph traffic attribution (2026-09-26)
-
-The 16 latest Run247 windows reconcile against raw CSV counters. The 3.618GB read `other` group contains plain matmul1.149GB, transpose matmul0.639GB, inplace copy0.618GB, AivKernel/Hc* names0.756GB, indexer0.097GB, remaining0.357GB (family medians). `communication.json` gives zero transit size for inspected graph HCCL tasks, so link bytes remain unknown. Gross AIC+AIV read+write counter sum is 21.344GB/rank-cycle; dividing by hypothetical 1.0/1.3/1.6TB/s gives 21.344/16.419/13.340ms dimensional screens, **not** achievable latency floors or E2E savings. Source, reconciled windows and limits are at `evidence/20260926_loop060_resource/run248/`. Eight NPUs idle; no framework source edit. Next prioritize one same-shape non-GMM dataflow/dependency experiment; hardware-attainable product bound remains UNKNOWN.
-
-## Loop060 Run249 non-GMM shape audit (2026-09-26)
-
-The 16 latest valid rank-cycle graph windows were grouped by exact profiler input shape. Leading quant matmul reads1.533GB/1.469ms (1.043TB/s counter rate); the three main Compressor shapes are0.679GB/1.283ms,0.505GB/0.951ms,0.347GB/1.145ms; transpose matmul0.639GB/1.484ms. These are byte/task-time ratios under synchronization, not achievable bandwidth or E2E savings. Prior Loop044/Run197 already rule out a trivial removal of the 62 required Compressor products or Python-only direct-cache-write substitution. No source change or candidate promotion. Evidence: `evidence/20260926_loop060_resource/run249/`. The hardware-attainable product bound remains UNKNOWN; next work needs a numerically equivalent shape-specific kernel replacement or actual dependency intervention before formal judging.
-
-## Loop061 bound calibration and next action (2026-09-26)
-
-Run250 exact trace payload census passed 80/80 rank-cycle windows, 265 HCCL events and 25,651,200B reported size per cycle, but no HCCS wire bytes. Run251 built bundled CANN9.1 HCCL Test with a temporary -lmpi_cxx linker fix. Run252 nonterminating -i0 attempt was manually interrupted and marked INVALID. Run253 six finite size-matched HCCL Test cases and Run254 96KiB -t0/-t1 pairs all passed correctness and exit0; -t1 AllGather/ReduceScatter/AllToAll are 40.03/39.74/62.17us, not product Graph-path service times. Run255 Astra High independent review rejects hardware-bound promotion of V0 scenarios. Evidence, exact conditions and limitations: evidence/20260926_loop061_bound/findings.md. No serving candidate or formal E2E gain. Next continue with Loop062 source-level non-GMM compulsory-vs-extra read census and an evidence-selected same-state Graph intervention; switch to broader execution architecture if local exposed savings are small. Keep service stopped between runs and record every Run in TaskCtl.
-
-## Loop062 handoff (2026-09-26)
-
-Formal Run259 DSpark-unused MTP stash candidate and Run264 unpatched same-host control both passed frozen 3×48 FULL Graph. Medians 594.133 versus582.852 tok/s, but Run268 cycle-normalized runtime deltas −0.093/+0.671/−0.150ms are inconsistent; no baseline promotion. The opt-in reversible source patch is `scripts/loop062_mtp_stash_patch.py` and the borrowed model is restored to SHA 11dd3e983dc1d628bf42a95581f9617861471b1f658739db44c20df886147247. Run265 dual-bound review and `extreme_dual_bound_v1.py` use separate semantic/current DAGs. Run267 shows first HCCL Graph task includes cross-rank arrival wait under synchronized profiling. Next experiment is A0 current vs A serial private scratch vs B side-stream private scratch for next-target geometry/metadata after acceptance, with serving parking invalidation and eight-rank state/metadata gates. Service stopped, NPUs idle. Full concise evidence: `evidence/20260926_loop062_nongmm/findings.md`.
-
-## Loop063 handoff (2026-09-26)
-
-Run275 next-target private-metadata side-stream B passed candidate-consumed 8-rank continuous correctness, 40/40 FULL Graph rows and 40/40 visible-storage audits without alias. Run277 B verification-free screen: 605.801tok/s, 1186 cycles, latest-rank69.205s/58.351ms per cycle. Run278 contemporary A0 produced complete 48/48 and 64/64 rank rows: 574.437tok/s, 1185 cycles, latest-rank67.402s/56.879ms per cycle; **launcher exit127** followed an active-script edit and is retained as diagnostic-only. B was +1.472ms/cycle slower on all four cohorts; its client advantage came from −6.233s client-minus-runtime residual. Loop063 PIVOT, no baseline promotion; formal Current571.681. Run271 dual-bound model keeps numeric Resource/Scheduling/Product bounds null and now has actual c4 CP target fan-out/fan-in DAG. Run276 Astra High corrected frozen path to `context_parallel/dsa_cp.py`, not `dsa_v1.py` CV; Run279 SHA-guarded CP fork patch remains preview only, reviewed with Target/draft guard and keepalive. Borrowed source pristine, eight NPUs idle. Next open Loop064 for one Target c4 layer immediate/overlap Graph correctness and real stream timeline, then full21 only if justified. Evidence: `evidence/20260926_loop063_schedule/findings.md`.
-
-
-## Loop070 handoff (2026-09-26)
-
-Run314 exited1 after synthetic-start NaN Sparse in original A on five ranks. Its real-entry delta0 private Graph A/B/A2 passed all fields 8/8; this does not prove persistent successive-cycle correctness. The service was stopped, reversible borrowed dsa_cp and target-handoff sources exactly restored, eight cards idle. Loop070 is pivoted. Next: Loop071 real two-step A→A/B→B, first inventory backing-level mutable writes and validate A/A recovery. Keep TP8 collective order and unchanged AllGather; compare typed state and actual Graph dispatch before full-cycle timing. Design at `evidence/20260926_loop071_two_cycle/design.md`. Formal Current 571.681 tok/s; numeric bounds unknown.
-
-## Loop071 source and address audit (2026-09-26)
-
-Run315–317 completed offline; no service. Selected layer2 backing typed views conditionally cover full pages, but the current snapshot helper omits metadata, Draft and Host state. Run301 14-source real adjacent-cycle byte-envelope unions are 7.18–7.71MB/rank on three selected backings, not HBM traffic or full state. PK-012 records the limitation. Before a two-cycle owner intervention, close all mutation and Graph dispatch keys and prove repeated A→A restore. Current Formal 571.681 tok/s and all numeric bounds unchanged. Service stopped, all cards idle, borrowed sources at original SHA.
-
-## Loop072 parked-MoE next action (2026-09-27)
-
-Loop071 PIVOT, not owner REJECT. Run318 8-rank original-mask census: 1,496 cycles, 2,989 parked slot-cycles, 678 cycles with fewer than12 active. Astra High prioritizes a state-free full-MoE active-row A/A/B/A over completing the expensive owner persistent transaction. Loop072 design: `evidence/20260926_loop072_parked_moe/design.md`. Run319 source audit: layer4 is non-hash; private B needs `N_active*8` context and independent Graph/HCCL, not a sliced tensor in the 96-row context. Service stopped, borrowed sources pristine; next implement reversible diagnostic after source preflight. PK-013 records old R14/R35 conditions and why Host-only gains may not reach E2E. Formal Current and numeric bounds unchanged.
-
-## Loop072 Run320–323 handoff (2026-09-27)
-
-Run320 eager carrier 12/12×1024 passed but fixture preflight skipped B on all8 because local layer4 input is12 rows. Astra High invalidated Run321's direct local12→6 mask mapping before execution. Run322 read-only all8 census passed: outer96/local12, FlashComm1, MoE ALLGATHER, no inner SP, active rows `[8,0,4,12,4,12,8,0]`. Run323 original FULL Graph mask remap: 579/678 parked cycles still max-local12. Borrowed bootstrap SHA `f644bd14...` restored; service off/cards idle. PK-014 and Loop072 design supersede Run319's 96-local assumption. Next highest-value experiment: private A/A_repeat/B/A2 with active48 **routed apply after existing gather**, scatter routed result back to global96 before original finalize; shared path and HCCL unchanged. Then all-rank Graph endpoint and formal E2E only on correctness and exposed gain. Formal Current571.681; numeric bounds unknown.
-
-## Loop074 Run339–341 handoff (2026-09-27)
-
-Formal Current remains Run99 571.681 tok/s, Stock543.655 is not the ceiling, and numeric Hardware/Resource, Scheduling-aware and Product E2E bounds are UNKNOWN. Run339 actual-size official CANN9.1 HCCL Test on eight910B3 passed five collective cases ×3 independent checked processes: isolated medians4.95–32.10µs. These are attainable isolated service points, not strict hardware floors or additive264-call/Product costs. Run337 no-profiler rank Host arrival skew remains distinct. Run340/Astra High reprioritized b2–4 early refill after confirming Run225 already proved first88 four-layer Graph and Run227 independent Graph-bank OOM at layer17. Run340 b4~1.11s/episode is a cross-run conditional serial replacement screen, not a bound. Run341 original-path48+48, all8 FULL Graph and client exact1024, exit0/source restored/cards idle:26 natural1–3-request prompt-bearing forwards have max-rank Host353–384ms, current-stream354–411ms. This does not include all side-stream/seed readiness or incremental contention and cannot prove early refill. PK-024/025/026 hold mechanisms, conditions and revalidation triggers; pinned historical R06/R37 remain priors only. Next all8 dependency/ownership gate: actual arrival→residual prefill→DSpark seed/first Target readiness, then one replacement microbatch A/A semantic test if budget remains plausible. Source and analysis in `evidence/20260926_loop074_refill/run339/` through `run341/`; raw Run333 profiler remains on the server only.
-
-## Loop076 V3.5 handoff (2026-09-27)
-
-Formal Current571.681tok/s. Run367 same-run cycle64/65 joint capture passed exact clients and 40/40 Runtime FULL Graph reports, sources restored/service stopped. Run368 matched Target GMM route/current counters; Run370 Target dense and corrected Run372 Draft dense produced partial observed arithmetic only. Run367 hot-path sync/profiler invalidates its timing for an unperturbed Scheduling Bound. Run373 V3.5 leaves all finite Product/Hardware/Scheduling ceiling endpoints null. Raw1.3GB Run367 profile stays on server; Run369 SHA index is curated. Next: selected-cycle device route/acceptance and cohort-end export, join to unperturbed full-cycle all-rank endpoints plus compulsory work/traffic and attainable concurrent capacity. See Run373 findings and PK-032.
-
-## Loop077 latest Bound checkpoint (2026-09-27)
-
-Formal Extreme Current remains571.681tok/s (Run99). Run394 clean sparse event capture passed exact 48+12×1024, 60 server POST, 40/40 eight-rank FULL Graph cohort reports, source SHA restoration and service stop. Run395 Astra independent review accepts instrumented local phase/cadence observations only: 40 same-rank cycle64→65 pairs median56.548ms. Run396 V3.7 executable bound model leaves finite Algorithm/Resource, Hardware/Resource, Scheduling/Execution and Product ceilings null. Run389/390 and Run392 were invalidated by Run393 orphan-client contamination. Run397 retained-route footprint is a conditional Algorithm numerator relaxation, not HBM; Run398 designs exact per-token Target/Draft route capture. Priority remains Bound: complete compulsory work and all8 side-stream/Graph/HCCL DAG with marker overhead control and mixed capacity, then formal E2E for any real intervention. Evidence: evidence/20260927_loop077_bound, PK-033–036. Do not launch a new serving run without checking for stale inner-container health/bench clients and requiring exact POST count afterward.
-
-## Loop078 Run403–406 route numerator correction (2026-09-27)
-
-Clean Run403 48+12 exact1024 c12 diagnostic produced 60 POSTs, five cohorts × eight ranks, 40 Target/Draft route captures and 40 passing FULL Graph reports; six borrowed sources were restored and service stopped. Astra independently accepts route/count/ownership arithmetic but finds cross-layer row identity incomplete under active FlashComm1/DSA CP/chunk paths. Target current standard routed GMM is1246.614GFLOP and its selected active packed weight set63.141–70.414GB/TP8-cycle. The retained-prefix 42.203–58.246GB selected set is conditional on unproven all-layer slot-major mapping and clairvoyant rejection knowledge; it is neither compulsory HBM nor an executable saving. Draft84-query partial routed estimate is format-conditional and excludes much of Draft. Run406 V3.9 therefore leaves all finite Algorithm/Hardware/Scheduling/Product ceilings UNKNOWN. Formal Current stays Run99 median571.681tok/s; Run403 diagnostic TPS is excluded. Next close actual row labels and Run401 copy/overwrite dependency before deriving a numeric interval. See `evidence/20260927_loop078_bound/run405/findings.md` and PK-038.
-
-## Loop078 Run407 row-identity closure decision
-
-Independent Astra source audit finds ordered FlashComm1 gather/pad/chunk and DSA CP query/head all-to-all maps that could, with actual branch/group/Graph certificates and trusted native row-order contracts, prove all43 Target router row identities without a redundant per-layer device label collective. Current Run403 lacks those dynamic branch and compiled/native dispatch records, so the retained expert union remains conditional. The next Resource numerator measurement should capture the actual target_logits_indices, embedding/sequence-parallel/FlashComm/DSA CP/prepare paths and group rank order once per graph entry, bind them to selected replays, then add shadow row labels only at unresolved transforms. This is a Bound proof task, not a local speed candidate. See `evidence/20260927_loop078_bound/run407/design.md`.
-
-## Loop078 Run414–415 communication cut qualification
-
-Astra independently classified the265 ordered Target HCCL calls in Run391. Current per-rank API tensor inventory is115.108MB input/145.342MB output; neither is physical or compulsory wire traffic. Under an explicitly restrictive fixed-dense, opaque-payload, no-reuse/recompute/compression/placement-change scenario, a logical 4|4 rank cut carries306.659328MB/Target-cycle both directions combined. This is only a conditional transport census. Embedding zeros, derivable router logits, an unused MTP stash and alternative output/ownership representations disprove promotion of all265 current materializations to a model-semantic minimum. Run246 all8 transport exports are empty; zeros in transit fields mean unavailable measurement. The saved HCCS adjacency does not establish cut capacity. V3.10 stores this scenario with no compulsory communication bytes, latency floor or Product ceiling. The next minimal communication measurement must first prove native peer/bytes/path export on one actual DSA A2A, then derive physical capacity and legal information cuts. See `evidence/20260927_loop078_bound/run414/astra_comm_resource_review.md` and PK-039.
-
-## Loop078 Run412 continuation (2026-09-27)
-
-A0 Run413, B Run410 and reset-environment A1 Run417 passed exact60 diagnostic requests and all8 FULL Graph reports. Run411 A1 failed before POST from pinned Host memory OOM with 9756 residual dedicated-container processes; direct container stop/start cleared them. Run410 local 40/40 count-copy ordering and first Host numeric consumers pass, but combined Run412 analysis is INCONCLUSIVE: downstream Draft/DSA hook coverage0/40, A0/A1 per-cycle acceptance absent and container reset splits A/A environment. V3.11 floors/ceiling remain null. Next Bound task: Run407 row identity plus external retained-output ledger, then physical transfer/capacity and typed all8 joins. Current571.681tok/s; no new formal E2E.
-
-## Loop079 Run421–425 terminal output ledger
-
-Run421 clean diagnostic:60/60 terminal Scheduler `g_before_bulk>0`, sum584; Runtime incoming61,440, admitted60,856,clipped584. Handoff generated `g_i^H` and API-published `p_i^H` are unknown; do not transfer counts to Run403/239/99. Source restored, service stopped, NPU idle; post-stop container retained212 processes/20.55GiB and was reset to one process/1.238MiB. V3.12 has no new finite endpoint. Run422 Astra review, Run423 minimal strict W/C gate, Run424 all43 row-identity design, Run425 findings/model. Next clean exact60 request-correlated handoff+OutputProcessor/API ledger; preserve independent SKU capacity and router identity tracks.
-
-## Loop079 Run426–429 reviewed Host cutoffs (2026-09-27)
-
-Run427 clean but Host-instrumented exact60 48+12 c12 diagnostic and Run428 independent review close a scoped Host chain: 376 ordered Scheduler→OutputProcessor receive→queue→Chat consumption segments match in length/SHA256 and causal order. At five cohort H_probe envelopes, aggregate Scheduler committed G=[795,796] and Chat raw consumed A=[674,796]; generated-output yield Y=[213,268]. At least 50 requests completed at least 213 nonempty reasoning-delta yields before their cohort's earliest H_probe. H_probe precedes Runtime.run and is not device-ready. These counts are neither device-completed D(H), literal raw-token publication, ASGI send nor client receipt; Run427 counts cannot transfer to Run403/Run99. V3.13 retains all finite Algorithm/Hardware/Scheduling/Product endpoints null and formal Current571.681tok/s. Next close all43 router row identity and a genuine 910B3 W-minus/C-plus resource certificate. See `evidence/20260927_loop079_identity/run429/findings.md` and `evidence/20260927_loop079_identity/run429/bound_calibration_v3_13.json`.
-
-## Loop079 Bound checkpoint (2026-09-27)
-
-Continue from `ACHIEVABLE_BOUND.md` and TaskCtl resume pack. Formal Current remains Run99 median 571.681 tok/s; every finite Algorithm/Resource, Hardware/Resource, Scheduling/Execution and Product upper endpoint is still null. Run437/440 clean 48+12 diagnostic binds selected FULL Graph explicit input/position storage and CP value prefixes, while a common row permutation still passes; all43 retained-route work remains conditional. Run444 corrects installed HCCL Test's aggregate-output byte convention: actual logits AllGather input 3,102,720 B/rank gives three isolated root-rank averages 235.63/261.26/238.76 µs, not a strict floor. Initial wrong-payload Run441 interpretation and Run442 model are invalidated; Run445 V3.16 rev2 and independent Run446 keep 19 proof nodes unresolved. Run447/448 pin a conditional native caller→HCCL→caller stream join for installed torch_npu2.10.0.post4, with dynamic bypass/branch gates still open. Run439 designs the smallest original-path terminal logits collective→argmax slice with matched A0-B-A1 overhead controls. A new implementation is under preparation; do not treat its local timing as a Product saving without correctness and repeated formal E2E. Next Resource strict-ceiling path still needs one fresh compulsory BF16 work subset plus a genuine same-board aggregate C_plus; no measured peak or Stock result substitutes.
-
-## Loop079 Run458–468 Bound-first continuation (2026-09-27)
-
-Formal Current remains Run99 median571.681 tok/s; Stock543.655 is baseline only. Run458 and Run460 scoped diagnostic attempts were invalid before any accepted timing, with successful stop/restore; Run459 independently cleared the corrected native hook. Run463 B retry2 passed exact48+12×1024/c12, 60 POST, 40 selected cycle64 all8 slices and final cleanup/source SHA. Run464 independent review accepts **instrumented local** P→J median0.20040ms, J→G0.03096ms, C0→C10.05307ms and P→C1 range0.26050–0.29600ms; current native-to-layout24.82176MB materialization is real. No A0/A1 or formal E2E result, so no savings/ceiling inference. Run466 V3.18, independently accepted by Run467, keeps 19 proof nodes false and all finite Algorithm/Hardware/Scheduling/Product endpoints null. Run462 documents missing genuine exact-board BF16 C⁺ and inaccessible OEM material, without blocking scheduling work. PK-051 curates the terminal local observation.
-
-Run465 Astra High next decision and Run468 source-only design move to the larger Target frontier: selected cycle64 Target entry → **existing** FULL Graph pre-replay Host sync → native replay caller-stream events → conditional hidden/aux gather → first sampled-hidden consumer. Historical R13/R37/R21/R28 were queried as priors with transfer conditions. Before interpreting replay R1 as output completion, pin the actual installed native graph producer→caller join contract or correlated trace; no new hot-path sync. Run469 independent design/native semantics review is pending. Service is stopped, six borrowed Run439 sources restored at before/after SHA, all8 devices released; the last Run463 controller final gate exited0. Continue Bound-first, with matched A0-B-A1 if new markers are implemented; do not turn a local interval into a Product limit or stop on this checkpoint.
-
-## Loop079 Run469–471 correction (2026-09-27)
-
-Run469/470 found exact installed `Stream.npu_stream` getter triggers possible Host ACL task-queue drain; Run439 invoked it nine times per selected slice. Run463/464's 40 raw values and output lineage remain valid **only for queue-drained instrumentation**. Supersede the prior HANDOFF wording “instrumented local Current exposure” as a passive original-path estimate and withdraw Run465's terminal-small priority inference. PK-051 corrected, PK-052 records hazard. V3.19 Run471 keeps all finite Bound endpoints null and formal571.681 unchanged. Run468 Target frontier design may proceed only with logical stream IDs and actual replay-output/capture-generation gates; minimum first device follow-up is clean same-slice terminal B, matched A0-B-A1 before ranking original-schedule exposure. Run472 no-getter source-only scaffold and Run473 V3.19 review are pending. Service stopped and sources restored; do not relaunch until independent no-getter preflight.
-
-## Loop079 Run477–493 current handoff (2026-09-27)
-
-Run477/480 admitted the no-getter terminal diagnostic at P→C1 median0.26736ms, instrumented local only. Run484 source repair and Run486 independent PASS enabled clean Run487 Target frontier B. Run487/488 passed exact60 frozen diagnostic requests,40/40 all8 capture/Runtime and source restore; T→R0/R0→R1/R1→H/H→U medians0.782230/45.986019/0.090500/0.026770ms, all instrumented same-device. R1 output completion is conditional on production graph writer/child-stream membership; after graph-update private stream102 relation is unresolved. Run489/490 V3.21 independently accepted this scoped Current DAG and retained all finite Algorithm/Hardware/Scheduling/Product endpoints null. Formal Current remains571.681tok/s, numeric distance to credible ceiling unknown.
-
-Run491 failed before device work from a missing log directory; Run492/493 isolated single/multi-stream graph JSON tests passed and show installed `debug_dump` exposes task/stream IDs and event record/wait pairs. Next is a **new same-process** post-drain dump of the exact selected FULL96 Target graph plus effective graph-update backend; do not match Python IDs/device addresses across runs or turn the graph dump into an uninstrumented performance repeat. In parallel, pursue Run479's fresh retained W-minus witness and authoritative 910B3 C-plus. Service is stopped and all borrowed sources restored after Run487; the one-card method probes exited and HBM returned idle. Evidence: `evidence/20260927_loop079_identity/run487/findings.md`, `run488/astra_frontier_review.md`, `run489/bound_calibration_v3_21.json`, `run490/astra_v3_21_review.md`, `run493/findings.md`. Continue Bound-first after this checkpoint.
-
-## Loop079 Run495–497 checkpoint (2026-09-27)
-
-Bound-first priority unchanged. Run495 Astra High designed one active-slot first-position Target argmax → sampled-token witness. Run497 CPU executed the exact pinned greedy function across128 patterns and passed; external new-output lineage, freshness and 910B3 authoritative C-plus remain unproved. PK-054/055 now capture Target frontier and first-position conditions. Run496 independently FAILed staged Run494 before launch due truncated serving patched SHA, weak graph task IDs/schema and selected-backend re-resolution after drain. Repair and second independent source preflight are required before guarded production dump. Service remains stopped and six borrowed sources restored. Formal Current571.681tok/s; all finite Algorithm/Hardware/Scheduling/Product endpoints null. Evidence Run495 design, Run496 review, Run497 findings.
+当前目标有两层：
 
-## Loop079 Run502–506 handoff (2026-09-27)
+## A. DeepSeek Extreme P0
 
-Current Formal Run99 median571.681tok/s; no finite Algorithm/Resource, Hardware/Resource, Scheduling/Execution or Product E2E ceiling. Run494 is invalid; Run502 fresh graph diagnostic passes all acquisition/client/cleanup gates, with eight post-parent-exit shutdown ERROR lines preserved. Run503 Astra independently accepts same-process FULL96 graph/Runtime/output and actual MLA update callable, but effective private stream102 work, same-generation ExternalEvent/handle join, four typed output last writers and graph terminal→caller R1 are unresolved. Run487's instrumented45.986019ms replay median is separate and cannot be transferred. V3.22 Run504/505 checked all-null proof ledger and first-position W-minus scope reduction. PK-056/057 capture lessons. Service is stopped and borrowed sources restored.
+在当前冻结 calibration contract 下，把 DeepSeek V4 Flash 的 Framework / Scheduling / Runtime 执行尽可能逼近当前可实现性能边界。
 
-Next: acquire actual selected MLA update key/list/zip/iteration/object-generation ledger without waits or native stream getters; first source-only preflight and negative controls, then one guarded exact48+12 all8 run. Correlate semantic aux mean/final norm producer descriptors and terminal completion only where source cannot close the edge. Resource track still needs formal-window external retained first-token witness and authoritative matching exact-board 910B3 aggregate C-plus. Before any new candidate optimization, search Performance Knowledge; only correctness plus repeated formal E2E can adjudicate benefit.
+当前 P0：
 
-## Loop079 Run507–515 handoff (2026-09-27)
+- Model: DeepSeek V4 Flash
+- Quant: W4A8
+- Hardware: 8×Ascend 910B3
+- Parallelism: DP1×TP8
+- Speculation: DSpark7
+- Primary Performance Anchor: 48×32K→1024, c12
 
-Current Formal Run99 median **571.681 tok/s**; no credible numerical Algorithm/Resource, Hardware/Resource, Scheduling/Execution or Product ceiling yet. Run507 is INVALID and must not be backfilled. Fresh Run508 passed all client, all8 capture/Graph, final admission and stop/restore gates. Run511 Astra accepted zero source-inferred loop body for selected MLA updates in 40/40 calls (170 attention keys, empty params/handles/events); entering stream102 context and other work are not excluded. Run509 retains missing positive formal W-minus and matching exact-board C-plus, now requiring an interval cumulative-service guarantee or a proved B with W-minus>B. Run510 confirms a CANN9.1 release-source general endGraphNotify→execution-stream wait and that exporter placeholder labels do not shift raw arguments, but Run502/508 native identity and typed ReduceMean output remain open. V3.23/24 preserve all finite endpoints null; no Run487 timing transfer.
+## B. Inference Foundry Method
 
-Next Bound actions: source/build or targeted native correlation for installed B243 model end notify, exact compiled MIX launch ABI, semantic aux/final output descriptors and exhaustive overlapping writers in the selected generation. Then all8 mixed-resource DAG costs and formal E2E scope. In parallel, seek a formal48 fresh retained first-position work witness and authoritative 910B3 interval C-plus/B certificate. Consult PK-058/059 and historical Knowledge before proposing interventions. Service is stopped and all six borrowed source hashes restored. Check TaskCtl/Knowledge validation and selective Git stage; do not stage untracked raw dumps or kernel_meta by wildcard.
+用 DeepSeek P0 第一次完整跑通：
 
-## Loop079 Run516–525 Bound handoff (2026-09-27)
+**Contract → Current → Execution DAG → Necessary Work → Resource Model → Bound → Gap → Runtime Restructuring → Correctness → Formal E2E → Re-bound**
 
-Current Formal Run99 median **571.681 tok/s**. Run516/517 accepted saved-artifact inventory finds no complete formal fresh Target→external raw-token witness. V3.25/26 keep all finite Resource/Hardware, Scheduling/Execution and Product endpoints null. Run520/521 source/header census gives2.885681152G conventional BF16 `wo_a` ops/fresh required Target row over43×8 groups and12.985565184G separate routed-MoE equivalent; unknown `F[layer,group]` cannot be set from outputs or current cycles. Run523 Astra PASS scoped deterministic review; Run524 CPU retained-prefix lemma passes without a formal-window or client join. Run525 Astra High ranks next: one instrumented full48 work/product ledger with request/generation, Scheduler G, Runtime q/R, raw external output, fresh semantic Target keys, arrival/cache/prefill/seed/KV/state/publication; then its selected all8 mixed-service frontier and only needed typed identity. A strict C⁺/B certificate remains parallel documentary work, not a block on attainable Engineering/Scheduling model. Service is stopped and borrowed source restored. Check TaskCtl, Knowledge and selective Git stage; exclude raw dumps/kernel_meta.
+P0 的具体 Runtime 可以高度专项化。
 
-## Loop079 Run526–531 preflight handoff (2026-09-27)
+以后跨模型复用的是方法、工具、证据规范和知识，不要求复用 DeepSeek 的具体代码/shape。
 
-Run526 proposes a guarded full48 warmup+full48 measured ledger with exact request/client raw-output, Scheduler pre/post G, Runtime q/R/retained prefix and arrival/cache/prefill/seed/publication fields; absent device-ready edges stay unknown. Warmup's identical full outputs require an explicit legal pre-window reuse class. V3.27 Run530/531 records unrestricted, online-inference and ordinary dense BF16 analysis classes without numeric Bound promotion. Client collector `scripts/loop079_formal_ledger_client.py` passed Run528 independent source/fake-transport review (final SHA6e0d19ae), but full server/controller all8 acquisition remains unrun. Its diagnostic TPS must not replace formal Current571.681. Continue strict C⁺/B evidence separately from empirical attainable Engineering/Scheduling calibration; select mixed-service frontier after one correlated ledger. PK-063/064 and TaskCtl hold the current Knowledge.
+---
 
-## Bound-first checkpoint Run542–548 (2026-09-27)
+# 2. New-session read order
 
-Formal Current remains Run99 median **571.681 tok/s**. Run542 completed frozen warmup48+measured48 c12 Host acquisition but its original controller failed on a validator enum-string bug; Run543 corrected offline replay and independent Run544 admitted the retained raw ledger as **posthoc diagnostic** without relabeling the failed controller or diagnostic603.648 tok/s as formal performance. Stop, all8 idle and five borrowed source restorations passed.
+任何新对话 / 新 Agent 开始工作时：
 
-Run545/546 independently close the measured same-run output accounting: Runtime sampled q49,462, retained R49,152, Scheduler ordinary before terminal bulk G401, terminal Runtime bulk admitted48,751, and all48 first Runtime tokens retained. G at rank0 handoff is400; one ordinary append happened later. OutputProcessor reports all48 cached32,768 prompt tokens and residual computed83–85, total3,987; these Host fields do not prove device-ready or necessary physical work. Rank0 cohort cycles289/299/322/308 total1,218. Conditional same-trajectory cycle relaxations508/510/512/1035/1206 omit release, preparation and resource contention; none is a Product time floor. Instrumented Host spans overlap and are not removable wall-time sums.
+1. `HANDOFF.md`
+2. `AGENTS.md`
+3. `MISSION.md`
+4. `FOUNDRY_METHOD.md`
+5. `PROJECT_STATE.md`
+6. `PERFORMANCE_MAP.md`
+7. `ACHIEVABLE_BOUND.md`
+8. `RESULTS.md`
+9. `git log -5 --oneline`
+10. `python3 scripts/taskctl.py resume --task-dir tasks/deepseek-extreme-p0`
 
-V3.29 Run547 and independent Run548 retain **all finite Algorithm/Resource, Hardware/Resource, Scheduling/Execution and Product E2E endpoints null**, including fresh Target F and Current→credible-limit distance. The next high-value Bound acquisition is all8 cached residual preparation→seed/KV device-ready→first useful Target, followed by compatible mixed Target/DSpark resource service and legal c12 release. Strict compulsory work/traffic and matching certified exact-board cumulative capacity C⁺/B continue in parallel. See `evidence/20260927_loop079_identity/run546/findings.md`, `evidence/20260927_loop080_bound/run545/astra_bound_review.md`, `run547/findings.md` and `run548/astra_v3_29_review.md`.
+不要先通读整个仓库和全部 evidence。
 
-## Run549–553: next Bound frontier and client/source preflight
+只有当前问题需要时再打开对应 raw evidence。
 
-Astra Run550 accepted the next acquisition direction with live preflight gates: measured cohort1→2 c12 release, prior-slot retained-output completion and safe state/slot lifetime, cached residual83–85 prompt-token preparation, ordinary sample/DSpark seed/KV readiness and first useful Target on all8. The instrumented acquisition needs matched no-mark A0/A1 controls before its durations can represent unmarked Current. A missing side-stream completion leaves that edge null without discarding valid Host lineage. Conditional mixed-service B can calibrate Engineering/Scheduling only after the legal release window and shapes are known; it is not a hardware maximum. Historical R20/R28/R31 are scoped priors (PK-065/066), not current verdicts.
+---
 
-Run551/552 source-only client component now records semaphore attempt/acquired, SSE DONE, stream end and post-release brackets while preserving `Semaphore(12)` and the frozen request body. Fake48 request c12 and17 transport regression cases pass; Astra independently verified actual Semaphore calls lie within markers. It yields conservative eligible release sets, **not unique permit-parent edges**. No live service or NPU run has used it. Run553 source audit finds async scheduling can keep draft seeds device-resident and conditionally skip D2H copy; the successor seed collector must dynamically bind the actual GPU scatter/CPU fallback, side-stream event and first Target input generation. All finite strict Bound endpoints and the numerical Current→limit gap remain unknown; Formal Current remains571.681 tok/s.
+# 3. Current checkpoint — MUST REFRESH AT EACH HANDOFF
 
-## Run555–559 / fixed-work Bound handoff (2026-09-27)
+> 本节是唯一允许频繁修改的“当前现场”。  
+> 交班前必须更新，不要让新 Agent 从旧聊天猜状态。
 
-Formal Current Run99 median571.681tok/s. Run558 is an admitted **diagnostic** full48+48/c12/1024; all8 selected cohort5→6 files, server/client ledger and source restore passed. Slot5 full Runtime1024 history count crosses cycle188 of cohort5's299, with all8 current-stream 184–192 brackets. No early output publication, KV retirement, unique c12 permit parent or Product wall saving is proved. Successor actual ordinary residual83/async scatter branch precedes its first Runtime Target; its marked interval is only a partial current-stream scope. Run559 V3.30 output and Astra review preserve all finite endpoints null. Run556/557 are INVALID. Source files are pristine and service stopped.
+As of 2026-09-28:
 
-Active objective is **fixed DSpark7 acceptance/output/model work, minimum execution time**. Do not pursue speculative acceptance or fewer cycles in this mainline. Next: source-gate one dynamically completed slot's normal API response and actual c12 release with old cohort and KV/state retained; compare acceptance/count/output to matched control. Run344 `runtime/ghost_publication.py` is a committed offline protocol; Run345 `runtime/segmented_serving.py` is an untracked, uninstalled draft and Run345 is INVALID, so inspect and reuse rather than claiming prior live validation. Conditional all8 mixed resource service and strict Resource W-minus/C-plus/B can proceed separately. See `evidence/20260927_loop080_bound/run558/findings.md`, `run559/findings.md`, V3.30 model and TaskCtl loop-079.
+- Formal achieved Current: **571.681 output tok/s**（Run99，当前正式 achieved point）
+- Frozen formal workload: `48×32K→1024, c12`
+- 当前主线：**Framework/Scheduling-only Bound**
+- 当前阶段保持 primitive/operator 实现及其 shape-conditioned cost 不作为主要优化变量
+- 当前 Framework-only numerical ceiling: **尚未可信识别 / 不得编造**
+- Loop081 正在恢复真实 scheduling DAG、Host issue、async queue、Graph boundary、rank arrival skew、collective peer wait 和资源约束
+- 已确认：长 HCCL duration 可能包含 peer wait；不能直接当 intrinsic communication cost
+- 已确认：Host marker gap 不等于同样大小的 exposed device idle / removable wall
+- 最新证据必须以 `git log`、TaskCtl、`FRAMEWORK_SCHEDULING_BOUND.md` 为准；不要仅依赖本节历史数字
 
-## Run560 V3.31 fixed-work handoff
+### Immediate objective
 
-The mainline freezes logical DSpark7 algorithm evaluations, acceptance/count, output and model work in a named `W₀`; optimize attainable Target+Draft+KV+HCCL+memory+Host/runtime execution time. Do not freeze physical kernel calls, Graph/layout/fusion or materialization. Do not use Run558 diagnostic acceptance as a substitute for Run99 formal `W₀`. V3.31 generator/output passed independent Astra reproduction and 13 null injections; all finite endpoints and Current→credible-limit distance remain null, Formal Current571.681tok/s. Next Bound gate: reuse Run343 fence, Run344 ghost ledger and uninstalled Run345 segmented draft for one dynamically completed slot’s normal API response and true c12 release, preserving old cohort’s acceptance/count/work and KV/state. Conditional all8 mixed-resource service is an independent measurement. See Run560 findings/model.
+继续收紧 Framework/Scheduling-only model，直到能够：
 
-## Run571 Bound-first checkpoint
+1. 给出可审计的 Optimistic Bound；
+2. 通过最小实验校准高价值假设；
+3. 收紧为 Achievable Bound / interval；
+4. 指出最大的 causally removable gap；
+5. 做至少一个 Bound-guided structural Runtime change；
+6. formal E2E；
+7. Re-bound。
 
-Offline capacity matrix and independent Astra High review PASS. The 18 isolated attained-service rows and five instrumented Current rows are stored in `evidence/20260928_loop080_bound/run571/capacity_matrix.json`; all strict capacity and Product eligibility fields stay null/false. GMM bank8 sensitivity, isolated HCCL averages and marked stage intervals are not a common fixed-W₀ capacity/critical-path measurement. Formal Current571.681tok/s, finite Resource/Hardware, Scheduling/Execution, Product endpoints and Current→credible-limit distance remain unchanged. Next highest-value acquisition is real-data, original-residency, demonstrably concurrent all8 mixed Target/DSpark/HCCL service tied to an admitted workload; strict formal necessary work/traffic and exact-board cumulative C⁺/B must also advance before a numeric limit. Use Run571 findings/Astra review and PK-072.
+### Do not do yet
 
-## Run572 profiler interval audit checkpoint
+- 不要因为未来要支持其他 workload 就先扩成通用 scheduler；
+- 不要同时启动第二个模型；
+- 不要把 32K/c12 的偶然属性写成 Foundry 方法论；
+- 不要跳过 Bound，回到“看到哪里慢就优化哪里”的模式；
+- 不要把 primitive/kernel 优化混进当前 Framework-only 归因，除非主线明确 pivot。
 
-Run572's corrected, Astra-reviewed rank-local offline analysis of Run246/247 FULL Graph export separates 265 HCCL `AivKernel` rows from 265 `hcom_*` pseudo envelopes per Target window. Instrumented medians: Target scope54.796ms, AI Core union27.749ms, Vector with HCCL AIV24.514ms, pseudo envelope11.200ms, no-exported-task5.250ms; unions overlap and none is a removable or compulsory duration. No cross-rank clock certificate, so all8 physical overlap remains null. Formal Current571.681tok/s and all finite strict Bound endpoints remain null. The next Scheduling acquisition should tie real collective message/producer readiness and all8 arrival/completion to mixed Target/DSpark/HCCL execution; Resource still needs formal W₀ necessary work/traffic and exact-board C⁺/B. See Run572 findings/review and PK-073.
+---
 
-## Run573 Resource row-identity preflight
+# 4. Source-of-truth priority
 
-Run573 finished a source-only, 16-file pinned idealized row-map model. Independent Astra review PASS at that scope and explicitly **not live-ready** for any claim that Run403 router rows match semantic Target candidates. Next implement a reversible first-post-park Graph replay collector for actual request/slot/position/query identities, branch/pad/group ranks, all43 pre-dispatch router rows and Target/Draft weight shape/dtype/format/ownership; require native query-order and all8 replay/source/cleanup gates before live execution. Keep DSpark7 W₀ fixed, do not target Run405 clairvoyant retained-prefix work. Formal Current571.681tok/s, all finite strict Bound endpoints and numeric gap null. See Run573 findings/review and PK-074.
+出现冲突时，按以下优先级判断：
 
-## Run574 Bound checkpoint
+1. 当前真实机器/进程/文件状态
+2. 当前 Git HEAD + source status
+3. TaskCtl current loop/run
+4. committed evidence
+5. `PROJECT_STATE.md` / `PERFORMANCE_MAP.md` / `ACHIEVABLE_BOUND.md`
+6. `HANDOFF.md`
+7. 旧聊天 / 旧记忆
 
-Run574 source/build/package native row-coordinate audit and independent Astra replay PASS with scope limits. Script SHA5db08117…, JSON SHAff86c527…; build generators target Ascend910B1 and production 910B3 object/tiling selection is unbound. The `FLASH_DECODE=0` TND SCFA/SWA source preserves Query coordinates, but it does not provide the first-post-parking all43 row map. Service remains stopped; borrowed sources remain pristine. Next bind actual op-api/tiling/kernel load and replay generation, branch/prefix/group metadata, then a guarded same-trajectory row/expert/weight collector; retain independent all8 mixed-resource and strict C⁺/B work. Formal Current571.681tok/s, every finite strict endpoint null.
+旧聊天只能作为线索，不能覆盖最新仓库和机器事实。
 
-## Run575 Bound checkpoint
+---
 
-Run575 source-pinned offline Graph/package/CANN-key join and Astra review PASS. The selected FULL96 Graph structurally chooses 43 BF16 sparse-attention tasks/rank with FD0/TND/PA_ND SWA2/CFA20/SCFA21 branches; actual device-loaded bytes, dynamic prefix/head metadata and 43-layer semantic row map remain open. No NPU service was started. The next live Resource acquisition should be one guarded all8 first-post-parking same-trajectory row/expert/weight witness; Resource capacity and Scheduling mixed-service/critical-path tracks continue independently. Strict numerical Bound endpoints and Current→limit distance remain null; Formal Current571.681tok/s.
+# 5. Multi-agent architecture
 
-## Run576 Bound checkpoint
+## Sol — main owner
 
-Run576 live guarded capture and independent Astra review PASS within conditional route/operand scope. The first post-park Target cycle170 yields all8-conserved Target24,768/Draft1,512 routed incidences plus actual W4A8 operand dtype/shape/format and selected expert-slice arithmetic. This does not certify actual traffic, compulsory work or formal Run99 W₀. V3.32 (`df0a11ef…`) pins census and admission inputs, keeps all strict finite Bound endpoints null. Service is stopped, all8 NPUs idle, borrowed sources restored. Formal Current571.681tok/s. Next prioritize route/group/cross-layer matched real-weight all8 GMM Graph service and all8 mixed Target+DSpark/HCCL service to calibrate Engineering capacity; obtain formal necessary work and exact-board C⁺/B independently. Historical R11/R27 are mechanism priors under different configs, not current KEEP/REVERT. See Run576 findings/Astra review/PK-077.
+负责：
 
-## Run577 Bound checkpoint
+- 主线；
+- 架构；
+- DAG / Bound / Resource Model；
+- profiling 归因；
+- correctness；
+- benchmark 设计；
+- KEEP / REJECT / PIVOT；
+- 更新状态文件；
+- 最终采信其他 Agent 结果。
 
-Run577 scoped PASS, controller exit0, all8 idle and borrowed files restored. Terminal diagnostic used production resident W4A8 Target weights, SHA-pinned Run576 route/group lists and private synthetic nonzero activation; 43 GMM1→GMM2 pairs in a private Graph yielded slowest-rank median10.1311698ms over20 replays/rank. Final admission joins all64 Runtime rows, 96 client requests, before/after stop POST count and raw hashes. This narrows isolated Engineering service uncertainty only; actual physical traffic, strict C⁺/B, mixed Target/Draft/HCCL/KV capability, formal W₀ and legal Scheduling/Product Bound remain open. V3.33 strict endpoints and numeric Current→limit distance null; Current Formal571.681tok/s. Next measure same-fixture GMM HBM traffic and mixed-resource critical path; use R11/R27 as historical mechanism priors only. See Run577 findings, Astra review and PK-078.
+**只有 Sol 可以把子 Agent 产物升级为项目结论。**
 
-## Run578 Bound checkpoint
+---
 
-Online MemoryAccess parser failed on all8 after final cohort; controller exit1 and cleanup/restore gates0. Offline parse salvaged two exact43-pair GMM replay counter windows/rank, read8.878–9.504GB and write0.197–0.227GB counter-reported main-memory. A0 unpersisted, A1 never ran. Repaired SHA-pinned reducer/Astra review admit counter-only evidence; no bandwidth or strict Bound promotion. V3.34 all finite endpoints and numeric Current→limit null, Formal571.681tok/s. Next fixed-work GMM×HCCL mixed contention and legal producer/consumer dependency; formal W-minus/C⁺/B in parallel.
+## Astra Medium — independent reviewer
 
-## Latest Loop081 Bound checkpoint — Run601–603 (2026-09-28)
+适合：
 
-The active product contract is fixed DSpark7 acceptance/cycle/output semantics. Formal Current remains Run99 median571.681tok/s; strict finite Resource/Hardware, Scheduling/Execution and Product E2E endpoints plus numeric Current→credible-limit gap remain null. Do not reuse observer-perturbed diagnostic TPS as a formal result.
+- benchmark/profile 复核；
+- 多个候选之间的判断；
+- 实验设计 challenge；
+- 重新检查 Performance Map；
+- 发现主 Agent 的归因偏差。
 
-Run601 pins source Product boundaries. Run602 guarded live warm48→measured48/c12/1024 acquired one new W₀, all8 full Runtime/basis and Scheduler/API/client token joins; 1017 actual prebulk +48135 retained Runtime bulk=49152 output IDs. There are768 scheduler placeholders, one API-counted parser-suppressed ordinary-prefix ID and898 yielded-payload-associated IDs received before latest all8 Host Runtime-build. All nine controller cleanup exit codes zero, sources/scripts SHA restored, service stopped/all8 idle. Astra independent posterior review `evidence/20260928_loop081_bound/run602/astra_post_review.md` PASS within ownership/Host accounting scope. Run603 rehashes admitted worker records and finds71 ordinary Target/proposal pairs per rank,7283 ordinary scheduled and7496 padded Target rows across four measured cohorts; current issuance only. See PK-099/100 and Run601–603 findings.
+不接管主线。
 
-Next source-only classify ordinary Graph/attention prefill/decode and actual DSpark context/query branches, including ACLGraphWrapper's conditional replay synchronize. If source cannot prove actual dispatch, design the smallest all8 full-preparation producer→consumer/event-generation packet with initial KV/state freshness, existing waits and observer OFF/ON control. Do not focus only on last proposal→build. Maintain exact-board Resource capacity/compulsory-work and full Runtime dependency as parallel Bound uncertainties. No performance intervention or formal E2E is underway; tagged service is stopped.
+---
 
-## Latest Loop081 Bound handoff — Run604–606 (2026-09-28)
+## Astra High — high-cost architectural reviewer
 
-Run604 source-only Astra High review PASS scoped. Run605 guarded acquisition reached client/Basis/Product admission but **dispatch INVALID**: warmup replaced `drafter.runner` with FixedDP1 shim, so an ordinary-owner guard silently omitted DSpark/context hooks. Its raw failure is retained; run/final exits1 and seven cleanup actions0. Run606's canonical ContextVar owner fix passed four admissions, all8 semantic/97+281+64 SHA rechecks, nine zero exits and Astra independent posterior review. Current ordinary geometry per rank:40 pairs;24 NONE/fallthrough,16 FULL replay with existing sync; Q7 context5675/query1813 rows. Same-W₀ output IDs564 prebulk+48588 accepted Runtime=49152; 768 placeholders excluded.
+适合：
 
-Run606 context→Runtime entry event ages are current-stream marker order only. Ordinary query is the earlier context consumer, Target does not consume Draft context, and per-layer KV writer/side-stream ready generations are open. Diagnostic589.383tok/s is perturbed. **Formal Current571.681tok/s; strict finite Resource/Scheduling/Product endpoints and numeric gap null.** Next Bound work: exact fixed-W₀ compulsory work/traffic with all8 attainable mixed Target/DSpark/KV/HCCL C⁺/B, and legal cross-stream producer→consumer DAG plus observer control. Do not pursue acceptance/cycle reduction or promote a local Graph sync duration to the main gap. Service stopped, all8 idle, nine borrowed sources restored. Run606 `summary.json`, `product_summary.json`, `astra_post_review.md`, PK-102 and TaskCtl run records are recovery anchors.
+- Bound 是否成立；
+- 执行架构是否走偏；
+- 复杂、矛盾 evidence；
+- Graph / Persistent / Whole-cycle replay；
+- 重大架构分叉；
+- 一个判断错误会浪费大量后续实验的场景。
 
-## Latest Loop081 Bound handoff — Run607–611 / V3.38 (2026-09-28)
+Astra 结论是 independent evidence，不自动覆盖 Sol。
 
-Run607 independent dual-Bound review and Run608 V3.37 preserve strict Resource/Hardware, Scheduling/Execution, Product E2E and numeric gap endpoints as null. Run609 prior-W₀ cycle64/65 slot-label overlap is a hypothesis, not mandatory KV seriality. Run610 guarded Level0 capture got all8 client/Basis/Product/dispatch admission, but its validator made an invalid CANN RAW versus Python MONOTONIC comparison. Run610 stays INVALID, run/final1, seven stop/restore0; service stopped/all8 idle and source/scripts restored. Its555.1125tok/s is observer-perturbed diagnostic only.
+---
 
-Run611 raw salvage and offline parse pass separately:604 SHA files,8 parses,24 Host stage records, independent Astra recovery scoped PASS and conditional Host clock mapping. V3.38 retains Formal Current571.681tok/s, every strict finite Bound endpoint and numeric gap null. The parsed raw remains on server under `evidence/20260928_loop081_bound/run610/live/b/profile/cohort5/`; copies/large traces under Run611 `offline_parse/input/`. Compact recovery anchors: Run611 raw admission, parse manifest, scope ledger, V3.38, clock witness, Astra recovery review and Run610/611 findings. Next correlate actual native Draft per-layer KV write/read and Target/acceptance/HCCL/Host producer-consumer boundaries using existing copies; no repeat live profile yet. In parallel advance fixed-W₀ compulsory work/traffic and exact-board certified upper cumulative compute/HBM/HCCL C⁺/B. No formal E2E intervention is pending.
+## DeepSeek / Zcode — mechanical executor
 
-## Latest Loop081 native Bound handoff — Run612 / V3.39 (2026-09-28)
+只做：
 
-Run612 uses existing Run611 parsed copies only: exact all8 Model45 static-task occurrence groups5,412×3,260 hcom-named native events/replay. Astra independently confirms partition. Exported event envelope45.102–72.209ms is instrumented Current and may end with zero-duration NOTIFY_RECORD. Connection_id recurs across replay; never use it alone as an ownership key. Rank7 eager Host→native flow export is shorter than other ranks. V3.39 strict Resource/Scheduling/Product endpoints and numeric Current→credible-limit gap remain null; Formal Current571.681tok/s. Next type six eager scatter calls/cycle by source, buffer generation, layer and first query consumer from existing same-W₀ trace; verify flow coverage before native timing transfer. Continue compulsory W⁻ and certified exact-board upper cumulative C⁺/B work in parallel. Service remains stopped/all8 idle. Compact anchors: Run611 native_graph_replay and Astra review, Run612 V3.39/review/findings and PK-106.
+- 启停服务；
+- 环境检查；
+- benchmark；
+- 重复测试；
+- 运行已有脚本；
+- profiling/log/trace 采集；
+- 机械数据整理；
+- 限定范围源码定位；
+- 简单、易验收修改。
 
-## Latest Loop081 typed-KV Bound handoff — Run613 / V3.40 (2026-09-28)
+不要交给 Zcode：
 
-Run613 read-only all8 exact flow joins prove exported ownership of144 eager scatters and72 sparse attention tasks on stream47; Astra independently reproduced all216. Three early scatters/proposer align with context-KV source precompute but lack direct layer tags; later scatter+attention have layer43/44/45 scopes. Source alias is not an actual allocation/row-generation or first-reader certificate. Rank5 native scatter crosses the next Target Host scope start, so do not assign device work by Host time bins or infer a saving. V3.40 strict Resource/Scheduling/Product endpoints and numeric Current→credible-limit gap null; Formal Current571.681tok/s. Next minimal guarded packet: bounded adjacent active ordinary cycles with typed context/query cache allocation-generation, slot payload, consumed row set and predecessor/successor state; also one genuinely new required context projection to begin W⁻. Keep certified upper cumulative exact-board C⁺/B independent. No service currently running. Anchors: Run613 ledgers/reviews/V3.40 and TaskCtl run613.
+- Bound 裁决；
+- 根因判断；
+- KEEP/REJECT/PIVOT；
+- 重大 Runtime 架构；
+- 跨模块优化方向选择。
 
-## Latest Loop081 joint Bound design handoff — Run614 (2026-09-28)
+---
 
-Run614 revised typed-KV packet design combines the missing Scheduling storage/read-generation witness with a conditional Resource freshness/entry-credit witness. Astra High Scheduling and Resource final checks give SCOPED DESIGN PASS, NOT LIVE-READY. Gate requires allocation/content/row-writer generation, original-stream snapshot order, exact Host submission token→CANN native flow, ABI-semantic attention eligible read set, predecessor retained KV and successor Target use. Scheduling identity is separate from fresh-work PASS/NO_WITNESS/UNKNOWN. Only a consumed, unoverwritten fresh context projection in a declared online fixed-expression class can contribute conditional partial arithmetic W⁻; no compulsory HBM byte or positive floor follows automatically. Existing evidence lacks certified exact-board upper cumulative C⁺/B. Formal Current571.681tok/s, all strict endpoints and numeric gap null. Next Run615: reversible observer implementation and dry-run/preflight; do not start live until negative fixtures, scratch ceiling, correctness and restoration guards pass. Run614 gate/findings and four Astra reviews are compact anchors.
+# 6. Zcode / DeepSeek reliability gate
 
-## Latest Loop081 fixed-work Bound handoff — Run615–620 / V3.41 (2026-09-28)
+这是强制规则。
 
-Formal Current Run99 remains **571.681 tok/s**; DSpark7 acceptance/cycle/output/model work frozen. Run615 toy NPU descriptor/same-stream snapshot and Run620 format/4KiB metadata API checks pass without service; actual KV generation remains unmeasured. Run616 all8 exact-flow current native start census has72 source-order context/query/attention triplets, median context→query1.483ms and query→attention23.13μs under Level0 perturbation; neither is removable wall time. Astra source audit establishes a conditional SWA reader oracle: no indices→paged contiguous window; indices present→physical slot sentinel prefix, with a still-required block-table argument. Run617/618 Astra challenges were fixed in Run619; 22 CPU fixtures and independent SCOPED PASS, no actual W₀ reader. V3.41 Astra SCOPED PASS; strict Resource/Scheduling/Product finite endpoints and numeric gap null. Astra Resource numeric review likewise rejects current traffic and attained fixture rates as compulsory bytes or certified `C⁺,B`. Next: reversible actual-W₀ typed KV descriptor/metadata preflight and bounded snapshot/flow packet, with independent Resource certificate path. No live service or formal E2E intervention in Runs615–620; service stopped/all8 idle. See `evidence/20260928_loop081_bound/run619/findings.md` and the compact anchors listed there.
+**委派成功 ≠ 任务成功。**
 
-## Latest Loop081 fixed-work Bound handoff — Run621–622 / V3.42 (2026-09-28)
+每次 Zcode/DeepSeek 返回后，Sol 必须逐项核验：
 
-Run621 guarded all8 actual-workload 48+48/c12 descriptor-only capture passed client/Basis/Product/dispatch/descriptor admissions and independent Astra High post review. It sampled measured cohort5 cycles64/65, DSpark SWA layers43/44/45, BF16 ND cache shape[34090,32,1,512], reported storage1,117,061,120B/cache and logical row1024B. Matching two-cycle views and nonoverlapping within-rank layer storage are observations, not continuous lifetime, compulsory HBM bytes or actual attention reader identity. Common metadata descriptors were captured before refresh; slot/index contents remain unknown. The controller stopped service, all8 idle, restored nine sources and recorded nine zero cleanup statuses.
+## Execution identity
 
-Run622 offline reduction gives three-layer reported storage3,351,183,360B/rank and a **hypothetical** one-row/layer/two-cycle pre/post snapshot payload12,288B/rank; full block-table view is1.5MiB/rank and should be narrowed only after actual branch/ABI selection. Astra independently verified arithmetic, raw geometry and V3.42 generator; all13 strict/nested endpoint negative injections rejected. V3.42 output SHA `41b52c3dd7b63924e930b3f0e56bb0f9f4289cb10a8ef63105b5d547a6041c02`; review SHA `84efe208c910b23b592533747f57180ea37d3bd8258fe39ee3e27e738b68d029`. PK-112 records storage≠traffic and observer limits. **Formal Current remains571.681tok/s; strict Resource/Scheduling/Product endpoints and numeric Current→credible-limit gap null.** Run621 604.151tok/s is diagnostic, not formal.
+- [ ] 实际命令是什么？
+- [ ] working directory 是什么？
+- [ ] 配置模型是什么？
+- [ ] 日志中实际观察到的模型/runner 是什么？
 
-Next: one guarded same-acquisition actual invocation packet with branch-specific metadata/slot values and generations, selected valid cache row pre/post original-stream snapshot, exact native writer/reader ownership, predecessor/successor lineage and observer OFF/ON/OFF. A selected edge is local evidence; no witness does not eliminate other edges. Separately continue fixed-work compulsory compute/traffic and exact-board certified cumulative `C⁺,B`; neither cache storage nor Run247 current traffic may stand in. No formal E2E intervention is pending.
+## Process result
 
-## Latest Loop081 dual Bound gate — Run623–624 / V3.43 (2026-09-28)
+- [ ] exit code 是多少？
+- [ ] 是否 timeout？
+- [ ] 是否被 kill / OOM / signal？
+- [ ] stdout/stderr 是否完整？
 
-Run623 Astra High source-only review pins the actual DSpark context final formatted SWA scatter, query prefill/decode and multistream scatter, and comp_ratio<=1 attention final kwargs. Run621's pre-refresh flat slot descriptor is not the invocation's two-column scatter slot or executed reader metadata. The smallest next packet must capture branch-specific slot/index/selected metadata, one selected valid row's post-context/pre-reader original-stream value generation, all intervening writers, exact native flow and predecessor/successor lineage in one acquisition. Its12,288B/rank selected-row example excludes metadata, allocator and observer costs. Source gate is **NOT LIVE-READY**; a current storage hazard does not prove unavoidable seriality under versioning/renaming.
+### Rule
 
-Independent Resource methodology audit confirms installed CANN9.1.0 and driver-file26.0.rc1 and retains exact-board cumulative `C⁺,B` authority as missing. HCCL Test algorithm bandwidth, PMU and Run577–580 attained service cannot serve as universal upper capacity or compulsory traffic. An actually consumed, unoverwritten context projection with complete entry-result credit can at most admit conditional partial `W⁻` in a declared online class. V3.43 and Astra independent review reject16 strict/nested negative injections; all Resource/Scheduling/Product strict endpoints, conditional Engineering numeric interval and numerical gap remain null. Formal Current **571.681tok/s** unchanged. PK-113 records the invocation-boundary constraint. See Run623 findings/reviews/V3.43 and TaskCtl Run623–624.
+任何 timeout 默认 `INVALID/INCONCLUSIVE`，除非产物和进程状态能独立证明目标动作已完整完成。
 
-Next: implementation preflight for one bounded combined typed packet, alongside an explicit conditional whole-Product resource-constrained DAG sensitivity model. Use evidence to choose a missing mixed-service experiment only if the model shows it matters. No service or formal E2E was run in Run623–624; tagged service remains stopped from Run621.
+## Artifacts
 
-## Latest Loop081 untimed Runtime DAG — Run625–626 / V3.44 (2026-09-28)
+- [ ] 预期文件是否存在？
+- [ ] 文件大小是否合理？
+- [ ] timestamp 是否属于本次 Run？
+- [ ] JSON/CSV 是否可解析？
+- [ ] 必要时是否记录 SHA256？
 
-Run625 builds a source-pinned per-rank nominal cycle64/65 dependency template: **82 nodes/106 edges**, including12 conditional context/query writer→reader edges and18 distinct unbound metadata operand roots. Astra High independently rebuilt it, found and corrected false barriers/missing state edges, and gave SCOPED PASS for an **untimed partial** model. Three context projections are value-independent at the shown source granularity, but current Python issue seriality and unknown shared Cube/HBM/HCCL service prevent any parallel-time claim. Q/KV and Target logits/aux readiness are split. Metadata roots are unknown ancestry, **not t0 ready or zero cost**; retained cache/Host count-copy/metadata cross-cycle and Product publication edges remain open. Value-use edges do not make the physical operators compulsory under fusion, reuse or renaming.
+## Benchmark validity
 
-Run626 V3.44 pins the DAG and review; Astra independent model review passed14 negative injections. Every node Current/Engineering/Aggressive/lower cost is null, as are strict Resource/Scheduling/Product endpoints, conditional Engineering interval and numeric Current→credible-limit gap. Formal Current remains **571.681tok/s**. Historical R20/R21 were retrieved on demand as contention/E2E priors under DP2TP4 prefill/Compressor conditions; PK-114 records applicability limits, not a DP1TP8 verdict. No service or formal E2E was run; tagged service remains stopped.
+- [ ] 请求数正确？
+- [ ] 成功请求数正确？
+- [ ] input/output token 合同正确？
+- [ ] concurrency 正确？
+- [ ] warm/cold/prefix 协议正确？
+- [ ] correctness gate 是否真实执行？
+- [ ] 是否误把 diagnostic TPS 当 formal TPS？
 
-Next: build and preflight a fail-closed actual writer→reader row-generation reducer and the bounded same-acquisition packet from Run623. Then fill actual metadata readiness, all8 native ownership and resource service in the DAG. A proof of current storage hazard alone cannot certify unavoidable serial time; any schedule change requires correctness and repeated formal E2E. See Run625 findings/reviews/V3.44 and TaskCtl Run625–626.
+## Environment
 
-## Latest Loop081 row-lineage preflight — Run627 (2026-09-28)
+- [ ] `npu-smi info`
+- [ ] `docker ps`
+- [ ] 服务 PID
+- [ ] port 占用
+- [ ] 残留进程
+- [ ] HBM 是否恢复
+- [ ] 是否存在第二个服务冲突
 
-Run627's source-pinned pure CPU reducer now has25 fixtures and Astra High SCOPED PASS after five initial false-PASS classes were corrected. Full writer-call/native-key/cache/schema validation precedes evidence returns. It distinguishes a selected context row that remains the last writer before one named ABI-eligible reader from query overwrite, reader mask exclusion and missing certificates. Real non-A5 flat -1 formats as[-1,31]; absent loaded scatter sink semantics the reducer returns UNKNOWN. Synthetic flags do not authenticate actual native order, complete alias writes, cache lifetime, executed reader or row snapshots. PASS does not prove first/physical read, fresh unavoidable work, necessary HBM traffic or Scheduling time. PK-115 records the admission rule.
+## Source state
 
-Formal Current571.681tok/s; all strict Resource/Scheduling/Product endpoints and numeric gap remain null. No service/NPU/formal E2E in Run627. Next construct the reversible same-acquisition writer/reader/metadata packet, validate bounds and negative fixtures, require Astra live preflight, then guarded all8 diagnostic with correctness/recovery. In parallel, Resource exact-board C⁺/B authority remains open; do not repeat peak microbench as a certificate. See Run627 findings/review and TaskCtl run627.
+- [ ] Git HEAD
+- [ ] `git status --short`
+- [ ] 临时 patch 是否记录
+- [ ] cleanup / restore 是否成功
+- [ ] shared bind-mount source 是否被意外修改
 
-## Latest Loop081 Bound-first Product handoff — Run628–632 / V3.45 (2026-09-28)
+只要关键项不通过，不得写成 PASS / KEEP。
 
-Fixed DSpark7 acceptance/cycles/output/model work remains frozen. Formal Current Run99 median is **571.681 tok/s**. Astra High Run629 PIVOTed the primary Bound work to whole-Product time coverage and exposure-sensitive calibration; typed KV generation remains a supporting branch. Run628 source-conditionally excludes formatted `[-1,31]` from destination-row writes, but actual loaded scatter identity is absent, so real lineage remains UNKNOWN.
+---
 
-Run630 exact paired formal accounting gives Run99 client T80.188/86.600/85.978s, rank0 Runtime R69.050/69.457/69.040s and **unclassified arithmetic** T−R11.137/17.143/16.938s. It is not removable Host time. From exact median repeat3, old581/607/616/682 TPS scenario landmarks require hypothetical net E2E savings1.379/5.003/6.186/13.908s; these are not bounds or targets. Run631 separately replays Run602/606 all8 Product Host ledgers and finds prior-cohort execute entries at the beginning of cohorts6–8, correcting first-recorded→built phase attribution by0.420–0.476s; this correction is not available saving. Broad Host envelope union is not device occupancy. Astra High independently passed Run630/631.
+# 7. No-background rule
 
-V3.45 pins these observations and keeps **strict Resource/Hardware floor, Scheduling/Execution floor, Product E2E ceiling, conditional Engineering numeric interval and numeric Current→credible-limit gap null**. The next main action is an exact same-W₀, all8/client low-overhead producer/completion and publication coverage packet with causal stream wait ownership and OFF/ON/OFF transfer. First use Run602/606 coverage to choose boundaries; keep typed KV and exact-board certified C⁺/B work in parallel. No live service/NPU/formal E2E ran in Runs628–632; the tagged service remains stopped. Recovery anchors: Run629 review, Run630 hurdle/review, Run631 coverage/review, Run632 V3.45/review and PK-116–118.
+不要声称：
 
-## Latest Loop081 preparation coverage — Run633–635 / V3.46 (2026-09-28)
+- “实验还在后台继续”
+- “Agent 会自动跑完”
+- “我会之后回来汇报”
 
-Fixed DSpark7 acceptance/cycles/output/model work remains frozen. Formal Current Run99 is **571.681 tok/s**. Run633 uses Run606's single observer-perturbed W0 to join all8 ordinary preparation calls to exact request owners and union Host intervals; Astra independently verified32 unions/640 calls and eight negative cases. Each rank has37 own Target/proposal pairs plus3 prior-cohort carryovers. The unclassified first-own→built Host-envelope complement is0.22–0.56s/rank/cohort; zero overlap between Target/proposer Python call intervals does not prove device no-overlap.
+除非存在可验证的：
 
-Run634 raw frontier reconstruction identifies per rank24 own NONE,13 own FULL and3 prior FULL Target calls. Own NONE cumulative Host interval8.334–8.984s/rank, own FULL0.450–0.551s/rank. These are current diagnostic Host windows, not required device work, exposed time, an available saving or formal Run99 transfer. Astra's independent review passed8 negative challenges and ranks physical NONE readiness/HCCL dependency measurement above another selected KV row **among preparation candidates**. Runtime still dominates the formal paired arithmetic scope, so preparation is not declared the largest whole-Product gap.
+- PID；
+- process；
+- automation；
+- runner；
+- 日志持续写入；
+- 明确的远端任务机制。
 
-V3.46 pins these facts; Astra independent review passed92 endpoint/evidence and19 certificate challenges. **Strict Resource/Hardware floor, Scheduling/Execution floor, Product E2E ceiling, conditional Engineering interval and numeric Current→credible-limit gap remain null.** Next: preflight a bounded low-overhead same-W0 all8/client packet for actual ordinary Target NONE input-ready, separate logits/aux producer-complete, related HCCL side streams/existing waits, first real consumer and Product publication across prefill-only/mixed shapes; retain OFF/ON/OFF timing transfer and full correctness ledger. Typed KV is supporting. Runs633–635 used no live service/NPU/formal E2E; tagged service remains stopped. Recovery anchors: Run633/634 findings/reviews, Run635 V3.46/review, PK-119.
+如果没有，就明确写：
 
-## Loop081 Runtime-first physical Bound packet gate — Run636 (2026-09-28)
+> 当前没有后台实验在运行。
 
-Astra High reviewed the seven-source SHA-pinned Run636 measurement plan and gave **SCOPED PASS / NOT LIVE-READY**. Whole-Product priority defaults to a bounded adjacent Runtime-cycle actual ready→first-consumer packet, with ordinary Target NONE preparation as fallback if Runtime closure cannot be implemented/verified with acceptable observer cost. The same Run606 W0 built→allrank existing-sync Host envelopes total roughly69.28s over four cohorts, while own Target NONE Host call sums are8.334–8.984s/rank; neither is disjoint, compulsory or removable wall. Formal Run99 Runtime spans about69s in a different W0/observer and cannot be subtracted against Run606.
+这是项目交接的重要事实。
 
-The packet must separate Host submission from device readiness, main hidden→logits→acceptance from aux→DSpark, count-copy/schedule side streams, acceptance/state/Draft/commit→next Target and final staging/parking/publication. Do not add a measured-path sync. Existing current-stream events and profiler/native task endpoints need actual tensor/stream generation and consumer ownership before a Scheduling critical path claim. Run636 did not install an observer or run NPU; all numeric Bound endpoints and the Current→credible-limit gap remain null, Current Formal571.681tok/s. Next implement the reversible bounded observer and seek independent live preflight. See Run636 JSON/review and PK-120.
+---
 
-## Loop081 bounded observer candidate — Run637 (2026-09-28)
+# 8. Run lifecycle
 
-Run637 created a dormant `runtime/bound_observer.py` and a source-hash-pinned dry-run generator for five candidate edits; **no edit was installed into the live ModelRunner/Runtime**. Candidate ASTs compile, added textual sync/wait counts are zero, and CPU10 negative checks pass. Astra High independently ran the candidate step AST with fake operators across cycles62–65, verified the immutable cycle ordinal and 48 selected markers, and gave **source-only SCOPED PASS / NOT LIVE-READY**. The early63–65 stratum cannot park under the frozen 0→1024 limit and ≤8 tokens/cycle, but this does not cover tail/park work.
+每个真实 Run 推荐遵循：
 
-OFF/ON share an armed endpoint ledger of effective/staged counts, canonical accepted prefixes and Runtime bulk output hash, computed from existing CPU copies after the Runtime timer; raw padded hash is diagnostic only. This does not certify parked-slot raw acceptance or whole-W0 model work. Installed torch_npu2.10.0.post4 Event `elapsed_time` invokes synchronization APIs during post-Runtime extraction, so ON Product publication timing can be perturbed and must be controlled. The candidate records current/copy stream progress, not full native/HCCL completion or a numerical Bound. Next build guarded OFF/ON/OFF controller with actual backend/config, RUN_TS/arm/output identity, all8 Product/client ledger join, NPU/Graph qualification and stop/restore before any live acquisition. Formal Current571.681tok/s; all strict Resource/Scheduling/Product endpoints and numeric gap null. See Run637 findings/review and PK-121.
+1. Preflight
+2. Freeze inputs/config
+3. Environment check
+4. Start service / target process
+5. Health check
+6. Correctness gate
+7. Measurement
+8. Artifact validation
+9. Cleanup / restore
+10. Independent review（高价值 Run）
+11. TaskCtl record
+12. Update state / Bound / Performance Map
+13. Commit + push
 
-## Framework/Scheduling-Only V0 — Runs638–641 (2026-09-28)
+### Never skip cleanup verification
 
-The fixed DSpark7 algorithm and existing primitive implementations/costs are the separate Framework-only contract; no strict Hardware C⁺ or compulsory-traffic proof is a prerequisite. Formal Current Run99 stays **571.681 tok/s**. Run638 guarded OFF/ON/OFF produced three individually valid 48+48/c12 arms and clean source/service restoration, but 0/48 client texts matched OFF_A→ON and cycle totals were1175/1227/1179. Cross-arm fixed W₀ and observer timing transfer failed. Packet `product_output_sha256` is Runtime bulk IDs, not final Scheduler/API token IDs. The ON arm's 96 sampled rank-cycles have current-stream medians: cycle55.538ms, Target46.901ms, DSpark6.346ms; *paired* Target+DSpark53.331ms and outside residual1.707ms. This is a restricted early-cycle diagnostic, not a Product bound.
+尤其是：
 
-Run639 gives a 16-row historical local MatMul→RS→copy fixed-observed-cost paired residual median2.160µs, only a local conditional screen. Run640 independently replayed all8 Run611 rank windows: physical and wait intervals overlap140.946–198.821ms; wait-only6.173–7.103ms, not removable idle. Run641's same-W₀ 24 Target Graph fixed-stream relaxation has observed span45.102–72.209ms, longest-stream physical sum36.905–38.083ms and conditional gap median15.819ms. All HCCL-named stream0 task intervals lie inside stream1 wait intervals and have **zero** overlap with stream1 physical tasks. HCCL task duration can include peer wait; GMM/HCCL fixture contention rejects ideal overlap. The conditional gap is neither legal saving nor whole-Product TPS. The largest unresolved schedule term is Target internals/HCCL wait ownership and resource interference. Full Framework-only Product TPS interval remains **unidentified**, not zero and not an asserted ceiling. See `FRAMEWORK_SCHEDULING_BOUND.md` and Run638–641 evidence.
+- source patch；
+- service PID；
+- profiling flag；
+- env vars；
+- port；
+- NPU process；
+- temporary observer。
 
-Next: type producer→collective→consumer edges and resource modes for one real Graph layer/cut using existing Run611 trace/source; distinguish HCCL active service from peer wait, then choose the smallest same-W₀ measurement that closes the dominant unknown. Keep correctness/repeated formal E2E as final performance gate.
+---
 
-## Framework-only first-collective arrival and precursor — Run643–644
+# 9. Evidence classes
 
-In the same Run611 Level0 diagnostic W₀, all8×3 first Model45 ReduceScatter events match high-level count49,152/BFP16/MESH-RING-NHR. Arrival spread is26.733/9.739/9.783ms, while finish spread is12–21µs; rank7 arrives last with a34–35µs native duration. The first collective begins49–55µs after each Graph entry. Early-rank HCCL task duration is thus strongly consistent with **peer wait**, not an intrinsic frozen communication cost. The first occurrence may include profiler startup disturbance. Cross-rank clock alignment is conditionally supported, but not independently proven to microsecond precision.
+任何数字必须带类别：
 
-Run644 joins the two adjacent Graph transitions: prior exported Graph last-event spread52/56µs, next Graph entry spread9.741/9.785ms, rank7 latest both times. The skew reappears between observed Graph boundaries. Previous proposer Host-scope end and next Target Host start spread much more, but those Host scopes overlap native execution; rank5 proposer Host end precedes the prior exported Graph last event by15.567ms. No disjoint Host cost or removable time is inferred. **Framework-only full Product TPS remains unidentified**; neither early-rank waiting nor the Run641 conditional gap can be multiplied by cycle count. Next resolve rank7 pre-submit necessary predecessor/wait lineage from existing API/native trace, then only the missing bounded all8 device-ready/enqueue measurement. See Run643/644 findings and independent Astra reviews.
+- `formal_e2e`
+- `matched_internal_ab`
+- `diagnostic`
+- `profile`
+- `microbenchmark`
+- `simulation`
+- `theoretical_bound`
+- `independent_review`
 
-## Fixed-primitive Host issue coverage — Run645–647
+禁止类别漂移：
 
-Run645 replays two adjacent Run611 Graph transition windows all8. Rank7 spans24.591/22.214ms with only8.103/8.080ms physical kernel/copy union and16.267/13.941ms **cumulative** time without any exported native task. This is spread over258/253 short gaps (largest0.863/0.380ms), not one long Host stall or certified device idle. Rank7 stream47 physical work stays near7.1ms, comparable to other ranks; other ranks' longer stream38 communication-named tasks can contain peer waiting.
+`profile 10ms` ≠ `formal removable 10ms`
 
-Run646 exactly joins stream47 native tasks to `torch_to_npu` flow and CPU-op begin: rank7 adjacent-task gaps total16.353/14.012ms, of which the next CPU operation had not begun for10.047/8.323ms. Run647 also joins the corresponding Host async task queue Enqueue/Dequeue: next Enqueue had not begun for10.116/8.387ms. This rejects a pure “already enqueued, only device queued” explanation for those conditional fragments, but says nothing yet about legal advance. The *next op* scopes are DSpark layer45, derived Target metadata and other DSpark model work; scope labels do not identify the preceding cause. Dequeue starts invert native start by up to6.491µs in11 rank6 records, so no Dequeue timing bound is used. Astra independently reviewed Runs645–647.
+`microbench +20%` ≠ `product +20%`
 
-The Framework-only DAG now explicitly includes Host CPU issue, async queue Enqueue, native start, per-rank collective arrival and all8 completion as separate nodes. The next highest-value offline action is the rank7 preceding CPU op/input-ready lineage for late Enqueues, retaining mandatory state/DSpark/metadata edges and resource overlap. The10/8ms conditional issue fragments cannot be subtracted from Product wall or extrapolated across1,206 formal cycles. The full Product Framework-only TPS interval is still **unidentified**; Formal Current remains571.681tok/s. Large Run646 raw per-task data remains on the measurement host with SHA in its committed summary.
+`simulation ceiling` ≠ `achievable performance`
 
-## Framework-only handoff — Runs648–649
+---
 
-`FRAMEWORK_SCHEDULING_BOUND.md` is the active fixed-primitive/fixed-DSpark7 scheduling contract. Run648 all8 Graph entries: rank7 latest, entry spreads26.739/9.741/9.785ms, exported end spreads40–56µs. Run641/643/647 conditional delays overlap in one possible late-rank critical chain; do not add them. Run649 read-only reuse audit finds complete same-W₀ Product/output/Runtime trajectories in Run606 (1214 cycles,49,152 IDs, diagnostic83.395754s) and Run602 (1189,49,152,91.483702s). Both diagnostic walls are observer-perturbed and not formal Run99 571.681tok/s. P0 output ledger needs no new live run. Next build a parameterized Run606 makespan case with separate shape-conditioned fixed primitive costs and selected necessary rank7 ready→Enqueue→native→all8 first-RS/Product edges; calibrate observer transfer. Unknown edges/costs only omitted/zeroed in an explicitly optimistic lower makespan relaxation. Formal Current is the only product performance witness; no numeric Framework-only TPS ceiling is admitted yet. See Run648/649 findings and Astra review.
+# 10. Bound discipline
 
-## Framework-only latest evidence — Runs650–651
+当前方法同时维护：
 
-Run650 checks Run636/637 source/observer SHA and freezes the smaller all8 late-rank cost/ready packet; source-only, NOT LIVE-READY. Run651 finds within Run638 ON W0 that Host-submit Target skew shrinks (paired median−3.397ms,11/12) and proposer skew grows (+2.772ms,12/12); 8 successor transitions all retain/increase spread, latest rank persists7/8 but rotates among ranks1/2/4/6. Astra High scoped pass. Host-submit dispersion is not device-ready or removable wall; cross-arm/final Product transfer invalid. For next acquisition, select latest rank dynamically from all8 and bind actual DSpark/state/metadata writer versions, native/collective and next Target consumer, with no new sync and observer control. Reuse Run606 full Product ledger. All numeric whole-Product Framework-only endpoints remain null; Formal Current571.681tok/s.
+## Current
 
-Run652 further guards Framework-only arithmetic: in Run638 ON,64 rank-local proposer-after→next-Target-before pairs have median Host marker gap6.265ms but same-current-stream Event gap0.873ms (Host>Event64/64). Astra scoped pass. The paired5.195ms difference is not idle or removable cost; do not add/subtract it in the Product model. Native enqueue/producer readiness and all8 consumer completion remain needed. See Run652 JSON/findings/review, PK-129.
+真实、已验证实现现在达到多少。
 
-## Framework-only next acquisition after Run653
+## Optimistic Bound
 
-Run653's historical full-cycle stage priors are scoped diagnostics only: Run87/98/367 have301/300/293 cycles and different warmup/config/observer conditions. Do not transfer their Event stages as fixed primitive service to Run606 or Run99. Old `EXTREME_RUNTIME_PROFILE_DAG` allocates14 Events/cycle, forces sync/serial elapsed reads before Product return and overwrites cohort outputs. Build source-only full48 light bridge first: bounded preallocated five outer current-stream marks/cycle plus terminal staging/park marker, full all8 cohort/cycle/class identity, post-existing-drain query/export and observer control. Selected actual late-rank value-ready→Enqueue→native/collective packet is adjunct. Reuse Run606 full ID ledger. Run650 two-cycle contract is superseded in scope, not live-ready. Astra High Run653 scoped pass; numerical Framework-only TPS ceiling remains open.
+在必要依赖和乐观资源假设下的数学最好情况。
+
+## Achievable Bound
+
+通过真实实验校准 overlap、contention、Host/Device、Graph 等假设后收紧的工程边界。
+
+任何 Bound 都必须写：
+
+- workload；
+- numerator；
+- makespan scope；
+- dependency assumptions；
+- resource assumptions；
+- unknown edges；
+- observer effects；
+- evidence links；
+- confidence。
+
+如果主要未知仍未闭合，允许写：
+
+> numerical bound unidentified
+
+禁止为了“必须给一个数字”而编造 ceiling。
+
+---
+
+# 11. Handoff update checklist
+
+每次准备结束一个长会话/阶段时：
+
+- [ ] 当前 Git HEAD
+- [ ] 当前 active loop/run
+- [ ] formal Current
+- [ ] Bound 状态
+- [ ] 最大已知 Gap / 最大未知
+- [ ] 最新 KEEP / REJECT / PIVOT
+- [ ] 当前服务/进程状态
+- [ ] source clean/dirty
+- [ ] raw evidence 在哪里
+- [ ] next_action
+- [ ] blocker
+- [ ] 是否存在后台任务
+- [ ] 更新本文件第 3 节
+- [ ] 更新 TaskCtl / PROJECT_STATE
+- [ ] commit + push
+
+---
+
+# 12. New-chat bootstrap prompt
+
+新对话可以直接发送：
+
+> 这是 Inference Foundry / DeepSeek Extreme P0。请先读取仓库根目录 `HANDOFF.md`、`AGENTS.md`、`MISSION.md`、`FOUNDRY_METHOD.md`，再读取 `PROJECT_STATE.md`、`PERFORMANCE_MAP.md`、`ACHIEVABLE_BOUND.md`、`RESULTS.md` 和当前 TaskCtl recovery pack。不要从旧对话猜当前状态，以 Git HEAD、TaskCtl、evidence 和真实机器状态为准。
+>
+> 当前目标是用 DeepSeek V4 Flash W4A8 + 8×910B3 + DP1×TP8 + DSpark7 + 32K→1K c12 calibration workload，完整跑通 Current→DAG→Resource Model→Bound→Gap→Runtime restructuring→Correctness→Formal E2E→Re-bound 的 Foundry 闭环。当前先聚焦 Framework/Scheduling，避免无意混入 primitive/operator 优化。
+>
+> Sol 负责主线和裁决；Astra 用于独立复核；Zcode/DeepSeek 只用于机械执行。任何 Zcode 结果必须核验实际模型、命令、退出码、timeout、产物、服务/NPU/source 状态后才能采信。没有真实 PID/runner 时，不要声称后台实验仍在运行。
+>
+> 恢复完成后先给出：Current、当前 Bound 状态、最大已知 Gap/未知、最新有效 Run、当前机器/服务状态、next_action，然后继续推进。
+
+---
+
+# 13. What to upload to GitHub
+
+每次稳定 checkpoint 至少提交：
+
+- `AGENTS.md`
+- `MISSION.md`
+- `FOUNDRY_METHOD.md`
+- `HANDOFF.md`
+- `PROJECT_STATE.md`
+- `PERFORMANCE_MAP.md`
+- `ACHIEVABLE_BOUND.md`
+- `RESULTS.md`
+- `tasks/deepseek-extreme-p0/**`
+- 小型关键 evidence / manifest / finding
+
+大 raw trace/log 可以不进 Git，但必须：
+
+- 有路径；
+- 有 SHA/manifest；
+- 有 scope；
+- 有 limitation；
+- 新 Agent 能找到。
+
+---
+
+# 14. One-line recovery rule
+
+> **先恢复事实，再恢复判断；先验证子 Agent 产物，再继续实验；先沿 Bound 找 Gap，再改代码。**
