@@ -61,3 +61,11 @@
 - `2026-09-28T01:40:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run596`（design-check）。
 
 - `2026-09-28T01:40:26Z` Run `run596` 记录为 `pass`；正确性为 `not-applicable`。Pure CPU compact basis plus explicit extracted Host events reproduces Run566 A0; four event negatives; no time Bound
+
+- `2026-09-28T02:32:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run597`（profile）。
+
+- `2026-09-28T02:32:01Z` Run `run597` 记录为 `pass`；正确性为 `pass`。Guarded new 48+48 fixed-DSpark7 diagnostic: 96 client, all64 Runtime, all32 compact basis and sparse actual Target/DSpark/Draft input lineage pass; all8 rank consensus, tagged stop, idle and five-source restore pass. Observer perturbs timing; no formal TPS or finite Bound.
+
+- `2026-09-28T02:32:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run598`（design-check）。
+
+- `2026-09-28T02:32:01Z` Run `run598` 记录为 `pass`；正确性为 `not-applicable`。Offline source-pinned new W0 current execution ledger: Target issued115200/active99976; conditional Draft query issued100800/active87479; staged49523, parks48. Work classes not compulsory fresh operations or time Bound; Astra scoped pass.
