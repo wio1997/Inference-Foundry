@@ -1057,3 +1057,23 @@ Guarded live diagnostic, CPU negative gates, client 48+48/c12/1024, all64 Runtim
 ## Run578 partial counter diagnostic
 
 Guarded terminal acquisition completed96 requests/all64 Runtime records, but online CANN profiler parse failed; controller exit1, controlled stop/restore/idle gates all0. Offline parsing recovered complete all8 two-replay 43 GMM1+43 GMM2 MemoryAccess windows. Counter-reported reads median9.156191GB and writes median0.213860GB per rank/replay; A0 timing unpersisted, A1 not executed. Astra scoped review of repaired reducer PASS. V3.34 keeps every strict finite Bound and Current→limit distance null. Current Formal571.681tok/s. Next fixed-work mixed GMM×HCCL contention/dependency evidence and independent formal W-minus/C⁺/B.
+
+## Run582–585 checkpoint (2026-09-28)
+
+Run582 invalid startup instrumentation was stopped/restored without requests. Run583 diagnostic completed 96 client requests, all64 Runtime cohort records, all8 selected FULL96 layer0 branch/alias captures and final stopped/source-SHA admission. Astra independently rechecked 82 hashes, validator negatives and the important absence of capture→unique request and native last-writer proof. No latency or formal E2E result was promoted. Run584 independent Resource review and Run585 source preflight target one conditional logical `wo_a` W⁻ witness; exact-board `C⁺/B` remains unresolved. Formal Current571.681 tok/s; all finite strict Resource/Scheduling/Product endpoints and numeric Current→limit gap remain unknown. Next inspect existing Graph/profiler correlation for native RS/HC-post identity, then collect only missing production DAG fields; pursue the one-row Resource witness in parallel. See `evidence/20260928_loop081_bound/run582`–`run585`.
+
+## Run586–588 native identity checkpoint
+
+Run586 offline all8 Run502 static event chain PASS, no typed cross-run lineage or time. Run587 Python native-tag route INVALID (`lastStreamId=65535`); all8 idle after. Run588 isolated queue1 C++ sidecar PASS: exact MatMul/copy/Add native task labels, output and clean exit; Astra independently checked ABI and SHA. Run589 guarded production identity acquisition is the next Scheduling Bound discriminator. One-row conditional Resource W⁻ Run585 preflight remains parallel; exact-board `C⁺/B` is missing. Formal Current571.681 tok/s; numerical credible-limit gap remains unknown.
+
+## Run589 Bound checkpoint
+
+Run589 48+48 production diagnostic and independent final validation PASS: same-generation all8 measured cohort5 native layer0 partial→RS→copy identity, exact64 Runtime/exact24 capture, stop/all8 idle and source restore. This closes one static Scheduling identity uncertainty, not producer/collective/consumer time or a Product gain. Astra Resource review separately flags installed 910B HCCS statistics cache semantics as a physical-traffic measurement gate; loaded implementation binding remains open. Next continue rank-local production DAG timing and exact-board capacity/compulsory-work acquisition in parallel. Formal Current571.681 tok/s; strict finite bounds and numerical gap remain unknown.
+
+## Run590 Resource measurement checkpoint
+
+All8 supported HCCS static inventory and installed package identity PASS after Run589 stop; all8 rank commands exit0 and offline reducer rejects five negatives. No short-window traffic or maximum link rate is certified because statistics dispatch, loaded device image, counter freshness and physical cut remain open. Continue exact-board Resource certificates and Run589-labeled production DAG time/consumer acquisition. Formal Current571.681 tok/s; strict bounds and numerical gap remain unknown.
+
+## Run591 Scheduling source review
+
+Read-only Astra High review PASS for a conditional source-typed attention output→HC-post x storage/read dependency, corroborated by Run589 all8 native words. It does not certify actual compiled ABI, full allocation lifetime or time. Proceed to bounded rank-local timing of the partial→RS→copy cut without waiting for a full HC-post native certificate; keep Resource W⁻/C⁺ work parallel. Formal Current571.681 tok/s and strict Bound endpoints remain unknown.

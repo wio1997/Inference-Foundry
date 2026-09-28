@@ -1,0 +1,162 @@
+{
+  "status": "source_and_prior_gate_only",
+  "contract": "frozen DSpark7 acceptance/cycles/output, DP1TP8 FULL96, no algorithm intervention",
+  "slice": "layer0 DSA wo_b partial -> selected TP collective -> attention output copy -> first hc_post",
+  "source_manifest": {
+    "dsa_cp": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "sha256": "27cbbf92a02f16301aad2a35091e258b8459dc77744bd8294f2f11a4c126004e"
+    },
+    "linear_op": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ops/linear_op.py",
+      "sha256": "599f85b8dd4c13f72aa458e21ae7fa13e18548a645fd03b8a534a6b951e7ee02"
+    },
+    "model": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/models/deepseek_v4.py",
+      "sha256": "11dd3e983dc1d628bf42a95581f9617861471b1f658739db44c20df886147247"
+    },
+    "forward_context": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ascend_forward_context.py",
+      "sha256": "bea8567609ff8925838ec86fcee9ddd9e7bd4af335d49d10ec45d70280fbeaff"
+    },
+    "serve": {
+      "path": "/data/wio/Inference_Foundry/scripts/serve.sh",
+      "sha256": "31a35adb4fd7be073a3bbd43417a63320015e2bd81dabb8a86842503120da773"
+    },
+    "run378_ledger": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260927_loop077_bound/run378/ledger.json",
+      "sha256": "c5bbe55c0853b011188cd0f2e3e6e0a673951b8e95c5b6fd625ca80e45827211"
+    },
+    "run502_findings": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run502/findings.md",
+      "sha256": "4afce1ee11b69d54839b493d96f9f7ff30232a1519585af7f6c0c722e8c45e3b"
+    },
+    "run508_findings": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run508/findings.md",
+      "sha256": "e5889fece3c9f68550ba374b8af90511c2d5b43dc063b9dc39ea958e8a5e3ae1"
+    },
+    "run510_review": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260927_loop079_identity/run510/astra_terminal_abi_source_review.md",
+      "sha256": "120565abe8270dbb218554c5482548208808dfabe5e6b5a4f6630124dc916685"
+    },
+    "run576_findings": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260928_loop080_bound/run576/findings.md",
+      "sha256": "03b7b4d819e15e51a36c878d17ebe83f906a47d7cf001d498880c7c82b147c9b"
+    },
+    "run580_findings": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260928_loop080_bound/run580/findings.md",
+      "sha256": "032e87f2a76ef671d132c66cb6ffe77c1c146c84ab9408439cc5cee3ebebadaf"
+    },
+    "r20_report": {
+      "path": "/data/wio/performance_history/dsv4f-w4a8-ascend-logs/rounds/R20_dsa_cp_prefill_tp_ag_q_overlap/REPORT.md",
+      "sha256": "c8a34ac36a23f89675ca455d7f92063a80ec77c0480921d1b1e98cc65cf4f7b9"
+    },
+    "r27_report": {
+      "path": "/data/wio/performance_history/dsv4f-w4a8-ascend-logs/rounds/R27_post_keep_prefill_device_critical_path/REPORT.md",
+      "sha256": "c24e7952aa1d10df19f5605c266eeb50f26c70cb7466313bcb96d0b75f4a404b"
+    }
+  },
+  "predicates": {
+    "conditional_dsa_wo_b_call": {
+      "source": "dsa_cp",
+      "lines": [
+        1307
+      ],
+      "needle": "return self.wo_b(o_proj_input)"
+    },
+    "attention_output_copy": {
+      "source": "dsa_cp",
+      "lines": [
+        1391
+      ],
+      "needle": "output[...] = self._apply_wo_b(o_proj_input, full_gather_wo_a_enabled)"
+    },
+    "row_parallel_class_selector": {
+      "source": "linear_op",
+      "lines": [
+        519
+      ],
+      "needle": "return SequenceRowParallelOp(layer)"
+    },
+    "alternate_otp_selector": {
+      "source": "linear_op",
+      "lines": [
+        501
+      ],
+      "needle": "return DSV4OProjRowParallelOp(layer)"
+    },
+    "conditional_partial_producer": {
+      "source": "linear_op",
+      "lines": [
+        354,
+        413
+      ],
+      "needle": "output_parallel = self.layer.quant_method.apply(self.layer, x, bias=bias_)"
+    },
+    "conditional_tp_rs": {
+      "source": "linear_op",
+      "lines": [
+        414
+      ],
+      "needle": "output = tensor_model_parallel_reduce_scatter(output_parallel, 0)"
+    },
+    "attention_to_hc_post": {
+      "source": "model",
+      "lines": [
+        997,
+        1002
+      ],
+      "needle": "hidden_states = self.hc_post(hidden_states, residual, post, comb)"
+    },
+    "tp_size_mmrs_gate": {
+      "source": "forward_context",
+      "lines": [
+        164
+      ],
+      "needle": "mmrs_fusion = tp_world_size <= 8"
+    },
+    "serve_flashcomm_default": {
+      "source": "serve",
+      "lines": [
+        76
+      ],
+      "needle": "FLASHCOMM1_ENABLED=\"${FLASHCOMM1_ENABLED:-true}\""
+    }
+  },
+  "run378_inventory": {
+    "total": 265,
+    "kinds": {
+      "hcom_reduceScatter": 87,
+      "hcom_allGather": 135,
+      "hcom_alltoall": 43
+    },
+    "candidate_ordinal_3": {
+      "ordinal": 3,
+      "kind": "hcom_reduceScatter",
+      "elements": 49152,
+      "dtype": "BFP16",
+      "reported_chunk_bytes": 98304,
+      "conditional_API_input_bytes": 786432,
+      "conditional_API_output_bytes": 98304
+    }
+  },
+  "certified_now": [
+    "conditional source dependencies and alternative branch selectors",
+    "Run378 current-order all8 HCCL call-kind/size inventory",
+    "Run508 selected MLA update zip loop zero, separate from this slice"
+  ],
+  "not_certified": [
+    "loaded live layer0 wo_b custom_op class and quant method",
+    "selected sequence row versus alternate OTP and MMRS branch",
+    "ordinal3 identity to this live layer0 output",
+    "typed last writer, collective input/output, copy destination and hc_post consumer",
+    "producer-ready, collective completion and consumer-ready timestamps",
+    "same-W0 all8 service, legal overlap window or finite Bound"
+  ],
+  "strict_bounds": {
+    "resource_hardware": null,
+    "scheduling_execution": null,
+    "product_e2e": null
+  },
+  "formal_current_tps": 571.681
+}

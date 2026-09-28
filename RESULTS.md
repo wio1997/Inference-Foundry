@@ -724,3 +724,27 @@ After an online profiler parse failure, CANN9.1 offline export recovered two com
 Run579 and Run580 completed guarded warm48+measured48/c12/1024, then terminal all8 real-weight Target GMM × full265 TP8 HCCL Graph diagnostics with fresh output checks and source restoration. Run579 unprofiled slowest-rank medians: GMM10.266ms, HCCL4.180ms, serial14.402ms, concurrent16.205ms. Run580 replicated: 10.312/4.282/14.573/16.242ms. These are conditional independent-ready service results, not formal E2E TPS; Run99 Formal Current remains571.681tok/s.
 
 Run580's copied Level0 trace identifies complete Model33 86-task GMM and Model32 265-task HCCL replays on each rank, excluding barriers. Concurrent HCCL begins0.37–0.42ms after GMM; exported task intervals overlap12.12–12.61ms, but matched first84/86 HCCL task-time medians inflate from13.34–14.36µs serial to144.73–146.40µs concurrent. Task interval inflation during coexistence rejects naive whole-chain ideal overlap for this fixture but cannot identify precise physical contention or production legal overlap. V3.36 keeps all strict Resource/Hardware, Scheduling/Execution and Product E2E finite endpoints, and numeric Current→limit distance, null. Next measure one fixed-W₀ producer→collective→consumer production dependency slice. See PK-080/081 and Run579/580 final admissions.
+
+## Run581 source gate for a production TP dependency slice
+
+Read-only installed-source and prior-evidence audit selected layer0 DSA `wo_b` partial result → TP collective → attention output copy → first HC-post as one narrow fixed-DSpark7 Scheduling DAG cut. Thirteen source/prior files are SHA-pinned; nine source predicates and Run378's 265-call RS87/AG135/A2A43 inventory passed. The loaded `wo_b.custom_op`, actual SequenceRowParallel/MMRS/OTP branch and native collective ordinal are **not** recorded by existing evidence. Run378 ordinal3 is a candidate, not an identity certificate. Run502 exporter `ts/dur` and address text cannot supply readiness time or typed last writer. Historical R20/R27 remain prefill/EP priors; Run292–293 already cover a different layer2 hidden-AG/Q window and are not repeated. Next admit actual selected FULL96 all8 branch and typed producer/collective/copy/HC-post storage lineage, then rank-local ready/completion timing and all8 mixed contention. This gate adds no numeric bound or Product saving. Current Formal571.681tok/s; all strict finite Resource/Hardware, Scheduling/Execution and Product endpoints, plus Current→credible-limit distance, remain null. See Run581 findings and PK-082.
+
+## Run582–585 Bound evidence
+
+Run582 INVALID before health/POST due to Dynamo fullgraph rejecting an inserted compiled decoder logging hook; clean stop/restore. Run583 structural PASS: frozen diagnostic96 requests, all64 Runtime files, eight FULL96 capture rows, exact stop/restore. Actual layer0 loaded branch is BF16 `SequenceRowParallelOp`/FlashComm1 RS; partial `[96,4096]` 786,432B, result `[12,4096]` 98,304B, distinct attention destination. No unique capture→request, native writer/consumer or device completion/time identity. Run584 Astra Resource review and Run585 source-only `wo_a` witness design add no numerical performance result. Formal Current Run99 median571.681 tok/s; strict finite Bound endpoints and Current→credible-limit gap remain unknown.
+
+## Run586–588 native identity evidence
+
+Run586 offline static all8 Model45 event-order chain PASS; no native time. Run587 direct Python Graph tag INVALID due to unset queue1 caller-thread last-stream TLS, no service/client. Run588 one-card queue1 C++ sidecar PASS: three unique labels on MatMul, `MEMCPY_ASYNC`, Add (Model49/stream13/tasks0–2), correct output, all8 idle after; not a production result. Strict finite Resource/Scheduling/Product endpoints remain unknown; Formal Current571.681 tok/s.
+
+## Run589 same-run native Target TP slice
+
+Guarded fixed-DSpark7 48 warmup+48 measured, 96 responses, all64 Runtime files and exact24 capture files pass final validation. All8 selected FULL96 Model45 Graphs map source-labeled local BF16 partial task1/40→event-paired RS task0/13→source-labeled attention copy task1/43; 5,412 native tasks/rank. Tagged stop, all8 idle and five borrowed-source SHA restores pass. No native ready/completion times, HC-post typed consumer, formal E2E improvement or finite Bound. Formal Current remains571.681 tok/s. See Run589 final admission/findings and independent Resource review.
+
+## Run590 HCCS read-only inventory
+
+Eight supported current-driver CLI calls exit0: seven local links/rank, lane mode4, standard224 Gb/s; reported TX/RX bytes=20×packet counts. Package SHA and reducer with five negatives pass. This is static inventory only: no physical workload traffic, HCCL capacity upper rate or finite Bound. Formal Current571.681 tok/s. See Run590 summary/findings.
+
+## Run591 source-typed consumer review
+
+Pinned DSA/model/C++/adapter/package source supports alias-only attention destination→HC-post typed x read, with all8 Run589 native word corroboration. No compiled ACL descriptor, exhaustive last writer, runtime interval or finite Bound. See Run591 findings.
