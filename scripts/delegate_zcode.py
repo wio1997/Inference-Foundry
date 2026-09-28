@@ -18,6 +18,31 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+def observed_model_from_rollout(session_id: object, configured_model: str) -> tuple[str | None, str | None]:
+    """Verify the provider response model from this exact Zcode session."""
+    if not isinstance(session_id, str) or not re.fullmatch(r"sess_[A-Za-z0-9-]+", session_id):
+        return None, None
+    path = Path.home() / ".zcode" / "cli" / "rollout" / f"model-io-{session_id}.jsonl"
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        rows = [json.loads(line) for line in lines if line.strip()]
+    except (OSError, ValueError):
+        return None, None
+    observed = []
+    for row in rows:
+        response = row.get("response")
+        if not isinstance(response, dict):
+            return None, None
+        model_id = response.get("modelId")
+        if not isinstance(model_id, str) or not model_id:
+            return None, None
+        observed.append(model_id)
+    expected = configured_model.rsplit("/", 1)[-1]
+    if not observed or any(model_id != expected for model_id in observed):
+        return None, None
+    return expected, "rollout.response.modelId"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task-file", required=True, type=Path)
@@ -81,6 +106,10 @@ def main() -> int:
         if match:
             observed_model = match.group(1)
             observed_source = "stderr.provider_warning"
+    if observed_model is None:
+        observed_model, observed_source = observed_model_from_rollout(
+            response.get("sessionId"), model
+        )
     model_verified = bool(
         observed_model and (
             observed_model == model or observed_model == model.rsplit("/", 1)[-1]
