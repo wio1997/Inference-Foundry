@@ -1081,3 +1081,8 @@ Read-only Astra High review PASS for a conditional source-typed attention output
 ## Run592 reused native time checkpoint
 
 Run246 existing Level1 traces were reduced offline across8 ranks×2 repeats and independently reviewed. Historical instrumented partial-start→copy-end median31.7695µs, no direct profile→cohort/request join, no same-run Run589 identity, no unmarked timing or Bound. Do not launch a duplicate live narrow timing run without a decision-relevant reason. Next broad fixed-`W₀` compulsory-work/traffic and full Target/Draft/KV/Host DAG, with exact-board capacity work in parallel. Formal Current571.681 tok/s; numerical credible-limit gap unknown.
+
++## Run593–596 Bound-first checkpoint
++
++Historical all8 phase coverage (Run593), A0 compact Target lineage regression (Run594), Run99 all8 conditional prefix-active MILP envelope (Run595) and explicit Host-event pure-basis replay (Run596) passed independent scoped reviews. Run595 tightens the three formal current-class active-row intervals to 79,968–116,608, 78,360–114,672 and 80,856–115,144; no time Bound was promoted. No service/NPU workload ran in these four offline runs. Next guarded diagnostic capture should preserve one new complete fixed-algorithm W₀ with accepted/count/draft/Host parking/entry and ordinary-path joins, then compare its role-work ledger against measured mixed service and the broad DAG. Exact-board cumulative capacity and compulsory bytes remain parallel obligations. Formal Current571.681 tok/s; numerical credible-limit gap unknown.
++

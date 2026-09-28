@@ -752,3 +752,8 @@ Pinned DSA/model/C++/adapter/package source supports alias-only attention destin
 ## Run592 offline Run246 native slice time
 
 All8×2 existing Level1 occurrences pass exact Model/physical-stream/task selection, trace/task_time corroboration,32 SHA and Astra review. Partial start→copy end median31.7695µs; copy→HC-post start0.020–0.0405µs. Historical instrumented Current only; no fresh NPU run, formal E2E gain or finite Bound. See Run592 findings.
+
++## Run593–596 offline Bound calibration
++
++Run593 all8 historical phase/native coverage and corrected Astra review PASS; Run594 A0 compact Target basis reconstruction PASS after fixing a negative-test fixture; Run595 all8 formal conditional active Target-8 row envelope PASS (79,968–116,608 / 78,360–114,672 / 80,856–115,144); Run596 explicit Host-event replay and four event negatives PASS. These are work/coverage diagnostics, not formal performance improvements. Formal E2E Current remains571.681 tok/s and strict Resource/Scheduling/Product numerical endpoints remain null.
++

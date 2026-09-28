@@ -802,3 +802,8 @@ Pinned source establishes an alias-only attention output→HC-post typed-input r
 ## Run592 historical native timing calibration
 
 Existing Run246 Level1 trace supplies a rank-local Model45 partial→RS→SDMA copy historical instrumented interval:31.7695µs median start-to-copy-end over16 all8 occurrences. The copy→HC-post start gap is0.020–0.0405µs in that trace. This eliminates a speculative large idle-gap hypothesis for one profiled adjacency, but missing direct cohort/request join, cross-run semantic identity and profiler perturbation prevent unmarked Current or Bound promotion. A fresh narrow profile is deferred until it changes a decision; broader fixed-work and full critical-path certificates lead. Current571.681 tok/s; strict numeric endpoints remain null. See PK-090.
+
++## Run593–596 Bound uncertainty update
++
++Run593 broad historical profiler coverage reveals non-Graph Runtime/DSpark work and phase-boundary tasks still requiring launch/consumer ownership. Run594/596 verify a compact fixed-algorithm Target lineage basis on diagnostic A0 only. Run595 narrows formal Run99 **conditional current Target-8 active rows** to 79,968–116,608 / 78,360–114,672 / 80,856–115,144 for the three repeats; prior 49,672 lower bounds were weaker relaxations. This contracts one workload-cardinality unknown but not compulsory fresh work, physical traffic, mixed-service capacity or all8 critical path. Formal Current571.681 tok/s; strict numerical Bound endpoints and Current→credible-limit gap stay null. Next acquire one complete new diagnostic W₀ lineage and explicit parking/ordinary joins, then prioritize the missing Resource and Scheduling certificates by interval sensitivity. See PK-091–094.
++

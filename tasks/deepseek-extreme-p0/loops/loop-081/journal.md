@@ -45,3 +45,19 @@
 - `2026-09-28T01:00:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run592`（profile）。
 
 - `2026-09-28T01:00:52Z` Run `run592` 记录为 `pass`；正确性为 `not-applicable`。Offline Run246 Level1 historical all8 Model45 partial→RS→SDMA copy native intervals, 2 occurrences/rank: start-to-copy median31.7695us, partial-end-to-copy median17.32975us; 32 source SHA, 4 negatives, Astra independent raw recomputation pass. Instrumented Current only; no direct cohort/request fixed-W0 join, unmarked timing, finite Bound or E2E gain.
+
+- `2026-09-28T01:32:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run593`（review）。
+
+- `2026-09-28T01:32:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run594`（design-check）。
+
+- `2026-09-28T01:32:29Z` Run `run593` 记录为 `pass`；正确性为 `not-applicable`。Corrected historical all8 phase/native temporal coverage; Astra independently verified; no ownership or numeric Bound
+
+- `2026-09-28T01:32:29Z` Run `run594` 记录为 `pass`；正确性为 `not-applicable`。Run566 A0 compact basis offline reconstruction all8; corrected five negative controls; Host park extracted from full trace
+
+- `2026-09-28T01:37:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run595`（simulation）。
+
+- `2026-09-28T01:37:42Z` Run `run595` 记录为 `pass`；正确性为 `not-applicable`。All8 Run99 conditional prefix-active Target8 row envelope 79968..116608, 78360..114672, 80856..115144; Astra reviewed; no time Bound
+
+- `2026-09-28T01:40:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run596`（design-check）。
+
+- `2026-09-28T01:40:26Z` Run `run596` 记录为 `pass`；正确性为 `not-applicable`。Pure CPU compact basis plus explicit extracted Host events reproduces Run566 A0; four event negatives; no time Bound

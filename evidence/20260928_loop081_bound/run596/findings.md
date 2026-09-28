@@ -1,0 +1,7 @@
+# Run596 — explicit Host-event compact-basis replay gate
+
+Run596 separates historical Host parking-event extraction from CPU replay. The replay receives only first-cycle position/last-token/draft state, all-cycle accepted token/count and next-draft histories, and an explicit event list `(slot, next_cycle, anchor)`. The full Run566 A0 trace is used only afterward as an oracle assertion, not to feed the replay state. All32 rank/cohort cases also succeed with the oracle disabled and reconstruct 1,206 cycles, 98,496 active and 17,280 parked Target-8 rows/rank.
+
+The corrected script checks Runtime rank/cohort/pass/cycles, 1,024 generated tokens/slot, unique request IDs, all64 source SHA and all8 equality of request IDs plus compact basis/event SHA per cohort. It rejects missing, duplicate, shifted and wrong-anchor Host events from an otherwise valid full-cohort fixture. Astra independently rechecked the source and these gates. The first summary lacking the self-contained Runtime/all8 join is retained as `summary_pre_source_join.json`.
+
+The Host event list here is extracted from historical full trace. A new collector must **record** it; Run596 does not prove it can be derived from acceptance counts. The basis reconstructs Target IDs/positions and draft state lineage, not actual Draft model/KV necessary work or Run99 same-state. No finite Resource/Hardware, Scheduling/Execution or Product endpoint is promoted. Formal Current remains571.681 tok/s.

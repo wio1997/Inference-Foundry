@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Append reviewed Loop081 Bound-first offline evidence without altering old runs."""
+from __future__ import annotations
+import json
+from pathlib import Path
+
+ROOT=Path('/data/wio/Inference_Foundry')
+sections={
+ 'ACHIEVABLE_BOUND.md':'''\n+## Run593–596 broad coverage and formal conditional work envelope\n+\n+Run593 reuses all8 historical Run246 traces to inventory two 5,412-task Target Graphs/rank and 1,782–1,794 non-Graph native tasks/rank. CPU phase midpoint overlap is not Host→device ownership; repeated crossing DSpark scopes are not draft replay counts. Astra corrected and independently reviewed the reducer. Run594 and Run596 use the existing Run566 A0 full trace to verify that a compact first-state + accepted/count + next-draft basis plus **explicit Host park events** reconstructs every Target ID/position and the 98,496 active versus 17,280 parked Target-8 row census. The events in these offline tests are extracted from old full trace; the future collector must record them. Neither run certifies full Draft/KV necessary work or Run99 same-state.\n+\n+Run595 all8/128-JSON source-pinned integer prefix-active relaxation tightens Run99's conditional current Target-8 active-row range across the three formal repeats from earlier 49,672 lower rows to **79,968–116,608**, **78,360–114,672**, and **80,856–115,144**. It imposes exact staged and aggregate acceptance-window sums with one active prefix/slot and 1–8 sampled tokens/active cycle, but permits Host lag. Astra independently checked small exhaustive cases, all8 identities and A0 feasible traces. These rows are neither unique fresh semantic evaluations nor compulsory arithmetic/traffic. Conditional `wo_a` and MoE work ranges are in Run595 findings; BF16 conventional and W4A8 GEMM-equivalent units remain separate.\n+\n+The formal Current is still **571.681 tok/s**. Strict finite Resource/Hardware, Scheduling/Execution and Product E2E endpoints, and a numerical Current→credible-limit distance, remain null. The next Resource acquisition is one full new diagnostic W₀ with compact accepted/draft/Host-event/entry-state lineage and ordinary-path joins; it must remain distinct from Run99 and pass perturbation/correctness gates. Scheduling needs all8 Host/Draft/KV carry-over plus actual native ownership/ready/completion edges, not another isolated phase sum. Exact-board `C⁺/B` and compulsory HBM/HCCL traffic remain open. See Run593–596 findings and PK-091–094.\n+''',
+ 'PERFORMANCE_MAP.md':'''\n+## Run593–596 Bound uncertainty update\n+\n+Run593 broad historical profiler coverage reveals non-Graph Runtime/DSpark work and phase-boundary tasks still requiring launch/consumer ownership. Run594/596 verify a compact fixed-algorithm Target lineage basis on diagnostic A0 only. Run595 narrows formal Run99 **conditional current Target-8 active rows** to 79,968–116,608 / 78,360–114,672 / 80,856–115,144 for the three repeats; prior 49,672 lower bounds were weaker relaxations. This contracts one workload-cardinality unknown but not compulsory fresh work, physical traffic, mixed-service capacity or all8 critical path. Formal Current571.681 tok/s; strict numerical Bound endpoints and Current→credible-limit gap stay null. Next acquire one complete new diagnostic W₀ lineage and explicit parking/ordinary joins, then prioritize the missing Resource and Scheduling certificates by interval sensitivity. See PK-091–094.\n+''',
+ 'PROJECT_STATE.md':'''\n+## Run593–596 Bound-first checkpoint\n+\n+Historical all8 phase coverage (Run593), A0 compact Target lineage regression (Run594), Run99 all8 conditional prefix-active MILP envelope (Run595) and explicit Host-event pure-basis replay (Run596) passed independent scoped reviews. Run595 tightens the three formal current-class active-row intervals to 79,968–116,608, 78,360–114,672 and 80,856–115,144; no time Bound was promoted. No service/NPU workload ran in these four offline runs. Next guarded diagnostic capture should preserve one new complete fixed-algorithm W₀ with accepted/count/draft/Host parking/entry and ordinary-path joins, then compare its role-work ledger against measured mixed service and the broad DAG. Exact-board cumulative capacity and compulsory bytes remain parallel obligations. Formal Current571.681 tok/s; numerical credible-limit gap unknown.\n+''',
+ 'RESULTS.md':'''\n+## Run593–596 offline Bound calibration\n+\n+Run593 all8 historical phase/native coverage and corrected Astra review PASS; Run594 A0 compact Target basis reconstruction PASS after fixing a negative-test fixture; Run595 all8 formal conditional active Target-8 row envelope PASS (79,968–116,608 / 78,360–114,672 / 80,856–115,144); Run596 explicit Host-event replay and four event negatives PASS. These are work/coverage diagnostics, not formal performance improvements. Formal E2E Current remains571.681 tok/s and strict Resource/Scheduling/Product numerical endpoints remain null.\n+'''
+}
+for name,body in sections.items():
+    path=ROOT/name;text=path.read_text()
+    if body.splitlines()[1] in text:raise ValueError('section already exists: '+name)
+    path.write_text(text.rstrip()+'\n'+body)
+
+entries=[
+ dict(id='PK-091',topic='Historical whole-cycle profiler requires native ownership beyond CPU midpoint phases',
+      mechanism='Reuse all8 Run246 Level1 native events and CPU scopes to expose Target Graph, non-Graph Runtime/DSpark tasks and phase boundary intersections without assigning Host ownership by time alone.',
+      environment='DeepSeek V4 Flash W4A8, 8×910B3 DP1TP8 fixed DSpark7; Run246 historical Level1, Run593 offline corrected reducer.',
+      observed='Two 5412-task Model45 Graph occurrences/rank, 1782–1794 non-Graph native tasks/rank, 4–125 midpoint-outside-phase tasks/rank; corrected all8 boundary-point counts and repeated overlapping DSpark scopes independently checked.',
+      failure_or_limit='Only one complete outer cycle scope; midpoint containment is temporal, not API launch/consumer identity. No direct Run99 work join, unprofiled cost or legal mixed all8 DAG.',
+      revalidate_when='Use actual launch correlation and typed producer/consumer identity for missing Host/Draft/KV cross-cycle frontier; profile a new three-cycle sandwich only when the historical trace cannot answer the decision-critical edge.',
+      extreme_relation='Improves Scheduling coverage map without a numerical Bound or E2E change; Current571.681 tok/s.',
+      source=[dict(repository='Inference_Foundry',ref='run593',path='evidence/20260928_loop081_bound/run593/summary.json'),dict(repository='Inference_Foundry',ref='run593',path='evidence/20260928_loop081_bound/run593/astra_corrected_review.md')],status='scoped_observation'),
+ dict(id='PK-092',topic='Compact Target lineage basis needs an explicit Host parking event',
+      mechanism='First-cycle position/last/draft plus per-cycle accepted/count and next-draft histories reconstruct Target IDs/positions when Host park transition is supplied separately.',
+      environment='Run566 A0 diagnostic W0, all8 fixed DSpark7; Run594 offline source-pinned regression.',
+      observed='All32 rank/cohort traces reproduce 1206 cycles, 98496 active and 17280 parked Target-8 rows/rank; corrected full-cohort negative controls and independent all64-source review pass.',
+      failure_or_limit='Host event came from full historical trace; negative-test first version used an invalid truncated fixture. No complete Draft/KV necessary-work, formal Run99 same-state or time Bound.',
+      revalidate_when='New complete diagnostic acquisition records explicit Host park cycle/anchor and independent sparse Target/Draft checkpoints, with acceptance/output and perturbation gates.',
+      extreme_relation='Validates minimum new workload-ledger basis but leaves Current571.681 tok/s and strict Bound endpoints unchanged.',
+      source=[dict(repository='Inference_Foundry',ref='run594',path='evidence/20260928_loop081_bound/run594/summary.json'),dict(repository='Inference_Foundry',ref='run594',path='evidence/20260928_loop081_bound/run594/astra_review.md')],status='current_diagnostic'),
+ dict(id='PK-093',topic='Run99 prefix-active constraints sharpen current-class work cardinality without proving compulsory FLOPs',
+      mechanism='One active prefix/slot, positive 1–8 counts while active, exact per-slot staged totals and exact aggregate acceptance-window sums form an integer outer relaxation that keeps Host mirror lag legal.',
+      environment='Formal Run99 three 48×32K→1024 c12 repeats, all8 128 Runtime JSON SHA; Run595 scipy MILP and Astra exhaustive small-case review.',
+      observed='Conditional active Target-8 row intervals: repeat1 79968–116608, repeat2 78360–114672, repeat3 80856–115144. All24 formal solves Optimal/gap0; 341056 enumerated small trajectories and A0 actual assignment validate formulation.',
+      failure_or_limit='Rows are current fixed Target-8 geometry, not unique fresh semantic evaluations or mathematical compulsory work. Parking threshold/lag, KV/reuse, Draft/prefill/seed and exact-board C+/B remain missing; numerical solver proof is not a symbolic certificate.',
+      revalidate_when='New explicit fixed-W0 ledger and semantic reuse analysis constrain necessary rows; pair with matching exact-board mixed capacity, compulsory traffic and legal DAG before finite time Bound.',
+      extreme_relation='Shrinks one formal workload uncertainty, not Product TPS gap; Current571.681 tok/s and strict finite endpoints remain null.',
+      source=[dict(repository='Inference_Foundry',ref='run595',path='evidence/20260928_loop081_bound/run595/summary.json'),dict(repository='Inference_Foundry',ref='run595',path='evidence/20260928_loop081_bound/run595/astra_review.md')],status='conditional_resource_relaxation'),
+ dict(id='PK-094',topic='Explicit Host park events close compact replay lineage on A0 but remain a measurement obligation',
+      mechanism='Extract event (slot,next cycle,anchor) from old full trace, then replay only compact accepted/count/draft basis and supplied events; compare reconstructed Target state to oracle afterward.',
+      environment='Run566 A0 fixed DSpark7 all8 diagnostic; Run596 CPU-only regression.',
+      observed='All32 pure replay cases, all8 semantic basis/event/request hashes and four missing/duplicate/shifted/wrong-anchor event negatives pass; 98496 active-row census reproduced.',
+      failure_or_limit='Events are historically extracted, not newly observed Host ledger. No full Draft execution, KV semantic state, formal Run99 same-state or time Bound.',
+      revalidate_when='Future collector explicitly logs parking transitions and entry state, with sparse actual Target/Draft preparation checks and full Product request/output joins.',
+      extreme_relation='Reduces ledger acquisition risk but not formal Current571.681 tok/s or strict numerical Bound endpoints.',
+      source=[dict(repository='Inference_Foundry',ref='run596',path='evidence/20260928_loop081_bound/run596/summary.json'),dict(repository='Inference_Foundry',ref='run596',path='evidence/20260928_loop081_bound/run596/astra_review.md')],status='current_diagnostic')]
+path=ROOT/'performance_knowledge/entries.jsonl'
+text=path.read_text();line=json.loads(text.splitlines()[-1])
+if line['id']!='PK-090':raise ValueError('knowledge tail drift')
+with path.open('a') as f:
+    for row in entries:f.write(json.dumps(row,ensure_ascii=False,separators=(',',':'))+'\n')
+print('updated docs and PK-091..094')
