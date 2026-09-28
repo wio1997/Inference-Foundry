@@ -1,0 +1,3 @@
+# Run660 invalid observer run
+
+Warmup48 completed, but measured48 failed 0/48. All eight workers raised `RuntimeError: Inference tensors do not track version counter` in `runtime/ready_edge_observer.py:60`, caused by reading `tensor._version` under `torch.inference_mode()`. No readiness or performance packet was admitted. Guarded controller exited 1 and recorded stop/restore/source/script hash comparison all 0; service stopped and NPUs idle. The Run660 source-only preflight failed to model this production tensor property. Run661 supersedes the observer implementation; Run660 raw failure remains separate.

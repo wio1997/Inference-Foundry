@@ -1,0 +1,25 @@
+--- /data/wio/Inference_Foundry/runtime/fixed_serving.py
++++ /data/wio/Inference_Foundry/runtime/fixed_serving.py.run661
+@@ -139,9 +139,13 @@
+             # device before the next cycle overwrites that buffer.
+             token_history[index].copy_(result.acceptance.sampled_token_ids)
+             count_history[index].copy_(self.runtime.state.num_sampled)
++            if self.runtime._bound_probe is not None:
++                self.runtime._bound_probe.mark(result.cycle - 1, "serve_stage_after")
+             cycles = index + 1
+             progress = self._committed_progress()
+             self._park_completed(progress)
++            if self.runtime._bound_probe is not None:
++                self.runtime._bound_probe.mark(result.cycle - 1, "serve_park_after")
+             if all(
+                 progress[slot] - self._progress_baseline[slot]
+                 >= self.remaining[slot]
+@@ -161,6 +165,8 @@
+                   flush=True)
+         tokens_cpu = token_history[:cycles].cpu()
+         counts_cpu = count_history[:cycles].cpu()
++        if self.runtime._bound_ledger_armed:
++            self.runtime._bound_cpu_history = (tokens_cpu, counts_cpu)
+         output: list[list[int]] = [[] for _ in range(cfg.batch_size)]
+         staged = [0] * cfg.batch_size
+         for cycle in range(cycles):

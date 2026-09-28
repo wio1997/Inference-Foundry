@@ -1,0 +1,28 @@
+--- /data/wio/Inference_Foundry/runtime/target_adapter.py
++++ /data/wio/Inference_Foundry/runtime/target_adapter.py.run660
+@@ -61,10 +61,16 @@
+         elif input_ptr != self._input_ptr or position_ptr != self._position_ptr:
+             raise RuntimeError("fixed target input buffer address changed")
+ 
++        if getattr(self, "_bound_probe", None) is not None:
++            self._bound_probe.observe(
++                state.cycle_index, "target_forward.target_input_ids",
++                state.target_input_ids, after_label="target_before")
+         model_output = self.binding.forward(
+             state.target_input_ids,
+             state.target_positions,
+         )
++        if getattr(self, "_bound_probe", None) is not None:
++            self._bound_probe.mark(state.cycle_index, "target_forward_return")
+         if isinstance(model_output, tuple):
+             hidden_states, aux_hidden_states = model_output
+         else:
+@@ -75,6 +81,8 @@
+             raise ValueError("target hidden-state token count changed")
+         sample_hidden = hidden_states[state.target_logits_indices]
+         logits = self.binding.compute_logits(sample_hidden)
++        if getattr(self, "_bound_probe", None) is not None:
++            self._bound_probe.mark(state.cycle_index, "target_logits_return")
+         return TargetOutput(
+             logits=logits,
+             hidden_states=hidden_states,

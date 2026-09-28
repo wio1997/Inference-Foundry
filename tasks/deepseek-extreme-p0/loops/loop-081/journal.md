@@ -361,3 +361,11 @@
 - `2026-09-28T16:31:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run659`（design-check）。
 
 - `2026-09-28T16:31:21Z` Run `run659` 记录为 `pass`；正确性为 `not-applicable`。Source-only typed lineage preflight passed; physical ready and framework bound still unknown, live acquisition deferred
+
+- `2026-09-28T18:20:14Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run660`（profile）。
+
+- `2026-09-28T18:20:14Z` Run `run660` 记录为 `invalid`；正确性为 `invalid`。Measured 0/48: observer read inference tensor _version; no packet admitted; stop/restore/hash passed
+
+- `2026-09-28T18:20:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run661`（profile）。
+
+- `2026-09-28T18:20:25Z` Run `run661` 记录为 `pass`；正确性为 `pass`。Warmup48/measured48 admitted; 32 all8 packets; prior draft current-stream incomplete at cycle_begin/prepare_target 64/64, complete at target_before query 13/64; no bound or saving claim
