@@ -317,3 +317,13 @@
 - `2026-09-28T12:38:11Z` 暂存知识变化 `framework-only-all8-nonadditive`：Run611 same-W0 all8 Target entry skew, early HCCL peer wait, fixed-stream gap and rank7 pre-Enqueue gap may project the same late-rank predecessor chain and cannot be added as Product savings.
 
 - `2026-09-28T12:38:11Z` 暂存知识变化 `framework-only-reuse-product-ledger`：Run606 already supplies a complete observer-perturbed same-W0 final Scheduler/API ID, Runtime 1214-cycle and Product 83.395754s ledger; Run602 is a separate 1189-cycle example. Cost, ready-edge and observer bridge remain, not P0 output identity.
+
+- `2026-09-28T12:46:36Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run650`（design-check）。
+
+- `2026-09-28T12:46:36Z` Run `run650` 记录为 `pass`；正确性为 `not-applicable`。Run636/637 source and observer reuse gate passes; narrowed Run606 cost/ready packet and Astra design review. NOT LIVE-READY; no NPU, no numeric Bound.
+
+- `2026-09-28T12:50:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run651`（profile）。
+
+- `2026-09-28T12:50:47Z` Run `run651` 记录为 `pass`；正确性为 `not-applicable`。Run638 ON same-W0 12 all8 Host-submit groups: Target before->return skew median -3.397ms in11/12, proposer before->after +2.772ms in12/12; 8 successor pairs all retain/increase spread, latest rank rotates. Astra scoped pass. No removable wall or Product TPS transfer.
+
+- `2026-09-28T12:51:05Z` 暂存知识变化 `framework-only-late-rank-rotates`：Within Run638 ON selected early cycles, all8 Host-submit skew shrinks across Target forward and grows across proposer, carrying to next Target; latest rank rotates across 1/2/4/6, so Run611 rank7 must not be hardcoded as bottleneck.

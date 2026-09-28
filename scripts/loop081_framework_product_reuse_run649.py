@@ -40,6 +40,7 @@ def audit(run):
     assert all(int(summary['cleanup'][name]) == 0 for name in summary['cleanup'])
     cohort_rows = []
     total_cycles = 0
+    rank0_runtime_s = 0.0
     for cohort in range(5, 9):
         ranks = [load(live / f'basis/rank{rank}_cohort{cohort}.json') for rank in range(8)]
         cycle_set = {x['cycles'] for x in ranks}
@@ -55,6 +56,7 @@ def audit(run):
         assert counts['api_total_ids'] == counts['client_total_usage'] == 12288
         assert counts['scheduler_pre_actual_ids'] + counts['bulk_accepted'] == 12288
         total_cycles += cycles
+        rank0_runtime_s += load(live / f'runtime/rank0_cohort{cohort}.json')['wall_seconds']
         cohort_rows.append({'cohort': cohort, 'cycles': cycles,
                             'actual_prebulk_ids': counts['scheduler_pre_actual_ids'],
                             'accepted_bulk_ids': counts['bulk_accepted'],
@@ -70,6 +72,9 @@ def audit(run):
         'basis_admission_status': basis_admission.get('status'),
         'diagnostic_product_wall_s': client_admission['measured_summary']['duration_s'],
         'diagnostic_tps': client_admission['measured_summary']['output_tps_diagnostic_only'],
+        'rank0_runtime_scope_sum_s': rank0_runtime_s,
+        'arithmetic_product_minus_rank0_runtime_s':
+            client_admission['measured_summary']['duration_s'] - rank0_runtime_s,
         'total_cycles': total_cycles,
         'output_ids': 49152,
         'cohorts': cohort_rows,

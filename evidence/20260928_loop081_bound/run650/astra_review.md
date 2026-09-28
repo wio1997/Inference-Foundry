@@ -1,0 +1,9 @@
+# Astra High narrowed late-rank packet review
+
+After Run649, the reviewer recommends retaining Run637's preallocated outer Event mechanism and adding a bounded late-rank value-ready packet; it specifically rejects repeating Run606's full final-ID ledger. Sample one cohort's two adjacent complete cycles with predecessor and successor. Record immutable cohort/cycle, value versions and actual branch at state advance, Draft return/commit, metadata and next Target; capture true producer stream/Event and existing wait where available. A Python return or outer current-stream Event is not actual device producer readiness.
+
+Run637 Events cannot see the first ReduceScatter inside a captured Graph or exact async Enqueue. Reuse Run611–648 native mechanism/source identity as a prior and, only if this edge dominates the sensitivity interval, acquire one separate short native all8 window; never insert Graph-internal callbacks/barriers or transfer profiled latency directly to unprofiled cost.
+
+Cost transfer into Run606 requires primitive/source SHA, shape, dtype/layout, Graph mode, context range, branch, MoE load and concurrent-resource match. All8 collective identities require group/op/count/dtype/occurrence join and a bounded cross-rank clock error; otherwise use rank-local order only. An OFF/ON/OFF lightweight summary should compare request identity, effective acceptance trajectory, cycles/branches and final output. Trajectory mismatch, missing rank/generation, unknown stream, overflow, new sync, source/Graph drift, unbounded clock or observer effect block numerical Bound promotion; all failure paths still restore sources and stop service. Success means one material Run606 makespan uncertainty gains a legal edge and transferable cost interval.
+
+This is an independent **source-design review**, not live approval or a measured result. No NPU run was performed.
