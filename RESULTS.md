@@ -776,3 +776,15 @@ Run601 read-only Product source gate PASS. Run602 guarded warm48/measured48 c12/
 ## Run604–606 Bound-first checkpoint
 
 Run604 source-only Astra preflight PASS scoped. Run605 Basis/Product PASS but dispatch INVALID due observer owner guard after proposer.runner shim handoff; run/final exits1, seven cleanup actions0. Run606 repaired the observer and passed client/Basis/Product/dispatch all8 admission, 97/281/64 hash checks and nine zero cleanup exits. It records40 ordinary pairs/rank,24 NONE/fallthrough,16 FULL replay sync, DSpark Q7 context5675/query1813 current rows. Same-W₀ output ledger564 actual prefix+48588 accepted Runtime=49152. Run606 diagnostic589.383tok/s is not formal or comparable as an intervention. Formal Current571.681tok/s and all finite strict Bound endpoints/numeric gap remain null. See Run606 summary/product_summary/Astra review and PK-102.
+
+## Run607–609 Bound calibration
+
+Run607 independent Astra High review found no matched necessary-work `W⁻` plus exact-board cumulative `C⁺,B` certificate and no complete legal all8 critical-path DAG. Run608 V3.37 SHA-rebuilds the prior model and Run606 diagnostic W₀; all five new finite endpoint mutation gates reject false promotion. Ordinary Target actual issued rows/rank5,675 split into1,688 decode+3,987 prefill/extend, with85 padding. These are current rows, not compulsory work. Run609 source/raw gate selects prior cohort5 cycles64/65, with accepted sums47/59 and cycle64 Draft context/query slot-label intersection49 per group2/3. Astra scoped design PASS; the slot labels are not a per-layer KV writer/consumer proof. No formal performance intervention or finite Bound. Formal Current571.681tok/s and numeric Current→credible-limit gap remain null. See Run607–609 findings/reviews and PK-103/104.
+
+## Run610–611 scoped profile recovery / V3.38
+
+Run610 client48+48 and all8 Basis/Product/dispatch admissions passed, but original controller exit1/INVALID from a cross-clock Host join; all seven cleanup actions passed. The diagnostic555.1125tok/s is profiler perturbed and never formal. Run611 separately admitted604 immutable raw files, all8 offline parsed task/trace files, and24 ordered Host stage rows. Independent Astra raw review scoped PASS, Host containment conditional. Installed profiler start uses CLOCK_MONOTONIC_RAW while Python/end_info use MONOTONIC; no cross-domain timing subtraction. V3.38 strict endpoints and numeric Current→credible-limit gap remain null. Formal Current571.681tok/s. No intervention or E2E performance verdict.
+
+## Run612 read-only native occurrence
+
+All8 parsed Model45 native events separate into three5,412-task occurrences/rank using static key occurrence and time anchors. Each has260 hcom-named events. Astra independent scoped review PASS. Instrumented exported envelope45.102–72.209ms is not physical completion or a Bound; connection_id recurs across replay. V3.39 leaves strict Resource/Scheduling/Product endpoints and numeric gap null. Formal Current571.681tok/s. No live test or intervention.

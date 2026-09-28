@@ -101,3 +101,35 @@
 - `2026-09-28T05:07:16Z` Run `run605` 记录为 `invalid`；正确性为 `invalid`。Basis/Product PASS but full dispatch INVALID: ordinary Draft/context observer silently skipped after warmup proposer.runner shim; 44 Target pairs/rank, no complete DAG. Seven cleanup/restore gates zero; run/final exits one. No Bound update.
 
 - `2026-09-28T05:26:46Z` Run `run606` 记录为 `pass`；正确性为 `pass`。Scoped all8 diagnostic W0: 97 Basis/281 Product/64 dispatch SHA and four admissions pass; 40 ordinary pairs/rank, 24 NONE,16 FULL replay sync, Q7 context5675/query1813, Product564+48588=49152; observer timing not formal, no finite Bound.
+
+- `2026-09-28T05:36:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run607`（review）。
+
+- `2026-09-28T05:36:47Z` Run `run607` 记录为 `pass`；正确性为 `not-applicable`。Independent 24-input dual-bound review: no strict finite endpoint; separate conditional Engineering calibration from W-minus/C-plus strict proof. Next all8 same-W0 adjacent two-cycle Runtime producer-consumer packet; keep exact-board capacity and compulsory work in parallel.
+
+- `2026-09-28T05:47:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run608`（design-check）。
+
+- `2026-09-28T05:47:27Z` Run `run608` 记录为 `pass`；正确性为 `not-applicable`。V3.37 SHA-pinned Run606/607 fixed-DSpark7 dual-Bound calibration; all strict endpoints null, Current 571.681; Astra scoped PASS and five endpoint mutation gates reject promotion.
+
+- `2026-09-28T05:49:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run609`（design-check）。
+
+- `2026-09-28T05:49:33Z` Run `run609` 记录为 `pass`；正确性为 `not-applicable`。Run606 SHA-joined all8 prior W0 cohort5 cycles64/65 normal active stratum; accepted sums47/59; cycle64 numeric context/query slot-label intersection49 for each of two groups, not a proven KV hazard; live two-cycle packet gates specified.
+
+- `2026-09-28T06:07:06Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run610`（profile）。
+
+- `2026-09-28T06:09:37Z` 暂存知识变化 `PK-103`：A strict positive Runtime resource floor needs matched frozen-W0 necessary work and exact-board cumulative C-plus/B; attained service is conditional Engineering evidence only.
+
+- `2026-09-28T06:09:38Z` 暂存知识变化 `PK-104`：Current cycle64 context/query slot labels overlap in Run606 W0, but mandatory KV seriality and alternate-layout cost remain unproved.
+
+- `2026-09-28T06:27:53Z` Run `run610` 记录为 `invalid`；正确性为 `invalid`。Client 48/48 and Basis/Product/dispatch all8 PASS; raw profile admission failed on incorrect CANN start_info clock assumption before a second Level0 marker mismatch. run/final1; seven stop/restore/source actions0. Original Run610 stays INVALID; raw salvage is a separate Run611 gate, no formal TPS or Bound.
+
+- `2026-09-28T06:28:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run611`（profile）。
+
+- `2026-09-28T06:39:29Z` Run `run611` 记录为 `pass`；正确性为 `not-applicable`。Run610 remains INVALID. Separate all8 raw recovery: 604 SHA files, producer done sizes, same-W0 upstream identity; offline CANN parse and 24 instrumented Host scope rows PASS, Astra scoped review PASS. RAW/MONOTONIC clock corrected; conditional 1ms Host mapping only. V3.38 strict endpoints null; no formal TPS or legal DAG.
+
+- `2026-09-28T06:41:36Z` 暂存知识变化 `PK-105`：Installed Run610 CANN profiler start_info uses CLOCK_MONOTONIC_RAW while Python/end_info use MONOTONIC; cross-domain joins are invalid. Run611 raw can be preserved and parsed offline after clean stop, but instrumented Host scopes do not close a strict Bound.
+
+- `2026-09-28T06:46:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run612`（design-check）。
+
+- `2026-09-28T06:50:10Z` Run `run612` 记录为 `pass`；正确性为 `not-applicable`。Read-only all8 Run611 native replay reducer and independent Astra PASS: Model45 5412 static tasks times3/rank, 260 hcom-named events/replay; exported envelope45.102-72.209ms instrumented Current, not physical completion or Bound. V3.39 keeps all strict endpoints/gap null.
+
+- `2026-09-28T06:50:46Z` 暂存知识变化 `PK-106`：Run611 Level0 Model45 connection_id recurs across three replays; all8 native identity requires static-task occurrence and temporal start anchor. Exported envelope is instrumented Current only.
