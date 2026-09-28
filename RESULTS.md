@@ -748,3 +748,7 @@ Eight supported current-driver CLI calls exit0: seven local links/rank, lane mod
 ## Run591 source-typed consumer review
 
 Pinned DSA/model/C++/adapter/package source supports alias-only attention destination→HC-post typed x read, with all8 Run589 native word corroboration. No compiled ACL descriptor, exhaustive last writer, runtime interval or finite Bound. See Run591 findings.
+
+## Run592 offline Run246 native slice time
+
+All8×2 existing Level1 occurrences pass exact Model/physical-stream/task selection, trace/task_time corroboration,32 SHA and Astra review. Partial start→copy end median31.7695µs; copy→HC-post start0.020–0.0405µs. Historical instrumented Current only; no fresh NPU run, formal E2E gain or finite Bound. See Run592 findings.

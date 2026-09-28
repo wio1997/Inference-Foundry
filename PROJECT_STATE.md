@@ -1077,3 +1077,7 @@ All8 supported HCCS static inventory and installed package identity PASS after R
 ## Run591 Scheduling source review
 
 Read-only Astra High review PASS for a conditional source-typed attention output→HC-post x storage/read dependency, corroborated by Run589 all8 native words. It does not certify actual compiled ABI, full allocation lifetime or time. Proceed to bounded rank-local timing of the partial→RS→copy cut without waiting for a full HC-post native certificate; keep Resource W⁻/C⁺ work parallel. Formal Current571.681 tok/s and strict Bound endpoints remain unknown.
+
+## Run592 reused native time checkpoint
+
+Run246 existing Level1 traces were reduced offline across8 ranks×2 repeats and independently reviewed. Historical instrumented partial-start→copy-end median31.7695µs, no direct profile→cohort/request join, no same-run Run589 identity, no unmarked timing or Bound. Do not launch a duplicate live narrow timing run without a decision-relevant reason. Next broad fixed-`W₀` compulsory-work/traffic and full Target/Draft/KV/Host DAG, with exact-board capacity work in parallel. Formal Current571.681 tok/s; numerical credible-limit gap unknown.

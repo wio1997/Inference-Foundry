@@ -798,3 +798,7 @@ The supported current CLI yields all8 seven-link static HCCS records with lane m
 ## Run591 consumer dependency qualification
 
 Pinned source establishes an alias-only attention output→HC-post typed-input read edge, and Run589 all8 native argument words corroborate it. Compiled ACL descriptor, full last-writer census and timing remain open. The immediate Scheduling measurement target is the narrower partial→RS→copy cut with a validated Level0 time source and same-generation task correlation; causal savings still require unmarked/fixed-`W₀` controls and formal E2E. No finite Bound or numerical Current→limit gap yet. See PK-089.
+
+## Run592 historical native timing calibration
+
+Existing Run246 Level1 trace supplies a rank-local Model45 partial→RS→SDMA copy historical instrumented interval:31.7695µs median start-to-copy-end over16 all8 occurrences. The copy→HC-post start gap is0.020–0.0405µs in that trace. This eliminates a speculative large idle-gap hypothesis for one profiled adjacency, but missing direct cohort/request join, cross-run semantic identity and profiler perturbation prevent unmarked Current or Bound promotion. A fresh narrow profile is deferred until it changes a decision; broader fixed-work and full critical-path certificates lead. Current571.681 tok/s; strict numeric endpoints remain null. See PK-090.

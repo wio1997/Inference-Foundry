@@ -41,3 +41,7 @@
 - `2026-09-28T00:45:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run591`（review）。
 
 - `2026-09-28T00:45:49Z` Run `run591` 记录为 `pass`；正确性为 `not-applicable`。Source-level typed attention copy destination→view/unsqueeze alias→HC-post x read edge under installed model/op/schema/adapter, corroborated by Run589 all8 native words. Actual compiled ACL descriptor, ABI, all writer lifetimes and timing unproved. Partial→RS→copy cut is sufficient for bounded instrumented timing acquisition.
+
+- `2026-09-28T01:00:42Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run592`（profile）。
+
+- `2026-09-28T01:00:52Z` Run `run592` 记录为 `pass`；正确性为 `not-applicable`。Offline Run246 Level1 historical all8 Model45 partial→RS→SDMA copy native intervals, 2 occurrences/rank: start-to-copy median31.7695us, partial-end-to-copy median17.32975us; 32 source SHA, 4 negatives, Astra independent raw recomputation pass. Instrumented Current only; no direct cohort/request fixed-W0 join, unmarked timing, finite Bound or E2E gain.
