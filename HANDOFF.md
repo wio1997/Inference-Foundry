@@ -514,7 +514,7 @@ Astra High 的结论是 independent evidence，不自动覆盖 Sol。
 >
 > 当前目标是用 DeepSeek V4 Flash W4A8 + 8×910B3 + DP1×TP8 + DSpark7 + 32K→1K c12 calibration workload，完整跑通 Current→DAG→Resource Model→Bound→Gap→Runtime restructuring→Correctness→Formal E2E→Re-bound 的 Foundry 闭环。当前先聚焦 Framework/Scheduling，避免无意混入 primitive/operator 优化。
 >
-> Sol 负责主线和裁决；Astra 用于独立复核；Zcode/DeepSeek 只用于机械执行。任何 Zcode 结果必须核验实际模型、命令、退出码、timeout、产物、服务/NPU/source 状态后才能采信。没有真实 PID/runner 时，不要声称后台实验仍在运行。
+> Sol 负责主线和裁决；Astra 用于独立复核；Zcode/DeepSeek 只用于机械执行。任何 Zcode 结果必须核验实际模型、命令、退出码、timeout、产物、服务/NPU/source 状态后才能采信。没有真实 PID/runner 时，不要声称后台实验仍在运行，先确认zcode是否能正确返回数据
 >
 > 恢复完成后，先给出：
 >
