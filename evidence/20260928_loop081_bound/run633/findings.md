@@ -1,0 +1,5 @@
+# Run633 — same-W0 preparation Host call coverage
+
+Run606 all8 Product raw calls are rejoined to request ownership and interval-unioned within each rank/cohort. Astra High independently reproduced all 32 unions and 640 call rows; eight negative challenges reject. Each rank has 37 own ordinary Target/proposal pairs across cohorts 5–8 and three prior-cohort pairs carried into the next file. No-request execute markers launch no pair. First-own-execute to Host runtime-built spans 2.45–3.41 s across observed cohorts; unclassified Host-envelope complement is 0.22–0.56 s per rank/cohort. Target/proposal Python call intervals have zero within-rank overlap.
+
+These are observer-perturbed Run606 Host intervals, not device occupancy, necessary work, exposed critical path, removable wall or formal Run99 timing. They narrow current preparation ownership and identify the missing device producer/consumer boundary. Fixed DSpark7 acceptance, cycles, output and model work remain the optimization contract. No live service, NPU workload, intervention or formal E2E in this run. See `prep_host_coverage.json` and `astra_prep_coverage_review.md`.

@@ -237,3 +237,15 @@
 - `2026-09-28T09:41:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run632`（design-check）。
 
 - `2026-09-28T09:41:34Z` Run `run632` 记录为 `pass`；正确性为 `not-applicable`。V3.45 formal Product coverage and sensitivity calibration; Astra High SCOPED PASS,81 nested endpoint/capacity and19 proof flag negative injections; all numeric Bounds null.
+
+- `2026-09-28T09:57:18Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run633`（design-check）。
+
+- `2026-09-28T09:57:49Z` Run `run633` 记录为 `pass`；正确性为 `not-applicable`。Run606 same-W0 all8 prep Host call ownership/interval union; Astra SCOPED PASS,32 unions/640 calls/eight negative challenges; no device or Bound claim.
+
+- `2026-09-28T09:57:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run634`（design-check）。
+
+- `2026-09-28T09:58:01Z` Run `run634` 记录为 `pass`；正确性为 `not-applicable`。Run606 all8 raw-frontier verified Target dispatch modes: per rank24 own NONE/13 own FULL/3 prior FULL; Host intervals not removable time; Astra SCOPED PASS/eight negative challenges.
+
+- `2026-09-28T09:58:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run635`（design-check）。
+
+- `2026-09-28T09:58:50Z` Run `run635` 记录为 `pass`；正确性为 `not-applicable`。V3.46 same-W0 current diagnostic preparation coverage only; Astra SCOPED PASS,92 endpoint/evidence and19 certificate negative challenges; all numeric Bounds null.
