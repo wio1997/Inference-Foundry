@@ -205,3 +205,9 @@
 - `2026-09-28T09:00:23Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run626`（design-check）。
 
 - `2026-09-28T09:00:23Z` Run `run626` 记录为 `pass`；正确性为 `not-applicable`。V3.44 partial Runtime DAG pinned; Astra High 14 negative injections pass, all numeric Bound fields remain null.
+
+- `2026-09-28T09:08:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run627`（test）。
+
+- `2026-09-28T09:08:59Z` Run `run627` 记录为 `pass`；正确性为 `not-applicable`。25 CPU conditional lineage fixtures; Astra High scoped PASS after five false-PASS corrections; NOT LIVE-READY.
+
+- `2026-09-28T09:09:26Z` 暂存知识变化 `PK-115`：Named SWA writer-reader row lineage requires authenticated exact native order, complete alias writes, lifetime and actual reader ABI; synthetic flags/pointer equality cannot prove it.
