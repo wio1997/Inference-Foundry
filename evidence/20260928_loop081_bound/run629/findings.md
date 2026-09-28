@@ -1,0 +1,3 @@
+# Run629 — Astra High whole-Product Bound priority review
+
+Independent review **PIVOTs** the main Bound work from an isolated typed KV live packet to whole-Product timing coverage and exposure-sensitive analysis. The typed KV packet remains a conditional dependency branch. Run153/238 pair the exact three Run99 formal repeats, but their 11.137–17.143s `client T − rank0 Runtime-scope sum R` is an arithmetic residual, not certified interval complement, Host idle or removable overhead. Client nominal wave envelopes overlap; mixed GMM+HCCL service Run579/580 rejects ideal max-of-isolated overlap as a demonstrated schedule. No new service/NPU or endpoint. See `astra_bound_priority_review.md`.

@@ -211,3 +211,29 @@
 - `2026-09-28T09:08:59Z` Run `run627` 记录为 `pass`；正确性为 `not-applicable`。25 CPU conditional lineage fixtures; Astra High scoped PASS after five false-PASS corrections; NOT LIVE-READY.
 
 - `2026-09-28T09:09:26Z` 暂存知识变化 `PK-115`：Named SWA writer-reader row lineage requires authenticated exact native order, complete alias writes, lifetime and actual reader ABI; synthetic flags/pointer equality cannot prove it.
+
+- `2026-09-28T09:14:54Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run628`（review）。
+
+- `2026-09-28T09:14:54Z` Run `run628` 记录为 `pass`；正确性为 `not-applicable`。Astra High source-conditional [-1,31] no destination-row write; actual loaded object/tiling join absent, real sentinel UNKNOWN; no service or numeric Bound.
+
+- `2026-09-28T09:14:54Z` 暂存知识变化 `PK-116`：Installed scatter source conditionally excludes formatted flat -1 as [-1,31] for Run621 geometry, but actual loaded object/tiling join is missing; real row-lineage sentinel remains UNKNOWN and zero traffic/work does not follow.
+
+- `2026-09-28T09:22:03Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run629`（review）。
+
+- `2026-09-28T09:22:03Z` Run `run629` 记录为 `pass`；正确性为 `not-applicable`。Astra High PIVOT: paired Run99 Product time coverage and conditional sensitivity before more local typed KV live evidence; remainder unclassified, no numeric Bound.
+
+- `2026-09-28T09:34:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run630`（design-check）。
+
+- `2026-09-28T09:34:30Z` Run `run630` 记录为 `pass`；正确性为 `not-applicable`。Paired Run99 formal scope arithmetic and exact-median fixed-output saving hurdles; Astra High SCOPED PASS; no finite Bound or removable Host claim.
+
+- `2026-09-28T09:34:30Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run631`（design-check）。
+
+- `2026-09-28T09:34:30Z` Run `run631` 记录为 `pass`；正确性为 `not-applicable`。Two separate all8 diagnostic Host coverage ledgers; prior-cohort execute and empty markers corrected; Astra High SCOPED PASS, no numeric Bound.
+
+- `2026-09-28T09:40:45Z` 暂存知识变化 `PK-117`：Run99 paired Product client-minus-rank0-Runtime residual11.137-17.143s is arithmetic only, not certified removable Host work; fixed-output TPS landmarks imply hypothetical net whole-Product wall savings, not Bound endpoints.
+
+- `2026-09-28T09:40:45Z` 暂存知识变化 `PK-118`：Run602/606 next-cohort diagnostic Host records begin with previous-cohort execute and no-request markers; first-recorded-to-built includes carryover and broad Host envelope union is not device occupancy or removable time.
+
+- `2026-09-28T09:41:34Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run632`（design-check）。
+
+- `2026-09-28T09:41:34Z` Run `run632` 记录为 `pass`；正确性为 `not-applicable`。V3.45 formal Product coverage and sensitivity calibration; Astra High SCOPED PASS,81 nested endpoint/capacity and19 proof flag negative injections; all numeric Bounds null.
