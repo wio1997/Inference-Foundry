@@ -114,7 +114,8 @@ def validate():
             'environment_constraint',
             'conditional_source_contract', 'conditional_graph_structure',
             'conditional_live_diagnostic', 'attained_isolated_engineering_service',
-            'partial_counter_diagnostic',
+            'partial_counter_diagnostic', 'scoped_source_contract',
+            'scoped_api_feasibility',
         ):
             raise SystemExit(f'entry line {number} invalid status')
         count += 1

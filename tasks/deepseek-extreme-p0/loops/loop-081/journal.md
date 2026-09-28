@@ -175,3 +175,13 @@
 - `2026-09-28T07:47:38Z` 暂存知识变化 `PK-110`：Installed DSpark SWA source has distinct paged-window and physical sparse-slot prefix reader domains; Run619 CPU oracle is conditional source logic, not actual W0 execution or HBM.
 
 - `2026-09-28T07:47:38Z` 暂存知识变化 `PK-111`：Run615/620 isolated NPU0 descriptor/format and same-stream snapshot APIs work, but actual DSpark formats/lifetime and compulsory physical bytes remain unmeasured.
+
+- `2026-09-28T08:02:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run621`（profile）。
+
+- `2026-09-28T08:17:55Z` Run `run621` 记录为 `pass`；正确性为 `pass`。Guarded diagnostic W0 all8 48+48/c12 client/Basis/Product/dispatch/descriptor admissions PASS; rank-cycle64/65 persistent cache descriptors all8 layer43-45 ND BF16 [34090,32,1,512], block32, row1024B; controller run/stop/all8 idle/restore/source+script compare 0. Descriptors only, no actual slot/index contents, lifetime certificate, executed reader or numerical Bound; diagnostic TPS not formal.
+
+- `2026-09-28T08:19:19Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run622`（design-check）。
+
+- `2026-09-28T08:19:19Z` Run `run622` 记录为 `pass`；正确性为 `not-applicable`。All8 actual-W0 3-layer SWA cache descriptor 3.351GB storage/rank, 1KiB logical row. Hypothetical two-cycle 3-layer pre/post selected-row copy budget12KiB/rank <128KiB; full block-table view1.573MB/rank must be selected, not blindly copied. No actual slot values/reader or compulsory bytes/Bound.
+
+- `2026-09-28T08:28:11Z` 暂存知识变化 `PK-112`：Actual all8 DSpark SWA cache descriptor geometry and hypothetical selected-row payload are observed; storage capacity is not compulsory HBM traffic or a Scheduling floor.
