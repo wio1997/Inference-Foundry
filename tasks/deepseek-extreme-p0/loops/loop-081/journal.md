@@ -281,3 +281,13 @@
 - `2026-09-28T11:45:54Z` 暂存知识变化 `framework-only-run638-crossarm`：Run638 OFF/ON/OFF arms each pass scoped admission, but fixed W0 fails; no observer-effect or Product timing transfer. Runtime bulk hash is not final API token-ID ledger.
 
 - `2026-09-28T11:45:54Z` 暂存知识变化 `framework-only-run641-target-stream`：In 24 Run611 instrumented Target Graphs, HCCL-named stream0 tasks have zero overlap with stream1 physical tasks and full coverage by stream1 waits; max physical stream sum36.905-38.083ms is a restricted fixed-observed-cost relaxation only.
+
+- `2026-09-28T11:52:31Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run643`（profile）。
+
+- `2026-09-28T11:52:32Z` Run `run643` 记录为 `pass`；正确性为 `not-applicable`。All8x3 first Model45 RS matched high-level count49152/BFP16/MESH-RING-NHR. Arrival spread26.733/9.739/9.783ms, finish12-21us, rank7 latest with34-35us task. Peer-wait mechanism supported, no removable/Product saving proof; Astra independent review pass.
+
+- `2026-09-28T11:55:08Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run644`（profile）。
+
+- `2026-09-28T11:55:08Z` Run `run644` 记录为 `pass`；正确性为 `not-applicable`。Two adjacent Run611 all8 Graph transitions: previous exported end spread52/56us, next Graph entry spread9.741/9.785ms, rank7 latest. Host intervals overlap native Graph, no disjoint service/removable-time conclusion; Astra independently verified.
+
+- `2026-09-28T11:55:40Z` 暂存知识变化 `framework-only-first-rs-arrival`：In Run611 same-W0 all8x3 first Target RS, arrival spread26.733/9.739/9.783ms and finish spread12-21us; early-rank durations include peer wait, while rank7 pre-submit dependency remains unknown.

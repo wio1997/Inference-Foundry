@@ -1,0 +1,7 @@
+# Run644 adjacent Graph precursor interval join
+
+Same Run611 instrumented W₀, two adjacent Model45 transitions across all8 ranks. Previous Graph exported last-event spread52/56µs; previous proposer Host-scope end spread31.840/13.845ms; next Target Host start spread32.642/14.637ms; next Graph first-task spread9.741/9.785ms, with rank7 latest in both; first RS arrival has the same spread. Rank7 next Target Host start→Graph first task is about0.58ms in both transitions.
+
+The safe conclusion is that Graph-entry skew **reappears between adjacent observed Target Graph boundaries**. The joined Host windows are asynchronous and overlap native Graph work: rank5 in the first transition ends proposer Host scope 15.567ms *before* the previous Graph exported last event. These algebraic intervals are not disjoint services, cannot be summed as execution path costs, and do not identify DSpark or Host as removable. Exported Graph last event is not all-related-stream/KV/Draft completion. Profiler perturbation and incomplete device↔Host clock calibration remain.
+
+Astra High independently recomputed raw intervals to sub1µs agreement, passed scoped diagnostic, and prioritizes rank7 pre-submit dependency/wait lineage: proposer end→draft commit→prepare Target→Target enqueue/native first task, with existing runtime API/native evidence. Only if offline sources leave a material unknown should a bounded all8 same-W₀ Draft/commit device-ready and existing wait/Graph enqueue packet be acquired. No schedule intervention or Product TPS transfer.

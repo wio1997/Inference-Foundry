@@ -1,0 +1,7 @@
+# Run643 first Target ReduceScatter arrival census
+
+SHA-pinned Run611 all8×3 Model45 Graphs (5,412 tasks each) join first native stream0 `hcom_reduceScatter_` to high-level `hcom_reduceScatter__503_0_{1,2,3}` with count49,152, BFP16 and MESH-RING-NHR. `connection_id` is rank-local (rank7 18807, other ranks 18812); it is not a cross-rank join key.
+
+First RS arrival spread is26.733/9.739/9.783ms for the three occurrences. Finish spread is12.302/16.561/20.157µs, and latest arriving rank7 has task durations34.461/34.761/33.721µs. Each first RS starts49–55µs after its Graph first task, so arrival skew is nearly entirely Graph entry skew in this trace. Current long early-rank HCCL task durations are strongly consistent with peer waiting; they must not be frozen as intrinsic HCCL service. This is an instrumented single-W0 mechanism diagnosis, not saved E2E time or a Product TPS bound.
+
+Astra High independently reproduced the numbers and high-level HCCL identity. Collective finish alignment itself cannot be both a clock calibration and independent causality proof. All8 Host wall−monotonic_raw offsets in profiler start/end records have spreads about7.81/15.54µs, supporting a common Host time base; device→Host conversion error remains unbounded here. Millisecond arrival skew is credible; microsecond cross-rank precision remains conditional. Critical next question: which previous Graph/DSpark/state/Host work forces rank7 late, and can its ready/submit time be legally advanced or its wait used for independent necessary work?

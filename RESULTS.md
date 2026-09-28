@@ -800,3 +800,7 @@ Astra Scheduling and Resource scoped design checks PASS after the packet separat
 ## Framework-only Bound evidence — Runs638–641
 
 Formal Current remains **571.681 tok/s**. Run638 cross-arm fixed W₀ failed; no observer-effect comparison or E2E gain. Arm-scoped ON packet passes but hashes Runtime bulk IDs, not final API token IDs. Run639/640/641 are conditional local replay/relaxations; Run641 shows HCCL-named stream0 tasks wholly covered by stream1 waits and no stream1 physical overlap in 24 instrumented Target Graphs. These do not give a Framework-only Product TPS bound. See `FRAMEWORK_SCHEDULING_BOUND.md`.
+
+## Run643–644 framework-only arrival diagnostic
+
+Same instrumented W₀ first Target ReduceScatter arrival spread26.733/9.739/9.783ms, finish spread12–21µs; latest rank7 native duration34–35µs. Adjacent Graphs re-form9.74/9.78ms entry skew after prior Graph exported endpoints align within56µs. Peer wait and inter-Graph skew are supported Current mechanisms; no legal saving or formal TPS Bound is yet admitted.
