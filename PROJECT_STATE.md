@@ -1089,3 +1089,7 @@ Historical all8 phase coverage (Run593), A0 compact Target lineage regression (R
 ## Run597–598 Bound-first checkpoint
 
 Run597 live guarded W₀ acquisition passed 96-client/64-Runtime/32-basis all8 joins, sparse input checks and clean service/source restoration. Run598 reduced 1200 cycles into current Target and conditional Draft row classes; 99,976 active-class versus115,200 physical Target-8 rows, with49,523 staged accepted and48 explicit Host parks. This is a new observer-perturbed diagnostic W₀, not Run99 same-state or formal TPS. Continue compulsory-work/traffic and exact-board attainable-capacity acquisition in parallel with all8 timed dependency/mixed-contention evidence; do not promote active rows to W-minus. Formal Current571.681 tok/s, numerical credible-limit gap unknown.
+
+## Run599 Bound-first source gate
+
+Twelve current source files and six evidence inputs pin a conservative Target forward/aux→Draft context versus Target logits/acceptance→Draft query dependency split. Astra scoped review passes source meaning but no device readiness or overlap proof. Run99 formal staged49,470/49,508/49,471 and Run597 active49,523 are non-Bound acceptance support counts, not necessary Target arithmetic. Reuse Run153/238/239/241/341 Product boundary evidence; next close same-W₀ admission→residual prefill→seed/KV/state→first Target-ready, keeping exact-board Resource certificates parallel. Formal Current571.681 tok/s; numeric credible-limit gap unknown.

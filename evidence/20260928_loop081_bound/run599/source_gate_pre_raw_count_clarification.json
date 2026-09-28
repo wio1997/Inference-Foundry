@@ -1,0 +1,148 @@
+{
+  "status": "structural_dependency_split_source_gate",
+  "source_sha256": {
+    "target_adapter": {
+      "path": "/data/wio/Inference_Foundry/runtime/target_adapter.py",
+      "sha256": "c46d60318098077064c0ff57eae98bc937dcf943bda531918388be4e9128acd5",
+      "predicates": [
+        "model_output = self.binding.forward(",
+        "logits = self.binding.compute_logits(sample_hidden)"
+      ]
+    },
+    "target_handoff": {
+      "path": "/data/wio/Inference_Foundry/bootstrap/vllm_target_handoff.py",
+      "sha256": "2053dafbd46638d0da23e14b96c59ea01995ec2f0441d01928f1c9484c7b4ed5",
+      "predicates": [
+        "output = self.model(",
+        "output = _gather_output(output)",
+        "return output"
+      ]
+    },
+    "decode": {
+      "path": "/data/wio/Inference_Foundry/runtime/extreme_decode.py",
+      "sha256": "eb4b5142cc475a51e06c6eec8238e9cfeb918b568e8a5f27b0a4bc7d26963499",
+      "predicates": [
+        "target_output = self.target.execute(self.state)",
+        "acceptance_output = self.acceptance.execute(",
+        "self._state_machine.advance_state(acceptance_output)",
+        "next_draft = self.proposer.execute("
+      ]
+    },
+    "state": {
+      "path": "/data/wio/Inference_Foundry/runtime/fixed_decode.py",
+      "sha256": "7d74f4cbba380ff0a9296cc06d86e0cb9c9c921b6213b7965700831a29a6bafa",
+      "predicates": [
+        "def advance_state(self, acceptance: AcceptanceOutput)",
+        "state.last_sampled_tokens.copy_(",
+        "state.num_computed_tokens.add_(state.num_sampled)"
+      ]
+    },
+    "acceptance": {
+      "path": "/data/wio/Inference_Foundry/runtime/fixed_acceptance.py",
+      "sha256": "824289bae3bd31676e3a697cc59b4169a345c70e10063c5660763e3e3557c6ae",
+      "predicates": [
+        "predicted = target.logits.argmax(dim=-1)",
+        "accepted, counts = greedy_accept("
+      ]
+    },
+    "greedy": {
+      "path": "/data/wio/Inference_Foundry/runtime/greedy_accept.py",
+      "sha256": "9399cad7d76056dbb59db6140227e4379df8f366d7c441b973f9e423775cffbc",
+      "predicates": [
+        "leading_match = torch.cumprod(",
+        "recovery = torch.gather(target_argmax",
+        "final_token = torch.where(all_accepted, bonus_tokens, recovery)"
+      ]
+    },
+    "dspark_handoff": {
+      "path": "/data/wio/Inference_Foundry/bootstrap/vllm_dspark_handoff.py",
+      "sha256": "fe7039361894acd70666f72c3089efd635404f1fe9cbc685db21272d946a317e",
+      "predicates": [
+        "def _refresh_draft_context_slots(",
+        "positions = state.target_positions.view(",
+        "target_hidden_states = hidden[token_indices]",
+        "next_token_ids=state.last_sampled_tokens"
+      ]
+    },
+    "base_proposer": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "e3e1ff579e67f845f155c983294ae5546e6ee76ba330098d7867e870c3f9f6e4",
+      "predicates": [
+        "target_hidden_states = self.model.combine_hidden_states(",
+        "self.set_inputs_first_pass(",
+        "self.build_model_inputs_first_pass(num_input_tokens, self._context_slot_mapping_buffers)"
+      ]
+    },
+    "dspark_proposer": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "e9163996db794c5fba777ea55a5374283780a2fd3404778f5369caea76f9344f",
+      "predicates": [
+        "self._dflash_hidden_states[: self._dflash_num_context] = target_hidden_states",
+        "num_query_total = batch_size * self.num_query_per_req"
+      ]
+    },
+    "dflash_proposer": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/dflash_proposer.py",
+      "sha256": "6be46559f9f869861c676efb4531b0c01eef8a0445521ecadf5c1fec1c4412f8",
+      "predicates": [
+        "self.model.precompute_and_store_context_kv("
+      ]
+    },
+    "dspark_model": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/models/deepseek_v4_dspark.py",
+      "sha256": "b459fa373e89da1722085cffa63a9959502dd29fb1a0cf4b8f073e431d811867",
+      "predicates": [
+        "def combine_hidden_states(",
+        "def precompute_and_store_context_kv(",
+        "for layer_idx, layer in enumerate(self.layers.values()):"
+      ]
+    },
+    "dspark_inputs": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/ops/triton/spec_decode/utils.py",
+      "sha256": "1a4cf926ec6219f0c2fc5bc212c0f935008a8c7f67c445f9cb2a826b552e3079",
+      "predicates": [
+        "tl.store(out_context_positions_ptr + ctx_pos_idx, pos)",
+        "tl.store(out_context_slot_mapping_ptr + ctx_pos_idx, slot)",
+        "num_rejected = tl.load(num_rejected_tokens_ptr + req_idx)",
+        "bonus_token = tl.load(next_token_ids_ptr + req_idx)"
+      ]
+    }
+  },
+  "evidence_sha256": {
+    "basis_admission": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260928_loop081_bound/run597/live/b/basis_admission.json",
+      "sha256": "9a9acb8389e9135e0c8bc0b24a89a5e37515b7da51c6e67e104563cb9da7be1c"
+    },
+    "work_ledger": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260928_loop081_bound/run598/summary.json",
+      "sha256": "11f3b9fbc88374ff2cb3df0b2c0a609b8167f2c4b627580969c40c47bf089ed5"
+    },
+    "historical_R09": {
+      "path": "/data/wio/performance_history/dsv4f-w4a8-ascend-logs/rounds/R09_draft_forward_decomposition/REPORT.md",
+      "sha256": "98fce45f385f4c4037215ae6cf2fade9808ae9b515dc27dbfab128b93bd14cb3"
+    },
+    "historical_R21": {
+      "path": "/data/wio/performance_history/dsv4f-w4a8-ascend-logs/rounds/R21_dsa_cp_compressor_wkv_overlap/REPORT.md",
+      "sha256": "5e0f42aca030affa7b4d8d467e55b0d583c12e0be9e10f3ebf9ac8bb6e9be40b"
+    },
+    "current_Run579": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260928_loop080_bound/run579/findings.md",
+      "sha256": "091705a6a4abd7260c4978a09e66112fc02f7a5ad923daa210bd6bd7ad55f9cb"
+    },
+    "current_Run580": {
+      "path": "/data/wio/Inference_Foundry/evidence/20260928_loop080_bound/run580/findings.md",
+      "sha256": "032e87f2a76ef671d132c66cb6ffe77c1c146c84ab9408439cc5cee3ebebadaf"
+    }
+  },
+  "target_forward_cut": "after binding.forward including conditional FlashComm gather; Python return is not device completion",
+  "context_branch": "Target aux + old target positions + context slot mapping -> combine -> three-layer context KV store",
+  "query_branch": "Target logits -> greedy acceptance -> state last token/count -> query seed/position/seq_len",
+  "join": "context store and query preparation must both precede Draft query consumer",
+  "active_prefix_decision_witness_incidents": 49523,
+  "active_prefix_scope": "not minimal logits or fresh Target model work; parked raw counts and DSpark context are outside",
+  "inferred_legal_overlap": false,
+  "measured_node_ready": false,
+  "measured_mixed_capacity": false,
+  "finite_scheduling_bound_s": null,
+  "formal_current_tps": 571.681
+}

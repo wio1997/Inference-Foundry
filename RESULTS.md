@@ -760,3 +760,7 @@ Run593 all8 historical phase/native coverage and corrected Astra review PASS; Ru
 ## Run597–598 diagnostic fixed-work ledger
 
 Run597 all8 guarded live W₀ passed client/Runtime/basis admission, source restore and idle. Run598 offline current execution ledger:1200 cycles; Target physical115,200 / active-class99,976 / parked15,224 rows; conditional Draft query issued100,800 / active-class87,479 rows. Internal staged49,523 includes371 tail overshoot. No formal performance measurement or strict finite Bound; Current Formal571.681 tok/s. See Run597–598 findings and independent review.
+
+## Run599 read-only dependency frontier
+
+Source and Astra review support an aux/context branch separate from acceptance/query preparation after the full Target forward/gather producer; no legal device overlap or timing result. Run597 active prefix-decision support49,523 and Run99 staged totals49,470/49,508/49,471 are non-Bound counts. Existing Run153/238/239/241/341 establish the larger unresolved Product preparation path, so no duplicate E2E subtraction was run. Formal Current571.681 tok/s, strict Bound endpoints null. See Run599 findings/review.
