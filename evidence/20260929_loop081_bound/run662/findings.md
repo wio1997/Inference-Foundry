@@ -1,0 +1,7 @@
+# Run662 — fixed-address target metadata Graph replay
+
+Guarded one-arm diagnostic. Warmup and measured each completed 48/48 requests; 96 server POSTs. All 64 rank-cohort Runtime rows report FULL Target Graph and metadata Graph capture; replay count equals cycle count. Source hashes match before/after, controller exit0, service stopped and eight NPUs idle.
+
+Measured client output rate was 523.751 tok/s diagnostic only, below formal Current Run99 571.681 tok/s. This is not a formal E2E comparison. Run661 observer-perturbed diagnostic is only a rough context, not an A/B baseline. Candidate cohort 8 took 566 cycles and 31.13 s for 12×1024 output tokens, versus Run661 cohort 8 at 315 cycles and 17.91 s. Run662 final acceptance windows fell to 0.310 and 0.103 tokens/cycle; all other candidate cohorts finished in 286–326 cycles. The cause is unproven. A stochastic output trajectory might contribute, but a replay dynamic-metadata error remains possible. Request success alone does not establish output parity.
+
+No acceptable frozen-workload E2E improvement was demonstrated. Do not promote the graph replay path. The strongest next discriminating test, if this architecture is revisited, is same-state eager versus replay stable metadata headers across changing positions/lengths. Avoid another costly whole-service run before that parity test. Framework-only upper bound and maximum removable Gap remain unknown. Run662 is diagnostic-invalid for correctness/performance promotion.

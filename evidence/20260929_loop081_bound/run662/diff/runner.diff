@@ -1,0 +1,30 @@
+--- /data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py
++++ /data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py.run662
+@@ -2339,6 +2339,12 @@
+                 _extreme_runtime_inputs,
+                 _cfg,
+             )
++            if os.getenv("EXTREME_TARGET_METADATA_GRAPH") == "1":
++                if (not _extreme_serve or _extreme_runtime.target_metadata is None
++                        or os.getenv("EXTREME_SCHEDULE_NEXT_TARGET_METADATA", "off") != "off"):
++                    raise RuntimeError("metadata Graph requires fixed serving and schedule off")
++                _extreme_runtime._state_machine.prepare_target_inputs()
++                _extreme_runtime.target_metadata.capture_graph(_extreme_runtime.state)
+             if os.getenv("EXTREME_STOCK_TARGET_ABA") == "1":
+                 # Stock A / independent target B / restored Stock C at one
+                 # real Stock decode state. This is a diagnostic sentinel.
+@@ -3415,6 +3421,14 @@
+                     "target_graph_mode": str(
+                         _target_inputs.aclgraph_runtime_mode
+                     ),
++                    "metadata_graph_capture": bool(
++                        _extreme_runtime.target_metadata is not None and
++                        _extreme_runtime.target_metadata._graph is not None
++                    ),
++                    "metadata_graph_replays": (
++                        _extreme_runtime.target_metadata._graph_replays
++                        if _extreme_runtime.target_metadata is not None else 0
++                    ),
+                     "wall_seconds": _extreme_wall_seconds,
+                     "generated_output_counts": (
+                         _cohort_output.generated_output_counts

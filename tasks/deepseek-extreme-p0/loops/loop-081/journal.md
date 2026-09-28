@@ -369,3 +369,7 @@
 - `2026-09-28T18:20:25Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run661`（profile）。
 
 - `2026-09-28T18:20:25Z` Run `run661` 记录为 `pass`；正确性为 `pass`。Warmup48/measured48 admitted; 32 all8 packets; prior draft current-stream incomplete at cycle_begin/prepare_target 64/64, complete at target_before query 13/64; no bound or saving claim
+
+- `2026-09-28T18:47:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run662`（profile）。
+
+- `2026-09-28T18:47:00Z` Run `run662` 记录为 `invalid`；正确性为 `invalid`。Guarded warmup48/measured48 passed and replayed FULL Graph, but cohort8 acceptance collapse (566 cycles) leaves dynamic metadata correctness unproven; diagnostic 523.751 tok/s, no formal gain
