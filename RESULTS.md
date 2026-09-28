@@ -764,3 +764,7 @@ Run597 all8 guarded live W₀ passed client/Runtime/basis admission, source rest
 ## Run599 read-only dependency frontier
 
 Source and Astra review support an aux/context branch separate from acceptance/query preparation after the full Target forward/gather producer; no legal device overlap or timing result. Run597 active prefix-decision support49,523 and Run99 staged totals49,470/49,508/49,471 are non-Bound counts. Existing Run153/238/239/241/341 establish the larger unresolved Product preparation path, so no duplicate E2E subtraction was run. Formal Current571.681 tok/s, strict Bound endpoints null. See Run599 findings/review.
+
+## Run600 same-W₀ Host accounting checkpoint
+
+Read-only Run341-derived reducer: 42 source/evidence inputs, 32 rank-cohort records, all8 request IDs and call ordinal/shape gates PASS; independent Astra scoped PASS. Cohort Host first-execute→Runtime-built envelopes 2.879/3.514/3.507/3.214s, rank-local outside-forward remainder 0.594–1.253s. Scheduler cached output counts can include placeholders. No live service, formal TPS or numeric Bound update. Current Formal571.681 tok/s.

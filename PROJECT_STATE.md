@@ -1093,3 +1093,7 @@ Run597 live guarded W₀ acquisition passed 96-client/64-Runtime/32-basis all8 j
 ## Run599 Bound-first source gate
 
 Twelve current source files and six evidence inputs pin a conservative Target forward/aux→Draft context versus Target logits/acceptance→Draft query dependency split. Astra scoped review passes source meaning but no device readiness or overlap proof. Run99 formal staged49,470/49,508/49,471 and Run597 active49,523 are non-Bound acceptance support counts, not necessary Target arithmetic. Reuse Run153/238/239/241/341 Product boundary evidence; next close same-W₀ admission→residual prefill→seed/KV/state→first Target-ready, keeping exact-board Resource certificates parallel. Formal Current571.681 tok/s; numeric credible-limit gap unknown.
+
+## Latest Bound checkpoint — Run600
+
+Run600 reconciles the existing Run341 diagnostic Host preparation timeline without mixing W₀ from Run239/597/99. All8/32 records and independent Astra review pass. The observed nonforward interval is unclassified Host/async activity, not proven savings; scheduler output counts may include placeholders. Next priority is one same-new-W₀ Product preparation/device-ready/output-delivery DAG plus observer control, while compulsory Resource work and mixed C⁺/B remain parallel uncertainties. Formal Current571.681 tok/s; strict numerical Bound endpoints null.

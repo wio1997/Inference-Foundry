@@ -73,3 +73,7 @@
 - `2026-09-28T02:52:53Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run599`（review）。
 
 - `2026-09-28T02:52:53Z` Run `run599` 记录为 `pass`；正确性为 `not-applicable`。Read-only 12-source/6-evidence Target aux to Draft context vs acceptance-dependent query split and active prefix support scope; Astra reviewed. No device-ready timing or legal overlap; Product path priority reuses Run153/238/239/241/341.
+
+- `2026-09-28T03:05:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run600`（design-check）。
+
+- `2026-09-28T03:05:39Z` Run `run600` 记录为 `pass`；正确性为 `not-applicable`。Read-only same-Run341-W0 all8 Host preparation ledger: 42 hashed inputs, 32 rank-cohort request/ordinal/shape gates and Astra scoped PASS; no numeric Bound or formal TPS.
