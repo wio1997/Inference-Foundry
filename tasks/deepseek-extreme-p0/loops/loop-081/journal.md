@@ -145,3 +145,33 @@
 - `2026-09-28T07:18:31Z` Run `run614` 记录为 `pass`；正确性为 `not-applicable`。Read-only combined Scheduling typed-KV and Resource partial-W-minus design gate, revised after Astra High reviews. SCOPED DESIGN PASS, NOT LIVE-READY. Separate Scheduling identity from fresh-work PASS/NO_WITNESS/UNKNOWN; 128KiB/rank selected-row scratch. No live service, no Bound promotion; V3.40 strict endpoints/gap null.
 
 - `2026-09-28T07:20:14Z` 暂存知识变化 `PK-108`：Run614 typed-KV Scheduling identity admission remains valid even if selected fresh-work Resource witness is reused/overwritten/masked; conditional W-minus needs consumed new semantic value and full entry credit. Design passed, not live-ready.
+
+- `2026-09-28T07:22:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run615`（test）。
+
+- `2026-09-28T07:23:29Z` Run `run615` 记录为 `pass`；正确性为 `not-applicable`。Isolated NPU0 torch2.10/torch_npu2.10 small tensor descriptor and original-stream async snapshot smoke PASS; 776 bytes scratch, one final sync after copy+mutation, output values0..191 preserved. No model/service/HCCL or typed KV witness; no Bound change.
+
+- `2026-09-28T07:31:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run616`（design-check）。
+
+- `2026-09-28T07:31:27Z` Run `run616` 记录为 `pass`；正确性为 `not-applicable`。Read-only Run613 exact-flow reducer: all8 x3 proposer x3 layers=72 current native start triplets; context-to-query 0.769-2.167ms median1.483ms, query-to-attention 20.1-34.8us median23.13us. Observer-perturbed; first context layer source-order candidate; no typed KV dependency or removable wall time, strict Bound unchanged.
+
+- `2026-09-28T07:35:10Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run617`（test）。
+
+- `2026-09-28T07:35:10Z` Run `run617` 记录为 `pass`；正确性为 `not-applicable`。15 CPU fixtures pass: source-pinned SWA PA_ND conditional logical eligible row oracle separates contiguous paged window from sparse physical-slot sentinel-prefix; no actual W0 dynamic values, metadata execution coverage, loaded binary identity or physical HBM reads; strict Bound unchanged.
+
+- `2026-09-28T07:38:36Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run618`（test）。
+
+- `2026-09-28T07:38:36Z` Run `run618` 记录为 `pass`；正确性为 `not-applicable`。20 CPU fixtures pass after Run617 challenge: sparse width <=2048, present block table, int32 slot schema, bounded storage, distinct dense-paged versus sparse-physical mapping. Toy geometry only; no actual W0 loaded/metadata/binary reader or numerical Bound.
+
+- `2026-09-28T07:39:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run619`（test）。
+
+- `2026-09-28T07:39:37Z` Run `run619` 记录为 `pass`；正确性为 `not-applicable`。22 CPU fixtures pass, adding int32 block-table and dense right-window expression gates after Run618 Astra challenge. Conditional source mapper only, not actual W0 ABI or loaded-op execution; strict Bound unchanged.
+
+- `2026-09-28T07:44:09Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run620`（test）。
+
+- `2026-09-28T07:44:09Z` Run `run620` 记录为 `pass`；正确性为 `not-applicable`。NPU0-only toy torch_npu.get_npu_format works; toy cache/view and 4KiB metadata are format ID2 (torch_npu.Format.ND=2), snapshot original-stream copy intact; no actual DSpark cache/metadata format or Bound change. Allocator emitted CANN/HDK 32 padding warning, so logical bytes cannot be treated as physical allocation traffic.
+
+- `2026-09-28T07:47:38Z` 暂存知识变化 `PK-109`：Run616 all8 72 exact-flow native start intervals are profiler-perturbed Current spacing, not mandatory dependence or removable wall time.
+
+- `2026-09-28T07:47:38Z` 暂存知识变化 `PK-110`：Installed DSpark SWA source has distinct paged-window and physical sparse-slot prefix reader domains; Run619 CPU oracle is conditional source logic, not actual W0 execution or HBM.
+
+- `2026-09-28T07:47:38Z` 暂存知识变化 `PK-111`：Run615/620 isolated NPU0 descriptor/format and same-stream snapshot APIs work, but actual DSpark formats/lifetime and compulsory physical bytes remain unmeasured.

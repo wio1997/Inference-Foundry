@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：审查 Run run614 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-28T07:18:31Z`
+- 下一步：审查 Run run620 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-28T07:44:09Z`
 
 ## Run 记录
 
@@ -45,6 +45,12 @@
 - `runs/mixed_32k_1024_c12/run612`
 - `runs/mixed_32k_1024_c12/run613`
 - `runs/mixed_32k_1024_c12/run614`
+- `runs/mixed_32k_1024_c12/run615`
+- `runs/mixed_32k_1024_c12/run616`
+- `runs/mixed_32k_1024_c12/run617`
+- `runs/mixed_32k_1024_c12/run618`
+- `runs/mixed_32k_1024_c12/run619`
+- `runs/mixed_32k_1024_c12/run620`
 
 ## 阻塞项
 
@@ -52,5 +58,5 @@
 
 ## 待归约知识
 
-- 知识变化：`6`
+- 知识变化：`9`
 - 基线变化：`0`
