@@ -804,3 +804,7 @@ Formal Current remains **571.681 tok/s**. Run638 cross-arm fixed W₀ failed; no
 ## Run643–644 framework-only arrival diagnostic
 
 Same instrumented W₀ first Target ReduceScatter arrival spread26.733/9.739/9.783ms, finish spread12–21µs; latest rank7 native duration34–35µs. Adjacent Graphs re-form9.74/9.78ms entry skew after prior Graph exported endpoints align within56µs. Peer wait and inter-Graph skew are supported Current mechanisms; no legal saving or formal TPS Bound is yet admitted.
+
+## Run645–647 framework-only Host issue census
+
+Rank7 same-W₀ instrumented inter-Graph stream47 gaps16.353/14.012ms; exact flow/async queue joins show10.116/8.387ms elapsed before the next Host Enqueue began. This is conditional Current scheduling evidence, distributed across many tasks. Predecessor dependencies and formal Product benefit remain unknown; 571.681tok/s unchanged.

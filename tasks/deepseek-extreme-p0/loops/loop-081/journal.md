@@ -291,3 +291,17 @@
 - `2026-09-28T11:55:08Z` Run `run644` 记录为 `pass`；正确性为 `not-applicable`。Two adjacent Run611 all8 Graph transitions: previous exported end spread52/56us, next Graph entry spread9.741/9.785ms, rank7 latest. Host intervals overlap native Graph, no disjoint service/removable-time conclusion; Astra independently verified.
 
 - `2026-09-28T11:55:40Z` 暂存知识变化 `framework-only-first-rs-arrival`：In Run611 same-W0 all8x3 first Target RS, arrival spread26.733/9.739/9.783ms and finish spread12-21us; early-rank durations include peer wait, while rank7 pre-submit dependency remains unknown.
+
+- `2026-09-28T12:10:33Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run645`（profile）。
+
+- `2026-09-28T12:10:33Z` Run `run645` 记录为 `pass`；正确性为 `not-applicable`。All8 two Run611 inter-Graph rank-local task union. Rank7 cumulative uncovered16.267/13.941ms in258/253 gaps (max0.863/0.380ms), physical union8.103/8.080ms; not idle/removable. Astra independent recomputation pass.
+
+- `2026-09-28T12:12:46Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run646`（profile）。
+
+- `2026-09-28T12:12:46Z` Run `run646` 记录为 `pass`；正确性为 `not-applicable`。All8 two inter-Graph exact Host CPU-op begin to stream47 native flow joins. Rank7 adjacent gaps16.353/14.012ms, next CPU op not-yet-begun portions10.047/8.323ms. Astra independently passed; conditional clock/observer, legal predecessor/removability unknown, no Product TPS.
+
+- `2026-09-28T12:22:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run647`（profile）。
+
+- `2026-09-28T12:22:59Z` Run `run647` 记录为 `pass`；正确性为 `not-applicable`。All8 two same-W0 inter-Graph stream47 gap exact CPU-op to Enqueue/Dequeue joins. Rank7 next Enqueue not begun10.116/8.387ms; scope labels next op only, not cause/removable. Astra independent pass, Dequeue cross-domain inversion excluded.
+
+- `2026-09-28T12:23:40Z` 暂存知识变化 `framework-only-rank7-enqueue-gap`：In Run611 same-W0 two inter-Graph windows, rank7 next async Host Enqueue had not begun during10.116/8.387ms of stream47 gaps; necessary predecessor and Product exposure unknown.

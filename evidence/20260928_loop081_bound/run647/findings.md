@@ -1,0 +1,9 @@
+# Run647 exact async task queue Enqueue join
+
+Run646 per-task gaps are joined to Run611's `Enqueue@CPU-op` event inside the exact CPU-op interval and to a unique same-correlation `Dequeue@CPU-op` record. Full16 rank/window identities pass, including Dequeue name/process guards; the Run646 raw SHA is pinned.
+
+Rank7's next Enqueue had **not yet begun** for10.116/8.387ms of its16.353/14.012ms stream47 between-task gap sums across the two adjacent Target Graph transitions. Relative to CPU-op-begin Run646, actual Enqueue-start adds only69/63µs. Rank4 has near-zero between-task gap and zero late Enqueue. These are observer-perturbed same-W₀ Host issue timing facts; they do not prove that moving Enqueue earlier is legal or that a shorter stream47 gap moves all8 Product wall.
+
+The next op's most specific enclosing scope labels rank7 Enqueue-late fragments: DSpark layer45 3.675/1.982ms, derived target metadata3.027/2.913ms, remaining DSpark model1.993/2.096ms. This is an attribution of the **next op**, not proof that the scope caused the previous gap. Input-ready, prior CPU work, existing waits, stream interaction and profiler overhead remain unknown. `Dequeue` record identity is valid, but11 rank6 records start0.702–6.491µs after matched native start; no cross-domain Dequeue timing lower bound is used. Enqueue marks Host async task queue entry attempt, not actual NPU submission.
+
+Astra High independently rejoined all16 windows and scoped KEEP. The fixed-primitive Framework-only DAG must include Host issue/queue nodes and true predecessor edges; a native-only max-stream relaxation misses this conditional Current mechanism. No10/8ms saving or Product TPS transfer is admitted. Next offline trace the predecessor CPU op and value-ready edge for rank7 DSpark layer45, metadata and remaining model, then measure only missing ready→Enqueue→device start if needed.
