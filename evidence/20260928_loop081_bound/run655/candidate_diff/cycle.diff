@@ -1,0 +1,54 @@
+--- /data/wio/Inference_Foundry/runtime/extreme_decode.py
++++ /data/wio/Inference_Foundry/runtime/extreme_decode.py.candidate
+@@ -117,6 +117,18 @@
+         self._cycle_profile_started_ns = None
+         self.diagnostic_cycles = []
+         self.diagnostic_events = []
++        # Run655 dormant full-cohort outer-stage observer, armed post-warmup.
++        _light_ledger = os.getenv("EXTREME_LIGHT_LEDGER_DIR")
++        if os.getenv("EXTREME_LIGHT_EVENT_DIR") and not _light_ledger:
++            raise RuntimeError("light Event observer requires common ledger")
++        self._light_armed = bool(_light_ledger and os.path.isfile(
++            os.path.join(_light_ledger, "arm")))
++        self._light_probe = None
++        if self._light_armed and os.getenv("EXTREME_LIGHT_EVENT_DIR"):
++            if self._profile_dag or self._diagnose or self._cycle_profile_dir:
++                raise RuntimeError("light Event observer conflicts with profiler")
++            if target_page_audit is not None or kv_slot_audit is not None:
++                raise RuntimeError("light Event observer excludes page/KV audit")
+         self._schedule_mode = os.getenv("EXTREME_SCHEDULE_NEXT_TARGET_METADATA", "off")
+         if self._schedule_mode not in ("off", "serial", "overlap"):
+             raise ValueError("invalid next-target metadata scheduling mode")
+@@ -381,6 +393,14 @@
+                 event = torch.npu.Event(enable_timing=True)
+                 event.record()
+                 markers.append((label, event))
++            if self._light_probe is not None and label in (
++                "begin", "target", "proposer"
++            ):
++                self._light_probe.mark(
++                    self.state.cycle_index,
++                    {"begin": "cycle_begin", "target": "target_after",
++                     "proposer": "proposer_after"}[label],
++                )
+         with self._scope("extreme::cycle"):
+             if diag is not None:
+                 diag["num_computed_before"] = self.state.num_computed_tokens.clone()
+@@ -428,6 +448,8 @@
+                 mark("target")
+             else:
+                 with self._scope("extreme::target"):
++                    if self._light_probe is not None:
++                        self._light_probe.mark(self.state.cycle_index, "target_before")
+                     if self._cycle_profiler and self._cycle_profile_sync_target:
+                         torch.npu.synchronize()
+                     target_output = self.target.execute(self.state)
+@@ -452,6 +474,8 @@
+             if self._schedule_mode == "overlap":
+                 self._launch_next_target_metadata()
+             with self._scope("extreme::proposer"):
++                if self._light_probe is not None:
++                    self._light_probe.mark(self.state.cycle_index, "proposer_before")
+                 next_draft = self.proposer.execute(
+                     self.state,
+                     target_output,

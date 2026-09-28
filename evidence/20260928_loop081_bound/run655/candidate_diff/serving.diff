@@ -1,0 +1,36 @@
+--- /data/wio/Inference_Foundry/runtime/fixed_serving.py
++++ /data/wio/Inference_Foundry/runtime/fixed_serving.py.candidate
+@@ -134,6 +134,7 @@
+ 
+         cycles = 0
+         for index in range(self.max_cycles):
++            _light_parked_before = sum(self._parked) if self.runtime._light_probe else 0
+             result = self.runtime.step()
+             # Acceptance aliases the reusable runtime buffer. Stage it on
+             # device before the next cycle overwrites that buffer.
+@@ -142,11 +143,16 @@
+             cycles = index + 1
+             progress = self._committed_progress()
+             self._park_completed(progress)
++            if self.runtime._light_probe is not None:
++                self.runtime._light_probe.class_row(
++                    index, _light_parked_before, sum(self._parked))
+             if all(
+                 progress[slot] - self._progress_baseline[slot]
+                 >= self.remaining[slot]
+                 for slot in range(cfg.batch_size)
+             ):
++                if self.runtime._light_probe is not None:
++                    self.runtime._light_probe.terminal(index)
+                 break
+         else:
+             raise RuntimeError("fixed cohort did not reach its output limits")
+@@ -161,6 +167,8 @@
+                   flush=True)
+         tokens_cpu = token_history[:cycles].cpu()
+         counts_cpu = count_history[:cycles].cpu()
++        if self.runtime._light_armed:
++            self.runtime._light_cpu_history = (tokens_cpu, counts_cpu)
+         output: list[list[int]] = [[] for _ in range(cfg.batch_size)]
+         staged = [0] * cfg.batch_size
+         for cycle in range(cycles):

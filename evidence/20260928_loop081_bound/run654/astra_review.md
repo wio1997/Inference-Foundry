@@ -1,0 +1,5 @@
+# Astra High independent Run654 review
+
+SCOPED PASS for an idle-device 5126-Event/rank capacity probe only. Independently checked eight rank JSON files and the summary: devices0–7, 5126 Events each, reported times finite and nonnegative. The source permits Event create/first record/drain/re-record/elapsed on the installed torch_npu environment; it does not establish loaded-model/Graph/HCCL capacity, four-cohort lifetime, observer effect or Framework-only TPS. Files alone do not prove process simultaneity or preserve all individual elapsed values.
+
+The raw `rerecord_enqueue_ms` timer includes 5126 warm queries. The raw `query_and_elapsed_ms` timer is elapsed extraction only, without second-round query. The script checks elapsed ordering but lacks explicit finite/nonnegative checks; do not promote it to full observer admission. Keep five marks plus terminal, bounded by one cohort, with actual `5C+1` generations and no pool reuse before prior export. Next gate: loaded-model short-window capacity and full48 controlled coverage.

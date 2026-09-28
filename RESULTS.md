@@ -808,3 +808,7 @@ Same instrumented W₀ first Target ReduceScatter arrival spread26.733/9.739/9.7
 ## Run645–647 framework-only Host issue census
 
 Rank7 same-W₀ instrumented inter-Graph stream47 gaps16.353/14.012ms; exact flow/async queue joins show10.116/8.387ms elapsed before the next Host Enqueue began. This is conditional Current scheduling evidence, distributed across many tasks. Predecessor dependencies and formal Product benefit remain unknown; 571.681tok/s unchanged.
+
+## Run656 diagnostic (not formal TPS)
+
+Guarded full48 OFF_A/ON/OFF_B: client wall80.261/86.904/81.364s and output TPS612.400/565.590/604.099, with cycles1201/1200/1226. All arms individually pass client/Runtime/all8 gates; cross-arm trajectory and 48/48 output-text identity fail. ON 32 packets span9600 rank-cycles with current-stream median Target47.579ms, proposer6.372ms, cycle55.866ms. These diagnostic TPS values do not replace formal Run99 **571.681 tok/s**, quantify observer overhead or establish a Framework-only ceiling. Service stopped, sources restored, all8 idle.

@@ -80,6 +80,10 @@ As of 2026-09-28：
 - 当前主线：**Framework/Scheduling-only Bound**
 - 当前阶段：保持正确 primitive/operator 及其 shape-conditioned cost 不作为主要优化变量
 - 当前 Framework-only numerical ceiling：**尚未可信识别，禁止为了给数字而编造**
+- 最新完成：Loop081 Run654–656 已提交；Run656 是全 48 请求、all8、OFF/ON/OFF 诊断。三臂均通过各自 client/Runtime gate；ON 记录 9600 rank-cycles。
+- Run656 关键限制：跨臂固定 W0 文本匹配 0/48，effective trajectory 变化，故 observer penalty、跨臂 timing transfer 和数值 Framework-only Product ceiling 均未获准。正式 Current 仍为 Run99 的 571.681 tok/s。
+- ON 诊断阶段中位数：Target 47.579 ms、DSpark proposer 6.372 ms、cycle 55.866 ms、配对剩余 1.245 ms；均含 queue/wait，不能直接当 primitive service 或可消除 wall。
+- Run656 已完成 source SHA 恢复和停服核验，8 卡 NPU idle；当前没有后台实验在运行。完整结论见 evidence/20260928_loop081_bound/run656/run656_findings.md、run656_astra_review.md；下一会话从该证据和 TaskCtl 恢复，不重跑本次实验。
 - 当前核心工作：恢复/收紧真实 scheduling DAG、Host issue、async queue、Graph boundary、rank arrival skew、collective peer wait、resource contention
 - 已确认：长 HCCL duration 可能包含 peer wait，不能直接当 intrinsic communication cost
 - 已确认：Host marker gap 不等于同样大小的 exposed device idle / removable wall

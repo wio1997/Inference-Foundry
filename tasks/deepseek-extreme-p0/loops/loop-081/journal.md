@@ -337,3 +337,15 @@
 - `2026-09-28T13:12:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run653`（review）。
 
 - `2026-09-28T13:12:37Z` Run `run653` 记录为 `pass`；正确性为 `not-applicable`。Historical Runs87/98/367 all8 full single-cohort cycle stage priors: within-W0 pooled steady medians stable, startup proposer high, Run367 rank6 differs; Astra scoped pass. No Run606 cost or Product Bound transfer.
+
+- `2026-09-28T13:18:52Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run654`（benchmark）。
+
+- `2026-09-28T13:21:52Z` Run `run654` 记录为 `pass`；正确性为 `not-applicable`。All8 idle 5126 Event/rank capacity passes; no inference or Product bound
+
+- `2026-09-28T13:26:59Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run655`（design-check）。
+
+- `2026-09-28T13:50:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run656`（profile）。
+
+- `2026-09-28T13:52:25Z` Run `run655` 记录为 `pass`；正确性为 `not-applicable`。Source-only light full-cohort observer candidate scoped pass; no live Product bound
+
+- `2026-09-28T14:36:57Z` Run `run656` 记录为 `pass`；正确性为 `pass`。All three arms individually admitted; ON 9600 rank-cycles; cross-arm W0 and timing transfer false; numeric Framework-only ceiling remains null

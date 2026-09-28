@@ -1,0 +1,94 @@
+--- /data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py
++++ /data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py.candidate
+@@ -2114,6 +2114,14 @@
+         num_encoder_reqs = len(scheduler_output.scheduled_encoder_inputs)
+         has_encoder_input = self.model_config.is_encoder_decoder and num_encoder_reqs > 0
+ 
++        # Run655 Event pool is created and first-recorded during service
++        # warmup, before the measured arm is opened. No new device drain.
++        if os.getenv("EXTREME_LIGHT_EVENT_DIR") and not hasattr(self, "_light_pool"):
++            _light_root = "/data/wio/Inference_Foundry"
++            if _light_root not in sys.path:
++                sys.path.insert(0, _light_root)
++            from runtime.light_stage_observer import LightStageRecorder
++            self._light_pool = LightStageRecorder(torch.npu.current_stream())
+         # Run forward pass
+         defer_kv_connector_finalize = self.speculative_config is not None and (
+             get_pp_group().is_last_rank or self.broadcast_pp_output
+@@ -2339,6 +2347,12 @@
+                 _extreme_runtime_inputs,
+                 _cfg,
+             )
++            if _extreme_runtime._light_armed and os.getenv("EXTREME_LIGHT_EVENT_DIR"):
++                _light_pool = getattr(self, "_light_pool", None)
++                if _light_pool is None:
++                    raise RuntimeError("light Event pool was not warmed during service warmup")
++                _light_pool.begin_cohort(len(self._extreme_served_cohorts))
++                _extreme_runtime._light_probe = _light_pool
+             if os.getenv("EXTREME_STOCK_TARGET_ABA") == "1":
+                 # Stock A / independent target B / restored Stock C at one
+                 # real Stock decode state. This is a diagnostic sentinel.
+@@ -3396,6 +3410,63 @@
+                 _extreme_wall_seconds = (
+                     time.perf_counter() - _extreme_wall_start
+                 )
++                # Existing terminal drain above precedes Event extraction.
++                # ON extraction delays Product publication; OFF/ON/OFF needed.
++                if _extreme_runtime._light_armed:
++                    import hashlib
++                    _light_ledger_dir = os.environ["EXTREME_LIGHT_LEDGER_DIR"]
++                    os.makedirs(_light_ledger_dir, exist_ok=True)
++                    _light_rank = int(get_tp_group().rank_in_group)
++                    _light_cohort = len(self._extreme_served_cohorts)
++                    _light_tokens, _light_counts = _extreme_runtime._light_cpu_history
++                    _light_effective = hashlib.sha256()
++                    for _light_i in range(_cohort_output.cycles):
++                        for _light_slot in range(12):
++                            _light_count = int(_light_counts[_light_i, _light_slot])
++                            if not 0 <= _light_count <= 8:
++                                raise RuntimeError("light acceptance count outside contract")
++                            _light_effective.update(bytes((_light_count,)))
++                            for _light_token in _light_tokens[
++                                _light_i, _light_slot, :_light_count
++                            ].tolist():
++                                _light_effective.update(int(_light_token).to_bytes(
++                                    4, "little", signed=True))
++                    _light_identity = {
++                        "rank": _light_rank, "cohort": _light_cohort,
++                        "req_ids": list(_extreme_req_ids),
++                        "run_ts": os.getenv("RUN_TS"),
++                        "time_namespace": os.readlink("/proc/self/ns/time"),
++                        "cycles": _cohort_output.cycles,
++                        "runtime_scoped_wall_s": _extreme_wall_seconds,
++                        "target_graph_requested": _extreme_target_graph,
++                        "target_graph_mode": str(_target_inputs.aclgraph_runtime_mode),
++                        "accepted_counts": _light_counts.tolist(),
++                        "staged_output_counts": _cohort_output.staged_output_counts,
++                        "overshoot_tokens": _cohort_output.overshoot_tokens,
++                        "canonical_effective_staged_trajectory_sha256":
++                            _light_effective.hexdigest(),
++                        "count_history_sha256": hashlib.sha256(
++                            _light_counts.contiguous().numpy().tobytes()).hexdigest(),
++                        "raw_padded_token_history_sha256": hashlib.sha256(
++                            _light_tokens.contiguous().numpy().tobytes()).hexdigest(),
++                        "generated_output_counts": _cohort_output.generated_output_counts,
++                        "runtime_bulk_output_sha256": hashlib.sha256(json.dumps(
++                            _cohort_output.token_ids, separators=(",", ":")
++                        ).encode()).hexdigest(),
++                    }
++                    with open(os.path.join(_light_ledger_dir,
++                                           f"rank{_light_rank}_cohort{_light_cohort}.json"),
++                              "w", encoding="utf-8") as _light_file:
++                        json.dump(_light_identity, _light_file, separators=(",", ":"))
++                    if _extreme_runtime._light_probe is not None:
++                        _light_dir = os.environ["EXTREME_LIGHT_EVENT_DIR"]
++                        os.makedirs(_light_dir, exist_ok=True)
++                        _light_packet = _extreme_runtime._light_probe.export_after_existing_drain(
++                            _light_identity)
++                        with open(os.path.join(_light_dir,
++                                               f"rank{_light_rank}_cohort{_light_cohort}.json"),
++                                  "w", encoding="utf-8") as _light_file:
++                            json.dump(_light_packet, _light_file, separators=(",", ":"))
+                 _host_mirror_exact = (
+                     _extreme_runtime.proposer.validate_host_mirrors(
+                         _extreme_runtime.state
