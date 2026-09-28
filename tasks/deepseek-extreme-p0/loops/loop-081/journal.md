@@ -349,3 +349,7 @@
 - `2026-09-28T13:52:25Z` Run `run655` 记录为 `pass`；正确性为 `not-applicable`。Source-only light full-cohort observer candidate scoped pass; no live Product bound
 
 - `2026-09-28T14:36:57Z` Run `run656` 记录为 `pass`；正确性为 `pass`。All three arms individually admitted; ON 9600 rank-cycles; cross-arm W0 and timing transfer false; numeric Framework-only ceiling remains null
+
+- `2026-09-28T15:47:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run657`（design-check）。
+
+- `2026-09-28T15:48:32Z` Run `run657` 记录为 `pass`；正确性为 `not-applicable`。Run656 same-W0 read-only 714-cycle Host-submit skew replay: Target shrinks spread median 4.460ms, proposer grows it median 3.594ms; no device-ready or Product saving claim
