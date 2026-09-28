@@ -1,0 +1,64 @@
+--- live/cycle.py
++++ candidate/cycle.py
+@@ -117,6 +117,26 @@
+         self._cycle_profile_started_ns = None
+         self.diagnostic_cycles = []
+         self.diagnostic_events = []
++        # EXTREME_RUN637_BOUND_PROBE: optional; events warm-recorded before wall timer.
++        self._bound_probe = None
++        _bp_ledger_dir = os.getenv("EXTREME_BOUND_LEDGER_DIR")
++        if os.getenv("EXTREME_BOUND_PACKET_DIR") and not _bp_ledger_dir:
++            raise RuntimeError("bound packet requires common OFF/ON ledger")
++        _bp_armed = bool(_bp_ledger_dir and os.path.isfile(
++            os.path.join(_bp_ledger_dir, "arm")))
++        self._bound_ledger_armed = _bp_armed
++        if _bp_armed and os.getenv("EXTREME_BOUND_PACKET_DIR"):
++            if self._profile_dag or self._diagnose or self._cycle_profile_dir:
++                raise RuntimeError("bound event packet incompatible with active profiler")
++            if target_page_audit is not None or kv_slot_audit is not None:
++                raise RuntimeError("bound event packet excludes debug page/KV audits")
++            from .bound_observer import BoundEventRecorder
++            self._bound_probe = BoundEventRecorder(
++                (63, 64, 65),
++                current_stream=torch.npu.current_stream(state.target_positions.device),
++                copy_stream=getattr(proposer, "_host_copy_stream", None))
++            target._bound_probe = self._bound_probe
++            proposer._bound_probe = self._bound_probe
+         self._schedule_mode = os.getenv("EXTREME_SCHEDULE_NEXT_TARGET_METADATA", "off")
+         if self._schedule_mode not in ("off", "serial", "overlap"):
+             raise ValueError("invalid next-target metadata scheduling mode")
+@@ -381,6 +401,16 @@
+                 event = torch.npu.Event(enable_timing=True)
+                 event.record()
+                 markers.append((label, event))
++            if self._bound_probe is not None:
++                _bound_names = {
++                    "begin": "cycle_begin", "prepare_target": "prepare_target",
++                    "derived_target_metadata": "derived_target_metadata",
++                    "target": "target_after", "acceptance": "acceptance_after",
++                    "state_advance": "state_advance_after",
++                    "proposer": "proposer_after", "draft_commit": "draft_commit_after",
++                }
++                self._bound_probe.mark(_bound_cycle, _bound_names[label])
++        _bound_cycle = self.state.cycle_index
+         with self._scope("extreme::cycle"):
+             if diag is not None:
+                 diag["num_computed_before"] = self.state.num_computed_tokens.clone()
+@@ -428,6 +458,8 @@
+                 mark("target")
+             else:
+                 with self._scope("extreme::target"):
++                    if self._bound_probe is not None:
++                        self._bound_probe.mark(_bound_cycle, "target_before")
+                     if self._cycle_profiler and self._cycle_profile_sync_target:
+                         torch.npu.synchronize()
+                     target_output = self.target.execute(self.state)
+@@ -452,6 +484,8 @@
+             if self._schedule_mode == "overlap":
+                 self._launch_next_target_metadata()
+             with self._scope("extreme::proposer"):
++                if self._bound_probe is not None:
++                    self._bound_probe.mark(_bound_cycle, "proposer_before")
+                 next_draft = self.proposer.execute(
+                     self.state,
+                     target_output,

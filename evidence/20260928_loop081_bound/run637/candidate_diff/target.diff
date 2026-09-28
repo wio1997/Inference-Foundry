@@ -1,0 +1,20 @@
+--- live/target.py
++++ candidate/target.py
+@@ -65,6 +65,8 @@
+             state.target_input_ids,
+             state.target_positions,
+         )
++        if getattr(self, "_bound_probe", None) is not None:
++            self._bound_probe.mark(state.cycle_index, "target_forward_return")
+         if isinstance(model_output, tuple):
+             hidden_states, aux_hidden_states = model_output
+         else:
+@@ -75,6 +77,8 @@
+             raise ValueError("target hidden-state token count changed")
+         sample_hidden = hidden_states[state.target_logits_indices]
+         logits = self.binding.compute_logits(sample_hidden)
++        if getattr(self, "_bound_probe", None) is not None:
++            self._bound_probe.mark(state.cycle_index, "target_logits_return")
+         return TargetOutput(
+             logits=logits,
+             hidden_states=hidden_states,

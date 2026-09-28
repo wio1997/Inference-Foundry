@@ -1,0 +1,41 @@
+--- live/draft.py
++++ candidate/draft.py
+@@ -191,8 +191,15 @@
+         current = torch.npu.current_stream(counts.device)
+         self._host_copy_stream.wait_stream(current)
+         with torch.npu.stream(self._host_copy_stream):
++            _bp = getattr(self, "_bound_probe", None)
++            if _bp is not None:
++                _bp.mark(self._bound_current_cycle, "host_copy_before", stream="copy")
+             self._host_count_copy.copy_(counts, non_blocking=True)
+             self._host_copy_event.record()
++            if _bp is not None:
++                _bp.mark(self._bound_current_cycle, "host_copy_after", stream="copy")
++        if _bp is not None:
++            self._bound_previous_copy_cycle = self._bound_current_cycle
+         self._host_copy_pending = True
+ 
+     def _commit_host_mirrors(self) -> None:
+@@ -201,7 +208,13 @@
+         # The copy only depends on acceptance.  It runs on a side stream across
+         # the rest of this cycle and the next target pass, then advances the
+         # fixed mirrors immediately before their next DSpark consumer.
++        _bp = getattr(self, "_bound_probe", None)
++        if _bp is not None:
++            _bp.wait_start(self._bound_current_cycle,
++                           getattr(self, "_bound_previous_copy_cycle", -1))
+         self._host_copy_event.synchronize()
++        if _bp is not None:
++            _bp.wait_end(self._bound_current_cycle)
+         batch = self.config.batch_size
+         counts = self._host_count_copy[:batch]
+         self._committed_emitted_count[:batch].add_(counts)
+@@ -322,6 +335,8 @@
+                 event.record()
+                 markers.append((label, event))
+         mark("begin")
++        if getattr(self, "_bound_probe", None) is not None:
++            self._bound_current_cycle = state.cycle_index
+         # Consume the previous cycle's count copy only after the next target
+         # pass has given the side stream hundreds of milliseconds to finish.
+         # The current cycle's copy remains pending until the following cycle.

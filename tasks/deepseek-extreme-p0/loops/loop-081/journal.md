@@ -253,3 +253,7 @@
 - `2026-09-28T10:07:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run636`（design-check）。
 
 - `2026-09-28T10:07:39Z` Run `run636` 记录为 `pass`；正确性为 `not-applicable`。Runtime-first physical boundary source preflight only; Astra SCOPED PASS / NOT LIVE-READY; no numerical Bound.
+
+- `2026-09-28T10:31:15Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run637`（design-check）。
+
+- `2026-09-28T10:31:15Z` Run `run637` 记录为 `pass`；正确性为 `not-applicable`。Bounded observer source candidate and CPU10 negative checks; Astra source-only SCOPED PASS/NOT LIVE-READY; no service/NPU or numeric Bound.
