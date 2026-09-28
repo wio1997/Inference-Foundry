@@ -1,0 +1,131 @@
+--- /data/wio/Inference_Foundry/runtime/extreme_decode.py
++++ /data/wio/Inference_Foundry/runtime/extreme_decode.py.run659
+@@ -117,9 +117,31 @@
+         self._cycle_profile_started_ns = None
+         self.diagnostic_cycles = []
+         self.diagnostic_events = []
++        # EXTREME_RUN637_BOUND_PROBE: optional; events warm-recorded before wall timer.
++        self._bound_probe = None
++        _bp_ledger_dir = os.getenv("EXTREME_BOUND_LEDGER_DIR")
++        if os.getenv("EXTREME_BOUND_PACKET_DIR") and not _bp_ledger_dir:
++            raise RuntimeError("bound packet requires common OFF/ON ledger")
++        _bp_armed = bool(_bp_ledger_dir and os.path.isfile(
++            os.path.join(_bp_ledger_dir, "arm")))
++        self._bound_ledger_armed = _bp_armed
++        if _bp_armed and os.getenv("EXTREME_BOUND_PACKET_DIR"):
++            if self._profile_dag or self._diagnose or self._cycle_profile_dir:
++                raise RuntimeError("bound event packet incompatible with active profiler")
++            if target_page_audit is not None or kv_slot_audit is not None:
++                raise RuntimeError("bound event packet excludes debug page/KV audits")
++            from .ready_edge_observer import ReadyEdgeRecorder
++            self._bound_probe = ReadyEdgeRecorder(
++                (63, 64, 65),
++                current_stream=torch.npu.current_stream(state.target_positions.device),
++                copy_stream=getattr(proposer, "_host_copy_stream", None))
++            target._bound_probe = self._bound_probe
++            proposer._bound_probe = self._bound_probe
+         self._schedule_mode = os.getenv("EXTREME_SCHEDULE_NEXT_TARGET_METADATA", "off")
+         if self._schedule_mode not in ("off", "serial", "overlap"):
+             raise ValueError("invalid next-target metadata scheduling mode")
++        if self._bound_probe is not None and self._schedule_mode != "off":
++            raise RuntimeError("typed ready-edge packet requires scheduling mode off")
+         if self._schedule_mode != "off" and target_metadata is None:
+             raise ValueError("scheduled target metadata requires the native updater")
+         self._schedule_verify = os.getenv("EXTREME_SCHEDULE_VERIFY") == "1"
+@@ -381,6 +403,16 @@
+                 event = torch.npu.Event(enable_timing=True)
+                 event.record()
+                 markers.append((label, event))
++            if self._bound_probe is not None:
++                _bound_names = {
++                    "begin": "cycle_begin", "prepare_target": "prepare_target",
++                    "derived_target_metadata": "derived_target_metadata",
++                    "target": "target_after", "acceptance": "acceptance_after",
++                    "state_advance": "state_advance_after",
++                    "proposer": "proposer_after", "draft_commit": "draft_commit_after",
++                }
++                self._bound_probe.mark(_bound_cycle, _bound_names[label])
++        _bound_cycle = self.state.cycle_index
+         with self._scope("extreme::cycle"):
+             if diag is not None:
+                 diag["num_computed_before"] = self.state.num_computed_tokens.clone()
+@@ -396,6 +428,14 @@
+                 else:
+                     self._state_machine.prepare_target_inputs()
+             mark("prepare_target")
++            if self._bound_probe is not None:
++                for _role, _tensor in (
++                    ("after_prepare.target_input_ids", self.state.target_input_ids),
++                    ("after_prepare.target_positions", self.state.target_positions),
++                    ("after_prepare.target_slot_mapping", self.state.target_slot_mapping),
++                ):
++                    self._bound_probe.observe(_bound_cycle, _role, _tensor,
++                                              after_label="prepare_target")
+             if diag is not None:
+                 diag["target_input_ids"] = self.state.target_input_ids.view(
+                     self.config.batch_size, self.config.target_tokens_per_request
+@@ -408,6 +448,15 @@
+                     with self._scope("extreme::derived_target_metadata"):
+                         self.target_metadata.update(self.state)
+                 mark("derived_target_metadata")
++                if self._bound_probe is not None:
++                    for _index, _group in enumerate(self.target_metadata.groups):
++                        self._bound_probe.observe(
++                            _bound_cycle, f"metadata.group{_index}.sas",
++                            _group.sas_metadata, after_label="derived_target_metadata")
++                        if _group.qli_metadata is not None:
++                            self._bound_probe.observe(
++                                _bound_cycle, f"metadata.group{_index}.qli",
++                                _group.qli_metadata, after_label="derived_target_metadata")
+                 if use_scheduled:
+                     self._verify_scheduled_target()
+             if self.kv_slot_audit is not None:
+@@ -428,6 +477,8 @@
+                 mark("target")
+             else:
+                 with self._scope("extreme::target"):
++                    if self._bound_probe is not None:
++                        self._bound_probe.mark(_bound_cycle, "target_before")
+                     if self._cycle_profiler and self._cycle_profile_sync_target:
+                         torch.npu.synchronize()
+                     target_output = self.target.execute(self.state)
+@@ -449,15 +500,28 @@
+             with self._scope("extreme::state_advance"):
+                 self._state_machine.advance_state(acceptance_output)
+             mark("state_advance")
++            if self._bound_probe is not None:
++                self._bound_probe.observe(
++                    _bound_cycle, "after_state.last_sampled_tokens",
++                    self.state.last_sampled_tokens, after_label="state_advance_after")
++                self._bound_probe.observe(
++                    _bound_cycle, "after_state.num_computed_tokens",
++                    self.state.num_computed_tokens, after_label="state_advance_after")
+             if self._schedule_mode == "overlap":
+                 self._launch_next_target_metadata()
+             with self._scope("extreme::proposer"):
++                if self._bound_probe is not None:
++                    self._bound_probe.mark(_bound_cycle, "proposer_before")
+                 next_draft = self.proposer.execute(
+                     self.state,
+                     target_output,
+                     acceptance_output,
+                 )
+             mark("proposer")
++            if self._bound_probe is not None:
++                self._bound_probe.observe(
++                    _bound_cycle, "after_proposer.next_draft",
++                    next_draft, after_label="proposer_after")
+             if self._schedule_mode == "serial":
+                 self._launch_next_target_metadata()
+             if self.kv_slot_audit is not None:
+@@ -476,6 +540,10 @@
+                 self.state.draft_tokens.copy_(next_draft)
+                 self.state.cycle_index += 1
+             mark("draft_commit")
++            if self._bound_probe is not None:
++                self._bound_probe.observe(
++                    _bound_cycle, "after_commit.draft_tokens",
++                    self.state.draft_tokens, after_label="draft_commit_after")
+             if diag is not None:
+                 self.diagnostic_cycles.append(diag)
+             if markers:

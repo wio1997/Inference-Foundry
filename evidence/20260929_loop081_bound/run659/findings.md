@@ -1,0 +1,5 @@
+# Run659 — typed ready-edge source preflight
+
+Status: **source-only; never installed; no service or NPU run**. The candidate extends Run637 markers with bounded CPU-visible tensor storage, data pointer, shape, version, and actual current-stream identity at fixed c12 state/draft/target handoffs. Five exact-SHA source candidates parse and compile. CPU fake-Event checks pass with four negative cases (duplicate role, missing marker, stream drift, changed target input generation). The candidate explicitly rejects non-off scheduling mode.
+
+This is a lineage and generation gate, **not physical readiness**. Python `_version` and a current-stream Event cannot certify DSpark internal HCCL or Target Graph side-stream completion. Therefore no live acquisition, bound promotion, or claimed removable milliseconds follows from Run659 alone. The next diagnostic must attach a true final writer/consumer completion edge or use bounded native flow evidence; if that edge remains opaque, Framework-only TPS and Current→Bound Gap stay unknown. Formal Current remains Run99 571.681 tok/s.

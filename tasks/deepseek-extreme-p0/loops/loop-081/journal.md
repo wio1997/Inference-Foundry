@@ -357,3 +357,7 @@
 - `2026-09-28T16:03:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run658`（design-check）。
 
 - `2026-09-28T16:03:48Z` Run `run658` 记录为 `pass`；正确性为 `not-applicable`。Same-W0 proposer Host duration rank range median 4.549ms versus current-stream Event duration range 0.058ms, 714 cycles; no exposed-time claim
+
+- `2026-09-28T16:31:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run659`（design-check）。
+
+- `2026-09-28T16:31:21Z` Run `run659` 记录为 `pass`；正确性为 `not-applicable`。Source-only typed lineage preflight passed; physical ready and framework bound still unknown, live acquisition deferred

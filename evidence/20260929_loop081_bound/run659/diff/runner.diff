@@ -1,0 +1,59 @@
+--- /data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py
++++ /data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py.run659
+@@ -3396,6 +3396,56 @@
+                 _extreme_wall_seconds = (
+                     time.perf_counter() - _extreme_wall_start
+                 )
++                # Existing terminal synchronize above precedes extraction.
++                # torch_npu elapsed_time itself calls sync APIs; ON Product
++                # publication is perturbed and requires OFF/ON/OFF admission.
++                if _extreme_runtime._bound_ledger_armed:
++                    import hashlib
++                    _bp_ledger_dir = os.environ["EXTREME_BOUND_LEDGER_DIR"]
++                    os.makedirs(_bp_ledger_dir, exist_ok=True)
++                    _bp_rank = int(get_tp_group().rank_in_group)
++                    _bp_cohort = len(self._extreme_served_cohorts)
++                    _bp_tokens, _bp_counts = _extreme_runtime._bound_cpu_history
++                    _bp_hash = hashlib.sha256()
++                    for _bp_i in range(_cohort_output.cycles):
++                        for _bp_slot in range(12):
++                            _bp_count = int(_bp_counts[_bp_i, _bp_slot])
++                            if not 0 <= _bp_count <= 8:
++                                raise RuntimeError("bound ledger acceptance count outside fixed contract")
++                            _bp_hash.update(bytes((_bp_count,)))
++                            for _bp_token in _bp_tokens[_bp_i, _bp_slot, :_bp_count].tolist():
++                                _bp_hash.update(int(_bp_token).to_bytes(4, "little", signed=True))
++                    _bp_basis = {
++                        "cycles": _cohort_output.cycles,
++                        "canonical_effective_staged_trajectory_sha256": _bp_hash.hexdigest(),
++                        "accepted_count_history_sha256": hashlib.sha256(
++                            _bp_counts.contiguous().numpy().tobytes()).hexdigest(),
++                        "raw_padded_token_history_sha256": hashlib.sha256(
++                            _bp_tokens.contiguous().numpy().tobytes()).hexdigest(),
++                    }
++                    _bp_identity = {
++                        "rank": _bp_rank, "cohort": _bp_cohort,
++                        "req_ids": list(_extreme_req_ids),
++                        "run_ts": os.getenv("RUN_TS"),
++                        "time_namespace": os.readlink("/proc/self/ns/time"),
++                        "runtime_scoped_wall_s": _extreme_wall_seconds,
++                        "runtime_basis": _bp_basis,
++                        "generated_output_counts": _cohort_output.generated_output_counts,
++                        "product_output_sha256": hashlib.sha256(json.dumps(
++                            _cohort_output.token_ids, separators=(",", ":")
++                        ).encode()).hexdigest(),
++                    }
++                    with open(os.path.join(_bp_ledger_dir, f"rank{_bp_rank}_cohort{_bp_cohort}.json"),
++                              "w", encoding="utf-8") as _bp_file:
++                        json.dump(_bp_identity, _bp_file, separators=(",", ":"))
++                    if _extreme_runtime._bound_probe is not None:
++                        _bp_dir = os.environ["EXTREME_BOUND_PACKET_DIR"]
++                        os.makedirs(_bp_dir, exist_ok=True)
++                        _bp_packet = _extreme_runtime._bound_probe.export_after_existing_drain(
++                            _bp_identity)
++                        with open(os.path.join(_bp_dir, f"rank{_bp_rank}_cohort{_bp_cohort}.json"),
++                                  "w", encoding="utf-8") as _bp_file:
++                            json.dump(_bp_packet, _bp_file, separators=(",", ":"))
+                 _host_mirror_exact = (
+                     _extreme_runtime.proposer.validate_host_mirrors(
+                         _extreme_runtime.state
