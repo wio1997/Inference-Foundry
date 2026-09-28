@@ -305,3 +305,15 @@
 - `2026-09-28T12:22:59Z` Run `run647` 记录为 `pass`；正确性为 `not-applicable`。All8 two same-W0 inter-Graph stream47 gap exact CPU-op to Enqueue/Dequeue joins. Rank7 next Enqueue not begun10.116/8.387ms; scope labels next op only, not cause/removable. Astra independent pass, Dequeue cross-domain inversion excluded.
 
 - `2026-09-28T12:23:40Z` 暂存知识变化 `framework-only-rank7-enqueue-gap`：In Run611 same-W0 two inter-Graph windows, rank7 next async Host Enqueue had not begun during10.116/8.387ms of stream47 gaps; necessary predecessor and Product exposure unknown.
+
+- `2026-09-28T12:28:41Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run648`（review）。
+
+- `2026-09-28T12:28:41Z` Run `run648` 记录为 `pass`；正确性为 `not-applicable`。All8 Graph entry spread26.739/9.741/9.785ms, finish spread40-56us, rank7 latest local span45.1-45.4ms. Early-rank peer wait, Host issue and entry skew nonadditive; Astra recommends full same-W0 Product ledger plus transferable shape-cost intervals. Numeric whole-Product Bound remains null.
+
+- `2026-09-28T12:35:17Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run649`（review）。
+
+- `2026-09-28T12:38:11Z` Run `run649` 记录为 `pass`；正确性为 `not-applicable`。Read-only Run602/606 P0 reuse: complete separate diagnostic W0 final ID/cycle/Product ledgers; Run606 1214 cycles, 49152 final IDs, 83.395754s diagnostic wall. Astra SHA and ID-chain review pass. No formal timing transfer or numeric Bound.
+
+- `2026-09-28T12:38:11Z` 暂存知识变化 `framework-only-all8-nonadditive`：Run611 same-W0 all8 Target entry skew, early HCCL peer wait, fixed-stream gap and rank7 pre-Enqueue gap may project the same late-rank predecessor chain and cannot be added as Product savings.
+
+- `2026-09-28T12:38:11Z` 暂存知识变化 `framework-only-reuse-product-ledger`：Run606 already supplies a complete observer-perturbed same-W0 final Scheduler/API ID, Runtime 1214-cycle and Product 83.395754s ledger; Run602 is a separate 1189-cycle example. Cost, ready-edge and observer bridge remain, not P0 output identity.

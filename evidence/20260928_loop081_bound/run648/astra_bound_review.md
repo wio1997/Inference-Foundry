@@ -1,0 +1,9 @@
+# Astra High independent Framework-only Bound review after Run648
+
+No finite, credible whole-Product Framework-only TPS interval is admitted yet. Formal Current571.681tok/s is an achieved point; 600–800 TPS remain required wall-saving hurdles, not predicted or attainable bounds.
+
+Run648 confirms rank7 latest entry all three Model45 Graphs and local exported span45.1–45.4ms. Early-rank long Graph spans largely reflect arrival skew/peer wait. Host issue gap, Graph entry skew, first RS peer wait and Run641 relaxation are overlapping descriptions and must not be added. Latest-rank ready/entry or useful independent work at measured contention is the relevant legal scheduling question.
+
+V0 was overstrict in requiring every task cost from the same fully profiled W₀. Allow a complete same-W₀ work/count/Product ledger, with separately validated shape-conditioned fixed-primitive cost intervals and explicit transfer assumptions. A deliberately optimistic lower-makespan graph may omit unknown edges and set unknown costs to zero; a realizable upper witness must keep all real dependencies and pass Product correctness/E2E. Do not require full Target internal edge proof before a coarse interval. The next full Product acquisition should include final Scheduler/API token-ID ledger, request/cohort/cycle counts and client wall. Select representative transitions for Draft/state/metadata writer→consumer, rank7 input-ready→Enqueue→native, all8 matched first RS and Product publication. Preserve existing sync; separately test observer transfer, noting OFF/OFF trajectory mismatch in Run638. Old R37 is a mechanism prior, not a draft Graph gain/failure on current Extreme.
+
+Evidence/priority: P0 complete single-W₀ Product ledger, P1 bounded critical-edge packet, P2 observer bridge, P3 initial auditable conditional interval and sensitivity. No NPU run or source edit by reviewer.
