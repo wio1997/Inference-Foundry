@@ -333,3 +333,7 @@
 - `2026-09-28T12:57:54Z` Run `run652` 记录为 `pass`；正确性为 `not-applicable`。Run638 ON 64 rank-local cycle handoffs: Host submit interval median6.265ms, same-stream Event interval0.873ms, paired gap5.195ms; Host>Event64/64. Astra scoped pass; difference not idle or saving, no Product transfer.
 
 - `2026-09-28T12:57:54Z` 暂存知识变化 `framework-only-host-event-not-disjoint`：Run638 ON same-current-stream proposer-to-next-Target Event intervals median0.873ms while paired Host marker intervals median6.265ms; the Host interval cannot be inserted as disjoint exposed stream or Product cost.
+
+- `2026-09-28T13:12:37Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run653`（review）。
+
+- `2026-09-28T13:12:37Z` Run `run653` 记录为 `pass`；正确性为 `not-applicable`。Historical Runs87/98/367 all8 full single-cohort cycle stage priors: within-W0 pooled steady medians stable, startup proposer high, Run367 rank6 differs; Astra scoped pass. No Run606 cost or Product Bound transfer.

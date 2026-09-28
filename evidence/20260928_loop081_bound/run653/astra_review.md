@@ -1,0 +1,7 @@
+# Astra High independent Run653 review
+
+**SCOPED PASS** as a historical full-cycle stage-cost prior only. The final reducer verifies30 static SHA pins, exact stage labels, finite nonnegative values and per-rank summaries. Independent replay matched every JSON field and all window medians. Run87/98/367 have301/300/293 cycles respectively. After cycle8, pooled Target window-median ranges are47.391–47.974/46.394–46.711/50.074–50.635ms; proposer ranges6.311–6.395/6.359–6.407/6.283–6.430ms. Run367 wider exclusion63–67 versus64–66 changes its pooled normal Target median by only+0.002010ms.
+
+These central trends are within separate historical diagnostics, not transferable Run606 primitive service. Run367 rank6 steady Target median46.533ms versus50.451–50.571ms on other ranks; pooled values hide this persistent rank difference. Steady proposer tails reach17–20ms. First8 proposer medians are48–52ms and require a separate startup class. Run87/98 did not have warm48; Run367 did and enabled whole-run PROFILE_SCOPES/GMM live counts, in addition to nominal cycle64–65 profiler. Run98 metadata configuration differs. Excluding three or five cycles does not remove observer effects. Original files lack complete source/config/shape/trajectory identity, and Event stage intervals include wait and queue time. None is an intrinsic fixed-primitive cost, legal schedule lower bound or Product TPS.
+
+Final SHA prefixes: script `456e5443`, JSON `72e66393`, pins `ca7f9ec9`. Read-only review, no NPU service.
