@@ -353,3 +353,7 @@
 - `2026-09-28T15:47:55Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run657`（design-check）。
 
 - `2026-09-28T15:48:32Z` Run `run657` 记录为 `pass`；正确性为 `not-applicable`。Run656 same-W0 read-only 714-cycle Host-submit skew replay: Target shrinks spread median 4.460ms, proposer grows it median 3.594ms; no device-ready or Product saving claim
+
+- `2026-09-28T16:03:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run658`（design-check）。
+
+- `2026-09-28T16:03:48Z` Run `run658` 记录为 `pass`；正确性为 `not-applicable`。Same-W0 proposer Host duration rank range median 4.549ms versus current-stream Event duration range 0.058ms, 714 cycles; no exposed-time claim
