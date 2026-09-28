@@ -249,3 +249,7 @@
 - `2026-09-28T09:58:01Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run635`（design-check）。
 
 - `2026-09-28T09:58:50Z` Run `run635` 记录为 `pass`；正确性为 `not-applicable`。V3.46 same-W0 current diagnostic preparation coverage only; Astra SCOPED PASS,92 endpoint/evidence and19 certificate negative challenges; all numeric Bounds null.
+
+- `2026-09-28T10:07:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run636`（design-check）。
+
+- `2026-09-28T10:07:39Z` Run `run636` 记录为 `pass`；正确性为 `not-applicable`。Runtime-first physical boundary source preflight only; Astra SCOPED PASS / NOT LIVE-READY; no numerical Bound.
