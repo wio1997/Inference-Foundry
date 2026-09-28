@@ -768,3 +768,7 @@ Source and Astra review support an aux/context branch separate from acceptance/q
 ## Run600 same-W₀ Host accounting checkpoint
 
 Read-only Run341-derived reducer: 42 source/evidence inputs, 32 rank-cohort records, all8 request IDs and call ordinal/shape gates PASS; independent Astra scoped PASS. Cohort Host first-execute→Runtime-built envelopes 2.879/3.514/3.507/3.214s, rank-local outside-forward remainder 0.594–1.253s. Scheduler cached output counts can include placeholders. No live service, formal TPS or numeric Bound update. Current Formal571.681 tok/s.
+
+## Run601–603 Bound-first diagnostic checkpoint
+
+Run601 read-only Product source gate PASS. Run602 guarded warm48/measured48 c12/1024, all8 basis/Product/client validation and independent Astra review scoped PASS; source restoration, tagged stop and all8 idle verified. Its 537.276tok/s is **diagnostic only**, with synchronous observer writes, and is not compared to formal Run99. Same-W₀ actual Scheduler prefix1,017 + retained Runtime bulk48,135 =49,152 outputs;768 placeholders are excluded, one API-counted prefix ID has no SSE yield. Run603 read-only current-work census:71 ordinary Target/proposal pairs per rank and7,283 scheduled/7,496 Target padded rows. No intervention, performance KEEP or numeric Bound. Formal E2E Current remains571.681tok/s. Next source-only preparation dispatch/readiness audit before a minimal all8 witness; preserve fixed DSpark7 acceptance/cycle/output behavior.

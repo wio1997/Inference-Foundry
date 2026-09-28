@@ -77,3 +77,15 @@
 - `2026-09-28T03:05:39Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run600`（design-check）。
 
 - `2026-09-28T03:05:39Z` Run `run600` 记录为 `pass`；正确性为 `not-applicable`。Read-only same-Run341-W0 all8 Host preparation ledger: 42 hashed inputs, 32 rank-cohort request/ordinal/shape gates and Astra scoped PASS; no numeric Bound or formal TPS.
+
+- `2026-09-28T03:58:48Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run601`（review）。
+
+- `2026-09-28T03:58:55Z` Run `run601` 记录为 `pass`；正确性为 `not-applicable`。Read-only nine installed source/five evidence SHA gate; typed Product handoff-to-SSE ownership sites; no device-ready or numeric Bound.
+
+- `2026-09-28T03:59:35Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run602`（profile）。
+
+- `2026-09-28T03:59:46Z` Run `run602` 记录为 `pass`；正确性为 `pass`。Scoped diagnostic fixed-DSpark7 ownership PASS: warm48/measured48 c12/1024, all8 basis and Product token joins; actual prebulk1017+accepted Runtime48135=49152; one parser-suppressed ID; 9 cleanup exits zero/source restored; observer-perturbed timing, no numerical Bound or formal TPS.
+
+- `2026-09-28T04:00:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run603`（design-check）。
+
+- `2026-09-28T04:00:44Z` Run `run603` 记录为 `pass`；正确性为 `not-applicable`。Run602 same-W0 all8 admitted current prep census:71 ordinary Target/proposal pairs,3 zero-token executes,4 96-token handoffs,7283 ordinary scheduled and7496 Target padded rows per rank; not compulsory or a critical-path Bound.

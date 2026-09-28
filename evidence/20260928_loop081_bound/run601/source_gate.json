@@ -1,0 +1,172 @@
+{
+  "status": "source_site_gate_pass",
+  "source_count": 9,
+  "evidence_count": 5,
+  "sources": {
+    "runner": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "004dbd0d5b1a5c3f9533fa1d12327bd0ae421fe24bb2674544b2c4a25d74aaba",
+      "anchors": {
+        "def execute_model(": [
+          1794
+        ],
+        "_extreme_runtime = build_extreme_runtime(": [
+          2338,
+          3867
+        ],
+        "initial_output_counts=[0] * _cfg.batch_size,": [
+          3392
+        ],
+        "self._extreme_serving_output = ModelRunnerOutput(": [
+          3457
+        ],
+        "hidden_states = self._model_forward(": [
+          3673
+        ],
+        "def propose_draft_token_ids(sampled_token_ids):": [
+          4092
+        ],
+        "self._copy_draft_token_ids_to_cpu(scheduler_output)": [
+          4107
+        ],
+        "self.draft_token_ids_copy_stream.wait_stream(default_stream)": [
+          1785
+        ]
+      }
+    },
+    "draft_base": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "e3e1ff579e67f845f155c983294ae5546e6ee76ba330098d7867e870c3f9f6e4",
+      "anchors": {
+        "def _propose(": [
+          998
+        ],
+        "target_hidden_states = self.model.combine_hidden_states(target_hidden_states)": [
+          1040
+        ],
+        "num_tokens, token_indices_to_sample, common_attn_metadata, long_seq_args = self.set_inputs_first_pass(": [
+          1043
+        ],
+        "draft_token_ids = run_draft()": [
+          1289,
+          1291
+        ]
+      }
+    },
+    "dspark": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "e9163996db794c5fba777ea55a5374283780a2fd3404778f5369caea76f9344f",
+      "anchors": {
+        "def set_inputs_first_pass(": [
+          252
+        ],
+        "self._dspark_seed_buffer[:n].copy_(next_token_ids)": [
+          268
+        ],
+        "self._dflash_hidden_states[: self._dflash_num_context] = target_hidden_states[: self._dflash_num_context]": [
+          281
+        ],
+        "copy_and_expand_dflash_and_dspark_inputs_kernel_single_grid[1,](": [
+          299
+        ]
+      }
+    },
+    "scheduler": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm/vllm/v1/core/sched/scheduler.py",
+      "sha256": "3e99cceb3a9155c0069c94d4ffe254adc141f6e9821afab4feac703f5f38cb46",
+      "anchors": {
+        "req.num_output_tokens + req.num_output_placeholders": [
+          1387
+        ]
+      }
+    },
+    "kvdelivery": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm-ascend/vllm_ascend/patch/platform/patch_kv_delivery_preemption.py",
+      "sha256": "5ba894b9ec003502c008e12281c260787ed64a419327c451c8e67374bf525e8d",
+      "anchors": {
+        "def update_from_output(": [
+          833
+        ],
+        "num_output_tokens_before = len(request._output_token_ids)": [
+          966
+        ],
+        "if model_runner_output.extreme_bulk_output:": [
+          970
+        ],
+        "KVDeliveryScheduler._update_request_with_output(": [
+          976
+        ]
+      }
+    },
+    "chat_serving": {
+      "path": "/data/wio/vllm_ascend_26/framework/vllm/vllm/entrypoints/openai/chat_completion/serving.py",
+      "sha256": "860e27d548ec7bb0497a46e0356a5acc5500998944cffa5e67e336041693c067",
+      "anchors": {
+        "async def chat_completion_stream_generator(": [
+          414
+        ],
+        "previous_num_tokens[i] += len(output.token_ids)": [
+          624
+        ],
+        "yield f\"data: {data}\\n\\n\"": [
+          466,
+          534,
+          570,
+          753,
+          832
+        ],
+        "yield \"data: [DONE]\\n\\n\"": [
+          467,
+          834
+        ]
+      }
+    },
+    "bootstrap": {
+      "path": "/data/wio/Inference_Foundry/bootstrap/vllm_extreme_handoff.py",
+      "sha256": "f644bd14ac1cb9c8365ba2464abbff989d7f2c4c2d58279a8e18a5bce918716f",
+      "anchors": {
+        "def build_extreme_runtime(": [
+          46
+        ],
+        "state = FixedDecodeState.bind(": [
+          53
+        ],
+        "return ExtremeDecodeRuntime(": [
+          203
+        ]
+      }
+    },
+    "serving": {
+      "path": "/data/wio/Inference_Foundry/runtime/fixed_serving.py",
+      "sha256": "137f1cc6a460700e6f26e5837aa062022eb621198e33099b85988f8b7ef6743a",
+      "anchors": {
+        "def run(self) -> FixedCohortOutput:": [
+          120
+        ]
+      }
+    },
+    "client": {
+      "path": "/data/wio/Inference_Foundry/scripts/loop080_frontier_client.py",
+      "sha256": "12fb38f53d5927f3731e6584d9a1ef0c5715bc343972021a15c14938d4d57872",
+      "anchors": {
+        "async with session.post(args.url, json=request_body) as response:": [
+          146
+        ],
+        "fragment_recv_ns = time.monotonic_ns()": [
+          155
+        ],
+        "\"sse_done_monotonic_ns\": done_ns,": [
+          237
+        ]
+      }
+    }
+  },
+  "evidence_sha256": {
+    "evidence/20260926_loop059_boundary/run239/phase_analysis.json": "8fd38efea918c594d782a3f21b62c270d933fe180abe7aea07537da2edf6502a",
+    "evidence/20260926_loop074_refill/run341/phase_analysis.json": "ecd1c4b23312a6fe0f877994d317a07036d52cafb95e746212533aedae99467c",
+    "evidence/20260926_loop074_refill/run341/scheduler_analysis.json": "00f28ac066c50be58df7fe900861df2c19335729a262db59c5553cbcabb9442d",
+    "evidence/20260928_loop081_bound/run597/live/b/basis_admission.json": "9a9acb8389e9135e0c8bc0b24a89a5e37515b7da51c6e67e104563cb9da7be1c",
+    "evidence/20260928_loop081_bound/run600/host_envelope.json": "25e5ca85bfb9b291335f60e47ce5fde95f0defa5466a0c697f5ed3769ae6c7d5"
+  },
+  "scope": "Anchor locations and exact source/evidence identity only. No async writer-ready, complete consumer DAG, measured overlap or numerical Bound."
+}
