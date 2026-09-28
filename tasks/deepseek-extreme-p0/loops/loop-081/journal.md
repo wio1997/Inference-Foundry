@@ -185,3 +185,13 @@
 - `2026-09-28T08:19:19Z` Run `run622` 记录为 `pass`；正确性为 `not-applicable`。All8 actual-W0 3-layer SWA cache descriptor 3.351GB storage/rank, 1KiB logical row. Hypothetical two-cycle 3-layer pre/post selected-row copy budget12KiB/rank <128KiB; full block-table view1.573MB/rank must be selected, not blindly copied. No actual slot values/reader or compulsory bytes/Bound.
 
 - `2026-09-28T08:28:11Z` 暂存知识变化 `PK-112`：Actual all8 DSpark SWA cache descriptor geometry and hypothetical selected-row payload are observed; storage capacity is not compulsory HBM traffic or a Scheduling floor.
+
+- `2026-09-28T08:37:40Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run623`（review）。
+
+- `2026-09-28T08:37:40Z` Run `run623` 记录为 `pass`；正确性为 `not-applicable`。Source-only actual context/query/attention hook and bounded typed-packet design; NOT LIVE-READY, no numeric Bound promotion.
+
+- `2026-09-28T08:39:46Z` 暂存知识变化 `PK-113`：Run621 pre-refresh flat slot descriptor cannot identify actual formatted scatter or branch-specific sparse reader; capture actual invocation values and row generations in one acquisition.
+
+- `2026-09-28T08:44:22Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run624`（design-check）。
+
+- `2026-09-28T08:44:22Z` Run `run624` 记录为 `pass`；正确性为 `not-applicable`。V3.43 all strict and conditional numeric endpoints null; Astra High SCOPED PASS and 16 negative injections. Formal Current571.681.
