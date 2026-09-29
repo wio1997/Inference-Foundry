@@ -1,0 +1,462 @@
+"""One-time extraction of the working DSpark7 operator from vLLM-Ascend."""
+
+from __future__ import annotations
+
+import os
+from contextlib import nullcontext
+from dataclasses import dataclass
+from types import SimpleNamespace
+from typing import Any, Callable
+
+import torch
+from torch.profiler import record_function
+from vllm.config import set_current_vllm_config
+
+from runtime.fixed_decode import AcceptanceOutput, FixedDecodeConfig, FixedDecodeState, TargetOutput
+
+
+def refresh_fixed_common(
+    state: FixedDecodeState,
+    common: Any,
+) -> None:
+    """Refresh the fixed common-attention buffers without a metadata builder."""
+
+    batch = state.target_seq_lens.shape[0]
+    total = state.target_input_ids.shape[0]
+    common.query_start_loc[: batch + 1].copy_(state.target_query_start_loc)
+    common.seq_lens[:batch].copy_(state.target_seq_lens)
+    common.slot_mapping[:total].copy_(state.target_slot_mapping)
+    if common.slot_mapping.shape[0] > total:
+        common.slot_mapping[total:].fill_(-1)
+    if common.positions is not None:
+        common.positions[:total].copy_(state.target_positions)
+    common.block_table_tensor = state.block_table
+    common.num_reqs = batch
+    common.num_actual_tokens = total
+    common.num_input_tokens = total
+    common.max_query_len = total // batch
+
+    # Host mirrors are advanced by DirectDSparkHandoff from the tiny
+    # acceptance-count vector.  Pulling query, sequence and computed tensors
+    # back from the device here serialized every cycle before DSpark.
+
+
+@dataclass(frozen=True)
+class DSparkHandoffInputs:
+    proposer: Any
+    common_attn_metadata: Any
+    sampling_metadata: Any
+    target_model_batch_desc: Any
+    actual_seq_lengths_q: Any
+    attn_state: Any
+    decode_token_per_req: Any
+    refresh_common: Callable[[FixedDecodeState, Any], None]
+    group_slot_bindings: tuple[tuple[int, torch.Tensor, torch.Tensor, int], ...] = ()
+
+
+class _DP1RunnerShim:
+    """Only the fixed eager DSpark fields still read by the borrowed operator."""
+
+    def __init__(self, inputs: DSparkHandoffInputs) -> None:
+        self.dcp_manager = None
+        self.input_batch = SimpleNamespace(lora_id_to_lora_request={})
+        self.dynamic_eplb = False
+        self.eplb_heat_collection_status = False
+        self.num_rejected_tokens_event = None
+        self.actual_seq_lengths_q = inputs.actual_seq_lengths_q
+        self.attn_state = inputs.attn_state
+        self.decode_token_per_req = inputs.decode_token_per_req
+
+    @staticmethod
+    def _sync_metadata_across_dp(num_tokens: int, **_: Any):
+        return num_tokens, None, False
+
+
+class DirectDSparkHandoff:
+    """Request-free adapter around the already-loaded fixed DSpark model.
+
+    The proposer/model and its device buffers are retained, but its reference
+    to the generic ModelRunner is replaced during handoff by a DP1 fixed shim.
+    """
+
+    def __init__(
+        self,
+        config: FixedDecodeConfig,
+        inputs: DSparkHandoffInputs,
+    ) -> None:
+        if getattr(inputs.proposer, "use_cuda_graph", False):
+            raise ValueError("initial Extreme DSpark handoff requires eager proposer")
+        self.config = config
+        self.proposer = inputs.proposer
+        self.common_attn_metadata = inputs.common_attn_metadata
+        self.sampling_metadata = inputs.sampling_metadata
+        self.target_model_batch_desc = inputs.target_model_batch_desc
+        self.refresh_common = inputs.refresh_common
+        self._group_slot_bindings = inputs.group_slot_bindings
+        self._refresh_draft_slots = os.getenv("EXTREME_DSPARK_SLOT_REFRESH") == "1"
+        self.slot_refresh_audit: list[dict[str, object]] = []
+        from serving.cohort_mode import read_cohort_mode
+        self._slot_audit_mode = read_cohort_mode(os.environ['EXTREME_SLOT_AUDIT_MODE_FILE'])
+        self._defer_slot_audit = self._slot_audit_mode['enabled']
+        self._pending_slot_refresh_audit = []
+        self._startup_slot_certificate = None
+        self._slot_certificate_mode = read_cohort_mode(os.environ['EXTREME_SLOT_CERTIFICATE_MODE_FILE'])
+        if self._refresh_draft_slots:
+            expected_gids = {group.kv_cache_group_id for group in inputs.proposer.draft_attn_groups}
+            bound_gids = {gid for gid, _, _, _ in self._group_slot_bindings}
+            if expected_gids != bound_gids:
+                raise ValueError(f"draft slot bindings {bound_gids} != {expected_gids}")
+            for gid, _, mapping, _ in self._group_slot_bindings:
+                actual = inputs.proposer._per_group_slot_mappings[gid]
+                if actual.data_ptr() != mapping.data_ptr():
+                    raise RuntimeError(f"draft group {gid} slot mapping lost bootstrap alias")
+        self._profile_scopes = os.getenv("EXTREME_RUNTIME_PROFILE_SCOPES") == "1"
+        self._profile_dag = os.getenv("EXTREME_RUNTIME_PROFILE_DAG") == "1"
+        self.dag_events: list[list[tuple[str, Any]]] = []
+        self.proposer.runner = _DP1RunnerShim(inputs)
+        draft_counts = torch.full(
+            (config.batch_size,),
+            config.speculative_tokens,
+            dtype=torch.int32,
+            device=self.common_attn_metadata.query_start_loc.device,
+        )
+        self._spec_metadata = SimpleNamespace(
+            cu_num_draft_tokens=draft_counts.cumsum(dim=0)
+        )
+        self._profile_hooks: list[Any] = []
+        self._host_count_copy: torch.Tensor | None = None
+        self._host_copy_stream: Any = None
+        self._host_copy_event: Any = None
+        self._host_copy_pending = False
+        self._committed_emitted_count = torch.zeros(
+            config.batch_size, dtype=torch.int64
+        )
+        if self.common_attn_metadata.query_start_loc_cpu is None:
+            raise ValueError("fixed DSpark requires a bootstrap query-start host mirror")
+        if getattr(self.common_attn_metadata, "_seq_lens_cpu", None) is None:
+            raise ValueError("fixed DSpark requires a bootstrap sequence-length host mirror")
+        if self.common_attn_metadata.query_start_loc_cpu.numel() < config.batch_size + 1:
+            raise ValueError("bootstrap query-start host mirror is too small")
+        if self.common_attn_metadata._seq_lens_cpu.numel() < config.batch_size:
+            raise ValueError("bootstrap sequence-length host mirror is too small")
+        device = self.common_attn_metadata.query_start_loc.device
+        if device.type == "npu":
+            self._host_count_copy = torch.empty(
+                config.batch_size, dtype=torch.int32, pin_memory=True
+            )
+            self._host_copy_stream = torch.npu.Stream(device=device)
+            self._host_copy_event = torch.npu.Event()
+        if self._profile_scopes:
+            self._install_layer_profile_hooks()
+
+    def _scope(self, name: str):
+        if self._profile_scopes:
+            return record_function(name)
+        return nullcontext()
+
+    def _install_layer_profile_hooks(self) -> None:
+        draft_model = getattr(getattr(self.proposer, "model", None), "model", None)
+        layers = getattr(draft_model, "layers", None)
+        if layers is None:
+            return
+        items = layers.items() if hasattr(layers, "items") else enumerate(layers)
+        for name, layer in items:
+            active: list[Any] = []
+
+            def before(_module, _inputs, label=str(name), stack=active):
+                scope = record_function(f"extreme::dspark_layer::{label}")
+                scope.__enter__()
+                stack.append(scope)
+
+            def after(_module, _inputs, output, stack=active):
+                stack.pop().__exit__(None, None, None)
+                return output
+
+            self._profile_hooks.append(layer.register_forward_pre_hook(before))
+            self._profile_hooks.append(layer.register_forward_hook(after))
+
+    @staticmethod
+    def _unique_host_mirrors(common: Any, names: tuple[str, ...]) -> list[torch.Tensor]:
+        mirrors: list[torch.Tensor] = []
+        seen: set[int] = set()
+        for name in names:
+            value = getattr(common, name, None)
+            if value is None:
+                continue
+            identity = value.data_ptr()
+            if identity not in seen:
+                mirrors.append(value)
+                seen.add(identity)
+        return mirrors
+
+    def _launch_host_count_copy(self, counts: torch.Tensor) -> None:
+        if self._host_count_copy is None:
+            return
+        if self._host_copy_pending:
+            raise RuntimeError("previous DSpark host mirror copy was not committed")
+        current = torch.npu.current_stream(counts.device)
+        self._host_copy_stream.wait_stream(current)
+        with torch.npu.stream(self._host_copy_stream):
+            self._host_count_copy.copy_(counts, non_blocking=True)
+            self._host_copy_event.record()
+        self._host_copy_pending = True
+
+    def _commit_host_mirrors(self) -> None:
+        if self._host_count_copy is None or not self._host_copy_pending:
+            return
+        # The copy only depends on acceptance.  It runs on a side stream across
+        # the rest of this cycle and the next target pass, then advances the
+        # fixed mirrors immediately before their next DSpark consumer.
+        self._host_copy_event.synchronize()
+        batch = self.config.batch_size
+        counts = self._host_count_copy[:batch]
+        self._committed_emitted_count[:batch].add_(counts)
+        for mirror in self._unique_host_mirrors(
+            self.common_attn_metadata,
+            ("seq_lens_cpu", "_seq_lens_cpu", "seq_lens_cpu_upper_bound"),
+        ):
+            mirror[:batch].add_(counts)
+        self._host_copy_pending = False
+        for mirror in self._unique_host_mirrors(
+            self.common_attn_metadata,
+            ("num_computed_tokens_cpu", "_num_computed_tokens_cpu"),
+        ):
+            mirror[:batch].add_(counts)
+
+    def park_completed_slots(
+        self, slots: list[int], positions: list[int]
+    ) -> None:
+        """Move completed fixed slots to owned KV space between cycles."""
+
+        if not slots:
+            return
+        # Include the current cycle's pending count before changing the
+        # sequence-position mirrors. Subsequent copies are zero for parked slots.
+        self._commit_host_mirrors()
+        width = self.config.target_tokens_per_request
+        for mirror in self._unique_host_mirrors(
+            self.common_attn_metadata,
+            ("seq_lens_cpu", "_seq_lens_cpu", "seq_lens_cpu_upper_bound"),
+        ):
+            for slot, position in zip(slots, positions):
+                mirror[slot] = position + width
+        for mirror in self._unique_host_mirrors(
+            self.common_attn_metadata,
+            ("num_computed_tokens_cpu", "_num_computed_tokens_cpu"),
+        ):
+            for slot, position in zip(slots, positions):
+                mirror[slot] = position
+
+    def committed_emitted_token_count(self) -> torch.Tensor:
+        """Return lagged Host progress without synchronizing the proposer."""
+
+        return self._committed_emitted_count
+
+    def validate_host_mirrors(self, state: FixedDecodeState) -> bool:
+        self._startup_boundary_mark('validation_begin')
+        try:
+            """Post-run correctness gate; never called on the timed hot path."""
+
+            self._flush_slot_refresh_audit()
+            self._commit_host_mirrors()
+            batch = self.config.batch_size
+            width = self.config.target_tokens_per_request
+            query = state.target_query_start_loc.cpu()
+            next_seq = state.num_computed_tokens.cpu() + width
+            computed = state.num_computed_tokens.cpu()
+            checks = [
+                torch.equal(
+                    self.common_attn_metadata.query_start_loc_cpu[: batch + 1],
+                    query,
+                )
+            ]
+            checks.append(
+                torch.equal(
+                    self._committed_emitted_count[:batch],
+                    state.emitted_token_count.cpu().to(torch.int64),
+                )
+            )
+            for mirror in self._unique_host_mirrors(
+                self.common_attn_metadata,
+                ("seq_lens_cpu", "_seq_lens_cpu", "seq_lens_cpu_upper_bound"),
+            ):
+                checks.append(torch.equal(mirror[:batch], next_seq))
+            for mirror in self._unique_host_mirrors(
+                self.common_attn_metadata,
+                ("num_computed_tokens_cpu", "_num_computed_tokens_cpu"),
+            ):
+                checks.append(torch.equal(mirror[:batch], computed))
+            return all(checks)
+        finally:
+            self._startup_boundary_mark('validation_end')
+
+    def _startup_boundary_mark(self, kind):
+        owner = getattr(self, '_startup_boundary_owner', None)
+        if owner is not None:
+            from diagnostics.startup_boundary.observer import worker_event
+            worker_event(owner, kind, submit_id=owner._ob_current_submit)
+
+    def certify_startup_slots(self, state, positions, remaining, schedule_mode) -> None:
+        self._startup_boundary_mark('certificate_begin')
+        try:
+            if not self._slot_certificate_mode['enabled']:
+                return
+            from runtime.startup_slot_certificate import StartupSlotCertificate
+            self._startup_slot_certificate = StartupSlotCertificate.build(
+                bindings=self._group_slot_bindings, positions=list(positions),
+                remaining=list(remaining), cycle_index=state.cycle_index,
+                schedule_mode=schedule_mode, batch_size=self.config.batch_size,
+                width=self.config.target_tokens_per_request, computed_dtype=state.num_computed_tokens.dtype)
+        finally:
+            self._startup_boundary_mark('certificate_end')
+
+    def _flush_slot_refresh_audit(self) -> None:
+        self._startup_boundary_mark('audit_flush_begin')
+        try:
+            pending = self._pending_slot_refresh_audit
+            if not pending:
+                return
+            # Results were computed before each mapping mutation; they are scalars,
+            # not views of mapping/table/state. Caller already ended Runtime sync.
+            values = torch.stack([
+                torch.stack((changed, zero)) for _, _, changed, zero in pending
+            ]).cpu().tolist()
+            rows = [dict(cycle=cycle, gid=gid, changed=int(value[0]), zero_blocks=int(value[1]))
+                    for (cycle, gid, _, _), value in zip(pending, values)]
+            self.slot_refresh_audit.extend(rows)
+            self._pending_slot_refresh_audit = []
+        finally:
+            self._startup_boundary_mark('audit_flush_end')
+
+    @torch.inference_mode()
+    def _refresh_draft_context_slots(self, state: FixedDecodeState) -> None:
+        if not self._refresh_draft_slots:
+            return
+        positions = state.target_positions.view(self.config.batch_size, 8).to(torch.int64)
+        requests = torch.arange(self.config.batch_size, device=positions.device).unsqueeze(1)
+        guard_required = state.cycle_index < 8
+        if guard_required and self._startup_slot_certificate is not None:
+            guard_required = not self._startup_slot_certificate.permits(
+                state.cycle_index, self._group_slot_bindings)
+        for gid, table, mapping, block_size in self._group_slot_bindings:
+            logical = torch.div(positions, block_size, rounding_mode="floor")
+            if guard_required and bool((logical < 0).any() or (logical >= table.shape[1]).any()):
+                raise RuntimeError(f"draft group {gid} block table outside reserved range")
+            blocks = table[requests, logical].to(torch.int64)
+            if guard_required and bool((blocks < 0).any()):
+                raise RuntimeError(f"draft group {gid} has negative physical block")
+            expected = (blocks * block_size + positions.remainder(block_size)).flatten()
+            deferred = self._defer_slot_audit and state.cycle_index < 8
+            if deferred:
+                # Snapshot the count before copy_, preserving original semantics.
+                changed_tensor = (mapping[:96].to(torch.int64) != expected).sum()
+                changed = None
+            else:
+                changed = int((mapping[:96].to(torch.int64) != expected).sum().item()) if state.cycle_index < 8 else None
+            mapping[:96].copy_(expected.to(mapping.dtype))
+            if deferred:
+                zero_tensor = (blocks == 0).sum()
+                if len(self._pending_slot_refresh_audit) >= 8 * len(self._group_slot_bindings):
+                    raise RuntimeError('slot audit exceeded bounded startup rows')
+                self._pending_slot_refresh_audit.append((state.cycle_index, gid, changed_tensor, zero_tensor))
+            elif changed is not None:
+                self.slot_refresh_audit.append({"cycle": state.cycle_index, "gid": gid,
+                                                "changed": changed,
+                                                "zero_blocks": int((blocks == 0).sum().item())})
+
+    def execute(
+        self,
+        state: FixedDecodeState,
+        target: TargetOutput,
+        acceptance: AcceptanceOutput,
+    ) -> torch.Tensor:
+        with set_current_vllm_config(self.proposer.vllm_config):
+            return self._execute(state, target, acceptance)
+
+    def _execute(
+        self,
+        state: FixedDecodeState,
+        target: TargetOutput,
+        acceptance: AcceptanceOutput,
+    ) -> torch.Tensor:
+        markers: list[tuple[str, Any]] = []
+        def mark(label: str) -> None:
+            if self._profile_dag:
+                event = torch.npu.Event(enable_timing=True)
+                event.record()
+                markers.append((label, event))
+        mark("begin")
+        # Consume the previous cycle's count copy only after the next target
+        # pass has given the side stream hundreds of milliseconds to finish.
+        # The current cycle's copy remains pending until the following cycle.
+        with self._scope("extreme::dspark_host_mirror_commit"):
+            self._commit_host_mirrors()
+        with self._scope("extreme::dspark_host_mirror_launch"):
+            self._launch_host_count_copy(state.num_sampled)
+        mark("host_mirror")
+        with self._scope("extreme::dspark_refresh_common"):
+            self.refresh_common(state, self.common_attn_metadata)
+        mark("refresh_common")
+        with self._scope("extreme::dspark_context_slots"):
+            self._refresh_draft_context_slots(state)
+        with self._scope("extreme::dspark_prepare_inputs"):
+            (
+                common,
+                token_indices,
+                token_indices_to_sample,
+                num_rejected,
+            ) = self.proposer.prepare_inputs_padded(
+                self.common_attn_metadata,
+                self._spec_metadata,
+                acceptance.num_sampled,
+            )
+        mark("prepare_inputs")
+        if os.getenv("EXTREME_PROPOSER_PARITY") == "1":
+            self.parity_prepare = {
+                "token_indices": token_indices.clone(),
+                "sample_indices": token_indices_to_sample.clone(),
+                "num_rejected": num_rejected.clone(),
+                "query_start_loc": common.query_start_loc.clone(),
+                "seq_lens": common.seq_lens.clone(),
+            }
+        with self._scope("extreme::dspark_pack_hidden"):
+            hidden = (
+                torch.cat(target.aux_hidden_states, dim=-1)
+                if target.aux_hidden_states
+                else target.hidden_states
+            )
+            target_token_ids = state.target_input_ids[token_indices]
+            target_positions = state.target_positions[token_indices]
+            target_hidden_states = hidden[token_indices]
+        mark("pack_hidden")
+        if os.getenv("EXTREME_PROPOSER_PARITY") == "1":
+            self.parity_inputs = {
+                "target_token_ids": target_token_ids.clone(),
+                "target_positions": target_positions.clone(),
+                "target_hidden_states": target_hidden_states.clone(),
+                "next_token_ids": state.last_sampled_tokens.clone(),
+            }
+        with self._scope("extreme::dspark_model"):
+            next_draft = self.proposer._propose(
+                target_token_ids=target_token_ids,
+                target_positions=target_positions,
+                target_hidden_states=target_hidden_states,
+                next_token_ids=state.last_sampled_tokens,
+                token_indices_to_sample=token_indices_to_sample,
+                common_attn_metadata=common,
+                target_model_batch_desc=self.target_model_batch_desc,
+                sampling_metadata=self.sampling_metadata,
+                num_scheduled_tokens=self.config.target_token_count,
+                num_rejected_tokens_gpu=num_rejected,
+                num_draft_tokens_cpu=[
+                    self.config.speculative_tokens
+                ] * self.config.batch_size,
+            )
+        mark("model")
+        if markers:
+            self.dag_events.append(markers)
+        return next_draft
+
+    @staticmethod
+    def state_fingerprint() -> dict[str, torch.Tensor]:
+        return {}

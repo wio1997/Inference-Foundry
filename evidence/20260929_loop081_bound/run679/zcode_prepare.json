@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c900411a-b28a-496f-b98e-a3ffc900b228",
+  "traceId": "b3eddd65-e462-402b-b01e-6f8876ca358a",
+  "turnId": "turn_b96c6b9b-7cc9-44f1-a8a0-db3e29d7c2a5",
+  "response": "脚本运行无误并成功完成：`{\"prepared\": true, \"files\": 5, \"no_install\": true}`。未安装任何内容——五个实时源文件仍与其\"之前\"哈希逐字节相同。\n\n## 它做了什么\n\n它从已验证的 Run678 基线暂存了新的 Run679 候选文件，并逐个文件进行哈希固定：\n\n1. **首先验证了基线。** 它断言全部五个实时源文件仍与 `run678/candidate_manifest.json` 中的\"之前\"哈希匹配，并且所有五个 Run678 候选文件仍与其记录的\"候选\"哈希匹配。任何不匹配都会在写入前以硬断言失败的方式中止，因此不可能在静默漂移的基线上进行暂存。\n2. **将两个偏移路径补丁模块** 应用于 Run678 候选文件：\n   - `runner`（`model_runner_v1.py`）——从 Run676 的普通边界观察器切换为 `diagnostics.startup_boundary.observer`（环境变量 `EXTREME_STARTUP_BOUNDARY_DIR`），并添加了主机端跨度：`execute_entry`、`handoff_entry`、`runtime_built`、`capture_begin/end`、`runtime_begin/end`、`seed_begin/propose_end/end`、`target_begin/end`，以及一个终端 `output_ready` + `flush`，替换了先前的普通刷新块。\n   - `handoff`（`vllm_dspark_handoff.py`）——将 `certify_startup_slots`、`_flush_slot_refresh_audit` 和 `validate_host_mirrors` 包裹在带有 `_startup_boundary_mark` 辅助函数的 try/finally 中，从而在每条路径上发出 `*_begin`/`*_end`，并通过 `_startup_boundary_owner` 将 owner 连接回 runner。\n   - `core`（`vllm/v1/engine/core.py`）——**本轮新增**（Run678 未修补 core）；添加了缓冲的请求/提交关联（`result_ready`、`scheduler_update_begin/end`、`output_enqueue_begin/end`），结尾处带有一个 `core_flush()`。\n3. **暂存了产物** 到 `evidence/20260929_loop081_bound/run679/candidate/`（`runner.py`、`handoff.py`、`core.py`、`metadata.py`、`serving.py`），并将 `candidate_manifest.json` 固定了 5 个源文件和 13 个辅助文件。\n\n通过对比哈希确认，`metadata` 和 `serving` 与 Run678 逐字节相同（没有任何补丁触及它们，它们只是被延续）；`runner` 变化 45 行，`handoff` 变化 118 行，`core` 是本轮新引入的文件。\n\n## 关于源代码评审中\"仅主机、不新增设备操作\"说法的核查\n\n我检查了各阶段差异，而不是仅仅相信这句话。按设计，每个新代码路径都以 `_ob_active` / `_ob_enabled()`（环境变量门控、偏移路径）为条件。差异块中仅有的 `.cpu()` 调用出现在 `handoff` 中，并且是相同的 `validate_host_mirrors` 行被重新缩进到 `try:` 内——是移动的代码，而非新增的。runner 差异中没有任何新增的同步、流等待、NPU 事件或张量读取。`diagnostics/startup_boundary/observer.py` 导出了暂存代码导入的全部六个符号（`enabled`、`worker_event`、`core_event`、`core_flush`、`flush`、`metadata_scalars`）。\n\n## 状态\n\n符合 AGENTS §3.5 的、已暂存但**未**实例化的候选文件。根据 `source_review.md`，在服务启动前仍需进行 CPU/源码往返验证，且该评审将\"尽管运行时节奏更低，证书 + 延迟审计开启仍增加了产品剩余开销\"这一缺失问题标记为 Run679 观察器旨在定位的未知量——这不是一次正式晋升试验。我未启动任何服务，也不存在后台任务。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 12,
+    "inputTokens": 274833,
+    "outputTokens": 5109,
+    "totalTokens": 279942,
+    "cacheReadTokens": 248960,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3536,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 279942,
+    "contextUsed": 30384,
+    "contextWindow": 200000
+  }
+}
