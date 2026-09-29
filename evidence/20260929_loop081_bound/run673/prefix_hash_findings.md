@@ -1,0 +1,7 @@
+# Initial prefix-hash candidate (off-path preparation during Run673 startup)
+
+Source-derived current hash granularity2: DSV4 block table32 selects compressor states2/8; Ascend grouping preserves block_size and adjusts only page padding; resolver gcd=2. Run673 launch explicitly hybrid manager enabled, no prefix-match override, SHA256 default. Initial EngineCore socket preprocessing computes~16425 chained block hashes/request before enqueue. No actual live closure capture yet; next controller requires exact block_size2 activation.
+
+Original CPU full48 hash costs: block1 7.532s; block8 1.032s; block16 .537s; block32 .297s; current-source-derived block2 3.786s. Effective input token hashes exactly match Run673 input gate. Off-path initial hash memo gate: original3.785s, cold4.935s, hot.098s,48 entries estimated114348398 bytes. All48 hashes, incremental generated continuation and partial tails, request mutation, concurrency, salt, MM/LoRA/embeds bypass, eviction and oversize gates pass. This is CPU feasibility, not removable Product wall. Cold cost increases; frozen repeated warmup contract matters.
+
+Independent Medium semantic review and High source/granularity review support next guarded intervention; no broad profiler needed. New valid callback forces original hash calculation if global seed changes, to be checked by installed Run674 preflight. Run674 keeps integrated token cache ON/workers4 and switches only initial prefix hash memo OFF/ON. Never install while Run673 runs. No changes to active Runtime, primitives, acceptance or model semantics.
