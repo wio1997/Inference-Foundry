@@ -431,3 +431,5 @@
 - `2026-09-29T14:53:26Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run677`（benchmark）。
 
 - `2026-09-29T15:22:53Z` Run `run677` 记录为 `pass`；正确性为 `pass`。REJECT isolated deferred audit: medians OFF_A681.915150 ON668.881455 OFF_B671.066709; all576requests/384all8records/cleanup/source passed. No stable Product gain. Current config unchanged; next678combinedstartupcertificate+audit with eagerbaseline.
+
+- `2026-09-29T15:26:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run678`（benchmark）。

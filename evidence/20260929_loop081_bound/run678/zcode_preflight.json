@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_e25711f9-c568-4b09-97d8-ee13ef847e96",
+  "traceId": "0aaf3564-04e2-4a5a-8b9a-f22c9280d1fd",
+  "turnId": "turn_d77cba8e-ba7d-4a4c-8509-5d271faf369c",
+  "response": "Preflight passed cleanly with exit 0 — all eight cleanup sub-exits were 0, and I independently re-verified the source roundtrip afterward.\n\n## What ran\n\n`bash scripts/run_loop081_startup_certificate_run678.sh --preflight-only` → `Run678 audit correctness/source roundtrip complete; no service started.` No service was launched and nothing is running in the background.\n\n## Preconditions it checked\n\nBefore touching anything, it confirmed the box was idle: no VLLM or owned-client processes in the container (`[]`), 2 active container processes total, all 8 NPUs idle at ~3.44 GB HBM each, host `MemAvailable` 1.02 TB. No banned observer/profiler env vars were present in the container, and there were no orphan bench clients. It pinned the environment it will later run against — `quay.io/ascend/vllm-ascend:v0.26.0rc1`, `torch_npu 2.10.0.post4`, CANN 9.1.0 — and asserted those versions rather than just recording them.\n\n## Patch install/restore roundtrip\n\nThree patches were staged onto the live tree, then reverted, with sha256 before/after compared for all 17 sources and 24 scripts:\n\n| Patch | Target | Original → candidate | Restored |\n|---|---|---|---|\n| input token cache | `vllm/renderers/base.py` | `d3f748aa…` → `cd05588e…` | ✅ back to `d3f748aa…` |\n| prefix hash | `vllm/v1/core/kv_cache_utils.py` | `6add6f1d…` → `a64739c2…` | ✅ back to `6add6f1d…` |\n| startup certificate meta | 4 files | install 4 / restore 4 | ✅ all 4 RESTORED |\n\nThe 4 meta targets (`runtime/target_metadata.py`, `model_runner_v1.py`, `bootstrap/vllm_dspark_handoff.py`, `runtime/fixed_serving.py`) each match their recorded `before_sha256` in the state manifest, and none of the 8 helper files drifted. `base.py` byte-compiled clean, and `cmp` on both source and script manifests returned 0, so the tree is bit-identical to its pre-run state.\n\n## Correctness gate\n\nThe container-side gate ran CPU-only and returned `pass_gate: true` over 54 same-state scenarios across 18 named gates (AST check of the actual method, conditional original guard bodies retained, first-8-slot and audit parity, 0..8 advancement, reachable negative fallback, unvisited per-row cells, bounds fallback, early parking, cycle sequence and duplicate, refresh-disabled no-skip, binding replacement, table version mutation, own/cross-group alias rejection, mapping stride mutation, computed dtype overflow rejection, copy span bound, inference-tensor immutable use, cycle-8 original policy).\n\nWorth flagging what it explicitly does **not** claim, per its own `limitations` block: no NPU performance claim, inference-tensor mutation isn't detectable by version, and there's no arbitrary state-advance or parking contract claim. So this is a correctness/source-integrity gate only — it is not performance evidence.\n\n## State left behind\n\nService down (host curl to :8080 refused; container-side `connect_ex` returned 111), the `/tmp/loop080_frontier.lock` released, and no orphan processes. One thing I checked because it looked odd: a plain `grep 8080` on `ss -ltnp` shows a hit, but that's a false positive — the digit string appears inside nginx PID `838080` on port 80, not an actual 8080 listener.\n\nAlso note `evidence/20260929_loop081_bound/run678/zcode_preflight.json` is 0 bytes. That's not a script output — it's the external harness's session-record file (the run673–run677 siblings exist and are populated), created when this session started and filled in when the turn ends. Artifacts all landed under `run678/preflight/`.\n\nThe live 12×48 acquisition (`run_loop081_startup_certificate_run678.sh` with no flag) has not been started.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 16,
+    "inputTokens": 481684,
+    "outputTokens": 7885,
+    "totalTokens": 489569,
+    "cacheReadTokens": 448256,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5702,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 489569,
+    "contextUsed": 40489,
+    "contextWindow": 200000
+  }
+}
