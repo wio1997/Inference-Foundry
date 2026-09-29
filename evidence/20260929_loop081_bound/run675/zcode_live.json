@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_e50e891f-dad0-458c-998a-4e6e36575d69",
+  "traceId": "0b17a96b-1136-4832-9ddc-08ca6f57ce19",
+  "turnId": "turn_fa1f4f50-5df7-4a96-8dde-fb7d499fb10d",
+  "response": "Run675 finished cleanly and the environment is fully restored. Here's what happened.\n\n## Result\n\nThe script ran to completion (~27 min total, exit 0), producing formal E2E medians for a single resident service with both admitted caches held ON and only the metadata Graph selector toggled:\n\n| Arm | Metadata Graph | Median output tok/s |\n|---|---|---|\n| off_a | OFF | 652.054 |\n| on | ON | 660.309 |\n| off_b | OFF | 646.186 |\n\nGraph ON sits above both OFF brackets: **+1.266%** vs off_a and **+2.186%** vs off_b. The OFF arms themselves differ by 0.904%, so on the client metric the gain is only ~1.4× the drift, and off_a's second repeat (662.748) exceeds all three ON repeats — the client-side contrast alone is not decisive. The orchestrator's own reduce step independently reproduced these percentages (see `run675/summary.json` and `zcode_reduce.json`).\n\nDigging into why, the device layer tells a cleaner story than the client boundary. Decode cycle time is **3.1% lower than off_a and 4.6% lower than off_b**, the three arms' `ms/cycle` bands are disjoint, and the ON arm is unusually tight (0.10% spread vs off_a's 1.76%). The gain shrinks at the Product boundary because a client residual (`client_s` − device runtime) *grew* to 6.33 s in the ON arm versus ~4.93 s in both OFF arms — about +1.4 s, which cancels roughly half to two-thirds of the 2.1–3.8 s device gain. The capture cost sits in the Product wall per protocol, so host-side capture/replay is a plausible source, but I did not measure that decomposition — the residual is observed to grow, not attributed.\n\n## Correctness gates (all passed)\n\n576/576 requests returned exactly 1024 tokens with zero failures; cumulative POST counts were exactly 192/384/576. The frozen input contract held precisely — the per-request `input_tokens` vector is byte-identical across all three arms *and* across warmup plus all three repeats, so this is same-contract comparability. All 384 rank-cohort records (48 unique cohorts × 8 ranks, no cohort reused between arms) pass with `host_mirror_exact`, FULL target graph, zero oracle calls after handoff, and `[1024]*12` generated outputs. The Graph actually replayed rather than silently falling back: `metadata_graph_replays == cycles` in all 128 ON records and 0 in both OFF arms.\n\n## Restoration\n\nAll nine cleanup statuses are 0. Sources and helper scripts are bit-identical before/after, and all three patch sets (input-token, prefix-hash, metadata/runner) were restored to their original SHA. The service is down, the frontier lock is released, and all eight NPUs report no running processes at ~3.44 GB idle HBM.\n\nOne thing worth flagging so it isn't mistaken for a leak: `ps` in the container shows 378 `VLLM::*` entries, but every one is in state `Z` (unreaped zombie), and there are zero non-zombie VLLM or python3 processes. They hold no HBM and no NPU context.\n\n## Two caveats on scope\n\nThis is **not** a same-service comparison against the promoted Current (676.825 from run674). run674's arms toggled the prefill/prefix-hash path — its TTFT p50 was 2068–2603 ms in off_a and 1477–1491 ms in on — whereas run675 holds the prefix-hash memo ON throughout with TTFT p50 ≈1400 ms in every arm. The runs differ in which mechanism is in play, and run674's own OFF-arm spread (578.2 → 628.8) shows cross-run levels for nominally similar recipes aren't stable enough to read 660.3 vs 676.8 as a clean regression either way.\n\nI wrote `evidence/20260929_loop081_bound/run675/verdict.md` recording all of the above, including the device-versus-client split. I did not touch the task bookkeeping (`status.md`, journal, measurements, resume-pack) since the KEEP/REJECT call and state updates are Astra Light's, not this run's — the open question I'd flag for that judgment is where the unexplained ~1.4 s host residual comes from, since closing it is what converts the clean device-layer win into a Product-layer one.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 36,
+    "inputTokens": 1888758,
+    "outputTokens": 28012,
+    "totalTokens": 1916770,
+    "cacheReadTokens": 1825664,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 16838,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 1916770,
+    "contextUsed": 88226,
+    "contextWindow": 200000
+  }
+}

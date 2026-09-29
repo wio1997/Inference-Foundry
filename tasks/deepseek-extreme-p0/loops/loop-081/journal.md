@@ -425,3 +425,5 @@
 - `2026-09-29T14:16:37Z` Run `run674` 记录为 `pass`；正确性为 `pass`。KEEP initial prefix-hash memo; same-service OFF_A/ON/OFF_B medians578.152305/676.824631/628.846654 tok/s; ON+7.6295% versus faster OFF_B. All576 requests,384all8 records, semantic gates and cleanup/source pass. OFF drift and trajectory changes separated; numerical ceiling unknown.
 
 - `2026-09-29T14:18:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run675`（benchmark）。
+
+- `2026-09-29T14:50:38Z` Run `run675` 记录为 `pass`；正确性为 `pass`。KEEP metadata Graph in cached stack: repeated formal OFF_A/ON/OFF_B medians652.054344/660.309426/646.186254; +1.266%/+2.186%. All576 requests/384Runtime records/cleanup passed. Current config latest660.309426; historical best676.824631 remainsRun674GraphOFF. Residual increased, not solved. Next bounded deferred diagnostic scalar extraction.

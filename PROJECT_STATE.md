@@ -1201,3 +1201,9 @@ Current **587.496217 output tok/s**, Run673 frozen repeated E2E: ON587.496 vsOFF
 ## 2026-09-29 Run674 Current / re-bound
 
 Formal Current676.824631 tok/s, initial-prefix-hash memo + input-token cache; metadata Graph OFF. Single-service OFF_A/ON/OFF_B medians578.152305/676.824631/628.846654; +7.630% versus faster bracket, all formal/correctness/cleanup gates pass. OFF drift and trajectory prevent a single additive causal percentage. Numerical Framework ceiling/max removable gap unknown. Next one full-stack metadata integration gate. See evidence/20260929_loop081_bound/run674/verdict.md.
+
+## 2026-09-29 Run675 cached Graph integration
+
+Current configuration: input-token cache + initial prefix-hash memo + renderer workers4 + metadata Graph. Latest formal Current measurement: **660.3094257763639 output tok/s**. Historical best achieved remains **676.8246305810562 (Run674, Graph OFF)**; do not assign that old number to the changed configuration.
+
+Matched OFF_A/ON/OFF_B Product +1.266%/+2.186%; all full gates pass. Residual still increases; no new historical record or numerical Framework bound. Next direct Runtime candidate defers only diagnostic changed/zero count scalar reads to existing terminal validation. See evidence/20260929_loop081_bound/run675/verdict.md.

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_9da07293-1eb1-4ca8-beb3-671c14d39c69",
+  "traceId": "08466156-3cad-45c3-bef9-c3161ac9f72a",
+  "turnId": "turn_d90d811a-5f14-4c91-9efd-54dd62e41295",
+  "response": "The preflight passed cleanly — exit 0, all gates green, sources bit-identical after restore, nothing left running.\n\n## Result\n\n`bash scripts/run_loop081_deferred_audit_run677.sh --preflight-only` exited `0` and printed `Run677 audit correctness/source roundtrip complete; no service started.` All nine cleanup gates reported `0` (run/stop/stop_verify/restore/source_sha/source_compare/script_sha/script_compare/final).\n\n## What the preflight actually did\n\nIt installed three source patches, exercised them, then reverted everything — no service was ever started:\n\n| Patched source | Original SHA-256 | Reverted? |\n|---|---|---|\n| `vllm/renderers/base.py` (bounded input-token cache) | `d3f748aa…fd644` | restored |\n| `vllm/v1/core/kv_cache_utils.py` (initial prefix-hash memo) | `6add6f1d…2d39` | restored |\n| `runtime/target_metadata.py` + `vllm_ascend/worker/model_runner_v1.py` + `bootstrap/vllm_dspark_handoff.py` (deferred slot-refresh audit trio) | `940a9861…` / `004dbd0d…` / `fe703936…` | restored |\n\nI did not take the script's word for the revert. The before/after SHA manifests for both sources and scripts diff empty, and I independently hashed the six files on disk just now — all six match their recorded pre-install values exactly. `git status` on `bootstrap/`, `serving/`, `runtime/`, and `experiments/prefix_hash_cache/` shows zero residue; the only modified tracked files are the same doc/task set that was already dirty at session start. `py_compile` of the patched renderer exits silently (empty log).\n\nThe audit gate returned `pass: true`: 16 audit rows exact, mapping exact across 10 cycles, snapshot mutation isolated, flush idempotent, 9 negative safety cases. Note its own stated scope — `\"CPU same-state arithmetic; live all8 correctness and full Product still required\"`. It works by AST-extracting `_refresh_draft_context_slots` and `_flush_slot_refresh_audit` from the old and candidate class bodies and asserting bit-exact block-binding equality across old / defer-off / defer-on, plus that deferral yields no audit rows until flush. That is a real equivalence check, but it is a CPU single-process check; it proves nothing about an 8-rank live run or Product performance.\n\nEnvironment checks were also green: container `5ff7de27` (`quay.io/ascend/vllm-ascend:v0.26.0rc1`), `torch_npu 2.10.0.post4` / `cann-9.1.0` pinned as required, banned-env guard empty, no orphan bench clients, 8 dies idle at ~3436–3446 MB HBM (gate is <6144 MB). After the run, port 8080 refuses connections and `npu-smi` reports `No running processes found in NPU` on all dies.\n\n## Two things to know before the live run\n\n`evidence/20260929_loop081_bound/run677/live/` does not exist, so the live run (`bash scripts/run_loop081_deferred_audit_run677.sh` with no args) is unblocked and will not trip the \"run-specific output exists\" guard. The frontier lock is free.\n\nThe flip side: re-running `--preflight-only` will now fail with exit 75, because it refuses when `evidence/20260929_loop081_bound/run677/preflight` already exists. If a second preflight is needed, that directory has to be moved aside first.\n\nOne loose end I did not touch: `evidence/20260929_loop081_bound/run677/zcode_preflight.json` is 0 bytes. That file is a harness-level record of the turn response (sessionId/traceId/usage) that appears in runs 670–675, not an artifact this script writes — no script in the repo references it — so the empty file is this turn's placeholder, and I left it alone rather than fabricating content into an evidence directory.\n\nI have not started the live run.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 12,
+    "inputTokens": 376344,
+    "outputTokens": 7025,
+    "totalTokens": 383369,
+    "cacheReadTokens": 340480,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5215,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 383369,
+    "contextUsed": 42147,
+    "contextWindow": 200000
+  }
+}

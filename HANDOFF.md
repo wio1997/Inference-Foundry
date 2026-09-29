@@ -72,19 +72,19 @@
 
 Run669 exact-ID reuse excludes prior-cohort tails from Run602/606. In Run606 the corrected Target Host work is 1.785–2.533 s/cohort, proposal .297–.455 s, and post-proposal→next execute gaps only31–103 ms. Main opportunity is repeated mixed-prefill caused by incremental request readiness. Source finds default renderer_num_workers=1; CPU text-path screen workers1/4/12 reduces median12-request batch from1352.753 to446.931/297.508ms (corrected effective Ascend thinking template) with exact token IDs. This screen applies the serving thinking patch; it excludes complete API validation and Core prefix hashing, and is not Product evidence.
 
-Formal Current: **676.8246305810562 output tok/s** on frozen48×32K→1024,c12, same model/hardware/DSpark7. Input-token cache ON, renderer workers4, initial prefix-hash memo ON. Metadata Graph OFF.
+Current configuration: input-token cache + initial prefix-hash memo + renderer workers4 + metadata Graph. Latest formal Current measurement: **660.3094257763639 output tok/s**. Historical best achieved remains **676.8246305810562 (Run674, Graph OFF)**; do not assign that old number to the changed configuration.
 
-Run674 KEEP, read evidence/20260929_loop081_bound/run674/verdict.md. Run675 full-stack metadata OFF/ON/OFF LIVE: controller PID3804332, service container PID331639; evidence/20260929_loop081_bound/run675/live and live_run.log, log LOOP081-RUN675-SHARED. Both caches ON. Preflight all9cleanup0; metadata selector/function parity passed. Do not duplicate launch or edit pinned sources. Numerical Framework bound remains unknown.
+Run675 KEEP; read evidence/20260929_loop081_bound/run675/verdict.md. Run677 deferred audit candidate prepared, preflight next. Both caches and metadata Graph will remain ON. Run676 boundary observer is prepared but unexecuted; no second live experiment. Inspect actual PID/logs before launch.
 
 
 As of 2026-09-29，恢复后仍需用实时 Git HEAD / TaskCtl / 机器状态重新确认。
 
 ## Formal Current
 
-- 正式 achieved Current：**676.824631 output tok/s**
-- 来源：Run674 input-token + initial prefix-hash cache
+- 正式 achieved Current：**660.309426 output tok/s (Run675 latest configuration)**
+- 来源：Run675 input-token + initial prefix-hash cache + metadata Graph
 - 冻结 workload：48×32K→1024, c12
-- Run99 571.681 为历史 Current；Run674 为最新已验证整合结果
+- Run99 571.681 为历史 Current；Run675 为最新已验证整合结果；Run674 676.824631 是历史最佳 achieved
 
 ## Current main line
 

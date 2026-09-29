@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_4cc133ad-bd3b-42db-8179-f9fc712699aa",
+  "traceId": "db8b5141-8684-4dc2-bed4-14966b74a18f",
+  "turnId": "turn_9c307aeb-2d9a-430b-ae8a-8e4de58522aa",
+  "response": "`python3 scripts/loop081_stack_metadata_reduce_run675.py` ran clean (exit 0, all in-script assertions passed) and wrote `evidence/20260929_loop081_bound/run675/summary.json`.\n\n## Result\n\nThe metadata Graph ON arm beat both OFF arms in a single-service OFF_A / ON / OFF_B stack, each arm being warmup-48 plus 3 formal 48-request benches:\n\n| arm | median client TPS | device cycle rate | ms/cycle |\n|---|---|---|---|\n| OFF_A | 652.05 | 17.46 cycles/s | 57.3 |\n| **ON** | **660.31** | **18.03 cycles/s** | **55.45** |\n| OFF_B | 646.19 | 17.19 cycles/s | 58.2 |\n\nSo the reduction reports **+1.27% (ON vs OFF_A)** and **+2.19% (ON vs OFF_B)** in client-observed output TPS, with the underlying device-side signal larger at roughly **+3.3% / +4.9%** in decode cycle rate. The client number is smaller than the device number because the residual between client wall and summed device cohort wall (`client_minus_runtime_s`, ≈5–6.3 s) did not shrink and in the ON arm was slightly larger, diluting the gain.\n\n## What makes the ON reading credible\n\nThe run's assertions confirm the ON arm actually replayed rather than silently falling back: `metadata_graph_capture` is true only when ON, `metadata_graph_replays == cycles`, `host_mirror_exact`, `FULL` target graph mode, and — most importantly — `oracle_target_calls_after_handoff == 0` with all 12 cohorts' `generated_output_counts == [1024]`. Per-cohort cycles, staged output counts, overshoot tokens, and acceptance-window means were asserted identical across all 8 ranks.\n\nThe initial-hash / input-token cache was held ON across all three arms (all 12 routing blocks report `phase: on, version 1`, with the memo pinned at 48 entries / ~114 MB and a constant 48 misses per phase), and the 48 input-token identities were asserted equal to the OFF_A reference. So the stack isolates the metadata Graph, not the hash reuse.\n\n## Caveats worth weighing before treating this as a KEEP\n\n- **The comparison is at the edge of resolution.** The ON arm sits above *both* OFF arms, which monotone session drift would not predict, and the ON arm is unusually tight (18.04/18.02/18.02, ~0.1% spread vs OFF_A's drifting 17.61→17.46→17.30). But OFF_A's own repeat spread (637.4–662.7 TPS) overlaps the ON arm's low end, so the +1.27% against OFF_A is the same order as within-arm reproducibility. The +2.19% against OFF_B and the device cycle-rate deltas are cleaner.\n- The run's own `limits` field is explicit: no fixed-trajectory assumption, CPU hash time is not independently additive Product savings, and the numerical Framework bound remains unknown.\n- This is `formal_e2e` (48×1024, c12, full Product wall including capture), not a microbenchmark.\n\n## Cleanup verified independently\n\nAll nine `cleanup_status.txt` exits are 0, the tracked git tree is clean, and I confirmed on disk that the three patched files are back at their original SHA256s — `kv_cache_utils.py` `6add6f1d…`, `target_metadata.py` `940a9861…`, `model_runner_v1.py` `004dbd0d…`. `final_stop_verify.log` shows an empty process list with idle HBM at ~3.44 GB across all 8 devices, so the run675 service is gone. Note there are 113 `vllm` processes on the box, but those belong to unrelated containers up 11–13 days (`wh_vllm`, `dsv4ab`, and others), not to this run.\n\nI have not touched the project state documents — the KEEP/REJECT call and any HANDOFF/RESULTS update are Astra Light's, and the ordering confound above is the thing that most needs a judgment.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 11,
+    "inputTokens": 252897,
+    "outputTokens": 9554,
+    "totalTokens": 262451,
+    "cacheReadTokens": 230656,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 7904,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 262451,
+    "contextUsed": 31271,
+    "contextWindow": 200000
+  }
+}
