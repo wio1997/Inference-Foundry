@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run670 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-29T09:10:51Z`
+- 下一步：执行 Run run672：bash scripts/run_loop081_token_cache_run672.sh
+- 更新时间：`2026-09-29T09:12:35Z`
 
 ## Run 记录
 
@@ -102,6 +102,7 @@
 - `runs/mixed_32k_1024_c12/run669`
 - `runs/mixed_32k_1024_c12/run670`
 - `runs/mixed_32k_1024_c12/run671`
+- `runs/mixed_32k_1024_c12/run672`
 
 ## 阻塞项
 
