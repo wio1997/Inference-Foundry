@@ -70,7 +70,7 @@
 
 ## Active continuation — Run669 / Run670
 
-Run669 exact-ID reuse excludes prior-cohort tails from Run602/606. In Run606 the corrected Target Host work is 1.785–2.533 s/cohort, proposal .297–.455 s, and post-proposal→next execute gaps only31–103 ms. Main opportunity is repeated mixed-prefill caused by incremental request readiness. Source finds default renderer_num_workers=1; CPU text-path screen workers1/4/12 reduces median12-request batch from1387.633 to483.901/302.548ms with exact token IDs. This screen excludes complete API rendering defaults and Core prefix hashing, and is not Product evidence.
+Run669 exact-ID reuse excludes prior-cohort tails from Run602/606. In Run606 the corrected Target Host work is 1.785–2.533 s/cohort, proposal .297–.455 s, and post-proposal→next execute gaps only31–103 ms. Main opportunity is repeated mixed-prefill caused by incremental request readiness. Source finds default renderer_num_workers=1; CPU text-path screen workers1/4/12 reduces median12-request batch from1352.753 to446.931/297.508ms (corrected effective Ascend thinking template) with exact token IDs. This screen applies the serving thinking patch; it excludes complete API validation and Core prefix hashing, and is not Product evidence.
 
 Run670 is actively testing existing renderer workers1 versus4: guarded source-unmodified service, warm48 plus3×48 frozen formal E2E each. Zcode launched scripts/run_loop081_renderer_workers_run670.sh; use live process and evidence/20260929_loop081_bound/run670/live to determine current status. Current remains Run99 pending outcome. New trajectory/batching must be accounted separately from Framework wall.
 

@@ -1,0 +1,3 @@
+# Run669 scope correction (append-only after RECORDED)
+
+The original result's CPU numbers describe the unpatched tokenizer template only, with lengths32772–32774. It cannot establish equality to online service inputs. The corrected effective Ascend thinking-template screen has lengths32851–32853 and exact all48 token-list parity across worker1/4/12 and repeats. Median12-request batch walls1352.753/446.931/297.508ms. See evidence/20260929_loop081_bound/run669/renderer_cpu_effective.json and findings.md. Formal online arms use identical serving initialization; no Product gain is claimed by either CPU screen. Original result is retained as immutable evidence; taskctl rejected rewriting a RECORDED run.
