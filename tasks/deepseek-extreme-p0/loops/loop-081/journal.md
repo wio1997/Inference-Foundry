@@ -421,3 +421,7 @@
 - `2026-09-29T13:38:20Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run674`（benchmark）。
 
 - `2026-09-29T13:39:57Z` Run `run673` 记录为 `pass`；正确性为 `pass`。KEEP integrated input-token cache/workers4. Reverse-order ON median587.496217 vs OFF561.172171 tok/s +4.691%; opposite-order Run672 +4.206%. Current promoted to latest integrated median587.496217, not best launch611.974. All384 requests/all8/input/source/cleanup gates pass. Residual improves2/3 this run,5/6 across both; trajectory variation separate. Next initial-prefix hash memo; Bound unknown.
+
+- `2026-09-29T14:16:37Z` Run `run674` 记录为 `pass`；正确性为 `pass`。KEEP initial prefix-hash memo; same-service OFF_A/ON/OFF_B medians578.152305/676.824631/628.846654 tok/s; ON+7.6295% versus faster OFF_B. All576 requests,384all8 records, semantic gates and cleanup/source pass. OFF drift and trajectory changes separated; numerical ceiling unknown.
+
+- `2026-09-29T14:18:49Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run675`（benchmark）。

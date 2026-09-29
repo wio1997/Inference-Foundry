@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_6b58eb42-2118-447b-8000-700dbe1020cc",
+  "traceId": "386e6910-3822-4dae-813e-af6c77e5066a",
+  "turnId": "turn_9fbd235a-f7ac-4f38-8258-0095f9a3f92b",
+  "response": "**Run675 preflight passed cleanly — exit code 0, all nine gates green.** The environment is restored and the live run is still available.\n\nWhat the preflight actually verified:\n\n| Gate | Result |\n|---|---|\n| Exit codes (run/stop/stop_verify/restore/source_sha/source_compare/script_sha/script_compare/final) | all `0` |\n| Source roundtrip (12 patched sources + helper scripts) | bit-identical before/after — `source_before.sha256` == `source_after.sha256`, `scripts_before.sha256` == `scripts_after.sha256` |\n| Mode gate (OFF/ON/OFF Graph selector) | `pass: true`, 10 mode cases, with `capture_graph` / `update` / `_update_eager` confirmed unchanged |\n| Service teardown | health endpoint refused, no surviving `VLLM::` / `vllm serve` process, no owned bench clients |\n| NPU release | 8/8 `No running processes found in NPU`, idle HBM ≈ 3443 MB per die (well under the 6144 MB gate) |\n| Container env guard | no banned env vars present |\n| Frontier lock | free (no other bound acquisition holding it) |\n\nThe three patched sources round-tripped correctly with checked hashes: `kv_cache_utils.py` (initial-hash), `renderers/base.py` (input-token cache), and the metadata/runner pair (`runtime/target_metadata.py`, `vllm_ascend/worker/model_runner_v1.py`), each restored to its original SHA. The candidate artifacts (`candidate/metadata.py`, `candidate/runner.py`, `candidate_manifest.json`) and their helper pin hashes all matched.\n\nTwo things worth noting for the next step: the run's `live/` output directory does not yet exist, so `bash scripts/run_loop081_stack_metadata_run675.sh` (no args) is unblocked and will not trip the \"run-specific output exists\" guard. The preflight's stated purpose is a Graph OFF/ON/OFF stack with admitted input-token and initial-hash caches held ON, reusing Run674's exact cache semantics and Run666's Graph arithmetic — so a live run would produce the first formal E2E for that combination.\n\nOne caveat on my own verification: my ad-hoc process probe reported \"vllm procs: 1\", but that was a false positive from the probe's own `docker exec ... python3 -c` argv containing the literal string `vllm`. The script's real gate checks `comm` / `vllm serve`, and both the mid-run and final stop probes returned an empty list. I have not started the live run.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 10,
+    "inputTokens": 212282,
+    "outputTokens": 3140,
+    "totalTokens": 215422,
+    "cacheReadTokens": 188288,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1868,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 215422,
+    "contextUsed": 26462,
+    "contextWindow": 200000
+  }
+}

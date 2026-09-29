@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run673 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-29T13:39:57Z`
+- 下一步：执行 Run run675：bash scripts/run_loop081_stack_metadata_run675.sh
+- 更新时间：`2026-09-29T14:18:49Z`
 
 ## Run 记录
 
@@ -105,6 +105,7 @@
 - `runs/mixed_32k_1024_c12/run672`
 - `runs/mixed_32k_1024_c12/run673`
 - `runs/mixed_32k_1024_c12/run674`
+- `runs/mixed_32k_1024_c12/run675`
 
 ## 阻塞项
 

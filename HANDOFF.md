@@ -74,7 +74,7 @@ Run669 exact-ID reuse excludes prior-cohort tails from Run602/606. In Run606 the
 
 Formal Current: **676.8246305810562 output tok/s** on frozen48×32K→1024,c12, same model/hardware/DSpark7. Input-token cache ON, renderer workers4, initial prefix-hash memo ON. Metadata Graph OFF.
 
-Run674 KEEP, read evidence/20260929_loop081_bound/run674/verdict.md. Run675 full-stack metadata OFF/ON/OFF preparation ongoing; inspect actual PID before launch. Numerical Framework bound remains unknown.
+Run674 KEEP, read evidence/20260929_loop081_bound/run674/verdict.md. Run675 full-stack metadata OFF/ON/OFF LIVE: controller PID3804332, service container PID331639; evidence/20260929_loop081_bound/run675/live and live_run.log, log LOOP081-RUN675-SHARED. Both caches ON. Preflight all9cleanup0; metadata selector/function parity passed. Do not duplicate launch or edit pinned sources. Numerical Framework bound remains unknown.
 
 
 As of 2026-09-29，恢复后仍需用实时 Git HEAD / TaskCtl / 机器状态重新确认。
