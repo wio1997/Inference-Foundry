@@ -435,3 +435,5 @@
 - `2026-09-29T15:26:02Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run678`（benchmark）。
 
 - `2026-09-29T15:59:18Z` Run `run678` 记录为 `pass`；正确性为 `pass`。Run678 executed to completion: medians OFF_A687.658870 / ON675.063529 / OFF_B678.177159 tok/s; ON(bootstrap slot certificate + deferred audit) is 1.15% below the off_a/off_b baseline mean 682.918015 and 1.12% below the same ON-vs-baseline delta seen in Run677, i.e. no Product-wall gain reproduced. All 576 requests, 3x16x8 runtime records, hash routing 12 rows, metadata Graph replay==cycles, certificate eligible p0..p0+63 gid{2,3} used_cycles8 on ON arm / None on OFF arms, audit pending 0, and cleanup all-zero (stop/verify/restore/source+script SHA roundtrip identical) independently re-audited. KEEP/REJECT of the candidate and any change to the accepted Current configuration are the main-agent decision and are NOT asserted here.
+
+- `2026-09-29T16:06:07Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run679`（profile）。

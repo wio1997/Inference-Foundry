@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`EVALUATING`
+- 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：审查 Run run678 的证据，并判断是否需要更多 Run
-- 更新时间：`2026-09-29T15:59:18Z`
+- 下一步：执行 Run run679：bash scripts/run_loop081_startup_boundary_run679.sh
+- 更新时间：`2026-09-29T16:06:07Z`
 
 ## Run 记录
 
@@ -108,6 +108,7 @@
 - `runs/mixed_32k_1024_c12/run675`
 - `runs/mixed_32k_1024_c12/run677`
 - `runs/mixed_32k_1024_c12/run678`
+- `runs/mixed_32k_1024_c12/run679`
 
 ## 阻塞项
 

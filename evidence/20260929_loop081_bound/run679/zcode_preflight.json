@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_a99379f3-1335-4a54-b885-c38285fbbced",
+  "traceId": "4446d84d-488c-4dd2-a045-56d5281e6765",
+  "turnId": "turn_d024be77-05a6-4653-aad7-e2628e29a325",
+  "response": "Preflight completed successfully and cleanly. Here's what happened and what I verified.\n\n**Outcome: `--preflight-only` exited 0, and the offline gate passed.** All eight cleanup gates reported 0 (`run_exit=0 stop_exit=0 stop_verify_exit=0 restore_exit=0 source_sha_exit=0 source_compare_exit=0 script_sha_exit=0 script_compare_exit=0 final_exit=0`). No service was started.\n\nEvidence in `evidence/20260929_loop081_bound/run679/preflight/`:\n\n- **Gate passed** — `audit_gate.log` ends with `{\"pass\": true, ...}`, meaning: the observer's `_ob_submit_id` attribute survives a real `MessageQueue.enqueue` pickle roundtrip with buffers; the observer writes no files while unarmed; 4 concurrent writers plus flushers produced exactly 401 records with monotonic `observer_seq` and no thread errors; flush is idempotent; and the worker-side `rank0_cohort5.json` row is written with internally consistent timing.\n- **Patch roundtrip is lossless** — `source_before.sha256` and `source_after.sha256` are identical, same for the script list, and I re-hashed all five meta-patched files on disk to confirm each equals its recorded `before_sha256`. That includes the framework file `/data/wio/vllm_ascend_26/framework/vllm/vllm/v1/engine/core.py`, which the meta patch does install (candidate `06bb1410…` → restored to pristine `3ae1381a…`).\n- **Environment guards clean** — `container_env_guard.json` is `{\"banned_present\": []}`; runtime is pinned at `torch_npu 2.10.0.post4` / `cann-9.1.0`; container identity recorded.\n- **Nothing left running** — port 8080 refuses connections, the container holds only zombie processes (which the stop/verify guards deliberately skip, since they carry no live state), and `npu-smi` reports \"No running processes found\" on NPU 0–7.\n\nBecause the CPU gate never imports `core.py` itself, I checked that candidate separately: it compiles, and `self._ob_submit_seq` is self-initializing via `getattr(self, '_ob_submit_seq', 0) + 1`, so the instrumentation cannot raise `AttributeError` on first use.\n\nTwo things you should know:\n\n**This is diagnostic evidence, not performance evidence.** The gate is CPU-only and validates the serializer path and observer buffering in isolation. It does not exercise live inference and produces no token throughput or latency numbers. The actual measurement — the shared-service `off_a` → `on` → `off_b` boundary comparison across three 48-request phases — has not run. That is `bash scripts/run_loop081_startup_boundary_run679.sh` with no flag, writing to `run679/live/`.\n\n**A concurrent agent is active in this workspace.** Commit `997005b9` (\"Prepare narrow Run679 Product boundary diagnostic with verified offline gate\") landed at 16:05:53, seconds after my preflight finished. I did not create it — there are no git hooks installed and I never invoked `git commit`. Its preflight contents are byte-identical to my on-disk output, and the same working tree shows modified `tasks/deepseek-extreme-p0/loops/loop-081/` state, journal, and resume-pack files. So something else in this workspace is tracking loop-081 and persisted my results. Flagging it in case two agents writing to the same run directory is not what you intend; the preflight output dir and the lock file were both free when I started, so there was no collision on this run.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 18,
+    "inputTokens": 684171,
+    "outputTokens": 9956,
+    "totalTokens": 694127,
+    "cacheReadTokens": 639488,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 6839,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 694127,
+    "contextUsed": 53197,
+    "contextWindow": 200000
+  }
+}
