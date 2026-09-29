@@ -72,17 +72,19 @@
 
 Run669 exact-ID reuse excludes prior-cohort tails from Run602/606. In Run606 the corrected Target Host work is 1.785–2.533 s/cohort, proposal .297–.455 s, and post-proposal→next execute gaps only31–103 ms. Main opportunity is repeated mixed-prefill caused by incremental request readiness. Source finds default renderer_num_workers=1; CPU text-path screen workers1/4/12 reduces median12-request batch from1352.753 to446.931/297.508ms (corrected effective Ascend thinking template) with exact token IDs. This screen applies the serving thinking patch; it excludes complete API validation and Core prefix hashing, and is not Product evidence.
 
-Run672 KEEP candidate; Run673 integrated reverse-order confirmation completed: cache ON median587.496217, OFF561.172170 (+4.691%). All request/all8/semantic/source/cleanup gates passed. **Formal Current promoted to587.496217 tok/s (Run673)**; Run99 is historical. Read evidence/20260929_loop081_bound/run673/verdict.md. Serving recipe: exact-SHA scripts/install_input_token_cache.py, serving/input_token_cache.py, EXTREME_TEXT_TOKEN_CACHE=1 and workers4 plus unchanged Run673 Runtime/serve flags. Source restored after experiment. Run674 preflight is active/next: initial prefix-hash memo, single-service OFF_A/ON/OFF_B each warm48+3formal48, token cache ON throughout. Inspect actual PID and evidence before any launch. CPU hash block2 screen3.785→.098s is NOT Product saving. Numerical Framework ceiling and maximum removable gap remain unknown. Do not stop at Current promotion.
+Formal Current: **676.8246305810562 output tok/s** on frozen48×32K→1024,c12, same model/hardware/DSpark7. Input-token cache ON, renderer workers4, initial prefix-hash memo ON. Metadata Graph OFF.
+
+Run674 KEEP, read evidence/20260929_loop081_bound/run674/verdict.md. Run675 full-stack metadata OFF/ON/OFF preparation ongoing; inspect actual PID before launch. Numerical Framework bound remains unknown.
 
 
 As of 2026-09-29，恢复后仍需用实时 Git HEAD / TaskCtl / 机器状态重新确认。
 
 ## Formal Current
 
-- 正式 achieved Current：**587.496217 output tok/s**
-- 来源：Run673 integrated input-token cache
+- 正式 achieved Current：**676.824631 output tok/s**
+- 来源：Run674 input-token + initial prefix-hash cache
 - 冻结 workload：48×32K→1024, c12
-- Run99 571.681 为历史 Current；Run673 为最新已验证整合结果
+- Run99 571.681 为历史 Current；Run674 为最新已验证整合结果
 
 ## Current main line
 

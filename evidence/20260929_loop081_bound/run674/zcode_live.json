@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_e82b0f7f-d038-4f8a-bdbf-76d4ca656fe2",
+  "traceId": "30226a55-491f-4a93-b68c-380dffb0f4b4",
+  "turnId": "turn_ad159e85-bdbc-4981-a74f-69f1a6ff3dc9",
+  "response": "Run674 finished cleanly (`final_exit=0`) and the box is handed back idle: service down, all 8 NPUs free, both patches reverted to their original SHAs, lock released, nothing of mine still running.\n\n## Result\n\nSingle resident service, frozen warm48 + 3×48 per arm at c12/1024, integrated input-token cache ON in every arm — only the initial prefix-hash memo switched.\n\n| Arm | Median output tok/s | Repeats |\n|---|---|---|\n| `off_a` (hash off, v1) | 578.152 | 557.345 / 578.152 / 580.638 |\n| `on` (hash on, v2) | 676.825 | 651.034 / 676.825 / 689.670 |\n| `off_b` (hash off, bypass, v3) | 628.847 | 628.847 / 629.104 / 608.362 |\n\n- `on` vs `off_a`: **+17.067%**\n- `on` vs `off_b`: **+7.630%**\n- `off_b` vs `off_a`: **+8.768%**\n\nDirectionally the memo helps in both comparisons, but the effect is *bracketed*, not pinned.\n\n## The caveat that matters most\n\n`off_b` is supposed to be an OFF control, yet it ran **8.77% faster than `off_a`**, so the A/B/A does not bracket tightly and the ON effect can only be bounded as +7.63% … +17.07%. Two further details sharpen this:\n\n- The measured scoped hasher CPU time differs between the two OFF arms for identical nominal work: `off_a` totals 38.72 s over its 192 initial requests (~9.68 s per 48) versus `off_b` 20.44 s (~5.11 s per 48, about 53%). The two OFF arms were not equal in hashing cost, so treating the bracket as symmetric is not yet justified.\n- Hasher time does not fully account for the wall difference either. Against `off_a` the wall gap is ~12.4 s per bench run versus ~6.3 s of measured hasher saving; against `off_b` it is ~5.5 s versus ~1.7 s. So hasher CPU is not independently additive to product wall — which is exactly what the reducer's own `limits` field states.\n\nI'm deliberately not issuing KEEP/REJECT or a Bound update; that adjudication belongs upstream. This is a warm repeated-input calibration result on the frozen contract, not a universal or formal product claim.\n\n## Gates and teardown (all pass)\n\nEvery arm 48/48 success, 0 fail, all outputs exactly 1024 tokens with no errors; 576 HTTP completions total (192/384/576 exactly). All 384 runtime records (8 ranks × 48 cohorts) pass with exact host mirrors, FULL target graph, zero oracle target calls after handoff, and `generated_output_counts == [1024]*12`; cycles, staged counts, overshoot and acceptance-window means agree across all 8 ranks per cohort. Routing counts match the design precisely: `off_a` all-zero, `on` holds misses at 48 while hits step 0→48→96→144, `off_b` frozen at `on`'s final hit/miss values, confirming the bypass genuinely recomputed. Input-token counts are identical across arms, the container env guard is clean, source and scripts are byte-identical before/after, and all nine cleanup statuses are 0.\n\n## One provenance note\n\n`run674/summary.json` (14:14) was **not** written by me — a parallel Zcode session (`sess_52ed19e8`, the run-673 reducer pattern) produced it and is currently preparing run675. I verified its content independently rather than assuming it: my own extraction reproduces its medians and percentages exactly (+17.066839 / +7.629519), and since that reducer writes its file only after all its assertions pass, its existence is itself a passing verification of the run. Worth knowing because two agents are live in this repo, so run675 work is already in flight — I have left the NPU untouched for it.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 36,
+    "inputTokens": 1690354,
+    "outputTokens": 24107,
+    "totalTokens": 1714461,
+    "cacheReadTokens": 1628928,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 16193,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 1714461,
+    "contextUsed": 83035,
+    "contextWindow": 200000
+  }
+}

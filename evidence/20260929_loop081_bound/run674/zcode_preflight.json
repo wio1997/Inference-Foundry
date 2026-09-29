@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_6c790893-008b-45be-a13c-948943734297",
+  "traceId": "0951e15d-9871-415c-afb6-db6f6d87c717",
+  "turnId": "turn_063a42ef-be06-4630-ac4c-70fe6ee3cc54",
+  "response": "Preflight passed — exit 0, everything installed, exercised, and restored cleanly, with no service left running.\n\n**What it did.** `scripts/run_loop081_prefix_hash_run674.sh --preflight-only` loaded two patches into the runtime source tree, ran their CPU-side integration gates, then reverted. It printed `Run674 source/idle preflight complete; no service started.`\n\n**The two candidates and their revert status:**\n\n| File | Original SHA-256 | Candidate SHA-256 | Revert |\n|---|---|---|---|\n| `vllm/renderers/base.py` (renderer prefix-hash memo) | `d3f748aa…fd644` | `cd05588e…a9ee89` | restored to original |\n| `vllm/v1/core/kv_cache_utils.py` (initial-hash memo) | `6add6f1d…2d39` | `a64739c2…f23f` | restored to original |\n\nI confirmed both files on disk right now hash to the originals, and the preflight's own before/after SHA manifests for both source files and scripts diff empty (`SOURCE_IDENTICAL`, `SCRIPTS_IDENTICAL`).\n\n**Integration gates, both `\"status\": \"pass\":`**\n- `integration.json` (renderer): 48/48 prompt token hashes exact, all 192 threaded hits exact, plus caller-mutation isolation, LRU eviction, oversize and complete-offset bypass. Cold 48 requests 7.657 s → hot 192 requests 0.103 s, 51 cache entries, ~73.8 MB.\n- `hash_integration.json` (kv_cache_utils): 16 gates including installed OFF→ON→OFF router exactness, observed route and hit counts, continuation skipping the mode read, and missing/invalid mode failing closed. Reference 48 requests 3.764 s, cold 5.055 s, hot 0.218 s, 48 entries, ~114 MB.\n\nBoth artifacts state their scope explicitly as CPU semantics and cost — neither is a live removable-wall or serving result, so nothing here upgrades to a product-performance claim.\n\n**Teardown evidence.** `cleanup_status.txt` shows `run_exit=0 stop_exit=0 stop_verify_exit=0 restore_exit=0 source_sha_exit=0 source_compare_exit=0 script_sha_exit=0 script_compare_exit=0 final_exit=0`. `final_stop_verify.log` reports an empty process list with idle HBM at ~3.4 GB per NPU, `orphan_client.txt` is empty, and `container_env_guard.json` shows no banned env vars present.\n\nOne caveat on the process scan: `ps` shows 15–20 `<defunct>` `VLLM::EngineCor` / `Worker_DP` zombies dated Sep 15 under PID 3622275. Those predate this run by two weeks and are not this preflight's residue, but they are also not being reaped — worth knowing before any live run measures NPU state.\n\nArtifacts are in `evidence/20260929_loop081_bound/run674/preflight/` (timestamps 13:38–13:40 UTC, matching this run). No background work is pending.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 189537,
+    "outputTokens": 2842,
+    "totalTokens": 192379,
+    "cacheReadTokens": 163968,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1918,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 192379,
+    "contextUsed": 27762,
+    "contextWindow": 200000
+  }
+}
