@@ -830,3 +830,8 @@ Matched OFF_A/ON/OFF_B Product +1.266%/+2.186%; all full gates pass. Residual st
 ## 2026-09-29 Run677 — isolated deferred audit rejected
 
 REJECT isolated deferred audit: medians OFF_A681.915150 ON668.881455 OFF_B671.066709; all576requests/384all8records/cleanup/source passed. No stable Product gain. Current config unchanged; next678combinedstartupcertificate+audit with eagerbaseline. Numerical Framework ceiling remains unknown. See evidence/20260929_loop081_bound/run677/verdict.md.
+
+
+## 2026-09-29 Run678 checkpoint
+
+REJECT Product: startup certificate + deferred audit ON675.063529tok/s versusOFF687.658870/678.177159. Cadence54.236–54.622ms/cycle improved, residual7.285–7.374s increased. All576requests/384all8 records and cleanup/source pass. Accepted Current unchanged; numerical Framework bound unknown. Next narrow679boundary diagnostic locates residual rather than repeating a blind formal trial. Evidence: evidence/20260929_loop081_bound/run678/verdict.md and summary.json.

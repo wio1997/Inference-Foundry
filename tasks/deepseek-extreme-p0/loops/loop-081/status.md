@@ -5,10 +5,10 @@
 - 模式：`design`
 - 目标用例：`mixed_32k_1024_c12`
 - 执行 Skill：`NONE`
-- 状态：`RUNNING`
+- 状态：`EVALUATING`
 - 结论：`PENDING`
-- 下一步：执行 Run run678：bash scripts/run_loop081_startup_certificate_run678.sh
-- 更新时间：`2026-09-29T15:26:02Z`
+- 下一步：审查 Run run678 的证据，并判断是否需要更多 Run
+- 更新时间：`2026-09-29T15:59:18Z`
 
 ## Run 记录
 

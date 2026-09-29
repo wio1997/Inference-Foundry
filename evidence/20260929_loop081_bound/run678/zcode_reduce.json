@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_223175dd-0bbf-4769-a697-81bdcd277ecb",
+  "traceId": "fbf7fa3b-c7d1-4953-abd5-b9b54056ada3",
+  "turnId": "turn_5773d08a-8abc-4915-a973-798cfb0112b2",
+  "response": "The reduce step ran to completion and wrote its verdict to `evidence/20260929_loop081_bound/run678/summary.json` (exit code 0, every contract assertion passed).\n\n## What the reduction found\n\nThe startup-certificate ON arm does **not** beat either OFF arm, so it shows no Product-wall saving:\n\n| Arm | Median TPS | ms/cycle | Client wall | Cycles | Client−Runtime residual |\n|---|---|---|---|---|---|\n| OFF_A | 687.66 | 55.49 | 72.56 s | 1190.3 | 6.50 s |\n| ON | 675.06 | 54.46 | 73.08 s | 1207.3 | 7.33 s |\n| OFF_B | 678.18 | 55.35 | 72.53 s | 1209.3 | 5.59 s |\n\n- `on_vs_off_a_percent` = **−1.83%**\n- `on_vs_off_b_percent` = **−0.46%**\n\n## The structurally interesting part\n\nThe ON arm's Runtime is actually *faster* per cycle — 54.46 ms/cycle versus 55.49 and 55.35 for the OFF arms, about a 0.9–1.0 ms/cycle reduction, roughly 1.6–1.8%. But that gain does not reach Product wall: the client-side residual grew (7.33 s versus 6.50 s / 5.59 s) and the run consumed more cycles (1207 versus 1190 / 1209). So the certificate's saving inside the Runtime timer is being offset — consistent with the caveat the script itself records in its `limits` field: a shorter Runtime timer may only move audit work into residual, and only complete Product wall judges saving.\n\n## Comparability caveat worth keeping in view\n\nThe two OFF arms differ from each other by **1.40%** (687.66 vs 678.18), which is larger than the ON-vs-OFF_B gap of 0.46%. The ON-vs-OFF_A gap of 1.83% is only modestly outside that OFF-vs-OFF spread. So this run establishes \"no detectable saving,\" while the precise negative magnitude sits close to the between-arm variance this protocol exhibits.\n\n## Verified conditions\n\nAll built-in gates passed as part of the run, so these are confirmed rather than assumed: 48 requests × 1024 tokens × c12 with zero failures in every warmup and formal repeat; cohort identities globally unique and rank-invariant across the 384 `rank*_cohort*.json` files; metadata Graph ON with `replays == cycles`; audit domain exactly `{(cycle, gid)}` over 8 cycles × gids {2,3}; certificate `used_cycles == 8` with reason `certified_p0_through_p0_plus63` in ON and `cert is None` in OFF; hash memo `memo_misses == 48` per routing row. Cleanup reported all-zero exits, and source/script SHA-256 manifests matched before-to-after, with every listed path re-hashed and confirmed.\n\nOne note on the harness: `zcode_reduce.json` was present at 0 bytes before this session, as in the run674/run677 convention where that file captures the reduce session's response — this report is what should land there.\n\nI've reported the mechanical result only. The KEEP/REJECT call on the startup-certificate candidate is Astra Light's to make, not mine.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 208605,
+    "outputTokens": 4275,
+    "totalTokens": 212880,
+    "cacheReadTokens": 181760,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2903,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 212880,
+    "contextUsed": 30597,
+    "contextWindow": 200000
+  }
+}
