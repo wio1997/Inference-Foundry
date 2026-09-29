@@ -1181,3 +1181,10 @@ Run654 all8 idle 5126 Event/rank capacity SCOPED PASS, not loaded-model or Produ
 ## Framework-only full48 stage census — Run656
 
 Guarded OFF_A/ON/OFF_B completed, each arm individually client/Runtime/all8 admitted and final source/service/NPU cleanup verified. ON 32 packets cover 9600 rank-cycles; Target/proposer/cycle paired current-stream medians47.579/6.372/55.866ms, paired outside residual1.245ms; startup proposer50.038ms. ON Product wall86.904s diagnostic and rank0 Runtime69.584s; their17.320s arithmetic remainder is not removable Host. Cross-arm W0 fails (cycles1201/1200/1226, 0/48 client texts match OFF_A→ON), so observer cost and timing transfer are unquantified. Astra independent scoped PASS. Existing primitive service, ordinary preparation and dependency/resource edges still prevent a credible numeric Framework-only Product ceiling; formal Current571.681tok/s. Stop after this checkpoint per user request; service and all8 NPUs verified idle.
+
+
+## Loop081 Run661–662 checkpoint (2026-09-29)
+
+Run661 同一诊断 W0 的 all8 当前 stream readiness 查询显示，前 cycle draft Event 在下一 cycle 的 begin/prepare_target 均未完成（64/64），在 target_before 仅 13/64 完成。不能将 Host proposer-after→next target-before 间隔直接认定为 removable idle；Framework-only 数值 Bound 与最大 Gap 仍 unknown。
+
+Run662 固定地址 target metadata Graph replay 完成 warmup48/measured48、64 个 FULL Target Graph rank-cohort Runtime 记录和源码/服务恢复；measured 523.751 tok/s 仅为 diagnostic。第 8 cohort acceptance 末段降到 0.310/0.103 token/cycle，完成 12×1024 输出用了 566 cycles，动态 metadata correctness 未证实。TaskCtl 标记 invalid；不推广候选、不改变 Formal Current Run99 571.681 tok/s。下一步优先利用历史证据缩小 late-rank Target 消费阻塞；若再审 Graph metadata，先用同一动态 state 的 eager/replay parity，而不是直接重跑昂贵服务。Zcode 用于简单机械执行，Sol 按风险核验。

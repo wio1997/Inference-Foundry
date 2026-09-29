@@ -73,21 +73,17 @@ P0 的 Runtime 可以高度专项化。
 > 本节是“当前现场快照”。  
 > 每次准备结束一个长会话、Loop 或阶段时必须刷新。
 
-As of 2026-09-28：
+As of 2026-09-29（GitHub main / working HEAD 2da3086b）：
 
-- Formal achieved Current：**571.681 output tok/s**（Run99，当前正式 achieved point）
-- Frozen formal workload：`48×32K→1024, c12`
-- 当前主线：**Framework/Scheduling-only Bound**
-- 当前阶段：保持正确 primitive/operator 及其 shape-conditioned cost 不作为主要优化变量
-- 当前 Framework-only numerical ceiling：**尚未可信识别，禁止为了给数字而编造**
-- 最新完成：Loop081 Run654–656 已提交；Run656 是全 48 请求、all8、OFF/ON/OFF 诊断。三臂均通过各自 client/Runtime gate；ON 记录 9600 rank-cycles。
-- Run656 关键限制：跨臂固定 W0 文本匹配 0/48，effective trajectory 变化，故 observer penalty、跨臂 timing transfer 和数值 Framework-only Product ceiling 均未获准。正式 Current 仍为 Run99 的 571.681 tok/s。
-- ON 诊断阶段中位数：Target 47.579 ms、DSpark proposer 6.372 ms、cycle 55.866 ms、配对剩余 1.245 ms；均含 queue/wait，不能直接当 primitive service 或可消除 wall。
-- Run656 已完成 source SHA 恢复和停服核验，8 卡 NPU idle；当前没有后台实验在运行。完整结论见 evidence/20260928_loop081_bound/run656/run656_findings.md、run656_astra_review.md；下一会话从该证据和 TaskCtl 恢复，不重跑本次实验。
-- 当前核心工作：恢复/收紧真实 scheduling DAG、Host issue、async queue、Graph boundary、rank arrival skew、collective peer wait、resource contention
-- 已确认：长 HCCL duration 可能包含 peer wait，不能直接当 intrinsic communication cost
-- 已确认：Host marker gap 不等于同样大小的 exposed device idle / removable wall
-- 当前目标不是继续“找优化点”，而是建立可审计的 `Current → Optimistic Bound → Achievable Bound → Remaining Gap`
+- Formal achieved Current：**571.681 output tok/s**（Run99，未改变）
+- Frozen formal workload：48×32K→1024, c12
+- 当前主线：**Framework/Scheduling-only Bound 与可消除 Gap**；primitive/operator 暂不作为优化变量
+- Framework-only numerical ceiling、Achievable Bound、Current→Bound 最大可消除 Gap：**尚未可信识别**
+- Run661：all8 当前 stream 的 prior draft Event 在下一 cycle cycle_begin 与 prepare_target 查询时均未完成（各 64/64）；在 target_before 查询时仅 13/64 完成。Host 间隔不能直接解释成设备空闲。证据见 evidence/20260929_loop081_bound/run661/findings.md。
+- Run662：固定地址 target metadata Graph replay 在 warmup48/measured48 请求门禁及 64 个 FULL Target Graph Runtime 行下运行，但第 8 cohort 的 acceptance 跌至 0.310/0.103 token/cycle，需 566 cycles；measured 523.751 tok/s 仅为诊断值。动态 metadata correctness 未证实；TaskCtl 标为 invalid，不晋升 Current。证据见 evidence/20260929_loop081_bound/run662/findings.md。
+- 历史 Loop063 metadata side-stream overlap 在诊断中每周期较 contemporary serial 慢 1.472 ms；不要不加区分地重复该路线。
+- 当前机器：Run662 controller 已停服、确认 8 卡空闲并恢复借用源码；之后独立检查 8080 无监听。Git 跟踪文件仅有 TaskCtl resume 再生成的 resume-pack.json 时间戳待提交；没有后台实验。
+- 下一步：先用既有证据筛选真正的 late-rank Target 消费阻塞；若重试 Graph metadata，先做同一动态 state 的 eager/replay metadata parity，避免直接重复全服务。新的简单启停、环境检查和已有脚本运行按 AGENTS.md 委派给外部命令 Zcode，并由 Sol 核验命令、退出码、产物、服务/NPU/source。
 
 ### Immediate objective
 
