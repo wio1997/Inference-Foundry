@@ -82,9 +82,11 @@ As of 2026-09-29（以实时 Git HEAD 与 TaskCtl 为准）：
 - Run661：all8 当前 stream 的 prior draft Event 在下一 cycle cycle_begin 与 prepare_target 查询时均未完成（各 64/64）；在 target_before 查询时仅 13/64 完成。Host 间隔不能直接解释成设备空闲。证据见 evidence/20260929_loop081_bound/run661/findings.md。
 - Run662：固定地址 target metadata Graph replay 在 warmup48/measured48 请求门禁及 64 个 FULL Target Graph Runtime 行下运行，但第 8 cohort 的 acceptance 跌至 0.310/0.103 token/cycle，需 566 cycles；measured 523.751 tok/s 仅为诊断值。动态 metadata correctness 未证实；TaskCtl 标为 invalid，不晋升 Current。证据见 evidence/20260929_loop081_bound/run662/findings.md。
 - Run663/664 的 cycle0 RoPE 不一致是校验器比较了 max-batch active buffer 与 scratch96 的形状假阳性，非候选 correctness 失败；Run663 TaskCtl 已作 invalid 更正。Run665 修正只比较前96行后，warmup48/measured48、64 个 FULL Target Graph rank-cohort 行均通过逐 cycle 同状态 eager metadata 校验；第8 cohort306 cycles。验证模式 TPS 不可用于性能判断。证据见 evidence/20260929_loop081_bound/run665/findings.md。
+- Run666：OFF_A/ON/OFF_B 诊断值为 590.544/607.644/590.437 tok/s，ON 在四个 measured cohort 的每周期 Runtime 均快约 1.3–1.9 ms；只作为筛选信号。证据见 evidence/20260929_loop081_bound/run666/findings.md。
+- Run667：同一候选按冻结 Run99 `bench.py` 口径做 OFF/ON 各 warmup48 + 3×48。OFF 中位数 578.117，ON 中位数 567.938 tok/s（−1.761%）；两边完整通过 correctness/runtime 门禁，候选不晋升 Current。ON 虽每周期快约 1.2–1.6 ms，但 client 减 serving Runtime 的残差三轮均更高；需定位 prefill/scheduler handoff/output 阶段。证据见 evidence/20260929_loop081_bound/run667/findings.md。
 - 历史 Loop063 metadata side-stream overlap 在诊断中每周期较 contemporary serial 慢 1.472 ms；不要不加区分地重复该路线。
-- 当前机器：Run662 controller 已停服、确认 8 卡空闲并恢复借用源码；之后独立检查 8080 无监听。Git 跟踪文件仅有 TaskCtl resume 再生成的 resume-pack.json 时间戳待提交；没有后台实验。
-- 下一步：Run665 已完成 metadata parity，现做无 verifier 开销的同期 control/candidate 冻结 E2E，按 correctness、acceptance/cycle 和重复正式 E2E 裁决是否保留 Graph 路线。简单启停、环境检查和现成脚本运行交给外部命令 Zcode，具体调用见 ZCODE_OPERATIONS.md；Sol 核验实际命令、退出码、产物、服务/NPU/source。
+- 当前机器：Run667 已停服、8 卡 idle、source/script SHA 精确恢复；8080 无监听。Git 跟踪文件待提交，外部 Zcode CLI 可能在 controller 完成后仍挂起，应按 `ZCODE_OPERATIONS.md` 验收并终止本次 owned CLI。
+- 下一步：优先从已有 Run667 日志/请求时钟分解正式 E2E 的 client−Runtime 残差；如不能判因，再做最小阶段对齐诊断，找出最大可消除 Framework/Scheduling Gap。不要直接重复 metadata Graph 以追逐诊断 TPS。Zcode 负责简单启停和受控脚本运行，调用原文与验收见 `ZCODE_OPERATIONS.md`；Sol 裁决结果。
 
 ### Immediate objective
 

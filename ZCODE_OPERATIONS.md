@@ -24,6 +24,12 @@ Zcode 是外部命令，适合执行边界清楚的机械任务：环境检查�
 
 这两条只是调用格式示例。再次运行必须换新的 Run 编号和独立输出目录，先验收当前服务、源码及 controller 状态。纯命令 prompt 仍需按下面的规则核验内层脚本结果。
 
+Run667 的正式 OFF/ON E2E 也使用同一形式实际启动，纯命令 prompt 为 `bash scripts/run_loop081_metadata_graph_run667.sh`，外层命令为：
+
+    timeout 3600s zcode --prompt "bash scripts/run_loop081_metadata_graph_run667.sh" --cwd /data/wio/Inference_Foundry --json
+
+Run667 controller 完成 2 个服务 arm、每 arm warmup48 + 3×48 正式测量，并写出 `live/cleanup_status.txt` 全 0。Zcode CLI 在 controller 完成后仍可能保持运行；以 controller、服务/NPU 和 source SHA 的独立检查判定内层完成，不能仅凭 CLI 沉默重跑。此命令是已用格式示例，已有 `run667/live` 时不能再次运行。
+
 ## 2. 启停服务
 
 只让 Zcode 运行已经过 Sol 审核的 guarded controller。控制脚本应自带：

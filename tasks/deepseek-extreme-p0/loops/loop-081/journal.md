@@ -387,3 +387,11 @@
 - `2026-09-29T01:47:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run665`（test）。
 
 - `2026-09-29T01:47:51Z` Run `run665` 记录为 `pass`；正确性为 `pass`。Scoped all8 dynamic metadata parity: warmup48/measured48, 64 FULL rows, verify_count=cycles; diagnostic TPS invalid for candidate perf; cleanup/source restore pass
+
+- `2026-09-29T03:17:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run666`（benchmark）。
+
+- `2026-09-29T03:17:00Z` Run `run666` 记录为 `pass`；正确性为 `pass`。Controlled diagnostic OFF_A/ON/OFF_B: 590.544/607.644/590.437 tok/s diagnostic; 48+48 requests and 64 FULL rank rows per arm pass; same request bodies; ON all measured cohorts lower ms/cycle; not formal TPS.
+
+- `2026-09-29T03:17:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run667`（benchmark）。
+
+- `2026-09-29T03:17:01Z` Run `run667` 记录为 `pass`；正确性为 `pass`。Frozen formal E2E bench.py: OFF median 578.117 (578.117/577.073/634.358), ON median 567.938 (571.982/567.938/542.738), delta -1.76%; both 3x48 complete, 128 FULL rank rows pass, source restored. Candidate not promoted.
