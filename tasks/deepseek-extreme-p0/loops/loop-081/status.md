@@ -7,8 +7,8 @@
 - 执行 Skill：`NONE`
 - 状态：`RUNNING`
 - 结论：`PENDING`
-- 下一步：执行 Run run672：bash scripts/run_loop081_token_cache_run672.sh
-- 更新时间：`2026-09-29T09:12:35Z`
+- 下一步：执行 Run run673：bash scripts/run_loop081_token_cache_run673.sh
+- 更新时间：`2026-09-29T13:00:47Z`
 
 ## Run 记录
 
@@ -103,6 +103,7 @@
 - `runs/mixed_32k_1024_c12/run670`
 - `runs/mixed_32k_1024_c12/run671`
 - `runs/mixed_32k_1024_c12/run672`
+- `runs/mixed_32k_1024_c12/run673`
 
 ## 阻塞项
 

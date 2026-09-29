@@ -1,0 +1,49 @@
+{
+  "sessionId": "sess_cc8a8b7f-a935-4449-b594-fa50eeca4499",
+  "traceId": "d59278c3-417f-45a8-88f4-cfd0af640597",
+  "turnId": "turn_f4c1c6e6-9599-4ea9-9275-0d2af736aad0",
+  "response": "The reduction ran clean and wrote `evidence/20260929_loop081_bound/run672/summary.json`. Every guard in the script passed, including the strict ones: 48/48 requests succeeded with exactly 1024 output tokens and no errors in all six benches, the 128 `rank*_cohort*.json` files per arm cover all `(rank 0-7) × (cohort 1-16)` exactly once, the 8 ranks agree on cycle count within each cohort, all 12 sequences generated 1024 tokens, `target_graph_mode` contains `FULL` with `host_mirror_exact`, input-token counts match pairwise between arms, all 9 cleanup/restore exit codes are 0, and the before/after sha256 manifests for both source and scripts are byte-identical.\n\n**Headline result: bounded input-token memoization measures +4.2% median output TPS (587.3 → 612.0 over 48×32K→1024, c12), but essentially all of that comes from a host-side residual reduction, not from device cycles.**\n\nThe decomposition is the part worth attending to:\n\n| | cacheoff (mean) | cacheon (mean) |\n|---|---|---|\n| rank0 ms/cycle | 56.72 | 57.44 |\n| rank0 cycles per 48-req cohort | 1188.7 | 1208.3 |\n| rank0 residual (client_s − cohort wall) | 16.66 s | 12.02 s |\n\nRuntime per cycle is flat to slightly *worse* under cacheon, and cycles are 1.6% *higher*, so the token-per-cycle ratio did not improve. The entire gain sits in the ~16.7 s → ~12.0 s of rank0 wall time not accounted for by cohort execution — that residual is the host-side non-fixed-serving work the cache is meant to remove. The residual drop is consistent in all three repeat pairs (16.48/16.62/16.87 → 11.38/10.71/13.97), which is the strongest evidence in this run that the mechanism is real rather than noise.\n\nThe caveat I'd flag before treating +4.2% as the number: that statistic is fragile. The cacheon arm's own spread (617.8 / 612.0 / 582.4) is three times wider than cacheoff's (577.9 / 587.3 / 588.7), and cacheon's worst repeat (582.4) falls *below* cacheoff's median (587.3). On means instead of medians the effect is +3.3% (584.6 → 604.1). With n=3 per arm and overlapping ranges, this run does not by itself establish a confidence interval excluding zero — the robust finding here is the host-residual reduction, and the TPS delta should be read as consistent with, but not independently proving, a 3-4% Product gain.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 114422,
+    "outputTokens": 3304,
+    "totalTokens": 117726,
+    "cacheReadTokens": 93952,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2727,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 117726,
+    "contextUsed": 23445,
+    "contextWindow": 200000
+  }
+}
+          316
+          ]
+        }
+      ],
+      "median_tps": 611.9740926151547
+    }
+  },
+  "relative_median_tps_percent": 4.2058869925790665,
+  "cleanup": {
+    "run_exit": "0",
+    "stop_exit": "0",
+    "stop_verify_exit": "0",
+    "restore_exit": "0",
+    "source_sha_exit": "0",
+    "source_compare_exit": "0",
+    "script_sha_exit": "0",
+    "script_compare_exit": "0",
+    "final_exit": "0"
+  },
+  "input_token_counts_match": true,
+  "all8_cycles_match": true,
+  "limits": "Separate launches and batching may change acceptance trajectory. Residual includes all non-fixed-serving Product work; useful tokens/cycle ratio includes prebulk outputs. No exact generated-text parity claim."
+}

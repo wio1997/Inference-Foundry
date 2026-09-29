@@ -29,7 +29,7 @@
 | `loop-078` | `INCONCLUSIVE` | `INCONCLUSIVE` | Exact clean route and local count-copy observations narrow Current numerator and normal-path ordering, but all-layer row identity, downstream Draft/DSA consumption, A/A acceptance parity and all8 typed joins are incomplete. Run411 startup OOM and Run417 container reset invalidate combined timing calibration. V3.11 has no matched necessary-work/capacity certificate or finite Product ceiling. |
 | `loop-079` | `INCONCLUSIVE` | `INCONCLUSIVE` | Run576-578 narrow current route, resident GMM service and counter traffic, but formal W-minus/C-plus and Product DAG remain incomplete; Run578 original paired timing invalid and strict endpoints null |
 | `loop-080` | `INCONCLUSIVE` | `INCONCLUSIVE` | Run579-580 reproducibly reject independent-ready whole-chain GMM-HCCL ideal overlap; Run581 source gate selects one legal production DAG cut but loaded branch, typed endpoints and resource lower bounds remain open |
-| `loop-081` | `RUNNING` | `PENDING` | 执行 Run run672：bash scripts/run_loop081_token_cache_run672.sh |
+| `loop-081` | `RUNNING` | `PENDING` | 执行 Run run673：bash scripts/run_loop081_token_cache_run673.sh |
 
 ## 阻塞项
 

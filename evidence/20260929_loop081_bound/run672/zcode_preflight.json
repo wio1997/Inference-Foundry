@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c55e15d3-5497-446d-9702-70d6ac40a987",
+  "traceId": "6cb2809c-e816-40e1-aeb4-f1a36543e1fc",
+  "turnId": "turn_c7e78bca-fce5-42e3-8e6f-6f79af32e832",
+  "response": "Preflight passed cleanly — exit code 0, no service started, and the machine was left exactly as it was found.\n\n**What the preflight verified**\n\nThe guarded CPU parity test for the bounded input-token cache ran and returned `\"status\": \"pass\"`. Cold encoding of all 48 prompts produced token hashes that match exactly, the 192 threaded cache hits were exact, and all eight gates passed: caller mutation isolation, request extras freshness, encoding-options exactness, LRU eviction, oversize bypass, and complete-offset bypass. Timing split was 7.456 s for the cold 48 vs 0.117 s for the hot 192, with 51 cache entries (~73.8 MB estimated).\n\nThe patched file round-trips correctly. `vllm/renderers/base.py` went from original sha `d3f748aa…` to candidate `d056eca3…` for the test, then was restored — I re-hashed the live file and it matches the original, and the before/after script manifests are byte-identical. The environment guard reports no banned variables, and the container is the expected `quay.io/ascend/vllm-ascend:v0.26.0rc1` with `torch_npu 2.10.0.post4` / CANN 9.1.0.\n\nCleanup was thorough: all nine exit codes in `cleanup_status.txt` are 0, the orphan-client list is empty, and the final `npu-smi` probe shows no processes on any of the eight 910B3s with HBM at the ~3.4 GB idle baseline. Only 2 container processes are active (the container's own), and `MemAvailable` is ~978 GB.\n\n**Current state for the next step**\n\nThe service is confirmed down, the frontier lock at `/tmp/loop080_frontier.lock` is free, and no `live/` output directory exists yet. Running the script without `--preflight-only` will produce the actual E2E into `run672/live`.\n\nOne scope caveat worth keeping in mind: `integration.json` explicitly declares its scope as *CPU original renderer encoding and per-request object parity, not serving performance or model output parity*. So nothing here establishes product-level benefit — the 7.46 s → 0.117 s split is a CPU-side encoding comparison, and the formal result still needs the frozen E2E run.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 10,
+    "inputTokens": 212489,
+    "outputTokens": 2523,
+    "totalTokens": 215012,
+    "cacheReadTokens": 186240,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1529,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 215012,
+    "contextUsed": 27912,
+    "contextWindow": 200000
+  }
+}

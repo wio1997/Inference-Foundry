@@ -413,3 +413,7 @@
 - `2026-09-29T09:10:51Z` Run `run670` 记录为 `pass`；正确性为 `pass`。Formal worker1 median551.503 vs worker4 564.335 tok/s (+2.327% contemporary); worker4 residual lower all3 by0.467/1.672/1.270s but cycle deltas+60/-18/+33 and repeat variability preclude promotion. Both192 requests exact1024,128 unique FULL all8 runtime rows/arm, all cleanup/SHA gates0. Current Run99 571.681 retained. Continue bounded input-token cache integration.
 
 - `2026-09-29T09:12:35Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run672`（benchmark）。
+
+- `2026-09-29T09:58:41Z` Run `run672` 记录为 `pass`；正确性为 `pass`。Guarded formal frozen E2E, renderer workers4, both arms 4x48@c12/1024 complete. CacheOFF median 587.274 tok/s (reps 577.9/587.3/588.7); cacheON median 611.974 tok/s (reps 617.8/612.0/582.4), +4.206% median, but ON rep3 582.4 and 582-618 spread overlaps OFF 578-589, so at n=3 the TPS gain is same order as run670-vs-run672 drift of the identical workers4 config (564.335 vs 587.274, +4.07%) and is not cleanly separated. TTFT p90 separates better and matches the renderer-side mechanism: OFF 3851/4022/4106ms vs ON 2488/2512/3327ms. Correctness: all 48 reqs success1024 exact per arm, 192 POSTs per arm, 128/128 rank-cohort runtime rows pass with host_mirror_exact and oracle_target_calls_after_handoff=0 in FULL graph mode, cache-active banner present only in ON log. All nine cleanup gates 0; source and script sha before/after identical; base.py restored to d3f748aa; service down and all 8 NPU idle at ~3.44GB HBM.
+
+- `2026-09-29T13:00:47Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run673`（benchmark）。

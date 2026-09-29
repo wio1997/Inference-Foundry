@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_91868254-8bde-435b-b83b-c367bae25e58",
+  "traceId": "352355e1-432c-4c91-9ac0-95fc7feaba6d",
+  "turnId": "turn_42c2a9e2-7976-41f9-ba5b-55ed6208bcad",
+  "response": "Run672 completed end to end and exited 0 on every gate. Both arms passed correctness; the cache-on arm's median is 611.97 tok/s vs 587.27 for cache-off (+4.21%), but that TPS delta is not cleanly separated from run-to-run noise, and I'd treat it as suggestive rather than established.\n\n**What ran**\n\n`bash scripts/run_loop081_token_cache_run672.sh` (live mode, not preflight) ran the guarded two-arm frozen E2E with `--renderer-num-workers 4`, `48×32K→1024, c12`, cache off then on, each arm restarting the 8×910B3 DP1×TP8 service and running warmup plus 3 formal reps. Total wall time was roughly 45 minutes; it ran to completion unattended and the script has exited.\n\n**Correctness — passes on both arms**\n\nAll 48 requests per rep succeeded with exactly 1024 output tokens and zero failures on both arms, 192 POSTs per arm before and after stop, and 128/128 rank-cohort runtime rows pass on each arm with `host_mirror_exact`, `oracle_target_calls_after_handoff=0`, and `target_graph_mode=FULL`. The cache-active banner appears only in the cache-on log (0 vs 1 occurrences), so the ON arm really did engage the adapter and the OFF arm really did not. Device-side work is unchanged: median 297 cycles on both arms, cohort wall 16.80 s vs 17.15 s. That the device cycles are identical is the strongest available signal that the change is host-renderer-side only and does not touch model semantics.\n\n**Performance — effect present but noisy**\n\nCache-off median 587.27 tok/s (reps 577.9 / 587.3 / 588.7), cache-on median 611.97 (reps 617.8 / 612.0 / 582.4). The ON arm's third rep at 582.4 sits below the OFF arm's maximum, so the two distributions overlap at n=3. For scale, the identical `workers4` configuration measured 564.34 tok/s in run670 versus 587.27 here — a +4.07% spread across runs with no code change, essentially the same magnitude as the +4.21% being attributed to the cache. So the median TPS result does not by itself establish the cache as the cause.\n\nThe TTFT tail separates better and is consistent with the renderer-side mechanism the patch targets: p90 TTFT is 3851/4022/4106 ms cache-off versus 2488/2512/3327 ms cache-on. TTFT p50 moved less (2214 → 1964 ms). Also worth keeping straight: cache-off already records +8.02% against the stored `stock_median` of 543.65, which reflects the workers-4 and other env flags in this script, not the token cache.\n\n**Cleanliness — independently verified**\n\nAll nine exit codes in `cleanup_status.txt` are 0. I confirmed on my own afterward that the service is down, `npu-smi` reports no processes on any of the 8 chips, the container is back to 2 processes, and `vllm/renderers/base.py` is restored to its original `d3f748aa…` hash with byte-identical before/after manifests for both sources and scripts.\n\n**Bookkeeping**\n\nEvidence is in `evidence/20260929_loop081_bound/run672/` (1.6 MB, plus serve logs under `logs/`). I recorded the result as run672 with status pass / correctness pass via `scripts/taskctl.py finish-run`, carrying the cache-on median as the metric and four artifacts; `taskctl validate` passes. I recorded facts only and deliberately did not write a KEEP/REJECT verdict, since that judgment belongs to the main agent — and given the noise floor above, the honest framing is that this run establishes correctness and a plausible host-side TTFT-tail win, not a claimed product gain.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 32,
+    "inputTokens": 1242979,
+    "outputTokens": 14903,
+    "totalTokens": 1257882,
+    "cacheReadTokens": 1201664,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 7948,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 1257882,
+    "contextUsed": 53820,
+    "contextWindow": 200000
+  }
+}
