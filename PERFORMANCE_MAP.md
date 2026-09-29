@@ -908,3 +908,7 @@ Formal Current676.824631 tok/s, initial-prefix-hash memo + input-token cache; me
 Current configuration: input-token cache + initial prefix-hash memo + renderer workers4 + metadata Graph. Latest formal Current measurement: **660.3094257763639 output tok/s**. Historical best achieved remains **676.8246305810562 (Run674, Graph OFF)**; do not assign that old number to the changed configuration.
 
 Matched OFF_A/ON/OFF_B Product +1.266%/+2.186%; all full gates pass. Residual still increases; no new historical record or numerical Framework bound. Next direct Runtime candidate defers only diagnostic changed/zero count scalar reads to existing terminal validation. See evidence/20260929_loop081_bound/run675/verdict.md.
+
+## 2026-09-29 Run677 — isolated deferred audit rejected
+
+REJECT isolated deferred audit: medians OFF_A681.915150 ON668.881455 OFF_B671.066709; all576requests/384all8records/cleanup/source passed. No stable Product gain. Current config unchanged; next678combinedstartupcertificate+audit with eagerbaseline. Numerical Framework ceiling remains unknown. See evidence/20260929_loop081_bound/run677/verdict.md.

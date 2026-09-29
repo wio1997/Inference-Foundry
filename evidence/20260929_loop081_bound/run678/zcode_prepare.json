@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_41a55454-6a21-40ca-90ed-487c559aca0e",
+  "traceId": "7dbfed34-9e63-4c95-ac9a-db8031b7dda4",
+  "turnId": "turn_6b96992c-3037-4707-9000-f227325df419",
+  "response": "The script ran successfully and staged a fresh Run678 candidate without touching the live sources.\n\nOutput: `{\"prepared\": true, \"files\": 4, \"no_install\": true}`\n\nWhat it did:\n\n- **Verified the pinned baseline first.** It asserted that all four live sources still match the `run677/candidate_manifest.json` before-hashes, and that the run677 candidate files match their recorded candidate-hashes — the baseline was intact, so nothing was silently overwritten.\n- **Applied the off-path patch functions** from `scripts/loop081_startup_certificate_patch_run678.py`:\n  - `bootstrap/vllm_dspark_handoff.py` gains `certify_startup_slots()`, which builds a `StartupSlotCertificate` from the group slot bindings, and the cycle-<8 slot guard is replaced by a certificate-derived `guard_required`. Certificate mode is read from `EXTREME_SLOT_CERTIFICATE_MODE_FILE`.\n  - `runtime/fixed_serving.py` calls that certifier after initial positions are computed.\n  - `model_runner_v1.py` exposes `slot_certificate_mode` / `slot_certificate` in the observer record.\n  - `runtime/target_metadata.py` comes from the run677 candidate (unchanged by this patch module).\n- **Wrote the staged artifacts** to `evidence/20260929_loop081_bound/run678/candidate/` (`handoff.py`, `metadata.py`, `runner.py`, `serving.py`) plus `candidate_manifest.json` recording before/candidate hashes for all four sources and for the eight helper files (patch module, prepare script, `cohort_mode.py`, the run638 observer installer, `startup_slot_certificate.py`, `fixed_decode.py`, `extreme_decode.py`, `dspark_proposer.py`).\n\nEvery patched file was byte-compiled before being written, and all anchors were required to match exactly once, so the patch either applies cleanly or fails loudly. Nothing has been installed into the runtime tree — the live sources remain at their verified before-state, and no service was started.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 90723,
+    "outputTokens": 1459,
+    "totalTokens": 92182,
+    "cacheReadTokens": 71296,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1039,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 92182,
+    "contextUsed": 20545,
+    "contextWindow": 200000
+  }
+}

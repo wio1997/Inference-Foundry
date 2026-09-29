@@ -68,13 +68,13 @@
 
 # 4. Current checkpoint
 
-## Active continuation — Run669 / Run670
+## Active continuation — Run677 complete / Run678 preparation
 
 Run669 exact-ID reuse excludes prior-cohort tails from Run602/606. In Run606 the corrected Target Host work is 1.785–2.533 s/cohort, proposal .297–.455 s, and post-proposal→next execute gaps only31–103 ms. Main opportunity is repeated mixed-prefill caused by incremental request readiness. Source finds default renderer_num_workers=1; CPU text-path screen workers1/4/12 reduces median12-request batch from1352.753 to446.931/297.508ms (corrected effective Ascend thinking template) with exact token IDs. This screen applies the serving thinking patch; it excludes complete API validation and Core prefix hashing, and is not Product evidence.
 
 Current configuration: input-token cache + initial prefix-hash memo + renderer workers4 + metadata Graph. Latest formal Current measurement: **660.3094257763639 output tok/s**. Historical best achieved remains **676.8246305810562 (Run674, Graph OFF)**; do not assign that old number to the changed configuration.
 
-Run675 KEEP; read evidence/20260929_loop081_bound/run675/verdict.md. Run677 deferred audit candidate prepared, preflight next. Both caches and metadata Graph will remain ON. Run676 boundary observer is prepared but unexecuted; no second live experiment. Inspect actual PID/logs before launch.
+Run675 KEEP; read evidence/20260929_loop081_bound/run675/verdict.md. Run677 completed and independently REJECTED: OFF_A681.915150 / ON668.881455 / OFF_B671.066709 tok/s. All576requests/all384all8records/cleanup/source SHA pass; controller3836844 ended, 8080closed, all8idle. Read run677/verdict.md and summary.json. Current accepted configuration unchanged. Run678 combines first8 startup slot certificate with deferred audit against eager original baseline (AUDIT_BASELINE0); source High review passed after cross-group alias/dtype hardening; Zcode preparation/preflight completed:54CPU same-state scenarios and all fallback/alias/mutation/overflow gates passed; all9cleanup0 and current source/script SHA independently verified. Run678 ready for one live OFF_A/ON/OFF_B. No new live service yet; verify actual processes before launch. Run676 narrow ordinary-boundary observer remains unexecuted fallback; no duplicate experiment. Historical sections below do not override this current paragraph.
 
 
 As of 2026-09-29，恢复后仍需用实时 Git HEAD / TaskCtl / 机器状态重新确认。

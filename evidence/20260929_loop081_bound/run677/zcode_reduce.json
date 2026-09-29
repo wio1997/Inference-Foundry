@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_0297184a-9a1d-4269-94d9-4469bb945ccb",
+  "traceId": "0974e6be-d504-4858-821e-e2b6086f7a52",
+  "turnId": "turn_c6e721e8-6ba8-45af-aaf9-13c5ab8df5a6",
+  "response": "The script ran to completion and wrote its verdict to `evidence/20260929_loop081_bound/run677/summary.json` (and stdout), exit code 0.\n\n## Result\n\nThe deferred-audit run677 reduction is **negative on both comparisons**, so the deferred diagnostic materialization shows no Product-wall saving:\n\n| Arm | Median TPS | ms/cycle |\n|---|---|---|\n| OFF_A | 681.92 | 55.60 |\n| ON | 668.88 | 55.84 |\n| OFF_B | 671.07 | 55.86 |\n\n- ON vs OFF_A: **−1.91%**\n- ON vs OFF_B: **−0.33%**\n\nThe three arms are near-identical (ONTPS spread across repeats 661.7–677.3), and the shared-cache routing behavior (48 initial cache entries, ~114 MB, memo hits scaling 48→528 with `initial_requests`) is the same in all three arms, so the ON arm's controls are intact — the ON/OFF difference is not explained by a cache or routing divergence in this run.\n\nReading it plainly: this is a null-to-slightly-negative result, not a win. The two ON-vs-OFF deltas straddle the run-to-run spread of the individual arms (OFF_A's own repeats span 665–701 TPS), so the honest statement is \"no demonstrated saving\" rather than \"a 0.3–1.9% regression.\" Per the script's own `limits` field, a shorter Runtime timer only shifts audit work into residual and only the complete Product wall judges saving — and here the complete Product wall shows none.\n\nCleanup was verified end to end: `run_exit`, `stop_exit`, `stop_verify_exit`, `restore_exit`, `source_sha_exit`, `source_compare_exit`, `script_sha_exit`, `script_compare_exit`, and `final_exit` are all 0, so the service was stopped and the source/script hashes restored.\n\nTwo notes on what I observed while running it:\n- The reduce script only *writes* `summary.json`; it prints the JSON to stdout. `evidence/.../run677/zcode_reduce.json` exists but is 0 bytes — presumably a harness-level capture placeholder, not something this script produces. If a downstream step expects `zcode_reduce.json` to contain the verdict, that step will read an empty file.\n- The script is a pure re-reduction over already-captured run677 arms — it did not launch a service or run a new benchmark. So no background task is running as a result of this command.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 181258,
+    "outputTokens": 2473,
+    "totalTokens": 183731,
+    "cacheReadTokens": 159232,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1515,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 183731,
+    "contextUsed": 23953,
+    "contextWindow": 200000
+  }
+}
