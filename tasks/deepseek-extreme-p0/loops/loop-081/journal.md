@@ -409,3 +409,5 @@
 - `2026-09-29T08:54:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run671`（test）。
 
 - `2026-09-29T08:54:45Z` Run `run671` 记录为 `pass`；正确性为 `pass`。CPU original effective Ascend renderer vs bounded input-token memoization:48 cold outputs and192 concurrent hit outputs exact; mutation isolation, per-request extras, encoding options, eviction, oversize and full offset bypass passed.73.8MB estimated retained objects. Not installed; no Product/model-output claim. Run670 formal worker1/4 remains running.
+
+- `2026-09-29T09:10:51Z` Run `run670` 记录为 `pass`；正确性为 `pass`。Formal worker1 median551.503 vs worker4 564.335 tok/s (+2.327% contemporary); worker4 residual lower all3 by0.467/1.672/1.270s but cycle deltas+60/-18/+33 and repeat variability preclude promotion. Both192 requests exact1024,128 unique FULL all8 runtime rows/arm, all cleanup/SHA gates0. Current Run99 571.681 retained. Continue bounded input-token cache integration.
