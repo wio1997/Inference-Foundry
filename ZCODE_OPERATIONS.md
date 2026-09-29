@@ -1,6 +1,6 @@
 # Zcode 操作指南（DeepSeek Extreme P0）
 
-Zcode 是外部命令，适合执行边界清楚的机械任务：环境检查、启停服务、现成控制脚本、benchmark 和日志提取。Sol 负责实验设计、正确性与性能裁决，并独立验收 Zcode 的实际执行。
+Zcode 是外部命令，适合执行边界清楚的机械任务：环境检查、启停服务、现成控制脚本、benchmark 和日志提取。主 Agent 负责实验设计、正确性与性能裁决，并独立验收 Zcode 的实际执行。
 
 ## 1. 命令提示写法
 
@@ -32,7 +32,7 @@ Run667 controller 完成 2 个服务 arm、每 arm warmup48 + 3×48 正式测量
 
 ## 2. 启停服务
 
-只让 Zcode 运行已经过 Sol 审核的 guarded controller。控制脚本应自带：
+只让 Zcode 运行已经过 主 Agent 审核的 guarded controller。控制脚本应自带：
 
 - 独占锁和服务/NPU preflight；
 - source SHA pin、可逆安装与恢复；
@@ -48,7 +48,7 @@ Zcode CLI 外层 exit 0 **不代表内层命令 exit 0**。核验其报告的实
 
 2026-09-29 的 Run663/664 内层 guarded script 以 1 结束，Run665 内层以 0 结束；三次 controller 均完成 stop/restore，但 Zcode CLI 长时间未返回。此时先独立证明脚本已结束和服务/NPU/source 已恢复；只终止本次调用自己启动的 Zcode PID，记录 CLI 被终止。不得把 Zcode 沉默当作脚本仍在运行，也不得因 CLI 沉默自动重复实验。
 
-如果 Zcode 的模型/runner 身份无法从输出和日志确认，写 unknown；不要猜。重要结果以 raw evidence 和 Sol 复核为准。任何 timeout 默认为 inconclusive，除非独立证据能证明具体动作已完整完成。
+如果 Zcode 的模型/runner 身份无法从输出和日志确认，写 unknown；不要猜。重要结果以 raw evidence 和 主 Agent 复核为准。任何 timeout 默认为 inconclusive，除非独立证据能证明具体动作已完整完成。
 
 ## 4. 失败后的继续规则
 

@@ -399,3 +399,9 @@
 - `2026-09-29T04:45:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run668`（profile）。
 
 - `2026-09-29T04:45:27Z` Run `run668` 记录为 `pass`；正确性为 `pass`。OFF/ON/OFF stage-aligned diagnostic: all 48+48 requests per arm and 192 FULL rank/cohort rows pass; ON capture 40-47 ms/cohort, 168 ms total; prehandoff totals OFF_A12.14s ON11.19s OFF_B18.17s. Graph capture cannot directly explain Run667 2-10s residual. Inner controller/restore exit0, outer Zcode CLI timed out124 after completion.
+
+- `2026-09-29T08:29:43Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run669`（design-check）。
+
+- `2026-09-29T08:30:48Z` Run `run669` 记录为 `pass`；正确性为 `pass`。Exact-ID historical Host partition excludes previous cohort tail; main cost is repeated mixed-prefill. CPU-only actual frozen template/tokenization workers1/4/12 medians 1387.633/483.901/302.548ms per12 requests; all48 token ID lists exact across repetitions. No Product performance claim. Proceed worker4 formal candidate.
+
+- `2026-09-29T08:32:16Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run670`（benchmark）。
