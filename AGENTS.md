@@ -390,6 +390,8 @@ Astra 是独立分析输入，不自动覆盖 Sol。
 
 ## DeepSeek / Zcode
 
+具体命令写法、长任务返回值和失败后验收见 ZCODE_OPERATIONS.md。
+
 适合机械、边界清晰、容易验收的任务，例如：
 
 - 部署；

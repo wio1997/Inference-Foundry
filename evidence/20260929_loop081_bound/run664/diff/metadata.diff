@@ -1,0 +1,98 @@
+--- /data/wio/Inference_Foundry/runtime/target_metadata.py
++++ /data/wio/Inference_Foundry/runtime/target_metadata.py.run664
+@@ -107,6 +107,12 @@
+         self.local_seq_lens = torch.empty(12, dtype=query_start_loc.dtype, device=self._device)
+         self.start_pos = torch.empty(12, dtype=query_start_loc.dtype, device=self._device)
+         self._request_index = torch.arange(12, device=self._device).unsqueeze(1)
++        self._graph_enabled = os.getenv("EXTREME_TARGET_METADATA_GRAPH") == "1"
++        self._graph = None
++        self._graph_input_ptrs = None
++        self._graph_replays = 0
++        self._graph_verify_count = 0
++        self._graph_verify_updater = None
+ 
+     def make_scratch(self) -> "FixedTargetMetadataUpdater":
+         """Create private outputs; immutable caches and block tables remain shared."""
+@@ -210,7 +216,82 @@
+             stats["first_ac"] = min(stats["first_ac"], int(ac_indices[0].item()))
+ 
+     @torch.inference_mode()
++    def capture_graph(self, state: FixedDecodeState) -> None:
++        """Capture only in setup, before the timed fixed serving loop."""
++        if not self._graph_enabled or self._graph is not None:
++            raise RuntimeError("metadata Graph capture requires fresh enabled updater")
++        if not self._static_kv_max or self._shadow_dynamic:
++            raise RuntimeError("metadata Graph requires fixed KV maxima and no shadow")
++        self._update_eager(state)
++        torch.npu.synchronize()
++        graph = torch.npu.NPUGraph()
++        with torch.npu.graph(graph):
++            self._update_eager(state)
++        torch.npu.synchronize()
++        self._graph_input_ptrs = (
++            state.target_positions.data_ptr(), state.target_seq_lens.data_ptr())
++        self._graph = graph
++        if os.getenv("EXTREME_TARGET_METADATA_GRAPH_VERIFY") == "1":
++            self._graph_verify_updater = self.make_scratch()
++
++    @torch.inference_mode()
+     def update(self, state: FixedDecodeState) -> None:
++        if not self._graph_enabled:
++            self._update_eager(state)
++            return
++        if self._graph is None or self._graph_input_ptrs != (
++                state.target_positions.data_ptr(), state.target_seq_lens.data_ptr()):
++            raise RuntimeError("metadata Graph missing or input address drift")
++        self._graph.replay()
++        # Graph-captured index_select froze RoPE for the initial state in
++        # Run663; refresh only dynamic RoPE against the live positions.
++        positions = state.target_positions.long()
++        for binding in self.rotary:
++            cos = binding.full_cos.index_select(0, positions)
++            sin = binding.full_sin.index_select(0, positions)
++            binding.target_cos[:96].copy_(cos)
++            binding.target_sin[:96].copy_(sin)
++            if binding.local_cos is not None:
++                binding.local_cos.copy_(cos[self.local_start:self.local_end])
++            if binding.local_sin is not None:
++                binding.local_sin.copy_(sin[self.local_start:self.local_end])
++        self._graph_replays += 1
++        reference = self._graph_verify_updater
++        if reference is not None:
++            # Diagnostic only: compare the same dynamic state without
++            # replacing Graph outputs consumed by Target.
++            torch.npu.synchronize()
++            reference._update_eager(state)
++            torch.npu.synchronize()
++            pairs = [
++                ("start_pos", self.start_pos, reference.start_pos),
++                ("local_seq_lens", self.local_seq_lens, reference.local_seq_lens),
++            ]
++            for index, (active, eager) in enumerate(zip(self.rotary, reference.rotary)):
++                for name in ("target_cos", "target_sin", "local_cos", "local_sin"):
++                    lhs, rhs = getattr(active, name), getattr(eager, name)
++                    if lhs is not None:
++                        pairs.append((f"rotary{index}.{name}", lhs, rhs))
++            for index, (active, eager) in enumerate(zip(self.groups, reference.groups)):
++                for name, count in (("seq_lens", 12), ("input_positions", 96),
++                                    ("start_pos", 12), ("local_query_start_loc", 13),
++                                    ("local_seq_lens", 12), ("sas_metadata", 97),
++                                    ("qli_metadata", 25), ("swa_slot_mapping", 96)):
++                    lhs, rhs = getattr(active, name), getattr(eager, name)
++                    if lhs is not None:
++                        pairs.append((f"group{index}.{name}", lhs[:count], rhs[:count]))
++            mismatches = [name for name, lhs, rhs in pairs if not torch.equal(lhs, rhs)]
++            if mismatches:
++                raise AssertionError(
++                    f"metadata Graph/eager mismatch cycle={state.cycle_index}: "
++                    + ", ".join(mismatches))
++            self._graph_verify_count += 1
++            if self._graph_verify_count in (1, 64, 128, 256, 320, 512):
++                print(f"METADATA_GRAPH_VERIFY rank={self._tp_rank} "
++                      f"cycles={self._graph_verify_count} pass=1", flush=True)
++
++    @torch.inference_mode()
++    def _update_eager(self, state: FixedDecodeState) -> None:
+         if state.target_positions.numel() != self.target_tokens:
+             raise ValueError("fixed target must contain 96 positions")
+         if state.target_seq_lens.numel() != self.batch_size:

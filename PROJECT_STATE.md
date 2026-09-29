@@ -1188,3 +1188,8 @@ Guarded OFF_A/ON/OFF_B completed, each arm individually client/Runtime/all8 admi
 Run661 同一诊断 W0 的 all8 当前 stream readiness 查询显示，前 cycle draft Event 在下一 cycle 的 begin/prepare_target 均未完成（64/64），在 target_before 仅 13/64 完成。不能将 Host proposer-after→next target-before 间隔直接认定为 removable idle；Framework-only 数值 Bound 与最大 Gap 仍 unknown。
 
 Run662 固定地址 target metadata Graph replay 完成 warmup48/measured48、64 个 FULL Target Graph rank-cohort Runtime 记录和源码/服务恢复；measured 523.751 tok/s 仅为 diagnostic。第 8 cohort acceptance 末段降到 0.310/0.103 token/cycle，完成 12×1024 输出用了 566 cycles，动态 metadata correctness 未证实。TaskCtl 标记 invalid；不推广候选、不改变 Formal Current Run99 571.681 tok/s。下一步优先利用历史证据缩小 late-rank Target 消费阻塞；若再审 Graph metadata，先用同一动态 state 的 eager/replay parity，而不是直接重跑昂贵服务。Zcode 用于简单机械执行，Sol 按风险核验。
+
+
+## Loop081 Run663–665 correction and checkpoint (2026-09-29)
+
+Run663/664 的 all8 cycle0 RoPE mismatch 是 verifier shape false positive：active runtime buffer 按 max_num_batched_tokens 分配，scratch 仅96行；直接 torch.equal 不比较值就返回 false。Run663 TaskCtl 原 fail 结论已更正为 invalid，保留审计记录。Run665 校验前96行并增加 shape guard 后，warmup48/measured48、64个FULL rank-cohort记录的 metadata Graph replay 全周期与独立 eager scratch 的稳定字段一致；第8 cohort306 cycles。Run665的461.799诊断tok/s包含每周期参考计算及同步，不可与 Current 或 Run662比较。正式 Current571.681tok/s、Framework-only数值上限和最大Gap不变。下一步做同期冻结 E2E 对照，决定 Graph 候选是否有产品收益。Zcode 具体调用和验收见 ZCODE_OPERATIONS.md。

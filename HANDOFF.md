@@ -73,7 +73,7 @@ P0 的 Runtime 可以高度专项化。
 > 本节是“当前现场快照”。  
 > 每次准备结束一个长会话、Loop 或阶段时必须刷新。
 
-As of 2026-09-29（GitHub main / working HEAD 2da3086b）：
+As of 2026-09-29（以实时 Git HEAD 与 TaskCtl 为准）：
 
 - Formal achieved Current：**571.681 output tok/s**（Run99，未改变）
 - Frozen formal workload：48×32K→1024, c12
@@ -81,9 +81,10 @@ As of 2026-09-29（GitHub main / working HEAD 2da3086b）：
 - Framework-only numerical ceiling、Achievable Bound、Current→Bound 最大可消除 Gap：**尚未可信识别**
 - Run661：all8 当前 stream 的 prior draft Event 在下一 cycle cycle_begin 与 prepare_target 查询时均未完成（各 64/64）；在 target_before 查询时仅 13/64 完成。Host 间隔不能直接解释成设备空闲。证据见 evidence/20260929_loop081_bound/run661/findings.md。
 - Run662：固定地址 target metadata Graph replay 在 warmup48/measured48 请求门禁及 64 个 FULL Target Graph Runtime 行下运行，但第 8 cohort 的 acceptance 跌至 0.310/0.103 token/cycle，需 566 cycles；measured 523.751 tok/s 仅为诊断值。动态 metadata correctness 未证实；TaskCtl 标为 invalid，不晋升 Current。证据见 evidence/20260929_loop081_bound/run662/findings.md。
+- Run663/664 的 cycle0 RoPE 不一致是校验器比较了 max-batch active buffer 与 scratch96 的形状假阳性，非候选 correctness 失败；Run663 TaskCtl 已作 invalid 更正。Run665 修正只比较前96行后，warmup48/measured48、64 个 FULL Target Graph rank-cohort 行均通过逐 cycle 同状态 eager metadata 校验；第8 cohort306 cycles。验证模式 TPS 不可用于性能判断。证据见 evidence/20260929_loop081_bound/run665/findings.md。
 - 历史 Loop063 metadata side-stream overlap 在诊断中每周期较 contemporary serial 慢 1.472 ms；不要不加区分地重复该路线。
 - 当前机器：Run662 controller 已停服、确认 8 卡空闲并恢复借用源码；之后独立检查 8080 无监听。Git 跟踪文件仅有 TaskCtl resume 再生成的 resume-pack.json 时间戳待提交；没有后台实验。
-- 下一步：先用既有证据筛选真正的 late-rank Target 消费阻塞；若重试 Graph metadata，先做同一动态 state 的 eager/replay metadata parity，避免直接重复全服务。新的简单启停、环境检查和已有脚本运行按 AGENTS.md 委派给外部命令 Zcode，并由 Sol 核验命令、退出码、产物、服务/NPU/source。
+- 下一步：Run665 已完成 metadata parity，现做无 verifier 开销的同期 control/candidate 冻结 E2E，按 correctness、acceptance/cycle 和重复正式 E2E 裁决是否保留 Graph 路线。简单启停、环境检查和现成脚本运行交给外部命令 Zcode，具体调用见 ZCODE_OPERATIONS.md；Sol 核验实际命令、退出码、产物、服务/NPU/source。
 
 ### Immediate objective
 

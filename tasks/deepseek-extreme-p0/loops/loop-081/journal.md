@@ -373,3 +373,17 @@
 - `2026-09-28T18:47:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run662`（profile）。
 
 - `2026-09-28T18:47:00Z` Run `run662` 记录为 `invalid`；正确性为 `invalid`。Guarded warmup48/measured48 passed and replayed FULL Graph, but cohort8 acceptance collapse (566 cycles) leaves dynamic metadata correctness unproven; diagnostic 523.751 tok/s, no formal gain
+
+- `2026-09-29T01:02:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run663`（test）。
+
+- `2026-09-29T01:02:45Z` Run `run663` 记录为 `fail`；正确性为 `fail`。All8 cycle0 Graph/eager RoPE target cos/sin mismatch; no measured phase, cleanup/source restore pass
+
+- Run663 correction: prior fail/correctness fail was a verifier shape false positive; result.json corrected to invalid/invalid. Active RoPE max-batch buffer was compared with scratch96 without slicing. See Run663 findings.
+
+- `2026-09-29T01:47:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run664`（test）。
+
+- `2026-09-29T01:47:51Z` Run `run664` 记录为 `invalid`；正确性为 `invalid`。Inherited active-max-batch versus scratch96 verifier false positive; no candidate verdict; cleanup/source restore pass
+
+- `2026-09-29T01:47:51Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run665`（test）。
+
+- `2026-09-29T01:47:51Z` Run `run665` 记录为 `pass`；正确性为 `pass`。Scoped all8 dynamic metadata parity: warmup48/measured48, 64 FULL rows, verify_count=cycles; diagnostic TPS invalid for candidate perf; cleanup/source restore pass
