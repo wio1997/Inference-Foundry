@@ -1,8 +1,8 @@
 # Inference Foundry / DeepSeek Extreme — HANDOFF
 
-> Purpose：新对话、新 Agent、新机器或长时间中断后的唯一恢复入口。  
-> Rule：每次重要 checkpoint 后更新本文件，并与代码/evidence 一起 commit + push。  
-> 本文件只保存“当前现场”和恢复规则，不写成长历史；历史细节放 `PROJECT_STATE.md`、TaskCtl 和 `evidence/`。
+> Purpose：新对话、新 Agent、新机器或长时间中断后的恢复入口。  
+> Rule：本文件保存“当前现场”和恢复规则，不写成长历史。历史细节放 `PROJECT_STATE.md`、TaskCtl、Performance Knowledge 和 `evidence/`。  
+> 文档用于帮助 Agent 恢复与判断，不是固定 SOP。
 
 ---
 
@@ -10,46 +10,29 @@
 
 项目：**Inference Foundry / DeepSeek Extreme P0**
 
-当前目标有两层：
+当前唯一中心目标：
 
-## A. DeepSeek Extreme P0
+> 在 DeepSeek V4 Flash W4A8 + 8×Ascend 910B3 + DP1×TP8 + DSpark7 的冻结 workload 下，先把 **Framework / Scheduling 层的可实现性能极限找出来，并把 Runtime 真正做到尽可能接近这个极限**。
 
-在冻结 calibration contract 下，把 DeepSeek V4 Flash 的 Framework / Scheduling / Runtime 执行尽可能逼近当前可实现性能边界。
-
-当前 P0：
+当前 Calibration Workload / Primary Performance Anchor：
 
 - Model：DeepSeek V4 Flash
 - Quant：W4A8
 - Hardware：8×Ascend 910B3
 - Parallelism：DP1×TP8
 - Speculation：DSpark7
-- Primary Performance Anchor：48×32K→1024，c12
+- Workload：48×32K→1024
+- Concurrency：12
 
-## B. Inference Foundry Method
+当前阶段暂不把 primitive/operator 优化作为主要变量。
 
-用 DeepSeek P0 第一次完整跑通：
-
-**Contract → Current → Execution DAG → Necessary Work → Resource Model → Bound → Gap → Runtime Restructuring → Correctness → Formal E2E → Re-bound**
-
-P0 的 Runtime 可以高度专项化。
-
-未来跨模型真正复用的是：
-
-- 方法；
-- schema；
-- 工具；
-- evidence 规则；
-- Bound / DAG / Resource Model 逻辑；
-- performance knowledge；
-- agent workflow。
-
-不要求复用 DeepSeek 的具体 Runtime 代码、固定 shape 或调度策略。
+当前 32K/c12 只是第一条校准案例，可以为它做激进专项化，但不要把其固定 shape、固定 cohort 或当前 Runtime 结构自动提升为跨模型通用原则。
 
 ---
 
-# 2. New-session read order
+# 2. New-session recovery order
 
-任何新对话 / 新 Agent 开始工作时，按顺序读取：
+任何新对话 / 新 Agent 开始工作时，建议按以下顺序恢复：
 
 1. `HANDOFF.md`
 2. `AGENTS.md`
@@ -59,507 +42,409 @@ P0 的 Runtime 可以高度专项化。
 6. `PERFORMANCE_MAP.md`
 7. `ACHIEVABLE_BOUND.md`
 8. `RESULTS.md`
-9. `git log -5 --oneline`
-10. `python3 scripts/taskctl.py resume --task-dir tasks/deepseek-extreme-p0`
+9. 当前 TaskCtl / recovery pack
+10. `git log -5 --oneline`
+11. 当前问题真正需要的 evidence / Performance Knowledge
 
-不要先通读整个仓库和全部 evidence。
-
-只有当前问题需要时，再打开对应 raw evidence。
-
----
-
-# 3. Current checkpoint — MUST REFRESH AT EACH HANDOFF
-
-> 本节是“当前现场快照”。  
-> 每次准备结束一个长会话、Loop 或阶段时必须刷新。
-
-As of 2026-09-29（以实时 Git HEAD 与 TaskCtl 为准）：
-
-- Formal achieved Current：**571.681 output tok/s**（Run99，未改变）
-- Frozen formal workload：48×32K→1024, c12
-- 当前主线：**Framework/Scheduling-only Bound 与可消除 Gap**；primitive/operator 暂不作为优化变量
-- Framework-only numerical ceiling、Achievable Bound、Current→Bound 最大可消除 Gap：**尚未可信识别**
-- Run661：all8 当前 stream 的 prior draft Event 在下一 cycle cycle_begin 与 prepare_target 查询时均未完成（各 64/64）；在 target_before 查询时仅 13/64 完成。Host 间隔不能直接解释成设备空闲。证据见 evidence/20260929_loop081_bound/run661/findings.md。
-- Run662：固定地址 target metadata Graph replay 在 warmup48/measured48 请求门禁及 64 个 FULL Target Graph Runtime 行下运行，但第 8 cohort 的 acceptance 跌至 0.310/0.103 token/cycle，需 566 cycles；measured 523.751 tok/s 仅为诊断值。动态 metadata correctness 未证实；TaskCtl 标为 invalid，不晋升 Current。证据见 evidence/20260929_loop081_bound/run662/findings.md。
-- Run663/664 的 cycle0 RoPE 不一致是校验器比较了 max-batch active buffer 与 scratch96 的形状假阳性，非候选 correctness 失败；Run663 TaskCtl 已作 invalid 更正。Run665 修正只比较前96行后，warmup48/measured48、64 个 FULL Target Graph rank-cohort 行均通过逐 cycle 同状态 eager metadata 校验；第8 cohort306 cycles。验证模式 TPS 不可用于性能判断。证据见 evidence/20260929_loop081_bound/run665/findings.md。
-- Run666：OFF_A/ON/OFF_B 诊断值为 590.544/607.644/590.437 tok/s，ON 在四个 measured cohort 的每周期 Runtime 均快约 1.3–1.9 ms；只作为筛选信号。证据见 evidence/20260929_loop081_bound/run666/findings.md。
-- Run667：同一候选按冻结 Run99 `bench.py` 口径做 OFF/ON 各 warmup48 + 3×48。OFF 中位数 578.117，ON 中位数 567.938 tok/s（−1.761%）；两边完整通过 correctness/runtime 门禁，候选不晋升 Current。ON 虽每周期快约 1.2–1.6 ms，但 client 减 serving Runtime 的残差三轮均更高；需定位 prefill/scheduler handoff/output 阶段。证据见 evidence/20260929_loop081_bound/run667/findings.md。
-- Run668：最小阶段对齐 OFF/ON/OFF（每 arm warmup48+measured48）完整通过，ON metadata capture 40–47ms/cohort、measured 四 cohort 合计168ms；handoff 构建各臂约15ms/轮，Runtime→client 约0.8s/轮。请求开始→handoff 分别 OFF_A12.14s、ON11.19s、OFF_B18.17s，证明 Run667 的数秒 residual 波动不由 metadata capture 直接造成。Run667 repeat3 额外90 cycles 是独立的 trajectory/acceptance 差异；ON cohort15 晚期 acceptance 0.832 vs OFF1.300。Run332 旧证据中 client→首个 execute 0.20–0.23s，execute→handoff 2.09–2.43s/cohort（8 调度执行/约1.3k token），指向 residual-prefill/seed 多执行链，尚未分离其必要工作与可消除等待。证据见 evidence/20260929_loop081_bound/run668/findings.md、run667/product_wall_decomposition.md。
-- 历史 Loop063 metadata side-stream overlap 在诊断中每周期较 contemporary serial 慢 1.472 ms；不要不加区分地重复该路线。
-- 当前机器：Run668 已停服、8 卡 idle、source/script SHA 精确恢复；8080 无监听。内层 controller 全0，外层 Zcode CLI 在完成后滞留并由 timeout 以124结束；不得重跑。
-- 下一步：复用 Run332/337/602/606 的 warmed residual-prefill/DSpark seed 和 rank rendezvous 证据，识别多次 ordinary execute 链中的可消除等待；优先做源代码/旧证据分析，未定位可修项前不重做 Graph-only 实验。任何结构性 Runtime 改动必须经 correctness 与冻结 repeated formal E2E。Zcode 调用与独立验收见 `ZCODE_OPERATIONS.md`。
-
-### Immediate objective
-
-继续 Framework/Scheduling-only 主线，直到能够：
-
-1. 给出可审计的 Optimistic Bound；
-2. 明确主要 unknown / sensitivity；
-3. 用最小实验校准高价值假设；
-4. 收紧为 Achievable Bound 或可信 interval；
-5. 指出最大的 causally removable Gap；
-6. 做至少一个 Bound-guided structural Runtime change；
-7. correctness；
-8. repeated formal E2E；
-9. Re-bound。
-
-### Do not do yet
-
-- 不要为了未来通用性先扩成通用 scheduler；
-- 不要同时启动第二个模型；
-- 不要把 32K/c12 的偶然属性写成 Foundry 方法论；
-- 不要跳过 Bound，回到“看到哪里慢就优化哪里”；
-- 不要把 primitive/kernel 优化混进当前 Framework-only 归因，除非主线明确 PIVOT；
-- 不要因为超过 Stock 就停止。
-
-### Latest-state rule
-
-本节只是恢复入口，不替代最新事实。
-
-新 Agent 恢复后必须用：
-
-- Git HEAD；
-- TaskCtl；
-- committed evidence；
-- 当前机器状态；
-
-重新确认本节内容仍然成立。
+不要从旧聊天、本地旧副本或记忆猜当前状态。
 
 ---
 
-# 4. Source-of-truth priority
+# 3. Source-of-truth priority
 
-出现冲突时，按以下优先级判断：
+出现冲突时，优先级：
 
-1. **当前真实机器 / 进程 / 文件状态**
-2. **当前 Git HEAD + source status**
-3. **TaskCtl current loop/run**
-4. **committed evidence**
-5. **`HANDOFF.md` 当前 checkpoint**
-6. **`PROJECT_STATE.md` / `PERFORMANCE_MAP.md` / `ACHIEVABLE_BOUND.md` / `RESULTS.md`**
-7. **旧聊天 / 旧记忆**
+1. 当前真实机器 / 进程 / 文件状态
+2. 当前远端 Git HEAD + source status
+3. TaskCtl current loop/run
+4. committed evidence
+5. `HANDOFF.md` 当前 checkpoint
+6. `PROJECT_STATE.md` / `PERFORMANCE_MAP.md` / `ACHIEVABLE_BOUND.md` / `RESULTS.md`
+7. 旧聊天 / 旧记忆
 
-说明：
-
-- `HANDOFF.md` 是新会话的当前现场摘要，所以优先于长期累积文档中的旧摘要；
-- 但任何 `HANDOFF.md` 内容都不能覆盖真实机器、Git、TaskCtl 和 evidence；
-- 旧聊天只能作为线索，不能作为最新项目事实。
+`HANDOFF.md` 是恢复入口，但不能覆盖真实机器、Git、TaskCtl 和 evidence。
 
 ---
 
-# 5. Multi-agent architecture
+# 4. Current checkpoint
 
-## Sol — main owner
+As of 2026-09-29，恢复后仍需用实时 Git HEAD / TaskCtl / 机器状态重新确认。
+
+## Formal Current
+
+- 正式 achieved Current：**571.681 output tok/s**
+- 来源：Run99
+- 冻结 workload：48×32K→1024, c12
+- 当前没有新的正式结果替换 Run99
+
+## Current main line
+
+当前主线：
+
+> **Framework / Scheduling-only Bound + 最大 causally removable Gap**
+
+当前仍未可信得到：
+
+- Framework-only numerical ceiling
+- Achievable Bound
+- Current→Bound 最大可消除 Gap
+
+不要为了给数字而编造 Bound。
+
+---
+
+# 5. Latest evidence — Run667 / Run668
+
+## Run667 — metadata Graph formal E2E
+
+metadata Graph 的局部收益已经被正式验证：
+
+- OFF median：578.117 tok/s
+- ON median：567.938 tok/s
+- ON 正式 E2E 比同期 OFF 低约 1.761%
+- ON 每 serving cycle 仍快约 1.2–1.6 ms
+- 但 client−Runtime residual 三轮均更高
+- repeat3 还存在明显 trajectory 差异：
+  - OFF 1166 cycles
+  - ON 1256 cycles
+  - ON 多 90 cycles
+  - useful tokens/cycle 从 42.15 降至 39.13
+
+结论：
+
+> metadata Graph 作为独立候选不晋升；Run99 仍是正式 Current。
+
+这 90 cycles 的差异属于算法/acceptance trajectory 变化，不能当成 Framework overhead。
+
+---
+
+## Run668 — Product wall stage alignment
+
+Run668 做了最小 OFF/ON/OFF 阶段对齐。
+
+主要结果：
+
+| Arm   | client wall | cycles | Runtime ms/cycle | request start→handoff | handoff build | metadata capture | Runtime→client end |
+| ----- | ----------: | -----: | ---------------: | --------------------: | ------------: | ---------------: | -----------------: |
+| OFF_A |    82.197 s |   1225 |        56.495 ms |              12.141 s |      ~15.4 ms |                0 |           ~0.833 s |
+| ON    |    78.314 s |   1195 |        55.349 ms |              11.189 s |      ~15.4 ms |    ~168 ms total |           ~0.799 s |
+| OFF_B |    86.680 s |   1196 |        56.621 ms |              18.167 s |      ~15.4 ms |                0 |           ~0.779 s |
+
+metadata Graph capture 每 cohort 约 40–47 ms，四个 measured cohort 合计约 168 ms。
+
+关键结论：
+
+> Run667 的 2–10 秒 Product residual 波动，不是 metadata capture 直接造成的。
+
+真正的大波动发生在：
+
+> **请求开始 → Runtime handoff 之前**
+
+因此不要继续单独调 metadata Graph。
+
+---
+
+# 6. Highest-value unresolved region
+
+复用 Run332 后，当前最高价值的未知区间收窄到：
+
+> **residual-prefill / DSpark seed → Runtime handoff 的多次 execute 链**
+
+Run332 历史证据：
+
+- client start → first worker execute：约 0.20–0.23 s
+- first worker execute → Runtime handoff：约 **2.09–2.43 s / cohort**
+- 每 cohort 约 8 次 execute
+- 调度 token 约 1324–1366
+
+目前还没有把这 2.09–2.43 s 分清：
+
+- 哪些是必要 residual-prefill 计算
+- 哪些是 DSpark seed 必要计算
+- 哪些是 Host / scheduler 等待
+- 哪些是 rank rendezvous
+- 哪些是 HCCL / Device 等待
+- 哪些是真正可消除的 Framework / Scheduling Gap
+
+这就是当前最重要的问题。
+
+---
+
+# 7. Current next direction
+
+恢复后不要停在 Run668 的 checkpoint。
+
+优先继续：
+
+> 复用 Run332、Run337、Run602、Run606，以及相关源码和 Performance Knowledge，把 residual-prefill / seed → Runtime handoff 的完整执行链拆开。
+
+优先做：
+
+- 源码分析
+- 旧 evidence 复用
+- DAG 重建
+- 必要 work 与等待分类
+- rank rendezvous / Host issue / HCCL / Device completion 对齐
+
+在已有证据能回答问题时，不要重复跑 NPU。
+
+如果仍缺一条决定性依赖或 cost：
+
+> 只设计补这一条 unknown 的最小实验。
+
+一旦定位出可信的 causally removable Gap：
+
+> 直接进入 Runtime intervention → correctness → frozen repeated formal E2E → Re-bound。
+
+不要因为“还不能安全改 Runtime”就停止；这意味着继续找因果，不是结束工作回合。
+
+---
+
+# 8. Current machine / source state
+
+Run668 收尾状态：
+
+- 服务已停
+- 8080 无监听
+- 8 张 NPU idle
+- source / script SHA 已恢复
+- 内层实验脚本和 cleanup 均成功
+- 外层 Zcode CLI 在任务完成后滞留，最终由 timeout 结束
+- 该 timeout 不影响已经独立确认完成的 Run668
+- 不要因此重跑 Run668
+
+恢复后仍应重新检查：
+
+- `git rev-parse HEAD`
+- `git status --short`
+- `npu-smi info`
+- `docker ps`
+- port 8080
+- TaskCtl current state
+
+---
+
+# 9. Agent architecture
+
+## Astra Light — Main Agent
+
+Astra Light 是默认主 Agent。
 
 负责：
 
-- 主线推进；
-- Runtime / execution architecture；
-- Execution DAG；
-- Bound；
-- Resource Model；
-- profiling 归因；
-- correctness；
-- benchmark 设计；
-- KEEP / REJECT / PIVOT；
-- Performance Map 更新；
-- 审阅和整合其他 Agent 结果。
+- 恢复当前真实状态
+- 判断当前最高价值问题
+- 决定下一步实验 / 分析 / Runtime 改动
+- 维护 DAG / Resource Model / Bound / Performance Map
+- 设计 correctness / benchmark
+- KEEP / REJECT / PIVOT
+- 整合其他 Agent 结果
+- 持续推进主线
 
-**只有 Sol 可以把子 Agent 产物升级为项目结论。**
+Astra Light 不需要机械执行历史 `next_action`。
 
----
+上一阶段的 next_action 只是候选；恢复后应结合最新证据独立判断它是否仍是最高价值方向。
 
-## Astra Medium — independent reviewer
+## Astra Medium — Important Problem Escalation
 
 适合：
 
-- benchmark/profile 结果复核；
-- 多个候选之间的判断；
-- 重要实验设计 challenge；
-- 重新检查 Performance Map；
-- 发现 Sol 归因偏差；
-- 当前路线反复或收敛变慢时独立复盘。
+- profiling / benchmark 归因复杂
+- 多个解释难以区分
+- KEEP / REJECT / PIVOT 判断不稳
+- Bound 中的重要假设需要独立复核
+- 当前路线反复
+- 多轮实验不收敛
+- 需要第二视角 challenge
 
-不接管主线。
+Medium 用于提高判断质量，不默认接管主线。
 
----
+## Astra High — Critical Architecture / Bound Review
 
-## Astra High — high-value architectural reviewer
+适合少量高价值问题：
 
-适合：
+- Optimistic / Achievable Bound 是否可信
+- Framework/Scheduling 极限是否接近
+- 重大 Runtime architecture
+- 多组 evidence 冲突
+- Persistent Execution
+- Whole-cycle Replay
+- DSpark Graph
+- 跨模块调度重构
+- 一个错误判断会浪费大量实验
 
-- Bound 是否成立；
-- 执行架构是否走偏；
-- 多组 evidence 冲突；
-- Graph / Persistent / Whole-cycle Replay；
-- 重大架构分叉；
-- Performance Map 与 Achievable Bound 存在巨大但难解释的 Gap；
-- 一个错误判断会浪费大量后续实验的关键决策。
+最终仍以真实源码、实验、correctness 和正式 E2E 为证据。
 
-Astra High 的结论是 independent evidence，不自动覆盖 Sol。
+## Zcode / DeepSeek — Mechanical Executor
 
----
+主要负责：
 
-## DeepSeek / Zcode — mechanical executor
+- 启停服务
+- benchmark
+- profiling / trace / log
+- 环境检查
+- 数据提取
+- 重复测试
+- 已明确方案的简单修改
+- 脚本运行
+- 限定范围源码定位
 
-只做边界明确、低风险、容易验收的机械执行，例如：
+不要让其独立裁决：
 
-- 启停服务；
-- 环境检查；
-- benchmark；
-- 重复测试；
-- 运行已有脚本；
-- profiling / log / trace 采集；
-- 检查进程 / NPU；
-- 提取数据；
-- 整理结果；
-- 限定范围源码定位；
-- 简单、可机械验收的修改。
+- Bound
+- 性能极限
+- 根因
+- KEEP / REJECT / PIVOT
+- 重大架构
+- 高风险 correctness
 
-不要把下面任务交给 Zcode 直接裁决：
+其结果需要根据任务风险验收。
 
-- Bound；
-- 根因；
-- KEEP / REJECT / PIVOT；
-- 重大 Runtime 架构；
-- 跨模块优化方向；
-- 性能极限判断。
-
----
-
-# 6. Zcode / DeepSeek reliability gate
-
-这是强制规则。
-
-**委派成功 ≠ 任务成功。**
-
-每次 Zcode/DeepSeek 返回后，Sol 必须核验：
-
-## Execution identity
-
-- [ ] 实际命令
-- [ ] working directory
-- [ ] 配置模型
-- [ ] 日志中实际观察到的模型 / runner
-
-## Process result
-
-- [ ] exit code
-- [ ] timeout
-- [ ] kill / OOM / signal
-- [ ] stdout / stderr 是否完整
-
-### Rule
-
-任何 timeout 默认 `INVALID / INCONCLUSIVE`，除非产物和进程状态能独立证明目标动作已完整完成。
-
-## Artifacts
-
-- [ ] 预期文件存在
-- [ ] 文件大小合理
-- [ ] timestamp 属于本次 Run
-- [ ] JSON / CSV 可解析
-- [ ] 必要时记录 SHA256
-
-## Benchmark validity
-
-- [ ] 请求数正确
-- [ ] 成功请求数正确
-- [ ] input/output token 合同正确
-- [ ] concurrency 正确
-- [ ] warm/cold/prefix 协议正确
-- [ ] correctness gate 真实执行
-- [ ] 没有把 diagnostic TPS 当 formal TPS
-
-## Environment
-
-- [ ] `npu-smi info`
-- [ ] `docker ps`
-- [ ] 服务 PID
-- [ ] port 占用
-- [ ] 残留进程
-- [ ] HBM 是否恢复
-- [ ] 是否存在第二服务冲突
-
-## Source state
-
-- [ ] Git HEAD
-- [ ] `git status --short`
-- [ ] 临时 patch 是否记录
-- [ ] cleanup / restore 是否成功
-- [ ] shared bind-mount source 是否被意外修改
-
-关键项不通过，不得写成 PASS / KEEP。
+详细调用和验收以 `ZCODE_OPERATIONS.md` 为准。
 
 ---
 
-# 7. No-background rule
+# 10. Model selection principle
 
-不要声称：
+不规定固定调用比例，也不按关键词机械路由。
 
-- “实验还在后台继续”
-- “Agent 会自动跑完”
-- “之后会自动回来汇报”
+默认：
 
-除非存在可验证的：
+**Astra Light 持续推进  
+→ 重要复杂问题升级 Astra Medium  
+→ 极关键架构 / Bound 问题升级 Astra High  
+→ Zcode / DeepSeek 承担机械执行**
 
-- PID；
-- process；
-- automation；
-- runner；
-- 持续写入日志；
-- 明确远端任务机制。
-
-如果没有，应明确写：
-
-> 当前没有后台实验在运行。
+模型分工是为了提高判断质量和推进效率，不是新的 SOP。
 
 ---
 
-# 8. Run lifecycle
+# 11. Historical evidence reuse
 
-每个真实 Run 推荐：
+历史 Run 的目标是减少重复实验。
 
-1. Preflight
-2. Freeze inputs/config
-3. Environment check
-4. Start service / target process
-5. Health check
-6. Correctness gate
-7. Measurement
-8. Artifact validation
-9. Cleanup / restore
-10. Independent review（高价值 Run）
-11. TaskCtl record
-12. Update state / Bound / Performance Map
-13. Update HANDOFF current checkpoint when needed
-14. Commit + push
+在启动成本较高的新实验前，优先检查：
 
-### Never skip cleanup verification
+- `PERFORMANCE_MAP.md`
+- `ACHIEVABLE_BOUND.md`
+- `performance_knowledge/entries.jsonl`
+- `scripts/performance_knowledge.py`
+- TaskCtl
+- `evidence/`
 
-尤其检查：
+历史结论只能作为：
 
-- source patch；
-- service PID；
-- profiling flag；
-- env vars；
-- port；
-- NPU process；
-- temporary observer。
+- evidence
+- hypothesis prior
+- counterexample
+
+不能自动作为当前 KEEP / REJECT。
+
+如果已有证据足够，直接复用。
+
+如果条件变化，只验证变化部分。
+
+如果一次低成本实验比历史检索更便宜，Astra Light 可以直接验证。
 
 ---
 
-# 9. Evidence classes
+# 12. Hard constraints
 
-任何数字必须标明类别：
+真正的硬门槛只有少数几类：
 
-- `formal_e2e`
-- `matched_internal_ab`
-- `diagnostic`
-- `profile`
-- `microbenchmark`
-- `simulation`
-- `theoretical_bound`
-- `independent_review`
+## Correctness
 
-禁止类别漂移：
+不能用错误语义换性能。
 
-`profile 10ms` ≠ `formal removable 10ms`
+## Formal E2E
 
-`microbench +20%` ≠ `product +20%`
+正式性能结论必须来自同口径、可重复、合同一致的真实 E2E。
 
-`simulation ceiling` ≠ `achievable performance`
+## Evidence integrity
 
----
+不要把 profile/microbench/diagnostic/simulation 直接升级成 Product gain。
 
-# 10. Bound discipline
+## Comparability
 
-当前方法同时维护：
+改变 workload / semantics / acceptance / parallelism / protocol 后，不能继续当成同口径正式比较。
 
-## Current
+## Zcode verification
 
-真实、已验证实现现在达到多少。
+高价值结果要核验实际命令、模型、exit code、timeout、产物、服务/NPU/source/cleanup。
 
-## Optimistic Bound
+## No fake background execution
 
-在必要依赖和乐观资源假设下的数学最好情况。
-
-## Achievable Bound
-
-通过真实实验校准 overlap、contention、Host/Device、Graph 等假设后收紧的工程边界。
-
-任何 Bound 都必须说明：
-
-- workload；
-- numerator；
-- makespan scope；
-- dependency assumptions；
-- resource assumptions；
-- unknown edges；
-- observer effects；
-- evidence links；
-- confidence。
-
-如果主要未知仍未闭合，允许写：
-
-> numerical bound unidentified
-
-禁止为了“必须给一个数字”而编造 ceiling。
+没有真实 PID / runner / automation / 持续日志时，不要声称后台仍在运行。
 
 ---
 
-# 11. Document update policy
+# 13. Continue / stop rule
 
-这些文件不是同一种更新频率。
+不要因为以下任何一个事件就默认结束工作回合：
+
+- 一个 Run 完成
+- 一个 commit 完成
+- 一次 REJECT
+- 一次 evidence 提交
+- 服务正常停机
+- 超过 Stock
+- 暂时不能安全修改 Runtime
+
+每个 checkpoint 后，Astra Light 重新判断：
+
+- 当前最大 Gap 是什么
+- 最大 unknown 是什么
+- 原路线是否仍值得
+- 是否出现更高价值候选
+- 是否应该换问题或换阶段
+
+如果没有真实 blocker，且仍存在明确高价值下一步，就继续推进。
+
+只有以下情况适合真正停下：
+
+- 需要用户提供外部信息 / 权限 / 资源
+- 存在无法靠现有证据自行裁决的重大分叉
+- correctness 风险无法继续
+- 当前阶段没有高价值下一步
+- 机器/环境强制结束
+
+---
+
+# 14. Document update policy
 
 ## 高频更新
-
-### `HANDOFF.md`
-
-每次长会话 / 关键 Loop / 重大 checkpoint 结束时更新。
-
-主要更新：
-
-- Current；
-- active loop/run；
-- Bound 状态；
-- 最大 Gap / 最大 unknown；
-- latest KEEP / REJECT / PIVOT；
-- machine/service/source 状态；
-- next_action；
-- blocker；
-- background task 状态。
-
-### `PROJECT_STATE.md`
-
-每个有意义的 Loop / Run 后更新当前项目状态和历史记录。
-
-### `PERFORMANCE_MAP.md`
-
-当 bottleneck、critical path、Gap 或 causal attribution 改变时更新。
-
-### `ACHIEVABLE_BOUND.md`
-
-当：
-
-- 新增/删除必要依赖；
-- primitive/resource cost 证据变化；
-- overlap/contention 假设被验证或否定；
-- Bound interval / sensitivity 改变；
-  时更新。
-
-### `RESULTS.md`
-
-当产生正式可对外保留的性能/正确性结论时更新。
-
----
-
-## 低频更新
-
-### `AGENTS.md`
-
-只有以下情况才改：
-
-- Agent 分工改变；
-- 实验纪律改变；
-- 结果验收规则改变；
-- 发现长期会导致 Agent 跑偏的新规则。
-
-不要每个 Loop 改。
-
-### `MISSION.md`
-
-只有产品目标、P0 calibration contract 或阶段目标真正变化时才改。
-
-不要拿它记录日常进度。
-
-### `FOUNDRY_METHOD.md`
-
-只有 Foundry 方法本身经过实践证明需要修订时才改。
-
-例如：
-
-- Bound 流程需要增加新步骤；
-- DAG / Resource Model schema 发现缺陷；
-- 第二 workload / 第二模型证明某方法不具备可迁移性。
-
-不要拿它记录 DeepSeek 的日常实验。
-
----
-
-# 12. Handoff update checklist
-
-每次准备结束一个长会话 / 阶段时：
-
-- [ ] 当前 Git HEAD
-- [ ] 当前 active loop/run
-- [ ] formal Current
-- [ ] Bound 状态
-- [ ] 最大已知 Gap / 最大 unknown
-- [ ] 最新 KEEP / REJECT / PIVOT
-- [ ] 当前服务 / 进程状态
-- [ ] source clean / dirty
-- [ ] raw evidence 在哪里
-- [ ] next_action
-- [ ] blocker
-- [ ] 是否存在后台任务
-- [ ] 更新本文件第 3 节
-- [ ] 更新 TaskCtl / PROJECT_STATE
-- [ ] 必要时更新 PERFORMANCE_MAP / ACHIEVABLE_BOUND / RESULTS
-- [ ] commit + push
-
----
-
-# 13. New-chat bootstrap prompt
-
-新对话可以直接发送：
-
-> 这是 Inference Foundry / DeepSeek Extreme P0。请先读取仓库根目录 `HANDOFF.md`、`AGENTS.md`、`MISSION.md`、`FOUNDRY_METHOD.md`，再读取 `PROJECT_STATE.md`、`PERFORMANCE_MAP.md`、`ACHIEVABLE_BOUND.md`、`RESULTS.md` 和当前 TaskCtl recovery pack。不要从旧对话猜当前状态，以当前机器、Git HEAD、TaskCtl 和 committed evidence 为准。
->
-> 当前目标是用 DeepSeek V4 Flash W4A8 + 8×910B3 + DP1×TP8 + DSpark7 + 32K→1K c12 calibration workload，完整跑通 Current→DAG→Resource Model→Bound→Gap→Runtime restructuring→Correctness→Formal E2E→Re-bound 的 Foundry 闭环。当前先聚焦 Framework/Scheduling，避免无意混入 primitive/operator 优化。
->
-> Sol 负责主线和裁决；Astra 用于独立复核；Zcode/DeepSeek 只用于机械执行。任何 Zcode 结果必须核验实际模型、命令、退出码、timeout、产物、服务/NPU/source 状态后才能采信。没有真实 PID/runner 时，不要声称后台实验仍在运行，先确认zcode是否能正确返回数据
->
-> 恢复完成后，先给出：
->
-> 1. Current；
-> 2. 当前 Bound 状态；
-> 3. 最大已知 Gap / 最大 unknown；
-> 4. 最新有效 Run；
-> 5. 当前机器 / 服务 / source 状态；
-> 6. next_action；
->    然后继续推进。
-
----
-
-# 14. What to upload to GitHub
-
-每次稳定 checkpoint 至少提交：
 
 - `HANDOFF.md`
 - `PROJECT_STATE.md`
 - `PERFORMANCE_MAP.md`
 - `ACHIEVABLE_BOUND.md`
 - `RESULTS.md`
-- `tasks/deepseek-extreme-p0/**`
-- 小型关键 evidence / manifest / finding
+- TaskCtl
 
-以下文件只在规则/目标/方法变化时提交新版本：
+## 低频更新
 
 - `AGENTS.md`
 - `MISSION.md`
 - `FOUNDRY_METHOD.md`
 
-大 raw trace / log 可以不进 Git，但必须：
-
-- 有路径；
-- 有 SHA / manifest；
-- 有 scope；
-- 有 limitation；
-- 新 Agent 能找到。
+不要把状态变化写进规则层文档。
 
 ---
 
-# 15. One-line recovery rule
+# 15. New-chat bootstrap prompt
 
-> **先恢复事实，再恢复判断；先验证子 Agent 产物，再继续实验；先沿 Bound 找 Gap，再改代码。**
+新对话可直接发送：
+
+> 这是 Inference Foundry / DeepSeek Extreme P0。请先读取仓库 `HANDOFF.md`、`AGENTS.md`、`MISSION.md`、`FOUNDRY_METHOD.md`，再读取 `PROJECT_STATE.md`、`PERFORMANCE_MAP.md`、`ACHIEVABLE_BOUND.md`、`RESULTS.md`、当前 TaskCtl / recovery pack 和最近 Git commit。不要依赖旧聊天或本地旧副本猜状态，以真实机器、远端 Git HEAD、TaskCtl 和 committed evidence 为事实源。
+>
+> 当前中心目标只有一个：在冻结 DeepSeek V4 Flash W4A8 + 8×910B3 + DP1×TP8 + DSpark7 + 48×32K→1024 c12 workload 下，先把 Framework/Scheduling 层的可实现性能极限找出来，并持续把 Runtime 做到更接近这个极限；primitive/operator 暂不作为主要变量。
+>
+> Astra Light 是主 Agent，负责独立判断和持续推进；复杂归因可升级 Astra Medium；关键 Bound / 架构问题可升级 Astra High；Zcode/DeepSeek 负责机械执行并按风险验收。
+>
+> 恢复后把历史 next_action 当候选而不是命令。先简要告诉我 Current、Bound 状态、最大 Gap/unknown、最近有效证据、机器/source 状态，以及你重新判断后的最高价值下一步，然后直接继续工作。不要因为一个 Run、commit、REJECT、服务停机或 evidence 提交就结束工作回合。
+
+---
+
+# 16. One-line recovery rule
+
+> **先恢复事实，再独立判断；优先复用历史证据；围绕最大 Gap 持续推进，直到真正遇到 blocker。**
