@@ -51,6 +51,9 @@ for x in (ids[0],ids[-1]):
   assert a.block_hashes==b.block_hashes
 for salt in ('a','b'):
  assert request(ids[0],memo,salt).block_hashes==request(ids[0],original,salt).block_hashes
+typed=InitialPrefixHashMemo(original)
+for tokens in ([1,2],[True,2],[1.0,2]):
+ assert request(tokens,typed).block_hashes==request(tokens,original).block_hashes
 # Small prompts exercise fresh lists, changed input, eviction and capacity bypass.
 ev=InitialPrefixHashMemo(original,max_entries=1)
 for x in ([1,2],[3,4],[1,2]):assert request(x,ev).block_hashes==request(x,original).block_hashes
@@ -69,5 +72,31 @@ finally:
  _kv.NONE_HASH=seed
 assert request(ids[0],memo).block_hashes==ref[0]
 assert memo.bytes<=memo.max_bytes and len(memo.rows)<=memo.max_entries
-out={'status':'pass','scope':'CPU initial hash memo semantics and cost, not live removable wall','block_size':2,'reference48_s':ref_s,'cold48_s':cold_s,'hot48_s':hot_s,'entries':len(memo.rows),'estimated_bytes':memo.bytes,'gates':['48 original exact','48 cold exact','48 hit exact','concurrent hits','caller mutation isolation','continuation and partial tail exact','salt fallback exact','changed tokens and LRU eviction','oversize bypass','complete embeds/MM/LoRA/salt fallback','hash seed change fallback']}
+# Installed factory router: OFF -> ON -> OFF, immutable code and exact hashes.
+import tempfile,os
+with tempfile.TemporaryDirectory() as tmp:
+ mode_path=Path(tmp)/'mode.json'
+ def mode(phase,enabled,version):
+  f=mode_path.with_suffix('.tmp');f.write_text(json.dumps(dict(phase=phase,enabled=enabled,version=version)));f.replace(mode_path)
+ os.environ['EXTREME_PREFIX_HASH_MODE_FILE']=str(mode_path)
+ routed=get_request_block_hasher(2,sha256)
+ del os.environ['EXTREME_PREFIX_HASH_MODE_FILE']
+ for phase,enabled,version in [('off_a',False,1),('on',True,2),('off_b',False,3)]:
+  mode(phase,enabled,version)
+  for _ in range(2):
+   assert [request(x,routed).block_hashes for x in ids]==ref
+  if phase=='off_a':assert routed.memo.hits==routed.memo.misses==0
+  if phase=='on':assert routed.memo.hits>=48 and routed.memo.misses<=48
+  if phase=='off_b':assert routed.memo.hits==48 and routed.memo.misses==48
+ # A continuation never reads the control file, even if it is missing.
+ a=request(ids[0],routed);b=request(ids[0],original);mode_path.unlink()
+ a.append_output_token_ids(7);b.append_output_token_ids(7);assert a.block_hashes==b.block_hashes
+ try:request(ids[0],routed)
+ except FileNotFoundError:pass
+ else:raise AssertionError('missing mode must fail')
+ mode_path.write_text('{}')
+ try:request(ids[0],routed)
+ except RuntimeError:pass
+ else:raise AssertionError('invalid mode must fail')
+out={'status':'pass','scope':'CPU initial hash memo semantics and cost, not live removable wall','block_size':2,'reference48_s':ref_s,'cold48_s':cold_s,'hot48_s':hot_s,'entries':len(memo.rows),'estimated_bytes':memo.bytes,'gates':['48 original exact','48 cold exact','48 hit exact','concurrent hits','caller mutation isolation','continuation and partial tail exact','salt fallback exact','changed tokens and LRU eviction','oversize bypass','complete embeds/MM/LoRA/salt fallback','hash seed change fallback','bool/float token fallback','installed OFF ON OFF router exact','observed route and hit counts','continuation skips mode read','missing/invalid mode fails']}
 Path('/data/wio/Inference_Foundry/evidence/20260929_loop081_bound/run674/preflight/hash_integration.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

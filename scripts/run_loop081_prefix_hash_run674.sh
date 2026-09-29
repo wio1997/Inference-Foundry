@@ -13,6 +13,7 @@ DATASET=/data/wio/vllm_ascend_26/datasets/GSM8K-in32768-num48-DeepSeek-V4-Flash-
 PATCH=${ROOT}/scripts/install_input_token_cache.py
 HASH_PATCH=${ROOT}/scripts/loop081_prefix_hash_install.py
 SOURCES=(
+    ${ROOT}/experiments/prefix_hash_cache/router.py
     ${ROOT}/experiments/prefix_hash_cache/cache.py
     /data/wio/vllm_ascend_26/framework/vllm/vllm/v1/core/kv_cache_utils.py
     ${ROOT}/serving/__init__.py
@@ -257,7 +258,7 @@ banned=('EXTREME_RUNTIME_PROFILE_SCOPES','EXTREME_RUNTIME_PROFILE_DAG',
         'EXTREME_RUNTIME_DAG_DIR','EXTREME_SCHEDULE_ALIAS_DIR',
         'EXTREME_BOUND_LEDGER_DIR','EXTREME_BOUND_PACKET_DIR',
         'PROFILER_DIR','VLLM_CUSTOM_SCOPES_FOR_PROFILING',
-        'EXTREME_TARGET_METADATA_GRAPH','EXTREME_TARGET_METADATA_VERIFY_EVERY','EXTREME_TEXT_TOKEN_CACHE','EXTREME_INITIAL_PREFIX_HASH_CACHE')
+        'EXTREME_TARGET_METADATA_GRAPH','EXTREME_TARGET_METADATA_VERIFY_EVERY','EXTREME_TEXT_TOKEN_CACHE','EXTREME_INITIAL_PREFIX_HASH_CACHE','EXTREME_PREFIX_HASH_MODE_FILE')
 present={key:os.environ[key] for key in banned if key in os.environ}
 print(json.dumps({'banned_present':list(present)}))
 assert not present, 'conflicting container environment'
@@ -285,97 +286,102 @@ if [[ ${1:-} == --preflight-only ]]; then
     exit 0
 fi
 
-run_arm() {
-    local name=$1 on=$2
-    local arm_dir=${OUT}/${name} run_ts=LOOP081-RUN674-${name^^}
-    local log=${ROOT}/logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_${run_ts}.log
-    mkdir "${arm_dir}" "${arm_dir}/runtime"
-    verify_prestart >"${arm_dir}/pre_start_stopped.log" 2>&1
-    CURRENT_RUN_TS=${run_ts}
-    RUN_STARTED=1
-    docker exec \
-        -e MAX_MODEL_LEN=1048576 -e RUN_TS="${run_ts}" \
-        -e EXTREME_RUNTIME_RUN_DIR="${arm_dir}/runtime" \
-        -e EXTREME_RUNTIME_SERVE=1 -e EXTREME_RUNTIME_RESERVE_TOKENS=1088 \
-        -e EXTREME_NATIVE_TARGET_METADATA=1 -e EXTREME_RUNTIME_TARGET_GRAPH=1 \
-        -e EXTREME_DSPARK_SLOT_REFRESH=1 -e EXTREME_TARGET_METADATA_STATIC_KV_MAX=1 \
-        -e "EXTRA_SERVE_ARGS=--renderer-num-workers 4" -e EXTREME_TEXT_TOKEN_CACHE=1 -e "EXTREME_INITIAL_PREFIX_HASH_CACHE=${on}" \
-        "${CONTAINER}" bash -lc "cd ${ROOT} && bash scripts/serve.sh > ${arm_dir}/launcher.log 2>&1"
-    local ready=0
-    for i in $(seq 1 180); do
-        if curl -fsS --max-time 3 http://127.0.0.1:8080/health >/dev/null 2>&1; then
-            ready=1; break
-        fi
-        if [[ -f ${log} ]] && grep -q 'rtsMallocHost execution failed' "${log}"; then
-            echo 'service startup Host OOM' >&2; exit 1
-        fi
-        sleep 10
-    done
-    [[ ${ready} == 1 ]]
-    docker exec -i "${CONTAINER}" python3 - "4" "${run_ts}" <<'PYLOADED' >"${arm_dir}/loaded_renderer.json"
-import pathlib,sys,json
-expected=sys.argv[1];tag=('RUN_TS='+sys.argv[2]).encode();rows=[]
-for p in pathlib.Path('/proc').iterdir():
-    if not p.name.isdigit():continue
-    try:
-        argv=[x.decode() for x in (p/'cmdline').read_bytes().split(b'\0') if x]
-        env=(p/'environ').read_bytes().split(b'\0')
-    except (FileNotFoundError,ProcessLookupError,PermissionError):continue
-    if tag in env and 'serve' in argv and '--renderer-num-workers' in argv:
-        assert argv.count('--renderer-num-workers')==1
-        assert argv[argv.index('--renderer-num-workers')+1]==expected
-        rows.append({'pid':int(p.name),'argv':argv})
-assert len(rows)==1,rows
-print(json.dumps({'expected_workers':int(expected),'processes':rows},indent=2))
-PYLOADED
-    timeout --signal=TERM --kill-after=30s 960s docker exec -e RUN_TS="${run_ts}" "${CONTAINER}" bash -lc \
-        "cd ${ROOT} && timeout --signal=TERM --kill-after=30s 900s python3 scripts/bench.py --dataset ${DATASET} --out ${arm_dir}/warmup.json --limit 48 --concurrency 12 --max-tokens 1024 >${arm_dir}/warmup.log 2>&1"
-    grep -q 'Foundry bounded input-token cache active for DeepseekV4Renderer' "${log}"
-    if [[ ${on} == 1 ]]; then
-        grep -Eq 'Foundry initial prefix hash cache active block_size=2([^0-9]|$)' "${log}"
-    else
-        if grep -q 'Foundry initial prefix hash cache active' "${log}"; then exit 1; fi
-    fi
-    for rep in 1 2 3; do
-        timeout --signal=TERM --kill-after=30s 960s docker exec -e RUN_TS="${run_ts}" "${CONTAINER}" bash -lc \
-            "cd ${ROOT} && timeout --signal=TERM --kill-after=30s 900s python3 scripts/bench.py --dataset ${DATASET} --out ${arm_dir}/bench48_${rep}.json --limit 48 --concurrency 12 --max-tokens 1024 >${arm_dir}/bench48_${rep}.log 2>&1"
-    done
-    docker exec "${CONTAINER}" bash -lc \
-        "cd ${ROOT} && python3 scripts/analyze_loop034_e2e.py ${arm_dir} >${arm_dir}/analysis.log 2>&1"
-    python3 - "${arm_dir}" <<'PYBENCH'
-import json,sys,pathlib
-p=pathlib.Path(sys.argv[1])
-for name in ('warmup.json','bench48_1.json','bench48_2.json','bench48_3.json'):
-    d=json.loads((p/name).read_text())
-    s=d['summary']
-    assert s['n']==48 and s['success']==48 and s['fail']==0
-    assert s['concurrency']==12 and s['max_tokens']==1024
-    assert len(d['requests'])==48
-    assert all(r['output_tokens']==1024 and r['error'] is None for r in d['requests'])
-rows=list((p/'runtime').glob('rank*_cohort*.json'))
-assert len(rows)==128
-seen=set()
-for file in rows:
-    r=json.loads(file.read_text());assert r['pass'] and r['host_mirror_exact']
-    assert r['generated_output_counts']==[1024]*12
-    assert r['oracle_target_calls_after_handoff']==0
-    assert 'FULL' in r['target_graph_mode']
-    seen.add((r['rank'],r['cohort']))
-assert seen=={(r,c) for r in range(8) for c in range(1,17)}
-print('RUN674_FORMAL_4X48_ALL8_ADMITTED')
-PYBENCH
-    local posts
-    posts=$(grep -c 'POST /v1/chat/completions' "${log}")
-    printf '%s\n' "${posts}" >"${arm_dir}/server_post_count.txt"
-    [[ ${posts} -eq 192 ]]
-    stop_owned >"${arm_dir}/stop.log" 2>&1
-    verify_stopped >"${arm_dir}/stop_verify.log" 2>&1
-    local posts_after
-    posts_after=$(grep -c 'POST /v1/chat/completions' "${log}")
-    printf '%s\n' "${posts_after}" >"${arm_dir}/server_post_count_after_stop.txt"
-    [[ ${posts_after} -eq 192 ]]
-    RUN_STARTED=0
+# One resident service; all modes share the same routing overhead and source.
+set_mode() {
+    python3 - "${OUT}/mode.json" "$1" "$2" "$3" <<'PY'
+import json,sys
+from pathlib import Path
+p=Path(sys.argv[1]);tmp=p.with_suffix('.tmp')
+tmp.write_text(json.dumps({'phase':sys.argv[2],'enabled':sys.argv[3]=='1','version':int(sys.argv[4])}))
+tmp.replace(p)
+PY
 }
-
-run_arm hashoff 0
-run_arm hashon 1
+CURRENT_RUN_TS=LOOP081-RUN674-SHARED
+log=${ROOT}/logs/serve_dsv4f-w4a8_8npu_dp1tp8_mlen1M_nomooncake_${CURRENT_RUN_TS}.log
+mkdir "${OUT}/runtime"
+set_mode off_a 0 1
+RUN_STARTED=1
+docker exec -e MAX_MODEL_LEN=1048576 -e RUN_TS="${CURRENT_RUN_TS}" \
+    -e EXTREME_RUNTIME_RUN_DIR="${OUT}/runtime" \
+    -e EXTREME_RUNTIME_SERVE=1 -e EXTREME_RUNTIME_RESERVE_TOKENS=1088 \
+    -e EXTREME_NATIVE_TARGET_METADATA=1 -e EXTREME_RUNTIME_TARGET_GRAPH=1 \
+    -e EXTREME_DSPARK_SLOT_REFRESH=1 -e EXTREME_TARGET_METADATA_STATIC_KV_MAX=1 \
+    -e 'EXTRA_SERVE_ARGS=--renderer-num-workers 4' -e EXTREME_TEXT_TOKEN_CACHE=1 \
+    -e EXTREME_INITIAL_PREFIX_HASH_CACHE=1 -e EXTREME_PREFIX_HASH_MODE_FILE="${OUT}/mode.json" \
+    "${CONTAINER}" bash -lc "cd ${ROOT} && bash scripts/serve.sh > ${OUT}/launcher.log 2>&1"
+ready=0
+for i in $(seq 1 180); do
+    if curl -fsS --max-time 3 http://127.0.0.1:8080/health >/dev/null 2>&1; then ready=1; break; fi
+    if [[ -f ${log} ]] && grep -q 'rtsMallocHost execution failed' "${log}"; then exit 1; fi
+    sleep 10
+done
+[[ ${ready} == 1 ]]
+grep -Eq 'Foundry initial prefix hash cache active block_size=2([^0-9]|$)' "${log}"
+docker exec -i "${CONTAINER}" python3 - "${CURRENT_RUN_TS}" <<'PY' >"${OUT}/loaded_renderer.json"
+import pathlib,sys,json
+rows=[];tag=('RUN_TS='+sys.argv[1]).encode()
+for p in pathlib.Path('/proc').iterdir():
+ if not p.name.isdigit():continue
+ try:
+  argv=[x.decode() for x in (p/'cmdline').read_bytes().split(b'\0') if x];env=(p/'environ').read_bytes().split(b'\0')
+ except (FileNotFoundError,ProcessLookupError,PermissionError):continue
+ if tag in env and 'serve' in argv:
+  assert argv.count('--renderer-num-workers')==1 and argv[argv.index('--renderer-num-workers')+1]=='4'
+  rows.append({'pid':int(p.name),'argv':argv})
+assert len(rows)==1
+print(json.dumps({'expected_workers':4,'processes':rows},indent=2))
+PY
+run_phase() {
+    local phase=$1 on=$2 version=$3 offset=$4
+    local arm_dir=${OUT}/${phase}
+    mkdir "${arm_dir}" "${arm_dir}/runtime"
+    set_mode "${phase}" "${on}" "${version}"
+    cp "${OUT}/loaded_renderer.json" "${arm_dir}/loaded_renderer.json"
+    for label in warmup bench48_1 bench48_2 bench48_3; do
+        timeout --signal=TERM --kill-after=30s 960s docker exec -e RUN_TS="${CURRENT_RUN_TS}" "${CONTAINER}" bash -lc \
+            "cd ${ROOT} && timeout --signal=TERM --kill-after=30s 900s python3 scripts/bench.py --dataset ${DATASET} --out ${arm_dir}/${label}.json --limit 48 --concurrency 12 --max-tokens 1024 >${arm_dir}/${label}.log 2>&1"
+    done
+    grep -q 'Foundry bounded input-token cache active for DeepseekV4Renderer' "${log}"
+    python3 - "${OUT}" "${phase}" "${on}" "${version}" "${offset}" <<'PY'
+import json,sys,shutil,statistics
+from pathlib import Path
+root=Path(sys.argv[1]);phase=sys.argv[2];on=sys.argv[3]=='1';version=int(sys.argv[4]);offset=int(sys.argv[5]);p=root/phase
+summaries=[]
+for name in ('warmup','bench48_1','bench48_2','bench48_3'):
+ b=json.loads((p/(name+'.json')).read_text());s=b['summary']
+ assert s['n']==s['success']==len(b['requests'])==48 and s['fail']==0 and s['concurrency']==12 and s['max_tokens']==1024
+ assert all(r['output_tokens']==1024 and r['error'] is None for r in b['requests'])
+ if name!='warmup':summaries.append(s)
+for c in range(offset+1,offset+17):
+ rows=[]
+ for rank in range(8):
+  f=root/'runtime'/f'rank{rank}_cohort{c}.json';r=json.loads(f.read_text());rows.append(r)
+  assert r['rank']==rank and r['cohort']==c and r['pass'] and r['host_mirror_exact']
+  assert r['generated_output_counts']==[1024]*12 and r['oracle_target_calls_after_handoff']==0 and 'FULL' in r['target_graph_mode']
+  shutil.copyfile(f,p/'runtime'/f.name)
+ for field in ('cycles','staged_output_counts','overshoot_tokens','acceptance_window_means'):
+  assert all(r[field]==rows[0][field] for r in rows)
+route=[json.loads(line) for line in (root/'hash_routing.jsonl').read_text().splitlines()]
+route=[r for r in route if r['phase']==phase]
+assert len(route)==4 and [r['initial_requests'] for r in route]==[48,96,144,192]
+assert all(r['enabled']==on and r['version']==version for r in route)
+if phase=='off_a':assert all(r['memo_hits']==r['memo_misses']==r['cache_entries']==0 for r in route)
+if phase=='on':assert route[-1]['memo_hits']-route[0]['memo_hits']==144 and route[-1]['memo_misses']==route[0]['memo_misses']
+if phase=='off_b':
+ prior=json.loads((root/'on'/'summary.json').read_text())['routing'][-1]
+ assert all(r['memo_hits']==prior['memo_hits'] and r['memo_misses']==prior['memo_misses'] for r in route)
+result={'pass':True,'offset':offset,'runs':summaries,'median_tps':statistics.median(s['output_tps'] for s in summaries),'routing':route}
+(p/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
+print(phase,'FORMAL_4X48_ALL8_ADMITTED',result['median_tps'],flush=True)
+PY
+    posts=$(grep -c 'POST /v1/chat/completions' "${log}")
+    [[ ${posts} -eq $((192*version)) ]]
+    printf '%s\n' "${posts}" >"${arm_dir}/cumulative_post_count.txt"
+}
+run_phase off_a 0 1 0
+run_phase on 1 2 16
+run_phase off_b 0 3 32
+stop_owned >"${OUT}/stop.log" 2>&1
+verify_stopped >"${OUT}/stop_verify.log" 2>&1
+[[ $(grep -c 'POST /v1/chat/completions' "${log}") -eq 576 ]]
+RUN_STARTED=0

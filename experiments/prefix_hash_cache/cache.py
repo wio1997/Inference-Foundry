@@ -16,6 +16,8 @@ class InitialPrefixHashMemo:
         self.max_bytes=max_bytes
         self.rows=OrderedDict()
         self.bytes=0
+        self.hits=0
+        self.misses=0
         self.lock=Lock()
 
     def __call__(self, request):
@@ -29,11 +31,16 @@ class InitialPrefixHashMemo:
             or request.num_tokens != request.num_prompt_tokens):
             return self.original(request)
         key=tuple(request.all_token_ids)
+        # Python compares bool/int and float/int as equal; pickle does not.
+        if any(type(token) is not int for token in key):
+            return self.original(request)
         with self.lock:
             row=self.rows.get(key)
             if row is not None:
                 self.rows.move_to_end(key)
+                self.hits+=1
                 return list(row[0])
+            self.misses+=1
         result=self.original(request)
         hashes=tuple(result)
         cost=(sys.getsizeof(key)+sum(sys.getsizeof(x) for x in key)

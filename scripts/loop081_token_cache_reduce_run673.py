@@ -10,7 +10,7 @@ for arm in ('cacheoff','cacheon'):
   assert all(x['output_tokens']==1024 and x['error'] is None for x in b['requests'])
   rr=[json.loads((p/'runtime'/f'rank0_cohort{c}.json').read_text()) for c in range(rep*4+1,rep*4+5)]
   cycles=sum(x['cycles'] for x in rr);runtime=sum(x['wall_seconds'] for x in rr)
-  rows.append({'repeat':rep,'client_s':s['duration_s'],'output_tps':s['output_tps'],'cycles':cycles,'runtime_s':runtime,'runtime_ms_per_cycle':runtime/cycles*1000,'client_minus_runtime_s':s['duration_s']-runtime,'product_tokens_per_runtime_cycle':49152/cycles,'cohort_cycles':[x['cycles'] for x in rr]})
+  rows.append({'staged_accepted_tokens_per_cycle':sum(sum(x['staged_output_counts']) for x in rr)/cycles,'overshoot_tokens':sum(x['overshoot_tokens'] for x in rr),'acceptance_window_means':[x['acceptance_window_means'] for x in rr],'repeat':rep,'client_s':s['duration_s'],'output_tps':s['output_tps'],'cycles':cycles,'runtime_s':runtime,'runtime_ms_per_cycle':runtime/cycles*1000,'client_minus_runtime_s':s['duration_s']-runtime,'product_tokens_per_runtime_cycle':49152/cycles,'cohort_cycles':[x['cycles'] for x in rr]})
  arms[arm]={'rows':rows,'median_tps':statistics.median(x['output_tps'] for x in rows)}
 for repeat in ('warmup','bench48_1','bench48_2','bench48_3'):
  a=json.loads((root/'cacheoff'/f'{repeat}.json').read_text())['requests']
@@ -25,6 +25,10 @@ for arm in ('cacheoff','cacheon'):
   key=(r['rank'],r['cohort']);assert key not in seen;seen[key]=r['cycles']
  assert set(seen)=={(r,c) for r in range(8) for c in range(1,17)}
  for c in range(1,17):assert len({seen[(r,c)] for r in range(8)})==1
+ for c in range(1,17):
+  rankrows=[json.loads((root/arm/'runtime'/f'rank{r}_cohort{c}.json').read_text()) for r in range(8)]
+  for field in ('staged_output_counts','overshoot_tokens','acceptance_window_means'):
+   assert all(x[field]==rankrows[0][field] for x in rankrows)
 cleanup=dict(x.split('=',1) for x in (root/'cleanup_status.txt').read_text().splitlines());assert set(cleanup.values())=={'0'}
 for kind in ('source','scripts'):assert (root/f'{kind}_before.sha256').read_bytes()==(root/f'{kind}_after.sha256').read_bytes()
 out={'arms':arms,'relative_median_tps_percent':100*(arms['cacheon']['median_tps']/arms['cacheoff']['median_tps']-1),'cleanup':cleanup,'input_token_counts_match':True,'all8_cycles_match':True,'limits':'Separate launches and batching may change acceptance trajectory. Residual includes all non-fixed-serving Product work; useful tokens/cycle ratio includes prebulk outputs. No exact generated-text parity claim.'}
