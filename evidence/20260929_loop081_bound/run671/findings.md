@@ -1,0 +1,7 @@
+# Run671 — bounded input token cache CPU gate
+
+The experimental cache and adapter are not installed in the active Run670 service. They cache only immutable input token IDs for identical complete rendered text and actual scalar encoding options, on a fixed tokenizer instance. The actual effective Ascend thinking template is loaded; template function provenance is recorded. Every request still receives a fresh TokensPrompt/list, its own extras, and subsequent validation. Offset/multimodal paths bypass the adapter entirely.
+
+All48 cold outputs and192 threaded hits equal original BaseRenderer._tokenize_prompt outputs. Caller mutation does not contaminate subsequent hits; actual add_special_tokens and truncation/max_length variants match the original tokenizer. Request extras, entry eviction, oversized-entry bypass and complete offset return preservation pass.51 cached entries occupy an estimated73,825,371bytes under the128MiB budget; this is a retained-object estimate, not an RSS limit.
+
+Observed CPU times cold48 7.544s, hot192 .191s were collected during Run670 candidate service startup, before warmup/measurement. They are feasibility observations, not a calibrated speedup or E2E result. Integration and frozen formal E2E remain required. Tokenizer mutation requires cache invalidation; current service uses a fixed instance. Cache hits are specific to repeated rendered text and encode options, not a claim about unseen inputs. No model output is cached.

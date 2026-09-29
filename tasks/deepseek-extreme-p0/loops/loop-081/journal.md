@@ -405,3 +405,7 @@
 - `2026-09-29T08:30:48Z` Run `run669` 记录为 `pass`；正确性为 `pass`。Exact-ID historical Host partition excludes previous cohort tail; main cost is repeated mixed-prefill. CPU-only actual frozen template/tokenization workers1/4/12 medians 1387.633/483.901/302.548ms per12 requests; all48 token ID lists exact across repetitions. No Product performance claim. Proceed worker4 formal candidate.
 
 - `2026-09-29T08:32:16Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run670`（benchmark）。
+
+- `2026-09-29T08:54:45Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run671`（test）。
+
+- `2026-09-29T08:54:45Z` Run `run671` 记录为 `pass`；正确性为 `pass`。CPU original effective Ascend renderer vs bounded input-token memoization:48 cold outputs and192 concurrent hit outputs exact; mutation isolation, per-request extras, encoding options, eviction, oversize and full offset bypass passed.73.8MB estimated retained objects. Not installed; no Product/model-output claim. Run670 formal worker1/4 remains running.
