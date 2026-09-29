@@ -52,7 +52,7 @@
 
 而不是必须机械执行的 SOP。
 
-Sol 可以根据新的源码、profiling、实验结果、架构判断或更优证据：
+Astra Light 作为主 Agent，可以根据新的源码、profiling、实验结果、架构判断或更优证据：
 
 - 跳过低价值步骤；
 - 合并或拆分阶段；
@@ -95,7 +95,7 @@ Sol 可以根据新的源码、profiling、实验结果、架构判断或更优�
 - request completion；
 - API / output contract。
 
-具体校验方式可由 Sol 根据问题自主设计。
+具体校验方式可由 Astra Light 根据问题自主设计。
 
 ## 3.2 Formal performance evidence
 
@@ -300,7 +300,7 @@ Zcode / DeepSeek 可以做大量机械工作，但其报告不能自动成为项
 - persistent execution；
 - Runtime restructuring。
 
-如果新证据表明 primitive/operator 已经成为主要剩余 Gap，可以由 Sol 主动 PIVOT，不需要被当前阶段定义锁死。
+如果新证据表明 primitive/operator 已经成为主要剩余 Gap，可以由 Astra Light 主动 PIVOT，不需要被当前阶段定义锁死。
 
 ---
 
@@ -337,82 +337,106 @@ Zcode / DeepSeek 可以做大量机械工作，但其报告不能自动成为项
 
 如果条件不同，把旧结果当 hypothesis prior / counterexample，而不是当前 verdict。
 
-如果检索成本明显高于一次低成本实验，Sol 可以自行决定直接验证。
+如果检索成本明显高于一次低成本实验，Astra Light 可以自行决定直接验证。
 
 历史复用是为了提高研究效率，不是给 Agent 增加形式主义负担。
 
 ---
 
-# 8. Multi-agent collaboration
+# 8. Multi-agent Collaboration
 
-## Sol
+本项目不使用 Sol 作为主 Agent，也不把 Sol 作为默认技术裁决模型。
 
-Sol 是主 Agent，持续掌握项目上下文。
+## Astra Light — Main Agent
 
-主要负责：
+Astra Light 是项目的默认主 Agent，负责持续掌握上下文并推进主线。
 
-- 主线判断；
-- Runtime / architecture；
-- DAG / Bound / Resource Model；
-- profiling 归因；
-- correctness；
-- benchmark 设计；
-- KEEP / REJECT / PIVOT；
-- 整合其他 Agent 结果。
+主要职责包括：
 
-Sol 应保持较高自主性，不需要为了“调用别的模型”而调用。
+- 从 `HANDOFF.md`、TaskCtl、Git HEAD、evidence 恢复当前真实状态；
+- 判断当前最高价值问题；
+- 决定下一步实验、分析或 Runtime 改动；
+- 维护 Execution DAG、Resource Model、Bound 和 Performance Map；
+- 设计 correctness / benchmark；
+- 做 KEEP / REJECT / PIVOT；
+- 整合 Astra Medium / High 和 Zcode / DeepSeek 的结果；
+- 持续推进 `Current → Gap → Intervention → E2E → Re-bound`。
 
-## Astra Medium
+Astra Light 是默认 owner，但不需要机械执行历史 `next_action`。
 
-适合提供独立第二视角，例如：
+历史计划、旧结论和文档都是参考；如果最新证据表明更高价值方向，应直接调整。
 
-- benchmark / profile 复核；
-- 实验设计 challenge；
-- 多个候选之间判断；
-- 发现 Sol 的归因偏差；
-- 路线反复或收敛变慢时重新审视。
+## Astra Medium — Important Problem Escalation
 
-是否调用由 Sol 根据价值判断。
+当问题需要更深入判断时，Astra Light 可以自主升级到 Astra Medium，例如：
 
-## Astra High
+- profiling / benchmark 归因复杂；
+- 多个候选方向难以取舍；
+- 实验结果与预期矛盾；
+- KEEP / REJECT / PIVOT 判断不够稳；
+- Bound 中的重要假设需要独立复核；
+- 当前路线开始反复；
+- 多轮实验没有明显收敛；
+- 需要第二视角 challenge 当前解释。
 
-适合少量高价值、高复杂度、高不确定性问题，例如：
+Medium 主要用于提高判断质量，不默认接管主线。
 
-- Bound 是否成立；
-- 重大架构分叉；
-- 多组 evidence 冲突；
-- Persistent / Whole-cycle Replay；
+## Astra High — Critical Architecture / Bound Review
+
+Astra High 用于少量但高价值、高复杂度、高不确定性问题，例如：
+
+- Optimistic / Achievable Bound 是否可信；
+- Framework/Scheduling 极限是否已经接近；
+- 重大 Runtime 架构重构；
+- 多组 evidence 相互冲突；
+- Persistent Execution；
+- Whole-cycle Replay；
 - DSpark Graph；
-- 关键 Runtime architecture；
-- 一个判断错误会导致大量实验浪费的场景。
+- 复杂跨模块调度设计；
+- 当前路线是否已经走偏；
+- 一个错误判断可能导致大量后续实验浪费。
 
-Astra 是独立分析输入，不自动覆盖 Sol。
+Astra High 提供高强度独立判断，但最终仍以真实源码、实验、correctness 和正式 E2E 为证据。
 
-## DeepSeek / Zcode
+## Zcode / DeepSeek — Mechanical Executor
 
-具体命令写法、长任务返回值和失败后验收见 ZCODE_OPERATIONS.md。
+Zcode / DeepSeek 主要承担边界明确、低风险、容易验收的机械执行，例如：
 
-适合机械、边界清晰、容易验收的任务，例如：
-
-- 部署；
-- 启停服务；
-- benchmark；
-- 重复测试；
-- profiling/log/trace；
+- 服务启动和停止；
 - 环境检查；
-- 数据提取；
-- 简单源码定位；
-- 简单可验收修改。
+- benchmark；
+- profiling / trace / 日志采集；
+- 数据提取和整理；
+- 已明确方案的简单修改；
+- 脚本运行；
+- 重复性测试；
+- 限定范围源码定位。
 
-不建议让其独立裁决：
+不建议让 Zcode / DeepSeek 独立裁决：
 
 - Bound；
 - 性能极限；
 - 根因；
 - KEEP / REJECT / PIVOT；
-- 重大跨模块架构。
+- 重大跨模块架构；
+- 高风险 correctness 判断。
 
-如果其能力在某项任务上实际表现可靠，Sol 可以扩大委派范围，但仍应按风险匹配验收强度。
+其结果需要根据任务风险进行验收，不自动成为项目结论。
+
+## Model Selection Principle
+
+不规定固定调用比例，也不机械按关键词路由。
+
+默认协作方式：
+
+**Astra Light 持续推进  
+→ 重要复杂问题升级 Astra Medium  
+→ 极关键架构 / Bound 问题升级 Astra High  
+→ Zcode / DeepSeek 负责机械执行。**
+
+Astra Light 可以根据实际问题自由调整调用方式。
+
+模型分工的目的是提高判断质量和推进效率，不是形成新的固定 SOP。
 
 ---
 
@@ -441,7 +465,7 @@ Astra 是独立分析输入，不自动覆盖 Sol。
 
 ---
 
-# 10. Benchmark / Correctness judgment
+# 10. Benchmark / Correctness Judgment
 
 建议始终区分：
 
@@ -468,11 +492,11 @@ Correctness 也不要求所有问题都使用同一种 gate。
 - state/KV parity；
 - downstream consumer parity。
 
-Sol 可以选择最能回答当前问题的验证方式。
+Astra Light 可以选择最能回答当前问题的验证方式。
 
 ---
 
-# 11. Context efficiency
+# 11. Context Efficiency
 
 不要默认每次通读整个仓库。
 
@@ -486,7 +510,7 @@ Sol 可以选择最能回答当前问题的验证方式。
 
 然后围绕当前问题打开必要 evidence。
 
-原始 trace / profile / 大日志不需要一直塞进高级模型上下文。
+原始 trace / profile / 大日志不需要一直塞进主 Agent 上下文。
 
 优先保留：
 
@@ -502,7 +526,7 @@ Sol 可以选择最能回答当前问题的验证方式。
 
 ---
 
-# 12. State persistence
+# 12. State Persistence
 
 建议持续维护：
 
@@ -536,11 +560,11 @@ Sol 可以选择最能回答当前问题的验证方式。
 
 这些文件应帮助 Agent 恢复，而不是成为写报告负担。
 
-更新粒度由 Sol 根据“是否产生新的可复用事实”决定。
+更新粒度由 Astra Light 根据“是否产生新的可复用事实”决定。
 
 ---
 
-# 13. Document stability
+# 13. Document Stability
 
 以下文档建议相对稳定：
 
@@ -569,7 +593,7 @@ Sol 可以选择最能回答当前问题的验证方式。
 
 ---
 
-# 14. Stop / Continue judgment
+# 14. Stop / Continue Judgment
 
 不要因为：
 
@@ -582,7 +606,7 @@ Sol 可以选择最能回答当前问题的验证方式。
 
 也不要因为文档写了某个 next_action 就机械继续。
 
-每个重要 checkpoint 后，Sol 可以重新判断：
+每个重要 checkpoint 后，Astra Light 可以重新判断：
 
 - 当前最大 Gap 是什么；
 - 最大 unknown 是什么；
@@ -596,7 +620,7 @@ Sol 可以选择最能回答当前问题的验证方式。
 
 ---
 
-# 15. What success means
+# 15. What Success Means
 
 DeepSeek P0 最终希望同时得到：
 
@@ -628,6 +652,6 @@ DeepSeek P0 最终希望同时得到：
 
 ---
 
-# 16. One-line principle
+# 16. One-line Principle
 
-> **Inference Foundry 不要求 Agent 按固定流程优化；它要求 Agent 在保持 correctness、证据真实性和可比性的前提下，自主寻找最有价值的路径，把 Current 与可实现性能边界之间的 Gap 持续缩小。**
+> **Inference Foundry 不要求 Astra Light 按固定流程优化；它要求主 Agent 在保持 correctness、证据真实性和可比性的前提下，自主寻找最有价值的路径，把 Current 与可实现性能边界之间的 Gap 持续缩小。**
