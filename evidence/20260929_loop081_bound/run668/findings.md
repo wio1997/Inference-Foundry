@@ -1,0 +1,19 @@
+# Run668 — stage-aligned Product wall, OFF/ON/OFF
+
+Same frozen 48×32K→1024 c12 request bodies and order in each arm; warmup48 plus one measured48. Exact client response IDs join all 48 measured requests to four Runtime cohorts per arm. All 192 rank/cohort rows pass FULL Target Graph and client admission. Controller cleanup, source/script SHA restore, stop and eight-NPU idle pass. This is a low-observer diagnostic, not formal E2E TPS.
+
+| arm | client s | cycles | Runtime ms/cycle | start→handoff s | handoff build ms | metadata capture ms | Runtime s | Runtime end→client end s |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| OFF_A | 82.197 | 1225 | 56.495 | 12.141 | 15.4 | 0.0 | 69.207 | 0.833 |
+| ON | 78.314 | 1195 | 55.349 | 11.189 | 15.4 | 168.0 | 66.142 | 0.799 |
+| OFF_B | 86.680 | 1196 | 56.621 | 18.167 | 15.4 | 0.0 | 67.719 | 0.779 |
+
+**Attribution.** Run667 client−Runtime residual is located almost entirely before the fixed-serving handoff; see `../run667/product_wall_decomposition.md`. Run668 measures the ON-only per-cohort metadata capture at 40–47 ms across all eight ranks (rank0 41.7–42.4 ms), 168 ms across four measured cohorts. Handoff construction is ~15 ms per four cohorts in all arms. Runtime→client completion is ~0.78–0.83 s per arm. Under c12, the next group’s client starts overlap the previous group’s last completion by only milliseconds. The current timestamps do not isolate a server publication timestamp, so any scheduler/output boundary within the ~0.2 s post-Runtime tail remains unresolved. The ON pre-handoff total (11.19 s) is lower than both OFF controls (12.14/18.17 s); capture cannot causally explain Run667’s 2–10 s extra residual. The exact pre-handoff mix of required residual prefill, DSpark seed and scheduler waiting is still unseparated.
+
+**Trajectory.** ON has 1195 cycles versus OFF_A 1225 and OFF_B 1196, so this diagnostic ON client gain mixes cycle-count changes with the 1.15–1.27 ms/cycle Runtime saving. Run667 repeat3 ON had 1256 versus OFF 1166 cycles (useful 39.13 versus 42.15 tokens/cycle), accounting for about 3.1 s of its Runtime regression. For cohort15, the late 256–end acceptance-window mean is 0.832 ON versus 1.300 OFF, while the full repeat has +90 cycles (cohort deltas +7/+23/+34/+26). This is a trajectory difference, not a Framework overhead measurement. The additional ~10 s pre-handoff difference in that repeat is not explained by metadata capture and may include cache/arrival/seed variation; separate service launches cannot establish whether the Graph caused any trajectory change.
+
+**Historical prefill reuse.** Run332 exact client-stream-ID join to worker marks (saved in `historical_run332_reuse.json`) gives 196–228 ms from client start to first worker execute, then 2.093–2.425 s from first execute to Runtime built across four cohorts, each with eight execute calls and 1324–1366 scheduled tokens. This is a separate run, not same-run decomposition of Run668. It supports prioritizing the multi-execute residual-prefill/seed chain. Run188 already screened a consolidated ~1000-token call and saw changed decode cycles with only 0.163 s diagnostic client-envelope change; do not repeat that consolidation without a way to preserve trajectory.
+
+**Decision.** Preserve Run667 REJECT and formal Current 571.681 tok/s. The proven metadata replay subpath saving is real but small relative to the variable ~3–4.5 s per-cohort pre-handoff envelope. Further work should reuse historical Run332/337/602/606 prefill and scheduler evidence to isolate necessary residual-prefill/seed work from removable waiting; do not repeat Graph-only tuning. A structural Runtime change should then be judged with full correctness and repeated frozen E2E.
+
+**Zcode result.** Inner guarded script completed with all cleanup exits 0. Outer Zcode CLI lingered and was ended by `timeout` (exit 124); independent raw evidence establishes completion, so no rerun.

@@ -395,3 +395,7 @@
 - `2026-09-29T03:17:00Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run667`（benchmark）。
 
 - `2026-09-29T03:17:01Z` Run `run667` 记录为 `pass`；正确性为 `pass`。Frozen formal E2E bench.py: OFF median 578.117 (578.117/577.073/634.358), ON median 567.938 (571.982/567.938/542.738), delta -1.76%; both 3x48 complete, 128 FULL rank rows pass, source restored. Candidate not promoted.
+
+- `2026-09-29T04:45:27Z` 为用例 `mixed_32k_1024_c12` 创建 Run `run668`（profile）。
+
+- `2026-09-29T04:45:27Z` Run `run668` 记录为 `pass`；正确性为 `pass`。OFF/ON/OFF stage-aligned diagnostic: all 48+48 requests per arm and 192 FULL rank/cohort rows pass; ON capture 40-47 ms/cohort, 168 ms total; prehandoff totals OFF_A12.14s ON11.19s OFF_B18.17s. Graph capture cannot directly explain Run667 2-10s residual. Inner controller/restore exit0, outer Zcode CLI timed out124 after completion.

@@ -84,9 +84,10 @@ As of 2026-09-29（以实时 Git HEAD 与 TaskCtl 为准）：
 - Run663/664 的 cycle0 RoPE 不一致是校验器比较了 max-batch active buffer 与 scratch96 的形状假阳性，非候选 correctness 失败；Run663 TaskCtl 已作 invalid 更正。Run665 修正只比较前96行后，warmup48/measured48、64 个 FULL Target Graph rank-cohort 行均通过逐 cycle 同状态 eager metadata 校验；第8 cohort306 cycles。验证模式 TPS 不可用于性能判断。证据见 evidence/20260929_loop081_bound/run665/findings.md。
 - Run666：OFF_A/ON/OFF_B 诊断值为 590.544/607.644/590.437 tok/s，ON 在四个 measured cohort 的每周期 Runtime 均快约 1.3–1.9 ms；只作为筛选信号。证据见 evidence/20260929_loop081_bound/run666/findings.md。
 - Run667：同一候选按冻结 Run99 `bench.py` 口径做 OFF/ON 各 warmup48 + 3×48。OFF 中位数 578.117，ON 中位数 567.938 tok/s（−1.761%）；两边完整通过 correctness/runtime 门禁，候选不晋升 Current。ON 虽每周期快约 1.2–1.6 ms，但 client 减 serving Runtime 的残差三轮均更高；需定位 prefill/scheduler handoff/output 阶段。证据见 evidence/20260929_loop081_bound/run667/findings.md。
+- Run668：最小阶段对齐 OFF/ON/OFF（每 arm warmup48+measured48）完整通过，ON metadata capture 40–47ms/cohort、measured 四 cohort 合计168ms；handoff 构建各臂约15ms/轮，Runtime→client 约0.8s/轮。请求开始→handoff 分别 OFF_A12.14s、ON11.19s、OFF_B18.17s，证明 Run667 的数秒 residual 波动不由 metadata capture 直接造成。Run667 repeat3 额外90 cycles 是独立的 trajectory/acceptance 差异；ON cohort15 晚期 acceptance 0.832 vs OFF1.300。Run332 旧证据中 client→首个 execute 0.20–0.23s，execute→handoff 2.09–2.43s/cohort（8 调度执行/约1.3k token），指向 residual-prefill/seed 多执行链，尚未分离其必要工作与可消除等待。证据见 evidence/20260929_loop081_bound/run668/findings.md、run667/product_wall_decomposition.md。
 - 历史 Loop063 metadata side-stream overlap 在诊断中每周期较 contemporary serial 慢 1.472 ms；不要不加区分地重复该路线。
-- 当前机器：Run667 已停服、8 卡 idle、source/script SHA 精确恢复；8080 无监听。Git 跟踪文件待提交，外部 Zcode CLI 可能在 controller 完成后仍挂起，应按 `ZCODE_OPERATIONS.md` 验收并终止本次 owned CLI。
-- 下一步：优先从已有 Run667 日志/请求时钟分解正式 E2E 的 client−Runtime 残差；如不能判因，再做最小阶段对齐诊断，找出最大可消除 Framework/Scheduling Gap。不要直接重复 metadata Graph 以追逐诊断 TPS。Zcode 负责简单启停和受控脚本运行，调用原文与验收见 `ZCODE_OPERATIONS.md`；Sol 裁决结果。
+- 当前机器：Run668 已停服、8 卡 idle、source/script SHA 精确恢复；8080 无监听。内层 controller 全0，外层 Zcode CLI 在完成后滞留并由 timeout 以124结束；不得重跑。
+- 下一步：复用 Run332/337/602/606 的 warmed residual-prefill/DSpark seed 和 rank rendezvous 证据，识别多次 ordinary execute 链中的可消除等待；优先做源代码/旧证据分析，未定位可修项前不重做 Graph-only 实验。任何结构性 Runtime 改动必须经 correctness 与冻结 repeated formal E2E。Zcode 调用与独立验收见 `ZCODE_OPERATIONS.md`。
 
 ### Immediate objective
 

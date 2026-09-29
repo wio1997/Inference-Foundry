@@ -1,0 +1,49 @@
+--- /data/wio/Inference_Foundry/runtime/target_metadata.py
++++ /data/wio/Inference_Foundry/runtime/target_metadata.py.run668
+@@ -107,6 +107,10 @@
+         self.local_seq_lens = torch.empty(12, dtype=query_start_loc.dtype, device=self._device)
+         self.start_pos = torch.empty(12, dtype=query_start_loc.dtype, device=self._device)
+         self._request_index = torch.arange(12, device=self._device).unsqueeze(1)
++        self._graph_enabled = os.getenv("EXTREME_TARGET_METADATA_GRAPH") == "1"
++        self._graph = None
++        self._graph_input_ptrs = None
++        self._graph_replays = 0
+ 
+     def make_scratch(self) -> "FixedTargetMetadataUpdater":
+         """Create private outputs; immutable caches and block tables remain shared."""
+@@ -210,7 +214,35 @@
+             stats["first_ac"] = min(stats["first_ac"], int(ac_indices[0].item()))
+ 
+     @torch.inference_mode()
++    def capture_graph(self, state: FixedDecodeState) -> None:
++        """Capture only in setup, before the timed fixed serving loop."""
++        if not self._graph_enabled or self._graph is not None:
++            raise RuntimeError("metadata Graph capture requires fresh enabled updater")
++        if not self._static_kv_max or self._shadow_dynamic:
++            raise RuntimeError("metadata Graph requires fixed KV maxima and no shadow")
++        self._update_eager(state)
++        torch.npu.synchronize()
++        graph = torch.npu.NPUGraph()
++        with torch.npu.graph(graph):
++            self._update_eager(state)
++        torch.npu.synchronize()
++        self._graph_input_ptrs = (
++            state.target_positions.data_ptr(), state.target_seq_lens.data_ptr())
++        self._graph = graph
++
++    @torch.inference_mode()
+     def update(self, state: FixedDecodeState) -> None:
++        if not self._graph_enabled:
++            self._update_eager(state)
++            return
++        if self._graph is None or self._graph_input_ptrs != (
++                state.target_positions.data_ptr(), state.target_seq_lens.data_ptr()):
++            raise RuntimeError("metadata Graph missing or input address drift")
++        self._graph.replay()
++        self._graph_replays += 1
++
++    @torch.inference_mode()
++    def _update_eager(self, state: FixedDecodeState) -> None:
+         if state.target_positions.numel() != self.target_tokens:
+             raise ValueError("fixed target must contain 96 positions")
+         if state.target_seq_lens.numel() != self.batch_size:
