@@ -894,3 +894,7 @@ The Framework-only DAG now explicitly includes Host CPU issue, async queue Enque
 ## Framework-only Run656 scope
 
 One ON diagnostic W₀ now has full48 all8 outer current-stream stage coverage: 9600 rank-cycles, paired median Target47.579ms, proposer6.372ms, cycle55.866ms, outside residual1.245ms. Startup proposer is a separate50.038ms median class. These Event intervals include queue/wait, and rank0 current-stream span69.330s versus Runtime69.584s does not measure device occupancy or removable Host cost. Product diagnostic wall86.904s and arithmetic Product-minus-Runtime17.320s require ordinary preparation/serving ownership. OFF_A/ON/OFF_B trajectories differ; no observer-effect subtraction or Current→Bound TPS claim. Formal Current571.681tok/s.
+
+## 2026-09-29 — Current and next demonstrated CPU gap
+
+Current **587.496217 output tok/s**, Run673 frozen repeated E2E: ON587.496 vsOFF561.172 (+4.691%); Run672 opposite order +4.206%. KEEP integrated input-token cache/workers4, exact input-token gates and all8/cleanup/source checks pass. Third Run673 residual regresses1.570s; not universal per-repeat savings. Framework numerical ceiling and maximum removable Gap remain UNKNOWN; remaining ON14.465–15.539s residual includes necessary work. Next: source-derived block2 initial prefix hashes before Core queue, CPU3.785→.098s/48 hypothesis, Run674 guarded same-service OFF/ON/OFF after installed correctness gate. Evidence: `evidence/20260929_loop081_bound/run673/verdict.md`.

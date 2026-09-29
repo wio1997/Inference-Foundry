@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_87719250-9e64-49b3-b4c4-a1bddd32edda",
+  "traceId": "aae1e719-8205-4365-8a9d-46ed26089906",
+  "turnId": "turn_b2d638e8-9498-4b14-9bc2-124fed0d636c",
+  "response": "Script ran clean — exit 0, no stderr, every internal assertion passed, and it wrote `evidence/20260929_loop081_bound/run673/summary.json`.\n\n## Result\n\nThe token-cache arm shows **+4.69% median output TPS**: 561.17 (cacheoff) → 587.50 (cacheon).\n\n| arm | rep 1 | rep 2 | rep 3 | median |\n|---|---|---|---|---|\n| cacheoff | 549.09 | 561.17 | 592.93 | 561.17 |\n| cacheon | 591.61 | 574.67 | 587.50 | 587.50 |\n\n## Where the gain actually comes from\n\nThis is the part worth reading carefully. The NPU-side numbers are **indistinguishable** between the two arms:\n\n- rank runtime wall: median 68.93 s (off) vs 68.62 s (on)\n- runtime ms/cycle: 57.31 / 57.97 / 56.81 vs 57.10 / 56.66 / 57.44\n- total cycles: 1209 / 1218 / 1189 vs 1211 / 1228 / 1186\n- useful tokens per runtime cycle: median 40.655 vs 40.588\n\nThe entire measured delta lives in the client-observed envelope outside rank execution (`client_s − runtime_s`: median 17.79 s off vs 15.41 s on). So the mechanism this run credits is host/client-side overhead reduction, not a faster NPU loop — the execution itself is unchanged within measurement error.\n\n## Two caveats before this becomes a KEEP\n\nFirst, **the control arm's own rep-to-rep spread is wider than the between-arm gap.** cacheoff ranges 549→593, an 7.98% span, versus a 4.69% median difference between arms. cacheon is tighter (574.67→591.61, 2.9% span) and its minimum sits above cacheoff's median, with 2 of 3 cacheoff reps below every cacheon rep — so the direction is consistent, but with n=3 per arm this is suggestive rather than resolved. Both arms contain runs that beat the other arm's median.\n\nSecond, the cacheon arm runs **consistently higher overshoot** (350 / 356 / 372 vs 308 / 320 / 331 tokens) with no offsetting change in useful tokens per cycle. The script's own `limits` field already flags that separate launches and batching may shift the acceptance trajectory, and it makes no exact generated-text parity claim.\n\n## What the script did verify\n\nAll gates held: 48/48 successful requests with exactly 1024 output tokens per repeat; 128 runtime files per arm (8 ranks × 16 cohorts) with per-cycle counts identical across ranks and across the 8-way fan-out; `host_mirror_exact` and FULL graph mode on every cohort; input-token sequences identical between arms for all four workloads including warmup; all cleanup/restore exit codes 0; source and script SHA256 manifests byte-identical before and after.\n\nClassification per the evidence discipline: this is a `formal_e2e` matched-arms comparison on the calibration workload, but with only 3 repeats per arm it cannot by itself settle the KEEP decision — the direction is positive and the NPU-side invariance is a genuinely useful negative finding (it bounds where the remaining gap is not), but I would not promote the +4.7% to a product-level claim without more repeats.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 164553,
+    "outputTokens": 4140,
+    "totalTokens": 168693,
+    "cacheReadTokens": 142848,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3029,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 168693,
+    "contextUsed": 25555,
+    "contextWindow": 200000
+  }
+}

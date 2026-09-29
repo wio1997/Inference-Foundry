@@ -1,0 +1,1 @@
+Run673 all8 cycles, staged counts, overshoot and acceptance-window means equality were checked by the committed reducer. Product tokens/runtime cycle is distinct from staged accepted tokens/cycle and does not isolate prebulk output ownership. No trajectory parity across arms is asserted.

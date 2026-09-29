@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_6ebf86be-0dbd-44c3-85b1-7e0f3d34ad1f",
+  "traceId": "b91a2bc2-b4db-47ed-81e9-5c493fd8a0dd",
+  "turnId": "turn_7727c3a3-dd2f-48c3-88e7-942da5552569",
+  "response": "run673 ran to completion, exit 0, with all nine cleanup statuses zero. Every correctness gate passed and the environment is fully restored. The performance result, however, did **not** resolve the confound the run was designed to resolve — I'll lay that out because it changes what the number means.\n\n## What ran\n\nTwo sequential service lifetimes, DP1×TP8 on 8×910B3, renderer workers=4, protocol `warm48 + 3×48` at concurrency 12 / 1024 max-tokens, 1024×64K model length. The arm order was **reversed** relative to run672: cacheon first, cacheoff second. The cache implementation now installs from `serving/input_token_cache.py` via the exact-SHA offline installer.\n\n## Correctness and cleanup — clean\n\n384/384 requests succeeded with exactly 1024 output tokens each; 192 POSTs per arm, and still 192 after stop (no late writes). Each arm produced 128 runtime records (8 ranks × 16 cohorts) with `host_mirror_exact` and FULL target graph, `generated_output_counts == [1024]×12`, and zero oracle target calls after handoff. Cross-arm input token counts match by request index, and staged-output / overshoot / acceptance-window fields are identical across all eight ranks. The cache marker appears exactly once in the cacheon log and zero times in cacheoff, as asserted. `base.py` was restored to its original SHA (`d3f748aa…`), source and script SHA manifests are byte-identical before/after, no service on 8080, zero vllm processes in the container, 8 NPUs idle.\n\nA parallel session already ran the reduce step, writing `evidence/20260929_loop081_bound/run673/summary.json`; its read agrees with mine.\n\n## The performance result does not separate cache from launch drift\n\n| run | order | OFF median | ON median | ON vs OFF |\n|---|---|---|---|---|\n| 672 | OFF→ON | 587.274 | 611.974 | +4.206% |\n| 673 | ON→OFF | 561.172 | 587.496 | +4.691% |\n\nON wins in both orders, so the direction reproduced. But the position-controlled view is the problem:\n\n- **Position 1: the two configs are identical** — OFF 587.274 (run672) vs ON 587.496 (run673), +0.04%.\n- **Position 2 carries the entire gap** — ON 611.974 vs OFF 561.172, 9.06%.\n- **Single-config drift across runs is the same size as the effect**: cacheon spans 4.17%, cacheoff 4.65%, versus a 4.2–4.7% between-arm gap.\n\nSo at n=1 launch per arm, the between-arm difference is indistinguishable from run-to-run drift, and the position-1 pair is positive evidence that the two configs may simply be equivalent at this protocol.\n\nThe mechanism-level data says the same thing. NPU execution is unchanged within error — rank runtime wall 68.93 s (OFF) vs 68.62 s (ON), ms/cycle 57.31/57.97/56.81 vs 57.10/56.66/57.44, cycles 1209/1218/1189 vs 1211/1228/1186. The whole delta lives in the client-minus-rank envelope, and that residual saving is unstable: 6.362 / 2.383 / **−1.570** s in run673 (median 2.383), versus 5.101 / 5.911 / 2.899 (median 5.101) in run672. The third run673 rep has *more* residual with the cache on. There is also no useful-work gain: product tokens/cycle are 40.66/40.35/41.34 (OFF) vs 40.59/40.03/41.44 (ON), while cacheon consistently carries ~12% more overshoot tokens (350/356/372 vs 308/320/331) at equal per-cycle useful tokens.\n\n## What I'd do next\n\nThis is a structural limit, not a sample-size problem: `EXTREME_TEXT_TOKEN_CACHE` is read at service launch, so ON and OFF *always* occupy different service lifetimes and launch drift is confounded by construction. More arms in the same format will keep producing overlapping 4%-magnitude gaps. The decisive move is to make the cache gate readable at runtime (per-request flag or live flag file) so an interleaved A/B/A can run **inside one service lifetime**, removing launch drift entirely and costing no extra restarts. I'd hold the \"4.2% token-cache gain\" out of any KEEP until that measurement exists — the integration and correctness objective of run673 is met, the magnitude claim is not.\n\nOne note on state: I did not touch `HANDOFF.md`/`RESULTS.md` or write a verdict, since that's the review path's call rather than the executor's. Also worth knowing the shared lock is currently held by a separate session running `run_loop081_prefix_hash_run674.sh --preflight-only`, so nothing else of mine is running and I did not start a second job against the same lock.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 29,
+    "inputTokens": 1338219,
+    "outputTokens": 20878,
+    "totalTokens": 1359097,
+    "cacheReadTokens": 1288576,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 14177,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 1359097,
+    "contextUsed": 68373,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_a6fa3346-a1ca-4750-a802-dfc2850a7c2e",
+  "traceId": "1cc0c504-18cd-446c-a630-a1973a59e236",
+  "turnId": "turn_fccff13b-8869-44b5-b5c3-63e4aed83df0",
+  "response": "The gate script ran clean — exit code 0, `\"status\": \"pass\"`.\n\n## What it measured\n\nIt's a CPU-only screen of DeepSeek V4 initial block-hash cost, run over 48 real 32K GSM8K prompts (block_size 2), comparing three paths through the vLLM block hasher:\n\n| Path | Time for 48 requests | vs. reference |\n|---|---|---|\n| Reference (stock hasher) | 3.785 s | — |\n| Cold (memo miss, full compute) | 4.935 s | 1.30× slower |\n| Hot (memo hit) | 0.098 s | ~38× faster |\n\nThe memo holds 48 entries at ~114.3 MB estimated, i.e. roughly 2.4 MB of retained block-hash state per 32K request.\n\n## Correctness gates\n\nAll ten passed: 48 original exact, 48 cold exact, 48 hit exact, concurrent hits, caller mutation isolation, continuation and partial tail exact, salt fallback exact, changed tokens and LRU eviction, oversize bypass, and the complete embeds/MM/LoRA/salt fallback path. The script also aborts if the serving endpoint on `127.0.0.1:8080` is live, so it cannot have been competing with the NPU service for CPU — this ran with the service down.\n\n## What this does and does not establish\n\nThe result is that the memoization is semantically transparent on CPU (all hash outputs bit-identical to the reference across every gate) and that the hit path is cheap enough to be worth carrying. Note the miss path costs ~30% over baseline — first-touch requests pay for the memo, so any net win depends on the repeat rate in the actual cohort, which the 0.9 repeat-rate dataset is arranged to exercise.\n\nPer the evidence discipline in AGENTS.md, this is a `microbenchmark`-class screen of a CPU-side mechanism, not `formal_e2e`. It says nothing about the live removable wall — the header's own scope string says as much (\"not live removable wall\"). Promoting this to a product-level TPS claim would require the matched-E2E comparison against the current baseline with the service up.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 53218,
+    "outputTokens": 1278,
+    "totalTokens": 54496,
+    "cacheReadTokens": 35072,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1083,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 54496,
+    "contextUsed": 19353,
+    "contextWindow": 200000
+  }
+}

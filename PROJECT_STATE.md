@@ -1193,3 +1193,7 @@ Run662 固定地址 target metadata Graph replay 完成 warmup48/measured48、64
 ## Loop081 Run663–665 correction and checkpoint (2026-09-29)
 
 Run663/664 的 all8 cycle0 RoPE mismatch 是 verifier shape false positive：active runtime buffer 按 max_num_batched_tokens 分配，scratch 仅96行；直接 torch.equal 不比较值就返回 false。Run663 TaskCtl 原 fail 结论已更正为 invalid，保留审计记录。Run665 校验前96行并增加 shape guard 后，warmup48/measured48、64个FULL rank-cohort记录的 metadata Graph replay 全周期与独立 eager scratch 的稳定字段一致；第8 cohort306 cycles。Run665的461.799诊断tok/s包含每周期参考计算及同步，不可与 Current 或 Run662比较。正式 Current571.681tok/s、Framework-only数值上限和最大Gap不变。下一步做同期冻结 E2E 对照，决定 Graph 候选是否有产品收益。Zcode 具体调用和验收见 ZCODE_OPERATIONS.md。
+
+## 2026-09-29 — Run673 integrated Current
+
+Current **587.496217 output tok/s**, Run673 frozen repeated E2E: ON587.496 vsOFF561.172 (+4.691%); Run672 opposite order +4.206%. KEEP integrated input-token cache/workers4, exact input-token gates and all8/cleanup/source checks pass. Third Run673 residual regresses1.570s; not universal per-repeat savings. Framework numerical ceiling and maximum removable Gap remain UNKNOWN; remaining ON14.465–15.539s residual includes necessary work. Next: source-derived block2 initial prefix hashes before Core queue, CPU3.785→.098s/48 hypothesis, Run674 guarded same-service OFF/ON/OFF after installed correctness gate. Evidence: `evidence/20260929_loop081_bound/run673/verdict.md`.

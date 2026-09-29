@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_aecb3a9e-7f5b-441b-9fd9-57f054ff5667",
+  "traceId": "62722c3b-87c5-4623-b2ef-7c9731587865",
+  "turnId": "turn_0cb725ed-8329-48dc-906f-9c4584e7fbe1",
+  "response": "Preflight passed cleanly — exit 0, all nine cleanup gates zero, and I independently re-verified the safety-critical claims rather than trusting the exit code.\n\n**What the preflight confirmed**\n\n- **Idle source of truth**: `preflight_stopped.log` shows no live VLLM/task processes in the container, all 8 NPUs idle at ~3.44 GB baseline HBM with zero running processes, and 1.03 TB host `MemAvailable`. The banned-environment guard came back `{\"banned_present\": []}`, so no stale profiler/DAG/observer/token-cache env is leaking in.\n- **Runtime pin**: torch_npu 2.10.0.post4 against CANN 9.1.0, on image `quay.io/ascend/vllm-ascend:v0.26.0rc1`.\n- **Patch round-trip**: `install_input_token_cache.py` installed to `vllm/renderers/base.py` (`d3f748aa…` → `cd05588e…`), compiled without error, then restored. I verified the live file's current hash is back to `d3f748aa…` and the `Foundry bounded input-token cache` marker is absent, and that the framework repo shows no diff for that file. Source and script SHA256 manifests are byte-identical before/after.\n- **Integration check** (`loop081_token_cache_integration_run673.py`): `status: pass` with all eight gates green — 48/48 cold encodings exact, all 192 threaded hits exact, plus caller-mutation isolation, fresh request extras, exact encoding options, LRU eviction, oversize bypass, and complete-offset bypass. Cold 7.42 s → hot 0.15 s over 51 cache entries (~74 MB). Note its own declared scope: CPU renderer encoding and per-request object parity only, not serving performance or model-output parity.\n\n**Two things worth flagging**\n\nThe `pgrep -af vllm` output initially looked like competing tenants, but all five PIDs are zombies (`State: Z`) from a parent that hasn't reaped them — dead, and correctly skipped by the script's own zombie guard. No live process is contending for the NPUs.\n\nThe preflight intentionally did **not** start the service: no health endpoint, no warmup, no `cacheon`/`cacheoff` arms. The actual E2E — the 4×48 formal runs per arm, the 128 rank/cohort rows per arm, and the 192-POST-count gate — is untouched and still pending. If you want that, re-run the same script without `--preflight-only`; it will write to `run673/live` instead.\n\nOne caveat on reuse: `--preflight-only` guards on `${OUT}/preflight` not existing, but the live arm writes to `run673/live`, so a second preflight run is blocked while a live run of the same run ID is still permitted. That's fine for a single shot, but if you want to re-preflight before the live run you'll need to move or remove the existing `preflight` directory.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 10,
+    "inputTokens": 280020,
+    "outputTokens": 3563,
+    "totalTokens": 283583,
+    "cacheReadTokens": 247040,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2135,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 283583,
+    "contextUsed": 35589,
+    "contextWindow": 200000
+  }
+}

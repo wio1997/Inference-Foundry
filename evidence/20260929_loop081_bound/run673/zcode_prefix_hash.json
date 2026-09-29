@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_6cc2be1a-8fbe-4090-8507-68eb98b35106",
+  "traceId": "7bfeb72f-588a-47ac-b3a0-8b8bfa2fc6ba",
+  "turnId": "turn_e998f196-b705-445f-8fdb-26c225838d8f",
+  "response": "Command exited 0 in ~30 s of work (it's CPU-only; the script's own guard confirmed nothing was serving on 127.0.0.1:8080, so this is not contending with a live service).\n\nIt wrote new evidence to `evidence/20260929_loop081_bound/run673/prefix_hash_screen.json` (new file, not yet tracked by git).\n\n**What was measured:** the cost of the KV-cache prefix/block hasher (`get_request_block_hasher` + `sha256`) over the 48 real calibration prompts (~32.8K tokens each after chat template), computed on CPU inside the container. Each configuration ran 3 reps and the code asserts byte-identical output across reps, so the replay check passed.\n\n| hash block size | blocks/request | median wall time, all 48 requests |\n|---|---|---|\n| 1 | 32,851 | 7.53 s |\n| 8 | 4,106 | 1.03 s |\n| 16 | 2,053 | 0.54 s |\n| 32 | 1,026 | 0.30 s |\n\n**The load-bearing detail:** total token count is identical across all four rows, so the ~25× speedup from block 1 to block 32 comes from there being 32× fewer blocks. Per-block cost is nearly flat (229 µs at block 1, 290 µs at block 32), which means this cost is dominated by fixed per-block overhead, not by bytes hashed. A finer hash granularity is therefore paid for almost entirely in block count, not prompt length.\n\n**Scope limits, restated from the script itself:** this is `diagnostic`/`microbenchmark` class evidence. It is CPU-side original text-only initial prefix hashing, it is not live exposed time in the serving path, and it does not establish what the live hash granularity actually is. It also cannot by itself support any product-level performance claim; per the project's evidence rules it's analysis input, not a formal E2E result.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 59305,
+    "outputTokens": 1894,
+    "totalTokens": 61199,
+    "cacheReadTokens": 38272,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1766,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 61199,
+    "contextUsed": 22799,
+    "contextWindow": 200000
+  }
+}

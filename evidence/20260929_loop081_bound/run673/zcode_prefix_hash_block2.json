@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_13f22716-b1cd-4146-b1aa-ba21acadceec",
+  "traceId": "f8236314-1a61-4194-9f71-a09d0645b8b3",
+  "turnId": "turn_bb56d2f2-9c62-4b45-ab82-29a32cfc7333",
+  "response": "Suite ran clean, exit 0. The measurement is reproducible and lands exactly on the trend established by the sibling sweep two minutes earlier.\n\n## What ran\n\n`loop081_prefix_hash_block2_screen.py` is a CPU-only screen of vLLM's request block hasher (`get_request_block_hasher`) over the 48 initial prompts of the 32K calibration dataset. It's guarded: it refuses to run if the service is listening on 8080, and it asserts the three repetitions produce bit-identical block-hash output. Both held — port 8080 is closed, and the assertions passed.\n\n## Result\n\nAt `hash_block_size=2`, one full pass over all 48 initial prefixes took **3.784 / 3.788 / 3.786 s**, median **3.7858 s** (16,425 blocks per request; two requests land at 16,426).\n\nCombined with the `loop081_prefix_hash_screen.py` sweep in the same run directory, the scaling is clean:\n\n| block size | median total | blocks/req | µs per block |\n|---|---|---|---|\n| 1 | 7.5324 s | 32,851 | 229.3 |\n| 2 | 3.7858 s | 16,425 | 230.5 |\n| 8 | 1.0324 s | 4,106 | 251.4 |\n| 16 | 0.5374 s | 2,053 | 261.8 |\n| 32 | 0.2968 s | 1,026 | 289.3 |\n\nThe thing worth taking away: per-block cost is nearly flat (229 → 289 µs) while bytes hashed per block grows roughly 7× from bs=1 to bs=32. So this cost is dominated by a fixed per-block host-side overhead, not by the data being hashed — total time scales ~1/block_size, and the only real lever here is coarsening the block granularity. At the current granularity (1 or 2) a single full-prefix pass over this cohort costs multiple seconds of serial host time.\n\n## Caveats\n\nTreat this as a `diagnostic` measurement, not evidence about live serving. The script's own `scope` field says it plainly: CPU-only original text-only initial prefix hashing, not live exposed time, and the actual live hash granularity is not established by this run — so this does not by itself tell you how much of that multi-second cost is exposed on the critical path in the real service.\n\nOne evidence-completeness gap: `evidence/20260929_loop081_bound/run673/zcode_prefix_hash_block2.json` is **0 bytes**, while the script's own output JSON (`prefix_hash_block2_screen.json`, 4587 bytes) is intact and the sibling's harness capture (`zcode_prefix_hash.json`, 2342 bytes) is non-empty. The measurement itself is fine and the artifact is on disk; it's the harness-side capture for this particular invocation that came up empty, so anything reading that file downstream would see nothing.\n\nThe service is currently down (nothing listening on 8080), which is the state the screen requires.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 145692,
+    "outputTokens": 3788,
+    "totalTokens": 149480,
+    "cacheReadTokens": 118528,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2927,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 149480,
+    "contextUsed": 30681,
+    "contextWindow": 200000
+  }
+}

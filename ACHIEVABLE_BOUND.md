@@ -1018,3 +1018,7 @@ The Framework-only DAG now explicitly includes Host CPU issue, async queue Enque
 ## Framework/Scheduling-only Run656 calibration
 
 Run656 supplies complete same-W₀ **Current outer-stage Event intervals**, not `d` for frozen primitive service. ON all8 1200 cycles: Target/proposer/cycle paired medians47.579/6.372/55.866ms; first8 proposer50.038ms. All arms separately valid, cross-arm W₀ false, so observer timing transfer unproved. `T_best_legal` lower makespan and Product TPS upper bound remain null until ordinary preparation and shape-conditioned primitive service/necessary ready/resource edges are typed. No Hardware C⁺ prerequisite is imposed on this Framework-only branch. Run99 Current571.681tok/s remains the achieved formal point.
+
+## 2026-09-29 — Run673 re-bound; numerical ceiling remains unknown
+
+Current **587.496217 output tok/s**, Run673 frozen repeated E2E: ON587.496 vsOFF561.172 (+4.691%); Run672 opposite order +4.206%. KEEP integrated input-token cache/workers4, exact input-token gates and all8/cleanup/source checks pass. Third Run673 residual regresses1.570s; not universal per-repeat savings. Framework numerical ceiling and maximum removable Gap remain UNKNOWN; remaining ON14.465–15.539s residual includes necessary work. Next: source-derived block2 initial prefix hashes before Core queue, CPU3.785→.098s/48 hypothesis, Run674 guarded same-service OFF/ON/OFF after installed correctness gate. Evidence: `evidence/20260929_loop081_bound/run673/verdict.md`.

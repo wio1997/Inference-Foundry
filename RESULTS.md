@@ -812,3 +812,7 @@ Rank7 same-W₀ instrumented inter-Graph stream47 gaps16.353/14.012ms; exact flo
 ## Run656 diagnostic (not formal TPS)
 
 Guarded full48 OFF_A/ON/OFF_B: client wall80.261/86.904/81.364s and output TPS612.400/565.590/604.099, with cycles1201/1200/1226. All arms individually pass client/Runtime/all8 gates; cross-arm trajectory and 48/48 output-text identity fail. ON 32 packets span9600 rank-cycles with current-stream median Target47.579ms, proposer6.372ms, cycle55.866ms. These diagnostic TPS values do not replace formal Run99 **571.681 tok/s**, quantify observer overhead or establish a Framework-only ceiling. Service stopped, sources restored, all8 idle.
+
+## 2026-09-29 — Run673 formal KEEP
+
+Current **587.496217 output tok/s**, Run673 frozen repeated E2E: ON587.496 vsOFF561.172 (+4.691%); Run672 opposite order +4.206%. KEEP integrated input-token cache/workers4, exact input-token gates and all8/cleanup/source checks pass. Third Run673 residual regresses1.570s; not universal per-repeat savings. Framework numerical ceiling and maximum removable Gap remain UNKNOWN; remaining ON14.465–15.539s residual includes necessary work. Next: source-derived block2 initial prefix hashes before Core queue, CPU3.785→.098s/48 hypothesis, Run674 guarded same-service OFF/ON/OFF after installed correctness gate. Evidence: `evidence/20260929_loop081_bound/run673/verdict.md`.

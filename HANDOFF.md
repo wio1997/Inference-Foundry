@@ -72,17 +72,17 @@
 
 Run669 exact-ID reuse excludes prior-cohort tails from Run602/606. In Run606 the corrected Target Host work is 1.785–2.533 s/cohort, proposal .297–.455 s, and post-proposal→next execute gaps only31–103 ms. Main opportunity is repeated mixed-prefill caused by incremental request readiness. Source finds default renderer_num_workers=1; CPU text-path screen workers1/4/12 reduces median12-request batch from1352.753 to446.931/297.508ms (corrected effective Ascend thinking template) with exact token IDs. This screen applies the serving thinking patch; it excludes complete API validation and Core prefix hashing, and is not Product evidence.
 
-Run670 workers1/4 formal medians551.503/564.335 tok/s; no promotion. Run671/672 exact effective-template token-ID gates passed. Run672 completed cache OFF/ON workers4 formal warm48+3x48: medians587.274/611.974 (+4.206%). All request/all8/restore gates passed. KEEP candidate: residual lower all3 by5.101/5.911/2.899s, but launch drift remains; Current stillRun99. Read evidence/20260929_loop081_bound/run672/verdict.md and summary.json. Integrated serving/input_token_cache.py and scripts/install_input_token_cache.py preserve semantics. Run673 preflight/then reverse-order ON/OFF confirmation is next; inspect real PID/evidence before any launch. Do not repeat Run672 or stop at this verdict. Remaining10.711-13.973s residual is mixed necessary/unknown work, not a removable-gap bound.
+Run672 KEEP candidate; Run673 integrated reverse-order confirmation completed: cache ON median587.496217, OFF561.172170 (+4.691%). All request/all8/semantic/source/cleanup gates passed. **Formal Current promoted to587.496217 tok/s (Run673)**; Run99 is historical. Read evidence/20260929_loop081_bound/run673/verdict.md. Serving recipe: exact-SHA scripts/install_input_token_cache.py, serving/input_token_cache.py, EXTREME_TEXT_TOKEN_CACHE=1 and workers4 plus unchanged Run673 Runtime/serve flags. Source restored after experiment. Run674 preflight is active/next: initial prefix-hash memo, single-service OFF_A/ON/OFF_B each warm48+3formal48, token cache ON throughout. Inspect actual PID and evidence before any launch. CPU hash block2 screen3.785→.098s is NOT Product saving. Numerical Framework ceiling and maximum removable gap remain unknown. Do not stop at Current promotion.
 
 
 As of 2026-09-29，恢复后仍需用实时 Git HEAD / TaskCtl / 机器状态重新确认。
 
 ## Formal Current
 
-- 正式 achieved Current：**571.681 output tok/s**
-- 来源：Run99
+- 正式 achieved Current：**587.496217 output tok/s**
+- 来源：Run673 integrated input-token cache
 - 冻结 workload：48×32K→1024, c12
-- 当前没有新的正式结果替换 Run99
+- Run99 571.681 为历史 Current；Run673 为最新已验证整合结果
 
 ## Current main line
 
