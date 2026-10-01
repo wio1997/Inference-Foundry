@@ -1,3 +1,7 @@
 # GLM-RUN-0034
 
-New16384/.80 runtime workspace probe; priorRun33 cleanup env guard INVALID before signals/model/request. Native child environ strips PYTHONPATH, exact members now checked by live root ancestry or originalRun32 worker installation receipt/containerPID/boot/start. Same native computation/config; no queue replay or fit preclaim.
+Completed 2026-10-01T21:26:33Z: all33 attempts independently audited by real Zcode REDUCE-WORKSPACE34-20261001T2115Z VALID;31 native completed/23118 committed outputs,400/cancel zero credit. Native DP2/TP16/DCP16/EP32, K5/FULL_DECODE_ONLY,budget16384,gmu.80. Lower KV reservation fits this bounded complete package after Run32 runtimeOOM; KV19.37–19.38GiB/activation1.36GiB/startupweights25.72GiB,32 worker install receipts and actual synchronized eager controlshape receipts observed. Native computation unchanged; startup memory is not runtime peak. Exact failed Run32 roots/ancestry or original worker receipt plus containerNSpid/boot/start proved cleanup ownership; no environment-plugin assumption.
+
+Cold81932→2048 TTFT50.226/50.672s; dynamic9088outputs/68.8123915TPS, below Run29 74.5847365 and Run26 88.900785. Four matched prefix tails native hits71680/uncached10252,TTFT6.071–6.185s,TPOT20.124–29.465ms; still above4s target. Cache/MTP/budget/memory differ; no isolated benefit/KEEP/stable capacity. Current None. Curated details in reduction_brief.json; full157837B reduction SHA64f78d8b9db589e9d95be05b1c7e9b6f9e8654b06366d637940f14fce8117394 retained server.
+
+Frozen executed prefix summary has a stale Run25/budget4096 limits label. Actual pinned config/argv/logs establish Run34 16384/.80; raw original retained. Both exact healthy native group members retained for Run35; diagnostic gateways/controllers exited.
