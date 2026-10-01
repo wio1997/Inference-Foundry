@@ -1,0 +1,82 @@
+{
+  "run_id": "GLM-RUN-0041",
+  "at": "2026-10-01T23:43:33.580960+00:00",
+  "measurement_valid": false,
+  "diagnostic_evidence_valid": true,
+  "verdict": "INVALID",
+  "inference_attempts": 0,
+  "model_signals": 0,
+  "new_native_engines": 0,
+  "state": {
+    "run_id": "GLM-RUN-0041",
+    "spec_sha256": "157ca8ca61cd8d960bf1ecb8d88986f89a9cb44eb47082d3d50145a2244ad012",
+    "completed_stages": [],
+    "active_stage": "deploy",
+    "status": "failed",
+    "owner": {
+      "host": "bm-jn-zs-zone1-910C-64G-10-166",
+      "pid": 2951255,
+      "boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025",
+      "start_ticks": "264369788",
+      "state": "R",
+      "pgid": 2951255
+    },
+    "heartbeat_at": "2026-10-01T23:41:58.986260+00:00",
+    "failure_phase": "deploy"
+  },
+  "deploy_phase": {
+    "schema_version": 1,
+    "run_id": "GLM-RUN-0041",
+    "phase": "deploy",
+    "argv": [
+      "/usr/bin/python3",
+      "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/runs/GLM-RUN-0041/deploy.py"
+    ],
+    "cwd": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/runs/GLM-RUN-0041",
+    "status": "failed",
+    "started_at": "2026-10-01T23:41:29.925962+00:00",
+    "finished_at": "2026-10-01T23:41:58.985570+00:00",
+    "exit_code": 1,
+    "signal": null,
+    "timed_out": false,
+    "cancelled": false,
+    "child": {
+      "pid": 2951292,
+      "boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025",
+      "start_ticks": "264369793",
+      "state": "R",
+      "pgid": 2951292
+    },
+    "timeout_s": 2400,
+    "request_counts": null,
+    "artifact_acceptance": "unverified",
+    "error_type": null,
+    "elapsed_s": 29.059268257115036,
+    "log": {
+      "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/runs/GLM-RUN-0041/deploy.log",
+      "bytes": 11039,
+      "sha256": "df582a653f2901fbc37a7111d6ac38dbc5812c4450db85029213c8ac1173ce2c"
+    }
+  },
+  "sourcepins_verified": 25,
+  "last_command": {
+    "at": "2026-10-01T23:41:58.920174+00:00",
+    "event": "command",
+    "node": "166",
+    "argv": [
+      "docker",
+      "exec",
+      "-e",
+      "PYTHONPATH=/data/tiankuan/wio/glm52-pd/deploy/scripts",
+      "glm52-single",
+      "python3",
+      "-c",
+      "from atomic_mq_worker import AtomicMQWorker; from vllm_ascend.worker.worker import NPUWorker; from atomic_mq_bind import install; assert issubclass(AtomicMQWorker,NPUWorker); install()"
+    ],
+    "exit_code": 1,
+    "stdout": "INFO 10-01 23:41:51 [__init__.py:52] Available plugins for group vllm.platform_plugins:\nINFO 10-01 23:41:51 [__init__.py:54] - ascend -> vllm_ascend:register\nINFO 10-01 23:41:51 [__init__.py:57] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.\nINFO 10-01 23:41:51 [__init__.py:237] Platform plugin ascend is activated\nINFO 10-01 23:41:51 [platform.py:70] Breakable CUDAGraph on Ascend is opt-in; using VLLM_USE_BREAKABLE_CUDAGRAPH=0.\n[ERROR] 2026-10-01-23:41:57 (PID:3440545, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception\n",
+    "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/data/tiankuan/wio/glm52-pd/deploy/scripts/atomic_mq_worker.py\", line 1, in <module>\n    from vllm_ascend.worker.worker import NPUWorker\n  File \"/vllm-workspace/vllm-ascend/vllm_ascend/worker/worker.py\", line 71, in <module>\n    from vllm_ascend.device_allocator.camem import CaMemAllocator\n  File \"/vllm-workspace/vllm-ascend/vllm_ascend/device_allocator/camem.py\", line 27, in <module>\n    from acl.rt import memcpy  # type: ignore # noqa: F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^\nModuleNotFoundError: No module named 'acl'\n"
+  },
+  "root_cause": "CPU preflight set PYTHONPATH to task scripts only without sourcing native CANN environment; importing NPUWorker requires acl module path from common environment. Native launch config already sources common env; startup was never executed.",
+  "remedy": "New Run preserves native CANN environment and appends task scripts in preflight and native launch, no oldqueue replay"
+}
