@@ -14,3 +14,7 @@
 完整请求路由先由`scripts/capability_e2e.py`在controller所有权下做有界真实验证，包括P/D本地生成、chat/completion stream/nonstream、n2、native400、混合长度/开放到达、动态drain及cancel后lease和native running/waiting归零。该脚本未证明所有tools/多模态/稀有native分支，也不评估模型精度。失败保留Run并按实际原因裁决；禁止将原型或synthetic fixture当性能KEEP。
 
 Native SSE `delta.reasoning`纳入首输出，和`reasoning_content/content`同样处理。HTTP错误原body以base64留raw，不仅保存hash，便于定位合法拒绝。可选GLM_ROUTER_TRACE_PATH只观测opaque lease/目标代际/header/firstbytes/release，不解析或重写输出；firstbytes不是token级计时。Run1/2早期遗漏已按原SSE离线修订。
+
+## Opt-in coupled DP control metadata prototype
+
+coupled_dp_worker.CoupledMetadataWorker uses the native NPUWorker and installs instance-bound, source-guarded metadata methods from coupled_dp_metadata.py. Only Graph-padding predicates change: graph padding follows the mode synchronized across DP ranks; SP/oproj/embedding/draft requirements stay native. Default worker selection is untouched, vendor/operator/model implementations are not rewritten. The GLM v1 DP prototype fails on unsupported runner, architecture, or source drift. Native global token maximum, communication/masks and draft padding remain required. Run28 uses a versioned plugin directory and explicit --worker-cls;32 worker receipts and bounded mixed/native E2E are pending. CPU contracts are source/dispatcher evidence only, not NPU correctness or speedup.
