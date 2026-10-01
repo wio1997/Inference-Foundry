@@ -22,3 +22,7 @@ Run15 A/B/A与Run16 B/A/B，同config/source/body/sampling/arrivals，全部36�
 35 CPU合同真实zcode --prompt/Result/bridge通过，PREFILL-CONTRACTS-20261001T1244Z/test.stderr5216B SHA62b420cc382e6522a40017f3cc23a1e73cd599568498188ec1f070edc0283a13。29原合同包含真实Run8 SSE错误所有byte boundaries、原样wire、避故障/zero-credit；新增phase/默认count/伪造与旧代际lease/首reasoning与tool/text/malformed observer。CPU不是性能KEEP；原failed Job不覆盖。
 
 下一由证据决定：D4096/gmu.87原生预算与余量候选只重载D，先真实冷长输入及PD/功能/动态测量；保持P现役。达到可运行配置后恢复同口径完整61440长输出与动态可变负载的正式重复/容量研究。源码metadata padding、DP2TP8、PP等仍可选，不固定扫描步骤，不因缺全部复现项停止研究。研究条件见[source_notes](source_notes.md)，恢复入口见[HANDOFF](../../../HANDOFF.md)。
+
+Run17有限D4096/.87验证：旧D128/.92停止、P12保留。新17推理12944输出、native cold81932→2048/capability/PD/dynamic均有效，Dynamic long0 TTFT1.6794s（旧约8s）、medium1.2971s（旧13s）、short1 .8231s（旧6.7s），wave80.0026token/s未证明吞吐提升。D KV3.16–3.17GiB/296902tokens，权重47.2182GiB、activation.35、non-torch2.58、Graph.86；runtime fit仅该有限合同。
+
+Run18在任何推理前reset端点404，driver INVALID，零新输出/原生无失败。Run19新正式4条81932→61440/closed c2执行中，保留现役缓存+原生counter观测；两副本前缀预热有效。新增可选raw wire audit及有界离线usage/finish/DONE/全部attempt复验；49 CPU合同通过，raw/observer成本在E2E内。DP warmup重复prefix原有索引/计数缺口已修正且DP1不变。没有正式重复KEEP、stable capacity或全可行域界。

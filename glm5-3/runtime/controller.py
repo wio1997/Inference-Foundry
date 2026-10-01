@@ -15,6 +15,11 @@ def work(path):
     state=json.loads(state_path.read_text()) if state_path.exists() else {'run_id':spec['run_id'],'spec_sha256':digest,'completed_stages':[],'active_stage':None,'status':'starting'}
     if state['spec_sha256']!=digest: raise ValueError('immutable spec changed')
     if state['status'] in ('completed','failed','cancelled','needs_reconciliation'): return 83
+    # Reject malformed/falsely pinned new specs before publishing a running owner.
+    for stage in spec['stages']:
+        if not stage['id'].isalnum():raise ValueError('invalid stage id')
+        for source in stage.get('sources',[]):
+            if hashlib.sha256(Path(source['path']).read_bytes()).hexdigest()!=source['sha256']:raise ValueError('source identity changed')
     state['owner']={'host':socket.gethostname(),**process_identity(os.getpid())}
     state['status']='running'; last=0; cancelled=[]
     for sig in (signal.SIGTERM,signal.SIGINT): signal.signal(sig,lambda signum,_frame:cancelled.append(signum))
@@ -34,9 +39,11 @@ def work(path):
     for stage in spec['stages']:
         if stage['id'] in state['completed_stages']:continue
         if cancelled:state['status']='cancelled';beat(True);return 130
-        if not stage['id'].isalnum():raise ValueError('invalid stage id')
-        for source in stage.get('sources',[]):
-            if hashlib.sha256(Path(source['path']).read_bytes()).hexdigest()!=source['sha256']:raise ValueError('source identity changed')
+        try:
+            for source in stage.get('sources',[]):
+                if hashlib.sha256(Path(source['path']).read_bytes()).hexdigest()!=source['sha256']:raise ValueError('source identity changed')
+        except (OSError,ValueError) as error:
+            state['status']='failed';state['failure_phase']=stage['id'];state['failure_kind']='source_validation';state['error']=str(error);beat(True);return 1
         state['active_stage']=stage['id'];beat(True)
         try:
             run_phase(stage['argv'],phase=stage['id'],run_id=spec['run_id'],cwd=stage.get('cwd',str(root)),record_path=root/(stage['id']+'.phase.json'),log_path=root/(stage['id']+'.log'),timeout_s=stage.get('timeout_s'),heartbeat=beat,cancel_requested=lambda:bool(cancelled),echo=False)

@@ -546,7 +546,7 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
         _plens = [len(_tok.encode(x, add_special_tokens=False)) for x in _prefix]
         _valid = len(_full) == args.data_num and all(n == args.input_len for n in _lens)
         _valid = _valid and all(n == int(args.input_len * repeat_rate) for n in _plens)
-        _valid = _valid and all(x.startswith(_prefix[i % args.prefix_num]) for i,x in enumerate(_full))
+        _valid = _valid and all(x.startswith(_prefix[(i % args.prefix_num) * args.dp]) for i,x in enumerate(_full))
         _evidence = dict(raw_prompt_token_lengths=_lens, warmup_prefix_token_lengths=_plens,
                          prefix_text_matches=True if _valid else False, valid=_valid,
                          input_semantics="raw prompt; chat template tokens are additional")
@@ -602,7 +602,7 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
     warmup_perf, warmup_log_dir = parse_aisbench_log(
         "aisbench.log", str(args.request_rate), args.npu_num
     )
-    validate_phase_details(warmup_log_dir, "warmup", args.prefix_num, 1)
+    validate_phase_details(warmup_log_dir, "warmup", args.dp * args.prefix_num, 1)
     archive_log("aisbench.log", warmup_log_dir)
 
     warmup_row = build_result_row(

@@ -21,6 +21,8 @@ def create_app(config=None,transport=None,policy=None):
     import httpx
     from fastapi import FastAPI,Request
     from fastapi.responses import JSONResponse,StreamingResponse
+    audit_dir=os.environ.get('GLM_ROUTER_AUDIT_DIR')
+    if audit_dir:os.makedirs(audit_dir,exist_ok=True)
     replicas=config if config is not None else json.loads(os.environ['GLM_REPLICAS'])
     placement=Placement(replicas,policy or os.environ.get("GLM_PLACEMENT_POLICY","active_count"))
     trace_fd=None
@@ -97,9 +99,23 @@ def create_app(config=None,transport=None,policy=None):
             await close();raise
         async def stream():
             failure=response.status_code>=500;first=True;output_observed=False
-            observe=NativeSSEObserver() if response.headers.get("content-type","").split(";")[0].strip().lower()=="text/event-stream" and response.headers.get("content-encoding","identity")=="identity" else None
+            observe=NativeSSEObserver(collect_contract=bool(audit_dir)) if response.headers.get("content-type","").split(";")[0].strip().lower()=="text/event-stream" and response.headers.get("content-encoding","identity")=="identity" else None
+            audit_file=None;audit_path=None;audit_error=None;wire_bytes=0;wire_hash=hashlib.sha256() if audit_dir else None
+            if audit_dir:
+                audit_path=os.path.join(audit_dir,lease.lease_id+'.sse')
+                try:audit_file=open(audit_path,'xb')
+                except OSError as error:audit_error=str(error)
             try:
                 async for block in response.aiter_raw():
+                    if wire_hash is not None:
+                        wire_hash.update(block);wire_bytes+=len(block)
+                        if audit_file is not None:
+                            try:audit_file.write(block)
+                            except OSError as error:
+                                audit_error=str(error)
+                                try:audit_file.close()
+                                except OSError:pass
+                                audit_file=None
                     if first and block:trace('upstream_first_bytes',lease,bytes=len(block));first=False
                     if observe is not None and observe.feed(block):
                         failure=True
@@ -110,7 +126,14 @@ def create_app(config=None,transport=None,policy=None):
                         trace('upstream_first_output',lease,prefill_transitioned=transitioned)
                     yield block
             except httpx.HTTPError:failure=True;raise
-            finally:await close(failure)
+            finally:
+                if audit_file is not None:
+                    try:audit_file.close()
+                    except OSError as error:audit_error=str(error)
+                if audit_dir:
+                    contract=observe.contract() if observe is not None else {'unknown':True}
+                    trace('upstream_stream_contract',lease,contract=contract,wire_path=audit_path,wire_bytes=wire_bytes,wire_sha256=wire_hash.hexdigest(),audit_error=audit_error)
+                await close(failure)
         # Preserve duplicate end-to-end headers and raw encoding unchanged.
         class LeasedResponse(StreamingResponse):
             async def __call__(self,scope,receive,send):

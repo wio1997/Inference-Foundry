@@ -1,6 +1,6 @@
 # GLM-RUN-0003 — 并发2完整E2E
 
-4/4请求有效，81932实际输入→61440输出，temperature0/seed20260930，90%公共前缀；prefix warmup1/1、full4/4的真实CLI退出均0。原生P/D重启后预热；引擎/计算未改。
+4/4请求有效，81932实际输入→61440输出，temperature0、dataset seed20260930（请求未显式设置seed），90%公共前缀；prefix warmup1/1、full4/4的真实CLI退出均0。原生P/D重启后预热；引擎/计算未改。
 
 TTFT P50 6.0588s（<4s FAIL）、P75 7.2498s、P90 9.3837s；TPOT P50 22.9ms（<18ms FAIL）、P90 24.6ms。四样本P99不作稳定尾部证书。有效输出245760token，完整full CLI阶段 3044.601s，80.71994TPS（含初始化/归约开销，非server瞬时TPS或每请求平均TPS）。
 
