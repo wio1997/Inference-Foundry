@@ -25,4 +25,8 @@ Run15 A/B/A与Run16 B/A/B，同config/source/body/sampling/arrivals，全部36�
 
 Run17有限D4096/.87验证：旧D128/.92停止、P12保留。新17推理12944输出、native cold81932→2048/capability/PD/dynamic均有效，Dynamic long0 TTFT1.6794s（旧约8s）、medium1.2971s（旧13s）、short1 .8231s（旧6.7s），wave80.0026token/s未证明吞吐提升。D KV3.16–3.17GiB/296902tokens，权重47.2182GiB、activation.35、non-torch2.58、Graph.86；runtime fit仅该有限合同。
 
-Run18在任何推理前reset端点404，driver INVALID，零新输出/原生无失败。Run19新正式4条81932→61440/closed c2执行中，保留现役缓存+原生counter观测；两副本前缀预热有效。新增可选raw wire audit及有界离线usage/finish/DONE/全部attempt复验；49 CPU合同通过，raw/observer成本在E2E内。DP warmup重复prefix原有索引/计数缺口已修正且DP1不变。没有正式重复KEEP、stable capacity或全可行域界。
+Run18在任何推理前reset端点404，driver INVALID，零新输出/原生无失败。Run19新正式4条81932→61440/closed c2已终态INVALID，保留现役缓存+原生counter观测；两副本前缀预热有效。新增可选raw wire audit及有界离线usage/finish/DONE/全部attempt复验；49 CPU合同通过，raw/observer成本在E2E内。DP warmup重复prefix原有索引/计数缺口已修正且DP1不变。没有正式重复KEEP、stable capacity或全可行域界。
+
+Run19新增功能证据：四native usage/DONE原流均结束且无OOM，三条严格length通过，一D条无tools仍解析出316479字符函数名和321629B末帧/tool_calls。bounded observer unknown、strict验收失败；三条仅部分184320输出，全部generated245760不成为完整有效TPS。原合同不放宽；AISBench CLI0/success4不能替代native功能，Current不升。Run3旧证据没有该原wire，新增合同下不得事后认证；保留历史计数/SLA口径。已terminal/dead、lease0/native idle/gateway退出。
+
+CPU原型glm47_contract保持原生工具能力，缺tools或choice none启用native skip_tool_parsing保留文本，避免未请求工具识别/缓冲；提供tools走原native，非vendor patch/模型算子变更。真实tokenizer复现stock无tools误识别与tools-none文本丢失，候选流/非流/ID与字符分片及316k文本均通过；auto工具JSON仍正确。Run20仅D重载K5+插件，P12 K3保留；真实API/PD/动态成本验证进行中，组合部署差异不伪装isolated gain。K3固定601.659s窗口P/D第三接受.729/.962支持研究深度，但新增草稿/验证/通信成本和动态低acceptance效应未知，无容量界/KEEP。

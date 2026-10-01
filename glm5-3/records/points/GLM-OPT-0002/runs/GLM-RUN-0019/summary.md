@@ -1,3 +1,5 @@
-# GLM-RUN-0019
+# GLM-RUN-0019 — INVALID
 
-RUNNING full native4x81932→61440 closed concurrency2. Both resident P12/D17 exact owners retained, Graph/MTP3/4096/.87, no reload. Two73740→1 prefix requests covered P/D and passed native raw-wire replay, usage/finish/DONE/lease receipts before full phase. cache_mode resident_observed after Run18 endpoint404; actual counters retained, no cold/reset normalization claim. Dataset seed20260930, request seed omitted in unchanged AISBench generation_kwargs; default native engine1024. Full output, TPS/SLO and terminal state pending; no KEEP/stable capacity claim.
+Four full81932→61440 requests executed and ended, raw native usage totals245760; three strict receipts pass, D first request fails. Native unrequested tool parsing creates316479-character function name,321629-byte terminal tool_calls frame;64KiB observer correctly marks unknown. Original strict policy unchanged. AISBench4 success flags/CLI0 are insufficient; no formal TPS gain or Current promotion.
+
+Native budgets4096/.87 fit this observed resident-cache workload without OOM. Full CLI2620.289s is retained only as rejected-run timing. Router stopped, leases released, native P/D running/waiting0, controller failed/dead. Raw and all attempt hashes are retained in reduction/artifact index. Native K3 windows show high acceptance; next investigate request-specific parser semantics and native draft depth cost.
