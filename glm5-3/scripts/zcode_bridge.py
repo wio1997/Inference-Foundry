@@ -132,7 +132,9 @@ def validate_bridge(job, result_path):
 
 def prompt_for(job):
     if job["execution"]["mode"] == "command":
-        return job["execution"]["command"]
+        return ("使用Bash原样执行以下完整shell命令一次。命令脚本负责写Result，禁止改写产物、"
+                "补充字段或另做任务；仅报告命令退出状态。这是shell命令，不是Zcode斜杠命令。\n"
+                + job["execution"]["command"])
     return (
         "执行以下Job。在现场读取输入，大日志/trace留文件；遵守scope和现有controller，"
         "不要复制原始输出到回复。将紧凑JSON原子写到result.path。"

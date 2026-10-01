@@ -99,5 +99,12 @@ sys.exit(7 if scenario == "outer_failure" else 0)
         self.assertEqual(envelope["result"]["execution"]["acceptance"], "unverified")
 
 
+    def test_command_prompt_is_not_cli_slash_command(self):
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('bridge_under_test',BRIDGE);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        command='/usr/bin/python3 /absolute/script.py /absolute/job.json'
+        prompt=module.prompt_for({'execution':{'mode':'command','command':command}})
+        self.assertFalse(prompt.startswith('/'));self.assertTrue(prompt.endswith(command));self.assertIn('禁止改写',prompt)
+
 if __name__ == "__main__":
     unittest.main()

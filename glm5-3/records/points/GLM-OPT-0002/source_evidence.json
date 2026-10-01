@@ -1,0 +1,335 @@
+{
+  "kind": "source_and_header_evidence",
+  "source_job": "PARALLEL-SOURCE-20261001T0953Z",
+  "source_result": {
+    "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/PARALLEL-SOURCE-20261001T0953Z/result.json",
+    "bytes": 12227,
+    "sha256": "2d9b648168d4e751480e1c78e0d87d91e26e089855591f35c1a6ced05685c9ed"
+  },
+  "source_findings": [
+    {
+      "kind": "fact",
+      "text": "MoE EP group size = data_parallel_size * prefill_context_parallel_size * tensor_parallel_size (vLLM core; Ascend mc2 group identical). DP2xTP8xPCP1 -> EP world 16.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "parallel_state.py EP group rank reshape (both trees)",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-ps-core",
+        "ev-ps-ascend"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "FusedMoEParallelConfig.make: use_ep = (dp*pcp*tp>1 and enable_expert_parallel); then ep_size = flatten_tp = dp*pcp*tp and returned tp_size=1 ('each device owns a set of experts fully; there is no tensor parallel'). Experts split across DPxTP, not per-DP duplicated.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "fused_moe/config.py make()/flatten_tp_across_dp_and_pcp",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-moe-config"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "local experts = n_physical_experts // ep_size; even split, remainder to lowest ep_rank, start=ep_rank*base+min(ep_rank,rem). Ascend EP rank layout: ep_rank//tp_size = dp-like rank, ep_rank%tp_size = tp rank.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "deepseek_v2 MoE init; expert_map_manager; ascend eplb_utils",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-dsv2",
+        "ev-expmap",
+        "ev-eplb"
+      ]
+    },
+    {
+      "kind": "inference",
+      "text": "256 routed experts: DP1xTP16 and DP2xTP8 both give ep_size=16 -> 16 experts/rank. Per-rank expert memory is unchanged and DP does not replicate experts, so checkpoint/8 arithmetic alone does not imply expert OOM (full memory accounting still needed).",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "fused_moe/config.py + expert counts + config n_routed_experts=256",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-moe-config",
+        "ev-dsv2",
+        "ev-eplb",
+        "ev-config"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "GLM-5.2 = class GlmMoeDsaForCausalLM(DeepseekV2ForCausalLM): pass; model_type glm_moe_dsa only forces fp32 router. DSv2 DP/TP/EP/PP semantics apply as-is.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "deepseek_v2.py class def + router dtype; config.json",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-dsv2",
+        "ev-config"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "VLLM_PP_LAYER_PARTITION (str|None) = comma-separated per-stage layer COUNTS; get_pp_indices requires len==pp_size and sum==num_hidden_layers; else even split, remainder to non-last stages; start_layer=sum(partitions[:pp_rank]).",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "envs.py; distributed/utils.py get_pp_indices",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-pputils"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "make_empty_intermediate_tensors for this model has exactly two fields: 'hidden_states','residual' (torch.zeros(batch,hidden_size)). No topk/aux state crosses PP stages.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "deepseek_v2.py model init; models/utils.py factory",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-dsv2",
+        "ev-mutils"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "One int32 topk_indices_buffer [max_num_batched_tokens,index_topk] per rank when is_v32, shared to all local layers; a skip_topk layer skips its indexer and reuses 'the topk_tokens buffer written by a previous layer in the same pass'.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "deepseek_v2.py buffer alloc; layers/mla.py skip_topk",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-dsv2",
+        "ev-mla"
+      ]
+    },
+    {
+      "kind": "inference",
+      "text": "freq=4/offset=3 -> L38 full(writes buffer), L39 skip/shared. Default PP 39/39 starts stage1 with a skip layer whose source full layer is in stage0; since intermediate tensors carry no topk buffer, the source does not transport it across PP -> default-boundary PP correctness unproven; PP runnability not claimed.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "deepseek_v2.py skip pattern; mla.py; models/utils.py; config freq/offset/78 layers",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-dsv2",
+        "ev-mla",
+        "ev-mutils",
+        "ev-config"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "MTP: start layer idx=78, num_mtp_layers=1; draft runs in the same workers. Draft TP must be 1 or target TP; create_draft_parallel_config copies pp/tp but omits data_parallel_size, while the proposer reads dp_rank from the target config (other spec methods copy the target config verbatim).",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "speculative.py; llm_base_proposer dp_rank; deepseek_mtp idx",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-spec",
+        "ev-proposer",
+        "ev-mtp-core"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "DP sync/idle: engine runs a dummy batch when a rank has no local unfinished requests but the DP all-reduce says a peer does; global-unfinished via sync_dp_state (SUM all-reduce) resynced every 32 steps; the draft pads batches per step via coordinate_batch_across_dp.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "core.py run_busy_loop; llm_engine; config/parallel; dp_utils; proposer padding",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-core",
+        "ev-llmengine",
+        "ev-dpparallel",
+        "ev-dputils",
+        "ev-proposer"
+      ]
+    },
+    {
+      "kind": "fact",
+      "text": "Source support limits: draft TP in {1,target TP}; MTP index sharing needs index_share_for_mtp_iteration and toggles skip_topk only in the V1 proposer; Ascend MTP sets has_own_lm_head=False if model.layers.{n}.shared_head.head.weight is absent.",
+      "scope": {
+        "window": "166 glm52-single source; vLLM 0.27.1 / vllm-ascend 0.27.1rc1",
+        "filter": "speculative.py; llm_base_proposer; vllm-ascend deepseek_mtp.py",
+        "rank_coverage": "source-only; no runtime config read"
+      },
+      "evidence_ids": [
+        "ev-spec",
+        "ev-proposer",
+        "ev-mtp-ascend"
+      ]
+    }
+  ],
+  "source_evidence": [
+    {
+      "id": "ev-config",
+      "path": "/data/tiankuan/wio/GLM-5.2-w8a8/config.json",
+      "sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "bytes": 3699,
+      "locator": "num_hidden_layers/n_routed_experts/num_experts_per_tok/index_topk*/ep_size"
+    },
+    {
+      "id": "ev-dsv2",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/model_executor/models/deepseek_v2.py",
+      "sha256": "bcbd9cde689ffe3f5f271aff3a5e01351b05a68371192cac9d65cb5ffc6b4ba9",
+      "bytes": 75793,
+      "locator": "L121-130,L285-334,L1091-1119,L1379-1416,L1936"
+    },
+    {
+      "id": "ev-mla",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/model_executor/layers/mla.py",
+      "sha256": "ccdbafa998b1a7f7db47527df85efdfa4bc3027f6ec769fd4c30b3aee963a81b",
+      "bytes": 8982,
+      "locator": "L94-100,L205"
+    },
+    {
+      "id": "ev-mutils",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/model_executor/models/utils.py",
+      "sha256": "f2919647e35f73a8d540e8e5db0fecf2000bb52a6107c39e032a8ddd830e43a1",
+      "bytes": 38434,
+      "locator": "L866-880"
+    },
+    {
+      "id": "ev-ps-core",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/distributed/parallel_state.py",
+      "sha256": "bbad6969765f3c5eb48ec1b42c458464ba58841c26244a6d42f293ec199bcbe2",
+      "bytes": 86864,
+      "locator": "L1821,L1918-1944"
+    },
+    {
+      "id": "ev-ps-ascend",
+      "uri": "docker://glm52-single/vllm-workspace/vllm-ascend/vllm_ascend/distributed/parallel_state.py",
+      "sha256": "40199b8d1be13c6665a3a31c4b0b4cfbe1996d0e16a8a8da8d8a5aec6930f4be",
+      "bytes": 9402,
+      "locator": "L75-88"
+    },
+    {
+      "id": "ev-moe-config",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/model_executor/layers/fused_moe/config.py",
+      "sha256": "c4cfa8a9775144058d581162aaed9bc4441c07fcb1f51e8eb1545e13cc08f6ad",
+      "bytes": 50070,
+      "locator": "L1197-1243"
+    },
+    {
+      "id": "ev-expmap",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/model_executor/layers/fused_moe/expert_map_manager.py",
+      "sha256": "308c00f63fcb6f44518ec3a56d8f902c7bba75928c2e3aea30fbe1f3f473973b",
+      "bytes": 18886,
+      "locator": "L66-84"
+    },
+    {
+      "id": "ev-eplb",
+      "uri": "docker://glm52-single/vllm-workspace/vllm-ascend/vllm_ascend/eplb/core/eplb_utils.py",
+      "sha256": "1fcf2a5d8ee56366d460ccd87661176822745f2d86e295a6438c0f8651d2392e",
+      "bytes": 6108,
+      "locator": "L119-135"
+    },
+    {
+      "id": "ev-pputils",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/distributed/utils.py",
+      "sha256": "792146b357139e705064a68d3b66858de8a0baaca4dc7db1232fa217d45db231",
+      "bytes": 27341,
+      "locator": "L127-172 get_pp_indices (+envs.py L50,L854)"
+    },
+    {
+      "id": "ev-spec",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/config/speculative.py",
+      "sha256": "83cbb26932b9ec0633753b58e8fe666f55c779580b32fba750cf569cde67c40c",
+      "bytes": 64455,
+      "locator": "L780,794,821,L1197-1231,L1252-1270"
+    },
+    {
+      "id": "ev-proposer",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/v1/spec_decode/llm_base_proposer.py",
+      "sha256": "aab141f140be6ee7e3a64ce9d866fc139db9d86477c295970f85b311ee00c3f0",
+      "bytes": 85160,
+      "locator": "L82-87,L566-575,L1602-1612,L1806-1837"
+    },
+    {
+      "id": "ev-core",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/v1/engine/core.py",
+      "sha256": "6fdd067f54e5d42c57ff413e292685f5bdf6f343498d85c9262567f1eb746916",
+      "bytes": 102110,
+      "locator": "L2118-2145,L2171-2181"
+    },
+    {
+      "id": "ev-llmengine",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/v1/engine/llm_engine.py",
+      "sha256": "46caab7b8a09d74321ef7a64683e8019b2187810725c80a15298cf9f51f1df03",
+      "bytes": 17882,
+      "locator": "L192-205,L296-299"
+    },
+    {
+      "id": "ev-dpparallel",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/config/parallel.py",
+      "sha256": "5ee765f980d8e371314caa38a27c5a21ab90f3865e697707d48e608ca4d17f3d",
+      "bytes": 44311,
+      "locator": "L727-763"
+    },
+    {
+      "id": "ev-dputils",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/v1/worker/dp_utils.py",
+      "sha256": "2ba84bbf92a25e756576918bfb215c1fb387b006899885d811bdb2f774e843a9",
+      "bytes": 8602,
+      "locator": "L164-235"
+    },
+    {
+      "id": "ev-mtp-core",
+      "uri": "docker://glm52-single/vllm-workspace/vllm/vllm/model_executor/models/deepseek_mtp.py",
+      "sha256": "83a52a68c0e2c3cd032cf0aff2c58570d87cf094f41f3a031208d1a74f6a2ede",
+      "bytes": 22241,
+      "locator": "L138-145"
+    },
+    {
+      "id": "ev-mtp-ascend",
+      "uri": "docker://glm52-single/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_mtp.py",
+      "sha256": "9905fd468d612e579a120be8c080460b49a79561b34a38ded6fbf0954212667f",
+      "bytes": 3670,
+      "locator": "L36-54"
+    },
+    {
+      "id": "ev-evidence",
+      "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/PARALLEL-SOURCE-20261001T0953Z/evidence.md",
+      "sha256": "bab9db3f256fede7e75232bb046f453f6a32e12d503fa2b1065790abd2c47d6c",
+      "bytes": 14771,
+      "locator": "raw docker exec commands + snippets + sha256/bytes"
+    }
+  ],
+  "inventory": {
+    "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/WEIGHT-HEADERS-20261001T1010Z/inventory.json",
+    "bytes": 66091,
+    "sha256": "79f3ec1f0cce083a5236675dc5bd53382ea433ddd5777827b1e9633a51e7b8f4",
+    "shards": 182,
+    "tensors": 176588,
+    "tensor_bytes": 773854402152,
+    "category_bytes": {
+      "norms_and_other": 79355904,
+      "dense_mlp_and_router": 916220928,
+      "attention_and_indexer": 14251231848,
+      "routed_experts": 726348595200,
+      "shared_experts": 2837299200,
+      "mtp_other": 4384849920,
+      "mtp_routed_experts": 19327352832,
+      "embedding_and_output_head": 5709496320
+    },
+    "limits": [
+      "does not read or hash tensor payloads",
+      "storage dtypes/padding/loading transforms are not runtime device allocations",
+      "GLM-specific MTP classification uses layer index >=78",
+      "no TP/EP/DP replication or activation/KV/graph fit inferred"
+    ]
+  },
+  "verdict": "INCONCLUSIVE; no runtime topology change or model request"
+}

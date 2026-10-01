@@ -42,7 +42,7 @@ python3 glm5-3/scripts/simulate_zcode_handoff.py --output-dir /absolute/new/simu
 
 Job≠性能Run，VALID≠性能KEEP，running≠completed；next_check_at不是已建立的定时任务。subagent按[同一协议](ZCODE_PROTOCOL.md)交接，不默认复制整个主会话；共享现场仍由唯一controller排程。
 
-以实际Git、HANDOFF和真实Run为准。模拟与测试不填入GLM性能基线，不继承旧DeepSeek Current或7月GLM profile。当前活动点GLM-OPT-0001仍为PLANNED，尚无现役服务器基线。
+以实际Git、HANDOFF和真实Run为准。模拟与测试不填入GLM性能基线，不继承旧DeepSeek Current或7月GLM profile。2026-10-01已自主恢复现役服务并形成真实Run；当前点/执行以HANDOFF、points.jsonl和服务器state.json为准，不继承本段历史演练时的PLANNED状态。
 
 ## 5. 已完成的本地演练
 

@@ -39,7 +39,7 @@ Job字段：
 | execution | mode=task或command、work_type=analysis/command/persistent、cwd、prompt/完整command、CLI timeout秒 |
 | result | 绝对path和max_bytes；大小上限可按问题调整，限制交接输出，不限制探索 |
 
-task模式将Job与返回格式交给DeepSeek，让其生成指定result.json。command模式的prompt只是一条完整命令，适用于已经会写result.json的现场脚本；其他命令用task模式组织。work_type独立描述工作性质：analysis为归约/离线调查/文件修改，command为需验收内层退出的现场执行，persistent为驻留服务/监控；task模式启动服务/测试不能伪装成analysis。只使用已知`--prompt`参数，不臆造CLI的JSON/模型选择选项。
+task模式将Job与返回格式交给DeepSeek，让其生成指定result.json。command模式保持完整shell命令，桥接器在prompt前加入一次Bash执行且禁止改写脚本Result的说明，避免绝对路径被CLI误判为斜杠命令；适用于已经会写result.json的现场脚本。其他任务用task模式组织。work_type独立描述工作性质：analysis为归约/离线调查/文件修改，command为需验收内层退出的现场执行，persistent为驻留服务/监控；task模式启动服务/测试不能伪装成analysis。只使用已知`--prompt`参数，不臆造CLI的JSON/模型选择选项。
 
 ```text
 python3 glm5-3/scripts/zcode_bridge.py run /absolute/path/job.json
