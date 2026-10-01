@@ -1,0 +1,18 @@
+import json,pathlib,hashlib
+from vllm.engine.arg_utils import EngineArgs
+from vllm_ascend.ascend_config import get_ascend_config
+rows=[]
+for tp,pcp,dcp in [(16,2,32),(32,1,32)]:
+ for rank in [0,1]:
+  a=EngineArgs(worker_cls="auto",model="/data/tiankuan/wio/GLM-5.2-w8a8",trust_remote_code=True,quantization="ascend",seed=1024,max_model_len=144384,max_num_seqs=8,max_num_batched_tokens=16384,gpu_memory_utilization=.87,tensor_parallel_size=tp,decode_context_parallel_size=dcp,prefill_context_parallel_size=pcp,pipeline_parallel_size=1,data_parallel_size=1,data_parallel_size_local=1,data_parallel_external_lb=False,data_parallel_address="172.16.10.166",data_parallel_rpc_port=32620,data_parallel_backend="mp",distributed_executor_backend="mp",enable_expert_parallel=True,nnodes=2,node_rank=rank,master_addr="172.16.10.166",master_port=32630,enable_prefix_caching=True,enable_chunked_prefill=True,compilation_config={"cudagraph_mode":"FULL_DECODE_ONLY"},speculative_config={"num_speculative_tokens":5,"method":"deepseek_mtp","enforce_eager":True},additional_config={"multistream_overlap_shared_expert":True,"enable_dsa_cp":False,"enable_fused_mc2":0,"mc2_comm_alg":"hierarchy"})
+  try:c=a.create_engine_config()
+  except Exception as exc:
+   rows.append({"node_rank":rank,"tp":tp,"pcp":pcp,"dcp":dcp,"accepted":False,"native_error_type":type(exc).__name__,"native_error":str(exc)})
+   continue
+  pc=c.parallel_config
+  # Config-only: no LLM/AsyncLLM/EngineCore/worker constructed.
+  rows.append({"accepted":True,"node_rank":rank,"tp":tp,"pcp":pcp,"dcp":dcp,"worker_cls":pc.worker_cls,"parallel_hash":pc.compute_hash(),"world":pc.world_size_across_dp,"local_world":pc.local_world_size,"model_architectures":c.model_config.architectures,"max_model_len":c.model_config.max_model_len,"max_num_batched_tokens":c.scheduler_config.max_num_batched_tokens,"max_num_seqs":c.scheduler_config.max_num_seqs,"kv_transfer_config":None if c.kv_transfer_config is None else str(c.kv_transfer_config),"additional_config":c.additional_config,"num_speculative_tokens":c.speculative_config.num_speculative_tokens,"graph_mode":str(c.compilation_config.cudagraph_mode)})
+accepted=[row for row in rows if row.get("accepted",False)]
+assert len(rows)==4 and len(accepted)==2 and all(row["world"]==32 and row["local_world"]==16 and row["kv_transfer_config"] is None for row in accepted)
+assert all("PCP (Prefill Context Parallelism) is not supported by vLLM Ascend" in row["native_error"] for row in rows if not row["accepted"])
+print(json.dumps({"accepted_config_only":True,"configurations":rows,"model_requests":0,"weights_loaded":0,"EngineCore_or_worker_created":False,"limitations":["Native config acceptance not HCCL/Graph/GLM fit proof","DP1 single scheduler/API group; remote node may require explicit headless CLI","Operator/native automatic defaults retained"]}))
