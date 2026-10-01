@@ -26,6 +26,8 @@ flowchart LR
 
 Job字段：
 
+本地mock演练Job增加`simulation:true`，Result也必须显式标记；bridge将后端记为simulated。该标记用于区分证据身份，不是禁止网络/服务操作的sandbox；[专用模拟器](../scripts/simulate_zcode_handoff.py)仅运行固定合成输入和mock CLI。
+
 | 字段 | 含义 |
 |---|---|
 | schema_version / job_id / parent | 协议版本、唯一工作单、优化点/Run引用 |
@@ -84,3 +86,5 @@ Result最小字段：
 ## 5. 当前验证
 
 `python3 -m unittest discover -s glm5-3/tests -p 'test_zcode_bridge.py' -v`的3个测试通过，含9类失败子用例：原始CLI输出留文件、缺失/错ID/过大Result、内层失败或未知退出、外层失败、超时、running缺进程身份均按协议处理；重复工作目录拒绝覆盖，format-only不冒充CLI执行核验。仅使用模拟CLI，未调用DeepSeek、现役服务器或性能实验。
+
+另已执行[新对话模拟交接](START_NEW_CHAT.md)，明确返回现场缺项与Current=unknown。实际环境接入后需核验CLI版本/后端与真实只读Job，不能用mock演练代替现场联调。

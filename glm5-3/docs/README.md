@@ -12,6 +12,7 @@
 | 原12份MD职责与冲突 | [迁移映射](research/ORIGINAL_MD_MIGRATION_MAP.md) |
 | high/medium、额度与按需升级 | [模型策略](research/AGENT_MODEL_STRATEGY.md) |
 | Zcode/subagent格式、服务/监控与大日志归约 | [Job/Result协议与桥接工具](ZCODE_PROTOCOL.md) |
+| 开始执行、新对话交接与本地模拟 | [启动指令与演练](START_NEW_CHAT.md) |
 | 全部讨论的背景 | [完整方案快照](research/GLM5_3_W8A8_PD_PLAN.md) |
 | 固定来源与hash | [Source audit](research/SOURCE_AUDIT.json) |
 

@@ -52,6 +52,7 @@ def file_sha256(path):
 
 def validate_job(job):
     require(type(job.get("schema_version")) is int and job["schema_version"] == 1, "schema_version must be 1")
+    require("simulation" not in job or type(job["simulation"]) is bool, "simulation must be boolean")
     require(isinstance(job.get("job_id"), str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", job["job_id"]), "invalid job_id")
     for key in ("owner", "kind", "goal"):
         require(isinstance(job.get(key), str) and job[key].strip(), key + " must be nonempty")
@@ -75,6 +76,7 @@ def validate_job(job):
 def validate_result(job, result):
     require(result.get("schema_version") == 1 and type(result.get("schema_version")) is int, "result schema_version must be 1")
     require(result.get("job_id") == job["job_id"], "result job_id mismatch")
+    require(not job.get("simulation") or result.get("simulation") is True, "simulation result must be explicitly marked")
     require(isinstance(result.get("status"), str) and result["status"] in STATUSES, "invalid result status")
     require(isinstance(result.get("summary"), str) and result["summary"].strip(), "summary required")
     for key in ("findings", "evidence", "unknowns"):
@@ -137,7 +139,7 @@ def prompt_for(job):
         "必需字段：schema_version=1, job_id, status(queued/running/completed/failed/cancelled/"
         "timed_out/needs_decision), summary, execution(inner_exit_code:null或真实整数,"
         "acceptance:passed/failed/unverified,processes:[]), findings:[], evidence:[], unknowns:[],"
-        "decision_request:null或具体问题,next_check_at:null或检查时间。"
+        "decision_request:null或具体问题,next_check_at:null或检查时间；Job simulation=true时Result也标simulation=true。"
         "completed必须验收passed，work_type非analysis还须真实inner_exit_code=0。"
         "running必须有实际host/pid或session_id、readiness及对应evidence_ids，"
         "不要猜退出码、PID或数值。evidence每项含id,path或uri,"
@@ -161,7 +163,9 @@ def run_job(job, executable):
     stdout_path = result_path.parent / "cli.stdout.log"
     stderr_path = result_path.parent / "cli.stderr.log"
     bridge = {"job_id": job["job_id"], "started_at": datetime.now(timezone.utc).isoformat(),
-              "backend_family": "deepseek", "backend_family_source": "user_configuration",
+              "simulation": bool(job.get("simulation")),
+              "backend_family": "simulated" if job.get("simulation") else "deepseek",
+              "backend_family_source": "mock_cli" if job.get("simulation") else "user_configuration",
               "backend_model_id": None, "cli_exit_code": None, "timed_out": False,
               "stdout": str(stdout_path), "stderr": str(stderr_path)}
     cli_error = None

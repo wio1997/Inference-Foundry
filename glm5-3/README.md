@@ -10,6 +10,7 @@
 | [RECORDING](RECORDING.md) / [优化点索引](records/points.jsonl) | Git提交、Run证据及裁决 |
 | [REUSE](REUSE.md) / [复用索引](records/reuse.jsonl) | 旧成果适用性、失败原因与去重 |
 | [研究索引](docs/README.md) | GLM特性、源码、prof、历史迁移与模型成本 |
+| [新对话启动](docs/START_NEW_CHAT.md) | 短交接指令、模拟演练与实际环境接入 |
 
 交给执行Agent的短prompt：
 
