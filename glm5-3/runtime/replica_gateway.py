@@ -17,12 +17,12 @@ def forwarded_headers(headers):
 
 HOP={b'host',b'connection',b'keep-alive',b'proxy-authenticate',b'proxy-authorization',b'te',b'trailer',b'transfer-encoding',b'upgrade'}
 
-def create_app(config=None,transport=None):
+def create_app(config=None,transport=None,policy=None):
     import httpx
     from fastapi import FastAPI,Request
     from fastapi.responses import JSONResponse,StreamingResponse
     replicas=config if config is not None else json.loads(os.environ['GLM_REPLICAS'])
-    placement=Placement(replicas)
+    placement=Placement(replicas,policy or os.environ.get("GLM_PLACEMENT_POLICY","active_count"))
     trace_fd=None
     def trace(event,lease=None,**fields):
         if trace_fd is None:return
@@ -66,7 +66,7 @@ def create_app(config=None,transport=None):
         body=await request.body();budget,size=estimate_request(body)
         try:lease=await placement.acquire(budget,size)
         except RuntimeError as error:return JSONResponse({'error':str(error)},status_code=503)
-        trace('lease_acquired',lease,path=request.url.path,method=request.method,output_budget=budget,input_bytes=size,body_sha256=hashlib.sha256(body).hexdigest() if trace_fd is not None else None)
+        trace('lease_acquired',lease,path=request.url.path,method=request.method,output_budget=budget,input_bytes=size,body_sha256=hashlib.sha256(body).hexdigest() if trace_fd is not None else None,request_header_id=request.headers.get("x-request-id"))
         response=None;cleanup_task=None
         async def close(failure=False):
             nonlocal cleanup_task
@@ -96,7 +96,7 @@ def create_app(config=None,transport=None):
         except BaseException:
             await close();raise
         async def stream():
-            failure=response.status_code>=500;first=True
+            failure=response.status_code>=500;first=True;output_observed=False
             observe=NativeSSEObserver() if response.headers.get("content-type","").split(";")[0].strip().lower()=="text/event-stream" and response.headers.get("content-encoding","identity")=="identity" else None
             try:
                 async for block in response.aiter_raw():
@@ -104,6 +104,10 @@ def create_app(config=None,transport=None):
                     if observe is not None and observe.feed(block):
                         failure=True
                         trace('upstream_native_error',lease,classification='server_error_in_sse')
+                    if observe is not None and observe.output_started and not output_observed:
+                        output_observed=True
+                        transitioned=await placement.output_started(lease)
+                        trace('upstream_first_output',lease,prefill_transitioned=transitioned)
                     yield block
             except httpx.HTTPError:failure=True;raise
             finally:await close(failure)

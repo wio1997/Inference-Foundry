@@ -1,26 +1,24 @@
 # GLM-OPT-0002 — 完整请求部署与动态placement
 
-状态ACTIVE；性能INCONCLUSIVE，无正式KEEP/稳定容量或可行域极限证书。
+ACTIVE；性能INCONCLUSIVE；Current未提升，达标稳定容量和全可行域上下界unknown。两台都持完整GLM模型，native合法本地执行已证实；研究完整请求部署与PD兼容及动态调度，KV/MTP/Graph/采样/提交合同由native保留，不改算子计算或精度。
 
-当前1P1D两端持完整模型，P长期闲置；Run3 c2完整长输出仍未达TTFT/TPOT SLO，c1诊断TPOT也不稳。研究在现有两台内利用已合法驻留模型的完整请求部署，native engine保留KV/MTP/Graph/提交和sampling状态，不改算子计算或精度。
+实现：透明raw请求/响应router、单worker精确lease、drain/代际readd/取消回收、native HTTP及流内错误隔离、开放到达loadgen。输出计数依据usage+finish+DONE；reasoning/content均可作为真实首输出，不以SSE chunk当token。Router trace默认关闭、opaque lease/body SHA/首字节/真实首输出；显式测试header ID解决相同body哈希碰撞。PD overlay独立未替换stock8000。
 
-代码：完整请求透明router、唯一worker placement lease、native状态/raw payload、一次回收、drain/代际/故障隔离；未知成本用active count，全部候选有速率提示才比较估算秒。开放到达loadgen把计划到达纳入延迟，usage/finish/DONE必须齐全，negative/cancel不算有效推理；包含native reasoning/可见text首输出。可关闭的opaque router trace关联lease、body SHA、目标代际、header/firstbytes/release，不改变payload。Stock PD阶段overlay是独立观测候选，未替换现役8000。
+Run4/6/7/10/13为测试或driver INVALID，原始证据保留：greedy n2错误成功预期；P JSON shell多括号；readiness旧日志；flag tuple key；event(name,name=)冲突。Run13已完成有效P控制单列复用，未把整Run当成功或重跑旧队列。
 
-真实Run：
+Run5/9/11/12完整功能子合同验证：mixed open arrivals、stream/nonstream、chat/completion、合法n2温度.7、expected400、active drain/readd、cancel后lease/native idle。Run12新9推理1552输出加PD81932→256有效，10请求1808输出。之前capability_summary旧硬编码P eager/MTP1文案以实际argv/manifest修正，不改raw。
 
-- Run4：两端本地334→128均有效；mixed四条成功720token/native400正确。错误测试将greedy temperature0/n2预期成功，导致INVALID；原生SamplingParams要求greedy n1，不能归为router失败。D reasoning首输出测量遗漏已修正后续代码。
-- Run5：复用Run4有效本地P/D请求，新7推理请求1296token及expected400、独立cancel；variable open arrivals、stream/nonstream、chat/completion、合法n2 temperature.7、active drain、generation readd通过。Cancel lease释放后native P running1→0约观察1s，P/D waiting/running均0，gateway8002退出。仅功能诊断，完整rare branch/稳定服务仍未知。
-- Run5 P-only32输出TPOT239.775ms，D drain512 TPOT21.879ms；不同配置/输入，不是代码收益。证据支持让P由eager/MTP1转为Graph/MTP3，D提高prefill预算以支持完整长输入服务，再检验PD兼容。
-- Run6：候选两端Graph/MTP3、batch16384。P Bash JSON默认展开多括号，CLI解析失败，未加载P；D已启动。核验controller boot/startticks后取消，保留INVALID，没有误判硬件或模型。
-- Run7：P literal JSON已通过CPU实际shell argv展开验证；接管D、实际启动P。Readiness误读启动前旧P日志提前退出，INVALID；没有中断两端模型。
-- Run8：两端Graph/MTP3/budget16384真实本地请求通过，合法mixed却触发D的MTP merged draft DCP recv520MiB OOM；HTTP200/SSE500/DONE三个D请求无usage/finish，零有效输出，P两个mixed成功。REJECT该配置/负载，原生真实失败证据不是非法测试合同；完整raw/hash/全部尝试见Run8。不能推出硬件容量极限。Router trace six leases均释放，但误标backend_failure false，证明原生流内错误观测/隔离缺口。
-- Run9：D128/Graph/MTP3恢复后bounded router完整能力9请求1552输出及expected400/cancel通过，长mixed8205→512整组wall42.57s（cache/预算变化，不是代码速度收益）。后续PD81932→256使P MTP draft DCP gather contiguous1.13GiB申请OOM/HTTP500零输出；REJECT组合配置的PD合同。P gmu.92/batch16384、D gmu.92/batch128实际argv权威；capability_summary旧P eager/MTP1文案不成立。
-- Run10：保留健康idle D，实际只重启P至gmu.87以给MTP/DCP临时buffer更多余量，Graph/MTP3/batch16384不变。新增flag校验误tuple-key导致KeyError、driver INVALID，没有执行模型请求。
-- Run11：修正确切key且AST拒flags tuple索引，接管已经运行的P10/D9，不重载；11:48Z仍等待P初始化，随后真实capability/PD，状态看state。gmu.87是否足以支持PD长输入unknown，缓存容量/动态达标容量不能由理论释放字节直接推断。
-- 代码修复：原生HTTP200流内500增量观察不改wire bytes、不重试、接入现有5秒fault cooldown；loadgen native_error禁止有效输出信用，即使后续usage/finish也拒成功。压缩/超限frame观测unknown。29 CPU合同通过，真实E2E待Run11，测试不是KEEP。
+瞬时显存：
+- Run8两端Graph/MTP3/batch16384/gmu.92，D mixed在MTP merged draft DCP recv520MiB OOM；三D请求HTTP200后SSE500无usage/finish零信用。REJECT具体配置/负载。
+- Run9 D恢复128后子合同有效，但P PD draft DCP gather contiguous1.13GiB OOM。
+- Run11 P gmu.87/batch16384启动后KV1.96GiB，后续draft recv1.01GiB仍OOM（NPU3 free1005.91MiB）。gmu headroom单独调整不够。归约v2纠正cold/Run9标签而保留原hash和真实数据。
+- Run12只P恢复batch4096/gmu.87：KV3.17GiB/296902tokens，capability及PD通过。D保留Graph/MTP3/batch128/gmu.92/KV6.64GiB。有限合法合同通过不证明完整容量。
 
-源码/存储依据见[source_notes](source_notes.md)：DP2TP8EP16的专家跨DP/TP分片语义成立，不用checkpoint/8否定，也不证明runtime fit。PP默认39/39从共享索引层开始，IntermediateTensors不传topk buffer；38/40是待验证候选，不是正确性结论。旧7月TP8DP2 profile为线索，版本/量化/关联D缺失，不继承数值。
+Run14复用P13控制，新D81932→2048控制和六动态请求9088输出有效，wave84.131token/s。P控制首输出1.644s/TPOT20.509ms；D控制8.119s/20.588ms。D预填充预算128，medium期间短请求等待首输出6.562s，支持phase机制假说。
 
-此前24 CPU合同测试经真实zcode --prompt/Result/bridge通过；TRACE-CONTRACTS-20261001T1040Z/test.stderr3706B SHA13c846203bd7edefb93d5c4b364521dbdfcaa52c57e0351b37582318e2e7caec。真实E2E是独立裁决，fixture不是性能证据。ROUTER-TEST-0937 Result及REDUCE-RUN3-1022失败均保留，未改raw或悄悄提升Current。
+Run15 A/B/A与Run16 B/A/B，同config/source/body/sampling/arrivals，全部36请求54528新输出有效，终态idle/lease0，gateway退出；每波9088输出。opt-in prefill_aware先pending-first-output lease数，再原active/完整校准score；默认active_count不变。短请求arrival10时P active2/pending0、D active2/pending1：A去D首输出6.663–6.778s，B去P0.684–0.736s，三次各自复现。这是局部QoS机制，不是native prefill完成断言；unknown压缩/超限/非流保持pending至release，可能集中decoder。
+总吞吐收益未复现：Run15 A86.287/91.063、B93.961；Run16 A96.920、B80.200/81.984。无preemption，各波native cache命中与MTP acceptance均原counter归约；不同acceptance/尾程速度不能随意归因代码。两Run INCONCLUSIVE，无KEEP；有限2048/4096输出不能替代61440正式合同。
 
-未知：跨配置/负载的达标稳定容量、可信上下界、对齐配置后的Graph/MTP/缓存/observer成本及完整native rare branches。路线按真实OOM边界、Run11 headroom与后续动态请求证据决定，不预置固定步骤或审批门槛。
+35 CPU合同真实zcode --prompt/Result/bridge通过，PREFILL-CONTRACTS-20261001T1244Z/test.stderr5216B SHA62b420cc382e6522a40017f3cc23a1e73cd599568498188ec1f070edc0283a13。29原合同包含真实Run8 SSE错误所有byte boundaries、原样wire、避故障/zero-credit；新增phase/默认count/伪造与旧代际lease/首reasoning与tool/text/malformed observer。CPU不是性能KEEP；原failed Job不覆盖。
+
+下一由证据决定：D4096/gmu.87原生预算与余量候选只重载D，先真实冷长输入及PD/功能/动态测量；保持P现役。达到可运行配置后恢复同口径完整61440长输出与动态可变负载的正式重复/容量研究。源码metadata padding、DP2TP8、PP等仍可选，不固定扫描步骤，不因缺全部复现项停止研究。研究条件见[source_notes](source_notes.md)，恢复入口见[HANDOFF](../../../HANDOFF.md)。

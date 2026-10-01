@@ -16,6 +16,7 @@ class Replica:
     prefill_bytes_per_s:Optional[float]=None
     draining:bool=False
     active:dict=field(default_factory=dict)
+    prefilling:set=field(default_factory=set)
     unhealthy_until:float=0
     def score(self):
         if self.decode_tps is None:return float(len(self.active))
@@ -29,7 +30,9 @@ class Lease:
     input_bytes:int
 
 class Placement:
-    def __init__(self,replicas):
+    def __init__(self,replicas,policy="active_count"):
+        if policy not in ("active_count","prefill_aware"):raise ValueError("unknown placement policy")
+        self.policy=policy
         self.lock=asyncio.Lock();self.replicas={};self.leases={};self.generation=0;self.cursor=0
         for config in replicas:self._add(config)
     def _add(self,config):
@@ -54,21 +57,32 @@ class Placement:
             if not available:raise RuntimeError('no eligible GLM replica')
             # Comparing calibrated seconds to uncalibrated counts is invalid.
             calibrated=all(r.decode_tps is not None for r in available)
-            scores=[r.score() if calibrated else len(r.active) for r in available];low=min(scores)
+            scores=[r.score() if calibrated else len(r.active) for r in available];
+            if self.policy=="prefill_aware":scores=[(len(r.prefilling),score) for r,score in zip(available,scores)]
+            low=min(scores)
             tied=[r for r,s in zip(available,scores) if s==low];replica=tied[self.cursor%len(tied)];self.cursor+=1
-            lease=Lease(uuid.uuid4().hex,replica,int(output_budget),int(input_bytes));replica.active[lease.lease_id]=(lease.output_budget,lease.input_bytes);self.leases[lease.lease_id]=lease;return lease
+            lease=Lease(uuid.uuid4().hex,replica,int(output_budget),int(input_bytes));replica.active[lease.lease_id]=(lease.output_budget,lease.input_bytes);self.leases[lease.lease_id]=lease;replica.prefilling.add(lease.lease_id);return lease
+    async def output_started(self,lease):
+        """Native first output completes the observed prefill phase; no token count guessed."""
+        async with self.lock:
+            owned=self.leases.get(lease.lease_id)
+            if owned is None:return False
+            if owned is not lease:raise ValueError('lease identity mismatch')
+            pending=lease.lease_id in owned.replica.prefilling
+            owned.replica.prefilling.discard(lease.lease_id)
+            return pending
     async def release(self,lease,backend_failure=False):
         async with self.lock:
             owned=self.leases.get(lease.lease_id)
             if owned is None:return False
             if owned is not lease:raise ValueError('lease identity mismatch')
             del self.leases[lease.lease_id]
-            replica=owned.replica;replica.active.pop(lease.lease_id)
+            replica=owned.replica;replica.active.pop(lease.lease_id);replica.prefilling.discard(lease.lease_id)
             if backend_failure:replica.unhealthy_until=time.monotonic()+5
             if replica.draining and not replica.active and self.replicas.get(replica.key) is replica:del self.replicas[replica.key]
             return True
     async def snapshot(self):
-        async with self.lock:return [{'id':r.key,'url':r.url,'generation':r.generation,'active_requests':len(r.active),'reserved_output_tokens':sum(v[0] for v in r.active.values()),'draining':r.draining,'decode_tps_hint':r.decode_tps,'prefill_bytes_per_s_hint':r.prefill_bytes_per_s,'temporarily_unhealthy':r.unhealthy_until>time.monotonic()} for r in self.replicas.values()]
+        async with self.lock:return [{'id':r.key,'url':r.url,'generation':r.generation,'active_requests':len(r.active),'prefilling_requests':len(r.prefilling),'placement_policy':self.policy,'reserved_output_tokens':sum(v[0] for v in r.active.values()),'draining':r.draining,'decode_tps_hint':r.decode_tps,'prefill_bytes_per_s_hint':r.prefill_bytes_per_s,'temporarily_unhealthy':r.unhealthy_until>time.monotonic()} for r in self.replicas.values()]
 
 def estimate_request(body):
     """Scheduling hint only; unsupported/invalid JSON is forwarded unchanged."""

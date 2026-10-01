@@ -19,14 +19,14 @@ async def execute(plan,root,transport=None):
     client=httpx.AsyncClient(trust_env=False,transport=transport,timeout=httpx.Timeout(connect=10,read=None,write=30,pool=None),limits=httpx.Limits(max_connections=len(requests) or 1,max_keepalive_connections=len(requests) or 1))
     # Bodies load before the epoch so disk setup is not silently charged as arrival delay.
     bodies={r['id']:Path(r['body_path']).read_bytes() for r in requests}
-    epoch=time.monotonic();started_at=utc();records=[]
+    epoch_ns=time.monotonic_ns();epoch=epoch_ns/1e9;started_at=utc();records=[]
     async def one(r):
         target=epoch+r['arrival_s'];await asyncio.sleep(max(0,target-time.monotonic()));body=bodies[r['id']];dispatch=time.monotonic()
         row={'id':r['id'],'planned_arrival_s':r['arrival_s'],'dispatch_delay_s':dispatch-target,'body_path':r['body_path'],'body_sha256':hashlib.sha256(body).hexdigest(),'dispatch_at':utc(),'http_status':None,'done':False,'usage':None,'finish_reasons':{},'ttft_s':None,'elapsed_s':None,'error':None,'outcome':None,'expected':r.get('expected',{})}
         content=hashlib.sha256();events=0
         async def consume():
             nonlocal events
-            async with client.stream('POST',r.get('endpoint',plan['endpoint']),content=body,headers={'Content-Type':'application/json'}) as response:
+            async with client.stream('POST',r.get('endpoint',plan['endpoint']),content=body,headers={'Content-Type':'application/json',**({'x-request-id':r['request_header_id']} if r.get('request_header_id') else {})}) as response:
                 row['http_status']=response.status_code
                 with (root/(str(r['id'])+'.response.jsonl')).open('x') as raw:
                     if response.status_code!=200:
@@ -75,7 +75,7 @@ async def execute(plan,root,transport=None):
     try:await asyncio.gather(*(one(r) for r in requests))
     finally:await client.aclose()
     elapsed=time.monotonic()-epoch;effective=[r for r in records if r['valid'] and r['outcome']=='completed']
-    result={'kind':plan.get('kind','diagnostic'),'arrival_model':'open_loop; planned arrivals are latency origin','started_at_utc':started_at,'elapsed_s':elapsed,'request_count':len(records),'requests':sorted(records,key=lambda r:str(r['id'])),'valid':len(records)==len(requests) and all(r['valid'] for r in records),'successful_inference_requests':len(effective),'effective_output_tokens':sum(r['usage']['completion_tokens'] for r in effective),'expected_rejections':sum(r['outcome']=='expected_rejection' for r in records),'limits':['finite load is not proof of stable capacity','TTFT includes dispatch and connection queues; nonstream TTFT unobserved','SSE coalescing/MTP means wall TPOT is not device-step time; usage is authoritative; multi-choice TPOT is unobserved','cancel/timeout does not certify remote engine drain','delta_stream_sha256 includes chunk structure, not a final token/text identity']}
+    result={'kind':plan.get('kind','diagnostic'),'arrival_model':'open_loop; planned arrivals are latency origin','started_at_utc':started_at,'started_monotonic_ns':epoch_ns,'elapsed_s':elapsed,'request_count':len(records),'requests':sorted(records,key=lambda r:str(r['id'])),'valid':len(records)==len(requests) and all(r['valid'] for r in records),'successful_inference_requests':len(effective),'effective_output_tokens':sum(r['usage']['completion_tokens'] for r in effective),'expected_rejections':sum(r['outcome']=='expected_rejection' for r in records),'limits':['finite load is not proof of stable capacity','TTFT includes dispatch and connection queues; nonstream TTFT unobserved','SSE coalescing/MTP means wall TPOT is not device-step time; usage is authoritative; multi-choice TPOT is unobserved','cancel/timeout does not certify remote engine drain','delta_stream_sha256 includes chunk structure, not a final token/text identity']}
     result['effective_tps']=result['effective_output_tokens']/elapsed if elapsed else None;atomic_json(root/'load_result.json',result);return result
 
 if __name__=='__main__':
