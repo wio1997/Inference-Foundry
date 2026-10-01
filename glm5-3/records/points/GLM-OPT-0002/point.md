@@ -13,10 +13,12 @@
 - Run5 P-only32输出TPOT239.775ms，D drain512 TPOT21.879ms；不同配置/输入，不是代码收益。证据支持让P由eager/MTP1转为Graph/MTP3，D提高prefill预算以支持完整长输入服务，再检验PD兼容。
 - Run6：候选两端Graph/MTP3、batch16384。P Bash JSON默认展开多括号，CLI解析失败，未加载P；D已启动。核验controller boot/startticks后取消，保留INVALID，没有误判硬件或模型。
 - Run7：P literal JSON已通过CPU实际shell argv展开验证；接管D、实际启动P。Readiness误读启动前旧P日志提前退出，INVALID；没有中断两端模型。
-- Run8：核验两端实际PID/boot/startticks和raw proc argv，接管既有Graph/MTP3启动，不重复加载；等待健康后执行相同native capability及旧PD81932→256兼容E2E。最新state为准，尚未宣称通过。
+- Run8：两端Graph/MTP3/budget16384真实本地请求通过，合法mixed却触发D的MTP merged draft DCP recv520MiB OOM；HTTP200/SSE500/DONE三个D请求无usage/finish，零有效输出，P两个mixed成功。REJECT该配置/负载，原生真实失败证据不是非法测试合同；完整raw/hash/全部尝试见Run8。不能推出硬件容量极限。Router trace six leases均释放，但误标backend_failure false，证明原生流内错误观测/隔离缺口。
+- Run9：唯一新controller核验Run8 terminal/dead及P同owner/idle，保留P Graph/MTP3/budget16384，单独重启D到已功能验证原生budget128。两端健康后identity→真实mixed/drain/cancel→PD81932→256兼容，11:38Z capability运行中，最新state为准；不恢复旧队列。P温热/D重启非隔离速度收益。
+- 独立候选修复：有界SSE增量错误观察不改wire bytes、不重试，原生流内500触发failed-replica cooldown；loadgen native_error不可归为completed，即使后续usage/finish也不计有效输出。Run9依赖冻结，候选CPU验证/部署E2E分别记录。
 
 源码/存储依据见[source_notes](source_notes.md)：DP2TP8EP16的专家跨DP/TP分片语义成立，不用checkpoint/8否定，也不证明runtime fit。PP默认39/39从共享索引层开始，IntermediateTensors不传topk buffer；38/40是待验证候选，不是正确性结论。旧7月TP8DP2 profile为线索，版本/量化/关联D缺失，不继承数值。
 
 24 CPU合同测试经真实zcode --prompt/Result/bridge通过；TRACE-CONTRACTS-20261001T1040Z/test.stderr3706B SHA13c846203bd7edefb93d5c4b364521dbdfcaa52c57e0351b37582318e2e7caec。真实E2E是独立裁决，fixture不是性能证据。ROUTER-TEST-0937 Result及REDUCE-RUN3-1022失败均保留，未改raw或悄悄提升Current。
 
-未知：跨配置/负载的达标稳定容量、可信上下界、对齐配置后的Graph/MTP/缓存/observer成本及完整native rare branches。路线按Run8及后续动态请求证据决定，不预置固定步骤或审批门槛。
+未知：跨配置/负载的达标稳定容量、可信上下界、对齐配置后的Graph/MTP/缓存/observer成本及完整native rare branches。路线按真实OOM边界、Run9恢复和后续动态请求证据决定，不预置固定步骤或审批门槛。

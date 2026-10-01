@@ -1,0 +1,606 @@
+{
+  "schema_version": 1,
+  "job_id": "REDUCE-OOM8-20261001T1123Z",
+  "kind": "reduce_logs",
+  "parent": {
+    "point_id": "GLM-OPT-0002",
+    "run_id": "GLM-RUN-0008"
+  },
+  "mode": "read_only_reduction",
+  "originals_preserved": true,
+  "scope": {
+    "read": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/runs/GLM-RUN-0008",
+    "wrote": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-OOM8-20261001T1123Z",
+    "ran_inference": false,
+    "controlled_services": false,
+    "modified_runtime_or_old_runs": false
+  },
+  "verdict_scope_statement": "Reduction of a failed functional E2E only. HTTP 200 + [DONE] is NOT treated as success. No stable-capacity, throughput or KEEP claim is made here.",
+  "first_failure": {
+    "kind": "native_functional_failure",
+    "first_error_class": "torch.OutOfMemoryError (NPU)",
+    "first_allocator_line": {
+      "file": "D_failure.log",
+      "line": 4918,
+      "text": "E1001 11:08:01.081294 2212454 ../torch_npu/csrc/core/npu/NPUCachingAllocator.cpp:1332] NPU out of memory. Tried to allocate 520.00 MiB (NPU 14; 61.27 GiB total capacity; 56.69 GiB already allocated; 56.69 GiB current active; 523.48 MiB free; 57.01 GiB reserved in total by PyTorch).",
+      "wall_clock": "2026-10-01T11:08:01.081294",
+      "pid": 2212454,
+      "rank": "Worker_TP14_DCP14_EP14",
+      "device": "NPU 14",
+      "alloc_requested_mib": 520.0,
+      "total_gib": 61.27,
+      "allocated_gib": 56.69,
+      "active_gib": 56.69,
+      "free_mib": 523.48,
+      "reserved_gib": 57.01
+    },
+    "first_worker_exception": {
+      "file": "D_failure.log",
+      "line": 4919,
+      "text": "(Worker_TP14_DCP14_EP14 pid=2212454) ERROR 10-01 11:08:01 [multiproc_executor.py:1018] WorkerProc hit an exception."
+    },
+    "first_python_traceback_terminal": {
+      "file": "D_failure.log",
+      "line": 5014,
+      "text": "torch.OutOfMemoryError: NPU out of memory. Tried to allocate 520.00 MiB (NPU 14; ... 523.48 MiB free; 57.01 GiB reserved ...)"
+    },
+    "oom_occurred_in_source_line": {
+      "file": "D_failure.log",
+      "line": 5012,
+      "text": "recv = torch.empty_like(send)",
+      "source": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/sfa_cp.py:368 in sfa_dcp_a2a_fused_combine"
+    },
+    "cascade": [
+      {
+        "file": "D_failure.log",
+        "line": 5113,
+        "note": "second rank OOM NPU 6 (Worker_TP6_DCP6_EP6 pid=2212017) at 11:08:02.058412, free 492.17 MiB"
+      },
+      {
+        "file": "D_failure.log",
+        "line": 5306,
+        "note": "NPU 4 free 488.77 MiB"
+      },
+      {
+        "file": "D_failure.log",
+        "line": 5499,
+        "note": "NPU 10 free 486.77 MiB"
+      },
+      {
+        "file": "D_failure.log",
+        "line": 5692,
+        "note": "NPU 12 free 484.10 MiB"
+      },
+      {
+        "file": "D_failure.log",
+        "line": 5885,
+        "note": "NPU 2 free 518.59 MiB"
+      },
+      {
+        "file": "D_failure.log",
+        "line": 6078,
+        "note": "NPU 8 free 537.78 MiB"
+      },
+      {
+        "file": "D_failure.log",
+        "line": 6272,
+        "note": "8th WorkerProc exception (TP0)"
+      }
+    ],
+    "downstream_engine_dead_error": {
+      "distinct_from_first_oom": true,
+      "engine_core_fatal": {
+        "file": "D_failure.log",
+        "line": 6467,
+        "text": "(EngineCore pid=2211703) ERROR 10-01 11:08:04 [core.py:1351] EngineCore encountered a fatal error."
+      },
+      "root_cause_runtime_error": {
+        "file": "D_failure.log",
+        "line": 6498,
+        "text": "RuntimeError: Worker failed with error 'NPU out of memory. Tried to allocate 520.00 MiB (NPU 0; ... 470.01 MiB free; 57.05 GiB reserved ...)'"
+      },
+      "engine_dead_error_lines": [
+        6503,
+        6521,
+        6545,
+        6576
+      ],
+      "engine_dead_error_text": "vllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause.",
+      "wall_clock": "2026-10-01T11:08:04",
+      "lag_from_first_oom_s": 2.9
+    }
+  },
+  "source_callchain_of_first_oom": {
+    "summary": "MTP draft forward -> MLA/SFA attention -> DCP all-to-all combine -> recv = torch.empty_like(send)",
+    "frames_outer_to_inner": [
+      "vllm/v1/executor/multiproc_executor.py:1010 worker_busy_loop -> func(*args)",
+      "vllm_ascend/worker/worker.py:720 sample_tokens -> model_runner.sample_tokens",
+      "vllm_ascend/worker/model_runner_v1.py:2723 sample_tokens -> propose_draft_token_ids",
+      "vllm_ascend/worker/model_runner_v1.py:2663 -> self.propose_draft_token_ids",
+      "vllm_ascend/worker/model_runner_v1.py:1930 -> self.drafter._propose",
+      "vllm_ascend/spec_decode/llm_base_proposer.py:1144 _propose -> run_draft()",
+      "vllm_ascend/spec_decode/llm_base_proposer.py:1508 _run_merged_draft -> self.model(**model_kwargs)",
+      "vllm_ascend/models/deepseek_mtp.py:23 forward",
+      "vllm_ascend/ops/mla.py:181 mla_forward -> mla_attn.impl.forward",
+      "vllm_ascend/attention/sfa_v1.py:1690 forward -> _execute_sparse_flash_attention_process",
+      "vllm_ascend/attention/context_parallel/sfa_cp.py:1253 -> _merge_dcp_outputs",
+      "vllm_ascend/attention/context_parallel/sfa_cp.py:1080 -> torch.ops.vllm.sfa_dcp_a2a_fused",
+      "vllm_ascend/ops/triton/sfa_cp.py:391 sfa_dcp_a2a_fused -> sfa_dcp_a2a_fused_combine",
+      "vllm_ascend/ops/triton/sfa_cp.py:368 sfa_dcp_a2a_fused_combine -> recv = torch.empty_like(send)  <-- OOM"
+    ],
+    "note": "OOM is on a DCP (decode context parallel) all-to-all recv-side allocation inside the MTP draft path, not on KV growth or prompt allocation."
+  },
+  "request_classification": {
+    "counting_rule": "Only requests with authoritative usage/finish or an explicit rejection are counted as valid. HTTP 200 with an in-band error object is a functional failure even when the HTTP status line is 200 and the stream ends with [DONE].",
+    "totals": {
+      "attempted_http_requests": 8,
+      "valid_inference_requests": 4,
+      "valid_expected_rejections": 1,
+      "functional_failures": 3,
+      "synthetic_test_failures": 0
+    },
+    "note_scope": "Attempted = 2 local single-replica requests (local_P166, local_D167) + 6 mixed open-arrival requests. No other model requests were issued in this run.",
+    "per_request": [
+      {
+        "id": "local_P166/0",
+        "replica": "P166",
+        "endpoint": "/v1/chat/completions",
+        "http_status": 200,
+        "done": true,
+        "usage": {
+          "prompt_tokens": 334,
+          "total_tokens": 462,
+          "completion_tokens": 128
+        },
+        "finish_reason": "length",
+        "sse_events": 43,
+        "sse_error": false,
+        "outcome": "completed",
+        "valid": true,
+        "elapsed_s": 3.8509,
+        "ttft_s": 1.0059,
+        "evidence_ids": [
+          "E-LR-P166",
+          "E-RESP-LOCAL-P166"
+        ]
+      },
+      {
+        "id": "local_D167/0",
+        "replica": "D167",
+        "endpoint": "/v1/chat/completions",
+        "http_status": 200,
+        "done": true,
+        "usage": {
+          "prompt_tokens": 334,
+          "total_tokens": 462,
+          "completion_tokens": 128
+        },
+        "finish_reason": "length",
+        "sse_events": 47,
+        "sse_error": false,
+        "outcome": "completed",
+        "valid": true,
+        "elapsed_s": 4.123,
+        "ttft_s": 0.9781,
+        "evidence_ids": [
+          "E-LR-D167",
+          "E-RESP-LOCAL-D167"
+        ]
+      },
+      {
+        "id": "mixed/0",
+        "replica": "P166",
+        "endpoint": "/v1/chat/completions",
+        "http_status": 200,
+        "done": true,
+        "usage": {
+          "prompt_tokens": 205,
+          "total_tokens": 333,
+          "completion_tokens": 128
+        },
+        "finish_reason": "length",
+        "sse_events": 52,
+        "sse_error": false,
+        "outcome": "completed",
+        "valid": true,
+        "elapsed_s": 4.3853,
+        "ttft_s": 0.4849,
+        "evidence_ids": [
+          "E-LR-MIXED",
+          "E-RESP-M0"
+        ]
+      },
+      {
+        "id": "mixed/1",
+        "replica": "D167",
+        "endpoint": "/v1/completions",
+        "http_status": 200,
+        "done": true,
+        "usage": null,
+        "finish_reasons": {},
+        "sse_events": 3,
+        "sse_error": true,
+        "sse_error_object": {
+          "message": "EngineCore encountered an issue. See stack trace (above) for the root cause.",
+          "type": "InternalServerError",
+          "code": 500
+        },
+        "partial_tokens_before_error": 2,
+        "outcome": "functionally_failed",
+        "valid": false,
+        "elapsed_s": 11.1754,
+        "ttft_s": 0.4609,
+        "evidence_ids": [
+          "E-LR-MIXED",
+          "E-RESP-M1"
+        ]
+      },
+      {
+        "id": "mixed/2",
+        "replica": "P166",
+        "endpoint": "/v1/chat/completions",
+        "http_status": 200,
+        "done": true,
+        "usage": {
+          "prompt_tokens": 15,
+          "total_tokens": 31,
+          "completion_tokens": 16
+        },
+        "finish_reason": "length",
+        "sse_events": 0,
+        "sse_error": false,
+        "outcome": "completed",
+        "valid": true,
+        "elapsed_s": 1.6106,
+        "ttft_s": null,
+        "evidence_ids": [
+          "E-LR-MIXED",
+          "E-RESP-M2"
+        ]
+      },
+      {
+        "id": "mixed/3",
+        "replica": "D167",
+        "endpoint": "/v1/chat/completions",
+        "http_status": 200,
+        "done": true,
+        "usage": null,
+        "finish_reasons": {},
+        "sse_events": 1,
+        "sse_error": true,
+        "sse_error_object": {
+          "message": "EngineCore encountered an issue. See stack trace (above) for the root cause.",
+          "type": "InternalServerError",
+          "code": 500
+        },
+        "partial_tokens_before_error": 0,
+        "outcome": "functionally_failed",
+        "valid": false,
+        "elapsed_s": 11.0944,
+        "evidence_ids": [
+          "E-LR-MIXED",
+          "E-RESP-M3"
+        ]
+      },
+      {
+        "id": "mixed/4",
+        "replica": "P166",
+        "endpoint": "/v1/chat/completions",
+        "http_status": 400,
+        "done": false,
+        "usage": null,
+        "sse_events": 0,
+        "outcome": "expected_rejection",
+        "valid": true,
+        "expected": {
+          "http_status": 400
+        },
+        "rejection_message": "max_tokens must be at least 1, got -1. (parameter=max_tokens, value=-1)",
+        "wire_body_bytes": 152,
+        "wire_body_sha256": "8cb270a4c6ae679d15011b003efa874001102db4e5a69b55788a536e9e0bdfce",
+        "elapsed_s": 0.0092,
+        "evidence_ids": [
+          "E-LR-MIXED",
+          "E-RESP-M4"
+        ]
+      },
+      {
+        "id": "mixed/5",
+        "replica": "D167",
+        "endpoint": "/v1/chat/completions",
+        "http_status": 200,
+        "done": true,
+        "usage": null,
+        "finish_reasons": {},
+        "sse_events": 1,
+        "sse_error": true,
+        "sse_error_object": {
+          "message": "EngineCore encountered an issue. See stack trace (above) for the root cause.",
+          "type": "InternalServerError",
+          "code": 500
+        },
+        "partial_tokens_before_error": 0,
+        "outcome": "functionally_failed",
+        "valid": false,
+        "elapsed_s": 11.0133,
+        "evidence_ids": [
+          "E-LR-MIXED",
+          "E-RESP-M5"
+        ]
+      }
+    ],
+    "mixed_vs_local_missing": {
+      "requested_missing": [
+        "mixed/0",
+        "mixed/1",
+        "mixed/2",
+        "mixed/3",
+        "mixed/5"
+      ],
+      "note": "Only mixed/4 was a planned rejection. mixed/1, /3, /5 were planned valid outputs."
+    },
+    "synthetic_vs_functional": "All three failures (mixed/1, /3, /5) are native functional failures caused by the engine OOM cascade, not synthetic/negative-test failures. mixed/4 is the only intentional negative-test (invalid max_tokens) and passed as expected."
+  },
+  "controller_terminal": {
+    "controller_owner": {
+      "host": "bm-jn-zs-zone1-910C-64G-10-166",
+      "pid": 3185709,
+      "boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025",
+      "start_ticks": "259814786"
+    },
+    "state_status": "failed",
+    "failure_phase": "capability",
+    "completed_stages": [
+      "deploy",
+      "identity"
+    ],
+    "active_stage": "capability",
+    "heartbeat_at": "2026-10-01T11:08:04.383535+00:00",
+    "capability_phase": {
+      "status": "failed",
+      "exit_code": 1,
+      "signal": null,
+      "timed_out": false,
+      "cancelled": false,
+      "started_at": "2026-10-01T11:07:43.865660+00:00",
+      "finished_at": "2026-10-01T11:08:04.382647+00:00",
+      "elapsed_s": 20.5166
+    },
+    "capability_child": {
+      "pid": 3626866,
+      "boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025",
+      "start_ticks": "259847187",
+      "state": "R",
+      "pgid": 3626866,
+      "note": "state sampled at phase end, not a live re-check"
+    },
+    "terminal_exception": {
+      "file": "capability.log",
+      "line": 18,
+      "text": "RuntimeError: mixed_open_arrivals request contract failed; inspect native evidence",
+      "raised_at": "scripts/capability_e2e.py:62"
+    },
+    "manifest": {
+      "status": "failed",
+      "verdict": "pending",
+      "observed_active_stage": "capability",
+      "observed_at": "2026-10-01T11:08:04.383535+00:00"
+    },
+    "controller_log_bytes": 0,
+    "note": "finalize.py never ran: no summary.md, no P_166.log/D_167.log, and manifest.verdict is still 'pending'. The failure is recorded by the capability phase and controller state, not by finalization."
+  },
+  "gateway_teardown": {
+    "gateway_pid": 545867,
+    "started_at": "2026-10-01T11:07:52.322080+00:00",
+    "failure_event_at": "2026-10-01T11:08:04.205504+00:00",
+    "error_type": "RuntimeError",
+    "stopped_at": "2026-10-01T11:08:04.319907+00:00",
+    "exit_code": -15,
+    "exit_code_meaning": "SIGTERM-driven shutdown initiated by the capability phase; gateway did not crash on its own",
+    "gateway_log_terminal": [
+      "INFO: Shutting down",
+      "INFO: Waiting for application shutdown.",
+      "INFO: Application shutdown complete.",
+      "INFO: Finished server process [545867]"
+    ],
+    "http_access_evidence": [
+      "POST /v1/chat/completions?glm_contract=capability -> 200",
+      "POST /v1/completions -> 200",
+      "POST /v1/chat/completions?glm_contract=capability -> 200",
+      "POST /v1/chat/completions?glm_contract=capability -> 400 Bad Request",
+      "POST /v1/chat/completions?glm_contract=capability -> 200"
+    ],
+    "note": "The gateway only sees HTTP status lines; the engine OOM reached clients as an in-band SSE error object under a 200 status, so gateway access logs show no 5xx for the three failed requests."
+  },
+  "router_trace": {
+    "file": "e2e/router_trace.jsonl",
+    "event_counts": {
+      "lease_acquired": 6,
+      "upstream_headers": 6,
+      "upstream_first_bytes": 6,
+      "lease_released": 6
+    },
+    "leases_cover_all_mixed_requests": true,
+    "lease_to_request": [
+      {
+        "lease_id": "a157de52323c4040b78c2e739c451c59",
+        "request": "mixed/0",
+        "replica": "P166",
+        "path": "/v1/chat/completions",
+        "output_budget": 128,
+        "input_bytes": 1360,
+        "body_sha256": "7726828120a110ef11a150fa02a6e0f81569618d92a5bf12596dbf226f24a23a",
+        "upstream_status": 200,
+        "first_bytes": 259,
+        "released": true,
+        "backend_failure": false
+      },
+      {
+        "lease_id": "923e187548ed44668385f9ac51b6b2b0",
+        "request": "mixed/1",
+        "replica": "D167",
+        "path": "/v1/completions",
+        "output_budget": 64,
+        "input_bytes": 193,
+        "body_sha256": "7a7f7bdfed54fd4b753dd9dff09c3bc6221b5d27a3f024f2d65ef1818d7bd690",
+        "upstream_status": 200,
+        "first_bytes": 239,
+        "released": true,
+        "backend_failure": false
+      },
+      {
+        "lease_id": "3a12230d87114d099d6e72c9f9d15e56",
+        "request": "mixed/2",
+        "replica": "P166",
+        "path": "/v1/chat/completions",
+        "output_budget": 16,
+        "input_bytes": 180,
+        "body_sha256": "b0ba77f1d51b638b8c84348ab298a4f7f090702ca5400984dad4f8c93e98b17c",
+        "upstream_status": 200,
+        "first_bytes": 730,
+        "released": true,
+        "backend_failure": false
+      },
+      {
+        "lease_id": "13c46e318b0348e28721201c4bb61669",
+        "request": "mixed/3",
+        "replica": "D167",
+        "path": "/v1/chat/completions",
+        "output_budget": 32,
+        "input_bytes": 227,
+        "body_sha256": "463cd273a5e654a0f30c803a9f902f44a3d8e88c2c398f93806f752e7a030dc9",
+        "upstream_status": 200,
+        "first_bytes": 169,
+        "released": true,
+        "backend_failure": false
+      },
+      {
+        "lease_id": "85fccf35dab3483dbcf170018aa2b02e",
+        "request": "mixed/4",
+        "replica": "P166",
+        "path": "/v1/chat/completions",
+        "output_budget": 16,
+        "input_bytes": 222,
+        "body_sha256": "f02b187e921b9254574ad7ea882232b8bdac8d6c72a55e59bbf6e9d0cdc802ba",
+        "upstream_status": 400,
+        "first_bytes": 152,
+        "released": true,
+        "backend_failure": false
+      },
+      {
+        "lease_id": "ea0e0fd9263a4905a26ec2f653143f0d",
+        "request": "mixed/5",
+        "replica": "D167",
+        "path": "/v1/chat/completions",
+        "output_budget": 512,
+        "input_bytes": 52432,
+        "body_sha256": "72495a07a4ea8a9616e98bff26dfb4b724f9e12891f43b0a81bbb85ff1d6c8fd",
+        "upstream_status": 200,
+        "first_bytes": 169,
+        "released": true,
+        "backend_failure": false
+      }
+    ],
+    "lease_release_interpretation": {
+      "all_backend_failure_false": true,
+      "note": "Every lease, including the three requests that functionally failed, is recorded as released:true with backend_failure:false. The in-band SSE 500 was not visible to the router's backend-failure flag, so router lease telemetry alone does not detect this failure mode.",
+      "bounded_claim": "Lease acquire/release coverage of all six mixed requests is a completeness-of-trace observation only."
+    },
+    "timing_caution": "Monotonic timestamps and first-byte byte counts are recorded as observed. They are NOT attributed to any scheduling speedup and are not a throughput measurement; wall intervals here span a crash."
+  },
+  "source_and_config_identity": {
+    "run_base_commit": "be5a52662453c3a85b9cf4757409a1ba2f0348b9",
+    "vllm_head": "6e448d0ea9bf3d88d898b65449ca6dc2aec170ac",
+    "vllm_ascend_head": "3b31886237ed65c435e0965b10e8002ff5769766",
+    "container_image": "m.daocloud.io/quay.io/ascend/vllm-ascend:v0.27.1rc1-a3 sha256:1dfaaa64b6464dc1aacee2e186ddd358f526e62d4011023a77e2c73ac5c7a5c4",
+    "image_identical_on_166_and_167": true,
+    "vllm_ascend_working_tree_dirty": true,
+    "vllm_ascend_diff_summary": "single-file local patch to vllm_ascend/attention/sfa_v1.py (PROLOG_V3 quant-method guard at ~line 643); identical diff text on both nodes",
+    "sfa_v1_py_sha256": "f15426c8bd823e651eef7b5f1971b1957d7760c54ee787df43a3d4633f2366a4",
+    "model_path": "/data/tiankuan/wio/GLM-5.2-w8a8",
+    "model_full_weight_content": "unknown (only small config/tokenizer/quant-description files hashed)",
+    "engine_config_from_log": {
+      "model": "/data/tiankuan/wio/GLM-5.2-w8a8",
+      "speculative_config": "SpeculativeConfig(method='mtp', num_spec_tokens=3)",
+      "tensor_parallel_size": 16,
+      "decode_context_parallel_size": 16,
+      "dcp_comm_backend": "ag_rs",
+      "enable_expert_parallel": true,
+      "quantization": "ascend",
+      "dtype": "torch.bfloat16",
+      "max_model_len": 144384,
+      "max_num_seqs": 8,
+      "max_num_batched_tokens": 16384,
+      "gpu_memory_utilization": 0.92,
+      "cudagraph_mode": "FULL_DECODE_ONLY",
+      "enable_prefix_caching": true,
+      "enable_chunked_prefill": true,
+      "kv_cache_tokens": 471789,
+      "kv_connector": "MooncakeConnectorV1",
+      "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+    },
+    "mismatch_note": "Adopted argv has speculative-config enforce_eager:true and compilation-config FULL_DECODE_ONLY, while the EngineCore init log prints enforce_eager=False with the same FULL_DECODE_ONLY mode. Recorded as observed; not resolved here.",
+    "adopted_owners": {
+      "P": {
+        "host": "166",
+        "pid": 3063653,
+        "source_run": "GLM-RUN-0007",
+        "port": 9081,
+        "kv_role": "kv_producer"
+      },
+      "D": {
+        "host": "167",
+        "pid": 3958591,
+        "source_run": "GLM-RUN-0006",
+        "port": 9900,
+        "kv_role": "kv_consumer"
+      }
+    },
+    "D_engine_internal_pids": {
+      "APIServer": 2211023,
+      "EngineCore": 2211703,
+      "first_failing_worker": 2212454
+    }
+  },
+  "alive_claims_bounded": [
+    {
+      "claim": "Both adopted model owners verified/alive (deploy.log both_existing_model_owners_verified at 11:02:21; readiness P=true,D=true at 11:07:42)",
+      "bounded_to": "capture window 11:02:21 to 11:07:42, before any request",
+      "status": "bounded_observation"
+    },
+    {
+      "claim": "Process snapshots show live vllm serve on both nodes",
+      "bounded_to": "single ps capture in the identity phase at ~11:07:42-11:07:43 (container-internal pids; D APIServer pid 2211023 visible)",
+      "status": "bounded_observation"
+    },
+    {
+      "claim": "D engine alive after 11:08:04",
+      "bounded_to": "D_failure.log",
+      "status": "contradicted",
+      "evidence": "EngineCore fatal at 11:08:04, force-killed 11:08:06 (D_failure.log:6585), process abort 'corrupted size vs. prev_size' at file end; 496 leaked semaphores and 19 leaked shared-memory objects at shutdown"
+    },
+    {
+      "claim": "P engine (166) alive after 11:08:04",
+      "bounded_to": "no post-failure capture exists",
+      "status": "unknown"
+    },
+    {
+      "claim": "No native state after the failure window is observed; all liveness statements are limited to the captured snapshots."
+    }
+  ],
+  "unknowns": [
+    "Whether P166 engine survived after 11:08:04 (no post-failure snapshot exists).",
+    "Number of native tokens actually generated by mixed/1 before the error (2 SSE chunks carry text; no usage record).",
+    "Whether the DCP all-to-all recv 520 MiB shape depends on request 5's 52432-byte input / 512-token budget; concurrency at OOM was 4 running (dump_input.py:81).",
+    "Whether the same OOM reproduces without the local W8A8 sfa_v1.py patch.",
+    "Exact reason for the 'corrupted size vs. prev_size' heap abort at shutdown (glibc heap corruption during teardown)."
+  ],
+  "GPT_audit": {
+    "root_exception_verified": "D_failure.log:4918 allocator/5012 recv/5014 OutOfMemoryError; after legal mixed workload; reject configuration under this contract",
+    "source_callchain_limits": "Recorded allocation location does not exclude KV/cache reservations or prompt-dependent memory pressure as contributors. No operator implementation modification.",
+    "draft_config_clarification": "Target-global enforce_eager=False in target initialization is distinct from speculative-config.enforce_eager=True for draft; not evidence of a contradictory effective draft configuration.",
+    "partial_output_clarification": "mixed/1 has two text-bearing SSE chunks; token count unknown without native usage; zero effective completion tokens credited.",
+    "native_state_later_ref": "Run9 recovery_events.json verified prior controller dead and same P owner idle before D-only recovery; separate later observation, not rewritten into Run8 raw.",
+    "verdict": "REJECT configuration for legal mixed contract; diagnostic evidence accepted; no stable capacity or global hardware limit"
+  }
+}
