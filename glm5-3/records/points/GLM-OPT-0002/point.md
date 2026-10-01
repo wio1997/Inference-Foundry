@@ -14,11 +14,13 @@
 - Run6：候选两端Graph/MTP3、batch16384。P Bash JSON默认展开多括号，CLI解析失败，未加载P；D已启动。核验controller boot/startticks后取消，保留INVALID，没有误判硬件或模型。
 - Run7：P literal JSON已通过CPU实际shell argv展开验证；接管D、实际启动P。Readiness误读启动前旧P日志提前退出，INVALID；没有中断两端模型。
 - Run8：两端Graph/MTP3/budget16384真实本地请求通过，合法mixed却触发D的MTP merged draft DCP recv520MiB OOM；HTTP200/SSE500/DONE三个D请求无usage/finish，零有效输出，P两个mixed成功。REJECT该配置/负载，原生真实失败证据不是非法测试合同；完整raw/hash/全部尝试见Run8。不能推出硬件容量极限。Router trace six leases均释放，但误标backend_failure false，证明原生流内错误观测/隔离缺口。
-- Run9：唯一新controller核验Run8 terminal/dead及P同owner/idle，保留P Graph/MTP3/budget16384，单独重启D到已功能验证原生budget128。两端健康后identity→真实mixed/drain/cancel→PD81932→256兼容，11:38Z capability运行中，最新state为准；不恢复旧队列。P温热/D重启非隔离速度收益。
-- 独立候选修复：有界SSE增量错误观察不改wire bytes、不重试，原生流内500触发failed-replica cooldown；loadgen native_error不可归为completed，即使后续usage/finish也不计有效输出。Run9依赖冻结，候选CPU验证/部署E2E分别记录。
+- Run9：D128/Graph/MTP3恢复后bounded router完整能力9请求1552输出及expected400/cancel通过，长mixed8205→512整组wall42.57s（cache/预算变化，不是代码速度收益）。后续PD81932→256使P MTP draft DCP gather contiguous1.13GiB申请OOM/HTTP500零输出；REJECT组合配置的PD合同。P gmu.92/batch16384、D gmu.92/batch128实际argv权威；capability_summary旧P eager/MTP1文案不成立。
+- Run10：保留健康idle D，实际只重启P至gmu.87以给MTP/DCP临时buffer更多余量，Graph/MTP3/batch16384不变。新增flag校验误tuple-key导致KeyError、driver INVALID，没有执行模型请求。
+- Run11：修正确切key且AST拒flags tuple索引，接管已经运行的P10/D9，不重载；11:48Z仍等待P初始化，随后真实capability/PD，状态看state。gmu.87是否足以支持PD长输入unknown，缓存容量/动态达标容量不能由理论释放字节直接推断。
+- 代码修复：原生HTTP200流内500增量观察不改wire bytes、不重试、接入现有5秒fault cooldown；loadgen native_error禁止有效输出信用，即使后续usage/finish也拒成功。压缩/超限frame观测unknown。29 CPU合同通过，真实E2E待Run11，测试不是KEEP。
 
 源码/存储依据见[source_notes](source_notes.md)：DP2TP8EP16的专家跨DP/TP分片语义成立，不用checkpoint/8否定，也不证明runtime fit。PP默认39/39从共享索引层开始，IntermediateTensors不传topk buffer；38/40是待验证候选，不是正确性结论。旧7月TP8DP2 profile为线索，版本/量化/关联D缺失，不继承数值。
 
-24 CPU合同测试经真实zcode --prompt/Result/bridge通过；TRACE-CONTRACTS-20261001T1040Z/test.stderr3706B SHA13c846203bd7edefb93d5c4b364521dbdfcaa52c57e0351b37582318e2e7caec。真实E2E是独立裁决，fixture不是性能证据。ROUTER-TEST-0937 Result及REDUCE-RUN3-1022失败均保留，未改raw或悄悄提升Current。
+此前24 CPU合同测试经真实zcode --prompt/Result/bridge通过；TRACE-CONTRACTS-20261001T1040Z/test.stderr3706B SHA13c846203bd7edefb93d5c4b364521dbdfcaa52c57e0351b37582318e2e7caec。真实E2E是独立裁决，fixture不是性能证据。ROUTER-TEST-0937 Result及REDUCE-RUN3-1022失败均保留，未改raw或悄悄提升Current。
 
-未知：跨配置/负载的达标稳定容量、可信上下界、对齐配置后的Graph/MTP/缓存/observer成本及完整native rare branches。路线按真实OOM边界、Run9恢复和后续动态请求证据决定，不预置固定步骤或审批门槛。
+未知：跨配置/负载的达标稳定容量、可信上下界、对齐配置后的Graph/MTP/缓存/observer成本及完整native rare branches。路线按真实OOM边界、Run11 headroom与后续动态请求证据决定，不预置固定步骤或审批门槛。

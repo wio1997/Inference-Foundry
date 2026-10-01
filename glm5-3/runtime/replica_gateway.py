@@ -7,6 +7,7 @@ The current implementation has one scheduling process; launch one worker.
 import argparse,asyncio,hashlib,json,os,time
 from contextlib import asynccontextmanager
 from placement import Placement,estimate_request
+from sse_observer import NativeSSEObserver
 
 def forwarded_headers(headers):
     extra=set()
@@ -96,9 +97,13 @@ def create_app(config=None,transport=None):
             await close();raise
         async def stream():
             failure=response.status_code>=500;first=True
+            observe=NativeSSEObserver() if response.headers.get("content-type","").split(";")[0].strip().lower()=="text/event-stream" and response.headers.get("content-encoding","identity")=="identity" else None
             try:
                 async for block in response.aiter_raw():
                     if first and block:trace('upstream_first_bytes',lease,bytes=len(block));first=False
+                    if observe is not None and observe.feed(block):
+                        failure=True
+                        trace('upstream_native_error',lease,classification='server_error_in_sse')
                     yield block
             except httpx.HTTPError:failure=True;raise
             finally:await close(failure)

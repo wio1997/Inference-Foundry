@@ -29,3 +29,10 @@ DeepSeek与GLM、910B3与910C、W4A8与W8A8、TP8与TP16及不同PD/Graph的旧T
 - 旧GLM7月P端profile：模型线索可复用，TP8/DP2且版本/量化/关联D缺失，不能充当当前0.27基线。
 
 若同机制已有有效GLM Run，后续优先引用；只有新软件/布局/负载/状态路径或旧结论缺项会影响判断时才重验。实质重复且无新增信息时标`REUSED`，不创建伪新性能成果。
+
+
+## 2026-10-01 native MTP动态临时内存边界
+
+Run8/9建立两个合法E2E反例：Graph/MTP3、budget16384、gmu0.92能初始化并完成短本地请求，但mixed D与原生PD长输入P的MTP draft/DCP临时buffer分别520MiB和1.13GiB OOM。启动profiling/KV分配并非覆盖所有动态draft峰值；失败配置不当硬件极限。D回到native budget128后Run9完整router能力通过，长prefill延迟明显依赖cache/调度预算。降低P gmu0.87是Run11待验证候选，同时减少KV缓存容量，不能预先宣称吞吐收益。复用时按actual argv、native原始错误/usage和所有尝试裁决。
+
+原生HTTP200可能携带SSE error500并DONE，不能当成功或仅凭HTTP access/lease释放判后端健康；Run8真实错误报文已进入有界observer/zero-credit合同。原样转发、无重试；5秒cooldown仅临时隔离，压缩/超限观测unknown，永久native健康监督仍未实现。证据见GLM-OPT-0002 Run8/9和inband_contracts.json。

@@ -6,6 +6,7 @@ get independent async tasks; connection/client dispatch delay remains in latency
 import argparse,asyncio,base64,hashlib,json,math,time
 from pathlib import Path
 from phase_runner import atomic_json,utc
+from sse_observer import native_error
 
 async def execute(plan,root,transport=None):
     import httpx
@@ -36,6 +37,8 @@ async def execute(plan,root,transport=None):
                             value=line[5:].strip();ts=time.monotonic()-target;raw.write(json.dumps({'elapsed_s':ts,'data':value})+'\n')
                             if value=='[DONE]':row['done']=True;break
                             event=json.loads(value);events+=1
+                            error=native_error(event)
+                            if error is not None:row['outcome']='native_error';row['error']=error
                             if event.get('usage'):row['usage']=event['usage']
                             for choice in event.get('choices',[]):
                                 delta=choice.get('delta',{});text=delta.get('content') or delta.get('reasoning_content') or delta.get('reasoning') or choice.get('text') or ''
@@ -45,6 +48,8 @@ async def execute(plan,root,transport=None):
                                 if choice.get('finish_reason'):row['finish_reasons'][str(choice.get('index',0))]=choice['finish_reason']
                     else:
                         payload=await response.aread();value=json.loads(payload);raw.write(json.dumps({'elapsed_s':time.monotonic()-target,'data':value})+'\n');row['usage']=value.get('usage');row['done']=True;row['ttft_s']=None;content.update(payload)
+                        error=native_error(value)
+                        if error is not None:row['outcome']='native_error';row['error']=error
                         row['finish_reasons']={str(c.get('index',0)):c.get('finish_reason') for c in value.get('choices',[])}
         try:
             timeout=r.get('timeout_s')
