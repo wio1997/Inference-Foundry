@@ -1,3 +1,5 @@
-# GLM-RUN-0021 — prepared
+# GLM-RUN-0021
 
-New P-only K5/plugin deployment with D20 retained, then real P API/PD and full4x81932→61440 closedc2 native strict protocol test. Candidate rationale/combined deployment differences in manifest; all outcomes pending. No Current promotion or old queue replay.
+One formal closed-concurrency2 round:4/4 native requests81932→61440,245760 effective outputs. Dual complete-request native Graph/MTP5 with request-contract GLM parser, both budgets4096/.87; P only reloaded K5/plugin, D20 retained. Resident cache explicitly observed without reset; two replica prefix warmups required; native wire replay/usage/finish/DONE/lease and terminal idle validated. Full CLI TPS=100.12419437499823, SLA all_pass=False. Single round INCONCLUSIVE, no formal repeated KEEP/stable capacity/global bounds. Compare Run3 workload/timers with historical native-tool contract gap; deployment/Graph/MTP/cache and observer differ; not isolated code gain. Raw source/commands/all attempts hash indexed on server.
+
+Native full-only query163864/hit143360 per replica, external hit0/preemption0, uncached10252 per request. P/D prefill for2 requests11.228/11.403s with <50us queue sum. Native histograms are host timestamps, not device profiler. Raw AIS TPOTP50=18.006747585ms; strict SLO remains failed. Additional native analysis is reduction_v2.json with all raw hashes.

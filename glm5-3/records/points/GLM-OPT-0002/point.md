@@ -21,7 +21,7 @@ Run15 A/B/A与Run16 B/A/B，同config/source/body/sampling/arrivals，全部36�
 
 35 CPU合同真实zcode --prompt/Result/bridge通过，PREFILL-CONTRACTS-20261001T1244Z/test.stderr5216B SHA62b420cc382e6522a40017f3cc23a1e73cd599568498188ec1f070edc0283a13。29原合同包含真实Run8 SSE错误所有byte boundaries、原样wire、避故障/zero-credit；新增phase/默认count/伪造与旧代际lease/首reasoning与tool/text/malformed observer。CPU不是性能KEEP；原failed Job不覆盖。
 
-下一由证据决定：D4096/gmu.87原生预算与余量候选只重载D，先真实冷长输入及PD/功能/动态测量；保持P现役。达到可运行配置后恢复同口径完整61440长输出与动态可变负载的正式重复/容量研究。源码metadata padding、DP2TP8、PP等仍可选，不固定扫描步骤，不因缺全部复现项停止研究。研究条件见[source_notes](source_notes.md)，恢复入口见[HANDOFF](../../../HANDOFF.md)。
+当前由Run21已完成的严格full证据推进Run22：只D原生prefill预算8192、P21预算4096保留。新seed匹配prefix/tail原body和native cache/prefill/usage/idle，以及PD/finite mixed瞬时安全决定后续。Dynamic-K原生接口已CPU确认但短K会丢失当前maxK decode Graph键，需覆盖执行成本；metadata/DP2/PP仍候选，无固定扫描队列。
 
 Run17有限D4096/.87验证：旧D128/.92停止、P12保留。新17推理12944输出、native cold81932→2048/capability/PD/dynamic均有效，Dynamic long0 TTFT1.6794s（旧约8s）、medium1.2971s（旧13s）、short1 .8231s（旧6.7s），wave80.0026token/s未证明吞吐提升。D KV3.16–3.17GiB/296902tokens，权重47.2182GiB、activation.35、non-torch2.58、Graph.86；runtime fit仅该有限合同。
 
@@ -32,3 +32,10 @@ Run19新增功能证据：四native usage/DONE原流均结束且无OOM，三条�
 CPU原型glm47_contract保持原生工具能力，缺tools或choice none启用native skip_tool_parsing保留文本，避免未请求工具识别/缓冲；提供tools走原native，非vendor patch/模型算子变更。真实tokenizer复现stock无tools误识别与tools-none文本丢失，候选流/非流/ID与字符分片及316k文本均通过；auto工具JSON仍正确。Run20仅D重载K5+插件，P12 K3保留；真实API/PD/动态成本验证已完成（Run20），组合部署差异不伪装isolated gain。K3固定601.659s窗口P/D第三接受.729/.962支持研究深度，但新增草稿/验证/通信成本和动态低acceptance效应未知，无容量界/KEEP。
 
 Run20 finite：21新推理13037输出、实际工具API/PD/capability/dynamic与终态清空均有效。D K5 KV296902/3.16–3.18GiB、Graph.92实测fit。Dynamic78.4769 vs旧80.0026无总体收益；冷同body2048 TPOT22.814vs25.451ms只是单次且normalized channel hash不同，不作精度质量/same-output因果评价。Cold K5 draft+accepted2051而actual2048，裁剪3不计信用；dynamic draft计sequence不是device round。Run21新正式合同：仅P重载同K5/插件、D20保留，P工具API/PD与双prefix预热已过，四完整61440 E2E按Run19原严格判据执行；所有收益与容量待真实结果，Current不升。
+
+
+- Run21 completed/dead：四条81932→61440严格原生usage/length/DONE/error/unknown/全部attempt/hash重放均通过，245760有效输出；full CLI2454.551585s/100.124194token/s。TTFT(first SSE)P50 6003.388667ms、未舍入TPOT P50 18.006747585ms，原CSV判据仍FAIL。四样本/单正式轮INCONCLUSIVE，无重复KEEP/稳定容量。
+- Run21 full-only sample6→final：各副本queries163864/hits143360，external queries20504/hits0，generation122880/preemption0；每请求平均71680命中、10252需计算。P/D native prefill两条合计11.227994/11.403356s，queue合计44.232/34.512微秒；native TTFT合计11.711228/11.878820s，gateway真实首输出5.930–6.018s。原生host计时支持prefill gap，不是device kernel归因。P drafts29886/accepted92999，overshoot5不计输出；D26359/96521/overshoot0；dynamic count为sequence而非engine round。
+- **活动Run22**：唯一controller PID2066773、boot6d9cf06f-a02d-49ef-b7fe-cc456a7b2025/start261953222，20项源码/spec SHA2ba81b1c1cbd8e705f778b67f16172fcd629f8f21956639adad3beb48e89c0cd冻结。Run21终态/dead后仅D20 PID3900500精确停止且旧整log已保存；新D PID3307628预期budget8192/.87/K5/Graph FULL_DECODE_ONLY，startup/readiness待完成；P21 PID3646900/原身份、budget4096/.87/K5保持健康。真实zcode launch-v2通过；原launch Job因work_type协议校验在CLI/controller之前拒绝，原记录保留。
+- Run22问题：试减少10252未命中token的prefill chunk数，同时测native KV/显存及mixed负载代价；原算子实现不变，不把budget提高当免费收益。新datasetseed20261002的73740→1和两个81932→2048 body分别发两副本，逐pair原body hash一致/usage长度/原生before-after counters/idle；requestseed omitted/native1024。旧cold/PD/六dynamic原body按原诊断seed复用；不恢复旧队列、不计旧API/cancel/n2为新结果。当前尚未完成，Current无KEEP。
+- 只读monitor PID2111841，MONITOR-RUN22-20261001T1701Z，真实zcode/Result/bridge，正常采样45s、无推理/服务动作；原Run21 monitor已终止。
