@@ -1,3 +1,3 @@
 # GLM-RUN-0022
 
-Prepared new D-only native8192 budget diagnostic after Run21 completed. Results pending. Exact source/spec frozen; no old queue replay.
+INVALID driver: tokenizer counted BatchEncoding keys, prefix failed before inference. One new cold81932->2048 strictly valid; TTFT37.8091s/TPOT28.7142ms. Native8192 question remains open. Frozen sources/spec and raw preserved; new Run23 retains exact P21/D22 and never-requested dataset. No formalSLA/KEEP/capacity claim.

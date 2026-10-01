@@ -21,7 +21,7 @@ Run15 A/B/A与Run16 B/A/B，同config/source/body/sampling/arrivals，全部36�
 
 35 CPU合同真实zcode --prompt/Result/bridge通过，PREFILL-CONTRACTS-20261001T1244Z/test.stderr5216B SHA62b420cc382e6522a40017f3cc23a1e73cd599568498188ec1f070edc0283a13。29原合同包含真实Run8 SSE错误所有byte boundaries、原样wire、避故障/zero-credit；新增phase/默认count/伪造与旧代际lease/首reasoning与tool/text/malformed observer。CPU不是性能KEEP；原failed Job不覆盖。
 
-当前由Run21已完成的严格full证据推进Run22：只D原生prefill预算8192、P21预算4096保留。新seed匹配prefix/tail原body和native cache/prefill/usage/idle，以及PD/finite mixed瞬时安全决定后续。Dynamic-K原生接口已CPU确认但短K会丢失当前maxK decode Graph键，需覆盖执行成本；metadata/DP2/PP仍候选，无固定扫描队列。
+Run22脚本失败保留，Run23正确fixture的finite E2E已完成有效。8192预算未解决4s TTFT，KV少13%；下一问题转原生跨两机DP2/TP16/DCP16/EP32可行性，先查启动/内存/collective/Graph语义；不预排固定扫描。
 
 Run17有限D4096/.87验证：旧D128/.92停止、P12保留。新17推理12944输出、native cold81932→2048/capability/PD/dynamic均有效，Dynamic long0 TTFT1.6794s（旧约8s）、medium1.2971s（旧13s）、short1 .8231s（旧6.7s），wave80.0026token/s未证明吞吐提升。D KV3.16–3.17GiB/296902tokens，权重47.2182GiB、activation.35、non-torch2.58、Graph.86；runtime fit仅该有限合同。
 
@@ -36,6 +36,11 @@ Run20 finite：21新推理13037输出、实际工具API/PD/capability/dynamic与
 
 - Run21 completed/dead：四条81932→61440严格原生usage/length/DONE/error/unknown/全部attempt/hash重放均通过，245760有效输出；full CLI2454.551585s/100.124194token/s。TTFT(first SSE)P50 6003.388667ms、未舍入TPOT P50 18.006747585ms，原CSV判据仍FAIL。四样本/单正式轮INCONCLUSIVE，无重复KEEP/稳定容量。
 - Run21 full-only sample6→final：各副本queries163864/hits143360，external queries20504/hits0，generation122880/preemption0；每请求平均71680命中、10252需计算。P/D native prefill两条合计11.227994/11.403356s，queue合计44.232/34.512微秒；native TTFT合计11.711228/11.878820s，gateway真实首输出5.930–6.018s。原生host计时支持prefill gap，不是device kernel归因。P drafts29886/accepted92999，overshoot5不计输出；D26359/96521/overshoot0；dynamic count为sequence而非engine round。
-- **活动Run22**：唯一controller PID2066773、boot6d9cf06f-a02d-49ef-b7fe-cc456a7b2025/start261953222，20项源码/spec SHA2ba81b1c1cbd8e705f778b67f16172fcd629f8f21956639adad3beb48e89c0cd冻结。Run21终态/dead后仅D20 PID3900500精确停止且旧整log已保存；新D PID3307628预期budget8192/.87/K5/Graph FULL_DECODE_ONLY，startup/readiness待完成；P21 PID3646900/原身份、budget4096/.87/K5保持健康。真实zcode launch-v2通过；原launch Job因work_type协议校验在CLI/controller之前拒绝，原记录保留。
-- Run22问题：试减少10252未命中token的prefill chunk数，同时测native KV/显存及mixed负载代价；原算子实现不变，不把budget提高当免费收益。新datasetseed20261002的73740→1和两个81932→2048 body分别发两副本，逐pair原body hash一致/usage长度/原生before-after counters/idle；requestseed omitted/native1024。旧cold/PD/六dynamic原body按原诊断seed复用；不恢复旧队列、不计旧API/cancel/n2为新结果。当前尚未完成，Current无KEEP。
 - 只读monitor PID2111841，MONITOR-RUN22-20261001T1701Z，真实zcode/Result/bridge，正常采样45s、无推理/服务动作；原Run21 monitor已终止。
+
+- **Run22终态INVALID、Run23完成有效诊断**：Run22 controller2066773已failed/dead，prefix fixture因len(BatchEncoding keys)=2在任何prefix/PD/dynamic请求前失败；冻结失败源码/spec不改，唯一新cold81932→2048严格有效并只记2048。修正input_ids的实际tokenizer CPU预检VALID，Run23以新spec SHA30304a8d10683f73c09b9893f39aa81cb92979a900628a571f97bc6a6ae51a0d、17项源码启动新唯一controller2896164（boot6d9cf06f-a02d-49ef-b7fe-cc456a7b2025/start262127432），于2026-10-01T17:32:41Z completed/dead。精确P21 PID3646900/D22 PID3307628身份保留，无reload/cold/旧队列重放。
+- Run23新增13推理/17538有效输出：六paired prefix/tail（datasetseed20261002、每pair canonical body SHA一致、requestseed omitted/native1024）、PD81932→256、六dynamic。实际zcode归约REDUCE-PREFIX23-20261001T1735Z VALID，reduction35129B/SHA55aceb94883f0506feca3a907f9ebf63a1faa2fa498aabf8fabe865c70e97fec；所有body/response记录hash、native usage/length/DONE/no unknown/error、lease释放和两端idle复验。Run22 cold只引用不重复计新。
+- P4096/D8192 matched冷prefix73740→1 TTFT33.6948/33.0379s，hits0。两对tail81932→2048 TTFTP6.0176/5.9913s、D5.8962/5.8795s；每条native hits71680/未命中10252，prefillP5.5978/5.6237s、D5.5576/5.5253s，queue<34us、preempt0。host/驻留条件下的小差距不是隔离因果/重复收益，仍不达TTFTP50<4s。D8192 KV258264 tokens/2.76–2.78GiB，相对D4096的296902下降13.01%；startup Graph.91–.92GiB，有限PD/dynamic安全已验证，完整61440同配置/稳定容量unknown。
+- Run23 dynamic9088/89.6561s=101.3651 TPS，native prefix hits P159744/164069、D79872/90471，preempt0/final idle、gateway退出/lease0。旧轮次cache/部署不同，不能把TPS差归因budget或代码，也不是formal61440或KEEP。Current无KEEP。
+- 新发现：实际tokenizer三canonical body两两LCP73738，2048对齐可共享73728，native实际71680。原生scheduler/speculative use_eagle及cache manager的MTP last-block drop为draft hidden-state重算保留一个DCP16×block128=2048块；不取消依赖。已保存CACHE-PREFIX-SOURCE23与PREFIX-LCP23原生源码/CPU证据。Partial hash-hit源码当前仅特定Mamba align且DCP1，不能直接套GLM DCP16。
+- 下一问题：budget8192只显示约0.1s尾部TTFT差且少13%KV，暂不提升Current或重复同项。DP2/TP16/DCP16/EP32跨两机可将专家分片扩大到32；正只读核验原生启动、跨机collective/Graph/专家内存语义，尚未部署/证明fit或收益。现役两台健康idle；所有新执行仍交新唯一controller，无预排扫描。
