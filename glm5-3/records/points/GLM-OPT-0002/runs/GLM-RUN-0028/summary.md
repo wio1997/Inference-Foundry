@@ -1,3 +1,3 @@
 # GLM-RUN-0028
 
-Prepared opt-in coupledDP synchronized Graph padding metadata prototype.12 CPU contract cases and fullnativeWorker-config pass; operator implementations unchanged. New exact jointcohort rebuild required, followed31completed-request bounded E2E with allattempts/raw/nativecounters. No native fit/functionality/gain yet.
+INVALID driver: deploy.py required16 INFO installation lines/node but observed0 on DP0, after both native APIs became healthy. Controller/child terminal dead; zero inference attempts/outputs. Frozen source/spec preserved. Explicit Worker path and verified native resolution/init source provide installation inference; direct live object and shape telemetry remain unknown. Native cohort retained for new bounded E2E in Run29, no reload. CPU logger diagnostic first Zcode call timed out with no output/Result; separate retry pending. This is not native fit or prototype semantic rejection.
