@@ -29,4 +29,6 @@ Run18在任何推理前reset端点404，driver INVALID，零新输出/原生无�
 
 Run19新增功能证据：四native usage/DONE原流均结束且无OOM，三条严格length通过，一D条无tools仍解析出316479字符函数名和321629B末帧/tool_calls。bounded observer unknown、strict验收失败；三条仅部分184320输出，全部generated245760不成为完整有效TPS。原合同不放宽；AISBench CLI0/success4不能替代native功能，Current不升。Run3旧证据没有该原wire，新增合同下不得事后认证；保留历史计数/SLA口径。已terminal/dead、lease0/native idle/gateway退出。
 
-CPU原型glm47_contract保持原生工具能力，缺tools或choice none启用native skip_tool_parsing保留文本，避免未请求工具识别/缓冲；提供tools走原native，非vendor patch/模型算子变更。真实tokenizer复现stock无tools误识别与tools-none文本丢失，候选流/非流/ID与字符分片及316k文本均通过；auto工具JSON仍正确。Run20仅D重载K5+插件，P12 K3保留；真实API/PD/动态成本验证进行中，组合部署差异不伪装isolated gain。K3固定601.659s窗口P/D第三接受.729/.962支持研究深度，但新增草稿/验证/通信成本和动态低acceptance效应未知，无容量界/KEEP。
+CPU原型glm47_contract保持原生工具能力，缺tools或choice none启用native skip_tool_parsing保留文本，避免未请求工具识别/缓冲；提供tools走原native，非vendor patch/模型算子变更。真实tokenizer复现stock无tools误识别与tools-none文本丢失，候选流/非流/ID与字符分片及316k文本均通过；auto工具JSON仍正确。Run20仅D重载K5+插件，P12 K3保留；真实API/PD/动态成本验证已完成（Run20），组合部署差异不伪装isolated gain。K3固定601.659s窗口P/D第三接受.729/.962支持研究深度，但新增草稿/验证/通信成本和动态低acceptance效应未知，无容量界/KEEP。
+
+Run20 finite：21新推理13037输出、实际工具API/PD/capability/dynamic与终态清空均有效。D K5 KV296902/3.16–3.18GiB、Graph.92实测fit。Dynamic78.4769 vs旧80.0026无总体收益；冷同body2048 TPOT22.814vs25.451ms只是单次且normalized channel hash不同，不作精度质量/same-output因果评价。Cold K5 draft+accepted2051而actual2048，裁剪3不计信用；dynamic draft计sequence不是device round。Run21新正式合同：仅P重载同K5/插件、D20保留，P工具API/PD与双prefix预热已过，四完整61440 E2E按Run19原严格判据执行；所有收益与容量待真实结果，Current不升。
