@@ -24,7 +24,7 @@ def main(spec_path):
                     event=json.loads(value)
                     if event.get('usage'):row['usage']=event['usage']
                     for choice in event.get('choices',[]):
-                        content=choice.get('delta',{}).get('content') or choice.get('delta',{}).get('reasoning_content') or ''
+                        content=choice.get('delta',{}).get('content') or choice.get('delta',{}).get('reasoning_content') or choice.get('delta',{}).get('reasoning') or ''
                         if content:
                             if row['first_content_s'] is None:row['first_content_s']=ts
                             digest.update(content.encode());chunks+=1

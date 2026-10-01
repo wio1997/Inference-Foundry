@@ -13,13 +13,13 @@ BACKENDS=[{'id':'P166','url':'http://172.16.10.166:9081'},{'id':'D167','url':'ht
 ROUTER='http://127.0.0.1:8002'
 
 def body(text,output=128,stream=True,completion=False,n=1):
-    value={'model':'glm-52','max_tokens':output,'temperature':0,'seed':20260930,'ignore_eos':True,'stream':stream,'n':n}
+    value={'model':'glm-52','max_tokens':output,'temperature':(.7 if n>1 else 0),'seed':20260930,'ignore_eos':True,'stream':stream,'n':n}
     if completion:value['prompt']=text
     else:value['messages']=[{'role':'user','content':text}]
     if stream:value['stream_options']={'include_usage':True}
     return value
 
-async def main(root,run_id):
+async def main(root,run_id,reuse_local=None):
     import httpx
     root=Path(root);root.mkdir(exist_ok=False)
     owner=json.loads((LOCK_ROOT/'controller-owner.json').read_text())
@@ -63,10 +63,19 @@ async def main(root,run_id):
             return result
         try:
             await idle('initial')
-            for replica in BACKENDS:
-                await load('local_'+replica['id'],[(body('Explain request scheduling briefly. '*64),{'expected':{'output_tokens':128}})],replica['url']+'/v1/chat/completions')
+            if reuse_local:
+                identities=[json.loads((Path(reuse_local).parent/(node+'_source.snapshot.json')).read_text()) for node in ['166','167']]
+                current=[json.loads((root.parent/(node+'_source.snapshot.json')).read_text()) for node in ['166','167']]
+                if any(json.loads(a['stdout'])!=json.loads(b['stdout']) for a,b in zip(identities,current)):raise RuntimeError('local reuse source identity differs')
+                for replica in BACKENDS:
+                    path=Path(reuse_local)/('local_'+replica['id'])/'load_result.json';data=json.loads(path.read_text())
+                    if not data['valid'] or data['effective_output_tokens']!=128:raise RuntimeError('local reuse contract invalid')
+                    record('reused_local_full_request',replica=replica['id'],path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),limits='native source/config retained; original D firsttoken field missing, remeasured offline; no performance comparison')
+            else:
+                for replica in BACKENDS:
+                    await load('local_'+replica['id'],[(body('Explain request scheduling briefly. '*64),{'expected':{'output_tokens':128}})],replica['url']+'/v1/chat/completions')
             record('local_full_requests_valid')
-            env={**os.environ,'GLM_REPLICAS':json.dumps(BACKENDS),'PYTHONPATH':str(Path(__file__).resolve().parent.parent/'runtime')}
+            env={**os.environ,'GLM_REPLICAS':json.dumps(BACKENDS),'GLM_ROUTER_TRACE_PATH':str(root/'router_trace.jsonl'),'PYTHONPATH':str(Path(__file__).resolve().parent.parent/'runtime')}
             log=(root/'gateway.log').open('wb')
             gateway=subprocess.Popen([sys.executable,str(Path(__file__).resolve().parent.parent/'runtime/replica_gateway.py'),'--port','8002'],env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
             record('gateway_started',pid=gateway.pid)
@@ -116,9 +125,9 @@ async def main(root,run_id):
                     value=line[5:].strip()
                     if value=='[DONE]':raise RuntimeError('cancel request completed before client cancellation')
                     event=json.loads(value)
-                    if any(c.get('delta',{}).get('content') or c.get('delta',{}).get('reasoning_content') for c in event.get('choices',[])):first=value;break
+                    if any(c.get('delta',{}).get('content') or c.get('delta',{}).get('reasoning_content') or c.get('delta',{}).get('reasoning') for c in event.get('choices',[])):first=value;break
             if first is None:raise RuntimeError('no first content observed for cancellation')
-            record('client_closed_after_first_content',first_event=first,elapsed_s=time.monotonic()-cancel_start)
+            record('client_closed_after_first_output',first_event=first,elapsed_s=time.monotonic()-cancel_start)
             end=time.monotonic()+30
             while True:
                 snapshot=(await client.get(ROUTER+'/control/replicas')).json()
@@ -141,4 +150,4 @@ async def main(root,run_id):
             if gateway:record('gateway_stopped',exit_code=gateway.returncode)
             if log:log.close()
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('root');p.add_argument('run_id');a=p.parse_args();asyncio.run(main(a.root,a.run_id))
+    p=argparse.ArgumentParser();p.add_argument('root');p.add_argument('run_id');p.add_argument('--reuse-local');a=p.parse_args();asyncio.run(main(a.root,a.run_id,a.reuse_local))

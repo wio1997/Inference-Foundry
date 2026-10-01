@@ -10,3 +10,5 @@
 - 执行：GLM-RUN-0001计划真实81920原始prompt→256，concurrency1，显式resident_history_unknown。controller/source/command/返回usage/finish/DONE与原始SSE留服务器。Run执行状态以该目录state/phase和结果为准，未返回前不填性能。
 - 当前最佳：无正式可重复KEEP；数值界与稳定容量unknown。新Run可形成诊断结论，不能因短输出样本宣布达标或到顶。
 - 已知边界：task-global flock保护遵循锁的controller和legacy suite；直接legacy lifecycle入口仍可绕过，不声称全入口防护。未知中断stage不得自动重放；未测试现役长任务强制中断。不要求全部复现缺口补齐后才研究。
+
+Run0003正式c2四请求245760有效token、61440/request均完成，TTFT(first SSE) P50 6.0588s及TPOT P50 22.9ms未达SLO；详见Run3 summary/reduction_v2，Current不提升。早期Run1/2 first_content遗漏reasoning，已离线修订真实首输出/TPOT，原raw不改；不能再引用14.625ms作为Run1真实first-token TPOT。

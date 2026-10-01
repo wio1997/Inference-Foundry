@@ -3,7 +3,7 @@
 This is a finite workload runner, not a stable-capacity certificate. All arrivals
 get independent async tasks; connection/client dispatch delay remains in latency.
 """
-import argparse,asyncio,hashlib,json,math,time
+import argparse,asyncio,base64,hashlib,json,math,time
 from pathlib import Path
 from phase_runner import atomic_json,utc
 
@@ -29,7 +29,7 @@ async def execute(plan,root,transport=None):
                 row['http_status']=response.status_code
                 with (root/(str(r['id'])+'.response.jsonl')).open('x') as raw:
                     if response.status_code!=200:
-                        payload=await response.aread();raw.write(json.dumps({'elapsed_s':time.monotonic()-target,'error_body_sha256':hashlib.sha256(payload).hexdigest(),'error_body_bytes':len(payload)})+'\n');row['outcome']='http_error';return
+                        payload=await response.aread();raw.write(json.dumps({'elapsed_s':time.monotonic()-target,'error_body_sha256':hashlib.sha256(payload).hexdigest(),'error_body_bytes':len(payload),'error_body_base64':base64.b64encode(payload).decode('ascii')})+'\n');row['outcome']='http_error';return
                     if json.loads(body).get('stream',False):
                         async for line in response.aiter_lines():
                             if not line.startswith('data:'):continue
@@ -38,7 +38,7 @@ async def execute(plan,root,transport=None):
                             event=json.loads(value);events+=1
                             if event.get('usage'):row['usage']=event['usage']
                             for choice in event.get('choices',[]):
-                                delta=choice.get('delta',{});text=delta.get('content') or delta.get('reasoning_content') or choice.get('text') or ''
+                                delta=choice.get('delta',{});text=delta.get('content') or delta.get('reasoning_content') or delta.get('reasoning') or choice.get('text') or ''
                                 if text or delta.get('tool_calls') or delta.get('function_call'):
                                     if row['ttft_s'] is None:row['ttft_s']=ts
                                     content.update(json.dumps(delta,sort_keys=True,ensure_ascii=False).encode())

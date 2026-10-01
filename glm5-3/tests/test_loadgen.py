@@ -39,4 +39,14 @@ class LoadContracts(unittest.IsolatedAsyncioTestCase):
                     yield b'data: [DONE]\n\n'
             async def upstream(request):return httpx.Response(200,stream=Completion())
             result=await execute({'endpoint':'http://fixture/v1/completions','requests':[{'id':'a','arrival_s':0,'body_path':str(body)}]},root,httpx.MockTransport(upstream));self.assertTrue(result['valid']);self.assertIsNotNone(result['requests'][0]['ttft_s'])
+    async def test_native_reasoning_is_first_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);body=root/'body.json';body.write_text('{"stream":true}')
+            class Reasoning(httpx.AsyncByteStream):
+                async def __aiter__(self):
+                    yield b'data: {"choices":[{"index":0,"delta":{"reasoning":"thinking"}}]}\n\n'
+                    yield b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"length"}],"usage":{"completion_tokens":2}}\n\n'
+                    yield b'data: [DONE]\n\n'
+            async def upstream(request):return httpx.Response(200,stream=Reasoning())
+            result=await execute({'endpoint':'http://fixture/v1/chat/completions','requests':[{'id':'a','arrival_s':0,'body_path':str(body)}]},root,httpx.MockTransport(upstream));self.assertTrue(result['valid']);self.assertIsNotNone(result['requests'][0]['ttft_s'])
 if __name__=='__main__':unittest.main()

@@ -4,7 +4,7 @@ Engines remain the state/KV/MTP owners. Payloads, output bytes, native error
 status and sampling parameters pass through. No post-first-byte retry occurs.
 The current implementation has one scheduling process; launch one worker.
 """
-import argparse,asyncio,json,os
+import argparse,asyncio,hashlib,json,os,time
 from contextlib import asynccontextmanager
 from placement import Placement,estimate_request
 
@@ -22,13 +22,23 @@ def create_app(config=None,transport=None):
     from fastapi.responses import JSONResponse,StreamingResponse
     replicas=config if config is not None else json.loads(os.environ['GLM_REPLICAS'])
     placement=Placement(replicas)
+    trace_fd=None
+    def trace(event,lease=None,**fields):
+        if trace_fd is None:return
+        if lease:fields.update(lease_id=lease.lease_id,replica=lease.replica.key,generation=lease.replica.generation)
+        try:os.write(trace_fd,(json.dumps({'event':event,'monotonic_ns':time.monotonic_ns(),'pid':os.getpid(),**fields},separators=(',',':'))+'\n').encode())
+        except OSError:pass
     @asynccontextmanager
     async def lifespan(app):
+        nonlocal trace_fd
+        trace_path=os.environ.get('GLM_ROUTER_TRACE_PATH')
+        if trace_path:trace_fd=os.open(trace_path,os.O_CREAT|os.O_APPEND|os.O_WRONLY,0o600)
         app.state.cleanup_tasks=set()
         app.state.client=httpx.AsyncClient(timeout=httpx.Timeout(connect=10,read=None,write=30,pool=30),trust_env=False,transport=transport)
         yield
         if app.state.cleanup_tasks:await asyncio.gather(*app.state.cleanup_tasks,return_exceptions=True)
         await app.state.client.aclose()
+        if trace_fd is not None:os.close(trace_fd);trace_fd=None
     app=FastAPI(lifespan=lifespan);app.state.placement=placement
     @app.get('/healthcheck')
     async def healthcheck():
@@ -55,6 +65,7 @@ def create_app(config=None,transport=None):
         body=await request.body();budget,size=estimate_request(body)
         try:lease=await placement.acquire(budget,size)
         except RuntimeError as error:return JSONResponse({'error':str(error)},status_code=503)
+        trace('lease_acquired',lease,path=request.url.path,method=request.method,output_budget=budget,input_bytes=size,body_sha256=hashlib.sha256(body).hexdigest() if trace_fd is not None else None)
         response=None;cleanup_task=None
         async def close(failure=False):
             nonlocal cleanup_task
@@ -62,7 +73,9 @@ def create_app(config=None,transport=None):
                 async def cleanup():
                     try:
                         if response is not None:await response.aclose()
-                    finally:await placement.release(lease,backend_failure=failure)
+                    finally:
+                        released=await placement.release(lease,backend_failure=failure)
+                        trace('lease_released',lease,backend_failure=failure,released=released)
                 cleanup_task=asyncio.create_task(cleanup())
                 app.state.cleanup_tasks.add(cleanup_task)
                 cleanup_task.add_done_callback(app.state.cleanup_tasks.discard)
@@ -75,15 +88,18 @@ def create_app(config=None,transport=None):
             if request.url.query:url+='?'+request.url.query
             outgoing=app.state.client.build_request(request.method,url,content=body,headers=headers)
             response=await app.state.client.send(outgoing,stream=True)
+            trace('upstream_headers',lease,status=response.status_code)
         except asyncio.CancelledError:await close();raise
         except httpx.HTTPError as error:
             await close(True);return JSONResponse({'error':{'type':'upstream_error','message':str(error)}},status_code=502)
         except BaseException:
             await close();raise
         async def stream():
-            failure=response.status_code>=500
+            failure=response.status_code>=500;first=True
             try:
-                async for block in response.aiter_raw():yield block
+                async for block in response.aiter_raw():
+                    if first and block:trace('upstream_first_bytes',lease,bytes=len(block));first=False
+                    yield block
             except httpx.HTTPError:failure=True;raise
             finally:await close(failure)
         # Preserve duplicate end-to-end headers and raw encoding unchanged.

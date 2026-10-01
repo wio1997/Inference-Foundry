@@ -1,21 +1,22 @@
-# GLM-OPT-0002 — 完整请求的资源部署与动态placement
+# GLM-OPT-0002 — 完整请求部署与动态placement
 
-类型：deployment/runtime；状态PROTOTYPE，尚无性能Run或KEEP。
+状态ACTIVE；性能INCONCLUSIVE，无正式KEEP/稳定容量或可行域极限证书。
 
-问题：当前1P1D两台各持完整模型，长输出主要由D16芯执行，P仅产生首token。旧c3和新短E2E证明PD路径有效但未稳定达SLO；并发1短TPOT也超过18ms。不能只在D调并发后宣布两台硬件极限。两个完整模型实例已合法驻留，研究完整请求分配给两个节点的可行性与容量；未证明收益。
+当前1P1D两端持完整模型，P长期闲置；Run3 c2完整长输出仍未达TTFT/TPOT SLO，c1诊断TPOT也不稳。研究在现有两台内利用已合法驻留模型的完整请求部署，native engine保留KV/MTP/Graph/提交和sampling状态，不改算子计算或精度。
 
-来源：当前安装0.27 Mooncake scheduler的get_num_new_matched_tokens在kv_transfer_params=None时返回(0,False)，request_finished返回(False,None)，支持本地请求的源码路径。引擎attention/role、prefill budget与MTP/Graph完整本地执行仍需真实E2E核验。P MTP1/eager与D MTP3/FULL_DECODE_ONLY，未经配置对齐不能将两实例差异当代码收益。TP8承载方式按EP世界判断：源码支持DP2×TP8×EP16专家跨DP/TP分片，不能用checkpoint/8直接否定；非专家、KV/activation/Graph适配仍需实际验证。
+代码：完整请求透明router、唯一worker placement lease、native状态/raw payload、一次回收、drain/代际/故障隔离；未知成本用active count，全部候选有速率提示才比较估算秒。开放到达loadgen把计划到达纳入延迟，usage/finish/DONE必须齐全，negative/cancel不算有效推理；包含native reasoning/可见text首输出。可关闭的opaque router trace关联lease、body SHA、目标代际、header/firstbytes/release，不改变payload。Stock PD阶段overlay是独立观测候选，未替换现役8000。
 
-实现：placement.py以唯一服务进程管理请求lease、未知/已校准成本、drain和代际，释放恰好一次；未校准用active计数，不混用秒和请求数。replica_gateway.py透明转发完整API payload/native status/raw body，保留sampling/tool/多模态字段，流开始后不重试；断开、header错误和cancel shield资源回收。每个engine仍拥有KV/MTP/Graph状态，router不发明或跨engine复制状态。默认一个调度进程，当前未宣称多worker共享lease。
+真实Run：
 
-另外GLM-OPT-0001的glm_gateway.py以source hash锁定完整stock PD proxy，提供可关闭的请求阶段观测，保留native routing/retry/状态处理与所有PD接口。与完整请求路由是不同部署候选，不能把trace收益算优化。
+- Run4：两端本地334→128均有效；mixed四条成功720token/native400正确。错误测试将greedy temperature0/n2预期成功，导致INVALID；原生SamplingParams要求greedy n1，不能归为router失败。D reasoning首输出测量遗漏已修正后续代码。
+- Run5：复用Run4有效本地P/D请求，新7推理请求1296token及expected400、独立cancel；variable open arrivals、stream/nonstream、chat/completion、合法n2 temperature.7、active drain、generation readd通过。Cancel lease释放后native P running1→0约观察1s，P/D waiting/running均0，gateway8002退出。仅功能诊断，完整rare branch/稳定服务仍未知。
+- Run5 P-only32输出TPOT239.775ms，D drain512 TPOT21.879ms；不同配置/输入，不是代码收益。证据支持让P由eager/MTP1转为Graph/MTP3，D提高prefill预算以支持完整长输入服务，再检验PD兼容。
+- Run6：候选两端Graph/MTP3、batch16384。P Bash JSON默认展开多括号，CLI解析失败，未加载P；D已启动。核验controller boot/startticks后取消，保留INVALID，没有误判硬件或模型。
+- Run7：P literal JSON已通过CPU实际shell argv展开验证；接管D、实际启动P。Readiness误读启动前旧P日志提前退出，INVALID；没有中断两端模型。
+- Run8：核验两端实际PID/boot/startticks和raw proc argv，接管既有Graph/MTP3启动，不重复加载；等待健康后执行相同native capability及旧PD81932→256兼容E2E。最新state为准，尚未宣称通过。
 
-验收：先模拟验证payload/status/SSE、错误取消、lease/idempotence/drain/代际与动态更新；正式Run0003释放共享资源后，用当前两机小真实请求核验本地全路径。可行再选择对齐配置和同工作量真实E2E，动态到达/混合长度容量是目标，不以固定shape手工清单缩小功能。若本地consumer路径不支持，就依据证据选择必要重启/可行配置。
+源码/存储依据见[source_notes](source_notes.md)：DP2TP8EP16的专家跨DP/TP分片语义成立，不用checkpoint/8否定，也不证明runtime fit。PP默认39/39从共享索引层开始，IntermediateTensors不传topk buffer；38/40是待验证候选，不是正确性结论。旧7月TP8DP2 profile为线索，版本/量化/关联D缺失，不继承数值。
 
-裁决：PROTOTYPE/INCONCLUSIVE。无新增实际请求或服务部署；不提升Current。未知：本地完整prefill/生成合法性、observer成本、两实例配置对齐、动态压力成本、达标稳定容量及全可行域上界。
+24 CPU合同测试经真实zcode --prompt/Result/bridge通过；TRACE-CONTRACTS-20261001T1040Z/test.stderr3706B SHA13c846203bd7edefb93d5c4b364521dbdfcaa52c57e0351b37582318e2e7caec。真实E2E是独立裁决，fixture不是性能证据。ROUTER-TEST-0937 Result及REDUCE-RUN3-1022失败均保留，未改raw或悄悄提升Current。
 
-合成合同：CONTRACTS-20261001T1010Z经真实zcode --prompt/Result/bridge通过，23 tests，stderr3594B SHA256 d6038dc4269f4b5d07f1f178ea7567f77bb7daa02706f9717fcffdae9bec2861。只证明所列CPU合同，不是GLM E2E。历史ROUTER-TEST-0937的九测试原始报告通过，但Result格式/十测试数量声明无效；保持INVALID、不修改raw。Zcode命令模式现在明确包装为Bash执行，避免绝对路径被当CLI slash命令。
-
-并行配置依据见[source_notes](source_notes.md)。默认PP39/39不能无条件沿用：第二stage从共享索引层39开始，依赖stage0层38；当前IntermediateTensors不传索引buffer。38/40从完整indexer层38切入，是待验证候选，非运行正确性结论。DP/EP和PP是可行域研究，不预置固定路线或阶段。
-
-发布前NATIVE-CONTRACTS-20261001T1013Z：23/23再次通过，完整stock source SHA校验与route list加载成功，无HTTP/NPU调用。test.stderr3594B SHA48afc3aff3bbf975da09d6fad5d9a63c11fdb9e4f506cdf98a812c1fb5ead19e；native.stdout416B SHA78102aaf618eec323e60e5268e13d0139e3103ae7a4a5bff664f99196fddda15。
+未知：跨配置/负载的达标稳定容量、可信上下界、对齐配置后的Graph/MTP/缓存/observer成本及完整native rare branches。路线按Run8及后续动态请求证据决定，不预置固定步骤或审批门槛。
