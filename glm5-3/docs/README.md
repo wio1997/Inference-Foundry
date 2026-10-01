@@ -10,7 +10,8 @@
 | 动态状态、slot/KV/Graph/PD契约 | [Runtime候选设计](research/GLM_SPECIALIZED_RUNTIME_DESIGN.md) |
 | profiling入口、0.27参数、多实例与观察器 | [Profiler核验](research/VLLM_ASCEND_PROFILING.md) |
 | 原12份MD职责与冲突 | [迁移映射](research/ORIGINAL_MD_MIGRATION_MAP.md) |
-| 模型成本与按需升级 | [模型策略](research/AGENT_MODEL_STRATEGY.md) |
+| high/medium、额度与按需升级 | [模型策略](research/AGENT_MODEL_STRATEGY.md) |
+| Zcode/subagent格式、服务/监控与大日志归约 | [Job/Result协议与桥接工具](ZCODE_PROTOCOL.md) |
 | 全部讨论的背景 | [完整方案快照](research/GLM5_3_W8A8_PD_PLAN.md) |
 | 固定来源与hash | [Source audit](research/SOURCE_AUDIT.json) |
 

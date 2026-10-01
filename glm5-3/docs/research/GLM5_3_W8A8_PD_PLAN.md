@@ -112,11 +112,11 @@ DeepSeek使用DSpark；通用依赖/资源/证据方法可沿用，稳定buffer�
 
 vLLM/Ascend prof用于恢复真实依赖、提交/执行/等待及request/cache/batch/通信关系；多机多rank通过请求/step/transfer/collective身份与有误差的时钟对齐，不能只看rank0或一个D。正式收益用未被重型profile污染的完整服务对照。动态负载以满足既有SLO和完整功能条件的稳定有效服务容量及折中曲线判断，有限wall的界不自动成为在线容量证明。具体profile入口、条件界与跨配置搜索方法见MULTINODE_PD_SCHEDULING_LIMIT_PLAN.md。
 
-后续默认成本感知组织：6.1 Sol high负责持续研究、代码与整合；复杂状态/结构问题按需Sol ultra；Astra仅用于可能避免昂贵重写、长启动或误判停止的独立判断；简单可验收工作默认zcode --prompt。当前用户选择ultra，本轮没有切换或降档。所有研究角色均可探索、实现、质疑前提和提出新结构，不继承DeepSeek禁用Sol主Agent或固定Astra owner。
+2026-10-01用户确认节省额度策略：单个6.1 Sol high主Agent负责关键研究、复杂重构与裁决；边界明确的日常工作可用medium。Zcode是接DeepSeek的CLI，默认处理服务启动、执行/等待/监控和大量日志归约，只回紧凑结论及关键证据；ultra临时解具体难题，Astra暂不安排。所有研究角色仍可探索、实现、质疑前提和提出新结构，不继承DeepSeek禁用Sol主Agent或固定Astra owner；文档不切换当前会话模型。
 
-API标准短上下文下6.1 Sol输入/输出单价为每百万token$2/$10，Astra为$10/$50，相同token数为5倍；不能据此计算用户Codex/Zcode实际账单，high/ultra也没有固定费用倍数。评价一次有效结论或可保留实现的总成本，包含Agent用量、重复上下文、返工、初始化、测量和恢复。[官方价格](https://developers.openai.com/api/docs/pricing)
+评价一次有效结论或可保留实现的总成本，包含Agent用量、重复上下文、返工、初始化、测量和恢复。API价格不能直接换算Codex/Zcode额度，high/ultra也没有项目实测的固定消耗倍数。长测试交脚本运行，按有意义checkpoint取结果，不持续调用模型等待。
 
-需要多模型时给当前决策的事实包与raw evidence，按需独立解题；不每轮双模型批准、不以投票裁决性能。Zcode执行现成shell时prompt是一条完整命令，代码任务给清楚范围和验收；主Agent核验内层执行和产物。当前本地PATH未找到zcode，未推定远端不可用，也未执行Zcode；后续现场按实际版本/路径调用。详细模型选项见AGENT_MODEL_STRATEGY.md。
+临时升级只给具体问题与相关事实/源码/证据，不复制整个会话或默认并行复制完整研究。Zcode/subagent按[Job/Result协议](../ZCODE_PROTOCOL.md)交接，现场共享资源由唯一controller管理；CLI原始输出留文件，格式和执行状态经桥接器核对。用户确认DeepSeek后端可用，本机PATH仍未找到CLI，实际现场路径/model id待核验，本次未调用。详细分工见[AGENT_MODEL_STRATEGY.md](AGENT_MODEL_STRATEGY.md)。
 
 ## 8 文档与实际交付
 

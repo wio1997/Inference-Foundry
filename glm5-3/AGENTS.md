@@ -34,7 +34,7 @@ GitHub是权威记录。优化点唯一ID关联代码与Run；KEEP/REJECT/INCONC
 
 先读已有证据；少量真实窗口区分假说，尽量复用驻留权重/资源。拓扑、地址、ABI或capture变更按依赖重建，不承诺任意热切。重型prof与正式性能分开；多实例/rank核对覆盖与时钟误差。单controller管理共享现场，只操作本次资源，不盲重跑或声称虚假后台。
 
-简单可验收任务默认zcode --prompt，现成shell输入一条完整命令，代码任务说明范围/验收；主Agent核验内层执行与产物。建议持续主线Sol high，难题按需ultra/Astra；当前用户ultra不自动更改，不禁用Sol主Agent，不每Run双模型批准。
+默认单个6.1 Sol high主Agent负责关键研究/复杂代码/裁决，明确日常工作可用medium；ultra临时解具体难题，Astra暂不安排。Zcode是接DeepSeek的CLI，默认承担服务启动/执行/监控及大量日志归约；脚本/controller驻留运行，只回紧凑结论、异常和证据引用。subagent按相同[Job/Result协议](docs/ZCODE_PROTOCOL.md)接续，共享现场由唯一controller排程。主Agent按风险定向核验，不接收整份日志，不每Run多模型复核；升级仅传相关事实/源码/证据。规则不切换当前会话模型，详细模型策略按需读。
 
 ## 7. Context Efficiency
 
