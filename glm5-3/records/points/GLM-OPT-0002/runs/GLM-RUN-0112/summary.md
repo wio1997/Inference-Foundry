@@ -1,0 +1,3 @@
+# GLM-RUN-0112
+
+112 INVALID zeroinference: expectedCPU22 SHA transcription omittedone e; prepare precondition failed before epochcheck/dynamic. Frozen32sources/state/log retained, readonlyauditVALID3399B SHA23b487db9a3e9a37cee608158acfe7a9756a4d17854a426f7066e61e6074b02e. CorrectCPU22 full64hexSHA2e93975a6fc642b087675cbc73306b4e4eec485491a43dd8995a065e0e5adb17, originalCPUevidence unchanged. Previoushuman21:35Zsummaryhash had same typo; correctionhere andcurrentHANDOFF, not rawrewrite.
