@@ -1,0 +1,484 @@
+[
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py",
+    "bytes": 72939,
+    "sha256": "ad82a4764bc53c5f3395eeed065d96d9916cd06f9c8f0f22d8a172c039f27a83",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/00_ascend_config.py",
+    "relevant_source_lines": [
+      {
+        "line": 258,
+        "context": [
+          "            \"multistream_overlap_shared_expert\": false,",
+          "            \"enable_kv_nz\": false,",
+          "            \"enable_mc2_hierarchy_comm\": false,",
+          "            \"enable_reduce_sample\": false,",
+          "            \"enable_dsa_cp\": false,",
+          "            \"draft_window_size\": null,",
+          "            \"mix_placement\": false,",
+          "            \"pa_shape_list\": [],",
+          "            \"mega_moe_max_tokens\": 65536,",
+          "            \"ascend_log_path\": \"~/ascend/log/vllm_ascend\","
+        ]
+      },
+      {
+        "line": 392,
+        "context": [
+          "    multistream_overlap_shared_expert: bool = False",
+          "    enable_kv_nz: bool = False",
+          "    enable_mc2_hierarchy_comm: bool = False  # deprecated, will be replaced by mc2_comm_alg = \"hierarchy\"",
+          "    enable_reduce_sample: bool = False",
+          "    enable_dsa_cp: bool = False",
+          "    draft_window_size: int | None = None",
+          "    mix_placement: bool = False",
+          "    pa_shape_list: list[Any] = dataclasses.field(default_factory=list)",
+          "    # Per-rank token capacity after dispatch in the fused MC2/MegaMoe path.",
+          "    # The same value is passed as dispatch_ffn_combine's max_output_size"
+        ]
+      },
+      {
+        "line": 717,
+        "context": [
+          "",
+          "        # Enable optimized reduce sampling scheme. Preserve the safeguards",
+          "        # added on main while consuming the already-validated typed field.",
+          "        if self.enable_reduce_sample:",
+          "            logger.warning_once(\"enable_reduce_sample is an experimental feature. Use with caution.\")",
+          "            if self.finegrained_tp_config.lmhead_tensor_parallel_size > 0:",
+          "                raise ValueError(",
+          "                    \"enable_reduce_sample is incompatible with \"",
+          "                    \"finegrained_tp_config.lmhead_tensor_parallel_size. \"",
+          "                    \"Please disable one of them.\""
+        ]
+      },
+      {
+        "line": 718,
+        "context": [
+          "        # Enable optimized reduce sampling scheme. Preserve the safeguards",
+          "        # added on main while consuming the already-validated typed field.",
+          "        if self.enable_reduce_sample:",
+          "            logger.warning_once(\"enable_reduce_sample is an experimental feature. Use with caution.\")",
+          "            if self.finegrained_tp_config.lmhead_tensor_parallel_size > 0:",
+          "                raise ValueError(",
+          "                    \"enable_reduce_sample is incompatible with \"",
+          "                    \"finegrained_tp_config.lmhead_tensor_parallel_size. \"",
+          "                    \"Please disable one of them.\"",
+          "                )"
+        ]
+      },
+      {
+        "line": 721,
+        "context": [
+          "            logger.warning_once(\"enable_reduce_sample is an experimental feature. Use with caution.\")",
+          "            if self.finegrained_tp_config.lmhead_tensor_parallel_size > 0:",
+          "                raise ValueError(",
+          "                    \"enable_reduce_sample is incompatible with \"",
+          "                    \"finegrained_tp_config.lmhead_tensor_parallel_size. \"",
+          "                    \"Please disable one of them.\"",
+          "                )",
+          "            kv_transfer_config = getattr(vc, \"kv_transfer_config\", None)",
+          "            kv_role = getattr(kv_transfer_config, \"kv_role\", None)",
+          "            if kv_role == \"kv_producer\":"
+        ]
+      },
+      {
+        "line": 729,
+        "context": [
+          "            kv_role = getattr(kv_transfer_config, \"kv_role\", None)",
+          "            if kv_role == \"kv_producer\":",
+          "                raise ValueError(",
+          "                    \"enable_reduce_sample is not supported on PD-disaggregated \"",
+          "                    \"scenarios. Please disable enable_reduce_sample.\"",
+          "                )",
+          "",
+          "        # mix_placement mutex",
+          "        self._check_mix_placement()",
+          ""
+        ]
+      },
+      {
+        "line": 730,
+        "context": [
+          "            if kv_role == \"kv_producer\":",
+          "                raise ValueError(",
+          "                    \"enable_reduce_sample is not supported on PD-disaggregated \"",
+          "                    \"scenarios. Please disable enable_reduce_sample.\"",
+          "                )",
+          "",
+          "        # mix_placement mutex",
+          "        self._check_mix_placement()",
+          "",
+          "        # sparse KV offload vs sparse SFA C8 main cache mutex"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/vocab_parallel_embedding.py",
+    "bytes": 17917,
+    "sha256": "ff720edd3a02b65a0dc4418dabac5b3d9ab5446cbe0ea857259c98976822cabc",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/01_vocab_parallel_embedding.py",
+    "relevant_source_lines": [
+      {
+        "line": 382,
+        "context": [
+          "        gathered_hidden_states = get_lmhead_tp_group().all_gather(hidden_states, dim=0)",
+          "        logits = self._apply_head(lm_head, gathered_hidden_states, embedding_bias)",
+          "        # Gather logits for tensor parallel",
+          "        if not get_ascend_config().enable_reduce_sample:",
+          "            logits = lmhead_all_to_all(logits, get_lmhead_tp_group())",
+          "",
+          "        # Remove paddings in vocab (if any)",
+          "        if logits is not None:",
+          "            if not get_ascend_config().enable_reduce_sample:",
+          "                logits = logits[..., : self.org_vocab_size]"
+        ]
+      },
+      {
+        "line": 387,
+        "context": [
+          "",
+          "        # Remove paddings in vocab (if any)",
+          "        if logits is not None:",
+          "            if not get_ascend_config().enable_reduce_sample:",
+          "                logits = logits[..., : self.org_vocab_size]",
+          "            else:",
+          "                logits = logits[..., : lm_head.num_org_embeddings_per_partition]",
+          "        return logits",
+          "",
+          "    def _get_logits_normal("
+        ]
+      },
+      {
+        "line": 401,
+        "context": [
+          "    ) -> torch.Tensor | None:",
+          "        logits = self._apply_head(lm_head, hidden_states, embedding_bias)",
+          "        # Gather logits for tensor parallel",
+          "        if not get_ascend_config().enable_reduce_sample:",
+          "            logits = self._gather_logits(logits)",
+          "",
+          "        # Remove paddings in vocab (if any)",
+          "        if logits is not None:",
+          "            if not get_ascend_config().enable_reduce_sample:",
+          "                logits = logits[..., : self.org_vocab_size]"
+        ]
+      },
+      {
+        "line": 406,
+        "context": [
+          "",
+          "        # Remove paddings in vocab (if any)",
+          "        if logits is not None:",
+          "            if not get_ascend_config().enable_reduce_sample:",
+          "                logits = logits[..., : self.org_vocab_size]",
+          "            else:",
+          "                logits = logits[..., : lm_head.num_org_embeddings_per_partition]",
+          "",
+          "        return logits"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/sample/sampler.py",
+    "bytes": 11189,
+    "sha256": "9f079c4326a9a5822c5a877f69fc948287f0c633989f31cbb723c79a1c5ec23e",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/02_sampler.py",
+    "relevant_source_lines": [
+      {
+        "line": 89,
+        "context": [
+          "",
+          "    @staticmethod",
+          "    def greedy_sample(logits: torch.Tensor) -> torch.Tensor:",
+          "        if get_ascend_config().enable_reduce_sample:",
+          "            logger.debug_once(",
+          "                \"[sample/sampler] Using reduce-sample greedy sampling. \"",
+          "                \"TP all-gather will be performed to find global argmax.\",",
+          "            )",
+          "            tp_group = get_tp_group()",
+          "            B, V_local = logits.shape"
+        ]
+      },
+      {
+        "line": 133,
+        "context": [
+          "            )",
+          "            return super().forward_native(logits, generators, k, p)",
+          "",
+          "        if get_ascend_config().enable_reduce_sample:",
+          "            logger.debug_once(",
+          "                \"[sample/sampler] Using reduce-sample path in forward_native. \"",
+          "                \"top-k/top-p with TP all-gather for distributed sampling.\",",
+          "            )",
+          "            cand_logits, cand_idx = self.apply_top_k_top_p(logits, k, p, self.top_k)",
+          "            logits_to_return = None"
+        ]
+      },
+      {
+        "line": 168,
+        "context": [
+          "    p: torch.Tensor,  # [B] or None",
+          "    top_k: int | None = None,",
+          ") -> torch.Tensor:",
+          "    if get_ascend_config().enable_reduce_sample:",
+          "        tp_group = get_tp_group()",
+          "        B, V_local = logits.shape",
+          "        rank = tp_group.rank_in_group",
+          "",
+          "        if top_k is None or (p is None and k is None):",
+          "            k_for_topk = V_local"
+        ]
+      },
+      {
+        "line": 243,
+        "context": [
+          "    p: torch.Tensor,",
+          "    top_k: int | None = None,",
+          ") -> torch.Tensor:",
+          "    if get_ascend_config().enable_reduce_sample:",
+          "        tp_group = get_tp_group()",
+          "        B, V_local = logits.shape",
+          "        rank = tp_group.rank_in_group",
+          "",
+          "        if top_k is None or (p is None and k is None):",
+          "            k_for_topk = V_local"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/sample/rejection_sampler.py",
+    "bytes": 73957,
+    "sha256": "d62875a1c942255586b9bdd85abb820153be4731fa99406ebb0ab25b0d5c816b",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/03_rejection_sampler.py",
+    "relevant_source_lines": [
+      {
+        "line": 101,
+        "context": [
+          "            \"reduce_sample=%s\",",
+          "            self._ascend_optimizations_enabled,",
+          "            HAS_TRITON,",
+          "            get_ascend_config().enable_reduce_sample,",
+          "        )",
+          "",
+          "    def apply_logits_processors(",
+          "        self,",
+          "        logits: torch.Tensor,",
+          "        sampling_metadata: SamplingMetadata,"
+        ]
+      },
+      {
+        "line": 412,
+        "context": [
+          "",
+          "    # New flow: top_k -> allgather -> top_p",
+          "    # Returns processed logits and indices",
+          "    if get_ascend_config().enable_reduce_sample:",
+          "        logger.debug_once(",
+          "            \"[sample/rejection_sampler] Using reduce-sample path for \"",
+          "            \"apply_sampling_constraints. top-k/top-p with TP all-gather.\",",
+          "        )",
+          "        return apply_top_k_top_p(logits, k, p, top_k)",
+          "    else:"
+        ]
+      },
+      {
+        "line": 515,
+        "context": [
+          "        using_entropy_verify,",
+          "        sampling_metadata.all_greedy,",
+          "        sampling_metadata.all_random,",
+          "        get_ascend_config().enable_reduce_sample,",
+          "        HAS_TRITON,",
+          "    )",
+          "",
+          "    if using_entropy_verify and ori_target_logits is not None:",
+          "        ori_target_probs = ori_target_logits.softmax(dim=-1, dtype=torch.float32)",
+          "    else:"
+        ]
+      },
+      {
+        "line": 569,
+        "context": [
+          "",
+          "    # For greedy sampling, we need to do allgather first to get global argmax",
+          "    if not sampling_metadata.all_random:",
+          "        if get_ascend_config().enable_reduce_sample:",
+          "            target_argmax = greedy_sample(target_logits)",
+          "        else:",
+          "            target_argmax = target_logits.argmax(dim=-1).view(-1)",
+          "",
+          "        if HAS_TRITON:",
+          "            rejection_greedy_sample_with_triton("
+        ]
+      },
+      {
+        "line": 766,
+        "context": [
+          "        logger.warning_once(",
+          "            \"[sample/rejection_sampler] Using fallback (non-reduce-sample) path in \"",
+          "            \"rejection_sample. This path should not be used in the new distributed flow. \"",
+          "            \"enable_reduce_sample=%s, has_target_indices=%s\",",
+          "            get_ascend_config().enable_reduce_sample,",
+          "            target_indices is not None,",
+          "        )",
+          "        vocab_size = target_logits.shape[-1]",
+          "        global_vocab_size = draft_probs.shape[-1] if draft_probs is not None else vocab_size",
+          ""
+        ]
+      },
+      {
+        "line": 767,
+        "context": [
+          "            \"[sample/rejection_sampler] Using fallback (non-reduce-sample) path in \"",
+          "            \"rejection_sample. This path should not be used in the new distributed flow. \"",
+          "            \"enable_reduce_sample=%s, has_target_indices=%s\",",
+          "            get_ascend_config().enable_reduce_sample,",
+          "            target_indices is not None,",
+          "        )",
+          "        vocab_size = target_logits.shape[-1]",
+          "        global_vocab_size = draft_probs.shape[-1] if draft_probs is not None else vocab_size",
+          "",
+          "        # Compute probability distribution from target logits"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+    "bytes": 126573,
+    "sha256": "edcc55d15f0f868b7da4f5ee8b63f91fc4f130b9b950e2734ab0d872a30d5f61",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/04_llm_base_proposer.py",
+    "relevant_source_lines": [
+      {
+        "line": 1295,
+        "context": [
+          "                    ori_token_indices_to_sample,",
+          "                    is_logits=False,",
+          "                )",
+          "        elif get_ascend_config().enable_reduce_sample:",
+          "            if self.method in (\"eagle3\", \"dflash\", \"mtp\"):",
+          "                draft_token_ids, draft_probs_step0 = self.compute_draft_token_ids(",
+          "                    sample_hidden_states, sampling_metadata",
+          "                )",
+          "                if lmhead_tp_enable():",
+          "                    draft_token_ids, token_indices_to_sample = self._align_tensor_and_indices("
+        ]
+      },
+      {
+        "line": 1313,
+        "context": [
+          "            else:",
+          "                logits = self.model.compute_logits(sample_hidden_states)",
+          "                if lmhead_tp_enable():",
+          "                    # Defensive: mutually exclusive with enable_reduce_sample at startup (ascend_config.py).",
+          "                    logits = lmhead_all_to_all(logits, get_lmhead_tp_group())",
+          "                else:",
+          "                    logits = self.model.model.logits_processor._gather_logits(logits)",
+          "                if lmhead_tp_enable():",
+          "                    logits, token_indices_to_sample = self._align_tensor_and_indices(",
+          "                        logits,"
+        ]
+      },
+      {
+        "line": 1527,
+        "context": [
+          "",
+          "            sample_hidden_states = last_hidden_states[token_indices_to_sample]",
+          "            draft_probs_step: torch.Tensor | None = None",
+          "            if get_ascend_config().enable_reduce_sample:",
+          "                if self.method in (\"eagle3\", \"dflash\", \"dspark\", \"mtp\"):",
+          "                    draft_token_ids, draft_probs_step = self.compute_draft_token_ids(",
+          "                        sample_hidden_states, sampling_metadata",
+          "                    )",
+          "                    if lmhead_tp_enable() and num_indices < draft_token_ids.shape[0]:",
+          "                        draft_token_ids = draft_token_ids[:num_indices]"
+        ]
+      },
+      {
+        "line": 1540,
+        "context": [
+          "                else:",
+          "                    logits = self.model.compute_logits(sample_hidden_states)",
+          "                    if lmhead_tp_enable():",
+          "                        # Defensive: mutually exclusive with enable_reduce_sample at startup (ascend_config.py).",
+          "                        logits = lmhead_all_to_all(logits, get_lmhead_tp_group())",
+          "                    else:",
+          "                        logits = self.model.model.logits_processor._gather_logits(logits)",
+          "                    if lmhead_tp_enable() and num_indices < logits.shape[0]:",
+          "                        logits = logits[:num_indices]",
+          "                        token_indices_to_sample = token_indices_to_sample[:num_indices]"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+    "bytes": 269358,
+    "sha256": "eaa40a2053be73e4f6ca6f54eddfb506f100790b1857a8d815c6db8756a32845",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/05_model_runner_v1.py",
+    "relevant_source_lines": [
+      {
+        "line": 2843,
+        "context": [
+          "        if spec_decode_metadata is None:",
+          "            if lmhead_tp_enable() and logits is not None:",
+          "                logits = logits[: self.input_batch.num_reqs]",
+          "            if self.input_batch.sampling_metadata.top_k is not None and get_ascend_config().enable_reduce_sample:",
+          "                max_topk = self.input_batch.top_k_cpu[self.input_batch.top_k_cpu < logits.shape[1]].max()",
+          "                self.sampler.prepare_sampling(max_topk)",
+          "            return self.sampler(",
+          "                logits=logits,",
+          "                sampling_metadata=sampling_metadata,",
+          "            )"
+        ]
+      },
+      {
+        "line": 2853,
+        "context": [
+          "",
+          "        if lmhead_tp_enable() and logits is not None:",
+          "            logits = logits[: len(spec_decode_metadata.logits_indices)]",
+          "        if self.input_batch.sampling_metadata.top_k is not None and get_ascend_config().enable_reduce_sample:",
+          "            max_topk = self.input_batch.top_k_cpu[self.input_batch.top_k_cpu < logits.shape[1]].max()",
+          "            self.rejection_sampler.prepare_sampling(max_topk)",
+          "        draft_probs = self._get_spec_decode_draft_probs(spec_decode_metadata)",
+          "        sampler_output = self.rejection_sampler(",
+          "            spec_decode_metadata,",
+          "            draft_probs,"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/model_executor/warmup/rejection_sampler_triton_warmup.py",
+    "bytes": 14340,
+    "sha256": "fdb343ff29b2c24bc7c7587e175618c3c8dc9690f3be688173392ae45f9c1ea9",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/06_rejection_sampler_triton_warmup.py",
+    "relevant_source_lines": [
+      {
+        "line": 350,
+        "context": [
+          "    vocab_size = min(worker.vllm_config.model_config.get_vocab_size(), _WARMUP_VOCAB_SIZE)",
+          "",
+          "    ascend_config = get_ascend_config()",
+          "    enable_reduce_sampling = bool(ascend_config.enable_reduce_sample)",
+          "    # Match rejection_sample: block verify needs config and max_spec_len >= 3.",
+          "    block_verify = max_spec_len >= 3 and bool(ascend_config.rejection_sampler_config.enable_block_verify)",
+          "    no_draft_probs_values = _collect_no_draft_probs_values(",
+          "        spec_config,",
+          "        worker.vllm_config.parallel_config.pipeline_parallel_size,",
+          "    )"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm/vllm/config/speculative.py",
+    "bytes": 64455,
+    "sha256": "83cbb26932b9ec0633753b58e8fe666f55c779580b32fba750cf569cde67c40c",
+    "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/REDUCE-SAMPLING-SOURCE-20261002T0042Z/native_sources/07_speculative.py",
+    "relevant_source_lines": []
+  }
+]
