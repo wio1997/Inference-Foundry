@@ -1,3 +1,3 @@
 # GLM-RUN-0044
 
-Prepared native distributed sampling control +ResponsesSTORE1, same22request functional/cache/dynamic package. Native runtime/E2E pending; no speedup/capacity/KEEP. Same hardware/operators; priorRun43 full245760outputs audited with TTFT4.6069sFAIL.
+REJECT native enable_reduce_sample=True for current GLM MTP/TP32 configuration. Twoactualattempts: cold81932→2048 protocolvalid TTFT34.504575s/TPOT85.832638ms; firstnativeauto-tool completes4tokens/DONE/Usage but get_weather arguments{} lacksrequiredShanghai city. No furtherstages ran. Functionvalidcredit2048 only; failedtool4excluded. NativewholecoldMTP2001draftsequences/10005drafttokens/46accepted, severalconsecutive10swindows0acceptance; source-supported local/globaldraftID asymmetry, actualliveIDs notcaptured. NativeAPIhealthy/idle exactcohort retained; no operator/vendor edits, no native STORE-state proof/performanceKEEP/hardwarebound. Realterminalaudit referencesall26pins/raw/source/owners.
