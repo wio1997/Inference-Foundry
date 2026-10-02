@@ -1,0 +1,3 @@
+# GLM-RUN-0091
+
+Real V8 public native PD and full API under retained P89/D88 independent EP16 epochs. 589 effective outputs (384 fixed +205 tools), 3 internal P helper outputs;643 native total leaves51 uncredited cancellation outputs. Native completed metric22=19 public completed+3 helpers; cancelled request did not increment successful completion. Two cold Responses11285→32 JSON/SSE and Chat81932→64, external KV/token IDs/retrieve/previous/nativewire/errors/background8192/restart/cancel/idle/source/SDK0 validated. Audit v1 INVALID assumed23 completions; frozen v2 VALID58437B SHA9143c289204e75836ba2dd2f87c476150858f77958f0d7db99b340bc5b8713c7. V1 helper raw unavailable; hashes and metadata captured. Functional diagnostic, noKEEP/stablecapacity claim.
