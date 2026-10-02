@@ -1,0 +1,3 @@
+# GLM-RUN-0102
+
+INVALID beforeinference. GPT copiedfullAPI D0+D1 executiongroups intoonlyD1 dynamicfront; nativegateway correctlyrejectsforeignD0member. ActualcontainerSDKinitfinal0/prepare passed; P89K5+D100K3 sameAPI2NPU32/policiesP3D1/idle/nativevllm_totalcounters unchanged/8002free; newmodels0/requests0/credit0. ReadonlyauditVALID3595B SHA269be2eb465b8c501555294c72166e2f8005ee21c0196ca88534b4f5c0b21d71; originalcompleted-onlyauditINVALID/rawfrozen. NoMTP3/PD/GPUfit orperformanceREJECT.103selectsD1-onlygroup/exactendpointassert; no oldqueue.
