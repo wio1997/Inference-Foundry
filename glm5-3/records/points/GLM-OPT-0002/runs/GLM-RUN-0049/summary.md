@@ -1,3 +1,3 @@
 # GLM-RUN-0049
 
-Prepared correctedregisteredparser glm47_contract plusactualfullnativeCLI/API/nativeEngineArgs4config preflight beforemodelstartup. SamelegitimatePDport/memoryconfigs; prior48INVALIDbeforeworkers. 7newboundednativeattemptpilot ifready, raw/Usage/finish/transferauditrequired, nofit/KEEP/capacityproofyet.
+REJECT specificdefaultHCCLNPU16666dualresidentstartup. P32workers fullyresident/healthy, KV91924tokens perDP andboardHBM33924..34280MB/65536; D32workers beganinitialization thennativeMoEW8A8Dynamic communicator construction failed withhcclCommInitRootInfoConfig code7/EI0020: NPUIP/16666 alreadybound. NoOOMobserved, noDmodelcomplete/PDfit/requests/outputs/totalhardwarebound. Terminal18pins/native9files/owners auditauthentic. New50nativeA3supportedroleNPU/HOSTport_ranges plusuniqueper-schedulerIDs, no operators/vendorpatch. Actualdualresidentmemory/transport unknown, CurrentNone.

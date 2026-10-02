@@ -1,14 +1,15 @@
 # GLM — HANDOFF
 
-2026-10-02T03:13:59.143619+00:00 checkpoint，持续自主执行。研究/开发/执行/raw全部166/167，Mac仅SSH；branch glm5-3-autonomous-20261001，不恢复旧队列。
+2026-10-02T03:42:35.903099+00:00 checkpoint，持续自主执行；研究/代码/执行/raw全部166/167，Mac仅SSH。branch glm5-3-autonomous-20261001，不恢复旧队列。
 
-- Current：None。43完整C2/245760输出/106.761171TPS，TTFTP50=4.6069sFAIL；无KEEP/稳定容量。
-- 现场：Run49 running/deploy，controller862707/boot6d9/start265631223/spec59855770ea2b9ee2b4a5f3017cdfa711385ee9a00e37f251812c7df291ed50d6/18pins；真实Zcode launch/monitor VALID，state为实时权威。
-- Run48 INVALID：GPT生成器误改CLI parser为glm48_contract，插件实际注册glm47_contract；两P API在weights/workers前退出，D未启动/0requests。17pins/两端raw/无残留审计，旧47P0精确清理确已执行。新49保留注册名并完整CLI/API/EngineArgs4配置校验+negative beforelaunch，当前捕获4项。
-- Run47 原生P1 KV35023 EADDRINUSE，具体占用者unknown；P0init后等DPready/P1退出。D未启动/0推理；不推断OOM/容量。49同48使用完整且独立固定端口620xx..623xx，排除actualOSephemeral32768..60999。
-- 研究：P/D各DP2TP16DCP16EP32；32物理NPUs/目标64workers。P1GiB/K1eager/81933，D2GiB/K5FULL/144384；batch4096/maxseq1/2/nativeFalse/STORE1。显式KV跳过profiling/gmu不限制分配；实际每role npu-smi/nativecapacity决定驻留条件。
-- 7newboundednativeattemptpilot/directCP-KV/fullinputDlocalfallback，fit/传输/E2E未知；publicgateway/state兼容/稳定容量尚未证明。46actualFalseSTORE1工具和状态320有效输出、SDK四P/DCPU正常退出证据可复用。
-- GPT关键研究代码裁决，真实zcode --prompt执行监控归约，唯一controller；任务清理/重启已授权，持续推进。
+- Current：None；43有限完整C2/245760输出/106.761171TPS，TTFTP50=4.6069sFAIL，无KEEP/稳定容量。
+- 现场：Run50 running/deploy；controller1543883/boot6d9/start265770440/spec5c33c462f414b1d1f02abd493246b6001b0fa556f77d50390e36335d7e6e4203/18pins。真实Zcode launch/monitor VALID，state/raw为实时权威。
+- Run49 REJECT具体默认HCCLNPU16666配置：P32健康驻留/KV91924每DP/HBM33924..34280MB；D32初始化后MoEW8A8Dynamic通信组code7/EI0020设备NIC16666已绑定，模型初始化未完成，无OOM证据/0requests。18pins/native9files/原始错误/内存审计完成。
+- Run50：P/D独立HCCL_NPU_SOCKET_PORT_RANGE63000..63063/63100..63163、HOST62400..62463/62500..62563；A3支持native配置，hostss不证明设备NIC端口。每scheduler独立engine_id，实际API HCCL环境回读核验。
+- 原生CP映射按remote_engine_id缓存，同ID切换不同Pport有stale map；32CPU原生源码案例v2 VALID/uniqueID控制通过，非GPU证明，原诊断夹具失败保留INVALID。47 KV35023冲突占用者unknown、48 parser生成错误INVALID均0推理，不作内存界。
+- P/D各DP2TP16DCP16EP32/32物理NPUs/目标64workers；P1GiB/K1eager81933，D2GiB/K5FULL144384。显式KV跳过profiling/gmu不限制分配。四CLI/API/fullEngineArgs已校验；旧49 exactP健康空闲/D已退出身份核验后由唯一controller清理。
+- 11newattempt有限nativepilot/四P→D组合/目标7public352输出+4internalPhelpers。第二来源切换可能本地prefix命中，非全冷all-shard证书。fit/传输/全输入Dlocalfallback未知，无publicgateway/state/容量证明。46nativeFalseSTORE1工具+状态320有效输出可复用。
+- GPT关键研究代码裁决，真实zcode --prompt执行监控归约；任务资源清理/启动已授权，持续推进。
 
 
 
@@ -131,3 +132,11 @@ Run48 running/deploy controller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025
 2026-10-02T03:13:59.143619+00:00 checkpoint: Run48INVALID03:07:07Z. GPTgeneratorrenamedCLItoolparserglm48_contract whileunchangedpluginregisteredglm47_contract; nativeAPIsetupKeyErrorbeforeworkers/weights. BothPAPIstarted/exited,Dneverstarted,0NPUworkers/requests/outputs; old47P0exactcleanupdidoccur. RealZcodeREDUCE-PD48-CONFIG VALID9524B SHA557ec647357f6ff340ec54735fd8c18c46a3436d97e625965de1f40211cfccdf;17frozenpins/nativebothraw/currentrootandworkerabsence verified. Noportlayout/memory/nativeoperatorverdict.
 
 Run49 running/deploy actualcontroller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025", "host": "bm-jn-zs-zone1-910C-64G-10-166", "pgid": 862707, "pid": 862707, "start_ticks": "265631223", "state": "R"} spec59855770ea2b9ee2b4a5f3017cdfa711385ee9a00e37f251812c7df291ed50d6/18pins. Preservesregisteredglm47_contract, versionedtaskpluginrun49 andengineIDs49. NewnativefullCLIparse+Servevalidate+pluginimport+APIvalidate+fullEngineArgs for4actualP/Dconfigs wrappedACLinit/finalize beforecleanup/modelstart; negativeglm48_contract rejected. Capturedpreflightrows4 atcheckpoint (actualfiles/eventsrefs). SameoutsideOSephemeralfixedKV62000/62100/RPC62200/62300/master62250/62350/fullnamespaceguards; perroleactualnpu-smi. RealZcodePD2-PARSER-LAUNCH49/readonlyMONITOR49 VALIDlaunchonly. Same32physicalNPUs/intended64workerPDmemorypilot P1GiBK1eager/D2GiBK5FULL. 7newnativeattempts/5public224outputs plannedifready, nooldqueue. ManualKVskipsGPUprofiling, nofit/transfer/gateway/state/KEEP/stablecapacityclaim; CurrentNone.
+
+## Run49 HCCL port failure, CPU mapping alias and Run50
+
+2026-10-02T03:42:35.903099+00:00 checkpoint: Run49failed/deploy03:24:45Z. P32fullyresidenthealthy/nativeKV91924tokensperDP/boardHBM33924..34280MBof65536; D32workerinit thenMoEW8A8Dynamic nativeget_hccl_comm_name duringmodelconstructor fails hcclCommInitRootInfoConfig code7/EI0020 deviceNIC16666alreadybound. NoDinitializationcomplete/OOMobserved/requests/outputs. Terminal18pin/native9file/physicalowneraudit realZcodeVALID67538B SHAc690e123f58343b2b4e5e4a7ed9e9e4235c566ea4843b795fae10b869101e7e5; HCCLdetailsVALID19968B SHA03de1746d94374bffdf375ed98daae73e21643e66e356eed7581939cfb620c66. REJECTspecificdefaultHCCLportconfiguration, nothardware/memorybound. Priorauditorgenericlimit mentionssuccessful7pilot conditional, actual0inference; correctedcuratedrecord/rawfrozen.
+
+NativeMooncakeengineID-keyedCPportmappingcache exactsource32CPUrankcases: samePengineID/differentport stale map; uniquePIDs controlcorrect. RealZcodev2 VALID13314B SHA9d88ed64907a04eb3d56bc9daa62d2fe66b155d45f2fb530bcfb67f51516e56f; originalfixturemissingconfig/hostfieldsINVALID/noResult frozen. ZeroNPU/models/requests/signals, noactualtransportproof.
+
+Run50 running/deploy controller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025", "host": "bm-jn-zs-zone1-910C-64G-10-166", "pgid": 1543883, "pid": 1543883, "start_ticks": "265770440", "state": "R"} spec5c33c462f414b1d1f02abd493246b6001b0fa556f77d50390e36335d7e6e4203/18pins. RoleHCCL_NPU_SOCKET_PORT_RANGE P63000..63063/D63100..63163 andHOST62400..62463/62500..62563, consistentbothhosts/nativeA3supported(documentURLs inmanifest), hostsscannotproveNPUdeviceNICportabsence. UniqueengineIDs glm50-P-DP0/1 andD-DP0/1. FouractualCLI/API/EngineArgs preflightpassed; exactknown49P-live/D-absent identities/Phealthyidle/nativeguards beforejointtaskcleanup; APIactualHCCLenv回读对比frozenplannedenv. SameDP2TP16DCP16EP32/P1GiBK1eager81933/D2GiBK5FULL144384/32physicalNPUs/intended64workers/nativeoperators/vendorunchanged. Elevennewboundednativeattempts ifready: fourP→Dcombos+twoDlocalshort+fullinputDlocalfallback, sevenpublic352outputs/fourinternalPhelpercommits. Repeatedcanonicalprefix maymakesecondsource-switchpartiallocalhit, no fullcoldall-shardaliascertificate. Actualfit/transfer/gateway/state/stablecapacity unknown; nooldqueue/KEEP, CurrentNone.
