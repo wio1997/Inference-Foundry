@@ -1,0 +1,3 @@
+# GLM-RUN-0115
+
+115 VALID technical E2E, mainverdictREJECT currentD2048total/256perprefill/cadence1 configuration versus114same12shape. Effective10112/zerohelper/12nativecompleted/cold0/preempt0/SDK0/API2NPU32/P3Drestoredserial3/idle; nativebudget2048t256serial2 observed andidleCASrestore4096t1024serial3 verified. Elapsed104.860715s/96.432682finiteTPS vs11490.801316/111.364025; longTTFTP5079.572773s vs42.152245, allTTFTP7515.511255/P9980.636383s, meanoutputP5032.836707/P9074.768646ms. Someoutputinterferenceimproved butpreffillthroughput/tailsregressed; no permanentrejection orKEEP. ReadonlyauditVALID24101B SHA43ea71b62198bede9726549e31c8fdea142d903c5486ffcedcf0a65a568faadf.
