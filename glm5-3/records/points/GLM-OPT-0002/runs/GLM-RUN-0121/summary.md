@@ -1,0 +1,3 @@
+# GLM-RUN-0121
+
+121 RUNNING uniquecontroller2851482/start272718560/source39/specc31356d8ed6ff6960fa7547bb4a6d1d0c9bf930cdf2167f3ec5bef184c8a782a. P89retained/onlyexacthealthyidleD119 replacement withfreshD121staticK1/noSP/Graph2,4,8,16max16/localTP8PP2DCP8/42,36/EPdisabledAllGather/noKV/allrestsame/serial1; nativeCPUnewcohort beforecleanup/bothidle/source/ancestry/NPU16 rechecks. ZcodeactuallaunchVALID/readonlymonitor/terminalaudit active. Checkactual121state/startup identities before anyresourceoperation; currentloadingunknown, no restartreplay. CurrentNone/noKEEP/stablecapacity/hardwareboundsunknown.
