@@ -1,14 +1,16 @@
 # GLM — HANDOFF
 
-2026-10-02T04:12:07.181001+00:00 checkpoint，持续自主执行；Mac仅SSH，研究/代码/raw全部166/167。branch glm5-3-autonomous-20261001。
+2026-10-02T04:29:47.676454+00:00 checkpoint，持续自主执行；Mac仅SSH，研究/代码/raw全部166/167。branch glm5-3-autonomous-20261001。
 
-- Current：None；Run43有限C2/245760输出/106.761171TPS，TTFTP50=4.6069sFAIL，未获得稳定容量/KEEP。
-- 现场Run51 running/deploy，唯一controller 2347849/start265932859/specc5bbb67f9db75bd37ff3ba8a3bab00ab3420ce6f8b9aa0658bb0c65244d48cfa/18pins；真实Zcode launch/monitor VALID，实时state/raw权威。
-- Run50 REJECT具体KV启动配置：P32ready/D32权重加载25.5299GB每worker；原生plannedP91924/D187089tokens每DP。D原生int8KV torch.zeros分配OOM发生在Graph前，零请求/输出。非零free不证明碎片/分配器根因，无硬件容量界。
-- Run51 P.9GiB/K1eager/81933，D1.6GiB/K5FULL/144384，batch1024/Dseq1；32物理NPUs/目标64workers，DP2TP16DCP16EP32、原生算子/vendor不改。HCCL角色端口/每scheduler独立engineID保留；4CLI/API预检与旧50 exact身份/P健康空闲检查在任务清理前。
-- 11新请求nativepilot目标7public352输出+4Phelpers/四P→D组合/D全输入localfallback；重复prefix第二来源可能本地命中，未证明全冷all-shard。当前fit/Graph/传输/功能/稳定容量未知。
-- Run49默认HCCLNPU16666冲突已用角色native范围处理；CPU32案例证明相同remoteengineID切换Pport缓存alias，uniqueID控制通过，非GPU证书。
-- GPT关键研究代码裁决，真实zcode --prompt执行监控归约，唯一controller排程。必要任务资源清理/启动已授权；不恢复旧队列，持续推进。
+- Current：None；43有限C2/245760输出/106.761171TPS，TTFTP50=4.6069sFAIL，无KEEP/稳定容量。
+- 现场Run52 running/deploy，唯一controller 3062734/start266075842/spec4dd547baae68ca5805e6acfc8e783d79bcf9903970fd2980bd42c8b4bec47491/18pins。真实Zcode launch/monitor VALID，实时state/raw权威。
+- Run51 REJECT K5FULL/seq1原生默认capture[1,2,4]/max4不满足6倍数；P32ready/nativeplanned81933，D32weightsloaded/nativeplanned150484，但initialize_attn_backend在KVtensor之前失败，不证明小KV可物理驻留。readiness遗漏ValueError，Zcode捕获双D错误并精确controller SIGTERM受控停止，actualstatuscancelled，0请求/输出；18pins/native9/owner/env审计有效。
+- Run52 显式nativeDcapture[6]/max6，两个D原生adjust正例与Run51负例在四完整CLI/API预检中通过，ACLinit/final0/noNPU；ValueError检测仅新52增加。旧51 exact所有者/P健康空闲/原生hash核验后由唯一controller清理。
+- 保留P.9GiB/K1eager/81933，D1.6GiB/K5FULL/144384、batch1024/Dseq1、DP2TP16DCP16EP32/32物理NPUs/目标64workers。角色HCCL端口/每scheduler独立engineID保留，原生算子/vendor不改。实际KV/Graph/PD传输/有限功能/稳定容量均待裁决。
+- 11新attempt nativepilot目标7public352输出+4Phelpers/四P→D/D全输入localfallback；第二来源可能本地prefix命中，不作全冷all-shard证书。
+- Run50真实D KV torch.zeros OOM在Graph前，P32ready/D32weightsloaded，plannedP91924/D187089；非零free不证明分配器根因，无硬件界。49端口冲突与CPU32engineID缓存alias已记录。
+- Nativekv_both仅配置不足：原生worker recv-only且不归约完成，3角色CPU原生方法v2有效/原selector错误INVALID保留，非GPU证明。RFork source复制到新tensor，不作共享HBM方案。46native工具+状态320有效输出可复用。
+- GPT研究代码裁决、真实zcode --prompt执行监控归约；任务资源清理/启动已授权；不恢复旧队列，持续推进。
 
 
 
@@ -145,3 +147,11 @@ Run50 running/deploy controller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025
 2026-10-02T04:12:07.181001+00:00 checkpoint: Run50 failed/deploy03:52:37Z. P32workers ready, D32workers loaded weights25.5299GB each then native initialize_kv_cache/_allocate_int8_cache_tensor/torch.zeros OOM before Graph; plannedP91924/D187089tokensperDP. ExplicitKV skipsprofiling/gmu doesnotcapallocation. Nonzero free459..508MiB on 14..50MiB failures doesnot establishallocator/fragmentationcause. Terminal18pins/native9files/HCCLenv/owners audit VALID74738B SHA2cfa09f160b94ddaa2b573ddafbeed19fd276b488748c8a6147b56f42f9bdfd6; failuredetailVALID40766B SHA0d08abd2d3b4deb1eea6d06d6387acf965745d5fd04c26b91dd0c4eda26951d7. FrozenResult inheritedRun49 prose label; actualRun50 IDs/path/spec/owners correct, curatedrecordcorrected. REJECTspecificKVstartupconfiguration, zeroinference/nohardwarecapacitybound.
 
 Run51 running/deploy controller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025", "host": "bm-jn-zs-zone1-910C-64G-10-166", "pgid": 2347849, "pid": 2347849, "start_ticks": "265932859", "state": "R"} specc5bbb67f9db75bd37ff3ba8a3bab00ab3420ce6f8b9aa0658bb0c65244d48cfa/18pins. P.9GiB/K1eager81933/D1.6GiB/K5FULL144384; bothbatch1024,Dmaxseq1. Priorplannedcapacitiescalibratecandidate notlinear/physicalfitguarantee, nativeguardsunchanged. RetainsroleHCCLranges/per-scheduleruniqueIDs/DP2TP16DCP16EP32/32physicalNPUs/intended64workers/nativeoperatorandvendorhashguards. FourfullCLI/APIconfigs andinvalidparsernegative beforejointexact50cleanup. Phealthyidle/sourceguards/frozenenv/procidentitychecked. Elevennewboundednativepilot ifready target7public352outputs+4Phelpers/fourP->Dcombinations/fullinputDlocalfallback. Nooldqueue/noPDfit/Graph/transport/stabilitypromotion yet, CurrentNone.
+
+## Run51 native capture geometry and Run52
+
+2026-10-02T04:29:47.676454+00:00 checkpoint: Run51 controllercancelled/deploy afternativebothD K5FULL Graph seq1defaultcapture[1,2,4]/max4 ->multiple6 leavesnone. Errorwithininitialize_attn_backend BEFORE KVtensors; P32ready/planned81933, D32weightsloaded/planned150484 butphysicalKVfit notproven. NoOOMobserved/noinference/output. FrozenreadinessscannerlackedValueError, GPT identifiedfatal andactualZcode gracefulSIGTERM exactcontroller viaexistinghandler confirmed. CancelVALID3634B SHAc289a4ba031203ff9f6a92f895ca72ca657e6b47264d633a8935a32182fc37d3; terminal18pins/native9/HCCLenv/owners auditVALID74839B SHAe24af8bc16475b9dc11c026299f3f89441d952dbe6a93724e4adac47ce7bd979; GraphdetailVALID11455B SHA06b0b8a3b90ebd9a798e7f8ddd7b0396fe5c0feece5b9207226ef448b0812d98. REJECTspecificnativegeometry, cancelledcontrollerstatusretained, no memory/hardwarebound.
+
+Run52 running/deploy controller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025", "host": "bm-jn-zs-zone1-910C-64G-10-166", "pgid": 3062734, "pid": 3062734, "start_ticks": "266075842", "state": "R"} spec4dd547baae68ca5805e6acfc8e783d79bcf9903970fd2980bd42c8b4bec47491/18pins. NativeDexplicitcapture[6]/max6, actual4CLI/APIconfigs positiveadjust+51negativeCPUshape validatedbothD beforecleanup; allACLinit/final0/noNPU. SameP.9GiB/D1.6GiB/batch1024/Dseq1/P81933/D144384/K1eager/K5FULL/DP2TP16DCP16EP32/HCCLroleports/uniqueIDs/intended64workers/nativeoperators. New52readinessscannerValueError recognized. Elevennewboundedpilot ifready; noactualdualKV/Graph/transfer/stablecapacitypromotion, CurrentNone.
+
+Nativekv_both config alone insufficient: exactAST sourceSHAf3057289.. guarded registration branch startsrecvonly, get_finished returnsneitherset/loaderrorsempty. Producer/consumerpositiveCPUcontrols pass,3cases/noNPU/models/requests/signals. Originalquote-basedASTselectorStopIteration INVALID retained; v2VALID1448B SHA01e1baa0ee22647a6937db3e954e71c5821d8c52e359d2ebf989712712482215. No alternativeconnector/weightsharing/GPUproof/impossibilityclaim. Source-onlyRFork loaderinitializesnewmodel/tensor andreadsseed intoitsdata_ptr, not HBMsavingcertificate.
