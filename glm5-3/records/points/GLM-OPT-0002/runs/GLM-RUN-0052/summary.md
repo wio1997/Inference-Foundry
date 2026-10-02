@@ -1,3 +1,3 @@
 # GLM-RUN-0052
 
-Prepared after51nativeK5Graphgeometry failure beforeKVtensors/0requests. ExplicitDnativecapture[6]/max6 retainsK5FULLseq1/P.9D1.6GiB/batch1024/contexts81933/144384. NativeCPUadjust negative51default4 andpositive6 inactualCLIconfig beforeguardedcleanup. ActualdualKV/Graph/runtime/PD unknown;11newfinitepilot ifready, CurrentNone.
+REJECT D MTP drafter SFA metadata workspace allocation: native154MiB OOM AFTER main KV tensor initialization, before Graph capture. P32ready/planned81933; D32weightsloaded/planned150484. D0TP0/TP2 observed OOM/free609–612MiB; D1peer log does not show its own OOM. Fullstack/sourceorder correct GPT earlier first-tail preKV interpretation. Terminal18pins/native9/HCCLenv/currentowner auditVALID,0requests/outputs. No allocator cause/hardware bound/dualready/Graph/runtime/PD proof. New53task-only unused inheritedSFAworkspace guard candidate; ordinaryMLA nativebuffer protected. CurrentNone.
