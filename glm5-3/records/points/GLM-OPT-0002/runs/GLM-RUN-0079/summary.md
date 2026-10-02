@@ -1,0 +1,3 @@
+# GLM-RUN-0079
+
+Comparedsemanticallyfailed77/78 disableDSACP whileexplicitnativeenable_flashcomm1 TRUE preservesSP; nativeAscendSFADCP metadata/implementation/DCP16/DP2TP16EP32/K5capture48/overlapFALSE/noKVconnector/W8A8/math/nativeAsync/seq8/GPU16384/KV12.8GiB/HCCL4096/budget4096t2048c2 retained. UseCoupledAtomicMQWorker insteadoptionalworkspaceguard worker to retain77 nativeMLAworkspace allocation despite newDCPbuildereligibleguard, not operatorrewrite. CPU2 actualclass/SP/noDSACP/noKV/source/SDK0; fresh77exactAPI/boot/start/ancestry/NPU32idlecleanup;6same exactsemanticcases first, failure halts coldperformance; onlyifall6true then2short32+2NEWcold81932to64=192pilot. Newepoch/salts/cohort; no assumedrestoration/rootcause/gain/PD/capacity/KEEP.
