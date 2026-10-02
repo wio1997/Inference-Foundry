@@ -1,3 +1,5 @@
 # GLM-RUN-0108
 
-Prepared. Run108 replaces only exactfailedD107 after revalidated ancestry/boot-start/NPU16; retainedP89 same epoch. NativeTP8PP2DCP8 partition42,36 EPdisabled selects originalAllGather rather than107MC2 EP8alignment561002; no operatorcalculation/nativeguardchange. MTP3/noSP/Graph4,8,16,32/DSACPoff/overlapFalse/KV3GiB/GPU4096/seq8/HCCL768/STORE1/nativeAsync/AtomicMQ/nativeW8A8/budget4096t1024c1 unchanged. NativeCPUCLI actualAllGather4,8,32,4096+SDK0 andpureCPgeometry passed. 3exactanswers then32short+64NEWcold81932 diagnostic; allocation/MTP/PP/state/fullPD/dynamic stillunknown. Noisolatedgain/KEEP/capacityclaim.
+108 FAILED deploy: native AllGather got to KV registration, then remote P pp_size1 borrowed local D partition42,36 and raised len(partitions)=2 versus pp_size1. Main verdict INVALID remote-geometry fixture, not AllGather performance REJECT. Original readonly reduction verdictREJECT preserved SHA640c55c10cfc6bf1c8410fec7719a66ffb023f1c4261a2ac4b6885791c72db2b. Native pure worker guard explicitly rejects decodePP2, CPU SHA960ac4527eea8bcfeae66b31c3f2f19ab4c359ebc3c3dd287965548af5db8899; omitted setting defaults1, not PP2 support.
+
+Raw logs/source snapshots remain frozen on servers. Main verdict supersedes inherited wording without rewriting executed evidence.
