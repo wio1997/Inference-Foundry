@@ -1,0 +1,3 @@
+# GLM-RUN-0123
+
+123 terminalVALID completed; readonlyaudit25934B SHA37614751c06594e4fccb45118f8dfbd4106927b2d5c90c1473f4412e83ac3142 verifiesnewD123K3Graph32/nativePP2/noKV/3exact+short32+cold81932to64/107effective/SDK0/P89retained/API2NPU32/P3D1/idle/source39/exactD121cleanup. No activeGPUcontroller; public8000nativebootstrappending. CurrentNone/noKEEP/stablecapacity.
