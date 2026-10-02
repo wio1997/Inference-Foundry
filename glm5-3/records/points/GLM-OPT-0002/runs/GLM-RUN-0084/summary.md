@@ -1,0 +1,3 @@
+# GLM-RUN-0084
+
+REJECT thisworksecondsweightmodel forlatency:10112functionvalidoutputs/203.785592s49.620780finiteTPS; allTTFTP5038.633s/shortP5035.092s vs82short4.374s/81short2.709s; referenceSLOallFAIL. HTTP7/5morebalancedbutnativewaitingpeak5/1; longD0/D1TTFT79.845/92.245s. NativeAPI2NPU32/policy/SDK0/rawbodywire/fullIDs/coldcounts/idle andCPUV724 valid. AuditVALID18730B SHA7e1974a55d4dabf9f23228b3a8ae91b505af7c31db1bb51566a1fecdaa336e95. Fourpilotmedian rates notremainingwork/GPUtime/batch/EP/background; nocapacity/KEEP orallcostmodelrejection. NativeCPUrunningprefillsconsume4096beforewaiting; next85fixedtotal4096threshold1024 testshead-of-line hypothesis without modelreload.
