@@ -1,0 +1,3 @@
+# GLM-RUN-0049
+
+Prepared correctedregisteredparser glm47_contract plusactualfullnativeCLI/API/nativeEngineArgs4config preflight beforemodelstartup. SamelegitimatePDport/memoryconfigs; prior48INVALIDbeforeworkers. 7newboundednativeattemptpilot ifready, raw/Usage/finish/transferauditrequired, nofit/KEEP/capacityproofyet.

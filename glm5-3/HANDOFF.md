@@ -1,14 +1,14 @@
 # GLM — HANDOFF
 
-2026-10-02T03:06:46.828813+00:00 checkpoint，持续自主执行。所有研究、代码、执行与raw在166/167；Mac仅SSH。clone /data/tiankuan/wio/Inference-Foundry，分支glm5-3-autonomous-20261001，不恢复旧队列。
+2026-10-02T03:13:59.143619+00:00 checkpoint，持续自主执行。研究/开发/执行/raw全部166/167，Mac仅SSH；branch glm5-3-autonomous-20261001，不恢复旧队列。
 
 - Current：None。43完整C2/245760输出/106.761171TPS，TTFTP50=4.6069sFAIL；无KEEP/稳定容量。
-- 现场：Run48 running/deploy；controller667918/boot6d9/start265591754/spec1c18bdc321404edad8334b326fc48fd20479230a3133b3c394e312007fe608ee/17pins。真实Zcode launch VALID，唯一controller按实际47身份清理/启动，新readonlymonitor48；state/raw为实时权威。
-- Run47已失败：P1原生KV35023 EADDRINUSE，具体占用者unknown；P0后来init后等待共享DPready，P1已退出。D未启动/0推理/0输出。17pins/native9源码/twoP×16metadata记录审计通过；不是OOM/容量界。
-- Run48新增：KV62000/62100段，RPC/master独立622xx/623xx段，完整端口范围两端核验并排除OSephemeral32768..60999。显式KV会跳过profiling/gmu不限定内存，记录真实perrole npu-smi。与47同nativeoperators/SDKwrapper/AtomicMQ+metadata组合。
-- 目标：P/D各DP2TP16DCP16EP32/32物理NPUs/目标64workers；P1GiB/K1eager/81933，D2GiB/K5FULL/144384。新7attempt有限nativeKVpilot/fullinputDlocalfallback，实际fit/传输未知；publicgateway/state兼容/容量尚未证明。
-- 复用：46actualFalse/STORE1状态+工具11尝试10完成320有效输出审计；SDK四P/D fullconfigs两台init0/finalize0/exit0。CPU/启动正常不证明PD E2E。
-- GPT研究代码裁决，真实zcode --prompt执行监控归约；必要任务资源清理/重启已授权，持续推进。
+- 现场：Run49 running/deploy，controller862707/boot6d9/start265631223/spec59855770ea2b9ee2b4a5f3017cdfa711385ee9a00e37f251812c7df291ed50d6/18pins；真实Zcode launch/monitor VALID，state为实时权威。
+- Run48 INVALID：GPT生成器误改CLI parser为glm48_contract，插件实际注册glm47_contract；两P API在weights/workers前退出，D未启动/0requests。17pins/两端raw/无残留审计，旧47P0精确清理确已执行。新49保留注册名并完整CLI/API/EngineArgs4配置校验+negative beforelaunch，当前捕获4项。
+- Run47 原生P1 KV35023 EADDRINUSE，具体占用者unknown；P0init后等DPready/P1退出。D未启动/0推理；不推断OOM/容量。49同48使用完整且独立固定端口620xx..623xx，排除actualOSephemeral32768..60999。
+- 研究：P/D各DP2TP16DCP16EP32；32物理NPUs/目标64workers。P1GiB/K1eager/81933，D2GiB/K5FULL/144384；batch4096/maxseq1/2/nativeFalse/STORE1。显式KV跳过profiling/gmu不限制分配；实际每role npu-smi/nativecapacity决定驻留条件。
+- 7newboundednativeattemptpilot/directCP-KV/fullinputDlocalfallback，fit/传输/E2E未知；publicgateway/state兼容/稳定容量尚未证明。46actualFalseSTORE1工具和状态320有效输出、SDK四P/DCPU正常退出证据可复用。
+- GPT关键研究代码裁决，真实zcode --prompt执行监控归约，唯一controller；任务清理/重启已授权，持续推进。
 
 
 
@@ -125,3 +125,9 @@ Run47 activeuniquecontroller {"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025",
 2026-10-02T03:06:46.828813+00:00 checkpoint: Run47failed/deploy02:43:46Z. FirstobservedP1MooncakeKVCacheSendingThreadDP1TP7DCP7EP23 bindtcp://172.16.10.167:35023 EADDRINUSE02:43:34Z; actualholderunknown. P0initcompletedlater02:44:25 butwaitedDPREADY, P1fullyexited. Dneverstarted/0inference/0outputs. RealZcodeREDUCE-PD47-STARTUP VALID45147B SHA97746373897c5c185678421d3b22881e1a28c7fc71c8a8618117f4ef1ad607bb;17frozenpins/9nativefiles/bothP16metadatareceipts verified. Beforelaunchfull35000..35031absence; fixedKVoverlapsRPC35020/master35030 andactualOSephemeral32768..60999. Specific35023holdernotcaptured, noOOM/sampler/capacityverdict.
 
 Run48 running/deploy controller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025", "host": "bm-jn-zs-zone1-910C-64G-10-166", "pgid": 667918, "pid": 667918, "start_ticks": "265591754", "state": "R"} spec1c18bdc321404edad8334b326fc48fd20479230a3133b3c394e312007fe608ee/17pins. NewdisjointfixedKV62000..62031(P)/62100..62131(D),RPC62200/master62250 vs62300/master62350; bothhostsfullstaticnamespacecheckandactualephemeralrangeguard. Newcontrolleronlyexact47rootidentity+descendants cleanup, permitsP1absentonlyifnoothernative roots/workers. Nootherresources/oldqueue. P/DsameDP2TP16DCP16EP32/32physicalNPUs/intended64workers; P1GiB/K1eager/81933, D2GiB/K5FULL/144384, batch4096/maxseq1/2/reduceFalse/STORE1. ManualKVskipsnativeprofiling/gmu.48 doesnotboundallocations; addedperroleactualnpu-smi snapshots. Nativefit/transfer/7attemptpilotpending, publicgateway/state/stablecapacity unproven, CurrentNone. PilotinheritedhistoricalX-Request-IDGLM-RUN-0047prefix onlyasopaqueheader, native48controller/body/wire/ledger distinguishnewrequests; nooldrequestreplay.
+
+## Run48 configuration INVALID and native CLI validation Run49
+
+2026-10-02T03:13:59.143619+00:00 checkpoint: Run48INVALID03:07:07Z. GPTgeneratorrenamedCLItoolparserglm48_contract whileunchangedpluginregisteredglm47_contract; nativeAPIsetupKeyErrorbeforeworkers/weights. BothPAPIstarted/exited,Dneverstarted,0NPUworkers/requests/outputs; old47P0exactcleanupdidoccur. RealZcodeREDUCE-PD48-CONFIG VALID9524B SHA557ec647357f6ff340ec54735fd8c18c46a3436d97e625965de1f40211cfccdf;17frozenpins/nativebothraw/currentrootandworkerabsence verified. Noportlayout/memory/nativeoperatorverdict.
+
+Run49 running/deploy actualcontroller{"boot_id": "6d9cf06f-a02d-49ef-b7fe-cc456a7b2025", "host": "bm-jn-zs-zone1-910C-64G-10-166", "pgid": 862707, "pid": 862707, "start_ticks": "265631223", "state": "R"} spec59855770ea2b9ee2b4a5f3017cdfa711385ee9a00e37f251812c7df291ed50d6/18pins. Preservesregisteredglm47_contract, versionedtaskpluginrun49 andengineIDs49. NewnativefullCLIparse+Servevalidate+pluginimport+APIvalidate+fullEngineArgs for4actualP/Dconfigs wrappedACLinit/finalize beforecleanup/modelstart; negativeglm48_contract rejected. Capturedpreflightrows4 atcheckpoint (actualfiles/eventsrefs). SameoutsideOSephemeralfixedKV62000/62100/RPC62200/62300/master62250/62350/fullnamespaceguards; perroleactualnpu-smi. RealZcodePD2-PARSER-LAUNCH49/readonlyMONITOR49 VALIDlaunchonly. Same32physicalNPUs/intended64workerPDmemorypilot P1GiBK1eager/D2GiBK5FULL. 7newnativeattempts/5public224outputs plannedifready, nooldqueue. ManualKVskipsGPUprofiling, nofit/transfer/gateway/state/KEEP/stablecapacityclaim; CurrentNone.

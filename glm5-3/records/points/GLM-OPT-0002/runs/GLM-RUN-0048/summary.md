@@ -1,3 +1,3 @@
 # GLM-RUN-0048
 
-Prepared evidence-lednativePDdualresidentpilot withdisjointfixedports outsideOSephemeralrange. Prior47PnativeEADDRINUSE/0D/0requests; no replay. ExactknownP0alive/P1gone preflightandtaskcleanuponly. ManualKVskipsnativeGPUprofiling/gmu doesnotcap allocations; captureactualperrole npu-smi plusnativecachecapacity. Nativefit/transfer/functionalvalidity unknown, CurrentNone.
+INVALID configurationgenerator renamedtoolparser to glm48_contract althoughunchangedpluginregisteredglm47_contract. BothnativeAPIstarted/exitedbeforeengineworkers/weights; Dnotstarted/0inference/outputs. Exactold47P0cleanupdidoccur, P1alreadyabsent. 17frozenpins verified; bothroots/workers absent. Noport/memory/operatorverdict; newRunkeepsregisteredparser andaddsactualfullCLI/APIvalidation.
