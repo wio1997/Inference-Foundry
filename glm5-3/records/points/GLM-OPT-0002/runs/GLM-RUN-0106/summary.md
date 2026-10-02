@@ -1,0 +1,3 @@
+# GLM-RUN-0106
+
+106completed same12NEWcold/fourbursts shapes/10112effective+5helpers=10117native17completed/V9PDv2/native400/originalDexceptKV/raw600/nativeUUID/SDK0/epochs/API2NPU32/P3D1/idle. SameP89K5+D104K3noSPsmallGraph; no modeloperations/profilerduringE2E.132.495196s/76.319749finiteTPS; allTTFTP501.238132s/P7522.883202/P9098.835067/P99109.198357, longP50107.129859s. Mean-after-firstP5034.859386/P9040.041655ms, short34.166385/P9042.590359, maxgap.697090877s. OnlyTTFTP50passesreference, restFAIL. AuditVALID41870B SHA7317745dc615da523928c70b23ac52c5fe7ea06daf6b1ce3f46589b31b845b68. Worsefinitecandidate than103D100K3SPtrue77.158885/32.631990/P9036.285064; jointSP/Graph/startupENV/newDepoch andMTPtrajectories, noisolatedcausalSPclaim orKEEP/stablecapacity.

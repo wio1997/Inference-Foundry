@@ -1,0 +1,7 @@
+from pathlib import Path
+import json,sys,subprocess,shlex,hashlib,ast
+sys.path.insert(0,'/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime')
+from phase_runner import atomic_json,utc,same_process
+j=Path(__file__).parent;p=j.parents[1];s=json.loads((p/'runs/GLM-RUN-0106/state.json').read_text());assert s['status']=='completed'and not same_process(s['owner'])
+code=(j/'device_reduce.py').read_text();ast.parse(code)
+z=subprocess.run(['ssh','-o','BatchMode=yes','root@172.16.10.167',shlex.join(['python3','-c',code])],capture_output=True,timeout=180);(j/'reduce.stderr').write_bytes(z.stderr);z.check_returncode();out=json.loads(z.stdout);atomic_json(j/'reduction.json',out);b=(j/'reduction.json').read_bytes();atomic_json(j/'result.json',dict(schema_version=1,job_id=j.name,status='completed',summary='Run105 rank0 CPU-only native task/stream/operator interval reduction with common16device window and duplicate handling; no hardwarebound',execution=dict(inner_exit_code=0,acceptance='passed',processes=[]),findings=[],evidence=[dict(id='reduction',path=str(j/'reduction.json'),bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),locator='commonwindow/exactduplicate/identity/interval union/operators/shapes')],unknowns=out['limits'],decision_request=None,next_check_at=None));print(json.dumps(dict(window=out['common_device_window_s'],rows=out['task_time_rows'],duplicates=out['exact_duplicate_rows'],types=out['kernel_types'],top_ops=list(out['operators'])[:10])))
