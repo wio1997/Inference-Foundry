@@ -1,0 +1,59 @@
+{
+  "at": "2026-10-02T18:39:00Z",
+  "native_source": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/platform.py",
+      "bytes": 74324,
+      "sha256": "8ef33020bfb0959e989f0f3618d54eeea6aaa8a9c2788b1da7f41af3e230c7ff",
+      "matches": [
+        {
+          "line": 1546,
+          "excerpt": "    decode_context_parallel_size = parallel_config.decode_context_parallel_size\n    if decode_context_parallel_size <= 1:\n        return\n\n    if speculative_config.num_speculative_tokens_per_batch_size:\n        raise ValueError(\n            \"Dynamic speculative decoding and decode context \"\n            \"parallelism is not supported by vLLM Ascend. Please set \"\n            \"--decode-context-parallel-size to 1 or remove \"\n            \"num_speculative_tokens_per_batch_size from \"\n            \"--speculative-config.\"\n        )\n\n    draft_model_config = speculative_config.draft_model_config\n    if draft_model_config is None:\n        return\n\n    # MLA draft models do not use the GQA/MQA DCP head-sharding rule.\n    if draft_model_config.use_mla:\n        return\n\n    draft_parallel_config = speculative_config.draft_parallel_config\n    if draft_parallel_config is not None:\n        draft_tensor_parallel_size = draft_parallel_config.tensor_parallel_size\n    elif speculative_config.draft_tensor_parallel_size is not None:\n        draft_tensor_parallel_size = speculative_config.draft_tensor_parallel_size\n    else:\n        draft_tensor_parallel_size = parallel_config.tensor_parallel_size\n\n    total_num_attention_heads = draft_model_config.model_arch_config.total_num_attention_heads\n    total_num_kv_heads = draft_model_config.get_total_num_kv_heads()\n\n    if draft_tensor_parallel_size <= total_num_kv_heads:\n        raise ValueError(\n            \"Invalid draft model parallel config for speculative decoding: \"\n            f\"tensor parallel size {draft_tensor_parallel_size} must be \"\n            f\"greater than total num kv heads {total_num_kv_heads} when \"\n            \"enable decode context parallel for GQA/MQA draft model\"\n        )\n\n    max_dcp_size = draft_tensor_parallel_size // total_num_kv_heads\n    if decode_context_parallel_size > max_dcp_size:\n        raise ValueError(\n            \"Invalid draft model parallel config for speculative decoding: \"\n            \"decode context parallel size must less than or equal to \"\n            f\"(draft tensor parallel size {draft_tensor_parallel_size} // \""
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/config/compilation.py",
+      "bytes": 68539,
+      "sha256": "31e1ebbf69af2b5f0c46d4b92caad47c4f87e594df339ba25038309f0836e0a5",
+      "matches": [
+        {
+          "line": 1518,
+          "excerpt": "                \"gpu_memory_utilization.\"\n            )\n\n        self.cudagraph_mode = cudagraph_mode\n        return cudagraph_mode\n\n    def adjust_cudagraph_sizes_for_spec_decode(\n        self, uniform_decode_query_len: int, tensor_parallel_size: int\n    ):\n        multiple_of = uniform_decode_query_len\n        if tensor_parallel_size > 1 and self.pass_config.enable_sp:\n            multiple_of = max(uniform_decode_query_len, tensor_parallel_size)\n            if (\n                multiple_of % uniform_decode_query_len != 0\n                or multiple_of % tensor_parallel_size != 0\n            ):\n                raise ValueError(\n                    f\"Can't determine cudagraph shapes that are both a \"\n                    f\"multiple of {uniform_decode_query_len} \"\n                    f\"(num_speculative_tokens + 1) required by spec-decode \"\n                    f\"and {tensor_parallel_size} (tensor_parallel_size) \"\n                    f\"required by sequence parallelism please adjust \"\n                    f\"num_speculative_tokens or disable sequence parallelism\"\n                )\n\n        if not self.cudagraph_capture_sizes or multiple_of <= 1:\n            return\n\n        assert self.max_cudagraph_capture_size is not None\n        rounded_sizes = sorted(\n            set(\n                round_up(size, multiple_of)\n                for size in self.cudagraph_capture_sizes\n                if round_up(size, multiple_of) <= self.max_cudagraph_capture_size\n            )\n        )\n\n        if len(rounded_sizes) == 0 and multiple_of <= self.max_cudagraph_capture_size:\n            # if one valid but would be round_down use that\n            rounded_sizes = [multiple_of]\n\n        if len(rounded_sizes) == 0:\n            raise ValueError(\n                f\"No valid cudagraph sizes after rounding to multiple of {multiple_of} \"\n                f\"(num_speculative_tokens + 1 or tp if sequence parallelism is enabled)\"\n                f\" please adjust num_speculative_tokens ({uniform_decode_query_len - 1}\""
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/model_executor/models/deepseek_mtp.py",
+      "bytes": 22241,
+      "sha256": "83a52a68c0e2c3cd032cf0aff2c58570d87cf094f41f3a031208d1a74f6a2ede",
+      "matches": [
+        {
+          "line": 127,
+          "excerpt": "        hidden_states, residual = self.mtp_block(\n            positions=positions,\n            hidden_states=hidden_states,\n            residual=None,\n        )\n        hidden_states = residual + hidden_states  # pre-final-norm (logits hidden)\n        if self.mtp_block.use_sequence_parallel_moe:\n            hidden_states = tensor_model_parallel_all_gather(hidden_states, 0)\n            hidden_states = hidden_states[: positions.shape[0]]\n        # Recycle the post-final-norm hidden into the next draft step.\n        # compute_logits applies shared_head (== final norm) to the pre-norm\n        # element, so logits and the recycle each get exactly one final-norm.\n        # Matches SGLang's deepseek_nextn.\n        return hidden_states, self.shared_head(hidden_states)\n\n\nclass DeepSeekMultiTokenPredictor(nn.Module):\n    def __init__(self, *, vllm_config: VllmConfig, prefix: str = \"\"):\n        super().__init__()\n        config = vllm_config.model_config.hf_config\n        self.mtp_start_layer_idx = config.num_hidden_layers\n        self.num_mtp_layers = config.num_nextn_predict_layers\n        # to map the exact layer index from weights\n\n        self.layers = torch.nn.ModuleDict(\n            {\n                str(idx): DeepSeekMultiTokenPredictorLayer(\n                    vllm_config, f\"{prefix}.layers.{idx}\"\n                )\n                for idx in range(\n                    self.mtp_start_layer_idx,\n                    self.mtp_start_layer_idx + self.num_mtp_layers,\n                )\n            }\n        )\n        self.embed_tokens = VocabParallelEmbedding(\n            config.vocab_size,\n            config.hidden_size,\n            prefix=maybe_prefix(prefix, \"embed_tokens\"),\n        )\n        self.logits_processor = LogitsProcessor(config.vocab_size)\n\n    def set_skip_topk(self, skip: bool):\n        \"\"\"Toggle skip_topk on all MTP layers with sparse attention.\n\n        Called by the proposer to implement index_share_for_mtp_iteration:"
+        }
+      ]
+    }
+  ],
+  "run99_native_speculative_delta": {
+    "vllm:spec_decode_num_drafts_total{engine=\"0\",model_name=\"glm-52\"}": 2869.0,
+    "vllm:spec_decode_num_drafts_created{engine=\"0\",model_name=\"glm-52\"}": 0.0,
+    "vllm:spec_decode_num_draft_tokens_total{engine=\"0\",model_name=\"glm-52\"}": 14345.0,
+    "vllm:spec_decode_num_draft_tokens_created{engine=\"0\",model_name=\"glm-52\"}": 0.0,
+    "vllm:spec_decode_num_accepted_tokens_total{engine=\"0\",model_name=\"glm-52\"}": 7264.0,
+    "vllm:spec_decode_num_accepted_tokens_created{engine=\"0\",model_name=\"glm-52\"}": 0.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_total{engine=\"0\",model_name=\"glm-52\",position=\"0\"}": 2361.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_total{engine=\"0\",model_name=\"glm-52\",position=\"1\"}": 1774.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_total{engine=\"0\",model_name=\"glm-52\",position=\"2\"}": 1302.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_total{engine=\"0\",model_name=\"glm-52\",position=\"3\"}": 1011.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_total{engine=\"0\",model_name=\"glm-52\",position=\"4\"}": 816.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_created{engine=\"0\",model_name=\"glm-52\",position=\"0\"}": 0.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_created{engine=\"0\",model_name=\"glm-52\",position=\"1\"}": 0.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_created{engine=\"0\",model_name=\"glm-52\",position=\"2\"}": 0.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_created{engine=\"0\",model_name=\"glm-52\",position=\"3\"}": 0.0,
+    "vllm:spec_decode_num_accepted_tokens_per_pos_created{engine=\"0\",model_name=\"glm-52\",position=\"4\"}": 0.0
+  },
+  "limits": [
+    "Accepted-position counters do not measure GPU cost or predict fixedK3 acceptance. Native fixedK3+SP+DCP16 capture16,32 configuration passed actual CPU CLI inRun100; actualGPU/PD/E2E verdict pending. Dynamicdepth+DCP16 rejected natively; no guard bypass."
+  ]
+}
