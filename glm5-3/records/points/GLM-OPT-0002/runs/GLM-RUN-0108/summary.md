@@ -1,0 +1,3 @@
+# GLM-RUN-0108
+
+Prepared. Run108 replaces only exactfailedD107 after revalidated ancestry/boot-start/NPU16; retainedP89 same epoch. NativeTP8PP2DCP8 partition42,36 EPdisabled selects originalAllGather rather than107MC2 EP8alignment561002; no operatorcalculation/nativeguardchange. MTP3/noSP/Graph4,8,16,32/DSACPoff/overlapFalse/KV3GiB/GPU4096/seq8/HCCL768/STORE1/nativeAsync/AtomicMQ/nativeW8A8/budget4096t1024c1 unchanged. NativeCPUCLI actualAllGather4,8,32,4096+SDK0 andpureCPgeometry passed. 3exactanswers then32short+64NEWcold81932 diagnostic; allocation/MTP/PP/state/fullPD/dynamic stillunknown. Noisolatedgain/KEEP/capacityclaim.

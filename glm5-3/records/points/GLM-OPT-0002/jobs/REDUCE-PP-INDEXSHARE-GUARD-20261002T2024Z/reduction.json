@@ -1,0 +1,135 @@
+{
+  "at": "2026-10-02T20:22:43.987209+00:00",
+  "original_job_handoff": "INVALID",
+  "original_job_result_missing": true,
+  "candidate_verdict": "NOT_APPLICABLE",
+  "reason": "ActualnativeCPU default39,39 PPpartition splits IndexShare dependency atlayer39; nativecorrectly rejects beforeconfigreturn/workers; conditionalNOT_APPLICABLE, no guardbypass",
+  "native_guard": {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/platform.py",
+    "sha256": "8ef33020bfb0959e989f0f3618d54eeea6aaa8a9c2788b1da7f41af3e230c7ff",
+    "lines": "373:                )\n374:\n375:    @classmethod\n376:    def _validate_indexer_pp_config(cls, vllm_config: VllmConfig) -> None:\n377:        pp_size = vllm_config.parallel_config.pipeline_parallel_size\n378:        if pp_size <= 1:\n379:            return\n380:\n381:        config = getattr(vllm_config.model_config, \"hf_text_config\", None)\n382:        if config is None:\n383:            return\n384:\n385:        indexer_types = getattr(config, \"indexer_types\", None)\n386:        use_index_cache = getattr(config, \"use_index_cache\", False)\n387:        if indexer_types is None and not use_index_cache:\n388:            return\n389:\n390:        num_hidden_layers = getattr(config, \"num_hidden_layers\", None)\n391:        if not isinstance(num_hidden_layers, int):\n392:            return\n393:\n394:        from vllm.distributed.utils import get_pp_indices\n395:\n396:        for pp_rank in range(pp_size):\n397:            start_layer, end_layer = get_pp_indices(\n398:                num_hidden_layers,\n399:                pp_rank,\n400:                pp_size,\n401:            )\n402:            if start_layer >= end_layer:\n403:                continue\n404:\n405:            if use_index_cache:\n406:                index_topk_pattern = getattr(config, \"index_topk_pattern\", None)\n407:                if index_topk_pattern is None:\n408:                    index_topk_freq = getattr(config, \"index_topk_freq\", 1)\n409:                    index_skip_topk_offset = getattr(config, \"index_skip_topk_offset\", 2)\n410:                    skip_topk = max(start_layer - index_skip_topk_offset + 1, 0) % index_topk_freq != 0\n411:                else:\n412:                    skip_topk = start_layer < len(index_topk_pattern) and index_topk_pattern[start_layer] == \"S\"\n413:                if skip_topk:\n414:                    raise ValueError(\n415:                        \"Index cache dependency crosses a pipeline-parallel stage boundary: \"\n416:                        f\"PP rank {pp_rank}/{pp_size} owns layers [{start_layer}, {end_layer}), \"\n417:                        f\"but layer {start_layer} skips Top-K computation without a preceding \"\n418:                        \"Top-K recomputation in the same PP stage. \"\n419:                        \"Cross-PP Top-K index propagation is not supported.\"\n420:                    )\n421:\n422:            if indexer_types is None:\n423:                continue\n424:\n425:            has_full_indexer = False\n426:            for layer_id in range(start_layer, end_layer):\n427:                indexer_type = indexer_types[layer_id] if layer_id < len(indexer_types) else None\n428:                if isinstance(indexer_type, str):\n429:                    indexer_type = indexer_type.lower()\n430:                if indexer_type == \"full\":\n431:                    has_full_indexer = True\n432:                elif indexer_type == \"shared\" and not has_full_indexer:\n433:                    raise ValueError(\n434:                        \"IndexShare group crosses a pipeline-parallel stage boundary: \"\n435:                        f\"PP rank {pp_rank}/{pp_size} owns layers [{start_layer}, {end_layer}), \"\n436:                        f\"but layer {layer_id} uses a shared Indexer without a preceding \"\n437:                        \"full Indexer in the same PP stage. \"\n438:                        \"Cross-PP Top-K index propagation is not supported.\"\n439:                    )"
+  },
+  "SDK": [
+    {
+      "event": "task_acl_init",
+      "pid": 3819909,
+      "returncode": 0
+    },
+    {
+      "event": "task_acl_finalize",
+      "pid": 3819909,
+      "returncode": 0
+    }
+  ],
+  "current_P89_D104_unchanged_idle": {
+    "D0": {
+      "API_same": true,
+      "NPU16_same": true,
+      "policy": {
+        "budget_tokens": 4096,
+        "cohort_id": "GLM-COHORT-0089",
+        "prefill_cadence": 1,
+        "prefill_threshold_tokens": 1024,
+        "schema_version": 1,
+        "serial": 3
+      },
+      "profiler_executables_remaining": []
+    },
+    "D1": {
+      "API_same": true,
+      "NPU16_same": true,
+      "policy": {
+        "schema_version": 1,
+        "cohort_id": "GLM-COHORT-0104",
+        "budget_tokens": 4096,
+        "prefill_threshold_tokens": 1024,
+        "prefill_cadence": 1,
+        "serial": 1
+      },
+      "profiler_executables_remaining": []
+    }
+  },
+  "native_vllm_total_counters_exactly_same_as106": true,
+  "models": 0,
+  "requests": 0,
+  "effective_output_tokens": 0,
+  "original_cpu_stderr": {
+    "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/CPU-TP8PP2-DCP8-GEOMETRY-20261002T2016Z/cpu.stderr",
+    "bytes": 1781,
+    "sha256": "118ce798e94167a4b0f33a79fc5572082a225cdde2bb298d3e624ac7d3448f18"
+  },
+  "original_cpu_stdout": {
+    "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/CPU-TP8PP2-DCP8-GEOMETRY-20261002T2016Z/cpu.stdout",
+    "bytes": 2604,
+    "sha256": "f5dd9288125aceca12f5eeac96eff9d7f75fd2a10fd4102e95ec61fb4f2f48e5"
+  },
+  "original_source": {
+    "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/CPU-TP8PP2-DCP8-GEOMETRY-20261002T2016Z/cpu_probe.py",
+    "bytes": 9099,
+    "sha256": "97c9225c4ea32227bc522f86f433866ca1b15eb6eeae0b3170be9c5043cf4a97"
+  },
+  "limits": [
+    "PureCPtransfer geometry availability does not establish fullnativeconfig feasibility; oldprobe didnotreachgeometrymethod",
+    "Candidate rejected withincurrentnativeSFA class, not a globalhardware/impossibility proof; TP8PP2DCP8 separatelyunderstudy",
+    "NoGPUrequest/modelsignals/current/KEEP/capacity"
+  ],
+  "partition40_author_index_error": {
+    "reason": "GPT misread relative34:44slice asglobal40 full; actual40shared, nativecorrectrejection, originalsource/raw frozen",
+    "SDK": [
+      {
+        "event": "task_acl_init",
+        "pid": 3819985,
+        "returncode": 0
+      },
+      {
+        "event": "task_acl_finalize",
+        "pid": 3819985,
+        "returncode": 0
+      }
+    ],
+    "stdout": {
+      "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/CPU-TP8PP2-PARTITION40-20261002T2020Z/cpu.stdout",
+      "bytes": 2604,
+      "sha256": "86d2803d5fdb70895342e91a7a82c56ff46e100623593fb908e0e8a41669aae6"
+    },
+    "stderr": {
+      "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/CPU-TP8PP2-PARTITION40-20261002T2020Z/cpu.stderr",
+      "bytes": 1784,
+      "sha256": "45316d90005e35f66439b5f3ab23e0be8f14a9d2a3bd78c933633b1dd723ba6d"
+    },
+    "source": {
+      "path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/CPU-TP8PP2-PARTITION40-20261002T2020Z/cpu_probe.py",
+      "bytes": 9284,
+      "sha256": "402e756836c6f5aef7936f48e95c6e3632f6b91e0fc33f2a6f0e046313ae104a"
+    }
+  },
+  "model_config": {
+    "path": "/data/tiankuan/wio/GLM-5.2-w8a8/config.json",
+    "bytes": 3699,
+    "sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073"
+  },
+  "full_indexer_layers": [
+    0,
+    1,
+    2,
+    6,
+    10,
+    14,
+    18,
+    22,
+    26,
+    30,
+    34,
+    38,
+    42,
+    46,
+    50,
+    54,
+    58,
+    62,
+    66,
+    70,
+    74
+  ],
+  "next_candidate": "NativeVLLM_PP_LAYER_PARTITION42,36 aligns full42 withoutmodelcalculationchanges; separateactualCPUjob pending"
+}
