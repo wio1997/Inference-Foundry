@@ -1,3 +1,3 @@
 # GLM-RUN-0058
 
-Prepared P1GiB/GMU.46 candidate with retained D56Graph. 32pins/exact57P absent/Z/allDidentities+NPU preserved/zero signals; 4fresh actualCLI/source and new11pilot. Actual32nativeP registration IDs/blocks required. No fit/E2E/capacity/KEEP until evidence.
+REJECT firstcanonicalP runtime: resident dual64workers/retained D56Graph, Pnative46blocks/32registeredIDs verified;2Dshort64effective output. Pfirst81932helper executesnativeSFA then114MiBOOM, client240s timeout/zero wire/output; noPD. Allocation output/workspace/domain/fragmentation unknown. Candidate59 keepP1GiB/GMU.46/D56, lowerP HCCL512→416 (observed408 conditionalfloor), batch1024→256; newconfig notisolatedgain. FreshP-only exactcleanup/newpilot, nooldqueue.
