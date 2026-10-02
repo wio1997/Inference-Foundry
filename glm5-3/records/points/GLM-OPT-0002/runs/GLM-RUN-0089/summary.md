@@ -1,3 +1,5 @@
 # GLM-RUN-0089
 
-Onlyreplacefailed88P nativeMooncakeKVport36400..36415 with28000..28015belowOSephemeralrange32768..60999afterfullspanfreecheck; nativePmodel/runtimeunchanged. RetainhealthyD88exactAPI/NPU16/Graph/serial1/cohort88 andnovelP89cohort89; logicalD0=P1669081/D1=D1679900 bothactualDP1TP16DCP16EP16 within32NPUs. Reuse88CPU2/source/weightsfitD andscopedZMQbindfailure exactownedTP10/TP12collision;88 zeroactualrequests, noGPUcapacityrejection. P-onlyCPUactualCLI/SDK0/sourcechecks thenexact88PAPI/boot/start/fullancestry/NPU16cleanup, noDmodeloperation; verifyDnativeidle/argv/source/policybeforeandafter. NativeDSACPoff/noSP/overlapFALSE/nativeMLAworkspace/W8A8/math/AtomicMQ/noDPmetadata/nativeAsync/GPU4096/seq8/KV3GiB/HCCL768/K5capture6,12,24,48/boundedCPU4096t1024c1 retainedboth. Sixactualmath/literalanswers beforetwo short32+twoNEWcold81932to64pilot192; failurehaltlongpilot; no oldqueue/assumedPD/completeAPI/SLO/capacity/KEEP.
+Functional214/6exact+4pilot192, preservedD88/fixedP28k/independentEP16; coldlocalTTFT60.366/60.154s. No capacity/KEEP or isolatedcomparison.
+
+Audit {"path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/runs/GLM-RUN-0089/reduction_brief.json", "bytes": 59551, "sha256": "7442f90d4128448f5be7c89c51a198a3758a807a012df51fef5fd46c4e637b75"}
