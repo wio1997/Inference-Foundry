@@ -1,0 +1,3 @@
+# GLM-RUN-0083
+
+V6/prefillbytes actualfullnativeAPI:8Responsescommits256+8tools269=525effectiveoutputs;2STOREdomains/nativebudget16/32/8192/customcrossownerpreRPC/typedSSE/replay/backgroundlivezeroHTTPleases/cleanproxyrestart/retrieve/cancel/nativeerrors/body-wire/SDK0/idle/sameD79API2NPU32 verified. AuditVALID36691B SHA7a1028d8215cefa655a29f8f51ee69e60dd827e30bf24d40bf1c0606ed535c6f. Cancelled/retrieved/replayedcredit0; nativebackgroundoccupancyafterHTTPunrepresented; physicalAPIstate replication/concurrentnativeIDacceptance nottested. Tooltrajectories differ80/83, notisolatedgain. INCONCLUSIVE forstablecapacity/KEEP/PD/fullframeworkcompletion.

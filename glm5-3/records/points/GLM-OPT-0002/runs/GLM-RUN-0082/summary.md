@@ -1,0 +1,3 @@
+# GLM-RUN-0082
+
+V6prefillbytes sameD79API2NPU32/nativepolicy/workload81(newcacheSalts):10112outputs/213.754800s47.306540finiteTPS;longD0D1/TTFT69.794+89.045s. D1HTTP10/nativeRunning8/wait3 vsD0HTTP2/Running2/wait0; shortTTFTP504373.58ms vs81 2708.90;allreferenceSLOFAIL. Originalprefillinputbytes primary improveslongdistributionbutconcentratesdecode/queue; notremainingGPUwork. V5CPUactualgatewaybypassfailurefixedV6ownerNone dispatch; CPU20passed. Actualbody/wire/fullIDs/nativecoldcounts/SDK0/idle/sameepochs verified; GPTall12prefixescoherent. AuditVALID16638B SHAd59c6d1dcf0989cb4f179d197e6ccc30b3a0aff9e53c7c122c0a594c47c79a44. INCONCLUSIVE; noisolatedgain/stablecapacity/KEEP; backgroundafterHTTPandResponsesSSEphaselimits.

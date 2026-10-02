@@ -1,0 +1,3 @@
+# GLM-RUN-0080
+
+SameD79 gatewayV4 fullnative2STOREdomains/8Responsescommits256+8tools254=510effectiveoutputs. Actual32+8192 nativeResponsesbudget trace equalsbody. TypedSSE/replay/nativeerrors/customcrossownerpreRPC/backgroundlivezeroHTTPleases/cleanproxyrestart/retrievecancel/rawbody-wire/SDK0/epoch/idle validated. Cancelled/retrieved/replayedcredit0; no nativeAPIphysicalrestartrestore/concurrentnativeIDGPUproof. AuditVALID36565B SHA3750f35c58e958848c27c09c2ab75fa15347eec73036a6e4a883df8992bc0796. INCONCLUSIVE forstablecapacity/KEEP.
