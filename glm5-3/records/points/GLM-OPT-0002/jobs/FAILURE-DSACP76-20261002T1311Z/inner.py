@@ -1,0 +1,12 @@
+import json,pathlib,re,hashlib
+root=pathlib.Path("/root/ascend/log");patterns=["497927","498161","498324","2835935","2836170","2836333"];rows=[]
+for f in root.rglob("*") if root.exists() else []:
+ if not f.is_file():continue
+ m=re.fullmatch(r"(?:plog-|device-)(\d+)_\d+\.log",f.name)or re.fullmatch(r"vllm_ascend_\d+_\d+_(\d+)\.log",f.name)
+ if not m or m.group(1)not in patterns:continue
+ b=f.read_bytes();ls=b.decode(errors="replace").splitlines();sel=[]
+ for n,l in enumerate(ls):
+  if ("2026-10-02" in l or "20261002" in l)and any(x in l.lower() for x in["error","timeout","failed","aiv","alltoall","kernel","exception","task"]):
+   sel.extend(dict(line=i+1,text=ls[i])for i in range(max(0,n-1),min(len(ls),n+3)))
+ rows.append(dict(path=str(f),bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),selected_lines=list({x["line"]:x for x in sel}.values())[:300]))
+print(json.dumps(dict(root=str(root),files=rows)))

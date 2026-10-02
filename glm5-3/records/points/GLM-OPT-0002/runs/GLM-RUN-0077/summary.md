@@ -1,0 +1,3 @@
+# GLM-RUN-0077
+
+Prepared nativeDSACP D-only candidate removing unused KV connector; GPU fit/Graph/E2E pending. Compared76 remove ONLY unused Mooncake kv_consumer connector from D-only CLI to enable nativeDSACP o_proj TP redistribution/weight-switch; preserve DP2TP16DCP16EP32/nativeW8A8/operators/Async/SP/K5capture48/overlapFALSE/seq8/GPU16384/KV12.8GiB/HCCL4096/budget4096t2048c2. New cache salts/cohort/native epoch. ActualCPU CLI bothnodes proves noKV/nativeo_projTP/quantmethod switch support; exact76API/boot/start/ancestry/NPU32 cleanup by uniquecontroller, then 2short32+2NEWcold81932to64=192outputs. No native source/math/weights change, no assumedfit/DSACPgain/PD/capacity/KEEP.
