@@ -18,9 +18,9 @@ def ref(path):
 def execute(run,guard,start_watchdog):
  """No deployment, cleanup, cancellation, retry, or controller launch here."""
  r=Path(run);start_watchdog();guard()
- owners=json.loads((r/"adopted_model_identities.json").read_text());rows=[];pairs=[];http=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+ owners=json.loads((r/"adopted_model_identities.json").read_text());registered=json.loads((r/"registered_P_engine_identities.json").read_text());from registered_kv_identity import verify_registered;rows=[];pairs=[];http=urllib.request.build_opener(urllib.request.ProxyHandler({}))
  def ownercheck():
-  guard()
+  guard();verify_registered(registered)
   for x in owners.values():
    code="import pathlib,json;p=pathlib.Path('/proc/"+str(x["pid"])+"');s=(p/'stat').read_text();print(json.dumps(dict(boot_id=pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip(),start_ticks=s[s.rfind(')')+2:].split()[19],argv=[v.decode()for v in(p/'cmdline').read_bytes().split(bytes([0]))if v])))"
    argv=["python3","-c",code]
@@ -93,7 +93,7 @@ def execute(run,guard,start_watchdog):
    pb=dict(canonical);pb.update(cache_salt=pd_salt,max_tokens=1,min_tokens=1,kv_transfer_params=dict(do_remote_decode=True,do_remote_prefill=False,remote_engine_id=None,remote_block_ids=None,remote_host=None,remote_port=None))
    p=request(prefix+"_P",pkey,pb,1,"internal_P_helper")
    kv=p.get("kv_transfer_params");assert isinstance(kv,dict)and kv.get("do_remote_prefill")and kv.get("remote_block_ids")and kv.get("remote_dcp_size")==16 and kv.get("remote_pcp_size")==1
-   planned=json.loads((r/"planned_launch.json").read_text());px=next(x for x in planned if x["role"]=="P"and x["rank"]==owners[pkey]["rank"]);expected_engine=json.loads(px["argv"][px["argv"].index("--kv-transfer-config")+1])["engine_id"]
+   expected_engine=registered[pkey]["engine_id"];assert registered[pkey]["API_owner"]==owners[pkey]
    assert kv["remote_engine_id"]==expected_engine,"producer engine identity mismatch"
    atomic_json(r/(prefix+".transfer.json"),kv)
    db=dict(canonical);db.update(cache_salt=pd_salt,kv_transfer_params=kv)
@@ -120,4 +120,3 @@ def execute(run,guard,start_watchdog):
   atomic_json(r/"semantic_summary.json",out);return out
  except BaseException as e:
   atomic_json(r/"semantic_summary.json",dict(at=utc(),measurement_valid=False,error_type=type(e).__name__,error=str(e),requests=rows,pairs=pairs,effective_public_output_tokens=sum(x["effective_public_credit"]for x in rows)));raise
-

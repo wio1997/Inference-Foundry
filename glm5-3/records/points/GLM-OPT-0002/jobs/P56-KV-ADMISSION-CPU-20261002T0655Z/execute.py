@@ -1,0 +1,10 @@
+from pathlib import Path
+import json,sys,hashlib,subprocess,shlex
+sys.path.insert(0,"/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime")
+from phase_runner import atomic_json
+j=Path(__file__).parent;p=j.parents[1];r=p/"runs/GLM-RUN-0056";meta=p/"jobs/P56-KV-HANDSHAKE-GEOMETRY-20261002T0648Z-v3/P0.metadata.json";plug=Path("/data/tiankuan/wio/glm52-pd/deploy/plugins/pd_dual_run56");site=plug.parents[1];x=next(x for x in json.loads((r/"planned_launch.json").read_text())if x["role"]=="P"and x["node"]=="166")
+shell="ulimit -c 0; export PD_LOCAL_IP=172.16.10.166 PD_NIC=business; source "+str(site/"scripts/pd_common_env.sh")+"; export PYTHONPATH="+str(plug)+":$PYTHONPATH "+" ".join(k+"="+shlex.quote(v)for k,v in x["env"].items())+"; python3 "+str(plug/"native_acl_lifecycle.py")+" script "+str(j/"config_probe.py")+" "+shlex.quote(json.dumps(x["argv"]))+" "+shlex.quote(str(meta))
+t=subprocess.run(["docker","exec","glm52-single","bash","-c",shell],capture_output=True,timeout=180);(j/"native.stdout").write_bytes(t.stdout);(j/"native.stderr").write_bytes(t.stderr);t.check_returncode()
+receipts=[json.loads(l.split("ADMISSION_RECEIPT ",1)[1])for l in t.stdout.decode().splitlines()if l.startswith("ADMISSION_RECEIPT ")];assert len(receipts)==1
+ack=[json.loads(l)for l in t.stdout.decode().splitlines()if l.startswith('{"event": "task_acl_')];assert len(ack)==2 and all(z["returncode"]==0 for z in ack)
+out=receipts[0];atomic_json(j/"reduction.json",out);b=(j/"reduction.json").read_bytes();atomic_json(j/"result.json",dict(schema_version=1,job_id=j.name,status="completed",summary="Actualnative KV admission CPU:41pool/40free cannot admit81931/81932, effectiveblock2048;42positive andP1GiBplannerpositive, noGPUnewrequest",execution=dict(inner_exit_code=0,acceptance="passed",processes=[]),findings=[],evidence=[dict(id="reduction",path=str(j/"reduction.json"),bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),locator="nativeobservedspec/nativeBlockPool/KVManager/planner CPUpositive-negative")],unknowns=out["limits"],decision_request=None,next_check_at=None));print(json.dumps(out))

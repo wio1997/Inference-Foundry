@@ -1,0 +1,49 @@
+{
+  "native_path": "/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+  "native_sha256": "f30572890014d0244bf31d8e15dc5d93fb84147df37e0b2c1d1b01cbba6dd533",
+  "registration_completion_rows": [
+    {
+      "role": "kv_producer",
+      "send_constructed": true,
+      "recv_constructed": false,
+      "done_sending": [
+        "send_done"
+      ],
+      "done_recving": []
+    },
+    {
+      "role": "kv_consumer",
+      "send_constructed": false,
+      "recv_constructed": true,
+      "done_sending": [],
+      "done_recving": [
+        "recv_done"
+      ]
+    },
+    {
+      "role": "kv_both",
+      "send_constructed": false,
+      "recv_constructed": true,
+      "done_sending": [],
+      "done_recving": []
+    }
+  ],
+  "source_socket_contract": {
+    "send_run": "def run(self):\n        \"\"\"Run the thread to handle KV cache transfer requests.\"\"\"\n        try:\n            # Listen for new requests for metadata. NOTE(rob): we need each rank\n            # to have a unique port. This hack to keeps us moving. We will\n            # switch when moving to etcd or where we have a single ZMQ socket in\n            # the scheduler.\n            device_index = (self.pp_rank * self.pcp_size + self.pcp_rank) * self.tp_size + self.tp_rank\n            handshake_port = self.side_channel_port + device_index\n            path = make_zmq_path(\"tcp\", self.side_channel_host, handshake_port)\n            logger.info(\n                \"KVCacheSendingThread started listening on path: %s. Thread: tp_rank=%d, pp_rank=%d, pcp_rank=%d\",\n                path,\n                self.tp_rank,\n                self.pp_rank,\n                self.pcp_rank,\n            )\n            with zmq_ctx(zmq.ROUTER, path) as sock:  # type: ignore\n                self.ready_event.set()\n                self.run_busy_loop(sock)\n        except Exception as e:\n            logger.exception(\n                \"Mooncake KVCacheSendingThread encountered exception. \"\n                \"Thread: tp_rank=%d, pp_rank=%d, listening_path=%s. \"\n                \"Error: %s\",\n                self.tp_rank,\n                self.pp_rank,\n                path,\n                e,\n            )",
+    "recv_run": "def run(self):\n        \"\"\"Run the thread to handle KV cache transfer requests.\"\"\"\n        self.ready_event.set()\n        while True:\n            try:\n                request_data = self.request_queue.get()\n                if request_data is None:\n                    logger.warning(\"Received a None request. \")\n                    self.request_queue.task_done()\n                    continue\n                self._submit_request(request_data)\n            except Exception as e:\n                logger.error(\"Error in KVCacheTransferThread. error=%s. \", e)",
+    "recv_remote_socket": "def _get_remote_socket(self, remote_host: str, remote_handshake_port: int) -> zmq.Socket:  # type: ignore\n        \"\"\"Get a socket to the remote host.\"\"\"\n        remote_path = make_zmq_path(\"tcp\", remote_host, remote_handshake_port)\n        with self.remote_sockets_lock:\n            if self.remote_sockets[remote_path]:\n                return self.remote_sockets[remote_path].popleft()\n\n            ctx = zmq.Context()  # type: ignore\n            sock = make_zmq_socket(\n                ctx=ctx,\n                path=remote_path,\n                socket_type=zmq.REQ,  # type: ignore\n                bind=False,\n            )\n            sock.setsockopt(\n                zmq.SNDTIMEO,  # type: ignore\n                int(self.timeout * 1000),\n            )\n            sock.setsockopt(\n                zmq.RCVTIMEO,  # type: ignore\n                int(self.timeout * 1000),\n            )\n            return sock",
+    "zmq_context": "def zmq_ctx(socket_type: Any, addr: str) -> Iterator[zmq.Socket]:  # type: ignore\n    \"\"\"Context manager for a ZMQ socket\"\"\"\n\n    if socket_type not in (zmq.ROUTER, zmq.REQ, zmq.DEALER):  # type: ignore\n        raise ValueError(f\"Unexpected socket type: {socket_type}\")\n\n    ctx: zmq.Context | None = None  # type: ignore\n    try:\n        ctx = zmq.Context()  # type: ignore\n        yield make_zmq_socket(ctx=ctx, path=addr, socket_type=socket_type, bind=socket_type == zmq.ROUTER)  # type: ignore\n    finally:\n        if ctx is not None:\n            ctx.destroy(linger=0)"
+  },
+  "signals": 0,
+  "NPU_workers": 0,
+  "models": 0,
+  "inference": 0,
+  "sockets": 0,
+  "limits": [
+    "Native registration tail/get_finished executed against no-socket fake thread readiness/completion; no SDK/NPU/live socket/KV/cache proof",
+    "Sender binds one ROUTER perworker, receiver connects REQ bindFalse; no duplicated local bind in examinednative code, not OS namespace/runtime certificate",
+    "kv_both is not functional via config alone; requires role predicates/dualreadiness/finished and invalid-block handling, plus exactnative scheduler/transfer/lifetime E2E",
+    "Native start_load_kv adds requests to both present trackers; dual-role candidate must prove terminal draining/allshard lifetime, no production leak assertion",
+    "No runtime/vendor/operator modification or candidate deployment in this Job"
+  ]
+}
