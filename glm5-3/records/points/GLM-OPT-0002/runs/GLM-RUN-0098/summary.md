@@ -1,0 +1,3 @@
+# GLM-RUN-0098
+
+98 INVALID beforeactualinference: host/usr/binPython3.9 executedarrivalsdirectly, V9gateway exitedModuleNotFoundError uvicorn; GPTomittedexisting93dynamic.py containerwrapper. PrepareactualP89D96API2NPU32/P3D1/nativeidle passed, zeroGPU/modeloperations/newrequests; gatewayportcleanup exitedownprocess only, no modeltouch. Originalplanned12 notrun. Firstnormal99stylecompleted-onlyauditorINVALID because98failed; failedjob/raw retained. Readonlyhostauditv1INVALID compared alltotalmetrics includingprocess_cpu_seconds_total(33→33.17/22.48→22.63) changingonread; v2nativevllm_totalcounters exactunchanged/currentoriginalbootstartargv/NPU16/policies/idle VALID3386B SHA5d3df4c9495a14e42a507f49bef7b04e8e603efb3818e8040f9744b0814e623d; frozenv1leftuntouched.

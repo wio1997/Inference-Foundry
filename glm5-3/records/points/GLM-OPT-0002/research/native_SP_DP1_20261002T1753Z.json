@@ -1,0 +1,76 @@
+{
+  "kind": "readonly_native_source_research",
+  "sources": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py",
+      "sha256": "ad82a4764bc53c5f3395eeed065d96d9916cd06f9c8f0f22d8a172c039f27a83",
+      "excerpts": [
+        {
+          "first": 513,
+          "last": 595,
+          "source": "\n        self.enable_shared_expert_dp = (\n            self.enable_shared_expert_dp\n            and vc.parallel_config.enable_expert_parallel\n            and vc.parallel_config.tensor_parallel_size > 1\n        )\n        # TODO: delete the deprecated flashcomm option when upstream SP is ready.\n        flashcomm_explicitly_enabled = validate_additional_config_bool(\n            (vc.additional_config or {}).get(\"enable_flashcomm1\", False),\n            \"additional_config.enable_flashcomm1\",\n        ) or os.getenv(\"VLLM_ASCEND_ENABLE_FLASHCOMM1\", \"0\").strip().lower() in (\"1\", \"true\")\n        # DSA-CP depends on FlashComm: auto-enable FlashComm when DSA-CP is on\n        # so users only need `enable_dsa_cp=true` in additional_config.\n        if self.enable_dsa_cp and not flashcomm_explicitly_enabled:\n            logger.info_once(\"DSA-CP is enabled. Auto-enabling SP.\")\n\n        effective_flashcomm = flashcomm_explicitly_enabled or self.enable_dsa_cp\n\n        # NOTE: ParallelConfig.use_sequence_parallel_moe is a read-only\n        # property derived from all2all_backend, so steer it through the\n        # backend switch: \"flashinfer_all2allv\" is outside the SP-capable\n        # set and disables SP MoE, the default keeps it enabled.\n        want_sp_moe = (\n            effective_flashcomm\n            and vc.parallel_config.enable_expert_parallel\n            and vc.parallel_config.tensor_parallel_size > 1\n        )\n        if not want_sp_moe and vc.parallel_config.use_sequence_parallel_moe:\n            vc.parallel_config.all2all_backend = \"flashinfer_all2allv\"\n        logger.info_once(\n            \"Sequence-parallel MoE is %s.\",\n            \"enabled\" if vc.parallel_config.use_sequence_parallel_moe else \"disabled\",\n        )\n\n        if self.enable_dsa_cp:\n            tp_size = vc.parallel_config.tensor_parallel_size\n            pcp_size = vc.parallel_config.prefill_context_parallel_size\n            if pcp_size > 1:\n                migration = (\n                    \"Prefill context parallelism is already enabled; remove enable_dsa_cp from additional_config.\"\n                )\n            elif tp_size > 1:\n                migration = (\n                    \"Consider trying prefill context parallelism with \"\n                    f\"--tensor-parallel-size 1 --prefill-context-parallel-size {tp_size} \"\n                    \"to preserve the current world size. Remove enable_dsa_cp from \"\n                    \"additional_config when enabling PCP.\"\n                )\n            else:\n                migration = (\n                    \"Consider trying prefill context parallelism with \"\n                    \"--prefill-context-parallel-size greater than 1 (requires additional ranks). \"\n                    \"Remove enable_dsa_cp from additional_config when enabling PCP.\"\n                )\n            logger.warning_once(\n                \"enable_dsa_cp will be fully deprecated once PCP is ready. %s \"\n                \"Check PCP support for your model and deployment configuration.\",\n                migration,\n            )\n\n        # DSA CP is only applicable to models with an indexer (for example,\n        # DeepSeek V3.2/V4). Resolve this while vllm_config is explicitly\n        # available so runtime reads do not depend on vLLM's temporary config\n        # context.\n        has_indexer = hasattr(vc.model_config, \"hf_text_config\") and hasattr(\n            vc.model_config.hf_text_config, \"index_topk\"\n        )\n        if self.enable_dsa_cp and not vc.parallel_config.use_sequence_parallel_moe:\n            logger.warning_once(\n                \"DSA-CP is enabled, but the current config does not support sequence-parallel. Disabling DSA-CP.\"\n            )\n        self.enable_dsa_cp = self.enable_dsa_cp and has_indexer and vc.parallel_config.use_sequence_parallel_moe\n\n        logger.info_once(\n            \"DSA-CP is %s.\",\n            \"enabled\" if self.enable_dsa_cp else \"disabled\",\n        )\n\n        # Sequence-parallel max_num_batched_tokens divisibility writeback\n        if vc.parallel_config.prefill_context_parallel_size > 1 and enable_sp(vllm_config=vc):\n            tp_pcp_size = vc.parallel_config.tensor_parallel_size * vc.parallel_config.prefill_context_parallel_size\n            if vc.scheduler_config.max_num_batched_tokens % tp_pcp_size != 0:\n                vc.scheduler_config.max_num_batched_tokens = ("
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/utils.py",
+      "sha256": "42fa9c7c324d026c161b1cd932a23d85b97afb67e7aaa875830c0ef6963fdfd6",
+      "excerpts": [
+        {
+          "first": 811,
+          "last": 824,
+          "source": "def enable_sp(vllm_config=None) -> bool:\n    if vllm_config is None:\n        try:\n            from vllm.config import get_current_vllm_config\n\n            vllm_config = get_current_vllm_config()\n        except AssertionError:\n            vllm_config = None\n\n    if vllm_config is None:\n        return False\n\n    return bool(vllm_config.parallel_config.use_sequence_parallel_moe)\n"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/model_executor/models/deepseek_v2.py",
+      "sha256": "bcbd9cde689ffe3f5f271aff3a5e01351b05a68371192cac9d65cb5ffc6b4ba9",
+      "excerpts": [
+        {
+          "first": 300,
+          "last": 310,
+          "source": "\n        self.is_sequence_parallel = parallel_config.use_sequence_parallel_moe\n\n        if config.hidden_act != \"silu\":\n            raise ValueError(\n                f\"Unsupported activation: {config.hidden_act}. \"\n                \"Only silu is supported for now.\"\n            )\n\n        self.router_dtype = _get_moe_router_dtype(config)\n        self.gate = GateLinear("
+        },
+        {
+          "first": 354,
+          "last": 364,
+          "source": "            self.shared_experts = DeepseekV2MLP(\n                hidden_size=config.hidden_size,\n                intermediate_size=intermediate_size,\n                hidden_act=config.hidden_act,\n                quant_config=quant_config,\n                is_sequence_parallel=self.is_sequence_parallel,\n                reduce_results=False,\n                prefix=f\"{prefix}.shared_experts\",\n            )\n\n        self.experts = FusedMoEFactory("
+        },
+        {
+          "first": 401,
+          "last": 430,
+          "source": "        hidden_states: torch.Tensor,\n        already_sequence_parallel: bool = False,\n    ) -> torch.Tensor:\n        num_tokens, hidden_dim = hidden_states.shape\n        hidden_states = hidden_states.view(-1, hidden_dim)\n\n        # Chunk the hidden states so they aren't replicated across TP ranks.\n        # This avoids duplicate computation in self.experts.\n        if self.is_sequence_parallel and not already_sequence_parallel:\n            hidden_states = sequence_parallel_chunk(hidden_states)\n\n        if self.experts.is_internal_router:\n            final_hidden_states = self.experts(\n                hidden_states=hidden_states, router_logits=hidden_states\n            )\n        else:\n            router_logits, _ = self.gate(hidden_states)\n            final_hidden_states = self.experts(\n                hidden_states=hidden_states, router_logits=router_logits\n            )\n\n        if self.is_sequence_parallel and not already_sequence_parallel:\n            final_hidden_states = tensor_model_parallel_all_gather(\n                final_hidden_states, 0\n            )\n            final_hidden_states = final_hidden_states[:num_tokens]\n\n        return final_hidden_states.view(num_tokens, hidden_dim)\n\n"
+        },
+        {
+          "first": 1238,
+          "last": 1256,
+          "source": "            attn_cls = DeepseekV2Attention\n        is_moe_layer = (\n            config.n_routed_experts is not None\n            and layer_idx >= config.first_k_dense_replace\n            and layer_idx % moe_layer_freq == 0\n        )\n        # TODO(wentao): enable SP MoE with PP after the PP boundary logic can safely\n        # send/receive sequence-parallel hidden_states across stages.\n        self.use_sequence_parallel_moe = (\n            parallel_config.use_sequence_parallel_moe\n            and parallel_config.pipeline_parallel_size == 1\n            and is_moe_layer\n        )\n        self.self_attn = attn_cls(\n            vllm_config=vllm_config,\n            config=config,\n            hidden_size=self.hidden_size,\n            num_heads=config.num_attention_heads,\n            qk_nope_head_dim=qk_nope_head_dim,"
+        },
+        {
+          "first": 1298,
+          "last": 1318,
+          "source": "    ) -> torch.Tensor:\n        full_num_tokens = positions.shape[0]\n        input_is_sequence_parallel = (\n            self.use_sequence_parallel_moe\n            and residual is not None\n            and hidden_states.shape[0] != full_num_tokens\n        )\n\n        # Self Attention\n        if residual is None:\n            residual = hidden_states\n            hidden_states = self.input_layernorm(hidden_states)\n        else:\n            hidden_states, residual = self.input_layernorm(hidden_states, residual)\n\n        if input_is_sequence_parallel:\n            hidden_states = tensor_model_parallel_all_gather(hidden_states, 0)\n            hidden_states = hidden_states[:full_num_tokens]\n\n        if self.use_mha:\n            hidden_states = self.self_attn(positions, hidden_states)"
+        },
+        {
+          "first": 1335,
+          "last": 1356,
+          "source": "        if self.use_sequence_parallel_moe:\n            tp_world_size = get_tensor_model_parallel_world_size()\n            # small trick using minus, eg. -17 % 8 = 7\n            sp_pad = (-hidden_states.shape[0]) % tp_world_size\n            # pad if not divisible by world size\n            hidden_states = torch.nn.functional.pad(hidden_states, (0, 0, 0, sp_pad))\n            hidden_states = tensor_model_parallel_reduce_scatter(hidden_states, 0)\n            if not input_is_sequence_parallel:\n                residual = sequence_parallel_chunk(residual)\n\n        # Fully Connected\n        hidden_states, residual = self.post_attention_layernorm(hidden_states, residual)\n        if self.use_sequence_parallel_moe:\n            hidden_states = self.mlp(\n                hidden_states,\n                already_sequence_parallel=True,\n            )\n        else:\n            hidden_states = self.mlp(hidden_states)\n\n        if isinstance(self.mlp, DeepseekV2MLP) and hidden_states.dtype == torch.float16:\n            # Fix FP16 overflow"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/model_executor/models/deepseek_mtp.py",
+      "sha256": "83a52a68c0e2c3cd032cf0aff2c58570d87cf094f41f3a031208d1a74f6a2ede",
+      "excerpts": [
+        {
+          "first": 110,
+          "last": 137,
+          "source": "    ) -> torch.Tensor:\n        assert inputs_embeds is not None\n        # masking inputs at position 0, as not needed by MTP\n        inputs_embeds = torch.where(positions.unsqueeze(-1) == 0, 0, inputs_embeds)\n        inputs_embeds = self.enorm(inputs_embeds)\n        previous_hidden_states = self.hnorm(previous_hidden_states)\n\n        hidden_states = self.eh_proj(\n            torch.cat([inputs_embeds, previous_hidden_states], dim=-1)\n        )\n\n        hidden_states, residual = self.mtp_block(\n            positions=positions,\n            hidden_states=hidden_states,\n            residual=None,\n        )\n        hidden_states = residual + hidden_states  # pre-final-norm (logits hidden)\n        if self.mtp_block.use_sequence_parallel_moe:\n            hidden_states = tensor_model_parallel_all_gather(hidden_states, 0)\n            hidden_states = hidden_states[: positions.shape[0]]\n        # Recycle the post-final-norm hidden into the next draft step.\n        # compute_logits applies shared_head (== final norm) to the pre-norm\n        # element, so logits and the recycle each get exactly one final-norm.\n        # Matches SGLang's deepseek_nextn.\n        return hidden_states, self.shared_head(hidden_states)\n\n\nclass DeepSeekMultiTokenPredictor(nn.Module):"
+        }
+      ]
+    }
+  ],
+  "observed_GPU_calls": 0,
+  "scope": "No computation edits. Static dependency evidence, not runtimeperformance orsemantic certificate."
+}
