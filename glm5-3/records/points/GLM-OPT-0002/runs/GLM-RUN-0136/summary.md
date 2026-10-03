@@ -1,0 +1,4 @@
+# GLM-RUN-0136
+
+136 completed VALID short7 exact118 NEWcold input21/output64..4096/7552effective, allfullIDs/usage/length/DONE/native-clientwire/cache0/preempt0/helper0/clientSDK0/source79/samecoupled13132NPU/public133/idle. ActualEngineCore c1serial3/fallbackfalse andbothprivatefiles observed unchanged. 95.6885679201223s/78.92269854330105finiteTPS vs118local16NPU96.491176818s/78.26622338996TPS: no clear shortdecode scaling benefit in current coupled32 class; TP/DCP/locality/hardware/trajectory jointly differ. TTFTP50351.836365ms/P90414.8923ms allreferencepass; meanoutputP5028.300338819ms FAIL18, P9031.292111441ms PASS40. Conditionalconfiguration REJECT; no stablecapacity/globalbound/KEEP. Fiveprefillcases removedversus134differentworkload.
+Audit21959B SHA6f43161bdeff43c66e973663601cc7c45081ed775319954c08174277cbd4e7f0; rawlimits inheritedtypos Original135/N12 correspondactual136/N7; rawpreserved, this record correctseditorialdescription.
