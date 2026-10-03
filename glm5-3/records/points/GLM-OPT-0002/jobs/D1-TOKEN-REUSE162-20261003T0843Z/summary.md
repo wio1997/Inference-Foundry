@@ -1,0 +1,1 @@
+OriginallaunchjobINVALID previous161-state assertion expectedcompleted vs actualfailed, before controller start/sourceexecution/inference/ops. Run162 has no state and no actualcontrollerexecution; newlaunchjobV2 corrects guard, does notreplay a Run. Originalcode/raw kept.
