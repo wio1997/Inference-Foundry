@@ -1,0 +1,76 @@
+from pathlib import Path
+import ast,json
+g=Path('/data/tiankuan/wio/Inference-Foundry/glm5-3');p=g/'records/points/GLM-OPT-0002';j=p/'jobs/PCP-AND-PP-FULLCONFIG-20261003T0633Z';j.mkdir()
+inner=r'''from pathlib import Path
+import sys,json,os,hashlib,traceback
+from vllm.utils.argparse_utils import FlexibleArgumentParser
+from vllm.entrypoints.cli.serve import ServeSubcommand
+from vllm.entrypoints.openai.api_server import validate_api_server_args
+from vllm.tool_parsers import ToolParserManager
+from vllm.engine.arg_utils import EngineArgs
+case=sys.argv[1];r=Path("/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/runs/GLM-RUN-0155")
+launch=json.loads((r/"standalone_launch.json").read_text())["node0"];argv=list(launch["argv"])
+for k,v in launch["environment"].items():os.environ[k]=str(v)
+sys.path[:0]=[str(r),"/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime","/data/tiankuan/wio/glm52-pd/deploy/plugins/local_engines137"]
+def setarg(k,v):argv[argv.index(k)+1]=str(v)
+settings={"baseline":(1,8,"42,36",1),"PP38_40":(1,8,"38,40",1),"PCP2_DCP16":(2,16,"42,36",2),"PCP2_DCP2":(2,2,"42,36",2),"PCP2_DCP1":(2,1,"42,36",2)}
+pcp,dcp,partition,nnodes=settings[case];setarg("--prefill-context-parallel-size",pcp);setarg("--decode-context-parallel-size",dcp);setarg("--nnodes",nnodes);setarg("--master-port",29960);os.environ["VLLM_PP_LAYER_PARTITION"]=partition
+evidence={"case":case,"argv":argv,"PP_partition":partition,"SDK_communicators_created":0,"workers":0,"model_instances":0,"inference":0,"NPU_tensor_allocations":0}
+try:
+ parser=FlexibleArgumentParser();sub=parser.add_subparsers(dest="subparser");cmd=ServeSubcommand();cmd.subparser_init(sub);args=parser.parse_args(argv[3:]);cmd.validate(args)
+ if args.model_tag is not None:args.model=args.model_tag
+ if args.tool_parser_plugin:ToolParserManager.import_tool_parser(args.tool_parser_plugin)
+ validate_api_server_args(args)
+ config=EngineArgs.from_cli_args(args).create_engine_config()
+ from issue_budget_scheduler_v3 import proof
+ from vllm.config import set_current_vllm_config
+ with set_current_vllm_config(config):
+  from vllm_ascend.ascend_config import get_ascend_config
+  from vllm_ascend.utils import register_ascend_customop,enable_dsa_cp,enable_dsa_cp_with_o_proj_tp
+  register_ascend_customop(config)
+  from vllm_ascend.attention.context_parallel.sfa_cp import resolve_sfa_metadata_builder,resolve_sfa_impl
+  cls=resolve_sfa_metadata_builder();impl=resolve_sfa_impl(config)
+  ac=get_ascend_config()
+  evidence.update(ascend_metadata=cls.__module__+"."+cls.__name__,ascend_impl=impl.__module__+"."+impl.__name__,DSACP=bool(enable_dsa_cp()),o_proj_tp=bool(enable_dsa_cp_with_o_proj_tp()),SP=config.parallel_config.use_sequence_parallel_moe,shared_expert_overlap=ac.multistream_overlap_shared_expert)
+ pc=config.parallel_config
+ evidence.update(config_accepted=True,TP=pc.tensor_parallel_size,PP=pc.pipeline_parallel_size,PCP=pc.prefill_context_parallel_size,DCP=pc.decode_context_parallel_size,DP=pc.data_parallel_size,world=pc.world_size,world_across_dp=pc.world_size_across_dp,nnodes=pc.nnodes,local_world_size=pc.world_size//pc.nnodes,K=config.speculative_config.num_speculative_tokens,KV_bytes=config.cache_config.kv_cache_memory_bytes,scheduler=proof(config))
+ assert evidence["TP"]==8and evidence["PP"]==2and evidence["PCP"]==pcp and evidence["DCP"]==dcp and evidence["DP"]==1and evidence["world"]==16*pcp and evidence["local_world_size"]==16
+ hf=json.loads(Path("/data/tiankuan/wio/GLM-5.2-w8a8/config.json").read_text());boundary=int(partition.split(",")[0]);evidence["hf_boundary_type"]=hf["indexer_types"][boundary];assert evidence["hf_boundary_type"]=="full"and sum(map(int,partition.split(",")))==hf["num_hidden_layers"]
+except Exception as err:
+ evidence.update(config_accepted=False,error_type=type(err).__name__,error=str(err),traceback=traceback.format_exc())
+ if case=="baseline":raise
+print(json.dumps({"event":"CPU_geometry_config",**evidence}))
+'''
+ast.parse(inner);(j/'inner.py').write_text(inner)
+outer=r'''from pathlib import Path
+import json,sys,subprocess,shlex,hashlib
+sys.path.insert(0,"/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime")
+from phase_runner import atomic_json,utc,same_process
+j=Path(__file__).parent;p=j.parents[1];r=p/"runs/GLM-RUN-0155";s=json.loads((r/"state.json").read_text());assert s["status"]=="completed"and not same_process(s["owner"])
+f=p/"jobs/AUDIT-RUN155-20261003T0626Z/reduction.json";assert hashlib.sha256(f.read_bytes()).hexdigest()=="28b9c3f37ba871420126bb7712b6caadfbf646456b9b07f039b8af560c3c192b"
+roots=json.loads((r/"standalone_root_identities.json").read_text());members=json.loads((r/"standalone_native_members.json").read_text())
+def probe(label):
+ data={}
+ for key,o in roots.items():
+  args=["python3","-c",(r/"live_probe.py").read_text()]
+  if o["host"]=="167":args=["ssh","-o","BatchMode=yes","root@172.16.10.167",shlex.join(args)]
+  z=subprocess.run(args,input=json.dumps(dict(owner=o,NPU_count=16)).encode(),capture_output=True,timeout=120);(j/(label+"_"+key+".stdout")).write_bytes(z.stdout);(j/(label+"_"+key+".stderr")).write_bytes(z.stderr);z.check_returncode();v=json.loads(z.stdout);assert v["npu_worker_pids"]==members[key]["npu_worker_pids"];expected={x["pid"]:x["identity"]for x in members[key]["owned_targets"]};assert all(expected[x["pid"]]==x["identity"]for x in v["owned_targets"]if x["pid"]in v["npu_worker_pids"]);data[key]=dict(root_same=True,NPU16_same=True)
+ return data
+before=probe("before");cases=[]
+for name in["baseline","PP38_40","PCP2_DCP16","PCP2_DCP2","PCP2_DCP1"]:
+ shell="ulimit -c 0; export PD_LOCAL_IP=172.16.10.166 PD_NIC=business; source /data/tiankuan/wio/glm52-pd/deploy/scripts/pd_common_env.sh; export PYTHONPATH=/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime:/data/tiankuan/wio/glm52-pd/deploy/plugins/local_engines137:$PYTHONPATH; python3 /data/tiankuan/wio/glm52-pd/deploy/plugins/local_engines137/native_acl_lifecycle.py script "+str(j/"inner.py")+" "+name
+ z=subprocess.run(["docker","exec","glm52-single","bash","-c",shell],capture_output=True,timeout=160);(j/(name+".stdout")).write_bytes(z.stdout);(j/(name+".stderr")).write_bytes(z.stderr);z.check_returncode()
+ events=[json.loads(l)for l in z.stdout.decode().splitlines()if l.startswith('{"event":')];assert events[0]["event"]=="task_acl_init"and events[-1]["event"]=="task_acl_finalize"and events[0]["returncode"]==events[-1]["returncode"]==0
+ case=next(x for x in events if x["event"]=="CPU_geometry_config");case["SDK"]=[events[0],events[-1]];cases.append(case)
+assert cases[0]["config_accepted"]
+after=probe("after")
+native_refs=[]
+for f in["/vllm-workspace/vllm/vllm/v1/metrics/stats.py","/vllm-workspace/vllm/vllm/config/parallel.py"]:
+ code="from pathlib import Path;import hashlib,json;p=Path("+repr(f)+");b=p.read_bytes();print(json.dumps(dict(path=str(p),bytes=len(b),sha256=hashlib.sha256(b).hexdigest())))"
+ z=subprocess.run(["docker","exec","glm52-single","python3","-c",code],capture_output=True,timeout=30);z.check_returncode();native_refs.append(json.loads(z.stdout))
+out=dict(at=utc(),kind="CPU_native_fullconfig_parallel_geometry",measurement_valid=True,cases=cases,before=before,after=after,source_refs=native_refs,native_timing_semantics=dict(prefill="firstSCHEDULED→firstNEW_TOKEN EngineCore monotonic",queue="firstQUEUED→firstSCHEDULED, QUEUED emittedScheduler.add_request afterengineinbox/inputprocessing",TTFT="frontendarrival_time→OutputProcessor IterationStats walltimestamp; residual includesotherbeforeQUEUED/aftercoreoutput unknown"),new_inference=0,model_operations=0,limits=["Native config/metadata resolver acceptance plus HFfullIndex boundary is necessary, not weights/modelconstruct/HCCL/Graph/STORE/fullE2E correctness/latency/fit proof","PCP expands world, nativePCP-DCP sizes1/PCP/TPxPCP; DP>1 unsupported; hardware still32, no extra node","PP38,40 differs39,39/40,38 previouslyinvalid IndexShare boundary; HFboundaryfull doesnotcertifymodel","Timingresidual notGPUbound/not assignedtotokenizer-or-outputdelivery withoutnewtimestamps"])
+atomic_json(j/"reduction.json",out);b=(j/"reduction.json").read_bytes();atomic_json(j/"result.json",dict(schema_version=1,job_id=j.name,status="completed",summary="VALID CPUfullnativegeometry/config/resolver/HFboundary, currentnative32unchanged/noModel/NPUinference",execution=dict(inner_exit_code=0,acceptance="passed",processes=[]),findings=[],evidence=[dict(id="geometry",path=str(j/"reduction.json"),bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),locator="actualnativefullEngineArgs/ascendresolvers/CPUonlySDK0")],unknowns=out["limits"],decision_request=None,next_check_at=None))
+print(json.dumps([dict(case=x["case"],accepted=x["config_accepted"],error=x.get("error"),world=x.get("world"),PCP=x.get("PCP"),DCP=x.get("DCP"))for x in cases]))
+'''
+ast.parse(outer);(j/'execute.py').write_text(outer)
+a=json.loads((p/'jobs/PREFILL-TIMING152154-20261003T0618Z/job.json').read_text());a.update(job_id=j.name,parent=dict(point_id='GLM-OPT-0002',run_id=None),kind='research',goal='CPU exactnative fullEngineArgs/Ascendmetadataresolver/HFPPboundary baseline+PP38,40+PCP2validDCPsizes16/2/1 withworld32/local16; SDK0/actualcurrentnative32unchanged/no worker-model-GPU tensor-inference',inputs=[dict(path=str(r))]);a['scope']['writes']=[str(j)];a['execution']['command']='/usr/bin/python3 '+str(j/'execute.py');a['execution']['timeout_s']=1000;a['result']['path']=str(j/'result.json');a['acceptance']=['CurrentbaselinefullCLI/nativeconfig matchesresident137166+149167','Candidatesnativeaccepted/rejected reported withoutguard bypass; no workers/model/device tensors/listeners/HTTPinference; actualSDKinit-final0','Native32samebeforeafter/source/timingmeaning refs, no weights-fit-correctness/perfclaim'];(j/'job.json').write_text(json.dumps(a,indent=2)+'\n');print(str(j/'job.json'))
