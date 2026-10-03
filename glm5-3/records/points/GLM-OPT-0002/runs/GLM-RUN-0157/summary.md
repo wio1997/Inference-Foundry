@@ -1,0 +1,3 @@
+# GLM-RUN-0157
+
+Run157 INVALID beforebenchmark: legacynewD1 STORE fixture missed newuniqueheader row8suffix, FileNotFoundError afterreadonlyGET; originalsource89/raw kept, no bench/nativeinference/output0, allnativecounterdelta0/SDKinit-final0, current156native32same/healthyidle/publicsame, D0private4096t4096serial8 changedandrestored1024serial9; D1private8192t4096serial1 unchanged. Audit9663B SHA7f57b2538e96d5abb65e1a2b47c2685bc9d8ad952c3b679e7557257091b70d78. GPT correctsnextnewRun158 fixture usingaudited156clientsummary row/name/wire refSHA ratherthan guessedfilename; no replay157/no nativeperformancecredit.
