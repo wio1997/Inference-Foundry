@@ -1,0 +1,1 @@
+Candidate only. Live runtime and service remain unchanged while Run146 sources are frozen. No GPU queue. Existing active_count/shape_split output must remain byte-equivalent; observed work hints explicitly opt-in, bind native epoch and immutable source hashes, missing rates preserve all-count fallback.

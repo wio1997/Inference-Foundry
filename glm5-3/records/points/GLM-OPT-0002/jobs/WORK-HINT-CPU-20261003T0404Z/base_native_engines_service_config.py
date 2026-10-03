@@ -7,7 +7,6 @@ controller must check all live identities before publishing the configuration.
 import argparse
 import hashlib
 import json
-import math
 import re
 from pathlib import Path
 
@@ -16,45 +15,6 @@ from standalone_service_config import compile_config as compile_engine
 EVIDENCE_NAME = "native_engines_resident.json"
 
 
-def _artifact(reference):
-    if not isinstance(reference, dict) or set(reference) != {"path", "bytes", "sha256"}:
-        raise ValueError("complete work hint artifact reference required")
-    path = reference["path"]
-    if not isinstance(path, str) or not Path(path).is_absolute():
-        raise ValueError("work hint evidence path must be absolute")
-    if type(reference["bytes"]) is not int or reference["bytes"] <= 0:
-        raise ValueError("invalid work hint artifact size")
-    sha = reference["sha256"]
-    if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
-        raise ValueError("invalid work hint artifact hash")
-    raw = Path(path).read_bytes()
-    if len(raw) != reference["bytes"] or hashlib.sha256(raw).hexdigest() != sha:
-        raise ValueError("work hint evidence changed")
-    return raw
-
-def _routing_hint(reference, epoch):
-    hint = json.loads(_artifact(reference))
-    fields = {"schema_version", "native_owner_epoch", "cohort_id", "decode_tps",
-              "prefill_bytes_per_s", "method", "sources", "limitations"}
-    if not isinstance(hint, dict) or set(hint) != fields or type(hint["schema_version"]) is not int or hint["schema_version"] != 1:
-        raise ValueError("unrecognized observed work hint schema")
-    if hint["native_owner_epoch"] != epoch:
-        raise ValueError("observed work hint belongs to another native owner epoch")
-    for key in ("cohort_id", "method"):
-        if not isinstance(hint[key], str) or not hint[key]:
-            raise ValueError("observed work hint provenance is required")
-    for key in ("decode_tps", "prefill_bytes_per_s"):
-        value = hint[key]
-        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
-            raise ValueError("observed work rates must be positive finite numbers")
-    if not isinstance(hint["sources"], list) or not hint["sources"]:
-        raise ValueError("observed work hint requires source artifacts")
-    for source in hint["sources"]:
-        _artifact(source)
-    if not isinstance(hint["limitations"], list) or not hint["limitations"] or not all(isinstance(v,str)and v for v in hint["limitations"]):
-        raise ValueError("observed work hint limitations are required")
-    return hint
-
 def compile_config(material, state_dir):
     if not isinstance(material, dict) or set(material) != {"engines", "placement"}:
         raise ValueError("engines and placement evidence are required")
@@ -62,12 +22,10 @@ def compile_config(material, state_dir):
     if not isinstance(engines, list) or not 1 <= len(engines) <= 2:
         raise ValueError("one or two task-native engines are required")
     replicas, groups, geometry = [], [], {}
-    hints = {}
     ids, replica_ids, hosts = set(), set(), set()
     environment = None
     for engine in sorted(engines, key=lambda value: value["id"]):
-        if set(engine) not in ({"id", "replica_id", "plans", "roots", "members"},
-                               {"id", "replica_id", "plans", "roots", "members", "routing_hint"}):
+        if set(engine) != {"id", "replica_id", "plans", "roots", "members"}:
             raise ValueError("unrecognized engine evidence fields")
         ident, replica = engine["id"], engine["replica_id"]
         if not isinstance(ident, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", ident):
@@ -86,25 +44,18 @@ def compile_config(material, state_dir):
         hosts |= engine_hosts
         geometry[ident] = config["geometry"]
         native_replica = json.loads(config["environment"]["GLM_REPLICAS"])[0]
-        row = dict(id=replica, url=native_replica["url"])
-        epoch = config["native_domains"][0]["epoch"]
-        if "routing_hint" in engine:
-            if not isinstance(material["placement"], dict) or material["placement"].get("kind") != "work_seconds":
-                raise ValueError("observed rates require explicit work-seconds placement")
-            hint = _routing_hint(engine["routing_hint"], epoch)
-            row.update(decode_tps=hint["decode_tps"], prefill_bytes_per_s=hint["prefill_bytes_per_s"])
-            hints[replica] = dict(artifact=engine["routing_hint"], observation=hint)
-        replicas.append(row)
-        groups.append(dict(id=ident, epoch=epoch, members=[replica]))
+        replicas.append(dict(id=replica, url=native_replica["url"]))
+        groups.append(dict(id=ident, epoch=config["native_domains"][0]["epoch"],
+                           members=[replica]))
         if environment is None:
             environment = dict(config["environment"])
     placement = material["placement"]
     if not isinstance(placement, dict) or "kind" not in placement:
         raise ValueError("explicit native API placement is required")
     kind = placement["kind"]
-    if kind in ("active_count", "work_seconds"):
+    if kind == "active_count":
         if set(placement) != {"kind"}:
-            raise ValueError("unexpected native placement fields")
+            raise ValueError("unexpected active-count placement fields")
     elif kind == "shape_split":
         if set(placement) != {"kind", "input_threshold_bytes",
                               "prefill_members", "decode_members"}:
@@ -129,7 +80,7 @@ def compile_config(material, state_dir):
                        GLM_EXECUTION_GROUPS=json.dumps(groups),
                        GLM_PLACEMENT_POLICY=kind,
                        GLM_PD_PRODUCERS="{}", GLM_PD_NATIVE_PLANS="{}")
-    result = dict(schema_version=1, deployment="independent_native_engines",
+    return dict(schema_version=1, deployment="independent_native_engines",
                 engine_geometry=geometry, placement=placement,
                 environment=environment, native_domains=groups,
                 limitations=[
@@ -140,16 +91,6 @@ def compile_config(material, state_dir):
                     "Shape placement uses input bytes and preserves native owner affinity",
                     "Configuration does not certify correctness, stable SLO capacity or hardware bounds",
                 ])
-
-    if kind == "work_seconds":
-        result["routing_hints"] = hints
-        result["limitations"] += [
-            "Work hints bind to recorded native owner epochs and hashed source artifacts",
-            "Missing hints on any eligible engine fall back to counts for all",
-            "Observed rates do not infer progress, batch speedup or native background work",
-            "Work hints do not certify scheduling optimality or stable capacity",
-        ]
-    return result
 
 
 def render(resident_dir, state_dir):
