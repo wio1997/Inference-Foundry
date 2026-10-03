@@ -1,0 +1,54 @@
+from pathlib import Path
+import sys,json,os,hashlib,traceback
+from vllm.utils.argparse_utils import FlexibleArgumentParser
+from vllm.entrypoints.cli.serve import ServeSubcommand
+from vllm.entrypoints.openai.api_server import validate_api_server_args
+from vllm.tool_parsers import ToolParserManager
+from vllm.engine.arg_utils import EngineArgs
+case=sys.argv[1];r=Path("/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/runs/GLM-RUN-0163")
+launch=json.loads((r/"candidate_plan.json").read_text());argv=list(launch["argv"])
+for k,v in launch["environment"].items():os.environ[k]=str(v)
+sys.path[:0]=[str(r),"/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime","/data/tiankuan/wio/glm52-pd/deploy/plugins/local_engines137"]
+def setarg(k,v):argv[argv.index(k)+1]=str(v)
+settings={"baseline":(1,8,"42,36",1),"PP38_40":(1,8,"38,40",1),"PCP2_DCP16":(2,16,"42,36",2),"PCP2_DCP2":(2,2,"42,36",2),"PCP2_DCP1":(2,1,"42,36",2)}
+pcp,dcp,partition,nnodes=settings[case];setarg("--prefill-context-parallel-size",pcp);setarg("--decode-context-parallel-size",dcp);setarg("--nnodes",nnodes);setarg("--master-port",29960);os.environ["VLLM_PP_LAYER_PARTITION"]=partition
+evidence={"case":case,"argv":argv,"PP_partition":partition,"SDK_communicators_created":0,"workers":0,"model_instances":0,"inference":0,"NPU_tensor_allocations":0}
+try:
+ parser=FlexibleArgumentParser();sub=parser.add_subparsers(dest="subparser");cmd=ServeSubcommand();cmd.subparser_init(sub);args=parser.parse_args(argv[3:]);cmd.validate(args)
+ if args.model_tag is not None:args.model=args.model_tag
+ if args.tool_parser_plugin:ToolParserManager.import_tool_parser(args.tool_parser_plugin)
+ validate_api_server_args(args)
+ config=EngineArgs.from_cli_args(args).create_engine_config()
+ from issue_budget_scheduler_v3 import proof
+ from vllm.config import set_current_vllm_config
+ with set_current_vllm_config(config):
+  from vllm_ascend.ascend_config import get_ascend_config
+  from vllm_ascend.utils import register_ascend_customop,enable_dsa_cp,enable_dsa_cp_with_o_proj_tp
+  register_ascend_customop(config)
+  from vllm_ascend.attention.context_parallel.sfa_cp import resolve_sfa_metadata_builder,resolve_sfa_impl
+  cls=resolve_sfa_metadata_builder();impl=resolve_sfa_impl(config)
+  ac=get_ascend_config()
+  evidence.update(ascend_metadata=cls.__module__+"."+cls.__name__,ascend_impl=impl.__module__+"."+impl.__name__,DSACP=bool(enable_dsa_cp()),o_proj_tp=bool(enable_dsa_cp_with_o_proj_tp()),SP=config.parallel_config.use_sequence_parallel_moe,shared_expert_overlap=ac.multistream_overlap_shared_expert)
+ pc=config.parallel_config
+ from vllm.v1.core.single_type_kv_cache_manager import FullAttentionManager
+ from vllm.v1.kv_cache_interface import FullAttentionSpec
+ from types import SimpleNamespace
+ spec=object.__new__(FullAttentionSpec);object.__setattr__(spec,"block_size",config.cache_config.block_size)
+ block=config.cache_config.block_size*pc.decode_context_parallel_size
+ class Pool:
+  hash_block_size=block
+  def get_cached_block(self,h,groups):return tuple(SimpleNamespace(block_id=h)for group in groups)if h<73728//block else None
+ results={}
+ for eagle in[False,True]:
+  blocks,hit=FullAttentionManager.find_longest_cache_hit(list(range(81932//block)),81931,[0],Pool(),spec,eagle,block,dcp_world_size=pc.decode_context_parallel_size)
+  results[str(eagle)]=dict(hit_tokens=hit,cached_blocks=len(blocks[0]),effective_block_size=block)
+ assert block==1024 and results["False"]["hit_tokens"]==73728and results["True"]["hit_tokens"]==72704
+ evidence.update(native_cache_block_size=config.cache_config.block_size,effective_DCPblock_size=block,native_speculative_method=config.speculative_config.method,native_use_eagle=config.speculative_config.use_eagle(),native_function_synthetic_metadata=results,operators_or_native_cache_edits=0,cache_contents_or_tensors=0)
+ assert config.speculative_config.use_eagle()
+ evidence.update(config_accepted=True,TP=pc.tensor_parallel_size,PP=pc.pipeline_parallel_size,PCP=pc.prefill_context_parallel_size,DCP=pc.decode_context_parallel_size,DP=pc.data_parallel_size,world=pc.world_size,world_across_dp=pc.world_size_across_dp,nnodes=pc.nnodes,local_world_size=pc.world_size//pc.nnodes,K=config.speculative_config.num_speculative_tokens,KV_bytes=config.cache_config.kv_cache_memory_bytes,scheduler=proof(config))
+ assert evidence["TP"]==8and evidence["PP"]==2and evidence["PCP"]==pcp and evidence["DCP"]==dcp and evidence["DP"]==1and evidence["world"]==16*pcp and evidence["local_world_size"]==16
+ hf=json.loads(Path("/data/tiankuan/wio/GLM-5.2-w8a8/config.json").read_text());boundary=int(partition.split(",")[0]);evidence["hf_boundary_type"]=hf["indexer_types"][boundary];assert evidence["hf_boundary_type"]=="full"and sum(map(int,partition.split(",")))==hf["num_hidden_layers"]
+except Exception as err:
+ evidence.update(config_accepted=False,error_type=type(err).__name__,error=str(err),traceback=traceback.format_exc())
+ if True:raise
+print(json.dumps({"event":"CPU_geometry_config",**evidence}))

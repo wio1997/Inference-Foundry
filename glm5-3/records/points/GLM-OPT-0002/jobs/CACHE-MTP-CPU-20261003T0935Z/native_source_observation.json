@@ -1,0 +1,90 @@
+{
+  "at": "2026-10-03T09:51:28.588276+00:00",
+  "kind": "Read_only_native_source_observation_after_CPU_jobs",
+  "host": "166",
+  "container": "glm52-single",
+  "source_refs": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/single_type_kv_cache_manager.py",
+      "bytes": 85275,
+      "sha256": "8c9030040cbc3b7176e228e10ff6491c3cf6c3e95bdfb573532fcf75f5385ebd",
+      "selected": [
+        {
+          "name": "FullAttentionManager",
+          "line": 678,
+          "source": "def find_longest_cache_hit(\n        cls,\n        block_hashes: BlockHashList,\n        max_length: int,\n        kv_cache_group_ids: list[int],\n        block_pool: BlockPool,\n        kv_cache_spec: KVCacheSpec,\n        drop_eagle_block: bool,\n        alignment_tokens: int,\n        dcp_world_size: int = 1,\n        pcp_world_size: int = 1,\n    ) -> tuple[tuple[list[KVCacheBlock], ...], int]:\n        assert isinstance(\n            kv_cache_spec, FullAttentionSpec | ChunkedLocalAttentionSpec\n        ), (\n            \"FullAttentionManager can only be used for full attention \"\n            \"and chunked local attention groups\"\n        )\n        block_size = kv_cache_spec.block_size\n        if dcp_world_size > 1:\n            # DCP shards each block's KV across ranks; hashes must be viewed at\n            # the sharded block size.\n            block_size *= dcp_world_size\n        block_hashes = resolve_block_hashes(\n            block_hashes,\n            block_pool.hash_block_size,\n            block_size,\n            supports_fine_grained_hash_lookup=cls.supports_fine_grained_hash_lookup,\n            alignment_tokens=alignment_tokens,\n        )\n\n        # Fine-grained mode (alignment_tokens == hash_block_size <\n        # block_size): resolve_block_hashes kept the raw hash-granularity\n        # list so interior boundaries can be probed.\n        fine_grained = (\n            alignment_tokens < block_size and block_size % alignment_tokens == 0\n        )\n        if fine_grained:\n            # list or lazy BlobBlockHashes view\n            assert isinstance(block_hashes, Sequence)\n            full_block_hashes: BlockHashList = BlockHashListWithBlockSize(\n                block_hashes, alignment_tokens, block_size\n            )\n        else:\n            full_block_hashes = block_hashes\n\n        computed_blocks: tuple[list[KVCacheBlock], ...] = tuple(\n            [] for _ in range(len(kv_cache_group_ids))\n        )\n        # Phase 1: longest run of cached full blocks from the start. A missing\n        # block implies every later block misses too (chained hashes).\n        for block_hash in itertools.islice(full_block_hashes, max_length // block_size):\n            cached_block = block_pool.get_cached_block(block_hash, kv_cache_group_ids)\n            if not cached_block:\n                break\n            for computed, cached in zip(computed_blocks, cached_block):\n                computed.append(cached)\n        hit_length = len(computed_blocks[0]) * block_size\n\n        # Phase 2 (fine-grained only): extend into the first non-full block by\n        # probing its interior hash boundaries high-to-low (longest hit first).\n        if fine_grained:\n            # list or lazy BlobBlockHashes view\n            assert isinstance(block_hashes, Sequence)\n            scale_factor = block_size // alignment_tokens\n            first_partial_idx = len(computed_blocks[0]) * scale_factor\n            max_partial_idx = min(\n                first_partial_idx + scale_factor - 1,\n                max_length // alignment_tokens,\n                len(block_hashes),\n            )\n            for fine_idx in range(max_partial_idx - 1, first_partial_idx - 1, -1):\n                cached_tail = block_pool.get_cached_block(\n                    block_hashes[fine_idx], kv_cache_group_ids\n                )\n                if not cached_tail:\n                    continue\n                for computed, cached in zip(computed_blocks, cached_tail):\n                    computed.append(cached)\n                hit_length = (fine_idx + 1) * alignment_tokens\n                break\n\n        # Eagle needs the tokens right before the generation point recomputed:\n        # drop one hash unit when fine-grained (the tail block's KV is\n        # append-only, so it still covers the reduced length), else one cache\n        # block.\n        if drop_eagle_block and hit_length > 0:\n            hit_length -= min(alignment_tokens, block_size)\n        # Round down to the alignment; a no-op when fine-grained (hits land on\n        # hash boundaries by construction) and when alignment_tokens ==\n        # block_size. Then trim blocks past the new tail.\n        hit_length -= hit_length % alignment_tokens\n        num_blocks = cdiv(hit_length, block_size)\n        for computed in computed_blocks:\n            del computed[num_blocks:]\n        return computed_blocks, hit_length"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/kv_cache_utils.py",
+      "bytes": 94588,
+      "sha256": "0ab5385925f660395612e3f69030cad3b18c2e0bd6fb61d3ff43072a6cefb74f",
+      "selected": [
+        {
+          "name": "resolve_kv_cache_block_sizes",
+          "line": 626,
+          "source": "def resolve_kv_cache_block_sizes(\n    kv_cache_config: KVCacheConfig,\n    vllm_config: VllmConfig,\n) -> tuple[int, int]:\n    \"\"\"Resolve (scheduler_block_size, hash_block_size).\n\n    - ``scheduler_block_size`` is the token-alignment invariant used by the\n      scheduler (e.g. for ``num_computed_tokens`` rounding). Single group:\n      ``cache_config.block_size * dcp``. Multiple groups: LCM of every\n      group's effective block size. Attention groups are scaled by DCP;\n      Mamba groups keep their full per-rank state and are not scaled.\n    - ``hash_block_size`` is the granularity at which ``Request.block_hashes``\n      is computed. Single group: equals scheduler block size. Multiple groups:\n      ``cache_config.prefix_match_unit`` override if set, else the GCD of\n      group block sizes; every group's block size must be divisible by it.\n      Returns the scheduler block size (i.e. disables finer hashing) if block\n      hashing is inactive or a mamba group's block size diverges from the\n      cache block size (mamba_cache_mode != \"align\").\n    \"\"\"\n    cache_config = vllm_config.cache_config\n    dcp = vllm_config.parallel_config.decode_context_parallel_size\n    groups = kv_cache_config.kv_cache_groups\n\n    if len(groups) <= 1:\n        bs = cache_config.block_size * dcp\n        return bs, bs\n\n    group_block_sizes = [\n        g.kv_cache_spec.block_size * dcp\n        if isinstance(g.kv_cache_spec, AttentionSpec)\n        else g.kv_cache_spec.block_size\n        for g in groups\n    ]\n    scheduler_block_size = math.lcm(*group_block_sizes)\n\n    # Block hashes are only consumed by prefix caching and KV connectors\n    # (P/D, offloading); when neither is active, keep hash_block_size equal\n    # to the scheduler block size.\n    connector_enabled = vllm_config.kv_transfer_config is not None\n    if not (cache_config.enable_prefix_caching or connector_enabled):\n        return scheduler_block_size, scheduler_block_size\n\n    # Mamba groups with block_size != cache_config.block_size\n    # (mamba_cache_mode != \"align\") break divisibility; back off to the\n    # scheduler block size.\n    if any(\n        isinstance(g.kv_cache_spec, MambaSpec)\n        and g.kv_cache_spec.block_size != cache_config.block_size\n        for g in groups\n    ):\n        return scheduler_block_size, scheduler_block_size\n\n    requested = cache_config.prefix_match_unit\n    hash_block_size = (\n        requested if requested is not None else math.gcd(*group_block_sizes)\n    )\n    if any(bs % hash_block_size != 0 for bs in group_block_sizes):\n        raise ValueError(\n            f\"Invalid prefix_match_unit={hash_block_size}; all KV cache group \"\n            f\"block sizes must be divisible by prefix_match_unit. \"\n            f\"Got group block sizes={group_block_sizes}.\"\n        )\n    return scheduler_block_size, hash_block_size"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/config/speculative.py",
+      "bytes": 64455,
+      "sha256": "83cbb26932b9ec0633753b58e8fe666f55c779580b32fba750cf569cde67c40c",
+      "selected": [
+        {
+          "name": "use_eagle",
+          "line": 1389,
+          "source": "def use_eagle(self) -> bool:\n        # NOTE: This method is usually a stand-in for \"speculative decoding using\n        # target model hidden states\"\n        # TODO(ben): Refactor this so the naming is clearer\n        return self.method in (\"eagle\", \"eagle3\", \"mtp\", \"dflash\", \"dspark\")"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/utils.py",
+      "bytes": 62010,
+      "sha256": "42fa9c7c324d026c161b1cd932a23d85b97afb67e7aaa875830c0ef6963fdfd6",
+      "selected": [
+        {
+          "name": "refresh_block_size",
+          "line": 1173,
+          "source": "def refresh_block_size(vllm_config):\n    \"\"\"\n    Refresh the block size in cache config.\n    \"\"\"\n    cache_config = vllm_config.cache_config\n    scheduler_config = vllm_config.scheduler_config\n    model_config = vllm_config.model_config\n\n    # A separate draft model shares the target model's CacheConfig and must use\n    # its resolved cache layout. Model-free proposers may alias the target as\n    # draft_model_config, so exclude that case.\n    spec_cfg = vllm_config.speculative_config\n    if (\n        spec_cfg is not None\n        and model_config is spec_cfg.draft_model_config\n        and model_config is not spec_cfg.target_model_config\n    ):\n        return\n\n    if not cache_config:\n        return\n\n    if cache_config.block_size is None:\n        cache_config.block_size = 128\n\n    if not scheduler_config or not model_config:\n        return\n\n    if model_config.hf_config.model_type == \"deepseek_v4\":\n        if cache_config.block_size is None:\n            cache_config.block_size = 32\n        elif cache_config.block_size not in [32, 64, 128]:\n            logger.warning(\n                \"For deepseek_v4 model, block size should be 32, 64 or 128. \"\n                \"Setting block size to 32 for better performance.\"\n            )\n            cache_config.block_size = 32\n        return\n\n    if model_config.is_hybrid:\n        # Hybrid attention+mamba models rely on the model-specific sizing\n        # logic rather than the generic platform default.\n        return\n\n    if cache_config.block_size != 128:\n        if cache_config.enable_prefix_caching or scheduler_config.enable_chunked_prefill:\n            logger.info(\"Block size is set to 128 if prefix cache or chunked prefill is enabled.\")\n            cache_config.block_size = 128\n            return\n\n    try:\n        ascend_config = get_ascend_config()\n    except RuntimeError:\n        ascend_config = None\n    if ascend_config is not None and ascend_config.xlite_graph_config.enabled and cache_config.block_size > 128:\n        logger.warning(\n            \"Setting block size for xlite compatibility. \"\n            \"original_block_size=%d, new_block_size=128. \"\n            \"xlite_graph_config requires block_size <= 128.\",\n            cache_config.block_size,\n        )\n        cache_config.block_size = 128"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/sfa_v1.py",
+      "bytes": 70723,
+      "sha256": "f15426c8bd823e651eef7b5f1971b1957d7760c54ee787df43a3d4633f2366a4",
+      "selected": [
+        {
+          "name": "AscendSFABackend",
+          "line": 101,
+          "source": "def get_supported_kernel_block_sizes() -> list[int]:\n        return [128]"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/config/vllm.py",
+      "bytes": 108990,
+      "sha256": "66e82e95c5cdbb88715e25feb65f4cc2be83cd67bff5b5f703d52dea43a0815e",
+      "selected": [
+        {
+          "name": "max_concurrent_batches",
+          "line": 540,
+          "source": "def max_concurrent_batches(self) -> int:\n        # PP requires PP-size concurrent batches to fill the pipeline.\n        # Async scheduling requires 2 concurrent batches to overlap.\n        pp_size = self.parallel_config.pipeline_parallel_size\n        if self.scheduler_config.async_scheduling:\n            if self.use_v2_model_runner:\n                return pp_size + 1\n            # V1 Model Runner does not fully support async scheduling with PP.\n            if pp_size <= 1:\n                return 2\n        return pp_size"
+        },
+        {
+          "name": "max_in_flight_tokens",
+          "line": 553,
+          "source": "def max_in_flight_tokens(self) -> int:\n        # Upper bound on tokens that are scheduled but not yet settled (freed):\n        # every concurrent batch may hold up to a full `max_num_batched_tokens`.\n        # Recycling-aware KV cache specs (sliding-window, chunked-local) reserve\n        # for this because out-of-window blocks are freed on the processed-token\n        # basis, so in-flight steps transiently keep their blocks.\n        return (\n            self.max_concurrent_batches * self.scheduler_config.max_num_batched_tokens\n        )"
+        }
+      ]
+    }
+  ],
+  "inference": 0,
+  "native_edits": 0,
+  "limits": [
+    "Source inspected afterjobs, not claimed time-machine pins; CPU Results/code and actualE2E immutable records retained"
+  ]
+}
