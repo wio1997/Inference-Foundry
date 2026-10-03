@@ -1,0 +1,3 @@
+# GLM-RUN-0131
+
+Prepared. NewnativeDP1TP16PP2DCP16/world32/local16 across166API9081/167headless/noEP_nativeAllGather/noKV/42,36/K3noSPGraph32/CPU4096t1024c1/nativeAsync/W8A8/nativeMLA/DSACPoff/STORE1. FreshcontrollerCPUbothnodes/source/livepriorP89D123NPU32/public127idle thenexactownedretire/replacement. Direct3exact+short32+cold81932to64 diagnostic/SDK0/newNPU32same; provenancecompiledsinglecoupleddomain/public8000bootstrap/shared125ownerjournal/oldnativebinding503/no replay andpublicChat32+Responses32+previous16. NoPD/helper/nativeguard/operator/math edits/no fullcapacityclaim; newphysicalclassfullAPIfollowup required. Compare123localPP2 jointlychangesTP/DCP/locality/resources/trajectory, notisolatedgain.
