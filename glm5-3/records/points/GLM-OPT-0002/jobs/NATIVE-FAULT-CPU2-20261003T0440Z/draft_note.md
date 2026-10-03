@@ -1,0 +1,1 @@
+OriginalCPU034 failurepreserved: probe ASGI lifespan notentered, app.state.client/cleanup_tasks missing, SDKinit-final0/no nativeHTTP/models/signals/live125 changes. NewCPU2 fixture enters actualapp lifespan before HTTP and closesit aftercontracts; frameworkcode unchanged.

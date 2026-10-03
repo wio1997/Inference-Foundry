@@ -1,0 +1,1 @@
+Native-epoch-specific persistent quarantine method and control endpoint. No lease invention, native signal, fault clearing, STORE replication, or cross-owner replay. Live public147 still has its previously loaded code; CPU/E2E deployment pending.

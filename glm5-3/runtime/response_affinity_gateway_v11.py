@@ -93,6 +93,16 @@ def create_app(config=None,transport=None,policy=None,groups=None,fault_state_pa
     async def remove(key:str):
         try:await placement.remove(key);return {'replicas':await placement.snapshot()}
         except KeyError:return JSONResponse({'error':'unknown replica'},status_code=404)
+    @app.post('/control/native-groups/{group_key}/fault')
+    async def native_fault(group_key:str,request:Request):
+        try:
+            observation=await request.json()
+            if not isinstance(observation,dict)or set(observation)!={"epoch","reason"}or not isinstance(observation["reason"],str)or not 0<len(observation["reason"])<=512:
+                raise ValueError("native epoch and bounded observation reason required")
+            changed=await placement.quarantine_native_epoch(group_key,observation["epoch"])
+            return {"group":group_key,"epoch":observation["epoch"],"faulted":True,"changed":changed,"replicas":await placement.snapshot()}
+        except (ValueError,KeyError,TypeError)as error:return JSONResponse({"error":str(error)},status_code=409)
+        except RuntimeError as error:return JSONResponse({"error":str(error)},status_code=503)
     @app.api_route('/{path:path}',methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS','HEAD'])
     async def forward(path:str,request:Request):
         body=await request.body();budget,size=estimate_request(body,request.url.path)

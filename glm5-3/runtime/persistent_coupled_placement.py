@@ -70,6 +70,30 @@ class PersistentCoupledPlacement(CoupledPlacement):
                     self.journal_error=repr(error)
         return released
 
+    async def quarantine_native_epoch(self,group_key,epoch):
+        """Quarantine a controller-observed native identity loss for this epoch.
+
+        An old observer cannot quarantine a replacement. Existing leases and
+        native work are retained; a fault has no HTTP clear or owner replay.
+        """
+        if not isinstance(group_key,str)or not group_key or not isinstance(epoch,str)or not epoch:
+            raise ValueError("native group and epoch required")
+        async with self.lock:
+            group=self.execution_groups.get(group_key)
+            if group is None or group.epoch!=epoch:
+                raise ValueError("native group epoch does not match")
+            changed=not group.faulted
+            group.faulted=True
+            for key in group.members:
+                replica=self.replicas.get(key)
+                if replica is not None:replica.unhealthy_until=math.inf
+            if self.journal_fd is not None:
+                try:self._persist(True)
+                except OSError as error:
+                    self.journal_error=repr(error)
+                    raise RuntimeError("native group quarantined; durable journal unavailable")from error
+            return changed
+
     async def close(self):
         if self.journal_fd is None:return
         async with self.lock:

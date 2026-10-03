@@ -1,0 +1,1 @@
+OriginalCPU1 lifespan omission andCPU2 httpxpreconsumedjsonmockbody failures preserved, bothSDKinit-final0/no nativeHTTP/models/signals/real125changes. CPU3 usesactualapp lifespan andunconsumedAsyncByteStream mock. Frameworkcode unchanged; originalfixtures do notprove physicalfault.
