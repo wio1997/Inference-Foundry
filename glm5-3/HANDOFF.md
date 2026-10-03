@@ -1,21 +1,21 @@
 # glm5-3 HANDOFF
 
-2026-10-03T11:25:25.387297+00:00 checkpoint. **GLM-OPT-0002 ACTIVE；Current=None**。功能已有真实E2E证据；达标稳定容量、全可行域上界仍unknown。继续自主研究，不重放旧Run/测试队列，不按旧PID操作。
+2026-10-03T12:03:33.954898+00:00 checkpoint. **GLM-OPT-0002 ACTIVE；Current=None**。功能已有真实E2E证据；达标稳定容量、全可行域上界仍unknown。继续自主研究，不重放旧Run/测试队列，不按旧PID操作。
 
 ## 当前现场与唯一controller
 
-Run174已completed且controller已退场，最新audit VALID/SLOREJECT，当前没有GPUcontroller。D1恢复8192t4096serial7、D0保持4096t1024serial11；public168/native32全健康idle/peer全字段恢复。172173两个c2-t1024窗口all6PASS，但174c4-t1024 TTFTP507469.7ms FAILonly/TPOTP509.6PASS；完整counter和MTP见下。下一问题：D0独立PP4切换，保留D1 native与STORE；真实fit-functional后再选择两域各c2的完整E2E。
+Run177 running，唯一controller HOST166 pid1026647/start277529849，spec6f5c9090282104a2998f0d49f90e88730e14abbb4314e1519f82c6ba9ad74d41/source110。actualphase=experiment，即176同候选freshsalt复测；模型、公服、两STORE/nativeepoch不变。D0同8192t1024serial1；D1baseline4096serial9→active1024serial10→restore4096serial11，由controllerownedidleCAS。不要并起controller/重放队列。176 VALID TTFTP504000.8ms strictFAIL0.8ms，其余5SLOPASS，native32same/bothSTORE/SDK0/fullwire/peerhints已恢复；177测量与裁决等待独立audit，CurrentNone。
 
 | 角色 | 现役身份与配置 |
 | --- | --- |
-| D0 / 166:9081 | root1381265/start274135865；local_engines137；TP8/PP2/DCP8，PP42,36；allocated4096/private4096t1024c1serial11；epoch bd565634625a19aba5e1ca96e870d47387fe58ec6b7f50ab35d620226c01e958 |
-| D1 / 167:9900 | root913510/start276824752；local_pp168；TP4/PP4/DCP4，PP22,20,20,16；allocated8192；epoch 8b9bf327313e8f223636865aaff0dd131bc049b8a0b6be160c06cc43938f1971 |
-| Public / 166:8000 | HOST2105284/start276887352；Run168 public/native_engines_service_entry/V11/state125/SDKinit0active；identity_observer168绑定同public/native32 |
-| 私有策略 | 174终态D1已恢复8192t4096serial7；历史173恢复serial5→174active1024serial6。查actualpolicy/SELECTED/fallbackFalse/ownedidleCAS；D0无改动 |
+| D0 / 166:9081 | root309418/start277384683；local_pp175；TP4/PP4/DCP4，PP22,20,20,16；allocated8192/private8192t1024c1serial1；epoch c0d325815110fe4974b8c4c86d650380e6fb9d4479040d5b623dd009c3529db1 |
+| D1 / 167:9900 | root913510/start276824752；local_pp168；TP4/PP4/DCP4，PP22,20,20,16；allocated8192/private8192t4096c1serial9；epoch 8b9bf327313e8f223636865aaff0dd131bc049b8a0b6be160c06cc43938f1971 |
+| Public / 166:8000 | HOST551964/start277430916；Run175 public/native_engines_service_entry/V11/state125/SDKinit0active；identity_observer175绑定同public/native32 |
+| 私有策略 | D0新1024serial1；D1已176恢复4096serial9。后续修改须actualpolicy/SELECTED/fallbackFalse/ownedidleCAS；不要按旧D0 PID操作 |
 
 两域DP1/PCP1/nnodes1/local16各自完整GLM，无EP/AllGather/noKVconnector。K3/KV3GiB/Graph4,8,16,32/max32/seq8/HCCL768/W8A8/nativeMLA/nativeAsync/MTP3/noSP/noDSACP/overlapFalse/AtomicMQWorker/mathguards保留。唯一修复为PP更新中每请求new_token_ids为空时不索引[-1]的CPU控制metadata guard；没有填充tensor、发明token提交、改算子或MTP校验。nativebaseSHA failclosed/16安装marker；CPU合成分支与真实E2E通过，实际empty触发和次生copy错误因果仍未证明。
 
-physical authority：records/points/GLM-OPT-0002/runs/GLM-RUN-0168/restored下standalone_root_identities、standalone_native_members、native_engines_resident、service_config、PP_empty_guard_workers JSON；170-174顶层复制同身份，均须鲜活probe。最新Public proof jobs/AUDIT-RUN174-20261003T1124Z/public_service_proof.json。
+physical authority：records/points/GLM-OPT-0002/runs/GLM-RUN-0175/restored下standalone_root_identities、standalone_native_members、native_engines_resident、service_config、PP_empty_guard_workers JSON；175前的D0旧身份已退役；D1原168guard16保留，均须鲜活probe。最新Public proof jobs/AUDIT-RUN175-20261003T1200Z/public_service_proof.json。
 - Mac SSH166：ssh -S /tmp/glm52-166.sock -o BatchMode=yes 910c-166。
 - 167通过166 HOST：ssh -o BatchMode=yes root@172.16.10.167；container166无SSH。
 - repo /data/tiankuan/wio/Inference-Foundry；site /data/tiankuan/wio/glm52-pd/deploy；container glm52-single。
@@ -41,7 +41,7 @@ MTP接受率170=.690360、171=.745044、172=.927329、173=.722502，TPS不能全
 
 ## 状态与机制复用
 
-旧D0 resp_glm_run139_base GET保持native原wire；现D1 resp_glm_run168_D1_new create32/child16/retrieve有效。旧D1 IDs139other/149new/156new/164new在新epoch下GET/previous503 beforelease/RPC；不复制STORE、不跨owner回放。work_seconds hints是有限coldHTTP/短decode、epoch/sourcehash绑定的粗提示，不是cached工作/原生进度预测；peer readd须全compiler字段。
+旧D0 resp_glm_run139_base 已随175退役，GET/previous503 beforeleaseRPC；新D0 resp_glm_run175_D0_new原native STORE32/child16/retrieve有效；现D1 resp_glm_run168_D1_new create32/child16/retrieve有效。旧D1 IDs139other/149new/156new/164new在新epoch下GET/previous503 beforelease/RPC；不复制STORE、不跨owner回放。work_seconds hints是有限coldHTTP/短decode、epoch/sourcehash绑定的粗提示，不是cached工作/原生进度预测；peer readd须全compiler字段。
 
 已验证透明nativeAPI/router精确lease/Chat-Completion-typedResponses/tools/reasoning/usage/采样/logprobs/STORE-previous/取消/native错误隔离/drain-readd/epoch affinity/持久faultquarantine/physicalidentity observer/open arrivals；见139/147/149-151/168，不把清单缩小完整功能范围。customID并发race、STORE复制、实时native进度/精确缓存工作仍unknown；helper3未知ACK不计成功。
 
@@ -57,10 +57,12 @@ MTP接受率170=.690360、171=.745044、172=.927329、173=.722502，TPS不能全
 
 ## 下一问题与记录
 
-174终态audit已VALID，结果5/6PASS/P50TTFTFAIL；所有资源健康idle/SDK客户端finalize0/无helper-preempt。沿D0独立PP4可行迁移研究，唯一controller才可资源切换。复用168启动、faultquarantine与STORE代际隔离证据，确认host/role对称变换和原生PP配置；保留D1现役。没有固定额外步骤、审批或全复现补齐门槛。
+175终态audit已VALID/functionalmigration251/9；native32健康idle/SDK客户端finalize0/无helper-preempt。沿两域各c2 PP4真实E2E研究；仅D1私有threshold可ownedidleCAS1024后恢复，D0原1024不变。WorkSeconds旧coldhint不能假定cached批次2/2；可使用已实现missingrate全域countfallback并finally完整compilerpeer恢复，明确路由条件变化；唯一controller排程。没有固定额外步骤、审批或全复现补齐门槛。
 
-原manifest/source/raw保留；GPT终态overlay manifest_record_v2.json/checkpoint_terminal_state.json/reduction_brief.json/summary记code+Run+结论。Git权威分支glm5-3-autonomous-20261001，已同步HEAD31dbc0a6a54b683c2922f1d58c3161deac49c98b/tree8f5c890e419ac360b7074028b0e57c05f804bc02，checkpoint131记录168169170终态/171ACTIVE fixedsnapshot。下个checkpoint记录171172173/PAIR及174状态；活动JSON固定快照；ownedbytes/tree/commit/branch/index/origin CAS，无force/无关改动。
+原manifest/source/raw保留；GPT终态overlay manifest_record_v2.json/checkpoint_terminal_state.json/reduction_brief.json/summary记code+Run+结论。Git权威分支glm5-3-autonomous-20261001，已同步HEAD0e2938688f45e1a572725866d52d1a9c16b07583/tree8fd563e82eae34a46cb38fea27d970c60e336c5b，checkpoint132记录171172173174终态/PAIR。下个checkpoint133记录175176代码/终态与后续活动snapshot；活动JSON固定快照；ownedbytes/tree/commit/branch/index/origin CAS，无force/无关改动。
 
 旧历史全文见[checkpoint131 HANDOFF](https://github.com/wio1997/Inference-Foundry/blob/31dbc0a6a54b683c2922f1d58c3161deac49c98b/glm5-3/HANDOFF.md)。当前点records/points/GLM-OPT-0002/point.md和Run/job保存后续结论。Job编号时间是标识，actualstage/UTC权威，不按预先命名时间猜执行。原AUDIT168无Result、169隐藏缓存相等门槛失败均保留；新只读V2有效，不覆盖或重跑推理。
 
-2026-10-03T11:29:23.376417+00:00: Run174 VALID PP4c4-t1024-four4096/SLOREJECT: same168native32/guard16/epochs/public168/STORE/source93/SDKinit-final0/no model-public-operatorchanges; exactall4input152/prefix1/c4/freshsalt/nativeChat/gen16385/query401468/cache292864/5success/D0counter0/helper-preempt-extcache-uncredited0/fullnativeIDs-wire-usage-length-DONE/D0logicaldrain-finallyfullpeerreadd/native32sameidle. SoleD1private8192t4096serial5→8192t1024serial6/nativeSELECTED6fallbackFalse→ownedidleCASrestore4096serial7; D0serial11unchanged. TTFTP507469.7/P757474.4/P907477.2/P997478.8ms/P50FAILonly; TPOTP509.6/P909.8msPASS/5of6. Warmexcluded4nativeprefill6.065301s/TTFT6.833445s/decode39.364209s/queue0.181ms. FullCLI78.464741s/208.807163462finiteTPS vs170132.054628 butMTPacceptedfraction.933844 versus.690360/perdraft2.801532vs2.071080, no isolatedthroughputgain/repeat/stablecapacity/full61440/globalbound/KEEP/Current. Smallerchunks narrowTTFTresidual butall4prefillresourcework increases firstoutput versusc2 two passedwindows; nativequeue tiny excludesfrontend/coreinbox. AuditVALID23347B SHA50b8e4ed1cff75904926e3541ec16c6ec7ce75f375b828be217fdfa2f9b04654. Nextresearch D0独立PP4 migration whileD1native/STORE survives; twoPP4domains eachc2 potentiallyreduce burst latency versus singlec4, actualfit-functional-fullE2E required.
+2026-10-03T12:03:33.954898+00:00: Run175 VALID functional migration: D0 exactownednative137 retired, automaticoldpublic168 D0 quarantine/D1 survivorSTORE nativewire preserved. NewD0 TP4PP4DCP4/22,20,20,16/allocated8192t1024serial1/nativeguard16 root309418/start277384683/epochc0d325815110fe4974b8c4c86d650380e6fb9d4479040d5b623dd009c3529db1; D1native168 root913510/epoch8b9bf327.../8192t4096serial7 unchanged. Pilot2short21→32+2NEWcold81932→64=192/query163906/cache0/4success/fullnativeIDs-wire-usage-length-DONE; coldTTFT24.7314/25.3265s, short6.1886/6.5269s, differenthost/newepoch/threshold andruntimehistory notisolatedgain. Correct4/42/GLM_OK_731 +newD0STORE32/previousSSE16/retrieve59 =>251/9complete; D1allnewcounter0; oldD0GET-previous andretiredD1IDs503beforeleaseRPC/no replication-replay. Public175HOST551964/start277430916/V11/state125/SDKinit0active/newHOSTobserver; oldpublic168exactretiredSDKfinal0. CPUactualfullconfig/6phasesexit0/source116/native32freshsameownedhealthyidle/allclientsSDK0/helperpreemptuncredited0. Audit26424B SHAf76ba4a4743dd37a2f34d31803cf42663d16a0bb22f66ceb6935ac25d292d097. Capacity INCONCLUSIVE/CurrentNone/no KEEP/formal61440/globalstablebound. Next twoPP4domains eachc2 under1024 threshold/cachedall4four4096 exactworkload; preserveboth currentSTOREs/nativeepochs andaccount2warmup/actual2each, avoid cached WorkSeconds coarsehint 3/1 routing mistaken asbalanced.
+
+2026-10-03T12:13:38.867923+00:00: Run176 VALID dualPP4 cachedfour4096 c4/countfallback actual2each/SLOREJECT. Same175D0+168D1/native32/public175/epochs/bothSTORE/source107/SDK0/fullIDs-body-wire-usage-length-DONE/nohelperpreemptuncredited. Exactall4input152 plus2warmup/nativeTokenizerValidation; gen16386/query475208/cache292864/6success, each8193/237604/146432/3success; nativeRunning2each/Waiting0/KV.247089 observed. D0same8192t1024serial1; D1ownedidleCAS4096serial7→1024serial8/nativeSELECTED8nofallback→restore4096serial9. ExistingmissingD0rate fallback alleleligibleactive_count/fullnativegroupfields retained; logicalD0fullcompilerpeer+hints restored finally/no model-publicoperatoroperations. TTFTP504000.8ms strictFAIL0.8ms/P754369.2/P904374/P994376.9; TPOTP508.8/P909.0msPASS/5of6. NativeD0/D1 meanprefill3.312610/3.306467s/TTFT3.893869/3.890182s/decode35.977498/35.939195s/queue.189/.160ms; fullCLI72.430304s/226.203661937finiteTPS. MTPacceptedfractionD0.939960/D1.924424/perdraft2.819879/2.773272; noisolatedthroughputgain/stableglobalcapacity/full61440/KEEP/Current. Compared174singleD1c4TTFTP507469.7 and172173singleD1c2 P503145.9/3884.2 explicit2domain/twowarm/countfallback/cacheorderednativeMTP trajectories differences. Audit33028B SHAd86065de068124465c7cd22f0595915a27c7f11707268d53bd42ef418437c991. Next matchedrepeat sameexactall4/output4096/c4/t1024/countfallback/twowarm/newSalt, addressnearstrictSLO boundary/knowntrajectoryvariation without roundingPASS or assumingstablegain.
