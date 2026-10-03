@@ -1,0 +1,617 @@
+{
+  "at": "2026-10-03T17:26:08.662428+00:00",
+  "kind": "source_only_multi_node_MP_PP32_feasibility",
+  "valid": true,
+  "proposal": {
+    "TP": 8,
+    "PP": 4,
+    "DCP": 8,
+    "PCP": 1,
+    "DP": 1,
+    "nnodes": 2,
+    "world": 32,
+    "local_world_each": 16,
+    "PP_partition": "22,20,20,16",
+    "K": 3,
+    "no_EP": true,
+    "no_native_KV": true,
+    "native_operators_unchanged": true
+  },
+  "sources": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/docs/source/user_guide/feature_guide/pipeline_parallel.md",
+      "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/PP32-TOPOLOGY-SOURCE-20261003T1722Z/source_pipeline_parallel.md",
+      "bytes": 18721,
+      "sha256": "8152e3376a80f6baca8ee3c81dd4cae43d783e531e82962c3a9b8399f9f5fe7b"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/executor/multiproc_executor.py",
+      "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/PP32-TOPOLOGY-SOURCE-20261003T1722Z/source_multiproc_executor.py",
+      "bytes": 43600,
+      "sha256": "ceb3477473bdb1de36e01687e0b2083ad239d42b1ddc2ec8cec16ba2c477efa6"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/cli/serve.py",
+      "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/PP32-TOPOLOGY-SOURCE-20261003T1722Z/source_serve.py",
+      "bytes": 15505,
+      "sha256": "044cf8c097eb0c78af632e9fc5844ddb74fde671b7fbc97e1655a1c55899c1eb"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/engine/arg_utils.py",
+      "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/PP32-TOPOLOGY-SOURCE-20261003T1722Z/source_arg_utils.py",
+      "bytes": 122054,
+      "sha256": "165f9ec6e3b067bb7e6c72d68adedde7fa4d5ed7932fa7568064b9d9086e6830"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/config/parallel.py",
+      "snapshot": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/PP32-TOPOLOGY-SOURCE-20261003T1722Z/source_parallel.py",
+      "bytes": 44311,
+      "sha256": "5ee765f980d8e371314caa38a27c5a21ab90f3865e697707d48e608ca4d17f3d"
+    }
+  ],
+  "excerpts": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/docs/source/user_guide/feature_guide/pipeline_parallel.md",
+      "matches": [
+        {
+          "line": 81,
+          "text": "    --tensor-parallel-size 8 \\\n    --pipeline-parallel-size 2 \\\n    --nnodes 2 \\\n    --node-rank 0 \\\n    --master-addr <HEAD_NODE_IP> \\\n    --master-port <MASTER_PORT> \\"
+        },
+        {
+          "line": 82,
+          "text": "    --pipeline-parallel-size 2 \\\n    --nnodes 2 \\\n    --node-rank 0 \\\n    --master-addr <HEAD_NODE_IP> \\\n    --master-port <MASTER_PORT> \\\n    --trust-remote-code"
+        },
+        {
+          "line": 88,
+          "text": "```\n\nOn the worker node, use node rank `1` and add `--headless`:\n\n```bash\nvllm serve /path/to/model \\"
+        },
+        {
+          "line": 95,
+          "text": "    --tensor-parallel-size 8 \\\n    --pipeline-parallel-size 2 \\\n    --nnodes 2 \\\n    --node-rank 1 \\\n    --master-addr <HEAD_NODE_IP> \\\n    --master-port <MASTER_PORT> \\"
+        },
+        {
+          "line": 96,
+          "text": "    --pipeline-parallel-size 2 \\\n    --nnodes 2 \\\n    --node-rank 1 \\\n    --master-addr <HEAD_NODE_IP> \\\n    --master-port <MASTER_PORT> \\\n    --headless \\"
+        },
+        {
+          "line": 99,
+          "text": "    --master-addr <HEAD_NODE_IP> \\\n    --master-port <MASTER_PORT> \\\n    --headless \\\n    --trust-remote-code\n```\n"
+        },
+        {
+          "line": 104,
+          "text": "\nOnly the head node starts the API server. Both nodes must use identical model,\nTP, PP, `--nnodes`, `--master-addr`, and `--master-port` values. Assign each\nnode a unique `--node-rank` from `0` to `--nnodes - 1`, and set the required\nHCCL and communication environment variables before running either command.\n"
+        },
+        {
+          "line": 105,
+          "text": "Only the head node starts the API server. Both nodes must use identical model,\nTP, PP, `--nnodes`, `--master-addr`, and `--master-port` values. Assign each\nnode a unique `--node-rank` from `0` to `--nnodes - 1`, and set the required\nHCCL and communication environment variables before running either command.\n\n### Multi-Node Deployment with Ray"
+        },
+        {
+          "line": 384,
+          "text": "| One PP rank runs out of memory | Check whether it is the last stage or hosts a local drafter. Measure all ranks, then move one target layer at a time. |\n| The first request hangs | Retry with smaller sequence and batch limits. Use `--enforce-eager` to determine whether graph capture is involved, and verify inter-rank communication. |\n| An MP worker cannot join the head node | Verify that both nodes use the same master address, master port, node count, model, and parallel sizes; that each node rank is unique; and that the master port is reachable. The worker command must include `--headless`. |\n| A Ray deployment hangs or misses ranks | Verify identical environments, model paths, communication variables, and Ray resources on every node. |\n| A cross-node RoCE MoE deployment fails or hangs after enabling PP and DP | Keep either the PP size or the DP size at `1`; the current `MoeDistributeDispatch` path does not support this combined topology. |\n| P/D handshake times out | Compare the P/D connector topology, `prefill.pp_size`, optional `prefill.pp_layer_partition`, and the available `kv_port` range. |"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/executor/multiproc_executor.py",
+      "matches": [
+        {
+          "line": 135,
+          "text": "        # Initialize worker and set up message queues for SchedulerOutputs\n        # and ModelRunnerOutputs\n        if self.parallel_config.node_rank_within_dp == 0:\n            # For leader node within each dp rank,\n            # each dp will have its own leader multiproc executor.\n            max_chunk_bytes = envs.VLLM_MQ_MAX_CHUNK_BYTES_MB * 1024 * 1024"
+        },
+        {
+          "line": 141,
+          "text": "            mq_connect_ip = get_ip()\n            logger.info(\n                \"DP group leader: node_rank=%d, node_rank_within_dp=%d, \"\n                \"master_addr=%s, mq_connect_ip=%s (local), \"\n                \"world_size=%d, local_world_size=%d\",\n                self.parallel_config.node_rank,"
+        },
+        {
+          "line": 142,
+          "text": "            logger.info(\n                \"DP group leader: node_rank=%d, node_rank_within_dp=%d, \"\n                \"master_addr=%s, mq_connect_ip=%s (local), \"\n                \"world_size=%d, local_world_size=%d\",\n                self.parallel_config.node_rank,\n                self.parallel_config.node_rank_within_dp,"
+        },
+        {
+          "line": 143,
+          "text": "                \"DP group leader: node_rank=%d, node_rank_within_dp=%d, \"\n                \"master_addr=%s, mq_connect_ip=%s (local), \"\n                \"world_size=%d, local_world_size=%d\",\n                self.parallel_config.node_rank,\n                self.parallel_config.node_rank_within_dp,\n                self.parallel_config.master_addr,"
+        },
+        {
+          "line": 144,
+          "text": "                \"master_addr=%s, mq_connect_ip=%s (local), \"\n                \"world_size=%d, local_world_size=%d\",\n                self.parallel_config.node_rank,\n                self.parallel_config.node_rank_within_dp,\n                self.parallel_config.master_addr,\n                mq_connect_ip,"
+        },
+        {
+          "line": 145,
+          "text": "                \"world_size=%d, local_world_size=%d\",\n                self.parallel_config.node_rank,\n                self.parallel_config.node_rank_within_dp,\n                self.parallel_config.master_addr,\n                mq_connect_ip,\n                self.world_size,"
+        },
+        {
+          "line": 146,
+          "text": "                self.parallel_config.node_rank,\n                self.parallel_config.node_rank_within_dp,\n                self.parallel_config.master_addr,\n                mq_connect_ip,\n                self.world_size,\n                self.local_world_size,"
+        },
+        {
+          "line": 149,
+          "text": "                mq_connect_ip,\n                self.world_size,\n                self.local_world_size,\n            )\n            self.rpc_broadcast_mq = MessageQueue(\n                self.world_size,"
+        },
+        {
+          "line": 153,
+          "text": "            self.rpc_broadcast_mq = MessageQueue(\n                self.world_size,\n                self.local_world_size,\n                max_chunk_bytes=max_chunk_bytes,\n                connect_ip=mq_connect_ip,\n            )"
+        },
+        {
+          "line": 165,
+          "text": "        try:\n            global_start_rank = (\n                self.local_world_size * self.parallel_config.node_rank_within_dp\n            )\n            # When using fork, keep track of socket file descriptors that are\n            # inherited by the worker, so that we can close them in subsequent"
+        },
+        {
+          "line": 176,
+          "text": "            # For CPU backend only, to setup OpenMP threads affinity\n            cpu_omp_manager = OMPProcessManager(self.vllm_config)\n            for local_rank in range(self.local_world_size):\n                global_rank = global_start_rank + local_rank\n                is_driver_worker = self._is_driver_worker(global_rank)\n                with cpu_omp_manager.configure_omp_envs("
+        },
+        {
+          "line": 203,
+          "text": "            self.workers = WorkerProc.wait_for_ready(unready_workers)\n\n            # Start background thread to monitor worker health if not in headless mode.\n            if self.monitor_workers:\n                self.start_worker_monitor()\n"
+        },
+        {
+          "line": 209,
+          "text": "            self.response_mqs = []\n            # Only leader node have remote response mqs\n            if self.parallel_config.node_rank_within_dp == 0:\n                for rank in range(self.world_size):\n                    if rank < self.local_world_size:\n                        local_message_queue = self.workers[rank].worker_response_mq"
+        },
+        {
+          "line": 211,
+          "text": "            if self.parallel_config.node_rank_within_dp == 0:\n                for rank in range(self.world_size):\n                    if rank < self.local_world_size:\n                        local_message_queue = self.workers[rank].worker_response_mq\n                        assert local_message_queue is not None\n                        self.response_mqs.append(local_message_queue)"
+        },
+        {
+          "line": 262,
+          "text": "    def _get_parallel_sizes(self) -> tuple[int, int, int]:\n        self.world_size = self.parallel_config.world_size\n        assert self.world_size % self.parallel_config.nnodes_within_dp == 0, (\n            f\"global world_size ({self.parallel_config.world_size}) must be \"\n            f\"divisible by nnodes_within_dp \"\n            f\"({self.parallel_config.nnodes_within_dp}). \""
+        },
+        {
+          "line": 264,
+          "text": "        assert self.world_size % self.parallel_config.nnodes_within_dp == 0, (\n            f\"global world_size ({self.parallel_config.world_size}) must be \"\n            f\"divisible by nnodes_within_dp \"\n            f\"({self.parallel_config.nnodes_within_dp}). \"\n        )\n        self.local_world_size = self.parallel_config.local_world_size"
+        },
+        {
+          "line": 265,
+          "text": "            f\"global world_size ({self.parallel_config.world_size}) must be \"\n            f\"divisible by nnodes_within_dp \"\n            f\"({self.parallel_config.nnodes_within_dp}). \"\n        )\n        self.local_world_size = self.parallel_config.local_world_size\n        tp_size = self.parallel_config.tensor_parallel_size"
+        },
+        {
+          "line": 267,
+          "text": "            f\"({self.parallel_config.nnodes_within_dp}). \"\n        )\n        self.local_world_size = self.parallel_config.local_world_size\n        tp_size = self.parallel_config.tensor_parallel_size\n        pp_size = self.parallel_config.pipeline_parallel_size\n        pcp_size = self.parallel_config.prefill_context_parallel_size"
+        },
+        {
+          "line": 269,
+          "text": "        self.local_world_size = self.parallel_config.local_world_size\n        tp_size = self.parallel_config.tensor_parallel_size\n        pp_size = self.parallel_config.pipeline_parallel_size\n        pcp_size = self.parallel_config.prefill_context_parallel_size\n        return tp_size, pp_size, pcp_size\n"
+        },
+        {
+          "line": 578,
+          "text": "        self, input_shm_handle: Handle, vllm_config: VllmConfig\n    ) -> None:\n        if vllm_config.parallel_config.nnodes_within_dp == 1:\n            # Initialize MessageQueue for receiving SchedulerOutput\n            self.rpc_broadcast_mq = MessageQueue.create_from_handle(\n                input_shm_handle, self.worker.rank"
+        },
+        {
+          "line": 665,
+          "text": "\n        # Initialize message queues after init_device() since multi-node setups\n        # (nnodes_within_dp > 1) require distributed groups to be initialized\n        self._init_message_queues(input_shm_handle, vllm_config)\n\n        # Enable environment variable cache (e.g. assume no more"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/cli/serve.py",
+      "matches": [
+        {
+          "line": 65,
+          "text": "        )\n\n        if args.headless:\n            if args.api_server_count is not None and args.api_server_count > 0:\n                raise ValueError(\n                    f\"--api-server-count={args.api_server_count} cannot be \""
+        },
+        {
+          "line": 69,
+          "text": "                raise ValueError(\n                    f\"--api-server-count={args.api_server_count} cannot be \"\n                    \"used with --headless (no API servers are started in \"\n                    \"headless mode).\"\n                )\n            # Default to 0 in headless mode (no API servers)"
+        },
+        {
+          "line": 70,
+          "text": "                    f\"--api-server-count={args.api_server_count} cannot be \"\n                    \"used with --headless (no API servers are started in \"\n                    \"headless mode).\"\n                )\n            # Default to 0 in headless mode (no API servers)\n            args.api_server_count = 0"
+        },
+        {
+          "line": 72,
+          "text": "                    \"headless mode).\"\n                )\n            # Default to 0 in headless mode (no API servers)\n            args.api_server_count = 0\n\n        # Detect LB mode for defaulting api_server_count."
+        },
+        {
+          "line": 146,
+          "text": "            run_dp_supervisor(args)\n        elif args.api_server_count < 1:\n            run_headless(args)\n        elif args.api_server_count > 1 or rust_frontend_path:\n            run_multi_api_server(args)\n        else:"
+        },
+        {
+          "line": 177,
+          "text": "\n\ndef run_headless(args: argparse.Namespace):\n    if args.api_server_count > 1:\n        raise ValueError(\"api_server_count can't be set in headless mode\")\n"
+        },
+        {
+          "line": 179,
+          "text": "def run_headless(args: argparse.Namespace):\n    if args.api_server_count > 1:\n        raise ValueError(\"api_server_count can't be set in headless mode\")\n\n    # Create the EngineConfig.\n    engine_args = vllm.AsyncEngineArgs.from_cli_args(args)"
+        },
+        {
+          "line": 185,
+          "text": "    usage_context = UsageContext.OPENAI_API_SERVER\n    vllm_config = engine_args.create_engine_config(\n        usage_context=usage_context, headless=True\n    )\n\n    if engine_args.data_parallel_hybrid_lb:"
+        },
+        {
+          "line": 189,
+          "text": "\n    if engine_args.data_parallel_hybrid_lb:\n        raise ValueError(\"data_parallel_hybrid_lb is not applicable in headless mode\")\n\n    parallel_config = vllm_config.parallel_config\n    local_engine_count = parallel_config.data_parallel_size_local"
+        },
+        {
+          "line": 195,
+          "text": "\n    if local_engine_count <= 0:\n        raise ValueError(\"data_parallel_size_local must be > 0 in headless mode\")\n\n    shutdown_requested = False\n"
+        },
+        {
+          "line": 210,
+          "text": "    signal.signal(signal.SIGINT, signal_handler)\n\n    if parallel_config.node_rank_within_dp > 0:\n        from vllm.version import __version__ as VLLM_VERSION\n\n        # Run headless workers (for multi-node PP/TP)."
+        },
+        {
+          "line": 213,
+          "text": "        from vllm.version import __version__ as VLLM_VERSION\n\n        # Run headless workers (for multi-node PP/TP).\n        host = parallel_config.master_addr\n        head_node_address = f\"{host}:{parallel_config.master_port}\"\n        logger.info("
+        },
+        {
+          "line": 214,
+          "text": "\n        # Run headless workers (for multi-node PP/TP).\n        host = parallel_config.master_addr\n        head_node_address = f\"{host}:{parallel_config.master_port}\"\n        logger.info(\n            \"Launching vLLM (v%s) headless multiproc executor, \""
+        },
+        {
+          "line": 215,
+          "text": "        # Run headless workers (for multi-node PP/TP).\n        host = parallel_config.master_addr\n        head_node_address = f\"{host}:{parallel_config.master_port}\"\n        logger.info(\n            \"Launching vLLM (v%s) headless multiproc executor, \"\n            \"with head node address %s for torch.distributed process group.\","
+        },
+        {
+          "line": 217,
+          "text": "        head_node_address = f\"{host}:{parallel_config.master_port}\"\n        logger.info(\n            \"Launching vLLM (v%s) headless multiproc executor, \"\n            \"with head node address %s for torch.distributed process group.\",\n            VLLM_VERSION,\n            head_node_address,"
+        },
+        {
+          "line": 232,
+          "text": "\n    logger.info(\n        \"Launching %d data parallel engine(s) in headless mode, \"\n        \"with head node address %s.\",\n        local_engine_count,\n        handshake_address,"
+        },
+        {
+          "line": 262,
+          "text": "\ndef run_multi_api_server(args: argparse.Namespace):\n    assert not args.headless\n    rust_frontend_path = (\n        envs.VLLM_RUST_FRONTEND_PATH if envs.VLLM_USE_RUST_FRONTEND else None\n    )"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/engine/arg_utils.py",
+      "matches": [
+        {
+          "line": 465,
+          "text": "    ) = ParallelConfig.distributed_executor_backend\n    # number of P/D disaggregation (or other disaggregation) workers\n    pipeline_parallel_size: int = ParallelConfig.pipeline_parallel_size\n    master_addr: str = ParallelConfig.master_addr\n    master_port: int = ParallelConfig.master_port\n    nnodes: int = ParallelConfig.nnodes"
+        },
+        {
+          "line": 466,
+          "text": "    # number of P/D disaggregation (or other disaggregation) workers\n    pipeline_parallel_size: int = ParallelConfig.pipeline_parallel_size\n    master_addr: str = ParallelConfig.master_addr\n    master_port: int = ParallelConfig.master_port\n    nnodes: int = ParallelConfig.nnodes\n    node_rank: int = ParallelConfig.node_rank"
+        },
+        {
+          "line": 467,
+          "text": "    pipeline_parallel_size: int = ParallelConfig.pipeline_parallel_size\n    master_addr: str = ParallelConfig.master_addr\n    master_port: int = ParallelConfig.master_port\n    nnodes: int = ParallelConfig.nnodes\n    node_rank: int = ParallelConfig.node_rank\n    distributed_timeout_seconds: int | None = ParallelConfig.distributed_timeout_seconds"
+        },
+        {
+          "line": 468,
+          "text": "    master_addr: str = ParallelConfig.master_addr\n    master_port: int = ParallelConfig.master_port\n    nnodes: int = ParallelConfig.nnodes\n    node_rank: int = ParallelConfig.node_rank\n    distributed_timeout_seconds: int | None = ParallelConfig.distributed_timeout_seconds\n    cpu_distributed_timeout_seconds: int | None = ("
+        },
+        {
+          "line": 469,
+          "text": "    master_port: int = ParallelConfig.master_port\n    nnodes: int = ParallelConfig.nnodes\n    node_rank: int = ParallelConfig.node_rank\n    distributed_timeout_seconds: int | None = ParallelConfig.distributed_timeout_seconds\n    cpu_distributed_timeout_seconds: int | None = (\n        ParallelConfig.cpu_distributed_timeout_seconds"
+        },
+        {
+          "line": 1007,
+          "text": "            \"--pipeline-parallel-size\",\n            \"-pp\",\n            **parallel_kwargs[\"pipeline_parallel_size\"],\n        )\n        parallel_group.add_argument(\"--master-addr\", **parallel_kwargs[\"master_addr\"])\n        parallel_group.add_argument(\"--master-port\", **parallel_kwargs[\"master_port\"])"
+        },
+        {
+          "line": 1009,
+          "text": "            **parallel_kwargs[\"pipeline_parallel_size\"],\n        )\n        parallel_group.add_argument(\"--master-addr\", **parallel_kwargs[\"master_addr\"])\n        parallel_group.add_argument(\"--master-port\", **parallel_kwargs[\"master_port\"])\n        parallel_group.add_argument(\"--nnodes\", \"-n\", **parallel_kwargs[\"nnodes\"])\n        parallel_group.add_argument(\"--node-rank\", \"-r\", **parallel_kwargs[\"node_rank\"])"
+        },
+        {
+          "line": 1010,
+          "text": "        )\n        parallel_group.add_argument(\"--master-addr\", **parallel_kwargs[\"master_addr\"])\n        parallel_group.add_argument(\"--master-port\", **parallel_kwargs[\"master_port\"])\n        parallel_group.add_argument(\"--nnodes\", \"-n\", **parallel_kwargs[\"nnodes\"])\n        parallel_group.add_argument(\"--node-rank\", \"-r\", **parallel_kwargs[\"node_rank\"])\n        parallel_group.add_argument("
+        },
+        {
+          "line": 1011,
+          "text": "        parallel_group.add_argument(\"--master-addr\", **parallel_kwargs[\"master_addr\"])\n        parallel_group.add_argument(\"--master-port\", **parallel_kwargs[\"master_port\"])\n        parallel_group.add_argument(\"--nnodes\", \"-n\", **parallel_kwargs[\"nnodes\"])\n        parallel_group.add_argument(\"--node-rank\", \"-r\", **parallel_kwargs[\"node_rank\"])\n        parallel_group.add_argument(\n            \"--distributed-timeout-seconds\","
+        },
+        {
+          "line": 1012,
+          "text": "        parallel_group.add_argument(\"--master-port\", **parallel_kwargs[\"master_port\"])\n        parallel_group.add_argument(\"--nnodes\", \"-n\", **parallel_kwargs[\"nnodes\"])\n        parallel_group.add_argument(\"--node-rank\", \"-r\", **parallel_kwargs[\"node_rank\"])\n        parallel_group.add_argument(\n            \"--distributed-timeout-seconds\",\n            **parallel_kwargs[\"distributed_timeout_seconds\"],"
+        },
+        {
+          "line": 1899,
+          "text": "        self,\n        usage_context: UsageContext | None = None,\n        headless: bool = False,\n    ) -> VllmConfig:\n        \"\"\"\n        Create the VllmConfig."
+        },
+        {
+          "line": 2016,
+          "text": "            placement_group = ray.util.get_current_placement_group()\n\n        assert not headless or not self.data_parallel_hybrid_lb, (\n            \"data_parallel_hybrid_lb is not applicable in headless mode\"\n        )\n        if self.data_parallel_hybrid_lb and self.data_parallel_external_lb:"
+        },
+        {
+          "line": 2017,
+          "text": "\n        assert not headless or not self.data_parallel_hybrid_lb, (\n            \"data_parallel_hybrid_lb is not applicable in headless mode\"\n        )\n        if self.data_parallel_hybrid_lb and self.data_parallel_external_lb:\n            raise ValueError("
+        },
+        {
+          "line": 2026,
+          "text": "                \"Enable only one load-balancing mode.\"\n            )\n        if self.nnodes > 1 and self.data_parallel_backend != \"mp\":\n            raise ValueError(\n                \"Invalid data-parallel launch options: \"\n                f\"`--nnodes {self.nnodes}` requires \""
+        },
+        {
+          "line": 2029,
+          "text": "            raise ValueError(\n                \"Invalid data-parallel launch options: \"\n                f\"`--nnodes {self.nnodes}` requires \"\n                \"`--data-parallel-backend mp`; got \"\n                f\"`--data-parallel-backend {self.data_parallel_backend}`. \"\n                \"Use the MP backend or set `--nnodes 1`.\""
+        },
+        {
+          "line": 2032,
+          "text": "                \"`--data-parallel-backend mp`; got \"\n                f\"`--data-parallel-backend {self.data_parallel_backend}`. \"\n                \"Use the MP backend or set `--nnodes 1`.\"\n            )\n        inferred_data_parallel_rank = 0\n        if self.nnodes > 1:"
+        },
+        {
+          "line": 2035,
+          "text": "            )\n        inferred_data_parallel_rank = 0\n        if self.nnodes > 1:\n            world_size = (\n                self.data_parallel_size\n                * self.pipeline_parallel_size"
+        },
+        {
+          "line": 2038,
+          "text": "            world_size = (\n                self.data_parallel_size\n                * self.pipeline_parallel_size\n                * self.tensor_parallel_size\n            )\n            world_size_within_dp = ("
+        },
+        {
+          "line": 2042,
+          "text": "            )\n            world_size_within_dp = (\n                self.pipeline_parallel_size * self.tensor_parallel_size\n            )\n            if world_size % self.nnodes != 0:\n                raise ValueError("
+        },
+        {
+          "line": 2044,
+          "text": "                self.pipeline_parallel_size * self.tensor_parallel_size\n            )\n            if world_size % self.nnodes != 0:\n                raise ValueError(\n                    \"Invalid data-parallel launch options: \"\n                    f\"`--nnodes {self.nnodes}` must evenly divide the total \""
+        },
+        {
+          "line": 2047,
+          "text": "                raise ValueError(\n                    \"Invalid data-parallel launch options: \"\n                    f\"`--nnodes {self.nnodes}` must evenly divide the total \"\n                    f\"world size ({world_size}). Adjust `--nnodes`, \"\n                    \"`--data-parallel-size`, `--pipeline-parallel-size`, or \"\n                    \"`--tensor-parallel-size`.\""
+        },
+        {
+          "line": 2048,
+          "text": "                    \"Invalid data-parallel launch options: \"\n                    f\"`--nnodes {self.nnodes}` must evenly divide the total \"\n                    f\"world size ({world_size}). Adjust `--nnodes`, \"\n                    \"`--data-parallel-size`, `--pipeline-parallel-size`, or \"\n                    \"`--tensor-parallel-size`.\"\n                )"
+        },
+        {
+          "line": 2052,
+          "text": "                    \"`--tensor-parallel-size`.\"\n                )\n            if not 0 <= self.node_rank < self.nnodes:\n                raise ValueError(\n                    \"Invalid data-parallel launch options: `--node-rank` must \"\n                    f\"be between 0 and {self.nnodes - 1}; got \""
+        },
+        {
+          "line": 2054,
+          "text": "            if not 0 <= self.node_rank < self.nnodes:\n                raise ValueError(\n                    \"Invalid data-parallel launch options: `--node-rank` must \"\n                    f\"be between 0 and {self.nnodes - 1}; got \"\n                    f\"`--node-rank {self.node_rank}`. Set it to this node's \"\n                    \"zero-based index.\""
+        },
+        {
+          "line": 2055,
+          "text": "                raise ValueError(\n                    \"Invalid data-parallel launch options: `--node-rank` must \"\n                    f\"be between 0 and {self.nnodes - 1}; got \"\n                    f\"`--node-rank {self.node_rank}`. Set it to this node's \"\n                    \"zero-based index.\"\n                )"
+        },
+        {
+          "line": 2056,
+          "text": "                    \"Invalid data-parallel launch options: `--node-rank` must \"\n                    f\"be between 0 and {self.nnodes - 1}; got \"\n                    f\"`--node-rank {self.node_rank}`. Set it to this node's \"\n                    \"zero-based index.\"\n                )\n            local_world_size = world_size // self.nnodes"
+        },
+        {
+          "line": 2059,
+          "text": "                    \"zero-based index.\"\n                )\n            local_world_size = world_size // self.nnodes\n            inferred_data_parallel_rank = (\n                self.node_rank * local_world_size\n            ) // world_size_within_dp"
+        },
+        {
+          "line": 2061,
+          "text": "            local_world_size = world_size // self.nnodes\n            inferred_data_parallel_rank = (\n                self.node_rank * local_world_size\n            ) // world_size_within_dp\n            if self.data_parallel_size > 1 and self.data_parallel_external_lb:\n                self.data_parallel_rank = inferred_data_parallel_rank"
+        },
+        {
+          "line": 2066,
+          "text": "                self.data_parallel_rank = inferred_data_parallel_rank\n                logger.info(\n                    \"Inferred data_parallel_rank %d from node_rank %d for external lb\",\n                    self.data_parallel_rank,\n                    self.node_rank,\n                )"
+        },
+        {
+          "line": 2068,
+          "text": "                    \"Inferred data_parallel_rank %d from node_rank %d for external lb\",\n                    self.data_parallel_rank,\n                    self.node_rank,\n                )\n            elif self.data_parallel_size_local is None:\n                # Infer data parallel size local for internal dplb:"
+        },
+        {
+          "line": 2073,
+          "text": "                # Infer data parallel size local for internal dplb:\n                self.data_parallel_size_local = max(\n                    local_world_size // world_size_within_dp, 1\n                )\n        data_parallel_external_lb = (\n            self.data_parallel_external_lb or self.data_parallel_rank is not None"
+        },
+        {
+          "line": 2101,
+          "text": "                    \"`--data-parallel-external-lb` requires a data-parallel \"\n                    \"rank. Set `--data-parallel-rank`, or set \"\n                    \"`--data-parallel-size` greater than 1 and use `--nnodes` \"\n                    \"with `--node-rank` so the rank can be inferred.\"\n                )\n            if self.data_parallel_size_local not in (1, None):"
+        },
+        {
+          "line": 2102,
+          "text": "                    \"rank. Set `--data-parallel-rank`, or set \"\n                    \"`--data-parallel-size` greater than 1 and use `--nnodes` \"\n                    \"with `--node-rank` so the rank can be inferred.\"\n                )\n            if self.data_parallel_size_local not in (1, None):\n                raise ValueError("
+        },
+        {
+          "line": 2117,
+          "text": "            data_parallel_size_local = self.data_parallel_size_local\n\n            if self.data_parallel_start_rank and not headless:\n                # Infer hybrid LB mode.\n                self.data_parallel_hybrid_lb = True\n"
+        },
+        {
+          "line": 2138,
+          "text": "                self.data_parallel_start_rank or inferred_data_parallel_rank\n            )\n            if self.nnodes > 1:\n                logger.info(\n                    \"Inferred data_parallel_rank %d from node_rank %d\",\n                    self.data_parallel_rank,"
+        },
+        {
+          "line": 2140,
+          "text": "            if self.nnodes > 1:\n                logger.info(\n                    \"Inferred data_parallel_rank %d from node_rank %d\",\n                    self.data_parallel_rank,\n                    self.node_rank,\n                )"
+        },
+        {
+          "line": 2142,
+          "text": "                    \"Inferred data_parallel_rank %d from node_rank %d\",\n                    self.data_parallel_rank,\n                    self.node_rank,\n                )\n        else:\n            if self.data_parallel_hybrid_lb:"
+        },
+        {
+          "line": 2178,
+          "text": "                )\n                data_parallel_address = (\n                    self.master_addr or ParallelConfig.data_parallel_master_ip\n                )\n        else:\n            data_parallel_address = self.data_parallel_address"
+        },
+        {
+          "line": 2196,
+          "text": "\n        parallel_config = ParallelConfig(\n            pipeline_parallel_size=self.pipeline_parallel_size,\n            tensor_parallel_size=self.tensor_parallel_size,\n            prefill_context_parallel_size=self.prefill_context_parallel_size,\n            data_parallel_size=self.data_parallel_size,"
+        },
+        {
+          "line": 2203,
+          "text": "            data_parallel_external_lb=data_parallel_external_lb,\n            data_parallel_size_local=data_parallel_size_local,\n            master_addr=self.master_addr,\n            master_port=self.master_port,\n            nnodes=self.nnodes,\n            node_rank=self.node_rank,"
+        },
+        {
+          "line": 2204,
+          "text": "            data_parallel_size_local=data_parallel_size_local,\n            master_addr=self.master_addr,\n            master_port=self.master_port,\n            nnodes=self.nnodes,\n            node_rank=self.node_rank,\n            distributed_timeout_seconds=self.distributed_timeout_seconds,"
+        },
+        {
+          "line": 2205,
+          "text": "            master_addr=self.master_addr,\n            master_port=self.master_port,\n            nnodes=self.nnodes,\n            node_rank=self.node_rank,\n            distributed_timeout_seconds=self.distributed_timeout_seconds,\n            cpu_distributed_timeout_seconds=self.cpu_distributed_timeout_seconds,"
+        },
+        {
+          "line": 2206,
+          "text": "            master_port=self.master_port,\n            nnodes=self.nnodes,\n            node_rank=self.node_rank,\n            distributed_timeout_seconds=self.distributed_timeout_seconds,\n            cpu_distributed_timeout_seconds=self.cpu_distributed_timeout_seconds,\n            data_parallel_master_ip=data_parallel_address,"
+        },
+        {
+          "line": 2497,
+          "text": "    def _check_feature_supported(self):\n        \"\"\"Raise an error if the feature is not supported.\"\"\"\n        if self.pipeline_parallel_size > 1:\n            supports_pp = getattr(\n                self.distributed_executor_backend, \"supports_pp\", False\n            )"
+        },
+        {
+          "line": 2718,
+          "text": "        parallel_config: ParallelConfig,\n    ):\n        world_size = self.pipeline_parallel_size * self.tensor_parallel_size\n        (\n            default_max_num_batched_tokens,\n            default_max_num_seqs,"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/config/parallel.py",
+      "matches": [
+        {
+          "line": 122,
+          "text": "    \"\"\"Configuration for the distributed execution.\"\"\"\n\n    pipeline_parallel_size: int = Field(default=1, ge=1)\n    \"\"\"Number of pipeline parallel groups.\"\"\"\n    tensor_parallel_size: int = Field(default=1, ge=1)\n    \"\"\"Number of tensor parallel groups.\"\"\""
+        },
+        {
+          "line": 145,
+          "text": "    data_parallel_rpc_port: int = 29550\n    \"\"\"Port for data parallel messaging.\"\"\"\n    data_parallel_master_port: int = 29500\n    \"\"\"Port of the data parallel master.\"\"\"\n    data_parallel_backend: DataParallelBackend = \"mp\"\n    \"\"\"Backend to use for data parallel, either \"mp\" or \"ray\".\"\"\""
+        },
+        {
+          "line": 248,
+          "text": "    \"\"\"\n    Backend to use for distributed model workers, either \"ray\" or \"mp\"\n    (multiprocessing). If the product of pipeline_parallel_size and tensor_parallel_size\n    is less than or equal to the number of GPUs available, \"mp\" will be used to\n    keep processing on a single host. Otherwise, an error will be raised. To use \"mp\"\n    you must also set nnodes, and to use \"ray\" you must manually set"
+        },
+        {
+          "line": 251,
+          "text": "    is less than or equal to the number of GPUs available, \"mp\" will be used to\n    keep processing on a single host. Otherwise, an error will be raised. To use \"mp\"\n    you must also set nnodes, and to use \"ray\" you must manually set\n    distributed_executor_backend to \"ray\".\n\n    Note:"
+        },
+        {
+          "line": 270,
+          "text": "    new attributes and methods to the worker class for use in collective_rpc\n    calls.\"\"\"\n    master_addr: str = \"127.0.0.1\"\n    \"\"\"distributed master address for multi-node distributed \n    inference when distributed_executor_backend is mp.\"\"\"\n    master_port: int = 29501"
+        },
+        {
+          "line": 273,
+          "text": "    \"\"\"distributed master address for multi-node distributed \n    inference when distributed_executor_backend is mp.\"\"\"\n    master_port: int = 29501\n    \"\"\"distributed master port for multi-node distributed \n    inference when distributed_executor_backend is mp.\"\"\"\n    node_rank: int = Field(default=0, ge=0)"
+        },
+        {
+          "line": 276,
+          "text": "    \"\"\"distributed master port for multi-node distributed \n    inference when distributed_executor_backend is mp.\"\"\"\n    node_rank: int = Field(default=0, ge=0)\n    \"\"\"distributed node rank for multi-node distributed\n    inference when distributed_executor_backend is mp.\"\"\"\n    nnodes: int = Field(default=1, ge=1)"
+        },
+        {
+          "line": 279,
+          "text": "    \"\"\"distributed node rank for multi-node distributed\n    inference when distributed_executor_backend is mp.\"\"\"\n    nnodes: int = Field(default=1, ge=1)\n    \"\"\"num of nodes for multi-node distributed\n    inference when distributed_executor_backend is mp.\"\"\"\n    numa_bind: bool = False"
+        },
+        {
+          "line": 333,
+          "text": "    \"\"\"Global rank in distributed setup.\"\"\"\n\n    _data_parallel_master_port_list: list[int] = Field(default_factory=list)\n    \"\"\"List of open port auto-queried for data parallel messaging.\n    Set to be private as it's not intended to be configured by users.\n    \"\"\""
+        },
+        {
+          "line": 578,
+          "text": "        initialize a new process group related to data parallelism.\n        \"\"\"\n        if self._data_parallel_master_port_list:\n            answer = self._data_parallel_master_port_list.pop()\n        else:\n            answer = self.data_parallel_master_port"
+        },
+        {
+          "line": 579,
+          "text": "        \"\"\"\n        if self._data_parallel_master_port_list:\n            answer = self._data_parallel_master_port_list.pop()\n        else:\n            answer = self.data_parallel_master_port\n            self.data_parallel_master_port += 1"
+        },
+        {
+          "line": 581,
+          "text": "            answer = self._data_parallel_master_port_list.pop()\n        else:\n            answer = self.data_parallel_master_port\n            self.data_parallel_master_port += 1\n\n        return answer"
+        },
+        {
+          "line": 582,
+          "text": "        else:\n            answer = self.data_parallel_master_port\n            self.data_parallel_master_port += 1\n\n        return answer\n"
+        },
+        {
+          "line": 602,
+          "text": "        )\n\n        key = \"dp_master_port\"\n        if self.data_parallel_rank == 0:\n            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n            s.bind((self.data_parallel_master_ip, 0))"
+        },
+        {
+          "line": 710,
+          "text": "\n    @property\n    def node_rank_within_dp(self) -> int:\n        return self.node_rank % self.nnodes_within_dp\n\n    @property"
+        },
+        {
+          "line": 711,
+          "text": "    @property\n    def node_rank_within_dp(self) -> int:\n        return self.node_rank % self.nnodes_within_dp\n\n    @property\n    def nnodes_within_dp(self) -> int:"
+        },
+        {
+          "line": 714,
+          "text": "\n    @property\n    def nnodes_within_dp(self) -> int:\n        if self.nnodes == 1:\n            return 1\n        data_parallel_node_size = ("
+        },
+        {
+          "line": 715,
+          "text": "    @property\n    def nnodes_within_dp(self) -> int:\n        if self.nnodes == 1:\n            return 1\n        data_parallel_node_size = (\n            self.data_parallel_size // self.data_parallel_size_local"
+        },
+        {
+          "line": 720,
+          "text": "            self.data_parallel_size // self.data_parallel_size_local\n        )\n        return self.nnodes // data_parallel_node_size\n\n    @property\n    def local_world_size(self) -> int:"
+        },
+        {
+          "line": 723,
+          "text": "\n    @property\n    def local_world_size(self) -> int:\n        return self.world_size // self.nnodes_within_dp\n\n    @staticmethod"
+        },
+        {
+          "line": 724,
+          "text": "    @property\n    def local_world_size(self) -> int:\n        return self.world_size // self.nnodes_within_dp\n\n    @staticmethod\n    def has_unfinished_dp(dp_group: ProcessGroup, has_unfinished: bool) -> bool:"
+        },
+        {
+          "line": 795,
+          "text": "            \"data_parallel_hybrid_lb\",\n            \"data_parallel_master_ip\",\n            \"data_parallel_master_port\",\n            \"_data_parallel_master_port_list\",\n            \"_coord_store_port\",\n            \"data_parallel_rpc_port\","
+        },
+        {
+          "line": 796,
+          "text": "            \"data_parallel_master_ip\",\n            \"data_parallel_master_port\",\n            \"_data_parallel_master_port_list\",\n            \"_coord_store_port\",\n            \"data_parallel_rpc_port\",\n            \"rank\","
+        },
+        {
+          "line": 800,
+          "text": "            \"data_parallel_rpc_port\",\n            \"rank\",\n            \"master_addr\",\n            \"master_port\",\n            \"node_rank\",\n            \"nnodes\","
+        },
+        {
+          "line": 801,
+          "text": "            \"rank\",\n            \"master_addr\",\n            \"master_port\",\n            \"node_rank\",\n            \"nnodes\",\n            \"max_parallel_loading_workers\","
+        },
+        {
+          "line": 802,
+          "text": "            \"master_addr\",\n            \"master_port\",\n            \"node_rank\",\n            \"nnodes\",\n            \"max_parallel_loading_workers\",\n            \"disable_custom_all_reduce\","
+        },
+        {
+          "line": 803,
+          "text": "            \"master_port\",\n            \"node_rank\",\n            \"nnodes\",\n            \"max_parallel_loading_workers\",\n            \"disable_custom_all_reduce\",\n            \"ray_workers_use_nsight\","
+        },
+        {
+          "line": 834,
+          "text": "        # Continue with the rest of the initialization\n        self.world_size = (\n            self.pipeline_parallel_size\n            * self.tensor_parallel_size\n            * self.prefill_context_parallel_size\n        )"
+        },
+        {
+          "line": 846,
+          "text": "            if not self.enable_eplb:\n                raise ValueError(\"Elastic EP is only supported with enable_eplb=True.\")\n            if self.pipeline_parallel_size > 1:\n                raise ValueError(\n                    \"Elastic EP is not supported with pipeline parallelism \"\n                    f\"(pipeline_parallel_size={self.pipeline_parallel_size}).\""
+        },
+        {
+          "line": 849,
+          "text": "                raise ValueError(\n                    \"Elastic EP is not supported with pipeline parallelism \"\n                    f\"(pipeline_parallel_size={self.pipeline_parallel_size}).\"\n                )\n            if self.data_parallel_external_lb or self.data_parallel_hybrid_lb:\n                raise NotImplementedError("
+        },
+        {
+          "line": 873,
+          "text": "                # we need to set the data parallel rank automatically\n                self.data_parallel_rank = int(os.environ[\"RANK\"]) // (\n                    self.world_size // self.data_parallel_size\n                )\n                logger.info(\n                    \"Set data_parallel_rank to %d automatically.\","
+        },
+        {
+          "line": 880,
+          "text": "                )\n            if not self.enable_elastic_ep:\n                if not self._data_parallel_master_port_list:\n                    self._data_parallel_master_port_list = get_open_ports_list(5)\n                self.data_parallel_master_port = (\n                    self._data_parallel_master_port_list.pop()"
+        },
+        {
+          "line": 881,
+          "text": "            if not self.enable_elastic_ep:\n                if not self._data_parallel_master_port_list:\n                    self._data_parallel_master_port_list = get_open_ports_list(5)\n                self.data_parallel_master_port = (\n                    self._data_parallel_master_port_list.pop()\n                )"
+        },
+        {
+          "line": 882,
+          "text": "                if not self._data_parallel_master_port_list:\n                    self._data_parallel_master_port_list = get_open_ports_list(5)\n                self.data_parallel_master_port = (\n                    self._data_parallel_master_port_list.pop()\n                )\n"
+        },
+        {
+          "line": 883,
+          "text": "                    self._data_parallel_master_port_list = get_open_ports_list(5)\n                self.data_parallel_master_port = (\n                    self._data_parallel_master_port_list.pop()\n                )\n\n            if not (0 <= self.data_parallel_rank < self.data_parallel_size):"
+        },
+        {
+          "line": 897,
+          "text": "            self.data_parallel_rank_local = envs.VLLM_DP_RANK_LOCAL\n            self.data_parallel_master_ip = envs.VLLM_DP_MASTER_IP\n            self.data_parallel_master_port = envs.VLLM_DP_MASTER_PORT\n\n            if self.data_parallel_size > 1 and self.is_moe_model is False:\n                raise ValueError("
+        },
+        {
+          "line": 921,
+          "text": "            if current_platform.is_tpu() and envs.VLLM_XLA_USE_SPMD:\n                backend = \"uni\"\n            elif current_platform.is_cuda() and self.nnodes > 1:\n                backend = \"mp\"\n            elif (\n                current_platform.is_cuda()"
+        },
+        {
+          "line": 933,
+          "text": "                    \"intentional and you are using:\\n\"\n                    \"- ray, set '--distributed-executor-backend ray'.\\n\"\n                    \"- multiprocessing, set '--nnodes' appropriately.\"\n                )\n            elif self.data_parallel_backend == \"ray\":\n                logger.info("
+        },
+        {
+          "line": 966,
+          "text": "        if (\n            self.distributed_executor_backend not in allowed_backends\n            and self.nnodes > 1\n        ):\n            raise ValueError(\n                \"nnodes > 1 can only be set when distributed executor \""
+        },
+        {
+          "line": 969,
+          "text": "        ):\n            raise ValueError(\n                \"nnodes > 1 can only be set when distributed executor \"\n                \"backend is mp, uni or external_launcher.\"\n            )\n"
+        }
+      ]
+    }
+  ],
+  "process_operations": 0,
+  "inference": 0,
+  "models": 0,
+  "NPU_tensors": 0,
+  "SDK_communicators": 0,
+  "limits": [
+    "Installed native docs permit multi-node mp PP with node0 frontend and node1headless; actual fullCLI/rank layout/GLM MTP support must be verified, no fit or performance claim",
+    "One shared32-rank engine is a different resource category from two independent16-rank replicas; contextcold/decode latency plus admission/capacity/physicalfault/STORE/protocol effects require realE2E if chosen",
+    "No service/model/worker operations; no oldqueue replay; preserve authoritative runtime/functional evidence"
+  ]
+}

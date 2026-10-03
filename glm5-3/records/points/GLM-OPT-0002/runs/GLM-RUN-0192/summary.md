@@ -1,0 +1,5 @@
+# GLM-RUN-0192
+
+VALID same-resident V5 c1 discriminator mixed12/10112 newoutputs/12nativecomplete/fullIDs-wire-usage-length-DONE/SDK0/native32/STORE/source95; exactsame190+184roots/epochs/public190V12/hints bothc1serial3-3 unchanged/0privatewrites/0models-publicops. 118.683572s/85.201345305TPS; TTFTP9015291.4405ms, outputintervalP5031.5907427/P9071.3443945ms, same3SLOFAIL/configREJECT. ShortPOTP9095.1448754ms andlongTTFTmedian16.5583912s: 191eligiblec2 showsnoQoSbenefit vsresidentc1, retainc1 andendthiscadence direction. Orderedfreshsalts/MTP/route/CPUmemo differences notisolatedcausal estimate/repeatedKEEP/stablecapacity/globalbound. Next evidence-directed two-hostjointTP8PP4DCP8 feasibility.
+
+Server audit reduction.json /data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/AUDIT-RUN192-20261003T1720Z/reduction.json bytes 62242 SHA 8a809f39c582216bb1394f1f39d4cbd0c0afc6dc58131b25d4e630afa6c558c5. Original raw/source/spec/manifest retained; new GPT record overlay.

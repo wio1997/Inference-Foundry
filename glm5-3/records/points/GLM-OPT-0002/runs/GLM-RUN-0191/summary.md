@@ -1,0 +1,5 @@
+# GLM-RUN-0191
+
+VALID finite mixed12/10112 new outputs/fullnativeIDs-wire-usage-length-DONE/SDK0/native32/STORE/source96; D0 V5 c1serial1→c2serial2→restorec1serial3, D1 c1serial3 unchanged. 142.178971276s/71.121628672TPS; TTFTP9015546.3036ms, outputintervalP5034.4484/P9079.5413ms, same3 SLOFAIL/configurationREJECT. ShortPOTP9097.6373458ms; longTTFTmedian21.2166105s. FouractualAPPLIED301/303/305/307 prefill0 withreadydecode scheduled1/4/4/4tokens: mechanismEXERCISED, boundedCPU-schedule records notGPUoccupancy/census; first4 BYPASS423/425/427/429 noeligiblecandidate preservesprefill inputflag, notpositiveprefillproof. D1 no newSELECTED uses actual189c1serial3 sameepoch-authority, nofakefresh marker. No isolatedcausal gain/KEEP/capacitybound.
+
+Server audit reduction.json /data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/AUDIT-RUN191-20261003T1714Z/reduction.json bytes 73544 SHA 49def4297a9049edbede00672aea0a38189ec33ccb65ddc19e89f44b82cba110. Original raw/source/spec/manifest retained; new GPT record overlay.
