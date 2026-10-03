@@ -1,0 +1,36 @@
+from pathlib import Path
+import sys,json,hashlib,time,re,statistics
+sys.path.insert(0,"/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime")
+from phase_runner import atomic_json,utc,same_process
+j=Path(__file__).parent;p=j.parents[1]
+a=p/"jobs/AUDIT-RUN154-20261003T0616Z/reduction.json";end=time.monotonic()+2400
+while not a.exists():
+ assert time.monotonic()<end;time.sleep(5)
+def ref(f):
+ b=f.read_bytes();return dict(path=str(f),bytes=len(b),sha256=hashlib.sha256(b).hexdigest())
+def metrics(f):
+ out={}
+ for l in f.read_text().splitlines():
+  if l.startswith("#")or not l:continue
+  k=l.split("{")[0].split()[0];out[k]=out.get(k,0)+float(l.rsplit(" ",1)[1])
+ return out
+out={}
+for n,name in[(152,"AUDIT-RUN152V2-20261003T0550Z"),(153,"AUDIT-RUN153-20261003T0611Z"),(154,"AUDIT-RUN154-20261003T0616Z")]:
+ r=p/"runs"/("GLM-RUN-%04d"%n);f=p/"jobs"/name/"reduction.json";audit=json.loads(f.read_text());assert audit["measurement_valid"]
+ s=json.loads((r/"state.json").read_text());assert s["status"]=="completed"and not same_process(s["owner"])
+ domains={}
+ for key in["D0","D1"]:
+  initialfile=r/"formal"/("after_cache_condition_"+key+".metrics");finalfile=r/"formal"/("final_"+key+".metrics");base=metrics(initialfile);final=metrics(finalfile)
+  files=[f for f in(r/"formal").glob("sample*_"+key+".metrics")if metrics(f)["vllm:request_success_total"]==base["vllm:request_success_total"]+1and metrics(f)["vllm:generation_tokens_total"]==base["vllm:generation_tokens_total"]+1]
+  assert files,("missingwarmonlysample",n,key);selected=sorted(files,key=lambda x:int(x.name.split("_")[0][6:]))[-1];warm=metrics(selected)
+  selected_metrics=["request_queue_time_seconds","request_prefill_time_seconds","request_decode_time_seconds","request_inference_time_seconds","time_to_first_token_seconds"]
+  values={}
+  for metric in selected_metrics:
+   k="vllm:"+metric;count=final[k+"_count"]-warm[k+"_count"];delta=final[k+"_sum"]-warm[k+"_sum"];assert count==2and delta>=0
+   values[metric]=dict(native_completed_count=count,total_seconds=delta,mean_seconds=delta/count)
+  assert final["vllm:request_success_total"]-warm["vllm:request_success_total"]==2
+  domains[key]=dict(native_full_timings=values,warmonly_sample=ref(selected),before_warm=ref(initialfile),final=ref(finalfile))
+ out[str(n)]=dict(audit=ref(f),CLI_TTFT_ms=audit["SLO"]["ttft_ms"],full_output_tokens_perrequest=61440 if n==152 else 64,native_domains=domains)
+result=dict(at=utc(),kind="readonly_native_prefill_timing",measurement_valid=True,runs=out,new_inference=0,new_output_credit=0,model_operations=0,limits=["Native histogram sums are reported request lifetimes, not GPU-only kernel time orhardwarebound","Warm-only sample identifiedbyexactonecompleted/onegeneration; nativecompletedfullcounts2perdomain; no warmer/full replay","Nativecounters aggregated2requests/domain, individualqueue/prefillpercentiles unknown","152long61440 vs153154short64 cannotcomparedecodeamortization; orderedfreshsaltwindows/no repeatedcausality"])
+atomic_json(j/"reduction.json",result);b=(j/"reduction.json").read_bytes();atomic_json(j/"result.json",dict(schema_version=1,job_id=j.name,status="completed",summary="VALID readonly152153154 native fullrequest queue-prefill-decode-TTFT histogramdecomposition; newinference0",execution=dict(inner_exit_code=0,acceptance="passed",processes=[]),findings=[],evidence=[dict(id="timing",path=str(j/"reduction.json"),bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),locator="nativefullhistogram2/domainwarmexcluded")],unknowns=result["limits"],decision_request=None,next_check_at=None))
+print(json.dumps({n:{k:{metric:v["mean_seconds"]for metric,v in domain["native_full_timings"].items()}for k,domain in data["native_domains"].items()}for n,data in out.items()}))

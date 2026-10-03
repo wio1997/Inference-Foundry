@@ -1,0 +1,1 @@
+INVALID CLI beforemonitorcommand: actualZcode provider HTTP tunnel503/requestcancelled; noResult/monitorPID/nativeoperations. UniqueGPUcontroller153 continues independently. Originalstdout/stderr/bridge preserved. Use readonlyterminalaudit for153, no inference replay.

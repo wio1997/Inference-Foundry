@@ -1,0 +1,2 @@
+VALID6 CPU contracts for optional AISBench expected_requests; default JSON unchanged; explicit4 validates152actualcount without relaxing failedTTFTP50. 0/-1 reject beforeartifact. nativeoperations0.
+{"path": "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/SLO-COUNT-CPU-20261003T0552Z/reduction.json", "bytes": 1193, "sha256": "f2572e528026d5bb2ae17698e74bc80d2ef8ee8b35604980bd7a2c9e7d77e77a"}

@@ -1,0 +1,3 @@
+# GLM-RUN-0155
+
+Prepared. Nativeprefill dominates TTFT existing152153154hist queue~0.2ms/prefill5.2..5.83s/nativeTTFT6..6.38s, no heavyprof. Minimal threshold4096 withinallocated4096 diagnostic vs1532048/1541024: same152inputbyteSHA/freshsharedsaltwarm2/full4x81932→64/256+2warm/closedc4/2perdomain/current32/samepublic/nativeepochs/work_seconds. Native4096t4096c1serial6 consumedboth/fallbackFalse andafterownedidle restoret1024serial7, exactboot-start-argv/source/NPU/idle guards. ActualnativeIDs-bodyhash-wire/usage-length-DONE/cache145408each/SDK0/source/all32same/idle; no operator/math/guards edits/formal61440/capacity/KEEP.
