@@ -1,0 +1,3 @@
+# GLM-RUN-0171
+
+Prepared. Same168nativeTP4PP4DCP4/22,20,20,16/guard16/allocated8192t4096serial1/D0same4096t1024serial11/native32/public168/STORE/nativeChat unchanged/no nativepolicy-model-publicprocessops. Exactsame170all4fullinput152JSONlinebytes/firstprefix1/raw81920→native81932/output4096each/16384+warm1=16385/query401468/5complete/freshsharedsalt; soleexperimental concurrency4→2, closedc2. Actualnativecache-counterwork/MTP-output trajectory/orderedhistory observed not assumedsame. D0logicaldrain/finallyfullcompilerpeerreadd/noD0inference/fullIDs-bodywire-usage-length-DONE/SDKinit-final0/helper-preempt0. Distinguish PP4 decode occupancy versus TTFT cost in one finite matchedworkload pair; not repeatcausal/stablecapacity/full61440/globalbound/KEEP. No oldqueue.
