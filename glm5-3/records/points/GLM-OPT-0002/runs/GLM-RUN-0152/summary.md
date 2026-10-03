@@ -1,0 +1,3 @@
+# GLM-RUN-0152
+
+Prepared. ActualfullseededAISBench raw81920/native81932→61440/full4/245760/closedc4, bothlocal16 independentTP8PP2DCP8/noEPAllGather/noKV/42,36/K3noSPGraph32/private4096t1024c1serial3/native32active: prefix73740to1 warmedboth domains/2warmtokens; actualfull2requests per D0/D1 mandatory. Retained149newD1epoch+D0old137/public149restoredSDK0/HOSTobserver/state125; restore D0 fullcompiler ratefields afterfreshidle/epoch, calibratedwork_seconds, oldnativeSTOREpointers kept. Source128AISBench adapter reused/native IDs-body-wire-usage-length-DONE/cost/actualSDK0/all32before-after/helper0. No cold reset/stablecapacity/globalbound/repeatedKEEP/isolatedgain/STOREreplication.
