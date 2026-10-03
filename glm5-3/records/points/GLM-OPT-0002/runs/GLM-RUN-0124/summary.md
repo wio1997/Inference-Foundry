@@ -1,0 +1,3 @@
+# GLM-RUN-0124
+
+124 INVALID completedprepare/failedfullapi23:47:50Z/controller239175/start273046414/speca9fd05203e618961ed4b7de697294e47797df693c42438622ec73615c6ebc565/source37. Launcher replacedPYTHONPATH, discardingCANNacl module path; ownedchild failedbeforelistener/inference. Audit124+correctedchildactualCLIhelpSDKinit-final0 VALID1143B SHA2a87772f5475de446a687803a9394108501c8fb89fc5d5512a9d7ad86615f793: zero native counters/API2NPU32same/idle/public8000free; source/log unchanged.

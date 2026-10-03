@@ -1,0 +1,3 @@
+# GLM-RUN-0126
+
+126 INVALID controllerpreflight beforeownerpublication/zero phases: nonalphanumericstageid retire_public rejected. Frozen44sources/spec5265a96d269a4d7380053f84f2e5264be225f5496c9820ceddf24cfd9a422d12/controllerlog retained; no state.json invented/publicretire/inference/resourceoperation. AuditVALID771B SHA82b6441075a7e9e71ffccde4a63a7acd1e219f108fa5490cc6ae561749132b9d: actual125public sameboot/start/argv. New127usesalphanumericretirepublic andlaunchassert.
