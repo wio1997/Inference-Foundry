@@ -1,0 +1,61 @@
+"""Opt-in input-byte domain separation for heterogeneous native replicas.
+
+Bytes choose a preferred domain, not an estimated GPU cost or capacity.
+Bound native response owners take precedence. Draining/faulted domains are
+excluded; unbound requests fall back to healthy available domains.
+"""
+import time,uuid
+from placement import Lease
+from work_seconds_placement import WorkSecondsPlacement
+
+class ShapeSplitPlacement(WorkSecondsPlacement):
+    def __init__(self,replicas,policy="active_count",groups=None,fault_state_path=None,shape_config=None):
+        self.shape_split=policy in ("shape_split","shape_split_idle_spill")
+        self.idle_spill=policy=="shape_split_idle_spill"
+        self.shape_config=None
+        if self.shape_split:
+            if not isinstance(shape_config,dict)or set(shape_config)!={"input_threshold_bytes","prefill_members","decode_members"}:
+                raise ValueError("shape split requires explicit threshold and native domains")
+            threshold=shape_config["input_threshold_bytes"]
+            if type(threshold)is not int or threshold<=0:raise ValueError("positive integer input threshold required")
+            ids={r["id"]for r in replicas};pools=[]
+            for key in["prefill_members","decode_members"]:
+                members=shape_config[key]
+                if not isinstance(members,list)or not members or any(not isinstance(x,str)or x not in ids for x in members)or len(set(members))!=len(members):
+                    raise ValueError("unique configured native domain members required")
+                pools.append(set(members))
+            if pools[0]&pools[1]:raise ValueError("shape domains must be disjoint")
+            self.shape_config={k:list(v)if isinstance(v,list)else v for k,v in shape_config.items()}
+        super().__init__(replicas,"active_count"if self.shape_split else policy,groups,fault_state_path)
+        if self.shape_split:self.policy=policy
+
+    async def acquire(self,output_budget,input_bytes):
+        if not self.shape_split:return await super().acquire(output_budget,input_bytes)
+        if type(output_budget)is not int or output_budget<=0 or type(input_bytes)is not int or input_bytes<0:
+            raise ValueError("invalid request estimate")
+        async with self.lock:
+            available=[r for r in self.replicas.values()if not r.draining and r.unhealthy_until<=time.monotonic()]
+            if not available:raise RuntimeError("no eligible GLM replica")
+            key="prefill_members"if input_bytes>=self.shape_config["input_threshold_bytes"]else"decode_members"
+            preferred=[r for r in available if r.key in self.shape_config[key]]
+            eligible=preferred or available
+            # Only unbound small requests can borrow a lease-empty prefill domain.
+            # This lock covers both selection and admission: at most one request
+            # borrows each empty domain. No native GPU idle/progress is inferred.
+            if self.idle_spill and key=="decode_members" and preferred and all(r.active for r in preferred):
+                empty_peers=[r for r in available if r.key in self.shape_config["prefill_members"] and not r.active and not r.prefilling]
+                if empty_peers:eligible=empty_peers
+            least=min(len(r.active)for r in eligible)
+            tied=[r for r in eligible if len(r.active)==least]
+            replica=tied[self.cursor%len(tied)];self.cursor+=1
+            lease=Lease(uuid.uuid4().hex,replica,output_budget,input_bytes)
+            replica.active[lease.lease_id]=(output_budget,input_bytes)
+            self.leases[lease.lease_id]=lease;replica.prefilling.add(lease.lease_id)
+            return lease
+
+    async def snapshot(self):
+        rows=await super().snapshot()
+        for row in rows:
+            row["shape_split_hint"]=self.shape_config if self.shape_split else None
+            row["shape_split_idle_spill_hint"]=self.idle_spill
+        return rows

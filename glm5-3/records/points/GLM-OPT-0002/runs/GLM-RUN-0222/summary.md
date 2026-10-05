@@ -1,0 +1,3 @@
+# GLM-RUN-0222 prepared
+
+Run222 isolate V2 draft merged Graph: keep original target FULL_DECODE_ONLY3n K2 TP8PP2DCP8 blocking0 8192t1024c1; explicit task-private dispatcher calls original native draft init with CUDAGraphMode.NONE where speculative.enforce_eager already true. No new math/operator/precision/guard edits. Exact failed221 residuals cleanup, retained211D1 native16/alltotals/STORE epoch; new222public/native with bounded same19prompt firstrequest. 221 measured queryextent coherent, CPUcandidate inactive and not confirmed rootcause. Function outcome determines next action, no performance/fullAPI/KEEP.

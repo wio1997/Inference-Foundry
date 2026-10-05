@@ -1,30 +1,30 @@
 # glm5-3 HANDOFF
 
-2026-10-05T10:18:21.867593+00:00 checkpoint148：terminal216–218/nativeV2首请求故障与219 ACTIVE诊断；父1475e61317bdd507ba3af34a031325b366e84939d49/tree0e18f9c160e9bfdc8624f4a38c23f79439cd8549。
+2026-10-05T10:58:52.625006+00:00 checkpoint149：219eager有效诊断、220fixture失败、221Graph故障负面元数据与222 draftNONE隔离；parent1481c22babc8b3acf892476bd4c0455e6a7123b5474/tree23c2c9b1f08fbd9ba830d66e7de8935dbae314de。
 
-GLM-OPT-0002 ACTIVE；CurrentNone，无性能KEEP，稳定达标容量与全可行域上界unknown。持续研究开发执行服务器，Mac仅SSH；GPT关键研究代码裁决，actualzcode --prompt→Result→bridge执行监控归约，唯一GPUcontroller，只本任务资源，必要重启清理已授权；无旧队列/Browser/subagent/automation/额外审批。
+GLM-OPT-0002 ACTIVE；Current=None，无性能KEEP，稳定达标容量与全可行域上界unknown。研究代码执行原始日志服务器/Mac仅SSH；GPT关键研究代码裁决、actualzcode --prompt→Result→bridge执行监控归约、共享现场唯一controller；仅本任务资源，无旧队列/Browser/subagent/automation/额外审批。
 
 ## 当前资源
 
-Run219 running/restore，唯一controller HOST427638/start294094637/boot166，source175/speccb42b2e8435379946235b6ff3c6e27d907b7addff3193c842eb73b2ac0702c4f；actualZcode启动JobD0-V2-EAGER-DIAGNOSTIC-219-20261005T1100Z Result VALID/running。D0/166按219/restored/startup_root/readiness/currentNPU精确核对，private local_pp219/master29982/cohort0219；旧214/216/218D0均inactive。D1/167 HOST380291/start293474771/private211/epoch5551a30026d04dfc8be640232c9232d6d0c94a45cebb1997481144371a9e6f42/TP4PP4DCP4K1/16NPU/8192t1024c1serial1持续保留。Public217 HOST4146947/start293998668/SDKinit0active/D0native216fault/D1healthy，只有219实际switch后才替换；STORE211保留，旧214D0get/prev503，无STORE复制/replay。Launchjob继承摘要仍写Unique218/Graph3n旧字样，实际job input/spec frozen219/eager flags与state为权威，不修改执行原始产物。
+截至2026-10-05T10:58:52.625006+00:00：Run222 running/restore，唯一controller HOST1692022/start294336535/boot166；source179/spec1868790a24f09334a06e953c067599aa8aa00b8bb94a092df5585a1cde9227c3。actualZcode JobD0-V2-DRAFT-EAGER-222-20261005T1200Z启动VALID，MONITOR-RUN222-20261005T1201Z只读现场监控。D0按222/restored/startup_root/readiness/native_members现场核验，private local_pp222/master29988/cohort0222；只exact221失败domain残留定点清理。D1/211 HOST380291/start293474771/boot65c53cfa-813b-4ebb-a63e-e7fe43d594e6/native16/epoch5551a30026d04dfc8be640232c9232d6d0c94a45cebb1997481144371a9e6f42/STORE211保留。public221在222实际switch前仍为active/D0fault/D1healthy；以后以222proof精确身份为准。
 
 ## 新证据与裁决
 
-原生CPU Graph候选VALID：实际CudaGraphManager._init_candidates/_is_compatible+Ascend collector，在未初始化CPU shell检查K2 width3/batch1..8的FULL候选3n与非uniform fallback；无NPUtensor/constructor/Graphpool/伪capturedflag。9876B SHA20b76463383db644665927d6125e36bfada317e55c9b59825cdfa9555405ed20。SDKinit-final0/当时native32全计数不变；不证明请求正确性。
+Run219 completed：合法targetNONE/eager+blocking1首条19prompt add2 HTTP200返回4/2有效tokens，原生19prompt/2gen/1success/K2draftpositive。原始metadata GPUCPU一致/sum=input。实际SDKclient0/native32身份/D1全部计数与STORE211原字节保留。仅一条诊断功能通过，非完整API或性能；启动摘要Unique218/Graph3n旧文案以冻结219spec实际eager配置裁决。
 
-Run216原生V2/K2/Graph3n/TP8PP2DCP8实际ready，Graph8/8、16V2worker；但驱动读取live_probe未输出V2环境字段KeyError，FAILED/driverINVALID。readonlypartialv2实际source181/native32/HOSTNSpid/0D0outputs/D1allcounters和STORE211原字节保留、旧214STORE503。模型初始化有效，不冒充请求功能或KEEP。auditv1 undefinedfolder归约fixture错误保留，v2只读修正无GPU重放。
+Run220 FAILED prepare：installer字面双转义newline导致SyntaxError，0signals/model/inference/newprivate。readonlyfixture audit证实21921132健康/累计计数/public219保留；不重放该GPU测试，221修正并解析确切installer后冻结。
 
-Run217接续samephysical216D0，source180，prepare/adopt成功并render新public217/native216epoch445e9e199d50c711787f6c30c3c28a814dee4c05c23ab288bd8f85c1afe7843e+retained211epoch；旧public214SDKfinal0/observerterminal。真实首条19prompt add2返回HTTP500，原生IndexCheck越界289896/291024>3384，D0全退出/0NPU/API SDKfinal0；有效输出0，功能INVALID。D1native16/STORE211字节和全部累计计数保留、旧214STORE503preleaseRPC、clientSDKfinal0。异步stack在PPbroadcast不证明错误原点；functionaudit草稿不执行，失败auditv2实际VALID。auditv1未识别APIprefix finalize行INVALID归约fixture保留，无GPU重放。
+Run221 completed controller但功能INVALID：原targetGraph3n/blocking0/V2 K2 TP8PP2DCP8 Graph8/8就绪，首条同body19prompt返回HTTP500/0有效输出，再现IndexCheck289896/291024>3384。实际观测16条仅targetprefill：qGPU=qCPU=[0,19]、positions0..18/table[1,1128]，queryextent无mismatch、未见runtime draftmethod观测；否定把合成CPUpadding例直接作为现场根因。原NPUworkers全退出/0NPU，但root和编译助手残留，不能称全部inactive或nativeSDKfinal0。D1native16/所有计数/STORE保留，SDKclient0/public219final0/public221active；auditv1错误假设全部助手自行退出INVALID，v2区分身份VALID。候选extentcontract未启用，仍无根因或完整API/KEEP。
 
-Run218试同V2/K2/Graph3n配置加ASCEND_LAUNCH_BLOCKING=1定位原异步越界；被原生VllmConfig guard拒绝ACLGraph与blocking不兼容，FAILED/INVALID，权重未加载、0新worker/0推理、D0NPU0/D1native16全部计数及public217保留。未绕guard。217CANNplog/实际SFADCP源码快照留server：blocktable展开3*1128=3384与范围吻合，req_indices/slotmapping paddedcount可能不一致为可证伪假说，尚非rootcause。
+合成CPU fixture复现原生SFA slotmapping在querysum1/allocated3时repeat_interleave output_size不符，候选7有效mapping/4非法边界failclosed。实际module/method快照和SDK0无NPU执行留证据；原CPUv1 annotationnamespace失败保留。experimental runtime/sfa_dcp_query_extent_contract.py显式optin、未安装/无自动import。Run221实测未出现该extent mismatch，不能把CPUfixture当Graph失败根因，不选择此候选上线。
 
 ## 下一问题
 
-当前最高价值问题是V2首请求功能故障，暂停混合负载性能窗口。Run219合法eager同步诊断：targetGraphNONE+enforceeager+ASCEND_LAUNCH_BLOCKING1，MTP/TP8PP2DCP8/K2/8192t1024c1/math/guards保持。private219 metadata wrapper只在ready后标志打开时打印实际GPU/CPUquery边界、positions、table shape，调用原函数、无输出/dispatch/数学修改。真实首请求通过/失败及同步stack决定是否修复SFA元数据；eager诊断不用于性能比较，不预承诺收益。完整API/已知thinkingbudget缺口仍open。
+Run222隔离draft merged Graph：target FULL_DECODE_ONLY3n保持、blocking0、K2/TP8PP2DCP8/8192t1024c1不变；private sourceidentity guard wrapper让原生draft init使用NONE（已有speculative.enforce_eager=true但nativeV2init仍继承targetmode），不编辑native安装文件/数学/计算kernel/precision/guard。先同一条19prompt真实E2E判方向，成功再按改动风险补完整合同；不承诺根因/性能。最高未知是captured draftmetadata/slotlookup参数，targetprefill观测正常且异步PPbroadcaststack不可靠。当前停止性能窗口；thinking_token_budget缺口/fullAPI仍open。
 
 ## 恢复入口
 
-仓库/data/tiankuan/wio/Inference-Foundry branch glm5-3-autonomous-20261001；现场/data/tiankuan/wio/glm52-pd/deploy/glm52-single。Mac166socket/tmp/glm52-166.sock，167经166HOST ssh root@172.16.10.167。controller locks .controller.lock/.formal-test.lock，鲜活boot/start/argv/HOSTNSpid/NPU唯一排程；以219state和metadata flag/诊断原始stack为准，冻结216–219 source/spec/raw不编辑。现场HANDOFF/SSH_AND_OPERATIONS/PD_START_AND_TEST_GUIDE已恢复。GitHub权威nonforce精确父CAS，无raw落Mac/无其他dirty覆盖。Nativeoperator/math source unedited不等于V1/V2实际dispatch等价，V1emptyguard imported不等于V2guard执行证明。
+仓库/data/tiankuan/wio/Inference-Foundry branch glm5-3-autonomous-20261001；现场/data/tiankuan/wio/glm52-pd/deploy/glm52-single。Mac166socket/tmp/glm52-166.sock，167经166HOST ssh root@172.16.10.167。只按鲜活boot/start/argv/HOSTNSpid/NPU与.controller.lock/.formal-test.lock核对唯一controller。冻结历史source/spec/raw不改；GitHub权威nonforce精确父CAS，其他dirty保留。完整native139与同机制历史入口REUSE；nativeoperator unchanged不等于V1/V2dispatch等价，guardimport不证明V2执行。
 
 ## 历史复用
 
