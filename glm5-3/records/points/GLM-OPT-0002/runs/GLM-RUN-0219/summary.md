@@ -1,0 +1,3 @@
+# GLM-RUN-0219 prepared
+
+Run219 legal eager diagnostic: repeat first19prompt add2 request nativeV2/K2/TP8PP2DCP8/targetGraphNONE/enforceeager under ASCEND_LAUNCH_BLOCKING=1 tolocalize Run217 asyncindexbounds3384. Nativeoperators/math/precision/guards unedited; metadata observation wrapper only, no dispatch/output change; no performancecomparison. 218 configguard audit D0allinactive0NPU/SDKfinal0, retained211D1 countersSTORE. FreshD0private218/master29982/cohort218, renderpublic219/native219+211 thenexactpublic217SDKfinal0/observer terminal. One boundedactualHTTP500or200 requestwithnativeSDK0 andrawstack,counters/source; no finiteperformanceoldqueue. CurrentNone.

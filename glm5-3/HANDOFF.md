@@ -1,27 +1,31 @@
 # glm5-3 HANDOFF
 
-2026-10-05T09:30:19.868226+00:00 checkpoint147 terminal214–215＋V2CPU研究；父146995f0bbe608582dd5e07e836c966ac849a85b049/treefb5efdd8de1beba541ba663121d14303f132a2e6；GLM-OPT-0002 ACTIVE。
+2026-10-05T10:18:21.867593+00:00 checkpoint148：terminal216–218/nativeV2首请求故障与219 ACTIVE诊断；父1475e61317bdd507ba3af34a031325b366e84939d49/tree0e18f9c160e9bfdc8624f4a38c23f79439cd8549。
 
-持续自主推进两台910C功能完整GLM框架、动态可变请求与PD/并行服务容量。GPT研究代码裁决；实际zcode --prompt→Result→bridge执行/监控/归约，唯一GPUcontroller；研究代码raw在SERVER，Mac仅SSH。必要启动清理重启已授权；无旧队列/Browser/subagent/automation/额外审批。Current=None，无性能KEEP；稳定达标容量与全可行域上界unknown。
+GLM-OPT-0002 ACTIVE；CurrentNone，无性能KEEP，稳定达标容量与全可行域上界unknown。持续研究开发执行服务器，Mac仅SSH；GPT关键研究代码裁决，actualzcode --prompt→Result→bridge执行监控归约，唯一GPUcontroller，只本任务资源，必要重启清理已授权；无旧队列/Browser/subagent/automation/额外审批。
 
 ## 当前资源
 
-无GPUcontroller：215已于09:23:21.729732Z完成；只读CPUJob也已completed。D0/166 HOST2494840/start293690661/private local_pp214/epocha10436bbbaf458ce20cb66e485f7bf3b7919b7100eca2fe357bfd6d1c66404cf：TP8PP2DCP8 K2、PP42,36、Graph3n到24实际8/8、KV352256、8192t1024c1serial1/cohort0214。D1/167 HOST380291/start293474771/private local_pp211/epoch5551a30026d04dfc8be640232c9232d6d0c94a45cebb1997481144371a9e6f42：TP4PP4DCP4 K1/PP22,20,20,16/Graph2,4,8,16,32实际4/4、8192t1024c1serial1/cohort0211。Public214 HOST2807264/start293739044/private214/runtime_bundle V12/state125/shape_split_idle_spill32768/SDKinit0active/observer32。STORE214D0+211D1保留；旧204/210D0 STORE503，无复制/replay。所有boot/start/argv/NSpid和native32以214/restored及215audit为准。
+Run219 running/restore，唯一controller HOST427638/start294094637/boot166，source175/speccb42b2e8435379946235b6ff3c6e27d907b7addff3193c842eb73b2ac0702c4f；actualZcode启动JobD0-V2-EAGER-DIAGNOSTIC-219-20261005T1100Z Result VALID/running。D0/166按219/restored/startup_root/readiness/currentNPU精确核对，private local_pp219/master29982/cohort0219；旧214/216/218D0均inactive。D1/167 HOST380291/start293474771/private211/epoch5551a30026d04dfc8be640232c9232d6d0c94a45cebb1997481144371a9e6f42/TP4PP4DCP4K1/16NPU/8192t1024c1serial1持续保留。Public217 HOST4146947/start293998668/SDKinit0active/D0native216fault/D1healthy，只有219实际switch后才替换；STORE211保留，旧214D0get/prev503，无STORE复制/replay。Launchjob继承摘要仍写Unique218/Graph3n旧字样，实际job input/spec frozen219/eager flags与state为权威，不修改执行原始产物。
 
 ## 新证据与裁决
 
-只替换D0：PP2TP8DCP8、MTP K2与匹配Graph3n到24/maxseq8联合配置；native真实capture8/8、27秒/.82GiB，KV352256。32 native rank完整HOSTNSpid/argv/boot/start与181 source一致；16 PP empty guard未改数学。真实语义4/42/literal、typed Responses32、stream previous16与retrieve完成59输出/5次生成，所有JSON/SSE原字节、native计数和SDKclients init-final0正确。旧204D0精确退休，旧STORE204/210 get/previous503preleaseRPC；D1/211epoch、STORE211字节及全部native计数保持。Public211SDKfinal0/observerterminal后public214SDKinit0active/observer32。功能VALID、性能INCONCLUSIVE；K与Graph联合配置不是孤立K收益，实际runtimebatchdispatch、SLA稳定容量和全局界仍unknown，CurrentNone。首次audit因使用不存在before_fault_replace_D0路径INVALID，v2仅改before_fault_D0证据路径；无GPU请求重跑/raw修改。
+原生CPU Graph候选VALID：实际CudaGraphManager._init_candidates/_is_compatible+Ascend collector，在未初始化CPU shell检查K2 width3/batch1..8的FULL候选3n与非uniform fallback；无NPUtensor/constructor/Graphpool/伪capturedflag。9876B SHA20b76463383db644665927d6125e36bfada317e55c9b59825cdfa9555405ed20。SDKinit-final0/当时native32全计数不变；不证明请求正确性。
 
-同213晚到16/14208真实E2E VALID：resident214D0 K2/Graph3n与211D1 K1/Graph2/public214 shapeidleSpill保持；164source/32native/full IDs-wire-prompt-usage-length-DONE/clientSDKinit-final0/STORE214D0+211D1字节/epochs/policies8192t1024c1保持，无模型/public/policy操作。119.213s/119.181有限TPS vs213105.765s/134.335；globalTTFTP90 14.004s/outputP50 32.395ms/P90 54.287ms仍三个FAIL。短11输出P50 32.244/P90 34.129ms；D0 short2 wall114.149s vs213100.705s，late0 D1仍32.244ms。D0K2 acceptedfraction.75071/D1K1.59955，输出轨迹/async/coldsalt/新D0epoch变化阻止孤立K因果结论；K2联合Graph本负载无观察到收益，REJECT当前QoS，CurrentNone。功能VALID不等于KEEP/稳定达标容量或全局界。
+Run216原生V2/K2/Graph3n/TP8PP2DCP8实际ready，Graph8/8、16V2worker；但驱动读取live_probe未输出V2环境字段KeyError，FAILED/driverINVALID。readonlypartialv2实际source181/native32/HOSTNSpid/0D0outputs/D1allcounters和STORE211原字节保留、旧214STORE503。模型初始化有效，不冒充请求功能或KEEP。auditv1 undefinedfolder归约fixture错误保留，v2只读修正无GPU重放。
 
-原生V2完整CPUCLI配置VALID：当前PP2TP8DCP8/K2/noSP/noEP/noKV/W8A8/8192t1024c1的EngineArgs/VllmConfig解析通过，method规范化mtp，原生PPMTP support无需guardbypass，native unsupportedfeatures为空、max_concurrent_batches3（现V1为2），源码快照与SDKinit-final0/native32身份和计数前后一致；0models/inference/NPUtensors。8281B SHA4dd8779e230518716296d041ef24b1e2c42c624e12ba629cdc9eebee920232c5。尚未实例化V2 runner/捕获Graph/执行推理；CPU配置容量不是GPU重叠/收益。原生配置明确warning thinking_token_budget不支持，该功能缺口必须保留并研究，不以减少能力换性能。
+Run217接续samephysical216D0，source180，prepare/adopt成功并render新public217/native216epoch445e9e199d50c711787f6c30c3c28a814dee4c05c23ab288bd8f85c1afe7843e+retained211epoch；旧public214SDKfinal0/observerterminal。真实首条19prompt add2返回HTTP500，原生IndexCheck越界289896/291024>3384，D0全退出/0NPU/API SDKfinal0；有效输出0，功能INVALID。D1native16/STORE211字节和全部累计计数保留、旧214STORE503preleaseRPC、clientSDKfinal0。异步stack在PPbroadcast不证明错误原点；functionaudit草稿不执行，失败auditv2实际VALID。auditv1未识别APIprefix finalize行INVALID归约fixture保留，无GPU重放。
+
+Run218试同V2/K2/Graph3n配置加ASCEND_LAUNCH_BLOCKING=1定位原异步越界；被原生VllmConfig guard拒绝ACLGraph与blocking不兼容，FAILED/INVALID，权重未加载、0新worker/0推理、D0NPU0/D1native16全部计数及public217保留。未绕guard。217CANNplog/实际SFADCP源码快照留server：blocktable展开3*1128=3384与范围吻合，req_indices/slotmapping paddedcount可能不一致为可证伪假说，尚非rootcause。
 
 ## 下一问题
 
-下一最高价值问题：原生ModelRunnerV1/PP2 maxconcurrent2 vs合法V2配置3是否改变流水线重叠与短decode关键链。先按已安装V2实际源构建/核验Graph、PP/MTP/DCP/GLM共享层元数据和请求生命周期，再做受限真实GPU原型/风险相称功能及同负载E2E，保留已知thinking_token_budget不支持等缺口，源码支持并不等于功能/性能。用户允许已知复现缺口按需要处理、无需全部补齐才研究；受限原型不能晋升功能完整框架/KEEP直到合同恢复。路线随新证据改变，不新增固定queue/审批门槛。K2本轮REJECT，后续可恢复/重新配置但只按身份精确操作任务资源。
+当前最高价值问题是V2首请求功能故障，暂停混合负载性能窗口。Run219合法eager同步诊断：targetGraphNONE+enforceeager+ASCEND_LAUNCH_BLOCKING1，MTP/TP8PP2DCP8/K2/8192t1024c1/math/guards保持。private219 metadata wrapper只在ready后标志打开时打印实际GPU/CPUquery边界、positions、table shape，调用原函数、无输出/dispatch/数学修改。真实首请求通过/失败及同步stack决定是否修复SFA元数据；eager诊断不用于性能比较，不预承诺收益。完整API/已知thinkingbudget缺口仍open。
 
 ## 恢复入口
 
-仓库 /data/tiankuan/wio/Inference-Foundry/branch glm5-3-autonomous-20261001；现场 /data/tiankuan/wio/glm52-pd/deploy，容器glm52-single。读现场HANDOFF.md、SSH_AND_OPERATIONS.md、PD_START_AND_TEST_GUIDE.md；Mac166socket/tmp/glm52-166.sock，167经166 HOST ssh root@172.16.10.167。controller锁.controller.lock/.formal-test.lock，freshboot/start/argv/NPU/HOSTNSpid唯一排程。Zcode桥glm5-3/scripts/zcode_bridge.py，cwd deploy/private/zcode-relay-work。GitHub权威nonforce精确父CAS；无raw/model研究落Mac，无其他dirty覆盖；livepublicmemo/observerlatest不是immutable Git证据。
+仓库/data/tiankuan/wio/Inference-Foundry branch glm5-3-autonomous-20261001；现场/data/tiankuan/wio/glm52-pd/deploy/glm52-single。Mac166socket/tmp/glm52-166.sock，167经166HOST ssh root@172.16.10.167。controller locks .controller.lock/.formal-test.lock，鲜活boot/start/argv/HOSTNSpid/NPU唯一排程；以219state和metadata flag/诊断原始stack为准，冻结216–219 source/spec/raw不编辑。现场HANDOFF/SSH_AND_OPERATIONS/PD_START_AND_TEST_GUIDE已恢复。GitHub权威nonforce精确父CAS，无raw落Mac/无其他dirty覆盖。Nativeoperator/math source unedited不等于V1/V2实际dispatch等价，V1emptyguard imported不等于V2guard执行证明。
 
-历史与复用条件见checkpoint146 HANDOFF（commit995f0bbe608582dd5e07e836c966ac849a85b049/treefb5efdd8de1beba541ba663121d14303f132a2e6）；211212213、完整nativeAPI与V12/owner-epoch/STORE/drain/cancel/error、原生算子/guard合同保持。137…214数学实现未改；privatebundle仅2 optin routing/compiler文件，原runtime70不改。CPU合法/nativecapture fit都不冒充runtimebatchdispatch或硬件界。旧profile105非当前hardwarebound；原生动态K+DCP、PD PCP/PP unsupportedguard不绕过。执行Run source/spec/raw保持immutable。
+## 历史复用
+
+checkpoint147拒绝K2mixedSLO/nativeV2CPU；checkpoint146 Graph singleton/固定epoch晚到repeat；完整nativeAPI139/owner-epoch/STORE/drain/cancel/error继续保留。214功能59/5 VALID，215晚到16/14208=119.213s/119.181finiteTPS、TTFTP9014.004s/POTP5032.395/P9054.287ms三FAIL，当前QoS REJECT。固定epoch重复输出ID轨迹也可不同，不能孤立K/Graph收益；有限TPS不是SLO稳定容量/全局界。原生DynamicK+DCP与PCP/PP unsupportedguard不绕过，不新写计算kernel/fusion；privateV12仅2optin routing/compiler文件，原runtime70保留。
