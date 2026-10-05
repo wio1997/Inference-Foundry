@@ -1,15 +1,13 @@
 # GLM-OPT-0002 — 完整请求部署与动态 placement
 
-ACTIVE/CurrentNone/SLO稳定容量和全可行域上界unknown。
+OPEN/执行BLOCKED_EXTERNAL_ZCODE，CurrentNone/SLO稳定容量和全可行域上界unknown，完整目标未完成。
 
-## checkpoint155
+## checkpoint156
 
-155新研究：已安装native EngineCore立即采样分支仅get_grammar_bitmask，没有deferred分支的take_draft_token_ids/update_draft_token_ids_in_output。V2PP request.next_decode_eligible_step间隔可使outstanding output placeholders已0而scheduled draftIDs仍[-1,-1]。原生mask方法遇-1不推进FSM，后bonus重新按旧状态填mask。Run236实际[455,68852,709]解码get_weatherge，与旧name-prefix bonus掩码相符；实际236立即/deferred分支与占位向量尚未记录，不能定论根因。
+Zcode阻塞跨三轮：13:24 monitor239与13:44 CPUgateway1840 provider402；本轮14:05与14:06短暂实际执行CPU1850/v2（两者fixture失败/noResult），14:08 v3再次provider402企业账户余额不足/CLI1/无Result。不能认为后端持续恢复。用户未答复临时GPT现场执行/监控接管；原生控制候选已具条件CPU证据，完整功能、真实调度/容量裁决下一步依赖实际E2E，现没有独立有意义的现场推进可执行。任务目标拟标BLOCKED_EXTERNAL_ZCODE，目标范围不缩小/未完成；不重复空转重试或旧队列。
 
-GPT关键研究隔离CPU校验：提取原生get_grammar_bitmask/grammar_bitmask/update_draft_token_ids_in_output AST方法，配自洽词法前缀FSM（非xgrammar/GPUreplay）；[-1,-1]掩码initial/full/initial允许错误ge bonus；真实get_weather drafts经原生filter后掩码bonus允许<arg_key>。五项通过：nativefilter+mask变换/原生FSMrollback、deferred及普通请求无新增getter、missing/mismatched/duplicate/invalid draft身份提前失败、原生invaliddraftpadding保留，helper不触queue/FIFO/config。SDK/nativeimports/NPU/GPU0，当前服务不变。初版词法FSM支持ge掩码但accept未实现该分支，原raw保留/superseded，采用v2自洽前缀模型及critical_cpu_proof。
+CPU夹具修正保留全部原raw：1850 content预读导致StreamConsumed，v2改ByteStream但无request_id时mock响应ID恒为responses，跨owner碰撞503是owner保护正确行为；v3改唯一native模拟ID并增状态错误诊断，未执行通过。Zcode对SyntaxWarning的syntaxblocker描述不成立：脚本实际执行到ASGI断言，空格警告一并修正。不能把fixture失败当服务故障或V14通过。
 
-未激活grammar_draft_control.py：仅nativeV2TP8PP2DCP8/K2/DP1/noEP/noKV/async/native资源3、既有queuecapwrapper及core/module/method/scheduler sourcehash守卫下，立即结构化placeholder请求先取native drafts并复用nativefilter，再原生getmask；deferred原流程不动。身份覆盖缺失fail-closed，boundedCPU诊断；不修改计算kernel/采样/precision/输出协议。PP交错cohort的getter覆盖/时效、RPC顺序和真实功能/成本未知，未安装到native239，不能KEEP。
+2026-10-05T14:05–14:10定向核验：publicV13/239 HOST2375097/start295275931存活，native239D0 epochf5085b8d6a9df34627f3845bc867c0eec70f83b6af363d3afae2c452bd32e0bc与native211D1 epoch5551a30026d04dfc8be640232c9232d6d0c94a45cebb1997481144371a9e6f42保持；health200/两groupfalse/active0，239controller终态completed且PID不存活，无活动GPUcontroller。V14/grammar_draft_control候选均未激活，SDK/Graph/math/precision不改；旧230D0状态退休503/211D1状态保留。
 
-Zcode阻塞复核：已授权prepared CPUgateway Job1840于13:44:27真实zcode --prompt→bridge再次provider402企业账户余额不足/CLI1/无Result，Job已claim，CPU脚本无成功执行产物，非VALID。旧monitor239亦402；已运行239controller早已completed，无活动GPUcontroller。服务公共239两group健康/active0/nativeepochs未变。未获GPT临时现场执行/监控接管授权，后续实际E2E仍需有余额Zcode或用户答复。GPT本轮仅关键源码研究/隔离CPU算例与裁决记录，未冒充ZcodeJob/NativeRun。
-
-余额/执行分工恢复后，以即刻/deferred标志、scheduled -1向量、same request/cohort native drafts及gettercoverage的有界真实窗口区分该机制；按证据决定是否用私有新启动grammar_draft_control候选，保留native unsupportedguards/V1兼容路径与现有服务状态合同。完整工具/结构化/thinking-budget/Responses background-cancel/owner生命周期及变量负载E2E仍开放；V14 prospective Responses候选与ASGI probes未验证。研究走原生控制修复及完整框架容量，不把纯兼容/CPU证明当目标达成，CurrentNone/SLOstablecapacity/globalboundunknown。
+恢复后先核验Zcode实际Result与fresh HOST/boot/start/argv/NSpid/NPU/controller唯一性；用新Job承接最新v3（旧claim不复用），按实际证据选择public-only V14生命周期兼容与native即时grammar控制候选。所有newResponses V1保护未来budget/schema链，普通chat保留异构shape策略；完整工具/schema/thinking-budget/Responses background-cancel/owner生命周期E2E必须真实验证。native立即掩码占位条件证据不是236 rootcause或GPU通过；关注PP cohort/getter身份时效/真实ID-wire-usage与动态服务成本，保留unsupportedguards。CurrentNone/性能KEEP无/稳定达标容量及全局界unknown。

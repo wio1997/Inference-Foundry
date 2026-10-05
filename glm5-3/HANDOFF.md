@@ -1,12 +1,18 @@
 # glm5-3 HANDOFF
 
-2026-10-05T14:02:22.699574+00:00 checkpoint155：nativeV2立即grammar占位符控制缺口条件证据/未激活修复候选与五项隔离CPU检查；Zcode仍402，未新增GPURun。parent154f3d8b22aed5315b99acd238ad6da4215fdd4f973/treecb2f680c044f68c544817bfb6991a34a7e3b7176。
+2026-10-05T14:12:57.325302+00:00 checkpoint156：Zcode短暂可调用、CPU mock两项fixture错误已修正；最新v3再402。真实E2E执行阻塞，未新增GPURun，目标未完成。parent155c5f2f3728d9a7a4735f3f8bcb567ac9ef9e5aef6/tree3a7a9e0da5df104315aca46a2d96005835241899。
 
-GLM-OPT-0002 ACTIVE；CurrentNone/无性能KEEP/达标稳定容量与全可行域上界unknown。研究代码raw服务器/Mac只SSH，GPT关键研究代码裁决，Zcode实际执行监控归约；只task资源/唯一controller/无旧队列/额外审批/新kernel。
+任务目标BLOCKED_EXTERNAL_ZCODE（待goaltool确认）；GLM-OPT-0002仍开放，CurrentNone/无性能KEEP/SLO稳定容量与全可行域上界unknown。研究代码raw服务器/Mac只SSH，GPT关键研究代码裁决，Zcode实际执行监控归约。只task资源/唯一controller，无旧队列/额外审批/新kernel。
 
 ## 当前资源
 
-当前无活动GPUcontroller。native239D0 HOST2064352/start295229107/boot1666d9cf06f-a02d-49ef-b7fe-cc456a7b2025/private local_pp239/master29994/cohort0239/epochf5085b8d6a9df34627f3845bc867c0eec70f83b6af363d3afae2c452bd32e0bc；D1原211 HOST380291/start293474771/boot16765c53cfa-813b-4ebb-a63e-e7fe43d594e6/epoch5551a30026d04dfc8be640232c9232d6d0c94a45cebb1997481144371a9e6f42。publicV13/239 HOST2375097/start295275931+identity_observer239，两native健康/NPU32/group健康/active0。cap2serial1/diagfalse/max0/nativebuffer3，issue policy两native8192t1024c1serial1。D1 STOREresp_glm_run211_D1_new保留，旧D0resp_glm_run230_D0_new因owner epoch退休503。所有live真值用239/restored和fresh HOST/boot/start/NSpid/NPU，不继承228旧pid。
+2026-10-05T14:05–14:10定向核验：publicV13/239 HOST2375097/start295275931存活，native239D0 epochf5085b8d6a9df34627f3845bc867c0eec70f83b6af363d3afae2c452bd32e0bc与native211D1 epoch5551a30026d04dfc8be640232c9232d6d0c94a45cebb1997481144371a9e6f42保持；health200/两groupfalse/active0，239controller终态completed且PID不存活，无活动GPUcontroller。V14/grammar_draft_control候选均未激活，SDK/Graph/math/precision不改；旧230D0状态退休503/211D1状态保留。
+
+## 执行阻塞与新证据
+
+Zcode阻塞跨三轮：13:24 monitor239与13:44 CPUgateway1840 provider402；本轮14:05与14:06短暂实际执行CPU1850/v2（两者fixture失败/noResult），14:08 v3再次provider402企业账户余额不足/CLI1/无Result。不能认为后端持续恢复。用户未答复临时GPT现场执行/监控接管；原生控制候选已具条件CPU证据，完整功能、真实调度/容量裁决下一步依赖实际E2E，现没有独立有意义的现场推进可执行。任务目标拟标BLOCKED_EXTERNAL_ZCODE，目标范围不缩小/未完成；不重复空转重试或旧队列。
+
+CPU夹具修正保留全部原raw：1850 content预读导致StreamConsumed，v2改ByteStream但无request_id时mock响应ID恒为responses，跨owner碰撞503是owner保护正确行为；v3改唯一native模拟ID并增状态错误诊断，未执行通过。Zcode对SyntaxWarning的syntaxblocker描述不成立：脚本实际执行到ASGI断言，空格警告一并修正。不能把fixture失败当服务故障或V14通过。
 
 ## 最新研究
 
@@ -38,9 +44,9 @@ Run238 COMPLETED/source177/function：驻留V1D1 native工具auto/required/named
 
 V13 CPU兼容原型VALID：capability_placement请求特征识别结构化tool_choice/response_format/structured_outputs/text.format/thinking_token_budget，新请求先筛选由native runner plans+236/238 hash证据编译的V1成员，再shape/load。已有Responses owner不迁移；boundV2不兼容时503preleaseRPC，V1排空/fault不转投V2。32并发lease守恒/affinity staleepoch/drain/groupfault/opt-out/changedhash拒绝CPU通过；没有nativeSDK/NPU/推理/activation。实际V13网关wire/参数/native状态完整性仍须E2E。原生body/bytes/计算kernel/precision/unsupportedguards未改，V2FSM原因未定位。
 
-## 下一问题
+## 恢复后的下一问题
 
-余额/执行分工恢复后，以即刻/deferred标志、scheduled -1向量、same request/cohort native drafts及gettercoverage的有界真实窗口区分该机制；按证据决定是否用私有新启动grammar_draft_control候选，保留native unsupportedguards/V1兼容路径与现有服务状态合同。完整工具/结构化/thinking-budget/Responses background-cancel/owner生命周期及变量负载E2E仍开放；V14 prospective Responses候选与ASGI probes未验证。研究走原生控制修复及完整框架容量，不把纯兼容/CPU证明当目标达成，CurrentNone/SLOstablecapacity/globalboundunknown。
+恢复后先核验Zcode实际Result与fresh HOST/boot/start/argv/NSpid/NPU/controller唯一性；用新Job承接最新v3（旧claim不复用），按实际证据选择public-only V14生命周期兼容与native即时grammar控制候选。所有newResponses V1保护未来budget/schema链，普通chat保留异构shape策略；完整工具/schema/thinking-budget/Responses background-cancel/owner生命周期E2E必须真实验证。native立即掩码占位条件证据不是236 rootcause或GPU通过；关注PP cohort/getter身份时效/真实ID-wire-usage与动态服务成本，保留unsupportedguards。CurrentNone/性能KEEP无/稳定达标容量及全局界unknown。
 
 ## 恢复入口
 
