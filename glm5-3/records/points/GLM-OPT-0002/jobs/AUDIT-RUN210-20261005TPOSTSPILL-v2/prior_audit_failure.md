@@ -1,0 +1,1 @@
+Auditv1 INVALID due leftover baseline-only placement kind assertion shape_split. Actualcandidate contract/source177kind shape_split_idle_spill known andCPU35validated; v2 corrects audit identity assertion only, no Run replay/source/raw/GPU edits. Originalauditretained.

@@ -1,0 +1,5 @@
+# GLM-RUN-0210 — VALID / REJECT
+
+真实 lease idle spill 已发生：late0 从 D0 借给 D1，其余短请求 D0、五条大输入 D1。功能59输出/5请求与动态14208输出/16请求均通过完整 native IDs、wire、计数、SDK 和 STORE 审计；总计14267/21。两端 native32、物理 epoch、K/Graph、D0 serial1 与 D1 serial5 保持一致，未重载模型或写 native 策略。仅旧 public204 正常关闭并 finalize0，新 public210 启动 init0，仍在运行。相同晚到窗口118.335s/120.066有限TPS，对比209104.022s/136.586；TTFTP90及输出间隔P50/P90三个参考SLA仍失败。借出 late0 输出间隔35.597ms，比20932.729ms慢，最大HTTPchunk间隔.0733s比.2756s短。单次配对、异步、MTP接受率、cold salts及新public冷memo混杂，不支持性能KEEP或孤立因果收益。REJECT 本轮配置与负载的QoS；功能机制可用不等于容量收益，Current=None，稳定达标容量与全可行域上界unknown。
+
+Audit v1 保留 INVALID：误用 baseline kind=shape_split 断言。v2 仅纠正为被测 shape_split_idle_spill，无重放、source/spec/raw 改写。有效审计 /data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/AUDIT-RUN210-20261005TPOSTSPILL-v2/reduction.json / 87396 bytes / SHA256 178a51c1a2ef8e4d5cbf00953c7676ac463ac69829c97f188fe8f867f70d346a。

@@ -1,0 +1,1 @@
+CPU1/2 path prefix INVALID; CPU3 remote snapshot path INVALID; CPU4 exactbuilder lookup outside set_current_vllm_config context INVALID. Alloriginalsource/raw retained; eachSDKcallobservedinit-final0, zero model/inference. CPU5 adds required context; nativeconfig/guards unchanged.
