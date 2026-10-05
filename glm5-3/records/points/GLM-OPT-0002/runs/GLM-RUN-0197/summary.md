@@ -1,0 +1,3 @@
+# GLM-RUN-0197 — VALID / REJECT
+
+Run197 VALID mixed12/10112new/fullnativeoutputIDs-wire-promptbody-usage-length-DONE/SDKinit-final0/source92/native32/public196/STOREexact. 131.719756644s/76.769045568TPS,5of6SLOFAIL/configREJECT; shortTTFTP90 11238.884307ms/shortPOTP90 220.754139ms; peakRunning8/Waiting3/KV0.210111. Same194joint32TP8PP4DCP8/K3/oneAPI/8192t1024c1serial1 bothunchanged/0policywrites/models-publicops; auditV1copiedserial3fixture INVALID/noGPUreplay, V2correctserial1VALID. short1first.956s but64tokens~16s overlapslong0coldprefill; sharedglobal8running3waiting. Freshsalts/MTP/memo/order/differentgeometry vs192 preventisolatedcausal gain; finitewindow notrepeatedKEEP/stablecapacity/globalbound; CurrentNone.

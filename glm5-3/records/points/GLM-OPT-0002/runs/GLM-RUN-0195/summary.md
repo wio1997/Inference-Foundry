@@ -1,0 +1,3 @@
+# GLM-RUN-0195
+
+INVALID preinference/prepare markertranscriptionguard: expected3e8... typedfromrecoverytext wrong, actualprimary184188190194 allsameoriginal99fe.../fixed768a019566141cf1ca4b671124cb22dc548bab087d84fb3d10b19a72c0d4830b/privatepluginsame3acf...; no operator/math/statecodechange. Native194still32ready/idle/Graph, nativeinference0. New196 frozenprimary190 fullmarker-equality/sourcecheck, no guardbypass/modelreload/oldqueue. Monitor195 independentlyINVALID noResult because absentadopted_model_identities fallback whilepreparefailed; rawkept, newmonitorfallbackactualstandalone_roots. Original107sources/speca459.../raw/manifest preserved.
