@@ -1,0 +1,5 @@
+# GLM-RUN-0207 — measurement VALID / configuration REJECT
+
+Native D1 threshold2048 selected at serial2; private threshold1024 restored serial3, D0 serial1 unchanged; all32 native owners/source/epochs/public204/STORE retained, SDKclients init-final0/full12/10112 valid. LongTTFT median16.379s versus20618.933s and globalP90 13.986s versus16.945s; maximum HTTP chunk gap1.2255s versus.6320s. Same3referenceSLOFAIL; finite95.690TPS versus97.063. AcceptanceD1.865103 versus.655823, D0.628102 versus.648090 and newcoldsalts/nativeasync/order confound isolated causal gain. REJECT tested mixedQoS, not threshold direction generally. Next discrimination D1 threshold4096 at unchanged8192 nativeallocation/c1/K1/Graph/epochs; inspect TTFT and decode stalls, restore1024, fullsamecontract; no fixedqueue. CurrentNone/stablecapacity/globalupperbound unknown.
+
+Audit /data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/AUDIT-RUN207-20261005TPOSTMIXED/reduction.json SHA67027e62fd048f0a81d24e7c2e958fcfcb46b9ec5bc1188988b7a97c50406c84. Frozen source92/spec5fcfdae7311400c2719affa02e7d0586efb9d43ab6cdb6e349bfe1a0f174df7d.
