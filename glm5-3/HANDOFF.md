@@ -1,12 +1,12 @@
 # glm5-3 HANDOFF
 
-2026-10-05T07:31:26.349772+00:00 checkpoint143 terminal204–207; base142 dbeadd49b7a841c328124d361a99c31c6092ce67, publication exactGitSHA in branch/index. GLM-OPT-0002 ACTIVE.
+2026-10-05T07:31:26.349772+00:00 checkpoint144 terminal208209/prototypeCPU; checkpoint143 published20de82c7876887760200fb16b0ceb13fd1de5095/treecedde933d0981c8626f95de689c01c869b802dbc serverbranch/index/origin exact. GLM-OPT-0002 ACTIVE.
 
 持续自主推进；目标为两台910C内功能完整GLM框架、动态可变请求和PD/并行容量极限。GPT关键研究/代码/裁决；实际zcode --prompt→Result→bridge执行/监控/归约，唯一controller。代码/研究/raw在SERVER，Mac只SSH；用户已授权本任务必要启动/清理/重启。无旧队列、Browser、subagent、automation或额外审批。Current=None，稳定达标容量和全可行域上界unknown。
 
 ## 当前controller与资源
 
-No active GPUcontroller after207 completed07:19:18Z; audit207 actualZcode VALID/CLI0. Resident D0/166 HOST2326304/start292799754/epochdbf6d3e8c7ffeabe9b073496bd8f1bcdfa5c95622dd68ae6057c05c54f88d807/private204 TP8PP2DCP8 K3/42,36/noEPnoKV/8192t1024c1serial1/Graph[4,8,12,16,20,24,28,32]max32/maxseq8/nativeKV352256. D1/167 HOST2864155/start292303441/epoch1072299010005f607bb1d40f6cb025e3696d0445ec3e527de8583ec30a2ac4e7/private200 TP4PP4DCP4 K1/22,20,20,16/noEPnoKV/8192t1024c1serial3/Graph[4,8,16,32]max32/maxseq8. Native32 rank0..15 each/HOSTNSpid/NPU16 each exact; boot1666d9cf06f-a02d-49ef-b7fe-cc456a7b2025/16765c53cfa-813b-4ebb-a63e-e7fe43d594e6. Public204V12 HOST2664601/start292852839/config204/restored/service_config.json/state125/shape32768/observer2/nativeSDKinit0-active; STORE resp_glm_run204_D0_new and resp_glm_run200_D1_new retained. Source V5 d03a5e6b470aab4abab3d42244a494be299b032e528fb01c7c74fff2286deb6b unchanged; PPguard primary768a019566141cf1ca4b671124cb22dc548bab087d84fb3d10b19a72c0d4830b preserved. Latest physical proof AUDIT207/public_service_proof.json and reduction.json; complete plans/roots/members204/restored. D1 serial3 privatefile verified; fresh nativeSELECTED3 unknown until nextinference, do not assert. Priorpublic202 and D0native202 retired204, never signal oldidentities.
+No GPUcontroller after209 completed07:46:05Z, bothnativeowned32/idle andpublic204/STORE current. NativeD0/166 HOST2326304/start292799754/epochdbf6d3e8c7ffeabe9b073496bd8f1bcdfa5c95622dd68ae6057c05c54f88d807/private204 PP2TP8DCP8 K3/Graphdense8max32/8192t1024c1serial1. D1/167 HOST2864155/start292303441/epoch1072299010005f607bb1d40f6cb025e3696d0445ec3e527de8583ec30a2ac4e7/private200 PP4TP4DCP4 K1/Graphsparse4max32/8192t1024c1serial5 (restored208). SameV5source d03a5e.../noEPnoKV/nativeguards/PPpartitions42,36 and22,20,20,16/maxseq8. Public204V12 HOST2664601/start292852839/config204/restored/service_config.json/state125/shape32768/STORE204D0+200D1/observer2/nativeSDKinit0 active. Fullnative plans/ranks/HOSTNSpid204/restored, freshidentity proofAUDIT209 andCPU2.
 
 ## 本次证据与裁决
 
@@ -16,9 +16,19 @@ Native D1 threshold2048 selected at serial2; private threshold1024 restored seri
 
 CPU D1-PREFILL2048-CAS-CPU-20261005T0708Z VALID3824B SHA564e1a195d77e246973f04d762201680e17d2ca58d0a43e7d45457166c74b22a: actual nativeV3 reader AST/source4ac2c4... accepts t2048<=8192/nonfallback; synthetic atomicCAS+stale/serial/cohort/budget/threshold/cadence rejection, 0livewrites/models/inference/NPUtensors/SDKcalls/native32 and allvllmtotals unchanged. NativeGPU per-step2048 censusunknown.
 
+## checkpoint144 新证据与下一问题
+
+D1nativeSELECTED t4096serial4/no fallback, restoret1024serial5/D0serial1 unchanged/native32/source/epochs/Graph-K/public204/STORE/SDK0/full12-10112 valid. LongTTFTmedian15.510s vs20716.379s vs20618.933s, medium8kmedian6.375s vs2074.310s vs2063.715s; maxHTTPchunkgap3.1621s vs1.2255s vs.6320s; globalTTFTP75 8226ms newFAIL, otherTTFTP90-outputP50/P90 alsoFAIL (4). Finite99.051TPS/102.088s notstablecapacity/isolatedgain. REJECTobservedmixedQoS; sufficientcounterevidence against furtherblindlargerchunk exploration, retain1024 and turntopublicplacement. CurrentNone.
+
+Late16/14208 original12preserved plus4short21->1024 at55/55.1/60/60.1; newarrivalworkloadclassbaseline, no12-vs16TPSgainclaim. AllnativeIDs-wire-body-promptcounts-usage-length-DONE/SDK0/source92/native32/epochs/Graph-K/policies D0serial1-D1serial5/public204/STORE retained/0policy-model-publicops. 104.022s/136.586finiteTPS/global3SLOFAIL, short11outputP50 30.079/P90 32.729ms. FourlateD0outputinterval32.729/31.001/33.222/31.858ms. ActualZcodepressure reduction fourlatearrivals bracketedD1Running-Waiting-KV0/publiclease0 whileD0busy, observedopportunitynotcontinuousGPUidlecertificate. Next newshape_split_idle_spill candidate onlyunboundsmall, allpreferreddecode pools busy and availableprefillpeer leaseempty, lockselection+admission onepeerborrow; fullSTOREowner-fault-epoch/drain preserved. NoKEEP/stablecapacity/globalupperbound; CurrentNone.
+
+LEASE-IDLE-SHAPE-CPU2-20261005T0800Z VALID2558B SHA170ef80c16f2eeb31559440b8eb46acb75a87c0069c2a9259fdfd2f94bf1a736: 35 CPU contracts includingcandidate atomic20concurrent arrivals oneempty-peerborrow, busy-peer excludes evenafterfirstoutput, fault-drain/nativeSTOREowner-epoch/byteexactJSONstream+duplicateheaders/nativecompilerroundtrip/currentoriginalshape regressions. Native32 sameidle/allvllmtotalsunchanged/no livecode-policy-model-inference. Candidatecodeonlyjobs/.../candidate, authoritative runtime andpublic204 unchanged. CPU1original44tests42pass1failure1error rawretained: HTTPmock consumedcontent triggered broad RuntimeError journal503, correctedAsyncByteStream; obsoletelegacyv2groups test supersededcurrentv3execution_groups. Not GPUfunctional/KEEP.
+
+HistoricalD0K1PP2 Run122 same7short/7552 55.881TPS/outputP50 38.133-P9040.721ms versus118K3 78.266/30.264-P9035.992 and120K5 63.263/29.385-P9033.832, source/Graph/epochs differ; no blindK1orK5 reset. MTP/currentchunklarger proof doesnot certify isolatedcausalmechanism. ActualnativeGraph runtimepaddingunknown; oldprofile105notcurrenthardwarebound.
+
 ## 下一问题与恢复入口
 
-本次新信息是D1阈值2048原生生效、长TTFT下降同时解码停顿增大；下一有限窗口检验4096对这一权衡。改动strictCAS/native-reader边界应先做无推理CPU证据，运行前重新核验native32/public/STORE/策略serial3/idle；完整12请求合同和nativeguards不缩减。后续由证据决定，无固定队列。
+接下来在保留两端nativeepochs/K/Graph/策略和STORE的条件下，以新public gateway加载独立候选bundle（原生模型无需reload），先真实API/owner/STORE功能验证，再用同209late16/14208窗口验证spill。CPU合法不证明实际路由机会发生或QoS收益；若身份/功能不符停止该执行，记录INVALID，不恢复旧队列。
 
 现场SSH/运维仍读 deploy/HANDOFF.md、SSH_AND_OPERATIONS.md、PD_START_AND_TEST_GUIDE.md。Mac166socket /tmp/glm52-166.sock，167通过166 HOST ssh root@172.16.10.167；容器glm52-single，现场 /data/tiankuan/wio/glm52-pd/deploy，仓库 /data/tiankuan/wio/Inference-Foundry。任务controller沿用 .controller.lock/.formal-test.lock、boot/start/argv/HOSTNSpid/NPU所有权，未知不信号。Zcode桥 scripts/zcode_bridge.py，cwd deploy/private/zcode-relay-work；不得改已执行source/spec/raw。GitHub为权威，server分支 glm5-3-autonomous-20261001；精确父commit/CAS nonforce，保留其他dirty。大型raw仅server，Git摘要含路径/bytes/SHA。
 

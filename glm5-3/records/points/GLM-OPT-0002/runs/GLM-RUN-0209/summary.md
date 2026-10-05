@@ -1,0 +1,5 @@
+# GLM-RUN-0209 — measurement VALID / configuration REJECT
+
+Late16/14208 original12preserved plus4short21->1024 at55/55.1/60/60.1; newarrivalworkloadclassbaseline, no12-vs16TPSgainclaim. AllnativeIDs-wire-body-promptcounts-usage-length-DONE/SDK0/source92/native32/epochs/Graph-K/policies D0serial1-D1serial5/public204/STORE retained/0policy-model-publicops. 104.022s/136.586finiteTPS/global3SLOFAIL, short11outputP50 30.079/P90 32.729ms. FourlateD0outputinterval32.729/31.001/33.222/31.858ms. ActualZcodepressure reduction fourlatearrivals bracketedD1Running-Waiting-KV0/publiclease0 whileD0busy, observedopportunitynotcontinuousGPUidlecertificate. Next newshape_split_idle_spill candidate onlyunboundsmall, allpreferreddecode pools busy and availableprefillpeer leaseempty, lockselection+admission onepeerborrow; fullSTOREowner-fault-epoch/drain preserved. NoKEEP/stablecapacity/globalupperbound; CurrentNone.
+
+Audit /data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/AUDIT-RUN209-20261005TPOSTLATE/reduction.json SHAeed09e5122cf804fdc5e13524c5a902ffdfe25b11dc49d1a39f8682ac8cb9c1b.
