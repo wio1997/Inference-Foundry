@@ -47,7 +47,7 @@ for key,o in roots.items():
 
  rank_entries=[]
  for line in ranklines:
-  m=re.search(r"\\(Worker pid=(\\d+)\\).*world_size=16 rank=(\\d+) local_rank=(\\d+)",line)
+  m=re.search(r"\(Worker pid=(\d+)\).*world_size=16 rank=(\d+) local_rank=(\d+)",line)
   if m:rank_entries.append(dict(container_pid=int(m[1]),rank=int(m[2]),local_rank=int(m[3])))
  assert len(rank_entries)==16 and {v["rank"]for v in rank_entries}==set(range(16))and all(v["rank"]==v["local_rank"]for v in rank_entries)
  mapcode="import pathlib,json,sys;rows=[];a=json.load(sys.stdin);boot=pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip()\nfor x in a:\n p=pathlib.Path('/proc/'+str(x['pid']));s=(p/'stat').read_text();v=s[s.rfind(')')+2:].split();assert v[0]not in['Z','X']and dict(boot_id=boot,start_ticks=v[19])==x['identity'];ns=next(l for l in(p/'status').read_text().splitlines()if l.startswith('NSpid:')).split()[1:];rows.append(dict(host_pid=x['pid'],identity=x['identity'],container_pid=int(ns[-1])))\nprint(json.dumps(rows))"
