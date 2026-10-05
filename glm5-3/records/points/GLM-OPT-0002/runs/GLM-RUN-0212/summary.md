@@ -1,0 +1,5 @@
+# GLM-RUN-0212 — VALID / REJECT
+
+同210晚到16/14208真实E2E VALID，actual late0 D1借用，其余短D0/五条大输入D1；无模型/public/policy操作，native32/source165/epochs/三份STORE/SDK0/full nativeIDs-wire-usage-length-DONE保持。102.697s/138.349有限TPS，global TTFTP90 14.069s/outputP50 30.351ms/P90 48.035ms仍三个FAIL。late0输出间隔32.892ms versus21035.597ms，最大HTTPgap.06859s。D0 short2尾部97.640s versus210113.275s也改善，且MTP接受率D0 .67703 versus .61625、D1 .82455 versus .86799，不能将整体收益归因D1Graph2。REJECT本负载QoS，CurrentNone。
+
+Audit /data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/GLM-OPT-0002/jobs/AUDIT-RUN212-20261005TPOSTLATE/reduction.json SHA256 69dcc5b5c9505b260cb667618853a50a1f0b40052df93db69da8e1486a9d4a1a.
