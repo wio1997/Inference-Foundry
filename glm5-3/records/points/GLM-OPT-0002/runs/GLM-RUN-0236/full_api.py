@@ -1,0 +1,26 @@
+from pathlib import Path
+import json,sys,subprocess,hashlib
+sys.path.insert(0,"/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime")
+from owner_guard import start_watchdog,guard
+from phase_runner import atomic_json,utc
+start_watchdog();r=Path(__file__).parent
+import controls
+controls.verify("full_api_before")
+z=subprocess.run([sys.executable,str(r/"epoch_check.py"),"full_api_initial"],capture_output=True,timeout=240);(r/"full_api_initial.stdout").write_bytes(z.stdout);(r/"full_api_initial.stderr").write_bytes(z.stderr);z.check_returncode()
+shell="export PD_LOCAL_IP=172.16.10.166 PD_NIC=business; source /data/tiankuan/wio/glm52-pd/deploy/scripts/pd_common_env.sh; export PYTHONPATH="+str(r)+":/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime:$PYTHONPATH; python3 /data/tiankuan/wio/glm52-pd/deploy/plugins/local_engines137/native_acl_lifecycle.py script "+str(r/"responses.py")
+z=subprocess.run(["docker","exec","glm52-single","bash","-c",shell],capture_output=True,timeout=2100)
+(r/"native_full_api.stdout").write_bytes(z.stdout);(r/"native_full_api.stderr").write_bytes(z.stderr);z.check_returncode()
+acks=[json.loads(x)for x in z.stdout.decode().splitlines()if x.startswith('{"event":')];assert acks[0]["event"]=="task_acl_init"and acks[-1]["event"]=="task_acl_finalize"and acks[0]["returncode"]==acks[-1]["returncode"]==0
+s=json.loads((r/"responses_summary.json").read_text());assert s["valid"]and s["new_effective_output_tokens"]==384
+ts=[json.loads((r/("tools_"+label)/"summary.json").read_text())for label in["gateway_first","gateway_second"]];assert all(x["valid"]and len(x["requests"])==4 for x in ts)
+out=dict(at=utc(),functional_acceptance=True,effective_public_output_tokens=384+sum(t["effective_output_tokens"]for t in ts),Responses=s,tool_outputs=sum(t["effective_output_tokens"]for t in ts),tool_cases=8,models_started=0,model_signals=0,limits=["Finite functional gateway/twoindependent_localTP8PP2DCP8_nativeSTOREdomains E2E, not formalSLO/stablecapacity/KEEP","Independentraw/source/epochs/toolowner/counters audit pending","CPUcustomIDconcurrency fixed; actualnative duplicate-ID concurrent acceptance untested"])
+atomic_json(r/"full_api_summary.json",out);print(json.dumps(out))
+
+z=subprocess.run([sys.executable,str(r/"epoch_check.py"),"epoch_final"],capture_output=True,timeout=240);(r/"epoch_final.stdout").write_bytes(z.stdout);(r/"epoch_final.stderr").write_bytes(z.stderr);z.check_returncode()
+
+assert json.loads((r/"responses_summary.json").read_text())["public_port8000_retained"]
+assert (r/"public_service_proof.json").exists()
+controls.verify("full_api_after")
+assert not(r.parent/"GLM-RUN-0228/diagnostic_enable.json").exists()
+cursor=json.loads((r/"queue_log_cursor.json").read_text());raw=Path("/data/tiankuan/wio/glm52-pd/deploy/logs/local_pp228_166.log").read_bytes()[cursor["bytes"]:];(r/"native_window.log").write_bytes(raw);assert b"GLM_BATCH_QUEUE_CPU_STEP "not in raw and b"GLM_DRAFT_REPLAY_METADATA "not in raw
+atomic_json(r/"fullfunction_contract_summary.json",dict(at=utc(),actual_completed_outputs=out["effective_public_output_tokens"],actual_completed_requests=19,cancelled_requests=1,cancelled_output_credit=0,native_math_changes=0,queue_admission_cap=2,queue_serial=110,resource_capacity=3,models_started=0,model_signals=0,public_restarts=0,SDKclient0=True,full_native_request_equivalence=False,V2_thinking_token_budget_gap_open=True,Current=None,limits=["Broader native139 tool/Responses/sampling/cancel/drain subset; native cleanproxyrestart reusedhistorically notnew236","No functionequivalence/KEEP/capacity, native V2 thinkingbudget guard unchanged"]))
