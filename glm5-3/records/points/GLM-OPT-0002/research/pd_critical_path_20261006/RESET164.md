@@ -1,0 +1,9 @@
+# Reset164 — D-only continuation of the actual P export
+
+Run247 P actually returnedHTTP200,2334prompt+1internal token and valid Mooncake metadata. It stopped before D at a client identity assertion: configured engineID glm53-P-run246 differs from actual runtimeUUID ID. Sol read the exact assertion and native P log19 matches for glm53-P-run246-23d787a41ada4a3798c9357515114fbf. No D request was submitted byRun247. Preserve original source/raw/spec. KV exportSHA c0e3e2a49d6935bdea4deb97c04a7d0b978dfaa0f68c4da9a4c497881ac689df. P delayed2virtual blocks and reports2.2%cache; aborttimeout480s.
+
+Run248 reuses that same export and original body/cache_salt, with actual engineID verified from native source/log. Fresh idle/live/NPU/controller/source guards still apply; no P re-prefill, model reload, configuration sweep, D-local fallback or kernel patch. API prompt-details flag is absent: native completion source602–616 requires it, so absent cached_tokens cannot be invented or used as a negative transfer result. Read native D external-prefix metrics before/after the sole D request, full32token IDs and valid output; all attempted bytes/errors preserved. Native kv_load_failure_policy remains fail.
+
+Hypothesis:functional ready pair can complete existing P→KV→D output. Distinguishing evidence:same2334prompt,32effectiveD token IDs/nonempty output,positive native external-cache-hit delta;actual failure/error if not. Decision:valid→fullAPI ownership/canonical result work;transfer/runtimefailure→read one exact cause and stop inertia, no scans;missing output/metric evidence→INCONCLUSIVE, not performance credit. Latest two PD probes were diagnostic-client failures, not valid performance Runs; current complete contract and conditional H3 still unproved. Astra full entry Review excludes blanket-hook completeness.
+
+本阶段没有新增代码级性能 KEEP。Current=None；完整PD E2E Gain=unknown。

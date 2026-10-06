@@ -6,9 +6,9 @@
 
 ## 当前执行方案：标准PD优化
 
-2026-10-06早前“先调整方案”的仅资料阶段已结束；用户已授权在新对话继续必要代码实现、验证和实验。已进入实际源码/raw研究、两机artifact结构核验和CPU诊断实现，见[checkpoint160](records/points/GLM-OPT-0002/research/pd_critical_path_20261006/CHECKPOINT160.md)。权重上传/完整性、现场资源与操作条件仍须先核验；上传未终态前不加载/测试，独立源码与CPU工作继续。以下是研究顺序，不是旧controller执行队列。Current=None，active PERF_KEEP为空；[目标纠正与源码证据](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。
+2026-10-06早前“先调整方案”的仅资料阶段已结束；用户已授权在新对话继续必要代码实现、验证和实验。已进入实际源码/raw研究、两机artifact结构核验和CPU诊断实现，见[checkpoint160](records/points/GLM-OPT-0002/research/pd_critical_path_20261006/CHECKPOINT160.md)。用户已确认上传完成；Run246两角色实际ready，Run247/248通过有限原生PD功能，见checkpoint161。后续仍须fresh核验现场资源与实际合同，不继承旧PID/队列。以下是研究顺序，不是旧controller执行队列。Current=None，active PERF_KEEP为空；[目标纠正与源码证据](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。
 
-**产品固定为GLM-5.3 W8A8的 `请求 → P Prefill → KV Transfer → D Decode/MTP → 有效输出`。** 两机目标权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`。2026-10-06用户正在上传；配置已切目标不代表artifact完整或已加载，完成并核验前不启动模型或测试。P池、D池分别组织DP/TP/EP域；不能将任一角色改成完整请求副本来代替PD。保持现有正确算子、全部功能、有效计数与SLO；基线与patched固定同一5.3模型身份，旧版本数据不构成新模型基线。
+**产品固定为GLM-5.3 W8A8的 `请求 → P Prefill → KV Transfer → D Decode/MTP → 有效输出`。** 两机目标权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`。2026-10-06用户已确认上传完成；新模型实际加载并通过有限nativePD功能，不据此验收完整产品或性能。P池、D池分别组织DP/TP/EP域；不能将任一角色改成完整请求副本来代替PD。保持现有正确算子、全部功能、有效计数与SLO；基线与patched固定同一5.3模型身份，旧版本数据不构成新模型基线。
 
 ### 1. 一个参考部署，不开展配置扫描
 
@@ -19,7 +19,7 @@
 | 166：P | DP1 / TP16 / PP1 | 使用该机16个逻辑NPU做P；历史P89/Run101证明过部分真实PD请求 |
 | 167：D | DP1 / TP16 / PP1 | 使用该机16个逻辑NPU做D；历史D100/Run101证明过KV接收及后续输出 |
 
-这是旧模型可恢复性参考，不是GLM-5.3已确认fit、最优配置或当前驻留部署。两端历史DCP16/EP16、Mooncake producer/consumer及独立通信域从[Run100 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0100/manifest_record.json)和实际安装源码定位，5.3需依据新config/量化/cache与加载路径重验；不重放旧PID、epoch、端口、环境或脚本。DP2/TP8仅作为**角色内部**的条件部署候选：现有瓶颈使其比较能改变决策、实际fit和正确性成立后，才选一个有价值对照；不会与参考基线并行扫描。配置收益单列，不计代码PERF_KEEP。
+该布局原为旧模型参考，现经Run246证明5.3两角色fit/ready、Run247/248证明一条nativePD；它不是最优配置或完整发布验收，当前身份沿最新HANDOFF重验。两端历史DCP16/EP16、Mooncake producer/consumer及独立通信域从[Run100 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0100/manifest_record.json)和实际安装源码定位，5.3需依据新config/量化/cache与加载路径重验；不重放旧PID、epoch、端口、环境或脚本。DP2/TP8仅作为**角色内部**的条件部署候选：现有瓶颈使其比较能改变决策、实际fit和正确性成立后，才选一个有价值对照；不会与参考基线并行扫描。配置收益单列，不计代码PERF_KEEP。
 
 恢复采用最小原生PD服务链，逐项确认当前软件/必要兼容修复。历史MTP K、Graph/SP、KV/batch参数和AtomicMQ/BudgetScheduler控制均不是自动继承的PERF_KEEP；PP专用插件、完整请求placement和可选PD fallback不进入默认参考路径。任何可运行性调整明确记录，基线与patched使用相同条件。
 

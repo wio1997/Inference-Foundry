@@ -1,6 +1,6 @@
 # GLM-OPT-0002 checkpoint159恢复引用
 
-2026-10-06当前研究目标已切换为**GLM-5.3 W8A8标准PD**：两机权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务名`glm-53`；用户上传中，完成并核验前不加载或测试。当前方案见[PLAN](../../../PLAN.md)，最新目标/现场说明见[HANDOFF](../../../HANDOFF.md)。下方为旧模型与完整副本路线的历史记录，不是5.3功能/性能基线或执行队列；CurrentNone/active PERF_KEEP空。
+2026-10-06当前研究目标为**GLM-5.3 W8A8标准PD**：两机权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务名`glm-53`。用户已确认上传完成；Run245实际加载全部32rank权重/MTP后因1GiB KV容量检查失败并退出，Run246只修正2GiB后实际ready，Run247/248已通过2334prompt/32生成token的原生PD；[checkpoint161](research/pd_critical_path_20261006/CHECKPOINT161.md)记录证据与完整合同缺项。当前方案见[PLAN](../../../PLAN.md)，最新实际终态与入口沿[HANDOFF](../../../HANDOFF.md)读取；旧完整副本与8000入口已停止。下方历史内容不是5.3功能/性能基线或执行队列；CurrentNone/active PERF_KEEP空。
 
 当前点仍GLM-OPT-0002；完整请求placement/产品Current研究开放。新增真实Run242–244与裁决见[HANDOFF](../../../HANDOFF.md)、[post-review Reset](research/engine_commit_20261006/POST_REVIEW_RESET.md)。H1限定REJECT；H2 INCONCLUSIVE/PARKED；没有active性能Run或新增PERF_KEEP，Current=None。原历史内容保留如下，不继承next_action。
 
