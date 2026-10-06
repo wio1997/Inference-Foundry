@@ -2,7 +2,7 @@
 
 2026-10-06，从checkpoint158（父commit `e378d459e08e9f12300118e158bba16db6c4d04f`）之后生效，替代旧日常分工与研究优先级。历史Run、raw evidence、模型调用记录及裁决保持原样。[局部AGENTS](../../AGENTS.md)是研究规则入口；本文不切换当前会话模型、不启动服务/实验、不实现自动模型路由。
 
-本次在`df7399c28791`上增量采用`GLM-RESEARCH-RULES-v2`：Sol首次核验branch/HEAD/最新rule version与rule commit/active point，新会话或强制Goal Review后先Performance Research Reset，再进入性能Run。规则身份核验不扩大为长期工作。
+启动按[最小恢复顺序](../START_NEW_CHAT.md#恢复顺序)；本文仅在分工、Astra Review或执行委派时读取。
 
 ## 默认分工
 
@@ -73,14 +73,6 @@ Zcode接到新真实性能Run前须有Sol的Reset/唯一假说与Hypothesis、Di
 
 PID/hash/epoch/controller/artifact/ownership只保留支持真实性、资源安全和可复现的必要信息；不会影响性能归因、correctness或KEEP的记录不扩张为主线。初始化、模型调用、返工与恢复成本用于选择实验方式，不能包装成E2E Product Gain；不另建模型评测或复杂自动路由系统。
 
-## 研究进度与Goal Review
+## 研究规则引用
 
-代码优化优先于配置探索。标准PD是`Request → P Prefill → KV Transfer → D Decode → Output`；A/B各自完整Prefill+Decode是Full Replica / Complete-request Placement，历史prefill-aware/prefill-work/work-seconds只作待重裁决知识。V1/V2与各种部署无预设优先权，按最大可信代码Gap选择。
-
-闭环为`Observe → 最大可信 Gap → 具体代码路径 → 代码假说 → Patch → Correctness → Matched A/B → 真实完整 E2E → KEEP / REJECT`。没有matched A/B不算性能成果；没有完整E2E不得提升Current。按Type分账，只有PERFORMANCE+correctness+matched A/B+噪声感知重复完整E2E Product Gain得到PERF_KEEP：至少两次可比较matched结果或预定义验收的足够长稳定服务对照窗口，gain接近波动用A/B/A或B/A/B，影响无法隔离标MIXED / INCONCLUSIVE。沿用[账本](../../CODE_PERFORMANCE_LEDGER.md)与[active stack](../../CURRENT_PERFORMANCE_STACK.md)，新patch验证完整stack，累计gain重新测量不相加；原裁决保留，当前适用性另记active/superseded/regressed。无新增时写：**本阶段没有新增代码级性能 KEEP。**
-
-[AGENTS的强制Goal Review](../../AGENTS.md#8-强制goal-review)任一信号出现即暂停惯性Run，重新检查最终产品、时间去向、最大可消除代码Gap、实验是否缩小Gap以及今天重启是否仍选该路线；必要时触发上述Astra Review，不值得继续立即停止。重要checkpoint先报新增代码KEEP及E2E Gain、剩余最大Gap、下一最高价值代码问题；不以Run、commit、文档、模块或方向数量评价研究质量。
-
-Goal Review硬阈值：连续5个有效性能Run无新代码KEEP、3个代码candidate无Product Gain、3个INVALID/driver failure、新增两个以上模块而Current不变、跨两个以上新领域原问题未关、非目标功能问题占多个Run或Gap无法清楚描述；可更早触发，Review后重新Reset。默认1个active hypothesis+1个区分diagnostic，切换前关闭/park/显式停止旧方向；强耦合组合需说明不可拆分。
-
-Sol保持Product correctness lane与Performance lane分开；非阻塞功能问题记backlog，不自动劫持性能主线，明确阻塞完整性/裁决才暂停。新增模块先说明替代谁、为何不能现有实现、REJECT如何退休；最终最小产品入口和Current的代码/stack/合同/workload/E2E/Gap必须一致。阶段完成按AGENTS验收，包括最终Astra架构Review或明确无需理由，不以Run不动/预算耗尽宣布完成。
+选择代码问题与架构见[PLAN](../../PLAN.md#工程候选与成本)；PERF_KEEP、matched A/B、完整E2E、噪声与stack判据见[RECORDING](../../RECORDING.md#4-提交与裁决)。[Goal Review阈值与五问](../../PLAN.md#goal-review与checkpoint)、[双轨/模块约束](../../RECORDING.md#7-双轨backlog模块约束与完成)、[阶段完成](../../PLAN.md#阶段性完成条件)各自维护，本文不复述。Review结果必须回到唯一主假说与Reset，不自动激活多个方向。

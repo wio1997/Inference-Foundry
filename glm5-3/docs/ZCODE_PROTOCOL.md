@@ -92,3 +92,15 @@ Result最小字段：
 `python3 -m unittest discover -s glm5-3/tests -p 'test_zcode_bridge.py' -v`的3个测试通过，含9类失败子用例：原始CLI输出留文件、缺失/错ID/过大Result、内层失败或未知退出、外层失败、超时、running缺进程身份均按协议处理；重复工作目录拒绝覆盖，format-only不冒充CLI执行核验。仅使用模拟CLI，未调用DeepSeek、现役服务器或性能实验。
 
 另已执行[新对话模拟交接](START_NEW_CHAT.md)，明确返回现场缺项与Current=unknown。实际环境接入后需核验CLI版本/后端与真实只读Job，不能用mock演练代替现场联调。
+
+## 6. 按需模拟，零模型/服务器调用
+
+已有有效演练无需重跑；仅在新执行环境或协议改变影响交接时按需验证，不以模拟阻塞源码研究。在仓库根执行，输出目录必须是新目录，建议放仓库外：
+
+```text
+python3 glm5-3/scripts/simulate_zcode_handoff.py --output-dir /absolute/new/simulation-directory
+```
+
+它创建合成输入和mock CLI，调用正式桥接器，实际走Job → CLI输出落盘 → Result → 校验 → 主Agent摘要。产物全部标simulation=true；model_calls=0、run_id=null，不访问网络、DeepSeek、NPU或现役服务。
+
+预期结果是handoff=VALID、task_status=needs_decision、Current=unknown。模拟证明协议传递、原始输出隔离和缺项识别；不证明CLI后端可用、服务就绪或推理性能。模拟原始日志保留在指定目录，不提交Git。

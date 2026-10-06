@@ -28,6 +28,6 @@
 | observer | [native_identity_observer.py](runtime/native_identity_observer.py)、`B/sse_observer.py` | ACTIVE | 现役身份观测 / public SSE观测 | `U/restored/identity_observer/`及B import链；只读恢复不启动其quarantine逻辑 |
 | profiler/trace | [profiling入口](docs/research/VLLM_ASCEND_PROFILING.md)；实际profile/trace配置指向的工具 | UNKNOWN | 按需诊断；不宣称正在采集 | M.artifact_index→profile gate/trace；S.environment→trace/raw路径 |
 
-版本判定：默认先读V14冻结入口，再沿**实际B的import/runpy与native argv/PYTHONPATH**深入。Run241的B继承Run240；Git只保存Run240部分冻结源码，其余实际文件由M.artifact_index核验，不能假设root `runtime/`同名文件完全相同。没有`response_affinity_gateway_v14.py`这个现役入口；V12/V11及scheduler v3仍是现役依赖，不能因编号旧而退休。
+版本判定：先查Current/路径缩写、public入口与目标组件行；研究public时从V14冻结入口读起，其他问题直接读对应组件，再沿**实际B的import/runpy与native argv/PYTHONPATH**定向深入。Run241的B继承Run240；Git只保存Run240部分冻结源码，其余实际文件由M.artifact_index核验，不能假设root `runtime/`同名文件完全相同。没有`response_affinity_gateway_v14.py`这个现役入口；V12/V11及scheduler v3仍是现役依赖，不能因编号旧而退休。
 
 未在上述启动/import链中的v1/v2/v10等版本是HISTORICAL研究源码；只有新退出记录明确标记不再进入默认路径的才称RETIRED。旧入口被V14替代的原因和边界以相应Run证据为准，不批量推断REJECT。保留全部源码和证据；不按目录最大版本号选代码、不扫描所有Run重建依赖、不由本表激活新架构或候选。

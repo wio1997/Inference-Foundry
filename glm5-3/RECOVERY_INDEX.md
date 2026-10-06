@@ -1,17 +1,17 @@
 # 新会话恢复导航
 
-这是唯一恢复导航地图，只保存路径、权威引用和发现方法；稳定、非敏感环境字段及逐节核验命令见[ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml)；执行顺序见[START_NEW_CHAT](docs/START_NEW_CHAT.md#恢复顺序)。不要通读runtime或全部Run。路径失效先沿权威引用重新发现，未知明写，不重启、不重放旧controller。
+这是唯一恢复导航地图，只保存路径、权威引用和发现方法；稳定字段与核验命令按节查[ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml)；执行顺序和最小读取范围见[START_NEW_CHAT](docs/START_NEW_CHAT.md#恢复顺序)，本表只查本次需要的行。不要通读runtime或全部Run。路径失效先沿权威引用重新发现，未知明写，不重启、不重放旧controller。
 
 服务器路径缩写：`R=/data/tiankuan/wio/Inference-Foundry`；`D=/data/tiankuan/wio/glm52-pd/deploy`；`G=R/glm5-3`。以下容器内源码路径需在对应服务器的`glm52-single`中读取，不能当成本机checkout。
 
 | 要找什么 | 路径 / 权威入口 | 发现方法 |
 |---|---|---|
-| branch / HEAD / rule | Git；[启动身份核验](docs/START_NEW_CHAT.md#0-先核验branch--head--rule-version)；[AGENTS](AGENTS.md) | fetch研究分支`glm5-3-autonomous-20261001`；查HEAD、最后修改AGENTS的rule commit及文件内version；不固定旧SHA |
-| 稳定环境清单 | [ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml) | 按values / source / verify / notes恢复；unknown按discovery逐项查，不写PID、epoch、health、端口或凭据 |
+| branch / HEAD / rule | Git；[启动身份核验](docs/START_NEW_CHAT.md#0-先核验branch--head--rule-version)；[AGENTS](AGENTS.md) | fetch研究分支`glm5-3-autonomous-20261001`；查HEAD、入口及其权威细则的最新rule commit、AGENTS内version；不固定旧SHA |
+| 稳定环境清单 | [ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml) | 只读本次需要的values / source；缺项或漂移时用对应verify / discovery，不整套重复核验、不填动态值 |
 | 仓库 / 部署 / 容器 | `R` / `D` / `glm52-single`；现场`D/HANDOFF.md` | `git -C R status --short --branch`、`docker inspect glm52-single`核验checkout及挂载 |
 | 当前规则 / 模型分工 | [AGENTS](AGENTS.md) / [模型策略](docs/research/AGENT_MODEL_STRATEGY.md) | 规则权威只在AGENTS；旧next_action不约束路线 |
 | 研究现场与产品入口 | [HANDOFF](HANDOFF.md) / [CURRENT_PRODUCT_MAP](CURRENT_PRODUCT_MAP.md) | HANDOFF选当前checkpoint/Run；产品地图定位源码；manifest→public_config / native_fresh_audit→现场文件及process |
-| active optimization point | [points.jsonl](records/points.jsonl) / HANDOFF | 按active状态与最新交接定位`records/points/<OPT>/`，不按最大ID猜 |
+| active optimization point | [points.jsonl](records/points.jsonl) / HANDOFF | 仅提取id/status/path/latest_run/current，与HANDOFF确定本次当前点；多个ACTIVE时不按最大ID猜，不展开runs数组 |
 | PERF_KEEP / 当前stack | [CODE_PERFORMANCE_LEDGER](CODE_PERFORMANCE_LEDGER.md) / [CURRENT_PERFORMANCE_STACK](CURRENT_PERFORMANCE_STACK.md) | 只查对应候选/patch与证据引用；不复制指标或从最快Run推断Current |
 | Run manifest / summary / raw | [RECORDING](RECORDING.md)；`G/records/points/<OPT>/runs/<RUN>/` | Git读manifest.json / summary.md；按manifest.artifact_index、source/ref、Job Result找服务器raw；若采用TaskCtl布局，以记录中的实际locator为准 |
 | 大artifact / 冻结源码 | 同一服务器Run下`sources/`、`runtime_bundle/`、`restored/`及raw；`D/logs/`、`D/results/`、`D/plugins/` | manifest→artifact_index的path/hash；Git缺大文件时SSH读取该locator，不另建目录账本、不全盘扫描 |

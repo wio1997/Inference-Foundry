@@ -16,7 +16,7 @@ GitHub保存权威代码/配置、事实摘要、裁决和可追溯证据。运�
 
 ## 入口Reset与Run决策价值
 
-首次恢复记录branch、HEAD、最新rule version / rule commit、active optimization point；不匹配先恢复，不能旧main/旧规则研究。新会话或强制Goal Review后，任何GPU/NPU性能Run前先产出[Performance Research Reset](AGENTS.md#0-启动身份与performance-research-reset)：产品一句话、可信完整E2E/Current与active stack、一个最大代码Gap、3～5条决定性证据、源码文件/类/函数、非模型必要工作、候选代码、理论减少/删除/重叠工作、最小matched A/B、Astra YES/NO。缺Gap证据只允许一个最小diagnostic/profile补证据，再更新Reset。
+新会话或强制Goal Review后，性能Run前先完成[身份核验与Performance Research Reset](docs/START_NEW_CHAT.md#首次实际研究输出performance-research-reset)，在当前点引用该记录，不复制模板。Gap证据不足只做一个最小补证据动作后更新Reset。
 
 每个新的真实性能Run前用以下紧凑准备记录，不启动GPU/NPU也可完成源码/证据检查：
 
@@ -72,7 +72,7 @@ glm(knowledge): record applicability and revalidation conditions
 
 代码提交与实验记录相互链接；Run固定被测code ref，记录提交固定该Run证据。推送前核对实际diff，不夹带他人改动；研究分支按任务选择，Git更新不force覆盖并发工作。
 
-后续裁决使用`PERF_KEEP / KEEP / REJECT / INCONCLUSIVE / INVALID / REUSED / NOT_APPLICABLE`；PARKED是暂停候选状态，不是性能成功，MIXED是混合归因标记。**没有matched A/B的代码不算性能成果；没有真实完整E2E的结果不得提升Current。** 只有`Type = PERFORMANCE`、功能/状态有效、matched A/B及可重复完整E2E Product Gain才能得到PERF_KEEP。其他Type可保留功能/工程改动，但其KEEP不是代码性能KEEP；历史裁决/字段名不追溯转换。REJECT写原因、未知和重验条件。
+后续裁决使用`PERF_KEEP / KEEP / REJECT / INCONCLUSIVE / INVALID / REUSED / NOT_APPLICABLE`；PARKED是暂停候选状态，不是性能成功，MIXED是混合归因标记。**没有matched A/B的代码不算性能成果；没有真实完整E2E的结果不得提升Current。** 只有`Type = PERFORMANCE`、功能/状态有效、matched A/B及可重复完整E2E Product Gain才能得到PERF_KEEP。不能牺牲有效计数、KV/状态、MTP提交和多rank匹配。其他Type可保留功能/工程改动，但其KEEP不是代码性能KEEP；历史裁决/字段名不追溯转换。REJECT写原因、未知和重验条件。
 
 Matched A/B至少匹配模型/算子/资源、负载与到达/有效工作量、功能与SLO合同、采样/MTP/cache/Graph相关条件及观察器，明确baseline/patched的code/config身份与目标patch。正式PERF_KEEP至少两次可比较matched A/B结果，或一个足够长、预先定义验收标准的稳定服务对照窗口（也需要baseline）。报告波动/噪声；gain接近已知波动时用`A/B/A`或`B/A/B`等bracketed comparison。实际接受/输出轨迹有波动时说明配对和可比性，不假称完全一致；不强制重型profile。配置/cache/部署/MTP轨迹等影响无法隔离时标`MIXED / INCONCLUSIVE`，不算代码Gain或PERF_KEEP。
 
@@ -86,9 +86,7 @@ Matched A/B至少匹配模型/算子/资源、负载与到达/有效工作量、
 
 [CODE_PERFORMANCE_LEDGER](CODE_PERFORMANCE_LEDGER.md)是后续工作结果的单一紧凑汇总，列为`Code Optimization | Type | Baseline | Patched | Gain | Correctness | Verdict`。Type为`PERFORMANCE / CORRECTNESS / FUNCTIONAL / INFRASTRUCTURE / DIAGNOSTIC / CONFIGURATION / DEPLOYMENT`；用现有优化点ID、code ref、matched Run和裁决引用，不复制raw。配置/部署单独归类，不能填PERF_KEEP；其他Type不能以代码量包装性能。只有PERF_KEEP算主要进展，无新增时必须写：`本阶段没有新增代码级性能 KEEP。`
 
-重要checkpoint先报新增代码KEEP及各E2E Gain、当前最大剩余Gap、下一最高价值代码问题；unknown明确写。出现[AGENTS的Goal Review信号](AGENTS.md#8-强制goal-review)即暂停惯性Run，在新checkpoint/当前点简短记录五问、证据、unknown和继续/转向/停止决定，必要时触发独立Astra Review。旧next_action只作历史证据，不改写，也不机械继承。
-
-硬阈值为连续5个有效性能Run无新代码KEEP、连续3个代码candidate无Product Gain、连续3个INVALID/driver failure、新增两个以上Runtime模块而Current不变、主线跨两个以上新领域而原问题未关闭、非目标功能问题占多个Run或最大Gap无法清楚描述；可提前Review，不能靠更名/新会话重置无收益事实。Review后重新Reset才进入性能Run。
+checkpoint按[账本汇报规则](CODE_PERFORMANCE_LEDGER.md#重要checkpoint汇报)引用成果。出现[PLAN的Goal Review信号](PLAN.md#goal-review与checkpoint)即暂停惯性Run，按该节五问在当前点/新checkpoint记录证据、unknown与继续/转向/停止决定；必要时Astra Review，之后重新Reset。阈值和五问不在此重复。
 
 PID/hash/epoch/controller/artifact/ownership记录只做到足够：实验真实性、资源安全、可复现及性能归因/correctness/KEEP所需。无判断价值的信息不无限追加；Run、commit、文档、Runtime模块和方向数量不衡量研究进展。
 
@@ -104,4 +102,4 @@ Current的唯一权威证据引用必须连同**产品代码commit（未提交�
 
 Product correctness lane处理API/Tool/Responses/Grammar/状态恢复/错误协议/bug，Performance lane处理Scheduler/MTP/Graph/PD/KV/通信/CPU与framework/device idle。correctness问题若同时不阻塞目标workload、不影响性能代码合法性、不影响发布功能门槛，写到当前点的correctness backlog（问题/证据/影响/重入条件），不升级性能主线。明确阻塞产品完整性或性能裁决才暂停性能lane，记录最小修复范围；功能完整性仍是发布门槛。
 
-新增Runtime模块前简答替代谁、为何不能现有模块实现、REJECT如何退休；记录唯一current product path与最小入口，不靠版本序列堆模块。阶段完成按[AGENTS](AGENTS.md#12-阶段性完成条件)核对最佳Runtime、active stack、重复完整E2E、主要功能合同、已知剩余Gap、无高置信可实施巨大未验Gap、最终Astra Review或无需理由，输出Stock/baseline与当前性能、重测累计Gain、有效KEEP、限制和低价值backlog。不能用预算耗尽/Run失败代替完成结论。
+新增Runtime模块前简答替代谁、为何不能现有模块实现、REJECT如何退休；记录唯一current product path与最小入口，不靠版本序列堆模块。交付时按[PLAN的阶段性完成条件](PLAN.md#阶段性完成条件)核验并引用证据。
