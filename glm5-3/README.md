@@ -6,4 +6,6 @@
 
 全新Agent从[START_NEW_CHAT](docs/START_NEW_CHAT.md#恢复顺序)最小恢复顺序开始，按[AGENTS](AGENTS.md)短规则进入性能分析；可直接复制该页的短启动指令。
 
+166本地工作目录固定为`/data/tiankuan/wio/Inference-Foundry/glm5-3`；Agent直接读取同一checkout内的`../AGENTS.md`、`AGENTS.md`、`MISSION.md`、`PLAN.md`及恢复入口。GitHub用于同步/版本核验，不用逐页访问网页恢复资料，也不另复制一套规则。详见[本地入口](docs/START_NEW_CHAT.md#166本地工作入口)。
+
 稳定环境字段按需查[ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml)；路径与发现方法只查[RECOVERY_INDEX](RECOVERY_INDEX.md)，现役/候选代码版本只查[CURRENT_PRODUCT_MAP](CURRENT_PRODUCT_MAP.md)；事实、性能与证据沿其权威链接读取。其他资料从[按需研究索引](docs/README.md)进入，不默认通读。

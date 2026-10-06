@@ -4,6 +4,12 @@
 
 启动只读下列身份核验、恢复顺序和Reset模板；其余链接按当前动作展开，历史演练不是必读。读过的内容不重复加载，不为缩短上下文省略决定性源码/raw。
 
+## 166本地工作入口
+
+在166将工作目录设为`/data/tiankuan/wio/Inference-Foundry/glm5-3`。规则、目标、方案和证据导航直接读取这份Git checkout内的文件及相对链接，不依赖逐页打开GitHub：先读父目录`../AGENTS.md`与本目录`AGENTS.md`，按下方最小恢复顺序继续；核对产品目标时读`MISSION.md`的目标/功能合同与`PLAN.md`的当前执行方案。`HANDOFF.md`、`ENVIRONMENT_RECOVERY.yaml`、`RECOVERY_INDEX.md`及产品/性能账本均使用同一checkout，避免单独复制文件形成另一套规则。
+
+GitHub用作远端同步和版本核验。新会话先fetch研究分支并检查本地HEAD，更新只允许经检查的fast-forward；保留dirty工作、历史raw及本地未跟踪文件，冲突先检查差异，不reset/clean/force。网络暂不可用时仍可按本地已核验版本做源码/证据研究，但须明确最新远端身份unknown，未确认最新规则前不进入性能Run。
+
 ## 0. 先核验branch / HEAD / rule version
 
 在真实checkout执行一次；规则版本从AGENTS读，rule commit取入口及其权威细则的最新修改，不固定旧SHA：
@@ -55,7 +61,7 @@ Gap缺证据先写unknown，只允许一个最小diagnostic/profile补证据后�
 ## 可粘贴的新对话指令
 
 ```text
-接续 https://github.com/wio1997/Inference-Foundry 的 glm5-3，研究分支 glm5-3-autonomous-20261001。目标是GLM-5.3 W8A8标准P/D分离优化，权重/data/tiankuan/wio/GLM-5.3-w8a8，新服务模型名glm-53；先确认上传完成和artifact完整，不回退旧权重。按 glm5-3/docs/START_NEW_CHAT.md 最小恢复顺序执行，遵循 AGENTS；细则按需读，不继承旧 next_action。完成只读恢复与 Performance Research Reset 后，直接研究一个最大可信代码 Gap。
+在166的/data/tiankuan/wio/Inference-Foundry/glm5-3本地checkout继续，研究分支glm5-3-autonomous-20261001，GitHub远端https://github.com/wio1997/Inference-Foundry只用于同步/版本核验。先读../AGENTS.md、AGENTS.md与docs/START_NEW_CHAT.md，按最小恢复顺序读取本地规则/资料；核对MISSION.md目标/功能合同和PLAN.md当前方案。目标是GLM-5.3 W8A8标准P/D分离优化，权重/data/tiankuan/wio/GLM-5.3-w8a8，新服务模型名glm-53；先确认上传完成和artifact完整，不回退旧权重。保留dirty工作与历史证据，不继承旧next_action。完成只读恢复与Performance Research Reset后，直接研究一个最大可信代码Gap。
 ```
 
 协议/执行环境变化需要模拟时，查[按需模拟](ZCODE_PROTOCOL.md#6-按需模拟零模型服务器调用)；已有证据足够不重跑。
