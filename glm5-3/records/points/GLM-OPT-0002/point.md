@@ -1,4 +1,11 @@
-# GLM-OPT-0002 checkpoint164恢复引用
+# GLM-OPT-0002 checkpoint165恢复引用
+
+2026-10-07 checkpoint167：[同次 native 因果闭环与层间源码拆分](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT167.md)。Run258唯一stock2334/8请求、9120边界/zero lost关闭MC2 availability归因：D15 predicate257.133ms，占nativeCPU77.64%，并非整步；Run256两处缓存patch的correctness→A/B/A/B→自然EOS完整PD收益13.62/14.20% TPOT保留。继续已有Run249拆开post-combine finalize＋shared W8A8、MLA、prepare/route和control；1901通信producer源码联结排除重复TP最终reduce，36CPU TLS用例不支持boxed丢inference mode。不新增大NPU/profile/scan，H6限域POSITIVE/正式PARKED、H4/H5不叠加，CurrentNone/stack空。本阶段没有新增代码级性能 KEEP。现役P249/stockD256，Run258 guards/native before==after，controller和自有probes已退出/清理；下面旧checkpoint保持历史。
+
+2026-10-07 checkpoint166：[H6已完成及继续源码归因](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT166.md)。Run256同workers/common native binary A/B/A/B与23token自然EOS完整PD通过；D TPOT下降13.62/14.20%、完整PD wall11.51/14.41%（P drift单列），H6限域POSITIVE/正式PARKED，原库已恢复。Run257唯一source-stack补证执行/golden通过但reader46/37errors，定量INCONCLUSIVE且不重试；继续已有raw/source。新EP归约760/760最晚host==device，后三轮均D15，强化层内eager host晚供给归因。local prepare3888CPU通过但PARKED/source-only；外层boxed入口CPU差约6.5–6.7us，STOP作为主因，无新增NPU Run/scan/graphflag。现役P249/stockD256，最新已核验guards见Run257，两个旧controller均已退出。Current=None/stack空；本阶段没有新增代码级性能 KEEP。下方checkpoint165及旧现场保持历史，不能再继承build-running或旧D PID。
+
+
+最新[checkpoint165](research/decode_path_20261006/CHECKPOINT165.md)：已完成最小Run254 CPU callchains并定位两MC2重复能力predicate；H6为唯一native缓存候选，隔离CPU build E运行中、candidate未安装，模型correctness/A/B/E2E待gate。P249/D253 stock原语义健康空闲；CurrentNone/active stack空。继续研究，下面164及更早为历史；不要重放已完成Run或使用旧D PID。
 
 最新[checkpoint164](research/decode_path_20261006/CHECKPOINT164.md)增加逐轮D13→D15最晚host供给因果、当前CPU scope归因、Run252最小CPU-clock限制和H5具体event patch。Run253176native/64model witness及完全相同23token自然EOS完整PD的两对A/B通过：D generation TPOT下降4.71/3.26%，P耗时变化单列；正式标准workload/SLO未验收，H5 INCONCLUSIVE/PARKED for PERF_KEEP，CurrentNone/active stack空。H4已park且未叠加。15:48:54Z fresh P249/D253健康空闲、32owned worker、67原源码hash、selector0和controller退出核验完成；不要用下面D251或旧PID。层内MoE eager host供给仍是最大定位区域，全球可删profOFF预算unknown；继续MC2分配/descriptor现有源码/raw归因，不扫描。以下checkpoint163及更早保持历史。
 

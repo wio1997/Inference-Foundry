@@ -1,0 +1,3 @@
+# GLM-RUN-0257: one nonblocking source-stack observation
+
+Controller completed/inner0; one golden2334 external-KV/8-token PD request and unchanged stock ownership/library passed. No performance patch/profile/scan. Actual source contexts are saved in two original speedscope profiles and [offline reduction](source_functions_reduced.json). D13/D15 readers have46/37errors and about oneCPU core each; frozen quantitative verdict **INCONCLUSIVE**, not retried. Source locations may guide corroborated code inspection, not a time partition or removable budget. See [decision and limits](../../research/decode_path_20261006/PYTHON_FUNCTION_DECISION.md) and [execution summary](execution_summary.json).

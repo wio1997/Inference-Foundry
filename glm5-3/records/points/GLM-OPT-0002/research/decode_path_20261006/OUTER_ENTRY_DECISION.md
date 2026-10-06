@@ -1,0 +1,9 @@
+# Outer MoE boxed entry: CPU discriminator rejects a dominant-gap explanation
+
+Independent Challenger read actual MoERunner.forward/select_forward and proposed isolating only the torch.ops.vllm.moe_forward_shared→same Python handler boundary. Retain forward input/output transforms, layer lookup/index advancement, routed/shared execution and inner operators; no direct jump around the full layer. CPU/TPU already select the direct handler, while current Ascend/SPoff uses the custom op. Compilation/FakeTensor/TorchDispatch/subclass/LoRA opaque-op contracts cannot be silently bypassed.
+
+[CPU mechanical result](outer_entry/CPU_result_B.json) executes actual handler/resolver/get_layer_from_name and direct_register_custom_op AST from the actual same-hash installed source, CPU dispatch key, with a mocked preallocated model body.32argument/output/lookup checks pass for empty/dynamic tokens, optional shared/input_ids and explicit/from_forward_context lookup. Actual NPU/CUDA initialization staysfalse, model requests0. AttemptA failed on an unstaged private snapshot path before registration and is preserved; B directly reads installed source.
+
+Boxed/direct medians are7.277/0.779us with explicit layer name and7.770/1.032us through forward_context. The isolated CPU round trip is therefore6.498/6.738us. This does not measure PrivateUse1/NPU dispatch or model speed. It only rules out using the86.255% inclusive PythonKernelHolder ancestor share as the cost of this one boundary: internal Python/native/MC2 work remains after a bypass.
+
+**STOP as the primary performance explanation; no production bypass patch or NPU A/B is queued.** A future dedicated eager layer implementation may address many inner preparations, but cannot inherit a measured saving from the outer entry result. Accept Challenger's bounded mechanism test, reject automatic promotion or model Run from inclusive ancestry.

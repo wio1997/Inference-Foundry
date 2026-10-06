@@ -1,5 +1,15 @@
 # Run249 Decode critical path: existing evidence, source, candidate
 
+Current continuation: [checkpoint167](CHECKPOINT167.md) closes native predicate mechanism and partitions the larger inter-layer source region. [Critical dependency spine](CRITICAL_PATH_CLOSURE.md) and [source decision](INTERLAYER_SOURCE_DECISION.md) supersede checkpoint166 descriptor/V2 priority; historical calculations below remain unchanged.
+
+Current follow-up: [checkpoint166](CHECKPOINT166.md) closes the bounded H6 mechanism with completed Run256 scoped-positive matched/E2E evidence and restored stock. Existing all-rank EP frontier adds760/760 latest-host==latest-device; late host model supply remains causal. Run257 source locations are usable only with corroboration; reader errors freeze quantitativeINCONCLUSIVE/no retry. Local padding/split patch is CPU-correct butPARKED; outer boxed entry is rejected as the main explanation. Current service is P249/stockD256, not the older service IDs below. Exact four-control-layer wall and full event-release DAG are unavailable from this raw; do not invent an exclusive OFF265ms budget.
+
+Earlier sections below retain the earlier checkpoint's source facts/results. Their strongest-candidate/build/current-service descriptions are historical and superseded by the linked follow-up.
+
+Latest follow-up: [H6 decision](H6_DECISION.md) closes the bounded MC2-cache question with completed Run256 correctness/matched A/B/A/B/naturalEOS complete PD; D TPOT decreases13.62/14.20%, complete PD wall11.51/14.41%, with P drift separate and original native restored. Formal PERF_KEEP remains INCONCLUSIVE/PARKED. [Actual SP correction](GRAPH_APPLICABILITY_CORRECTION.md) withdraws the aligned16/fifth-request graph blocker from current applicability: original Run249 logs explicitly prove SP disabled. These changes do not convert ON-profile region sums into an OFF265ms/token budget.
+
+Follow-up [checkpoint165](CHECKPOINT165.md) adds completed minimal Run254 CPU callchain attribution, exact MC2 predicate call sites, native host-cache checks and an isolated native build in progress. [CPU decision](CPU_INSTRUCTION_DECISION.md) and [actual replay boundaries](EAGER_REPLAY_SOURCE.md) separate statistical contexts, necessary model work and removable code. No new large NPU Run, profile or parameter scan. Earlier Run251/253 sections remain historical.
+
 Latest: [checkpoint164](CHECKPOINT164.md) adds per-round critical-rank changes, current-scope gap ownership, the minimal profiling-OFF CPU-clock limit and a second concrete event patch with repeated complete23-token evidence. [H5 decision](H5_DECISION.md) separates D generation gain from P drift. Current P249/D253 is healthy/idle with stock semantics; the Run251 service descriptions below are historical. No formal PERF_KEEP or product Current promotion.
 
 This is a new attribution of immutable Run249, not a rewrite of its result. No new NPU profile or parameter sweep was used. Profiling-off 265.290943ms/token and profiling-on 336.029329ms/token are separate regimes. The profiled device window cannot numerically decompose the unprofiled number.

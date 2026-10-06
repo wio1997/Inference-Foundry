@@ -1,0 +1,45 @@
+# Independent MC2 capability review — 2026-10-07
+
+Scope: offline Challenger review under AGENTS.md/model strategy; Current remains unchanged. Read mc2_frontend_residual.json, mc2_installed_binary_refs.json, mc2_op_sources.json, op_api_frontend_sources.json, mc2_capability.patch/identity and MC2-LOOKUP-CPU-20261007 RESET.md/measurement.json. Only this review file was edited. No server, NPU, model, build/install or GitHub action.
+
+## Decision
+
+**Continue offline only; no substantive source-level blocker under a fixed, fully established worker library/search-path lifecycle.** The two static predicates are a plausible small host optimization. They are not established as the largest removable Gap, an executor cache, or an E2E gain. The measured53us pair falls in the frozen25–100us branch; no NPU A/B follows from this evidence. Keep the broader MC2 frontend attribution question, rather than relabeling all its residual as symbol lookup.
+
+## Facts
+
+The installed library sha83fb9a0e… matches measurement.json. Dispatch literal0xe7e538 reaches the call at0x31edf40; combine literal0xe74220 reaches0x31ba4e8. Both call0x490a9d0. The callee constructs the workspace name and calls GetOpApiFuncAddr at0x490aa88, then0x490aa98 if the first result is nonnull. This supports a repeated, uncached two-symbol capability test in these actual compiled paths. It does not prove the entire stripped library equals the pinned public submodule; source package explicitly leaves that whole-binary provenance unknown.
+
+Pinned op_api_common.cpp799–805 checks execution symbol and its GetWorkspaceSize symbol, with short circuit on the first missing symbol. It does not evaluate tensor shape, routing, dtype, rank or workspace contents. GetOpApiFuncAddr854–921 searches custom/default paths through realpath, dlopen, dlsym and owner checking; then collected library handles, libopapi and feature libraries. Path vectors/collected handles are initialized globals; custom filesystem resolution and owner checks still occur on each lookup. There is no global symbol-result cache in this inspected getter. EXEC_NPU_CMD already uses separately cached function addresses in inspected implementations; this patch removes repeated branch eligibility checks, not all frontend lookup/dispatch work.
+
+Patch sha9fb6f3aa… and both original full-source hashes match identity.json. Only V4 predicate evaluation changes to a function-local static const bool. V4 arguments, V3/V2 fallbacks, validation, allocations, descriptors, workspace/executor acquisition, dispatch and returned tensors are untouched. V3 capability checking remains per-call on a cached-negative V4 path.
+
+The CPU fixture reports11 samples×100 iterations per operation after excluded warmup. Median two-lookup wall times53.03213us/52.5554us and CPU times52.773us/52.4544us are close. NPU_initialized=false, model_request=false. These numbers include Python/ctypes loop overhead and come from a separate process. They are not a compiled candidate A/B or a sample of resident model-worker lookup state.
+
+Run249 rank15 outer dispatch/combine scopes total391.29028ms, with union of exported children18.70719ms and residual372.58309ms. Allocation is part of the children, not another amount to subtract/add independently. Residual includes unexported work, profiler and scheduling. None of these totals isolates GetOpApiFuncAddr.
+
+## Semantics, initialization and lifecycle
+
+Inference: under an immutable lookup universe, the predicate has a stable value and the two local statics preserve branch selection independently for dispatch and combine. Initialization remains lazy at the existing branch site; no startup-time availability check is added. Standard C++11-and-later local-static initialization serializes concurrent initialization and publishes the bool; later calls only inspect its guard/value. Exceptions during initialization leave it uninitialized for retry. This is conditional on the actual build retaining thread-safe statics; the unbuilt candidate's compiler flags and generated guard code are not verified. No recursive entry into the same predicate initializer is visible in the inspected loader, but arbitrary custom-library constructors are outside this source proof.
+
+The lifecycle contract must freeze more than already mapped library bytes: library search paths, symlink targets, accessible custom files, ownership/permissions and effective lookup namespace must be established before the first predicate and remain stable. Cached false intentionally prevents later hot installation/publishing of V4 from changing the branch. Cached true stops repeated filesystem/owner checks. A later dlopen or filesystem/identity change is therefore not generally equivalent to the original repeated predicate. Restart workers after such changes. Existing static function-pointer caches already constrain hot replacement, but that is not a proof that every dynamic loader transition is harmless.
+
+No demonstrated issue arises from multiple threads using one established lookup universe. The two call sites have separate static guards; they do not make unrelated loader globals/constructors thread-safe. A first-call transient failure returning null is frozen as false, while a thrown exception is retried. First use must follow successful library readiness. Do not initialize these predicates in a parent process and assume forked workers can adopt different library search state.
+
+## What remains unknown or unsafe to cache
+
+- The exact resident-worker symbol providers/search order, negative custom-search work and native predicate cost after excluding Python/FFI overhead. Same installation hash alone does not supply these facts.
+- Relative costs of descriptor construction, string/logging/profiler work, workspace query, executor preparation and scheduling inside the unexported residual. They cannot be assigned by subtracting child scopes and naming the remainder.
+- Whether and how the existing PTA executor cache admits these MC2 operators. Its source checks CanUsePTACache and builds keys from arguments, stream and execution state; seeing that code is not proof of a hit or a safe key for this workload.
+- Descriptor/executor/workspace reuse correctness across dynamic tensors, addresses, shapes/strides/storage offsets, routing metadata, EP/TP groups, streams, deterministic/core settings and asynchronous lifetimes. These are invocation-dependent objects, unlike a fixed ABI capability bit. Fresh returned buffers live into MLP/combine. This review authorizes no pooling or cache of those objects.
+- OFF model critical-path impact and complete PD benefit. The arithmetic~40.1ms obtained by multiplying standalone medians by380 calls of each kind is neither measured removable wall time nor an E2E prediction; it must not be deducted from the ON residual or combined with H4/H5 gain.
+
+## Ranking, Top3 and smallest next evidence
+
+Gap ranking: (1) MC2 pre-enqueue frontend remains the largest localized unresolved host category; removable fraction unknown. (2) Repeated V4 capability checking is its strongest narrowly specified cacheable subquestion, but not proven dominant. (3) Other descriptor/executor/allocation/profiler mechanisms lack attribution and lifetime proof; do not activate them concurrently. H4/H5 history does not make their scoped gains additive or promote Current.
+
+Route recommendation: continue the single offline discriminator within the existing Reset; park NPU promotion. Top3 sequential questions: (1) Which library actually supplies both symbols and which negative/custom searches dominate the installed native lookup? (2) Does a native CPU-only uncached-versus-static predicate fixture preserve both positive/negative decisions, one-time initialization and concurrency behavior with the intended build flags? (3) What portion of resident MC2 frontend is this predicate versus other unexported preparation? Do not answer question3 with the40.1ms extrapolation.
+
+Smallest next evidence is one bounded native CPU-only harness using the same installed getter and explicit provider/search-state identities, with time measured inside its native loop, cold initialization separated, and warm uncached versus static-predicate calls. Include the predicate's short-circuit semantics and a small mock truth table for missing execution/workspace symbols; verify normal thread-safe-static guard behavior. This removes the largest uncertainty in the present53us discriminator without initializing NPU or compiling/installing a full torch_npu replacement. It would still not prove resident model critical-path gain. This review requests no execution itself and does not override the Reset thresholds.
+
+Stop List: no NPU A/B on the present25–100us result; no full wheel deployment merely to discover lookup cost; no global GetOpApiFuncAddr cache with unspecified invalidation; no hard-coded V4=true; no descriptor/executor/workspace or output-buffer cache inferred from this bool proof; no attribution of profiler residual or wait unions as removable compute; no40.1ms Product Gain claim; no Current/PERF_KEEP change.

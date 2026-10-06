@@ -1,0 +1,25 @@
+# H6 one bounded supplement after Run255 gate failure
+
+Identity: GLM-RESEARCH-RULES-v2, rule93133edc6567a2ecaac7754b3c9aab1537ca7fe3; branchglm5-3-autonomous-20261001 / HEADf22efaab45eeeb3b967931124a6f8f19f9736e85. Standard GLM-5.3 W8A8 PD / DP1 TP16 EP16 DCP16 PP1 PCP1 MTPK1 / eager NONE / profileOFF. Current=None and active KEEP stack empty. H4/H5 parked; H6 remains the sole active candidate; graph analysis remains source-only.
+
+Largest supported region is model-internal eager host supply, especially MoE. Run249 collective/latest-host/CANN linkage and Run254 CPU attribution are reused. This supplement tests only the two fixed-library capability queries already isolated in mc2_capability.patch; no arithmetic, routing, workspace/executor contract, collective layout, configuration or kernel changes. Candidate native/Python mirror identities and CPU import/native gates are reused from Run255.
+
+Run255 complete A1/B1 yielded D wall5.309035→4.547703s and TPOT223.222→191.207ms, but A2's identical output had different SSE groups and its exact-group gate stopped beforeB2. Actual RequestOutputCollector merges DELTA outputs, so groups are not a correctness invariant or ordered engine-step trace. The literal frozen gate and failed inner exit remain unchanged; the source-supported correction is recorded in Run255 summary. Original native/P/source restoration completed. The accepted-count evidence cannot be recovered from already-saved candidate SSE alone.
+
+Hypothesis: cache the two MC2 predicates once per worker lifetime to remove repeated non-model host work and shorten D output latency.
+
+Distinguishing evidence: one fresh, independent same-native/same-workers A1→B1→A2→B2 bracket, never combine newB2 with oldA2. Fixed total21 requests: two modes×(one short8+one naturalEOS23 correctness), four phases×(warm8 excluded+two timed short8+one timed complete23), one original-library recovery warm8. P249 remains protected. No new NPU profile, input search, parameter sweep, extra requests for favorable grouping, or automatic repeat. Native reload is required by isolated-library ownership; installed native/Python remain untouched.
+
+Only observer addition: read four already-existing D Prometheus counters before/after each request, outside request timing; preserve raw lines, exact labels, deltas, validation and signature. Actual SpecDecodingProm.observe receives synchronous scheduler output stats through AsyncLLM output_handler. Scope is exclusive one request, n=1, no stop strings, natural EOS or length; these paths have no abort/chunk yielding await between collector publication and metrics record. This does not generalize DONE as a publication fence. Counters are cumulative work, not per-step ordering or all target-only/kernel counts. Record num_drafts, num_draft_tokens, num_accepted_tokens, accepted_position0 and invalid_draft_tokens. K1 can legally have draft_tokens<drafts after invalid-token adjustment; require0≤accepted=position0≤draft_tokens≤drafts. Counts are recorded before stop truncation; do not assert1+drafts+accepted=N. Actual post-recovery Run255 short8 counts4/4/4 establish that warning.
+
+Decision table, frozen before execution:
+
+- Native/schema/map/mode/guard failure: INVALID loading/ownership gate; stop and restore, no performance regression claim.
+- Output IDs/content/prompt/stop/external KV or model error: REJECT scoped correctness and restore. Legal SSE groups or acceptance variations remain data, never correctness rejection.
+- Invalid/missing/unpublished counter observation: MEASUREMENT_INVALID; preserve before/after evidence, restore; no extra model request to rescue the observation.
+- Complete A1,B1,A2,B2 all share the counter signature, both preassigned paired D wall and TPOT improve, and each D saving exceeds drift=max(|A2wall−A1wall|,|B2wall−B1wall|): scoped positive repeated complete E2E mechanism evidence. Report SSE groups and P/PD contributions separately, and state acceptance ordering/target-only work remain unknown. No automatic PERF_KEEP/Current or large dynamic run.
+- Signature mismatch, benefit within drift, or incomplete comparison: INCONCLUSIVE/PARKED, no favorable subgroup selection or extra run. A clear repeated matched regression may REJECT. Short8 is a separate fixed workload; summarize all two observations per phase rather than mix with complete23.
+
+CPU-only gate checks passed using synthetic counters with saved real token fixtures: legitimate changed grouping retained; K1 invalid-draft count retained; wrong token IDs rejected; invalid counters preserved before measurement rejection. This proves observer mechanics only, not model correctness or performance.
+
+finally restores a separate stock-native D epoch, verifies warm golden and all16 original native mappings, P/source/idle guards. Run255 recovery D root3668965/start305994289 is the planned retirement target; it must be verified fresh by the sole controller. All sources/spec and artifact hashes are frozen for new Run256. Existing independent Challenger source review accepted this finite supplement and counter limitations.

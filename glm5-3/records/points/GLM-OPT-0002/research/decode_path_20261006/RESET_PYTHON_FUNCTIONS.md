@@ -1,0 +1,18 @@
+# One decisive Python-function diagnostic after H6 closure
+
+Identity: GLM-RESEARCH-RULES-v2 / rule93133ed…; branchglm5-3-autonomous-20261001 / HEADf22efaab…. Standard GLM5.3 W8A8 PD / TP16 EP16 DCP16 MTPK1 / eager NONE / **actual SP disabled** / profileOFF. H4/H5/H6 formal PARKED, Current=None, no active performance patch. Original P249 and Run256 stock recovery D remain protected. See H6_DECISION for the completed bounded cache attribution and GRAPH_APPLICABILITY_CORRECTION for inactive-branch withdrawal.
+
+Largest supported region: within-layer host supply on late ranks, chiefly MoE, rather than Scheduler admission. Existing Run249 queue/connection traces identify the intervals but omit Python source frames. Run254's native samples cannot recover lost Python file/function/line data from instruction addresses. A source-function observation is genuinely missing and can determine which actual handler/control path to inspect next; rerunning NPU profile or scanning configurations cannot supply it efficiently.
+
+Hypothesis: repeated target-layer host producer paths dominate the actual main-thread source contexts; identify their function/line and distinguish from output/queue/control-boundary contexts. This is attribution, not a code-performance hypothesis or a claim that Python frame ancestry is removable cost.
+
+Distinguishing evidence: exactly one existing golden2334-prompt/8-token PD request. Only D13/D15 main-thread contexts, selected from fresh PID/boot/start/argv ownership. Standalone pinned py-spy0.4.2, 100Hz, nonblocking, no locals/native/subprocess collection, in a private tool directory. No NPU profiler, source mutation, model reload, kernel change, tuning or additional model request. CLI helpers start only after the P response and KV export fields validate and stop after D stream ends; record this observer setup delay separately, so PD/D wall is not a performance comparison. Capture all Python threads for identity, reduce main threads and actual ModelRunner ancestry separately. Reader samples may be non-atomic; preserve errors and qualify counts.
+
+Decision table frozen before request:
+
+- Ownership/source/health/ABI failure before P: stop, no model request or alternate profiler fallback; preserve evidence. Reader startup failure after P export: stop before D, preserve the one P export and verify native release/timeout status through existing metrics/guards; no second model request or retry.
+- Output/KV/stop/health failure: INVALID diagnostic; preserve actual evidence and verify original services, no retry for coverage.
+- At least100 main-thread samples with execute_model/sample_tokens/target handler ancestry **for each worker**, with errors and observed window separately reported and interpretable source frames: close missing-function observation, inspect the dominant actual source and consumers; no automatic patch/gain from inclusive samples.
+- Insufficient coverage or reader errors: INCONCLUSIVE; reuse saved samples/source, no repeated model request to obtain a favorable distribution.
+
+Actual empty idle1Hz checks produced zero samples/zero errors. A subsequent dump read valid CPython3.12 thread frames without locals, proving ABI/permission access. That dump accidentally omitted nonblocking and may have briefly paused one **idle** worker; no model request occurred. Preserve this limit; every actual request sampler argv must contain `--nonblocking` and omit `--locals`. Before/after guards must prove unchanged roots/workers/native/P/source, health and idle. Unique existing controller alone schedules the request. Largest removable time and four control-layer exclusive wall remain unknown until evidence supports them.
