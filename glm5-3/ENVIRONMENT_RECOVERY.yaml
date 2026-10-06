@@ -1,0 +1,237 @@
+schema_version: 1
+purpose: "Stable, non-secret inventory for recovering glm5-3 in a fresh Codex session."
+
+scope:
+  values:
+    project: "Inference-Foundry/glm5-3"
+    machines: ["910c-166", "910c-167"]
+    policy: "Read-only discovery first; never infer live state from this file."
+  source: ["glm5-3/AGENTS.md", "glm5-3/HANDOFF.md", "server-side read-only inventory"]
+  verify:
+    - "git -C /data/tiankuan/wio/Inference-Foundry status --short --branch"
+    - "ssh -S /tmp/glm52-166.sock -o BatchMode=yes 910c-166 hostname"
+  notes:
+    - "This file records stable locations and discovery commands, not live health."
+    - "Never add passwords, tokens, private keys, cookies, or credential values."
+
+project:
+  values:
+    repository: "/data/tiankuan/wio/Inference-Foundry"
+    task_root: "/data/tiankuan/wio/Inference-Foundry/glm5-3"
+    deploy_root: "/data/tiankuan/wio/glm52-pd/deploy"
+    raw_run_root: "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points"
+    results_root: "/data/tiankuan/wio/glm52-pd/deploy/results"
+    logs_root: "/data/tiankuan/wio/glm52-pd/deploy/logs"
+  source: ["repository and deploy directory inventory"]
+  verify:
+    - "test -d /data/tiankuan/wio/Inference-Foundry/.git"
+    - "test -d /data/tiankuan/wio/glm52-pd/deploy"
+  notes: ["Research, execution, and raw logs remain on the servers; the Mac is an SSH entry."]
+
+local_access:
+  values:
+    server_166:
+      ssh_alias: "910c-166"
+      control_socket: "/tmp/glm52-166.sock"
+      command: "ssh -S /tmp/glm52-166.sock -o BatchMode=yes 910c-166"
+    server_167:
+      ssh_alias: "910c-167"
+      control_socket: "/tmp/glm52-167.sock"
+      command: "ssh -S /tmp/glm52-167.sock -o BatchMode=yes 910c-167"
+      fallback_from_166: "ssh -o BatchMode=yes root@172.16.10.167"
+    bastion_fallback:
+      host: "bastion.aiops.baai.ac.cn"
+      port: 2224
+      server_166: "ssh -p 2224 -l 'cuizihua@root@172.16.10.166' bastion.aiops.baai.ac.cn"
+      server_167: "ssh -p 2224 -l 'cuizihua@root@172.16.10.167' bastion.aiops.baai.ac.cn"
+    credential_policy: "Use existing local SSH configuration or agent state; never store credentials in the repository or prompts."
+  source: ["glm5-3/AGENTS.md", "read-only SSH checks"]
+  verify:
+    - "ssh -S /tmp/glm52-166.sock -o BatchMode=yes 910c-166 hostname"
+    - "ssh -S /tmp/glm52-167.sock -o BatchMode=yes 910c-167 hostname"
+    - "ssh -S /tmp/glm52-166.sock -o BatchMode=yes 910c-166 'ssh -o BatchMode=yes root@172.16.10.167 hostname'"
+    - "ssh -G 910c-166 | head"
+  notes: ["A missing or unauthenticated control socket is dynamic state; use the fallback after a read-only check."]
+
+servers:
+  values:
+    server_166:
+      role_hint: "P-side host and proxy host in the recorded topology"
+      host_name: "bm-jn-zs-zone1-910C-64G-10-166"
+      private_address: "172.16.10.166"
+    server_167:
+      role_hint: "D-side host in the recorded topology"
+      host_name: "bm-jn-zs-zone1-910C-64G-10-167"
+      private_address: "172.16.10.167"
+  source: ["server hostnames and network inventory", "glm5-3/HANDOFF.md"]
+  verify: ["hostname", "ip -brief address", "ps -eo pid,lstart,args"]
+  notes:
+    - "Role hints describe the recorded topology. Process argv and Current Product Map decide what is actually deployed."
+    - "Do not record PIDs, start epochs, health, or open ports here."
+
+deployment:
+  values:
+    container_name: "glm52-single"
+    observed_image: "m.daocloud.io/quay.io/ascend/vllm-ascend:v0.27.1rc1-a3"
+    data_mount: {host: "/data", container: "/data"}
+    current_product_map: "/data/tiankuan/wio/Inference-Foundry/glm5-3/CURRENT_PRODUCT_MAP.md"
+    performance_stack: "/data/tiankuan/wio/Inference-Foundry/glm5-3/CURRENT_PERFORMANCE_STACK.md"
+    code_performance_ledger: "/data/tiankuan/wio/Inference-Foundry/glm5-3/CODE_PERFORMANCE_LEDGER.md"
+  source: ["docker inspect glm52-single", "glm5-3/HANDOFF.md"]
+  verify:
+    - "docker inspect glm52-single --format '{{.Config.Image}} {{json .Mounts}}'"
+    - "sed -n '1,240p' /data/tiankuan/wio/Inference-Foundry/glm5-3/CURRENT_PRODUCT_MAP.md"
+  notes: ["Image identity is recovery context; container state is dynamic and must be queried live."]
+
+model:
+  values:
+    family: "GLM-5.2"
+    quantization: "W8A8"
+    path: "/data/tiankuan/wio/GLM-5.2-w8a8"
+  source: ["glm5-3/MISSION.md", "recorded launch argv and model directory inventory"]
+  verify:
+    - "test -d /data/tiankuan/wio/GLM-5.2-w8a8"
+    - "find /data/tiankuan/wio/GLM-5.2-w8a8 -maxdepth 1 -type f -printf '%f\n' | sort | head"
+  notes: ["Use live launch argv to confirm the active model path."]
+
+software:
+  values:
+    python: {executable: "/usr/local/python3.12.13/bin/python3", observed_version: "3.12.13"}
+    vllm: {source: "/vllm-workspace/vllm/vllm", observed_version: "0.27.1+empty"}
+    vllm_ascend: {source: "/vllm-workspace/vllm-ascend/vllm_ascend", observed_version: "0.27.1rc1"}
+    torch: {observed_version: "2.10.0+cpu"}
+    torch_npu: {observed_version: "2.10.0.post4"}
+    cann:
+      root: "/usr/local/Ascend/cann-9.1.0"
+      latest: "/usr/local/Ascend/ascend-toolkit/latest"
+      observed_version: "9.1.0"
+  source: ["imports and version metadata inside glm52-single", "CANN latest symlink"]
+  verify:
+    - >-
+      docker exec glm52-single /usr/local/python3.12.13/bin/python3 -c
+      "import sys, importlib.metadata as m; print(sys.version); print(*(m.version(x) for x in ('vllm','vllm-ascend','torch','torch-npu')))"
+    - "docker exec glm52-single readlink -f /usr/local/Ascend/ascend-toolkit/latest"
+  notes: ["Observed versions are recovery anchors. Re-query before attributing a regression to a version."]
+
+zcode:
+  values:
+    executable: "/usr/local/bin/zcode"
+    observed_version: "0.16.5"
+    workdir: "/data/tiankuan/wio/glm52-pd/deploy/private/zcode-relay-work"
+    bridge: "/data/tiankuan/wio/Inference-Foundry/glm5-3/scripts/zcode_bridge.py"
+    protocol: "/data/tiankuan/wio/Inference-Foundry/glm5-3/docs/ZCODE_PROTOCOL.md"
+  source: ["command -v zcode and zcode --version", "glm5-3/docs/ZCODE_PROTOCOL.md"]
+  verify:
+    - "command -v zcode && zcode --version"
+    - "test -f /data/tiankuan/wio/Inference-Foundry/glm5-3/scripts/zcode_bridge.py"
+  notes:
+    - "The provider or backend model identifier is intentionally unknown until non-secret bridge metadata confirms it."
+    - "Do not print or copy provider configuration wholesale."
+
+benchmark:
+  values:
+    aisbench:
+      executable: "/opt/aisbench-venv/bin/ais_bench"
+      python: "/opt/aisbench-venv/bin/python"
+      benchmark_root: "/opt/aisbench-benchmark"
+      prefix_bench_root: "/opt/aisbench-prefix-bench"
+      adapter_path: "/data/tiankuan/wio/Inference-Foundry/glm5-3/adapters/aisbench"
+      observed_package: "ais_bench_benchmark 3.1.0"
+    server_source: "/data/tiankuan/wio/glm52-pd/deploy/aisbench_src/prefix_bench.py"
+    suite_entry: "/data/tiankuan/wio/glm52-pd/deploy/scripts/run_standard_suite.sh"
+    inner_entry: "/data/tiankuan/wio/glm52-pd/deploy/scripts/run_aisbench_pd.sh"
+  source: ["container filesystem and package metadata", "deploy scripts"]
+  verify:
+    - "docker exec glm52-single test -x /opt/aisbench-venv/bin/ais_bench"
+    - "test -f /data/tiankuan/wio/glm52-pd/deploy/scripts/run_standard_suite.sh"
+    - "test -d /data/tiankuan/wio/Inference-Foundry/glm5-3/adapters/aisbench"
+  notes:
+    - "Canonical dataset and generated configuration paths are run-specific unknowns; resolve them from the selected Run or suite script."
+    - "Inventory commands must not start a benchmark."
+
+profiling:
+  values:
+    msprof: "/usr/local/Ascend/ascend-toolkit/latest/bin/msprof"
+    npu_smi: "/usr/local/bin/npu-smi"
+    vllm_ascend_profiler_source: "/vllm-workspace/vllm-ascend/vllm_ascend/profiler"
+    guide: "/data/tiankuan/wio/Inference-Foundry/glm5-3/docs/research/VLLM_ASCEND_PROFILING.md"
+  source: ["container filesystem", "profiling guide"]
+  verify:
+    - "docker exec glm52-single readlink -f /usr/local/Ascend/ascend-toolkit/latest/bin/msprof"
+    - "docker exec glm52-single /usr/local/Ascend/ascend-toolkit/latest/bin/msprof --help | head"
+  notes:
+    - "The trace root is experiment-specific and intentionally unknown."
+    - "A profiler binary existing does not mean profiling is active."
+
+runtime:
+  values:
+    controller: "/data/tiankuan/wio/Inference-Foundry/glm5-3/runtime/controller.py"
+    owner_record: "/data/tiankuan/wio/glm52-pd/controller-owner.json"
+    controller_lock: "/data/tiankuan/wio/glm52-pd/.controller.lock"
+    formal_test_lock: "/data/tiankuan/wio/glm52-pd/.formal-test.lock"
+    state_pattern: "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/*/runs/GLM-RUN-*/state.json"
+    job_pattern: "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points/*/jobs/*"
+  source: ["glm5-3/AGENTS.md", "controller and recorded Run layout"]
+  verify:
+    - "test -f /data/tiankuan/wio/Inference-Foundry/glm5-3/runtime/controller.py"
+    - "test -f /data/tiankuan/wio/glm52-pd/controller-owner.json && sed -n '1,160p' /data/tiankuan/wio/glm52-pd/controller-owner.json"
+    - "find /data/tiankuan/wio/Inference-Foundry/glm5-3/records/points -path '*/runs/GLM-RUN-*/state.json' -type f | sort | tail"
+  notes:
+    - "One controller owns the shared site. Verify identity before any start, stop, cleanup, or formal Run."
+    - "Never restore an old test queue."
+
+server_local_docs:
+  values:
+    handoff: "/data/tiankuan/wio/glm52-pd/deploy/HANDOFF.md"
+    ssh_operations: "/data/tiankuan/wio/glm52-pd/deploy/SSH_AND_OPERATIONS.md"
+    pd_start_test: "/data/tiankuan/wio/glm52-pd/deploy/PD_START_AND_TEST_GUIDE.md"
+  source: ["deploy directory inventory"]
+  verify:
+    - "for f in HANDOFF.md SSH_AND_OPERATIONS.md PD_START_AND_TEST_GUIDE.md; do test -f /data/tiankuan/wio/glm52-pd/deploy/$f || exit 1; done"
+  notes: ["These files describe the site. Repository rules and recorded Run evidence remain authoritative for task claims."]
+
+git_authority:
+  values:
+    primary_branch: "glm5-3-autonomous-20261001"
+    current_pointer: "/data/tiankuan/wio/Inference-Foundry/glm5-3/HANDOFF.md"
+    product_pointer: "/data/tiankuan/wio/Inference-Foundry/glm5-3/CURRENT_PRODUCT_MAP.md"
+    point_index: "/data/tiankuan/wio/Inference-Foundry/glm5-3/records/points.jsonl"
+  source: ["git branch --show-current", "glm5-3/AGENTS.md"]
+  verify:
+    - "git -C /data/tiankuan/wio/Inference-Foundry branch --show-current"
+    - "git -C /data/tiankuan/wio/Inference-Foundry log -1 --oneline"
+  notes: ["Commit IDs and branch heads change. Query them live and do not encode them as stable inventory."]
+
+authority:
+  values:
+    precedence:
+      - "live read-only observation for current process, container, and device state"
+      - "CURRENT_PRODUCT_MAP.md for deployed, candidate, and historical product identity"
+      - "HANDOFF.md and active point state for current task and execution ownership"
+      - "state.json, raw artifacts, and logs for a Run claim"
+      - "points.jsonl and research summaries for navigation"
+      - "this inventory for stable paths and discovery commands"
+  source: ["glm5-3/AGENTS.md", "glm5-3/RECORDING.md"]
+  verify: ["Follow glm5-3/RECOVERY_INDEX.md in order and reconcile disagreements before acting."]
+  notes: ["A summary cannot override raw Run evidence. A historical launch command cannot override live argv."]
+
+unknowns:
+  values:
+    - field: "zcode.provider_or_backend_model_id"
+      status: "unknown"
+      discovery: "Use non-secret bridge metadata or a supported version or status command; never dump provider config."
+    - field: "benchmark.canonical_dataset_and_config"
+      status: "run_specific"
+      discovery: "Inspect the selected Run state and artifacts plus run_standard_suite.sh without starting it."
+    - field: "profiling.trace_root"
+      status: "run_specific"
+      discovery: "Inspect the selected profiling Run and its raw artifact references."
+    - field: "deployment.public_and_native_entrypoints"
+      status: "dynamic"
+      discovery: "Read CURRENT_PRODUCT_MAP.md, then verify live process argv on both servers."
+    - field: "runtime.health_ports_pids_epochs"
+      status: "dynamic"
+      discovery: "Inspect live process argv, sockets, owner record, and service health under the controller rules."
+  source: ["read-only recovery inventory"]
+  verify: ["Resolve only the unknown needed for the next decision."]
+  notes: ["Unknown is an explicit state, not permission to guess."]

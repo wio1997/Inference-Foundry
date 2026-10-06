@@ -27,15 +27,16 @@ git diff --exit-code "$glm_rule_commit" -- glm5-3/AGENTS.md
 
 1. 核验branch / HEAD / 最新rule version与rule commit（上节）。
 2. 读根作用域入口及[AGENTS](../AGENTS.md)。
-3. 读[RECOVERY_INDEX](../RECOVERY_INDEX.md)，唯一恢复导航地图。
-4. 读[HANDOFF](../HANDOFF.md)。
-5. 读[CURRENT_PRODUCT_MAP](../CURRENT_PRODUCT_MAP.md)，定位现役与候选产品源码。
-6. 读[CURRENT_PERFORMANCE_STACK](../CURRENT_PERFORMANCE_STACK.md) / [CODE_PERFORMANCE_LEDGER](../CODE_PERFORMANCE_LEDGER.md)。
-7. 按导航定位active optimization point，仅读当前点所需记录与决定性证据。
-8. 经既有SSH只读核验动态状态，不启动服务、observer或GPU/NPU实验。
-9. 输出下述Performance Research Reset；unknown如实列出，后续动作由当前规则与Gap决定。
+3. 读[ENVIRONMENT_RECOVERY](../ENVIRONMENT_RECOVERY.yaml)，恢复稳定路径、版本锚点、SSH入口与unknown发现命令。
+4. 读[RECOVERY_INDEX](../RECOVERY_INDEX.md)，唯一恢复导航地图。
+5. 读[HANDOFF](../HANDOFF.md)。
+6. 读[CURRENT_PRODUCT_MAP](../CURRENT_PRODUCT_MAP.md)，定位现役与候选产品源码。
+7. 读[CURRENT_PERFORMANCE_STACK](../CURRENT_PERFORMANCE_STACK.md) / [CODE_PERFORMANCE_LEDGER](../CODE_PERFORMANCE_LEDGER.md)。
+8. 按导航定位active optimization point，仅读当前点所需记录与决定性证据。
+9. 经既有SSH只读核验动态状态，不启动服务、observer或GPU/NPU实验。
+10. 输出下述Performance Research Reset；unknown如实列出，后续动作由当前规则与Gap决定。
 
-路径、部署、安装源、Job与raw的发现统一查RECOVERY_INDEX；组件版本统一查CURRENT_PRODUCT_MAP。二者只是索引，不另存现场/Run/性能状态。
+稳定路径、软件版本锚点与发现命令先查ENVIRONMENT_RECOVERY；部署、Job与raw的导航统一查RECOVERY_INDEX；组件版本统一查CURRENT_PRODUCT_MAP。二者只是索引，不另存现场/Run/性能状态。
 
 ## 首次实际研究输出：Performance Research Reset
 
@@ -75,7 +76,7 @@ python3 glm5-3/scripts/simulate_zcode_handoff.py --output-dir /absolute/new/simu
 ```text
 接续 https://github.com/wio1997/Inference-Foundry 的glm5-3任务，研究分支glm5-3-autonomous-20261001；核对包含checkpoint158之后研究规则commit的Git状态。
 先fetch核验实际研究branch、HEAD包含最新rule commit、工作区AGENTS为最新rule version（本版GLM-RESEARCH-RULES-v2，不固定沿用旧SHA）；不匹配先恢复，禁止旧main/旧AGENTS研究。首次摘要报告branch/HEAD/rule version与rule commit/active optimization point。
-按恢复顺序：核验branch/HEAD/rule→AGENTS→RECOVERY_INDEX→HANDOFF→CURRENT_PRODUCT_MAP→CURRENT_PERFORMANCE_STACK/ledger→active point→现场只读动态核验→Performance Research Reset。路径只查导航，现役版本沿产品地图和真实argv/import定位；不通读runtime或全部Run。按需读PLAN、RECORDING和模型策略。
+按恢复顺序：核验branch/HEAD/rule→AGENTS→ENVIRONMENT_RECOVERY→RECOVERY_INDEX→HANDOFF→CURRENT_PRODUCT_MAP→CURRENT_PERFORMANCE_STACK/ledger→active point→现场只读动态核验→Performance Research Reset。路径只查导航，现役版本沿产品地图和真实argv/import定位；不通读runtime或全部Run。按需读PLAN、RECORDING和模型策略。
 GPT-6.1 Sol high作为性能架构师亲自负责目标/最大Gap/因果/架构/关键源码/复杂Runtime与Scheduler重构/实验设计/matched A/B/KEEP、REJECT、Current裁决。
 HANDOFF、历史Run、Zcode Summary、point下一问题和上一轮next_action只是证据；允许推翻假设、停止无Product Gain路线、删除不必要Runtime层和改变执行组织，不继承V2或既定路线的优先权。
 恢复后先执行Goal Review：最终产品、时间去向、最大可由代码消除的Gap、最近实验是否缩小Gap、今天重启是否还选这条路线。checkpoint158无性能KEEP，不能机械接续grammar/compatibility或参数扫描。

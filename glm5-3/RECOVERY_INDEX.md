@@ -1,12 +1,13 @@
 # 新会话恢复导航
 
-这是唯一恢复导航地图，只保存路径、权威引用和发现方法；执行顺序见[START_NEW_CHAT](docs/START_NEW_CHAT.md#恢复顺序)。不要通读runtime或全部Run。路径失效先沿权威引用重新发现，未知明写，不重启、不重放旧controller。
+这是唯一恢复导航地图，只保存路径、权威引用和发现方法；稳定、非敏感环境字段及逐节核验命令见[ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml)；执行顺序见[START_NEW_CHAT](docs/START_NEW_CHAT.md#恢复顺序)。不要通读runtime或全部Run。路径失效先沿权威引用重新发现，未知明写，不重启、不重放旧controller。
 
 服务器路径缩写：`R=/data/tiankuan/wio/Inference-Foundry`；`D=/data/tiankuan/wio/glm52-pd/deploy`；`G=R/glm5-3`。以下容器内源码路径需在对应服务器的`glm52-single`中读取，不能当成本机checkout。
 
 | 要找什么 | 路径 / 权威入口 | 发现方法 |
 |---|---|---|
 | branch / HEAD / rule | Git；[启动身份核验](docs/START_NEW_CHAT.md#0-先核验branch--head--rule-version)；[AGENTS](AGENTS.md) | fetch研究分支`glm5-3-autonomous-20261001`；查HEAD、最后修改AGENTS的rule commit及文件内version；不固定旧SHA |
+| 稳定环境清单 | [ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml) | 按values / source / verify / notes恢复；unknown按discovery逐项查，不写PID、epoch、health、端口或凭据 |
 | 仓库 / 部署 / 容器 | `R` / `D` / `glm52-single`；现场`D/HANDOFF.md` | `git -C R status --short --branch`、`docker inspect glm52-single`核验checkout及挂载 |
 | 当前规则 / 模型分工 | [AGENTS](AGENTS.md) / [模型策略](docs/research/AGENT_MODEL_STRATEGY.md) | 规则权威只在AGENTS；旧next_action不约束路线 |
 | 研究现场与产品入口 | [HANDOFF](HANDOFF.md) / [CURRENT_PRODUCT_MAP](CURRENT_PRODUCT_MAP.md) | HANDOFF选当前checkpoint/Run；产品地图定位源码；manifest→public_config / native_fresh_audit→现场文件及process |
@@ -27,4 +28,4 @@ SSH：使用本机既有配置`ssh 910c-166` / `ssh 910c-167`；先`ssh -G 910c-
 
 每次现场只读重验：PID、boot_id、start_ticks、native epoch、controller身份/阶段、锁与资源owner、实际argv/PYTHONPATH/config、监听端口、NPU ownership、服务health及驻留observer。用state/process/既有health端点核验，不发生成请求，不因历史PID/端口启动或终止服务；连接失败记unknown。不要运行会隔离epoch或写状态的observer来代替只读检查。
 
-权威边界：Git事实→Git；规则→AGENTS；当前现场→HANDOFF + 服务器state/process；Run事实→manifest/raw；PERF_KEEP→CODE_PERFORMANCE_LEDGER；当前性能stack→CURRENT_PERFORMANCE_STACK。两份导航只更新路径/引用，不保存动态状态，也不替代Performance Research Reset或产品裁决。
+权威边界：稳定环境字段→ENVIRONMENT_RECOVERY；Git事实→Git；规则→AGENTS；当前现场→HANDOFF + 服务器state/process；Run事实→manifest/raw；PERF_KEEP→CODE_PERFORMANCE_LEDGER；当前性能stack→CURRENT_PERFORMANCE_STACK。两份导航只更新路径/引用，不保存动态状态，也不替代Performance Research Reset或产品裁决。
