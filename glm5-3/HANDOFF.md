@@ -1,5 +1,7 @@
 # glm5-3 HANDOFF
 
+2026-10-06 用户追问DP/PP部署价值后，Sol亲读当前安装MoE分片源码与Run38原始启动log，完成独立Astra架构比较Review：[DP_PP_REVIEW](records/points/GLM-OPT-0002/research/engine_commit_20261006/DP_PP_REVIEW.md)。历史DP4TP8EP32/PP1实际fit且37完成，不能排除DP；DP2TP8EP16本机实际fit/完整正确性仍unknown。接受优先准备一个PP1公平对照的证据判断，不默认PP最优、不宣称DP已胜、不启动部署/Run。H1 scoped REJECT、H2 INCONCLUSIVE/PARKED、CurrentNone/active PERF_KEEP空不变；新device Run前须fresh Reset与decision table，下面checkpoint159及历史证据不作执行队列。
+
 2026-10-06 checkpoint159：从远端研究分支b23845e4按GLM-RESEARCH-RULES-v2恢复；首次真实Zcode只读Job VALID，已进入实际安装源码、native控制与原始证据研究。Current=None，active PERF_KEEP为空。完整产品任务仍开放；本阶段没有新增代码级性能 KEEP。真实完整E2E Gain=unknown。最新[Reset](records/points/GLM-OPT-0002/research/engine_commit_20261006/POST_REVIEW_RESET.md)、[Sol设备裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/H2_DEVICE_DECISION.md)、[Run244 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0244/manifest.json)；不继承下方checkpoint158的next_action。
 
 ## checkpoint159当前现场与裁决
