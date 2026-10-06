@@ -1,5 +1,7 @@
 # glm5-3 HANDOFF
 
+2026-10-06 配置切换已完成：[GLM53-CONFIG Zcode Job](records/points/GLM-OPT-0002/jobs/GLM53-CONFIG-20261006/summary.md)真实CLI/inner退出0，bridge与独立validate均VALID。166/167共25个未来启动配置/资料已备份并改用5.3目标，Sol只读回验全部修改后hash一致；服务器仓库FF到43def762且原有8个dirty文件与index保留。没有操作权重上传、加载、服务或推理测试；5.3上传完成、fit、功能及完整PD性能仍待核验。
+
 2026-10-06 用户开始上传GLM-5.3权重，明确后续全部研究/配置改用**GLM-5.3 W8A8标准PD**。两机只读确认目标是独立目录`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`；检查时尚缺config.json，不能据目录/分片出现宣布上传完成。本次仅切配置默认值、恢复导航与当前资料，不加载、不重启、不发生成请求或性能测试。当前resident及下方历史Run仍是当时实际模型，不能改标5.3；旧布局、源码机制和功能证据只作待重验线索。5.3 config/index/tokenizer/分片、安装版本支持、fit、正确性、完整PD E2E全部待核验，CurrentNone/active PERF_KEEP空。入口见[ENVIRONMENT_RECOVERY](ENVIRONMENT_RECOVERY.yaml#model)、[新模型资料](docs/research/GLM5_3_MODEL_AND_RUNTIME_ANALYSIS.md)、[PLAN](PLAN.md#当前执行方案标准pd优化)。已有容器/部署目录旧名称仅标识资源，不据此回退旧权重。
 
 2026-10-06 用户要求“先调整方案”：当前阶段仅修订[标准PD执行方案](PLAN.md#当前执行方案标准pd优化)，本轮不推进部署、推理、profile、benchmark或候选实现。独立Astra方案复核已接受。参考为P/D各DP1TP16PP1；先用真实PD证据定位完整关键路径，限域研究基线不冒充完整产品验收。AsyncLLM只是条件接入点，不预选hook/API重构；DP2只在瓶颈证据支持时进入角色内对照，不做配置扫描。此段覆盖下方“唯一补证问题”的优先级；旧Reset/next_action不是执行队列。CurrentNone/active PERF_KEEP空不变。

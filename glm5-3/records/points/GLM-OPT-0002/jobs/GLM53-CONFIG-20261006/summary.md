@@ -1,0 +1,9 @@
+# GLM53-CONFIG-20261006 — configuration target change
+
+User requested current configuration and GitHub material use the newly uploading GLM-5.3 weights. Both hosts have a separate `/data/tiankuan/wio/GLM-5.3-w8a8` directory; completion/metadata/shard readiness is not established. Future model alias is `glm-53`. Product remains strict Prefill/Decode disaggregation under `glm5-3/PLAN.md`.
+
+The actual Zcode0.16.5 command Job returned CLI0, inner0, completed/passed; bridge and independent validate both VALID. Original [Result](result.json), [bridge](bridge.json), [validation](validation.json) retained without rewriting. Git [sync evidence](git_sync.json) proves FF5bbe8429→43def762 and preservation of eight dirty files and the index; same-byte adoption originals remain in server Job/git_adoption. No reset/clean/force used.
+
+[Deployment evidence](deploy_config_changes.json) lists166:13 and167:12 existing future-launch configuration/docs files, before/after hashes and original backups under each deploy/private/GLM53-CONFIG-20261006/originals. Sol independently reread all25 deployed files over SSH; every after hash matched, recorded in [readback](sol_readback.json). Shell syntax and Python AST checks passed. Source checkout checks:23 shell syntax,115 Python parses and a direct plain_tokenize_payload default-alias/reject-old-alias CPU check passed. Local native_pd unittest discovery was unavailable because vLLM/server fixture paths are absent; no model correctness claim follows from these configuration checks.
+
+No upload files or weight payload read/modified; no services started/stopped/reloaded; no inference, benchmark or profiler. Actual glm52-single and glm52-pd/deploy resource identifiers and frozen/historical Run/raw/model identity remain unchanged. Current=None, active PERF_KEEP empty; GLM-5.3 fit, feature correctness and complete PD E2E gain remain unknown. Bundle/CLI raw logs/full config originals remain on the server and are not committed.
