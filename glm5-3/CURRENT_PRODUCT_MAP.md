@@ -1,5 +1,8 @@
 # 当前产品代码导航
 
+当前checkpoint162：驻留原生PD为Run249的P1669081/D1679900，替代已退休Run246；sameDP1/TP16/PP1/EP16/DCP16/MTPK1/eager/2GiBKV。原生vLLM/Ascend profiler启用能力且当前采集已stop；全32rank实际CPU/NPU trace由官方接口offline解析。两health200/idle/KVusage0；统一8000/完整API/SLA/Current仍未验收。身份与源码从[Run249执行证据](records/points/GLM-OPT-0002/runs/GLM-RUN-0249/execution_summary.json)fresh重验；下方checkpoint161/159按历史保留。
+
+
 **当前目标GLM-5.3 W8A8，用户已确认两机上传完成**：目录`/data/tiankuan/wio/GLM-5.3-w8a8`、服务名`glm-53`。Run245已退休旧完整副本/public/observer，保留历史状态；两边新权重/MTP实际加载后因KV预算校验失败并清理。Run246修正2GiB缓存后实际ready，Run247/248已通过一条2334prompt/32生成token的原生P166→KV→D167验证；最新证据沿[HANDOFF](HANDOFF.md)与Run248 execution_summary发现，驻留身份仍须fresh重验。`glm52-single`、`glm52-pd/deploy`仍是实际资源名称。8000公共入口尚未替换验收，完整API/性能未成立，Current=None。
 
 **Current=None**，依据[HANDOFF](HANDOFF.md)、[当前性能stack](CURRENT_PERFORMANCE_STACK.md)。本轮原生PD启动入口是Run246冻结的`pd_functional_run.py`→`runtime_bundle/native_acl_lifecycle.py`→实际vLLM/Ascend scheduler/runner/Mooncake；没有旧PP/worker插件或gateway fallback。单条nativePD功能参考已通过，结束后两机idle/KVusage0，无性能patch或完整产品裁决。按[目标纠正裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)与新Reset定向研究后续完整入口。

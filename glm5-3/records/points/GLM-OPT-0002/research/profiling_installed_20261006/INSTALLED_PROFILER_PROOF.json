@@ -1,0 +1,111 @@
+{
+  "context": [
+    {
+      "host": "166",
+      "health": 200,
+      "profile_routes_before": [],
+      "workers": 16,
+      "profiler_env_before": []
+    },
+    {
+      "host": "167",
+      "health": 200,
+      "profile_routes_before": [],
+      "workers": 16,
+      "profiler_env_before": []
+    }
+  ],
+  "sources": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/config/profiler.py",
+      "sha256": "9757f4b9680038b804fb5a3564a9a45a8e47a6b8492a7bb5376b5530dcc0a70d",
+      "bytes": 6661,
+      "excerpts": [
+        {
+          "start": 39,
+          "end": 53,
+          "text": "\n    - 'torch': Use PyTorch profiler.\n    - 'cuda': Use CUDA profiler.\"\"\"\n\n    torch_profiler_dir: str = \"\"\n    \"\"\"Directory to save torch profiler traces. Both AsyncLLM's CPU traces and\n    worker's traces (CPU & GPU) will be saved under this directory. Note that\n    it must be an absolute path.\"\"\"\n\n    torch_profiler_with_stack: bool = True\n    \"\"\"If `True`, enables stack tracing in the torch profiler. Enabled by default\n    as it is useful for debugging. Can be disabled via \n    --profiler-config.torch_profiler_with_stack=false CLI flag.\"\"\"\n\n    torch_profiler_with_flops: bool = False"
+        },
+        {
+          "start": 88,
+          "end": 108,
+          "text": "    \"\"\"Number of engine iterations to skip before starting profiling.\n    Defaults to 0, meaning profiling starts immediately after receiving /start_profile.\n    \"\"\"\n\n    max_iterations: int = Field(default=0, ge=0)\n    \"\"\"Maximum number of engine iterations to profile after starting profiling.\n    Defaults to 0, meaning no limit.\n    \"\"\"\n\n    warmup_iterations: int = Field(default=0, ge=0)\n    \"\"\"Number of warmup iterations for PyTorch profiler schedule.\n    During warmup, the profiler runs but data is discarded. This helps reduce\n    noise from JIT compilation and other one-time costs in the profiled trace.\n    Defaults to 0 (schedule-based profiling disabled, recording all iterations).\n    Set to a positive value (e.g., 2) to enable schedule-based profiling.\n    \"\"\"\n\n    active_iterations: int = Field(default=5, ge=1)\n    \"\"\"Number of active iterations for PyTorch profiler schedule.\n    This is the number of iterations where profiling data is actually collected.\n    Defaults to 5 active iterations."
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/profiler/wrapper.py",
+      "sha256": "31f8a33afd23e67a2ade5a95d0d837a03b0a9164d5b18acf561d948c9ae6c06c",
+      "bytes": 11707,
+      "excerpts": [
+        {
+          "start": 55,
+          "end": 89,
+          "text": "        \"\"\"Call _start with error handling but no safeguards.\"\"\"\n        try:\n            self._start()\n            self._running = True  # Only mark as running if start succeeds\n        except Exception as e:\n            logger.warning(\"Failed to start profiler: %s\", e)\n\n    def _call_stop(self) -> None:\n        \"\"\"Call _stop with error handling but no safeguards.\"\"\"\n        try:\n            self._stop()\n            logger.info_once(\"Profiler stopped successfully.\")\n        except Exception as e:\n            logger.warning(\"Failed to stop profiler: %s\", e)\n        self._running = False  # Always mark as not running, assume stop worked\n\n    def start(self) -> None:\n        \"\"\"Attempt to start the profiler, accounting for delayed starts.\"\"\"\n        if self._active:\n            logger.debug(\n                \"start_profile received when profiler is already active. \"\n                \"Ignoring request.\"\n            )\n            return\n        self._active = True\n        if self._delay_iters == 0:\n            self._call_start()\n\n    def step(self) -> None:\n        \"\"\"Update the profiler state at each worker step,\n        to handle delayed starts and max iteration limits.\"\"\"\n        if not self._active:\n            return\n\n        self._active_iteration_count += 1"
+        },
+        {
+          "start": 115,
+          "end": 154,
+          "text": "\n    def _profiler_step(self) -> bool:\n        \"\"\"Called each step when profiler is running.\n        Override in subclasses to handle schedule-based profiling.\n\n        Returns:\n            True if the step was an active profiling step (data recorded),\n            False if the step was a warmup step (data discarded).\n        \"\"\"\n        return True\n\n    def stop(self) -> None:\n        \"\"\"Attempt to stop the profiler, accounting for overlapped calls.\"\"\"\n        if not self._active:\n            logger.debug(\n                \"stop_profile received when profiler is not active. Ignoring request.\"\n            )\n            return\n        self._active = False\n        self._active_iteration_count = 0\n        self._profiling_for_iters = 0\n\n        if self._running:\n            self._call_stop()\n\n    def shutdown(self) -> None:\n        \"\"\"Ensure profiler is stopped when shutting down.\"\"\"\n        logger.info_once(\"Shutting down profiler\")\n        if self._running:\n            self.stop()\n\n    def annotate_context_manager(self, name: str):\n        \"\"\"Return a context manager to annotate profiler traces.\"\"\"\n        return nullcontext()\n\n\nTorchProfilerActivity = Literal[\"CPU\", \"CUDA\", \"XPU\"]\nTorchProfilerActivityMap = {\n    \"CPU\": torch.profiler.ProfilerActivity.CPU,\n    \"CUDA\": torch.profiler.ProfilerActivity.CUDA,"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/serve/profile/api_router.py",
+      "sha256": "b943c3a2201134e2d0b38bfa86d00e8b5685f5be6a54f6c7178dee784c1b78e5",
+      "bytes": 1470,
+      "excerpts": [
+        {
+          "start": 21,
+          "end": 46,
+          "text": "@router.post(\"/start_profile\")\nasync def start_profile(raw_request: Request):\n    logger.info(\"Starting profiler...\")\n    await engine_client(raw_request).start_profile()\n    logger.info(\"Profiler started.\")\n    return Response(status_code=200)\n\n\n@router.post(\"/stop_profile\")\nasync def stop_profile(raw_request: Request):\n    logger.info(\"Stopping profiler...\")\n    await engine_client(raw_request).stop_profile()\n    logger.info(\"Profiler stopped.\")\n    return Response(status_code=200)\n\n\ndef attach_router(app: FastAPI):\n    profiler_config = getattr(app.state.args, \"profiler_config\", None)\n    assert profiler_config is None or isinstance(profiler_config, ProfilerConfig)\n    if profiler_config is not None and profiler_config.profiler is not None:\n        logger.warning_once(\n            \"Profiler with mode '%s' is enabled in the \"\n            \"API server. This should ONLY be used for local development!\",\n            profiler_config.profiler,\n        )\n        app.include_router(router)"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/profiler/torch_npu_profiler.py",
+      "sha256": "5242ee153033afcf12dbfe022dbd807fa248d991ff5c53efbd1adb372d5575f4",
+      "bytes": 3413,
+      "excerpts": [
+        {
+          "start": 37,
+          "end": 93,
+          "text": "    def _create_profiler(profiler_config: ProfilerConfig, trace_name: str) -> Any:\n        if profiler_config.profiler != \"torch\":\n            raise RuntimeError(f\"Unrecognized profiler: {profiler_config.profiler}\")\n        if not profiler_config.torch_profiler_dir:\n            raise RuntimeError(\"torch_profiler_dir cannot be empty.\")\n        msmonitor_use_daemon = False\n        with suppress(RuntimeError):\n            msmonitor_use_daemon = get_ascend_config().msmonitor_use_daemon\n        if msmonitor_use_daemon:\n            raise RuntimeError(\n                \"additional_config.msmonitor_use_daemon and torch profiler cannot be enabled at the same time.\"\n            )\n\n        experimental_config = torch_npu.profiler._ExperimentalConfig(\n            export_type=torch_npu.profiler.ExportType.Text,\n            profiler_level=torch_npu.profiler.ProfilerLevel.Level1,\n            msprof_tx=False,\n            aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,\n            l2_cache=False,\n            op_attr=False,\n            data_simplification=True,\n            record_op_args=False,\n            gc_detect_threshold=None,\n        )\n\n        return torch_npu.profiler.profile(\n            activities=[\n                torch_npu.profiler.ProfilerActivity.CPU,\n                torch_npu.profiler.ProfilerActivity.NPU,\n            ],\n            with_stack=False,\n            profile_memory=profiler_config.torch_profiler_with_memory,\n            # NOTE: torch_npu.profiler.with_modules is equivalent to torch.profiler.with_stack.\n            # The with_stack option in torch_npu.profiler introduces significant time overhead.\n            with_modules=profiler_config.torch_profiler_with_stack,\n            experimental_config=experimental_config,\n            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(\n                profiler_config.torch_profiler_dir,\n                worker_name=trace_name,\n            ),\n        )\n\n    def _start(self) -> None:\n        self.profiler.start()\n\n    def _stop(self) -> None:\n        self.profiler.stop()\n\n    def _profiler_step(self) -> bool:\n        return True"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/worker.py",
+      "sha256": "00ac7d9a09380d62a898d739b55bf0ab5295eb89048363c44b66adf0625968df",
+      "bytes": 52854,
+      "excerpts": [
+        {
+          "start": 1053,
+          "end": 1082,
+          "text": "    def profile(self, is_start: bool = True, profile_prefix: str | None = None):\n        # Check if profiling is enabled (RFC #6954 - align with upstream vLLM)\n        if self.profiler_config is None or self.profiler_config.profiler is None:\n            raise RuntimeError(\n                \"Profiling is not enabled. Please set --profiler-config to enable \"\n                \"profiling. Example: \"\n                \"'--profiler-config.profiler=torch --profiler-config.torch_profiler_dir\"\n                \"=YOUR_DIR_PATH_TO_DUMP_TRACE'\"\n            )\n\n        if is_start:\n            from vllm.distributed.utils import get_worker_rank_suffix\n\n            rank_suffix = get_worker_rank_suffix(global_rank=self.rank)\n            trace_name = f\"{profile_prefix}_{rank_suffix}\" if profile_prefix else rank_suffix\n\n            if self.profiler is None:\n                self.profiler = TorchNPUProfilerWrapper(self.profiler_config, trace_name)\n                logger.debug(\"Starting torch profiler with trace name: %s\", trace_name)\n                self.profiler.start()  # type: ignore[attr-defined]\n            else:\n                # Profiler already initialized. Restart profiling but keep\n                # the original trace name from the first initialization.\n                self.profiler.start()\n        else:\n            if self.profiler is None:\n                logger.warning(\"Profiler was not started, nothing to stop.\")\n                return\n            self.profiler.stop()\n"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/async_llm.py",
+      "sha256": "81a0cae6d5da22140f509a59d6c6bb8fc6ee1572da2a2cd793b5830222d18bcc",
+      "bytes": 45990,
+      "excerpts": [
+        {
+          "start": 181,
+          "end": 203,
+          "text": "        if (\n            vllm_config.profiler_config.profiler == \"torch\"\n            and not vllm_config.profiler_config.ignore_frontend\n        ):\n            profiler_dir = vllm_config.profiler_config.torch_profiler_dir\n            logger.info(\n                \"Torch profiler enabled. AsyncLLM CPU traces will be collected under %s\",  # noqa: E501\n                profiler_dir,\n            )\n            worker_name = f\"{socket.gethostname()}_{os.getpid()}.async_llm\"\n            self.profiler = torch.profiler.profile(\n                activities=[\n                    torch.profiler.ProfilerActivity.CPU,\n                ],\n                with_stack=vllm_config.profiler_config.torch_profiler_with_stack,\n                on_trace_ready=torch.profiler.tensorboard_trace_handler(\n                    profiler_dir,\n                    worker_name=worker_name,\n                    use_gzip=vllm_config.profiler_config.torch_profiler_use_gzip,\n                ),\n            )\n        else:\n            self.profiler = None"
+        },
+        {
+          "start": 925,
+          "end": 935,
+          "text": "    async def start_profile(self, profile_prefix: str | None = None) -> None:\n        coros = [self.engine_core.profile_async(True, profile_prefix)]\n        if self.profiler is not None:\n            coros.append(asyncio.to_thread(self.profiler.start))\n        await asyncio.gather(*coros)\n\n    async def stop_profile(self) -> None:\n        coros = [self.engine_core.profile_async(False)]\n        if self.profiler is not None:\n            coros.append(asyncio.to_thread(self.profiler.stop))\n        await asyncio.gather(*coros)"
+        }
+      ]
+    }
+  ],
+  "actual_device_trace": "not yet captured;Run249 dispatched",
+  "formal_SLA": false,
+  "phase": "Pre-Run249 installed-source/context audit;historical route/env snapshot",
+  "completed_profile_reference": "runs/GLM-RUN-0249/execution_summary.json"
+}

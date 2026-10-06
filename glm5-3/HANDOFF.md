@@ -1,5 +1,8 @@
 # glm5-3 HANDOFF
 
+2026-10-06 checkpoint162：实际vLLM/Ascend CPU+NPU profile已采集并离线解析全部P16/D16rank非空设备trace。Run249替换Run246并成为当前驻留P1669081/D1679900，布局/模型/算子保持；profiler已stop、两health200且running/waiting/KVusage/preemptions0。2334prompt/8output暖态profOFF单请求TTFT1.3091s、首末token平均265.29ms/token，尚非SLA分位数，Decode远于18/40ms目标；完整API/unified8000未验收。H3 KV晚观测parked，当前唯一源码问题为D逐步通信/peer供给与host提交关系，最大可删除Gap/time仍unknown。无性能patch，Current=None；本阶段没有新增代码级性能 KEEP。见[checkpoint162](records/points/GLM-OPT-0002/research/profiling_installed_20261006/CHECKPOINT162.md)、[Run249实际证据](records/points/GLM-OPT-0002/runs/GLM-RUN-0249/execution_summary.json)。以下checkpoint161及更早状态为历史；不要再把Run246根PID当现役，也不重放已完成spec。
+
+
 
 2026-10-06 checkpoint161实际执行完成：用户已确认两机上传完成，gate解除；全部182文件/177474tensor结构再次核验。旧完整副本/public/observer已由Run245按fresh身份退休，历史状态保留。5.3各角色DP1/TP16/PP1/EP16/DCP16、MTP K1、eager、2GiB KV、native Mooncake fail-policy的P166/D167实际ready。Run247 P完成2334prompt+1internal token导出，Run248复用同一export后D接收2334外部KV命中、HTTP200和32生成token IDs，MTP接受10/12draft；结束后两health200、running/waiting/KVusage/preemptions均0。controller248已completed退出，32worker/两native角色保持驻留；8000旧gateway停止，新完整公共入口尚未验收。详见[checkpoint161](records/points/GLM-OPT-0002/research/pd_critical_path_20261006/CHECKPOINT161.md)、[Run248实际结果](records/points/GLM-OPT-0002/runs/GLM-RUN-0248/execution_summary.json)。Run245缓存预算失败、Run246代理阻塞和Run247客户端engineUUID断言失败均保留原raw/源码；后两者没有D请求，不当真实PD或性能失败。不要重放任何已完成spec，后续先核验当前身份并复用ready角色。
 
