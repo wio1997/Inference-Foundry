@@ -1,5 +1,7 @@
 # glm5-3 HANDOFF
 
+2026-10-06 用户要求“先调整方案”：当前阶段仅修订[标准PD执行方案](PLAN.md#当前执行方案标准pd优化)，本轮不推进部署、推理、profile、benchmark或候选实现。独立Astra方案复核已接受。参考为P/D各DP1TP16PP1；先用真实PD证据定位完整关键路径，限域研究基线不冒充完整产品验收。AsyncLLM只是条件接入点，不预选hook/API重构；DP2只在瓶颈证据支持时进入角色内对照，不做配置扫描。此段覆盖下方“唯一补证问题”的优先级；旧Reset/next_action不是执行队列。CurrentNone/active PERF_KEEP空不变。
+
 2026-10-06 用户明确纠正目标：**标准P/D分离**，DP1/TP16或DP2/TP8等在P池、D池各自内部组织；不接受完整请求副本作为产品。Sol接受独立Astra纠偏Review，亲查实际原生proxy/connector及Run101原始helper、D body、外部KV命中metrics，见[PD_SCOPE_CORRECTION](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。撤销下段“优先PP1公平对照”及DP_PP_REVIEW中两独立TP16完整副本的当前研究优先级；保留原裁决历史。现役noKV/Full Replica与目标不符，旧PDv2/v3对合法请求绕过PD、DP1硬限制和export→dispatch取消回收未闭环是已定位合同缺口；DP2不支持、所有历史PD是假均未获证明。停止完整副本性能线与PP phase候选，不启动配置扫描/服务操作。唯一补证问题是原生标准PD全功能请求与KV生命周期的覆盖；最大可消除性能Gap及收益unknown，CurrentNone/active PERF_KEEP空不变。任何后续设备Run先做fresh现场核验及符合严格PD目标的新Reset/decision table；旧Reset与next_action不作为执行队列。
 
 2026-10-06 用户追问DP/PP部署价值后，Sol亲读当前安装MoE分片源码与Run38原始启动log，完成独立Astra架构比较Review：[DP_PP_REVIEW](records/points/GLM-OPT-0002/research/engine_commit_20261006/DP_PP_REVIEW.md)。历史DP4TP8EP32/PP1实际fit且37完成，不能排除DP；DP2TP8EP16本机实际fit/完整正确性仍unknown。接受优先准备一个PP1公平对照的证据判断，不默认PP最优、不宣称DP已胜、不启动部署/Run。H1 scoped REJECT、H2 INCONCLUSIVE/PARKED、CurrentNone/active PERF_KEEP空不变；新device Run前须fresh Reset与decision table，下面checkpoint159及历史证据不作执行队列。
