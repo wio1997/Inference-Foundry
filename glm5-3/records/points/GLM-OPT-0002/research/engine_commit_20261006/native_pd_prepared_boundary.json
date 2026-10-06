@@ -1,0 +1,1257 @@
+{
+  "kind": "read-only source excerpts; no model execution or source modification",
+  "host": "166",
+  "container": "glm52-single",
+  "sources": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/async_llm.py",
+      "sha256": "81a0cae6d5da22140f509a59d6c6bb8fc6ee1572da2a2cd793b5830222d18bcc",
+      "functions": [
+        {
+          "name": "add_request",
+          "start": 283,
+          "end": 418,
+          "source": "    async def add_request(\n        self,\n        request_id: str,\n        prompt: EngineCoreRequest\n        | PromptType\n        | EngineInput\n        | AsyncGenerator[StreamingInput, None],\n        params: SamplingParams | PoolingParams,\n        arrival_time: float | None = None,\n        lora_request: LoRARequest | None = None,\n        tokenization_kwargs: dict[str, Any] | None = None,\n        trace_headers: Mapping[str, str] | None = None,\n        priority: int = 0,\n        data_parallel_rank: int | None = None,\n        prompt_text: str | None = None,\n        reasoning_ended: bool | None = None,\n        reasoning_parser_kwargs: dict[str, Any] | None = None,\n    ) -> RequestOutputCollector:\n        \"\"\"Add new request to the AsyncLLM.\"\"\"\n\n        if self.errored:\n            raise EngineDeadError()\n\n        is_pooling = isinstance(params, PoolingParams)\n\n        if (\n            self.vllm_config.cache_config.kv_sharing_fast_prefill\n            and not is_pooling\n            and params.prompt_logprobs\n        ):\n            raise VLLMValidationError(\n                \"--kv-sharing-fast-prefill produces incorrect logprobs for \"\n                \"prompt tokens, please disable it when the requests need \"\n                \"prompt logprobs\"\n            )\n\n        if isinstance(prompt, AsyncGenerator):\n            if reasoning_ended is not None or reasoning_parser_kwargs is not None:\n                raise NotImplementedError\n\n            # Streaming input case.\n            return await self._add_streaming_input_request(\n                request_id,\n                prompt,\n                params,\n                arrival_time,\n                lora_request,\n                tokenization_kwargs,\n                trace_headers,\n                priority,\n                data_parallel_rank,\n            )\n\n        # Convert Input --> Request.\n        if isinstance(prompt, EngineCoreRequest):\n            logger.warning_once(\n                \"Passing EngineCoreRequest to AsyncLLM.generate() and .add_requests() \"\n                \"is deprecated and will be removed in v0.18. You should instead pass \"\n                \"the outputs of Renderer.render_cmpl() or Renderer.render_chat().\"\n            )\n\n            request = prompt\n            if request_id != request.request_id:\n                logger.warning_once(\n                    \"AsyncLLM.add_request() was passed a request_id parameter that \"\n                    \"does not match the EngineCoreRequest.request_id attribute. The \"\n                    \"latter will be used, and the former will be ignored.\"\n                )\n        else:\n            if isinstance(prompt, dict) and \"type\" in prompt:\n                # Rendered EngineInput; no blocking preprocessing needed.\n                request = self.input_processor.process_inputs(\n                    request_id,\n                    prompt,\n                    params,\n                    supported_tasks=await self.get_supported_tasks(),\n                    arrival_time=arrival_time,\n                    lora_request=lora_request,\n                    tokenization_kwargs=tokenization_kwargs,\n                    trace_headers=trace_headers,\n                    priority=priority,\n                    data_parallel_rank=data_parallel_rank,\n                )\n            else:\n                # Raw prompts require tokenization and possibly multimodal\n                # processing, which must not block the event loop.\n                request = await self.input_processor.process_inputs_async(\n                    request_id,\n                    prompt,\n                    params,\n                    supported_tasks=await self.get_supported_tasks(),\n                    arrival_time=arrival_time,\n                    lora_request=lora_request,\n                    tokenization_kwargs=tokenization_kwargs,\n                    trace_headers=trace_headers,\n                    priority=priority,\n                    data_parallel_rank=data_parallel_rank,\n                )\n            prompt_text, _, _ = extract_prompt_components(self.model_config, prompt)\n\n        if reasoning_ended is not None:\n            request.reasoning_ended = reasoning_ended\n        if reasoning_parser_kwargs is not None:\n            request.reasoning_parser_kwargs = reasoning_parser_kwargs\n\n        self.input_processor.assign_request_id(request)\n\n        # We start the output_handler on the first call to add_request() so\n        # we can call __init__ before the event loop, which enables us\n        # to handle startup failure gracefully in the OpenAI server.\n        self._run_output_handler()\n\n        # Create a new output collector for the request.\n        queue = RequestOutputCollector(params.output_kind, request.request_id)\n\n        # Use cloned params that may have been updated in process_inputs()\n        params = request.params\n\n        if is_pooling or params.n == 1:\n            await self._add_request(request, prompt_text, None, 0, queue)\n            return queue\n\n        parent_params = params\n        assert isinstance(parent_params, SamplingParams)\n\n        # Fan out child requests (for n>1).\n        parent_request = ParentRequest(request)\n        for idx in range(parent_params.n):\n            request_id, child_params = parent_request.get_child_info(idx)\n            child_request = request if idx == parent_params.n - 1 else copy(request)\n            child_request.request_id = request_id\n            child_request.sampling_params = child_params\n            await self._add_request(\n                child_request, prompt_text, parent_request, idx, queue\n            )\n        return queue"
+        },
+        {
+          "name": "_add_request",
+          "start": 420,
+          "end": 435,
+          "source": "    async def _add_request(\n        self,\n        request: EngineCoreRequest,\n        prompt: str | None,\n        parent_req: ParentRequest | None,\n        index: int,\n        queue: RequestOutputCollector,\n    ):\n        # Add the request to OutputProcessor (this process).\n        self.output_processor.add_request(request, prompt, parent_req, index, queue)\n\n        # Add the EngineCoreRequest to EngineCore (separate process).\n        await self.engine_core.add_request_async(request)\n\n        if self.log_requests:\n            logger.info(\"Added request %s.\", request.request_id)"
+        },
+        {
+          "name": "generate",
+          "start": 544,
+          "end": 655,
+          "source": "    async def generate(\n        self,\n        prompt: EngineCoreRequest\n        | PromptType\n        | EngineInput\n        | AsyncGenerator[StreamingInput, None],\n        sampling_params: SamplingParams,\n        request_id: str,\n        *,\n        prompt_text: str | None = None,\n        lora_request: LoRARequest | None = None,\n        tokenization_kwargs: dict[str, Any] | None = None,\n        trace_headers: Mapping[str, str] | None = None,\n        priority: int = 0,\n        data_parallel_rank: int | None = None,\n        reasoning_ended: bool | None = None,\n        reasoning_parser_kwargs: dict[str, Any] | None = None,\n    ) -> AsyncGenerator[RequestOutput, None]:\n        \"\"\"\n        Main function called by the API server to kick off a request\n            * 1) Making an AsyncStream corresponding to the Request.\n            * 2) Processing the Input.\n            * 3) Adding the Request to the Detokenizer.\n            * 4) Adding the Request to the EngineCore (separate process).\n\n        A separate output_handler loop runs in a background AsyncIO task,\n        pulling outputs from EngineCore and putting them into the\n        per-request AsyncStream.\n\n        The caller of generate() iterates the returned AsyncGenerator,\n        returning the RequestOutput back to the caller.\n        \"\"\"\n\n        q: RequestOutputCollector | None = None\n        try:\n            q = await self.add_request(\n                request_id,\n                prompt,\n                sampling_params,\n                lora_request=lora_request,\n                tokenization_kwargs=tokenization_kwargs,\n                trace_headers=trace_headers,\n                priority=priority,\n                data_parallel_rank=data_parallel_rank,\n                prompt_text=prompt_text,\n                reasoning_ended=reasoning_ended,\n                reasoning_parser_kwargs=reasoning_parser_kwargs,\n            )\n\n            # The output_handler task pushes items into the queue.\n            # This task pulls from the queue and yields to caller.\n            finished = False\n            while not finished:\n                # Note: drain queue without await if possible (avoids\n                # task switching under load which helps performance).\n                out = q.get_nowait() or await q.get()\n\n                # Note: both OutputProcessor and EngineCore handle their\n                # own request cleanup based on finished.\n                assert isinstance(out, RequestOutput)\n                finished = out.finished\n                if out is not STREAM_FINISHED:\n                    yield out\n\n        # If the request is disconnected by the client, generate()\n        # is cancelled or the generator is garbage collected. So,\n        # we abort the request if we end up here.\n        except (asyncio.CancelledError, GeneratorExit):\n            if q is not None:\n                await self.abort(q.request_id, internal=True)\n            if self.log_requests:\n                logger.info(\"Request %s aborted.\", request_id)\n            raise\n\n        # Engine is dead. Do not abort since we shut down.\n        except EngineDeadError:\n            if self.log_requests:\n                logger.info(\"Request %s failed (engine dead).\", request_id)\n            raise\n\n        # Request validation error.\n        except VLLMClientError as e:\n            if self.log_requests:\n                logger.info(\"Request %s failed (bad request): %s.\", request_id, e)\n            raise\n\n        # Error from input stream generator - propagate directly.\n        except InputStreamError as e:\n            if q is not None:\n                await self.abort(q.request_id, internal=True)\n            if self.log_requests:\n                logger.info(\"Request %s failed (input error): %s.\", request_id, e)\n            raise e.cause from e\n\n        # Unexpected error in the generate() task (possibly recoverable).\n        except Exception as e:\n            if q is not None:\n                await self.abort(q.request_id, internal=True)\n            if self.log_requests:\n                try:\n                    s = f\"{e.__class__.__name__}: {e}\"\n                except Exception as e2:\n                    s = (\n                        f\"{e.__class__.__name__}: \"\n                        \"error during printing an exception of class\"\n                        + e2.__class__.__name__\n                    )\n                logger.info(\"Request %s failed due to %s.\", request_id, s)\n            raise EngineGenerateError() from e\n        finally:\n            if q is not None:\n                q.close()"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/openai/chat_completion/batch_serving.py",
+      "sha256": "ddc9fa7ac06be9f92181fc213662b5f96e0f6cbe327ab7919b2b617130382128",
+      "excerpts": [
+        {
+          "line": 170,
+          "text": "                lora_request=lora_request,"
+        },
+        {
+          "line": 171,
+          "text": "            )"
+        },
+        {
+          "line": 172,
+          "text": "            trace_headers = ("
+        },
+        {
+          "line": 173,
+          "text": "                None"
+        },
+        {
+          "line": 174,
+          "text": "                if raw_request is None"
+        },
+        {
+          "line": 175,
+          "text": "                else await self._get_trace_headers(raw_request.headers)"
+        },
+        {
+          "line": 176,
+          "text": "            )"
+        },
+        {
+          "line": 177,
+          "text": "            generators.append("
+        },
+        {
+          "line": 178,
+          "text": "                self.engine_client.generate("
+        },
+        {
+          "line": 179,
+          "text": "                    engine_prompt,"
+        },
+        {
+          "line": 180,
+          "text": "                    sampling_params,"
+        },
+        {
+          "line": 181,
+          "text": "                    sub_request_id,"
+        },
+        {
+          "line": 182,
+          "text": "                    lora_request=lora_request,"
+        },
+        {
+          "line": 183,
+          "text": "                    trace_headers=trace_headers,"
+        },
+        {
+          "line": 184,
+          "text": "                    priority=request.priority,"
+        },
+        {
+          "line": 185,
+          "text": "                    data_parallel_rank=data_parallel_rank,"
+        },
+        {
+          "line": 186,
+          "text": "                    reasoning_ended=None,"
+        },
+        {
+          "line": 187,
+          "text": "                )"
+        },
+        {
+          "line": 188,
+          "text": "            )"
+        },
+        {
+          "line": 189,
+          "text": ""
+        },
+        {
+          "line": 190,
+          "text": "        return await self.chat_completion_full_generator_batch("
+        },
+        {
+          "line": 191,
+          "text": "            request,  # type: ignore[arg-type]"
+        },
+        {
+          "line": 192,
+          "text": "            generators,"
+        },
+        {
+          "line": 193,
+          "text": "            request_id,"
+        },
+        {
+          "line": 194,
+          "text": "            model_name,"
+        },
+        {
+          "line": 195,
+          "text": "            all_conversations,"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/openai/chat_completion/serving.py",
+      "sha256": "f3fb82d6eeb956e0e5e9b8e17e135769b3378421ad0fb7958daaf774adc57079",
+      "excerpts": [
+        {
+          "line": 335,
+          "text": "                    # `think?` rule that handles both reasoning and"
+        },
+        {
+          "line": 336,
+          "text": "                    # non-reasoning outputs."
+        },
+        {
+          "line": 337,
+          "text": "                    reasoning_ended = True"
+        },
+        {
+          "line": 338,
+          "text": "                elif parser is not None and parser.reasoning_parser is not None:"
+        },
+        {
+          "line": 339,
+          "text": "                    reasoning_ended = parser.is_reasoning_end(prompt_token_ids or [])"
+        },
+        {
+          "line": 340,
+          "text": "                else:"
+        },
+        {
+          "line": 341,
+          "text": "                    reasoning_ended = None"
+        },
+        {
+          "line": 342,
+          "text": ""
+        },
+        {
+          "line": 343,
+          "text": "                generator = self.engine_client.generate("
+        },
+        {
+          "line": 344,
+          "text": "                    engine_input,"
+        },
+        {
+          "line": 345,
+          "text": "                    sampling_params,"
+        },
+        {
+          "line": 346,
+          "text": "                    sub_request_id,"
+        },
+        {
+          "line": 347,
+          "text": "                    lora_request=lora_request,"
+        },
+        {
+          "line": 348,
+          "text": "                    trace_headers=trace_headers,"
+        },
+        {
+          "line": 349,
+          "text": "                    priority=request.priority,"
+        },
+        {
+          "line": 350,
+          "text": "                    data_parallel_rank=data_parallel_rank,"
+        },
+        {
+          "line": 351,
+          "text": "                    reasoning_ended=reasoning_ended,"
+        },
+        {
+          "line": 352,
+          "text": "                    reasoning_parser_kwargs={"
+        },
+        {
+          "line": 353,
+          "text": "                        \"chat_template_kwargs\": chat_template_kwargs,"
+        },
+        {
+          "line": 354,
+          "text": "                    }"
+        },
+        {
+          "line": 355,
+          "text": "                    if parser is not None and parser.reasoning_parser is not None"
+        },
+        {
+          "line": 356,
+          "text": "                    else None,"
+        },
+        {
+          "line": 357,
+          "text": "                )"
+        },
+        {
+          "line": 358,
+          "text": ""
+        },
+        {
+          "line": 359,
+          "text": "            generators.append(generator)"
+        },
+        {
+          "line": 360,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/openai/completion/serving.py",
+      "sha256": "2590281b465d8a9e31252bd92407661f3af9adeddf7bd52c80395cc9fbb9e19c",
+      "excerpts": [
+        {
+          "line": 199,
+          "text": "                generator = self.beam_search("
+        },
+        {
+          "line": 200,
+          "text": "                    prompt=engine_input,"
+        },
+        {
+          "line": 201,
+          "text": "                    request_id=request_id,"
+        },
+        {
+          "line": 202,
+          "text": "                    params=sampling_params,"
+        },
+        {
+          "line": 203,
+          "text": "                    lora_request=lora_request,"
+        },
+        {
+          "line": 204,
+          "text": "                    trace_headers=trace_headers,"
+        },
+        {
+          "line": 205,
+          "text": "                )"
+        },
+        {
+          "line": 206,
+          "text": "            else:"
+        },
+        {
+          "line": 207,
+          "text": "                generator = self.engine_client.generate("
+        },
+        {
+          "line": 208,
+          "text": "                    engine_input,"
+        },
+        {
+          "line": 209,
+          "text": "                    sampling_params,"
+        },
+        {
+          "line": 210,
+          "text": "                    request_id_item,"
+        },
+        {
+          "line": 211,
+          "text": "                    lora_request=lora_request,"
+        },
+        {
+          "line": 212,
+          "text": "                    trace_headers=trace_headers,"
+        },
+        {
+          "line": 213,
+          "text": "                    priority=request.priority,"
+        },
+        {
+          "line": 214,
+          "text": "                    data_parallel_rank=data_parallel_rank,"
+        },
+        {
+          "line": 215,
+          "text": "                )"
+        },
+        {
+          "line": 216,
+          "text": ""
+        },
+        {
+          "line": 217,
+          "text": "            generators.append(generator)"
+        },
+        {
+          "line": 218,
+          "text": ""
+        },
+        {
+          "line": 219,
+          "text": "        result_generator = merge_async_iterators(*generators)"
+        },
+        {
+          "line": 220,
+          "text": ""
+        },
+        {
+          "line": 221,
+          "text": "        model_name = self.models.model_name(lora_request)"
+        },
+        {
+          "line": 222,
+          "text": "        num_prompts = len(engine_inputs)"
+        },
+        {
+          "line": 223,
+          "text": ""
+        },
+        {
+          "line": 224,
+          "text": "        # Streaming response"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/openai/responses/serving.py",
+      "sha256": "628429902ff26b87f86eae1a45297f647f3712d7b421ca9a4866a3fd0f046a5b",
+      "excerpts": [
+        {
+          "line": 681,
+          "text": ""
+        },
+        {
+          "line": 682,
+          "text": "            self._log_inputs("
+        },
+        {
+          "line": 683,
+          "text": "                sub_request_id,"
+        },
+        {
+          "line": 684,
+          "text": "                engine_input,"
+        },
+        {
+          "line": 685,
+          "text": "                params=sampling_params,"
+        },
+        {
+          "line": 686,
+          "text": "                lora_request=lora_request,"
+        },
+        {
+          "line": 687,
+          "text": "            )"
+        },
+        {
+          "line": 688,
+          "text": ""
+        },
+        {
+          "line": 689,
+          "text": "            generator = self.engine_client.generate("
+        },
+        {
+          "line": 690,
+          "text": "                engine_input,"
+        },
+        {
+          "line": 691,
+          "text": "                sampling_params,"
+        },
+        {
+          "line": 692,
+          "text": "                sub_request_id,"
+        },
+        {
+          "line": 693,
+          "text": "                lora_request=lora_request,"
+        },
+        {
+          "line": 694,
+          "text": "                trace_headers=trace_headers,"
+        },
+        {
+          "line": 695,
+          "text": "                priority=priority,"
+        },
+        {
+          "line": 696,
+          "text": "                reasoning_parser_kwargs=reasoning_parser_kwargs,"
+        },
+        {
+          "line": 697,
+          "text": "            )"
+        },
+        {
+          "line": 698,
+          "text": ""
+        },
+        {
+          "line": 699,
+          "text": "            async for res in generator:"
+        },
+        {
+          "line": 700,
+          "text": "                context.append_output(res)"
+        },
+        {
+          "line": 701,
+          "text": "                # NOTE(woosuk): The stop condition is handled by the engine."
+        },
+        {
+          "line": 702,
+          "text": "                yield context"
+        },
+        {
+          "line": 703,
+          "text": ""
+        },
+        {
+          "line": 704,
+          "text": "            if not context.need_builtin_tool_call():"
+        },
+        {
+          "line": 705,
+          "text": "                # The model did not ask for a tool call, so we're done."
+        },
+        {
+          "line": 706,
+          "text": "                break"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/openai/responses/serving.py",
+      "sha256": "628429902ff26b87f86eae1a45297f647f3712d7b421ca9a4866a3fd0f046a5b",
+      "excerpts": [
+        {
+          "line": 622,
+          "text": "            request_instructions=request.instructions,"
+        },
+        {
+          "line": 623,
+          "text": "            request_input=request.input,"
+        },
+        {
+          "line": 624,
+          "text": "            prev_msg=self.msg_store.get(prev_response.id) if prev_response else None,"
+        },
+        {
+          "line": 625,
+          "text": "            prev_response_output=prev_response.output if prev_response else None,"
+        },
+        {
+          "line": 626,
+          "text": "        )"
+        },
+        {
+          "line": 627,
+          "text": "        chat_template_kwargs = self._effective_chat_template_kwargs(request)"
+        },
+        {
+          "line": 628,
+          "text": "        _, engine_inputs = await self.online_renderer.preprocess_chat("
+        },
+        {
+          "line": 629,
+          "text": "            request,"
+        },
+        {
+          "line": 630,
+          "text": "            messages,"
+        },
+        {
+          "line": 631,
+          "text": "            default_template=self.chat_template,"
+        },
+        {
+          "line": 632,
+          "text": "            default_template_content_format=self.chat_template_content_format,"
+        },
+        {
+          "line": 633,
+          "text": "            default_template_kwargs=chat_template_kwargs,"
+        },
+        {
+          "line": 634,
+          "text": "            tool_dicts=tool_dicts,"
+        },
+        {
+          "line": 635,
+          "text": "            parser=self.parser,"
+        },
+        {
+          "line": 636,
+          "text": "        )"
+        },
+        {
+          "line": 637,
+          "text": "        return messages, engine_inputs"
+        },
+        {
+          "line": 638,
+          "text": ""
+        },
+        {
+          "line": 639,
+          "text": "    async def _render_next_turn("
+        },
+        {
+          "line": 640,
+          "text": "        self,"
+        },
+        {
+          "line": 641,
+          "text": "        request: ResponsesRequest,"
+        },
+        {
+          "line": 642,
+          "text": "        messages: list[ResponseInputOutputItem],"
+        },
+        {
+          "line": 643,
+          "text": "        tool_dicts: list[dict[str, Any]] | None,"
+        },
+        {
+          "line": 644,
+          "text": "        parser: type[Parser] | None,"
+        },
+        {
+          "line": 645,
+          "text": "        chat_template: str | None,"
+        },
+        {
+          "line": 646,
+          "text": "        chat_template_content_format: ChatTemplateContentFormatOption,"
+        },
+        {
+          "line": 647,
+          "text": "    ):"
+        },
+        {
+          "line": 648,
+          "text": "        new_messages = construct_input_messages("
+        },
+        {
+          "line": 649,
+          "text": "            request_input=messages,"
+        },
+        {
+          "line": 650,
+          "text": "        )"
+        },
+        {
+          "line": 651,
+          "text": "        chat_template_kwargs = self._effective_chat_template_kwargs(request)"
+        },
+        {
+          "line": 652,
+          "text": "        _, engine_inputs = await self.online_renderer.preprocess_chat("
+        },
+        {
+          "line": 653,
+          "text": "            request,"
+        },
+        {
+          "line": 654,
+          "text": "            new_messages,"
+        },
+        {
+          "line": 655,
+          "text": "            default_template=chat_template,"
+        },
+        {
+          "line": 656,
+          "text": "            default_template_content_format=chat_template_content_format,"
+        },
+        {
+          "line": 657,
+          "text": "            default_template_kwargs=chat_template_kwargs,"
+        },
+        {
+          "line": 658,
+          "text": "            tool_dicts=tool_dicts,"
+        },
+        {
+          "line": 659,
+          "text": "            parser=parser,"
+        },
+        {
+          "line": 660,
+          "text": "        )"
+        },
+        {
+          "line": 661,
+          "text": "        return engine_inputs"
+        },
+        {
+          "line": 662,
+          "text": ""
+        },
+        {
+          "line": 663,
+          "text": "    async def _generate_with_builtin_tools("
+        },
+        {
+          "line": 664,
+          "text": "        self,"
+        },
+        {
+          "line": 665,
+          "text": "        request_id: str,"
+        },
+        {
+          "line": 666,
+          "text": "        engine_input: EngineInput,"
+        },
+        {
+          "line": 667,
+          "text": "        sampling_params: SamplingParams,"
+        },
+        {
+          "line": 668,
+          "text": "        context: ConversationContext,"
+        },
+        {
+          "line": 669,
+          "text": "        lora_request: LoRARequest | None = None,"
+        },
+        {
+          "line": 670,
+          "text": "        priority: int = 0,"
+        },
+        {
+          "line": 671,
+          "text": "        trace_headers: Mapping[str, str] | None = None,"
+        },
+        {
+          "line": 672,
+          "text": "        reasoning_parser_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 673,
+          "text": "    ):"
+        },
+        {
+          "line": 674,
+          "text": "        max_model_len = self.model_config.max_model_len"
+        },
+        {
+          "line": 675,
+          "text": ""
+        },
+        {
+          "line": 676,
+          "text": "        orig_priority = priority"
+        },
+        {
+          "line": 677,
+          "text": "        sub_request = 0"
+        },
+        {
+          "line": 678,
+          "text": "        while True:"
+        },
+        {
+          "line": 679,
+          "text": "            # Ensure that each sub-request has a unique request id."
+        },
+        {
+          "line": 680,
+          "text": "            sub_request_id = f\"{request_id}_{sub_request}\""
+        },
+        {
+          "line": 681,
+          "text": ""
+        },
+        {
+          "line": 699,
+          "text": "            async for res in generator:"
+        },
+        {
+          "line": 700,
+          "text": "                context.append_output(res)"
+        },
+        {
+          "line": 701,
+          "text": "                # NOTE(woosuk): The stop condition is handled by the engine."
+        },
+        {
+          "line": 702,
+          "text": "                yield context"
+        },
+        {
+          "line": 703,
+          "text": ""
+        },
+        {
+          "line": 704,
+          "text": "            if not context.need_builtin_tool_call():"
+        },
+        {
+          "line": 705,
+          "text": "                # The model did not ask for a tool call, so we're done."
+        },
+        {
+          "line": 706,
+          "text": "                break"
+        },
+        {
+          "line": 707,
+          "text": ""
+        },
+        {
+          "line": 708,
+          "text": "            # Call the tool and update the context with the result."
+        },
+        {
+          "line": 709,
+          "text": "            tool_output = await context.call_tool()"
+        },
+        {
+          "line": 710,
+          "text": "            context.append_tool_output(tool_output)"
+        },
+        {
+          "line": 711,
+          "text": ""
+        },
+        {
+          "line": 712,
+          "text": "            # TODO: uncomment this and enable tool output streaming"
+        },
+        {
+          "line": 713,
+          "text": "            # yield context"
+        },
+        {
+          "line": 714,
+          "text": ""
+        },
+        {
+          "line": 715,
+          "text": "            # Create inputs for the next turn."
+        },
+        {
+          "line": 716,
+          "text": "            # Render the next prompt token ids and update sampling_params."
+        },
+        {
+          "line": 717,
+          "text": "            if isinstance(context, HarmonyContext):"
+        },
+        {
+          "line": 718,
+          "text": "                token_ids = context.render_for_completion()"
+        },
+        {
+          "line": 719,
+          "text": "                engine_input = tokens_input(token_ids)"
+        },
+        {
+          "line": 720,
+          "text": ""
+        },
+        {
+          "line": 721,
+          "text": "                sampling_params.max_tokens = max_model_len - len(token_ids)"
+        },
+        {
+          "line": 722,
+          "text": "            elif isinstance(context, ParsableContext):"
+        },
+        {
+          "line": 723,
+          "text": "                (engine_input,) = await self._render_next_turn("
+        },
+        {
+          "line": 724,
+          "text": "                    context.request,"
+        },
+        {
+          "line": 725,
+          "text": "                    context.response_messages,"
+        },
+        {
+          "line": 726,
+          "text": "                    context.tool_dicts,"
+        },
+        {
+          "line": 727,
+          "text": "                    context.parser_cls,"
+        },
+        {
+          "line": 728,
+          "text": "                    context.chat_template,"
+        },
+        {
+          "line": 729,
+          "text": "                    context.chat_template_content_format,"
+        },
+        {
+          "line": 730,
+          "text": "                )"
+        },
+        {
+          "line": 731,
+          "text": ""
+        },
+        {
+          "line": 732,
+          "text": "                sampling_params.max_tokens = get_max_tokens("
+        },
+        {
+          "line": 733,
+          "text": "                    max_model_len,"
+        },
+        {
+          "line": 734,
+          "text": "                    context.request.max_output_tokens,"
+        },
+        {
+          "line": 735,
+          "text": "                    self._extract_prompt_len(engine_input),"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/async_llm.py",
+      "sha256": "81a0cae6d5da22140f509a59d6c6bb8fc6ee1572da2a2cd793b5830222d18bcc",
+      "excerpts": [
+        {
+          "line": 444,
+          "text": "        tokenization_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 445,
+          "text": "        trace_headers: Mapping[str, str] | None = None,"
+        },
+        {
+          "line": 446,
+          "text": "        priority: int = 0,"
+        },
+        {
+          "line": 447,
+          "text": "        data_parallel_rank: int | None = None,"
+        },
+        {
+          "line": 448,
+          "text": "    ) -> RequestOutputCollector:"
+        },
+        {
+          "line": 449,
+          "text": "        self._validate_streaming_input_sampling_params(sampling_params)"
+        },
+        {
+          "line": 450,
+          "text": ""
+        },
+        {
+          "line": 451,
+          "text": "        inputs = dict("
+        },
+        {
+          "line": 452,
+          "text": "            supported_tasks=await self.get_supported_tasks(),"
+        },
+        {
+          "line": 453,
+          "text": "            arrival_time=arrival_time,"
+        },
+        {
+          "line": 454,
+          "text": "            lora_request=lora_request,"
+        },
+        {
+          "line": 455,
+          "text": "            tokenization_kwargs=tokenization_kwargs,"
+        },
+        {
+          "line": 456,
+          "text": "            trace_headers=trace_headers,"
+        },
+        {
+          "line": 457,
+          "text": "            priority=priority,"
+        },
+        {
+          "line": 458,
+          "text": "            data_parallel_rank=data_parallel_rank,"
+        },
+        {
+          "line": 459,
+          "text": "        )"
+        },
+        {
+          "line": 460,
+          "text": ""
+        },
+        {
+          "line": 461,
+          "text": "        if not sampling_params.skip_clone:"
+        },
+        {
+          "line": 462,
+          "text": "            sampling_params = sampling_params.clone()"
+        },
+        {
+          "line": 463,
+          "text": "            sampling_params.skip_clone = True"
+        },
+        {
+          "line": 464,
+          "text": ""
+        },
+        {
+          "line": 465,
+          "text": "        # Create request for validation, also used as the finished signal"
+        },
+        {
+          "line": 466,
+          "text": "        # once the input stream is closed."
+        },
+        {
+          "line": 467,
+          "text": "        final_req = self.input_processor.process_inputs("
+        },
+        {
+          "line": 468,
+          "text": "            request_id=request_id,"
+        },
+        {
+          "line": 469,
+          "text": "            prompt=TokensPrompt(prompt_token_ids=[0]),"
+        },
+        {
+          "line": 470,
+          "text": "            params=sampling_params,"
+        },
+        {
+          "line": 471,
+          "text": "            **inputs,  # type: ignore[arg-type]"
+        },
+        {
+          "line": 472,
+          "text": "        )"
+        },
+        {
+          "line": 473,
+          "text": "        self.input_processor.assign_request_id(final_req)"
+        },
+        {
+          "line": 474,
+          "text": "        internal_req_id = final_req.request_id"
+        },
+        {
+          "line": 475,
+          "text": ""
+        },
+        {
+          "line": 476,
+          "text": "        queue = RequestOutputCollector(sampling_params.output_kind, internal_req_id)"
+        },
+        {
+          "line": 477,
+          "text": ""
+        },
+        {
+          "line": 478,
+          "text": "        async def handle_inputs():"
+        },
+        {
+          "line": 479,
+          "text": "            cancelled = False"
+        },
+        {
+          "line": 480,
+          "text": "            try:"
+        },
+        {
+          "line": 481,
+          "text": "                async for input_chunk in input_stream:"
+        },
+        {
+          "line": 482,
+          "text": "                    sp = input_chunk.sampling_params"
+        },
+        {
+          "line": 483,
+          "text": "                    if sp:"
+        },
+        {
+          "line": 484,
+          "text": "                        self._validate_streaming_input_sampling_params(sp)"
+        },
+        {
+          "line": 485,
+          "text": "                    else:"
+        },
+        {
+          "line": 486,
+          "text": "                        sp = sampling_params"
+        },
+        {
+          "line": 487,
+          "text": "                    # TODO(nick): Avoid re-validating reused sampling parameters"
+        },
+        {
+          "line": 488,
+          "text": "                    req = self.input_processor.process_inputs("
+        },
+        {
+          "line": 489,
+          "text": "                        request_id=internal_req_id,"
+        },
+        {
+          "line": 490,
+          "text": "                        prompt=input_chunk.prompt,"
+        },
+        {
+          "line": 491,
+          "text": "                        params=sp,"
+        },
+        {
+          "line": 492,
+          "text": "                        resumable=True,"
+        },
+        {
+          "line": 493,
+          "text": "                        **inputs,  # type: ignore[arg-type]"
+        },
+        {
+          "line": 494,
+          "text": "                    )"
+        },
+        {
+          "line": 495,
+          "text": "                    req.external_req_id = request_id"
+        },
+        {
+          "line": 496,
+          "text": "                    if req.prompt_embeds is not None:"
+        },
+        {
+          "line": 497,
+          "text": "                        raise VLLMValidationError("
+        },
+        {
+          "line": 498,
+          "text": "                            \"prompt_embeds not supported for streaming inputs\""
+        },
+        {
+          "line": 499,
+          "text": "                        )"
+        },
+        {
+          "line": 500,
+          "text": "                    prompt_text, _, _ = extract_prompt_components("
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/input_processor.py",
+      "sha256": "5de9296e6f4c00473a92df8df6e4e7e5f83fa37852c7540c4447c59a8b813111",
+      "excerpts": [
+        {
+          "line": 369,
+          "text": "                        modality=modality,"
+        },
+        {
+          "line": 370,
+          "text": "                        identifier=self._get_mm_identifier("
+        },
+        {
+          "line": 371,
+          "text": "                            base_mm_hash,"
+        },
+        {
+          "line": 372,
+          "text": "                            lora_request,"
+        },
+        {
+          "line": 373,
+          "text": "                        ),"
+        },
+        {
+          "line": 374,
+          "text": "                        mm_position=decoder_mm_positions[modality][idx],"
+        },
+        {
+          "line": 375,
+          "text": "                        mm_hash=base_mm_hash,"
+        },
+        {
+          "line": 376,
+          "text": "                    )"
+        },
+        {
+          "line": 377,
+          "text": "                )"
+        },
+        {
+          "line": 378,
+          "text": ""
+        },
+        {
+          "line": 379,
+          "text": "        return EngineCoreRequest("
+        },
+        {
+          "line": 380,
+          "text": "            request_id=request_id,"
+        },
+        {
+          "line": 381,
+          "text": "            prompt_token_ids=prompt_token_ids,"
+        },
+        {
+          "line": 382,
+          "text": "            prompt_embeds=prompt_embeds,"
+        },
+        {
+          "line": 383,
+          "text": "            prompt_is_token_ids=prompt_is_token_ids,"
+        },
+        {
+          "line": 384,
+          "text": "            mm_features=mm_features,"
+        },
+        {
+          "line": 385,
+          "text": "            sampling_params=sampling_params,"
+        },
+        {
+          "line": 386,
+          "text": "            pooling_params=pooling_params,"
+        },
+        {
+          "line": 387,
+          "text": "            arrival_time=arrival_time,"
+        },
+        {
+          "line": 388,
+          "text": "            lora_request=lora_request,"
+        },
+        {
+          "line": 389,
+          "text": "            cache_salt=decoder_inputs.get(\"cache_salt\"),"
+        },
+        {
+          "line": 390,
+          "text": "            priority=priority,"
+        },
+        {
+          "line": 391,
+          "text": "            data_parallel_rank=data_parallel_rank,"
+        },
+        {
+          "line": 392,
+          "text": "            trace_headers=trace_headers,"
+        },
+        {
+          "line": 393,
+          "text": "            resumable=resumable,"
+        },
+        {
+          "line": 394,
+          "text": "        )"
+        },
+        {
+          "line": 395,
+          "text": ""
+        },
+        {
+          "line": 396,
+          "text": "    def _validate_prompt_len("
+        },
+        {
+          "line": 397,
+          "text": "        self,"
+        },
+        {
+          "line": 398,
+          "text": "        prompt_len: int,"
+        },
+        {
+          "line": 399,
+          "text": "        prompt_type: Literal[\"encoder\", \"decoder\"],"
+        },
+        {
+          "line": 400,
+          "text": "    ):"
+        },
+        {
+          "line": 401,
+          "text": "        if self.skip_prompt_length_check:"
+        },
+        {
+          "line": 402,
+          "text": "            return"
+        },
+        {
+          "line": 403,
+          "text": ""
+        },
+        {
+          "line": 404,
+          "text": "        if prompt_len == 0 and prompt_type == \"decoder\":"
+        },
+        {
+          "line": 405,
+          "text": "            raise VLLMValidationError(f\"The {prompt_type} prompt cannot be empty\")"
+        },
+        {
+          "line": 406,
+          "text": ""
+        }
+      ]
+    }
+  ]
+}
