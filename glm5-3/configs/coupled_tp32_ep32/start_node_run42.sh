@@ -1,4 +1,6 @@
 #!/bin/bash
+# 2026-10-06: GLM-5.3 defaults; historical Run validation belongs to GLM-5.2.
+# This template has no GLM-5.3 fit/correctness/performance acceptance; follow PLAN.md.
 # Two physical hosts, one native DP1/TP32/DCP1/EP32 scheduler. Node1 headless.
 set -o pipefail
 : "${GLM_NODE_RANK:?}"; : "${GLM_LOCAL_IP:?}"; : "${GLM_API_PORT:?}"; : "${GLM_SUPERPOD_ID:?}"
@@ -11,8 +13,8 @@ LOG="/data/tiankuan/wio/glm52-pd/deploy/logs/TP_run42_${GLM_NODE_RANK}.log"
 : > "${LOG}"
 EXTRA=()
 if [ "${GLM_NODE_RANK}" = 1 ]; then EXTRA+=(--headless); fi
-vllm serve /data/tiankuan/wio/GLM-5.2-w8a8 \
- --host 0.0.0.0 --port "${GLM_API_PORT}" --served-model-name glm-52 \
+vllm serve /data/tiankuan/wio/GLM-5.3-w8a8 \
+ --host 0.0.0.0 --port "${GLM_API_PORT}" --served-model-name glm-53 \
  --seed 1024 --safetensors-load-strategy prefetch --trust-remote-code \
  --max-model-len 144384 --max-num-seqs 8 --max-num-batched-tokens 16384 --gpu-memory-utilization 0.8 \
  --data-parallel-size 1 --data-parallel-size-local 1 \

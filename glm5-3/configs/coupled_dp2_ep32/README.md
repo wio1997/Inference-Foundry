@@ -1,3 +1,5 @@
+> 2026-10-06：本目录可编辑启动模板的默认权重已切为`/data/tiankuan/wio/GLM-5.3-w8a8`，服务名`glm-53`。下方Run/验证结果属于历史模型，不证明5.3正确性或性能；本目录不是已裁决的当前PD入口，按[PLAN](../../PLAN.md)选择实际配置，上传完成前不执行。
+
 # Native coupled two-host DP2/TP16/DCP16/EP32 candidate
 
 One DP rank/16 logical NPUs per physical node, external DP load balancing, EP32 expert shards. This is a coupled execution group: idle ranks still participate; endpoint removal only changes HTTP routing, not hardware group membership. Same W8A8 checkpoint/native computation/parser/K5/Graph implementation; no precision comparison. Long144384/maxseq8/budget4096/.87 retained. Cross-node RoCE requires hierarchy MC2 and distinct HCCL_LOGIC_SUPERPOD_ID; fused0 and DSA-CPfalse preserved. Native ParallelConfig both ranks validated/hash matching, live fit/HCCL/Graph/API/long/dynamic pending. Run24 stops only exact task P21/D22 and stockPDproxy identities, preserves prior logs, starts both DP ranks before readiness waits; no old queue. Proxy8000 remains unavailable in this candidate local mode; temporary diagnostic gateway8002 serves full requests. DP mode is separate from the retained PD deployment configuration. No Current/KEEP/capacity claim.

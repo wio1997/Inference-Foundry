@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SLO analyser for the GLM-5.2 PD AISBench prefix test.
+SLO analyser for the GLM-5.3 PD AISBench prefix test.
 
 Reads the AISBench per-request performance table (gsm8k.csv) which AISBench
 derives from the *successful* requests only (its `N` column is the success

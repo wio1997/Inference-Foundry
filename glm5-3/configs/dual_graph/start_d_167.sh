@@ -1,6 +1,8 @@
 #!/bin/bash
+# 2026-10-06: GLM-5.3 defaults; historical Run validation belongs to GLM-5.2.
+# This template has no GLM-5.3 fit/correctness/performance acceptance; follow PLAN.md.
 # ============================================================================
-# GLM-5.2 PD — D (decode / kv_consumer) on node 167, inside glm52-single
+# GLM-5.3 PD — D (decode / kv_consumer) on node 167, inside glm52-single
 # Layout: DP1 PP1 TP16 EP16 DCP16 PCP1   |  port 9900  |  kv_port 30100
 # MTP draft tokens: 3, graph mode FULL_DECODE_ONLY
 # NOTE: NEW task-local file. Original start scripts are NOT modified.
@@ -12,7 +14,7 @@ export PD_LOCAL_IP="${PD_LOCAL_IP:-172.16.10.167}"
 export PD_NIC="${PD_NIC:-business}"
 export PD_PORT="${PD_PORT:-9900}"
 export PD_KV_PORT="${PD_KV_PORT:-36200}"
-export PD_MODEL="${PD_MODEL:-/data/tiankuan/wio/GLM-5.2-w8a8}"
+export PD_MODEL="${PD_MODEL:-/data/tiankuan/wio/GLM-5.3-w8a8}"
 export PD_MTP_TOKENS="${PD_MTP_TOKENS:-3}"
 export PD_MAX_SEQS="${PD_MAX_SEQS:-8}"
 export PD_GMU="${PD_GMU:-0.92}"
@@ -29,7 +31,7 @@ LOG_PATH="${PD_LOG_DIR}/D_167.log"
 
 {
   echo "============================================================"
-  echo "GLM-5.2 PD  ROLE=D (decode/kv_consumer)  NODE=167   $(date -Is)"
+  echo "GLM-5.3 PD  ROLE=D (decode/kv_consumer)  NODE=167   $(date -Is)"
   echo "model        : ${PD_MODEL}"
   echo "port         : ${PD_PORT}     kv_port: ${PD_KV_PORT}"
   echo "layout       : DP1 PP1 TP${PD_TP} EP + DCP${PD_DCP} PCP1"

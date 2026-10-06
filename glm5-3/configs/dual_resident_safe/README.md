@@ -1,1 +1,3 @@
+> 2026-10-06：本目录可编辑启动模板的默认权重已切为`/data/tiankuan/wio/GLM-5.3-w8a8`，服务名`glm-53`。下方Run/验证结果属于历史模型，不证明5.3正确性或性能；本目录不是已裁决的当前PD入口，按[PLAN](../../PLAN.md)选择实际配置，上传完成前不执行。
+
 Validated finite resident configuration: P Graph/MTP3 batch4096 gmu0.87, D Graph/MTP3 batch128 gmu0.92, TP/EP/DCP16. Run12 capability and PD passed; Runs14-16 full-request dynamic pilots passed. No formal KEEP or stable capacity. Native budgets/KV differ; use exact env/common-env hash. Entries truncate their own task log and start engines; run only under task controller after identity/idle checks. Source site pd_common_env.sh path is explicit.

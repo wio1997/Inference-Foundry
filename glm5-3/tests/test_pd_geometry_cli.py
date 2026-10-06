@@ -20,7 +20,7 @@ class GeometryCLI(unittest.TestCase):
    t=threading.Thread(target=server.serve_forever,daemon=True);t.start();threads.append(t)
   sock=socket.socket();sock.bind(("127.0.0.1",0));port=sock.getsockname()[1];sock.close()
   urls={k:"http://127.0.0.1:"+str(s.server_port)for k,s in servers.items()};base="http://127.0.0.1:"+str(port);http=urllib.request.build_opener(urllib.request.ProxyHandler({}))
-  payload=json.dumps(dict(model="glm-52",messages=[dict(role="user",content="CPU fixture only. "*1024)],max_tokens=32,stream=False)).encode()
+  payload=json.dumps(dict(model="glm-53",messages=[dict(role="user",content="CPU fixture only. "*1024)],max_tokens=32,stream=False)).encode()
   env=dict(os.environ);env.update(GLM_REPLICAS=json.dumps([dict(id="D",url=urls["D"])]),GLM_PD_PRODUCERS=json.dumps({urls["D"]:dict(url=urls["P"],remote_host="127.0.0.1",remote_port=28000,dcp_size=16)}),GLM_PD_NATIVE_PLANS="{}",GLM_PLACEMENT_POLICY="active_count")
   for k in ["GLM_EXECUTION_GROUPS","GLM_RESPONSE_OWNER_STATE_PATH","GLM_GROUP_FAULT_STATE_PATH","GLM_ROUTER_AUDIT_DIR","GLM_ROUTER_TRACE_PATH","GLM_PD_AUDIT_DIR"]:env.pop(k,None)
   with tempfile.TemporaryDirectory(prefix="glm-pd-geometry-cli-")as tmp:

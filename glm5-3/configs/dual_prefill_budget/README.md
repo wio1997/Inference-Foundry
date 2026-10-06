@@ -1,3 +1,5 @@
+> 2026-10-06：本目录可编辑启动模板的默认权重已切为`/data/tiankuan/wio/GLM-5.3-w8a8`，服务名`glm-53`。下方Run/验证结果属于历史模型，不证明5.3正确性或性能；本目录不是已裁决的当前PD入口，按[PLAN](../../PLAN.md)选择实际配置，上传完成前不执行。
+
 # Native D prefill budget candidate
 
 Run22 raises only D max-num-batched-tokens to8192, retaining native K5, eager draft, target FULL_DECODE_ONLY, TP/EP/DCP16, gmu.87 and request-contract parser. P21 stays4096. Run21 full counters show10252 uncached tokens/request and native prefill5.6–5.7s with almost no queue. Chunk count, shape costs and KV/headroom tradeoff require real E2E. Native operator implementation unchanged. Not Current or capacity proof.

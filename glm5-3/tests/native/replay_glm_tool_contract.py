@@ -9,16 +9,16 @@ root=Path("/data/tiankuan/wio/Inference-Foundry/glm5-3")
 spec=importlib.util.spec_from_file_location("glm_contract_candidate",root/"runtime/glm_tool_contract.py")
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 Candidate=module.Glm47ContractToolParser
-tokenizer=get_tokenizer(tokenizer_name="/data/tiankuan/wio/GLM-5.2-w8a8",trust_remote_code=True)
+tokenizer=get_tokenizer(tokenizer_name="/data/tiankuan/wio/GLM-5.3-w8a8",trust_remote_code=True)
 tools=[{"type":"function","function":{"name":"get_weather","parameters":{"type":"object","properties":{"city":{"type":"string"}}}}}]
 text='prefix <tool_call>get_weather<arg_key>city</arg_key><arg_value>Shanghai</arg_value></tool_call> tail'
 cases=[]
 try:
- ChatCompletionRequest(model='glm-52',messages=[{'role':'user','content':'x'}],tools=[])
+ ChatCompletionRequest(model='glm-53',messages=[{'role':'user','content':'x'}],tools=[])
 except VLLMValidationError:pass
 else:raise AssertionError('native empty tools must reject before parser')
 for name,provided,choice in [("no_tools",None,None),("no_tools_none",None,"none"),("tools_none",tools,"none"),("tools_auto",tools,"auto")]:
- request=ChatCompletionRequest(model="glm-52",messages=[{"role":"user","content":"x"}],tools=provided,tool_choice=choice)
+ request=ChatCompletionRequest(model="glm-53",messages=[{"role":"user","content":"x"}],tools=provided,tool_choice=choice)
  for cls in [Glm47MoeModelToolParser,Candidate]:
   parser=cls(tokenizer,tools=request.tools)
   full=parser.extract_tool_calls(text,request=request)
@@ -46,7 +46,7 @@ for name,provided,choice in [("no_tools",None,None),("no_tools_none",None,"none"
    cases.append({"case":name,"class":cls.__name__,"token_ids":token_mode,"nonstream_tools":full.tools_called,"stream_tool_deltas":len(calls),"content_chars":len(content)})
 # Reproduce late large tool-name buffering without an NPU or inference.
 huge="<tool_call>"+"x"*316479
-req=ChatCompletionRequest(model="glm-52",messages=[{"role":"user","content":"x"}])
+req=ChatCompletionRequest(model="glm-53",messages=[{"role":"user","content":"x"}])
 parser=Candidate(tokenizer)
 result=parser.extract_tool_calls(huge,request=req)
 assert not result.tools_called and result.content==huge

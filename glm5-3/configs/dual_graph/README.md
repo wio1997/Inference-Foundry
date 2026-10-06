@@ -1,3 +1,5 @@
+> 2026-10-06：本目录可编辑启动模板的默认权重已切为`/data/tiankuan/wio/GLM-5.3-w8a8`，服务名`glm-53`。下方Run/验证结果属于历史模型，不证明5.3正确性或性能；本目录不是已裁决的当前PD入口，按[PLAN](../../PLAN.md)选择实际配置，上传完成前不执行。
+
 # 双完整实例Graph部署候选
 
 以下两个文件是Run7实际P与Run6实际D入口的逐字节副本；运行参数为Graph FULL_DECODE_ONLY、MTP3、batch16384，TP/EP/DCP16，保留PD角色、工具/reasoning parser及其他native flags。文件头的历史注释来自原入口，以实际argv/manifest为准。源文件未自动替换现场legacy scripts。

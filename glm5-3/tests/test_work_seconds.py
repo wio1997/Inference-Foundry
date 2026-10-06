@@ -37,7 +37,7 @@ class WorkGatewayContract(prior.GatewayBudgetContracts):
     return await super().__call__(req)
   self.store=Held()
   app=create_app(CONFIG,policy="work_seconds",groups=legacy.GROUPS,response_owner_state_path=str(self.root/'owners.json'),transport=httpx.MockTransport(self.store))
-  bodies=[json.dumps(dict(model="glm-52",input=letter*size,request_id="resp_bytes_"+str(i),max_output_tokens=[32,8192,32][i])).encode()for i,(letter,size)in enumerate([("a",10000),("b",2000),("c",10000)])]
+  bodies=[json.dumps(dict(model="glm-53",input=letter*size,request_id="resp_bytes_"+str(i),max_output_tokens=[32,8192,32][i])).encode()for i,(letter,size)in enumerate([("a",10000),("b",2000),("c",10000)])]
   async with app.router.lifespan_context(app):
    async with await self.client(app)as c:
     tasks=[]

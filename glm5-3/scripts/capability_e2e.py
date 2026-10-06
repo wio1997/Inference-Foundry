@@ -13,7 +13,7 @@ BACKENDS=[{'id':'P166','url':'http://172.16.10.166:9081'},{'id':'D167','url':'ht
 ROUTER='http://127.0.0.1:8002'
 
 def body(text,output=128,stream=True,completion=False,n=1):
-    value={'model':'glm-52','max_tokens':output,'temperature':(.7 if n>1 else 0),'seed':20260930,'ignore_eos':True,'stream':stream,'n':n}
+    value={'model':'glm-53','max_tokens':output,'temperature':(.7 if n>1 else 0),'seed':20260930,'ignore_eos':True,'stream':stream,'n':n}
     if completion:value['prompt']=text
     else:value['messages']=[{'role':'user','content':text}]
     if stream:value['stream_options']={'include_usage':True}

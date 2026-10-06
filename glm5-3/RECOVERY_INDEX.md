@@ -15,8 +15,8 @@
 | PERF_KEEP / 当前stack | [CODE_PERFORMANCE_LEDGER](CODE_PERFORMANCE_LEDGER.md) / [CURRENT_PERFORMANCE_STACK](CURRENT_PERFORMANCE_STACK.md) | 只查对应候选/patch与证据引用；不复制指标或从最快Run推断Current |
 | Run manifest / summary / raw | [RECORDING](RECORDING.md)；`G/records/points/<OPT>/runs/<RUN>/` | Git读manifest.json / summary.md；按manifest.artifact_index、source/ref、Job Result找服务器raw；若采用TaskCtl布局，以记录中的实际locator为准 |
 | 大artifact / 冻结源码 | 同一服务器Run下`sources/`、`runtime_bundle/`、`restored/`及raw；`D/logs/`、`D/results/`、`D/plugins/` | manifest→artifact_index的path/hash；Git缺大文件时SSH读取该locator，不另建目录账本、不全盘扫描 |
-| 模型权重 | 已知两机`/data/tiankuan/wio/GLM-5.2-w8a8`；实际native argv / effective config | native resident引用→启动计划→`/proc/<pid>/cmdline`的model参数；目录存在不等于已加载，不hash权重payload |
-| vLLM | 容器`/vllm-workspace/vllm`；[源码入口资料](docs/research/GLM5_2_VLLM_ASCEND_PATHS.md) | 用实际服务Python与PYTHONPATH做顶层`importlib.util.find_spec('vllm').origin`，再查安装源Git HEAD/dirty；资料中的公开源码不是现场版本 |
+| 模型权重 | 当前目标：两机`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务名`glm-53`；用户2026-10-06正在上传 | 上传完成后核验config/index/tokenizer/全部分片，再核验启动argv；目录存在不等于完整或已加载，不hash权重payload；旧resident及历史Run不改标为5.3 |
+| vLLM | 容器`/vllm-workspace/vllm`；[GLM-5.3源码入口](docs/research/GLM5_3_VLLM_ASCEND_PATHS.md) | 用实际服务Python与PYTHONPATH做顶层`importlib.util.find_spec('vllm').origin`，再查安装源Git HEAD/dirty；资料中的公开源码不是现场版本，旧模型可运行不证明5.3支持 |
 | vLLM-Ascend | 容器`/vllm-workspace/vllm-ascend`；同上 | 同法`find_spec('vllm_ascend').origin`；按native argv/runner和plugin import选代码，勿导入模型或初始化NPU |
 | benchmark / AISBench | [adapters/aisbench](adapters/aisbench/README.md)、[prefix_bench.py](adapters/aisbench/prefix_bench.py)；容器`/opt/aisbench-benchmark`、`/opt/aisbench-venv` | 当前Run spec/stage argv→实际脚本/环境；以该源码及安装metadata为准，不直接执行旧benchmark |
 | profiler / trace | [profiling入口](docs/research/VLLM_ASCEND_PROFILING.md)；Run artifact_index | profile gate / profiler配置→命令与输出路径；service_config.environment→router/token memo trace；旧profile只按身份匹配复用，不自动采集 |

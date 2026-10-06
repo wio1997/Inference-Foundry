@@ -12,7 +12,7 @@ legacy.create_app=create_app
 
 class EstimateContracts(unittest.TestCase):
  def test_responses_native_output_budget_and_conflicting_legacy_fields(self):
-  valid=dict(model="glm-52",input="fixture",max_output_tokens=8192)
+  valid=dict(model="glm-53",input="fixture",max_output_tokens=8192)
   native=ResponsesRequest.model_validate(valid)
   self.assertEqual(native.max_output_tokens,8192)
   raw=json.dumps({**valid,"max_tokens":32,"max_completion_tokens":64,"n":7}).encode()
@@ -35,7 +35,7 @@ class GatewayBudgetContracts(reserved.V2Tests):
     if req.method=="POST"and req.url.path=="/v1/responses":
      self.original_body=await req.aread();self.arrived.set();await self.release.wait()
     return await super().__call__(req)
-  self.store=Held();app=self.app();raw=json.dumps(dict(model="glm-52",input="fixture",request_id="resp_budget_contract",max_output_tokens=8192,background=True)).encode()
+  self.store=Held();app=self.app();raw=json.dumps(dict(model="glm-53",input="fixture",request_id="resp_budget_contract",max_output_tokens=8192,background=True)).encode()
   async with app.router.lifespan_context(app):
    async with await self.client(app)as c:
     task=asyncio.create_task(c.post("/v1/responses",content=raw))
@@ -72,7 +72,7 @@ class CLIBudgetContract(unittest.TestCase):
   server=ThreadingHTTPServer(("127.0.0.1",0),NativeFixture);t=threading.Thread(target=server.serve_forever,daemon=True);t.start()
   sock=socket.socket();sock.bind(("127.0.0.1",0));port=sock.getsockname()[1];sock.close()
   base="http://127.0.0.1:"+str(port);opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
-  payload=json.dumps(dict(model="glm-52",input="fixture",max_output_tokens=8192)).encode()
+  payload=json.dumps(dict(model="glm-53",input="fixture",max_output_tokens=8192)).encode()
   with tempfile.TemporaryDirectory(prefix="glm-gateway-cli-cpu-")as tmp:
    env=dict(os.environ);env.update(GLM_REPLICAS=json.dumps([dict(id="fixture",url="http://127.0.0.1:"+str(server.server_port))]))
    for k in["GLM_EXECUTION_GROUPS","GLM_RESPONSE_OWNER_STATE_PATH","GLM_GROUP_FAULT_STATE_PATH","GLM_ROUTER_AUDIT_DIR","GLM_ROUTER_TRACE_PATH"]:env.pop(k,None)

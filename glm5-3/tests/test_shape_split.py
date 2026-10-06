@@ -59,7 +59,7 @@ class ShapeCLI(unittest.TestCase):
   for v in servers.values():threading.Thread(target=v.serve_forever,daemon=True).start()
   sock=socket.socket();sock.bind(("127.0.0.1",0));port=sock.getsockname()[1];sock.close()
   opener=urllib.request.build_opener(urllib.request.ProxyHandler({}));base="http://127.0.0.1:"+str(port)
-  payloads=[json.dumps(dict(model="glm-52",input=v,max_output_tokens=32)).encode()for v in ["small","large"*2000]]
+  payloads=[json.dumps(dict(model="glm-53",input=v,max_output_tokens=32)).encode()for v in ["small","large"*2000]]
   env=dict(os.environ,GLM_PLACEMENT_POLICY="shape_split",GLM_SHAPE_SPLIT=json.dumps(SHAPE),GLM_REPLICAS=json.dumps([dict(id=k,url="http://127.0.0.1:"+str(v.server_port))for k,v in servers.items()]))
   for k in["GLM_EXECUTION_GROUPS","GLM_RESPONSE_OWNER_STATE_PATH","GLM_GROUP_FAULT_STATE_PATH","GLM_ROUTER_TRACE_PATH","GLM_ROUTER_AUDIT_DIR","GLM_PD_PRODUCERS","GLM_PD_NATIVE_PLANS"]:env.pop(k,None)
   with tempfile.TemporaryDirectory(prefix="glm-shape-cli-")as tmp:

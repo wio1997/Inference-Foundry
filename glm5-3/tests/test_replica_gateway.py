@@ -46,7 +46,7 @@ class ForwardingContracts(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status_code,status);self.assertEqual(response.content,b''.join(chunks));self.assertEqual(response.headers.get_list('set-cookie'),['a=1','b=2']);self.assertTrue(stream.closed);self.assertEqual(len(app.state.placement.leases),0)
             self.assertEqual(observed[0].url.query,b'feature=1');self.assertEqual(observed[0].headers['x-request-id'],'request');self.assertNotIn('x-hop',observed[0].headers);self.assertEqual(len(observed),1)
     async def test_stream_and_all_payload_fields(self):
-        await self.exercise(200,[b'data: {"choices":',b'[]}\n\ndata: [DONE]\n\n'],b'{"model":"glm-52","messages":[],"tools":[],"n":2,"seed":42,"stream":true,"top_p":0.9}')
+        await self.exercise(200,[b'data: {"choices":',b'[]}\n\ndata: [DONE]\n\n'],b'{"model":"glm-53","messages":[],"tools":[],"n":2,"seed":42,"stream":true,"top_p":0.9}')
     async def test_native_400_not_retried(self):
         await self.exercise(400,[b'{"error":"maximum context length"}'],b'{"max_tokens":999999}')
     async def test_header_disconnect_releases_unstarted_stream(self):

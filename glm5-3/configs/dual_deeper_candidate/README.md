@@ -1,3 +1,5 @@
+> 2026-10-06：本目录可编辑启动模板的默认权重已切为`/data/tiankuan/wio/GLM-5.3-w8a8`，服务名`glm-53`。下方Run/验证结果属于历史模型，不证明5.3正确性或性能；本目录不是已裁决的当前PD入口，按[PLAN](../../PLAN.md)选择实际配置，上传完成前不执行。
+
 # Native D deeper draft candidate
 
 D K5/Graph FULL_DECODE_ONLY/TP16 EP16 DCP16/budget4096 gmu.87, same full GLM and operators. Request tool contract plugin copied with exact SHA; real declared tools retained.

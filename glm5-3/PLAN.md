@@ -8,7 +8,7 @@
 
 2026-10-06用户要求“先调整方案”。本轮仅完成方案修订与已有证据归约，不启动部署、推理、profile、benchmark或候选patch。以下是研究顺序，不是已下发controller的执行队列。Current=None，active PERF_KEEP为空；[目标纠正与源码证据](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。
 
-**产品固定为 `请求 → P Prefill → KV Transfer → D Decode/MTP → 有效输出`。** P池、D池分别组织DP/TP/EP域；不能将任一角色改成完整请求副本来代替PD。保持现有正确算子、模型/精度、全部功能、有效计数与SLO。
+**产品固定为GLM-5.3 W8A8的 `请求 → P Prefill → KV Transfer → D Decode/MTP → 有效输出`。** 两机目标权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`。2026-10-06用户正在上传；配置已切目标不代表artifact完整或已加载，完成并核验前不启动模型或测试。P池、D池分别组织DP/TP/EP域；不能将任一角色改成完整请求副本来代替PD。保持现有正确算子、全部功能、有效计数与SLO；基线与patched固定同一5.3模型身份，旧版本数据不构成新模型基线。
 
 ### 1. 一个参考部署，不开展配置扫描
 
@@ -17,13 +17,13 @@
 | 166：P | DP1 / TP16 / PP1 | 使用该机16个逻辑NPU做P；历史P89/Run101证明过部分真实PD请求 |
 | 167：D | DP1 / TP16 / PP1 | 使用该机16个逻辑NPU做D；历史D100/Run101证明过KV接收及后续输出 |
 
-这是可恢复性参考，不是已确认最优配置或当前驻留部署。两端历史DCP16/EP16、Mooncake producer/consumer及独立通信域从[Run100 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0100/manifest_record.json)和实际安装源码核验；不重放旧PID、epoch、端口、环境或脚本。DP2/TP8仅作为**角色内部**的条件部署候选：现有瓶颈使其比较能改变决策、实际fit和正确性成立后，才选一个有价值对照；不会与参考基线并行扫描。配置收益单列，不计代码PERF_KEEP。
+这是旧模型可恢复性参考，不是GLM-5.3已确认fit、最优配置或当前驻留部署。两端历史DCP16/EP16、Mooncake producer/consumer及独立通信域从[Run100 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0100/manifest_record.json)和实际安装源码定位，5.3需依据新config/量化/cache与加载路径重验；不重放旧PID、epoch、端口、环境或脚本。DP2/TP8仅作为**角色内部**的条件部署候选：现有瓶颈使其比较能改变决策、实际fit和正确性成立后，才选一个有价值对照；不会与参考基线并行扫描。配置收益单列，不计代码PERF_KEEP。
 
 恢复采用最小原生PD服务链，逐项确认当前软件/必要兼容修复。历史MTP K、Graph/SP、KV/batch参数和AtomicMQ/BudgetScheduler控制均不是自动继承的PERF_KEEP；PP专用插件、完整请求placement和可选PD fallback不进入默认参考路径。任何可运行性调整明确记录，基线与patched使用相同条件。
 
 ### 2. 先建立真实PD研究基线，区分发布验收
 
-- 复用Run101已证明的3个真实PD请求及其raw，只继承有证据的prompt/KV身份、D外部KV复用、原始输出预算和输出语义。不把该Run全部public输出都算成PD覆盖，不把其有限功能数据当作matched性能baseline。
+- 复用旧模型Run101的3个真实PD请求及其raw调查协议/控制机制；GLM-5.3的tokenizer、prompt/KV布局、状态、外部KV复用、输出预算及输出语义必须重新核验。不继承其token数量、cache命中或功能正确性，不把该Run全部public输出算成PD覆盖，也不把有限功能数据当作5.3 matched性能baseline。
 - 原生proxy/connector/scheduler是首要调查入口。保留原生P端内部max1引导语义；内部token只计成本、不计有效输出。先追实际消费者，不能凭外观删除必要工作。
 - **研究基线**可以是功能已验证、真实走PD的明确请求集，用于定位瓶颈与否定代码假说；结果必须标明覆盖范围。短/长prompt、cold/prefix-cache条件和到达顺序采用既有工作包，并在比较前冻结；未统一条件的旧TPS不参加排名。
 - **产品Current/发布验收**仍要求完整原有功能，包括tools/structured、Responses/续接、stream/background、取消、拒绝/错误、状态与KV回收。未覆盖项进入现有correctness backlog；若影响当前负载、候选合法性或完整产品验收则阻塞对应阶段。不能用D本地完整请求fallback把它们算成PD成功，也不能在尚未证明必要时把整套API重构变成第一主线。

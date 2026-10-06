@@ -26,7 +26,7 @@ PLAIN_FIELDS = {
     "include_stop_str_in_output",
 }
 
-def plain_tokenize_payload(body, model="glm-52"):
+def plain_tokenize_payload(body, model="glm-53"):
     if len(body) > 1048576:
         return None
     try:

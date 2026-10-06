@@ -1,5 +1,7 @@
 # CURRENT_PERFORMANCE_STACK
 
+2026-10-06目标切换为GLM-5.3 W8A8标准PD，权重`/data/tiankuan/wio/GLM-5.3-w8a8`、新服务名`glm-53`；上传中，尚无5.3加载/correctness/完整E2E证据。旧模型结果不自动迁移；Current=None，active PERF_KEEP为空。下方checkpoint为历史状态，不是5.3验收。
+
 当前产品中正式PERF_KEEP且仍active的性能patch的唯一短索引；规则见[AGENTS](AGENTS.md)与[RECORDING](RECORDING.md)，各项验证引用[代码性能账本](CODE_PERFORMANCE_LEDGER.md)和原Run，不复制raw。
 
 当前无active性能KEEP stack。checkpoint158记录Current=None/性能KEEP无；当时在规则commit `df7399c28791`上增量维护规则，没有性能Run、PERF_KEEP、产品代码改动或服务切换。规则commit不是产品Current的代码性能身份证明。

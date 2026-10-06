@@ -8,7 +8,7 @@ KV=dict(do_remote_prefill=True,remote_host="172.16.10.166",remote_port=28000,
         remote_engine_id="nativeP",remote_dcp_size=16,remote_pcp_size=1,remote_block_ids=[[4,5]],
         remote_block_size=128,num_prompt_blocks=17)
 def payload(path="/v1/responses",**kw):
-    d=dict(model="glm-52",input="上海 text "*1024,max_output_tokens=32,temperature=.2,seed=31,store=True,request_id="resp_public",cache_salt="cold")
+    d=dict(model="glm-53",input="上海 text "*1024,max_output_tokens=32,temperature=.2,seed=31,store=True,request_id="resp_public",cache_salt="cold")
     if path.endswith("chat/completions"):
         d.pop("input");d.pop("max_output_tokens");d.pop("store");d.pop("request_id")
         d.update(messages=[dict(role="user",content="上海 text "*1024)],max_tokens=64,stream=True,stream_options=dict(include_usage=True))

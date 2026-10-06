@@ -34,7 +34,7 @@ class GeometryProtocols(unittest.IsolatedAsyncioTestCase):
             with self.subTest(run=n):
                 r=assess_pd_geometry(**pair(n));self.assertFalse(r["eligible"]);self.assertIn("native_decode_pp_must_be_1",r["reasons"])
     async def test_unknown_incompatible_pair_never_creates_helper_and_keeps_error_wire(self):
-        original=b'{ "model":"glm-52", "messages":[{"role":"user","content":"fixture"}], "max_tokens":3, "stream":true }'
+        original=b'{ "model":"glm-53", "messages":[{"role":"user","content":"fixture"}], "max_tokens":3, "stream":true }'
         stale=pair();i=stale["decoder"]["argv"].index("--tensor-parallel-size");stale["decoder"]["argv"][i+1]="8"
         unknown=pair();unknown["connector_source_sha256"]="unknown"
         malformed=pair();malformed["decoder"]=None
@@ -44,20 +44,20 @@ class GeometryProtocols(unittest.IsolatedAsyncioTestCase):
                 calls,traces=await self.exercise(entry,original,status=400)
                 self.assertEqual(calls,[(D+"/v1/chat/completions",original,"original_native_id")]);self.assertEqual(traces[0][0],"pd_geometry_native_fallback")
     async def test_mapping_disagreement_falls_back_before_helper(self):
-        original=b'{"model":"glm-52","messages":[{"role":"user","content":"fixture"}],"max_tokens":3}'
+        original=b'{"model":"glm-53","messages":[{"role":"user","content":"fixture"}],"max_tokens":3}'
         mapping=copy.deepcopy(MAPPING);mapping[D]["remote_port"]=28001
         calls,_=await self.exercise(pair(),original,mapping=mapping);self.assertEqual(len(calls),1);self.assertEqual(calls[0][1],original)
     async def test_eligible_chat_keeps_v2_one_helper_one_original_decoder_plus_kv(self):
-        payload=dict(model="glm-52",messages=[dict(role="user",content="fixture")],max_tokens=3,stream=True,seed=1024,request_id="native_caller")
+        payload=dict(model="glm-53",messages=[dict(role="user",content="fixture")],max_tokens=3,stream=True,seed=1024,request_id="native_caller")
         calls,traces=await self.exercise(pair(),json.dumps(payload).encode());self.assertEqual(len(calls),2)
         helper=json.loads(calls[0][1]);decoder=json.loads(calls[1][1])
         self.assertEqual(helper["max_tokens"],1);self.assertEqual(helper["min_tokens"],1);self.assertFalse(helper["stream"]);self.assertNotEqual(helper["request_id"],"native_caller")
         self.assertEqual(decoder,{**payload,"kv_transfer_params":KV});self.assertEqual(calls[1][2],"original_native_id")
     async def test_eligible_responses_helper_is_private_unstored_and_original_store_retained(self):
-        payload=dict(model="glm-52",input="fixture",max_output_tokens=3,store=True,request_id="resp_native_caller")
+        payload=dict(model="glm-53",input="fixture",max_output_tokens=3,store=True,request_id="resp_native_caller")
         calls,_=await self.exercise(pair(),json.dumps(payload).encode(),path="/v1/responses");self.assertEqual(len(calls),2)
         helper=json.loads(calls[0][1]);self.assertEqual(helper["max_output_tokens"],1);self.assertFalse(helper["store"]);self.assertTrue(helper["request_id"].startswith("resp_glm_pdhelper_"))
         self.assertEqual(json.loads(calls[1][1]),{**payload,"kv_transfer_params":KV})
     async def test_stateful_request_preserves_native_decoder_without_helper(self):
-        raw=b'{"model":"glm-52","input":"fixture","max_output_tokens":3,"previous_response_id":"resp_cpu_fixture"}'
+        raw=b'{"model":"glm-53","input":"fixture","max_output_tokens":3,"previous_response_id":"resp_cpu_fixture"}'
         calls,_=await self.exercise(pair(),raw,path="/v1/responses");self.assertEqual(calls,[(D+"/v1/responses",raw,"original_native_id")])

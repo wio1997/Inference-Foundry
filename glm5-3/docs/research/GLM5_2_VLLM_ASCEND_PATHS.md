@@ -1,3 +1,5 @@
+> 历史GLM-5.2资料，来源/模型结构/软件支持事实保留；不是当前GLM-5.3的模型或性能证据。当前入口为[GLM-5.3模型核验](GLM5_3_MODEL_AND_RUNTIME_ANALYSIS.md)与[运行路径](GLM5_3_VLLM_ASCEND_PATHS.md)。
+
 > 研究快照：整理于2026-10-01，随后作为按需资料发布；文中未提交/未运行陈述描述研究采集阶段，不代表后续Git发布状态。实际运行状态以局部HANDOFF和Git为准。
 
 # GLM-5.2 MTP、W8A8 与 vLLM-Ascend PD 调度研究

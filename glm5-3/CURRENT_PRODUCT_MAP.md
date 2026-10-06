@@ -1,5 +1,7 @@
 # 当前产品代码导航
 
+**模型目标已切换为GLM-5.3 W8A8**：两机`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`；2026-10-06用户上传中，完整性/安装支持/加载/功能与性能均待核验。以下ACTIVE是最近核验的旧GLM-5.2驻留链，不能改称5.3已部署；`glm52-single`、`glm52-pd/deploy`保留为真实资源标识。旧Run101 PD链只作协议/源码证据，不证明5.3可运行。新5.3完整PD入口尚未建立，Current=None。
+
 **Current=None**，依据[HANDOFF](HANDOFF.md)、[Run244 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0244/manifest.json)与[当前性能stack](CURRENT_PERFORMANCE_STACK.md)；这里不新增产品裁决。现场现役服务是 **Full Replica / Complete-request Placement**，两端各完整Prefill+Decode，尚非标准PD产品。用户2026-10-06明确目标为标准P/D分离；现役完整副本不符合该目标，保留服务与事实，不作为最终产品候选。按[目标纠正裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)定向读原生connector与Run101真实PD链，最终完整PD入口尚未确定；不把历史最快Run或部分PD功能验证提升为Current。
 
 本地图定位checkpoint159现役代码；Run242诊断后已恢复原始插件和V14，Run244只读核验public argv与两机安装/插件路径。ACTIVE表示该服务链采用的代码，不表示PERF_KEEP，也不保证下次仍驻留。下次先用HANDOFF→最新manifest→现场argv/config重验；改变入口时只更新本地图的路径/引用，不复制PID、epoch、性能或Run裁决。

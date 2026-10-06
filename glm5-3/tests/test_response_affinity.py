@@ -52,7 +52,7 @@ class AffinityTests(unittest.IsolatedAsyncioTestCase):
   return create_app(CONFIG,transport=httpx.MockTransport(self.store),groups=groups,response_owner_state_path=str(self.root/name))
  async def client(self,app):return httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url="http://gateway")
  async def create(self,client,**kw):
-  body=json.dumps({"model":"glm-52","input":"Return READY. 上海","max_output_tokens":2,**kw},ensure_ascii=False).encode()
+  body=json.dumps({"model":"glm-53","input":"Return READY. 上海","max_output_tokens":2,**kw},ensure_ascii=False).encode()
   response=await client.post("/v1/responses",content=body,headers={"content-type":"application/json"})
   assert self.store.calls[-1][3]==body,"native sampling/input/body bytes must remain exact"
   return response

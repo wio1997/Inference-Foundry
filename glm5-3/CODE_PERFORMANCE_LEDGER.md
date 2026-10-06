@@ -1,5 +1,7 @@
 # GLM代码性能账本
 
+当前产品目标为GLM-5.3 W8A8标准PD，权重`/data/tiankuan/wio/GLM-5.3-w8a8`、新服务名`glm-53`。2026-10-06用户上传中，尚无新模型完整E2E基线、Current或PERF_KEEP；历史模型候选/裁决保留实际版本，不迁移收益或正确性。
+
 从checkpoint158之后建立（2026-10-06；父commit `e378d459e08e9f12300118e158bba16db6c4d04f`），只汇总后续代码候选的证据引用，不迁移或重写历史Run、raw evidence和裁决。记录规则见[RECORDING](RECORDING.md)，研究规则见[AGENTS](AGENTS.md)。
 
 在`df7399c28791`上增量采用v2规则，增加Type与PERF_KEEP判据；仅改变后续记账方式，不追溯把历史guard/MQ/affinity/配置变化重分类成新的裁决。

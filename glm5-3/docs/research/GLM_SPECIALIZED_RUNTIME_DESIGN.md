@@ -42,7 +42,7 @@ V2 可以用作启动、权重/算子/通信组装载、输入 arena、Graph 管
 
 ## 3. Full/Shared IndexShare 契约
 
-GLM-5.2 参考配置为78主层，Full层21个，Shared层57个；Full索引是 `0,1,2,6,10,...,74`。该规则是模型身份的一部分，不是动态scheduler自由改写的索引器跳过策略。模型版本更换时，由新 ModelContract 给出模式。
+当前目标是GLM-5.3 W8A8，实际层数与Full/Shared模式须从新config/index核验，上传完成前为unknown。历史GLM-5.2参考配置的78主层、21Full/57Shared与`0,1,2,6,10,...,74`仅说明模型合同应保存哪些信息，不赋给5.3。该规则是模型身份的一部分，不是动态scheduler自由改写的索引器跳过策略；新ModelContract以实际artifact给出模式。
 
 Full层生成的 indices 必须绑定到当前query的逻辑位置与行映射、Full锚点、实际可见历史和对应内容版本。Shared层复用同一逻辑query的选择结果，不是“碰巧shape一样就复用”。
 

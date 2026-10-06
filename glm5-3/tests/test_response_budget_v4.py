@@ -12,7 +12,7 @@ legacy.create_app=create_app
 
 class EstimateContracts(unittest.TestCase):
  def test_responses_native_output_budget_and_conflicting_legacy_fields(self):
-  valid=dict(model="glm-52",input="fixture",max_output_tokens=8192)
+  valid=dict(model="glm-53",input="fixture",max_output_tokens=8192)
   native=ResponsesRequest.model_validate(valid)
   self.assertEqual(native.max_output_tokens,8192)
   raw=json.dumps({**valid,"max_tokens":32,"max_completion_tokens":64,"n":7}).encode()
@@ -35,7 +35,7 @@ class GatewayBudgetContracts(reserved.V2Tests):
     if req.method=="POST"and req.url.path=="/v1/responses":
      self.original_body=await req.aread();self.arrived.set();await self.release.wait()
     return await super().__call__(req)
-  self.store=Held();app=self.app();raw=json.dumps(dict(model="glm-52",input="fixture",request_id="resp_budget_contract",max_output_tokens=8192,background=True)).encode()
+  self.store=Held();app=self.app();raw=json.dumps(dict(model="glm-53",input="fixture",request_id="resp_budget_contract",max_output_tokens=8192,background=True)).encode()
   async with app.router.lifespan_context(app):
    async with await self.client(app)as c:
     task=asyncio.create_task(c.post("/v1/responses",content=raw))

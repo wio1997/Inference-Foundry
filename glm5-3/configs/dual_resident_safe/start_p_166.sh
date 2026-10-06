@@ -1,6 +1,8 @@
 #!/bin/bash
+# 2026-10-06: GLM-5.3 defaults; historical Run validation belongs to GLM-5.2.
+# This template has no GLM-5.3 fit/correctness/performance acceptance; follow PLAN.md.
 # ============================================================================
-# GLM-5.2 PD — P (prefill / kv_producer) on node 166, inside glm52-single
+# GLM-5.3 PD — P (prefill / kv_producer) on node 166, inside glm52-single
 # Layout: DP1 PP1 TP16 EP16 DCP16 PCP1   |  port 9081  |  kv_port 36000
 # MTP draft tokens: 3; native draft eager, target FULL_DECODE_ONLY
 # Resident P validated Run12; not formal KEEP
@@ -15,7 +17,7 @@ export PD_LOCAL_IP="172.16.10.166"
 export PD_NIC="business"
 export PD_PORT="${PD_PORT:-9081}"
 export PD_KV_PORT="${PD_KV_PORT:-36000}"
-export PD_MODEL="${PD_MODEL:-/data/tiankuan/wio/GLM-5.2-w8a8}"
+export PD_MODEL="${PD_MODEL:-/data/tiankuan/wio/GLM-5.3-w8a8}"
 export PD_MTP_TOKENS="${PD_MTP_TOKENS:-3}"
 export PD_MAX_SEQS="${PD_MAX_SEQS:-8}"
 export PD_GMU="${PD_GMU:-0.87}"
@@ -47,7 +49,7 @@ LOG_PATH="${PD_LOG_DIR}/P_166.log"
 
 {
   echo "============================================================"
-  echo "GLM-5.2 PD  ROLE=P (prefill/kv_producer)  NODE=166   $(date -Is)"
+  echo "GLM-5.3 PD  ROLE=P (prefill/kv_producer)  NODE=166   $(date -Is)"
   echo "model        : ${PD_MODEL}"
   echo "port         : ${PD_PORT}     kv_port: ${PD_KV_PORT}"
   echo "layout       : DP1 PP1 TP${PD_TP} EP + DCP${PD_DCP} PCP1"

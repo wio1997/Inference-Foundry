@@ -1,5 +1,7 @@
 # 新对话最小恢复
 
+当前目标为**GLM-5.3 W8A8标准P/D分离**，权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`。用户2026-10-06正在上传；完成并核验config/index/tokenizer/分片前不加载或测试。旧版本的模型结构、fit、功能及性能结论不自动成为5.3证据；历史Run保留实际身份。
+
 启动只读下列身份核验、恢复顺序和Reset模板；其余链接按当前动作展开，历史演练不是必读。读过的内容不重复加载，不为缩短上下文省略决定性源码/raw。
 
 ## 0. 先核验branch / HEAD / rule version
@@ -53,7 +55,7 @@ Gap缺证据先写unknown，只允许一个最小diagnostic/profile补证据后�
 ## 可粘贴的新对话指令
 
 ```text
-接续 https://github.com/wio1997/Inference-Foundry 的 glm5-3，研究分支 glm5-3-autonomous-20261001。按 glm5-3/docs/START_NEW_CHAT.md 最小恢复顺序执行，遵循 AGENTS；细则按需读，不继承旧 next_action。完成只读恢复与 Performance Research Reset 后，直接研究一个最大可信代码 Gap。
+接续 https://github.com/wio1997/Inference-Foundry 的 glm5-3，研究分支 glm5-3-autonomous-20261001。目标是GLM-5.3 W8A8标准P/D分离优化，权重/data/tiankuan/wio/GLM-5.3-w8a8，新服务模型名glm-53；先确认上传完成和artifact完整，不回退旧权重。按 glm5-3/docs/START_NEW_CHAT.md 最小恢复顺序执行，遵循 AGENTS；细则按需读，不继承旧 next_action。完成只读恢复与 Performance Research Reset 后，直接研究一个最大可信代码 Gap。
 ```
 
 协议/执行环境变化需要模拟时，查[按需模拟](ZCODE_PROTOCOL.md#6-按需模拟零模型服务器调用)；已有证据足够不重跑。

@@ -10,7 +10,7 @@ def main(spec_path):
     def request(item):
         target=started+item.get('arrival_s',0);time.sleep(max(0,target-time.monotonic()))
         t0=time.monotonic();row={'id':item['id'],'prompt_id':item['prompt_id'],'planned_arrival_s':item.get('arrival_s',0),'arrived_s':t0-started,'started_at':utc(),'max_tokens':item['max_tokens'],'first_content_s':None,'usage':None,'finish_reason':None,'done':False,'error':None}
-        body={'model':'glm-52','messages':[{'role':'user','content':prompts[item['prompt_id']]}],'stream':True,'stream_options':{'include_usage':True},'temperature':0,'ignore_eos':True,'max_tokens':item['max_tokens']}
+        body={'model':'glm-53','messages':[{'role':'user','content':prompts[item['prompt_id']]}],'stream':True,'stream_options':{'include_usage':True},'temperature':0,'ignore_eos':True,'max_tokens':item['max_tokens']}
         digest=hashlib.sha256();chunks=0
         try:
             req=urllib.request.Request(spec['endpoint'],data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
