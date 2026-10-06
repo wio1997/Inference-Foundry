@@ -1,0 +1,58 @@
+{
+  "modelscope_caching.py": {
+    "whole_sha256": "41082750f99bfd1c8492d7d09fee7d6a297ae2f414ec05e8f48a7f0752bbbf8f",
+    "bytes": 14305,
+    "installed_path": "/usr/local/python3.12.13/lib/python3.12/site-packages/modelscope/hub/utils/caching.py",
+    "source": [
+      {
+        "start": 24,
+        "end": 28,
+        "text": "class FileSystemCache(object):\n    KEY_FILE_NAME = '.msc'\n    MODEL_META_FILE_NAME = '.mdl'\n    MODEL_META_MODEL_ID = 'id'\n    MODEL_VERSION_FILE_NAME = '.mv'"
+      },
+      {
+        "start": 213,
+        "end": 231,
+        "text": "    def load_model_version(self):\n        model_version_file_path = os.path.join(\n            self.cache_root_location, FileSystemCache.MODEL_VERSION_FILE_NAME)\n        if os.path.exists(model_version_file_path):\n            with open(model_version_file_path, 'r') as f:\n                return f.read().strip()\n        else:\n            return None\n\n    def save_model_version(self, revision_info: Dict):\n        model_version_file_path = os.path.join(\n            self.cache_root_location, FileSystemCache.MODEL_VERSION_FILE_NAME)\n        with open(model_version_file_path, 'w') as f:\n            if isinstance(revision_info, dict):\n                version_info_str = 'Revision:%s,CreatedAt:%s' % (\n                    revision_info['Revision'], revision_info['CreatedAt'])\n                f.write(version_info_str)\n            else:\n                f.write(revision_info)"
+      },
+      {
+        "start": 369,
+        "end": 390,
+        "text": "    def put_file(self, model_file_info, model_file_location):\n        \"\"\"Put model on model_file_location to cache, the model first download to /tmp, and move to cache.\n\n        Args:\n            model_file_info (str): The file description returned by get_model_files.\n            model_file_location (str): The location of the temporary file.\n\n        Returns:\n            str: The location of the cached file.\n        \"\"\"\n        self.remove_if_exists(model_file_info)\n        cache_key = self.__get_cache_key(model_file_info)\n        cache_full_path = os.path.join(self.cache_root_location,\n                                       cache_key['Path'])\n        cache_file_dir = os.path.dirname(cache_full_path)\n        if not os.path.exists(cache_file_dir):\n            os.makedirs(cache_file_dir, exist_ok=True)\n        move(model_file_location, cache_full_path)\n        with self._cache_lock:\n            self.cached_files.append(cache_key)\n            self._save_cached_files_unlocked()\n        return cache_full_path"
+      }
+    ]
+  },
+  "modelscope_snapshot_download.py": {
+    "whole_sha256": "e554e3d7a6646a8681e12b3f2c9779252f595b801be7711449fd99744a051415",
+    "bytes": 42441,
+    "installed_path": "/usr/local/python3.12.13/lib/python3.12/site-packages/modelscope/hub/snapshot_download.py",
+    "source": [
+      {
+        "start": 387,
+        "end": 403,
+        "text": "            _download_file_lists(\n                repo_files,\n                cache,\n                temporary_cache_dir,\n                repo_id,\n                _api,\n                None,\n                None,\n                headers,\n                repo_type=repo_type,\n                revision=revision,\n                cookies=cookies,\n                pre_filtered=True,\n                max_workers=max_workers,\n                endpoint=endpoint,\n                progress_callbacks=progress_callbacks,\n            )"
+      },
+      {
+        "start": 468,
+        "end": 470,
+        "text": "        cache.save_model_version(revision_info=revision_detail)\n        cache_root_path = cache.get_root_location()\n        return cache_root_path"
+      },
+      {
+        "start": 1033,
+        "end": 1058,
+        "text": "    if len(filtered_repo_files) > 0:\n        logger.info(\n            f'Got {len(filtered_repo_files)} files, start to download ...')\n        download_result = _download_single_file(filtered_repo_files)\n\n        # Handle fault-tolerant results: report failed downloads\n        failed_items = []\n        if isinstance(download_result, tuple) and len(download_result) == 2:\n            _, failed_items = download_result\n            if failed_items:\n                failed_paths = [\n                    item['Path'] if isinstance(item, dict) else str(item)\n                    for item, _ in failed_items\n                ]\n                logger.error(\n                    f'{len(failed_items)} file(s) failed to download:\\n'\n                    + '\\n'.join(f'  - {p}' for p in failed_paths))\n\n        logger.info(\n            f\"Finish downloading {len(filtered_repo_files)} files for repo '{repo_id}'\"\n        )\n\n        if failed_items:\n            raise FileDownloadError(\n                f'{len(failed_items)} file(s) failed to download out of '\n                f'{len(filtered_repo_files)}.')"
+      }
+    ]
+  },
+  "modelscope_file_download.py": {
+    "whole_sha256": "0d864cf11ab822e2f355b59db785c1ebc41d6852d77fc7a38a57d6cd33a14b8d",
+    "bytes": 32070,
+    "installed_path": "/usr/local/python3.12.13/lib/python3.12/site-packages/modelscope/hub/file_download.py",
+    "source": [
+      {
+        "start": 752,
+        "end": 787,
+        "text": "        # Check file integrity\n        if FILE_HASH in file_meta:\n            expected_hash = file_meta[FILE_HASH]\n            hash_valid = True\n            if file_digest is not None:\n                if file_digest != expected_hash:\n                    logger.warning(\n                        'Mismatched real-time digest for %s, falling back to full hash check',\n                        file_meta['Path'])\n                    if not file_integrity_validation(temp_file, expected_hash):\n                        hash_valid = False\n            else:\n                if not file_integrity_validation(temp_file, expected_hash):\n                    hash_valid = False\n\n            if not hash_valid:\n                if hash_attempt < HASH_RETRY_TIMES - 1:\n                    logger.warning(\n                        'Hash validation failed for %s, '\n                        'retrying download (attempt %d/%d)', file_meta['Path'],\n                        hash_attempt + 1, HASH_RETRY_TIMES)\n                    # Clean up corrupted file before retry\n                    if os.path.exists(temp_file):\n                        os.remove(temp_file)\n                    continue\n                else:\n                    raise FileDownloadError(\n                        'File %s hash validation failed after %d attempts, '\n                        'the file may be corrupted.' %\n                        (file_meta['Path'], HASH_RETRY_TIMES))\n\n        # Hash validation passed or no hash to validate, exit retry loop\n        break\n\n    # Put file into cache\n    return cache.put_file(file_meta, temp_file)"
+      }
+    ]
+  }
+}

@@ -27,3 +27,5 @@ Decision table：首个合法batch已进入→关闭H3；late observation造成�
 Astra：YES。触发为Current长期None、最大PD Gap不清和现有错误产品前提。独立Review见`ASTRA_REVIEW.md`；Sol全接受证据纪律和单诊断建议，拒绝把排名当已测性能大小，也不激活Top3队列。
 
 H1保持旧窗口scoped REJECT；H2保持PARKED且非当前PD路线。没有新设备Run，不创建虚假Run ID。**本阶段没有新增代码级性能 KEEP。**
+
+补证据边界：`download_completion_sources.json`与两机`snapshot_cache_*.json`不能把历史cache补成当前上传终态；`.mv`mtime早于引用权重末次mtime。加载gate未解除，用户的上传工具状态问题尚无回复。checkpoint160代码/证据已在本机与166；公开GitHub发布因自动审批拒绝而待明确授权，不能写三方新HEAD一致。
