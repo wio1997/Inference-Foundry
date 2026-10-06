@@ -4,6 +4,7 @@
 
 | 当前问题 | 只读相关资料 |
 |---|---|
+| 新会话路径 / 当前产品版本 | [RECOVERY_INDEX](../RECOVERY_INDEX.md) / [CURRENT_PRODUCT_MAP](../CURRENT_PRODUCT_MAP.md)，按[恢复顺序](START_NEW_CHAT.md#恢复顺序)进入 |
 | 极限范围、L/U、动态容量、多配置 | [完整逻辑](research/MULTINODE_PD_SCHEDULING_LIMIT_PLAN.md) |
 | GLM层/专家、MLA/DSA、Full/Shared、MTP | [模型分析](research/GLM5_2_MODEL_AND_RUNTIME_ANALYSIS.md) |
 | V1/V2、MTP、PD/Graph/量化代码入口 | [源码索引](research/GLM5_2_VLLM_ASCEND_PATHS.md) |

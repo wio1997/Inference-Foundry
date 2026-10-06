@@ -111,7 +111,7 @@ GMU、batch、`max-num-batched-tokens`、KV大小、HCCL buffer、端口、TP/DP
 
 PID、hash、epoch、controller、artifact、ownership证据继续用于实验真实性、资源安全和可复现；只做到足够。不会影响性能归因、correctness或KEEP的信息不无限扩展，不让身份记录成为主要研究工作。只操作本次资源，不盲重启/重跑，不声称虚假后台。
 
-启动读取本文件、真实Git、HANDOFF和**当前**优化点；HANDOFF和point中的下一动作是当时建议。恢复后先审视目标/Gap及Goal Review信号，再选择代码路线；相关源码和决定性证据按需深入，不重放全仓库或全部历史。省token不能省掉裁决证据。
+启动顺序：核验branch/HEAD/rule → 本文件 → [RECOVERY_INDEX](RECOVERY_INDEX.md) → HANDOFF → [CURRENT_PRODUCT_MAP](CURRENT_PRODUCT_MAP.md) → CURRENT_PERFORMANCE_STACK / ledger → **当前**优化点 → 现场只读动态核验 → Performance Research Reset；完整步骤见START_NEW_CHAT。两份地图只索引路径/权威引用，不复制动态事实，不要求通读runtime或全部Run；HANDOFF和point中的下一动作是当时建议。恢复后先审视目标/Gap及Goal Review信号，再选择代码路线；相关源码和决定性证据按需深入，不重放全仓库或全部历史。省token不能省掉裁决证据。
 
 ## 10. 单一性能假说与Run决策价值
 

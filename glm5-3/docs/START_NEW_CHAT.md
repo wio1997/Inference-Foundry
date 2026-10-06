@@ -23,6 +23,20 @@ git diff --exit-code "$glm_rule_commit" -- glm5-3/AGENTS.md
 
 首次恢复摘要必须报告 **branch / HEAD / rule version与rule commit / active optimization point**（由points.jsonl定位）。这是一次必要入口核验，不是持续PID/hash/Git巡检主线。
 
+## 恢复顺序
+
+1. 核验branch / HEAD / 最新rule version与rule commit（上节）。
+2. 读根作用域入口及[AGENTS](../AGENTS.md)。
+3. 读[RECOVERY_INDEX](../RECOVERY_INDEX.md)，唯一恢复导航地图。
+4. 读[HANDOFF](../HANDOFF.md)。
+5. 读[CURRENT_PRODUCT_MAP](../CURRENT_PRODUCT_MAP.md)，定位现役与候选产品源码。
+6. 读[CURRENT_PERFORMANCE_STACK](../CURRENT_PERFORMANCE_STACK.md) / [CODE_PERFORMANCE_LEDGER](../CODE_PERFORMANCE_LEDGER.md)。
+7. 按导航定位active optimization point，仅读当前点所需记录与决定性证据。
+8. 经既有SSH只读核验动态状态，不启动服务、observer或GPU/NPU实验。
+9. 输出下述Performance Research Reset；unknown如实列出，后续动作由当前规则与Gap决定。
+
+路径、部署、安装源、Job与raw的发现统一查RECOVERY_INDEX；组件版本统一查CURRENT_PRODUCT_MAP。二者只是索引，不另存现场/Run/性能状态。
+
 ## 首次实际研究输出：Performance Research Reset
 
 新Sol会话或强制Goal Review后，**第一项GPU/NPU性能Run前必须输出**以下紧凑Reset，字段内容对应[AGENTS的十项要求](../AGENTS.md#0-启动身份与performance-research-reset)，记录在当前点的新恢复/评审记录中，不另建流程系统：
@@ -61,7 +75,7 @@ python3 glm5-3/scripts/simulate_zcode_handoff.py --output-dir /absolute/new/simu
 ```text
 接续 https://github.com/wio1997/Inference-Foundry 的glm5-3任务，研究分支glm5-3-autonomous-20261001；核对包含checkpoint158之后研究规则commit的Git状态。
 先fetch核验实际研究branch、HEAD包含最新rule commit、工作区AGENTS为最新rule version（本版GLM-RESEARCH-RULES-v2，不固定沿用旧SHA）；不匹配先恢复，禁止旧main/旧AGENTS研究。首次摘要报告branch/HEAD/rule version与rule commit/active optimization point。
-先读根AGENTS、glm5-3/AGENTS、HANDOFF和当前优化点（由points.jsonl定位；checkpoint158为GLM-OPT-0002），按需读PLAN、RECORDING、CODE_PERFORMANCE_LEDGER和模型策略，不复制全部历史。
+按恢复顺序：核验branch/HEAD/rule→AGENTS→RECOVERY_INDEX→HANDOFF→CURRENT_PRODUCT_MAP→CURRENT_PERFORMANCE_STACK/ledger→active point→现场只读动态核验→Performance Research Reset。路径只查导航，现役版本沿产品地图和真实argv/import定位；不通读runtime或全部Run。按需读PLAN、RECORDING和模型策略。
 GPT-6.1 Sol high作为性能架构师亲自负责目标/最大Gap/因果/架构/关键源码/复杂Runtime与Scheduler重构/实验设计/matched A/B/KEEP、REJECT、Current裁决。
 HANDOFF、历史Run、Zcode Summary、point下一问题和上一轮next_action只是证据；允许推翻假设、停止无Product Gain路线、删除不必要Runtime层和改变执行组织，不继承V2或既定路线的优先权。
 恢复后先执行Goal Review：最终产品、时间去向、最大可由代码消除的Gap、最近实验是否缩小Gap、今天重启是否还选这条路线。checkpoint158无性能KEEP，不能机械接续grammar/compatibility或参数扫描。
@@ -78,16 +92,11 @@ Zcode/DeepSeek只负责服务器、服务启动/停止/恢复、benchmark、moni
 
 若新对话暂时只做模拟，在指令末尾加：“本轮仅模拟交接，实际环境恢复留到我提供现场入口后。”
 
-## 3. 现场接入最少信息
+## 3. 现场接入
 
-能从新对话所在机器发现的不用重复填写；不能发现的补以下位置即可，凭据用既有SSH/本机配置，不贴聊天或Git：
+路径、两机SSH、容器、模型与安装源、现场操作文档及动态核验项目统一见[RECOVERY_INDEX](../RECOVERY_INDEX.md)，不在此复制。凭据只用既有SSH/本机配置，不能发现的入口明确unknown。
 
-- 真实仓库目录及vLLM/vLLM-Ascend源码或安装位置；目录未知可由现场只读查找。
-- 服务器连接方式/已连接host，以及当前允许操作的实例/设备范围。
-- Zcode CLI可执行路径或可用PATH，实际后端model id/版本按现场核验。
-- 当前P/D/proxy启动入口与已有controller身份；未知可提供配置/日志位置，先只读恢复，不能按旧PID盲重启。
-
-需要现场恢复时，第一个真实Job只读核验现状，不预设重启。已有证据直接复用；Sol核验规则身份、亲读必要源码/关键diff/profile/raw并输出Reset，再选择一个代码假说或最小补证据动作。协议VALID、功能成功或Summary均不能替代matched A/B与完整E2E，也不能提升Current。只做规则维护的会话不启动服务或性能Run，也不假装已完成现场Reset/架构Review。
+需要现场恢复时，第一个真实Job只读核验，不预设重启，不运行会修改epoch/state的observer。按上节顺序读取必要代码/diff/raw并输出Reset；已有证据直接复用。协议VALID、功能成功或Summary不能替代matched A/B与完整E2E，也不能提升Current。只做规则维护的会话不启动服务或性能Run，也不假装已完成性能Reset/架构Review。
 
 ## 4. 接续规则
 
