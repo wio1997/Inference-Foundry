@@ -1,5 +1,7 @@
 > checkpoint158之后按[AGENTS](../../AGENTS.md)执行：下列契约是correctness要求与设计知识，不要求增加同名模块或保留通用Runtime层。Sol性能架构师可删层、改变状态/调度/执行顺序、大幅重构；高成本大范围改造触发独立Astra Challenger Review。代码假说→Patch→Correctness→matched A/B→真实完整E2E，无匹配对照不算性能成果，无完整E2E不提升Current。连续无代码KEEP、模块增长而Current不升或compatibility长期占主线须Goal Review。标准PD含真实KV Transfer；各副本完整Prefill+Decode是Full Replica / Complete-request Placement，配置/部署/代码收益分账。历史Run/raw/裁决不修改。
 
+> v2限制：默认一个active性能假说加一个区分diagnostic；只有解释为何不可独立测试的强耦合改动可成一个组合假说，不能并行铺开多个未闭环优化。新增模块先答替代谁、为何不能已有模块实现、REJECT如何退休；REJECT/superseded退出后续默认路径，保留历史，最终有唯一最小产品入口。新会话/强制Review后先Reset，每Run先决策价值，PERF_KEEP遵循Type/噪声/完整stack门槛；硬阈值与完成条件按AGENTS。
+
 > 研究快照：整理于2026-10-01，随后作为按需资料发布；文中未提交/未运行陈述描述研究采集阶段，不代表后续Git发布状态。实际运行状态以局部HANDOFF和Git为准。
 
 # GLM 专用动态 Runtime：内部契约设计建议

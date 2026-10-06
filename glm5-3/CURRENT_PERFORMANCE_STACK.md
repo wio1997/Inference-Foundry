@@ -1,0 +1,14 @@
+# CURRENT_PERFORMANCE_STACK
+
+当前产品中正式PERF_KEEP且仍active的性能patch的唯一短索引；规则见[AGENTS](AGENTS.md)与[RECORDING](RECORDING.md)，各项验证引用[代码性能账本](CODE_PERFORMANCE_LEDGER.md)和原Run，不复制raw。
+
+当前无active性能KEEP stack。checkpoint158记录Current=None/性能KEEP无；本次在规则commit `df7399c28791`上增量维护规则，没有性能Run、PERF_KEEP、产品代码改动或服务切换。规则commit不是产品Current的代码性能身份证明。
+
+| Patch / Commit | 作用代码路径 | Matched baseline | 独立Gain | 当前是否启用 |
+| -------------- | ------------ | ---------------- | -------- | ------------ |
+
+表格为空，不将历史candidate、diagnostic、REJECT或功能/工程KEEP填入。以后每行只引用当前最终产品中已正式PERF_KEEP且仍active的patch/commit、路径、同口径matched baseline、独立E2E gain和启用状态/证据；未核验适用性不能假称active。
+
+新PERF_KEEP需同时确认“旧active stack + 新patch”整体correctness与完整E2E成立；独立收益比较旧stack对旧stack+patch。累计Product Gain必须完整stack相对Stock/声明baseline重新测量，不能把+5%、+8%、+7%加成+20%。完整stack证据及产品代码commit/功能合同/workload/E2E/剩余Gap由Current权威记录引用，本页保持短。
+
+架构变化时检查交互/回归，在新状态记录标记active / superseded / regressed及原因/证据，superseded/regressed从此active表退出；原历史KEEP裁决和源码证据不改。最终产品只计算当前active项，历史退出项保留在已有点/账本引用中，不扩展第二份历史数据库。

@@ -2,6 +2,8 @@
 
 从checkpoint158之后执行分工与研究路线按[AGENTS](../AGENTS.md)生效；协议/桥接schema保持不变，不实现自动模型路由，不改历史Job/Run/raw/裁决。PID/hash/epoch/controller/ownership只保留真实性、安全、可复现及裁决需要的信息，不扩展为主要研究工作。
 
+v2后续性能Job引用Sol的规则身份/Performance Research Reset、当前唯一性能假说及Run前Hypothesis / Distinguishing evidence / Decision table；没有研究门槛证据返回needs_decision，不自行创建路线、批量正式E2E或参数扫描。一个区分diagnostic仅服务该主假说；大型正式E2E等待诊断支持/correctness通过/产品裁决价值。这里是执行合同，不改桥接schema或假称工具已自动校验这些研究要求；功能/工程Job不计PERF_KEEP。
+
 用户确认Zcode是接DeepSeek的CLI，可使用`zcode --prompt`。后端具体model id、CLI路径及现场controller在执行环境核验；本次未实际调用DeepSeek或启动服务。协议固定可追溯交接，不限制研究方向。
 
 ## 1. 谁做什么

@@ -2,6 +2,8 @@
 
 从checkpoint158之后按[AGENTS](AGENTS.md)生效；本方案是后续研究方式，不改写历史实验与裁决。以模型语义为约束，以资源和条件成本为模型，以matched A/B及真实完整E2E为裁判。旧HANDOFF、point下一问题、next_action和方案候选仅作证据，无预设V1/V2或架构优先权。
 
+v2入口门槛：核验实际研究branch、HEAD/最新rule commit与AGENTS版本，首次报告active point；新会话或强制Goal Review后先[Performance Research Reset](AGENTS.md#0-启动身份与performance-research-reset)。默认仅1个active性能假说+1个区分diagnostic，切换前关闭/park/停止旧方向；强耦合组合解释无法独立测试。每个真实性能Run前写Hypothesis、Distinguishing evidence、Decision table，结果A/B若不改变决定就不执行；大型正式E2E等待诊断支持、correctness通过、patch值得裁决。Gap unknown只做一个最小补证据动作，不扫描或批量E2E。
+
 1. **定义问题**：当前硬件可行域、完整功能、负载/到达/cache条件、既有SLO与性能对象。单次比较清楚，后续探索可扩展。
 2. **恢复必要关系**：GLM主干/Full-Shared indices/MTP/提交/KV/通信/输出的producer-consumer和生命周期；区分必要依赖与当前额外顺序。模型共享机制须映射实际实现。
 3. **建立条件成本**：shape、batch、上下文、MTP、placement及竞争会改变现有算子成本。HCCL可能包含peer wait，并发不天然等于max(独立耗时)。
@@ -30,8 +32,12 @@ GMU/batch/token budget/KV/HCCL buffer/端口/并行比例/MTP深度/Graph开关/
 
 具体来源按需查[研究索引](docs/README.md)；记录与避免重复见RECORDING/REUSE。
 
+后续代码工作按Type分类；只有PERFORMANCE、correctness、matched A/B及噪声感知重复完整E2E Gain能PERF_KEEP。至少两次可比较matched结果或预定义足够长稳定服务对照窗口，gain接近波动用A/B/A或B/A/B，无法隔离影响标MIXED / INCONCLUSIVE。[当前active stack](CURRENT_PERFORMANCE_STACK.md)只列仍生效的正式性能KEEP；验证旧stack+新patch整体，累计收益完整stack重测不相加。Current绑定产品代码commit/stack/功能合同/标准workload/E2E/剩余Gap，旧patch适用状态另记active/superseded/regressed而不改原裁决。
+
 ## Goal Review与checkpoint
 
-连续多个有效实验无代码KEEP、INVALID比例明显升高、方向扩散、模块增长而Current不升、参数扫描主导、性能关键链关系不清或边缘API/driver/compatibility长期占主线时，暂停惯性Run，按[AGENTS](AGENTS.md#8-强制goal-review)重新回答五个目标问题。必要时触发[独立Astra Review](docs/research/AGENT_MODEL_STRATEGY.md#astra-challenger-review)，Sol最终裁决；不值得继续立即停止低价值路线。
+连续5个有效性能Run无新代码KEEP、3个代码candidate无Product Gain、3个INVALID/driver failure、新增两个以上模块而Current不变、跨两个以上新领域而原问题未关闭、非目标功能问题占多个Run或最大Gap无法清楚描述时，必须按[AGENTS](AGENTS.md#8-强制goal-review)Goal Review。INVALID比例升高、方向扩散、参数扫描主导或关键链关系不清可提前触发，不能等跑满配额。必要时触发[独立Astra Review](docs/research/AGENT_MODEL_STRATEGY.md#astra-challenger-review)，Sol记录接受/拒绝与原因；不值得继续立即停止，Review后重新Reset。
+
+功能与性能双轨：非阻塞correctness问题记backlog，明确阻塞产品完整性/性能裁决才暂停性能lane。新增模块回答替代谁、为何不能现有实现、REJECT如何退休；无效/过时实验退出默认路径，最终Runtime入口明确最小。阶段完成按AGENTS的最佳Runtime/active stack/重复E2E/主要功能合同/已知剩余Gap/无高置信巨大未验Gap/最终Astra或无需理由验收，报告当前与baseline、重测累计Gain、有效KEEP、限制和低价值backlog，不以Run失败或预算耗尽完成。
 
 checkpoint先报新增代码KEEP、E2E Gain、最大剩余Gap与下一最高价值代码问题；无新增时写“本阶段没有新增代码级性能 KEEP。”工程证据足够支撑性能归因/correctness/KEEP、真实性、安全和可复现即可，不以Run、文档或模块数量评估进度。

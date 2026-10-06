@@ -1,5 +1,7 @@
 > checkpoint158之后以[AGENTS](../../AGENTS.md)、[模型策略](AGENT_MODEL_STRATEGY.md)和[RECORDING](../../RECORDING.md)为准：代码优化优先，matched A/B与真实完整E2E是代码KEEP/Current门槛，配置/部署/代码分账并维护[代码性能账本](../../CODE_PERFORMANCE_LEDGER.md)。旧next_action与候选顺序不绑定路线；Goal Review信号出现即暂停惯性Run。标准PD包含真实P Prefill→KV Transfer→D Decode；各副本完整Prefill+Decode称Full Replica / Complete-request Placement，历史调度进产品须新裁决。
 
+> v2增量规则覆盖下面旧组合/并行建议：启动核验最新规则身份，新会话/强制Review后先Reset；默认1个active假说+1个区分diagnostic，不可同时铺开多个未闭环优化；跨模块组合需解释不可拆分。真实性能Run前证明决策价值，大型E2E等待诊断/correctness；代码工作按Type分类，PERF_KEEP、噪声/active stack、双轨backlog、模块退出、Current代码身份与阶段完成均按AGENTS。
+
 > 研究快照：整理于2026-10-01，随后作为按需资料发布；文中未提交/未运行陈述描述研究采集阶段，不代表后续Git发布状态。实际运行状态以局部HANDOFF和Git为准。
 
 # GLM专用推理框架：动态PD与极限调度方案

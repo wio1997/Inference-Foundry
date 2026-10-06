@@ -1,16 +1,34 @@
 # 优化点、实验与Git提交规范
 
-从checkpoint158之后按[AGENTS](AGENTS.md)执行。所有历史Run、raw evidence、历史裁决及旧point/next_action保持原样；新的解释、产品取舍或重新裁决另写新记录并引用原证据，不追溯改账。
+从checkpoint158之后按[AGENTS](AGENTS.md)执行；本次在`df7399c28791`上增量采用`GLM-RESEARCH-RULES-v2`。所有历史Run、raw evidence、历史裁决及旧point/next_action保持原样；新的解释、产品取舍或重新裁决另写新记录并引用原证据，不追溯改账。以下字段加入已有点/Run/恢复记录即可，不另建审批或自动路由系统。
 
 GitHub保存权威代码/配置、事实摘要、裁决和可追溯证据。运行机器保存大raw artifact，Git记录稳定位置、大小、SHA256及关键归约；不提交权重、大trace或凭据。文件数量不作为进度。
 
 ## 1. 一点一身份，一次执行一个Run
 
-- 优化点：`GLM-OPT-NNNN`，按问题/机制划分，允许成套重构与多个相关实验。摘要放`records/points/<ID>/point.md`，索引`records/points.jsonl`。
+- 优化点：`GLM-OPT-NNNN`，按问题/机制划分；默认仅1个active performance hypothesis + 1个区分它的diagnostic，相关实验顺序收敛，不代表可同时激活多个候选。强耦合不可拆分修改可作一个组合假说，须说明无法独立测试的原因。摘要放`records/points/<ID>/point.md`，索引`records/points.jsonl`。
 - Run：`GLM-RUN-NNNN`，记录真实执行的代码、合同、命令、观察器、结果与证据。默认在优化点下`runs/<Run>/`，不同配置/采集不得伪装同一次执行。
 - 沿用根`scripts/taskctl.py`的Task/Loop/Run、compare和resume机制；若采用它，其目录为唯一权威路径，点索引只引用，避免复制第二份状态。先恢复真实源码目录，勿用假路径初始化；其算子字段/固定Loop习惯不限制GLM研究。
 
 初始点允许PLANNED且没有Run；未执行不填性能。索引仅保留ID、标题、类别、状态、权威路径和关键Run/Current引用。
+
+切换性能方向前将当前假说明确为KEEP / PERF_KEEP、REJECT、INCONCLUSIVE / PARKED或因更大Gap被显式停止，并记录原因；不能通过开新点掩盖未闭环候选。
+
+## 入口Reset与Run决策价值
+
+首次恢复记录branch、HEAD、最新rule version / rule commit、active optimization point；不匹配先恢复，不能旧main/旧规则研究。新会话或强制Goal Review后，任何GPU/NPU性能Run前先产出[Performance Research Reset](AGENTS.md#0-启动身份与performance-research-reset)：产品一句话、可信完整E2E/Current与active stack、一个最大代码Gap、3～5条决定性证据、源码文件/类/函数、非模型必要工作、候选代码、理论减少/删除/重叠工作、最小matched A/B、Astra YES/NO。缺Gap证据只允许一个最小diagnostic/profile补证据，再更新Reset。
+
+每个新的真实性能Run前用以下紧凑准备记录，不启动GPU/NPU也可完成源码/证据检查：
+
+```text
+Hypothesis: 想证明或否定什么（当前唯一active hypothesis）
+Distinguishing evidence: 决定性指标/观察、窗口/覆盖与最小工作量
+Decision table:
+  结果A（事先定义的条件/阈值） -> 下一决定
+  结果B（相反或其他可区分条件） -> 下一决定
+```
+
+若A/B都导向同一决定，则无区分价值，不执行。大型正式E2E只在最小诊断（可复用已足够证据）支持代码假说、correctness通过、patch值得产品裁决后执行；不用61K输出Run回答几秒micro/diagnostic能回答的事。噪声复测也预先说明接受/拒绝/继续辨因的条件，不以执行本身当决策。
 
 ## 2. 优化点最小内容
 
@@ -34,7 +52,7 @@ GitHub保存权威代码/配置、事实摘要、裁决和可追溯证据。运�
 
 `manifest.json`记录：
 
-- ID/优化点、时间、kind（formal_e2e/diagnostic/profile/microbenchmark/simulation等）、实际执行状态。
+- ID/优化点、时间、kind（formal_e2e/diagnostic/profile/microbenchmark/simulation等）、实际执行状态；后续代码工作另记Type（与Run kind不同），关联Reset/active hypothesis及Run前决策表。
 - 框架/source repo与commit；有未提交改动则记录base+patch artifact/hash及关键文件hash。代码、镜像、模型/量化、设备/rank/部署和effective config身份。
 - 实际命令/cwd/内层exit/超时；负载、到达、采样/MTP/Graph/cache条件及相关有效工作量。比对Run和可比性说明。
 - 风险相称的功能/状态验证、完整请求/有效输出、吞吐/延迟/错误与观察器开关。缺失填null/unknown，不臆造。
@@ -44,7 +62,7 @@ GitHub保存权威代码/配置、事实摘要、裁决和可追溯证据。运�
 
 ## 4. 提交与裁决
 
-提交按可审阅变化组织，不每个编辑都commit，也不强制一轮一个机制：
+提交按可审阅变化组织，不每个编辑都commit；一个不可拆分组合假说可以跨模块，但不能并行积累多个未闭环性能候选：
 
 ```text
 glm(opt): GLM-OPT-0007 describe final code/config change
@@ -54,9 +72,9 @@ glm(knowledge): record applicability and revalidation conditions
 
 代码提交与实验记录相互链接；Run固定被测code ref，记录提交固定该Run证据。推送前核对实际diff，不夹带他人改动；研究分支按任务选择，Git更新不force覆盖并发工作。
 
-裁决分`KEEP / REJECT / INCONCLUSIVE / INVALID / REUSED / NOT_APPLICABLE`。**没有matched A/B的代码不算性能成果；没有真实完整E2E的结果不得提升Current。** 代码级KEEP需要功能/状态有效、同口径matched A/B及可重复的完整E2E Product Gain；微测/profile/模拟/内部TPS/功能VALID只支持各自结论。REJECT写原因、未知与值得重验条件，不永久否定整个方向。
+后续裁决使用`PERF_KEEP / KEEP / REJECT / INCONCLUSIVE / INVALID / REUSED / NOT_APPLICABLE`；PARKED是暂停候选状态，不是性能成功，MIXED是混合归因标记。**没有matched A/B的代码不算性能成果；没有真实完整E2E的结果不得提升Current。** 只有`Type = PERFORMANCE`、功能/状态有效、matched A/B及可重复完整E2E Product Gain才能得到PERF_KEEP。其他Type可保留功能/工程改动，但其KEEP不是代码性能KEEP；历史裁决/字段名不追溯转换。REJECT写原因、未知和重验条件。
 
-Matched A/B至少匹配模型/算子/资源、负载与到达/有效工作量、功能与SLO合同、采样/MTP/cache/Graph相关条件及观察器，明确baseline和patched的code/config身份与目标patch。实际输出/接受轨迹有随机波动时说明配对/重复及可比性，不假称完全一致；按噪声选择重复、顺序或交叉对照，不强制每Run重型profile。配置/部署随patch变化须补能隔离代码收益的对照；不能隔离就标混合收益INCONCLUSIVE，不算代码KEEP。
+Matched A/B至少匹配模型/算子/资源、负载与到达/有效工作量、功能与SLO合同、采样/MTP/cache/Graph相关条件及观察器，明确baseline/patched的code/config身份与目标patch。正式PERF_KEEP至少两次可比较matched A/B结果，或一个足够长、预先定义验收标准的稳定服务对照窗口（也需要baseline）。报告波动/噪声；gain接近已知波动时用`A/B/A`或`B/A/B`等bracketed comparison。实际接受/输出轨迹有波动时说明配对和可比性，不假称完全一致；不强制重型profile。配置/cache/部署/MTP轨迹等影响无法隔离时标`MIXED / INCONCLUSIVE`，不算代码Gain或PERF_KEEP。
 
 收益类别分别记`code / configuration / deployment`，工作量或算法变化也单列比较边界。GMU、batch、max-num-batched-tokens、KV/HCCL buffer、端口、TP/DP/PP/DCP、MTP深度、Graph开关和实例数本身不计代码成果，只用于公平baseline、代码假说、可运行性和资源辨因；禁止无限参数扫描。
 
@@ -66,8 +84,24 @@ Matched A/B至少匹配模型/算子/资源、负载与到达/有效工作量、
 
 ## 5. 代码性能账本与Goal Review
 
-[CODE_PERFORMANCE_LEDGER](CODE_PERFORMANCE_LEDGER.md)是代码候选结果的单一紧凑汇总，列为`Code Optimization | Baseline | Patched | Gain | Correctness | Verdict`；使用现有优化点ID、code ref、matched Run与裁决引用，不复制Run/raw。配置和部署收益单列在对应点记录，不计代码KEEP。只有代码级KEEP算主要进展，无新增时必须写：`本阶段没有新增代码级性能 KEEP。`
+[CODE_PERFORMANCE_LEDGER](CODE_PERFORMANCE_LEDGER.md)是后续工作结果的单一紧凑汇总，列为`Code Optimization | Type | Baseline | Patched | Gain | Correctness | Verdict`。Type为`PERFORMANCE / CORRECTNESS / FUNCTIONAL / INFRASTRUCTURE / DIAGNOSTIC / CONFIGURATION / DEPLOYMENT`；用现有优化点ID、code ref、matched Run和裁决引用，不复制raw。配置/部署单独归类，不能填PERF_KEEP；其他Type不能以代码量包装性能。只有PERF_KEEP算主要进展，无新增时必须写：`本阶段没有新增代码级性能 KEEP。`
 
 重要checkpoint先报新增代码KEEP及各E2E Gain、当前最大剩余Gap、下一最高价值代码问题；unknown明确写。出现[AGENTS的Goal Review信号](AGENTS.md#8-强制goal-review)即暂停惯性Run，在新checkpoint/当前点简短记录五问、证据、unknown和继续/转向/停止决定，必要时触发独立Astra Review。旧next_action只作历史证据，不改写，也不机械继承。
 
+硬阈值为连续5个有效性能Run无新代码KEEP、连续3个代码candidate无Product Gain、连续3个INVALID/driver failure、新增两个以上Runtime模块而Current不变、主线跨两个以上新领域而原问题未关闭、非目标功能问题占多个Run或最大Gap无法清楚描述；可提前Review，不能靠更名/新会话重置无收益事实。Review后重新Reset才进入性能Run。
+
 PID/hash/epoch/controller/artifact/ownership记录只做到足够：实验真实性、资源安全、可复现及性能归因/correctness/KEEP所需。无判断价值的信息不无限追加；Run、commit、文档、Runtime模块和方向数量不衡量研究进展。
+
+## 6. 当前stack、交互回归与产品Current
+
+[CURRENT_PERFORMANCE_STACK](CURRENT_PERFORMANCE_STACK.md)仅列正式PERF_KEEP且当前产品仍active的patch/commit、代码路径、matched baseline、独立gain与启用状态。新patch比较“旧stack”对“旧stack+patch”的独立收益，同时确认完整stack的correctness/E2E；累计Product Gain须完整stack相对Stock/声明基线重测，不能将独立百分比相加。
+
+旧patch在新架构失效、冲突、收益覆盖或回归时，在新状态记录`active / superseded / regressed`、原因与证据，退出active stack；原历史裁决保持不变。尚未验证新架构适用性时明确unknown，不能继续冒用旧Gain。REJECT/superseded实验模块退出后续默认路径，历史版本仍保留。
+
+Current的唯一权威证据引用必须连同**产品代码commit（未提交差异另引用patch）、active stack、完整功能合同、标准workload、同口径E2E指标/噪声、最大剩余Gap**一起恢复。架构/功能/workload变化后旧指标适用性未验证则标Current unknown/待重验，不拿旧最快Run证明新代码。规则commit或功能VALID不建立产品Current。
+
+## 7. 双轨backlog、模块约束与完成
+
+Product correctness lane处理API/Tool/Responses/Grammar/状态恢复/错误协议/bug，Performance lane处理Scheduler/MTP/Graph/PD/KV/通信/CPU与framework/device idle。correctness问题若同时不阻塞目标workload、不影响性能代码合法性、不影响发布功能门槛，写到当前点的correctness backlog（问题/证据/影响/重入条件），不升级性能主线。明确阻塞产品完整性或性能裁决才暂停性能lane，记录最小修复范围；功能完整性仍是发布门槛。
+
+新增Runtime模块前简答替代谁、为何不能现有模块实现、REJECT如何退休；记录唯一current product path与最小入口，不靠版本序列堆模块。阶段完成按[AGENTS](AGENTS.md#12-阶段性完成条件)核对最佳Runtime、active stack、重复完整E2E、主要功能合同、已知剩余Gap、无高置信可实施巨大未验Gap、最终Astra Review或无需理由，输出Stock/baseline与当前性能、重测累计Gain、有效KEEP、限制和低价值backlog。不能用预算耗尽/Run失败代替完成结论。

@@ -2,6 +2,8 @@
 
 2026-10-06，从checkpoint158（父commit `e378d459e08e9f12300118e158bba16db6c4d04f`）之后生效，替代旧日常分工与研究优先级。历史Run、raw evidence、模型调用记录及裁决保持原样。[局部AGENTS](../../AGENTS.md)是研究规则入口；本文不切换当前会话模型、不启动服务/实验、不实现自动模型路由。
 
+本次在`df7399c28791`上增量采用`GLM-RESEARCH-RULES-v2`：Sol首次核验branch/HEAD/最新rule version与rule commit/active point，新会话或强制Goal Review后先Performance Research Reset，再进入性能Run。规则身份核验不扩大为长期工作。
+
 ## 默认分工
 
 | 角色 | 产物与边界 |
@@ -33,11 +35,30 @@ Astra独立回答：
 4. 哪些历史方向应该停止？
 5. 如果今天根据现有证据重新开始，会选择什么路线？
 
-结果区分事实、推断、unknown，指向代码路径/证据，提出能区分路线的下一代码问题。Sol亲自检查相关真实代码和完整E2E证据，记录采纳/否定理由，最终裁决KEEP / REJECT / Current；Review意见不是性能KEEP。Astra暂不可用时如实记录，先完成Sol的Goal Review与证据研究，不无限重复低价值Run，不假称已审查。
+结果区分事实、推断、unknown，指向代码路径/证据。Sol亲查相关真实代码与完整E2E，最终裁决PERF_KEEP / REJECT / Current；Review意见不是性能KEEP。Astra暂不可用如实记录，先完成Sol的Goal Review与证据研究，不无限重复低价值Run，不假称已审查。
+
+### 固定Review Package与输出
+
+Sol不复制整个历史聊天，只给紧凑输入包：
+
+1. 最终产品。
+2. 当前可信Current（产品代码、active stack/合同/workload/E2E引用，缺失写unknown）。
+3. 当前critical path。
+4. 最大Gap假说。
+5. 关键源码入口。
+6. 当前patch / diff（尚无patch明确写无）。
+7. 最重要profile / trace。
+8. 最重要matched Run。
+9. 2～3个已否定解释（不足如实写unknown，不发明反例）。
+10. 当前可选架构/方向。
+
+Astra必须输出：**最大Gap排名；当前主线KEEP / STOP / PIVOT建议；Top 3最高价值代码问题；明确Stop List；最小区分性实验；证据中最可能被误读之处**。这里路线KEEP不是代码PERF_KEEP。Sol记录**接受哪些 / 拒绝哪些 / 为什么**，随后在唯一主假说与Reset中体现决定。Astra不成为第二个长期主Agent，Top 3不是同时激活的候选，也不能生成无限探索队列。
 
 ## Zcode执行层与Sol直接研究责任
 
 Sol定义代码问题、假说、服务/Run合同和验收；Zcode在边界内执行、采集和归约，给有证据的条件结论。涉及**最大Gap、根因、架构、关键代码优化或KEEP**，Sol必须亲自阅读必要源码、关键diff、profile和决定性原始证据，不能只依赖Zcode Summary。大raw留现场，主Agent定向读关键片段；不需要接收或重复归约全部日志。
+
+Zcode接到新真实性能Run前须有Sol的Reset/唯一假说与Hypothesis、Distinguishing evidence、Decision table引用；缺少时返回needs_decision，不自行补成研究路线或批量扫描。大型正式E2E等待诊断支持、correctness通过、patch值得产品裁决；共享controller不把未来候选批量入队。规则维护本身不调用现场服务/启动性能实验。
 
 按[Job/Result协议](../ZCODE_PROTOCOL.md)交接；已有subagent如使用同样协议，不能替代Sol研究责任。共享服务/源码/设备由唯一controller排程，离线只读归约可独立。Zcode不可用或委派成本超过工作本身时直接用现成脚本，保留同样的真实性与归约要求。
 
@@ -56,6 +77,10 @@ PID/hash/epoch/controller/artifact/ownership只保留支持真实性、资源安
 
 代码优化优先于配置探索。标准PD是`Request → P Prefill → KV Transfer → D Decode → Output`；A/B各自完整Prefill+Decode是Full Replica / Complete-request Placement，历史prefill-aware/prefill-work/work-seconds只作待重裁决知识。V1/V2与各种部署无预设优先权，按最大可信代码Gap选择。
 
-闭环为`Observe → 最大可信 Gap → 具体代码路径 → 代码假说 → Patch → Correctness → Matched A/B → 真实完整 E2E → KEEP / REJECT`。没有matched A/B不算性能成果；没有完整E2E不得提升Current。配置、部署、代码收益分开，只有代码级KEEP算主要进展，沿用[代码性能账本](../../CODE_PERFORMANCE_LEDGER.md)。无新增时写：**本阶段没有新增代码级性能 KEEP。**
+闭环为`Observe → 最大可信 Gap → 具体代码路径 → 代码假说 → Patch → Correctness → Matched A/B → 真实完整 E2E → KEEP / REJECT`。没有matched A/B不算性能成果；没有完整E2E不得提升Current。按Type分账，只有PERFORMANCE+correctness+matched A/B+噪声感知重复完整E2E Product Gain得到PERF_KEEP：至少两次可比较matched结果或预定义验收的足够长稳定服务对照窗口，gain接近波动用A/B/A或B/A/B，影响无法隔离标MIXED / INCONCLUSIVE。沿用[账本](../../CODE_PERFORMANCE_LEDGER.md)与[active stack](../../CURRENT_PERFORMANCE_STACK.md)，新patch验证完整stack，累计gain重新测量不相加；原裁决保留，当前适用性另记active/superseded/regressed。无新增时写：**本阶段没有新增代码级性能 KEEP。**
 
 [AGENTS的强制Goal Review](../../AGENTS.md#8-强制goal-review)任一信号出现即暂停惯性Run，重新检查最终产品、时间去向、最大可消除代码Gap、实验是否缩小Gap以及今天重启是否仍选该路线；必要时触发上述Astra Review，不值得继续立即停止。重要checkpoint先报新增代码KEEP及E2E Gain、剩余最大Gap、下一最高价值代码问题；不以Run、commit、文档、模块或方向数量评价研究质量。
+
+Goal Review硬阈值：连续5个有效性能Run无新代码KEEP、3个代码candidate无Product Gain、3个INVALID/driver failure、新增两个以上模块而Current不变、跨两个以上新领域原问题未关、非目标功能问题占多个Run或Gap无法清楚描述；可更早触发，Review后重新Reset。默认1个active hypothesis+1个区分diagnostic，切换前关闭/park/显式停止旧方向；强耦合组合需说明不可拆分。
+
+Sol保持Product correctness lane与Performance lane分开；非阻塞功能问题记backlog，不自动劫持性能主线，明确阻塞完整性/裁决才暂停。新增模块先说明替代谁、为何不能现有实现、REJECT如何退休；最终最小产品入口和Current的代码/stack/合同/workload/E2E/Gap必须一致。阶段完成按AGENTS验收，包括最终Astra架构Review或明确无需理由，不以Run不动/预算耗尽宣布完成。
