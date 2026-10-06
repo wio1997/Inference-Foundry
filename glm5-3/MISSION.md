@@ -14,7 +14,7 @@ checkpoint158之后的研究优先级以[AGENTS](AGENTS.md)为准：代码优化
 
 - 用户确认两台同规格、卡配置相同的Ascend910C服务器；结合前文按每台8卡16芯理解，实际rank/实例映射待核验。
 - 初始背景为vLLM-Ascend0.27、PD已运行、参考DP1/TP16/EP16、GLM采用MTP；这不是当前现场事实。checkpoint159现役是无KV connector的完整请求副本，见[产品地图](CURRENT_PRODUCT_MAP.md)，与用户目标不符。Run101有真实PD功能证据，但没有完整PD产品验收或性能KEEP。
-- 用户2026-10-06切换目标到GLM-5.3 W8A8，两机实际上传目录为`/data/tiankuan/wio/GLM-5.3-w8a8`，与旧权重独立；新服务模型名`glm-53`。上传完成、config/index/tokenizer与分片完整性、实际artifact/cache dtype、MTP及安装版本支持均待核验。上传期间只改配置与资料，不加载、不启动服务或测试；不将旧GLM-5.2结构、功能及性能结果改标为5.3证据。
+- 用户2026-10-06切换目标到GLM-5.3 W8A8，两机实际上传目录为`/data/tiankuan/wio/GLM-5.3-w8a8`，与旧权重独立；新服务模型名`glm-53`。新对话已获授权继续实现/验证/实验，早前上传期间仅资料约束不限制独立源码与CPU研究；上传未终态前仍不加载、不启动模型或设备测试。[checkpoint160](records/points/GLM-OPT-0002/research/pd_critical_path_20261006/CHECKPOINT160.md)核验全部索引引用文件的header结构、tokenizer和实际安装消费者；上传工具终态、payload校验和、fit/MTP/功能及真实完整PD性能仍待证明，不将旧GLM-5.2结果改标为5.3。
 - 本阶段当前两台资源内收敛；未来1P3D等只是配置例子，不等于固定目标或物理机数。额外资源未具备的方向给当前结论。
 
 ## 性能与功能合同

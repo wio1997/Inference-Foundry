@@ -1,0 +1,16 @@
+[
+  {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_mtp.py",
+    "sha256": "9905fd468d612e579a120be8c080460b49a79561b34a38ded6fbf0954212667f",
+    "source": "class AscendGlmMoeDsaForCausalLM(GlmMoeDsaForCausalLM):\n    def load_weights(self, weights: Iterable[tuple[str, torch.Tensor]]) -> set[str]:\n        if vllm_version_is(\"0.27.1\"):\n            loader = AutoWeightsLoader(self, skip_prefixes=[\"rot.\"])\n            return loader.load_weights(weights)\n        mapper = WeightsMapper(orig_to_new_prefix={\"rot.\": None})\n        loader = AutoWeightsLoader(self)\n        return loader.load_weights(weights, mapper=mapper)",
+    "start": 74,
+    "end": 81
+  },
+  {
+    "path": "/vllm-workspace/vllm/vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "bcbd9cde689ffe3f5f271aff3a5e01351b05a68371192cac9d65cb5ffc6b4ba9",
+    "start": 1092,
+    "end": 1130,
+    "source": "\n        # IndexCache config\n        # Refer: https://arxiv.org/abs/2603.12201 for more details.\n        _skip_topk = False\n        is_mtp_layer = False\n        if self.is_v32:\n            _index_topk_freq = getattr(config, \"index_topk_freq\", 1)\n            _index_topk_pattern = getattr(config, \"index_topk_pattern\", None)\n            _index_skip_topk_offset = getattr(config, \"index_skip_topk_offset\", 2)\n            layer_id = extract_layer_index(prefix)\n\n            if _index_topk_pattern is None:\n                _skip_topk = (\n                    max(layer_id - _index_skip_topk_offset + 1, 0) % _index_topk_freq\n                    != 0\n                )\n            elif 0 <= layer_id < len(_index_topk_pattern):\n                _skip_topk = _index_topk_pattern[layer_id] == \"S\"\n\n            # The skip pattern only governs backbone layers. MTP/nextn\n            # layers (layer_id >= num_hidden_layers) always build a full\n            # indexer: they compute indices at draft step 0 and toggle\n            # at runtime via set_skip_topk\n            # (index_share_for_mtp_iteration).\n            _num_hidden_layers = getattr(config, \"num_hidden_layers\", None)\n            is_mtp_layer = (\n                _num_hidden_layers is not None and layer_id >= _num_hidden_layers\n            )\n\n        if self.is_v32 and (not _skip_topk or is_mtp_layer):\n            self.indexer_rope_emb = get_rope(\n                qk_rope_head_dim,\n                max_position=max_position_embeddings,\n                rope_parameters=config.rope_parameters,\n                is_neox_style=not getattr(config, \"indexer_rope_interleave\", False),\n            )\n            self.indexer = Indexer(\n                vllm_config,\n                config,"
+  }
+]

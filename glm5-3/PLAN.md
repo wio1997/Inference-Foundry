@@ -6,7 +6,7 @@
 
 ## 当前执行方案：标准PD优化
 
-2026-10-06用户要求“先调整方案”。本轮仅完成方案修订与已有证据归约，不启动部署、推理、profile、benchmark或候选patch。以下是研究顺序，不是已下发controller的执行队列。Current=None，active PERF_KEEP为空；[目标纠正与源码证据](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。
+2026-10-06早前“先调整方案”的仅资料阶段已结束；用户已授权在新对话继续必要代码实现、验证和实验。已进入实际源码/raw研究、两机artifact结构核验和CPU诊断实现，见[checkpoint160](records/points/GLM-OPT-0002/research/pd_critical_path_20261006/CHECKPOINT160.md)。权重上传/完整性、现场资源与操作条件仍须先核验；上传未终态前不加载/测试，独立源码与CPU工作继续。以下是研究顺序，不是旧controller执行队列。Current=None，active PERF_KEEP为空；[目标纠正与源码证据](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。
 
 **产品固定为GLM-5.3 W8A8的 `请求 → P Prefill → KV Transfer → D Decode/MTP → 有效输出`。** 两机目标权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`。2026-10-06用户正在上传；配置已切目标不代表artifact完整或已加载，完成并核验前不启动模型或测试。P池、D池分别组织DP/TP/EP域；不能将任一角色改成完整请求副本来代替PD。保持现有正确算子、全部功能、有效计数与SLO；基线与patched固定同一5.3模型身份，旧版本数据不构成新模型基线。
 

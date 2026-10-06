@@ -17,6 +17,7 @@ checkpoint159已完成实际源码与原始证据研究；[Sol裁决](records/po
 | GLM-OPT-0002 native FIFO/future/PP observer与机械归约 [code](records/points/GLM-OPT-0002/research/engine_commit_20261006/commit_trace.py) | DIAGNOSTIC | not applicable | Run242 host + Run244 offline device | not applicable；无产品Gain | 6项CPU native语义；4×64 token commit/SSE；16 rank真实事件；范围有限 | KEEP仅诊断工具，原服务恢复，未进stack |
 | GLM-OPT-0002 H1 ready-useful commit优先级候选（未实现） | PERFORMANCE | Run242诊断，非matched E2E | none | unknown | [原始关联裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/H1_DECISION.md) | REJECT限已观测窗口，未实施drain-first |
 | GLM-OPT-0002 H2 phase-cohort admission条件候选（未实现） | PERFORMANCE | Run244观察，非matched E2E | none | unknown | 实际stage/broadcast；并行合法性/拆批成本未证 | [INCONCLUSIVE/PARKED](records/points/GLM-OPT-0002/research/engine_commit_20261006/H2_DEVICE_DECISION.md) |
+| GLM-OPT-0002 H3 PD completion host观测/reducer（opt-in，未接现役） | DIAGNOSTIC | none | 无性能patch/设备Run | unknown | [8CPU检查/真实安装类与166 Python](records/points/GLM-OPT-0002/jobs/PD-DIAGNOSTIC-CPU-20261006/result.json)；[源码/raw与限制](records/points/GLM-OPT-0002/research/pd_critical_path_20261006/CHECKPOINT160.md) | KEEP仅诊断；性能假说INCONCLUSIVE，不进Current/stack |
 
 上表区分诊断工程保留、未实现性能候选与PERF_KEEP；诊断KEEP不算主要性能进展。每行用优化点ID/简短改动及code/diff引用、工作Type；性能Baseline/Patched引用同合同matched Run、完整E2E指标/单位；Gain写公式、重复/波动/范围；Correctness和Verdict链接验证及Sol裁决。非性能工作无matched性能数据时写not applicable/unknown，不发明Gain。缺性能对照或完整E2E标INCONCLUSIVE，执行无效标INVALID，归因混合标MIXED / INCONCLUSIVE；不能以局部TPS代填E2E。
 
