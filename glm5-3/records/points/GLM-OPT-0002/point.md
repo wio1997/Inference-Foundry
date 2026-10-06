@@ -1,5 +1,7 @@
 # GLM-OPT-0002 — 完整请求部署与动态 placement
 
+2026-10-06T01:51Z checkpoint157：用户“你再试试”后以全新CPU Job NATIVE-RESPONSES-COMPATIBILITY-CPU-20261006T015132Z-v4实际重试zcode --prompt→bridge，01:51:41再次provider tiankuan-dsv 402“企业账户余额不足”/CLI1/stdout0/stderr2118B/无Result；CPU probe未执行，0新增GPURun/0候选激活。最新日志原址/hash及只读复核在GLM-OPT-0002/zcode_retry_20261006.json。public239/D0 239/D1 211健康，HOST启动ticks不变，两task locks可获取，239controller已退出；未恢复旧队列。完整目标未完成，CurrentNone；这是用户恢复后的第一轮阻塞，未新建目标、未声称完成或重复标三轮blocked。下一步在Zcode账户恢复后用fresh未claim Job继续V14 CPU与真实功能E2E。
+
 OPEN/执行BLOCKED_EXTERNAL_ZCODE，CurrentNone/SLO稳定容量和全可行域上界unknown，完整目标未完成。
 
 ## checkpoint156
