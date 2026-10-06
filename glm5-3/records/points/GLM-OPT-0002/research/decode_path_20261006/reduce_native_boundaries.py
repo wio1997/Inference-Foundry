@@ -88,7 +88,7 @@ def reduce(root):
 if __name__=='__main__':
  here=Path(__file__).resolve().parent;root=here.parents[1]/'runs/GLM-RUN-0258';out=reduce(root)
  detail=dict(calls=out.pop('calls'),outside_native=out.pop('outside_native'));import gzip
- with gzip.open(root/'boundary_calls.json.gz','wt') as f:json.dump(detail,f,separators=(',',':'))
+ (root/'boundary_calls.json.gz').write_bytes(gzip.compress(json.dumps(detail,separators=(',',':')).encode(),mtime=0))
  out['detail_file']='boundary_calls.json.gz';(root/'native_boundaries_reduced.json').write_text(json.dumps(out,indent=2)+'\n')
  print(json.dumps({k:out[k] for k in ['events','lost','negative_residual_counts']}))
  for s in out['summaries']:
