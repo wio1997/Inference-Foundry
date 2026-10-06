@@ -2,12 +2,12 @@
 
 checkpoint158之后的研究优先级以[AGENTS](AGENTS.md)为准：代码优化优先，Sol high承担性能架构师职责，旧HANDOFF/next_action仅作证据；不重写历史事实与裁决。
 
-目标：功能完整的GLM专用框架；现有正确算子下，多机多卡、动态请求与可变PD的合法调度最优。一次超过Stock是中间结果，最终报告当前最佳、剩余空间、适用条件和无法解决的限制。
+目标：功能完整的标准P/D分离GLM框架；现有正确算子下，优化P Prefill→KV Transfer→D Decode→Output的真实完整请求关键路径、动态请求与资源调度。用户2026-10-06明确：DP1/TP16、DP2/TP8等是P池、D池各自内部的并行布局，不能将目标替换为完整请求副本。一次超过Stock是中间结果，最终报告当前最佳、剩余空间、适用条件和无法解决的限制。
 
-## 当前现场
+## 初始部署背景与当前目标
 
 - 用户确认两台同规格、卡配置相同的Ascend910C服务器；结合前文按每台8卡16芯理解，实际rank/实例映射待核验。
-- 版本标识vLLM-Ascend0.27，PD已运行，参考DP1/TP16/EP16，GLM采用MTP。各端effective config未采集。
+- 初始背景为vLLM-Ascend0.27、PD已运行、参考DP1/TP16/EP16、GLM采用MTP；这不是当前现场事实。checkpoint159现役是无KV connector的完整请求副本，见[产品地图](CURRENT_PRODUCT_MAP.md)，与用户目标不符。Run101有真实PD功能证据，但没有完整PD产品验收或性能KEEP。
 - 当前已有GLM-5.2权重，W8A8是目标口径，实际artifact/cache dtype、MTP深度、connector和Graph待恢复。目录glm5-3不构成5.3精度验收要求。
 - 本阶段当前两台资源内收敛；未来1P3D等只是配置例子，不等于固定目标或物理机数。额外资源未具备的方向给当前结论。
 
@@ -17,8 +17,8 @@ checkpoint158之后的研究优先级以[AGENTS](AGENTS.md)为准：代码优化
 
 授权改调度、执行组织、状态/buffer、Graph、通信发起/等待、部署和Runtime边界，允许成套重构。当前不开发新计算kernel/fusion，不自动切换算子实现或减少模型必要工作。
 
-## 后续交付与路线选择
+## 后续交付与代码研究
 
 已有现场/Current以真实Git、HANDOFF和Run恢复，不从初始发布状态重做。恢复后检查Goal Review信号，Sol直接研究代码与决定性证据，选择最大可信可消除Gap；不预定V2、grammar/compatibility或配置扫描路线。允许停止高投入但无Product Gain方向，删除不必要通用Runtime层并重构调度/状态/执行顺序。
 
-标准PD为`Request → P Prefill → KV Transfer → D Decode → Output`；各Replica完整执行Prefill+Decode称Full Replica / Complete-request Placement，历史调度是否进产品需新裁决。后续交付matched A/B、correctness、可重复完整E2E Gain和[代码性能账本](CODE_PERFORMANCE_LEDGER.md)，无新增KEEP明写“本阶段没有新增代码级性能 KEEP。”不重跑足够历史证据；必要连接入口未知则写缺项，不猜旧脚本/PID为现役。
+标准PD为`Request → P Prefill → KV Transfer → D Decode → Output`；各Replica完整执行Prefill+Decode称Full Replica / Complete-request Placement，当前用户已排除其作为最终产品。历史部署与研究结果保留，只在匹配的问题范围内作证据。完整功能的合法生成请求及后续轮次须证明PD路径；不以short/tools/background/geometry不覆盖时D本地完整执行替代PD验收。取消、拒绝、完成及KV回收同属合同；内部helper输出只计成本，不计有效输出。具体目标纠正与源码/raw见[PD_SCOPE_CORRECTION](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。后续交付matched A/B、correctness、可重复完整E2E Gain和[代码性能账本](CODE_PERFORMANCE_LEDGER.md)，无新增KEEP明写“本阶段没有新增代码级性能 KEEP。”不重跑足够历史证据；必要连接入口未知则写缺项，不猜旧脚本/PID为现役。

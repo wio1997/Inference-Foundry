@@ -1,0 +1,52 @@
+# Standard PD scope correction — 2026-10-06
+
+User constraint: the product is Prefill/Decode disaggregation. DP1/TP16 or DP2/TP8 describe parallelism inside the P and D pools separately. Full Replica / Complete-request Placement is outside this target. This constraint supersedes the earlier route choice and the priority accepted in DP_PP_REVIEW.md; that historical review remains unchanged. Sol's previous comparison of two independent TP16 complete-request replicas used the wrong product premise.
+
+Branch: glm5-3-autonomous-20261001; fetched parent HEAD 1f6e5bddcfa8c56b90f42ba5137ec1867d11192c; rules GLM-RESEARCH-RULES-v2; active evidence point GLM-OPT-0002. This is source/raw research and a scope correction, not a new device Run, current-site Reset, deployment activation or performance KEEP. Existing services, Runs, raw, source and decisions remain intact.
+
+## Sol's personally checked evidence
+
+1. Actual resident argv/config, referenced in Run244 manifest and checkpoint159 final_site.json: 166 TP8/PP2/DCP8/DP1, 167 TP4/PP4/DCP4/DP1; neither has a KV connector. Public V14 places complete requests. Member names prefill/decode do not make this PD. These are the last audited resident identities, not instructions to reuse a PID/epoch.
+2. Historical native_pd_transport_v2.py: helper_body lines18–37 excludes short prompts, tools/structured requests, complex Responses input and background; handle_async_request lines83–84 sends unselected requests directly to D. Lines120–127 likewise sends the original full request to D after helper validation rejection. Successful paths preserve the original public D budget and add only KV metadata at lines131–140. This wrapper provides optional PD, not a complete standard PD contract.
+3. Historical native_pd_geometry.py lines55–60: D PP must be1 is an installed native rule, while global_dp_geometry_not_verified is the wrapper's own DP1-only validation scope. native_pd_transport_v3.py lines21–27 turns static ineligibility into local D fallback. The DP1 scope guard is not proof that native per-role DP2 is impossible. Removing it without proving rank/engine/port/block identity, fit and lifecycle would also be unjustified.
+4. Actual 166 container Mooncake connector at /vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py, SHA256 f30572890014d0244bf31d8e15dc5d93fb84147df37e0b2c1d1b01cbba6dd533: lines1898–1934 match external prefill tokens and trigger async KV load; lines1965–1992 build receive/send metadata; lines1994–2056 govern producer delayed block release and returned remote identity. Lines2012–2017 explicitly describe sending completion for a D rejection before scheduler admission to release stranded P KV. Lines2203–2223 read both roles' TP/DP declarations and assert decode_pp_size==1. Worker start_load_kv lines3650–3754 and get_finished lines2663–2683 own transfer and completion. Existing wrapper cancellation closes HTTP but has no personally verified export-before-D-dispatch release proof; a leak is not yet established.
+5. Actual native example /vllm-workspace/vllm-ascend/examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py, SHA256 38278b82dbaa1bb6d854e622b95844c3b1381276486d596859a2dc35602a26d5: lines828–832 set stream=False, max_tokens=1 and min_tokens=1 on P. Therefore one internal P token is part of this native bootstrap, not by itself evidence of an incorrect PD implementation. First-token reuse/recomputation and its necessity must be assessed from actual consumers, not counted as proven removable work.
+
+Historical transition, not a new performance conclusion: Run108 summary/reduction records a failed PD geometry fixture and the native D PP1 guard; Run109 then explicitly uses local D TP8/PP2 without a connector, Run113 has P idle/zero helpers, and Run114 sends short complete requests to P and long complete requests to D with zero helpers. Thus the PD→local D→complete-request placement transition is traceable. Run114's conditional finite throughput improvement is evidence for that different deployment class, not acceptance of the user's PD product. Stopping at the D PP incompatibility and changing the product premise was the research error; it does not prove PP is universally invalid or every older PD request was false.
+
+## Decisive Run101 raw, directly read on 166
+
+Root G=/data/tiankuan/wio/Inference-Foundry/glm5-3. The selected Responses operation is 43874f69c7f645ce9bb97765f05cbaef under G/records/points/GLM-OPT-0002/runs/GLM-RUN-0101/native_PD_raw/.
+
+| Raw | SHA256 | Direct observation |
+| --- | --- | --- |
+| operation.original.body | 44dc1c1c693fde49a8fbc8a7052f6b8ae783514dfc7e16fcc8fb811936e3a5ab | Public max_output_tokens32, store=True |
+| operation.helper.body | e05d7e21d5321d0b664cf0b704578a4d90794dad3e96042ca8a107a0d8509dfc | Internal max_output_tokens1, store=False, do_remote_decode=True |
+| operation.helper.wire | 38493af1b2ee063742f3764faa56b8fc7314e939bdde984e0e2d44956f06274b | 11285 prompt +1 internal output; remote engine/request identity, DCP16, block IDs and last_token_id16 returned |
+| operation.native.body | 025a106a4867efa78566c2a4b224df057b0f8ddf1780b96c2f19b02d50abd373 | Same original body except KV metadata; public budget32 retained |
+
+Here operation is the complete operation ID above, not the literal filename prefix. Original prompt contents remain in server raw and were not reproduced in this review.
+
+The corresponding public response is at G/records/points/GLM-OPT-0002/runs/GLM-RUN-0101/pd_json.wire, SHA256 0805dcf49e0785e9d1930795a9f7c118f47968fff3302b6ecf76b970004ce55b,1250 bytes. Directly parsed usage is input11285/cached11285/output32/total11317; the length-capped Responses status is incomplete. The one P helper output was not substituted for the original32-output D budget. An initial read using the wrong native_PD_raw/ prefix failed with FileNotFoundError; the existing reduction locator above resolved it, with no raw change.
+
+G/records/points/GLM-OPT-0002/jobs/REDUCE-FULL-NATIVE-PD-K3-101-20261002T1846Z-v2/D0.terminal.metrics SHA256 f6783a5f4bf5b1364c5dfdb07c8ba01b171dca9f3dc3dbfabf2f0f0ec8e7633a records external_prefix_cache_hits_total0; D1.terminal.metrics SHA256 ca6daf0a7a460d9a5653b8cb4cd34e19f871e91101fe2b9508b8c02c765574a4 records104502, with requests_running0. The existing reduction has three selected PD requests whose prompt lengths total2×11285+81932=104502 and functional output/retrieval evidence. This establishes real historical PD for those requests; it does not establish PD coverage for all19 completed public requests, a matched performance baseline, complete cancel/release proof or SLO-qualified capacity.
+
+Sol's read-only excerpt/hash collection succeeded after retaining a failed empty local collection file caused by treating helper request remote_block_ids=None as iterable. No server data or service changed. Successful local artifact: /tmp/glm-pd-scope-evidence-20261006-v2.json; durable decisive evidence is the original server raw and installed source hashes above, not the temporary reduction.
+
+## Independent Astra Challenger and Sol decision
+
+Trigger: user scope correction exposes a major PD / Full Replica architecture premise error. Existing Astra Challenger reviewed the PD wrapper, geometry, native rule and historical functional evidence. Recommendation: PIVOT to strict standard PD; withdraw the two-independent-TP16 complete-replica comparator; stop inertia-driven Full Replica / PP work. Top issues: incomplete PD request coverage, wrapper DP1 validation scope, and unclosed export→dispatch cancellation/release lifecycle. Do not call all historical PD fake, internal max1 inherently wrong, or DP2 natively unsupported. Native D PP1 constraint cannot justify replacing requested PD with local D PP2 full requests.
+
+Sol accepts these findings after the source/raw checks above. Prior DP_PP_REVIEW priority is withdrawn. H1 remains scoped REJECT in the historical full-request workload. H2 phase-cohort remains historically INCONCLUSIVE/PARKED and is excluded from this product's current research priority. No service switch, performance patch, new kernel or configuration scan is authorized by this record itself.
+
+## Current research gate
+
+Target chain: legal request/continuation preparation → P scheduler/prefill → native KV identity/export → D receive/external match → D scheduler/effective Decode/MTP commit → public output → completion/cancel/reject and native KV release. P and D own separate DP/TP/EP domains; DP2/TP8 is a per-role candidate requiring actual fit, communication, feature and lifecycle evidence, not a guaranteed performance winner.
+
+Largest verified defect is product-contract coverage: existing optional wrapper silently executes valid requests locally on D, and the resident product has no PD at all. Largest credible code-removable **performance** Gap and removable critical-path time remain unknown because no matched complete PD baseline/profile exists. Wrong-route throughput is not product Gain.
+
+Unique source question: can the existing native P→KV→D chain cover the full valid request/continuation contract and release KV at every terminal boundary without a local full-request fallback? First reuse Run101 actual DP1/TP16/PP1 chain and installed consumers; only uncovered lifecycle/feature branches warrant one bounded functional diagnostic after fresh ownership/health checks. Do not replay Run101 startup or run a benchmark merely to reconstruct known evidence. First candidate patch remains unset until a concrete native control defect and consumers are established; removing safety guards or making fallback an error alone would not satisfy the full feature contract.
+
+Before any performance Run: fresh site verification and a new Performance Research Reset under this strict PD target, one native control-path hypothesis, correctness, matching model/feature/count/SLO/workload/cache/sampling/MTP/physical resource conditions, and a decision table. A PD performance candidate is refuted if transfer/role coverage or KV/state/MTP correctness fails, necessary work is moved outside the measured window, helper work is credited, or repeated complete E2E has no noise-resolved Gain. Current may change only after all product acceptance gates.
+
+本阶段没有新增代码级性能 KEEP。真实完整PD E2E Gain=unknown；Current=None；active PERF_KEEP为空。

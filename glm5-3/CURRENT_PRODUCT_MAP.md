@@ -1,6 +1,6 @@
 # 当前产品代码导航
 
-**Current=None**，依据[HANDOFF](HANDOFF.md)、[Run244 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0244/manifest.json)与[当前性能stack](CURRENT_PERFORMANCE_STACK.md)；这里不新增产品裁决。现场现役服务是 **Full Replica / Complete-request Placement**，两端各完整Prefill+Decode，尚非标准PD产品。最终产品候选入口暂以现役最小public入口为阅读起点，是否保留或改为标准PD由新Reset与代码/E2E证据裁决；不把历史最快Run提升为Current。
+**Current=None**，依据[HANDOFF](HANDOFF.md)、[Run244 manifest](records/points/GLM-OPT-0002/runs/GLM-RUN-0244/manifest.json)与[当前性能stack](CURRENT_PERFORMANCE_STACK.md)；这里不新增产品裁决。现场现役服务是 **Full Replica / Complete-request Placement**，两端各完整Prefill+Decode，尚非标准PD产品。用户2026-10-06明确目标为标准P/D分离；现役完整副本不符合该目标，保留服务与事实，不作为最终产品候选。按[目标纠正裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)定向读原生connector与Run101真实PD链，最终完整PD入口尚未确定；不把历史最快Run或部分PD功能验证提升为Current。
 
 本地图定位checkpoint159现役代码；Run242诊断后已恢复原始插件和V14，Run244只读核验public argv与两机安装/插件路径。ACTIVE表示该服务链采用的代码，不表示PERF_KEEP，也不保证下次仍驻留。下次先用HANDOFF→最新manifest→现场argv/config重验；改变入口时只更新本地图的路径/引用，不复制PID、epoch、性能或Run裁决。
 
@@ -9,7 +9,7 @@
 | Component | Current code path | Status | Owner/consumer | Evidence |
 | --------- | ----------------- | ------ | -------------- | -------- |
 | public service entry | `B/native_engines_service_entry_v14.py`；Git阅读[冻结V14](records/points/GLM-OPT-0002/runs/GLM-RUN-0240/runtime_bundle/native_engines_service_entry_v14.py) | ACTIVE | public；`D/plugins/local_engines137/native_acl_lifecycle.py`包裹生命周期 | M→public_config；`R/restored/public_host_owner.json`的argv + process |
-| final product candidate entry | `B/native_engines_service_entry_v14.py`及上行冻结V14引用；最终产品入口尚未裁决 | CANDIDATE | Sol重新评估的已有实现；不新增active hypothesis、不自动继承Full Replica路线 | HANDOFF、M、ledger/stack；待代码级matched A/B与完整E2E产品裁决 |
+| final product candidate entry | 标准PD入口尚未确定；历史参考为[Run101](records/points/GLM-OPT-0002/runs/GLM-RUN-0101/summary.md)实际V9 + PDv2 + 原生Mooncake链；当前V14仍是现役完整副本入口 | UNKNOWN | Sol研究完整P→KV→D合同；旧PDv2/v3的fallback及DP1限制不能自动成为产品设计 | PD_SCOPE_CORRECTION、实际connector源码与Run101 raw；待完整功能、代码级matched A/B及完整E2E产品裁决 |
 | gateway/router | `B/response_affinity_gateway_v12.py`→`B/response_affinity_gateway_v11.py`；Git读[V12](runtime/response_affinity_gateway_v12.py)与[冻结V11](records/points/GLM-OPT-0002/runs/GLM-RUN-0240/runtime_bundle/response_affinity_gateway_v11.py) | ACTIVE | V14 public，含Responses/affinity | V14的runpy路径；B中import链、S |
 | placement | `B/capability_placement.py`→shape_split_placement.py→work_seconds_placement.py；Git读[冻结入口](records/points/GLM-OPT-0002/runs/GLM-RUN-0240/runtime_bundle/capability_placement.py) | ACTIVE | 完整请求副本选择；兼容性过滤 | N.placement / compatibility；冻结入口import链 |
 | scheduler | `E166/issue_budget_scheduler_v5.py`、`E167/issue_budget_scheduler_v5.py`→v3 mixin→native scheduler；Git读[V5](runtime/issue_budget_scheduler_v5.py) | ACTIVE | native engines；admission/issue budget | N.plans/roots的scheduler-cls + I；plugin policy与源码hash |

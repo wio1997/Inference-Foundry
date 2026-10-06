@@ -2,7 +2,7 @@
 
 **Rule version：`GLM-RESEARCH-RULES-v2`**。checkpoint158之后生效；本次仅精简入口，研究门槛不变。rule commit按[启动核验](docs/START_NEW_CHAT.md#0-先核验branch--head--rule-version)从Git定位，不固定旧SHA。本文件是规则入口，链接细则同样有效；与旧方案、HANDOFF或next_action冲突时，以这里的当前规则为准。
 
-目标：在现有两台服务器、现有正确算子下，构建功能完整的GLM专用推理框架并逼近性能极限；不改算子计算实现、不开发新kernel、不做5.2/5.3精度或量化质量比较。完整合同见[MISSION](MISSION.md#性能与功能合同)。
+目标：按用户2026-10-06明确约束，在现有两台服务器、现有正确算子下，构建功能完整的**标准P/D分离**GLM推理框架并逼近性能极限。P池与D池分别组织DP/TP/EP；例如各角色DP1/TP16或DP2/TP8，实际fit与正确性须核验。Full Replica / Complete-request Placement不满足本产品目标；历史现役事实保留，不作为后续产品路线。不得通过D本地完整请求fallback减少PD覆盖来验收功能或性能。不改算子计算实现、不开发新kernel、不做5.2/5.3精度或量化质量比较。完整合同见[MISSION](MISSION.md#性能与功能合同)与[目标纠正裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。
 
 - **GPT-6.1 Sol high是性能架构师**，负责最大Gap、因果、架构、关键代码、实验与最终裁决；必须亲读必要源码/diff/profile/决定性raw。Astra按需独立Challenger，Zcode/DeepSeek负责执行；[分工与触发条件](docs/research/AGENT_MODEL_STRATEGY.md)，不实现自动模型路由。
 - 历史Run、raw、裁决和源码保留；HANDOFF/Summary/next_action只作证据。允许推翻假设、停止无Product Gain路线、删除不必要Runtime层和大幅重构控制层，不因历史投入继承路线。
