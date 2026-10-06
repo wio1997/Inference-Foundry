@@ -1,5 +1,7 @@
 # 历史复用与避免重复
 
+checkpoint158之后按[AGENTS](AGENTS.md)使用本页。以下历史事实、Run引用和当时下一候选原样保留；它们是证据，不是后续必须执行的路线。历史失败/假设可挑战，新解释另记，不改旧raw/裁决。Full Replica的prefill-aware、prefill-work、work-seconds只保留为研究知识，进入最终产品必须重新裁决，不叫标准PD优化。
+
 现有仓库已含133条`performance_knowledge/entries.jsonl`，以及TaskCtl、evidence、RESULTS和Framework Bound。复用这些索引和持久化机制，不重新总结全部历史或另造同内容数据库。
 
 ## 候选检查

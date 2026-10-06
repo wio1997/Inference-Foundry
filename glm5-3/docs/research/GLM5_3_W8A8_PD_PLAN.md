@@ -1,8 +1,10 @@
+> checkpoint158之后以[AGENTS](../../AGENTS.md)、[模型策略](AGENT_MODEL_STRATEGY.md)和[RECORDING](../../RECORDING.md)为准：代码优化优先，matched A/B与真实完整E2E是代码KEEP/Current门槛，配置/部署/代码分账并维护[代码性能账本](../../CODE_PERFORMANCE_LEDGER.md)。旧next_action与候选顺序不绑定路线；Goal Review信号出现即暂停惯性Run。标准PD包含真实P Prefill→KV Transfer→D Decode；各副本完整Prefill+Decode称Full Replica / Complete-request Placement，历史调度进产品须新裁决。
+
 > 研究快照：整理于2026-10-01，随后作为按需资料发布；文中未提交/未运行陈述描述研究采集阶段，不代表后续Git发布状态。实际运行状态以局部HANDOFF和Git为准。
 
 # GLM专用推理框架：动态PD与极限调度方案
 
-日期：2026年10月1日。根据用户最新要求，本方案的最终产物是GLM专用推理框架，支持可变输入输出和不同PD/并行部署，在当前阶段保持现有算子计算实现，追求合法执行下的最大性能。当前仍是方案设计，首先确定极限判据、证据与逼近方法，再依据最高价值Gap选择代码路线；V2作为优先架构候选，允许大幅重构控制代码，同时降低模型调用、长启动、长测试和返工成本。判据与方法的完整说明见MULTINODE_PD_SCHEDULING_LIMIT_PLAN.md。
+日期：2026年10月1日。本方案的最终产物是GLM专用推理框架，支持可变输入输出和不同PD/并行部署，在当前阶段保持现有算子计算实现，追求合法执行下的最大性能。方案设计首先明确极限判据、证据与逼近方法，再依据最高价值Gap选择代码路线；V1/V2只是架构候选，无预设优先权，允许大幅重构控制代码，同时降低模型调用、长启动、长测试和返工成本。判据与方法的完整说明见MULTINODE_PD_SCHEDULING_LIMIT_PLAN.md。
 
 当前参考现场：用户确认两台同规格、卡配置相同的Ascend 910C服务器；结合前文，方案按每台8卡16芯理解，实际实例/rank到设备映射仍由现场恢复。vLLM-Ascend版本标识0.27、DP1/TP16/EP16、PD已运行、GLM采用MTP路线。未来可能使用1P3D等部署。使用已有GLM-5.2权重，项目目录保留glm5-3，不做5.2/5.3精度比较、量化质量评测或5.3验收。本轮只进行了官方资料/源码研究并产出方案，没有连接运行机器、实现框架、运行benchmark或提交GitHub。
 
@@ -16,11 +18,11 @@
 
 允许专用热路径与必要兼容路径共存，使用一致的请求、状态、提交与输出契约。记录兼容路径的触发原因、占比、切换及暴露成本；关键兼容路径同样进入调度优化，不能成为永久免责入口。正式性能覆盖实际请求与必要功能，不过滤复杂请求换跑分。功能支持与性能结果一起裁决，不能靠遗漏请求、少算token、改输出协议或截断长度获得表面提速。功能合同可作为MISSION附表，不必先造完整空文档。
 
-只固定目标、当前算子边界、必要功能和证据要求。Agent可重建问题、推翻历史结论，选择未列出的方向，跳过/合并/拆分/并行工作，实施结构原型或整体替换控制层，调整同资源预算下的部署、batch、合法MTP配置、Graph、buffer、queue、通信与Runtime边界。候选、接口名、模块拆分、实验习惯和模型角色都是可修改建议。无需先建立完美DAG或完整数值Bound才动手，也无需每Run先获第二模型同意。
+只固定目标、当前算子边界、必要功能和证据要求。Agent可重建问题、推翻历史假设，选择未列出的方向，跳过/合并/拆分/并行工作，实施结构原型或整体替换控制层，调整同资源预算下的部署、batch、合法MTP配置、Graph、buffer、queue、通信与Runtime边界。新解释和重新裁决写新记录，不改历史结论。候选、接口名、模块拆分与实验习惯是建议，模型分工按当前AGENTS/AGENT_MODEL_STRATEGY。无需先建立完美DAG或完整数值Bound才动手，也无需每Run先获第二模型同意。
 
-## 2 优先实现候选：借资源基础，GLM拥有执行控制
+## 2 可检验候选：借资源基础，GLM拥有执行控制
 
-可将一套实际可运行的V2组合的加载与资源能力，通过少量明确适配接口提供给GLM执行层；把大改集中在GLM自己的请求、状态、batch、step与PD调度代码。这样有望较快进入真实权重与服务闭环，同时保留替换不必要框架边界的空间。这是优先评估的开发候选，不是已经决定的最优路线；先用当前证据、最小诊断或原型判断能缩小哪个Gap，不先因代码结构偏好实施大改，也不未经实验宣称最终吞吐最快。
+可将一套实际可运行的V2组合的加载与资源能力，通过少量明确适配接口提供给GLM执行层；把大改集中在GLM自己的请求、状态、batch、step与PD调度代码。这样有望较快进入真实权重与服务闭环，同时保留替换不必要框架边界的空间。这是开发候选，无预设优先权；先用当前证据、最小诊断或原型判断能缩小哪个Gap，不先因代码结构偏好实施大改，也不未经实验宣称最终吞吐最快。
 
 | 层次 | 初始复用或新建范围 | 最终边界 |
 |---|---|---|
@@ -46,7 +48,7 @@ flowchart TB
 
 vLLM-Ascend代码大、依赖多，大范围修改通用多模型路径确实会增加理解、合并和回归成本。无需先通读或fork重写整仓库：定位当前GLM使用的最小闭环，将private API、forward context、global patch与资源绑定隔离在适配层；GLM核心由自己的代码演进。适配层过厚或原组件限制关键路径时，继续接管，不把复用组件当永久架构限制。
 
-## 3 V2优先，但以实际安装和性能证据选择
+## 3 V1/V2以实际代码Gap和性能证据选择
 
 公开V2将req_states、input_buffers、speculator、Graph manager与execute_model/sample_tokens分开，便于识别资源/控制边界；它仍继承upstream GPUModelRunner并依赖metadata、cache和全局状态，不是天然独立小库。V1也已有Graph和异步机制，不能只凭代码结构宣布V2性能胜出。
 
@@ -112,9 +114,9 @@ DeepSeek使用DSpark；通用依赖/资源/证据方法可沿用，稳定buffer�
 
 vLLM/Ascend prof用于恢复真实依赖、提交/执行/等待及request/cache/batch/通信关系；多机多rank通过请求/step/transfer/collective身份与有误差的时钟对齐，不能只看rank0或一个D。正式收益用未被重型profile污染的完整服务对照。动态负载以满足既有SLO和完整功能条件的稳定有效服务容量及折中曲线判断，有限wall的界不自动成为在线容量证明。具体profile入口、条件界与跨配置搜索方法见MULTINODE_PD_SCHEDULING_LIMIT_PLAN.md。
 
-2026-10-01用户确认节省额度策略：单个6.1 Sol high主Agent负责关键研究、复杂重构与裁决；边界明确的日常工作可用medium。Zcode是接DeepSeek的CLI，默认处理服务启动、执行/等待/监控和大量日志归约，只回紧凑结论及关键证据；ultra临时解具体难题，Astra暂不安排。所有研究角色仍可探索、实现、质疑前提和提出新结构，不继承DeepSeek禁用Sol主Agent或固定Astra owner；文档不切换当前会话模型。
+checkpoint158之后采用GPT-6.1 Sol high性能架构师、按需独立Astra Challenger和Zcode / DeepSeek执行层。Sol长期负责目标/Gap/因果/架构/源码/复杂重构/实验/matched A/B/最终裁决；Astra在重大分叉、持续无代码KEEP、跨模块根因不闭环、高成本重构、Current停滞或偏离最大Gap时独立Review，不常驻、不做每Run审批。Zcode负责采集/执行/归约与机械修改，不决定长期主线。涉及Gap、根因、架构、关键代码、KEEP，Sol必须亲读必要源码/diff/profile/决定性raw。文档不切换模型或实现自动路由，详细分工见AGENT_MODEL_STRATEGY。
 
-评价一次有效结论或可保留实现的总成本，包含Agent用量、重复上下文、返工、初始化、测量和恢复。API价格不能直接换算Codex/Zcode额度，high/ultra也没有项目实测的固定消耗倍数。长测试交脚本运行，按有意义checkpoint取结果，不持续调用模型等待。
+评价一次有效结论或可保留实现的总成本，包含Agent用量、重复上下文、返工、初始化、测量和恢复。API价格不能直接换算Codex/Zcode额度，模型/effort也没有项目实测的固定消耗倍数。长测试交脚本运行，按有意义checkpoint取结果，不持续调用模型等待。
 
 临时升级只给具体问题与相关事实/源码/证据，不复制整个会话或默认并行复制完整研究。Zcode/subagent按[Job/Result协议](../ZCODE_PROTOCOL.md)交接，现场共享资源由唯一controller管理；CLI原始输出留文件，格式和执行状态经桥接器核对。用户确认DeepSeek后端可用，本机PATH仍未找到CLI，实际现场路径/model id待核验，本次未调用。详细分工见[AGENT_MODEL_STRATEGY.md](AGENT_MODEL_STRATEGY.md)。
 

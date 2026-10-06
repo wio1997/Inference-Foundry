@@ -1,5 +1,7 @@
 # GLM runtime原型
 
+checkpoint158之后按[AGENTS](../AGENTS.md)研究，本文旧Run/启动状态/待验证动作仅作历史证据，不能机械继承。`replica_gateway.py` / `placement.py`及prefill-aware、prefill-work、work-seconds对完整请求副本的调度属于Full Replica / Complete-request Placement：各副本完整Prefill+Decode，不能称标准PD优化。标准PD为Request→P Prefill→KV Transfer→D Decode→Output。历史路线进产品须新裁决；Sol亲读代码/diff/profile/raw，经Correctness、matched A/B与真实完整E2E重复收益才计代码KEEP/提升Current。模块增加而Current不升或API/driver/compatibility支线长期占主线须Goal Review；历史实现/Run/raw/裁决保持原样。
+
 当前native engine仍拥有KV、MTP、Graph、sampling与输出提交状态。原型在两台现有910C上研究完整API服务、PD阶段及动态请求排程；Run5有限native capability已通过；尚无正式KEEP或稳定服务容量结论。
 
 - `controller.py`与`phase_runner.py`：task双锁、boot/PID/start ticks、心跳、argv子进程与真实退出。阶段来源被hash锁定；未知中断不重放。直接legacy lifecycle仍可绕过锁。

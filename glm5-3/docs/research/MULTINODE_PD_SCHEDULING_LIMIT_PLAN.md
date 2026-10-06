@@ -1,3 +1,5 @@
+> checkpoint158之后按[AGENTS](../../AGENTS.md)和[RECORDING](../../RECORDING.md)执行：代码优化优先；多配置分析只用于公平baseline、验证代码假说、可运行性与资源辨因，不是参数扫描主线或代码成果。Sol直接研究源码/diff/profile/raw，经matched A/B及可重复真实完整E2E裁决；无完整E2E不提升Current，只有代码级KEEP算主要进展。Goal Review信号出现即暂停惯性Run，必要时独立Astra挑战。保留历史来源/事实，不把旧next_action当必选路线。
+
 > 研究快照：整理于2026-10-01，随后作为按需资料发布；文中未提交/未运行陈述描述研究采集阶段，不代表后续Git发布状态。实际运行状态以局部HANDOFF和Git为准。
 
 # GLM多机多卡、可变PD部署的调度极限判据与逼近方案
@@ -62,6 +64,8 @@ E_must来自模型值、KV/状态版本、writer/consumer、buffer生命周期�
 
 ## 4. 从单部署扩展到可变PD
 
+标准PD明确为`Request → P Prefill → KV Transfer → D Decode → Output`。Replica A / B各自完整Prefill+Decode称Full Replica / Complete-request Placement，不能叫PD优化；prefill-aware/prefill-work/work-seconds历史调度只作研究知识，产品采用须在新记录重新裁决，不改旧Run/裁决。配置/部署收益与同条件代码收益分别记账。
+
 本阶段合法配置θ受现有硬件、资源容量、当前算子和授权改造范围约束。超出可行域的配置不参加本阶段极限证明，也不成为阻塞项；当前可行但尚未测试的方向才属于本阶段搜索未知。未来资源到位后另开研究域。
 
 用θ表达合法部署和执行组织，用Lθ、Uθ描述各自的范围。跨配置最优不是“已测配置里最大的TPS”就算到顶；它还涉及未测试的θ。
@@ -105,7 +109,7 @@ CPU函数range可能只包住异步enqueue。Graph replay的Host耗时不是图�
 
 昂贵启动是实验设计因素。controller可以在一次bootstrap内复用相容权重、组、arena和Graph，预加载候选，在合法step/drain及各rank一致的epoch切换；这是待核验/实现的能力。拓扑、地址、cache ABI或captured代码变化按依赖重建，不承诺任意热重载。profiling停止后的导出开销另记，不能混入稳态吞吐，也不能因暂时沉默盲目重跑。
 
-简单事实采集、短profile控制、解析与汇总可交zcode --prompt，研究Agent负责依赖/资源判断与独立验收。多机共享现场由一个controller协调，离线分析可以并行。当前仍是规划，不执行服务操作。
+简单事实采集、短profile控制、解析与汇总可交zcode --prompt；Zcode不决定长期主线，Sol性能架构师亲读必要源码、关键diff、profile和决定性raw后判断最大Gap/根因/架构并裁决。多机共享现场由一个controller协调，离线分析可以并行。本方案不是执行服务操作的命令。
 
 ## 7. 什么情况下可以说接近极限
 

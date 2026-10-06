@@ -1,4 +1,7 @@
 # GLM service entry
+
+checkpoint158之后按[AGENTS](../AGENTS.md)研究。以下Run127/131等状态与说明是历史证据；操作先恢复最新Git/HANDOFF及现场身份，旧动作不构成固定next_action。独立native副本各自Prefill+Decode是Full Replica / Complete-request Placement；noKV、本地prefill或gateway命名不构成标准PD优化，标准PD要求真实P Prefill→KV Transfer→D Decode。配置/部署/代码收益分账，产品采用须新裁决，不重写旧Run/事实。服务/身份工程只做到真实性、安全、可复现所需，不成为主要性能研究工作。
+
 service_config.py renders one two-node DP1 gateway configuration from recorded planned_launch, adopted_model_identities, and native_member_identities. Each native API and sixteen NPU workers define a separate fault-domain epoch; the native API owns its Responses store.
 
 service_entry.py --config CONFIG --host 0.0.0.0 --port 8000 starts one actual V11 factory worker inside the task container. The unique controller owns launch, logs, exact service process registration, fresh boot/start/argv/NPU ancestry/source/idle checks, and backend reconfiguration. Entry provenance checks are recorded-evidence checks, not live process monitoring. Backend domain changes require faulting/reconfiguring the gateway.

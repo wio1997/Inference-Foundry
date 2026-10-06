@@ -1,8 +1,10 @@
+> checkpoint158之后按[AGENTS](../../AGENTS.md)执行：下列契约是correctness要求与设计知识，不要求增加同名模块或保留通用Runtime层。Sol性能架构师可删层、改变状态/调度/执行顺序、大幅重构；高成本大范围改造触发独立Astra Challenger Review。代码假说→Patch→Correctness→matched A/B→真实完整E2E，无匹配对照不算性能成果，无完整E2E不提升Current。连续无代码KEEP、模块增长而Current不升或compatibility长期占主线须Goal Review。标准PD含真实KV Transfer；各副本完整Prefill+Decode是Full Replica / Complete-request Placement，配置/部署/代码收益分账。历史Run/raw/裁决不修改。
+
 > 研究快照：整理于2026-10-01，随后作为按需资料发布；文中未提交/未运行陈述描述研究采集阶段，不代表后续Git发布状态。实际运行状态以局部HANDOFF和Git为准。
 
 # GLM 专用动态 Runtime：内部契约设计建议
 
-日期：2026-10-01（Asia/Shanghai）。本文件是架构建议，不声称当前部署已经实现；没有访问运行机器或执行启动/性能测试。设计目标按用户最新意图：开发GLM专用推理框架，优先V2方向，允许大范围代码重构；输入、输出长度、请求集合和PD/并行配置以后都能变化。当前阶段使用现有正确算子，优化控制、调度、存储与通信编排。
+日期：2026-10-01（Asia/Shanghai）。本文件是架构建议，不声称当前部署已经实现；没有访问运行机器或执行启动/性能测试。设计目标：开发GLM专用推理框架，V1/V2按代码Gap选择，允许大范围代码重构；输入、输出长度、请求集合和PD/并行配置以后都能变化。当前阶段使用现有正确算子，优化控制、调度、存储与通信编排。
 
 用户明确功能都要，能力清单不能成为白名单。默认保留GLM对应的完整推理服务能力与语义，由Agent从接口、参数、协议、状态分支、现有测试和真实行为恢复并持续扩展。流式、动态进出、取消/超时、prefix cache、MTP、tool/JSON/grammar、logprobs、抢占/恢复等是必须保留的基本能力示例，不是全部边界。尚未验证的部分明确待验证，不能默默关闭或降级换取跑分。
 
@@ -149,11 +151,11 @@ Capture key首先由实际backend要求决定，通常涉及角色/拓扑epoch�
 
 ## 11. 用V2资源层演进，而不维护整仓库大fork
 
-推荐的初始边界为：复用可运行V2的model loader、量化/attention/MoE等现有算子、cache分配、HCCL组、MTP/sampler、Graph及connector必要能力，通过少量明确适配接口提供给GLM执行层。GLM拥有动态batch/step控制、请求与slot状态、补位、PD协调和发布；这些控制代码允许大幅重写。保留什么、替换什么由实际依赖和收益决定，接口名与文件拆分不是固定要求。
+可检验的一种资源/控制边界为：复用可运行V2的model loader、量化/attention/MoE等现有算子、cache分配、HCCL组、MTP/sampler、Graph及connector必要能力，通过少量明确适配接口提供给GLM执行层。GLM拥有动态batch/step控制、请求与slot状态、补位、PD协调和发布；这些控制代码允许大幅重写。保留什么、替换什么由实际依赖和收益决定，接口名与文件拆分不是固定要求。
 
 当前公开V2的`NPUModelRunner`将req_states、input_buffers、speculator与Graph manager分开，并分别提供execute_model/sample_tokens入口，便于辨认边界；它仍继承upstream GPUModelRunner并依赖forward context、global patch、cache metadata与通信状态，不能直接当独立小库。应抽取当前GLM使用的最小闭环，隔离private API与全局状态，而不是无目标地改整个多模型框架。
 
-当前main含0.28/0.29兼容与0.30+路径注释，用户0.27是否可直接使用这一V2仍需核验。优先V2是架构与研究选择，不是V2已经更快的实测结论。若本机V2缺少必要GLM/PD能力，按最小兼容代价补齐适配或移植所需执行组织，不盲目升级所有依赖。迁移时可暂保留现有输出/服务适配，尽早形成真实请求闭环；最终边界由性能与维护成本决定。
+当前main含0.28/0.29兼容与0.30+路径注释，用户0.27是否可直接使用这一V2仍需核验。V2无预设研究优先权，结构清晰也不是更快的实测结论；是否继续由最大可信代码Gap、matched A/B及完整E2E决定。若本机V2缺少必要GLM/PD能力，按最小兼容代价补齐适配或移植所需执行组织，不盲目升级所有依赖。迁移时可暂保留现有输出/服务适配，尽早形成真实请求闭环；最终边界由性能与维护成本决定。
 
 公开V2存在设备修正num_computed_tokens→D2H→下一步Host seq_lens消费者的链；这给出可定位的研究问题，不证明它是现场主瓶颈。重构须检查消费者、state版本和有效请求，不能简单删除event.synchronize。不同topology下Graph要求也可能不同，实际能力描述应参与scheduler决策。
 

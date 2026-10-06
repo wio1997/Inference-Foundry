@@ -1,47 +1,61 @@
-# GLM Agent执行与额度策略
+# GLM Agent研究分工与执行策略
 
-2026-10-01用户确认：后续执行默认单个6.1 Sol high主Agent，低判断价值但占用大量上下文的执行与资料处理尽量交Zcode。Zcode是接DeepSeek的CLI，用户确认可使用；实际现场路径与model id待核验。本文是执行规则；未切换当前会话模型，未连接服务器、实际调用DeepSeek CLI、启动服务/监控或实现自动模型路由。
+2026-10-06，从checkpoint158（父commit `e378d459e08e9f12300118e158bba16db6c4d04f`）之后生效，替代旧日常分工与研究优先级。历史Run、raw evidence、模型调用记录及裁决保持原样。[局部AGENTS](../../AGENTS.md)是研究规则入口；本文不切换当前会话模型、不启动服务/实验、不实现自动模型路由。
 
 ## 默认分工
 
-| 角色 | 负责的产物与边界 |
+| 角色 | 产物与边界 |
 |---|---|
-| 6.1 Sol high主Agent | 完整目标、GLM必要依赖与状态合同、关键调度/架构、复杂代码重构、实验设计、性能因果与KEEP/Current裁决；拥有完整探索权 |
-| medium | 边界明确的代码实现与日常整理；不默认增加常驻Agent。结构稳定后可用真实任务评估能否承担主线 |
-| Sol ultra | 临时解决具体难题：跨MTP/PD/KV/Graph的复杂依赖、重大结构选择或影响昂贵测试的证据冲突；产物明确后回到默认主线 |
-| Astra | 暂不安排，不作为主线或每Run复核依赖；出现值得独立判断的重大分歧时再评估是否启用 |
-| Zcode与现场脚本/controller | 服务启动/就绪核验、实验执行、等待、持续监控、日志/大trace/重复报错读取与归约、事实采集及范围明确的修改；返回紧凑结论与证据引用 |
+| GPT-6.1 Sol high：主研究Agent / 性能架构师 | 长期负责目标对齐、最大性能Gap、因果分析、架构、关键源码、Runtime / Scheduler复杂重构、实验设计、matched A/B及KEEP / REJECT / Current最终裁决 |
+| Astra：独立Challenger | 只在下列触发条件下做独立路线/架构Review；可以挑战或否定Sol，不参与日常Run、不常驻、不做每轮审批 |
+| Zcode / DeepSeek与现场脚本/controller：执行层 | 服务器操作、服务启动/停止/恢复、benchmark、monitor、profile采集、大日志/trace归约、artifact身份核验及范围明确的机械修改；不决定长期性能主线 |
 
-任务是否持续很久，不决定是否用ultra。high可以长期持有任务；连续性由Git、HANDOFF、优化点与真实Run保存。角色用于明确产物和现场所有权，不限制提出新方向或质疑既有方案。
+Sol high可以长期持有任务。HANDOFF、历史Run、Zcode Summary及上一轮next_action是证据，不是必须继承的路线。允许推翻历史假设、停止无Product Gain的高投入方向、质疑代码顺序与框架边界、删除不必要通用Runtime层、改变调度/状态组织/执行顺序、大幅重构控制层；不得产生sunk-cost bias。medium/ultra的旧分工不再构成固定研究角色或接管主线的规则。
 
-## Zcode执行层
+## Astra Challenger Review
 
-主Agent定义当前问题、服务/Run合同和验收；Zcode在该范围内自行执行、整理并给出有证据的条件结论。大量意义不高的原始输出留在现场，主Agent优先读摘要、关键diff与决定裁决的证据。subagent按相同[Job/Result协议](../ZCODE_PROTOCOL.md)接续，离线分析可独立，现场操作由唯一controller排程；不用每个任务增加一层subagent。简单操作复用现成脚本；Zcode不可用或委派成本超过任务本身时可直接运行脚本，仍保持相同记录与摘要要求。
+以下任一情况触发独立Review，主Agent在当前优化点/checkpoint记录具体信号；不要求每Run复核或以多模型一致裁决性能：
 
-- `zcode --prompt`执行现成shell任务时，prompt是一条完整命令；复杂执行复用现场controller脚本。代码/归约任务给输入位置、目标产物、允许修改范围和验收，不能使用未核验的旧命令/路径/PID。
-- 服务启动、停止、重启、warmup和恢复由现场执行层完成；记录实际实例/进程、就绪与退出证据、活动资源和产物。仅外层命令返回0不能证明服务已就绪或内层实验成功。共享服务/源码/设备由一个controller协调，保护其他活跃工作。
-- 长测试与长期监控交给实际可持久运行的脚本/controller，核验其生命周期和日志位置；不依赖GPT持续对话或不断调用Zcode轮询。完成、异常、阈值越界或需要技术决策时返回摘要，其余状态落盘。监控频率和指标按问题选择，重型prof与正式性能分开。
-- 重试与重启保留原因和已有Run；不同真实执行各有身份，不覆盖原始证据，不把每次监控轮询记成新性能Run。长期任务退出或交接时记录继续运行、已停止和待处理的真实状态。
+1. 重大架构分叉，例如固定PD / Full Replica / Elastic PD。
+2. 连续较多有效实验没有新增代码级KEEP。
+3. MTP / PD / KV / Graph / Scheduler / Communication跨模块根因长期无法闭环。
+4. 准备高成本、大范围Runtime重构。
+5. Current长时间没有明显提升。
+6. Sol怀疑当前路线已经偏离最大性能Gap。
 
-## 归约与返回
+按问题给Astra关键源码及消费者、关键diff、profile/trace、matched Run与决定性raw evidence的可访问位置和身份，尽量让其直接读取；HANDOFF只作索引，不能只读HANDOFF后复述现有结论。缺证据或缺源码访问写unknown，由执行层提取必要原始片段；摘要不能补成已验证根因。给事实与反例，避免把Sol路线结论预设成Review答案。
 
-Zcode先在现场检索、过滤、统计，再生成Run内的短summary及必要机器可读汇总，沿用[RECORDING](../../RECORDING.md)的权威路径；不另造账本。返回至少包含：
+Astra独立回答：
 
-1. 当前状态、优化点/Run及实际代码/config身份，执行是否成功或仍在运行。
-2. 与问题有关的指标、异常和条件结论；事实、推断与unknown分开。统计注明窗口、过滤条件及实例/rank覆盖，缺失不填成0。
-3. 原始artifact稳定位置、必要hash、关键样本/事件引用及归约方式，使主Agent能定向核验。
-4. 若需GPT决策，说明具体问题、相关证据与下一动作建议；一般健康信息留在现场。
+1. 当前最大的可消除性能Gap是什么？
+2. 当前主线是否值得继续？
+3. 有没有更高价值的执行架构优化？
+4. 哪些历史方向应该停止？
+5. 如果今天根据现有证据重新开始，会选择什么路线？
 
-主Agent不默认接收整份日志或trace，不重复归约同一原始产物。异常、缺项或关键结论存疑时按证据位置核对必要片段，可重新交Zcode专项提取；摘要不能替代真实计数、功能状态和完整E2E裁决。性能图或指标发生变化时先核对运行身份与可比条件。
+结果区分事实、推断、unknown，指向代码路径/证据，提出能区分路线的下一代码问题。Sol亲自检查相关真实代码和完整E2E证据，记录采纳/否定理由，最终裁决KEEP / REJECT / Current；Review意见不是性能KEEP。Astra暂不可用时如实记录，先完成Sol的Goal Review与证据研究，不无限重复低价值Run，不假称已审查。
 
-## 上下文与升级成本
+## Zcode执行层与Sol直接研究责任
 
-启动只恢复AGENTS、HANDOFF、当前点/Git；按当前问题查资料索引与历史知识。每次委派只给具体问题、相关事实/源码/证据和验收，不默认复制整段会话、全仓库或并行复制完整研究。升级无需每轮发生，也不以多模型一致裁决性能。
+Sol定义代码问题、假说、服务/Run合同和验收；Zcode在边界内执行、采集和归约，给有证据的条件结论。涉及**最大Gap、根因、架构、关键代码优化或KEEP**，Sol必须亲自阅读必要源码、关键diff、profile和决定性原始证据，不能只依赖Zcode Summary。大raw留现场，主Agent定向读关键片段；不需要接收或重复归约全部日志。
 
-只在有恢复价值的checkpoint保存有效模型/effort、输入证据、产物和升级理由。角色建议不构成已实现的自动路由；宿主ultra不能未经核验当作API的max。Zcode后端family由用户确认为DeepSeek，具体model id和有效runner未核验时写unknown。
+按[Job/Result协议](../ZCODE_PROTOCOL.md)交接；已有subagent如使用同样协议，不能替代Sol研究责任。共享服务/源码/设备由唯一controller排程，离线只读归约可独立。Zcode不可用或委派成本超过工作本身时直接用现成脚本，保留同样的真实性与归约要求。
 
-衡量一次有效结论或可保留实现的总成本：主Agent上下文与推理、Zcode/协作调用、返工、初始化、实验与恢复。外置归约减少主Agent接收的原始数据，不保证总token或账户扣量按固定比例下降；API价格不能直接换算Codex/Zcode额度。无需另建模型评测项目，利用自然产生的真实任务判断high/medium或临时升级是否划算。
+- `zcode --prompt`执行现成shell任务时，prompt是一条完整命令；复杂执行复用现场controller。机械修改给输入、产物、允许范围和验收，不能把架构/长期路线委派成执行决定。CLI路径、有效model id和现场身份按实际环境核验，不用旧PID盲操作。
+- 服务启动/停止/恢复由执行层处理；记录必要实例/进程、就绪/退出及活动资源证据。外层返回0不证明内层实验成功或服务就绪。
+- 长测试/monitor由真实驻留脚本运行。完成、异常、阈值越界或需要决策才返回，健康采样落盘；不靠模型持续对话或不断调用Zcode轮询。
+- 重试保留原因与已有Run，不覆盖raw，不把监控轮询算新性能Run；退出/交接记录真实运行和待处理状态。
 
-依据：[OpenAI模型选择](https://developers.openai.com/api/docs/guides/model-selection)、[推理强度](https://developers.openai.com/api/docs/guides/reasoning)。官方建议按实际任务选择满足质量要求的配置；本项目当前因状态耦合和漫长测试，先采用high主线。
+## 返回与工程成本
 
-GLM默认覆盖旧DeepSeek固定Astra owner和禁用Sol主Agent的配置；完整功能、当前算子边界、真实执行、证据可追溯与合法性能比较继续遵循局部AGENTS。
+返回紧凑Result：实际优化点/Run、执行状态与code/config身份；相关指标/异常、窗口/过滤/rank覆盖；artifact稳定位置、必要hash/样本locator及归约方式；需要Sol决策的具体问题。事实、推断和unknown分开，缺失不填0，执行真实性不等于性能KEEP。
+
+PID/hash/epoch/controller/artifact/ownership只保留支持真实性、资源安全和可复现的必要信息；不会影响性能归因、correctness或KEEP的记录不扩张为主线。初始化、模型调用、返工与恢复成本用于选择实验方式，不能包装成E2E Product Gain；不另建模型评测或复杂自动路由系统。
+
+## 研究进度与Goal Review
+
+代码优化优先于配置探索。标准PD是`Request → P Prefill → KV Transfer → D Decode → Output`；A/B各自完整Prefill+Decode是Full Replica / Complete-request Placement，历史prefill-aware/prefill-work/work-seconds只作待重裁决知识。V1/V2与各种部署无预设优先权，按最大可信代码Gap选择。
+
+闭环为`Observe → 最大可信 Gap → 具体代码路径 → 代码假说 → Patch → Correctness → Matched A/B → 真实完整 E2E → KEEP / REJECT`。没有matched A/B不算性能成果；没有完整E2E不得提升Current。配置、部署、代码收益分开，只有代码级KEEP算主要进展，沿用[代码性能账本](../../CODE_PERFORMANCE_LEDGER.md)。无新增时写：**本阶段没有新增代码级性能 KEEP。**
+
+[AGENTS的强制Goal Review](../../AGENTS.md#8-强制goal-review)任一信号出现即暂停惯性Run，重新检查最终产品、时间去向、最大可消除代码Gap、实验是否缩小Gap以及今天重启是否仍选该路线；必要时触发上述Astra Review，不值得继续立即停止。重要checkpoint先报新增代码KEEP及E2E Gain、剩余最大Gap、下一最高价值代码问题；不以Run、commit、文档、模块或方向数量评价研究质量。

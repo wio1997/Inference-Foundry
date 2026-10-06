@@ -1,3 +1,5 @@
+> 历史迁移审计，非当前模型分工或优先级规则。checkpoint158之后采用[AGENTS](../../AGENTS.md)的Sol high性能架构师 / Astra独立Challenger / Zcode执行层与代码优化判据。以下旧Astra owner、GPT-6 Sol、优先主线、next_action是历史描述，不约束后续；来源审计和历史事实保留，SOURCE_AUDIT.json也仅作历史来源记录。
+
 > 研究快照：整理于2026-10-01，随后作为按需资料发布；文中未提交/未运行陈述描述研究采集阶段，不代表后续Git发布状态。实际运行状态以局部HANDOFF和Git为准。
 
 # 原仓库Markdown职责与GLM迁移清单

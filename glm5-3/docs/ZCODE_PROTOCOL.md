@@ -1,12 +1,14 @@
 # Zcode / subagent任务交接协议 v1
 
+从checkpoint158之后执行分工与研究路线按[AGENTS](../AGENTS.md)生效；协议/桥接schema保持不变，不实现自动模型路由，不改历史Job/Run/raw/裁决。PID/hash/epoch/controller/ownership只保留真实性、安全、可复现及裁决需要的信息，不扩展为主要研究工作。
+
 用户确认Zcode是接DeepSeek的CLI，可使用`zcode --prompt`。后端具体model id、CLI路径及现场controller在执行环境核验；本次未实际调用DeepSeek或启动服务。协议固定可追溯交接，不限制研究方向。
 
 ## 1. 谁做什么
 
 ```mermaid
 flowchart LR
-  M[Sol high主Agent：问题与裁决] --> S[按需subagent：分析或组织执行]
+  M[Sol high性能架构师：Gap、源码、实验与裁决] --> S[按需subagent：分析或组织执行]
   M --> C[唯一现场controller]
   S --> C
   C --> Z[Zcode / DeepSeek CLI]
@@ -15,9 +17,9 @@ flowchart LR
   R --> M
 ```
 
-- 主Agent负责架构/复杂代码、实验设计和性能裁决；直接派给Zcode也可，不强制经过subagent。
+- GPT-6.1 Sol high主Agent是性能架构师，负责目标、最大Gap、因果、架构、关键源码、复杂Runtime/Scheduler重构、实验设计、matched A/B和KEEP/Current裁决；可直接派执行任务给Zcode，不强制经过subagent。Astra按[模型策略](research/AGENT_MODEL_STRATEGY.md)做独立Challenger，不常驻、不做日常Run或每轮审批。
 - subagent用相同Job/Result格式做独立分析、定向复核或组织Zcode执行。涉及共享服务/源码/设备的操作先交已有controller排程，不能另起竞争controller。离线只读归约可独立运行。
-- Zcode接收明确问题/验收及现场资源权限，负责启动、运行、等待、监控、大日志/trace处理和有依据的条件结论。主Agent默认只收Result，不接收全部原始输出。
+- Zcode / DeepSeek只承担执行层：服务器、服务启动/停止/恢复、benchmark/monitor/profile采集、大日志/trace归约、artifact身份及机械修改，不决定长期性能主线。Result紧凑返回，大raw留现场；涉及Gap、根因、架构、关键代码或KEEP，Sol必须亲读必要源码/关键diff/profile/决定性raw，不能只依赖Result Summary。next_action或decision_request建议不是必须继承的路线。
 - Job是工作单，不是性能Run。`parent.run_id`关联真实Run；尚未执行性能实验时可为null。重试用新job_id并保留旧结果，同一次实际Run的归约/监控可有多个Job。
 
 ## 2. 文件与接口
@@ -73,7 +75,7 @@ Result最小字段：
 - findings每项含`kind:fact/inference`、`text`、`scope`和`evidence_ids`；scope注明测量窗口/过滤/实例rank覆盖，evidence_ids引用本Result已有证据ID。可扩展value/unit等字段。缺失和未覆盖写unknown，不能填成0。
 - evidence每项保存id、path/uri、sha256、bytes和locator；locator可为行/事件/请求/样本ID或归约文件。已知值如实记录，不可核验值用null。大原始日志/trace留现场，仅提取相关样本。
 - processes每项给真实host/role/pid或session_id、readiness(ready/unready/unknown)及evidence_ids；running必须有非空进程/会话与对应证据引用。尚未就绪保持unverified，不存在或未知不能编造。decision_request说明需要主Agent判断的具体问题与相关证据，避免把整个日志作为问题返回。
-- 工具验证的是格式和实际CLI调用状态，不证明模型功能、测量因果或全部证据真实性。主Agent按风险定向核验，KEEP仍遵循[RECORDING](../RECORDING.md)。
+- 工具验证的是格式和实际CLI调用状态，不证明模型功能、测量因果或全部证据真实性。主Agent直接研究与定向核验，KEEP仍遵循[RECORDING](../RECORDING.md)：无matched A/B不算代码性能成果，无真实完整E2E不提升Current；Job/VALID/功能测试数不计代码KEEP进展。
 
 ## 4. 长期服务与监控
 
