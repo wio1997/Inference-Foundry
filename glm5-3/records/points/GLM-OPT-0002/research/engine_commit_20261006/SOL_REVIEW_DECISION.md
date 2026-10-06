@@ -1,0 +1,5 @@
+# Sol decision on Astra review
+
+Accepted: one bounded observational H1 diagnostic; largest verified removable Gap/time remains unknown; no performance patch yet. Accepted lazyFuture and copy-ready/PP/MTP readiness distinction, empty-step PP slot semantics, reply-publication timestamps are upper bounds, no inference of negative readiness from late sync return. Accepted that proving SSE/output delay can warrant a conditional output-path patch without claiming device bubble; Decode gain separately needs actual device/dependency evidence. No rejected review conclusions; future candidate remains conditional. Old grammar/cap/cadence directions PARKED. Review route KEEP is not PERF_KEEP.
+
+Implementation: commit_trace.py records core schedule/RPC-consume/FIFO update and worker async-output/MTP/PP/metadata events without scheduling reorder; native source AST semantic tests pass FIFO nonempty/empty, deferred grammar, execute failure, and ready response with doneFalse. This is DIAGNOSTIC code, not a performance KEEP. Site use not yet performed; first real Zcode Job is read-only per current user instruction.

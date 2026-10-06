@@ -1,0 +1,5 @@
+# Run244 — same H2, documented dynamic-control adapter correction
+
+Run243 retains failed execution/4 completed native requests/zero device artifacts; exact profiler cleanup Job VALID with native32 unchanged. No H2 performance decision. Run244 follows H2_RESET/H2_REVIEW and same one bounded discriminator, sources/resources/workload/epochs unchanged, no native restart or parameter scan. Actual msprof interactive start/stop/quit protocol verified from installed binary strings and official CANN dynamic documentation. Remove incompatible --duration; docker exec -i and stdin PIPE send start then timer sends stop+quit at12s (≤15s acceptance), record commands/clocks. Four same4x64 native streams, effective counting/DONE retained; all16 actual current namespace PIDs/final native32/STORE/health proof. No performance patch/Current update. Empty or incomplete device data -> INVALID/INCONCLUSIVE and no blind retries. Source/Reset references pinned in controller spec.
+
+Official protocol: https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/850/devaids/profiling/atlasprofiling_16_0016.html

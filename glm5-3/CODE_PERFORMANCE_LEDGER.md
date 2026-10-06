@@ -6,14 +6,17 @@
 
 本阶段没有新增代码级性能 KEEP。
 
-checkpoint158记录Current=None、性能KEEP无；本次仅更新规则，没有新性能实验或Current提升。当前最大可由代码消除的Gap仍需Sol直接研究源码和决定性证据后确认，不能把旧next_action预填成答案。
+checkpoint159已完成实际源码与原始证据研究；[Sol裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/H2_DEVICE_DECISION.md)与[Reset](records/points/GLM-OPT-0002/research/engine_commit_20261006/POST_REVIEW_RESET.md)。Current=None，stack为空；最大可由代码消除的Gap/time unknown，不能把阶段分离或必要广播等待填成Gain。
 
 ## 后续工作与代码候选
 
 | Code Optimization | Type | Baseline | Patched | Gain | Correctness | Verdict |
 | ----------------- | ---- | -------- | ------- | ---- | ----------- | ------- |
+| GLM-OPT-0002 native FIFO/future/PP observer与机械归约 [code](records/points/GLM-OPT-0002/research/engine_commit_20261006/commit_trace.py) | DIAGNOSTIC | not applicable | Run242 host + Run244 offline device | not applicable；无产品Gain | 6项CPU native语义；4×64 token commit/SSE；16 rank真实事件；范围有限 | KEEP仅诊断工具，原服务恢复，未进stack |
+| GLM-OPT-0002 H1 ready-useful commit优先级候选（未实现） | PERFORMANCE | Run242诊断，非matched E2E | none | unknown | [原始关联裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/H1_DECISION.md) | REJECT限已观测窗口，未实施drain-first |
+| GLM-OPT-0002 H2 phase-cohort admission条件候选（未实现） | PERFORMANCE | Run244观察，非matched E2E | none | unknown | 实际stage/broadcast；并行合法性/拆批成本未证 | [INCONCLUSIVE/PARKED](records/points/GLM-OPT-0002/research/engine_commit_20261006/H2_DEVICE_DECISION.md) |
 
-当前无后续候选/成果条目；表格不是已有结果。每行用优化点ID/简短改动及code/diff引用、工作Type；性能Baseline/Patched引用同合同matched Run、完整E2E指标/单位；Gain写公式、重复/波动/范围；Correctness和Verdict链接验证及Sol裁决。非性能工作无matched性能数据时写not applicable/unknown，不发明Gain。缺性能对照或完整E2E标INCONCLUSIVE，执行无效标INVALID，归因混合标MIXED / INCONCLUSIVE；不能以局部TPS代填E2E。
+上表区分诊断工程保留、未实现性能候选与PERF_KEEP；诊断KEEP不算主要性能进展。每行用优化点ID/简短改动及code/diff引用、工作Type；性能Baseline/Patched引用同合同matched Run、完整E2E指标/单位；Gain写公式、重复/波动/范围；Correctness和Verdict链接验证及Sol裁决。非性能工作无matched性能数据时写not applicable/unknown，不发明Gain。缺性能对照或完整E2E标INCONCLUSIVE，执行无效标INVALID，归因混合标MIXED / INCONCLUSIVE；不能以局部TPS代填E2E。
 
 | Type | 含义与分类示例（非历史重裁决） |
 | ---- | ---- |

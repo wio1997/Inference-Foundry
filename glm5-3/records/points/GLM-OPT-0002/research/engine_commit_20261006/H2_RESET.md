@@ -1,0 +1,15 @@
+# Performance Research Reset — H2, 2026-10-06
+
+Same b23845e4 / GLM-RESEARCH-RULES-v2 / GLM-OPT-0002, Full Replica / Complete-request Placement, current V14 complete contract, CurrentNone and no active PERF_KEEP. Run242 restored original D0 code at fresh epoch038ec789cf45c3fb… and D1 epoch5551a30026d04dfc… unchanged; actual owners must be rechecked, not reused blindly. Run242 host diagnostic4/256 and six CPU semantic tests are not a full product baseline. H1 active implementation route closed with scoped raw evidence in H1_DECISION.md; old grammar/cap/cadence candidates remain parked.
+
+Largest verified code-removable Gap/time: unknown. Largest observed recurrent host wait: native rank8 get_output median53.532ms, which synchronizes required copy_event and may be necessary target/sampling/communication. H2 is the only active performance hypothesis: greedy admission aligns independent requests to a single PP eligibility phase, potentially leaving device stage gaps that a native phase-balanced request selection can cover. Empty step count is not an idle measure and does not estimate gain.
+
+Code: actual installed Scheduler running eligibility near504 and waiting admission, AsyncScheduler eligibility=current_step+PP, PPHandler slot/generation consumers, installed accepted+draft broadcast patch and GPUModelRunner empty state-advance. Source identity and raw snapshots in source_identity.json and Run242/host_trace; concrete step18/19/SSE locators in H1_DECISION. No performance patch.
+
+Accepted Astra H2_REVIEW: PIVOT scoped H1 closure, KEEP one bounded actual-device diagnostic, STOP premature splitting/empty-step deletion/scans/large E2E. Accept batch56→57 tail cleanup correction. Independent raw hashes and token equality verified by Sol; no rejected findings. Request cohorts, PP packing efficiency, target/draft/communication competition are one discriminator, not parallel routes.
+
+One next diagnostic Run243: attach verified existing CANN msprof dynamically for≤15s to all16 current D0 worker container PIDs under existing unique controller;4x64 same direct-native streaming workload, fixed sources/resources/cap2/PP2/K2/Graph/cache policy. No service restart, source/parameter change, or replacement native epoch. Actual nonempty device data/rank map/active-window coverage required. This repairs the prior incompatible torch-profiler selection using the existing dynamic mode; no repeated blind profiler attempts. A failed capture is INVALID, not device evidence.
+
+Decision: actual stage gaps aligned with same-phase cohorts plus legal independent work and favorable cost bound -> design one minimal native-control phase-balanced candidate; stage already overlapped or necessary target/draft/communication/split costs dominate -> reject H2 and choose actual profile Gap; missing ranks/events/clock/dependency -> INCONCLUSIVE, no premature patch or large E2E. The unmodified profile cannot itself prove split-batch counterfactual net gain. Positive candidate then correctness+matched, noise-aware repeated complete E2E with all contract and SLO retained. No Current change without PERF_KEEP.
+
+本阶段没有新增代码级性能 KEEP。真实完整E2E Gain=unknown。

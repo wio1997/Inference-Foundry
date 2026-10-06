@@ -1,3 +1,7 @@
+# GLM-OPT-0002 checkpoint159恢复引用
+
+当前点仍GLM-OPT-0002；完整请求placement/产品Current研究开放。新增真实Run242–244与裁决见[HANDOFF](../../../HANDOFF.md)、[post-review Reset](research/engine_commit_20261006/POST_REVIEW_RESET.md)。H1限定REJECT；H2 INCONCLUSIVE/PARKED；没有active性能Run或新增PERF_KEEP，Current=None。原历史内容保留如下，不继承next_action。
+
 # GLM-OPT-0002 — 完整请求部署与动态 placement
 
 OPEN/执行恢复，CurrentNone/SLO稳定容量与全可行域上界unknown。
