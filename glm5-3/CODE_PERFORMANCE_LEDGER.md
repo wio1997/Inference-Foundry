@@ -1,6 +1,6 @@
 # GLM代码性能账本
 
-当前产品目标为GLM-5.3 W8A8标准PD，权重`/data/tiankuan/wio/GLM-5.3-w8a8`、新服务名`glm-53`。2026-10-06用户上传中，尚无新模型完整E2E基线、Current或PERF_KEEP；历史模型候选/裁决保留实际版本，不迁移收益或正确性。
+当前产品目标为GLM-5.3 W8A8标准PD，权重`/data/tiankuan/wio/GLM-5.3-w8a8`、新服务名`glm-53`。用户已确认上传完成，原生PD已跑通。checkpoint164新增H5相同23token完整PD可重复代码收益4.71/3.26%（D generation，P drift分账）；完整API/标准动态workload/SLA仍未验收，正式PERF_KEEP裁决INCONCLUSIVE/PARKED，Current=None。历史模型候选/裁决保留实际版本，不迁移收益或正确性。
 
 从checkpoint158之后建立（2026-10-06；父commit `e378d459e08e9f12300118e158bba16db6c4d04f`），只汇总后续代码候选的证据引用，不迁移或重写历史Run、raw evidence和裁决。记录规则见[RECORDING](RECORDING.md)，研究规则见[AGENTS](AGENTS.md)。
 
@@ -18,6 +18,9 @@ checkpoint159已完成实际源码与原始证据研究；[Sol裁决](records/po
 | GLM-OPT-0002 H1 ready-useful commit优先级候选（未实现） | PERFORMANCE | Run242诊断，非matched E2E | none | unknown | [原始关联裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/H1_DECISION.md) | REJECT限已观测窗口，未实施drain-first |
 | GLM-OPT-0002 H2 phase-cohort admission条件候选（未实现） | PERFORMANCE | Run244观察，非matched E2E | none | unknown | 实际stage/broadcast；并行合法性/拆批成本未证 | [INCONCLUSIVE/PARKED](records/points/GLM-OPT-0002/research/engine_commit_20261006/H2_DEVICE_DECISION.md) |
 | GLM-OPT-0002 H3 PD completion host观测/reducer（opt-in，未接现役） | DIAGNOSTIC | none | 无性能patch/设备Run | unknown | [8CPU检查/真实安装类与166 Python](records/points/GLM-OPT-0002/jobs/PD-DIAGNOSTIC-CPU-20261006/result.json)；[源码/raw与限制](records/points/GLM-OPT-0002/research/pd_critical_path_20261006/CHECKPOINT160.md) | KEEP仅诊断；性能假说INCONCLUSIVE，不进Current/stack |
+| GLM-OPT-0002 H4 [MoE list-gather materialization](records/points/GLM-OPT-0002/research/decode_path_20261006/moe_gather.patch) | PERFORMANCE | Run251 same-resident A1/A2，原源码54e8ac… | [Run251 B1/B2](records/points/GLM-OPT-0002/runs/GLM-RUN-0251/summary.md)，candidate26e52e… | 短TPOT降低6.42/10.32%；相同3token完整PD wall降低1.96/10.28%，首对近噪声、第二对含P快31ms；正式Product Gain unknown | 240CPU +320native完整字节/布局/生命周期 +两次D16真实warm字节gate；完整答案/ID/chunk一致；Run250失败保留 | INCONCLUSIVE/PARKED正式promotion；positive scoped code signal，不进Current/stack，非PERF_KEEP |
+| GLM-OPT-0002 H5 [single-stream MoE event policy](records/points/GLM-OPT-0002/research/decode_path_20261006/moe_event.patch) | PERFORMANCE | Run253 same-resident A1/A2，原事件语义，H4 absent | [Run253 B1/B2](records/points/GLM-OPT-0002/runs/GLM-RUN-0253/summary.md)，五文件candidate，固定overlap=false | 完整相同23token generation TPOT229.346→218.544/226.595→219.210ms，缩短4.71/3.26%；D wall缩短4.83/3.41%；PD总差中P贡献71.079/2.239ms扣开；标准workload/SLA Gain unknown | 五文件CPU AST/false/true/None检查；176native byte/dependency/import/lifetime；64owned worker mode见证；ID/chunk/EOS/KV全一致 | [正向限域代码证据；正式PERF_KEEP INCONCLUSIVE/PARKED](records/points/GLM-OPT-0002/research/decode_path_20261006/H5_DECISION.md)；未启用/不进Current或stack |
+| GLM-OPT-0002 profiling-OFF CPU-clock observer | DIAGNOSTIC | none | Run252 single golden PD request，no source change | not applicable；main高CPU含SHM/runtime spin，不作为Gain | [原raw与归约限制](records/points/GLM-OPT-0002/runs/GLM-RUN-0252/summary.md)；全rank身份/健康/idle核验 | KEEP仅离线诊断工具，不进产品/stack |
 
 上表区分诊断工程保留、未实现性能候选与PERF_KEEP；诊断KEEP不算主要性能进展。每行用优化点ID/简短改动及code/diff引用、工作Type；性能Baseline/Patched引用同合同matched Run、完整E2E指标/单位；Gain写公式、重复/波动/范围；Correctness和Verdict链接验证及Sol裁决。非性能工作无matched性能数据时写not applicable/unknown，不发明Gain。缺性能对照或完整E2E标INCONCLUSIVE，执行无效标INVALID，归因混合标MIXED / INCONCLUSIVE；不能以局部TPS代填E2E。
 

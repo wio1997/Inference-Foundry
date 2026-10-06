@@ -1,4 +1,8 @@
-# GLM-OPT-0002 checkpoint159恢复引用
+# GLM-OPT-0002 checkpoint164恢复引用
+
+最新[checkpoint164](research/decode_path_20261006/CHECKPOINT164.md)增加逐轮D13→D15最晚host供给因果、当前CPU scope归因、Run252最小CPU-clock限制和H5具体event patch。Run253176native/64model witness及完全相同23token自然EOS完整PD的两对A/B通过：D generation TPOT下降4.71/3.26%，P耗时变化单列；正式标准workload/SLO未验收，H5 INCONCLUSIVE/PARKED for PERF_KEEP，CurrentNone/active stack空。H4已park且未叠加。15:48:54Z fresh P249/D253健康空闲、32owned worker、67原源码hash、selector0和controller退出核验完成；不要用下面D251或旧PID。层内MoE eager host供给仍是最大定位区域，全球可删profOFF预算unknown；继续MC2分配/descriptor现有源码/raw归因，不扫描。以下checkpoint163及更早保持历史。
+
+最新[checkpoint163](research/decode_path_20261006/CHECKPOINT163.md)完成现有Run249的跨rank/CANN/queue/source归因及H4最小MoE gather patch。Run251240CPU/320native字节correctness、matched A/B/A/B短请求通过；完整同token E2E首对接近噪声，正式PERF_KEEP INCONCLUSIVE/PARKED，CurrentNone/active stack空。P仍249、D新251 stock mode0，两机idle/health200，controllers已退出；下方旧现场与next_action只作历史。最大局部区域为层内host供给晚，最大可删除profOFF预算仍unknown。研究继续开放；不扫描参数、不新增kernel或以短fixture验收SLA。
 
 2026-10-06当前研究目标为**GLM-5.3 W8A8标准PD**：两机权重`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务名`glm-53`。用户已确认上传完成；Run245实际加载全部32rank权重/MTP后因1GiB KV容量检查失败并退出，Run246只修正2GiB后实际ready，Run247/248已通过2334prompt/32生成token的原生PD；[checkpoint161](research/pd_critical_path_20261006/CHECKPOINT161.md)记录证据与完整合同缺项。当前方案见[PLAN](../../../PLAN.md)，最新实际终态与入口沿[HANDOFF](../../../HANDOFF.md)读取；旧完整副本与8000入口已停止。下方历史内容不是5.3功能/性能基线或执行队列；CurrentNone/active PERF_KEEP空。
 

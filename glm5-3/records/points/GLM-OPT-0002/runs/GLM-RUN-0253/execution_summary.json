@@ -1,0 +1,122 @@
+{
+  "run": "GLM-RUN-0253",
+  "correctness": {
+    "native_cases": 176,
+    "ranks": 16,
+    "actual_imports": true,
+    "independent_expected_bytes": true,
+    "lifetime": true,
+    "true_aux_stream_dependency": true,
+    "model_witnesses": 64,
+    "exact_short_ids_and_chunks": true,
+    "exact_complete_23_ids_content_chunks_EOS": true,
+    "full_external_KV_hits": true,
+    "candidate_helper_AST_equals_executed_shim": true
+  },
+  "comparison": [
+    {
+      "baseline": "A1",
+      "patched": "B1",
+      "short_A_ms": [
+        251.87828885714288,
+        249.9046035714286
+      ],
+      "short_B_ms": [
+        238.00198714285713,
+        249.812488
+      ],
+      "short_A_median_ms": 250.89144621428574,
+      "short_B_median_ms": 243.90723757142857,
+      "short_TPOT_reduction_percent": 2.7837571779517623,
+      "complete_A": {
+        "P_wall_s": 0.470951968,
+        "D_wall_s": 5.451206385,
+        "PD_wall_s": 5.922158353,
+        "TPOT_ms": 229.34617604545454
+      },
+      "complete_B": {
+        "P_wall_s": 0.39987344,
+        "D_wall_s": 5.187992696,
+        "PD_wall_s": 5.587866136,
+        "TPOT_ms": 218.54428495454547
+      },
+      "complete_deltas_ms": {
+        "P_wall_s": 71.07852799999998,
+        "D_wall_s": 263.21368899999965,
+        "PD_wall_s": 334.2922170000007
+      },
+      "complete_PD_wall_reduction_percent": 5.6447699820565855,
+      "complete_D_wall_reduction_percent": 4.828540150750493,
+      "complete_generation_TPOT_reduction_percent": 4.709863175904106,
+      "complete_generation_span_reduction_ms": 237.64160399999946
+    },
+    {
+      "baseline": "A2",
+      "patched": "B2",
+      "short_A_ms": [
+        265.2659617142857,
+        263.45988514285716
+      ],
+      "short_B_ms": [
+        241.2808965714286,
+        247.6185127142857
+      ],
+      "short_A_median_ms": 264.36292342857143,
+      "short_B_median_ms": 244.44970464285717,
+      "short_TPOT_reduction_percent": 7.532530858509223,
+      "complete_A": {
+        "P_wall_s": 0.38963974,
+        "D_wall_s": 5.382250742,
+        "PD_wall_s": 5.771890482,
+        "TPOT_ms": 226.59502640909093
+      },
+      "complete_B": {
+        "P_wall_s": 0.387400401,
+        "D_wall_s": 5.198689457,
+        "PD_wall_s": 5.586089858,
+        "TPOT_ms": 219.20977063636363
+      },
+      "complete_deltas_ms": {
+        "P_wall_s": 2.239339000000007,
+        "D_wall_s": 183.56128499999969,
+        "PD_wall_s": 185.80062399999963
+      },
+      "complete_PD_wall_reduction_percent": 3.2190601082856762,
+      "complete_D_wall_reduction_percent": 3.4104930037464176,
+      "complete_generation_TPOT_reduction_percent": 3.259231188681999,
+      "complete_generation_span_reduction_ms": 162.4756270000007
+    }
+  ],
+  "observed_phase_drift": {
+    "baseline_complete_PD_ms": 150.2678710000005,
+    "baseline_complete_P_ms": 81.31222799999999,
+    "baseline_complete_D_ms": 68.95564299999978,
+    "baseline_complete_TPOT_ms": 2.751149636363607,
+    "patched_complete_D_ms": 10.696761000000166,
+    "patched_complete_TPOT_ms": 0.6654856818181543
+  },
+  "attribution": "Repeated D generation benefit exceeds observed phase drift; do not credit P-wall deltas to the D code.",
+  "verdict": "Positive scoped code evidence; INCONCLUSIVE/PARKED for formal PERF_KEEP/full-workload acceptance",
+  "limits": [
+    "One bounded complete natural-EOS fixture, not standard dynamic workload/capacity/SLA acceptance.",
+    "MTP emits two-token chunks; average TPOT is not individual token ITL or SLA percentile.",
+    "A/B uses a shared in-memory selector and None-safe consumers in both modes; pure patch has no selector.",
+    "Observed phase drift is a descriptive small-sample bound, not a statistical confidence interval."
+  ],
+  "final_state": {
+    "mode": {
+      "mode": 0,
+      "idle": true
+    },
+    "source": {
+      "utils.py": "42fa9c7c324d026c161b1cd932a23d85b97afb67e7aaa875830c0ef6963fdfd6",
+      "ops/fused_moe/fused_moe.py": "135d08d44dfc7c5e428cba14e37da43fef19d48fb971a32b0d49cb098ec54413",
+      "ops/fused_moe/moe_comm_method.py": "9ef691312cea99bc8f74f2faa3ca913b462f8bd7f6c9cf86e1347532e49f4129",
+      "ops/fused_moe/moe_mlp.py": "7e13f99b5e039c48b2371c01248193831d881038990b0933ede8c641e25e916c",
+      "ops/fused_moe/shared_experts.py": "3c3b6d64a098e8a22664a80688de5561d42506020c539e4370f28f05a6fbb962"
+    }
+  },
+  "Current": null,
+  "formal_SLA": false,
+  "full_API_contract": false
+}

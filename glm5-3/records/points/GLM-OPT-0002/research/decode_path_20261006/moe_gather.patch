@@ -1,0 +1,32 @@
+--- a/vllm_ascend/ops/fused_moe/prepare_finalize.py
++++ b/vllm_ascend/ops/fused_moe/prepare_finalize.py
+@@ -217,8 +217,27 @@
+                 gathered_hidden_states = torch.empty(
+                     padded_hidden_states_shape, device=hidden_states.device, dtype=hidden_states.dtype
+                 )
+-                split_hidden_states = torch.tensor_split(gathered_hidden_states, self.tp_size, dim=0)
+-                dist.all_gather(list(split_hidden_states), hidden_states, self.moe_config.tp_group.device_group)
++                # The output shape is common to the TP group, so every rank
++                # selects the same collective path. Preserve the HCCL 512-byte
++                # alignment contract and keep a private destination.
++                local_numel = gathered_hidden_states.numel() // self.tp_size
++                if (
++                    padded_hidden_states_shape[0] > 0
++                    and padded_hidden_states_shape[0] % self.tp_size == 0
++                    and local_numel * hidden_states.element_size() % 512 == 0
++                ):
++                    assert hidden_states.shape == (
++                        padded_hidden_states_shape[0] // self.tp_size,
++                        *padded_hidden_states_shape[1:],
++                    )
++                    dist.all_gather_into_tensor(
++                        gathered_hidden_states,
++                        hidden_states.contiguous(),
++                        group=self.moe_config.tp_group.device_group,
++                    )
++                else:
++                    split_hidden_states = torch.tensor_split(gathered_hidden_states, self.tp_size, dim=0)
++                    dist.all_gather(list(split_hidden_states), hidden_states, self.moe_config.tp_group.device_group)
+                 hidden_states = gathered_hidden_states
+ 
+             if self.num_tokens < hidden_states.shape[0]:
