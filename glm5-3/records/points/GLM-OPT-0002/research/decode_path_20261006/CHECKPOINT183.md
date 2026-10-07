@@ -15,6 +15,8 @@
 
 本地校验执行 `git apply --check`→apply→逐字 SHA/AST→reverse check→reverse→原字节验证，全 15 个 patch 通过。没有导入或执行模型代码，没有 native build，没有网络/服务检查或模型请求；0 NPU Run、0 服务器动作。GitHub main 采用独立基线的紧凑发布提交，研究分支保存暂停入口与完整证据；不把研究 raw/整条 ancestry 合并到 main。
 
+GitHub atomic fast-forward 发布已完成：main `a1282c94`、research `0b1ff9e4`，只读远端 refs 核验一致。main 的发布树逐字核验 package、6个AISBench直接源码/依赖与说明；未合并研究 ancestry。结果见 [发布记录](../../jobs/GITHUB-PATCH-PUBLICATION-20261007/result.json)。
+
 ## 当前状态与下一步
 
 **PAUSED_BY_USER：两台机器的代码调优与测试暂停。** 未触碰服务/源码/进程。最后已有现场证据是 Run284 terminal guard 的 P249/D283 all16 healthy/idle、H6/H5/mainFULL ON、H11/H12/H13 OFF；最后只读 health 记录为 `2026-10-07T14:47:39.758Z`（北京时间22:47:39），不是本阶段的新核验，不推断之后现场仍相同。
