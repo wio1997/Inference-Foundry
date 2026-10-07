@@ -5,6 +5,7 @@
 此基线由用户指定：4个P节点组成DP4×TP16/EP64，2个D节点组成DP16×TP2/EP32，完整P→KV→D服务。先保持当前实现、不合入q1修复，建立并发16/32/64/96下的实际吞吐、延迟和SLA基准。
 
 - [实际结果](RESULTS.md)
+- [完整性能报告、节点参与情况与参数优化建议](PERFORMANCE_REPORT.md)
 - [逐轮缓存命中与P/D压力位置](CACHE_AND_BOTTLENECK.md)
 - [不限速、并发和稳态统计定义](METRIC_DEFINITIONS.md)
 - [原始证据包哈希与复算验证](PROVENANCE.json)
