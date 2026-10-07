@@ -1,0 +1,68 @@
+--- a/vllm_ascend/ops/fused_moe/prepare_finalize.py
++++ b/vllm_ascend/ops/fused_moe/prepare_finalize.py
+@@ -248,6 +248,24 @@
+         self.tp_size = get_tensor_model_parallel_world_size()
+         self.tp_rank = get_tensor_model_parallel_rank()
+ 
++    def _select_tp_slice(self, tensor: torch.Tensor) -> torch.Tensor:
++        quotient, remainder = divmod(tensor.shape[0], self.tp_size)
++        start = self.tp_rank * quotient + min(self.tp_rank, remainder)
++        rows = quotient + int(self.tp_rank < remainder)
++        return tensor.narrow(0, start, rows)
++
++    def _pad_local_slice(self, tensor: torch.Tensor, rows: int) -> torch.Tensor:
++        start = min(self.tp_rank * rows, tensor.shape[0])
++        present = min(rows, tensor.shape[0] - start)
++        local = tensor.narrow(0, start, present)
++        if present == 0:
++            # Fresh zeros preserve padding ownership without an empty-input pad.
++            return tensor.new_zeros((rows, *tensor.shape[1:]))
++        if present < rows:
++            return nn.functional.pad(local, (0, 0, 0, rows - present))
++        # Global padding previously made this input independent of the caller.
++        return local.clone(memory_format=torch.contiguous_format)
++
+     def prepare(
+         self,
+         hidden_states: torch.Tensor,
+@@ -283,8 +301,7 @@
+                 mc2_mask = nn.functional.pad(mc2_mask, (0, pad_size), value=False)
+         elif self.tp_size > 1:
+             # Also slice mc2_mask
+-            split_mc2_mask = torch.tensor_split(mc2_mask, self.tp_size, dim=0)
+-            mc2_mask = split_mc2_mask[self.tp_rank]
++            mc2_mask = self._select_tp_slice(mc2_mask)
+ 
+         padded_hidden_states_shape = hidden_states.shape
+         if not self.replace_allreduce:
+@@ -292,17 +309,19 @@
+             target_pad_length = _EXTRA_CTX.padded_num_tokens
+             pad_size = target_pad_length - self.num_tokens
+ 
+-            if pad_size > 0:
+-                hidden_states = nn.functional.pad(hidden_states, (0, 0, 0, pad_size))
+-                router_logits = nn.functional.pad(router_logits, (0, 0, 0, pad_size))
+-                padded_hidden_states_shape = hidden_states.shape
+-
+-            # Slice across TP ranks
+-            if self.tp_size > 1:
+-                split_hidden_states = torch.tensor_split(hidden_states, self.tp_size, dim=0)
+-                split_router_logits = torch.tensor_split(router_logits, self.tp_size, dim=0)
+-                hidden_states = split_hidden_states[self.tp_rank]
+-                router_logits = split_router_logits[self.tp_rank]
++            if self.tp_size > 1 and target_pad_length > self.num_tokens and target_pad_length % self.tp_size == 0:
++                padded_hidden_states_shape = torch.Size((target_pad_length, *hidden_states.shape[1:]))
++                local_rows = target_pad_length // self.tp_size
++                hidden_states = self._pad_local_slice(hidden_states, local_rows)
++                router_logits = self._pad_local_slice(router_logits, local_rows)
++            else:
++                if pad_size > 0:
++                    hidden_states = nn.functional.pad(hidden_states, (0, 0, 0, pad_size))
++                    router_logits = nn.functional.pad(router_logits, (0, 0, 0, pad_size))
++                    padded_hidden_states_shape = hidden_states.shape
++                if self.tp_size > 1:
++                    hidden_states = self._select_tp_slice(hidden_states)
++                    router_logits = self._select_tp_slice(router_logits)
+ 
+         return MoEPrepareOutput(
+             hidden_states=hidden_states,

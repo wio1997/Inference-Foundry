@@ -1,0 +1,2179 @@
+--- /dev/null
++++ b/glm5-3/adapters/aisbench/default_api.py
+@@ -0,0 +1,22 @@
++from ais_bench.benchmark.models import test_type_for_replace
++
++models = [
++    dict(
++        attr="service",
++        type=test_type_for_replace,
++        abbr='test_abbr_for_replace',
++        path="model_path_for_replace",
++        model="model_name_for_replace",
++        stream=True,
++        request_rate=rr_for_replace,
++        retry=1,
++        host_ip="ip_for_replace",
++        host_port=port_for_replace,
++        url="url_for_replace",
++        max_out_len=outputlen_for_replace,
++        batch_size=concurrency_for_replace,
++        generation_kwargs=dict(
++            generation_kwargs_for_replace
++        )
++    )
++]
+--- /dev/null
++++ b/glm5-3/adapters/aisbench/dataset_generator.py
+@@ -0,0 +1,538 @@
++"""
++Dataset generator for prefix cache performance testing.
++
++Uses tokenizer vocabulary random sampling to generate test data,
++eliminating GSM8K dependency and prefix collision issues across rounds.
++
++Core approach (ported from token_counter.py):
++  - HuggingFaceTokenizer.get_some_tokens() pattern
++  - Local RNG (random.Random(seed)) per generation call
++  - Sorted safe token IDs for cross-environment determinism
++  - Seed offset per row/phase to avoid inter-round prefix collision
++"""
++
++import json
++import logging
++import os
++import random
++from typing import List, Optional, Set
++
++from transformers import AutoTokenizer
++
++try:
++    from tqdm import tqdm
++except ImportError:
++    tqdm = None
++
++logger = logging.getLogger(__name__)
++
++
++# ---------------------------------------------------------------------------
++# Tokenizer wrapper with random token generation
++# ---------------------------------------------------------------------------
++
++def exact_token_length(tokenizer, text, target):
++    """Calibrate decoded text, then verify actual raw prompt token count."""
++    for _ in range(32):
++        ids = tokenizer.encode(text, add_special_tokens=False)
++        if len(ids) == target:
++            return text
++        if len(ids) > target:
++            text = tokenizer.decode(ids[:target], skip_special_tokens=True)
++        else:
++            text += " a" * (target - len(ids))
++    raise ValueError(f"Cannot calibrate prompt to {target} tokens")
++
++class TokenizerWrapper:
++    """Tokenizer wrapper that supports deterministic random token generation.
++
++    Uses a sorted safe-token-ID list and local RNG instances to ensure:
++    - Same seed always produces the same text (reproducibility)
++    - No global random state pollution
++    - Cross-environment determinism (sorted IDs)
++    """
++
++    def __init__(self, tokenizer_path: str) -> None:
++        try:
++            self._tok = AutoTokenizer.from_pretrained(
++                tokenizer_path, trust_remote_code=True
++            )
++        except Exception as exc:
++            raise RuntimeError(
++                f"Failed to load tokenizer from {tokenizer_path!r}: {exc}"
++            ) from exc
++
++        self._safe_token_ids: Optional[List[int]] = None
++
++    def count_tokens(self, text: str, include_special: bool = True) -> int:
++        """Count the number of tokens in *text*."""
++        if not text:
++            return 0
++        return len(self._tok.encode(text, add_special_tokens=include_special))
++
++    def get_some_tokens(self, num_tokens: int, seed: Optional[int] = None) -> str:
++        """Generate random token text with the specified number of tokens.
++
++        Args:
++            num_tokens: Target number of tokens to generate.
++            seed: Random seed. If fixed (non-zero), the generated text is reproducible.
++                  If 0 or None, generation is truly random (uses system entropy, non-reproducible).
++
++        Returns:
++            A string whose token count equals *num_tokens* (or close to it).
++        """
++        if num_tokens <= 0:
++            return ""
++
++        # Local RNG — does NOT affect global random state
++        # seed=0 means pure random (non-reproducible, using system entropy)
++        if seed is None or seed == 0:
++            rng = random.Random()
++        else:
++            rng = random.Random(seed)
++
++        safe_ids = self._get_or_build_safe_ids()
++
++        # 1. Randomly select token IDs from the safe vocabulary
++        selected = rng.choices(safe_ids, k=num_tokens)
++
++        # 2. Decode to text
++        text = self._tok.decode(selected, skip_special_tokens=True)
++
++        # 3. Length calibration: some tokenizers merge tokens during decode
++        encoded = self._tok.encode(text, add_special_tokens=False)
++        if len(encoded) > num_tokens:
++            text = self._tok.decode(encoded[:num_tokens], skip_special_tokens=True)
++
++        return exact_token_length(self._tok, text, num_tokens)
++
++    # ---- internal helpers ----
++
++    def _get_or_build_safe_ids(self) -> List[int]:
++        """Return sorted safe token IDs (lazy-built, then cached)."""
++        if self._safe_token_ids is None:
++            ids = self._build_safe_token_ids()
++            ids.sort()  # Sort for cross-environment determinism
++            self._safe_token_ids = ids
++        return self._safe_token_ids
++
++    def _build_safe_token_ids(self) -> List[int]:
++        """Filter out special tokens and empty/whitespace-only tokens."""
++        vocab = self._tok.get_vocab()
++        all_ids: Set[int] = set(vocab.values())
++        special_ids: Set[int] = set(self._tok.all_special_ids)
++
++        safe_ids_set = all_ids - special_ids
++
++        safe_ids: List[int] = []
++        for tid in safe_ids_set:
++            try:
++                decoded = self._tok.decode([tid], skip_special_tokens=True).strip()
++                if decoded:  # skip empty / control-char tokens
++                    safe_ids.append(tid)
++            except Exception:
++                continue
++
++        # Fallback: if filtering removed everything, use the full safe set
++        return safe_ids if safe_ids else list(safe_ids_set)
++
++
++# ---------------------------------------------------------------------------
++# Length distribution helpers
++# ---------------------------------------------------------------------------
++
++def sample_target_length(
++    rng: random.Random,
++    fixed_length: int,
++    length_mean: Optional[int] = None,
++    length_std: Optional[float] = None,
++    length_min: Optional[int] = None,
++    length_max: Optional[int] = None,
++) -> int:
++    """Sample a target prompt length from Gaussian or uniform distribution."""
++    fixed_length = max(1, int(fixed_length))
++
++    has_gauss = (length_mean is not None) and (length_std is not None)
++    has_range = (length_min is not None) and (length_max is not None)
++
++    lo = 1 if length_min is None else max(1, int(length_min))
++    hi = None if length_max is None else max(1, int(length_max))
++    if hi is not None and lo > hi:
++        lo, hi = hi, lo
++
++    if has_gauss:
++        mu = max(1, int(length_mean))
++        sigma = max(0.0, float(length_std))
++        val = mu if sigma == 0 else int(round(rng.gauss(mu, sigma)))
++        if hi is not None:
++            val = min(val, hi)
++        val = max(lo, val)
++        return max(1, val)
++
++    if has_range:
++        return rng.randint(lo, hi)
++
++    return fixed_length
++
++
++def build_length_tag(
++    input_len: int,
++    length_mean: Optional[int],
++    length_std: Optional[float],
++    length_min: Optional[int],
++    length_max: Optional[int],
++) -> str:
++    """Build a short tag string describing the length distribution."""
++    if (length_mean is not None) and (length_std is not None):
++        tag = f"G{int(length_mean)}_{str(length_std).replace('.', 'd')}"
++        if (length_min is not None) and (length_max is not None):
++            tag += f"_C{int(length_min)}_{int(length_max)}"
++        return tag
++    if (length_min is not None) and (length_max is not None):
++        return f"U{int(length_min)}_{int(length_max)}"
++    return f"L{int(input_len)}"
++
++
++# ---------------------------------------------------------------------------
++# Truncate / pad helper
++# ---------------------------------------------------------------------------
++
++def truncate_or_pad_text(tokenizer, text: str, target_len: int) -> str:
++    """Adjust *text* to have exactly *target_len* tokens (truncate or repeat-pad)."""
++    tokens = tokenizer.encode(text, add_special_tokens=False)
++    if len(tokens) >= target_len:
++        tokens = tokens[:target_len]
++    else:
++        repeat_times = (target_len + len(tokens) - 1) // len(tokens)
++        tokens = (tokens * repeat_times)[:target_len]
++    return tokenizer.decode(tokens, skip_special_tokens=True)
++
++
++# ---------------------------------------------------------------------------
++# Parse repeat_rate string
++# ---------------------------------------------------------------------------
++
++def parse_prefix_ratio(r: str) -> float:
++    """Parse a repeat-rate string: '50%' -> 0.5, '0.5' -> 0.5."""
++    r = str(r).strip()
++    if r.endswith("%"):
++        v = float(r[:-1]) / 100.0
++    else:
++        v = float(r)
++    if not (0.0 <= v <= 1.0):
++        raise ValueError("repeat_rate must be in [0,1] or percent [0%,100%]")
++    return v
++
++
++# ---------------------------------------------------------------------------
++# Write dataset to JSONL
++# ---------------------------------------------------------------------------
++
++def write_jsonl(path: str, dataset: list, num: Optional[int] = None) -> None:
++    """Write dataset entries to a JSONL file in GSM8K-compatible format.
++
++    Each line: {"question": <text>, "answer": "none"}
++    """
++    if num is not None:
++        if len(dataset) < num:
++            repeats = num // len(dataset)
++            remainder = num % len(dataset)
++            dataset = dataset * repeats + dataset[:remainder]
++        else:
++            dataset = dataset[:num]
++
++    with open(path, "w", encoding="utf-8") as f:
++        for item in dataset:
++            f.write(json.dumps({"question": item, "answer": "none"}, ensure_ascii=False))
++            f.write("\n")
++
++
++# ---------------------------------------------------------------------------
++# Main dataset creation function
++# ---------------------------------------------------------------------------
++
++def create_prefix_dataset(
++    tokenizer_path: str,
++    input_len: int,
++    number: int,
++    save_path: str,
++    dp: int,
++    repeat_rate: float,
++    seed: int,
++    prefix_num: int,
++    length_mean: Optional[int] = None,
++    length_std: Optional[float] = None,
++    length_min: Optional[int] = None,
++    length_max: Optional[int] = None,
++) -> tuple:
++    """Create a prefix-cache test dataset using random token generation.
++
++    Generates two JSONL files:
++      - prefix file: contains each prefix repeated *dp* times (for warmup)
++      - full dataset file: prefix + 3 separator tokens + suffix per row
++
++    Args:
++        tokenizer_path: HuggingFace tokenizer path or model name.
++        input_len: Base input token length.
++        number: Number of dataset entries (rows).
++        save_path: Directory to save generated JSONL files.
++        dp: Data-parallelism degree — each prefix is replicated *dp* times.
++        repeat_rate: Fraction of input_len that is the shared prefix (0.0–1.0).
++        seed: Random seed controlling all token generation.
++        prefix_num: Number of distinct prefixes.
++        length_mean / length_std / length_min / length_max:
++            Optional parameters for variable-length distribution.
++
++    Returns:
++        (prefix_jsonl_path, dataset_jsonl_path) — absolute paths to the two files.
++    """
++    base_name = os.path.basename(os.path.normpath(tokenizer_path))
++    use_variable = (
++        (length_mean is not None and length_std is not None)
++        or (length_min is not None and length_max is not None)
++    )
++
++    tok_wrapper = TokenizerWrapper(tokenizer_path)
++    tokenizer = tok_wrapper._tok  # reuse the loaded tokenizer for truncation
++
++    if use_variable:
++        return _create_prefix_dataset_variable(
++            tok_wrapper, tokenizer, input_len, number, save_path, base_name,
++            dp, repeat_rate, seed, prefix_num,
++            length_mean, length_std, length_min, length_max,
++        )
++
++    # ========== Fixed-length prefix dataset ==========
++
++    prefix_len = int(input_len * repeat_rate)
++    separator_len = 3  # unique separator tokens between prefix and suffix
++    suffix_len = int(input_len - prefix_len - separator_len)
++
++    # ---- Generate prefix pool ----
++    prefix_pool = []
++    pbar = tqdm(total=prefix_num, desc="Generating prefixes", unit="row") if tqdm else None
++    for i in range(prefix_num):
++        prefix_seed = 0 if seed == 0 else seed + i  # seed=0: pure random; else: deterministic offset
++        prefix_text = tok_wrapper.get_some_tokens(prefix_len, seed=prefix_seed)
++        prefix_pool.append(prefix_text)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    # ---- Write prefix warmup file (each prefix repeated dp times) ----
++    prefix_dataset = []
++    for i in range(prefix_num):
++        for _ in range(dp):
++            prefix_dataset.append(prefix_pool[i])
++
++    if not os.path.exists(save_path):
++        os.makedirs(save_path, exist_ok=True)
++
++    prefix_path = os.path.join(
++        save_path, f"prefix-GSM8K-in{prefix_len}-num{dp * prefix_num}-{base_name}.jsonl"
++    )
++    write_jsonl(prefix_path, prefix_dataset, dp * prefix_num)
++    logger.info(f"Prefix warmup file: {prefix_path} ({dp * prefix_num} rows)")
++
++    if repeat_rate >= 1.0:
++        # Entire input is prefix — dataset = prefix file
++        dataset_path = os.path.join(
++            save_path, f"GSM8K-in{prefix_len}-num{number}-{base_name}-repeatRate{repeat_rate}.jsonl"
++        )
++        write_jsonl(dataset_path, prefix_dataset, number)
++        return prefix_path, dataset_path
++
++    # ---- Generate separator tokens (3 per row, unique) ----
++    separator_pool = []
++    pbar = tqdm(total=number, desc="Generating separators", unit="row") if tqdm else None
++    for i in range(number):
++        sep_seed = 0 if seed == 0 else seed + prefix_num + i  # seed=0: pure random
++        sep_text = tok_wrapper.get_some_tokens(separator_len, seed=sep_seed)
++        separator_pool.append(sep_text)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    # ---- Generate suffix pool ----
++    suffix_pool = []
++    pbar = tqdm(total=number, desc="Generating suffixes", unit="row") if tqdm else None
++    for i in range(number):
++        suffix_seed = 0 if seed == 0 else seed + prefix_num + number + i  # seed=0: pure random
++        suffix_text = tok_wrapper.get_some_tokens(suffix_len, seed=suffix_seed)
++        suffix_pool.append(suffix_text)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    # ---- Stitch full dataset: prefix + separator + suffix ----
++    dataset = []
++    pbar = tqdm(total=number, desc="Stitching dataset", unit="row") if tqdm else None
++    for i in range(number):
++        entry = prefix_pool[i % prefix_num] + separator_pool[i] + suffix_pool[i]
++        entry = exact_token_length(tokenizer, entry, input_len)
++        dataset.append(entry)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    dataset_path = os.path.join(
++        save_path,
++        f"GSM8K-in{input_len}-num{number}-{base_name}-repeatRate{repeat_rate}.jsonl",
++    )
++    write_jsonl(dataset_path, dataset, number)
++    logger.info(f"Full dataset file: {dataset_path} ({number} rows)")
++
++    return prefix_path, dataset_path
++
++
++# ---------------------------------------------------------------------------
++# Variable-length prefix dataset
++# ---------------------------------------------------------------------------
++
++def _create_prefix_dataset_variable(
++    tok_wrapper: TokenizerWrapper,
++    tokenizer,
++    input_len: int,
++    number: int,
++    save_path: str,
++    base_name: str,
++    dp: int,
++    repeat_rate: float,
++    seed: int,
++    prefix_num: int,
++    length_mean: Optional[int],
++    length_std: Optional[float],
++    length_min: Optional[int],
++    length_max: Optional[int],
++) -> tuple:
++    """Create a variable-length prefix dataset using random token generation.
++
++    Pre-samples actual lengths and common-prefix lengths per row,
++    then generates max-length text pools and truncates per row.
++    """
++    # seed=0 means pure random (non-reproducible, using system entropy)
++    rng = random.Random() if seed == 0 else random.Random(seed)
++
++    # Pre-sample per-row lengths
++    real_lens = [
++        max(1, int(sample_target_length(rng, input_len, length_mean, length_std, length_min, length_max)))
++        for _ in range(number)
++    ]
++    common_lens = [
++        max(0, min(rl, int(round(rl * repeat_rate))))
++        for rl in real_lens
++    ]
++    max_common_len = max(common_lens) if common_lens else 0
++
++    if not os.path.exists(save_path):
++        os.makedirs(save_path, exist_ok=True)
++
++    # ---- Generate prefix pool at max common length ----
++    prefix_pool = []
++    pbar = tqdm(total=prefix_num, desc="Generating prefix pool", unit="row") if tqdm else None
++    for i in range(prefix_num):
++        prefix_seed = 0 if seed == 0 else seed + i
++        if max_common_len > 0:
++            prefix_text = tok_wrapper.get_some_tokens(max_common_len, seed=prefix_seed)
++        else:
++            prefix_text = ""
++        prefix_pool.append(prefix_text)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    # Write prefix warmup file
++    prefix_dataset = []
++    for i in range(prefix_num):
++        for _ in range(dp):
++            prefix_dataset.append(prefix_pool[i])
++
++    prefix_path = os.path.join(
++        save_path, f"prefix-GSM8K-in{max_common_len}-num{dp * prefix_num}-{base_name}.jsonl"
++    )
++    write_jsonl(prefix_path, prefix_dataset, dp * prefix_num)
++    logger.info(f"Prefix warmup file: {prefix_path} ({dp * prefix_num} rows)")
++
++    if repeat_rate >= 1.0:
++        dataset_path = os.path.join(
++            save_path,
++            f"GSM8K-in{max_common_len}-num{number}-{base_name}-repeatRate{repeat_rate}.jsonl",
++        )
++        write_jsonl(dataset_path, prefix_dataset, number)
++        return prefix_path, dataset_path
++
++    # ---- Generate separators (3 tokens per row) ----
++    separator_pool = []
++    pbar = tqdm(total=number, desc="Generating separators", unit="row") if tqdm else None
++    for i in range(number):
++        sep_seed = 0 if seed == 0 else seed + prefix_num + i
++        sep_text = tok_wrapper.get_some_tokens(3, seed=sep_seed)
++        separator_pool.append(sep_text)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    # ---- Generate suffix pool at max suffix length ----
++    max_suffix_len = max(
++        (rl - cl - 3 for rl, cl in zip(real_lens, common_lens)),
++        default=1,
++    )
++    max_suffix_len = max(max_suffix_len, 1)
++
++    suffix_pool = []
++    pbar = tqdm(total=number, desc="Generating suffix pool", unit="row") if tqdm else None
++    for i in range(number):
++        suffix_seed = 0 if seed == 0 else seed + prefix_num + number + i
++        suffix_text = tok_wrapper.get_some_tokens(max_suffix_len, seed=suffix_seed)
++        suffix_pool.append(suffix_text)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    # ---- Stitch per-row: truncated prefix + separator + truncated suffix ----
++    dataset = []
++    pbar = tqdm(total=number, desc="Stitching variable-length dataset", unit="row") if tqdm else None
++    for idx in range(number):
++        rl = real_lens[idx]
++        cl = common_lens[idx]
++        suffix_len_needed = max(0, rl - cl - 3)
++
++        # Truncate prefix to actual common length
++        if cl > 0 and prefix_pool[idx % prefix_num]:
++            prefix_text = truncate_or_pad_text(tokenizer, prefix_pool[idx % prefix_num], cl)
++        else:
++            prefix_text = ""
++
++        # Truncate suffix to needed length
++        if suffix_len_needed > 0 and suffix_pool[idx]:
++            suffix_text = truncate_or_pad_text(tokenizer, suffix_pool[idx], suffix_len_needed)
++        else:
++            suffix_text = ""
++
++        entry = prefix_text + separator_pool[idx] + suffix_text
++        entry = exact_token_length(tokenizer, entry, input_len)
++        dataset.append(entry)
++        if pbar:
++            pbar.update(1)
++    if pbar:
++        pbar.close()
++
++    length_tag = build_length_tag(input_len, length_mean, length_std, length_min, length_max)
++    dataset_path = os.path.join(
++        save_path,
++        f"GSM8K-{length_tag}-num{number}-{base_name}-repeatRate{repeat_rate}.jsonl",
++    )
++    write_jsonl(dataset_path, dataset, number)
++
++    avg_hit_ratio = sum(c / r for c, r in zip(common_lens, real_lens)) / len(real_lens)
++    logger.info(f"  max_common_len={max_common_len}, max_suffix_len={max_suffix_len}")
++    logger.info(f"  avg_hit_ratio={avg_hit_ratio:.2%}")
++
++    return prefix_path, dataset_path
+--- /dev/null
++++ b/glm5-3/adapters/aisbench/prefix_bench.py
+@@ -0,0 +1,764 @@
++"""
++Prefix Cache Performance Benchmark Tool.
++
++A streamlined tool for testing vLLM prefix cache performance using AISBench.
++Only supports the two-phase prefix test workflow:
++  Phase 1 (warmup): Send prefix-only requests at dp concurrency to warm KV cache
++  Phase 2 (full):   Send full dataset requests at target concurrency
++
++Configuration priority: CLI arguments > config.py > hardcoded defaults
++Results are written to CSV and JSONL with per-DP and aggregated hit rates.
++
++Multi-round support: --rounds accepts JSON file path or inline JSON string,
++each round overriding test-specific fields while sharing service/global config.
++"""
++
++import argparse
++import copy
++import errno
++import json
++import logging
++import os
++import re
++import sys
++import shutil
++import uuid
++from pathlib import Path
++from phase_runner import run_phase, PhaseExecutionError
++
++from config import *  # Load default configuration
++from dataset_generator import create_prefix_dataset, parse_prefix_ratio
++from hit_rate_collector import HitRateCollector
++from result_writer import (
++    archive_log,
++    build_result_row,
++    parse_aisbench_log,
++    write_csv,
++    write_jsonl,
++)
++
++logging.basicConfig(
++    level=logging.INFO,
++    format="[%(levelname)s] %(message)s",
++)
++logger = logging.getLogger(__name__)
++
++# ---------------------------------------------------------------------------
++# Round-overridable fields — these can differ per round in multi-round mode
++# ---------------------------------------------------------------------------
++ROUND_OVERRIDABLE_KEYS = [
++    "input_len", "output_len", "data_num", "concurrency",
++    "request_rate", "prefix_num", "repeat_rate", "dp", "seed",
++    "test_name",  # Optional name label for this round (written to result CSV)
++]
++
++
++# ---------------------------------------------------------------------------
++# CLI argument parser — defaults from config.py, CLI overrides
++# ---------------------------------------------------------------------------
++
++def parse_arguments() -> argparse.Namespace:
++    parser = argparse.ArgumentParser(
++        description="AISBench Prefix Cache Performance Test",
++        formatter_class=argparse.RawDescriptionHelpFormatter,
++        epilog="""
++Configuration priority: CLI arguments > config.py > hardcoded defaults.
++Edit config.py for convenience when running tests manually.
++
++Examples:
++  # Basic prefix test with dp=2 (using config.py defaults where not specified)
++  python prefix_bench.py --model_path /home/weights/model --work_path /home/benchmark \
++      --host_ip 10.0.0.1 --host_port 8004 --input_len 8192 --output_len 1 \
++      --data_num 32 --concurrency 8 --repeat_rate 0.5 --dp 2 --seed 1
++
++  # Multi-round testing via --rounds (JSON file or inline)
++  python prefix_bench.py --model_path /home/weights/model --work_path /home/benchmark \
++      --host_ip 10.0.0.1 --host_port 8004 \
++      --rounds '[{"input_len":3500,"seed":1},{"input_len":8500,"seed":2}]'
++
++  # Multi-round testing via JSON file
++  python prefix_bench.py --model_path /home/weights/model --work_path /home/benchmark \
++      --host_ip 10.0.0.1 --host_port 8004 --rounds rounds_config.json
++
++  # Legacy: shell script multi-round (results accumulate in same CSV)
++  for cc in 8 16 32; do
++      python prefix_bench.py --model_path /home/weights/model --work_path /home/benchmark \
++          --host_ip 10.0.0.1 --host_port 8004 --concurrency $cc --data_num $(($cc*4)) \
++          --repeat_rate 0.5 --dp 2 --seed $cc
++  done
++        """,
++    )
++
++    # ===== Service configuration =====
++    parser.add_argument("--host_ip", type=str, default=HOST_IP,
++                        help=f"Target server IP (default from config: {HOST_IP})")
++    parser.add_argument("--host_port", type=int, default=HOST_PORT,
++                        help=f"Target server port (default from config: {HOST_PORT})")
++    parser.add_argument("--url", type=str, default=URL,
++                        help=f"Full URL overriding host_ip/host_port (default from config: {URL}). "
++                             "Useful for Docker: http://host.docker.internal:8080")
++    parser.add_argument("--model_name", type=str, default=MODEL_NAME,
++                        help=f"Model name for API (default from config: {MODEL_NAME}, empty=auto-detect)")
++    parser.add_argument("--model_path", type=str, default=MODEL_PATH,
++                        help=f"Tokenizer/model weights path (default from config: {MODEL_PATH})")
++    parser.add_argument("--npu_num", type=int, default=NPU_NUM,
++                        help=f"NPU card count (default from config: {NPU_NUM})")
++
++    # ===== Test configuration =====
++    parser.add_argument("--test_name", type=str, default=TEST_NAME,
++                        help=f"Optional name label for this test (default from config: {TEST_NAME})")
++    parser.add_argument("--input_len", type=int, default=INPUT_LEN,
++                        help=f"Input token length (default from config: {INPUT_LEN})")
++    parser.add_argument("--output_len", type=int, default=OUTPUT_LEN,
++                        help=f"Output token length (default from config: {OUTPUT_LEN})")
++    parser.add_argument("--data_num", type=int, default=DATA_NUM,
++                        help=f"Number of dataset entries (default from config: {DATA_NUM})")
++    parser.add_argument("--concurrency", type=int, default=CONCURRENCY,
++                        help=f"Max concurrency for full test (default from config: {CONCURRENCY})")
++    parser.add_argument("--request_rate", type=int, default=REQUEST_RATE,
++                        help=f"Request rate (default from config: {REQUEST_RATE}, 0=burst)")
++    parser.add_argument("--test_type", type=str, default=TEST_TYPE,
++                        choices=["stream", "text"],
++                        help=f"API test type (default from config: {TEST_TYPE})")
++
++    # ===== Prefix configuration =====
++    parser.add_argument("--prefix_num", type=int, default=PREFIX_NUM,
++                        help=f"Number of distinct prefixes (default from config: {PREFIX_NUM})")
++    parser.add_argument("--repeat_rate", type=float, default=REPEAT_RATE,
++                        help=f"Prefix repeat rate (default from config: {REPEAT_RATE}, "
++                             "supports 0.5 or percentage string via --rounds)")
++    parser.add_argument("--dp", type=int, default=DP,
++                        help=f"Data-parallelism degree (default from config: {DP})")
++    parser.add_argument("--seed", type=int, default=SEED,
++                        help=f"Random seed (default from config: {SEED}; 0=pure random)")
++
++    # ===== Variable-length configuration =====
++    parser.add_argument("--length_mean", type=int, default=LENGTH_MEAN,
++                        help=f"Gaussian mean for variable length (default from config: {LENGTH_MEAN})")
++    parser.add_argument("--length_std", type=float, default=LENGTH_STD,
++                        help=f"Gaussian std for variable length (default from config: {LENGTH_STD})")
++    parser.add_argument("--length_min", type=int, default=LENGTH_MIN,
++                        help=f"Min length (default from config: {LENGTH_MIN})")
++    parser.add_argument("--length_max", type=int, default=LENGTH_MAX,
++                        help=f"Max length (default from config: {LENGTH_MAX})")
++
++    # ===== AISBench configuration =====
++    parser.add_argument("--work_path", type=str, default=WORK_PATH,
++                        help=f"AISBench installation directory (default from config: {WORK_PATH}, "
++                             "AISBench container default: /benchmark)")
++    parser.add_argument("--dataset_path", type=str, default=DATASET_PATH,
++                        help=f"Dataset storage directory (default from config: {DATASET_PATH})")
++    parser.add_argument("--output_dir", type=str, default=OUTPUT_DIR,
++                        help=f"AISBench output directory (default from config: {OUTPUT_DIR})")
++    parser.add_argument("--summarizer", type=str, default=SUMMARIZER,
++                        help=f"AISBench summarizer (default from config: {SUMMARIZER})")
++    parser.add_argument("--enable_think", action="store_true", default=ENABLE_THINK,
++                        help="Enable thinking mode for DeepSeek V3.1")
++
++    # ===== Results configuration =====
++    parser.add_argument("--result_csv", type=str, default=RESULT_CSV,
++                        help=f"Result CSV path (default from config: {RESULT_CSV})")
++    parser.add_argument("--result_jsonl", type=str, default=RESULT_JSONL,
++                        help=f"Result JSONL path (default from config: {RESULT_JSONL})")
++
++    # ===== Hit rate collection =====
++    parser.add_argument("--pod_info", type=str, nargs="+", default=None,
++                        help="Pod addresses for hit rate (ip:port pairs). "
++                             "If not specified, uses POD_INFO from config or host_ip:host_port")
++
++    # ===== Dataset override =====
++    parser.add_argument("--dataset", type=str, default=None,
++                        help="Use existing dataset JSONL file (skip generation)")
++
++    # ===== Multi-round configuration =====
++    parser.add_argument("--rounds", type=str, default=None,
++                        help="Multi-round test config: JSON file path or inline JSON string. "
++                             "Each round is a dict overriding test-specific fields "
++                             "(input_len, output_len, data_num, concurrency, "
++                             "request_rate, prefix_num, repeat_rate, dp, seed, test_name). "
++                             "Missing fields inherit from CLI/config defaults. "
++                             "seed=0 means pure random. "
++                             "E.g.: '[{\"input_len\":8500,\"seed\":2}]' or 'rounds_config.json'. "
++                             "Also supports AISBENCH_TEST_CASE env var when --rounds not specified.")
++
++    return parser.parse_args()
++
++
++# ---------------------------------------------------------------------------
++# Load and parse rounds config
++# ---------------------------------------------------------------------------
++
++def load_rounds(rounds_arg) -> list:
++    """Load multi-round config from inline JSON, JSON file, or environment variable.
++
++    Args:
++        rounds_arg: Either an inline JSON string (starting with '[' or '{'),
++                    or a path to a JSON file, or None.
++                    If None, falls back to AISBENCH_TEST_CASE environment variable.
++
++    Returns:
++        List of dicts, each representing a round's overrides.
++        A single dict is wrapped into a list of one element.
++        None if no config is available (single-round mode).
++    """
++    # Resolve source: CLI --rounds > env AISBENCH_TEST_CASE
++    source = rounds_arg
++    if source is None:
++        env_val = os.getenv("AISBENCH_TEST_CASE")
++        if env_val:
++            source = env_val
++            logger.info("Using test config from AISBENCH_TEST_CASE env var")
++
++    if source is None:
++        return None
++
++    stripped = source.strip()
++
++    if stripped.startswith("[") or stripped.startswith("{"):
++        # Inline JSON string
++        try:
++            rounds = json.loads(stripped)
++        except json.JSONDecodeError as e:
++            logger.error(f"Failed to parse inline JSON: {e}")
++            sys.exit(1)
++    else:
++        # JSON file path
++        try:
++            with open(stripped, "r", encoding="utf-8") as f:
++                rounds = json.load(f)
++        except (FileNotFoundError, json.JSONDecodeError) as e:
++            logger.error(f"Failed to load JSON from file '{stripped}': {e}")
++            sys.exit(1)
++
++    # Wrap single dict into list
++    if isinstance(rounds, dict):
++        rounds = [rounds]
++
++    if not isinstance(rounds, list):
++        logger.error(f"--rounds must be a JSON list or dict, got {type(rounds).__name__}")
++        sys.exit(1)
++
++    # Validate each round dict
++    for i, round_cfg in enumerate(rounds):
++        if not isinstance(round_cfg, dict):
++            logger.error(f"Round {i+1} must be a dict, got {type(round_cfg).__name__}")
++            sys.exit(1)
++        for key in round_cfg:
++            if key not in ROUND_OVERRIDABLE_KEYS:
++                logger.warning(f"Round {i+1}: unknown override key '{key}' "
++                               f"(allowed: {ROUND_OVERRIDABLE_KEYS})")
++
++    return rounds
++
++
++# ---------------------------------------------------------------------------
++# Merge round overrides into base args
++# ---------------------------------------------------------------------------
++
++def merge_round_args(base_args: argparse.Namespace, overrides: dict) -> argparse.Namespace:
++    """Create a new Namespace from base_args, overridden by round-specific values.
++
++    Only ROUND_OVERRIDABLE_KEYS are allowed to be overridden.
++    Global config (host, model, AISBench, etc.) is shared across all rounds.
++    """
++    round_args = copy.deepcopy(base_args)
++
++    for key, value in overrides.items():
++        if key in ROUND_OVERRIDABLE_KEYS:
++            setattr(round_args, key, value)
++        else:
++            logger.warning(f"Skipping non-overridable key '{key}' in round config")
++
++    # Handle repeat_rate that may come as percentage string "50%"
++    # parse_prefix_ratio handles both "0.5" and "50%"
++    # If overrides provided a string, convert it properly
++    if isinstance(round_args.repeat_rate, str):
++        round_args.repeat_rate = parse_prefix_ratio(round_args.repeat_rate)
++
++    return round_args
++
++
++# ---------------------------------------------------------------------------
++# Resolve pod_info with priority: CLI > config.py > host_ip:host_port
++# ---------------------------------------------------------------------------
++
++def resolve_pod_info(args: argparse.Namespace) -> list:
++    """Resolve pod_info with priority: CLI > config.py > url > host_ip:host_port.
++
++    When url is provided (e.g. Docker: http://host.docker.internal:8080),
++    extract host:port from it for metrics collection, since the vLLM /metrics
++    endpoint is typically on the same host as the API endpoint.
++    """
++    if args.pod_info is not None:
++        # CLI explicitly provided
++        return args.pod_info
++
++    # Use config.py POD_INFO (imported via `from config import *`)
++    if POD_INFO:
++        return POD_INFO
++
++    # If url is provided, extract host:port from it for metrics endpoint
++    if args.url:
++        url_match = re.search(r"https?://([^:/]+):(\d+)", args.url)
++        if url_match:
++            return [f"{url_match.group(1)}:{url_match.group(2)}"]
++
++    # Fallback to host_ip:host_port
++    return [f"{args.host_ip}:{args.host_port}"]
++
++
++# ---------------------------------------------------------------------------
++# Symlink helper
++# ---------------------------------------------------------------------------
++
++def symlink_force(target: str, link_name: str) -> None:
++    """Create a symlink, replacing existing one if necessary."""
++    logger.info(f"Symlink: {link_name} ==> {target}")
++    try:
++        os.symlink(target, link_name)
++    except OSError as e:
++        if e.errno == errno.EEXIST:
++            os.remove(link_name)
++            os.symlink(target, link_name)
++        else:
++            raise
++
++
++# ---------------------------------------------------------------------------
++# AISBench command and config generation
++# ---------------------------------------------------------------------------
++
++def generate_aisbench_command(summarizer: str, output_dir: str) -> list[str]:
++    """Use argv so log capture never changes the observed AISBench exit status."""
++    return ["ais_bench", "--models", "vllm_api_chat_temp",
++            "--datasets", "gsm8k_gen_0_shot_cot_str_perf", "--mode", "perf",
++            "--summarizer", summarizer, "--work-dir", output_dir,
++            "--debug", "--num-warmups", "0"]
++
++
++def execute_aisbench_phase(argv, phase, round_index, timeout_s=None):
++    record = run_phase(argv, phase=phase, run_id=f"round_{round_index}",
++                       record_path=f"{phase}_execution.json",
++                       log_path=f"{phase}_aisbench.log", timeout_s=timeout_s)
++    # Existing parsers read this name. Failed commands never enter the parser.
++    shutil.copyfile(f"{phase}_aisbench.log", "aisbench.log")
++    return record
++
++
++def validate_phase_details(log_dir, phase, expected_count, output_len):
++    """A zero CLI exit is insufficient when individual requests failed."""
++    root = Path(log_dir)
++    paths = list(root.rglob("gsm8k_details.jsonl")) if log_dir else []
++    if len(paths) != 1:
++        raise ValueError(f"{phase}: expected one details artifact, found {len(paths)}")
++    rows = [json.loads(line) for line in paths[0].read_text().splitlines() if line.strip()]
++    valid = len(rows) == expected_count and len({r.get("id") for r in rows}) == expected_count
++    valid = valid and all(r.get("success") is True and r.get("output_tokens") == output_len for r in rows)
++    evidence = dict(phase=phase, details_path=str(paths[0]), expected_count=expected_count,
++                    actual_count=len(rows), expected_output=output_len, valid=valid)
++    with open(f"{phase}_acceptance.json", "x") as stream:
++        json.dump(evidence, stream, indent=2)
++    if not valid:
++        raise ValueError(f"{phase}: request count/length/success contract failed")
++    return evidence
++
++
++def modify_aisbench_api(
++    model_path: str,
++    model_name: str,
++    host_ip: str,
++    host_port: int,
++    url: str,
++    concurrency: int,
++    output_len: int,
++    request_rate: int,
++    test_type: str,
++    enable_think: bool,
++    work_path: str,
++    cache_salt: str,
++) -> None:
++    """Generate the AISBench model config file from template and symlink it.
++
++    Uses re.sub() line-by-line substitution. Numeric parameters are
++    converted to strings internally for template substitution (the template
++    uses bare numeric placeholders like port_for_replace without quotes).
++
++    The `url` parameter overrides host_ip/host_port for the actual API endpoint.
++    When url is non-empty, AISBench uses it directly (bypassing host_ip validation).
++    host_ip must still be a valid IPv4/IPv6 address to pass config validation.
++    """
++    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "default_api.py")
++    temp_path = os.path.join(os.getcwd(), "temp_api.py")
++
++    # Determine API class and abbreviation
++    if test_type == "text":
++        api_class = "VLLMCustomAPIChat"
++        api_abbr = "vllm-api-general-chat"
++    else:
++        api_class = "VLLMCustomAPIChatStream"
++        api_abbr = "vllm-api-stream-chat"
++
++    # Generation kwargs string (replaces the dict body inside generation_kwargs=dict(...))
++    generation_kwargs = "temperature=0,\n\t\t\tignore_eos=True"
++    generation_kwargs += ",\n\t\t\tcache_salt=" + repr(cache_salt)
++    if enable_think:
++        generation_kwargs += ",\n\t\t\tchat_template_kwargs={\"enable_thinking\": True}"
++
++    with open(template_path, "r", encoding="utf-8") as f_in:
++        lines = f_in.readlines()
++
++    with open(temp_path, "w", encoding="utf-8") as f_out:
++        for line in lines:
++            t = re.sub("model_path_for_replace", model_path, line)
++            t = re.sub("model_name_for_replace", model_name, t)
++            t = re.sub("rr_for_replace", str(request_rate), t)
++            t = re.sub("test_type_for_replace", api_class, t)
++            t = re.sub("test_abbr_for_replace", api_abbr, t)
++            t = re.sub("ip_for_replace", host_ip, t)
++            t = re.sub("port_for_replace", str(host_port), t)
++            t = re.sub("url_for_replace", url, t)
++            t = re.sub("outputlen_for_replace", str(output_len), t)
++            t = re.sub("concurrency_for_replace", str(concurrency), t)
++            t = re.sub("generation_kwargs_for_replace", generation_kwargs.expandtabs(4), t)
++            f_out.write(t)
++
++    # Symlink to AISBench config directory
++    target_config_dir = os.path.join(
++        work_path, "ais_bench/benchmark/configs/models/vllm_api"
++    )
++    if not os.path.exists(target_config_dir):
++        logger.warning(f"AISBench model config dir not found: {target_config_dir}")
++
++    symlink_force(
++        temp_path,
++        os.path.join(target_config_dir, "vllm_api_chat_temp.py"),
++    )
++
++
++# ---------------------------------------------------------------------------
++# AISBench workspace preparation
++# ---------------------------------------------------------------------------
++
++def prepare_aisbench_dataset_dir(work_path: str) -> str:
++    """Ensure the AISBench GSM8K dataset directory exists with train.jsonl."""
++    dst_dir = os.path.join(work_path, "ais_bench/datasets/gsm8k")
++
++    if not os.path.exists(dst_dir):
++        os.makedirs(dst_dir, exist_ok=True)
++        logger.info(f"Created dataset dir: {dst_dir}")
++
++    train_file = os.path.join(dst_dir, "train.jsonl")
++    if not os.path.exists(train_file):
++        with open(train_file, "w", encoding="utf-8") as f:
++            f.write("")
++        logger.info(f"Created empty train.jsonl: {train_file}")
++
++    return dst_dir
++
++
++def link_dataset_to_aisbench(src_file: str, dst_dir: str) -> None:
++    """Symlink the source dataset file as test.jsonl in the AISBench dataset dir."""
++    dst_file = os.path.join(dst_dir, "test.jsonl")
++    logger.info(f"Linking dataset: {src_file} → {dst_file}")
++    symlink_force(src_file, dst_file)
++
++
++# ---------------------------------------------------------------------------
++# Argument validation
++# ---------------------------------------------------------------------------
++
++def validate_args(args: argparse.Namespace) -> None:
++    """Validate variable-length parameter constraints."""
++    if (args.length_mean is None) ^ (args.length_std is None):
++        raise ValueError("length_mean and length_std must both be provided or both omitted")
++    if (args.length_min is None) ^ (args.length_max is None):
++        raise ValueError("length_min and length_max must both be provided or both omitted")
++    if args.length_mean is not None and args.length_mean < 1:
++        raise ValueError("length_mean must be >= 1")
++    if args.length_std is not None and args.length_std < 0:
++        raise ValueError("length_std must be >= 0")
++    if args.length_min is not None and args.length_min < 1:
++        raise ValueError("length_min must be >= 1")
++    if args.length_max is not None and args.length_max < 1:
++        raise ValueError("length_max must be >= 1")
++
++
++# ---------------------------------------------------------------------------
++# Single round execution (warmup → full → write results)
++# ---------------------------------------------------------------------------
++
++def run_single_round(args: argparse.Namespace, round_index: int) -> None:
++    """Execute a complete two-phase prefix test for one round configuration.
++
++    Args:
++        args: Merged argparse Namespace for this round.
++        round_index: Round number (1-based), written into result rows.
++    """
++    # Parse repeat_rate (handles both float and percentage string)
++    repeat_rate = parse_prefix_ratio(args.repeat_rate)
++
++    # Resolve pod_info
++    pod_info = resolve_pod_info(args)
++    collector = HitRateCollector(pod_info)
++    # Same namespace for this round's warm prefix and full prompts; a fresh
++    # namespace for every round/restart prevents old full-prompt KV reuse.
++    cache_salt = "aisbench-" + uuid.uuid4().hex
++    cache_evidence_path = f"round_{round_index}_cache.json"
++    cache_evidence = dict(round_index=round_index, cache_salt=cache_salt,
++                          declared_prefix_rate=repeat_rate,
++                          observed_hit_rate=None, endpoints=pod_info,
++                          snapshots={}, rates={})
++
++    def save_cache_snapshot(phase, boundary, snapshot):
++        cache_evidence["snapshots"][phase + "_" + boundary] = snapshot
++        with open(cache_evidence_path, "w") as stream:
++            json.dump(cache_evidence, stream, indent=2)
++
++    args.cache_salt = cache_salt
++
++    logger.info("-" * 60)
++    logger.info(f"[Round {round_index}] Configuration:")
++    for key in ROUND_OVERRIDABLE_KEYS:
++        logger.info(f"  {key}: {getattr(args, key)}")
++    logger.info(f"  repeat_rate (parsed): {repeat_rate}")
++    logger.info(f"  pod_info (resolved): {pod_info}")
++    logger.info("-" * 60)
++
++    # ---- Step 1: Generate or load dataset ----
++    if args.dataset:
++        if not os.path.exists(args.dataset):
++            raise FileNotFoundError(f"Dataset file not found: {args.dataset}")
++        src_file_data = args.dataset
++        src_file_prefix = ""
++        logger.info(f"Using provided dataset: {args.dataset}")
++    else:
++        if not os.path.exists(args.dataset_path):
++            os.makedirs(args.dataset_path, exist_ok=True)
++            logger.info(f"Created dataset directory: {args.dataset_path}")
++
++        src_file_prefix, src_file_data = create_prefix_dataset(
++            tokenizer_path=args.model_path,
++            input_len=args.input_len,
++            number=args.data_num,
++            save_path=args.dataset_path,
++            dp=args.dp,
++            repeat_rate=repeat_rate,
++            seed=args.seed,
++            prefix_num=args.prefix_num,
++            length_mean=args.length_mean,
++            length_std=args.length_std,
++            length_min=args.length_min,
++            length_max=args.length_max,
++        )
++        logger.info(f"Prefix file: {src_file_prefix}")
++        logger.info(f"Full dataset: {src_file_data}")
++
++    # Persist actual tokenizer-based dataset evidence before any request.
++    if not args.dataset:
++        import json as _json
++        from transformers import AutoTokenizer as _AutoTokenizer
++        _tok = _AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
++        _full = [_json.loads(l)["question"] for l in open(src_file_data) if l.strip()]
++        _prefix = [_json.loads(l)["question"] for l in open(src_file_prefix) if l.strip()]
++        _lens = [len(_tok.encode(x, add_special_tokens=False)) for x in _full]
++        _plens = [len(_tok.encode(x, add_special_tokens=False)) for x in _prefix]
++        _valid = len(_full) == args.data_num and all(n == args.input_len for n in _lens)
++        _valid = _valid and all(n == int(args.input_len * repeat_rate) for n in _plens)
++        _valid = _valid and all(x.startswith(_prefix[(i % args.prefix_num) * args.dp]) for i,x in enumerate(_full))
++        _evidence = dict(raw_prompt_token_lengths=_lens, warmup_prefix_token_lengths=_plens,
++                         prefix_text_matches=True if _valid else False, valid=_valid,
++                         input_semantics="raw prompt; chat template tokens are additional")
++        with open("dataset_validation.json", "w") as _f: _json.dump(_evidence, _f, indent=2)
++        if not _valid: raise ValueError("Dataset token length/prefix validation failed")
++
++    # ---- Step 2: Prepare AISBench workspace ----
++    dst_dir = prepare_aisbench_dataset_dir(args.work_path)
++
++    # ---- Step 3: Generate AISBench command ----
++    aisbench_cmd = generate_aisbench_command(args.summarizer, args.output_dir)
++    logger.info(f"AISBench command: {aisbench_cmd}")
++
++    # ======================================================================
++    # Phase 1: Warmup prefix (concurrency=dp, output_len=1)
++    # ======================================================================
++    logger.info(f"[Round {round_index} Phase 1] Warmup prefix — "
++                f"concurrency={args.dp}, output_len=1")
++
++    modify_aisbench_api(
++        model_path=args.model_path,
++        model_name=args.model_name,
++        host_ip=args.host_ip,
++        host_port=args.host_port,
++        url=args.url,
++        concurrency=args.dp,
++        output_len=1,
++        request_rate=args.request_rate,
++        test_type=args.test_type,
++        enable_think=args.enable_think,
++        work_path=args.work_path,
++        cache_salt=cache_salt,
++    )
++
++    # Link prefix dataset
++    if src_file_prefix:
++        link_dataset_to_aisbench(src_file_prefix, dst_dir)
++
++    # Snapshot before warmup
++    warmup_before = collector.snapshot()
++    save_cache_snapshot("warmup", "before", warmup_before)
++
++    # Execute warmup
++    execute_aisbench_phase(aisbench_cmd, "warmup", round_index,
++                          getattr(args, "phase_timeout_s", None))
++
++    # Snapshot after warmup
++    warmup_after = collector.snapshot()
++    save_cache_snapshot("warmup", "after", warmup_after)
++
++    # Compute warmup hit rate
++    warmup_hit_rate = collector.compute_hit_rate(warmup_before, warmup_after)
++    cache_evidence["rates"]["warmup"] = warmup_hit_rate
++    save_cache_snapshot("warmup", "after", warmup_after)
++    collector.print_hit_rate_table(warmup_hit_rate)
++
++    # Parse warmup metrics and write to results
++    warmup_perf, warmup_log_dir = parse_aisbench_log(
++        "aisbench.log", str(args.request_rate), args.npu_num
++    )
++    validate_phase_details(warmup_log_dir, "warmup", args.dp * args.prefix_num, 1)
++    archive_log("aisbench.log", warmup_log_dir)
++
++    warmup_row = build_result_row(
++        warmup_perf, warmup_hit_rate, args, phase="warmup", round_index=round_index
++    )
++    write_csv(warmup_row, args.result_csv)
++    write_jsonl(warmup_row, args.result_jsonl)
++
++    logger.info(f"[Round {round_index} Phase 1] Warmup complete")
++
++    # ======================================================================
++    # Phase 2: Full dataset test
++    # ======================================================================
++    logger.info(f"[Round {round_index} Phase 2] Full dataset test — "
++                f"concurrency={args.concurrency}, output_len={args.output_len}")
++
++    modify_aisbench_api(
++        model_path=args.model_path,
++        model_name=args.model_name,
++        host_ip=args.host_ip,
++        host_port=args.host_port,
++        url=args.url,
++        concurrency=args.concurrency,
++        output_len=args.output_len,
++        request_rate=args.request_rate,
++        test_type=args.test_type,
++        enable_think=args.enable_think,
++        work_path=args.work_path,
++        cache_salt=cache_salt,
++    )
++
++    # Link full dataset
++    link_dataset_to_aisbench(src_file_data, dst_dir)
++
++    # Snapshot before full test
++    full_before = collector.snapshot()
++    save_cache_snapshot("full", "before", full_before)
++
++    # Execute full test
++    execute_aisbench_phase(aisbench_cmd, "full", round_index,
++                          getattr(args, "phase_timeout_s", None))
++
++    # Snapshot after full test
++    full_after = collector.snapshot()
++    save_cache_snapshot("full", "after", full_after)
++
++    # Compute full test hit rate
++    full_hit_rate = collector.compute_hit_rate(full_before, full_after)
++    cache_evidence["rates"]["full"] = full_hit_rate
++    cache_evidence["observed_hit_rate"] = full_hit_rate["per_endpoint"]
++    save_cache_snapshot("full", "after", full_after)
++    collector.print_hit_rate_table(full_hit_rate)
++
++    # Parse full test metrics
++    full_perf, full_log_dir = parse_aisbench_log(
++        "aisbench.log", str(args.request_rate), args.npu_num
++    )
++    validate_phase_details(full_log_dir, "full", args.data_num, args.output_len)
++    archive_log("aisbench.log", full_log_dir)
++
++    # Build and write final result row
++    full_row = build_result_row(
++        full_perf, full_hit_rate, args, phase="full", round_index=round_index
++    )
++    write_csv(full_row, args.result_csv)
++    write_jsonl(full_row, args.result_jsonl)
++
++    logger.info(f"[Round {round_index} Phase 2] Full test complete")
++
++
++# ---------------------------------------------------------------------------
++# Main execution
++# ---------------------------------------------------------------------------
++
++def main() -> int:
++    args = parse_arguments()
++    validate_args(args)
++
++    # Load rounds config (None = single-round mode)
++    rounds = load_rounds(args.rounds)
++
++    # Build round configs list
++    if rounds is None:
++        # Single-round mode: use base args as-is
++        rounds_config = [{}]
++    else:
++        rounds_config = rounds
++
++    # Log global configuration (shared across all rounds)
++    logger.info("=" * 60)
++    logger.info("Prefix Cache Performance Test")
++    logger.info("=" * 60)
++    logger.info("  Priority: CLI arguments > config.py > hardcoded defaults")
++    logger.info(f"  Rounds: {len(rounds_config)}")
++    logger.info("")
++    logger.info("  Global config (shared across rounds):")
++    for key, value in sorted(vars(args).items()):
++        if key in ROUND_OVERRIDABLE_KEYS or key == "rounds" or key == "pod_info":
++            continue  # shown per-round or separately
++        logger.info(f"    {key}: {value}")
++    logger.info(f"  pod_info (resolved): {resolve_pod_info(args)}")
++    logger.info("")
++
++    if rounds is not None:
++        logger.info("  Per-round overrides:")
++        for i, rc in enumerate(rounds_config):
++            logger.info(f"    Round {i+1}: {rc}")
++    else:
++        logger.info("  Single-round mode (no --rounds specified)")
++    logger.info("=" * 60)
++
++    # Execute each round
++    for i, overrides in enumerate(rounds_config):
++        round_args = merge_round_args(args, overrides)
++        try:
++            run_single_round(round_args, round_index=i + 1)
++        except PhaseExecutionError as error:
++            logger.error(str(error))
++            rec = error.record
++            if rec["timed_out"]:
++                return 124
++            if rec["cancelled"]:
++                return 128 + (rec.get("received_signal") or 2)
++            code = rec["exit_code"]
++            return code if code is not None and 0 < code < 256 else 128 - code if code is not None and code < 0 else 1
++
++    logger.info("=" * 60)
++    logger.info(f"All {len(rounds_config)} rounds complete")
++    logger.info(f"Results saved to: {args.result_csv} and {args.result_jsonl}")
++    logger.info("=" * 60)
++
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+--- /dev/null
++++ b/glm5-3/adapters/aisbench/hit_rate_collector.py
+@@ -0,0 +1,285 @@
++"""
++Prefix cache hit rate collector.
++
++Queries vLLM /metrics endpoint on each pod to collect prefix cache
++queries/hits counters (HBM and external), computes hit rates between
++two snapshots, and returns structured results suitable for CSV writing.
++"""
++
++import logging
++import math
++import re
++import urllib.request
++from typing import Dict, Optional
++
++logger = logging.getLogger(__name__)
++
++
++def _parse_pod_address(pod: str) -> tuple:
++    """Parse a pod address string into (ip, port).
++
++    Supports:
++      - IPv4: "192.168.1.1:8000"
++      - IPv6 with brackets: "[::1]:8000"
++      - IPv6 without brackets: "fe80::1:8000"
++    """
++    if pod.startswith("["):
++        # IPv6 with brackets: [ip]:port
++        bracket_end = pod.index("]")
++        ip = pod[1:bracket_end]
++        port = pod[bracket_end + 2:]  # skip "]:"
++        return ip, port
++    elif pod.count(":") > 1:
++        # IPv6 without brackets — last colon separates port
++        ip, port = pod.rsplit(":", 1)
++        return ip, port
++    else:
++        # IPv4: ip:port
++        ip, port = pod.split(":")
++        return ip, port
++
++
++def _fetch_metrics(ip: str, port: str) -> str:
++    """Fetch raw /metrics output from a vLLM service endpoint."""
++    url = f"http://{ip}:{port}/metrics"
++    try:
++        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
++        with opener.open(url, timeout=30) as response:
++            return response.read().decode()
++    except Exception as e:
++        raise RuntimeError(f"Cannot collect cache counters from {url}") from e
++
++
++def _parse_prefix_counters(metrics_text: str) -> Dict[int, Dict[str, int]]:
++    """Parse prefix_cache_queries_total and prefix_cache_hits_total from metrics text.
++
++    Returns:
++        {engine_id: {"hbm_queries": X, "hbm_hits": X, "ext_queries": X, "ext_hits": X}}
++    """
++    result: Dict[int, Dict[str, int]] = {}
++
++    for line in metrics_text.strip().split("\n"):
++        # Only process lines with model_name label and prefix_cache metric
++        if "prefix_cache" not in line or "model_name" not in line:
++            continue
++        metric = line.split("{", 1)[0]
++        counter_key = {
++            "vllm:prefix_cache_queries_total": "hbm_queries",
++            "vllm:prefix_cache_hits_total": "hbm_hits",
++            "vllm:external_prefix_cache_queries_total": "ext_queries",
++            "vllm:external_prefix_cache_hits_total": "ext_hits",
++        }.get(metric)
++        if counter_key is None:
++            continue
++
++        # Extract engine id
++        engine_match = re.search(r'engine="(\d+)"', line)
++        if not engine_match:
++            continue
++        engine_id = int(engine_match.group(1))
++
++        # Extract value (last numeric field)
++        parts = line.split()
++        if len(parts) < 2:
++            continue
++        try:
++            value = float(parts[-1])
++            if not math.isfinite(value) or not value.is_integer() or value < 0:
++                raise ValueError("Expected a nonnegative integer counter")
++            value = int(value)
++        except ValueError as error:
++            raise ValueError(f"Invalid native cache counter: {line}") from error
++
++        # Initialize dict for this engine if not yet present
++        if engine_id not in result:
++            result[engine_id] = {}
++
++        # Classify by metric name
++        if counter_key in result[engine_id]:
++            raise ValueError(f"Ambiguous cache counter series for engine {engine_id}: {metric}")
++        result[engine_id][counter_key] = value
++
++    for engine_id, counters in result.items():
++        if set(counters) != {"hbm_queries", "hbm_hits", "ext_queries", "ext_hits"}:
++            raise ValueError(f"Incomplete cache counters for engine {engine_id}")
++
++    return result
++
++
++class HitRateCollector:
++    """Collect and compute prefix cache hit rates from vLLM service endpoints.
++
++    Usage:
++        collector = HitRateCollector(pod_info=["10.0.0.1:8000", "10.0.0.2:8000"])
++        before = collector.snapshot()
++        # ... run test ...
++        after = collector.snapshot()
++        hit_rate = collector.compute_hit_rate(before, after)
++    """
++
++    def __init__(self, pod_info: list) -> None:
++        """Args:
++            pod_info: List of pod address strings, e.g. ["10.0.0.1:8000"].
++        """
++        self.pod_info = pod_info
++
++    def snapshot(self) -> Dict[str, Dict[int, Dict[str, int]]]:
++        """Collect current prefix cache counters from all pods.
++
++        Returns:
++            {pod_key: {engine_id: {"hbm_queries": X, "hbm_hits": X,
++                                    "ext_queries": X, "ext_hits": X}}}
++        """
++        snapshot: Dict[str, Dict[int, Dict[str, int]]] = {}
++        for pod in self.pod_info:
++            ip, port = _parse_pod_address(pod)
++            raw = _fetch_metrics(ip, port)
++            counters = _parse_prefix_counters(raw)
++            if not counters:
++                raise ValueError(f"No native prefix cache counters from {pod}")
++            snapshot[pod] = counters
++        return snapshot
++
++    def compute_hit_rate(
++        self,
++        before: Dict[str, Dict[int, Dict[str, int]]],
++        after: Dict[str, Dict[int, Dict[str, int]]],
++    ) -> Dict:
++        """Compute hit rates between two snapshots.
++
++        Returns a structured dict with per-DP and aggregated rates:
++        {
++            "per_dp": {
++                "dp0": {
++                    "hbm_hit_rate": 0.85, "hbm_queries": 100, "hbm_hits": 85,
++                    "ext_hit_rate": 0.10, "ext_queries": 50,  "ext_hits": 5,
++                },
++                "dp1": { ... },
++            },
++            "aggregated": {
++                "hbm_hit_rate": 0.82, "hbm_queries": 200, "hbm_hits": 164,
++                "ext_hit_rate": 0.08, "ext_queries": 100, "ext_hits": 8,
++            },
++        }
++
++        Engine IDs from vLLM metrics are mapped to "dp0", "dp1", etc.
++        Per-DP values are accumulated across pods (not overwritten).
++        """
++        per_dp: Dict[str, Dict] = {}
++        per_endpoint = {}
++        agg_queries_hbm = 0
++        agg_hits_hbm = 0
++        agg_queries_ext = 0
++        agg_hits_ext = 0
++
++        for pod in self.pod_info:
++            before_counters = before.get(pod, {})
++            after_counters = after.get(pod, {})
++            if not before_counters or before_counters.keys() != after_counters.keys():
++                raise ValueError(f"Missing/changed cache counter engines at {pod}")
++            per_endpoint[pod] = {}
++
++            for engine_id in after_counters:
++                b = before_counters.get(engine_id, {
++                    "hbm_queries": 0, "hbm_hits": 0,
++                    "ext_queries": 0, "ext_hits": 0,
++                })
++                a = after_counters[engine_id]
++
++                queries_hbm = a["hbm_queries"] - b["hbm_queries"]
++                hits_hbm = a["hbm_hits"] - b["hbm_hits"]
++                queries_ext = a["ext_queries"] - b["ext_queries"]
++                hits_ext = a["ext_hits"] - b["ext_hits"]
++                if not (0 <= hits_hbm <= queries_hbm and 0 <= hits_ext <= queries_ext):
++                    raise ValueError(f"Cache counter reset or invalid delta at {pod}/dp{engine_id}")
++                per_endpoint[pod][f"dp{engine_id}"] = dict(
++                    hbm_queries=queries_hbm, hbm_hits=hits_hbm,
++                    ext_queries=queries_ext, ext_hits=hits_ext,
++                    hbm_hit_rate=hits_hbm / queries_hbm if queries_hbm else None,
++                    ext_hit_rate=hits_ext / queries_ext if queries_ext else None,
++                )
++
++                dp_key = f"dp{engine_id}"
++
++                # Accumulate per-DP values across pods (not overwrite)
++                if dp_key not in per_dp:
++                    per_dp[dp_key] = {
++                        "hbm_queries": 0, "hbm_hits": 0,
++                        "ext_queries": 0, "ext_hits": 0,
++                    }
++                per_dp[dp_key]["hbm_queries"] += queries_hbm
++                per_dp[dp_key]["hbm_hits"] += hits_hbm
++                per_dp[dp_key]["ext_queries"] += queries_ext
++                per_dp[dp_key]["ext_hits"] += hits_ext
++
++                agg_queries_hbm += queries_hbm
++                agg_hits_hbm += hits_hbm
++                agg_queries_ext += queries_ext
++                agg_hits_ext += hits_ext
++
++        # Compute per-DP hit rates from accumulated values
++        for dp_key, dp_data in per_dp.items():
++            hbm_rate = dp_data["hbm_hits"] / dp_data["hbm_queries"] if dp_data["hbm_queries"] > 0 else 0.0
++            ext_rate = dp_data["ext_hits"] / dp_data["ext_queries"] if dp_data["ext_queries"] > 0 else 0.0
++            per_dp[dp_key]["hbm_hit_rate"] = round(hbm_rate, 6)
++            per_dp[dp_key]["ext_hit_rate"] = round(ext_rate, 6)
++
++        agg_hbm_rate = agg_hits_hbm / agg_queries_hbm if agg_queries_hbm > 0 else 0.0
++        agg_ext_rate = agg_hits_ext / agg_queries_ext if agg_queries_ext > 0 else 0.0
++
++        aggregated = {
++            "hbm_hit_rate": round(agg_hbm_rate, 6),
++            "hbm_queries": agg_queries_hbm,
++            "hbm_hits": agg_hits_hbm,
++            "ext_hit_rate": round(agg_ext_rate, 6),
++            "ext_queries": agg_queries_ext,
++            "ext_hits": agg_hits_ext,
++        }
++
++        # Legacy aggregate columns remain for readers, but P and D can both
++        # have engine=0. Use per_endpoint for workload/cache acceptance.
++        return {"per_endpoint": per_endpoint, "per_dp": per_dp,
++                "aggregated": aggregated, "aggregate_mixes_endpoints": len(self.pod_info) > 1}
++
++    def print_hit_rate_table(self, hit_rate_info: Dict) -> None:
++        """Print a formatted hit-rate table to console (for human readability)."""
++        per_dp = hit_rate_info.get("per_dp", {})
++        aggregated = hit_rate_info.get("aggregated", {})
++        for endpoint, engines in hit_rate_info.get("per_endpoint", {}).items():
++            for engine, counts in engines.items():
++                logger.info("Cache %s/%s HBM=%s/%s external=%s/%s", endpoint,
++                            engine, counts["hbm_hits"], counts["hbm_queries"],
++                            counts["ext_hits"], counts["ext_queries"])
++
++        if not per_dp and not aggregated:
++            logger.info("No hit rate data to display.")
++            return
++
++        col_w = 18
++        total_w = col_w * 5 + 8
++
++        print("\n" + "=" * total_w)
++        print("Prefix Cache Hit Rate Summary")
++        print("=" * total_w)
++
++        headers = ["DP", "HBM Hit Rate", "HBM (hit/qry)", "Ext Hit Rate", "Ext (hit/qry)"]
++        print(" ".join(f"{h:<{col_w}}" for h in headers))
++        print("-" * total_w)
++
++        for dp_key, dp_data in sorted(per_dp.items()):
++            hbm_rate_str = f"{dp_data['hbm_hit_rate']:.2%}"
++            hbm_detail = f"{dp_data['hbm_hits']}/{dp_data['hbm_queries']}"
++            ext_rate_str = f"{dp_data['ext_hit_rate']:.2%}"
++            ext_detail = f"{dp_data['ext_hits']}/{dp_data['ext_queries']}"
++            print(f"{dp_key:<{col_w}} {hbm_rate_str:<{col_w}} {hbm_detail:<{col_w}} "
++                  f"{ext_rate_str:<{col_w}} {ext_detail:<{col_w}}")
++
++        print("-" * total_w)
++        agg = aggregated
++        hbm_rate_str = f"{agg['hbm_hit_rate']:.2%}"
++        hbm_detail = f"{agg['hbm_hits']}/{agg['hbm_queries']}"
++        ext_rate_str = f"{agg['ext_hit_rate']:.2%}"
++        ext_detail = f"{agg['ext_hits']}/{agg['ext_queries']}"
++        print(f"{'TOTAL':<{col_w}} {hbm_rate_str:<{col_w}} {hbm_detail:<{col_w}} "
++              f"{ext_rate_str:<{col_w}} {ext_detail:<{col_w}}")
++        print("=" * total_w)
+--- /dev/null
++++ b/glm5-3/adapters/aisbench/result_writer.py
+@@ -0,0 +1,387 @@
++"""
++Result writer for prefix cache performance tests.
++
++Parses AISBench log output for performance metrics, collects hit-rate data,
++and writes results to both CSV and JSONL formats. Hit-rate columns are
++included per-DP and aggregated, for both HBM and external caches.
++"""
++
++import csv
++import json
++import logging
++import os
++import re
++from datetime import datetime
++from typing import Dict, List, Optional
++
++logger = logging.getLogger(__name__)
++
++
++# ---------------------------------------------------------------------------
++# AISBench log parser
++# ---------------------------------------------------------------------------
++
++def parse_aisbench_log(log_path: str, request_rate: str = "0", npu_num: int = 1) -> Dict:
++    """Parse an AISBench performance log file and extract metrics.
++
++    Returns a dict with standardized key names. Missing metrics default to -1.
++    """
++    defaults = {
++        "total_requests": -1,
++        "max_concurrency": -1,
++        "measured_concurrency": -1,
++        "ttft_avg_ms": -1,
++        "ttft_p90_ms": -1,
++        "tpot_avg_ms": -1,
++        "tpot_p90_ms": -1,
++        "benchmark_duration_s": -1,
++        "output_token_throughput": -1,
++        "single_output_throughput": -1,
++        "input_token_throughput": -1,
++        "total_token_throughput": -1,
++        "single_total_throughput": -1,
++        "prefill_token_throughput": -1,
++        "request_throughput_qps": -1,
++        "request_throughput_qpm": -1,
++        "total_input_tokens": -1,
++        "total_output_tokens": -1,
++    }
++    result = defaults.copy()
++    result["request_rate"] = request_rate
++    log_dir = ""
++
++    try:
++        with open(log_path, "r", encoding="utf-8") as f:
++            lines = f.readlines()
++
++        for line in lines:
++            # Extract log directory
++            m = re.search(r"Current exp folder:\s*(.+)$", line)
++            if m:
++                log_dir = m.group(1).strip()
++
++            # TTFT
++            if "TTFT" in line and "Time To First Token" not in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    vals = list(map(float, nums))
++                    result["ttft_avg_ms"] = vals[0] if len(vals) > 0 else -1
++                    result["ttft_p90_ms"] = vals[5] if len(vals) > 5 else -1
++
++            # TPOT
++            if "TPOT" in line and "Time Per Output Token" not in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    vals = list(map(float, nums))
++                    result["tpot_avg_ms"] = vals[0] if len(vals) > 0 else -1
++                    result["tpot_p90_ms"] = vals[5] if len(vals) > 5 else -1
++
++            # Benchmark Duration
++            if "Benchmark Duration" in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    result["benchmark_duration_s"] = float(nums[0]) / 1000
++
++            # Concurrency (measured)
++            if "Concurrency" in line and "Max Concurrency" not in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    result["measured_concurrency"] = float(nums[0])
++
++            # Max Concurrency
++            if "Max Concurrency" in line:
++                parts = re.findall(r"[\w']+", line)
++                if parts:
++                    result["max_concurrency"] = parts[-1]
++
++            # Output Token Throughput
++            if "Output Token Throughput" in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    result["output_token_throughput"] = float(nums[0])
++                    result["single_output_throughput"] = float(nums[0]) / npu_num
++
++            # Input Token Throughput
++            if "Input Token Throughput" in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    result["input_token_throughput"] = float(nums[0])
++
++            # Total Token Throughput
++            if "Total Token Throughput" in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    result["total_token_throughput"] = float(nums[0])
++                    result["single_total_throughput"] = float(nums[0]) / npu_num
++
++            # InputTokens
++            if "InputTokens" in line:
++                nums = re.findall(r"(\d+\.?\d*)", line)
++                if nums:
++                    result["total_input_tokens"] = float(nums[0])
++
++            # OutputTokens
++            if "OutputTokens" in line:
++                nums = re.findall(r"(\d+\.?\d*)", line)
++                if nums:
++                    result["total_output_tokens"] = float(nums[0])
++
++            # Total Requests
++            if "Total Requests" in line and "Request Throughput" not in line:
++                nums = re.findall(r"(\d+\.?\d*)", line)
++                if nums:
++                    result["total_requests"] = float(nums[0])
++
++            # Request Throughput
++            if "Request Throughput" in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    result["request_throughput_qps"] = float(nums[0])
++                    result["request_throughput_qpm"] = float(nums[0]) * 60
++
++            # Prefill Token Throughput
++            if "Prefill Token Throughput" in line:
++                nums = re.findall(r"(\d+\.\d+)", line)
++                if nums:
++                    result["prefill_token_throughput"] = float(nums[0])
++
++    except FileNotFoundError:
++        logger.error(f"AISBench log file not found: {log_path}")
++    except Exception as e:
++        logger.error(f"Error parsing AISBench log: {e}")
++
++    return result, log_dir
++
++
++# ---------------------------------------------------------------------------
++# Archive log
++# ---------------------------------------------------------------------------
++
++def archive_log(source_log: str, log_dir: str) -> None:
++    """Copy the AISBench log to its experiment directory and append to all-logs file."""
++    if not os.path.exists(source_log):
++        logger.warning(f"Source log {source_log} not found, skipping archive.")
++        return
++
++    # Copy to experiment directory
++    if log_dir:
++        try:
++            os.system(f"cp {source_log} {log_dir}")
++        except Exception as e:
++            logger.warning(f"Failed to copy log to {log_dir}: {e}")
++
++    # Append to cumulative log
++    all_log_path = "aisbench_all.log"
++    try:
++        with open(source_log, "r", encoding="utf-8") as src:
++            content = src.read()
++        with open(all_log_path, "a", encoding="utf-8") as tgt:
++            tgt.write(f"\n\n{'=' * 50}\n")
++            tgt.write(f"{'=' * 50}\n\n")
++            tgt.write(content)
++            tgt.write(f"\n\n{'=' * 50}\n")
++            tgt.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
++            tgt.write(f"{'=' * 50}\n")
++        logger.info(f"Log archived to {all_log_path}")
++    except Exception as e:
++        logger.error(f"Failed to archive log: {e}")
++
++
++# ---------------------------------------------------------------------------
++# Build result row dict
++# ---------------------------------------------------------------------------
++
++def build_result_row(
++    perf_metrics: Dict,
++    hit_rate_info: Dict,
++    args,
++    phase: str = "full",
++    round_index: int = 1,
++) -> Dict:
++    """Build a single result row dict combining performance metrics, hit rates, and config.
++
++    Args:
++        perf_metrics: Dict from parse_aisbench_log().
++        hit_rate_info: Dict from HitRateCollector.compute_hit_rate().
++        args: argparse namespace with test configuration.
++        phase: "warmup" or "full" to indicate which test phase.
++        round_index: Round number (1-based) for multi-round tests.
++
++    Returns:
++        A flat dict suitable for CSV/JSONL writing.
++    """
++    row = {
++        # Timestamp and config
++        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
++        "round": round_index,
++        "test_name": getattr(args, "test_name", "") or "",
++        "phase": phase,
++        "input_len": args.input_len,
++        "output_len": args.output_len,
++        "data_num": args.data_num,
++        "concurrency": args.concurrency,
++        "request_rate": args.request_rate,
++        "dp": args.dp,
++        "prefix_num": args.prefix_num,
++        "repeat_rate": args.repeat_rate,
++        "seed": args.seed,
++        "model_path": args.model_path,
++        "host_ip": args.host_ip,
++        "host_port": args.host_port,
++        "url": args.url,
++        "npu_num": args.npu_num,
++
++        # Performance metrics
++        "total_requests": perf_metrics.get("total_requests", -1),
++        "max_concurrency": perf_metrics.get("max_concurrency", -1),
++        "measured_concurrency": perf_metrics.get("measured_concurrency", -1),
++        "ttft_avg_ms": perf_metrics.get("ttft_avg_ms", -1),
++        "ttft_p90_ms": perf_metrics.get("ttft_p90_ms", -1),
++        "tpot_avg_ms": perf_metrics.get("tpot_avg_ms", -1),
++        "tpot_p90_ms": perf_metrics.get("tpot_p90_ms", -1),
++        "benchmark_duration_s": perf_metrics.get("benchmark_duration_s", -1),
++        "output_token_throughput": perf_metrics.get("output_token_throughput", -1),
++        "single_output_throughput": perf_metrics.get("single_output_throughput", -1),
++        "input_token_throughput": perf_metrics.get("input_token_throughput", -1),
++        "total_token_throughput": perf_metrics.get("total_token_throughput", -1),
++        "single_total_throughput": perf_metrics.get("single_total_throughput", -1),
++        "prefill_token_throughput": perf_metrics.get("prefill_token_throughput", -1),
++        "request_throughput_qps": perf_metrics.get("request_throughput_qps", -1),
++        "request_throughput_qpm": perf_metrics.get("request_throughput_qpm", -1),
++        "total_input_tokens": perf_metrics.get("total_input_tokens", -1),
++        "total_output_tokens": perf_metrics.get("total_output_tokens", -1),
++    }
++
++    # ---- Add per-DP hit rate columns ----
++    row["cache_salt"] = getattr(args, "cache_salt", None)
++    row["cache_by_endpoint"] = json.dumps(hit_rate_info.get("per_endpoint", {}), sort_keys=True)
++    row["cache_aggregate_mixes_endpoints"] = hit_rate_info.get("aggregate_mixes_endpoints", False)
++    per_dp = hit_rate_info.get("per_dp", {})
++    for dp_key, dp_data in sorted(per_dp.items()):
++        row[f"hbm_hit_rate_{dp_key}"] = dp_data.get("hbm_hit_rate", 0.0)
++        row[f"hbm_queries_{dp_key}"] = dp_data.get("hbm_queries", 0)
++        row[f"hbm_hits_{dp_key}"] = dp_data.get("hbm_hits", 0)
++        row[f"ext_hit_rate_{dp_key}"] = dp_data.get("ext_hit_rate", 0.0)
++        row[f"ext_queries_{dp_key}"] = dp_data.get("ext_queries", 0)
++        row[f"ext_hits_{dp_key}"] = dp_data.get("ext_hits", 0)
++
++    # ---- Add aggregated hit rate columns ----
++    agg = hit_rate_info.get("aggregated", {})
++    row["hbm_hit_rate_total"] = agg.get("hbm_hit_rate", 0.0)
++    row["hbm_queries_total"] = agg.get("hbm_queries", 0)
++    row["hbm_hits_total"] = agg.get("hbm_hits", 0)
++    row["ext_hit_rate_total"] = agg.get("ext_hit_rate", 0.0)
++    row["ext_queries_total"] = agg.get("ext_queries", 0)
++    row["ext_hits_total"] = agg.get("ext_hits", 0)
++
++    return row
++
++
++# ---------------------------------------------------------------------------
++# CSV writer
++# ---------------------------------------------------------------------------
++
++def write_csv(row: Dict, csv_path: str) -> None:
++    """Write or append a result row to a CSV file.
++
++    If the file exists, the row is appended (columns are aligned by name).
++    If not, a new file is created with all columns from *row*.
++
++    When appending, new columns that didn't exist before are added with
++    empty values for prior rows, ensuring forward compatibility with
++    varying DP counts.
++    """
++    file_exists = os.path.exists(csv_path)
++
++    if file_exists:
++        # Read existing headers
++        with open(csv_path, "r", encoding="utf-8", newline="") as f:
++            reader = csv.reader(f)
++            existing_headers = next(reader)
++
++        # Merge headers: keep existing order, add new columns at end
++        new_cols = [k for k in row.keys() if k not in existing_headers]
++        all_headers = existing_headers + new_cols
++
++        # Read existing data rows
++        with open(csv_path, "r", encoding="utf-8", newline="") as f:
++            reader = csv.DictReader(f)
++            existing_rows = list(reader)
++
++        # Re-write with merged headers + existing rows + new row
++        with open(csv_path, "w", encoding="utf-8", newline="") as f:
++            writer = csv.DictWriter(f, fieldnames=all_headers, extrasaction="ignore")
++            writer.writeheader()
++            for old_row in existing_rows:
++                writer.writerow(old_row)
++            writer.writerow(row)
++
++        logger.info(f"Appended result row to {csv_path} (new cols: {new_cols})")
++    else:
++        # Create new file
++        headers = list(row.keys())
++        with open(csv_path, "w", encoding="utf-8", newline="") as f:
++            writer = csv.DictWriter(f, fieldnames=headers)
++            writer.writeheader()
++            writer.writerow(row)
++        logger.info(f"Created new result CSV: {csv_path}")
++
++
++# ---------------------------------------------------------------------------
++# JSONL writer
++# ---------------------------------------------------------------------------
++
++def write_jsonl(row: Dict, jsonl_path: str) -> None:
++    """Append a result row to a JSONL file (one JSON object per line)."""
++    with open(jsonl_path, "a", encoding="utf-8") as f:
++        json.dump(row, f, ensure_ascii=False, default=str)
++        f.write("\n")
++    logger.info(f"Appended result row to {jsonl_path}")
++
++
++# ---------------------------------------------------------------------------
++# JSONL → CSV converter (for CI / batch processing)
++# ---------------------------------------------------------------------------
++
++def jsonl_to_csv(jsonl_path: str, csv_path: Optional[str] = None) -> str:
++    """Convert a JSONL results file to CSV.
++
++    Args:
++        jsonl_path: Path to the JSONL file.
++        csv_path: Optional output CSV path. Defaults to same name with .csv extension.
++
++    Returns:
++        Path to the generated CSV file.
++    """
++    if csv_path is None:
++        csv_path = jsonl_path.rsplit(".", 1)[0] + ".csv"
++
++    records = []
++    with open(jsonl_path, "r", encoding="utf-8") as f:
++        for line in f:
++            line = line.strip()
++            if not line:
++                continue
++            try:
++                records.append(json.loads(line))
++            except json.JSONDecodeError as e:
++                logger.warning(f"Skipping invalid JSON: {e}")
++
++    if not records:
++        logger.warning(f"No valid records in {jsonl_path}")
++        return csv_path
++
++    # Collect all field names preserving insertion order
++    fieldnames = []
++    for record in records:
++        for key in record.keys():
++            if key not in fieldnames:
++                fieldnames.append(key)
++
++    with open(csv_path, "w", encoding="utf-8", newline="") as f:
++        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
++        writer.writeheader()
++        writer.writerows(records)
++
++    logger.info(f"Converted {len(records)} records from {jsonl_path} → {csv_path}")
++    return csv_path
+--- /dev/null
++++ b/glm5-3/runtime/phase_runner.py
+@@ -0,0 +1,165 @@
++"""Record real child exit status without a shell pipeline. No service operations."""
++import hashlib
++import json
++import os
++from pathlib import Path
++import selectors
++import signal
++import subprocess
++import tempfile
++import time
++from datetime import datetime, timezone
++
++
++def utc():
++    return datetime.now(timezone.utc).isoformat()
++
++
++def atomic_json(path, value):
++    path = Path(path)
++    path.parent.mkdir(parents=True, exist_ok=True)
++    fd, tmp = tempfile.mkstemp(prefix=".state-", dir=path.parent)
++    try:
++        with os.fdopen(fd, "w") as stream:
++            json.dump(value, stream, indent=2)
++            stream.write("\n")
++            stream.flush()
++            os.fsync(stream.fileno())
++        os.replace(tmp, path)
++        dfd = os.open(path.parent, os.O_RDONLY)
++        try:
++            os.fsync(dfd)
++        finally:
++            os.close(dfd)
++    finally:
++        if os.path.exists(tmp):
++            os.unlink(tmp)
++
++
++def process_identity(pid):
++    try:
++        text = Path(f"/proc/{pid}/stat").read_text()
++        fields = text[text.rfind(")") + 2:].split()
++        return {"pid": pid, "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
++                "start_ticks": fields[19], "state": fields[0], "pgid": int(fields[2])}
++    except FileNotFoundError:
++        if Path("/proc").is_dir():
++            return None
++        p = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True)
++        if not p.stdout.strip():
++            return None
++        return {"pid": pid, "start_ticks": p.stdout.strip(), "boot_id": "unavailable", "state": "unknown"}
++
++
++def same_process(identity):
++    if not identity:
++        return False
++    current = process_identity(identity["pid"])
++    return bool(current and current["state"] != "Z" and all(
++        current[k] == identity[k] for k in ("pid", "boot_id", "start_ticks")))
++
++
++class PhaseExecutionError(RuntimeError):
++    def __init__(self, record):
++        self.record = record
++        super().__init__(f"phase {record['phase']} {record['status']}; observed exit={record['exit_code']}")
++
++
++def run_phase(argv, *, phase, record_path, log_path, cwd=None, timeout_s=None,
++              cancel_requested=lambda: False, heartbeat=lambda: None, echo=True, run_id=None):
++    if not isinstance(argv, list) or not argv or not all(isinstance(x, str) and x for x in argv):
++        raise ValueError("argv must be a nonempty list; shell strings are forbidden")
++    if timeout_s is not None and (timeout_s <= 0 or not __import__('math').isfinite(timeout_s)):
++        raise ValueError("timeout must be finite and positive or null")
++    record_path, log_path = Path(record_path), Path(log_path)
++    if record_path.exists() or log_path.exists():
++        raise FileExistsError("phase artifacts already exist; refusing overwrite/replay")
++    record = {"schema_version": 1, "run_id": run_id, "phase": phase, "argv": argv,
++              "cwd": str(Path(cwd or os.getcwd()).resolve()), "status": "starting", "started_at": utc(),
++              "finished_at": None, "exit_code": None, "signal": None, "timed_out": False,
++              "cancelled": False, "child": None, "timeout_s": timeout_s,
++              "request_counts": None, "artifact_acceptance": "unverified", "error_type": None}
++    atomic_json(record_path, record)
++    started = time.monotonic()
++    process = None
++    interrupted = []
++    old_handlers = {}
++    selector = selectors.DefaultSelector()
++    digest, log_bytes = hashlib.sha256(), 0
++
++    def on_signal(signum, _frame):
++        interrupted.append(signum)
++
++    def stop_child():
++        if process and process.poll() is None:
++            os.killpg(process.pid, signal.SIGTERM)
++            try:
++                process.wait(timeout=1)
++            except subprocess.TimeoutExpired:
++                os.killpg(process.pid, signal.SIGKILL)
++                process.wait()
++
++    try:
++        # A log-open failure must be recorded before any child can start.
++        with log_path.open("xb") as log:
++            process = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
++                                       stdin=subprocess.DEVNULL, start_new_session=True)
++            record.update(status="running", child=process_identity(process.pid))
++            atomic_json(record_path, record)
++            try:
++                for signum in (signal.SIGTERM, signal.SIGINT):
++                    old_handlers[signum] = signal.signal(signum, on_signal)
++            except ValueError:  # Only main-thread callers may install handlers.
++                pass
++            os.set_blocking(process.stdout.fileno(), False)
++            selector.register(process.stdout, selectors.EVENT_READ)
++            exited_at = None
++            while selector.get_map() or process.poll() is None:
++                heartbeat()
++                timed_out = timeout_s is not None and time.monotonic() - started >= timeout_s
++                if process.poll() is None and (timed_out or interrupted or cancel_requested()):
++                    record.update(timed_out=timed_out, cancelled=not timed_out,
++                                  received_signal=interrupted[-1] if interrupted else None)
++                    stop_child()
++                for key, _ in selector.select(0.05):
++                    block = os.read(key.fileobj.fileno(), 65536)
++                    if not block:
++                        selector.unregister(key.fileobj)
++                    else:
++                        log.write(block)
++                        digest.update(block)
++                        log_bytes += len(block)
++                        if echo:
++                            # Broken consumer output must not obscure child execution evidence.
++                            try:
++                                os.write(1, block)
++                            except BrokenPipeError:
++                                echo = False
++                if process.poll() is not None:
++                    exited_at = exited_at or time.monotonic()
++                    if selector.get_map() and time.monotonic() - exited_at > 1:
++                        raise RuntimeError("child exited but descendants retain stdout; reconciliation required")
++            record["exit_code"] = process.wait()
++            log.flush()
++            os.fsync(log.fileno())
++            record["status"] = ("timed_out" if record["timed_out"] else "cancelled" if record["cancelled"]
++                                else "succeeded" if record["exit_code"] == 0 else "failed")
++    except BaseException as error:
++        stop_child()
++        record["error_type"] = type(error).__name__
++        if process:
++            record["exit_code"] = process.returncode
++        record["status"] = "error"
++    finally:
++        selector.close()
++        if process and process.stdout:
++            process.stdout.close()
++        for signum, handler in old_handlers.items():
++            signal.signal(signum, handler)
++        record["signal"] = -record["exit_code"] if record["exit_code"] is not None and record["exit_code"] < 0 else None
++        record.update(finished_at=utc(), elapsed_s=time.monotonic() - started,
++                      log={"path": str(log_path), "bytes": log_bytes, "sha256": digest.hexdigest()})
++        atomic_json(record_path, record)
++    if record["status"] != "succeeded":
++        raise PhaseExecutionError(record)
++    return record

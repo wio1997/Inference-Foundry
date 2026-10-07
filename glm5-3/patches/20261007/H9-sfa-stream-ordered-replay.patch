@@ -1,0 +1,36 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -3045,6 +3045,18 @@
+             **model_kwargs,
+         }
+         run_model = partial(self.model, **model_inputs)
++
++        # SFA reads mutable graph inputs on the current replay stream and
++        # does not update host graph parameters on an auxiliary stream.
++        forward_context._ascend_sfa_stream_ordered_replay = (
++            forward_context.cudagraph_runtime_mode == CUDAGraphMode.FULL
++            and self.use_sparse
++            and not self.use_compress
++            and self.attn_backend.get_name() == "ASCEND_SFA"
++            and self.device_metadata_executor is None
++            and getattr(self.model_config.hf_config, "model_type", None)
++            == "glm_moe_dsa"
++        )
+ 
+         if self.enable_enpu:
+             # The soft segmentation scenario requires event.record first, then event.wait
+--- a/vllm_ascend/compilation/breakable_aclgraph.py
++++ b/vllm_ascend/compilation/breakable_aclgraph.py
+@@ -85,7 +85,11 @@
+             # Match ACLGraphWrapper's ordering between async attention
+             # parameter updates and the previous/current FULL graph replay.
+             is_draft_eagle = _EXTRA_CTX.is_draft_model and self.use_eagle
+-            if not self.enable_enpu and not is_draft_eagle:
++            stream_ordered_sfa_target = (
++                not _EXTRA_CTX.is_draft_model
++                and getattr(forward_context, "_ascend_sfa_stream_ordered_replay", False)
++            )
++            if not self.enable_enpu and not is_draft_eagle and not stream_ordered_sfa_target:
+                 torch.npu.current_stream().synchronize()
+         super()._replay(entry, args, kwargs)
+         return entry.output

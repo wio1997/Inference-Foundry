@@ -1,0 +1,60 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -2677,7 +2677,7 @@
+ 
+         output_spec_token_ids = None
+         use_padded_batch = False
+-        early_pp_padded_drafter = False
++        early_padded_drafter = False
+         if self.speculative_config:
+             use_padded_batch = (
+                 self.speculative_config.use_eagle()
+@@ -2685,12 +2685,30 @@
+                 or self.speculative_config.uses_extract_hidden_states()
+                 or self.speculative_config.use_ngram_gpu()
+             ) and not self.speculative_config.disable_padded_drafter_batch
+-            early_pp_padded_drafter = (
+-                use_pp_spec_decode
+-                and not self.use_async_scheduling
++            # Greedy GLM MTP consumes device samples and does not read the
++            # CPU output-token history. Submit it before the target D2H wait.
++            # Keep the existing PP route and all other paths unchanged.
++            early_padded_drafter = (
++                not self.use_async_scheduling
+                 and use_padded_batch
+-            )
+-            if early_pp_padded_drafter:
++                and (
++                    use_pp_spec_decode
++                    or (
++                        pp.world_size == 1
++                        and self.speculative_config.method == "mtp"
++                        and self.num_spec_tokens == 1
++                        and scheduler_output.num_spec_tokens_to_schedule > 0
++                        and getattr(self.model_config.hf_config, "model_type", None)
++                        == "glm_moe_dsa"
++                        and self.input_batch.sampling_metadata.all_greedy
++                        and not self.input_batch.generators
++                        and not self.num_prompt_logprobs
++                        and not self.routed_experts_initialized
++                        and input_fits_in_drafter
++                    )
++                )
++            )
++            if early_padded_drafter:
+                 self._draft_token_ids = None
+                 self._draft_token_req_ids = None
+                 with record_function_or_nullcontext("draft_token"):
+@@ -2714,10 +2732,10 @@
+ 
+         with record_function_or_nullcontext("draft_token"):
+             if self.speculative_config:
+-                if not early_pp_padded_drafter:
++                if not early_padded_drafter:
+                     self._draft_token_ids = None
+                     self._draft_token_req_ids = None
+-                if use_padded_batch and not early_pp_padded_drafter:
++                if use_padded_batch and not early_padded_drafter:
+                     # EAGLE speculative decoding can use the GPU sampled tokens
+                     # as inputs, and does not need to wait for bookkeeping to finish.
+                     propose_draft_token_ids(sampler_output.sampled_token_ids)

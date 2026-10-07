@@ -1,6 +1,10 @@
-# GLM Extreme
+# GLM-5.3 Extreme
 
-为GLM构建完整功能的专用推理框架，研究现有算子下多机多卡、动态负载及可变PD的调度极限。当前用GLM-5.2、两台910C；版本/资源口径见MISSION。
+2026-10-07 用户最新指令：先发布 MTP 和已有调试结果 patch，**两台机器暂时不做代码调优和测试**。当前只做本地包装/离线检查和 GitHub 同步；不安装候选、不重启/改服务、不提交模型请求或 NPU Run。已验证 H6/H5 研究栈保留，MTP 限域设备正确但未获重复收益。恢复设备调优/测试须由用户另行明确要求，历史 next_action 不构成恢复授权。交付说明：[20261007 patch 包](patches/20261007/README.md)。本次没有服务器动作，完整 API/正式 80K600/93% SLA/最终 Current 尚未验收。
+
+[独立MTP patch](patches/20261007/H11-mtp-graph.patch) · [完整zip](patches/GLM53-patches-20261007.zip) · [各patch依赖、应用/回退、验证与性能说明](patches/20261007/README.md)。共13个独立patch和2个原字节溯源替代版；全部本地应用/回退/hash/AST校验通过。AISBench实际helper与phase_runner依赖同步到本仓库，正式条件80000输入/600输出/93%prefix/93%声明KV命中；声明和实测分账。
+
+当前目标为 **GLM-5.3 W8A8 标准 P/D 分离**，在两台910C与现有正确算子下研究框架执行浪费及完整PD性能。权重路径为 `/data/tiankuan/wio/GLM-5.3-w8a8`，服务模型名 `glm-53`；历史版本记录不作为5.3验收基线。
 
 **Agent启动只读[AGENTS](AGENTS.md)+[HANDOFF](HANDOFF.md)+活动点/Git状态。**
 
@@ -15,7 +19,7 @@
 交给执行Agent的短prompt：
 
 ```text
-在glm5-3/按AGENTS.md和HANDOFF.md接续。恢复实际环境与Current，先查相关历史，再从最高价值Gap/未知自主研究、重构和验证。按RECORDING记录优化点、代码与Run；当前两台可行域内收敛。资料按需读，不重放历史，不等待未来硬件。
+在glm5-3/先读AGENTS.md和HANDOFF.md。当前用户暂停两台机器的代码调优和测试，只进行本地patch/证据交付；从patches/20261007/README.md查源码基线和结论。未获用户明确恢复指令，不按历史next_action启动设备实验或改服务。
 ```
 
-初始发布不包含性能改动或已运行实验。当前第一个点是现场/Current恢复。
+当前发布已包含上述patch和已有实验结论。旧恢复资料保留其历史口径；本次状态以顶部暂停指令和patch说明为准。
