@@ -1,0 +1,70 @@
+{
+  "CPU_only": true,
+  "imports_NPU": false,
+  "device_capture_test": false,
+  "source_identity": {
+    "wrapper": {
+      "path": "/Users/wio/work/Inference-Foundry-glm5-3/glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/graph_sources/vllm-ascend__vllm_ascend__compilation__acl_graph.py",
+      "sha256": "c8ab2fe6aaae034b03e9e34b9c07fd445046564acd5d45e2c24b5ea5232c5a74"
+    },
+    "decorator": {
+      "path": "/Users/wio/work/Inference-Foundry-glm5-3/glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/eager_sources/vllm__vllm__compilation__breakable_cudagraph.py",
+      "sha256": "722683b44b4461ffd9a6498741da18945cbaac231c3bb01f0b0443dafe9e053e"
+    },
+    "runner": {
+      "path": "/Users/wio/work/Inference-Foundry-glm5-3/glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__worker__model_runner_v1.py",
+      "sha256": "eaa40a2053be73e4f6ca6f54eddfb506f100790b1857a8d815c6db8756a32845"
+    },
+    "proposer": {
+      "path": "/Users/wio/work/Inference-Foundry-glm5-3/glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/graph_sources/vllm-ascend__vllm_ascend__spec_decode__llm_base_proposer.py",
+      "sha256": "edcc55d15f0f868b7da4f5ee8b63f91fc4f130b9b950e2734ab0d872a30d5f61"
+    },
+    "SFA": {
+      "path": "/Users/wio/work/Inference-Foundry-glm5-3/glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__attention__sfa_v1.py",
+      "sha256": "f15426c8bd823e651eef7b5f1971b1957d7760c54ee787df43a3d4633f2366a4"
+    },
+    "DCP": {
+      "path": "/Users/wio/work/Inference-Foundry-glm5-3/glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__attention__context_parallel__sfa_cp.py",
+      "sha256": "17d80412c16270ac0da8a188bdd6d6b7d8b108fbbf92752a6ddf965898085e57"
+    }
+  },
+  "actual_AST_cases": {
+    "first_FULL_call": [
+      "validate.capture",
+      "offloader.sync",
+      "capture.enter",
+      "model.python",
+      "offloader.join",
+      "capture.exit"
+    ],
+    "repeated_FULL_call": [
+      "stream.synchronize",
+      "graph.replay"
+    ],
+    "NONE_call": [
+      "model.python"
+    ],
+    "FULL_eager_break": [
+      "MLA.python"
+    ],
+    "PIECEWISE_eager_break": [
+      "add_eager",
+      "MLA.python"
+    ],
+    "sparse_runner_forward": [
+      "model.call"
+    ]
+  },
+  "conclusions": [
+    "FULL replay bypasses target Python runnable including MLA/MoE/inner collectives; MLA eager-break does not add an eager segment in FULL capture.",
+    "Scheduler, input preprocessing and metadata construction, outer KV connector context, logits/sampler and GLM eager MTP remain outside target FULL wrapper.",
+    "Sparse SFA update_graph_params is a no-op; DCP builder writes persistent replicated block/slot/local seq-lens buffers before model forward. This is not proof of unsupported replay.",
+    "Actual GLM proposer sets use_cuda_graph=False. Do not enable its graph by deleting the safety branch without dynamic-input and MTP correctness evidence.",
+    "Wrapper stream synchronize orders previous replay versus next metadata update. No source-only deletion candidate established."
+  ],
+  "limits": [
+    "CPU doubles establish control flow only, not NPU/HCCL capture support, dynamic same-address validity, EOS/PD correctness, or performance.",
+    "Eager Run249 contains no graph replay; graph configuration gains cannot be counted as a code patch gain.",
+    "No configuration, model service, native source or kernel changed by this audit."
+  ]
+}

@@ -1,5 +1,16 @@
 # CURRENT_PERFORMANCE_STACK
 
+2026-10-07按用户新裁决分开研究stack和最终产品stack。研究候选通过correctness、matched A/B/A/B及可重复完整PD E2E后保留，后续以旧stack对旧stack+patch比较；完整API/正式SLA未验收不构成撤回所有有效patch或停止研究的理由。历史正式promotion决定保留，下方历史“stack空”不能再作为当前研究策略。
+
+| Active research patch | 代码 / 证据 | 独立 matched 完整PD收益 | 实际启用 |
+| --- | --- | --- | --- |
+| H6 MC2 capability cache | [两处缓存patch](records/points/GLM-OPT-0002/research/decode_path_20261006/mc2_capability.patch)、[Run256](records/points/GLM-OPT-0002/runs/GLM-RUN-0256/summary.md)、[Run258机制](records/points/GLM-OPT-0002/research/decode_path_20261006/NATIVE_BOUNDARY_DECISION.md) | 23token自然EOS，同worker/common库两对TPOT下降13.62/14.20%；Dwall下降14.36/14.09%，P drift分账 | Run262 terminal全16 cache/mapping/MC2 mode1；Run263继续固定H6 |
+| H5 same-stream MoE event policy | [五文件patch](records/points/GLM-OPT-0002/research/decode_path_20261006/moe_event.patch)、[H6 baseline上的Run261](records/points/GLM-OPT-0002/runs/GLM-RUN-0261/summary.md) | 完整23token D TPOT下降6.77/7.04%、D wall下降6.98/6.94%；D saving0.314704/0.313984s超过0.017733s drift，P贡献分账 | Run262 terminal全16 None helper、event mode1；Run263继续固定H5 |
+
+Run260 H4完整比较INCONCLUSIVE/off。Run261独立raw复核POSITIVE，研究栈[H6,H5]实际保留。Run262 H8 CPU/native all16 byte正确、同工作量，但两完整对照收益不重复，独立冻结INCONCLUSIVE，H8 off（[证据](records/points/GLM-OPT-0002/runs/GLM-RUN-0262/summary.md)）。Run263由唯一controller执行固定bucket2两请求的真实动态replay支持诊断，[Reset](records/points/GLM-OPT-0002/research/decode_path_20261006/RESET_BUCKET2_REPLAY_ON_H6_H5.md)；无性能或配置收益宣称。当前H6/H5保留，正式Current=None/PERF_KEEP表空；完整stack相对stock收益未测，百分比不相加。
+
+# 历史产品 promotion 记录
+
 2026-10-06目标为GLM-5.3 W8A8标准PD，权重`/data/tiankuan/wio/GLM-5.3-w8a8`、新服务名`glm-53`；上传与原生PD已完成核验。[checkpoint164](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT164.md)的H5最小event patch已通过176native及两对相同23token完整PD，D generation改善4.71/3.26%；[正式promotion裁决](records/points/GLM-OPT-0002/research/decode_path_20261006/H5_DECISION.md)仍INCONCLUSIVE/PARKED，标准动态workload/SLO未验收。H4也park，二者未叠加/未加入stack。当前P249/D253健康空闲，D stock mode0/原磁盘源码恢复。旧模型结果不自动迁移；Current=None，active PERF_KEEP为空。下方旧checkpoint为历史状态。
 
 当前产品中正式PERF_KEEP且仍active的性能patch的唯一短索引；规则见[AGENTS](AGENTS.md)与[RECORDING](RECORDING.md)，各项验证引用[代码性能账本](CODE_PERFORMANCE_LEDGER.md)和原Run，不复制raw。

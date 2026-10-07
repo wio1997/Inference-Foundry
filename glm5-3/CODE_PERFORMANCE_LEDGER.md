@@ -1,5 +1,9 @@
 # GLM代码性能账本
 
+checkpoint168：研究stack现在[H6,H5]。H5在[Run261完整PD](records/points/GLM-OPT-0002/runs/GLM-RUN-0261/summary.md)的H6 baseline上新增可重复代码增量：D TPOT缩短6.77/7.04%，D wall缩短6.98/6.94%，冻结漂移/MTP/全rank见证通过；P贡献单列。H4 Run260完整比较INCONCLUSIVE/off。H8 [native indexer同forward投影复用patch](records/points/GLM-OPT-0002/research/decode_path_20261006/indexer_projection_reuse.patch)已过42 CPU AST/84 selector检查，Run262已completed、完整同工作量但两对收益不重复，冻结INCONCLUSIVE/H8 off；Run263固定bucket2实际动态replay诊断，不宣称性能收益。正式产品PERF_KEEP/Current另验，以下旧“无新增KEEP”是正式promotion历史。
+
+2026-10-07用户后续裁决：H6已经取得可重复真实代码收益，进入active research performance stack；Run259恢复H6成功；Run260 H4叠加完整比较冻结INCONCLUSIVE/H4关闭，Run261在H6固定启用下验证H5，正式产品Current/PERF_KEEP另验。[研究stack](CURRENT_PERFORMANCE_STACK.md)与[新Reset](records/points/GLM-OPT-0002/research/decode_path_20261006/RESET_H4_ON_H6.md)为最新恢复入口。下方历史“无新增KEEP/stack空”不否定已验证收益，也不授权后续清空研究stack。
+
 当前产品目标为GLM-5.3 W8A8标准PD，权重`/data/tiankuan/wio/GLM-5.3-w8a8`、新服务名`glm-53`。用户已确认上传完成，原生PD已跑通。checkpoint167闭环H6 native机制；Run256同23token完整PD D TPOT下降13.62/14.20%（P drift分账），H4/H5独立证据保留；完整API/标准动态workload/SLA仍未验收，正式PERF_KEEP裁决INCONCLUSIVE/PARKED，Current=None。历史模型候选/裁决保留实际版本，不迁移收益或正确性。
 
 从checkpoint158之后建立（2026-10-06；父commit `e378d459e08e9f12300118e158bba16db6c4d04f`），只汇总后续代码候选的证据引用，不迁移或重写历史Run、raw evidence和裁决。记录规则见[RECORDING](RECORDING.md)，研究规则见[AGENTS](AGENTS.md)。

@@ -1,5 +1,7 @@
 # H6 completed mechanism attribution
 
+2026-10-07后续用户裁决：H6作为已验证性能候选加入active research performance stack，恢复启用并作为后续代码优化baseline。Run256/258原始结果及当时恢复记录不变；“active stack empty/正式PARKED”仅是当时产品promotion决定，不再要求研究恢复stock。最终Current/PERF_KEEP仍待完整API/SLA/稳定性/full-stack E2E。实际重新启用身份由新Run259记录，计划并不证明已resident。
+
 Run254's248 CPU samples and the actual installed ELF/source isolate repeated MC2 V4 capability predicates. The production patch caches the two booleans per fixed loaded-library lifetime; model arithmetic, EP work, output allocation, dynamic workspace/executor and fallback remain unchanged. This is removable host control work, not required expert communication.
 
 The isolated native build and original/candidate CPU import gates passed. Run255 proved scoped output correctness and one positive pair, then its overly strict SSE-group gate stopped the bracket; its failed exit and original recovery remain unchanged. Run256's single frozen supplement measured existing scheduler counters instead of treating SSE aggregation as ordered engine work.

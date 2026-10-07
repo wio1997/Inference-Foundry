@@ -1,0 +1,16 @@
+{
+  "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/rotary_embedding.py",
+  "sha256": "b6b7515a3159012e7e9dd946d9426baeb86880850b8fb625f67c2ef1e53aec4e",
+  "functions": [
+    {
+      "name": "set_cos_and_sin",
+      "start": 64,
+      "text": "def set_cos_and_sin(vllm_config, max_num_reqs, decode_token_per_req, dtype, device):\n    global _cos_mla\n    global _sin_mla\n    global _cos\n    global _sin\n\n    if _cos_mla is not None or _sin_mla is not None or _cos is not None or _sin is not None:\n        return\n\n    model_config = vllm_config.model_config\n    max_num_batched_tokens = vllm_config.scheduler_config.max_num_batched_tokens\n\n    if model_config.use_mla:\n        rope_dim = model_config.hf_text_config.qk_rope_head_dim\n        _cos_mla = torch.ones(max_num_batched_tokens, 1, 1, rope_dim, dtype=dtype, device=device)\n        _sin_mla = torch.zeros(max_num_batched_tokens, 1, 1, rope_dim, dtype=dtype, device=device)\n    elif not is_vl_model(vllm_config) and has_rope(vllm_config):\n        rope_dim = model_config.get_head_size()\n        # For models using partial rope like Qwen3-Next.\n        if hasattr(model_config.hf_text_config, \"partial_rotary_factor\"):\n            rope_dim = int(rope_dim * model_config.hf_text_config.partial_rotary_factor)\n        elif hasattr(model_config.hf_text_config, \"rotary_dim\"):\n            rope_dim = int(model_config.hf_text_config.rotary_dim)\n        _cos = torch.ones(1, max_num_batched_tokens, 1, rope_dim, dtype=dtype, device=device)\n        _sin = torch.zeros(1, max_num_batched_tokens, 1, rope_dim, dtype=dtype, device=device)"
+    },
+    {
+      "name": "get_cos_and_sin_mla",
+      "start": 91,
+      "text": "def get_cos_and_sin_mla(positions, use_cache=False):\n    global _cos_cache\n    global _sin_cache\n    cos = _cos_cache[positions].unsqueeze(1).unsqueeze(2)\n    sin = _sin_cache[positions].unsqueeze(1).unsqueeze(2)\n    if not use_cache:\n        return cos, sin\n    global _cos_mla\n    global _sin_mla\n    num_tokens = positions.size(0)\n    _cos_mla[:num_tokens, ...] = cos\n    _sin_mla[:num_tokens, ...] = sin\n    return _cos_mla[:num_tokens, ...], _sin_mla[:num_tokens, ...]"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "path": "/vllm-workspace/vllm/vllm/forward_context.py",
+    "sha256": "985adacc9e7ed2a7695819ac2e2ad9cb264a7d886806d3091ad75bfda7392242",
+    "snippets": [
+      {
+        "name": "BatchDescriptor",
+        "start": 30,
+        "decorators": [
+          "dataclass(frozen=True)"
+        ],
+        "text": "class BatchDescriptor:\n    \"\"\"\n    Batch descriptor for cudagraph dispatching. We should keep the num of\n    items as minimal as possible to properly and uniquely describe the padded\n    batch for cudagraph.\n    \"\"\"\n\n    num_tokens: int\n    num_reqs: int | None = None\n    \"\"\"\n    Number of requests in the batch. Can be None for PIECEWISE cudagraphs where\n    the cudagraphs can handle any number of requests.\n    \"\"\"\n    uniform: bool = False\n    \"\"\"\n    True if all the requests in the batch have the same number of tokens.\n    \"\"\"\n    has_lora: bool = False\n    \"\"\"\n    Whether this batch has active LoRA adapters.\n    \"\"\"\n    num_active_loras: int = 0\n    \"\"\"\n    Number of distinct active LoRA adapters in this batch.\n    When cudagraph_specialize_lora_count is enabled, separate CUDA graphs\n    are captured for each num_active_loras value. This allows kernels\n    (like fused_moe_lora) whose grid size depends on num_active_loras\n    to be properly captured.\n    \"\"\""
+      }
+    ]
+  },
+  {
+    "path": "/vllm-workspace/vllm/vllm/config/vllm.py",
+    "sha256": "66e82e95c5cdbb88715e25feb65f4cc2be83cd67bff5b5f703d52dea43a0815e",
+    "snippets": [
+      {
+        "name": "update_sizes_for_sequence_parallelism",
+        "start": 1705,
+        "decorators": [],
+        "text": "def update_sizes_for_sequence_parallelism(self, possible_sizes: list) -> list:\n        # remove the sizes that not multiple of tp_size when\n        # enable sequence parallelism\n        removed_sizes = [\n            size\n            for size in possible_sizes\n            if size % self.parallel_config.tensor_parallel_size != 0\n        ]\n        if removed_sizes:\n            logger.warning(\n                \"Batch sizes %s are removed because they are not \"\n                \"multiple of tp_size %d when \"\n                \"sequence parallelism is enabled\",\n                removed_sizes,\n                self.parallel_config.tensor_parallel_size,\n            )\n\n        return [\n            size\n            for size in possible_sizes\n            if size % self.parallel_config.tensor_parallel_size == 0\n        ]"
+      }
+    ]
+  }
+]

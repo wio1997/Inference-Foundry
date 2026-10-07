@@ -92,6 +92,8 @@ PID/hash/epoch/controller/artifact/ownership记录只做到足够：实验真实
 
 ## 6. 当前stack、交互回归与产品Current
 
+2026-10-07用户明确新增active research performance stack：correctness→matched A/B/A/B→可重复完整PD E2E通过的候选可以保留启用，并在该stack上继续研究。最终产品Current/PERF_KEEP另由完整API、正式SLA、稳定性、完整stack E2E裁决；未完成最终验收不要求清空研究stack或还原已验证有效patch。以下“仅正式PERF_KEEP”是正式产品表的口径。研究表引用原Run/代码身份、实际启用证据、独立比较与局限，不重写原裁决；新增patch比较旧研究stack对旧研究stack+patch，累计收益仍须重测，不能相加。
+
 [CURRENT_PERFORMANCE_STACK](CURRENT_PERFORMANCE_STACK.md)仅列正式PERF_KEEP且当前产品仍active的patch/commit、代码路径、matched baseline、独立gain与启用状态。新patch比较“旧stack”对“旧stack+patch”的独立收益，同时确认完整stack的correctness/E2E；累计Product Gain须完整stack相对Stock/声明基线重测，不能将独立百分比相加。
 
 旧patch在新架构失效、冲突、收益覆盖或回归时，在新状态记录`active / superseded / regressed`、原因与证据，退出active stack；原历史裁决保持不变。尚未验证新架构适用性时明确unknown，不能继续冒用旧Gain。REJECT/superseded实验模块退出后续默认路径，历史版本仍保留。
