@@ -7,8 +7,9 @@ two snapshots, and returns structured results suitable for CSV writing.
 """
 
 import logging
+import math
 import re
-import subprocess
+import urllib.request
 from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -41,23 +42,12 @@ def _parse_pod_address(pod: str) -> tuple:
 def _fetch_metrics(ip: str, port: str) -> str:
     """Fetch raw /metrics output from a vLLM service endpoint."""
     url = f"http://{ip}:{port}/metrics"
-    command = (
-        f"unset http_proxy && unset https_proxy && sleep 3s && curl -s {url}"
-    )
     try:
-        result = subprocess.run(
-            command, shell=True, capture_output=True, text=True, timeout=30
-        )
-        if result.returncode != 0 or not result.stdout.strip():
-            logger.warning(f"No metrics data from {url}: {result.stderr}")
-            return ""
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        logger.warning(f"Timeout fetching metrics from {url}")
-        return ""
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(url, timeout=30) as response:
+            return response.read().decode()
     except Exception as e:
-        logger.warning(f"Error fetching metrics from {url}: {e}")
-        return ""
+        raise RuntimeError(f"Cannot collect cache counters from {url}") from e
 
 
 def _parse_prefix_counters(metrics_text: str) -> Dict[int, Dict[str, int]]:
@@ -72,6 +62,15 @@ def _parse_prefix_counters(metrics_text: str) -> Dict[int, Dict[str, int]]:
         # Only process lines with model_name label and prefix_cache metric
         if "prefix_cache" not in line or "model_name" not in line:
             continue
+        metric = line.split("{", 1)[0]
+        counter_key = {
+            "vllm:prefix_cache_queries_total": "hbm_queries",
+            "vllm:prefix_cache_hits_total": "hbm_hits",
+            "vllm:external_prefix_cache_queries_total": "ext_queries",
+            "vllm:external_prefix_cache_hits_total": "ext_hits",
+        }.get(metric)
+        if counter_key is None:
+            continue
 
         # Extract engine id
         engine_match = re.search(r'engine="(\d+)"', line)
@@ -85,27 +84,24 @@ def _parse_prefix_counters(metrics_text: str) -> Dict[int, Dict[str, int]]:
             continue
         try:
             value = float(parts[-1])
-            if value.is_integer():
-                value = int(value)
-        except ValueError:
-            continue
+            if not math.isfinite(value) or not value.is_integer() or value < 0:
+                raise ValueError("Expected a nonnegative integer counter")
+            value = int(value)
+        except ValueError as error:
+            raise ValueError(f"Invalid native cache counter: {line}") from error
 
         # Initialize dict for this engine if not yet present
         if engine_id not in result:
-            result[engine_id] = {
-                "hbm_queries": 0, "hbm_hits": 0,
-                "ext_queries": 0, "ext_hits": 0,
-            }
+            result[engine_id] = {}
 
         # Classify by metric name
-        if "external_prefix_cache_queries_total" in line:
-            result[engine_id]["ext_queries"] = value
-        elif "external_prefix_cache_hits_total" in line:
-            result[engine_id]["ext_hits"] = value
-        elif "vllm:prefix_cache_queries_total" in line:
-            result[engine_id]["hbm_queries"] = value
-        elif "vllm:prefix_cache_hits_total" in line:
-            result[engine_id]["hbm_hits"] = value
+        if counter_key in result[engine_id]:
+            raise ValueError(f"Ambiguous cache counter series for engine {engine_id}: {metric}")
+        result[engine_id][counter_key] = value
+
+    for engine_id, counters in result.items():
+        if set(counters) != {"hbm_queries", "hbm_hits", "ext_queries", "ext_hits"}:
+            raise ValueError(f"Incomplete cache counters for engine {engine_id}")
 
     return result
 
@@ -139,6 +135,8 @@ class HitRateCollector:
             ip, port = _parse_pod_address(pod)
             raw = _fetch_metrics(ip, port)
             counters = _parse_prefix_counters(raw)
+            if not counters:
+                raise ValueError(f"No native prefix cache counters from {pod}")
             snapshot[pod] = counters
         return snapshot
 
@@ -168,6 +166,7 @@ class HitRateCollector:
         Per-DP values are accumulated across pods (not overwritten).
         """
         per_dp: Dict[str, Dict] = {}
+        per_endpoint = {}
         agg_queries_hbm = 0
         agg_hits_hbm = 0
         agg_queries_ext = 0
@@ -176,6 +175,9 @@ class HitRateCollector:
         for pod in self.pod_info:
             before_counters = before.get(pod, {})
             after_counters = after.get(pod, {})
+            if not before_counters or before_counters.keys() != after_counters.keys():
+                raise ValueError(f"Missing/changed cache counter engines at {pod}")
+            per_endpoint[pod] = {}
 
             for engine_id in after_counters:
                 b = before_counters.get(engine_id, {
@@ -188,6 +190,14 @@ class HitRateCollector:
                 hits_hbm = a["hbm_hits"] - b["hbm_hits"]
                 queries_ext = a["ext_queries"] - b["ext_queries"]
                 hits_ext = a["ext_hits"] - b["ext_hits"]
+                if not (0 <= hits_hbm <= queries_hbm and 0 <= hits_ext <= queries_ext):
+                    raise ValueError(f"Cache counter reset or invalid delta at {pod}/dp{engine_id}")
+                per_endpoint[pod][f"dp{engine_id}"] = dict(
+                    hbm_queries=queries_hbm, hbm_hits=hits_hbm,
+                    ext_queries=queries_ext, ext_hits=hits_ext,
+                    hbm_hit_rate=hits_hbm / queries_hbm if queries_hbm else None,
+                    ext_hit_rate=hits_ext / queries_ext if queries_ext else None,
+                )
 
                 dp_key = f"dp{engine_id}"
 
@@ -226,12 +236,20 @@ class HitRateCollector:
             "ext_hits": agg_hits_ext,
         }
 
-        return {"per_dp": per_dp, "aggregated": aggregated}
+        # Legacy aggregate columns remain for readers, but P and D can both
+        # have engine=0. Use per_endpoint for workload/cache acceptance.
+        return {"per_endpoint": per_endpoint, "per_dp": per_dp,
+                "aggregated": aggregated, "aggregate_mixes_endpoints": len(self.pod_info) > 1}
 
     def print_hit_rate_table(self, hit_rate_info: Dict) -> None:
         """Print a formatted hit-rate table to console (for human readability)."""
         per_dp = hit_rate_info.get("per_dp", {})
         aggregated = hit_rate_info.get("aggregated", {})
+        for endpoint, engines in hit_rate_info.get("per_endpoint", {}).items():
+            for engine, counts in engines.items():
+                logger.info("Cache %s/%s HBM=%s/%s external=%s/%s", endpoint,
+                            engine, counts["hbm_hits"], counts["hbm_queries"],
+                            counts["ext_hits"], counts["ext_queries"])
 
         if not per_dp and not aggregated:
             logger.info("No hit rate data to display.")

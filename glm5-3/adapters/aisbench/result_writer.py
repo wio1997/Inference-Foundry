@@ -253,6 +253,9 @@ def build_result_row(
     }
 
     # ---- Add per-DP hit rate columns ----
+    row["cache_salt"] = getattr(args, "cache_salt", None)
+    row["cache_by_endpoint"] = json.dumps(hit_rate_info.get("per_endpoint", {}), sort_keys=True)
+    row["cache_aggregate_mixes_endpoints"] = hit_rate_info.get("aggregate_mixes_endpoints", False)
     per_dp = hit_rate_info.get("per_dp", {})
     for dp_key, dp_data in sorted(per_dp.items()):
         row[f"hbm_hit_rate_{dp_key}"] = dp_data.get("hbm_hit_rate", 0.0)

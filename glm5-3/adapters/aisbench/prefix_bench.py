@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import shutil
+import uuid
 from pathlib import Path
 from phase_runner import run_phase, PhaseExecutionError
 
@@ -374,6 +375,7 @@ def modify_aisbench_api(
     test_type: str,
     enable_think: bool,
     work_path: str,
+    cache_salt: str,
 ) -> None:
     """Generate the AISBench model config file from template and symlink it.
 
@@ -398,6 +400,7 @@ def modify_aisbench_api(
 
     # Generation kwargs string (replaces the dict body inside generation_kwargs=dict(...))
     generation_kwargs = "temperature=0,\n\t\t\tignore_eos=True"
+    generation_kwargs += ",\n\t\t\tcache_salt=" + repr(cache_salt)
     if enable_think:
         generation_kwargs += ",\n\t\t\tchat_template_kwargs={\"enable_thinking\": True}"
 
@@ -497,6 +500,21 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
     # Resolve pod_info
     pod_info = resolve_pod_info(args)
     collector = HitRateCollector(pod_info)
+    # Same namespace for this round's warm prefix and full prompts; a fresh
+    # namespace for every round/restart prevents old full-prompt KV reuse.
+    cache_salt = "aisbench-" + uuid.uuid4().hex
+    cache_evidence_path = f"round_{round_index}_cache.json"
+    cache_evidence = dict(round_index=round_index, cache_salt=cache_salt,
+                          declared_prefix_rate=repeat_rate,
+                          observed_hit_rate=None, endpoints=pod_info,
+                          snapshots={}, rates={})
+
+    def save_cache_snapshot(phase, boundary, snapshot):
+        cache_evidence["snapshots"][phase + "_" + boundary] = snapshot
+        with open(cache_evidence_path, "w") as stream:
+            json.dump(cache_evidence, stream, indent=2)
+
+    args.cache_salt = cache_salt
 
     logger.info("-" * 60)
     logger.info(f"[Round {round_index}] Configuration:")
@@ -578,6 +596,7 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
         test_type=args.test_type,
         enable_think=args.enable_think,
         work_path=args.work_path,
+        cache_salt=cache_salt,
     )
 
     # Link prefix dataset
@@ -586,6 +605,7 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
 
     # Snapshot before warmup
     warmup_before = collector.snapshot()
+    save_cache_snapshot("warmup", "before", warmup_before)
 
     # Execute warmup
     execute_aisbench_phase(aisbench_cmd, "warmup", round_index,
@@ -593,9 +613,12 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
 
     # Snapshot after warmup
     warmup_after = collector.snapshot()
+    save_cache_snapshot("warmup", "after", warmup_after)
 
     # Compute warmup hit rate
     warmup_hit_rate = collector.compute_hit_rate(warmup_before, warmup_after)
+    cache_evidence["rates"]["warmup"] = warmup_hit_rate
+    save_cache_snapshot("warmup", "after", warmup_after)
     collector.print_hit_rate_table(warmup_hit_rate)
 
     # Parse warmup metrics and write to results
@@ -631,6 +654,7 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
         test_type=args.test_type,
         enable_think=args.enable_think,
         work_path=args.work_path,
+        cache_salt=cache_salt,
     )
 
     # Link full dataset
@@ -638,6 +662,7 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
 
     # Snapshot before full test
     full_before = collector.snapshot()
+    save_cache_snapshot("full", "before", full_before)
 
     # Execute full test
     execute_aisbench_phase(aisbench_cmd, "full", round_index,
@@ -645,9 +670,13 @@ def run_single_round(args: argparse.Namespace, round_index: int) -> None:
 
     # Snapshot after full test
     full_after = collector.snapshot()
+    save_cache_snapshot("full", "after", full_after)
 
     # Compute full test hit rate
     full_hit_rate = collector.compute_hit_rate(full_before, full_after)
+    cache_evidence["rates"]["full"] = full_hit_rate
+    cache_evidence["observed_hit_rate"] = full_hit_rate["per_endpoint"]
+    save_cache_snapshot("full", "after", full_after)
     collector.print_hit_rate_table(full_hit_rate)
 
     # Parse full test metrics
