@@ -1,3 +1,7 @@
+checkpoint172: Run267 H10 NOT_APPLICABLE actual all16 async=true, baseline3 exact/KV pass and zero-request closure complete; H6/H5 retained, no candidate A/B. GoalReview172 accepts actual async output/queue PIVOT; current largest removable gap unknown. User cache residual concern is active: audit salts and missing P/D local measurements, isolate AISBench rounds and retain controlled93% prefix; no formal93% claim or new model request from this checkpoint. Historical status below is superseded.
+
+checkpoint173：[MTP图与cache隔离](research/decode_path_20261006/CHECKPOINT173.md)。Run268构造失败保留、H6/H5/FULL恢复通过；修正版唯一Run269 correctness进行中，无gain宣称。AISBench每轮salt/分端点命中已部署与GitHub同步，正式80K/600/93%条件另验。
+
 # GLM-OPT-0002 checkpoint171恢复引用
 
 最新[checkpoint171](research/decode_path_20261006/CHECKPOINT171.md)：H6/H5保留；Run266 H9已关闭不重复收益，独立终态收尾完成；H10单文件贪心padded MTP提前提交CPU证明通过，固定最小对照准备中。workload80000/600/93%prefix与93%声明KV条件，AISBench/GitHub已同步；Current/API/SLA另验。下方旧现场与next_action均保留历史。

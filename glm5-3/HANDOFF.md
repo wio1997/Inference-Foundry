@@ -1,6 +1,10 @@
 # glm5-3 HANDOFF
 
+checkpoint173：[MTP图与cache隔离](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT173.md)。目标Decode FULL已开，GLM MTP被原proposer强制eager；受限greedy K1单文件patch验证中。Run268初始化读取未赋值dynamic_eplb失败，原FAILED保留；07:59:30Z一次恢复exact2334/8、health/idle/all16/H6H5通过。修正版改读已初始化EPLB配置，actual ctor2+runtime1024/static15/pointer19 CPU与独立review通过。唯一Run269 controller08:04:12Z启动、spec bc939571…/38pins、PID12492/start310586091，四固定correctness请求；实际以Run269 state/active_epoch/guards为准，不继承旧D268 PID。H6/H5保留，H11未入stack，无Graph gain/Current/SLA宣称。AISBench每轮salt/分端点命中delta已部署；GitHub research51789da8/main74910eab独立tip核验。80K/600/93%条件与实测命中分别记录。本阶段没有新增代码级性能 KEEP。
+
 当前正式workload已按用户最后更正改为80K输入/0.6K输出/93%共享前缀、KV cache命中率条件93%（80000/600/0.93）；声明命中率与实测HBM/external计数分账。166实际AISBench prefix driver和两机五文件已同步、原配置备份，SLO默认600；未启动压测，历史冻结Run不改。GitHub main/research五文件独立提交已atomic fast-forward成功，read-only remote refs/实际config核验main `c0159929`、research `e8e30671`，见[同步证据](records/points/GLM-OPT-0002/jobs/GITHUB-WORKLOAD-SYNC-20261007/result.json)。已恢复checkpoint160记录的用户明确公开授权，先前再次等待确认是多余阻塞；本次只同步workload文件，未夹带私有研究祖先/raw。
+
+最新[checkpoint172](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT172.md)：Run267 H10 NOT_APPLICABLE，实际all16 async=true，候选未启用/未A/B；三条baseline exactIDs/KV通过，独立零请求closure completed，原FAILED保留。研究stack[H6,H5]全16驻留、H9/H10off、pure KV/API保留；最新D267 root1760510/start309909425，以Run267 guards/retained_stack及fresh现场核验为准。Root接受独立async Review，继续实际copy/MTP/queue消费者归因；当前最大可删时间unknown。用户新增缓存残留提醒已纳入：先核查salt与本地/远程计数并修复AISBench跨轮隔离，不把93%声明当测量值。下方171准备/运行描述仅历史，不再是当前状态。
 
 最新[checkpoint171](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT171.md)：Run266 H9完整比较不重复增益，H9off；原controller跨host收尾失败保留，独立terminal reconciliation已completed/phase0，总21请求，H6/H5和纯KV/API修复驻留。当前D266 root419075/start309643580，P249保护；现场按Run266 guards/retained_stack核验。下一唯一候选H10提前greedy padded MTP提交，336实际CPU状态/4096guard通过，Run267已于06:14:38Z启动唯一controller1079159/start309928676，spec202a2a25/51pins、80installed-source gate通过；correctness/性能仍待实际裁决。现场用Run267 state/active_epoch/guards/retained_stack，不按旧D266 PID操作。
 
