@@ -1,0 +1,24 @@
+--- a/vllm_ascend/ops/rotary_embedding.py
++++ b/vllm_ascend/ops/rotary_embedding.py
+@@ -91,8 +91,19 @@
+ def get_cos_and_sin_mla(positions, use_cache=False):
+     global _cos_cache
+     global _sin_cache
+-    cos = _cos_cache[positions].unsqueeze(1).unsqueeze(2)
+-    sin = _sin_cache[positions].unsqueeze(1).unsqueeze(2)
++    if (
++        positions.dim() == 1
++        and positions.dtype in (torch.int32, torch.int64)
++        and _cos_cache.size(0) == _sin_cache.size(0)
++        and _cos_cache.size(0) <= torch.iinfo(positions.dtype).max
++    ):
++        # Preserve advanced-index negative positions without host inspection.
++        row_indices = torch.where(positions < 0, positions + _cos_cache.size(0), positions)
++        cos = _cos_cache.index_select(0, row_indices).unsqueeze(1).unsqueeze(2)
++        sin = _sin_cache.index_select(0, row_indices).unsqueeze(1).unsqueeze(2)
++    else:
++        cos = _cos_cache[positions].unsqueeze(1).unsqueeze(2)
++        sin = _sin_cache[positions].unsqueeze(1).unsqueeze(2)
+     if not use_cache:
+         return cos, sin
+     global _cos_mla
