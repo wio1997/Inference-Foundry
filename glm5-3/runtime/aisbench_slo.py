@@ -13,8 +13,9 @@ SLO targets (from the task):
 The AISBench table already contains Median (=P50), P75, P90, P99 - these are
 percentiles of the successful requests, not means, so no substitution happens.
 The raw per-request detail file is used to sanity check success counts and the
-real output-token count (so a short EOS-terminated answer cannot pass as a
-61440-token answer).
+real output-token count (so an early EOS-terminated answer cannot pass as the
+declared workload). The current contract is 600 output tokens; historical
+results require their original --expect_output_len explicitly.
 """
 from __future__ import annotations
 
@@ -124,7 +125,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--perf_csv", required=True)
     ap.add_argument("--details_jsonl", default="")
-    ap.add_argument("--expect_output_len", type=int, default=61440)
+    ap.add_argument("--expect_output_len", type=int, default=600,
+                    help="Declared output tokens; current workload 0.6K=600. Override for historical Runs.")
     ap.add_argument("--concurrency", type=int, default=0)
     ap.add_argument("--expected_requests", type=int, default=None, help="Actual declared request count; default retains legacy 2*concurrency")
     ap.add_argument("--out_json", default="")
@@ -208,6 +210,7 @@ def main() -> int:
 
     # ---- output length integrity ------------------------------------------
     exp = args.expect_output_len
+    res["expected_output_len"] = exp
     ot_med = res["output_tokens"]["median"]
     res["output_len_ok"] = (ot_med is not None and abs(ot_med - exp) < 1.0)
     if det and det.get("output_tokens_min") is not None:

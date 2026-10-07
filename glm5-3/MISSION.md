@@ -19,6 +19,10 @@ checkpoint158之后的研究优先级以[AGENTS](AGENTS.md)为准：代码优化
 
 ## 性能与功能合同
 
+用户2026-10-07更新正式workload：**输入序列80K、输出序列0.6K、前缀重复率93%**，替代旧60K输出口径。新AISBench默认参数为`--input_len 80000 --output_len 600 --repeat_rate 0.93`（K=1000），SLO分析使用`--expect_output_len 600`。记录实际chat模板/tokenizer后的输入token数、prefix warmup与真实cache复用；93%指输入共享前缀比例，不能直接作为实测命中率。历史冻结Run/配置/结果保留原值，不能按新合同重标；新matched A/B与正式SLA验收均冻结这一新口径。诊断短请求只证明其研究范围。
+
+用户随后补充 **KV cache命中率93%**，与93%共享前缀重复率分开记录；后续workload需冻结并核验实际cache状态与命中计数，不把声明的93%填成实测结果，也不将D端外部KV传输命中等同P端prefix-cache复用。
+
 完整接口与行为从实际框架恢复并持续补充；清单只用于覆盖，不限制能力。真实负载下比较有效吞吐、TTFT/TPOT/尾延迟、失败/拒绝、队列稳定性和资源成本。用户既有SLA的延迟阈值已记录在[验收实现](runtime/aisbench_slo.py)，本任务沿用以下严格小于门槛，不再将SLA写成未给定：
 
 | 指标 | P50 | P75 | P90 | P99 |

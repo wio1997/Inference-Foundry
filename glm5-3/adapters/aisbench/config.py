@@ -22,8 +22,8 @@ SUMMARIZER = "default_perf"    # "default_perf" or "stable_stage"
 
 # ===== Test configuration =====
 TEST_NAME = ""             # Optional name label (written to result CSV, overridden by --rounds)
-INPUT_LEN = 3500               # int
-OUTPUT_LEN = 1500              # int (converted to str for AISBench template)
+INPUT_LEN = 80000              # 80K tokens; K=1000 (user contract, 2026-10-07)
+OUTPUT_LEN = 600               # 0.6K tokens (converted to str for AISBench template)
 DATA_NUM = 8192                # int
 CONCURRENCY = 2048             # int (converted to str for AISBench template)
 REQUEST_RATE = 0               # int (converted to str for AISBench template; 0 = burst)
@@ -31,8 +31,9 @@ TEST_TYPE = "stream"           # "stream" or "text"
 ENABLE_THINK = False           # DeepSeek V3.1 thinking mode
 
 # ===== Prefix configuration =====
+# KV cache hit-rate condition: 93%; measured by HitRateCollector, separate from shared content.
 PREFIX_NUM = 1                 # int
-REPEAT_RATE = 0.5              # float or percentage string (converted by parse_prefix_ratio)
+REPEAT_RATE = 0.93             # 93% shared input prefix; not an observed cache-hit guarantee
 DP = 1                         # Data-parallelism degree (int)
 SEED = 1                       # Random seed for dataset generation; 0 = pure random (non-reproducible)
 

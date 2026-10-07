@@ -1,5 +1,9 @@
 # Task-local AISBench adapter
 
+Current workload (user update, 2026-10-07): input **80K = 80,000 tokens**, output **0.6K = 600 tokens**, shared input prefix **93%**. `config.py` defaults and new formal commands use `--input_len 80000 --output_len 600 --repeat_rate 0.93`; the SLO analyser defaults to `--expect_output_len 600`. CLI arguments still override defaults. Historical frozen commands/results retain their original lengths and must be analysed with their original expected output length explicitly.
+
+The 93% value describes shared prompt content. The user separately specifies **93% KV cache hit rate** as the workload condition. Record the actual tokenized request length after chat templating, prefix warmup and observed cache reuse in the frozen Run; `HitRateCollector` measures native HBM and external prefix-cache counters separately. Do not fill the measured result with the declared 93% value or equate D external KV loading with P prefix-cache reuse. These defaults do not declare a tested concurrency or stable service capacity.
+
 Derived from the deployed prefix-cache driver, preserving generated data, API sampling, prefix warmup and formal workload. `prefix_bench.py` replaces the shell pipeline with `runtime/phase_runner.py`: captures the real child exit and stops immediately on failure before parsing metrics. Candidate source originated in execution-fixture-20261001T083737Z; that directory did not contain test evidence at recovery.
 
 Run with `PYTHONPATH=<repo>/glm5-3/runtime:<this directory>:<aisbench work path>`. The deployed wrapper accepts `AISBENCH_TEST_PY`, so the live driver can remain untouched. New Runs must pin adapter/runtime/deployed-wrapper identities and record phase exit artifacts. A successful CLI is not proof all requests passed; validate details and SLO separately.
