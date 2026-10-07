@@ -36,3 +36,7 @@ Distinguishing evidence：POST/首chunk/结束时间、实际并发面积及峰�
 Decision table：固定RPS实际并发相近、无限速后TPS升高→支持到达受限；实际并发升高但TPS不升→继续分解P排队/KV/D执行与通信；C64/C96成功但分位超标→报告差距，不能称达标；失败/少输出/非PD路径→保留失败，不以成功子集验收。
 
 每轮记录配置和代码身份、原始证据哈希、预热状态、有效工作量、request/s、output token/s、TTFT/TPOT分位数、E2E延迟、成功失败及实际并发。TPS按实际总有效输出/明确请求窗口，不用配置并发除以TPOT P50替代。P-only测试不能替代完整PD的TPOT/SLA。
+
+## 执行后输入审计更正
+
+以上独立盐/独立完整输入是计划要求，不是全部通过的验收事实。事后发现salt的seed+row范围跨run重叠，C16与C64有1对完整输入重复；前期长度/共同前缀校验未覆盖这一性质。各正式轮聚合命中率均低于93%，未观察到整轮命中抬高，但无法仅靠均值保证每条请求。原始结果与输入保留，限制见[CACHE_AND_BOTTLENECK.md](CACHE_AND_BOTTLENECK.md)。后续使用独立run命名空间与发送前跨历史输入重复/LCP检查。
