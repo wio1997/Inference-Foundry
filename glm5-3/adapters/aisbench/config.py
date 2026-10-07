@@ -31,6 +31,7 @@ TEST_TYPE = "stream"           # "stream" or "text"
 ENABLE_THINK = False           # DeepSeek V3.1 thinking mode
 
 # ===== Prefix configuration =====
+# KV cache hit-rate condition: 93%; measured by HitRateCollector, separate from shared content.
 PREFIX_NUM = 1                 # int
 REPEAT_RATE = 0.93             # 93% shared input prefix; not an observed cache-hit guarantee
 DP = 1                         # Data-parallelism degree (int)
