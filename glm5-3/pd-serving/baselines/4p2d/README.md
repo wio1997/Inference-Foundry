@@ -7,6 +7,7 @@
 - [实际结果](RESULTS.md)
 - [输入、输出及缓存 token 吞吐](TOKEN_THROUGHPUT.md)
 - [深入参数实验、依赖与验收顺序](PARAMETER_EXPERIMENTS.md)
+- [C64/C72 瓶颈诊断、采样缺口与验收](BOTTLENECK_DIAGNOSTICS.md)
 - [完整性能报告、节点参与情况与参数优化建议](PERFORMANCE_REPORT.md)
 - [逐轮缓存命中与P/D压力位置](CACHE_AND_BOTTLENECK.md)
 - [不限速、并发和稳态统计定义](METRIC_DEFINITIONS.md)
