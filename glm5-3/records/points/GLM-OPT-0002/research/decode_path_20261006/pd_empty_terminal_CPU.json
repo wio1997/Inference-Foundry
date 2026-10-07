@@ -1,0 +1,509 @@
+{
+  "type": "CPU_ACTUAL_GENERATOR_AST",
+  "checks": [
+    {
+      "api": "chat",
+      "case": "first_empty_error",
+      "expected": "original drops error; patch emits canonical 500 and DONE",
+      "observed": {
+        "original": {
+          "events": [
+            {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "",
+                    "role": "assistant"
+                  },
+                  "finish_reason": null,
+                  "index": 0,
+                  "logprobs": null
+                }
+              ],
+              "created": 1234,
+              "id": "req",
+              "model": "model",
+              "object": "chat.completion.chunk",
+              "prompt_text": null,
+              "prompt_token_ids": [
+                10,
+                11
+              ]
+            },
+            {
+              "choices": [],
+              "created": 1234,
+              "id": "req",
+              "model": "model",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": "cpu",
+              "usage": {
+                "completion_tokens": 0,
+                "prompt_tokens": 2,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1,
+                  "created_cache_tokens": 0,
+                  "multimodal_tokens": null
+                },
+                "total_tokens": 2
+              }
+            }
+          ],
+          "metadata": {
+            "prompt_tokens": 2,
+            "completion_tokens": 0,
+            "total_tokens": 2
+          }
+        },
+        "patched": {
+          "events": [
+            {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "",
+                    "role": "assistant"
+                  },
+                  "finish_reason": null,
+                  "index": 0,
+                  "logprobs": null
+                }
+              ],
+              "created": 1234,
+              "id": "req",
+              "model": "model",
+              "object": "chat.completion.chunk",
+              "prompt_text": null,
+              "prompt_token_ids": [
+                10,
+                11
+              ]
+            },
+            {
+              "error": {
+                "message": "Internal server error",
+                "type": "InternalServerError",
+                "code": 500,
+                "param": null
+              }
+            }
+          ],
+          "metadata": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "no_usage_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "continuous_usage_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "logprobs_error_without_logprobs",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "no_token_ids_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "echo_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "parser_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "prefill_then_empty_error",
+      "expected": "error survives empty prefill suppression",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "empty_terminal_stop",
+      "expected": "zero-token normal terminal emitted once",
+      "observed": "stop",
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "empty_terminal_length",
+      "expected": "zero-token normal terminal emitted once",
+      "observed": "length",
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "normal_parity",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "normal_without_usage",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "normal_continuous_usage",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "normal_echo",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "normal_no_token_ids",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "error_after_token",
+      "expected": "keep prior token, then canonical error",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "unfinished_empty_parity",
+      "expected": "empty prefill still suppressed",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "two_choice_normal_parity",
+      "expected": "indices, tokens, terminals and aggregate usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "second_choice_empty_error",
+      "expected": "error survives n=2",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "parser_none_delta_error",
+      "expected": "terminal survives parser None delta",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "chat",
+      "case": "parser_none_delta_stop",
+      "expected": "terminal survives parser None delta",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "first_empty_error",
+      "expected": "original drops error; patch emits canonical 500 and DONE",
+      "observed": {
+        "original": {
+          "events": [
+            {
+              "choices": [],
+              "created": 1234,
+              "id": "req",
+              "model": "model",
+              "system_fingerprint": "cpu",
+              "usage": {
+                "completion_tokens": 0,
+                "prompt_tokens": 2,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1
+                },
+                "total_tokens": 2
+              }
+            }
+          ],
+          "metadata": {
+            "prompt_tokens": 2,
+            "completion_tokens": 0,
+            "total_tokens": 2,
+            "prompt_tokens_details": {
+              "cached_tokens": 1
+            }
+          }
+        },
+        "patched": {
+          "events": [
+            {
+              "error": {
+                "message": "Internal server error",
+                "type": "InternalServerError",
+                "code": 500,
+                "param": null
+              }
+            }
+          ],
+          "metadata": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "no_usage_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "continuous_usage_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "logprobs_error_without_logprobs",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "no_token_ids_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "echo_error",
+      "expected": "canonical internal error",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "prefill_then_empty_error",
+      "expected": "error survives empty prefill suppression",
+      "observed": [
+        {
+          "message": "Internal server error",
+          "type": "InternalServerError",
+          "code": 500,
+          "param": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "empty_terminal_stop",
+      "expected": "zero-token normal terminal emitted once",
+      "observed": "stop",
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "empty_terminal_length",
+      "expected": "zero-token normal terminal emitted once",
+      "observed": "length",
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "normal_parity",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "normal_without_usage",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "normal_continuous_usage",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "normal_echo",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "normal_no_token_ids",
+      "expected": "all SSE and usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "error_after_token",
+      "expected": "keep prior token, then canonical error",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "unfinished_empty_parity",
+      "expected": "empty prefill still suppressed",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "two_choice_normal_parity",
+      "expected": "indices, tokens, terminals and aggregate usage unchanged",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "second_choice_empty_error",
+      "expected": "error survives n=2",
+      "observed": true,
+      "passed": true
+    },
+    {
+      "api": "completion",
+      "case": "second_prompt_empty_error",
+      "expected": "error survives multi-prompt index offset",
+      "observed": true,
+      "passed": true
+    }
+  ],
+  "passed": 40,
+  "performance_claim": false,
+  "full_API_accepted": false,
+  "limitations": [
+    "Protocol serialization and engine RequestOutput are CPU doubles; full HTTP/Pydantic/PD E2E remains unaccepted.",
+    "No NPU execution or latency claim."
+  ]
+}

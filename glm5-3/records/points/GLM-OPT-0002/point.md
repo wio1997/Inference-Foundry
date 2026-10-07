@@ -1,3 +1,7 @@
+# GLM-OPT-0002 checkpoint171恢复引用
+
+最新[checkpoint171](research/decode_path_20261006/CHECKPOINT171.md)：H6/H5保留；Run266 H9已关闭不重复收益，独立终态收尾完成；H10单文件贪心padded MTP提前提交CPU证明通过，固定最小对照准备中。workload80000/600/93%prefix与93%声明KV条件，AISBench/GitHub已同步；Current/API/SLA另验。下方旧现场与next_action均保留历史。
+
 # GLM-OPT-0002 checkpoint165恢复引用
 
 2026-10-07 checkpoint167：[同次 native 因果闭环与层间源码拆分](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT167.md)。Run258唯一stock2334/8请求、9120边界/zero lost关闭MC2 availability归因：D15 predicate257.133ms，占nativeCPU77.64%，并非整步；Run256两处缓存patch的correctness→A/B/A/B→自然EOS完整PD收益13.62/14.20% TPOT保留。继续已有Run249拆开post-combine finalize＋shared W8A8、MLA、prepare/route和control；1901通信producer源码联结排除重复TP最终reduce，36CPU TLS用例不支持boxed丢inference mode。不新增大NPU/profile/scan，H6限域POSITIVE/正式PARKED、H4/H5不叠加，CurrentNone/stack空。本阶段没有新增代码级性能 KEEP。现役P249/stockD256，Run258 guards/native before==after，controller和自有probes已退出/清理；下面旧checkpoint保持历史。
