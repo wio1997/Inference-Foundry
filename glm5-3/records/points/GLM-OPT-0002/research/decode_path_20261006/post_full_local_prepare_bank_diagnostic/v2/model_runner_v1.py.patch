@@ -1,0 +1,120 @@
+--- original/model_runner_v1.py
++++ diagnostic_v2/model_runner_v1.py
+@@ -5677,3 +5677,117 @@
+         yield
+     finally:
+         model_runner.compilation_config.pass_config.enable_sp = original_pass_config_sp
++
++
++# H13 research bank shim: environment absent leaves original class method intact.
++_H13_NATIVE_CAPTURE_MODEL = NPUModelRunner.capture_model
++
++def _h13_write(name, row):
++    import os
++    import json
++    from pathlib import Path
++    root = Path(os.environ['GLM_H13_BANK_ROOT']) / 'witnesses'
++    # Controller owns directory creation. Existing records are immutable.
++    with (root / name).open('x') as target:
++        target.write(json.dumps(row, sort_keys=True) + '\n')
++
++def _h13_outputs(value):
++    if isinstance(value, torch.Tensor):
++        return [dict(data_ptr=value.data_ptr(), shape=list(value.shape), dtype=str(value.dtype))]
++    if isinstance(value, (list, tuple)):
++        return [v for item in value for v in _h13_outputs(item)]
++    if isinstance(value, dict):
++        return [v for item in value.values() for v in _h13_outputs(item)]
++    raise TypeError('H13 only supports current tensor target output')
++
++class _H13BankSelector(BreakableACLGraphWrapper):
++    def __init__(self, banks, config):
++        raw = banks[0].unwrap()
++        assert raw is banks[1].unwrap()
++        super().__init__(raw, config, use_eagle=banks[0].use_eagle, enable_enpu=banks[0].enable_enpu)
++        self.banks = tuple(banks)
++        self.pools = tuple(bank.graph_pool for bank in banks)
++        self.bank_outputs = tuple(tuple(e.output for e in bank.entries.values()) for bank in banks)
++        self._h13_last_mode = None
++        self._h13_transition = 0
++        self._h13_seen = set()
++
++    def __call__(self, *args, **kwargs):
++        from vllm_ascend.ops.fused_moe import prepare_finalize as prep
++        mode, observe = prep._h13_control()
++        assert prep._H13_OVERRIDE is None, 'Capture override leaked into runtime'
++        if mode != self._h13_last_mode:
++            self._h13_transition += 1
++            self._h13_last_mode = mode
++        bank = self.banks[mode]
++        output = bank(*args, **kwargs)
++        # Metadata-only witness outside capture; observe0 performs no validation or I/O.
++        if (observe and self._h13_transition not in self._h13_seen
++                and get_forward_context().cudagraph_runtime_mode == CUDAGraphMode.FULL):
++            context = get_forward_context()
++            assert context.cudagraph_runtime_mode == CUDAGraphMode.FULL
++            entry = bank.entries[context.batch_descriptor]
++            assert entry.capture is not None
++            _h13_write('h13_runtime_t%d_rank%d.json' % (self._h13_transition, get_tp_group().rank_in_group),
++                dict(pid=__import__('os').getpid(), rank=get_tp_group().rank_in_group,
++                     mode=mode, transition=self._h13_transition, descriptor=str(context.batch_descriptor),
++                     graph_count=entry.capture.num_graphs, eager_breaks=entry.capture.num_eager_breaks,
++                     pool=str(bank.graph_pool), output=_h13_outputs(output), no_value_D2H=True))
++            self._h13_seen.add(self._h13_transition)
++        return output
++
++def _h13_capture_model(self):
++    from vllm_ascend.ops.fused_moe import prepare_finalize as prep
++    assert type(self.model) is BreakableACLGraphWrapper, 'H13 needs unselected original target wrapper'
++    assert self.encoder_cudagraph_manager is None
++    assert not self.lora_config
++    assert prep._H13_OVERRIDE is None
++    _, observe = prep._h13_control()
++    assert observe == 1, 'H13 initial correctness capture requires warmup oracle'
++    assert self.compilation_config.cudagraph_num_of_warmups >= 1
++    a = self.model
++    assert not a.entries, 'H13 must run at original initial capture, not recapture live model'
++    b = BreakableACLGraphWrapper(a.unwrap(), self.vllm_config, use_eagle=a.use_eagle, enable_enpu=a.enable_enpu)
++    a.graph_pool = torch.npu.graph_pool_handle()
++    b.graph_pool = torch.npu.graph_pool_handle()
++    assert a.graph_pool != b.graph_pool
++    banks = (a, b)
++    sizes = []
++    # No catch/fallback: any failure propagates and invalidates initialization.
++    try:
++        for mode, bank in enumerate(banks):
++            self.model = bank
++            prep._H13_OVERRIDE = mode
++            sizes.append(_H13_NATIVE_CAPTURE_MODEL(self))
++    finally:
++        prep._H13_OVERRIDE = None
++    assert a.entries.keys() == b.entries.keys() and a.entries
++    covered = {row['mode'] for row in prep._H13_LAYOUTS.values()
++               if row['padded_num_tokens'] == 16 and not row['replace_allreduce']
++               and row['tp_size'] == 16 and row['tp_rank'] == get_tp_group().rank_in_group
++               and row['fast_gate'] and row['input']['shape'] == [2, 6144]
++               and row['router_input']['shape'] == [2, 256]}
++    assert covered == {0, 1}, 'H13 expected fast-path geometry was not observed in both warmups'
++    for descriptor in a.entries:
++        left, right = a.entries[descriptor], b.entries[descriptor]
++        assert left.input_addresses == right.input_addresses, 'H13 bank inputs differ'
++        left_ptrs = {row['data_ptr'] for row in _h13_outputs(left.output)}
++        right_ptrs = {row['data_ptr'] for row in _h13_outputs(right.output)}
++        assert left_ptrs.isdisjoint(right_ptrs), 'H13 output storage not bank-private; diagnostic unsupported'
++    assert all(e.capture is not None and e.capture.num_eager_breaks == 0 for bank in banks for e in bank.entries.values())
++    selector = _H13BankSelector(banks, self.vllm_config)
++    self.model = selector
++    _h13_write('h13_capture_rank%d.json' % get_tp_group().rank_in_group,
++        dict(pid=__import__('os').getpid(), rank=get_tp_group().rank_in_group,
++             bank_pools=[str(p) for p in selector.pools], raw_model_shared=True,
++             entries=[[dict(descriptor=str(d), graph_count=e.capture.num_graphs,
++                            input_addresses=e.input_addresses,
++                            output=_h13_outputs(e.output)) for d,e in bank.entries.items()] for bank in banks],
++             layouts=list(prep._H13_LAYOUTS.values()), independent_pool=True,
++             same_input_addresses=True, output_pointers_disjoint=True,
++             source_scope='research-only two banks; not production memory or performance',
++             allocated_graph_bytes=sizes))
++    return sum(sizes)
++
++if __import__('os').environ.get('GLM_H13_BANK_ROOT'):
++    NPUModelRunner.capture_model = _h13_capture_model

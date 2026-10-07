@@ -1,0 +1,168 @@
+--- original/prepare_finalize.py
++++ diagnostic_v2/prepare_finalize.py
+@@ -586,3 +586,165 @@
+             hidden_states = get_dp_group().reduce_scatter(hidden_states, 0)
+             hidden_states = hidden_states[: self.num_tokens]
+         return hidden_states
++
++
++class _H13Candidate(PrepareAndFinalizeWithMC2):
++    def _select_tp_slice(self, tensor: torch.Tensor) -> torch.Tensor:
++        quotient, remainder = divmod(tensor.shape[0], self.tp_size)
++        start = self.tp_rank * quotient + min(self.tp_rank, remainder)
++        rows = quotient + int(self.tp_rank < remainder)
++        return tensor.narrow(0, start, rows)
++
++    def _pad_local_slice(self, tensor: torch.Tensor, rows: int) -> torch.Tensor:
++        start = min(self.tp_rank * rows, tensor.shape[0])
++        present = min(rows, tensor.shape[0] - start)
++        local = tensor.narrow(0, start, present)
++        if present == 0:
++            # Fresh zeros preserve padding ownership without an empty-input pad.
++            return tensor.new_zeros((rows, *tensor.shape[1:]))
++        if present < rows:
++            return nn.functional.pad(local, (0, 0, 0, rows - present))
++        # Global padding previously made this input independent of the caller.
++        return local.clone(memory_format=torch.contiguous_format)
++
++    def _h13_candidate_prepare(
++        self,
++        hidden_states: torch.Tensor,
++        router_logits: torch.Tensor,
++        replace_allreduce: bool = False,
++        quant_type=QuantType.NONE,
++    ) -> MoEPrepareOutput:
++        """
++        Preparation steps:
++          1. Fetch `mc2_mask` and target padding length from forward context.
++          2. Pad `hidden_states` and `router_logits` to target length if needed.
++          3. If TP > 1, split tensors along token dimension and select current TP rank's slice.
++          4. Split and return corresponding `mc2_mask`.
++
++        With `replace_allreduce`, inputs are already TP-sharded. Pad only the
++        local shard to the DP-wide MC2 length, preserving its original mask.
++
++        Returns:
++            MoEPrepareOutput, possibly sliced/padded.
++        """
++        self.replace_allreduce = replace_allreduce
++        mc2_mask = _EXTRA_CTX.mc2_mask
++        if self.replace_allreduce:
++            # SP shards use the local token count, not the largest DP batch.
++            # Select valid bits before adding padding for uniform MC2 batches.
++            self.num_tokens = hidden_states.shape[0]
++            start = self.tp_rank * self.num_tokens
++            mc2_mask = mc2_mask[start : start + self.num_tokens]
++            pad_size = _EXTRA_CTX.padded_num_tokens // self.tp_size - self.num_tokens
++            if pad_size > 0:
++                hidden_states = nn.functional.pad(hidden_states, (0, 0, 0, pad_size))
++                router_logits = nn.functional.pad(router_logits, (0, 0, 0, pad_size))
++                mc2_mask = nn.functional.pad(mc2_mask, (0, pad_size), value=False)
++        elif self.tp_size > 1:
++            # Also slice mc2_mask
++            mc2_mask = self._select_tp_slice(mc2_mask)
++
++        padded_hidden_states_shape = hidden_states.shape
++        if not self.replace_allreduce:
++            self.num_tokens, _ = hidden_states.shape
++            target_pad_length = _EXTRA_CTX.padded_num_tokens
++            pad_size = target_pad_length - self.num_tokens
++
++            if self.tp_size > 1 and target_pad_length > self.num_tokens and target_pad_length % self.tp_size == 0:
++                padded_hidden_states_shape = torch.Size((target_pad_length, *hidden_states.shape[1:]))
++                local_rows = target_pad_length // self.tp_size
++                hidden_states = self._pad_local_slice(hidden_states, local_rows)
++                router_logits = self._pad_local_slice(router_logits, local_rows)
++            else:
++                if pad_size > 0:
++                    hidden_states = nn.functional.pad(hidden_states, (0, 0, 0, pad_size))
++                    router_logits = nn.functional.pad(router_logits, (0, 0, 0, pad_size))
++                    padded_hidden_states_shape = hidden_states.shape
++                if self.tp_size > 1:
++                    hidden_states = self._select_tp_slice(hidden_states)
++                    router_logits = self._select_tp_slice(router_logits)
++
++        return MoEPrepareOutput(
++            hidden_states=hidden_states,
++            router_logits=router_logits,
++            mc2_mask=mc2_mask,
++            padded_hidden_states_shape=padded_hidden_states_shape,
++            pertoken_scale=None,
++        )
++
++# Research diagnostic only. The unmodified production candidate is separate.
++_H13_OVERRIDE = None
++_H13_MAP = None
++_H13_LAYOUTS = {}
++_H13_ORIGINAL_PREPARE = PrepareAndFinalizeWithMC2.prepare
++
++def _h13_control():
++    global _H13_MAP
++    import os
++    import mmap
++    root = os.environ['GLM_H13_BANK_ROOT']
++    if _H13_MAP is None:
++        with open(root + '/h13_mode.bin', 'rb') as source:
++            if os.fstat(source.fileno()).st_size != 2:
++                raise RuntimeError('H13 requires exactly mode/observe bytes')
++            _H13_MAP = mmap.mmap(source.fileno(), 2, access=mmap.ACCESS_READ)
++    mode, observe = _H13_MAP[:]
++    if mode not in (0, 1) or observe not in (0, 1):
++        raise RuntimeError('Invalid H13 control bytes')
++    return (_H13_OVERRIDE if _H13_OVERRIDE is not None else mode), observe
++
++def _h13_layout(t):
++    return dict(shape=list(t.shape), stride=list(t.stride()), dtype=str(t.dtype),
++                device=str(t.device), data_ptr=t.data_ptr(), storage_offset=t.storage_offset(),
++                format=int(torch_npu.get_npu_format(t)))
++
++def _h13_bytes_equal(a, b):
++    return (a.shape == b.shape and a.dtype == b.dtype and
++            torch.equal(a.detach().cpu().contiguous().view(torch.uint8),
++                        b.detach().cpu().contiguous().view(torch.uint8)))
++
++def _h13_prepare(self, hidden_states, router_logits, replace_allreduce=False, quant_type=QuantType.NONE):
++    mode, observe = _h13_control()
++    fn = _H13_ORIGINAL_PREPARE if mode == 0 else _H13Candidate._h13_candidate_prepare
++    # Helpers are installed on the original class, not on a replacement object.
++    if observe and _H13_OVERRIDE is not None:
++        from vllm.forward_context import get_forward_context
++        from vllm.config import CUDAGraphMode
++        context = get_forward_context()
++        # Byte oracle ONLY during original eager warmup, never FULL capture.
++        key = (mode, tuple(hidden_states.shape), tuple(router_logits.shape),
++               bool(replace_allreduce), int(_EXTRA_CTX.padded_num_tokens))
++        if context.cudagraph_runtime_mode == CUDAGraphMode.NONE and key not in _H13_LAYOUTS:
++            before_h, before_r = hidden_states.clone(), router_logits.clone()
++            before_mask = _EXTRA_CTX.mc2_mask.clone()
++            args = (self, hidden_states, router_logits, replace_allreduce, quant_type)
++            a = _H13_ORIGINAL_PREPARE(*args)
++            b = _H13Candidate._h13_candidate_prepare(*args)
++            assert a.padded_hidden_states_shape == b.padded_hidden_states_shape
++            assert a.pertoken_scale is None and b.pertoken_scale is None
++            for name in ('hidden_states', 'router_logits', 'mc2_mask'):
++                left, right = getattr(a, name), getattr(b, name)
++                assert _h13_bytes_equal(left, right), name
++                assert left.stride() == right.stride(), name
++                assert torch_npu.get_npu_format(left) == torch_npu.get_npu_format(right), name
++            assert _h13_bytes_equal(before_h, hidden_states)
++            assert _h13_bytes_equal(before_r, router_logits)
++            assert _h13_bytes_equal(before_mask, _EXTRA_CTX.mc2_mask)
++            _H13_LAYOUTS[key] = dict(
++                mode=mode, padded_num_tokens=int(_EXTRA_CTX.padded_num_tokens),
++                replace_allreduce=bool(replace_allreduce),
++                tp_size=self.tp_size, tp_rank=self.tp_rank,
++                fast_gate=bool(not replace_allreduce and self.tp_size > 1
++                    and _EXTRA_CTX.padded_num_tokens > hidden_states.shape[0]
++                    and _EXTRA_CTX.padded_num_tokens % self.tp_size == 0),
++                input=_h13_layout(hidden_states), router_input=_h13_layout(router_logits),
++                original={n:_h13_layout(getattr(a,n)) for n in ('hidden_states','router_logits','mc2_mask')},
++                candidate={n:_h13_layout(getattr(b,n)) for n in ('hidden_states','router_logits','mc2_mask')},
++                bytes_equal=True, input_unchanged=True, scope='NONE capture warmup only')
++            return a if mode == 0 else b
++    return fn(self, hidden_states, router_logits, replace_allreduce, quant_type)
++
++if __import__('os').environ.get('GLM_H13_BANK_ROOT'):
++    PrepareAndFinalizeWithMC2._select_tp_slice = _H13Candidate._select_tp_slice
++    PrepareAndFinalizeWithMC2._pad_local_slice = _H13Candidate._pad_local_slice
++    PrepareAndFinalizeWithMC2.prepare = _h13_prepare
