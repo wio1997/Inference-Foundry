@@ -16,6 +16,10 @@ GitHub保存权威代码/配置、事实摘要、裁决和可追溯证据。运�
 
 ## 3. Run最小证据
 
+当前正式workload按用户2026-10-07更新为80K输入、0.6K输出、93%共享前缀；新AISBench参数为`--input_len 80000 --output_len 600 --repeat_rate 0.93`。历史冻结Run保留原值，后续matched A/B与SLA使用新合同，见[MISSION](MISSION.md#性能与功能合同)。
+
+KV cache命中率条件为93%，与93%共享前缀比例分账；Run分别记录声明条件、warmup/cache状态及实际HBM/外部cache计数，不能用目标值替换观察值。
+
 `manifest.json`记录：
 
 - ID/优化点、时间、kind（formal_e2e/diagnostic/profile/microbenchmark/simulation等）、实际执行状态。
