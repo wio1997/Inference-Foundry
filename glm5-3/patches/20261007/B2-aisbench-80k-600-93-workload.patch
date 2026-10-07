@@ -1,0 +1,390 @@
+--- a/glm5-3/MISSION.md
++++ b/glm5-3/MISSION.md
+@@ -11,6 +11,10 @@
+ 
+ ## 性能与功能合同
+ 
++用户2026-10-07更新正式workload：**输入序列80K、输出序列0.6K、前缀重复率93%**，替代旧60K输出口径。新AISBench默认参数为`--input_len 80000 --output_len 600 --repeat_rate 0.93`（K=1000），SLO分析使用`--expect_output_len 600`。记录实际chat模板/tokenizer后的输入token数、prefix warmup与真实cache复用；93%指输入共享前缀比例，不能直接作为实测命中率。历史冻结Run/配置/结果保留原值，不能按新合同重标；新matched A/B与正式SLA验收均冻结这一新口径。诊断短请求只证明其研究范围。
++
++用户随后补充 **KV cache命中率93%**，与93%共享前缀重复率分开记录；后续workload需冻结并核验实际cache状态与命中计数，不把声明的93%填成实测结果，也不将D端外部KV传输命中等同P端prefix-cache复用。
++
+ 完整接口与行为从实际框架恢复并持续补充；清单只用于覆盖，不限制能力。真实负载下比较有效吞吐、TTFT/TPOT/尾延迟、失败/拒绝、队列稳定性和资源成本。沿用既有SLO；无SLO时报告折中曲线。正式比较固定相关条件；部署变更和代码收益分开记账。冷启动、实验迭代成本与稳态服务性能分开。
+ 
+ 授权改调度、执行组织、状态/buffer、Graph、通信发起/等待、部署和Runtime边界，允许成套重构。当前不开发新计算kernel/fusion，不自动切换算子实现或减少模型必要工作。
+--- a/glm5-3/RECORDING.md
++++ b/glm5-3/RECORDING.md
+@@ -15,6 +15,10 @@
+ 问题与合同；必要依赖/资源及假设；预期改变的有效输出链；相关历史与条件差异；本次新增信息；修改范围/配置；验收与裁决。已有证据足够则标`REUSED`并引用，省去重复实验。原型前无需写长证明，可随证据修正。
+ 
+ ## 3. Run最小证据
++
++当前正式workload按用户2026-10-07更新为80K输入、0.6K输出、93%共享前缀；新AISBench参数为`--input_len 80000 --output_len 600 --repeat_rate 0.93`。历史冻结Run保留原值，后续matched A/B与SLA使用新合同，见[MISSION](MISSION.md#性能与功能合同)。
++
++KV cache命中率条件为93%，与93%共享前缀比例分账；Run分别记录声明条件、warmup/cache状态及实际HBM/外部cache计数，不能用目标值替换观察值。
+ 
+ `manifest.json`记录：
+ 
+--- /dev/null
++++ b/glm5-3/adapters/aisbench/README.md
+@@ -0,0 +1,8 @@
++# Task-local AISBench adapter
++
++Current workload (user update, 2026-10-07): input **80K = 80,000 tokens**, output **0.6K = 600 tokens**, shared input prefix **93%**. `config.py` defaults and new formal commands use `--input_len 80000 --output_len 600 --repeat_rate 0.93`; the SLO analyser defaults to `--expect_output_len 600`. CLI arguments still override defaults. Historical frozen commands/results retain their original lengths and must be analysed with their original expected output length explicitly.
++
++The 93% value describes shared prompt content. The user separately specifies **93% KV cache hit rate** as the workload condition. Record the actual tokenized request length after chat templating, prefix warmup and observed cache reuse in the frozen Run; `HitRateCollector` measures native HBM and external prefix-cache counters separately. Do not fill the measured result with the declared 93% value or equate D external KV loading with P prefix-cache reuse. These defaults do not declare a tested concurrency or stable service capacity.
++
++完整AISBench驱动位于[研究分支的适配器目录](https://github.com/wio1997/Inference-Foundry/tree/glm5-3-autonomous-20261001/glm5-3/adapters/aisbench)。
++
+--- /dev/null
++++ b/glm5-3/adapters/aisbench/config.py
+@@ -0,0 +1,62 @@
++# Default configuration for prefix cache performance testing.
++# CLI arguments override these values with higher priority.
++# Modify this file for convenience when running tests manually.
++#
++# Note: All numeric values are stored as proper int/float types.
++# They are converted to strings internally when substituting into
++# the AISBench model config template (modify_aisbench_api).
++
++# ===== Service configuration =====
++HOST_IP = "localhost"
++HOST_PORT = 8000               # int (converted to str for AISBench template)
++URL = ""                       # Full URL overrides host_ip/host_port (e.g. "http://host.docker.internal:8080")
++MODEL_NAME = ""                # Empty = auto-detect by AISBench
++MODEL_PATH = "/home/weights/model_weights"  # Tokenizer/model weights path
++NPU_NUM = 1                    # NPU card count (for single-card throughput)
++
++# ===== AISBench configuration =====
++WORK_PATH = "/benchmark"       # AISBench installation directory (container default: /benchmark)
++DATASET_PATH = "/home/dataset" # Directory to store generated datasets
++OUTPUT_DIR = "./outputs/default"
++SUMMARIZER = "default_perf"    # "default_perf" or "stable_stage"
++
++# ===== Test configuration =====
++TEST_NAME = ""             # Optional name label (written to result CSV, overridden by --rounds)
++INPUT_LEN = 80000              # 80K tokens; K=1000 (user contract, 2026-10-07)
++OUTPUT_LEN = 600               # 0.6K tokens (converted to str for AISBench template)
++DATA_NUM = 8192                # int
++CONCURRENCY = 2048             # int (converted to str for AISBench template)
++REQUEST_RATE = 0               # int (converted to str for AISBench template; 0 = burst)
++TEST_TYPE = "stream"           # "stream" or "text"
++ENABLE_THINK = False           # DeepSeek V3.1 thinking mode
++
++# ===== Prefix configuration =====
++# KV cache hit-rate condition: 93%; measured by HitRateCollector, separate from shared content.
++PREFIX_NUM = 1                 # int
++REPEAT_RATE = 0.93             # 93% shared input prefix; not an observed cache-hit guarantee
++DP = 1                         # Data-parallelism degree (int)
++SEED = 1                       # Random seed for dataset generation; 0 = pure random (non-reproducible)
++
++# ===== Variable-length configuration =====
++# Uncomment and set values if using variable-length datasets
++# LENGTH_MEAN = 32768
++# LENGTH_STD = 49152.0
++# LENGTH_MIN = 8192
++# LENGTH_MAX = 131072
++LENGTH_MEAN = None
++LENGTH_STD = None
++LENGTH_MIN = None
++LENGTH_MAX = None
++
++# ===== Results configuration =====
++RESULT_CSV = "prefix_bench_result.csv"
++RESULT_JSONL = "prefix_bench_result.jsonl"
++
++# ===== Hit rate collection =====
++# Pod addresses for prefix cache hit rate metrics.
++# Format: ["ip:port"] for each DP domain.
++# If empty, defaults to HOST_IP:HOST_PORT.
++# PD-disjoint: fill P-node IP + each DP-domain port
++# PD-separated with pooling: fill each node IP + each DP-domain port
++# POD_INFO = ["141.xx.xx.11:8000", "141.xx.xx.12:8000"]
++POD_INFO = []
+--- /dev/null
++++ b/glm5-3/runtime/aisbench_slo.py
+@@ -0,0 +1,285 @@
++#!/usr/bin/env python3
++"""
++SLO analyser for the GLM-5.3 PD AISBench prefix test.
++
++Reads the AISBench per-request performance table (gsm8k.csv) which AISBench
++derives from the *successful* requests only (its `N` column is the success
++count), and reports the required TTFT/TPOT percentiles plus an SLO verdict.
++
++SLO targets (from the task):
++  TTFT  P50 < 4 s   P75 < 8 s   P90 < 12 s   P99 < 30 s
++  TPOT  P50 < 18 ms             P90 < 40 ms
++
++The AISBench table already contains Median (=P50), P75, P90, P99 - these are
++percentiles of the successful requests, not means, so no substitution happens.
++The raw per-request detail file is used to sanity check success counts and the
++real output-token count (so an early EOS-terminated answer cannot pass as the
++declared workload). The current contract is 600 output tokens; historical
++results require their original --expect_output_len explicitly.
++"""
++from __future__ import annotations
++
++import argparse
++import csv
++import json
++import os
++import re
++import sys
++
++UNIT_RE = re.compile(r"^\s*(-?[\d.]+)\s*([a-zA-Z/%]*)\s*$")
++
++
++def parse_value(cell: str):
++    """'439.1 ms' -> (439.1, 'ms');  '2.0' -> (2.0, ''). Returns (None,'') if unparsable."""
++    if cell is None:
++        return None, ""
++    m = UNIT_RE.match(cell)
++    if not m:
++        return None, ""
++    try:
++        return float(m.group(1)), m.group(2)
++    except ValueError:
++        return None, ""
++
++
++def ms(value: float, unit: str):
++    """Normalise a latency to milliseconds."""
++    if value is None:
++        return None
++    if unit == "s":
++        return value * 1000.0
++    if unit == "us":
++        return value / 1000.0
++    return value  # 'ms' or unitless
++
++
++def read_perf_table(path: str):
++    rows = {}
++    with open(path, newline="", encoding="utf-8") as f:
++        for row in csv.reader(f):
++            if not row or len(row) < 3:
++                continue
++            if row[0].strip() == "Performance Parameters":
++                header = [c.strip() for c in row]
++                continue
++            metric = row[0].strip()
++            rows[metric] = row
++    return rows
++
++
++def metric_stats(rows, metric):
++    """Return dict of stat_name -> (value, unit)."""
++    row = rows.get(metric)
++    if not row:
++        return None
++    # row = [metric, stage, Average, Min, Max, Median, P75, P90, P99, N]
++    out = {}
++    names = ["Average", "Min", "Max", "Median", "P75", "P90", "P99", "N"]
++    for i, name in enumerate(names):
++        idx = i + 2
++        cell = row[idx] if idx < len(row) else None
++        v, u = parse_value(cell) if cell is not None else (None, "")
++        out[name] = (v, u)
++    return out
++
++
++def pct(stats, name, latency=True):
++    if not stats or name not in stats:
++        return None
++    v, u = stats[name]
++    if v is None:
++        return None
++    return ms(v, u) if latency else v
++
++
++def load_details(path):
++    if not path or not os.path.exists(path):
++        return None
++    n_total = n_success = 0
++    out_tokens = []
++    with open(path, "r", encoding="utf-8") as f:
++        for line in f:
++            line = line.strip()
++            if not line:
++                continue
++            try:
++                d = json.loads(line)
++            except json.JSONDecodeError:
++                continue
++            n_total += 1
++            if d.get("success"):
++                n_success += 1
++                ot = d.get("output_tokens")
++                if isinstance(ot, (int, float)):
++                    out_tokens.append(int(ot))
++    return {
++        "details_total": n_total,
++        "details_success": n_success,
++        "output_tokens_count": len(out_tokens),
++        "output_tokens_min": min(out_tokens) if out_tokens else None,
++        "output_tokens_max": max(out_tokens) if out_tokens else None,
++    }
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--perf_csv", required=True)
++    ap.add_argument("--details_jsonl", default="")
++    ap.add_argument("--expect_output_len", type=int, default=600,
++                    help="Declared output tokens; current workload 0.6K=600. Override for historical Runs.")
++    ap.add_argument("--concurrency", type=int, default=0)
++    ap.add_argument("--expected_requests", type=int, default=None, help="Actual declared request count; default retains legacy 2*concurrency")
++    ap.add_argument("--out_json", default="")
++    ap.add_argument("--out_md", default="")
++    args = ap.parse_args()
++    if args.expected_requests is not None and args.expected_requests <= 0:
++        ap.error("expected_requests must be positive")
++
++    # Explicit mid-run scope reduction: retain originals; score predetermined IDs only.
++    scope_path = os.path.join(os.path.dirname(args.details_jsonl), "request_scope_amendment.json")
++    if args.details_jsonl and os.path.isfile(scope_path):
++        scope = json.load(open(scope_path, encoding="utf-8"))
++        selected = set(scope["selected_ids"])
++        filtered = args.details_jsonl + ".selected.jsonl"
++        with open(args.details_jsonl, encoding="utf-8") as src, open(filtered, "w", encoding="utf-8") as dst:
++            for line in src:
++                try: item = json.loads(line)
++                except json.JSONDecodeError: continue
++                if item.get("id") in selected: dst.write(line)
++        args.details_jsonl = filtered
++
++    rows = read_perf_table(args.perf_csv)
++    ttft = metric_stats(rows, "TTFT")
++    tpot = metric_stats(rows, "TPOT")
++    e2el = metric_stats(rows, "E2EL")
++    otok = metric_stats(rows, "OutputTokens")
++    itok = metric_stats(rows, "InputTokens")
++
++    res = {
++        "perf_csv": args.perf_csv,
++        "details_jsonl": args.details_jsonl,
++        "concurrency": args.concurrency,
++        "n_success": int(pct(ttft, "N", latency=False) or 0),
++        "ttft_ms": {
++            "p50": pct(ttft, "Median"),
++            "p75": pct(ttft, "P75"),
++            "p90": pct(ttft, "P90"),
++            "p99": pct(ttft, "P99"),
++            "avg": pct(ttft, "Average"),
++            "min": pct(ttft, "Min"),
++            "max": pct(ttft, "Max"),
++        },
++        "tpot_ms": {
++            "p50": pct(tpot, "Median"),
++            "p90": pct(tpot, "P90"),
++            "p99": pct(tpot, "P99"),
++            "avg": pct(tpot, "Average"),
++            "min": pct(tpot, "Min"),
++            "max": pct(tpot, "Max"),
++        },
++        "e2el_ms": {"p50": pct(e2el, "Median"), "avg": pct(e2el, "Average")},
++        "output_tokens": {
++            "median": pct(otok, "Median", latency=False),
++            "min": pct(otok, "Min", latency=False),
++            "max": pct(otok, "Max", latency=False),
++        },
++        "input_tokens": {"median": pct(itok, "Median", latency=False)},
++    }
++
++    det = load_details(args.details_jsonl)
++    if det:
++        res.update(det)
++
++    # ---- SLO verdict -------------------------------------------------------
++    checks = {
++        "TTFT_P50_lt_4000ms":  (res["ttft_ms"]["p50"], 4000.0, "<"),
++        "TTFT_P75_lt_8000ms":  (res["ttft_ms"]["p75"], 8000.0, "<"),
++        "TTFT_P90_lt_12000ms": (res["ttft_ms"]["p90"], 12000.0, "<"),
++        "TTFT_P99_lt_30000ms": (res["ttft_ms"]["p99"], 30000.0, "<"),
++        "TPOT_P50_lt_18ms":    (res["tpot_ms"]["p50"], 18.0, "<"),
++        "TPOT_P90_lt_40ms":    (res["tpot_ms"]["p90"], 40.0, "<"),
++    }
++    verdict = {}
++    for name, (val, thr, op) in checks.items():
++        if val is None:
++            verdict[name] = "NO_DATA"
++        else:
++            verdict[name] = "PASS" if val < thr else "FAIL"
++    res["slo"] = verdict
++    res["slo_all_pass"] = all(v == "PASS" for v in verdict.values())
++
++    # ---- output length integrity ------------------------------------------
++    exp = args.expect_output_len
++    res["expected_output_len"] = exp
++    ot_med = res["output_tokens"]["median"]
++    res["output_len_ok"] = (ot_med is not None and abs(ot_med - exp) < 1.0)
++    if det and det.get("output_tokens_min") is not None:
++        res["output_len_ok"] = res["output_len_ok"] and det["output_tokens_min"] >= exp - 1
++    if det and det.get("details_success") is not None and det.get("details_total"):
++        res["all_requests_succeeded"] = det["details_success"] == det["details_total"]
++    else:
++        res["all_requests_succeeded"] = None
++
++    expected_requests = args.expected_requests if args.expected_requests is not None else args.concurrency * 2
++    res["expected_requests"] = expected_requests
++    res["output_len_ok"] = bool(
++        det and det.get("details_success", 0) > 0
++        and det.get("output_tokens_count") == det["details_success"]
++        and det.get("output_tokens_min") == exp
++        and det.get("output_tokens_max") == exp
++    )
++    res["all_requests_succeeded"] = bool(
++        det and expected_requests > 0
++        and det["details_total"] == expected_requests
++        and det["details_success"] == expected_requests
++        and res["n_success"] == expected_requests
++    )
++    res["latency_slo_all_pass"] = res["slo_all_pass"]
++    res["slo_all_pass"] = bool(res["latency_slo_all_pass"]
++        and res["output_len_ok"] and res["all_requests_succeeded"])
++
++    # P99 with few samples is not robust -> flag it.
++    n = res["n_success"] or 0
++    res["p99_note"] = (
++        f"N={n}: P99 is based on fewer than 100 requests and is not a robust tail estimate"
++        if n < 100 else f"N={n}"
++    )
++
++    if args.out_json:
++        with open(args.out_json, "w", encoding="utf-8") as f:
++            json.dump(res, f, indent=2, ensure_ascii=False)
++
++    def fmt(v):
++        return "N/A" if v is None else f"{v:.1f}"
++
++    md = []
++    md.append(f"### SLO result — concurrency {args.concurrency}")
++    md.append("")
++    md.append(f"- successful requests N = {n}   (output_len_ok={res['output_len_ok']}, "
++              f"all_succeeded={res['all_requests_succeeded']})")
++    md.append(f"- P99 sample note: {res['p99_note']}")
++    md.append("")
++    md.append("| metric | P50 | P75 | P90 | P99 | target | verdict |")
++    md.append("|---|---|---|---|---|---|---|")
++    md.append(f"| TTFT (ms) | {fmt(res['ttft_ms']['p50'])} | {fmt(res['ttft_ms']['p75'])} | "
++              f"{fmt(res['ttft_ms']['p90'])} | {fmt(res['ttft_ms']['p99'])} | "
++              f"P50<4000 P75<8000 P90<12000 P99<30000 | "
++              f"{verdict['TTFT_P50_lt_4000ms']}/{verdict['TTFT_P75_lt_8000ms']}/"
++              f"{verdict['TTFT_P90_lt_12000ms']}/{verdict['TTFT_P99_lt_30000ms']} |")
++    md.append(f"| TPOT (ms) | {fmt(res['tpot_ms']['p50'])} | - | {fmt(res['tpot_ms']['p90'])} | "
++              f"{fmt(res['tpot_ms']['p99'])} | P50<18 P90<40 | "
++              f"{verdict['TPOT_P50_lt_18ms']}/{verdict['TPOT_P90_lt_40ms']} |")
++    md.append("")
++    md.append(f"**ALL SLO PASS: {res['slo_all_pass']}**")
++    text = "\n".join(md)
++
++    print(text)
++    if args.out_md:
++        with open(args.out_md, "w", encoding="utf-8") as f:
++            f.write(text + "\n")
++
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())

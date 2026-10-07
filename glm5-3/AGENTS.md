@@ -2,6 +2,8 @@
 
 **Rule version：`GLM-RESEARCH-RULES-v2`**。checkpoint158之后生效；本次仅精简入口，研究门槛不变。rule commit按[启动核验](docs/START_NEW_CHAT.md#0-先核验branch--head--rule-version)从Git定位，不固定旧SHA。本文件是规则入口，链接细则同样有效；与旧方案、HANDOFF或next_action冲突时，以这里的当前规则为准。
 
+**2026-10-07最新用户指令：先发布MTP及已有调试结果patch；两台机器暂时不做代码调优测试。** 当前阶段只做本地包装、源码/patch离线检查和GitHub同步，不安装候选、不改服务、不提交模型请求或新增NPU Run。已验证H6/H5研究栈保留；恢复设备调优/测试须用户另行明确要求，历史“继续研究”或next_action不能覆盖此次暂停。交付入口：[patch包](patches/20261007/README.md)。
+
 **2026-10-07用户后续裁决优先**：已通过correctness、matched A/B/A/B与可重复完整PD E2E的代码候选进入active research performance stack；后续比较旧研究stack对旧stack+新patch。H6 MC2 capability cache保留为已验证候选并恢复启用。完整API、正式SLA、稳定性与完整stack E2E统一裁决最终产品Current/PERF_KEEP；未完成这些验收不能成为恢复全部有效patch、清空研究stack或停止后续研究的理由。研究stack与正式产品stack分别标注，历史裁决不改写。已有trace/source足够先离线研究，只在缺决定性证据时补最小诊断；无参数扫描或无目的大Run。下文旧“只有PERF_KEEP算进展/stack”约束仅适用于正式产品promotion，不能否定已验证研究收益。
 
 目标：按用户2026-10-06明确约束，在现有两台服务器、现有正确算子下，构建功能完整的**GLM-5.3 W8A8标准P/D分离**推理框架并逼近性能极限。目标权重固定为`/data/tiankuan/wio/GLM-5.3-w8a8`，新服务模型名`glm-53`；上传未完成前不加载、不启动模型或性能测试，不回退旧权重冒充新版本。模型身份、布局、功能与性能须从新artifact重新核验，历史版本结果不直接迁移。P池与D池分别组织DP/TP/EP；例如各角色DP1/TP16或DP2/TP8，实际fit与正确性须核验。Full Replica / Complete-request Placement不满足本产品目标；历史现役事实保留，不作为后续产品路线。不得通过D本地完整请求fallback减少PD覆盖来验收功能或性能。不改算子计算实现、不开发新kernel、不做版本间精度或量化质量比较。完整合同见[MISSION](MISSION.md#性能与功能合同)与[目标纠正裁决](records/points/GLM-OPT-0002/research/engine_commit_20261006/PD_SCOPE_CORRECTION.md)。

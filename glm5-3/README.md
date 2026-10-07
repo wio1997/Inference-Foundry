@@ -1,8 +1,10 @@
 # GLM-5.3 Extreme
 
+2026-10-07：[MTP 与全部已有调试结果的 patch 包](patches/20261007/README.md)已整理，含独立 patch、应用/回退方法、SHA256 和验证边界。**用户要求暂时暂停两台机器的代码调优和测试**；本次仅本地打包/GitHub 同步，服务与已验证 H6/H5 研究栈不变。历史恢复指令和 next_action 不授权重新启动设备实验。
+
 在现有正确算子与两台服务器内，为GLM-5.3 W8A8构建功能完整的标准P/D分离推理框架，寻找可消除的执行浪费并提高真实完整E2E性能。目标合同见[MISSION](MISSION.md)。
 
-目标权重：`/data/tiankuan/wio/GLM-5.3-w8a8`；新服务模型名：`glm-53`。2026-10-06用户正在上传，完成并核验前不加载或测试。现有`glm52-single`容器、`glm52-pd/deploy`目录是实际资源名；历史Run保留当时版本，不构成5.3的Current/性能基线。当前方案见[PLAN](PLAN.md#当前执行方案标准pd优化)。
+目标权重：`/data/tiankuan/wio/GLM-5.3-w8a8`；新服务模型名：`glm-53`。用户已确认上传完成，标准 PD 已跑通；MTP 限域图模式正确性已验证，性能结果与待验收项见 patch 包。现有`glm52-single`容器、`glm52-pd/deploy`目录是实际资源名；历史Run保留当时版本，不构成5.3的Current/性能基线。当前方案见[PLAN](PLAN.md#当前执行方案标准pd优化)。
 
 全新Agent从[START_NEW_CHAT](docs/START_NEW_CHAT.md#恢复顺序)最小恢复顺序开始，按[AGENTS](AGENTS.md)短规则进入性能分析；可直接复制该页的短启动指令。
 

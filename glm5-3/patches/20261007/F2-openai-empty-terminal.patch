@@ -1,0 +1,58 @@
+--- a/vllm/entrypoints/openai/chat_completion/serving.py
++++ b/vllm/entrypoints/openai/chat_completion/serving.py
+@@ -584,6 +584,9 @@
+                     if finish_reason_sent[i]:
+                         continue
+ 
++                    if output.finish_reason is not None:
++                        self._raise_if_error(output.finish_reason, request_id)
++
+                     if request.logprobs and (
+                         request.top_logprobs is not None or request.logprob_token_ids
+                     ):
+@@ -605,6 +608,7 @@
+                         not delta_text
+                         and not output.token_ids
+                         and not previous_num_tokens[i]
++                        and output.finish_reason is None
+                     ):
+                         # Chunked prefill case, don't return empty chunks
+                         continue
+@@ -701,10 +705,6 @@
+ 
+                     # if the model is finished generating
+                     else:
+-                        # check for error finish reason and abort streaming
+-                        # finish_reason='error' indicates a retryable error
+-                        self._raise_if_error(output.finish_reason, request_id)
+-
+                         # Send the finish response for each request.n only once
+                         # In OpenAI's API, when a tool is called, the
+                         # finish_reason is:
+--- a/vllm/entrypoints/openai/completion/serving.py
++++ b/vllm/entrypoints/openai/completion/serving.py
+@@ -329,6 +329,7 @@
+ 
+                 for output in res.outputs:
+                     i = output.index + prompt_idx * num_choices
++                    self._raise_if_error(output.finish_reason, request_id)
+ 
+                     # Useful when request.return_token_ids is True
+                     # Returning prompt token IDs shares the same logic
+@@ -375,6 +376,7 @@
+                             not delta_text
+                             and not delta_token_ids
+                             and not previous_num_tokens[i]
++                            and output.finish_reason is None
+                         ):
+                             # Chunked prefill case, don't return empty chunks
+                             continue
+@@ -397,8 +399,6 @@
+                     previous_num_tokens[i] += len(output.token_ids)
+                     finish_reason = output.finish_reason
+                     stop_reason = output.stop_reason
+-
+-                    self._raise_if_error(finish_reason, request_id)
+ 
+                     chunk = CompletionStreamResponse(
+                         id=request_id,

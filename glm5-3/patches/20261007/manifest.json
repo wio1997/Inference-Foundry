@@ -1,0 +1,782 @@
+{
+  "package": "GLM-5.3 research patches 20261007",
+  "as_of": "2026-10-07 Asia/Shanghai",
+  "source_research_commit": "7ddaabc8",
+  "publication_baseline_main": "74910eabc741075a1063057e166df55bc881b1e4",
+  "server_tuning_tests": "PAUSED_BY_USER",
+  "NPU_requests_this_packaging": 0,
+  "server_source_changes": 0,
+  "patches": [
+    {
+      "id": "H6",
+      "name": "mc2-capability-cache",
+      "patch": "H6-mc2-capability-cache.patch",
+      "apply_root": "op-plugin",
+      "status": "VERIFIED_RESEARCH_PERFORMANCE",
+      "scope": "固定 worker 生命周期内缓存两处 V4 capability 判断，保留原 allocation、参数和 fallback。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0256",
+          "GLM-RUN-0258"
+        ],
+        "correctness": "native branch/concurrency + exact23 EOS/standard PD",
+        "performance": "同 worker/common rebuilt binary：D TPOT 降低13.62%/14.20%；D wall降低14.36%/14.09%；P drift独立记账"
+      },
+      "notes": [
+        "对应 Ascend/pytorch commit5dd8ef3f9b375b5ae4a83538d5785754148c3302、op-plugin8b9c8534fa41eff367a41c155843daa530ab3a08；需要匹配环境重编译并安装 native 库、重启 worker。",
+        "加载的 CANN/custom libraries 在 worker 生命周期内保持不变；缓存 false 也不能支持热安装 V4。",
+        "原 native A/B selector cachemode1 验证同一静态缓存机制；本包是无 selector 的 C++ patch，未重新编译/运行。"
+      ],
+      "patch_sha256": "9fb6f3aa6aca403f3d91d8923e6c1d819c4b0f1639a627f393eda6690631819e",
+      "files": [
+        {
+          "path": "op_plugin/ops/opapi/MoeDistributeDispatchV2KernelOpApi.cpp",
+          "before_sha256": "9b3531d9346a5f18ab123e11f0ba5c34744562007e4346af0316944658f624c4",
+          "after_sha256": "827132435756007487318b4961c27e08274b371ca710c1465cbf766852333aec",
+          "before_bytes": 14093,
+          "after_bytes": 14207,
+          "source": {
+            "snapshot": "mc2_op_sources.json",
+            "upstream": "https://raw.githubusercontent.com/Ascend/op-plugin/8b9c8534fa41eff367a41c155843daa530ab3a08/op_plugin/ops/opapi/MoeDistributeDispatchV2KernelOpApi.cpp"
+          }
+        },
+        {
+          "path": "op_plugin/ops/opapi/MoeDistributeCombineKernelV2OpApi.cpp",
+          "before_sha256": "01471a6e16d24508ffb5b1f2c17987db4c9f5731411831ae0bea385a77d5e04c",
+          "after_sha256": "bf2c0af87135f3092cd4652b481dad76696c561f48addeefef475f8c0db13ed1",
+          "before_bytes": 7507,
+          "after_bytes": 7621,
+          "source": {
+            "snapshot": "mc2_op_sources.json",
+            "upstream": "https://raw.githubusercontent.com/Ascend/op-plugin/8b9c8534fa41eff367a41c155843daa530ab3a08/op_plugin/ops/opapi/MoeDistributeCombineKernelV2OpApi.cpp"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H5",
+      "name": "same-stream-moe-events",
+      "patch": "H5-same-stream-moe-events.patch",
+      "apply_root": "vllm-ascend",
+      "status": "VERIFIED_RESEARCH_PERFORMANCE",
+      "scope": "shared expert 不跨 stream 时省去无消费者的 MoE event；overlap=true 保留事件依赖和断言。",
+      "dependencies": [
+        "性能证据 baseline 固定启用 H6，multistream_overlap_shared_expert=false"
+      ],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0253",
+          "GLM-RUN-0261"
+        ],
+        "correctness": "CPU/native event ownership/dependency + exact23 EOS/PD",
+        "performance": "H6 baseline 上完整 PD：D TPOT 降低6.77%/7.04%，D wall降低6.98%/6.94%"
+      },
+      "notes": [
+        "五个文件必须一起应用。",
+        "H6/H5 百分比不相加；不代表当前 FULL Graph 完整 stack 对 stock 的累计收益或 SLA。"
+      ],
+      "patch_sha256": "57eed02740bcd29b7bb6e017bcc83bc8d5d9dc6e72120a7d6df78b89d3094686",
+      "files": [
+        {
+          "path": "vllm_ascend/utils.py",
+          "before_sha256": "42fa9c7c324d026c161b1cd932a23d85b97afb67e7aaa875830c0ef6963fdfd6",
+          "after_sha256": "c76223cde8fac1593cd3dc2874b55c1cd2dad5a5f40d24389b391ca8983c3b30",
+          "before_bytes": 62010,
+          "after_bytes": 62281,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/graph_sources/actual_utils.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/event_candidate/utils.py"
+          }
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/fused_moe.py",
+          "before_sha256": "135d08d44dfc7c5e428cba14e37da43fef19d48fb971a32b0d49cb098ec54413",
+          "after_sha256": "c34b6b8cce290af85140f6a79b4f2fbbeb625d7003c37cfb0c45c340ab3fe8e2",
+          "before_bytes": 19389,
+          "after_bytes": 19311,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__ops__fused_moe__fused_moe.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/event_candidate/ops/fused_moe/fused_moe.py"
+          }
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/moe_comm_method.py",
+          "before_sha256": "9ef691312cea99bc8f74f2faa3ca913b462f8bd7f6c9cf86e1347532e49f4129",
+          "after_sha256": "cb65901085755e9ca556e9b7f7dd9bb45606eb4ca54660b23c94b30d1e466f4e",
+          "before_bytes": 22051,
+          "after_bytes": 22070,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__ops__fused_moe__moe_comm_method.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/event_candidate/ops/fused_moe/moe_comm_method.py"
+          }
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/moe_mlp.py",
+          "before_sha256": "7e13f99b5e039c48b2371c01248193831d881038990b0933ede8c641e25e916c",
+          "after_sha256": "dd828f76f32d110a9f2d4ff77f08ba769fbc1beb965e41b97ef0d76777ab107e",
+          "before_bytes": 38981,
+          "after_bytes": 38958,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__ops__fused_moe__moe_mlp.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/event_candidate/ops/fused_moe/moe_mlp.py"
+          }
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/shared_experts.py",
+          "before_sha256": "3c3b6d64a098e8a22664a80688de5561d42506020c539e4370f28f05a6fbb962",
+          "after_sha256": "975135600f73a4821ef4458b42349d46c9a9dd659420eddb92b3b8690def08d8",
+          "before_bytes": 20799,
+          "after_bytes": 20898,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__ops__fused_moe__shared_experts.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/event_candidate/ops/fused_moe/shared_experts.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H4",
+      "name": "moe-gather-into-tensor",
+      "patch": "H4-moe-gather-into-tensor.patch",
+      "apply_root": "vllm-ascend",
+      "status": "CORRECTNESS_PASS_PERFORMANCE_INCONCLUSIVE",
+      "scope": "满足全 TP 共同 shape、均匀 shard 和512-byte对齐时使用 all_gather_into_tensor；否则原 list gather。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0251",
+          "GLM-RUN-0260"
+        ],
+        "correctness": "native bytes/layout/lifetime + exact standard PD",
+        "performance": "Run260完整比较收益未重复，OFF"
+      },
+      "notes": [
+        "与 H13 同文件、不同假说；不是已验证组合。"
+      ],
+      "patch_sha256": "bf37b163063e71d7a53f6d30753a85b447386c1aa6a21581a76c03768ef29cfe",
+      "files": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/prepare_finalize.py",
+          "before_sha256": "54e8ac6d131e1b82a5935b356d89ba09f912d50bd7a8c6411a9374f58bb2b5b7",
+          "after_sha256": "26e52eef2714f9e3246d001b9ffc4e05d453a79cf95c3c38c0a2ba860498f3f9",
+          "before_bytes": 25313,
+          "after_bytes": 26351,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/prepare_finalize_exact_original.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/prepare_finalize_patched.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H8",
+      "name": "indexer-projection-reuse",
+      "patch": "H8-indexer-projection-reuse.patch",
+      "apply_root": "vllm-ascend",
+      "status": "CORRECTNESS_PASS_PERFORMANCE_INCONCLUSIVE",
+      "scope": "同一 forward 向 indexer 复用已计算投影；无跨请求缓存。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0262"
+        ],
+        "correctness": "CPU + all16 native byte/exact output",
+        "performance": "完整 matched工作量相同，但两对收益不重复；OFF"
+      },
+      "notes": [],
+      "patch_sha256": "64a1b4ad8033be92ecdae2d348861a02b2d5e258a3f08cbaaa6130de5b4ae18c",
+      "files": [
+        {
+          "path": "vllm_ascend/attention/sfa_v1.py",
+          "before_sha256": "f15426c8bd823e651eef7b5f1971b1957d7760c54ee787df43a3d4633f2366a4",
+          "after_sha256": "9cccbc643f20784e3bb389705cc21a22a37a50ce1609dd5ecefd12cd37f011b6",
+          "before_bytes": 70723,
+          "after_bytes": 71154,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__attention__sfa_v1.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/indexer_candidate/sfa_v1.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H9",
+      "name": "sfa-stream-ordered-replay",
+      "patch": "H9-sfa-stream-ordered-replay.patch",
+      "apply_root": "vllm-ascend",
+      "status": "CORRECTNESS_PASS_PERFORMANCE_INCONCLUSIVE",
+      "scope": "受限目标 SFA 同 stream replay 用依赖顺序替代 host synchronize；其他情况保留同步。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0266"
+        ],
+        "correctness": "exact IDs/EOS/KV + all16 replay guard",
+        "performance": "D saving0.883/8.071ms小于17.918ms drift；未重复，OFF"
+      },
+      "notes": [
+        "candidate 本身没有运行时关停 selector；应用即改变符合 guard 的路径。本包不应用到服务器。",
+        "与 H10/H11 的 runner 修改分别验证，未验收合并组合。"
+      ],
+      "patch_sha256": "de1f0a44e1420d1698328c8aa278d6df827878c4452e49d1dd58ed74f01986b2",
+      "files": [
+        {
+          "path": "vllm_ascend/worker/model_runner_v1.py",
+          "before_sha256": "eaa40a2053be73e4f6ca6f54eddfb506f100790b1857a8d815c6db8756a32845",
+          "after_sha256": "b54800adaafcb357856cc1ce76cd845d5d825c675745518e1bade41619f81615",
+          "before_bytes": 269358,
+          "after_bytes": 269937,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__worker__model_runner_v1.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/stream_ordered_replay/patched/model_runner_v1.py"
+          }
+        },
+        {
+          "path": "vllm_ascend/compilation/breakable_aclgraph.py",
+          "before_sha256": "98300feade9457b67cfb5a3300ce07aab56d1086b4d1d7bd4c3998e96dd6c5f0",
+          "after_sha256": "90630b608a612fdb2ce777f8411f374c675d7143f39c1689c8b38675c8ff83a6",
+          "before_bytes": 3114,
+          "after_bytes": 3339,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/stream_ordered_replay/original/breakable_aclgraph.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/stream_ordered_replay/patched/breakable_aclgraph.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H10",
+      "name": "early-padded-mtp",
+      "patch": "H10-early-padded-mtp.patch",
+      "apply_root": "vllm-ascend",
+      "status": "NOT_APPLICABLE_ASYNC",
+      "scope": "greedy K1、同步记账分支把 padded MTP 提交提前；现场 async=true，候选分支未启用。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0267"
+        ],
+        "correctness": "CPU guard/state通过；现场仅baseline正确性，候选设备correctness未做",
+        "performance": "NOT_APPLICABLE；没有候选matched A/B或收益"
+      },
+      "notes": [
+        "归档供复查，不能按correctness-pass或已验证优化启用。"
+      ],
+      "patch_sha256": "4252b996a37498337ecdb714500736fb67228dced6c227bd10a9f9427d6829a9",
+      "files": [
+        {
+          "path": "vllm_ascend/worker/model_runner_v1.py",
+          "before_sha256": "eaa40a2053be73e4f6ca6f54eddfb506f100790b1857a8d815c6db8756a32845",
+          "after_sha256": "f40b61f423fea3aa766e47a70b4472b98d1278e12e58ec6cbc301aa2a2d6a86d",
+          "before_bytes": 269358,
+          "after_bytes": 270328,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/early_padded_mtp/original_model_runner_v1.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/early_padded_mtp/model_runner_v1.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H11",
+      "name": "mtp-graph",
+      "patch": "H11-mtp-graph.patch",
+      "apply_root": "vllm-ascend",
+      "status": "SCOPED_DEVICE_CORRECTNESS_PASS_NO_REPEATED_GAIN",
+      "scope": "GLM greedy K1 合并 draft model/logits/sample graph；持久 DCP block-table、tensor pointer/shape/stride contract、owned output clone；单层外部 graph。",
+      "dependencies": [
+        "原生 target FULL graph；speculative_config enforce_eager=false；opt-in环境 VLLM_ASCEND_GLM_K1_MTP_GRAPH=1",
+        "glm_moe_dsa；TP16/DCP16/EP，DP=PP=PCP=1；K1、greedy、NoopOffloader；SP/压缩/动态EPLB/LMHeadTP等受guard限制",
+        "使用匹配 baseline 的 SFA/DCP、vLLM/torch_npu source/API；文件SHA见manifest，不能视为任意upstream commit的通用patch"
+      ],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0273",
+          "GLM-RUN-0275"
+        ],
+        "correctness": "Run273 all16真实capture/replay、短8token与自然23EOS、exactNoopOffloader、KV transfer均通过",
+        "performance": "Run275工作匹配11/11/11/11；D savings -2.313/-9.623ms，无重复完整PD收益；当前OFF"
+      },
+      "notes": [
+        "默认环境变量缺失时关闭。首步prefill/profile、非greedy、LoRA/结构化输出/随机generator及metadata不匹配保留eager。",
+        "干净包proposer逐字等于设备验证的9bd8…；runner移除无关H10诊断baseline，仅重基线同一单外层capture hunk，_dummy_run AST与设备candidate完全相同。",
+        "本次仅本地apply/reverse/AST包装校验，没有新NPU验证；干净组合不冒称整文件hash4c9…，实测原版单patch另附provenance。"
+      ],
+      "patch_sha256": "503c52ad64a92b1baec09fce50a92181b7d11d7a79309985ad61bfe7c22ef475",
+      "files": [
+        {
+          "path": "vllm_ascend/spec_decode/llm_base_proposer.py",
+          "before_sha256": "edcc55d15f0f868b7da4f5ee8b63f91fc4f130b9b950e2734ab0d872a30d5f61",
+          "after_sha256": "9bd8d2fc6ad292921df6b49125de993ec68567471075480f49872c3de53a55dd",
+          "before_bytes": 126573,
+          "after_bytes": 133910,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__spec_decode__llm_base_proposer.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/mtp_graph_candidate_v5/llm_base_proposer.py"
+          }
+        },
+        {
+          "path": "vllm_ascend/worker/model_runner_v1.py",
+          "before_sha256": "eaa40a2053be73e4f6ca6f54eddfb506f100790b1857a8d815c6db8756a32845",
+          "after_sha256": "20be0f27426d5a38e4bbbe71146b36bb40de8cd720f04a5911389eb3d905c930",
+          "before_bytes": 269358,
+          "after_bytes": 269640,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/early_padded_mtp/original_model_runner_v1.py",
+            "changed_function_ast_equal_to_tested": true,
+            "tested_runner_sha256": "4c90054ad40f4c430c2562bc1603aacb497684429988bf1a60edce585d6d2923"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H11-EXACT",
+      "name": "mtp-exact-tested-delta",
+      "patch": "provenance/H11-exact-tested.patch",
+      "apply_root": "vllm-ascend",
+      "status": "PROVENANCE_EXACT_TESTED_DELTA",
+      "scope": "已验证H11原始两个文件增量：edcc/d017→9bd8/4c90。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0273",
+          "GLM-RUN-0275"
+        ],
+        "correctness": "精确production delta用于复现原始源码identity；设备运行另叠只读观察器",
+        "performance": "同H11，未重复收益"
+      },
+      "notes": [
+        "与H11主patch是二选一，不串联。baseline d017包含停用的H10诊断selector，适合原实验快照而非干净部署。"
+      ],
+      "patch_sha256": "8a3a8bf1aa53063a35f50acb6c029c402160f47a9fdb85be871091deb50ea9a4",
+      "files": [
+        {
+          "path": "vllm_ascend/spec_decode/llm_base_proposer.py",
+          "before_sha256": "edcc55d15f0f868b7da4f5ee8b63f91fc4f130b9b950e2734ab0d872a30d5f61",
+          "after_sha256": "9bd8d2fc6ad292921df6b49125de993ec68567471075480f49872c3de53a55dd",
+          "before_bytes": 126573,
+          "after_bytes": 133910,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/vllm-ascend__vllm_ascend__spec_decode__llm_base_proposer.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/mtp_graph_candidate_v5/llm_base_proposer.py"
+          }
+        },
+        {
+          "path": "vllm_ascend/worker/model_runner_v1.py",
+          "before_sha256": "d017c230ba2d99025bb2420113bb44ec9d9bbe2a6cd952c716f99db7d915bcf4",
+          "after_sha256": "4c90054ad40f4c430c2562bc1603aacb497684429988bf1a60edce585d6d2923",
+          "before_bytes": 272692,
+          "after_bytes": 272974,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/mtp_graph_candidate_v5/original_model_runner_v1.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/mtp_graph_candidate_v5/model_runner_v1.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H12",
+      "name": "rope-contiguous-cache",
+      "patch": "H12-rope-contiguous-cache.patch",
+      "apply_root": "vllm-ascend",
+      "status": "SCOPED_DEVICE_CORRECTNESS_PASS_PERFORMANCE_INCONCLUSIVE",
+      "scope": "注册不可变split RoPE table时一次contiguous，lookup语义保持。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0279",
+          "GLM-RUN-0280"
+        ],
+        "correctness": "all16布局/生命周期、短与自然EOS/PD通过",
+        "performance": "Run280工作量混杂、无重复完整收益；OFF"
+      },
+      "notes": [
+        "这是已验证的contiguous版本，未发布成旧的row-index试验版本。",
+        "注册阶段增加独立表存储，长期/并发/显存整体验收仍未做。"
+      ],
+      "patch_sha256": "ba0e57ac00bb9a4d76825192f63b2d3095b5a0cd4d823272ceb4dccf6d614abd",
+      "files": [
+        {
+          "path": "vllm_ascend/ops/rotary_embedding.py",
+          "before_sha256": "b6b7515a3159012e7e9dd946d9426baeb86880850b8fb625f67c2ef1e53aec4e",
+          "after_sha256": "f5ae2c692098cd3dca6e3fbe0639d303cefe4876352ef44bdc8e32075492f518",
+          "before_bytes": 24262,
+          "after_bytes": 24437,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/post_full_framework_sources/rotary_embedding.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/rope_contiguous_candidate/rotary_embedding.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H13",
+      "name": "local-mc2-prepare",
+      "patch": "H13-local-mc2-prepare.patch",
+      "apply_root": "vllm-ascend",
+      "status": "SCOPED_DEVICE_CORRECTNESS_PASS_PERFORMANCE_INCONCLUSIVE",
+      "scope": "只构造本TP rank需要的slice/局部padding；空rank fresh zeros；全局shape/mask/collective语义保持。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0283",
+          "GLM-RUN-0284"
+        ],
+        "correctness": "CPU3888 + all16实际双bank byte/stride/ND/mask/input非变及短/EOS/PD通过",
+        "performance": "Run284首对匹配D wall增加39.982ms，第二对12/12/11工作混杂；INCONCLUSIVE/OFF"
+      },
+      "notes": [
+        "设备验证用双bank诊断shim调用相同production helper AST；本包不含bank selector、controller、额外graph pool或observer。",
+        "裸production文件没有独立长/并发/fullAPI/SLA设备验收；不把inclusive Pad/MemSet成本当收益。",
+        "为最小diff保留baseline CRLF；原候选LF字节另附H13-EXACT。本次无新设备测试，整模块AST与原候选相同。"
+      ],
+      "patch_sha256": "24dce61be04ffe6c9c50402fc23e389ceebd327d797f8315d9f46020b7a4d061",
+      "files": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/prepare_finalize.py",
+          "before_sha256": "54e8ac6d131e1b82a5935b356d89ba09f912d50bd7a8c6411a9374f58bb2b5b7",
+          "after_sha256": "10e6f7a69238b3e9d5291398bae1e03a6da745617b8acb0422d2b9d8e07161bc",
+          "before_bytes": 25313,
+          "after_bytes": 26493,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/prepare_finalize_exact_original.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/post_full_local_prepare/prepare_finalize_candidate.py",
+            "exact_candidate_sha256": "7bb35edfe568bb62b3432c3406e0a66d23202cd1608bebcb1ce1016789d73dbb",
+            "packaging_transform": "仅恢复baseline的CRLF换行；整个Python AST与原候选相同；原字节另附H13-EXACT"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "H13-EXACT",
+      "name": "local-mc2-prepare-exact-source",
+      "patch": "provenance/H13-exact-source.patch",
+      "apply_root": "vllm-ascend",
+      "status": "PROVENANCE_EXACT_CANDIDATE_SOURCE",
+      "scope": "只构造本TP rank需要的slice/局部padding；空rank fresh zeros；全局shape/mask/collective语义保持。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0283",
+          "GLM-RUN-0284"
+        ],
+        "correctness": "CPU3888 + all16实际双bank byte/stride/ND/mask/input非变及短/EOS/PD通过",
+        "performance": "Run284首对匹配D wall增加39.982ms，第二对12/12/11工作混杂；INCONCLUSIVE/OFF"
+      },
+      "notes": [
+        "与H13主patch二选一，不串联。保留原候选LF字节，baseline为CRLF，因此含整文件换行变更；设备用双bank shim调用同一helper AST。"
+      ],
+      "patch_sha256": "2693441de49914dee699f2804fe048e76fafa6abf27b7297ee5beac0acc4eed6",
+      "files": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/prepare_finalize.py",
+          "before_sha256": "54e8ac6d131e1b82a5935b356d89ba09f912d50bd7a8c6411a9374f58bb2b5b7",
+          "after_sha256": "7bb35edfe568bb62b3432c3406e0a66d23202cd1608bebcb1ce1016789d73dbb",
+          "before_bytes": 25313,
+          "after_bytes": 25886,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/prepare_finalize_exact_original.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/post_full_local_prepare/prepare_finalize_candidate.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "F1",
+      "name": "kv-failure-logical-block-ids",
+      "patch": "F1-kv-failure-logical-block-ids.patch",
+      "apply_root": "vllm-ascend",
+      "status": "SCOPED_CORRECTNESS_FIX",
+      "scope": "传输失败回报KVCacheManager logical block IDs，避免误用展开的物理transfer IDs。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0264",
+          "GLM-RUN-0265"
+        ],
+        "correctness": "实际失败ID归约、失败请求不执行模型、两clean标准PD及all16传输通过",
+        "performance": "不计性能收益"
+      },
+      "notes": [
+        "kv_load_failure_policy=fail；与F2组合才能保证streaming客户端收到canonical error终态。"
+      ],
+      "patch_sha256": "9642992091989c5ce72ed512229f344078e15e82c055c455a35312dc8e28e4ac",
+      "files": [
+        {
+          "path": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+          "before_sha256": "f30572890014d0244bf31d8e15dc5d93fb84147df37e0b2c1d1b01cbba6dd533",
+          "after_sha256": "3f50bcd4b2def49eb899f94873df52f5744b71cec95b7d6fa1e6948f766f37ff",
+          "before_bytes": 197848,
+          "after_bytes": 198349,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/pd_critical_path_20261006/mooncake_connector.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/kv_failure_candidate/mooncake_connector.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "F2",
+      "name": "openai-empty-terminal",
+      "patch": "F2-openai-empty-terminal.patch",
+      "apply_root": "vllm",
+      "status": "SCOPED_CORRECTNESS_FIX",
+      "scope": "Chat/Completions SSE即使无文本/无token也处理error/finish终态，防止guard吞掉失败。",
+      "dependencies": [
+        "F1提供正确失败block归约；两个serving文件一起应用"
+      ],
+      "validation": {
+        "runs": [
+          "GLM-RUN-0265"
+        ],
+        "correctness": "canonical500故障路径与clean exact PD通过",
+        "performance": "不计性能收益"
+      },
+      "notes": [
+        "不代表tool/reasoning/logprob/abort/所有fullAPI已全面验收。"
+      ],
+      "patch_sha256": "4bd8221142da5272d2b3e4206e71a41000b6ef2f1e2a44da88fa1320fce713ef",
+      "files": [
+        {
+          "path": "vllm/entrypoints/openai/chat_completion/serving.py",
+          "before_sha256": "f3fb82d6eeb956e0e5e9b8e17e135769b3378421ad0fb7958daaf774adc57079",
+          "after_sha256": "b6ee6a0776d927c05557304852cf6aceda7c24204d039f0503d846bd2a88025d",
+          "before_bytes": 52481,
+          "after_bytes": 52443,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/pd_error_sources/vllm__entrypoints__openai__chat_completion__serving.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/pd_error_candidate/chat_serving.py"
+          }
+        },
+        {
+          "path": "vllm/entrypoints/openai/completion/serving.py",
+          "before_sha256": "2590281b465d8a9e31252bd92407661f3af9adeddf7bd52c80395cc9fbb9e19c",
+          "after_sha256": "c77781900a35a7cc7004d34ebc1fec5af979a6d4d9ac313d44dd928f2ba7bbfd",
+          "before_bytes": 30201,
+          "after_bytes": 30268,
+          "source": {
+            "before_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/pd_critical_path_20261006/request_sources/entrypoints__openai__completion__serving.py",
+            "after_snapshot": "glm5-3/records/points/GLM-OPT-0002/research/decode_path_20261006/pd_error_candidate/completion_serving.py"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "B1",
+      "name": "aisbench-cache-isolation-adapter",
+      "patch": "B1-aisbench-cache-isolation-adapter.patch",
+      "apply_root": "Inference-Foundry",
+      "status": "BENCHMARK_SOURCE_DEPLOYED_NO_FORMAL_SLA",
+      "scope": "完整prefix adapter：每轮fresh salt，warmup/full同salt，分P/D endpoint记录HBM/external query/hit delta；加入5个adapter helper与直接依赖phase_runner源码。",
+      "dependencies": [
+        "当前main已有config.py和workload600；AISBench/tokenizer依赖按adapterREADME安装"
+      ],
+      "validation": {
+        "runs": [
+          "AISBENCH-CACHE-ISOLATION-20261007"
+        ],
+        "correctness": "原源码/部署hash与CPU检查，模型压测未运行",
+        "performance": "没有93%实测/SLA/推理性能收益"
+      },
+      "notes": [
+        "前一74910eab main提交仅同步README，未包含driver源码；本次把5个adapter源码及phase_runner依赖作为patch发布，并同步main。",
+        "两台机器本次不部署/不测试；所引用部署结果是先前已有证据。"
+      ],
+      "patch_sha256": "5e7b5d8ffc0e68d0bfa6ab24053c9923353bdf64ee184c934d04ed701164573b",
+      "files": [
+        {
+          "path": "glm5-3/adapters/aisbench/default_api.py",
+          "before_sha256": null,
+          "after_sha256": "a315a640c9affce46c577cfc146ecabb446370e7c0a3957b56b364a35fb62624",
+          "before_bytes": 0,
+          "after_bytes": 615,
+          "source": {
+            "snapshot": "glm5-3/adapters/aisbench/default_api.py",
+            "deployment_proof": "existing adapter helper; packaging only"
+          }
+        },
+        {
+          "path": "glm5-3/adapters/aisbench/dataset_generator.py",
+          "before_sha256": null,
+          "after_sha256": "ffeda479de30b4d4c972230eaaff662e67c328bfabc56f47e3af0356f48ff903",
+          "before_bytes": 0,
+          "after_bytes": 19781,
+          "source": {
+            "snapshot": "glm5-3/adapters/aisbench/dataset_generator.py",
+            "deployment_proof": "existing adapter helper; packaging only"
+          }
+        },
+        {
+          "path": "glm5-3/adapters/aisbench/prefix_bench.py",
+          "before_sha256": null,
+          "after_sha256": "6e4dbb073eb2f728ee99bb8fde7cbbb1ac451378dd8d6c558983d11429bd52bd",
+          "before_bytes": 0,
+          "after_bytes": 33451,
+          "source": {
+            "snapshot": "glm5-3/adapters/aisbench/prefix_bench.py",
+            "deployment_proof": "AISBENCH-CACHE-ISOLATION-20261007/result_166.json"
+          }
+        },
+        {
+          "path": "glm5-3/adapters/aisbench/hit_rate_collector.py",
+          "before_sha256": null,
+          "after_sha256": "db000a9023d7d89475300b79fcc1094b0032d35988bf65ba49c0ab2d067823ba",
+          "before_bytes": 0,
+          "after_bytes": 11448,
+          "source": {
+            "snapshot": "glm5-3/adapters/aisbench/hit_rate_collector.py",
+            "deployment_proof": "AISBENCH-CACHE-ISOLATION-20261007/result_166.json"
+          }
+        },
+        {
+          "path": "glm5-3/adapters/aisbench/result_writer.py",
+          "before_sha256": null,
+          "after_sha256": "6fad15b3411f9e97b81fab6664dd6642b5c93bc7544466335178e58b0684a6db",
+          "before_bytes": 0,
+          "after_bytes": 15207,
+          "source": {
+            "snapshot": "glm5-3/adapters/aisbench/result_writer.py",
+            "deployment_proof": "AISBENCH-CACHE-ISOLATION-20261007/result_166.json"
+          }
+        },
+        {
+          "path": "glm5-3/runtime/phase_runner.py",
+          "before_sha256": null,
+          "after_sha256": "cdc399bf32910522912e0caf0d52553128f72b3375ba2d47816e46036c676863",
+          "before_bytes": 0,
+          "after_bytes": 7357,
+          "source": {
+            "snapshot": "glm5-3/runtime/phase_runner.py",
+            "role": "prefix_bench直接依赖的既有phase runner；本次仅打包，不执行子进程"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    },
+    {
+      "id": "B2",
+      "name": "aisbench-80k-600-93-workload",
+      "patch": "B2-aisbench-80k-600-93-workload.patch",
+      "apply_root": "Inference-Foundry",
+      "status": "WORKLOAD_CONFIGURATION_PUBLISHED",
+      "scope": "用户正式条件80000输入/600输出/93%prefix/93%declaredKV命中；600-token SLO记账。",
+      "dependencies": [],
+      "validation": {
+        "runs": [
+          "AISBENCH-WORKLOAD-UPDATE-20261007",
+          "GITHUB-WORKLOAD-SYNC-20261007"
+        ],
+        "correctness": "两端既有文件/配置同步及source检查；非模型测试",
+        "performance": "完整正式SLA未验收"
+      },
+      "notes": [
+        "已在当前main应用，不能重复应用；供旧baseline复现。",
+        "声明命中条件与实测HBM/external命中分账，不能用D external100%替代正式93%。"
+      ],
+      "patch_sha256": "a1a3c005f80456c26145eeb4ba5c7889bf07fb78f9cbc0ac9b4fab8e67a1aee5",
+      "files": [
+        {
+          "path": "glm5-3/MISSION.md",
+          "before_sha256": "bcee727aaee1f8b62109743e849260b689b9da0f668dabfd734cfcce60894190",
+          "after_sha256": "1a6915f2bbaa4b66f27dac8144adc4eedf9eec45f799d241fcad84d3d9ef882e",
+          "before_bytes": 1815,
+          "after_bytes": 2676,
+          "source": {
+            "original_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2^",
+            "published_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2"
+          }
+        },
+        {
+          "path": "glm5-3/RECORDING.md",
+          "before_sha256": "a55a2c157ba3890feb632eb5d318d7824c619cb27cbc6ec3a0452e2b82f94166",
+          "after_sha256": "c24489c399ad644fcd20d0e412f21d115c3e704c7fe2dca8854f9bd4074eea32",
+          "before_bytes": 3534,
+          "after_bytes": 4009,
+          "source": {
+            "original_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2^",
+            "published_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2"
+          }
+        },
+        {
+          "path": "glm5-3/adapters/aisbench/README.md",
+          "before_sha256": null,
+          "after_sha256": "ea22938c70b62293f10a4f4dd941dce4a056bf0d80d6308e84db8a3d9a8a5743",
+          "before_bytes": 0,
+          "after_bytes": 1213,
+          "source": {
+            "original_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2^",
+            "published_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2"
+          }
+        },
+        {
+          "path": "glm5-3/adapters/aisbench/config.py",
+          "before_sha256": null,
+          "after_sha256": "c0f74cc7dafd3b155ab01e33364e4f52991fec7758308fc740ae880dbb068b82",
+          "before_bytes": 0,
+          "after_bytes": 2941,
+          "source": {
+            "original_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2^",
+            "published_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2"
+          }
+        },
+        {
+          "path": "glm5-3/runtime/aisbench_slo.py",
+          "before_sha256": null,
+          "after_sha256": "d420590aa21376d9f49dcb5144693858c118dcfb1dfc9ce0cff222c56ab7487b",
+          "before_bytes": 0,
+          "after_bytes": 10821,
+          "source": {
+            "original_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2^",
+            "published_commit": "c01599298a16ddbf4c55a710b0d31cb6cdff35d2"
+          }
+        }
+      ],
+      "formal_product_KEEP": false,
+      "Current": null
+    }
+  ],
+  "recommended_research_stack": [
+    "H6",
+    "H5"
+  ],
+  "mtp_default": "OFF",
+  "formal_workload": {
+    "input_tokens": 80000,
+    "output_tokens": 600,
+    "prefix_repeat_rate": 0.93,
+    "declared_kv_hit_rate": 0.93
+  },
+  "formal_product_KEEP": false,
+  "Current": null,
+  "full_API_accepted": false,
+  "formal_SLA_accepted": false,
+  "fixtures_sha256": "e077f4dca9cb762d9ed1e71206dc850fea0dee5eb1b6c708c71abb433607e2c9"
+}

@@ -1,0 +1,69 @@
+--- a/vllm_ascend/attention/sfa_v1.py
++++ b/vllm_ascend/attention/sfa_v1.py
+@@ -1123,6 +1123,7 @@
+         x: torch.Tensor,
+         cos: torch.Tensor,
+         sin: torch.Tensor,
++        kw: torch.Tensor | None = None,
+     ):
+         if not self.has_indexer:
+             raise RuntimeError(
+@@ -1132,7 +1133,8 @@
+         assert self.wk_weights_proj is not None
+         assert self.k_norm is not None
+ 
+-        kw, _ = self.wk_weights_proj(x)
++        if kw is None:
++            kw, _ = self.wk_weights_proj(x)
+         k_li = kw[:, : self.head_dim]
+         k_li = self.k_norm(k_li).unsqueeze(1)
+         k_li = k_li.view(-1, 1, self.head_dim)
+@@ -1177,6 +1179,7 @@
+         sin: torch.Tensor,
+         actual_seq_lengths_query: torch.Tensor,
+         actual_seq_lengths_key: torch.Tensor,
++        kw: torch.Tensor | None = None,
+     ):
+         if not self.has_indexer:
+             raise RuntimeError(
+@@ -1186,7 +1189,8 @@
+         assert self.wk_weights_proj is not None
+         assert self.wq_b is not None
+ 
+-        kw, _ = self.wk_weights_proj(x)
++        if kw is None:
++            kw, _ = self.wk_weights_proj(x)
+         weights = kw[:, self.head_dim :]
+         if isinstance(q_c, tuple):
+             q_c_tensor, q_c_scale = q_c
+@@ -1547,6 +1551,8 @@
+         ):
+             fused_type = PreprocessType.NATIVE
+ 
++        # Forward-local only: native K and indexer weights share one projection.
++        indexer_kw = None
+         if fused_type != PreprocessType.NATIVE:
+             if fused_type == PreprocessType.PROLOG_V3:
+                 assert slot_mapping_sfa.numel() == hidden_states.shape[0], (
+@@ -1589,10 +1595,13 @@
+             q_c = self.q_a_layernorm(q_c)
+ 
+             if self.has_indexer:
++                assert self.wk_weights_proj is not None
++                indexer_kw, _ = self.wk_weights_proj(hidden_states)
+                 k_li, k_li_scale = self.indexer_select_pre_process(
+                     x=hidden_states,
+                     cos=cos,
+                     sin=sin,
++                    kw=indexer_kw,
+                 )
+             else:
+                 k_li, k_li_scale = None, None
+@@ -1683,6 +1692,7 @@
+                 sin=sin,
+                 actual_seq_lengths_query=actual_seq_lengths_query,
+                 actual_seq_lengths_key=actual_seq_lengths_key,
++                kw=indexer_kw,
+             )
+             if self.use_index_cache:
+                 self._update_indexcache_topk_indices(topk_indices)

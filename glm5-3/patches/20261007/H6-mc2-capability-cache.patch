@@ -1,0 +1,26 @@
+--- a/op_plugin/ops/opapi/MoeDistributeDispatchV2KernelOpApi.cpp
++++ b/op_plugin/ops/opapi/MoeDistributeDispatchV2KernelOpApi.cpp
+@@ -190,7 +190,9 @@
+         npu_preparation::convert_to_acl_data_type(output_dtype)};
+     TensorWrapper dynamic_scales_wrapper = {dynamic_scales, acl_dynamic_scale_dtype};
+ 
+-    if (check_aclnn_kernel_available("aclnnMoeDistributeDispatchV4")) {
++    // Capability is fixed for this worker's loaded CANN/custom libraries.
++    static const bool has_v4 = check_aclnn_kernel_available("aclnnMoeDistributeDispatchV4");
++    if (has_v4) {
+         EXEC_NPU_CMD(aclnnMoeDistributeDispatchV4, x_wrapper, expert_ids, scales_wrapper, x_active_mask, expert_scales, elastic_info, performance_info,
+                      group_ep_ptr, ep_world_size, ep_rank_id, moe_expert_num,
+                      group_tp_ptr, tp_world_size, tp_rank_id,
+--- a/op_plugin/ops/opapi/MoeDistributeCombineKernelV2OpApi.cpp
++++ b/op_plugin/ops/opapi/MoeDistributeCombineKernelV2OpApi.cpp
+@@ -91,7 +91,9 @@
+     std::string comm_alg_str = std::string(comm_alg);
+     char *comm_alg_ptr = const_cast<char *>(comm_alg_str.c_str());
+ 
+-    if (check_aclnn_kernel_available("aclnnMoeDistributeCombineV4")) {
++    // Capability is fixed for this worker's loaded CANN/custom libraries.
++    static const bool has_v4 = check_aclnn_kernel_available("aclnnMoeDistributeCombineV4");
++    if (has_v4) {
+         EXEC_NPU_CMD(aclnnMoeDistributeCombineV4, expand_x, expert_ids, assist_info_for_combine, ep_send_counts, expert_scales, tp_send_counts, x_active_mask,
+                      nulltensor, nulltensor, nulltensor, expand_scales, shared_expert_x, elastic_info, ori_x, const_expert_alpha_1, const_expert_alpha_2, const_expert_v,
+                      performance_info, group_ep_ptr, ep_world_size, ep_rank_id, moe_expert_num, group_tp_ptr, tp_world_size, tp_rank_id,
