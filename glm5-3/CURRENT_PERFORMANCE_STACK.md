@@ -1,5 +1,7 @@
 # CURRENT_PERFORMANCE_STACK
 
+checkpoint179: [actual MTP caller / DeepSeek graph reference / corrected RoPE witness](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT179.md). Run277 FAILED observer quota preserved; actual ordinary MTP and target both cached. Three exact short PD requests and one H6H5/FULL recovery independently closed, all16 healthy. DeepSeek MTP/V2 source compared; H11 merged capture already tested, no new graph gain. Run278 parked/not started. Sole Run279 started11:44:17Z spec85e34995/74pins, fixed four correctness requests (max5); source/CPU/epoch checks pass, device result pending. H6H5/FULL retained, H11off; no new KEEP/Current/SLA claim.
+
 checkpoint178: [current FULL critical path / RoPE whole-table materialization](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT178.md). Run276 exact PD/profile captured, original FAILED acceptance-work calibration preserved; zero-request closure healthy H6/H5/targetFULL/H11off. Official offline parser0/all16, preexisting raw unchanged, wrapper set-equality failure independently reconciled. Existing trace/CSV finds four million-row RoPE Slice materializations per steady step; initialization-only contiguous candidate CPU504/observer20/workflow10 pass, Run277 draft/not started. Matched gain unknown; no new code performance KEEP; Current/API/80K600/93% open.
 
 
