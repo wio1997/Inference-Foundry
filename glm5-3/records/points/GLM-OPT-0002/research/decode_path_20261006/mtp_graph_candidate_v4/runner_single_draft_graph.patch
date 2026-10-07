@@ -1,0 +1,17 @@
+--- original/model_runner_v1.py
++++ candidate/model_runner_v1.py
+@@ -4192,7 +4192,13 @@
+                     enable_enpu=self.enable_enpu,
+                 )
+                 drafter = getattr(self, "drafter", None)
+-                if drafter is not None and hasattr(drafter, "model"):
++                # GLM K1 already captures the complete merged draft in its
++                # outer ACLGraph. A second wrapper would capture recursively.
++                if (
++                    drafter is not None
++                    and hasattr(drafter, "model")
++                    and not getattr(drafter, "_glm_k1_graph", False)
++                ):
+                     drafter.model = BreakableACLGraphWrapper(
+                         drafter.model,
+                         self.vllm_config,

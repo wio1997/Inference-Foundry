@@ -1,0 +1,224 @@
+--- original/llm_base_proposer.py
++++ candidate/llm_base_proposer.py
+@@ -1,5 +1,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ import copy
++import os
+ from collections.abc import Callable
+ from contextlib import AbstractContextManager, nullcontext
+ from functools import partial
+@@ -41,6 +42,8 @@
+ )
+ from vllm.v1.worker.gpu_input_batch import CachedRequestState, InputBatch
+ 
++from vllm.model_executor.offloader.base import NoopOffloader, get_offloader
++
+ from vllm_ascend.ascend_config import get_ascend_config
+ from vllm_ascend.ascend_forward_context import _EXTRA_CTX, set_ascend_forward_context
+ from vllm_ascend.attention.attention_v1 import AscendAttentionState
+@@ -212,23 +215,34 @@
+         self.use_cuda_graph = self.runner._use_aclgraph() and not self.speculative_config.enforce_eager
+         self._raise_if_padded_drafter_batch_disabled_and_full_graph_enabled()
+ 
+-        # GLM series models: speculative decoding does not yet support running
+-        # the draft model in graph mode. Force the draft model to always use
+-        # eager mode. This is equivalent to the user adding
+-        # `"enforce_eager": true` to the `--speculative-config`, and keeps
+-        # the target model's graph-mode setting untouched.
+-        # TODO(lilinsiman): Remove this code segment after future versions of the GLM
+-        # series models support graph input for speculative inference.
++        # GLM K1 support is opt-in until its scoped capture/replay contract is
++        # validated. All other GLM draft paths retain native eager execution.
++        self._glm_k1_graph = False
++        self._glm_k1_contracts = {}
+         if _is_glm_model(self.vllm_config.model_config):
+-            if self.use_cuda_graph:
+-                logger.warning(
+-                    "GLM series models with speculative decoding currently do "
+-                    "not support graph mode. The draft model has been "
+-                    "automatically switched to eager mode "
+-                    "(enforce_eager=true). Graph mode support for GLM "
+-                    "speculative decoding will be added in a future release. "
+-                )
+-            self.use_cuda_graph = False
++            pc = self.vllm_config.parallel_config
++            self._glm_k1_graph = (
++                os.environ.get("VLLM_ASCEND_GLM_K1_MTP_GRAPH") == "1"
++                and self.use_cuda_graph
++                and getattr(self.vllm_config.model_config.hf_config, "model_type", None) == "glm_moe_dsa"
++                and self.method == "mtp"
++                and self.num_speculative_tokens == 1
++                and not self.parallel_drafting
++                and not self._enable_probabilistic_draft_probs
++                and not self.use_compress
++                and not enable_sp(vllm_config)
++                and not lmhead_tp_enable()
++                and not self.uses_mrope
++                and not self.uses_xdrope_dim
++                and not self.supports_mm_inputs
++                and pc.tensor_parallel_size == self.speculative_config.draft_tensor_parallel_size == 16
++                and pc.decode_context_parallel_size == 16
++                and pc.prefill_context_parallel_size == pc.pipeline_parallel_size == pc.data_parallel_size == 1
++                and not get_ascend_config().eplb_config.dynamic_eplb
++                and type(get_offloader()) is NoopOffloader
++                and self.vllm_config.compilation_config.cudagraph_mode.has_full_cudagraphs()
++            )
++            self.use_cuda_graph = bool(self._glm_k1_graph)
+ 
+         # NOTE: _enable_probabilistic_draft_probs is set by the upstream
+         # SpecDecodeBaseProposer.__init__.
+@@ -366,6 +380,8 @@
+         } - all_indexer_layer_names
+ 
+         self.attn_layer_names = list(sorted(self._draft_attn_layer_names))
++        if self._glm_k1_graph:
++            self._glm_k1_layers = {name: all_attn_layers[name] for name in self.attn_layer_names}
+         draft_attn_layers_dict = get_layers_from_vllm_config(self.vllm_config, AttentionLayerBase)
+         # initialized for mamba models
+         self.kernel_block_size = (
+@@ -591,6 +607,91 @@
+                 use_eagle=self.use_eagle,
+                 enable_enpu=self.enable_enpu,
+             )
++            if self._glm_k1_graph:
++                self._glm_k1_acl = self._runnable
++                self._runnable = self._run_glm_k1_graph
++
++    def _glm_k1_graph_contract(self, kwargs):
++        n = kwargs["num_input_tokens"]
++        batch = kwargs["batch_size"]
++        indices = kwargs["token_indices_to_sample"]
++        steps = kwargs["multi_steps_attn_metadata"]
++        if (
++            self.num_speculative_tokens != 1
++            or kwargs.get("is_prefill", False)
++            or n != 2 * batch
++            or kwargs["num_tokens"] != n
++            or tuple(indices.shape) != (batch,)
++            or kwargs["inputs_embeds"] is not None
++            or len(steps) != 1
++        ):
++            return None
++
++        def tensor_signature(tensor):
++            if tensor is None:
++                return None
++            if not isinstance(tensor, torch.Tensor):
++                raise TypeError("GLM graph metadata must contain tensors")
++            return (tensor.data_ptr(), tuple(tensor.shape), tuple(tensor.stride()), str(tensor.dtype), str(tensor.device))
++
++        inputs = (self.input_ids[:n], self._get_positions(n), self.hidden_states[:n], indices)
++        signatures = [tuple(tensor_signature(t) for t in inputs)]
++        for name, layer in sorted(self._glm_k1_layers.items()):
++            caches = getattr(layer, "kv_cache", ())
++            if isinstance(caches, torch.Tensor):
++                caches = (caches,)
++            impl = getattr(layer, "impl", None)
++            # SFA's separate indexer owns key/scale KV outside layer.kv_cache.
++            # The composer only joins handles; it submits no device work.
++            caches = impl._compose_sfa_kv_cache(caches)
++            signatures.append((name, tuple(tensor_signature(t) for t in caches),
++                               tensor_signature(getattr(impl, "topk_indices_buffer", None))))
++        for name, metadata in sorted(steps[0].items()):
++            if (
++                type(metadata).__name__ != "AscendSFADCPMetadata"
++                or metadata.num_input_tokens != n
++                or metadata.num_prefills != 0
++                or metadata.num_decodes != batch
++                or metadata.num_decode_tokens != n
++                or metadata.attn_state not in (AscendAttentionState.DecodeOnly, AscendAttentionState.SpecDecoding)
++                or metadata.dcp_context is None
++            ):
++                return None
++            # CPU seq mirrors and num_actual_tokens are preparation-only for
++            # this decode branch. K1 reads the refreshed device buffers below.
++            fields = ("cum_query_lens", "seq_lens", "slot_mapping", "pcp_slot_mapping", "block_table",
++                      "sin", "cos", "attn_mask", "group_len", "group_key_idx", "group_key_cache_idx")
++            context = metadata.dcp_context
++            if context.kv_gather_block_ids is not None or context.kv_gather_block_table is not None:
++                return None
++            signatures.append((name, metadata.head_dim, metadata.block_size,
++                               tuple(tensor_signature(getattr(metadata, key)) for key in fields),
++                               tuple(tensor_signature(getattr(context, key)) for key in ("slot_mapping", "block_table", "seq_lens"))))
++        return (n, batch, tuple(signatures)) if steps[0] else None
++
++    def _run_glm_k1_graph(self, **kwargs):
++        context = get_forward_context()
++        if context.cudagraph_runtime_mode != CUDAGraphMode.FULL:
++            return self._glm_k1_acl(**kwargs)
++        descriptor = context.batch_descriptor
++        signature = self._glm_k1_graph_contract(kwargs) if descriptor.uniform and descriptor.num_tokens == kwargs["num_input_tokens"] else None
++        previous = self._glm_k1_contracts.get(descriptor)
++        if signature is None or (previous is not None and signature != previous):
++            # No graph work has been submitted: native eager is safe here.
++            mode = context.cudagraph_runtime_mode
++            context.cudagraph_runtime_mode = CUDAGraphMode.NONE
++            try:
++                return self._glm_k1_acl(**kwargs)
++            finally:
++                context.cudagraph_runtime_mode = mode
++        result = self._glm_k1_acl(**kwargs)
++        if previous is None:
++            self._glm_k1_contracts[descriptor] = signature
++        if tuple(result.shape) != (kwargs["batch_size"], 1):
++            raise RuntimeError("Unexpected GLM K1 graph draft output shape")
++        # A graph reuses output storage. Give callers an owned main-stream copy
++        # before any delayed draft D2H/next replay can consume or overwrite it.
++        return result.clone()
+ 
+     def _maybe_share_topk_indices(self, target_language_model: nn.Module) -> None:
+         if hasattr(target_language_model.model, "topk_indices_buffer"):
+@@ -640,7 +741,7 @@
+         dcp_manager = getattr(self.runner, "dcp_manager", None)
+ 
+         multi_steps_attn_metadata = []
+-        if not self.use_cuda_graph:
++        if not self.use_cuda_graph or (self._glm_k1_graph and (with_prefill or is_profile)):
+             aclgraph_runtime_mode = CUDAGraphMode.NONE
+ 
+         # init block table tensor clone is only available after profile run and is only used for graph mode
+@@ -893,8 +994,23 @@
+ 
+         has_lora = len(self.runner.input_batch.lora_id_to_lora_request) > 0
+         uniform_decode = target_model_batch_desc.uniform
++        use_call_graph = self.use_cuda_graph
++        if self._glm_k1_graph:
++            use_call_graph = use_call_graph and (
++                self.num_speculative_tokens == 1
++                and uniform_decode
++                and not has_lora
++                and num_prefill_reqs == 0
++                and num_decode_reqs == batch_size
++                and num_tokens == 2 * batch_size
++                and token_indices_to_sample.numel() == batch_size
++                and sampling_metadata.all_greedy
++                and not sampling_metadata.output_token_ids
++                and not self.runner.input_batch.generators
++                and not scheduler_output.has_structured_output_requests
++            )
+ 
+-        if self.use_cuda_graph:
++        if use_call_graph:
+             _, batch_descriptor = self.runner.cudagraph_dispatcher.dispatch(
+                 num_tokens=num_tokens, uniform_decode=uniform_decode, has_lora=has_lora
+             )
+@@ -908,7 +1024,7 @@
+             _,
+         ) = self.runner._sync_metadata_across_dp(num_input_tokens, is_draft_model=True)
+ 
+-        if self.use_cuda_graph:
++        if use_call_graph:
+             aclgraph_runtime_mode, batch_descriptor = self.runner.cudagraph_dispatcher.dispatch(
+                 num_tokens=num_input_tokens, uniform_decode=uniform_decode, has_lora=has_lora
+             )
+@@ -1036,7 +1152,9 @@
+         # Clone the data so that when calculating the data at position 2 and position 3
+         # in the merged graph, it does not affect position 1
+         # FIXME(lilinsiman)
+-        if self.dcp_size > 1 and self.use_cuda_graph:
++        if self.dcp_size > 1 and self.use_cuda_graph and (
++            not self._glm_k1_graph or aclgraph_runtime_mode == CUDAGraphMode.FULL
++        ):
+             assert self.block_table_tensor_clone is not None, "block_table_tensor_clone is not init"
+             self.block_table_tensor_clone[: common_attn_metadata.block_table_tensor.shape[0]] = (
+                 common_attn_metadata.block_table_tensor

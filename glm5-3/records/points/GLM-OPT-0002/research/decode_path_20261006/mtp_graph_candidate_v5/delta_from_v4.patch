@@ -1,0 +1,53 @@
+--- v4/llm_base_proposer.py
++++ b/vllm_ascend/spec_decode/llm_base_proposer.py
+@@ -611,6 +611,18 @@
+                 self._glm_k1_acl = self._runnable
+                 self._runnable = self._run_glm_k1_graph
+ 
++    def _glm_k1_stage_block_table(self, common_attn_metadata):
++        # The SFA builder retains a local view of this table. Bind persistent
++        # storage before building metadata, including the first draft step.
++        source = common_attn_metadata.block_table_tensor
++        target = self.block_table_tensor_clone
++        assert target is not None and source.ndim == target.ndim == 2
++        assert source.shape[0] <= target.shape[0] and source.shape[1] == target.shape[1]
++        view = target[: source.shape[0]]
++        if source.data_ptr() != view.data_ptr() or source.stride() != view.stride():
++            view.copy_(source)
++        common_attn_metadata.block_table_tensor = view
++
+     def _glm_k1_graph_contract(self, kwargs):
+         n = kwargs["num_input_tokens"]
+         batch = kwargs["batch_size"]
+@@ -831,6 +843,8 @@
+                     self.query_start_loc_group[draft_index][: num_reqs + 1].copy_(common_attn_metadata.query_start_loc)
+                     self.query_start_loc_group[draft_index][num_reqs + 1 :].fill_(0)
+                     common_attn_metadata.query_start_loc = self.query_start_loc_group[draft_index][: num_reqs + 1]
++                    if self._glm_k1_graph and draft_index == 0:
++                        self._glm_k1_stage_block_table(common_attn_metadata)
+                     if self.dcp_size > 1 and draft_index > 0:
+                         assert self.block_table_tensor_clone is not None, "block_table_tensor_clone is not init"
+                         common_attn_metadata.block_table_tensor = self.block_table_tensor_clone[:num_reqs]
+@@ -1140,6 +1154,8 @@
+         common_attn_metadata.num_input_tokens = num_input_tokens
+ 
+         self._pad_draft_buffers(num_tokens, num_input_tokens)
++        if self._glm_k1_graph and aclgraph_runtime_mode == CUDAGraphMode.FULL:
++            self._glm_k1_stage_block_table(common_attn_metadata)
+         multi_steps_attn_metadata, attn_metadata_i = self.build_draft_attn_metadata(
+             common_attn_metadata, num_input_tokens, num_tokens
+         )
+@@ -1152,9 +1168,10 @@
+         # Clone the data so that when calculating the data at position 2 and position 3
+         # in the merged graph, it does not affect position 1
+         # FIXME(lilinsiman)
+-        if self.dcp_size > 1 and self.use_cuda_graph and (
+-            not self._glm_k1_graph or aclgraph_runtime_mode == CUDAGraphMode.FULL
+-        ):
++        if self._glm_k1_graph and aclgraph_runtime_mode == CUDAGraphMode.FULL:
++            # Already isolated before the builder retained its DCP-local view.
++            pass
++        elif self.dcp_size > 1 and self.use_cuda_graph and not self._glm_k1_graph:
+             assert self.block_table_tensor_clone is not None, "block_table_tensor_clone is not init"
+             self.block_table_tensor_clone[: common_attn_metadata.block_table_tensor.shape[0]] = (
+                 common_attn_metadata.block_table_tensor

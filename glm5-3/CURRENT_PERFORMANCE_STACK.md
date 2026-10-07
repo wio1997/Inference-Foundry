@@ -1,5 +1,9 @@
 # CURRENT_PERFORMANCE_STACK
 
+checkpoint176: [MTP DCP metadata lifetime](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT176.md). Run272 capture passed but all16x2 replay guards fell back eager on one DCP local-table pointer; no complete/gain claim. H6/H5/mode0/all16 healthy retained. Source fix stages persistent table before dummy/real SFA builders; actual container CPU and independent final diff review passed. Sole Run273 started09:32:39Z spec47819c7c/52pins, four small correctness requests, still initializing at09:37:15Z. Matched draft terminal/cache/witness fixes CPU passed; no performance execution. No new code performance KEEP.
+
+checkpoint175: [Actual MTP nested capture and single-outer patch](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT175.md). Run271 FAILED preserved, bounded H6/H5/FULL recovery closed. Final two-file single-outer/exact-Noop candidate passed CPU/container/independent review. Sole Run272 started09:12:10Z, specdf00a08d/54pins, four small PD requests; no device correctness/performance result yet. H6/H5 retained, H11 not in stack. Live status comes from Run272 state/active_epoch/guards. No new code performance KEEP.
+
 checkpoint174：[真实API观察器与最小MTP图诊断](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT174.md)。Run269/270失败和各一次H6/H5/FULL恢复已closed；v4 actual context/proxy/production-run CPU及独立源码review通过。唯一Run271于08:47:04Z启动，speca7c3af23…/46pins，四固定小PD请求，尚无capture/性能结论。H6/H5保留，H11未入stack；现场以Run271 state/active_epoch/guards为准。AISBench cache隔离/GitHub同步完成。本阶段没有新增代码级性能 KEEP。
 
 checkpoint173：H6/H5保留；Run268初始化失败后一次恢复已通过exact gold/all16/health/idle。唯一Run269验证修正版greedy K1 MTP Graph，H11未入性能stack。最新现场用Run269 state/active_epoch/guards；下方Run267等是历史。见[checkpoint173](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT173.md)。
