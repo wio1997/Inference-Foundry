@@ -1,0 +1,30 @@
+# H13 dual target-bank lifecycle follow-up
+
+Offline 2026-10-07. No service/device/request action. Prior scoped review retained. This review examines the proposed implementation boundary, not a supported existing toggle or performance result.
+
+**Updated conclusion:** actual source does not prohibit two wrapper instances capturing the same raw model sequentially. The blanket argument “global registries exist, therefore two banks cannot work” is unsupported for current SFA. Two explicit wrappers/pools are a plausible narrow comparison mechanism, with the specific closure below still required.
+
+## Personally read boundaries
+
+* Base `stream_ordered_replay/original/breakable_cudagraph.py:269–329`: each wrapper owns its own entries dictionary; constructor defaults both to the global pool. The proposal must explicitly install distinct retained pool handles **before capture**, and wrap the same unwrapped model rather than wrap the first wrapper. A mode flag alone is not a bank.
+* Base capture353–404 binds self.graph_pool, retains a capture object and weak output tensors in each entry; replay407–426 calls that entry's capture and returns that entry's output. Independent pools avoid cross-bank reuse of the graph-private output/workspace addresses. Both wrappers/captures must remain strongly owned. Shared weights and persistent input buffers are deliberate and safe only with sequential idle-boundary selection and preserved fences, not concurrent replays.
+* Actual upstream GPUModelRunner.capture_model6814–6920 has no second-call guard and does **not** call clear_all_graphs on its normal path. It enables capture globally at6832, captures dispatcher descriptors, synchronizes, disables globally at6900, and locks workspace at6907. Wrapper clear_all_graphs calls seen at6561/6780 belong to other profiling/estimation paths: do not invoke those between bank captures.
+* `_warmup_and_capture`6930–6965 performs eager warmups, synchronizes auxiliary work, then calls actual dummy_run with is_graph_capturing=True. `_capture_cudagraphs` ends with maybe_remove_all_loras; current no-LoRA scope avoids an additional model-state difference.
+* Actual Ascend runner5513–5525 wraps upstream capture_model in `_torch_cuda_wrapper` and `_replace_gpu_model_runner_function_wrapper`. Preserve these contexts. Calling the upstream method naked is not proved equivalent on NPU. Initialize dispatcher keys once; runner5509's set_graph_params is one-shot (acl_graph327–330 explicitly raises if already initialized), but the plain second capture call does not reinitialize keys.
+* Ascend Breakable subclass54–76 sets forward_context.capturing for FULL and weakens registered workspaces; replay retains its current-stream sync and offloader fence through the base. Actual SFA update_graph_params556–566 is pass; neither inspected SFA nor sfa_cp source contains task-group/global-graph-parameter registration consumers. Therefore a concrete SFA task-handle cross-bank collision was **not** found. Do not import MLA's update machinery into this verdict.
+
+## Specific unresolved consumer, not a generic blocker
+
+The first capture calls `vllm.v1.worker.workspace.lock_workspace`. The supplied snapshots do not include that module's implementation. Need the actual `vllm/v1/worker/workspace.py`: determine whether a second same-shape warmup may use existing allocation, whether a new request grows/rebinds it, and whether lock is idempotent. Independent graph pools do not by themselves isolate this external allocator. Do not unlock/reset it after bank A, since graph A may retain its addresses. Candidate's smaller local preparation does not prove every model workspace request stays unchanged, although it is a reasonable expectation.
+
+Also require the concrete shim to preserve raw-model ownership, pool assignment and bank selection through get_model/unwrap rather than changing runner-visible tensor addresses. The model is shared; Python fields set during capture (such as prepare.self.num_tokens) end at bank B's dummy values. With identical descriptors both banks should record identical shape bookkeeping, but that should be asserted using the actual dummy path, not assumed for future dynamic descriptors.
+
+The capture-enable flag is not restored with a finally in upstream capture_model. A capture exception must abort this two-bank experiment and enter the one declared recovery, not continue requests with global capture still enabled or silently retry bank B.
+
+## Minimal CPU lifecycle oracle
+
+Execute actual wrapper __call__/capture/replay control flow and actual runner capture loop AST with graph/stream/pool doubles, rather than hand-written bank behavior. One identical BatchDescriptor, two raw-model wrappers with distinct pools: capture A under prepare0, B under prepare1; assert A entry/capture/output identity survives B; alternate A/B/A/B and prove raw model/prepare is not called on replay and returned output is the selected bank's output. Assert graph-enabled flag toggles and wrapper sync/offloader calls remain; assert no clear_all_graphs/reset/set_graph_params second invocation. Exercise capture-B failure as a terminal-invalid path. Track shared input/KV/metadata pointer identity separately from bank-private output ownership; inject delayed output consumption to ensure selection is only allowed at an idle boundary.
+
+Add actual workspace-manager AST once fetched to cover repeated lock and allocation behavior. This oracle can falsify wiring/lifetime mistakes; it cannot establish HCCL/NPUGraph allocator safety or exact output on hardware. Native correctness remains necessary if this design is adopted. No automatic expansion to an A/B Run is implied.
+
+The new CPU3888 validates local preparation semantics only. The highest-value question remains whether removal of global padded materialization reduces actual current-FULL critical work, not whether graph dictionaries can be built. Keep H6/H5, H11/H12 off and all current fences. Largest gain unknown; do not turn the original3.66–4.05ms inclusive family into predicted saving.

@@ -1,0 +1,17 @@
+# Actual-source dual-bank CPU lifecycle closure
+
+2026-10-07. `check_lifecycle_CPU.py` executed locally; `lifecycle_CPU_result.json` PASS. No torch/torch_npu import, network, service, or device request. Actual source hashes and detailed event log are in the result. This creates no production bank shim and no Run.
+
+Executed actual AST: WorkspaceManager allocation/lock, base BreakableCUDAGraphCapture and wrapper, current Ascend subclass capture/replay with H9 mode0, current NPUModelRunner.capture_model, and upstream GPUModelRunner capture_model/_warmup_and_capture/_capture_cudagraphs. Method bodies were not rewritten. Device graph/stream/pool/tensor allocation, logger/instrumentation, model and dummy_run are doubles. H9 recording I/O is intercepted.
+
+Actual workspace d0650393 has a concrete favorable contract: lock is an idempotent boolean set; equal/smaller requests return the same existing allocation; growth while locked throws before replacing the pointer. The oracle exercises these actual methods. No reset/unlock is needed or permitted between banks. This resolves the missing source question from the preceding review; it does not prove actual candidate native kernels request no new external workspace.
+
+Two wrapper objects reference the identical raw model with distinct pool handles. Under the same descriptor, both real capture loops run; B does not replace A's entry/capture/output. Four A/B/A/B calls return each bank's own output and do not execute raw model Python. NONE executes the model with current prepare selection. Four replay stream fences and offloader replay fences are observed; both successful captures retain offloader join and Ascend/base context behavior. The third injected-failure capture unwinds both Ascend runner contexts.
+
+A real source behavior needs controller handling: capture B exception leaves global capturing enabled, because upstream capture_model has no failure-finally reset. The oracle exposes this rather than concealing it. A separate proposed control gate then marks the lifecycle invalid and rejects bank selection. Likewise, a simulated outstanding consumer prevents selection until idle. These gates are requirements for a future controller, **not existing upstream guarantees**.
+
+Limitations: weak references are identity doubles; pools and tensors are synthetic. No allocator reclamation, actual HCCL capture, native stream timing, DCP/KV values, actual prepare implementation, asynchronous sampler or side-copy consumer is executed. The borrowed output must remain valid through real delayed consumers before an idle switch; the test proves proposed gate wiring, not device completion detection. One descriptor is tested, matching the intended bucket2 scope; additional dynamic buckets are not proved. GPU runner snapshot identity is explicitly recorded alongside newly extracted current Ascend sources.
+
+Conclusion: source/CPU lifecycle permits this narrowly scoped bank design; no source-level second-capture prohibition or workspace-lock blocker remains. Device correctness is still required if Root elects this design. Do not equate PASS with a supported production bank API, MC2 graph safety, or performance gain. H6/H5/FULL retained; no active experiment changed.
+
+Oracle construction encountered local fixture wiring errors (missing AST locations, dataclasses namespace, then actual class name NPUModelRunner); these were fixed before the passing result. No device operation occurred in any invocation.
