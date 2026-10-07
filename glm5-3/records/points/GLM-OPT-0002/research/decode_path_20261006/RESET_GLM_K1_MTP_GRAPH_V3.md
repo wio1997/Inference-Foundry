@@ -1,0 +1,11 @@
+# GLM K1 MTP Graph — complete diagnostic recording prerequisites
+
+Continue [v2 graph hypothesis/guards/decision table](RESET_GLM_K1_MTP_GRAPH_V2.md) unchanged, after [execution Goal Review](GOAL_REVIEW_MTP_DIAGNOSTIC_174.md). Production candidate963f02e57937474f7e545f648e1ac6e905ed898dd4d626d44f502e667492e194 remains unchanged. [Run269 first error](MTP_DIAGNOSTIC_RECORD_FAILURE_269.md) is diagnostic missing-directory creation before capture, not numerical evidence.
+
+Only observer changes: both capability and transition writes create their parent directories. Real observer AST/temporary filesystem/mmap CPU tests cover16 rank fixtures with0→1→0, immutable previous outputs, two-call CPU observation limit and independent runtime recording without load_model. Model/tensor/graph behavior is doubled; no actual NPU correctness inferred. Source5002f3ee… must match actual diagnostic shim.
+
+Run270 may start only after actual Run269 bounded recovery completion, exact gold, both roles health/idle/all16/H6H5, original controller dead/locks free, frozen source hashes and actual container CPU integration pass. Preflight creates/verifies only the new owned run's witnesses directory, so file-only staging cannot omit it. No changing old failed source/spec or replaying its controller.
+
+Same one active graph question, target FULL bucket2/H6H5/pure KV/API/library/parallel layout fixed. Budget one owned D reload and four existing normal PD requests: eager golden2334/8, graph same golden, graph58/natural23 EOS, terminal eager golden. At most one recovery reload and one golden warm if necessary. No profile, formal AISBench Run or parameter scan. All16 actual capture/replay, consumed address match, changing positions/seq/slots, owned output, exact IDs/content/usage/EOS, scheduler counters and native all16 KV success remain required.
+
+Correctness pass only → final selector0 pending separately frozen matched A/B/A/B complete PD. Missing replay/pointer or branch mismatch → preserve decisive actual evidence and continue code attribution. Initialization/capture/API/KV/ownership failure → preserve first error and bounded H6/H5/targetFULL/eager recovery, with no outcome-driven parameter retry. No H11 promotion or performance assertion from observer timing. Formal Current/API/SLA/stability/whole-stack gain remain separate; H6/H5 always retained.

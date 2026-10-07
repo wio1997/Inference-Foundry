@@ -1,3 +1,5 @@
+checkpoint174：[真实API观察器与最小MTP图诊断](research/decode_path_20261006/CHECKPOINT174.md)。Run269/270失败和各一次H6/H5/FULL恢复已closed；v4 actual context/proxy/production-run CPU及独立源码review通过。唯一Run271于08:47:04Z启动，speca7c3af23…/46pins，四固定小PD请求，尚无capture/性能结论。H6/H5保留，H11未入stack；现场以Run271 state/active_epoch/guards为准。AISBench cache隔离/GitHub同步完成。本阶段没有新增代码级性能 KEEP。
+
 checkpoint172: Run267 H10 NOT_APPLICABLE actual all16 async=true, baseline3 exact/KV pass and zero-request closure complete; H6/H5 retained, no candidate A/B. GoalReview172 accepts actual async output/queue PIVOT; current largest removable gap unknown. User cache residual concern is active: audit salts and missing P/D local measurements, isolate AISBench rounds and retain controlled93% prefix; no formal93% claim or new model request from this checkpoint. Historical status below is superseded.
 
 checkpoint173：[MTP图与cache隔离](research/decode_path_20261006/CHECKPOINT173.md)。Run268构造失败保留、H6/H5/FULL恢复通过；修正版唯一Run269 correctness进行中，无gain宣称。AISBench每轮salt/分端点命中已部署与GitHub同步，正式80K/600/93%条件另验。

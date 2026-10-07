@@ -1,0 +1,131 @@
+--- production_v2/llm_base_proposer.py
++++ diagnostic_v4/llm_base_proposer.py
+@@ -1007,6 +1007,9 @@
+                 and not scheduler_output.has_structured_output_requests
+             )
+ 
++        if self._glm_k1_graph:
++            use_call_graph = use_call_graph and bool(_h11_mode())
++
+         if use_call_graph:
+             _, batch_descriptor = self.runner.cudagraph_dispatcher.dispatch(
+                 num_tokens=num_tokens, uniform_decode=uniform_decode, has_lora=has_lora
+@@ -2541,3 +2544,118 @@
+             buf[num_actual_tokens:num_input_tokens].fill_(-1)
+         for buf in getattr(self, "_per_group_context_slot_mapping_buffers", {}).values():
+             buf[self._dflash_num_context :].fill_(-1)
++
++
++_H11_MAP = None
++_H11_LAST = None
++_H11_TRANSITION = 0
++_H11_ROWS = []
++
++def _h11_mode():
++    import mmap
++    global _H11_MAP
++    root = os.environ.get("GLM_MTP_GRAPH_DIAGNOSTIC_ROOT")
++    if root is None:
++        return 1
++    if _H11_MAP is None:
++        with open(root + "/mtp_graph_mode.bin", "rb") as source:
++            _H11_MAP = mmap.mmap(source.fileno(), 1, access=mmap.ACCESS_READ)
++    mode = _H11_MAP[0]
++    assert mode in (0, 1)
++    return mode
++
++_H11_PRODUCTION_RUN = AscendSpecDecodeBaseProposer._run_glm_k1_graph
++
++def _h11_observed_run(self, **kwargs):
++    global _H11_LAST, _H11_TRANSITION, _H11_ROWS
++    root = os.environ.get("GLM_MTP_GRAPH_DIAGNOSTIC_ROOT")
++    context = get_forward_context()
++    descriptor = context.batch_descriptor
++    before_mode = str(context.cudagraph_runtime_mode)
++    entry = self._glm_k1_acl.concrete_aclgraph_entries.get(descriptor)
++    had_graph = bool(entry is not None and entry.aclgraph is not None)
++    previous = self._glm_k1_contracts.get(descriptor)
++    mode = _h11_mode()
++    real = root is not None and kwargs.get("sampling_metadata") is not None and not kwargs.get("is_prefill", False) and kwargs["num_input_tokens"] == 2 and kwargs["batch_size"] == 1
++    if real and mode != _H11_LAST:
++        _H11_LAST = mode; _H11_TRANSITION += 1; _H11_ROWS = []
++    observe = real and len(_H11_ROWS) < 2
++    # Follow production's admission order. NONE must not acquire additional
++    # metadata/type requirements merely because a diagnostic is enabled.
++    full = context.cudagraph_runtime_mode == CUDAGraphMode.FULL
++    inspect_contract = observe and full and descriptor is not None and descriptor.uniform and descriptor.num_tokens == kwargs["num_input_tokens"]
++    signature = self._glm_k1_graph_contract(kwargs) if inspect_contract else None
++    admitted = signature is not None and (previous is None or signature == previous)
++    row = None
++    if observe:
++        steps = kwargs.get("multi_steps_attn_metadata", [])
++        values = list(steps[0].values()) if steps else []
++        reason = ("runtime_none" if not full else "descriptor_not_uniform_or_matching" if not inspect_contract
++                  else "unsupported_contract" if signature is None else "capture_signature_mismatch" if not admitted else None)
++        row = dict(num_tokens=kwargs["num_input_tokens"], batch=kwargs["batch_size"], mode=mode,
++            selected_runtime=before_mode, contract_nonempty=signature is not None,
++            matches_capture=signature is not None and signature==previous, had_graph=had_graph,
++            signature=signature, capture_signature=previous,
++            metadata_backends=[type(value).__name__ for value in values], fallback_reason=reason,
++            detailed_snapshot=admitted,
++            async_scheduling=self.runner.use_async_scheduling, greedy=self.runner.input_batch.sampling_metadata.all_greedy)
++        if admitted:
++            # A nonempty production contract has verified every value as
++            # SFA-DCP metadata, including its consumed decode fields.
++            metadata = values[0]
++            row.update(backend=type(metadata).__name__, num_decodes=metadata.num_decodes,
++            num_prefills=metadata.num_prefills, num_decode_tokens=metadata.num_decode_tokens,
++            positions=self._get_positions(2).to("cpu").tolist(), seq=metadata.seq_lens.to("cpu").tolist(),
++            slots=metadata.dcp_context.slot_mapping[:2].to("cpu").tolist(),
++            replicated_slots=metadata.slot_mapping[:2].to("cpu").tolist(),
++            local_seq=metadata.dcp_context.seq_lens.to("cpu").tolist(),
++            indices=kwargs["token_indices_to_sample"].to("cpu").tolist())
++    result = _H11_PRODUCTION_RUN(self, **kwargs)
++    if row is not None:
++        entry = self._glm_k1_acl.concrete_aclgraph_entries.get(descriptor)
++        row.update(graph_exists=bool(entry is not None and entry.aclgraph is not None),
++            actual_replay=bool(mode and had_graph and row["matches_capture"] and full),
++            replay_evidence="matching contract and production replay source branch; not standalone device proof")
++        if admitted:
++            row.update(output_shape=list(result.shape), draft_ids=result.to("cpu").tolist(),
++                owned_output=bool(entry is not None and entry.output is not None and result.data_ptr()!=entry.output.data_ptr()))
++        _H11_ROWS.append(row)
++        if len(_H11_ROWS)==2:
++            from pathlib import Path
++            import json
++            rank=get_tp_group().rank_in_group
++            record=dict(rank=rank,pid=os.getpid(),mode=mode,transition=_H11_TRANSITION,rows=_H11_ROWS,
++                proposer_sha256=__import__("hashlib").sha256(Path(__file__).read_bytes()).hexdigest(),
++                enforce_eager=self.speculative_config.enforce_eager,use_cuda_graph=self.use_cuda_graph,
++                H9_opt_in=bool(getattr(self.runner,"_glm_target_same_stream_replay",False)))
++            path=Path(root)/"witnesses"/("h11_mode%d_transition%d_rank%d.json"%(mode,_H11_TRANSITION,rank))
++            assert not path.exists(), "immutable diagnostic witness"
++            path.parent.mkdir(parents=True, exist_ok=True)
++            path.write_text(json.dumps(record)+"\n")
++    return result
++
++AscendSpecDecodeBaseProposer._run_glm_k1_graph = _h11_observed_run
++
++_H11_ORIGINAL_LOAD = AscendSpecDecodeBaseProposer.load_model
++
++def _h11_observed_load(self, model):
++    _H11_ORIGINAL_LOAD(self, model)
++    root = os.environ.get("GLM_MTP_GRAPH_DIAGNOSTIC_ROOT")
++    if root:
++        from pathlib import Path
++        import json
++        pc = self.vllm_config.parallel_config
++        row = dict(rank=get_tp_group().rank_in_group,pid=os.getpid(),eligible=self._glm_k1_graph,
++            use_cuda_graph=self.use_cuda_graph,method=self.method,K=self.num_speculative_tokens,
++            model_type=self.vllm_config.model_config.hf_config.model_type,
++            SP=enable_sp(self.vllm_config),compress=self.use_compress,probabilistic=self._enable_probabilistic_draft_probs,
++            LMHeadTP=lmhead_tp_enable(),parallel_drafting=self.parallel_drafting,
++            TP=pc.tensor_parallel_size,DCP=pc.decode_context_parallel_size,
++            metadata_builders=[type(group.get_metadata_builder()).__name__ for group in self.draft_attn_groups],
++            draft_layers=self.attn_layer_names,async_scheduling=self.runner.use_async_scheduling)
++        path=Path(root)/"witnesses"/("h11_capability_rank%d.json"%row["rank"])
++        assert not path.exists()
++        path.parent.mkdir(parents=True, exist_ok=True)
++        path.write_text(json.dumps(row)+"\n")
++
++AscendSpecDecodeBaseProposer.load_model = _h11_observed_load

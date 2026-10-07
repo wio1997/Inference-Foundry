@@ -1,0 +1,9 @@
+# Run270 context failure and bounded closure
+
+Actual candidate raw first error08:28:41Z is `_EXTRA_CTX.num_actual_tokens` in the diagnostic observer, called by memory profiling `profile_run → drafter.dummy_run`. The real strict extra proxy rejects that name; the base ForwardContext also has no such field. The setter's parameter is local preparation information, not a persisted context attribute. All16 static capability records are positive, but no actual capture/replay or candidate request occurred.
+
+One planned baseline recovery completed08:37:11Z, exact2334/8 gold, both roles healthy/idle/all16, H6/H5 retained, H11off. Original failed controller/spec/raw remain. See [terminal reduction](../../runs/GLM-RUN-0270/initialization_reduced.json).
+
+Root's previous CPU fixture fabricated a field absent from the API and missed this failure. Observer v4 uses actual `_propose` sampling_metadata kwargs to distinguish real requests from dummy/profile/capture; it does not infer eligibility from that distinction. It uses actual ForwardContext and strict proxy AST in CPU integration. Independent review also found unconditional SFA metadata reads on lawful fallback; v4 now follows production's runtime/descriptor admission order, skips contract evaluation on NONE, and emits compact fallback rows without tensor D2H on unsupported metadata or signature mismatch.
+
+Production candidate v2 is unchanged963f02e5…; observer v4 is8f037c03…. Local and real-container CPU checks pass16 lifecycle cases,9 fallback cases,4 actual dummy/profile/capture kwargs cases, real filesystem/mmap, both missing-directory writers and immutable observation limit. Model/tensors/graph are doubles; no NPU correctness or timing conclusion. Detailed snapshots synchronize, so only excluded correctness warmups may use them. Replay flag is source-path evidence, combined later with completed output and exact eager/graph PD agreement.

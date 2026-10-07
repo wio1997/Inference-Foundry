@@ -1,5 +1,7 @@
 # GLM代码性能账本
 
+checkpoint174：[真实API观察器与最小MTP图诊断](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT174.md)。Run269/270失败和各一次H6/H5/FULL恢复已closed；v4 actual context/proxy/production-run CPU及独立源码review通过。唯一Run271于08:47:04Z启动，speca7c3af23…/46pins，四固定小PD请求，尚无capture/性能结论。H6/H5保留，H11未入stack；现场以Run271 state/active_epoch/guards为准。AISBench cache隔离/GitHub同步完成。本阶段没有新增代码级性能 KEEP。
+
 checkpoint173：[MTP graph诊断](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT173.md)进行中。Run268构造defect原FAILED、零candidate请求/capture，一次H6/H5/FULL恢复完成。修正版actual ctor CPU与独立review通过，唯一Run269验证all16 capture/replay，尚无设备正确性/性能裁决。AISBench跨轮salt/分端点计数是benchmark correctness，已部署与GitHub同步。本阶段没有新增代码级性能 KEEP。
 
 checkpoint171：H6/H5研究栈继续保留；[Run266 H9](records/points/GLM-OPT-0002/runs/GLM-RUN-0266/summary.md)完整matched收益不重复，H9off。原controller跨host收尾失败保留，独立terminal reconciliation completed，总21请求。下一唯一H10贪心padded MTP提前提交source/CPU通过、Run267准备中，未安装/未获性能收益。本阶段没有新增代码级性能 KEEP。

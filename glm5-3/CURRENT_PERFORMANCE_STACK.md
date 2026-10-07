@@ -1,5 +1,7 @@
 # CURRENT_PERFORMANCE_STACK
 
+checkpoint174：[真实API观察器与最小MTP图诊断](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT174.md)。Run269/270失败和各一次H6/H5/FULL恢复已closed；v4 actual context/proxy/production-run CPU及独立源码review通过。唯一Run271于08:47:04Z启动，speca7c3af23…/46pins，四固定小PD请求，尚无capture/性能结论。H6/H5保留，H11未入stack；现场以Run271 state/active_epoch/guards为准。AISBench cache隔离/GitHub同步完成。本阶段没有新增代码级性能 KEEP。
+
 checkpoint173：H6/H5保留；Run268初始化失败后一次恢复已通过exact gold/all16/health/idle。唯一Run269验证修正版greedy K1 MTP Graph，H11未入性能stack。最新现场用Run269 state/active_epoch/guards；下方Run267等是历史。见[checkpoint173](records/points/GLM-OPT-0002/research/decode_path_20261006/CHECKPOINT173.md)。
 
 2026-10-07按用户新裁决分开研究stack和最终产品stack。研究候选通过correctness、matched A/B/A/B及可重复完整PD E2E后保留，后续以旧stack对旧stack+patch比较；完整API/正式SLA未验收不构成撤回所有有效patch或停止研究的理由。历史正式promotion决定保留，下方历史“stack空”不能再作为当前研究策略。
