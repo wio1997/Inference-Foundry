@@ -4,8 +4,8 @@
 
 | 入口 | 用途 | 当前状态 |
 |---|---|---|
-| [4P2D性能基线](baselines/4p2d/README.md) | 固定代码与部署，测C16/C32/C64/C96及SLA，作为后续改动的比较基准 | 待部署及测量，无性能数值 |
-| [q1首步导致全局NONE](issues/pd-q1-global-none/README.md) | 保存2P2D上发现的触发链、证据、反证和未知 | 触发机制已确认，修复未验证 |
+| [4P2D性能基线](baselines/4p2d/README.md) | 固定代码与部署，测C16/C32/C64/C96及SLA，作为后续改动的比较基准 | 已记录多轮测试；性能与 SLA 结论见基线页 |
+| [q1首步导致全局NONE](issues/pd-q1-global-none/README.md) | 保存2P2D上发现的触发链、证据、反证和未知 | 触发机制已确认，修复未验证；[证据与复算](issues/pd-q1-global-none/EVIDENCE_INDEX.md) |
 
 基线测量不加入q1修复或其他新优化。后续修复在同一4P2D合同下比较，并在问题专题链接基线与修复后Run。新通信模式也另列候选，不覆盖原基线。
 
