@@ -11,6 +11,7 @@
 - [组合试验：P12288 + D MTP3，吞吐下降、未通过SLA](experiments/p12288-dmtp3/REPORT.md)
 - [隔离对照：P12288 + D MTP5，仅追回部分性能、仍未通过SLA](experiments/p12288-dmtp5/REPORT.md)
 - [限时配置筛选：FlashComm/shared-DP、fused MC2 与共享专家重叠](experiments/quick-config-20261008/REPORT.md)
+- [C48快测：按最新TTFT P50<5秒判定，仍未通过；含全程/稳态及缓存数据](experiments/c48-ttft5-20261008/REPORT.md)
 - [调优方案与本轮限时执行范围](TUNING_PLAN.md)
 - [已完成：C64 1024 请求、六机设备与服务瓶颈采证（无重启）](diagnostics/c64-1024-no-restart/REPORT.md)
 - [完整性能报告、节点参与情况与参数优化建议](PERFORMANCE_REPORT.md)
