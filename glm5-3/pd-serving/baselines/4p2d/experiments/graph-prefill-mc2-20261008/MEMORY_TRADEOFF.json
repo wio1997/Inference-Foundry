@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "comparison": {
+    "baseline": {
+      "role": "P",
+      "scope": "P0 only; baseline memory-breakdown values are not fleet-wide measurements",
+      "HCCL_BUFFSIZE_MB": 400,
+      "enable_prefill_mc2": false,
+      "available_kv_cache_gib": 30.85,
+      "kv_capacity_tokens_per_dp_engine": 352896,
+      "profile_memory_gib": {
+        "weights": 21.58,
+        "peak_activation": 0.86,
+        "non_torch": 1.85
+      }
+    },
+    "candidate": {
+      "role": "P",
+      "scope": "Four candidate P nodes verified; reported token capacity is per DP engine, not a summed fleet total",
+      "verified_node_count": 4,
+      "HCCL_BUFFSIZE_MB": 4096,
+      "enable_prefill_mc2": true,
+      "available_kv_cache_gib_range": [
+        22.52,
+        22.52
+      ],
+      "kv_capacity_tokens_per_dp_engine": 257536,
+      "profile_memory_gib": {
+        "weights": 21.58,
+        "peak_activation": 1.98,
+        "non_torch_range": [
+          9.06,
+          9.07
+        ]
+      }
+    },
+    "observed_differences": {
+      "kv_capacity_tokens_per_dp_engine": -95360,
+      "kv_capacity_percent_change": -27.02212549873051,
+      "peak_activation_gib_delta": 1.12,
+      "non_torch_gib_delta_range": [
+        7.210000000000001,
+        7.220000000000001
+      ],
+      "available_kv_cache_gib_delta_range_vs_baseline_P0": [
+        -8.33,
+        -8.32
+      ]
+    }
+  },
+  "startup_history": {
+    "initial_mc2_only_attempt": "failed before workload due to insufficient HCCL buffer allocation",
+    "reported_required_buffer_mb": 3297,
+    "old_buffer_mb": 400,
+    "measured_candidate_buffer_mb": 4096,
+    "candidate_changes": "enable_prefill_mc2 and HCCL_BUFFSIZE; P token budget unchanged at 12288"
+  },
+  "interpretation_limits": [
+    "The candidate changes MC2 and HCCL_BUFFSIZE together; these data do not isolate either setting as the cause of the memory differences.",
+    "Baseline memory breakdown was verified only on P0, while candidate capacity was checked on four P nodes; the scopes are not fully matched.",
+    "Candidate capacity is stated per DP engine. Do not sum the four values as an independently verified global serving capacity.",
+    "Memory figures are startup/profile log observations; they do not establish steady-state memory pressure or performance impact."
+  ],
+  "evidence_sha256": {
+    "baseline_hccl_snapshot": "a3b169d9b01eb3f8b8991c74c6c8e92ba011765c8800111d6e20e11e3ad1cdf7",
+    "candidate_capacity_snapshot": "9264315a25c35db8eae677c32e8f3073b76b259af7fc69406b6409aabbf95a15",
+    "candidate_serving_verification": "fe6a448b4165ff99417d79fabc4a29ace4ae2a0e57ca6816a37abed8e95dfd32"
+  },
+  "raw_logs_or_runtime_source_published": false,
+  "hostnames_ips_pids_or_private_paths_published": false
+}

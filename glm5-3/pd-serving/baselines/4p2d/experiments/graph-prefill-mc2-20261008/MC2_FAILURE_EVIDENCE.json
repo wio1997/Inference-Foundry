@@ -1,0 +1,38 @@
+{
+  "evidence_type": "redacted_initial_startup_failure_summary",
+  "source_archive_sha256": "d29966c1548d987b34e0c7fd5d8c291480d7f504ae7f17fa85d0652154611e5e",
+  "scope": "Initial P prefill-MC2 startup/profile attempt only",
+  "result": {
+    "affected_p_nodes": 4,
+    "node_logs_with_same_error": 4,
+    "matching_log_occurrences_per_node_log": 33,
+    "note": "Occurrence counts are repeated log lines across worker messages, not independent startup attempts."
+  },
+  "failure": {
+    "operator": "npu_moe_distribute_dispatch_v2 -> aclnnMoeDistributeDispatchV4",
+    "error_code": 561002,
+    "message_class": "HCCL_BUFFSIZE_EP too small; tiling window check failed",
+    "maxBs": 512,
+    "hidden_size": 6144,
+    "ep_world_size": 64,
+    "local_moe_experts": 4,
+    "shared_experts": 0,
+    "top_k": 8,
+    "needed_hccl_buffer_mb": 3297,
+    "reported_hccl_buffer_mb": 400,
+    "reported_actual_ccl_buffer_mb": 400
+  },
+  "source_profile_entry": {
+    "module": "model_runner_v1.py",
+    "function": "profile_run",
+    "lines": "3714-3730",
+    "behavior": "When max_num_tokens exceeds MC2 capacity and the selected communication method at that capacity is MC2/FUSED_MC2, profile_run invokes a prefill dummy run at the MC2 capacity before the base profile run."
+  },
+  "interpretation_limits": [
+    "This proves the initial 400 MB buffer was insufficient for the captured MC2 profiling shape.",
+    "It does not prove MC2 is generally unsupported at EP64.",
+    "It does not prove startup or inference will succeed with a 4096 MB HCCL_BUFFSIZE setting.",
+    "It does not establish the memory allocation scope or post-increase KV-cache capacity."
+  ],
+  "redaction": "No IPs, process IDs, raw environment dumps, or full internal paths are included."
+}
