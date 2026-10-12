@@ -1,6 +1,6 @@
 # GLM-PLAN-0001：建立可校准的真实片段
 
-状态：`DESIGNED / REAL_FIXTURE_MISSING`。没有新增设备 Run 或性能收益。
+状态：**可选草案，未排期**；真实 fixture 缺失，没有新增设备 Run 或性能收益。仅在选中的性能问题需要独立片段时采用；当前研究不以完成本草案为前置条件，下一决定见 [HANDOFF](../HANDOFF.md)。
 
 ## 决策问题
 
