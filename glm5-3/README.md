@@ -10,7 +10,7 @@
 | [MISSION](MISSION.md) | 目标、探索空间与成功标准 |
 | [HANDOFF](HANDOFF.md) | 当前事实、未知项与下一决定 |
 
-[PLAN](PLAN.md)、[RECORDING](RECORDING.md)、[REUSE](REUSE.md) 是按需参考；普通修改不要求通读。新会话可使用[恢复提示](docs/START_NEW_CHAT.md)。
+[PLAN](PLAN.md) 说明如何用可行边界、最优值上下界和信息价值选择研究；[RECORDING](RECORDING.md)、[REUSE](REUSE.md) 提供证据与复用提示。它们均为按需参考，普通修改不要求通读。新会话可使用[恢复提示](docs/START_NEW_CHAT.md)。
 
 ## 已有工具与证据
 
