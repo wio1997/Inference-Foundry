@@ -2,7 +2,7 @@
 
 本页记录 GLM-5.3 W8A8 在 Ascend 910C 上接入 Ascend MemCache 的部署方法。目标负载为 **80,000 输入 token、600 输出 token**。现场地址、SSH 凭据和权重访问地址不入库；命令中的角色地址由部署者填写。
 
-**验证状态（2026-10-14）**：原 2P2D 已完成 80K/600 与 L3 回放验证。管理通道已恢复，新 4P2D 的64个P worker完成SDK预热，D仍在初始化排查。D静态显存比例保持 **0.90**；0.80候选未执行且已取消。当前重试为Decode `low_latency`、MoE缓冲650MB、TP/Attention缓冲64MB、任务队列1；尚未完成新拓扑实际请求验收。原2P2D数字只代表历史结果。详见 [验证快照](deployment/ascend_memcache/validation-20261014.json)。
+**验证状态（2026-10-14）**：指定 **4P2D（P EP64 / DP4 / attention TP16，D EP32 / DP16 / attention TP2）** 已完成80,000输入/600输出冷请求和清除L1/L2后的跨P节点L3回放，实际输出、HTTP/SSE与验证密钥均通过。D静态显存比例保持 **0.90**，Ascend DSA index预算缺陷已修复；0.80候选未执行。四个DDR提供者、64个P worker SDK预热及六台96个NPU die健康检查通过。服务在交付时保持运行。这里只验收一次固定合成请求对，不代表16并发吞吐或SLO。详见 [验证快照](deployment/ascend_memcache/validation-20261014.json)。
 
 ## 1. 拓扑与 SGLang 参数
 
@@ -60,6 +60,9 @@ KIT=/workspace/glm5-3-sglang/deployment/ascend_memcache
 bash "$KIT/fix_sonames.sh"
 python3 "$KIT/patches/mc-apply-patch.py" \
   --sglang-root /sgl-workspace/sglang/python/sglang
+# Ascend DSA index显存预算修复：固定源码SHA，保存原文件，拒绝未知版本。
+python3 "$KIT/fix_ascend_dsa_budget.py" \
+  --source /sgl-workspace/sglang/python/sglang/srt/model_executor/pool_configurator.py
 # 再执行一次应报告所有修改已存在，不能继续重复添加。
 python3 "$KIT/patches/mc-apply-patch.py" \
   --sglang-root /sgl-workspace/sglang/python/sglang
@@ -218,7 +221,7 @@ python3 -m sglang.launch_server \
   --reasoning-parser glm45 --watchdog-timeout 3600
 ```
 
-`D_RANK` 为0/1；D0是leader。D保留静态显存比例0.90，独立使用Decode的`low_latency`通信配置；每rank dispatch上限32。每DP的KV容量必须覆盖80,000输入加600输出，并以真实请求验证。DP16不代表已完成16并发长请求的容量验收。
+`D_RANK` 为0/1；D0是leader。实际工作点为静态显存比例0.90、Decode `low_latency`、MoE650MB/TP与Attention64MB、任务队列1、每rank dispatch上限32。预算修复后每个D分组容量为186368token，KV约19.08GiB，分配后空闲约6.1GiB；已经过80K/600真实请求验证。DP16不代表已完成16并发长请求的容量验收。
 
 ## 8. Router 与启动顺序
 
@@ -250,23 +253,42 @@ python3 "$KIT/peer_metrics.py" \
 
 64个TP进程的计数不可直接相加当作逻辑token数；需按参与当前请求的TP归一化。跨机墙钟可能有偏差，TTFT与总时间由同一客户端 `time.monotonic` 测量。
 
-已完成的**原2P2D**一次固定合成请求：冷TTFT34.923s、总318.578s；L3回放TTFT3.862s、总285.910s；命中79,872token、新prefill128token。600输出完成，nonce正确，L3读写计数与日志互相印证。**这只证明该负载流程与L3回放可用，不构成多轮吞吐或4P2D收益结论。**
+本次指定4P2D的单请求实测如下，计时来自同一客户端的`time.monotonic`：
+
+| 条件 | 实际输入/输出token | TTFT | 完整请求时间 |
+|---|---:|---:|---:|
+| 冷请求 | 80000 / 600 | 46.5966s | 214.6486s |
+| 清除L1/L2后的L3回放 | 80000 / 600 | 9.5940s | 177.1510s |
+
+冷请求由P3完整计算80000token；回放由另一物理P节点P1命中79872token，只新增计算128token。冷请求完成L3写入增量80000；回放L3读取计数增量1277952，按attention TP16归一化为79872，与日志一致。两次request SHA256均为`cd65d7a9067f48b1fbcce65718a139be692a8f12fdd8bb7539cff7428e8e41c8`，HTTP200、SSE结束、实际600输出及生成文本中的验证密钥全部通过。TTFT比值4.8568×，这里只描述本次回放；每条件n=1，不是多轮吞吐结论。
+
+历史原2P2D单请求记录仍保存在验证快照：冷TTFT34.923s、总318.578s，L3回放TTFT3.862s、总285.910s。拓扑不同，不作为本次4P2D收益的对照组。
 
 新4P2D首启观察：P的64个模型进程分别完成MemCache SDK warmup；D每进程权重约35.63GB，KV池204288token/约20.91GB，比例0.90。首次 `aclnnNotifyDispatch` 的HCCL动态分配失败，报请求2098200576字节；随后SGLang清理进程产生137/3退出码，容器 `OOMKilled=false`。这不能读作完整服务启动成功。
 
-D保留0.90。随后low_latency、所有域650MB、任务队列2时，GroupedMatmul工作区申请28MiB失败，空闲仅31.79MiB；任务队列0也未完成初始化，随后记录动态内存错误。当前将MoE650MB与TP/Attention64MB分开，采用任务队列1重新检验。该候选尚未通过，不能写成启动成功。
+随后low_latency、所有域650MB、任务队列2时，GroupedMatmul工作区申请28MiB失败，空闲仅31.79MiB；任务队列0也未完成初始化，随后记录动态内存错误。将MoE650MB与TP/Attention64MB分开并采用任务队列1后，4P2D先通过小请求；进一步修复NPU index预算后完整重启，完成上面的80K/600与L3验收。通信配置与队列调整没有单变量拆开测量，不能分别宣称其性能贡献。
+
+### 修复是否包含模型硬编码
+
+本次容量修复没有新增GLM模型名判断，也没有把78层、128维、512维或186368token写入运行时计算。`index_head_dim`仍由模型配置取得，`kv_size`由KV dtype取得，有效层数沿用现有分层计算；Ascend且未启用HiSparse时，index预算改为`index_head_dim * kv_size * effective_num_layers`。容量仍由实际显存预算计算，D静态显存比例保持0.90。上述具体维度和容量仅是本次现场的验证值。
+
+安装脚本固定原源码SHA及替换锚点，以拒绝未知版本并支持备份、重复执行；这是版本保护。650/64MB通信缓存、任务队列1和P/D拓扑属于显式部署参数，并非自动调优结果。兼容性只验证了本文固定源码和Ascend非HiSparse路径；升级SGLang或切换pool实现时，需要重新核对实际分配方式。
 
 ### 从 vLLM 迁移时的显存预算差异
 
 vLLM Ascend的`determine_available_memory`先执行`profile_run`，按非KV内存计算余量；本镜像SGLang的`KVCacheConfigurator._profile_available_bytes`按当时空闲显存减去静态比例预留量。因此相同逻辑拓扑和相近比例不能保证相同KV预算，首次通信与算子动态分配还要实际核对。融合MoE与分离的DeepEP/GroupedMatmul路径也不能仅按EP/DP/TP数字视为同一工作点。
 
-本镜像已核对：NPU的`moe_ep`为独立通信组，`DEEPEP_HCCL_BUFFSIZE`用于default/MoE组显式配置，其他组使用`HCCL_BUFFSIZE`；D的小batch通信域可以独立预算。上面的650/64MB是当前验证候选，不是所有模型和负载的通用最优值。当前还未有80K/600的新拓扑证据。
+本镜像已核对：NPU的`moe_ep`为独立通信组，`DEEPEP_HCCL_BUFFSIZE`用于default/MoE组显式配置，其他组使用`HCCL_BUFFSIZE`；D的小batch通信域可以独立预算。上面的650/64MB是本次通过的工作点，不是所有模型和负载的通用最优值。
+
+已定位本镜像的DSA index预算缺陷：默认容量计算沿用GPU的128B量化index加4B scale，而`NPUMLATokenToKVPool`实际使用BF16×128维，即256B。78层每token少计9672B；204416token时少计1.8413GiB。实际分配加一paddingpage为20.9211GiB，与日志20.92GiB一致。[修复脚本](deployment/ascend_memcache/fix_ascend_dsa_budget.py)为Ascend/非HiSparse路径使用真实index dtype字节数，GPU/HiSparse分支保留原计算。原源SHA为`2a38f9aeaad230e4b511861738b972ed9bbde507e72dfa579229a6a9cb197fb3`，修复后为`9eea6885eeb86936f094239eade5d340cdfc8d0274b02eeb07218010e26b0c6b`；六台实际源SHA一致，修复后D容量186368token、KV约19.08GiB，分配后空闲约6.13–6.37GiB，与精确字节预算吻合；80K/600与跨P节点L3回放均已通过。
+
+这里的Ascend MLA池是NPU显存中的L1 KV/index缓存；Host HiCache是主机RAM中的L2；Ascend MemCache独立DDR提供者构成共享L3。它们是不同层次的缓存，模型权重另从本地NVMe加载。
 
 ## 10. R0129/R0130 的迁移边界
 
 历史vLLM实验对PD地址描述符施加range cap；已测的64KiB对256KiB有较低搬运延迟，在原80K/60K输出、cc16负载中也观察到TTFT与吞吐改善。当前SGLang使用MemFabricSDMA，原连接器、超时变量和性能数字不能直接迁移。
 
-本次4P2D初始cap=0，保留原描述符；观察真实搬运bytes、段数、构造耗时、SDK调用耗时与返回值。若传输占比值得优化，再做单独的64KiB对照，固定请求、缓存状态、拓扑、SDK和解码策略。64KiB是候选值，不是当前SGLang已验证的最优值。原多线程分片K=4曾在真实vLLM实验中严重退化并失败，本次不引入。
+本次4P2D保持cap=0，保留原描述符；请求窗口捕获46条SDMA调用，全部ret=0，单调用最大883.336ms。记录真实搬运bytes、段数、构造耗时、SDK调用耗时与返回值。若传输占比值得优化，再做单独的64KiB对照，固定请求、缓存状态、拓扑、SDK和解码策略。64KiB是候选值，不是当前SGLang已验证的最优值。原多线程分片K=4曾在真实vLLM实验中严重退化并失败，本次不引入。
 
 ## 11. 停止与回滚
 
