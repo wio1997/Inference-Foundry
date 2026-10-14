@@ -270,6 +270,8 @@ python3 "$KIT/peer_metrics.py" \
 
 ### 修复是否包含模型硬编码
 
+**上游核对（2026-10-14）**：本镜像的原始`pool_configurator.py` SHA与上游`c5bd3d7dce7623b8d2ffe3e662d3fd5198e6f4ba`（2026-07-30）文件完全一致。上游已在2026-09-10合并的 [PR #38250](https://github.com/sgl-project/sglang/pull/38250) / commit `3ff226ba8f869cc83fdb68bd8bb2949f25ea58a0` 中增加NPU非FP8 index按真实dtype估算的逻辑；本次查询的 [main `7b53a134`](https://github.com/sgl-project/sglang/blob/7b53a134016c23f554647534a3b4f78d4ea055e1/python/sglang/srt/model_executor/pool_configurator.py#L548) 和 [v0.5.21](https://github.com/sgl-project/sglang/blob/v0.5.21/python/sglang/srt/model_executor/pool_configurator.py#L486) 均包含该修复。本文补丁是针对旧镜像的最小回补，不应作为最新主线仍存在同一BF16缺陷的新发现；未对最新版本做现场完整部署验证。
+
 本次容量修复没有新增GLM模型名判断，也没有把78层、128维、512维或186368token写入运行时计算。`index_head_dim`仍由模型配置取得，`kv_size`由KV dtype取得，有效层数沿用现有分层计算；Ascend且未启用HiSparse时，index预算改为`index_head_dim * kv_size * effective_num_layers`。容量仍由实际显存预算计算，D静态显存比例保持0.90。上述具体维度和容量仅是本次现场的验证值。
 
 安装脚本固定原源码SHA及替换锚点，以拒绝未知版本并支持备份、重复执行；这是版本保护。650/64MB通信缓存、任务队列1和P/D拓扑属于显式部署参数，并非自动调优结果。兼容性只验证了本文固定源码和Ascend非HiSparse路径；升级SGLang或切换pool实现时，需要重新核对实际分配方式。
