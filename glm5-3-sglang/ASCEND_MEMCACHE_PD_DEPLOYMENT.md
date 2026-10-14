@@ -2,7 +2,7 @@
 
 本页记录 GLM-5.3 W8A8 在 Ascend 910C 上接入 Ascend MemCache 的部署方法。目标负载为 **80,000 输入 token、600 输出 token**。现场地址、SSH 凭据和权重访问地址不入库；命令中的角色地址由部署者填写。
 
-**验证状态（2026-10-14）**：原 2P2D 已完成 80K/600 冷请求和清除 L1/L2 后的 L3 回放验证。用户指定的4P2D完成四个DDR提供者与64个P进程的SDK预热，D权重和KV池分配完成，但首次DeepEP通信因HCCL动态内存不足退出；D显存比例0.80的下一版尚未启动。随后现场管理通道在SSH握手前断开，**无法确认当前服务可用，也未完成新拓扑80K/600验收**。原2P2D数字是已测历史结果，不代表4P2D性能。详见 [验证快照](deployment/ascend_memcache/validation-20261014.json)。
+**验证状态（2026-10-14）**：原 2P2D 已完成 80K/600 与 L3 回放验证。管理通道已恢复，新 4P2D 的64个P worker完成SDK预热，D仍在初始化排查。D静态显存比例保持 **0.90**；0.80候选未执行且已取消。当前重试为Decode `low_latency`、MoE缓冲650MB、TP/Attention缓冲64MB、任务队列1；尚未完成新拓扑实际请求验收。原2P2D数字只代表历史结果。详见 [验证快照](deployment/ascend_memcache/validation-20261014.json)。
 
 ## 1. 拓扑与 SGLang 参数
 
@@ -198,6 +198,10 @@ python3 -m sglang.launch_server \
 D不启用 HiCache L3。P负责前缀缓存，D保留原生PD接收路径；本次先使用 eager、无MTP，不同时改变推测解码与传输策略。
 
 ```bash
+export HCCL_BUFFSIZE=64
+export DEEPEP_HCCL_BUFFSIZE=650
+export TASK_QUEUE_ENABLE=1
+unset DEEPEP_NORMAL_LONG_SEQ_ROUND DEEPEP_NORMAL_LONG_SEQ_PER_ROUND_TOKENS DEEPEP_NORMAL_COMBINE_ENABLE_LONG_SEQ
 export SGLANG_DEEPEP_NUM_MAX_DISPATCH_TOKENS_PER_RANK=32
 python3 -m sglang.launch_server \
   --model-path /model --trust-remote-code --device npu --attention-backend ascend \
@@ -207,14 +211,14 @@ python3 -m sglang.launch_server \
   --nnodes 2 --node-rank "$D_RANK" --dist-init-addr "${D_HEAD}:29836" --dist-timeout 3600 \
   --host "$NODE_IP" --port 31401 --served-model-name glm-5.3-pd \
   --disaggregation-mode decode --disaggregation-transfer-backend ascend \
-  --context-length 98304 --mem-fraction-static "${D_MEM_FRACTION:-0.80}" \
+  --context-length 98304 --mem-fraction-static "${D_MEM_FRACTION:-0.90}" \
   --max-running-requests 16 \
-  --moe-a2a-backend deepep --deepep-mode normal \
+  --moe-a2a-backend deepep --deepep-mode low_latency \
   --disable-cuda-graph --disable-shared-experts-fusion \
   --reasoning-parser glm45 --watchdog-timeout 3600
 ```
 
-`D_RANK` 为0/1；D0是leader。0.80是本次拓扑的显存预算起点（0.90首启时虽有204288token的KV池，但DeepEP NotifyDispatch随后申请约2GB HCCL内存失败，需为动态通信留余量），实际启动后检查每DP的KV容量能覆盖80,000输入加600输出；不能只依据 HTTP `/health` 判为可用。DP16也不代表已完成16并发长请求的容量验收。
+`D_RANK` 为0/1；D0是leader。D保留静态显存比例0.90，独立使用Decode的`low_latency`通信配置；每rank dispatch上限32。每DP的KV容量必须覆盖80,000输入加600输出，并以真实请求验证。DP16不代表已完成16并发长请求的容量验收。
 
 ## 8. Router 与启动顺序
 
@@ -250,7 +254,13 @@ python3 "$KIT/peer_metrics.py" \
 
 新4P2D首启观察：P的64个模型进程分别完成MemCache SDK warmup；D每进程权重约35.63GB，KV池204288token/约20.91GB，比例0.90。首次 `aclnnNotifyDispatch` 的HCCL动态分配失败，报请求2098200576字节；随后SGLang清理进程产生137/3退出码，容器 `OOMKilled=false`。这不能读作完整服务启动成功。
 
-下一版保留EP/DP/attention TP，只将D的KV静态显存预算降到0.80，为通信分配留余量；**该配置尚未启动、容量与请求未验证**。管理通道恢复后，先核对全部进程、保持Meta直到所有DDR提供者正常close，再完整重启新cohort；通过实际拓扑/容量检查后才执行80K/600和L3回放。需保存每个DP的容量、逐请求结果、缓存日志与L3计数，才能补充本节的通过结果。
+D保留0.90。随后low_latency、所有域650MB、任务队列2时，GroupedMatmul工作区申请28MiB失败，空闲仅31.79MiB；任务队列0也未完成初始化，随后记录动态内存错误。当前将MoE650MB与TP/Attention64MB分开，采用任务队列1重新检验。该候选尚未通过，不能写成启动成功。
+
+### 从 vLLM 迁移时的显存预算差异
+
+vLLM Ascend的`determine_available_memory`先执行`profile_run`，按非KV内存计算余量；本镜像SGLang的`KVCacheConfigurator._profile_available_bytes`按当时空闲显存减去静态比例预留量。因此相同逻辑拓扑和相近比例不能保证相同KV预算，首次通信与算子动态分配还要实际核对。融合MoE与分离的DeepEP/GroupedMatmul路径也不能仅按EP/DP/TP数字视为同一工作点。
+
+本镜像已核对：NPU的`moe_ep`为独立通信组，`DEEPEP_HCCL_BUFFSIZE`用于default/MoE组显式配置，其他组使用`HCCL_BUFFSIZE`；D的小batch通信域可以独立预算。上面的650/64MB是当前验证候选，不是所有模型和负载的通用最优值。当前还未有80K/600的新拓扑证据。
 
 ## 10. R0129/R0130 的迁移边界
 
@@ -271,3 +281,6 @@ python3 "$KIT/peer_metrics.py" \
 - [SGLang Ascend GLM-5.2 部署教程](https://github.com/sgl-project/sglang/blob/main/docs/docs/hardware-platforms/ascend-npus/model-deployment/tutorials/glm_5_2.mdx)：架构与Ascend PD部署参考；不能把GLM-5.2的结果当作本模型验收。
 - [Ascend MemCache](https://gitcode.com/Ascend/memcache)：SDK与分布式KV存储引擎。
 - [SGLang MemCache接入PR26043](https://github.com/sgl-project/sglang/pull/26043)：本次固定源版本的基础，尚不代表所有SGLang版本均可直接安装使用。
+
+- [vLLM Ascend KV预算实现](https://github.com/vllm-project/vllm-ascend/blob/main/vllm_ascend/worker/worker.py)。
+- [SGLang Ascend环境变量](https://github.com/sgl-project/sglang/blob/main/docs/docs/hardware-platforms/ascend-npus/reference/environment_variables.mdx)。
