@@ -41,7 +41,7 @@ bash run_glm_aisbench_prefix.sh plan
 bash run_glm_aisbench_prefix.sh check --out /work/aisbench-kit-offline-check-01
 ```
 
-`plan`只打印测试口径。`check`使用合成SSE片段验证当前安装AISBench的配置/缓存字段/流式usage捕获，不发送模型HTTP请求。
+`plan`只打印测试口径。`check`使用合成SSE片段验证当前安装AISBench的配置/缓存字段/流式usage捕获，不发送模型HTTP请求。`run`准备数据后，还会通过安装的AISBench数据加载器逐组加载全部448条并核对SHA，成功后才开始任何冒烟/预热请求。
 
 真实MemCache元数据审计需要在有相同SDK与SGLang源码的P环境执行。把 `scripts/audit_prefix_storage.py` 和 `scripts/bench_profile.py` 放到该环境同一目录，并保存一份对应的本地profile。`p_audit_root` 下需已有 `bench-audit/{dataset-manifest.jsonl,needle-manifest.jsonl,prefixes/}`、与实际服务一致的 `conf/model-memcache.json` 及可写 `evidence/`。复制 `audit_hook.example.sh` 为自己的可执行hook，设置以下变量（也可使用你现有的SSH/kubectl包装脚本）：
 
@@ -66,7 +66,7 @@ hook会收到 `--cc`、`--start-row`、`--audit-label`、`--manifest` 参数，�
 
 ## 执行流程与容量
 
-640GiB池以最多64条独立前缀为工作集：16并发1组、32并发2组、64并发4组，共7组。各组之间清理仅本任务缓存并重新预热。正式数据从原始数据的不同source_row选择，后续组不复用前一组请求。
+640GiB池以最多64条独立前缀为工作集：16并发1组、32并发2组、64并发4组，共7组。派生数据保留GSM8KDataset要求的空 `train.jsonl`；ZeroRetriever使用零示例，不增加请求数。各组之间清理仅本任务缓存并重新预热。正式数据从原始数据的不同source_row选择，后续组不复用前一组请求。
 
 先做已知答案L3读回600输出和独立80K/600冒烟；成功后才正式跑7组。两个冒烟不计入448条正式请求，也不计吞吐。
 

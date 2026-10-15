@@ -10,7 +10,7 @@ from mmengine import Config
 from cache_report_model import CacheReportAPIChat
 from ais_bench.benchmark.models.output import RequestOutput
 
-p=argparse.ArgumentParser();p.add_argument('--root',default='/work/aisbench-glm53-run');a=p.parse_args();root=Path(a.root)
+p=argparse.ArgumentParser();p.add_argument('--root',default='/work/aisbench-glm53-run');p.add_argument('--check-datasets',action='store_true');a=p.parse_args();root=Path(a.root)
 
 async def check():
     for cc in [16,32,64]:
@@ -30,3 +30,22 @@ async def check():
         assert out.extra_details_data['cached_tokens_details']['storage']==74368
     print(json.dumps(dict(phase='OFFLINE_AISBENCH_COMPATIBILITY_PASS',http_requests=0,concurrencies=[16,32,64])))
 asyncio.run(check())
+
+if a.check_datasets:
+    import hashlib
+    from ais_bench.benchmark.utils.config.build import build_dataset_from_cfg
+    data=json.loads((root/'dataset-audit.json').read_text());total=0
+    assert data['formal_requests']==448 and len(data['cohorts'])==7
+    for group in data['cohorts']:
+        leaf=Path(group['root']);cc=group['cc'];train=leaf/f'datasets/cc{cc}/train.jsonl'
+        assert train.exists() and train.stat().st_size==0
+        subprocess.run([sys.executable,str(root/'scripts/build_config.py'),'--root',str(leaf),'--cc',str(cc)],check=True)
+        cfg=Config.fromfile(str(leaf/f'configs/cc{cc}.py'),format_python_code=False)
+        dataset=build_dataset_from_cfg(cfg.datasets[0])
+        assert len(dataset.dataset['train'])==0 and len(dataset.dataset['test'])==64
+        expected={x['row']:x for x in map(json.loads,(leaf/'dataset-manifest.jsonl').read_text().splitlines())}
+        for i,row in enumerate(dataset.dataset['test']):
+            assert hashlib.sha256(row['question'].encode()).hexdigest()==expected[i]['prompt_sha256']
+        total+=len(dataset.dataset['test'])
+    assert total==448
+    print(json.dumps(dict(phase='OFFLINE_ALL_COHORT_DATASET_LOAD_PASS',http_requests=0,requests=total,groups=7,train_examples=0)))

@@ -56,6 +56,7 @@ if a.action=='check':print('OFFLINE_CHECK_PASS: no model HTTP requests');sys.exi
 assert a.audit_hook and Path(a.audit_hook).is_file()and os.access(a.audit_hook,os.X_OK),'Set executable AUDIT_HOOK; never replace real L3 verification with sleep'
 (r/'contract.json').write_text(json.dumps(plan,ensure_ascii=False,indent=2)+'\n')
 step('prepare','prepare_fourbatch.py',['--source',a.source])
+step('offline-datasets','verify_installation.py',['--check-datasets'])
 # One known-key correctness smoke, then a separate80K/600 smoke, outside formal metrics.
 for cc,manifest,label in [('needle','needle-manifest.jsonl','known-key-l3-smoke'),('smoke600','dataset-manifest.jsonl','long80k-600-l3-smoke')]:
  admin('before-'+cc,'clear_l1_l2_l3',r)

@@ -47,6 +47,8 @@ for cc,total in counts.items():
             assert sha(json.loads(line)['question'].encode())==row['prompt_sha256']
         out=leaf/f'datasets/cc{cc}/test.jsonl';out.parent.mkdir(parents=True)
         out.write_text('\n'.join(data)+'\n')
+        # GSM8KDataset always opens both splits; ZeroRetriever uses no examples.
+        (out.parent/'train.jsonl').write_bytes(b'')
         manifest=leaf/'dataset-manifest.jsonl'
         manifest.write_text(''.join(json.dumps(x)+'\n'for x in subset))
         audit=dict(formal_requests=64,unique_prompts=64,per_cc=64,cohort_id=cohort_id,
@@ -62,12 +64,14 @@ for cc in ['smoke600','smoke_correctness']:
     assert sha(old.read_bytes())==original['datasets'][cc]['file_sha256']
     out=root/f'datasets/cc{cc}/test.jsonl';out.parent.mkdir(parents=True)
     out.write_bytes(old.read_bytes())
+    (out.parent/'train.jsonl').write_bytes(b'')
 needle=json.loads((src/'needle-manifest.jsonl').read_text())
 assert needle['cc']=='needle' and needle['chat_tokens']==80000
 b=Path(needle['prefix_ids_file']).read_bytes()
 assert len(b)==74400*4 and sha(b)==needle['prefix_ids_sha256']
 for rel in ['needle-manifest.jsonl','datasets/ccneedle/test.jsonl']:
     out=root/rel;out.parent.mkdir(parents=True,exist_ok=True);out.write_bytes((src/rel).read_bytes())
+    if rel.startswith('datasets/'):(out.parent/'train.jsonl').write_bytes(b'')
 (root/'dataset-manifest.jsonl').write_text(''.join(json.dumps(x)+'\n'for x in selected))
 audit=dict(formal_requests=448,unique_formal_prompts=448,total=450,
            requests_per_concurrency={str(k):v for k,v in counts.items()},
