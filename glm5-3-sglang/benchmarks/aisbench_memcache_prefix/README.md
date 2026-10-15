@@ -60,6 +60,8 @@ bash run_glm_aisbench_prefix.sh run
 
 hook会收到 `--cc`、`--start-row`、`--audit-label`、`--manifest` 参数，必须执行实际K/V/index对象存在性检查并返回 `STORAGE_PREFIX_AUDIT_PASS` JSON。SDK环境、数据审计根目录和模型backend配置必须对应；不能用sleep替代。
 
+审计脚本读取实际P端 `/server_info` 判断缓存键模式。启用EAGLE/MTP时，原生RadixKey按相邻token对（bigram）哈希；74368个页对齐位置使用原始前缀中的74369个token，边界token已包含在74400预热输入内。不启用MTP时使用unigram键。审计输出记录 `key_mode` 和边界长度，测试输入、预热量及要求的74368命中计数保持不变。
+
 `profile.local.json` 的 `model_path` 必须指向AIS容器内GLM tokenizer；`benchmark_cwd` 为AISBench源码/运行目录。`lock_roots` 必须包含所有使用同一服务的压测工具共同遵守的锁目录；复制到新路径、不同锁目录不等于能够并行运行。入口持有矩阵锁，每步另有全局 `benchmark.lock`，并检查实际服务空闲。
 
 每次使用新的RUN_ROOT。失败保留所有原始记录，不覆盖、不自动重发失败请求。此入口不修改已有后台测试；不要在其他压测运行时同时run，脚本会检查全局锁和服务空闲。
