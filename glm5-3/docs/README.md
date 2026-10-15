@@ -1,19 +1,11 @@
-# 按需资料索引
+# 文档导航
 
-研究资料用于查事实与来源，不是启动上下文。实际运行事实以HANDOFF/Run为准；下面公开main和0.27源码不是用户安装确认。
+当前目标与状态见[研究入口](../README.md)。以下资料按问题选读：
 
-| 当前问题 | 只读相关资料 |
-|---|---|
-| 极限范围、L/U、动态容量、多配置 | [完整逻辑](research/MULTINODE_PD_SCHEDULING_LIMIT_PLAN.md) |
-| GLM层/专家、MLA/DSA、Full/Shared、MTP | [模型分析](research/GLM5_2_MODEL_AND_RUNTIME_ANALYSIS.md) |
-| V1/V2、MTP、PD/Graph/量化代码入口 | [源码索引](research/GLM5_2_VLLM_ASCEND_PATHS.md) |
-| 动态状态、slot/KV/Graph/PD契约 | [Runtime候选设计](research/GLM_SPECIALIZED_RUNTIME_DESIGN.md) |
-| profiling入口、0.27参数、多实例与观察器 | [Profiler核验](research/VLLM_ASCEND_PROFILING.md) |
-| 原12份MD职责与冲突 | [迁移映射](research/ORIGINAL_MD_MIGRATION_MAP.md) |
-| high/medium、额度与按需升级 | [模型策略](research/AGENT_MODEL_STRATEGY.md) |
-| Zcode/subagent格式、服务/监控与大日志归约 | [Job/Result协议与桥接工具](ZCODE_PROTOCOL.md) |
-| 开始执行、新对话交接与本地模拟 | [启动指令与演练](START_NEW_CHAT.md) |
-| 全部讨论的背景 | [完整方案快照](research/GLM5_3_W8A8_PD_PLAN.md) |
-| 固定来源与hash | [Source audit](research/SOURCE_AUDIT.json) |
+- [历史审计](RESEARCH_RESET.md)：旧研究的收益、问题与适用边界。
+- [续接提示](START_NEW_CHAT.md)：指向当前入口。
+- [片段草案](../studies/GLM-PLAN-0001.md)：一种可选实验方法。
+- `research/`：历史模型、框架和 profiling 线索，版本与现场状态需核验。
+- `ZCODE_PROTOCOL.md`：旧工具协议，不要求启用或按其中的模型分工工作。
 
-原Foundry方法、TaskCtl和知识库继续引用根目录，不复制其历史Current。文档中的对象/候选名是建议，执行Agent可以改变路线。
+更多原件位置见 [REUSE](../REUSE.md)。历史文档的恢复指令不作为当前任务安排。

@@ -1,25 +1,30 @@
-# GLM-5.3 Extreme
+# GLM 推理性能研究
 
-2026-10-07 用户最新指令：先发布 MTP 和已有调试结果 patch，**两台机器暂时不做代码调优和测试**。当前只做本地包装/离线检查和 GitHub 同步；不安装候选、不重启/改服务、不提交模型请求或 NPU Run。已验证 H6/H5 研究栈保留，MTP 限域设备正确但未获重复收益。恢复设备调优/测试须由用户另行明确要求，历史 next_action 不构成恢复授权。交付说明：[20261007 patch 包](patches/20261007/README.md)。本次没有服务器动作，完整 API/正式 80K600/93% SLA/最终 Current 尚未验收。
+> 本目录保留旧研究和拆分前的讨论记录。当前 GLM-5.3 / SGLang 工作从 [新研究线](../glm5-3-sglang/README.md) 进入；下文目标、任务状态和历史环境不自动适用于新线。
 
-[独立MTP patch](patches/20261007/H11-mtp-graph.patch) · [完整zip](patches/GLM53-patches-20261007.zip) · [各patch依赖、应用/回退、验证与性能说明](patches/20261007/README.md)。共13个独立patch和2个原字节溯源替代版；全部本地应用/回退/hash/AST校验通过。AISBench实际helper与phase_runner依赖同步到本仓库，正式条件80000输入/600输出/93%prefix/93%声明KV命中；声明和实测分账。
+目标是在给定业务范围和延迟要求下，提高 GLM-5.3 / Ascend 910C 的有效总吞吐，并判断剩余性能空间。优先复用 SGLang 的工程实现，同时独立判断模型依赖与执行方案。
 
-当前目标为 **GLM-5.3 W8A8 标准 P/D 分离**，在两台910C与现有正确算子下研究框架执行浪费及完整PD性能。权重路径为 `/data/tiankuan/wio/GLM-5.3-w8a8`，服务模型名 `glm-53`；历史版本记录不作为5.3验收基线。
+## 入口
 
-**Agent启动只读[AGENTS](AGENTS.md)+[HANDOFF](HANDOFF.md)+活动点/Git状态。**
-
-| 入口 | 按需用途 |
+| 文件 | 职责 |
 |---|---|
-| [MISSION](MISSION.md) / [PLAN](PLAN.md) | 目标/合同、极限标准与逼近逻辑 |
-| [RECORDING](RECORDING.md) / [优化点索引](records/points.jsonl) | Git提交、Run证据及裁决 |
-| [REUSE](REUSE.md) / [复用索引](records/reuse.jsonl) | 旧成果适用性、失败原因与去重 |
-| [研究索引](docs/README.md) | GLM特性、源码、prof、历史迁移与模型成本 |
-| [新对话启动](docs/START_NEW_CHAT.md) | 短交接指令、模拟演练与实际环境接入 |
+| [AGENTS](AGENTS.md) | 少量协作规则与设备操作边界 |
+| [MISSION](MISSION.md) | 目标、探索空间与成功标准 |
+| [HANDOFF](HANDOFF.md) | 当前事实、未知项与下一决定 |
 
-交给执行Agent的短prompt：
+[PLAN](PLAN.md) 说明如何用可行边界、最优值上下界和信息价值选择研究；[RECORDING](RECORDING.md)、[REUSE](REUSE.md) 提供证据与复用提示。它们均为按需参考，普通修改不要求通读。新会话可使用[恢复提示](docs/START_NEW_CHAT.md)。
 
-```text
-在glm5-3/先读AGENTS.md和HANDOFF.md。当前用户暂停两台机器的代码调优和测试，只进行本地patch/证据交付；从patches/20261007/README.md查源码基线和结论。未获用户明确恢复指令，不按历史next_action启动设备实验或改服务。
+## 已有工具与证据
+
+- [历史审计](docs/RESEARCH_RESET.md)、[20261007 补丁包](patches/20261007/README.md)：保留已有成果与适用边界。
+- [真实片段草案](studies/GLM-PLAN-0001.md)：需要缩小实验时可参考，不是必做任务。
+- [execution_lab 示例与使用说明](examples/execution_lab/README.md)：固定操作集合的资源约束估计和 CPU 回放。它是可选 toy 工具，没有真实 GLM / Ascend 性能结论，也不要求继续扩建。
+
+工具的本地验证（无模型加载或设备调用；仅在相关修改时需要）：
+
+```sh
+python3 glm5-3/execution_lab/cli.py demo
+python3 -m unittest discover -s glm5-3/tests -p 'test_*.py' -v
 ```
 
-当前发布已包含上述patch和已有实验结论。旧恢复资料保留其历史口径；本次状态以顶部暂停指令和patch说明为准。
+原入口保存在 [legacy](legacy/README.md)；当前入口的修订可在 Git 历史查看，不再复制一套规则归档。

@@ -1,0 +1,247 @@
+{
+  "date": "2026-10-14",
+  "scope": "deployment smoke and cache-path verification, not throughput acceptance",
+  "model": "GLM-5.3 W8A8",
+  "hardware": "Ascend910C, aarch64, 16die per physical host",
+  "runtime": {
+    "sglang": "0.5.17.dev386+gc5bd3d7dc",
+    "CANN": "9.0.0",
+    "driver": "25.5.2",
+    "memfabric_hybrid": "1.1.5",
+    "memcache_hybrid": "1.1.5",
+    "PD_transfer": "native ascend / MemFabric SDMA",
+    "L3_write": "copying put fallback",
+    "L3_read": "zero-copy",
+    "cache_components": [
+      "K",
+      "V",
+      "index"
+    ]
+  },
+  "historical_verified_2P2D": {
+    "P": {
+      "hosts": 2,
+      "EP": 32,
+      "DP": 2,
+      "attentionTP": 16
+    },
+    "D": {
+      "hosts": 2,
+      "EP": 32,
+      "DP": 2,
+      "attentionTP": 16
+    },
+    "input_tokens": 80000,
+    "output_tokens": 600,
+    "cold": {
+      "TTFT_s": 34.923155000433326,
+      "elapsed_s": 318.5782117396593
+    },
+    "L3_replay": {
+      "TTFT_s": 3.8621346205472946,
+      "elapsed_s": 285.909600680694
+    },
+    "cached_prefix_tokens": 79872,
+    "new_prefill_tokens": 128,
+    "completed_L3_write_tokens_delta": 80000,
+    "completed_L3_read_tokens_logical": 79872,
+    "same_request_sha256": "cd65d7a9067f48b1fbcce65718a139be692a8f12fdd8bb7539cff7428e8e41c8",
+    "HTTP200_SSE_done_token_count_and_nonce_checks": true,
+    "samples_per_condition": 1
+  },
+  "requested_4P2D": {
+    "P": {
+      "hosts": 4,
+      "EP": 64,
+      "DP": 4,
+      "attentionTP": 16,
+      "sglang_tp_size": 64
+    },
+    "D": {
+      "hosts": 2,
+      "EP": 32,
+      "DP": 16,
+      "attentionTP": 2,
+      "sglang_tp_size": 32
+    },
+    "DDR_providers_ready": 4,
+    "DDR_config_each": "16GB",
+    "world_size": 128,
+    "P_SDK_warmup_messages": 64,
+    "D_weight_memory_GB_each": 35.63,
+    "D_KV_token_capacity_each_at_fraction_0_90": 204288,
+    "D_KV_memory_GB_each_at_fraction_0_90": 20.91,
+    "first_start_status": "FAILED at first DeepEP NotifyDispatch, HCCL Memory_Allocation_Failure EL0004",
+    "failed_HCCL_allocation_bytes": 2098200576,
+    "D_fraction_next_candidate": 0.9,
+    "next_candidate_executed": true,
+    "actual_80K600_requests_executed": true,
+    "current_service_health": "all6 and router healthy after test; model services left running",
+    "D_communication_candidate": {
+      "mode": "low_latency",
+      "HCCL_BUFFSIZE_MB": 64,
+      "DEEPEP_HCCL_BUFFSIZE_MB": 650,
+      "TASK_QUEUE_ENABLE": 1,
+      "max_dispatch_tokens_per_rank": 32
+    },
+    "fraction_0_80": "cancelled before execution by user",
+    "attempts": [
+      {
+        "D_fraction": 0.9,
+        "mode": "normal",
+        "HCCL_MB": 1000,
+        "queue": 2,
+        "status": "failed HCCL 2098200576B allocation after KV pool"
+      },
+      {
+        "D_fraction": 0.9,
+        "mode": "low_latency",
+        "HCCL_MB": 650,
+        "queue": 2,
+        "status": "failed GroupedMatmulWeightNz workspace28MiB with31.79MiBfree"
+      },
+      {
+        "D_fraction": 0.9,
+        "mode": "low_latency",
+        "HCCL_MB": 650,
+        "queue": 0,
+        "status": "no readiness; DP wait then dynamic memory errors"
+      },
+      {
+        "D_fraction": 0.9,
+        "mode": "low_latency",
+        "non_MoE_HCCL_MB": 64,
+        "MoE_HCCL_MB": 650,
+        "queue": 1,
+        "status": "4P2Dready and realshortPASS, thenindexbudgetfix and80K600PASS"
+      }
+    ],
+    "before_budget_fix_4P2D": {
+      "all6_health": true,
+      "P_DP_capacities": [
+        303744,
+        303744,
+        303744,
+        303744
+      ],
+      "D_DP_capacities": [
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416,
+        204416
+      ],
+      "D_fraction": 0.9,
+      "native_short_input_tokens": 24,
+      "native_short_output_tokens": 32,
+      "HTTP200_SSE_done": true
+    },
+    "DSA_budget_defect": {
+      "source_original_sha256": "2a38f9aeaad230e4b511861738b972ed9bbde507e72dfa579229a6a9cb197fb3",
+      "source_fixed_sha256": "9eea6885eeb86936f094239eade5d340cdfc8d0274b02eeb07218010e26b0c6b",
+      "layers": 78,
+      "index_head_dim": 128,
+      "kv_lora_rank": 512,
+      "rope_dim": 64,
+      "dtype": "bfloat16",
+      "old_estimated_cell_bytes": 100152,
+      "actual_cell_bytes": 109824,
+      "fixed_estimated_cell_bytes": 109824,
+      "KV_tokens_before_fix": 204416,
+      "underestimated_GiB": 1.8413286209106445,
+      "actual_GiB_with_pad_page": 20.92108154296875,
+      "matches_runtime_log_GiB": 20.92,
+      "CUDA_and_HiSparse_original_block_retained": true
+    },
+    "budget_fix_status": "all6 live source SHA verified, restarted and actual80K600/L3pair PASS",
+    "status": "PASS",
+    "D_fraction_actual": 0.9,
+    "P_token_capacities": [
+      276992,
+      276992,
+      276992,
+      276992
+    ],
+    "D_token_capacities": [
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368,
+      186368
+    ],
+    "D_KV_GiB_after_budget_fix": 19.08,
+    "D_free_GiB_after_KV_allocation_range": [
+      6.13,
+      6.37
+    ],
+    "cold": {
+      "ttft_s": 46.596594870090485,
+      "elapsed_s": 214.64855376072228,
+      "prompt_tokens": 80000,
+      "completion_tokens": 600,
+      "http_status": 200,
+      "sse_done": true,
+      "token_count_pass": true,
+      "needle_present_in_generated_text": true,
+      "request_sha256": "cd65d7a9067f48b1fbcce65718a139be692a8f12fdd8bb7539cff7428e8e41c8"
+    },
+    "L3_replay": {
+      "ttft_s": 9.59402340836823,
+      "elapsed_s": 177.15101559832692,
+      "prompt_tokens": 80000,
+      "completion_tokens": 600,
+      "http_status": 200,
+      "sse_done": true,
+      "token_count_pass": true,
+      "needle_present_in_generated_text": true,
+      "request_sha256": "cd65d7a9067f48b1fbcce65718a139be692a8f12fdd8bb7539cff7428e8e41c8"
+    },
+    "cache_proof": {
+      "flush_HTTP": 200,
+      "completed_write_token_delta": 80000.0,
+      "read_counter_delta_all_TP": 1277952.0,
+      "logical_prefix_tokens": 79872,
+      "new_prefill_tokens": 128,
+      "cross_P_host_replay": true,
+      "request_sha_equal": true,
+      "cold_P_rank": 3,
+      "replay_P_rank": 1
+    },
+    "ttft_ratio": 4.856835645142096,
+    "samples_per_condition": 1,
+    "hardware_after": {
+      "healthy_NPU_die": 96,
+      "HBM_ECC_fields_all_zero": true
+    }
+  },
+  "range_cap_optimization": {
+    "current_prepared_cap": 0,
+    "64KiB_on_this_SGLang_SDMA_runtime": "not measured",
+    "historical_vLLM_R0129_R0130_numbers_are_not_current_runtime_results": true,
+    "observed_calls": 46,
+    "all_return0": true,
+    "max_call_ms": 883.336
+  }
+}
