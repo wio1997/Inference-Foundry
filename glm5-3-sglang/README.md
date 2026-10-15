@@ -9,6 +9,7 @@
 | [HANDOFF](HANDOFF.md) | 本线事实、未知项与下一决定 |
 | [PLAN](PLAN.md) | 按需参考的研究判断与最小验证方法 |
 | [Ascend MemCache PD部署](ASCEND_MEMCACHE_PD_DEPLOYMENT.md) | 独立部署工单的安装、4P2D配置、80K/600验证与回滚 |
+| [AISBench MemCache 前缀测试](benchmarks/aisbench_memcache_prefix/README.md) | 可保存复用的 80K/600、约93%独立前缀命中、16/32/64并发四批测试脚本 |
 
 当前只建立研究入口；尚无本线的真实基线、候选实现或性能收益。代码、片段和结果随实际问题添加，不先建设通用平台。
 
