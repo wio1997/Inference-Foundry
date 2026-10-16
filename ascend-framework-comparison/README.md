@@ -1,41 +1,14 @@
-# Ascend 上 SGLang / vLLM-Ascend 对比与优化
+# 两个独立模型项目的导航
 
-分支：`codex/ascend-sglang-vllm-comparison`。建立于 2026-10-16，基于原研究分支 `codex/glm-execution-plan-reset` 的 `6b44d8b2755f9527b3066fdd7a014ed5cdc062bb`。
+GLM-5.3与GLM-5.3-Flash是两个独立项目、两个独立对话。各自在同一模型内使用vLLM作参考/对照并适配或优化SGLang；两模型之间不比较成绩，不共享可变合同、状态或验收流程。
 
-目标：在用户实际 A3 / SDMA 硬件上，以 vLLM-Ascend 为正确性参考和性能对照，补齐 SGLang GLM-5.3-Flash 适配，并优化原 GLM-5.3 的完整服务性能。两个模型的结果分开，有限实验只能选出已测条件内更优的实现。
-
-| 实验线 | 最新机器 / 角色 | 第一交付 |
+| 项目 | 工作 | 唯一接手入口 |
 |---|---|---|
-| Flash 1P1D，vLLM-Ascend | 14=P，15=D | 同权重的真实PD正确性参考 |
-| Flash 1P1D，SGLang | 46=P，47=D | 先单机文本正确，再真实1P1D |
-| 原GLM53四机2P2D，vLLM-Ascend | P=30/31，D=43/45 | 新SDMA、独立前缀性能基线 |
-| 原GLM53四机2P2D，SGLang | P=34/35，D=36/41 | 同合同基线与受控优化 |
+| [GLM-5.3-Flash](glm53-flash/README.md) | Flash文本/混合状态/1P1D适配，后多模态 | [独立START_PROMPT](glm53-flash/START_PROMPT.md) |
+| [原GLM-5.3](glm53/README.md) | 原模型2P2D基线与SGLang优化，C8单独实验 | [独立START_PROMPT](glm53/START_PROMPT.md) |
 
-备用32/33/37；排除38/42。旧SGLang相关33容器已按授权停止，镜像/权重/配置和容器对象保留；父独立复核16台256die健康、无NPU进程。42曾临时打通管理通道，用户排除后已撤除；不再用于本批。新2P2D与Flash环境尚未部署。起初错峰压测，并按实际拓扑复核物理组差异。
+本目录只导航和保存历史批次证据，**不是两项目的共同HANDOFF/实施方案/性能合同**。进入一个项目后默认只读该项目目录。各自维护AGENTS/HANDOFF/RESOURCES/PLAN/BENCHMARK_CONTRACT/STATE、config/scripts/runs/results，配置、模型路径、锁、Meta/provider及成绩独立。
 
-**最新要求：不考虑共享前缀。** 新测试每档使用 C 条相互独立的 74,400-token 前缀，分别预热，连续复用四轮，每轮全新后缀，得到 4C 条不同的完整 80,000 输入 / 600 输出请求。C=16/32/64 时分别是 64/128/256 条。预热不计吞吐，正式保留自然本地缓存。旧共享前缀结果只归档，不能作为新负载的框架性能差距。
+两个对话各用GPT6.1 Sol High；本机ZCode DeepSeek执行要求分别写在各自EXECUTION_CONTRACT，不建立跨对话任务依赖或主控审批链。物理争用作为各自测量条件如实检查，不形成模型之间的逻辑依赖，也不授权操作对方服务。没有新建/消息其他对话、没有恢复定时。
 
-最新交接入口：
-
-- [Docker资源最终验收](DOCKER_RESOURCE_ACCEPTANCE.md)：本地权重、vLLM六台和SGLang六台镜像均完成，15台资源就绪；下一步是模型功能验证，尚无新服务/性能。
-
-- [Docker统一目录与资源门控](DOCKER_ASSET_LAYOUT.md)：15台Docker通过、Flash四台权重完成、vLLM六台和SGLang六台镜像均已导入；资源与模型资格分开。
-- [两个对话与ZCode执行规则](EXECUTION_CONTRACT.md)：两个GPT6.1 Sol High主控；实际启动、构建、模型、压测和profile一律本机ZCode DeepSeek执行。
-
-- [服务器分工与现场占用](SERVER_ALLOCATION.md)：每台IP、P/D用途、旧作业、资源申请与角色冲突。
-- [权重/镜像就绪与材料总表](ASSET_READINESS.md)：哪些已在Git、哪些二进制在外部、哪些新目标尚未具备。
-- [只读现场证据JSON](inventory/20261016/readiness.json)：各节点采样时间、权重清单/小文件SHA/索引、镜像ID和检查边界。
-
-入口：
-
-- [实施方案](PLAN.md)：先做什么、适配范围、如何选择优化。
-- [测试合同](BENCHMARK_CONTRACT.md)：数据、预热、缓存、全程/稳态和 SLA 口径。
-- [Flash 多模态测试方案](MULTIMODAL_TEST_PLAN.md)：单图/多图/多轮/视频、视觉展开长度、缓存身份、PD/SDMA和端到端计时；当前为计划，未执行。
-- [当前状态](HANDOFF.md)：计划与已完成事项的区别。
-- [Flash 适配任务](tracks/flash-adaptation/README.md) / [接手提示](tracks/flash-adaptation/START_PROMPT.md)。
-- [原模型2P2D对比任务](tracks/glm53-2p2d/README.md) / [接手提示](tracks/glm53-2p2d/START_PROMPT.md)。
-- [现有环境与优化归档](archive/20261016/README.md)：实际源码、启动配置、权重校验、已验证与未验证优化。
-
-建议两个长期对话分别负责两条实验线；共用本目录合同和资源表，不要求开两个自主执行者同时抢设备。未创建新对话或恢复定时任务；已按授权停旧SGLang，尚未启动新推理部署/模型测试。
-
-权重和镜像二进制不提交 Git。权重原件在现场保留；本目录提交其来源、路径、分片大小/历史 SHA 和已有验证证据。镜像固定 digest，SDK 保存源码版本、实际映射库 SHA 和离线资产位置。
+旧tracks入口保留重定向，旧混合内容见[拆分前快照](reference/20261017/README.md)。旧4P2D[归档](archive/20261016/README.md)不变；旧资源批次JSON是历史验收，不等于新模型功能或实时服务状态。权重/镜像二进制和凭证不入Git。

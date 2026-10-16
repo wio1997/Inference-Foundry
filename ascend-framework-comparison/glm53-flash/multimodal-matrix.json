@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "status": "PLAN_ONLY_NOT_EXECUTED",
+  "model": "GLM-5.3-Flash",
+  "hardware": "Ascend A3; actual topology pending",
+  "references": {
+    "vllm_ascend": "14P->15D",
+    "sglang": "46P->47D"
+  },
+  "documented_reference_limits": {
+    "image": 1,
+    "video": 0,
+    "scope": "Official vLLM-Ascend A3 example commands; not a proof that no alternative config can work."
+  },
+  "cases": [
+    {
+      "id": "MM01",
+      "name": "single_image_grounding",
+      "gate": "REQUIRED_FIRST",
+      "modality": "single_image",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM02",
+      "name": "ocr_document_chart",
+      "gate": "REQUIRED_FIRST",
+      "modality": "single_image",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM03",
+      "name": "resolution_preprocess_boundaries",
+      "gate": "REQUIRED_FIRST",
+      "modality": "single_image",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM04",
+      "name": "image_text_long_context",
+      "gate": "REQUIRED_AFTER_SINGLE_IMAGE",
+      "modality": "single_image",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM05",
+      "name": "multi_image_order_and_comparison",
+      "gate": "CAPABILITY_GATE_REQUIRED",
+      "modality": "multi_image",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM06",
+      "name": "image_conversation_followup",
+      "gate": "CAPABILITY_GATE_REQUIRED",
+      "modality": "multi_turn",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM07",
+      "name": "native_video_temporal_reasoning",
+      "gate": "A3_NOT_VALIDATED_VIDEO_DISABLED_IN_REFERENCE_COMMANDS",
+      "modality": "native_video",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM08",
+      "name": "mixed_modality_scheduling_graph_mtp",
+      "gate": "AFTER_SUPPORTED_MODALITY_CORRECTNESS",
+      "modality": "mixed",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    },
+    {
+      "id": "MM09",
+      "name": "cancel_error_recycle",
+      "gate": "REQUIRED_BOUNDED_FUNCTIONAL",
+      "modality": "lifecycle",
+      "execution_status": "NOT_RUN",
+      "dataset_manifest": null,
+      "results": null
+    }
+  ],
+  "correctness_pilot": {
+    "independent_samples": 32,
+    "strata": {
+      "ocr": 8,
+      "documents_charts": 8,
+      "count_spatial": 8,
+      "visual_semantics": 8
+    },
+    "assets_ready": false,
+    "gold_annotations_ready": false
+  },
+  "performance": {
+    "concurrency": [
+      16,
+      32,
+      64
+    ],
+    "rounds": 4,
+    "unique_prefixes_per_concurrency": "C",
+    "unique_full_requests_per_concurrency": "4*C",
+    "independent_media_between_prefixes": true,
+    "full_model_sequence_positions": 80000,
+    "actual_output_tokens": 600,
+    "prewarm_target_positions": 74400,
+    "cache_boundary": "Nearest valid complete media/checkpoint/page boundary; record actual hit and deviation; never hardcode old74368",
+    "prewarm_excluded": true,
+    "retain_natural_caches": true,
+    "cold_start_performance": false,
+    "initial_modalities": [
+      "single_image_low_visual_tokens",
+      "single_image_high_visual_tokens"
+    ],
+    "mixed_fraction_proposed": {
+      "text": 0.5,
+      "single_image": 0.5
+    },
+    "unsupported_modalities": "Do not launch performance; capability gate first"
+  },
+  "required_manifest_fields": [
+    "asset_sha256",
+    "asset_license_source",
+    "decoded_dimensions",
+    "frame_timestamps",
+    "processor_version_sha",
+    "tokenizer_template_sha",
+    "resize_crop_patch_grid",
+    "text_tokens",
+    "visual_tokens",
+    "expanded_model_sequence_positions",
+    "native_usage",
+    "full_input_identity",
+    "prefix_media_identity",
+    "gold_scoring_rule"
+  ],
+  "cache_guards": [
+    "same_text_changed_media",
+    "same_url_changed_bytes",
+    "reordered_images_frames",
+    "changed_resize_crop",
+    "same_image_changed_prior_text",
+    "kda_conv_state_checkpoint_identity"
+  ],
+  "execution": {
+    "model_requests": 0,
+    "server_changes": 0,
+    "automations_changed": 0,
+    "executor": "Local ZCode configured DeepSeek; reviewed exact launcher only"
+  }
+}

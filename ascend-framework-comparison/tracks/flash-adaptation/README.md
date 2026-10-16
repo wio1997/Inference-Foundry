@@ -1,12 +1,3 @@
-# GLM-5.3-Flash：vLLM 参考与 SGLang 适配
+# 已迁到独立模型项目
 
-先读原生混合状态语义、固定同一 Flash W8A8 权重和官方版本。14/15 是 vLLM 1P1D 参考，46=P、47=D 是 SGLang 目标；先单机文本正确，再真实 PD，再图/MTP/缓存。
-
-实施细节见 [公共方案](../../PLAN.md)，数据和计时只遵循 [测试合同](../../BENCHMARK_CONTRACT.md)。本轨道尚未开始新现场部署/请求。
-
-新增 [多模态测试方案](../../MULTIMODAL_TEST_PLAN.md) 与 [机器可读矩阵](multimodal-matrix.json)。单图为首目标，多图/视频先能力门控；不能以文本通过宣称多模态通过。
-
-本目录维护 STATE.json、后续 runs/、适配/配置及对应原始证据索引。对另一轨道的设备和命名空间无控制权。公共规则变更显式版本化，不把旧历史 PID、成功率或下一动作当作当前事实。
-
-
-2026-10-16最新更新：旧SGLang已按授权停止，Flash角色46P/47D无冲突；38/42排除。权重/固定镜像仍待准备，新1P1D未部署。先读服务器表与资产表，不启动旧launcher。
+唯一入口：[../../glm53-flash/START_PROMPT.md](../../glm53-flash/START_PROMPT.md)。先读该目录自己的AGENTS/HANDOFF/RESOURCES，不再读父目录混合状态或另一模型合同。原历史4P2D与批次资料不等于当前启动配置。

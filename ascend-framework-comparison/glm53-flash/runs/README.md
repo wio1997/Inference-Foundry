@@ -1,0 +1,3 @@
+# GLM-5.3-Flash runs
+
+只保存project_id=glm53-flash的本类文件。使用独立命名空间、路径/锁与版本，不读取或覆写另一模型目录。当前文档拆分不生成可直接执行的新模型启动器；真实执行仍须本机ZCode DeepSeek的具体SHA审查。

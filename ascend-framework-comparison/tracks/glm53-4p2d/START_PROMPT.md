@@ -1,3 +1,3 @@
-# 原4P2D规划已被替换
+# 已迁到独立模型项目
 
-用户已改为两套2P2D，当前入口：[新轨道](../glm53-2p2d/README.md)、[接手提示](../glm53-2p2d/START_PROMPT.md)。本目录旧资源/执行计划不再有效，不启动历史launcher。真实历史4P2D证据仍在archive/20261016保留。
+唯一入口：[../../glm53/START_PROMPT.md](../../glm53/START_PROMPT.md)。先读该目录自己的AGENTS/HANDOFF/RESOURCES，不再读父目录混合状态或另一模型合同。原历史4P2D与批次资料不等于当前启动配置。

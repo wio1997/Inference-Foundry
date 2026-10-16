@@ -1,13 +1,8 @@
-# 本分支的执行与证据规则
+# 模型作用域路由，不是共同任务
 
-本目录以用户 2026-10-16 最新两条实验线为准，不继承其他模型目录的 Current/PID/下一动作。先读 README、HANDOFF、对应 tracks 状态、BENCHMARK_CONTRACT。
+先按用户目标选一个独立项目，然后只读该项目AGENTS/HANDOFF：
 
-- 最新范围已扩展：用户授权停止本批旧SGLang，已完成并保存；原模型两侧改2P2D，38/42排除，Flash1P1D不变。新推理部署/性能未执行。接手先读当前分工和实际进程/锁，不自动恢复已主动停用的旧4P2D。
-- 公共网站只用 HTTP/API/Web Search，不用 Browser/Chrome/Computer Use。
-- 用户将自行开两个GPT6.1 Sol High对话，分别负责Flash和原GLM53；执行分工详见[EXECUTION_CONTRACT](EXECUTION_CONTRACT.md)。实际资源准备/离线构建/现场部署/服务启动/profile/模型请求/NPU 测试/性能采集必须通过用户本机已配置 DeepSeek 的 ZCode 执行。审查具体脚本与固定 SHA，精确 launcher 执行一次，凭真实 receipt 追踪；现有历史一次性 launcher 不可直接重放。
-- 现场无外网，Mac 下载固定版本及全部依赖、校验，再离线上传。保留现有容器、权重、源码和 SDK 回退，不改系统 SDK/驱动/BIOS/时钟、不重启整机、不干扰无关作业。
-- 新性能不测人为共享长前缀，不用同一完整请求填满并发。C 条独立前缀复用四轮、4C 条完整输入全不同，预热排除、自然缓存保留。
-- 不把 80,012 与 80,000、RDMA 与 SDMA、冷/强制 L3 与自然暖缓存、Flash 与原模型、客户端并发与实际解码数混为同一条件。
-- 原始失败、超时、缺字段全部保留；成功幸存样本不代替完整基线。传输微测、CPU fixture、模拟、服务实测分别标记，不许推导无证据的普适收益。
-- 不擅自恢复定时任务，不自动创建/消息其他对话。两个任务只改各自轨道与 run 目录；公共合同变更在 HANDOFF 记录，阶段比较固定合同版本。
-- 仓库公开：不得提交凭证、私钥、私有 provider 配置、认证 URL、原始业务文本或模型权重。记录权重 SHA 不等于今天重读了全部权重。
+- GLM-5.3-Flash、glm5_next、KDA/混合状态、多模态或14/15/46/47：[glm53-flash/AGENTS.md](glm53-flash/AGENTS.md)。
+- 原GLM-5.3、glm_moe_dsa、W8A8/C8、2P2D或30/31/34/35/36/41/43/45（32/33为C8补充资产）：[glm53/AGENTS.md](glm53/AGENTS.md)。
+
+不要默认加载总HANDOFF/总PLAN/总合同；它们仅是导航。两项目没有参数、状态、合同或验收依赖，不自动创建/消息对话或恢复定时。所有实际资源/构建/部署/启动/模型/性能/profile仍由本机ZCode DeepSeek执行，各自在项目内审查SHA并执行精确launcher一次。公共网站不用Browser/Chrome/ComputerUse；凭证/provider/权重/镜像二进制不入Git。历史批次/旧归档只有明确溯源时按需只读，不继承旧PID/许可。
