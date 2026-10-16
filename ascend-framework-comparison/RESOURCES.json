@@ -1,5 +1,5 @@
 {
-  "status": "PROPOSED_NOT_LIVE_INVENTORY",
+  "status": "READ_ONLY_INVENTORY_PARTIAL_AND_ROLE_CONFLICT",
   "date": "2026-10-16",
   "flash": {
     "vllm_ascend": {
@@ -37,7 +37,7 @@
         30,
         31,
         32,
-        38
+        47
       ],
       "D": [
         42,
@@ -46,13 +46,39 @@
     }
   },
   "transport_requirement": "SDMA/HCCS only for actual applicable data paths; validate runtime, no silent RDMA fallback.",
-  "ip_policy": "Node numbers identify user resources; do not infer unverified host IP or fabric domain.",
+  "ip_policy": "Management IPs observed from Kubernetes in inventory; fabric domain and SDMA paths not proven by IP or label.",
   "load_generator": {
     "candidate": "166 or other dedicated intranet CPU host",
     "verified": false,
-    "avoid": "D43 while benchmark runs; existing 43 workloads must be inventoried"
+    "avoid": "D43 while benchmark runs; 43 old SGLang model/AISBench containers confirmed present, no migration performed."
   },
   "execution": "Local ZCode configured DeepSeek; exact reviewed launcher once.",
   "scheduling": "Stagger full-load framework runs initially; cross-over physical groups if needed to separate hardware effects.",
-  "automations": "REMAIN_PAUSED"
+  "automations": "REMAIN_PAUSED",
+  "inventory": "inventory/20261016/readiness.json",
+  "server_allocation": "SERVER_ALLOCATION.md",
+  "asset_readiness": "ASSET_READINESS.md",
+  "allocation_conflicts": [
+    {
+      "node": 47,
+      "roles": [
+        "glm53.vllm_ascend.P",
+        "flash.sglang.D"
+      ],
+      "status": "P47_CONFIRMED_FLASH_D_PENDING",
+      "do_not_deploy_both": true
+    }
+  ],
+  "unassigned_candidate_nodes": [
+    {
+      "node": 45,
+      "status": "NOT_ASSIGNED_NEW_PLAN_OLD_SGLANG_OCCUPIED"
+    }
+  ],
+  "excluded_nodes": [
+    {
+      "node": 38,
+      "reason": "USER_REPLACED_WITH_47"
+    }
+  ]
 }

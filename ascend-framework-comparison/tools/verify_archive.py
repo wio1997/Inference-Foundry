@@ -3,6 +3,7 @@
 from pathlib import Path
 import hashlib
 import json
+from collections import Counter
 
 root = Path(__file__).resolve().parents[1]
 manifest = json.loads((root / 'FILE_MANIFEST.json').read_text())
@@ -31,5 +32,12 @@ sdk = json.loads((archive/'b103/DOWNLOAD_RESULT.json').read_text())
 config = json.loads((root/'RESOURCES.json').read_text())
 assert sdk['all_uncompressed_diff_ids_verified'] and len(sdk['layer_checks']) == 21
 nodes = [n for model in ['flash','glm53'] for group in config[model].values() for role in ['P','D'] for n in group[role]]
-assert len(nodes)==16 and len(set(nodes))==16
-print(json.dumps({'status':'PASS','files':len(manifest['files']),'snapshot_schedulers':96,'proposed_nodes':16,'model_requests':0,'network_calls':0}))
+assert len(nodes)==16
+counts=Counter(nodes)
+duplicates={n for n,count in counts.items() if count>1}
+conflicts={c['node'] for c in config.get('allocation_conflicts',[])}
+assert duplicates==conflicts=={47}
+assert config['glm53']['vllm_ascend']['P']==[30,31,32,47]
+assert 38 not in nodes
+assert all(c['do_not_deploy_both'] for c in config['allocation_conflicts'])
+print(json.dumps({'status':'PASS','files':len(manifest['files']),'snapshot_schedulers':96,'proposed_role_slots':16,'unique_assigned_nodes':len(set(nodes)),'unresolved_role_conflicts':sorted(duplicates),'model_requests':0,'network_calls':0}))
