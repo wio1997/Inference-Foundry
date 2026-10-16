@@ -1,6 +1,6 @@
 {
-  "schema": "glm53-inventory-summary/2",
-  "generated_utc": "2026-10-16T18:34:27.913036+00:00",
+  "schema": "glm53-inventory-summary/3",
+  "generated_utc": "2026-10-16T19:18:51.777492+00:00",
   "inventory_dir": "glm5-3-vllm/evidence/20261017-inventory",
   "scope_note": "Derived offline from read-only raw evidence; paths relative to repo root; no independent payload rehash; per-run communication records keep failures as recorded and derive no performance numbers; verification layers are separated below.",
   "read_errors": [],
@@ -69,14 +69,248 @@
       ],
       "note": "The probe field sdma_runtime_path_verified is false in all 11 runs (kept as recorded, not flipped to true). 4 run(s) carry a separate sdma-analysis.json whose plog analysis reports runtime_sdma_link_evidence=true; it is bounded to retained-log evidence with no device-profiler packet accounting."
     },
+    "single_model_functionality": {
+      "done": true,
+      "status": "ready_one_request_then_stopped",
+      "evidence": [
+        "glm5-3-vllm/evidence/20261017-inventory/node33-capacity-readiness-65de988ae6c6/metrics.json",
+        "glm5-3-vllm/evidence/20261017-inventory/node33-capacity-functional-3287ce01be95/metrics.json",
+        "glm5-3-vllm/evidence/20261017-inventory/node33-capacity-stopped-93f531e794be/metrics.json"
+      ],
+      "note": "Full TP16 model loaded on node33, HTTP200 for 12 prompt/32 generated tokens, then stopped exit0. Tiny-window functionality, not accuracy/performance/PD acceptance."
+    },
+    "memcache_sdma_data_path": {
+      "done": true,
+      "status": "payload_and_sdma_verified_lifecycle_failed",
+      "evidence": [
+        "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-api-9089ca5f69b1/metrics.json",
+        "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-sdma-close-profile-d6f04576e392/memcache-trace-analysis.json",
+        "glm5-3-vllm/evidence/20261017-inventory/node33-memcache-sdma-close-profile-d6f04576e392/memcache-trace-analysis.json",
+        "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-init-close-only-052ba2b6a10e/metrics.json",
+        "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-init-close-only-052ba2b6a10e/result.json"
+      ],
+      "note": "Installed MemCache/MemFabric1.2.0; synthetic pool put/get hashes match, 8 SDMA_SQE tasks across two local traces. SDK close returns0 but processes exit133; init/close-only with zero torch allocation also reproduces. No dependency replacement or model PD launched."
+    },
     "complete_pd": {
       "done": false,
       "status": "not_started",
       "evidence": [
-        "glm5-3-vllm/evidence/20261017-inventory/node33-npu-smoke-76ec53325fd0/stdout.json"
+        "glm5-3-vllm/evidence/20261017-inventory/node33-capacity-functional-3287ce01be95/metrics.json",
+        "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-init-close-only-052ba2b6a10e/result.json"
       ],
-      "note": "No model loaded, no prefill/decode placement, no 1P1D run; no performance numbers are claimed anywhere."
+      "note": "Single model functionality and synthetic MemCache transport are separate from P/D model execution. C8 KV production/consumption and exclusion of D-side full prefill remain unverified."
     }
+  },
+  "memcache": {
+    "memcache_build": "memcache_hybrid version info:\nmemcache_hybrid version: 1.2.0\ngit: 4310d68fa8964a3032b71c09296b0ffa80330033\n",
+    "memfabric_build": "mf version info:\nmf version: 1.2.0\ngit: 999034e9320abf27bbde7be83a32d3bf4d0f7940\n",
+    "trace_analysis": {
+      "32": {
+        "protocol": "device_sdma",
+        "hybm_data_op_type": [
+          2
+        ],
+        "enum_evidence": "installed include/hybm/hybm_def.h: HYBM_DOP_TYPE_SDMA = 1U << 1",
+        "trace_path": "artifacts/profile/B4-33U-Atlas900RCKA3-32_1_20261016185658424_ascend_pt/ASCEND_PROFILER_OUTPUT/trace_view.json",
+        "trace_sha256": "0863748fe4cc792b7fe5ddfd9650e4b9aacc7f7aaaca827c048862753ee9057b",
+        "regions": [
+          {
+            "region": "GLM53_MEMCACHE_PUT_L2G_65536",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 0
+              }
+            ]
+          },
+          {
+            "region": "GLM53_MEMCACHE_PUT_L2G_1048576",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 1
+              }
+            ]
+          },
+          {
+            "region": "GLM53_MEMCACHE_GET_G2L_65536",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 2
+              }
+            ]
+          },
+          {
+            "region": "GLM53_MEMCACHE_GET_G2L_1048576",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 3
+              }
+            ]
+          }
+        ],
+        "runtime_sdma_data_path_verified": true,
+        "payload_hashes_match": true,
+        "probe_returncode": 133,
+        "close_rc_zero_logged": true,
+        "lifecycle_passed": false,
+        "scope": "synthetic HBM->DRAM pool->peer HBM; same-host trace association only; no timing/PD/model-correctness claim"
+      },
+      "33": {
+        "protocol": "device_sdma",
+        "hybm_data_op_type": [
+          2
+        ],
+        "enum_evidence": "installed include/hybm/hybm_def.h: HYBM_DOP_TYPE_SDMA = 1U << 1",
+        "trace_path": "artifacts/profile/B5-5U-Atlas900RCKA3-33_1_20261016185609225_ascend_pt/ASCEND_PROFILER_OUTPUT/trace_view.json",
+        "trace_sha256": "f7161e758ab6e1e1254aa00e07893d1216227c4a8226a96aa0437ed08b9486aa",
+        "regions": [
+          {
+            "region": "GLM53_MEMCACHE_GET_G2L_65536",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 0
+              }
+            ]
+          },
+          {
+            "region": "GLM53_MEMCACHE_GET_G2L_1048576",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 1
+              }
+            ]
+          },
+          {
+            "region": "GLM53_MEMCACHE_PUT_L2G_65536",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 2
+              }
+            ]
+          },
+          {
+            "region": "GLM53_MEMCACHE_PUT_L2G_1048576",
+            "sdma_task_count": 1,
+            "tasks": [
+              {
+                "type": "SDMA_SQE",
+                "stream": 45,
+                "task_id": 3
+              }
+            ]
+          }
+        ],
+        "runtime_sdma_data_path_verified": true,
+        "payload_hashes_match": true,
+        "probe_returncode": 133,
+        "close_rc_zero_logged": true,
+        "lifecycle_passed": false,
+        "scope": "synthetic HBM->DRAM pool->peer HBM; same-host trace association only; no timing/PD/model-correctness claim"
+      }
+    },
+    "init_close_only": {
+      "init_rc": 0,
+      "close_rc": 0,
+      "scope": "no NPU tensors/buffer registration/payload transfer",
+      "npu_torch_allocated": 0,
+      "npu_torch_reserved": 0,
+      "config": "ock.mmc.meta_service_url = tcp://172.16.12.32:27400\nock.mmc.local_service.config_store_url = tcp://172.16.12.32:27401\nock.mmc.local_service.world_size = 2\nock.mmc.local_service.protocol = device_sdma\nock.mmc.local_service.dram.size = 1GB\nock.mmc.local_service.hbm.size = 0GB\nock.mmc.local_service.max.dram.size = 1GB\nock.mmc.local_service.storage.enabled = false\nock.mmc.log_level = info\n"
+    },
+    "init_close_only_returncode": 133,
+    "lingqu_network_version": null,
+    "lingqu_version_requirement": ">=1.5 per installed guide, not independently verified"
+  },
+  "final_scope": {
+    "resources": {
+      "checked_client_utc": "2026-10-16T19:17:09.454963+00:00",
+      "reservations": [
+        {
+          "node": 32,
+          "name": "glm53-execution-reservation-32-20261017",
+          "uid": "dfb6ef4d-746f-41ba-a163-20034e9b237f",
+          "created": "2026-10-16T17:58:24Z",
+          "phase": "Running",
+          "node_name": "a3-5u-atlas900rcka3-32",
+          "deadline_seconds": 7200,
+          "assigned": "Ascend910-0,Ascend910-1,Ascend910-10,Ascend910-11,Ascend910-12,Ascend910-13,Ascend910-14,Ascend910-15,Ascend910-2,Ascend910-3,Ascend910-4,Ascend910-5,Ascend910-6,Ascend910-7,Ascend910-8,Ascend910-9",
+          "owner": "codex-execution-20261017",
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "huawei.com/Ascend910": "16",
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "huawei.com/Ascend910": "16",
+              "memory": "128Mi"
+            }
+          }
+        },
+        {
+          "node": 33,
+          "name": "glm53-execution-reservation-33-20261017",
+          "uid": "d4d731d9-2d8b-43e1-b986-621b66fa7adf",
+          "created": "2026-10-16T17:58:28Z",
+          "phase": "Running",
+          "node_name": "a3-5u-atlas900rcka3-33",
+          "deadline_seconds": 7200,
+          "assigned": "Ascend910-0,Ascend910-1,Ascend910-10,Ascend910-11,Ascend910-12,Ascend910-13,Ascend910-14,Ascend910-15,Ascend910-2,Ascend910-3,Ascend910-4,Ascend910-5,Ascend910-6,Ascend910-7,Ascend910-8,Ascend910-9",
+          "owner": "codex-execution-20261017",
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "huawei.com/Ascend910": "16",
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "huawei.com/Ascend910": "16",
+              "memory": "128Mi"
+            }
+          }
+        }
+      ],
+      "note": "Task finite sleep holders only; device idle snapshots are separate. Old workloads remain released; do not automatically restore."
+    },
+    "evidence": [
+      "glm5-3-vllm/evidence/20261017-inventory/final-task-resources.json",
+      "glm5-3-vllm/evidence/20261017-inventory/node32-final-device-idle-91e3cc4c7141/metrics.json",
+      "glm5-3-vllm/evidence/20261017-inventory/node33-final-device-idle-91e3cc4c7141/metrics.json"
+    ],
+    "devices_idle": {
+      "32": true,
+      "33": true
+    },
+    "task_service_containers": {
+      "32": [
+        "0ce934b4d623\tglm53-memcache-meta32-20261017\tExited (134) About a minute ago"
+      ],
+      "33": [
+        "62481295791b\tglm53-exec-capacity-33-20261017\tExited (0) 25 minutes ago"
+      ]
+    },
+    "note": "All experiment/model/metadata service containers stopped; finite Kubernetes sleep holders retained only. Snapshot, not a perpetual lease guarantee."
   },
   "nodes": {
     "node32": {
@@ -1719,8 +1953,8 @@
     },
     {
       "id": "lease_create_timestamp_ordering",
-      "state": "open",
-      "detail": "Both node33 HCCL run contexts read lease glm53-execution-reservation-33-20261017 uid d4d731d9-2d8b-43e1-b986-621b66fa7adf creationTimestamp 2026-10-16T17:58:28Z, before the retained successful create credentials (17:59:53Z node32, 17:59:57Z node33); retained files do not explain the ordering.",
+      "state": "clock_domains",
+      "detail": "Kubernetes, target hosts, and Mac wall clocks differ by minutes. Cross-domain creationTimestamp/client receipt ordering is not a race certificate; compare UID/node/resource identities and use same-host clocks for durations.",
       "evidence": [
         "glm5-3-vllm/evidence/20261017-inventory/node33-reservation-create-authorized-v2.json",
         "glm5-3-vllm/evidence/20261017-inventory/node33-hccl-sio-sdma-eda4ea7f21bb/context.json",
@@ -1759,12 +1993,17 @@
     {
       "id": "sdma_only",
       "basis": "user directive (session), not raw evidence",
-      "text": "All traffic must use SDMA (latest requirement)."
+      "text": "All data transfers must use SDMA; record control/bootstrap TCP separately."
     },
     {
       "id": "no_fabricated_numbers",
       "basis": "user directive",
-      "text": "Must not report throughput, single-node capacity, or 1P1D feasibility; failed communication runs stay failures with no derived performance."
+      "text": "Report only verified scope: one node's tiny-window full-model capacity/functionality is established; no production-capacity, precision acceptance, throughput or 1P1D feasibility follows. Failed probes stay failed even when payloads pass."
+    },
+    {
+      "id": "memcache_priority",
+      "basis": "latest user constraint relayed by the main conversation",
+      "text": "Pause new Mooncake work; prioritize installed MemCache/MemFabric and explicit device_sdma. A mixed MultiConnector example is not proof of pure MemCache PD."
     },
     {
       "id": "allocation_ownership",
@@ -1904,6 +2143,61 @@
       "path": "glm5-3-vllm/evidence/20261017-inventory/node33-reservation-ready-authorized-v2.json",
       "sha256": "dbae4be05161a29b80868ea89e3c98de87cfa2a9a69f38b839338464fd4e00cb",
       "bytes": 105
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node33-capacity-readiness-65de988ae6c6/metrics.json",
+      "sha256": "eab8ce5c566cb8744f47b1bfc1e94c0287d85cd6800d0542db149f78618ac8bd",
+      "bytes": 555
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node33-capacity-functional-3287ce01be95/metrics.json",
+      "sha256": "b6ec011faadd65ebe5842e23bcb7761a30c044e28e35e3e7189ac87cdaf005fc",
+      "bytes": 1349
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node33-capacity-stopped-93f531e794be/metrics.json",
+      "sha256": "51280a71ce8b579aee4d06a9303c4bf0599d5de9ef356ed1dc2d04f5984db28a",
+      "bytes": 18107
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-api-9089ca5f69b1/metrics.json",
+      "sha256": "c8f1aa42c63886e8118d1d69abaeccabb6669a448059e261b5f8a6c68c479ac6",
+      "bytes": 15801
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-sdma-close-profile-d6f04576e392/memcache-trace-analysis.json",
+      "sha256": "7909b9320073b98f670497e10ef727176e19521442fab65b6518bdde9082bab1",
+      "bytes": 1521
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node33-memcache-sdma-close-profile-d6f04576e392/memcache-trace-analysis.json",
+      "sha256": "d33b6a1f30e9a8b78547ebf89ec9782be1ae19407cdbedcbe8c6c1fbd997a506",
+      "bytes": 1520
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-init-close-only-052ba2b6a10e/metrics.json",
+      "sha256": "f274daf4bac70e0cc41c47b950fd0b65c93e7c20d12fa04d5c58ed7c6aedcc29",
+      "bytes": 570
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node32-memcache-init-close-only-052ba2b6a10e/result.json",
+      "sha256": "44e3349b5df14ed86593254edc167d895aecd9cb4d371b1e2fe376dc7ce0125f",
+      "bytes": 2788
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/final-task-resources.json",
+      "sha256": "7a8f0002e293b5b84cc0ba21e04073ee7fa5a59bd9640115495f5c98e72c832d",
+      "bytes": 1873
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node32-final-device-idle-91e3cc4c7141/metrics.json",
+      "sha256": "4ea7d76f29045e1d4f92d1c2834ba4c0e955320a5cebbdf19953080dff5f6de1",
+      "bytes": 7833
+    },
+    {
+      "path": "glm5-3-vllm/evidence/20261017-inventory/node33-final-device-idle-91e3cc4c7141/metrics.json",
+      "sha256": "d13d2efecb7eb4062d7bd74eb261d94e763724e6753183ffb15e5f603489c686",
+      "bytes": 7827
     },
     {
       "path": "glm5-3-vllm/evidence/20261017-inventory/node32-hccl-cross-sdma-path-bb2e3d559af7/result.json",

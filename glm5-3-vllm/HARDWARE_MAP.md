@@ -1,6 +1,6 @@
 # 硬件地图：拓扑、条件性能与竞争关系
 
-用途：为 GLM-5.3 W8A8C8 / vLLM-Ascend 的执行方案提供可检验的资源依据。当前研究设备为 32、33，用户已恢复设备操作并授权停止这两台原实验占用；正式目标保持 PD 分离。2026-10-17 已完成首轮只读身份/拓扑/软件/资产核查，已有实测与未知项如下。已补初始条件通信计时和 HCCL SDMA 运行日志；模型及真实 PD KV 路径仍待验证。
+用途：为 GLM-5.3 W8A8C8 / vLLM-Ascend 的执行方案提供可检验的资源依据。当前研究设备为 32、33，用户已恢复设备操作并授权停止这两台原实验占用；正式目标保持 PD 分离。2026-10-17 已完成首轮只读身份/拓扑/软件/资产核查，已有实测与未知项如下。已补初始条件通信计时和 HCCL SDMA 运行日志；33完整模型单机容量/短请求已验证，真实 PD KV 路径仍待验证。后端按用户最新要求优先核实灵渠MemCache，暂停新增Mooncake实验。
 
 地图要可追溯、可复核、能暴露错误。硬件身份、当前软件能发挥的性能、特定负载下的竞争分别记录；实测值不是物理常数，测得的最高带宽也不是所有实现的性能上界。未知项保持未知，不填零或用宣传值代替。新证据与地图冲突时重新核验，不让旧地图直接否定新方案。
 
@@ -16,7 +16,7 @@
 | CPU/RAM | Kunpeng 920 7280Z，4×80 core×2 SMT=640 逻辑 CPU，8 NUMA，约 2 TiB RAM | NPU PCI sysfs NUMA=-1，亲和未知；不改系统 NUMA 信息 |
 | 宿主网 | enp162s0f0/f1 报 100000 Mbps、NUMA5；enp194s0f0/f1 报 25000 Mbps、NUMA4；bond4 报 50000 Mbps | sysfs 链路值，不是有效吞吐；管理地址不是 NPU 数据路径 |
 | NPU 网络 | 16 die 普通 IP getter 均返回未配置；RoCE link=DOWN / health=Init；vNIC=UP | 不据此宣称 HCCS/SDMA 不通；不擅自配置 RoCE |
-| 软件身份 | driver25.5.2；镜像 CANN9.1.0、vLLM0.30.0+empty、Ascend0.30.0rc1、torch-npu2.10.0.post4、Mooncake NPU0.3.11.post1 | 完整 imageID/两仓库 SHA 在 HANDOFF；实际 runner/quant/cache 仍待运行证据核验 |
+| 软件身份 | driver25.5.2；镜像 CANN9.1.0、vLLM0.30.0+empty、Ascend0.30.0rc1、torch-npu2.10.0.post4；MemCache/MemFabric均1.2.0 | 完整 imageID/两仓库 SHA 在 HANDOFF；16rank实际V1加载日志已核验；quant method/cache tensor仍待运行对象证据。灵渠网络版本未知 |
 | 权重 | 两台 196 文件/764240832702 bytes，已有全量校验完成凭据；本线清单身份与当前尺寸核对通过 | 复用凭据，没有重复全量 payload 哈希；运行时 W8A8C8/C8 尚待确认 |
 | 干扰窗口 | 两台 5 秒样本 NVMe 读为0、写<0.01 MB/s，管理网有小流量，已知传输 worker 未见 | 只是瞬时诊断，不能替后续运行保证隔离；共享 HCCS 其他节点仍可能竞争 |
 
@@ -52,7 +52,9 @@ HCCL 诊断的完整归档扫描中，同卡与异卡各有6条 SDMA link succes
 
 ## 官方能力与现场差异：只保留改变实验的资料
 
-用户描述“只有 SDMA 到超节点”按**本线数据通路约束及现场待核实信息**记录，不写成 910C 硬件仅支持 SDMA。SDMA 是搬运机制，HCCS 是互联链路；HCCL/Mooncake/HIXL 是库或后端，SSH/管理 IP 是控制网络。这些层次分别取证。
+用户描述“只有 SDMA 到超节点”按**本线数据通路约束及现场待核实信息**记录，不写成 910C 硬件仅支持 SDMA。SDMA 是搬运机制，HCCS 是互联链路；HCCL/MemFabric/MemCache 是库或后端，SSH/管理 IP 是控制网络。这些层次分别取证。
+
+MemCache新增实证：镜像中MemCache/MemFabric均1.2.0。32[2]↔33[2]两客户端以`device_sdma`、每rank1GiB DRAM池、0HBM池、无SSD测试64KiB/1MiB双向写池/读池，全部接收SHA匹配。HYBM实际data-op=2与安装头文件SDMA位值一致；两台profiler各4个`SDMA_SQE`，与4个put/get区间逐一匹配。因此本次**合成数据路径**已验证为SDMA，流程为源HBM→DRAM池→对端HBM；不是模型PD或直传证明。清理阶段仍退出133/139，最小init/close-only也复现，Meta停止退出134；功能与生命周期不能合并记为通过。原件/派生分析见 `node{32,33}-memcache-sdma-close-profile-*`，续接状态见HANDOFF。灵渠网络版本>=1.5的配套条件尚未独立核实，不从路径成功反推出版本。
 
 | 第一手资料支持的能力 | 现场已确认 | 待验证 | 改变的实验 |
 | --- | --- | --- | --- |

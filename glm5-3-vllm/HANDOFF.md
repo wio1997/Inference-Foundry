@@ -4,6 +4,8 @@
 
 用户已恢复 **172.16.12.32 / 33** 的现场核查、准备、服务启动与测量，并进一步明确两台原有实验作业/预留全部可以停止。仅操作这两台；系统守护进程和访问入口保留。最新要求是 **全部使用 SDMA**，包含设备内、机内、跨机和最终 PD KV 数据路径。控制/初始化通信另记，不能用 TCP/RDMA 数据回退代替 SDMA。
 
+主对话随后转达用户最新要求：**先不考虑 Mooncake，优先核实灵渠 MemCache**。不再新增 Mooncake 部署、修改或测量；已运行探针已结束，保留原始失败与数据校验记录。准确组件现已在镜像中查到：`memcache_hybrid` / `memfabric_hybrid`，不是通用 memcached。优先研究现成接口的 P写池→D读池与直接传输能力，暂不增加 SSD 或做全面后端跑分。用户的性能判断是研究优先级，尚无本环境对照结论。
+
 保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，最终验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线还没有推理性能基线或收益；业务请求分布、数值 SLO 和完整正确性验收标准待定。
 
 分支 `codex/glm5-3-vllm-optimization`，本次接手 HEAD `f5571dc0e1c271ae533a347700f24b4a2c105762`，接手时工作区干净。继续 [draft PR #2](https://github.com/wio1997/Inference-Foundry/pull/2)，不自动合并。不改旧副本 `/Users/wio/work/Inference-Foundry` 或原 SGLang 研究分支。
@@ -33,9 +35,23 @@
 
 - 已核对官方 A3 配置语义：`HCCL_INTER_HCCS_DISABLE=FALSE` 为超节点内 HCCS/SDMA；`HCCL_INTRA_PCIE_ENABLE=1` 配对 `HCCL_INTRA_ROCE_ENABLE=0` 禁用 RoCE；A3 `HCCL_OP_EXPANSION_MODE=AI_CPU` 避免选择 AIV 展开。配置与运行证据分开，具体支持及 communicator 级覆盖仍要核对。
 - [hccl_probe.py](tools/hccl_probe.py) 已完成同卡 33[0,1]、异卡 33[0,2] 及跨机 32[2]↔33[2] 的 int8 双向 send/recv 与 bf16 all_reduce；五档字节、预热3+计时12次/项的 payload 校验通过。INFO 诊断日志与 ERROR 级计时分开保存；只有前者用于选路分析。初始缺少 PCIE 配对、CONNECT_TIMEOUT=30低于实际最小120、容器物理/逻辑可见号混用三次失败均保留，未把它们记作性能数据。初始化/控制 TCP 不作为数据通路；不能由 backend 名或环境变量宣称已证实 SDMA。
-- 镜像含 Mooncake Ascend Direct 动态库；**实际 PD connector 的 SDMA 选路和 C8 消费路径尚未运行验证**。HCCL 通过不能代替这项。不要把原来的 AIV/MC² 或 RDMA 配置无审查搬过来；全部 SDMA 约束下，逐个核实实际通信实现。
+- **实际 PD connector 的 SDMA 选路和 C8 消费路径尚未运行验证**。HCCL 通过不能代替这项。不要把原来的 AIV/MC² 或 RDMA 配置无审查搬过来；全部 SDMA 约束下，逐个核实实际通信实现。暂停的 Mooncake 探针经过 READ 地址顺序修正后，两台双向64KiB/1MiB/16MiB数据校验完成，但两边析构均出现 `corrupted size vs. prev_size`、退出133；不能记为稳定通过。初次33设备初始化失败发生于模型仍占用die2时，空闲复测已通过初始化，未证明两容器共享设备可用。没有启动 Mooncake PD 服务。
 - 已取得本任务资源，基础2-rank跨节点 SDMA 通信功能通过。实际 ACL 映射已核对；容器挂载物理0,2后应使用容器逻辑0,1，不能再用物理0,2筛运行时可见集。跨机测试无 HCCL_LOGIC_SUPERPOD_ID 或外部 rank-table 环境变量覆盖，使用 HCCL root-info/TCPStore 动态建域。继续按真实模型消息补相关组与争用。5 秒背景窗口无明显传输/磁盘读取，只是瞬时诊断；每次测量仍核实相关干扰。
-- 已准备 [TP16 单机容量计划](tools/capacity-tp16-node33.json) 和启动器，已启动容器 `62481295791bd1a9e086d5a833cac59a3832a654aa252d79fbbf44e5637bc012`；启动回执与7份文件已拉回校验，Ready/功能另行核实。固定 TP16/DP1、无EP、MC2/DSA-CP/FlashComm关闭、int8 KV/indexer、V1、eager、512 context/1 seq；只为容量/功能及已有HCCL路径验证，不是优化配置或业务负载。镜像内 timeout 已预检，诊断最多2700秒，不自动重启。然后验证每 rank 内存、实际 V1 runner/W8A8C8 路径和小请求。当前不能宣称 1P1D 放得下或服务可用；如不支持，保留最终 PD 目标并推进真实片段。
+- [TP16 单机容量计划](tools/capacity-tp16-node33.json) 已完成一次完整模型启动和短请求；容器 `62481295791bd1a9e086d5a833cac59a3832a654aa252d79fbbf44e5637bc012` 已主动停止、退出0，保留容器和日志，当前不提供服务。固定 TP16/DP1、无EP、MC2/DSA-CP/FlashComm关闭、int8 KV/indexer、V1、eager、512 context/1 seq。全部16个rank从 `model_runner_v1.py` 加载；每rank日志权重47.21GiB，warmup后torch allocated54.54GiB/reserved54.62GiB（软件口径，非物理HBM），KV预算约7.33–7.35GiB。宿主日志API Ready18:36:16、容器启动18:20:29，加载186shard约477秒；启动耗时仅同宿主时钟范围。短请求HTTP200，12输入/32输出token，以“5”开头回答2+3；单请求功能验证，不是精度或性能验收。原始console183178bytes已拉回Mac校验。实际量化method/缓存tensor布局与C8消费仍需运行对象或trace核验；CLI dtype不是证明。单机容量结果不等于1P1D验收。
+
+## 当前 MemCache 核实
+
+- 镜像内 `memcache_hybrid==1.2.0`（VERSION git `4310d68fa8964a3032b71c09296b0ffa80330033`）、`memfabric_hybrid==1.2.0`（`999034e9320abf27bbde7be83a32d3bf4d0f7940`）。SDK API 已加载检查；未安装替换包或编译新kernel。MemFabric的导入provision分支只为950自动编译，本线A3不走该分支。
+- 实际 `AscendStoreConnector` 注册的 `MemcacheBackend` 使用 `memcache_hybrid.DistributedObjectStore`，支持显式 `backend=memcache`；SDK配置支持 `device_sdma`。现有PD文档示例是MultiConnector，仍含Mooncake，所以不能用它证明纯MemCache PD。源码中单独Store消费者的 `consumer_is_to_load` **默认false**，纯池消费必须显式true；先按同TP/MLA/Indexer布局核对，不能直接照搬异TP稀疏布局。
+- SDK1.2.0提供 `put_from`、`batch_put_from_layers`、`batch_get_into`、`batch_get_into_layers`、key-info/GVA、lease/写完成接口；不等于全部语义已经验证。`COPY_L2G=0`、`COPY_G2L=1`。已核对配置与API签名，后续以真实返回码、payload和运行选路判断。
+- 32本任务元数据/配置服务 `glm53-memcache-meta32-20261017` 已主动停止，当前不监听；未占NPU或数据池。运行期间172.16.12.32:27400/27401/27402为metadata/config/metrics，不能叫TCP数据回退。初始12秒就绪观察过短记失败，容器未重启，随后三端口及SDK日志证实MetaService启动（约26秒）。SIGTERM后的服务清理日志已完成，但进程随后同样报heap错误、最终退出134，不能视为干净退出。配置/最终console在 `/data/wio/glm5-3-vllm-execution/20261017-memcache/meta32-v1`，不改全局配置；关闭后的完整归档已备份Mac并核验SHA。
+- 空闲32/33物理die2已执行两rank最小合成检查：每rank临时1GiB DRAM池、0HBM池、显式device_sdma、SSD关闭。64KiB/1MiB双向共4对象的P写池/D读池均返回0，接收SHA全部匹配。实际HYBM初始化`bmDataOpType=2`，已与镜像内`HYBM_DOP_TYPE_SDMA=1U<<1`头文件核对；profiler两台各4个`SDMA_SQE`，每个put/get标注区间恰有1个SDMA任务。数据链为源HBM→源侧DRAM池→对端HBM，每对象两次SDK搬运；这不是P→D直传或模型KV消费的证明，也不是建议引入永久缓存层。Trace、日志原件及SHA已备份Mac，仓库留 `memcache-trace-analysis.json`。不拿profile耗时作性能基线。
+- 生命周期未通过：仅隐式析构的case退出139；显式`close()`返回0后仍退出133。先释放tensor/清空torch缓存再close也复现。进一步32单客户端只init/close、不建tensor/不注册buffer/不传payload，torch allocated/reserved均0，仍退出133。具体根因未定，不能仅凭此归责到某个库或宣称SDK已稳定集成。第一次LocalConfig拒绝仅MetaConfig支持的`ock.mmc.log_output_target`，已删除该键后固定配置重测，未改协议或回退；所有失败保留。
+- 指南要求A3 `device_sdma` 配套灵渠计算网络>=1.5。宿主HDK/CANN版本已取证，**现场灵渠网络版本仍未知**，不从同超节点标签或SDK包版本推定满足；本次正面证据只覆盖已测试的数据路径。纯Store的原GLM C8/Indexer注册、完成通知和D消费仍待模型验证。下一步先对最小init/close复现定位原生退出/动态库生命周期与版本配套，再用单独AscendStoreConnector、`backend=memcache`、`consumer_is_to_load=true`验证P写池→D读池。没有安装替换依赖，没有启动双完整模型，也不回退已暂停的Mooncake路线。
+
+## 本轮收尾状态
+
+Mac 2026-10-16T19:17Z重新核对两台本任务16-die预留仍Running，UID分别 `dfb6ef4d-746f-41ba-a163-20034e9b237f` / `d4d731d9-2d8b-43e1-b986-621b66fa7adf`，7200秒有限期限。仅sleep holder继续保留供续接，**不代表后续时刻仍有效或剩余时间足够**。证据 `final-task-resources.json`。`node{32,33}-final-device-idle-*` 均退出0：两台所有8卡均无NPU进程，本轮模型/Meta容器均已停止，系统和访问入口保留。初版收尾脚本把K8s sleep holder误归为运行实验容器，已按容器名前缀修正后复核，原始失败未删除。
 
 ## 操作入口与记录
 

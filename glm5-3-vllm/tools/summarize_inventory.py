@@ -20,6 +20,19 @@ SPECS = dict([
     ("node33.reservation_cleanup", "node33-reservation-cleanup.json"), ("node33.reservation_events", "reservation_events.json"), ("node33.node_capacity", "node-capacity.json"), ("node32.reservation_create_authorized", "node32-reservation-create-authorized.json"), ("node33.reservation_create_authorized", "node33-reservation-create-authorized.json"),
     ("workload_release", "workload-release.json"), ("node32.reservation_create_v2", "node32-reservation-create-authorized-v2.json"), ("node33.reservation_create_v2", "node33-reservation-create-authorized-v2.json"), ("node32.reservation_ready_v2", "node32-reservation-ready-authorized-v2.json"), ("node33.reservation_ready_v2", "node33-reservation-ready-authorized-v2.json")])
 NODES = ("node32", "node33")
+SPECS.update({
+    'capacity.ready': 'node33-capacity-readiness-*/metrics.json',
+    'capacity.functional': 'node33-capacity-functional-*/metrics.json',
+    'capacity.stopped': 'node33-capacity-stopped-*/metrics.json',
+    'memcache.api': 'node32-memcache-api-*/metrics.json',
+    'memcache.trace32': 'node32-memcache-sdma-close-profile-*/memcache-trace-analysis.json',
+    'memcache.trace33': 'node33-memcache-sdma-close-profile-*/memcache-trace-analysis.json',
+    'memcache.lifecycle': 'node32-memcache-init-close-only-*/metrics.json',
+    'memcache.lifecycle_result': 'node32-memcache-init-close-only-*/result.json',
+    'resources.final': 'final-task-resources.json',
+    'idle32': 'node32-final-device-idle-*/metrics.json',
+    'idle33': 'node33-final-device-idle-*/metrics.json',
+})
 MARKER = re.compile(r"GLM53_RESULT_JSON_BEGIN\s*(\{.*?\})\s*GLM53_RESULT_JSON_END", re.S)
 RAW, REL, SOURCES, ERRORS = {}, {}, [], []
 
@@ -166,12 +179,13 @@ CONFLICTS = [
     ("mooncake_package_name", "open", "pip name mooncake-transfer-engine shows installed=false, but NPU distribution mooncake-transfer-engine-npu 0.3.11.post1 is present; must not be read as absent.", ["node33.image_metadata_v2", "node33.source"]),
     ("receipt_scope", "open", "196 files / 764240832702 bytes are receipt identity plus current metadata; no independent payload rehash.", ["node32.assets", "node33.assets"]),
     ("node33_no_free_dies", "historical_resolved", "Initial snapshot only (17:37Z pod lists): node33 16/16 dies held by sglang-pd4p2d-reserve-33-20261014 and node32 2/16 by containerworkload-694f3t4n; in that state the first node33 16-die request failed scheduling (Insufficient huawei.com/Ascend910) and was deleted. Released 2026-10-16T17:57Z under user authorization; history, not current occupancy.", ["node33.reservation_events", "node33.node_capacity", "node33.k8s_pods", "node32.k8s_pods", "workload_release"]),
-    ("lease_create_timestamp_ordering", "open", "Both node33 HCCL run contexts read lease glm53-execution-reservation-33-20261017 uid d4d731d9-2d8b-43e1-b986-621b66fa7adf creationTimestamp 2026-10-16T17:58:28Z, before the retained successful create credentials (17:59:53Z node32, 17:59:57Z node33); retained files do not explain the ordering.", ["node33.reservation_create_v2"] + run_contexts),
+    ("lease_create_timestamp_ordering", "clock_domains", "Kubernetes, target hosts, and Mac wall clocks differ by minutes. Cross-domain creationTimestamp/client receipt ordering is not a race certificate; compare UID/node/resource identities and use same-host clocks for durations.", ["node33.reservation_create_v2"] + run_contexts),
     ("vllm_version_string", "open", "site-packages vllm version '0.30.0+empty' vs git SHA ced6857...; mapping not resolved by this summary.", ["node33.image_metadata_v2", "node33.source"]),
     ("quiet_window_limit", "open", "Five-second background snapshot only; supports no isolation guarantee for later runs.", ["node32.detail", "node33.detail"])]
 POLICY = [
-    ("sdma_only", "user directive (session), not raw evidence", "All traffic must use SDMA (latest requirement).", []),
-    ("no_fabricated_numbers", "user directive", "Must not report throughput, single-node capacity, or 1P1D feasibility; failed communication runs stay failures with no derived performance.", []),
+    ("sdma_only", "user directive (session), not raw evidence", "All data transfers must use SDMA; record control/bootstrap TCP separately.", []),
+    ("no_fabricated_numbers", "user directive", "Report only verified scope: one node's tiny-window full-model capacity/functionality is established; no production-capacity, precision acceptance, throughput or 1P1D feasibility follows. Failed probes stay failed even when payloads pass.", []),
+    ("memcache_priority", "latest user constraint relayed by the main conversation", "Pause new Mooncake work; prioritize installed MemCache/MemFabric and explicit device_sdma. A mixed MultiConnector example is not proof of pure MemCache PD.", []),
     ("allocation_ownership", "user authorization + workload-release.json + reservation v2 credentials",
      "User authorized killing all workloads on nodes 32/33; release executed (node32 testportal Deployment scaled to 0, node33 old reserve pod deleted) and this task's 16-die reservations are Ready with a 7200s deadline. Old occupancy is history, not a pending question.",
      ["workload_release", "node32.reservation_create_v2", "node33.reservation_create_v2", "node32.reservation_ready_v2", "node33.reservation_ready_v2"])]
@@ -181,16 +195,33 @@ layers = {
     "device_check": {"done": True, "status": "partial_pass", "evidence": [ev("node33.npu_smoke"), ev("node32.detail"), ev("node33.detail")], "note": "Single visible die correctness pass (model_loaded false); HCCS health OK and 16-die topology on both nodes. No multi-die collective exercised."},
     "communication_correctness": {"done": bool(ok_runs), "status": ("established" if len(ok_runs) == len(RUNS) else "established_for_passing_runs_only") if ok_runs else "not_established", "evidence": [r["evidence"][0] for r in RUNS], "note": "%d of %d discovered 2-rank HCCL runs returned ok=false; the remaining %d completed ok=true with all recorded payload checks passing. Failures kept as recorded." % (len(RUNS) - len(ok_runs), len(RUNS), len(ok_runs))},
     "runtime_sdma_evidence": {"done": False, "status": "plog_link_evidence_present" if runtime_sdma_runs else "unverified", "evidence": [r["evidence"][1] for r in RUNS] + [p for r in runtime_sdma_runs for p in r["evidence"][3:]], "note": "The probe field sdma_runtime_path_verified is false in all %d runs (kept as recorded, not flipped to true). %d run(s) carry a separate sdma-analysis.json whose plog analysis reports runtime_sdma_link_evidence=true; it is bounded to retained-log evidence with no device-profiler packet accounting." % (len(RUNS), len(runtime_sdma_runs))},
-    "complete_pd": {"done": False, "status": "not_started", "evidence": [ev("node33.npu_smoke")], "note": "No model loaded, no prefill/decode placement, no 1P1D run; no performance numbers are claimed anywhere."}}
+    "single_model_functionality": {'done': True, 'status': 'ready_one_request_then_stopped',
+        'evidence': [ev('capacity.ready'), ev('capacity.functional'), ev('capacity.stopped')],
+        'note': 'Full TP16 model loaded on node33, HTTP200 for 12 prompt/32 generated tokens, then stopped exit0. Tiny-window functionality, not accuracy/performance/PD acceptance.'},
+    "memcache_sdma_data_path": {'done': True, 'status': 'payload_and_sdma_verified_lifecycle_failed',
+        'evidence': [ev('memcache.api'), ev('memcache.trace32'), ev('memcache.trace33'), ev('memcache.lifecycle'), ev('memcache.lifecycle_result')],
+        'note': 'Installed MemCache/MemFabric1.2.0; synthetic pool put/get hashes match, 8 SDMA_SQE tasks across two local traces. SDK close returns0 but processes exit133; init/close-only with zero torch allocation also reproduces. No dependency replacement or model PD launched.'},
+    "complete_pd": {"done": False, "status": "not_started", "evidence": [ev('capacity.functional'), ev('memcache.lifecycle_result')], "note": "Single model functionality and synthetic MemCache transport are separate from P/D model execution. C8 KV production/consumption and exclusion of D-side full prefill remain unverified."}}
 
 reservations = {n: {"pod": ca[n]["manifest"]["metadata"]["name"], "create_rc": ca[n]["rc"], "create_stdout": ca[n]["stdout"].strip(), "ready_rc": rq[n]["rc"], "activeDeadlineSeconds": ca[n]["manifest"]["spec"]["activeDeadlineSeconds"],
                     "command": ca[n]["manifest"]["spec"]["containers"][0]["command"], "requests_Ascend910": ca[n]["manifest"]["spec"]["containers"][0]["resources"]["requests"]["huawei.com/Ascend910"], "preemptionPolicy": ca[n]["manifest"]["spec"].get("preemptionPolicy"),
                     "ready_stdout": rq[n]["stdout"].strip(), "ready_stderr": rq[n]["stderr"].strip(), "evidence": [ev("%s.reservation_create_v2" % n), ev("%s.reservation_ready_v2" % n)]} for n in NODES}
 
 summary = {
-    "schema": "glm53-inventory-summary/2", "generated_utc": datetime.now(timezone.utc).isoformat(), "inventory_dir": str(INV.relative_to(REPO)),
+    "schema": "glm53-inventory-summary/3", "generated_utc": datetime.now(timezone.utc).isoformat(), "inventory_dir": str(INV.relative_to(REPO)),
     "scope_note": "Derived offline from read-only raw evidence; paths relative to repo root; no independent payload rehash; per-run communication records keep failures as recorded and derive no performance numbers; verification layers are separated below.",
     "read_errors": ERRORS, "verification_layers": layers,
+    'memcache': {'memcache_build': RAW['memcache.api']['memcache_hybrid_version'],
+        'memfabric_build': RAW['memcache.api']['memfabric_hybrid_version'],
+        'trace_analysis': {n: RAW['memcache.trace'+n] for n in ('32', '33')},
+        'init_close_only': RAW['memcache.lifecycle'],
+        'init_close_only_returncode': RAW['memcache.lifecycle_result']['returncode'],
+        'lingqu_network_version': None, 'lingqu_version_requirement': '>=1.5 per installed guide, not independently verified'},
+    'final_scope': {'resources': RAW['resources.final'],
+        'evidence': [ev('resources.final'), ev('idle32'), ev('idle33')],
+        'devices_idle': {n: RAW['idle'+n]['npu_smi_stdout'].count('No running processes found in NPU') == 8 for n in ('32', '33')},
+        'task_service_containers': {n: RAW['idle'+n]['task_containers'] for n in ('32', '33')},
+        'note': 'All experiment/model/metadata service containers stopped; finite Kubernetes sleep holders retained only. Snapshot, not a perpetual lease guarantee.'},
     "nodes": {n: node_facts("%s.inventory" % n, "%s.detail" % n) for n in NODES},
     "weights_assets": {n: assets_facts(RAW["%s.assets" % n], "%s.assets" % n) for n in NODES},
     "k8s_ascend_holders_initial_snapshot": {"as_of_utc": "2026-10-16T17:37Z (file mtime)", "state": "initial snapshot / history; superseded by workload-release.json (17:57Z release); not current occupancy", **{n: {**ascend_holders(RAW["%s.k8s_pods" % n]), "evidence": ev("%s.k8s_pods" % n)} for n in NODES}},
@@ -226,4 +257,4 @@ summary = {
     "policy_constraints": [{"id": i, "basis": b, "text": t, **({"evidence": [ev(k) for k in ks]} if ks else {})} for i, b, t, ks in POLICY],
     "sources": SOURCES}
 OUT.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-print("summary v2: runs=%d ok=%d sources=%d errors=%d" % (len(RUNS), len(ok_runs), len(SOURCES), len(ERRORS)))
+print("summary v3: HCCL runs=%d ok=%d sources=%d errors=%d; model functional, MemCache data path verified, lifecycle failed" % (len(RUNS), len(ok_runs), len(SOURCES), len(ERRORS)))
