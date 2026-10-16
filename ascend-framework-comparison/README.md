@@ -19,6 +19,7 @@
 
 - [实施方案](PLAN.md)：先做什么、适配范围、如何选择优化。
 - [测试合同](BENCHMARK_CONTRACT.md)：数据、预热、缓存、全程/稳态和 SLA 口径。
+- [Flash 多模态测试方案](MULTIMODAL_TEST_PLAN.md)：单图/多图/多轮/视频、视觉展开长度、缓存身份、PD/SDMA和端到端计时；当前为计划，未执行。
 - [当前状态](HANDOFF.md)：计划与已完成事项的区别。
 - [Flash 适配任务](tracks/flash-adaptation/README.md) / [接手提示](tracks/flash-adaptation/START_PROMPT.md)。
 - [原模型 4P2D 对比任务](tracks/glm53-4p2d/README.md) / [接手提示](tracks/glm53-4p2d/START_PROMPT.md)。
