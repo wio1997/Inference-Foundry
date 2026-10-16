@@ -17,3 +17,6 @@
 
 
 用户将本对话设为GPT6.1 Sol High主控。严格遵守../../EXECUTION_CONTRACT.md：所有实际资源/构建/部署/启动服务/模型请求/性能/profile操作均由本机ZCode DeepSeek执行，主控只读、方案、具体实现/命令审查和结果核验。ZCode入口/本机资产管线交接位置见公共文档，不读provider凭证。先读真实锁和receipt，不重复现有上传/导入，不自行开定时。与另一轨道独立worktree/任务目录/节点/Meta和端口，满载profile/性能错峰。
+
+
+最终资源更新：本组权重与固定候选Docker镜像都已准备并独立验收，详见../../DOCKER_RESOURCE_ACCEPTANCE.md和最终JSON；不再等待或重跑B103上传导入。仍须核设备独占与本轮参数，再经本机ZCode DeepSeek启动真实模型验证。资源READY不等于Flash已适配或新2P2D性能通过。

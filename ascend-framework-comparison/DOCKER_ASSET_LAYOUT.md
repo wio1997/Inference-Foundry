@@ -1,5 +1,7 @@
 # Docker资源入口与就绪条件
 
+**后续已完成：** B103上传/六节点导入及父独立imageID验收全部通过，见[最终资源验收](DOCKER_RESOURCE_ACCEPTANCE.md)。以下包含00:00资源准备快照，曾标记的SGLang上传待完成已由最终验收覆盖。
+
 截至2026-10-17本次快照，15台均已验证Docker27.1.2、Linux ARM64、Ascend默认runtime和16个davinci设备；统一入口已经建立在本地NVMe的`/data/wio`。详细时点及验证边界见[机器可读快照](inventory/20261017/docker-asset-checkpoint.json)。本页是资源准备状态，尚无新Flash/2P2D模型服务或性能验收。
 
 | 用途 | 统一宿主机路径 | 实际状态 |
@@ -17,7 +19,7 @@ Docker实际镜像层仍存于`/docker_data/data`。没有迁移daemon数据根�
 | 框架 | 固定来源/身份 | 本次状态 |
 |---|---|---|
 | vLLM-Ascend | `quay.io/ascend/vllm-ascend:v0.30.0rc1-a3-arm64`，imageID `sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83` | 14/15/30/31/43/45已导入；父独立核实实际imageID及linux/arm64。它仍是RC候选，不能称两模型均已稳定认证 |
-| SGLang | `swr.cn-southwest-2.myhuaweicloud.com/base_image/dockerhub/lmsysorg/sglang:cann9.1.0-a3-B103`，imageID `sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263` | Mac到源1仍上传；完整SHA通过后才分发导入34/35/36/41/46/47，尚不能称已安装 |
+| SGLang | `swr.cn-southwest-2.myhuaweicloud.com/base_image/dockerhub/lmsysorg/sglang:cann9.1.0-a3-B103`，imageID `sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263` | 完整上传与源1/六台归档SHA通过；34/35/36/41/46/47均已导入，主控独立验证实际imageID/ARM64及本地别名 |
 
 B103是`cann9.1.0-a3-B103`镜像构建标签的一部分，不是SGLang的语义版本号。其Ascend源码来自`release/2026930`的`ce0a8fea5f4245839d174b2b8c55692be1810a7f`；Flash A3 KDA/混合状态等适配仍需真实验证。候选基础镜像到位只允许开始功能适配，不等于Flash支持完成或性能达标。
 
@@ -33,6 +35,6 @@ B103新归档：`/data/wio/images/sglang-a3-b103-arm64-verified.tar`，17,106,35
 
 ## 什么时候可以开始
 
-每条轨道可以独立推进，无需等待另一条全部完成。负责该轨道的对话先检查实际状态/进程/锁，只有对应节点镜像ID、架构、本地权重、文件/配置身份和容量通过资源门控，且设备独占归属/端口/共享服务冲突核实后，才能开始启动和功能验证。`ROLE_RESOURCES_READY_NO_MODEL_STARTED`仅代表文件与镜像准备完成。当前15台基础Docker/目录均通过，vLLM六台角色资源完成，SGLang六台镜像仍待上传导入；备用32/33/37未启动推理。
+每条轨道可以独立推进，无需等待另一条全部完成。负责该轨道的对话先检查实际状态/进程/锁，只有对应节点镜像ID、架构、本地权重、文件/配置身份和容量通过资源门控，且设备独占归属/端口/共享服务冲突核实后，才能开始启动和功能验证。`ROLE_RESOURCES_READY_NO_MODEL_STARTED`仅代表文件与镜像准备完成。当前15台基础Docker/目录与全部角色资源均通过，vLLM六台和SGLang六台镜像已导入并独立核实；备用32/33/37未启动推理。
 
 随后按单机已知答案、PD/SDMA、图/MTP/缓存正确性，再做正式性能。原2P2D每角色32die须重算并冻结并行与缓存布局；Flash须完成混合状态适配。原有K8s申请未删除，空闲NPU进程列表不能代替独占授权。所有构建/启动/模型/profile/压测经[本机ZCode DeepSeek执行规则](EXECUTION_CONTRACT.md)，不自动恢复定时任务。

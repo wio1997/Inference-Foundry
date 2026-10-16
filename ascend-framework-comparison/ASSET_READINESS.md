@@ -1,6 +1,8 @@
 # 权重、镜像与交接材料就绪检查（2026-10-16）
 
-**最新资源准备（2026-10-17）：15台Docker与/data/wio统一入口已通过；Flash14/15/46/47的本地权重复制及逐文件SHA已完成；vLLM14/15/30/31/43/45固定候选镜像已导入且父独立核实imageID/ARM64；SGLang六台仍等B103上传、校验和导入。** 新2P2D/Flash尚未启动，资源准备不等于模型适配/稳定/性能通过。详见[Docker资源布局](DOCKER_ASSET_LAYOUT.md)和[新现场快照](inventory/20261017/docker-asset-checkpoint.json)。下文早期检查按其采样时点保留。
+**2026-10-17最终资源更新：15台角色资源准备完成，六台B103实际imageID/别名与ARM64已由父独立验收。** 详见[Docker资源最终验收](DOCKER_RESOURCE_ACCEPTANCE.md)。下面“仍等上传”等内容是先前快照；新模型启动/适配/性能仍未验证。
+
+**最新资源准备（2026-10-17）：15台Docker与/data/wio统一入口已通过；Flash14/15/46/47的本地权重复制及逐文件SHA已完成；vLLM14/15/30/31/43/45固定候选镜像已导入且父独立核实imageID/ARM64；SGLang六台B103也已完成上传/校验/导入和父独立imageID验收。** 新2P2D/Flash尚未启动，资源准备不等于模型适配/稳定/性能通过。详见[Docker资源布局](DOCKER_ASSET_LAYOUT.md)和[新现场快照](inventory/20261017/docker-asset-checkpoint.json)。下文早期检查按其采样时点保留。
 
 最新资源与停机以[服务器表](SERVER_ALLOCATION.md)和[stop-and-reallocation.json](inventory/20261016/stop-and-reallocation.json)为准；本页原只读检查细节保留其历史边界。
 

@@ -1,6 +1,6 @@
 # 最新服务器分工：两套2P2D（2026-10-16）
 
-用户最新决定：原GLM-5.3两种框架都改为**2P2D**；**38和42排除**。45纳入本批并补原模型vLLM D；47恢复Flash SGLang D，原角色冲突已解除。旧SGLang停止已经执行，新组仍未部署。15台Docker和/data/wio统一目录已验证；Flash四台权重复制及逐文件SHA完成，vLLM六台已导入固定候选镜像，SGLang六台仍等B103上传导入。见[资源路径](DOCKER_ASSET_LAYOUT.md)，本次未启动新模型。
+用户最新决定：原GLM-5.3两种框架都改为**2P2D**；**38和42排除**。45纳入本批并补原模型vLLM D；47恢复Flash SGLang D，原角色冲突已解除。旧SGLang停止已经执行，新组仍未部署。15台Docker和/data/wio统一目录已验证；Flash四台权重复制及逐文件SHA完成，vLLM六台已导入固定候选镜像，SGLang六台B103也已完成上传、导入及父独立imageID/别名验收，15台角色资源准备完成；见[最终验收](DOCKER_RESOURCE_ACCEPTANCE.md)。见[资源路径](DOCKER_ASSET_LAYOUT.md)，本次未启动新模型。
 
 | 实验线 | P节点 | D节点 | 物理规模 |
 |---|---|---|---|
