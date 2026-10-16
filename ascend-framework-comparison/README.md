@@ -12,3 +12,5 @@ GLM-5.3与GLM-5.3-Flash是两个独立项目、两个独立对话。各自在同
 两个对话各用GPT6.1 Sol High；本机ZCode DeepSeek执行要求分别写在各自EXECUTION_CONTRACT，不建立跨对话任务依赖或主控审批链。物理争用作为各自测量条件如实检查，不形成模型之间的逻辑依赖，也不授权操作对方服务。没有新建/消息其他对话、没有恢复定时。
 
 旧tracks入口保留重定向，旧混合内容见[拆分前快照](reference/20261017/README.md)。旧4P2D[归档](archive/20261016/README.md)不变；旧资源批次JSON是历史验收，不等于新模型功能或实时服务状态。权重/镜像二进制和凭证不入Git。
+
+两个项目均要求vLLM-Ascend与SGLang的P→D数据面全部使用SDMA，各自在本目录PD_TRANSPORT.md定义独立验收，运行是否通过以真实证据为准。

@@ -13,3 +13,5 @@
 5. 只更新本项目STATE/HANDOFF/run与结果；独立合同版本不依赖另一模型。实际物理争用如实记录、选择合适窗口，不操作对方服务，不发送跨对话消息。
 
 运行根计划为`/data/wio/inference-foundry/glm53-flash`，配置/脚本/数据/日志/locks/Meta/provider分别使用本项目名称；当前只完成文档拆分，未创建该新宿主机运行根或启动模型。Docker层仍在`/docker_data/data`，权重从本项目RESOURCES的本地目录只读挂入。
+
+P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLang；不允许自动回退RDMA传输模型状态。按本目录[SDMA合同](PD_TRANSPORT.md)核配置、实际加载路径和真实请求传输证据；TCP控制/握手与PD数据面分开。此项为用户指定要求，尚不是运行验证结论。

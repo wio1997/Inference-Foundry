@@ -11,3 +11,5 @@ GPT6.1 Sol High主控、本机ZCode DeepSeek执行真实动作；详见[本项�
 下一步：读取本项目PLAN，核独占与image/模型身份，经本机ZCode冻结脚本开始本模型正确性门控；完整通过后用本项目BENCHMARK_CONTRACT建立基线。预热不计吞吐，不共享长前缀，失败全保留，实际缓存与运行/排队以证据为准。
 
 Flash vLLM14P/15D，SGLang46P/47D，各1P1D。先模型加载、KDA/conv/recurrent与mHC/量化语义，再混合状态PD、图/MTP和缓存；多模态有本目录独立方案。不要从原GLM53的MLA/MemCache问题、层数、73K命中常数或2P2D规模继承推理配置。
+
+P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLang；不允许自动回退RDMA传输模型状态。按本目录[SDMA合同](PD_TRANSPORT.md)核配置、实际加载路径和真实请求传输证据；TCP控制/握手与PD数据面分开。此项为用户指定要求，尚不是运行验证结论。

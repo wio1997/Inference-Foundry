@@ -24,3 +24,5 @@
 ## 多模态与测试
 
 先完成文本与本模型1P1D正确性，再逐项验证兼容图/MTP/混合状态缓存。参考本目录[多模态计划](MULTIMODAL_TEST_PLAN.md)、[矩阵](multimodal-matrix.json)和[独立性能合同](BENCHMARK_CONTRACT.md)。所有范围均以实际资格门控为准，不借用其他模型的通过记录。
+
+P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLang；不允许自动回退RDMA传输模型状态。按本目录[SDMA合同](PD_TRANSPORT.md)核配置、实际加载路径和真实请求传输证据；TCP控制/握手与PD数据面分开。此项为用户指定要求，尚不是运行验证结论。

@@ -11,3 +11,5 @@
 每次运行保持project_id=glm53-flash，使用本项目独立namespace、配置、锁、Meta/provider、数据、原始失败和结果目录。各自合同独立版本化，改本项目参数不改另一项目。不得把另一模型的吞吐、缓存布局/命中常数、模型层数或PID当本项目事实。
 
 资源：vLLM14P/15D，SGLang46P/47D。先Flash单机文本/混合状态正确，再本项目真实1P1D、图/MTP/缓存；多模态只读本目录MULTIMODAL_TEST_PLAN.md及multimodal-matrix.json。原模型的MLA/MemCache补丁不能替代FlashKDA/conv状态适配。
+
+P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLang；不允许自动回退RDMA传输模型状态。按本目录[SDMA合同](PD_TRANSPORT.md)核配置、实际加载路径和真实请求传输证据；TCP控制/握手与PD数据面分开。此项为用户指定要求，尚不是运行验证结论。

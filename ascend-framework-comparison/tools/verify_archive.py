@@ -46,8 +46,12 @@ assert not (root/'glm53/C8_RESOURCE_EVIDENCE.json').exists() and not (root/'glm5
 for project in ['glm53-flash','glm53']:
  state=json.loads((root/project/'STATE.json').read_text());assert state['project_id']==project and not state['depends_on_other_project']
  assert all('/' not in p for p in state['required_context'])
+ resources=f if project=='glm53-flash' else g
+ assert resources['pd_transport']['required_data_plane']=='SDMA' and resources['pd_transport']['rdma_payload_fallback_allowed'] is False
+ assert all(fw['required_pd_data_plane']=='SDMA' for fw in resources['frameworks'].values())
+ assert state['required_pd_transport']=='SDMA' and (root/project/'PD_TRANSPORT.md').is_file() and (root/project/'ACCESS.md').is_file()
  for file in ['AGENTS.md','HANDOFF.md','START_PROMPT.md','PLAN.md','BENCHMARK_CONTRACT.md','EXECUTION_CONTRACT.md','RESOURCES.json','ASSETS.md','RESOURCE_EVIDENCE.json']:
   assert (root/project/file).is_file()
  evidence=json.loads((root/project/'RESOURCE_EVIDENCE.json').read_text());assert {x['node'] for x in evidence['nodes']}==nodes(f if project=='glm53-flash' else g)
  assert all(x['model']['path']==(f if project=='glm53-flash' else g)['model']['weight_path'] for x in evidence['nodes'])
-print(json.dumps({'status':'PASS','files':len(manifest['files']),'historical_snapshot_schedulers':96,'independent_model_projects':2,'model_paths_and_contracts_separate':True,'primary_node_sets_disjoint':True,'original_model_w8a8_only':True,'model_requests':0,'network_calls':0}))
+print(json.dumps({'status':'PASS','files':len(manifest['files']),'historical_snapshot_schedulers':96,'independent_model_projects':2,'model_paths_and_contracts_separate':True,'primary_node_sets_disjoint':True,'original_model_w8a8_only':True,'all_project_pd_requires_sdma':True,'model_requests':0,'network_calls':0}))

@@ -33,3 +33,5 @@
 
 
 只在本目录[合同](BENCHMARK_CONTRACT.md)下比较同模型/同精度的两套框架。完整审计后run进入accepted，缺证据为INCONCLUSIVE；局部SDMA微测不直接代表TTFT收益。
+
+P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLang；不允许自动回退RDMA传输模型状态。按本目录[SDMA合同](PD_TRANSPORT.md)核配置、实际加载路径和真实请求传输证据；TCP控制/握手与PD数据面分开。此项为用户指定要求，尚不是运行验证结论。
