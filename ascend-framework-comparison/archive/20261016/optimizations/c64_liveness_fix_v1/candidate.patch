@@ -1,0 +1,47 @@
+--- a/managers/scheduler.py
++++ b/managers/scheduler.py
+@@ -3340,6 +3340,23 @@
+         req.update_finish_state()
+         self.output_streamer.stream_output([req], req.return_logprob)
+ 
++    def _defer_hicache_prefetch_until_bootstrap(self) -> bool:
++        """Do not pin a finite L2 bounce while waiting for decode capacity.
++
++        With early decode allocation and no optimistic prefill, a request
++        cannot consume its staged KV before bootstrap. Staging such requests
++        can exhaust L2 ahead of another request whose decode KV is already
++        reserved, forming a cross-worker resource cycle. Keep prefetch async
++        after finalize_bootstrap, while this request waits for P admission.
++        """
++        return (
++            self.disaggregation_mode == DisaggregationMode.PREFILL
++            and self.enable_hicache_storage
++            and self.tree_cache.buffer_pipeline is not None
++            and get_disagg().optimistic_prefill_attempts == 0
++            and get_disagg().disaggregation_decode_allocation_policy == "early"
++        )
++
+     def _add_request_to_queue(self, req: Req, is_retracted: bool = False):
+         if not self._set_or_validate_priority(req):
+             self._release_aborted_request(req)
+@@ -3357,7 +3374,8 @@
+             req.time_stats.set_wait_queue_entry_time()
+             req.arrival_processed_tokens = self.processed_tokens_counter
+         elif self.disaggregation_mode == DisaggregationMode.PREFILL:
+-            self._prefetch_kvcache(req)
++            if not self._defer_hicache_prefetch_until_bootstrap():
++                self._prefetch_kvcache(req)
+             self.disagg_prefill_bootstrap_queue.add(
+                 req, self.model_config.num_key_value_heads
+             )
+--- a/disaggregation/prefill.py
++++ b/disaggregation/prefill.py
+@@ -418,6 +418,8 @@
+         num_pages = self._num_pages_to_send(req, decode_prefix_len)
+         req.disagg_kv_sender.init(num_pages, req.metadata_buffer_index)
+         req.pending_bootstrap = False
++        if self.scheduler._defer_hicache_prefetch_until_bootstrap():
++            self.scheduler._prefetch_kvcache(req)
+         return True
+ 
+     def _num_pages_to_send(self, req: Req, decode_prefix_len: int) -> int:

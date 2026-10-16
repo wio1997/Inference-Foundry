@@ -1,0 +1,63 @@
+{
+  "question": "Can local and remote DRAM add bandwidth into the same NPU HBM?",
+  "hardware": "A3 device_sdma HCCS",
+  "sources": [
+    {
+      "node": 34,
+      "device": 0,
+      "providerGiB": 2
+    },
+    {
+      "node": 35,
+      "device": 0,
+      "providerGiB": 2
+    }
+  ],
+  "destinations": [
+    {
+      "node": 35,
+      "device": 0
+    },
+    {
+      "node": 34,
+      "device": 0
+    }
+  ],
+  "modes": [
+    "local1",
+    "remote1",
+    "local2",
+    "remote2",
+    "mixed2"
+  ],
+  "source_placement": "SDK ReplicateConfig preferred serviceIDs, every object owner checked",
+  "destinations_private_nonoverlapping": true,
+  "geometry": [
+    "Actual NPUMLA target78+draft1/all79index/page128/16pages",
+    "64MiB contiguous device allocation with4096byteguards, cached leased GVA"
+  ],
+  "samples_per_mode": {
+    "warmup": 2,
+    "measured": 6
+  },
+  "fixed_total_bytes_per_mode": {
+    "native79": 3644850176,
+    "bulk64MiB": 4294967296
+  },
+  "parallelism": "Two caller threads, same SDK instance/device; binding releases GIL, SDK uses thread-local streams. Record SDK-call overlap, do not infer exact physical overlap solely from CPU intervals. Same-source2 controls distinguish concurrent API effects.",
+  "retains": [
+    "original4P2D and640GiB pool",
+    "nativeSDK1.3",
+    "MTP1/5 and graph",
+    "all timers paused"
+  ],
+  "budget_seconds": {
+    "seed": 300,
+    "each_destination": 500,
+    "provider_lease": 3600
+  },
+  "interpretation": "Near additive supports usable parallel bandwidth in this measured API/layout; failure to add does not alone distinguish SDMA/API serialization from hardware contention",
+  "model_requests": 0,
+  "revision": "v3 explicit900sreadlease exceeds500sreader; publicbulkcopy bytepreflight beforetiming; V2native40passed but default10sleaseexpired beforebulk, raw preserved",
+  "lease_ttl_ms": 900000
+}

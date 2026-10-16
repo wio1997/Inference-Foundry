@@ -1,0 +1,58 @@
+{
+  "hypothesis": "Direct final-HBM path retains an advantage under real native allocator and 1/4/16/64 SDMA readers; same/cross-host equivalence is a measurement question",
+  "hardware": "A3 HCCS device_sdma",
+  "provider": {
+    "node": 35,
+    "device": 0,
+    "bytes": 2147483648,
+    "actual_owner_service_id_required": true
+  },
+  "readers": "local35 1/4/16, remote34 1/4/16, spread35/34/33/37 4/16/64",
+  "geometry": {
+    "target_layers": 78,
+    "target_indexer_layers": 78,
+    "draft_layers": 1,
+    "draft_indexer_layers": 1,
+    "dtype": "BF16",
+    "page_tokens": 128,
+    "K_width": 512,
+    "RoPE_width": 64,
+    "index_width": 128,
+    "bytes_per_token": 111232,
+    "actual_allocator": "NPUMLATokenToKVPool",
+    "live_model_pages": false
+  },
+  "source_sets": 4,
+  "key_pattern": "same keyset within 16-rank group; four independent keysets at 64 readers",
+  "payload_pages": [
+    1,
+    4,
+    16
+  ],
+  "warmup_pairs": 2,
+  "measured_pairs": 6,
+  "inner_copies_per_trial": "128/pages",
+  "timing": "same-process completed API calls plus NPU synchronize; cohort rank0 wall includes two Gloo barriers, empty overhead separately reported and never subtracted",
+  "correctness": "every-trial SHA of all target/draft components including padding, provider owner proof, native code/SDK SHA, normal SDK exits",
+  "scope_limits": [
+    "Not a model TTFT/throughput result",
+    "Logical API payload GB/s, not wire counters",
+    "One physical source provider; not full NUMA/source topology matrix",
+    "All original4P2D model processes resident and HTTP queues idle before private transfer tests",
+    "No change to original model source/container states or production Meta",
+    "No recurring automation"
+  ],
+  "budget": {
+    "seed_seconds": 300,
+    "group_seconds": 680,
+    "matrix_seconds": 1800,
+    "provider_ttl_seconds": 3600,
+    "max_device_bytes_per_reader": 419430400,
+    "max_pinned_host_bytes_per_reader": 629145600
+  },
+  "acceptance": "Only accept per-case path results after all byte/owner/completion/exit/source/unchanged-original-state gates. No universal-fastest claim from finite matrix.",
+  "revision": "v4b",
+  "baseline_context": "All original4P2D restored and idle; complete repeat is needed because earlier local-only measurements had P35 model absent",
+  "fixed_fault": "Gloo rendezvous follows group rank0 rather than storage provider",
+  "prior_failed_raw_preserved": "/Users/wio/work/sglang-glm53-33-41-deploy/warm93-memcache-aisbench-20261015/optimizations/cache_path_v4"
+}
