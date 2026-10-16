@@ -3,7 +3,7 @@
 先按任务目标选择作用域，避免加载其他模型的规则和历史：
 
 - GLM-5.3-Flash独立适配项目：只从[Flash规则](ascend-framework-comparison/glm53-flash/AGENTS.md)与[Flash交接](ascend-framework-comparison/glm53-flash/HANDOFF.md)接手。
-- 原GLM-5.3独立比较/优化项目（含W8A8/C8）：只从[原模型规则](ascend-framework-comparison/glm53/AGENTS.md)与[原模型交接](ascend-framework-comparison/glm53/HANDOFF.md)接手。两模型对话没有任务/合同/状态依赖，父级比较目录仅导航。
+- 原GLM-5.3独立比较/优化项目（仅普通W8A8）：只从[原模型规则](ascend-framework-comparison/glm53/AGENTS.md)与[原模型交接](ascend-framework-comparison/glm53/HANDOFF.md)接手。两模型对话没有任务/合同/状态依赖，父级比较目录仅导航。
 
 - 历史GLM-5.3 / SGLang研究：仅明确继续旧研究分支时读 [glm5-3-sglang/AGENTS.md](glm5-3-sglang/AGENTS.md) 和其 [HANDOFF](glm5-3-sglang/HANDOFF.md)。为本线修改共享代码时也采用本线规则；不继承旧 GLM / DeepSeek 的 Current、部署任务或许可。
 - 旧 GLM 研究：仅在明确继续旧线时读 [glm5-3/AGENTS.md](glm5-3/AGENTS.md) 和其 [HANDOFF](glm5-3/HANDOFF.md)。新线按需引用旧证据，不把旧线状态当当前事实。

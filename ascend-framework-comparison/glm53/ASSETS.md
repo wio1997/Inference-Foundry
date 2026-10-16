@@ -6,4 +6,4 @@
 
 主W8A8的193文件名/大小与config SHA已核，本次资源准备没有再次全量哈希764GB payload。
 
-32/33补充的是**原GLM53 W8A8C8**：196文件764240832702bytes，源及两目标全部文件payload SHA通过，rc1已导入；[父独立验收](C8_RESOURCE_EVIDENCE.json)核实际imageID/本地文件map/config/量化说明与完整SHA清单；[源SHA](C8_SOURCE_SHA256.json)。路径`/data/wio/GLM53/GLM-5.3-w8a8c8`，别名`/data/wio/models/GLM-5.3-w8a8c8`。它未分配P/D，不自动并入2P2D，也不替换主W8A8。config.json可相同，量化说明/分片/模板不同；C8的88项attention/indexer INT8_DYNAMIC且部分层保留高精度，不能宣称全部缓存统一8bit或容量必然减半。它与主W8A8分别建run和精度基线。
+本项目只使用上述普通W8A8权重；两框架挂载同一模型目录并逐项核对量化说明、索引和模板。此前32/33的C8传输已移出本项目，已有文件不删除，不安排额外精度变体测试。

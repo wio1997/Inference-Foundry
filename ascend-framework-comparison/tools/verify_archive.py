@@ -39,7 +39,10 @@ def nodes(x):return {n for group in x['frameworks'].values() for role in ['P','D
 assert nodes(f)=={14,15,46,47} and nodes(g)=={30,31,34,35,36,41,43,45} and not nodes(f)&nodes(g)
 assert f['frameworks']['vllm_ascend']['P']==[14] and f['frameworks']['vllm_ascend']['D']==[15] and f['frameworks']['sglang']['P']==[46] and f['frameworks']['sglang']['D']==[47]
 assert g['frameworks']['vllm_ascend']['P']==[30,31] and g['frameworks']['vllm_ascend']['D']==[43,45] and g['frameworks']['sglang']['P']==[34,35] and g['frameworks']['sglang']['D']==[36,41]
-assert not f['supplementary_assets'] and g['supplementary_assets'][0]['nodes']==[32,33] and g['supplementary_assets'][0]['inference_P_D_assignment'] is None
+assert not f['supplementary_assets'] and not g['supplementary_assets']
+assert g['model']['precision']=='W8A8' and g['model']['weight_path']=='/data/wio/models/GLM-5.3-w8a8' and g['model']['source_path']=='/data/wio/GLM53/GLM-5.3-w8a8'
+assert g['weight_policy']['allowed_variants']==['W8A8'] and g['weight_policy']['c8_experiments_in_scope'] is False and g['weight_policy']['same_weight_directory_for_both_frameworks']
+assert not (root/'glm53/C8_RESOURCE_EVIDENCE.json').exists() and not (root/'glm53/C8_SOURCE_SHA256.json').exists()
 for project in ['glm53-flash','glm53']:
  state=json.loads((root/project/'STATE.json').read_text());assert state['project_id']==project and not state['depends_on_other_project']
  assert all('/' not in p for p in state['required_context'])
@@ -47,4 +50,4 @@ for project in ['glm53-flash','glm53']:
   assert (root/project/file).is_file()
  evidence=json.loads((root/project/'RESOURCE_EVIDENCE.json').read_text());assert {x['node'] for x in evidence['nodes']}==nodes(f if project=='glm53-flash' else g)
  assert all(x['model']['path']==(f if project=='glm53-flash' else g)['model']['weight_path'] for x in evidence['nodes'])
-print(json.dumps({'status':'PASS','files':len(manifest['files']),'historical_snapshot_schedulers':96,'independent_model_projects':2,'model_paths_and_contracts_separate':True,'primary_node_sets_disjoint':True,'c8_only_in_original_model':True,'model_requests':0,'network_calls':0}))
+print(json.dumps({'status':'PASS','files':len(manifest['files']),'historical_snapshot_schedulers':96,'independent_model_projects':2,'model_paths_and_contracts_separate':True,'primary_node_sets_disjoint':True,'original_model_w8a8_only':True,'model_requests':0,'network_calls':0}))

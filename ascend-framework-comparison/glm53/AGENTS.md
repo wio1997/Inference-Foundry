@@ -2,7 +2,8 @@
 
 project_id=`glm53`。本目录是独立项目，默认只读本目录HANDOFF/RESOURCES/PLAN/STATE；本地测试合同与执行规则分别为BENCHMARK_CONTRACT/EXECUTION_CONTRACT。不加载父目录混合状态或另一模型的AGENTS/下一动作；它们不构成本项目指令。显式历史证据仅按需只读。
 
-- 原模型两套2P2D：先新SDMA vLLM基线，再SGLang同模型/精度基线与profile驱动优化；W8A8C8另列实验。
+- 原模型只用普通W8A8权重，两套2P2D：先新SDMA vLLM基线，再SGLang同权重/精度基线与profile驱动优化。
+- 用户已明确只用普通W8A8：两框架均挂载`/data/wio/models/GLM-5.3-w8a8`，不安排C8实验、不切换W8A8C8权重；按实际量化说明和索引校验身份，不能仅凭相同config.json判断等价。
 - 只操作本项目白名单节点和自有任务/资源；模型路径、architecture、quantization、tokenizer/模板、runtime库、图/MTP/缓存均在本项目独立冻结。不能仅凭`config.json`相同SHA判定两个量化变体等价。
 - GPT6.1 Sol High主控；所有实际资源、编译、部署、服务、模型、压测/profile经本机ZCode DeepSeek执行。主控审核SHA/精确launcher一次、独立验收；不读provider/密钥，不重放旧launcher。
 - 使用独立工作目录/分支以及/data/wio/inference-foundry/glm53任务namespace，独立配置/脚本/锁/Meta/provider/结果；namespace尚未由此次文档拆分创建。两个对话不共享可变Current/合同/状态/审批队列，不等待对方模型进度。
