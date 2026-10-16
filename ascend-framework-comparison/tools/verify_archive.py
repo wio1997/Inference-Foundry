@@ -3,7 +3,6 @@
 from pathlib import Path
 import hashlib
 import json
-from collections import Counter
 
 root = Path(__file__).resolve().parents[1]
 manifest = json.loads((root / 'FILE_MANIFEST.json').read_text())
@@ -32,12 +31,13 @@ sdk = json.loads((archive/'b103/DOWNLOAD_RESULT.json').read_text())
 config = json.loads((root/'RESOURCES.json').read_text())
 assert sdk['all_uncompressed_diff_ids_verified'] and len(sdk['layer_checks']) == 21
 nodes = [n for model in ['flash','glm53'] for group in config[model].values() for role in ['P','D'] for n in group[role]]
-assert len(nodes)==16
-counts=Counter(nodes)
-duplicates={n for n,count in counts.items() if count>1}
-conflicts={c['node'] for c in config.get('allocation_conflicts',[])}
-assert duplicates==conflicts=={47}
-assert config['glm53']['vllm_ascend']['P']==[30,31,32,47]
-assert 38 not in nodes
-assert all(c['do_not_deploy_both'] for c in config['allocation_conflicts'])
-print(json.dumps({'status':'PASS','files':len(manifest['files']),'snapshot_schedulers':96,'proposed_role_slots':16,'unique_assigned_nodes':len(set(nodes)),'unresolved_role_conflicts':sorted(duplicates),'model_requests':0,'network_calls':0}))
+assert len(nodes)==12 and len(set(nodes))==12
+reserve=config['reserve_nodes']
+assert reserve==[32,33,37] and not set(nodes)&set(reserve)
+assert config['excluded_nodes']==[38,42]
+assert not set(nodes+reserve)&{38,42}
+assert config['allocation_conflicts']==[]
+assert config['glm53']['vllm_ascend']=={'P':[30,31],'D':[43,45]}
+assert config['glm53']['sglang']=={'P':[34,35],'D':[36,41]}
+assert config['flash']=={'vllm_ascend':{'P':[14],'D':[15]},'sglang':{'P':[46],'D':[47]}}
+print(json.dumps({'status':'PASS','files':len(manifest['files']),'historical_snapshot_schedulers':96,'active_planned_nodes':len(nodes),'reserve_nodes':reserve,'excluded_nodes':config['excluded_nodes'],'model_requests':0,'network_calls':0}))

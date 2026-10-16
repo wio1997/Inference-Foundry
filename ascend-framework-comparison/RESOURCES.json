@@ -1,6 +1,13 @@
 {
-  "status": "READ_ONLY_INVENTORY_PARTIAL_AND_ROLE_CONFLICT",
+  "schema_version": 2,
   "date": "2026-10-16",
+  "status": "OLD_SGLANG_STOPPED_NEW_2P2D_NOT_DEPLOYED",
+  "user_latest_changes": [
+    "Old SGLang on this batch may be stopped.",
+    "38 excluded;45 replaces38 in resource pool.",
+    "Original GLM53 changed to2P2D for both frameworks.",
+    "42 subsequently excluded;45 replaces42 as vLLM D."
+  ],
   "flash": {
     "vllm_ascend": {
       "P": [
@@ -20,65 +27,62 @@
     }
   },
   "glm53": {
+    "vllm_ascend": {
+      "P": [
+        30,
+        31
+      ],
+      "D": [
+        43,
+        45
+      ]
+    },
     "sglang": {
       "P": [
         34,
-        33,
-        35,
-        37
+        35
       ],
       "D": [
         36,
         41
       ]
-    },
-    "vllm_ascend": {
-      "P": [
-        30,
-        31,
-        32,
-        47
-      ],
-      "D": [
-        42,
-        43
-      ]
     }
   },
-  "transport_requirement": "SDMA/HCCS only for actual applicable data paths; validate runtime, no silent RDMA fallback.",
-  "ip_policy": "Management IPs observed from Kubernetes in inventory; fabric domain and SDMA paths not proven by IP or label.",
-  "load_generator": {
-    "candidate": "166 or other dedicated intranet CPU host",
-    "verified": false,
-    "avoid": "D43 while benchmark runs; 43 old SGLang model/AISBench containers confirmed present, no migration performed."
-  },
-  "execution": "Local ZCode configured DeepSeek; exact reviewed launcher once.",
-  "scheduling": "Stagger full-load framework runs initially; cross-over physical groups if needed to separate hardware effects.",
-  "automations": "REMAIN_PAUSED",
-  "inventory": "inventory/20261016/readiness.json",
-  "server_allocation": "SERVER_ALLOCATION.md",
-  "asset_readiness": "ASSET_READINESS.md",
-  "allocation_conflicts": [
-    {
-      "node": 47,
-      "roles": [
-        "glm53.vllm_ascend.P",
-        "flash.sglang.D"
-      ],
-      "status": "P47_CONFIRMED_FLASH_D_PENDING",
-      "do_not_deploy_both": true
-    }
-  ],
-  "unassigned_candidate_nodes": [
-    {
-      "node": 45,
-      "status": "NOT_ASSIGNED_NEW_PLAN_OLD_SGLANG_OCCUPIED"
-    }
+  "reserve_nodes": [
+    32,
+    33,
+    37
   ],
   "excluded_nodes": [
-    {
-      "node": 38,
-      "reason": "USER_REPLACED_WITH_47"
-    }
+    38,
+    42
+  ],
+  "allocation_conflicts": [],
+  "hardware_per_role": {
+    "full_model_P_nodes": 2,
+    "full_model_D_nodes": 2,
+    "logical_dies_per_node": 16,
+    "dies_per_full_model_role": 32,
+    "dies_per_full_model_framework": 64,
+    "roles_parameter_status": "Not frozen: recalculate TP/attentionDP/EP/KV and MemCache capacities for32dies; do not replay4P EP64 args."
+  },
+  "load_generator": {
+    "candidate": "Dedicated intranet CPU host, not a P/D node",
+    "verified": false,
+    "avoid": "D43/D45 and Flash14/15/46/47.43AISBench tool container preserved but not a production benchmark placement."
+  },
+  "transport_requirement": "Actual applicable data paths use SDMA/HCCS; verify runtime and topology, no silent RDMA fallback.",
+  "execution": "Local ZCode configured DeepSeek; exact parent-reviewed launcher once.",
+  "scheduling": "Stagger full-load tests initially; no shared long prefixes.",
+  "automations": "REMAIN_PAUSED",
+  "server_allocation": "SERVER_ALLOCATION.md",
+  "asset_readiness": "ASSET_READINESS.md",
+  "latest_state": "inventory/20261016/stop-and-reallocation.json",
+  "initial_read_only_snapshot": "inventory/20261016/readiness.json",
+  "readiness_limits": [
+    "No new2P2D/Flash deployment or model requests.",
+    "New fixed inference images not imported; Flash weight transfer not completed.",
+    "Existing Kubernetes allocations preserved; check exclusive ownership before deployment.",
+    "42excluded; temporary helper created for diagnosis and removed; SSH unchanged."
   ]
 }

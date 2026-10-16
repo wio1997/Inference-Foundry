@@ -2,7 +2,7 @@
 
 在 wio1997/Inference-Foundry 的 codex/ascend-sglang-vllm-comparison 分支，负责 ascend-framework-comparison/tracks/flash-adaptation，目标为「GLM-5.3-Flash：vLLM 参考与 SGLang 适配」。先读公共 AGENTS.md、HANDOFF.md、PLAN.md、BENCHMARK_CONTRACT.md、RESOURCES.json 和本轨道 STATE.json，再检查实际状态避免重复运行。
 
-先读原生混合状态语义、固定同一 Flash W8A8 权重和官方版本。14/15 是 vLLM 1P1D 参考，46=P、D待定（原47已被指定为原模型vLLM P）是 SGLang 目标；先单机文本正确，再真实 PD，再图/MTP/缓存。
+先读原生混合状态语义、固定同一 Flash W8A8 权重和官方版本。14/15 是 vLLM 1P1D 参考，46=P、47=D 是 SGLang 目标；先单机文本正确，再真实 PD，再图/MTP/缓存。
 
 用户已明确不要共享前缀：C 个独立 74400-token 前缀，各自预热后连续复用四轮，全新后缀、完整 80000/600、4C 条完整输入各不相同。预热完全排除性能统计，保留自然缓存，不强制预热后清 L1/L2。历史 RDMA+共享前缀数据只溯源，不能作本轮对照。
 
@@ -13,4 +13,4 @@
 正确性通过才建立完整基线；每轮保存真实 argv/源码/SDK/权重身份、原始失败、缓存来源、实际运行/排队和端到端时间。只在本轨道提交改动；公共合同有分歧先记录并由主控统一，不私自改计量。当前阶段以本用户请求和公共状态为准，不能重放旧归档中的一次性 launcher。
 
 
-2026-10-16只读核查更新：先读 [服务器表](../../SERVER_ALLOCATION.md) 和 [资产就绪表](../../ASSET_READINESS.md)。角色不是空闲保证，47冲突/45旧作业/42访问缺口未解决；不要直接启动旧launcher或清理其他作业。
+2026-10-16最新更新：旧SGLang已按授权停止，Flash角色46P/47D无冲突；38/42排除。权重/固定镜像仍待准备，新1P1D未部署。先读服务器表与资产表，不启动旧launcher。

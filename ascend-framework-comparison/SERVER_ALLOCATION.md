@@ -1,42 +1,48 @@
-# 服务器分工与现场状态（2026-10-16只读快照）
+# 最新服务器分工：两套2P2D（2026-10-16）
 
-本表是本分支的资源入口。**用户最新变更：原模型 vLLM P38 → P47。** 47原本也是Flash SGLang D，冲突尚未解决；未自行决定同时运行、错峰复用或改D45。45之前不在新计划内，但现场有旧作业。38已从新分配移出。
+用户最新决定：原GLM-5.3两种框架都改为**2P2D**；**38和42排除**。45纳入本批并补原模型vLLM D；47恢复Flash SGLang D，原角色冲突已解除。旧SGLang停止已经执行，新组仍未部署。
 
-| 实验 | P节点 | D节点 | 当前资格 |
+| 实验线 | P节点 | D节点 | 物理规模 |
 |---|---|---|---|
-| Flash vLLM 1P1D | 14 | 15 | 待Flash权重、固定新版镜像及资源释放/归属核实 |
-| Flash SGLang 1P1D | 46 | 待定（旧计划47发生冲突） | 待节点调整、Flash权重及SGLang适配 |
-| 原GLM53 SGLang 4P2D | 34、33、35、37 | 36、41 | 当前实际部署，保留回退；不是新合同已合格基线 |
-| 原GLM53 vLLM 4P2D | 30、31、32、47 | 42、43 | 现场占用/申请冲突，镜像与SDK组合仍待固定 |
+| 原GLM53 · vLLM-Ascend | 30、31 | 43、45 | 4台，P32 die、D32 die |
+| 原GLM53 · SGLang | 34、35 | 36、41 | 4台，P32 die、D32 die |
+| Flash · vLLM-Ascend | 14 | 15 | 2台，1P1D |
+| Flash · SGLang | 46 | 47 | 2台，1P1D |
+| 备用 | 32、33、37 | — | 暂不启动推理 |
+| 排除 | 38、42 | — | 不在本批部署/测试范围 |
 
-P=Prefill，D=Decode。角色为项目用途，不代表空闲或本次已经上线。完整机器可读证据见 [readiness.json](inventory/20261016/readiness.json)。
+12台计划承担推理，3台备用，共15台；管理IP来自已观察到的Kubernetes信息。节点角色为分配，**不表示新环境已部署或已通过性能验收**。机器可读表为 [RESOURCES.json](RESOURCES.json)。
 
-| 节点 | 已观察到的管理IP | 项目用途 | 现场观察 | 接手要求 |
+## 实际停机结果
+
+通过本机ZCode DeepSeek执行父审查冻结的完整ID白名单，停止**33个SGLang相关容器（12模型、20辅助、1Meta）**；没有使用全机pkill，也没有删除镜像、权重、源码、配置、容器对象或旧日志。43的AISBench工具容器、所有访问Pod和原K8s资源声明保留。
+
+父代理随后独立读取16台宿主机（含当时尚未排除的42）：256die健康OK、没有NPU进程。42原本未发现SGLang模型级占用，没有对其原作业执行停止。42诊断只临时建立管理Pod打通root只读访问，用户排除42后已撤除该Pod，未改SSH或宿主机文件。38未执行任何停止/修改。
+
+最新停机与重分配证据：[stop-and-reallocation.json](inventory/20261016/stop-and-reallocation.json)。[早一轮只读快照](inventory/20261016/readiness.json)保留当时的运行容器与P47冲突，属于历史，不覆盖本页。
+
+| 节点 | 管理IP | 最新用途 | 停机后实际观察 | 原K8s申请（历史快照，不代表今天空闲） |
 |---|---|---|---|---|
-| 14 | 172.16.12.14 | Flash vLLM P | 本次无NPU进程；K8s仍申请16 die | 部署前核对原作业/申请归属与离线资产 |
-| 15 | 172.16.12.15 | Flash vLLM D | 本次无NPU进程；无运行中NPU资源申请 | 部署前核对原作业/申请归属与离线资产 |
-| 30 | 172.16.12.30 | GLM53 vLLM P | 本次无NPU进程；K8s仍申请1 die | 部署前核对原作业/申请归属与离线资产 |
-| 31 | 172.16.12.31 | GLM53 vLLM P | 本次无NPU进程；K8s仍申请16 die | 部署前核对原作业/申请归属与离线资产 |
-| 32 | 172.16.12.32 | GLM53 vLLM P | 本次无NPU进程；K8s仍申请2 die | 部署前核对原作业/申请归属与离线资产 |
-| 33 | 172.16.12.33 | GLM53 SGLang P | 运行 `sglang-warm93-p-33-20261015`；HBM 53.5–54.8 GiB/die | 保留现有环境与回退；不重装 |
-| 34 | 172.16.12.34 | GLM53 SGLang P + Meta | 运行 `sglang-warm93-p-34-20261015`；HBM 53.5–54.8 GiB/die | 保留现有环境与回退；不重装 |
-| 35 | 172.16.12.35 | GLM53 SGLang P | 运行 `sglang-warm93-p-35-20261015`；HBM 53.5–54.8 GiB/die | 保留现有环境与回退；不重装 |
-| 36 | 172.16.12.36 | GLM53 SGLang D + gateway | 运行 `sglang-warm93-d-36-20261015`；HBM 58.7–59.0 GiB/die | 保留现有环境与回退；不重装 |
-| 37 | 172.16.12.37 | GLM53 SGLang P | 运行 `sglang-warm93-p-37-20261015`；HBM 53.5–54.8 GiB/die | 保留现有环境与回退；不重装 |
-| 38 | 172.16.12.38 | 已移出本次分配（用户改为47） | 宿主机未核实；K8s未见NPU申请 | 移出新计划；不再要求部署 |
-| 41 | 172.16.12.41 | GLM53 SGLang D | 运行 `sglang-warm93-d-41-20261015`；HBM 58.7–59.0 GiB/die | 保留现有环境与回退；不重装 |
-| 42 | 172.16.12.42 | GLM53 vLLM D | 宿主机未核实；K8s申请16 die | 部署前核对原作业/申请归属与离线资产 |
-| 43 | 172.16.12.43 | GLM53 vLLM D | 运行 `sglang-gen8-glm53-20261014`；HBM 60.7–61.0 GiB/die | 部署前核对原作业/申请归属与离线资产 |
-| 45 | 172.16.12.45 | 新计划未分配；候选，未授权切换 | 运行 `sglang-gen8-glm53-20261014`；HBM 61.3–61.6 GiB/die | 新计划未分配；旧作业占用，不能当空闲 |
-| 46 | 172.16.12.46 | Flash SGLang P | 运行 `sglang-gen8-glm53-20261014`；HBM 61.2–61.5 GiB/die | 部署前核对原作业/申请归属与离线资产 |
-| 47 | 172.16.12.47 | GLM53 vLLM P（替换38）；旧计划Flash SGLang D：冲突待调整 | 运行 `sglang-gen8-glm53-20261014`；HBM 60.7–61.0 GiB/die | 优先记录用户指定vLLM P；Flash D角色冲突待定 |
+| 14 | 172.16.12.14 | Flash vLLM P | 16 die OK；无NPU进程；HBM 2.82–3.08 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 15 | 172.16.12.15 | Flash vLLM D | 16 die OK；无NPU进程；HBM 2.81–3.07 GiB/die | 先前无NPU申请；部署前重核 |
+| 30 | 172.16.12.30 | 原GLM53 vLLM P | 16 die OK；无NPU进程；HBM 2.81–3.06 GiB/die | 先前K8s申请1 die，保留待重核 |
+| 31 | 172.16.12.31 | 原GLM53 vLLM P | 16 die OK；无NPU进程；HBM 2.82–3.06 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 32 | 172.16.12.32 | 备用 | 16 die OK；无NPU进程；HBM 2.81–3.06 GiB/die | 先前K8s申请2 die，保留待重核 |
+| 33 | 172.16.12.33 | 备用 | 16 die OK；无NPU进程；HBM 2.82–3.09 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 34 | 172.16.12.34 | 原GLM53 SGLang P | 16 die OK；无NPU进程；HBM 2.82–3.08 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 35 | 172.16.12.35 | 原GLM53 SGLang P | 16 die OK；无NPU进程；HBM 2.82–3.09 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 36 | 172.16.12.36 | 原GLM53 SGLang D | 16 die OK；无NPU进程；HBM 2.81–3.08 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 37 | 172.16.12.37 | 备用 | 16 die OK；无NPU进程；HBM 2.82–3.09 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 41 | 172.16.12.41 | 原GLM53 SGLang D | 16 die OK；无NPU进程；HBM 2.81–3.07 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 43 | 172.16.12.43 | 原GLM53 vLLM D | 16 die OK；无NPU进程；HBM 2.81–3.05 GiB/die | 先前无NPU申请；部署前重核 |
+| 45 | 172.16.12.45 | 原GLM53 vLLM D | 16 die OK；无NPU进程；HBM 2.82–3.06 GiB/die | 先前K8s申请16 die，保留待重核 |
+| 46 | 172.16.12.46 | Flash SGLang P | 16 die OK；无NPU进程；HBM 2.82–3.06 GiB/die | 先前无NPU申请；部署前重核 |
+| 47 | 172.16.12.47 | Flash SGLang D | 16 die OK；无NPU进程；HBM 2.82–3.06 GiB/die | 先前无NPU申请；部署前重核 |
 
-所有17个候选/移出节点在Kubernetes快照中Ready，标签均superpod=1、allocatable=16 die。15台宿主机实际读到16 die且健康OK（240 die），驱动25.5.2、ARM64；38和42仅有K8s信息，宿主机认证被拒。**allocatable不是空闲，AICore瞬时0不是没有驻留模型。** 37采样还出现AICore68%，不能默认旧服务无人访问。
+AICore瞬时0不能证明无模型；本次判断使用实际NPU进程列表和容器退出状态。无NPU进程也不要求HBM变成0，表中为真实剩余占用。Kubernetes allocatable仍不是free；旧资源申请未删，部署前须重核独占归属，避免预留容器随后启动作业造成冲突。
 
-K8s的14/30/31/32/42/45分别有16/1/16/2/16/16 die的运行中资源申请；这里只确认命名空间/Pod，未查明具体使用者，也未删除申请。43/45/46/47实际旧模型均接近用满HBM。对无NPU进程但仍有申请的机器，需要核对资源归属后再部署。
+新2P的物理规模为32die，不能继续照搬4P时的EP64/全局TP64。TP、attentionDP、EP、MTP/图兼容、每rank真实KV容量与MemCache池需要重新冻结。备用节点不默认参与缓存供给或计算，不能偷偷借其资源提高一侧成绩。正式验证仍只用SDMA/HCCS的已证明路径，不能由同superpod标签推断带宽。
 
-34还承担本任务独立Meta；36承担网关。历史配置与端口详见 [归档操作说明](archive/20261016/current/OPERATIONS.md)。43原有AISBench容器仍保留；将来若转D节点，压测客户端要搬到独立CPU主机，不能与D竞争资源。166只能是候选客户端，位于另一个网络且已有Flash服务，未确认可接入这组172.16.12.*节点。
+43原AISBench容器保留只作工具资产。实际压测客户端搬到独立CPU主机，不能与D43/D45竞争。166处于另一网络且已有Flash作业，不默认其可用或可直达本组。
 
-只读入口采用既有SSH跳板/Kubernetes host-access Pod进入宿主机；认证材料在现场私下管理，不入Git。IP和superpod标签不能证明具体P↔D的SDMA/HCCS可达性；正式部署前仍需真实传输验证，不能静默退回RDMA。
-
-本次没有停容器、创建Pod、拷贝权重、导入镜像、重载服务或发起模型请求。所有部署/测试仍需父审查冻结脚本，再由本机ZCode DeepSeek执行精确launcher；现有定时任务保持暂停。
+当前没有新模型请求、2P2D性能数据或自动化恢复。离线镜像/权重仍见 [资产表](ASSET_READINESS.md)。后续构建/部署/测试继续由本机ZCode DeepSeek执行新审查的launcher；不要重放旧4P2D broker或自动回退重启已获授权停用的服务。
