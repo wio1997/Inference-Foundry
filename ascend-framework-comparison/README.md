@@ -17,6 +17,9 @@
 
 最新交接入口：
 
+- [Docker统一目录与资源门控](DOCKER_ASSET_LAYOUT.md)：15台Docker通过、Flash四台权重完成、vLLM六台镜像导入，SGLang B103仍上传；资源与模型资格分开。
+- [两个对话与ZCode执行规则](EXECUTION_CONTRACT.md)：两个GPT6.1 Sol High主控；实际启动、构建、模型、压测和profile一律本机ZCode DeepSeek执行。
+
 - [服务器分工与现场占用](SERVER_ALLOCATION.md)：每台IP、P/D用途、旧作业、资源申请与角色冲突。
 - [权重/镜像就绪与材料总表](ASSET_READINESS.md)：哪些已在Git、哪些二进制在外部、哪些新目标尚未具备。
 - [只读现场证据JSON](inventory/20261016/readiness.json)：各节点采样时间、权重清单/小文件SHA/索引、镜像ID和检查边界。

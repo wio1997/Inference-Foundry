@@ -1,19 +1,21 @@
-# 当前状态：两套2P2D，旧SGLang已停止（2026-10-16）
+# 当前状态：Docker资源准备；两个对话分轨接手
 
-先看 [服务器分工](SERVER_ALLOCATION.md)、[资源JSON](RESOURCES.json)、[资产表](ASSET_READINESS.md) 和 [停机证据](inventory/20261016/stop-and-reallocation.json)。当前状态覆盖上一提交的4P2D规划/P47冲突。
+最新资源核验：2026-10-17，证据时点以[新快照](inventory/20261017/docker-asset-checkpoint.json)为准。先读[服务器分工](SERVER_ALLOCATION.md)、[Docker目录与资源门控](DOCKER_ASSET_LAYOUT.md)、[执行规则](EXECUTION_CONTRACT.md)、[测试合同](BENCHMARK_CONTRACT.md)。
 
-- 原GLM53 vLLM：P30/31，D43/45；SGLang：P34/35，D36/41。Flash仍为vLLM14P/15D、SGLang46P/47D。备用32/33/37，38和42排除。
-- 通过父审查的本机ZCode DeepSeek精确launcher停止33个自有SGLang相关容器。全部容器对象/镜像/模型/配置/日志保留；43AISBench和K8s声明保留。父独立复核16台256die健康OK、无NPU进程，42核查在其排除前完成。
-- 42SSH认证原先不可用。通过一个临时K8s管理Pod已验证宿主机root、磁盘与真实npu-smi，不是宕机。随后用户排除42，已撤除本次管理Pod，未改SSH/宿主机文件/原有作业。不要再将42加入新组或恢复该Pod。
-- 新2P2D/Flash尚未部署、无新模型请求/性能成绩，所有定时任务保持暂停。禁止因“服务停止”触发旧自动恢复；这是用户授权的主动停用。
-- 当前15台可用池的原GLM53本地NVMe权重清单已核；45只做清单/小文件SHA，没有新的索引头探针。Flash目标已查目录仍未发现Flash权重，新固定推理镜像也未导入。B103完整tar保留Mac；另一网络166Flash资产只有本地历史证据。
-- 原模型P从64die变为32die，不能重放旧EP64/TP64。新TP/attentionDP/EP、KV/MemCache容量、图/MTP与SDMA实际链路需重新冻结并做正确性门控；备用节点不默认作为额外缓存资源。
-- 本轮公共合同升v2只固定新资源/2P2D范围；C16/32/64四轮、独立74400前缀、实际80000/600、预热排除、自然缓存保持。旧4P2D不进入新2P2D框架收益计算。
+- 15台Docker27.1.2/ARM64/Ascend runtime和本地/data/wio目录均已验证。Docker层仍在/docker_data/data，未迁移daemon根目录。原GLM本地193文件大小/config与统一入口已核，未再次哈希全部764GB payload。
+- Flash14/15/46/47使用源1同一精确快照，97文件332970562139bytes全部复制SHA通过，83索引分片头/范围检查完成；父独立复核四台文件大小/configSHA和本地NVMe，未第二次重读全部333GB。
+- vLLM14/15/30/31/43/45已导入image090eeee6，父独立核实真实linux/arm64。旧source tar有blobSHA错误已阻止导入，现用固定源image重新导出并全层校验的新archive。
+- SGLang B103仍由Mac压缩断点上传源1，再校验SHA、分发并导入34/35/36/41/46/47。已有后台任务正常；不要重复传输/导入/重放launcher。partial/计划容量不算就绪。B103是候选基础环境，不是Flash适配或两模型稳定认证。
+- 原GLM vLLM P30/31 D43/45；SGLang P34/35 D36/41，均2P2D。Flash vLLM14P15D；SGLang46P47D。备用32/33/37；38/42排除。每角色32die须新冻结并行/真实KV/MemCache配置，不能照搬旧EP64/TP64或借备用缓存。
+- 用户计划自行开两个GPT6.1 Sol High对话：A负责Flash适配，B负责原GLM53对比和优化。两对话所有实际构建、部署、启动服务、模型请求、压测和profile由Mac本机ZCode DeepSeek执行。详见EXECUTION_CONTRACT；不要自动创建/消息其他对话或恢复定时任务。
+- 可先读源码和准备实现；实际模型工作等本轨道对应节点资源与独占门控通过后开始，不必等另一轨道。新Flash/2P2D尚未启动，无新模型请求或性能。满载测试初期错峰，避免共享链路干扰。
 
-接手入口：[Flash](tracks/flash-adaptation/START_PROMPT.md)、[原GLM53 2P2D](tracks/glm53-2p2d/START_PROMPT.md)。两个任务共享合同，不自动创建/消息对话。实际构建/部署/模型/性能仍须父审查固定SHA后本机ZCode DeepSeek执行一次。
+本机资源管线交接：`/Users/wio/work/sglang-glm53-33-41-deploy/docker-assets-unification-20261016/HANDOFF.md`；每台实际状态：`/data/wio/ascend-framework-comparison/assets/unify-20261016/STATUS.json`。公开仓库不提交凭证/provider/权重/镜像。服务启动前接手者须读真实状态、进程和锁；不能因历史PID存在而认为仍活，也不能因receipt较迟而重复启动。
 
-## 历史材料边界
+接手提示：[Flash](tracks/flash-adaptation/START_PROMPT.md)、[原GLM53](tracks/glm53-2p2d/START_PROMPT.md)。共用v2合同：C16/32/64，每档C条独立74400前缀预热后四轮新后缀、4C条不同80000/600，预热排除，保留自然缓存。无合格基线前不得声称收益。
 
-archive/20261016仍保存旧六节点4P2D日更27b、官方配套SDK1.3/MFLOCAL、MemCache640GiB、P1/D5、D图、buffer_only、SMG1.13和真实源码/配置/映射SHA。原自然暖C64的252成功/4超时/3成功缺缓存明细仍不合格；旧强制L3的448合格结果不是自然暖或新2P2D基线。旧记录不覆盖当前停机和重分配。
+## 停机与历史证据边界
 
-inventory/20261016/readiness.json保留上一轮15宿主机只读快照与当时P47冲突；最新以stop-and-reallocation.json为准。42后来只读发现的资产缺口不再是本批部署条件，因为用户已排除该节点。
+旧SGLang33容器（12模型20辅助1Meta）已按授权停止并保留对象/镜像/源码/配置/日志；43AISBench工具与原K8s资源声明保留。父停机后曾独立核实16台256die健康、无NPU进程（42排除前）。原K8s预留不等于free，部署前确认归属。42曾用自有临时管理Pod核实host健康，后按用户排除撤除，未改SSH/原任务；38未参与停止。见[停机证据](inventory/20261016/stop-and-reallocation.json)。不要自动恢复旧4P2D。
+
+archive/20261016保持旧六机4P2D日更27b/官方SDK1.3/MFLOCAL/640GiB/P1D5/图/buffer_only/SMG及实际源码SHA。旧自然暖C64的失败和缺字段不合格；旧强制L3的448合格结果不能当自然暖或新2P2D性能。旧readiness.json是早期快照，不覆盖当前资源准备。历史一次性launcher不能重放。
