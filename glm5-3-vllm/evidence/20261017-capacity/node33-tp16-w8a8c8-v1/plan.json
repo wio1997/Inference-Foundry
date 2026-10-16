@@ -1,0 +1,175 @@
+{
+  "schema": "glm53-capacity-launch/v1",
+  "created_utc": "2026-10-17",
+  "objective": "node33 single-node full-model capacity/functionality diagnostic: TP16 W8A8C8, int8 KV and indexer KV, tiny request windows. Launch only.",
+  "notes": [
+    "TP16 without EP keeps HCCL AllReduce as the baseline; this is an explicit non-EP configuration, not a tuned optimum.",
+    "--attention_config.indexer_kv_dtype is passed verbatim as specified; flags are never normalized, merged or reordered.",
+    "out_mount source is the run dir itself; optional host paths are mounted only when present, never guessed.",
+    "No fallback, no parameter change, no polling, no request, no other container started/stopped/removed, no host config change.",
+    "A started container is not model readiness; readiness is checked separately.",
+    "Host diagnosis bounded to 2700 seconds by the image /usr/bin/timeout; finish or stop before the resource lease expires. No automatic restart."
+  ],
+  "gateway": {
+    "target": "root@61.241.77.34",
+    "port": 60011
+  },
+  "access_pod": {
+    "namespace": "default",
+    "name": "sglang-tuning-access-33-20261013",
+    "nsenter": "nsenter -t 1 -m"
+  },
+  "reservation": {
+    "namespace": "default",
+    "name": "glm53-execution-reservation-33-20261017",
+    "owner_label": "codex-execution-20261017",
+    "phase": "Running",
+    "node_name": "a3-5u-atlas900rcka3-33",
+    "ascend_resource": "huawei.com/Ascend910",
+    "ascend_request": 16,
+    "ascend_real_annotation": "huawei.com/AscendReal"
+  },
+  "remote": {
+    "run_dir": "/data/wio/glm5-3-vllm-execution/20261017-capacity/node33-tp16-w8a8c8-v1",
+    "weights_dir": "/data/wio/GLM53/GLM-5.3-w8a8c8",
+    "weights_mount": "/models/GLM-5.3-w8a8c8",
+    "out_mount": "/out",
+    "ascend_log_path": "/out/ascend-log",
+    "transfer_root": "/data/wio/ascend-framework-comparison/assets/w8a8c8-node32-33-20261017",
+    "ro_paths_required": [
+      "/usr/local/Ascend/driver"
+    ],
+    "ro_paths_optional": [
+      "/usr/local/sbin/npu-smi",
+      "/usr/local/dcmi"
+    ]
+  },
+  "weights_manifest": {
+    "receipt": "COPIED_FILES.json",
+    "ready": "WEIGHTS_READY.json",
+    "manifest_sha256": "b6843ccf0ffee3cd22357f443dec1006107f958225d13871edc19bebfc88f3be",
+    "file_count": 196,
+    "total_bytes": 764240832702,
+    "size_check": "stat each known relative path and compare receipt bytes; no payload rehash"
+  },
+  "image": {
+    "ref": "quay.io/ascend/vllm-ascend:v0.30.0rc1-a3-arm64",
+    "id": "sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83",
+    "executed_by": "pinned image id; the tag is only inspected, never executed"
+  },
+  "container": {
+    "name": "glm53-exec-capacity-33-20261017",
+    "host_ip": "127.0.0.1",
+    "port": 29480,
+    "lifetime_seconds": 2700
+  },
+  "docker_argv": [
+    "-d",
+    "--pull",
+    "never",
+    "--network",
+    "host",
+    "--cpus",
+    "128",
+    "--memory",
+    "1500g",
+    "--pids-limit",
+    "16384",
+    "--shm-size",
+    "64g",
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges"
+  ],
+  "devices": {
+    "davinci": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "shared": [
+      "davinci_manager",
+      "devmm_svm",
+      "hisi_hdc"
+    ]
+  },
+  "env": {
+    "VLLM_USE_V2_MODEL_RUNNER": "0",
+    "ASCEND_RT_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+    "OMP_NUM_THREADS": "1",
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "VLLM_NO_USAGE_STATS": "1",
+    "HCCL_INTER_HCCS_DISABLE": "FALSE",
+    "HCCL_INTRA_PCIE_ENABLE": "1",
+    "HCCL_INTRA_ROCE_ENABLE": "0",
+    "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+    "HCCL_IF_IP": "172.16.12.33",
+    "HCCL_CONNECT_TIMEOUT": "120",
+    "HCCL_EXEC_TIMEOUT": "120",
+    "ASCEND_GLOBAL_LOG_LEVEL": "3",
+    "ASCEND_PROCESS_LOG_PATH": "/out/ascend-log"
+  },
+  "serve_argv": [
+    "vllm",
+    "serve",
+    "/models/GLM-5.3-w8a8c8",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "29480",
+    "--served-model-name",
+    "glm53-w8a8c8-capacity",
+    "--tensor-parallel-size",
+    "16",
+    "--data-parallel-size",
+    "1",
+    "--dtype",
+    "bfloat16",
+    "--quantization",
+    "ascend",
+    "--kv-cache-dtype",
+    "int8",
+    "--attention_config.indexer_kv_dtype",
+    "int8",
+    "--max-model-len",
+    "512",
+    "--max-num-batched-tokens",
+    "128",
+    "--max-num-seqs",
+    "1",
+    "--enable-chunked-prefill",
+    "--gpu-memory-utilization",
+    "0.90",
+    "--enforce-eager",
+    "--trust-remote-code",
+    "--seed",
+    "1024",
+    "--additional-config",
+    "{\"enable_fused_mc2\":0,\"enable_dsa_cp\":false,\"enable_flashcomm1\":false}"
+  ],
+  "additional_config": {
+    "enable_fused_mc2": 0,
+    "enable_dsa_cp": false,
+    "enable_flashcomm1": false
+  },
+  "timeouts": {
+    "kubectl_s": 60,
+    "launch_s": 180,
+    "fetch_s": 60
+  }
+}

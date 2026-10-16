@@ -1,8 +1,82 @@
 # 硬件地图：拓扑、条件性能与竞争关系
 
-用途：为 GLM-5.3 W8A8C8 / vLLM-Ascend 的执行方案提供可检验的资源依据。当前研究设备拟用 32、33；正式服务目标是 PD 分离。当前没有本线现场采集或性能实测，已有事实与历史来源见 [HANDOFF](HANDOFF.md)。本文是采集和使用约定，不是已完成的地图。
+用途：为 GLM-5.3 W8A8C8 / vLLM-Ascend 的执行方案提供可检验的资源依据。当前研究设备为 32、33，用户已恢复设备操作并授权停止这两台原实验占用；正式目标保持 PD 分离。2026-10-17 已完成首轮只读身份/拓扑/软件/资产核查，已有实测与未知项如下。已补初始条件通信计时和 HCCL SDMA 运行日志；模型及真实 PD KV 路径仍待验证。
 
 地图要可追溯、可复核、能暴露错误。硬件身份、当前软件能发挥的性能、特定负载下的竞争分别记录；实测值不是物理常数，测得的最高带宽也不是所有实现的性能上界。未知项保持未知，不填零或用宣传值代替。新证据与地图冲突时重新核验，不让旧地图直接否定新方案。
+
+## 2026-10-17 首轮现场快照
+
+原始证据与 SHA 见 [inventory 摘要](evidence/20261017-inventory/summary.json) 和每 run 的 context/result/stdout；资源变更以后续 [HANDOFF](HANDOFF.md) 及执行凭据为准，不能沿用初始预留状态。
+
+| 项目 | 两台实测 | 适用限制 |
+| --- | --- | --- |
+| 组成 | 每台 8 张物理卡、16 die、每 die npu-smi 显示 65536 MiB；逻辑 ID=Phy-ID | torch 可用总量不等于物理标称，33 die0 见 65787658240 bytes；其余 die 的运行时容量待测 |
+| 同卡/异卡 | 成对 die 为 SIO；异卡为 HCCS_SW | 来自设备拓扑，不是带宽结果；不同 HCCS_SW 对不预设等速 |
+| 超节点 | 两台采样 die0 均 superPodID=1，size384，server index=31/32；采样 HCCS health=OK | 不证明跨机已能传或与更多节点等速，未用 size384 推断拥有全部资源 |
+| CPU/RAM | Kunpeng 920 7280Z，4×80 core×2 SMT=640 逻辑 CPU，8 NUMA，约 2 TiB RAM | NPU PCI sysfs NUMA=-1，亲和未知；不改系统 NUMA 信息 |
+| 宿主网 | enp162s0f0/f1 报 100000 Mbps、NUMA5；enp194s0f0/f1 报 25000 Mbps、NUMA4；bond4 报 50000 Mbps | sysfs 链路值，不是有效吞吐；管理地址不是 NPU 数据路径 |
+| NPU 网络 | 16 die 普通 IP getter 均返回未配置；RoCE link=DOWN / health=Init；vNIC=UP | 不据此宣称 HCCS/SDMA 不通；不擅自配置 RoCE |
+| 软件身份 | driver25.5.2；镜像 CANN9.1.0、vLLM0.30.0+empty、Ascend0.30.0rc1、torch-npu2.10.0.post4、Mooncake NPU0.3.11.post1 | 完整 imageID/两仓库 SHA 在 HANDOFF；实际 runner/quant/cache 仍待运行证据核验 |
+| 权重 | 两台 196 文件/764240832702 bytes，已有全量校验完成凭据；本线清单身份与当前尺寸核对通过 | 复用凭据，没有重复全量 payload 哈希；运行时 W8A8C8/C8 尚待确认 |
+| 干扰窗口 | 两台 5 秒样本 NVMe 读为0、写<0.01 MB/s，管理网有小流量，已知传输 worker 未见 | 只是瞬时诊断，不能替后续运行保证隔离；共享 HCCS 其他节点仍可能竞争 |
+
+| 物理卡 | die (逻辑/Phy-ID) | PCI BDF (die0 / die1) |
+| --- | --- | --- |
+| 0 | 0 / 1 | 0000:9D:00.0 / 0000:9F:00.0 |
+| 1 | 2 / 3 | 0000:99:00.0 / 0000:9B:00.0 |
+| 2 | 4 / 5 | 0000:95:00.0 / 0000:97:00.0 |
+| 3 | 6 / 7 | 0000:91:00.0 / 0000:93:00.0 |
+| 4 | 8 / 9 | 0000:8D:00.0 / 0000:8F:00.0 |
+| 5 | 10 / 11 | 0000:89:00.0 / 0000:8B:00.0 |
+| 6 | 12 / 13 | 0000:85:00.0 / 0000:87:00.0 |
+| 7 | 14 / 15 | 0000:81:00.0 / 0000:83:00.0 |
+
+## 已验证范围与初始计时
+
+HCCL 诊断的完整归档扫描中，同卡与异卡各有6条 SDMA link success、50条 isUsedRdma[0]；跨节点每端各3条/25条，isUsedRdma[1]、isInterRdma[1]、forceRdma[1]均未见。每端完成15项×12次计时，接收/归约逐次校验通过。完整日志在相应目标节点及 Mac 已校验备份，仓库仅留归档身份、必要摘录及 sdma-analysis。
+
+下表为 ERROR 日志级别下**接收端**区间的中位数，包含 Python/后端调用与设备完成同步。每项12次，属于条件参考，不是纯链路延迟、p99、PD延迟或物理上界；未采用 INFO 诊断时延。两台 NPU 当时由本任务预留，权重已传完；没有证明整个384规模互联独占。
+
+| 路径/方向（物理 die） | 1 KiB (µs) | 64 MiB (µs) | 计时原始证据 |
+| --- | ---: | ---: | --- |
+| 33:0→1 (SIO) | 253.5 | 680.5 | [timing](evidence/20261017-inventory/node33-hccl-sio-sdma-timing-7060a227303a/metrics.json) |
+| 33:1→0 (SIO) | 254.3 | 667.2 | 同上 |
+| 33:0→2 (HCCS_SW) | 240.6 | 766.5 | [timing](evidence/20261017-inventory/node33-hccl-hccs-sdma-timing-99d5e7cdbfaa/metrics.json) |
+| 33:2→0 (HCCS_SW) | 226.4 | 758.8 | 同上 |
+| 32:2→33:2 | 253.2 | 748.3 | [接收端区间](evidence/20261017-inventory/node33-hccl-cross-sdma-timing-bb2e3d559af7/metrics.json) |
+| 33:2→32:2 | 227.3 | 780.0 | [接收端区间](evidence/20261017-inventory/node32-hccl-cross-sdma-timing-bb2e3d559af7/metrics.json) |
+
+每个完整 JSON 还保留64KiB/1MiB/16MiB和bf16 AllReduce、原始各rank ns数组及正确性。只比较这些已测条件，不从小消息区间直接认定全部开销属于 SDMA 引擎。
+
+跨机组：rank0=32/物理2/SDID130285570，rank1=33/物理2/SDID134479874；容器用户编号均为0。全部32个die的原生spod-info都报告 superPodID1，32/33分别server index31/32；完整SDID映射见 [32](evidence/20261017-inventory/node32-sdid-efa2c7300796/stdout.json)、[33](evidence/20261017-inventory/node33-sdid-efa2c7300796/stdout.json)。本组未设置 HCCL_LOGIC_SUPERPOD_ID 或外部rank-table环境变量，采用HCCL root-info动态建域。此证据不排除集群其他域存在逻辑划分。
+
+## 官方能力与现场差异：只保留改变实验的资料
+
+用户描述“只有 SDMA 到超节点”按**本线数据通路约束及现场待核实信息**记录，不写成 910C 硬件仅支持 SDMA。SDMA 是搬运机制，HCCS 是互联链路；HCCL/Mooncake/HIXL 是库或后端，SSH/管理 IP 是控制网络。这些层次分别取证。
+
+| 第一手资料支持的能力 | 现场已确认 | 待验证 | 改变的实验 |
+| --- | --- | --- | --- |
+| [CloudMatrix384 §3.3](https://arxiv.org/html/2506.12708v2#S3.SS3)：双 die 与多互联平面 | 8卡/16die，SIO/HCCS_SW，vNIC UP | 逻辑超节点划分、全 die SDID、跨机实际选路 | 用原生 getter+rank/SDID 对照，不套用论文带宽或规模 |
+| 同文 §4.2.1：AIV-Direct 针对 SDMA 发起开销 | 当前小测走 AICPU/SDMA；小消息含明显接口完成成本 | 真实模型中发起/等待占比 | 保持全部 SDMA，不开发 kernel；先测消息合并、注册/缓冲复用与事件依赖 |
+| 同文 §4.3.2：AIC/AIV/SDMA 分工和 microbatch 流水 | 本线尚无真实计算共跑证据 | HBM/链路/队列争用是否抵消重叠 | 用已有正确算子/接口比较独跑与相关共跑，总完成时间重新计量 |
+| 同文 §4.3.3：KV 使用独立 RDMA 平面隔离 decode 通信 | 本线 SDMA 约束；未验证 KV backend | KV 与 TP/EP 是否共享瓶颈 | 不照搬隔离假设；验证 KV 分块/节流/错开发起与无策略对照 |
+| [CANN9.1 HCCL 开关正文](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_INTER_HCCS_DISABLE.md)：A3 FALSE 为 HCCS/SDMA，TRUE 为 RoCE/RDMA | 已显式 FALSE、PCIE=1/ROCE=0、AI_CPU；同卡/异卡日志出现 SDMA link success、isUsedRdma[0] | 跨机、不同组、真实 PD connector、communicator 级覆盖 | 诊断日志与正式计时分开；HCCL 证明不外推至 KV |
+
+论文条目为机制参考，现场列才是本线证据。预分配/双缓冲、按数据就绪发起、KV 分块/节流及错开 decode 关键通信都是候选，需由现有接口、真实消息量、正确性与总完成时间逐项接受或否定；不预设增加并发必然更快，也不预设 MoE 为首个瓶颈。
+
+## SDMA 有界首轮
+
+用户要求数据搬运全部 SDMA。先取得本任务资源，再核对实际 backend/任务选路；控制面 TCP 单列。初始 HCCL 配置显式 `HCCL_INTER_HCCS_DISABLE=FALSE`、`HCCL_INTRA_PCIE_ENABLE=1`、`HCCL_INTRA_ROCE_ENABLE=0`、`HCCL_OP_EXPANSION_MODE=AI_CPU`。A3 的选路与展开模式依据 [HCCS/SDMA 官方说明](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_INTER_HCCS_DISABLE.md) 和 [CANN9.1 展开模式](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_OP_EXPANSION_MODE.md)。环境变量不代替实际任务证据；communicator 配置可能覆盖环境。
+
+| 问题 | 最小覆盖 | 状态/判别 |
+| --- | --- | --- |
+| 同卡 vs 异卡 | 33 的 0↔1、0↔2，必要时 0↔8；32 做必要复核 | int8 send/recv 双向、bf16 all_reduce；1KiB/64KiB/1MiB/16MiB/64MiB；先为诊断 |
+| 相关组 | 单机 TP4 组及拟用 EP16 组 | 基础 all_gather / all_reduce / all_to_all，组内分片和字节口径单列；不将两台默认合成32-rank服务组 |
+| 节点间 | 32 die2 ↔ 33 die2，必要时对应多路 | HCCL 基础与实际 PD backend 分开，保留真实 SDMA 路由、两方向和端到端完成 |
+| 竞争 | 两对独立 SDMA 与各自单跑，再按真实 KV/EP 消息补充 | 关注两侧减速与总完成时间，避免将重叠区间重复累计 |
+| 真实 KV | actual connector 的注册/产生/传输/消费，int8 KV/indexer 元数据 | 单机容量和功能允许后运行真正 P→D，必须排除 D 重做 prefill |
+
+初始脚本 [hccl_probe.py](tools/hccl_probe.py) 的计时为各 rank 独立 `perf_counter_ns` 包围通信调用+设备完成同步；barrier 完成、填充和逐次正确性验证在计时外。12 次样本不报告稳定 p99，也不当作纯链路时延、PD 服务时延或物理全局上界。日志/profiling 的诊断结果与无 profiling 测量分别保留。并发/大组/跨机入口按结果补充，不创建全排列搜索器。
 
 ## 地图包含什么
 

@@ -1,41 +1,48 @@
-# 当前状态 — 2026-10-17
+# 当前交接 — 2026-10-17（Asia/Shanghai）
 
-本线基于原研究分支 `6b44d8b2755f9527b3066fdd7a014ed5cdc062bb` 建立，用户已要求更新 GitHub 并创建 vLLM 优化分支。当前仅有研究入口与方法说明；没有本线真实基线、片段实现、设备测试或性能收益。设备操作仍按 [AGENTS](AGENTS.md) 暂停。
+## 当前授权和目标
 
-## 已知与待核验
+用户已恢复 **172.16.12.32 / 33** 的现场核查、准备、服务启动与测量，并进一步明确两台原有实验作业/预留全部可以停止。仅操作这两台；系统守护进程和访问入口保留。最新要求是 **全部使用 SDMA**，包含设备内、机内、跨机和最终 PD KV 数据路径。控制/初始化通信另记，不能用 TCP/RDMA 数据回退代替 SDMA。
 
-- 用户业务基于 vLLM，并观察到当前 Ascend 环境中 vLLM-Ascend 比 SGLang 更稳定；此前也观察过 SGLang 更快。两者不是同条件配对结论，不能据此推断最终上限。
-- 目标已明确为 GLM-5.3 **W8A8C8**。用户已有权重与环境，但本线尚未核验实际权重格式、量化元数据、vLLM/vLLM-Ascend/CANN 版本、算子路径和启动配置。公开 FP8 权重不等于用户的 W8A8C8 产物。
-- 用户此前报告总资源 30 台，每台 8 张物理卡 / 16 die，每 die 64G，现已指定拟用 **32、33** 开展本线研究，合计 16 张物理卡 / 32 die。正式目标仍为 PD 分离；32P＋33D 的容量、兼容性和真实路径尚待验证，不能由两机共置参考推定。
-- 用户将可信硬件地图列为关键基础，按 [HARDWARE_MAP](HARDWARE_MAP.md) 先补影响下一决定的拓扑、性能及竞争证据。当前没有本线实测；资源独占归属、旧 K8s 预留与现场状态尚未复核。指定研究节点不等于已经启动设备操作。
-- 现场可连接但无外网。Mac 获取代码与匹配 Linux/CPU/Python/CANN 的依赖，授权后增量传输；已有权重与环境优先复用。实际入口、容器、目录与现场状态需按本线任务核验，不从历史 PID 推断。
-- 代表请求分布、数值 TTFT/TPOT 要求及正确性验收仍待落实。历史 80K/600、缓存比例与固定并发仅作为带来源的用例，不自动定义本线业务。
-- 用户偏好 Sol xhigh 做方案与判断、Mac Zcode/DeepSeek 参与执行，二者均可分析与实现；具体模型版本和调用尚未在本线核验。重复执行交给脚本，角色分工不限制提出新方案。
+保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，最终验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线还没有推理性能基线或收益；业务请求分布、数值 SLO 和完整正确性验收标准待定。
 
-## 参考证据，不是本线运行记录
+分支 `codex/glm5-3-vllm-optimization`，本次接手 HEAD `f5571dc0e1c271ae533a347700f24b4a2c105762`，接手时工作区干净。继续 [draft PR #2](https://github.com/wio1997/Inference-Foundry/pull/2)，不自动合并。不改旧副本 `/Users/wio/work/Inference-Foundry` 或原 SGLang 研究分支。
 
-2026-10-16 查阅 [vLLM-Ascend 官方 GLM-5.3 文档](https://docs.vllm.ai/projects/ascend/en/latest/tutorials/models/GLM5.3.html)：
+## 本线已实测
 
-- §5.1.1 提供 W8A8C8 在两台 A3、每台 16×64GB 的部署示例，使用 DP8 / TP4 / EP；该节标注脚本在 v0.23.0 上测试，而页面安装节列出另一版本镜像。复现须配套固定版本，不混用参数。
-- §5.1.2 的 PD 参考采用四台，P、D 各两台。两机完整服务示例不能证明两台一 P 一 D；四台参考也不是最小规模证明。
-- 以上支持部署可行性的判断，不保证用户现场已运行、任意上下文/并发可用或已经满足 SLO。页面会更新，实际采用时保留对应版本。
+证据目录：[20261017-inventory](evidence/20261017-inventory/)。后续以每个 run 的 `context.json`、`result.json`、原始 stdout/stderr 和校验值核对；失败也保留。
 
-[原 SGLang 部署资料](../glm5-3-sglang/ASCEND_MEMCACHE_PD_DEPLOYMENT.md) 与 [验证快照](../glm5-3-sglang/deployment/ascend_memcache/validation-20261014.json) 已有特定配置下的部署/缓存路径记录；不是本线性能结果，也不证明当时服务现在仍运行。[AISBench 脚本](../glm5-3-sglang/benchmarks/aisbench_memcache_prefix/README.md) 的固定负载与清缓存操作不能直接套用到本线。
+- 32 宿主机 `B4-33U-Atlas900RCKA3-32`，33 为 `B5-5U-Atlas900RCKA3-33`；K8s 节点名仍为 `a3-5u-atlas900rcka3-{32,33}`。访问 Pod 的 hostPID/hostNetwork 和宿主挂载命名空间已核对。
+- 两台均为 8 张物理卡 / 16 die，逻辑 ID=Phy-ID 0..15，每卡两个 die；npu-smi 每 die 65536 MiB。设备内 SIO、不同卡 HCCS_SW；两台全部32个die逐一查询均报告 superPodID=1，server index 分别31/32；各die SDID已留原始证据。同超节点不证明跨机性能。
+- CPU：Kunpeng 920 7280Z，4 socket×80 core×2 thread=640 逻辑 CPU，8 NUMA，宿主约 2 TiB RAM。NPU PCI sysfs NUMA=-1，CPU 亲和仍未知。具体网卡/链路/限制见 [HARDWARE_MAP](HARDWARE_MAP.md)。
+- 两台实际镜像均为 `quay.io/ascend/vllm-ascend:v0.30.0rc1-a3-arm64`，imageID `sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83`，arm64，RepoDigests 为空。
+- 镜像：Python 3.12.13，CANN 9.1.0，torch 2.10.0+cpu + torch-npu 2.10.0.post4，vLLM 0.30.0+empty，vLLM-Ascend 0.30.0rc1；Mooncake 实际发行包为 `mooncake-transfer-engine-npu==0.3.11.post1`，并非未安装。vLLM 源码 SHA `ced6857afa0ea7b2e3f0846a62e1394e90f15607`，Ascend SHA `5f828ad638ee4f9b12db87f9d5481f29076d37f9`，镜像内两仓库工作区干净。宿主驱动 25.5.2，采样固件 7.8.0.7.220。
+- 正式权重 `/data/wio/GLM53/GLM-5.3-w8a8c8/` 两台均已存在，incoming 已不存在；196 文件 / 764240832702 bytes（含 `optional/quarot.safetensors`）。当前逐路径 stat 和文件大小匹配，校验清单规范化 SHA `b6843ccf0ffee3cd22357f443dec1006107f958225d13871edc19bebfc88f3be` 与 `WEIGHTS_READY.json` 相符。复用了传输流水线的全量 payload 校验凭据；**本线未重复全量 payload 哈希**，不把 stat 说成独立 payload 校验。
+- 量化描述含 `W8A8_DYNAMIC:176830`、`INT8_DYNAMIC:88`、`FLOAT:644`；config 为原 GLM `glm_moe_dsa`、78 层、256 专家/top8、hidden6144。目录名/静态元数据尚不证明运行时 W8A8C8、KV 存储或实际算子路径。
+- 33 单 die0 无权重检查通过：容器只见 1 个设备，整数算子输出正确；torch 可见总内存 65787658240 bytes。仅环境功能检查，不是全卡、模型正确性或通信性能证据。该检查发生于旧预留释放前，采样无 NPU 计算进程；不能据此声称当时已取得独占。
 
-另外发现独立的 [框架对照分支快照](https://github.com/wio1997/Inference-Foundry/tree/6efbc385281e9d3472c5e18613f5f90606941462/ascend-framework-comparison)，包含另行维护的原 GLM-5.3 / Flash 对照计划、资产和资源表。本线不接管该任务；需要其资料时保留来源与模型区别。
+## 资源状态及已执行变更
 
-2026-10-17 查阅较新的 [资源表快照](https://github.com/wio1997/Inference-Foundry/blob/e636befe5f203dcdd0a0cdad18a545de9b6e9cf8/ascend-framework-comparison/RESOURCES.json)：该线仍将 32/33 列为备用，统一资产路径及部分其他节点镜像准备已有更新。用户在本聊天指定的研究用途尚未同步至该共享表；部署前需要对齐资源登记。历史无 NPU 进程与其他节点镜像就绪不证明本线独占或环境就绪；原权重记录为 W8A8，C8 仍需核实。
+初始 K8s 证据中，32 有 testportal 工作负载请求 2 个 Ascend（逻辑 1、12），33 有 `default/sglang-pd4p2d-reserve-33-20261014` 请求全部 16 个。33 无预留的早期判断是漏读，已纠正；首次新预留被调度器拒绝后已删除，没有绕过进行通信测量。
 
-旧仓库的 [资源清单脚本](../scripts/extreme_resource_inventory.py) 绑定 DeepSeek V4 Flash W4A8 / 910B3 历史证据；[通信分析脚本](../scripts/analyze_hccl_comm.py) 也带旧负载条件。可借鉴方法，不执行旧工单或继承成本数值；当前未移植这些脚本。
+用户随后明确两台全部可以 kill。已核对 32 的 Deployment `testportal-project/containerworkload-694f3t4n` 只有一个副本且仅位于 32、无对应 HPA，将其副本数 1→0；已删除 33 无控制器的旧预留 Pod。原 Pod 删除完成，系统及访问 Pod 未动。执行凭据：[workload-release.json](evidence/20261017-inventory/workload-release.json)。恢复原业务需另行决定，不能在实验期间自动恢复。
 
-## 下一交付
+本任务 `default/glm53-execution-reservation-{32,33}-20261017` 均已 Running/Ready，每台请求 16 个 Ascend，有限 7200 秒。**每次 NPU 执行前必须重新核对实际 Running/UID/节点/资源归属，不能只看本文。** 集群 admission 拒绝 Pod 直接指定 `preemptionPolicy=Never`；已记录失败，改用集群默认策略，节点 affinity 仅限指定节点，未创建集群级 PriorityClass。
 
-先形成能支持首轮决定的环境与硬件地图快照；核验适用的 PD 正确基线、每 rank 内存及代表输入。基础通信微测无需完整模型，实际 KV 路径仍需验证。设备恢复前可整理已有证据和采集入口，不编造当前状态；这些条件与研究假设可以并行准备。
+## SDMA 与下一步
 
-首个机制说明它挑战的执行关系、资源交换与可推翻它的实验，再决定 MoE、相邻层或跨模块片段的边界，提取必要输入、状态与参考输出。保持实际量化与执行路径；当前未认定 MoE 是主瓶颈，不先建通用 harness 或完整硬件数据库。
+- 已核对官方 A3 配置语义：`HCCL_INTER_HCCS_DISABLE=FALSE` 为超节点内 HCCS/SDMA；`HCCL_INTRA_PCIE_ENABLE=1` 配对 `HCCL_INTRA_ROCE_ENABLE=0` 禁用 RoCE；A3 `HCCL_OP_EXPANSION_MODE=AI_CPU` 避免选择 AIV 展开。配置与运行证据分开，具体支持及 communicator 级覆盖仍要核对。
+- [hccl_probe.py](tools/hccl_probe.py) 已完成同卡 33[0,1]、异卡 33[0,2] 及跨机 32[2]↔33[2] 的 int8 双向 send/recv 与 bf16 all_reduce；五档字节、预热3+计时12次/项的 payload 校验通过。INFO 诊断日志与 ERROR 级计时分开保存；只有前者用于选路分析。初始缺少 PCIE 配对、CONNECT_TIMEOUT=30低于实际最小120、容器物理/逻辑可见号混用三次失败均保留，未把它们记作性能数据。初始化/控制 TCP 不作为数据通路；不能由 backend 名或环境变量宣称已证实 SDMA。
+- 镜像含 Mooncake Ascend Direct 动态库；**实际 PD connector 的 SDMA 选路和 C8 消费路径尚未运行验证**。HCCL 通过不能代替这项。不要把原来的 AIV/MC² 或 RDMA 配置无审查搬过来；全部 SDMA 约束下，逐个核实实际通信实现。
+- 已取得本任务资源，基础2-rank跨节点 SDMA 通信功能通过。实际 ACL 映射已核对；容器挂载物理0,2后应使用容器逻辑0,1，不能再用物理0,2筛运行时可见集。跨机测试无 HCCL_LOGIC_SUPERPOD_ID 或外部 rank-table 环境变量覆盖，使用 HCCL root-info/TCPStore 动态建域。继续按真实模型消息补相关组与争用。5 秒背景窗口无明显传输/磁盘读取，只是瞬时诊断；每次测量仍核实相关干扰。
+- 已准备 [TP16 单机容量计划](tools/capacity-tp16-node33.json) 和启动器，已启动容器 `62481295791bd1a9e086d5a833cac59a3832a654aa252d79fbbf44e5637bc012`；启动回执与7份文件已拉回校验，Ready/功能另行核实。固定 TP16/DP1、无EP、MC2/DSA-CP/FlashComm关闭、int8 KV/indexer、V1、eager、512 context/1 seq；只为容量/功能及已有HCCL路径验证，不是优化配置或业务负载。镜像内 timeout 已预检，诊断最多2700秒，不自动重启。然后验证每 rank 内存、实际 V1 runner/W8A8C8 路径和小请求。当前不能宣称 1P1D 放得下或服务可用；如不支持，保留最终 PD 目标并推进真实片段。
 
-接入设备前可做源码调查与本地逻辑实现。收到适用的现场入口且用户恢复设备操作后，再采集真实片段；缺真实输入时可先做标注清楚的合成验证，不能将其当作目标模型的路由或性能。片段选择、最小环境与实验周转见 [PLAN](PLAN.md)。
+## 操作入口与记录
 
-按研究需要复用初始化、权重与预热；不支持热切换的改动就重启小实验进程。先量化每轮准备、加载、编译/捕获、测量和分析的耗时，再判断周转是否改善。有效候选回到完整模型与对应服务部署验证，不按层数直接外推收益。
+已有 SSH 复用 socket `/Users/wio/work/sglang-glm53-pd/ssh-control` 已验证，可到用户指定入口，再经既有访问 Pod 进入 32/33 宿主。未找到用户所称 KeyPair-27.pem，当前无需为此停工；未关闭主机身份检查、未使用口令或保存私钥。连接记录不当作长期凭据保证，socket 失效再安全定位。
 
-历史机制可按问题查 [研究审计](../glm5-3/docs/RESEARCH_RESET.md) 与 [H6/H5 等证据](../glm5-3/patches/20261007/manifest.json)；它们不构成本线已实现收益。
+Mac 固定脚本→上传 `/data/wio/glm5-3-vllm-execution/20261017-inventory/<run>/`→运行/保存原始证据→拉回 Mac 校验。`collect_node.py` 检查 imageID 和本任务资源；结果记录命令、脚本 SHA、git SHA/差异摘要、时间、退出状态。大 trace 原件保留目标节点与 Mac，仓库留摘要和校验值。宿主时钟相对 Mac 有分钟偏差，不调系统时间；跨机不能直接相减 wall clock。
+
+Zcode 入口已确认 0.16.9，常规采集/脚本实现已交其处理并经主控审阅修正；未读取/打印 provider 配置，实际 provider 型号未在本线独立核实。未创建自动化或新 goal。
+
+资料归约已并入 HARDWARE_MAP：CloudMatrix384论文仅取§3.3/4.2.1/4.3.2/4.3.3与CANN9.1正文。论文AIV/独立RDMA平面不当作本线可用能力；全部SDMA约束下优先研究发起/等待、缓冲复用与KV对decode通信的竞争。没有照搬全超节点带宽或EP320结果。
