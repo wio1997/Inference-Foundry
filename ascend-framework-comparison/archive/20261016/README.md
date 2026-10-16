@@ -8,6 +8,7 @@
 | current/records/node-N | 六节点实际关键源码、启动/缓存配置、容器与包版本、96 scheduler 身份和实际 SDK 库 SHA；历史快照而非实时探针 |
 | support-deployment/ | 旧交接中补充的建容器模板、共同环境、provider/Meta 源码与配置；其中旧 router/旧 P Unified 不能覆盖 current/ 的新快照 |
 | weights/ | 193 文件源清单、历史 payload SHA、34/35/36 的已有结构验证；今天未重哈希 764 GB，也未证明所有其他新节点有同一份权重 |
+| sdk-python-runtime/ | 私有 MF LOCAL loader 与 SDK Python 模块的实际文本源码，含来源包/成员 SHA；不含 native 二进制 |
 | b103/ | 发行候选来源、ARM64 digest/依赖/完整层校验 receipt、Flash 接线调查；已下载到 Mac，未导入/部署 |
 | optimizations/ | 状态不同的已上线修复、已接受限定实验、未上线 CPU 候选；看 OPTIMIZATION_LEDGER.md |
 | results/ | 历史强制 L3、自然暖 C16、chunk A/B 等摘要/审计；raw 大包只存外部位置和 SHA |
