@@ -1,0 +1,62 @@
+--- a/sglang/srt/models/glm5_next.py
++++ b/sglang/srt/models/glm5_next.py
+@@ -129,6 +129,10 @@
+ 
+ logger = logging.getLogger(__name__)
+ 
++# Explicit per-process Flash-NPU numerical diagnostic, off by default.
++import os as _flash_mhc_os
++_FLASH_MHC_FIXED_ROWS = _flash_mhc_os.environ.get("FLASH_MHC_FIXED_ROWS", "0") == "1"
++
+ # Matches DeepSeek-V4's _MHC_POST_MULT_VALUE; the fused and unfused boundaries
+ # must agree on it.
+ _MHC_POST_MULT_VALUE = 2.0
+@@ -820,7 +824,12 @@
+     def _hc_pre(
+         self, hc_fn, hc_scale, hc_base, hidden_states, out_norm_weight, out_norm_eps
+     ):
+-        return _hc_pre_fn(
++        fixed = _FLASH_MHC_FIXED_ROWS and hidden_states.device.type == "npu"
++        pre_fn = _hc_pre_fn
++        if fixed:
++            from sglang.srt.hardware_backend.npu.flash_mhc_fixed_rows import flash_hc_pre_fixed
++            pre_fn = flash_hc_pre_fixed
++        result = pre_fn(
+             x=hidden_states,
+             hc_fn=hc_fn,
+             hc_scale=hc_scale,
+@@ -834,6 +843,10 @@
+             out_norm_weight=out_norm_weight,
+             out_norm_eps=out_norm_eps,
+         )
++        if fixed:
++            from sglang.srt.managers.flash_mhc_binding_audit import record
++            record(self, "attn_pre" if hc_fn is self.hc_attn_fn else "ffn_pre", hidden_states, result)
++        return result
+ 
+     def hc_attn_pre(self, hidden_states, out_norm_weight, out_norm_eps):
+         return self._hc_pre(
+@@ -897,13 +910,22 @@
+ 
+     def hc_post(self, hidden_states, residual, h_res, h_post):
+         assert self.config.mhc, "hc_post is only valid when config.mhc=True"
+-        return _hc_post_fn(
++        fixed = _FLASH_MHC_FIXED_ROWS and hidden_states.device.type == "npu"
++        post_fn = _hc_post_fn
++        if fixed:
++            from sglang.srt.hardware_backend.npu.flash_mhc_fixed_rows import flash_hc_post_fixed
++            post_fn = flash_hc_post_fixed
++        result = post_fn(
+             x=hidden_states,
+             residual=residual,
+             h_post=h_post,
+             h_res=h_res,
+             hc_mult=self.config.hc_mult,
+         )
++        if fixed:
++            from sglang.srt.managers.flash_mhc_binding_audit import record
++            record(self, "post", hidden_states, result)
++        return result
+ 
+     def _is_layer_sparse(self, layer_id: int, is_nextn: bool) -> bool:
+         return is_nextn or (
