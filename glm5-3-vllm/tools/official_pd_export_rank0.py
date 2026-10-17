@@ -26,9 +26,10 @@ def main():
     parser.add_argument('--label', required=True)
     parser.add_argument('--after-profile', required=True)
     parser.add_argument('--profile-gate-b64')
+    parser.add_argument('--stopped-profile-snapshot', action='store_true')
     args = parser.parse_args()
     assert all(re.fullmatch(r'[a-z0-9-]+', value) for value in (args.label, args.after_profile))
-    assert 1 <= args.revision <= 8
+    assert 1 <= args.revision <= 12
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
     role = 'prefill' if node == 32 else 'decode'
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-official-pd')
@@ -44,7 +45,8 @@ def main():
     root = base / (role + '-node' + str(node) + '-v' + str(args.revision))
     cid = json.loads((root / 'launch.json').read_text())['container_id']
     state = json.loads(subprocess.check_output(['docker', 'inspect', cid, '--format', '{{json .State}}']))
-    assert not state['Running'], 'Export a stopped instance to keep raw files stable'
+    if not args.stopped_profile_snapshot:
+        assert not state['Running'], 'Export a stopped instance or explicitly snapshot an API-stopped profile'
     paths = list((root / 'profile').glob('dp0_pp0_tp0_dcp0_ep0_rank0_*_ascend_pt'))
     assert len(paths) == 1, paths
     selected = paths[0]
@@ -55,24 +57,29 @@ def main():
     out.mkdir(parents=True, exist_ok=False)
     preserved = root / ('profile-rank0-raw-preserved-' + args.label)
     preserved.mkdir(exist_ok=False)
+    snapshot = preserved / selected.name if args.stopped_profile_snapshot else preserved
+    if snapshot != preserved:
+        snapshot.mkdir(exist_ok=False)
     manifest = []
     for source in files:
         sha = digest(source)
-        target = preserved / source.relative_to(selected)
+        target = snapshot / source.relative_to(selected)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         assert digest(target) == sha
+        assert digest(source) == sha, 'Profile source changed while copying stopped snapshot'
         manifest.append({'path': str(source.relative_to(root)), 'bytes': source.stat().st_size,
                          'sha256': sha})
     (out / 'raw-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     mounted = '/profiles/' + selected.name
+    analysed = snapshot if args.stopped_profile_snapshot else selected
     image = 'sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83'
     argv = ['docker', 'run', '--rm', '--pull', 'never', '--network', 'none',
             '--name', 'glm53-rank0-export-' + str(node) + '-v' + str(args.revision),
             '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--cpus', '16',
             '--memory', '64g', '--pids-limit', '4096', '--tmpfs', '/tmp:rw,size=2g',
             '-e', 'PYTHONDONTWRITEBYTECODE=1', '-e', 'OMP_NUM_THREADS=1',
-            '--device', '/dev/davinci_manager', '-v', str(selected) + ':' + mounted,
+            '--device', '/dev/davinci_manager', '-v', str(analysed) + ':' + mounted,
             '-v', '/usr/local/Ascend/driver:/usr/local/Ascend/driver:ro',
             '--entrypoint', '/usr/bin/timeout', image, '--signal=TERM', '--kill-after=15',
             '420', 'python3', '-c', 'from torch_npu.profiler.profiler import analyse; '
@@ -86,9 +93,12 @@ def main():
               'returncode': proc.returncode, 'elapsed_s': time.monotonic() - start,
               'argv': argv, 'compute_devices': [], 'query_devices': ['/dev/davinci_manager'],
               'preserved_raw_files': len(manifest), 'preserved_raw_sha256_verified': True,
+              'stopped_profile_snapshot': args.stopped_profile_snapshot,
+              'original_container_running': state['Running'],
+              'preserved_raw_root': str(snapshot), 'analysis_root': str(analysed),
               'raw_manifest_sha256': digest(out / 'raw-manifest.json'),
               'profile_stop_gate': profile,
-              'trace_paths': [str(p.relative_to(root)) for p in selected.rglob('trace_view.json')]}
+              'trace_paths': [str(p.relative_to(root)) for p in analysed.rglob('trace_view.json')]}
     for name in ('stdout.txt', 'stderr.txt'):
         report[name] = {'sha256': digest(out / name),
                         'tail': (out / name).read_text(errors='replace').splitlines()[-8:]}

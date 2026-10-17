@@ -34,6 +34,13 @@ def main():
         'completed_transfer_lines': [s for s in lines if 'KV cache transfer for requests' in s],
         'shared_expert_consistency': [s for s in lines if 'Shared expert split computation validation' in s],
         'early_output_activation': [s for s in lines if '[glm53/early-output]' in s],
+        'output_guard_handoff': [s for s in lines if '[glm53/output-guard]' in s],
+        'producer_first_publication': {
+            'enabled': sum('[glm53/p-first] enabled:' in s for s in lines),
+            'published': sum('[glm53/p-first-published]' in s for s in lines),
+            'verified': sum('[glm53/p-first-verified]' in s for s in lines),
+            'mismatches': [s for s in lines if '[glm53/p-first-mismatch]' in s],
+            'tail': [s for s in lines if '[glm53/p-first' in s][-8:]},
         'actual_graph_replay': [s for s in lines if 'ACL graph replay is active' in s],
         'graph_capture': [s for s in lines if 'Graph capturing finished' in s],
         'transport_lines': [s for s in lines if re.search(r'HCCS|SDMA|RDMA|[Ll]ink[Tt]ype', s)][-30:],

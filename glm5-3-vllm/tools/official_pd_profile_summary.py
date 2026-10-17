@@ -19,14 +19,20 @@ def digest(path):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--label',default='profile-summary-v1')
     parser.add_argument('--revision',type=int,choices=range(1,13),default=1)
-    parser.add_argument('--rank0-only',action='store_true');args=parser.parse_args()
+    parser.add_argument('--rank0-only',action='store_true')
+    parser.add_argument('--snapshot-label');args=parser.parse_args()
     assert re.fullmatch(r'[a-z0-9-]+',args.label)
     node={'B4-33U-Atlas900RCKA3-32':32,'B5-5U-Atlas900RCKA3-33':33}[socket.gethostname()]
     role='prefill' if node==32 else 'decode'
     base=Path('/data/wio/glm5-3-vllm-execution/20261017-official-pd')
     root=base/f'{role}-node{node}-v{args.revision}'; out=base/'consumer-audits'/f'node{node}-{args.label}'
     out.mkdir(parents=True,exist_ok=False)
-    files=sorted(p for name in ('trace_view.json','communication_matrix.json') for p in (root/'profile').rglob(name) if p.is_file())
+    profile_root = root / 'profile'
+    if args.snapshot_label:
+        assert args.rank0_only and re.fullmatch(r'[a-z0-9-]+', args.snapshot_label)
+        profile_root = root / ('profile-rank0-raw-preserved-' + args.snapshot_label)
+        assert profile_root.is_dir()
+    files=sorted(p for name in ('trace_view.json','communication_matrix.json') for p in profile_root.rglob(name) if p.is_file())
     assert not any(p.is_symlink() for p in files)
     report={'node':node,'compute_devices_used_by_analysis':[],'profile_files':len(files),
         'profile_bytes':sum(p.stat().st_size for p in files),'traces':[],'matrices':[],
@@ -35,7 +41,7 @@ def main():
     report['profile_inventory_scope']='Complete trace_view/communication_matrix files; raw files use the separately preserved manifest. Transient SQLite outputs are excluded.'
     def selected(path):
         return not args.rank0_only or any(re.fullmatch(r'dp0_pp0_tp0_dcp0_ep0_rank0_.*_ascend_pt', p) for p in path.parts)
-    for p in sorted((root/'profile').rglob('trace_view.json')):
+    for p in sorted(profile_root.rglob('trace_view.json')):
         if not selected(p):continue
         raw=p.read_bytes()
         row={'path':str(p.relative_to(root)),'sha256':hashlib.sha256(raw).hexdigest()}
@@ -57,7 +63,7 @@ def main():
                 else:walk(val,counts)
         elif isinstance(obj,list):
             for val in obj:walk(val,counts)
-    for p in sorted((root/'profile').rglob('communication_matrix.json')):
+    for p in sorted(profile_root.rglob('communication_matrix.json')):
         if not selected(p):continue
         raw=p.read_bytes();counts=Counter();walk(json.loads(raw),counts)
         target=out/'parsed'/p.relative_to(root);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)

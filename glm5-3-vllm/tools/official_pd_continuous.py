@@ -45,6 +45,7 @@ def main():
     parser.add_argument('--prefill-revision', type=int, required=True)
     parser.add_argument('--bounds-b64', required=True)
     parser.add_argument('--after-run')
+    parser.add_argument('--after-profile')
     parser.add_argument('--duration', type=int, default=180)
     args = parser.parse_args()
     assert socket.gethostname() == 'B4-33U-Atlas900RCKA3-32'
@@ -129,7 +130,19 @@ def main():
             time.sleep(5)
         prefill = BASE / ('prefill-node32-v' + str(args.prefill_revision))
         assert (prefill / 'launch.json').is_file()
-        assert not any(p.is_file() for p in (prefill / 'profile').rglob('*'))
+        if args.after_profile:
+            assert re.fullmatch(r'[a-z0-9-]+', args.after_profile)
+            prior_profile_path = BASE / 'tests' / args.after_profile / 'result.json'
+            prior_profile_raw = prior_profile_path.read_bytes()
+            prior_profile = json.loads(prior_profile_raw)
+            assert prior_profile['completed'] and prior_profile['prefill_revision'] == args.prefill_revision
+            assert any(x['role'] == 'P' for x in prior_profile['profiles'])
+            assert all(x.get('stopped') for x in prior_profile['profiles'])
+            report['prior_stopped_profile'] = {'run_id': args.after_profile,
+                'sha256': hashlib.sha256(prior_profile_raw).hexdigest(),
+                'scope': 'Historical profile fully stopped before this new timing run on retained P.'}
+        else:
+            assert not any(p.is_file() for p in (prefill / 'profile').rglob('*')), 'Profiler files require explicit completed/stopped profile gate'
         source = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/tests/native-eager-c1-v1')
         fixtures = {n: json.loads((source / ('cold-eager-reference-' + str(n) + '.json')).read_text())['request']['prompt']
                     for n in (256, 1024)}

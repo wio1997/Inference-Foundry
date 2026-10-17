@@ -1,0 +1,18 @@
+{
+  "status": "superseded_before_model_launch",
+  "base_url": "https://raw.githubusercontent.com/vllm-project/vllm-ascend/5f828ad638ee4f9b12db87f9d5481f29076d37f9/vllm_ascend/worker/model_runner_v1.py",
+  "base_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+  "patched_sha256": "7eb57e7220c03d3c0b0780eed509fd28d98feafcefacb4a7df9292bfd895de32",
+  "patch_sha256": "37c54ee09dc6591c769ac037ec15e202aebf108a4709dc72c8f5da348eab1efd",
+  "local_patched_source": "/Users/wio/work/glm53-execution-evidence-backup/20261017-official-pd-optimization/early-output-v3-singleton/model_runner_v1.py",
+  "remote_source": "/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/early-output-v3-singleton/model_runner_v1.py",
+  "target": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+  "env_gate": "GLM53_EARLY_SPEC_OUTPUT_COPY=1",
+  "scope": "Only first valid output of an actual singleton execution step. Seen IDs updated for all valid requests so shrinking C4 does not become a false first output.",
+  "safety": "Keep v2 default/global completion fences and ownership-change CPU waits until actual completion of a later original-order output copy is observed. Consume latest pending fences before handing reuse back to native async rules. First normal copy scheduling alone cannot close guard. Events retain references through dependencies. Multi-request first output stays in original late-copy order.",
+  "base_async_output_sha256": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51",
+  "patch_format": "zero context unified diff; exact base/patched bytes separately SHA pinned",
+  "apply_command_hint": "git apply --unidiff-zero model_runner_v1.patch from a tree containing the exact SHA-pinned base vllm_ascend/worker/model_runner_v1.py",
+  "superseded_by": "early-output-v4-singleton-cpu",
+  "reason": "Choose conservative CPU completion inside bounded handoff window; GPU-only dependencies alone do not document pinned-host input-buffer lifetime. No runtime failure asserted; v3 was never model tested."
+}

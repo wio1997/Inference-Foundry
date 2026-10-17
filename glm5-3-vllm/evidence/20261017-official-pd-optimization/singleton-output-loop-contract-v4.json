@@ -1,0 +1,28 @@
+{
+  "status": "offline_prepared_not_frozen_not_model_tested",
+  "parent": "singleton-output-loop-contract-v3.json",
+  "manifest": "runtime-patches/early-output-v4-singleton-cpu/manifest.json",
+  "worker_sha256": "2c00776696dd3488beac704f3ff844a6ada946365b4763cf9aa49e4c959c7123",
+  "hypothesis": "Early singleton output can improve TTFT while bounded CPU completion waits protect all input buffers until native late-copy completion restores original async reuse. No steady multi-request guard cost expected, but actual performance unknown.",
+  "basis": [
+    "Same-file v2/gate0 wave comparison gives hotC1 TTFT-8.20%/-7.53%, but C4 TPOT tradeoff and nonuniform same-arrival gains; source needs narrower scope.",
+    "Token continuation mixture explains part of earlier aggregateTPOT variation; not proven that fences cause every regression.",
+    "Original AsyncGPU output ready event occurs after target/draft; actual query completion plus consumption of latest pending default/global fences provides explicit handoff point. This new handoff is a prototype, not a proven performance gain."
+  ],
+  "eligibility": "Only first valid output of an actual singleton execution step. Seen IDs updated for all valid requests so shrinking C4 does not become a false first output.",
+  "safety_invariant": "After early singleton delivery, CPU waits latest default/global completion before any next input preparation, protecting device and pinned-host buffer reuse. Keep this bounded guard until a later original-order output copy event is actually complete. Then restore native async behavior. No GPU-only reuse proof or retired-event machinery. Connector finalization and final metadata attachment unchanged.",
+  "fixed": "Only D worker source changes on current selected P; MTP5/shared overlap,TP16/16,precision,kernels,SDMA,connector/proxy stay fixed. Need matched D10 baseline with same P before launch.",
+  "gates": [
+    "C1 andC4 same24oracles PD/native plus all11previouslypassing tasks",
+    "max1/cancel and explicitHTTP1->4/4->1 transitions; no specificphysicalKVblockrecycling claim",
+    "16 actual worker activation and original-output guard-handoff logs; profile actual copy order if retained",
+    "two formal repeats; no material TPOT/throughput regression under matched baseline",
+    "same arrival and common predeclaredbound continuous, with bursts reported separately"
+  ],
+  "reference_prefill_revision": null,
+  "reference_decode_revision": 10,
+  "launch_revision": 12,
+  "resource_expiry": "2026-10-17T19:31:11.762717+00:00",
+  "model_stop_by_client_utc": "2026-10-17T19:21:00+00:00",
+  "launch_requires_remaining_model_window_seconds": 3000
+}

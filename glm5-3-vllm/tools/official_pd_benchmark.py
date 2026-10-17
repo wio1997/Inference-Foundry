@@ -4,6 +4,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 import datetime
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -35,7 +36,7 @@ def distribution(values):
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--run-id',required=True);parser.add_argument('--stage',choices=('baseline','mtp1','shared-overlap','mtp5','early-output'),required=True)
-    parser.add_argument('--waves',type=int,default=6);parser.add_argument('--revision',type=int,default=2);parser.add_argument('--ready-seconds',type=int,default=1200);parser.add_argument('--after-run');parser.add_argument('--prefill-revision',type=int);args=parser.parse_args()
+    parser.add_argument('--waves',type=int,default=6);parser.add_argument('--revision',type=int,default=2);parser.add_argument('--ready-seconds',type=int,default=1200);parser.add_argument('--after-run');parser.add_argument('--prefill-revision',type=int);parser.add_argument('--after-profile');args=parser.parse_args()
     prefill_revision=args.prefill_revision if args.prefill_revision is not None else args.revision
     assert socket.gethostname()=='B4-33U-Atlas900RCKA3-32' and re.fullmatch(r'[a-z0-9-]+',args.run_id) and 3<=args.waves<=12
     root=BASE/'tests'/args.run_id;root.mkdir(parents=True,exist_ok=False)
@@ -103,7 +104,19 @@ def main():
             assert time.monotonic()<deadline,'Official pair readiness deadline exceeded';time.sleep(5)
         prefill_root=BASE/f'prefill-node32-v{prefill_revision}'
         assert (prefill_root/'launch.json').is_file(),'Missing formal prefill launch receipt'
-        assert not any(p.is_file() for p in (prefill_root/'profile').rglob('*')),'Profiler files in fresh formal timing instance'
+        if args.after_profile:
+            assert re.fullmatch(r'[a-z0-9-]+', args.after_profile)
+            prior_profile_path = BASE / 'tests' / args.after_profile / 'result.json'
+            prior_profile_raw = prior_profile_path.read_bytes()
+            prior_profile = json.loads(prior_profile_raw)
+            assert prior_profile['completed'] and prior_profile['prefill_revision'] == prefill_revision
+            assert any(x['role'] == 'P' for x in prior_profile['profiles'])
+            assert all(x.get('stopped') for x in prior_profile['profiles'])
+            report['prior_stopped_profile'] = {'run_id': args.after_profile,
+                'sha256': hashlib.sha256(prior_profile_raw).hexdigest(),
+                'scope': 'Historical profile fully stopped before this new timing run on retained P.'}
+        else:
+            assert not any(p.is_file() for p in (prefill_root / 'profile').rglob('*')), 'Profiler files require explicit completed/stopped profile gate'
         report['state']='connection_and_compile_warmup';save()
         report['initial_warmups']=[invoke(n,'connect-'+uuid.uuid4().hex) for n in (256,1024)]
         assert all(r['success'] for r in report['initial_warmups']),'Initial proxy functional check failed'

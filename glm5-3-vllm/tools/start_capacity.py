@@ -128,7 +128,16 @@ try:
    '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py',
    '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py')
   worker_target=patch['target']=='/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py'
-  assert (legacy_target and str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/')) or (worker_target and str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/'))
+  scheduler_target=(patch['target']=='/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py' and str(source)=='/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-publish-v1/scheduler.py')
+  assert (legacy_target and str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/')) or (worker_target and str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/')) or scheduler_target
+  if scheduler_target:
+   originals={patch['target']:'c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884','/vllm-workspace/vllm/vllm/v1/core/sched/async_scheduler.py':'e586a0ef3c6778be56a93e7f9bb712d4de9de6e7d7fe7e3e1d51dae83ecfc508'}
+   assert patch['base_sha256']==originals[patch['target']]
+   probe=run(['docker','run','--rm','--pull','never','--network','none','--read-only','--entrypoint','sha256sum',image_id]+list(originals))
+   assert probe.returncode==0,'Cannot verify pinned scheduler source: '+probe.stderr
+   observed={line.split()[1]:line.split()[0] for line in probe.stdout.splitlines()}
+   assert observed==originals,'Scheduler source differs from reviewed base'
+   ctx['scheduler_patch_base_sha256']=observed
   if worker_target:
    originals={patch['target']:'568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c','/vllm-workspace/vllm/vllm/v1/worker/gpu_model_runner.py':'87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51'}
    assert patch['base_sha256']==originals[patch['target']]

@@ -19,6 +19,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-id', required=True)
     parser.add_argument('--after-tasks', required=True)
+    parser.add_argument('--transitions', action='store_true')
+    parser.add_argument('--transition-waves', type=int, choices=range(1, 17), default=4)
+    parser.add_argument('--ignore-eos', action='store_true',
+                        help='Exercise the narrow producer-first prototype eligibility')
     args = parser.parse_args()
     assert socket.gethostname() == 'B4-33U-Atlas900RCKA3-32'
     assert all(re.fullmatch(r'[a-z0-9-]+', v) for v in (args.run_id, args.after_tasks))
@@ -52,10 +56,12 @@ def main():
     def numeric(text, expected):
         match = re.match(r'\s*([-+]?\d+(?:\.\d+)?)', text)
         return bool(match and Decimal(match.group(1)) == expected)
-    def pair(mode, n):
+    def first_only(mode, n):
         value = {'model': 'glm5', 'prompt': fixtures[n], 'max_tokens': 1 if mode == 'max1' else 64,
                  'temperature': 0, 'top_p': 1, 'seed': 1024, 'return_token_ids': True,
                  'cache_salt': 'reuse-' + uuid.uuid4().hex, 'stream': mode == 'cancel'}
+        if args.ignore_eos:
+            value['ignore_eos'] = True
         row = {'mode': mode, 'input_tokens': n}
         with post(value) as response:
             row['first_http_status'] = response.status
@@ -77,6 +83,10 @@ def main():
                         break
                 row.update(first_chunks=chunks, cancelled_after_tokens=len(first_ids),
                            first_pass=response.status == 200 and bool(first_ids))
+        return row
+
+    def replacement(unused=None):
+        row = {}
         # No grace period: this must be safe while the previous draft can be live.
         next_value = {'model': 'glm5', 'prompt': 'Complete arithmetic expressions. Return only the final number.\n1+1=2\n3*4=12\n17+25=',
                       'max_tokens': 16, 'temperature': 0, 'top_p': 1, 'seed': 1024,
@@ -88,6 +98,11 @@ def main():
         row['replacement_pass'] = (row['replacement_http_status'] == 200
                                    and numeric(row['replacement_response']['choices'][0]['text'], 42))
         return row
+
+    def pair(mode, n):
+        row = first_only(mode, n)
+        row.update(replacement())
+        return row
     try:
         report['state'] = 'checking_immediate_reuse'; save()
         with ThreadPoolExecutor(max_workers=4) as pool:
@@ -98,6 +113,29 @@ def main():
                         row['wave'] = wave
                     report['pairs'].extend(rows); save()
                     assert all(x['first_pass'] and x['replacement_pass'] for x in rows)
+        if args.transitions:
+            report['state'] = 'checking_singleton_c4_transitions'
+            report['transitions'] = []
+            report['transition_scope'] = (
+                'HTTP concurrency1->4 and4->1 immediately after max1/first-token cancellation. '
+                'Checks observable buffer/request ownership transitions; physical KV block IDs '
+                'are not inspected, so this is not proof of recycling a specific block.')
+            save()
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                for wave in range(args.transition_waves):
+                    mode = 'max1' if wave % 2 == 0 else 'cancel'
+                    first = first_only(mode, 256 if wave % 2 == 0 else 1024)
+                    replacements = list(pool.map(replacement, range(4)))
+                    row = {'wave': wave, 'direction': '1_to_4', 'mode': mode,
+                           'first': first, 'replacements': replacements}
+                    report['transitions'].append(row); save()
+                    assert first['first_pass'] and all(x['replacement_pass'] for x in replacements)
+                    firsts = list(pool.map(lambda n: first_only(mode, n), [256, 1024, 256, 1024]))
+                    last = replacement()
+                    row = {'wave': wave, 'direction': '4_to_1', 'mode': mode,
+                           'firsts': firsts, 'replacement': last}
+                    report['transitions'].append(row); save()
+                    assert all(x['first_pass'] for x in firsts) and last['replacement_pass']
         report.update(completed=True, passed=True, state='immediate_reuse_functional_checks_passed')
     except Exception as exc:
         report.update(state='needs_specific_followup', failure=type(exc).__name__ + ': ' + str(exc))
