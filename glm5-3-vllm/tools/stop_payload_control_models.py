@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Close only the completed P11/D10 observer instances and retain lifecycle evidence."""
+import argparse
 import gzip
 import hashlib
 import json
@@ -9,8 +10,11 @@ import subprocess
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--deployment', choices=('payload-control', 'final-put', 'post-consume', 'source-ready'), default='payload-control')
+    args = parser.parse_args()
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
-    rev = 11 if node == 32 else 10
+    rev = {'payload-control': (11, 10), 'final-put': (12, 11), 'post-consume': (13, 12), 'source-ready': (14, 13)}[args.deployment][node-32]
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline')
     root = base/f'pd-node{node}-v{rev}'
     cid = json.loads((root/'launch.json').read_text())['container_id']
@@ -22,11 +26,11 @@ def main():
     state = json.loads(subprocess.check_output(['docker', 'inspect', cid, '--format', '{{json .State}}']))
     logs = subprocess.run(['docker', 'logs', '--timestamps', cid], capture_output=True, timeout=30)
     raw = logs.stdout+b'\nDOCKER_STDERR_STREAM\n'+logs.stderr
-    out = base/'consumer-audits'/f'node{node}-payload-control-lifecycle'
+    out = base/'consumer-audits'/f'node{node}-{args.deployment}-lifecycle'
     out.mkdir(parents=True, exist_ok=False)
     (out/'console.txt.gz').write_bytes(gzip.compress(raw, compresslevel=1))
     report = {'node': node, 'container_id': cid, 'state': state,
-              'reason': 'Completed real-KV and numerical controls. Remove startup observer for final-prompt FIFO completion candidate; same model, quantization, SDK and SDMA.',
+              'reason': 'Close only this completed bounded diagnostic deployment; preserve model, quantization, SDK and SDMA evidence.',
               'raw_console_bytes': len(raw), 'raw_console_sha256': hashlib.sha256(raw).hexdigest(),
               'compressed_sha256': hashlib.sha256((out/'console.txt.gz').read_bytes()).hexdigest()}
     (out/'result.json').write_text(json.dumps(report, indent=2)+'\n')

@@ -20,7 +20,7 @@ def main():
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline')
     out = base/'consumer-audits'/args.run_id
     out.mkdir(parents=True, exist_ok=False)
-    cid = json.loads((base/'pd-node33-v11/launch.json').read_text())['container_id']
+    cid = json.loads((base/'pd-node33-v13/launch.json').read_text())['container_id']
     proc = subprocess.run(['docker', 'logs', '--timestamps', cid], capture_output=True, timeout=45)
     raw = proc.stdout+b'\nDOCKER_STDERR_STREAM\n'+proc.stderr
     (out/'console.txt.gz').write_bytes(gzip.compress(raw, compresslevel=1))

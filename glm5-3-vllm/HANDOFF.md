@@ -16,6 +16,24 @@
 
 ## 当前执行与证据恢复
 
+**09:36Z源就绪ABBA冻结**：原过期资源仅在两台8卡空闲且无其他有效NPU请求后重新取得3600s有限预留，32 UID `8058e02a-abe3-4c77-93ca-539946844948`、33 UID `8e163546-e858-4c61-955a-cba01b6229c4`，均Running，见`source-ready-reservations-v1.json`；未停止其他作业。P13/D12已关闭0，下一部署P14/D13尚未启动。冻结`source-ready-abba-contract-v1.json`：A3 B3 B3 A3共12条，唯一B变量为P1已有request_id标签选择在SDK PUT前`torch.npu.synchronize()`；原event/FIFOguard、后置观察、模型/算子/精度/SDMA不变。kv_transfer镜像原c7af0a→363547；非标签对照也记录CPU日志，复制前不读KV。Meta-v4须确认已退出再启动新v5，3600s；模型3000s、测试2400s。若A不复现或B仍坏，不能宣称修复，不扩完整性能套件。新源码/计划正在stage，启动须再次核租约、卡空闲、镜像及patch SHA。第一次stage因旧审计副本多一尾部空行触发SHA断言，未写patch/启动模型；已比对镜像代码正文一致，v2固定精确镜像字节并保留失败。
+
+**09:29Z明确内容反例与下一判别Loop**：后置4条输出全匹配，但wave3的logical block18（tokens2304–2431）在D16个rank均有连续entry49–114、模型32–77层及对应Indexer、4077824B被观察为全零；P16个副本均一致且非零，独立D-native在这66项与P完全相同。其他目标key/rank控制值匹配。本轮排除了这些样本中P副本不一致的解释，也说明输出相等不能替代KV内容保真；不能由后置数据独自归责PUT、GET或消费后的改写。证据`post-consume-content-analysis-v1.json`、`post-consume-entry-differences-v1.json`及两台`node*-post-consume-final-v1-backup.json`已SHA备份Mac。
+
+P13/D12均已正常关闭0。原6h资源已DeadlineExceeded；09:26Z核对两台各8卡无进程、无其他有效NPU请求。准备仅在仍空闲的原两台重新取得有限1h预留，验证单变量“SDK PUT前源设备全部stream就绪”，不是再试PUT后的FIFO等待；不停止其他作业。既有后置观察与FIFO匹配边界guard保持，按现有request_id对源P1选择未加屏障/加`torch.npu.synchronize()`的ABBA，对照原D golden、P-native、实际3968命中与后置内容。若未捕获对照臂异常或屏障臂仍有零区域，则不宣称修复；暂不扩完整性能套件、无性能收益。先冻结/复核API及源码，再加载；主控继续掌握方向/预算，普通工程动作不加逐步审批。
+
+**08:58Z当前Loop/现场**：最终FIFO候选12条收齐，仅9/12匹配P本地/原D golden，P本地12/12稳定；全部D确实加载3968、P每条16rank完成事件齐、SDK无错误/type2。三条失败2/3/9在D本地再次128token仍精确复现原坏输出，额外SDK GET=0、每条两次本地命中合计7936，故差异随已加载缓存保留；见`rejected-final-put-mechanism.json`和`node32-failed-cache-reuse-control-v1-*`。不推广、不跑该失败候选完整C1门槛，不把它当性能收益。
+
+P12/D11已正常关闭0，失败请求/源码/审计已SHA回传Mac（`node*-final-put-rejected-v1-backup.json`）。现在P13 `928d7de3cd8b48c6c3982c8968c7fefaf1d0a550a4dbace5863de0b4d1113a70`、D12 `2027f4ae13f5ba0c01f68744e32c0dd711167f880c7438582bb55884acd1d47d`正在加载，root `pd-node32-v13` / `pd-node33-v12`、API29481/82、同world32 Meta-v4与6h UID。各1200s，约09:14/15Z Mac到期，原资源约09:18Z Mac到期；执行前重查。只为启动时挂载新的只读后置观察而重载，当前不是已验收服务。
+
+新观察不在首次PUT/GET前后读KV：现有标准request_id已实测可用（response `cmpl-glm53-postkv-capability`）。仅在D128完成后的P-native128与D-local8请求用`glm53-postkv-`标签，读取已缓存前3968token的31key×115entry四矩；P可比较全部16副本、D比较持续保留的本地缓存。保留原D golden；每次须验证local hits3968且额外GET=0。三处冻结模块worker cf7c38、backend09d86b、metadata d71851，两台SHA一致；scheduler仍48387a，模型精度/算子/SDMA不变，无新API/RPC/文件触发或热更新机制。最终FIFO仅作为已知负结果下的匹配边界诊断guard，非采用修复。`post-consume-cache-control-v1` collector已启动，有界等Ready后跑初始4条，整体900s；不在Ready停止。一次共享SSH通道配额拒绝了stage32下载，未重跑stage，已串行恢复并核全部SHA。后续SSH尽量串行。
+
+**08:35Z反例，候选不能推广**：即时交接重复至少8条时，P-native同盐3968前缀参考8/8仍等于原D golden，而D池消费有2条第3token分歧（含5.0重复格式）。P的prefix_cache_hits总计与原生复用次数×3968吻合，不能把P参考误叫冷重算。前三条16rank均记录最终PUT FIFO完成、源SDK无错误/type2，但完成fence尚未解决长输出一致性；不可宣称修复或性能收益，不对失败机制跑完整推广门槛。先收齐12条及每条真实命中/SDK计数、完成事件，保留反例。当前P12/D11为诊断候选，不是已验收配置。最小后续应区分源KV副本/写就绪、搬运与消费状态，不能用token差异独自归责SDMA；先读固定源码/已有证据，不猜测加同步或改精度。
+
+**08:24Z当前执行**：P12/D11均Ready，readiness99162完成0；同UID双16die预留再次核查Running并写`final-put-control-lease-v1.json`。正在运行12条`final-put-immediate-control-v1`，collector84965、timeout1000s。先建立当前D-native参考，再每条P1→立即D128（证据写盘也放D之后）→P-native128，前两条local top20。无源key轮询/固定等待/观察钩子。接下来逐请求3968命中、SDK计数/错误、16rank source完成事件审计；必要C1边界/取消恢复回归后追加提交。尚未宣称候选通过，实例仍有限至约08:58Z Mac。
+
+提交检查点`42b6116f`已push到原分支并更新draft PR2；包含本轮基线、真实KV/数值状态诊断与当前候选代码/计划，未把在跑候选写成已修复。后续结果追加提交，不改主控analysis目录。08:20Z P12/D11的16个worker均已启动，仍在初始化、未Ready，暂无原生错误；readiness99162继续有界等待。
+
 **最新08:17Z现场**：P11/D10均正常关闭0；诊断请求、真实KV控制已冻结，原件在`node{32,33}-diagnostic-final-v1-backup.json`对应Mac归档并核SHA。P12 `95623b287047e8054863673673a2d13fe05608ae035d0d67ad91499a155c46ac`、D11 `579479baeaf6d4a3194ec7929990d2935799b1b8fbad0b80f2ccc31ad2dc95cf`已启动，正在初始化/加载；root `pd-node32-v12` / `pd-node33-v11`，API与world32 Meta-v4不变。每实例2700s，约08:58Z Mac到期；同6h UID，launch已重查Running/16die/设备空闲。没有payload观察或per-TP保存；P唯一候选为已有FIFO完成fence72ff56，D恢复原worker/backend+对齐scheduler。readiness collector99162有界运行中，Ready后执行`pd_final_put_suite.py`：12条即时P1→D128，再P-native128参考；原D golden/当前D-native单列，不静默换参考。前两条额外比较P/D池local top20。SDK错误、实际3968命中、16个source rank完成事件另审。当前不作机制收益或完整精度验收。主控独立analysis已提交1b78e0d9，本线可继续提交自己的文件。
 
 **08:11Z诊断与下一Loop（优先于下面现场）**：v3无D checksum的4/4同完成边界128输出一致；numeric6/6的8token输出一致但top20最大差0.87248、chosen最大0.17888。追加复用最后同salt的最小对照：P-local、D首次pool、D-pool-local所采top20逐值完全相同；D-native与其重复逐值相同，但与P状态不同。见`numeric-cache-state-analysis-v1.json`，不能继续把原生P/D状态差当SDMA错误。当前正冻结最后source/D控制，之后只为移除启动观察与启用最小交接候选重载P12/D11，有限2700s、无audit/per-TP键。候选`wait_for_final_prompt_put=true`只在最终prompt块等待已有batch.done FIFO事件（worker原3d39b8→72ff56），不固定sleep、不改模型算子精度/SDK/SDMA；事件表示处理结束，不是耐久成功ACK，必须另审SDK错误/实际D命中。验证立即P1→D128时3968命中与原固定参考，同时在D之后用P本地128作为匹配状态参考，不能偷偷换golden或把不同参考合并成“全正确”。若不能保持预定命中/输出则拒绝候选；先完成真实测试，不停在Ready。

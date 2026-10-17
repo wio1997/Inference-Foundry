@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Retain actual per-TP final-PUT drain rows for the immediate-handoff test."""
+import argparse
 import gzip
 import hashlib
 import json
@@ -11,13 +12,18 @@ import urllib.request
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--partial', action='store_true')
+    parser.add_argument('--run-id', default='final-put-producer-v1')
+    args = parser.parse_args()
+    assert re.fullmatch(r'[a-z0-9-]+', args.run_id)
     assert socket.gethostname() == 'B4-33U-Atlas900RCKA3-32'
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline')
-    test = json.loads((base/'tests/final-put-immediate-control-v1/result.json').read_text())
-    assert test['completed']
+    test = json.loads((base/'tests/final-put-immediate-control-v1'/('progress.json' if args.partial else 'result.json')).read_text())
+    assert args.partial or test['completed']
     root = base/'pd-node32-v12'
     cid = json.loads((root/'launch.json').read_text())['container_id']
-    out = base/'consumer-audits/final-put-producer-v1'
+    out = base/'consumer-audits'/args.run_id
     out.mkdir(exist_ok=False)
     logs = subprocess.run(['docker', 'logs', '--timestamps', cid], capture_output=True, timeout=45)
     assert logs.returncode == 0
@@ -40,7 +46,7 @@ def main():
     with urllib.request.urlopen('http://172.16.12.32:29481/metrics', timeout=10) as response:
         metrics = response.read()
     (out/'metrics.txt').write_bytes(metrics)
-    report = {'container_id': cid, 'waves': joined, 'drain_rows': drains, 'native_error_lines': errors,
+    report = {'container_id': cid, 'partial_observation': args.partial, 'waves': joined, 'drain_rows': drains, 'native_error_lines': errors,
               'hybm_data_op_types': [int(x) for x in re.findall(rb'Initialize success:[^\n]*bmDataOpType: (\d+)', raw)],
               'raw_console_bytes': len(raw), 'raw_console_sha256': hashlib.sha256(raw).hexdigest(),
               'scope': 'A drain row means existing FIFO batch processing completed. It is not a durable write-success acknowledgement; separate SDK error and consumer-hit audits are required. Host clocks differ across nodes; no cross-node timestamp subtraction.'}

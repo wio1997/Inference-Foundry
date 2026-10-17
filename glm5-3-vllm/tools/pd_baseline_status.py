@@ -12,7 +12,7 @@ import urllib.request
 
 def main():
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
-    revision = 12 if node == 32 else 11
+    revision = 14 if node == 32 else 13
     root = Path(f'/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/pd-node{node}-v{revision}')
     container = json.loads((root/'launch.json').read_text())['container_id']
     state = json.loads(subprocess.check_output(['docker', 'inspect', container, '--format', '{{json .State}}']))

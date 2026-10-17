@@ -17,11 +17,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--node', type=int, choices=(32, 33), required=True)
     parser.add_argument('--run-id', required=True)
+    parser.add_argument('--deployment', choices=('payload-control', 'post-consume', 'source-ready'), default='payload-control')
     args = parser.parse_args()
     assert re.fullmatch(r'[a-z0-9-]+', args.run_id)
     assert socket.gethostname() == {32: 'B4-33U-Atlas900RCKA3-32', 33: 'B5-5U-Atlas900RCKA3-33'}[args.node]
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline')
-    source = base / {32: 'pd-node32-v11', 33: 'pd-node33-v10'}[args.node]
+    revision = {'payload-control': (11, 10), 'post-consume': (13, 12), 'source-ready': (14, 13)}[args.deployment][args.node-32]
+    source = base / f'pd-node{args.node}-v{revision}'
     launch = json.loads((source/'launch.json').read_text())
     cid = launch['container_id']
     state = json.loads(subprocess.check_output(['docker', 'inspect', cid]))[0]

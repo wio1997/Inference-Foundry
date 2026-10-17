@@ -1,0 +1,29 @@
+--- a/kv_transfer.py
++++ b/kv_transfer.py
+@@ -2,6 +2,7 @@
+ 
+ import ctypes
+ import json
++import os
+ import queue
+ import threading
+ import time
+@@ -1213,6 +1214,18 @@
+                 )
+             if current_event is not None:
+                 current_event.synchronize()
++            source_ready_mode = os.getenv("GLM53_KV_SOURCE_READY_FENCE", "0")
++            if source_ready_mode in ("tagged", "1"):
++                source_ready_apply = source_ready_mode == "1" or "glm53-source-ready-" in req_id
++                source_ready_start = time.perf_counter()
++                if source_ready_apply:
++                    # Raw-address SDK copies must observe writes on every producer stream.
++                    torch.npu.synchronize()
++                logger.info(
++                    "Source ready before PUT req_id=%s tp_rank=%d keys=%d fence=%s device=%d wait_ms=%.3f",
++                    req_id, self.tp_rank, len(keys), source_ready_apply,
++                    torch.npu.current_device(), (time.perf_counter() - source_ready_start) * 1000,
++                )
+             self.m_store.put(keys, addrs, sizes)
+             if self.enable_kv_event and stored_events:
+                 self.update_kv_event(stored_events)
