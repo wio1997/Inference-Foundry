@@ -1,0 +1,33 @@
+--- a/R127/vllm_flash_sdma_performance_engine.py
++++ b/R138/vllm_flash_sdma_performance_engine.py
+@@ -75,9 +75,18 @@
+     def register_memory(self,ptr,size):
+         ptr,size=int(ptr),int(size)
+         if ptr<=0 or size<=0:raise ValueError('Invalid native registration')
+-        ret=self._engine.register_memory(ptr,size)
+-        if ret!=0:raise RuntimeError(f'Strict SDMA register failed: {ret}')
+-        self._regions.append((ptr,size));return ret
++        return self.register_memories([ptr],[size])
++
++    def register_memories(self,ptrs,sizes):
++        if not ptrs or len(ptrs)!=len(sizes) or any(type(x) is not int or x<=0 for x in [*ptrs,*sizes]):raise ValueError('Invalid native registration vectors')
++        # Native MF1.2 batch API owns page alignment/coalescing. Logical cache
++        # tensors may share a2MiB allocator page. Preserve all original logical
++        # byte intervals for qualification hashing and all transfer addresses.
++        ret=self._engine.batch_register_memory(ptrs,sizes)
++        if ret!=0:raise RuntimeError(f'Strict SDMA batch register failed: {ret}')
++        self._regions.extend(zip(ptrs,sizes))
++        event('native_batch_registration',role=self.role,logical_device=self.device_id,logical_ranges=len(ptrs),logical_bytes=sum(sizes),SDK_calls=1,ret=ret)
++        return ret
+ 
+     def synchronize_producer_stream(self):
+         if self.role!='Prefill':raise ValueError('Only producer may publish its completion fence')
+@@ -160,7 +169,7 @@
+         with self.register_buffer_lock:
+             if self.is_register_buffer:return
+             if self.transfer_engine is None:raise ValueError('SDK initialization missing')
+-            for ptr,size in zip(ptrs,sizes):self.transfer_engine.register_memory(ptr,size)
++            self.transfer_engine.register_memories(list(ptrs),list(sizes))
+             self.is_register_buffer=True
+ 
+ global_te=GlobalFlashPerformanceTE()
