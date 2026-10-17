@@ -1,7 +1,7 @@
 {
   "project_id": "glm53",
-  "as_of": "2026-10-17T10:34:58.288128+00:00",
-  "status": "ACTIVE_VLLM_C64_C16_C32_MEASUREMENTS_ACCEPTED_SLA_FAILED",
+  "as_of": "2026-10-17T11:35:32.035501+00:00",
+  "status": "C16_PAIR_ACCEPTED_SLA_FAILED_D_DIAGNOSTIC_NEXT",
   "required_context": [
     "AGENTS.md",
     "HANDOFF.md",
@@ -10,12 +10,12 @@
     "STATE.json",
     "STATUS_BRIEF.json"
   ],
-  "objective": "Original ordinaryW8A8 GLM5.3 vLLM vsSGLang2P2D strictSDMA correctness -> actualAIS C16/32/64 vLLMfirst -> boundedprofile/optimization -> source/config/compactevidenceGit",
+  "objective": "Optimize ordinaryW8A8 SGLang using matched vLLM controls: acceptedC16gap \u2192 boundedbottleneckevidence \u2192 singlemechanismC16A/B \u2192 remainingC32/C64 protection cases",
   "latest_user_steering": "MemCache adaptation first consult corresponding Ascend deployment documents; honor docs/nativeAPI before further patches",
-  "model_http_attempts_by_this_task": 1665,
-  "successful_model_inferences": 1648,
+  "model_http_attempts_by_this_task": 2145,
+  "successful_model_inferences": 2128,
   "functional_model_output_tokens": 20454,
-  "formal_requests": 512,
+  "formal_requests": 704,
   "accepted_new_baseline": {
     "vllm-C16": {
       "measurement_valid": true,
@@ -32,7 +32,7 @@
   "c8_in_scope": false,
   "required_pd_transport": "SDMA",
   "active_vllm_startup_run": "runs/20261017T1768-vllm-shared-model-start-v2",
-  "active_vllm_ZCode_session": 32671,
+  "active_vllm_ZCode_session": null,
   "runtime_containers": {
     "30": {
       "container_id": "a654305d634fb392660cee17797c15f31af90df477c0025839a59f985e1c073c",
@@ -191,7 +191,7 @@
   "formal": {
     "16": {
       "vllm_dispatched": true,
-      "sglang_dispatched": false,
+      "sglang_dispatched": true,
       "accepted": true,
       "planned_requests": 64,
       "actual_requests": 64,
@@ -199,14 +199,23 @@
       "measurement_valid": true,
       "aggregate_SLA_pass": false,
       "output_tokens_per_second": 441.2157866456942,
-      "evidence": "results/vllm-formal-C16-v2-measurement-v1.json"
+      "evidence": "results/vllm-formal-C16-v2-measurement-v1.json",
+      "vllm_accepted": true,
+      "sglang_accepted": false
     },
     "32": {
       "vllm_dispatched": true,
       "sglang_dispatched": false,
-      "accepted": false,
+      "accepted": true,
       "planned_requests": 128,
-      "actual_requests": null
+      "actual_requests": 128,
+      "requests": 128,
+      "client_audit_pass": true,
+      "measurement_valid": true,
+      "aggregate_SLA_pass": false,
+      "output_tokens_per_second": 530.8125387945174,
+      "vllm_accepted": true,
+      "evidence": "results/vllm-formal-C32-v2-measurement-v1.json"
     },
     "64": {
       "vllm_dispatched": false,
@@ -215,30 +224,30 @@
       "planned_requests": 256
     }
   },
-  "formal_execution_order": "vLLM C16->32->64 FIRST thenSGLang C16->32->64; sequentialreal74400/1warm eachprefix; naturalL1/L2; fourfresh5600suffix variants continuousclosedloop",
+  "formal_execution_order": "Finish current vLLM C32v2/native \u2192 SGLang C16 paired \u2192 SGLang C32 paired \u2192 vLLM C64v2/retest \u2192 SGLang C64 paired. No all3vLLM prerequisite for SG16.",
   "formal_prepared": {
     "client": "scripts/glm53_formal_ais_client_v1.py",
     "host_controller": "scripts/glm53_formal_host_controller_v2.py",
     "RPC": "scripts/glm53_formal_rpc_v2.py",
     "SDK_gate": "scripts/glm53_formal_cache_gate_v1.py",
     "remote_gate_renderer": "scripts/glm53_formal_gate_remote_v1.py",
-    "status": "C16 and C32 accepted valid measurements, both SLA failed; C64 active real warmup then256 formal, count ledger excludes active.",
+    "status": "Paired-stage-v1 activeSG1890; unchangedv2client/RPC/cachegate. Oldall3dependency retainedonlyhistorically.",
     "resource_controller": "scripts/glm53_formal_resource_controller_v1.py"
   },
   "blockers": [
     "C64actualmeasurement/nativeacceptance thenSG16/32/64/profileoptimization remain. C16/C32validmeasurementsSLAfailed."
   ],
-  "next_action": "Await1870actual32warm/gate/128formal\u21921874 nativepost\u2192V2audits\u2192newv2C32cert\u21921880C64; allSG waitsall3newv2vLLM",
+  "next_action": "SG1890 actual4prechecks\u219216realprefixwarm\u2192all1743components/prefix payload+retentiongate\u219264formalC16\u21921894nativepost\u2192V2SGaudit\u2192firstpairedspeedtable. No vLLMC64/profile/newoptimization ahead ofthis.",
   "GitHub": {
     "committed": true,
     "pushed": true,
-    "commit": "a0cb064826f602a192ebbd351232f48029cbf7a3",
-    "checkpoint_commit": "a0cb064826f602a192ebbd351232f48029cbf7a3",
+    "commit": "4d1b77e5a7980fe0c0e78e8acc36780ce3c04fc9",
+    "checkpoint_commit": "803744afc5cfbb89e0c8f5e3d8af43bd6d4755cc",
     "branch": "codex/ascend-sglang-vllm-comparison",
-    "selected_files_verified": 180,
-    "own_changed_paths": 38,
-    "evidence": "results/git-vllm-baseline-publication-v3.json",
-    "scope": "C16/C32 valid measurements/SLAfailed; C64active and SG/profile pending at publication"
+    "selected_files_verified": 225,
+    "own_changed_paths": 49,
+    "evidence": "results/git-uniform-v2-publication-v4.json",
+    "paired_gate_follow_on_not_yet_published": true
   },
   "historical_state_archive": {
     "state_path": "runs/20261017T1758-git-deployment-checkpoint-v1/STATE.before.json",
@@ -254,15 +263,15 @@
   "correctness_limits": "Representative frozen short/twofact long/cache/SDMA/count guards; wholelongtexts maydiffer, no bitwisegate. MetaHTTPobservabilitygap isnotaloneablockerwithnativeSDK/dataevidence.",
   "active_functional_run": null,
   "completed_run_ledger_excludes_active_run": true,
-  "active_formal_run": "runs/20261017T1870-vllm-formal-C32-v2",
+  "active_formal_run": "runs/20261017T1920-sglang-formal-C16-D-profile-v1",
   "active_formal_warmup_progress_last_observed": {
     "project_id": "glm53",
-    "framework": "vllm",
-    "namespace": "glm53-formal-20261017T1870-vllm-formal-C32-v2-C32",
-    "concurrency": 32,
+    "framework": "sglang",
+    "namespace": "glm53-formal-20261017T1890-sglang-formal-C16-v2-C16",
+    "concurrency": 16,
     "phase": "WARMUP",
-    "completed_real_prefix_warmups": 5,
-    "warmup_passes": 5
+    "completed_real_prefix_warmups": 16,
+    "warmup_passes": 16
   },
   "prepared_formal_C16_native_postcapture": {
     "launcher": "scripts/inspect_vllm_formal_C16_native_v2.py",
@@ -271,9 +280,9 @@
     "status": "COMPLETED_ALL4_NATIVE_ACCEPTED",
     "local_metrics_fixture": "results/formal-native-metrics-local-fixture-v1.json"
   },
-  "successful_model_output_tokens_total": 327220,
-  "formal_counted_output_tokens": 306000,
-  "benchmark_warmup_and_control_output_tokens": 766,
+  "successful_model_output_tokens_total": 442708,
+  "formal_counted_output_tokens": 421200,
+  "benchmark_warmup_and_control_output_tokens": 1054,
   "prepared_formal_C32_native_postcapture": {
     "launcher": "scripts/inspect_vllm_formal_C32_native_v2.py",
     "sha256": "552e1b7b9befa3c4f3586a305db4aa6da15d6bd261ce6f6dc1b07e0756ecf76e",
@@ -291,12 +300,12 @@
   "native_profile_control_review": "results/native-profile-control-source-review-v1.json",
   "cache_composition_review": "results/vllm-formal-cache-composition-review-v1.json",
   "sglang_follow_on_helpers_prepared_no_resource_calls": true,
-  "total_model_HTTP_attempts": 1665,
+  "total_model_HTTP_attempts": 2145,
   "active_native_capture_run": null,
   "formal_uniform_v2": {
     "16": {
       "vllm_dispatched": true,
-      "sglang_dispatched": false,
+      "sglang_dispatched": true,
       "accepted": true,
       "planned_requests": 64,
       "actual_requests": 64,
@@ -304,14 +313,23 @@
       "measurement_valid": true,
       "aggregate_SLA_pass": false,
       "output_tokens_per_second": 441.2157866456942,
-      "evidence": "results/vllm-formal-C16-v2-measurement-v1.json"
+      "evidence": "results/vllm-formal-C16-v2-measurement-v1.json",
+      "vllm_accepted": true,
+      "sglang_accepted": false
     },
     "32": {
       "vllm_dispatched": true,
       "sglang_dispatched": false,
-      "accepted": false,
+      "accepted": true,
       "planned_requests": 128,
-      "actual_requests": null
+      "actual_requests": 128,
+      "requests": 128,
+      "client_audit_pass": true,
+      "measurement_valid": true,
+      "aggregate_SLA_pass": false,
+      "output_tokens_per_second": 530.8125387945174,
+      "vllm_accepted": true,
+      "evidence": "results/vllm-formal-C32-v2-measurement-v1.json"
     },
     "64": {
       "vllm_dispatched": false,
@@ -320,7 +338,7 @@
       "planned_requests": 256
     }
   },
-  "completed_known_success_HTTP_model_inferences": 1648,
+  "completed_known_success_HTTP_model_inferences": 2128,
   "failed_backend_HTTP_attempts_total": 17,
   "last_C64_invalid_run": {
     "run": "runs/20261017T1810-vllm-formal-C64-v1",
@@ -378,5 +396,228 @@
     "actual_payload_reads": 256,
     "close_rc": 0,
     "source": "runs/20261017T1810-vllm-formal-C64-v1/cache-gate-native.json"
+  },
+  "execution_policy_revision": "paired-stage-v1",
+  "execution_order": "Finish current vLLM C32v2/native \u2192 SGLang C16 paired \u2192 SGLang C32 paired \u2192 vLLM C64v2/retest \u2192 SGLang C64 paired. No all3vLLM prerequisite for SG16.",
+  "SG_C16_next_window": {
+    "run_id": "20261017T1890-sglang-formal-C16-v2",
+    "status": "REAL16WARM_AND_ALLPREFIX27888KEY_192PAYLOAD_GATE_PASSED_FORMAL64_ACTIVE",
+    "launcher": "scripts/run_sglang_formal_C16_paired_v1.py",
+    "launcher_sha256": "e6ae88c412c80c40578766ee6d9525aef2b5fc39e7ba9d4522b475b4634e492e",
+    "settings": "config/formal-runs-v2/sglang-C16.json",
+    "settings_sha256": "349315219c75a96d86a083c479c11c77a3f3811a8bdb29e9523795458a1201f6",
+    "required_counterpart": "results/vllm-formal-C16-v2-measurement-v1.json",
+    "required_counterpart_sha256": "1250beca3869b1d989a3bff08eb9a241dbbc4104780314b57a38e38e5da1911d",
+    "current_SG_native_qualification": "results/sglang-formal-native-readiness-v1.json",
+    "no_C64_certificate_dependency": true,
+    "local_gate_fixture": "results/sglang-paired-admission-local-fixture-v1.json",
+    "warmup_excluded": true,
+    "data_contract": "sameC16IDs/80000input/600Doutput/16independent74400warm/4freshsuffix/continuous C16/naturalcache",
+    "runtime_parameters_changed": false,
+    "warmup_observed": {
+      "observed_real_warmups": 8,
+      "mean_seconds_per_warmup_including_startup": 41.81944182515144,
+      "remaining_warmup_seconds_extrapolation": 334.55553460121155,
+      "excludes_gate_formal_native_audit": true,
+      "completion_promise": false
+    }
+  },
+  "active_framework": "sglang",
+  "active_SG_ZCode_session": 9336,
+  "paired_results": {
+    "C16": {
+      "project_id": "glm53",
+      "concurrency": 16,
+      "measurement_valid": true,
+      "scope": "End-to-end ordinary W8A8 deployment stacks, not pure framework causal attribution. Unequal CPUcollocation/cacheplacement/staging/nativeSDK/graph policies disclosed. One accepted measured run per current stack; no variance-based causal speedup claim.",
+      "formal_requests_each": 64,
+      "input_output_tokens_each": [
+        80000,
+        600
+      ],
+      "vllm": {
+        "output_tokens_per_second": 441.2157866456942,
+        "full_clock_seconds": 87.032244,
+        "quantiles": {
+          "ttft_seconds": {
+            "P50": 6.515027559362352,
+            "P90": 12.780415795370937,
+            "P99": 15.419085314646363
+          },
+          "tpot_seconds": {
+            "P50": 0.018345953938621214,
+            "P90": 0.02114691809006346,
+            "P99": 0.02567037970623705
+          },
+          "e2e_seconds": {
+            "P50": 17.707547990000002,
+            "P90": 24.729426915,
+            "P99": 27.249290591099992
+          }
+        },
+        "aggregate_SLA_pass": false
+      },
+      "sglang": {
+        "output_tokens_per_second": 94.17637415774789,
+        "full_clock_seconds": 407.74557678,
+        "quantiles": {
+          "ttft_seconds": {
+            "P50": 8.722132669761777,
+            "P90": 15.48656133171171,
+            "P99": 24.255257597919552
+          },
+          "tpot_seconds": {
+            "P50": 0.1329702066773788,
+            "P90": 0.14899734675057097,
+            "P99": 0.18279780460543338
+          },
+          "e2e_seconds": {
+            "P50": 89.031586535,
+            "P90": 104.84929645599999,
+            "P99": 119.90315804529997
+          }
+        },
+        "aggregate_SLA_pass": false
+      },
+      "ratios": {
+        "vllm_to_sglang_TPS": 4.6849944117263025,
+        "sglang_to_vllm_TTFT_P50": 1.338771415821216,
+        "sglang_to_vllm_TPOT_P50": 7.247930912845852
+      },
+      "SG_actual_runtime": {
+        "P": {
+          "tp_size": 32,
+          "dp_size": 4,
+          "ep_size": 32,
+          "enable_dp_attention": true,
+          "disable_prefill_cuda_graph": true,
+          "disable_decode_cuda_graph": true,
+          "disable_overlap_schedule": true,
+          "disaggregation_decode_enable_radix_cache": false,
+          "disable_radix_cache": false,
+          "enable_hierarchical_cache": true,
+          "speculative_algorithm": "EAGLE",
+          "speculative_num_steps": 5,
+          "speculative_num_draft_tokens": 6,
+          "deepep_mode": "normal",
+          "moe_a2a_backend": "deepep",
+          "stream_interval": 1,
+          "batch_notify_size": 16,
+          "incremental_streaming_output": false,
+          "log_requests": false,
+          "enable_trace": false,
+          "enable_metrics": true,
+          "decode_log_interval": 40,
+          "max_total_num_tokens": 254848,
+          "chunked_prefill_size": 2048,
+          "max_prefill_tokens": 2048,
+          "max_running_requests": 8,
+          "source_sha256": "9efd3c0bc8b2cb5a0eb24c604d3fea59a64c6f52aa4da0de5d82140d05ba55a0"
+        },
+        "D": {
+          "tp_size": 32,
+          "dp_size": 16,
+          "ep_size": 32,
+          "enable_dp_attention": true,
+          "disable_prefill_cuda_graph": true,
+          "disable_decode_cuda_graph": true,
+          "disable_overlap_schedule": true,
+          "disaggregation_decode_enable_radix_cache": false,
+          "disable_radix_cache": true,
+          "enable_hierarchical_cache": false,
+          "speculative_algorithm": "EAGLE",
+          "speculative_num_steps": 5,
+          "speculative_num_draft_tokens": 6,
+          "deepep_mode": "normal",
+          "moe_a2a_backend": "deepep",
+          "stream_interval": 1,
+          "batch_notify_size": 16,
+          "incremental_streaming_output": false,
+          "log_requests": false,
+          "enable_trace": false,
+          "enable_metrics": true,
+          "decode_log_interval": 40,
+          "max_total_num_tokens": 181632,
+          "chunked_prefill_size": 512,
+          "max_prefill_tokens": 512,
+          "max_running_requests": 64,
+          "source_sha256": "0ca645b4ff40c373d79815110d405d204706857847b2f7fb468f388293405a48"
+        }
+      },
+      "vllm_runtime_summary": {
+        "attention_TP_P": 8,
+        "attention_TP_D": 2,
+        "DP_P": 4,
+        "DP_D": 16,
+        "EP": 32,
+        "D_target_graph": "FULL_DECODE_ONLY,6/12/18/24tokens",
+        "draft_execution": "eager",
+        "P_execution": "eager",
+        "native_MTP_proposed_per_verify": 5,
+        "KV_tokens_per_DP_P": 299136,
+        "KV_tokens_per_DP_D": 229248
+      },
+      "hardware_budget_each": {
+        "die_per_role": 32,
+        "die_per_framework": 64,
+        "HBM_TiB_per_framework": 4
+      },
+      "memory": {
+        "external_pool_GiB_both": 568,
+        "vllm_provider_GiB": {
+          "30": 192,
+          "31": 192,
+          "43": 128,
+          "45": 56
+        },
+        "sglang_provider_GiB": {
+          "34": 136,
+          "35": 112,
+          "36": 160,
+          "41": 160
+        },
+        "vllm_common_max_GiB": 192,
+        "sglang_common_max_GiB": 160,
+        "sglang_native_staging_GiB": 268.3974609375,
+        "common_cache_data_ceiling_GiB": 1024,
+        "total_memory_usage_identical": false,
+        "attribution": "End-to-end deployment stack; placement/logging differences disclosed, pureframework attribution not established"
+      },
+      "source_evidence_sha256": {
+        "results/vllm-formal-C16-v2-measurement-v1.json": "1250beca3869b1d989a3bff08eb9a241dbbc4104780314b57a38e38e5da1911d",
+        "results/sglang-formal-C16-v2-measurement-v1.json": "42a7e15e69b684fe70a41e3379f0634fbc36bab05bfc7803f55bd08fd38634fb",
+        "results/sglang-formal-C16-v2-cache-annotation-review-v1.json": "3087b1469dd2e55afa12f3015240f4f71420588fc9e010544e12aba7a9544972"
+      },
+      "optimization_gain_established": false,
+      "next": "Bounded D-first native CPU/NPU sampling; distinguish eager launch/collective/MTP/transfer and SSE delivery before single-mechanism C16 A/B."
+    }
+  },
+  "current_blocker": "No correctness blocker; SG1920 boundedDdiagnostic active/precheck/warmup progress notyetobserved. Full32workerprofilecompletionpending.",
+  "next_acceptance": "BoundedDnativeCPU/NPU8step profile with exactCID/all32rankcoverage/stopcleanup; selectone supportedmechanism forC16A/B. No allsixbaselinegate.",
+  "next_checkpoint": "diagnostics/model-profile/loops/L03-bounded-native-PD-profile-draft-v3.json",
+  "SG_C16_actual_cache_gate": {
+    "pass": true,
+    "known_component_keys": 27888,
+    "payload_reads": 192,
+    "close_rc": 0,
+    "source": "runs/20261017T1890-sglang-formal-C16-v2/cache-gate-native.json"
+  },
+  "last_SG_C16_result": {
+    "run_id": "20261017T1890-sglang-formal-C16-v2",
+    "report_sha256": "cb26620a032d48f3933017598ed600d8fe786de9dde87c80e43952c4bbf93890",
+    "RPC_done_received": true,
+    "RPC_rc": 1,
+    "formal_count_lifecycle_success": 64,
+    "formal_cache_check_pass": 39,
+    "formal_D_missing_storage_fields": 25,
+    "baseline_accepted_as_recorded": false,
+    "full_clock_seconds": 407.74557678,
+    "output_tokens_per_second": 94.17637415774789,
+    "aggregate_SLA_pass": false
+  },
+  "active": {
+    "run": "runs/20261017T1920-sglang-formal-C16-D-profile-v1",
+    "ZCode_session": 9336,
+    "phase": "D-first diagnostic dispatched; no actualmodel/profilecount preincrement"
   }
 }

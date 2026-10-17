@@ -41,3 +41,7 @@ project_id=glm53。本合同仅用于原模型普通W8A8的两套2P2D；两框�
 ## P→D传输资格
 
 两框架所有P→D模型状态数据强制SDMA，禁止RDMA payload fallback。必须通过[本项目SDMA合同](PD_TRANSPORT.md)后才可接受PD基线；只看到参数名或MemCache的SDMA不能代替P→D实证。传输计时、排队、状态完整性与失败按正式口径保留。
+
+## 2026-10-17 SGLang D 原生可选字段补充审计
+
+现场1896源码确认：output_streamer.get_cached_tokens_details仅在`cached_tokens_storage>0`或本地HiCache存储启用时输出storage；协议将None从响应中省略。D关闭HiCache且从P继承storage0时，缺字段保持null，不填0、不填预期值，不强制解释为实际D L3读。当前补充审计只接受同时满足以下全部证据的情形：P完整device/host/storage非负整数、host0、原生总命中在理论边界；D原生device/host与P一致；若Dstorage存在必须与P一致，若缺失必须Pstorage0且Ddevice自身达到完整边界。实际原生formatter须逐请求复现P/D对象，独立全键payload、SDK、SDMA、计数、生命周期与16DP指标仍必需。冻结客户端失败与原始报告不改，验收由版本化独立补充审计注明修正规则和scope；未知缺字段、少命中、非零Pstorage但D缺字段等仍失败。

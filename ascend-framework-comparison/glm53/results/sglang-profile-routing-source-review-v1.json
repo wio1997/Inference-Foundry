@@ -1,0 +1,45 @@
+{
+  "project_id": "glm53",
+  "pass": true,
+  "source_only_not_profile_exercised": true,
+  "model_requests": 0,
+  "SDK_init_calls": 0,
+  "profiling_started": false,
+  "sources": [
+    {
+      "relative": "srt/entrypoints/engine.py",
+      "bytes": 80486,
+      "sha256": "f14a679fdbea490a63d66c14d22e8bccc81856bf7d0f9490d878966341bd59c4"
+    },
+    {
+      "relative": "srt/managers/communicator.py",
+      "bytes": 3807,
+      "sha256": "8228691d693cc2877b23fc777866a6779c1ed8511dff0c64ad002d2c602e0552"
+    },
+    {
+      "relative": "srt/managers/data_parallel_controller.py",
+      "bytes": 34612,
+      "sha256": "76c8575a5ee46d6ba03f0305cca6706a92e4abe58b0bcb75600da775ed9a4f02"
+    },
+    {
+      "relative": "srt/managers/scheduler_components/request_receiver.py",
+      "bytes": 12778,
+      "sha256": "78fc4997866de60c9ec6257e0a56123f107b59eebabd7c691ab114f6ef75bde3"
+    }
+  ],
+  "findings": {
+    "SG_rank0_profile_endpoints": [
+      "http://172.16.12.34:30500/start_profile",
+      "http://172.16.12.36:30600/start_profile"
+    ],
+    "nonzero_nodes": "Engine._launch_subprocesses on node_rank>=1 starts only dummy health/metrics listener then blocks; node35/41 are not profile HTTP entrypoints.",
+    "fan_out": "Tokenizer profile FanOutCommunicator initialized with dp_size, waits for that many responses; DPcontroller routes ProfileReq to allworkers; requestreceiver broadcasts control across TP as configured. One rank0 control call perP/Drole is intended to reach all32roleworkers.",
+    "start_ack": "Scheduler immediately routes ProfileReq to manager._profile and sends its returned ProfileReqOutput to tokenizer. With no start_step, _profile calls _init_profile then _start_profile immediately. num_steps8 sets target currentforward+9 and does not defer ACK until capture completion.",
+    "partial_failure": "Tokenizer _execute_profile inspects only first collected success. ReturnedHTTP200 is not per-rank proof; actual native trace/stop coverage required. Inactive SGstop returnsfailure; never duplicate configure/start blindly.",
+    "runtime_validation_pending": "No control API called. Futureprofile must use rank0 only, boundsteps, verify allroleworker artifacts/stop, preserve rawtraces and archive onlyowncompletedprofile files away from liveprofile root before any later unprofiled baseline."
+  },
+  "evidence_sha256": {
+    "runs/20261017T1856-sglang-profile-routing-source-v1/receipt.json": "a546f4e500bcf1da3b043298d48fed1448df8a2ebc0343bc027a6b28b0118fb8",
+    "runs/20261017T1856-sglang-profile-routing-source-v1/sglang.json": "e5268036e65db9c0f860b723e8bba04608b08944ff84e9e9d35077e4bb63859b"
+  }
+}

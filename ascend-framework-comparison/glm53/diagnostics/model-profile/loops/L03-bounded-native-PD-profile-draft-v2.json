@@ -1,0 +1,59 @@
+{
+  "project_id": "glm53",
+  "loop_id": "L03-bounded-native-PD-profile",
+  "status": "DRAFT_NOT_DISPATCHED",
+  "evidence_maturity": "E1_BASELINE_SERIES_INCOMPLETE",
+  "mechanism": "Distinguish P queue/compute critical path from MemCache restore delay; no performance tuning selected",
+  "prerequisites": [
+    "All vLLM C16/C32/C64 and SG C16/C32/C64 actual measurement_valid certificates",
+    "Frozen per-run launcher/settings + installed profile-control source SHA",
+    "No concurrent baseline, exact current owned CIDs and idle native gauges"
+  ],
+  "fixed_variables": [
+    "Ordinary W8A8 model/tokenizer/input IDs and 80000/600 outputs",
+    "2P2D64die/4TiB HBM per framework, native SDMA with no payload fallback",
+    "Native SDK/source/parallelism/MTP/cache sizes and placements",
+    "Independent74400 real-prefix warmup, all-prefix metadata/actual-byte/retention gate, natural HBM residency"
+  ],
+  "candidate_workload": {
+    "C": 16,
+    "accepted_input_dataset": "20261017T0615-formal-inputs-v3/artifacts/C16",
+    "namespace": "New dedicated diagnostic namespace per stack, preventing complete80K warm contamination",
+    "real_warmups": 16,
+    "formal_shaped_requests": 64,
+    "profile_cohort_primary_performance": false,
+    "client": "Reuse frozen real AIS client; diagnostic result can never substitute an unprofiled performance certificate"
+  },
+  "native_capture": {
+    "vllm": "Existing profiler_config delay2/max8; actual WorkerProfiler stops at >8 counted steps. Native start endpoints then bounded cohort; stop idempotent. Actual per-worker trace lengths/artifacts must be audited.",
+    "sglang": "Currentinstalledsource: call rank0P34/D36 only; no start_step, num_steps8, explicitCPU/GPU nativeNPUalias, with_stackFalse, record_shapesFalse, mergeFalse. Scheduler starts immediately and ACKs; autocounttargetcurrent+9 stops before ninthforward. Do not call node35/41 dummyhealthservers.",
+    "sglang_partial_configuration_failure": "Use immediate start rather than armed futurestart; handlepartialstartfailure with rankcoverage-aware cleanup. HTTP200 onlychecksfirstDPresult, so it is insufficient proof. Concrete cleanup implementation remainsrequired beforedispatch.",
+    "export": "Owned run/profile directories, source/capture SHA, CPU/NPU spans and native SDMA/cache events; raw trace kept node-side, compact typed summaries only in Git",
+    "post_profile_archive": "Preserve every completed own native trace with hashes in dedicatedprofile run. Move onlyverifiedcompleted ownedprofileoutputs away fromliveprofile root beforefutureunprofiled baseline; neverdelete traces or letoldfiles falsify/no-falsify profilerinactive checks."
+  },
+  "baseline_observations": {
+    "cache_composition": "results/vllm-formal-cache-composition-review-v1.json",
+    "P_HTTP_TTFT_share_C16_median": 0.9111909,
+    "P_HTTP_TTFT_share_C32_median": 0.9648358847,
+    "scope": "Includes queue/cache/preparation/compute, not pure prefill kernels. MC native individual call max115.47ms C16/747.04ms C32 does not prove either total critical-path share or bandwidth."
+  },
+  "decision_rules": {
+    "ACCEPTED": "Actual CPU/NPU trace execution, all relevant P/D rank coverage, source identity and count/cache/lifecycle correct; intervals discriminate at least one competing mechanism. This only accepts diagnostic information, not service optimization.",
+    "INCONCLUSIVE": "Trace gap, pending worker profiler, barrier/stop failure, insufficient rank coverage, or no discriminating spans; preserve errors and restore owned profiler state.",
+    "optimization_next": "Freeze exactly one supported mechanism after trace evidence, compare same frozen contract unprofiled, preserve TPOT/correctness/failure rates and use paired repeat if gain near noise."
+  },
+  "headroom_model": {
+    "estimated_lower_bound": null,
+    "headroom": null,
+    "reason": "No measured reachable kernel/communication bandwidth or trace critical path yet; no invented Roofline bound"
+  },
+  "budget": {
+    "profiled_runs_per_framework_max": 1,
+    "native_profile_steps_configured": 8,
+    "no_parameter_sweep": true,
+    "actual_requests_issued": 0,
+    "actual_profiles_started": 0
+  },
+  "supersedes_draft_only": "diagnostics/model-profile/loops/L03-bounded-native-PD-profile-draft.json",
+  "source_control_evidence": "results/sglang-profile-routing-source-review-v1.json"
+}
