@@ -4,7 +4,7 @@ P11（P target PIECEWISE、drafter MTP1仍eager）与D10（D MTP5、共享专家
 
 P11四客户端持续负载两轮共2115/2115通过，256/1024有效输出率均值208.67/165.03tok/s。对无MTP84.45/77.61tok/s，倍率几何均值2.29224；对早前MTP5则分别+5.52%/−1.78%，不能把波次1.0841直接当持续容量收益。完整汇总见 `prefill-graph-v11-complete-baseline-v1.json`。原冻结门槛下P11有2113条达标，1024 TTFT及token gap尾部仍有权衡，业务SLO未知。
 
-当前自定义机制转向“KV就绪后发布P已有首token”。8个固定shape请求及24保护fixture在C1/C4共48次首token均一致（8种ID）；P结果已知到D返回首token约70–82ms，仅是机会窗口。D12原型在原生聚合KV接收完成后发布该token，保留D全部工作/history/async占位及资源回收，核对并抑制一个重复token；限greedy文本ignore_eos/min0且无stop/logprobs/penalties等。它可能缩短TTFT，但没有删除D计算，first-to-second gap和平均TPOT可能增加。D12已通过60/60 smoke、48/48 eligible数值oracle（对D10无新增失败）、24 C4 native/PD各24/24、16复用pairs/8转换和两轮formal240/240。450次提前发布，432次原生首token核对一致，其余18次为明确取消，无推理错误。相对P11/D10，两轮TTFT p50几何均值0.80080（−19.9%）、吞吐0.99201、平均TPOT1.12897（+12.9%）。它证明首token发布可去掉D输出等待依赖，但未改善完整服务目标，不能当无条件采用收益。相同到达两轮925/925通过，发送max0.30905ms；256 TTFT p50 442.99→328.83ms、1024 629.86→508.71ms，平均TPOT10.99→12.81、11.89→13.49ms。原15分钟新加载gate0控制门槛已到，D13未launch，不降低门槛强跑。代码和条件见 `runtime-patches/p-first-publish-v1/`，当前动作见HANDOFF。
+当前自定义机制转向“KV就绪后发布P已有首token”。8个固定shape请求及24保护fixture在C1/C4共48次首token均一致（8种ID）；P结果已知到D返回首token约70–82ms，仅是机会窗口。D12原型在原生聚合KV接收完成后发布该token，保留D全部工作/history/async占位及资源回收，核对并抑制一个重复token；限greedy文本ignore_eos/min0且无stop/logprobs/penalties等。它可能缩短TTFT，但没有删除D计算，first-to-second gap和平均TPOT可能增加。D12已通过60/60 smoke、48/48 eligible数值oracle（对D10无新增失败）、24 C4 native/PD各24/24、16复用pairs/8转换和两轮formal240/240。450次提前发布，432次原生首token核对一致，其余18次为明确取消，无推理错误。相对P11/D10，两轮TTFT p50几何均值0.80080（−19.9%）、吞吐0.99201、平均TPOT1.12897（+12.9%）。它证明首token发布可去掉D输出等待依赖，但未观察到完整响应加速，不能当无条件采用收益。相同到达两轮925/925通过，发送max0.30905ms；256 TTFT p50 442.99→328.83ms、1024 629.86→508.71ms，平均TPOT10.99→12.81、11.89→13.49ms。原15分钟新加载gate0控制门槛已到，D13未launch，不降低门槛强跑。代码和条件见 `runtime-patches/p-first-publish-v1/`，当前动作见HANDOFF。
 
 八组固定输入/64输出的配对实验，每种配置两轮共240条正式请求，全部通过HTTP、输出长度和数值功能门槛。相对无MTP官方图基线，有效输出吞吐倍率等权几何均值 **2.3304**，TPOT p50 倍率 **0.2826**；TTFT p50 倍率 **1.1408**，存在明确权衡。以下为两轮统计量的均值，非合并样本分位数。
 
@@ -42,3 +42,7 @@ P11/D10在全部正式计时后采集的真实rank0 profile均完成API stop和C
 完整64-token原始时序已SHA核对：正式第二token到达倍率1.00424、最后token1.00491基本不变，首二gap倍率2.46130、最大gap2.33731。C1首二间隔约54–56→113–117ms，C4约60–64→177–184ms。各请求实际输出与frontend usage均为64。另发现16/16 formal窗口D的prefill-duration counter sum增量为负，这是发布提前后原生phase accounting未适配的实际回归；不使用该后台phase指标证明性能。该原型不作为默认优化采用，后续应验证删除重复query所需的真实状态交接。
 
 本轮按原有限窗口结束：P11/D12退出0，proxy关闭，停止时两台各16die空闲；原两个精确UID预留已删除且19:23Z复核不存在，无续租。所有测量结束后才进行增量归档；全部raw、退出日志和rank0 profile在Mac完成SHA核验。最终条件与结论见p-first-publication-verdict-v1.json。
+
+2026-10-18本机离线复核进一步区分时序：平均TPOT从首token起算，首token前移会机械地抬高它。第二至末token区间倍率1.00897；八组等权均值TPOT增量1.48368ms中，首二gap项贡献1.30817ms（88.2%），其余0.17550ms来自第二至末项。后者仍包含不同D实例、续写、batch和传输差异，不将原1.12897倍率称为稳定decode计算变慢13%。首二gap扩大是真实呈现节奏变化，完整响应未加快和phase统计回归也仍成立。
+
+离线状态核验把后续候选收窄为“将D初始有效query推进至P首输出”，不能承诺删掉一次模型迭代：现有MTP5补齐仍6行/请求。当前NewRequestData/worker缺初始输出history，普通Async输出扣减和max1晋升还存在错误插入点。完整原生导入缺兼容torch/msgspec/vLLM，仅原生定义/方法段及真实存档ID的有限检查完成，物理KV/MTP前缀及InputBatch未验证。具体可行性、证据限制及下一最小设备判别见[p-first-state-feasibility-20261018.md](p-first-state-feasibility-20261018.md)。本次没有SSH、续租或在线压测；研究尚未完成。
