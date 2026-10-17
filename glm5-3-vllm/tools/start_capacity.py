@@ -54,7 +54,9 @@ ctx={'host_checked_utc':utc(),'scope':'launch only: preconditions asserted, one 
  'client':{k:setup[k] for k in ('client_started_utc','source_script','source_script_sha256','plan_sha256','payload_sha256','git_sha','git_diff_sha256','lease')}}
 launch=None
 try:
- assert os.uname().nodename=='B5-5U-Atlas900RCKA3-33','Wrong host identity'
+ expected_host=plan.get('target_hostname','B5-5U-Atlas900RCKA3-33')
+ assert expected_host in ('B4-33U-Atlas900RCKA3-32','B5-5U-Atlas900RCKA3-33')
+ assert os.uname().nodename==expected_host,'Wrong host identity'
  assert plan['serve_argv'][:2]==['vllm','serve'],'serve argv does not start with vllm serve'
  tr=pathlib.Path(plan['remote']['transfer_root']); wm=plan['weights_manifest']
  receipts=json.loads((tr/wm['receipt']).read_text()); ready=json.loads((tr/wm['ready']).read_text())
@@ -93,6 +95,29 @@ try:
  argv=['docker','run']+plan['docker_argv']+['--name',plan['container']['name'],'-v',plan['remote']['weights_dir']+':'+plan['remote']['weights_mount']+':ro','-v',str(RUN)+':'+plan['remote']['out_mount']]
  for p in ro: argv+=['-v',p+':'+p+':ro']
  for p in devs: argv+=['--device',p]
+ if 'runtime_overlay' in plan:
+  smi=run(['npu-smi','info'],t=30)
+  assert smi.returncode==0 and smi.stdout.count('No running processes found in NPU')==8,'Device process present; inspect before model launch'
+  (RUN/'npu-smi-before.txt').write_text(smi.stdout+smi.stderr)
+  ctx['npu_idle_precondition']={'empty_physical_cards':8,'raw_sha256':hashlib.sha256((smi.stdout+smi.stderr).encode()).hexdigest()}
+  ov=plan['runtime_overlay'];source=pathlib.Path(ov['source'])
+  assert str(source)=='/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3/site-packages'
+  assert hashlib.sha256((source/'memcache_hybrid/__init__.py').read_bytes()).hexdigest()==ov['python_init_sha256']
+  assert hashlib.sha256((source.parent/'aliases.json').read_bytes()).hexdigest()==ov['aliases_sha256']
+  argv+=['-v',str(source)+':/opt/memcache-runtime:ro']
+  original_env=json.loads(subprocess.check_output(['docker','image','inspect',image_id,'--format','{{json .Config.Env}}']))
+  ld=next((v.split('=',1)[1] for v in original_env if v.startswith('LD_LIBRARY_PATH=')), '')
+  py=next((v.split('=',1)[1] for v in original_env if v.startswith('PYTHONPATH=')), '')
+  python_path='/opt/memcache-runtime'+(':'+py if py else '')
+  probe=run(['docker','run','--rm','--pull','never','--network','none','--read-only','-e','PYTHONPATH='+python_path,'--entrypoint','python3',image_id,'-c','import importlib.util; s=importlib.util.find_spec("acl"); assert s is not None; print(s.origin)'])
+  assert probe.returncode==0,'CANN Python module path unavailable: '+probe.stderr
+  ctx['acl_module_preflight']=probe.stdout.strip()
+  argv+=['-e','PYTHONPATH='+python_path,'-e','LD_LIBRARY_PATH=/opt/memcache-runtime/memcache_hybrid/lib:/opt/memcache-runtime/memfabric_hybrid/lib:'+ld]
+  config=pathlib.Path(plan['memcache_config_source'])
+  assert config.is_dir() and hashlib.sha256((config/'mmc-local.conf').read_bytes()).hexdigest()==plan['memcache_config_sha256']
+  argv+=['-v',str(config)+':/memcache-config:ro']
+  ctx['runtime_overlay']=ov
+  ctx['memcache_config_sha256']=plan['memcache_config_sha256']
  for k,v in plan['env'].items(): argv+=['-e',k+'='+v]
  assert json.dumps(plan['additional_config'],separators=(',',':'))==plan['serve_argv'][-1],'additional-config element mismatch'
  argv+=['--entrypoint','/usr/bin/timeout',image_id,'--signal=TERM','--kill-after=30',str(plan['container']['lifetime_seconds'])]+plan['serve_argv']

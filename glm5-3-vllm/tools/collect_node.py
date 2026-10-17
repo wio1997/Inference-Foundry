@@ -24,6 +24,7 @@ def main():
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--control", required=True, help="Existing SSH multiplex socket")
     p.add_argument("--image", action="store_true", help="Offline image; NPU mounts only with --npu-devices")
+    p.add_argument("--runtime-overlay", help="Task-local MemCache site-packages; base image remains pinned")
     p.add_argument("--npu-devices", help="Explicit devices for a model-free diagnostic under the task's NPU lease")
     p.add_argument("--external-rank", type=int, choices=[0, 1], help="2-node probe: node32 rank0, node33 rank1")
     p.add_argument("--master-port", type=int, default=29567)
@@ -36,6 +37,9 @@ def main():
     if devices and (not a.image or len(set(devices)) != len(devices)
                     or any(d < 0 or d > 15 for d in devices)):
         p.error('NPU diagnostic requires explicit unique devices 0..15 and --image')
+    if a.runtime_overlay and (not a.image or a.runtime_overlay !=
+            '/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3/site-packages'):
+        p.error('Runtime overlay must be the explicit task-local loader fix and requires --image')
     if not re.fullmatch(r"[a-zA-Z0-9_-]+", a.label):
         p.error("invalid label")
     data = a.script.read_bytes()
@@ -60,12 +64,14 @@ def main():
     start = datetime.datetime.now(datetime.timezone.utc).isoformat()
     context = {"client_started_utc": start, "node": a.node, "label": a.label, "npu_devices": devices,
         "script_sha256": sha, "collector_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "resource_lease": lease, "image_mode": a.image, "models_loaded": False,
+        "resource_lease": lease, "image_mode": a.image, "runtime_overlay": a.runtime_overlay,
+        "models_loaded": False,
         "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "git_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest()}
     setup = {"root": remote, "script": base64.b64encode(data).decode(), "context": context,
              "timeout": a.timeout, "image": IMAGE if a.image else None, "devices": devices,
-             "expected_image_id": IMAGE_ID, "node": a.node, "log_level": a.log_level, "external_rank": a.external_rank, "master_port": a.master_port}
+             "expected_image_id": IMAGE_ID, "node": a.node, "runtime_overlay": a.runtime_overlay,
+             "log_level": a.log_level, "external_rank": a.external_rank, "master_port": a.master_port}
     runner = '''import base64,datetime,hashlib,json,os,pathlib,re,signal,subprocess,time
 c=json.loads(base64.b64decode(PAYLOAD))
 r=pathlib.Path(c['root']);r.mkdir(parents=True,exist_ok=True)
@@ -92,6 +98,17 @@ if c['image']:
   (r/'artifacts').mkdir(exist_ok=True)
   argv+=['-v',str(r/'artifacts')+':/out','-e','HCCL_INTER_HCCS_DISABLE=FALSE','-e','HCCL_INTRA_ROCE_ENABLE=0','-e','HCCL_INTRA_PCIE_ENABLE=1','-e','HCCL_OP_EXPANSION_MODE=AI_CPU','-e','HCCL_EXEC_TIMEOUT=30','-e','HCCL_CONNECT_TIMEOUT=120','-e','HCCL_IF_IP=172.16.12.'+str(c['node']),'-e','ASCEND_GLOBAL_LOG_LEVEL='+str(c['log_level']),'-e','ASCEND_PROCESS_LOG_PATH=/out/ascend-log','--entrypoint','python3',image_id,'/audit/script.py']
  else: argv[argv.index(c['image'])]=image_id
+ if c['runtime_overlay']:
+  overlay=pathlib.Path(c['runtime_overlay']);manifest=overlay.parent/'aliases.json'
+  assert overlay.is_dir() and manifest.is_file()
+  original_env=json.loads(subprocess.check_output(['docker','image','inspect',image_id,'--format','{{json .Config.Env}}']))
+  ld=next((v.split('=',1)[1] for v in original_env if v.startswith('LD_LIBRARY_PATH=')), '')
+  py=next((v.split('=',1)[1] for v in original_env if v.startswith('PYTHONPATH=')), '')
+  prefix='/opt/memcache-runtime'
+  extra=['-v',str(overlay)+':'+prefix+':ro','-e','PYTHONPATH='+prefix+(':'+py if py else ''),'-e','LD_LIBRARY_PATH='+prefix+'/memcache_hybrid/lib:'+prefix+'/memfabric_hybrid/lib:'+ld]
+  argv[argv.index('--entrypoint'):argv.index('--entrypoint')]=extra
+  c['context']['runtime_overlay_aliases_sha256']=hashlib.sha256(manifest.read_bytes()).hexdigest()
+  (r/'context.json').write_text(json.dumps(c['context'],indent=2)+'\\n')
 start=datetime.datetime.now(datetime.timezone.utc).isoformat();t=time.monotonic();timed_out=False
 with (r/'stdout.json').open('wb') as out,(r/'stderr.txt').open('wb') as err:
  proc=subprocess.Popen(argv,stdout=out,stderr=err,start_new_session=True)

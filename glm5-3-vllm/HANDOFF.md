@@ -29,7 +29,7 @@
 
 用户随后明确两台全部可以 kill。已核对 32 的 Deployment `testportal-project/containerworkload-694f3t4n` 只有一个副本且仅位于 32、无对应 HPA，将其副本数 1→0；已删除 33 无控制器的旧预留 Pod。原 Pod 删除完成，系统及访问 Pod 未动。执行凭据：[workload-release.json](evidence/20261017-inventory/workload-release.json)。恢复原业务需另行决定，不能在实验期间自动恢复。
 
-本任务 `default/glm53-execution-reservation-{32,33}-20261017` 均已 Running/Ready，每台请求 16 个 Ascend，有限 7200 秒。**每次 NPU 执行前必须重新核对实际 Running/UID/节点/资源归属，不能只看本文。** 集群 admission 拒绝 Pod 直接指定 `preemptionPolicy=Never`；已记录失败，改用集群默认策略，节点 affinity 仅限指定节点，未创建集群级 PriorityClass。
+本任务 `default/glm53-execution-reservation-{32,33}-20261017` 首次预留均已 Running/Ready，每台请求16个Ascend、有限7200秒，约07:51 CST复核均为Failed/DeadlineExceeded。此次修复续接已删除本任务过期Pod并重新取得两台16-die预留，见下方“MemCache 崩溃修复与模型部署”的新UID和取证。**每次 NPU 执行前必须重新核对实际 Running/UID/节点/资源归属，不能只看本文。** 集群 admission 拒绝 Pod 直接指定 `preemptionPolicy=Never`；已记录失败，改用集群默认策略，节点 affinity 仅限指定节点，未创建集群级 PriorityClass。
 
 ## SDMA 与下一步
 
@@ -49,7 +49,26 @@
 - 生命周期未通过：仅隐式析构的case退出139；显式`close()`返回0后仍退出133。先释放tensor/清空torch缓存再close也复现。进一步32单客户端只init/close、不建tensor/不注册buffer/不传payload，torch allocated/reserved均0，仍退出133。具体根因未定，不能仅凭此归责到某个库或宣称SDK已稳定集成。第一次LocalConfig拒绝仅MetaConfig支持的`ock.mmc.log_output_target`，已删除该键后固定配置重测，未改协议或回退；所有失败保留。
 - 指南要求A3 `device_sdma` 配套灵渠计算网络>=1.5。宿主HDK/CANN版本已取证，**现场灵渠网络版本仍未知**，不从同超节点标签或SDK包版本推定满足；本次正面证据只覆盖已测试的数据路径。纯Store的原GLM C8/Indexer注册、完成通知和D消费仍待模型验证。下一步先对最小init/close复现定位原生退出/动态库生命周期与版本配套，再用单独AscendStoreConnector、`backend=memcache`、`consumer_is_to_load=true`验证P写池→D读池。没有安装替换依赖，没有启动双完整模型，也不回退已暂停的Mooncake路线。
 
-## 本轮收尾状态
+## 官方适配文档核对（本次仅查询）
+
+用户要求先查 Ascend 官方适配文档。通过 Web Search 与公开 GitCode Git 获取了对应标签/文档，未使用浏览器，未编译、安装、替换依赖或启动服务/NPU作业。来源、固定提交、原文SHA与结论边界见 [official-docs.json](evidence/20261017-memcache-adaptation/official-docs.json)。
+
+- 官方现行[完整底软配套](https://gitcode.com/Ascend/memcache/blob/c3ab6e59caba5f1df5e34222d05df5212da1a6cd/docs/zh/compatibility.md)对A3/HCCS device_sdma要求：灵衢L1>=1.5.0（优选1.5.1）、HDK>=25.5.1、固件>=7.8.0.6.201、OS kernel>=5.10.0；BIOS按内存容量另列要求。现场HDK25.5.2、CANN9.1.0及采样固件7.8.0.7.220达到已核字段的数值下限；L1版本仍未知，未由小测成功推定整套适配通过。v1.2.0 MemFabric README另明确A3 DRAM池化需配套1520L1升级。这里只记录要求，不操作交换机。
+- 两个现场VERSION SHA均精确匹配官方v1.2.0标签。MemCache标签的MemFabric子模块固定为`9a9cfbc8a1e026e7c73a558ff27d75372cb2e803`，与独立包`999034e9320abf27bbde7be83a32d3bf4d0f7940`仅两文件的rank-leave/link-down日志及leaveRank_成员改动；ACC/ConfigStore及公开BM头未变化，不能把SHA不同直接判成配套故障。实际二进制构建ABI与加载路径还未核实。
+- 官方[issue281](https://gitcode.com/Ascend/memcache/issues/281)/[MR536](https://gitcode.com/Ascend/memcache/merge_requests/536)记录编译期/运行期MemFabric C++ ABI或小版本差异引起C++符号抢占、MetaService coredump，改为纯C ABI与DEEPBIND隔离。源码核对：现场v1.2.0及本次release/1.2 tip1.2.1尚无此隔离，master1.5.0已有；不把新分支修复视为已适配本镜像。上游主要描述启动时string-copy崩溃，现场主要是close后堆错误；目前是相关线索，尚非根因。下一诊断优先实际SO/ELF/ABI与最小case原生栈。
+- 已核对v1.2.0 API明确提供close()、device_sdma及1GiB池对齐，所读安装/API文档未找到能解释当前堆错误的特殊关闭顺序。vLLM-Ascend固定v0.30.0rc1指南中A3 fabric环境变量与现场一致；纯Store D消费仍需显式consumer_is_to_load=true。当前没有修复或纯MemCache PD验收结论。
+
+## MemCache 崩溃修复与模型部署（2026-10-17 续接）
+
+用户要求直接解决基础部署问题，已实施隔离修复并继续模型接入。证据：[20261017-memcache-fix](evidence/20261017-memcache-fix/)。
+
+- 真实进程 maps 确认 wheel 原名库与 auditwheel 哈希名库重复加载；原生栈将 close 后 heap 错误定位到 CANN/ATB 全局析构期间的 free。基线 MetaService 可启动且 main 返回0，但进程退出133；仅合并重复库仍退出133。单纯 import 库本身退出0。
+- 最终隔离副本 `loader-fix-v3` 保留原1.2.0二进制，将四个 libmf 原名路径链接至 wheel 内 canonical 哈希库，并把 MemCache/UBSIO 的 ctypes 预加载改为 `RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND`。通过 PYTHONPATH、LD_LIBRARY_PATH 和只读挂载使用；未替换基础镜像、依赖版本或算子，没有绕过 close/析构。对照证明符号隔离能消除当前复现，尚未确定被抢占的单个 C++ 符号。
+- MetaService 连续两次启动/停止/进程退出0。32 原先只 init/close 也失败的 NPU 用例现退出0。32/33 物理die2双向64KiB/1MiB共4对象：put/get返回码、SHA全部通过；两端 close 返回0且进程退出0；每端4个 SDMA_SQE，每个put/get区间恰1个。两个 `memcache-trace-analysis.json` 和归档SHA已保存。这是SDK数据路径及生命周期通过，尚非模型PD验收。
+- 两台隔离副本均在 `/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3/site-packages`，库校验值一致。32元数据服务 `glm53-memcache-meta32-fixed-v3-20261017` 在27400/27401/27402，有限7200秒。预留已续建，32 UID=`a29da17a-3c31-40ca-9f4c-7f72d61c0c27`，33 UID=`7a546c86-8e53-425d-a30e-190454720288`，本次核对Running；仍须执行前重查，有限7200秒。
+- 正在部署32 producer、33 consumer：完整GLM5.3 W8A8C8及Indexer-C8，同TP16/DP1，纯AscendStoreConnector/backend=memcache、D端consumer_is_to_load=true、device_sdma、1GiB/rank DRAM、无SSD。模型启动v3为补齐请求级profiler配置而停止；v4因隔离PYTHONPATH覆盖CANN路径而worker导入acl失败，已保留失败并修正为前置隔离目录且保留镜像原值，启动前增加acl模块定位检查。当前计划 `tools/memcache-pd-node{32,33}-fixed-v5.json` 仍使用上述已验证的loader-fix-v3；API端口29481/29482。下一步确认API、P写池、D外部命中与实际KV消费；没有完整PD或性能收益结论。
+
+## 前一轮收尾状态（历史）
 
 Mac 2026-10-16T19:17Z重新核对两台本任务16-die预留仍Running，UID分别 `dfb6ef4d-746f-41ba-a163-20034e9b237f` / `d4d731d9-2d8b-43e1-b986-621b66fa7adf`，7200秒有限期限。仅sleep holder继续保留供续接，**不代表后续时刻仍有效或剩余时间足够**。证据 `final-task-resources.json`。`node{32,33}-final-device-idle-*` 均退出0：两台所有8卡均无NPU进程，本轮模型/Meta容器均已停止，系统和访问入口保留。初版收尾脚本把K8s sleep holder误归为运行实验容器，已按容器名前缀修正后复核，原始失败未删除。
 
