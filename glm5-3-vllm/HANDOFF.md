@@ -16,6 +16,12 @@
 
 ## 当前执行与证据恢复
 
+**10:28Z新判别实例已启动**：P15 `02a0afe89e095e166d3a4bf8bdee497f9e6a4aa52d8c71fdff4dbc6694bf163d`、D14 `962082beac1f632b1fce2de76e3babac52b4a4dbd61203c973071fc71f6f97fd`正在初始化，root `pd-node32-v15` / `pd-node33-v14`，API29481/82；新Meta-v6三端口已Ready。各3000s，新3600s holder32 UID `f45dad7a-6ba1-435a-97e5-1077e169f7df`、33 UID `aa49d45a-5fa3-4e84-9f56-f75a9d51f12f`已Running且16die。旧holder32正常删除时30秒等待超时、33尚未删除，已记录实际空闲状态并只按精确旧33 UID恢复，未碰其他claim；见recovery receipts。新资源约11:24Z Mac到期，模型约11:16Z到期，先查实际状态。
+
+v2后置池观察同时挂载P0/D0，相同backend `a0e95b`，root `post-pool-readback-v2`；v1 D-only `01fe3f`只stage、未挂载，保留。P/D各用独立7MB NPU arena（int8 fill(-128)，0x80），在首次D128完成后的既有postkv-source/target请求读同31key，再算小整数控制；观察不改真实KV目的地。源码注册/注销模式与已测SDK一致，所有初始P1均无源屏障。额外SDK GET每次31/每端点单独记`pool_readback`，不能把model-loader计数0叫作没有诊断GET。哨兵可区分未写目的区与读到全零；控制矩仍非密码学全内容证明。
+
+`post-pool-state-control-v1` collector27781已启动，timeout1600、client1500、Ready等待600，先4条A，不在Ready停止：三条历史salt+一条新key。保留原D golden、前D13 native和新D14 native，P16副本、D16实际缓存、P0/D0独立池读回共同判别。新启动只为加载这一必要只读模块，不做参数网格/性能套件。检查点`e81522e2`已push原PR2，包含此前强反例/原始归档和v1计划；本v2启动/代码在追加提交中。主控仍掌握方向预算，无跨聊天主动消息。
+
 **10:21Z当前现场**：P14、D13、Meta-v5均已主动正常退出0，完整模型已无运行进程；本轮所有请求/控制/生命周期已SHA回传Mac，见`node*-source-ready-final-v1-backup.json`和`node*-source-ready-close-v1-backup.json`。当前剩余问题是已存对象/稳定GET路径，未宣称修复。下一Loop已冻结`post-pool-state-contract-v1.json`与P15/D14计划：仅4条初始无屏障A请求，D rank0在后置目标请求把31个池对象SDK读到独立6979584B int8 arena（0x80哨兵），115 entry四矩；注册/注销沿用已通过小测API，不读回真实KV bulk到CPU。D新backend `01fe3f`已stage并核SHA，其余模型/算子/精度/SDMA与worker/meta观察不变；源fence仍仅按已有request_id选择，初始4条均关闭。此启动模块变更是重载的必要原因。
 
 原1h租约在两台8卡空闲且无其他有效NPU claim核对后，仅替换自己精确UID，为该判别Loop再取得一次3600s有限资源；不停止其他作业，不增优先级。新租约结果见`post-pool-reservations-v1.json`（若尚未生成则仍在取得中），Meta-v6/新模型尚未启动。下一次启动仍须核租约、空卡、固定镜像、权重stat和只读patch SHA；主控可继续调整预算/方向，不新增看板/任务或跨聊天主动发消息。

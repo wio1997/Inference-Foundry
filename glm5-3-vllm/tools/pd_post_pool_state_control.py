@@ -49,7 +49,7 @@ def main():
         rows = []
         for path in (base/'pd-node32-v15/kv-control-audit').glob('buffers-*.jsonl'):
             rows.extend(json.loads(line) for line in path.read_text().splitlines())
-        return [row for row in rows if row['request_id'].startswith(request_id+'-')]
+        return [row for row in rows if row['phase']=='native_prefix' and row['request_id'].startswith(request_id+'-')]
 
     try:
         ready_deadline = time.monotonic()+600

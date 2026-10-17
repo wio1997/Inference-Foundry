@@ -44,7 +44,7 @@ for path in sorted(root.glob('buffers-*.jsonl')):
     zero=[i for i,c in enumerate(r['checksums']) if c[0]==0]
     selected[request_id][r['key']].append({'rank':r['tp_rank'],'control_sha256':r['control_sha256'],'zero_entries':zero,'zero_bytes':sum(r['sizes'][i] for i in zero)})
 print(json.dumps(selected))
-'''.replace('NODE',str(node)).replace('REV','14' if node == 32 else '13').replace('IDS',repr(request_ids))
+'''.replace('NODE',str(node)).replace('REV',str((15 if node==32 else 14) if args.test_run=='post-pool-state-control-v1' else (14 if node==32 else 13))).replace('IDS',repr(request_ids))
         return read(node,code)
     p,d = controls(32),controls(33)
     waves=[]
