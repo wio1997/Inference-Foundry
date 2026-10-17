@@ -46,3 +46,5 @@ P11/D10在全部正式计时后采集的真实rank0 profile均完成API stop和C
 2026-10-18本机离线复核进一步区分时序：平均TPOT从首token起算，首token前移会机械地抬高它。第二至末token区间倍率1.00897；八组等权均值TPOT增量1.48368ms中，首二gap项贡献1.30817ms（88.2%），其余0.17550ms来自第二至末项。后者仍包含不同D实例、续写、batch和传输差异，不将原1.12897倍率称为稳定decode计算变慢13%。首二gap扩大是真实呈现节奏变化，完整响应未加快和phase统计回归也仍成立。
 
 离线状态核验把后续候选收窄为“将D初始有效query推进至P首输出”，不能承诺删掉一次模型迭代：现有MTP5补齐仍6行/请求。当前NewRequestData/worker缺初始输出history，普通Async输出扣减和max1晋升还存在错误插入点。完整原生导入缺兼容torch/msgspec/vLLM，仅原生定义/方法段及真实存档ID的有限检查完成，物理KV/MTP前缀及InputBatch未验证。具体可行性、证据限制及下一最小设备判别见[p-first-state-feasibility-20261018.md](p-first-state-feasibility-20261018.md)。本次没有SSH、续租或在线压测；研究尚未完成。
+
+同日获授权经Mac HTTP补取12个官方固定提交源码文件（425191字节），新增部分只标为固定提交参考，没有镜像逐文件SHA配对。沿存档配置，factory路径是AscendEagleProposer→AscendSpecDecodeBaseProposer，MTP首轮左移token、保持target位置和hidden；P的y1+h(prompt最后)尾行与推进后D的y2+h(y1)行位置衔接成立，但物理MTP前缀/映射仍未验证，不因此实现或采用新原型。frontend stats源码也说明：发布时刻先成为first_token_ts，真实SCHEDULED在后，prefill差值即可为负；原方法的合成时间检查复现该算式，不等于完整事件回放或修复。另明确两种均值分解：首token直接前移项占TPOT增量87.0%，首二gap项占88.2%，后者还含第二token时刻变化。逐文件证据等级和限制见[补充索引](../evidence/20261018-p-first-state-audit/fixed-source-followup-v1/source-and-state-findings.json)。
