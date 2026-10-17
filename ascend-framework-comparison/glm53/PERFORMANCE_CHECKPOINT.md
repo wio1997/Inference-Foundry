@@ -1,3 +1,27 @@
+# GLM-5.3 ordinary W8A8: measured L04 routing metadata trial
+
+One full C16 before/after observation is valid after independent client and native audits. The D-only overlay batches three routing-count downloads into one and supplies the known repeat output size, preserving the native alltoall-normal algorithm, ordinary W8A8, MTP5/6, SDMA, graph/overlap settings, cache policy and hardware budget. CPU property/spawn fixtures, all32actualDworkers, all16D-DP short cases, two80K semantic cases and native cache/SDMA checks passed before the trial.
+
+| C16 deployment | Successful formal requests | Full clock seconds | D output tokens/s | TTFT P50/P90/P99 seconds | TPOT P50/P90 ms | SLA |
+| --- | ---: | ---: | ---: | --- | --- | --- |
+| vLLM uniform v2 | 64/64 | 87.0322 | 441.2158 | 6.5150 / 12.7804 / 15.4191 | 18.3460 / 21.1469 | Fail |
+| SGLang baseline | 64/64 | 407.7456 | 94.1764 | 8.7221 / 15.4866 / 24.2553 | 132.9702 / 148.9973 | Fail |
+| SGLang L04 | 64/64 | 372.4549 | 103.0997 | 8.3098 / 16.6998 / 24.1512 | 124.1661 / 139.0624 | Fail |
+
+Observed SGLang throughput is9.475%higher; TPOT median is6.621%lower. TTFT P90 increased and TPOT P99 is essentially unchanged. vLLM/SGLang throughput ratio moves from4.6850 to4.2795. This is one matched before/after observation; repeated full-run noise has not been estimated, and no statistical confidence interval or general workload guarantee is claimed. Matched request/prefix summaries are descriptive because closed-loop requests share resources. Whole-output bitwise equality is not required; the separate strict80K fact retrieval gates passed.
+
+Both SG intervals have exactly1,404,182,052,864native PD descriptor bytes across warm+formal phases. These are not physical-wire bytes. MTP verification steps are9115before/9148after (5drafts perverify), with29358/29332accepted drafts. All32Ddevices receive typed state, all32Pworkers show native model cache reads in the formal interval, no new native errors appear after the preserved startup control-port diagnostics, and998original metric bodies/499complete16-DP pairs are independently rehashed/reparsed (sampled peak16). The unchanged descriptor volume and nearly unchanged MTP work are recorded as evidence, without claiming they explain every timing difference.
+
+The raw L04 client report remains baseline_accepted=False because19Dstorage fields are omitted; the installed formatter/source-qualified supplement retains those fields as null and verifies all64P/Dprefixes. It does not fill raw values. All16real74400/1warmups,27888known component keys and192repeatable payload reads pass. Only38400formal D tokens count over the full firstdispatch-to-lastterminal372.45494829seconds. Native AISBench steady135.0683tokens/s is a separate48request window and is not the primary103.0997figure.
+
+SGLang1954 remains running with L04. C32 is active; matchedvLLMC32 remains530.8125tokens/s. vLLMC64uniformv2 is prepared but not dispatched; its oldv1two-P-disconnect run remains invalid. C64 is queued after actualmatchingvLLMC64andlowerSGresults. No profile, cache flush, model restart, SDK change or graph/precision change is part of the measured L04 trial.
+
+The corresponding public installed-version argument hook rejects D radix caching with NEXTN (onlyNone/DSPARKare accepted); actualinstalleddecode.py matches that commit byte-for-byte, but the installedargumenthook has not been separately captured. The eligibility review is conservative and no flag was enabled or validator bypassed. Exact source/scope: `results/sglang-decode-radix-eligibility-review-v1.json`.
+
+Evidence: `results/sglang-L04-C16-v1-measurement-v1.json` (SHA8208130174e25df5a669a265d222b74a3fdb313f7ee809f278d52b22bbed5a43), `results/sglang-L04-C16-v1-native-v1.json`, `results/sglang-L04-C16-observed-before-after-v1.json`, `results/sglang-metadata-native-readiness-v1.json`. Source/config/compactproofs are published; newerL04results/fixes await the next selective checkpoint. Raw IDs/prompts/outputs/logs/traces/weights/SDKbinaries remain excluded.
+
+## Earlier accepted baseline and diagnostic setup (historical)
+
 # GLM-5.3 ordinary W8A8: accepted C16 deployment gap and SGLang optimization
 
 The matched C16 comparison is accepted after independent input/count/lifecycle/cache/SDMA/native-metrics checks. Both deployments fail the fixed latency SLA. Main objective is to reduce SGLang's measured gap with bounded profiling and a single-mechanism C16 A/B; remaining C32/C64 cases do not block that first optimization. No optimization gain is established.
