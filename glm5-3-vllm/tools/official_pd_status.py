@@ -13,15 +13,15 @@ import urllib.request
 
 
 def main():
-    parser = argparse.ArgumentParser(); parser.add_argument('--label', required=True); args = parser.parse_args()
+    parser = argparse.ArgumentParser(); parser.add_argument('--label', required=True);parser.add_argument('--revision',type=int,choices=range(1,9),default=1); args = parser.parse_args()
     assert re.fullmatch(r'[a-z0-9-]+', args.label)
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
     role = 'prefill' if node == 32 else 'decode'
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-official-pd')
-    root = base/f'{role}-node{node}-v1'
+    root = base/f'{role}-node{node}-v{args.revision}'
     cid = json.loads((root/'launch.json').read_text())['container_id']
     doc = json.loads(subprocess.check_output(['docker', 'inspect', cid]))[0]
-    assert doc['Name'] == f'/glm53-official-pd-{role}-{node}-v1-20261017'
+    assert doc['Name'] == f'/glm53-official-pd-{role}-{node}-v{args.revision}-20261017'
     p = subprocess.run(['docker', 'logs', '--timestamps', cid], capture_output=True, timeout=30)
     raw = p.stdout+b'\nSTDERR\n'+p.stderr; lines = raw.decode(errors='replace').splitlines()
     out = base/'consumer-audits'/f'node{node}-{args.label}'; out.mkdir(parents=True, exist_ok=False)

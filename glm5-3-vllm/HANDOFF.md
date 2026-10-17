@@ -4,7 +4,7 @@
 
 用户已恢复 **172.16.12.32 / 33** 的现场核查、准备、服务启动与测量，并进一步明确两台原有实验作业/预留全部可以停止。仅操作这两台；系统守护进程和访问入口保留。最新要求是 **全部使用 SDMA**，包含设备内、机内、跨机和最终 PD KV 数据路径。控制/初始化通信另记，不能用 TCP/RDMA 数据回退代替 SDMA。
 
-最新用户要求是**先按官方部署**。本轮官方基线所必需的Mooncake直传已获主控转达人类授权，覆盖此前「先不考虑Mooncake、优先MemCache」的阶段偏好；仍保持全SDMA，仅32/33，当前只操作自己实例/holder，其他作业不动。已实际启动原样MooncakeConnectorV2和原样官方代理，先交付可运行原生PD。MemCache准确组件为memcache_hybrid/memfabric_hybrid，后续官方MultiConnector池集成不由本轮自动扩张；不再以自写纯Store协议代替官方基线。
+最新用户要求是**持续推进原性能优化目标，官方部署仅作为已通过的前置步骤**。本轮官方基线所必需的Mooncake直传已获主控转达人类授权，覆盖此前「先不考虑Mooncake、优先MemCache」的阶段偏好；仍保持全SDMA，仅32/33，当前只操作自己实例/holder，其他作业不动。已实际启动原样MooncakeConnectorV2和原样官方代理，先交付可运行原生PD。MemCache准确组件为memcache_hybrid/memfabric_hybrid，后续官方MultiConnector池集成不由本轮自动扩张；不再以自写纯Store协议代替官方基线。
 
 保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，最终验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线已有C1临时代表负载的真实PD基线，尚无通过正确性门槛的机制性能收益；业务请求分布、数值SLO和完整正确性验收标准待定。
 
@@ -15,6 +15,27 @@
 原主对话作为用户沟通、方向/预算与证据复核的主控；本执行对话继续32/33实现、实验、修复及证据交付。主控通过现有HANDOFF/wait_threads读取，无需跨聊天主动发送消息，不增任务/看板，不为普通工程动作增加逐步审批。本次分工校正不打断已加载的per-TP实验。诊断须结合匹配native边界与传输/布局/完成证据，逐token差异不单独证明传输错误；不改模型/量化来迎合结果。
 
 ## 当前执行与证据恢复
+
+**13:52Z基线两轮完成，首个优化候选已实际launch**：两轮共240/240正式64token请求的HTTP/长度/功能门槛通过，8case吞吐复测差异最大2.15%，额外算术均11/12。同一失败26token题D-native两次、官方PD一次都返回4；这是已有原生目标基线错误，不能单凭输出归因传输。正式基线摘要official-graph-baseline-summary-v1.json。
+
+MTP1-v3已按唯一feature开关启动：P CID b1ee2e558be6c07527db10ada4e8bdbfdc48c5baaa60dfc1a28131df4e8dc548，D CID aaf99de0419cd3d5419125e07ed5acf04afe0d60382f8e608780e24224934694。v2模型仅在两轮计时及3个题目控制都完成、无active/waiting后按精确CID关闭；资源holder和官方proxy-v2未停，六小时归属不变。v3 P/D均native MTP1、eager draft、原target模式，其他能力/SDMA/用例相同；新engine ID防旧peer缓存混淆。lifetime按现有6h余量减600秒生成，目标约19:21Z。两个MTP benchmark已排队并严格串行，等待双方Ready，不能因当前阶段或PR完成停止。
+
+**13:47Z首轮完整基线已回收**：r1=8case/120请求全部HTTP/64token/功能5通过；冷C1为23.0252/21.6302tok/s（256/1024），冷C4=80.1560/61.5100tok/s；热C1=23.5247/22.5788、热C4=79.3038/76.0428。首次连接/编译warmup TTFT15.105s单列，未计入正式；初始1024warmup TTFT476.95ms。完整本地收据node32-official-baseline-v2-r1-a323133ef485。第二轮串行运行中。
+
+额外12题算术仅11/12：短26token few-shot提示的2+3实际返回4，属于数值错误，不是5/5.0格式差异，原件保留。不要通过放宽解析隐藏它，也不据此仅凭token认定传输根因。第二轮结束后只做这个失败题的少量D-native/同PD控制（正式计时外），明确原生目标/缓存边界问题，避免重启纯池或payload诊断。MTP对照保护全部baseline通过的题目，并报告完整数值错误，不宣称全模型精度通过。
+
+**13:42Z首组基线已实测，仍持续优化**：official-baseline-v2-r1的256/64 C1冷prefix：6/6 HTTP/64token/数值5功能通过，23.0252tok/s，TTFTp50/p95=321.279/341.742ms，TPOT=39.0266/39.0721ms，P/D本地prefix hits均0。其余7个case继续，r2 collector2457按前轮result成功后串行启动，禁止与r1重叠；r1 collector14577。不将此与旧eager5.16诊断值算正式优化收益。
+
+MTP候选已冻结mtp1-loop-contract-v1.json；两端同启1draft token、draft eager、target保持官方FULL_DECODE_ONLY，其余配置固定。权重索引准确文件名quant_model_weights.safetensors.index.json，含2345个layer78/MTP条目，不需要新权重；首次假定标准index文件名读取失败保留，改读取真实索引后通过。仅在r1/r2全套测完后按原生官方同MTP cache拓扑切换，两端一次必要重载；不因基线/备份/PR结束服务或目标。
+
+**13:37Z已恢复实际运行队列**：新6h holders32 UID3b3ad135-298d-4a5d-96d1-b5070a34dc90、33 UID6049992b-4112-4bd2-9578-0a2bbde40314；客户端约19:31Z/北京时间10月18日03:31到期。P-v2 CID1188b5bb966e3180a682ce0222be0b538f8291844b36e692257bf74ebf638b0d、D-v2 CIDa0c8377377b387a4db19704d65b725dea74223c2f3e162eaf3c708edb743d3de已于13:31Z launch，模型21000s约19:21Z到期，官方proxy-v2已health Ready。baseline collector14577已排队，双方Ready自动开始：先两个连接/编译warmup单列，再256/64与1024/64、C1/C4、冷/热prefix，各6个封闭wave；C4是同步到达wave负载，不宣称无间隙稳态容量。正式时不做profile/hash/backup。最后12项算术任务检查与格式差异分层记录。
+
+已吸收主控9562fe59离线profile审查：不把冷建连1.3s算带宽，不把41–44ms allreduce生命周期累计当关键路径；每周期157个TP allreduce、未重叠通信10–12ms/已profile周期是候选依据，不当无profile正式TPOT。源码核对shared-expert DP在无EP时被硬性关闭，排除该无效开关；multistream overlap另有TP实现但需实际分支证明，暂次于官方MTP1。正式权重config证实num_nextn_predict_layers=1；MTP先核P/D cache拓扑，倾向按官方两端同启一个draft token，target FULL_DECODE_ONLY、draft eager，单机制无新kernel。不得等待主控消息才继续。
+
+**最新恢复，13:28Z（北京时间21:28）**：主控转达人类明确继续原优化目标；部署只是前置，不能在备份/PR/阶段总结后停止。旧P/D/proxy均按一小时timeout退出124，holder均DeadlineExceeded；两台各8卡空闲且无其他有效NPU claim，旧状态已记录resume-inventory-v1.json。正在只替换自己过期holder为21600s（6h），模型/官方proxy21000s（5h50m）留资源回收裕量；不再1h重载。基线v2仅改run/name/lifetime，原样V2/proxy/TP16/8K/W8A8C8/SDMA与既有权重stat校验复用，不重做全payload哈希、不重画SDMA地图。
+
+下一段工作持续执行：先256/64、1024/64各C1/C4的官方图PD冷/热前缀可信基线，再利用现有真实trace选单机制候选并对照；首选考察官方MTP减少每输出token的target启动/TP通信成本。不得把5/5.0格式差异自动当整路线失败，功能/数值/任务精度分层记录；不得完全取消正确性。至少交付一次优化前后实测，有收益继续保护用例/迭代，无收益按证据换候选。只32/33、全SDMA、原生官方基础、能力/精度保持、无新kernel/参数扫描。若他人占用不抢占；维护自己的有限到期状态。历史“最终交付完成”段仅指此前部署阶段，不表示原优化目标已完成。
+
 
 **最终交付：官方原生PD功能及32rank路径验证完成，服务保持运行。** P/D与原版官方proxy最后健康检查正常；两组真实请求各16rank完成远程KV READ；P/D共32份有效trace均有SDMA任务，D各rank有hccl_batchGet，32矩阵仅LOCAL/SIO/HCCS、无RDMA命名任务。结论限于本次实际profile窗口，不把计数当每byte归因/普遍证明。当前是两节点8K的官方直传PD基线，完整精度、长期稳定性、性能收益及MemCache池集成仍独立待验收。
 

@@ -1,0 +1,39 @@
+{
+  "created_client_utc": "2026-10-17T13:43:43.824184+00:00",
+  "status": "frozen_candidate_not_launched_until_two_baseline_repeats_finish",
+  "candidate": "official_mtp1_both_roles",
+  "only_mechanism_change": {
+    "producer.speculative_config": {
+      "num_speculative_tokens": 1,
+      "method": "deepseek_mtp",
+      "enforce_eager": true
+    },
+    "consumer.speculative_config": {
+      "num_speculative_tokens": 1,
+      "method": "deepseek_mtp",
+      "enforce_eager": true
+    }
+  },
+  "basis": [
+    "Fixed official GLM5.3 reference enables native MTP on both roles; retain matching MTP cache topology rather than invent transfer mapping.",
+    "Formal model config num_nextn_predict_layers=1 and quant_model_weights index contains2345 MTP layer78 entries.",
+    "Profile15decode cycles contain157TP allreduces and10-12ms nonoverlapped communication. MTP may amortize target replay/communication and weight reads per accepted output token; no claim until measured."
+  ],
+  "fixed": [
+    "stock MooncakeConnectorV2 and official proxy",
+    "P32/D33 TP16 DP1 PP1",
+    "W8A8C8,KV/Indexer int8",
+    "AI_CPU,HCCS,RoCE0,SDMA constraints",
+    "P eager,D FULL_DECODE_ONLY",
+    "no EP,MC2,FlashComm,DSA-CP",
+    "same cache/seed/workload/client"
+  ],
+  "excluded_candidate": "enable_shared_expert_dp is forced false without EP by fixed source ascend_config.py747-751; do not benchmark an ineffective switch.",
+  "predictions": [
+    "positive native draft/accepted-token counters",
+    "fewer target executions per64 output tokens if accepted",
+    "lower TPOT/higher effective output rate beyond baseline noise; TTFT and C4 regressions recorded"
+  ],
+  "correctness": "HTTP/length and arithmetic gates in every workload; same12 extra tasks, no regression on any baseline-passing task; exact-format mismatch alone is diagnostic, not universal accuracy failure. Full-model accuracy not implied.",
+  "acceptance": "Repeat both conditions with identical client/cold-hot protocol; require effect beyond observed baseline repeat noise and protected correctness/path checks. Continue evidence-based iterations, not stop at this phase."
+}

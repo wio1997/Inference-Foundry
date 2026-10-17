@@ -16,6 +16,7 @@ def main():
     parser.add_argument('--backup-root', type=Path, required=True)
     parser.add_argument('--receipt', type=Path, required=True)
     parser.add_argument('--snapshot', required=True)
+    parser.add_argument('--base', choices=('pd-baseline','official-pd'), default='pd-baseline')
     parser.add_argument('--include-dir', action='append', default=[],
                         help='Completed category/run-id to retain in an incremental snapshot')
     args = parser.parse_args()
@@ -27,7 +28,7 @@ def main():
            '-p', '60011', 'root@61.241.77.34']
     host = 'kubectl exec -i -n default '+pod+' -- nsenter -t 1 -m -- '
     code = '''import hashlib,json,pathlib,tarfile
-r=pathlib.Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline')
+r=pathlib.Path(BASE_ROOT)
 included=INCLUDED
 selected=[]
 for category in ['tests','consumer-audits','resource-samples']:
@@ -51,7 +52,7 @@ with tarfile.open(p,'w:gz') as archive:
 h=hashlib.sha256(p.read_bytes()).hexdigest()
 print(json.dumps({'remote_archive':str(p),'bytes':p.stat().st_size,'sha256':h,
  'completed_directories':[str(d.relative_to(r)) for d in selected], 'source_files':len(files)}))
-'''.replace('ARCHIVE_NAME', repr('completed-tests-'+args.snapshot+'.tar.gz')).replace('INCLUDED', repr(args.include_dir))
+'''.replace('ARCHIVE_NAME', repr('completed-tests-'+args.snapshot+'.tar.gz')).replace('INCLUDED', repr(args.include_dir)).replace('BASE_ROOT',repr('/data/wio/glm5-3-vllm-execution/20261017-'+args.base))
     report = json.loads(subprocess.check_output(ssh+[host+'python3 -'], input=code.encode(), timeout=120))
     args.backup_root.mkdir(parents=True, exist_ok=True)
     target = args.backup_root/f'node{args.node}-completed-pd-tests-{args.snapshot}.tar.gz'

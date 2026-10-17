@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--control', required=True)
     parser.add_argument('--receipt', type=Path, required=True)
     parser.add_argument('--previous-receipt', type=Path)
-    parser.add_argument('--lease-seconds', type=int, choices=(3600,4500), default=3600)
+    parser.add_argument('--lease-seconds', type=int, choices=(3600,4500,21600), default=3600)
     args = parser.parse_args()
     assert not args.receipt.exists()
     ssh = ['ssh', '-S', args.control, '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-p', '60011', 'root@61.241.77.34']
