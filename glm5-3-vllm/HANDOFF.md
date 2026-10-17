@@ -1,19 +1,17 @@
-# 当前交接 — 2026-10-17 18:51Z
+# 当前交接 — 2026-10-17 19:24Z
 
-当前在做首 token 发布依赖的自定义机制原型。官方部署已经完成；MTP、现有重叠、graph 的2.25×等结果归入官方基线完善，不当作自定义机制原创收益。自定义worker v1/v2没有无条件收益，未采用；v3/v4不自动继续。
+本轮全 SDMA 官方原生 PD 已完成部署和性能基线；现场实验已结束。P11、D12均退出0，官方proxy v2已关闭，两台各8card/16die的npu-smi均无计算进程。原预留UID32=3b3ad135-298d-4a5d-96d1-b5070a34dc90、33=6049992b-4112-4bd2-9578-0a2bbde40314已正常删除，19:23Z复核均不存在；没有续租。不要再把旧CID/API/holder当live事实。只操作了本任务实例/holder，系统和访问入口保留。
 
-32/33只操作本任务实例/holder，全 SDMA，模型19:21Z硬截止，holder19:31Z到期，不续租。不改算子、模型精度、量化。P11保留，原样官方MooncakeConnectorV2和proxy保留。既有 draft PR2不合并。不主动向其他聊天发消息。
+MTP、已有共享专家重叠和原生graph的收益归为官方基线完善：P11/D10两轮formal240/240、同arrival925/925、持续2115/2115及保护/复用通过。两种合成负载持续吞吐256/1024为208.67/165.03tok/s，对无MTP84.45/77.61为几何均值2.29224×；不作为原创机制收益，不等同生产容量。全32rank旧硬件地图复用，P11/D10新增实际rank0窗口SDMA原始数据与trace均已Mac逐文件SHA备份。
 
-当前候选D12已launch：CID `52c938a6f6d489b9256a8d75c73c46e4de451782b00469bbda89cc0fcc42fcf4`，root `decode-node33-v12`，scheduler只读patch SHA `4f42984e953b1d126bc2f9e4d35dc5c47c6d5623136a5b97df99a9f96b72812e`。相对D10只多scheduler发布机制；worker仍同a4a7文件/gate0。P11 CID `d82b591171b15560f4524fcf9a380537be82c10ee1a6a77df495d01f77d5cffc` 未动。D10全测结束、无active/queued后精确关闭，lifecycle已存。
+自定义worker v1/v2均无无条件收益，未采用；v3/v4没有自动继续。最新p-first-publication v1改变发布依赖：原生聚合KV完成后发布P已有last_token_id，保留D全部原生工作/history/async占位/资源回收，核对并只抑制一个重复token。限制greedy文本ignore_eos/min0且无stop/logprobs/penalties等，其他fallback；不宣称P/D首token普遍可互换。冻结source SHA4f42984e953b1d126bc2f9e4d35dc5c47c6d5623136a5b97df99a9f96b72812e。
 
-候选在原生聚合KV完成通知后，提前发布P metadata中的last_token_id；D工作、请求history、async占位、停止和资源回收照常运行，首个原生D输出核对并只抑制一个重复token。不改GPU/host buffer生命周期。仅greedy文本ignore_eos/min0、无stop/logprobs/penalties等的窄范围；其他走原生。若不一致则该请求error并否定候选。它可能降低TTFT，但没有删除D计算，first-to-second gap和平均TPOT可能增加，必须联合报告。
+该原型smoke60/60、两轮formal240/240、48/48 eligible数值oracle（D10同48/48）、24 C4 native/PD各24/24、16短输出/取消复用pairs和8个HTTP1↔4转换均通过；不证明某个物理KV block的回收。原12算术仍11/12，既有2+3=4错误保留，未完成全模型精度验收。最终实际提前发布/核对次数及18次明确取消见p-first-publication-verdict-v1.json，mismatch0、推理error0。
 
-证据：known-first-token-v11-v1 8/8一致，P已知到D首返回约70–82ms（同客户端monotonic；不是可直接声称的收益）；扩展24保护fixture在C1/C4共48/48首token一致，8种首token ID。固定镜像native Request/SamplingParams下CPU-only eligibility及8个fallback/failure检查通过，未把它当模型验证。源码和契约见 `runtime-patches/p-first-publish-v1/`、`evidence/20261017-official-pd-optimization/p-first-publication-loop-contract-v1.json`。
+两轮formal对P11/D10：TTFT p50等权几何均值0.80080，但第二token1.00424、最后token1.00491基本没快；首二gap2.46130、平均TPOT1.12897、吞吐0.99201。实际draft轮数3183→3240，无减少工作证据。相同到达两轮925/925通过、发送max0.30905ms：256 TTFT p50 442.99→328.83ms，1024 629.86→508.71ms；平均TPOT10.99→12.81、11.89→13.49ms。原生后台phase accounting在16/16 formal窗口产生负prefill-duration增量，需随发布时序适配；性能结论只用独立client monotonic时序。
 
-正在运行 `/tmp/glm53-run-p-first-v12.py`，session4474：D12启动后等待Ready，stock proxy smoke3waves共60请求（P11历史profile显式已停止gate）。先看smoke、实际published/verified/mismatch计数，再排48 eligible varied请求、24 C4 native/PD fallback保护、ignore_eos max1/cancel复用及1↔4转换、两轮formal。余量允许则同文件gate0恢复作更近控制；不因版本号自动扩大实验。所有模型仍19:21Z停止。
+结论：限定范围内提前首token有效，但没有减少D重复工作、后续等待扩大且后台phase统计有回归，**不作为默认优化采用**。新鲜同文件gate0 D13控制触发原900s预算门槛，未启动；离线D13计划lifetime1且原预算已结束，不能直接launch。对照仍有不同D实例/续写混合的限制。
 
-P11/D10完整基线已结束：正式240/240；24 C1/C4 native/PD各24/24；16reuse pairs+8 transitions；同arrival925/925；持续两轮2115/2115。相对P8/D10 eager，两轮TTFT p50几何均值0.86373、TPOT0.98028、波次吞吐点估计1.08411。持续256约208.67tok/s、1024约165.04tok/s；不得把波次点估计直接当持续容量。原12题仍11/12，既有短few-shot2+3=输出4保留，不宣称完整精度验收。
+下一最小实验应研究真实状态交接：确认full prompt KV已就绪及各C8/Indexer组布局，再使P首token成为D首query输入，替代D重复的最后prompt query；先用原生Request/NewRequestData检查history、max_tokens/usage/stop与async归属，再验证真实前两个D步骤及第二token时延。还需修正phase事件顺序。不要从旧trace直接推改变批次/工作后的成本，不为普通动作增加审批/平台，也不因已有版本而自动继续。
 
-P11/D10实际profile均已API stop；CPU rank0导出完成，P:113059events/3236SDMA、D:496640events/18184SDMA，矩阵LOCAL/SIO/HCCS，无RDMA命名任务，范围仅rank0窗口；旧全32rank地图复用。P11全部测试203文件已Mac SHA归档，receipt node32-prefill-graph-v11-raw-backup-v1.json。rank0 raw+trace已在D12加载空窗完成Mac逐文件SHA核验。D10首次cat下载截断虽rc0，已保留partial并改4MiB逐块SHA校验，完整archive重新通过；不混入正式计时。
-
-较早环境、命令、holder UID和所有历史Run见 [历史交接](analysis/handoff-history-through-p11-20261017.md)。本文件保持当前候选、证据和下一最小实验，不要求重读全部历史。
+当前结果入口：analysis/official-pd-optimization-20261017.md；evidence/20261017-official-pd-optimization/p-first-publication-verdict-v1.json、p-first-v12-full-token-timing-v1.json、p-first-v12-same-arrival-vs-native-v11-v1.json、p-first-server-phase-metrics-audit-v1.json。全部正式raw、模型退出日志和profile均有Mac SHA核验归档。早期环境、MemCache SDK崩溃隔离修复及历史Run见analysis/handoff-history-through-p11-20261017.md。继续draft PR2，不自动合并，不主动向其他聊天发消息；主控直接读本文件。

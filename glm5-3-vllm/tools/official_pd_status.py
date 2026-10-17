@@ -13,7 +13,7 @@ import urllib.request
 
 
 def main():
-    parser = argparse.ArgumentParser(); parser.add_argument('--label', required=True);parser.add_argument('--revision',type=int,choices=range(1,13),default=1); args = parser.parse_args()
+    parser = argparse.ArgumentParser(); parser.add_argument('--label', required=True);parser.add_argument('--revision',type=int,choices=range(1,14),default=1); args = parser.parse_args()
     assert re.fullmatch(r'[a-z0-9-]+', args.label)
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
     role = 'prefill' if node == 32 else 'decode'

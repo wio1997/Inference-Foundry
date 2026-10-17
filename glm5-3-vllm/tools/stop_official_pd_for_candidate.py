@@ -13,7 +13,7 @@ import urllib.request
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--revision',type=int,required=True);parser.add_argument('--expected-cid',required=True);parser.add_argument('--gate-b64',required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--revision',type=int,required=True);parser.add_argument('--expected-cid',required=True);parser.add_argument('--gate-b64',required=True);parser.add_argument('--reason',default='Necessary bounded mechanism configuration switch after both completed comparison repeats. Proxy and six-hour resource holder remain.');args=parser.parse_args()
     node={'B4-33U-Atlas900RCKA3-32':32,'B5-5U-Atlas900RCKA3-33':33}[socket.gethostname()]
     role='prefill' if node==32 else 'decode';base=Path('/data/wio/glm5-3-vllm-execution/20261017-official-pd')
     gate=json.loads(base64.b64decode(args.gate_b64));assert len(gate)==2 and all(x['completed'] and x['passed'] for x in gate)
@@ -33,7 +33,7 @@ def main():
     logs=subprocess.run(['docker','logs','--timestamps',cid],capture_output=True,timeout=30);raw=logs.stdout+b'\nSTDERR\n'+logs.stderr
     out=base/'consumer-audits'/f'node{node}-opt-v{args.revision}-lifecycle';out.mkdir(parents=True,exist_ok=False)
     (out/'console.txt.gz').write_bytes(gzip.compress(raw,compresslevel=1))
-    report={'node':node,'container_id':cid,'state':state,'client_gate':gate,'host_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'raw_console_sha256':hashlib.sha256(raw).hexdigest(),'reason':'Necessary bounded mechanism configuration switch after both completed comparison repeats. Proxy and six-hour resource holder remain.'}
+    report={'node':node,'container_id':cid,'state':state,'client_gate':gate,'host_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'raw_console_sha256':hashlib.sha256(raw).hexdigest(),'reason':args.reason}
     (out/'result.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));assert not state['Running'] and not state['OOMKilled']
 
 
