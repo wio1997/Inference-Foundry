@@ -2,6 +2,8 @@
 
 2026-10-17。**已完成离线计算，没有新启动设备实验。下面是明确假设下的乐观资源模型，不是已经证明可达的性能，也不是覆盖所有算法的物理极限。** 模型的用途是给研究一个数量级参照，找出需要补证据的差距。
 
+**基线定位校正（2026-10-17）：下文5.16 token/s、188–191ms TPOT来自显式`--enforce-eager`的功能诊断配置，图执行尚未测量，不能作为完成常规优化的vLLM-Ascend性能基线。** 下一优先级是补齐官方图执行对照；这也意味着实测/乐观模型的约117倍数值差距，不能归为新框架机制的优化空间。保留原数据作为历史诊断证据，不覆盖或改写成优化后结果。
+
 ## 当前能回答什么
 
 - 两台 910C，各 8 卡/16 die；当前对照布局为一台 P、一台 D，各 TP16。每个阶段只能使用自己一台的资源。
@@ -111,9 +113,10 @@ python3 glm5-3-vllm/analysis/performance-envelope-20261017/calculate.py
 
 ## 下一次只补会改变决策的证据
 
-1. 延续执行线的正确性修复，不将不正确的高并发结果用于优化验收。
-2. 从已经正确的短输入decode取一个短执行片段：实际dtype、rank复制、专家并集、主要算子与通信/CPU等待。先解释188ms由哪些部分组成；不需要重做全模型参数搜索。
-3. 用真实shape的现有算子片段和通信校准，把“资源屋顶”收紧成可检验目标。若等待占主要差距，研究组织和同步；若有效吞吐受shape限制，研究批次/布局；若成本不可消除，修正目标与资源分配。
-4. 收到业务延迟要求后，过滤违反TTFT/TPOT或内存/正确性的情景，再比较最大持续输入/输出吞吐。增加设备数量时重新计入拓扑与分片变化，不按卡数线性外推。
+1. 收尾当前有明确判别目的的PD正确性小测，保留反例；随后优先建立原生正确路径上的eager/官方图执行对照，不等待全部PD长输入问题结束。测量保持256/64、1024/64、C1、W8A8C8与TP16；正式计时不带payload审计/profiler。原生对照用于识别执行成本，不代替最终PD验收。
+2. 固定现场提交的[GLM5.3参考部署](https://github.com/vllm-project/vllm-ascend/blob/5f828ad638ee4f9b12db87f9d5481f29076d37f9/docs/source/tutorials/models/GLM5.3.md)在Decode使用`FULL_DECODE_ONLY`；[图模式文档](https://github.com/vllm-project/vllm-ascend/blob/5f828ad638ee4f9b12db87f9d5481f29076d37f9/docs/source/user_guide/feature_guide/graph_mode.md)说明V1支持ACLGraph与Npugraph_ex。首个候选移除`--enforce-eager`并显式选`--compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}'`；须核实际模式、capture/replay和fallback，不能只读CLI。捕获尺寸按TP/SP等实际约束选择，保留AI_CPU/SDMA，不照搬参考中的AIV。官方例子采用不同TP/DP/EP，MemCache章节还组合Mooncake；它不证明现场纯MemCache/TP16全路径已受支持。
+3. 核实已有MLAPO和融合的实际状态，再判断async scheduling、FlashComm、DSA-CP、MC2等是否适用；不能把未写CLI当作未启用，也不能把所有选项同时开。保留现场已证实必要的`c8_enable_reshape_optim=false`兼容处理。只有通过正确性、实际路径和无干扰性能对照的官方优化组合，才升级为后续研究基线。
+4. 基于补齐常规优化后的基线，取一个短decode执行片段：实际dtype、rank复制、专家并集、主要算子及通信/CPU等待。用现有算子与通信片段校准目标，避免把关闭图导致的额外成本包装成独立研究成果。
+5. 收到业务延迟要求后，过滤违反TTFT/TPOT或内存/正确性的情景，再比较最大持续输入/输出吞吐。增加设备数量时重新计入拓扑与分片变化，不按卡数线性外推。
 
 已有经验、当前实现和理论松弛各保留自己的结论范围。第一版先提供可计算的研究坐标；不预先宣布接近最优，也不为完善理论而停止实现探索。
