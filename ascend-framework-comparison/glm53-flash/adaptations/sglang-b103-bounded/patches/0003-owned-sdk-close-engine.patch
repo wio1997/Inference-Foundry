@@ -1,0 +1,46 @@
+--- a/sglang/srt/disaggregation/ascend/transfer_engine.py
++++ b/sglang/srt/disaggregation/ascend/transfer_engine.py
+@@ -37,6 +37,8 @@
+             '0e1faeefec1f7295285e2e60b6a43b6476ee31b343615cac62ad6a3d8e3896e9')
+         self._torch = torch
+         self._lock = threading.RLock()
++        self._closing = False
++        self._closed = False
+         self._peer_regions = {}
+         self._registered_ptrs = set()
+         if os.environ.get('FLASH_SDMA_VERIFY_BYTES')!='1':
+@@ -89,6 +91,7 @@
+     def batch_register(self, ptrs, lengths):
+         ptrs, lengths = self._vectors(ptrs, lengths)
+         with self._lock:
++            if self._closing: raise RuntimeError('Flash SDK engine is closing or closed')
+             # Keep a private aligned buffer alive for genuine recovery reads.
+             # Include it in the native batch that merges aligned registrations.
+             if self._probe is None:
+@@ -144,6 +147,7 @@
+         remote, lengths2 = self._vectors(peer_buffer_addresses, lengths)
+         assert lengths == lengths2
+         with self._lock:
++            if self._closing: raise RuntimeError('Flash SDK engine is closing or closed')
+             import urllib.request
+             from sglang.srt.disaggregation.ascend.flash_b103_pd_events import tag
+             active=tag()
+@@ -196,6 +200,7 @@
+ 
+     def send_probe(self, peer_session_id):
+         with self._lock:
++            if self._closing: return -1
+             ptr = self._peer_regions.get(str(peer_session_id))
+             if ptr is None or self._probe is None:
+                 _event('probe_unavailable', device=self.npu_id,
+@@ -208,6 +213,10 @@
+                    remote=ptr, bytes=64, ret=ret)
+             return 0 if ret == 0 else -1
+ 
++    def close(self):
++        from sglang.srt.managers.flash_pd_sdk_shutdown import close_engine
++        return close_engine(self)
++
+     def get_session_id(self):
+         return self.session_id
+ 

@@ -1,0 +1,30 @@
+--- a/sglang/srt/disaggregation/common/conn.py
++++ b/sglang/srt/disaggregation/common/conn.py
+@@ -725,14 +725,24 @@
+     def _make_worker_recv(self, socket, timeout_ms: int = 500):
+         """Build the blocking multipart recv used by a worker thread.
+ 
+-        Plain blocking recv unless role switching is enabled: teardown flips a
++        Plain blocking recv unless role switching or explicit Flash graceful
++        receive is enabled: teardown flips a
+         stop flag that a blocked recv can never observe, so in that mode poll
+         with a timeout and return None when it expires. Deployments without
+-        --enable-pd-role-switch keep the original blocking recv and pay nothing.
++        either mode keep the original blocking recv and pay nothing.
+         """
+-        if not self.server_args.enable_pd_role_switch:
++        import os
++        flash_graceful = os.environ.get('FLASH_PD_GRACEFUL_RECV') == '1'
++        if not self.server_args.enable_pd_role_switch and not flash_graceful:
+             return socket.recv_multipart
+ 
++        if flash_graceful:
++            import hashlib, pathlib
++            from sglang.srt.disaggregation.ascend.flash_b103_pd_events import append
++            append('pd_native_worker_recv_mode', device=self.attn_tp_rank,
++                   native_timeout_ms=timeout_ms, flash_graceful=True,
++                   role_switch=bool(self.server_args.enable_pd_role_switch),
++                   source_sha256=hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest())
+         poller = zmq.Poller()
+         poller.register(socket, zmq.POLLIN)
+ 
