@@ -1,0 +1,144 @@
+--- a/sglang/srt/disaggregation/decode.py
++++ b/sglang/srt/disaggregation/decode.py
+@@ -19,6 +19,7 @@
+ """
+ 
+ from __future__ import annotations
++from sglang.srt.managers.flash_pd_lifetime_audit import deferred as _flash_lifetime_deferred, resolve as _flash_lifetime_resolve, release as _flash_lifetime_release, metadata_before_publish as _flash_metadata_before_publish, intake as _flash_lifetime_intake, admission_blocked as _flash_admission_blocked, drain_fence as _flash_drain_fence
+ 
+ import hashlib
+ import logging
+@@ -718,6 +719,7 @@
+                     )
+         return kv_manager
+ 
++    @_flash_lifetime_intake
+     def add(
+         self, req: Req, is_retracted: bool = False, is_rebootstrap: bool = False
+     ) -> None:
+@@ -1360,6 +1362,7 @@
+                 continue
+ 
+             if self.req_to_token_pool.available_size() <= 0:
++                _flash_admission_blocked(self, decode_req)
+                 break
+ 
+             # Hybrid models (e.g. K3 with KDA): guard against prealloc
+@@ -1373,6 +1376,7 @@
+                 if supports_mamba and hasattr(self.tree_cache, "evict"):
+                     self.tree_cache.evict(EvictParams(num_tokens=0, mamba_num=1))
+                 if mamba_allocator.available_size() <= 0:
++                    _flash_admission_blocked(self, decode_req)
+                     break
+ 
+             if hisparse_req_budget <= 0:
+@@ -1726,6 +1730,7 @@
+             self.transfer_queue.staging_handler.register_decode_req(
+                 decode_req.req.bootstrap_room, decode_req
+             )
++        _flash_metadata_before_publish(self, decode_req, page_indices, state_indices)
+         decode_req.kv_receiver.send_metadata(
+             page_indices,
+             decode_req.metadata_buffer_index,
+@@ -2759,6 +2764,7 @@
+ 
+         return transferred_reqs
+ 
++    @_flash_lifetime_deferred
+     def _defer_release(self, decode_req: DecodeRequest) -> None:
+         deadline = time.monotonic() + self.deferred_kv_release_timeout
+         # Require an ack from every notified prefill rank (dummy-proof). Snapshot
+@@ -2768,8 +2774,12 @@
+             (decode_req, deadline, decode_req.metadata_buffer_index, required_acks)
+         )
+ 
++    @_flash_lifetime_release
+     def _do_release(self, decode_req: DecodeRequest, idx: int) -> None:
+         room = decode_req.req.bootstrap_room
++        seen = getattr(self, '_flash_sdma_expired_rooms', None)
++        if seen is not None:
++            seen.discard(room)
+         if self.enable_staging and self.staging_handler.is_staging_room(room):
+             self.staging_handler.unregister_decode_req(room)
+         # release pre-allocated kv cache, but don't insert into the tree since it's failed
+@@ -2783,54 +2793,61 @@
+     def has_pending_deferred_releases(self) -> bool:
+         return bool(self._deferred_releases)
+ 
++    @_flash_lifetime_resolve
+     def resolve_deferred_releases(self) -> None:
+-        """Release drained transfers; device destinations may also time out."""
++        """Release held destinations only after all TP ranks observe sender drain."""
+         if not self._deferred_releases:
+             return
+-        host_ready = torch.tensor(
++        drain_ready = torch.tensor(
+             [
+                 req.kv_receiver.kv_mgr.is_abort_release_safe(
+                     req.req.bootstrap_room, acks
+                 )
+                 for req, _, _, acks in self._deferred_releases
+-                if self.enable_host_receive and req.host_staged
+             ],
+             dtype=torch.int32,
+         )
+-        if host_ready.numel() and torch.distributed.get_world_size(self.gloo_group) > 1:
+-            # Admission must see identical host capacity and page order on every rank.
++        _flash_local_drain_ready = drain_ready.tolist()
++        if drain_ready.numel() and torch.distributed.get_world_size(self.gloo_group) > 1:
++            # Admission must see identical destination capacity and page order on every rank.
+             torch.distributed.all_reduce(
+-                host_ready, op=torch.distributed.ReduceOp.MIN, group=self.gloo_group
+-            )
+-        host_ready = iter(host_ready.tolist())
++                drain_ready, op=torch.distributed.ReduceOp.MIN, group=self.gloo_group
++            )
++        _flash_drain_fence(self, _flash_local_drain_ready, drain_ready.tolist())
++        drain_ready = iter(drain_ready.tolist())
+         now = time.monotonic()
+         still_held = []
+         to_release = []
+         for decode_req, deadline, idx, required_acks in self._deferred_releases:
+             room = decode_req.req.bootstrap_room
++            drained = bool(next(drain_ready))
+             if self.enable_host_receive and decode_req.host_staged:
+-                if next(host_ready):
++                if drained:
+                     to_release.append((decode_req, idx, room, True))
+                 else:
+                     # A timeout cannot prove that a remote write has stopped.
+                     still_held.append((decode_req, deadline, idx, required_acks))
+                 continue
+-            kv_mgr = decode_req.kv_receiver.kv_mgr
+-            drained = kv_mgr.is_abort_release_safe(room, required_acks)
+-            if not drained and now < deadline:
++            if not drained:
++                # SDMA can still write this destination after a control-plane
++                # deadline. Retain page, request, SSM and metadata ownership.
+                 still_held.append((decode_req, deadline, idx, required_acks))
++                if now >= deadline:
++                    seen = getattr(self, '_flash_sdma_expired_rooms', None)
++                    if seen is None:
++                        seen = self._flash_sdma_expired_rooms = set()
++                    if room not in seen:
++                        seen.add(room)
++                        logger.error(
++                            "Flash PD drain deadline expired for room %s; "
++                            "retaining ownership until sender ACKs", room)
+             else:
+-                to_release.append((decode_req, idx, room, drained))
++                to_release.append((decode_req, idx, room, True))
+         # Commit the survivors before releasing so a _do_release exception can't
+         # leave a released entry in the list (double-free / None receiver on retry).
+         self._deferred_releases = still_held
+         for decode_req, idx, room, drained in to_release:
+-            if not drained:
+-                logger.warning(
+-                    f"Deferred KV release for room {room} timed out after "
+-                    f"{self.deferred_kv_release_timeout}s without a full drain "
+-                    f"ack from prefill; releasing anyway."
+-                )
++            assert drained, "Flash PD release requires globally observed drain"
+             try:
+                 self._do_release(decode_req, idx)
+             except Exception:

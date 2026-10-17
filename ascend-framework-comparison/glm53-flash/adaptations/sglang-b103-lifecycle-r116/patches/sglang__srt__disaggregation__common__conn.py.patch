@@ -1,0 +1,47 @@
+--- a/sglang/srt/disaggregation/common/conn.py
++++ b/sglang/srt/disaggregation/common/conn.py
+@@ -1,4 +1,5 @@
+ from __future__ import annotations
++from sglang.srt.managers.flash_pd_lifetime_audit import common_action as _flash_lifetime_common
+ 
+ import asyncio
+ import concurrent.futures
+@@ -635,11 +636,13 @@
+             prefill_rank,
+         )
+ 
++    @_flash_lifetime_common
+     def register_deferred_abort_room(self, bootstrap_room: int) -> None:
+         """Arm drain-ack accounting for a held room; a fresh set wipes stale acks
+         from a prior request that reused this bootstrap_room."""
+         self._deferred_abort_ack_tracker[bootstrap_room] = set()
+ 
++    @_flash_lifetime_common
+     def note_abort_ack(self, bootstrap_room: int, prefill_rank: int) -> None:
+         """Record a prefill rank's drain ack (decode receiver thread). Only counts
+         while the room is held; grabs the set by reference to avoid racing clear."""
+@@ -665,6 +668,7 @@
+             + self.attn_cp_rank
+         )
+ 
++    @_flash_lifetime_common
+     def _send_abort_ack(self, decode_ip: str, decode_port: int, room: int) -> None:
+         """Best-effort ack that this rank's transfer for an aborted room drained."""
+         try:
+@@ -690,6 +694,7 @@
+         if target is not None:
+             self._send_abort_ack(target[0], target[1], room)
+ 
++    @_flash_lifetime_common
+     def register_deferred_ack_target(
+         self, room: int, decode_ip: str, decode_port: int
+     ) -> None:
+@@ -1996,6 +2001,8 @@
+             self.abort_notified = True
+ 
+     def _send_abort_notification(self):
++        if self.kv_mgr.enable_deferred_decode_kv_release:
++            self.kv_mgr.register_deferred_abort_room(self.bootstrap_room)
+         for bootstrap_info in self.bootstrap_infos:
+             # Best-effort notification to prefill side that this request was aborted.
+             try:
