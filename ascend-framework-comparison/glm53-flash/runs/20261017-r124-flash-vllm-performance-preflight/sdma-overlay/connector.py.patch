@@ -1,0 +1,13 @@
+--- a/connector.py
++++ b/connector.py
+@@ -222,7 +222,9 @@
+         """MooncakeConnector does not save KV cache explicitly."""
+ 
+     def wait_for_save(self) -> None:
+-        """MooncakeConnector does not save KV cache explicitly."""
++        """Publish native producer completion before host scheduler export."""
++        if self.connector_worker is not None and self.kv_transfer_config.is_kv_producer:
++            self.connector_worker.engine.synchronize_producer_stream()
+ 
+     def get_handshake_metadata(self) -> KVConnectorHandshakeMetadata | None:
+         """Return this worker's out-of-band transfer handshake metadata."""
