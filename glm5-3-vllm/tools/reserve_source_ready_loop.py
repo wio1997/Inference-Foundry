@@ -13,6 +13,7 @@ def main():
     parser.add_argument('--control', required=True)
     parser.add_argument('--receipt', type=Path, required=True)
     parser.add_argument('--previous-receipt', type=Path)
+    parser.add_argument('--lease-seconds', type=int, choices=(3600,4500), default=3600)
     args = parser.parse_args()
     assert not args.receipt.exists()
     ssh = ['ssh', '-S', args.control, '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-p', '60011', 'root@61.241.77.34']
@@ -36,7 +37,7 @@ def main():
         assert old['metadata']['labels']['owner'] == 'codex-execution-20261017'
         if args.previous_receipt:
             assert old['status']['phase'] in ('Running','Failed')
-            assert old['spec']['containers'][0]['command'] == ['/bin/sleep','3600']
+            assert old['spec']['containers'][0]['command'] == ['/bin/sleep',str(old['spec']['activeDeadlineSeconds'])]
         else:
             assert old['status']['phase'] == 'Failed' and old['status'].get('reason') == 'DeadlineExceeded'
         assert not old['metadata'].get('ownerReferences')
@@ -44,13 +45,29 @@ def main():
         assert raw.count('No running processes found in NPU') == 8
         before.append({'node': node, 'name': name, 'uid': expected[node], 'phase': old['status']['phase'], 'reason': old['status'].get('reason'), 'empty_cards': 8})
         document = json.loads((Path(__file__).parent/f'node{node}-reservation.json').read_text())
-        document['spec']['activeDeadlineSeconds'] = 3600
-        document['spec']['containers'][0]['command'] = ['/bin/sleep', '3600']
+        document['spec']['activeDeadlineSeconds'] = args.lease_seconds
+        document['spec']['containers'][0]['command'] = ['/bin/sleep', str(args.lease_seconds)]
         documents.append(document)
     args.receipt.with_suffix('.intent.json').write_text(json.dumps({'before':before,'scope':'Exact own UIDs only,8 empty cards both,no other live NPU claim; next bounded stored-pool diagnostic'},indent=2)+'\n')
     # Both nodes passed before mutation; exact own empty holder UIDs only.
     for old in before:
-        subprocess.run(ssh+[f"kubectl delete pod -n default {old['name']} --wait=true --timeout=30s"], check=True, capture_output=True)
+        subprocess.run(ssh+[f"kubectl delete pod -n default {old['name']} --wait=false"], check=True, capture_output=True,timeout=20)
+    deletion_deadline=time.monotonic()+75
+    while True:
+        remaining=[]
+        for old in before:
+            raw=subprocess.check_output(ssh+[f"kubectl get pod -n default {old['name']} --ignore-not-found -o json"],timeout=20)
+            if raw.strip():
+                current=json.loads(raw);assert current['metadata']['uid']==old['uid'];remaining.append(old['name'])
+        if not remaining:break
+        assert time.monotonic()<deletion_deadline, 'Exact own holders still terminating; inspect state, do not force'
+        time.sleep(3)
+    # A new foreign claim winning the release window is never preempted.
+    for node in (32,33):
+        listing=json.loads(subprocess.check_output(ssh+[f'kubectl get pods -A --field-selector spec.nodeName=a3-5u-atlas900rcka3-{node} -o json']))
+        for pod in listing['items']:
+            count=sum(int(c.get('resources',{}).get('requests',{}).get('huawei.com/Ascend910',0)) for c in pod['spec'].get('containers',[]))
+            if count:assert pod['status']['phase'] in ('Failed','Succeeded'), 'Other live claim after release; do not preempt'
     created = subprocess.run(ssh+['kubectl create -f -'], input=json.dumps({'apiVersion': 'v1', 'kind': 'List', 'items': documents}).encode(), capture_output=True, check=True)
     deadline = time.monotonic()+120
     after = []
@@ -68,7 +85,7 @@ def main():
         assert time.monotonic() < deadline, after
         time.sleep(3)
     report = {'client_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'before': before, 'after': after,
-              'scope': 'Only exact own empty holders replaced after no other live NPU claim and8 empty cards on both specified nodes. No other workload stopped. Finite3600s holder, no model loaded by this tool.'}
+              'scope': 'Only exact own empty holders replaced after no other live NPU claim and8 empty cards on both specified nodes. No other workload stopped. Finite holder sized for the current authorized native benchmark window, no model loaded by this tool.'}
     args.receipt.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report, indent=2))
 

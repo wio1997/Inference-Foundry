@@ -122,6 +122,7 @@ try:
   source=pathlib.Path(patch['source'])
   assert str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/')
   assert patch['target'] in (
+   '/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py',
    '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py',
    '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py',
    '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py',
