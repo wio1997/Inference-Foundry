@@ -17,6 +17,30 @@
 ## 当前执行与证据恢复
 
 
+**17:14Z D10开关关闭对照已launch，完整串行suite运行（session56732）**：D9两轮same-arrival 925/925功能通过，发送max≤0.527ms；256/1024 TTFT p50均值相对原无MTP为+23.25%/+13.01%，TPOT分别约0.277/0.282倍，明确首token代价。摘要same-arrival-v9-vs-baseline-v7-v1.json。D9在全回放结束及API空闲后精确停0；D10 CID **6c89017f3dfc68222100c15b48ef569260c057f5f076088afe1b1b64eb4d1efc** 已launch，P8保持。v2同sourceSHAa4a7...但GLM53_EARLY_SPEC_OUTPUT_COPY=0。TTL重新按原holder19:31Z减600s刷新，未续租。
+
+D10 suite顺序：official-output-control-v10-r1/r2（先等Ready）→protected-c4-v10-r1→output-control-v10-reuse→official-replay-v10-r1/r2（同A7两个arrival源）。全部结束前不能切P8/D10或profile/backup。P11 graph计划仅离线准备；4个相关image模块的SHA核验已通过（node32-prefill-graph-image-source-audit-v1-bd93c7588d46），与匹配固定commit源码完全相同。待D10全suite完成再判定及切P11。
+
+v9所有正式/保护/reuse/replay raw已Mac归档1059494B SHAdaf2f36128511c38da0818fc1168ef458297938b94ce858d56834cc2a699c17b。D6原始rank0 pre-export126files已在加载空窗完成Mac保全，66648476B原件压缩11768593B SHA9f722f7360d9dbff9e0634ba891d1874d365402fb1e4c56bf869e6b63676eb35，126项均在Mac逐文件核SHA；非新NPU profile。新的首output契约v2有继承source_manifest指向v1的文档旧字段，addendum明确实际v2 manifest/sourceSHA/launch证据，冻结原件未改，测量未受影响。
+
+
+
+**17:06Z v9首轮同到达轨迹有效，第二轮运行中**：r1 256/1024共462/462请求通过，dispatch p95约0.042/0.041ms，max0.210/0.526ms，门槛通过。对原无MTP同arrival，TTFT p50为411.72→503.26ms、556.64→638.90ms；平均TPOT p50约41.03→11.33ms、43.00→12.08ms。收益有明确首token代价，不宣称同负载TTFT已改善。当前replay55201第二轮，不能切模型。
+
+另已离线准备 **P11 PIECEWISE target graph** 单机制实验，计划node32-prefill-piecewise-v11.json、契约prefill-piecewise-loop-contract-v1.json，尚未部署。仅去P eager，capture总token256/1024两个必要覆盖shape，MTP1 drafter仍eager；现有kernel、精度、TP/SDMA/connector/proxy不变。匹配commit平台对PIECEWISE关闭Npugraph_ex/static/superkernel/use_inductor，保留现有FX fusion和ACLGraph；SFA attention仍eager boundary。先在D10加载期间跑CPU-only image module SHA audit，D10同P8两轮控制/保护完成后才能替换P。若capture/兼容/stream资源错误，保留失败即恢复原P，不展开graph-size参数网格。保持原holder expiry。
+
+
+
+**16:59Z v9两轮完成，尚不采用，正在同到达轨迹回放**：240/240功能通过，原保护11/12不变，24 C4 PD/native及16 reuse pairs均通过。对早前stock D6，TTFT几何均值0.9691、吞吐0.9936、TPOT1.0202；1024 C1 cold TPOT+13.1%，故不能接受为单纯收益。D6该case每轮75 draft rounds/330接受token，v9 r1为83/313，变化值得用同worker gate0控制区分drift/时序/接受率，不能只猜同步成本。
+
+**当前replay collector session55201**：official-replay-v9-r1(原A7r1 arrivals，前驱v9r2)→v9-r2(原A7r2 arrivals)，新绝对时钟driverSHA由collector冻结。全两轮结束前不切D9，不profile/backup。已准备但未launch的D10计划node33-decode-early-output-control-v10.json，v2完全相同RO worker SHA，唯一feature gate1→0，P8保持。需回放完成、无active/queued请求后精确停D9，再刷新原expiry TTL并launchD10，先两轮相同formal与保护，用同环境flag0对照区分v2负结果归因；不改核/精度/connector/proxy。
+
+
+
+**16:55Z D9功能门槛已过，当前正式r1/r2计时中（collector33699）**：API Ready，16rank early-output activation，图replay正常，无inference errors。smoke60/60、原算术11/12（既有失败保留），24项C4 PD/native双方24/24，16组max1/cancel→立即不同答案replacement全部通过。正式r1/r2完成前不切模型、不profile/backup。绝对时钟CPU对照也已完成：12sec lookahead下原Python相对sleep迟发median12.039ms，新绝对wait median0.008675ms/max0.03654ms；node32-replay-clock-control-v1-25da53ff97cf。检查点b24d51be已push，PR2 body已更新，任务继续。
+
+
+
 **16:44Z 已拒绝首token v1，D9第二版已launch，P8/proxy/holders保留**：v8两轮240/240功能通过，但相对stock MTP5吞吐几何均值仅1.0077、hot C1 TTFT无改善，1024 C1 cold TPOT+11.6%，不采用。24项C4 PD/native各24/24、16个max1/cancel→立即replacement pairs通过。D8精确CID停止，lifecycle回执保存；其所有已完成测试与失败回放原始请求已Mac归档913382B SHA373f0c0ec53ccc1124440630e485cfc89d69d7992c88e2f17bd10dce585915a0。
 
 D9 CID **a860fbe99a982faa4137db64f0c0ecf1930f03f8193c5e6d7d53ab7852a74a83**，只读source `execution-patches/early-output-v2/model_runner_v1.py` SHA **a4a7f042642f4a4f4ce3d25897f8537377f9f22b9db637cef4eca135c1087e37**。请求ID seen集合代替可能回滚的optimistic长度；稳定decode用default/update stream等待旧完成事件，ownership变化CPU同步；每轮记录最新default/global fence，并保留旧event引用到后续output-ready。完整metadata仍返回前附上。D9为原型，未验收；P8 CIDcc948f...保持，expiry仍原6h holder减600s。
