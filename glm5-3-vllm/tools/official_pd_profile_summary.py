@@ -17,19 +17,26 @@ def digest(path):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--label',default='profile-summary-v1');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--label',default='profile-summary-v1')
+    parser.add_argument('--revision',type=int,choices=range(1,9),default=1)
+    parser.add_argument('--rank0-only',action='store_true');args=parser.parse_args()
     assert re.fullmatch(r'[a-z0-9-]+',args.label)
     node={'B4-33U-Atlas900RCKA3-32':32,'B5-5U-Atlas900RCKA3-33':33}[socket.gethostname()]
     role='prefill' if node==32 else 'decode'
     base=Path('/data/wio/glm5-3-vllm-execution/20261017-official-pd')
-    root=base/f'{role}-node{node}-v1'; out=base/'consumer-audits'/f'node{node}-{args.label}'
+    root=base/f'{role}-node{node}-v{args.revision}'; out=base/'consumer-audits'/f'node{node}-{args.label}'
     out.mkdir(parents=True,exist_ok=False)
-    files=sorted(p for p in (root/'profile').rglob('*') if p.is_file())
+    files=sorted(p for name in ('trace_view.json','communication_matrix.json') for p in (root/'profile').rglob(name) if p.is_file())
     assert not any(p.is_symlink() for p in files)
     report={'node':node,'compute_devices_used_by_analysis':[],'profile_files':len(files),
         'profile_bytes':sum(p.stat().st_size for p in files),'traces':[],'matrices':[],
         'scope':'One real stock-proxy request after delayed native arming steps; no performance timing. SDMA task presence and retained HCCL transport matrices are bounded path evidence, not per-byte attribution or full model accuracy.'}
+    report['rank_scope']='rank0 only' if args.rank0_only else 'all16'
+    report['profile_inventory_scope']='Complete trace_view/communication_matrix files; raw files use the separately preserved manifest. Transient SQLite outputs are excluded.'
+    def selected(path):
+        return not args.rank0_only or any(re.fullmatch(r'dp0_pp0_tp0_dcp0_ep0_rank0_.*_ascend_pt', p) for p in path.parts)
     for p in sorted((root/'profile').rglob('trace_view.json')):
+        if not selected(p):continue
         raw=p.read_bytes()
         row={'path':str(p.relative_to(root)),'sha256':hashlib.sha256(raw).hexdigest()}
         try:
@@ -51,12 +58,16 @@ def main():
         elif isinstance(obj,list):
             for val in obj:walk(val,counts)
     for p in sorted((root/'profile').rglob('communication_matrix.json')):
+        if not selected(p):continue
         raw=p.read_bytes();counts=Counter();walk(json.loads(raw),counts)
         target=out/'parsed'/p.relative_to(root);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
         report['matrices'].append({'path':str(p.relative_to(root)),'sha256':hashlib.sha256(raw).hexdigest(),'transport_types':dict(counts)})
     report['observed_all_16_rank_traces_with_sdma']=len(report['traces'])==16 and all(t.get('valid_json') and t.get('sdma_tasks',0)>0 and not t.get('rdma_named_tasks') for t in report['traces'])
     report['all_16_rank_hccl_matrices_local_sio_hccs_only']=len(report['matrices'])==16 and all(set(t['transport_types'])<= {'LOCAL','SIO','HCCS'} and 'HCCS' in t['transport_types'] for t in report['matrices'])
-    report['completed']=report['observed_all_16_rank_traces_with_sdma'] and report['all_16_rank_hccl_matrices_local_sio_hccs_only']
+    expected=1 if args.rank0_only else 16
+    report['selected_traces_with_sdma']=len(report['traces'])==expected and all(t.get('valid_json') and t.get('sdma_tasks',0)>0 and not t.get('rdma_named_tasks') for t in report['traces'])
+    report['selected_matrices_local_sio_hccs_only']=len(report['matrices'])==expected and all(set(t['transport_types'])<= {'LOCAL','SIO','HCCS'} and 'HCCS' in t['transport_types'] for t in report['matrices'])
+    report['completed']=report['selected_traces_with_sdma'] and report['selected_matrices_local_sio_hccs_only']
     report['manifest_scope']='Independently copied CANN traces/matrices; initial raw manifest is separately SHA-preserved before CPU export.'
     parsed_files=sorted(p for p in (out/'parsed').rglob('*') if p.is_file())
     (out/'profile-manifest.json').write_text(json.dumps([{'path':str(p.relative_to(out)),'bytes':p.stat().st_size,'sha256':digest(p)} for p in parsed_files],indent=2)+'\n')

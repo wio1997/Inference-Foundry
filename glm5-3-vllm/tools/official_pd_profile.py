@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--prefill-revision', type=int, default=1)
     parser.add_argument('--decode-revision', type=int, default=1)
     parser.add_argument('--output-tokens', type=int, choices=(16, 32), default=16)
+    parser.add_argument('--roles', choices=('both', 'decode'), default='both')
     args = parser.parse_args()
     assert re.fullmatch(r'[a-z0-9-]+', args.run_id)
     assert socket.gethostname() == 'B4-33U-Atlas900RCKA3-32'
@@ -38,6 +39,8 @@ def main():
               'started_host_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'requests': [], 'profiles': [],
               'after_formal_run': args.after_run, 'prefill_revision': args.prefill_revision,
               'decode_revision': args.decode_revision}
+    roles = ('P', 'D') if args.roles == 'both' else ('D',)
+    report['profiled_roles'] = list(roles)
     def post(role, path, value, timeout=180):
         q = urllib.request.Request(urls[role]+path, data=json.dumps(value).encode(), headers={'Content-Type': 'application/json'})
         with urllib.request.urlopen(q, timeout=timeout) as response:
@@ -51,12 +54,12 @@ def main():
         assert value.get('choices') and value['choices'][0]['text']
     started = []
     try:
-        for role in ('P', 'D'):
+        for role in roles:
             post(role, '/start_profile', {}); started.append(role)
             report['profiles'].append({'role': role, 'started': True})
         # The configured schedule has delay2/active1. Two one-step native requests
         # arm the active window before the actual remote-KV request arrives.
-        for role in ('P', 'D'):
+        for role in roles:
             for unused in range(2): request(role, 1)
         request('proxy', args.output_tokens)
         report['completed'] = True

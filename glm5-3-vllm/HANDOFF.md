@@ -16,6 +16,12 @@
 
 ## 当前执行与证据恢复
 
+**14:57Z P5/D4角色隔离及扩展保护完成，下一候选P5/D6已实际launch**：两轮240/240正式请求通过，11项原保护题无新增失败。对MTP1的TPOTp50每case降低3.6%–4.8%，吞吐几何均值+4.12%（未超保守吞吐噪声阈值）；TTFT几何均值−0.77%，hot1024 C1两端重叠时的+23.5%退化消失，仅D重叠时对MTP1为+2.67%。冷256 C1仍有观察到+6.57%，而原对照该case两轮TTFT差16.92%，不把所有均值差当显著因果。对无MTP原基线，吞吐几何均值1.5694、TPOT倍率0.5533，仍有TTFT权衡。见decode-only-overlap-v5-vs-*.json。
+
+新增24项固定数值/记录提取/2048和4096token检索，通过同一组token IDs分别走官方PD和native D，双方均24/24。原12题中的既有2+3=4错误仍单列保留，不能宣称完整模型精度。收据node32-official-protected-v5-r1-efce6a8b91ff；原始fixtures保留在远端tests/official-protected-v5-r1。
+
+P-v5保持CID91dab72037316ac12f1a86918d9b664acc0f6951012fb306aa597197b3642d5c，D-v4在两轮及全部48个扩展请求完成、无active/waiting后按精确CID关闭。新D-v6 CID53102060219eeb0203b86efaae5e00340bdc2919d9f7bf3818edc73b58d5542d，仅MTP深度1→5，D共享重叠保留；P仍MTP1无重叠。固定官方参考P1/D5及MTP1约94%真实接受率支持这一次有边界的target摊销实验，不做参数网格。official-mtp5-v6-r1/r2已串行排队，official-protected-v6-r1在r2完成后执行；**不能在扩展检查运行时切换模型**。proxy/6h holders不动，profile尚未开始，正式计时后再做一次所选候选路径/执行验证。
+
 **14:41Z第二候选完成，已实际切到P5/D4角色隔离对照**：v4两轮240/240请求通过，12题均11/12，无保护题新增失败。相对MTP1，8case吞吐几何均值仅+1.62%，未超原对照噪声门槛，不能记吞吐收益；TPOTp50每case下降3.5%–4.4%，但hot1024 C1 TTFT+23.5%。见overlap-incremental-comparison-v1.json。原生role histogram r1显示该case P prefill196.79→273.72ms（计算token同为256），D49.06→46.83ms；这支持把重叠仅保留D侧的可证伪测试，不是直接认定根因。
 
 仅P-v4在两轮完成且running/waiting0后按精确CID关闭；P-v5无overlap已launch CID91dab72037316ac12f1a86918d9b664acc0f6951012fb306aa597197b3642d5c，D-v4保持CID8d175a3e6da5c01cd5b338a7f62f61c25b469b41ef25ba9d70ca30c39717cae6，proxy/holder均不动。MTP1/精度/传输/请求协议固定，只改变P flag。official-decode-overlap-v5-r1/r2已排队串行，benchmark明确revision4(D)/prefill-revision5，增加P launch存在性检查与等待状态展示修正；冻结计时函数未改。下一步完成比较并继续有效候选/保护验证，不因状态/PR结束。
