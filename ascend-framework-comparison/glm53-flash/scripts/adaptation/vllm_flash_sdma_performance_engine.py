@@ -18,6 +18,27 @@ def event(kind,**fields):
         with (root/(str(os.getpid())+'.jsonl')).open('a') as f:f.write(json.dumps(row,sort_keys=True)+'\n')
 
 
+def audit_chunks(local,remote,lengths,*,max_bytes=32*1024*1024,max_ranges=1024,max_piece=8*1024*1024):
+    """Partition audit views only; never split/retry/change the SDK transfer.
+
+    Exactly cover each paired native range with matching byte offsets. Bound
+    every hash RPC below the unchanged R049 helper's64MiB/4096range limits.
+    """
+    if not len(local)==len(remote)==len(lengths) or min(max_bytes,max_ranges,max_piece)<=0:
+        raise ValueError('Invalid audit partition')
+    left=[];right=[];sizes=[];total=0
+    for l,r,n in zip(local,remote,lengths):
+        if any(type(x) is not int or x<=0 for x in (l,r,n)):raise ValueError('Audit vectors must be positive integers')
+        offset=0
+        while offset<n:
+            take=min(n-offset,max_piece,max_bytes-total)
+            left.append(l+offset);right.append(r+offset);sizes.append(take);offset+=take;total+=take
+            if total==max_bytes or len(sizes)==max_ranges:
+                yield left,right,sizes
+                left=[];right=[];sizes=[];total=0
+    if sizes:yield left,right,sizes
+
+
 class FlashPerformanceSdmaEngine:
     def __init__(self,hostname,role,device_id,rank_info):
         from memfabric_hybrid import TransferEngine,set_conf_store_tls,set_log_level
@@ -28,7 +49,7 @@ class FlashPerformanceSdmaEngine:
         if store!='tcp://172.16.12.14:19048':raise ValueError('Wrong frozen Flash control store')
         audit=os.environ.get('FLASH_SDMA_VERIFY_BYTES')
         if audit not in ('0','1'):raise ValueError('Explicit byte audit mode is required')
-        self.byte_audit=audit=='1';self.device_id=int(device_id);self.role=role;self.rank_info=dict(rank_info);self._regions=[];self._lock=threading.Lock();self._producer_seen=False
+        self.byte_audit=audit=='1';self.device_id=int(device_id);self.role=role;self.rank_info=dict(rank_info);self._regions=[];self._lock=threading.Lock();self._producer_seen=False;self._next_call_sequence=0
         self._stats={'calls':0,'successful_calls':0,'failed_calls':0,'ranges':0,'bytes':0,'producer_fences':0,'successful_bytes':0};self._engine=TransferEngine();self.protocol=TransDataOpType.SDMA
         set_log_level(2);set_conf_store_tls(False,'')
         self.session_id=f'{hostname}:{self._engine.get_rpc_port()}'
@@ -72,31 +93,37 @@ class FlashPerformanceSdmaEngine:
         host,sep,port=str(session_id).rpartition(':')
         if sep!=':' or host!='172.16.12.14' or not port.isdecimal() or not 0<int(port)<65536:raise ValueError('Outside owned Prefill SDK session')
         if self._acl.aclrtSetDevice(self.device_id)!=0:raise RuntimeError('Consumer ACL device setup failed')
-        before=peer=None
+        with self._lock:
+            call_id=self._next_call_sequence;self._next_call_sequence+=1
+        before=chunks=None
         if self.byte_audit:
             import urllib.request
             peer=json.loads(pathlib.Path('/run-evidence/sdma-peer-map.json').read_text())[str(session_id)]
             if type(peer['global_device_ordinal']) is not int or not 0<=peer['global_device_ordinal']<16:raise ValueError('Bad native producer peer ordinal')
             expected='http://172.16.12.14:'+str(18500+int(peer['global_device_ordinal']))+'/hash'
             if peer['url']!=expected:raise ValueError('Wrong qualification hash peer')
-            def remote_hash():
-                q=urllib.request.Request(expected,data=json.dumps({'addresses':remote,'sizes':lengths}).encode(),headers={'Content-Type':'application/json'})
+            def remote_hash(addresses,sizes):
+                body=json.dumps({'addresses':addresses,'sizes':sizes}).encode()
+                if len(body)>128*1024:raise ValueError('Qualification hash control body exceeds bound')
+                q=urllib.request.Request(expected,data=body,headers={'Content-Type':'application/json'})
                 with urllib.request.urlopen(q,timeout=120) as response:return json.load(response)
-            before=remote_hash()
+            chunks=list(audit_chunks(local,remote,lengths))
+            before=[remote_hash(rs,ns) for ls,rs,ns in chunks]
         with self._lock:self._stats['calls']+=1;self._stats['ranges']+=len(lengths);self._stats['bytes']+=sum(lengths)
         try:
-            # Exact SDK1.2 read call already qualified by R049; native V2 owns
-            # the DP/TP/state address generation and completion notifications.
+            # ONE original native SDK read, unchanged vectors. Audit partition
+            # never fragments payload, retries a transfer, or changes indices.
             ret=self._engine.batch_transfer_sync_read(session_id,local,remote,lengths)
             if ret!=0:raise RuntimeError(f'Strict Flash SDMA read failed: {ret}')
+            if self.byte_audit:
+                for index,((ls,rs,ns),pre) in enumerate(zip(chunks,before)):
+                    own=self.hasher.hash_ranges(ls,ns);post=remote_hash(rs,ns)
+                    passed=len(pre['range_sha256'])==len(own['range_sha256'])==len(post['range_sha256'])==len(ns) and pre['range_sha256']==own['range_sha256']==post['range_sha256'] and pre['sha256']==own['sha256']==post['sha256']
+                    event('qualification_payload_checksum',role=self.role,logical_device=self.device_id,rank_info=self.rank_info,remote_session=str(session_id),call_id=call_id,audit_chunk=index,audit_chunks=len(chunks),native_ranges=len(lengths),native_bytes=sum(lengths),bytes=sum(ns),ranges=len(ns),passed=passed,local=ls,remote=rs,lengths=ns,range_sha256=own['range_sha256'])
+                    if not passed:raise RuntimeError('Actual hybrid SDMA byte mismatch')
         except BaseException:
             with self._lock:self._stats['failed_calls']+=1
             raise
-        if self.byte_audit:
-            local_hash=self.hasher.hash_ranges(local,lengths);after=remote_hash()
-            passed=len(before['range_sha256'])==len(local_hash['range_sha256'])==len(after['range_sha256'])==len(lengths) and before['range_sha256']==local_hash['range_sha256']==after['range_sha256'] and before['sha256']==local_hash['sha256']==after['sha256']
-            event('qualification_payload_checksum',role=self.role,logical_device=self.device_id,rank_info=self.rank_info,remote_session=str(session_id),bytes=sum(lengths),ranges=len(lengths),passed=passed,local=list(local),remote=list(remote),lengths=list(lengths),range_sha256=local_hash['range_sha256'])
-            if not passed:raise RuntimeError('Actual hybrid SDMA byte mismatch')
         with self._lock:self._stats['successful_calls']+=1;self._stats['successful_bytes']+=sum(lengths)
         return ret
 
