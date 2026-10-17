@@ -38,3 +38,7 @@ P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLan
 | DeepEP L04 优化 | 独立的 D 路由元数据批量下载优化，不改 MemCache 池配置或存储后端。 |
 
 当前 staged overlay 清单没有 MemCache 存储后端替换文件；这不等于本次重新逐字节核验了镜像内所有 SDK/后端文件，实际兼容性仍依据既有源码/运行身份、真实缓存读回与模型 SDMA 验收。vLLM-Ascend 的官方模式可指导进程部署，不能单独充当 GLM-5.3 SGLang 支持证明。完整来源和适用边界：`results/memcache-docs-current-deployment-reconciliation-v1.json`。
+
+### C32 恢复实例的对应关系（2029）
+
+受控恢复只改变运行身份：26 个 staged 文件中，22 个逐字节相同，4 个 supervisor 文件仅 run_id 不同。2048 当前启动和 2050 只读计数快照分别独立通过；P 实验缓存补丁未启用。先前程序语义资格可按来源复用，当前 C32 前缀的真实读回与模型 SDMA 仍分别验收。新来源核对见 `results/memcache-docs-C32-L04-restore-reconciliation-v2.json`，不改写历史 1954 证据。官方另列的灵衢网络版本与 SDK Python 包版本分开记录，本次文档核对不新增系统版本认证或系统变更。

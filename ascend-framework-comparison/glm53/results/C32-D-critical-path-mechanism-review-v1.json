@@ -1,0 +1,152 @@
+{
+  "project_id": "glm53",
+  "loop": "L06-C32-D-critical-path",
+  "decision": "ACCEPTED_DIAGNOSTIC",
+  "evidence_level": "E3_CURRENT_C32",
+  "requested_profile_steps": 2,
+  "actual_D_ranks": 32,
+  "profile_collection_duration_seconds": {
+    "min": 1.90206999,
+    "median": 2.0102742,
+    "max": 2.05304785,
+    "ranks": 32
+  },
+  "primary_performance_measurement": false,
+  "source_qualified_cache_prefixes": 32,
+  "raw_D_storage_nulls_preserved": 1,
+  "raw_stop_HTTP_pass": false,
+  "native_all32_completion_independently_verified": true,
+  "native_stage_fraction_percent": {
+    "Computing": {
+      "min": 8.89833786827655,
+      "P50": 9.073026474560045,
+      "max": 10.269036711940075,
+      "ranks": 32
+    },
+    "Communication(Not Overlapped)": {
+      "min": 37.03445623706832,
+      "P50": 52.75793944383311,
+      "max": 57.98183706911547,
+      "ranks": 32
+    },
+    "Free": {
+      "min": 32.99353442947856,
+      "P50": 38.19760098987648,
+      "max": 53.70596801554897,
+      "ranks": 32
+    }
+  },
+  "stage_fraction_scope": "Ratios from original native Computing/Communication(Not Overlapped)/Free divided by Stage. Units cancel. Per-rank medians; not physical utilization or a whole-run causal budget.",
+  "actual_step_span_rank_distribution": [
+    {
+      "name": "step[VERIFY bs=2]",
+      "calls_per_rank": 2,
+      "ranks": 26
+    },
+    {
+      "name": "step[DRAFT bs=2]",
+      "calls_per_rank": 10,
+      "ranks": 26
+    },
+    {
+      "name": "step[VERIFY bs=2]",
+      "calls_per_rank": 1,
+      "ranks": 6
+    },
+    {
+      "name": "step[VERIFY bs=1]",
+      "calls_per_rank": 1,
+      "ranks": 6
+    },
+    {
+      "name": "step[DRAFT bs=1]",
+      "calls_per_rank": 5,
+      "ranks": 6
+    },
+    {
+      "name": "step[DRAFT bs=2]",
+      "calls_per_rank": 5,
+      "ranks": 6
+    }
+  ],
+  "selected_ACL_API_statistics": {
+    "aclrtSynchronizeStream": {
+      "calls": {
+        "min": 556.0,
+        "P50": 556.0,
+        "max": 560.0,
+        "ranks": 32
+      },
+      "host_API_time_sum_us": {
+        "min": 372159.17,
+        "P50": 602040.315,
+        "max": 661681.18,
+        "ranks": 32
+      }
+    },
+    "aclrtLaunchKernelWithHostArgs": {
+      "calls": {
+        "min": 10369.0,
+        "P50": 10384.0,
+        "max": 10525.0,
+        "ranks": 32
+      },
+      "host_API_time_sum_us": {
+        "min": 63374.82,
+        "P50": 66902.445,
+        "max": 83429.69,
+        "ranks": 32
+      }
+    },
+    "hcom_alltoallv_": {
+      "calls": {
+        "min": 480.0,
+        "P50": 480.0,
+        "max": 480.0,
+        "ranks": 32
+      },
+      "host_API_time_sum_us": {
+        "min": 67270.8,
+        "P50": 75085.125,
+        "max": 110966.23,
+        "ranks": 32
+      }
+    },
+    "aclnnNonzeroV2": {
+      "calls": {
+        "min": 3.0,
+        "P50": 3.0,
+        "max": 3.0,
+        "ranks": 32
+      },
+      "host_API_time_sum_us": {
+        "min": 16268.28,
+        "P50": 192499.41999999998,
+        "max": 205486.55,
+        "ranks": 32
+      }
+    }
+  },
+  "API_scope": "Each named ACL API is reported separately. Node-level launch counters overlap ACL launch counters and are not added to kernel launch counts; API wait times overlap device work.",
+  "mechanism_evidence": [
+    "Target verification dominates recorded host spans; 26ranks have2VERIFYbs2/10DRAFTbs2,6ranks have oneVERIFYbs1 plus oneVERIFYbs2 and5draft calls per size.",
+    "All32ranks record480hcom_alltoallv calls and roughly556aclrtSynchronizeStream calls in two steps. Current data-dependent host metadata boundary and generic AllToAll remain a material candidate.",
+    "Computation is approximately9percent of the sampled native stage; prioritize communication/host boundaries over isolated arithmetic kernels.",
+    "Current CPU43 delivery edges are submillisecond at the median; internal D buffering remains outside that edge measurement."
+  ],
+  "next_candidate": "Native installed DeepEP ops low-latency dispatch/combine, graphstilldisabled/MTP5/unchangedweights/precision/caches/parallelism; source/actualcorrectness required before performance.",
+  "source_evidence_sha256": {
+    "results/C32-D-two-step-evidence-v1.json": "f96117c0ba95410d825692f86b2e532ac40b18197605a9416581c7293fcc7891",
+    "results/sglang-C32-L04-control-v3-measurement-v1.json": "d88784601a620d45aad2d7fb6702e1088612a717c92978ef44f77bd0a286e799",
+    "results/sglang-C32-control-delivery-timing-review-v1.json": "291ca6f8a2016fb54b0c0ebb8db724aaf16c7ede4fd140976b1dee5ce4b9d5b7",
+    "runs/20261017T1260-deepep-native-contract-v1/source-34.json": "01858f8493b6faa7e11951e18b15f0e2e777a2c17377a7e98a9b429730141f21",
+    "runs/20261017T1050-sglang-failure-source-v1/source-34.json": "c9ac48ae1fb8824c35d4261fd3d7eb40fd4379124b509a66a79fded8e0bd1e5a",
+    "runs/20261017T1822-native-profile-control-source-v2/sglang.json": "85f90b003b43a999d9fbd50d17fff974120c3bfdbcf0fb0d447a7a1673f79642"
+  },
+  "limitations": [
+    "Two steps are not a long-run temporal stability study.",
+    "Profiler overhead and admission skew can change absolute durations; full-clock unprofiled measurement remains authoritative.",
+    "Changing an entire backend tests that component, without quantifying an isolated contribution from every internal primitive.",
+    "No optimization gain has yet been demonstrated by this diagnostic."
+  ]
+}

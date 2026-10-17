@@ -1,6 +1,31 @@
+# 当前：C32 对照与 D 诊断已验收，候选待控制通道恢复
+
+只做普通 W8A8 GLM-5.3 的 C32 对比与优化；C16/C64/L05保留历史，不新增测试。
+
+| C32 部署 | 正式成功 | 全程输出 tokens/s | TTFT P50 秒 | TPOT P50 毫秒 | 固定 SLA |
+| --- | ---: | ---: | ---: | ---: | --- |
+| vLLM 参照 | 128/128 | 530.8125 | 21.1620 | 19.1527 | Fail |
+| 当前 SGLang L04 对照 | 128/128 | 155.9674 | 14.3819 | 138.4531 | Fail |
+
+当前 SGLang 32 个独立前缀的55776组件键/384次真实读回、全128请求计数、32个P原生缓存读取worker、32个D实际SDMA接收设备均独立核验通过。完整时钟492.4106秒，76800个正式D输出token；预热不计。两框架吞吐比3.4034倍。这是部署栈比较，包含图模式和实际缓存行为等差异；未证明纯框架因果。相同L04旧窗口165.6284TPS与当前相差−5.83%，不是统计噪声界限或新优化回归；小幅候选收益需匹配重复。
+
+当前C32两步原生profile的32rank证据完整：统计中位占比计算9.073%、不可重叠通信52.758%、Free38.198%；每rank480次alltoallv、约556次流同步。采样只有两步，不能当作全程因果预算。自动停止的32个原生结束记录均核验通过；重复停止接口HTTP500/passFalse原样保留，以独立补充证据说明，不改原始确认状态。CPU43交付边界中位数不足1毫秒；内部D缓冲不在该测量范围。诊断不产生优化收益。
+
+L07只选择D原生Ops派发/合并组件；文档和现场源码支持继续做实际兼容性验证。所需进程级通信缓冲配置1024MiB，须守住每DP至少161280个KV token；图禁用、MTP5、权重/KV精度、并行、P配置、MemCache与SDMA不变。27文件候选和26文件L04回退包已暂存四节点，两个SDK配置CPU预检通过；候选尚未启动或验收，没有收益结论。
+
+部署前停止脚本在只读节点映射阶段退出，未停止模型/贡献进程/Meta。2069两次只读SSH均在61.241.77.34:60011握手超时、rc255；等待可用接入信息。原2029服务未被这些操作改动，断联后的现场健康尚不能重新确认。完整恢复点见RECOVERY_LATEST.md。
+
+MemCache已先核官方版本对应部署文档：Meta→独立贡献进程READY→模型客户端dram=0GB；元数据查询与真实payload读回分别验收。文档模式不代替具体SGLang/GLM-5.3运行资格。汇总与来源见results/memcache-docs-C32-postrun-reconciliation-v3.json。
+
+当前公开聚合摘要results/sglang-C32-L04-control-v3-public-summary-v1.json；原证书、请求ID、输入/输出、原始日志及trace保持原地，不纳入本次Git快照。
+
+<!-- C32_ONLY_CURRENT_CHECKPOINT_END -->
+
+## 以下为历史检查点
+
 # GLM-5.3 ordinary W8A8: current accepted deployment measurements
 
-Five conditions are independently valid; optimized SGLang C64 is active. All accepted conditions fail the fixed latency SLA. Primary throughput uses the full first-dispatch-to-last-terminal clock and only successful formal D output.
+Five conditions are independently valid; optimized SGLang C64 protection failed. All accepted conditions fail the fixed latency SLA. Primary throughput uses the full first-dispatch-to-last-terminal clock and only successful formal D output.
 
 | Framework | C | Requests | Output tokens/s | TTFT P50 (s) | TPOT P50 (ms) | SLA |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -16,7 +41,9 @@ vLLM C64 original strict native V2 audit rejected four periodic GD_TO_LD tails (
 
 Native vLLM D local-cache source fraction including warmup/formal is75.29percent atC16/C32 and2.60percent atC64; descriptor bytes are0.3016/0.6033/4.7530TB. These are observed native accounting and descriptors, not physical-wire bytes or proof of a specific eviction cause. The C16 PD-volume difference must not be generalized toC64. Exact counts/scope:results/vllm-native-cache-composition-C16-C32-C64-v1.json.
 
-Current comparison:results/L04-matched-deployment-comparison-v1.json. vLLM C64 certificate:results/vllm-formal-C64-v2-measurement-v1.json,SHAfc6f065f561b5326fc910d8284723a9ec960fb33c4da89ce8837a575f5f06774. Supplement:results/vllm-C64-SDK-completion-review-v1.json; original rejection:results/vllm-formal-C64-v2-native-audit-attempt-v1.json.
+Current comparison:results/L04-matched-deployment-comparison-v2.json. vLLM C64 certificate:results/vllm-formal-C64-v2-measurement-v1.json,SHAfc6f065f561b5326fc910d8284723a9ec960fb33c4da89ce8837a575f5f06774. Supplement:results/vllm-C64-SDK-completion-review-v1.json; original rejection:results/vllm-formal-C64-v2-native-audit-attempt-v1.json.
+
+SGLang C64 run2000 is invalid:210/256formal requests completed with correct counts;46failed. Initial64warmups/all-key payload gate passed, but35completed requests failed raw cache checks (26missingwholeobjects,8numericpartialhits,1optionalDstorageomission). All46failed requests join to native D300sWaitingForInput timeouts;19also have native P300sBootstrapping timeouts. The warm+formal Meta interval shows159537evictions/7816get_not_found, with0allocfail; successful submitted SDMA sends completed with native status0. These facts do not establish the complete causal chain or an L04 regression. Partial-run throughput is diagnostic and excluded from this table. Evidence:results/sglang-C64-native-failure-diagnosis-v1.json.
 
 <!-- CURRENT_MATRIX_END -->
 

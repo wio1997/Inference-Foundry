@@ -1,0 +1,46 @@
+{
+  "project_id": "glm53",
+  "loop_id": "L07-C32-native-ops",
+  "state": "STAGED_SHUTDOWN_V1_LOCAL_GATE_REJECTED_NO_RESOURCES_V2_REVIEWED",
+  "evidence_level": "E3_CURRENT_C32",
+  "hypothesis": "Native device-side dispatch/combine removes generic AllToAll layout/download/reupload boundaries and reduces non-overlapped communication on the C32 D critical path.",
+  "main_variable": "D DeepEP component: DEEP_USE_MODE ops + deepep-mode low_latency; its documented1024MiB process-level HCCL buffer prerequisite. Metadata-only audit added.",
+  "fixed": [
+    "P CLI/source/env; fullSDMA; SDK1.3/pool568GiB/clientdram0; weightsordinaryW8A8/BF16KV/indexer; TP32EP32/PDP4DDP16; globalmaxrunningP32D64; MTP5steps6draft; eagergraphsdisabled; all other CLI/env; C32independentprefix74400/5600freshsuffix/80000in600out/4round128requests/fullclock/warmexcluded"
+  ],
+  "predictions": [
+    "All32 D workers successfully call installednativeOps dispatch+combine and do not execute AlltoallNormal metadatafirstuse.",
+    "Samecount/semantic/cache/SDMAcorrectness withKV>=161280perDP and no newmodel/SDKerrors.",
+    "UnprofiledC32fullclockthroughput improves and TPOT falls relative155.9674TPS/138.453ms acceptedcontrol. Actualstackgain only; no isolatedkernelcausalityclaim."
+  ],
+  "rejection": [
+    "UnsupportedABI/communicationgroup/nativekernel startupfailure or numerics/cache/SDMA/countfailure",
+    "KV<161280perDP; no admission/precision relaxation",
+    "No fullclockimprovement after needed pairedrepetition"
+  ],
+  "measurement": "samecanonicalC32manifest; newnamespacedwarmprefixpayloadproof32; unprofiled128success/count/cache/fullclock/actual32Ddeviceaudit; fixedSLAreportedunchanged",
+  "uncertainty": "Sameprogram prior165.6284vscurrent155.9674 separatedwindowspread5.83percent is not statisticalnoisebound; nearspread gains needpairedrepeat. Two-stepdiagnostic fractions not whole-runcausalbudget.",
+  "rollback": {
+    "bundle": "config/sglang-C32-native-ops-rollback-v1-stage-v1.json",
+    "source": "26acceptedL04files;22byteidentical/4supervisor runidonly; pre-stagedbeforestop; one controlledrollback ifcandidatefails; no blindvariantretry"
+  },
+  "budget": "Onecandidate startup and necessaryC32functional/nativequalification then onepairedafter. NoC16/C64/L05/matrix/SDKmicrobenchrepeat. Preserveallfailures.",
+  "dependencies": [
+    "results/C32-D-critical-path-mechanism-review-v1.json",
+    "results/C32-native-ops-source-eligibility-v1.json",
+    "results/C32-ops-audit-pure-stub-v1.json"
+  ],
+  "resource_launchers_sha256": {
+    "scripts/stage_sglang_C32_native_ops_and_rollback_v1.py": "534eb6b6dde8a81696865c4c14928271bf40be0baf1f10046cd69b0ce2ccdd61",
+    "scripts/stop_sglang_L04_for_C32_ops_v2.py": "36cf34b9f940f47331b4488de479c62d8388bc836d1df95ba38a12043d038db0",
+    "scripts/start_sglang_C32_native_ops_pool_v2.py": "9132c5625e831b51eb7a3f190eaf5dc4d328534ee9887e7502416dddecaf3417",
+    "scripts/start_sglang_C32_native_ops_models_v2.py": "81697fcd6c374606acbe35bd26645cb5b3bd7476dd38d79524d2525fdfc03314"
+  },
+  "model_requests": 0,
+  "optimization_gain_demonstrated": false,
+  "superseded_prepared_launchers": {
+    "scripts/stop_sglang_L04_for_C32_ops_v1.py": "1dd7b15114477856b89471456a8d42d85cc92c79b7745ef7b50eddd41ca5384d",
+    "scripts/start_sglang_C32_native_ops_pool_v1.py": "ee0782b83ad66cd32d2e7857ca42df5082a2f25493943c6364da2f0f42b812d8",
+    "scripts/start_sglang_C32_native_ops_models_v1.py": "63a02c5f96451611c0c6fb5f1b3211aaae3a21d0e6bda94b2b8729b672b6f0a5"
+  }
+}

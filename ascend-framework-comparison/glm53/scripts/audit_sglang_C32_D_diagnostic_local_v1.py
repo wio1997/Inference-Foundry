@@ -1,0 +1,85 @@
+"""Independent diagnostic correctness/native/CSV audit, never primary timing."""
+import hashlib,importlib.util,json,statistics
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+RID='20261017T2058-sglang-C32-D-two-step-profile-v1'
+CAP='20261017T2060-sglang-C32-D-two-step-native-v1'
+BEFORE='20261017T2054-sglang-C32-L04-control-native-v3'
+def read(relative):return json.loads((ROOT/relative).read_text())
+def sha(relative):return hashlib.sha256((ROOT/relative).read_bytes()).hexdigest()
+def load(relative,digest,name):
+    assert sha(relative)==digest
+    spec=importlib.util.spec_from_file_location(name,ROOT/relative);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+def distribution(values):
+    assert values
+    return dict(min=min(values),median=statistics.median(values),max=max(values),ranks=len(values))
+def main():
+    native=load('scripts/audit_sglang_C32_L04_control_native_local_v3.py','de2f8fedf278bbf8f340e1231e612bdc85f40ccf2e7371f5ae1a4b41c4c465a7','native')
+    cache=load('scripts/glm53_sglang_cache_annotation_review_local_v1.py',sha('scripts/glm53_sglang_cache_annotation_review_local_v1.py'),'cache')
+    settings=read('config/C32-only-L04-restore/D-two-step-diagnostic-v1.json')
+    report=read(f'runs/{RID}/diagnostic-result.remote.json');assert report['phase']=='COMPLETE' and report['diagnostic_only'] and report['performance_certificate_allowed'] is False and report['concurrency']==32
+    assert report['backend_HTTP_attempts']==64 and len(report['gateway'])==len(report['rows'])==32 and report['count_and_terminal_successes']==32 and not report['pending_terminal_ids']
+    assert report['automatic_model_request_retries'] is False and report['SDK_init_calls']==0
+    assert report['profile_control']['pass'] and report['profile_control']['profile_start_attempts']==report['profile_control']['profile_stop_attempts']==1
+    assert report['D_metrics']['sample_count']==report['D_metrics']['complete_sample_count']>0
+    inputs=read('runs/20261017T2056-sglang-C32-fifth-suffix-inputs-v1/manifest-proof.json')['manifest'];expected={x['prefix_id']:x for x in inputs['rows']}
+    assert {x['prefix_id'] for x in report['rows']}==set(range(32))
+    cache_rows=[];output=0;mtp=dict(verify_steps=0,proposed_drafts=0,correct_drafts=0,histogram=[0]*6)
+    formatter=cache.source_formatter()
+    import types
+    for row in report['rows']:
+        pid=row['prefix_id'];n=row['native'];gw=row['terminal']['gateway'];extra=n['extra_details_data'];usage=extra['glm53_service_usage'];req=extra['glm53_request']
+        assert row['variant']==5 and row['input_sha256_le_u32']==expected[pid]['ids_sha256_le_u32']==req['input_sha256_le_u32'] and row['count_and_terminal_pass']
+        assert n['success'] and n['input_tokens']==usage['prompt_tokens']==req['input_tokens']==80000 and n['output_tokens']==usage['completion_tokens']==req['output_target']==600 and extra['glm53_finish_reason']=='length' and req['native_attempt_setting']==1
+        assert req['namespace']==report['cache_namespace']==settings['client_settings']['cache_namespace']
+        assert gw['prefill_usage']['prompt_tokens']==80000 and gw['prefill_usage']['completion_tokens']==1
+        assert gw['status']=='D_STREAM_COMPLETE' and gw['prefill_http_status']==gw['decode_http_status']==200 and gw['logical_request_id']==row['request_id']
+        P=gw['prefill_sglext']['cached_tokens_details'];D=extra['glm53_native_sglext']['cached_tokens_details'];checked=cache.check_tiers(P,D)
+        request=types.SimpleNamespace(cached_tokens_device=P['device'],cached_tokens_host=P['host'],cached_tokens_storage=P['storage'],cached_tokens=sum(P[k] for k in ['device','host','storage']))
+        for enabled,actual in [(True,P),(False,D)]:
+            owner=types.SimpleNamespace(enable_hicache_storage=lambda:enabled,_get_storage_backend_type=lambda:'NpuMemcacheStore');assert formatter(owner,request)==actual
+        cache_rows.append(checked);output+=n['output_tokens']
+        spec=extra['glm53_native_sglext']['spec_tokens_details'];verify=spec['spec_verify_ct'];proposed=spec['spec_num_proposed_drafts'];correct=spec['spec_num_correct_drafts'];hist=spec['spec_correct_drafts_histogram']
+        assert verify>0 and proposed==5*verify and len(hist)==6 and all(type(x) is int and x>=0 for x in hist) and sum(hist)==verify and sum(i*x for i,x in enumerate(hist))==correct
+        mtp['verify_steps']+=verify;mtp['proposed_drafts']+=proposed;mtp['correct_drafts']+=correct;mtp['histogram']=[a+b for a,b in zip(mtp['histogram'],hist)]
+    assert output==19200
+    sources={f'runs/{RID}/diagnostic-result.remote.json':sha(f'runs/{RID}/diagnostic-result.remote.json')};devices=set();sessions={};PD=[];reads=set();workers=[];descriptor_bytes=0
+    for node in [34,35,36,41]:
+        path,o,events=native.unpack(CAP,node);before_path,old,old_events=native.unpack(BEFORE,node);sources[path]=sha(path);sources[before_path]=sha(before_path)
+        wire=read(path);raw=wire['stdout'].encode();assert len(raw)==wire['native_output_transport']['raw_bytes'] and hashlib.sha256(raw).hexdigest()==wire['native_output_transport']['raw_sha256']
+        assert o['container_id']==settings['runtime_containers'][str(node)]['container_id']==old['container_id'] and o['provider_phase']=='READY' and o['/health']['status']==200
+        gauges=[float(x.rsplit(' ',1)[1]) for x in o['/metrics']['body'].splitlines() if x.startswith(('sglang:num_running_reqs{','sglang:num_queue_reqs{'))];assert gauges and all(x==0 for x in gauges)
+        assert o['supervisor']['phase']=='MODEL_RUNNING' and 'model_exit_code' not in o['supervisor'] and all(x['full_archive_complete'] for x in o['logs'].values())
+        current_errors=[x for log in o['logs'].values() for x in log['error_lines']];old_errors=[x for log in old['logs'].values() for x in log['error_lines']];assert current_errors==old_errors,'New native diagnostic errors need explicit source review'
+        initialized={x['pid']:x for x in events if x['event']=='initialize_complete'};assert len(initialized)==16 and all(x['rc']==0 and x['protocol']=='SDMA' and x['protocol_value']==1 for x in initialized.values())
+        assert len(o['owned_npu_process_rows'])==18 and {x['namespace_pid'] for x in o['owned_npu_process_rows']}==({7,o['supervisor']['model_pid']}|set(initialized))
+        assert all(x['native_sdma']['copy_calls']==0 or x['native_sdma']['copy_status_values']==[0] for x in o['logs'].values())
+        sessions.update({x['session']:(node,x['device_id']) for x in initialized.values()})
+        previous={json.dumps(x,sort_keys=True) for x in old_events};new=[x for x in events if json.dumps(x,sort_keys=True) not in previous]
+        assert not any(x['event'] in ['write_error','model_state_send_error','forbidden_tcp_model_payload'] for x in new)
+        assert all(x['rc']==0 for x in new if x['event']=='model_state_send_complete')
+        writes=[x for x in new if x['event']=='write_complete']
+        for event in writes:assert event['rc']==0 and event['payload_bytes_completed']==event['payload_bytes_requested']>0 and node in [34,35];PD.append(event)
+        if node in [34,35]:
+            delta=sum(x['native_sdma']['copy_descriptor_bytes'] for x in o['logs'].values())-sum(x['native_sdma']['copy_descriptor_bytes'] for x in old['logs'].values());assert delta==sum(x['payload_bytes_completed'] for x in writes);descriptor_bytes+=delta
+            before=native.sdk_counts(old,initialized);after=native.sdk_counts(o,initialized)
+            for pid,tags in after.items():
+                if tags.get('TP_MMC_PY_BATCH_GET',{}).get('good',0)>before.get(pid,{}).get('TP_MMC_PY_BATCH_GET',{}).get('good',0):reads.add((node,initialized[pid]['device_id']))
+        else:
+            profile=o['native_profile'];assert profile['analysis_pass'] and profile['all16_local_model_workers_profiled'] and len(profile['workers'])==16
+            assert {x['namespace_pid'] for x in profile['workers'].values()}==set(initialized)
+            workers.extend(dict(node=node,**worker) for worker in profile['workers'].values())
+    for event in PD:assert event['remote_session'] in sessions;devices.add(sessions[event['remote_session']])
+    assert devices=={(node,d) for node in [36,41] for d in range(16)} and reads=={(node,d) for node in [34,35] for d in range(16)}
+    assert {x['context']['kind'] for x in PD}=={'send_kvcache','send_aux'}
+    assert len(workers)==32 and descriptor_bytes==sum(x['payload_bytes_completed'] for x in PD)
+    result=dict(project_id='glm53',run_id=RID,diagnostic_evidence_pass=True,performance_certificate_allowed=False,primary_performance_measurement=False,
+                requested_profile_forward_steps=2,all32_D_native_profile_workers=True,diagnostic_requests=32,backend_HTTP_attempts=64,successful_backend_inferences=64,
+                successful_D_output_tokens=19200,successful_P_output_tokens=32,all_successful_backend_output_tokens=19232,
+                cache_verified_prefixes=32,D_storage_null_requests=sum(not x['D_storage_field_present'] for x in cache_rows),raw_nulls_preserved=True,
+                native_PD_descriptor_bytes=descriptor_bytes,physical_wire_bytes=None,actual_P_MemCache_read_workers=32,actual_D_SDMA_receiving_devices=32,
+                diagnostic_MTP=mtp,profile_collection_duration_seconds=distribution([x['native_collection_duration_seconds'] for x in workers]),
+                workers=workers,source_evidence_sha256=sources,
+                interpretation_limits=['Two requested forward steps are a bounded diagnostic sample; no claim of long-run temporal representativeness.','Profile timing includes instrumentation and export overhead; not substituted for unprofiled C32 performance.','Native interval unions and API sums are separate overlapping views; do not add them into total latency.','No optimization or causal speedup acceptance follows from a diagnostic alone.'])
+    p=ROOT/'results/C32-D-two-step-evidence-v1.json';assert not p.exists();p.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({k:result[k] for k in ['diagnostic_evidence_pass','diagnostic_requests','successful_backend_inferences','profile_collection_duration_seconds']}))
+if __name__=='__main__':main()
