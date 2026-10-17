@@ -1,0 +1,73 @@
+{
+  "project_id": "glm53",
+  "as_of": "2026-10-17T09:34:50.802835+00:00",
+  "read_only_capture_pass": true,
+  "SDK_init_calls": 0,
+  "model_requests": 0,
+  "profiling_started": false,
+  "native_profile_exercised": false,
+  "evidence_sha256": {
+    "runs/20261017T1822-native-profile-control-source-v2/receipt.json": "11b138a36523fa83781681060f0d952462db5c89663e4eb5eff1e8a4fb371cc3",
+    "runs/20261017T1822-native-profile-control-source-v2/vllm.json": "38e0c544ed6ae1f7a4bb6b5967f1da530acc6a8d0043368ce924f2919b6f3899",
+    "runs/20261017T1822-native-profile-control-source-v2/sglang.json": "85f90b003b43a999d9fbd50d17fff974120c3bfdbcf0fb0d447a7a1673f79642"
+  },
+  "frameworks": {
+    "vllm": {
+      "container_id": "a654305d634fb392660cee17797c15f31af90df477c0025839a59f985e1c073c",
+      "actual_model_profile_environment": {
+        "host_pid": 57175,
+        "namespace_pid": 93,
+        "profile_only_environment": {
+          "SGLANG_PROFILE_V2": "",
+          "SGLANG_TORCH_PROFILER_DIR": "",
+          "VLLM_TORCH_PROFILER_DIR": ""
+        }
+      },
+      "sources": [
+        {
+          "path": "/vllm-workspace/vllm/vllm/profiler/__init__.py",
+          "relative": "profiler/__init__.py",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/vllm-workspace/vllm/vllm/profiler/wrapper.py",
+          "relative": "profiler/wrapper.py",
+          "bytes": 23333,
+          "sha256": "b1d3fff5035031d86ead1925d541cd07f084b6711875b592401b5528e3f730f4"
+        }
+      ]
+    },
+    "sglang": {
+      "container_id": "10d14e531385739498eacfb08d75d6cc3b370cf78f74af14e9fae6736bbb744e",
+      "actual_model_profile_environment": {
+        "host_pid": 24746,
+        "namespace_pid": 183,
+        "profile_only_environment": {
+          "SGLANG_PROFILE_V2": "",
+          "SGLANG_TORCH_PROFILER_DIR": "",
+          "VLLM_TORCH_PROFILER_DIR": ""
+        }
+      },
+      "sources": [
+        {
+          "path": "/sgl-workspace/sglang/python/sglang/srt/environ.py",
+          "relative": "srt/environ.py",
+          "bytes": 107303,
+          "sha256": "0b0bb923ab563986fe8b1e068330959d249c859f6b24ae3f884df4812d457d1c"
+        },
+        {
+          "path": "/sgl-workspace/sglang/python/sglang/srt/managers/tokenizer_control_mixin.py",
+          "relative": "srt/managers/tokenizer_control_mixin.py",
+          "bytes": 41587,
+          "sha256": "19a0558df863e51e34d077bfff8f90bb9b1edc8084bdc758f7906e8a78dd8daf"
+        }
+      ]
+    }
+  },
+  "findings": {
+    "vllm": "WorkerProfiler.start acknowledges activation; delay2 worker steps/max8 configured; step called before execute_model, stops when recorded count>8. stop resets counters and ignores inactive stop. Actual source, not an exercised profiler result.",
+    "sglang": "SGLANG_PROFILE_V2 unset in current model and installed default False. Profile start with truthy start_step initializes and returns; start_step clamped to current forward+1; num_steps sets stop target. CPU/GPU activities map to native CPU/NPU. Explicit with_stack=False and record_shapes=False; native stop has DP/TP barrier. Trace artifact validation still required.",
+    "scope": "Baseline series remains unprofiled. Runtime configuration and original model precision unchanged; later bounded profile requires completed baselines and explicit per-run SHA freeze."
+  }
+}

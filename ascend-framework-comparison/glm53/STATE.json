@@ -1,7 +1,7 @@
 {
   "project_id": "glm53",
-  "as_of": "2026-10-17T08:22:27.559616+00:00",
-  "status": "ACTIVE_FIRST_VLLM_FORMAL_C16",
+  "as_of": "2026-10-17T09:34:50.804772+00:00",
+  "status": "ACTIVE_VLLM_C64_C16_C32_MEASUREMENTS_ACCEPTED_SLA_FAILED",
   "required_context": [
     "AGENTS.md",
     "HANDOFF.md",
@@ -12,16 +12,27 @@
   ],
   "objective": "Original ordinaryW8A8 GLM5.3 vLLM vsSGLang2P2D strictSDMA correctness -> actualAIS C16/32/64 vLLMfirst -> boundedprofile/optimization -> source/config/compactevidenceGit",
   "latest_user_steering": "MemCache adaptation first consult corresponding Ascend deployment documents; honor docs/nativeAPI before further patches",
-  "model_http_attempts_by_this_task": 387,
-  "successful_model_inferences": 372,
+  "model_http_attempts_by_this_task": 867,
+  "successful_model_inferences": 852,
   "functional_model_output_tokens": 20454,
-  "formal_requests": 0,
-  "accepted_new_baseline": null,
+  "formal_requests": 192,
+  "accepted_new_baseline": {
+    "vllm-C16": {
+      "measurement_valid": true,
+      "aggregate_SLA_pass": false,
+      "evidence": "results/vllm-formal-C16-measurement-v1.json"
+    },
+    "vllm-C32": {
+      "measurement_valid": true,
+      "aggregate_SLA_pass": false,
+      "evidence": "results/vllm-formal-C32-measurement-v1.json"
+    }
+  },
   "weight_variant": "W8A8",
   "c8_in_scope": false,
   "required_pd_transport": "SDMA",
   "active_vllm_startup_run": "runs/20261017T1768-vllm-shared-model-start-v2",
-  "active_vllm_ZCode_session": 18475,
+  "active_vllm_ZCode_session": 70492,
   "runtime_containers": {
     "30": {
       "container_id": "a654305d634fb392660cee17797c15f31af90df477c0025839a59f985e1c073c",
@@ -181,22 +192,36 @@
     "16": {
       "vllm_dispatched": true,
       "sglang_dispatched": false,
-      "accepted": false,
-      "requests": null,
+      "accepted": true,
+      "requests": 64,
       "planned_requests": 64,
-      "actual_requests": "PENDING_NATIVE_CLIENT_REPORT"
+      "measurement_valid": true,
+      "aggregate_SLA_pass": false,
+      "output_tokens_per_second": 452.5985930718383,
+      "evidence": "results/vllm-formal-C16-measurement-v1.json",
+      "actual_requests": 64,
+      "actual_count_pending_native_report": false
     },
     "32": {
-      "vllm_dispatched": false,
+      "vllm_dispatched": true,
       "sglang_dispatched": false,
-      "accepted": false,
-      "requests": 0
+      "accepted": true,
+      "requests": 128,
+      "planned_requests": 128,
+      "actual_count_pending_native_report": false,
+      "measurement_valid": true,
+      "aggregate_SLA_pass": false,
+      "output_tokens_per_second": 512.9852101202009,
+      "evidence": "results/vllm-formal-C32-measurement-v1.json",
+      "actual_requests": 128
     },
     "64": {
-      "vllm_dispatched": false,
+      "vllm_dispatched": true,
       "sglang_dispatched": false,
       "accepted": false,
-      "requests": 0
+      "requests": null,
+      "planned_requests": 256,
+      "actual_count_pending_native_report": true
     }
   },
   "formal_execution_order": "vLLM C16->32->64 FIRST thenSGLang C16->32->64; sequentialreal74400/1warm eachprefix; naturalL1/L2; fourfresh5600suffix variants continuousclosedloop",
@@ -206,21 +231,23 @@
     "RPC": "scripts/glm53_formal_rpc_v2.py",
     "SDK_gate": "scripts/glm53_formal_cache_gate_v1.py",
     "remote_gate_renderer": "scripts/glm53_formal_gate_remote_v1.py",
-    "status": "Actual1790C16fournativefences/prefixtransfer/gatestage/CPUstage allrc0; longCPUhostRPCactive. Newmodelcallswarm/formal pendingactualreport.",
+    "status": "C16 and C32 accepted valid measurements, both SLA failed; C64 active real warmup then256 formal, count ledger excludes active.",
     "resource_controller": "scripts/glm53_formal_resource_controller_v1.py"
   },
   "blockers": [
-    "FirstC16actualprefixpayloadgate/full64request/nativepostrun acceptance pending; no acceptedperformancebaseline."
+    "C64actualmeasurement/nativeacceptance thenSG16/32/64/profileoptimization remain. C16/C32validmeasurementsSLAfailed."
   ],
-  "next_action": "Actual C16warmup/cachepayloadgate/fullformalclient receipt thenindependentnativepostrun audit; onlythenfreezeC32predecessorcertificate.",
+  "next_action": "Actual C64serialwarm/allprefixpayloadretentiongate/256formal; prepared1814compressedintegritynativepost thenacceptall-vLLMseries beforeSG16.",
   "GitHub": {
     "committed": true,
     "pushed": true,
-    "commit": "c6c828592e4bb9daed2de2622b592d92c009cd0d",
+    "commit": "e104d695190ba2118c9361e6525c02d041570890",
+    "checkpoint_commit": "6608771bf746524f7f82d5ea001c00dee73a4c68",
     "branch": "codex/ascend-sglang-vllm-comparison",
-    "files": 96,
-    "evidence": "results/git-deployment-publication-v1.json",
-    "source_checkpoint_only_formal0": true
+    "selected_files_verified": 145,
+    "own_changed_paths": 53,
+    "evidence": "results/git-native-correctness-publication-v2.json",
+    "source_native_functional_checkpoint_only_formal_acceptance_pending": true
   },
   "historical_state_archive": {
     "state_path": "runs/20261017T1758-git-deployment-checkpoint-v1/STATE.before.json",
@@ -236,5 +263,39 @@
   "correctness_limits": "Representative frozen short/twofact long/cache/SDMA/count guards; wholelongtexts maydiffer, no bitwisegate. MetaHTTPobservabilitygap isnotaloneablockerwithnativeSDK/dataevidence.",
   "active_functional_run": null,
   "completed_run_ledger_excludes_active_run": true,
-  "active_formal_run": "runs/20261017T1790-vllm-formal-C16-v1"
+  "active_formal_run": "runs/20261017T1810-vllm-formal-C64-v1",
+  "active_formal_warmup_progress_last_observed": {
+    "project_id": "glm53",
+    "framework": "vllm",
+    "namespace": "glm53-formal-20261017T1810-vllm-formal-C64-v1-C64",
+    "concurrency": 64,
+    "phase": "WARMUP",
+    "completed_real_prefix_warmups": 26,
+    "warmup_passes": 26
+  },
+  "prepared_formal_C16_native_postcapture": {
+    "launcher": "scripts/inspect_vllm_formal_C16_native_v2.py",
+    "sha256": "dedd4d60bb30a1f41779536057233677b9da0ca11fa25544c936dfb64b77162a",
+    "run": "runs/20261017T1794-vllm-formal-C16-native-v2",
+    "status": "COMPLETED_ALL4_NATIVE_ACCEPTED",
+    "local_metrics_fixture": "results/formal-native-metrics-local-fixture-v1.json"
+  },
+  "successful_model_output_tokens_total": 135942,
+  "formal_counted_output_tokens": 115200,
+  "benchmark_warmup_and_control_output_tokens": 288,
+  "prepared_formal_C32_native_postcapture": {
+    "launcher": "scripts/inspect_vllm_formal_C32_native_v2.py",
+    "sha256": "552e1b7b9befa3c4f3586a305db4aa6da15d6bd261ce6f6dc1b07e0756ecf76e",
+    "run": "runs/20261017T1804-vllm-formal-C32-native-v2",
+    "status": "COMPLETED_NODE31_TRANSPORT_INCOMPLETE_PRESERVED_RECOVERED_IN_1805"
+  },
+  "recovery_archive": "runs/20261017T1798-recovery-compaction-v5",
+  "prepared_formal_C64_native_postcapture": {
+    "launcher": "scripts/inspect_vllm_formal_C64_native_v3.py",
+    "sha256": "5eb80af4929aea8a74dde630ba780a6f37c34d6cff89ab14491094634243ae63",
+    "run": "runs/20261017T1814-vllm-formal-C64-native-v3",
+    "status": "NOT_DISPATCHED_REQUIRES_C64_CLIENT_DONE",
+    "transport": "Integrityframedgzipbase64 codec ed265b69437cc93a9fe8afdc1ac87f151e8168e9c82ff28a5d374f14d0c622d5 actual1805qualified"
+  },
+  "native_profile_control_review": "results/native-profile-control-source-review-v1.json"
 }
