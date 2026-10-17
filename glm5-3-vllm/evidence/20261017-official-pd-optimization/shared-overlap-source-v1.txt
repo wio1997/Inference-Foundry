@@ -1,0 +1,116 @@
+SOURCE /vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py 2f42ce56a7636bf618204dbc2c1aeb2a2c95fed69fe9e5bcfac995354a00beb4
+159:         hidden_states: torch.Tensor,
+160:         router_logits: torch.Tensor,
+161:         input_ids: torch.Tensor | None = None,
+162:         shared_experts_input: torch.Tensor | None = None,
+163:     ) -> torch.Tensor:
+164:         """Mirror of upstream ``MoERunner.forward`` (this class is instantiated
+165:         through the OOT PluggableLayer dispatch of ``MoERunner``).
+166: 
+167:         Upstream inlines the shared+routed output combine, which is not
+168:         exposed as an overridable hook. On NPU the combine goes through the
+169:         fused multi-tensor add kernel (``torch._foreach_add``), whose kernel
+170:         launch count is independent of the tensor-list length and which is
+171:         the NPU-validated fast path for the MoE combine. Every other step,
+172:         including the runtime-aware reduction hooks (#16550), is inherited
+173:         unchanged.
+174: 
+175:         Future plan: once the aclnnAdd_AddAiCore_Add kernel is available via
+176:         the superkernel integration, upstream's plain add becomes the fast
+177:         path and this override can be dropped.
+178:         """
+179:         # Apply transform for routed experts (e.g., latent projection for
+180:         # latent MoE). When the caller pre-applies the routed input transform
+181:         # outside the runner (e.g. to overlap it on a separate stream), it
+182:         # passes the already-transformed routed input as ``hidden_states`` and
+183:         # the original hidden states as ``shared_experts_input``; skip the
+184:         # transform in that case so shared experts still see the original input.
+185:         if shared_experts_input is None:
+186:             hidden_states, shared_experts_input = self.apply_routed_input_transform(hidden_states)
+187: 
+188:         # Record before `_maybe_pad_hidden_states` pads activations to match
+189:         # `moe_config.hidden_dim`, e.g. after `align_trtllm_fp4_moe_hidden_dim_for_fi`
+190:         # so routed output can be trimmed before
+191:         # shared+routed add / latent up proj if needed.
+192:         hidden_states, og_hidden_dim_pre_xform, og_hidden_dim_post_xform = self._maybe_pad_hidden_states(
+193:             shared_experts_input,
+194:             hidden_states,
+195:         )
+196: 
+197:         result = self._forward_entry(
+198:             hidden_states,
+199:             router_logits,
+200:             shared_experts_input,
+201:             input_ids,
+202:             self._encode_layer_name(),
+203:             self.moe_config.hidden_dim_unpadded if self._quant_method.has_unpadded_output else 0,
+204:         )
+205: 
+206:         #
+207:         # Note: there are two all-reduce points below. They are mutually
+208:         # exclusive, controlled by _fused_output_is_reduced
+209:         #  - When True: the combine kernel already reduced fused_output,
+210:         #    so we reduce shared_output here to match, then skip the
+211:         #    all-reduce in _maybe_reduce_final_output.
+212:         #  - When False: neither output is reduced yet, so we combine
+213:         #    them first and all-reduce the sum in _maybe_reduce_final_output.
+214: 
+215:         # Extract outputs from result
+216:         shared_output, fused_output = _unpack(result)
+217: 
+218:         if og_hidden_dim_pre_xform is not None:
+219:             fused_output = fused_output[..., :og_hidden_dim_pre_xform]
+220: 
+221:         fused_output_is_reduced = self._fused_output_is_reduced
+222: 
+223:         # Latent routed output has to be reduced before output transform,
+224:         # because the transform may include non-linear normalization.
+225:         fused_output, fused_output_is_reduced = self._maybe_reduce_routed_output_before_transform(
+SOURCE /vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/shared_experts.py 471db26e9e9e4ba70c2ccd43502ad39bff6699bbd4ca191319a9b66fc20458f9
+670:     def forward(
+671:         self,
+672:         prepared_input: PreparedSharedExpertInput,
+673:         milestones: RoutedMoEMilestones,
+674:         defer_output_wait: bool = False,
+675:         submitted_gate_up: SubmittedSharedExpertGateUp | None = None,
+676:     ) -> torch.Tensor:
+677:         mode = self.parallel_mode()
+678:         if submitted_gate_up is None:
+679:             with npu_stream_switch(shared_experts_calculation_stream(), enabled=self.multistream_overlap):
+680:                 hidden_states, local_dp_metadata = self._prepare_execution_input(
+681:                     prepared_input,
+682:                     milestones,
+683:                     mode,
+684:                 )
+685:                 gate_up_input = self._prepare_gate_up_input(hidden_states)
+686:             prepared_execution = PreparedSharedExpertExecution(
+687:                 hidden_states=hidden_states,
+688:                 gate_up_input=gate_up_input,
+689:                 local_dp_metadata=local_dp_metadata,
+690:             )
+691:             submitted_gate_up = self.enqueue_gate_up_after_router(
+692:                 prepared_execution,
+693:                 milestones.router_output_ready,
+694:             )
+695: 
+696:         local_dp_metadata = submitted_gate_up.local_dp_metadata
+697:         with npu_stream_switch(shared_experts_calculation_stream(), enabled=self.multistream_overlap):
+698:             shared_out = self._finish_shared_mlp(submitted_gate_up, milestones)
+699:             if self.multistream_overlap and mode is SharedExpertParallelMode.SEQUENCE_PARALLEL_ONLY:
+700:                 self._wait_for_milestone(
+701:                     milestones.routed_finalize_done,
+702:                     "routed_finalize_done",
+703:                 )
+704:                 shared_out = self._pad_and_reduce_scatter(shared_out)
+705: 
+706:         if self.multistream_overlap and (
+707:             mode is not SharedExpertParallelMode.SEQUENCE_PARALLEL_ONLY or not defer_output_wait
+708:         ):
+709:             self.wait_for_output()
+710: 
+711:         if mode is SharedExpertParallelMode.SHARED_EXPERT_DATA_PARALLEL_ONLY:
+712:             assert local_dp_metadata is not None
+713:             shared_out = self._finalize_local_dp_output(shared_out, local_dp_metadata)
+714:         elif mode is SharedExpertParallelMode.SEQUENCE_PARALLEL_ONLY and not self.multistream_overlap:
+715:             shared_out = self._pad_and_reduce_scatter(shared_out)
+716:         return shared_out

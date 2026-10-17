@@ -6,7 +6,7 @@
 
 最新用户要求是**持续推进原性能优化目标，官方部署仅作为已通过的前置步骤**。本轮官方基线所必需的Mooncake直传已获主控转达人类授权，覆盖此前「先不考虑Mooncake、优先MemCache」的阶段偏好；仍保持全SDMA，仅32/33，当前只操作自己实例/holder，其他作业不动。已实际启动原样MooncakeConnectorV2和原样官方代理，先交付可运行原生PD。MemCache准确组件为memcache_hybrid/memfabric_hybrid，后续官方MultiConnector池集成不由本轮自动扩张；不再以自写纯Store协议代替官方基线。
 
-保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，最终验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线已有C1临时代表负载的真实PD基线，尚无通过正确性门槛的机制性能收益；业务请求分布、数值SLO和完整正确性验收标准待定。
+保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线已完成8组负载的两轮官方图PD基线，MTP1有吞吐/TPOT实测收益且11项保护题无新增退化，但存在TTFT权衡和原生已有数值错误；业务请求分布、数值SLO和完整正确性验收标准待定，不能宣称完整精度或可持续容量验收。
 
 分支 `codex/glm5-3-vllm-optimization`，本次接手 HEAD `f5571dc0e1c271ae533a347700f24b4a2c105762`，接手时工作区干净。继续 [draft PR #2](https://github.com/wio1997/Inference-Foundry/pull/2)，不自动合并。不改旧副本 `/Users/wio/work/Inference-Foundry` 或原 SGLang 研究分支。
 
@@ -15,6 +15,18 @@
 原主对话作为用户沟通、方向/预算与证据复核的主控；本执行对话继续32/33实现、实验、修复及证据交付。主控通过现有HANDOFF/wait_threads读取，无需跨聊天主动发送消息，不增任务/看板，不为普通工程动作增加逐步审批。本次分工校正不打断已加载的per-TP实验。诊断须结合匹配native边界与传输/布局/完成证据，逐token差异不单独证明传输错误；不改模型/量化来迎合结果。
 
 ## 当前执行与证据恢复
+
+**14:41Z第二候选完成，已实际切到P5/D4角色隔离对照**：v4两轮240/240请求通过，12题均11/12，无保护题新增失败。相对MTP1，8case吞吐几何均值仅+1.62%，未超原对照噪声门槛，不能记吞吐收益；TPOTp50每case下降3.5%–4.4%，但hot1024 C1 TTFT+23.5%。见overlap-incremental-comparison-v1.json。原生role histogram r1显示该case P prefill196.79→273.72ms（计算token同为256），D49.06→46.83ms；这支持把重叠仅保留D侧的可证伪测试，不是直接认定根因。
+
+仅P-v4在两轮完成且running/waiting0后按精确CID关闭；P-v5无overlap已launch CID91dab72037316ac12f1a86918d9b664acc0f6951012fb306aa597197b3642d5c，D-v4保持CID8d175a3e6da5c01cd5b338a7f62f61c25b469b41ef25ba9d70ca30c39717cae6，proxy/holder均不动。MTP1/精度/传输/请求协议固定，只改变P flag。official-decode-overlap-v5-r1/r2已排队串行，benchmark明确revision4(D)/prefill-revision5，增加P launch存在性检查与等待状态展示修正；冻结计时函数未改。下一步完成比较并继续有效候选/保护验证，不因状态/PR结束。
+
+**14:34Z现场恢复核验**：v4两端容器实际运行，P日志已确认`Shared expert split computation validation passed`，flag=True且未发现推理错误；正在完成初始化，正式计时尚未开始。r1状态仍显示waiting_predecessor是报告缺少转为waiting_ready造成的旧标签；前轮result已完成通过，进程实际在等双方API Ready，不是前轮缺失。只修下一版脚本状态展示，不改当前冻结实验/计时函数，不重复提交r1/r2。
+
+**14:26Z首个机制对照已完成，继续第二个单机制候选**：MTP1两轮240/240正式请求通过，12题均11/12，全部11项baseline通过题无新增退化。相对无MTP基线，8case吞吐提升35.5%–65.0%，等权case倍率几何均值1.5073；TPOT降低40.8%–44.1%。但4case TTFTp50增5%以上（最多14.4%），所以结论为有延迟权衡的实测收益，非无条件采用/优化目标结束。见mtp1-comparison-v1.json。draft计数实际为正、接受率约94%，证明MTP实际执行。
+
+热prefix每请求P/D少命中128token：256时128→0，1024时896→768。固定vLLM源码说明EAGLE/MTP drop最后匹配块以重建drafter隐藏态；本线不盲删安全guard。原生指标进一步显示hot P prefill真实计算128→256token，C1 hot P约193→229ms；D prefill_kv_computed_tokens仍0，不能把本地命中减少直接说成D全段重算。role-time-metrics-v1曾将token histogram误标ms，v2修正为mean_tokens，原件保留；模型/性能计时无影响。
+
+第二候选v4仅在MTP1上开启原生multistream_overlap_shared_expert=true，P/D保持TP16无EP、MC2=0；源码TP路径确有stream switch，内置split/integrated一致性须通过。v4实际已launch：P d45d7ee1b05a77f1202ac505d34235b776d7a44f7c432d0b7884cb154f232faa，D8d175a3e6da5c01cd5b338a7f62f61c25b469b41ef25ba9d70ca30c39717cae6。原v3在两轮结束后按精确CID关闭，proxy-v2与6h holder不动。新两轮official-overlap-v4-r1/r2已排队，串行同8case/12任务；不重画SDMA图、不改精度/算子、不为备份/PR停目标。
 
 **13:52Z基线两轮完成，首个优化候选已实际launch**：两轮共240/240正式64token请求的HTTP/长度/功能门槛通过，8case吞吐复测差异最大2.15%，额外算术均11/12。同一失败26token题D-native两次、官方PD一次都返回4；这是已有原生目标基线错误，不能单凭输出归因传输。正式基线摘要official-graph-baseline-summary-v1.json。
 

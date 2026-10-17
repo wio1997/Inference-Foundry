@@ -34,8 +34,9 @@ def distribution(values):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--run-id',required=True);parser.add_argument('--stage',choices=('baseline','mtp1'),required=True)
-    parser.add_argument('--waves',type=int,default=6);parser.add_argument('--revision',type=int,default=2);parser.add_argument('--ready-seconds',type=int,default=1200);parser.add_argument('--after-run');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--run-id',required=True);parser.add_argument('--stage',choices=('baseline','mtp1','shared-overlap'),required=True)
+    parser.add_argument('--waves',type=int,default=6);parser.add_argument('--revision',type=int,default=2);parser.add_argument('--ready-seconds',type=int,default=1200);parser.add_argument('--after-run');parser.add_argument('--prefill-revision',type=int);args=parser.parse_args()
+    prefill_revision=args.prefill_revision if args.prefill_revision is not None else args.revision
     assert socket.gethostname()=='B4-33U-Atlas900RCKA3-32' and re.fullmatch(r'[a-z0-9-]+',args.run_id) and 3<=args.waves<=12
     root=BASE/'tests'/args.run_id;root.mkdir(parents=True,exist_ok=False)
     fixtures={}
@@ -43,7 +44,7 @@ def main():
     for n in (256,1024):
         original=json.loads((source/f'cold-eager-reference-{n}.json').read_text());assert len(original['request']['prompt'])==n
         fixtures[n]=original['request']['prompt']
-    report={'completed':False,'passed':False,'stage':args.stage,'run_id':args.run_id,'revision':args.revision,
+    report={'completed':False,'passed':False,'stage':args.stage,'run_id':args.run_id,'revision':args.revision,'prefill_revision':prefill_revision,
         'started_host_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'state':'waiting_ready','cases':[],
         'scope':'Synthetic fixed256/64 and1024/64, C1/C4 closed-loop stock official proxy. Cold prefix uses unique salts; hot prefix reuses one salt per client after warmup. Initial connection/compile warmups separate. No profiler or payload audit. Task/numerical/exact-format checks separate; no production SLO/capacity or full model accuracy claim.'}
     def save(): (root/'progress.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -90,6 +91,7 @@ def main():
                 assert time.monotonic()<deadline,'Predecessor wait deadline exceeded';time.sleep(5)
             prior=json.loads(previous.read_text());assert prior['completed'] and prior['passed'],'Predecessor failed; do not overlap or hide its failure'
             deadline=time.monotonic()+args.ready_seconds
+            report['state']='waiting_ready';save()
         while True:
             ready=[]
             for role in ('P','D'):
@@ -99,7 +101,9 @@ def main():
                 except Exception:ready.append(False)
             if all(ready):break
             assert time.monotonic()<deadline,'Official pair readiness deadline exceeded';time.sleep(5)
-        assert not any(p.is_file() for p in (BASE/f'prefill-node32-v{args.revision}'/'profile').rglob('*')),'Profiler files in fresh formal timing instance'
+        prefill_root=BASE/f'prefill-node32-v{prefill_revision}'
+        assert (prefill_root/'launch.json').is_file(),'Missing formal prefill launch receipt'
+        assert not any(p.is_file() for p in (prefill_root/'profile').rglob('*')),'Profiler files in fresh formal timing instance'
         report['state']='connection_and_compile_warmup';save()
         report['initial_warmups']=[invoke(n,'connect-'+uuid.uuid4().hex) for n in (256,1024)]
         assert all(r['success'] for r in report['initial_warmups']),'Initial proxy functional check failed'

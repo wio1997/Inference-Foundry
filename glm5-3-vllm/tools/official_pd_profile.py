@@ -1,23 +1,43 @@
 #!/usr/bin/env python3
 """Capture one real official-PD request after the functional smoke, outside timing."""
+import argparse
 import datetime
 import json
 from pathlib import Path
 import socket
+import re
 import urllib.request
 import uuid
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run-id', default='path-profile-v1')
+    parser.add_argument('--after-run')
+    parser.add_argument('--prefill-revision', type=int, default=1)
+    parser.add_argument('--decode-revision', type=int, default=1)
+    parser.add_argument('--output-tokens', type=int, choices=(16, 32), default=16)
+    args = parser.parse_args()
+    assert re.fullmatch(r'[a-z0-9-]+', args.run_id)
     assert socket.gethostname() == 'B4-33U-Atlas900RCKA3-32'
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-official-pd')
-    assert json.loads((base/'consumer-audits/smoke-validation-v1/result.json').read_text())['completed']
-    out = base/'tests/path-profile-v1'; out.mkdir(parents=True, exist_ok=False)
+    if args.after_run:
+        assert re.fullmatch(r'[a-z0-9-]+', args.after_run)
+        formal = json.loads((base/'tests'/args.after_run/'result.json').read_text())
+        assert formal['completed'] and formal['passed'], 'Formal timing must finish before profiling'
+        assert formal['revision'] == args.decode_revision
+        assert formal.get('prefill_revision', formal['revision']) == args.prefill_revision
+    else:
+        assert args.prefill_revision == args.decode_revision == 1
+        assert json.loads((base/'consumer-audits/smoke-validation-v1/result.json').read_text())['completed']
+    out = base/'tests'/args.run_id; out.mkdir(parents=True, exist_ok=False)
     urls = {'P': 'http://172.16.12.32:29481', 'D': 'http://172.16.12.33:29482', 'proxy': 'http://172.16.12.32:29880'}
     source = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/tests/native-eager-c1-v1/cold-eager-reference-256.json')
     prompt = json.loads(source.read_text())['request']['prompt']; assert len(prompt) == 256
     report = {'completed': False, 'scope': 'Path evidence from a real stock-proxy request; profiling and dummy steps are excluded from all performance measurements.',
-              'started_host_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'requests': [], 'profiles': []}
+              'started_host_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'requests': [], 'profiles': [],
+              'after_formal_run': args.after_run, 'prefill_revision': args.prefill_revision,
+              'decode_revision': args.decode_revision}
     def post(role, path, value, timeout=180):
         q = urllib.request.Request(urls[role]+path, data=json.dumps(value).encode(), headers={'Content-Type': 'application/json'})
         with urllib.request.urlopen(q, timeout=timeout) as response:
@@ -38,7 +58,7 @@ def main():
         # arm the active window before the actual remote-KV request arrives.
         for role in ('P', 'D'):
             for unused in range(2): request(role, 1)
-        request('proxy', 16)
+        request('proxy', args.output_tokens)
         report['completed'] = True
     except Exception as exc:
         report['failure'] = type(exc).__name__+': '+str(exc)

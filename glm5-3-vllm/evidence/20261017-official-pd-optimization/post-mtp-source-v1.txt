@@ -1,0 +1,731 @@
+SOURCE /vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py 2f42ce56a7636bf618204dbc2c1aeb2a2c95fed69fe9e5bcfac995354a00beb4
+90:         routed_experts: AscendRoutedExperts,
+91:         enable_dbo=False,
+92:         gate=None,
+93:         shared_experts=None,
+94:         shared_expert_gate=None,
+95:         routed_input_transform=None,
+96:         routed_output_transform=None,
+97:         routed_scaling_factor=1,
+98:     ):
+99:         super().__init__(
+100:             layer_name,
+101:             moe_config,
+102:             router,
+103:             routed_experts,
+104:             enable_dbo,
+105:             gate,
+106:             shared_experts,
+107:             shared_expert_gate,
+108:             routed_input_transform,
+109:             routed_output_transform,
+110:             routed_scaling_factor,
+111:         )
+112:         self._gate = gate
+113:         self.hidden_size = moe_config.hidden_dim
+114: 
+115:         self.quant_type = routed_experts.quant_type
+116:         self.routed_experts.router = router
+117: 
+118:         self.moe_config.tp_group = get_tp_group()
+119:         self.moe_config.dp_group = get_dp_group()
+120:         if self.moe_config.ep_size > 1:
+121:             self.moe_config.ep_group = get_ep_group()
+122:             self.moe_config.mc2_group = get_mc2_group()
+123: 
+124:         # Internal-router: precast weight_fp32 at load to avoid hot-path Cast.
+125:         # Use ctor `gate` (not self.is_internal_router): Module.__getattr__ shadows during init.
+126:         if gate is not None and not hasattr(gate, "weight_fp32"):
+127:             gate.precast_fp32_weight = True
+128: 
+129:         self.ascend_shared_experts = None
+130:         if shared_experts is not None:
+131:             routed_experts.return_with_event = True
+132:             self.ascend_shared_experts = AscendSharedExperts(
+133:                 shared_experts,
+134:                 self.moe_config,
+135:                 self.quant_type,
+136:                 self._quant_method,
+137:             )
+138:             if self._can_overlap_sp_shared_with(self.routed_input_transform):
+139:                 self._forward_entry = torch.ops.vllm.ascend_moe_forward_shared_sp
+140: 
+141:         setup_moe_comm_method(self.moe_config)
+142:         # Communication objects are shared across MoE layers. Keep the bound
+143:         # activation with its owning layer when a later layer replaces them.
+144:         self.routed_experts.mega_moe_activation_kwargs = getattr(
+145:             get_moe_comm_method(MoECommType.FUSED_MC2, self.moe_config), "mega_moe_activation_kwargs", None
+146:         )
+147:         alltoall_comm = get_moe_comm_method(MoECommType.ALLTOALL, self.moe_config)
+148:         if alltoall_comm is not None:
+149:             expert_ids_per_ep_rank = getattr(alltoall_comm.token_dispatcher, "expert_ids_per_ep_rank", None)
+150:             if expert_ids_per_ep_rank is not None:
+151:                 self.routed_experts.register_buffer(
+152:                     "expert_ids_per_ep_rank",
+153:                     expert_ids_per_ep_rank,
+154:                     persistent=False,
+155:                 )
+225:         fused_output, fused_output_is_reduced = self._maybe_reduce_routed_output_before_transform(
+226:             fused_output,
+227:             fused_output_is_reduced,
+228:         )
+229: 
+230:         # If routed output is already reduced, reduce shared to match.
+231:         # See note above re: the two all-reduce points.
+232:         shared_output = self._maybe_reduce_shared_expert_output(shared_output, fused_output_is_reduced)
+233: 
+234:         shared_output, fused_output = self._maybe_apply_routed_scale_to_output(shared_output, fused_output)
+235: 
+236:         # Apply output transform (e.g. latent -> full dim)
+237:         fused_output = self.apply_routed_output_transform(fused_output)
+238: 
+239:         if shared_output is not None:
+240:             result = torch._foreach_add([shared_output], [fused_output])[0]
+241:         else:
+242:             result = fused_output
+243: 
+244:         result = self._maybe_reduce_final_output(result, og_hidden_dim_post_xform, fused_output_is_reduced)
+245: 
+246:         return self._maybe_add_zero_expert_output(result)
+247: 
+248:     @property
+249:     def is_internal_router(self) -> bool:
+250:         # main (cdc4824a21): vllm#51838 removed the gate branch in
+251:         # DeepseekV2MoE.forward, always passing router_logits=hidden_states.
+252:         # The runner must recompute router_logits via the gate.
+253:         return self.gate is not None
+254: 
+255:     @property
+256:     def use_dp_chunking(self) -> bool:
+257:         """Ascend uses its own forward_impl path, not the FlashInfer Cutlass
+258:         chunked path. Always return False to stay on forward_impl."""
+259:         return False
+260: 
+261:     def _can_overlap_sp_shared_with(self, routed_transform: object | None) -> bool:
+262:         """Limit SP shared-expert overlap changes to routed transforms.
+263: 
+264:         Kimi-K3 is currently the only Ascend model that supplies these latent
+265:         transforms. Keep the guard capability-based so every model without
+266:         them stays on the original single-stream synchronization path.
+267:         """
+268:         shared_experts = getattr(self, "ascend_shared_experts", None)
+269:         return (
+270:             routed_transform is not None
+271:             and shared_experts is not None
+272:             and shared_experts.multistream_overlap
+273:             and shared_experts.parallel_mode() is SharedExpertParallelMode.SEQUENCE_PARALLEL_ONLY
+274:         )
+275: 
+276:     @property
+277:     def _fused_output_is_reduced(self) -> bool:
+278:         # For MC2/ALLTOALL/FUSED_MC2 comm types, finalize() already includes
+279:         # TP all-reduce for the routed output, and AscendSharedExperts.forward
+280:         # handles it for the shared output. Signal this to the upstream
+281:         # MoERunner.forward() so _maybe_reduce_final_output does not apply a
+282:         # second TP all-reduce (which would double-count the contributions).
+283:         moe_comm_type = _EXTRA_CTX.moe_comm_type
+284:         return moe_comm_type in {
+285:             MoECommType.ALLTOALL,
+286:             MoECommType.MC2,
+287:             MoECommType.FUSED_MC2,
+288:         } or (moe_comm_type == MoECommType.ALLGATHER and self.moe_config.is_sequence_parallel)
+289: 
+290:     def _get_shared_expert_parallel_mode(self) -> SharedExpertParallelMode:
+291:         shared_experts = getattr(self, "ascend_shared_experts", None)
+292:         if shared_experts is None or not hasattr(shared_experts, "parallel_mode"):
+293:             return SharedExpertParallelMode.TENSOR_PARALLEL
+294:         return shared_experts.parallel_mode()
+295: 
+296:     @property
+297:     def local_num_experts(self) -> int:
+298:         """Number of physical experts managed by this EPLB layer."""
+299:         return self.moe_config.num_local_experts
+300: 
+301:     @property
+302:     def ep_rank(self) -> int:
+303:         return self.moe_config.ep_rank
+304: 
+305:     def _should_reduce_routed_before_combine(self) -> bool:
+306:         """Static layer policy; communication-dependent decisions stay in the op."""
+307:         # Shared DP already produces a complete output, so reduce routed first.
+308:         if self._get_shared_expert_parallel_mode() is SharedExpertParallelMode.SHARED_EXPERT_DATA_PARALLEL_ONLY:
+309:             return True
+310:         # A routed transform must receive the complete TP result.
+311:         if self.routed_output_transform is None or self.moe_config.is_sequence_parallel:
+312:             return False
+313:         return self.moe_config.tp_size > 1 or self.moe_config.ep_size > 1
+314: 
+315:     # Shared-expert layout-specific communication is handled by
+316:     # AscendSharedExperts, so only standard TP weights need a separate
+317:     # all-reduce when routed output has already been reduced.
+318:     def _maybe_reduce_shared_expert_output(  # type: ignore[misc]
+319:         self,
+320:         shared_output: torch.Tensor | None,
+321:         fused_output_is_reduced: bool | None = None,
+322:     ) -> torch.Tensor | None:
+323:         if (
+324:             shared_output is None
+325:             or self._get_shared_expert_parallel_mode() is not SharedExpertParallelMode.TENSOR_PARALLEL
+326:         ):
+327:             return shared_output
+328:         # The upstream boolean can be specialized during tracing. Only the
+329:         # model-static early-reduction policy may be tested outside the op.
+330:         if self._should_reduce_routed_before_combine():
+331:             return tensor_model_parallel_all_reduce(shared_output)
+332:         return torch.ops.vllm.maybe_all_reduce_shared_expert(shared_output, self.layer_name)
+333: 
+334:     def _maybe_reduce_routed_output_before_transform(
+335:         self,
+336:         fused_output: torch.Tensor,
+337:         fused_output_is_reduced: bool,
+338:     ) -> tuple[torch.Tensor, bool]:
+339:         if self._should_reduce_routed_before_combine():
+340:             fused_output = torch.ops.vllm.maybe_all_reduce_tensor_model_parallel(fused_output, self.layer_name)
+SOURCE /vllm-workspace/vllm/vllm/v1/core/kv_cache_manager.py 58800535eda854580d84e1025bf32fe01b2a43ce0bba501b4f3d125e4f2c8afa
+179:             scheduler_block_size=scheduler_block_size,
+180:             hash_block_size=hash_block_size,
+181:             metrics_collector=self.metrics_collector,
+182:             num_prefill_lookahead=num_prefill_lookahead,
+183:         )
+184:         # One predicate, read by both sides of the feature, so the scheduler
+185:         # cannot end a chunk at a junction the manager would refuse -- a refused
+186:         # junction costs a forward pass and displaces the block-boundary stop.
+187:         # Multi-module MTP is excluded because ``cache_blocks`` then hands the
+188:         # manager ``num_computed - num_reprefillable`` rather than the chunk end.
+189:         self.mamba_fine_grained_prefix_cache = (
+190:             enable_mamba_fine_grained_prefix_cache
+191:             and bool(self.coordinator.eagle_group_ids)
+192:             and self.coordinator.enable_partial_hash_hits
+193:             and self.coordinator.num_reprefillable_tokens == 0
+194:         )
+195:         if self.mamba_fine_grained_prefix_cache:
+196:             for manager in self.coordinator.single_type_managers:
+197:                 if isinstance(manager, MambaManager):
+198:                     manager.fine_grained_prefix_cache = True
+199:         self.num_kv_cache_groups = len(kv_cache_config.kv_cache_groups)
+SOURCE /vllm-workspace/vllm/vllm/v1/core/single_type_kv_cache_manager.py 0233531d85aeced9e57a38c76d83db970519c92902b7e55484390cb2b64985bf
+130:         # This is used to track the number of cached blocks for each request.
+131:         # This is only used to track the RUNNING requests, we do not track the
+132:         # data for preempted ones.
+133:         self.num_cached_block: dict[str, int] = {}
+134: 
+135:         self.kv_cache_group_id = kv_cache_group_id
+136:         self._null_block = block_pool.null_block
+137: 
+138:         # Whether this group's prefix-cache hits drop the EAGLE/MTP lookahead
+139:         # block. Only consulted by managers whose hit logic is sparse within an
+140:         # aligned segment (SWA). Initialized lazily by the coordinator after
+141:         # determining the attention groups.
+142:         self.use_eagle = False
+143:         # ``CacheConfig.enable_mamba_fine_grained_prefix_cache``, narrowed and set
+144:         # by ``KVCacheManager``; only an EAGLE Mamba "align" group ever gets it.
+145:         self.fine_grained_prefix_cache = False
+146:         # Partial-hit copy-on-write bookkeeping. Populated only by fine-grained
+147:         # managers (full attention, mamba "align"); harmlessly empty elsewhere.
+148:         self._partial_hit_reqs: dict[str, tuple[int, KVCacheBlock]] = {}
+149:         self._pending_cow_copies: list[tuple[KVCacheBlock, KVCacheBlock]] = []
+150:         # Boundary-state offload hand-off for external KV connectors. A mamba
+612:     ) -> tuple[tuple[list[KVCacheBlock], ...], int]:
+613:         """
+614:         Get the longest cache hit prefix of the blocks that is not longer than
+615:         `max_length`. The prefix should be a common prefix hit for all the
+616:         kv cache groups in `kv_cache_group_ids`. If no cache hit is found,
+617:         return an empty list.
+618:         If eagle is enabled, drop the last matched block to force recompute the
+619:         last block to get the required hidden states for eagle drafting head.
+620:         For multi-module MTP, this recompute also rewrites the dropped block's
+621:         draft-layer KVs, which depend on up to num_speculative_tokens - 1
+622:         tokens past the matched prefix (i.e. on the cache writer's
+623:         continuation, which the block hash does not cover); the coordinator
+624:         asserts the block size covers that window.
+625:         Need to be customized for each attention type.
+626: 
+627:         Args:
+628:             block_hashes: The block hashes of the request.
+629:             max_length: The maximum length of the cache hit prefix.
+630:             kv_cache_group_ids: The ids of the kv cache groups.
+631:             block_pool: The block pool.
+632:             kv_cache_spec: The kv cache spec.
+613:         """
+614:         Get the longest cache hit prefix of the blocks that is not longer than
+615:         `max_length`. The prefix should be a common prefix hit for all the
+616:         kv cache groups in `kv_cache_group_ids`. If no cache hit is found,
+617:         return an empty list.
+618:         If eagle is enabled, drop the last matched block to force recompute the
+619:         last block to get the required hidden states for eagle drafting head.
+620:         For multi-module MTP, this recompute also rewrites the dropped block's
+621:         draft-layer KVs, which depend on up to num_speculative_tokens - 1
+622:         tokens past the matched prefix (i.e. on the cache writer's
+623:         continuation, which the block hash does not cover); the coordinator
+624:         asserts the block size covers that window.
+625:         Need to be customized for each attention type.
+626: 
+627:         Args:
+628:             block_hashes: The block hashes of the request.
+629:             max_length: The maximum length of the cache hit prefix.
+630:             kv_cache_group_ids: The ids of the kv cache groups.
+631:             block_pool: The block pool.
+632:             kv_cache_spec: The kv cache spec.
+633:             drop_eagle_block: Whether to drop the last matched block for EAGLE/MTP.
+625:         Need to be customized for each attention type.
+626: 
+627:         Args:
+628:             block_hashes: The block hashes of the request.
+629:             max_length: The maximum length of the cache hit prefix.
+630:             kv_cache_group_ids: The ids of the kv cache groups.
+631:             block_pool: The block pool.
+632:             kv_cache_spec: The kv cache spec.
+633:             drop_eagle_block: Whether to drop the last matched block for EAGLE/MTP.
+634:                 Always False for non-EAGLE/MTP groups, but can be False for EAGLE/MTP
+635:                 groups too if the last block is already dropped (e.g., in a
+636:                 convergence loop in `find_longest_cache_hit`).
+637:             alignment_tokens: The returned cache hit length (in tokens) should
+638:                 be a multiple of this value (in tokens). By default, it should
+639:                 be set to the block_size.
+640:             dcp_world_size: The world size of decode context parallelism.
+641:             pcp_world_size: The world size of prefill context parallelism.
+642: 
+643:         Returns:
+644:             A tuple containing cached blocks and the exact cache-hit length in
+645:             tokens. The cached block tuple has skipped blocks replaced by null
+626: 
+627:         Args:
+628:             block_hashes: The block hashes of the request.
+629:             max_length: The maximum length of the cache hit prefix.
+630:             kv_cache_group_ids: The ids of the kv cache groups.
+631:             block_pool: The block pool.
+632:             kv_cache_spec: The kv cache spec.
+633:             drop_eagle_block: Whether to drop the last matched block for EAGLE/MTP.
+634:                 Always False for non-EAGLE/MTP groups, but can be False for EAGLE/MTP
+635:                 groups too if the last block is already dropped (e.g., in a
+636:                 convergence loop in `find_longest_cache_hit`).
+637:             alignment_tokens: The returned cache hit length (in tokens) should
+638:                 be a multiple of this value (in tokens). By default, it should
+639:                 be set to the block_size.
+640:             dcp_world_size: The world size of decode context parallelism.
+641:             pcp_world_size: The world size of prefill context parallelism.
+642: 
+643:         Returns:
+644:             A tuple containing cached blocks and the exact cache-hit length in
+645:             tokens. The cached block tuple has skipped blocks replaced by null
+646:             blocks for each kv cache group in `kv_cache_group_ids`.
+941:         self._remove_blocks_in_range(request_id, first_gap_block, last_gap_block)
+942: 
+943: 
+944: class SlidingWindowManager(SingleTypeKVCacheManager):
+945:     def __init__(self, kv_cache_spec: SlidingWindowSpec, **kwargs) -> None:
+946:         super().__init__(kv_cache_spec, **kwargs)
+947:         self.sliding_window = kv_cache_spec.sliding_window
+948:         # Extra trailing tokens to retain below the window (never attended) so a
+949:         # multi-module MTP store-side lag can still reconstruct the window from
+950:         # cached blocks.
+951:         self.extra_retained_tokens = kv_cache_spec.extra_retained_tokens
+952: 
+953:     @classmethod
+954:     def _contiguous_blocks_for_hit(
+955:         cls, window_size: int, block_size: int, use_eagle: bool
+956:     ) -> int:
+957:         blocks = cdiv(window_size - 1, block_size)
+958:         if use_eagle:
+959:             # Need to drop the last matched block if eagle is enabled. For
+960:             # sliding window layer, we achieve this by increasing the number of
+961:             # contiguous blocks needed for prefix cache hit by one and dropping
+1322:         we return 4 blocks[null, null, null, null]
+1323: 
+1324:         Args:
+1325:             block_hashes: The block hashes of the request.
+1326:             max_length: The maximum length of the cache hit prefix.
+1327:             kv_cache_group_ids: The ids of the kv cache groups.
+1328:             block_pool: The block pool.
+1329:             kv_cache_spec: The kv cache spec.
+1330:             drop_eagle_block: Whether to drop the last matched block for EAGLE/MTP.
+1331:             dcp_world_size: The world size of decode context parallelism.
+1332:             pcp_world_size: The world size of prefill context parallelism.
+1333:             alignment_tokens: The returned cache hit length (in tokens) should
+1334:                 be a multiple of this value (in tokens).
+1335: 
+1336:         Returns:
+1337:             A list of cached blocks
+1338:         """
+1339:         assert isinstance(kv_cache_spec, ChunkedLocalAttentionSpec), (
+1340:             "ChunkedLocalAttentionManager can only be used for "
+1341:             "chunked local attention groups"
+1342:         )
+1454:         self, kv_cache_spec: MambaSpec, block_pool: BlockPool, **kwargs
+1455:     ) -> None:
+1456:         super().__init__(kv_cache_spec, block_pool, **kwargs)
+1457:         # Mamba layers use TP instead of DCP, so each rank holds the full
+1458:         # recurrent state. Undo the DCP/PCP block_size scaling that the base
+1459:         # class applies for attention groups whose KV cache is partitioned.
+1460:         self.block_size = kv_cache_spec.block_size
+1461:         self.mamba_cache_mode = kv_cache_spec.mamba_cache_mode
+1462:         self.num_speculative_blocks: int = kv_cache_spec.num_speculative_blocks
+1463:         self.has_prefill_checkpoint_blocks = (
+1464:             self.mamba_cache_mode == "align"
+1465:             and kv_cache_spec.num_prefill_checkpoint_blocks > 0
+1466:         )
+1467:         # Mamba checkpoints follow Eagle's global replay boundary.
+1468:         self.drop_eagle_checkpoint_block = False
+1469:         self.cached_blocks_this_step: set[BlockHashWithGroupId] = set()
+1470:         if self.mamba_cache_mode == "align":
+1471:             # Mapping from request ID to the index of the block
+1472:             # allocated in the previous step
+1473:             self.last_state_block_idx: dict[str, int] = {}
+1474:             self._num_retired_blocks: dict[str, int] = {}
+1700:                 checkpoint_alignment=(self.kv_cache_spec.prefill_checkpoint_alignment),
+1701:             )
+1702:             and checkpoint_idx >= 0
+1703:             and (
+1704:                 checkpoint_idx >= len(blocks)
+1705:                 or blocks[checkpoint_idx].is_null
+1706:                 or (
+1707:                     request_id in self._allocated_block_reqs
+1708:                     and checkpoint_idx >= len(blocks) - self.num_speculative_blocks
+1709:                 )
+1710:             )
+1711:         )
+1712: 
+1713:     def get_num_blocks_to_allocate(
+1714:         self,
+1715:         request_id: str,
+1716:         num_tokens: int,
+1717:         new_computed_blocks: Sequence[KVCacheBlock],
+1718:         total_computed_tokens: int,
+1719:         num_local_computed_tokens: int,
+1720:         num_tokens_main_model: int,
+1726:             and new_computed_blocks[-1].block_hash in self.cached_blocks_this_step
+1727:         ):
+1728:             # Mamba can't rely on blocks generated by other requests in the current step
+1729:             # To put it in the next step, we return num_gpu_blocks + 1 so
+1730:             # that kv_cache_manager will think there is no enough blocks to allocate now
+1731:             # and don't schedule it in the current step.
+1732:             return self.block_pool.num_gpu_blocks + 1
+1733:         if self.mamba_cache_mode != "align":
+1734:             # Allocate extra `num_speculative_blocks` blocks for
+1735:             # speculative decoding (MTP/EAGLE) with linear attention.
+1736:             if self.num_speculative_blocks > 0:
+1737:                 num_tokens += (
+1738:                     self.kv_cache_spec.block_size * self.num_speculative_blocks
+1739:                 )
+1740:             return super().get_num_blocks_to_allocate(
+1741:                 request_id,
+1742:                 num_tokens,
+1743:                 new_computed_blocks,
+1744:                 total_computed_tokens,
+1745:                 num_local_computed_tokens,
+1746:                 num_tokens_main_model,
+1727:         ):
+1728:             # Mamba can't rely on blocks generated by other requests in the current step
+1729:             # To put it in the next step, we return num_gpu_blocks + 1 so
+1730:             # that kv_cache_manager will think there is no enough blocks to allocate now
+1731:             # and don't schedule it in the current step.
+1732:             return self.block_pool.num_gpu_blocks + 1
+1733:         if self.mamba_cache_mode != "align":
+1734:             # Allocate extra `num_speculative_blocks` blocks for
+1735:             # speculative decoding (MTP/EAGLE) with linear attention.
+1736:             if self.num_speculative_blocks > 0:
+1737:                 num_tokens += (
+1738:                     self.kv_cache_spec.block_size * self.num_speculative_blocks
+1739:                 )
+1740:             return super().get_num_blocks_to_allocate(
+1741:                 request_id,
+1742:                 num_tokens,
+1743:                 new_computed_blocks,
+1744:                 total_computed_tokens,
+1745:                 num_local_computed_tokens,
+1746:                 num_tokens_main_model,
+1747:                 apply_admission_cap=apply_admission_cap,
+1728:             # Mamba can't rely on blocks generated by other requests in the current step
+1729:             # To put it in the next step, we return num_gpu_blocks + 1 so
+1730:             # that kv_cache_manager will think there is no enough blocks to allocate now
+1731:             # and don't schedule it in the current step.
+1732:             return self.block_pool.num_gpu_blocks + 1
+1733:         if self.mamba_cache_mode != "align":
+1734:             # Allocate extra `num_speculative_blocks` blocks for
+1735:             # speculative decoding (MTP/EAGLE) with linear attention.
+1736:             if self.num_speculative_blocks > 0:
+1737:                 num_tokens += (
+1738:                     self.kv_cache_spec.block_size * self.num_speculative_blocks
+1739:                 )
+1740:             return super().get_num_blocks_to_allocate(
+1741:                 request_id,
+1742:                 num_tokens,
+1743:                 new_computed_blocks,
+1744:                 total_computed_tokens,
+1745:                 num_local_computed_tokens,
+1746:                 num_tokens_main_model,
+1747:                 apply_admission_cap=apply_admission_cap,
+1748:             )
+1730:             # that kv_cache_manager will think there is no enough blocks to allocate now
+1731:             # and don't schedule it in the current step.
+1732:             return self.block_pool.num_gpu_blocks + 1
+1733:         if self.mamba_cache_mode != "align":
+1734:             # Allocate extra `num_speculative_blocks` blocks for
+1735:             # speculative decoding (MTP/EAGLE) with linear attention.
+1736:             if self.num_speculative_blocks > 0:
+1737:                 num_tokens += (
+1738:                     self.kv_cache_spec.block_size * self.num_speculative_blocks
+1739:                 )
+1740:             return super().get_num_blocks_to_allocate(
+1741:                 request_id,
+1742:                 num_tokens,
+1743:                 new_computed_blocks,
+1744:                 total_computed_tokens,
+1745:                 num_local_computed_tokens,
+1746:                 num_tokens_main_model,
+1747:                 apply_admission_cap=apply_admission_cap,
+1748:             )
+1749:         else:
+1750:             # We don't allocate blocks for lookahead tokens in align mode, because if
+1752:             # x * block_size + num_lookahead_tokens and breaks the alignment.
+1753:             # We can ignore lookahead tokens because current draft models don't have
+1754:             # mamba layers.
+1755:             num_tokens = num_tokens_main_model
+1756: 
+1757:             # NOTE(tdouble): this is an over-estimate of how many blocks we need because
+1758:             # num_tokens can include draft tokens that will later be rejected.
+1759:             num_required_blocks = (
+1760:                 cdiv(num_tokens, self.block_size) + self.num_speculative_blocks
+1761:             )
+1762:             num_new_blocks = (
+1763:                 num_required_blocks
+1764:                 - len(new_computed_blocks)
+1765:                 - len(self.req_to_blocks[request_id])
+1766:             )
+1767:             has_partial_hit = (
+1768:                 self._has_partial_local_hit(
+1769:                     new_computed_blocks, num_local_computed_tokens
+1770:                 )
+1771:                 or request_id in self._partial_hit_reqs
+1772:             )
+1794:                     )
+1795:                 else:
+1796:                     self._checkpoints.pop(request_id, None)
+1797:             if num_new_blocks > 0:
+1798:                 blocks_allocated = request_id in self._allocated_block_reqs
+1799:                 if not (checkpoint_block and blocks_allocated):
+1800:                     num_new_blocks = 1 + int(has_partial_hit) + checkpoint_block
+1801:                     if not blocks_allocated:
+1802:                         num_new_blocks += self.num_speculative_blocks
+1803: 
+1804:             num_evictable_computed_blocks = self._get_num_evictable_blocks(
+1805:                 new_computed_blocks
+1806:             )
+1807:             return num_new_blocks + num_evictable_computed_blocks
+1808: 
+1809:     def allocate_new_blocks(
+1810:         self, request_id: str, num_tokens: int, num_tokens_main_model: int
+1811:     ) -> list[KVCacheBlock]:
+1812:         assert isinstance(self.kv_cache_spec, MambaSpec)
+1813:         if self.mamba_cache_mode != "align":
+1814:             # Allocate extra `num_speculative_blocks` blocks for
+1806:             )
+1807:             return num_new_blocks + num_evictable_computed_blocks
+1808: 
+1809:     def allocate_new_blocks(
+1810:         self, request_id: str, num_tokens: int, num_tokens_main_model: int
+1811:     ) -> list[KVCacheBlock]:
+1812:         assert isinstance(self.kv_cache_spec, MambaSpec)
+1813:         if self.mamba_cache_mode != "align":
+1814:             # Allocate extra `num_speculative_blocks` blocks for
+1815:             # speculative decoding (MTP/EAGLE) with linear attention.
+1816:             if self.num_speculative_blocks > 0:
+1817:                 num_tokens += self.block_size * self.num_speculative_blocks
+1818:             return super().allocate_new_blocks(
+1819:                 request_id, num_tokens, num_tokens_main_model
+1820:             )
+1821:         else:
+1822:             # We don't allocate blocks for lookahead tokens in align mode, because if
+1823:             # x * block_size tokens are scheduled, num_tokens is
+1824:             # x * block_size + num_lookahead_tokens and breaks the alignment.
+1825:             # We can ignore lookahead tokens because current draft models don't have
+1826:             # mamba layers.
+1807:             return num_new_blocks + num_evictable_computed_blocks
+1808: 
+1809:     def allocate_new_blocks(
+1810:         self, request_id: str, num_tokens: int, num_tokens_main_model: int
+1811:     ) -> list[KVCacheBlock]:
+1812:         assert isinstance(self.kv_cache_spec, MambaSpec)
+1813:         if self.mamba_cache_mode != "align":
+1814:             # Allocate extra `num_speculative_blocks` blocks for
+1815:             # speculative decoding (MTP/EAGLE) with linear attention.
+1816:             if self.num_speculative_blocks > 0:
+1817:                 num_tokens += self.block_size * self.num_speculative_blocks
+1818:             return super().allocate_new_blocks(
+1819:                 request_id, num_tokens, num_tokens_main_model
+1820:             )
+1821:         else:
+1822:             # We don't allocate blocks for lookahead tokens in align mode, because if
+1823:             # x * block_size tokens are scheduled, num_tokens is
+1824:             # x * block_size + num_lookahead_tokens and breaks the alignment.
+1825:             # We can ignore lookahead tokens because current draft models don't have
+1826:             # mamba layers.
+1827:             num_tokens = num_tokens_main_model
+1808: 
+1809:     def allocate_new_blocks(
+1810:         self, request_id: str, num_tokens: int, num_tokens_main_model: int
+1811:     ) -> list[KVCacheBlock]:
+1812:         assert isinstance(self.kv_cache_spec, MambaSpec)
+1813:         if self.mamba_cache_mode != "align":
+1814:             # Allocate extra `num_speculative_blocks` blocks for
+1815:             # speculative decoding (MTP/EAGLE) with linear attention.
+1816:             if self.num_speculative_blocks > 0:
+1817:                 num_tokens += self.block_size * self.num_speculative_blocks
+1818:             return super().allocate_new_blocks(
+1819:                 request_id, num_tokens, num_tokens_main_model
+1820:             )
+1821:         else:
+1822:             # We don't allocate blocks for lookahead tokens in align mode, because if
+1823:             # x * block_size tokens are scheduled, num_tokens is
+1824:             # x * block_size + num_lookahead_tokens and breaks the alignment.
+1825:             # We can ignore lookahead tokens because current draft models don't have
+1826:             # mamba layers.
+1827:             num_tokens = num_tokens_main_model
+1828:             req_blocks: list[KVCacheBlock] = self.req_to_blocks[request_id]
+1809:     def allocate_new_blocks(
+1810:         self, request_id: str, num_tokens: int, num_tokens_main_model: int
+1811:     ) -> list[KVCacheBlock]:
+1812:         assert isinstance(self.kv_cache_spec, MambaSpec)
+1813:         if self.mamba_cache_mode != "align":
+1814:             # Allocate extra `num_speculative_blocks` blocks for
+1815:             # speculative decoding (MTP/EAGLE) with linear attention.
+1816:             if self.num_speculative_blocks > 0:
+1817:                 num_tokens += self.block_size * self.num_speculative_blocks
+1818:             return super().allocate_new_blocks(
+1819:                 request_id, num_tokens, num_tokens_main_model
+1820:             )
+1821:         else:
+1822:             # We don't allocate blocks for lookahead tokens in align mode, because if
+1823:             # x * block_size tokens are scheduled, num_tokens is
+1824:             # x * block_size + num_lookahead_tokens and breaks the alignment.
+1825:             # We can ignore lookahead tokens because current draft models don't have
+1826:             # mamba layers.
+1827:             num_tokens = num_tokens_main_model
+1828:             req_blocks: list[KVCacheBlock] = self.req_to_blocks[request_id]
+1829:             # NOTE(tdouble): this is an over-estimate of how many blocks we need because
+1824:             # x * block_size + num_lookahead_tokens and breaks the alignment.
+1825:             # We can ignore lookahead tokens because current draft models don't have
+1826:             # mamba layers.
+1827:             num_tokens = num_tokens_main_model
+1828:             req_blocks: list[KVCacheBlock] = self.req_to_blocks[request_id]
+1829:             # NOTE(tdouble): this is an over-estimate of how many blocks we need because
+1830:             # num_tokens can include draft tokens that will later be rejected.
+1831:             num_required_blocks = (
+1832:                 cdiv(num_tokens, self.block_size) + self.num_speculative_blocks
+1833:             )
+1834:             checkpoint_block = int(request_id in self._checkpoints)
+1835:             partial_hit = self._partial_hit_reqs.get(request_id)
+1836:             has_partial_hit = partial_hit is not None
+1837:             # `num_required_blocks` might be less than `len(req_blocks)` if blocks are
+1838:             # over-allocated at last round.
+1839:             if (
+1840:                 num_required_blocks <= len(req_blocks)
+1841:                 and not has_partial_hit
+1842:                 and not checkpoint_block
+1843:             ):
+1844:                 self._allocated_block_reqs.add(request_id)
+1844:                 self._allocated_block_reqs.add(request_id)
+1845:                 return []
+1846:             else:
+1847:                 prev_block_len = len(req_blocks)
+1848:                 blocks_allocated = request_id in self._allocated_block_reqs
+1849:                 # Record the last state block
+1850:                 if blocks_allocated:
+1851:                     # We always save the running state at the last
+1852:                     # (1 + num_speculative_blocks) block
+1853:                     self.last_state_block_idx[request_id] = (
+1854:                         prev_block_len - 1 - self.num_speculative_blocks
+1855:                     )
+1856:                 elif prev_block_len > 0:
+1857:                     # When a new request hits the prefix cache, the last block
+1858:                     # saves the hit state.
+1859:                     self.last_state_block_idx[request_id] = prev_block_len - 1
+1860: 
+1861:                 num_skipped_blocks = (
+1862:                     num_required_blocks - self.num_speculative_blocks - 1
+1863:                 )
+1864:                 # null blocks
+1846:             else:
+1847:                 prev_block_len = len(req_blocks)
+1848:                 blocks_allocated = request_id in self._allocated_block_reqs
+1849:                 # Record the last state block
+1850:                 if blocks_allocated:
+1851:                     # We always save the running state at the last
+1852:                     # (1 + num_speculative_blocks) block
+1853:                     self.last_state_block_idx[request_id] = (
+1854:                         prev_block_len - 1 - self.num_speculative_blocks
+1855:                     )
+1856:                 elif prev_block_len > 0:
+1857:                     # When a new request hits the prefix cache, the last block
+1858:                     # saves the hit state.
+1859:                     self.last_state_block_idx[request_id] = prev_block_len - 1
+1860: 
+1861:                 num_skipped_blocks = (
+1862:                     num_required_blocks - self.num_speculative_blocks - 1
+1863:                 )
+1864:                 # null blocks
+1865:                 if prev_block_len < num_skipped_blocks:
+1866:                     # minus the internal checkpoint block
+1854:                         prev_block_len - 1 - self.num_speculative_blocks
+1855:                     )
+1856:                 elif prev_block_len > 0:
+1857:                     # When a new request hits the prefix cache, the last block
+1858:                     # saves the hit state.
+1859:                     self.last_state_block_idx[request_id] = prev_block_len - 1
+1860: 
+1861:                 num_skipped_blocks = (
+1862:                     num_required_blocks - self.num_speculative_blocks - 1
+1863:                 )
+1864:                 # null blocks
+1865:                 if prev_block_len < num_skipped_blocks:
+1866:                     # minus the internal checkpoint block
+1867:                     # so we don't set null for that block
+1868:                     null_end = num_skipped_blocks - checkpoint_block
+1869:                     req_blocks.extend(
+1870:                         [self._null_block for _ in range(prev_block_len, null_end)]
+1871:                     )
+1872: 
+1873:                 if blocks_allocated and not checkpoint_block:
+1874:                     # Relocate exclusively owned speculative scratch blocks.
+1868:                     null_end = num_skipped_blocks - checkpoint_block
+1869:                     req_blocks.extend(
+1870:                         [self._null_block for _ in range(prev_block_len, null_end)]
+1871:                     )
+1872: 
+1873:                 if blocks_allocated and not checkpoint_block:
+1874:                     # Relocate exclusively owned speculative scratch blocks.
+1875:                     for block_idx in range(
+1876:                         prev_block_len - self.num_speculative_blocks, prev_block_len
+1877:                     ):
+1878:                         if block_idx < num_skipped_blocks:
+1879:                             self._relocate_speculative_block(req_blocks, block_idx)
+1880:                         else:
+1881:                             break
+1882:                 num_new_blocks = max(num_required_blocks - len(req_blocks), 0)
+1883:                 if has_partial_hit:
+1884:                     num_new_blocks = max(num_new_blocks, 0) + 1
+1885:                 max_new_blocks = 1 + int(has_partial_hit) + checkpoint_block
+1886:                 if not blocks_allocated or checkpoint_block:
+1887:                     max_new_blocks += self.num_speculative_blocks
+1888:                 assert num_new_blocks <= max_new_blocks
+1879:                             self._relocate_speculative_block(req_blocks, block_idx)
+1880:                         else:
+1881:                             break
+1882:                 num_new_blocks = max(num_required_blocks - len(req_blocks), 0)
+1883:                 if has_partial_hit:
+1884:                     num_new_blocks = max(num_new_blocks, 0) + 1
+1885:                 max_new_blocks = 1 + int(has_partial_hit) + checkpoint_block
+1886:                 if not blocks_allocated or checkpoint_block:
+1887:                     max_new_blocks += self.num_speculative_blocks
+1888:                 assert num_new_blocks <= max_new_blocks
+1889:                 new_blocks = self.block_pool.get_new_blocks(num_new_blocks)
+1890:                 returned_blocks = req_blocks[prev_block_len:]
+1891:                 if partial_hit is not None:
+1892:                     block_idx, source_block = partial_hit
+1893:                     cow_block = new_blocks[0]
+1894:                     new_blocks = new_blocks[1:]
+1895:                     if blocks_allocated:
+1896:                         # The worker block table of a running request is
+1897:                         # append-only, so the request must stay on
+1898:                         # source_block. Move the cache entry to cow_block
+1899:                         # instead; the queued copy fills it before forward

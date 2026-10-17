@@ -33,7 +33,7 @@ def main():
     logs=subprocess.run(['docker','logs','--timestamps',cid],capture_output=True,timeout=30);raw=logs.stdout+b'\nSTDERR\n'+logs.stderr
     out=base/'consumer-audits'/f'node{node}-opt-v{args.revision}-lifecycle';out.mkdir(parents=True,exist_ok=False)
     (out/'console.txt.gz').write_bytes(gzip.compress(raw,compresslevel=1))
-    report={'node':node,'container_id':cid,'state':state,'client_gate':gate,'host_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'raw_console_sha256':hashlib.sha256(raw).hexdigest(),'reason':'Necessary one-time native MTP configuration switch after both baseline repeats, not a phase/backup/timer stop. Proxy and six-hour resource holder remain.'}
+    report={'node':node,'container_id':cid,'state':state,'client_gate':gate,'host_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'raw_console_sha256':hashlib.sha256(raw).hexdigest(),'reason':'Necessary bounded mechanism configuration switch after both completed comparison repeats. Proxy and six-hour resource holder remain.'}
     (out/'result.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));assert not state['Running'] and not state['OOMKilled']
 
 

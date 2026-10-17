@@ -32,6 +32,7 @@ def main():
         'errors': [s for s in lines if re.search(r'ERROR|Traceback|RuntimeError|ValidationError', s)][-45:],
         'connector_graph_transfer_lines': [s for s in lines if re.search(r'Mooncake|TransferEngine|transfer|remote|replay|Graph capturing finished|HCCS|SDMA|RDMA|protocol|Loading.*checkpoint|Loading model weights', s, re.I)][-75:],
         'completed_transfer_lines': [s for s in lines if 'KV cache transfer for requests' in s],
+        'shared_expert_consistency': [s for s in lines if 'Shared expert split computation validation' in s],
         'actual_graph_replay': [s for s in lines if 'ACL graph replay is active' in s],
         'graph_capture': [s for s in lines if 'Graph capturing finished' in s],
         'transport_lines': [s for s in lines if re.search(r'HCCS|SDMA|RDMA|[Ll]ink[Tt]ype', s)][-30:],
