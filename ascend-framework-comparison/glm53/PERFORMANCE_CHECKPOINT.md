@@ -1,3 +1,26 @@
+# GLM-5.3 ordinary W8A8: current accepted deployment measurements
+
+Five conditions are independently valid; optimized SGLang C64 is active. All accepted conditions fail the fixed latency SLA. Primary throughput uses the full first-dispatch-to-last-terminal clock and only successful formal D output.
+
+| Framework | C | Requests | Output tokens/s | TTFT P50 (s) | TPOT P50 (ms) | SLA |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| vllm | 16 | 64/64 | 441.2158 | 6.5150 | 18.3460 | Fail |
+| sglang | 16 | 64/64 | 103.0997 | 8.3098 | 124.1661 | Fail |
+| vllm | 32 | 128/128 | 530.8125 | 21.1620 | 19.1527 | Fail |
+| sglang | 32 | 128/128 | 165.6284 | 13.1921 | 136.4805 | Fail |
+| vllm | 64 | 256/256 | 550.2465 | 53.0458 | 20.0138 | Fail |
+
+SGLang C16 before/after:94.1764→103.0997tokens/s, observed+9.475percent in one matched pair. Repeat noise has not been estimated; no generalized or statistical gain claim. No unoptimized SGLang C32/C64 baseline exists. This compares native deployments, including different hardware groups/graph/cache/staging/SDK packaging; it is not pure framework attribution.
+
+vLLM C64 original strict native V2 audit rejected four periodic GD_TO_LD tails (GOODdelta636, fourlastON_FLY1). Those raw values and the failure remain unchanged. The independent supplement verifies each of32Dworkers has20balanced WAIT andREAD_SIZE completions matching successful native and typed-model-state reads:640total,320logicalrequests×2workers. Every other V2 request/cache/bytes/graph/MTP/metrics/source/error/idle check passes. Official v1.2.1 ptracer source only emits a periodic point when BEGIN increases; an end-only period can leave its prior row visible. Installed SDK binary equivalence is not claimed; acceptance rests on the independent actual completion evidence. No SDK flush/change or model rerun was used.
+
+Native vLLM D local-cache source fraction including warmup/formal is75.29percent atC16/C32 and2.60percent atC64; descriptor bytes are0.3016/0.6033/4.7530TB. These are observed native accounting and descriptors, not physical-wire bytes or proof of a specific eviction cause. The C16 PD-volume difference must not be generalized toC64. Exact counts/scope:results/vllm-native-cache-composition-C16-C32-C64-v1.json.
+
+Current comparison:results/L04-matched-deployment-comparison-v1.json. vLLM C64 certificate:results/vllm-formal-C64-v2-measurement-v1.json,SHAfc6f065f561b5326fc910d8284723a9ec960fb33c4da89ce8837a575f5f06774. Supplement:results/vllm-C64-SDK-completion-review-v1.json; original rejection:results/vllm-formal-C64-v2-native-audit-attempt-v1.json.
+
+<!-- CURRENT_MATRIX_END -->
+
+## Earlier checkpoints retained for provenance
 # GLM-5.3 ordinary W8A8: measured L04 routing metadata trial
 
 One full C16 before/after observation is valid after independent client and native audits. The D-only overlay batches three routing-count downloads into one and supplies the known repeat output size, preserving the native alltoall-normal algorithm, ordinary W8A8, MTP5/6, SDMA, graph/overlap settings, cache policy and hardware budget. CPU property/spawn fixtures, all32actualDworkers, all16D-DP short cases, two80K semantic cases and native cache/SDMA checks passed before the trial.

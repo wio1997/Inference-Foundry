@@ -1,3 +1,33 @@
+## CURRENT — V64 independently VALID via completion supplement; SG64actual2000 ACTIVE
+
+**ACTIVE SG C64 ZCode47990**, run20261017T2000-sglang-formal-C64-L04-v2. Exactlauncher run_sglang_metadata_formal_C64_v2.py SHA**06a84964b1ca5f796b4c8435ec5ac9ecc23df5fe6ad3860472bf8a48507f48a8**; settingsformal-C64-v2.json SHA**a714ac75525bdd00812d757dcb8233481298d94d2748d3e914f3f6ed34c25761**. Same1954/client935/controller681/canonicalc4a6/SDMA/MTP5/6/eager/cache/pool. All5postAST/resourceexclusionactualV64closedidle/staticpredecessorcerts passed. 64serialrealwarm→all111552components/768repeatpayloadreads→256formal80000/600 continuousC64. Allactivecounts excluded. No otherresourceSSHwhileclient+gate active. Next2002post exact inspect_sglang_metadata_formal_C64_v2.py SHA24bdae06de9f7ee5d922ced3de6ab6063ff2936829872b490f4cd40bdd02d743, samecapturehelper520.../all5; then localL04client/nativeV2audit2000/2002/before1992. NEVER originalgenericSGauditors.
+
+V64cert **results/vllm-formal-C64-v2-measurement-v1.json SHAfc6f065f561b5326fc910d8284723a9ec960fb33c4da89ce8837a575f5f06774**, valid550.246505372569TPS/SLAFalse. NewLOCALnativeV3 keeps originalV2input/cache/requestjoin/typedbytes/MTP/graph/fullmetrics/SDKbad/source/error/idlechecks; only DperiodicGDgoodbalance replaced by perworker independentWAIT+READ_SIZE+actualnative/typedcompletions. All32Dworkers20each=640, actualrequestjoin320logical×2, originalGDGOOD636 and4lastONFLY1 preserved. V2failurestillresults/vllm-formal-C64-v2-native-audit-attempt-v1.json, no syntheticzero/counteredits/newmodelcalls. Completionreviewhelpera85c9bd4c51246500f52eae90988e7615e7387d4cca31fa15a778a87c074e699;32positive/10negativepurefixtures pass. PublicSDKv1.2.1begin-onlyperiodValid explainsend-onlyrowomission, installedbinaryequivalencenotclaimed; acceptanceactualindependent640WAIT/SIZE/API/typedrc0/byte evidence. NativeV3prooffilevllm-formal-C64-v2-native-v3.json,sourcequalificationJSON andsupplementincludedfornextGit. OriginalV16/V32certs unchanged.
+
+SDKdiagnostic1886missinggziptoolbug preserved;1887recoveryreadexistingSDKsnapshotsbothnodesrc0/purelocalgzipfixture2pass. No rotations/currentCIDs/idlemetrics0. Mac/nodeUTCskew meansinitialcrosshosttimestampstaleinferencewithdrawn. No SDKflush/modification/retest.
+
+Counts completed3469HTTP/3452success/753356out; functional23134/formal728400/warm1822;primaryformal1152offered1150success690000out. Lastcounted1880;active2000excluded. LatestactualGit98b5a9a89c7a7a1c4d65b0ca75c4e995a5014b9c375verified/13ownpaths; newerV64proofs/helpers/docs/SG64prepared sourceUNPUBLISHED untilnextselectivecheckpoint. No rawlogs/IDs/text/traces/binaries. Originalgoalactive/no partialfinal. Currentdate2026-10-18 local, immutableexistingrunIDs20261017retained.
+
+## CURRENT — V64client complete256/256550.2465TPS; native1884active
+
+vLLM1880 RPCdone/connection0/client original acceptedTrue; 64/64warm+allprefix readgate pass,256/256formal80000/600,640backendHTTP/153984totalout. Formal153600Dout/full279.14761566s=**550.246505372569TPS**. TTFT53.04577/54.69895/68.53147s; TPOT20.01378/22.53425/26.95508ms; SLAFalse. Correct local client result filename **results/vllm-formal-C64-v2-client-audit-v1.json** (includes`-formal-`); local auditor exit0. Initial readonly reader misspelledfilename only, no resource/HTTP impact.
+
+Nativepost1884ACTUAL **ZCode77629** exactinspect_vllm_formal_C64_native_v4.py SHA c116f8a9088fa5b5f6b7c0d2ee70ac010415e7f8f7e1833b61a5489657c44f50, max2SSH/all4readonlyfullcodec/metrics/SDK/SDMA. Afterall4rc0: localnativeV2 audit1880/1884/before1874. ThenprepareSG64V2 (requiresactualvalidV64+SG16/32). CurrentSG1954/V1766 unchanged. No otherresourcejobuntilnative1884closed. Completedledger3469HTTP/3452success/753356out, functional23134/formal728400/warm1822; primaryformal1152offered1150success690000out. Lastcounted1880, neverincrementtwice. Capture0modelHTTP.
+
+LatestGit98b5a9a89c7a7a1c4d65b0ca75c4e995a5014b9c375verified/13ownpaths actualpublished; docsUNFROZEN. NewdocsreconciliationJSON+STATEupdatesunpublisheduntilfinalcheckpoint. Keeporiginalgoalactive/no partialfinal. SeeRECOVERY_LATEST.
+
+## CURRENT Git C32 now PUBLISHED98b5a9a — prior networkfailures superseded
+
+Actual remote publication **98b5a9a89c7a7a1c4d65b0ca75c4e995a5014b9c**, ownfa85cf9e0b61e8fb979da651562dea604a50c385,375files independentlyGitblobSHA+length verified andFETCH_HEADancestrypassed. Recovery1998/newpush-onlyV2source087589... succeedednormalnoncollidingmerge/pushattempt1, preservingnewworkingdocs. Compactresults/git-L04-C32-publication-v1.json. Prior1994/1996fetchfailures retainedhistorically. DocsUNFROZEN. NewdocsreconciliationJSON+latestSTATEupdatesawaitfinalselectivecheckpoint.
+
+ActualvLLMC64v2 run1880/ZCode95853:64/64warm+allprefixpayloadgatepassed, formal256RUNNING~15:43UTC. Allactivecounts excluded; completed2829HTTP/2812success/599372out. ReadRECOVERY_LATEST nextpost1884 exactlauncher/auditbefore1874, thenprepareSG64V2/2000post2002. No additionalresourcejobuntil1880RPCdone. Originalgoalactive, no partialfinal.
+
+## Git C32 checkpoint local-only — remote connectivity failure retained
+
+C32 own commit **fa85cf9e0b61e8fb979da651562dea604a50c385**,375selected source/config/compact files, independently all Gitblob SHA+length verified. Publisher1994 committed then fetch128 EmptyReply; new push-only recovery1996 pinned prior receipt and same existing commit, again fetch128 EmptyReply before merge/push. Both preserved, neither may be replayed. Public direct HTTP1.1/2 GitHub443 both10s connecttimeout. Actual published last-known remainsa1cecbd91887aa8447f8bf345fffee0dbca77fde. Compact results/git-L04-C32-publication-attempt-v1.json. No raw publication/no force/no credential/config reads. Docs **unfrozen**, later finalmatrix publisher can include existinglocalcommit plusnewproofs whennetworkrecovers. Do not claim375remote-published.
+
+vLLMC64actual1880/ZCode95853 continues unaffected; last19/64realwarm passed. No extraresourceSSH. Allcounts unchanged2829/2812/599372 untilactualcomplete. Read RECOVERY_LATEST for exact nextpost1884 and SG64 preparation. No partialfinal.
+
 ## CURRENT — SG C32 native VALID; vLLM C64 1880 active
 
 SG C32 final certificate `results/sglang-L04-C32-v1-measurement-v1.json` SHA **db62ac7c12a1154933203ff42435a99e7ba6a85d0c4ba2f48d7c00ca1ed64610**, valid165.6283550638893TPS/SLAfailed. Native1992 all5rc0 fullcodec and new L04 V2 auditor1990/1992/before1978 passed. Client original accepted128/128; no nullable Dstorage omissions. Matched vLLM32 valid530.812539TPS. No SG32 before/after claim. Local comparison summarizer now4accepted rows/2pending64.
