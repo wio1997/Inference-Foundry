@@ -12,6 +12,10 @@
 4. 主控独立核对实际imageID、库/源码、模型/缓存/PD正确性以及原始失败；正确性通过后才出本项目性能基线。局部微测不冒充端到端收益。
 5. 只更新本项目STATE/HANDOFF/run与结果；独立合同版本不依赖另一模型。实际物理争用如实记录、选择合适窗口，不操作对方服务，不发送跨对话消息。
 
-运行根计划为`/data/wio/inference-foundry/glm53`，配置/脚本/数据/日志/locks/Meta/provider分别使用本项目名称；当前只完成文档拆分，未创建该新宿主机运行根或启动模型。Docker层仍在`/docker_data/data`，权重从本项目RESOURCES的本地目录只读挂入。
+运行根为`/data/wio/inference-foundry/glm53`，配置/脚本/数据/日志/locks/Meta/provider分别使用本项目名称。该根已在本项目八个白名单节点创建；当前实际实例、阶段与证据见`STATUS_BRIEF.json`和`STATE.json`。Docker层仍在`/docker_data/data`，权重从本项目RESOURCES的本地目录只读挂入。
 
 P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLang；不允许自动回退RDMA传输模型状态。按本目录[SDMA合同](PD_TRANSPORT.md)核配置、实际加载路径和真实请求传输证据；TCP控制/握手与PD数据面分开。此项为用户指定要求，尚不是运行验证结论。
+
+## 2026-10-17 用户补充：MemCache 适配先查 Ascend 部署文档
+
+进一步修改 MemCache 适配前，先核对应框架/模型/SDK版本的 Ascend 官方部署指导与配置说明，保存实际来源及适用边界。当前查证索引为 `runs/20261017T1340-official-memcache-docs-review/index.json`，结论见同目录 REVIEW。优先核原生租约TTL、A3可建池内存扫描、独立预分配池与客户端0GB模式等受支持机制，再决定框架补丁必要性。文档中的系统调优示例不覆盖用户现有禁止系统SDK/驱动/BIOS/时钟及其他系统变更的边界；不重写已冻结运行文件。

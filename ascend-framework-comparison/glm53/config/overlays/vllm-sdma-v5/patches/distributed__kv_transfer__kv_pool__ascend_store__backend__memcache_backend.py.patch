@@ -1,0 +1,21 @@
+--- distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py
++++ distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py
+@@ -6,6 +6,7 @@
+ from typing import Any
+ 
+ import torch
++from glm53_memcache_native import native_get_into_layers
+ from vllm.config import ParallelConfig
+ from vllm.distributed.parallel_state import get_dp_group
+ from vllm.logger import logger
+@@ -464,7 +465,9 @@
+             return
+         assert self.store is not None
+         try:
+-            res = self.store.batch_get_into_layers(key, addr, size, MmcDirect.COPY_G2L.value)
++            res = native_get_into_layers(
++                self.store, key, addr, size, MmcDirect.COPY_G2L.value
++            )
+             failed_codes = [int(value) for value in res if value != 0]
+             failed_count = len(failed_codes)
+             if failed_count:

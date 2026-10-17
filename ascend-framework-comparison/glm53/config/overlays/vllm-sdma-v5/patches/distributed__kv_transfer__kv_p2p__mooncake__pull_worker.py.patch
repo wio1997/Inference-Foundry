@@ -1,0 +1,37 @@
+--- distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py
++++ distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py
+@@ -177,6 +177,10 @@
+         self.ready_event.set()
+         while True:
+             remote_engine_id, requests = self.request_queue.get()
++            if remote_engine_id is None and requests is None:
++                self.request_queue.task_done()
++                self.executor.shutdown(wait=True)
++                return
+             failed_request_ids: set[str] = set()
+             request_endpoints = {(request.remote_host, request.remote_port) for request in requests.values()}
+             try:
+@@ -1403,7 +1407,23 @@
+             }
+         )
+         transfer_start_time = time.perf_counter()
++        from glm53_sdma_transport import audit
++        state_specs = []
++        for spec_index, layers in transfer_entries_by_spec.items():
++            spec = self.kv_cache_specs[spec_index]
++            state_specs.append({
++                "spec_index": spec_index, "class": type(spec).__name__,
++                "layers": sorted({self.layer_names[local] for local, _ in layers}),
++                "dtype": str(getattr(spec, "dtype", None)),
++                "scale_dtype": str(getattr(spec, "scale_dtype", None)),
++                "page_bytes": getattr(spec, "page_size_bytes", None),
++            })
++        audit("model_state_read_submit", request_ids=request_ids, remote_session=session_id,
++              state_specs=state_specs, payload_bytes_requested=sum(length_list),
++              ranges=len(length_list), unique_ranges=len(set(zip(src_list, dst_list, length_list))))
+         ret = self.engine.batch_transfer_sync_read(session_id, src_list, dst_list, length_list)
++        audit("model_state_read_complete", request_ids=request_ids, remote_session=session_id,
++              rc=ret, payload_bytes_completed=sum(length_list) if ret == 0 else None)
+         if ret < 0:
+             raise RuntimeError(
+                 "Mooncake KV transfer failed for remote "
