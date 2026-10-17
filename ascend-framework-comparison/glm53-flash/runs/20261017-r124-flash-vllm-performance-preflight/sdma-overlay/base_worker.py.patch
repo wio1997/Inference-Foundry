@@ -1,0 +1,32 @@
+--- a/base_worker.py
++++ b/base_worker.py
+@@ -43,7 +43,7 @@
+     as_kv_cache_tensors,
+     collect_configured_register_regions,
+ )
+-from vllm_ascend.distributed.kv_transfer.utils.mooncake_transfer_engine import (
++from vllm_ascend.distributed.kv_transfer.utils.vllm_flash_sdma_performance_engine import (
+     global_te,
+ )
+ from vllm_ascend.distributed.kv_transfer.utils.utils import (
+@@ -111,6 +111,20 @@
+         device_index = (self.pp_rank * self.pcp_size + self.pcp_rank) * self.tp_size + self.tp_rank
+         self.handshake_port = self.side_channel_port + device_index
+ 
++        # Preserve native address generation and all DP/TP/MTP/cache logic.
++        # Global DP identity is required: external API rank launchers have
++        # local DP size/rank 1/0 even when global DP is 2 or 16.
++        if self.pp_size != 1 or self.pcp_size != 1 or self.dcp_size != 1:
++            raise ValueError("Flash SDMA candidate requires PP/PCP/DCP1")
++        global_dp_size = vllm_config.parallel_config.data_parallel_size
++        global_dp_rank = vllm_config.parallel_config.data_parallel_rank
++        global_te.configure(
++            "Prefill" if self.kv_transfer_config.is_kv_producer else "Decode",
++            int(torch.npu.current_device()),
++            {"tp_size": self.tp_size, "dp_size": global_dp_size,
++             "tp_rank": self.tp_rank, "dp_rank": global_dp_rank,
++             "global_device_ordinal": global_dp_rank * self.tp_size + self.tp_rank},
++        )
+         device_name = str(torch.npu.current_device()) if self.pp_size > 1 else None
+         self.engine = global_te.get_transfer_engine(
+             self.side_channel_host,
