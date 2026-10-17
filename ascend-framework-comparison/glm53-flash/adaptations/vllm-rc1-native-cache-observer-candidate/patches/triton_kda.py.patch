@@ -1,0 +1,34 @@
+--- a/vllm_ascend/ops/triton/kda/kda.py
++++ b/vllm_ascend/ops/triton/kda/kda.py
+@@ -698,11 +698,11 @@
+                     b_gk = tl.load(p_gk, boundary_check=(0, 1))
+                     b_kt_val = tl.load(b_kt, boundary_check=(0, 1))
+                     b_ktg = b_kt_val * tl.exp2(b_gn[:, None] - b_gk)
+-                    b_A += tl.dot(b_k, b_ktg)
++                    b_A += tl.dot(b_k, b_ktg, input_precision="ieee")
+ 
+                     b_q = tl.load(p_q, boundary_check=(0, 1))
+                     b_qg = b_q * tl.exp2(b_g - b_gn[None, :]) * scale
+-                    b_Aqk += tl.dot(b_qg, b_ktg)
++                    b_Aqk += tl.dot(b_qg, b_ktg, input_precision="ieee")
+ 
+                 b_A *= b_b[:, None]
+ 
+@@ -1061,7 +1061,7 @@
+             )
+             tl.store(p_kg, b_kg.to(p_kg.dtype.element_ty), boundary_check=(0, 1))
+ 
+-        b_w = tl.dot(b_A, b_kb.to(b_k.dtype))
++        b_w = tl.dot(b_A, b_kb.to(b_k.dtype), input_precision="ieee")
+         tl.store(p_w, b_w.to(p_w.dtype.element_ty), boundary_check=(0, 1))
+ 
+ 
+@@ -1196,7 +1196,7 @@
+         b_h = tl.load(p_h, boundary_check=(0, 1))
+         # [BT, BV]
+         if i_k >= 0:
+-            b_o += tl.dot(b_qg, tl.trans(b_h).to(b_qg.dtype))
++            b_o += tl.dot(b_qg, tl.trans(b_h).to(b_qg.dtype), input_precision="ieee")
+     p_v = tl.make_block_ptr(
+         v + (bos * H + i_h) * V,
+         (T, V),

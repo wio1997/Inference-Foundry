@@ -1,0 +1,24 @@
+--- native/memcache_backend.py
++++ candidate/memcache_backend.py
+@@ -233,7 +233,9 @@
+ 
+     def _setup_store(self):
+         try:
+-            from memcache_hybrid import DistributedObjectStore  # type: ignore
++            from vllm_ascend.distributed.kv_transfer.utils.flash_native_sdk_bindings import load_bindings
++
++            DistributedObjectStore = load_bindings()[2].DistributedObjectStore
+         except ImportError as e:
+             raise ImportError(
+                 "Please install memcache by following the instructions at "
+@@ -498,6 +500,10 @@
+         assert self.store is not None
+         try:
+             res = self.store.batch_put_from_layers(key, addr, size, MmcDirect.COPY_L2G.value)
++            if os.environ.get("FLASH_NATIVE_CACHE_QUALIFICATION") == "1":
++                from vllm_ascend.distributed.kv_transfer.utils.flash_native_cache_observer import record_native_put
++
++                record_native_put(self, key, addr, size, res)
+             failed_codes = [int(value) for value in res if value != 0]
+             failed_count = len(failed_codes)
+             if failed_count:

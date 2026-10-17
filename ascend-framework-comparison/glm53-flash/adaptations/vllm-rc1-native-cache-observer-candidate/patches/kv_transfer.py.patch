@@ -1,0 +1,25 @@
+--- native/kv_transfer.py
++++ candidate/kv_transfer.py
+@@ -2,6 +2,7 @@
+ 
+ import ctypes
+ import json
++import os
+ import queue
+ import threading
+ import time
+@@ -1213,7 +1214,13 @@
+                 )
+             if current_event is not None:
+                 current_event.synchronize()
+-            self.m_store.put(keys, addrs, sizes)
++            if os.environ.get("FLASH_NATIVE_CACHE_QUALIFICATION") == "1":
++                from vllm_ascend.distributed.kv_transfer.utils.flash_native_cache_observer import request_scope
++
++                with request_scope(req_id, group_id):
++                    self.m_store.put(keys, addrs, sizes)
++            else:
++                self.m_store.put(keys, addrs, sizes)
+             if self.enable_kv_event and stored_events:
+                 self.update_kv_event(stored_events)
+ 
