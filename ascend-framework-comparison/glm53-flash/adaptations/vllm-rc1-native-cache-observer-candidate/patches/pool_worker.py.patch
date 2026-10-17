@@ -1,0 +1,38 @@
+--- a/pool_worker.py
++++ b/pool_worker.py
+@@ -225,6 +225,15 @@
+         self.consumer_is_to_put = extra_config.get("consumer_is_to_put", False)
+         self.backend = extra_config.get("backend", "mooncake")
+         self.backend_name = self.backend.lower()
++        # A consumer with both cache payload directions disabled only needs
++        # the native metadata client. MF/MMC1.2 rejects a zero-capacity BM.
++        self.memcache_metadata_only_consumer = (
++            self.backend_name == "memcache"
++            and self.kv_role == "kv_consumer"
++            and not extra_config.get("consumer_is_to_load", False)
++            and not self.consumer_is_to_put
++            and not self.use_layerwise
++        )
+         self.layerwise_protocol = get_layerwise_protocol(self.backend_name)
+         self.layerwise_data_plane = get_layerwise_data_plane(self.layerwise_protocol)
+         self.use_block_key_layerwise = self.use_layerwise and self.layerwise_data_plane == "block_key"
+@@ -450,6 +459,9 @@
+         backend_kwargs["extra_config"] = extra_config
+         if self.backend_name == "memcache":
+             backend_kwargs["dp_init_barrier"] = memcache_dp_init_barrier
++            if self.memcache_metadata_only_consumer:
++                # Public native backend already supports this for schedulers.
++                backend_kwargs["init_bm"] = False
+         self.m_store = real_backend(  # type: ignore[misc]
+             parallel_config,
+             **backend_kwargs,
+@@ -1217,7 +1229,8 @@
+         # directly here (like main) — no separate init_backend handshake.
+         if self.use_layerwise_transfer:
+             self.m_store.ensure_initialized()
+-        self.m_store.register_buffer(ptrs, lengths)
++        if not self.memcache_metadata_only_consumer:
++            self.m_store.register_buffer(ptrs, lengths)
+         if self.use_block_key_layerwise:
+             self.m_store.validate_layerwise_support()
+         self._start_kv_transfer_threads()
