@@ -48,3 +48,13 @@ R092 是最后一次整轮接受的 2379-token PD；R107/R110 的 C2 数值、�
 A 独立性能准备的首个实际结果：R125 在 P14/device0 执行 rc1 内置 QK norm chunk，T2/65/2379、H8/D128，输出通过但 F32 状态1e-4门槛失败，正常退出/8卡空闲；不能提升为性能配置。R126 单独核验原生 chunk 完整 FP32 输入/中间精度能力，不改数值门槛，不恢复 Python 逐token参考作为性能路径。官方 P DP2/TP8、D DP16/TP1、D目标FULL_DECODE_ONLY/MTP D5、原生 align/whole-segment MultiConnector 缓存已形成可审查候选；严格 PD SDMA shim 与原生 Store engine 分离，CPU14项通过，全部实际DP/Graph/MTP/缓存门禁仍须完成。
 
 A 性能路径继续：R127镜像原生Triton bulk FP32/IEEE KDA H8D128/T2,65,2379与CPU状态/输出/full-split通过，state maxabs1.86e-7，原生AscendC recurrent/MTP rollback未改；8overlay源码候选包已形成。原生Mooncake standalone组件出现heap corruption，尚未rootcause，不升级SDK/驱动/镜像。既有native Memcache1.2/backend在R133导入/API子集通过且正常退出/无Mooncake模块加载。R134已冻结最小1GiB P缓存localput/get+已知对象读回、恢复后缓冲区一次strictSDMA P→D、Dterminal后P再读cache；各device0，world2仅component，不假装官方16rank，先断言actualbatch_put_from_layers/get_into_layers。实际整模型/DP/Graph/D5/缓存80K600仍在后续；B故障不是A前置。
+
+## A 当前已核验证据与下一步（R139/R140）
+
+R139 已用真实 Flash AutoTokenizer 生成并独立读回 C1/16/32/64 的 452 条完整 80000-ID 输入；每条 74400 前缀与四个首 token 即分叉的 5600 后缀，实际 tokenizer154856、模型 padded embedding154880、三文件 SHA 精确绑定。仅数据集通过，真实预热/生成600/正式请求仍为0。
+
+R138 将 SDK 注册改为原生 batch_register_memory，一次覆盖全部原始逻辑范围，修复小张量共享2MiB页的重复注册。P 原生 Memcache1GiB put/get602368B 三段与合并 SHA 全通过；整轮仍失败：D0容量BM不被SDK支持，且原生退出有heapfault。R140仅将D设为原生metadata-only init_bmFalse（无D缓存payload注册），并按实际SDK文档 drain→cache.close→MF.destroy，再要求worker/meta/container均正常0及两端idle8。失败不冒充通过。
+
+后续完整模型需加入仅对load/put均禁用consumer生效的metadata-only后端小补丁；P16BM、D16metadata客户端，poolworld_size16。官方P DP2TP8 eager+FlashComm1、D DP16TP1 FULL_DECODE_ONLY、MTP5、nativealign/whole-segment不变。Graph元数据observer仅资格验证开启、位于原生replay分支之后，按同节点实际请求区间证明重放；正式关闭，不复制/哈希/同步tensor。以上补丁仍source-only，先自身门控，A不等待B。
+
+R127源码阶段38文件已发布86f7d3bec6c6847b15757db0ec079d37efda0ba9并逐blobSHA独立复核；首HTTP2失败与新HTTP1.1审查单元保留。主checkout56f19/index/其他项目改动保持。

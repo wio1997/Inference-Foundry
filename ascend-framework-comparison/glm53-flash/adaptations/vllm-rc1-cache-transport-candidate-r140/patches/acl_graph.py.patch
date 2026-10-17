@@ -1,0 +1,21 @@
+--- a/acl_graph.py
++++ b/acl_graph.py
+@@ -2,6 +2,7 @@
+ # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+ 
+ import dataclasses
++import os
+ import weakref
+ from collections.abc import Callable
+ from contextlib import ExitStack
+@@ -298,6 +299,10 @@
+             self._updatable_graph_replay(forward_context, entry.aclgraph)
+         else:
+             entry.aclgraph.replay()
++        if os.environ.get("FLASH_NATIVE_GRAPH_OBSERVER", "0") == "1":
++            from vllm_ascend.distributed.kv_transfer.utils.flash_native_graph_observer import graph_replayed
++
++            graph_replayed(self.runtime_mode.name, batch_descriptor, bool(_EXTRA_CTX.is_draft_model))
+         logger.info_once("ACL graph replay is active (logged once).")
+         return entry.output
+ 
