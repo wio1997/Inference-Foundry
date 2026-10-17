@@ -1,7 +1,7 @@
 {
   "schema": "glm53-capacity-launch/v1",
   "created_utc": "2026-10-17",
-  "objective": "Pure MemCache SDMA GLM5.3 W8A8C8 TP16 kv_producer basic deployment; no performance claim.",
+  "objective": "Pure MemCache SDMA GLM5.3 W8A8C8 TP16 kv_consumer basic deployment; no performance claim.",
   "notes": [
     "Same TP16, DP1, model precision and existing kernels as validated capacity run.",
     "Uses isolated MemCache loader fix v3; no dependency version upgrade.",
@@ -14,21 +14,21 @@
   },
   "access_pod": {
     "namespace": "default",
-    "name": "sglang-node-access-32",
+    "name": "sglang-tuning-access-33-20261013",
     "nsenter": "nsenter -t 1 -m"
   },
   "reservation": {
     "namespace": "default",
-    "name": "glm53-execution-reservation-32-20261017",
+    "name": "glm53-execution-reservation-33-20261017",
     "owner_label": "codex-execution-20261017",
     "phase": "Running",
-    "node_name": "a3-5u-atlas900rcka3-32",
+    "node_name": "a3-5u-atlas900rcka3-33",
     "ascend_resource": "huawei.com/Ascend910",
     "ascend_request": 16,
     "ascend_real_annotation": "huawei.com/AscendReal"
   },
   "remote": {
-    "run_dir": "/data/wio/glm5-3-vllm-execution/20261017-memcache/pd-node32-fixed-v5",
+    "run_dir": "/data/wio/glm5-3-vllm-execution/20261017-memcache/pd-node33-fixed-v6",
     "weights_dir": "/data/wio/GLM53/GLM-5.3-w8a8c8",
     "weights_mount": "/models/GLM-5.3-w8a8c8",
     "out_mount": "/out",
@@ -56,10 +56,10 @@
     "executed_by": "pinned image id; the tag is only inspected, never executed"
   },
   "container": {
-    "name": "glm53-memcache-pd-32-fixed-v5-20261017",
-    "host_ip": "172.16.12.32",
-    "port": 29481,
-    "lifetime_seconds": 5400
+    "name": "glm53-memcache-pd-33-fixed-v6-20261017",
+    "host_ip": "172.16.12.33",
+    "port": 29482,
+    "lifetime_seconds": 4500
   },
   "docker_argv": [
     "-d",
@@ -116,7 +116,7 @@
     "HCCL_INTRA_PCIE_ENABLE": "1",
     "HCCL_INTRA_ROCE_ENABLE": "0",
     "HCCL_OP_EXPANSION_MODE": "AI_CPU",
-    "HCCL_IF_IP": "172.16.12.32",
+    "HCCL_IF_IP": "172.16.12.33",
     "HCCL_CONNECT_TIMEOUT": "120",
     "HCCL_EXEC_TIMEOUT": "120",
     "ASCEND_GLOBAL_LOG_LEVEL": "3",
@@ -133,9 +133,9 @@
     "serve",
     "/models/GLM-5.3-w8a8c8",
     "--host",
-    "172.16.12.32",
+    "172.16.12.33",
     "--port",
-    "29481",
+    "29482",
     "--served-model-name",
     "glm53-w8a8c8-memcache",
     "--tensor-parallel-size",
@@ -165,7 +165,7 @@
     "1024",
     "--enable-prefix-caching",
     "--kv-transfer-config",
-    "{\"kv_connector\":\"AscendStoreConnector\",\"kv_role\":\"kv_producer\",\"kv_connector_extra_config\":{\"backend\":\"memcache\",\"lookup_rpc_port\":\"32\",\"use_layerwise\":false,\"consumer_is_to_load\":false,\"consumer_is_to_put\":false,\"prefill_tp_size\":16,\"decode_tp_size\":16}}",
+    "{\"kv_connector\":\"AscendStoreConnector\",\"kv_role\":\"kv_consumer\",\"kv_connector_extra_config\":{\"backend\":\"memcache\",\"lookup_rpc_port\":\"33\",\"use_layerwise\":false,\"consumer_is_to_load\":true,\"consumer_is_to_put\":false,\"prefill_tp_size\":16,\"decode_tp_size\":16}}",
     "--profiler-config",
     "{\"profiler\":\"torch\",\"torch_profiler_dir\":\"/out/profile\",\"torch_profiler_with_stack\":false}",
     "--additional-config",
@@ -181,13 +181,13 @@
     "launch_s": 180,
     "fetch_s": 60
   },
-  "target_hostname": "B4-33U-Atlas900RCKA3-32",
+  "target_hostname": "B5-5U-Atlas900RCKA3-33",
   "runtime_overlay": {
     "source": "/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3/site-packages",
     "python_init_sha256": "8b22d52a499d5648357cdee76b5d4d96e7ce4155cd1892c68e41d3f9f16c7f3c",
     "aliases_sha256": "2a10023d36c2480332a24dadd2e24142a68d07a04a9cf358ced1f16adf167d03"
   },
-  "memcache_config_source": "/data/wio/glm5-3-vllm-execution/20261017-memcache/pd-config-node32-fixed-v3",
+  "memcache_config_source": "/data/wio/glm5-3-vllm-execution/20261017-memcache/pd-config-node33-fixed-v3",
   "memcache_config_sha256": "061f622cbe04584dea86c937f4dfa287b1b2ddb2d10bc5c51a75219341ac3ddb",
   "memcache_config_text": "ock.mmc.meta_service_url = tcp://172.16.12.32:27400\nock.mmc.local_service.config_store_url = tcp://172.16.12.32:27401\nock.mmc.local_service.world_size = 32\nock.mmc.local_service.protocol = device_sdma\nock.mmc.local_service.dram.size = 1GB\nock.mmc.local_service.hbm.size = 0GB\nock.mmc.local_service.max.dram.size = 1GB\nock.mmc.local_service.storage.enabled = false\nock.mmc.log_level = info\n"
 }

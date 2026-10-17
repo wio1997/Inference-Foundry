@@ -12,7 +12,8 @@ import urllib.request
 
 def main():
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
-    root = Path(f'/data/wio/glm5-3-vllm-execution/20261017-memcache/pd-node{node}-fixed-v5')
+    revision = 7 if node == 32 else 6
+    root = Path(f'/data/wio/glm5-3-vllm-execution/20261017-memcache/pd-node{node}-fixed-v{revision}')
     container = json.loads((root/'launch.json').read_text())['container_id']
     state = json.loads(subprocess.check_output(['docker', 'inspect', container, '--format', '{{json .State}}']))
     p = subprocess.run(['docker', 'logs', '--timestamps', container], capture_output=True, timeout=40)

@@ -10,6 +10,14 @@
 
 分支 `codex/glm5-3-vllm-optimization`，本次接手 HEAD `f5571dc0e1c271ae533a347700f24b4a2c105762`，接手时工作区干净。继续 [draft PR #2](https://github.com/wio1997/Inference-Foundry/pull/2)，不自动合并。不改旧副本 `/Users/wio/work/Inference-Foundry` 或原 SGLang 研究分支。
 
+## 当前部署结果
+
+纯MemCache P写池→D读池已在完整GLM5.3 W8A8C8/Indexer-int8、TP16+TP16、512 context下通过一个新480-token用例；16-token输出一致，D从池加载384token、本地命中0，外部get keys增加48。不是P→D直传，不是吞吐/精度验收。
+
+当前本任务服务：32 P `glm53-memcache-pd-32-fixed-v7-20261017`（29481）；33 D `glm53-memcache-pd-33-fixed-v6-20261017`（29482）；32 metadata `glm53-memcache-meta32-production-v3-20261017`（27400/27401/27402）。只读叠加loader-fix-v3隔离MemCache符号；P关闭官方已知冲突的C8 reshape可选优化。模型、量化、既有算子及SDMA约束保留。D API Ready不是单独的PD证明，上述外部命中与输出对照才是本次功能证据。
+
+服务是本次有限期实验实例：P宿主启动00:57:43、timeout3600秒；D宿主启动00:30:47.691、timeout4500秒；仍受两台7200秒资源预留期限约束。不可把本文当作长期可用保证，继续执行前重查现场。模型profile已完成全32-rank核验；两端大文件备份均已回传Mac并验证归档SHA。最终结果摘要见 [deployment-validation.json](evidence/20261017-memcache-fix/deployment-validation.json)。
+
 ## 本线已实测
 
 证据目录：[20261017-inventory](evidence/20261017-inventory/)。后续以每个 run 的 `context.json`、`result.json`、原始 stdout/stderr 和校验值核对；失败也保留。
@@ -31,7 +39,7 @@
 
 本任务 `default/glm53-execution-reservation-{32,33}-20261017` 首次预留均已 Running/Ready，每台请求16个Ascend、有限7200秒，约07:51 CST复核均为Failed/DeadlineExceeded。此次修复续接已删除本任务过期Pod并重新取得两台16-die预留，见下方“MemCache 崩溃修复与模型部署”的新UID和取证。**每次 NPU 执行前必须重新核对实际 Running/UID/节点/资源归属，不能只看本文。** 集群 admission 拒绝 Pod 直接指定 `preemptionPolicy=Never`；已记录失败，改用集群默认策略，节点 affinity 仅限指定节点，未创建集群级 PriorityClass。
 
-## SDMA 与下一步
+## 前期 SDMA 与单机验证（历史）
 
 - 已核对官方 A3 配置语义：`HCCL_INTER_HCCS_DISABLE=FALSE` 为超节点内 HCCS/SDMA；`HCCL_INTRA_PCIE_ENABLE=1` 配对 `HCCL_INTRA_ROCE_ENABLE=0` 禁用 RoCE；A3 `HCCL_OP_EXPANSION_MODE=AI_CPU` 避免选择 AIV 展开。配置与运行证据分开，具体支持及 communicator 级覆盖仍要核对。
 - [hccl_probe.py](tools/hccl_probe.py) 已完成同卡 33[0,1]、异卡 33[0,2] 及跨机 32[2]↔33[2] 的 int8 双向 send/recv 与 bf16 all_reduce；五档字节、预热3+计时12次/项的 payload 校验通过。INFO 诊断日志与 ERROR 级计时分开保存；只有前者用于选路分析。初始缺少 PCIE 配对、CONNECT_TIMEOUT=30低于实际最小120、容器物理/逻辑可见号混用三次失败均保留，未把它们记作性能数据。初始化/控制 TCP 不作为数据通路；不能由 backend 名或环境变量宣称已证实 SDMA。
@@ -39,7 +47,7 @@
 - 已取得本任务资源，基础2-rank跨节点 SDMA 通信功能通过。实际 ACL 映射已核对；容器挂载物理0,2后应使用容器逻辑0,1，不能再用物理0,2筛运行时可见集。跨机测试无 HCCL_LOGIC_SUPERPOD_ID 或外部 rank-table 环境变量覆盖，使用 HCCL root-info/TCPStore 动态建域。继续按真实模型消息补相关组与争用。5 秒背景窗口无明显传输/磁盘读取，只是瞬时诊断；每次测量仍核实相关干扰。
 - [TP16 单机容量计划](tools/capacity-tp16-node33.json) 已完成一次完整模型启动和短请求；容器 `62481295791bd1a9e086d5a833cac59a3832a654aa252d79fbbf44e5637bc012` 已主动停止、退出0，保留容器和日志，当前不提供服务。固定 TP16/DP1、无EP、MC2/DSA-CP/FlashComm关闭、int8 KV/indexer、V1、eager、512 context/1 seq。全部16个rank从 `model_runner_v1.py` 加载；每rank日志权重47.21GiB，warmup后torch allocated54.54GiB/reserved54.62GiB（软件口径，非物理HBM），KV预算约7.33–7.35GiB。宿主日志API Ready18:36:16、容器启动18:20:29，加载186shard约477秒；启动耗时仅同宿主时钟范围。短请求HTTP200，12输入/32输出token，以“5”开头回答2+3；单请求功能验证，不是精度或性能验收。原始console183178bytes已拉回Mac校验。实际量化method/缓存tensor布局与C8消费仍需运行对象或trace核验；CLI dtype不是证明。单机容量结果不等于1P1D验收。
 
-## 当前 MemCache 核实
+## MemCache 初次核实（修复前历史）
 
 - 镜像内 `memcache_hybrid==1.2.0`（VERSION git `4310d68fa8964a3032b71c09296b0ffa80330033`）、`memfabric_hybrid==1.2.0`（`999034e9320abf27bbde7be83a32d3bf4d0f7940`）。SDK API 已加载检查；未安装替换包或编译新kernel。MemFabric的导入provision分支只为950自动编译，本线A3不走该分支。
 - 实际 `AscendStoreConnector` 注册的 `MemcacheBackend` 使用 `memcache_hybrid.DistributedObjectStore`，支持显式 `backend=memcache`；SDK配置支持 `device_sdma`。现有PD文档示例是MultiConnector，仍含Mooncake，所以不能用它证明纯MemCache PD。源码中单独Store消费者的 `consumer_is_to_load` **默认false**，纯池消费必须显式true；先按同TP/MLA/Indexer布局核对，不能直接照搬异TP稀疏布局。
@@ -49,7 +57,7 @@
 - 生命周期未通过：仅隐式析构的case退出139；显式`close()`返回0后仍退出133。先释放tensor/清空torch缓存再close也复现。进一步32单客户端只init/close、不建tensor/不注册buffer/不传payload，torch allocated/reserved均0，仍退出133。具体根因未定，不能仅凭此归责到某个库或宣称SDK已稳定集成。第一次LocalConfig拒绝仅MetaConfig支持的`ock.mmc.log_output_target`，已删除该键后固定配置重测，未改协议或回退；所有失败保留。
 - 指南要求A3 `device_sdma` 配套灵渠计算网络>=1.5。宿主HDK/CANN版本已取证，**现场灵渠网络版本仍未知**，不从同超节点标签或SDK包版本推定满足；本次正面证据只覆盖已测试的数据路径。纯Store的原GLM C8/Indexer注册、完成通知和D消费仍待模型验证。下一步先对最小init/close复现定位原生退出/动态库生命周期与版本配套，再用单独AscendStoreConnector、`backend=memcache`、`consumer_is_to_load=true`验证P写池→D读池。没有安装替换依赖，没有启动双完整模型，也不回退已暂停的Mooncake路线。
 
-## 官方适配文档核对（本次仅查询）
+## 官方适配文档核对（最初查询）
 
 用户要求先查 Ascend 官方适配文档。通过 Web Search 与公开 GitCode Git 获取了对应标签/文档，未使用浏览器，未编译、安装、替换依赖或启动服务/NPU作业。来源、固定提交、原文SHA与结论边界见 [official-docs.json](evidence/20261017-memcache-adaptation/official-docs.json)。
 
@@ -65,8 +73,20 @@
 - 真实进程 maps 确认 wheel 原名库与 auditwheel 哈希名库重复加载；原生栈将 close 后 heap 错误定位到 CANN/ATB 全局析构期间的 free。基线 MetaService 可启动且 main 返回0，但进程退出133；仅合并重复库仍退出133。单纯 import 库本身退出0。
 - 最终隔离副本 `loader-fix-v3` 保留原1.2.0二进制，将四个 libmf 原名路径链接至 wheel 内 canonical 哈希库，并把 MemCache/UBSIO 的 ctypes 预加载改为 `RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND`。通过 PYTHONPATH、LD_LIBRARY_PATH 和只读挂载使用；未替换基础镜像、依赖版本或算子，没有绕过 close/析构。对照证明符号隔离能消除当前复现，尚未确定被抢占的单个 C++ 符号。
 - MetaService 连续两次启动/停止/进程退出0。32 原先只 init/close 也失败的 NPU 用例现退出0。32/33 物理die2双向64KiB/1MiB共4对象：put/get返回码、SHA全部通过；两端 close 返回0且进程退出0；每端4个 SDMA_SQE，每个put/get区间恰1个。两个 `memcache-trace-analysis.json` 和归档SHA已保存。这是SDK数据路径及生命周期通过，尚非模型PD验收。
-- 两台隔离副本均在 `/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3/site-packages`，库校验值一致。32元数据服务 `glm53-memcache-meta32-fixed-v3-20261017` 在27400/27401/27402，有限7200秒。预留已续建，32 UID=`a29da17a-3c31-40ca-9f4c-7f72d61c0c27`，33 UID=`7a546c86-8e53-425d-a30e-190454720288`，本次核对Running；仍须执行前重查，有限7200秒。
-- 正在部署32 producer、33 consumer：完整GLM5.3 W8A8C8及Indexer-C8，同TP16/DP1，纯AscendStoreConnector/backend=memcache、D端consumer_is_to_load=true、device_sdma、1GiB/rank DRAM、无SSD。模型启动v3为补齐请求级profiler配置而停止；v4因隔离PYTHONPATH覆盖CANN路径而worker导入acl失败，已保留失败并修正为前置隔离目录且保留镜像原值，启动前增加acl模块定位检查。当前计划 `tools/memcache-pd-node{32,33}-fixed-v5.json` 仍使用上述已验证的loader-fix-v3；API端口29481/29482。下一步确认API、P写池、D外部命中与实际KV消费；没有完整PD或性能收益结论。
+- 两台隔离副本均在 `/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3/site-packages`，库校验值一致。小测元数据服务 `glm53-memcache-meta32-fixed-v3-20261017` 已停止且退出0；其ConfigStore会保留首次连接的world_size=2，不能直接供world_size=32模型复用。已重建为 `glm53-memcache-meta32-production-v3-20261017`，仍为27400/27401/27402、有限7200秒，已接受32-rank并挂载P端16个池。首次重建前置bind检查受TIME_WAIT影响，已用SO_REUSEADDR修正；未夺用其他监听端口。预留已续建，32 UID=`a29da17a-3c31-40ca-9f4c-7f72d61c0c27`，33 UID=`7a546c86-8e53-425d-a30e-190454720288`，本次核对Running；仍须执行前重查，有限7200秒。
+- 正在部署32 producer、33 consumer：完整GLM5.3 W8A8C8及Indexer-C8，同TP16/DP1，纯AscendStoreConnector/backend=memcache、D端consumer_is_to_load=true、device_sdma、1GiB/rank DRAM、无SSD。v3为补请求级profiler而停止；v4因PYTHONPATH覆盖CANN路径而导入acl失败，已改为保留原值并增加启动前模块定位检查。D的v5因上述world_size旧状态失败，现用 `tools/memcache-pd-node33-fixed-v6.json`，已API Ready且12输入/1输出token请求HTTP200（输出空格，非答案验收）。
+- P的v5已API Ready，但首个14-token请求180秒超时。py-spy定位在attention mask构建；进一步GDB原生栈确认Torch队列实际阻塞在前序`aclnnStoreKvBlockMetadata`的`rtsRegisterCpuFunc`，并非已发生KV写池。对应源码`indexer.py:1152`受`c8_reshape_optim_enabled`控制，`ascend_config.py:933`仅对producer启用，公开配置键为`c8_enable_reshape_optim`。D端该分支有效值为false。P已正常停止、退出0，现用 `tools/memcache-pd-node32-fixed-v7.json` 显式关闭该可选reshape优化，继续标准C8缓存写算子；W8A8C8、Indexer-int8、SDMA和模型语义保持。没有编译/引入新kernel。新P已于宿主01:07:00 API Ready，首个真实请求HTTP200（12输入/8输出token，文本以“ 5”开头，19.40秒仅为功能记录）；证据 `node32-memcache-pd-standard-c8-smoke-5f271d0ca7e0/metrics.json`。D保持运行，API端口29481/29482。`memcache_pd_functional.py` 已通过完整模型P写池→D读池功能检查：新480-token提示词、16-token输出，P/D文本完全一致并以“ 5”开头；D外部get key计数0→48。D日志明确vllm_cached=0、kvpool_cached=384，说明加载3个完整128-token块并正常处理余下96token，没有整段重做prefill。两端profiler均正常停止。功能证据 `node32-memcache-pd-functional-v1-600eeb949b16/metrics.json`。模型SDK32个rank均bmDataOpType=2；全32个rank的Ascend trace均有效且含SDMA_SQE，32份节点内TP通信矩阵均只有LOCAL/SIO/HCCS。没有再发NPU请求。当前仅此合成用例功能通过，尚无完整精度/长上下文/并发稳定性或性能验收。
+- 官方固定标签[additional_config文档](https://github.com/vllm-project/vllm-ascend/blob/v0.30.0rc1/docs/source/user_guide/configuration/additional_config.md)明确建议池化/AICPU冲突时关闭`c8_enable_reshape_optim`；[issue15896](https://github.com/vllm-project/vllm-ascend/issues/15896)补充HDK26.0以前受影响。现场25.5.2和实际注册栈与此机制吻合，关闭后首请求通过。文档原文字节SHA与摘录见 `official-c8-aicpu-adaptation.json`，不升级驱动、不改变C8精度。
+
+## 完整模型运行证据（本次最终核验）
+
+[deployment-validation.json](evidence/20261017-memcache-fix/deployment-validation.json) 汇总有界用例及所有来源SHA；`node{32,33}-memcache-model-profile-v2-43b402dac851` 保留日志、trace SHA、矩阵摘要及派生计数。
+
+- 32 P 的16个rank共480361个SDMA_SQE，33 D共409744个；每个rank均为正，RDMA命名任务计数均0。每端16份通信矩阵均仅LOCAL/SIO/HCCS；这些是模型TP通信与KV池搬运混合采样，不能把全部SDMA计数归给KV或拿profile耗时作收益。
+- 实际量化调用：P的`aclnnQuantMatmulWeightNz` 77520次、`aclnnLightningIndexerQuant` 4864次；D分别65280/4096次。是运行路径证据，不等于完整精度验收，也不能把CPU API与设备kernel计数相加。
+- 最初采集器假设已导出trace，实际只有raw profile，保留失败；CPU离线导出第一次因缺少驱动查询设备而失败，且会生成无效/不完整派生trace，未晋升为通过。原生`msprof`单rank对照证明只需`/dev/davinci_manager`查询接口。最终离线容器未挂载davinci0..15计算设备，使用固定镜像和CPU完成解析，全32个rank导出/JSON/SDMA检查通过；无需重跑模型请求。
+- 最初原始采样32共3074文件、33共2722文件，已在`profile-raw-preserved`硬链接保全，逐文件与初始manifest的大小/SHA全部匹配，防止解析器data_simplification清理原始采样。原件及派生结果均已备份Mac：32归档1632329001bytes、SHA `ae8e0699a2112bcc1ed34d0b150c610568f7df1687a0bfb397be391ff34d9dc0`；33归档1366352967bytes、SHA `48c928e4053d095361e203efc91497a63285772eb20471906ce8478d8dc62cee`。各自`profile-backup.json`记录Mac路径和完成时间；旧P关闭console亦已单独压缩备份并匹配原始SHA。
+- 最终资源快照 `pd-final-resource-check.json` 于Mac01:38:20Z复核两台原UID、16设备预留仍Running，metadata亦Running；`node{32,33}-memcache-pd-final-running-4e69af062ba9` 复核两个模型API与容器。交付前再次通过 `pd-delivery-api-check.json` 核对两个API和metadata仍可用。有限期限沿用上文，后续继续必须重查，未延长期限或创建监控任务。
 
 ## 前一轮收尾状态（历史）
 

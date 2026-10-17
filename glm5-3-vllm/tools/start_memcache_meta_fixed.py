@@ -7,9 +7,9 @@ import socket
 import subprocess
 import time
 
-ROOT = Path('/data/wio/glm5-3-vllm-execution/20261017-memcache/meta32-fixed-v3')
+ROOT = Path('/data/wio/glm5-3-vllm-execution/20261017-memcache/meta32-production-v3')
 FIX = Path('/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3')
-NAME = 'glm53-memcache-meta32-fixed-v3-20261017'
+NAME = 'glm53-memcache-meta32-production-v3-20261017'
 IMAGE = 'sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83'
 
 
@@ -19,6 +19,7 @@ def main():
     assert (FIX/'aliases.json').is_file() and (FIX/'python-patch.json').is_file()
     for port in (27400, 27401, 27402):
         with socket.socket() as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(('172.16.12.32', port))
     ROOT.mkdir(parents=True)
     config = ('ock.mmc.meta_service_url = tcp://172.16.12.32:27400\n'
