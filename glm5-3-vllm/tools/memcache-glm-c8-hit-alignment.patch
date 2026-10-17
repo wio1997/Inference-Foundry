@@ -1,0 +1,24 @@
+--- a/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py
++++ b/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py
+@@ -723,9 +723,18 @@
+                 )
+         if num_external_hit_tokens == request.num_tokens:
+             num_external_hit_tokens -= 1
+-        if len(self.cacheable_group_ids) != len(self.original_block_size):
+-            # Private compressor state is rebuilt locally. Recompute the last
+-            # whole token page rather than resume inside a compressed block.
++        glm_c8_block_resume = (
++            self.backend_name == "memcache"
++            and not self.use_layerwise
++            and self._discard_partial_chunks
++            and getattr(self.vllm_config.model_config.hf_config, "model_type", None) == "glm_moe_dsa"
++            and self.vllm_config.cache_config.cache_dtype == "int8"
++        )
++        if glm_c8_block_resume or len(self.cacheable_group_ids) != len(self.original_block_size):
++            # MemCache moves whole chunks. For GLM C8 a fully cached prompt
++            # must not resume inside its final transferred block after the
++            # scheduler's one-token trim. Recompute the trailing whole block.
++            # Private compressor states already require the same alignment.
+             num_external_hit_tokens = self._floor_to_cache_transfer_granularity(num_external_hit_tokens)
+ 
+         if num_external_hit_tokens < num_computed_tokens:

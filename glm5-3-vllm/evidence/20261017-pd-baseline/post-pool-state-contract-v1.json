@@ -1,0 +1,44 @@
+{
+  "source_backend_sha256": "a0e95bdfb0951c0d50466f35f56cd2430757a5390e11faa22f77e486bee1cea8",
+  "D_backend_sha256": "a0e95bdfb0951c0d50466f35f56cd2430757a5390e11faa22f77e486bee1cea8",
+  "cases": [
+    {
+      "label": "post-D-content-zero-block18",
+      "cache_salt": "post-pool-08bfa01a29824dd988b90fe7aad155c5",
+      "archive": "node32-completed-pd-tests-post-consume-final-v1.tar.gz",
+      "member": "tests/post-consume-cache-control-v1/wave-3-producer.json"
+    },
+    {
+      "label": "final-PUT-output-mismatch-wave2",
+      "cache_salt": "final-put-a0f67ad1200f4aa3a9091c8813eaa711",
+      "archive": "node32-completed-pd-tests-final-put-rejected-v1.tar.gz",
+      "member": "tests/final-put-immediate-control-v1/wave-2-producer.json"
+    },
+    {
+      "label": "final-PUT-output-mismatch-wave9",
+      "cache_salt": "final-put-85ace47f5a5c4ea0a3edf6777b0353e9",
+      "archive": "node32-completed-pd-tests-final-put-rejected-v1.tar.gz",
+      "member": "tests/final-put-immediate-control-v1/wave-9-producer.json"
+    },
+    {
+      "label": "one new fixed-shape key"
+    }
+  ],
+  "variable": "After original D128 only, P rank0 and D rank0 independently SDK-read same31 keys into separate NPU arenas; helps separate common stored/read representation from one endpoint. All4 initial producer requests unfenced.",
+  "classifiers": [
+    "P-private and D-private both zero while P native nonzero: common stored/key/read representation, stronger than only a D endpoint. Later pool matching P while earlier D differs still allows late publication/original GET/target mutation; no hardware root claim.",
+    "P nonzero, D zero, private pool zero: persistent stored/key/SDK-read representation, not just real D cache overwrite.",
+    "P and private pool agree but D differs: original GET destination or later real D cache mutation.",
+    "P replicas differ: source replica/ownership issue.",
+    "No failure means no root conclusion. Four moments are not cryptographic identity."
+  ],
+  "budgets": {
+    "lease_seconds": 3600,
+    "meta_seconds": 3600,
+    "models_seconds": 3000,
+    "client_seconds": 1500,
+    "initial_cases": 4,
+    "control_keys_per_phase": 512
+  },
+  "next_if_fault": "Use only the exact failed request for repair contrast; any metadata key removal must be limited to its traced keys after snapshot and no in-flight operations. No RemoveAll."
+}

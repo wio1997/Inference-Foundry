@@ -1,0 +1,153 @@
+{
+  "kind": "official_document_and_source_review_only",
+  "retrieved_at_utc": "2026-10-17T00:03:53.177974+00:00",
+  "method": "Public Web Search plus direct HTTPS Git fetch; no browser, build, installation, service or NPU execution.",
+  "installed_versions": {
+    "memcache": {
+      "version": "1.2.0",
+      "official_tag": "v1.2.0",
+      "commit": "4310d68fa8964a3032b71c09296b0ffa80330033"
+    },
+    "memfabric": {
+      "version": "1.2.0",
+      "official_tag": "v1.2.0",
+      "commit": "999034e9320abf27bbde7be83a32d3bf4d0f7940"
+    }
+  },
+  "reviewed_upstream_refs": {
+    "memcache_master": {
+      "commit": "c3ab6e59caba5f1df5e34222d05df5212da1a6cd",
+      "VERSION": "1.5.0"
+    },
+    "memcache_release_1_2": {
+      "commit": "405e8cc68385a6a3f846abcc036f168501924beb",
+      "VERSION": "1.2.1"
+    }
+  },
+  "source_pair_comparison": {
+    "memcache_tag_memfabric_gitlink": "9a9cfbc8a1e026e7c73a558ff27d75372cb2e803",
+    "installed_memfabric_commit": "999034e9320abf27bbde7be83a32d3bf4d0f7940",
+    "diff_files": [
+      "src/smem/csrc/net/smem_net_group_engine.cpp",
+      "src/smem/csrc/net/smem_net_group_engine.h"
+    ],
+    "changes": "Adds a leaveRank_ uint32_t member and sets/prints it during link-down/rank-leave reporting. ACC and ConfigStore headers and public BM headers are unchanged. Different SHAs alone do not prove incompatible binaries.",
+    "diff_sha256": "256bcb3824105dc148ee2cc8226bb40c8fdbdcd45d61757b6a1c874ba91017e9",
+    "diff_local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memfabric-pinned-vs-installed.diff"
+  },
+  "compatibility_findings": [
+    "Current official complete compatibility table requires A3/HCCS device_sdma: LingQu L1 >=1.5.0 (prefers 1.5.1), HDK >=25.5.1, firmware >=7.8.0.6.201 and OS kernel >=5.10.0; BIOS guidance depends on memory capacity.",
+    "MemFabric v1.2.0 README requires CANN >=8.1.RC1, GLIBC >=2.28, DRAM pooling HDK >=25.5.0 (recommends25.5.1), LingQu1.5.0 and matching1520L1 update. Current table is stricter for HDK; observed25.5.2 exceeds both numeric lower bounds.",
+    "Existing evidence has HDK25.5.2, CANN9.1.0 and a firmware sample7.8.0.7.220. LingQu L1 version remains unverified. A sample is not all-device firmware validation.",
+    "v1.2.0 configuration supports explicit device_sdma and 1GiB DRAM/HBM alignment. Python API documents close(); no special close ordering found in the reviewed installation/API pages that explains the observed heap corruption."
+  ],
+  "abi_lead": {
+    "official_issue": "https://gitcode.com/Ascend/memcache/issues/281",
+    "official_merge_request": "https://gitcode.com/Ascend/memcache/merge_requests/536",
+    "retrievable_official_merge_description": "https://gitcode.com/Ascend/memcache/tree/develop/script",
+    "description": "Official upstream describes MetaService coredump caused by C++/STL symbol interposition when build-time and runtime MemFabric minor version or C++ ABI differ; change uses C ABI wrappers, version/symbol checks and RTLD_LOCAL|RTLD_DEEPBIND.",
+    "source_verification": "The installed MemCache v1.2.0 source directly links smem_shared and acc_tcp_net_static and has no smem_get_abi_version or RTLD_DEEPBIND checks. Reviewed release/1.2 tip1.2.1 also lacks that isolation; reviewed master1.5.0 contains it. The merge description names develop1.3 at its own merge time; do not treat that as current master version.",
+    "limits": "Observed local failure is post-close heap corruption, while upstream description discusses startup C++ string-copy coredumps. Runtime ELF/library paths, symbol bindings, build ABI flags and native crash stack have not been collected. This is a related diagnosis lead, not a confirmed cause or verified fix for this environment."
+  },
+  "vllm_source": {
+    "url": "https://github.com/vllm-project/vllm-ascend/blob/v0.30.0rc1/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md",
+    "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/vllm-rc1-guide.txt",
+    "sha256": "7e214d6722eedd7d6301a011382da837fd94bc94c08485de4c0442ab2c3b9430",
+    "findings": "A3 device_sdma requires LingQu>=1.5; A3/HCCS uses ACL_OP_INIT_MODE=1 and ASCEND_ENABLE_USE_FABRIC_MEM=1. Pure-store Decode load needs consumer_is_to_load=true (defaultfalse). Existing PD example also includes Mooncake, so it does not demonstrate pure-MemCache PD."
+  },
+  "next_targeted_checks": [
+    "Read-only verify actual loaded MemCache/MemFabric SO paths, ELF NEEDED/symbols and build ABI against the installed-tag sources.",
+    "Obtain a native backtrace for the existing minimal init/close failure; keep startup-versus-exit distinctions.",
+    "Verify current LingQu L1 software version and remaining hardware compatibility fields; documentation lookup does not authorize switch upgrades."
+  ],
+  "sources": [
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/c3ab6e59caba5f1df5e34222d05df5212da1a6cd/docs/zh/compatibility.md",
+      "commit": "c3ab6e59caba5f1df5e34222d05df5212da1a6cd",
+      "path": "docs/zh/compatibility.md",
+      "bytes": 2597,
+      "sha256": "5a6b6e1ac5d5e78c97617fbdca9772f1790d7e044d88cb533b11d9961d93c372",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-c3ab6e59caba-docs_zh_compatibility.md"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/4310d68fa8964a3032b71c09296b0ffa80330033/docs/install_whl.md",
+      "commit": "4310d68fa8964a3032b71c09296b0ffa80330033",
+      "path": "docs/install_whl.md",
+      "bytes": 5615,
+      "sha256": "bde30928a0ab6b550cc307eb65751f0718ee730b14329a698dbdd336d17900c3",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-4310d68fa896-docs_install_whl.md"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/4310d68fa8964a3032b71c09296b0ffa80330033/docs/memcache_config.md",
+      "commit": "4310d68fa8964a3032b71c09296b0ffa80330033",
+      "path": "docs/memcache_config.md",
+      "bytes": 39399,
+      "sha256": "078b6f304104e32ecc9810aafd1134bddecadbb88a1048056e7a7839b919d25d",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-4310d68fa896-docs_memcache_config.md"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/4310d68fa8964a3032b71c09296b0ffa80330033/docs/memcache_python_api.md",
+      "commit": "4310d68fa8964a3032b71c09296b0ffa80330033",
+      "path": "docs/memcache_python_api.md",
+      "bytes": 33385,
+      "sha256": "f01c6910ad5d6188f5ba7b0373f76733481e5922b72d3aacf7ac1d153c353b85",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-4310d68fa896-docs_memcache_python_api.md"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/4310d68fa8964a3032b71c09296b0ffa80330033/CMakeLists.txt",
+      "commit": "4310d68fa8964a3032b71c09296b0ffa80330033",
+      "path": "CMakeLists.txt",
+      "bytes": 10312,
+      "sha256": "b4af543e434411e28a2ed8c2b9e359921ee7d1e97e9cf2de077c65a209a07cb2",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-4310d68fa896-CMakeLists.txt"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/4310d68fa8964a3032b71c09296b0ffa80330033/src/memcache/csrc/CMakeLists.txt",
+      "commit": "4310d68fa8964a3032b71c09296b0ffa80330033",
+      "path": "src/memcache/csrc/CMakeLists.txt",
+      "bytes": 7580,
+      "sha256": "c6a3b40984f1331d8ae7da43fa3feb715352fcd65c948d9de6577f78eacf011c",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-4310d68fa896-src_memcache_csrc_CMakeLists.txt"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/c3ab6e59caba5f1df5e34222d05df5212da1a6cd/src/memcache/csrc/under_api/mf_smem/smem_version_api.cpp",
+      "commit": "c3ab6e59caba5f1df5e34222d05df5212da1a6cd",
+      "path": "src/memcache/csrc/under_api/mf_smem/smem_version_api.cpp",
+      "bytes": 2221,
+      "sha256": "eeafcc463e2b011baddd08eb6492f96691e9212c7a08ec3e3e5a13f0e7b6ab57",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-c3ab6e59caba-src_memcache_csrc_under_api_mf_smem_smem_version_api.cpp"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memcache/blob/c3ab6e59caba5f1df5e34222d05df5212da1a6cd/src/memcache/csrc/under_api/mf_smem/smem_acc_api.cpp",
+      "commit": "c3ab6e59caba5f1df5e34222d05df5212da1a6cd",
+      "path": "src/memcache/csrc/under_api/mf_smem/smem_acc_api.cpp",
+      "bytes": 8025,
+      "sha256": "563ce2df7b8a7b28d240ea2c20a0225bb024b3e074ea4c33c769bec49fdf9a30",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memcache-c3ab6e59caba-src_memcache_csrc_under_api_mf_smem_smem_acc_api.cpp"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memfabric_hybrid/blob/999034e9320abf27bbde7be83a32d3bf4d0f7940/README.md",
+      "commit": "999034e9320abf27bbde7be83a32d3bf4d0f7940",
+      "path": "README.md",
+      "bytes": 12023,
+      "sha256": "358880bb876c926dde3d80a53d2f84c350cda91e781b327691dc39b7a20934c7",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memfabric_hybrid-999034e9320a-README.md"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memfabric_hybrid/blob/999034e9320abf27bbde7be83a32d3bf4d0f7940/docs/installation.md",
+      "commit": "999034e9320abf27bbde7be83a32d3bf4d0f7940",
+      "path": "docs/installation.md",
+      "bytes": 4961,
+      "sha256": "b498590e55f46f6cdadfb94e4c1f941c70de3c5348483dd6c3b222e7a24b6d71",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memfabric_hybrid-999034e9320a-docs_installation.md"
+    },
+    {
+      "url": "https://gitcode.com/Ascend/memfabric_hybrid/blob/999034e9320abf27bbde7be83a32d3bf4d0f7940/docs/CCLink.md",
+      "commit": "999034e9320abf27bbde7be83a32d3bf4d0f7940",
+      "path": "docs/CCLink.md",
+      "bytes": 1413,
+      "sha256": "7630094cd517feadaf0fffa79302d7ddc95c251091b023c16a04d6ab5c692535",
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-adaptation-docs/memfabric_hybrid-999034e9320a-docs_CCLink.md"
+    }
+  ]
+}

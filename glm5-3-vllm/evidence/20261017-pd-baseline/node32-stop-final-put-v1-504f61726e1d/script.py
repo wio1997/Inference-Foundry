@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Close only the completed P11/D10 observer instances and retain lifecycle evidence."""
+import argparse
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import socket
+import subprocess
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--deployment', choices=('payload-control', 'final-put', 'post-consume'), default='payload-control')
+    args = parser.parse_args()
+    node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
+    rev = {'payload-control': (11, 10), 'final-put': (12, 11), 'post-consume': (13, 12)}[args.deployment][node-32]
+    base = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline')
+    root = base/f'pd-node{node}-v{rev}'
+    cid = json.loads((root/'launch.json').read_text())['container_id']
+    doc = json.loads(subprocess.check_output(['docker', 'inspect', cid]))[0]
+    assert doc['Name'] == f'/glm53-memcache-baseline-{node}-v{rev}-20261017'
+    assert doc['Image'] == 'sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83'
+    if doc['State']['Running']:
+        subprocess.run(['docker', 'stop', '-t', '90', cid], check=True, capture_output=True, timeout=100)
+    state = json.loads(subprocess.check_output(['docker', 'inspect', cid, '--format', '{{json .State}}']))
+    logs = subprocess.run(['docker', 'logs', '--timestamps', cid], capture_output=True, timeout=30)
+    raw = logs.stdout+b'\nDOCKER_STDERR_STREAM\n'+logs.stderr
+    out = base/'consumer-audits'/f'node{node}-{args.deployment}-lifecycle'
+    out.mkdir(parents=True, exist_ok=False)
+    (out/'console.txt.gz').write_bytes(gzip.compress(raw, compresslevel=1))
+    report = {'node': node, 'container_id': cid, 'state': state,
+              'reason': 'Close only this completed bounded diagnostic deployment; preserve model, quantization, SDK and SDMA evidence.',
+              'raw_console_bytes': len(raw), 'raw_console_sha256': hashlib.sha256(raw).hexdigest(),
+              'compressed_sha256': hashlib.sha256((out/'console.txt.gz').read_bytes()).hexdigest()}
+    (out/'result.json').write_text(json.dumps(report, indent=2)+'\n')
+    print(json.dumps(report, indent=2))
+    assert not state['Running'] and not state['OOMKilled'] and state['ExitCode'] in (0, 143)
+
+
+if __name__ == '__main__':
+    main()

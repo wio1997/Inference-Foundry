@@ -1,0 +1,98 @@
+{
+  "authorization": "User: 32 33 全部 可以kill; limited to workloads on these two nodes",
+  "started_client_utc": "2026-10-16T17:57:17.808569+00:00",
+  "actions": [
+    {
+      "argv": [
+        "kubectl",
+        "scale",
+        "deployment",
+        "-n",
+        "testportal-project",
+        "containerworkload-694f3t4n",
+        "--current-replicas=1",
+        "--replicas=0"
+      ],
+      "rc": 0,
+      "stdout": "deployment.apps/containerworkload-694f3t4n scaled\n",
+      "stderr": "",
+      "client_utc": "2026-10-16T17:57:19.344596+00:00"
+    },
+    {
+      "argv": [
+        "kubectl",
+        "delete",
+        "pod",
+        "-n",
+        "default",
+        "sglang-pd4p2d-reserve-33-20261014",
+        "--wait=false"
+      ],
+      "rc": 0,
+      "stdout": "pod \"sglang-pd4p2d-reserve-33-20261014\" deleted\n",
+      "stderr": "",
+      "client_utc": "2026-10-16T17:57:19.731040+00:00"
+    },
+    {
+      "argv": [
+        "kubectl",
+        "wait",
+        "-n",
+        "testportal-project",
+        "--for=delete",
+        "pod/containerworkload-694f3t4n-5cc6976cc7-7zhb2",
+        "--timeout=60s"
+      ],
+      "rc": 0,
+      "stdout": "",
+      "stderr": "",
+      "client_utc": "2026-10-16T17:57:20.062494+00:00"
+    },
+    {
+      "argv": [
+        "kubectl",
+        "wait",
+        "-n",
+        "default",
+        "--for=delete",
+        "pod/sglang-pd4p2d-reserve-33-20261014",
+        "--timeout=60s"
+      ],
+      "rc": 0,
+      "stdout": "pod/sglang-pd4p2d-reserve-33-20261014 condition met\n",
+      "stderr": "",
+      "client_utc": "2026-10-16T17:57:50.596526+00:00"
+    }
+  ],
+  "before": {
+    "node32_deployment": {
+      "name": "containerworkload-694f3t4n",
+      "namespace": "testportal-project",
+      "uid": "b3e19d00-059f-4177-986c-45f3209164be",
+      "replicas": 1,
+      "pod": "containerworkload-694f3t4n-5cc6976cc7-7zhb2",
+      "node": "a3-5u-atlas900rcka3-32"
+    },
+    "node33_reservation": {
+      "name": "sglang-pd4p2d-reserve-33-20261014",
+      "uid": "6c2967ae-f054-41ce-8ae7-f555a9e47151",
+      "node": "a3-5u-atlas900rcka3-33",
+      "ownerReferences": null,
+      "resources": {
+        "limits": {
+          "cpu": "500m",
+          "huawei.com/Ascend910": "16",
+          "memory": "512Mi"
+        },
+        "requests": {
+          "cpu": "500m",
+          "huawei.com/Ascend910": "16",
+          "memory": "512Mi"
+        }
+      }
+    }
+  },
+  "completed_client_utc": "2026-10-16T17:57:50.869137+00:00",
+  "node32_deployment_replicas_after": 0,
+  "status": "released_observed_allocations; system/access pods untouched"
+}

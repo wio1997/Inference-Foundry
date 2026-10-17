@@ -1,0 +1,7 @@
+{
+  "hypothesis": "Pooling MLA KV currently deduplicates TP replicas: one shared rank key, different TP ranks write different blocks. Quantized replicated state need not be byte-identical across physical ranks; preserving each rank is a testable ownership change, not an established root cause.",
+  "change": "Experimental opt-in preserve_mla_tp_kv forces put_step1 and worker head_or_tp_rank=tp_rank; scheduler requires every rank key. Same-TP GLM C8 nonlayerwise MemCache only. No operator, precision or logical prompt/output change.",
+  "cost": "Up to16x logical PUT traffic and pool storage versus replica dedup; keep original1GiB/rank pool, document any eviction/failure. No performance benefit claim.",
+  "gate": "Re-run original failed4096/128 fixture with fresh salts and existing strict native reference; boundary/C1 suite afterwards. Reject if output stability does not improve; do not keep an unsupported claim.",
+  "source_guard": "worker3d39b85e..., alignedscheduler48387ab0..., source and staged target SHA individually retained."
+}

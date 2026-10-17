@@ -1,0 +1,85 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -20,0 +21 @@
++import os
+@@ -2233,0 +2235,7 @@
++        # Early output must not permit input/KV/preemption reuse while the
++        # preceding draft or asynchronous state update still owns its buffers.
++        pending = getattr(self, "_glm53_early_output_input_fences", None)
++        if pending:
++            for fence in pending:
++                fence.synchronize()
++            self._glm53_early_output_input_fences = None
+@@ -2889,0 +2898,47 @@
++        def _glm53_make_async_output(output):
++            return AsyncGPUModelRunnerOutput(
++                model_runner_output=output,
++                sampled_token_ids=sampler_output.sampled_token_ids,
++                logprobs_tensors=sampler_output.logprobs_tensors,
++                invalid_req_indices=invalid_req_indices,
++                async_output_copy_stream=self.async_output_copy_stream,
++                vocab_size=self.input_batch.vocab_size,
++                num_nans=num_nans_device,
++            )
++
++        early_output = None
++        early_scope = (
++            os.environ.get("GLM53_EARLY_SPEC_OUTPUT_COPY") == "1"
++            and self.use_async_scheduling
++            and self.speculative_config is not None
++            and self.speculative_config.method == "mtp"
++            and self.is_kv_consumer
++            and not self.is_kv_producer
++            and pp.world_size == 1
++            and self.dp_size == 1
++            and not self.vllm_config.parallel_config.enable_expert_parallel
++            and not self.dynamic_eplb
++            and not self.is_multimodal_model
++            and not scheduler_output.has_structured_output_requests
++            and sampler_output.logprobs_tensors is None
++            and not prompt_logprobs_dict
++            and num_nans_device is None
++        )
++        if early_scope:
++            invalid = set(invalid_req_indices)
++            first_valid_output = any(
++                index not in invalid
++                and (state := self.requests.get(req_id)) is not None
++                and len(state.output_token_ids) == 1
++                for index, req_id in enumerate(req_ids_output_copy)
++            )
++            if first_valid_output:
++                # Copy the current sampled IDs before the following draft.
++                # Final output metadata is attached before exposing the object.
++                early_output = _glm53_make_async_output(copy(EMPTY_MODEL_RUNNER_OUTPUT))
++                # Protect this read if the proposer modifies its sampled input.
++                torch.npu.current_stream().wait_event(early_output.async_copy_ready_event)
++                if not getattr(self, "_glm53_early_output_logged", False):
++                    logger.info("[glm53/early-output] First-token copy before draft; input reuse remains fenced.")
++                    self._glm53_early_output_logged = True
++
+@@ -2957,9 +3012,7 @@
+-        async_output = AsyncGPUModelRunnerOutput(
+-            model_runner_output=model_runner_output,
+-            sampled_token_ids=sampler_output.sampled_token_ids,
+-            logprobs_tensors=sampler_output.logprobs_tensors,
+-            invalid_req_indices=invalid_req_indices,
+-            async_output_copy_stream=self.async_output_copy_stream,
+-            vocab_size=self.input_batch.vocab_size,
+-            num_nans=num_nans_device,
+-        )
++        if early_output is not None:
++            # This field is the pinned AsyncGPUModelRunnerOutput's metadata
++            # holder; no get_output call can occur before sample_tokens returns.
++            early_output._model_runner_output = model_runner_output
++            async_output = early_output
++        else:
++            async_output = _glm53_make_async_output(model_runner_output)
+@@ -2969,0 +3023,7 @@
++        if early_output is not None:
++            fences = []
++            for stream in (torch.npu.current_stream(), global_stream()):
++                fence = torch.npu.Event(blocking=True)
++                fence.record(stream)
++                fences.append(fence)
++            self._glm53_early_output_input_fences = fences

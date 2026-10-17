@@ -1,0 +1,154 @@
+--- a/pool_worker.py
++++ b/pool_worker.py
+@@ -1190,6 +1190,42 @@
+             self.layer_save_tasks = [[] for _ in range(self.num_layers)]
+ 
+         self.page_size_bytes = sum(self.block_len)
++        if os.getenv("GLM53_KV_CONTROL_AUDIT") == "1":
++            import json, torch_npu, weakref
++            from pathlib import Path
++            labels = {}
++            views = {}
++            for name, caches in self.kv_caches.items():
++                for slot, cache in enumerate(self._as_cache_tuple(caches)):
++                    length, stride, _, scale = self._get_cache_block_metadata(cache)
++                    views.setdefault(cache.data_ptr(), []).append((weakref.ref(cache), stride, scale, length))
++                    labels.setdefault(cache.data_ptr(), []).append({
++                        "layer": name, "slot": slot, "shape": list(cache.shape),
++                        "stride": list(cache.stride()), "dtype": str(cache.dtype),
++                        "format": torch_npu.get_npu_format(cache),
++                        "inner_contiguous": cache[0].is_contiguous(),
++                        "block_bytes": length, "block_stride": stride,
++                        "blocks_per_external_page": scale})
++            if self.num_kv_cache_groups != 1:
++                raise RuntimeError("Diagnostic supports current single-group GLM layout only")
++            entries = []
++            for address, length, stride in zip(self.group_kv_caches_base_addr[0], self.group_block_len[0], self.group_block_stride[0], strict=True):
++                matches = [v for v in views[address] if v[1] == stride and v[3] == length]
++                if not matches:
++                    raise RuntimeError("Diagnostic cache view not found")
++                entries.append(matches[0])
++            self.m_store._glm53_audit_entries = entries
++            groups = {}
++            for group, addresses in self.group_kv_caches_base_addr.items():
++                groups[group] = [{"entry": i, "block_bytes": size,
++                                  "block_stride": stride, "labels": labels.get(address, [])}
++                                 for i, (address, size, stride) in enumerate(zip(
++                                     addresses, self.group_block_len[group], self.group_block_stride[group], strict=True))]
++            root = Path("/out/kv-control-audit")
++            root.mkdir(exist_ok=True)
++            (root / f"layout-pid{os.getpid()}.json").write_text(json.dumps({
++                "pid": os.getpid(), "tp_rank": self.tp_rank,
++                "num_blocks": self.num_blocks, "groups": groups}, indent=2) + "\n")
+         self.token_database.set_group_buffers(
+             self.group_kv_caches_base_addr,
+             self.group_block_len,
+@@ -1348,6 +1384,10 @@
+                 key_list_c[:3],
+             )
+             load_get_start = time.perf_counter()
++            if os.getenv("GLM53_KV_CONTROL_AUDIT") == "1":
++                event = torch.npu.Event()
++                event.record()
++                self.m_store._glm53_audit_ready_event = event
+             ret = self.m_store.get(key_list_c, addr_list_c, size_list_c)
+             self._record_kv_connector_operation(
+                 "load_get",
+--- a/backend/memcache_backend.py
++++ b/backend/memcache_backend.py
+@@ -6,6 +6,17 @@
+ from typing import Any
+ 
+ import torch
++
++def _glm53_control_checksum_tensor(value):
++    data = value.contiguous().view(torch.uint8).reshape(-1).to(torch.int32)
++    position = torch.arange(data.numel(), dtype=torch.int32, device=data.device)
++    weight1 = position.remainder(65521)+1
++    weight2 = (position.remainder(65519)*17).remainder(65519)+1
++    return torch.stack((data.sum(dtype=torch.int64),
++                        (data*weight1).sum(dtype=torch.int64),
++                        (data*weight2).sum(dtype=torch.int64),
++                        (data*data).sum(dtype=torch.int64)))
++
+ from vllm.config import ParallelConfig
+ from vllm.distributed.parallel_state import get_dp_group
+ from vllm.logger import logger
+@@ -447,6 +458,57 @@
+             return [0] * len(keys)
+         return finish(keys, results)
+ 
++    def _glm53_audit_buffers(self, keys, addresses, sizes, phase):
++        if os.getenv("GLM53_KV_CONTROL_AUDIT") != "1":
++            return
++        import hashlib, json
++        from pathlib import Path
++        counts = getattr(self, "_glm53_audit_counts", {})
++        self._glm53_audit_counts = counts
++        remaining = 128 - counts.get(phase, 0)
++        if remaining <= 0:
++            return
++        selected = list(zip(keys, addresses, sizes))[:remaining]
++        entries = self._glm53_audit_entries
++        audit_stream = getattr(self, "_glm53_audit_stream", None)
++        if audit_stream is None:
++            audit_stream = torch.npu.Stream()
++            self._glm53_audit_stream = audit_stream
++        root = Path("/out/kv-control-audit")
++        root.mkdir(exist_ok=True)
++        with (root / f"buffers-pid{os.getpid()}.jsonl").open("a") as output:
++            with torch.npu.stream(audit_stream):
++                ready = getattr(self, "_glm53_audit_ready_event", None)
++                if ready is not None:
++                    audit_stream.wait_event(ready)
++                for key, pointers, lengths in selected:
++                    if len(pointers) != len(entries):
++                        raise RuntimeError("Diagnostic layout entry count mismatch")
++                    values = []
++                    for pointer, length, entry in zip(pointers, lengths, entries, strict=True):
++                        reference, stride, scale, block_bytes = entry
++                        cache = reference()
++                        if cache is None:
++                            raise RuntimeError("KV tensor released before its audit")
++                        delta = pointer - cache.data_ptr()
++                        if delta < 0 or delta % stride != 0 or length != block_bytes:
++                            raise RuntimeError("Diagnostic address/stride mismatch")
++                        start = delta // stride * scale
++                        block = cache[start:start+scale]
++                        if block.numel()*block.element_size() != length:
++                            raise RuntimeError("Diagnostic logical block length mismatch")
++                        values.append(_glm53_control_checksum_tensor(block))
++                    # Only these small integer control values leave the NPU.
++                    control = torch.stack(values).cpu().tolist()
++                    row = {"phase": phase, "key": key, "pid": os.getpid(),
++                           "device_id": str(self.device_id), "bytes": sum(lengths),
++                           "sizes": lengths, "checksums": control,
++                           "control_sha256": hashlib.sha256(json.dumps(control).encode()).hexdigest(),
++                           "monotonic_ns": time.monotonic_ns()}
++                    output.write(json.dumps(row) + "\n")
++                    output.flush()
++                    counts[phase] = counts.get(phase, 0) + 1
++
+     def get(
+         self,
+         key: list[str],
+@@ -465,6 +527,8 @@
+         assert self.store is not None
+         try:
+             res = self.store.batch_get_into_layers(key, addr, size, MmcDirect.COPY_G2L.value)
++            if res is not None and all(r == 0 for r in res):
++                self._glm53_audit_buffers(key, addr, size, "get_after")
+             failed_codes = [int(value) for value in res if value != 0]
+             failed_count = len(failed_codes)
+             if failed_count:
+@@ -497,7 +561,10 @@
+         self.ensure_initialized()
+         assert self.store is not None
+         try:
++            self._glm53_audit_buffers(key, addr, size, "put_before")
+             res = self.store.batch_put_from_layers(key, addr, size, MmcDirect.COPY_L2G.value)
++            if res is not None and all(r == 0 for r in res):
++                self._glm53_audit_buffers(key, addr, size, "put_after")
+             failed_codes = [int(value) for value in res if value != 0]
+             failed_count = len(failed_codes)
+             if failed_count:

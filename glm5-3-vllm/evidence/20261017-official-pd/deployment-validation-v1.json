@@ -1,0 +1,141 @@
+{
+  "schema": "glm53-official-native-pd-deployment/v1",
+  "client_utc": "2026-10-17T12:06:47.314577+00:00",
+  "status": "functional_native_official_pd_and_profiled_sdma_hccs_paths_passed",
+  "service": {
+    "proxy": "http://172.16.12.32:29880",
+    "prefill": "http://172.16.12.32:29481",
+    "decode": "http://172.16.12.33:29482",
+    "served_model": "glm5",
+    "model_lifetime_seconds": 3600,
+    "approx_client_expiry_utc": "2026-10-17T12:37:00Z",
+    "resource_holder_seconds": 4500,
+    "resource_holder_approx_expiry_utc": "2026-10-17T12:52:00Z"
+  },
+  "implementation": {
+    "ascend_sha": "5f828ad638ee4f9b12db87f9d5481f29076d37f9",
+    "image_id": "sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83",
+    "connector": "MooncakeConnectorV2",
+    "proxy_source_sha256": "85b8982948530758be655d3448ff10fc3979e56622221feace560272a81f1469",
+    "custom_runtime_patches": [],
+    "custom_kv_protocol": false,
+    "memcache_pool_enabled_in_this_service": false
+  },
+  "topology": {
+    "nodes": [
+      32,
+      33
+    ],
+    "P": {
+      "TP": 16,
+      "DP": 1,
+      "PP": 1,
+      "graph": "NONE/eager"
+    },
+    "D": {
+      "TP": 16,
+      "DP": 1,
+      "PP": 1,
+      "graph": "FULL_DECODE_ONLY, actual capture/replay"
+    },
+    "max_model_len": 8192,
+    "max_num_seqs": 4,
+    "max_num_batched_tokens": 1024,
+    "precision": "original GLM5.3 W8A8C8, int8 KV and int8 Indexer",
+    "note": "Two-node capacity/topology adaptation of native official connector/proxy; no claim of unchanged four-node200K reference."
+  },
+  "functional": {
+    "passed": true,
+    "requests": [
+      {
+        "input_tokens": 256,
+        "http_status": 200,
+        "all_16_decode_ranks_completed_remote_read": true,
+        "logical_received_bytes": 223346688
+      },
+      {
+        "input_tokens": 1024,
+        "http_status": 200,
+        "all_16_decode_ranks_completed_remote_read": true,
+        "logical_received_bytes": 893386752
+      }
+    ],
+    "source": "evidence/20261017-official-pd/node32-official-smoke-validation-v1-77036ee6dfde/metrics.json",
+    "metric_instrumentation_gap": {
+      "pull_worker_sha256": "107b0da0ffa228773441631d610bcad5366114c734776dcba3285e90536a67eb",
+      "description": "Pinned V2 executes batch_transfer_sync_read and logs completed ranges/bytes but never records its base xfer_stats. Zero Prometheus counter is not a valid remote-transfer absence gate in this implementation."
+    }
+  },
+  "profiled_path": {
+    "passed": true,
+    "P_trace_count": 16,
+    "D_trace_count": 16,
+    "P_sdma_tasks": 56944,
+    "D_sdma_tasks": 437740,
+    "D_hccl_batch_get_present_in_each_rank": true,
+    "matrix_count": 32,
+    "transport_types": [
+      "LOCAL",
+      "SIO",
+      "HCCS"
+    ],
+    "rdma_named_tasks": 0,
+    "sources": [
+      "evidence/20261017-official-pd/node32-official-prefill-path-check-v1-6c298f2f3f5b/metrics.json",
+      "evidence/20261017-official-pd/node33-official-decode-path-check-v2-e8a08b218fae/metrics.json"
+    ],
+    "scope": "Actual profiled request window, bounded task/link evidence; counts do not individually attribute every byte or establish a universal transport claim. No performance timing includes profiler."
+  },
+  "accuracy_and_performance": {
+    "basic_2_plus_3_smoke": true,
+    "exact_text_equal_256": true,
+    "exact_text_equal_1024": false,
+    "difference_1024": "native5.0 versus PD5 formatting, autoregressive text differs",
+    "full_task_accuracy_accepted": false,
+    "performance_gain_accepted": false,
+    "long_term_stability_accepted": false
+  },
+  "profiling_tooling": {
+    "automatic_daemon_parse": "failed as documented; raw retained",
+    "offline_CPU_export": "both returncode0, all32 CANN trace/matrix outputs valid",
+    "first_D_summary": "metadata race on temporary SQLite file, preserved failure; second audit freezes validated CANN copies only",
+    "inference_service_not_reloaded_for_profile_analysis": true
+  },
+  "raw_backup": {
+    "32": {
+      "remote_archive": "/data/wio/glm5-3-vllm-execution/20261017-official-pd/official-pd-evidence-v1.tar.gz",
+      "bytes": 302908782,
+      "sha256": "4fd60f8abf5faf882abb8c474009425f5d3f84cdd9b77282b7c92ac02584c715",
+      "files": 2890,
+      "raw_selected_bytes": 2170179420,
+      "excluded_live_ascend_logs": true,
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-official-pd/node32-official-pd-evidence-v1.tar.gz",
+      "download_verified": true
+    },
+    "33": {
+      "remote_archive": "/data/wio/glm5-3-vllm-execution/20261017-official-pd/official-pd-evidence-v1.tar.gz",
+      "bytes": 416348365,
+      "sha256": "bb0a10fb1ac4d9b01abb23436f60744f83932c834b179ed4501f259b3b1e36ef",
+      "files": 2501,
+      "raw_selected_bytes": 3426897705,
+      "excluded_live_ascend_logs": true,
+      "local_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261017-official-pd/node33-official-pd-evidence-v1.tar.gz",
+      "download_verified": true
+    }
+  },
+  "scope_limit": "Current running service is official direct-PD baseline. MemCache pooling and prior pure-pool long-input repair candidate remain separately unaccepted.",
+  "final_status": {
+    "P_api_ready": true,
+    "D_api_ready": true,
+    "official_proxy_health": {
+      "status": "ok",
+      "prefill_instances": 1,
+      "decode_instances": 1,
+      "request_num": 0
+    },
+    "inference_errors": [],
+    "D_completed_read_log_entries_including_profile": 48,
+    "automatic_profile_parse_errors_resolved_by_offline_export": true,
+    "client_utc": "2026-10-17T12:09:38.074120+00:00"
+  }
+}

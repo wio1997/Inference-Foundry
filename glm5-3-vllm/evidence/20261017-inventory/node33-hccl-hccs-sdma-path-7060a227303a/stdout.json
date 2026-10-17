@@ -1,0 +1,67 @@
+mki_log mkdir /out/ascend-log/atb
+GLM53_RESULT_JSON_BEGIN
+{
+  "probe": "hccl_2rank_bounded_probe",
+  "kind": "initial_condition_communication_diagnosis",
+  "ok": false,
+  "spawn_error": null,
+  "init_method": "tcp://127.0.0.1:55787",
+  "world_size": 2,
+  "sizes_bytes": [
+    1024,
+    65536,
+    1048576,
+    16777216,
+    67108864
+  ],
+  "warmup_iterations": 3,
+  "timed_iterations": 12,
+  "transport_controls": {
+    "HCCL_INTER_HCCS_DISABLE": "FALSE",
+    "HCCL_INTRA_ROCE_ENABLE": "0",
+    "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+    "HCCL_INTRA_PCIE_ENABLE": "1"
+  },
+  "sdma_runtime_path_verified": false,
+  "physical_visible_string": "0,2",
+  "visibility_note": "set by the caller; rank r runs on npu:r inside that visible set",
+  "rank_mapping": {
+    "0": "npu:0",
+    "1": "npu:1"
+  },
+  "exitcodes": [
+    0,
+    0
+  ],
+  "rank_results": [
+    {
+      "rank": 0,
+      "logical_device": "npu:0",
+      "device_name": "Ascend910_9392",
+      "cases": [],
+      "error": "Traceback (most recent call last):\n  File \"/audit/script.py\", line 137, in _worker\n    dist.init_process_group(backend='hccl', init_method=init_method, rank=rank,\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/c10d_logger.py\", line 83, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/c10d_logger.py\", line 97, in wrapper\n    func_return = func(*args, **kwargs)\n                  ^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py\", line 1806, in init_process_group\n    store, rank, world_size = next(rendezvous_iterator)\n                              ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/rendezvous.py\", line 233, in _tcp_rendezvous_handler\n    store = _create_c10d_store(\n            ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/rendezvous.py\", line 200, in _create_c10d_store\n    return TCPStore(\n           ^^^^^^^^^\ntorch.distributed.DistStoreError: Timed out after 61 seconds waiting for clients. 1/2 clients joined.\n",
+      "torch_version": "2.10.0+cpu",
+      "torch_npu_version": "2.10.0.post4",
+      "init_ns": null,
+      "ascend_rt_visible_devices": "0,2"
+    },
+    {
+      "rank": 1,
+      "logical_device": "npu:1",
+      "device_name": null,
+      "cases": [],
+      "error": "Traceback (most recent call last):\n  File \"/audit/script.py\", line 134, in _worker\n    torch.npu.set_device(rank)\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/npu/utils.py\", line 91, in set_device\n    torch_npu._C._npu_setDevice(device_id)\nRuntimeError: ExchangeDevice:../torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.cpp:285 NPU function error: c10_npu::SetDevice(device), error code is 107001\n[ERROR] 2026-10-16-18:01:57 (PID:21, Device:0, RankID:-1) ERR00100 PTA call acl api failed\n[Error]: Invalid device ID.\n        Check whether the device ID is valid.\n[PID: 21] 2026-10-16-18:01:57.003.197 Invalid_Argument(EE1003): Obtaining the logical device ID based on the user device ID failed because value 1 for parameter userDevId is invalid. Expected value: [0, 1).\n        Solution: 1. Check the input parameter range of the function. 2. Check the function invocation relationship.\nTraceBack (most recent call last):\n        rtSetDevice execution failed, reason=device id error[FUNC:FuncErrorReason][FILE:error_message_manage.cc][LINE:69]\n\n",
+      "torch_version": "2.10.0+cpu",
+      "torch_npu_version": "2.10.0.post4",
+      "init_ns": null,
+      "ascend_rt_visible_devices": "0,2"
+    }
+  ],
+  "timing_note": "each ns value is that rank's own perf_counter_ns interval around dist.send/recv or dist.all_reduce plus torch.npu.synchronize; no cross-process time is combined",
+  "semantics": [
+    "verification runs after timing: receiver torch.all for send/recv, every rank for all_reduce",
+    "a single rank's send/recv interval is neither a pure one-way link latency nor a PD latency",
+    "initial-condition diagnosis only; real KV-cache/EP message shapes, isolation, and contention are not represented and must be recorded outside this run"
+  ]
+}
+GLM53_RESULT_JSON_END

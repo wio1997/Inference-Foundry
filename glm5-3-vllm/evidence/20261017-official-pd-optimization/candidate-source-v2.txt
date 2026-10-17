@@ -1,0 +1,412 @@
+SOURCE /vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd
+732:                 "profiling_chunk_config requires pipeline parallelism (pp > 1). "
+733:                 "Please set --pipeline-parallel-size to a value greater than 1, "
+734:                 "or disable profiling_chunk_config."
+735:             )
+736: 
+737:         # profiling_chunk vs balance mutex
+738:         if self.scheduler_config.profiling_chunk_config.enabled and self.scheduler_config.enable_balance_scheduling:
+739:             raise ValueError(
+740:                 "profiling_chunk_config and balance scheduling (enable_balance_scheduling) "
+741:                 "cannot be enabled at the same time. Please disable one of them."
+742:             )
+743: 
+744:         # enable_shared_expert_dp = val and ep and tp>1
+745:         from vllm_ascend.utils import enable_sp
+746: 
+747:         self.enable_shared_expert_dp = (
+748:             self.enable_shared_expert_dp
+749:             and vc.parallel_config.enable_expert_parallel
+750:             and vc.parallel_config.tensor_parallel_size > 1
+751:         )
+752:         # FlashComm remains the SP MoE switch on Ascend.
+753:         flashcomm_explicitly_enabled = validate_additional_config_bool(
+754:             (vc.additional_config or {}).get("enable_flashcomm1", False),
+755:             "additional_config.enable_flashcomm1",
+756:         ) or os.getenv("VLLM_ASCEND_ENABLE_FLASHCOMM1", "0").strip().lower() in ("1", "true")
+757:         # DSA-CP depends on FlashComm: auto-enable FlashComm when DSA-CP is on
+758:         # so users only need `enable_dsa_cp=true` in additional_config.
+1038: 
+1039:         raise ValueError(
+1040:             "MooncakeConnector does not support C8 KV cache quantization on GQA models. "
+1041:             "The producer keeps KV cache in bf16 while the consumer allocates int8 KV cache, so raw "
+1042:             "Mooncake transfer would reinterpret bf16 bytes as int8. Please disable C8 KV cache quantization "
+1043:             "or use MooncakeLayerwiseConnector, which quantizes KV cache before transfer."
+1044:         )
+1045: 
+1046:     def _check_mix_placement(self):
+1047:         if self.mix_placement:
+1048:             if self.enable_shared_expert_dp or self.multistream_overlap_shared_expert:
+1049:                 raise ValueError("Mix placement is not supported with shared expert DP or multistream overlap.")
+1050: 
+1051:     @staticmethod
+1052:     def _is_megamoe_supported_by_config(vllm_config: VllmConfig) -> bool:
+1053:         if get_current_hardware_profile().supports(HardwareCapability.CANN_MEGAMOE_MXFP):
+1054:             mega_moe_supported_by_config = AscendConfig._is_a5_megamoe_supported_by_config(vllm_config)
+1055:             logger.debug("mega moe operator is supported by current a5 config: %r", mega_moe_supported_by_config)
+1056:             return mega_moe_supported_by_config
+1057:         hf_text_config = vllm_config.model_config.hf_text_config
+1058:         hidden_size = getattr(hf_text_config, "hidden_size", None)
+1059:         if hidden_size is None and hasattr(vllm_config.model_config, "get_hidden_size"):
+1060:             hidden_size = vllm_config.model_config.get_hidden_size()
+1061:         if hidden_size is None:
+1062:             return False
+1063:         hidden_size = int(hidden_size)
+1064:         if hidden_size < 1024 or hidden_size > 8192 or hidden_size % 512 != 0:
+SOURCE /vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/shared_experts.py 471db26e9e9e4ba70c2ccd43502ad39bff6699bbd4ca191319a9b66fc20458f9
+1: #
+2: # Copyright (c) 2025 Huawei Technologies Co., Ltd. All Rights Reserved.
+3: # This file is a part of the vllm-ascend project.
+4: #
+5: # Licensed under the Apache License, Version 2.0 (the "License");
+6: # you may not use this file except in compliance with the License.
+7: # You may obtain a copy of the License at
+8: #
+9: #     http://www.apache.org/licenses/LICENSE-2.0
+10: #
+11: # Unless required by applicable law or agreed to in writing, software
+12: # distributed under the License is distributed on an "AS IS" BASIS,
+13: # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+14: # See the License for the specific language governing permissions and
+15: # limitations under the License.
+16: #
+17: from dataclasses import dataclass
+18: from enum import Enum, auto
+19: from functools import wraps
+20: from typing import TypeAlias
+21: 
+22: import torch
+23: import torch.nn.functional as F
+24: import torch_npu
+25: from vllm.distributed import tensor_model_parallel_all_gather, tensor_model_parallel_reduce_scatter
+26: from vllm.logger import logger
+27: from vllm.model_executor.layers.activation import SituAndMul
+28: from vllm.model_executor.layers.fused_moe import FusedMoEConfig, FusedMoEMethodBase
+29: 
+30: from vllm_ascend.ascend_config import get_ascend_config
+31: from vllm_ascend.ascend_forward_context import _EXTRA_CTX
+32: from vllm_ascend.device.hardware_profile import HardwareCapability, get_current_hardware_profile
+33: from vllm_ascend.lora.fused_moe import has_lora
+34: from vllm_ascend.ops.fused_moe.dataclass.shared_experts import (
+35:     PreparedSharedExpertInput,
+36:     RoutedMoEMilestones,
+37: )
+38: from vllm_ascend.ops.fused_moe.moe_utils import _pad_tokens_with_cat
+39: from vllm_ascend.quantization.prepared_linear_input import PreparedLinearInput
+40: from vllm_ascend.quantization.quant_type import QuantType
+41: from vllm_ascend.utils import npu_stream_switch, shared_experts_calculation_stream
+42: 
+43: # CANN uses 36 to select FP8 E4M3FN output for situ_mx_quant.
+44: SITU_MX_DST_TYPE_E4M3FN = 36
+45: 
+46: 
+47: class SharedExpertParallelMode(Enum):
+48:     """Effective activation and weight layout for a shared-expert forward."""
+49: 
+50:     TENSOR_PARALLEL = auto()  # Full activations, TP-sharded weights.
+51:     SHARED_EXPERT_DATA_PARALLEL_ONLY = auto()  # Full activations, replicated weights (DP only).
+52:     SEQUENCE_PARALLEL_ONLY = auto()  # Sharded activations, TP-sharded weights (SP only).
+53:     SEQUENCE_PARALLEL_SEDP = auto()  # Sharded activations, replicated weights (SP + DP).
+54: 
+55: 
+56: class SharedExpertMLPPath(Enum):
+57:     """Shared MLP implementation selected for a quantization scenario."""
+58: 
+59:     A8_INT_FUSED = auto()  # W8A8/W4A8: explicit A8 quant + fused activation quant.
+60:     A8_MXFP_FUSED = auto()  # W4A8MXFP: explicit MXFP8 activation pipeline.
+61:     LINEAR_WRAPPER = auto()  # Dense, other quant schemes, or any active LoRA.
+62: 
+63: 
+64: LinearInput: TypeAlias = torch.Tensor | PreparedLinearInput | tuple[torch.Tensor, torch.Tensor]
+65: 
+66: 
+67: @dataclass(frozen=True)
+68: class PreparedSharedExpertExecution:
+69:     """Shared MLP input preparation submitted before the router matmul.
+70: 
+71:     ``gate_up_input`` may contain scheme-owned activation quantization that is
+72:     already queued on the shared-expert stream. Gate-Up consumes it immediately
+73:     after ``router_output_ready``; activation and Down are appended after the
+74:     routed path exposes its stage milestones.
+75:     """
+76: 
+77:     hidden_states: torch.Tensor
+78:     gate_up_input: LinearInput
+79:     local_dp_metadata: tuple[int, int] | None
+80: 
+81: 
+82: @dataclass(frozen=True)
+83: class SubmittedSharedExpertGateUp:
+84:     """Gate-Up work already submitted on the shared-expert stream."""
+85: 
+86:     hidden_states: torch.Tensor
+87:     gate_up: torch.Tensor
+88:     gate_up_input_scale: torch.Tensor | None
+89:     local_dp_metadata: tuple[int, int] | None
+90:     path: SharedExpertMLPPath
+91: 
+92: 
+93: class AscendSharedExperts:
+94:     """Ascend-owned shared expert executor.
+95: 
+96:     Keep the original shared expert module registered on ``AscendMoERunner``
+97:     for checkpoint compatibility while moving split/overlap execution details
+98:     out of the runner.
+99:     """
+100: 
+101:     def __init__(
+102:         self,
+103:         layer: torch.nn.Module,
+104:         moe_config: FusedMoEConfig,
+105:         quant_type: QuantType,
+106:         quant_method: FusedMoEMethodBase,
+107:     ):
+108:         self.layer = layer
+109:         self.moe_config = moe_config
+110:         self.hidden_size = moe_config.hidden_dim
+111:         self.shared_expert_input_size = getattr(
+112:             layer.gate_up_proj,
+113:             "input_size",
+114:             self.hidden_size,
+115:         )
+116:         self.in_dtype = moe_config.in_dtype
+117:         self.swiglu_limit = 0.0 if moe_config.swiglu_limit is None else moe_config.swiglu_limit
+118:         self.swiglu_alpha = 1.0 if moe_config.swiglu_alpha is None else moe_config.swiglu_alpha
+119:         self.swiglu_beta = 0.0 if moe_config.swiglu_beta is None else moe_config.swiglu_beta
+120:         self.is_sequence_parallel = moe_config.is_sequence_parallel
+121:         self.situ_activation = layer.act_fn if isinstance(layer.act_fn, SituAndMul) else None
+122:         self.quant_type = quant_type
+123:         self.lora_context = None
+124:         ascend_config = get_ascend_config()
+125:         self.multistream_overlap = ascend_config.multistream_overlap_shared_expert
+126:         self.weights_replicated = ascend_config.enable_shared_expert_dp
+127: 
+128:         if self.multistream_overlap:
+129:             # Wrap the quant_method's process_weights_after_loading to validate that
+130:             # splitting shared expert computation (gate_up projection, activation,
+131:             # then down projection) yields identical results to integrated
+132:             # computation after weight loading.
+133:             original_process_weights = quant_method.process_weights_after_loading
+134: 
+135:             @wraps(original_process_weights)
+136:             def wrapped_process_weights(*args, **kwargs):
+137:                 result = original_process_weights(*args, **kwargs)
+138:                 self.validate_consistency()
+139:                 return result
+140: 
+141:             quant_method.process_weights_after_loading = wrapped_process_weights  # type: ignore
+142: 
+143:     def set_lora_context(self, lora_context) -> None:
+144:         self.lora_context = lora_context
+145: 
+146:     def validate_consistency(self):
+147:         """Validate that split shared expert computation matches integrated computation."""
+148:         test_input = (
+149:             torch.rand(
+150:                 10,
+151:                 self.shared_expert_input_size,
+152:                 device="npu",
+153:                 dtype=self.in_dtype,
+154:             )
+155:             * 2
+156:             - 1
+157:         )  # Random input for testing, scoped to [-1, 1]
+158: 
+159:         integrated_out = self.layer(test_input)
+160:         part1_out = self.part1(test_input)
+161:         shared_act = self.apply_activation(part1_out)
+162:         split_out = self.part2(test_input, shared_act)
+163: 
+164:         if not torch.allclose(integrated_out, split_out):
+165:             diff = (integrated_out - split_out).abs()
+166:             logger.error(
+167:                 "[fused_moe/layer] Shared expert split computation validation failed."
+168:                 " The split-path computation does not match the integrated-path result."
+169:                 " max_abs_diff=%s, integrated_sum=%s, integrated_norm=%s,"
+170:                 " split_sum=%s, split_norm=%s, hidden_size=%s, dtype=%s.",
+171:                 diff.max().item(),
+172:                 integrated_out.sum().item(),
+173:                 integrated_out.norm().item(),
+174:                 split_out.sum().item(),
+175:                 split_out.norm().item(),
+176:                 self.shared_expert_input_size,
+177:                 self.in_dtype,
+178:             )
+179:             raise ValueError("FusedMoE shared experts split computation does not match the integrated computation.")
+180:         logger.info_once(
+181:             "[fused_moe/layer] Shared expert split computation validation passed."
+182:             " Integrated and split-path results are consistent."
+183:         )
+184: 
+185:     def part1(
+186:         self,
+187:         hidden_states: LinearInput,
+188:     ):
+189:         shared_gate_up, _ = self.layer.gate_up_proj(hidden_states)  # type: ignore
+190:         return shared_gate_up
+191: 
+192:     def apply_activation(self, shared_gate_up: torch.Tensor):
+193:         return self.layer.act_fn(shared_gate_up)  # type: ignore
+194: 
+195:     def part2(
+196:         self,
+197:         hidden_states: torch.Tensor,
+198:         down_input: LinearInput,
+199:     ):
+200:         shared_out, _ = self.layer.down_proj(down_input)  # type: ignore
+201: 
+202:         # Qwen3-Next specific gating mechanism
+203:         if hasattr(self.layer, "expert_gate") and self.layer.expert_gate is not None:
+204:             gate_out, _ = self.layer.expert_gate(hidden_states)  # type: ignore
+205:             shared_out = F.sigmoid(gate_out) * shared_out
+206:         return shared_out
+207: 
+208:     def parallel_mode(self) -> SharedExpertParallelMode:
+209:         """Resolve the effective activation/weight layout for this forward."""
+210:         # EP rewrites FusedMoEParallelConfig.tp_size to 1 because each routed
+211:         # expert is local. Shared-expert linears still span the physical TP
+212:         # group, so their layout must be derived from that group instead.
+213:         tp_size = self.moe_config.tp_group.world_size
+214:         if tp_size <= 1:
+215:             return SharedExpertParallelMode.TENSOR_PARALLEL
+216: 
+217:         if self.moe_config.is_sequence_parallel:
+218:             # SP has already sharded the token dimension before entering the
+219:             # runner. Replicated weights (SP+DP) compute directly on the
+220:             # shard; TP-sharded weights (SP-only) gather the shard first and
+221:             # reduce-scatter the output back.
+222:             if self.weights_replicated:
+223:                 return SharedExpertParallelMode.SEQUENCE_PARALLEL_SEDP
+224:             return SharedExpertParallelMode.SEQUENCE_PARALLEL_ONLY
+225:         if self.weights_replicated:
+226:             return SharedExpertParallelMode.SHARED_EXPERT_DATA_PARALLEL_ONLY
+227:         return SharedExpertParallelMode.TENSOR_PARALLEL
+228: 
+229:     def _prepare_local_dp_input(
+230:         self,
+231:         hidden_states: torch.Tensor,
+232:     ) -> tuple[torch.Tensor, tuple[int, int]]:
+233:         original_num_tokens = hidden_states.shape[0]
+234:         # See parallel_mode(): moe_config.tp_size describes routed experts in
+235:         # EP, while this token split follows the shared-expert TP group.
+236:         tp_group = self.moe_config.tp_group
+237:         tp_size = tp_group.world_size
+238:         pad_size = (tp_size - original_num_tokens % tp_size) % tp_size
+239:         if pad_size > 0:
+240:             hidden_states = _pad_tokens_with_cat(hidden_states, original_num_tokens + pad_size)
+241:         hidden_states = torch.tensor_split(
+242:             hidden_states,
+243:             tp_size,
+244:             dim=0,
+245:         )[tp_group.rank_in_group]
+246:         return hidden_states, (original_num_tokens, pad_size)
+247: 
+248:     def _finalize_local_dp_output(
+249:         self,
+250:         shared_out: torch.Tensor,
+251:         metadata: tuple[int, int],
+252:     ) -> torch.Tensor:
+253:         original_num_tokens, pad_size = metadata
+254:         shared_out = self.moe_config.tp_group.all_gather(shared_out, dim=0)
+255:         if pad_size > 0:
+256:             shared_out = shared_out[:original_num_tokens]
+257:         return shared_out
+258: 
+259:     def _gather_sp_input(self, hidden_states: torch.Tensor) -> torch.Tensor:
+260:         """Gather SP-sharded activations to the full sequence via TP all-gather + unpad.
+261: 
+262:         SP shards the token dimension across the TP group as [ceil(T/TP), H]
+263:         per rank (``sequence_parallel_chunk`` pads T to a multiple of TP).
+264:         TP-sharded shared-expert weights need the full activations, so
+265:         all-gather the shards back to [T_padded, H] and drop the padding rows.
+266:         """
+267:         gathered = tensor_model_parallel_all_gather(hidden_states, dim=0)
+268:         return gathered[: _EXTRA_CTX.num_tokens]
+269: 
+270:     def _pad_and_reduce_scatter(self, shared_out: torch.Tensor) -> torch.Tensor:
+271:         """Pad the full output to a TP multiple, then reduce-scatter to the SP shard.
+272: 
+273:         Called on exit of the SP-only path (TP-sharded weights) to convert the
+274:         full [T, H] output back to this rank's SP shard [ceil(T/TP), H]. The
+275:         reduce-scatter also sums the TP-partial down-projection results
+276:         (down_proj is built with reduce_results=False), replacing the usual
+277:         TP all-reduce.
+278:         """
+279:         tp_size = self.moe_config.tp_group.world_size
+280:         original_num_tokens = shared_out.shape[0]
+281:         pad_size = (tp_size - original_num_tokens % tp_size) % tp_size
+282:         if pad_size > 0:
+283:             shared_out = F.pad(shared_out, (0, 0, 0, pad_size))
+284:         return tensor_model_parallel_reduce_scatter(shared_out, dim=0)
+285: 
+286:     def prepare_input_async(
+287:         self,
+288:         hidden_states: torch.Tensor,
+289:     ) -> PreparedSharedExpertInput:
+290:         """Start the SP-only input all-gather on the shared-expert stream.
+291: 
+292:         The caller must wait for ``ready_event`` before enqueueing routed-path
+293:         collectives.  This method is intended to overlap the gather only with
+294:         a routed input transform such as Kimi-K3's latent projection.
+295:         """
+296:         if not (self.multistream_overlap and self.parallel_mode() is SharedExpertParallelMode.SEQUENCE_PARALLEL_ONLY):
+297:             return PreparedSharedExpertInput(hidden_states=hidden_states)
+298: 
+299:         input_ready = torch.npu.current_stream().record_event()
+300:         with npu_stream_switch(shared_experts_calculation_stream(), enabled=True):
+301:             torch.npu.current_stream().wait_event(input_ready)
+302:             # Keep TP padding across the custom-op boundary; the shared MLP
+303:             # trims it before computation.
+304:             hidden_states = tensor_model_parallel_all_gather(hidden_states, dim=0)
+305:             all_gather_done = torch.npu.current_stream().record_event()
+306:         return PreparedSharedExpertInput(
+307:             hidden_states=hidden_states,
+308:             is_gathered=True,
+309:             ready_event=all_gather_done,
+310:         )
+311: 
+312:     def prepare_input_before_routed(
+313:         self,
+314:         hidden_states: torch.Tensor,
+315:     ) -> PreparedSharedExpertInput:
+316:         """Prepare SP-only input on the calling stream before routed MoE.
+317: 
+318:         The TP all-gather deliberately stays on the default/routed stream.
+319:         Running it on the shared-expert stream while routed EP collectives run
+320:         on the default stream can deadlock HCCL when ranks make different
+321:         progress across the two process groups.
+322:         """
+323:         if not (self.multistream_overlap and self.parallel_mode() is SharedExpertParallelMode.SEQUENCE_PARALLEL_ONLY):
+324:             return PreparedSharedExpertInput(hidden_states=hidden_states)
+325: 
+326:         # Keep TP padding across the custom-op boundary; the shared MLP trims
+327:         # it before computation. The caller records shared_input_ready after
+328:         # this returns, handing the gathered tensor to the auxiliary stream.
+329:         hidden_states = tensor_model_parallel_all_gather(hidden_states, dim=0)
+330:         return PreparedSharedExpertInput(
+331:             hidden_states=hidden_states,
+332:             is_gathered=True,
+333:         )
+334: 
+335:     def _wait_for_milestone(
+336:         self,
+337:         event: torch.npu.Event | None,
+338:         name: str,
+339:     ) -> None:
+340:         """Wait for a required routed milestone when multistream is enabled."""
+341:         if not self.multistream_overlap:
+342:             return
+343:         if event is None:
+344:             raise RuntimeError(f"Missing {name} event while shared-expert multistream is enabled.")
+345:         torch.npu.current_stream().wait_event(event)
+346: 
+347:     def _wait_for_routed_stage(
+348:         self,
+349:         milestones: RoutedMoEMilestones,
+350:         event: torch.npu.Event | None,
+/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/shared_experts.py:93:class AscendSharedExperts:
+/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py:38:    AscendSharedExperts,
+/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py:132:            self.ascend_shared_experts = AscendSharedExperts(
+/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py:279:        # TP all-reduce for the routed output, and AscendSharedExperts.forward
+/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py:316:    # AscendSharedExperts, so only standard TP weights need a separate
+
