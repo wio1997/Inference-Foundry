@@ -11,10 +11,10 @@ import subprocess
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--deployment', choices=('payload-control', 'final-put', 'post-consume', 'source-ready'), default='payload-control')
+    parser.add_argument('--deployment', choices=('payload-control', 'final-put', 'post-consume', 'source-ready', 'post-pool'), default='payload-control')
     args = parser.parse_args()
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
-    rev = {'payload-control': (11, 10), 'final-put': (12, 11), 'post-consume': (13, 12), 'source-ready': (14, 13)}[args.deployment][node-32]
+    rev = {'payload-control': (11, 10), 'final-put': (12, 11), 'post-consume': (13, 12), 'source-ready': (14, 13), 'post-pool': (15, 14)}[args.deployment][node-32]
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline')
     root = base/f'pd-node{node}-v{rev}'
     cid = json.loads((root/'launch.json').read_text())['container_id']

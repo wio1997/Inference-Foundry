@@ -16,6 +16,22 @@
 
 ## 当前执行与证据恢复
 
+**10:21Z当前现场**：P14、D13、Meta-v5均已主动正常退出0，完整模型已无运行进程；本轮所有请求/控制/生命周期已SHA回传Mac，见`node*-source-ready-final-v1-backup.json`和`node*-source-ready-close-v1-backup.json`。当前剩余问题是已存对象/稳定GET路径，未宣称修复。下一Loop已冻结`post-pool-state-contract-v1.json`与P15/D14计划：仅4条初始无屏障A请求，D rank0在后置目标请求把31个池对象SDK读到独立6979584B int8 arena（0x80哨兵），115 entry四矩；注册/注销沿用已通过小测API，不读回真实KV bulk到CPU。D新backend `01fe3f`已stage并核SHA，其余模型/算子/精度/SDMA与worker/meta观察不变；源fence仍仅按已有request_id选择，初始4条均关闭。此启动模块变更是重载的必要原因。
+
+原1h租约在两台8卡空闲且无其他有效NPU claim核对后，仅替换自己精确UID，为该判别Loop再取得一次3600s有限资源；不停止其他作业，不增优先级。新租约结果见`post-pool-reservations-v1.json`（若尚未生成则仍在取得中），Meta-v6/新模型尚未启动。下一次启动仍须核租约、空卡、固定镜像、权重stat和只读patch SHA；主控可继续调整预算/方向，不新增看板/任务或跨聊天主动发消息。
+
+**10:15Z稳定外部重读反例**：历史salt重放3条仅2/3匹配；旧content坏请求再次失败，但坏块变为block22、entry104–114，821248B/每D rank全零，P16副本仍一致且与独立D-native相等。是同请求复现，不是同key/同entry固化。两机`source-ready-final-v1`不可变归档已回传核SHA；`known-failure-content-final-v1.json`保留176条entry/rank差异。ABBA6A/6B全控制匹配，不证明源fence有效。
+
+当前OpenAPI无`/reset_prefix_cache`，未启用新API。用41条普通4096/1原生D请求产生1312完整块，淘汰旧本地缓存；实际D1288块，冻结脚本沿用旧参考1289，41对两者都足够，contract已更正。源P空闲、D不写池，淘汰阶段SDK GET与本地prefix hits均0。随后同bad salt D128新增GET496、本地hit0，却全部128token精确复现坏结果；再D-local8命中3968、GET0，top20及token logprobs逐值相等。见`node32-same-key-external-reread-v1-*`。已排除仅随原D本地驻留的问题；剩余是已存对象或稳定GET路径，输出不能独自证明池字节内容。
+
+下一必要判别是在D128完成后的现有后置请求，用SDK经SDMA把同key读入独立7MB NPU arena，仅D rank0计算四矩，比较池读回、真实D缓存、P副本及D-native。复制前不观察内容，不增kernel/精度/端点/RPC/热更新平台。该观察必须启动只读模块更改，才需要下一次重载。先冻结CPU实现和SDK注册/注销API；P14/D13当前仍活，约10:26Z自身超时。当前循环原始证据先保全、正常关闭，再只在两台空闲且无其他有效claim时取得一次有限资源，不停止其他作业。主控仍可调整方向/预算。
+
+**10:00Z ABBA结束且不采用候选**：12/12输出与后置控制均匹配，A6/B6均通过、无对照故障，不能证明源屏障有效。P16设备/选择/FIFO审计已通过，D逐请求/计数已冻结，仍待最终不可变内容归档复核。继续复用P14/D13，冻结`known-failure-key-replay-contract-v1.json`，仅3条A重放历史原salt/key：P13后置wave3全零块、P12最终FIFO的wave2/9输出失败，初始P本地命中须0；D仍真实3968，之后P/D-local控制，当前和原D参考分别保留。没有改模型/精度/算子/参数、无重载、无性能套件；P465/D496≤原512控制预算，复用原D-native控制，不新增参考。该Loop能区分确定性key触发与时序/启动历史，不能独自定责SDMA；原零内容反例继续有效。
+
+**09:55Z中途判别**：8/12条已完成（A3+B5），所有输出/后置控制仍匹配；第一组A尚无反例。只读源日志已观察6条B共192次PUT前屏障，实际current_device均等于tp_rank，等待min/median/max约0.054/432.9655/1214.223ms，无原生错误；这包括未完成设备计算/后续chunk工作，绝不是SDMA/网络时延或全局关键路径，不能相加16rank。B不是空干预，但没有故障对照则无修复/收益结论。仍按冻结顺序收末组A，不改参数/精度、不加性能套件；最终audit与归档为准。
+
+**09:49Z开始实测**：P14/D13已Ready；当前D-native128仍匹配原D golden。ABBA前两条无屏障A已完成，P/D本地命中均3968、额外D GET0、输出和后置31key×16rank控制均一致（CPU只读汇总`source-ready-content-progress-v1.json`，无新增NPU观察）。12条仍按冻结顺序运行，A尚无反例，不能因通过而宣称屏障有效。最终全量内容/设备与选择日志/外部命中/SDK计数、两机归档后决定；不新增性能套件。源码API已验证当前设备all-stream同步，发送线程set_device；逐rank实际设备仍要审计。此前原始内容归档回放`post-consume-replay-analysis-v1.json`精确复现block18、每rank66entry共4077824B全零，源与独立D-native全部一致。
+
 **09:37Z本轮已启动**：Meta-v4已确认自然超时退出并保留生命周期，Meta-v5三端口已就绪、3600s。P14 `b98d4fc61254edbaaacd63023d7dbc714c9a6ba82525feea39dc096f30ea8a84` / D13 `4ee8fcb56c860f2a23246549ab1da2889c4adbc727be8d2022cde5ea5be49b83`已在新UID下启动、尚在初始化；启动重新核8卡空闲/权重stat/镜像/只读patch SHA。模型3000s，同后置observer和FIFOguard；source-ready-v2 patch363547。`source-ready-abba-v1`已启动（collector43743、timeout2500），有界等Ready后12条A3B6A3，不在Ready停止；没有pre PUT/GET内容读取。代码和此前否定/全零内容证据已提交push `da83f101`，不包含主控analysis修改。当前未宣称修复/性能收益。
 
 **09:36Z源就绪ABBA冻结**：原过期资源仅在两台8卡空闲且无其他有效NPU请求后重新取得3600s有限预留，32 UID `8058e02a-abe3-4c77-93ca-539946844948`、33 UID `8e163546-e858-4c61-955a-cba01b6229c4`，均Running，见`source-ready-reservations-v1.json`；未停止其他作业。P13/D12已关闭0，下一部署P14/D13尚未启动。冻结`source-ready-abba-contract-v1.json`：A3 B3 B3 A3共12条，唯一B变量为P1已有request_id标签选择在SDK PUT前`torch.npu.synchronize()`；原event/FIFOguard、后置观察、模型/算子/精度/SDMA不变。kv_transfer镜像原c7af0a→363547；非标签对照也记录CPU日志，复制前不读KV。Meta-v4须确认已退出再启动新v5，3600s；模型3000s、测试2400s。若A不复现或B仍坏，不能宣称修复，不扩完整性能套件。新源码/计划正在stage，启动须再次核租约、卡空闲、镜像及patch SHA。第一次stage因旧审计副本多一尾部空行触发SHA断言，未写patch/启动模型；已比对镜像代码正文一致，v2固定精确镜像字节并保留失败。

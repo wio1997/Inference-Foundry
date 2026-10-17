@@ -28,7 +28,7 @@ def archive(path, snapshot):
 
 
 def select(rows, request_id):
-    return [r for r in rows if r['request_id'].startswith(request_id+'-')]
+    return [r for r in rows if r['phase'] == 'native_prefix' and r['request_id'].startswith(request_id+'-')]
 
 
 def ranked(rows):
