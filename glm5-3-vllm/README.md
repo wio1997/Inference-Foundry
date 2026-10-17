@@ -14,7 +14,7 @@
 
 先补齐影响首轮判断的硬件地图与正确基线，从值得检验的机制决定真实片段边界，再对比不同执行组织。减少参与实验的模型范围，保留可能改变结论的形状、状态和通信条件。正式目标保持 PD 分离；32、33 能否组成 1P1D 尚待验证，局部实验不替代完整 PD 验收，也不要求每次局部尝试都重新加载完整模型。
 
-2026-10-17 已释放用户授权的32/33原实验占用；HCCL同卡/异卡/跨机SDMA通信已核验。33完整模型TP16的短窗口容量/单请求功能通过，随后容器已停止。按用户最新要求暂停Mooncake，优先核实灵渠MemCache；已装MemCache/MemFabric1.2.0的跨机写池/读池payload及SDMA trace通过，但原生退出生命周期仍失败，纯MemCache模型PD尚未验收，也没有推理性能收益。所有NPU实验进程与临时Meta服务已结束，仅本任务有限sleep预留保留。当前状态、原始证据及资源归属见 HANDOFF。
+2026-10-17 当前已在32/33启动原样MooncakeConnectorV2与官方代理的两节点TP16/TP16、8K原生PD容量适配。两侧Ready，256/16、1024/16请求HTTP200且基础任务烟测通过，D两条请求各16rank均有成功远端KV READ，真实graph replay已确认。全SDMA运行配置保留，实际请求profile已通过32rank SDMA/HCCS路径核对。服务入口、有限窗口与精度/性能边界见 [官方PD部署](official-pd-native-20261017/README.md) 和 [HANDOFF](HANDOFF.md)。此前纯MemCache池长输入问题及修复候选保留，尚无完整精度/性能推广验收。
 
 按需复用 [SGLang 部署与测试资料](../glm5-3-sglang/README.md)、[旧研究审计](../glm5-3/docs/RESEARCH_RESET.md) 和 [补丁证据](../glm5-3/patches/20261007/README.md)。它们的模型、精度、拓扑和负载条件不自动成为本线默认值。
 

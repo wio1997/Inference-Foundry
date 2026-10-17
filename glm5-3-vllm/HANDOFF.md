@@ -4,7 +4,7 @@
 
 用户已恢复 **172.16.12.32 / 33** 的现场核查、准备、服务启动与测量，并进一步明确两台原有实验作业/预留全部可以停止。仅操作这两台；系统守护进程和访问入口保留。最新要求是 **全部使用 SDMA**，包含设备内、机内、跨机和最终 PD KV 数据路径。控制/初始化通信另记，不能用 TCP/RDMA 数据回退代替 SDMA。
 
-主对话随后转达用户最新要求：**先不考虑 Mooncake，优先核实灵渠 MemCache**。不再新增 Mooncake 部署、修改或测量；已运行探针已结束，保留原始失败与数据校验记录。准确组件现已在镜像中查到：`memcache_hybrid` / `memfabric_hybrid`，不是通用 memcached。优先研究现成接口的 P写池→D读池与直接传输能力，暂不增加 SSD 或做全面后端跑分。用户的性能判断是研究优先级，尚无本环境对照结论。
+最新用户要求是**先按官方部署**。本轮官方基线所必需的Mooncake直传已获主控转达人类授权，覆盖此前「先不考虑Mooncake、优先MemCache」的阶段偏好；仍保持全SDMA，仅32/33，当前只操作自己实例/holder，其他作业不动。已实际启动原样MooncakeConnectorV2和原样官方代理，先交付可运行原生PD。MemCache准确组件为memcache_hybrid/memfabric_hybrid，后续官方MultiConnector池集成不由本轮自动扩张；不再以自写纯Store协议代替官方基线。
 
 保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，最终验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线已有C1临时代表负载的真实PD基线，尚无通过正确性门槛的机制性能收益；业务请求分布、数值SLO和完整正确性验收标准待定。
 
@@ -16,7 +16,23 @@
 
 ## 当前执行与证据恢复
 
-**11:39Z官方原生PD已实际launch**：P32 CID `080a1e20b6403206286eaffd5eae4d784165197ba7cbb7f3eb1628b0665971ed`、D33 CID `dd2c0b5bf7c5fa21fd4a1cc5c2010927d00ff159adae0e1ec0e4538fae168e6a`均启动初始化，官方root `20261017-official-pd/prefill-node32-v1` / `decode-node33-v1`，API29481/82、served glm5。原样MooncakeConnectorV2（固定SHA5f828ad）+原样官方load_balance_proxy，proxy源码SHA85b89829已与镜像实文件核对。CPU-only官方proxy已healthcheck Ready，入口 `http://172.16.12.32:29880`，不代表P/D已Ready。P/D各TP16/PP1/DP1、8K/4seq/1024；P eager、D默认FULL_DECODE_ONLY，未沿用编译诊断纠正；全量化、AI_CPU/HCCS、INTRA_ROCE=0、LOCAL_COMM_RES1.2、只读/etc/hccn.conf保留，移除全部自写运行补丁、MemCache overlay及其config；无EP/MC2/DSACP/FlashComm/MTP。KV ports P36000..36016 /D36100..36116、engine_id各异。计划及匹配源码在official-pd-native-20261017，收据在evidence/20261017-official-pd。下一步双方Ready后通过官方proxy发实际请求，核remote-transfer与运行路径，不继续图逐token诊断。
+**最终交付：官方原生PD功能及32rank路径验证完成，服务保持运行。** P/D与原版官方proxy最后健康检查正常；两组真实请求各16rank完成远程KV READ；P/D共32份有效trace均有SDMA任务，D各rank有hccl_batchGet，32矩阵仅LOCAL/SIO/HCCS、无RDMA命名任务。结论限于本次实际profile窗口，不把计数当每byte归因/普遍证明。当前是两节点8K的官方直传PD基线，完整精度、长期稳定性、性能收益及MemCache池集成仍独立待验收。
+
+P/D原始archive都已回传Mac并核SHA：P302,908,782B、`4fd60f8abf5faf882abb8c474009425f5d3f84cdd9b77282b7c92ac02584c715`；D416,348,365B、`bb0a10fb1ac4d9b01abb23436f60744f83932c834b179ed4501f259b3b1e36ef`。两次kubectl stdout的rc0截断坏文件和运输失败JSON保留，重传已有不可变archive成功，没有重做NPU实验。两端CPU离线export均return0，32份CANN输出完整；此前自动daemon解析失败已解决，非推理故障。无剩余设备实验或导出任务。
+
+集群内入口 `http://172.16.12.32:29880`，served model `glm5`；P/D约12:37–12:38Z（北京时间20:37–20:38）有限到期，holder约12:52Z。没有关闭当前官方模型或proxy。最终收据为`evidence/20261017-official-pd/deployment-validation-v1.json`及`node*-official-pd-backup-v1.json`。120个工具AST、1906 JSON、313冻结脚本SHA及git diff --check已通过。原draft PR2已按实际官方部署重写标题和说明，不自动merge。
+
+**12:06Z最终路径验收与收尾**：P/D32个rank全部有效CANN trace，SDMA任务P56,944/D437,740；D每rank都有hccl_batchGet，32份通信矩阵类型仅LOCAL/SIO/HCCS、无RDMA命名任务。真实请求窗口的有界路径证据通过，不把计数当每byte归因/普遍传输证明。两端CPU离线export均return0；自动daemon解析报错已按其提示离线处理，非推理故障。P侧“停止CPU导出”检查发现容器早已自动删除，未实际停止任何作业；D亦已自然完成。首次D摘要读临时SQLite文件遇导出删除竞态，失败保留，v2仅冻结完整有效CANN trace/matrix，避免派生临时文件竞态，无NPU重跑。
+
+最终合成结果deployment-validation-v1.json；路径收据node32-official-prefill-path-check-v1-6c298f2f3f5b与node33-official-decode-path-check-v2-e8a08b218fae，D末次API仍Ready、完成READ48条（含profile新增16rank），仅automatic profiler parse日志错误、无推理错误。两份原始archive已生成：P302,908,782B SHA4fd60f8abf5faf882abb8c474009425f5d3f84cdd9b77282b7c92ac02584c715已Mac验证；D416,348,365B SHAbb0a10fb1ac4d9b01abb23436f60744f83932c834b179ed4501f259b3b1e36ef正在重新回传。kubectl大stdout首回传均rc0却截断，坏文件按SHA保留，重试仅已有不可变archive，writer flush+8s排空后P成功；没有重做设备实验。服务/holder保留当前有限窗口，未为备份停模型或代理。
+
+**11:54Z当前已跑通官方原生PD功能**：两模型与官方proxy均Ready；256/16、1024/16通过官方proxy HTTP200并回答2+3。D日志对两条request_id各16rank记录成功batch_transfer_sync_read：256输入223,346,688逻辑接收字节、1024输入893,386,752字节（合计按16rank计，非去重线速）；D真实FULL graph capture15s/0.15GiB及replay日志均有，无native错误。已排除仅代理存活/仅D重算的假通过。256直接D与PD文本相同，1024存在5.0/5格式分歧，逐token和完整任务精度单列未验收，不再阻断官方部署。
+
+原smoke客户端以Prometheus计数>0判失败的原件保留；匹配固定源码V2 pull_worker.py实际执行/记录成功READ但从不调用record_transfer或xfer_stats，因此该计数器为0不代表无传输。CPU-only validator验证镜像源SHA、两条原请求与32条完成日志、全部16rank/正字节/remote P32→D33及graph replay，已通过，未改官方源码或重跑请求。见node32-official-smoke-validation-v1-77036ee6dfde、node33-official-decode-transfer-proof-v1-97ff6b6f2a31。
+
+真实服务路径profile已调用并正常stop两端，正式功能/计时不混入其开销。原始P约345MB、D约1.45GB；自动未导出trace，现仅CPU离线export（各16CPU/64GB、无compute devices，仅driver manager查询）进行中，先独立复制并SHA保全raw，collectors65200(D)/25376(P)，最长420s。没有新NPU微基准/模型重载或SDMA地图扩张。服务继续运行至各自有限3600s期限约12:37Z；下一步读导出trace核当前实际SDMA/HCCS、原件归档、PR更新。
+
+**11:39Z官方原生PD已实际launch**：P32 CID `080a1e20b6403206286eaffd5eae4d784165197ba7cbb7f3eb1628b0665971ed`、D33 CID `dd2c0b5bf7c5fa21fd4a1cc5c2010927d00ff159adae0e1ec0e4538fae168e6a`均启动初始化，官方root `20261017-official-pd/prefill-node32-v1` / `decode-node33-v1`，API29481/82、served glm5。原样MooncakeConnectorV2（固定SHA5f828ad）+原样官方load_balance_proxy，proxy源码SHA85b89829已与镜像实文件核对。CPU-only官方proxy已healthcheck Ready，入口 `http://172.16.12.32:29880`，不代表P/D已Ready。P/D各TP16/PP1/DP1、8K/4seq/1024；P eager、D默认FULL_DECODE_ONLY，未沿用编译诊断纠正；全量化、AI_CPU/HCCS、INTRA_ROCE=0、LOCAL_COMM_RES1.2、只读/etc/hccn.conf保留，移除全部自写运行补丁、MemCache overlay及其config；无EP/MC2/DSACP/FlashComm/MTP。KV ports P36000..36016 /D36100..36116、engine_id各异。计划及匹配源码在official-pd-native-20261017，收据在evidence/20261017-official-pd。下一步双方Ready后通过官方proxy发实际请求，核remote-transfer与运行路径，不继续图逐token诊断。 官方proxy CID `4a8af0d5eea318ca9821b98eaa28b0a225fea3674a497f82e66ed0431849ce8c`。smoke collector10677等待双方Ready后自动发真实256/1024输入，先D-native再官方proxy，各16token；只对基础2+3功能烟测与真实D2D计数设门槛，原逐token差异独立记录，不作为路线阻断。Checkpoint f0a2f3d0已push PR2，主控analysis未暂存；模型仍加载，未做新微基准/诊断重载。
 
 旧native均已关闭：32 eager Exit0；33 v2初始化期间主动TERM后timeout入口返回124、无action前错误、无OOM；其等待Ready的CPU客户端精确SIGTERM(-15)，未发模型请求。8卡空闲、无其他claim核对后只替换自己的旧holder；新4500s holder32 UID `34f87a93-f960-475b-8de1-a54f59eb9379`、33 UID `5e25d440-b7bf-4d4f-8ee8-a4da417c0e92`约12:52Z到期，P/D/Proxy各3600s约12:37–12:39Z有限窗口，不重复短超时加载。V2源码底层仍用同一Mooncake TE的ascend协议，旧析构133风险保留，不能称已绕过；先以实际官方服务结果判断。
 

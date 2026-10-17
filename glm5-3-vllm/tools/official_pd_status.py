@@ -31,7 +31,13 @@ def main():
         'raw_console_sha256': hashlib.sha256(raw).hexdigest(), 'raw_console_bytes': len(raw),
         'errors': [s for s in lines if re.search(r'ERROR|Traceback|RuntimeError|ValidationError', s)][-45:],
         'connector_graph_transfer_lines': [s for s in lines if re.search(r'Mooncake|TransferEngine|transfer|remote|replay|Graph capturing finished|HCCS|SDMA|RDMA|protocol|Loading.*checkpoint|Loading model weights', s, re.I)][-75:],
+        'completed_transfer_lines': [s for s in lines if 'KV cache transfer for requests' in s],
+        'actual_graph_replay': [s for s in lines if 'ACL graph replay is active' in s],
+        'graph_capture': [s for s in lines if 'Graph capturing finished' in s],
+        'transport_lines': [s for s in lines if re.search(r'HCCS|SDMA|RDMA|[Ll]ink[Tt]ype', s)][-30:],
         'tail': lines[-6:], 'raw_logs_directory': str(out)}
+    report['inference_errors']=[s for s in report['errors'] if 'profiler.py: The profiling data cannot be parsed during the daemon process' not in s]
+    report['automatic_profiler_parse_errors']=[s for s in report['errors'] if 'profiler.py: The profiling data cannot be parsed during the daemon process' in s]
     url = f'http://172.16.12.{node}:{29481 if node == 32 else 29482}'
     try:
         with urllib.request.urlopen(url+'/v1/models', timeout=3) as response:
@@ -41,6 +47,9 @@ def main():
             metrics = response.read(); (out/'metrics.txt').write_bytes(metrics)
         report['transfer_metrics'] = [s for s in metrics.decode().splitlines()
             if not s.startswith('#') and re.search(r'mooncake|external|kv_transfer|requests_running|requests_waiting', s, re.I)]
+        if node==32:
+            with urllib.request.urlopen('http://172.16.12.32:29880/healthcheck',timeout=3) as response:
+                report['proxy_health']=json.load(response)
     except Exception as exc:
         report['api_error'] = str(exc)
     (out/'result.json').write_text(json.dumps(report, indent=2)+'\n')
