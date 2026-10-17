@@ -16,6 +16,8 @@
 
 ## 当前执行与证据恢复
 
+**09:37Z本轮已启动**：Meta-v4已确认自然超时退出并保留生命周期，Meta-v5三端口已就绪、3600s。P14 `b98d4fc61254edbaaacd63023d7dbc714c9a6ba82525feea39dc096f30ea8a84` / D13 `4ee8fcb56c860f2a23246549ab1da2889c4adbc727be8d2022cde5ea5be49b83`已在新UID下启动、尚在初始化；启动重新核8卡空闲/权重stat/镜像/只读patch SHA。模型3000s，同后置observer和FIFOguard；source-ready-v2 patch363547。`source-ready-abba-v1`已启动（collector43743、timeout2500），有界等Ready后12条A3B6A3，不在Ready停止；没有pre PUT/GET内容读取。代码和此前否定/全零内容证据已提交push `da83f101`，不包含主控analysis修改。当前未宣称修复/性能收益。
+
 **09:36Z源就绪ABBA冻结**：原过期资源仅在两台8卡空闲且无其他有效NPU请求后重新取得3600s有限预留，32 UID `8058e02a-abe3-4c77-93ca-539946844948`、33 UID `8e163546-e858-4c61-955a-cba01b6229c4`，均Running，见`source-ready-reservations-v1.json`；未停止其他作业。P13/D12已关闭0，下一部署P14/D13尚未启动。冻结`source-ready-abba-contract-v1.json`：A3 B3 B3 A3共12条，唯一B变量为P1已有request_id标签选择在SDK PUT前`torch.npu.synchronize()`；原event/FIFOguard、后置观察、模型/算子/精度/SDMA不变。kv_transfer镜像原c7af0a→363547；非标签对照也记录CPU日志，复制前不读KV。Meta-v4须确认已退出再启动新v5，3600s；模型3000s、测试2400s。若A不复现或B仍坏，不能宣称修复，不扩完整性能套件。新源码/计划正在stage，启动须再次核租约、卡空闲、镜像及patch SHA。第一次stage因旧审计副本多一尾部空行触发SHA断言，未写patch/启动模型；已比对镜像代码正文一致，v2固定精确镜像字节并保留失败。
 
 **09:29Z明确内容反例与下一判别Loop**：后置4条输出全匹配，但wave3的logical block18（tokens2304–2431）在D16个rank均有连续entry49–114、模型32–77层及对应Indexer、4077824B被观察为全零；P16个副本均一致且非零，独立D-native在这66项与P完全相同。其他目标key/rank控制值匹配。本轮排除了这些样本中P副本不一致的解释，也说明输出相等不能替代KV内容保真；不能由后置数据独自归责PUT、GET或消费后的改写。证据`post-consume-content-analysis-v1.json`、`post-consume-entry-differences-v1.json`及两台`node*-post-consume-final-v1-backup.json`已SHA备份Mac。

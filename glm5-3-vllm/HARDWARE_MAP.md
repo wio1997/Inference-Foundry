@@ -56,7 +56,7 @@ HCCL 诊断的完整归档扫描中，同卡与异卡各有6条 SDMA link succes
 
 早期MemCache实证（修复前历史）：1.2.0以`device_sdma`、1GiB/rank DRAM、0HBM/SSD在32[2]↔33[2]完成64KiB/1MiB双向SHA校验，两台各4个`SDMA_SQE`与put/get匹配；当时清理退出133/139、Meta退出134，未把功能与生命周期合并为通过。
 
-后续隔离修复保留1.2.0二进制，合并重复DSO身份并隔离C++符号后，Meta/init-close/双向数据测试均正常退出0。完整GLM模型32rank均data-op2、trace均含SDMA任务，TP矩阵仅LOCAL/SIO/HCCS；真实D消费与量化算子已有运行证据。短/中C1无profile基线所有28条（含warmup）外部命中已逐条核对，SDK1792get keys精确吻合。真实KV对象抽样6979584B/128token，详见[有条件工作量](evidence/20261017-pd-baseline/conditional-work-accounting.json)：这些DRAM读写/副本字节属于当前表示，不是普世必需成本；存储location到物理主机映射未核验，不直接当跨机cut流量。灵渠L1版本、必要共跑争用仍未知，不能由路径成功倒推整套适配。
+后续隔离修复保留1.2.0二进制，合并重复DSO身份并隔离C++符号后，Meta/init-close/双向数据测试均正常退出0。完整GLM模型32rank均data-op2、trace均含SDMA任务，TP矩阵仅LOCAL/SIO/HCCS；真实D消费与量化算子已有运行证据。短/中C1无profile基线所有28条（含warmup）外部命中已逐条核对，SDK1792get keys精确吻合。真实KV对象抽样6979584B/128token，详见[有条件工作量](evidence/20261017-pd-baseline/conditional-work-accounting.json)：这些DRAM读写/副本字节属于当前表示，不是普世必需成本；存储location到物理主机映射未核验，不直接当跨机cut流量。灵渠L1版本、必要共跑争用仍未知，不能由路径成功倒推整套适配。 后续无复制前内容观察的4096-token诊断发现一个D缓存块的后段全零，而输出仍匹配；短/中基线只按当时输出与命中门槛成立，不能外推全部KV内容保真。内容反例与当前源就绪对照见[HANDOFF](HANDOFF.md)。
 
 | 第一手资料支持的能力 | 现场已确认 | 待验证 | 改变的实验 |
 | --- | --- | --- | --- |
