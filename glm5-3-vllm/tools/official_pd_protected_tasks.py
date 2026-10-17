@@ -2,6 +2,7 @@
 """Run bounded numerical/extraction tasks through official PD and native D after timing."""
 import argparse
 from decimal import Decimal
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 from pathlib import Path
@@ -28,14 +29,16 @@ def main():
     parser.add_argument('--run-id', required=True)
     parser.add_argument('--after-run', required=True)
     parser.add_argument('--wait-seconds', type=int, default=1800)
+    parser.add_argument('--concurrency', type=int, choices=(1, 4), default=1)
     args = parser.parse_args()
     assert socket.gethostname() == 'B4-33U-Atlas900RCKA3-32'
     assert all(re.fullmatch(r'[a-z0-9-]+', x) for x in (args.run_id, args.after_run))
     root = BASE / 'tests' / args.run_id
     root.mkdir(parents=True, exist_ok=False)
     report = {'completed': False, 'state': 'waiting_formal_timing', 'tasks': [],
+              'concurrency': args.concurrency,
               'after_run': args.after_run, 'run_id': args.run_id,
-              'scope': '24 fixed task oracles, same token IDs on stock PD/native D, C1 and '
+              'scope': '24 fixed task oracles, same token IDs on stock PD/native D, recorded concurrency and '
                        'outside formal timing. Full model accuracy and exact-token equality are not claimed.'}
 
     def save():
@@ -93,21 +96,27 @@ def main():
     (root / 'fixtures.json').write_bytes(raw)
     report['fixtures_sha256'] = hashlib.sha256(raw).hexdigest()
     report['state'] = 'checking_tasks'
-    for fixture in fixtures:
-        row = {k: fixture[k] for k in ('id', 'expected')}
-        row['input_tokens'] = len(fixture['prompt'])
-        for role in ('proxy', 'D'):
+    def check(fixture, role):
             payload = {'model': 'glm5', 'prompt': fixture['prompt'], 'max_tokens': 32,
                        'temperature': 0, 'top_p': 1, 'seed': 1024, 'return_token_ids': True,
                        'stream': False, 'stop': ['\n'], 'cache_salt': 'protect-' + uuid.uuid4().hex}
             response = post(role, '/v1/completions', payload)
             text = response['choices'][0]['text']
             match = re.search(r'[-+]?\d+(?:\.\d+)?', text)
-            row[role] = {'response': response,
+            return {'response': response,
                          'numeric_pass': bool(match and Decimal(match.group()) == fixture['expected']),
                          'exact_format_pass': text.strip() == str(fixture['expected'])}
-        report['tasks'].append(row)
-        save()
+    with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+        for offset in range(0, len(fixtures), args.concurrency):
+            batch = fixtures[offset:offset + args.concurrency]
+            rows = [{**{k: fixture[k] for k in ('id', 'expected')},
+                     'input_tokens': len(fixture['prompt'])} for fixture in batch]
+            for role in ('proxy', 'D'):
+                values = list(pool.map(lambda fixture: check(fixture, role), batch))
+                for row, value in zip(rows, values):
+                    row[role] = value
+            report['tasks'].extend(rows)
+            save()
     report['scores'] = {role: sum(row[role]['numeric_pass'] for row in report['tasks'])
                         for role in ('proxy', 'D')}
     report['completed'] = True

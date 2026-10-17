@@ -13,7 +13,7 @@ import urllib.request
 
 
 def main():
-    parser = argparse.ArgumentParser(); parser.add_argument('--label', required=True);parser.add_argument('--revision',type=int,choices=range(1,9),default=1); args = parser.parse_args()
+    parser = argparse.ArgumentParser(); parser.add_argument('--label', required=True);parser.add_argument('--revision',type=int,choices=range(1,13),default=1); args = parser.parse_args()
     assert re.fullmatch(r'[a-z0-9-]+', args.label)
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
     role = 'prefill' if node == 32 else 'decode'
@@ -33,6 +33,7 @@ def main():
         'connector_graph_transfer_lines': [s for s in lines if re.search(r'Mooncake|TransferEngine|transfer|remote|replay|Graph capturing finished|HCCS|SDMA|RDMA|protocol|Loading.*checkpoint|Loading model weights', s, re.I)][-75:],
         'completed_transfer_lines': [s for s in lines if 'KV cache transfer for requests' in s],
         'shared_expert_consistency': [s for s in lines if 'Shared expert split computation validation' in s],
+        'early_output_activation': [s for s in lines if '[glm53/early-output]' in s],
         'actual_graph_replay': [s for s in lines if 'ACL graph replay is active' in s],
         'graph_capture': [s for s in lines if 'Graph capturing finished' in s],
         'transport_lines': [s for s in lines if re.search(r'HCCS|SDMA|RDMA|[Ll]ink[Tt]ype', s)][-30:],

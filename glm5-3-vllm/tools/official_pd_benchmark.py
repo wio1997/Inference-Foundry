@@ -34,7 +34,7 @@ def distribution(values):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--run-id',required=True);parser.add_argument('--stage',choices=('baseline','mtp1','shared-overlap','mtp5'),required=True)
+    parser=argparse.ArgumentParser();parser.add_argument('--run-id',required=True);parser.add_argument('--stage',choices=('baseline','mtp1','shared-overlap','mtp5','early-output'),required=True)
     parser.add_argument('--waves',type=int,default=6);parser.add_argument('--revision',type=int,default=2);parser.add_argument('--ready-seconds',type=int,default=1200);parser.add_argument('--after-run');parser.add_argument('--prefill-revision',type=int);args=parser.parse_args()
     prefill_revision=args.prefill_revision if args.prefill_revision is not None else args.revision
     assert socket.gethostname()=='B4-33U-Atlas900RCKA3-32' and re.fullmatch(r'[a-z0-9-]+',args.run_id) and 3<=args.waves<=12

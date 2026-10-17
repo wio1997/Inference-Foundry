@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Preserve and CPU-export one stopped real-request rank, without a new hardware map."""
 import argparse
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -24,16 +25,26 @@ def main():
     parser.add_argument('--revision', type=int, required=True)
     parser.add_argument('--label', required=True)
     parser.add_argument('--after-profile', required=True)
+    parser.add_argument('--profile-gate-b64')
     args = parser.parse_args()
     assert all(re.fullmatch(r'[a-z0-9-]+', value) for value in (args.label, args.after_profile))
     assert 1 <= args.revision <= 8
     node = {'B4-33U-Atlas900RCKA3-32': 32, 'B5-5U-Atlas900RCKA3-33': 33}[socket.gethostname()]
     role = 'prefill' if node == 32 else 'decode'
     base = Path('/data/wio/glm5-3-vllm-execution/20261017-official-pd')
-    profile = json.loads((base / 'tests' / args.after_profile / 'result.json').read_text())
+    if args.profile_gate_b64:
+        profile = json.loads(base64.b64decode(args.profile_gate_b64))
+        assert profile['profile_run_id'] == args.after_profile
+        assert re.fullmatch(r'[0-9a-f]{64}', profile['source_sha256'])
+    else:
+        profile = json.loads((base / 'tests' / args.after_profile / 'result.json').read_text())
     assert profile['completed'] and all(p.get('stopped') for p in profile['profiles'])
+    assert role == 'decode' and any(p['role'] == 'D' for p in profile['profiles']) or role == 'prefill' and any(p['role'] == 'P' for p in profile['profiles'])
     assert profile['decode_revision' if node == 33 else 'prefill_revision'] == args.revision
     root = base / (role + '-node' + str(node) + '-v' + str(args.revision))
+    cid = json.loads((root / 'launch.json').read_text())['container_id']
+    state = json.loads(subprocess.check_output(['docker', 'inspect', cid, '--format', '{{json .State}}']))
+    assert not state['Running'], 'Export a stopped instance to keep raw files stable'
     paths = list((root / 'profile').glob('dp0_pp0_tp0_dcp0_ep0_rank0_*_ascend_pt'))
     assert len(paths) == 1, paths
     selected = paths[0]
@@ -76,6 +87,7 @@ def main():
               'argv': argv, 'compute_devices': [], 'query_devices': ['/dev/davinci_manager'],
               'preserved_raw_files': len(manifest), 'preserved_raw_sha256_verified': True,
               'raw_manifest_sha256': digest(out / 'raw-manifest.json'),
+              'profile_stop_gate': profile,
               'trace_paths': [str(p.relative_to(root)) for p in selected.rglob('trace_view.json')]}
     for name in ('stdout.txt', 'stderr.txt'):
         report[name] = {'sha256': digest(out / name),

@@ -16,6 +16,38 @@
 
 ## 当前执行与证据恢复
 
+
+**16:44Z 已拒绝首token v1，D9第二版已launch，P8/proxy/holders保留**：v8两轮240/240功能通过，但相对stock MTP5吞吐几何均值仅1.0077、hot C1 TTFT无改善，1024 C1 cold TPOT+11.6%，不采用。24项C4 PD/native各24/24、16个max1/cancel→立即replacement pairs通过。D8精确CID停止，lifecycle回执保存；其所有已完成测试与失败回放原始请求已Mac归档913382B SHA373f0c0ec53ccc1124440630e485cfc89d69d7992c88e2f17bd10dce585915a0。
+
+D9 CID **a860fbe99a982faa4137db64f0c0ecf1930f03f8193c5e6d7d53ab7852a74a83**，只读source `execution-patches/early-output-v2/model_runner_v1.py` SHA **a4a7f042642f4a4f4ce3d25897f8537377f9f22b9db637cef4eca135c1087e37**。请求ID seen集合代替可能回滚的optimistic长度；稳定decode用default/update stream等待旧完成事件，ownership变化CPU同步；每轮记录最新default/global fence，并保留旧event引用到后续output-ready。完整metadata仍返回前附上。D9为原型，未验收；P8 CIDcc948f...保持，expiry仍原6h holder减600s。
+
+**当前串行suite collector session33699**：v9 smoke(3waves)等Ready → protected-c4-v9-r1 → v9 reuse16pairs → 正式r1/r2。任一失败停止后续。不要停止P8/D9或混入profile/backup。D8回放r1因driver普遍迟发约21ms失败，240/240模型功能过；r2因前驱失败自动退出，均无活跃进程。driver现改绝对CLOCK_MONOTONIC clock_nanosleep，先32-thread时序control，原p95≤10/max≤50ms门槛保留；未排新回放，待v9正式结果或stock恢复后排新run IDs。
+
+共同门槛边界敏感性已用SHA核验Mac raw离线重算：原达标倍率2.8507，双方TTFT/TPOT门槛共同+1%为2.2577、+5%为2.2529，原始倍率2.2516不变。见continuous-common-bounds-sensitivity-v1.json；不要只报告2.85x。own analysis已更新MTP5/持续/反例/质量/SDMA覆盖边界，仍待v9与有效同到达负载结论。
+
+
+**16:14Z持续对照完成，P8/D8首token调度原型已实际launch**：无MTP P7/D7持续r1/r2共925/925功能通过，扩展C4 native/PD双方24/24。对照MTP5持续2071/2071功能通过，四客户端输出率256为84.45→197.75tok/s、1024为77.61→168.03tok/s；等权倍率几何均值2.2516。预冻结共同门槛达标率baseline256/1024约76.7%/81.1%，MTP5约99.9%/99.8%，达标吞吐倍率3.0496/2.6647；baseline平均TPOT靠近门槛，应同时报告原始倍率和边界敏感性。实际TTFT及token gap p95在饱和C4下更大，不宣称全部延迟指标均改善。主摘要continuous-mtp5-v6-vs-baseline-v7-v1.json。
+
+D6 profile rank0 CPU export v1因跨主机回执路径失败，v2改传经SHA核验的停止gate，return0。rank0摘要完成：452724事件、16200 SDMA任务、1个实际hccl_batchGet、无RDMA命名任务，矩阵LOCAL/SIO/HCCS；范围仅本次rank0窗口，旧全32rank地图复用。trace原始104903196B SHA508b8df36546012470597c7dedeee93ce43a64f30f05a40c74e83fbf9e7ce2eb，Mac gzip8654279B已核验，见node33-mtp5-rank0-trace-download-v1.json。
+
+当前已精确关闭完成两轮及gold的P7/D7；P8 CIDcc948f194ff768021070ab1b0bac0cb3309606b60da6ca56bcea7a6b403cdd09，D8 CID3f51fdd82f7f9b54bc296739c3e8c901939c471b8fa1c4ed98a5586a5405d981，约16:08Z launch。P8仍MTP1无重叠，D8仍MTP5+共享重叠，**只新增一个RO worker patch及GLM53_EARLY_SPEC_OUTPUT_COPY=1**。原生connector/proxy/精度/算子不变。源diff/runtime-patches/early-output-v1；module SHA8b2cf6174a8d49a2c09ab145d194bbb43e0d8d6993e358921b9cc0aa225a0293。两份原始worker/async-output模块SHA在pinned image实际验证通过。lifetime在launch前刷新，仍原holder19:31Z减600s。原型尚未验收收益。
+
+原型只对首个有效输出把原有D2H排在下轮draft之前，默认流等该微小读取结束防原地修改；最终ModelRunnerOutput在返回前附上完整metadata。下一次execute_model在任何input/KV/preemption复用前等待compute/global两流completion fence，保护跨请求生命周期，其他复杂特性走原分支。profile中8个PD verification轮的相关D2H间隔约13.5ms，copy本身约2.7us，仅作为实验预算。未新增kernel/copy primitive/传输协议。
+
+**当前smoke已排队**official-early-output-v8-smoke（3waves，单独60请求，不作paired正式收益），随后official-protected-c4-v8-r1（24项×PD/native，同fixtureSHA）。collector sessions44961/47744。先确认实际first-token branch日志、gold与取消/max1立即复用，再排完整6wave r1/r2，对D6双轮reference；不因已写源码/PR结束。另需把A7固定到达轨迹在所选候选重放，比较同到达负载TTFT，避免仅凭更快闭环吞吐宣称更快首token。当前没有新的正式profile/CPU exporter运行。
+
+**15:31Z持续MTP5两轮及最小真实D profile完成，无MTP对照P7/D7已实际launch**：MTP5持续r1/r2原件已Mac回收，四客户端每shape180s，全部请求功能通过；256达标输出约196.5/198.6tok/s，1024 r1约168.4tok/s，完整r2见收据。TTFT/平均TPOT使用预冻结共同门槛，尚未给与持续无MTP基线的相对容量结论。token成批返回的gap也保留，不将平均TPOT改善等同所有token间隔改善。
+
+在两轮正式测量结束后，`path-profile-v6`仅启动D profile、两次native arming后经stock proxy生成32token，API stop成功；收据node32-opt-mtp5-path-profile-v6-b112627d0697。随后精确关闭P5/D6，关闭证据node32-cont-best-v5-lifecycle/node33-cont-best-v6-lifecycle。当前P7 CIDde3cee3098f375ad50a2b0b8c5254a77de859b7937392fca24813535042f13d4、D7 CID2341facb30bc379ca3a0eb06e5ba60fa1e00a4671faa5046435424cc40ebee5b，均原无MTP配置；lifetime在launch前重新按holder19:31Z减600s刷新。proxy/holders未动。
+
+**当前D6 rank0 CPU export正在运行，尚未启动连续baseline计时。** 完成/停止CPU解析与备份后，再排队official-cont-baseline-v7-r1/r2（同180s、两shape、同bounds），r2后补同24项C4 native/PD保护，再恢复所选机制继续。旧D6的raw/profile在原目录，CPU导出只挂rank0及driver manager，不使用compute device，不重做全rank硬件地图。匹配公开固定SHA源码已核对：Ascend runner SHA568c3049与镜像一致；发现AsyncGPUModelRunnerOutput在draft后才wait_stream并D2H，可能影响TTFT，**仅源码假设，尚未实现worker patch，需当前profile确认及生命周期审查**。
+
+**15:16Z MTP5两轮和C1/C4扩展保护完成，当前正在持续四客户端测量**：P5/D6各保持原实例。MTP5两轮240/240正式请求通过，原12题每轮仍11/12，无原保护题新增失败；同24项扩展任务在C1和C4下，PD/native D均24/24，fixture SHA完全相同。相对无MTP，波次输出吞吐几何均值2.3304、TPOT p50倍率0.2826；但TTFT倍率1.1408，C4部分case TTFT增加约19%–28%，不能无条件采用或当同延迟容量收益。见mtp5-v6-vs-*.json。
+
+下一步已实际排队`official-cont-mtp5-v6-r1/r2`：P5/D6、256/1024冷前缀、64输出、4个连续闭环客户端，各180秒、两轮串行，取消wave barrier。共同实验门槛在测量前冻结为baseline两轮p95最大值：256 TTFT774.471ms/请求平均TPOT41.064ms；1024 TTFT1470.618ms/请求平均TPOT43.063ms。除数值/HTTP/长度通过外，只将达标请求计入timely_valid_output_tok_s，并保留token到达间隔/zero-gap比例和30秒吞吐窗口。不是业务SLO/全局容量声明。契约continuous-c4-loop-contract-v1.json。
+
+**当前连续负载未结束，不能停止P5/D6或做profile/hash/backup。** 两轮完成后，计划必要的一次无MTP原配置重建P7/D7，运行相同两轮持续负载；再依据同门槛有效吞吐、TTFT、TPOT选择并恢复候选，完成最小真实请求profile。单rank CPU导出工具已准备，但尚未启动新profile；复用旧全32rank地图，不重做硬件微基准。proxy/6h holders始终保留，holder约19:31Z到期。
+
 **14:57Z P5/D4角色隔离及扩展保护完成，下一候选P5/D6已实际launch**：两轮240/240正式请求通过，11项原保护题无新增失败。对MTP1的TPOTp50每case降低3.6%–4.8%，吞吐几何均值+4.12%（未超保守吞吐噪声阈值）；TTFT几何均值−0.77%，hot1024 C1两端重叠时的+23.5%退化消失，仅D重叠时对MTP1为+2.67%。冷256 C1仍有观察到+6.57%，而原对照该case两轮TTFT差16.92%，不把所有均值差当显著因果。对无MTP原基线，吞吐几何均值1.5694、TPOT倍率0.5533，仍有TTFT权衡。见decode-only-overlap-v5-vs-*.json。
 
 新增24项固定数值/记录提取/2048和4096token检索，通过同一组token IDs分别走官方PD和native D，双方均24/24。原12题中的既有2+3=4错误仍单列保留，不能宣称完整模型精度。收据node32-official-protected-v5-r1-efce6a8b91ff；原始fixtures保留在远端tests/official-protected-v5-r1。
