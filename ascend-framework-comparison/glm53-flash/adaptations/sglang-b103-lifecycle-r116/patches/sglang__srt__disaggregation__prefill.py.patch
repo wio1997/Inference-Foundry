@@ -1,0 +1,12 @@
+--- a/sglang/srt/disaggregation/prefill.py
++++ b/sglang/srt/disaggregation/prefill.py
+@@ -1033,6 +1033,9 @@
+             self.attn_tp_cpu_group,
+         )
+ 
++        from sglang.srt.managers.flash_pd_lifetime_audit import prefill_source_fence as _flash_source_fence
++        polls = _flash_source_fence(self, polls)
++
+         undone_reqs: List[Req] = []
+         # Check .poll() for the reqs in disagg_prefill_inflight_queue. If Success, respond to the client and remove it from the queue
+         for req, poll in zip(self.disagg_prefill_inflight_queue, polls):

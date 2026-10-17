@@ -1,0 +1,21 @@
+--- a/sglang/srt/disaggregation/mooncake/conn.py
++++ b/sglang/srt/disaggregation/mooncake/conn.py
+@@ -2831,12 +2831,12 @@
+     def poll(self) -> KVPoll:
+         if self.conclude_state is None:
+             status = self.kv_mgr.check_status(self.bootstrap_room)
+-            # Hold Success until all staging chunks transferred: a deferred
+-            # chunk can still be pending, and concluding now would drop it.
+-            if (
+-                status == KVPoll.Success
+-                and self.kv_mgr._staging_outstanding.get(self.bootstrap_room, 0) > 0
+-            ):
++            # Both terminal states must retain source buffers while a real
++            # dequeued SDK write can still read them, including an aborted write.
++            _flash_pending_writes = self.kv_mgr._staging_outstanding.get(self.bootstrap_room, 0)
++            if status in (KVPoll.Success, KVPoll.Failed) and _flash_pending_writes > 0:
++                from sglang.srt.managers.flash_pd_lifetime_audit import sender_source_hold as _flash_sender_source_hold
++                _flash_sender_source_hold(self, status, _flash_pending_writes)
+                 return KVPoll.Transferring
+             if status in (KVPoll.Success, KVPoll.Failed):
+                 self.conclude_state = status

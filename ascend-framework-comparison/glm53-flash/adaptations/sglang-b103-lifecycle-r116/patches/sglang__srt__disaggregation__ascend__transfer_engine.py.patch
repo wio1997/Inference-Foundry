@@ -1,0 +1,11 @@
+--- a/sglang/srt/disaggregation/ascend/transfer_engine.py
++++ b/sglang/srt/disaggregation/ascend/transfer_engine.py
+@@ -172,6 +172,8 @@
+                 if n >= 64:
+                     self._peer_regions[str(session_id)] = ptr
+                     break
++            from sglang.srt.managers.flash_pd_lifetime_audit import before_actual_write
++            before_actual_write(self, buffers, lengths, active)
+             _event('push_submitted', device=self.npu_id, remote_session=str(session_id),
+                    local=buffers, remote=remote, lengths=lengths, bytes=sum(lengths))
+             ret = self.engine.batch_transfer_sync_write(str(session_id), buffers, remote, lengths)

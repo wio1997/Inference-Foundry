@@ -1,0 +1,11 @@
+--- a/sglang/srt/disaggregation/ascend/flash_b103_pd_inventory_audit.py
++++ b/sglang/srt/disaggregation/ascend/flash_b103_pd_inventory_audit.py
+@@ -37,6 +37,8 @@
+         name=row['target'].removesuffix('.py').replace('/','.')
+         module=sys.modules.get(name)
+         bindings[row['target']]={'sha256':sha,'imported':module is not None,'actual_module_path':getattr(module,'__file__',None)}
++    from sglang.srt.managers.flash_pd_lifetime_audit import inventory as _lifetime_inventory
++    _lifetime_inventory(e.npu_id, rows)
+     append('native_inventory',device=e.npu_id,role=e.role,session_id=e.session_id,
+            manager_class=type(manager).__module__+'.'+type(manager).__name__,
+            manager_source_sha256=hashlib.sha256(pathlib.Path(inspect.getfile(type(manager))).read_bytes()).hexdigest(),

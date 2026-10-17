@@ -55,6 +55,18 @@ def package(run, output):
     for name in ('combined-manifest.json', 'argv46.json', 'argv47.json',
                  'numerical-gates-v1.json', 'native-source-pins.json'):
         shutil.copyfile(run / name, output / name)
+    lifecycle = bool(analysis.get('actual_late_write_cancel_ACK_MIN_safe_release_and_natural_reuse'))
+    reorder = bool(analysis.get('actual_completion_reversal_groups'))
+    qualified = analysis.get('scope', acceptance.get('scope'))
+    if not isinstance(qualified, str) or not qualified:
+        raise ValueError('Accepted exact scope is required')
+    unqualified = ['generic production service', 'arbitrary peer-crash failure shutdown',
+                   '80000-input/600-output', 'graph', 'MTP D5', 'cache/L3', 'vision',
+                   'formal performance']
+    if not lifecycle:
+        unqualified.insert(0, 'cancellation/drain/recycle in this unit')
+    if not reorder:
+        unqualified.insert(0, 'forced completion reorder in this unit')
     provenance = {
         'project_id': 'glm53-flash', 'accepted_run': run.name,
         'review_sha256': sha(run / 'review.json'),
@@ -62,9 +74,11 @@ def package(run, output):
         'analysis_sha256': sha(run / 'analysis.json'),
         'receipt_sha256': sha(run / 'receipt.json'),
         'image': 'sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263',
-        'qualification': 'Bounded 24/24/32/2379-token TP16 C2 SDMA model PD and native shutdown only',
-        'unqualified': ['cancellation/recycle/reorder', '80000-input/600-output',
-                        'graph', 'MTP D5', 'cache/L3', 'vision', 'formal performance'],
+        'qualification': qualified,
+        'accepted_verdict': analysis['verdict'],
+        'bounded_cancel_drain_recycle_in_this_unit': lifecycle,
+        'forced_completion_reorder_in_this_unit': reorder,
+        'unqualified': unqualified,
         'formal_baseline': None,
         'source_targets': len(manifest['files']),
         'excluded': ['weights', 'raw logs', 'raw requests', 'business text', 'credentials'],
@@ -80,8 +94,8 @@ def package(run, output):
         'review and one execution through local ZCode DeepSeek under EXECUTION_CONTRACT.md. '
         'Historical launchers and locks are never replayed. Native 15-second shutdown '
         'watchdog and numerical gates remain unchanged.\n\n'
-        'This package does not establish production service, cancellation, long-context, '
-        'graph, MTP, cache, multimodal or performance qualification.\n')
+        'The exact accepted scope and remaining unqualified behavior are listed in '
+        '`provenance.json`; scope is never inherited from the number of source files.\n')
     return provenance
 
 
