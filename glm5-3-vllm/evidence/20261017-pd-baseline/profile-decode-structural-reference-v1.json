@@ -1,0 +1,107 @@
+{
+  "source_scope": "Previously verified node33 full-model PD profiler, TP16/eager, old512-context/1seq,480input/16output. Offline rank0 decode8 analysis only. This is not the current8192/4seq unprofiled baseline or a production/theoretical limit.",
+  "reference_window": {
+    "definition": "First MlaProlog of layer0 to the same operation in next decode step; boundary proxy, not a complete request latency or exact host execute_model interval.",
+    "device_start_us": 1792199256042761.0,
+    "device_end_us": 1792199256345732.2,
+    "profiled_window_ms": 302.97125
+  },
+  "current_graph_calls": {
+    "MlaPrologV3": 78,
+    "LightningIndexer": 5,
+    "KvQuantSparseFlashAttentionVllm": 78,
+    "hcom_allReduce_": 157,
+    "GroupedMatmulSwigluQuant": 75,
+    "GroupedMatmul": 75,
+    "LightningIndexerQuant": 16,
+    "hcom_allGather_": 1
+  },
+  "collectives_count": 158,
+  "allreduce_size_distribution_MB": {
+    "0.012288": 157
+  },
+  "operator_examples": [
+    {
+      "Name": "MlaPrologV3",
+      "Type": "MlaPrologV3",
+      "Input Shapes": "\"1,6144;6144,2048;2048,1024;4,192,512;6144,576;2048;512;1,64;1,64;1308,128,1,656;;1;1,1;1,2048;1,1024;1,576;;;;;1\"",
+      "Input Data Types": "INT8;INT8;INT8;DT_BF16;INT8;DT_BF16;DT_BF16;DT_BF16;DT_BF16;INT8;DT_BF16;INT64;FLOAT;FLOAT;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;FLOAT",
+      "Duration(us)": "48.258"
+    },
+    {
+      "Name": "aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "Type": "QuantBatchMatmulV3",
+      "Input Shapes": "\"1,2048;128,128,16,32;4096;1\"",
+      "Input Data Types": "INT8;INT8;DT_BF16;FLOAT",
+      "Duration(us)": "15.580"
+    },
+    {
+      "Name": "LightningIndexerQuant",
+      "Type": "LightningIndexerQuant",
+      "Input Shapes": "\"1,32,128;1308,128,1,128;1,32;1,32;1308,128,1;1;1;1,4\"",
+      "Input Data Types": "INT8;INT8;FLOAT16;FLOAT16;FLOAT16;INT32;INT32;INT32",
+      "Duration(us)": "24.860"
+    },
+    {
+      "Name": "KvQuantSparseFlashAttentionVllm",
+      "Type": "KvQuantSparseFlashAttentionVllm",
+      "Input Shapes": "\"1,4,576;1308,128,1,656;1308,128,1,656;1,1,2048;;;1,4;1;1\"",
+      "Input Data Types": "DT_BF16;INT8;INT8;INT32;DT_UNDEFINED;DT_UNDEFINED;INT32;INT32;INT32",
+      "Duration(us)": "40.938"
+    },
+    {
+      "Name": "aclnnGroupedMatmulSwigluQuantWeightNZ_GroupedMatmulSwigluQuant_GroupedMatmulSwigluQuant",
+      "Type": "GroupedMatmulSwigluQuant",
+      "Input Shapes": "\"8,6144;256,8,384,16,32;256,256;8;256\"",
+      "Input Data Types": "INT8;INT8;FLOAT;FLOAT;INT64",
+      "Duration(us)": "61.200"
+    },
+    {
+      "Name": "aclnnGroupedMatmulWeightNz_GroupedMatmul_GroupedMatmul",
+      "Type": "GroupedMatmul",
+      "Input Shapes": "\"8,128;256,128,6144;;256,6144;;;;256;8\"",
+      "Input Data Types": "INT8;INT8;INT32;DT_BF16;FLOAT;FLOAT16;FLOAT16;INT64;FLOAT",
+      "Duration(us)": "51.940"
+    },
+    {
+      "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+      "Type": "MatMulV2",
+      "Input Shapes": "\"1,6144;160,6144\"",
+      "Input Data Types": "DT_BF16;DT_BF16",
+      "Duration(us)": "15.300"
+    }
+  ],
+  "host_observation": {
+    "source": "decode8-interval-events.json",
+    "window_definition": "CPU vllm::mla_forward layer0 to next layer0; distinct from device window",
+    "cpu_main_thread": {
+      "pid": 90,
+      "tid": 90
+    },
+    "explicit_Event_synchronize_calls": 1,
+    "explicit_Event_synchronize_duration_us": 49.74,
+    "wait_event_calls": 317,
+    "wait_event_duration_sum_us": 826.71,
+    "interpretation": "wait_event is a submission/dependency operation, not host blocked time. Profiler host gaps and HCCL wait include rank skew/instrumentation; no bottleneck or lower bound follows from these sums."
+  },
+  "sources": [
+    {
+      "path": "/Users/wio/work/glm53-execution-evidence-backup/20261017-pd-baseline/source-audit/profile-rank0/kernel_details.csv",
+      "sha256": "87bcb75669961b8e003b88e13c4c7ba7dccd9d84935ee996d33d32b2207588e5"
+    },
+    {
+      "path": "/Users/wio/work/glm53-execution-evidence-backup/20261017-pd-baseline/source-audit/profile-rank0/communication.json",
+      "sha256": "b8102a36bf8069fa3b8ac019113a5cee2ee6f599a5187986393d506a545e647b"
+    },
+    {
+      "path": "/Users/wio/work/glm53-execution-evidence-backup/20261017-pd-baseline/source-audit/profile-rank0/decode8-interval-events.json",
+      "sha256": "bf78d4d27f3a3de8366d1c9a52e006ced4b481d630bb21f71a9bfadc5a52757a"
+    }
+  ],
+  "accounting_constraints": [
+    "AICPU kernel and hcom interval describe the same collective; do not double count.",
+    "SDMA transport total overlaps SIO/HCCS link counters; do not sum them.",
+    "Repeated operator/collective counts are conditional on the current graph, not universally necessary.",
+    "No link bandwidth, HBM peak or operator timing is promoted to a jointly attainable end-to-end ceiling."
+  ]
+}

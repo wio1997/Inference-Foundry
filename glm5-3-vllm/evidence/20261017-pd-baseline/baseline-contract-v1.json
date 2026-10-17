@@ -1,0 +1,74 @@
+{
+  "scope": "Temporary representative workloads; no business distribution/SLO supplied. Not a parameter search.",
+  "correctness_gate": "tests/correctness-v3/result.json passed=true; per-request output token IDs/text must match cold consumer reference.",
+  "deployment": {
+    "producer_revision": 9,
+    "consumer_revision": 8,
+    "tensor_parallel": 16,
+    "data_parallel": 1,
+    "maximum_context": 8192,
+    "max_sequences": 4,
+    "max_batched_tokens": 1024,
+    "precision": "original GLM5.3 W8A8C8 with Indexer int8",
+    "data_transport": "SDMA only; control/metadata/text token HTTP separate",
+    "backend": "MemCache/MemFabric1.2.0 with loader-fix-v3; whole-chunk GLM C8 resume Python patch"
+  },
+  "cases": [
+    {
+      "id": "short-c1",
+      "input": 256,
+      "output": 64,
+      "closed_loop_concurrency": 1,
+      "samples_per_round": 6
+    },
+    {
+      "id": "medium-c1",
+      "input": 1024,
+      "output": 64,
+      "closed_loop_concurrency": 1,
+      "samples_per_round": 6
+    },
+    {
+      "id": "medium-c4",
+      "input": 1024,
+      "output": 64,
+      "closed_loop_concurrency": 4,
+      "samples_per_round": 8
+    },
+    {
+      "id": "long-c1",
+      "input": 4096,
+      "output": 128,
+      "closed_loop_concurrency": 1,
+      "samples_per_round": 6
+    }
+  ],
+  "rounds": 2,
+  "warmup": "One full concurrency wave before each measured block; second round uses reversed case order.",
+  "fixed_sampling": {
+    "temperature": 0,
+    "seed": 1024,
+    "top_p": 1,
+    "ignore_eos": true
+  },
+  "client": "Actual local HTTP streaming front door on node32, server and client in separate threads; all P/D backend work, queuing, handoff and text streaming included. Monotonic client timestamps; no cross-host wall-clock subtraction.",
+  "cache_identity": "Input IDs fixed per case; unique validated cache_salt per logical request shared by its P and D calls. Changes cache hash namespace, not model input values. Per-request consumer hit/need-load logs audited after timing.",
+  "metrics": [
+    "actual validated output tokens per measured wall-second",
+    "success rate",
+    "TTFT",
+    "first non-whitespace text",
+    "TPOT per request",
+    "all inter-token intervals",
+    "first inter-token handoff gap",
+    "last-token end-to-end latency",
+    "resource samples"
+  ],
+  "timing_constraints": "No profiler, weight transfer, payload hash or evidence archive transfer during measured blocks. Tiny request/response control and fixed resource queries are instrument overhead included consistently. No production goodput/SLO or global optimality claim.",
+  "mechanism_candidate": {
+    "hypothesis": "Hand off P first token as owned output, append its ID to D prompt and generate only the remainder. For block-aligned original input, D can retain the full prompt from the pool, avoiding conservative last-block recomputation and duplicate generation of the first token.",
+    "fixed": "Same model, operators, quantization, input IDs, final output IDs, request load, SDMA and deployment.",
+    "prediction": "D external cached prefix increases by one whole block at aligned input; D output generation decreases by one token; exact final output maintained. TTFT, visible text, first handoff gap and end-to-end changes all measured; no redefined timing origin.",
+    "comparison": "Naive and append_first via same real HTTP front door; ABBA blocks at 1024/64 C1 and C4. Cache identities always unique; correctness failures invalidate timing."
+  }
+}

@@ -118,6 +118,16 @@ try:
   argv+=['-v',str(config)+':/memcache-config:ro']
   ctx['runtime_overlay']=ov
   ctx['memcache_config_sha256']=plan['memcache_config_sha256']
+ for patch in plan.get('runtime_patches',[]):
+  source=pathlib.Path(patch['source'])
+  assert str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/')
+  assert patch['target'] in (
+   '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py',
+   '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py',
+   '/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py')
+  assert hashlib.sha256(source.read_bytes()).hexdigest()==patch['sha256']
+  argv+=['-v',str(source)+':'+patch['target']+':ro']
+ ctx['runtime_patches']=plan.get('runtime_patches',[])
  for k,v in plan['env'].items(): argv+=['-e',k+'='+v]
  assert json.dumps(plan['additional_config'],separators=(',',':'))==plan['serve_argv'][-1],'additional-config element mismatch'
  argv+=['--entrypoint','/usr/bin/timeout',image_id,'--signal=TERM','--kill-after=30',str(plan['container']['lifetime_seconds'])]+plan['serve_argv']

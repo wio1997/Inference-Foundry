@@ -7,9 +7,9 @@ import socket
 import subprocess
 import time
 
-ROOT = Path('/data/wio/glm5-3-vllm-execution/20261017-memcache/meta32-production-v3')
+ROOT = Path('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/meta32-v4')
 FIX = Path('/data/wio/glm5-3-vllm-execution/20261017-memcache/loader-fix-v3')
-NAME = 'glm53-memcache-meta32-production-v3-20261017'
+NAME = 'glm53-memcache-meta32-baseline-v4-20261017'
 IMAGE = 'sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83'
 
 
@@ -41,7 +41,7 @@ def main():
             '-e', 'LD_LIBRARY_PATH=/opt/memcache-runtime/memcache_hybrid/lib:/opt/memcache-runtime/memfabric_hybrid/lib:'+ld,
             '-e', 'MMC_META_CONFIG_PATH=/out/mmc-meta.conf',
             '-e', 'ASCEND_PROCESS_LOG_PATH=/out/ascend-log',
-            '--entrypoint', '/usr/bin/timeout', IMAGE, '--signal=TERM', '--kill-after=10', '7200',
+            '--entrypoint', '/usr/bin/timeout', IMAGE, '--signal=TERM', '--kill-after=10', '21600',
             'python3', '-c', 'from memcache_hybrid import MetaService; raise SystemExit(MetaService.main())']
     proc = subprocess.run(argv, capture_output=True, text=True, timeout=60)
     result = {'argv': argv, 'rc': proc.returncode, 'container_id': proc.stdout.strip(),

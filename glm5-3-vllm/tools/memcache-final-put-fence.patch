@@ -1,0 +1,26 @@
+--- a/pool_worker.py
++++ b/pool_worker.py
+@@ -2952,6 +2952,23 @@
+                 f"Non-layerwise KV save requires KVCacheStoreSendingThread, but got {type(send_thread).__name__}"
+             )
+         self._previous_save_batch = send_thread.add_save_batch(requests)
++        if (
++            self.vllm_config.kv_transfer_config.kv_connector_extra_config.get("wait_for_final_prompt_put", False)
++            and any(request.is_last_chunk for request in requests)
++        ):
++            # The existing FIFO event follows every PUT queued in this batch.
++            # Earlier prompt chunks may still overlap; the handoff observes
++            # the final chunk only after all preceding SDK PUT calls return.
++            wait_start = time.perf_counter()
++            while not self._previous_save_batch.done.wait(timeout=SAVE_BATCH_FAILURE_POLL_INTERVAL_S):
++                send_thread.raise_if_failed()
++            send_thread.raise_if_failed()
++            logger.info(
++                "Final prompt PUT batch drained before handoff tp_rank=%d requests=%s wait_ms=%.3f",
++                self.tp_rank,
++                ",".join(request.req_id for request in requests if request.is_last_chunk),
++                (time.perf_counter() - wait_start) * 1000,
++            )
+ 
+     def retrieve_layer(
+         self,

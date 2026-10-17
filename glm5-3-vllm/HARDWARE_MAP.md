@@ -1,10 +1,10 @@
 # 硬件地图：拓扑、条件性能与竞争关系
 
-用途：为 GLM-5.3 W8A8C8 / vLLM-Ascend 的执行方案提供可检验的资源依据。当前研究设备为 32、33，用户已恢复设备操作并授权停止这两台原实验占用；正式目标保持 PD 分离。2026-10-17 已完成首轮只读身份/拓扑/软件/资产核查，已有实测与未知项如下。已补初始条件通信计时和 HCCL SDMA 运行日志；33完整模型单机容量/短请求已验证，真实 PD KV 路径仍待验证。后端按用户最新要求优先核实灵渠MemCache，暂停新增Mooncake实验。
+用途：为 GLM-5.3 W8A8C8 / vLLM-Ascend 的执行方案提供可检验的资源依据。研究设备为32、33，正式目标保持PD分离；后端按用户要求使用灵渠MemCache，暂停新增Mooncake实验。首轮拓扑/条件通信证据之后，完整模型TP16+TP16的P写池→D消费已取得有限验证：见[模型SDMA证据](evidence/20261017-memcache-fix/deployment-validation.json)和[短/中输入C1基线](evidence/20261017-pd-baseline/accepted-short-medium-baseline.json)。长输入与C4一致性尚未验收，资源/实例实时状态仅见[HANDOFF](HANDOFF.md)，不把本地图当运行看板。
 
 地图要可追溯、可复核、能暴露错误。硬件身份、当前软件能发挥的性能、特定负载下的竞争分别记录；实测值不是物理常数，测得的最高带宽也不是所有实现的性能上界。未知项保持未知，不填零或用宣传值代替。新证据与地图冲突时重新核验，不让旧地图直接否定新方案。
 
-## 2026-10-17 首轮现场快照
+## 2026-10-17 首轮现场快照（历史身份，后续验证另列）
 
 原始证据与 SHA 见 [inventory 摘要](evidence/20261017-inventory/summary.json) 和每 run 的 context/result/stdout；资源变更以后续 [HANDOFF](HANDOFF.md) 及执行凭据为准，不能沿用初始预留状态。
 
@@ -16,8 +16,8 @@
 | CPU/RAM | Kunpeng 920 7280Z，4×80 core×2 SMT=640 逻辑 CPU，8 NUMA，约 2 TiB RAM | NPU PCI sysfs NUMA=-1，亲和未知；不改系统 NUMA 信息 |
 | 宿主网 | enp162s0f0/f1 报 100000 Mbps、NUMA5；enp194s0f0/f1 报 25000 Mbps、NUMA4；bond4 报 50000 Mbps | sysfs 链路值，不是有效吞吐；管理地址不是 NPU 数据路径 |
 | NPU 网络 | 16 die 普通 IP getter 均返回未配置；RoCE link=DOWN / health=Init；vNIC=UP | 不据此宣称 HCCS/SDMA 不通；不擅自配置 RoCE |
-| 软件身份 | driver25.5.2；镜像 CANN9.1.0、vLLM0.30.0+empty、Ascend0.30.0rc1、torch-npu2.10.0.post4；MemCache/MemFabric均1.2.0 | 完整 imageID/两仓库 SHA 在 HANDOFF；16rank实际V1加载日志已核验；quant method/cache tensor仍待运行对象证据。灵渠网络版本未知 |
-| 权重 | 两台 196 文件/764240832702 bytes，已有全量校验完成凭据；本线清单身份与当前尺寸核对通过 | 复用凭据，没有重复全量 payload 哈希；运行时 W8A8C8/C8 尚待确认 |
+| 软件身份 | driver25.5.2；镜像 CANN9.1.0、vLLM0.30.0+empty、Ascend0.30.0rc1、torch-npu2.10.0.post4；MemCache/MemFabric均1.2.0 | imageID/SHA在HANDOFF；后续全32rank trace已见QuantMatmul/IndexerQuant和SDMA任务。真实cache布局/辅助状态仍在审计，灵渠网络版本未知 |
+| 权重 | 两台196文件/764240832702bytes，清单身份/尺寸匹配，复用已有全payload校验凭据 | 未重复全量哈希；后续已观察量化算子，但不从目录/CLI推断所有cache字段正确 |
 | 干扰窗口 | 两台 5 秒样本 NVMe 读为0、写<0.01 MB/s，管理网有小流量，已知传输 worker 未见 | 只是瞬时诊断，不能替后续运行保证隔离；共享 HCCS 其他节点仍可能竞争 |
 
 | 物理卡 | die (逻辑/Phy-ID) | PCI BDF (die0 / die1) |
@@ -54,15 +54,17 @@ HCCL 诊断的完整归档扫描中，同卡与异卡各有6条 SDMA link succes
 
 用户描述“只有 SDMA 到超节点”按**本线数据通路约束及现场待核实信息**记录，不写成 910C 硬件仅支持 SDMA。SDMA 是搬运机制，HCCS 是互联链路；HCCL/MemFabric/MemCache 是库或后端，SSH/管理 IP 是控制网络。这些层次分别取证。
 
-MemCache新增实证：镜像中MemCache/MemFabric均1.2.0。32[2]↔33[2]两客户端以`device_sdma`、每rank1GiB DRAM池、0HBM池、无SSD测试64KiB/1MiB双向写池/读池，全部接收SHA匹配。HYBM实际data-op=2与安装头文件SDMA位值一致；两台profiler各4个`SDMA_SQE`，与4个put/get区间逐一匹配。因此本次**合成数据路径**已验证为SDMA，流程为源HBM→DRAM池→对端HBM；不是模型PD或直传证明。清理阶段仍退出133/139，最小init/close-only也复现，Meta停止退出134；功能与生命周期不能合并记为通过。原件/派生分析见 `node{32,33}-memcache-sdma-close-profile-*`，续接状态见HANDOFF。灵渠网络版本>=1.5的配套条件尚未独立核实，不从路径成功反推出版本。
+早期MemCache实证（修复前历史）：1.2.0以`device_sdma`、1GiB/rank DRAM、0HBM/SSD在32[2]↔33[2]完成64KiB/1MiB双向SHA校验，两台各4个`SDMA_SQE`与put/get匹配；当时清理退出133/139、Meta退出134，未把功能与生命周期合并为通过。
+
+后续隔离修复保留1.2.0二进制，合并重复DSO身份并隔离C++符号后，Meta/init-close/双向数据测试均正常退出0。完整GLM模型32rank均data-op2、trace均含SDMA任务，TP矩阵仅LOCAL/SIO/HCCS；真实D消费与量化算子已有运行证据。短/中C1无profile基线所有28条（含warmup）外部命中已逐条核对，SDK1792get keys精确吻合。真实KV对象抽样6979584B/128token，详见[有条件工作量](evidence/20261017-pd-baseline/conditional-work-accounting.json)：这些DRAM读写/副本字节属于当前表示，不是普世必需成本；存储location到物理主机映射未核验，不直接当跨机cut流量。灵渠L1版本、必要共跑争用仍未知，不能由路径成功倒推整套适配。
 
 | 第一手资料支持的能力 | 现场已确认 | 待验证 | 改变的实验 |
 | --- | --- | --- | --- |
 | [CloudMatrix384 §3.3](https://arxiv.org/html/2506.12708v2#S3.SS3)：双 die 与多互联平面 | 8卡/16die，SIO/HCCS_SW，vNIC UP | 逻辑超节点划分、全 die SDID、跨机实际选路 | 用原生 getter+rank/SDID 对照，不套用论文带宽或规模 |
 | 同文 §4.2.1：AIV-Direct 针对 SDMA 发起开销 | 当前小测走 AICPU/SDMA；小消息含明显接口完成成本 | 真实模型中发起/等待占比 | 保持全部 SDMA，不开发 kernel；先测消息合并、注册/缓冲复用与事件依赖 |
 | 同文 §4.3.2：AIC/AIV/SDMA 分工和 microbatch 流水 | 本线尚无真实计算共跑证据 | HBM/链路/队列争用是否抵消重叠 | 用已有正确算子/接口比较独跑与相关共跑，总完成时间重新计量 |
-| 同文 §4.3.3：KV 使用独立 RDMA 平面隔离 decode 通信 | 本线 SDMA 约束；未验证 KV backend | KV 与 TP/EP 是否共享瓶颈 | 不照搬隔离假设；验证 KV 分块/节流/错开发起与无策略对照 |
-| [CANN9.1 HCCL 开关正文](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_INTER_HCCS_DISABLE.md)：A3 FALSE 为 HCCS/SDMA，TRUE 为 RoCE/RDMA | 已显式 FALSE、PCIE=1/ROCE=0、AI_CPU；同卡/异卡日志出现 SDMA link success、isUsedRdma[0] | 跨机、不同组、真实 PD connector、communicator 级覆盖 | 诊断日志与正式计时分开；HCCL 证明不外推至 KV |
+| 同文 §4.3.3：KV 使用独立 RDMA 平面隔离 decode 通信 | 本线全SDMA，MemCache已有有限真实KV消费验证 | KV与TP/EP共跑竞争尚未隔离测量 | 不照搬独立平面假设；按真实依赖选择分块/节流/发起实验 |
+| [CANN9.1 HCCL 开关正文](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_INTER_HCCS_DISABLE.md)：A3 FALSE 为 HCCS/SDMA，TRUE 为 RoCE/RDMA | FALSE、PCIE=1/ROCE=0、AI_CPU；基础跨机日志与全32rank模型trace/TP矩阵已核验 | 未测communicator/规模/竞争条件不可外推，灵渠版本仍未知 | HCCL与实际MemCache路径分别留证，诊断与计时分开 |
 
 论文条目为机制参考，现场列才是本线证据。预分配/双缓冲、按数据就绪发起、KV 分块/节流及错开 decode 关键通信都是候选，需由现有接口、真实消息量、正确性与总完成时间逐项接受或否定；不预设增加并发必然更快，也不预设 MoE 为首个瓶颈。
 
@@ -76,7 +78,7 @@ MemCache新增实证：镜像中MemCache/MemFabric均1.2.0。32[2]↔33[2]两客
 | 相关组 | 单机 TP4 组及拟用 EP16 组 | 基础 all_gather / all_reduce / all_to_all，组内分片和字节口径单列；不将两台默认合成32-rank服务组 |
 | 节点间 | 32 die2 ↔ 33 die2，必要时对应多路 | HCCL 基础与实际 PD backend 分开，保留真实 SDMA 路由、两方向和端到端完成 |
 | 竞争 | 两对独立 SDMA 与各自单跑，再按真实 KV/EP 消息补充 | 关注两侧减速与总完成时间，避免将重叠区间重复累计 |
-| 真实 KV | actual connector 的注册/产生/传输/消费，int8 KV/indexer 元数据 | 单机容量和功能允许后运行真正 P→D，必须排除 D 重做 prefill |
+| 真实 KV | 已有完整模型注册/生成/池加载/消费及量化算子证据 | C1短/中基线已排除全量D重算；长/C4未验收，辅助状态与布局继续核对 |
 
 初始脚本 [hccl_probe.py](tools/hccl_probe.py) 的计时为各 rank 独立 `perf_counter_ns` 包围通信调用+设备完成同步；barrier 完成、填充和逐次正确性验证在计时外。12 次样本不报告稳定 p99，也不当作纯链路时延、PD 服务时延或物理全局上界。日志/profiling 的诊断结果与无 profiling 测量分别保留。并发/大组/跨机入口按结果补充，不创建全排列搜索器。
 

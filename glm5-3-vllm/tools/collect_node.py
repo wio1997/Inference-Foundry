@@ -30,6 +30,7 @@ def main():
     p.add_argument("--master-port", type=int, default=29567)
     p.add_argument("--log-level", type=int, choices=[1, 3], default=3, help="1 for SDMA path diagnosis, 3 for timing control")
     p.add_argument("--timeout", type=int, default=150)
+    p.add_argument("--script-arg", action="append", default=[], help="Frozen argv element passed to the collected script")
     a = p.parse_args()
     devices = [] if a.npu_devices is None else [int(s) for s in a.npu_devices.split(',')]
     if a.external_rank is not None and (len(devices) != 1 or a.external_rank != a.node - 32):
@@ -65,13 +66,14 @@ def main():
     context = {"client_started_utc": start, "node": a.node, "label": a.label, "npu_devices": devices,
         "script_sha256": sha, "collector_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "resource_lease": lease, "image_mode": a.image, "runtime_overlay": a.runtime_overlay,
-        "models_loaded": False,
+        "models_loaded": False, "models_loaded_by_collector": False, "script_args": a.script_arg,
         "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "git_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest()}
     setup = {"root": remote, "script": base64.b64encode(data).decode(), "context": context,
              "timeout": a.timeout, "image": IMAGE if a.image else None, "devices": devices,
              "expected_image_id": IMAGE_ID, "node": a.node, "runtime_overlay": a.runtime_overlay,
-             "log_level": a.log_level, "external_rank": a.external_rank, "master_port": a.master_port}
+             "log_level": a.log_level, "external_rank": a.external_rank, "master_port": a.master_port,
+             "script_args": a.script_arg}
     runner = '''import base64,datetime,hashlib,json,os,pathlib,re,signal,subprocess,time
 c=json.loads(base64.b64decode(PAYLOAD))
 r=pathlib.Path(c['root']);r.mkdir(parents=True,exist_ok=True)
@@ -81,7 +83,7 @@ if s.exists(): assert s.read_bytes()==b
 else: s.write_bytes(b)
 assert not (r/'result.json').exists(), 'Existing run; use a new label instead of overwriting evidence'
 (r/'context.json').write_text(json.dumps(c['context'],indent=2)+'\\n')
-argv=['python3',str(s)]
+argv=['python3',str(s)]+c['script_args']
 image_id=None
 if c['image']:
  image_id=subprocess.check_output(['docker','image','inspect',c['image'],'--format','{{.Id}}'],text=True).strip()
@@ -98,6 +100,7 @@ if c['image']:
   (r/'artifacts').mkdir(exist_ok=True)
   argv+=['-v',str(r/'artifacts')+':/out','-e','HCCL_INTER_HCCS_DISABLE=FALSE','-e','HCCL_INTRA_ROCE_ENABLE=0','-e','HCCL_INTRA_PCIE_ENABLE=1','-e','HCCL_OP_EXPANSION_MODE=AI_CPU','-e','HCCL_EXEC_TIMEOUT=30','-e','HCCL_CONNECT_TIMEOUT=120','-e','HCCL_IF_IP=172.16.12.'+str(c['node']),'-e','ASCEND_GLOBAL_LOG_LEVEL='+str(c['log_level']),'-e','ASCEND_PROCESS_LOG_PATH=/out/ascend-log','--entrypoint','python3',image_id,'/audit/script.py']
  else: argv[argv.index(c['image'])]=image_id
+ argv+=c['script_args']
  if c['runtime_overlay']:
   overlay=pathlib.Path(c['runtime_overlay']);manifest=overlay.parent/'aliases.json'
   assert overlay.is_dir() and manifest.is_file()

@@ -6,15 +6,65 @@
 
 主对话随后转达用户最新要求：**先不考虑 Mooncake，优先核实灵渠 MemCache**。不再新增 Mooncake 部署、修改或测量；已运行探针已结束，保留原始失败与数据校验记录。准确组件现已在镜像中查到：`memcache_hybrid` / `memfabric_hybrid`，不是通用 memcached。优先研究现成接口的 P写池→D读池与直接传输能力，暂不增加 SSD 或做全面后端跑分。用户的性能判断是研究优先级，尚无本环境对照结论。
 
-保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，最终验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线还没有推理性能基线或收益；业务请求分布、数值 SLO 和完整正确性验收标准待定。
+保持 GLM-5.3 W8A8C8 能力、约定精度和正确性；复用已有正确算子。以 vLLM-Ascend 为正确性/稳定性参考，研究状态、调度与执行机制，最终验证真正 P→KV 传输→D，排除 D 重做 prefill。参数扫描由其他工作负责。本线已有C1临时代表负载的真实PD基线，尚无通过正确性门槛的机制性能收益；业务请求分布、数值SLO和完整正确性验收标准待定。
 
 分支 `codex/glm5-3-vllm-optimization`，本次接手 HEAD `f5571dc0e1c271ae533a347700f24b4a2c105762`，接手时工作区干净。继续 [draft PR #2](https://github.com/wio1997/Inference-Foundry/pull/2)，不自动合并。不改旧副本 `/Users/wio/work/Inference-Foundry` 或原 SGLang 研究分支。
 
-## 当前部署结果
+## 协作分工（用户最新校正）
+
+原主对话作为用户沟通、方向/预算与证据复核的主控；本执行对话继续32/33实现、实验、修复及证据交付。主控通过现有HANDOFF/wait_threads读取，无需跨聊天主动发送消息，不增任务/看板，不为普通工程动作增加逐步审批。本次分工校正不打断已加载的per-TP实验。诊断须结合匹配native边界与传输/布局/完成证据，逐token差异不单独证明传输错误；不改模型/量化来迎合结果。
+
+## 当前执行与证据恢复
+
+**最新08:17Z现场**：P11/D10均正常关闭0；诊断请求、真实KV控制已冻结，原件在`node{32,33}-diagnostic-final-v1-backup.json`对应Mac归档并核SHA。P12 `95623b287047e8054863673673a2d13fe05608ae035d0d67ad91499a155c46ac`、D11 `579479baeaf6d4a3194ec7929990d2935799b1b8fbad0b80f2ccc31ad2dc95cf`已启动，正在初始化/加载；root `pd-node32-v12` / `pd-node33-v11`，API与world32 Meta-v4不变。每实例2700s，约08:58Z Mac到期；同6h UID，launch已重查Running/16die/设备空闲。没有payload观察或per-TP保存；P唯一候选为已有FIFO完成fence72ff56，D恢复原worker/backend+对齐scheduler。readiness collector99162有界运行中，Ready后执行`pd_final_put_suite.py`：12条即时P1→D128，再P-native128参考；原D golden/当前D-native单列，不静默换参考。前两条额外比较P/D池local top20。SDK错误、实际3968命中、16个source rank完成事件另审。当前不作机制收益或完整精度验收。主控独立analysis已提交1b78e0d9，本线可继续提交自己的文件。
+
+**08:11Z诊断与下一Loop（优先于下面现场）**：v3无D checksum的4/4同完成边界128输出一致；numeric6/6的8token输出一致但top20最大差0.87248、chosen最大0.17888。追加复用最后同salt的最小对照：P-local、D首次pool、D-pool-local所采top20逐值完全相同；D-native与其重复逐值相同，但与P状态不同。见`numeric-cache-state-analysis-v1.json`，不能继续把原生P/D状态差当SDMA错误。当前正冻结最后source/D控制，之后只为移除启动观察与启用最小交接候选重载P12/D11，有限2700s、无audit/per-TP键。候选`wait_for_final_prompt_put=true`只在最终prompt块等待已有batch.done FIFO事件（worker原3d39b8→72ff56），不固定sleep、不改模型算子精度/SDK/SDMA；事件表示处理结束，不是耐久成功ACK，必须另审SDK错误/实际D命中。验证立即P1→D128时3968命中与原固定参考，同时在D之后用P本地128作为匹配状态参考，不能偷偷换golden或把不同参考合并成“全正确”。若不能保持预定命中/输出则拒绝候选；先完成真实测试，不停在Ready。
+
+**现场08:04Z（以下历史段落不可作实时状态）**：P11 `3d154bff72037bf2e3d11c1ee6a0bb23fd74aa7cf4f92835dbc3ee53e787b6e7`、D10 `c497efe6c455941ff503705714c024914c188b1682385dfe89d7d1c6353883d4`已Ready，API29481/29482，root `pd-node32-v11` / `pd-node33-v10`。原world32 Meta-v4保留27400/01/02。模型有限3600s、约08:31Z Mac到期；08:03Z重查两台6h预留仍Running，UID32 `2cd9108a-eaf0-4164-856b-968bb65b79c6`、33 `ffd5ca30-273d-4646-aa79-7b35478b9416`，约09:10Z节点时钟到期，执行前重查。仅本线服务/资源，不停止其他作业。
+
+恢复原共享MLA键+whole-block对齐，未启用已拒绝的per-TP保存；只加`GLM53_KV_CONTROL_AUDIT=1`观察。worker原3d39b8→b24869、backend原cf2d7a→e0a6f4，scheduler48387a，32/33 staging一致。P PUT前/后在NPU私有stream计算每entry四整数矩、D GET后计算，真实shape/stride/dtype/format记录；只回传控制数组，KV主路径仍device_sdma。控制矩非密码学payload SHA/字节相等证明，观察有同步与时序扰动，不作性能验收。ACL bulk方案仅staging未挂载，不用于真实KV读回。
+
+**当前测试**：`payload-control-v3`四轮4096/128运行中，collector79446。与已完成v2使用相同的真实32key PUT完成guard及同轮bare native-prefix参考；D每进程128key预算已耗尽（文件计数核对），本轮无D checksum计算，P观察仍开。结果决定是否还需要D侧同步诊断。下一步`pd_numeric_boundary_control.py`已准备：等相同真实源key完成后比较6轮4096/8的top20概率，单独标记其不同输出长度/观察条件，尚未执行。不能在Ready/四轮通过处停止，不新增热更新平台，不为只读归因重载。
+
+`payload-control-v2`四轮完成：128源key PUT前/后稳定，1984消费key×rank、每key115条entry的四整数矩全部一致，32rank布局一致，4/4 pool输出等于同轮native。见`real-kv-control-analysis-v2.json`及两台`node*-payload-control-v2-backup.json`，完整源/D控制与请求已SHA回传Mac。v1使用错误默认NONE_HASH种子，0/32key匹配且尚未D GET时失败；改为现场PYTHONHASHSEED=0后复用实例，失败保留。
+
+`payload-observer-budget-control-v1`12轮ABBA完成：native12/12稳定，pool6/12一致。逐请求连接发现立即交接6轮均只加载3072token且输出不同；等待1秒6轮均加载3968且一致。此脚本没有保留v2源完成guard，源审计拖慢发布导致缓存边界混杂，**不能用失败归责D观察停止/传输**。`observer-budget-boundary-analysis-v1.json`保留全部12条；当前v3修正该混杂，不采用固定sleep作为修复。
+
+SDK默认同步完成源码已冻结于`sdk-completion-source-receipt.json`：Python→native BatchGet调用及MemFabric无ASYNC默认等待分支。`KVCacheStoreBatch.done`有FIFO完成事件，wait_for_save目前只enqueue；源码另有释放请求保存fence，不能把异步enqueue直接叫内存安全问题。只有同完成边界的控制结果支持时，才考虑最终prompt保存完成交接候选；当前未改保存完成语义。
+
+模型无关小测：7/31key、512buffer/key、每对象6979584B、异stride、双向one-batch/逐key全部SHA一致、padding未改、close0；只排除该向量小测故障，不证明真实框架stream顺序。1MiB合成ACL async trace明确PCIE_DMA_SQE，真实KV bulk读回已拒绝；NPU int8/BF16四矩小测匹配独立CPU整数参考、trace有AIVEC/MIX无CPU fallback名。上述6份原始小测归档均已SHA回传Mac；一次SSH multiplex会话上限失败的0B partial保留，串行重试通过。世界2小测Meta已正常关闭0，原world32不动。
+
+供主控边界预研的自然产出：`real-kv-layout-capacity-v2.json`记录当前每rank54,528B/token、P1108/D1289个128token块、原例外/scales保留；不是普遍最小状态或服务最大长度。`profile-decode-structural-reference-v1.json`从旧512ctx profile离线提取rank0 B1 decode：78层MLA/attention、5 BF16+16量化Indexer、75组MoE、157all-reduce+1all-gather，少量真实shape/dtype和源SHA。旧profile有扰动，303ms窗口不能替代当前190ms TPOT；次数不是普遍必要资源，SIO/HCCS与SDMA计数有重叠，不相加。无新增NPU采样/重载；主控新analysis目录由主控提交，本线不纳入。
+
+本线继续同PR2，原HEAD7d33725；本轮尚未commit/push。只使用现有HANDOFF与冻结evidence记录，不新增任务/看板。长前缀和C4尚未验收，没有机制性能收益，不改模型/量化/既有算子或SDMA要求。
+
+### 已完成且可接受的基线
+
+`evidence/20261017-pd-baseline/accepted-short-medium-baseline.json`已完成客户端、native命中、SDK总计数和资源覆盖审计。P9/D8完整模型TP16+TP16，固定8K context/4seq/1024批token、eager、`c8_enable_reshape_optim=false`、`mlapo_keep_prefill_weights=true`、loader-fix-v3、whole-block Python对齐补丁；1GiB/rank DRAM池、0HBM、无SSD、纯MemCache。没有启动profiler；正式计时期间没有权重传输、payload全哈希或证据归档。
+
+临时固定C1负载，每组两轮、每轮6条测量，另各轮1条warmup。256输入/64输出：12/12一致，5.1607输出tok/s、TTFTp50/p95=404.34/415.70ms、TPOTp50/p95=190.91/192.79ms；1024/64：12/12一致，5.1606tok/s、TTFT=521.70/542.88ms、TPOT=188.38/190.57ms。所有28条（含warmup）D external_hit=need_load分别128/896，SDK expected=actual=1792get keys、448rank-get，平均rank-get约3.66ms（非全局关键路径）。D无原生错误，16个客户端bmDataOpType均2。5s资源样本各480条，P/D内存约118.3/120.8–120.9GiB，HBM每die约59.9–60.2GiB；资源窗口覆盖基线，但不覆盖较晚的已拒绝首token候选。没有生产SLO/容量或全局最优结论。
+
+原始请求/响应、失败、resources和生命周期console已归档Mac并核SHA：`/Users/wio/work/glm53-execution-evidence-backup/20261017-pd-baseline/node{32,33}-completed-pd-tests-shared-replica-v1.tar.gz`；receipt在本evidence根目录。首次完整模型profile的32-rank SDMA/TP LOCAL/SIO/HCCS证据复用，不拿旧profile耗时当新shape成本。
+
+### 严格正确性边界和实际否定结果
+
+- `correctness-v4`的12项C1单次保护用例通过：127/128/129/255/256/257边界、1024/4096输入、repeat/local命中、stop、256-token部分共享前缀；同缓存边界的native local-prefix与池消费token IDs/text一致、所采logprob差0，冷P/D一致。冷full与缓存路径在部分格式决策不同，独立保留，不宣称完整精度验收。`correctness-c1-gate-v1`追加真实流取消：8token后断开，约0.253s观察running/waiting/delayed-release归零，恢复输出一致。
+- C4原始严格输出3/4不一致；随后原生D local-prefix的3轮重复中2轮也有变化，不能归因MemCache，也不能验收C4有效吞吐。
+- `baseline-c1-v1`长4096/128重复：6条测量中3条偏离固定native-prefix参考；全部7条（含warmup）external_hit=need_load=3968，无SDK错误。原生D fresh-prime/local复用4次一致（logprobs=5），之后不带logprobs的Pnative→Dpool3组也全一致。长前缀问题仍未闭环，不能推广其计时。
+- `handoff-append-first-c1-v1`：P首token立即交客户端并追加到D输入，D生成63个剩余token。warmup即严格输出失败，已拒绝，不计收益。D确实加载1024token，朴素896token，SDK240keys精确吻合，说明机制实际发生而非未执行。详见`rejected-append-first-mechanism.json`。
+- `long-handoff-abba-v1`：立即/等待1秒按ABBA各6条，立即6/6一致、等待4/6一致；等待不能修复。固定镜像wait_for_save只enqueue且_previous_save_batch无读者的源码事实不构成根因证明，不采用猜测性同步PUT补丁。config的Indexer topk=2048；4K重复上下文的稀疏选取/量化副本为可调查因素，尚未证明。
+
+### 已拒绝的per-TP保存机制（历史，实例已关闭）
+
+P10/D9只增加`preserve_mla_tp_kv=true`，每TP rank保存原C8 KV并按rank键消费，检验共享副本假设，最多16x逻辑PUT/池存储成本。12条4096/128匹配当前bare native参考的ABBA：native12/12等于原参考，pool8/12（立即4/6、等待1秒4/6）。因此拒绝该机制、不跑完整C1推广门槛、不记收益，见`rejected-per-tp-mechanism.json`。候选代码/计划/失败原件保留，P10/D9正常关闭0、资源采样停止，不是当前服务。
+
+metadata-only探针64个key（4block×16rank）均存在，每对象6979584B，NPU initialized始终false、close0。该证据只证明独立rank键实际建立，不校验payload、不推定逻辑PUT字节均跨机。`conditional-work-accounting.json`与真实布局保存当前图字节计算，非普遍理论下界。之后的小SDK层batch和真实KV控制观察见当前段。
+
+## 前一轮基础部署结果（历史）
 
 纯MemCache P写池→D读池已在完整GLM5.3 W8A8C8/Indexer-int8、TP16+TP16、512 context下通过一个新480-token用例；16-token输出一致，D从池加载384token、本地命中0，外部get keys增加48。不是P→D直传，不是吞吐/精度验收。
 
-当前本任务服务：32 P `glm53-memcache-pd-32-fixed-v7-20261017`（29481）；33 D `glm53-memcache-pd-33-fixed-v6-20261017`（29482）；32 metadata `glm53-memcache-meta32-production-v3-20261017`（27400/27401/27402）。只读叠加loader-fix-v3隔离MemCache符号；P关闭官方已知冲突的C8 reshape可选优化。模型、量化、既有算子及SDMA约束保留。D API Ready不是单独的PD证明，上述外部命中与输出对照才是本次功能证据。
+上一轮已结束的功能服务：32 P `glm53-memcache-pd-32-fixed-v7-20261017`（29481）；33 D `glm53-memcache-pd-33-fixed-v6-20261017`（29482）；32 metadata `glm53-memcache-meta32-production-v3-20261017`（27400/27401/27402）。只读叠加loader-fix-v3隔离MemCache符号；P关闭官方已知冲突的C8 reshape可选优化。模型、量化、既有算子及SDMA约束保留。D API Ready不是单独的PD证明，上述外部命中与输出对照才是本次功能证据。
 
 服务是本次有限期实验实例：P宿主启动00:57:43、timeout3600秒；D宿主启动00:30:47.691、timeout4500秒；仍受两台7200秒资源预留期限约束。不可把本文当作长期可用保证，继续执行前重查现场。模型profile已完成全32-rank核验；两端大文件备份均已回传Mac并验证归档SHA。最终结果摘要见 [deployment-validation.json](evidence/20261017-memcache-fix/deployment-validation.json)。
 
