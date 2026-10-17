@@ -19,3 +19,11 @@ P→D数据面强制使用**SDMA**，同时适用于本项目vLLM-Ascend与SGLan
 ## 2026-10-17 用户补充：MemCache 适配先查 Ascend 部署文档
 
 进一步修改 MemCache 适配前，先核对应框架/模型/SDK版本的 Ascend 官方部署指导与配置说明，保存实际来源及适用边界。当前查证索引为 `runs/20261017T1340-official-memcache-docs-review/index.json`，结论见同目录 REVIEW。优先核原生租约TTL、A3可建池内存扫描、独立预分配池与客户端0GB模式等受支持机制，再决定框架补丁必要性。文档中的系统调优示例不覆盖用户现有禁止系统SDK/驱动/BIOS/时钟及其他系统变更的边界；不重写已冻结运行文件。
+
+
+### 当前部署配置的适用边界
+
+- 对照 [vLLM-Ascend v0.30.0rc1 的 Step 6](https://github.com/vllm-project/vllm-ascend/blob/v0.30.0rc1/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#memcache-and-vllm-separated-deployment)：Meta → 独立贡献进程建池成功 → 模型进程；模型客户端 `dram.size=0GB`，两类进程的连接/协议一致，`max.dram.size` 覆盖贡献量。此处“分离”指进程，不要求把同一 NPU 拆到两个非特权容器。
+- SDK Python API 使用已保存的官方 1.3.0 提交 `06495e8a381c65b7f3b2615687e6b93e5672e242`，见 `runs/20261017T1458-official-memcache-api-review/index.json`。`init_bm=False` 仅作元数据查询；真实 payload 读回使用 `init_bm=True`、`dram_size=0GB`。元数据存在不能充当读回证据。
+- 当前 vLLM 原生配置是 `config/vllm-correctness-v10/local.conf`：Meta `30:29680`、ConfigStore `30:29681`、common max `192GB`；SGLang 使用另一组端口和 `160GB`。检查工具须直接复用对应原生配置并校验 SHA，禁止照抄另一框架的端口。1774 检查助手的错误端口导致初始化失败，实际原因保存在 `results/vllm-shared-long-attempt-v1.json`，没有据此修改 SDK。
+- 当前外部池两框架均为 568GiB，实际分配和真实读写仍分别验收；文档示例容量不等于现场可分配容量。官方只读内存扫描、原生分配与 Meta mount 证据分开记录。系统调优示例不改变本项目禁止系统变更的边界。
