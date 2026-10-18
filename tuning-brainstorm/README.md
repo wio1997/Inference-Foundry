@@ -59,7 +59,7 @@
 
 | ID | 想法 | 希望减少的成本 | 当前状态 |
 | --- | --- | --- | --- |
-| [PD-CHUNK-001](2026-10-18-sglang-pd-chunk.md#pd-chunk-001) | Ascend 连续区间只保留起点与长度 | 页号装箱、中间列表和描述符准备 | 源码已定位；已有通用 PR #45003；Ascend 适配待验证 |
+| [PD-CHUNK-001](2026-10-18-sglang-pd-chunk.md#pd-chunk-001) | Ascend 连续区间只保留起点与长度 | 页号装箱、中间列表和描述符准备 | 源码已定位；已有通用 PR #45003；CPU描述符等价/成本已测，NPU/PD待验证 |
 | [PD-CHUNK-002](2026-10-18-sglang-pd-chunk.md#pd-chunk-002) | 检查 KV 就绪后的发送等待和交接空隙 | 未被计算隐藏的等待 | 已有重叠机制及 PR #43811；待建立目标时间线 |
 | [PD-CHUNK-003](2026-10-18-sglang-pd-chunk.md#pd-chunk-003) | 在后端约束下选择计算块与传输段 | 提交固定成本或传输尾巴 | 有取舍；Ascend / staging 限制已记录；待基线 |
 | [PD-CHUNK-004](2026-10-18-sglang-pd-chunk.md#pd-chunk-004) | 续块重复准备的 PD 适用性检查 | 切片、索引与组批重复工作 | 入口已定位；关联 CACHE-013 / 019；具体冗余待确认 |

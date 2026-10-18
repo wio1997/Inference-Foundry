@@ -12,6 +12,8 @@
 - [首个实证检查点：安装审计、300组支持性判定与relay CPU反例](evidence/2026-10-19-first-checkpoint/README.md)
 - [既有缓存与 PD 调优索引](../README.md)
 
+- [M035 / PD-CHUNK-001：151组CPU等价与局部A/A、A/B](evidence/2026-10-19-descriptor-cpu/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
