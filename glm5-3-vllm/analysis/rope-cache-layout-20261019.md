@@ -22,3 +22,10 @@
 C4两个case的TTFT中位数稍高（N1536 +2.65%、N257 +5.23%），混合负载整体中位数/p95改善；不称每case TTFT均改善。取消验证10次client close、16次完整peer/reuse且P/D KV/running/waiting回零；明确backend abort日志/计数均0，不声称内部abort完成链已证明。
 
 完整verdict及来源SHA位于 `evidence/20261018-p-first-seed-device-v2/recovery-v2/rope-cache-layout-formal-verdict-v1.json`。live启用收据为 `rope-cache-layout-live-enabled-v1.json`。P/D完整源与日志备份分别335225B/SHA7fe2d413…、1798682B/SHAc2982281…；当前CID、有限期限与回退位置见HANDOFF。此前MoE/SFA与P图桶的否定结果保留；RoPE改变了执行条件，后续组合候选须有新的供给/依赖假设，不把旧条件的否定当永久禁令。
+
+
+后续短 trace 只采一条启用连续表的 P→D8 请求，16 rank 均停止后在 CPU 导出 rank 0。该 trace 中原百万行表 Slice 为 0；MTP MoE 的 325 个关联 compute task 从 host enqueue 到 device 执行至少提前 7.09 ms，中位 22.39 ms。25 次 core 的 host 提交结束到首个设备计算至少 6.64 ms。这里有 profiler 开销，不能当作未采样服务的关键路径证明；当前证据支持先放下盲目 MoE/SFA 组合重载。
+
+下一项由新反常现象触发：target 图 5 次验证中出现 375 次 AICPU Cumsum，中位 44.32 μs。原生 AllGather dispatcher 请求 routing 的 count histogram，W8A8 GMM1 随后转换为 prefix，GMM2 又接受输入的 list type。已有 [Ascend routing 接口](https://www.hiascend.com/document/detail/en/Pytorch/2610/apiref/customapi/docs/en/custom_APIs/torch_npu/torch_npu-npu_moe_init_routing_v2.md)支持 type0 直接返回前缀和。正在以单 NPU 的 routing→prefix 与既有 int8 GMM 片段验证相同值/顺序与编译后成本；尚未改整模型或宣称服务收益。证据见 recovery-v2/rope-supply-analysis-v1.json、moe-count-pinned-source-v1.json。
+
+成功窗口 P/D 均在 watchdog 到期后 exit124、OOMFalse，所有 NPU 空闲；已保留完整日志和 trace。启用状态是该有限研究窗口内的实际状态，不表示常驻生产服务。
