@@ -6,6 +6,8 @@
 
 ## 从这里开始
 
+- [缓存管理逻辑排查总表：21 个新增检查项、12 个排除项、48 格覆盖](2026-10-18-sglang-cache-audit.md)
+- [可筛选的离线排查地图](diagrams/cache-audit.html)
 - [第一份笔记：SGLang 前缀缓存与 CPU 调度开销](2026-10-18-sglang-prefix-cache.md)
 - [减少重复工作：共享路径锁维护与插入游标（008 / 009）](2026-10-18-sglang-equivalent-work.md)
 - [两处候选的交互图解](diagrams/equivalent-work.html)（教学操作量，非服务性能实测）
@@ -27,6 +29,27 @@
 | [CACHE-007](2026-10-18-sglang-prefix-cache.md#cache-007) | 减少可避免的索引拼接与复制 | 索引分配、复制和小操作提交 | 已有相关 PR #42923 / #43023 / #43600；剩余点待验证 |
 | [CACHE-008](2026-10-18-sglang-equivalent-work.md#cache-008) | 已有 FULL 引用时省掉重复集合删除尝试 | 共享锁路径的 Python 集合操作 | 有限状态对照通过；完整正确性 / 性能待验证 |
 | [CACHE-009](2026-10-18-sglang-equivalent-work.md#cache-009) | 插入遍历使用 offset，减少临时 token 后缀复制 | 长输入、多节点的 CPU 复制 | 纯遍历对照通过；完整插入状态机待验证 |
+| [CACHE-010](2026-10-18-sglang-cache-audit.md#cache-010) | 缓存关闭后，先返回再切输入 | 关闭缓存路径的一次 CPU 输入复制。 | 等价方向；未测真实推理性能 |
+| [CACHE-011](2026-10-18-sglang-cache-audit.md#cache-011) | 分裂取页键时，避免临时复制整个后缀 | 一次临时 token 后缀复制与 RadixKey 对象。 | 等价方向；未测真实推理性能 |
+| [CACHE-012](2026-10-18-sglang-cache-audit.md#cache-012) | 已对齐的键，避免再复制一次 | 重复的全长 token 复制。 | 条件候选；未测真实推理性能 |
+| [CACHE-013](2026-10-18-sglang-cache-audit.md#cache-013) | 合并 checkpoint 前的多次输入裁剪 | 进入插入遍历之前的重复全长 / 前缀复制。 | 条件候选；未测真实推理性能 |
+| [CACHE-014](2026-10-18-sglang-cache-audit.md#cache-014) | FULL 匹配只记长度，减少临时段列表 | 列表 append、切片与末尾再遍历。 | 条件候选；未测真实推理性能 |
+| [CACHE-015](2026-10-18-sglang-cache-audit.md#cache-015) | 树上子节点只查一次字典 | 一次重复字典查找；长 page 键还涉及重复哈希。 | 等价方向；未测真实推理性能 |
+| [CACHE-016](2026-10-18-sglang-cache-audit.md#cache-016) | 没有主机缓存时，省去主机叶子集合维护 | host 检查、方法调用和空集合删除尝试。 | 条件候选；未测真实推理性能 |
+| [CACHE-017](2026-10-18-sglang-cache-audit.md#cache-017) | FULL 锁入口避免组件内外重复刷新 | 重复资格检查与集合操作。 | 条件候选；未测真实推理性能 |
+| [CACHE-018](2026-10-18-sglang-cache-audit.md#cache-018) | 重叠段确实有消费者时，再切索引视图 | 临时 Tensor view、框架小操作与默认回调。 | 条件候选；未测真实推理性能 |
+| [CACHE-019](2026-10-18-sglang-cache-audit.md#cache-019) | 独立索引副本是否可延后到树实际收养时 | 中间的全长索引复制；不删除树长期持有的独立副本。 | 条件候选；未测真实推理性能 |
+| [CACHE-020](2026-10-18-sglang-cache-audit.md#cache-020) | 同一次容量检查，没有变化就少查一次 | 重复的 allocator 元数据查询。 | 等价方向；未测真实推理性能 |
+| [CACHE-021](2026-10-18-sglang-cache-audit.md#cache-021) | 关闭淘汰指标时，省去起始计时 | 无指标路径的时钟调用。 | 等价方向；未测真实推理性能 |
+| [CACHE-022](2026-10-18-sglang-cache-audit.md#cache-022) | free group 只有一段时，省一次 cat | 单段输出分配、复制与提交。 | 条件候选；未测真实推理性能 |
+| [CACHE-023](2026-10-18-sglang-cache-audit.md#cache-023) | SWA 已回收区间为空时，跳过逐段拆分 | 逐段 min/max、临时列表和重复分类。 | 等价方向；未测真实推理性能 |
+| [CACHE-024](2026-10-18-sglang-cache-audit.md#cache-024) | 全是空回收区间时，先返回再索引请求行 | 空回收的 Tensor 行选择、视图与区间准备。 | 条件候选；未测真实推理性能 |
+| [CACHE-025](2026-10-18-sglang-cache-audit.md#cache-025) | 维护设备驻留子节点数，减少反复扫描 | 高扇出且很多子节点不驻留时的扫描。 | 有取舍；未测真实推理性能 |
+| [CACHE-026](2026-10-18-sglang-cache-audit.md#cache-026) | 只读匹配按结构版本复用 | 同一输入、同一结构版本的重复匹配。 | 有取舍；未测真实推理性能 |
+| [CACHE-027](2026-10-18-sglang-cache-audit.md#cache-027) | 复用固定页内偏移向量 | 固定常量的分配与小操作。 | 条件候选；未测真实推理性能 |
+| [CACHE-028](2026-10-18-sglang-cache-audit.md#cache-028) | FULL-only 叶子资格走直接字段判断 | 生成器与未启用组件槽的检查。 | 条件候选；未测真实推理性能 |
+| [CACHE-029](2026-10-18-sglang-cache-audit.md#cache-029) | FULL-only 节点减少辅助对象与动态字典 | CPU 堆对象、内存占用和可能的缓存未命中。 | 有取舍；未测真实推理性能 |
+| [CACHE-030](2026-10-18-sglang-cache-audit.md#cache-030) | 持久节点复用已经算出的首 page 键 | 重复页切片、整数装箱与 tuple 构造。 | 有取舍；未测真实推理性能 |
 
 ## 怎样继续记录
 
