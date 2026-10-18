@@ -16,6 +16,10 @@ for root in sorted(set(p.parent for p in large)):
  with tarfile.open(dest,'r:gz') as tar:
   for p in members:assert hashlib.sha256(tar.extractfile(p.name).read()).hexdigest()==hashlib.sha256(p.read_bytes()).hexdigest()
  rows.append({'run':str(root.relative_to(repo)),'local_archive':str(dest),'archive_bytes':dest.stat().st_size,'archive_sha256':hashlib.sha256(dest.read_bytes()).hexdigest(),'all_members_verified':True,'Git_omitted_large_members':[{'path':str(p.relative_to(repo)),'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in large if p.parent==root]})
+existing=json.loads((r/'large-collector-json-backup-v1.json').read_text()).get('runs',[]) if (r/'large-collector-json-backup-v1.json').exists() else []
+merged={x['run']:x for x in existing}
+merged.update({x['run']:x for x in rows})
+rows=list(merged.values())
 (r/'large-collector-json-backup-v1.json').write_text(json.dumps({'completed':True,'runs':rows,'scope':'Local backup of already frozen downloaded collector files. Large raw metrics/stdout omitted from Git; no node work or hardware requests.'},indent=2)+'\n')
 exclude=repo/'.git/info/exclude'
 if not exclude.parent.is_dir():

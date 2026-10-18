@@ -27,8 +27,9 @@ def main():
     parser.add_argument('--run-tag', default='v2')
     parser.add_argument('--run-dir', type=Path, default=D_ROOT)
     parser.add_argument('--expected-D-CID', default=D_CID)
-    parser.add_argument('--probe-kind', choices=['sfa_order', 'mtp_ffn_graph', 'mtp_moe_graph'], default='sfa_order')
+    parser.add_argument('--probe-kind', choices=['sfa_order', 'mtp_ffn_graph', 'mtp_moe_graph', 'rope_cache_layout'], default='sfa_order')
     parser.add_argument('--rotate-cases', action='store_true')
+    parser.add_argument('--retain-native-counters', action='store_true')
     parser.add_argument('--c4-cycles', type=int, choices=[1, 2, 3], default=2)
     args = parser.parse_args()
     assert args.execute and socket.gethostname() == 'B5-5U-Atlas900RCKA3-33'
@@ -37,7 +38,8 @@ def main():
     assert re.fullmatch(r'[0-9a-f]{64}', D_CID)
     probe_name, probe_env = {'sfa_order': ('sfa-replay-order', 'GLM53_SFA_REPLAY_ORDER_PROBE'),
                             'mtp_ffn_graph': ('mtp-ffn-graph', 'GLM53_MTP_FFN_GRAPH_PROBE'),
-                            'mtp_moe_graph': ('mtp-moe-graph', 'GLM53_MTP_MOE_GRAPH_PROBE')}[args.probe_kind]
+                            'mtp_moe_graph': ('mtp-moe-graph', 'GLM53_MTP_MOE_GRAPH_PROBE'),
+                            'rope_cache_layout': ('rope-cache-layout', 'GLM53_ROPE_CACHE_LAYOUT_PROBE')}[args.probe_kind]
     plan = json.loads((D_ROOT / 'plan.json').read_text())
     actual = json.loads(subprocess.check_output(['docker', 'inspect', D_CID]))[0]
     assert actual['State']['Running'] and actual['Image'] == plan['image']['id']
@@ -49,7 +51,7 @@ def main():
     out.mkdir(exist_ok=False)
     marker = D_ROOT / (probe_name + '-probe/enable')
     trace_disabled = D_ROOT / (probe_name + '-probe/disabled')
-    if args.phase in ['c1', 'c4']:
+    if args.phase in ['c1', 'c4'] or (args.probe_kind == 'rope_cache_layout' and args.phase in ['quality', 'cached']):
         assert trace_disabled.exists()
     else:
         assert not trace_disabled.exists()
@@ -66,13 +68,16 @@ def main():
     def idle():
         for attempt in range(61):
             selected = {}
+            counters = {}
             for node, port in [(32, 29481), (33, 29482)]:
                 data = get('http://172.16.12.%d:%d/metrics' % (node, port))
+                if args.retain_native_counters:
+                    counters[str(node)] = {line.split('{', 1)[0]: float(line.rsplit(' ', 1)[1]) for line in data.splitlines() if line.startswith(('vllm:spec_decode_num_drafts_total{', 'vllm:spec_decode_num_draft_tokens_total{', 'vllm:spec_decode_num_accepted_tokens_total{', 'vllm:generation_tokens_total{', 'vllm:prompt_tokens_total{', 'vllm:num_preemptions_total{'))}
                 rows = [line for line in data.splitlines() if re.match(r'vllm:(num_requests_running|num_requests_waiting|kv_cache_usage_perc)\{', line)]
                 assert len(rows) >= 3
                 selected[str(node)] = rows
             if all(float(line.rsplit(' ', 1)[1]) == 0 for rows in selected.values() for line in rows):
-                report.setdefault('idle_checks', []).append({'polls': attempt + 1, 'metrics': selected})
+                report.setdefault('idle_checks', []).append({'polls': attempt + 1, 'metrics': selected, **({'native_counters': counters} if args.retain_native_counters else {})})
                 return
             time.sleep(0.25)
         raise AssertionError(selected)
@@ -83,6 +88,21 @@ def main():
             marker.touch()
         else:
             marker.unlink(missing_ok=True)
+
+    def counter_boundary(before, output_tokens):
+        # Requests have completed; metric settling is outside all timed regions.
+        stable = None
+        for attempt in range(41):
+            idle()
+            after = report['idle_checks'][-1]['native_counters']
+            delta = {n: {k: v - before[n].get(k, 0) for k, v in data.items()} for n, data in after.items()}
+            if delta['33']['vllm:generation_tokens_total'] == output_tokens:
+                if stable == after:
+                    return {'before': before, 'after': after, 'delta': delta, 'settle_polls': attempt + 1, 'stable_snapshots': 2}
+                stable = after
+            assert delta['33']['vllm:generation_tokens_total'] <= output_tokens, 'Counter attribution contaminated'
+            time.sleep(.25)
+        raise AssertionError('Native counters did not settle to the completed block output budget')
 
     def post(node, port, body, rid):
         request = urllib.request.Request('http://172.16.12.%d:%d/v1/completions' % (node, port),
@@ -104,6 +124,7 @@ def main():
                'block': block, 'header_request_id': rid, 'request': body,
                'token_ids': [], 'arrival_ns': [], 'chunks': [], 'expected': case['expected']}
         report['rows'].append(row)
+        counter_before = report['idle_checks'][-1].get('native_counters') if args.retain_native_counters and args.phase == 'c1' else None
         row['sent_ns'] = time.monotonic_ns()
         if args.phase in ['functional', 'quality', 'cached']:
             producer = {k: v for k, v in body.items() if k != 'stream_options'}
@@ -148,6 +169,8 @@ def main():
         if 'P_received_ns' in row:
             row['P_ms'] = (row['P_received_ns'] - row['sent_ns']) / 1e6
         row['functional_pass'] = True
+        if counter_before is not None:
+            row['native_counter_boundary'] = counter_boundary(counter_before, budget)
         return row
 
     def save():
@@ -167,6 +190,7 @@ def main():
             save()
         for index, mode in enumerate(['native', 'adaptive', 'adaptive', 'native'] * args.c4_cycles):
             select(mode)
+            counter_before = report['idle_checks'][-1].get('native_counters') if args.retain_native_counters else None
             block = {'index': index, 'mode': mode, 'started_ns': time.monotonic_ns()}
             report['blocks'].append(block)
             def slot(slot_index):
@@ -180,6 +204,8 @@ def main():
             block['seconds'] = (block['finished_ns'] - block['started_ns']) / 1e9
             block['output_tokens'] = sum(row['usage']['completion_tokens'] for row in report['rows'] if row['block'] == index)
             block['output_tokens_per_s'] = block['output_tokens'] / block['seconds']
+            if counter_before is not None:
+                block['native_counter_boundary'] = counter_boundary(counter_before, block['output_tokens'])
             save()
 
     try:

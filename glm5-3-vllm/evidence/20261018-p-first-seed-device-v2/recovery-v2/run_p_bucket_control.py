@@ -12,17 +12,9 @@ def run(phase,extra=()):
  x=m.collect(r/'validate_p_bucket_control.py','p_bucket_control_'+phase+'_v1','p-bucket-control-'+phase,('--execute','--phase',phase,'--probe-kind','mtp_moe_graph','--run-dir',m.root,'--expected-D-CID',m.cid,'--cases',m.root+'/prefill-padding-cases-v1.json')+extra,timeout=900)
  assert x['completed'] and x['numeric_all_pass'];print(json.dumps({'phase':phase,'rows':len(x['rows'])}),flush=True);return x
 f=run('functional')
-paths=m.collect(r/'read_p_bucket_paths.py','p_bucket_control_paths_v1','p-bucket-control-paths',node=32,timeout=90)
-proof=[]
-for row in f['rows']:
- prefix=row['P_response']['id'];joined=[z for z in paths['rows'] if any(rid==prefix or rid.startswith(prefix+'-') for rid in z['request_ids'])]
- assert sorted(set(z['tp_rank'] for z in joined))==list(range(16)),(prefix,len(joined))
- if row['N'] in [256,257]:
-  expected=256 if row['N']==256 else 512
-  assert all(z['num_real_tokens']==row['N'] and z['native_padded_tokens']==expected and 'PIECEWISE' in z['native_mode'] for z in joined),joined
- proof.append({'case':row['case_id'],'N':row['N'],'all16':True,'actual_real_padded_pairs':sorted(set((z['num_real_tokens'],z['native_padded_tokens']) for z in joined))})
-(r/'p-bucket-control-path-summary-v1.json').write_text(json.dumps({'all16_native_only':True,'rows':proof},indent=2)+'\n')
-x=m.collect(r/'read_p_bucket_paths.py','p_bucket_control_disable_v1','p-bucket-control-preflight',('--disable',),node=32,timeout=90);assert x['observer_disabled'] and x['native_marker_absent']
+cfg=m.collect(r/'verify_p_bucket_config.py','p_bucket_control_config_v1','p-bucket-control-config',node=32,timeout=90)
+assert cfg['completed'] and cfg['padding_observer_not_installed_in_this_build'] and cfg['P_D_idle']
+print(json.dumps({'phase':'native_config_verified','graph_config':cfg['server_info_graph_config']}),flush=True)
 c1=run('c1');c4=run('c4',('--rotate-cases','--c4-cycles','3'))
 (r/'p-bucket-control-outcome-v1.json').write_text(json.dumps({'completed':True,'native_only':True,'P_capture_sizes':[256,512,1024],'P_CID':'ccf21ea1b27e7fdbe4c45d4a862f9dc86a9ca4df38d937f55cdf7a6212465758','D_CID':m.cid,'C1':c1['summary'],'C4':c4['summary'],'scope':'Native P configuration control across sequential P windows; unchanged loaded D; no custom mechanism benefit or randomized configuration ABBA claim.'},indent=2)+'\n')
 print(json.dumps({'phase':'bucket_control_completed','C1':c1['summary'],'C4':c4['summary']}),flush=True)

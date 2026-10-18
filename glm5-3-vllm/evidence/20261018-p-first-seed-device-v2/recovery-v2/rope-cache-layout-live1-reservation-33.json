@@ -1,0 +1,66 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "glm53-rope-cache-33-live1-20261019",
+    "namespace": "default",
+    "labels": {
+      "app": "glm53-rope-cache",
+      "owner": "codex-glm53-rope-cache-live1-20261019"
+    }
+  },
+  "spec": {
+    "nodeName": "a3-5u-atlas900rcka3-33",
+    "restartPolicy": "Never",
+    "activeDeadlineSeconds": 7200,
+    "terminationGracePeriodSeconds": 10,
+    "automountServiceAccountToken": false,
+    "containers": [
+      {
+        "name": "reservation",
+        "image": "quay.io/ascend/vllm-ascend:v0.30.0rc1-a3-arm64",
+        "command": [
+          "/bin/sleep",
+          "infinity"
+        ],
+        "resources": {
+          "limits": {
+            "cpu": "1",
+            "huawei.com/Ascend910": "16",
+            "memory": "256Mi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "huawei.com/Ascend910": "16",
+            "memory": "128Mi"
+          }
+        },
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          }
+        },
+        "imagePullPolicy": "Never"
+      }
+    ],
+    "tolerations": [
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/not-ready",
+        "operator": "Exists",
+        "tolerationSeconds": 300
+      },
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/unreachable",
+        "operator": "Exists",
+        "tolerationSeconds": 300
+      }
+    ],
+    "securityContext": {},
+    "schedulerName": "default-scheduler"
+  }
+}

@@ -64,13 +64,16 @@ def main():
     def idle():
         for attempt in range(61):
             selected = {}
+            counters = {}
             for node, port in [(32, 29481), (33, 29482)]:
                 data = get('http://172.16.12.%d:%d/metrics' % (node, port))
+                # Retain native counters from the same already-required idle GET, outside timing.
+                counters[str(node)] = [line for line in data.splitlines() if line.startswith(('vllm:spec_decode_num_drafts_total{', 'vllm:spec_decode_num_draft_tokens_total{', 'vllm:spec_decode_num_accepted_tokens_total{', 'vllm:generation_tokens_total{', 'vllm:prompt_tokens_total{', 'vllm:num_preemptions_total{'))]
                 rows = [line for line in data.splitlines() if re.match(r'vllm:(num_requests_running|num_requests_waiting|kv_cache_usage_perc)\{', line)]
                 assert len(rows) >= 3
                 selected[str(node)] = rows
             if all(float(line.rsplit(' ', 1)[1]) == 0 for rows in selected.values() for line in rows):
-                report.setdefault('idle_checks', []).append({'polls': attempt + 1, 'metrics': selected})
+                report.setdefault('idle_checks', []).append({'polls': attempt + 1, 'metrics': selected, 'native_counters': counters})
                 return
             time.sleep(0.25)
         raise AssertionError(selected)
@@ -165,7 +168,7 @@ def main():
             save()
         for index, mode in enumerate(['native', 'native'] * args.c4_cycles):
             select(mode)
-            block = {'index': index, 'mode': mode, 'started_ns': time.monotonic_ns()}
+            block = {'index': index, 'mode': mode, 'native_counters_before': report['idle_checks'][-1]['native_counters'], 'started_ns': time.monotonic_ns()}
             report['blocks'].append(block)
             def slot(slot_index):
                 return [one(cases[(slot_index + j) % len(cases)] if args.rotate_cases else cases[slot_index],

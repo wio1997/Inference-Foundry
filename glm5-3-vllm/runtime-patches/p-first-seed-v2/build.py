@@ -37,7 +37,7 @@ SEED_CHECK='''    def _glm53_valid_p_draft(self, request):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--source-root',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--divergence-probe',action='store_true');p.add_argument('--shared-overlap-probe',action='store_true');p.add_argument('--unused-single-token-probe',action='store_true');p.add_argument('--attention-state-probe',action='store_true');p.add_argument('--prefill-padding-probe',action='store_true');p.add_argument('--prefill-attention-probe',action='store_true');p.add_argument('--sfa-replay-order-probe',action='store_true');p.add_argument('--mtp-ffn-graph-probe',action='store_true');p.add_argument('--mtp-moe-graph-probe',action='store_true');a=p.parse_args();assert not (a.shared_overlap_probe or a.unused_single_token_probe or a.attention_state_probe) or a.divergence_probe
+    p=argparse.ArgumentParser();p.add_argument('--source-root',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--divergence-probe',action='store_true');p.add_argument('--shared-overlap-probe',action='store_true');p.add_argument('--unused-single-token-probe',action='store_true');p.add_argument('--attention-state-probe',action='store_true');p.add_argument('--prefill-padding-probe',action='store_true');p.add_argument('--prefill-attention-probe',action='store_true');p.add_argument('--sfa-replay-order-probe',action='store_true');p.add_argument('--mtp-ffn-graph-probe',action='store_true');p.add_argument('--mtp-moe-graph-probe',action='store_true');p.add_argument('--rope-cache-layout-probe',action='store_true');a=p.parse_args();assert not (a.shared_overlap_probe or a.unused_single_token_probe or a.attention_state_probe) or a.divergence_probe
     assert not a.output.exists();root=Path(__file__).resolve().parent;parent=root.parent/'p-first-adopt-v1'
     spec=importlib.util.spec_from_file_location('adopt_build',parent/'build.py');base=importlib.util.module_from_spec(spec);spec.loader.exec_module(base)
     pins={**base.PINS,'utils.py':('vllm/vllm/distributed/kv_transfer/kv_connector/utils.py','317ed40dc837671ca6e666165222e641a0f9b3992aea63bbf54de7e13d40b3a4')}
@@ -105,6 +105,7 @@ def main():
     if a.sfa_replay_order_probe:helpers.append(('sfa_replay_order.py','GLM53_SFA_REPLAY_ORDER_PROBE','sfa_replay_order'))
     if a.mtp_ffn_graph_probe:helpers.append(('mtp_ffn_graph.py','GLM53_MTP_FFN_GRAPH_PROBE','mtp_ffn_graph'))
     if a.mtp_moe_graph_probe:helpers.append(('mtp_moe_graph.py','GLM53_MTP_MOE_GRAPH_PROBE','mtp_moe_graph'))
+    if a.rope_cache_layout_probe:helpers.append(('rope_cache_layout.py','GLM53_ROPE_CACHE_LAYOUT_PROBE','rope_cache_layout'))
     for filename,gate,name in helpers:
         helper=(root/filename).read_text();ast.parse(helper)
         s+='\n\nif __import__(\'os\').environ.get('+repr(gate)+") == '1':\n    import types as _glm_types\n    _glm_"+name+" = _glm_types.ModuleType('_glm_seed_"+name+"')\n    exec(compile("+repr(helper)+", '<glm53-seed-"+name+">', 'exec'), _glm_"+name+".__dict__)\n    _glm_"+name+".install(globals())\n"

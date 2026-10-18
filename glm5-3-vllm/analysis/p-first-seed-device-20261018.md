@@ -134,3 +134,8 @@ D静态SFA回放中省去通用host synchronize，all16真实cached graph/host t
 旧profile中opaque core CPU提交中位1956.52→161.315us，copy样本物理0.66us，但这是带profiler的异步提交成本，不是未profile关键路径成本；不能相加或由五次draft调用推接受token。端到端未兑现，尚无可支持的target验证/host供给空隙独立归因。取消仅确认10次client-close、16完整peer/reuse及KV回零，明确backend abort日志/计数均0。
 
 下一步先做一次原生P图桶配置[256,512,1024]对照[256,1024]，D保留且native。旧N257补1024同时放大attention和MoE，只裁attention未获联合收益；先确认通用512桶能解决多少，再选择有效token贯穿图缓冲/attention/MoE的机制，配置收益不包装为自研。该一次P重启由原生update_config不支持compilation_config所必需，旧P/代理先精确SHA备份/停止，有限新watchdog不延长。跨窗口对照明确其限制。
+
+
+## 2026-10-19 RoPE缓存布局获得有限PD联合收益
+
+从旧trace精确定位非连续只读cos/sin表的重复128MiB物化，先同布局单NPU逐位验证，再在原生owner构造期注册连续副本并保持lookup和persistent图输出地址。真实同P/D的C4 143.517→164.631tok/s（+14.71%），三轮+12.69%/+16.59%/+14.90%；C1 TPOT-17.26%、完成延迟-14.95%，C4三项整体p95改善。26×2完整64输出26/26同；模式计数分块收集，candidate草稿略多、接受略少，收益未依赖接受率升高。每rank256MiB额外只读缓存；已在本自有研究窗口启用，源码保持显式开关。详[专门分析](rope-cache-layout-20261019.md)及recovery-v2/rope-cache-layout-formal-verdict-v1.json。该成功改变了CPU/同步可能暴露的条件，可据新假设评估组合；不重跑无条件重复benchmark。
