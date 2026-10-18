@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch-only start of the node33 TP16 W8A8C8 capacity/functionality diagnostic container.
+"""Launch one owned node32/33 TP16 W8A8C8 diagnostic container.
 
 Stages a bounded payload through the user's existing SSH multiplex socket and access pod into the
 node33 host mount namespace, asserts the task reservation lease plus host preconditions (weights
@@ -131,10 +131,11 @@ try:
   scheduler_target=(patch['target']=='/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py' and str(source)=='/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-publish-v1/scheduler.py')
   adopt_bases={
    '/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py':'c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884',
+   '/vllm-workspace/vllm/vllm/distributed/kv_transfer/kv_connector/utils.py':'317ed40dc837671ca6e666165222e641a0f9b3992aea63bbf54de7e13d40b3a4',
    '/vllm-workspace/vllm/vllm/v1/core/sched/output.py':'3a66c8efaefe10c572f6f33cf1f8aa4610758c945130cad62eb9f7331005677c',
    '/vllm-workspace/vllm/vllm/v1/worker/gpu_model_runner.py':'87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51',
    '/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py':'568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c'}
-  adopt_target=(patch['target'] in adopt_bases and str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-adopt-v1/'))
+  adopt_target=(patch['target'] in adopt_bases and str(source).startswith(('/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-adopt-v1/','/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-seed-v2/')))
   assert (legacy_target and str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-pd-baseline/')) or (worker_target and str(source).startswith('/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/')) or scheduler_target or adopt_target
   if adopt_target:
    assert patch['base_sha256']==adopt_bases[patch['target']]
@@ -211,12 +212,12 @@ def main():
         assert res['expected_uid'] and pod['metadata']['uid'] == res['expected_uid'], 'fresh reservation UID mismatch'
         if plan.get('state_tail_probe') is True:
             deadline_s = int(pod['spec']['activeDeadlineSeconds'])
-            assert 0 < deadline_s <= 7200, 'state diagnostic requires a finite current holder'
+            assert 0 < deadline_s <= 21600, 'state diagnostic requires a finite current holder'
             starts = [pod['metadata']['creationTimestamp']] + ([pod['status']['startTime']] if pod.get('status', {}).get('startTime') else [])
             created = min(datetime.datetime.fromisoformat(t.replace('Z', '+00:00')) for t in starts)
             remaining = (created + datetime.timedelta(seconds=deadline_s) - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
             lifetime = int(plan['container']['lifetime_seconds'])
-            assert 900 <= lifetime <= 5400 and remaining >= lifetime + 300, 'stale model lifetime or insufficient cleanup margin; regenerate from fresh receipts'
+            assert 900 <= lifetime <= 14400 and remaining >= lifetime + 300, 'stale model lifetime or insufficient cleanup margin; regenerate from fresh receipts'
     assert pod['metadata']['labels'].get('owner') == res['owner_label'], 'task owner mismatch'
     assert pod['status']['phase'] == res['phase'] == 'Running', 'reservation is not Running'
     assert pod['spec']['nodeName'] == res['node_name'], 'reservation is on another node'

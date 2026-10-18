@@ -26,7 +26,7 @@ def main():
     assert plan["target_hostname"] == socket.gethostname() and Path(plan["remote"]["run_dir"]).resolve() == root
     lease = context["client"]["lease"]
     assert lease["uid"] == plan["reservation"]["expected_uid"] and lease["name"] == plan["reservation"]["name"]
-    assert plan["env"].get("GLM53_STATE_TAIL_PROBE") == "1" or plan["env"].get("GLM53_P_FIRST_ADOPT") == "1"
+    assert plan["env"].get("GLM53_STATE_TAIL_PROBE") == "1" or plan["env"].get("GLM53_P_FIRST_ADOPT") == "1" or plan["env"].get("GLM53_P_FIRST_DRAFT_EXPORT") == "1"
     cid = launch["container_id"]
     assert re.fullmatch(r"[0-9a-f]{64}", cid)
     before = json.loads(subprocess.check_output(["docker", "inspect", cid], timeout=15))[0]
@@ -38,6 +38,9 @@ def main():
     selected = [root / name for name in ("plan.json", "launch.json", "context.json", "manifest.json", "payload.py", "start_capacity.py")]
     selected += sorted((root / "state-tail-probe").glob("*.jsonl"))
     selected += sorted((root / "adopt-trace").glob("*.jsonl"))
+    selected += sorted((root / "p-first-draft").glob("*.jsonl"))
+    selected += sorted((root / "divergence-probe").glob("*.jsonl"))
+    selected += sorted((root / "divergence-probe").glob("*.bin"))
     selected = [path for path in selected if path.is_file()]
     assert selected and all(not path.is_symlink() for path in selected)
     assert sum(path.stat().st_size for path in selected) < 64 * 1024**2
@@ -51,9 +54,13 @@ def main():
     after = json.loads(subprocess.check_output(["docker", "inspect", cid], timeout=15))[0]
     # Recopy after termination to retain any last closed record or partial
     # failure record, instead of accepting the pre-stop snapshot as final.
-    for subdir in ("state-tail-probe", "adopt-trace"):
+    for subdir in ("state-tail-probe", "adopt-trace", "p-first-draft", "divergence-probe"):
         (artifacts / subdir).mkdir(exist_ok=True)
-        for path in sorted((root / subdir).glob("*.jsonl")):
+        paths=sorted((root / subdir).glob("*.jsonl"))
+        if subdir == "divergence-probe":
+            paths += sorted((root / subdir).glob("*.bin"))
+        assert sum(path.stat().st_size for path in paths) < 64 * 1024**2
+        for path in paths:
             assert path.is_file() and not path.is_symlink() and path.stat().st_size < 64 * 1024**2
             shutil.copy2(path, artifacts / subdir / path.name)
     with gzip.open(artifacts / "console.txt.gz", "wb") as output:

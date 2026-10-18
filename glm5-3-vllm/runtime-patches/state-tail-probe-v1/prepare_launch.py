@@ -23,9 +23,9 @@ def fresh_lease(pod, reservation, now):
     # timestamp against the Mac clock so a later API creation cannot extend it.
     start = min(dt.datetime.fromisoformat(t.replace("Z", "+00:00")) for t in starts)
     deadline = int(pod["spec"]["activeDeadlineSeconds"])
-    assert 0 < deadline <= 7200, "holder must have a finite deadline within the current two-hour window"
+    assert 0 < deadline <= 21600, "holder must have a finite deadline within the finite research window"
     expiry = start + dt.timedelta(seconds=deadline)
-    lifetime = min(5400, int((expiry - now).total_seconds()) - 360)
+    lifetime = min(14400, int((expiry - now).total_seconds()) - 360)
     assert lifetime >= 900, "insufficient current holder time; renew the owned holder then regenerate"
     return uid, lifetime, expiry.isoformat()
 
@@ -62,7 +62,7 @@ def main():
         plan.update(created_utc=now.isoformat(), objective="Cold C1 native tail-state diagnostic N256/257 only",
                     notes=["No publication/query adoption, full-prefix proof or performance test.",
                            "Existing sustained execution authorization applies. Stop this request batch on first failure, then analyze and continue research.",
-                           "P/D each TP16; readiness watchdog15min, bounded model watchdog<=90min, holder<=2h with owned renewal permitted."],
+                           "P/D each TP16; readiness watchdog15min, bounded model watchdog<=4h, holder<=6h with owned renewal permitted."],
                     schema="glm53-state-tail-launch-template/v1", requires_lifetime_refresh=True, state_tail_probe=True)
         plan.pop("lifetime_refreshed_client_utc", None)
         plan["remote"]["run_dir"] = f"/data/wio/glm5-3-vllm-execution/20261018-state-tail/{a.run_id}/node{node}"
