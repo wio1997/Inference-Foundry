@@ -1,0 +1,216 @@
+{
+  "schema": "glm53-state-tail-launch-template/v1",
+  "created_utc": "2026-10-18T03:46:21.574605+00:00",
+  "objective": "Cold C1 native tail-state diagnostic N256/257 only",
+  "notes": [
+    "No publication/query adoption, full-prefix proof or performance test.",
+    "Fresh explicit device window required. Stop after two functional requests or first failure.",
+    "P/D each TP16; ready deadline15min, model timeout<=20min, resource maximum25min; no renewal."
+  ],
+  "gateway": {
+    "target": "root@61.241.77.34",
+    "port": 60011
+  },
+  "access_pod": {
+    "namespace": "default",
+    "name": "sglang-tuning-access-33-20261013",
+    "nsenter": "nsenter -t 1 -m"
+  },
+  "reservation": {
+    "namespace": "default",
+    "name": "glm53-state-tail-33-tail-c1-20261018",
+    "owner_label": "codex-state-tail-tail-c1-20261018",
+    "phase": "Running",
+    "node_name": "a3-5u-atlas900rcka3-33",
+    "ascend_resource": "huawei.com/Ascend910",
+    "ascend_request": 16,
+    "ascend_real_annotation": "huawei.com/AscendReal",
+    "expected_uid": null
+  },
+  "remote": {
+    "run_dir": "/data/wio/glm5-3-vllm-execution/20261018-state-tail/tail-c1-20261018/node33",
+    "weights_dir": "/data/wio/GLM53/GLM-5.3-w8a8c8",
+    "weights_mount": "/models/GLM-5.3-w8a8c8",
+    "out_mount": "/out",
+    "ascend_log_path": "/out/ascend-log",
+    "transfer_root": "/data/wio/ascend-framework-comparison/assets/w8a8c8-node32-33-20261017",
+    "ro_paths_required": [
+      "/usr/local/Ascend/driver",
+      "/etc/hccn.conf"
+    ],
+    "ro_paths_optional": [
+      "/usr/local/sbin/npu-smi",
+      "/usr/local/dcmi"
+    ]
+  },
+  "weights_manifest": {
+    "receipt": "COPIED_FILES.json",
+    "ready": "WEIGHTS_READY.json",
+    "manifest_sha256": "b6843ccf0ffee3cd22357f443dec1006107f958225d13871edc19bebfc88f3be",
+    "file_count": 196,
+    "total_bytes": 764240832702,
+    "size_check": "stat each known relative path and compare receipt bytes; no payload rehash"
+  },
+  "image": {
+    "ref": "quay.io/ascend/vllm-ascend:v0.30.0rc1-a3-arm64",
+    "id": "sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83",
+    "executed_by": "pinned image id; the tag is only inspected, never executed"
+  },
+  "container": {
+    "name": "glm53-state-tail-33-tail-c1-20261018",
+    "host_ip": "172.16.12.33",
+    "port": 29482,
+    "lifetime_seconds": 1200
+  },
+  "docker_argv": [
+    "-d",
+    "--pull",
+    "never",
+    "--network",
+    "host",
+    "--cpus",
+    "128",
+    "--memory",
+    "1500g",
+    "--pids-limit",
+    "16384",
+    "--shm-size",
+    "64g",
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges"
+  ],
+  "devices": {
+    "davinci": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "shared": [
+      "davinci_manager",
+      "devmm_svm",
+      "hisi_hdc"
+    ]
+  },
+  "env": {
+    "VLLM_USE_V2_MODEL_RUNNER": "0",
+    "ASCEND_RT_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+    "OMP_NUM_THREADS": "1",
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "VLLM_NO_USAGE_STATS": "1",
+    "HCCL_INTER_HCCS_DISABLE": "FALSE",
+    "HCCL_INTRA_PCIE_ENABLE": "1",
+    "HCCL_INTRA_ROCE_ENABLE": "0",
+    "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+    "HCCL_IF_IP": "172.16.12.33",
+    "HCCL_CONNECT_TIMEOUT": "120",
+    "HCCL_EXEC_TIMEOUT": "120",
+    "ASCEND_GLOBAL_LOG_LEVEL": "3",
+    "ASCEND_PROCESS_LOG_PATH": "/out/ascend-log",
+    "ASCEND_ENABLE_USE_FABRIC_MEM": "1",
+    "ACL_OP_INIT_MODE": "1",
+    "ASCEND_LOCAL_COMM_RES": "{\"version\":\"1.2\"}",
+    "PYTHONHASHSEED": "0",
+    "VLLM_LOGGING_LEVEL": "INFO",
+    "VLLM_HOST_IP": "172.16.12.33",
+    "ASCEND_TRANSFER_TIMEOUT": "120000",
+    "GLM53_STATE_TAIL_PROBE": "1",
+    "GLM53_STATE_PROBE_OUTPUT": "/out/state-tail-probe"
+  },
+  "serve_argv": [
+    "vllm",
+    "serve",
+    "/models/GLM-5.3-w8a8c8",
+    "--host",
+    "172.16.12.33",
+    "--port",
+    "29482",
+    "--served-model-name",
+    "glm5",
+    "--tensor-parallel-size",
+    "16",
+    "--data-parallel-size",
+    "1",
+    "--dtype",
+    "bfloat16",
+    "--quantization",
+    "ascend",
+    "--kv-cache-dtype",
+    "int8",
+    "--attention_config.indexer_kv_dtype",
+    "int8",
+    "--max-model-len",
+    "8192",
+    "--max-num-batched-tokens",
+    "1024",
+    "--max-num-seqs",
+    "4",
+    "--enable-chunked-prefill",
+    "--gpu-memory-utilization",
+    "0.90",
+    "--trust-remote-code",
+    "--seed",
+    "1024",
+    "--enable-prefix-caching",
+    "--profiler-config",
+    "{\"profiler\":\"torch\",\"torch_profiler_dir\":\"/out/profile\",\"torch_profiler_with_stack\":false,\"active_iterations\":1,\"delay_iterations\":2}",
+    "--cudagraph-metrics",
+    "--compilation-config",
+    "{\"cudagraph_mode\":\"FULL_DECODE_ONLY\"}",
+    "--pipeline-parallel-size",
+    "1",
+    "--distributed-executor-backend",
+    "mp",
+    "--async-scheduling",
+    "--enable-auto-tool-choice",
+    "--tool-call-parser",
+    "glm47",
+    "--reasoning-parser",
+    "glm47",
+    "--kv-transfer-config",
+    "{\"kv_connector\":\"MooncakeConnectorV2\",\"kv_role\":\"kv_consumer\",\"kv_port\":36100,\"engine_id\":\"glm53-state-tail-d-tail-c1-20261018\",\"kv_connector_extra_config\":{\"use_ascend_direct\":true,\"prefill\":{\"dp_size\":1,\"pp_size\":1,\"tp_size\":16},\"decode\":{\"dp_size\":1,\"pp_size\":1,\"tp_size\":16}}}",
+    "--speculative-config",
+    "{\"num_speculative_tokens\":5,\"method\":\"deepseek_mtp\",\"enforce_eager\":true}",
+    "--additional-config",
+    "{\"enable_fused_mc2\":0,\"enable_dsa_cp\":false,\"enable_flashcomm1\":false,\"c8_enable_reshape_optim\":false,\"mlapo_keep_prefill_weights\":true,\"multistream_overlap_shared_expert\":true}"
+  ],
+  "additional_config": {
+    "enable_fused_mc2": 0,
+    "enable_dsa_cp": false,
+    "enable_flashcomm1": false,
+    "c8_enable_reshape_optim": false,
+    "mlapo_keep_prefill_weights": true,
+    "multistream_overlap_shared_expert": true
+  },
+  "timeouts": {
+    "kubectl_s": 60,
+    "launch_s": 180,
+    "fetch_s": 60
+  },
+  "target_hostname": "B5-5U-Atlas900RCKA3-33",
+  "requires_lifetime_refresh": true,
+  "state_tail_probe": true,
+  "runtime_patches": [
+    {
+      "source": "/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/state-tail-probe-v1/d7d56c7f365d/model_runner_v1.py",
+      "target": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "d7d56c7f365d433d9d0943cf4928650c41ff5e8f41e69c75b0e60f4d681e9b5f",
+      "base_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c"
+    }
+  ]
+}

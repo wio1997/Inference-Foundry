@@ -60,8 +60,8 @@ def main():
     print(json.dumps({"script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "scope": "Mac syntax, source identity and review input/config rejection only",
         "checks": checks, "packet_result": positive, "device_run": False,
-        "device_capture_implemented": False,
-        "state_capture_rejection_tests": "Not executed: no runtime capture adapter exists. These are source/review-plan checks."}, indent=2))
+        "this_script_contains_device_capture": False,
+        "state_capture_rejection_tests": "This file checks source/review-plan integrity only; adapter record/layout checks are in runtime-patches/state-tail-probe-v1/check_local.py. No device execution."}, indent=2))
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ def validate(packet, repo):
         n, ids = case["input_tokens"], case["prompt_token_ids"]
         need(len(ids) == n and all(type(i) is int and i >= 0 for i in ids), "empty or invalid prompt")
         need(token_sha(ids) == case["prompt_sha256"], "prompt identity mismatch")
-        positions = sorted({0, 127, 128, 255, n - 1})
+        positions = [n - 2, n - 1]
         need(case["sample_positions"] == positions, "misaligned/missing sample position")
     need(packet["cases"][1]["prompt_token_ids"][:256] == packet["cases"][0]["prompt_token_ids"],
          "boundary pair prefix mismatch")

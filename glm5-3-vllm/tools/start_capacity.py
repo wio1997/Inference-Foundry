@@ -197,6 +197,15 @@ def main():
                          capture_output=True, text=True, timeout=plan['timeouts']['kubectl_s'])
     assert got.returncode == 0, 'kubectl get failed: ' + got.stderr.strip()
     pod = json.loads(got.stdout)  # parsed in memory only; the pod dump is never written to evidence
+    if 'expected_uid' in res:
+        assert res['expected_uid'] and pod['metadata']['uid'] == res['expected_uid'], 'fresh reservation UID mismatch'
+        if plan.get('state_tail_probe') is True:
+            deadline_s = int(pod['spec']['activeDeadlineSeconds'])
+            assert 0 < deadline_s <= 1500, 'state diagnostic requires a bounded fresh holder'
+            created = datetime.datetime.fromisoformat(pod['metadata']['creationTimestamp'].replace('Z', '+00:00'))
+            remaining = (created + datetime.timedelta(seconds=deadline_s) - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+            lifetime = int(plan['container']['lifetime_seconds'])
+            assert 900 <= lifetime <= 1200 and remaining >= lifetime + 300, 'stale model lifetime or insufficient cleanup margin; regenerate from fresh receipts'
     assert pod['metadata']['labels'].get('owner') == res['owner_label'], 'task owner mismatch'
     assert pod['status']['phase'] == res['phase'] == 'Running', 'reservation is not Running'
     assert pod['spec']['nodeName'] == res['node_name'], 'reservation is on another node'
