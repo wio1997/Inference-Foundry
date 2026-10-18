@@ -1,0 +1,49 @@
+{
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "source_path": "python/sglang/srt/hardware_backend/npu/allocator_npu.py",
+  "baseline_sha256": "de63fdd354c691ef07f59b946746da948179182f4c1668fec44996330211036d",
+  "baseline_evidence": "L023-R005:173checks/30groups, existing optional count support; not native performance baseline",
+  "candidate_scope": "Default NPU page count only; qualified fresh CPU mirrors; preserve supplied count and exact old device fallback",
+  "API_preserved": [
+    "Same allocator signature",
+    "Same explicit count else branch",
+    "Same page_size/roundup and all post-count allocation/kernel/free code",
+    "CPU-metadata absent/non-Tensor/non-CPU/shape/dtype cases fall back to original device count"
+  ],
+  "preconditions": [
+    "CPU mirrors equal and correspond to the same logical call as device inputs",
+    "CPU/device dtype and shape agree; int32/int64 and 1D metadata gate",
+    "CPU mirrors stay alive/unchanged across H2D and allocation"
+  ],
+  "risks": [
+    "Metadata gate cannot establish value freshness; actual caller contract must do so",
+    "Removing default item may expose hidden stream/WAR/lifetime dependency even if numerical count matches",
+    "Host arithmetic/guard overhead can offset savings; exposed NPU wait not measured"
+  ],
+  "CPU_next_cases": [
+    "small0/1/199 and threshold200/201 native import boundary stop, never fake success",
+    "large Torch exact output/free-page identity",
+    "explicit count cases unchanged",
+    "None/non-Tensor/meta-device/float/dtype/shape fallbacks retain old scalar read",
+    "mirror-mismatch counterexample records precondition failure"
+  ],
+  "native_gates": [
+    "Actual task-owned Ascend PD+MTP baseline",
+    "Small native kernel success and generated-output correctness",
+    "H2D/stream/WAR/PD consumer and KV free lifetime trace",
+    "Same warmed conditions/noise/end-to-end performance"
+  ],
+  "accepted": false,
+  "production_applied": false,
+  "at_utc": "2026-10-18T22:50:25.531266+00:00",
+  "candidate_sha256": "347b4ba1af0b0ee159aa10e28ab82c6cf1ccc56d38282029983a695a3b4e78a6",
+  "patch_sha256": "039718051e627668802893425fee19f37776797973560698a1aa493de3d943c0",
+  "baseline_function_ast_sha256": "333e3c20c302b2e0d3f9e631956df25112d1466eda81ec1c6a6e35f75f72d7ec",
+  "candidate_function_ast_sha256": "f8a46c63500d902848ce6de06e77268b6c4732a0f0db5a25386f386b3ee8b662",
+  "outside_function_unchanged": true,
+  "post_count_and_explicit_branch_unchanged": true,
+  "original_device_fallback_ast_unchanged": true,
+  "compile_status": "SYNTAX_ONLY_PASS",
+  "CPU_correctness_executed": false,
+  "native_executed": false
+}

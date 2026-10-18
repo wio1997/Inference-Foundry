@@ -1,0 +1,38 @@
+{
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "source_path": "python/sglang/srt/hardware_backend/npu/allocator_npu.py",
+  "baseline_sha256": "de63fdd354c691ef07f59b946746da948179182f4c1668fec44996330211036d",
+  "baseline_evidence": "L023-R005:173checks/30groups, existing optional count support; not native performance baseline",
+  "candidate_scope": "Default NPU page count only; qualified fresh CPU mirrors; preserve supplied count and exact old device fallback",
+  "API_preserved": [
+    "Same allocator signature",
+    "Same explicit count else branch",
+    "Same page_size/roundup and all post-count allocation/kernel/free code",
+    "CPU-metadata absent/non-Tensor/non-CPU/shape/dtype cases fall back to original device count"
+  ],
+  "preconditions": [
+    "CPU mirrors equal and correspond to the same logical call as device inputs",
+    "CPU/device dtype and shape agree; int32/int64 and 1D metadata gate",
+    "CPU mirrors stay alive/unchanged across H2D and allocation"
+  ],
+  "risks": [
+    "Metadata gate cannot establish value freshness; actual caller contract must do so",
+    "Removing default item may expose hidden stream/WAR/lifetime dependency even if numerical count matches",
+    "Host arithmetic/guard overhead can offset savings; exposed NPU wait not measured"
+  ],
+  "CPU_next_cases": [
+    "small0/1/199 and threshold200/201 native import boundary stop, never fake success",
+    "large Torch exact output/free-page identity",
+    "explicit count cases unchanged",
+    "None/non-Tensor/meta-device/float/dtype/shape fallbacks retain old scalar read",
+    "mirror-mismatch counterexample records precondition failure"
+  ],
+  "native_gates": [
+    "Actual task-owned Ascend PD+MTP baseline",
+    "Small native kernel success and generated-output correctness",
+    "H2D/stream/WAR/PD consumer and KV free lifetime trace",
+    "Same warmed conditions/noise/end-to-end performance"
+  ],
+  "accepted": false,
+  "production_applied": false
+}

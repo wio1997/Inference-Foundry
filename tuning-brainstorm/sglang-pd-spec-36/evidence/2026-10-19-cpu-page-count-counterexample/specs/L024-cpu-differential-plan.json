@@ -1,0 +1,78 @@
+{
+  "phase": "CPU_DIFFERENTIAL_PROTOCOL_FROZEN_NO_EXECUTION_SCRIPT_YET",
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "baseline_sha256": "de63fdd354c691ef07f59b946746da948179182f4c1668fec44996330211036d",
+  "candidate_sha256": "347b4ba1af0b0ee159aa10e28ab82c6cf1ccc56d38282029983a695a3b4e78a6",
+  "candidate_path": "candidates/npu-cpu-page-count/allocator_npu.py",
+  "native_executed": false,
+  "performance": "NOT_MEASURED",
+  "candidate_accepted": false,
+  "test_families": [
+    {
+      "id": "fresh_mirror_small",
+      "pages": [
+        128,
+        256,
+        512
+      ],
+      "new_page_counts": [
+        0,
+        1,
+        199
+      ],
+      "scope": "Tagged CPU scalar-read observer plus exact native import boundary exception; never fake kernel success."
+    },
+    {
+      "id": "fresh_mirror_Torch",
+      "pages": [
+        128,
+        256,
+        512
+      ],
+      "new_page_counts": [
+        200,
+        201
+      ],
+      "raw_long_reference": 32768,
+      "batch": [
+        2,
+        3
+      ],
+      "scope": "Actual Torch path loc/dtype/page-pool differential; no physical KV."
+    },
+    {
+      "id": "explicit_count",
+      "CPU_metadata_variants": [
+        "valid",
+        "None",
+        "non-Tensor"
+      ],
+      "scope": "Original supplied-count branch behavior unchanged, no guard/CPU count evaluation."
+    },
+    {
+      "id": "fallback",
+      "CPU_metadata_variants": [
+        "None",
+        "non-Tensor",
+        "meta device",
+        "float dtype",
+        "device/cpu dtype mismatch",
+        "shape mismatch",
+        "ndim2"
+      ],
+      "scope": "Original logical-device scalar read retained; native import boundary or capacity return unchanged."
+    },
+    {
+      "id": "stale_mirror_counterexample",
+      "scope": "Same metadata but different CPU values; record expected precondition violation/differential. Do not award general correctness or hide counterexample."
+    }
+  ],
+  "mandatory_limits": [
+    "Do not execute native kernel in CPU container, return fake Native output or classify import-boundary stop as native success",
+    "Guard checks metadata, not value freshness. Actual caller ownership and no mutation remain preconditions",
+    "Scalar .item removal can change implicit synchronization. Native H2D/WAR/stream/KV lifetime/PD consumers must be tested",
+    "Record matching debug flags; debug tensor bool checks can add synchronization not covered by one explicit item",
+    "If default-method placement introduces an unproved API precondition, reject or pivot to explicit-count propagation at verified producers"
+  ],
+  "next_run": "L024-R002 only after primary writes/reviews script and hashes complete inputs; never rerun/overwrite R001"
+}
