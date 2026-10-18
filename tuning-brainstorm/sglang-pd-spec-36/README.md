@@ -24,6 +24,8 @@
 
 - [M001：完整CPU加载、异步语义与5份精确输入候选](evidence/2026-10-19-tokenizer-inputs/README.md)
 
+- [M001：192次CPU计时、cgroup修复及批处理负收益](evidence/2026-10-19-tokenizer-baseline/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -32,7 +34,7 @@
 
 | ID | 机制 | 分析状态 | 类型 |
 | --- | --- | --- | --- |
-| [M001](points/M001.md) | 聊天模板、分词、reasoning parser | CPU分词/输入已核验；HTTP/parser/性能待测 | config |
+| [M001](points/M001.md) | 聊天模板、分词、reasoning parser | CPU语义/配对计时已核验；未建立批处理收益 | config |
 | [M002](points/M002.md) | 进程分工、IPC 与流式背压 | 待路径核验 | config |
 | [M003](points/M003.md) | CPU affinity / NUMA / 线程数 | 待路径核验 | config |
 | [M004](points/M004.md) | Continuous batching 与请求状态机 | 待路径核验 | conditional_candidate |
