@@ -30,6 +30,8 @@
 
 - [M001：drain候选36组语义与144行CPU计时，含拆批反例](evidence/2026-10-19-tokenizer-drain/README.md)
 
+- [M031：NPU接受合同、123组源码模型与条件反例](evidence/2026-10-19-mtp-verify-contract/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -68,7 +70,7 @@
 | [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | 待路径核验 | config |
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
 | [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 待路径核验 | config |
-| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | 待路径核验 | config |
+| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | 安装/源码模型已核验；原生PD性能未决 | config |
 | [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 待路径核验 | conditional_candidate |
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 待路径核验 | config |
 | [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 待路径核验 | config |
