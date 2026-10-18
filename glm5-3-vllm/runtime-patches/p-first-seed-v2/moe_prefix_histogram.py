@@ -5,6 +5,7 @@ can alternate count and prefix paths without reloading model weights. Candidate
 has a separate graph pool; original graph objects and replay ordering stay native.
 """
 import functools
+import dataclasses
 import hashlib
 import inspect
 import json
@@ -43,7 +44,7 @@ def install(ns, root=None, deps=None):
     Graph, Dispatcher = deps['Graph'], deps['Dispatcher']
     root = Path('/out/moe-prefix-histogram-probe') if root is None else Path(root)
     root.mkdir(exist_ok=True)
-    active = {'frame': None, 'prefix': False, 'capture': None}
+    active = {'frame': None, 'prefix': False, 'capture': None, 'building_family': None}
     states = {}  # Strongly own all comparison families and private pools.
     records = 0
 
@@ -82,6 +83,31 @@ def install(ns, root=None, deps=None):
     def compare_snapshots(left, right):
         return bool(len(left) == len(right) and left and all(a == b and torch.equal(x, y)
                     for (a, x), (b, y) in zip(left, right)))
+
+    def input_inventory(value):
+        result, seen = {}, set()
+        def walk(obj, path, depth):
+            if len(result) >= 512 or depth > 7:
+                return
+            if isinstance(obj, torch.Tensor):
+                if obj.device.type == 'npu':
+                    result[path] = {'ptr': obj.data_ptr(), 'shape': list(obj.shape),
+                                    'stride': list(obj.stride()), 'dtype': str(obj.dtype)}
+                return
+            if id(obj) in seen:
+                return
+            seen.add(id(obj))
+            if isinstance(obj, dict):
+                for key, item in sorted(obj.items(), key=lambda z: str(z[0])):
+                    walk(item, path + '.' + str(key), depth + 1)
+            elif isinstance(obj, (list, tuple)):
+                for i, item in enumerate(obj):
+                    walk(item, path + '.' + str(i), depth + 1)
+            elif dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+                for field in dataclasses.fields(obj):
+                    walk(getattr(obj, field.name), path + '.' + field.name, depth + 1)
+        walk(value, 'inputs', 0)
+        return result
 
     native_dispatch = Dispatcher.token_dispatch
 
@@ -126,45 +152,39 @@ def install(ns, root=None, deps=None):
         key = id(self)
         if key not in states:
             states[key] = {'wrapper': self, 'native': self.concrete_aclgraph_entries, 'prefix': {}, 'replica': {},
-                           'prefix_pool': torch.npu.graph_pool_handle(), 'replica_pool': torch.npu.graph_pool_handle(), 'captures': {}}
+                           'prefix_pool': torch.npu.graph_pool_handle(), 'replica_pool': torch.npu.graph_pool_handle(),
+                           'captures': {}, 'inventories_logged': set()}
         state = states[key]
         assert state['wrapper'] is self and self.concrete_aclgraph_entries is state['native']
         entry = state['native'].get(desc)
-        if entry is None or entry.aclgraph is None:
-            # Native startup already permits capture. Keep both families ready
-            # before real requests; never turn capture permission on ourselves.
-            result = None
+        building = active['building_family']
+        if building is not None:
+            # Each family comes through the original _warmup_and_capture, so
+            # _dummy_run constructs a fresh forward context and metadata.
             previous = active['prefix'], active['capture']
             native_pool = self.graph_pool
+            cap = {'calls': 0, 'selected_calls': 0, 'output_list_types': set(),
+                   'input_inventory': input_inventory({'args': args, 'kwargs': kwargs,
+                                                       'attn': getattr(ctx, 'attn_metadata', None)})}
             try:
-                for mode in ['native', 'replica', 'prefix']:
-                    active['prefix'] = mode == 'prefix'
-                    cap = {'calls': 0, 'selected_calls': 0, 'output_list_types': set()}
-                    active['capture'] = cap
-                    self.concrete_aclgraph_entries = state[mode]
-                    self.graph_pool = native_pool if mode == 'native' else state[mode + '_pool']
-                    output = graph_original(self, *args, **kwargs)
-                    captured = state[mode][desc]
-                    assert captured.aclgraph is not None and getattr(captured.aclgraph, 'tasks', None) == []
-                    cap['output_list_types'] = sorted(cap['output_list_types'])
-                    cap['output_pointers'] = [{'path': path, 'ptr': tensor.data_ptr(), 'shape': list(tensor.shape)}
-                                              for path, tensor in output_tensors(output)]
-                    if cap['output_pointers']:
-                        captured.aclgraph.replay()
-                        values = snapshot(output)
-                        if mode == 'native':
-                            native_values = values
-                        else:
-                            cap['dummy_output_bitwise_vs_native'] = compare_snapshots(native_values, values)
-                        cap['allocated_bytes'] = torch.npu.memory_allocated()
-                    state['captures'][(mode, n)] = cap
-                    if mode == 'native':
-                        result = output
+                active['prefix'] = building == 'prefix'
+                active['capture'] = cap
+                self.concrete_aclgraph_entries = state[building]
+                self.graph_pool = native_pool if building == 'native' else state[building + '_pool']
+                output = graph_original(self, *args, **kwargs)
+                captured = state[building][desc]
+                assert captured.aclgraph is not None and getattr(captured.aclgraph, 'tasks', None) == []
+                cap['output_list_types'] = sorted(cap['output_list_types'])
+                cap['output_pointers'] = [{'path': path, 'ptr': tensor.data_ptr(), 'shape': list(tensor.shape)}
+                                          for path, tensor in output_tensors(output)]
+                state['captures'][(building, n)] = cap
+                return output
             finally:
                 self.concrete_aclgraph_entries = state['native']
                 self.graph_pool = native_pool
                 active['prefix'], active['capture'] = previous
-            return result
+        if entry is None or entry.aclgraph is None:
+            return graph_original(self, *args, **kwargs)
         frame = active['frame']
         requested = bool(frame is not None and frame['requested'] and real_frame(frame))
         requested_family = 'replica' if (root / 'replica-enable').exists() and real_frame(frame) else ('prefix' if requested and not (root / 'MTP-only').exists() else 'native')
@@ -176,9 +196,19 @@ def install(ns, root=None, deps=None):
         family = requested_family if ready else 'native'
         selected = family != 'native'
         if frame is not None and frame['observe'] and real_frame(frame):
-            frame['graphs'].append({'tokens': n, 'requested': requested, 'selected': selected,
-                'native_capture': state['captures'].get(('native', n)), 'prefix_capture': state['captures'].get(('prefix', n), {}),
-                'selected_family': family, 'replica_capture': state['captures'].get(('replica', n), {})})
+            brief = lambda value: {k: v for k, v in value.items() if k != 'input_inventory'}
+            row = {'tokens': n, 'requested': requested, 'selected': selected,
+                   'native_capture': brief(state['captures'].get(('native', n), {})),
+                   'prefix_capture': brief(state['captures'].get(('prefix', n), {})),
+                   'selected_family': family,
+                   'replica_capture': brief(state['captures'].get(('replica', n), {}))}
+            if (family, n) not in state['inventories_logged']:
+                row['capture_input_inventories'] = {name: state['captures'].get((name, n), {}).get('input_inventory', {})
+                                                     for name in ['native', 'replica', 'prefix']}
+                row['runtime_input_inventory'] = input_inventory({'args': args, 'kwargs': kwargs,
+                                                                  'attn': getattr(ctx, 'attn_metadata', None)})
+                state['inventories_logged'].add((family, n))
+            frame['graphs'].append(row)
         previous = active['prefix']
         try:
             active['prefix'] = family == 'prefix'
@@ -191,6 +221,36 @@ def install(ns, root=None, deps=None):
 
     Graph.__call__ = graph_call
 
+    warmup_original = Runner._warmup_and_capture
+
+    @functools.wraps(warmup_original)
+    def warmup(self, desc, cudagraph_runtime_mode, *args, **kwargs):
+        eligible = bool(cudagraph_runtime_mode == Mode.FULL and desc.num_tokens in [6, 12, 18, 24]
+                        and self.is_kv_consumer and not self.is_kv_producer and not self.dynamic_eplb
+                        and self.use_async_scheduling and config_ok(self.vllm_config))
+        if not eligible:
+            return warmup_original(self, desc, cudagraph_runtime_mode, *args, **kwargs)
+        previous = active['building_family'], active['prefix'], active['capture']
+        result = None
+        try:
+            for family in ['native', 'replica', 'prefix']:
+                active['building_family'] = family
+                active['prefix'] = family == 'prefix'
+                # A private non-real scope also selects the variant during the
+                # framework's eager warmups, before their capture begins.
+                active['capture'] = {'calls': 0, 'selected_calls': 0, 'output_list_types': set()}
+                options = dict(kwargs)
+                options['num_warmups'] = max(2, options.get('num_warmups') or 0,
+                                             self.compilation_config.cudagraph_num_of_warmups)
+                output = warmup_original(self, desc, cudagraph_runtime_mode, *args, **options)
+                if family == 'native':
+                    result = output
+            return result
+        finally:
+            active['building_family'], active['prefix'], active['capture'] = previous
+
+    Runner._warmup_and_capture = warmup
+
     def wrap(method, phase):
         @functools.wraps(method)
         def run(self, *args, **kwargs):
@@ -202,7 +262,7 @@ def install(ns, root=None, deps=None):
                      'observe': not (root / 'disabled').exists(), 'dispatch': [], 'graphs': []}
             previous = active['frame'], active['prefix']
             active['frame'] = frame
-            active['prefix'] = bool(frame['requested'] and not (phase == 'sample_tokens' and (root / 'target-only').exists()))
+            active['prefix'] = bool(frame['requested'] and phase == 'sample_tokens' and not (root / 'target-only').exists())
             try:
                 return method(self, *args, **kwargs)
             finally:

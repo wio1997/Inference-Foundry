@@ -33,6 +33,9 @@ def setup(root):
   def __init__(self):
    self.runtime_mode=Mode.FULL;self.attn_backend=SFA;self.vllm_config=conf;self.enable_enpu=False;self.graph_pool='nativepool';self.concrete_aclgraph_entries={};self.capture_modes=[]
   def __call__(self):
+   if ctx.cudagraph_runtime_mode != self.runtime_mode:
+    for _ in range(75):out=disp.token_dispatch(inp)
+    return out
    d=ctx.batch_descriptor
    if d not in self.concrete_aclgraph_entries:
     ctx.capturing=True;out=None
@@ -43,9 +46,15 @@ def setup(root):
  graph=Graph()
  class Runner:
   def __init__(self):
-   self.is_kv_consumer=True;self.is_kv_producer=False;self.use_async_scheduling=True;self.dynamic_eplb=False;self.vllm_config=conf;self.tp_rank=0;self.input_batch=S(req_ids=['real']);self.requests={'real':S(sampling_params=S(max_tokens=64))};self.fail=False
+   self.is_kv_consumer=True;self.is_kv_producer=False;self.use_async_scheduling=True;self.dynamic_eplb=False;self.vllm_config=conf;self.tp_rank=0;self.input_batch=S(req_ids=['real']);self.requests={'real':S(sampling_params=S(max_tokens=64))};self.fail=False;self.compilation_config=S(cudagraph_num_of_warmups=1);self.warm_history=[]
+  def _warmup_and_capture(self,desc,cudagraph_runtime_mode,**kwargs):
+   ctx.batch_descriptor=desc;inp.hidden_states=Tensor(desc.num_tokens)
+   warmed=[]
+   for _ in range(kwargs.get('num_warmups',1)):
+    ctx.cudagraph_runtime_mode=Mode.NONE;ctx.capturing=False;warmed.append(graph().group_list_type)
+   ctx.cudagraph_runtime_mode=cudagraph_runtime_mode;ctx.capturing=False;out=graph();self.warm_history.append(warmed);return out
   def execute_model(self):
-   ctx.capturing=False
+   ctx.capturing=False;ctx.cudagraph_runtime_mode=Mode.FULL
    if self.fail:raise RuntimeError('runner-failure')
    return graph()
   def sample_tokens(self):return [disp.token_dispatch(inp).group_list_type for _ in range(5)]
@@ -54,8 +63,9 @@ def setup(root):
  return S(ctx=ctx,config=conf,inp=inp,disp=disp,graph=graph,runner=runner)
 with tempfile.TemporaryDirectory() as tmp:
  root=Path(tmp);s=setup(root);native_dict=s.graph.concrete_aclgraph_entries
- assert s.graph().group_list_type==1 and s.graph.capture_modes==[1,1,0]
+ assert s.runner._warmup_and_capture(Desc(6),Mode.FULL).group_list_type==1 and s.graph.capture_modes==[1,1,0]
  assert s.graph.concrete_aclgraph_entries is native_dict and s.graph.graph_pool=='nativepool';checks.append('three-startup-families-owned-and-native-pool-restored')
+ assert s.runner.warm_history==[[1,1],[1,1],[0,0]];checks.append('each-family-uses-original-eager-warmup-and-fresh-capture')
  assert s.runner.execute_model().group_list_type==1 and s.runner.sample_tokens()==[1]*5;checks.append('default-native')
  (root/'enable').touch();assert s.runner.execute_model().group_list_type==0 and s.runner.sample_tokens()==[0]*5;checks.append('actual-target-and-MTP-candidate-selected')
  assert s.graph.concrete_aclgraph_entries is native_dict and s.disp.token_dispatch(s.inp).group_list_type==1;checks.append('outside-scope-native-and-entry-owner-restored')
@@ -78,12 +88,12 @@ with tempfile.TemporaryDirectory() as tmp:
  candidate_output.graph.fail=False;checks.append('private-replay-exception-restores-native-family-and-selector')
  # Missing/partial candidate capture must fail closed, including exception cleanup.
  s.ctx.batch_descriptor=Desc(12);s.ctx.capturing=False;s.inp.hidden_states=Tensor(12);s.disp.fail=True
- try:s.graph();assert False
+ try:s.runner._warmup_and_capture(Desc(12),Mode.FULL);assert False
  except RuntimeError:pass
  assert s.graph.concrete_aclgraph_entries is native_dict and s.graph.graph_pool=='nativepool'
  s.disp.fail=False;assert s.runner.execute_model().group_list_type==1;checks.append('failed-candidate-capture-restores-pool-and-falls-back')
  # Fresh family captures rejected quantization as native, never mislabeled ready.
- s.ctx.batch_descriptor=Desc(18);s.ctx.capturing=False;s.inp.hidden_states=Tensor(18);s.inp.quant.quant_type='OTHER';s.graph()
+ s.ctx.batch_descriptor=Desc(18);s.ctx.capturing=False;s.inp.hidden_states=Tensor(18);s.inp.quant.quant_type='OTHER';s.runner._warmup_and_capture(Desc(18),Mode.FULL)
  assert s.runner.execute_model().group_list_type==1;checks.append('non-W8A8-capture-not-selected')
  s.inp.quant.quant_type='W8A8';s.ctx.batch_descriptor=Desc(6);s.inp.hidden_states=Tensor(6)
  # Trigger a failure only in the private family's replay object.

@@ -32,3 +32,6 @@ C4两个case的TTFT中位数稍高（N1536 +2.65%、N257 +5.23%），混合负�
 
 
 后续 prefix 原型首版的整模型功能结果为原生 8/8、候选 6/8，候选续写异常，已关闭且未进入正式计时。all16 的实际选路通过与数值失败同时保留，二者不混淆。随后单 NPU 用原尺寸 NZ 权重串起 routing、融合 GMM1、GMM2、unpermute，8 个分布及 96 次交错图 replay 全部逐位一致；该片段仍不含完整 TP、shared overlap、attention/KV 与 FX 集成。当前保留已加载 P，仅 D 换入原生副图、MTP/target 分离对照与真实 core 成对比较，查清上下文依赖后再决定。RoPE +14.71% 的已验收结论不依赖这项后续原型。
+
+
+D2隔离进一步表明：MTP-only两case完整64与native一致，16rank共32组真实MTP core成对输出bitwise；仅重复原生target计算的native-replica图却两case续写均异常。因此图构建本身有独立问题，未正式计时。源码中的`_int64_kv_slots`把int32→int64转换结果缓存在同一metadata动态属性上；同对象连续捕获时，后图可能直接引用前图Cast产物。对精确函数AST的CPU所有权模型重现了这一跨图依赖，仍不是D2内部缓存的设备观测。D3分别走原框架预热/捕获、重新构造metadata，并加variant warmup和有界输入地址记录；正在真实模型验收，尚无新收益。
