@@ -1,0 +1,38 @@
+{
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "paths": {
+    "npu": "python/sglang/srt/hardware_backend/npu/allocator_npu.py",
+    "allocation": "python/sglang/srt/mem_cache/allocation.py",
+    "eagle": "python/sglang/srt/speculative/eagle_utils.py",
+    "PD": "python/sglang/srt/disaggregation/decode.py"
+  },
+  "baseline_hashes": {
+    "python/sglang/srt/hardware_backend/npu/allocator_npu.py": "de63fdd354c691ef07f59b946746da948179182f4c1668fec44996330211036d",
+    "python/sglang/srt/mem_cache/allocation.py": "b721edde1b0da5176e6787e40173ac23e62f943d13afd2e0ca90ec84f0852212",
+    "python/sglang/srt/speculative/eagle_utils.py": "7998e60c335e7e0e7bcdc4fa6403c2d697128077491858e810c37af6de1a3df7",
+    "python/sglang/srt/disaggregation/decode.py": "d14a402990b0080aa95f058bee9093a67d6ca48d419657f6be2cffa98607ec48"
+  },
+  "prior_pivot": "L024696checks/99regular+3stale counterexamples; default-method metadata gate not freshness proof",
+  "scope": "Source owners opt into existing count for exact in-tree NPUPaged class/page>1, excluding c128; class/default unchanged",
+  "routes": [
+    "ordinary alloc_for_extend owns prefixCPU and paired batch CPU seq",
+    "EAGLE prepare owns cur/nxt CPU arrays; spec helper forwards only non-None count",
+    "PD prealloc creates CPU arrays from own Python scalars"
+  ],
+  "compatibility": [
+    "NPUPaged class AST exactly unchanged; only private module helper added",
+    "Existing helper default countNone sends no new kwargs to allocator",
+    "Other allocators/subclasses/page1/c128 skip private count",
+    "No DSV4 reserve or kernel/free/loc policy change"
+  ],
+  "native_gates": [
+    "Actual task-owned Ascend PD+MTP baseline",
+    "Small kernel success and full output/loc/page identities",
+    "H2D/WAR/stream/PD consumer free ordering after default item bypass",
+    "Matching debug/config/cache/shape conditions and warmed performance/noise"
+  ],
+  "CPU_correctness_executed": false,
+  "native_executed": false,
+  "accepted": false,
+  "production_applied": false
+}
