@@ -1,0 +1,1484 @@
+{
+  "observed_utc": "2026-10-18T16:45:45.553595+00:00",
+  "installed_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "reference_commit": "57db5089c207ae4ce189cc092a89a2027c8aea29",
+  "scope": "Static installed-tree anchors only. No task PD runtime, numerical or performance support is inferred.",
+  "rows": [
+    {
+      "id": "M001",
+      "title": "聊天模板、分词、reasoning parser",
+      "installed_path": "python/sglang/srt/managers/tokenizer_manager.py",
+      "sha256": "c052b113023c88360dd3465d2f6053d13505bf37c25c966da5bf3a1770077da5",
+      "anchors": [
+        {
+          "line": 974,
+          "text": "async def _tokenize_texts("
+        },
+        {
+          "line": 1096,
+          "text": "input_ids, token_type_ids = await self._tokenize_texts("
+        },
+        {
+          "line": 1586,
+          "text": "async def _batch_tokenize_and_process("
+        },
+        {
+          "line": 1611,
+          "text": "input_ids_list, token_type_ids_list = await self._tokenize_texts("
+        },
+        {
+          "line": 1971,
+          "text": "tokenized_objs = await self._batch_tokenize_and_process(batch_size, obj)"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "前端CPU入口存在；模板与tokenizer及动态批处理配置待本任务运行合同确认。"
+    },
+    {
+      "id": "M002",
+      "title": "进程分工、IPC 与流式背压",
+      "installed_path": "python/sglang/srt/managers/detokenizer_manager.py",
+      "sha256": "90042a763006dba5a77d2a0e43abe17937ee287abaff13b9bf4b26f28f139bf4",
+      "anchors": [
+        {
+          "line": 173,
+          "text": "(BatchTokenIDOutput, self.handle_batch_token_id_out),"
+        },
+        {
+          "line": 239,
+          "text": "def _grouped_batch_decode("
+        },
+        {
+          "line": 338,
+          "text": "surr_texts = self._grouped_batch_decode("
+        },
+        {
+          "line": 343,
+          "text": "read_texts = self._grouped_batch_decode("
+        },
+        {
+          "line": 443,
+          "text": "def handle_batch_token_id_out(self, recv_obj: BatchTokenIDOutput):"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "反分词/IPC入口存在；背压和网络消费者需服务时间线。"
+    },
+    {
+      "id": "M003",
+      "title": "CPU affinity / NUMA / 线程数",
+      "installed_path": "python/sglang/srt/utils/numa_utils.py",
+      "sha256": "6a57fef1f2ad88e2499f93a339f7ba678034e1fd8e349a91ca99c3b94e08ab98",
+      "anchors": [
+        {
+          "line": 169,
+          "text": "def numa_bind_to_node(node: int):"
+        },
+        {
+          "line": 617,
+          "text": "def _read_pci_numa_node(pci_address: str):"
+        },
+        {
+          "line": 639,
+          "text": "return _read_pci_numa_node(pci_address)"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "NUMA工具存在；NPU设备映射、绑核和线程设置尚未冻结。"
+    },
+    {
+      "id": "M004",
+      "title": "Continuous batching 与请求状态机",
+      "installed_path": "python/sglang/srt/disaggregation/decode.py",
+      "sha256": "d14a402990b0080aa95f058bee9093a67d6ca48d419657f6be2cffa98607ec48",
+      "anchors": [
+        {
+          "line": 2869,
+          "text": "plan = self.get_next_disagg_decode_batch_to_run("
+        },
+        {
+          "line": 2892,
+          "text": "def event_loop_overlap_disagg_decode(self: Scheduler):"
+        },
+        {
+          "line": 2913,
+          "text": "plan = self.get_next_disagg_decode_batch_to_run("
+        },
+        {
+          "line": 2965,
+          "text": "def get_next_disagg_decode_batch_to_run("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "专用D组批循环存在；实际调用次数未测。"
+    },
+    {
+      "id": "M005",
+      "title": "多资源准入、输出预留与抢占重算",
+      "installed_path": "python/sglang/srt/managers/schedule_policy.py",
+      "sha256": "de11a37e44db56a1aeb47c2308f783fe4f6a0e4b8b224051e4d2894e748f6625",
+      "anchors": [
+        {
+          "line": 796,
+          "text": "def _check_prefill_budget("
+        },
+        {
+          "line": 1401,
+          "text": "can_admit, chunk_tokens_limit = self._check_prefill_budget("
+        },
+        {
+          "line": 1488,
+          "text": "def preempt_to_schedule(self, req: Req) -> bool:"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "预算与抢占入口存在；P/D资源和推测预留分别核验。"
+    },
+    {
+      "id": "M006",
+      "title": "Chunked Prefill 的游标与预算",
+      "installed_path": "python/sglang/srt/disaggregation/prefill.py",
+      "sha256": "3f63b9c170966346ccd51eeb161a889e81f79370b3f261e563d4d824bf1a6fe9",
+      "anchors": [
+        {
+          "line": 665,
+          "text": "self.process_prefill_chunk(last_batch=last_batch, running_batch=running_batch)"
+        },
+        {
+          "line": 979,
+          "text": "# In non-overlap-mode, KV is sent in process_prefill_chunk"
+        },
+        {
+          "line": 1248,
+          "text": "def process_prefill_chunk("
+        },
+        {
+          "line": 1347,
+          "text": "self._send_kv_chunk(req, last_chunk=last_chunk, end_idx=end_idx)"
+        },
+        {
+          "line": 1349,
+          "text": "def _send_kv_chunk("
+        },
+        {
+          "line": 1533,
+          "text": "if not req.disagg_kv_sender.should_send_kv_chunk("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "P续块与发送入口存在；chunk与传输粒度不能混为一个开关。"
+    },
+    {
+      "id": "M007",
+      "title": "Mixed batch 与 ragged / packed 输入",
+      "installed_path": "python/sglang/srt/managers/scheduler.py",
+      "sha256": "73452f9a3d6e47d0847d2393226094cb2ef22464cf19b2d6ef089eae0144f07a",
+      "anchors": [
+        {
+          "line": 4122,
+          "text": "# mix_with_running cats input_ids but not input_embeds — shapes would mismatch"
+        },
+        {
+          "line": 4131,
+          "text": "new_batch.mix_with_running(running_batch)"
+        },
+        {
+          "line": 5923,
+          "text": "_dispatch_event_loop_once,"
+        },
+        {
+          "line": 5925,
+          "text": "return _dispatch_event_loop_once(scheduler)"
+        },
+        {
+          "line": 5928,
+          "text": "def _dispatch_event_loop_once(scheduler: Scheduler):"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "专用PD分派到独立P/D循环；P/D文件无mix_with_running或is_mixed_chunk引用。仅混批候选在专用PD下不适用，packed/ragged输入单独保留。"
+    },
+    {
+      "id": "M008",
+      "title": "Cache-aware scheduling：LPM / DFS-weight",
+      "installed_path": "python/sglang/srt/managers/schedule_policy.py",
+      "sha256": "de11a37e44db56a1aeb47c2308f783fe4f6a0e4b8b224051e4d2894e748f6625",
+      "anchors": [
+        {
+          "line": 237,
+          "text": "class SchedulePolicy:"
+        },
+        {
+          "line": 268,
+          "text": "# set it in _compute_prefix_matches; do the same full match for"
+        },
+        {
+          "line": 281,
+          "text": "SchedulePolicy._sort_by_priority_and_fcfs("
+        },
+        {
+          "line": 287,
+          "text": "temporary_deprioritized = self._compute_prefix_matches("
+        },
+        {
+          "line": 291,
+          "text": "SchedulePolicy._sort_by_longest_prefix("
+        },
+        {
+          "line": 295,
+          "text": "SchedulePolicy._sort_by_dfs_weight(waiting_queue, self.tree_cache)"
+        },
+        {
+          "line": 297,
+          "text": "SchedulePolicy._sort_by_hrrn("
+        },
+        {
+          "line": 301,
+          "text": "SchedulePolicy._sort_by_shortest_prefill("
+        },
+        {
+          "line": 317,
+          "text": "SchedulePolicy._sort_by_longest_output("
+        },
+        {
+          "line": 323,
+          "text": "SchedulePolicy._sort_randomly(waiting_queue)"
+        },
+        {
+          "line": 326,
+          "text": "SchedulePolicy._sort_by_routing_key(waiting_queue, running_batch)"
+        },
+        {
+          "line": 372,
+          "text": "def _compute_prefix_matches("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "缓存感知策略存在；实际policy、缓存类型与D角色收益未知。"
+    },
+    {
+      "id": "M009",
+      "title": "Paged KV、请求映射与预分配池",
+      "installed_path": "python/sglang/srt/mem_cache/memory_pool.py",
+      "sha256": "261d03dc54d8290358cb462c66958594cce009fe1e58b333684c1b6950284bfb",
+      "anchors": [
+        {
+          "line": 18,
+          "text": "ReqToTokenPool maps a request to its token locations."
+        },
+        {
+          "line": 274,
+          "text": "class ReqToTokenPool:"
+        },
+        {
+          "line": 279,
+          "text": "# 0 for a plain pool; the decode-flavored pool (DecodeReqToTokenPool) sets a"
+        },
+        {
+          "line": 283,
+          "text": "# DecodeReqToTokenPool) but inherit alloc_rows."
+        },
+        {
+          "line": 1224,
+          "text": "class HybridReqToTokenPool(ReqToTokenPool):"
+        },
+        {
+          "line": 1405,
+          "text": ") -> HybridReqToTokenPool:"
+        },
+        {
+          "line": 1513,
+          "text": "is HybridReqToTokenPool.translate_mamba_indices"
+        },
+        {
+          "line": 1518,
+          "text": "(slots are physical); UnifiedHybridReqToTokenPool overrides it for the"
+        },
+        {
+          "line": 1725,
+          "text": "logger.info(\"Reset HybridReqToTokenPool\")"
+        },
+        {
+          "line": 3985,
+          "text": "TokenToKVPoolClass = MLATokenToKVPool"
+        },
+        {
+          "line": 3991,
+          "text": "NPUMLATokenToKVPool,"
+        },
+        {
+          "line": 3994,
+          "text": "TokenToKVPoolClass = NPUMLATokenToKVPool"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "页映射与MLA池存在；实际Ascend池/dtype及复制或分片方式待确认。"
+    },
+    {
+      "id": "M010",
+      "title": "Radix 树 vs 前缀关联哈希块",
+      "installed_path": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+      "sha256": "24f89f2d2cebeb46c209736b2376cfa7e38765ea6485809241cd256785fccb57",
+      "anchors": [
+        {
+          "line": 788,
+          "text": "def match_prefix(self, params: MatchPrefixParams) -> MatchResult:"
+        },
+        {
+          "line": 804,
+          "text": ") = self._match_prefix_helper(key)"
+        },
+        {
+          "line": 815,
+          "text": "def _match_prefix_helper("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "Unified树匹配入口存在；是否实际选择Unified而非旧Radix待确认。"
+    },
+    {
+      "id": "M011",
+      "title": "引用保护、释放、淘汰与 Copy-on-Write",
+      "installed_path": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+      "sha256": "24f89f2d2cebeb46c209736b2376cfa7e38765ea6485809241cd256785fccb57",
+      "anchors": [
+        {
+          "line": 670,
+          "text": "self._update_evictable_leaf_sets(node)"
+        },
+        {
+          "line": 722,
+          "text": "self._update_evictable_leaf_sets(node)"
+        },
+        {
+          "line": 733,
+          "text": "self._update_evictable_leaf_sets(node)"
+        },
+        {
+          "line": 740,
+          "text": "self._update_evictable_leaf_sets(node)"
+        },
+        {
+          "line": 776,
+          "text": "self._update_evictable_leaf_sets(node)"
+        },
+        {
+          "line": 785,
+          "text": "self._update_evictable_leaf_sets(node)"
+        },
+        {
+          "line": 1420,
+          "text": "self._update_evictable_leaf_sets(new_node)"
+        },
+        {
+          "line": 1421,
+          "text": "self._update_evictable_leaf_sets(child)"
+        },
+        {
+          "line": 1451,
+          "text": "self._update_evictable_leaf_sets(new_node)"
+        },
+        {
+          "line": 1452,
+          "text": "self._update_evictable_leaf_sets(parent)"
+        },
+        {
+          "line": 1473,
+          "text": "self._update_evictable_leaf_sets(node)"
+        },
+        {
+          "line": 1477,
+          "text": "self._update_evictable_leaf_sets(node.parent)"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "释放/淘汰入口存在；索引clone不等于KV载荷Copy-on-Write。"
+    },
+    {
+      "id": "M012",
+      "title": "Unified cache 组件 vs Hybrid KV 分组",
+      "installed_path": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+      "sha256": "24f89f2d2cebeb46c209736b2376cfa7e38765ea6485809241cd256785fccb57",
+      "anchors": [
+        {
+          "line": 493,
+          "text": "self.component_evictable_size_ = {ct: 0 for ct in self.component_types}"
+        },
+        {
+          "line": 1447,
+          "text": "self.component_evictable_size_[BASE_COMPONENT_TYPE] += len(value)"
+        },
+        {
+          "line": 1472,
+          "text": "self.component_evictable_size_[ct] += n"
+        },
+        {
+          "line": 2221,
+          "text": "t = comp.build_hicache_transfers(node, CacheTransferPhase.BACKUP_HOST)"
+        },
+        {
+          "line": 2240,
+          "text": "transfers = comp.build_hicache_transfers("
+        },
+        {
+          "line": 2253,
+          "text": "def build_hicache_transfers("
+        },
+        {
+          "line": 2265,
+          "text": "\"\"\"Route a build_hicache_transfers call to the component for the given type.\"\"\""
+        },
+        {
+          "line": 2266,
+          "text": "return self.components_by_type[component_type].build_hicache_transfers("
+        },
+        {
+          "line": 2283,
+          "text": "kv_xfer = self.components_by_type[BASE_COMPONENT_TYPE].build_hicache_transfers("
+        },
+        {
+          "line": 2290,
+          "text": "t = comp.build_hicache_transfers("
+        },
+        {
+          "line": 2681,
+          "text": "self.component_evictable_size_[component_type] += len(value)"
+        },
+        {
+          "line": 2907,
+          "text": "if self.component_evictable_size_[ct] != evictable:"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "组件路径存在；模型状态类型、cache实现和组别待确认。"
+    },
+    {
+      "id": "M013",
+      "title": "HiCache：HBM / 主机 / 存储分层",
+      "installed_path": "python/sglang/srt/managers/cache_controller.py",
+      "sha256": "25472d5903e102f187ffbb171c168e9c43d91ead8c0bc26feaba6a6104773db9",
+      "anchors": [
+        {
+          "line": 56,
+          "text": "self.load_events = [device_module.Event() for _ in range(num_layers)]"
+        },
+        {
+          "line": 61,
+          "text": "self.load_events[layer_index].record()"
+        },
+        {
+          "line": 64,
+          "text": "device_module.current_stream().wait_event(self.load_events[layer_index])"
+        },
+        {
+          "line": 68,
+          "text": "return self.load_events[-1]"
+        },
+        {
+          "line": 249,
+          "text": "# (wait_complete gates TTFT), so loads may fill the pool up to this fraction"
+        },
+        {
+          "line": 252,
+          "text": "# Write-staging floor: writes are deferrable, so the flush gate grows the"
+        },
+        {
+          "line": 253,
+          "text": "# write window dynamically into whatever load staging is not using."
+        },
+        {
+          "line": 283,
+          "text": "class HiCacheController:"
+        },
+        {
+          "line": 290,
+          "text": "load_cache_event: threading.Event,"
+        },
+        {
+          "line": 294,
+          "text": "write_policy: str = \"write_through_selective\","
+        },
+        {
+          "line": 319,
+          "text": "self.write_policy = write_policy"
+        },
+        {
+          "line": 326,
+          "text": "# Buffer mode: wired by the tree cache after attach; the load rate"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "分层控制器存在；当前主线是否启用及NPU后端支持需独立探针。"
+    },
+    {
+      "id": "M014",
+      "title": "预取、写回与 layer/page 布局",
+      "installed_path": "python/sglang/srt/managers/cache_controller.py",
+      "sha256": "25472d5903e102f187ffbb171c168e9c43d91ead8c0bc26feaba6a6104773db9",
+      "anchors": [
+        {
+          "line": 362,
+          "text": "# behind in-flight forwards (see start_loading)."
+        },
+        {
+          "line": 941,
+          "text": "def _l2_load_transfers("
+        },
+        {
+          "line": 949,
+          "text": "def start_loading(self) -> int:"
+        },
+        {
+          "line": 969,
+          "text": "self._l2_load_transfers(host_indices, device_indices, pool_transfers),"
+        },
+        {
+          "line": 1257,
+          "text": "def write_storage("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "预取/回写入口存在；布局、event和后端能力不能由接口存在推断。"
+    },
+    {
+      "id": "M015",
+      "title": "CPU / 设备 overlap 调度",
+      "installed_path": "python/sglang/srt/disaggregation/decode.py",
+      "sha256": "d14a402990b0080aa95f058bee9093a67d6ca48d419657f6be2cffa98607ec48",
+      "anchors": [
+        {
+          "line": 2892,
+          "text": "def event_loop_overlap_disagg_decode(self: Scheduler):"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "D overlap循环存在；MTP保留，按真实batch回退与时间线诊断。"
+    },
+    {
+      "id": "M016",
+      "title": "Future token / placeholder 与依赖解析",
+      "installed_path": "python/sglang/srt/managers/overlap_utils.py",
+      "sha256": "fdcb8e9fa902383a4248b4bc3b1b57f37e171146d5d4ac8a3782cfad32c15471",
+      "anchors": [
+        {
+          "line": 29,
+          "text": "\"\"\"Whether FutureMap must publish seq_lens_cpu / sum."
+        },
+        {
+          "line": 72,
+          "text": "# write -1 back. Catches \"gather without intermediate stash\" bugs. CI enables"
+        },
+        {
+          "line": 120,
+          "text": "future_map._resolve_spec_extras(batch)"
+        },
+        {
+          "line": 134,
+          "text": "\"\"\"Per-iteration stash payload for the FutureMap bufs. Non-spec fills only"
+        },
+        {
+          "line": 210,
+          "text": "def issue_ring_copy(self, *, stream, publish_ready) -> None:"
+        },
+        {
+          "line": 211,
+          "text": "if not self.initialized or stream is None or publish_ready is None:"
+        },
+        {
+          "line": 214,
+          "text": "stream.wait_event(publish_ready)"
+        },
+        {
+          "line": 222,
+          "text": "self, batch: ScheduleBatch, *, stream, publish_ready"
+        },
+        {
+          "line": 233,
+          "text": "if stream is None or publish_ready is None:"
+        },
+        {
+          "line": 256,
+          "text": "publish/stash; next iter reads via resolve_forward_inputs / resolve_seq_lens_cpu."
+        },
+        {
+          "line": 295,
+          "text": "# D2H pulls (gated only on publish, off the schedule stream). CUDA-only:"
+        },
+        {
+          "line": 318,
+          "text": "self.publish_ready = None  # lazy device.Event(); only spec_v2 needs it"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "真实新长度和bonus等字段仍需发布；普通decode删长度副本不适用于MTP。"
+    },
+    {
+      "id": "M017",
+      "title": "持久状态、增量更新与 GPU metadata",
+      "installed_path": "python/sglang/srt/managers/overlap_utils.py",
+      "sha256": "fdcb8e9fa902383a4248b4bc3b1b57f37e171146d5d4ac8a3782cfad32c15471",
+      "anchors": [
+        {
+          "line": 26,
+          "text": "def decide_needs_cpu_seq_lens("
+        },
+        {
+          "line": 256,
+          "text": "publish/stash; next iter reads via resolve_forward_inputs / resolve_seq_lens_cpu."
+        },
+        {
+          "line": 271,
+          "text": "# Computed by decide_needs_cpu_seq_lens(); see that helper for the"
+        },
+        {
+          "line": 335,
+          "text": "# Local import (see decide_needs_cpu_seq_lens): keep module-level deps leaf."
+        },
+        {
+          "line": 524,
+          "text": "def resolve_seq_lens_cpu(self, batch: ScheduleBatch) -> None:"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "CPU长度镜像已有按backend门控；缺失声明保守保留，TBO/ngram强制需要。"
+    },
+    {
+      "id": "M018",
+      "title": "Pinned buffer、异步 H2D 与写读竞态",
+      "installed_path": "python/sglang/srt/managers/overlap_utils.py",
+      "sha256": "fdcb8e9fa902383a4248b4bc3b1b57f37e171146d5d4ac8a3782cfad32c15471",
+      "anchors": [
+        {
+          "line": 87,
+          "text": "def resolve_forward_inputs(batch: ScheduleBatch, future_map: FutureMap) -> None:"
+        },
+        {
+          "line": 97,
+          "text": "future_map.resolve_mixed_spec_tails(batch)"
+        },
+        {
+          "line": 256,
+          "text": "publish/stash; next iter reads via resolve_forward_inputs / resolve_seq_lens_cpu."
+        },
+        {
+          "line": 480,
+          "text": "def resolve_mixed_spec_tails(self, batch: ScheduleBatch) -> None:"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "延后H2D入口存在；私有D2H流分配明确CUDA-only，不能直接当Ascend实现。"
+    },
+    {
+      "id": "M019",
+      "title": "多 stream、event 与资源竞争",
+      "installed_path": "python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py",
+      "sha256": "89781513fc8039c5d426d31b5734383d1e44b6cfb46e4f998d86757427e9ccc4",
+      "anchors": [
+        {
+          "line": 432,
+          "text": "q_event = None"
+        },
+        {
+          "line": 433,
+          "text": "if m.alt_stream is not None:"
+        },
+        {
+          "line": 434,
+          "text": "m.alt_stream.wait_stream(torch.npu.current_stream())"
+        },
+        {
+          "line": 435,
+          "text": "with torch.npu.stream(m.alt_stream):"
+        },
+        {
+          "line": 438,
+          "text": "q.record_stream(m.alt_stream)"
+        },
+        {
+          "line": 439,
+          "text": "q_event = m.alt_stream.record_event()"
+        },
+        {
+          "line": 448,
+          "text": "if q_event is not None:"
+        },
+        {
+          "line": 449,
+          "text": "torch.npu.current_stream().wait_event(q_event)"
+        },
+        {
+          "line": 665,
+          "text": "if m.alt_stream is not None:"
+        },
+        {
+          "line": 668,
+          "text": "with torch.npu.stream(m.alt_stream):"
+        },
+        {
+          "line": 688,
+          "text": "torch.npu.current_stream().wait_event(m.alt_stream)"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "NPU Q投影副流/事件分支存在；模型和实际shape命中未知。"
+    },
+    {
+      "id": "M020",
+      "title": "TBO / SBO vs vLLM DBO",
+      "installed_path": "python/sglang/srt/batch_overlap/two_batch_overlap.py",
+      "sha256": "f294d94b1cdb9211f23980dc755f8ff81101253aed3f3dc4d5312500b7ac3777",
+      "anchors": [
+        {
+          "line": 363,
+          "text": "TboForwardBatchPreparer.compute_tbo_children_num_token_non_padded(batch)"
+        },
+        {
+          "line": 366,
+          "text": "TboForwardBatchPreparer.prepare_raw("
+        },
+        {
+          "line": 390,
+          "text": "TboForwardBatchPreparer.compute_tbo_children_num_token_non_padded_raw("
+        },
+        {
+          "line": 505,
+          "text": "class TboForwardBatchPreparer:"
+        },
+        {
+          "line": 545,
+          "text": "f\"TboForwardBatchPreparer.prepare \""
+        },
+        {
+          "line": 1132,
+          "text": "class MaybeTboDeepEPDispatcher(BaseDispatcher):"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "TBO入口存在；Ascend实际通信后端和spec组合待探针，不能套CUDA文档。"
+    },
+    {
+      "id": "M021",
+      "title": "图捕获、形状桶与 replay",
+      "installed_path": "python/sglang/srt/hardware_backend/npu/graph_runner/npu_graph_runner.py",
+      "sha256": "47105be9c57aab59635a9b59ee2909083dfb6c5f599fa737ececa96312edc98e",
+      "anchors": [
+        {
+          "line": 16,
+          "text": "NPUGraphRunner is a thin subclass of DecodeCudaGraphRunner: the"
+        },
+        {
+          "line": 97,
+          "text": "class NPUGraphRunner(DecodeCudaGraphRunner):"
+        },
+        {
+          "line": 98,
+          "text": "\"\"\"A NPUGraphRunner runs the forward pass of a model with NPU graph and torch.compile.\"\"\""
+        },
+        {
+          "line": 176,
+          "text": "def _capture_graph(self, graph, pool, stream, run_once_fn):"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "NPU graph runner存在；draft/target图覆盖及桶填充需运行计数。"
+    },
+    {
+      "id": "M022",
+      "title": "算子融合、编译与中间张量复用",
+      "installed_path": "python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py",
+      "sha256": "89781513fc8039c5d426d31b5734383d1e44b6cfb46e4f998d86757427e9ccc4",
+      "anchors": [
+        {
+          "line": 5,
+          "text": "from sgl_kernel_npu.norm.fused_split_qk_norm import fused_split_qk_norm"
+        },
+        {
+          "line": 234,
+          "text": "and not getattr(m, \"_disable_npu_fused_split_qk_norm\", False)"
+        },
+        {
+          "line": 236,
+          "text": "q, k_nope, k_pe = fused_split_qk_norm("
+        },
+        {
+          "line": 454,
+          "text": "and not getattr(m, \"_disable_npu_fused_split_qk_norm\", False)"
+        },
+        {
+          "line": 456,
+          "text": "q_lora, k_nope, k_pe = fused_split_qk_norm("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "现有融合与opt-out门控存在；实际模型映射未闭合，不能强开融合或宣称数值等价。"
+    },
+    {
+      "id": "M023",
+      "title": "权重 / 激活 / KV 量化与尺度",
+      "installed_path": "python/sglang/srt/layers/quantization/modelslim/schemes/modelslim_w8a8_int8.py",
+      "sha256": "20220a1f8da70a2cfb73c81fa3114efc7e6f6058f684755e40eab86d5b426093",
+      "anchors": [
+        {
+          "line": 21,
+          "text": "class ModelSlimW8A8Int8(ModelSlimLinearScheme):"
+        },
+        {
+          "line": 22,
+          "text": "def __init__("
+        },
+        {
+          "line": 36,
+          "text": "def create_weights("
+        },
+        {
+          "line": 108,
+          "text": "def process_weights_after_loading(self, layer: torch.nn.Module):"
+        },
+        {
+          "line": 111,
+          "text": "def apply_weights("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "W8A8方案文件存在；目录名C8不证明全部KV是INT8，量化描述与池需交叉确认。"
+    },
+    {
+      "id": "M024",
+      "title": "Attention：MLA、布局、融合与历史读写",
+      "installed_path": "python/sglang/srt/hardware_backend/npu/attention/mla_preprocess.py",
+      "sha256": "1abf773d8922146af72208ab1a3fd63d15c62bbe486678bda67bcd37380c4cf4",
+      "anchors": [
+        {
+          "line": 21,
+          "text": "def is_mla_preprocess_enabled() -> bool:"
+        },
+        {
+          "line": 26,
+          "text": "def is_fia_nz() -> bool:"
+        },
+        {
+          "line": 37,
+          "text": "def round_up(val: int, align: int) -> int:"
+        },
+        {
+          "line": 43,
+          "text": "def transdata(nd_mat, block_size: tuple = (16, 16)):"
+        },
+        {
+          "line": 62,
+          "text": "def trans_rope_weight(weight, rope_dim):"
+        },
+        {
+          "line": 70,
+          "text": "class NPUFusedMLAPreprocess(torch.nn.Module):"
+        },
+        {
+          "line": 71,
+          "text": "def __init__("
+        },
+        {
+          "line": 111,
+          "text": "def preprocess_weights(self, hidden_states):"
+        },
+        {
+          "line": 248,
+          "text": "def mlaprolog_preprocess_weight(self):"
+        },
+        {
+          "line": 337,
+          "text": "def get_sin_cos(self, positions):"
+        },
+        {
+          "line": 344,
+          "text": "def get_kv_cache_and_cache_idx(self, forward_batch):"
+        },
+        {
+          "line": 349,
+          "text": "def forward_absorb_prepare_npu_rms_norm_cache("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "NPU MLA预处理文件存在；调用者、KV布局及实际shape待记录。"
+    },
+    {
+      "id": "M025",
+      "title": "DSA indexer / Top-K / HiSparse",
+      "installed_path": "python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py",
+      "sha256": "89781513fc8039c5d426d31b5734383d1e44b6cfb46e4f998d86757427e9ccc4",
+      "anchors": [
+        {
+          "line": 66,
+          "text": "# DSA Indexer: cache quantized keys, auto-skip topk for sequences <= dsa_index_topk"
+        },
+        {
+          "line": 208,
+          "text": "topk_indices = None"
+        },
+        {
+          "line": 285,
+          "text": "topk_indices = None"
+        },
+        {
+          "line": 287,
+          "text": "topk_indices = m.indexer("
+        },
+        {
+          "line": 303,
+          "text": "topk_indices,"
+        },
+        {
+          "line": 316,
+          "text": "topk_indices: torch.Tensor,"
+        },
+        {
+          "line": 329,
+          "text": "**(dict(topk_indices=topk_indices) if topk_indices is not None else {}),"
+        },
+        {
+          "line": 390,
+          "text": "prev_topk_indices: torch.Tensor = None,"
+        },
+        {
+          "line": 430,
+          "text": "q_lora = q.clone()  # required for topk_indices"
+        },
+        {
+          "line": 474,
+          "text": "q_lora = q.clone()  # required for topk_indices"
+        },
+        {
+          "line": 509,
+          "text": "if not m.skip_topk or (m.is_nextn and prev_topk_indices is None):"
+        },
+        {
+          "line": 510,
+          "text": "topk_indices = m.indexer("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "DSA短序列跳选属于已有能力；HiSparse shared-index prefetch安装文档明确要求no speculative decoding，仅该子候选排除。"
+    },
+    {
+      "id": "M026",
+      "title": "MoE 路由、重排与 grouped GEMM",
+      "installed_path": "python/sglang/srt/hardware_backend/npu/moe/fuseep.py",
+      "sha256": "03d8ccf6871c9485f4f376a6b77362d83acd496cf6be2908594809897b065a2b",
+      "anchors": [
+        {
+          "line": 29,
+          "text": "def _get_fuseep_buffer(layer: FusedMoE):"
+        },
+        {
+          "line": 41,
+          "text": "def forward_fuseep("
+        },
+        {
+          "line": 64,
+          "text": "def _permute_w13_weight_scale(w: torch.Tensor, tile_n: int) -> torch.Tensor:"
+        },
+        {
+          "line": 77,
+          "text": "def _reshape_w13_weight("
+        },
+        {
+          "line": 104,
+          "text": "def _release_weight_cache(weight: torch.Tensor) -> torch.Tensor:"
+        },
+        {
+          "line": 112,
+          "text": "def _scale_from_float_to_int64(scale: torch.Tensor) -> torch.nn.Parameter:"
+        },
+        {
+          "line": 123,
+          "text": "def process_fuseep_weights(layer: torch.nn.Module, weight_prefix: str) -> None:"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "NPU FuseEP文件存在；路由/重排/计算分段与实际专家分布未测。"
+    },
+    {
+      "id": "M027",
+      "title": "后端选择、形状特化与冷启动",
+      "installed_path": "python/sglang/srt/hardware_backend/npu/graph_runner/npu_graph_runner.py",
+      "sha256": "47105be9c57aab59635a9b59ee2909083dfb6c5f599fa737ececa96312edc98e",
+      "anchors": [
+        {
+          "line": 165,
+          "text": "def _create_device_graph(self):"
+        },
+        {
+          "line": 176,
+          "text": "def _capture_graph(self, graph, pool, stream, run_once_fn):"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "后端和图路径存在；选择合法性、冷启动和形状分派需安装配置确认。"
+    },
+    {
+      "id": "M028",
+      "title": "DeepEP dispatch / combine 的模式选择",
+      "installed_path": "python/sglang/srt/layers/moe/token_dispatcher/deepep.py",
+      "sha256": "8111fe5997a1088ce5e566b1d6537e8d0426b792700dae82dea4aa90425c2256",
+      "anchors": [
+        {
+          "line": 14,
+          "text": "from sglang.srt.layers.moe.token_dispatcher.base import ("
+        },
+        {
+          "line": 78,
+          "text": "def _set_nvshmem_qp_depth(num_max_dispatch_tokens_per_rank: int) -> None:"
+        },
+        {
+          "line": 79,
+          "text": "min_qp_depth = 2 * (num_max_dispatch_tokens_per_rank + 1)"
+        },
+        {
+          "line": 106,
+          "text": "class DeepEPPDispatchHooks(DispatcherBaseHooks):"
+        },
+        {
+          "line": 107,
+          "text": "def __call__(self, dispatcher: BaseDispatcher):"
+        },
+        {
+          "line": 109,
+          "text": "hook_fun(dispatcher)"
+        },
+        {
+          "line": 112,
+          "text": "class DeepEPNormalDispatchOutput(NamedTuple):"
+        },
+        {
+          "line": 113,
+          "text": "\"\"\"DeepEP normal dispatch output.\"\"\""
+        },
+        {
+          "line": 126,
+          "text": "class DeepEPLLDispatchOutput(NamedTuple):"
+        },
+        {
+          "line": 127,
+          "text": "\"\"\"DeepEP low latency dispatch output.\"\"\""
+        },
+        {
+          "line": 145,
+          "text": "class DeepEPNormalCombineInput(NamedTuple):"
+        },
+        {
+          "line": 146,
+          "text": "\"\"\"DeepEP normal combine input.\"\"\""
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "DeepEP源码存在不表示Ascend主线使用；应与NPU FuseEP分派分开核验。"
+    },
+    {
+      "id": "M029",
+      "title": "TP / EP / DP / PP / CP 的切分边界",
+      "installed_path": "python/sglang/srt/disaggregation/prefill.py",
+      "sha256": "3f63b9c170966346ccd51eeb161a889e81f79370b3f261e563d4d824bf1a6fe9",
+      "anchors": [
+        {
+          "line": 313,
+          "text": "self.scheduler.model_config.get_total_num_kv_heads()"
+        },
+        {
+          "line": 370,
+          "text": "def create_sender(self, req: Req, num_kv_heads: int) -> bool:"
+        },
+        {
+          "line": 429,
+          "text": "def add(self, req: Req, num_kv_heads: int) -> None:"
+        },
+        {
+          "line": 437,
+          "text": "if not self.create_sender(req, num_kv_heads):"
+        },
+        {
+          "line": 441,
+          "text": "def extend(self, reqs: List[Req], num_kv_heads: int) -> None:"
+        },
+        {
+          "line": 443,
+          "text": "self.add(req, num_kv_heads)"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "PD并行分组相关代码存在；TP/EP/DP/PP/CP和跨节点拓扑仍UNKNOWN。"
+    },
+    {
+      "id": "M030",
+      "title": "专家负载均衡、冗余与最慢 rank",
+      "installed_path": "python/sglang/srt/eplb/eplb_manager.py",
+      "sha256": "731e16230a38dafaa855663762be658f7a06997bba1ff75482359027e870c18e",
+      "anchors": [
+        {
+          "line": 42,
+          "text": "# they are read through getters at rebalance time, not captured here."
+        },
+        {
+          "line": 48,
+          "text": "self._rebalance_layers_per_chunk = ("
+        },
+        {
+          "line": 49,
+          "text": "get_exec().moe.eplb_rebalance_layers_per_chunk"
+        },
+        {
+          "line": 51,
+          "text": "self._rebalance_num_iterations = get_exec().moe.eplb_rebalance_num_iterations"
+        },
+        {
+          "line": 52,
+          "text": "self._rebalance_disabled_reason = None"
+        },
+        {
+          "line": 53,
+          "text": "self._rebalance_disabled_logged = False"
+        },
+        {
+          "line": 57,
+          "text": "get_exec().moe.eplb_rebalance_num_iterations"
+        },
+        {
+          "line": 60,
+          "text": "\"eplb_rebalance_num_iterations must be greater than expert_distribution_recorder_buffer_size\""
+        },
+        {
+          "line": 67,
+          "text": "f\"[EPLBManager] system started, will rebalance per {self._rebalance_num_iterations} iterations.\""
+        },
+        {
+          "line": 78,
+          "text": "def disable_rebalance(self, reason: str):"
+        },
+        {
+          "line": 79,
+          "text": "self._rebalance_disabled_reason = reason"
+        },
+        {
+          "line": 80,
+          "text": "self._rebalance_disabled_logged = False"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "重平衡入口存在；实际后端支持、冗余与最慢rank数据未测。"
+    },
+    {
+      "id": "M031",
+      "title": "MTP / EAGLE：草稿、树验证与接受",
+      "installed_path": "python/sglang/srt/speculative/eagle_worker_v2.py",
+      "sha256": "67a76083ecc365604b7fa9e9d8dd64aa0d4cf3f023c9050e98dc48829985716d",
+      "anchors": [
+        {
+          "line": 9,
+          "text": "draft_topk1_argmax_only,"
+        },
+        {
+          "line": 10,
+          "text": "draft_topk1_postprocess,"
+        },
+        {
+          "line": 14,
+          "text": "from sglang.srt.hardware_backend.npu.graph_runner.eagle_draft_extend_npu_graph_runner import ("
+        },
+        {
+          "line": 17,
+          "text": "from sglang.srt.hardware_backend.npu.graph_runner.eagle_draft_npu_graph_runner import ("
+        },
+        {
+          "line": 37,
+          "text": "draft_model_build_scope,"
+        },
+        {
+          "line": 76,
+          "text": "from sglang.srt.speculative.draft_utils import DraftBackendFactory"
+        },
+        {
+          "line": 77,
+          "text": "from sglang.srt.speculative.eagle_draft_cuda_graph_runner import ("
+        },
+        {
+          "line": 80,
+          "text": "from sglang.srt.speculative.eagle_draft_extend_cuda_graph_runner import ("
+        },
+        {
+          "line": 91,
+          "text": "get_draft_recurrent_hidden_state_spec,"
+        },
+        {
+          "line": 92,
+          "text": "organize_draft_results,"
+        },
+        {
+          "line": 93,
+          "text": "per_step_draft_out_cache_loc,"
+        },
+        {
+          "line": 96,
+          "text": "build_eagle_verify_input,"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "V2推测worker和NPU graph导入存在；具体MTP参数、接受长度分布及总成本仍未知。"
+    },
+    {
+      "id": "M032",
+      "title": "采样、grammar mask 与结构化输出",
+      "installed_path": "python/sglang/srt/speculative/spec_info.py",
+      "sha256": "a19e3bdfbb37cdc78c627b64a3a2769943d80579cfd5797238e03232ca241176",
+      "anchors": [
+        {
+          "line": 165,
+          "text": "def supports_grammar_overlap(self) -> bool:"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "实际算法能力判定比decode旧注释更细；EAGLE族等可声明支持，host-draft类按batch同步。CPU谓词不证明Ascend FSM/collective正确。"
+    },
+    {
+      "id": "M033",
+      "title": "增量反分词、SSE 合并与结束回收",
+      "installed_path": "python/sglang/srt/managers/detokenizer_manager.py",
+      "sha256": "90042a763006dba5a77d2a0e43abe17937ee287abaff13b9bf4b26f28f139bf4",
+      "anchors": [
+        {
+          "line": 75,
+          "text": "class DecodeStatus:"
+        },
+        {
+          "line": 303,
+          "text": "def _decode_batch_token_id_output(self, recv_obj: BatchTokenIDOutput):"
+        },
+        {
+          "line": 312,
+          "text": "s = DecodeStatus("
+        },
+        {
+          "line": 455,
+          "text": "self._decode_batch_token_id_output(recv_obj)"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "增量反分词存在；SSE合并和结束回收需端点/取消测试。"
+    },
+    {
+      "id": "M034",
+      "title": "Cache-aware routing 与副本亲和",
+      "installed_path": "docs/docs/advanced_features/sgl_model_gateway.mdx",
+      "sha256": "b8a324692ee4e6df4bca2dad7d37eb5a0b59e0562c8ae5ab967ccc279843301e",
+      "anchors": [
+        {
+          "line": 72,
+          "text": "- **Reliability core**: retries with jitter, worker-scoped circuit breakers, token-bucket rate limiting with queuing, background health checks, and cache-aware load monitoring."
+        },
+        {
+          "line": 82,
+          "text": "- **Load Monitor** feeds cache-aware and power-of-two policies with live worker load statistics."
+        },
+        {
+          "line": 149,
+          "text": "--policy cache_aware"
+        },
+        {
+          "line": 154,
+          "text": "--policy cache_aware"
+        },
+        {
+          "line": 213,
+          "text": "--policy cache_aware \\"
+        },
+        {
+          "line": 248,
+          "text": "--prefill-policy cache_aware \\"
+        },
+        {
+          "line": 274,
+          "text": "--policy cache_aware \\"
+        },
+        {
+          "line": 880,
+          "text": "<td style={{padding: \"9px 12px\", fontWeight: 500, backgroundColor: \"rgba(255,255,255,0.02)\"}}>`cache_aware`</td>"
+        },
+        {
+          "line": 882,
+          "text": "<td style={{padding: \"9px 12px\", backgroundColor: \"rgba(255,255,255,0.02)\"}}>`--policy cache_aware`</td>"
+        },
+        {
+          "line": 1985,
+          "text": "--policy cache_aware"
+        },
+        {
+          "line": 2227,
+          "text": "3. **Accept cache efficiency trade-off**: With multiple replicas, the cache-aware routing policy's radix tree is not synchronized across replicas. This means:"
+        },
+        {
+          "line": 2278,
+          "text": "--policy cache_aware"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "仅取得固定安装文档；实际gateway安装版本和副本数未知。单副本不做路由A/B，副本饱和不排除路由价值。"
+    },
+    {
+      "id": "M035",
+      "title": "PD 分离、KV connector 与异步传输",
+      "installed_path": "python/sglang/srt/disaggregation/ascend/conn.py",
+      "sha256": "ba9b4862d9f4e732c467ab367c9a2ad57509e5fb4bf3ce01c0e93e85cd0b1935",
+      "anchors": [
+        {
+          "line": 95,
+          "text": "class AscendKVManager(MooncakeKVManager):"
+        },
+        {
+          "line": 272,
+          "text": "def send_kvcache("
+        },
+        {
+          "line": 296,
+          "text": "return self._send_kvcache_generic("
+        },
+        {
+          "line": 407,
+          "text": "def send_kvcache_dcp("
+        },
+        {
+          "line": 428,
+          "text": "return super().send_kvcache_dcp("
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "Ascend连接器和DCP分支存在；复用PD-CHUNK索引，实际backend与发送时间线待证。"
+    },
+    {
+      "id": "M036",
+      "title": "会话 / 混合模型 / LoRA / 多模态扩展",
+      "installed_path": "docs/docs/advanced_features/lora.mdx",
+      "sha256": "4007f2686e485f31b45d8bbcc78d95a104a7672ef39f5adfc8a88023508c2651",
+      "anchors": [
+        {
+          "line": 2,
+          "text": "title: \"LoRA Serving\""
+        },
+        {
+          "line": 4,
+          "text": "description: \"SGLang multi-LoRA serving: S-LoRA and Punica techniques, dynamic adapter loading, GPU pinning, overlap loading, Triton and CSGMV backends.\""
+        },
+        {
+          "line": 6,
+          "text": "SGLang enables the use of [LoRA adapters](https://arxiv.org/abs/2106.09685) with a base model. By incorporating techniques from [S-LoRA](https://arxiv.org/pdf/2311.03285) and [Punica](https://arxiv.org/pdf/2310.18547), S"
+        },
+        {
+          "line": 9,
+          "text": "## Arguments for LoRA Serving"
+        },
+        {
+          "line": 12,
+          "text": "The following server arguments are relevant for multi-LoRA serving:"
+        },
+        {
+          "line": 14,
+          "text": "* `enable_lora`: Enable LoRA support for the model. This argument is automatically set to True if `--lora-paths` is provided for backward compatibility."
+        },
+        {
+          "line": 16,
+          "text": "* `enable_lora_overlap_loading`: Enable asynchronous LoRA weight loading in order to overlap H2D transfers with GPU compute. This should be enabled if you find that your LoRA workloads are bottlenecked by adapter weight "
+        },
+        {
+          "line": 18,
+          "text": "* `lora_paths`: The list of LoRA adapters to load. Each adapter must be specified in one of the following formats: &lt;PATH&gt; | &lt;NAME&gt;=&lt;PATH&gt; | JSON with schema &#123;\"lora_name\":str,\"lora_path\":str,\"pinned"
+        },
+        {
+          "line": 20,
+          "text": "* `max_loras_per_batch`: Maximum number of adaptors used by each batch. This argument can affect the amount of GPU memory reserved for multi-LoRA serving, so it should be set to a smaller value when memory is scarce. Def"
+        },
+        {
+          "line": 22,
+          "text": "* `max_loaded_loras`: If specified, it limits the maximum number of LoRA adapters loaded in CPU memory at a time. The value must be greater than or equal to `max-loras-per-batch`."
+        },
+        {
+          "line": 24,
+          "text": "* `lora_eviction_policy`: LoRA adapter eviction policy when GPU memory pool is full. `lru`: Least Recently Used (default, better cache efficiency). `fifo`: First-In-First-Out."
+        },
+        {
+          "line": 26,
+          "text": "* `lora_backend`: The backend of running GEMM kernels for Lora modules. Currently we support Triton LoRA backend (`triton`) and Chunked SGMV backend (`csgmv`). In the future, faster backend built upon Cutlass or Cuda ker"
+        }
+      ],
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "performance_result": "NOT_RUN",
+      "controller_note": "仅取得固定文档；会话/LoRA/多模态逐子功能核验，不默认开启非文本工作量。"
+    }
+  ]
+}
