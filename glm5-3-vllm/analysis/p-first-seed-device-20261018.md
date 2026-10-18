@@ -52,13 +52,28 @@
 
 已核16rank恢复target_on75/drafter_on5、关闭诊断写盘后保留模型。有限窗口续建后，官方代理四条stream/nonstream和实验代理三模式六条均实际HTTP200、完整64 IDs/text/usage通过。新guard f24e7b80…只收紧合同；旧正式计时仍归source249ce0c…，本次不重作性能结论。见recovery-v2/shared-overlap-{summary-v1,verdict-v1,snapshot-backup}.json、live3-functional-summary.json。
 
-下一候选核实原生max1仍做五步无后续输出的MTP，准备用现有完整skip分支进行有保护的判别与配对；尚无该候选故障或性能结论。
+## 删除完整单token任务的无用D草稿
+
+使用原生`_skip_drafting`，仅D/exporter0、async TP16/DP1/PP1/K5、整批max1、显式marker时改变原生fits布尔；target采样与原生skip的accepted-count/zero-placeholder处理保持。48请求、32focus×16rank=512份snapshot对齐，cold full-prefill真实target75保持、post-target MTP5→0。跳过仍有hidden/C1前后变化，故无用MTP不是该变化必要原因，不称故障修复。两distinct SFA mapping groups共1024组检查通过，但512份均省略更多groups，不能推广全KV内容或全部层状态。
+
+36条完整数值单token任务通过（先按正确性从旧24题预选8题，另加1536/1537长输入），长输入实际1024+512/513两chunk；max2/max64原生保护共12条三模式完整IDs/text/usage及16rank拒绝skip通过。官方PD max1实际target仍FULL、N-1 computed、6scheduled/padded和五个-1 spec占位，未假定query1；初次错误路径断言已保留，Python shared日志封顶200不能推断缺失的GPU层数。
+
+正式使用官方原样29880、同P/D、cold独立salt、四类D诊断写盘关闭、profile/export/传输结束。C1 ABBA×3每case/mode6次、24正式+4预热全部完整ID/text/usage通过：
+
+| N | native TTFT/last ms | skip TTFT/last ms | skip/native |
+|---|---:|---:|---:|
+|256|199.117|186.143|0.934843|
+|257|291.664|274.739|0.941970|
+
+等权geomean0.938400，约下降6.16%。单token TTFT=last，TPOT未定义。
+
+另冻固定C4 closed-loop4slots、每slot连续补充16次、64条/块、ABBA×3，每mode6块/384条，768formal+16warmup全通过。Native aggregate8.65605完整答案/s、TTFT median446.179/p95602.584ms；skip9.77816/s、421.502/459.586ms，即rate+12.96%、p95下降23.73%。双方在block边界idle后换marker，pipeline启动/排空时间计入块时间。Native各块7.29–9.33/s、skip9.76–9.79/s，原件全部保留；不是只选慢块，也不称最大SLO容量或一般64-token收益。结束已恢复native，四类observer关闭、模型保持Ready用于继续研究。证据recovery-v2/unused-draft-verdict-v1.json及其列明的完整metrics、contract、路径与SHA备份。
 
 ## SDMA 与一次修正
 
 实际 P opt-in 导出在16rank均有 pinned CPU、同 writer/constructor stream 和 native event完成记录。profile采用本地P完成，不创建remote KV所有权；全部16rank捕获的80条D2H通过队列→ACL API connection_id→设备task逐条关联，均PCIE_DMA_SQE。节点内/跨节点KV数据路径继续用此前已核的原生全SDMA基线；本次P profile本身不替代完整PD路径验收。16rank离线导出最后rank15因CPU解析超时截断，原件保留，只重新导出该rank成功后接受完整JSON；原模型未重启。
 
-第一次seed D请求在metadata校验前崩溃：错误访问AsyncScheduler.model_config。实际Scheduler持有vllm_config；修正为vllm_config.model_config.get_vocab_size()，补核原生构造函数实际属性后CPU10项通过。只重载D，保留P；首次失败、关闭及修复收据均保留。当前P使用初始build4ccffcc9a728的export，D使用修正build51b0ba0c1c21；二者其余四个overlay字节一致，P的adoption关闭，不执行该校验分支。
+第一次seed D请求在metadata校验前崩溃：错误访问AsyncScheduler.model_config。实际Scheduler持有vllm_config；修正为vllm_config.model_config.get_vocab_size()，补核原生构造函数实际属性后CPU10项通过。只重载D，保留P；首次失败、关闭及修复收据均保留。当时P使用初始build4ccffcc9a728且adoption关闭；后续必要续窗已换修正build51b0ba0c1c21，D判别版本的四个非NPU overlays保持字节一致。
 
 ## 入口与证据
 

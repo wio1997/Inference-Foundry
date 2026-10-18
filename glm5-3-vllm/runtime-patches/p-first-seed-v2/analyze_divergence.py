@@ -20,6 +20,8 @@ def main():
     snapshots=[row for row in records if row.get('kind')=='target_tensor_snapshot']
     errors=[row for row in records if row.get('kind') in ('probe_capture_refused','probe_dump_error','shared_overlap_refused')]
     policies=[row for row in records if row.get('kind')=='shared_overlap_actual_calls']
+    decisions=[row for row in records if row.get('kind')=='unused_draft_decision']
+    skips=[row for row in records if row.get('kind')=='native_skip_drafting_executed']
     clients=json.loads(args.client.read_text())
     assert clients['completed']
     cache={}
@@ -78,6 +80,20 @@ def main():
                 counts=selected[0]['calls'];key='target_on' if expected else 'target_off'
                 assert counts.get(key,0)>0 and counts.get('target_off' if expected else 'target_on',0)==0
                 policy_calls.append(counts)
+            if snapshot.get('diagnostic_mode') in ('draft-native','draft-skip'):
+                expected=snapshot['diagnostic_mode']=='draft-skip'
+                assert snapshot.get('actual_shared_overlap_enabled') is True
+                assert client['diagnostic_mode']==snapshot['diagnostic_mode']
+                chosen=[decision for decision in decisions if decision['tp_rank']==rank and snapshot['request_id'] in decision['request_ids']]
+                native_skips=[skip for skip in skips if skip['tp_rank']==rank and snapshot['request_id'] in skip['request_ids']]
+                assert len(chosen)==1 and chosen[0]['native_fits'] and chosen[0]['eligible_all_max1_D_TP16_DP1_PP1']
+                assert chosen[0]['selected_skip'] is expected
+                assert len(native_skips)==(1 if expected else 0)
+                selected=[policy for policy in policies if policy['tp_rank']==rank and snapshot['request_id'] in policy['request_ids']]
+                assert len(selected)==1 and selected[0]['enabled'] is True
+                counts=selected[0]['calls'];assert counts.get('target_on')==75 and not counts.get('target_off')
+                assert counts.get('after_target_on',0)==(0 if expected else 5)
+                policy_calls.append(counts)
             output=snapshot['native_output']
             index=output['req_ids'].index(snapshot['request_id'])
             assert output['sampled_token_ids'][index]==[row['API_token_id']]
@@ -106,6 +122,7 @@ def main():
                    hidden_distinct_rank_hashes=len({ranks[i]['hidden']['sha256'] for i in range(16)}),
                    logits_distinct_rank_hashes=len({ranks[i]['logits']['sha256'] for i in range(16)}),
                    lmhead=rank0['lmhead'],raw_argmax_ids=argmax,
+                   SFA_attention=rank0.get('attention'),
                    candidate_logits={str(token):float(logits[token]) for token in alternatives},
                    candidate_margin=float(logits[alternatives[0]])-float(logits[alternatives[1]]))
 
