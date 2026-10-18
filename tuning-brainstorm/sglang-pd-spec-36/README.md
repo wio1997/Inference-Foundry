@@ -46,6 +46,8 @@
 
 - [M005/M006/M011：真实 NPU allocator、485 项 CPU 合同与小页 native 门槛](evidence/2026-10-19-npu-allocator-page-contract/README.md)
 
+- [M005/M017：实际页计数调用链、173 项 CPU 合同与同步候选边界](evidence/2026-10-19-extend-page-count-callers/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -58,7 +60,7 @@
 | [M002](points/M002.md) | 进程分工、IPC 与流式背压 | 待路径核验 | config |
 | [M003](points/M003.md) | CPU affinity / NUMA / 线程数 | 待路径核验 | config |
 | [M004](points/M004.md) | Continuous batching 与请求状态机 | 待路径核验 | conditional_candidate |
-| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | 真实 NPU allocator CPU 页合同/预算耦合已核验；原生准入未决 | config |
+| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | NPU allocator 与页计数 CPU 调用合同已核验；原生准入未决 | config |
 | [M006](points/M006.md) | Chunked Prefill 的游标与预算 | 16K chunk 与 200 页分支边界已界定；native 成功路径未验证 | config |
 | [M007](points/M007.md) | Mixed batch 与 ragged / packed 输入 | 条件不适用 | not_applicable |
 | [M008](points/M008.md) | Cache-aware scheduling：LPM / DFS-weight | 待路径核验 | config |
@@ -70,7 +72,7 @@
 | [M014](points/M014.md) | 预取、写回与 layer/page 布局 | 待路径核验 | config |
 | [M015](points/M015.md) | CPU / 设备 overlap 调度 | 待路径核验 | existing |
 | [M016](points/M016.md) | Future token / placeholder 与依赖解析 | 待路径核验 | conditional_candidate |
-| [M017](points/M017.md) | 持久状态、增量更新与 GPU metadata | 安装消费者与CPU反证已核验；NPU待测 | conditional_candidate |
+| [M017](points/M017.md) | 持久状态、增量更新与 GPU metadata | 目标镜像 CPU 元数据与页计数合同已核验；同步收益未测 | conditional_candidate |
 | [M018](points/M018.md) | Pinned buffer、异步 H2D 与写读竞态 | 平台声明与CPU所有权已核验；NPU待测 | conditional_candidate |
 | [M019](points/M019.md) | 多 stream、event 与资源竞争 | 布局/包装层已核验；原生接口及性能未决 | conditional_candidate |
 | [M020](points/M020.md) | TBO / SBO vs vLLM DBO | 待路径核验 | config |
