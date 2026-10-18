@@ -58,4 +58,22 @@
 
 新D Ready后，16rank每个N6/12/18/24捕获均实际记录75次prefix、75次fused GMM1与75次恢复原生GMM2；功能16、C4功能8、cached16、quality52数值全部通过，完整64仅19/26相同。按有限gate暂停正式性能，保留全部差异；7个case的native-A/原生副图/target-i32/native-B共28条对照数值全过，**初次和复测的每种candidate完整序列均在原生或原生副图中实际出现**，4个case原生A/B本身不同。因此允许继续有限服务计时，不声称通用质量接受或已证明无害舍入。
 
-旧P剩余有限时长不足完整验收，SHA备份并空闲停止后只替换P，保留已加载D。正式结果尚待新P Ready及新真实PD功能检查；精确CID、有限期限与唯一运行标签见HANDOFF。证据为`cumsum-i32-fragment/`、`cumsum-i32-full-fragment/`、`cumsum-i32-paths-v2-summary.json`、`cumsum-i32-quality-control-summary.json`、`cumsum-i32-quality-reviewed.json`。
+旧P剩余有限时长不足完整验收，SHA备份并空闲停止后只替换P，保留已加载D。新P Ready626.78s，fresh真实PD功能8条及all16路径通过，observer关闭后完成同设计C1/C4正式对照：
+
+| 指标 | 原生count | int32中间prefix | 变化 |
+|---|---:|---:|---:|
+| C4 吞吐 | 160.581 tok/s | 158.167 tok/s | **−1.50%** |
+| C1 TTFT 等case比 | 1 | 0.999067 | −0.09% |
+| C1 完成延迟等case比 | 1 | 0.970873 | −2.91% |
+| C1 TPOT 等case比 | 1 | 0.963332 | −3.67% |
+| C4 p95 TTFT | 1412.843 ms | 1583.128 ms | **+12.05%** |
+| C4 p95 完成延迟 | 3331.588 ms | 3269.085 ms | −1.88% |
+| C4 p95 每请求平均TPOT | 23.904 ms | 22.455 ms | −6.06% |
+
+三轮吞吐分别 **+3.85%/−7.28%/−0.51%**。所有块保留，未重复同样整轮以寻求有利结果。C1双方各生成768 tokens、draft270、accepted522，计数相同；不能把计数恒等式当作完整设备/host归因。取消10条、完整peer/reuse16条通过，队列/KV回零；明确backend abort日志/计数0。预先冻结的联合gate未通过，结论为 **`REJECT_DEFAULT_OFF_CUMSUM_I32`**，RoPE已验证改动继续保留。
+
+此前仅RoPE的完整PD8 trace中，375个target `Cumsum`和25个MTP `aclnnCumsum_CumsumAiCpu_Cumsum`实际标为AI_CPU，中位44.549μs；这是旧条件的profiler诊断，不是当前服务耗时。新条件的一次PD8短profile已完成：**target375个MemSet+375个Cumsum实际为AI_VECTOR_CORE，MTP25个仍AI_CPU**，完整图的表示变更确实生效，RoPE整表Slice仍为0。25个MTP core CPU中位1960.41μs，首compute比CPU结束晚11.76–32.85ms，采样下仍有排队提前量。该单请求profile不能唯一解释C4回退，也不作为未采样关键路径证明。
+
+全16采集停止，rank0 CPU导出102.82s结束；raw584156934B，Mac外层备份88122061B、SHA `b5e1328f03d6ca139e8ee99d1044dccc391e89635129ebf5a8113de38262369d`。rank0另见9774个SDMA_SQE，通信矩阵LOCAL/SIO/HCCS，无RDMA命名任务；这不替代原始32rank PD验收或逐byte归因。最终P/D/proxy均健康且空闲，拒绝的CDF selector关闭，RoPE保持启用；模型/proxy/源码另有SHA快照。
+
+下一待验证候选是routing直接prefix后用原生utility恢复GMM2 count，先在完整NZ链片段验证，从而进一步区分CDF成本与GMM2 list type。该假设尚无新设备结果，不能列为收益。精确CID、有限期限与唯一运行标签见HANDOFF。证据为`cumsum-i32-reviewed-verdict-v1.json`、`cumsum-i32-formal-contract-v1.json`、`cumsum-i32-supply-analysis-v1.json`、`cumsum-i32-sdma-sanity-v1.json`及片段/quality/control原件。
