@@ -7,6 +7,8 @@
 ## 从这里开始
 
 - [第一份笔记：SGLang 前缀缓存与 CPU 调度开销](2026-10-18-sglang-prefix-cache.md)
+- [减少重复工作：共享路径锁维护与插入游标（008 / 009）](2026-10-18-sglang-equivalent-work.md)
+- [两处候选的交互图解](diagrams/equivalent-work.html)（教学操作量，非服务性能实测）
 - [可操作图解：当前 LRU 做法与候选改法](diagrams/lru-current-vs-candidate.html)（HTML 下载后可在本地浏览器打开；GitHub 文件页显示源码）
 - [新增记录模板](TEMPLATE.md)
 - [记录约定](AGENTS.md)
@@ -16,13 +18,15 @@
 
 | ID | 想法 | 希望减少的成本 | 当前状态 |
 | --- | --- | --- | --- |
-| [CACHE-001](2026-10-18-sglang-prefix-cache.md#cache-001) | 持久维护淘汰候选，减少反复建堆 | 淘汰时 CPU 开销 | 源码已定位；改法待验证 |
+| [CACHE-001](2026-10-18-sglang-prefix-cache.md#cache-001) | 持久维护淘汰候选，减少反复建堆 | 淘汰时 CPU 开销 | 已有相关 PR #38371；目标适用性待验证 |
 | [CACHE-002](2026-10-18-sglang-prefix-cache.md#cache-002) | 批量回收，保留空槽余量 | 淘汰启动次数 | 待验证假设 |
 | [CACHE-003](2026-10-18-sglang-prefix-cache.md#cache-003) | 抽样近似 LRU | 候选检查量 | 待验证假设；会改变淘汰选择 |
 | [CACHE-004](2026-10-18-sglang-prefix-cache.md#cache-004) | 对照已有 LFU / SLRU / priority / T-LRU | 后续未命中与重复前向 | 已有策略；适用性待验证 |
 | [CACHE-005](2026-10-18-sglang-prefix-cache.md#cache-005) | 合并同批共享路径的访问记录刷新 | 重复路径维护 | 源码已定位；时序与语义待验证 |
 | [CACHE-006](2026-10-18-sglang-prefix-cache.md#cache-006) | 简单缓存场景的轻量匹配路径 | Python 分配与回调 | 源码已定位；改法待验证 |
-| [CACHE-007](2026-10-18-sglang-prefix-cache.md#cache-007) | 减少可避免的索引拼接与复制 | 索引分配、复制和小操作提交 | 源码已定位；所有权待验证 |
+| [CACHE-007](2026-10-18-sglang-prefix-cache.md#cache-007) | 减少可避免的索引拼接与复制 | 索引分配、复制和小操作提交 | 已有相关 PR #42923 / #43023 / #43600；剩余点待验证 |
+| [CACHE-008](2026-10-18-sglang-equivalent-work.md#cache-008) | 已有 FULL 引用时省掉重复集合删除尝试 | 共享锁路径的 Python 集合操作 | 有限状态对照通过；完整正确性 / 性能待验证 |
+| [CACHE-009](2026-10-18-sglang-equivalent-work.md#cache-009) | 插入遍历使用 offset，减少临时 token 后缀复制 | 长输入、多节点的 CPU 复制 | 纯遍历对照通过；完整插入状态机待验证 |
 
 ## 怎样继续记录
 

@@ -143,3 +143,13 @@
 6. 正确性保护用例、重复基线与噪声、接受 / 否定条件。
 
 当前下一步是补观测与稳定基线；本笔记不把修改任何线上配置或启动 benchmark 当作已经完成的工作。
+
+## 2026-10-18 查重补记
+
+后续查询发现，不能把以下方法作为本次原创：
+
+- CACHE-001：已有持久惰性堆实现 [#38371](https://github.com/sgl-project/sglang/pull/38371)，查询时 open、未合并。
+- CACHE-007：[#42923](https://github.com/sgl-project/sglang/pull/42923) 已将匹配接口改为返回长度、按需物化索引；[#43023](https://github.com/sgl-project/sglang/pull/43023) 已将回载接口改为返回长度，两项均 merged。部分内部路径仍有先收集再取长度的工作。
+- CACHE-007：[#43600](https://github.com/sgl-project/sglang/pull/43600) 已写出 `full_device_path_len`，并在结束请求处理时省去无用路径索引和映射重写；查询时 open、未合并。“只求长度就不拼数组”已有先例。
+
+上述状态不等于对 PR 性能数字的独立复现。另记录了 [CACHE-008 / 009 的具体候选与有限对照](2026-10-18-sglang-equivalent-work.md)；其中候选未集成到生产框架，也没有真实推理加速结论。
