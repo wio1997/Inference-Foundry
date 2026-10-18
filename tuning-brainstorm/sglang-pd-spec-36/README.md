@@ -40,6 +40,8 @@
 
 - [M023/M026/M028/M030：MoE生命周期、W8制品描述与114项源码CPU检查](evidence/2026-10-19-npu-moe-contract/README.md)
 
+- [M005/M006：PD prefill预算、提交后停止与57项源码CPU检查](evidence/2026-10-19-pd-prefill-budget/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -52,8 +54,8 @@
 | [M002](points/M002.md) | 进程分工、IPC 与流式背压 | 待路径核验 | config |
 | [M003](points/M003.md) | CPU affinity / NUMA / 线程数 | 待路径核验 | config |
 | [M004](points/M004.md) | Continuous batching 与请求状态机 | 待路径核验 | conditional_candidate |
-| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | 待路径核验 | config |
-| [M006](points/M006.md) | Chunked Prefill 的游标与预算 | 待路径核验 | config |
+| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | 固定池准入/预留源码与CPU状态已核验；实际分配未决 | config |
+| [M006](points/M006.md) | Chunked Prefill 的游标与预算 | PD局部chunk/提交源码模型已核验；设备工作量/性能未决 | config |
 | [M007](points/M007.md) | Mixed batch 与 ragged / packed 输入 | 条件不适用 | not_applicable |
 | [M008](points/M008.md) | Cache-aware scheduling：LPM / DFS-weight | 待路径核验 | config |
 | [M009](points/M009.md) | Paged KV、请求映射与预分配池 | 待路径核验 | conditional_candidate |
