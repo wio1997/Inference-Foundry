@@ -48,13 +48,13 @@
 
 ## Shared-expert分支反证与当前入口
 
-同实例on/off/off/on共48请求，32重点请求×16rank=512份snapshot齐全。每rank真实native target75、MTP5次shared executor调用已核，开关实际生效。关闭重叠后C4仍有hidden/logits差异，C1-before/after的3/4对也不同；开启时4/4对不同。两case第一次C1-before跨模式hidden/logits完全相同。本轮否定该分支是这些差异的必要/唯一原因；不证明无害数值变化或其从不参与。
+同实例on/off/off/on共48请求，32重点请求×16rank=512份snapshot齐全。每rank真实native target shared-forward75、MTP5次shared executor调用已核，开关实际生效。关闭重叠后C4仍有hidden/logits差异，C1-before/after的3/4对也不同；开启时4/4对不同。两case第一次C1-before跨模式hidden/logits完全相同。本轮否定该分支是这些差异的必要/唯一原因；不证明无害数值变化或其从不参与。
 
 已核16rank恢复target_on75/drafter_on5、关闭诊断写盘后保留模型。有限窗口续建后，官方代理四条stream/nonstream和实验代理三模式六条均实际HTTP200、完整64 IDs/text/usage通过。新guard f24e7b80…只收紧合同；旧正式计时仍归source249ce0c…，本次不重作性能结论。见recovery-v2/shared-overlap-{summary-v1,verdict-v1,snapshot-backup}.json、live3-functional-summary.json。
 
 ## 删除完整单token任务的无用D草稿
 
-使用原生`_skip_drafting`，仅D/exporter0、async TP16/DP1/PP1/K5、整批max1、显式marker时改变原生fits布尔；target采样与原生skip的accepted-count/zero-placeholder处理保持。48请求、32focus×16rank=512份snapshot对齐，cold full-prefill真实target75保持、post-target MTP5→0。跳过仍有hidden/C1前后变化，故无用MTP不是该变化必要原因，不称故障修复。两distinct SFA mapping groups共1024组检查通过，但512份均省略更多groups，不能推广全KV内容或全部层状态。
+使用原生`_skip_drafting`，仅D/exporter0、async TP16/DP1/PP1/K5、整批max1、显式marker时改变原生fits布尔；target采样与原生skip的accepted-count/zero-placeholder处理保持。48请求、32focus×16rank=512份snapshot对齐，cold full-prefill真实target shared-forward75保持、post-target MTP5→0。跳过仍有hidden/C1前后变化，故无用MTP不是该变化必要原因，不称故障修复。两distinct SFA mapping groups共1024组检查通过，但512份均省略更多groups，不能推广全KV内容或全部层状态。
 
 36条完整数值单token任务通过（先按正确性从旧24题预选8题，另加1536/1537长输入），长输入实际1024+512/513两chunk；max2/max64原生保护共12条三模式完整IDs/text/usage及16rank拒绝skip通过。官方PD max1实际target仍FULL、N-1 computed、6scheduled/padded和五个-1 spec占位，未假定query1；初次错误路径断言已保留，Python shared日志封顶200不能推断缺失的GPU层数。
 
@@ -68,6 +68,31 @@
 等权geomean0.938400，约下降6.16%。单token TTFT=last，TPOT未定义。
 
 另冻固定C4 closed-loop4slots、每slot连续补充16次、64条/块、ABBA×3，每mode6块/384条，768formal+16warmup全通过。Native aggregate8.65605完整答案/s、TTFT median446.179/p95602.584ms；skip9.77816/s、421.502/459.586ms，即rate+12.96%、p95下降23.73%。双方在block边界idle后换marker，pipeline启动/排空时间计入块时间。Native各块7.29–9.33/s、skip9.76–9.79/s，原件全部保留；不是只选慢块，也不称最大SLO容量或一般64-token收益。结束已恢复native，四类observer关闭、模型保持Ready用于继续研究。证据recovery-v2/unused-draft-verdict-v1.json及其列明的完整metrics、contract、路径与SHA备份。
+
+## 完整单token任务在P结束
+
+独立CPU29882在原官方代理副本加入显式、严格max1合同的早期分支，其他原函数/类及handler剩余AST保持。P入队前两个remote标志均false，安装的原生Mooncake调度器不建立远端发送所有权，完成即原生释放；不伪造D ACK。P原生MTP1保持，转发真实完整P响应。默认仍native，该入口不能替代需要继续生成的一般PD请求。
+
+同一实例native PD28条、P-local28条完整数值答案通过，含8个此前预选短题和两个长输入的stream/nonstream/C4。Local期间D成功完成delta0，末两engine running/waiting/KV_usage与代理request_num均0。8次client-close后8次完整token立即复用通过；P abort delta0，不称8次backend abort。
+
+保护回退第一条64输出与旧C1参考失配，完整失败原件保留。随后16条native/local-header fallback ABBA中，N256 native自身也有完整64变化；N257 native两次相同而一次selected fallback不同。首两ID/长度/usage均通过，但严格一般64逐序列门槛仍未通过，不能归因为代理或断言无害。只在已验证的完整max1范围研究，不把回退一般质量接受伪装成通过。合同v2在正式计时前写明这一边界。
+
+相同CPU29882、相同完整P/D资源，原PD开启已验证D max1 skip作较强baseline，P-local不调用D。C1 cold ABBA×3共24formal+4warmup全部完整IDs/text/usage通过：
+
+| N | PD-skip TTFT/last ms | P-local TTFT/last ms | P-local/PD-skip |
+|---|---:|---:|---:|
+|256|189.023|130.264|0.689142|
+|257|276.427|217.557|0.787033|
+
+等权倍率0.736463，约下降26.35%；单token TTFT=last，TPOT未定义。四类D诊断写盘关闭、P trace env0、profile/export/传输结束。
+
+固定C4 closed-loop4slots、64条/块、ABBA×3，768formal+16warmup全部完整IDs/text/usage通过。PD-skip aggregate7.90740完整答案/s、TTFT median505.661/p95636.178ms；P-local8.88680/s、444.027/634.068ms。rate倍率1.123857、p950.996683：完成率的有限点观察增加12.39%，p95基本持平。PD各块7.23–9.73/s、P-local7.31–9.97/s，波动明显，不称稳定容量增益。不能与上一个时段官方PD-skip9.77816/s直接连乘；两轮源/入口/运行条件明确区分。结束恢复native marker，代理计数也在块边界等待归零。
+
+## P阶段的256/257边界诊断
+
+为区分原两题不同内容的混淆，分别给两个原算术题构造256/257交叉输入：仅增一个无关空行token或删一处无关note冒号，最后32个数学输入token不变，detokenize验证问题尾行相同。每个输入先预热，按每题256/257/257/256×3，六次/长度/题、24formal+4warmup全部完整答案通过。P-local C1中，84题129.660→217.426ms（倍率1.676899），79题130.287→217.946ms（1.672812），等权1.674854。内容和后续位置也随编辑改变，这一一致现象尚不证明具体算子或状态原因。
+
+下一步仅用现有P原生profiler捕获实际算子形状和成本，代表rank0分析、保留all16原始来源；不把profile请求延迟当正式计时，不直接盲改chunk阈值。新入口源码、保护失败、质量、取消、计时、SHA备份与边界合同均在recovery-v2/local-complete-*、prefill-boundary-*。当前运行身份与有限窗口见HANDOFF。
 
 ## SDMA 与一次修正
 

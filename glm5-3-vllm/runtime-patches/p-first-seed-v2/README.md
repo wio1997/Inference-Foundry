@@ -19,3 +19,9 @@ CPU harness 使用原生 Request、SamplingParams、CachedRequestState、实际 
 首次快照12请求×16rank=192份通过：实际query IDs/positions、native event及API输出均匹配，C1 hidden/logits重复一致，C4五个请求在最终hidden已不同；部分物理B1同shape仍变化，C4后第一条C1 Top5也改变、随后恢复。它定位到LM head之前，尚不能证明具体故障或无害舍入。
 
 `--divergence-probe --shared-overlap-probe`另追加默认关闭的`shared_overlap_probe.py`，用同实例ABBA检验已有shared-expert overlap分支。只选择原执行器的布尔，target/MTP都覆盖，SP-only因初始化会选不同op而拒绝。必须从16rank真实native forward调用证明开关生效，未知inventory保留native并拒绝试验。该模式每history/mode/rank上限8次，`probe_shared_overlap.py`提交48请求/32重点请求，含C1-before/C4/C1-after；以对应冻结合同解释，诊断不作性能验收。
+
+`--unused-single-token-probe --attention-state-probe`在D中追加有保护的原生skip选择与有限SFA元数据快照。D async TP16/DP1/PP1/K5、整批max1、显式marker时，原target采样保持，执行原生`_skip_drafting`。512份快照实测冷full-prefill target shared-forward75、MTP5→0；skip仍有hidden变化，未修复该现象。两mapping groups检查不能代表全部KV。完整单token质量、max2/64保护和官方PD C1/C4证据见`unused-draft-verdict-v1.json`：C1延迟倍率0.938400，固定C4 rate1.129633、p950.762692，均只限完整单token任务，TPOT未定义，不是一般64输出/最大容量结论。结束恢复native。
+
+`local_complete_proxy_helper.py`和`build_local_complete_proxy.py`在原官方proxy副本插入两语句guard，其他原生函数/类及handler remainder的AST保持。独立CPU29882、显式`X-GLM53-Route:p-complete`、严格完整greedy max1合同下，给P的两个remote标志在入队前均置false，转发P原生真实响应，不创建等待D ACK的KV所有权；P原生MTP1仍运行。不需要D的完成请求不是一般PD负载替代。原29880/29881不改，新CPU watchdog早于精确P父CID，无NPU设备。
+
+新路径28条local+28条native完整答案通过，local期间D完成delta0、末KV/代理计数0；8次client close后8次reuse通过但P abort delta0。64回退与旧参考失配、匹配native自身变化均保留，严格一般64序列门槛未过，不默认该入口。有限正确性预选max1 C1中，相对已启用D skip的较强PD baseline，延迟倍率0.736463；C4共768formal完整答案通过，aggregate rate1.123857、p950.996683且各块明显波动，不能称稳定容量提升。冻结合同v2明确这些边界。当前源码身份、精确CID、marker与有限窗口只查HANDOFF；单个脚本的旧root不代表现场状态。
