@@ -1,5 +1,7 @@
 结论：候选应收窄为**把 D 初始有效 query 从最后一个 prompt token 推进到 P 已知首输出 y1**。这在状态齐全时有条件可行；保持现有 MTP5 补齐规则，首批仍是每请求6行，C4仍可为24行，不能称为省掉一次完整模型迭代。当前原生 wire 尚不能传入这份初始输出 history，最后 prompt 行及 MTP 前缀的物理有效性也未证实，本轮不强行实现新设备原型。全程仅本机文件核验，无 SSH、设备请求、续租或在线压测。
 
+首批6→6只说明首批未删，不证明整请求绝不可能少一次target forward；最终须比较同预算/同采样完整请求的实际前向次数。[下一步审阅包](../diagnostics/p-first-state-v1/README.md)已准备边界、两输入和身份核验，**设备捕获适配器尚未实现，不应据此申请窗口**；当前建议先做无需占卡的镜像源码身份核验。包内Mac检查也不是设备状态/事件回放验证。
+
 令 prompt 长度为 N。存档的 P metadata 声明 `remote_num_prompt_tokens=N`，原生 D 两轮冷 C1 每6请求的 external hits 分别为1536/6144，即每请求256/1024，支持“声明接收 N”。原生 `_update_waiting_for_remote_kv` 在完整命中时把 computed=N 回退到 N−1，为重新采样留下最后 query；这不是物理 KV 少一行的证明。若先用原生 append 把 y1 记为输出，则 all_tokens=N+1、outputs=1、computed仍N，原生晋升方法不再触发该回退。把 computed 直接加到 N+1 则错误地把 y1 的 target KV 当成已经算出。
 
 | 边界 | 已核实的具体限制 |
