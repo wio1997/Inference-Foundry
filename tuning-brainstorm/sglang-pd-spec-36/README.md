@@ -20,6 +20,8 @@
 
 - [M021：1633组CPU形状/准入策略与2/3桶反例](evidence/2026-10-19-graph-shape-support/README.md)
 
+- [M019：Q/K副流布局门控与Stream/Event参数合同](evidence/2026-10-19-qk-stream-contract/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -46,7 +48,7 @@
 | [M016](points/M016.md) | Future token / placeholder 与依赖解析 | 待路径核验 | conditional_candidate |
 | [M017](points/M017.md) | 持久状态、增量更新与 GPU metadata | 安装消费者与CPU反证已核验；NPU待测 | conditional_candidate |
 | [M018](points/M018.md) | Pinned buffer、异步 H2D 与写读竞态 | 平台声明与CPU所有权已核验；NPU待测 | conditional_candidate |
-| [M019](points/M019.md) | 多 stream、event 与资源竞争 | 待路径核验 | conditional_candidate |
+| [M019](points/M019.md) | 多 stream、event 与资源竞争 | 布局/包装层已核验；原生接口及性能未决 | conditional_candidate |
 | [M020](points/M020.md) | TBO / SBO vs vLLM DBO | 待路径核验 | config |
 | [M021](points/M021.md) | 图捕获、形状桶与 replay | 安装与CPU策略已核验；NPU图性能未决 | config |
 | [M022](points/M022.md) | 算子融合、编译与中间张量复用 | 待路径核验 | config |
