@@ -9,12 +9,12 @@ try:
 except Exception as ex:r['api_error']=str(ex)
 print(json.dumps(r))
 """.replace('RUN',repr(p['remote']['run_dir']))
-with (e/'prefill-attention-startup-watch.jsonl').open('x') as out:
+with (e/'prefill-attention-startup-watch.jsonl').open('a') as out:
  while True:
   q=subprocess.run(ssh+['kubectl exec -i -n default sglang-node-access-32 -- nsenter -t 1 -m -- python3 -'],input=code,text=True,capture_output=True,timeout=40);assert q.returncode==0,q.stderr;row=json.loads(q.stdout);out.write(json.dumps(row)+'\n');out.flush();print(json.dumps({'elapsed':row['elapsed_host_s'],'ready':row['ready'],'running':row['state']['Running'],'errors':row['errors'],'tail':row['tail'][-2:]}),flush=True)
   if row['ready'] or not row['state']['Running'] or row['elapsed_host_s']>=900:break
   time.sleep(20)
 if not row['ready'] and row['state']['Running']:
- cleanup="import json,pathlib,subprocess;root=pathlib.Path(ROOT);p=json.loads((root/'plan.json').read_text());l=json.loads((root/'launch.json').read_text());d=json.loads(subprocess.check_output(['docker','inspect',l['container_id']]))[0];assert d['Id']==CID and d['Name']=='/'+p['container']['name'] and d['Image']==p['image']['id'];q=subprocess.run(['docker','stop','-t','30',CID],capture_output=True,text=True,timeout=40);print(json.dumps({'stopped_own_failed_P':q.returncode==0,'CID':CID}))".replace('ROOT',repr(p['remote']['run_dir'])).replace('CID',repr(row['cid']))
+ cleanup="import json,pathlib,subprocess;root=pathlib.Path(ROOT);p=json.loads((root/'plan.json').read_text());l=json.loads((root/'launch.json').read_text());d=json.loads(subprocess.check_output(['docker','inspect',l['container_id']]))[0];assert d['Id']==CID and d['Name']=='/'+p['container']['name'] and d['Image']==p['image']['id'];q=subprocess.run(['docker','stop','-t','30',CID],capture_output=True,text=True,timeout=40);print(json.dumps({'stopped_own_failed_P':q.returncode==0,'container_id':CID}))".replace('ROOT',repr(p['remote']['run_dir'])).replace('CID',repr(row['cid']))
  q=subprocess.run(ssh+['kubectl exec -i -n default sglang-node-access-32 -- nsenter -t 1 -m -- python3 -'],input=cleanup,text=True,capture_output=True,timeout=55);row['failure_cleanup']={'rc':q.returncode,'stdout':q.stdout,'stderr':q.stderr}
 (e/'prefill-attention-startup-outcome.json').write_text(json.dumps(row,indent=2)+'\n');assert row['ready'],row

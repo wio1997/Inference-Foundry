@@ -105,3 +105,21 @@
 当前官方原样 proxy 在 http://172.16.12.32:29880 ，P32:29481、D33:29482，model=glm5。官方proxy不传实验私有开关，保持native control；使用原SHA85b89829…，CPU容器无NPU设备，有限watchdog早于P模型。其cold N256/257、stream/nonstream四条64-token请求HTTP200、逐token一致。
 
 主要证据目录：`evidence/20261018-p-first-seed-device-v2/`，修正后的功能、质量与配对计时见其`recovery-v2/`。完整profile/探针源与console原件在SHA备份收据指向的本机`glm53-execution-evidence-backup/20261018-p-first-seed-device-v2/`。不把单次失败、有限实验或本次提交当作整个研究目标完成。
+# P 图补齐的后续判别（2026-10-18）
+
+普通 PD 的 P 协议仍是 max_tokens=1、remote_decode=True，用户输出为完整64/128；下列结果不使用 P 局部完成替代 D。两个数学题各自256/257交叉输入，完整答案全部正确，P阶段均由约130ms增至218ms。原生profile中，N257的78个主干MlaProlog输入为1024行，另一个MTP为真实257行；N256均为256行。完整请求的MoE GMM token×top8相应为8192和2048。算子duration可重叠，不能直接相加当wall分解。原件全16rank已SHA备份，rank0导出/CSV摘要及来源在recovery-v2/prefill-boundary-*。
+
+同实例显式选择原生force_eager消除P整体补齐，all16证实257→257、长尾512/513→实际长度，而256/1024保持图。26题每mode各26条完整输出均完成数值任务，完整64序列仅18/26跨mode一致；共享salt的实际cache复用和结束KV归零均另核。严格一般序列质量未接受，原生自身变化不被认定无害。
+
+该直接eager方案被正式服务测量否定：原样官方29880、64输出、ABBA×3的24formal+4warmup，等权TTFT倍率1.037430、last1.051912、meanTPOT1.044587。四slot、短长输入64/128混合、ABBA×2的256formal+8warmup全部完整/数值通过，output118.831→110.133tok/s（0.926806）。虽然pooledTTFT及last中位数下降，吞吐变差，不能只取改善项。native/adaptive原始块和分位保留，见recovery-v2/prefill-padding-verdict-v1.json；已恢复关闭，不作为默认优化。
+
+下一原型保留原捕获图与图桶，只把图外attention的原生metadata长度由graph padding改为实际token，填零输出padding行以定义后续图输入。原生SFA与ACLGraph源码和镜像SHA一致，24项CPUguard/buffer检查通过；现阶段尚无设备形状/质量/性能接受。此处记录假设与边界，不晋升为通用优化结论。当前现场见HANDOFF。
+# 2026-10-18 后续执行机制判别
+
+图外P attention裁剪已完成物理取证：主干MlaProlog从78×1024变为78×257，MoE仍75×8192，额外78次767×6144清零约0.925ms。C1 N257 TTFT约−13.6%，但last约+4.4%；固定C4吞吐×0.988313，不能作为联合服务收益，默认关闭。全16 raw profile已SHA备份，rank0 CSV14561行全部对应实际P RPC窗口；重叠kernel durations不当作wall时间分解。
+
+D静态SFA回放中省去通用host synchronize，all16真实cached graph/host tasks0路径已核；两次26题×2均数值正确、完整64序列26/26同。第一次静态slot C4 aggregate+5.25%，但两个cycle分别+11.2%/−1.0%，首native块异常慢。预先冻结的均衡slot复核384formal+16warmup全部完整/数值正确：140.826→142.191 output tok/s（+0.97%），三cycle −0.21%/−0.75%/+4.00%；C1 TTFT基本不变、last/TPOT不足0.4%。p95 TTFT1496.565→1540.171ms、last3886.226→3832.877、TPOT27.073→27.986。判定INCONCLUSIVE，保持native，不追加此版benchmark，不宣称最大SLO容量。
+
+取消验证10次首token后关闭、16个后续/同批完整响应均通过，P/D running/waiting/KV回零。原日志parser误把requestID内cancel算作取消，原件保留；去ID再按单词匹配后明确backend abort日志0，abort counter delta0，因此撤回明确backend abort证明。见recovery-v2/sfa-replay-order-live2-cancel-correction-v1.json。
+
+下一原型仅捕获现有MTP纯FFN，不捕获attention/KV、不打开不支持的整MTP图、不改算子/精度。14项CPU控制测试通过；新D有限窗口保持P和官方proxy，设备功能/SDMA复制路径与正式收益尚未验收。合同、构建和后续状态见HANDOFF及recovery-v2/mtp-ffn-graph-*。
