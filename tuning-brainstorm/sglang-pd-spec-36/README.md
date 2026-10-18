@@ -16,6 +16,8 @@
 
 - [M035后续：真实consumer、交织补测与直接三列CPU候选](evidence/2026-10-19-full-consumer-columns/README.md)
 
+- [M017/M018：Ascend CPU长度所有权、staging与目标镜像CPU复核](evidence/2026-10-19-npu-metadata-staging/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -40,8 +42,8 @@
 | [M014](points/M014.md) | 预取、写回与 layer/page 布局 | 待路径核验 | config |
 | [M015](points/M015.md) | CPU / 设备 overlap 调度 | 待路径核验 | existing |
 | [M016](points/M016.md) | Future token / placeholder 与依赖解析 | 待路径核验 | conditional_candidate |
-| [M017](points/M017.md) | 持久状态、增量更新与 GPU metadata | 待路径核验 | conditional_candidate |
-| [M018](points/M018.md) | Pinned buffer、异步 H2D 与写读竞态 | 待路径核验 | conditional_candidate |
+| [M017](points/M017.md) | 持久状态、增量更新与 GPU metadata | 安装消费者与CPU反证已核验；NPU待测 | conditional_candidate |
+| [M018](points/M018.md) | Pinned buffer、异步 H2D 与写读竞态 | 平台声明与CPU所有权已核验；NPU待测 | conditional_candidate |
 | [M019](points/M019.md) | 多 stream、event 与资源竞争 | 待路径核验 | conditional_candidate |
 | [M020](points/M020.md) | TBO / SBO vs vLLM DBO | 待路径核验 | config |
 | [M021](points/M021.md) | 图捕获、形状桶与 replay | 待路径核验 | config |
@@ -63,7 +65,7 @@
 
 ## 当前结果边界
 
-已完成逐点设计、36项安装静态入口审计、300组CPU分派/grammar谓词及324组relay状态差分与636个实际producer反例。详见首个实证检查点。整体仍E0；本任务PD＋MTP服务器基线、NPU完整正确性和性能收益尚未建立。静态入口不能标成运行路径已确认。
+已完成逐点设计、36项安装静态入口审计、300组CPU分派/grammar谓词及324组relay状态差分与636个实际producer反例。详见首个实证检查点。另已完成M017/M018的768组门控、180组所有权用例及目标镜像CPU复核。整体仍E0；本任务PD＋MTP服务器基线、NPU完整正确性和性能收益尚未建立。静态入口不能标成运行路径已确认。
 
 若某能力在当前 Ascend / PD / MTP 组合中不支持，先完成适用性探针并记录证据；不得关闭推测解码或切换到其他模型后冒充主线成功。允许有边界的条件特化，但必须计入检测、切换、缓存预热和回退成本。
 
