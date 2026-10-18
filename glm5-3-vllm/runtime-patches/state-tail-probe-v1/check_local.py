@@ -108,6 +108,11 @@ def main():
                     "containers": [{"resources": {"requests": {"huawei.com/Ascend910": 16}}}]},
            "status": {"phase": "Running"}}
     assert prepare.fresh_lease(pod, reservation, now)[1] == 1140
+    skewed = copy.deepcopy(pod)
+    skewed["metadata"]["creationTimestamp"] = "2026-10-18T00:08:00Z"
+    skewed["status"]["startTime"] = "2026-10-18T00:00:00Z"
+    assert prepare.fresh_lease(skewed, reservation, now)[1] == 1140
+    checks["later_API_creation_does_not_extend_node_lease"] = True
     for label, mutate in [("stale_holder_name", lambda p: p["metadata"].update(name="old-holder")),
                           ("wrong_holder_node", lambda p: p["spec"].update(nodeName="node33")),
                           ("expired_holder", lambda p: p["spec"].update(activeDeadlineSeconds=500))]:
@@ -141,6 +146,12 @@ def main():
         checks["actual_launcher_rejects_stale_lifetime"] = True
     else:
         raise AssertionError("lifetime guard")
+
+    sustained = {**guard_context, "pod": copy.deepcopy(guard_context["pod"]), "plan": copy.deepcopy(guard_context["plan"])}
+    sustained["pod"]["spec"]["activeDeadlineSeconds"] = 7200
+    sustained["plan"]["container"]["lifetime_seconds"] = 5400
+    exec(compiled_guard, sustained)
+    checks["sustained_owned_window_retains_finite_watchdog"] = True
 
     # Real ndarray storage/strides mirror the native prescribed 4D views.
     # Widths here are schema fixtures, NOT observed runtime cache dimensions.

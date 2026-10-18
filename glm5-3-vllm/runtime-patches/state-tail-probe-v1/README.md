@@ -1,6 +1,8 @@
-这是已实现、默认关闭的 GLM5.3 尾行诊断，尚未运行模型或 NPU。它只比较 N=256/257 原生 PD 路径的末两行，不采纳 y1、不修改采样/传输协议、不作完整前缀或性能验收。P/D 都只加载一次，32/33 各16die；没有新增 kernel、clone、barrier、stream wait 或全局设备同步。现有 Tensor.cpu 仅在原生完成依据核对后取回少量字节，不能用这些读回补造完成依据。
+最新授权：持续在32/33推进实质研究，允许核实归属后自行建立/续期本任务有限窗口，不再需要每次新授权；探针失败或阶段结束后继续分析推进。本说明下的设备命令现可按已有授权执行。
 
-两台固定镜像的18份源码现已实际逐文件SHA配对，CPU检查耗时约0.317/0.267秒，均无设备/驱动/权重挂载、无租约。[实测收据](../../evidence/20261018-p-first-state-audit/image-identity-live-v1/summary.json)只证明文件身份；实际proposer对象、tensor布局、调用/完成事件和尾行仍等待新NPU窗口验证。SSH/只读核验授权一直有效，前轮Mac-only只是那一轮范围，不需要重新申请SSH。
+这是默认关闭的 GLM5.3 尾行诊断，已完成首轮实际设备判别：N256/257两端全rank共7488条末两行匹配，未证明完整前缀或优化收益。它只比较 N=256/257 原生 PD 路径的末两行，不采纳 y1、不修改采样/传输协议、不作完整前缀或性能验收。P/D 都只加载一次，32/33 各16die；没有新增 kernel、clone、barrier、stream wait 或全局设备同步。现有 Tensor.cpu 仅在原生完成依据核对后取回少量字节，不能用这些读回补造完成依据。
+
+两台固定镜像的18份源码现已实际逐文件SHA配对，CPU检查耗时约0.317/0.267秒，均无设备/驱动/权重挂载、无租约。[实测收据](../../evidence/20261018-p-first-state-audit/image-identity-live-v1/summary.json)只证明文件身份；本次实际proposer/调用/原完成依据与尾行已观察，见[设备收据](../../evidence/20261018-state-tail-device-v1/comparison.json)；范围仍只为两个cold C1输入的取样行。SSH/只读核验授权一直有效，前轮Mac-only只是那一轮范围，不需要重新申请SSH。
 
 `probe.py`由`build.py`嵌入一份worker overlay，原生顶层定义AST和函数体保留。启用`GLM53_STATE_TAIL_PROBE=1`后：
 
@@ -26,7 +28,7 @@ python3 glm5-3-vllm/runtime-patches/state-tail-probe-v1/prepare_launch.py \
 
 构建生成worker、patch、manifest和CPU-only `stage_overlay.py`。没有fresh lease文件时只生成不能启动的review schema。已有Mac构建/配置结果见[本轮证据](../../evidence/20261018-p-first-state-audit/state-tail-probe-v1/)；本机实际生成目录记录在其中的`prepared-artifacts.json`。NumPy检查使用真实CPU storage/stride验证源代码规定的布局，不是实际NPU tensor构造或完整原生回放。
 
-以下只在新的模型/NPU窗口获准后执行；本轮没有执行这些命令。先按review plans中的fresh name/owner申请两台各16die的≤25分钟holder，核对节点、现存进程归属和空闲条件，将只含这两枚新Pod的读取结果作为`$LEASE32/$LEASE33`。不复用旧lease/CID/D13，不续期。通过既有collector把已冻结worker写入任务自己的hash目录，不写镜像或原生安装：
+按review plans中的fresh name/owner申请两台各16die的有限holder（当前两小时），核对节点、现存进程归属和空闲条件，将只含这两枚新Pod的读取结果作为`$LEASE32/$LEASE33`。不复用旧lease/CID/D13；在归属匹配时可续期本任务窗口。通过既有collector把已冻结worker写入任务自己的hash目录，不写镜像或原生安装：
 
 ```sh
 python3 glm5-3-vllm/tools/collect_node.py --node 32 --script "$NEW_BUILD/stage_overlay.py" \
@@ -42,7 +44,7 @@ python3 glm5-3-vllm/tools/start_capacity.py --plan "$NEW_LAUNCH_PLANS/D.json" \
   --control "$SSH_CONTROL" --output "$EVIDENCE/D-launch"
 ```
 
-两个start独立，可由现有执行器并行派发。P11/D12历史完整启动至API ready为626.893/636.642秒；仅load-start后的201/213秒会漏掉约7分钟。预计总计18–22分钟、holder最大25分钟；15分钟未ready即保全停止。fresh生成器保留原900秒启动下限，模型lifetime≤20分钟且比holder提前至少5分钟结束，另留60秒启动配置余量。starter重新核对精确UID和剩余时间，过期计划拒绝，不自动续期。UID通用校验之外的25分钟限制只作用于本诊断标记，不改变其他实验的窗口策略。
+两个start独立，可由现有执行器并行派发。P11/D12历史完整启动至API ready为626.893/636.642秒；仅load-start后的201/213秒会漏掉约7分钟。首个探针预计18–22分钟；当前holder两小时、模型watchdog最多90分钟、15分钟就绪watchdog。fresh生成器保留900秒启动下限与至少5分钟清理余量，starter重查精确UID/剩余时间；不足时可续期自有holder再生成计划，不以一批结束作为研究停工边界。
 
 两服务ready后，用node32既有host采集入口运行客户端（所有下划线变量都来自本次新plan/receipt）。P每rank若没有MTP调用/hidden/原生完成依据，客户端在发D前停止；其他HTTP/数量/首ID错误也立即停止，不重试：
 
@@ -57,7 +59,7 @@ python3 glm5-3-vllm/tools/collect_node.py --node 32 \
 
 客户端固定两组prompt与SHA、独立salt、P输出1/D输出2、greedy/min1/ignore_eos；将原生P metadata原样交给D，保留真实P/D请求响应和同一客户端时间。N257只追加原256输入的末token，作为块边界诊断，不是精度题。若早期因P证据缺失停止，仅报告已观察的事实；不能把未运行的第二输入或D状态写成通过。
 
-完成、负结果、错误或期限到达，先停止自己的精确实例并保全原件。`finish.py`核对fresh UID、CID、名称、image和/out mount，仅stop该CID，前后保存probe记录/plan/源码及console；不删除预留。使用既有collector与generic backup下载SHA核验：
+阶段取证可用`finish.py --keep-running --reason stage-complete`保全原件并保留已加载模型继续研究。确需停止/失败实例或watchdog到达时，停止自己的精确实例并保全原件。`finish.py`核对fresh UID、CID、名称、image和/out mount，仅stop该CID，前后保存probe记录/plan/源码及console；不删除预留。使用既有collector与generic backup下载SHA核验：
 
 ```sh
 python3 glm5-3-vllm/tools/collect_node.py --node 32 \

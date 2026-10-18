@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Two frozen cold native PD requests. Run only in a separately authorized window."""
+"""Two frozen cold native PD requests. Existing sustained 32/33 execution authorization applies."""
 import argparse
 import hashlib
 import json
@@ -14,7 +14,7 @@ MODEL = "glm5"
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--execute-functional", action="store_true", help="explicit execution gate; does not grant a device window")
+    p.add_argument("--execute-functional", action="store_true", help="explicit request execution gate")
     p.add_argument("--p-url", required=True)
     p.add_argument("--d-url", required=True)
     p.add_argument("--output", type=Path, required=True)
@@ -22,7 +22,7 @@ def main():
                    help="fresh P run_dir/state-tail-probe, visible to the node32 host client")
     a = p.parse_args()
     if not a.execute_functional:
-        p.error("functional HTTP execution is disabled; a new authorized model window is required")
+        p.error("functional HTTP execution is disabled; pass --execute-functional to run this request batch")
     for role, url, host in (("P", a.p_url, "172.16.12.32"), ("D", a.d_url, "172.16.12.33")):
         parsed = urllib.parse.urlsplit(url)
         assert parsed.scheme == "http" and parsed.hostname == host and parsed.port and 1024 <= parsed.port <= 65535

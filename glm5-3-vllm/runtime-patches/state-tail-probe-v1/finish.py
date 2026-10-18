@@ -14,7 +14,8 @@ import subprocess
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--run-dir", type=Path, required=True)
-    p.add_argument("--reason", choices=("complete", "negative", "failed", "deadline"), required=True)
+    p.add_argument("--reason", choices=("complete", "negative", "failed", "deadline", "stage-complete"), required=True)
+    p.add_argument("--keep-running", action="store_true", help="snapshot this completed stage while retaining the owned model for continued research")
     a = p.parse_args()
     root = a.run_dir.resolve()
     assert str(root).startswith("/data/wio/glm5-3-vllm-execution/20261018-state-tail/")
@@ -25,7 +26,7 @@ def main():
     assert plan["target_hostname"] == socket.gethostname() and Path(plan["remote"]["run_dir"]).resolve() == root
     lease = context["client"]["lease"]
     assert lease["uid"] == plan["reservation"]["expected_uid"] and lease["name"] == plan["reservation"]["name"]
-    assert plan["env"]["GLM53_STATE_TAIL_PROBE"] == "1"
+    assert plan["env"].get("GLM53_STATE_TAIL_PROBE") == "1" or plan["env"].get("GLM53_P_FIRST_ADOPT") == "1"
     cid = launch["container_id"]
     assert re.fullmatch(r"[0-9a-f]{64}", cid)
     before = json.loads(subprocess.check_output(["docker", "inspect", cid], timeout=15))[0]
@@ -36,6 +37,7 @@ def main():
     artifacts.mkdir(exist_ok=False)
     selected = [root / name for name in ("plan.json", "launch.json", "context.json", "manifest.json", "payload.py", "start_capacity.py")]
     selected += sorted((root / "state-tail-probe").glob("*.jsonl"))
+    selected += sorted((root / "adopt-trace").glob("*.jsonl"))
     selected = [path for path in selected if path.is_file()]
     assert selected and all(not path.is_symlink() for path in selected)
     assert sum(path.stat().st_size for path in selected) < 64 * 1024**2
@@ -45,14 +47,15 @@ def main():
         dest = artifacts / path.relative_to(root)
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, dest)
-    stop = subprocess.run(["docker", "stop", "-t", "30", cid], capture_output=True, text=True, timeout=40)
+    stop = None if a.keep_running else subprocess.run(["docker", "stop", "-t", "30", cid], capture_output=True, text=True, timeout=40)
     after = json.loads(subprocess.check_output(["docker", "inspect", cid], timeout=15))[0]
     # Recopy after termination to retain any last closed record or partial
     # failure record, instead of accepting the pre-stop snapshot as final.
-    (artifacts / "state-tail-probe").mkdir(exist_ok=True)
-    for path in sorted((root / "state-tail-probe").glob("*.jsonl")):
-        assert path.is_file() and not path.is_symlink() and path.stat().st_size < 64 * 1024**2
-        shutil.copy2(path, artifacts / "state-tail-probe" / path.name)
+    for subdir in ("state-tail-probe", "adopt-trace"):
+        (artifacts / subdir).mkdir(exist_ok=True)
+        for path in sorted((root / subdir).glob("*.jsonl")):
+            assert path.is_file() and not path.is_symlink() and path.stat().st_size < 64 * 1024**2
+            shutil.copy2(path, artifacts / subdir / path.name)
     with gzip.open(artifacts / "console.txt.gz", "wb") as output:
         logger = subprocess.Popen(["docker", "logs", "--timestamps", cid], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         total = 0
@@ -65,18 +68,22 @@ def main():
         finally:
             if logger.poll() is None:
                 logger.terminate()
-    patch = plan["runtime_patches"][0]
-    data = Path(patch["source"]).read_bytes()
-    assert hashlib.sha256(data).hexdigest() == patch["sha256"]
-    (artifacts / "worker-overlay.py").write_bytes(data)
-    report = {"container_id": cid, "reason": a.reason, "stop_returncode": stop.returncode,
+    (artifacts / "overlay-sources").mkdir()
+    for patch in plan["runtime_patches"]:
+        data = Path(patch["source"]).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == patch["sha256"]
+        (artifacts / "overlay-sources" / Path(patch["source"]).name).write_bytes(data)
+    report = {"container_id": cid, "reason": a.reason, "stop_returncode": None if stop is None else stop.returncode,
+              "stop_requested": not a.keep_running,
               "before_state": before["State"], "after_state": after["State"],
               "release_holder_after_backup_and_idle_check": {"namespace": plan["reservation"]["namespace"],
                   "name": lease["name"], "uid_precondition": lease["uid"]},
-              "holder_deleted_by_script": False, "scope": "Own exact CID only; no other container or reservation changed"}
+              "holder_deleted_by_script": False, "scope": "Own exact CID only; stage snapshot retains the model when keep-running is set; no other container or reservation changed"}
     (artifacts / "finish.json").write_text(json.dumps(report, indent=2) + "\n")
     print("GLM53_RESULT_JSON_BEGIN\n" + json.dumps(report, indent=2) + "\nGLM53_RESULT_JSON_END")
-    assert stop.returncode == 0 and not after["State"]["Running"]
+    assert after["Id"] == cid
+    if not a.keep_running:
+        assert stop.returncode == 0 and not after["State"]["Running"]
 
 
 if __name__ == "__main__":

@@ -16,13 +16,17 @@ def fresh_lease(pod, reservation, now):
     assert int(pod["spec"]["containers"][0]["resources"]["requests"]["huawei.com/Ascend910"]) == 16
     uid = pod["metadata"]["uid"]
     uuid.UUID(uid)
-    start = dt.datetime.fromisoformat(pod["metadata"]["creationTimestamp"].replace("Z", "+00:00"))
-    # Creation is no later than Pod startTime, so this is conservative.
+    starts = [pod["metadata"]["creationTimestamp"]]
+    if pod["status"].get("startTime"):
+        starts.append(pod["status"]["startTime"])
+    # API server and node wall clocks differ here. Use the earlier reported
+    # timestamp against the Mac clock so a later API creation cannot extend it.
+    start = min(dt.datetime.fromisoformat(t.replace("Z", "+00:00")) for t in starts)
     deadline = int(pod["spec"]["activeDeadlineSeconds"])
-    assert 0 < deadline <= 1500, "diagnostic holder must be bounded to25min"
+    assert 0 < deadline <= 7200, "holder must have a finite deadline within the current two-hour window"
     expiry = start + dt.timedelta(seconds=deadline)
-    lifetime = min(1200, int((expiry - now).total_seconds()) - 360)
-    assert lifetime >= 900, "less than original 900s launch floor plus cleanup margin; no renewal"
+    lifetime = min(5400, int((expiry - now).total_seconds()) - 360)
+    assert lifetime >= 900, "insufficient current holder time; renew the owned holder then regenerate"
     return uid, lifetime, expiry.isoformat()
 
 
@@ -57,12 +61,12 @@ def main():
                            owner_label="codex-state-tail-" + a.run_id, expected_uid=None)
         plan.update(created_utc=now.isoformat(), objective="Cold C1 native tail-state diagnostic N256/257 only",
                     notes=["No publication/query adoption, full-prefix proof or performance test.",
-                           "Fresh explicit device window required. Stop after two functional requests or first failure.",
-                           "P/D each TP16; ready deadline15min, model timeout<=20min, resource maximum25min; no renewal."],
+                           "Existing sustained execution authorization applies. Stop this request batch on first failure, then analyze and continue research.",
+                           "P/D each TP16; readiness watchdog15min, bounded model watchdog<=90min, holder<=2h with owned renewal permitted."],
                     schema="glm53-state-tail-launch-template/v1", requires_lifetime_refresh=True, state_tail_probe=True)
         plan.pop("lifetime_refreshed_client_utc", None)
         plan["remote"]["run_dir"] = f"/data/wio/glm5-3-vllm-execution/20261018-state-tail/{a.run_id}/node{node}"
-        plan["container"].update(name=f"glm53-state-tail-{node}-{a.run_id}", lifetime_seconds=1200)
+        plan["container"].update(name=f"glm53-state-tail-{node}-{a.run_id}", lifetime_seconds=5400)
         plan["env"].update(GLM53_STATE_TAIL_PROBE="1", GLM53_STATE_PROBE_OUTPUT="/out/state-tail-probe")
         plan["runtime_patches"] = [{"source": remote_overlay, "target": build["target"],
             "sha256": build["overlay_sha256"], "base_sha256": build["base_sha256"]}]
