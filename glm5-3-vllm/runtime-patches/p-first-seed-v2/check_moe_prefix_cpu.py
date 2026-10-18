@@ -50,15 +50,18 @@ def setup(root):
    return graph()
   def sample_tokens(self):return [disp.token_dispatch(inp).group_list_type for _ in range(5)]
  runner=Runner()
- m.install({'torch':S(bfloat16='bf16',npu=S(graph_pool_handle=lambda:'privatepool')),'NPUModelRunner':Runner,'CUDAGraphMode':Mode,'enable_sp':lambda:False},root=root,deps={'Graph':Graph,'Dispatcher':Disp,'candidate':candidate,'get_context':lambda:ctx,'is_draft':lambda:False,'SFA':SFA,'updatable':lambda x:False,'W8A8':'W8A8','has_lora':lambda x:x is not None})
+ m.install({'torch':S(Tensor=Tensor,bfloat16='bf16',npu=S(graph_pool_handle=lambda:'privatepool')),'NPUModelRunner':Runner,'CUDAGraphMode':Mode,'enable_sp':lambda:False},root=root,deps={'Graph':Graph,'Dispatcher':Disp,'candidate':candidate,'get_context':lambda:ctx,'is_draft':lambda:False,'SFA':SFA,'updatable':lambda x:False,'W8A8':'W8A8','has_lora':lambda x:x is not None})
  return S(ctx=ctx,config=conf,inp=inp,disp=disp,graph=graph,runner=runner)
 with tempfile.TemporaryDirectory() as tmp:
  root=Path(tmp);s=setup(root);native_dict=s.graph.concrete_aclgraph_entries
- assert s.graph().group_list_type==1 and s.graph.capture_modes==[1,0]
- assert s.graph.concrete_aclgraph_entries is native_dict and s.graph.graph_pool=='nativepool';checks.append('two-startup-families-owned-and-native-pool-restored')
+ assert s.graph().group_list_type==1 and s.graph.capture_modes==[1,1,0]
+ assert s.graph.concrete_aclgraph_entries is native_dict and s.graph.graph_pool=='nativepool';checks.append('three-startup-families-owned-and-native-pool-restored')
  assert s.runner.execute_model().group_list_type==1 and s.runner.sample_tokens()==[1]*5;checks.append('default-native')
  (root/'enable').touch();assert s.runner.execute_model().group_list_type==0 and s.runner.sample_tokens()==[0]*5;checks.append('actual-target-and-MTP-candidate-selected')
  assert s.graph.concrete_aclgraph_entries is native_dict and s.disp.token_dispatch(s.inp).group_list_type==1;checks.append('outside-scope-native-and-entry-owner-restored')
+ (root/'target-only').touch();assert s.runner.execute_model().group_list_type==0 and s.runner.sample_tokens()==[1]*5;(root/'target-only').unlink();checks.append('target-only-selector')
+ (root/'MTP-only').touch();assert s.runner.execute_model().group_list_type==1 and s.runner.sample_tokens()==[0]*5;(root/'MTP-only').unlink();checks.append('MTP-only-selector')
+ (root/'enable').unlink();(root/'replica-enable').touch();assert s.runner.execute_model().group_list_type==1 and s.runner.sample_tokens()==[1]*5;(root/'replica-enable').unlink();(root/'enable').touch();checks.append('native-replica-family-and-native-MTP')
  s.runner.requests['real'].sampling_params.max_tokens=1;assert s.runner.execute_model().group_list_type==1 and s.runner.sample_tokens()==[1]*5;checks.append('one-token-fallback')
  s.runner.requests['real'].sampling_params.max_tokens=64;s.inp.routing.expert_map=object();assert s.runner.sample_tokens()==[1]*5;checks.append('expert-map-fallback');s.inp.routing.expert_map=None
  s.runner.dynamic_eplb=True;assert s.runner.execute_model().group_list_type==1;checks.append('dynamic-eplb-runner-fallback');s.runner.dynamic_eplb=False

@@ -29,3 +29,6 @@ C4两个case的TTFT中位数稍高（N1536 +2.65%、N257 +5.23%），混合负�
 下一项由新反常现象触发：target 图 5 次验证中出现 375 次 AICPU Cumsum，中位 44.32 μs。原生 AllGather dispatcher 请求 routing 的 count histogram，W8A8 GMM1 随后转换为 prefix，GMM2 又接受输入的 list type。已有 [Ascend routing 接口](https://www.hiascend.com/document/detail/en/Pytorch/2610/apiref/customapi/docs/en/custom_APIs/torch_npu/torch_npu-npu_moe_init_routing_v2.md)支持 type0 直接返回前缀和。正在以单 NPU 的 routing→prefix 与既有 int8 GMM 片段验证相同值/顺序与编译后成本；尚未改整模型或宣称服务收益。证据见 recovery-v2/rope-supply-analysis-v1.json、moe-count-pinned-source-v1.json。
 
 成功窗口 P/D 均在 watchdog 到期后 exit124、OOMFalse，所有 NPU 空闲；已保留完整日志和 trace。启用状态是该有限研究窗口内的实际状态，不表示常驻生产服务。
+
+
+后续 prefix 原型首版的整模型功能结果为原生 8/8、候选 6/8，候选续写异常，已关闭且未进入正式计时。all16 的实际选路通过与数值失败同时保留，二者不混淆。随后单 NPU 用原尺寸 NZ 权重串起 routing、融合 GMM1、GMM2、unpermute，8 个分布及 96 次交错图 replay 全部逐位一致；该片段仍不含完整 TP、shared overlap、attention/KV 与 FX 集成。当前保留已加载 P，仅 D 换入原生副图、MTP/target 分离对照与真实 core 成对比较，查清上下文依赖后再决定。RoPE +14.71% 的已验收结论不依赖这项后续原型。
