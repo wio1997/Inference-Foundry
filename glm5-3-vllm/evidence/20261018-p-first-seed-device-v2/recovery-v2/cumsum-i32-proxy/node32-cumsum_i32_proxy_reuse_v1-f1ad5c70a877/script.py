@@ -1,0 +1,5 @@
+from pathlib import Path
+import datetime,json,subprocess,urllib.request
+root=Path('/data/wio/glm5-3-vllm-execution/20261018-state-tail/moe-prefix-target-live1-20261019/node32');cid='6bb5441031253d21c5fe2c0a9d9ef2e6f9bfc96b55682f92b4d82e8624292123';p=json.loads((root/'official-proxy-v1/result.json').read_text());d=json.loads(subprocess.check_output(['docker','inspect',cid]))[0];assert d['State']['Running'] and p['CID']==cid and p['parent_P_CID']=='13c520313d3369bafc2db811dca35bc93afdfc2ae7ed3572fc1518366c38aceb' and p['source_sha256']=='85b8982948530758be655d3448ff10fc3979e56622221feace560272a81f1469' and not d['HostConfig'].get('Devices')
+with urllib.request.urlopen('http://172.16.12.32:29880/healthcheck',timeout=3) as f:health=json.load(f)
+print('GLM53_RESULT_JSON_BEGIN\n'+json.dumps({'ready':True,'CID':cid,'existing_unmodified_proxy_reused':True,'health':health,'scope':'Unchanged stock proxy routes to current D port after functional direct-PD pass; no new proxy/job started.'})+'\nGLM53_RESULT_JSON_END')
