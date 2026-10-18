@@ -48,7 +48,7 @@ def test(name, mutate=None, expected_graph=True, fail=False):
                 recording[0].fn = lambda: setattr(y, 'value', x.value * 3)
             return y
 
-    module = MoE(); target = MoE()
+    module = MoE(); target = MoE(); original_moe_forward = MoE.forward
     class Model:
         def named_modules(self): return [('model.layers.78.mtp_block.mlp', module)]
     class Runner:
@@ -74,6 +74,7 @@ def test(name, mutate=None, expected_graph=True, fail=False):
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory); (root/'enable').touch()
         helper.install(ns, root=root, deps={'MoE': MoE, 'ctx': lambda: context, 'extra': extra})
+        assert MoE.forward is original_moe_forward, 'Global target method was changed before model compilation'
         if mutate: mutate(runner, context, extra, module, root, sp)
         if fail:
             try: runner.sample_tokens()
@@ -89,6 +90,7 @@ def test(name, mutate=None, expected_graph=True, fail=False):
             before = len(calls); assert module.forward(Tensor(17)).value == 51
             assert len(calls) == before + 1, 'ContextVar leaked after normal completion'
         passed.append(name)
+        assert MoE.forward is original_moe_forward and target.forward.__func__ is original_moe_forward
 
 test('owned buffer copied on each replay and target MoE remains native')
 test('marker absent', lambda r,c,e,m,p,s:(p/'enable').unlink(), False)

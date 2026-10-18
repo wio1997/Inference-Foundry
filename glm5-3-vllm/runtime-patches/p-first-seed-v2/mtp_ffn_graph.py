@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import time
+import types
 
 
 def install(ns, root=None, deps=None):
@@ -54,10 +55,16 @@ def install(ns, root=None, deps=None):
                         and getattr(drafter, 'method', None) == 'mtp'
                         and getattr(drafter, 'use_cuda_graph', None) is False)
         if eligible and not modules:
+            found = []
             for name, module in drafter.model.named_modules():
                 if isinstance(module, MoE) and name.endswith('.mtp_block.mlp'):
-                    modules[id(module)] = name
-            assert len(modules) == 1, 'Expected exactly one existing GLM MTP MoE'
+                    found.append((name, module))
+            assert len(found) == 1, 'Expected exactly one existing GLM MTP MoE'
+            for name, module in found:
+                modules[id(module)] = name
+                # Bind only the loaded drafter instance. The target's class
+                # must retain its original forward for torch.compile tracing.
+                module.forward = types.MethodType(moe, module)
         if not eligible:
             return sample_original(self, *args, **kwargs)
         frame = {'ids': ids, 'rank': self.tp_rank, 'calls': [],
@@ -135,4 +142,4 @@ def install(ns, root=None, deps=None):
                                    'context_scalars': context_scalars, 'cache_entries': len(cache)})
         return moe_original(self, x, already_sequence_parallel=already_sequence_parallel)
 
-    Runner.sample_tokens, MoE.forward = sample, moe
+    Runner.sample_tokens = sample
