@@ -1,0 +1,173 @@
+```python
+from typing import Dict, List, Any
+
+
+def summarize_target_prefix_paths(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    global_invalid = 0
+    per: Dict[int, Dict[str, Any]] = {}
+
+    def col(rank: int) -> Dict[str, Any]:
+        if rank not in per:
+            per[rank] = {
+                "rank": rank,
+                "native_graph_calls": 0,
+                "candidate_graph_calls": 0,
+                "MTP_native_on_native_requests": 0,
+                "MTP_native_on_candidate_requests": 0,
+                "native_eager_target_dispatch_calls": 0,
+                "invalid_rows": 0,
+                "selected_graph_tokens": [],
+                "MTP_N": [],
+            }
+        return per[rank]
+
+    def valid_rank(rk: Any) -> bool:
+        return isinstance(rk, int) and not isinstance(rk, bool) and 0 <= rk <= 15
+
+    def is_bool(v: Any) -> bool:
+        return isinstance(v, bool)
+
+    TARGET_TOKENS = (6, 12, 18, 24)
+
+    for frame in records:
+        if not isinstance(frame, dict):
+            global_invalid += 1
+            continue
+        rid = frame.get("request_ids")
+        # empty list => dummy, ignore whole frame
+        if isinstance(rid, list) and not rid:
+            continue
+        rank = frame.get("rank")
+        if not valid_rank(rank):
+            global_invalid += 1
+            continue
+        r = col(rank)
+        phase = frame.get("phase")
+        requested = frame.get("requested")
+        if phase not in ("execute_model", "sample_tokens") or not is_bool(requested):
+            r["invalid_rows"] += 1
+            continue
+        row_bad = 0
+        graphs = frame.get("graphs")
+        if not isinstance(graphs, list):
+            row_bad += 1
+        else:
+            for g in graphs:
+                if not isinstance(g, dict):
+                    row_bad += 1
+                    continue
+                tk = g.get("tokens")
+                if not (isinstance(tk, int) and not isinstance(tk, bool) and tk in TARGET_TOKENS):
+                    row_bad += 1
+                    continue
+                g_req = g.get("requested")
+                g_sel = g.get("selected")
+                if not is_bool(g_req) or not is_bool(g_sel):
+                    row_bad += 1
+                    continue
+                if g_req != requested or g_sel != requested:
+                    # requested mismatch with frame or selected != requested => fallback/invalid
+                    row_bad += 1
+                    continue
+                fam = g.get("selected_family")
+                if fam is not None and fam not in ("prefix", "native"):
+                    row_bad += 1
+                    continue
+                nc = g.get("native_capture")
+                pc = g.get("prefix_capture")
+                if not (isinstance(nc, dict) and isinstance(pc, dict)):
+                    row_bad += 1
+                    continue
+                nc_ok = (nc.get("calls") == 75 and nc.get("selected_calls") == 0
+                         and nc.get("output_list_types") == [1])
+                pc_ok = (pc.get("calls") == 75 and pc.get("selected_calls") == 75
+                         and pc.get("output_list_types") == [0])
+                if not (all(isinstance(x, int) and not isinstance(x, bool)
+                            for x in nc.get("output_list_types", []))
+                        and all(isinstance(x, int) and not isinstance(x, bool)
+                                for x in pc.get("output_list_types", []))):
+                    row_bad += 1
+                    continue
+                if not (nc_ok and pc_ok):
+                    row_bad += 1
+                    continue
+                # graph rows only count in execute_model
+                if phase != "execute_model":
+                    row_bad += 1
+                    continue
+                if requested:
+                    r["candidate_graph_calls"] += 1
+                else:
+                    r["native_graph_calls"] += 1
+                if tk not in r["selected_graph_tokens"]:
+                    r["selected_graph_tokens"].append(tk)
+        dispatch = frame.get("dispatch")
+        if not isinstance(dispatch, list):
+            row_bad += 1
+        else:
+            for d in dispatch:
+                if not isinstance(d, dict):
+                    row_bad += 1
+                    continue
+                N = d.get("N")
+                if not (isinstance(N, int) and not isinstance(N, bool) and 1 <= N <= 24):
+                    row_bad += 1
+                    continue
+                preq = d.get("prefix_requested")
+                dsel = d.get("selected")
+                olt = d.get("output_list_type")
+                if not (is_bool(preq) and is_bool(dsel)):
+                    row_bad += 1
+                    continue
+                if not (isinstance(olt, int) and not isinstance(olt, bool)):
+                    row_bad += 1
+                    continue
+                if preq is not False or dsel is not False or olt != 1:
+                    row_bad += 1
+                    continue
+                if N not in r["MTP_N"]:
+                    r["MTP_N"].append(N)
+                if phase == "execute_model":
+                    r["native_eager_target_dispatch_calls"] += 1
+                    # original eager target fallback outside captured target scope;
+                    # do not claim prefix here
+                elif phase == "sample_tokens":
+                    pass  # decided below
+                # split MTP native by requested for sample_tokens proof
+                # (dispatch in execute_model is eager target fallback, not MTP)
+                if phase == "sample_tokens":
+                    if requested:
+                        r["MTP_native_on_candidate_requests"] += 1
+                    else:
+                        r["MTP_native_on_native_requests"] += 1
+        r["invalid_rows"] += row_bad
+
+    per_list = [col(k) for k in sorted(per.keys())]
+    for r in per_list:
+        r["selected_graph_tokens"].sort()
+        r["MTP_N"].sort()
+
+    all16 = (set(per.keys()) == set(range(16))
+             and all((r["native_graph_calls"] > 0
+                      and r["candidate_graph_calls"] > 0
+                      and r["MTP_native_on_native_requests"] > 0
+                      and r["MTP_native_on_candidate_requests"] > 0
+                      and r["invalid_rows"] == 0)
+                     for r in per_list)
+             and global_invalid == 0)
+
+    return {
+        "completed": True,
+        "observed_ranks": sorted(per.keys()),
+        "all16_paths_verified": all16,
+        "global_invalid_rows": global_invalid,
+        "per_rank": per_list,
+        "scope": ("path metadata only for target-prefix experiment: target graph requested -> "
+                  "selected_family prefix with native/prefix capture 75/75 and [1]/[0] lists, "
+                  "requested False -> native graph; MTP keeps original native count dispatch in "
+                  "sample_tokens for both native and candidate requests; dispatch in "
+                  "execute_model is original eager target fallback outside captured target "
+                  "scope and prefix is not claimed there. Counts report shape/path coverage "
+                  "only — no correctness, SDMA, latency, or quality claim."),
+    }
+```

@@ -1,0 +1,18 @@
+from pathlib import Path
+from copy import deepcopy
+import importlib.util,json
+p=Path(__file__).with_name('summarize_target_prefix_paths.py');spec=importlib.util.spec_from_file_location('under_test',p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+def graph(requested):return {'tokens':6,'requested':requested,'selected':requested,'selected_family':'prefix' if requested else 'native','native_capture':{'calls':75,'selected_calls':0,'output_list_types':[1]},'prefix_capture':{'calls':75,'selected_calls':75,'output_list_types':[0]}}
+def dispatch():return {'N':6,'prefix_requested':False,'selected':False,'output_list_type':1}
+records=[]
+for rank in range(16):
+ for req in [False,True]:
+  records += [{'rank':rank,'request_ids':['real'],'phase':'execute_model','requested':req,'graphs':[graph(req)],'dispatch':[]},{'rank':rank,'request_ids':['real'],'phase':'sample_tokens','requested':req,'graphs':[],'dispatch':[dispatch()]}]
+d=m.summarize_target_prefix_paths(records);assert d['all16_paths_verified'] and d['global_invalid_rows']==0;assert all(r['selected_graph_tokens']==[6] and r['MTP_N']==[6] for r in d['per_rank'])
+checks=['valid16_target_prefix_and_both_native_MTP']
+mutations=[('missing_ids',lambda r:r[0].pop('request_ids')),('empty_id_string',lambda r:r[0].update(request_ids=[''])),('rank_bool',lambda r:r[0].update(rank=True)),('rank17',lambda r:r[0].update(rank=17)),('badphase',lambda r:r[0].update(phase='other')),('requested_int',lambda r:r[0].update(requested=0)),('graphs_none',lambda r:r[0].update(graphs=None)),('dispatch_none',lambda r:r[1].update(dispatch=None)),('wrong_family',lambda r:r[2]['graphs'][0].update(selected_family='native')),('missing_family',lambda r:r[2]['graphs'][0].pop('selected_family')),('fallback',lambda r:r[2]['graphs'][0].update(selected=False)),('graph_requested_mismatch',lambda r:r[2]['graphs'][0].update(requested=False)),('tokens_bool',lambda r:r[2]['graphs'][0].update(tokens=True)),('tokens_unsupported',lambda r:r[2]['graphs'][0].update(tokens=7)),('capture_calls_float',lambda r:r[2]['graphs'][0]['native_capture'].update(calls=75.0)),('capture_selected_bool',lambda r:r[2]['graphs'][0]['native_capture'].update(selected_calls=False)),('prefix_selected_float',lambda r:r[2]['graphs'][0]['prefix_capture'].update(selected_calls=75.0)),('capture_types_none',lambda r:r[2]['graphs'][0]['native_capture'].update(output_list_types=None)),('capture_types_bool',lambda r:r[2]['graphs'][0]['prefix_capture'].update(output_list_types=[False])),('MTP_prefix',lambda r:r[3]['dispatch'][0].update(prefix_requested=True,selected=True,output_list_type=0)),('MTP_type_bool',lambda r:r[3]['dispatch'][0].update(output_list_type=True)),('MTP_N_bool',lambda r:r[3]['dispatch'][0].update(N=True)),('sample_graph',lambda r:r[3].update(graphs=[graph(True)])),('no_candidate_MTP',lambda r:r[3].update(dispatch=[])),('missing_rank',lambda r:r.__delitem__(slice(60,64))),('badframe',lambda r:r.append(None))]
+for name,mutate in mutations:
+ r=deepcopy(records);mutate(r);d=m.summarize_target_prefix_paths(r);assert not d['all16_paths_verified'],name;checks.append(name)
+d=m.summarize_target_prefix_paths(None);assert not d['all16_paths_verified'] and d['global_invalid_rows']>0;checks.append('malformed_top_level')
+r=deepcopy(records);r[2]['dispatch']=[dict(dispatch(),N=1)];r.append({'request_ids':[],'rank':True});d=m.summarize_target_prefix_paths(r);assert d['all16_paths_verified'];assert d['per_rank'][0]['MTP_N']==[6] and d['per_rank'][0]['native_eager_target_N']==[1];checks.append('dummy_ignored_eager_target_kept_separate')
+print(json.dumps({'completed':True,'checks':checks,'passed':len(checks),'scope':'Pure target-only path metadata parser mutation tests, no device/performance/quality evidence.'}))
