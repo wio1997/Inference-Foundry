@@ -245,3 +245,7 @@ P 接纳请求 → 分块计算 → 安全就绪的 KV 分段发送 → 最终�
 ## 2026-10-19 PD-CHUNK-001 CPU实证
 
 [同一候选的151组等价测试和局部CPU成本](sglang-pd-spec-36/evidence/2026-10-19-descriptor-cpu/README.md)：已有连续区间合并保留，只减少中间页号列表；三个连续Case局部收益可区分，碎片时延不确定。没有NPU或端到端收益结论，继续真实consumer与服务时间线。
+
+## 2026-10-19 PD-CHUNK-001 完整consumer后续
+
+[同一候选演进链的consumer补齐、噪声补测与直接三列](sglang-pd-spec-36/evidence/2026-10-19-full-consumer-columns/README.md)。保留原始异常及条件边界，当前仅本机CPU证据，没有NPU或PD端到端结论。
