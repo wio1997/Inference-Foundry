@@ -38,6 +38,8 @@
 
 - [M023/M024/M025：index cache条件、PD页跨度与108项接口/CPU视图检查](evidence/2026-10-19-npu-index-cache-contract/README.md)
 
+- [M023/M026/M028/M030：MoE生命周期、W8制品描述与114项源码CPU检查](evidence/2026-10-19-npu-moe-contract/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -68,14 +70,14 @@
 | [M020](points/M020.md) | TBO / SBO vs vLLM DBO | 待路径核验 | config |
 | [M021](points/M021.md) | 图捕获、形状桶与 replay | 安装与CPU策略已核验；NPU图性能未决 | config |
 | [M022](points/M022.md) | 算子融合、编译与中间张量复用 | 待路径核验 | config |
-| [M023](points/M023.md) | 权重 / 激活 / KV 量化与尺度 | KV/index条件接口已核验；权重/激活及原生未决 | conditional_candidate |
+| [M023](points/M023.md) | 权重 / 激活 / KV 量化与尺度 | W8制品/指定加载方法已核验；实际加载与原生未决 | conditional_candidate |
 | [M024](points/M024.md) | Attention：MLA、布局、融合与历史读写 | NPU MLA/PD视图源码模型已核验；原生未决 | conditional_candidate |
 | [M025](points/M025.md) | DSA indexer / Top-K / HiSparse | 源码门控/状态模型已核验；完整模块与原生性能未决 | conditional_candidate |
-| [M026](points/M026.md) | MoE 路由、重排与 grouped GEMM | 待路径核验 | conditional_candidate |
+| [M026](points/M026.md) | MoE 路由、重排与 grouped GEMM | NPU dispatcher源码/CPU状态已核验；原生MoE未决 | conditional_candidate |
 | [M027](points/M027.md) | 后端选择、形状特化与冷启动 | 待路径核验 | config |
-| [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | 待路径核验 | config |
+| [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | Ascend分派门控/状态模型已核验；DeepEP原生未决 | config |
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
-| [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 待路径核验 | config |
+| [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 路由必要工作边界已建立；实际rank负载未测 | config |
 | [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | CPU交接组件已核验；原生PD正确性/性能未决 | config |
 | [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 待路径核验 | conditional_candidate |
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 待路径核验 | config |
