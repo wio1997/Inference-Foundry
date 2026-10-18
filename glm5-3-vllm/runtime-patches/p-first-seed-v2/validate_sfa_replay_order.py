@@ -27,7 +27,7 @@ def main():
     parser.add_argument('--run-tag', default='v2')
     parser.add_argument('--run-dir', type=Path, default=D_ROOT)
     parser.add_argument('--expected-D-CID', default=D_CID)
-    parser.add_argument('--probe-kind', choices=['sfa_order', 'mtp_ffn_graph'], default='sfa_order')
+    parser.add_argument('--probe-kind', choices=['sfa_order', 'mtp_ffn_graph', 'mtp_moe_graph'], default='sfa_order')
     parser.add_argument('--rotate-cases', action='store_true')
     parser.add_argument('--c4-cycles', type=int, choices=[1, 2, 3], default=2)
     args = parser.parse_args()
@@ -36,7 +36,8 @@ def main():
     assert str(D_ROOT).startswith('/data/wio/glm5-3-vllm-execution/20261018-state-tail/') and D_ROOT.name == 'node33'
     assert re.fullmatch(r'[0-9a-f]{64}', D_CID)
     probe_name, probe_env = {'sfa_order': ('sfa-replay-order', 'GLM53_SFA_REPLAY_ORDER_PROBE'),
-                            'mtp_ffn_graph': ('mtp-ffn-graph', 'GLM53_MTP_FFN_GRAPH_PROBE')}[args.probe_kind]
+                            'mtp_ffn_graph': ('mtp-ffn-graph', 'GLM53_MTP_FFN_GRAPH_PROBE'),
+                            'mtp_moe_graph': ('mtp-moe-graph', 'GLM53_MTP_MOE_GRAPH_PROBE')}[args.probe_kind]
     plan = json.loads((D_ROOT / 'plan.json').read_text())
     actual = json.loads(subprocess.check_output(['docker', 'inspect', D_CID]))[0]
     assert actual['State']['Running'] and actual['Image'] == plan['image']['id']

@@ -1,0 +1,24 @@
+{
+  "CID": "9774dd714ad98295848b710f3a08d25cf91203eba5a801e554d10060f67b594d",
+  "sources": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+      "bytes": 39714,
+      "sha256": "05893188402fe37229bf72d75088d66193c417d5d502daafd3a55e1bfedaa60c",
+      "snippets": [
+        "def _moe_forward(\n    hidden_states: torch.Tensor,\n    router_logits: torch.Tensor,\n    shared_experts_input: torch.Tensor | None,\n    input_ids: torch.Tensor | None,\n    layer_name: _layer_name_type,\n    hidden_dim_unpadded: int,\n) -> torch.Tensor:\n    layer = get_layer_from_name(_resolve_layer_name(layer_name))\n    return cast(\n        torch.Tensor,\n        layer._forward_impl(\n            hidden_states,\n            router_logits,\n            shared_experts_input,\n            input_ids,\n        ),\n    )\n\n",
+        "def _moe_forward_shared(\n    hidden_states: torch.Tensor,\n    router_logits: torch.Tensor,\n    shared_experts_input: torch.Tensor | None,\n    input_ids: torch.Tensor | None,\n    layer_name: _layer_name_type,\n    hidden_dim_unpadded: int,\n) -> tuple[torch.Tensor, torch.Tensor]:\n    layer = get_layer_from_name(_resolve_layer_name(layer_name))\n    return cast(\n        tuple[torch.Tensor, torch.Tensor],\n        layer._forward_impl(\n            hidden_states,\n            router_logits,\n            shared_experts_input,\n            input_ids,\n        ),\n    )\n\n"
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/spec_decode/llm_base_proposer.py",
+      "bytes": 84767,
+      "sha256": "5bd11c41f0a8cf1272b5880d9878043f876bee6c7e04fb781e613f92930b15ab",
+      "snippets": [
+        "    def _create_draft_vllm_config(self) -> VllmConfig:\n        \"\"\"Return a VllmConfig with kernel-level overrides for the proposer.\n        Subclasses may override to apply additional config changes.\n        \"\"\"\n        spec_cfg = self.speculative_config\n        base = self.vllm_config\n\n        if spec_cfg.moe_backend is not None:\n            base = replace(\n                base,\n                kernel_config=replace(\n                    base.kernel_config,\n                    moe_backend=spec_cfg.moe_backend,\n                ),\n            )\n\n        # Note (matt): Never inherit the attention backend from base, because there are\n        # many opportunities for incompatibility, so we always independently autoselect\n        # unless explicitly specified in the speculative config.\n        base = replace(\n            base,\n            attention_config=replace(\n                base.attention_config,\n                backend=spec_cfg.attention_backend,\n            ),\n        )\n\n        if spec_cfg.kv_cache_dtype is not None:\n            base = replace(\n                base,\n                cache_config=replace(\n                    base.cache_config,\n                    cache_dtype=spec_cfg.kv_cache_dtype,\n                ),\n            )\n\n        return base\n"
+      ]
+    }
+  ],
+  "compute_contexts_created": false,
+  "scope": "Pinned-source CPU read: draft inherits compilation config, and native opaque MoE op dynamically resolves layer._forward_impl. No weights/model imported or GPU operation."
+}

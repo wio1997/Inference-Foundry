@@ -123,3 +123,14 @@ D静态SFA回放中省去通用host synchronize，all16真实cached graph/host t
 取消验证10次首token后关闭、16个后续/同批完整响应均通过，P/D running/waiting/KV回零。原日志parser误把requestID内cancel算作取消，原件保留；去ID再按单词匹配后明确backend abort日志0，abort counter delta0，因此撤回明确backend abort证明。见recovery-v2/sfa-replay-order-live2-cancel-correction-v1.json。
 
 下一原型仅捕获现有MTP纯FFN，不捕获attention/KV、不打开不支持的整MTP图、不改算子/精度。14项CPU控制测试通过；新D有限窗口保持P和官方proxy，设备功能/SDMA复制路径与正式收益尚未验收。合同、构建和后续状态见HANDOFF及recovery-v2/mtp-ffn-graph-*。
+
+
+## 2026-10-19 MTP opaque MoE 图回放的端到端否定结果
+
+原生MTP继承编译配置，NN实例forward被trace away；运行时vllm.moe_forward_shared会动态调用AscendMoERunner._forward_impl，限定唯一MTP实例可捕获相同原native core，保留attention/KV/target/外层combine。CPU14项及all16普通64/128选路通过，26×2完整64数值与完整序列均一致。native类别未全局修改、既有算子/精度不变。完整源码、先前全局包装启动失败、NN实例未生效两次否定均保留。
+
+普通PD8旧profile的16rank×50精确新增copy全为SDMA_SQE。新C4物理覆盖16rank实际N6/18/24，624条中619条有直接SDMA关联，rank0剩5条CPU/API无device关联，不把样本覆盖写成逐条全证。profile/export/transfer/observer结束后，原样官方proxy跑固定C1和均衡C4 ABBA×3。C1 TTFT/last/TPOT等权比例0.994873/0.999484/0.999870；C4 native145.875→candidate145.263 tok/s，三cycle比例1.033896/0.955904/0.999086。384条正式请求及24条C1全部预算/数值正确；C4 TPOT p95从25.481升到27.288ms。结论：这一版本不作为服务优化接受，native默认，停止重复同版benchmark。详recovery-v2/mtp-moe-graph-formal-verdict-v1.json。
+
+旧profile中opaque core CPU提交中位1956.52→161.315us，copy样本物理0.66us，但这是带profiler的异步提交成本，不是未profile关键路径成本；不能相加或由五次draft调用推接受token。端到端未兑现，尚无可支持的target验证/host供给空隙独立归因。取消仅确认10次client-close、16完整peer/reuse及KV回零，明确backend abort日志/计数均0。
+
+下一步先做一次原生P图桶配置[256,512,1024]对照[256,1024]，D保留且native。旧N257补1024同时放大attention和MoE，只裁attention未获联合收益；先确认通用512桶能解决多少，再选择有效token贯穿图缓冲/attention/MoE的机制，配置收益不包装为自研。该一次P重启由原生update_config不支持compilation_config所必需，旧P/代理先精确SHA备份/停止，有限新watchdog不延长。跨窗口对照明确其限制。
