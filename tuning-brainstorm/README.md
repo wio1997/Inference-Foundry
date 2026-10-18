@@ -6,6 +6,7 @@
 
 ## 从这里开始
 
+- [PD 分离下的 chunk 优化：9 项价值筛选、6 条候选与 2 个配置对照](2026-10-18-sglang-pd-chunk.md)
 - [缓存管理逻辑排查总表：21 个新增检查项、12 个排除项、48 格覆盖](2026-10-18-sglang-cache-audit.md)
 - [可筛选的离线排查地图](diagrams/cache-audit.html)
 - [第一份笔记：SGLang 前缀缓存与 CPU 调度开销](2026-10-18-sglang-prefix-cache.md)
@@ -50,6 +51,19 @@
 | [CACHE-028](2026-10-18-sglang-cache-audit.md#cache-028) | FULL-only 叶子资格走直接字段判断 | 生成器与未启用组件槽的检查。 | 条件候选；未测真实推理性能 |
 | [CACHE-029](2026-10-18-sglang-cache-audit.md#cache-029) | FULL-only 节点减少辅助对象与动态字典 | CPU 堆对象、内存占用和可能的缓存未命中。 | 有取舍；未测真实推理性能 |
 | [CACHE-030](2026-10-18-sglang-cache-audit.md#cache-030) | 持久节点复用已经算出的首 page 键 | 重复页切片、整数装箱与 tuple 构造。 | 有取舍；未测真实推理性能 |
+
+## PD 分离与 chunk 想法索引
+
+本组仅讨论独立 P/D 资源；源码审阅不代表用户 Ascend PD 已取得收益。优先检查真实交接等待，再选择是否修改 CPU 准备、粒度或准入。
+
+| ID | 想法 | 希望减少的成本 | 当前状态 |
+| --- | --- | --- | --- |
+| [PD-CHUNK-001](2026-10-18-sglang-pd-chunk.md#pd-chunk-001) | Ascend 连续区间只保留起点与长度 | 页号装箱、中间列表和描述符准备 | 源码已定位；已有通用 PR #45003；Ascend 适配待验证 |
+| [PD-CHUNK-002](2026-10-18-sglang-pd-chunk.md#pd-chunk-002) | 检查 KV 就绪后的发送等待和交接空隙 | 未被计算隐藏的等待 | 已有重叠机制及 PR #43811；待建立目标时间线 |
+| [PD-CHUNK-003](2026-10-18-sglang-pd-chunk.md#pd-chunk-003) | 在后端约束下选择计算块与传输段 | 提交固定成本或传输尾巴 | 有取舍；Ascend / staging 限制已记录；待基线 |
+| [PD-CHUNK-004](2026-10-18-sglang-pd-chunk.md#pd-chunk-004) | 续块重复准备的 PD 适用性检查 | 切片、索引与组批重复工作 | 入口已定位；关联 CACHE-013 / 019；具体冗余待确认 |
+| [PD-CHUNK-005](2026-10-18-sglang-pd-chunk.md#pd-chunk-005) | 对照 D KV 预留时机 | 未完成 P 的请求占住 D 容量的时间 | 现有策略 / 后端适配研究；非普遍可用开关 |
+| [PD-CHUNK-006](2026-10-18-sglang-pd-chunk.md#pd-chunk-006) | 针对已证实积压的有界准入反馈 | 在途 KV 滞留、竞争与无效重试 | 条件性策略；先证明已有控制不足 |
 
 ## 怎样继续记录
 
