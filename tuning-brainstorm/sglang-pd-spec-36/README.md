@@ -18,6 +18,8 @@
 
 - [M017/M018：Ascend CPU长度所有权、staging与目标镜像CPU复核](evidence/2026-10-19-npu-metadata-staging/README.md)
 
+- [M021：1633组CPU形状/准入策略与2/3桶反例](evidence/2026-10-19-graph-shape-support/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -46,7 +48,7 @@
 | [M018](points/M018.md) | Pinned buffer、异步 H2D 与写读竞态 | 平台声明与CPU所有权已核验；NPU待测 | conditional_candidate |
 | [M019](points/M019.md) | 多 stream、event 与资源竞争 | 待路径核验 | conditional_candidate |
 | [M020](points/M020.md) | TBO / SBO vs vLLM DBO | 待路径核验 | config |
-| [M021](points/M021.md) | 图捕获、形状桶与 replay | 待路径核验 | config |
+| [M021](points/M021.md) | 图捕获、形状桶与 replay | 安装与CPU策略已核验；NPU图性能未决 | config |
 | [M022](points/M022.md) | 算子融合、编译与中间张量复用 | 待路径核验 | config |
 | [M023](points/M023.md) | 权重 / 激活 / KV 量化与尺度 | 待路径核验 | conditional_candidate |
 | [M024](points/M024.md) | Attention：MLA、布局、融合与历史读写 | 待路径核验 | conditional_candidate |

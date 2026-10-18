@@ -6,7 +6,7 @@
 
 ## 从这里开始
 
-- [SGLang 36 机制任务：逐点讲解、最小实验与物理上界](sglang-pd-spec-36/README.md)（PD＋推测解码；安装审计、M035局部CPU候选与M017/M018目标镜像CPU反证已有实证；PD服务器基线待资源分配）
+- [SGLang 36 机制任务：逐点讲解、最小实验与物理上界](sglang-pd-spec-36/README.md)（PD＋推测解码；安装审计、M035局部CPU候选与M017/M018目标镜像CPU反证、M021形状策略反例已有实证；PD服务器基线待资源分配）
 - [PD 分离下的 chunk 优化：9 项价值筛选、6 条候选与 2 个配置对照](2026-10-18-sglang-pd-chunk.md)
 - [缓存管理逻辑排查总表：21 个新增检查项、12 个排除项、48 格覆盖](2026-10-18-sglang-cache-audit.md)
 - [可筛选的离线排查地图](diagrams/cache-audit.html)
