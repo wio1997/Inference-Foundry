@@ -56,6 +56,8 @@
 
 - [M005/M031：PD drain、超时与 Ascend 传输错误路径](evidence/2026-10-19-pd-release-drain/README.md)
 
+- [M004/M016：PD relay最终写入者、完整payload与345项组件CPU核验](evidence/2026-10-19-relay-final-payload/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -67,7 +69,7 @@
 | [M001](points/M001.md) | 聊天模板、分词、reasoning parser | CPU候选语义/计时已核验；短/混合局部改善，服务未测 | config |
 | [M002](points/M002.md) | 进程分工、IPC 与流式背压 | 待路径核验 | config |
 | [M003](points/M003.md) | CPU affinity / NUMA / 线程数 | 待路径核验 | config |
-| [M004](points/M004.md) | Continuous batching 与请求状态机 | 待路径核验 | conditional_candidate |
+| [M004](points/M004.md) | Continuous batching 与请求状态机 | PD overlap调用顺序已核验；到达/取消实验未运行 | conditional_candidate |
 | [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | PD abort/drain/timeout 源策略已核验；原生释放未决 | config |
 | [M006](points/M006.md) | Chunked Prefill 的游标与预算 | 16K chunk 与 200 页分支边界已界定；native 成功路径未验证 | config |
 | [M007](points/M007.md) | Mixed batch 与 ragged / packed 输入 | 条件不适用 | not_applicable |
@@ -79,7 +81,7 @@
 | [M013](points/M013.md) | HiCache：HBM / 主机 / 存储分层 | 待路径核验 | config |
 | [M014](points/M014.md) | 预取、写回与 layer/page 布局 | 待路径核验 | config |
 | [M015](points/M015.md) | CPU / 设备 overlap 调度 | 待路径核验 | existing |
-| [M016](points/M016.md) | Future token / placeholder 与依赖解析 | 待路径核验 | conditional_candidate |
+| [M016](points/M016.md) | Future token / placeholder 与依赖解析 | 完整producer/stash CPU核验；原生gather/取消待测 | conditional_candidate |
 | [M017](points/M017.md) | 持久状态、增量更新与 GPU metadata | NPU override/最后读取者策略 CPU 核验；原生收益未测 | conditional_candidate |
 | [M018](points/M018.md) | Pinned buffer、异步 H2D 与写读竞态 | plan/WAR 266 项策略 CPU 检查；原生生命周期未决 | conditional_candidate |
 | [M019](points/M019.md) | 多 stream、event 与资源竞争 | 布局/包装层已核验；原生接口及性能未决 | conditional_candidate |
