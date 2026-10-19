@@ -215,7 +215,7 @@
       "first_action": "用 D 循环时间线区分 intake、transfer poll、组批和 forward 提交，不先改阈值。",
       "execution_level": "队列路径 → 时间线 → 有界策略"
     },
-    "status": "真实两路PD功能通过；固定batch仍有贪心输出差异，调度/取消及稳定基线未完成",
+    "status": "真实HTTP批次未固定P微批；原三路32K到达/排队已观测，取消/重试待测",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/decode.py#L3080",
@@ -267,6 +267,27 @@
       "repeat_output_stability": "NOT_ESTABLISHED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-first-pd/README.md"
+    },
+    "target_score_and_long_PD": {
+      "runs": [
+        "L039-R084",
+        "L039-R085",
+        "L039-R086",
+        "L039-R087",
+        "L039-R088",
+        "L039-R089",
+        "L039-R090"
+      ],
+      "short_observer_runs": 2,
+      "long_original_3x32768to256_runs": 2,
+      "observed_chosen_tokens_at_target_max": 2048,
+      "D_co_resident_long_contexts": 1,
+      "long_queued_arrivals": 3,
+      "independent_model_or_KV_byte_oracle": false,
+      "full_lifecycle": false,
+      "optimization_speedup": "NOT_MEASURED",
+      "accepted_baseline": null,
+      "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
     }
   },
   {
@@ -301,7 +322,7 @@
       "first_action": "按实际运行版本读取预留支持检查与默认值，禁止拿旧单引擎 retract=0 代替基线。 对该版本明确排除的组合（例如相应策略不支持的解耦推测路径）直接标条件不适用，不关闭推测解码绕过。",
       "execution_level": "兼容核验 → 生命周期 → 策略对照"
     },
-    "status": "PD abort/drain/timeout 源策略已核验；原生释放未决",
+    "status": "原三路32K完成，D一份上下文驻留与2→1→0等待已实测；回收生命周期未全测",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/schedule_policy.py#L1350",
@@ -373,7 +394,28 @@
       "Ascend_chain": 30
     },
     "actual_Ascend_custom_pool_applicability_proven": false,
-    "native_PD_free_lifetime_verified": false
+    "native_PD_free_lifetime_verified": false,
+    "target_score_and_long_PD": {
+      "runs": [
+        "L039-R084",
+        "L039-R085",
+        "L039-R086",
+        "L039-R087",
+        "L039-R088",
+        "L039-R089",
+        "L039-R090"
+      ],
+      "short_observer_runs": 2,
+      "long_original_3x32768to256_runs": 2,
+      "observed_chosen_tokens_at_target_max": 2048,
+      "D_co_resident_long_contexts": 1,
+      "long_queued_arrivals": 3,
+      "independent_model_or_KV_byte_oracle": false,
+      "full_lifecycle": false,
+      "optimization_speedup": "NOT_MEASURED",
+      "accepted_baseline": null,
+      "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    }
   },
   {
     "id": "M006",
@@ -407,7 +449,7 @@
       "first_action": "确认目标请求经过 process_prefill_chunk，并记录 staging 对传输边界的约束。",
       "execution_level": "分块触发 → 单请求分解 → 相邻尺寸对照"
     },
-    "status": "16K chunk 与 200 页分支边界已界定；native 成功路径未验证",
+    "status": "原4096 chunk完成三路32768输入两次；未进行chunk性能A/B",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py#L1369",
@@ -451,7 +493,28 @@
     "actual_create_prefill_budget_verified": false,
     "full_budget_module_import": "UNAVAILABLE missing sgl_kernel",
     "native_small_extend_success_verified": false,
-    "prior_evidence_checkpoint": "evidence/2026-10-19-pd-prefill-budget/README.md"
+    "prior_evidence_checkpoint": "evidence/2026-10-19-pd-prefill-budget/README.md",
+    "target_score_and_long_PD": {
+      "runs": [
+        "L039-R084",
+        "L039-R085",
+        "L039-R086",
+        "L039-R087",
+        "L039-R088",
+        "L039-R089",
+        "L039-R090"
+      ],
+      "short_observer_runs": 2,
+      "long_original_3x32768to256_runs": 2,
+      "observed_chosen_tokens_at_target_max": 2048,
+      "D_co_resident_long_contexts": 1,
+      "long_queued_arrivals": 3,
+      "independent_model_or_KV_byte_oracle": false,
+      "full_lifecycle": false,
+      "optimization_speedup": "NOT_MEASURED",
+      "accepted_baseline": null,
+      "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    }
   },
   {
     "id": "M007",
@@ -1425,7 +1488,7 @@
       "first_action": "从实际日志/trace 导出 target/draft 桶与支持条件，再选唯一新增桶。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "安装源码与CPU策略已核验；NPU图运行及性能 INCONCLUSIVE",
+    "status": "真实长短请求使用EAGLE图，D三阶段图区间内存已读取；裁剪候选未执行",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/graph_runner/npu_graph_runner.py",
@@ -1452,7 +1515,28 @@
     "runtime_path_confirmed": false,
     "evidence_checkpoint": "evidence/2026-10-19-graph-shape-support/README.md",
     "performance_verdict": "INCONCLUSIVE",
-    "overall_serving_evidence": "E0"
+    "overall_serving_evidence": "E0",
+    "target_score_and_long_PD": {
+      "runs": [
+        "L039-R084",
+        "L039-R085",
+        "L039-R086",
+        "L039-R087",
+        "L039-R088",
+        "L039-R089",
+        "L039-R090"
+      ],
+      "short_observer_runs": 2,
+      "long_original_3x32768to256_runs": 2,
+      "observed_chosen_tokens_at_target_max": 2048,
+      "D_co_resident_long_contexts": 1,
+      "long_queued_arrivals": 3,
+      "independent_model_or_KV_byte_oracle": false,
+      "full_lifecycle": false,
+      "optimization_speedup": "NOT_MEASURED",
+      "accepted_baseline": null,
+      "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    }
   },
   {
     "id": "M022",
@@ -1919,7 +2003,7 @@
       "first_action": "核对已安装 DeepEP API、分轮参数与 HCCL buffer 计算，不照搬主分支默认值。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "分组缓冲下真实2x512→128 PD+MTP功能通过；输出重复性与性能基线未接受",
+    "status": "现有分组缓冲支持原长短PD+MTP功能用例；稳定性能基线未接受",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L249-L283",
@@ -2051,6 +2135,27 @@
       "repeat_output_stability": "NOT_ESTABLISHED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-first-pd/README.md"
+    },
+    "target_score_and_long_PD": {
+      "runs": [
+        "L039-R084",
+        "L039-R085",
+        "L039-R086",
+        "L039-R087",
+        "L039-R088",
+        "L039-R089",
+        "L039-R090"
+      ],
+      "short_observer_runs": 2,
+      "long_original_3x32768to256_runs": 2,
+      "observed_chosen_tokens_at_target_max": 2048,
+      "D_co_resident_long_contexts": 1,
+      "long_queued_arrivals": 3,
+      "independent_model_or_KV_byte_oracle": false,
+      "full_lifecycle": false,
+      "optimization_speedup": "NOT_MEASURED",
+      "accepted_baseline": null,
+      "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
     }
   },
   {
@@ -2212,7 +2317,7 @@
       "first_action": "确认实际算法别名与参数规范化，记录当前 accepted length，先不改深度。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "真实MTP verify/正确草稿/接受直方图已采集；重复输出分叉，完整质量与生命周期待测",
+    "status": "2048个输出token与返回目标最大分数一致；长Case两次输出/接受直方图相同，精度金标准及完整生命周期未闭合",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/speculative_decoding.mdx",
@@ -2288,6 +2393,27 @@
       "repeat_output_stability": "NOT_ESTABLISHED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-first-pd/README.md"
+    },
+    "target_score_and_long_PD": {
+      "runs": [
+        "L039-R084",
+        "L039-R085",
+        "L039-R086",
+        "L039-R087",
+        "L039-R088",
+        "L039-R089",
+        "L039-R090"
+      ],
+      "short_observer_runs": 2,
+      "long_original_3x32768to256_runs": 2,
+      "observed_chosen_tokens_at_target_max": 2048,
+      "D_co_resident_long_contexts": 1,
+      "long_queued_arrivals": 3,
+      "independent_model_or_KV_byte_oracle": false,
+      "full_lifecycle": false,
+      "optimization_speedup": "NOT_MEASURED",
+      "accepted_baseline": null,
+      "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
     }
   },
   {
@@ -2579,7 +2705,7 @@
       "first_action": "按实际后端和运行 commit 画时间线；跨节点时钟未对齐不直接相减。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "真实非fake PD短请求功能交接通过；KV逐字节核验及完整异步生命周期仍待测",
+    "status": "原三路32K真实PD功能交接及重复通过；KV逐字节、取消/drain与引用回收待测",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py",
@@ -2649,6 +2775,27 @@
       "repeat_output_stability": "NOT_ESTABLISHED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-first-pd/README.md"
+    },
+    "target_score_and_long_PD": {
+      "runs": [
+        "L039-R084",
+        "L039-R085",
+        "L039-R086",
+        "L039-R087",
+        "L039-R088",
+        "L039-R089",
+        "L039-R090"
+      ],
+      "short_observer_runs": 2,
+      "long_original_3x32768to256_runs": 2,
+      "observed_chosen_tokens_at_target_max": 2048,
+      "D_co_resident_long_contexts": 1,
+      "long_queued_arrivals": 3,
+      "independent_model_or_KV_byte_oracle": false,
+      "full_lifecycle": false,
+      "optimization_speedup": "NOT_MEASURED",
+      "accepted_baseline": null,
+      "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
     }
   },
   {
