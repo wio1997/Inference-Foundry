@@ -64,6 +64,8 @@
 
 - [M033：通知/真实HTTP、msgpack状态码反例与条件修复候选](evidence/2026-10-19-frontend-stream-finish/README.md)
 
+- [M032：真实grammar缓存、FSM隔离/回滚与MTP host mask](evidence/2026-10-19-grammar-fsm-mask/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -103,7 +105,7 @@
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
 | [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 路由必要工作边界已建立；实际rank负载未测 | config |
 | [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | NEXTN三步历史参数确认；模型/PD原生待测 | config |
-| [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 待路径核验 | conditional_candidate |
+| [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 真实grammar/hostMTP mask CPU已核验；原生待测 | conditional_candidate |
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 前端IPC/SSE组件已实测；原生/回收待测 | config |
 | [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 待路径核验 | config |
 | [M035](points/M035.md) | PD 分离、KV connector 与异步传输 | 待路径核验 | conditional_candidate |
