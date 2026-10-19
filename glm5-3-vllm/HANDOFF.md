@@ -4,9 +4,14 @@
 
 ## 当前现场与立即动作
 
+- **2026-10-19 15:10 CST 当前阻碍与下一动作（覆盖下方就绪/运行描述）**：SSH旧master48860已断开退出，`61.241.77.34:60011`的TCP连接主动拒绝，非密码错误。已向用户异步询问跳板入口是否改动。新原型功能16/C4功能8数值通过，all16共18752次原lookup与独立Indexer副本逐位相同；关闭observer后quality52数值通过、完整64仅18/26相同。cached16远端执行24.202372s、rc0、未超时，但下载stdout时断连，metrics1427093B/SHA `3a2f69bff91b3ed74238d226aaeace215811c973c0e0fd257e4177d851309690`尚待取回，**不能先记cached验收通过**。quality控制与formal均未开始。
+- **恢复步骤**：`recover_rope_step_reuse_cached_v1.py`只读拉回该已冻结run的8个文件，核原字节/SHA/script/result envelope；无新请求、marker写入或NPU工作。恢复成功后重运行correctness脚本会通过已有metrics幂等复用所有完成阶段，再写outcome；随后对8个完整序列差异做既定current native/adaptive/native控制。连接恢复前不盲目重载或重复设备测试；恢复后先核P84bd/D163c/proxy精确状态、observer/marker和各host剩余预算。P/D最后一次已知Ready/有限timer见下，当前不可达时不宣称仍运行；cached脚本原finally恢复candidate off，是否外部有变更需重核。`rope-step-reuse-ssh-interruption-v1.json`记录传输收据与恢复入口，无认证材料。
+
+- **2026-10-19 14:59 CST 实时状态**：新D `163c7646c30ab819514f112e0af510934aa592305f3ec37bd7e3b77a3edc2bdc`已Ready，首次就绪观察647.382651s（20s探测间隔），watch52295完成；P84bd为保留实例，不将其晚观察时间当启动耗时。correctness52291已接续setup/功能16/C4功能8/all16比对，尚无功能或性能结论。D此时剩余4099.62s；P下一阶段需新核余量，不能引用旧数值。完整source/contract已冻结，build202fc1…不热改。
+
 - **2026-10-19 14:48 CST 当前主题：SFA/Indexer同一步元数据生产复用，D新构建正在启动，P保留。** 旧连续RoPE表收益是已完成结果；之后MoE count/prefix与提前发布均是独立机制，当前不沿用旧整表搬运收益。精确源码确认原生MTP steps1–4先构造primary SFA，再调用`_build_cache_only_group_next_step_attn_metadata`，该回调只构造cache-only Indexer，不推进positions；SFA678与Indexer1112重复lookup，Indexer随后仍复制到其独立per-step缓冲。剩余双表lookup片段约0.05ms，不能以13次调用直接相乘预测服务收益。
 - **当前新原型**：`rope_step_reuse.py`仅在该原生回调作用域内将已完成SFA cos/sin交给原Indexer复制；校验同positions地址/dtype/shape、exact builder类型和MTP1–4，target、capture、其他拓扑原生；无跨步memo、不改图指针/输出发布/KV退休、新拷贝或新算子。源码pin SFA9b94…/Indexer1f34…/proposer458fb…；13项CPU所有权/异常/回退检查过（含同地址值改变和前一步独立输出存活），尚无NPU或服务收益结论。新immutable build`202fc1d3d080e8f199d24f06e572cf7529d531e904978cd4271355069b9b9aa7`，5 overlays、native NPU AST前缀保留，未带提前发布schema改造。
-- **正在执行**：launch exec81324已stage、核原holder UID/独占、P/proxy健康，已在SHA快照与空闲后精确停止旧D bfac，P84bd及proxy a1fec未动。新root=`/data/wio/glm5-3-vllm-execution/20261018-state-tail/rope-step-reuse-live1-20261019/node33`，CID待launch收据。watch exec52295、correctness exec52291等待launch/Ready；其后功能16+C4功能8保留完整SFA→两个消费者关系，all16将逐份比对原getter与共享源、并验证Indexer独立存储，再关闭observer做quality52/cached16。任何新完整序列差异先有限当前native/adaptive/native控制；冻结formal联合门槛在`rope-step-reuse-formal-contract-v1.json`。尚未进入formal。
+- **正在执行**：launch exec81324已stage、核原holder UID/独占、P/proxy健康，已在SHA快照与空闲后精确停止旧D bfac，P84bd及proxy a1fec未动。新root=`/data/wio/glm5-3-vllm-execution/20261018-state-tail/rope-step-reuse-live1-20261019/node33`，CID=`163c7646c30ab819514f112e0af510934aa592305f3ec37bd7e3b77a3edc2bdc`，model有限4747s（按当前自有holder余量减安全量），最新FULL图4/4已捕获。watch exec52295、correctness exec52291等待launch/Ready；其后功能16+C4功能8保留完整SFA→两个消费者关系，all16将逐份比对原getter与共享源、并验证Indexer独立存储，再关闭observer做quality52/cached16。任何新完整序列差异先有限当前native/adaptive/native控制；冻结formal联合门槛在`rope-step-reuse-formal-contract-v1.json`。尚未进入formal。
 
 ## 历史按时间保留（下方“当前”“正在”均为当时状态，最新现场以上方为准）
 
