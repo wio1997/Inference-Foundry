@@ -1,0 +1,1379 @@
+{
+  "title": "SGLang FULL 前缀缓存管理逻辑排查",
+  "date": "2026-10-18",
+  "commit": "57db5089c207ae4ce189cc092a89a2027c8aea29",
+  "scope": "Python Unified FULL 设备缓存的键准备、匹配、引用、索引、插入、淘汰与分配回收边界。HiCache / SWA / Mamba 仅检查与此主线的合同边界；不宣称覆盖其全部实现、Rust 核心或 Ascend 内核。",
+  "boundary": "48 个预先列出的逻辑问题逐格给出处置；这不是数学上穷尽全部程序优化，也不是全网原创性证明。",
+  "stages": [
+    "输入与键准备",
+    "树匹配",
+    "访问与引用",
+    "索引与所有权",
+    "插入与分裂",
+    "淘汰选择",
+    "分配与回收",
+    "观测与配置"
+  ],
+  "questions": [
+    "是否可提前结束",
+    "是否重复查找或维护",
+    "是否处理了多余数据",
+    "是否有临时分配复制",
+    "是否可专用或合并",
+    "时序与所有权能否保持"
+  ],
+  "items": [
+    {
+      "id": "CACHE-001",
+      "title": "持久淘汰堆",
+      "stage": 5,
+      "kind": "upstream",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [
+        38371
+      ],
+      "note": "2026-10-18-sglang-prefix-cache.md#cache-001",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-002",
+      "title": "批量回收余量",
+      "stage": 5,
+      "kind": "tradeoff",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [],
+      "note": "2026-10-18-sglang-prefix-cache.md#cache-002",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-003",
+      "title": "抽样近似 LRU",
+      "stage": 5,
+      "kind": "tradeoff",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [],
+      "note": "2026-10-18-sglang-prefix-cache.md#cache-003",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-004",
+      "title": "已有淘汰策略对照",
+      "stage": 5,
+      "kind": "upstream",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [],
+      "note": "2026-10-18-sglang-prefix-cache.md#cache-004",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-005",
+      "title": "共享路径访问刷新合并",
+      "stage": 2,
+      "kind": "conditional",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [],
+      "note": "2026-10-18-sglang-prefix-cache.md#cache-005",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-006",
+      "title": "简单配置专用匹配",
+      "stage": 1,
+      "kind": "conditional",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [],
+      "note": "2026-10-18-sglang-prefix-cache.md#cache-006",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-007",
+      "title": "索引拼接与所有权",
+      "stage": 3,
+      "kind": "upstream",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [
+        42923,
+        43023,
+        43600
+      ],
+      "note": "2026-10-18-sglang-prefix-cache.md#cache-007",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-008",
+      "title": "已保护路径少做 discard",
+      "stage": 2,
+      "kind": "equiv",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [],
+      "note": "2026-10-18-sglang-equivalent-work.md#cache-008",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-009",
+      "title": "插入游标减少后缀复制",
+      "stage": 4,
+      "kind": "conditional",
+      "priority": "已有记录",
+      "prior": true,
+      "related_prs": [
+        26943
+      ],
+      "note": "2026-10-18-sglang-equivalent-work.md#cache-009",
+      "current": "见原始笔记的固定源码与边界。",
+      "change": "复用原条目，避免重复当作新想法。",
+      "gain": "见原条目。",
+      "condition": "见原条目；旧实机版本与本轮源码不同。",
+      "cost": "见原条目。",
+      "test": "008 / 009 有有限对照；其余按原状态。",
+      "falsify": "按原条目，未证实端到端收益。",
+      "novelty": "001 / 007 已有相关实现；009 与旧切片优化同一成本方向。"
+    },
+    {
+      "id": "CACHE-010",
+      "title": "缓存关闭后，先返回再切输入",
+      "stage": 0,
+      "kind": "equiv",
+      "priority": "P3",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "line": 1132,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py#L1132",
+        "needle": "token_ids = req.full_untruncated_fill_ids[:up_to]"
+      },
+      "current": "checkpoint 在 disable 判断前切一份 token 数组。",
+      "change": "把这次切片移到原有 disable 返回之后，保留结束清理。",
+      "gain": "关闭缓存路径的一次 CPU 输入复制。",
+      "condition": "只改变 disable 路径；仍执行既有组件 cleanup。",
+      "cost": "启用缓存路径布局变化；关闭缓存时才有这项收益。",
+      "test": "6 个关闭路径对照通过；启用路径及真实组件清理待集成回归。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-011",
+      "title": "分裂取页键时，避免临时复制整个后缀",
+      "stage": 4,
+      "kind": "equiv",
+      "priority": "P1",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1448,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1448",
+        "needle": "new_node.children = {key[split_len:].child_key"
+      },
+      "current": "为取后缀首个 page 的键，先切出整段后缀；稍后还会切 child.key。",
+      "change": "这里改用 key.child_key_at(split_len, page_size)。",
+      "gain": "一次临时 token 后缀复制与 RadixKey 对象。",
+      "condition": "保持 namespace、salt、bigram、limit 与页边界；持久 child.key 切片照常保存。",
+      "cost": "改动小；分裂很少时收益很小。",
+      "test": "真实 RadixKey 的 2400 个局部结果对照通过；完整分裂锁 / 动作回归待做。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-012",
+      "title": "已对齐的键，避免再复制一次",
+      "stage": 0,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/radix_cache.py",
+        "line": 147,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/radix_cache.py#L147",
+        "needle": "def page_aligned("
+      },
+      "current": "page_size 大于 1 时，即使长度已对齐，仍返回一次完整切片。",
+      "change": "内部只读调用可复用原键；或提供显式借用接口。",
+      "gain": "重复的全长 token 复制。",
+      "condition": "需要证明调用者不依赖独立 key 或底层数组；bigram 模式存在原地转换。",
+      "cost": "别名合同、可变字段与生命周期维护。",
+      "test": "核对所有调用者；覆盖同 key 多次对齐、模式转换、后续修改和持久节点保存。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-013",
+      "title": "合并 checkpoint 前的多次输入裁剪",
+      "stage": 0,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "line": 1152,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py#L1152",
+        "needle": "effective_cache_len = len(token_ids)"
+      },
+      "current": "先裁 up_to，再裁 effective_cache_len，再按页裁；begin_insert 又对齐。",
+      "change": "前期传原输入与长度界限，到必须独立保存的位置再物化。",
+      "gain": "进入插入遍历之前的重复全长 / 前缀复制。",
+      "condition": "各组件仍按相同长度计算；持久节点须保持独立、合适大小的所有权。",
+      "cost": "改 API 与长度边界传播，可能固定更大的输入缓冲。",
+      "test": "统计各裁剪真实字节，覆盖长度截断、MTP、页边界与组件组合。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": "CACHE-009",
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-014",
+      "title": "FULL 匹配只记长度，减少临时段列表",
+      "stage": 1,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1041,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1041",
+        "needle": "device_prefix_len=sum(len(v) for v in value"
+      },
+      "current": "匹配中收集 value 列表，末尾再切列表并累加长度。",
+      "change": "已确认的 FULL-only / 无 HiCache 路径维护等价长度与节点，省临时列表。",
+      "gain": "列表 append、切片与末尾再遍历。",
+      "condition": "不能影响辅助组件 finalizer、分裂与命中边界；普通匹配已按需收集索引。",
+      "cost": "专用路径维护与每节点计数可能抵消收益。",
+      "test": "对照匹配结果、访问记录与 action；逐次测纯 CPU，总时间下降才保留。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [
+        42923
+      ],
+      "parent": "CACHE-006",
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-015",
+      "title": "树上子节点只查一次字典",
+      "stage": 1,
+      "kind": "equiv",
+      "priority": "P3",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 951,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L951",
+        "needle": "while key_offset < len(key) and child_key in node.children:"
+      },
+      "current": "先判断 child_key 在字典中，再用同一个键取节点。",
+      "change": "在循环内用一次 get，未命中即退出；插入的同型位置也可评估。",
+      "gain": "一次重复字典查找；长 page 键还涉及重复哈希。",
+      "condition": "Unified children 是普通 dict，合法值为非 None 节点；中途无树变更。",
+      "cost": "控制流布局变化；字典查找通常很小，不能默认更快。",
+      "test": "覆盖空树、未命中、盐隔离、部分命中、split；测总 matcher 时间。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-016",
+      "title": "没有主机缓存时，省去主机叶子集合维护",
+      "stage": 2,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1568,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1568",
+        "needle": "def _update_evictable_leaf_sets("
+      },
+      "current": "每次都检查 device 和 host 叶子，再分别 add / discard。",
+      "change": "无 host 驻留能力且 host 集合恒空时，选择只维护 device 的路径。",
+      "gain": "host 检查、方法调用和空集合删除尝试。",
+      "condition": "保证不持有 host_value / host 锁；配置启用或重配时正确切换。",
+      "cost": "增加配置分支 / 绑定与维护范围；单次 host 检查原本很短。",
+      "test": "覆盖 reset、启用 HiCache、buffer-only、外部 linker 和 host 锁。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-017",
+      "title": "FULL 锁入口避免组件内外重复刷新",
+      "stage": 2,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 725,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L725",
+        "needle": "self._update_evictable_leaf_sets(node)"
+      },
+      "current": "Full acquire / release 已沿路径维护候选，TreeCore 入口又刷新锚点。",
+      "change": "FULL-only、无 host、正常组件锁合同下，研究省掉外层重复刷新。",
+      "gain": "重复资格检查与集合操作。",
+      "condition": "不可用于 host-only 尾段或混合组件；skip receipt、split 与根节点需核对。",
+      "cost": "增加专用条件；误删刷新会留下错误回收资格。",
+      "test": "逐事件比较引用数、候选集合、账本，覆盖 pin、空锚点和中途分裂。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": "CACHE-008",
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-018",
+      "title": "重叠段确实有消费者时，再切索引视图",
+      "stage": 4,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1318,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1318",
+        "needle": "value_slice = state.value[:prefix_len]"
+      },
+      "current": "已有节点重叠时先切 Tensor 视图、调用组件 hook，再判断是否有重复槽要回收。",
+      "change": "FULL-only 且原保护前缀已覆盖该节点时，跳过无消费者的 view 与空 hook。",
+      "gain": "临时 Tensor view、框架小操作与默认回调。",
+      "condition": "Full 默认 hook 不消费；混合组件可能需要读取或接管该段。",
+      "cost": "多维护专用路径；view 常是小固定成本。",
+      "test": "比较重复释放范围、adopted_ranges、action、锁及插入返回。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-019",
+      "title": "独立索引副本是否可延后到树实际收养时",
+      "stage": 3,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "line": 1196,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py#L1196",
+        "needle": "copy=True)"
+      },
+      "current": "checkpoint 先复制整段索引；Python 新节点 / 恢复节点又 clone 自己收养的部分。",
+      "change": "核对后尝试只做必要 dtype 转换，由树在收养处生成独立副本。",
+      "gain": "中间的全长索引复制；不删除树长期持有的独立副本。",
+      "condition": "必须穷查所有收养点、prompt 二次 insert、延迟 action 和异步消费者。",
+      "cost": "所有权审计面大；Rust、session、linker 合同不能直接类推。",
+      "test": "以请求行复用、取消、分裂、恢复、双 insert 和异步读取验证；任何悬空别名即否定。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": "CACHE-007",
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-020",
+      "title": "同一次容量检查，没有变化就少查一次",
+      "stage": 5,
+      "kind": "equiv",
+      "priority": "P1",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "line": 930,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py#L930",
+        "needle": "def target_reached(component_type:"
+      },
+      "current": "第一次容量未达标后，普通分支未修改容量，却再次查询并比较。",
+      "change": "普通无变更分支直接返回 False；Mamba donor 准备后仍重查。",
+      "gain": "重复的 allocator 元数据查询。",
+      "condition": "该 getter 在两次调用之间纯且稳定；保留 donor、联合回收回调的行为。",
+      "cost": "需要核对自定义 allocator；查询很便宜时收益很小。",
+      "test": "提取真实闭包的 540 个容量 / donor 情况通过，局部共少 208 次读取。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [
+        33091,
+        36713
+      ],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-021",
+      "title": "关闭淘汰指标时，省去起始计时",
+      "stage": 7,
+      "kind": "equiv",
+      "priority": "P3",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "line": 791,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py#L791",
+        "needle": "start_time = time.perf_counter()"
+      },
+      "current": "_evict 无条件读起始时钟，update_eviction_metrics 在 collector 为 None 时不使用它。",
+      "change": "仅在确实收集指标时启动计时，保留启用时的统计边界。",
+      "gain": "无指标路径的时钟调用。",
+      "condition": "指标启用状态 / collector 在调用期间符合冻结合同。",
+      "cost": "增加条件判断；小于噪声时不值得维护。",
+      "test": "指标开 / 关、零驱逐、异常路径；比较事件和统计含义。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-022",
+      "title": "free group 只有一段时，省一次 cat",
+      "stage": 6,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/allocator/base.py",
+        "line": 220,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/allocator/base.py#L220",
+        "needle": "self.free(torch.cat(pending))"
+      },
+      "current": "free_group 已克隆输入取得所有权；结束时单段也会 cat 成新缓冲。",
+      "change": "单段交出已拥有的快照，多段保持拼接。",
+      "gain": "单段输出分配、复制与提交。",
+      "condition": "下游 free 不依赖另一份独立存储；各 allocator 子类需要核对。",
+      "cost": "新增单段分支；组内 snapshot 仍必须保留。",
+      "test": "0 / 1 / 多段、异常、输入行随后覆写、各后端子类回归。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [
+        26988
+      ],
+      "parent": "CACHE-007",
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-023",
+      "title": "SWA 已回收区间为空时，跳过逐段拆分",
+      "stage": 6,
+      "kind": "equiv",
+      "priority": "P1",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/common.py",
+        "line": 160,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/common.py#L160",
+        "needle": "dead_lo, dead_hi = swa_dead_lo, max("
+      },
+      "current": "即使 dead_lo == dead_hi，也逐段求交并构造 alive / dead 列表。",
+      "change": "空 dead 区间直接交给原 allocator.free_segments。",
+      "gain": "逐段 min/max、临时列表和重复分类。",
+      "condition": "相同 segments 顺序、零段处理与 allocator 页不重叠合同。",
+      "cost": "非空分支多一次判断；不会删除必要页校验。",
+      "test": "真实分类函数 + 轻量 allocator 的 600 个空 / 非空区间对照通过。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-024",
+      "title": "全是空回收区间时，先返回再索引请求行",
+      "stage": 6,
+      "kind": "conditional",
+      "priority": "P1",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/base_prefix_cache.py",
+        "line": 497,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/base_prefix_cache.py#L497",
+        "needle": "row = self.req_to_token_pool.req_to_token[kv.req_pool_idx]"
+      },
+      "current": "free_kv_row 先取 Tensor 行，再为零长度区间构造空切片。",
+      "change": "合法 ranges 全为空时，在触碰请求行之前结束。",
+      "gain": "空回收的 Tensor 行选择、视图与区间准备。",
+      "condition": "只跳过确实空的范围；自定义 allocator 不能依赖空调用的副作用。",
+      "cost": "额外空区间判断；不能吞掉真实无效范围与必要资源释放。",
+      "test": "完整命中、结束 / 取消、空列表、混合空非空范围、页与 DCP 边界。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [
+        43183
+      ],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-025",
+      "title": "维护设备驻留子节点数，减少反复扫描",
+      "stage": 5,
+      "kind": "tradeoff",
+      "priority": "P3",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 2276,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L2276",
+        "needle": "child.component_data[ct].value is not None"
+      },
+      "current": "判断设备叶子时用 any 扫描子节点，找到设备驻留项就结束。",
+      "change": "维护 resident child count，设备子节点为空与否用计数判断。",
+      "gain": "高扇出且很多子节点不驻留时的扫描。",
+      "condition": "所有新增、split、恢复、降层、删除都更新计数；不能只改一个入口。",
+      "cost": "每次结构变化多维护一个计数；普通短路扫描可能更便宜。",
+      "test": "扇出与驻留比例扫描；逐事件和原 any 对照，累计维护成本也纳入。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-026",
+      "title": "只读匹配按结构版本复用",
+      "stage": 1,
+      "kind": "tradeoff",
+      "priority": "P3",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 984,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L984",
+        "needle": "def match_full_device_prefix("
+      },
+      "current": "重复只读探测仍从根匹配。",
+      "change": "对明确只读 API 用 key / namespace / tree epoch 复用结果。",
+      "gain": "同一输入、同一结构版本的重复匹配。",
+      "condition": "该 API 目前主要用于分层边界；不能跳过有 LRU / split 副作用的完整 match。",
+      "cost": "维护版本、缓存与失效；短队列可能更贵，HiCache 关闭时未必触发。",
+      "test": "覆盖 insert、split、evict、restore、salt、句柄失效；测命中率和版本维护总成本。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-027",
+      "title": "复用固定页内偏移向量",
+      "stage": 6,
+      "kind": "conditional",
+      "priority": "P3",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/allocator/paged.py",
+        "line": 199,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/allocator/paged.py#L199",
+        "needle": "+ torch.arange(self.page_size, device=self.device)"
+      },
+      "current": "普通 paged alloc 每次构造固定的 0..page_size-1。",
+      "change": "在配置稳定时只读复用页内偏移向量，或由后端融合生成。",
+      "gain": "固定常量的分配与小操作。",
+      "condition": "只针对调用这个 alloc 的路径；实际 Ascend 子类、dtype、device 与图捕获另查。",
+      "cost": "持久常量占少量设备内存；可能不在热路径。",
+      "test": "alloc 输出一致；页大小 / device / resize / graph 生命周期检查，先统计调用量。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-028",
+      "title": "FULL-only 叶子资格走直接字段判断",
+      "stage": 2,
+      "kind": "conditional",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 2273,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L2273",
+        "needle": "if any(cd.lock_ref > 0 for cd in node.component_data):"
+      },
+      "current": "节点为全部组件编号分配数据，叶子资格遍历整个 component_data 检查引用。",
+      "change": "明确 FULL-only 时直接检查 FULL 引用；混合组件保留通用判断。",
+      "gain": "生成器与未启用组件槽的检查。",
+      "condition": "不能漏掉任何实际持锁组件；组件配置变化后切回正确路径。",
+      "cost": "专用分支 / 绑定与维护；组件少时收益仍小。",
+      "test": "不同组件集、host / device 锁、split 后资格逐项对照。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": "CACHE-006",
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-029",
+      "title": "FULL-only 节点减少辅助对象与动态字典",
+      "stage": 7,
+      "kind": "tradeoff",
+      "priority": "P3",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 112,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L112",
+        "needle": "class UnifiedTreeNode:"
+      },
+      "current": "每个节点准备全组件 ComponentData、辅助 LRU 槽和动态字段。",
+      "change": "研究 FULL 专用布局、slots 或惰性辅助数据，保留接口合同。",
+      "gain": "CPU 堆对象、内存占用和可能的缓存未命中。",
+      "condition": "所有字段读写、调试、序列化、组件切换与 Rust 适配都要核对。",
+      "cost": "辅助访问可能增加间接层；工程和兼容成本大。",
+      "test": "实测每节点内存、GC 和遍历时间；大树与混合配置回归。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "CACHE-030",
+      "title": "持久节点复用已经算出的首 page 键",
+      "stage": 4,
+      "kind": "tradeoff",
+      "priority": "P2",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1479,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1479",
+        "needle": "parent.children[key.child_key(self.page_size)] = new_node"
+      },
+      "current": "节点首 page 键在插入、分裂、删除等位置重新构造。",
+      "change": "在节点中保留与父字典一致的 child key，必要时随 split 更新。",
+      "gain": "重复页切片、整数装箱与 tuple 构造。",
+      "condition": "节点 key / namespace / salt 改变时失效；复用同一个父字典键对象更合适。",
+      "cost": "每节点额外引用和维护；page=1 或很少复用时可能不值。",
+      "test": "split 前后父子查找、删除、salt 隔离和节点数量变化；测总 CPU 与额外内存。",
+      "falsify": "状态或服务合同不等价，或总成本未降低；目标路径不触发 / 改善被覆盖时，不能声称端到端提速。",
+      "related_prs": [],
+      "parent": null,
+      "novelty": "本轮有界题目 / 正文检索未发现直接对应改动；不是原创性证明。"
+    },
+    {
+      "id": "REJECT-BARRIER",
+      "title": "跨所有 action barrier 延迟回收",
+      "stage": 4,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1262,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1262",
+        "needle": "new_actions and not all(map"
+      },
+      "current": "动作提交关系到下一阶段容量与所有权；不能只为合并操作跳过边界。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-COPY",
+      "title": "删除全部 clone / copy=True",
+      "stage": 3,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/allocator/base.py",
+        "line": 225,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/allocator/base.py#L225",
+        "needle": "return free_index.clone()"
+      },
+      "current": "延迟回收快照与持久树所有权需要独立存储；019 必须逐收养点验证。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-EVENT",
+      "title": "关闭事件还生成完整 token 日志",
+      "stage": 7,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/events.py",
+        "line": 219,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/events.py#L219",
+        "needle": "if not self.enabled:"
+      },
+      "current": "record_* 已在重计算 / payload 之前返回；调用本身的轻量成本另论。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-HASH",
+      "title": "禁用存储仍无条件计算所有节点哈希",
+      "stage": 7,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1532,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1532",
+        "needle": "if self.enable_storage or self.enable_external_cache_linker:"
+      },
+      "current": "已有配置守卫；启用 KV 事件时可能另有必要哈希消费者。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-HIT",
+      "title": "普通 LRU 时随意删 hit_count",
+      "stage": 2,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1105,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1105",
+        "needle": "node.hit_count += 1"
+      },
+      "current": "LFU / SLRU 与 HiCache 使用计数；需要策略与观测合同，不能笼统称无用。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-REF",
+      "title": "共享前缀只计一次引用",
+      "stage": 2,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/components/full.py",
+        "line": 317,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/components/full.py#L317",
+        "needle": "cd.lock_ref += 1"
+      },
+      "current": "每个请求仍有独立生命周期；少计会导致过早回收。008 只省集合操作。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-ROOT",
+      "title": "跳过所有根节点访问记录",
+      "stage": 2,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1027,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1027",
+        "needle": "while node_update:"
+      },
+      "current": "根不被淘汰不足以证明其字段、全局访问编号与所有观测合同可忽略；不作为无条件优化。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-ROW",
+      "title": "结束请求无用映射重写作为新发明",
+      "stage": 3,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "line": 1249,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py#L1249",
+        "needle": "new_indices = self.path_device_indices(new_last_node)"
+      },
+      "current": "相关 PR #43600 已实现；应评估复用与本地版本兼容，不重复声称新点。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-SYNC",
+      "title": "只看 CPU 时间就认定设备提速",
+      "stage": 7,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/memory_pool.py",
+        "line": 110,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/memory_pool.py#L110",
+        "needle": "_MAMBA_DEBUG_ASSERTS"
+      },
+      "current": "已有调试同步守卫；局部成本、是否暴露在关键路径、设备竞争与 E2E 需分开测。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-TAIL",
+      "title": "所有多轮请求只插新增尾部",
+      "stage": 4,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "line": 1284,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L1284",
+        "needle": "self._touch_node(node)"
+      },
+      "current": "已有重叠段仍有访问、优先级、命中与回收副作用；相关 Rust continuation 已有先例 #38636。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-UNIQUE",
+      "title": "通用 free 一律删 unique",
+      "stage": 6,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/allocator/paged.py",
+        "line": 333,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/allocator/paged.py#L333",
+        "needle": "torch.unique(free_index // self.page_size)"
+      },
+      "current": "通用输入不保证页不重复；page-exact free_segment 已存在，应复用既有合同。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    },
+    {
+      "id": "REJECT-ZERO",
+      "title": "零回收量仍建堆",
+      "stage": 5,
+      "kind": "reject",
+      "priority": "排除 / 已有",
+      "source": {
+        "file": "python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "line": 979,
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py#L979",
+        "needle": "if target_reached(ct) or (not to_target"
+      },
+      "current": "驱动已跳过满足目标的组件；不能再把这一假设当作已找到的冗余。",
+      "change": "不作为本轮新优化。",
+      "gain": "无可直接认领的新增收益。",
+      "condition": "保留现有正确性与功能合同。",
+      "cost": "误改会引入语义变化或重复已有实现。",
+      "test": "需要新证据才能重开。",
+      "falsify": "当前证据已不足以支持直接改动。",
+      "related_prs": [],
+      "novelty": "排除项或已有能力。"
+    }
+  ],
+  "coverage": [
+    {
+      "stage": 0,
+      "question": 0,
+      "items": [
+        "CACHE-010"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 0,
+      "question": 1,
+      "items": [
+        "CACHE-012",
+        "CACHE-013"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 0,
+      "question": 2,
+      "items": [
+        "CACHE-009",
+        "CACHE-013"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 0,
+      "question": 3,
+      "items": [
+        "CACHE-011",
+        "CACHE-012",
+        "CACHE-013"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 0,
+      "question": 4,
+      "items": [
+        "CACHE-006",
+        "CACHE-013"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 0,
+      "question": 5,
+      "items": [
+        "CACHE-012",
+        "CACHE-013"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 1,
+      "question": 0,
+      "items": [
+        "CACHE-006"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 1,
+      "question": 1,
+      "items": [
+        "CACHE-015",
+        "CACHE-026"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 1,
+      "question": 2,
+      "items": [
+        "CACHE-014"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 1,
+      "question": 3,
+      "items": [
+        "CACHE-014",
+        "CACHE-007"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 1,
+      "question": 4,
+      "items": [
+        "CACHE-006",
+        "CACHE-014"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 1,
+      "question": 5,
+      "items": [
+        "CACHE-005",
+        "CACHE-026"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 2,
+      "question": 0,
+      "items": [
+        "CACHE-008",
+        "CACHE-017"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 2,
+      "question": 1,
+      "items": [
+        "CACHE-008",
+        "CACHE-017"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 2,
+      "question": 2,
+      "items": [
+        "CACHE-028"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 2,
+      "question": 3,
+      "items": [
+        "CACHE-029"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 2,
+      "question": 4,
+      "items": [
+        "CACHE-016",
+        "CACHE-028"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 2,
+      "question": 5,
+      "items": [
+        "CACHE-005",
+        "CACHE-008",
+        "CACHE-017"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 3,
+      "question": 0,
+      "items": [
+        "CACHE-007"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 3,
+      "question": 1,
+      "items": [
+        "CACHE-019"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 3,
+      "question": 2,
+      "items": [
+        "CACHE-007",
+        "CACHE-019"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 3,
+      "question": 3,
+      "items": [
+        "CACHE-007",
+        "CACHE-019",
+        "CACHE-022"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 3,
+      "question": 4,
+      "items": [
+        "CACHE-022"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 3,
+      "question": 5,
+      "items": [
+        "CACHE-019"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 4,
+      "question": 0,
+      "items": [
+        "CACHE-018"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 4,
+      "question": 1,
+      "items": [
+        "CACHE-011",
+        "CACHE-030"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 4,
+      "question": 2,
+      "items": [
+        "CACHE-009",
+        "CACHE-013"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 4,
+      "question": 3,
+      "items": [
+        "CACHE-011",
+        "CACHE-018",
+        "CACHE-019"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 4,
+      "question": 4,
+      "items": [
+        "CACHE-018",
+        "CACHE-030"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 4,
+      "question": 5,
+      "items": [
+        "CACHE-009",
+        "CACHE-019"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 5,
+      "question": 0,
+      "items": [
+        "CACHE-020"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 5,
+      "question": 1,
+      "items": [
+        "CACHE-001",
+        "CACHE-020"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 5,
+      "question": 2,
+      "items": [
+        "CACHE-003",
+        "CACHE-025"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 5,
+      "question": 3,
+      "items": [
+        "CACHE-001"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 5,
+      "question": 4,
+      "items": [
+        "CACHE-001",
+        "CACHE-002",
+        "CACHE-025"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 5,
+      "question": 5,
+      "items": [
+        "CACHE-004"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 6,
+      "question": 0,
+      "items": [
+        "CACHE-024"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 6,
+      "question": 1,
+      "items": [
+        "CACHE-020"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 6,
+      "question": 2,
+      "items": [
+        "CACHE-023"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 6,
+      "question": 3,
+      "items": [
+        "CACHE-022",
+        "CACHE-027"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 6,
+      "question": 4,
+      "items": [
+        "CACHE-023"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 6,
+      "question": 5,
+      "items": [
+        "CACHE-022",
+        "CACHE-024"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 7,
+      "question": 0,
+      "items": [
+        "CACHE-021"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 7,
+      "question": 1,
+      "items": [
+        "CACHE-021"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 7,
+      "question": 2,
+      "items": [
+        "CACHE-029"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 7,
+      "question": 3,
+      "items": [
+        "CACHE-029"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 7,
+      "question": 4,
+      "items": [
+        "CACHE-016",
+        "CACHE-028",
+        "CACHE-029"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    },
+    {
+      "stage": 7,
+      "question": 5,
+      "items": [
+        "CACHE-021",
+        "CACHE-029"
+      ],
+      "verdict": "已给出候选 / 既有条目及成立条件；不是该格存在必然收益的证明。"
+    }
+  ],
+  "counts": {
+    "prior": 9,
+    "new_checks": 21,
+    "rejections": 12,
+    "coverage_cells": 48
+  },
+  "performance": "没有真实设备 benchmark、没有候选端到端加速比。逻辑等价与删除某类操作不保证所有机器 / 规模下耗时不增。"
+}

@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "/Users/wio/work/sglang-learning-lab/mechanism-task-20261018/scripts/probe_L034_extension_cpu_v3.py", line 53, in <module>
+    asyncio.run(main())
+  File "/Users/wio/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Users/wio/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wio/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wio/work/sglang-learning-lab/mechanism-task-20261018/scripts/probe_L034_extension_cpu_v3.py", line 38, in main
+    s=Session(1000,'s',streaming=True);q=s.create_req(carrier('turn1',(1,2)),None,100);q.output_ids.extend([4,5]);q.full_untruncated_fill_ids=array('q',[1,2,4,5]);q.finished_reason=ns['FINISH_LENGTH'](2);s.finish_req(q);nextq=s.create_req(carrier('turn2',(6,)),None,100);ck('append committed output',list(nextq.origin_input_ids)==[1,2,4,5,6]);ck('shared origin',nextq.origin_input_ids is q.origin_input_ids);blocked=s.create_req(carrier('parallel',(7,)),None,100);ck('second inflight rejected',isinstance(blocked.to_finish,ns['FINISH_ABORT']));s.abort_req();healed=s.create_req(carrier('turn3',(8,)),None,100);ck('aborted append trimmed',list(healed.origin_input_ids)==[1,2,4,5,8]);ck('carry fill matches',list(healed.full_untruncated_fill_ids)==[1,2,4,5,8]);s.abort_req()
+                                                      ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wio/work/sglang-learning-lab/mechanism-task-20261018/scripts/probe_L034_extension_cpu_v3.py", line 15, in carrier
+    c=ns['TokenizedGenerateReqInput'];fields=msgspec.structs.fields(c);v={x.name:None for x in fields if x.default is msgspec.NODEFAULT and x.default_factory is msgspec.NODEFAULT};v.update(rid=rid,input_ids=array('q',ids),sampling_params=sp,session_params=Params(id='s'),return_logprob=False,top_logprobs_num=0,stream=True,**kw);return c(**v)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wio/work/sglang-learning-lab/mechanism-task-20261018/.venv-cpu/lib/python3.12/site-packages/msgspec/structs.py", line 83, in fields
+    hints = _get_class_annotations(annotated_cls)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wio/work/sglang-learning-lab/mechanism-task-20261018/.venv-cpu/lib/python3.12/site-packages/msgspec/_utils.py", line 160, in get_class_annotations
+    value = _eval_type(value, cls_locals, cls_globals)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wio/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/typing.py", line 415, in _eval_type
+    return t._evaluate(globalns, localns, type_params, recursive_guard=recursive_guard)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wio/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/typing.py", line 947, in _evaluate
+    eval(self.__forward_code__, globalns, localns),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 1, in <module>
+NameError: name 'MultimodalProcessorOutput' is not defined

@@ -1,0 +1,25 @@
+{
+  "started_utc": "2026-10-18T16:41:07.169255+00:00",
+  "finished_utc": "2026-10-18T16:41:19.847977+00:00",
+  "script_sha256": "d2cc9b1c153e1f6d08e9495159b9f2b16ac4362761779f9cb1d7e977981f9dec",
+  "command": [
+    "ssh",
+    "-S",
+    "/tmp/glm53-active-20261018.sock",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=8",
+    "-p",
+    "60011",
+    "root@61.241.77.34",
+    "python3 -c '\nimport subprocess,json,sys,concurrent.futures\nj=json.load(sys.stdin)\np=subprocess.run(['\"'\"'kubectl'\"'\"','\"'\"'get'\"'\"','\"'\"'pods'\"'\"','\"'\"'-n'\"'\"','\"'\"'default'\"'\"','\"'\"'-o'\"'\"','\"'\"'json'\"'\"'],capture_output=True,text=True,timeout=30);assert p.returncode==0,p.stderr\nitems=json.loads(p.stdout)['\"'\"'items'\"'\"'];targets=[]\nfor x in items:\n n=x['\"'\"'metadata'\"'\"']['\"'\"'name'\"'\"']\n if x['\"'\"'status'\"'\"'].get('\"'\"'phase'\"'\"')!='\"'\"'Running'\"'\"' or not n.startswith('\"'\"'sglang-'\"'\"'):continue\n if not any(t in n for t in ['\"'\"'tuning-access'\"'\"','\"'\"'container-access'\"'\"','\"'\"'node-access'\"'\"']):continue\n containers=[c['\"'\"'name'\"'\"'] for c in x['\"'\"'spec'\"'\"']['\"'\"'containers'\"'\"']]\n if '\"'\"'hostctl'\"'\"' not in containers:continue\n targets.append((n,x['\"'\"'status'\"'\"']['\"'\"'hostIP'\"'\"']))\ndef one(t):\n n,ip=t;a=['\"'\"'kubectl'\"'\"','\"'\"'exec'\"'\"','\"'\"'-i'\"'\"','\"'\"'-n'\"'\"','\"'\"'default'\"'\"',n,'\"'\"'-c'\"'\"','\"'\"'hostctl'\"'\"','\"'\"'--'\"'\"','\"'\"'nsenter'\"'\"','\"'\"'-t'\"'\"','\"'\"'1'\"'\"','\"'\"'-m'\"'\"','\"'\"'--'\"'\"','\"'\"'python3'\"'\"','\"'\"'-c'\"'\"',j['\"'\"'node'\"'\"']]\n try:\n  p=subprocess.run(a,capture_output=True,text=True,timeout=65)\n  return {'\"'\"'pod'\"'\"':n,'\"'\"'host_ip'\"'\"':ip,'\"'\"'exit_code'\"'\"':p.returncode,'\"'\"'stdout'\"'\"':p.stdout,'\"'\"'stderr'\"'\"':p.stderr}\n except subprocess.TimeoutExpired:return {'\"'\"'pod'\"'\"':n,'\"'\"'host_ip'\"'\"':ip,'\"'\"'exit_code'\"'\"':None,'\"'\"'error'\"'\"':'\"'\"'timeout'\"'\"'}\nwith concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:v=list(pool.map(one,targets))\nprint(json.dumps(v))\n'"
+  ],
+  "exit_code": 0,
+  "read_only": true,
+  "services_started": false,
+  "artifacts": {
+    "capacity.json": "edaee41d31041884191d374594781597b5648c99e152dbc78af768dfd9b6e983",
+    "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

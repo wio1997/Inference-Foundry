@@ -1,0 +1,55 @@
+{
+  "project_id": "glm53-flash",
+  "unit": "r247",
+  "status": "SOURCE_ONLY_PENDING_MAIN_REVIEW_AND_R246_GATE",
+  "objective": "Prepare, without executing, one B-only whole-model diagnostic source unit that integrates exactly the R246 runtime row-stride score and the R210 query-parallel indexer/caller on the already-run R238 B path and original C5 image.",
+  "allowed_now": [
+    "local source and docs",
+    "CPU static checks and rendered launcher-path checks",
+    "read-only comparison with the R238/R246/R210 source and evidence"
+  ],
+  "forbidden_now": [
+    "SSH/kubectl/docker/container/NPU/HTTP/model request",
+    "actual R247 dispatch/profile/receipt",
+    "editing R238/R246/R210 original units or any other unit",
+    "editing STATE/HANDOFF/frozen history/provider/Git/system/timers",
+    "A nodes 14/15 or any A framework process",
+    "subagents or cross-chat messages"
+  ],
+  "baselines": {
+    "B_path": "runs/20261019-r238-paired-cold-prefill-profile/stage/B (original 46-file overlay)",
+    "B_deployment": "runs/20261018-r201-b-native-warm-wait-budget (TP16DP1EP1 eager, MTP off)",
+    "score_candidate": "runs/20261019-r246-dynamic-rowstride-tp16-score-component/score_ops/flash_kpool_score_stride.py",
+    "query_parallel": "runs/20261019-r210-native-topology-alignment/score_ops/flash_indexer_query_parallel.py",
+    "caller": "runs/20261019-r210-native-topology-alignment/score_ops/flash_kpool_indexer_npu.py"
+  },
+  "profile_scope": {
+    "framework": "sglang",
+    "nodes": [46, 47],
+    "P": 46,
+    "D": 47,
+    "prefixes": ["C32-prefix000", "C32-prefix001"],
+    "prefix_tokens": 74400,
+    "output_tokens": 1,
+    "cold_pairs": 2,
+    "generation_POST": 4,
+    "formal_requests": 0,
+    "sampled_rank": "TP0 only",
+    "windows": ["early", "mid", "late"],
+    "forwards_per_window": 2,
+    "budget_seconds": 1200
+  },
+  "candidate_delta": {
+    "score": "four runtime-scalar declarations in flash_kpool_score.py",
+    "query_parallel": "R210 query_parallel_indexer plus one int32 all_gather_into_tensor",
+    "caller": "R210 caller, diff against R238 adds only the row-split call site",
+    "overlay_file_count": 47,
+    "original_overlay_file_count": 46,
+    "byte_identical_to_original_46": false
+  },
+  "gates": {
+    "review": "review.json + matched review-result.json required",
+    "r246": "actual node-side R246 host receipt PASS/idle8 plus main-control r246-gate.json and live idle8 on 46/47",
+    "profiling": "profiler_info*.json recognized; WAIT/NOTIFY/SQE excluded from compute; CPU enqueue not device forward; export timeout => FAIL"
+  }
+}

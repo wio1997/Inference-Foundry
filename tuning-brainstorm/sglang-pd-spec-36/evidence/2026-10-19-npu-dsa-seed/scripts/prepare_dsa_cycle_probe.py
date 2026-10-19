@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Freeze only new full-cycle source-model cases; do not rerun prior matrices."""
+import ast,hashlib,json,pathlib
+R=pathlib.Path(__file__).resolve().parents[1];base=R/'scripts/probe_dsa_share_cpu_v2.py';s=base.read_text();s=s.replace("stage='import'","stage='import';result['cycle_cases']=[]",1);s=s.replace('for n in [2,3]:','for n in p.get(\'cleanup_batches\',[2,3]):');marker="  for case in p['route_cases']:";assert s.count(marker)==1
+block='''  worker_tree=ast.parse((root/'python/sglang/srt/speculative/eagle_worker_v2.py').read_text());methods=[m for c in worker_tree.body if isinstance(c,ast.ClassDef) for m in c.body if isinstance(m,ast.FunctionDef) and m.name=='_draft_extend_for_decode'];assignments=[n for m in methods for n in m.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='select_index' for t in n.targets)];assert len(assignments)==1;assign=copy.deepcopy(assignments[0]);select_fn=ast.parse('def actual_select(self,batch,batch_result):\\n pass').body[0];select_fn.body=[assign,ast.Return(value=ast.Name(id='select_index',ctx=ast.Load()))];ast.fix_missing_locations(select_fn);sel_env={'torch':torch};exec(compile(ast.Module(body=[select_fn],type_ignores=[]),'actual-select-expression','exec'),sel_env);result['select_expression_ast_sha256']=hashlib.sha256(ast.dump(assign,include_attributes=False).encode()).hexdigest()
+  for case in p['cycle_cases']:
+   result['in_progress']=case;n=case['batch'];w=2048;carry=values(n,w,31) if case['initial_seed'] else None;rounds=[]
+   for turn in range(2):
+    spec=I.EagleDraftInput(dsa_topk_indices=carry);batch=fb(spec,FM.DECODE);draft_spy=Spy(values(n,w,101+turn));had_seed=carry is not None
+    with State.mtp_iteration(batch,enabled=case['share'],keep_carry_seed=True):
+     for step in range(3):
+      state=State.from_mtp_carry(batch);out=source_gate(draft_spy,state.topk_indices,batch,None);state.update(out);state.publish()
+    expected_draft=3 if not case['share'] else (0 if had_seed else 1);assert draft_spy.calls==expected_draft and not batch.reuse_dsa_topk_indices
+    if case['share']:assert spec.dsa_topk_indices is None
+    accept=torch.tensor([1,4,2][:n],dtype=torch.int32);ctx_batch=types.SimpleNamespace(seq_lens=torch.full((n,),32768,dtype=torch.int64));selector=sel_env['actual_select'](types.SimpleNamespace(speculative_num_draft_tokens=4,device='cpu'),ctx_batch,types.SimpleNamespace(accept_lens=accept));assert selector.tolist()==[i*4+a-1 for i,a in enumerate(accept.tolist())]
+    capture=torch.full((n*4,w),-1,dtype=torch.int32) if case['share'] else None;extend_info=I.EagleDraftExtendInput(hidden_states=None,num_correct_drafts=accept-1,num_accept_tokens=accept,dsa_seed_topk_capture=capture,dsa_seed_topk_select=None);extend=fb(extend_info,FM.DRAFT_EXTEND_V2);ext_values=values(n*4,w,401+turn);ext_spy=Spy(ext_values);state=State.from_mtp_carry(extend);assert state.topk_indices is None;state.update(source_gate(ext_spy,None,extend,None));state.publish();assert ext_spy.calls==1
+    if case['share']:equal(capture,ext_values);carry=capture[selector];equal(carry,ext_values[selector]);saved=carry.clone();capture.zero_();equal(carry,saved)
+    else:carry=None
+    rounds.append({'turn':turn,'had_carry_seed':had_seed,'draft_gate_spy_calls':draft_spy.calls,'extend_gate_spy_calls':ext_spy.calls,'total_spy_calls':draft_spy.calls+ext_spy.calls,'accept_lens_fixture':accept.tolist(),'select_index':selector.tolist(),'next_seed':summary(carry) if carry is not None else None,'fixture_rows':{'draft_per_step':n,'draft_extend':n*4},'scope':'Selection counts and row fixtures only; actualnative/padded/raggedwork andtime unknown'})
+   result['cycle_cases'].append({**case,'status':'PASS','rounds':rounds,'next_round_seed_owned_after_capture_reuse':case['share']});result.pop('in_progress')
+'''
+s=s.replace(marker,block+marker);s=s.replace("'truth_cases','cleanup_cases','route_cases']","'truth_cases','cleanup_cases','route_cases','cycle_cases']");ast.parse(s);new=R/'scripts/probe_dsa_cycle_cpu.py';new.open('x').write(s)
+p=json.loads((R/'specs/L017-cases-v2.json').read_text());p['version']=3
+for k in ['pipeline_cases','capture_cases','truth_cases','route_cases','cleanup_batches']:p[k]=[]
+p['cycle_cases']=[{'id':f'cycle-{i}','batch':n,'share':share,'initial_seed':seed} for i,(n,share,seed) in enumerate([(2,True,False),(2,True,True),(3,True,False),(3,True,True),(2,False,False),(3,False,False)])];p['scope']='Newfull-cycle source-model cases only; original126checks not rerun. Fullmodule/nativevalidation remainsopen.';p['cycle_contract']={'rounds':2,'draft_steps':3,'width':2048,'accept_lens_fixture':[1,4,2],'source_worker_select_expression':True,'native_rows_unknown':True};(R/'specs/L017-cycle-cases.json').open('x').write(json.dumps(p,indent=2)+'\n')
+base_controller=R/'scripts/run_L017_R006_share.py';c=base_controller.read_text().replace('L017-R006','L017-R007').replace('20261019-r006','20261019-r007').replace('probe_dsa_share_cpu_v2.py','probe_dsa_cycle_cpu.py').replace('specs/L017-cases-v2.json','specs/L017-cycle-cases.json');ast.parse(c);controller=R/'scripts/run_L017_R007_cycle.py';controller.open('x').write(c);spec=json.loads((R/'specs/L017-R006.json').read_text());spec['command']=['python3',str(controller.relative_to(R))];spec['receipt_dir']='runs/L017-R007-frozen-controller';spec['scope']=p['scope']
+for f in ['scripts/run_L017_R006_share.py','scripts/probe_dsa_share_cpu_v2.py','specs/L017-cases-v2.json']:spec['inputs'].pop(f)
+for f in [str(controller.relative_to(R)),str(new.relative_to(R)),'specs/L017-cycle-cases.json']:spec['inputs'][f]=hashlib.sha256((R/f).read_bytes()).hexdigest()
+(R/'specs/L017-R007.json').open('x').write(json.dumps(spec,indent=2)+'\n');print({'new_cycle_cases':len(p['cycle_cases']),'new_probe_sha256':sha if False else spec['inputs'][str(new.relative_to(R))]})

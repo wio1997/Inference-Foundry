@@ -1,0 +1,31 @@
+--- a/python/sglang/srt/session/streaming_session.py
++++ b/python/sglang/srt/session/streaming_session.py
+@@ -49,6 +49,7 @@
+ 
+     # KV pool state
+     kv: ReqKvInfo = field(default_factory=ReqKvInfo)
++    cache_identity: Optional[tuple[Optional[str], Optional[str], Optional[str]]] = None
+ 
+     # First req's radix tree node (for dec_lock_ref on session close)
+     last_node: Any = None
+@@ -61,6 +62,7 @@
+         """Save KV state from a finishing request into this slot."""
+         kv = req.detach_kv()
+         if is_first:
++            self.cache_identity = (req.lora_id, req.extra_key, req.cache_salt)
+             self.last_node = req.last_node
+             self.lock_receipt = req.lock_receipt
+             self.swa_prefix_lock_released = req.swa_prefix_lock_released
+@@ -184,6 +186,12 @@
+         if req.to_finish is not None:
+             req.session.abort_req()
+             req.session = None
++            return None
++        identity = (req.lora_id, req.extra_key, req.cache_salt)
++        if getattr(slot, "cache_identity", None) != identity:
++            # Unknown legacy identity or changed request: release the old slot
++            # before falling back to a normal namespaced prefix lookup.
++            self.release_session(req.session.session_id)
+             return None
+         return slot
+ 

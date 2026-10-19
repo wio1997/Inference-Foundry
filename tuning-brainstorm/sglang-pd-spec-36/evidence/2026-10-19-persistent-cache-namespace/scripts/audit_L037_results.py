@@ -1,0 +1,18 @@
+import pathlib,json,sqlite3,shlex,collections
+R=pathlib.Path(__file__).resolve().parents[1]
+def read(sub):return json.loads((R/'runs'/sub/'result.json').read_text())
+a=read('L037-R003-storage');b=read('L037-R004-storage-candidate');c=read('L037-R005-clear-handler');d=read('L037-R006-clear-handler-candidate');assert all(x['harness_error'] is None for x in [a,b,c,d]);assert [(x['case_count'],x['semantic_checks'],x['failed_checks']) for x in [a,b,c,d]]==[(28,295,17),(28,295,8),(10,38,5),(10,38,0)]
+def compare(x,y,n):
+ out=[]
+ for i,(u,v) in enumerate(zip(x['checks'],y['checks'])):
+  assert (u['stage'],u['name'])==(v['stage'],v['name'])
+  if u['pass']!=v['pass']:assert u['pass'] is False and v['pass'] is True;out.append({'index':i,'stage':u['stage'],'name':u['name'],'before':False,'after':True})
+ assert len(out)==n;return out
+j={'scope':'CPU correctness-only; no performancebaseline','File_controller_comparison':{'before':'L037-R003','after':'L037-R004','cases':28,'checks':295,'before_failed':17,'after_failed':8,'changed':compare(a,b,9),'remaining_failures':dict(collections.Counter(x['name'] for x in b['checks'] if not x['pass']))},'Scheduler_ack_comparison':{'before':'L037-R005','after':'L037-R006','cases':10,'checks':38,'before_failed':5,'after_failed':0,'changed':compare(c,d,5),'scope':'OriginalScheduler atopcontroller-onlypatch vs combinedackpatch, actualownedFile/msgspec, noHTTP'},'candidate_verdict':'LOCAL_CPU_ACK_CONDITIONAL_PASS; FULL_NAMESPACE_NOT_ACCEPTED','File_alias_cases_unfixed':8,'rawtree_L035_and_persistent_generation_unfixed':True,'production_applied':False,'native_executed':False};(R/'notes/L037-correctness-comparison.json').write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\n')
+db=sqlite3.connect('file:/Users/wio/.zcode/cli/db/db.sqlite?mode=ro',uri=True);db.row_factory=sqlite3.Row;rows=[]
+for n,want in [(1,0),(2,0),(3,1),(4,1),(5,1),(6,0)]:
+ tag=f'L037-R{n:03}';sid=json.loads((R/f'runs/{tag}-zcode/stdout.jsonl').read_text())['sessionId'];models=[dict(x) for x in db.execute('select model_id,status,tool_call_count from model_usage where session_id=?',(sid,))];meta=[dict(x) for x in db.execute('select tool_name,status,exit_code from tool_usage where session_id=?',(sid,))];count=0
+ for row in db.execute('select data from part where session_id=?',(sid,)):
+  x=json.loads(row[0]);cmd=x.get('state',{}).get('input',{}).get('command','') if x.get('type')=='tool' else '';lexer=shlex.shlex(cmd,posix=True,punctuation_chars=True);lexer.whitespace_split=True;tokens=list(lexer);count+=sum(tokens[i] in ('python3','python') and tokens[i+1:i+3]==['scripts/execute_frozen.py',f'specs/{tag}.json'] for i in range(max(0,len(tokens)-2)))
+ outer=json.loads((R/f'runs/{tag}-zcode/receipt.json').read_text());inner=json.loads((R/f'runs/{tag}-frozen-controller/receipt.json').read_text());assert count==1 and {x['model_id'] for x in models}=={'deepseek-flash'} and not ({x['tool_name'] for x in meta}&{'Write','Edit'});assert outer['exit_code']==0 and inner['exit_code']==want and inner['inputs_unchanged'];rows.append({'run':tag,'session_id':sid,'model_alias':'deepseek-flash','backend_release':'UNKNOWN','models':models,'tool_metadata':meta,'exact_frozen_command_count':count,'outer_exit':0,'inner_exit':want,'inputs_unchanged':True})
+db.close();(R/'notes/L037-zcode-audit.json').write_text(json.dumps({'runs':rows,'full_model_IO_published':False,'CLI0_is_not_semantic_success':True},indent=2)+'\n');print(json.dumps({'File_checks':295,'inner_ack_fixes':9,'alias_failures_retained':8,'scheduler_checks':38,'upper_ack_fixes':5,'commands_exact_once':6,'native':False}))

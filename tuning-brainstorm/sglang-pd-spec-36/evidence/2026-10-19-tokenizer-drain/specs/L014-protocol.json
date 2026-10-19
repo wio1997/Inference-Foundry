@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "scope": "Clean CPU actual-base versus candidate collection loop only; per-request and batch completion, no serving claim",
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "input_manifest": "fixtures/M001-v1/manifest.json",
+  "cases": {
+    "tokenizer-cpu-c2": [
+      "c2-short-0",
+      "c2-short-1"
+    ],
+    "tokenizer-cpu-c3": [
+      "c3-long-0",
+      "c3-long-1",
+      "c3-long-2"
+    ],
+    "tokenizer-cpu-staggered": [
+      "c2-short-0",
+      "c2-short-1",
+      "c3-long-0"
+    ]
+  },
+  "input_form": "Exact rendered_text, add_special_tokens=False; expected input_ids from fixture JSON",
+  "arrival_process": "All tasks created before first yield; each request sleeps its predeclared delay if positive. Record actual enqueue and completion offsets in common minimal wrapper. Requested delays are not asserted identical actual arrival times.",
+  "fixed": {
+    "batch_wait_timeout_s": 0.002,
+    "cpus": 1,
+    "memory_gib": 4,
+    "tokenizers_parallelism": false,
+    "thread_pool_workers_per_actor": 1,
+    "cpu_dependency_view": "Image package files reused; torch_npu and .pth hooks omitted as in L010-R006; no edits to package files",
+    "weights_and_devices": false,
+    "network": "none",
+    "model_file_mounts": "same4 hashed read-only files",
+    "max_batch_size": 32
+  },
+  "single_factor": {
+    "A": "installed collection loop",
+    "B": "drain current queue only"
+  },
+  "warmup_batches_per_actor_per_case": 3,
+  "paired_blocks": 12,
+  "block_design": "A/A pair from distinct identical actors, plus A/B pair; interweave pairs with frozen seeded order; persist all rows",
+  "random_seed": 7911,
+  "inter_sample_gap_s": 0.1,
+  "metrics": [
+    "batch wall perf_counter_ns",
+    "process_time_ns including worker thread",
+    "cgroup cpu.stat before/after each sample",
+    "value equality and per-request ID digest outside timing",
+    "per-request enqueue-to-completion latency",
+    "per-request actual enqueue and completion offsets from batch timer"
+  ],
+  "instrumentation": "No tokenizer wrapper or process-method replacement. Same small async request wrapper records two timestamps per request for all actors; included in timed region. Source/model/fixture hashing, output checks and setup outside intervals.",
+  "decision_gate": "Per-case paired AA and AB log-ratio intervals; preserve all CFS rows and arrival jitter. Report processCPU, whole batch and each request, not only a favorable metric. No p99 or causal native/PD claim. Within-Run paired data is not fabricated into independent before/after experiments.",
+  "remaining_serving_gates": [
+    "Actual enable_dynamic_batch_tokenizer in assigned PD frontend",
+    "Same runtime/template/input ID flow",
+    "TTFT/ITL and success/accepted lengths",
+    "P/D and MTP preserved; NPU weights/context capacity verification"
+  ],
+  "measurement_revision": {
+    "prior_clean_probe": "scripts/bench_tokenizer_cap_image.py",
+    "correctness_evidence": "runs/L013-R001-tokenizer-cpu/result.json",
+    "candidate_unchanged": true
+  },
+  "candidate": "candidates/L013/drain_available.py",
+  "candidate_sha256": "439ed10f5937910caa8232fcc924394d4e18fa9b448b8df7cca9fd0b8f787275",
+  "arrival_delays_s": {
+    "tokenizer-cpu-c2": [
+      0,
+      0
+    ],
+    "tokenizer-cpu-c3": [
+      0,
+      0,
+      0
+    ],
+    "tokenizer-cpu-staggered": [
+      0,
+      0,
+      0.001
+    ]
+  },
+  "warmup_arrivals": "3 simultaneous full-case batches per actor; actual class and worker warmed. Timing arrival schedule only applies to measured samples."
+}

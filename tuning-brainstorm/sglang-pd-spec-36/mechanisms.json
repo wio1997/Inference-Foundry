@@ -1,0 +1,2630 @@
+[
+  {
+    "id": "M001",
+    "mechanism_id": 1,
+    "title": "聊天模板、分词、reasoning parser",
+    "lesson": 4,
+    "what": "把聊天内容变成模型真正读取的 token，再把生成内容区分成思考与答案。输入文字相同，模板不同也会得到不同 token。",
+    "how": "请求先完成协议和模板处理；TokenizerManager 分词后发给调度器。源码已有可选动态批量分词。输出 parser 属于另一个边界，要单独定位，不能把它的等待算成模型计算。",
+    "cost": "模板渲染、分词和队列等待消耗 CPU；积攒分词批次可能省计算，却增加首请求等待。",
+    "hypothesis": "对照已有动态批量分词：只有短时间集中到达且分词占明显时间时，批处理才可能降低单位请求 CPU；不是新增发明。",
+    "classification": "config",
+    "applicability": "Ascend 的前端 CPU 路径也可能适用；先确认当前 tokenizer、模板及动态批处理配置。",
+    "regression": "低并发时等待凑批反而增加 TTFT；长文本与短文本混排可能拖延短请求。",
+    "correctness": "模板、tokenizer 版本、特殊 token、thinking 开关均不变；逐请求比较完整 input_ids，parser 输出字段和取消语义不变。",
+    "experiment": {
+      "baseline": "保存相同文本的逐请求分词结果与到达时间，保留 PD 和推测解码。",
+      "change": "仅切换已支持的动态分词开关，等待上限保持可记录；先做前端回放再做服务对照。",
+      "cases": [
+        "1 个请求立即到达",
+        "3 个请求同时到达",
+        "3 个请求错开到达；输入分别为短文本与长文本"
+      ],
+      "prediction": "集中到达的分词 CPU/请求下降；稀疏到达无收益或增加等待。",
+      "metrics": [
+        "分词 CPU 时间",
+        "分词排队时间",
+        "input_ids 一致性",
+        "首文本与首答案时间"
+      ],
+      "falsification": "token 有差异即失败；分词节省小于等待增量，或前端不在关键路径则不宣称端到端收益。",
+      "first_action": "读取实际模板/tokenizer 配置，并在动态分词入口计数，确认目标请求确实经过它。",
+      "execution_level": "路径核验 → 前端回放 → 服务对照"
+    },
+    "status": "CPU候选语义与配对计时已核验；短/混合局部改善，服务未测",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/tokenizer_manager.py#L648",
+        "supports": "动态批量 tokenizer 是已有可选能力；不支持将旧单引擎数据移作当前 PD 证据。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "正确模板与 token 序列必须产生；重复渲染、反复序列化是否必要要按消费者判断。",
+      "resource_bound": "输入字节必须至少被正确分词路径读取；实际下界还含模板解析与 tokenizer 算法依赖。CPU 字节吞吐只是宽松下界，不能当分词最短时间。",
+      "calibration": "同一 tokenizer 在驻留输入上分别量模板、encode 与传递，比较单条和已有批量实现的最好稳定结果；服务端另量等待。",
+      "headroom_test": "把最好前端耗时与模型前的实际关键路径相比；若差距大，继续查重复编码、对象重建和线程等待，不能只停在批量开关。",
+      "specialization": "按文本长度、重复模板、到达密度和 worker 数建立区间；固定模板前缀缓存必须验证分词边界，不能盲拼 token。MTP 接受率固定并作为后端控制量。",
+      "stop_condition": "正确性无回退，前端暴露时间接近已验证正确路径的稳定最好值，剩余成本有具体必要步骤解释；只能称当前负载范围内接近可达边界。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/tokenizer_manager.py",
+      "sha256": "c052b113023c88360dd3465d2f6053d13505bf37c25c966da5bf3a1770077da5",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-tokenizer-drain/README.md",
+    "runtime_path_confirmed": false,
+    "cpu_runtime_path_confirmed": true,
+    "cpu_dependency_scope": "Explicit CPU venv, same image package files, optional torch_npu omitted; HTTP/PD runtime untested",
+    "performance_verdict": "Drain vs installedcap32 gains on short and syntheticstaggered CPU generator; longwall inconclusive; no bestpath/serving claim",
+    "overall_serving_evidence": "E0",
+    "input_candidate_manifest": "evidence/2026-10-19-tokenizer-inputs/input-fixtures/manifest.json",
+    "production_applied": false,
+    "candidate_path": "evidence/2026-10-19-tokenizer-drain/candidates/L013/drain_available.py"
+  },
+  {
+    "id": "M002",
+    "mechanism_id": 2,
+    "title": "进程分工、IPC 与流式背压",
+    "lesson": 4,
+    "what": "多个进程分工处理请求，让分词、调度和输出能够同时工作；IPC 是它们之间递交消息的通道。",
+    "how": "TokenizerManager 建立消息通道；DetokenizerManager 按请求保存输出状态并把 token 转成文本。固定源码已有按解码选项分组的批量 decode，还会过滤空 token 段。",
+    "cost": "消息打包、传递、唤醒和反分词都花 CPU。慢客户端可能堆积输出；模型快不等于用户收到得快。",
+    "hypothesis": "先对照已有批量反分词能力，判断逐请求解码是否形成输出瓶颈；空段跳过已经实现，不再作为新点。",
+    "classification": "config",
+    "applicability": "当前 tokenizer 支持批量 decode，且多个请求同时产生输出；不能假设某一模型无边界问题。",
+    "regression": "批量等待延迟首段；某些 tokenizer 特殊字符跨段解码有兼容风险。",
+    "correctness": "完整拼接文本、特殊 token 处理、reasoning/tool 字段、结束与取消各只交付一次；按请求保序。",
+    "experiment": {
+      "baseline": "记录当前反分词配置及每条消息大小，其他流式粒度不变。",
+      "change": "仅对照现有 batch decode 开关，不同时改 SSE 聚合或 IPC 格式。",
+      "cases": [
+        "1 与 3 路正常读取客户端",
+        "含中文、多字节字符和空输出段",
+        "其中一路缓慢读取或中途取消"
+      ],
+      "prediction": "多路输出的反分词 CPU 降低；若瓶颈是客户端则设备侧吞吐不变。",
+      "metrics": [
+        "反分词 CPU/输出 token",
+        "IPC 队列停留",
+        "输出积压字节",
+        "客户端逐段到达间隔"
+      ],
+      "falsification": "文本边界错误即否定；只减少 CPU 却未缩短目标输出延迟，只记录局部收益。",
+      "first_action": "按请求关联调度发送、反分词接收、HTTP 写出时间，先确认延迟发生在哪一段。",
+      "execution_level": "IPC 路径核验 → 输出回放 → 慢客户端对照"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/detokenizer_manager.py#L240",
+        "supports": "已有分组批量解码和空段过滤。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/tokenizer_manager.py#L676",
+        "supports": "TokenizerManager 的 IPC socket 初始化。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "每个请求的输出必须有序送达，必要字符边界和完成信号必须保留。",
+      "resource_bound": "至少传递服务合同要求的输出字节；延迟下界含消息依赖及实际链路服务时间。IPC、反分词、HTTP 串行部分不能用一个最大值代替。",
+      "calibration": "分别用已生成 token 回放反分词、固定消息回放 IPC、固定文本回放 HTTP，量三段最好稳定服务率和排队拐点。",
+      "headroom_test": "对比无排队段与真实路径，多余打包/复制、空消息和唤醒若仍显著继续拆；慢客户端受合同限制，不能靠丢输出缩短。",
+      "specialization": "按输出段大小、并发、客户端读取速率、reasoning/tool 字段与 MTP 每轮接受长度区间特化；同一协议内比较。",
+      "stop_condition": "达到目标输出节奏且主要剩余时间由实际消费速率或必要解码解释；任何聚合改变流式合同必须单列取舍，不能记为等价极限。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/detokenizer_manager.py",
+      "sha256": "90042a763006dba5a77d2a0e43abe17937ee287abaff13b9bf4b26f28f139bf4",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M003",
+    "mechanism_id": 3,
+    "title": "CPU affinity / NUMA / 线程数",
+    "lesson": 4,
+    "what": "给调度、通信和分词线程安排合适的 CPU 核，减少线程抢核以及访问远端主机内存。",
+    "how": "绑定包含 CPU 亲和与内存放置两部分。固定通用 numa_utils 的自动发现主要检查 CUDA/XPU；不能据此声称 Ascend 自动绑定已生效，要读取实际进程掩码和 NPU/NIC 拓扑。",
+    "cost": "跨 NUMA 访问、上下文切换和线程排队会延迟提交；绑定过窄也会把多个工作线程挤到一起。",
+    "hypothesis": "对照已有绑定能力：在 CPU 核数不变时，将调度进程移至设备/通信近端且与高负载线程分开，可能缩短暴露的提交等待。",
+    "classification": "config",
+    "applicability": "实际存在可识别拓扑、足够 CPU 配额且测到调度等待；不借用旧机器的 NUMA 数量。",
+    "regression": "近端核不足；绑核破坏通信线程调度；已有容器 cpuset 使请求绑定无效。",
+    "correctness": "不改变模型、MTP、P/D 分工和工作线程功能；检查所有 rank 持续进展与进程退出清理。",
+    "experiment": {
+      "baseline": "保存每个实验进程的 affinity、线程数、cpuset、内存节点和 NPU/NIC 对应关系。",
+      "change": "仅改变实验进程 CPU 亲和，先保持线程数及内存策略不变。",
+      "cases": [
+        "当前绑定",
+        "等核数的拓扑近端绑定",
+        "1 与 3 路请求；再加可控前端 CPU 压力"
+      ],
+      "prediction": "确有调度争用时，run-queue 等待和提交空隙同时降低。",
+      "metrics": [
+        "CPU migration/context switch",
+        "run-queue 等待",
+        "设备提交空隙",
+        "ITL 与 core·s"
+      ],
+      "falsification": "掩码未生效不能算实验；CPU 指标改善但关键路径不变则不计推理加速。",
+      "first_action": "只读确认容器实际权限和 NPU 路径使用的绑定实现，不修改系统级亲和或 IRQ。",
+      "execution_level": "拓扑/生效核验 → 单变量配置对照"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/utils/numa_utils.py",
+        "supports": "显式节点、cpuset 交集、失败降级；自动发现的硬件门控不证明 Ascend 支持。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "必要的调度、通信和输入线程都要获得 CPU 执行时间；亲和不能减少必要指令。",
+      "resource_bound": "关键线程服务时间受单核执行、内存延迟与 OS 排队约束；总核数或 CPU 标称频率不是可达提交速度。",
+      "calibration": "在同频率/配额下量隔离线程的最好服务时间，再加入实际 IPC 与通信线程；使用实际 NUMA 拓扑和近端内存流量校准。",
+      "headroom_test": "若主要差距来自 run-queue 或迁移继续调整核布局/线程量；若差距来自必需串行代码应转到对应机制，不靠继续加核。",
+      "specialization": "按 rank 数、CPU 配额、NPU/NIC 拓扑、输入长度及并发区间建立方案；小并发和高 MTP 接受率可能改变 CPU 暴露比例。",
+      "stop_condition": "在合法资源配额内邻近配置均无稳定改善，排队与迁移接近可观测底噪，剩余时间可归因于必要服务；不宣称所有机器最优。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/utils/numa_utils.py",
+      "sha256": "6a57fef1f2ad88e2499f93a339f7ba678034e1fd8e349a91ca99c3b94e08ab98",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M004",
+    "mechanism_id": 4,
+    "title": "Continuous batching 与请求状态机",
+    "lesson": 2,
+    "what": "每轮都可以移走结束请求、接入已准备好的请求，使某个长输出不用占住整个固定批次。",
+    "how": "专用 D 循环处理接收队列，再选择下一批并运行。推测解码每轮接受数量可不同，所以批次状态必须按真实结果推进。",
+    "cost": "入队检查、状态迁移与批次重建花 CPU；一次处理大量到达消息，也可能推迟已有请求的下一轮。",
+    "hypothesis": "若证实某轮大量接入工作压住 D 下一轮提交，可研究给单轮接入工作设置有界预算；这是公平性取舍，不是免费删循环。",
+    "classification": "conditional_candidate",
+    "applicability": "只在突发到达造成 CPU 提交空洞且设备仍可继续现有批次时研究。",
+    "regression": "预算太小会拖延新请求、积压传输完成请求；过紧会降低吞吐。",
+    "correctness": "不得跳过取消、失败、内存归还或使某类请求饿死；所有 rank 对同一批次达成一致，MTP 状态正确迁移。",
+    "experiment": {
+      "baseline": "固定一段到达回放，记录每轮接入数量、CPU 时间及设备空闲区间。",
+      "change": "确认现有预算不足后，仅限制一个可延期的接入子阶段；保留强制清理与进展条件。",
+      "cases": [
+        "稳定 3 路长输出",
+        "现有请求运行时注入短突发",
+        "突发中混入取消与传输失败"
+      ],
+      "prediction": "旧请求 ITL 尾部下降，新请求排队略增但不越预先定义的上限。",
+      "metrics": [
+        "单轮接入 CPU",
+        "下一轮提交延迟",
+        "新请求排队",
+        "P99 ITL 与完成率"
+      ],
+      "falsification": "没有接入导致的空洞即暂停；总延迟或队列稳定性恶化则否定该预算。",
+      "first_action": "用 D 循环时间线区分 intake、transfer poll、组批和 forward 提交，不先改阈值。",
+      "execution_level": "队列路径 → 时间线 → 有界策略"
+    },
+    "status": "PD overlap调用顺序已核验；到达/取消实验未运行",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/decode.py#L3080",
+        "supports": "D overlap 循环在选择批次前接收请求并处理 decode queue。"
+      }
+    ],
+    "related_ids": [
+      "PD-CHUNK-006"
+    ],
+    "limit_model": {
+      "necessary_work": "至少接入每个有效请求、处理结束/取消并按真实接受结果推进状态。",
+      "resource_bound": "一轮不能早于所需状态就绪；提交能力受必要状态更新 CPU 与设备步时共同约束。若有串行入队依赖，要单列不能全部隐藏。",
+      "calibration": "用固定已就绪批次量最小调度路径，再回放不同到达/退出频率，校准每次状态迁移与批次变化的边际成本。",
+      "headroom_test": "把实际调度耗时减去固定批最短路径，追查队列扫描、重复状态查询和重建；首个预算实验后仍可转向增量批状态。",
+      "specialization": "按稳定批/高 churn、突发强度、D 接收积压、并发和接受长度分布特化；各区间保留公平性与排队上限。",
+      "stop_condition": "已消除可证实重复更新，接入等待与设备连续性达到冻结 SLO 下最好稳定折中；改变公平目标不能混称同一个极限。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/disaggregation/decode.py",
+      "sha256": "d14a402990b0080aa95f058bee9093a67d6ca48d419657f6be2cffa98607ec48",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-relay-final-payload/README.md",
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED",
+    "production_applied": false,
+    "PD_batch_source_order_audited": true,
+    "intake_budget_performance_measured": false,
+    "full_cancel_scheduler_executed": false
+  },
+  {
+    "id": "M005",
+    "mechanism_id": 5,
+    "title": "多资源准入、输出预留与抢占重算",
+    "lesson": 2,
+    "what": "在开始计算前确认请求槽、KV 和后续增长空间够用，避免算到一半被迫撤回或重做。",
+    "how": "P 的 PrefillAdder 检查预算；D 还要为跨机 KV 接收预留空间。逻辑预算与真正分配不是同一件事；MTP 未接受的草稿状态也必须按实际算法管理。",
+    "cost": "预留过早占住 D 容量，过晚让 P 结果等传输；超卖会引发重试、回收或重算。",
+    "hypothesis": "对照已有 D 预留时机策略，仅在后端明确支持时考虑；目标是降低没有产生服务进展的预留占用，不能删除必要容量检查。",
+    "classification": "config",
+    "applicability": "先冻结 Ascend 传输后端、MTP 类型及支持矩阵；不默认 prefill_complete 或 first_chunk 可用。",
+    "regression": "晚预留可能失去计算传输重叠、占满 P 请求槽，甚至造成互相等待。",
+    "correctness": "保持配额、待传缓冲及草稿/目标状态所有权；失败、超时和取消后容量最终回收，保留进展保障。",
+    "experiment": {
+      "baseline": "记录当前预留策略和逐请求 reserve→transfer→decode 时间。",
+      "change": "只对照后端已有且支持当前 MTP 的一种预留策略。",
+      "cases": [
+        "短 P 长 D",
+        "长 P 短 D",
+        "D 容量接近安全上限并含一个取消请求"
+      ],
+      "prediction": "晚预留在 D 容量受限时减少无进展占用；长 P 场景可能增加交接尾巴。",
+      "metrics": [
+        "D 预留 token·s",
+        "P KV 滞留 token·s",
+        "等待/重试次数",
+        "完成率与 TTFT"
+      ],
+      "falsification": "兼容性不成立标记条件不适用；预留减少却增加死等、重算或超出延迟目标则不保留。",
+      "first_action": "按实际运行版本读取预留支持检查与默认值，禁止拿旧单引擎 retract=0 代替基线。 对该版本明确排除的组合（例如相应策略不支持的解耦推测路径）直接标条件不适用，不关闭推测解码绕过。",
+      "execution_level": "兼容核验 → 生命周期 → 策略对照"
+    },
+    "status": "PD abort/drain/timeout 源策略已核验；原生释放未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/schedule_policy.py#L1350",
+        "supports": "Prefill 准入含预算、锁保护和后续截块。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py#L1024",
+        "supports": "prefill_complete 与最终发送的分支。"
+      }
+    ],
+    "related_ids": [
+      "PD-CHUNK-005",
+      "PD-CHUNK-006",
+      "CACHE-020"
+    ],
+    "limit_model": {
+      "necessary_work": "各请求需要足够请求槽和真实 KV/辅助状态空间，在用内存不得复用。",
+      "resource_bound": "在给定池容量和到达流量下，可推进请求受实际 live bytes 与生命周期限制；保留时长下界是最后消费者完成，不能由零预留假设消掉。",
+      "calibration": "逐请求测实际 KV/草稿/在途字节和必要持有区间，将总占用分解成必要 live bytes、过早预留、碎片及等待滞留。",
+      "headroom_test": "若占用差距集中在过早预留可继续研究时机；集中在传输/回收依赖则转对应点，不能通过超卖“达到容量上界”。",
+      "specialization": "按 P/D 时长比、输入输出长度、MTP 草稿宽度/接受长度、D 可用容量及传输后端分层；不同政策可在不同区间最优。",
+      "stop_condition": "容量无安全可缩持有区间且无无效重试，吞吐受计算/传输或必要 live bytes 约束；允许记录多组非支配策略而不是唯一参数。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/schedule_policy.py",
+      "sha256": "de11a37e44db56a1aeb47c2308f783fe4f6a0e4b8b224051e4d2894e748f6625",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-pd-release-drain/README.md",
+    "source_extracted_fixedpool_CPU_contract_verified": true,
+    "runtime_path_confirmed": false,
+    "real_allocator_or_cache_verified": false,
+    "kernel_native_executed": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "full_NPU_allocator_module_CPU_imported": true,
+    "real_allocator_CPU_metadata_verified": true,
+    "actual_create_prefill_budget_verified": false,
+    "full_budget_module_import": "UNAVAILABLE missing sgl_kernel",
+    "native_small_extend_success_verified": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-npu-plan-war-source/README.md",
+    "source_caller_CPU_page_count_contract_verified": true,
+    "tagged_CPU_scalar_observations": 22,
+    "existing_optional_count_support_verified": true,
+    "device_sync_duration_measured": false,
+    "whole_caller_modules_imported": false,
+    "CPU_default_count_candidate_checks": 696,
+    "stale_mirror_counterexamples": 3,
+    "unqualified_default_count_candidate_accepted": false,
+    "page_count_candidate_direction": "producer-owned explicit count",
+    "native_import_boundary_is_success": false,
+    "owner_explicit_count_component_CPU_checks": 819,
+    "allocator_class_AST_unchanged": true,
+    "owner_explicit_count_candidate_accepted": false,
+    "complete_caller_modules_imported": false,
+    "native_ordering_or_lifetime_verified": false,
+    "plan_WAR_source_policy_checks": 266,
+    "plan_WAR_source_policy_cases": 66,
+    "generic_PRE_fallback_directly_used_by_NPU_execute": false,
+    "actual_task_stream_flags_confirmed": false,
+    "candidate_accepted": false,
+    "pd_release_component_checks": {
+      "policy": 138,
+      "generic_future": 13,
+      "Ascend_chain": 30
+    },
+    "actual_Ascend_custom_pool_applicability_proven": false,
+    "native_PD_free_lifetime_verified": false
+  },
+  {
+    "id": "M006",
+    "mechanism_id": 6,
+    "title": "Chunked Prefill 的游标与预算",
+    "lesson": 2,
+    "what": "把一个长输入分成多次推进，记住已经完成的位置，下一轮只继续剩余部分。",
+    "how": "专用 P 先续当前 chunk，再接入可容纳请求；完成部分可以进入 KV 发送流程。计算 chunk 和传输分段概念不同，staging 后端可能把二者绑定。",
+    "cost": "小 chunk 增加组批、checkpoint、launch 和发送次数；大 chunk 可能推迟其他 P 请求和第一次发送。",
+    "hypothesis": "先对照已有 chunk 尺寸，在 P 算子效率与 KV 发送尾巴之间找适合负载的点；不能沿用同卡“保护 Decode”的理由。",
+    "classification": "config",
+    "applicability": "输入实际超过 chunk，Ascend 后端允许该尺寸且页对齐；模型与 MTP 配置保持不变。",
+    "regression": "较小块降低 GEMM 效率；较大块让短 P 等待，且可能增加峰值中间空间。",
+    "correctness": "前后完整输入 token 与输出合同相同；中间 checkpoint、P 源 KV 的在用保护和最终交接状态不得改变。",
+    "experiment": {
+      "baseline": "记录实际 C、页大小、分块数和后端最大传输段；只选择已通过容量检查的输入。",
+      "change": "一次只比较 C 与一个相邻合法尺寸；不同时改发送策略。",
+      "cases": [
+        "小于 C 的输入作负对照",
+        "约 2C 的单请求",
+        "长输入运行时插入两个短输入"
+      ],
+      "prediction": "负对照基本不变；有效变化应由块数、单块效率或发送暴露时间解释。",
+      "metrics": [
+        "每块 token/耗时",
+        "续块 CPU",
+        "KV 发送尾巴",
+        "各请求 TTFT"
+      ],
+      "falsification": "实际未分块则无效；只看到设备利用率上升而延迟/吞吐不达目标则不采用。",
+      "first_action": "确认目标请求经过 process_prefill_chunk，并记录 staging 对传输边界的约束。",
+      "execution_level": "分块触发 → 单请求分解 → 相邻尺寸对照"
+    },
+    "status": "16K chunk 与 200 页分支边界已界定；native 成功路径未验证",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py#L1369",
+        "supports": "续块 checkpoint、bootstrap 和发送时序。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py#L1482",
+        "supports": "非最终页边界与 staging 分段约束。"
+      }
+    ],
+    "related_ids": [
+      "PD-CHUNK-003",
+      "PD-CHUNK-004"
+    ],
+    "limit_model": {
+      "necessary_work": "全部未命中输入需完成相应模型计算，后续 chunk 依赖历史 KV；完整必要 KV/状态要交接。",
+      "resource_bound": "端到端关键路径至少覆盖真实计算依赖和不可隐藏传输。完全重叠时的 max(计算,传输) 仅是乐观下界，还要加首尾与串行准备。",
+      "calibration": "实测模型不同 context/chunk 的算子效率及发送段带宽曲线，使用目标 Ascend 的可达值，不取标称 FLOPS/链路峰值直接换算。",
+      "headroom_test": "初次相邻尺寸后，将剩余差距分成重复准备、低效形状和发送尾巴，再分别测试粒度/特化；不把全尺寸扫一遍等同穷尽算法空间。",
+      "specialization": "按上下文长度、命中长度、并发到达、page/staging 网格、网络拥塞及 MTP 输出服务压力分区。",
+      "stop_condition": "该区间内邻近合法粒度与候选特化无可信改善，余量能由不可隐藏依赖/实测算子与链路能力解释；仅说明受测区间近可达边界。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/disaggregation/prefill.py",
+      "sha256": "3f63b9c170966346ccd51eeb161a889e81f79370b3f261e563d4d824bf1a6fe9",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-allocator-page-contract/README.md",
+    "source_extracted_fixedpool_CPU_contract_verified": true,
+    "runtime_path_confirmed": false,
+    "real_allocator_or_cache_verified": false,
+    "kernel_native_executed": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "full_NPU_allocator_module_CPU_imported": true,
+    "real_allocator_CPU_metadata_verified": true,
+    "actual_create_prefill_budget_verified": false,
+    "full_budget_module_import": "UNAVAILABLE missing sgl_kernel",
+    "native_small_extend_success_verified": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-pd-prefill-budget/README.md"
+  },
+  {
+    "id": "M007",
+    "mechanism_id": 7,
+    "title": "Mixed batch 与 ragged / packed 输入",
+    "lesson": 2,
+    "what": "这里有两个概念：同一 worker 混合 P/D 阶段，以及把多条变长输入紧凑排在同一数组。只有前者与专用 PD 目标冲突。",
+    "how": "本任务 P、D 使用独立资源，因此不试 mixed prefill/decode。P 仍会把每请求的有效 token 展平，并用长度和前缀边界还原；D 的 MTP 验证也有自己的形状和边界。",
+    "cost": "紧凑输入能避免一部分 padding，但长度/偏移准备及后端对齐仍有成本；不要把所有 padding 当成可直接删除。",
+    "hypothesis": "同 worker 混 P/D 优化在本任务排除。保留一个适用性探针：量出 P packed 输入和 D verify 的实际/对齐 token，后续归入元数据与图形状点研究。",
+    "classification": "not_applicable",
+    "applicability": "mixed 部分条件不适用；packed 部分须按实际 Ascend attention 与 verify 后端逐条核验。",
+    "regression": "强行改变 batch mode 会偏离 PD；删除对齐可能退出图或违反算子布局。",
+    "correctness": "各请求边界、位置编码、mask 与 MTP 树关系保持正确；不把未接受草稿当输出。",
+    "experiment": {
+      "baseline": "读取 P/D 角色与每轮 forward_mode、有效 token 和实际输入形状。",
+      "change": "不改代码；增加一次低开销形状记录，确认是否存在可归因的冗余。",
+      "cases": [
+        "P 输入长度差异大的 3 请求",
+        "D 的 3 请求接受长度不同",
+        "请求结束后批次缩小"
+      ],
+      "prediction": "专用 PD 不出现计划中的混 P/D 执行；packed 与 verify 对齐各有独立成本。",
+      "metrics": [
+        "实际/对齐 token",
+        "metadata 时间",
+        "forward_mode",
+        "图命中"
+      ],
+      "falsification": "没有该模式就关闭混批实验；padding 是后端必需或无需等待则不能据数量推断收益。",
+      "first_action": "核对角色和调用路径，输出“混批不适用、packed 另查”的证据。",
+      "execution_level": "适用性探针；不执行 mixed 配置实验"
+    },
+    "status": "条件不适用",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/schedule_batch.py#L2811",
+        "supports": "prepare_for_extend 从各请求取有效区间并展平输入。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "每请求有效 token 与 attention/verify 边界必需；专用 PD 角色不因优化而改变。",
+      "resource_bound": "packed 理想有效工作量按真实 token/验证树计；padding 的最小值受 NPU kernel 对齐和捕获形状约束，不能假设零。",
+      "calibration": "在实际支持形状中测有效/总 token 与单算子时间，区分必需对齐和因图桶过粗造成的额外计算。",
+      "headroom_test": "将可删 padding 空间交 M021 图形状或 M017 元数据，不在本点强行 mixed；若后端支持更紧凑布局可独立建 loop。",
+      "specialization": "按 P 输入长短差、verify 树宽、每请求接受长度、批次变化和图桶特化；混 P/D 区间在本任务排除。",
+      "stop_condition": "角色不适用的子题以路径证据关闭；packed 子题达到后端合法形状的有效工作下界或转交明确记录，不能误称整个机制无空间。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/scheduler.py",
+      "sha256": "73452f9a3d6e47d0847d2393226094cb2ef22464cf19b2d6ef089eae0144f07a",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M008",
+    "mechanism_id": 8,
+    "title": "Cache-aware scheduling：LPM / DFS-weight",
+    "lesson": 2,
+    "what": "让等待队列优先处理更能复用已有前缀的请求，争取少做重复 Prefill。",
+    "how": "LPM 等现有策略匹配前缀并调整顺序。固定版本对部分策略在队列过大时退回 FCFS；配置名不等于每轮实际采用的策略。",
+    "cost": "多做匹配、排序与树访问；缓存收益可能被 CPU 或低复用请求的等待抵消。",
+    "hypothesis": "对照现有 FCFS 与 LPM，判断业务共享前缀是否足以支付排序成本；不把缓存命中直接当成调度策略收益。",
+    "classification": "config",
+    "applicability": "主要在 P；缓存开启、重复前缀确实驻留，且实际活动策略可观察。",
+    "regression": "前缀几乎不共享；大队列回退；冷请求排队恶化或树状态变化带来额外维护。",
+    "correctness": "同一到达序列与相同缓存初态；每请求完整结果不变，防止饿死；D MTP 参数不动。",
+    "experiment": {
+      "baseline": "冻结请求顺序与 warm/cold 缓存初态，记录 active policy。",
+      "change": "只把 P 的策略从当前 FCFS 改为已支持 LPM，或反向对照。",
+      "cases": [
+        "全部不同前缀",
+        "多数共享长前缀、少数冷请求",
+        "小队列与越过源码回退阈值的受控回放"
+      ],
+      "prediction": "共享负载可能减少实际 P token；无共享应暴露额外排序成本。",
+      "metrics": [
+        "匹配/排序 CPU",
+        "实际执行 P token",
+        "冷请求等待尾部",
+        "满足 SLO 的吞吐"
+      ],
+      "falsification": "实际策略回退却宣称 LPM 收益无效；P 计算节省无法覆盖额外等待则不采用。",
+      "first_action": "查每轮 _determine_active_policy 返回及缓存初态，不只读取启动参数。",
+      "execution_level": "活动策略 → 队列回放 → 服务对照"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/schedule_policy.py#L300",
+        "supports": "已有队列规模回退与 cache-aware 策略选择。"
+      }
+    ],
+    "related_ids": [
+      "CACHE-026"
+    ],
+    "limit_model": {
+      "necessary_work": "选择执行顺序、识别可复用前缀并维护公平性；任何未命中输入的计算仍必要。",
+      "resource_bound": "最理想可省计算由实际可复用且能留存的前缀决定；排序开销加等待必须支付，不能使用无限缓存/未来信息 oracle 当现实能力。",
+      "calibration": "在固定到达流和容量上用离线可知前缀回放给出乐观上界，再测在线策略的实际命中、CPU 与尾延迟；明确 oracle 不可部署。",
+      "headroom_test": "若在线命中已接近该负载上界，转减少匹配/排序维护；若差距在容量/路由则转对应机制，而非只增加策略复杂度。",
+      "specialization": "按共享前缀族数量、复用距离、队列长度、冷请求比例与 P 负载分区；D MTP 固定以免后端压力混淆。",
+      "stop_condition": "在冻结公平/TTFT 目标内候选策略无法进一步减少必要计算或 CPU 等待，报告帕累托边界，不声称一个排序适合所有请求流。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/schedule_policy.py",
+      "sha256": "de11a37e44db56a1aeb47c2308f783fe4f6a0e4b8b224051e4d2894e748f6625",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M009",
+    "mechanism_id": 9,
+    "title": "Paged KV、请求映射与预分配池",
+    "lesson": 1,
+    "what": "请求看到的是连续 token 位置，KV 实际放在预分配池的不同页面；映射表负责找到对应物理位置。",
+    "how": "请求槽保存逻辑位置到 KV 槽的索引，allocator 分配和回收页。缓存与在途传输也会占有 KV，因此进程 HBM 占用不能直接当作某请求活跃 KV。",
+    "cost": "分配/回收元数据、页尾浪费和索引操作有成本；MTP 的暂存与回滚也影响占用。",
+    "hypothesis": "沿用 CACHE-024：当某次回收的所有区间确实为空时，研究在选择请求行和构造索引前返回；不删除非空回收，也不改页大小。",
+    "classification": "conditional_candidate",
+    "applicability": "目标运行的回收实现存在空区间调用，且统计证明频繁；不同 allocator 不能直接套补丁。",
+    "regression": "增加空检查但绝大多数回收非空；忽略隐藏副作用会泄漏或错误复用槽。",
+    "correctness": "请求槽与 KV 槽分开核对；引用、free list、传输持有和 MTP 回滚后的剩余量逐事件一致。",
+    "experiment": {
+      "baseline": "在实际 allocator/释放入口记录空区间频率及索引操作数。",
+      "change": "仅给已确认无副作用的全空区间增加提前返回。",
+      "cases": [
+        "全部空区间",
+        "空与非空混合",
+        "MTP 接受/拒绝后释放",
+        "PD 传输中取消再复用请求槽"
+      ],
+      "prediction": "全空路径少一次行选择与区间构造；非空行为与耗时基本不变。",
+      "metrics": [
+        "空调用次数",
+        "局部 CPU/设备小操作",
+        "free list 和在用量",
+        "清理后占用"
+      ],
+      "falsification": "容量、引用或槽映射不一致即否定；目标无空回收或 E2E 无变化只记局部结论。",
+      "first_action": "先找到运行镜像的实际释放函数，与 CACHE-024 固定源码逐项对齐。",
+      "execution_level": "路径命中 → 生命周期回放 → 局部/服务"
+    },
+    "status": "默认 unified 路径与索引匹配 CPU 已核验；原生复用未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/memory_pool.py#L374",
+        "supports": "请求映射池与请求行分配回收。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_radix_cache.py",
+        "supports": "统一缓存与索引所有权入口；具体空区间候选关联原记录。"
+      }
+    ],
+    "related_ids": [
+      "CACHE-024"
+    ],
+    "limit_model": {
+      "necessary_work": "每个仍在用 token/辅助状态有合法存储，每次分配和最终回收维护正确映射。",
+      "resource_bound": "最低 live storage 取决于实际 KV 布局、共享与 MTP 在途状态；页尾浪费受合法页大小下界约束，HBM 预分配总量不是请求内存下界。",
+      "calibration": "实测每 token 的各池字节，按实际引用计算 live bytes，再用边界长度 p−1/p/p+1 校准页尾与分配元数据成本。",
+      "headroom_test": "空回收只是第一步；继续将差距分到页尾、重复索引、临时池及不必要持有，并针对每类建立独立 loop。",
+      "specialization": "按页大小、输入/输出长度、共享率、MTP 接受/回滚、传输在途量与并发分层，禁止跨不支持布局直接换页。",
+      "stop_condition": "账本解释全部 live 与浪费量，候选未降低冻结合同内的必要占用或暴露时间则停止该 loop；可迁移到其他容量来源。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/mem_cache/memory_pool.py",
+      "sha256": "261d03dc54d8290358cb462c66958594cce009fe1e58b333684c1b6950284bfb",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-unified-cache-pin-budget/README.md",
+    "source_class_default_unified_CPU_contract_verified": true,
+    "full_facade_constructed": false,
+    "full_facade_import": "UNAVAILABLE missing sgl_kernel",
+    "real_allocator_verified": false,
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false
+  },
+  {
+    "id": "M010",
+    "mechanism_id": 10,
+    "title": "Radix 树 vs 前缀关联哈希块",
+    "lesson": 1,
+    "what": "前缀树把共享输入合并起来，匹配后直接复用已经算好的 KV；树节点主要管理键、索引和状态。",
+    "how": "压缩路径保存一段 token，匹配沿子节点向下，必要时切分节点。哈希块是另一种索引组织，不能只凭数据结构名字断言更快。",
+    "cost": "CPU 比较、字典查找、token 切片及节点分裂；命中后 Attention 仍可能读取历史 KV。",
+    "hypothesis": "复用 CACHE-009 的 offset 插入遍历：用原始 token 加当前位置替代每到一层复制剩余后缀，保留最终节点必须持有的独立键。",
+    "classification": "conditional_candidate",
+    "applicability": "实际使用审计过的 Python TreeCore，长输入跨多节点；Rust 或其他缓存实现另核验。",
+    "regression": "短单节点收益小；误用原输入的可变视图破坏节点长期键；分裂时复制仍可能必需。",
+    "correctness": "比较插入返回、树结构、键、匹配长度、索引、锁及淘汰候选；输入对象后续修改不影响树。",
+    "experiment": {
+      "baseline": "固定一棵树及 token 序列，记录原路径的复制元素量。",
+      "change": "只改变插入遍历的后缀表达；不改匹配策略、LRU 或物理 KV。",
+      "cases": [
+        "单节点全命中",
+        "长共享前缀后多分支",
+        "节点内部首次分裂",
+        "多轮请求延长与取消"
+      ],
+      "prediction": "深路径的临时复制量下降；短路径接近不变，树结果逐事件一致。",
+      "metrics": [
+        "复制 token 元素数",
+        "临时对象量",
+        "插入 CPU",
+        "P 调度暴露时间"
+      ],
+      "falsification": "任一树状态不一致即失败；若运行路径已实现等价改动则标已有，不重复实现。",
+      "first_action": "读取实际缓存类及插入实现，与 CACHE-009 的有限状态证据分开记录。",
+      "execution_level": "实现对齐 → 插入状态机 → P 服务"
+    },
+    "status": "共享前缀/分裂源码类 CPU 已核验；候选与性能未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "supports": "压缩树的匹配/插入、组件状态与节点生命周期。"
+      }
+    ],
+    "related_ids": [
+      "CACHE-009",
+      "CACHE-011",
+      "CACHE-030"
+    ],
+    "limit_model": {
+      "necessary_work": "必须验证前缀身份、得到可复用边界并保证树键长期稳定；无法无条件跳过内容比较。",
+      "resource_bound": "可用前缀索引的信息量与必要读取决定乐观下界；CPU cache、对象与分支限制实际性能，O(n) 相同不代表常数相同。",
+      "calibration": "用完全驻留、相同键长度/扇出/深度的对照数据量必要比较与复制，测最快正确实现的单操作服务时间及缓存冷热差异。",
+      "headroom_test": "offset 消除后继续核算重复字典查找、已算页键、索引收养与对象开销；每个改动单独证明再研究协同。",
+      "specialization": "按长路径/高扇出、page、冷/热 CPU cache、共享边界和组件类型特化；实际 MTP/PD 只影响调用流与生命周期，不改变键身份。",
+      "stop_condition": "临时后缀复制已消除且剩余成本能归于必要键读取/状态更新；在受测数据结构与负载区间称近可达，不能据此证明 radix 全局胜过 hash。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+      "sha256": "24f89f2d2cebeb46c209736b2376cfa7e38765ea6485809241cd256785fccb57",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-unified-cache-pin-budget/README.md",
+    "source_class_default_unified_CPU_contract_verified": true,
+    "full_facade_constructed": false,
+    "full_facade_import": "UNAVAILABLE missing sgl_kernel",
+    "real_allocator_verified": false,
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false
+  },
+  {
+    "id": "M011",
+    "mechanism_id": 11,
+    "title": "引用保护、释放、淘汰与 Copy-on-Write",
+    "lesson": 1,
+    "what": "正在被请求、计算或传输使用的 KV 不能被淘汰；引用保护记录谁还需要它，释放必须与获取配对。",
+    "how": "统一树按组件维护引用和锁回执。共享路径可以有多位使用者；只有符合资格的节点进入回收候选。只有确实写共享可变状态时才涉及复制。",
+    "cost": "每次引用变化可能沿路径维护候选集合；重复维护有 CPU 成本，但计数本身不能合并丢失。",
+    "hypothesis": "沿用 CACHE-008：FULL 已有引用且资格已经确定时，研究跳过重复的候选集合删除尝试，仍逐次增加引用。",
+    "classification": "conditional_candidate",
+    "applicability": "限定已审计 FULL 锁路径；host、SWA 或其他组件组合必须回到通用实现。",
+    "regression": "分支判断可能超过一次 set discard 的成本；错误资格会释放正在使用的 KV。",
+    "correctness": "引用次数、receipt、锁锚点、候选集合及字节账本逐事件相等；PD 发送结束不等于 P 计算不再使用。",
+    "experiment": {
+      "baseline": "回放相同共享前缀的锁/解锁序列，并计数重复 discard。",
+      "change": "仅跳过已证明重复的集合维护，不跳过 inc/dec，不改变释放时机。",
+      "cases": [
+        "3 请求锁同一路径后不同顺序结束",
+        "中途 split 与取消",
+        "P 计算和 KV 发送并存",
+        "混合组件作回退保护"
+      ],
+      "prediction": "重度共享路径的无效集合操作下降，所有引用/候选状态完全一致。",
+      "metrics": [
+        "discard 次数",
+        "锁维护 CPU",
+        "引用/候选快照",
+        "取消后容量恢复"
+      ],
+      "falsification": "出现漏回收或提前释放即失败；路径不符合 FULL-only 时标不适用。",
+      "first_action": "复核现有 CACHE-008 证据覆盖面，并补当前 PD+MTP 生命周期事件。",
+      "execution_level": "合同核验 → 差分状态回放 → 共享负载"
+    },
+    "status": "真实 allocator 接入 tree/receipt/free 已核验；物理 KV 生命周期未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py#L725",
+        "supports": "锁维护与外层资格刷新；候选不能删除引用计数语义。"
+      }
+    ],
+    "related_ids": [
+      "CACHE-008",
+      "CACHE-017"
+    ],
+    "limit_model": {
+      "necessary_work": "每个使用者的引用都必须登记，最后使用者结束后才可安全淘汰；PD 传输与设备读均算消费者。",
+      "resource_bound": "必要工作至少包含状态改变及由其引起的资格变化；无状态改变的重复集合维护可能归零，但引用数量变化不能归零。",
+      "calibration": "逐事件记引用、候选资格真正改变次数与实际集合操作数，以二者差异估计可删冗余，再量热共享路径 CPU。",
+      "headroom_test": "重复 discard 后继续查成对外层刷新、访问记录批处理和专用组件检查，保持每项语义独立再组合。",
+      "specialization": "按共享请求数、树深、引用变化、组件、传输/计算重叠与 MTP 取消事件分区；FULL-only 之外保持通用路径。",
+      "stop_condition": "操作次数接近必要状态转移且所有事件差分相等；若剩余耗时已隐藏则本目标只保留资源节省，不宣称可继续无限提速。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+      "sha256": "24f89f2d2cebeb46c209736b2376cfa7e38765ea6485809241cd256785fccb57",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-allocator-page-contract/README.md",
+    "source_class_default_unified_CPU_contract_verified": true,
+    "full_facade_constructed": false,
+    "full_facade_import": "UNAVAILABLE missing sgl_kernel",
+    "real_allocator_verified": false,
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "full_NPU_allocator_module_CPU_imported": true,
+    "real_allocator_CPU_metadata_verified": true,
+    "actual_create_prefill_budget_verified": false,
+    "full_budget_module_import": "UNAVAILABLE missing sgl_kernel",
+    "native_small_extend_success_verified": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-unified-cache-pin-budget/README.md"
+  },
+  {
+    "id": "M012",
+    "mechanism_id": 12,
+    "title": "Unified cache 组件 vs Hybrid KV 分组",
+    "lesson": 12,
+    "what": "不同模型可能同时需要普通 KV、窗口状态或辅助状态；统一缓存让它们共享索引框架，但各自管理有效性。",
+    "how": "TreeCore 驱动组件的匹配、引用与回收动作。某一组件命中不代表整条请求所需状态都齐了，能复用的前缀要满足实际组件合同。",
+    "cost": "组件分发、资格遍历和异步动作协调；简化一个组件可能破坏其他状态。",
+    "hypothesis": "沿用 CACHE-028：只有运行中确为 FULL-only 时，对叶子资格使用等价直接字段判断；多组件场景不以此“优化”。",
+    "classification": "conditional_candidate",
+    "applicability": "先枚举当前模型实际启用组件，包括 MTP 与 PD 交接辅助状态；不能从模型名称推断 FULL-only。",
+    "regression": "专用分支维护成本；启用新组件而未失效会错误回收。",
+    "correctness": "组件集合变化必须使专用路径失效；同一事件后每组件引用、驻留、可回收量和动作一致。",
+    "experiment": {
+      "baseline": "导出实际组件类型与一次匹配/释放调用链。",
+      "change": "只有单组件条件满足时，对一个资格函数做直接字段对照。",
+      "cases": [
+        "FULL-only 的驻留/锁定/可淘汰叶子",
+        "多组件返回通用路径",
+        "辅助状态缺失或节点分裂"
+      ],
+      "prediction": "单组件少生成器/动态遍历；其他情况行为完全走原路径。",
+      "metrics": [
+        "资格调用次数/CPU",
+        "组件动作数",
+        "各池占用",
+        "命中边界一致性"
+      ],
+      "falsification": "实际多组件则此候选不适用；省略必要组件检查或状态不同立即否定。",
+      "first_action": "先输出组件清单和消费者，不直接套用历史统一缓存类型。",
+      "execution_level": "组件探针 → 条件成立才 单函数差分"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+        "supports": "TreeCore 与组件驱动分工。"
+      }
+    ],
+    "related_ids": [
+      "CACHE-028",
+      "CACHE-029"
+    ],
+    "limit_model": {
+      "necessary_work": "请求所需每种缓存组件都要存在且处于兼容状态；辅助组件不能因为量小而忽略。",
+      "resource_bound": "必要组件数决定至少要检查/更新的状态；未启用组件的动态分发可减至零，但共享协调依赖未必可并行。",
+      "calibration": "按实际组件集合记录每动作的访问组件和真实状态变化；测直接必要字段更新与现有通用调度之间的成本。",
+      "headroom_test": "若 FULL-only 特化成立可继续静态化组件集合；多组件则查相同状态重复查询/无效 callback，不能照搬单组件假设。",
+      "specialization": "按具体模型组件集、PD 辅助状态、MTP 所需状态、host层开关及请求事件分区，任何配置变化触发能力重验。",
+      "stop_condition": "未启用路径没有多余工作，启用组件动作与依赖都有必要性证据；没有受支持单组件路径时关闭该特化而保留其他研究入口。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/mem_cache/unified_cache/unified_tree_core.py",
+      "sha256": "24f89f2d2cebeb46c209736b2376cfa7e38765ea6485809241cd256785fccb57",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M013",
+    "mechanism_id": 13,
+    "title": "HiCache：HBM / 主机 / 存储分层",
+    "lesson": 12,
+    "what": "把热 KV 留在 HBM，较冷 KV 放主机内存或存储，后面相同前缀再来时可能搬回而不用重算。",
+    "how": "HiCache 先查本地层级，再按后端取回缺失前缀。各层命中与传输路径不同；官方支持组合不等于当前 Ascend+PD+MTP 镜像已经支持。",
+    "cost": "额外主机空间、索引查询、主机与设备/存储搬运；与 PD 传输竞争时可能反而拖慢。",
+    "hypothesis": "对照已有层级缓存：只有可复用前缀超出 HBM 且搬回比重算便宜时才有希望；先做支持性探针。",
+    "classification": "config",
+    "applicability": "需已支持的后端、实际重复前缀及可控容量；不先改变 D 接收策略或推测解码。",
+    "regression": "全冷请求付出管理开销；短前缀重算便宜；搬运与网络/CPU内存带宽争抢。",
+    "correctness": "不同模型、token、额外键及布局不可误命中；多 rank 复用长度一致，取消后在途拷贝安全结束。",
+    "experiment": {
+      "baseline": "冻结缓存工作集和硬件资源；先记录不启用层级缓存时的重复 P 计算。",
+      "change": "兼容确认后只启用一层 L2；L3 留到下一轮，不同时改多个层级。",
+      "cases": [
+        "可全部留 HBM 的热集作负对照",
+        "超 HBM、可留主机内存的重复前缀集",
+        "全冷同长度输入"
+      ],
+      "prediction": "仅第二组可能减少重算；收益应大于恢复与协调的暴露时间。",
+      "metrics": [
+        "各层有效命中 token",
+        "恢复字节/时间",
+        "实际 P token",
+        "TTFT 与峰值主机内存"
+      ],
+      "falsification": "不兼容则条件不适用；命中率提高而总延迟变坏不能保留。",
+      "first_action": "读运行版本支持检查并做一请求一致性探针；不直接部署整套缓存。",
+      "execution_level": "兼容/单请求 → 恢复与重算 → 热集对照"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://docs.sglang.io/docs/advanced_features/hicache_design",
+        "supports": "层级缓存与 PD 结合的官方设计；目标 Ascend 支持仍须源码核验。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "必须获得正确前缀 KV；可以计算，也可以从可用缓存恢复，二者最终都要产生所需设备状态。",
+      "resource_bound": "可比重算与恢复的实测关键路径；恢复下界含查询、必需字节/有效带宽及布局转换，不能只用存储标称带宽。",
+      "calibration": "对相同长度与 KV 格式分别量纯恢复和纯重算，加入实际 PD/MTP 同时运行时的资源竞争，找成本交点。",
+      "headroom_test": "先选层级后继续定位查询、冗余副本、布局及冷热淘汰；如果恢复已慢于重算，不能以更高命中率继续推动。",
+      "specialization": "按前缀长度、复用距离、各层工作集容量、TP/布局、PD 链路负载和 MTP 输出压力分层。",
+      "stop_condition": "在真实资源限制下的恢复/重算选择接近已校准较快路径，热点主要留在可负担层；不以无限 DRAM/L3 构造不公平上界。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/cache_controller.py",
+      "sha256": "25472d5903e102f187ffbb171c168e9c43d91ead8c0bc26feaba6a6104773db9",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M014",
+    "mechanism_id": 14,
+    "title": "预取、写回与 layer/page 布局",
+    "lesson": 12,
+    "what": "预取是在真正需要前把 KV 搬近一点；写回把未来可能复用的数据留下；布局决定每次搬运能否成批。",
+    "how": "已有预取停止和写回策略可对照。M13 确认层级缓存能用后，本点只研究等待预取是否值得，不同时修改布局、写回或 P→D 传输。",
+    "cost": "提前搬错数据浪费容量与带宽；等待全部预取会拖延可执行的 P；布局优化也可能增加计算侧转换。",
+    "hypothesis": "对照已有 best_effort 与有限 timeout：对可预测的长热前缀，短等待可能少做重算；冷请求应及时继续。",
+    "classification": "config",
+    "applicability": "当前实际使用 L3 预取且支持对应策略；无 L3 或无实际预取则该子点不触发。",
+    "regression": "存储抖动造成尾延迟；低命中浪费请求；等待期间可能占有关键请求槽。",
+    "correctness": "停止预取不能回收仍被 I/O 写入的页；各 rank 采用一致前缀长度，不使用半完成数据。",
+    "experiment": {
+      "baseline": "固定工作集、存储状态和现有布局；记录 ready-to-run 时还有多少可用数据未到。",
+      "change": "只比较 best_effort 与一个根据实测恢复时延选出的有界 timeout。",
+      "cases": [
+        "长热前缀且存储稳定",
+        "全冷前缀",
+        "热前缀遇到可控存储延迟；插入取消"
+      ],
+      "prediction": "热前缀少重算的时间超过额外等待才有收益；冷组不应产生长尾。",
+      "metrics": [
+        "有效预取字节/总预取字节",
+        "暴露等待",
+        "被省重算时间",
+        "P95/P99 TTFT"
+      ],
+      "falsification": "预取不触发即结束此实验；恢复节省不够支付等待或取消不安全则否定。",
+      "first_action": "先查预取触发/停止事件，不把一般 PD KV 发送称为 HiCache 预取。",
+      "execution_level": "预取命中 → 等待账本 → 单策略对照"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://docs.sglang.io/docs/advanced_features/hicache_design",
+        "supports": "已有预取停止策略、布局和写回机制；本实验只改变停止策略。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "只有将来实际使用的前缀搬运才有价值，使用前全部所需状态必须完成并一致。",
+      "resource_bound": "预取最多隐藏其与独立工作真实重叠的部分；首段查询与最后未隐藏尾巴构成依赖下界，不能把所有 I/O 时间算成可省。",
+      "calibration": "测 ready-to-run、每段到达及首次消费时间，计算真正覆盖量；将带宽竞争加入，与同期重算可达时间对比。",
+      "headroom_test": "停止策略后再分解无效预取、写回污染和布局转换，各做单变量 loop；需要不同特化时记录边界而不追一个全局 timeout。",
+      "specialization": "按热命中长度、存储抖动、可重叠计算窗口、请求取消率、PD 链路与 MTP 后端负载分区。",
+      "stop_condition": "有效提前量接近独立工作窗口且无效流量受控，进一步等待/搬运不改善目标；停止某个策略 loop 不代表布局/写回已最优。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/cache_controller.py",
+      "sha256": "25472d5903e102f187ffbb171c168e9c43d91ead8c0bc26feaba6a6104773db9",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M015",
+    "mechanism_id": 15,
+    "title": "CPU / 设备 overlap 调度",
+    "lesson": 3,
+    "what": "CPU 在设备计算当前轮时准备下一轮，让两边尽量少互相等待；计算依赖仍必须遵守。",
+    "how": "D overlap 循环先提交当前 batch，再处理上一批 CPU 结果；遇到不支持组合有回退。推测解码接受结果通过实际同步/relay 路径交接。",
+    "cost": "隐藏 CPU 工作但不消除它；队列、event 和额外在途状态也有成本。若 CPU 太慢或设备很短，仍留空洞。",
+    "hypothesis": "先验证现有 overlap 是否真的隐藏了 CPU。只在当前 MTP 与后端支持的情况下做 overlap 开关对照，不以关闭推测解码换取可比性。",
+    "classification": "existing",
+    "applicability": "专用 D、实际 MTP 算法与后端明确允许这两种调度；不支持的组合改做单模式时间线。",
+    "regression": "非 overlap 会显著退化；混入 grammar 等功能可能触发回退，导致名义开关与实际模式不一致。",
+    "correctness": "输出 token 合同、接受长度、EOS/取消与槽回收正确；记录每批真实 disable_overlap 状态。",
+    "experiment": {
+      "baseline": "保留 MTP，采样 CPU prepare、device start/end 和 result-ready 三组边界。",
+      "change": "支持时只切 overlap；不支持则仅测现有模式的暴露时间，不强行构造基线。",
+      "cases": [
+        "1 路低批次",
+        "3 路并发",
+        "频繁请求结束与接入；固定输出预算"
+      ],
+      "prediction": "有效 overlap 将 CPU 准备覆盖在设备工作内；剩余提交空隙才是后续候选。",
+      "metrics": [
+        "CPU 准备及暴露时间",
+        "设备空洞",
+        "ITL",
+        "实际回退次数"
+      ],
+      "falsification": "只看到两个线程同时忙不能证明收益；开关改变 MTP 或执行后端则对照无效。",
+      "first_action": "先跟踪 event_loop_overlap_disagg_decode 和实际回退原因。 源码明确不支持的 overlap＋spec＋grammar 等组合排除，不为对照关闭 MTP 或移除请求功能。",
+      "execution_level": "模式核验 → 时间线 → 条件允许才 开关对照"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/decode.py#L3080",
+        "supports": "D overlap 循环、结果队列及按批回退。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "上一轮必须产生下一轮实际输入与长度；部分 CPU 事务也必须在对应结果之后完成。",
+      "resource_bound": "理想稳态轮次间隔不小于 max(必要 CPU 服务,设备依赖链)，另加无法重叠的串行段；资源竞争会把实际下界抬高。",
+      "calibration": "分别量固定批最短 CPU 准备与设备依赖链，再用时间线验证可重叠范围；不能把所有 CPU/设备总和或最大值直接当真实轮时。",
+      "headroom_test": "把实际间隔减去校准边界，逐段归因晚提交、event 等待、数据回传或资源竞争；首个开关对照只是验证模型。",
+      "specialization": "按并发、context、MTP 接受长度/草稿配置、批次 churn、图命中和输入输出功能分区，记录实际 fallback。",
+      "stop_condition": "可解释空洞消失或只剩必要依赖，重复测量的剩余差距不支持进一步候选；仅报告指定场景接近可达流水效率。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/disaggregation/decode.py",
+      "sha256": "d14a402990b0080aa95f058bee9093a67d6ca48d419657f6be2cffa98607ec48",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M016",
+    "mechanism_id": 16,
+    "title": "Future token / placeholder 与依赖解析",
+    "lesson": 3,
+    "what": "槽位是一张按请求编号索引的设备表，让下一轮先知道去哪里取结果，而不必等 CPU 拿到结果值才安排。",
+    "how": "FutureMap 的 stash 保存 bonus token 和所需草稿状态，publish 保存真实新长度；下轮解析再取。推测解码一次可接受多个 token，因此长度与状态都必须保留。",
+    "cost": "小 scatter/gather、dtype 转换和 event 有启动成本；但它们承载真实依赖，不能整张删掉。",
+    "hypothesis": "研究最终 relay 结果产生时顺手写入目标槽位，减少独立写槽操作；仅在已确认 producer 能写且没有后续修正时成立。",
+    "classification": "conditional_candidate",
+    "applicability": "先核对当前 MTP 路径实际 relay 字段和 NPU 实现；不能将普通 decode 的删长度副本思路带入。",
+    "regression": "融合增加 producer 复杂度、地址处理或图约束，可能比单独小操作更慢。",
+    "correctness": "保留 bonus、接受长度及所需 hidden/topk 状态；请求重排、槽复用、EOS、取消、回滚不得读到旧轮数据。",
+    "experiment": {
+      "baseline": "捕获最终状态 producer→stash/publish→resolve 的真实依赖及独立设备操作数。",
+      "change": "只融合一个已证实独立的 relay 写入，其他状态仍走原路径。",
+      "cases": [
+        "3 请求接受长度分别不同",
+        "接受最少/最多",
+        "请求结束后立即复用槽",
+        "批次重排和一次取消"
+      ],
+      "prediction": "少一次独立写槽提交，producer 总时长增量小于被省成本，后续读取保持一致。",
+      "metrics": [
+        "relay kernel/任务数",
+        "producer+relay 总耗时",
+        "每轮状态差分",
+        "每接受 token 的 ITL"
+      ],
+      "falsification": "已经融合、写后仍修正或图内没有暴露成本则停止；任何状态/输出差异失败。",
+      "first_action": "逐字段追踪最终写入者与下一轮读者，先确认候选字段而不是先写融合 kernel。",
+      "execution_level": "relay 依赖图 → 状态差分 → NPU/服务"
+    },
+    "status": "历史三步与hidden行合同已核验；原生未测",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/overlap_utils.py#L141",
+        "supports": "RelayPayload 描述推测解码中转字段。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/overlap_utils.py#L606",
+        "supports": "publish/stash 写入长度、bonus 和按算法所需状态。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "下一轮所需 token、真实接受长度及草稿状态必须正确到达消费者；不同请求/轮次必须区分。",
+      "resource_bound": "至少存取实际消费者所需字段；理想融合能消除独立任务启动，但不能消除 producer 产出数据和读取依赖。",
+      "calibration": "分别量 producer、relay scatter/gather、下轮解析及图 replay 内的实际位置；用融合或最小单算子实测校准可省 launch/字节。",
+      "headroom_test": "融合一个字段后仍检查多字段共同写入、重复 cast/gather 和未用字段；每个消费者审计通过才能继续，不盲删整表。",
+      "specialization": "按 MTP 算法、接受长度、hidden/topk 等字段集合、稳定/变动批、请求槽复用与图形状特化。",
+      "stop_condition": "relay 剩余读写都是实际消费者必要输入，融合无进一步稳定改善且正确性覆盖所有生命周期；可得条件最优，不能承诺所有算法共用最优布局。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/overlap_utils.py",
+      "sha256": "fdcb8e9fa902383a4248b4bc3b1b57f37e171146d5d4ac8a3782cfad32c15471",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-hidden-eligibility/README.md",
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED",
+    "production_applied": false,
+    "relay_CPU_producer_checks": 345,
+    "relay_CPU_cases": 15,
+    "consumer_gather_reference_is_boundary": true,
+    "native_gather_boundary_stops": 1,
+    "consumer_four_field_fusion_already_exists_in_source": true,
+    "full_cancel_scheduler_executed": false,
+    "candidate_accepted": false,
+    "historical_reference_CLI_algorithm": "NEXTN",
+    "historical_reference_steps": 3,
+    "historical_reference_topk": 1,
+    "historical_reference_draft_tokens": 4,
+    "actual_current_normalized_runtime_confirmed": false,
+    "hidden_omission_for_reference_accepted": false,
+    "hidden_CPU_checks": {
+      "R003": 120,
+      "R004": 22
+    },
+    "native_hidden_or_model_path_executed": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-relay-final-payload/README.md"
+  },
+  {
+    "id": "M017",
+    "mechanism_id": 17,
+    "title": "持久状态、增量更新与 GPU metadata",
+    "lesson": 4,
+    "what": "元数据告诉算子每个请求有多长、在批里哪里、使用哪些 KV。持久状态或增量更新能减少每轮重新整理。",
+    "how": "固定 FutureMap 已根据后端 needs_cpu_seq_lens 决定是否回传 CPU 长度；设备上的真实新长度仍更新。TBO/ngram 等消费者会强制需要 CPU 信息。",
+    "cost": "全量长度镜像的 D2H、同步和 CPU 求和可能暴露等待；让状态常驻设备则要求所有消费者兼容。",
+    "hypothesis": "核验现有门控在 Ascend MTP 是否有可安全使用的 GPU/NPU-only 路径；这是已有能力的适配审计，不是删接受长度。",
+    "classification": "conditional_candidate",
+    "applicability": "必须穷查 target、draft、attention、图准备及其他调度消费者；未声明能力时保持保守默认。",
+    "regression": "后端偷读 CPU 长度、TBO 分批或 mask 准备可能出错；移到设备计算也会新增任务。",
+    "correctness": "真实接受长度、设备 seq_lens 与 KV 分配不变；任何 CPU 消费者存在就不能直接关闭镜像。",
+    "experiment": {
+      "baseline": "统计目标 MTP 路径每轮 CPU 长度消费者、D2H 字节和等待。",
+      "change": "只有消费者审计通过才让一个后端声明无需 CPU 镜像；先运行断言差分。",
+      "cases": [
+        "普通 MTP verify/extend",
+        "短长混合与变接受长度",
+        "启用实际需要 CPU 长度的模式作回退保护"
+      ],
+      "prediction": "允许的路径减少 D2H/同步；保护路径仍保留原行为。",
+      "metrics": [
+        "长度镜像字节",
+        "D2H 暴露时间",
+        "设备长度与分配一致性",
+        "ITL"
+      ],
+      "falsification": "任何依赖未证明消失则不执行关闭；复制已经被隐藏或开销很小则降低优先级。",
+      "first_action": "审计 decide_needs_cpu_seq_lens 的每个后端声明与实际读点，不凭默认参数推测。",
+      "execution_level": "消费者审计 → 断言差分 → 单后端实验"
+    },
+    "status": "NPU override/最后读取者策略 CPU 核验；原生收益未测",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/overlap_utils.py#L26",
+        "supports": "已有 CPU 长度需求门控及强制保留条件。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/overlap_utils.py#L544",
+        "supports": "设备长度始终解析，CPU 镜像按需求回传。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "每轮算子必须得到真实长度/位置/KV 映射；仅变化部分可增量，依赖上轮接受结果的状态不能提前臆造。",
+      "resource_bound": "若无 CPU 消费者，长度 CPU 镜像理论可为零；有消费者则至少传回它需要的信息并等待真实产出。设备更新成本仍存在。",
+      "calibration": "列出读写表，量必要变化字节、实际搬运字节及等待；分别校准设备驻留计算和回传的实测成本。",
+      "headroom_test": "镜像门控后继续检查全量批重建、重复 dtype 转换、可增量的稳定字段；同样审计跨轮生命周期，不以一个 flag 当终点。",
+      "specialization": "按 attention/草稿后端、TBO/ngram、batch churn、接受长度分布与 context 特化；未经声明的消费者必须保守保留。",
+      "stop_condition": "数据搬运接近真实消费者需要的字节量，新增设备任务不抵消收益，剩余元数据由必要变更解释；资源瓶颈转移后重新评估。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/overlap_utils.py",
+      "sha256": "fdcb8e9fa902383a4248b4bc3b1b57f37e171146d5d4ac8a3782cfad32c15471",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-plan-war-source/README.md",
+    "overall_serving_evidence": "E0",
+    "runtime_path_confirmed": false,
+    "source_caller_CPU_page_count_contract_verified": true,
+    "tagged_CPU_scalar_observations": 22,
+    "existing_optional_count_support_verified": true,
+    "device_sync_duration_measured": false,
+    "whole_caller_modules_imported": false,
+    "kernel_native_executed": false,
+    "performance_verdict": "NOT_MEASURED",
+    "production_applied": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-owned-page-count-cpu/README.md",
+    "CPU_default_count_candidate_checks": 696,
+    "stale_mirror_counterexamples": 3,
+    "unqualified_default_count_candidate_accepted": false,
+    "page_count_candidate_direction": "producer-owned explicit count",
+    "native_import_boundary_is_success": false,
+    "owner_explicit_count_component_CPU_checks": 819,
+    "allocator_class_AST_unchanged": true,
+    "owner_explicit_count_candidate_accepted": false,
+    "complete_caller_modules_imported": false,
+    "native_ordering_or_lifetime_verified": false,
+    "plan_WAR_source_policy_checks": 266,
+    "plan_WAR_source_policy_cases": 66,
+    "generic_PRE_fallback_directly_used_by_NPU_execute": false,
+    "actual_task_stream_flags_confirmed": false,
+    "candidate_accepted": false
+  },
+  {
+    "id": "M018",
+    "mechanism_id": 18,
+    "title": "Pinned buffer、异步 H2D 与写读竞态",
+    "lesson": 3,
+    "what": "pinned 主机缓冲便于异步搬运。异步的意思是 CPU 可以先走，不代表它已经把数据读完，因此源缓冲不能立刻被改写。",
+    "how": "prepare_for_extend 按平台能力决定 pin；当前 in-tree NPU 声明 False。NumPy concatenate 产生独立 CPU 输入快照，H2D 延后到 forward resolve。缓冲复用仍需实际 NPU 生命周期验证。",
+    "cost": "反复分配/填充主机张量与 H2D 有成本；多缓冲占主机空间，event 与回收也要维护。",
+    "hypothesis": "若实际每个 chunk 都新建 pinned token staging 且分配占显著时间，可研究按容量复用有完成标记的少量缓冲，避免每轮新分配。",
+    "classification": "conditional_candidate",
+    "applicability": "只针对确定生命周期的 P token staging；不把 CUDA 私有流行为直接套在 Ascend，也不改 MTP 状态缓冲。",
+    "regression": "额外容量与同步管理；过小的环复用会写读竞态，过多的环只占内存。",
+    "correctness": "H2D 完成之前源内容不变；取消、异常、尺寸增大时安全退出或扩容，不绕过现有 WAR barrier。",
+    "experiment": {
+      "baseline": "记录 pinned allocation、填充、H2D 与最终读完边界；排除 allocator 已有效缓存的情况。",
+      "change": "只复用一种 token staging 缓冲，槽位凭完成事件回收；不足时回退原分配。",
+      "cases": [
+        "连续等尺寸 chunks",
+        "尺寸交替与突然变长",
+        "人为延迟 copy 时取消并接入新请求"
+      ],
+      "prediction": "分配次数下降且 copy 内容一致；只有被暴露的准备时间减少才有 E2E 价值。",
+      "metrics": [
+        "pinned 分配次数/时间",
+        "主机峰值内存",
+        "H2D 字节和等待",
+        "输入 checksum 与 TTFT"
+      ],
+      "falsification": "旧数据污染或读写交叠立即失败；已有缓存消除分配成本则不新增缓冲池。",
+      "first_action": "先核验实际 NPU copy 完成语义并画出一块缓冲的生产/读取/复用时间。",
+      "execution_level": "生命周期 → 延迟拷贝竞态 → P 分块"
+    },
+    "status": "plan/WAR 266 项策略 CPU 检查；原生生命周期未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/schedule_batch.py#L2834",
+        "supports": "pinned 输入准备及长度张量 H2D。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/overlap_utils.py#L87",
+        "supports": "forward 入口延后解析/搬运输入。"
+      }
+    ],
+    "related_ids": [
+      "PD-CHUNK-004"
+    ],
+    "limit_model": {
+      "necessary_work": "每个输入字节必须在设备消费前正确就绪；缓冲在最后读完前保持有效与内容稳定。",
+      "resource_bound": "输入搬运下界受实际 host-device 路径的有效带宽与启动成本限制；可隐藏量受依赖窗口限制，pinned 分配本身可通过安全复用减少。",
+      "calibration": "对真实字节量和 NPU API 测独立 H2D 的稳定最好值，再测与计算/PD 通信同跑；区分分配、填充、拷贝和等待。",
+      "headroom_test": "缓冲复用之后继续检查多次中间复制、过大容量、散小拷贝和不必要等待；若内存带宽已饱和则减少字节比增加 stream 更有意义。",
+      "specialization": "按 chunk 字节量、形状变化、可重叠窗口、NUMA 放置、并发与 MTP 后端压力分区；需要图固定地址时专门验证。",
+      "stop_condition": "主机准备无重复分配/复制，H2D 接近竞争条件下校准能力且未隐藏尾巴有依赖解释；不能用空载 PCIe/NPU 标称带宽宣布物理极限。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/overlap_utils.py",
+      "sha256": "fdcb8e9fa902383a4248b4bc3b1b57f37e171146d5d4ac8a3782cfad32c15471",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-plan-war-source/README.md",
+    "overall_serving_evidence": "E0",
+    "runtime_path_confirmed": false,
+    "plan_WAR_source_policy_checks": 266,
+    "plan_WAR_source_policy_cases": 66,
+    "generic_PRE_fallback_directly_used_by_NPU_execute": false,
+    "actual_task_stream_flags_confirmed": false,
+    "native_ordering_or_lifetime_verified": false,
+    "candidate_accepted": false,
+    "kernel_native_executed": false,
+    "performance_verdict": "NOT_MEASURED",
+    "production_applied": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-npu-metadata-staging/README.md"
+  },
+  {
+    "id": "M019",
+    "mechanism_id": 19,
+    "title": "多 stream、event 与资源竞争",
+    "lesson": 3,
+    "what": "stream 是设备上的执行队列；event 像完成通知，让另一队列等到所需数据准备好。它允许独立工作同时进行，但不会创造额外算力或带宽。",
+    "how": "固定源码的 NPU DSA 准备路径可在副流算 Q 投影，主流算 KV 归一化，然后等待 Q 的完成事件；record_stream 还保护异步张量寿命。是否走此分支取决于模型、布局和实际配置。",
+    "cost": "事件、切流和缓冲管理有开销；两个算子并行时会竞争计算单元和 HBM。",
+    "hypothesis": "若小批 Q/K 并行的调度成本超过被隐藏的时间，按已测形状选择串行路径可能更快；只比较这一对工作，不删除必要依赖。",
+    "classification": "conditional_candidate",
+    "applicability": "实际 Ascend 路径确实启用该副流，PD 与 MTP 均保持开启。",
+    "regression": "长上下文或较大验证批次可能从并行获益；统一串行会回退。",
+    "correctness": "等待事件与张量存活必须保留；验输出、accepted length 与取消后复用。",
+    "experiment": {
+      "baseline": "固定 MTP 深度、图状态和 P/D 拓扑，记录当前两流时间线。",
+      "change": "仅将这一对 Q/K 工作串行执行，其余重叠不变。",
+      "cases": [
+        "c2-short、c3-long",
+        "验证 token 数落在当前常见形状及一个较大形状"
+      ],
+      "prediction": "若竞争主导，串行总段长缩短；若被隐藏计算主导，串行更慢。",
+      "metrics": [
+        "Q/K 段总墙钟",
+        "event 等待与设备空隙",
+        "D 每接受 token 时间",
+        "accepted length 分布"
+      ],
+      "falsification": "串行局部更慢，或局部省时却端到端无可辨收益。",
+      "first_action": "抓一段 D trace，确认是否调用 alt_stream 分支并记录具体张量形状。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "布局与Python包装层已核验；原生接口/数值/性能 INCONCLUSIVE",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py#L405-L434",
+        "support": "NPU 分流 Q 投影、主流 KV norm、event 与 record_stream。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "Q 投影与 KV norm 的数学工作及最终依赖都必须完成；每支 FLOPs/字节待实际 shape 计算。",
+      "resource_bound": "分支 DAG 的最长依赖链，加共享 HBM/计算资源的需求约束；不可把两支独立测量时间直接取 max 当真实并行时间。",
+      "calibration": "同 NPU、dtype、shape、布局分别测串行段、并行段及可达 HBM/计算速率；当前 UNKNOWN。",
+      "headroom_test": "把关键路径拆成有效计算、资源竞争增量和事件等待；只有后两者或低效率内核形成可行动空间。",
+      "specialization": "仅在测过的 verify token 数与长度范围选择串/并行；范围外回原路径，计入判断和切流成本。",
+      "stop_condition": "必要依赖已紧贴可达资源界且切流/等待无可删空间，或保护负载回退，则停止此方向；新 shape 需重校准。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py",
+      "sha256": "89781513fc8039c5d426d31b5734383d1e44b6cfb46e4f998d86757427e9ccc4",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-qk-stream-contract/README.md",
+    "runtime_path_confirmed": false,
+    "performance_verdict": "INCONCLUSIVE",
+    "overall_serving_evidence": "E0"
+  },
+  {
+    "id": "M020",
+    "mechanism_id": 20,
+    "title": "TBO / SBO vs vLLM DBO",
+    "lesson": 10,
+    "what": "TBO 把一次工作拆成两个微批，让一个微批计算时另一个通信；SBO 则利用同一批内部可独立的工作。它们与 CPU 提前组批是不同层次。",
+    "how": "现有实现通过执行切换点交错 Attention、dispatch、专家计算和 combine；TBO 还切分推测验证的 token、mask、positions 等元数据。",
+    "cost": "拆批会让 GEMM 更小，并新增缓冲和切分管理；验证宽度决定实际 token 数，不能只看请求数。",
+    "hypothesis": "在已有兼容路径上，只对比一个可用 overlap 开关；只有被隐藏通信大于小批效率损失，才值得保持开启。",
+    "classification": "config",
+    "applicability": "必须先证明 Ascend、目标模型、PD、MTP、图模式的组合受支持。",
+    "regression": "2 个请求时拆批可能太碎；不均衡的验证批也可能让一侧等待。",
+    "correctness": "微批合回后请求顺序、树 mask、KV 索引与 accepted length 一致；不把 CUDA 支持当 NPU 支持。",
+    "experiment": {
+      "baseline": "当前 PD+MTP 配置及实际 TBO/SBO 状态。",
+      "change": "选一个已支持的开关做开/关对照，不同时改 TBO 和 SBO。",
+      "cases": [
+        "c2-short、c3-long",
+        "容量允许时一个更大固定批次，MTP 参数不变"
+      ],
+      "prediction": "收益应对应通信等待减少，并覆盖拆批增加的计算时间。",
+      "metrics": [
+        "dispatch/combine 暴露时间",
+        "每个微批 GEMM 时间",
+        "D 接受 token/s",
+        "accepted length 分布"
+      ],
+      "falsification": "组合不支持即记不适用；通信已隐藏或计算回退抵消收益则停止。",
+      "first_action": "查运行参数、后端兼容门控与 trace；未进入该路径不启动 A/B。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L218-L237",
+        "support": "TBO/SBO 现有工作方式。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/batch_overlap/two_batch_overlap.py#L217-L288",
+        "support": "切分推测验证输入，说明 MTP 元数据不能忽略。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "每 token 的专家计算与跨 rank 必要传输仍需完成；拆微批不减少语义所需工作。",
+      "resource_bound": "按微批计算—dispatch—combine DAG 与共享链路/算力约束建下界，不能把隐藏通信记成零成本。",
+      "calibration": "实际各微批尺寸测可达 GEMM 与通信吞吐，含 MTP verify 宽度、消息大小及 rank 数；当前 UNKNOWN。",
+      "headroom_test": "计算暴露通信可以隐藏的上限，再扣除拆批造成的小 GEMM 效率损失、额外元数据与缓冲。",
+      "specialization": "只对已证实能获益且支持 MTP/图的 token 区间用 TBO；小批 fallback，测分支与图切换成本。",
+      "stop_condition": "通信已被必要计算遮住，或继续拆分增加计算时间超过可隐藏部分；未覆盖组合保留 UNKNOWN。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/batch_overlap/two_batch_overlap.py",
+      "sha256": "f294d94b1cdb9211f23980dc755f8ff81101253aed3f3dc4d5312500b7ac3777",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M021",
+    "mechanism_id": 21,
+    "title": "图捕获、形状桶与 replay",
+    "lesson": 5,
+    "what": "图 replay 把反复提交的一串设备工作预先记录；形状桶是若干预备尺寸，请求数量不匹配时可能补齐到较大桶。",
+    "how": "NPU graph runner 选择捕获桶，更新本轮 KV 位置和长度等输入后 replay；推测解码还涉及 target verify、draft 等各自形状。图不是可以复用旧 KV 地址的静态结果。",
+    "cost": "节省 CPU launch，但 padding 产生额外计算；捕获与静态缓冲占启动时间和 HBM。",
+    "hypothesis": "若常见 2/3 请求的 verify 形状被补到过大的桶，新增一个实际高频桶可能减少 padding，代价是更多捕获和常驻内存。",
+    "classification": "config",
+    "applicability": "目标 NPU 图路径能捕获该形状且 MTP 输入宽度稳定。",
+    "regression": "低频形状增加桶只占内存；DP 各 rank 形状不统一会失效或回退。",
+    "correctness": "保护空闲 rank、尾批、accepted length 变化、KV 地址刷新；不能复用捕获时的旧页。",
+    "experiment": {
+      "baseline": "记录 raw shape、选中桶、fallback 和捕获 HBM。",
+      "change": "仅增加一个最常见但缺失的合法桶。",
+      "cases": [
+        "c2-short、c3-long",
+        "一次 3→2→1 请求退出过程"
+      ],
+      "prediction": "padding token 数下降，并在 D 验证阶段体现为更短 replay。",
+      "metrics": [
+        "raw/padded token 比",
+        "replay 与 eager 次数",
+        "图内存和启动时间",
+        "ITL、accepted length 分布"
+      ],
+      "falsification": "原本已精确命中桶，或新增图内存挤掉 KV 使排队更差。",
+      "first_action": "从实际日志/trace 导出 target/draft 桶与支持条件，再选唯一新增桶。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "安装源码与CPU策略已核验；NPU图运行及性能 INCONCLUSIVE",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/graph_runner/npu_graph_runner.py",
+        "support": "NPU replay 选桶、更新输入、处理 verify 与静态 KV 位置。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "真实 token 的 target/draft 前向与正确输入刷新不可省；padding 是实现开销，需单独计数。",
+      "resource_bound": "去 padding 后的真实计算依赖链与必需输入更新构成下界；图 replay 启动也有测得的最小成本。",
+      "calibration": "相同 NPU 图模式、真实宽度和 dtype 校准空/最小 replay、精确 shape kernel 与内存占用；当前 UNKNOWN。",
+      "headroom_test": "用真实/padded 工作量和 replay→首 kernel 空隙估计空间，确认减少桶浪费不会让 KV 容量倒退。",
+      "specialization": "只增加高频合法 shape 的桶，稀有形状 fallback；统计查桶、切换、capture 摊销与常驻 HBM。",
+      "stop_condition": "高频形状已精确覆盖且启动与输入更新逼近可达界，再加桶无摊销收益；保留其它 shape 的证据缺口。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/hardware_backend/npu/graph_runner/npu_graph_runner.py",
+      "sha256": "47105be9c57aab59635a9b59ee2909083dfb6c5f599fa737ececa96312edc98e",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "runtime_path_confirmed": false,
+    "evidence_checkpoint": "evidence/2026-10-19-graph-shape-support/README.md",
+    "performance_verdict": "INCONCLUSIVE",
+    "overall_serving_evidence": "E0"
+  },
+  {
+    "id": "M022",
+    "mechanism_id": 22,
+    "title": "算子融合、编译与中间张量复用",
+    "lesson": 5,
+    "what": "模型层融合把相邻操作放进一个算子，减少启动和中间读写。例如把投影结果拆成 Q/K 后分别做 RMSNorm，合成一次 split+norm；这是已有能力，不是新增发明。",
+    "how": "固定 NPU MLA/DSA 准备源码已有 fused_split_qk_norm 与普通分支，并检查 shape、布局、CP 和模型 opt-out。源码明确融合在 Ascend 不保证数值等价；实际 GLM/MTP 是否经过该层先查配置。",
+    "cost": "融合可能省启动和临时读写，也可能增加寄存器压力、受限 shape 或改变舍入；split 本身可能只是 view，不能把它虚算成一次拷贝。",
+    "hypothesis": "只对当前已允许融合的模型/形状，比较现有融合与普通实现；若某个形状融合更慢且普通路径满足质量合同，再研究按该形状回退。",
+    "classification": "config",
+    "applicability": "当前模型未 opt-out，算子和 dtype 支持，现有融合分支确实命中；不越过 CP/shape 门控。",
+    "regression": "小批可能获益，大批可能因资源压力回退；MTP 接受长度改变会影响总成本。",
+    "correctness": "中间 Q/K 误差、最终质量和 accepted length 都验证；不取消数值保护，不将模型主动禁用融合的情况强行开启。",
+    "experiment": {
+      "baseline": "以当前已命中的融合路径为基线，固定 PD、MTP、dtype、图模式和输入。",
+      "change": "仅在隔离副本把这一处选择固定到已有普通分支；不新增假想 API，也不改其他融合。",
+      "cases": [
+        "c2-short、c3-long",
+        "真实 target verify 与 draft shape；另测一个仍在合法区间的较大 token 数"
+      ],
+      "prediction": "普通分支任务更多；若融合有效，总 prepare 时间更短。若部分 shape 普通路径反而更快，才有形状回退价值。",
+      "metrics": [
+        "prepare 总时间/任务数/实际搬运字节",
+        "中间 Q/K 最大和均方误差",
+        "质量与 accepted length 分布",
+        "总成本/有效输出 token"
+      ],
+      "falsification": "未走该层或模型 opt-out 则不适用；时间无差异、质量超限或仅接受率偶然变化则否定。",
+      "first_action": "核验模型映射、布局和融合门控；保存一层真实输入做局部数值/性能对照，再决定端到端。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py#L223-L236",
+        "support": "现有 split+RMSNorm 融合、模型 opt-out 与 Ascend 数值不等价说明。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py#L435-L453",
+        "support": "DSA 准备路径检查 shape、CP、模型 opt-out，保留已有普通分支。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "保留该层 Q/K 的 RMSNorm 数学工作、读取投影结果和写出下一算子所需张量；split 若是 view 不计搬运，实际 FLOPs/字节待 shape。",
+      "resource_bound": "按投影→split/norm→后续 attention 准备的依赖链及 HBM/计算共享约束建界；融合只可能省启动和真实中间读写。",
+      "calibration": "同 Ascend、dtype、layout、target/draft shape 与 graph 状态校准 fused/unfused norm 的可达带宽、计算和启动成本；当前 UNKNOWN。",
+      "headroom_test": "核算实际搬运与必要搬运之差，结合任务数判断余量；若融合回退，查占用/寄存器与 shape 限制而非继续盲目融合。",
+      "specialization": "仅在原有门控允许、质量通过且已测的 token/维度范围选择融合或普通路径；其余保持原分派，计 shape 判断与图切换成本。",
+      "stop_condition": "必要 norm 工作接近同 shape 可达界且已无重复搬运/启动余量，或更多融合导致数值/性能回退即停；模型 opt-out 不作为待绕过障碍。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py",
+      "sha256": "89781513fc8039c5d426d31b5734383d1e44b6cfb46e4f998d86757427e9ccc4",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M023",
+    "mechanism_id": 23,
+    "title": "权重 / 激活 / KV 量化与尺度",
+    "lesson": 7,
+    "what": "权重量化减少参数字节，激活量化减少部分计算/传输成本；KV dtype 决定历史缓存的存储格式。文件名 w8a8c8 不能替代运行时 dtype 证据。",
+    "how": "ModelSlim 从权重和配置加载 scale、offset、量化矩阵，再交给 NPU 实现；动态激活尺度随输入变化，静态尺度才可能提前转换。P/D 交接还须认同 KV 编码。",
+    "cost": "省存储的同时增加量化、反量化、尺度读取和布局处理；接受率变化会放大或抵消局部收益。",
+    "hypothesis": "先找静态 scale/offset 是否在每次 forward 重复做同样转换；仅可缓存与权重版本绑定的静态派生量，不改量化位宽。",
+    "classification": "conditional_candidate",
+    "applicability": "实际量化路径存在可重复且不随输入变化的转换。",
+    "regression": "本来已在加载期处理则无收益；多版本缓存增加 HBM。",
+    "correctness": "冻结权重、量化规则、KV dtype 与 P/D 编码；动态 token scale 不缓存；验误差、质量和 accepted length。",
+    "experiment": {
+      "baseline": "确认各层权重/激活/KV 的实际 dtype 与量化方法。",
+      "change": "只把一个已证明静态的转换从 forward 移至加载后缓存。",
+      "cases": [
+        "c2-short、c3-long",
+        "同层两个不同激活分布的输入"
+      ],
+      "prediction": "同样数值下少一次转换和分配，模型计算路径不变。",
+      "metrics": [
+        "转换调用数与耗时",
+        "HBM 常驻增量",
+        "误差/质量",
+        "accepted length、端到端时延"
+      ],
+      "falsification": "转换随输入变化、原本只执行一次或误差超合同即否定。",
+      "first_action": "读 quant 配置并定位实际 apply kernel；没有重复转换则本点关闭。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "W8制品/指定加载方法已核验；实际加载与原生未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/layers/quantization/modelslim/schemes/modelslim_w8a8_int8.py",
+        "support": "ModelSlim W8A8 的参数、scale/offset、加载后处理与 apply 委派。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "固定量化合同下的有效矩阵乘、必要 scale 读取和动态激活量化不可省；各字节/FLOPs 待 shape。",
+      "resource_bound": "按量化—矩阵乘—反量化/输出依赖以及共享 HBM 建界；静态转换仅是可剔除附加项。",
+      "calibration": "同 Ascend dtype、scale 格式、矩阵形状测实际量化 GEMM 与转换可达速率；当前 UNKNOWN。",
+      "headroom_test": "去掉静态重复转换后重新看量化 GEMM 是否接近该 shape 可达界，未接近才另开 kernel Loop。",
+      "specialization": "仅缓存权重版本不变的静态量；动态 scale 或热换权重 fallback，计缓存占用及失效维护。",
+      "stop_condition": "静态转换只发生一次或已移出关键路径即停止本候选；更低位宽需独立精度合同，不能算等价余量。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/layers/quantization/modelslim/schemes/modelslim_w8a8_int8.py",
+      "sha256": "20220a1f8da70a2cfb73c81fa3114efc7e6f6058f684755e40eab86d5b426093",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-moe-contract/README.md",
+    "source_extracted_cpu_meta_contract_verified": true,
+    "full_native_module_imported": false,
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "native_transfer_verified": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement",
+    "prior_evidence_checkpoint": "evidence/2026-10-19-npu-index-cache-contract/README.md"
+  },
+  {
+    "id": "M024",
+    "mechanism_id": 24,
+    "title": "Attention：MLA、布局、融合与历史读写",
+    "lesson": 6,
+    "what": "MLA 用较小的潜在状态保存注意力历史，减少 KV 容量；计算注意力时仍需投影、取历史状态并处理位置。命中前缀不等于不读历史。",
+    "how": "Ascend 路径区分 MLA 准备与 core，可调用融合预处理；缓存的逻辑格式与物理 NZ 布局又是不同选择。实际 GLM 架构先从配置确认。",
+    "cost": "压缩节约 HBM，却可能增加投影、布局转换和索引读取；长上下文更容易暴露历史读取成本。",
+    "hypothesis": "若写 KV 前出现可避免的中间布局转换，研究让现有受支持生产路径直接写最终布局；先比较支持路径，不自改注意力算法。",
+    "classification": "conditional_candidate",
+    "applicability": "模型确为该 MLA 路径，P/D 双方支持相同物理编码，MTP 与 dtype 组合通过检查。",
+    "regression": "转换原本是 view 或已融合就没有收益；直接写布局可能拖慢生产者。",
+    "correctness": "KV 逻辑内容、RoPE 布局、页索引与 PD 编解码一致；浮点误差及 accepted length 受保护。",
+    "experiment": {
+      "baseline": "固定 MLA 后端、缓存布局和两端传输协议。",
+      "change": "只对比一种已支持的直接写最终布局实现。",
+      "cases": [
+        "c2-short、c3-long",
+        "同一 token 数，连续页与受控碎片页"
+      ],
+      "prediction": "真实中间拷贝字节减少，而 prepare+attention 总时间下降。",
+      "metrics": [
+        "实际拷贝字节",
+        "prepare/core 分项",
+        "HBM 峰值",
+        "输出误差与 accepted length"
+      ],
+      "falsification": "没有真实转换、两端不兼容或总时间未改善则否定。",
+      "first_action": "抓 NPU prepare→cache store→attention trace，并查 allocator 的实际物理布局。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "NPU MLA/PD视图源码模型已核验；原生数值/性能未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/attention/mla_preprocess.py#L20-L35",
+        "support": "NZ 是缓存布局选择，融合预处理与普通路径有不同写入方式。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py",
+        "support": "MLA/DSA prepare 与 core 分工。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "固定 MLA 算法下所需潜在 KV、位置状态及投影计算；按实际层数、head、缓存 dtype 计算字节/FLOPs。",
+      "resource_bound": "attention 必要历史读取与投影 DAG；layout 转换只计真实搬运，view 不计为 HBM 拷贝。",
+      "calibration": "同 NPU、页布局、上下文/verify 宽度测可达 gather/attention/投影速率和连续/碎片页；当前 UNKNOWN。",
+      "headroom_test": "实际读写比必要读写多多少、历史访问有效带宽距可达值多远，分别形成布局与 kernel 两类余量。",
+      "specialization": "只在 P/D 布局契约与量化组合相容时直接写布局；其它格式回原路径，计编解码/转换切换成本。",
+      "stop_condition": "重复转换为零且核心已达同 shape 可达界，或直接写使 core 变慢；不能用缩短历史改变模型语义。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/hardware_backend/npu/attention/mla_preprocess.py",
+      "sha256": "1abf773d8922146af72208ab1a3fd63d15c62bbe486678bda67bcd37380c4cf4",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-index-cache-contract/README.md",
+    "source_extracted_cpu_meta_contract_verified": true,
+    "full_native_module_imported": false,
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "native_transfer_verified": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false
+  },
+  {
+    "id": "M025",
+    "mechanism_id": 25,
+    "title": "DSA indexer / Top-K / HiSparse",
+    "lesson": 6,
+    "what": "DSA indexer/Top-K 是模型决定看哪些历史位置的算法；HiSparse 是把完整 KV 放主机、设备保留热点的管理办法。减少 Top-K 数量会改变算法，不能当等价优化。",
+    "how": "先确认模型是否 DSA、目标和草稿各用哪个索引器。固定 NPU 源码已有短序列跳过 Top-K 的路径；HiSparse shared-index prefetch 文档明确排除推测解码。",
+    "cost": "Top-K 与 gather 花计算和访存；HiSparse 还需主机内存、换入和同步，不能把节约 HBM 当自动加速。",
+    "hypothesis": "保留相同 Top-K 语义，查短序列“全选”能否直接生成连续索引且实际已生效；已有短路径不再重复实现。HiSparse 预取不纳入本 MTP 主线。",
+    "classification": "conditional_candidate",
+    "applicability": "仅针对实际 DSA 路径；Ascend HiSparse 基础支持也须独立确认。",
+    "regression": "长序列不能跳过选择；相等分数的 tie 顺序也可能影响结果。",
+    "correctness": "位置集合、顺序、mask、草稿与目标的各自状态一致；不擅自缩 Top-K 或跨层复用。",
+    "experiment": {
+      "baseline": "记录 K 与实际序列长，目标/草稿分别检查。",
+      "change": "先只探测 L≤K 的已有 fast path 是否命中；仅发现未覆盖路径才补。",
+      "cases": [
+        "2/3 并发，L=K-1、K、K+1",
+        "c3-long 作为不能跳过的保护用例"
+      ],
+      "prediction": "短序列不执行多余选择，长序列保持原算法。",
+      "metrics": [
+        "Top-K 调用/耗时",
+        "索引一致性",
+        "accepted length",
+        "D 每 token 时间"
+      ],
+      "falsification": "fast path 已覆盖则记已有；非 DSA 或 MTP 不兼容路径记不适用。",
+      "first_action": "读模型 config 与 NPU 分派，输出 DSA/HiSparse/预取三项独立支持结论。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "安装源码门控/提取状态及PD接口模型已核验；完整模块与原生未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py#L45-L64",
+        "support": "NPU DSA 短序列索引选择入口说明。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/hisparse_guide.mdx#L121-L125",
+        "support": "shared-index prefetch 限 no PP、no speculative decoding。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/speculative/eagle_worker_v2.py",
+        "support": "MTP IndexShare 已有专门模型配置与实现，不能默认开启。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "模型规定的 indexer、Top-K 位置集合和这些 KV 的读取必须保留；L≤K 时选择可退化但索引仍须正确。",
+      "resource_bound": "以 indexer→选择→gather→attention 的真依赖建界；HiSparse 若支持还需主机链路，不与 DSA 计算混算。",
+      "calibration": "同 NPU 实际 K/L/heads/dtype 测选择、索引生成与 gather 可达时间；HiSparse 未支持则该项 N/A。",
+      "headroom_test": "先扣除已有短路径收益，再看真实重复选择/布局准备；长序列优化不能靠擅自减 K。",
+      "specialization": "短序列连续索引仅 L≤K 且 mask/tie 语义匹配时使用，跨阈值回 Top-K；测判断与图桶切换。",
+      "stop_condition": "现有 fast path 已覆盖，或额外判断超过节省即停；MTP 不支持的 HiSparse prefetch 明确排除。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/hardware_backend/npu/modules/deepseek_v2_attention_mla_npu.py",
+      "sha256": "89781513fc8039c5d426d31b5734383d1e44b6cfb46e4f998d86757427e9ccc4",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-index-cache-contract/README.md",
+    "source_extracted_class_tensor_model_verified": true,
+    "cpu_full_state_module_imported": false,
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "native_short_path_verified": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "source_extracted_cpu_meta_contract_verified": true,
+    "full_native_module_imported": false,
+    "native_transfer_verified": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-npu-dsa-seed/README.md"
+  },
+  {
+    "id": "M026",
+    "mechanism_id": 26,
+    "title": "MoE 路由、重排与 grouped GEMM",
+    "lesson": 8,
+    "what": "MoE 为每个 token 选少数专家，把属于同一专家的 token 聚起来计算，再按原顺序加权合回。小矩阵与专家分布决定效率。",
+    "how": "通用流程是路由→dispatch→重排→grouped GEMM→反重排→combine；Ascend 已有 FuseEP 把其中多步合并，属于现有后端能力。",
+    "cost": "专家矩阵计算之外，还付出索引、搬运、通信和 padding；2 个请求经过 MTP 验证可能对应很多候选 token。",
+    "hypothesis": "先检查真实路径是否在 dispatch 输出后又转换一次相同布局；若 producer 与 consumer 接口一致，可研究省一次重复重排。已有 FuseEP 不算新发明。",
+    "classification": "conditional_candidate",
+    "applicability": "确认当前 Ascend MoE 实现和量化格式，找到真实重复布局转换。",
+    "regression": "碎片专家分布可能需要重排；直接消费导致 GEMM 变慢会抵消收益。",
+    "correctness": "专家编号、路由权重和 token 反向映射不变；冻结 MTP 参数并记录 accept 长度。",
+    "experiment": {
+      "baseline": "保存一个真实层的 hidden、top-k 与专家 token 分布。",
+      "change": "只消除一处证明冗余的重排；无冗余则不改。",
+      "cases": [
+        "c2-short、c3-long",
+        "同样总 token 数的自然偏斜与较均衡路由回放"
+      ],
+      "prediction": "重排字节减少，dispatch 到 combine 的完整段缩短。",
+      "metrics": [
+        "重排字节/时间",
+        "每专家 GEMM 形状",
+        "整层时延",
+        "accepted length 与质量"
+      ],
+      "falsification": "接口布局不同、GEMM 退化或端到端无收益即否定。",
+      "first_action": "读取实际分派路径与一层 trace，区分通信、重排和 GEMM。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "NPU dispatcher源码/CPU状态已核验；原生MoE未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L151-L188",
+        "support": "EP 框架已按 dispatch/permute/runner/combine 分层。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/moe/fuseep.py#L41-L61",
+        "support": "现有 Ascend fused dispatch/GEMM/combine 路径。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "原 top-k 专家与路由权重确定的 GEMM 和加权合并不可省；必须按每专家 token 分布核算 FLOPs。",
+      "resource_bound": "dispatch→重排→专家计算→combine 的 rank 依赖图，含共享链路与 HBM；单层 wall 由实际慢路径决定。",
+      "calibration": "同硬件、量化、专家大小和直方图校准 grouped GEMM/重排/通信；当前 UNKNOWN。",
+      "headroom_test": "区分必要专家工作、padding、重复布局搬运与负载不均；局部 bytes 减少须反映整层关键路径。",
+      "specialization": "只对匹配布局与已测专家 token 分布启用直接消费；稀疏/溢出形状 fallback，计选择和额外缓冲。",
+      "stop_condition": "重排已融合或必要，剩余时间由近界 GEMM/通信占满；新路由分布需重新检查，不泛化为全局极限。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/hardware_backend/npu/moe/fuseep.py",
+      "sha256": "03d8ccf6871c9485f4f376a6b77362d83acd496cf6be2908594809897b065a2b",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-moe-contract/README.md",
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "native_transfer_verified": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement"
+  },
+  {
+    "id": "M027",
+    "mechanism_id": 27,
+    "title": "后端选择、形状特化与冷启动",
+    "lesson": 5,
+    "what": "后端是同一类运算的不同实现；形状特化为常见尺寸选择内核；冷启动则包括加载、编译、预处理和捕获的第一次成本。",
+    "how": "配置中的 auto 会按硬件、dtype、模型与阶段分派。P、D verify、draft 可能走不同路径，因此只看到一个后端名字不足以解释全链路。",
+    "cost": "首次规划可能很慢；稳态仍可能有 fallback、补齐或不合适的内核。适配不支持时，换后端不是可执行优化。",
+    "hypothesis": "先锁定一个占比高的真实形状，对照唯一受支持的备选实现；若只有首轮慢，则单独预热该形状，而不是宣称稳态加速。",
+    "classification": "config",
+    "applicability": "实际镜像同时支持候选后端、量化、PD 与 MTP。",
+    "regression": "备选对小批更快却对长上下文回退；预热增加启动时长和内存。",
+    "correctness": "算子语义、误差/质量和接受长度受保护；不跨后端混用同一 baseline。",
+    "experiment": {
+      "baseline": "分开记录冷启动、第一次请求和预热后重复请求。",
+      "change": "仅更换一个实际可用后端/内核选择；预热实验另建独立 Loop。",
+      "cases": [
+        "c2-short、c3-long",
+        "一个已观察到 fallback 的边界形状"
+      ],
+      "prediction": "稳态改善必须来自目标内核或 fallback 减少，而非缓存热度差异。",
+      "metrics": [
+        "冷/热时延",
+        "命中内核与 fallback 次数",
+        "HBM",
+        "accepted length 分布"
+      ],
+      "falsification": "无兼容替代实现、差异只来自预热或质量不满足则停止。",
+      "first_action": "导出 P/D target/draft 真实后端与内核清单，先排除 CUDA 专属实现。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/attention_backend.mdx",
+        "support": "按硬件与模型区分支持矩阵，不同后端有页尺寸与功能限制。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/hardware_backend/npu/graph_runner/npu_graph_runner.py",
+        "support": "NPU replay 专门处理，不能套用通用 CUDA 图假设。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "同一数学算子的必要 FLOPs/字节及框架要求的输入准备；首次编译不属于稳态必要计算。",
+      "resource_bound": "分别给冷启动路径与稳态关键路径建界，不能把预热摊销改善说成设备算力提高。",
+      "calibration": "仅在相同 NPU、shape/dtype/layout 下校准合法备选 kernel 与首次规划；当前 UNKNOWN。",
+      "headroom_test": "若命中最合适 kernel 仍远离可达界再开实现 Loop；只有 fallback/编译延迟则解决派发和预热。",
+      "specialization": "限定已测形状范围的后端选择，范围外 default；测 dispatch、编译缓存失效和预热摊销。",
+      "stop_condition": "合法候选均接近该 shape 可达界或优势不足以覆盖选择成本；未支持后端直接排除。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/hardware_backend/npu/graph_runner/npu_graph_runner.py",
+      "sha256": "47105be9c57aab59635a9b59ee2909083dfb6c5f599fa737ececa96312edc98e",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M028",
+    "mechanism_id": 28,
+    "title": "DeepEP dispatch / combine 的模式选择",
+    "lesson": 8,
+    "what": "dispatch 把 token 送到专家所在卡，combine 把结果送回来。normal 与 low_latency 是已有通信路径，分别倾向吞吐和低延迟。",
+    "how": "固定官方文档给 Ascend PD 的起点是 P normal、D low_latency；Ascend FuseEP 还限制在 PD D 端。具体 CANN、DeepEP、量化与 MTP 支持要查安装版本。",
+    "cost": "通信存在每次提交成本、链路传输、缓冲和同步；P 长序列分轮还能改变峰值缓冲需求。",
+    "hypothesis": "如果 P 长输入被通信缓冲限制，可只调整已支持的分轮粒度，在固定总 token 下减少缓冲占用；不强行让 D verify 改成不支持模式。",
+    "classification": "config",
+    "applicability": "Ascend DeepEP normal 分轮能力存在，且 P 缓冲/通信确实受限。",
+    "regression": "轮数更多增加启动和同步；缓冲下降也可能吞吐下降。",
+    "correctness": "不丢/重发 token，dispatch/combine 数值与路由一致；D MTP 设置冻结。",
+    "experiment": {
+      "baseline": "按已核验的 P normal/D low_latency 建基线。",
+      "change": "只改 P 的一个合法 per-round token 设置并匹配总容量约束。",
+      "cases": [
+        "c2-short、c3-long",
+        "P 输入刚超过单轮容量的边界"
+      ],
+      "prediction": "HBM/通信缓冲下降，且增加的轮次开销不破坏 TTFT 目标。",
+      "metrics": [
+        "通信缓冲峰值",
+        "轮数与 dispatch/combine 时间",
+        "P 完成与 TTFT",
+        "D accepted length"
+      ],
+      "falsification": "没有缓冲瓶颈，或轮次使交接尾巴/TTFT 超限。",
+      "first_action": "核对已安装 DeepEP API、分轮参数与 HCCL buffer 计算，不照搬主分支默认值。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "Ascend分派门控/状态模型已核验；DeepEP原生未决",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L249-L283",
+        "support": "Ascend PD 模式、FuseEP 限制和 ant-moving 分轮说明。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/layers/moe/token_dispatcher/deepep.py",
+        "support": "存在 NPU 分支及 normal/low-latency 不同缓冲处理。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "固定路由下必要远端 token 数据与结果回传字节；是否可压缩属另外精度/协议合同。",
+      "resource_bound": "按 dispatch/combine 消息、拓扑 cut 与同步依赖建界；标称链路带宽不能作为可达值。",
+      "calibration": "相同 Ascend 拓扑、消息大小、rank、dtype 和并发模式测有效带宽及每轮启动成本；当前 UNKNOWN。",
+      "headroom_test": "必要 bytes/实测可达 bandwidth 之外的空隙来自启动、同步或布局；分轮只改变缓冲与摊销。",
+      "specialization": "P 长序列合法轮次区间内选粒度，小输入保留原配置；计轮间同步和缓冲常驻，D MTP 固定。",
+      "stop_condition": "每轮开销与内存预算已达稳定取舍，减缓冲导致 TTFT 超限就停；无通信瓶颈不继续扫参数。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/layers/moe/token_dispatcher/deepep.py",
+      "sha256": "8111fe5997a1088ce5e566b1d6537e8d0426b792700dae82dea4aa90425c2256",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-moe-contract/README.md",
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "native_transfer_verified": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement"
+  },
+  {
+    "id": "M029",
+    "mechanism_id": 29,
+    "title": "TP / EP / DP / PP / CP 的切分边界",
+    "lesson": 9,
+    "what": "TP 切张量，EP 切专家，DP 分请求副本，PP 切层，CP 切上下文；它们决定一张卡做多少工作，以及为了拼回结果要通信多少。PD 是分阶段，不能与 PP 混为一谈。",
+    "how": "P 与 D 可有不同并行需求，但 KV 交接需要兼容布局和传输拓扑；D 的推测 target/draft 也必须遵守同一受支持组合。",
+    "cost": "更多卡降低单卡容量压力，却增加 collective、跨节点链路和流水空隙；少卡也可能装不下权重。",
+    "hypothesis": "只在容量和后端允许时比较两个等总卡数的 D 并行布局，判断减少通信是否覆盖较小每卡计算量的损失。",
+    "classification": "config",
+    "applicability": "先确认硬件连接、内存预算、P/D connector 及目标 MTP 的支持矩阵。",
+    "regression": "低并发拆成更多副本可能浪费权重；跨机 TP 会放大通信尾巴。",
+    "correctness": "权重分片与量化一致、rank 协议一致；禁止在运行中不完整改变拓扑。",
+    "experiment": {
+      "baseline": "冻结总卡数、权重、MTP 与 P 配置，记录 D 当前布局。",
+      "change": "选一个满足容量的替代 D 拓扑，独立启动受控实例。",
+      "cases": [
+        "2/3 并发",
+        "一个能同时喂满两种布局的固定请求数，需先验容量"
+      ],
+      "prediction": "减少 collective 或慢 rank 等待的布局应缩短有效 token 时间。",
+      "metrics": [
+        "卡秒/有效 token",
+        "collective 时间",
+        "TTFT/ITL",
+        "HBM 与 accepted length"
+      ],
+      "falsification": "不满足容量/connector 支持即不适用；快但多用卡不算等资源收益。",
+      "first_action": "只做拓扑与内存可行性表，未通过不启动第二布局。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L73-L75",
+        "support": "EP/TP 比例与 backend 兼容限制。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py",
+        "support": "PD 传输与分配路径具有独立布局和后端约束。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "固定模型、量化与接受规则下的全模型工作，以及各拓扑必需 collective/PD 状态字节。",
+      "resource_bound": "按拓扑的节点/链路容量和计算依赖构造界，含 PP 泡沫、DP 复制容量与 P→D 交接约束。",
+      "calibration": "实测该硬件拓扑上对应消息/矩阵形状的可达计算和 collective；当前 UNKNOWN。",
+      "headroom_test": "同总卡数用卡秒/有效输出 token 比较余量，先识别通信瓶颈还是权重容量约束再选择相邻拓扑。",
+      "specialization": "按负载区间离线选择配置，运行期不可随意换分片；记录重启/重载和权重复制成本。",
+      "stop_condition": "可行拓扑已触达资源/容量界且改进仅来自加卡，停止等资源优化；不能证明未测拓扑全局最优。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/disaggregation/prefill.py",
+      "sha256": "3f63b9c170966346ccd51eeb161a889e81f79370b3f261e563d4d824bf1a6fe9",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M030",
+    "mechanism_id": 30,
+    "title": "专家负载均衡、冗余与最慢 rank",
+    "lesson": 8,
+    "what": "一轮 MoE 要等最慢的卡完成。EPLB 根据专家负载调整专家所在位置或副本，试图让慢卡少做一些工作；它不改变模型选哪些逻辑专家。",
+    "how": "已有 manager 周期读取专家统计、判断是否需要调整，再分层更新映射和权重。源码已有利用率阈值，不应把“有阈值再调整”当新增设计。",
+    "cost": "采样统计、求解、权重迁移和副本占 HBM；短时噪声可能造成频繁重排。",
+    "hypothesis": "若负载长期偏斜且迁移成本可摊销，对照现有重平衡周期；让观察窗口覆盖稳定偏斜，而非追逐单次 MTP 批次的随机变化。",
+    "classification": "config",
+    "applicability": "Ascend 目标实现支持 EPLB，多个 rank 的专家计算存在稳定偏斜。",
+    "regression": "均衡负载无收益；热点快速切换会导致映射刚迁好就过时。",
+    "correctness": "逻辑专家与权重对应不变，更新期间版本一致；副本与 draft 路径不可混淆。",
+    "experiment": {
+      "baseline": "保存一段真实专家直方图和当前更新周期。",
+      "change": "只将重平衡周期改为一个更长候选，阈值/副本数不变。",
+      "cases": [
+        "2/3 并发原始请求流",
+        "同一组长输出形成的稳定热点与一次热点切换"
+      ],
+      "prediction": "减少无效迁移而不明显增加最慢 rank 等待。",
+      "metrics": [
+        "rank 最大/平均层时间",
+        "迁移字节和时间",
+        "更新次数",
+        "accepted length、吞吐"
+      ],
+      "falsification": "无稳定偏斜，或迁移节省小于新增慢 rank 等待。",
+      "first_action": "先用已记录直方图离线模拟两周期；再决定是否值得设备实验。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "路由必要工作边界已建立；实际rank负载未测",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/eplb/eplb_manager.py#L89-L159",
+        "support": "周期、统计、阈值检查与分层更新已有。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/eplb/eplb_manager.py#L225-L237",
+        "support": "已有 min rebalancing utilization threshold。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "每个逻辑专家承接的必要计算不随映射消失；副本只改变工作分配与通信位置。",
+      "resource_bound": "以每专家实测工作权重做容量约束分配下界，并纳入不可拆任务、链路和迁移依赖，非只看平均 token。",
+      "calibration": "同 shape/dtype 的专家执行时间、rank 间链路与迁移带宽；统计窗口与 MTP 接受分布固定，当前 UNKNOWN。",
+      "headroom_test": "理论可重新分配的慢 rank 超额时间必须超过求解/迁移摊销，剩余不均衡可能由不可拆专家决定。",
+      "specialization": "仅稳定热点窗口使用所测周期；热点突变回保守更新策略，计观测与迁移成本。",
+      "stop_condition": "观测到的慢 rank 已接近可行均衡界，或迁移成本不能在热点持续时间内回收，则停止。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/eplb/eplb_manager.py",
+      "sha256": "731e16230a38dafaa855663762be658f7a06997bba1ff75482359027e870c18e",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-npu-moe-contract/README.md",
+    "runtime_path_confirmed": false,
+    "kernel_native_executed": false,
+    "native_transfer_verified": false,
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement"
+  },
+  {
+    "id": "M031",
+    "mechanism_id": 31,
+    "title": "MTP / EAGLE：草稿、树验证与接受",
+    "lesson": 11,
+    "what": "MTP 先便宜地提出若干候选，再由目标模型验证，接受的连续 token 一次提交；目标是每次昂贵验证换来更多有效输出。",
+    "how": "SGLang 将模型 MTP 接入推测流程，参数控制草稿深度、分支数和验证 token 数。最终成本包括草稿、验证、接受判定、状态提交及 rejected KV 处理。",
+    "cost": "候选越多越贵；接受长度不随深度等比例增长。平均接受率还会隐藏大量“只接受很短”的轮次。",
+    "hypothesis": "保持 MTP 开启与采样规则不变，只比较当前深度和一个相邻合法正深度，寻找每个有效输出 token 的总成本更低者；最低深度时不降到零。",
+    "classification": "config",
+    "applicability": "目标模型 MTP 权重与 Ascend 实现有效，PD 交接包含需要的推测状态。",
+    "regression": "高接受负载变浅可能变慢；参数变化可能触发不同图桶和内核，须同时归因。",
+    "correctness": "不降低接受阈值冒充等价加速；冻结采样、seed 合同和质量指标，按算法要求检验分布/greedy结果。",
+    "experiment": {
+      "baseline": "固定 MTP 算法、top-k、采样、权重及请求集。",
+      "change": "优先试深度减一但保持合法正值；已在最低深度则只试加一。如候选数由合法性要求派生，明确记录联动。",
+      "cases": [
+        "c2-short、c3-long",
+        "自然高接受与低接受各一组固定提示词"
+      ],
+      "prediction": "较浅时检查减少无效工作是否覆盖接受数损失；较深时检查新增接受是否覆盖新增成本。",
+      "metrics": [
+        "draft/verify/commit 时间",
+        "accepted length 全分布",
+        "有效 token/s",
+        "HBM 与质量"
+      ],
+      "falsification": "单位有效 token 成本未降、质量失败或差异来自请求集变化。",
+      "first_action": "确认实际算法别名与参数规范化，记录当前 accepted length，先不改深度。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "NEXTN三步历史参数确认；模型/PD原生待测",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/speculative_decoding.mdx",
+        "support": "已有 MTP/NEXTN/EAGLE 参数与验证流程。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/speculative/eagle_worker_v2.py",
+        "support": "实际草稿、verify 输入及模型特定 MTP index sharing。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "保持接受规则下的 draft、target verify、状态提交与必要 KV 工作；每轮有效输出长度是实测随机量。",
+      "resource_bound": "依赖图给每轮可达总成本，再用总成本/总有效输出 token 评估，不用平均接受率简单相除各段。",
+      "calibration": "同 NPU、dtype、长度、树形和接受分布校准各阶段可达性能；当前 UNKNOWN。",
+      "headroom_test": "分别估计可省的 rejected 工作、launch 与提交成本；更深草稿只有新增接受收益覆盖新增成本才继续。",
+      "specialization": "仅在已测业务/长度/批次区域选深度，未知区域用当前稳定深度；计图切换与策略判断成本。",
+      "stop_condition": "相邻合法深度均无单位有效 token 改善且阶段接近可达界则停止本区域；不能外推全部文本。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/speculative/eagle_worker_v2.py",
+      "sha256": "67a76083ecc365604b7fa9e9d8dd64aa0d4cf3f023c9050e98dc48829985716d",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-hidden-eligibility/README.md",
+    "runtime_path_confirmed": false,
+    "cpu_source_model_verified": true,
+    "cpu_runtime_path_confirmed": true,
+    "kernel_native_executed": false,
+    "kernel_package_git": "UNKNOWN",
+    "performance_verdict": "NOT_MEASURED",
+    "overall_serving_evidence": "E0",
+    "production_applied": false,
+    "cpu_runtime_scope": "FullMetadataBuffers CPUbranch andactualEAGLEconsumer withlibrarytestoverride; wire/receivefield/relayfixtures only",
+    "native_transfer_verified": false,
+    "pd_release_component_checks": {
+      "policy": 138,
+      "generic_future": 13,
+      "Ascend_chain": 30
+    },
+    "actual_Ascend_custom_pool_applicability_proven": false,
+    "native_PD_free_lifetime_verified": false,
+    "candidate_accepted": false,
+    "prior_evidence_checkpoint": "evidence/2026-10-19-pd-release-drain/README.md",
+    "historical_reference_CLI_algorithm": "NEXTN",
+    "historical_reference_steps": 3,
+    "historical_reference_topk": 1,
+    "historical_reference_draft_tokens": 4,
+    "actual_current_normalized_runtime_confirmed": false,
+    "hidden_omission_for_reference_accepted": false,
+    "hidden_CPU_checks": {
+      "R003": 120,
+      "R004": 22
+    },
+    "native_hidden_or_model_path_executed": false
+  },
+  {
+    "id": "M032",
+    "mechanism_id": 32,
+    "title": "采样、grammar mask 与结构化输出",
+    "lesson": 14,
+    "what": "grammar 限制下一 token 必须符合 JSON 等格式。规则编译是一次性准备，按当前生成位置更新 mask 则是每轮工作，两者要分开分析。",
+    "how": "已有 grammar backend 缓存编译对象，命中后复制请求状态；推测树还涉及候选的接受与回滚，不能让两个请求共享可变解析状态。",
+    "cost": "首次编译、每轮 mask 构造/搬运和 CPU 等待；复杂规则可能使设备等 CPU。",
+    "hypothesis": "重复 schema 的业务先对照预编译缓存命中与冷编译；若缓存已有命中，转查每轮静态 mask 是否真可复用，不能无条件复用状态相关 mask。",
+    "classification": "conditional_candidate",
+    "applicability": "业务确实要求结构化输出，目标 grammar+PD+MTP 后端组合受支持。",
+    "regression": "独特 schema 太多使缓存占内存；schema 简单时编译不是主要成本。",
+    "correctness": "逐条 schema 校验，保护 EOS、拒绝候选回滚与请求状态隔离；保持约束强度。",
+    "experiment": {
+      "baseline": "固定一个实际 JSON schema、MTP 与请求文本。",
+      "change": "只预编译该 schema；保持每轮 grammar 逻辑不变。",
+      "cases": [
+        "2/3 并发同 schema 冷/热分开",
+        "复杂嵌套 schema 与候选被拒绝用例"
+      ],
+      "prediction": "仅首请求编译等待下降；稳态不应被误报为融合收益。",
+      "metrics": [
+        "compile/hit 时间",
+        "mask CPU/搬运等待",
+        "格式通过率",
+        "TTFT 与 accepted length"
+      ],
+      "falsification": "业务不用 grammar 则标不适用；已有预编译命中或时延不受其影响则关闭。",
+      "first_action": "先检查实际版本对 overlap＋spec＋grammar 的组合支持，再核对 grammar 状态与 MTP rollback；不支持则标为该合同下不适用。另测受支持模式须另立合同并保持 MTP，不能隐性关掉主线功能。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "真实grammar/hostMTP mask CPU已核验；原生待测",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/constrained/base_grammar_backend.py#L59-L108",
+        "support": "grammar 接受、回滚、mask 与独立状态接口。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/constrained/base_grammar_backend.py#L304-L316",
+        "support": "缓存命中后复制 grammar 对象。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "给定 schema 的有效状态转换、候选合法性检查及允许 token mask 必须保留。",
+      "resource_bound": "编译/状态更新→mask→验证/采样的依赖链，按实际 CPU 可达吞吐与设备搬运约束建界。",
+      "calibration": "同 CPU、tokenizer、schema 复杂度、MTP 树宽与 batch 测编译/更新/mask；当前 UNKNOWN。",
+      "headroom_test": "从冷编译和逐轮更新分别减去已有缓存收益，寻找重复编译/复制；状态相关工作不可假定静态。",
+      "specialization": "只缓存 schema/tokenizer/version 相同的不可变编译产物，状态不同回独立实例；计查表和 clone。",
+      "stop_condition": "编译已全命中且更新是必要依赖，或候选违背 schema/回滚语义则停；不降低约束换速度。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/speculative/spec_info.py",
+      "sha256": "a19e3bdfbb37cdc78c627b64a3a2769943d80579cfd5797238e03232ca241176",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-grammar-fsm-mask/README.md",
+    "real_grammar_CPU_groups": 19,
+    "real_grammar_CPU_assertions": 256,
+    "prior288predicates_rerun": false,
+    "real_xgrammar_CPU_executed": true,
+    "host_MTP_DFS_executed": true,
+    "full_serving_modules_imported": false,
+    "native_executed": false,
+    "model_config_identity_confirmed": false,
+    "model_config_recovery": "UNAVAILABLE_HASH_MISMATCH",
+    "actual_runtime_grammar_parser_flags_confirmed": false,
+    "candidate_accepted": false,
+    "production_applied": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED"
+  },
+  {
+    "id": "M033",
+    "mechanism_id": 33,
+    "title": "增量反分词、SSE 合并与结束回收",
+    "lesson": 14,
+    "what": "设备产生 token 后，还需增量转成文字，经 SSE 发送给用户。推测一次可能接受多个 token，生成时间与用户看到文字的时间并不相同。",
+    "how": "detokenizer 已有分组批解码、空输入过滤和文字片段暂存；发送频率由具体接口路径决定，不能把这些已有措施重新叫作候选。",
+    "cost": "细碎事件增加 CPU、序列化、网络与客户端处理；合并事件会延迟可见输出。",
+    "hypothesis": "若设备连续工作但 SSE 消息过碎，只对同一次 MTP 已接受结果做一次发送，或调整已有发送间隔；增加缓冲窗口属于体验取舍。",
+    "classification": "config",
+    "applicability": "目标 API 支持相应发送粒度，且输出端 CPU/事件频率已是瓶颈。",
+    "regression": "短回复或交互业务不能接受延迟；慢客户端会触发背压。",
+    "correctness": "保留 token 顺序、Unicode、stop、usage、finish 事件和取消回收；不漏接受 token。",
+    "experiment": {
+      "baseline": "固定 PD/MTP 和 tokenizer，记录设备产出与客户端到达。",
+      "change": "只改变已有 SSE 合并粒度，预先冻结最大新增可见延迟。",
+      "cases": [
+        "2/3 并发中文/英文输出",
+        "一个长回复加慢客户端的受控对照"
+      ],
+      "prediction": "事件数下降，CPU 降低；可见延迟必须仍在约定内。",
+      "metrics": [
+        "事件数/有效 token",
+        "CPU 与队列长度",
+        "首文本/最终答案时间",
+        "客户端间隔与取消回收"
+      ],
+      "falsification": "CPU 不受影响或可见延迟超限；不能用更晚发送伪装模型加速。",
+      "first_action": "先读取实际 stream_interval 和 accepted block 到 SSE 的路径。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "前端IPC/SSE组件已实测；原生/回收待测",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/detokenizer_manager.py#L79-L100",
+        "support": "增量文本片段存储。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/detokenizer_manager.py#L240-L300",
+        "support": "已有空输入过滤与分组 batch decode。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "所有已接受 token 的文本语义、协议必要元数据和最终通知都须交付，必要网络字节以实际编码计算。",
+      "resource_bound": "token ready→解码→序列化→发送→客户端接收链路；受 CPU 和链路约束，还受最大可见延迟合同限制。",
+      "calibration": "同 tokenizer、语言文本、事件大小、协议与网络测可达解码/序列化/传输；当前 UNKNOWN。",
+      "headroom_test": "分出每事件固定开销和每字节必要开销，合并只消掉前者；不能把缓冲延迟隐去。",
+      "specialization": "只在允许延迟预算内合并已接受块，短回复/finish 立即 flush；记录 timer/队列管理成本。",
+      "stop_condition": "事件开销已小于必要字节处理或更大合并触碰可见延迟上限，则停止；模型吞吐与用户体验分别记。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/managers/detokenizer_manager.py",
+      "sha256": "90042a763006dba5a77d2a0e43abe17937ee287abaff13b9bf4b26f28f139bf4",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-frontend-stream-finish/README.md",
+    "CPU_groups": {
+      "R004": 24,
+      "R005": 28
+    },
+    "repeated_CPU_assertions": {
+      "R004": 12291,
+      "R005": 17224
+    },
+    "historical_tokenizer_hashes_matched": true,
+    "full_accumulator_class_CPU_executed": true,
+    "whole_serving_modules_imported": false,
+    "native_executed": false,
+    "HTTP_SSE_truecancel_tested": false,
+    "actual_current_stream_config_confirmed": false,
+    "stream_interval_congruence_counterexample": "Synthetic constant block4 withinterval2or4: final-only send. Not observed native distribution.",
+    "candidate_accepted": false,
+    "production_applied": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED",
+    "prior_evidence_checkpoint": "evidence/2026-10-19-detokenize-finish/README.md",
+    "local_frontend_CPU_groups": 36,
+    "local_frontend_CPU_assertions": 744,
+    "local_HTTP_groups": 9,
+    "local_HTTP_assertions": 52,
+    "local_HTTP_SSE_protocol_tested": true,
+    "local_real_client_close_to_abort_dispatch": true,
+    "real_scheduler_KV_release_tested": false,
+    "full_protocol_SSE_usage_modules_imported": true,
+    "optional_msgpack_coded_abort_counterexample": true,
+    "source_default_pickle_IPC": true,
+    "actual_runtime_IPC_confirmed": false,
+    "local_status_code_candidate_verified": true,
+    "native_candidate_accepted": false
+  },
+  {
+    "id": "M034",
+    "mechanism_id": 34,
+    "title": "Cache-aware routing 与副本亲和",
+    "lesson": 13,
+    "what": "路由决定把请求交给哪个副本。缓存亲和能少算重复前缀，但选中拥挤副本也会排队；这是 worker 内前缀树之外的一层选择。",
+    "how": "固定源码HTTP PD读取独立P/D策略；gRPC PD factory保存两套策略，但实际selection为P/D共用model/default policy。cache-aware按pool::model的字符前缀估计亲和，失衡或低匹配时选择最小请求负载；这些代理量不等于实际KV命中或P引擎队列。",
+    "cost": "维护路由树和负载信息有 CPU/通信成本；信息延迟会选错，多个 gateway 的估计也可能不一致。",
+    "hypothesis": "存在至少两个 P 副本时，仅调整缓存亲和转负载均衡的一个已有阈值，测试节省的 prefill 是否覆盖多出的排队。",
+    "classification": "config",
+    "applicability": "必须有可选副本；只有一对 P/D 时无路由选择空间。",
+    "regression": "热门前缀把单个 P 压满；只看空闲又损失复用。",
+    "correctness": "模型/adapter/cache key 一致；重试不可重复输出，PD bootstrap 必须落到正确 D。",
+    "experiment": {
+      "baseline": "固定副本数、D 策略和到达序列，记录命中与排队。",
+      "change": "只改一个已存在的 cache/load 阈值。",
+      "cases": [
+        "2/3 并发共享前缀",
+        "容量允许时一次热点前缀突发，另保留冷请求"
+      ],
+      "prediction": "热点时减少拥挤 P 的等待，代价是部分命中下降。",
+      "metrics": [
+        "路由耗时",
+        "真实 prefix hit",
+        "P 排队和 TTFT",
+        "D 排队与 accepted length"
+      ],
+      "falsification": "单副本则不适用；排队改善被多算前缀抵消或冷请求饥饿。",
+      "first_action": "核对实际副本拓扑和 gateway 策略；无多副本只完成适用性记录。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "实际Rust路径已核验；策略实测未运行",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/sgl_model_gateway.mdx#L241-L252",
+        "support": "P/D 可分别选路由策略。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/sgl_model_gateway.mdx#L880-L929",
+        "support": "已有 cache-aware 与负载阈值配置。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/sgl-model-gateway/src/routers/http/pd_router.rs#L979",
+        "support": "HTTP PD读取独立P/D策略并筛可用候选。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/sgl-model-gateway/src/routers/grpc/common/stages/worker_selection.rs#L231",
+        "support": "gRPC PD实际selection共用model/default policy，不能从factory设置推定独立策略已生效。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/sgl-model-gateway/src/policies/tree.rs#L718",
+        "support": "淘汰按tenant_char_count，而非native KV页数/字节数或节点数。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "每请求至少需要一次正确目标选择；真正未命中部分的 prefill 不能靠路由估计消失。",
+      "resource_bound": "路由→排队→未命中 prefill→交接的实测服务时间模型，受副本容量与缓存事实约束。",
+      "calibration": "同请求长度、真实命中、P/D 负载测各 worker 服务时间与路由开销；当前 UNKNOWN。",
+      "headroom_test": "用已知请求流离线比较可行调度的乐观界与现策略，只把可观测信息能实现的差距列为候选。",
+      "specialization": "只在已测热点与负载区间调阈值，负载信息过期 fallback；计探测、路由树与状态同步成本。",
+      "stop_condition": "单副本不适用；可选副本在实测排队、未命中计算及交接成本上没有可利用差异，且合法选择的改善不足以覆盖维护成本时停止。饱和本身不能证明路由无收益。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "docs/docs/advanced_features/sgl_model_gateway.mdx",
+      "sha256": "b8a324692ee4e6df4bca2dad7d37eb5a0b59e0562c8ae5ab967ccc279843301e",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-gateway-pd-source/README.md",
+    "actual_implementation_source_confirmed": true,
+    "verified_gateway_source_blobs": 408,
+    "attached_source_files": 27,
+    "source_observations": 18,
+    "Rust_CPU_tests_executed": 0,
+    "Rust_build_attempted": false,
+    "HTTP_separate_PD_policy_source": true,
+    "gRPC_separate_PD_policy_source": false,
+    "gRPC_config_runtime_witness": false,
+    "deployment_gateway_identity_confirmed": false,
+    "deployment_topology_confirmed": false,
+    "native_executed": false,
+    "candidate_accepted": false,
+    "production_applied": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED"
+  },
+  {
+    "id": "M035",
+    "mechanism_id": 35,
+    "title": "PD 分离、KV connector 与异步传输",
+    "lesson": 13,
+    "what": "PD 把读长输入的计算和持续生成的计算分到不同资源，交接的是 KV、请求身份和必要状态；隔离争抢的同时新增握手与传输。",
+    "how": "P bootstrap/分配后计算并发送，D 接收完整必要状态后进入可运行队列；P 可能已经产生 handoff token。当前源码有分块传输和状态等待，不能默认收到一块就开始普通 decode。",
+    "cost": "D 预留容量、P 在途 KV、页描述符 CPU、链路尾巴和 D 等待都可能上关键路径；MTP 还需辅助状态。",
+    "hypothesis": "先选 PD-CHUNK-002：仅消除“数据已就绪但等待无关 CPU 结果处理”的暴露延迟；若已有实现消除则检查另一真实空隙，不重复造 overlap。",
+    "classification": "conditional_candidate",
+    "applicability": "当前确为 Ascend PD+MTP，trace 证明等待非必要且后端支持提前提交。",
+    "regression": "提前发送会竞争带宽/HBM；全局等待可能保护缓冲生命周期，不能直接删除。",
+    "correctness": "完整 KV/辅助状态、完成通知、失败重试与槽释放顺序正确；传完也不代表 P 后续无需旧 KV。",
+    "experiment": {
+      "baseline": "同一请求记录 P ready/send、D receive/ready/run 与客户端时间。",
+      "change": "只把一处已证明无必要依赖的发送推进到数据就绪点。",
+      "cases": [
+        "c2-short、c3-long",
+        "取消/传输失败/长接受 MTP 状态交接"
+      ],
+      "prediction": "ready→send 空隙缩短，并减少 D 等待；非只有单点 CPU 变快。",
+      "metrics": [
+        "ready→send",
+        "传输尾巴",
+        "D ready→run",
+        "TTFT/ITL、accepted length"
+      ],
+      "falsification": "等待是必要依赖、链路已满或干扰计算抵消收益。",
+      "first_action": "按实际后端和运行 commit 画时间线；跨节点时钟未对齐不直接相减。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "待路径核验",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py",
+        "support": "P bootstrap、发送、inflight 和完成回收。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/decode.py",
+        "support": "D 预分配、收取、提交请求与 decode 队列。"
+      }
+    ],
+    "related_ids": [
+      "PD-CHUNK-001",
+      "PD-CHUNK-002",
+      "PD-CHUNK-003",
+      "PD-CHUNK-004",
+      "PD-CHUNK-005",
+      "PD-CHUNK-006"
+    ],
+    "limit_model": {
+      "necessary_work": "D 继续前向所需的完整 KV/辅助状态及正确生命周期通知；字节数按实际压缩/量化布局和已命中部分计算。",
+      "resource_bound": "P compute→ready→send→receive→commit→D run DAG，含链路/源端/目的端资源约束；不可直接相加已重叠阶段。",
+      "calibration": "同 Ascend 拓扑、connector、传输大小/碎片度/MTP payload 测可达带宽和握手/提交成本；当前 UNKNOWN。",
+      "headroom_test": "把实际 handoff 关键路径减去必要生产+可达传输+必要提交；只优化剩余暴露等待与重复准备。",
+      "specialization": "数据就绪且源/目标生命周期受保护时提前提交；其他状态 fallback，计轮询和额外在途缓冲。",
+      "stop_condition": "ready 后已立即提交且交接受可达链路/必要数据依赖限制，继续提前无益；换协议另建合同。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "python/sglang/srt/disaggregation/ascend/conn.py",
+      "sha256": "ba9b4862d9f4e732c467ab367c9a2ad57509e5fb4bf3ce01c0e93e85cd0b1935",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    }
+  },
+  {
+    "id": "M036",
+    "mechanism_id": 36,
+    "title": "会话 / 混合模型 / LoRA / 多模态扩展",
+    "lesson": 14,
+    "what": "会话、LoRA、多模态和混合状态模型会改变“相同输入”的含义：相同文字换 adapter 或图像，得到的内部状态可能完全不同。它们是条件分支，不是当前文本模型必须开启的开关。",
+    "how": "原File持久层存在共享目录/key条件下模型名slash-hyphen别名旧字节反例。File清空False在Hybrid和Scheduler两次丢失，离线确认链CPU38项通过；8名称反例/rawtree旧索引与独立epoch未闭合，无原生/服务接受。",
+    "cost": "额外编码、adapter 加载、状态拷贝和专用缓冲；重用错误会生成错误结果，重用过少则重复工作。",
+    "hypothesis": "仅业务确有重复 adapter 且加载受限时，对照已有固定驻留策略减少重复加载；其他扩展分别记录适用性，不为凑优化擅自加模型功能。",
+    "classification": "conditional_candidate",
+    "applicability": "从真实请求确认扩展存在且该模型/硬件/PD/MTP 支持；否则关闭该分支。",
+    "regression": "驻留占 HBM 且挤压其他 adapter；异步加载可能拆散 batch 反而变慢。",
+    "correctness": "模型版本、adapter、媒体内容与会话状态进入正确身份边界；重试/取消不能共享可变状态。",
+    "experiment": {
+      "baseline": "先仅做请求/schema/config 探针，不启动无业务扩展。",
+      "change": "确认 LoRA 热点后，只 pin 一个支持的常用 adapter；没有 LoRA 则无性能 A/B。",
+      "cases": [
+        "2/3 并发相同与不同 adapter",
+        "同文字但不同 adapter/媒体的正确性隔离用例"
+      ],
+      "prediction": "热 adapter 加载次数下降且其他请求未饥饿。",
+      "metrics": [
+        "adapter 加载次数/字节",
+        "HBM",
+        "TTFT",
+        "缓存隔离与 accepted length"
+      ],
+      "falsification": "无扩展则条件不适用；组合不支持、隔离失败或其他请求退化即否定。",
+      "first_action": "列出本模型真实扩展能力，四类分别给“存在/不存在/未支持/未知”。",
+      "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
+    },
+    "status": "持久名称8项条件反例；清空确认链CPU通过",
+    "sources": [
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/lora.mdx#L304-L306",
+        "support": "已有固定驻留策略及槽位饥饿风险。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/lora.mdx#L513-L529",
+        "support": "异步加载可能降低多 adapter prefill batching，存在反例。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/managers/schedule_batch.py#L1100",
+        "support": "请求extra_key与LoRAID直接拼接，局部CPU存在base-vs-adapter键重合。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/session/streaming_session.py#L171",
+        "support": "局部slot入口未校验adapter/extra_key/salt；上游稳定性和实际可达性仍未证。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/lora/lora_manager.py#L296",
+        "support": "原加载元数据校验拒绝新增词表/DoRA并为pin保留槽位。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/managers/io_struct.py#L823",
+        "support": "非空caller key保留、空归None；实际归一化已执行。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/model_executor/model_runner.py#L759",
+        "support": "原非UNO target-only gate CPUdispatch通过，未构造manager或原生worker。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/speculative/draft_worker_common.py#L90",
+        "support": "draft构造传is_draft_worker=True，源码证据。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/session/session_controller.py#L201",
+        "support": "原Session追加检查不比较身份；本轮完整类参与Scheduler组合。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/session/streaming_session.py#L506",
+        "support": "原尾部/页对齐/释放分段在CPU ledger中执行，不证明设备回收。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/mem_cache/utils.py#L125",
+        "support": "storage seed含extra_key/cache_salt；外层backend/modelname隔离仍未追踪。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/mem_cache/hicache_storage.py#L383",
+        "support": "原File完整模块实际读写CPU字节，模型名称后缀存在条件别名。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/mem_cache/hybrid_cache/hybrid_cache_controller.py#L379",
+        "support": "原controller忽略backendclearFalse；离线补丁保持None成功兼容。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/managers/scheduler.py#L4891",
+        "support": "原clearhandler再次忽略返回值；组合确认链38项CPU通过，非HTTP服务验收。"
+      }
+    ],
+    "related_ids": [],
+    "limit_model": {
+      "necessary_work": "实际扩展的必要编码/adapter 计算/状态更新和正确 cache key；不存在的扩展没有优化工作量。",
+      "resource_bound": "按存在的扩展单独建立加载→计算→缓存生命周期 DAG，不能把四类机制合成一个资源公式。",
+      "calibration": "同模型/adapter/媒体形状及硬件校准必要加载字节与处理速率；未启用为 N/A，未知为 UNKNOWN。",
+      "headroom_test": "热点 adapter 的重复加载量与必要首次加载分开；预计重复节省需覆盖额外驻留挤压造成的排队。",
+      "specialization": "仅已支持的热 adapter 驻留，冷/不支持组合走原路径；计缓存身份、失效、pin 和公平维护成本。",
+      "stop_condition": "无扩展或不支持则结束适用性探针；必要工作近界/容量代价更大则停止该扩展候选。"
+    },
+    "installed_static_audit": {
+      "commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "path": "docs/docs/advanced_features/lora.mdx",
+      "sha256": "4007f2686e485f31b45d8bbcc78d95a104a7672ef39f5adfc8a88023508c2651",
+      "static_status": "ENTRY_LOCATED",
+      "runtime_path_confirmed": false,
+      "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-persistent-cache-namespace/README.md",
+    "verified_source_files": 64,
+    "original_CPU_groups": 28,
+    "original_CPU_checks": 295,
+    "original_CPU_pass": 278,
+    "original_CPU_identity_fail": 17,
+    "harness_INVALID_runs": 0,
+    "full_identity_correctness_passed": false,
+    "current_deployment_fault_proven": false,
+    "feature_business_presence": "UNKNOWN",
+    "Ascend_PD_MTP_combination": "UNKNOWN",
+    "whole_serving_modules_imported": false,
+    "native_executed": false,
+    "candidate_accepted": false,
+    "production_applied": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED",
+    "prior_L034": {
+      "evidence_checkpoint": "evidence/2026-10-19-extension-identity/README.md",
+      "verified_source_files": 31,
+      "original_CPU_groups": 8,
+      "original_CPU_checks": 54,
+      "original_CPU_pass": 50,
+      "original_CPU_identity_fail": 4,
+      "LoRA_metadata_checks": 9,
+      "harness_INVALID_runs": 4
+    },
+    "reference_run": "L037-R003",
+    "reference_coverage_not_additive": true,
+    "candidate_checks": 38,
+    "candidate_fail": 0,
+    "candidate_verdict": "LOCAL_CPU_ACK_CONDITIONAL_PASS; FULL_NAMESPACE_NOT_ACCEPTED",
+    "prior_L035": {
+      "evidence_checkpoint": "evidence/2026-10-19-caller-cache-namespace/README.md",
+      "verified_source_files": 53,
+      "original_CPU_groups": 16,
+      "original_CPU_checks": 264,
+      "original_CPU_pass": 248,
+      "original_CPU_identity_fail": 16,
+      "candidate_verdict": "NOT_ACCEPTED_UNFENCED_LEGACY_MIGRATION",
+      "candidate_checks": 266,
+      "candidate_fail": 1,
+      "candidate_legacy_hit_indices": 384,
+      "harness_INVALID_runs": 3,
+      "previous_streaming_identity_witnesses_fixed": false
+    },
+    "candidate_cases": 10,
+    "candidate_pass": 38,
+    "rawtree_namespace_L035_still_unfixed": true,
+    "storage_generation_unverified": true,
+    "prior_L036": {
+      "evidence_checkpoint": "evidence/2026-10-19-streaming-slot-identity/README.md",
+      "verified_source_files": 54,
+      "original_CPU_groups": 52,
+      "original_CPU_checks": 1104,
+      "original_CPU_pass": 1068,
+      "original_CPU_identity_fail": 36,
+      "candidate_cases": 55,
+      "candidate_checks": 1146,
+      "candidate_pass": 1146,
+      "candidate_fail": 0,
+      "candidate_verdict": "LOCAL_CPU_SLOT_CONDITIONAL_PASS; SERVING_NOT_ACCEPTED"
+    },
+    "new_source_files": 10,
+    "File_alias_failures_unfixed": 8,
+    "controller_ack_candidate_checks": 295,
+    "controller_ack_candidate_fail": 8,
+    "handler_reference_checks": 38,
+    "handler_reference_fail": 5,
+    "comparisons_not_aggregate_coverage": true
+  }
+]

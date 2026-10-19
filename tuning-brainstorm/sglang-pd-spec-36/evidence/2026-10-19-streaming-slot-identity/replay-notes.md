@@ -1,0 +1,7 @@
+# 复现边界
+
+在新根/新环境/新Run复现，核对spec输入闭包及54个固定源码SHA；不要覆盖一次性输出目录/失败Run或修改旧spec。只分发本轮使用的两个合成M001输入，manifest中其余3个候选不在本轮执行范围。不分发软件、模型、tokenizer、权重二进制。Pillow独立overlay版本/安装报告可参照前序extension-identity checkpoint，本轮不重复安装。
+
+本轮加载完整BasePrefixCache/StreamingSession/Session/SessionController等类并调用列明方法，重型模块初始化仍绕过。原facade只加载match方法，rank_consensus是identity fixture。CPU页/row/树锁回调与is_npu分支控制不能证明原生KV/设备回收。AST/source_components记录优先于继承helper的旧子模块边界文字；原GenerateReqInput/SamplingParams确实在本轮参与，媒体检查未重跑。
+
+R002部分92项INVALID全部排除；R003/R004同覆盖不累加。R005共同1104项与参考逐项对齐，另42项是3组新增回归。候选slot-only局部CPU通过不修复原rawtree键重合/持久层世代，也没有生产应用或性能结论。

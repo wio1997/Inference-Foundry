@@ -1,0 +1,29 @@
+--- a/python/sglang/srt/managers/schedule_batch.py
++++ b/python/sglang/srt/managers/schedule_batch.py
+@@ -52,6 +52,7 @@
+ """
+ 
+ import copy
++import json
+ import dataclasses
+ import logging
+ import re
+@@ -1097,10 +1098,14 @@
+         )
+ 
+         # Extra key for caller-defined request classification.
+-        if lora_id is not None:
+-            extra_key = (
+-                extra_key or ""
+-            ) + lora_id  # lora_id is concatenated to the extra key
++        # Namespace caller classification and adapter as separate values.
++        # This versioned encoding requires a fresh cache/storage generation.
++        if extra_key is not None or lora_id is not None:
++            extra_key = json.dumps(
++                ["sglang.cache-namespace.v1", extra_key, lora_id],
++                ensure_ascii=False,
++                separators=(",", ":"),
++            )
+ 
+         self.extra_key = extra_key
+         self.cache_salt = cache_salt or None

@@ -1,0 +1,109 @@
+{
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "overall_serving": "E0",
+  "accepted_baseline": null,
+  "candidate_accepted": false,
+  "native_executed": false,
+  "performance": "NOT_MEASURED",
+  "resource_gate": "Explicit task-owned Ascend allocation; no reuse of observed unowned service or idle devices as a lease. Standing request remains pending.",
+  "fixed_goal": [
+    "Ascend",
+    "Prefill/Decode split",
+    "speculative decoding/MTP retained",
+    "all 36 mechanisms remain in scope"
+  ],
+  "record_before_native": [
+    "source/image/model metadata hashes and actual selected target/draft classes per rank",
+    "actual EAGLE-family algorithm/step/topk/token count and PP/TP/DP roles",
+    "actual overlap/plan/WAR/coarse/prefill-event flags, stream identities",
+    "cache/allocator/page size/KV dtype/DCP/debug settings",
+    "successful unchanged small native allocator path, not CPU large-page fallback"
+  ],
+  "minimal_cases": [
+    "c2-short: two requests using existing frozen token fixtures",
+    "c3-long: three requests with existing 32768-token fixtures and actual 16K chunk boundaries",
+    "ordinary extend / PD prealloc / EAGLE reserve-extend page-boundary, reuse/free/abort cases"
+  ],
+  "ordering_trace": [
+    "producer CPU pair ownership through non-blocking H2D completion; pinning and storage reuse/release",
+    "plan/schedule/forward enqueue and device dependency, last-reader event record/consume",
+    "request-table next writer versus actual last backend read",
+    "PD transfer producer/consumer completion and KV page free/reuse",
+    "PP separate P2P and read-done/last-reader role if enabled"
+  ],
+  "comparisons": [
+    "baseline versus L025 owner explicit count candidate, same requests/page state/warmup",
+    "existing forced-coarse WAR configuration as labeled diagnostic only",
+    "do not modify unrelated service or enable flags without task-owned deployment"
+  ],
+  "reject_or_hold": [
+    "loc/page ownership/output/acceptance mismatch: reject",
+    "unexplained read/write or H2D/PD lifetime: hold",
+    "native import boundary or CPU fixture alone: cannot pass",
+    "performance lacks equal conditions/noise or exposed wait only: no speedup claim"
+  ],
+  "remaining_source_work": [
+    "PD transfer completion/free/abort ownership across queue and receiver modules",
+    "source API host-buffer ownership and actual NPU allocator stream dispatch"
+  ],
+  "production_applied": false,
+  "L027_additional_gates": [
+    "Record actual custom-pool env selector versus successful initialized pool, Ascend send path/hybrid/DCP/PP mode.",
+    "SDK batch transfer return must establish completion/no late writes for direct one-batch default path.",
+    "Per-layer error-code/SDK-exception and uncaught Future-exception cases must hold page ownership until all writes drain.",
+    "Observe aborted room across deadline, ack arrival/loss/duplicate, metadata slot and device/host free/reuse, release exception cleanup.",
+    "Inspect transport worker fatal exception supervision/teardown before declaring outstanding count recovered."
+  ],
+  "source_observations_not_native_evidence": [
+    "Device deferred queue release deadline is not a drain proof; host-staged path requires readiness including MIN across ranks.",
+    "Generic helper drains nonzero status only when deferred flag enabled; uncaught RuntimeError escapes with another Future still running.",
+    "Ascend custom-pool direct branch bypasses generic helper; error code or wrapped SDK exception can return while another Future runs for either deferred flag value.",
+    "Source custom-pool env defaultNone leaves that branch off. Selector has no device guard, but successful pool init and actual flags/path are unconfirmed; no claim normal NPU hits this branch.",
+    "Fixed wrapper converts ordinary SDK exceptions to -1, so generic RuntimeError injection is not proof ordinary SDK errors escape that wrapper.",
+    "Worker room sharding and one worker per queue mean skipped-chunk pop alone does not prove concurrent same-room writes; API/Future completion remains key."
+  ],
+  "next_candidate_scope": "Design separately: reuse existing drain helper in eligible Ascend direct branch and make helper exception drain explicit; preserve legacy disabled behavior. No candidate patch built/applied/accepted in L027.",
+  "L028_relay_gates": [
+    "Record actual EAGLE3/MTP phase owner and which payload fields survive draft extend, gather backend/triton compiler and tensor dtypes.",
+    "Verify native fused gather all fields with strided/contiguous indices, stable/survivor/reused slots and optionalDsa/draft_probs presence.",
+    "Trace length publish event separately from final payload stash and next consumer, actual stream dependencies and request-slot generation/lifetime.",
+    "Run full PD ready/finished/cancel/failure/filter/merge flow across ranks; CPU receiver survivor fixtures are not full cancellation.",
+    "Measure existing fused consumer gather and producer scatter exposed cost before proposing any new fusion; preserve necessary metadata and default path."
+  ],
+  "L028_candidate_status": "No code candidate built/applied/accepted. Early-publish full-payload fusion invalid without final-producer proof; current consumer fusion already exists.",
+  "L029_reference_correction": {
+    "at_utc": "2026-10-19T02:56:56.280606+00:00",
+    "historical_process_flags": {
+      "--speculative-algorithm": "NEXTN",
+      "--speculative-num-steps": "3",
+      "--speculative-eagle-topk": "1",
+      "--speculative-num-draft-tokens": "4"
+    },
+    "historical_server_info": {
+      "speculative_num_steps": 3,
+      "speculative_num_draft_tokens": 4
+    },
+    "provenance": [
+      {
+        "path": "runs/L003-R001-model-boundary/observation.json",
+        "sha256": "d364171ef3e0cdfd8bff27bc23330ef64c07c33b7edc4034ede130d173e92d20"
+      },
+      {
+        "path": "runs/L008-R004-graph-config/source-and-config.json",
+        "sha256": "73d3cc71f1c5404a91c3aa2792a16f560f3ee8077223fd17bfddf197ac4290c2"
+      }
+    ],
+    "correction": "L028 evidence prose and handoff wrongly described historical reference as one-step, derived from shorthand. Authoritative records show3steps; claim withdrawn. L028EAGLE3CPUfixture remains a declared component fixture, not runtime proof.",
+    "normalized_runtime_algorithm": "NOT_REVALIDATED",
+    "native_task_baseline": null,
+    "remote_current_runtime_revalidated": false
+  },
+  "L029_decision": "Do not pursue one-step hidden omission as optimization of historical3/1/4. No candidate built/applied/accepted. One-step1/1/2is a distinct configuration experiment only.",
+  "L029_native_gates": [
+    "Re-read actual task-owned normalizedalgorithm/step/topk/draft/adaptive/PP configuration, do not infer from shorthand or historical snapshots.",
+    "Preserve requiredhidden row values and shape for every actual multi-step model consumer; passing CPU source boundaries is not native/model-output proof.",
+    "If future step1 study is explicitly selected, keep draft_tokens2 under topk1 and evaluate acceptance distribution/ITL/end-to-end separately; do not compare it as same-work3/4 omission.",
+    "Full PD cancellation/merge/filter/slotgeneration and graph/rawbuffer lifetime must remain verified before relayout/zero-copy changes."
+  ],
+  "next_source_work": "Trace actual topk1 identity-selection and duplicate hidden copy costs under qualified3/1/4 while preserving required data; require alias/graph/fallback/exposed-cost proof. Keep remaining36mechanism gaps such as M033 visible."
+}

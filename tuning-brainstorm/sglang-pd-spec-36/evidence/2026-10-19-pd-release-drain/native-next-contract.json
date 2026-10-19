@@ -1,0 +1,66 @@
+{
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "overall_serving": "E0",
+  "accepted_baseline": null,
+  "candidate_accepted": false,
+  "native_executed": false,
+  "performance": "NOT_MEASURED",
+  "resource_gate": "Explicit task-owned Ascend allocation; no reuse of observed unowned service or idle devices as a lease. Standing request remains pending.",
+  "fixed_goal": [
+    "Ascend",
+    "Prefill/Decode split",
+    "speculative decoding/MTP retained",
+    "all 36 mechanisms remain in scope"
+  ],
+  "record_before_native": [
+    "source/image/model metadata hashes and actual selected target/draft classes per rank",
+    "actual EAGLE-family algorithm/step/topk/token count and PP/TP/DP roles",
+    "actual overlap/plan/WAR/coarse/prefill-event flags, stream identities",
+    "cache/allocator/page size/KV dtype/DCP/debug settings",
+    "successful unchanged small native allocator path, not CPU large-page fallback"
+  ],
+  "minimal_cases": [
+    "c2-short: two requests using existing frozen token fixtures",
+    "c3-long: three requests with existing 32768-token fixtures and actual 16K chunk boundaries",
+    "ordinary extend / PD prealloc / EAGLE reserve-extend page-boundary, reuse/free/abort cases"
+  ],
+  "ordering_trace": [
+    "producer CPU pair ownership through non-blocking H2D completion; pinning and storage reuse/release",
+    "plan/schedule/forward enqueue and device dependency, last-reader event record/consume",
+    "request-table next writer versus actual last backend read",
+    "PD transfer producer/consumer completion and KV page free/reuse",
+    "PP separate P2P and read-done/last-reader role if enabled"
+  ],
+  "comparisons": [
+    "baseline versus L025 owner explicit count candidate, same requests/page state/warmup",
+    "existing forced-coarse WAR configuration as labeled diagnostic only",
+    "do not modify unrelated service or enable flags without task-owned deployment"
+  ],
+  "reject_or_hold": [
+    "loc/page ownership/output/acceptance mismatch: reject",
+    "unexplained read/write or H2D/PD lifetime: hold",
+    "native import boundary or CPU fixture alone: cannot pass",
+    "performance lacks equal conditions/noise or exposed wait only: no speedup claim"
+  ],
+  "remaining_source_work": [
+    "PD transfer completion/free/abort ownership across queue and receiver modules",
+    "source API host-buffer ownership and actual NPU allocator stream dispatch"
+  ],
+  "production_applied": false,
+  "L027_additional_gates": [
+    "Record actual custom-pool env selector versus successful initialized pool, Ascend send path/hybrid/DCP/PP mode.",
+    "SDK batch transfer return must establish completion/no late writes for direct one-batch default path.",
+    "Per-layer error-code/SDK-exception and uncaught Future-exception cases must hold page ownership until all writes drain.",
+    "Observe aborted room across deadline, ack arrival/loss/duplicate, metadata slot and device/host free/reuse, release exception cleanup.",
+    "Inspect transport worker fatal exception supervision/teardown before declaring outstanding count recovered."
+  ],
+  "source_observations_not_native_evidence": [
+    "Device deferred queue release deadline is not a drain proof; host-staged path requires readiness including MIN across ranks.",
+    "Generic helper drains nonzero status only when deferred flag enabled; uncaught RuntimeError escapes with another Future still running.",
+    "Ascend custom-pool direct branch bypasses generic helper; error code or wrapped SDK exception can return while another Future runs for either deferred flag value.",
+    "Source custom-pool env defaultNone leaves that branch off. Selector has no device guard, but successful pool init and actual flags/path are unconfirmed; no claim normal NPU hits this branch.",
+    "Fixed wrapper converts ordinary SDK exceptions to -1, so generic RuntimeError injection is not proof ordinary SDK errors escape that wrapper.",
+    "Worker room sharding and one worker per queue mean skipped-chunk pop alone does not prove concurrent same-room writes; API/Future completion remains key."
+  ],
+  "next_candidate_scope": "Design separately: reuse existing drain helper in eligible Ascend direct branch and make helper exception drain explicit; preserve legacy disabled behavior. No candidate patch built/applied/accepted in L027."
+}

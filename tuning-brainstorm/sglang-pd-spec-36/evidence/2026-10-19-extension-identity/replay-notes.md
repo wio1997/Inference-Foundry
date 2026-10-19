@@ -1,0 +1,5 @@
+# 复现边界
+
+原命令引用本机解释器、只读复用包根、独立Pillow overlay和一次性输出目录。复现时获取固定源码/软件wheel，核对哈希，建立新根、新环境、新Run重新冻结；不要覆盖失败Run或修改旧哈希。源码/脚本输入闭包随附，软件与模型二进制不分发。
+
+whole_original_body只表示选取的原函数/方法体未改写；Req及StreamingSession在helper中仅由列明方法构造壳类，不能解读为完整服务模块或完整类所有行为已执行。完整registry/RWLock/media identity模块确实导入；原类加载进namespace也不代表所有方法已调用。CPU外部夹具与条件反例的未证可达性见报告。

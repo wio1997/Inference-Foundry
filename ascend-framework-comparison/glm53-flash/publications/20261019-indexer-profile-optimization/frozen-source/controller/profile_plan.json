@@ -1,0 +1,222 @@
+{
+  "project_id": "glm53-flash",
+  "unit": "r247",
+  "kind": "R247_B_INDEXER_OPTIMIZED_WHOLE_MODEL_PROFILE_PLAN",
+  "objective": "Profile the original SGLang R201 B deployment with only the two paired-evidence indexer candidates integrated: R246 runtime row-stride score and R210 query-parallel indexer/caller. No formal request, no optimization beyond those two points, no A resources.",
+  "scope": {
+    "framework": "sglang",
+    "prefixes": [
+      "C32-prefix000",
+      "C32-prefix001"
+    ],
+    "prefix_tokens": 74400,
+    "output_tokens": 1,
+    "cold": true,
+    "formal_requests": 0,
+    "formal_128": false,
+    "c32_all_prefixes": false,
+    "warm32": false,
+    "dummy_requests": 0,
+    "retry": 0,
+    "flush": false,
+    "model_math_changes": false,
+    "quantization_changes": false,
+    "parallel_changes": false,
+    "graph_changes": false,
+    "mtp_changes": false,
+    "kda_changes": false,
+    "fp32_scale_changes": false,
+    "topology_changes": false,
+    "cache_grid_changes": false,
+    "cold_pairs": 2,
+    "generation_POST": 4,
+    "sampled_ranks": {
+      "B": "TP0 only (TP16 DP1)",
+      "leader_view_only": true,
+      "multi_rank_aggregation": false
+    },
+    "expected_active_native_rows": 1,
+    "candidate_delta": {
+      "base": "R238 B original path and original C5 image",
+      "score": "R246 runtime row-stride four-declaration change installed as flash_kpool_score.py",
+      "query_parallel": "R210 generic query_parallel_indexer, row split inside the current native attention TP group",
+      "caller": "R210 caller; diff against the R238 caller adds only the row-split call site",
+      "overlay_file_count": 47,
+      "original_overlay_file_count": 46,
+      "byte_identical_to_original_46": false
+    }
+  },
+  "windows": [
+    {
+      "name": "early",
+      "lo": 8192,
+      "hi": 16384,
+      "forwards": 2
+    },
+    {
+      "name": "mid",
+      "lo": 32768,
+      "hi": 40960,
+      "forwards": 2
+    },
+    {
+      "name": "late",
+      "lo": 61440,
+      "hi": 73728,
+      "forwards": 2
+    }
+  ],
+  "capture": {
+    "activity": [
+      "CPU",
+      "NPU"
+    ],
+    "native_level": 1,
+    "with_stack": false,
+    "record_shapes": false,
+    "profile_memory": false,
+    "op_attr": false,
+    "export_type": "Text",
+    "max_forwards_per_P_rank": 6,
+    "leader_only": true,
+    "sglang_leaders": "TP0 only (TP16 DP1)",
+    "window_proof": "Every captured forward must carry host scheduler metadata: forward index, query tokens, per-request context start/end, active requests, TP rank. Two consecutive captured forwards per window, all request contexts inside [lo,hi], query-token continuity. Otherwise the window is INVALID, not retried.",
+    "arming": "Controller writes /B/profile-B/ARMED only after service-ready and 0 running/waiting queues; observer ignores every earlier forward.",
+    "device_time_source": "Outer r234_capture_window marker, started after a device drain and stopped only after torch.npu.synchronize; native kernel_details.csv Start Time(us)/Duration(us) provide device-side intervals. CPU enqueue/instruction spans are never attributed to a device forward.",
+    "control_tasks": "Native WAIT, NOTIFY and SQE tasks are runtime control, not compute. They are excluded from compute unions and category shares and recorded only in a separate control-task bucket.",
+    "profiler_info": "Native info files are matched as profiler_info*.json, including profiler_info_0.json. An exact-name-only lookup is invalid.",
+    "export_completeness": "Each window must export profiler_info*.json, kernel_details.csv, operator_details.csv, step_trace_time.csv and trace_view.json; forward metadata and observer status must also be present. A CANN export/collection timeout or a missing product makes the run FAIL, never an empty PASS.",
+    "window_elapsed_boundary": "One outer CPU capture annotation surrounds two real native forwards and closes after torch.npu.synchronize; previous device work is drained before native profiler start. Category shares use the complete drained capture elapsed, never CPU execute_model duration."
+  },
+  "framework": {
+    "baseline_unit": "20261018-r201-b-native-warm-wait-budget",
+    "reuse_unit": "20261019-r238-paired-cold-prefill-profile",
+    "image": "sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263",
+    "served_model_name": "glm53-flash-r201",
+    "P_nodes": [
+      46
+    ],
+    "D_nodes": [
+      47
+    ],
+    "P_topology": "TP16 DP1 EP1 eager, MTP off, chunked-prefill-size/max-prefill-tokens 4096, mamba radix extra_buffer",
+    "D_topology": "TP16 DP1 EP1 eager, MTP off, native chunk cache",
+    "profiler_source": "native SchedulerProfilerManager SHA a962ab82... from checks/r200-native-profile-source; scheduler overlay SHA bf67744c...",
+    "request_legs": "Decode POST submitted first, then Prefill POST; both max_tokens=1 per prefix",
+    "sampled_rank": "TP0 only",
+    "native_batch_shape": "mostly one prefill row (551/582 original cold batches)",
+    "sdma": {
+      "control_plane": "TCP SDK control metadata",
+      "data_plane": "typed SDMA only; ASCEND_MF_TRANSFER_PROTOCOL=sdma; no RDMA fallback",
+      "byte_verify": "FLASH_SDMA_VERIFY_BYTES=0 for the performance profile; config/source/log checks remain mandatory"
+    }
+  },
+  "resources": {
+    "nodes": [
+      46,
+      47
+    ],
+    "forbidden_nodes": [
+      14,
+      15,
+      16,
+      17
+    ],
+    "all_owned": true,
+    "ports": {
+      "sglang": [
+        19030,
+        19031,
+        19032,
+        19024,
+        19100,
+        19101,
+        19102,
+        19103,
+        19104,
+        19105,
+        19106,
+        19107,
+        19108,
+        19109,
+        19110,
+        19111,
+        19112,
+        19113,
+        19114,
+        19115
+      ]
+    },
+    "port_preflight": "bind-check every exact port on the target node; verify no owned r247 container and no host-netns listener before start"
+  },
+  "r246_gate": {
+    "required_before_dispatch": true,
+    "local_signoff": "r246-gate.json",
+    "r246_host_receipt": "/data/wio/inference-foundry/glm53-flash/runs/20261019-r246-dynamic-rowstride-tp16-score-component/host-receipt.json",
+    "required_receipt_fields": [
+      "unit=r246",
+      "passed=true",
+      "rank_passed=16",
+      "stage_a.passed=true",
+      "owned_container_verified=true",
+      "post_inspect= false 0",
+      "post_npu has 8 'No running processes found'",
+      "no bounded_wait_timeout"
+    ],
+    "live_idle": "npu-smi on node46 and node47 must each report 8 'No running processes found' immediately before R247 staging",
+    "source_only_is_not_enough": true,
+    "rule": "R247 refuses to stage or start anything until main control signs the actual R246 PASS/idle8 receipt; a source hash alone never satisfies this gate."
+  },
+  "budgets": {
+    "single_controller_deadline_seconds": 1200,
+    "service_startup_seconds": 1200,
+    "http_seconds": 900,
+    "cohort_seconds": 1000,
+    "cleanup_bound_seconds": 300,
+    "b_cleanup_bound_seconds": 180,
+    "min_free_bytes_profile": 8589934592,
+    "max_window_profile_bytes": 4294967296,
+    "max_download_bytes": 6442450944,
+    "idle_proof": "8x 'No running processes found' on both owned nodes",
+    "budget_policy": "One 1200s absolute work budget covers B preflight/startup/requests/download/analysis. Cleanup preserves its independent safety fence. No automatic extension or experiment retry."
+  },
+  "requests": {
+    "generation_POST_max": 4,
+    "per_framework": 4,
+    "profile_control_GET_POST": "none; profiler is armed in-process by the observer",
+    "smoke": 0,
+    "retry": 0,
+    "flush": false,
+    "rewarm": false,
+    "formal_CLI": false,
+    "cold_pairs": 2
+  },
+  "cleanup": {
+    "writer_first": true,
+    "writer_node": 46,
+    "decode_node": 47,
+    "rule": "Stop P writer, prove container stopped and 8 idle NPUs, publish the writer-stop permit, then release the D destination stop. On timeout retain D destinations; never destroy them on an unproven writer."
+  },
+  "analysis": {
+    "analyzer": "analysis/run_analysis.py invoking the read-only checks/analyze-recovered-native-profile.py parser",
+    "per_forward": [
+      "wall",
+      "NPU kernel interval union",
+      "NPU sum vs union",
+      "CPU op union and gap",
+      "HCCL union and overlap with non-HCCL",
+      "categories: DSA indexer/score/topk, KDA, MoE grouped matmul, quant/dequant, attention, elementwise, layout, communication, control, unknown"
+    ],
+    "control_task_policy": "WAIT/NOTIFY/SQE are not compute; they are reported separately and excluded from core_compute_union_us and category shares.",
+    "cpu_policy": "CPU enqueue and instruction spans are host-side only; per-forward device ownership is not inferred from CPU timestamps.",
+    "overlap_policy": "never add overlapping kernel durations as critical-path share; per-category union is an upper bound, not a causal claim",
+    "export_policy": "missing or timed-out CANN export => FAIL, not an empty COMPUTED result",
+    "raw_evidence": "download operator_details.csv, kernel_details.csv, step_trace_time.csv, trace_view.json, profiler_info*.json, profiler_metadata.json, forward metadata and observer status within the byte cap; record every raw file path and SHA256 from the host profile index"
+  },
+  "claims": {
+    "accepted_formal_baseline": "R201 full warm 6403.1896 s remains the original B reference; no formal B acceptance is claimed",
+    "r247_is_candidate_delta": "The R247 B overlay has 47 files and is not byte-identical to the R238 original 46-file overlay.",
+    "framework_gain": "not claimed; this is one diagnostic whole-model profile",
+    "optimization_share": "upper bound only"
+  }
+}

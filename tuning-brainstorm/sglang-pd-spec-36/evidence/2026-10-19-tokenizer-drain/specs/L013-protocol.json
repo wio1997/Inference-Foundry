@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "loop": "L013-tokenizer-drain-correctness",
+  "phase": "FROZEN_CORRECTNESS_REQUIREMENTS_NOT_EXECUTED",
+  "scope": "Explicit CPU package view, no HTTP/PD/MTP/NPU work; not deployed",
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "candidate": "candidates/L013/drain_available.py",
+  "candidate_sha256": "439ed10f5937910caa8232fcc924394d4e18fa9b448b8df7cca9fd0b8f787275",
+  "candidate_status": "UNTESTED",
+  "base_batcher_sha256": "a52ed01045e146dbddcd915f3ea1c0d15775207bebf26777df84bbaabb709ff6",
+  "baseline_class": "Actual AsyncDynamicbatchTokenizer imported after full SGLang tokenizer loader",
+  "candidate_application": "Subclass of verified base, collection loop override only, same actual inherited _process_dynamic_batch",
+  "parameters": {
+    "max_batch_size": 32,
+    "batch_wait_timeout_s": 0.002
+  },
+  "semantic_change": "No await for future arrivals after first queue item; drain get_nowait until cap/budget/queue-empty. Same cap/window fields do not imply same batching semantics.",
+  "fixture_manifest": "fixtures/M001-v1/manifest.json",
+  "required_scenarios": [
+    "Single request",
+    "Simultaneous2x512",
+    "Simultaneous3x32768",
+    "Staggered arrivals with recorded actual enqueue times and observed batch groups",
+    "Mixed kwargs with per-request oracle",
+    "Cancelled enqueued future and surviving requests",
+    "Injected tokenizer exception then same actor recovery",
+    "Repeated batches, cleanup and no pending futures"
+  ],
+  "oracle": "Direct actual tokenizer result for each exact text/kwargs; full dict and ID comparison. Expected cancellation/exception states tested explicitly.",
+  "instrumentation": "Separate untimed correctness probe; delegating wrapper may count call size/kwargs and inject failure only in named cases. Do not use wrapper timing as clean performance.",
+  "environment": "Reuse L011 repaired cgroup discovery and successful CPU-only image controller, hashes and4RO model files; new owned container ID/tag; no new devices or service mutation",
+  "acceptance": "Functional states and values preserved; batch splitting and arrival tradeoffs disclosed. No performance acceptance or whole-task baseline promotion.",
+  "no_timing_until_correctness": true
+}

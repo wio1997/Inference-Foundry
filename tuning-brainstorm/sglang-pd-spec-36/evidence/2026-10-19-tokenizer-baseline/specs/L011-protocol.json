@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "scope": "CPU preprocessing parameter contrast only, no inference/NPU/HTTP result",
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "input_manifest": "fixtures/M001-v1/manifest.json",
+  "cases": {
+    "tokenizer-cpu-c2": [
+      "c2-short-0",
+      "c2-short-1"
+    ],
+    "tokenizer-cpu-c3": [
+      "c3-long-0",
+      "c3-long-1",
+      "c3-long-2"
+    ]
+  },
+  "input_form": "Exact rendered_text, add_special_tokens=False; expected input_ids from fixture JSON",
+  "arrival_process": "All requests for a batch created together on same event loop; inter-sample gap0.1s",
+  "fixed": {
+    "batch_wait_timeout_s": 0.002,
+    "cpus": 1,
+    "memory_gib": 4,
+    "tokenizers_parallelism": false,
+    "thread_pool_workers_per_actor": 1,
+    "cpu_dependency_view": "Image package files reused; torch_npu and .pth hooks omitted as in L010-R006; no edits to package files",
+    "weights_and_devices": false,
+    "network": "none",
+    "model_file_mounts": "same4 hashed read-only files"
+  },
+  "single_factor": {
+    "A": {
+      "max_batch_size": 1
+    },
+    "B": {
+      "max_batch_size": 32
+    }
+  },
+  "warmup_batches_per_actor_per_case": 3,
+  "paired_blocks": 12,
+  "block_design": "A/A pair from distinct identical actors, plus A/B pair; interweave pairs with frozen seeded order; persist all rows",
+  "random_seed": 7911,
+  "inter_sample_gap_s": 0.1,
+  "metrics": [
+    "batch wall perf_counter_ns",
+    "process_time_ns including worker thread",
+    "cgroup cpu.stat before/after each sample",
+    "value equality and per-request ID digest outside timing"
+  ],
+  "instrumentation": "Use actual tokenizer directly in timed path; no SpyTokenizer or loader-trace wrapper. Setup/import/template generation, hashing, output checks and teardown outside timing. Warm workers first.",
+  "decision_gate": "Compare paired effect interval with A/A variation per case. Preserve all throttled samples; report wall effect inconclusive if asymmetrical throttling dominates. CPU-time differences do not prove wall/PD benefit. No p99 claim from this sample size.",
+  "remaining_serving_gates": [
+    "Actual enable_dynamic_batch_tokenizer in assigned PD frontend",
+    "Same runtime/template/input ID flow",
+    "TTFT/ITL and success/accepted lengths",
+    "P/D and MTP preserved; NPU weights/context capacity verification"
+  ]
+}

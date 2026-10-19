@@ -1,0 +1,207 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Draft read-only native ownership traces and bounded late-write test gate.
+
+Not installed or runtime qualified. Gate pauses an actual SDK write; it never
+replaces, emulates, acknowledges or completes a transfer.
+"""
+import functools,inspect,json,os,pathlib,time
+_ROOT=pathlib.Path('/run-evidence');_INVENTORIES={};_GATED=set()
+
+def _context():
+ from sglang.srt.managers import flash_pd_request_context as c
+ return c
+
+def _emit(kind,**values):
+ from sglang.srt.disaggregation.ascend.flash_b103_pd_events import append
+ # SDK/control callbacks run on background threads; their current NPU context
+ # need not be the scheduler's. Bind events to the actual SDK inventory ID.
+ if len(_INVENTORIES)!=1:raise ValueError('Lifetime event requires one actual owned SDK inventory')
+ device=next(iter(_INVENTORIES))
+ return append(kind,device=device,role=os.environ['FLASH_PD_ROLE'],**values)
+
+def _room_tag(room):return dict(_context()._book()['by_room'][str(int(room))])
+def _scalar(value):
+ if value is None:return None
+ return int(value.item()) if hasattr(value,'item') else int(value)
+
+def _poll_name(value):
+ if value is None:return None
+ from sglang.srt.disaggregation.base.conn import KVPoll
+ for name in ('Failed','Bootstrapping','WaitingForInput','Transferring','Success'):
+  if value==getattr(KVPoll,name):return name
+ raise ValueError('Unknown native integer KVPoll status')
+
+def inventory(device,rows):
+ if device in _INVENTORIES:raise ValueError('Duplicate lifetime native inventory')
+ _INVENTORIES[device]=[dict(v) for v in rows]
+
+def before_actual_write(engine,buffers,lengths,tag):
+ if not _context().enabled() or tag.get('purpose')!='late_write_cancel':return
+ rank=int(engine.npu_id);room=int(tag['bootstrap_room']);key=(rank,room)
+ if key in _GATED:return
+ rows=_INVENTORIES[rank];groups=[]
+ for ptr,length in zip(buffers,lengths):
+  match=[v for v in rows if v['ptr']<=ptr and ptr+length<=v['ptr']+v['bytes']]
+  if len(match)!=1:raise ValueError('Late-write gate cannot classify native range')
+  groups.append((match[0]['group'],match[0]['entry']))
+ if not groups or any(g!='KDA' for g,_ in groups):return
+ if groups!=[('KDA',i) for i in range(68)]:raise ValueError('Late-write gate requires actual whole 68-vector KDA packet')
+ _GATED.add(key);_emit('late_write_gate_entered',tag=tag,bytes=sum(lengths),ranges=len(lengths),test_gate=True)
+ deadline=time.monotonic()+180.
+ while time.monotonic()<deadline:
+  p=_ROOT/'late-write-release.json'
+  if p.exists():
+   v=json.loads(p.read_text())
+   if v!={'project_id':'glm53-flash','bootstrap_room':room,'release_actual_SDMA':True}:raise ValueError('Wrong bounded SDK gate release')
+   _emit('late_write_gate_released',tag=tag,test_gate=True);return
+  time.sleep(.05)
+ raise TimeoutError('Bounded Flash late SDK write gate expired; no synthetic completion')
+
+def snapshot(queue,decode_req):
+ req=decode_req.req;tag=_room_tag(req.bootstrap_room);scheduler=queue.scheduler;pool=scheduler.req_to_token_pool;idx=int(decode_req.metadata_buffer_index)
+ result={'tag':tag,'req_slot':_scalar(req.kv.req_pool_idx),'mamba_slot':_scalar(req.kv.mamba_pool_idx),'holds_kv':bool(req.kv.holds_kv),'holds_mamba':bool(req.kv.holds_mamba),'metadata_index':idx,'metadata_room':_scalar(queue.metadata_buffers.bootstrap_room[idx,0]),'metadata_room_row':_indices(queue.metadata_buffers.bootstrap_room[idx]),'req_available':int(pool.available_size()),'mamba_available':int(pool.mamba_allocator.available_size()),'metadata_available':int(queue.req_to_metadata_buffer_idx_allocator.available_size())}
+ if result['req_slot'] is not None:result['req_generation']=_scalar(pool.req_generation[result['req_slot']])
+ return result
+
+def intake(original):
+ @functools.wraps(original)
+ def wrapped(self,req,*args,**kwargs):
+  result=original(self,req,*args,**kwargs)
+  if _context().enabled():
+   pool=self.req_to_token_pool;tag=_room_tag(req.bootstrap_room)
+   queued=[v.req.rid for v in self.queue]
+   if req.rid not in queued:raise ValueError('Owned native D intake did not enqueue the expected request')
+   held=[int(v[0].req.bootstrap_room) for v in self.transfer_queue._deferred_releases]
+   _emit('decode_request_intake',tag=tag,queued_rids=queued,held_rooms=held,req_slot=_scalar(req.kv.req_pool_idx),mamba_slot=_scalar(req.kv.mamba_pool_idx),req_available=int(pool.available_size()),mamba_available=int(pool.mamba_allocator.available_size()))
+  return result
+ return wrapped
+
+def admission_blocked(queue,decode_req):
+ if not _context().enabled():return
+ held=[int(v[0].req.bootstrap_room) for v in queue.transfer_queue._deferred_releases]
+ if not held:return
+ req=decode_req.req;tag=_room_tag(req.bootstrap_room)
+ seen=getattr(queue,'_flash_held_admission_logged',None)
+ if seen is None:seen=queue._flash_held_admission_logged=set()
+ if req.rid in seen:return
+ if not decode_req.waiting_for_input or queue.req_to_token_pool.mamba_allocator.available_size()!=0 or req.kv.req_pool_idx is not None or req.kv.mamba_pool_idx is not None:
+  raise ValueError('Unexpected actual native held-state admission boundary')
+ seen.add(req.rid)
+ _emit('decode_admission_blocked_held_mamba',tag=tag,held_rooms=held,waiting_for_input=True,req_slot=None,mamba_slot=None,mamba_available=0)
+
+def _indices(value):
+ if value is None:return None
+ if hasattr(value,'tolist'):value=value.tolist()
+ if isinstance(value,(list,tuple)):return [_indices(v) for v in value]
+ return _scalar(value)
+
+def metadata_before_publish(queue,decode_req,page_indices,state_indices):
+ if _context().enabled():_emit('destination_allocated_before_publish',ownership=snapshot(queue,decode_req),actual_destination_pages=_indices(page_indices),actual_state_indices=_indices(state_indices))
+
+def sender_source_hold(sender,status,pending):
+ if not _context().enabled() or _poll_name(status)!='Failed':return
+ tag=_room_tag(sender.bootstrap_room)
+ if tag.get('purpose')!='late_write_cancel' or getattr(sender,'_flash_failed_source_hold_logged',False):return
+ if pending<=0:raise ValueError('Source-hold trace requires actual outstanding SDK work')
+ sender._flash_failed_source_hold_logged=True
+ _emit('prefill_failed_source_retained',tag=tag,pending_writes=pending,
+       room_status='Failed',poll_result='Transferring',no_synthetic_completion=True)
+
+def prefill_source_fence(scheduler,polls):
+ from sglang.srt.disaggregation.base.conn import KVPoll
+ if KVPoll.Failed not in polls:return polls
+ import torch
+ reqs=list(scheduler.disagg_prefill_inflight_queue)
+ if len(reqs)!=len(polls):raise ValueError('Native Prefill source fence order mismatch')
+ group=scheduler.attn_tp_cpu_group
+ world=int(torch.distributed.get_world_size(group))
+ if world!=16:raise ValueError('Flash source drain fence requires actual TP CPU group16')
+ local=[int(not req.disagg_kv_sender.kv_mgr._staging_outstanding.get(req.bootstrap_room,0)) if poll==KVPoll.Failed else 1 for req,poll in zip(reqs,polls)]
+ ready=torch.tensor(local,dtype=torch.int32,device='cpu')
+ torch.distributed.all_reduce(ready,op=torch.distributed.ReduceOp.MIN,group=group)
+ global_ready=ready.tolist()
+ result=[KVPoll.Transferring if poll==KVPoll.Failed and not safe else poll for poll,safe in zip(polls,global_ready)]
+ if _context().enabled():
+  rooms=[int(req.bootstrap_room) for req in reqs];key=(tuple(rooms),tuple(local),tuple(global_ready))
+  seen=getattr(scheduler,'_flash_source_fence_patterns',None)
+  if seen is None:seen=scheduler._flash_source_fence_patterns=set()
+  if key not in seen:
+   seen.add(key)
+   owners=[{'tag':_room_tag(req.bootstrap_room),'req_slot':_scalar(req.kv.req_pool_idx),'mamba_slot':_scalar(req.kv.mamba_pool_idx),'holds_kv':bool(req.kv.holds_kv),'holds_mamba':bool(req.kv.holds_mamba)} for req in reqs]
+   _emit('native_prefill_source_MIN_complete',rooms=rooms,local_ready=local,global_ready=global_ready,world_size=world,operation='MIN',owners=owners)
+ return result
+
+def drain_fence(queue,local_ready,global_ready):
+ if not _context().enabled():return
+ import torch
+ world=int(torch.distributed.get_world_size(queue.gloo_group))
+ rooms=[int(v[0].req.bootstrap_room) for v in queue._deferred_releases]
+ if world!=16 or len(rooms)!=len(local_ready) or len(rooms)!=len(global_ready):raise ValueError('Wrong actual TP drain fence')
+ if any(a not in (0,1) or b not in (0,1) or b>a for a,b in zip(local_ready,global_ready)):raise ValueError('Invalid native MIN drain result')
+ key=(tuple(rooms),tuple(local_ready),tuple(global_ready))
+ seen=getattr(queue,'_flash_drain_fence_patterns',None)
+ if seen is None:seen=queue._flash_drain_fence_patterns=set()
+ if key in seen:return
+ seen.add(key)
+ _emit('native_drain_MIN_complete',rooms=rooms,local_ready=local_ready,global_ready=global_ready,world_size=world,operation='MIN')
+
+def common_action(original):
+ signature=inspect.signature(original);name=original.__name__
+ @functools.wraps(original)
+ def wrapped(self,*args,**kwargs):
+  if not _context().enabled():return original(self,*args,**kwargs)
+  b=signature.bind(self,*args,**kwargs).arguments;room=b.get('bootstrap_room',b.get('room'));tag=_room_tag(room)
+  pending=int(getattr(self,'_staging_outstanding',{}).get(room,0));tracker=getattr(self,'_deferred_abort_ack_tracker',{})
+  if name=='_send_abort_ack' and pending:raise ValueError('Native sender tried ACK while SDK writes outstanding')
+  status=_poll_name(self.request_status.get(room))
+  _emit('native_'+name+'_before',tag=tag,pending_writes=pending,room_status=status,ACKs=sorted(tracker.get(room,())),sender=b.get('prefill_rank'))
+  result=original(self,*args,**kwargs)
+  _emit('native_'+name+'_after',tag=tag,pending_writes=int(getattr(self,'_staging_outstanding',{}).get(room,0)),room_status=_poll_name(self.request_status.get(room)),ACKs=sorted(tracker.get(room,())),sender=b.get('prefill_rank'))
+  return result
+ return wrapped
+
+def deferred(original):
+ @functools.wraps(original)
+ def wrapped(self,decode_req):
+  result=original(self,decode_req)
+  if _context().enabled():
+   entry=[v for v in self._deferred_releases if v[0] is decode_req]
+   if len(entry)!=1:raise ValueError('Native cancellation did not retain exactly one destination')
+   _,deadline,idx,required=entry[0];room=int(decode_req.req.bootstrap_room)
+   if required<1:raise ValueError('Late-write qualification requires real notified sender ACKs')
+   if not hasattr(self,'_flash_lifetime_required_acks'):self._flash_lifetime_required_acks={}
+   self._flash_lifetime_required_acks[room]=required
+   import torch
+   world=int(torch.distributed.get_world_size(self.gloo_group))
+   if world!=16:raise ValueError('Flash drain-fence qualification requires actual TP CPU group16')
+   senders=[{k:v.get(k) for k in ['rank_ip','rank_port','is_dummy']} for v in decode_req.kv_receiver.bootstrap_infos]
+   _emit('destination_deferred',ownership=snapshot(self,decode_req),required_ACKs=required,notified_senders=senders,drain_group_world_size=world,local_deadline=deadline)
+  return result
+ return wrapped
+
+def resolve(original):
+ @functools.wraps(original)
+ def wrapped(self):
+  if not _context().enabled():return original(self)
+  seen=getattr(self,'_flash_lifetime_expired_logged',set());now=time.monotonic();expired={int(v[0].req.bootstrap_room):v for v in self._deferred_releases if v[1]<=now and int(v[0].req.bootstrap_room) not in seen}
+  result=original(self);held={int(v[0].req.bootstrap_room):v for v in self._deferred_releases}
+  for room,entry in expired.items():
+   if room in held:
+    state=snapshot(self,entry[0]);assert state['holds_kv'] and state['holds_mamba'] and state['metadata_index']==entry[2]
+    _emit('deadline_expired_destination_still_owned',ownership=state,required_ACKs=entry[3],local_ACKs=sorted(entry[0].kv_receiver.kv_mgr._deferred_abort_ack_tracker.get(room,())))
+   seen.add(room)
+  self._flash_lifetime_expired_logged=seen;return result
+ return wrapped
+
+def release(original):
+ @functools.wraps(original)
+ def wrapped(self,decode_req,idx):
+  if not _context().enabled():return original(self,decode_req,idx)
+  room=int(decode_req.req.bootstrap_room);mgr=decode_req.kv_receiver.kv_mgr;required=self._flash_lifetime_required_acks[room];ACKs=sorted(mgr._deferred_abort_ack_tracker.get(room,()))
+  if not mgr.is_abort_release_safe(room,required):raise ValueError('Releasing destination before actual sender drain ACK')
+  before=snapshot(self,decode_req);_emit('destination_release_before',ownership=before,required_ACKs=required,local_ACKs=ACKs)
+  result=original(self,decode_req,idx);after=snapshot(self,decode_req)
+  if after['holds_kv'] or after['holds_mamba'] or after['req_slot'] is not None or after['mamba_slot'] is not None or after['metadata_room']!=0 or decode_req.kv_receiver is not None:raise ValueError('Native release left stale ownership or metadata')
+  _emit('destination_release_after',ownership=after,prior_ownership=before,required_ACKs=required,prior_ACKs=ACKs,ACK_tracker_cleared=room not in mgr._deferred_abort_ack_tracker)
+  return result
+ return wrapped

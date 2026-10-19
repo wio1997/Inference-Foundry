@@ -1,0 +1,11 @@
+{
+  "phase": "REQUIREMENTS_NOT_EXECUTED",
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "resource_gate": "Explicit task allocation and ownership required; idle observation is not a lease. No task-owned Ascend PD+MTP baseline yet.",
+  "primary_cases": {"batches": [2, 3], "contexts": [512, 2047, 2048, 2049, 32768], "K": 2048, "mtp_steps_topk_draft": [3, 1, 4]},
+  "diagnostic_conditions": ["cold seed", "warm seed", "sharing disabled with MTP retained", "target and draft/extend separately", "graph capture and eager path separately if supported"],
+  "must_record": ["resolved model source/config and actual weights/activation/KV dtype", "actual pool index-K dtype and scale buffer", "real query rows, accepted rows, padding/ragged metadata per phase", "indexer gate decision and native operator identity", "index-K writes and cache continuity across reused draft steps", "capture/select buffer lifetime and PD seed transfer", "native duration and device events with clock domain", "output correctness, selected indices/mask/tie semantics, acceptance distribution", "matched workload, warmup and AA noise envelope before paired comparisons"],
+  "work_model": "sum(g_draft_i*Q_draft_i)+g_extend*Q_extend is only selected query-row accounting; Q and native work UNKNOWN. Include projections/cache writes/indexer/capture dependencies; do not sum overlapping wall times.",
+  "forbidden_shortcuts": ["disable MTP", "reduce K or selected-token work", "count source spy calls as native kernels or speedup", "borrow unassigned devices", "treat generic CUDA/HIP fast path as Ascend execution"],
+  "current_status": {"native_executed": false, "full_state_module_cpu_import": "UNAVAILABLE", "full_pd_runtime_ready": false, "performance": "NOT_MEASURED", "production_applied": false}
+}

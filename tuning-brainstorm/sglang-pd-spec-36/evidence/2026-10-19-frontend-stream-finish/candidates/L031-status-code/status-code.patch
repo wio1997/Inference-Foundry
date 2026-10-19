@@ -1,0 +1,23 @@
+--- a/python/sglang/srt/entrypoints/openai/serving_chat.py
++++ b/python/sglang/srt/entrypoints/openai/serving_chat.py
+@@ -2015,10 +2015,18 @@
+                     # /abort_request or session lifecycle cleanup) falls through
+                     # to the normal chunk path, matching the non-stream behavior
+                     # in tokenizer_manager._handle_abort_finish_reason.
++                    status_code = finish_reason.get("status_code")
++                    if isinstance(status_code, int) and not isinstance(
++                        status_code, HTTPStatus
++                    ):
++                        try:
++                            status_code = HTTPStatus(status_code)
++                        except ValueError:
++                            pass
+                     if finish_reason_type == "abort" and isinstance(
+-                        finish_reason.get("status_code"), HTTPStatus
++                        status_code, HTTPStatus
+                     ):
+-                        code = finish_reason["status_code"]
++                        code = status_code
+                         error = self.create_streaming_error_response(
+                             finish_reason.get("message", "Generation aborted."),
+                             code.name,

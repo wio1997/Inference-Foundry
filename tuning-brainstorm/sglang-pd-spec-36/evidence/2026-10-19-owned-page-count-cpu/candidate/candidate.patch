@@ -1,0 +1,149 @@
+--- a/python/sglang/srt/hardware_backend/npu/allocator_npu.py
++++ b/python/sglang/srt/hardware_backend/npu/allocator_npu.py
+@@ -149,3 +149,18 @@
+ 
+         if self.debug_mode:
+             assert len(torch.unique(self.free_pages)) == len(self.free_pages)
++
++
++def _num_new_pages_from_owned_cpu(allocator, prefix_lens_cpu, seq_lens_cpu):
++    """Only producers owning these mirrors may opt into this count."""
++    if (
++        type(allocator) is not NPUPagedTokenToKVPoolAllocator
++        or allocator.page_size == 1
++        or hasattr(allocator, "c128_attn_allocator")
++    ):
++        return None
++    return get_num_new_pages(
++        seq_lens=seq_lens_cpu,
++        page_size=allocator.page_size,
++        prefix_lens=prefix_lens_cpu,
++    )
+--- a/python/sglang/srt/mem_cache/allocation.py
++++ b/python/sglang/srt/mem_cache/allocation.py
+@@ -181,6 +181,7 @@
+     extend_num_tokens: int,
+     req_pool_indices: Optional[torch.Tensor] = None,
+     batch=None,
++    num_new_pages: Optional[int] = None,
+ ):
+     # Over estimate the number of tokens: assume each request needs a new page
+     # (one page per CLASS per request under sharding — the min-class
+@@ -194,6 +195,8 @@
+ 
+     is_dsv4 = req_pool_indices is not None and hasattr(allocator, "c128_attn_allocator")
+     extra_alloc_kwargs = {}
++    if num_new_pages is not None:
++        extra_alloc_kwargs["num_new_pages"] = num_new_pages
+     kv_shard_rotation_bases = None
+     if page_interleave_shard_size(allocator) > 1:
+         kv_shard_rotation_bases = _kv_shard_rotation_bases(
+@@ -395,6 +398,17 @@
+     elif alloc_page_size == 1:
+         out_cache_loc = alloc_token_slots(batch.tree_cache, batch.extend_num_tokens)
+     else:
++        owned_num_new_pages = None
++        if _is_npu:
++            from sglang.srt.hardware_backend.npu.allocator_npu import (
++                _num_new_pages_from_owned_cpu,
++            )
++
++            owned_num_new_pages = _num_new_pages_from_owned_cpu(
++                batch.tree_cache.token_to_kv_pool_allocator,
++                prefix_lens_cpu,
++                batch.seq_lens_cpu,
++            )
+         # Paged allocation - build last_loc
+         last_loc = [
+             (t[-1:] if len(t) > 0 else torch.full((1,), -1, device=batch.device))
+@@ -410,6 +424,7 @@
+             extend_num_tokens=batch.extend_num_tokens,
+             req_pool_indices=req_pool_indices_device,
+             batch=batch,
++            num_new_pages=owned_num_new_pages,
+         )
+ 
+     # Write to req_to_token_pool
+@@ -740,6 +755,7 @@
+     nxt_kv_lens_cpu: torch.Tensor,
+     num_needed_tokens: int,
+     batch: Optional[ScheduleBatch] = None,
++    num_new_pages: Optional[int] = None,
+ ) -> None:
+     if num_needed_tokens > 0:
+         if tree_cache.token_to_kv_pool_allocator.page_size == 1:
+@@ -751,6 +767,9 @@
+             device_type = getattr(
+                 batch.device, "type", str(batch.device).split(":", 1)[0]
+             )
++            owned_count_kwargs = {}
++            if num_new_pages is not None:
++                owned_count_kwargs["num_new_pages"] = num_new_pages
+             out_cache_loc = ALLOC_EXTEND_FUNCS[device_type](
+                 tree_cache,
+                 cur_kv_lens,
+@@ -761,6 +780,7 @@
+                 num_needed_tokens,
+                 req_pool_indices=req_pool_indices,
+                 batch=batch,
++                **owned_count_kwargs,
+             )
+         # Updating req_to_token is a write to a shared tensor: it must not overlap
+         # with the previous batch's forward, which also reads req_to_token.
+--- a/python/sglang/srt/speculative/eagle_utils.py
++++ b/python/sglang/srt/speculative/eagle_utils.py
+@@ -1095,6 +1095,17 @@
+     reqs = batch.reqs
+     cur_kv_lens = cur_kv_lens_device
+     nxt_kv_lens = nxt_kv_lens_device
++    owned_num_new_pages = None
++    if _is_npu and num_needed_tokens > 0:
++        from sglang.srt.hardware_backend.npu.allocator_npu import (
++            _num_new_pages_from_owned_cpu,
++        )
++
++        owned_num_new_pages = _num_new_pages_from_owned_cpu(
++            batch.tree_cache.token_to_kv_pool_allocator,
++            cur_kv_lens_cpu,
++            nxt_kv_lens_cpu,
++        )
+     alloc_for_spec_decode(
+         tree_cache,
+         req_to_token_pool,
+@@ -1106,4 +1117,5 @@
+         nxt_kv_lens_cpu=nxt_kv_lens_cpu,
+         num_needed_tokens=num_needed_tokens,
+         batch=batch,
+-    )
++        num_new_pages=owned_num_new_pages,
++    )
+--- a/python/sglang/srt/disaggregation/decode.py
++++ b/python/sglang/srt/disaggregation/decode.py
+@@ -2303,13 +2303,25 @@
+             )
+             req.kv.swa_evicted_seqlen = swa_evicted_seqlen
+         else:
++            owned_prefix_lens_cpu = torch.tensor([total_prefix_len], dtype=torch.int64)
++            owned_seq_lens_cpu = torch.tensor([fill_len], dtype=torch.int64)
++            if _is_npu:
++                from sglang.srt.hardware_backend.npu.allocator_npu import (
++                    _num_new_pages_from_owned_cpu,
++                )
++
++                owned_num_new_pages = _num_new_pages_from_owned_cpu(
++                    allocator, owned_prefix_lens_cpu, owned_seq_lens_cpu
++                )
++                if owned_num_new_pages is not None:
++                    extra_kwargs["num_new_pages"] = owned_num_new_pages
+             kv_loc = allocator.alloc_extend(
+                 prefix_lens=torch.tensor(
+                     [total_prefix_len], dtype=torch.int64, device=device
+                 ),
+-                prefix_lens_cpu=torch.tensor([total_prefix_len], dtype=torch.int64),
++                prefix_lens_cpu=owned_prefix_lens_cpu,
+                 seq_lens=torch.tensor([fill_len], dtype=torch.int64, device=device),
+-                seq_lens_cpu=torch.tensor([fill_len], dtype=torch.int64),
++                seq_lens_cpu=owned_seq_lens_cpu,
+                 last_loc=last_loc,
+                 extend_num_tokens=delta_len,
+                 **extra_kwargs,
