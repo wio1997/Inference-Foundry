@@ -4,6 +4,14 @@
 
 ## 当前现场与立即动作
 
+- **2026-10-19上午已恢复持续研究，总目标未完成；当前真实外部阻塞是原SSH入口失联。** 旧mux socket已不存在，60011 fresh SSH在banner阶段分别12s/30s超时；旧保存入口60005/6/7/8拒绝，另一个入口只见172.30.25.33的不同集群，未对其执行设备或资源变更。**下方所有P/D健康与剩余时长都是历史，当前32/33归属/模型状态UNKNOWN**，按旧有限timer应已到期但未现场确认，不能据此停未知作业。已通过async卡片询问现在通往172.16.12.32/33的连接名或入口，不索要密码/私钥；不新建自动监督。
+- **下一机制已实际准备，而非等待新授权。** 新`moe_prefix_gmm2_count.py`用原生routing prefix0供原fusedGMM1，在GMM2调用处执行精确版本原生`cumsum_group_list(0,1)`（diff+cat）恢复int64 count及type1；MTP保持原生、RoPE固定启用、图family owner沿用173c720d…。default flag0，不修改旧部署helper。sourceSHA **14226be98910230e8c3dc9486b44abffb1305d42848b95f8dd24630f4f030563**，本地新build **c96524bfdf4977f1daf91811ba0d916c4d7e6e6abd1880a8d25bd55702f2febc**；尚未stage、未重载模型、未运行新NPU任务。
+- **本地16项检查已过**：执行精确原生utility AST、15种总量/稀疏边界roundtrip、frozen输入所有权、原fusedGMM1直接接prefix、转换延后至GMM2、原生/MTP透传及非法路径失败；仅CPU整数Tensor替身，不能当NPU算子证明。native utility SHA **2c3dc13f…**、原生NPU AST前缀和其他4 overlay未变；新flag关闭时旧i32构建仍逐字节复现8f832f…，互斥flag组合被拒绝。
+- **ZCode已实际承接这轮片段结果parser**：复用已验证session117，1请求/16.95s、input33025/output1743。主执行修正其重复iteration/正例fixture及数值类型检查，新增真实replay count检查要求，26项schema检查通过。`zcode-prefix-count-summary-v1/`、`summarize_prefix_count_fragment.py`。当前尚无新设备report，不把合成测试当实际采纳结果。
+- **入口恢复后的立即动作**：先核实32/33现有作业、controller、归属、各host时钟/预算、image/权重；如旧窗口到期，按已有授权续建自己的合理有限holder。先在空闲33物理0运行准备好的`fragment_prefix_count_full_v1.py`，须提供fresh own lease UID并执行Mac端当前归属核验；payload为`prefix-count-full-fragment-payload-v1.py`。N6/24×4分布、8 eager+96交错private-pool replay，固定地址改变x和expert ids，逐次核对恢复count；同case ABBA×3、30 replay/block完整NZ层计时。片段有价值后再考虑新D immutable build，保留可复用P。`prefix-count-loop-contract-v1.json`记录接受/否定与范围；未完成NPU验证前不宣称收益。
+
+## 前一窗口完成记录（历史状态，非当前）
+
 - **可用现场：P/D/proxy已Ready、空闲，保留已加载模型；没有正在运行的验收或CPU export。** 32/33之外未操作。P root=`/data/wio/glm5-3-vllm-execution/20261018-state-tail/moe-cumsum-i32-live2-20261019/node32`，CID **076b19aeee16e31ac9ec10f0f3a73adf1e04c41cdf0abf1248b774affdba8742**，原build9886、PIECEWISE[256,1024]/K1。D root同前缀`moe-cumsum-i32-live1-20261019/node33`，CID **416f0dc10e34a115e2537cb62e46e2eb98d30825642ab4ba36d098c072cf11f5**，build8f832f…、helper b4681a…。D的CDF env1仅安装研究对照，**CDF enable缺失、target-only/disabled存在，当前实际原生count**；RoPE enable/disabled均存在，继续启用已接受的连续表。原模型/精度/全SDMA不变。
 - **本轮已经结束：Cumsum缩窄拒绝。** C1 TPOT−3.67%、完成延迟−2.91%，C1双方768 generated/270draft/522accepted相同；C4 **160.581→158.167tok/s（−1.50%）**、三轮 **+3.85/−7.28/−0.51%**，p95 TTFT **+12.05%**、完成延迟−1.88%、meanTPOT−6.06%。按冻结contract拒绝，不重复同条件整轮，不删除慢块。formal24+384、功能/缓存、取消10close+16peer/reuse完成，KV/queue0；明确backend abort0。quality52数值全过，19/26 full64同；28条有限对照中每种candidate差异序列均在原生/原生副图实际出现，只允许有限性能对照，不是通用质量结论。`cumsum-i32-reviewed-verdict-v1.json`。
 - **已接受的收益仍是RoPE独立配对点**：C4 **143.517→164.631tok/s（+14.71%）**，C1 TPOT−17.26%，C4 p95三项均改善；26/26完整64同。两轮比例不得相乘。direct-prefix both/target-only的平均吞吐+9.26/+4.17%但p95 TPOT回退3.33/5.57%，两版也保持默认关闭。

@@ -77,3 +77,13 @@
 全16采集停止，rank0 CPU导出102.82s结束；raw584156934B，Mac外层备份88122061B、SHA `b5e1328f03d6ca139e8ee99d1044dccc391e89635129ebf5a8113de38262369d`。rank0另见9774个SDMA_SQE，通信矩阵LOCAL/SIO/HCCS，无RDMA命名任务；这不替代原始32rank PD验收或逐byte归因。最终P/D/proxy均健康且空闲，拒绝的CDF selector关闭，RoPE保持启用；模型/proxy/源码另有SHA快照。
 
 下一待验证候选是routing直接prefix后用原生utility恢复GMM2 count，先在完整NZ链片段验证，从而进一步区分CDF成本与GMM2 list type。该假设尚无新设备结果，不能列为收益。精确CID、有限期限与唯一运行标签见HANDOFF。证据为`cumsum-i32-reviewed-verdict-v1.json`、`cumsum-i32-formal-contract-v1.json`、`cumsum-i32-supply-analysis-v1.json`、`cumsum-i32-sdma-sanity-v1.json`及片段/quality/control原件。
+
+## 恢复后的prefix→count候选准备
+
+已核对pinned `moe_utils.py`（SHA `2c3dc13f…`）：原生`cumsum_group_list(0,1)`通过`torch.diff(prefix)`及`cat(first,diff)`恢复count。新helper `moe_prefix_gmm2_count.py`保持原生routing直接prefix供fusedGMM1，将转换延至原GMM2调用处，并以不可变输入副本传入type1。MTP和已接受RoPE条件保持，沿用同一fresh-context图owner。它尚未在设备上运行。
+
+本地16项检查覆盖精确utility AST的15种整数边界/分布及不可变输入、消费时点与透传guard；使用CPU整数Tensor替身，不能代替NPU算子正确性。新构建`c96524bf…`的原生NPU AST前缀和其他4个overlay未改，关闭新flag时旧i32构建仍逐字节复现；三种竞争MoE helper互斥。已准备N6/24×4分布完整原尺寸NZ链、8次eager/96次改变x和expert ids的交错replay及ABBA×3层计时，先依片段决定是否值得重载D。
+
+片段结果parser再次实际交给ZCode，1请求/16.95s。原提案正例在iteration3失败，函数还错误拒绝同一iteration的4次回放；主执行修正循环schema、有限零值类型和逐次恢复histogram证明要求，26项检查通过。原提案、错误和修正版分别保存，不把本地合成parser测试说成新NPU结果。
+
+恢复时原60011 SSH入口在fresh连接banner阶段持续超时，可用的另一个保存入口属于不同集群。已询问当前32/33入口；当前设备归属和健康未知，没有使用历史UID运行NPU、停止未知进程或重建模型。`prefix-count-loop-contract-v1.json`、`prefix-count-build-check-v1.json`、`prefix-count-build-regression-v1.json`、`prefix-count-connection-status-v1.json`记录准备与实际阻塞，等待真实可用入口后继续设备验证。
