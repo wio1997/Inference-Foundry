@@ -58,6 +58,8 @@
 
 - [M004/M016：PD relay最终写入者、完整payload与345项组件CPU核验](evidence/2026-10-19-relay-final-payload/README.md)
 
+- [M016/M031：历史参数勘误、三步hidden必要性与单步前提](evidence/2026-10-19-hidden-eligibility/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -81,7 +83,7 @@
 | [M013](points/M013.md) | HiCache：HBM / 主机 / 存储分层 | 待路径核验 | config |
 | [M014](points/M014.md) | 预取、写回与 layer/page 布局 | 待路径核验 | config |
 | [M015](points/M015.md) | CPU / 设备 overlap 调度 | 待路径核验 | existing |
-| [M016](points/M016.md) | Future token / placeholder 与依赖解析 | 完整producer/stash CPU核验；原生gather/取消待测 | conditional_candidate |
+| [M016](points/M016.md) | Future token / placeholder 与依赖解析 | 历史三步与hidden行合同已核验；原生未测 | conditional_candidate |
 | [M017](points/M017.md) | 持久状态、增量更新与 GPU metadata | NPU override/最后读取者策略 CPU 核验；原生收益未测 | conditional_candidate |
 | [M018](points/M018.md) | Pinned buffer、异步 H2D 与写读竞态 | plan/WAR 266 项策略 CPU 检查；原生生命周期未决 | conditional_candidate |
 | [M019](points/M019.md) | 多 stream、event 与资源竞争 | 布局/包装层已核验；原生接口及性能未决 | conditional_candidate |
@@ -96,7 +98,7 @@
 | [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | Ascend分派门控/状态模型已核验；DeepEP原生未决 | config |
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
 | [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 路由必要工作边界已建立；实际rank负载未测 | config |
-| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | 验证/传输合同 CPU 核验；Ascend 条件路径与原生待测 | config |
+| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | NEXTN三步历史参数确认；模型/PD原生待测 | config |
 | [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 待路径核验 | conditional_candidate |
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 待路径核验 | config |
 | [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 待路径核验 | config |

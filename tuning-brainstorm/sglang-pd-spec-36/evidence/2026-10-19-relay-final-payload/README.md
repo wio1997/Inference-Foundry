@@ -58,7 +58,11 @@ R003 在类声明阶段因漏载实际 `CustomSpecAlgo` 默认参数依赖失败
 
 若字段确被消费，至少要完成它对应的信息传递。每请求 payload 的参数化字节量包括 hidden `H × s_h`、top-k `K × (s_p+s_i)`、bonus、以及按需 seed / draft_probs。CPU 夹具的 hidden6144 / float32 单方向为 24 KiB/请求；这是夹具数据量，实际 activation dtype 和暴露时间未知，不能换算成原生加速比。
 
-`spec_need_hidden_states` 有“step==1 时也可考虑跳过”的 TODO，而观察过的参考服务使用过单步 EAGLE3。它只是下一条可证伪线索：必须逐一追踪 eager、graph、draft / extend、PP / mixed 的 hidden 消费者和 shape 前提，确认该字段在下一轮读前是否已被替代；不能仅凭 TODO 或循环次数删掉 hidden。[gate](sources/installed/python/sglang/srt/speculative/spec_utils.py#L324)。该参考服务不是本任务的 PD＋MTP baseline，实际任务配置仍未确认。
+`spec_need_hidden_states` 有“step==1 时也可考虑跳过”的 TODO。
+
+**L029 勘误：先前“参考服务单步 EAGLE3”陈述撤销。历史进程记录为 CLI NEXTN / steps3 / topk1 / draft4，server-info 独立记录 steps3 / draft4；见[原始来源与更正](../2026-10-19-hidden-eligibility/reference-flags-correction.json)。当前规范化运行态未重新读取，L028 的 EAGLE3 CPU 夹具也不等于运行态。**
+
+它只是下一条可证伪线索：必须逐一追踪 eager、graph、draft / extend、PP / mixed 的 hidden 消费者和 shape 前提，确认该字段在下一轮读前是否已被替代；不能仅凭 TODO 或循环次数删掉 hidden。[gate](sources/installed/python/sglang/srt/speculative/spec_utils.py#L324)。该参考服务不是本任务的 PD＋MTP baseline，实际任务配置仍未确认。
 
 融合写入会增加 producer 地址处理 / graph 约束；删除字段可能破坏模型输入、形状或可选分支。只有同条件实测证明重复或未用工作且输出一致后才接受；任何字段、行对应、slot generation 或输出差异即否定。未建立实际 Ascend 路径与暴露成本时不应用候选。
 
