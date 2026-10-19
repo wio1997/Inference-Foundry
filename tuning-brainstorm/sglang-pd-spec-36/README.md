@@ -72,6 +72,8 @@
 
 - [M036：真实caller→Core隔离核验与JSON候选旧缓存迁移反例](evidence/2026-10-19-caller-cache-namespace/README.md)
 
+- [M036：完整流式组合36项身份失败与slot候选55组CPU条件通过](evidence/2026-10-19-streaming-slot-identity/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -115,7 +117,7 @@
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 前端IPC/SSE组件已实测；原生/回收待测 | config |
 | [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 实际Rust路径已核验；策略实测未运行 | config |
 | [M035](points/M035.md) | PD 分离、KV connector 与异步传输 | 待路径核验 | conditional_candidate |
-| [M036](points/M036.md) | 会话 / 混合模型 / LoRA / 多模态扩展 | caller→Core隔离16项失败；JSON候选迁移失败 | conditional_candidate |
+| [M036](points/M036.md) | 会话 / 混合模型 / LoRA / 多模态扩展 | streaming隔离36项失败；slot候选CPU条件通过 | conditional_candidate |
 
 ## 当前结果边界
 

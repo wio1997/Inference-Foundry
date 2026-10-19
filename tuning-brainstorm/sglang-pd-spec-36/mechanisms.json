@@ -2455,7 +2455,7 @@
     "title": "会话 / 混合模型 / LoRA / 多模态扩展",
     "lesson": 14,
     "what": "会话、LoRA、多模态和混合状态模型会改变“相同输入”的含义：相同文字换 adapter 或图像，得到的内部状态可能完全不同。它们是条件分支，不是当前文本模型必须开启的开关。",
-    "how": "先核对扩展业务与组合。原normalizer/registry/carrier/Scheduler/Req→Core组合确认base caller key和LoRAID拼接重合；JSON候选新Core共同264项通过但旧缓存迁移384索引跨命中，streaming身份仍待闭合；无当前部署或原生结论。",
+    "how": "原Scheduler/Session/facade/fullStreamingSession组合确认36项跨身份旧索引恢复。离线slot身份tuple守卫55组1146项CPU通过，未知legacy失效、预中止及defaultbase受保护；rawtree拼接与持久层世代仍需闭合，无原生/服务接受。",
     "cost": "额外编码、adapter 加载、状态拷贝和专用缓冲；重用错误会生成错误结果，重用过少则重复工作。",
     "hypothesis": "仅业务确有重复 adapter 且加载受限时，对照已有固定驻留策略减少重复加载；其他扩展分别记录适用性，不为凑优化擅自加模型功能。",
     "classification": "conditional_candidate",
@@ -2480,7 +2480,7 @@
       "first_action": "列出本模型真实扩展能力，四类分别给“存在/不存在/未支持/未知”。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "caller→Core隔离16项失败；JSON候选迁移失败",
+    "status": "streaming隔离36项失败；slot候选CPU条件通过",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/lora.mdx#L304-L306",
@@ -2513,6 +2513,18 @@
       {
         "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/speculative/draft_worker_common.py#L90",
         "support": "draft构造传is_draft_worker=True，源码证据。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/session/session_controller.py#L201",
+        "support": "原Session追加检查不比较身份；本轮完整类参与Scheduler组合。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/session/streaming_session.py#L506",
+        "support": "原尾部/页对齐/释放分段在CPU ledger中执行，不证明设备回收。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/mem_cache/utils.py#L125",
+        "support": "storage seed含extra_key/cache_salt；外层backend/modelname隔离仍未追踪。"
       }
     ],
     "related_ids": [],
@@ -2532,13 +2544,13 @@
       "runtime_path_confirmed": false,
       "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
     },
-    "evidence_checkpoint": "evidence/2026-10-19-caller-cache-namespace/README.md",
-    "verified_source_files": 53,
-    "original_CPU_groups": 16,
-    "original_CPU_checks": 264,
-    "original_CPU_pass": 248,
-    "original_CPU_identity_fail": 16,
-    "harness_INVALID_runs": 3,
+    "evidence_checkpoint": "evidence/2026-10-19-streaming-slot-identity/README.md",
+    "verified_source_files": 54,
+    "original_CPU_groups": 52,
+    "original_CPU_checks": 1104,
+    "original_CPU_pass": 1068,
+    "original_CPU_identity_fail": 36,
+    "harness_INVALID_runs": 1,
     "full_identity_correctness_passed": false,
     "current_deployment_fault_proven": false,
     "feature_business_presence": "UNKNOWN",
@@ -2559,15 +2571,33 @@
       "LoRA_metadata_checks": 9,
       "harness_INVALID_runs": 4
     },
-    "preexecution_INVALID_not_executed": "L035-R003",
-    "reference_run": "L035-R007",
+    "reference_run": "L036-R004",
     "reference_coverage_not_additive": true,
-    "candidate_common_checks": 264,
-    "candidate_common_pass": 264,
-    "candidate_checks": 266,
-    "candidate_fail": 1,
-    "candidate_legacy_hit_indices": 384,
-    "candidate_verdict": "NOT_ACCEPTED_UNFENCED_LEGACY_MIGRATION",
-    "previous_streaming_identity_witnesses_fixed": false
+    "candidate_common_checks": 1104,
+    "candidate_common_pass": 1104,
+    "candidate_checks": 1146,
+    "candidate_fail": 0,
+    "candidate_verdict": "LOCAL_CPU_SLOT_CONDITIONAL_PASS; SERVING_NOT_ACCEPTED",
+    "prior_L035": {
+      "evidence_checkpoint": "evidence/2026-10-19-caller-cache-namespace/README.md",
+      "verified_source_files": 53,
+      "original_CPU_groups": 16,
+      "original_CPU_checks": 264,
+      "original_CPU_pass": 248,
+      "original_CPU_identity_fail": 16,
+      "candidate_verdict": "NOT_ACCEPTED_UNFENCED_LEGACY_MIGRATION",
+      "candidate_checks": 266,
+      "candidate_fail": 1,
+      "candidate_legacy_hit_indices": 384,
+      "harness_INVALID_runs": 3,
+      "previous_streaming_identity_witnesses_fixed": false
+    },
+    "invalid_partial_checks_excluded": 92,
+    "candidate_cases": 55,
+    "candidate_pass": 1146,
+    "candidate_extra_checks": 42,
+    "streaming_identity_candidate_CPU_passed": true,
+    "rawtree_namespace_L035_still_unfixed": true,
+    "storage_generation_unverified": true
   }
 ]

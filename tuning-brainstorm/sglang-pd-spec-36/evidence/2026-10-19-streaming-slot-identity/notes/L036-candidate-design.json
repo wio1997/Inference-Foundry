@@ -1,0 +1,20 @@
+{
+  "candidate": "candidates/L036-streaming-slot-identity/slot-identity.patch",
+  "single_change": "Persist slot identity(lora_id,Req.extra_key,cache_salt); after originalpreabort handling, release mismatch/unknownlegacy slot and fall back to existing raw lookup",
+  "reference": "R004 same52cases; dispatch/provenance/retry assertions support bothhit/miss, independent of normativeisolation",
+  "candidate_scope": "FulloriginalSessionSlot/StreamingSession classes with only identityfield/save/guard patch; inherited originalothercomponents",
+  "controls": [
+    "sameidentity warmreuse",
+    "3changedidentity eachlength/role/pagebranch",
+    "actualoldclassslot without identity",
+    "preabort mustpreserve oldslot before mismatch logic",
+    "sameownership/retry/abort/close/subpage controls"
+  ],
+  "costs": [
+    "One tuple ofthreefieldreferences per slot plus stringcomparison cost; no contenthashing",
+    "Changed/unknown identity invalidates warm slot and forces raw lookup/fullrecompute; tokenhistory retained, latency/allocatorpressure unmeasured",
+    "No persistentstorage/rawtreegeneration fence; originalrawkeycrosshitL035 remains and candidateisnot fullcache fix"
+  ],
+  "acceptance": "LocalCPUconditional only ifallvalidchecksPASS; nevernative/serving acceptance. No combinedJSONpatch or productionmutation.",
+  "native": false
+}
