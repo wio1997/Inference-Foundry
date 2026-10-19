@@ -4,7 +4,7 @@
 
 **主线固定：Ascend + PD 分离 + 推测解码。** 36 是课程机制数量，不代表 36 个新发明，也不代表 36 个都适用或能加速。历史单引擎教学数据没有作为当前 PD 基线导入。
 
-**2026-10-19原生进展：** 两台910C各16逻辑NPU，原GLM-5.3-W8A8C8、PD与MTP保留，双端API及内部warmup已就绪。真实外部PD输出、KV交接/回收与A/A性能基线仍待验证，整体E0，见[双端实际配置、图捕获与就绪证据](evidence/2026-10-19-910c-pd-ready/README.md)。
+**2026-10-19原生进展：** 两台910C原GLM-5.3-W8A8C8、PD与MTP保留，5批共10条真实512→128短请求功能通过；贪心重复输出仍有分叉，固定输入batch顺序也不足以保证一致。长用例、完整生命周期与性能基线未完成，整体E0，见[真实请求、MTP计数和反例](evidence/2026-10-19-910c-first-pd/README.md)。
 
 - [任务合同、授权、实验阶梯与停止条件](CONTRACT.md)
 - [执行方式与主控 / ZCode 分工](EXECUTION.md)
@@ -89,7 +89,7 @@
 | [M001](points/M001.md) | 聊天模板、分词、reasoning parser | CPU候选语义/计时已核验；短/混合局部改善，服务未测 | config |
 | [M002](points/M002.md) | 进程分工、IPC 与流式背压 | 待路径核验 | config |
 | [M003](points/M003.md) | CPU affinity / NUMA / 线程数 | 待路径核验 | config |
-| [M004](points/M004.md) | Continuous batching 与请求状态机 | PD overlap调用顺序已核验；到达/取消实验未运行 | conditional_candidate |
+| [M004](points/M004.md) | Continuous batching 与请求状态机 | 真实两路PD功能通过；固定batch仍有贪心输出差异，调度/取消及稳定基线未完成 | conditional_candidate |
 | [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | PD abort/drain/timeout 源策略已核验；原生释放未决 | config |
 | [M006](points/M006.md) | Chunked Prefill 的游标与预算 | 16K chunk 与 200 页分支边界已界定；native 成功路径未验证 | config |
 | [M007](points/M007.md) | Mixed batch 与 ragged / packed 输入 | 条件不适用 | not_applicable |
@@ -113,14 +113,14 @@
 | [M025](points/M025.md) | DSA indexer / Top-K / HiSparse | 源码门控/状态模型已核验；完整模块与原生性能未决 | conditional_candidate |
 | [M026](points/M026.md) | MoE 路由、重排与 grouped GEMM | 原Prefill的DeepEP完整warmup已通过；默认分发维度反例保留，完整PD性能基线仍未建立 | conditional_candidate |
 | [M027](points/M027.md) | 后端选择、形状特化与冷启动 | 待路径核验 | config |
-| [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | 原GLM-5.3双端PD+MTP API就绪；16rank缓冲支持性通过，真实PD输出/生命周期与性能基线待测 | config |
+| [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | 分组缓冲下真实2x512→128 PD+MTP功能通过；输出重复性与性能基线未接受 | config |
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
 | [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 路由必要工作边界已建立；实际rank负载未测 | config |
-| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | NEXTN三步历史参数确认；模型/PD原生待测 | config |
+| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | 真实MTP verify/正确草稿/接受直方图已采集；重复输出分叉，完整质量与生命周期待测 | config |
 | [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 真实grammar/hostMTP mask CPU已核验；原生待测 | conditional_candidate |
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 前端IPC/SSE组件已实测；原生/回收待测 | config |
 | [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 实际Rust路径已核验；策略实测未运行 | config |
-| [M035](points/M035.md) | PD 分离、KV connector 与异步传输 | 待路径核验 | conditional_candidate |
+| [M035](points/M035.md) | PD 分离、KV connector 与异步传输 | 真实非fake PD短请求功能交接通过；KV逐字节核验及完整异步生命周期仍待测 | conditional_candidate |
 | [M036](points/M036.md) | 会话 / 混合模型 / LoRA / 多模态扩展 | 持久名称8项条件反例；清空确认链CPU通过 | conditional_candidate |
 
 ## 当前结果边界
