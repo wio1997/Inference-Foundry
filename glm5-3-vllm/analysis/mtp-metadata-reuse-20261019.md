@@ -15,3 +15,5 @@
 15:29 CST更新：同入口已重连并复核同集群。缓存原8份文件完整取回并核验原SHA，16条数值全部通过，无设备请求重跑。旧P及proxy随后按原有限watchdog自然exit124/OOMFalse；只替换P，D保持同一实例及构建。新旧P immutable源码、图与参数相同，新的实例/engine_id/timer单独绑定；新P Ready后须先8条四并发PD及新增all16比对，再做原8组差异的有限控制。workload和联合门槛保持，未开始本原型正式测量。
 
 证据位于 `evidence/20261018-p-first-seed-device-v2/recovery-v2/`：`rope-step-reuse-source-dependency-audit-v1.json`、`rope-step-reuse-cpu-check-v1.json`、`rope-step-reuse-build-check-v1.json`、`rope-step-reuse-dependency-reviewed-v1.json`。正式联合门槛已在新模型测试前冻结为 `rope-step-reuse-formal-contract-v1.json`，同负载 C1 24条与 C4 ABBA×3 384条，不删除慢块、不把不同窗口比例相乘。
+
+15:49 CST 收束：新P的8条四并发PD及all16新增逐位比较通过，随后24条native/adaptive/native控制数值全部通过。8组当前repeat候选均与当前native-A及native-B完整64相同；但quality-4/16/17/21的旧P初轮候选变体仍未被原native及当前native集合覆盖。旧P已按watchdog结束，无法补齐旧实例控制，原因未闭合。保留冻结质量门槛，最终为`INCONCLUSIVE_QUALITY_DEFAULT_OFF_ROPE_STEP_REUSE`；marker off、observer disabled，未执行正式C1/C4，不补跑本版质量或性能轮次，不声明本原型服务收益。连接恢复及P更换不作为差异原因证明。详细初轮与重复候选区分在`rope-step-reuse-reviewed-verdict-v1.json`。

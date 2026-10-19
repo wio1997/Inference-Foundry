@@ -1,8 +1,18 @@
-# 当前交接 — 同步与元数据研究：提前发布已拒绝，SFA/Indexer复用待验证
+# 当前交接 — 元数据复用质量未闭合且已关闭；转查 C8／Indexer 执行编排
 
 目标与授权见[MISSION](MISSION.md)、[AGENTS](AGENTS.md)。仅172.16.12.32/33，GLM5.3 W8A8C8、int8 KV/Indexer、已有算子、全SDMA、正式PD分离。可核归属后续建合理有限窗口，不停他人作业；不因阶段、失败、Ready或提交而等待用户。普通commit/push/draft PR2允许，不合并。不跨聊天发消息，不改analysis/performance-envelope-20261017/，不使用taskctl或另建记录系统。
 
 ## 当前现场与立即动作
+
+- **2026-10-19 16:00 CST 片段现场**：D163c已在两端idle及最终快照SHA核验后精确stop，33八物理卡空闲。仅将旧自有33 holder UID8bdd…用UID测试deadline降1并确认Failed，再创建新10800s holder `glm53-indexer-prolog-33-live1-20261019`／UID`b0994ea2-254e-4510-8380-bb54260c6838`，独占已核；P1a7及access pods未操作。新窗口收据`indexer-prolog-fragment-ownership-v1.json`，原模型timer没有延长。v1在native首Prolog前发现实际ND权重，未设独立进程allow_internal_format；原件已备份SHAe258362e…，新v2只补同NZ开关和三权重format29断言，native方法与合同不改。v2 collector exec38238正在跑，不写正确性或收益结论。
+
+- **2026-10-19 15:58 CST 下一片段已启动准备**：最终metadata快照已下载核SHA，P293542B／547aee4800…、D745339B／61a89f9d5b…；本地B/20261019-rope-step-reuse-closed。只读源码确认现有流API，182次WK与主Prolog同流紧邻；Indexer原生LayerNorm／Triton RoPE及BF16/C8逐层精度保持。合同已冻结，driver=`prepare_indexer_fragment_window_v1.py`（exec96439）先核独占再精确停自有D163c，续建33有限holder并跑单卡片段；P与access pods不动。当前片段未返回，不称正确或提速。
+
+- **2026-10-19 15:49 CST 最新现场与结论**：同60011 SSH master8710可达；P1a7c／D163c均Running、原构建SHA通过、两端KV/queue均0，observer关闭、复用marker absent、已接受RoPE保持on。有限timer余量约19分钟，后续设备动作须重新核实预算与holder归属。P初始化、proxy、8条新PD smoke、all16新增比对及24条控制均已结束，没有活动controller。
+- **同一步元数据复用本版收束**：`INCONCLUSIVE_QUALITY_DEFAULT_OFF_ROPE_STEP_REUSE`。新P下8组repeat候选全部与当前native-A/B完整64相同；quality-4/16/17/21的旧P初轮候选变体仍不在观测native集合内，旧实例已结束，原因未闭合。冻结gate未通过，不执行formal C1/C4，不追加此版质量／性能轮次，不归因P／舍入／CANN／race。`rope-step-reuse-reviewed-verdict-v1.json`与`quality-reviewed-v2.json`保留原件。cached16已恢复SHA核验通过、没有请求重跑。
+- **下一实质机制**：复用精确源码和已保存rank0 trace检查C8／Indexer编排。当前已用MlaPrologV3；Indexer BF16 WK+weights来自原hidden_states，K投影／norm／RoPE／Hadamard／quant当前位于主prolog之后，需验证能否保留原有算子与缓存写入边界并行。当前无新原型或收益结论，不把旧kernel duration相加当wall收益。
+
+## 前序现场记录（以下进行中描述已由上方覆盖）
 
 - **2026-10-19 15:29 CST 连接已恢复，继续原研究**：按用户“重连试试”重新认证同一60011入口，bastion=`A3-5U-Atlas900RCKA3-1`，再次核32/33为172.16.12.32/33；新master PID8710、socket仍`/tmp/glm53-active-20261019.sock`，无认证材料落盘。cached原8份文件已只读取回、核原bytes/SHA/script/result，16条数值全部通过，**0条设备请求重跑**；correctness脚本仅幂等消费原件写出outcome，quality18/26完整相同、8组差异保留。`rope-step-reuse-cached-download-recovery-v1.json`及`rope-step-reuse-ssh-restored-v1.json`。
 - **当前实例/资源**：旧P84bd与stock proxy a1fec均按原有限watchdog自然exit124、OOMFalse，未发stop；SHA快照后核32全8物理卡idle、原holder UID5661b06f…独占不变，才只替换P。新P CID`1a7c22de29006ffd698632527dacd522e746350770710e7f45a2ebacded857dc`，root=`/data/wio/glm5-3-vllm-execution/20261018-state-tail/rope-step-reuse-p-live1-20261019/node32`，model有限2589s；旧P immutable overlays、参数、PIECEWISE[256,1024]/sharedFalse/K1保持（仅engine_id/实例/timer变）。D163c…/build202fc…未动，仍Ready且KV/queue0。P/D现有10800s holder均复用，没有停止其他作业。新P正在初始化，watch95528/后续controller80508活动。

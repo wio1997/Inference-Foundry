@@ -1,0 +1,31 @@
+{
+  "created_utc": "2026-10-19T07:54:28.219202+00:00",
+  "hypothesis": "Indexer forward_k consumes raw hidden states and own cos/sin, so it can run on an auxiliary stream alongside native MlaPrologV3, joining before original Indexer cache writes.",
+  "scope": "Single-NPU synthetic real dimensions, original exact-image prolog/forward_k/quant method bodies and original existing operators. No new kernels, no model parameter or precision change.",
+  "sources": {
+    "sfa_v1.py": "9b94f67f30364d40caf4a7a67af0f0365d1ba0b5048939873ab0464e95b096dc",
+    "indexer.py": "1f345bafb7c57ee02b66294ba72314e052f3c9b16f1faf5a8fb2bddde33c6eea"
+  },
+  "source_trace": "indexer-prolog-native-serialization-v1.json",
+  "topology": "No TP/CP/PD inside fragment; not full-model validation. Both main C8 and original BF16/C8 Indexer layer variants retained.",
+  "cases": {
+    "N": [
+      6,
+      24
+    ],
+    "indexer_cache": [
+      "BF16",
+      "C8_INT8_FP16_SCALE"
+    ],
+    "input_generations": 3,
+    "graphs": "independent pools for serial and parallel, original buffer ownership, changing inputs between replays"
+  },
+  "correctness_gate": "Main Q outputs/query norm and KV byte cache; Indexer K,scale,weights and full cache contents bitwise after original cache writes, fresh input generations; no sync between branches and join/cache consumers.",
+  "timing_gate": "Only after correctness, ABBA paired graph replay elapsed event timing for the complete producer/join/cache-writer fragment; retain all blocks, no service throughput claim.",
+  "next": "If useful and correct fragment, new immutable guarded D prototype and fresh finite full PD window. If failure, record before choosing repair; no same-condition blind rerun.",
+  "preserved_fences": [
+    "Native connector wait precedes prolog and future K precompute; no cache write before join.",
+    "Own per-layer auxiliary results retained until main stream has consumed them.",
+    "No new data copy or communication transport in scheduling prototype."
+  ]
+}
