@@ -1,0 +1,30 @@
+--- a/python/sglang/srt/mem_cache/hybrid_cache/hybrid_cache_controller.py
++++ b/python/sglang/srt/mem_cache/hybrid_cache/hybrid_cache_controller.py
+@@ -386,8 +386,8 @@
+                 type(self.storage_backend).__name__,
+             )
+             return False
+-        self.storage_backend.clear()
+-        return True
++        result = self.storage_backend.clear()
++        return result is not False
+ 
+     def _init_extra_host_mem_release_queues(self) -> None:
+         self.extra_host_mem_release_queues = {}
+--- a/python/sglang/srt/managers/scheduler.py
++++ b/python/sglang/srt/managers/scheduler.py
+@@ -4890,9 +4890,11 @@
+ 
+     def clear_hicache_storage_wrapped(self, recv_req: ClearHiCacheReqInput):
+         if self.enable_hierarchical_cache:
+-            self.tree_cache.clear_storage_backend()
+-            logger.info("Hierarchical cache cleared successfully!")
+-            if_success = True
++            if_success = bool(self.tree_cache.clear_storage_backend())
++            if if_success:
++                logger.info("Hierarchical cache cleared successfully!")
++            else:
++                logger.warning("Hierarchical cache clear failed.")
+         else:
+             logging.warning("Hierarchical cache is not enabled.")
+             if_success = False
