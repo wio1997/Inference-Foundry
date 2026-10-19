@@ -1,0 +1,100 @@
+{
+  "observed_utc": "2026-10-19T10:55:19.519945+00:00",
+  "placement": "All NPU computations on reserved910C44; Mac controller/static review/bookkeeping only",
+  "overall": "E0_SPEC_ONLY",
+  "accepted_baseline": null,
+  "A_verdict": "FUNCTIONAL_FAIL_TILING_WINDOW",
+  "A_actual_HCCL_MB": 200,
+  "A_required_HCCL_MB": 1649,
+  "B_verdict": "DISPATCH_TILING_GATE_PASSED_CHECKER_INVALID",
+  "B_public_summary": "16rank均返回并同步，已越过旧tiling；检查器3D形状假设失败，记invalid，数据正确性未判定",
+  "C_verdict": "NUMERIC_AND_COUNTS_PASS_EXPLICIT_GROUP_CLEANUP_PASS_PROCESS_EXIT_FAIL",
+  "C_public_summary": "更正检查器后16rank、256个本地专家分组全部counts/完整BF16行golden通过，共16384行201326592字节；显式group销毁16rank完成，随后进程退出超时，整体仍FAIL",
+  "checked_rows": 16384,
+  "checked_payload_bytes": 201326592,
+  "actual_recv_shape": [
+    32768,
+    6144
+  ],
+  "counts_each_expert": 64,
+  "explicit_process_group_destroyed_ranks": 16,
+  "all_three_containers_terminal_preserved": true,
+  "probe_handles": [
+    {
+      "run": "L039-R050",
+      "node": 44,
+      "name": "if-mech36-l039-r050-deepep-44",
+      "container_id": "d40a8a129a5e3214530bbb74b6b2bdef540a74a024e43ab8757c7d409b5a7b00",
+      "root": "/data/wio/sglang-mech36-20261018/L039-R050-deepep-registration",
+      "final_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-19T10:34:38.60785062Z",
+        "FinishedAt": "2026-10-19T10:38:48.85296829Z"
+      }
+    },
+    {
+      "run": "L039-R051",
+      "node": 44,
+      "name": "if-mech36-l039-r051-deepep-44",
+      "container_id": "9f32a384166529d11ee94da2630bb2bdb5117dcaf0445e5235b8026cbdc71e96",
+      "root": "/data/wio/sglang-mech36-20261018/L039-R051-deepep-registration",
+      "final_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-19T10:40:05.69084246Z",
+        "FinishedAt": "2026-10-19T10:44:15.83191041Z"
+      }
+    },
+    {
+      "run": "L039-R052",
+      "node": 44,
+      "name": "if-mech36-l039-r052-deepep-44",
+      "container_id": "191b0f8c43cb3f5545b935bad524e0f92485644c49fa4426fb096c94ce7fb4be",
+      "root": "/data/wio/sglang-mech36-20261018/L039-R052-deepep-registration",
+      "final_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-19T10:45:55.62387377Z",
+        "FinishedAt": "2026-10-19T10:50:05.81236272Z"
+      }
+    }
+  ],
+  "full_original_P_prior_log": {
+    "run": "L039-R046",
+    "required_MB": 213,
+    "actual_MB": 200,
+    "maxBs": 1,
+    "correction": "Explicit HCCL window error was already in captured stdout and missed in earlier generic tiling summary; corrected with source SHA."
+  },
+  "scope_limits": [
+    "Balanced deterministic BF16 dispatch only, each expert64rows; no skew/empty/tail/quantized-path/combine/MoE FFN/graph/real KV/PD/MTP/serving performance proof",
+    "C has full numerical/count PASS but later Python/worker/torchrun termination failure; exact cause unknown",
+    "Do not equate local maxBs256 requirement1649MB with full P maxBs1 requirement213MB",
+    "C earlier controller summary misreported group cleanup; append-only correction records all16 group cleanup true"
+  ],
+  "next_action": "先定位所有rank完成数据golden及显式group销毁后仍不退出的生命周期问题：用最小HCCL-only对照及精确进程/退出日志区分基础运行时与DeepEP；原模型PD+MTP的2048MB窗口候选已准备但尚未登记/派发，保持原模型/TP16/EP16/MTP/graph/长度",
+  "next_run": "L039-R053 not registered; prepared full-bootstrap script currently hardcodesR053 and guard rejects currentR052overallFAIL, so rename/re-freeze it with a fresh ID if another diagnostic takesR053",
+  "performance": "NOT_MEASURED"
+}

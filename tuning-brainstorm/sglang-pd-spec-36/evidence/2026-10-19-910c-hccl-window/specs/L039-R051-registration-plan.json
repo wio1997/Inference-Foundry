@@ -1,0 +1,62 @@
+{
+  "run": "L039-R051",
+  "purpose": "Support diagnostic B: one effective environment change HCCL_BUFFSIZE=2048MB after A original tiling reports required1649MB vs actual200MB. Keep process-start custom OPP unset and all16rank BF16 case unchanged.",
+  "image": "sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263",
+  "node": 44,
+  "lease": {
+    "name": "sglang-mech36-prefill-44-l039r038",
+    "uid": "5c1d29fb-bcf1-4ce0-bd9a-41bc83e2586a"
+  },
+  "early_custom_opp": false,
+  "environment": {
+    "ASCEND_RT_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+    "HCCL_IF_IP": "172.16.12.44",
+    "GLOO_SOCKET_IFNAME": "bond4.12",
+    "HCCL_CONNECT_TIMEOUT": "120",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "HF_HUB_DISABLE_IMPLICIT_TOKEN": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "ASCEND_PROCESS_LOG_PATH": "/work/ascend-logs",
+    "TORCH_EXTENSIONS_DIR": "/work/torch-extensions",
+    "SGLANG_CACHE_DIR": "/work/sglang-cache",
+    "TRITON_CACHE_DIR": "/work/triton-cache",
+    "ASCEND_GLOBAL_LOG_LEVEL": "0",
+    "ASCEND_SLOG_PRINT_TO_STDOUT": "0",
+    "HCCL_EXEC_TIMEOUT": "90",
+    "HCCL_BUFFSIZE": "2048"
+  },
+  "model_config_sha256": "ca8f2f47b07919a514c0ca223dc2ea2bc7445afaa5ac76c013a3784e096426ca",
+  "case": {
+    "world": 16,
+    "tokens_per_rank": 128,
+    "hidden": 6144,
+    "experts": 256,
+    "topk": 8,
+    "dtype": "bfloat16",
+    "max_dispatch_tokens_per_rank": 256,
+    "quantization": "none",
+    "async": false,
+    "graph": "eager support diagnostic only"
+  },
+  "package_source_hashes": {
+    "device_info.py": "fb1388d9979266d06fae3bd48d582c7748c51f4a5dd9871aac1d3fc246066c3f",
+    "__init__.py": "ecf0a76cf98f6da14441b08f859b7067301b79b790431caba937932d237e741c",
+    "utils.py": "ea3c44bf4ec403414f4cdc9ed08141c90b335b13405cf536b2f7f20bf204653b",
+    "buffer.py": "a6c0aa872ce0a0d5c1c41cb7eb3d8de77ab6829a929a092bd41e5dddf44588ca",
+    "build_config.py": "35f2d1c18567f9c1b63e46d8ffe1627d0e5c52b267821da72442aa2a66585875",
+    "ep_strategy.py": "c78e88a8078c5c22e36dd2149efb63355a1c686a6e748c12196742d9f1125657",
+    "strategies/low_latency_strategy.py": "1b9fe42cc46425c8d7e97d4f4e8a0501a6465e9b49033522d89b31362d363c46",
+    "strategies/__init__.py": "ea642730dc86e402b032dd9a28967342287e295bb612a0721486282db5fc5e3d",
+    "strategies/normal_strategy.py": "48fbc94dd60c7c37e198935717357d2479150099487ee0d9a749ed41083a7f84",
+    "strategies/fused_strategy.py": "bdf46b4c01861265f99ba38a5e150a5fe2260ba0b0161e70cf6b2cd14f579331"
+  },
+  "probe_sha256": "9507402b57026168442fbbdec219d81e6a413666745444ca8bd3929b77974b08",
+  "prediction": "A error prints exact required HCCLwindow1649MB vs200MB. B should pass this gate with2048MB and reach full BF16 row/count golden. Any later failure is preserved distinctly; no full-serving success inferred. Early-OPP hypothesis not pursued because actual tiling parameter check was reached.",
+  "golden": "For each of16 local experts compare exact count and full6144BF16-byte-row multiset from independent CPU route enumeration; rank/token ID in payload. No performance interpretation.",
+  "safety": "Current task exact lease Ready plus all16 device-idle preflight; no model mount/production source patch; own container/CID only; bounded240s process with own cleanup; preserve logs/terminal container."
+}

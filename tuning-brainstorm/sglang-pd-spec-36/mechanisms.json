@@ -1893,7 +1893,7 @@
       "first_action": "核对已安装 DeepEP API、分轮参数与 HCCL buffer 计算，不照搬主分支默认值。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "完整EP16原生normal/low_latency均在CANN tiling失败；参数/注册原因与服务基线未明",
+    "status": "完整PD+MTP仍未就绪；原生诊断明确HCCL窗口不足，局部对照结果见证据",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L249-L283",
@@ -1944,7 +1944,24 @@
         "decode_low_latency": "aclnnMoeLowLatencyDispatchV2 EZ1008 tiling"
       },
       "latest_evidence": "evidence/2026-10-19-910c-deepep-tiling/README.md",
-      "old16_256_fix": "NOT_PROVEN: dispatch failed before GMM"
+      "old16_256_fix": "NOT_PROVEN: dispatch failed before GMM",
+      "HCCL_window_diagnostic": {
+        "runs": [
+          "L039-R048",
+          "L039-R049",
+          "L039-R050",
+          "L039-R051",
+          "L039-R052"
+        ],
+        "full_P_actual_requirement_MB": 213,
+        "A_low_latency_requirement_MB": 1649,
+        "A_actual_MB": 200,
+        "B_configured_MB": 2048,
+        "B_verdict": "DISPATCH_TILING_GATE_PASSED_CHECKER_INVALID",
+        "corrected_checker_verdict": "NUMERIC_AND_COUNTS_PASS_EXPLICIT_GROUP_CLEANUP_PASS_PROCESS_EXIT_FAIL",
+        "evidence": "evidence/2026-10-19-910c-hccl-window/README.md",
+        "full_serving": "NOT_PROVEN"
+      }
     }
   },
   {

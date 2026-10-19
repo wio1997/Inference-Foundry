@@ -4,7 +4,7 @@
 
 **主线固定：Ascend + PD 分离 + 推测解码。** 36 是课程机制数量，不代表 36 个新发明，也不代表 36 个都适用或能加速。历史单引擎教学数据没有作为当前 PD 基线导入。
 
-**2026-10-19原生进展：** 两端原模型完整封存，真实44→46 SDMA三组局部字节检查通过；完整启动先暴露MoE的16/256维度错误，切换已有DeepEP后normal/low_latency又均在CANN tiling阶段失败。完整服务与性能未通过，整体E0。见[最新tiling反例及后续门槛](evidence/2026-10-19-910c-deepep-tiling/README.md)、[传输/封存与首次完整启动](evidence/2026-10-19-910c-native-transfer-bootstrap/README.md)。
+**2026-10-19原生进展：** 所有NPU测试在910C；真实SDMA局部检查通过，完整原模型PD+MTP仍未启动成功。最新原生分发诊断明确HCCL窗口不足，保留完整服务E0状态，见[窗口约束、16rank单变量对照和更正记录](evidence/2026-10-19-910c-hccl-window/README.md)。
 
 - [任务合同、授权、实验阶梯与停止条件](CONTRACT.md)
 - [执行方式与主控 / ZCode 分工](EXECUTION.md)
