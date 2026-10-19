@@ -4,7 +4,7 @@
 
 **主线固定：Ascend + PD 分离 + 推测解码。** 36 是课程机制数量，不代表 36 个新发明，也不代表 36 个都适用或能加速。历史单引擎教学数据没有作为当前 PD 基线导入。
 
-**2026-10-19原生进展：** 两台910C各16NPU，原GLM-5.3-W8A8C8、PD与MTP保留。16rank退出与分组HCCL显存压力对照通过，Prefill原服务就绪，Decode图OOM后仅D调整通信缓冲启动中；完整PD输出/生命周期/性能基线仍为E0，见[原始证据、单变量对照和当前句柄](evidence/2026-10-19-910c-group-memory-bootstrap/README.md)。
+**2026-10-19原生进展：** 两台910C各16逻辑NPU，原GLM-5.3-W8A8C8、PD与MTP保留，双端API及内部warmup已就绪。真实外部PD输出、KV交接/回收与A/A性能基线仍待验证，整体E0，见[双端实际配置、图捕获与就绪证据](evidence/2026-10-19-910c-pd-ready/README.md)。
 
 - [任务合同、授权、实验阶梯与停止条件](CONTRACT.md)
 - [执行方式与主控 / ZCode 分工](EXECUTION.md)
@@ -113,7 +113,7 @@
 | [M025](points/M025.md) | DSA indexer / Top-K / HiSparse | 源码门控/状态模型已核验；完整模块与原生性能未决 | conditional_candidate |
 | [M026](points/M026.md) | MoE 路由、重排与 grouped GEMM | 原Prefill的DeepEP完整warmup已通过；默认分发维度反例保留，完整PD性能基线仍未建立 | conditional_candidate |
 | [M027](points/M027.md) | 后端选择、形状特化与冷启动 | 待路径核验 | config |
-| [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | 910C16rank分组HCCL压力对照通过；原Prefill已就绪，Decode图OOM后仅D改EP1024启动中；PD基线未建立 | config |
+| [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | 原GLM-5.3双端PD+MTP API就绪；16rank缓冲支持性通过，真实PD输出/生命周期与性能基线待测 | config |
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
 | [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 路由必要工作边界已建立；实际rank负载未测 | config |
 | [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | NEXTN三步历史参数确认；模型/PD原生待测 | config |
