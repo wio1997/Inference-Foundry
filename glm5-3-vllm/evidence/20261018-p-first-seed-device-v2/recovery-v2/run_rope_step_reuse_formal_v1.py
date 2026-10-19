@@ -4,6 +4,8 @@ import datetime, hashlib, importlib.util, json, subprocess, sys
 
 r = Path(__file__).resolve().parent
 repo = r.parents[3]
+harness=repo/'glm5-3-vllm/runtime-patches/p-first-seed-v2/validate_sfa_replay_order.py'
+assert harness.is_file() and "'rope_step_reuse'" in harness.read_text()
 def module(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
     value = importlib.util.module_from_spec(spec)
@@ -33,7 +35,7 @@ for role, node, version in [('P', 32, 1), ('D', 33, 1)]:
 (r/'rope-step-reuse-formal-lease-preflight-v1.json').write_text(json.dumps(dict(checked_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(), leases=leases), indent=2)+'\n')
 
 def phase(name, extra):
-    x = m.collect(repo/'glm5-3-vllm/runtime-patches/p-first-seed-v1/validate_sfa_replay_order.py', 'rope_step_reuse_'+name+'_v1', 'rope-step-reuse-'+name+'-v1', ('--execute', '--phase', name, '--probe-kind', 'early_sample_publication', '--run-dir', root, '--expected-D-CID', binding['D_CID'], '--cases', root+'/prefill-padding-cases-v1.json', '--run-tag', 'v1')+extra, timeout=900)
+    x = m.collect(repo/'glm5-3-vllm/runtime-patches/p-first-seed-v2/validate_sfa_replay_order.py', 'rope_step_reuse_'+name+'_v1', 'rope-step-reuse-'+name+'-v1', ('--execute', '--phase', name, '--probe-kind', 'rope_step_reuse', '--run-dir', root, '--expected-D-CID', binding['D_CID'], '--cases', root+'/prefill-padding-cases-v1.json', '--run-tag', 'v1')+extra, timeout=900)
     assert x['completed'] and x['numeric_all_pass']
     print(json.dumps(dict(phase=name, rows=len(x['rows']), summary=x['summary'])), flush=True)
     return x

@@ -12,4 +12,6 @@
 
 2026-10-19 15:10 CST，cached16远端执行24.202372s并以rc0结束，下载阶段SSH断开，60011入口TCP主动拒绝；完整metrics待SHA核验取回，尚不记cached通过。没有启动质量控制或正式测量，也没有重复缓存请求。恢复脚本仅拉8份已完成原件；恢复后先核精确实例与有限时长，再推进控制。当前没有本原型服务收益或一般质量结论。
 
+15:29 CST更新：同入口已重连并复核同集群。缓存原8份文件完整取回并核验原SHA，16条数值全部通过，无设备请求重跑。旧P及proxy随后按原有限watchdog自然exit124/OOMFalse；只替换P，D保持同一实例及构建。新旧P immutable源码、图与参数相同，新的实例/engine_id/timer单独绑定；新P Ready后须先8条四并发PD及新增all16比对，再做原8组差异的有限控制。workload和联合门槛保持，未开始本原型正式测量。
+
 证据位于 `evidence/20261018-p-first-seed-device-v2/recovery-v2/`：`rope-step-reuse-source-dependency-audit-v1.json`、`rope-step-reuse-cpu-check-v1.json`、`rope-step-reuse-build-check-v1.json`、`rope-step-reuse-dependency-reviewed-v1.json`。正式联合门槛已在新模型测试前冻结为 `rope-step-reuse-formal-contract-v1.json`，同负载 C1 24条与 C4 ABBA×3 384条，不删除慢块、不把不同窗口比例相乘。
