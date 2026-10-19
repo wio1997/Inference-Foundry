@@ -1,0 +1,75 @@
+{
+  "project_id": "glm53",
+  "task_id": "sglang-a3-ep32-dispatch",
+  "state": "BASELINE_REQUIRED",
+  "evidence_level": "E0",
+  "operator": "B103 deep_ep Buffer.dispatch / CamMoeDispatchNormal; low_latency_dispatch / MoeLowLatencyDispatchV2",
+  "objective": "Establish a correct repeatable EP32 native distributed dispatch/combine path before SGLang model qualification; performance optimization remains deferred.",
+  "hardware": "Actual32ranks device_version2201 A2/A3; twoowned16die A3 nodes.",
+  "software": "B103 DeepEP 1.0.0+00db6cd6.cann.9.1.0.b243, torch2.10.0+cpu, torch_npu2.10.0.post6",
+  "cases": [
+    {
+      "id": "actual-model-dispatch",
+      "world_size": 32,
+      "expert_count": 256,
+      "top_k": 8,
+      "hidden_size": 6144,
+      "activation_dtype": "UNKNOWN: original tensor BF16; actual BF16/INT8 dispatch flags require source audit",
+      "model_weight_precision": "ordinary W8A8",
+      "KV_precision": "BF16"
+    }
+  ],
+  "constraints": {
+    "execution_owner": "Existing local ZCode DeepSeek, one frozen launcher/SHA per run; main reviews and independently accepts artifacts.",
+    "resources": "Only project nodes and own containers. NPU collective microprobe only after own failed models stopped and all assigned NPU cards empty.",
+    "model_invariants": "Same GLM53 ordinary W8A8 weights/tokenizer. Synthetic collective probes do not load or benchmark another model.",
+    "forbidden_changes": [
+      "system SDK/driver/BIOS/clocks/sysctl/reboot",
+      "other workloads/threads",
+      "PD payload RDMA fallback",
+      "parameter blind scan"
+    ],
+    "baseline": "MISSING; no valid kernel timing or service throughput claim."
+  },
+  "bounds": {
+    "dominant_model": "UNKNOWN",
+    "measured": "UNKNOWN: current runs fail tiling",
+    "lower_bound": "UNKNOWN",
+    "headroom": "UNKNOWN",
+    "confidence": "low"
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "mechanism": "Installed custom operator tiling support may exclude actual input shape or dtype.",
+      "evidence": [
+        "1140 native low-latency V2 tiling failure",
+        "1250 normal CamMoeDispatchNormal tiling failure"
+      ],
+      "confidence": "low",
+      "counterfactual": "Under fixed EP32/runtime, a supported shape/dtype control executes while actual case fails.",
+      "falsifier": "Both exact/control shapes pass with matching actual dispatch flags; current source hypothesis unsupported."
+    },
+    {
+      "id": "H2",
+      "mechanism": "Native communication context/workspace or installed operator compatibility may be invalid independently of model shape.",
+      "evidence": [
+        "Both native dispatch paths fail before model inference qualification"
+      ],
+      "confidence": "low",
+      "counterfactual": "Fixed-shape capability/context diagnostic distinguishes operator registration/communication setup.",
+      "falsifier": "Actual-context collective roundtrip succeeds unchanged."
+    }
+  ],
+  "next_decision": {
+    "selected_loop": "L02-native-alltoall-model-integration",
+    "reason": "All32 ranks completed four synchronized checks and emitted final reports after process_group destroy; no missing collective result. Both own containers stopped/NPUs empty. Integrate same native strategy into service as distinct functional loop, retain teardown failure and require real model correctness before any baseline."
+  },
+  "evidence_paths": [
+    "runs/20261017T1160-sglang-v2-dispatch-failure-v1",
+    "runs/20261017T1250-sglang-v3-startup-checkpoint-v1",
+    "results/sglang-correctness-v4-preflight.json",
+    "results/deepep-alltoall-roundtrip-v1.json"
+  ],
+  "knowledge_promotion": "NONE: no reusable mechanism proven."
+}

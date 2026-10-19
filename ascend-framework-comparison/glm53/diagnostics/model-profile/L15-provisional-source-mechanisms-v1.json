@@ -1,0 +1,31 @@
+{
+  "project_id": "glm53",
+  "status": "SOURCE_HYPOTHESES_ONLY_NO_OPTIMIZATION_AUTHORIZED",
+  "basis": "Accepted bounded L13 trace and preserved actual L14 five-source copies; L15 timeline/runner/backend read is still pending.",
+  "hypotheses": [
+    {
+      "id": "draft_extend_prepad_metadata",
+      "observed_actual_source": "eagle_worker_common.prepare_for_draft_extend initializes attention metadata before eager padding, but does not mark it ready on NPU. ModelRunner sends eager work through padding and EagerRunner.",
+      "unproven": "Whether the actual post-pad backend initializes again, whether the pre-pad call has necessary side effects, and what time could actually be saved. A long H2D wait can include earlier target Graph work.",
+      "necessary_next_proof": "Actual installed EagerRunner/backend source plus same-file timeline containment. Do not remove initialization until final inputs, backend side effects and MTP lifetime/semantics are understood."
+    },
+    {
+      "id": "eager_registry_input_copies",
+      "public_pinned_source_lead": "EagerRunner.load_batch normally fills the fixed input registry; SGLANG_EAGER_INPUT_NO_COPY returns a shallow dataclass replacement using live tensors instead. The public pinned environ source declares the option false by default.",
+      "public_source_urls": [
+        "https://raw.githubusercontent.com/sgl-project/sglang/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/model_executor/runner/eager_runner.py",
+        "https://raw.githubusercontent.com/sgl-project/sglang/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/environ.py"
+      ],
+      "unproven": "Actual current worker setting, installed source equality, actual runner dispatch, which profiled copies come from this registry, tensor ownership/lifetimes and end-to-end benefit.",
+      "necessary_next_proof": "First qualify installed runner/registry/source and timeline. Any later single-variable proposal must read an explicit allowlist of this option in all actual model-worker environments and statically qualify installed defaults. Do not infer operative values from missing snapshot fields or change the flag now."
+    }
+  ],
+  "not_trial_candidates_now": [
+    "TASK_QUEUE_ENABLE scan: retained zero is pinned decode Graph guidance; operative vLLM queue value remains unverified.",
+    "Dispatch padding reduction without a variable-BS/global_bs correctness model: native fullmesh semantics and all-rank shape ownership must be proven.",
+    "Draft Graph toggle: the accepted vLLM reference uses eager draft too; no assumed policy mismatch.",
+    "No new model/profile case or throughput claim follows from these source leads."
+  ],
+  "unchanged": "Ordinary W8A8 C32, BF16 KV/indexer, MTP5/6, overlap schedule disabled, accepted native P and original D/Meta, typed P-D SDMA, same external pool/admission/resources and no system/SDK/Git changes.",
+  "objective_complete": false
+}

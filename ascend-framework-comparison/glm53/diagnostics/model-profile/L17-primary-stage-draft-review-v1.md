@@ -1,0 +1,5 @@
+Primary review before any staging execution: the CPU template reads candidate and rollback `bundle-manifest.json`, but those metadata files are absent from each frozen runtime bundle's `files` map. The existing stage helper transfers only that map. As drafted, the image CPU qualification would fail with missing bundle metadata.
+
+Preserve frozen candidate-v2/rollback-v1 manifests. In the stage launcher, create separate staging payload copies of the two runtime bundles and add the matching local bundle-manifest.json with the already pinned bundle_manifest_sha256 to each copy's file map. Stage those payload copies; do not alter or self-reference the original runtime bundle manifests. Pin/review the actual added metadata file payload and report 24 candidate /23 rollback transferred files, including metadata. CPU must verify their original recorded SHA and all runtime file SHAs. No runtime model/config semantics change follows from staging metadata.
+
+This draft is not authorized to execute until the actual corrected launcher and all generated host/CPU/stage payload hashes are reviewed. No service or model action has occurred.

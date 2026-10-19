@@ -1,0 +1,229 @@
+{
+  "project_id": "glm53",
+  "experiment": "C32-L20-paired-diagnostic-v1",
+  "status": "DRAFT_NOT_AUTHORIZED",
+  "execution_authorized": false,
+  "new_execution_this_job": false,
+  "purpose": "Two separate 32-logical C32 diagnostic cohorts, one framework at a time, 80000 input / 600 D output, P1 dispatch per logical request, zero new warmups/flush/retries. Counts, terminals and native cache observations only; not optimization, performance, noise, TTFT or SLA evidence.",
+  "stage1_source_fanout": {
+    "decision": "BOTH_VLLM_API_43_AND_API_45_ARE_REQUIRED_NO_DOUBLE_START",
+    "why": "Each hybrid-LB API server owns only its eight local EngineCores. One start_profile call on 43 covers DP0-7; one on 45 covers DP8-15. The sets are disjoint, so both calls are necessary and neither double-starts the other's engines. A second start on the same endpoint is forbidden.",
+    "citations": [
+      {
+        "file": "runs/20261019T-L19-vllm-profile-fanout-source-v1/source/43/vllm-workspace__vllm__vllm__v1__engine__async_llm.py",
+        "sha256": "52cbf404f1dbc99c6bebf4a50a7eb18ff842a1f53106a45f365523192d816be1",
+        "method_lines": "AsyncLLM.start_profile lines1044-1048; stop_profile1050-1054",
+        "fact": "One coroutine engine_core.profile_async(True, prefix); the frontend profiler is appended only when self.profiler is not None."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-profile-fanout-source-v1/source/43/vllm-workspace__vllm__vllm__v1__engine__async_llm.py",
+        "sha256": "52cbf404f1dbc99c6bebf4a50a7eb18ff842a1f53106a45f365523192d816be1",
+        "method_lines": "AsyncLLM.__init__ lines202-215",
+        "fact": "Frontend profiler exists only for profiler=torch and ignore_frontend=false. The installed launch has ignore_frontend=true, so only the engine-core path remains."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-profile-fanout-source-v1/source/43/vllm-workspace__vllm__vllm__v1__engine__core_client.py",
+        "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+        "method_lines": "EngineCoreClient.make_async_mp_client lines133-166",
+        "fact": "DP>1 with external_lb returns DPAsyncMPClient; otherwise DPLBAsyncMPClient; non-DP returns AsyncMPClient. The actual vLLM D argv has DP=16, local=8, start-rank0/8 and neither LB flag."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-profile-fanout-source-v1/source/43/vllm-workspace__vllm__vllm__v1__engine__core_client.py",
+        "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+        "method_lines": "MPClient.__init__ lines690-707 and729",
+        "fact": "num_ranks=dp_local_size when local_engines_only else dp_size; core_engines are exactly the managed ranks and core_engine=core_engines[0]."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-profile-fanout-source-v1/source/43/vllm-workspace__vllm__vllm__v1__engine__core_client.py",
+        "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+        "method_lines": "AsyncMPClient.profile_async lines1239-1242; DPLBAsyncMPClient.call_utility_async lines1599-1608",
+        "fact": "profile_async calls call_utility_async('profile',...); the DPLB override gathers that utility over self.core_engines only, i.e. the eight local engines. There is no coordinator broadcast of profile."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-profile-fanout-source-v1/source/43/vllm-workspace__vllm-ascend__vllm_ascend__platform.py",
+        "sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+        "method_lines": "NPUPlatform._setup_worker_and_scheduler lines1355-1366",
+        "fact": "worker_cls='auto' resolves to hardware_profile.default_worker_cls; the installed worker implementation is NPUWorker in vllm_ascend/worker/worker.py line122."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-profile-fanout-source-v1/source/43/vllm-workspace__vllm-ascend__vllm_ascend__worker__worker.py",
+        "sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+        "method_lines": "NPUWorker.profile lines1223-1251; profiler.step lines788-789",
+        "fact": "Each TP worker starts/stops TorchNPUProfilerWrapper; the trace name is profile_prefix_rank_suffix, or rank_suffix when the HTTP start_profile supplies no prefix. Every worker step calls profiler.step()."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-D-profile-readiness-v1/source/43/vllm-workspace__vllm__vllm__profiler__wrapper.py",
+        "sha256": "b1d3fff5035031d86ead1925d541cd07f084b6711875b592401b5528e3f730f4",
+        "method_lines": "WorkerProfiler.__init__ lines30-39; step lines99-142; stop lines144-158",
+        "fact": "delay_iterations=2 starts on the second step; max_iterations=8 stops when _profiling_for_iters > 8, therefore up to nine recorded worker steps. stop() is idempotent when already inactive."
+      },
+      {
+        "file": "runs/20261019T-L19-vllm-D-profile-readiness-v1/source/43/vllm-workspace__vllm__vllm__entrypoints__serve__profile__api_router.py",
+        "sha256": "b943c3a2201134e2d0b38bfa86d00e8b5685f5be6a54f6c7178dee784c1b78e5",
+        "method_lines": "start_profile lines18-24; stop_profile lines26-31; attach_router lines34-44",
+        "fact": "POST /start_profile and /stop_profile call EngineClient.start_profile()/stop_profile() with no profile body; the router is attached only when profiler is configured."
+      },
+      {
+        "file": "runs/20261017T1482-vllm-profiler-config-source-v1/code/1-arg_utils.py",
+        "sha256": "ead004ca266419cd25f54a7aefc0e20e1eb046f363b7f5cc977e14f52ee44bb1",
+        "method_lines": "EngineArgs.create_engine_config lines2259-2264 and2280-2283",
+        "fact": "Supplementary prior-collected installed source: data_parallel_size_local with data_parallel_start_rank auto-enables data_parallel_hybrid_lb, and data_parallel_rank comes from start_rank. The current actual argv matches this path."
+      },
+      {
+        "file": "runs/20261018T-C32-alignment-installed-source-v1/source/vllm/vllm-workspace__vllm__vllm__config__parallel.py",
+        "sha256": "f012ace89e3fb730a467f729f602679bc145c49f0d10721811c9d818570e7b2b",
+        "method_lines": "ParallelConfig.local_engines_only lines604-609",
+        "fact": "Supplementary prior-collected installed source: local_engines_only = external_lb or hybrid_lb. Hybrid LB is the actual mode, so each client manages local engines only."
+      },
+      {
+        "file": "runs/20261017T1822-native-profile-control-source-v2/source/sglang/srt/managers/tokenizer_control_mixin.py",
+        "sha256": "19a0558df863e51e34d077bfff8f90bb9b1edc8084bdc758f7906e8a78dd8daf",
+        "method_lines": "TokenizerManager.start_profile lines388-404; _execute_profile lines411-414",
+        "fact": "Supplementary prior-collected installed source and the accepted L13 control: SGLang profile_communicator is a FanOutCommunicator, so one API36 control reaches all DP ranks. One SGLang start/stop is sufficient."
+      }
+    ],
+    "actual_process_topology": {
+      "evidence": "runs/20261019T-L19-vllm-D-profile-readiness-v1/node-43-source.json and node-45-source.json",
+      "node43": "API server pid93 + VLLM::DPCoordinator + EngineCore_DP0..DP7 + Worker_DP0..DP7 TP0/TP1",
+      "node45": "API server pid93 + EngineCore_DP8..DP15 + Worker_DP8..DP15 TP0/TP1; no DPCoordinator",
+      "derivation": "A non-hybrid client on node45 with start_rank8 would manage ranks8..23 and could not become healthy; the healthy 8+8 topology plus the start_rank argv proves local_engines_only. The DPCoordinator routes requests/stats, not profile utilities.",
+      "workers": "8 EngineCores x 2 TP workers = 16 worker profilers per D node, 32 across both."
+    }
+  },
+  "cohorts": {
+    "sglang": {
+      "settings": "config/C32-L20-paired-diagnostic-v1/sglang-cohort-settings-draft-v1.json",
+      "settings_sha256": "8d29b7403bd885d73899ba4a1dc937d2bb862537255b9f1b4be2aca220f9b242",
+      "run_id": "20261019T-L20-sglang-C32-paired-diagnostic-v1",
+      "namespace": "glm53-formal-20261019T-L17-sglang-formal-C32-native-v2-C32",
+      "prior_report": "runs/20261019T-L17-sglang-formal-C32-native-v2/formal-result.remote.json",
+      "prior_report_sha256": "f60db145b162582cc0716e0d25360affbc34d42099f269a84fb196f2c1f676ac",
+      "prior_acceptance": "results/sglang-C32-L17-native-formal-measurement-v2.json",
+      "prior_acceptance_sha256": "906c4e4084bb42cf7268af5c96af67961b51a5ff9230260931bc3930e5e7d8a7",
+      "runtime_CIDs": {
+        "34": "a6639da9774e3b62098b21d6e7af803299e11ea3b4f3332705eedb6312902179",
+        "35": "94dd0021d5343d9c9e9cc5e4c07877e9306bdf93d8bf6382d388c7121e7c57f1",
+        "36": "fe95e2fca4f0e2832685f688d0616c060fa5774ad5baf0cad375f9bd4c89bb37",
+        "41": "c5e28348c3ede16066218a3729602f7e409d84c55088d719386e8e90dc8c82b9"
+      },
+      "model_image": "sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263",
+      "profile_scope": "one native scope API36; FanOutCommunicator to DP0-15 / 32 TP workers; num_steps=2; one start and one bounded stop",
+      "request_id_pattern": "namespace + -diag-L20-sg-pNN-v5"
+    },
+    "vllm": {
+      "settings": "config/C32-L20-paired-diagnostic-v1/vllm-cohort-settings-draft-v1.json",
+      "settings_sha256": "bd462c22267e56ca65b5b9d69819ab6c40362a97b7d3fe6101dbf1a3cd147700",
+      "run_id": "20261019T-L20-vllm-C32-paired-diagnostic-v1",
+      "namespace": "glm53-formal-20261017T1870-vllm-formal-C32-v2-C32",
+      "prior_report": "runs/20261017T1870-vllm-formal-C32-v2/formal-result.remote.json",
+      "prior_report_sha256": "2b8e5ca730c830641815a038c2a39bc07f72b66f9ba0dd7ac1209e76a5699640",
+      "prior_acceptance": "results/vllm-formal-C32-v2-measurement-v1.json",
+      "prior_acceptance_sha256": "5933a65bdd6d90514e6fe975c08df68bf18a3f2a655a4279942e05c2507fd596",
+      "runtime_CIDs": {
+        "30": "a654305d634fb392660cee17797c15f31af90df477c0025839a59f985e1c073c",
+        "31": "7919640401f16f87c8edb1a71c7e78915c8d76441a428606bf7edec11379bc0e",
+        "43": "0b3266fcc1f72005a763fdbd5191cecb564d67b448508c2e1d42e965a2973779",
+        "45": "c1f460d681f216677d48e3ca881c72bd3a325f10b19d2d83cba299d47dae8a99"
+      },
+      "model_image": "sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83",
+      "profile_scope": "two native scopes API43/DP0-7 and API45/DP8-15, 16 workers each; one start and one bounded stop per scope; no second start on either endpoint",
+      "request_id_pattern": "namespace + -diag-L20-vl-pNN-v5"
+    }
+  },
+  "inputs": {
+    "manifest": "CPU43:/data/wio/inference-foundry/glm53/runs/20261017T2056-sglang-C32-fifth-suffix-inputs-v1/artifacts/manifest.json",
+    "manifest_sha256": "12304759a4a4f3ee23e38d4cac01ac53bc39db3a75199ce2171fde951f03076a",
+    "local_proof": "runs/20261017T2056-sglang-C32-fifth-suffix-inputs-v1/manifest-proof.json",
+    "local_proof_sha256": "3e640b46a02a6aacdd8a6a2425f1f3b8f56061eeae3c62504e7f01a4b698cb2e",
+    "canonical_manifest_sha256": "9bdba915c372eb2c23da018a18c2c9653ded9c5012d875db8b496effb5983b67",
+    "rows": 32,
+    "prefix_tokens": 74400,
+    "input_tokens": 80000,
+    "suffix_variant": 5,
+    "fresh_suffix_tokens": 5600,
+    "lcp_against_previous_four": 74400,
+    "all_32_prefix_hashes_verified_against_both_prior_cache_gates": true
+  },
+  "counts": {
+    "logical_requests_per_framework": 32,
+    "P_dispatch_per_logical_request": 1,
+    "planned_backend_HTTP_attempts_if_all_dispatch": 64,
+    "planned_P_output_tokens_if_all_pass": 32,
+    "planned_D_output_tokens_if_all_pass": 19200,
+    "planned_all_successful_backend_output_tokens_if_all_pass": 19232,
+    "booking_rule": "Actual gateway/native counts only. 64/19232 and any partial success are never booked just because planned.",
+    "expected_failure_handling": "Every HTTP error, timeout and missing field is preserved in place; no retry."
+  },
+  "profiler": {
+    "admission": "native 16 DP each with at least one running request from the 32 real requests; deadline180s; if not reached no profiler start and requests finish with preserved counts",
+    "sglang": "num_steps=2 scheduler-forward steps on API36; one start+one bounded stop; profile completion PENDING_NATIVE_TRACE_AUDIT",
+    "vllm": "existing delay_iterations=2 and max_iterations=8 on each of API43/API45; up to nine recorded worker iterations; one start+one bounded stop per endpoint; profile completion PENDING_NATIVE_TRACE_AND_ITERATION_AUDIT",
+    "window_policy": "The SGLang two-step and vLLM up-to-nine-step windows are intentionally different. Later analysis must normalize by actual observed per-trace iterations/shape and must not pretend the windows are identical.",
+    "stop_policy": "All HTTP statuses/bodies preserved. SGLang HTTP500 inactive-duplicate is recorded but is not completion proof. vLLM requires status200 on each stop.",
+    "completion": "No profile completion is accepted in this draft; trace and native markers are a later authorized audit."
+  },
+  "budget": {
+    "requests_wall_bound_seconds_per_framework": 420,
+    "profile_stop_deadline_seconds": 180,
+    "profile_starts": 3,
+    "profile_stops": 3,
+    "expected_paired_minutes": "10-15 inclusive prepare/start/analysis only if the prior prefixes are naturally cache-usable",
+    "one_framework_at_a_time": true,
+    "max_SSH_one_at_a_time": true,
+    "precheck_SSH_per_cohort": 4,
+    "cpu_client_SSH_per_cohort": 1,
+    "full_budget_requires_primary_review_before_execution": true
+  },
+  "new_files": {
+    "scripts/glm53_C32_L20_paired_diagnostic_client_v1.py": "0c34fdd1f6ee8273866a6af2d3e10a7881d7cd68fd8d4e45a1fc1dfb4f1dcfe3",
+    "scripts/glm53_C32_L20_paired_profile_control_v1.py": "8f5d5d84d60af11a931be4d3e9ba1d04779cf371fa895784f816c8e207131712",
+    "scripts/glm53_C32_L20_paired_diagnostic_controller_v1.py": "36fce248d88e84b1a953cc0f5ec2a0fd3f4b7e1f654b9d736be5178fc4147674",
+    "config/C32-L20-paired-diagnostic-v1/sglang-cohort-settings-draft-v1.json": "8d29b7403bd885d73899ba4a1dc937d2bb862537255b9f1b4be2aca220f9b242",
+    "config/C32-L20-paired-diagnostic-v1/vllm-cohort-settings-draft-v1.json": "bd462c22267e56ca65b5b9d69819ab6c40362a97b7d3fe6101dbf1a3cd147700"
+  },
+  "stage1_artifacts": {
+    "collector": "scripts/inspect_C32_L19_vllm_profile_fanout_v1.py",
+    "collector_sha256": "58b44533c59910c50b671b714305bd26fc6f409a4888730894a65fa68649c3ca",
+    "core_readiness": "scripts/inspect_C32_L19_vllm_profile_readiness_v1.py",
+    "core_readiness_sha256": "f2894c4409ad714432a2fd319927373af97c81e4af181f4c0bf4f44ee9635e71",
+    "review": "results/C32-L19-vllm-profile-fanout-review-v1.json",
+    "review_sha256": "5e0cedde8379c22c7e6a3a42638bfebc4b4ed35b3c6b2d0e2b513d30b54072b0",
+    "host43_code_sha256": "d32992ca6555ef4fb65d0979cb8801d35d135e62e0119bf77d04e8edf299d10c",
+    "execution_run": "runs/20261019T-L19-vllm-profile-fanout-source-v1",
+    "execution_receipt_sha256": "29ff573404499641f666532386e547715f2a42ad4685a9daa75fd0349fe81e4f",
+    "source_payload_sha256": "b2d166afa854b034565f91a8eb7e3fb3704138ed7ef4a40a885712624990774d",
+    "source_files": {
+      "/vllm-workspace/vllm/vllm/v1/engine/async_llm.py": "52cbf404f1dbc99c6bebf4a50a7eb18ff842a1f53106a45f365523192d816be1",
+      "/vllm-workspace/vllm/vllm/v1/engine/core_client.py": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+      "/vllm-workspace/vllm-ascend/vllm_ascend/platform.py": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+      "/vllm-workspace/vllm-ascend/vllm_ascend/worker/worker.py": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4"
+    },
+    "executor_dir": "runs/20261019T-L19-fanout-and-paired-draft-executor-v1",
+    "executor_stdout_sha256": "8f710c63504b44bb6521551ff22758fb8d42231fc716328716465f5fa73fd7fc",
+    "executor_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "executor_exit_code_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "exit_code": 0,
+    "pass": true,
+    "missing_source_files": [],
+    "worker_v1_path_note": "The old worker_v1.py miss was a path mismatch. The actual installed worker source is vllm_ascend/worker/worker.py and is included above."
+  },
+  "unresolved_prerequisites": [
+    "No primary review or freeze exists. Both settings are DRAFT_NOT_AUTHORIZED with execution_authorized=false; launch refuses them.",
+    "The fresh L18 SSH control socket was present for Stage1 and used once, but it was unlinked afterwards (observed missing at 14:52). It must be live before any launch; this is not a model-service failure.",
+    "SGLang current D36/41 get_server_info cuda_graph_config, disable_overlap_schedule and enable_hierarchical_cache are recorded but not pinned. The control asserts only the stable decode/tp32/dp16/ep32/npu fields until an authorized capture fills exact expectations.",
+    "Exact owned NPU context counts for the current SGLang and vLLM nodes are not pinned; expected_owned_NPU_contexts is null. The precheck still requires every owned NPU process to belong to the pinned CID.",
+    "SGLang stop_profile HTTP500 inactive-duplicate is preserved but never proves completion; current native trace completion remains pending.",
+    "The vLLM profiler output directory /run/glm53/profile is fixed and has no run prefix; L19 found zero existing trace_view.json files. Any non-empty baseline must stop before requests; later collection uses recorded baseline offsets/mtimes, not a full-GB log scan.",
+    "vLLM profile windows are delay2/max8 (up to nine worker steps) while SGLang uses two scheduler-forward steps. No normalized equivalence is assumed; analysis must cite observed iterations/shape.",
+    "TASK_QUEUE_ENABLE remains an initial-environment observation only: the API parents show 1 while the 32 vLLM workers initially show unset. This establishes neither an effective value nor a cause; no flag was changed.",
+    "Fifth-suffix cache hits in the prior namespaces are natural only. No cache clear, flush or repopulate is planned to manufacture a hit; native cached tokens/null details and counts are recorded as observed.",
+    "CPU43 must still pass the qualified AIS v2 runtime assertions (torch 2.10.0+cpu, ais_bench_benchmark 3.1.0, image sha256:008d2ebc...) before any request.",
+    "The total paired budget (10-15 minutes if cache usable) and the exact per-cohort SSH/precheck budget require primary review before execution."
+  ],
+  "explicit_non_actions": [
+    "This job performed no model request, no profile start, no SDK initialization, no deployment, no service change, no HTTP, no SSH, no Git write and no provider access after the single reviewed Stage1 collector.",
+    "No live config was mutated.",
+    "No planned count was booked; only actual counts will be booked at execution.",
+    "No root documentation was maintained in this job."
+  ]
+}

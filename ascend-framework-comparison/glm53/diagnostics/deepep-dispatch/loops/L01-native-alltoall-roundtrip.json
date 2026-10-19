@@ -1,0 +1,60 @@
+{
+  "id": "L01-native-alltoall-roundtrip",
+  "parent_task": "sglang-a3-ep32-dispatch",
+  "state": "FROZEN",
+  "mode": "baseline",
+  "hypothesis": {
+    "mechanism": "Native AlltoAllNormalCommStrategy uses torch HCCL all_to_all_single plus native routing and avoids CamMoeDispatchNormal tiling.",
+    "rationale": "Exact installed source source-1260 has DEEP_USE_MODE=alltoall selector and native BF16/INT8 dispatch/combine implementation.",
+    "predicted_observation": "EP32 cross-node routed payloads roundtrip for actual hidden6144/expert256/topk8."
+  },
+  "scope": {
+    "cases": [
+      "tokens1-bf16",
+      "tokens1-int8",
+      "tokens4-bf16",
+      "tokens4-int8"
+    ],
+    "allowed_variables": [
+      "Only native strategy selector DEEP_USE_MODE=alltoall; BF16 and INT8 are explicit correctness cases."
+    ],
+    "fixed_variables": [
+      "B103 image",
+      "EP32 on 36+41 16 die each",
+      "hidden6144",
+      "experts256",
+      "topk8",
+      "all eight selected experts owned by next rank; ranks15/31 cross node",
+      "equal weights1/8"
+    ],
+    "forbidden_changes": [
+      "system SDK/driver",
+      "PD transport",
+      "model weights",
+      "blind shape scan"
+    ]
+  },
+  "evaluation": {
+    "correctness_gate": "All32rank reports; each four cases exactBF16 or max_abs<=0.04INT8, each expert receives N rows; dispatch payload and combine roundtrip validated; exit0 and NPUempty.",
+    "performance_metric": "NONE; functional only",
+    "required_artifacts": [
+      "sourceSHA",
+      "frozen launcher/payloadSHA",
+      "per-rank errors/counts",
+      "raw logs/exit",
+      "NPUempty after"
+    ]
+  },
+  "verdict_rules": {
+    "accept": "all32*4 cases satisfy gate; only native synthetic path accepted, model integration pending",
+    "reject": "native dispatch/combine fails or oracle differs",
+    "inconclusive": "missingrank or operational failure before collective"
+  },
+  "operations": {
+    "execution_owner": "ZCode DeepSeek",
+    "budget": "One run, 360s container wait + bounded30s stop if hung",
+    "rollback": "Only own exact diagnostic containers stopped; raw artifacts retained",
+    "launcher_sha256": "7ab6a30499bcee205ad30192a44b9e40a5cc9a649a465b0108c08ba5457a76e7",
+    "payload_sha256": "01483b03c972965abe5c2300d8b35fb099dd9c7e1c32963401267bd1342044ed"
+  }
+}

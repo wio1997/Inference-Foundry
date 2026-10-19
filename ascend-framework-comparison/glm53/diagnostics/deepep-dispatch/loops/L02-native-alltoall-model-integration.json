@@ -1,0 +1,52 @@
+{
+  "id": "L02-native-alltoall-model-integration",
+  "parent_task": "sglang-a3-ep32-dispatch",
+  "state": "FROZEN",
+  "mode": "baseline",
+  "hypothesis": {
+    "mechanism": "Use installed HCCL alltoall strategy for DeepEP NORMAL, avoiding failing CamMoeDispatchNormal in actual GLM53 inference.",
+    "evidence": "1290all32rank*4 payload/combine checks passed; fullruninconclusivefornativeexit(kept).1310nativeimport/config/strategypreflightpassed."
+  },
+  "scope": {
+    "allowed_variables": [
+      "DEEP_USE_MODE=alltoall native selector; new own namespace/container identities"
+    ],
+    "fixed_variables": [
+      "B103/ordinaryW8A8",
+      "EP32",
+      "TPattention8P/2D andDP4P/16D",
+      "PMC16GiB+host8GiB",
+      "SDKSDMAguard/sourceunchanged",
+      "nativeeager/nooverlap/MTP5"
+    ],
+    "forbidden_changes": [
+      "systemSDK/driver",
+      "modelprecision/PD fallback",
+      "otherworkloads"
+    ]
+  },
+  "evaluation": {
+    "correctness_gate": "Actualmodelsready, no nativewarmup failure, thenallDP PDshortandtwo80Kfactguardscounts/expectedanswers plusknownMCreadback andSDKSDMApayload audit. Startup alone insufficient.",
+    "performance_metric": "NONE functional only",
+    "required_artifacts": [
+      "actualstrategy/env",
+      "nativewarmuplogs",
+      "health",
+      "rawHTTP/error/counts",
+      "SDMAstates/bytes",
+      "MCwrite/readmetadata",
+      "boundedownlifecycle"
+    ]
+  },
+  "verdict_rules": {
+    "accept": "Actualmodelcorrectnessgatespassed; cachebudgetreconciliation/graphperformance remainseparate",
+    "reject": "Modelnativepathfails orcorrectnessoraclefails",
+    "inconclusive": "Missingnative/state evidenceorstartupoperationalfailure"
+  },
+  "operations": {
+    "execution_owner": "ZCode DeepSeek",
+    "startup_budget": "Oneonceonlystartup, normal longloadingpreserved; checkpointatmeaningfulprogress",
+    "rollback": "Ownexactnewcontainers only; historicalrawretained",
+    "launcher_sha256": "4688356fc89c3a69f16a6a12b3bbb5d8ee59878145c48cf909e3f5046796fb7f"
+  }
+}

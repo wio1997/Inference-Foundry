@@ -1,3 +1,31 @@
+# L22 诊断已结束，按用户要求暂停
+
+本轮不是正式性能测量；下列 L17/L12D/vLLM 正式数字不变。Graph 与 Graph 间隔差的证据边界见 [L22 总结](diagnostics/model-profile/C32-L22-pause-summary-20261019.md)；当前无新增候选收益。
+
+# 当前：L17 正式 v2 有效测量；解码目标未达成（历史 L12D 参考保留）
+
+只做普通 W8A8 GLM-5.3 的 C32 对比与优化；C16/C64/L05 保留历史，不新增测试。
+
+| C32 部署 | 正式成功 | 全程输出 tokens/s | TTFT P50 秒 | TPOT P50 毫秒 | 固定 SLA |
+| --- | ---: | ---: | ---: | ---: | --- |
+| vLLM C32 参照（未重跑） | 128/128 | 530.8125 | 21.1620 | 19.1527 | Fail |
+| SGLang L12D 历史参考（非当前运行时） | 128/128 | 389.8741 | 17.7572 | 36.6586 | Fail |
+| 当前 SGLang L17-D NoCopy 候选 | 128/128 | 411.9606 | 16.6567 | 37.9931 | Fail |
+
+当前 L17 正式 v2 是有效测量：128/128 正式请求通过，76800 个正式 D 输出 token，完整时钟 186.42558009 秒，320 个后端尝试全部合格、共 76992 个输出 token（160 个 P + 32 个 warm D + 76800 个 formal D）。相对历史 L12D：TPS +5.66505%，但 TPOT 中位数增加 3.640395%（37.9931 ms 对 36.6586 ms），TTFT P50 16.6566555 秒（改善 6.19797%）。冻结目标要求中位 TPOT 改善至少 5% 且 TPS 不回退；TPOT 目标未达成，因此不提升为成功的解码优化，不宣称可靠增益（单 cohort，INCONCLUSIVE），也不作因果回归、统计显著性、重复噪声或全局最优声明。SLA 为 false。L12D 仍是保留的历史最佳已接受解码优化/参考，但不是当前运行时；D36/41 仍是 L17 NoCopy 候选，rollback 未执行。
+
+原生证据：32 个 P 原生缓存读取 worker（每个 160 次 new good batch_get）、32 个 D typed SDMA 接收设备、3456 个 descriptor batch、2808364105728 descriptor bytes（不是物理 wire bytes；physical_wire_bytes 仍为 null）、248 个原始 metric pair / 496 行 HTTP 记录、全部 32 个 Graph rank delta 为正、MTP5；当前原始 D storage null 为 0，raw 字段未改。日志/指标未产生新的 profile，也没有新增模型请求以外的资源操作。
+
+请求账本 `results/model-request-ledger-through-L17-formal-v2.json`：6729 次后端尝试 = 6492 次合格成功 + 173 次历史未合格 + 64 次 pending native；合格输出 1432790，pending native 输出 64。原 v1 的 64 个 warmup 仍为 NATIVE PENDING，不称为 failed HTTP，也不被 v2 证据追溯合格化。新账本 SHA-256 `b86b1b11d582522df50ed15835f29d72373c8e015662cf413e61f418d8a48cfb`。
+
+当前无活动执行；所有 coordinator/postexecutor 已终结，SSH 已恢复，无当前 blocker。下一步是主控复核既有 L15 native AscendCL/API correlation 与 source evidence；在任何新冻结候选前保持 0 model / 0 profile。本次 closeout 不授权新的优化部署、重复或 rollback。
+
+当前比较：`results/C32-L17-current-comparison-v1.json`（SHA-256 `09b12f0b9d08931f82caf2509bb3c360eef569a582b9f03c6a1bdaabb9b8dda2`）。完整原始证据、请求 ID、输入/输出、日志与 trace 保持原地。
+
+<!-- C32_ONLY_CURRENT_CHECKPOINT_END -->
+
+## 以下为历史检查点（原文保留，更新前 SHA-256 `638053a5929acfa63f7cf706803e7a858bf3fe8cc19a1356ff5f825b479a7bec`）
+
 # 当前：C32 对照与 D 诊断已验收，候选待控制通道恢复
 
 只做普通 W8A8 GLM-5.3 的 C32 对比与优化；C16/C64/L05保留历史，不新增测试。

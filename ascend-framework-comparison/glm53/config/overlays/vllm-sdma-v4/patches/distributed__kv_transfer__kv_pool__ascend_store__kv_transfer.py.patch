@@ -1,0 +1,13 @@
+--- distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py
++++ distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py
+@@ -761,6 +761,10 @@
+             request_data = None
+             try:
+                 request_data = self.request_queue.get()
++                from glm53_runtime_lifecycle import STOP_CACHE_THREAD
++                if request_data is STOP_CACHE_THREAD:
++                    self.request_queue.task_done()
++                    return
+                 if request_data is None:
+                     logger.warning("Received a None request. This indicates queue shutdown or invalid request.")
+                     self.request_queue.task_done()

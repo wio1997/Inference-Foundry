@@ -1,0 +1,46 @@
+{
+  "project_id": "glm53",
+  "loop_id": "L05-buffer-storage-recency-validation",
+  "state": "ARCHIVED_AFTER_USER_SCOPE_REDUCED_C32_ONLY",
+  "predecessor": "L04-routing-host-metadata-batch",
+  "question": "Does validating confirmed buffer-mode storage deduplication with the native existence API refresh external recency and repair stale existence beliefs without changing data or pinning workload keys?",
+  "evidence_level": "E3_symptoms_E0_specific_fix",
+  "actual_failure": "results/sglang-L04-C64-v2-failed-attempt-v1.json",
+  "facts": [
+    "2000 warm+initial all-key readback passed; formal 46 request failures and 34 cache checks remain unqualified beyond one optional formatter omission.",
+    "1992-to-2002 Meta audit delta159537evictions/7816get_not_found,0allocfail.",
+    "2014 archived native stderr: all46failed requests have two D-rank300sWaitingForInput timeouts;19also have originalP300sBootstrapping lines;5prefetchoperations show missingpages.",
+    "2018 actual buffer pipeline returns early when local storage_existence_cache covers backup snapshot, with no native backend existence check.",
+    "PublicSDK1.3 Meta ExistKeyCore promotes LRU; this source mechanism is not yet actual installed binary equivalence."
+  ],
+  "hypothesis": "HBM reuse can bypass external reads/writes and therefore fail to refresh external LRU; local dedup beliefs can outlive evicted external keys. This may cause later partial fetches and slow fallback, but does not yet prove the complete timeout causal chain.",
+  "next_counterfactual": {
+    "kind": "Native SDK CPU-only isolated host_shm tiny pool",
+    "fixed": [
+      "exact model image SDK1.3 binary",
+      "same small capacity/object sizes/watermarks/insertion sequence",
+      "no NPU devices/weights/production endpoints"
+    ],
+    "variable": "batch_is_exist(oldest hot key) before pressure vs no touch",
+    "prediction": "Oldest key evicted in control, retained with existence touches, with successful actual byte readback of retained key.",
+    "failure_rule": "Any unsupported API/protocol/failed alloc/read returns diagnostic failure; no model patch or runtime tuning based on it.",
+    "status": "PASSED_WITH_REQUIRED_NATIVE_NPU_CONTEXT"
+  },
+  "prospective_fix_not_yet_implemented": "Implemented locally as opt-in P-only single-method wrapper; same native snapshots, metadata existence prefix count rank-min, stale-belief revocation, then original admission/backup. No production deployment or model inference yet.",
+  "runtime_mutations_authorized_for_this_step": "Owned idle service replacement after completed nativeAPI+CPUproofs and full stage/rollback review; model semantics/cache/SDK/SDMAqualification still required.",
+  "existing_model_services_unchanged": false,
+  "model_requests": 0,
+  "native_API_counterfactual": "results/sglang-buffer-LRU-native-counterfactual-v1.json",
+  "image_CPU_qualification": "results/sglang-buffer-dedup-image-CPU-qualification-v1.json",
+  "proposed_helper": "scripts/glm53_buffer_dedup_validation_v1.py",
+  "proposed_helper_sha256": "78ec7134ff11ead6f30504e80aa23a0b5cf92f4c7149ac2f57dab4c756e4e08d",
+  "next_step": "Version new deployment/rollback bundles and freeze exact launchers. Preserve original1954L04 evidence, qualify actual32Pworkers/SDMA/semantic/count/cache before any new formal attempt.",
+  "active_run": null,
+  "model_configuration_change": "P-only opt-in generic cache dedup validation; no CLI/weights/precision/MTP/graph/capacity/timeout/client changes",
+  "actual_runtime": "20261017T2028-sglang-buffer-dedup-v1",
+  "actual_pool_capacity": "results/sglang-buffer-dedup-pool-capacity-v1.json",
+  "real_model_qualification_pass": false,
+  "performance_result": null,
+  "reason": "No provedC32need; userexplicitlyremovedC64. Do notcontinueL05qualification/benchmarks ormakeC32waitforC64repair.",
+  "existing_finite_startup_completed": "20261017T2032-sglang-buffer-dedup-startup-stable-v1"
+}

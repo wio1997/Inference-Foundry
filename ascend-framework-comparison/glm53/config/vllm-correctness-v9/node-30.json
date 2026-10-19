@@ -1,0 +1,179 @@
+{
+  "project_id": "glm53",
+  "node": 30,
+  "role": "P",
+  "phase": "SHARED_CONTAINER_POOL568_NATIVE_FULL_BATCH_TTL60_CANDIDATE",
+  "image_id": "sha256:090eeee66e347509127601e565b971a0801701e32e4e865d89cc8dec72ca7d83",
+  "api_port": 30300,
+  "launch_args": [
+    "--model",
+    "/data/wio/models/GLM-5.3-w8a8",
+    "--served-model-name",
+    "glm53-w8a8",
+    "--trust-remote-code",
+    "--dtype",
+    "bfloat16",
+    "--quantization",
+    "ascend",
+    "--tensor-parallel-size",
+    "8",
+    "--data-parallel-size",
+    "4",
+    "--data-parallel-size-local",
+    "2",
+    "--data-parallel-start-rank",
+    "0",
+    "--data-parallel-address",
+    "172.16.12.30",
+    "--data-parallel-rpc-port",
+    "29410",
+    "--data-parallel-backend",
+    "mp",
+    "--distributed-executor-backend",
+    "mp",
+    "--enable-expert-parallel",
+    "--max-model-len",
+    "80640",
+    "--gpu-memory-utilization",
+    "0.92",
+    "--block-size",
+    "128",
+    "--max-num-seqs",
+    "2",
+    "--max-num-batched-tokens",
+    "2048",
+    "--enable-chunked-prefill",
+    "--enable-prefix-caching",
+    "--enforce-eager",
+    "--speculative-config",
+    "{\"method\": \"mtp\", \"num_speculative_tokens\": 5}",
+    "--kv-transfer-config",
+    "{\"kv_connector\": \"MultiConnector\", \"kv_role\": \"kv_producer\", \"kv_connector_extra_config\": {\"connectors\": [{\"kv_connector\": \"AscendStoreConnector\", \"kv_role\": \"kv_producer\", \"kv_connector_extra_config\": {\"backend\": \"memcache\", \"use_layerwise\": false, \"consumer_is_to_load\": false, \"consumer_is_to_put\": false, \"memcache_dp_init_barrier\": true, \"lookup_rpc_port\": 28100}}, {\"kv_connector\": \"MooncakePullConnector\", \"kv_role\": \"kv_producer\", \"kv_port\": 26000, \"kv_connector_extra_config\": {\"glm53_sdma\": {\"store_url\": \"tcp://172.16.12.30:29580\", \"session_port_offset\": 4000, \"sdk_log_level\": 1}}}]}}",
+    "--cudagraph-metrics",
+    "--profiler-config",
+    "{\"profiler\": \"torch\", \"torch_profiler_dir\": \"/run/glm53/profile\", \"ignore_frontend\": true, \"delay_iterations\": 2, \"max_iterations\": 8, \"torch_profiler_with_stack\": false, \"torch_profiler_with_memory\": false, \"torch_profiler_record_shapes\": false, \"capture_torch_profiler\": false}",
+    "--enable-prompt-tokens-details"
+  ],
+  "parallel_intent": {
+    "role_die": 32,
+    "node_die": 16,
+    "attention_tp": 8,
+    "attention_dp": 4,
+    "expert_parallel": 32,
+    "pp": 1,
+    "cp": 1
+  },
+  "kv_transfer": {
+    "kv_connector": "MultiConnector",
+    "kv_role": "kv_producer",
+    "kv_connector_extra_config": {
+      "connectors": [
+        {
+          "kv_connector": "AscendStoreConnector",
+          "kv_role": "kv_producer",
+          "kv_connector_extra_config": {
+            "backend": "memcache",
+            "use_layerwise": false,
+            "consumer_is_to_load": false,
+            "consumer_is_to_put": false,
+            "memcache_dp_init_barrier": true,
+            "lookup_rpc_port": 28100
+          }
+        },
+        {
+          "kv_connector": "MooncakePullConnector",
+          "kv_role": "kv_producer",
+          "kv_port": 26000,
+          "kv_connector_extra_config": {
+            "glm53_sdma": {
+              "store_url": "tcp://172.16.12.30:29580",
+              "session_port_offset": 4000,
+              "sdk_log_level": 1
+            }
+          }
+        }
+      ]
+    }
+  },
+  "source_overlay": "config/overlays/vllm-sdma-v5",
+  "target_graph_intent": {
+    "mode": "NONE",
+    "reason": "P is prefill role; native current config eager, graph change confined to D target."
+  },
+  "required_meta_service_lease_ttl_ms": 60000,
+  "profiler_intent": {
+    "native_config": {
+      "profiler": "torch",
+      "torch_profiler_dir": "/run/glm53/profile",
+      "ignore_frontend": true,
+      "delay_iterations": 2,
+      "max_iterations": 8,
+      "torch_profiler_with_stack": false,
+      "torch_profiler_with_memory": false,
+      "torch_profiler_record_shapes": false,
+      "capture_torch_profiler": false
+    },
+    "activation": "Separate bounded /start_profile and /stop_profile run after baseline; never during formal baseline.",
+    "native_max_iteration_boundary": "WorkerProfiler uses > max_iterations; up to9 counted steps for configured8."
+  },
+  "environment_intent": {
+    "PYTHONHASHSEED": "0",
+    "ACL_OP_INIT_MODE": "1",
+    "ASCEND_ENABLE_USE_FABRIC_MEM": "1"
+  },
+  "standalone_pool_intent": {
+    "provider_nodes": [
+      30,
+      31,
+      43,
+      45
+    ],
+    "provider_processes_per_node": 1,
+    "provider_device_id": 0,
+    "provider_dram_GiB_each": 136,
+    "model_client_dram_GiB": 0,
+    "all_local_processes_max_dram_GiB": 160,
+    "world_size": 128,
+    "init_bm": true,
+    "must_start_provider_before_weights": true,
+    "actual_allocation_pending": true,
+    "SDK_reference": "SDK1.3configuration +vLLMrc1KVPoolStep6",
+    "total_MC_GiB": 568,
+    "allocation_pending": true,
+    "provider_dram_GiB_by_node": {
+      "30": 136,
+      "31": 112,
+      "43": 160,
+      "45": 160
+    }
+  },
+  "cache_usage_observation_intent": {
+    "native_flag": "--enable-prompt-tokens-details",
+    "source": "runs/20261017T1626-native-cache-profile-source-v1",
+    "runtime_per_request_proof": "PENDING; native flag existence does not prove cache hits",
+    "policy": "Observe P response cached_tokens; distinguish P HBM/store with native external-load evidence for cross-DP qualification."
+  },
+  "deployment_intent": {
+    "container_per_node": 1,
+    "pool_and_model_processes": "Separate processes in same nonprivileged container; pool ready before model signal; modelprocessgroup stopsbeforepool",
+    "NPU_device_files_per_container": 16,
+    "model_start_trigger": "ExplicitSIGUSR1 afterallpoolcapacity+native16devicequeriespass",
+    "evidence": "results/sglang-container-visibility-cause-v1.json",
+    "full_model_qualification_pending": true
+  },
+  "meta_eviction_intent": {
+    "high_percent": 99,
+    "low_percent": 98,
+    "lease_ttl_ms": 60000,
+    "source": "ExactSDK1.3documentedhigh1..99/low supported; samepolicybothframeworks",
+    "reason": "SG568GiBpool90pct511.2GiB isbelowC64firstformalpass528.328125GiB;99pct562.32GiB canretainfirstpass. Fullfourfreshsuffixhistory637.55stillrequiresnaturalLRU/runtimeprefixhitproof."
+  },
+  "comparison_memory_policy": {
+    "external_MC_GiB_each_framework": 568,
+    "total_cache_data_ceiling_GiB": 1024,
+    "vllm_MC_data_GiB": 568,
+    "sglang_MC_data_GiB": 568,
+    "sglang_native_staging_data_GiB": 268.3974609375,
+    "scope": "Same external pool per PLAN; actual staging/native overhead reported separately, hardware resources equal. Supersedes unexecuted v8 four209GiB proposal."
+  }
+}

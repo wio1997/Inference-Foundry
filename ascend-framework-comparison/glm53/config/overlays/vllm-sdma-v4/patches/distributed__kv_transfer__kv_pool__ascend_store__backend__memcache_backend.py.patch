@@ -1,0 +1,31 @@
+--- distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py
++++ distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py
+@@ -6,6 +6,7 @@
+ from typing import Any
+ 
+ import torch
++from glm53_memcache_batch import batched_get_into_layers
+ from vllm.config import ParallelConfig
+ from vllm.distributed.parallel_state import get_dp_group
+ from vllm.logger import logger
+@@ -201,6 +202,9 @@
+     ):
+         if not isinstance(dp_init_barrier, bool):
+             raise ValueError("memcache_dp_init_barrier in kv_connector_extra_config must be a boolean.")
++        self._glm53_get_batch_blocks = int((extra_config or {}).get("glm53_get_batch_blocks", 32))
++        if not 1 <= self._glm53_get_batch_blocks <= 128:
++            raise ValueError("glm53_get_batch_blocks must be in 1..128")
+         _inject_device_ub_qos(extra_config)
+         _validate_device_ub_qos()
+         self.device_id = torch.npu.current_device() if device_id is None else device_id
+@@ -464,7 +468,9 @@
+             return
+         assert self.store is not None
+         try:
+-            res = self.store.batch_get_into_layers(key, addr, size, MmcDirect.COPY_G2L.value)
++            res = batched_get_into_layers(
++                self.store, key, addr, size, MmcDirect.COPY_G2L.value, self._glm53_get_batch_blocks
++            )
+             failed_codes = [int(value) for value in res if value != 0]
+             failed_count = len(failed_codes)
+             if failed_count:

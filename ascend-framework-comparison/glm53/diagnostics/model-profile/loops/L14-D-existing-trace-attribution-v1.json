@@ -1,0 +1,266 @@
+{
+  "project_id": "glm53",
+  "loop_id": "L14-D-existing-trace-attribution-v1",
+  "parent": "L13-D-native-decode-two-step-diagnostic-v1",
+  "kind": "PLANNING_ONLY_READ_ONLY_TRACE_ATTRIBUTION",
+  "evidence_maturity": "E1",
+  "state": "CLOSED_PIVOTED",
+  "decision": "PIVOTED",
+  "runtime_authorized": false,
+  "execution_authorized_now": false,
+  "planning_only": false,
+  "purpose": "Attribute the accepted L13 D decode diagnostic without new model requests, new profiling or a service change. Separate three hypotheses before choosing any optimization: Graph-drain effects, CPU metadata preparation, and MC2 distributed MoE kernel time.",
+  "basis": {
+    "accepted_l13_evidence": "results/C32-L13-D-two-step-evidence-v1.json",
+    "accepted_l13_evidence_sha256": "5fccbbafa1072417625192d6f7f904a6815685f507866787e09526ae9bd768bf",
+    "accepted_l13_decision": "results/C32-L13-D-diagnostic-acceptance-decision-v1.json",
+    "accepted_l13_decision_sha256": "b4f297c2b8bfa5ecdd0691c0fa3a2100c5091aa683627c64389093753514ce6a",
+    "accepted_l13_auditor_sha256": "e9754f931295600e24cee438cb811dd04dae82b3e7678691156233f1b8c414ed",
+    "technical_note": "diagnostics/model-profile/C32-L13-D-profile-result.md",
+    "remaining_gap": "D decode remains the largest measured gap; the L13 diagnostic established span/API/kernel context but did not attribute cause."
+  },
+  "questions": [
+    {
+      "id": "graph_drain",
+      "question": "How much of the observed H2D/synchronization wait may be draining earlier asynchronous Graph work rather than an unnecessary copy or a safe task-queue change?",
+      "needed_context": "Existing operator_details.csv timestamp/row context and the exact decode step/Graph source path. Host VERIFY time is asynchronous enqueue and cannot be called device execution time.",
+      "not_yet_established": true
+    },
+    {
+      "id": "cpu_metadata_preparation",
+      "question": "Which host-side speculative preparation work is CPU metadata preparation, and which spans only enqueue device work?",
+      "needed_context": "Exact installed eagle_worker_v2.py, eagle_worker_common.py, spec_utils.py, eagle_info_v2.py, eagle_utils.py and forward_batch_info.py byte copies, plus representative host operator rows.",
+      "not_yet_established": true
+    },
+    {
+      "id": "mc2_distributed_moe_kernel",
+      "question": "What do the per-rank MC2 MoeDistributeDispatch/Combine name buckets represent relative to other communication and kernel intervals?",
+      "needed_context": "Representative kernel_details.csv rows and task_time.csv interval groups. The frozen COMM regex excludes MC2, so the existing COMM bucket is not total communication time.",
+      "not_yet_established": true
+    }
+  ],
+  "intended_evidence": {
+    "new_model_requests": 0,
+    "new_profile_requests": 0,
+    "new_model_start_or_reload": false,
+    "new_flag_or_parameter_scan": false,
+    "existing_trace_only": true,
+    "representative_ranks": [
+      "TP rank 0 on node 36",
+      "TP rank 16 on node 41"
+    ],
+    "other_rank_traces": "Not read; the remaining 30 ranks are not inspected by the context collector.",
+    "files": [
+      "ASCEND_PROFILER_OUTPUT/operator_details.csv",
+      "ASCEND_PROFILER_OUTPUT/kernel_details.csv",
+      "ASCEND_PROFILER_OUTPUT/task_time.csv"
+    ],
+    "source_files": [
+      "/sgl-workspace/sglang/python/sglang/srt/speculative/eagle_worker_v2.py",
+      "/sgl-workspace/sglang/python/sglang/srt/speculative/eagle_worker_common.py",
+      "/sgl-workspace/sglang/python/sglang/srt/speculative/spec_utils.py",
+      "/sgl-workspace/sglang/python/sglang/srt/speculative/eagle_info_v2.py",
+      "/sgl-workspace/sglang/python/sglang/srt/speculative/eagle_utils.py",
+      "/sgl-workspace/sglang/python/sglang/srt/model_executor/forward_batch_info.py"
+    ],
+    "expected_eagle_worker_v2_sha256": "67a76083ecc365604b7fa9e9d8dd64aa0d4cf3f023c9050e98dc48829985716d",
+    "other_source_hashes": "Recorded actuals only; no expected value is guessed."
+  },
+  "evidence_rules": [
+    "Read only the existing trace on nodes 36 and 41, sequentially, with at most one SSH session at a time.",
+    "No HTTP request, no NPU call, no SDK initialization and no model import.",
+    "Reject symlinks and paths outside the frozen profile root and source root.",
+    "Require CSV bytes and SHA256 to match the accepted evidence index and require stable mtime during the read.",
+    "Preserve all source columns; cap a single cell at 8,192 characters and mark truncation explicitly.",
+    "Do not infer timestamp units or clock bases and do not invent a cross-file join.",
+    "No Graph name guessing; kernel classes are the two MC2 MoE names plus the frozen COMM regex only.",
+    "Selected rows are a bounded sample and cannot support a full-phase attribution or a physical-utilization percentage."
+  ],
+  "forbidden_changes": [
+    "No model, source, config or service reload.",
+    "No new profiling or model requests.",
+    "No SDK, driver or system change.",
+    "No precision, concurrency, MemCache or admission change.",
+    "No parameter or knob scan.",
+    "No optimization dispatch until the existing-trace evidence is sufficient and separately reviewed."
+  ],
+  "collector_draft": {
+    "status": "DRAFT_PENDING_PRIMARY_REVIEW",
+    "module": "scripts/glm53_C32_L14_D_trace_context_v1.py",
+    "wrapper": "scripts/inspect_C32_L14_D_trace_context_v1.py",
+    "actual_review_required": "results/C32-L14-D-trace-context-actual-review-v1.json",
+    "actual_review_created": false,
+    "executed": false,
+    "invoke_called": false,
+    "fixed_run_id": "20261019T-L14-sglang-existing-D-trace-context-v1",
+    "module_sha256": "440e5755323a45968aacf460735a1e6a2f718ecf717d58ea389e35c3b838855a",
+    "wrapper_sha256": "0129c5fa07ab86e241aedf64e8ab124136707da8ac312aca54c3f6eddb705e9d",
+    "host_codes_sha256": {
+      "36": "77f3445a9808e15cdc124dae3be2ef2398eb87d34498f36cd5ac7b9cfe824b35",
+      "41": "72c89e608fdc96a85cb7db8534285d4d1c1f0864a8cdf957e5eb2c17ed9a7692"
+    },
+    "draft_artifacts": "runs/20261019T-L13-accepted-housekeeping-L14-readonly-draft-v1/l14-draft/",
+    "note": "Historical v1 draft record. V1 stayed unexecuted; the exact v2 correction ran once and is recorded in executed_collector.",
+    "historical_status": "EXECUTION_SUPERSEDED_BY_V2"
+  },
+  "budget": {
+    "model_requests": 0,
+    "new_profiles": 0,
+    "SSH_nodes": [
+      36,
+      41
+    ],
+    "max_concurrent_SSH": 1,
+    "HTTP_requests": 0,
+    "NPU_calls": 0,
+    "SDK_init_calls": 0,
+    "actual_node_invocations": 2,
+    "actual_remote_writes": 0,
+    "actual_HTTP_requests": 0,
+    "actual_NPU_calls": 0,
+    "actual_SDK_init_calls": 0
+  },
+  "next_action": "Closed PIVOTED. Do not replay L14, do not re-read the three qualified CSVs, and do not search for alternate source paths. L15-D timeline/source preparation is a separate PREPARING loop with no execution authorization and no optimization.",
+  "decision_scope": "Closed as a pivoted read-only collection: the CSV and five-source partial evidence is valid and preserved, but the requested eagle_info_v2.py path did not exist. This is a collector path assumption error, not a runtime error or a pass.",
+  "optimization_authorized": false,
+  "evidence_maturity_note": "E1 remains the correct label for the partial L14 context. The accepted C32 performance/profile evidence is separately E3 and is not downgraded by this closed partial loop.",
+  "closure": {
+    "decision": {
+      "path": "results/C32-L14-existing-trace-attribution-decision-v1.json",
+      "sha256": "9d3a1175d1af55f6c7554cb71385387bbd2e034c278a08e1069b5f3b518fa809"
+    },
+    "collection_receipt": {
+      "path": "runs/20261019T-L14-sglang-existing-D-trace-context-v1/receipt.json",
+      "sha256": "72dadcd2a6d79292e4cdc62cfe6d58929bedac56a4088ee72f9b549e6c776788"
+    },
+    "collection_pass": false,
+    "executed_once": true,
+    "node_invocations": 2,
+    "model_requests": 0,
+    "new_profiles": 0,
+    "HTTP_requests": 0,
+    "NPU_calls": 0,
+    "SDK_init_calls": 0,
+    "remote_writes": 0,
+    "partial_evidence_valid": {
+      "both_representative_ranks_three_csv_bytes_sha_stable": true,
+      "csv_files_reread_after_collection": false,
+      "five_source_files_per_node_present": true,
+      "five_source_sha_agree_across_nodes": true,
+      "existing_sources": {
+        "eagle_worker_v2.py": {
+          "bytes": 79196,
+          "sha256": "67a76083ecc365604b7fa9e9d8dd64aa0d4cf3f023c9050e98dc48829985716d"
+        },
+        "eagle_worker_common.py": {
+          "bytes": 26164,
+          "sha256": "e3a18f474b823339a2054ca783c9e007c231bd8fd53b120b328b9f7be6ac84c9"
+        },
+        "spec_utils.py": {
+          "bytes": 46427,
+          "sha256": "58bd378c7444a7fdd6f0aa7b1ddf4b21e4ceb30553e5fc6a988709a46d7eb8fa"
+        },
+        "eagle_utils.py": {
+          "bytes": 41707,
+          "sha256": "7998e60c335e7e0e7bcdc4fa6403c2d697128077491858e810c37af6de1a3df7"
+        },
+        "forward_batch_info.py": {
+          "bytes": 92193,
+          "sha256": "3cd25cf712f6039bbb857824ea68a651eddace4aae015ec9297e500b607c20fb"
+        }
+      },
+      "source_directories": [
+        "runs/20261019T-L14-sglang-existing-D-trace-context-v1/source/node-36",
+        "runs/20261019T-L14-sglang-existing-D-trace-context-v1/source/node-41"
+      ],
+      "csv_sha_index_link_only": {
+        "node_36": {
+          "operator_details.csv": "3e107b07b505cb9c73fc19d6937c9766310938cf74507a85ca18d3731c8a2c14",
+          "kernel_details.csv": "d779ed3384379293e9f2acd9c7a23b8cfb81684d4f13c587da5d1871330b3eb8",
+          "task_time.csv": "c7d12b1b61e7d272b2a307656955dea4dcc28e11790acc04fc4682a16b3b5e25"
+        },
+        "node_41": {
+          "operator_details.csv": "6b43a504f7881edc3d2e10ea95bb57b6755cf4b789643bee51d16e1f097296fd",
+          "kernel_details.csv": "9d512e446eec79ba6e29f0fd712031d503f21b8c10fbc1dfd4a0c496173dd1bb",
+          "task_time.csv": "870b1306b5ac202a006dadc7ac6a14fcda307ace822210ae2e2e3cad2cfce94b"
+        }
+      },
+      "note": "The three qualified CSV files are linked by their accepted bytes/SHA only. L15 does not re-read them."
+    },
+    "preserved_missing": {
+      "eagle_info_v2.py": {
+        "exists": false,
+        "bytes": null,
+        "sha256": null,
+        "error": "FileNotFoundError(2, 'No such file or directory')",
+        "actual_imports_observed": [
+          "sglang.srt.speculative.eagle_worker_v2.py:83 imports sglang.srt.speculative.eagle_info",
+          "sglang.srt.speculative.eagle_worker_common.py:19 imports sglang.srt.speculative.eagle_info"
+        ],
+        "classification": "collector path assumption error, not a runtime error"
+      }
+    },
+    "preserved_null": {
+      "operator_details_csv_timestamp_column": null,
+      "operator_details_csv_columns": 9,
+      "operator_details_csv_has_timestamp_like_column": false,
+      "physical_wire_bytes": null,
+      "cross_file_join": null
+    },
+    "specific_limitations": [
+      "Native operator_details.csv contains duration aggregates and no timestamp, so it cannot establish which stage contains a long host memcpy or whether that wait drains earlier Graph device work.",
+      "Kernel/task CSV timestamps alone cannot be joined to missing host timestamps; no inferred join or guessed critical path is accepted.",
+      "The missing eagle_info_v2.py path was a collector source-path assumption error; the actual installed imports resolve sglang.srt.speculative.eagle_info.",
+      "Five source copies and both ranks' CSV bytes are valid partial evidence, but they do not by themselves attribute cause."
+    ],
+    "source_based_lead_only": "prepare_for_draft_extend calls attention metadata initialization before eager padding; its NPU path does not mark metadata ready, and the eager runner may initialize it again after padding. This is a hypothesis requiring exact runner/backend and timeline review, not an accepted redundant-work or speedup claim.",
+    "l13_accepted_result_unchanged": {
+      "accepted_evidence": "results/C32-L13-D-two-step-evidence-v1.json",
+      "accepted_evidence_sha256": "5fccbbafa1072417625192d6f7f904a6815685f507866787e09526ae9bd768bf",
+      "accepted_measurement": "results/sglang-C32-L12D-native-HiCache-v1-measurement-annotated-v2.json",
+      "accepted_measurement_sha256": "bab30fb0e0cdec779eb26e833142549e3bdd0b45b4b841f3fe9ba42a519173d7",
+      "output_tokens_per_second": 389.8740711045039,
+      "aggregate_SLA_pass": false
+    }
+  },
+  "executed_collector": {
+    "status": "EXECUTED_ONCE_COLLECTION_PASS_FALSE",
+    "module": "scripts/glm53_C32_L14_D_trace_context_v2.py",
+    "module_bytes": 28612,
+    "module_sha256": "a357d80e6aebbeefd0d72965946e2391cf354b267fe36feba946b2bf25567865",
+    "wrapper": "scripts/inspect_C32_L14_D_trace_context_v2.py",
+    "wrapper_sha256": "5e17918d16b5a623d2bf0f71d016efb3afc58f701f4def72bab2c76d88b583ad",
+    "actual_review": {
+      "path": "results/C32-L14-D-trace-context-actual-review-v1.json",
+      "sha256": "1b67557f516eeb0518450508e79839ef56e98796ab89fd20a9bedcb28d86256e",
+      "created": true
+    },
+    "collector_receipt": {
+      "path": "runs/20261019T-L14-sglang-existing-D-trace-context-v1/receipt.json",
+      "sha256": "72dadcd2a6d79292e4cdc62cfe6d58929bedac56a4088ee72f9b549e6c776788"
+    },
+    "completion_receipt": {
+      "path": "runs/20261019T-L14-D-trace-context-executor-v2/completion-receipt.json",
+      "sha256": "ffd361a1a3de2899b9d8af0560792272f3d57dd4d7adf13d8c2ea8deb41a884a"
+    },
+    "launcher_rc": 0,
+    "collection_pass": false,
+    "executed": true,
+    "invoke_called": true,
+    "v1_unexecuted": {
+      "module": "scripts/glm53_C32_L14_D_trace_context_v1.py",
+      "module_sha256": "440e5755323a45968aacf460735a1e6a2f718ecf717d58ea389e35c3b838855a",
+      "wrapper": "scripts/inspect_C32_L14_D_trace_context_v1.py",
+      "wrapper_sha256": "0129c5fa07ab86e241aedf64e8ab124136707da8ac312aca54c3f6eddb705e9d",
+      "executed": false
+    }
+  },
+  "actual_evidence": {
+    "collection_receipt": "runs/20261019T-L14-sglang-existing-D-trace-context-v1/receipt.json",
+    "collection_receipt_sha256": "72dadcd2a6d79292e4cdc62cfe6d58929bedac56a4088ee72f9b549e6c776788",
+    "node36_context": "runs/20261019T-L14-sglang-existing-D-trace-context-v1/node-36-context.json",
+    "node41_context": "runs/20261019T-L14-sglang-existing-D-trace-context-v1/node-41-context.json",
+    "decision": "results/C32-L14-existing-trace-attribution-decision-v1.json",
+    "decision_sha256": "9d3a1175d1af55f6c7554cb71385387bbd2e034c278a08e1069b5f3b518fa809"
+  }
+}

@@ -11,6 +11,14 @@ def main():
   p=run/f'node-{n}.json';wire=json.loads(p.read_text());assert wire['rc']==0;o=json.loads(wire['stdout']);model=o['model'];assert o['startup_wait']['completed'] and not o['startup_wait'].get('timeout')
   assert model['id']==cap['providers'][str(n)]['container_id'] and model['state']['Running'] and model['image']=='sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263'
   assert o['supervisor_status']['phase']=='MODEL_RUNNING' and 'model_exit_code' not in o['supervisor_status'] and o['provider_status']['phase']=='READY'
+  assert o['npu']['rc']==model['top']['rc']==0
+  own_host_pids={int(line.split()[0]) for line in model['top']['stdout'].splitlines()[1:] if line.split() and line.split()[0].isdigit()}
+  npu_pids=[]
+  for line in o['npu']['stdout'].split('Process id',1)[-1].splitlines():
+   fields=[x.strip() for x in line.split('|')]
+   if len(fields)>=5 and len(fields[1].split())==2 and all(x.isdigit() for x in fields[1].split()) and fields[2].isdigit():npu_pids.append(int(fields[2]))
+  assert len(npu_pids)==18 and set(npu_pids)<=own_host_pids,'Unexpected or foreign NPU context'
+
   metrics=o['/metrics'];assert metrics['status']==200 and sha_bytes(metrics['body'].encode())==metrics['sha256']
   gauges=[float(l.rsplit(' ',1)[1]) for l in metrics['body'].splitlines() if l.startswith(('sglang:num_running_reqs{','sglang:num_queue_reqs{'))];assert gauges and not any(gauges)
   events=[]
