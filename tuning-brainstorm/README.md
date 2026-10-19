@@ -6,7 +6,7 @@
 
 ## 从这里开始
 
-- [SGLang 36 机制任务：逐点讲解、最小实验与物理上界](sglang-pd-spec-36/README.md)（PD＋推测解码；安装审计、M035局部CPU候选与M017/M018目标镜像CPU反证及 M005/M017 页计数调用合同及默认候选 stale-mirror 反例及 producer 显式计数 819 项组件 CPU 检查及 plan/WAR 266 项源策略 CPU 检查、M021形状策略反例、M019布局/包装层、M001前处理候选CPU结果、M004/M016 relay最终payload组件CPU证据及NEXTN三步历史参数/hidden合同勘误与M031接受合同/metadata CPU组件及 PD drain/timeout/Ascend 条件发送路径、M025 NPU seed状态模型、M023/M024条件KV/index接口、M026/M028 MoE状态与W8加载方法及M030工作边界、M005/M006 PD prefill预算/提交状态与真实 NPU allocator 的 485 项 CPU 合同/小页 native 门槛、M009/M010/M011 默认 unified cache 的 300 项 CPU 合同已记录及M033同一tokenizer反分词/完整发送组件CPU与间隔取模反例；PD服务器基线待资源分配）
+- [SGLang 36 机制任务：逐点讲解、最小实验与物理上界](sglang-pd-spec-36/README.md)（PD＋推测解码；安装审计、M035局部CPU候选与M017/M018目标镜像CPU反证及 M005/M017 页计数调用合同及默认候选 stale-mirror 反例及 producer 显式计数 819 项组件 CPU 检查及 plan/WAR 266 项源策略 CPU 检查、M021形状策略反例、M019布局/包装层、M001前处理候选CPU结果、M004/M016 relay最终payload组件CPU证据及NEXTN三步历史参数/hidden合同勘误与M031接受合同/metadata CPU组件及 PD drain/timeout/Ascend 条件发送路径、M025 NPU seed状态模型、M023/M024条件KV/index接口、M026/M028 MoE状态与W8加载方法及M030工作边界、M005/M006 PD prefill预算/提交状态与真实 NPU allocator 的 485 项 CPU 合同/小页 native 门槛、M009/M010/M011 默认 unified cache 的 300 项 CPU 合同已记录及M033同一tokenizer反分词/完整发送组件CPU与间隔取模反例、通知/真实HTTP及msgpack条件正确性候选；PD服务器基线待资源分配）
 - [PD 分离下的 chunk 优化：9 项价值筛选、6 条候选与 2 个配置对照](2026-10-18-sglang-pd-chunk.md)
 - [缓存管理逻辑排查总表：21 个新增检查项、12 个排除项、48 格覆盖](2026-10-18-sglang-cache-audit.md)
 - [可筛选的离线排查地图](diagrams/cache-audit.html)
