@@ -1,0 +1,60 @@
+{
+  "status": "NOT_EXECUTED",
+  "overall_evidence": "E0_SPEC_ONLY",
+  "accepted_baseline": null,
+  "mechanism": "M033",
+  "native_resource": "Task-owned Ascend P/D allocation44/48 pending; unowned reference is not a lease",
+  "fixed_model": "Historical original GLM-5.3; no substitute model or disable-PD/spec shortcut",
+  "historical_reference_only": {
+    "CLI_algorithm": "NEXTN",
+    "steps": 3,
+    "topk": 1,
+    "draft_tokens": 4,
+    "current_normalized_runtime": "UNKNOWN"
+  },
+  "must_freeze_before_native": [
+    "Actual task-owned P/D topology, image/commit/package versions, model/config/tokenizer hashes and all runtime flags",
+    "Actual tokenizer backend, Python/Rust egress path, stream_interval and per-request override, incremental output mode, parser/API flags",
+    "Model/KV dtype, cache cold/warm state, workload token-ID hashes/arrival and output policy, native capacity acceptance",
+    "Synchronized trace clock/error bounds and privacy-safe event IDs; no model output/weights in public artifacts"
+  ],
+  "native_cases": [
+    {
+      "concurrency": 2,
+      "input_tokens": 512,
+      "output_budget": 128
+    },
+    {
+      "concurrency": 3,
+      "input_tokens": 32768,
+      "output_budget": 256
+    }
+  ],
+  "first_experiment": "Unmodified qualified Python egress baseline with fixed PD+MTP; instrument token-ready, scheduler accept/payload, detokenizer enqueue/decode, TokenizerManager notification, HTTP serialization/write and client SSE parse. No latency/granularity candidate before exposed-cost profile.",
+  "correctness": [
+    "Full accepted/output-ID order, Unicode and incomplete-byte recovery, exact text/stop semantics and finish count",
+    "Actual MTP accepted-block histogram; interval congruence counterexample is a synthetic fixture, not an observed native acceptance stream",
+    "Stop at early position within accepted block and exclusion of later IDs; default and request stream interval; optional parser/usage/logprob correctness where enabled",
+    "Controlled slow client and client disconnect through abort/scheduler/detokenizer/request-table/KV release, retry and slot/RID reuse; received abort finish alone is insufficient"
+  ],
+  "measurements": [
+    "Events per accepted block/token, queue occupancy and CPU exposed work",
+    "Device token-ready vs client-visible first text/final text and inter-event P50/P95/P99",
+    "Throughput/TTFT/TPOT/acceptance ratios under same conditions; no artificial buffering credited as model speedup"
+  ],
+  "candidate_gate": "Only after trusted native baseline/profile. Freeze one existing granularity factor and maximum extra client-visible delay before any trial; current delay SLO UNKNOWN. Stop if interval composition starves nonfinal output, semantic changes or exposed CPU gain absent.",
+  "CPU_scope_exclusions": [
+    "R004 selected complete bodies are not complete serving modules",
+    "R005 full accumulator body uses explicit in-process NS carrier; IPC serialization and weight-version computation remain boundaries",
+    "Same tokenizer and matched historical package versions do not establish native model, P/D, HTTP or cancellation correctness"
+  ],
+  "performance_claim": "NONE",
+  "source_defaults_only": {
+    "stream_interval": 1,
+    "incremental_streaming_output": false,
+    "batch_notify_size": 16,
+    "request_stream_interval": null,
+    "sampling_spaces_between_special_tokens": true,
+    "actual_runtime_confirmed": false
+  }
+}
