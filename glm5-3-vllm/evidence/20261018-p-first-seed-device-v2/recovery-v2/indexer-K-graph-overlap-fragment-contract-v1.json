@@ -1,0 +1,11 @@
+{
+  "created_utc": "2026-10-19T08:09:37.597711+00:00",
+  "hypothesis": "A private captured K producer avoids direct eager K launch overhead while retaining overlap with native main Prolog.",
+  "schedule": "aux waits main input-ready, copies raw hidden and independent Indexer cos/sin into owned same-dtype buffers, replays native K-only graph. Main runs original Prolog, waits aux, executes original cache writes.",
+  "ownership": "Private graph/pool/input/output per fixed N and precision case. Auxiliary replay cannot overwrite outputs until prior main consumers complete because each invocation waits current main stream before reusing static inputs/outputs. No main-query graph or cache-write relocation.",
+  "cases": "Same N6/N24 and original BF16/C8 branches;3 changing input generations; ABBAx3 40 complete eager outer calls/block; preserve all device/host timings.",
+  "gate": "All main Q/querynorm and KV, Indexer K/scale/weights/cache bitwise vs current native, then complete outer-fragment timings. No service gain or full-model quality claim.",
+  "new_data_copies": 3,
+  "new_operators": false,
+  "SDMA": "New input copies must be physically verified before full-service acceptance, including actual deployed scope; no transport fallback."
+}

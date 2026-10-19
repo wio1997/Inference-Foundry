@@ -4,6 +4,14 @@
 
 ## 当前现场与立即动作
 
+- **2026-10-19 16:26 CST 最新实际现场：新K-only图原型正在整模型初始化**。P CID`70e58ecd72b4bd71c4ed0b1e5874c6fa0ee6413ee4d661d5ffe701acde579b96`，D CID`3caaa2a7856b78e27a692a909505d9d4a34969b68217c64869e5f4397bc25b5b`，共同root=`/data/wio/glm5-3-vllm-execution/20261018-state-tail/indexer-k-graph-live1-20261019/node{32,33}`。两端7200s model；P新10800s holder UID`176bd060-f163-4444-8744-546d3ca3d5bf`，D既有新holder UID`b0994ea2-254e-4510-8380-bb54260c6838`。旧P1a7／proxy994已自然exit124/OOMFalse并最终快照SHA bedb584f…，旧D163c此前快照后精确stop；两端8物理idle/独占核后才启动。watch exec95751，correctness exec84324等Ready后自动setup→stockproxy→功能16/C4功能8→all16当前native-K逐位/所有权→observeroff→quality52/cached16。formal未开始。
+- **新immutable D build** `705f9e704c266fb937fc031030703cd31df6a2873cbfaf43664b311bff985844`（v2；v1未stage/运行，仅v2增加opt-in copy标签）。helperSHA fee7d1d82c…，CPU16通过，原NPU AST完整前缀和其余4overlay相同，未带early-publication schema或旧metadata-reuse机制。原target FULL／capture不选择，只有真实MTP eager可用，默认enable absent；保留主Prolog和Indexer cache写、Q/top-k及原late/KV退休。
+- **局部证据已闭合到单卡范围**：K-only图+3copy的完整outer eager耗时比0.8543/0.7079/0.8054/0.7086（N6 BF16/C8、N24 BF16/C8），变化输入逐位通过；48份带标签copy经enqueue→dequeue correlation→HostToDevice flow→exact device PID/TID/start全部SDMA_SQE。初版CANN-API过滤无API细节得到unproven原件保留，CPU-only沿flow修正，未重跑NPU。尚非部署all16或服务收益；`indexer-K-graph-copy-SDMA-fragment-v2.json`。
+
+- **2026-10-19 16:10 CST 已得到实质局部结果并转向**：完整多流图片段4组eager／48次变化输入回放逐位相同，N6 BF16/C8与N24 BF16/C8的全片段图中位比0.728/0.661/0.677/0.698。但当前MTP eager直接切流的新诊断计入allocator retirement及host提交后反而慢20.9%–25.5%，`REJECT_DIRECT_EAGER_STREAM_SWITCH`，不接入此版整模型。新合同`indexer-K-graph-overlap-fragment-contract-v1.json`改为仅K生产者私有图＋3输入copy，主Prolog和原缓存写均原生；N6/N24两精度、变化输入和ABBAx3完整outer eager诊断正在exec70095。没有服务收益或整模型质量结论，新增copy必须另证SDMA。
+
+- **2026-10-19 16:04 CST 片段初始化进展**：v2 NZ断言及原Prolog通过，原生Triton RoPE要求先调用安装镜像的`init_device_properties_triton()`；v3已补原生初始化，但容器/tmp默认noexec导致JIT库加载失败（CPU-only同挂载probe确认）。三份失败原件各SHA备份，无两种编排比较或计时结论。v4仅将本次fragment容器/tmp改exec，payload仍v3，driver exec40278活动。没有更改主机mount／系统权限或原算子。
+
 - **2026-10-19 16:00 CST 片段现场**：D163c已在两端idle及最终快照SHA核验后精确stop，33八物理卡空闲。仅将旧自有33 holder UID8bdd…用UID测试deadline降1并确认Failed，再创建新10800s holder `glm53-indexer-prolog-33-live1-20261019`／UID`b0994ea2-254e-4510-8380-bb54260c6838`，独占已核；P1a7及access pods未操作。新窗口收据`indexer-prolog-fragment-ownership-v1.json`，原模型timer没有延长。v1在native首Prolog前发现实际ND权重，未设独立进程allow_internal_format；原件已备份SHAe258362e…，新v2只补同NZ开关和三权重format29断言，native方法与合同不改。v2 collector exec38238正在跑，不写正确性或收益结论。
 
 - **2026-10-19 15:58 CST 下一片段已启动准备**：最终metadata快照已下载核SHA，P293542B／547aee4800…、D745339B／61a89f9d5b…；本地B/20261019-rope-step-reuse-closed。只读源码确认现有流API，182次WK与主Prolog同流紧邻；Indexer原生LayerNorm／Triton RoPE及BF16/C8逐层精度保持。合同已冻结，driver=`prepare_indexer_fragment_window_v1.py`（exec96439）先核独占再精确停自有D163c，续建33有限holder并跑单卡片段；P与access pods不动。当前片段未返回，不称正确或提速。
