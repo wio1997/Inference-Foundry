@@ -37,10 +37,12 @@ SEED_CHECK='''    def _glm53_valid_p_draft(self, request):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--source-root',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--divergence-probe',action='store_true');p.add_argument('--shared-overlap-probe',action='store_true');p.add_argument('--unused-single-token-probe',action='store_true');p.add_argument('--attention-state-probe',action='store_true');p.add_argument('--prefill-padding-probe',action='store_true');p.add_argument('--prefill-attention-probe',action='store_true');p.add_argument('--sfa-replay-order-probe',action='store_true');p.add_argument('--mtp-ffn-graph-probe',action='store_true');p.add_argument('--mtp-moe-graph-probe',action='store_true');p.add_argument('--rope-cache-layout-probe',action='store_true');p.add_argument('--moe-prefix-histogram-probe',action='store_true');p.add_argument('--moe-cumsum-i32-probe',action='store_true');p.add_argument('--moe-prefix-gmm2-count-probe',action='store_true');p.add_argument('--early-sample-copy-shadow',action='store_true');a=p.parse_args();assert not (a.shared_overlap_probe or a.unused_single_token_probe or a.attention_state_probe) or a.divergence_probe
+    p=argparse.ArgumentParser();p.add_argument('--source-root',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--divergence-probe',action='store_true');p.add_argument('--shared-overlap-probe',action='store_true');p.add_argument('--unused-single-token-probe',action='store_true');p.add_argument('--attention-state-probe',action='store_true');p.add_argument('--prefill-padding-probe',action='store_true');p.add_argument('--prefill-attention-probe',action='store_true');p.add_argument('--sfa-replay-order-probe',action='store_true');p.add_argument('--mtp-ffn-graph-probe',action='store_true');p.add_argument('--mtp-moe-graph-probe',action='store_true');p.add_argument('--rope-cache-layout-probe',action='store_true');p.add_argument('--moe-prefix-histogram-probe',action='store_true');p.add_argument('--moe-cumsum-i32-probe',action='store_true');p.add_argument('--moe-prefix-gmm2-count-probe',action='store_true');p.add_argument('--early-sample-copy-shadow',action='store_true');p.add_argument('--early-sample-publication',action='store_true');a=p.parse_args();assert not (a.shared_overlap_probe or a.unused_single_token_probe or a.attention_state_probe) or a.divergence_probe
     assert not a.output.exists();root=Path(__file__).resolve().parent;parent=root.parent/'p-first-adopt-v1'
     spec=importlib.util.spec_from_file_location('adopt_build',parent/'build.py');base=importlib.util.module_from_spec(spec);spec.loader.exec_module(base)
     pins={**base.PINS,'utils.py':('vllm/vllm/distributed/kv_transfer/kv_connector/utils.py','317ed40dc837671ca6e666165222e641a0f9b3992aea63bbf54de7e13d40b3a4')}
+    assert not (a.early_sample_copy_shadow and a.early_sample_publication)
+    if a.early_sample_publication:pins['model_outputs.py']=('vllm/vllm/v1/outputs.py','65ab7698bbdea1d53502ef8df3689bec860521ab6e2fab3c7bff63151be039b1')
     native={name:(a.source_root/path).read_bytes() for name,(path,_) in pins.items()}
     for name,(_,expected) in pins.items():assert sha(native[name])==expected,name
     with tempfile.TemporaryDirectory() as temp:
@@ -110,6 +112,7 @@ def main():
     if a.moe_cumsum_i32_probe:helpers.append(('moe_cumsum_i32.py','GLM53_MOE_CUMSUM_I32_PROBE','moe_cumsum_i32'))
     if a.moe_prefix_gmm2_count_probe:helpers.append(('moe_prefix_gmm2_count.py','GLM53_MOE_PREFIX_GMM2_COUNT_PROBE','moe_prefix_gmm2_count'))
     if a.early_sample_copy_shadow:helpers.append(('early_sample_copy_shadow.py','GLM53_EARLY_SAMPLE_COPY_SHADOW','early_sample_copy_shadow'))
+    if a.early_sample_publication:helpers.append(('early_sample_publication.py','GLM53_EARLY_SAMPLE_PUBLICATION','early_sample_publication'))
     if a.moe_prefix_histogram_probe:helpers.append(('moe_prefix_histogram.py','GLM53_MOE_PREFIX_HISTOGRAM_PROBE','moe_prefix_histogram'))
     for filename,gate,name in helpers:
         helper=(root/filename).read_text();ast.parse(helper)
@@ -118,6 +121,19 @@ def main():
             helper='_BASE_PREFIX_SOURCE='+repr(base)+'\n'+helper
         s+='\n\nif __import__(\'os\').environ.get('+repr(gate)+") == '1':\n    import types as _glm_types\n    _glm_"+name+" = _glm_types.ModuleType('_glm_seed_"+name+"')\n    exec(compile("+repr(helper)+", '<glm53-seed-"+name+">', 'exec'), _glm_"+name+".__dict__)\n    _glm_"+name+".install(globals())\n"
     contents['model_runner_v1.py']=s
+    if a.early_sample_publication:
+        s=contents['output.py']
+        s=once(s,'    num_spec_tokens_to_schedule: int = 0\n','    num_spec_tokens_to_schedule: int = 0\n\n    # Explicit GPU retirement protocol; None keeps native callers unchanged.\n    glm53_gpu_step_seq: int | None = None\n    glm53_gpu_step_has_work: bool = False\n')
+        contents['output.py']=s
+        s=contents['model_outputs.py']
+        s=once(s,'    sampling_masks: SamplingMaskLists | None = None\n','    sampling_masks: SamplingMaskLists | None = None\n\n    # Primitive IPC metadata, independent of visible sampled token readiness.\n    glm53_gpu_step_seq: int | None = None\n    glm53_gpu_retired_through: int | None = None\n    glm53_gpu_early_sample: bool = False\n    glm53_gpu_retire_rank_count: int = 0\n')
+        contents['model_outputs.py']=s
+        s=contents['scheduler.py']
+        s=once(s,'        if self.defer_block_free and scheduler_output.total_num_scheduled_tokens > 0:\n            self.processed_step_seq += 1\n            self._drain_deferred_frees()\n','        if getattr(self, "_glm53_retirement_split", False):\n            self._glm53_apply_retirement_ack(scheduler_output, model_runner_output)\n        elif self.defer_block_free and scheduler_output.total_num_scheduled_tokens > 0:\n            self.processed_step_seq += 1\n            self._drain_deferred_frees()\n')
+        contents['scheduler.py']=s
+        helper=(root/'early_sample_retirement.py').read_text()
+        for target,method in [('scheduler.py','install_scheduler'),('utils.py','install_aggregator')]:
+            contents[target]+="\n\nif __import__('os').environ.get('GLM53_EARLY_SAMPLE_PUBLICATION') == '1':\n    import types as _glm_types\n    _glm_retirement = _glm_types.ModuleType('_glm53_retirement')\n    exec(compile("+repr(helper)+", '<glm53-retirement>', 'exec'), _glm_retirement.__dict__)\n    _glm_retirement."+method+"(globals())\n"
     for name,text in contents.items():ast.parse(text)
     identity=sha(''.join(contents[n] for n in sorted(contents)).encode());remote='/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-seed-v2/'+identity[:12]
     a.output.mkdir(parents=True);patches=[];payload={}
@@ -140,6 +156,7 @@ print('GLM53_RESULT_JSON_BEGIN\\n'+json.dumps({'staged':True,'root':str(root),'f
 '''.replace('ROOT',repr(remote)).replace('PAYLOAD',repr(payload)).replace('HASHES',repr({n:sha(s.encode()) for n,s in contents.items()}))
     ast.parse(stager);(a.output/'stage_overlay.py').write_text(stager)
     manifest={'identity':identity,'patches':patches,'remote_root':remote,'stage_sha256':sha(stager.encode()),'P_K':1,'D_K':5,'draft_confirmed_output':False,'history':'only confirmed y1','computed':'N','initial_spec_slots':'one unverified P proposal then four native invalid placeholders','new_device_copy':'tiny pinned CPU copy on MTP writer stream before original Async dependency; SDMA profiling pending','default_adoption':False,'device_validated':False}
+    if a.early_sample_publication:manifest.update(objective='Verified early sample publication with all16 GPU retirement watermark and native KV/CoW fences',new_device_copy='Existing native Async sample D2H queued before MTP, original late copy/event kept; zero-token KV writes get equivalent native copy-stream retirement event',all16_retirement_required=True,performance_validated=False)
     (a.output/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n');print(json.dumps(manifest,indent=2))
 
 

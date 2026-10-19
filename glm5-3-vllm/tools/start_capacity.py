@@ -133,6 +133,7 @@ try:
    '/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py':'c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884',
    '/vllm-workspace/vllm/vllm/distributed/kv_transfer/kv_connector/utils.py':'317ed40dc837671ca6e666165222e641a0f9b3992aea63bbf54de7e13d40b3a4',
    '/vllm-workspace/vllm/vllm/v1/core/sched/output.py':'3a66c8efaefe10c572f6f33cf1f8aa4610758c945130cad62eb9f7331005677c',
+   '/vllm-workspace/vllm/vllm/v1/outputs.py':'65ab7698bbdea1d53502ef8df3689bec860521ab6e2fab3c7bff63151be039b1',
    '/vllm-workspace/vllm/vllm/v1/worker/gpu_model_runner.py':'87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51',
    '/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py':'568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c'}
   adopt_target=(patch['target'] in adopt_bases and str(source).startswith(('/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-adopt-v1/','/data/wio/glm5-3-vllm-execution/20261017-official-pd/execution-patches/p-first-seed-v2/')))
