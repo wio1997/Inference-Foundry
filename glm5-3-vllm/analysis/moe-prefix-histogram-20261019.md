@@ -1,5 +1,7 @@
 # MoE prefix 表示与多图捕获：2026-10-19
 
+2026-10-19 14:37 CST：提前发布v4已完成正式验收并拒绝，默认off。C1 TTFT/完成/TPOT比0.978717/1.000635/1.003565；C4原生163.2298→候选160.7087 tok/s（−1.5445%），三轮比0.998890/0.982992/0.972043；pooled p95 TTFT/完成/TPOT比0.983125/0.981484/1.016971。24+384正式数值/预算全过，取消10client-close/16完整peer+reuse通过、KV/queue回零，明确backend abort0；单独原生注入abort证据另保留。冻结联合gate未过，不将影子7ms数据就绪差值作服务收益，不重复此同版整轮。`early-sample-publication-reviewed-verdict-v2.json`。D/P完整快照分别1767803B/342021B，SHA见HANDOFF，全部慢块保留。
+
 2026-10-19 14:33 CST：输出依赖调查已推进到独立的提前发布/安全退休原型。影子阶段 all16×685=10960 份副本逐位相同；一次真实四并发片段中，7步早token D2H比原生late D2H早6.201–7.453ms，中位7.064ms。这是数据就绪差值，不能当服务提速。完整all16原件备份125609065B，SHA `3f14e6a529d7e95371b082197e41b51ea5521568bbe13c190fc428df4b216830`。
 
 发布原型保留原生late对象/事件供InputBatch与GPU源生命周期，early(k)只通过同copy-stream FIFO证明late(k−1)完成；all16最小ACK单独推进KV/CoW退休，zero-token或仅KV工作必须drain对应原生事件。v4还在输入复用前保留原生物理2-batch admission，CPU23项检查通过。所有MoE优化关闭，原生target/MTP及已接受RoPE在两模式相同。v3 full64为24/26相同且当前原生控制未覆盖一项，因此没有formal；v4功能16、C4功能8、quality52、cached16数值全过，all16 late逐位/退休及真实native finish_requests后3 peers和2冷64立即reuse均通过。初轮25/26 full64相同；唯一差异的native/adaptive/native streaming控制中，初轮和重复候选均在当前原生完整输出集合内。仅据此允许有限formal，不归因无害舍入或作一般质量结论。

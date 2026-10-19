@@ -1,0 +1,97 @@
+{
+  "completed": true,
+  "CID": "bfac6522d752e0595df01f537e2f74bbe4c4d00cf9334668283e6885b91e910d",
+  "callers": [
+    {
+      "path": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "lines": [
+        {
+          "line": 6614,
+          "text": "exec(compile('\"\"\"Own contiguous copies of the native read-only RoPE tables; keep native lookup.\\n\\nOnly the source tables used by the unchanged get_cos_and_sin_mla are selected.\\nThe persistent MLA output buffers, graph pointers, arithmetic and KV stay native.\\n\"\"\"\\nimport functools\\nimport hashlib\\nimport json\\nimport os\\nfrom pathlib import Path\\nimport sys\\nimport time\\n\\n\\ndef install(ns, root=None, deps=None):\\n    assert os.environ.get(\\'GLM53_P_FIRST_DRAFT_EXPORT\\') == \\'0\\'\\n    if deps is None:\\n        from vllm.forward_context import get_forward_context, is_forward_context_available\\n        from vllm_ascend.ops import rotary_embedding as rotary\\n        from vllm_ascend.attention import sfa_v1\\n        assert hashlib.sha256(Path(rotary.__file__).read_bytes()).hexdigest() == \\'403e1d0c0cac58a82898fa2596b923b60f19392d23560f4609967e4dfc8a411a\\'\\n        assert hashlib.sha256(Path(sfa_v1.__file__).read_bytes()).hexdigest() == \\'9b94f67f30364d40caf4a7a67af0f0365d1ba0b5048939873ab0464e95b096dc\\'\\n        deps = {\\'rotary\\': rotary, \\'ctx\\': get_forward_context, \\'ctx_available\\': is_forward_context_available}\\n    rotary, torch, Runner = deps[\\'rotary\\'], ns[\\'torch\\'], ns[\\'NPUModelRunner\\']\\n    root = Path(\\'/out/rope-cache-layout-probe\\') if root is None else Path(root)\\n    root.mkdir(exist_ok=True)\\n    original = rotary.get_cos_and_sin_mla\\n    active = {\\'frame\\': None}\\n    cache = {}\\n    records = 0\\n\\n    def describe(tensor):\\n        if tensor is None:\\n            return None\\n        return {\\'shape\\': list(tensor.shape), \\'stride\\': list(tensor.stride()),\\n                \\'dtype\\': str(tensor.dtype), \\'device\\': str(tensor.device),\\n                \\'data_ptr\\': tensor.data_ptr(), \\'contiguous\\': tensor.is_contiguous()}\\n\\n    def eligible_runner(runner):\\n        p = runner.parallel_config\\n        return bool(runner.is_kv_consumer and not runner.is_kv_producer\\n                    and runner.use_async_scheduling and runner.num_spec_tokens == 5\\n                    and p.tensor_parallel_size == 16 and p.data_parallel_size == 1\\n                    and p.pipeline_parallel_size == 1 and p.decode_context_parallel_size == 1\\n                    and p.prefill_context_parallel_size == 1 and not ns[\\'enable_sp\\']()\\n                    and runner.model_config.use_mla and not runner.model_config.is_hybrid\\n                    and not getattr(runner, \\'lora_config\\', None) and not runner.dynamic_eplb)\\n\\n    native_record = rotary._record_cos_and_sin_cache_interleaved\\n\\n    @functools.wraps(native_record)\\n    def record_cache(owner, cos_sin_cache):\\n        native_record(owner, cos_sin_cache)\\n        if cache:\\n            return\\n        pair = (rotary._cos_cache, rotary._sin_cache)\\n        if not all(t is not None and t.device.type == \\'npu\\' and t.dtype == torch.bfloat16\\n                   and tuple(t.shape) == (1048576, 64) and tuple(t.stride()) == (128, 1)\\n                   for t in pair):\\n            return\\n        buffers = getattr(owner, \\'_buffers\\', {})\\n        if not (any(t is pair[0] for t in buffers.values()) and any(t is pair[1] for t in buffers.values())):\\n            return\\n        names = [\\'_glm53_rope_cos_contiguous\\', \\'_glm53_rope_sin_contiguous\\']\\n        assert all(n not in buffers for n in names)\\n        result = tuple(t.contiguous() for t in pair)\\n        assert all(torch.equal(a, b) for a, b in zip(pair, result)), \\'Read-only RoPE cache copy changed bits\\'\\n        for key, tensor in zip(names, result):\\n            owner.register_buffer(key, tensor, persistent=False)\\n        cache.update(native=pair, native_ptrs=tuple(t.data_ptr() for t in pair), cached=result,\\n                     cached_ptrs=tuple(t.data_ptr() for t in result), owner=type(owner).__name__,\\n                     owner_module=owner, bitwise_equal=True,\\n                     bytes=sum(t.numel() * t.element_size() for t in result))\\n\\n    # Register derived buffers while the native owner is being constructed,\\n    # before torch.compile guards or graph capture inspect module buffers.\\n    rotary._record_cos_and_sin_cache_interleaved = record_cache\\n\\n    def cached_pair(runner, pair):\\n        if not cache:\\n            return None, \\'cache-not-prepared-before-compilation\\'\\n        if not all(a is b and a.data_ptr() == ptr for a, b, ptr in zip(pair, cache[\\'native\\'], cache[\\'native_ptrs\\'])):\\n            return None, \\'native-cache-replaced\\'\\n        if not all(t.data_ptr() == ptr for t, ptr in zip(cache[\\'cached\\'], cache[\\'cached_ptrs\\'])):\\n            return None, \\'derived-cache-address-changed\\'\\n        owner = cache[\\'owner_module\\']\\n        if not all(owner._buffers.get(name) is tensor for name, tensor in zip([\\'_glm53_rope_cos_contiguous\\', \\'_glm53_rope_sin_contiguous\\'], cache[\\'cached\\'])):\\n            return None, \\'derived-cache-owner-buffer-replaced\\'\\n        return cache[\\'cached\\'], None\\n\\n    @functools.wraps(original)\\n    def lookup(positions, use_cache=False):\\n        frame = active[\\'frame\\']\\n        if frame is None:\\n            return original(positions, use_cache=use_cache)\\n        runner = frame[\\'runner\\']\\n        ids = list(runner.input_batch.req_ids)\\n        real = bool(ids and all(rid in runner.requests and runner.requests[rid].sampling_params is not None\\n                               and runner.requests[rid].sampling_params.max_tokens > 1 for rid in ids))\\n        capturing = deps[\\'ctx_available\\']() and deps[\\'ctx\\']().capturing\\n        pair = (rotary._cos_cache, rotary._sin_cache)\\n        persistent = (rotary._cos_mla, rotary._sin_mla)\\n        persistent_ptrs = tuple(t.data_ptr() if t is not None else None for t in persistent)\\n        selected, reason, replacement = False, None, None\\n        if frame[\\'requested\\'] and real and not capturing:\\n            replacement, reason = cached_pair(runner, pair)\\n            selected = replacement is not None\\n        row = None\\n        if frame[\\'observe\\'] and real:\\n            frame[\\'ids\\'] = sorted(set(frame[\\'ids\\']) | set(ids))\\n            if \\'inventory\\' not in frame:\\n                frame[\\'inventory\\'] = {\\'native\\': [describe(t) for t in pair],\\n                    \\'cached\\': [describe(t) for t in cache[\\'cached\\']] if cache else None,\\n                    \\'owner\\': cache.get(\\'owner\\'), \\'cache_bytes\\': cache.get(\\'bytes\\', 0),\\n                    \\'full_cache_bitwise_equal\\': cache.get(\\'bitwise_equal\\', False)}\\n            row = {\\'N\\': positions.shape[0], \\'use_cache\\': bool(use_cache),\\n                   \\'requested\\': frame[\\'requested\\'], \\'selected\\': selected, \\'fallback\\': reason}\\n        try:\\n            if selected:\\n                rotary._cos_cache, rotary._sin_cache = replacement\\n            output = original(positions, use_cache=use_cache)\\n            if row is not None:\\n                row[\\'output_shapes\\'] = [list(t.shape) for t in output]\\n            return output\\n        finally:\\n            rotary._cos_cache, rotary._sin_cache = pair\\n            assert rotary._cos_mla is persistent[0] and rotary._sin_mla is persistent[1]\\n            assert tuple(t.data_ptr() if t is not None else None for t in persistent) == persistent_ptrs\\n            if row is not None:\\n                row[\\'persistent_output_addresses_unchanged\\'] = True\\n                frame[\\'calls\\'].append(row)\\n\\n    aliases = []\\n    for name, module in list(sys.modules.items()):\\n        if name.startswith(\\'vllm_ascend\\') and getattr(module, \\'get_cos_and_sin_mla\\', None) is original:\\n            module.get_cos_and_sin_mla = lookup\\n            aliases.append(name)\\n    rotary.get_cos_and_sin_mla = lookup\\n\\n    def wrap(method, phase):\\n        @functools.wraps(method)\\n        def run(self, *args, **kwargs):\\n            nonlocal records\\n            if not eligible_runner(self):\\n                return method(self, *args, **kwargs)\\n            frame = {\\'runner\\': self, \\'phase\\': phase, \\'requested\\': (root / \\'enable\\').exists(),\\n                     \\'observe\\': not (root / \\'disabled\\').exists(), \\'calls\\': [], \\'ids\\': []}\\n            previous = active[\\'frame\\']\\n            active[\\'frame\\'] = frame\\n            try:\\n                return method(self, *args, **kwargs)\\n            finally:\\n                active[\\'frame\\'] = previous\\n                if frame[\\'observe\\'] and frame[\\'calls\\'] and records < 4000:\\n                    records += 1\\n                    frame.pop(\\'runner\\')\\n                    frame.update(rank=self.tp_rank, pid=os.getpid(), monotonic_ns=time.monotonic_ns(),\\n                                 aliases=aliases)\\n                    with (root / (\\'rank-%d-%d.jsonl\\' % (self.tp_rank, os.getpid()))).open(\\'a\\') as f:\\n                        f.write(json.dumps(frame, sort_keys=True) + \\'\\\\n\\')\\n        return run\\n\\n    Runner.execute_model = wrap(Runner.execute_model, \\'execute_model\\')\\n    Runner.sample_tokens = wrap(Runner.sample_tokens, \\'sample_tokens\\')\\n', '<glm53-seed-rope_cache_layout>', 'exec'), _glm_rope_cache_layout.__dict__)"
+        }
+      ],
+      "bytes": 379233,
+      "sha256": "3c21aaa0684f68ae0ce1ed0c0b987b2491b89657013a771bd4e3a919cb02909a"
+    },
+    {
+      "path": "vllm-ascend/vllm_ascend/attention/mla_v1.py",
+      "lines": [
+        {
+          "line": 60,
+          "text": "from vllm_ascend.ops.rotary_embedding import get_cos_and_sin_mla"
+        },
+        {
+          "line": 554,
+          "text": "metadata.pcp_cos, metadata.pcp_sin = get_cos_and_sin_mla("
+        },
+        {
+          "line": 679,
+          "text": "cos, sin = get_cos_and_sin_mla(prefill_input_positions)"
+        },
+        {
+          "line": 766,
+          "text": "cos, sin = get_cos_and_sin_mla(input_positions, use_cache=True)"
+        }
+      ],
+      "bytes": 108664,
+      "sha256": "34ea644ddf4147c99de350d8feb59f2106c988d3d1844d8f4e783b85ce1535cb"
+    },
+    {
+      "path": "vllm-ascend/vllm_ascend/attention/sfa_v1.py",
+      "lines": [
+        {
+          "line": 58,
+          "text": "from vllm_ascend.ops.rotary_embedding import get_cos_and_sin_mla"
+        },
+        {
+          "line": 678,
+          "text": "cos, sin = get_cos_and_sin_mla(input_positions, use_cache=(draft_index is None))"
+        }
+      ],
+      "bytes": 96829,
+      "sha256": "9b94f67f30364d40caf4a7a67af0f0365d1ba0b5048939873ab0464e95b096dc"
+    },
+    {
+      "path": "vllm-ascend/vllm_ascend/attention/indexer.py",
+      "lines": [
+        {
+          "line": 42,
+          "text": "from vllm_ascend.ops.rotary_embedding import get_cos_and_sin_mla"
+        },
+        {
+          "line": 1112,
+          "text": "cos, sin = get_cos_and_sin_mla(input_positions, use_cache=use_cached_rope)"
+        }
+      ],
+      "bytes": 51201,
+      "sha256": "1f345bafb7c57ee02b66294ba72314e052f3c9b16f1faf5a8fb2bddde33c6eea"
+    },
+    {
+      "path": "vllm-ascend/vllm_ascend/ops/rotary_embedding.py",
+      "lines": [
+        {
+          "line": 94,
+          "text": "def get_cos_and_sin_mla(positions, use_cache=False):"
+        }
+      ],
+      "bytes": 30184,
+      "sha256": "403e1d0c0cac58a82898fa2596b923b60f19392d23560f4609967e4dfc8a411a"
+    },
+    {
+      "path": "vllm-ascend/vllm_ascend/models/kimi_k3_dspark.py",
+      "lines": [
+        {
+          "line": 39,
+          "text": "from vllm_ascend.ops.rotary_embedding import get_cos_and_sin_mla"
+        },
+        {
+          "line": 204,
+          "text": "cos, sin = get_cos_and_sin_mla(context_positions)"
+        }
+      ],
+      "bytes": 13938,
+      "sha256": "c5c2e44fdeafe3cae1c7fd8b74cece890317a503f879c05eeef0b551a591fbd7"
+    }
+  ],
+  "scope": "Read-only exact installed source. Inventory only, no model imports, flags, device work or performance claim."
+}

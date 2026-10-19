@@ -1,8 +1,18 @@
-# 当前交接 — 2026-10-19 RoPE布局收益与减负后供给调查
+# 当前交接 — 同步与元数据研究：提前发布已拒绝，SFA/Indexer复用待验证
 
 目标与授权见[MISSION](MISSION.md)、[AGENTS](AGENTS.md)。仅172.16.12.32/33，GLM5.3 W8A8C8、int8 KV/Indexer、已有算子、全SDMA、正式PD分离。可核归属后续建合理有限窗口，不停他人作业；不因阶段、失败、Ready或提交而等待用户。普通commit/push/draft PR2允许，不合并。不跨聊天发消息，不改analysis/performance-envelope-20261017/，不使用taskctl或另建记录系统。
 
 ## 当前现场与立即动作
+
+- **2026-10-19 14:48 CST 当前主题：SFA/Indexer同一步元数据生产复用，D新构建正在启动，P保留。** 旧连续RoPE表收益是已完成结果；之后MoE count/prefix与提前发布均是独立机制，当前不沿用旧整表搬运收益。精确源码确认原生MTP steps1–4先构造primary SFA，再调用`_build_cache_only_group_next_step_attn_metadata`，该回调只构造cache-only Indexer，不推进positions；SFA678与Indexer1112重复lookup，Indexer随后仍复制到其独立per-step缓冲。剩余双表lookup片段约0.05ms，不能以13次调用直接相乘预测服务收益。
+- **当前新原型**：`rope_step_reuse.py`仅在该原生回调作用域内将已完成SFA cos/sin交给原Indexer复制；校验同positions地址/dtype/shape、exact builder类型和MTP1–4，target、capture、其他拓扑原生；无跨步memo、不改图指针/输出发布/KV退休、新拷贝或新算子。源码pin SFA9b94…/Indexer1f34…/proposer458fb…；13项CPU所有权/异常/回退检查过（含同地址值改变和前一步独立输出存活），尚无NPU或服务收益结论。新immutable build`202fc1d3d080e8f199d24f06e572cf7529d531e904978cd4271355069b9b9aa7`，5 overlays、native NPU AST前缀保留，未带提前发布schema改造。
+- **正在执行**：launch exec81324已stage、核原holder UID/独占、P/proxy健康，已在SHA快照与空闲后精确停止旧D bfac，P84bd及proxy a1fec未动。新root=`/data/wio/glm5-3-vllm-execution/20261018-state-tail/rope-step-reuse-live1-20261019/node33`，CID待launch收据。watch exec52295、correctness exec52291等待launch/Ready；其后功能16+C4功能8保留完整SFA→两个消费者关系，all16将逐份比对原getter与共享源、并验证Indexer独立存储，再关闭observer做quality52/cached16。任何新完整序列差异先有限当前native/adaptive/native控制；冻结formal联合门槛在`rope-step-reuse-formal-contract-v1.json`。尚未进入formal。
+
+## 历史按时间保留（下方“当前”“正在”均为当时状态，最新现场以上方为准）
+
+- **2026-10-19 14:37 CST 当前决定：提前发布v4正式结果为`REJECT_DEFAULT_OFF_EARLY_PUBLICATION`，测量与取消检查全部结束。** C1 24formal/4warm：TTFT比0.978717、完成1.000635、TPOT1.003565；C4 ABBA×3 384formal/16warm，吞吐163.2298→160.7087 tok/s（−1.5445%），三轮比0.998890/0.982992/0.972043；pooled p95 TTFT/完成/TPOT比0.983125/0.981484/1.016971。全部正式数值和各块3072生成预算通过，慢块完整保留。10 client-close/16完整peer+reuse、KV/queue回零通过，明确backend abort日志/计数0；单独nonce native finish_requests+立即reuse证据保持。marker off、observer disabled，RoPE继续on。`early-sample-publication-reviewed-verdict-v2.json`。
+- **完整快照已核验**：D1767803B/SHA `afbcec8d96b6df60ff94d4ffe1b732f177cdd7a452d717157dd2679ce51117dd`，P342021B/SHA `3d7ecec13828a0fada6ee53a56474215f423910e46610a60dc7ba47c2f2541c7`；B/20261019-early-publication-v4-final-snapshot，含模型/overlay源/日志及stock proxy，没有停止模型。a70ef18f已push；draft PR2已更新真实影子与发布负结果，未合并。不得把7ms数据就绪差值当正式收益，不重跑此同版整轮。
+- **当前实质下一调查**：保持P84bd/D bfac与原样proxy已加载，publication off；检查同一MTP步SFA和Indexer是否重复准备同值RoPE。`read_rope_reuse_callers_v1.py`仅只读精确镜像源码、无import/device动作，实际调用点为SFA678和Indexer1112；尚未证明位置值版本相同，不以相同shape/地址直接缓存。source原件在下载，下一步核上下文/版本生命周期，再决定是否有足够明确的新片段；不热改运行overlay。当前exec37747和74644均已完成。
 
 - **2026-10-19 14:33 CST 当前前线（覆盖下方旧进行中描述）：v4提前发布已过有限正确性复核，正式C1/C4 driver正在执行。** `run_early_publication_formal_v2.py` exec37747先核当前holder UID/独占及精确CID、overlay SHA、observer/abort关闭、KV/queue空闲和各host剩余时长，再执行冻结C1 24formal/4warm、C4 ABBA×3共384formal/16warm、最后10 client-close/16完整peer+reuse。正式数据尚未返回，不能称提前发布有服务收益；原生模式和候选均启用已接受RoPE，其他算子及SDMA配置相同。
 - **精确现场更新**：P仍为`84bdaf268d006b2d4d172bc6f9adb8f5f74cc9f38e1a622644536269f0918f8b`、root=`/data/wio/glm5-3-vllm-execution/20261018-state-tail/early-publication-live1-20261019/node32`，stock proxy仍为`a1fec8aedbff1f5fdbbba0e1d1ee40b21d9aecd52a31a0e9a80f79e01f8e2ef3`。D已在SHA快照/空闲后单独换为`bfac6522d752e0595df01f537e2f74bbe4c4d00cf9334668283e6885b91e910d`、root=`.../early-publication-live2-20261019/node33`、immutable build`226885a3d81736837ee4e92d9161c98ffa1f36beca7208cdccc3c9d2cc077308`，7200s model；原P/D 10800s holder UID5661b06f…/8bdd9337…保持。只替换本任务D，没有热改运行源。
