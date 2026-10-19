@@ -215,7 +215,7 @@
       "first_action": "用 D 循环时间线区分 intake、transfer poll、组批和 forward 提交，不先改阈值。",
       "execution_level": "队列路径 → 时间线 → 有界策略"
     },
-    "status": "真实HTTP批次未固定P微批；原三路32K到达/排队已观测，取消/重试待测",
+    "status": "真实分块victim取消、两条survivor与同RID新房间重试通过；性能基线待建立",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/decode.py#L3080",
@@ -288,6 +288,19 @@
       "optimization_speedup": "NOT_MEASURED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    },
+    "native_lifecycle_R091_R092": {
+      "EOS_run": "FAIL_all_prompts_EOS_predicate",
+      "natural_EOS_observed_one": true,
+      "length_cap_observed_one": true,
+      "cancel_survivor_retry": "PASS_CONDITIONAL",
+      "intermediate_flushes": 0,
+      "full_completed_outputs": 3,
+      "target_max_checks": 768,
+      "same_RID_new_room": true,
+      "physical_KV_oracle": false,
+      "performance_gain": "NOT_MEASURED",
+      "evidence": "evidence/2026-10-19-910c-lifecycle-pause/README.md"
     }
   },
   {
@@ -322,7 +335,7 @@
       "first_action": "按实际运行版本读取预留支持检查与默认值，禁止拿旧单引擎 retract=0 代替基线。 对该版本明确排除的组合（例如相应策略不支持的解耦推测路径）直接标条件不适用，不关闭推测解码绕过。",
       "execution_level": "兼容核验 → 生命周期 → 策略对照"
     },
-    "status": "原三路32K完成，D一份上下文驻留与2→1→0等待已实测；回收生命周期未全测",
+    "status": "32K取消后的survivor/同RID重试无中间flush通过；物理页代际与长期回收未证",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/schedule_policy.py#L1350",
@@ -415,6 +428,19 @@
       "optimization_speedup": "NOT_MEASURED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    },
+    "native_lifecycle_R091_R092": {
+      "EOS_run": "FAIL_all_prompts_EOS_predicate",
+      "natural_EOS_observed_one": true,
+      "length_cap_observed_one": true,
+      "cancel_survivor_retry": "PASS_CONDITIONAL",
+      "intermediate_flushes": 0,
+      "full_completed_outputs": 3,
+      "target_max_checks": 768,
+      "same_RID_new_room": true,
+      "physical_KV_oracle": false,
+      "performance_gain": "NOT_MEASURED",
+      "evidence": "evidence/2026-10-19-910c-lifecycle-pause/README.md"
     }
   },
   {
@@ -449,7 +475,7 @@
       "first_action": "确认目标请求经过 process_prefill_chunk，并记录 staging 对传输边界的约束。",
       "execution_level": "分块触发 → 单请求分解 → 相邻尺寸对照"
     },
-    "status": "原4096 chunk完成三路32768输入两次；未进行chunk性能A/B",
+    "status": "原4096 chunk日志触发取消，survivor及重试完整32K通过；未做chunk性能A/B",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py#L1369",
@@ -514,6 +540,19 @@
       "optimization_speedup": "NOT_MEASURED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    },
+    "native_lifecycle_R091_R092": {
+      "EOS_run": "FAIL_all_prompts_EOS_predicate",
+      "natural_EOS_observed_one": true,
+      "length_cap_observed_one": true,
+      "cancel_survivor_retry": "PASS_CONDITIONAL",
+      "intermediate_flushes": 0,
+      "full_completed_outputs": 3,
+      "target_max_checks": 768,
+      "same_RID_new_room": true,
+      "physical_KV_oracle": false,
+      "performance_gain": "NOT_MEASURED",
+      "evidence": "evidence/2026-10-19-910c-lifecycle-pause/README.md"
     }
   },
   {
@@ -2317,7 +2356,7 @@
       "first_action": "确认实际算法别名与参数规范化，记录当前 accepted length，先不改深度。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "2048个输出token与返回目标最大分数一致；长Case两次输出/接受直方图相同，精度金标准及完整生命周期未闭合",
+    "status": "累计2816个输出token与返回目标最大分数一致；EOS与取消重试有条件覆盖，独立精度/性能未闭合",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/speculative_decoding.mdx",
@@ -2414,6 +2453,19 @@
       "optimization_speedup": "NOT_MEASURED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    },
+    "native_lifecycle_R091_R092": {
+      "EOS_run": "FAIL_all_prompts_EOS_predicate",
+      "natural_EOS_observed_one": true,
+      "length_cap_observed_one": true,
+      "cancel_survivor_retry": "PASS_CONDITIONAL",
+      "intermediate_flushes": 0,
+      "full_completed_outputs": 3,
+      "target_max_checks": 768,
+      "same_RID_new_room": true,
+      "physical_KV_oracle": false,
+      "performance_gain": "NOT_MEASURED",
+      "evidence": "evidence/2026-10-19-910c-lifecycle-pause/README.md"
     }
   },
   {
@@ -2522,7 +2574,7 @@
       "first_action": "先读取实际 stream_interval 和 accepted block 到 SSE 的路径。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "前端IPC/SSE组件已实测；原生/回收待测",
+    "status": "原生EOS154827第359token结束且无额外输出；另一请求正常4096上限，冻结整体失败保留",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/managers/detokenizer_manager.py#L79-L100",
@@ -2583,7 +2635,20 @@
     "source_default_pickle_IPC": true,
     "actual_runtime_IPC_confirmed": false,
     "local_status_code_candidate_verified": true,
-    "native_candidate_accepted": false
+    "native_candidate_accepted": false,
+    "native_lifecycle_R091_R092": {
+      "EOS_run": "FAIL_all_prompts_EOS_predicate",
+      "natural_EOS_observed_one": true,
+      "length_cap_observed_one": true,
+      "cancel_survivor_retry": "PASS_CONDITIONAL",
+      "intermediate_flushes": 0,
+      "full_completed_outputs": 3,
+      "target_max_checks": 768,
+      "same_RID_new_room": true,
+      "physical_KV_oracle": false,
+      "performance_gain": "NOT_MEASURED",
+      "evidence": "evidence/2026-10-19-910c-lifecycle-pause/README.md"
+    }
   },
   {
     "id": "M034",
@@ -2705,7 +2770,7 @@
       "first_action": "按实际后端和运行 commit 画时间线；跨节点时钟未对齐不直接相减。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "原三路32K真实PD功能交接及重复通过；KV逐字节、取消/drain与引用回收待测",
+    "status": "实际32K分块取消/显式传输abort、survivor与同RID新房间复用通过；物理KV/长期drain未全证",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py",
@@ -2796,6 +2861,19 @@
       "optimization_speedup": "NOT_MEASURED",
       "accepted_baseline": null,
       "evidence": "evidence/2026-10-19-910c-target-scores-long/README.md"
+    },
+    "native_lifecycle_R091_R092": {
+      "EOS_run": "FAIL_all_prompts_EOS_predicate",
+      "natural_EOS_observed_one": true,
+      "length_cap_observed_one": true,
+      "cancel_survivor_retry": "PASS_CONDITIONAL",
+      "intermediate_flushes": 0,
+      "full_completed_outputs": 3,
+      "target_max_checks": 768,
+      "same_RID_new_room": true,
+      "physical_KV_oracle": false,
+      "performance_gain": "NOT_MEASURED",
+      "evidence": "evidence/2026-10-19-910c-lifecycle-pause/README.md"
     }
   },
   {

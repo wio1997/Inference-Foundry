@@ -4,7 +4,7 @@
 
 **主线固定：Ascend + PD 分离 + 推测解码。** 36 是课程机制数量，不代表 36 个新发明，也不代表 36 个都适用或能加速。历史单引擎教学数据没有作为当前 PD 基线导入。
 
-**2026-10-19原生进展：** 原长短PD＋MTP功能用例均已实测；三路32768→256连续两次完成，D实际一份上下文驻留、其余排队。2048个输出token与返回目标最大分数一致；短Case微批变化/输出分叉、完整生命周期及稳定性能基线仍待核验，整体E0。见[目标分数、原长用例与实际容量边界](evidence/2026-10-19-910c-target-scores-long/README.md)。
+**2026-10-19原生进展及暂停：** 原长短PD＋MTP功能已实测；本轮追加一次真实32K分块取消、两条survivor与同RID新房间重试，无中间flush，768个输出与此前参考/返回目标最大分数一致。自然EOS一条通过、一条达到4096上限，原整体失败保留。按用户要求完成本轮、提交交接后暂停，等待新服务器；稳定性能基线与完整36机制工作未完成，整体E0。见[生命周期与迁移交接](evidence/2026-10-19-910c-lifecycle-pause/README.md)。
 
 - [任务合同、授权、实验阶梯与停止条件](CONTRACT.md)
 - [执行方式与主控 / ZCode 分工](EXECUTION.md)
@@ -89,9 +89,9 @@
 | [M001](points/M001.md) | 聊天模板、分词、reasoning parser | CPU候选语义/计时已核验；短/混合局部改善，服务未测 | config |
 | [M002](points/M002.md) | 进程分工、IPC 与流式背压 | 待路径核验 | config |
 | [M003](points/M003.md) | CPU affinity / NUMA / 线程数 | 待路径核验 | config |
-| [M004](points/M004.md) | Continuous batching 与请求状态机 | 真实HTTP批次未固定P微批；原三路32K到达/排队已观测，取消/重试待测 | conditional_candidate |
-| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | 原三路32K完成，D一份上下文驻留与2→1→0等待已实测；回收生命周期未全测 | config |
-| [M006](points/M006.md) | Chunked Prefill 的游标与预算 | 原4096 chunk完成三路32768输入两次；未进行chunk性能A/B | config |
+| [M004](points/M004.md) | Continuous batching 与请求状态机 | 真实分块victim取消、两条survivor与同RID新房间重试通过；性能基线待建立 | conditional_candidate |
+| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | 32K取消后的survivor/同RID重试无中间flush通过；物理页代际与长期回收未证 | config |
+| [M006](points/M006.md) | Chunked Prefill 的游标与预算 | 原4096 chunk日志触发取消，survivor及重试完整32K通过；未做chunk性能A/B | config |
 | [M007](points/M007.md) | Mixed batch 与 ragged / packed 输入 | 条件不适用 | not_applicable |
 | [M008](points/M008.md) | Cache-aware scheduling：LPM / DFS-weight | 待路径核验 | config |
 | [M009](points/M009.md) | Paged KV、请求映射与预分配池 | 默认 unified 路径与索引匹配 CPU 已核验；原生复用未决 | conditional_candidate |
@@ -116,11 +116,11 @@
 | [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | 现有分组缓冲支持原长短PD+MTP功能用例；稳定性能基线未接受 | config |
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
 | [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 路由必要工作边界已建立；实际rank负载未测 | config |
-| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | 2048个输出token与返回目标最大分数一致；长Case两次输出/接受直方图相同，精度金标准及完整生命周期未闭合 | config |
+| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | 累计2816个输出token与返回目标最大分数一致；EOS与取消重试有条件覆盖，独立精度/性能未闭合 | config |
 | [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 真实grammar/hostMTP mask CPU已核验；原生待测 | conditional_candidate |
-| [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 前端IPC/SSE组件已实测；原生/回收待测 | config |
+| [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 原生EOS154827第359token结束且无额外输出；另一请求正常4096上限，冻结整体失败保留 | config |
 | [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 实际Rust路径已核验；策略实测未运行 | config |
-| [M035](points/M035.md) | PD 分离、KV connector 与异步传输 | 原三路32K真实PD功能交接及重复通过；KV逐字节、取消/drain与引用回收待测 | conditional_candidate |
+| [M035](points/M035.md) | PD 分离、KV connector 与异步传输 | 实际32K分块取消/显式传输abort、survivor与同RID新房间复用通过；物理KV/长期drain未全证 | conditional_candidate |
 | [M036](points/M036.md) | 会话 / 混合模型 / LoRA / 多模态扩展 | 持久名称8项条件反例；清空确认链CPU通过 | conditional_candidate |
 
 ## 当前结果边界
