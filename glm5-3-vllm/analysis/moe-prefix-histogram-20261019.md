@@ -1,5 +1,9 @@
 # MoE prefix 表示与多图捕获：2026-10-19
 
+2026-10-19 12:37 CST 最新归约：两份rank0导出均完成，all16原件和导出备份238437535B，SHA `7b2502fc08d1a674ba874c26a07cd439cd1e35105a191016b593af0cb7f6a6c7`。原生target525 Cumsum均AI_CPU，候选target0、仅MTP30保留；恢复count的Sub/Concat各450个均AI_VECTOR_CORE、中位2.28/2.30µs。两份7/6步及batch混合不同，不能以耗时总和归因服务结果。候选MTP CPU中位1.986ms、首device compute仍晚于CPU结束14.4–37.5ms，暂不支持重复仅减少MTP CPU提交的旧方向。
+
+输出fence从enqueue/dequeue/API连到物理D2H后，早计数copy至晚sample copy差原生5.892–7.279ms、候选6.030–7.617ms。这是诊断差值，早操作不是提前token副本，不是服务收益。exact-image源码显示原完成事件还用于InputBatch更新，engine输出后可能处理abort、结束和KV释放；下一步仅提前拷贝shadow、逐位核对原完成副本，保持原发布和退休依赖，需要新immutable build。尚无此helper设备结果。详见`prefix-count-output-fence-{native,adaptive}-v1.json`及`prefix-count-c4-supply-analysis-{native,adaptive}-v1.json`。
+
 原生 AllGather routing 输出专家 count，W8A8 GMM1 随后转换为 prefix。已有 routing 接口支持直接输出 prefix；本原型只改变既有算子的属性和传给后续 GMM 的 list type。模型、W8A8C8、int8 KV/Indexer、原生通信与全 SDMA 路径保持，未新增算子。
 
 已修复首版多图原型的异常续写，但 target 与 MTP 同时改为 prefix 的服务结果仍混合，保持默认关闭。此前 RoPE 连续表在其独立配对实验中获得的 C4 +14.71% 不依赖此原型；本轮两种模式均启用相同 RoPE 改动，不能把两轮比例相乘当作整体实测收益。
@@ -86,4 +90,33 @@
 
 片段结果parser再次实际交给ZCode，1请求/16.95s。原提案正例在iteration3失败，函数还错误拒绝同一iteration的4次回放；主执行修正循环schema、有限零值类型和逐次恢复histogram证明要求，26项检查通过。原提案、错误和修正版分别保存，不把本地合成parser测试说成新NPU结果。
 
-恢复时原60011 SSH入口在fresh连接banner阶段持续超时，可用的另一个保存入口属于不同集群。已询问当前32/33入口；当前设备归属和健康未知，没有使用历史UID运行NPU、停止未知进程或重建模型。`prefix-count-loop-contract-v1.json`、`prefix-count-build-check-v1.json`、`prefix-count-build-regression-v1.json`、`prefix-count-connection-status-v1.json`记录准备与实际阻塞，等待真实可用入口后继续设备验证。
+初次恢复时原60011 SSH入口在fresh连接banner阶段持续超时；用户随后通知“恢复了”，新连接已收到banner，但default和本机已有两把相关密钥均返回SSH认证失败，当前无agent身份或可复用mux。已询问恢复后的连接名/端口或原认证会话。当前设备归属和健康仍未知，此次没有集群/设备变更。`prefix-count-loop-contract-v1.json`、`prefix-count-build-check-v1.json`、`prefix-count-build-regression-v1.json`记录准备；`prefix-count-connection-status-v1.json`为旧网络故障，`prefix-count-auth-status-v2.json`为最新认证阻塞。取得可认证连接后核实32/33并继续NZ片段验证。
+
+
+## 2026-10-19 恢复后的真实片段
+
+原60011入口已通过用户提供的认证信息恢复，确认同一集群32/33。旧模型和proxy均按有限timer退出，两节点各8卡空闲、无其他活动NPU作业后，只建立本任务新有限holder。
+
+新prefix→count完整NZ层8组eager及96次交错独立图重放全部输出逐位一致，改变输入和expert IDs后恢复count仍正确。N6四分布候选/原生中位层耗时比0.842–0.878，N24为0.809–0.929，所有用例改善。已审查的ZCode parser实际解析新结果：`prefix-count-full-fragment-v1`、`prefix-count-fragment-reviewed-v1.json`。完整产物6831B/SHA79c0da6b…备份已核验。该证据支持进入集成，不能预测真实PD收益。
+
+新D immutable buildc96524bf和原P build9886已启动，固定RoPE/MTP/精度/SDMA，等待就绪后做功能、全64序列、all16路径与原GMM2 count恢复验证。正式联合gate已冻结于`prefix-count-formal-contract-v1.json`，质量审查通过后执行，尚无新服务结果。
+
+
+完整集成的functional16、C4 functional8、quality52、cached16数值全部通过。16rank每个N6/12/18/24均记录75次prefix/fused/count恢复；真实请求选N6/12/18，MTP原生，GMM2实际恢复int64 count/type1。26组完整64序列25组相同，只有quality-0不同；同实例4条有限控制中native-A/replica/candidate/native-B全序列相同，初始与复测候选均被原生集合覆盖。仅允许有限性能对照，不作通用质量或无害舍入结论。观察器关闭后的正式C1/ABBA×3 C4已开始，服务结果待判定。
+
+
+## prefix→count的完整服务结果与到达控制
+
+C1正式24+warm4：候选/原生TTFT0.990376、完成延迟0.946179、meanTPOT0.934760；两边generated768/drafts270/accepted522相同，两个case完整64序列相同。C4正式384+warm16：161.635309→169.140977tok/s（+4.6436%），三轮+3.3033/+6.1836/+4.4844%。pooled p95 TTFT−4.8312%、完成−3.9747%，但meanTPOT+5.4866%，因此按预先contract判为MIXED_DEFAULT_OFF_PREFIX_COUNT_NO_JOINT_GAIN，候选保持关闭，原RoPE接受点不变。cancel10close、16peer/reuse成功，队列/KV归零，明确backend abort0。原C4记录均保留。大文件cat超时仅影响下载，压缩恢复后SHA核验，不重跑；collector后续压缩传输修复。
+
+按case，1536/64的p95 meanTPOT比1.3243，但其相对请求的token1/8/16/32/64 p95到达比均<1，p95最大观察到达间隔也改善；1537/128的早期到达较慢、完成较快。原始闭环负载的后续到达由前面完成时间决定，暂不能归因于特定算子。保留上述验收失败，另冻结一个固定到达反事实：原第0块native32条时间表17.52641221s，双方相同，ABBA一次128formal+8warm；模型/算子/参数/精度/SDMA不变。发送lag p95≤10ms、max≤25ms才解释时序结果。这是机制诊断，不是重跑原整轮或更改原接受gate。当前`prefix-count-fixed-arrival-contract-v1.json`与schedule已冻结，正在执行前置核验。
+
+
+固定到达v1的128条正式请求和8条warm全部数值通过，但实际发送延迟p95为15.156/16.004ms，超过预先10ms门槛，记为INCONCLUSIVE_TIMING_INVALID，不用于效果判断。随后同32 offsets的CPU-only配对（无模型请求）复现relative sleep p95 16.6955ms，而绝对clock_nanosleep的p95为0.06982ms；当前CPU无quota/throttling。这个问题仅发生在新诊断的长相对sleep，不影响原闭环C1/C4的即时slot派发。
+
+只修正负载生成器定时等待，v2采用该CPU实测过的精确helper，原时间表、ABBA128+8warm、模型/参数和10/25ms时序门槛不变；当前正在执行。参考[CPython3.9.9 Unix sleep实现](https://github.com/python/cpython/blob/v3.9.9/Modules/timemodule.c#L1884)以及[Linux5.10 select等待余量实现](https://github.com/torvalds/linux/blob/v5.10/fs/select.c)，上游机制与误差随等待时长增加相符；不是现场内核build的唯一因果证明，精度改善以本次CPU配对为证。
+
+
+固定到达v2真实dispatch p95为0.5005/0.5147ms、max均<0.6ms，时序有效；128formal+8warm数值全过。pooled p95候选/原生TTFT0.981408、完成0.999450、meanTPOT1.124866。此有限trace中尾回退并未消失，否定“仅外部到达反馈足以解释”，不归因某个算子；原mixed/default-off判定保留。
+
+随后只做一次原生/候选配对D并发跟踪：每模式匹配4条unprofiled warm，再预备4条原生P KV并barrier交给D8。16条PD请求均答案/预算通过，两个模式各16rank的真实selected N为[6,18,24]，MTP原生；raw847081722B/742215119B，profiler均已停止且候选/observer恢复关闭。此同步D到达条件不是原stock-proxy服务对照，不能用profile耗时宣称性能。当前先逐file SHA归档，再CPU-only导出各rank0；native已成功106.951s，candidate导出中。后续只据实际task/stream/queue证据选下一机制。

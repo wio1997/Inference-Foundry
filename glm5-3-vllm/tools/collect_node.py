@@ -3,6 +3,7 @@
 import argparse
 import base64
 import datetime
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -157,10 +158,11 @@ for name in ['artifacts_manifest.json','sdma-log-evidence.txt']: result[name]=in
     result = json.loads(completed.stdout)
     for name in ("stdout.json", "stderr.txt", "context.json", "result.json", "script.py",
                  "artifacts_manifest.json", "sdma-log-evidence.txt") + (("metrics.json",) if "metrics.json" in result else ()):
-        content = subprocess.check_output(ssh + [host + "cat " + shlex.quote(remote + "/" + name)], timeout=30)
-        (dest / name).write_bytes(content)
+        packed = subprocess.check_output(ssh + [host + "gzip -c -- " + shlex.quote(remote + "/" + name)], timeout=60)
+        content = gzip.decompress(packed)
         if name in result:
-            assert hashlib.sha256(content).hexdigest() == result[name]["sha256"], "download mismatch"
+            assert len(content) == result[name]["bytes"] and hashlib.sha256(content).hexdigest() == result[name]["sha256"], "download mismatch"
+        (dest / name).write_bytes(content)
     assert hashlib.sha256((dest / "script.py").read_bytes()).hexdigest() == sha
     print(json.dumps({"local": str(dest.resolve()), "remote": remote,
                       "rc": result["returncode"], "download_verified": True}))

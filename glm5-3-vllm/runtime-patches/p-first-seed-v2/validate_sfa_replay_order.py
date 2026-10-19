@@ -27,7 +27,7 @@ def main():
     parser.add_argument('--run-tag', default='v2')
     parser.add_argument('--run-dir', type=Path, default=D_ROOT)
     parser.add_argument('--expected-D-CID', default=D_CID)
-    parser.add_argument('--probe-kind', choices=['sfa_order', 'mtp_ffn_graph', 'mtp_moe_graph', 'rope_cache_layout', 'moe_prefix_histogram', 'moe_cumsum_i32'], default='sfa_order')
+    parser.add_argument('--probe-kind', choices=['sfa_order', 'mtp_ffn_graph', 'mtp_moe_graph', 'rope_cache_layout', 'moe_prefix_histogram', 'moe_cumsum_i32', 'moe_prefix_gmm2_count', 'early_sample_copy_shadow'], default='sfa_order')
     parser.add_argument('--rotate-cases', action='store_true')
     parser.add_argument('--retain-native-counters', action='store_true')
     parser.add_argument('--c4-cycles', type=int, choices=[1, 2, 3], default=2)
@@ -41,7 +41,9 @@ def main():
                             'mtp_moe_graph': ('mtp-moe-graph', 'GLM53_MTP_MOE_GRAPH_PROBE'),
                             'rope_cache_layout': ('rope-cache-layout', 'GLM53_ROPE_CACHE_LAYOUT_PROBE'),
                             'moe_prefix_histogram': ('moe-prefix-histogram', 'GLM53_MOE_PREFIX_HISTOGRAM_PROBE'),
-                            'moe_cumsum_i32': ('moe-cumsum-i32', 'GLM53_MOE_CUMSUM_I32_PROBE')}[args.probe_kind]
+                            'moe_cumsum_i32': ('moe-cumsum-i32', 'GLM53_MOE_CUMSUM_I32_PROBE'),
+                            'moe_prefix_gmm2_count': ('moe-prefix-gmm2-count', 'GLM53_MOE_PREFIX_GMM2_COUNT_PROBE'),
+                            'early_sample_copy_shadow': ('early-sample-copy-shadow', 'GLM53_EARLY_SAMPLE_COPY_SHADOW')}[args.probe_kind]
     plan = json.loads((D_ROOT / 'plan.json').read_text())
     actual = json.loads(subprocess.check_output(['docker', 'inspect', D_CID]))[0]
     assert actual['State']['Running'] and actual['Image'] == plan['image']['id']
@@ -51,9 +53,11 @@ def main():
     assert re.fullmatch(r'[a-z0-9-]+', args.run_tag)
     out = D_ROOT / (probe_name + '-' + args.phase + '-' + args.run_tag)
     out.mkdir(exist_ok=False)
-    marker = D_ROOT / (probe_name + '-probe/enable')
-    trace_disabled = D_ROOT / (probe_name + '-probe/disabled')
-    if args.phase in ['c1', 'c4'] or (args.probe_kind in ['rope_cache_layout', 'moe_prefix_histogram', 'moe_cumsum_i32'] and args.phase in ['quality', 'cached']):
+    probe_directory = probe_name if args.probe_kind == 'early_sample_copy_shadow' else probe_name + '-probe'
+    marker = D_ROOT / probe_directory / 'enable'
+    trace_disabled = D_ROOT / probe_directory / 'disabled'
+    assert args.probe_kind != 'early_sample_copy_shadow' or args.phase in ['functional', 'c4-functional', 'cached']
+    if args.phase in ['c1', 'c4'] or (args.probe_kind in ['rope_cache_layout', 'moe_prefix_histogram', 'moe_cumsum_i32', 'moe_prefix_gmm2_count', 'early_sample_copy_shadow'] and args.phase in ['quality', 'cached']):
         assert trace_disabled.exists()
     else:
         assert not trace_disabled.exists()
