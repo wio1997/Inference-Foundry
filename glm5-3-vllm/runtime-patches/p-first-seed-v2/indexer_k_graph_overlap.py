@@ -17,10 +17,12 @@ def install(ns, root=None, deps=None):
         from vllm.forward_context import get_forward_context, is_forward_context_available
         from vllm_ascend.ascend_forward_context import _EXTRA_CTX
         from vllm_ascend.attention import sfa_v1, indexer
+        from vllm_ascend.ops import mla
         for module, sha in [(sfa_v1, '9b94f67f30364d40caf4a7a67af0f0365d1ba0b5048939873ab0464e95b096dc'),
-                            (indexer, '1f345bafb7c57ee02b66294ba72314e052f3c9b16f1faf5a8fb2bddde33c6eea')]:
+                            (indexer, '1f345bafb7c57ee02b66294ba72314e052f3c9b16f1faf5a8fb2bddde33c6eea'),
+                            (mla, 'e14080c6c0106f2734f5441254e285e7a39fd8980046febe5232b4c9dba75400')]:
             assert hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() == sha
-        deps = dict(SFA=sfa_v1.AscendSFAImpl, Indexer=indexer.AscendSFAIndexerBackend,
+        deps = dict(SFA=sfa_v1.AscendSFAImpl, Indexer=indexer.AscendSFAIndexerBackend, Wrapper=mla.IndexerWrapper,
                     quant=sfa_v1.AscendW8A8DynamicLinearMethod,
                     prolog_type=sfa_v1.PreprocessType.PROLOG_V3,
                     ctx=get_forward_context, available=is_forward_context_available,
@@ -30,7 +32,7 @@ def install(ns, root=None, deps=None):
     SFA, Indexer = deps['SFA'], deps['Indexer']
     root = Path('/out/indexer-k-graph-overlap-probe') if root is None else Path(root)
     root.mkdir(exist_ok=True)
-    state = dict(frame=None, stream=None, entries={}, pending={}, records=0)
+    state = dict(frame=None, stream=None, entries={}, pending={}, records=0, guard_seen=set())
     native_sample = Runner.sample_tokens
     native_forward = SFA.forward
     native_prolog = SFA._sfa_preprocess_prolog_v3
@@ -73,11 +75,18 @@ def install(ns, root=None, deps=None):
             return None
         return (t.data_ptr(), tuple(t.shape), tuple(t.stride()), str(t.dtype), str(t.device))
 
+    def backend(self):
+        wrapper = self.indexer
+        if type(wrapper) is deps['Wrapper'] and type(wrapper.impl) is Indexer:
+            return wrapper.impl
+        return None
+
     def guard(self, hidden, metadata):
-        if (type(self) is not SFA or type(self.indexer) is not Indexer
+        idx = backend(self)
+        if (type(self) is not SFA or idx is None
                 or not deps['available']() or not deps['is_draft']() or deps['capturing']()):
             return False
-        ctx, idx = deps['ctx'](), self.indexer
+        ctx = deps['ctx']()
         return bool(not ctx.capturing and ctx.cudagraph_runtime_mode != Mode.FULL
                     and self.preprocess_type == deps['prolog_type']
                     and self._quant_type is deps['quant'] and self.enable_sparse_sfa_c8
@@ -149,8 +158,26 @@ def install(ns, root=None, deps=None):
         eligible = metadata is not None and guard(self, hidden_states, metadata)
         row = dict(N=int(hidden_states.shape[0]), eligible=bool(eligible), selected=False,
                    native_cache_write_retained=True, native_main_prolog_retained=True)
+        if not eligible and frame['observe']:
+            key = (id(self), tuple(hidden_states.shape))
+            if key not in state['guard_seen'] and len(state['guard_seen']) < 16:
+                state['guard_seen'].add(key)
+                idx = backend(self)
+                ctx = deps['ctx']() if deps['available']() else None
+                row['guard_snapshot'] = dict(SFA_type=type(self).__name__, wrapper_type=type(self.indexer).__name__,
+                    backend_type=type(idx).__name__, draft=bool(deps['is_draft']()),
+                    extra_capturing=bool(deps['capturing']()), context_capturing=getattr(ctx,'capturing',None),
+                    context_mode=str(getattr(ctx,'cudagraph_runtime_mode',None)),
+                    hidden_dtype=str(hidden_states.dtype), hidden_device=str(hidden_states.device),
+                    hidden_shape=list(hidden_states.shape), hidden_stride=list(hidden_states.stride()),
+                    hidden_contiguous=hidden_states.is_contiguous(), local_heads=self.local_num_heads,
+                    kv_rank=self.kv_lora_rank, main_C8=self.enable_sparse_sfa_c8,
+                    cos_shape=list(metadata.cos.shape) if metadata is not None else None,
+                    cos_stride=list(metadata.cos.stride()) if metadata is not None else None,
+                    cos_dtype=str(metadata.cos.dtype) if metadata is not None else None,
+                    sin_contiguous=metadata.sin.is_contiguous() if metadata is not None else None)
         if eligible and frame['requested']:
-            idx, main = self.indexer, torch.npu.current_stream()
+            idx, main = backend(self), torch.npu.current_stream()
             assert id(idx) not in state['pending']
             try:
                 entry, cold = prepare_entry(idx, hidden_states, metadata.cos, metadata.sin, main)
@@ -198,11 +225,11 @@ def install(ns, root=None, deps=None):
         try:
             result = native_forward(self, *args, **kwargs)
         except BaseException:
-            pending = state['pending'].pop(id(self.indexer), None) if self.runtime_has_indexer else None
+            pending = state['pending'].pop(id(backend(self)), None) if self.runtime_has_indexer else None
             if pending is not None:
                 pending['main'].wait_stream(state['stream'])
             raise
-        pending = state['pending'].pop(id(self.indexer), None) if self.runtime_has_indexer else None
+        pending = state['pending'].pop(id(backend(self)), None) if self.runtime_has_indexer else None
         if pending is not None:
             pending['main'].wait_stream(state['stream'])
             raise RuntimeError('Prepared K did not reach the original Indexer consumer')
