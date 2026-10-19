@@ -2455,7 +2455,7 @@
     "title": "会话 / 混合模型 / LoRA / 多模态扩展",
     "lesson": 14,
     "what": "会话、LoRA、多模态和混合状态模型会改变“相同输入”的含义：相同文字换 adapter 或图像，得到的内部状态可能完全不同。它们是条件分支，不是当前文本模型必须开启的开关。",
-    "how": "先把实际请求字段映射到模型、adapter、图像/音频与会话状态，再检查缓存身份和生命周期；已有 LoRA 支持固定驻留与异步加载，但不能推定 Ascend PD+MTP 全组合可用。",
+    "how": "先核对实际扩展存在性与组合门槛。固定源码中Req拼接caller extra_key和LoRAID，streaming slot按sessionID恢复状态，媒体artifact身份包含内容/处理设置；局部CPU有4项身份前提反例，完整调用方/AscendPD+MTP未证。",
     "cost": "额外编码、adapter 加载、状态拷贝和专用缓冲；重用错误会生成错误结果，重用过少则重复工作。",
     "hypothesis": "仅业务确有重复 adapter 且加载受限时，对照已有固定驻留策略减少重复加载；其他扩展分别记录适用性，不为凑优化擅自加模型功能。",
     "classification": "conditional_candidate",
@@ -2480,7 +2480,7 @@
       "first_action": "列出本模型真实扩展能力，四类分别给“存在/不存在/未支持/未知”。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "待路径核验",
+    "status": "原始组件身份见证：4项条件失败；原生待测",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/lora.mdx#L304-L306",
@@ -2489,6 +2489,18 @@
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/lora.mdx#L513-L529",
         "support": "异步加载可能降低多 adapter prefill batching，存在反例。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/managers/schedule_batch.py#L1100",
+        "support": "请求extra_key与LoRAID直接拼接，局部CPU存在base-vs-adapter键重合。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/session/streaming_session.py#L171",
+        "support": "局部slot入口未校验adapter/extra_key/salt；上游稳定性和实际可达性仍未证。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/python/sglang/srt/lora/lora_manager.py#L296",
+        "support": "原加载元数据校验拒绝新增词表/DoRA并为pin保留槽位。"
       }
     ],
     "related_ids": [],
@@ -2507,6 +2519,24 @@
       "static_status": "ENTRY_LOCATED",
       "runtime_path_confirmed": false,
       "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
-    }
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-extension-identity/README.md",
+    "verified_source_files": 31,
+    "original_CPU_groups": 8,
+    "original_CPU_checks": 54,
+    "original_CPU_pass": 50,
+    "original_CPU_identity_fail": 4,
+    "LoRA_metadata_checks": 9,
+    "harness_INVALID_runs": 4,
+    "full_identity_correctness_passed": false,
+    "current_deployment_fault_proven": false,
+    "feature_business_presence": "UNKNOWN",
+    "Ascend_PD_MTP_combination": "UNKNOWN",
+    "whole_serving_modules_imported": false,
+    "native_executed": false,
+    "candidate_accepted": false,
+    "production_applied": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED"
   }
 ]
