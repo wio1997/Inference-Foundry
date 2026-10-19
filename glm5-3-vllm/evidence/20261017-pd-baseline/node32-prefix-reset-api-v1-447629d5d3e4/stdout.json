@@ -1,0 +1,85 @@
+{
+  "functions": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/engine/protocol.py",
+      "sha256": "9be92767b2a92bc5522c14b00750c0636950c7b99f82b99ed2bc2780bd3eae7b",
+      "source": "async def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        \"\"\"Reset the prefix cache and optionally any configured connector cache\"\"\"\n        ..."
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/llm.py",
+      "sha256": "52de4ac99489e004ef6c61d0bedc84aa96020dd58b8bd1ae500814b548b2b83e",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        return self.llm_engine.reset_prefix_cache(\n            reset_running_requests, reset_connector\n        )"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/entrypoints/serve/dev/cache/api_router.py",
+      "sha256": "ba0e9be90c4fe8f42526c163d073ee5889492e4cdd8231599901d0b3aab669ce",
+      "source": "async def reset_prefix_cache(\n    raw_request: Request,\n    reset_running_requests: bool = Query(default=False),\n    reset_external: bool = Query(default=False),\n):\n    \"\"\"\n    Reset the local prefix cache.\n\n    Optionally, if the query parameter `reset_external=true`\n    also resets the external (connector-managed) prefix cache.\n\n    Returns `{\"success\": bool}`. The reset fails (`success=false`) while\n    blocks are still held, e.g. by running requests or in-flight async KV\n    offload transfers; callers may retry.\n\n    Example:\n       POST /reset_prefix_cache?reset_external=true\n    \"\"\"\n    logger.info(\"Resetting prefix cache...\")\n\n    success = await engine_client(raw_request).reset_prefix_cache(\n        reset_running_requests, reset_external\n    )\n    return JSONResponse(content={\"success\": bool(success)})"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/core_client.py",
+      "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        raise NotImplementedError"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/core_client.py",
+      "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+      "source": "async def reset_prefix_cache_async(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        raise NotImplementedError"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/core_client.py",
+      "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        return self.engine_core.reset_prefix_cache(\n            reset_running_requests, reset_connector\n        )"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/core_client.py",
+      "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        return self.call_utility(\n            \"reset_prefix_cache\", reset_running_requests, reset_connector\n        )"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/core_client.py",
+      "sha256": "fd6ca0cb7499b3086eef2fc57674b7ace56ef1c648f09e92e144b255b79018f8",
+      "source": "async def reset_prefix_cache_async(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        return await self.call_utility_async(\n            \"reset_prefix_cache\", reset_running_requests, reset_connector\n        )"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/async_llm.py",
+      "sha256": "52cbf404f1dbc99c6bebf4a50a7eb18ff842a1f53106a45f365523192d816be1",
+      "source": "async def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        return await self.engine_core.reset_prefix_cache_async(\n            reset_running_requests, reset_connector\n        )"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/llm_engine.py",
+      "sha256": "d4d5fba309db4d3f271ac7479e3ddaa623045499e4c6cfac41c0c7710012413c",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        return self.engine_core.reset_prefix_cache(\n            reset_running_requests, reset_connector\n        )"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/engine/core.py",
+      "sha256": "268bf40534a853812867ae8e80040f190983cb364b41182b55969aace20c93f5",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        return self.scheduler.reset_prefix_cache(\n            reset_running_requests, reset_connector\n        )"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/kv_cache_manager.py",
+      "sha256": "58800535eda854580d84e1025bf32fe01b2a43ce0bba501b4f3d125e4f2c8afa",
+      "source": "def reset_prefix_cache(self) -> bool:\n        \"\"\"Reset prefix cache. This function may be used in RLHF\n        flows to invalidate prefix caching after the weights are updated,\n        or used for resetting prefix caching status for benchmarking.\n\n        Returns:\n            bool: True if the prefix cache is successfully reset,\n            False otherwise.\n        \"\"\"\n        if not self.coordinator.reset_prefix_cache():\n            return False\n        if self.log_stats:\n            assert self.prefix_cache_stats is not None\n            self.prefix_cache_stats.reset = True\n        return True"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/kv_cache_coordinator.py",
+      "sha256": "bf342f79f2bc8d6acb69d3becefb334509e84cae888d42bbd421a8dc8ca9eca3",
+      "source": "def reset_prefix_cache(self) -> bool:\n        \"\"\"Reset each manager's pool once.\"\"\"\n        pools = dict.fromkeys(\n            manager.block_pool for manager in self.single_type_managers\n        )\n        return all([pool.reset_prefix_cache() for pool in pools])"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/block_pool.py",
+      "sha256": "34c2fd67148cecb7763ff49ad694a57073759b0fa67572a4270dc995b4acf8fc",
+      "source": "def reset_prefix_cache(self) -> bool:\n        \"\"\"Reset prefix cache. This function may be used in RLHF\n        flows to invalid prefix caching after the weights are updated,\n        or used for resetting prefix caching status for benchmarking.\n\n        Returns:\n            bool: True if the prefix cache is successfully reset,\n            False otherwise.\n        \"\"\"\n        num_used_blocks = self.num_gpu_blocks - self.get_num_free_blocks()\n        if num_used_blocks != 1:  # The null block is always marked as used\n            logger.warning(\n                \"Failed to reset prefix cache because some \"\n                \"blocks (%d) are not freed yet\",\n                num_used_blocks - 1,\n            )\n            return False\n\n        # Remove all hashes so that no new blocks will hit.\n        self.cached_block_hash_to_block = BlockHashToBlockMap()\n        self.cached_block_hashes_by_block.clear()\n        if self._reuse_watchers:\n            self._notify_reuse(\n                [self.blocks[block_id] for block_id in list(self._reuse_watchers)]\n            )\n\n        # Remove all hashes from all blocks.\n        for block in self.blocks:\n            block.reset_hash()\n\n        if self.metrics_collector:\n            self.metrics_collector.reset()\n\n        logger.info(\"Successfully reset prefix cache\")\n\n        if self.enable_kv_cache_events:\n            self.kv_event_queue.append(AllBlocksCleared())\n\n        return True"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/sched/interface.py",
+      "sha256": "be6c008664096c5660a8879de72b315bbe479bf1d688be9b25891063ec53a367",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        \"\"\"Reset the prefix cache for KV cache.\n\n        This is particularly required when the model weights are live-updated.\n\n        Args:\n            reset_running_requests: If True, all the running requests will be\n                preempted and moved to the waiting queue. Otherwise, this method\n                will only reset the KV prefix cache when there is no running request\n                taking KV cache.\n        \"\"\"\n        raise NotImplementedError"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py",
+      "sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "source": "def reset_prefix_cache(\n        self, reset_running_requests: bool = False, reset_connector: bool = False\n    ) -> bool:\n        \"\"\"Reset the KV prefix cache.\n\n        If reset_running_requests is True, all the running requests will be\n        preempted and moved to the waiting queue.\n        Otherwise, this method will only reset the KV prefix cache when there\n        is no running requests taking KV cache.\n        \"\"\"\n        if reset_running_requests:\n            # For logging.\n            timestamp = time.monotonic()\n            # Invalidate all the current running requests KV's by pushing them to\n            # the waiting queue. In this case, we can reduce the ref count of all\n            # the kv blocks to 0 and thus we can make sure the reset is successful.\n            # Preempt in reverse order so the requests will be added back to the\n            # running queue in FIFO order.\n            while self.running:\n                request = self.running.pop()\n                self._preempt_request(request, timestamp, drop_stale_output=True)\n\n            # Clear scheduled request ids cache. Since we are forcing preemption\n            # + resumption in the same step, we must act as if these requests were\n            # not scheduled in the prior step. They will be flushed from the\n            # persistent batch in the model runner.\n            self.prev_step_scheduled_req_ids.clear()\n\n        reset_successful = self.kv_cache_manager.reset_prefix_cache()\n        if reset_running_requests and not reset_successful:\n            raise RuntimeError(\n                \"Failed to reset KV cache even when all the running requests are \"\n                \"preempted and moved to the waiting queue. This is likely due to \"\n                \"the presence of running requests waiting for remote KV transfer, \"\n                \"which is not supported yet.\"\n            )\n\n        if reset_connector:\n            reset_successful = self.reset_connector_cache() and reset_successful\n\n        return reset_successful"
+    }
+  ],
+  "scope": "Pinned installed source only, no model/cache changes or NPU mounts."
+}

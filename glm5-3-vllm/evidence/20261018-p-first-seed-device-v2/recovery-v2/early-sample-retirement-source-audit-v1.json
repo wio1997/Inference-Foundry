@@ -1,0 +1,44 @@
+{
+  "completed": true,
+  "created_utc": "2026-10-19T04:49:18.853753+00:00",
+  "source_sha256": {
+    "scheduler": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+    "aggregator": "317ed40dc837671ca6e666165222e641a0f9b3992aea63bbf54de7e13d40b3a4",
+    "native_async": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51"
+  },
+  "facts": [
+    {
+      "path": "scheduler.py",
+      "line": 165,
+      "fact": "Consumer KV connector and max_concurrent_batches>1 enables defer_block_free because KV loads may not be ordered with GPU writes."
+    },
+    {
+      "path": "scheduler.py",
+      "line": 1889,
+      "fact": "update_from_output assumes all GPU writes complete, increments processed_step_seq on nonempty step, then drains deferred_frees."
+    },
+    {
+      "path": "scheduler.py",
+      "line": 2603,
+      "fact": "A request can free KV only when last_sched_seq<=processed_step_seq; CoW retention uses future fence and deferred_frees."
+    },
+    {
+      "path": "scheduler.py",
+      "line": 2660,
+      "fact": "has_requests covers live/finished requests and connector push work, but does not explicitly keep polling only for remaining GPU retirements."
+    },
+    {
+      "path": "gpu_model_runner.py",
+      "line": 307,
+      "fact": "Original native copy event is recorded after native copy stream waits on the current model stream; get_output synchronizes this event."
+    },
+    {
+      "path": "utils.py",
+      "line": 85,
+      "fact": "Existing KVOutputAggregator tracks expected worker completions; any separate retirement acknowledgement must require all16, not the first rank."
+    }
+  ],
+  "decision": "Do not publish early merely by substituting copy-ready event. Current shadow keeps original late native completion. A future prototype must independently retire GPU/KV, preserve all16 completion and source ownership, handle abort before output and zero-token/CoW-only drain, and run fresh immutable build with correctness/cancel/reuse gates.",
+  "implementation_status": "Retirement split not implemented. Current device shadow and its profile must pass before any dependent publication prototype.",
+  "scope": "Exact pinned source audit and design constraints; not a runtime proof or performance result."
+}

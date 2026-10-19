@@ -1,0 +1,36 @@
+{
+  "completed": true,
+  "passed": 23,
+  "checks": [
+    "last_of16_worker_prevents_premature_retirement",
+    "missing_worker_rejected",
+    "mismatched_worker_step_rejected",
+    "already_aggregated_worker_rejected",
+    "actual_declared_ModelRunnerOutput_IPC_fields_roundtrip",
+    "deferred_execute_all16_None_is_passthrough_not_retirement",
+    "deferred_execute_missing_rank_rejected",
+    "aggregator_keeps_native_output_and_minimum_retirement",
+    "abort_before_early_output_keeps_native_KV_fence",
+    "next_early_step_retires_only_prior_step",
+    "final_empty_drain_releases_KV_and_quiesces",
+    "actual_native_CoW_fence_retires_on_zero_token_copy_step",
+    "backwards_retirement_rejected",
+    "nonce_scoped_native_abort_injection_keeps_KV_until_real_drain",
+    "early_publication_does_not_wait_current_native_late",
+    "InputBatch_keeps_original_late_event",
+    "native_GPU_source_retained_after_early_publication",
+    "copy_stream_FIFO_early2_covers_native_late1_only",
+    "final_drain_waits_original_event_and_preserves_EMPTY_singleton",
+    "native_control_waits_and_retires_current_step",
+    "zero_token_KV_write_gets_real_copy_stream_retirement",
+    "third_GPU_step_waits_oldest_native_late_before_input_reuse",
+    "late_comparison_detects_changed_source_before_retirement_ACK"
+  ],
+  "scope": "CPU actual pinned native KV/CoW fences and declared IPC schema, plus new hook ownership/FIFO/drain behavior. No NPU scheduling, full-model correctness, cancellation or service gain proof.",
+  "build": "226885a3d81736837ee4e92d9161c98ffa1f36beca7208cdccc3c9d2cc077308",
+  "helper_sha256": {
+    "early_sample_publication.py": "58c9f8e3c4435323fbeeebd2e87c6413c6818ec1f3b176393b34ba88560c3d74",
+    "early_sample_retirement.py": "9e63cb6eac0d17dbeca083e05b9baef9f1bd878cf5ff40e77ca1612c4068fdee"
+  },
+  "change": "Before admitting new nonempty input prep, wait oldest retained native late event if two GPU steps remain unretired; cap retained GPU steps at original max_concurrent_batches2. This is a lifetime-domain hardening, not attribution of the observed full64 differences. First new CPU fixture ran with publication marker off and was corrected; no device work from this fixture error."
+}

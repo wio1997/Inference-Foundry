@@ -1,0 +1,9 @@
+{
+  "scope": "Real GLM cache layout + four integer control moments per logical byte-view; no bulk real KV copied to host. Not cryptographic SHA/byte equality proof, no performance acceptance.",
+  "fixed": "Restore original shared-MLA-key P9/D8 state representation, same model/precision/operators/eager/8K/4seq/device_sdma/whole-block alignment; add opt-in observation only.",
+  "observation": "P before/after SDK PUT, D after SDK GET, exact tensor shape/stride/dtype/NPU format and entry mapping; private NPU stream, at most128keys/phase/PID. D records default-stream event before GET but only waits after GET for observation, not a pre-load fence.",
+  "precheck": "kv-control-checksum-v1 and BF16-v2 match independent CPU reference; NPU KERNEL_AIVEC/MIX tasks, no CPU fallback names, only small checksum controls returned. ACL bulk readback rejected: async PCIE_DMA_SQE observed; SDKG2H1.2 source also bounces throughACL D2H.",
+  "minimal_sdk": "7/31objects,512buffers/object,S6979584 bytes,bidirectional bulk+per-key reference; every payloadSHA anddestinationguard passed with fenced destination. Does not prove real layout or stream ordering.",
+  "test": "Four original4096/128 requests with fresh salts; P1 then wait for all32 source objects to have before/after records, D128; compare exact outputs to current matching native-prefix reference and compare entry checksum vectors/layout. Commit waiting and observer costs retained; not a service benchmark.",
+  "decision": "Mismatch localizes differing entries/state, not uniquely network versus source/target race. Equal controls do not prove all bytes equal; if output still differs, inspect untransported execution state/native math. Observation may perturb timing; no fix claim from disappearance."
+}

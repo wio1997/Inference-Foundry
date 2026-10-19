@@ -1,0 +1,67 @@
+mki_log mkdir /out/ascend-log/atb
+GLM53_RESULT_JSON_BEGIN
+{
+  "probe": "hccl_2rank_bounded_probe",
+  "kind": "initial_condition_communication_diagnosis",
+  "ok": false,
+  "spawn_error": null,
+  "init_method": "tcp://127.0.0.1:34911",
+  "world_size": 2,
+  "sizes_bytes": [
+    1024,
+    65536,
+    1048576,
+    16777216,
+    67108864
+  ],
+  "warmup_iterations": 3,
+  "timed_iterations": 12,
+  "transport_controls": {
+    "HCCL_INTER_HCCS_DISABLE": "FALSE",
+    "HCCL_INTRA_ROCE_ENABLE": "0",
+    "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+    "HCCL_INTRA_PCIE_ENABLE": "1"
+  },
+  "sdma_runtime_path_verified": false,
+  "physical_visible_string": "0,1",
+  "visibility_note": "set by the caller; rank r runs on npu:r inside that visible set",
+  "rank_mapping": {
+    "0": "npu:0",
+    "1": "npu:1"
+  },
+  "exitcodes": [
+    0,
+    0
+  ],
+  "rank_results": [
+    {
+      "rank": 0,
+      "logical_device": "npu:0",
+      "device_name": "Ascend910_9392",
+      "cases": [],
+      "error": "Traceback (most recent call last):\n  File \"/audit/script.py\", line 141, in _worker\n    _timed_send_recv(rank, sender_rank, result['cases'])\n  File \"/audit/script.py\", line 65, in _timed_send_recv\n    dist.barrier()\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/c10d_logger.py\", line 83, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py\", line 4969, in barrier\n    work = group.barrier(opts=opts)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: createHCCLCommOrigin:../torch_npu/csrc/distributed/ProcessGroupHCCL.cpp:2801 HCCL function error: hcclGetRootInfo(&hcclID), error code is 1 \n[ERROR] 2026-10-16-17:54:42 (PID:22, Device:0, RankID:-1) ERR02200 DIST call hccl api failed.\n[PID: 22] 2026-10-16-17:54:42.032.941 Config_Error_Invalid_Environment_Variable(EI0001): Value 30 for environment variable HCCL_CONNECT_TIMEOUT is invalid. Expected value: a number greater than or equal to 120s and less than or equal to 7200s.\n\n",
+      "torch_version": "2.10.0+cpu",
+      "torch_npu_version": "2.10.0.post4",
+      "init_ns": 53796150,
+      "ascend_rt_visible_devices": "0,1"
+    },
+    {
+      "rank": 1,
+      "logical_device": "npu:1",
+      "device_name": "Ascend910_9392",
+      "cases": [],
+      "error": "Traceback (most recent call last):\n  File \"/audit/script.py\", line 141, in _worker\n    _timed_send_recv(rank, sender_rank, result['cases'])\n  File \"/audit/script.py\", line 65, in _timed_send_recv\n    dist.barrier()\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/c10d_logger.py\", line 83, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py\", line 4969, in barrier\n    work = group.barrier(opts=opts)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: [1] is setting up HCCL communicator and retrieving hcclUniqueId from [0] via c10d key-value store by key '0', but store->get('0') got error: Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?\nException raised from recvBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:682 (most recent call first):\nframe #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0xc8 (0xffff766e5978 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libc10.so)\nframe #1: <unknown function> + 0x65dee84 (0xffff7c98ee84 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #2: c10d::TCPStore::doWait(c10::ArrayRef<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::chrono::duration<long, std::ratio<1l, 1000l> >) + 0x1fc (0xffff7c9916dc in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #3: c10d::TCPStore::doGet(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0x28 (0xffff7c991d68 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #4: c10d::TCPStore::get(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0xe8 (0xffff7c991ed8 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #5: c10d::PrefixStore::get(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0x324 (0xffff7c9308b4 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #6: c10d_npu::ProcessGroupHCCL::broadcastMasterID(HcclRootInfoDef*, bool, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) + 0x250 (0xffff6be552c0 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so)\nframe #7: c10d_npu::ProcessGroupHCCL::createHCCLCommOrigin(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<c10::Device, std::allocator<c10::Device> > const&, c10d_npu::HcclCommType, HcclCommConfigDef*, std::vector<std::shared_ptr<c10d_npu::HCCLComm>, std::allocator<std::shared_ptr<c10d_npu::HCCLComm> > >&, std::vector<c10_npu::NPUStream, std::allocator<c10_npu::NPUStream> >&, int) + 0x148 (0xffff6be595bc in /usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so)\nframe #8: c10d_npu::ProcessGroupHCCL::createHCCLComm(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<c10::Device, std::allocator<c10::Device> > const&, c10d_npu::HcclCommType, HcclCommConfigDef*, int) + 0x6a8 (0xffff6be56d7c in /usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so)\nframe #9: <unknown function> + 0x49cea68 (0xffff6be6ea68 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so)\nframe #10: c10d_npu::ProcessGroupHCCL::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) + 0x144 (0xffff6be70894 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so)\nframe #11: c10d_npu::ProcessGroupHCCL::barrier(c10d::BarrierOptions const&) + 0x37c (0xffff6be663e0 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so)\nframe #12: <unknown function> + 0x6573abc (0xffff7c923abc in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #13: <unknown function> + 0x657bf84 (0xffff7c92bf84 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #14: <unknown function> + 0x165fac4 (0xffff68affac4 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so)\nframe #15: <unknown function> + 0x6590234 (0xffff7c940234 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #16: <unknown function> + 0x6592938 (0xffff7c942938 in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so)\nframe #17: <unknown function> + 0x115a6cc (0xffff81c0a6cc in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_python.so)\nframe #18: <unknown function> + 0x5c724c (0xffff8107724c in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libtorch_python.so)\n<omitting python frames>\nframe #29: <unknown function> + 0x27400 (0xffff82f17400 in /lib/aarch64-linux-gnu/libc.so.6)\nframe #30: __libc_start_main + 0x98 (0xffff82f174d8 in /lib/aarch64-linux-gnu/libc.so.6)\nframe #31: _start + 0x30 (0xaaaab4ec08b0 in /usr/local/python3.12.13/bin/python3)\n. This may indicate a possible application crash on rank 0 or a network set up issue.\n[ERROR] 2026-10-16-17:54:42 (PID:23, Device:1, RankID:-1) ERR02005 DIST internal error\n",
+      "torch_version": "2.10.0+cpu",
+      "torch_npu_version": "2.10.0.post4",
+      "init_ns": 293396920,
+      "ascend_rt_visible_devices": "0,1"
+    }
+  ],
+  "timing_note": "each ns value is that rank's own perf_counter_ns interval around dist.send/recv or dist.all_reduce plus torch.npu.synchronize; no cross-process time is combined",
+  "semantics": [
+    "verification runs after timing: receiver torch.all for send/recv, every rank for all_reduce",
+    "a single rank's send/recv interval is neither a pure one-way link latency nor a PD latency",
+    "initial-condition diagnosis only; real KV-cache/EP message shapes, isolation, and contention are not represented and must be recorded outside this run"
+  ]
+}
+GLM53_RESULT_JSON_END

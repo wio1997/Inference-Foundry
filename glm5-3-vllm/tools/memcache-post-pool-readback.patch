@@ -1,0 +1,71 @@
+--- a/backend/memcache_backend.py
++++ b/backend/memcache_backend.py
+@@ -508,6 +508,68 @@
+                     output.write(json.dumps(row) + "\n")
+                     output.flush()
+                     counts[phase] = counts.get(phase, 0) + 1
++        self._glm53_post_pool_readback(selected)
++
++    def _glm53_post_pool_readback(self, selected):
++        if (os.getenv("GLM53_KV_POST_POOL_READBACK") != "1"
++                or self._glm53_audit_tp_rank != 0
++                or not any(marker in self._glm53_audit_request_id for marker in ("glm53-postkv-target-", "glm53-postkv-source-"))):
++            return
++        import hashlib, json
++        from pathlib import Path
++        counts = getattr(self, "_glm53_pool_readback_counts", 0)
++        selected = selected[:max(0, 512-counts)]
++        if not selected:
++            return
++        lengths = selected[0][2]
++        if len(lengths) != 115 or any(row[2] != lengths for row in selected):
++            raise RuntimeError("Private pool readback requires the fixed GLM115-entry layout")
++        total = sum(lengths)
++        if total != 6979584:
++            raise RuntimeError("Unexpected private pool readback object size")
++        arena = torch.empty(total, dtype=torch.int8, device=f"npu:{self.device_id}")
++        base = arena.data_ptr()
++        pointers, offsets, offset = [], [], 0
++        for length in lengths:
++            pointers.append(base+offset)
++            offsets.append(offset)
++            offset += length
++        registered = self.store.register_buffer(base, total)
++        if registered != 0:
++            raise RuntimeError(f"Private readback register failed: {registered}")
++        root = Path("/out/kv-control-audit")
++        try:
++            with (root/f"buffers-pool-pid{os.getpid()}.jsonl").open("a") as output:
++                for key, _real_addresses, _sizes in selected:
++                    # A distinct sentinel detects unwritten private destinations.
++                    # All of this occurs after the original D128 has completed.
++                    arena.fill_(-128)
++                    torch.npu.synchronize()
++                    started = time.perf_counter()
++                    result = self.store.batch_get_into_layers([key], [pointers], [lengths], 1)
++                    if list(result) != [0]:
++                        raise RuntimeError(f"Private pool readback GET failed: {result}")
++                    get_ms = (time.perf_counter()-started)*1000
++                    values = [_glm53_control_checksum_tensor(arena.narrow(0, start, length))
++                              for start, length in zip(offsets, lengths, strict=True)]
++                    control = torch.stack(values).cpu().tolist()
++                    row = {"phase":"pool_readback", "key":key, "pid":os.getpid(),
++                           "request_id":self._glm53_audit_request_id, "tp_rank":0,
++                           "device_id":str(self.device_id), "bytes":total,
++                           "sizes":lengths, "checksums":control,
++                           "control_sha256":hashlib.sha256(json.dumps(control).encode()).hexdigest(),
++                           "sdk_result":list(result), "sdk_get_ms":get_ms,
++                           "initial_sentinel":128, "monotonic_ns":time.monotonic_ns()}
++                    output.write(json.dumps(row)+"\n")
++                    output.flush()
++                    counts += 1
++                    self._glm53_pool_readback_counts = counts
++        finally:
++            unregistered = self.store.unregister_buffer(base, total)
++            if unregistered != 0:
++                raise RuntimeError(f"Private readback unregister failed: {unregistered}")
++
++
+ 
+     def get(
+         self,

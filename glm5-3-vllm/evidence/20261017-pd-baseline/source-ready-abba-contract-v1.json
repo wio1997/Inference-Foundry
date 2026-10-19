@@ -1,0 +1,35 @@
+{
+  "hypothesis": "Raw-address SDMA PUT may observe incomplete producer writes on a stream not covered by the existing event; not established root cause.",
+  "trigger_evidence": "post-consume-entry-differences-v1.json",
+  "fixed": [
+    "pinned image/weights/quantization/kernels/SDMA",
+    "TP16 DP1 8192ctx 4seq 1024batch",
+    "post-D-only content observers",
+    "existing FIFO completion boundary guard"
+  ],
+  "variable": "torch.npu.synchronize immediately before self.m_store.put, selected only by initial P1 standard request_id tag",
+  "arms": [
+    false,
+    false,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false
+  ],
+  "requests": "fixed4096 prompt, P1 immediately D128; then P-native128 and D-local8; original and current D-native retained separately",
+  "acceptance": "Every D externally loads3968; local P/D3968 hits with extra D SDK GET0; all16 source replicas compared; no zero or other control differences in fenced arm; meaningful contrast requires unfenced failure. Four moments are not cryptographic proof. No throughput promotion from this run.",
+  "limits": {
+    "lease_seconds": 3600,
+    "model_lifetime_seconds": 3000,
+    "client_seconds": 2400,
+    "audit_keys_per_phase_process": 512
+  },
+  "source_patch_sha256": "363547b700e78f9ec5bac65de39617c944488b49386ec3afbb2ea328f3626a6b",
+  "created_utc": "2026-10-17T09:34:34.170968+00:00"
+}

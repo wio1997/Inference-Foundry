@@ -1,0 +1,49 @@
+{
+  "sha256": "f3e7a3f3ff713fccbd535e0d41650ee05bdf8677e83d4b90519910645022c30b",
+  "imports": [
+    "import copyreg",
+    "import functools",
+    "import io",
+    "import os",
+    "import pickle",
+    "import shutil",
+    "import sys",
+    "import threading",
+    "import time",
+    "from contextlib import contextmanager",
+    "from dataclasses import dataclass, field",
+    "from multiprocessing import shared_memory",
+    "from pickle import PickleBuffer",
+    "from typing import TYPE_CHECKING, Any, cast",
+    "from unittest.mock import patch",
+    "import torch",
+    "import torch.distributed as dist",
+    "import zmq",
+    "from torch.distributed import ProcessGroup",
+    "from zmq import (  # type: ignore\n    IPV6,  # type: ignore\n    PUB,\n    SUB,\n    SUBSCRIBE,\n    XPUB,\n    XPUB_VERBOSE,\n    Context,\n)",
+    "import vllm.envs as envs",
+    "from vllm.distributed.utils import StatelessProcessGroup, sched_yield",
+    "from vllm.logger import init_logger",
+    "from vllm.platforms import current_platform",
+    "from vllm.utils.network_utils import (\n    get_ip,\n    get_open_zmq_inproc_path,\n    get_open_zmq_ipc_path,\n    is_valid_ipv6_address,\n)"
+  ],
+  "functions": [
+    {
+      "name": "_reduce_tensor",
+      "source": "def _reduce_tensor(tensor: torch.Tensor):\n    \"\"\"Reduce a CPU tensor to a `PickleBuffer` for out-of-band pickling.\n\n    `torch.Tensor.__reduce_ex__` copies the tensor bytes into the pickle\n    byte stream via `torch.serialization` and never emits a `PickleBuffer`,\n    which defeats the out-of-band buffer handling in `MessageQueue.enqueue`.\n    This reducer instead exposes the tensor's memory directly, so large\n    tensors (e.g. `prompt_embeds` in `SchedulerOutput`) traverse the queue\n    without being copied into and back out of the pickled message.\n    \"\"\"\n    if (\n        tensor.device.type == \"cpu\"\n        and tensor.layout == torch.strided\n        and not tensor.requires_grad\n    ):\n        try:\n            # The uint8 view exposes the raw bytes via the buffer protocol,\n            # including for dtypes numpy doesn't recognize (bfloat16, fp8, ...).\n            # reshape(-1) first so that 0-dim tensors can be viewed as well.\n            raw = tensor.contiguous().reshape(-1).view(torch.uint8).numpy()\n        except RuntimeError:\n            # Exotic tensors (e.g. with the conjugate bit set) that don't\n            # support aliasing views; let torch handle them.\n            pass\n        else:\n            dtype_str = str(tensor.dtype).removeprefix(\"torch.\")\n            return _rebuild_tensor, (PickleBuffer(raw), tuple(tensor.shape), dtype_str)\n\n    # Fall back to torch's default (copying) reduction.\n    return tensor.__reduce_ex__(pickle.HIGHEST_PROTOCOL)"
+    },
+    {
+      "name": "enqueue",
+      "source": "def enqueue(self, obj, timeout: float | None = None):\n        \"\"\"Write to message queue with optional timeout (in seconds)\"\"\"\n        assert self._is_writer, \"Only writers can enqueue\"\n        all_buffers: list[SizedBuffer] = [b\"\"]\n        total_bytes = 6  # 2 bytes for oob buffer count, 4 for main buffer size\n\n        def oob_callback(buf: PickleBuffer) -> bool:\n            raw_buf = buf.raw()\n            if len(raw_buf) < 1024 * 1024:\n                # In-line buffers smaller than 1MiB.\n                return True\n            all_buffers.append(raw_buf)\n            nonlocal total_bytes\n            total_bytes += len(raw_buf) + 4\n            return False\n\n        # CPU tensors are routed through `_reduce_tensor` so that their\n        # bytes are emitted as out-of-band buffers instead of being\n        # copied into the pickle stream by torch's default reducer.\n        # Start from `copyreg.dispatch_table` to preserve globally\n        # registered reducers (e.g. `re.Pattern`); the per-pickler\n        # dispatch table would otherwise shadow them.\n        dispatch_table = dict(copyreg.dispatch_table)\n        dispatch_table[torch.Tensor] = _reduce_tensor\n        with io.BytesIO() as bio:\n            pickler = pickle.Pickler(\n                bio,\n                protocol=pickle.HIGHEST_PROTOCOL,\n                buffer_callback=oob_callback,\n            )\n            pickler.dispatch_table = dispatch_table\n            pickler.dump(obj)\n            all_buffers[0] = bio.getvalue()\n        if self.n_local_reader > 0:\n            if total_bytes + len(all_buffers[0]) >= self.buffer.max_chunk_bytes:\n                with self.acquire_write(timeout) as buf:\n                    buf[0] = 1  # overflow\n                self.local_socket.send_multipart(all_buffers, copy=False)\n            else:\n                # Byte 0: 0\n                # Bytes 1-2: Count of buffers\n                # Then each buffer follows, preceded by 4 bytes containing its length:\n                # [4 byte int L][L bytes of buffer content] ...\n                with self.acquire_write(timeout) as buf:\n                    buf[0] = 0  # not overflow\n                    offset = 3\n                    buf[1:offset] = to_bytes_big(len(all_buffers), 2)  # oob buf count\n                    for buffer in all_buffers:\n                        buf_len = len(buffer)\n                        # prepend each buffer with 4 bytes containing its size.\n                        buf_offset = offset + 4\n                        buf[offset:buf_offset] = to_bytes_big(buf_len, 4)\n                        buf[buf_offset : (offset := buf_offset + buf_len)] = buffer\n\n            self._spin_condition.notify()\n\n        if self.n_remote_reader > 0:\n            self.remote_socket.send_multipart(all_buffers, copy=False)"
+    },
+    {
+      "name": "dequeue",
+      "source": "def dequeue(\n        self,\n        timeout: float | None = None,\n        indefinite: bool = False,\n    ):\n        \"\"\"Read from message queue with optional timeout (in seconds)\"\"\"\n        if self._is_local_reader:\n            with self.acquire_read(timeout, indefinite) as buf:\n                overflow = buf[0] == 1\n                if not overflow:\n                    offset = 3\n                    buf_count = from_bytes_big(buf[1:offset])\n                    all_buffers = []\n                    for i in range(buf_count):\n                        buf_offset = offset + 4\n                        buf_len = from_bytes_big(buf[offset:buf_offset])\n                        offset = buf_offset + buf_len\n                        all_buffers.append(buf[buf_offset:offset])\n                    obj = pickle.loads(all_buffers[0], buffers=all_buffers[1:])\n            if overflow:\n                obj = MessageQueue.recv(self.local_socket, timeout)\n        elif self._is_remote_reader:\n            obj = MessageQueue.recv(self.remote_socket, timeout)\n        else:\n            raise RuntimeError(\"Only readers can dequeue\")\n        return obj"
+    },
+    {
+      "name": "recv",
+      "source": "def recv(socket: zmq.Socket, timeout: float | None) -> Any:\n        # Ensure non-negative timeout passed to zmq poll.\n        timeout_ms = None if timeout is None else max(0, int(timeout * 1000))\n        if not socket.poll(timeout=timeout_ms):\n            raise TimeoutError\n        recv, *recv_oob = socket.recv_multipart(copy=False)\n        return pickle.loads(recv, buffers=recv_oob)"
+    }
+  ],
+  "source_archive": "/Users/wio/work/glm53-execution-evidence-backup/20261018-p-first-adopt-build-v3/native-shm-broadcast.py"
+}

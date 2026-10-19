@@ -1,0 +1,52 @@
+官方原生 PD 基线已完成部署、正确性保护、两轮固定波次、同到达回放和持续负载测试。MTP、现有共享专家重叠和原生graph均归为官方基线完善，不能当作自定义执行机制的原创收益。自定义worker v1/v2的有效负对照保留，均未获得无条件收益。
+
+P11（P target PIECEWISE、drafter MTP1仍eager）与D10（D MTP5、共享专家重叠、worker gate0）完成两轮240/240正式请求，C1/C4的24项PD/native保护、16复用pairs和8个1↔4切换均通过。对同D10的P8 eager，两轮TTFT p50几何均值0.86373、TPOT0.98028、波次吞吐点估计1.08411。相同到达925/925通过；256 TTFT p50从519.62到442.99ms，1024从627.03到629.86ms，不能概括全部shape改善。
+
+P11四客户端持续负载两轮共2115/2115通过，256/1024有效输出率均值208.67/165.03tok/s。对无MTP84.45/77.61tok/s，倍率几何均值2.29224；对早前MTP5则分别+5.52%/−1.78%，不能把波次1.0841直接当持续容量收益。完整汇总见 `prefill-graph-v11-complete-baseline-v1.json`。原冻结门槛下P11有2113条达标，1024 TTFT及token gap尾部仍有权衡，业务SLO未知。
+
+当前自定义机制转向“KV就绪后发布P已有首token”。8个固定shape请求及24保护fixture在C1/C4共48次首token均一致（8种ID）；P结果已知到D返回首token约70–82ms，仅是机会窗口。D12原型在原生聚合KV接收完成后发布该token，保留D全部工作/history/async占位及资源回收，核对并抑制一个重复token；限greedy文本ignore_eos/min0且无stop/logprobs/penalties等。它可能缩短TTFT，但没有删除D计算，first-to-second gap和平均TPOT可能增加。D12已通过60/60 smoke、48/48 eligible数值oracle（对D10无新增失败）、24 C4 native/PD各24/24、16复用pairs/8转换和两轮formal240/240。450次提前发布，432次原生首token核对一致，其余18次为明确取消，无推理错误。相对P11/D10，两轮TTFT p50几何均值0.80080（−19.9%）、吞吐0.99201、平均TPOT1.12897（+12.9%）。它证明首token发布可去掉D输出等待依赖，但未观察到完整响应加速，不能当无条件采用收益。相同到达两轮925/925通过，发送max0.30905ms；256 TTFT p50 442.99→328.83ms、1024 629.86→508.71ms，平均TPOT10.99→12.81、11.89→13.49ms。原15分钟新加载gate0控制门槛已到，D13未launch，不降低门槛强跑。代码和条件见 `runtime-patches/p-first-publish-v1/`，当前动作见HANDOFF。
+
+八组固定输入/64输出的配对实验，每种配置两轮共240条正式请求，全部通过HTTP、输出长度和数值功能门槛。相对无MTP官方图基线，有效输出吞吐倍率等权几何均值 **2.3304**，TPOT p50 倍率 **0.2826**；TTFT p50 倍率 **1.1408**，存在明确权衡。以下为两轮统计量的均值，非合并样本分位数。
+
+| workload | output tok/s | TTFT p50 ms | TPOT p50 ms |
+|---|---:|---:|---:|
+| 256-64-c1-cold | 23.27 → 66.49 | 288.7 → 301.7 | 39.00 → 10.50 |
+| 1024-64-c1-cold | 21.67 → 60.23 | 371.3 → 401.3 | 40.90 → 10.01 |
+| 256-64-c1-hot | 23.57 → 68.29 | 250.2 → 273.8 | 38.99 → 10.50 |
+| 1024-64-c1-hot | 22.60 → 65.33 | 252.5 → 272.6 | 40.91 → 11.35 |
+| 256-64-c4-cold | 79.83 → 152.21 | 605.1 → 772.7 | 40.86 → 12.58 |
+| 1024-64-c4-cold | 61.50 → 108.87 | 1015.5 → 1129.3 | 42.87 → 11.96 |
+| 256-64-c4-hot | 79.44 → 160.27 | 604.5 → 721.1 | 40.78 → 12.82 |
+| 1024-64-c4-hot | 76.40 → 146.72 | 633.1 → 803.2 | 42.77 → 13.09 |
+
+C4 波次存在同步屏障，因此另做每shape180秒、两轮、四个连续闭环客户端的对照。MTP5共2071/2071条功能通过，无MTP925/925条功能通过。256输入的有效输出率从84.45到197.75tok/s，1024输入从77.61到168.03tok/s，倍率几何均值 **2.2516**；两种shape的MTP5重复差均低于1%。正式计时无profile、全量hash或备份。
+
+共同实验门槛在候选持续测量前冻结：256输入TTFT774.471ms/请求平均TPOT41.064ms；1024输入1470.618ms/43.063ms。原门槛下，无MTP达标比例约76.7%/81.1%，MTP5约99.9%/99.8%，达标吞吐倍率几何均值2.8507。无MTP的TPOT紧贴门槛，这个倍率对边界敏感；将双方两个门槛共同增加1%或5%，用相同原始请求重算，倍率分别为 **2.2577 / 2.2529**。保留原冻结契约，不用事后门槛替换原结果。这些是两种合成请求的实验门槛，业务分布和生产SLO仍未知。
+
+持续闭环中，MTP5更快完成请求，也提高了到达率；实际TTFT及token间隔p95反而更高。MTP以批次返回token，平均TPOT不能代替所有token间隔。另按原无MTP两轮的实际发送偏移重放请求，补充同到达负载下延迟对照。首次回放因Python3.9长时间相对等待造成随等待时长增长的约21ms发送迟发而未过预冻结driver门槛，模型请求240/240通过；失败原件保留，不能作为有效同负载结论。新driver采用绝对单调时钟deadline并保留p95≤10ms/max≤50ms发送误差门槛。
+
+官方特性组合也保留了反例。MTP1相对无MTP吞吐提升35.5%–65.0%，接受率约94%。同时开启P/D共享专家重叠仅增加1.62%吞吐，hot1024 C1的TTFT恶化23.5%；P原生prefill增加52–77ms，D略降。仅保留D重叠后，该TTFT权衡显著缩小，TPOT收益保留。进一步把D的MTP深度1→5，实际draft轮数从7966到3251（约少59.2%），平均每轮接受token从0.948到3.957；深度5接受率79.14%。这些是计数证据，不把draft轮数直接等同所有target kernel启动次数。
+
+MTP热前缀少复用一个128-token块，固定源码说明用于恢复drafter隐藏态，当前保留安全要求。D原生prefill KV computed tokens为0，不能由本地prefix hit减少推断D重算整个prompt。
+
+首token worker第一版在16个D rank均实际命中，C4保护题、max1和取消后立即复用通过，正式两轮240/240功能通过。相对原生MTP5，吞吐几何均值仅+0.77%，hot C1 TTFT没有改善，1024 C1 cold TPOT退化11.6%，因此 **拒绝采用v1**。第二版两轮240/240功能及保护/复用通过，但相对早前stock MTP5吞吐−0.64%、TTFT约−3.09%，1024 C1 cold TPOT+13.07%，仍未采用，已完成同文件gate0控制，结论见后文。第二版改用请求ID识别首个有效输出；稳定decode通过设备事件衔接，发生新建/结束/抢占/恢复或批次归属变化时才CPU等待；最新完成事件每轮记录，保留事件引用直至依赖完成。D9只加一份只读worker overlay，P8及官方connector/proxy不变。D9已完成925条相同到达轨迹请求，全部功能通过，发送max≤0.527ms；TTFT p50对无MTP仍+23.25%/+13.01%，TPOT约0.277/0.282倍。D9已结束。D10同文件gate0对照的两轮中，v2 hot C1 TTFT比off低8.20%/7.53%，但C4有一项TPOT高5.01%；相同到达轨迹两轮均通过，256 TTFT p50约低2.38%，1024约高0.27%，TPOT p50高约2%–3%，仍不无条件采用。相同token序列的离线分层只说明部分TPOT变化伴随续写混合变化，不替代原无条件结果。P11已完成全部基线验证。受限单请求与完成事件交接的v3仅staged，v4仅离线构建，均未模型验证；没有因为存在新版本而自动继续。
+
+正确性分层报告：原12道算术题各配置均11/12，所有原通过题无新增失败；原生目标和PD对同一短few-shot `2+3=` 都输出4，该既有数值错误保留。扩展24项数值、记录提取和2048/4096-token检索，在相同token IDs下，MTP5的C1与C4均PD/native双方24/24。这些有限检查不构成完整模型精度验收。
+
+所选MTP5配置的最小真实D profile在正式计时后采集。rank0 CPU导出得到452724事件、16200个SDMA任务、1个实际hccl_batchGet、无RDMA命名任务；链路矩阵含LOCAL/SIO/HCCS。覆盖范围仅该rank0窗口，原全32-rank地图继续复用，不以单rank扩大声明。原始trace及已完成测量原件均有Mac SHA核验归档。profile中8个PD验证轮的相关D2H间隔约13.5ms，copy本身约2.7µs，只为首token重排提供实验预算，不单独证明提速。
+
+关键证据为 `evidence/20261017-official-pd-optimization/mtp5-v6-vs-original-v1.json`、`mtp5-native-round-comparison-v1.json`、`continuous-mtp5-v6-vs-baseline-v7-v1.json`、`continuous-common-bounds-sensitivity-v1.json`、`early-output-v1-vs-mtp5-v6-v1.json` 及对应原始Run。当前任务继续，不以部署Ready、提交或备份作为优化完成。
+
+P11/D10在全部正式计时后采集的真实rank0 profile均完成API stop和CPU导出：P113059事件/3236SDMA，D496640/18184SDMA，LOCAL/SIO/HCCS，未见RDMA命名任务。两份原始raw及转换trace均已在Mac逐文件SHA核验归档，范围仍仅本次rank0窗口。
+
+完整64-token原始时序已SHA核对：正式第二token到达倍率1.00424、最后token1.00491基本不变，首二gap倍率2.46130、最大gap2.33731。C1首二间隔约54–56→113–117ms，C4约60–64→177–184ms。各请求实际输出与frontend usage均为64。另发现16/16 formal窗口D的prefill-duration counter sum增量为负，这是发布提前后原生phase accounting未适配的实际回归；不使用该后台phase指标证明性能。该原型不作为默认优化采用，后续应验证删除重复query所需的真实状态交接。
+
+本轮按原有限窗口结束：P11/D12退出0，proxy关闭，停止时两台各16die空闲；原两个精确UID预留已删除且19:23Z复核不存在，无续租。所有测量结束后才进行增量归档；全部raw、退出日志和rank0 profile在Mac完成SHA核验。最终条件与结论见p-first-publication-verdict-v1.json。
+
+2026-10-18本机离线复核进一步区分时序：平均TPOT从首token起算，首token前移会机械地抬高它。第二至末token区间倍率1.00897；八组等权均值TPOT增量1.48368ms中，首二gap项贡献1.30817ms（88.2%），其余0.17550ms来自第二至末项。后者仍包含不同D实例、续写、batch和传输差异，不将原1.12897倍率称为稳定decode计算变慢13%。首二gap扩大是真实呈现节奏变化，完整响应未加快和phase统计回归也仍成立。
+
+离线状态核验把后续候选收窄为“将D初始有效query推进至P首输出”，不能承诺删掉一次模型迭代：现有MTP5补齐仍6行/请求。当前NewRequestData/worker缺初始输出history，普通Async输出扣减和max1晋升还存在错误插入点。完整原生导入缺兼容torch/msgspec/vLLM，仅原生定义/方法段及真实存档ID的有限检查完成，物理KV/MTP前缀及InputBatch未验证。具体可行性、证据限制及下一最小设备判别见[p-first-state-feasibility-20261018.md](p-first-state-feasibility-20261018.md)。本次没有SSH、续租或在线压测；研究尚未完成。
+
+同日获授权经Mac HTTP补取12个官方固定提交源码文件（425191字节），新增部分只标为固定提交参考，没有镜像逐文件SHA配对。沿存档配置，factory路径是AscendEagleProposer→AscendSpecDecodeBaseProposer，MTP首轮左移token、保持target位置和hidden；P的y1+h(prompt最后)尾行与推进后D的y2+h(y1)行位置衔接成立，但物理MTP前缀/映射仍未验证，不因此实现或采用新原型。frontend stats源码也说明：发布时刻先成为first_token_ts，真实SCHEDULED在后，prefill差值即可为负；原方法的合成时间检查复现该算式，不等于完整事件回放或修复。另明确两种均值分解：首token直接前移项占TPOT增量87.0%，首二gap项占88.2%，后者还含第二token时刻变化。逐文件证据等级和限制见[补充索引](../evidence/20261018-p-first-state-audit/fixed-source-followup-v1/source-and-state-findings.json)。
+
+2026-10-18后续已通过既有SSH授权在32/33固定实际镜像各做18文件CPU-only SHA核验，均匹配，无NPU/驱动/权重挂载或新预留。现在已实现默认关闭的单worker尾行探针、两个原生功能请求客户端、配对器和fresh UID启动/精确CID保全停止入口，28项Mac检查通过；不是设备验证或query推进优化通过。另3份官方固定提交参考源码补齐P aggregator构造链，未镜像SHA配对；实际P16rank记录缺项即停止。最新代码与证据见[探针说明](../runtime-patches/state-tail-probe-v1/README.md)及[HANDOFF](../HANDOFF.md)，新的模型/NPU窗口尚未申请或执行。此前Mac-only为当轮范围，不代表SSH授权被撤销。

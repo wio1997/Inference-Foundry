@@ -1,0 +1,86 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "glm53-seed-32-live3-20261018",
+    "namespace": "default",
+    "labels": {
+      "app": "glm53-divergence",
+      "owner": "codex-glm53-seed-live3-20261018"
+    },
+    "annotations": {
+      "purpose": "Owned GLM53 sustained mechanism diagnostic; finite21600s deadline, no model inside holder"
+    }
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "reservation",
+        "image": "quay.io/ascend/vllm-ascend:v0.30.0rc1-a3-arm64",
+        "imagePullPolicy": "Never",
+        "resources": {
+          "limits": {
+            "cpu": "1",
+            "huawei.com/Ascend910": "16",
+            "memory": "256Mi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "huawei.com/Ascend910": "16",
+            "memory": "128Mi"
+          }
+        },
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          }
+        },
+        "command": [
+          "/bin/sleep",
+          "infinity"
+        ]
+      }
+    ],
+    "restartPolicy": "Never",
+    "terminationGracePeriodSeconds": 5,
+    "activeDeadlineSeconds": 21600,
+    "automountServiceAccountToken": false,
+    "nodeName": "a3-5u-atlas900rcka3-32",
+    "affinity": {
+      "nodeAffinity": {
+        "requiredDuringSchedulingIgnoredDuringExecution": {
+          "nodeSelectorTerms": [
+            {
+              "matchFields": [
+                {
+                  "key": "metadata.name",
+                  "operator": "In",
+                  "values": [
+                    "a3-5u-atlas900rcka3-32"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "tolerations": [
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/not-ready",
+        "operator": "Exists",
+        "tolerationSeconds": 300
+      },
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/unreachable",
+        "operator": "Exists",
+        "tolerationSeconds": 300
+      }
+    ]
+  }
+}

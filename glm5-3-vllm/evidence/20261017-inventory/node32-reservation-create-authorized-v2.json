@@ -1,0 +1,76 @@
+{
+  "client_utc": "2026-10-16T17:59:53.657845+00:00",
+  "manifest": {
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+      "name": "glm53-execution-reservation-32-20261017",
+      "namespace": "default",
+      "labels": {
+        "app": "glm53-execution",
+        "owner": "codex-execution-20261017"
+      },
+      "annotations": {
+        "purpose": "Reserve node32 NPU allocation while the same task runs bounded host diagnostics; no model in this holder"
+      }
+    },
+    "spec": {
+      "restartPolicy": "Never",
+      "automountServiceAccountToken": false,
+      "activeDeadlineSeconds": 7200,
+      "affinity": {
+        "nodeAffinity": {
+          "requiredDuringSchedulingIgnoredDuringExecution": {
+            "nodeSelectorTerms": [
+              {
+                "matchFields": [
+                  {
+                    "key": "metadata.name",
+                    "operator": "In",
+                    "values": [
+                      "a3-5u-atlas900rcka3-32"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "containers": [
+        {
+          "name": "reservation",
+          "image": "quay.io/ascend/vllm-ascend:v0.30.0rc1-a3-arm64",
+          "imagePullPolicy": "Never",
+          "command": [
+            "/bin/sleep",
+            "7200"
+          ],
+          "securityContext": {
+            "allowPrivilegeEscalation": false,
+            "capabilities": {
+              "drop": [
+                "ALL"
+              ]
+            }
+          },
+          "resources": {
+            "requests": {
+              "cpu": "100m",
+              "memory": "128Mi",
+              "huawei.com/Ascend910": "16"
+            },
+            "limits": {
+              "cpu": "1",
+              "memory": "256Mi",
+              "huawei.com/Ascend910": "16"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "rc": 0,
+  "stdout": "pod/glm53-execution-reservation-32-20261017 created\n",
+  "stderr": ""
+}

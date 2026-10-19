@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "/data/wio/glm5-3-vllm-execution/20261017-inventory/node33-moe_prefix_full_fragment_v2-3599d937d131/script.py", line 77, in <module>
+    q=subprocess.run(argv,capture_output=True,text=True,timeout=390);(out/'stdout.txt').write_text(q.stdout);(out/'stderr.txt').write_text(q.stderr);assert q.returncode==0,q.stdout[-2500:]+q.stderr[-2500:]
+AssertionError: INFO 10-18 18:56:55 [__init__.py:52] Available plugins for group vllm.platform_plugins:
+INFO 10-18 18:56:55 [__init__.py:54] - ascend -> vllm_ascend:register
+INFO 10-18 18:56:55 [__init__.py:57] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 10-18 18:56:55 [__init__.py:272] Platform plugin ascend is activated
+INFO 10-18 18:56:55 [platform.py:74] Breakable CUDAGraph on Ascend is opt-in; using VLLM_USE_BREAKABLE_CUDAGRAPH=0.
+[ERROR] 2026-10-18-18:57:01 (PID:7, Device:0, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+e current CANN and HDK(driver) versions require processing for 32 padding size, with memory allocation. (function operator())
+[W1018 18:56:56.604464680 TensorFactories.cpp:423] Warning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (function operator())
+Traceback (most recent call last):
+  File "/probe/fragment.py", line 39, in <module>
+    a=one('native');b=one('prefix');torch.npu.synchronize()
+      ^^^^^^^^^^^^^
+  File "/probe/fragment.py", line 30, in one
+    z,sz,_=torch.ops._C_ascend.grouped_matmul_swiglu_quant_weight_nz(x=q,weight=w1,weight_scale=s1,x_scale=scale,group_list=cum,bias=None,offset=None,swiglu_limit=0.)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_ops.py", line 1209, in __call__
+    return self._op(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: call aclnnGroupedMatmulSwigluQuantWeightNZ failed, detail:[PID: 7] 2026-10-18-18:57:00.173.842 AclNN_Parameter_Error(EZ1001): aclnnGroupedMatmulSwigluQuantWeightNZ, The dimnum of storageShape for second input (weight)must be 5. 
+ But StorageShape got [402653184] , and dimNum is 1.
+TraceBack (most recent call last):
+        [InitOpInfoLib][InitOpKernel] Inconsistent format size [1] and data type size [3]![FUNC:InitUnknownFormatAndDtype][FILE:op_kernel_info_constructor.cc][LINE:960]
+        [InitOpInfoLib][InitOpKernel] Node[CausalConv1dBwd]: failed to initialize unknown shape dtype and format. The input or output is input6.queryStartLoc.[FUNC:InitFormatAndDtypeForSingleInputAndOutput][FILE:op_kernel_info_constructor.cc][LINE:556]
+        [InitOpInfoLib][InitOpKernel] Initialization of Op CausalConv1dBwd with input_desc_info input6 failed.[FUNC:ParseInputAndOutputFromOpContent][FILE:op_kernel_info_constructor.cc][LINE:486]
+        [InitOpInfoLib][InitOpKernel] Failed to initialize inputs and outputs for Op CausalConv1dBwd.[FUNC:InitializeOpKernelInfo][FILE:op_kernel_info_constructor.cc][LINE:226]
+        [GraphOpt][Init][ConstructOpKernelInfo] OpKernelInfo CausalConv1dBwd initialization failed.[FUNC:ConstructOpKernelInfo][FILE:sub_op_info_store.cc][LINE:196]
+        aclnnGroupedMatmulSwigluQuantWeightNZ, The dimnum of storageShape for second input (weight)must be 5. 
+ But StorageShape got [402653184] , and dimNum is 1.
+
+

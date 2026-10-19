@@ -1,0 +1,27 @@
+from pathlib import Path
+import ast,datetime,hashlib,importlib.util,json,subprocess,sys
+repo=Path('/Users/wio/work/Inference-Foundry-execution-plan');r=Path(__file__).resolve().parent
+assert json.loads((r/'moe-prefix-cpu-check-v1.json').read_text())['passed']==13
+fragment=json.loads(next((r/'moe-prefix-fragment-v4').glob('*/metrics.json')).read_text());assert fragment['completed'] and all(z['all_four_outputs_bitwise_equal'] and z['captured_replay_recomputes_changed_fixed_address_input'] and z['existing_int8_GMM_count_vs_prefix_bitwise_equal'] for z in fragment['checks']);assert max(z['prefix_over_native'] for z in fragment['summary'])<.6
+build=json.loads((r/'moe-prefix-build-manifest-v1.json').read_text());assert json.loads((r/'moe-prefix-build-check-v1.json').read_text())['completed']
+ssh=['ssh','-S','/tmp/glm53-active-20261018.sock','-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-p','60011','root@61.241.77.34'];pods={32:'sglang-node-access-32',33:'sglang-tuning-access-33-20261013'}
+spec=importlib.util.spec_from_file_location('lease',repo/'glm5-3-vllm/runtime-patches/state-tail-probe-v1/prepare_launch.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+plans={};limits=[]
+for role,node in [('P',32),('D',33)]:
+ p=json.loads((r/('rope-cache-layout-'+role+'-plan.json')).read_text());lease=json.loads((r/('moe-prefix-live1-lease'+str(node)+'.json')).read_text());res=p['reservation'];res.update(name=lease['metadata']['name'],expected_uid=lease['metadata']['uid'],owner_label=lease['metadata']['labels']['owner'])
+ current=json.loads(subprocess.check_output(ssh+['kubectl get pod -n default '+res['name']+' -o json'],timeout=30));uid,allowed,expiry=m.fresh_lease(current,res,datetime.datetime.now(datetime.timezone.utc));assert uid==res['expected_uid'];limits.append(allowed)
+ assigned=json.loads(subprocess.check_output(ssh+['kubectl get pods -A --field-selector spec.nodeName='+res['node_name']+' -o json'],timeout=30))['items'];assert all(not sum(int(c.get('resources',{}).get('requests',{}).get('huawei.com/Ascend910',0)) for c in z['spec'].get('containers',[])) or z['metadata']['uid']==uid or z['status']['phase'] in ['Failed','Succeeded'] for z in assigned)
+ smi=subprocess.check_output(ssh+['kubectl exec -i -n default '+pods[node]+' -- nsenter -t 1 -m -- npu-smi info'],timeout=30).decode();assert smi.count('No running processes found in NPU')==8
+ (r/('moe-prefix-prelaunch-idle-'+str(node)+'.txt')).write_text(smi)
+ stage=json.loads(next((r/('moe-prefix-stage-v1-'+str(node))).glob('*/metrics.json')).read_text());assert stage['staged'] and stage['root']==build['remote_root']
+ p['runtime_patches']=build['patches'];p['remote']['run_dir']='/data/wio/glm5-3-vllm-execution/20261018-state-tail/moe-prefix-histogram-live1-20261019/node'+str(node);p['container']['name']='glm53-moe-prefix-'+str(node)+'-live1-20261019'
+ for key in ['GLM53_MTP_MOE_GRAPH_PROBE','GLM53_MTP_FFN_GRAPH_PROBE','GLM53_SFA_REPLAY_ORDER_PROBE','GLM53_PREFILL_PADDING_PROBE','GLM53_PREFILL_ATTENTION_PROBE']:p['env'][key]='0'
+ p['env']['GLM53_MOE_PREFIX_HISTOGRAM_PROBE']='1' if role=='D' else '0';p['env']['GLM53_ROPE_CACHE_LAYOUT_PROBE']='1' if role=='D' else '0';assert p['env']['GLM53_P_FIRST_DRAFT_EXPORT']==('1' if role=='P' else '0')
+ argv=p['serve_argv'];i=argv.index('--kv-transfer-config')+1;kv=json.loads(argv[i]);kv['engine_id']='glm53-moe-prefix-'+role.lower()+'-live1-20261019';argv[i]=json.dumps(kv,separators=(',',':'))
+ if role=='P':assert json.loads(argv[argv.index('--compilation-config')+1])=={'cudagraph_mode':'PIECEWISE','cudagraph_capture_sizes':[256,1024]}
+ p.update(created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),holder_expiry_utc=expiry,objective='Existing AllGather routing directly produces prefix histogram; two native target graph families for in-instance comparison, continuous RoPE tables on in both modes',notes=['Real optimized-RoPE trace identified75 AICPU Cumsum per target iteration; fragment existing routing outputs and GMM bitwise equal, captured latency approximately halved.','Only D helper opts in. Before actual requests, native startup captures count/prefix target families with separate candidate pool. All native replay synchronization retained; MTP still native eager operators.','P remains original native PIECEWISE[256,1024]/K1/sharedFalse; D target FULL/K5/sharedTrue. RoPE continuous source enabled for BOTH prefix modes; no other candidate enabled.','Fresh finite holder7200/model5400 reserves measured~650s startup plus integration diagnosis, complete fixed-load correctness/performance and backups. No new transport or operator.','Candidate defaultoff marker; all16 actual captured-family/dispatcher evidence before observer-off full-output quality/cache/C1/balanced C4 with native counters outside timers.'])
+ plans[role]=p
+life=min(5400,*limits);assert life>=5300,limits
+for role in ['P','D']:
+ p=plans[role];p['container']['lifetime_seconds']=life;path=r/('moe-prefix-'+role+'-plan.json');path.write_text(json.dumps(p,indent=2)+'\n')
+ q=subprocess.run([sys.executable,'glm5-3-vllm/tools/start_capacity.py','--plan',str(path),'--control','/tmp/glm53-active-20261018.sock','--output',str(r/('moe-prefix-'+role+'-launch'))],cwd=repo,capture_output=True,text=True,timeout=240);(r/('moe-prefix-'+role+'-launch-collector.txt')).write_text(q.stdout+q.stderr);print(json.dumps({'role':role,'life':life,'identity':build['identity'],'rc':q.returncode,'stdout':q.stdout}),flush=True);assert q.returncode==0,q.stderr

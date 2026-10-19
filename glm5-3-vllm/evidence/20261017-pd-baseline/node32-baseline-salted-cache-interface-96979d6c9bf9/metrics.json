@@ -1,0 +1,6242 @@
+{
+  "files": {
+    "/vllm-workspace/vllm/vllm/entrypoints/llm.py": {
+      "sha256": "52de4ac99489e004ef6c61d0bedc84aa96020dd58b8bd1ae500814b548b2b83e",
+      "lines": [
+        {
+          "line": 793,
+          "text": "    def stop_profile(self) -> None:"
+        },
+        {
+          "line": 794,
+          "text": "        self.llm_engine.stop_profile()"
+        },
+        {
+          "line": 795,
+          "text": ""
+        },
+        {
+          "line": 796,
+          "text": "    def reset_prefix_cache("
+        },
+        {
+          "line": 797,
+          "text": "        self, reset_running_requests: bool = False, reset_connector: bool = False"
+        },
+        {
+          "line": 798,
+          "text": "    ) -> bool:"
+        },
+        {
+          "line": 799,
+          "text": "        return self.llm_engine.reset_prefix_cache("
+        },
+        {
+          "line": 800,
+          "text": "            reset_running_requests, reset_connector"
+        },
+        {
+          "line": 801,
+          "text": "        )"
+        },
+        {
+          "line": 802,
+          "text": ""
+        },
+        {
+          "line": 803,
+          "text": "    def sleep(self, level: int = 1, mode: PauseMode = \"abort\"):"
+        },
+        {
+          "line": 804,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 805,
+          "text": "        Put the engine to sleep. The engine should not process any requests."
+        },
+        {
+          "line": 806,
+          "text": "        The caller should guarantee that no requests are being processed"
+        },
+        {
+          "line": 807,
+          "text": "        during the sleep period, before `wake_up` is called."
+        },
+        {
+          "line": 808,
+          "text": ""
+        },
+        {
+          "line": 809,
+          "text": "        Args:"
+        },
+        {
+          "line": 810,
+          "text": "            level: The sleep level."
+        },
+        {
+          "line": 811,
+          "text": "                - Level 0: Pause scheduling but continue accepting requests."
+        },
+        {
+          "line": 812,
+          "text": "                           Requests are queued but not processed."
+        },
+        {
+          "line": 813,
+          "text": "                - Level 1: Offload model weights to CPU, discard KV cache."
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/cohere/serving.py": {
+      "sha256": "68cab53ceccc0771b1c54b057b279d6cd13439447c292cf8eeaef24fdbfc9a58",
+      "lines": [
+        {
+          "line": 249,
+          "text": "        reasoning_parser: str = \"\","
+        },
+        {
+          "line": 250,
+          "text": "        enable_auto_tools: bool = False,"
+        },
+        {
+          "line": 251,
+          "text": "        tool_parser: str | None = None,"
+        },
+        {
+          "line": 252,
+          "text": "        enable_prompt_tokens_details: bool = False,"
+        },
+        {
+          "line": 253,
+          "text": "        enable_force_include_usage: bool = False,"
+        },
+        {
+          "line": 254,
+          "text": "        default_chat_template_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 255,
+          "text": "        is_reasoning_model: bool = True,"
+        },
+        {
+          "line": 256,
+          "text": "    ) -> None:"
+        },
+        {
+          "line": 257,
+          "text": "        super().__init__("
+        },
+        {
+          "line": 258,
+          "text": "            engine_client=engine_client,"
+        },
+        {
+          "line": 259,
+          "text": "            models=models,"
+        },
+        {
+          "line": 260,
+          "text": "            response_role=response_role,"
+        },
+        {
+          "line": 261,
+          "text": "            online_renderer=online_renderer,"
+        },
+        {
+          "line": 262,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 263,
+          "text": "            chat_template=chat_template,"
+        },
+        {
+          "line": 264,
+          "text": "            chat_template_content_format=chat_template_content_format,"
+        },
+        {
+          "line": 265,
+          "text": "            return_tokens_as_token_ids=return_tokens_as_token_ids,"
+        },
+        {
+          "line": 266,
+          "text": "            reasoning_parser=reasoning_parser,"
+        },
+        {
+          "line": 267,
+          "text": "            enable_auto_tools=enable_auto_tools,"
+        },
+        {
+          "line": 268,
+          "text": "            tool_parser=tool_parser,"
+        },
+        {
+          "line": 269,
+          "text": "            enable_prompt_tokens_details=enable_prompt_tokens_details,"
+        },
+        {
+          "line": 270,
+          "text": "            enable_force_include_usage=enable_force_include_usage,"
+        },
+        {
+          "line": 271,
+          "text": "            default_chat_template_kwargs=default_chat_template_kwargs,"
+        },
+        {
+          "line": 272,
+          "text": "        )"
+        },
+        {
+          "line": 273,
+          "text": "        # Controls how the assistant's chain-of-thought is surfaced on"
+        },
+        {
+          "line": 274,
+          "text": "        # turns that also contain tool calls."
+        },
+        {
+          "line": 275,
+          "text": "        #"
+        },
+        {
+          "line": 276,
+          "text": "        # - ``True`` (default): the model is a reasoning Command-family"
+        },
+        {
+          "line": 277,
+          "text": "        #   model; reasoning is always surfaced as a ``thinking`` content"
+        },
+        {
+          "line": 278,
+          "text": "        #   block (non-streaming) or as ``content-start`` / ``content-"
+        },
+        {
+          "line": 279,
+          "text": "        #   delta`` events for a thinking block (streaming), regardless of"
+        },
+        {
+          "line": 280,
+          "text": "        #   whether tool calls also appear."
+        },
+        {
+          "line": 281,
+          "text": "        # - ``False``: the model is an older non-reasoning Command model"
+        },
+        {
+          "line": 282,
+          "text": "        #   that uses Cohere's ``tool_plan`` field for its chain-of-"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/scale_out/factories.py": {
+      "sha256": "e4eb45b5cf96adfcd831c6659706037e69e8580e77c07def4182095938f1c7be",
+      "lines": [
+        {
+          "line": 56,
+          "text": "        state.online_renderer,"
+        },
+        {
+          "line": 57,
+          "text": "        request_logger=request_logger,"
+        },
+        {
+          "line": 58,
+          "text": "        return_tokens_as_token_ids=args.return_tokens_as_token_ids,"
+        },
+        {
+          "line": 59,
+          "text": "        enable_prompt_tokens_details=args.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 60,
+          "text": "        enable_log_outputs=args.enable_log_outputs,"
+        },
+        {
+          "line": 61,
+          "text": "        force_no_detokenize=args.tokens_only,"
+        },
+        {
+          "line": 62,
+          "text": "    )"
+        },
+        {
+          "line": 63,
+          "text": ""
+        },
+        {
+          "line": 64,
+          "text": ""
+        },
+        {
+          "line": 65,
+          "text": "def register_scale_out_api_routers("
+        },
+        {
+          "line": 66,
+          "text": "    app: FastAPI,"
+        },
+        {
+          "line": 67,
+          "text": "    supported_tasks: tuple[\"SupportedTask\", ...],"
+        },
+        {
+          "line": 68,
+          "text": "):"
+        },
+        {
+          "line": 69,
+          "text": "    args = getattr(app.state, \"args\", None)"
+        },
+        {
+          "line": 70,
+          "text": "    # `vllm launch render` and `vllm serve --tokens-only` are dedicated to"
+        },
+        {
+          "line": 71,
+          "text": "    # serving these endpoints, so they always register them regardless of"
+        },
+        {
+          "line": 72,
+          "text": "    # `--enable-scale-out`."
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/launchers/cli_args.py": {
+      "sha256": "859704a8c7d0e0769a7b92c5bdc269bbfc391cb39487c3fb579064a683bd3e34",
+      "lines": [
+        {
+          "line": 129,
+          "text": "    max_log_len: int | None = None"
+        },
+        {
+          "line": 130,
+          "text": "    \"\"\"Max number of prompt characters or prompt ID numbers being printed in"
+        },
+        {
+          "line": 131,
+          "text": "    log. The default of None means unlimited.\"\"\""
+        },
+        {
+          "line": 132,
+          "text": "    enable_prompt_tokens_details: bool = False"
+        },
+        {
+          "line": 133,
+          "text": "    \"\"\"If set to True, enable prompt_tokens_details in usage.\"\"\""
+        },
+        {
+          "line": 134,
+          "text": "    enable_per_request_metrics: bool = False"
+        },
+        {
+          "line": 135,
+          "text": "    \"\"\"If set to True, include per-request timing metrics in API responses.\"\"\""
+        },
+        {
+          "line": 136,
+          "text": "    enable_server_load_tracking: bool = False"
+        },
+        {
+          "line": 137,
+          "text": "    \"\"\"If set to True, enable tracking server_load_metrics in the app state.\"\"\""
+        },
+        {
+          "line": 138,
+          "text": "    enable_force_include_usage: bool = False"
+        },
+        {
+          "line": 139,
+          "text": "    \"\"\"If set to True, including usage on every request.\"\"\""
+        },
+        {
+          "line": 140,
+          "text": "    sse_keep_alive_interval: int = 0"
+        },
+        {
+          "line": 141,
+          "text": "    \"\"\"Send an SSE keep-alive comment line every this many seconds when a"
+        },
+        {
+          "line": 142,
+          "text": "    `/v1/chat/completions` or `/v1/completions` streaming response is idle"
+        },
+        {
+          "line": 143,
+          "text": "    (queued, prefill, or between tokens), to prevent reverse proxies/tunnels"
+        },
+        {
+          "line": 144,
+          "text": "    with read timeouts from closing the connection. Defaults to 0, which"
+        },
+        {
+          "line": 145,
+          "text": "    disables keep-alive comments entirely."
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/anthropic/protocol.py": {
+      "sha256": "54588912326ea9ff253c8be8c9606d46bf2388885d15034b03a442766760575e",
+      "lines": [
+        {
+          "line": 138,
+          "text": "    top_p: float | None = None"
+        },
+        {
+          "line": 139,
+          "text": ""
+        },
+        {
+          "line": 140,
+          "text": "    # vLLM-specific fields that are not in Anthropic spec"
+        },
+        {
+          "line": 141,
+          "text": "    cache_salt: str | None = Field("
+        },
+        {
+          "line": 142,
+          "text": "        default=None,"
+        },
+        {
+          "line": 143,
+          "text": "        min_length=1,"
+        },
+        {
+          "line": 144,
+          "text": "        max_length=1024,"
+        },
+        {
+          "line": 145,
+          "text": "        description=("
+        },
+        {
+          "line": 146,
+          "text": "            \"If specified, the prefix cache will be salted with the provided \""
+        },
+        {
+          "line": 147,
+          "text": "            \"string to prevent an attacker to guess prompts in multi-user \""
+        },
+        {
+          "line": 148,
+          "text": "            \"environments. The salt should be random, protected from \""
+        },
+        {
+          "line": 149,
+          "text": "            \"access by 3rd parties, and long enough to be \""
+        },
+        {
+          "line": 150,
+          "text": "            \"unpredictable (e.g., 43 characters base64-encoded, corresponding \""
+        },
+        {
+          "line": 151,
+          "text": "            \"to 256 bit).\""
+        },
+        {
+          "line": 152,
+          "text": "        ),"
+        },
+        {
+          "line": 153,
+          "text": "    )"
+        },
+        {
+          "line": 154,
+          "text": "    kv_transfer_params: dict[str, Any] | None = Field("
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/anthropic/serving.py": {
+      "sha256": "fb3ccbb21e7095d4a45f5adca3a5798a10429f2a2011bbf9dc20cc1e2cbffb01",
+      "lines": [
+        {
+          "line": 112,
+          "text": "        reasoning_parser: str = \"\","
+        },
+        {
+          "line": 113,
+          "text": "        enable_auto_tools: bool = False,"
+        },
+        {
+          "line": 114,
+          "text": "        tool_parser: str | None = None,"
+        },
+        {
+          "line": 115,
+          "text": "        enable_prompt_tokens_details: bool = False,"
+        },
+        {
+          "line": 116,
+          "text": "        enable_force_include_usage: bool = False,"
+        },
+        {
+          "line": 117,
+          "text": "        default_chat_template_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 118,
+          "text": "    ):"
+        },
+        {
+          "line": 119,
+          "text": "        super().__init__("
+        },
+        {
+          "line": 120,
+          "text": "            engine_client=engine_client,"
+        },
+        {
+          "line": 121,
+          "text": "            models=models,"
+        },
+        {
+          "line": 122,
+          "text": "            response_role=response_role,"
+        },
+        {
+          "line": 123,
+          "text": "            online_renderer=online_renderer,"
+        },
+        {
+          "line": 124,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 125,
+          "text": "            chat_template=chat_template,"
+        },
+        {
+          "line": 126,
+          "text": "            chat_template_content_format=chat_template_content_format,"
+        },
+        {
+          "line": 127,
+          "text": "            return_tokens_as_token_ids=return_tokens_as_token_ids,"
+        },
+        {
+          "line": 128,
+          "text": "            reasoning_parser=reasoning_parser,"
+        },
+        {
+          "line": 129,
+          "text": "            enable_auto_tools=enable_auto_tools,"
+        },
+        {
+          "line": 130,
+          "text": "            tool_parser=tool_parser,"
+        },
+        {
+          "line": 131,
+          "text": "            enable_prompt_tokens_details=enable_prompt_tokens_details,"
+        },
+        {
+          "line": 132,
+          "text": "            enable_force_include_usage=enable_force_include_usage,"
+        },
+        {
+          "line": 133,
+          "text": "            default_chat_template_kwargs=default_chat_template_kwargs,"
+        },
+        {
+          "line": 134,
+          "text": "        )"
+        },
+        {
+          "line": 135,
+          "text": "        self.stop_reason_map = {"
+        },
+        {
+          "line": 136,
+          "text": "            \"stop\": \"end_turn\","
+        },
+        {
+          "line": 137,
+          "text": "            \"length\": \"max_tokens\","
+        },
+        {
+          "line": 138,
+          "text": "            \"tool_calls\": \"tool_use\","
+        },
+        {
+          "line": 139,
+          "text": "        }"
+        },
+        {
+          "line": 140,
+          "text": "        self._merge_inline_system = self._detect_merge_inline_system(chat_template)"
+        },
+        {
+          "line": 141,
+          "text": ""
+        },
+        {
+          "line": 142,
+          "text": "    @staticmethod"
+        },
+        {
+          "line": 143,
+          "text": "    def _detect_merge_inline_system(chat_template: str | None) -> bool:"
+        },
+        {
+          "line": 144,
+          "text": "        \"\"\"Auto-detect whether the chat template requires system-first ordering."
+        },
+        {
+          "line": 485,
+          "text": "            temperature=anthropic_request.temperature,"
+        },
+        {
+          "line": 486,
+          "text": "            top_p=anthropic_request.top_p,"
+        },
+        {
+          "line": 487,
+          "text": "            top_k=anthropic_request.top_k,"
+        },
+        {
+          "line": 488,
+          "text": "            cache_salt=anthropic_request.cache_salt,"
+        },
+        {
+          "line": 489,
+          "text": "            kv_transfer_params=anthropic_request.kv_transfer_params,"
+        },
+        {
+          "line": 490,
+          "text": "            ec_transfer_params=anthropic_request.ec_transfer_params,"
+        },
+        {
+          "line": 491,
+          "text": "            vllm_xargs=anthropic_request.vllm_xargs,"
+        },
+        {
+          "line": 492,
+          "text": "            chat_template_kwargs=anthropic_request.chat_template_kwargs,"
+        },
+        {
+          "line": 493,
+          "text": "        )"
+        },
+        {
+          "line": 494,
+          "text": ""
+        },
+        {
+          "line": 495,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 496,
+          "text": "    def _handle_output_config("
+        },
+        {
+          "line": 497,
+          "text": "        cls,"
+        },
+        {
+          "line": 498,
+          "text": "        req: ChatCompletionRequest,"
+        },
+        {
+          "line": 499,
+          "text": "        anthropic_request: AnthropicMessagesRequest | AnthropicCountTokensRequest,"
+        },
+        {
+          "line": 500,
+          "text": "    ) -> None:"
+        },
+        {
+          "line": 501,
+          "text": "        \"\"\"Handle output configuration such as output format and effort\"\"\""
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/generate/api_router.py": {
+      "sha256": "0978c84a2aaf29efc1195b1f5c8e3f45df407c7d51c65c5338966f7cde84e0de",
+      "lines": [
+        {
+          "line": 114,
+          "text": "            tool_parser=args.tool_call_parser,"
+        },
+        {
+          "line": 115,
+          "text": "            tool_server=state.tool_server,"
+        },
+        {
+          "line": 116,
+          "text": "            reasoning_parser=args.structured_outputs_config.reasoning_parser,"
+        },
+        {
+          "line": 117,
+          "text": "            enable_prompt_tokens_details=args.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 118,
+          "text": "            enable_force_include_usage=args.enable_force_include_usage,"
+        },
+        {
+          "line": 119,
+          "text": "            enable_log_outputs=args.enable_log_outputs,"
+        },
+        {
+          "line": 120,
+          "text": "            default_chat_template_kwargs=default_chat_template_kwargs,"
+        },
+        {
+          "line": 121,
+          "text": "        )"
+        },
+        {
+          "line": 122,
+          "text": "        if \"generate\" in supported_tasks"
+        },
+        {
+          "line": 123,
+          "text": "        else None"
+        },
+        {
+          "line": 124,
+          "text": "    )"
+        },
+        {
+          "line": 125,
+          "text": "    _chat_kwargs = dict("
+        },
+        {
+          "line": 126,
+          "text": "        engine_client=engine_client,"
+        },
+        {
+          "line": 127,
+          "text": "        models=state.openai_serving_models,"
+        },
+        {
+          "line": 128,
+          "text": "        response_role=args.response_role,"
+        },
+        {
+          "line": 129,
+          "text": "        online_renderer=state.online_renderer,"
+        },
+        {
+          "line": 130,
+          "text": "        request_logger=request_logger,"
+        },
+        {
+          "line": 137,
+          "text": "        exclude_tools_when_tool_choice_none=args.exclude_tools_when_tool_choice_none,"
+        },
+        {
+          "line": 138,
+          "text": "        tool_parser=args.tool_call_parser,"
+        },
+        {
+          "line": 139,
+          "text": "        reasoning_parser=args.structured_outputs_config.reasoning_parser,"
+        },
+        {
+          "line": 140,
+          "text": "        enable_prompt_tokens_details=args.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 141,
+          "text": "        enable_force_include_usage=args.enable_force_include_usage,"
+        },
+        {
+          "line": 142,
+          "text": "        enable_log_outputs=args.enable_log_outputs,"
+        },
+        {
+          "line": 143,
+          "text": "        enable_log_deltas=args.enable_log_deltas,"
+        },
+        {
+          "line": 144,
+          "text": "        enable_per_request_metrics=args.enable_per_request_metrics,"
+        },
+        {
+          "line": 145,
+          "text": "    )"
+        },
+        {
+          "line": 146,
+          "text": "    state.openai_serving_chat = ("
+        },
+        {
+          "line": 147,
+          "text": "        OpenAIServingChat(**_chat_kwargs) if \"generate\" in supported_tasks else None"
+        },
+        {
+          "line": 148,
+          "text": "    )"
+        },
+        {
+          "line": 149,
+          "text": "    state.openai_serving_chat_batch = ("
+        },
+        {
+          "line": 150,
+          "text": "        OpenAIServingChatBatch(**_chat_kwargs)"
+        },
+        {
+          "line": 151,
+          "text": "        if \"generate\" in supported_tasks"
+        },
+        {
+          "line": 152,
+          "text": "        else None"
+        },
+        {
+          "line": 153,
+          "text": "    )"
+        },
+        {
+          "line": 158,
+          "text": "            online_renderer=state.online_renderer,"
+        },
+        {
+          "line": 159,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 160,
+          "text": "            return_tokens_as_token_ids=args.return_tokens_as_token_ids,"
+        },
+        {
+          "line": 161,
+          "text": "            enable_prompt_tokens_details=args.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 162,
+          "text": "            enable_force_include_usage=args.enable_force_include_usage,"
+        },
+        {
+          "line": 163,
+          "text": "            enable_per_request_metrics=args.enable_per_request_metrics,"
+        },
+        {
+          "line": 164,
+          "text": "        )"
+        },
+        {
+          "line": 165,
+          "text": "        if \"generate\" in supported_tasks"
+        },
+        {
+          "line": 166,
+          "text": "        else None"
+        },
+        {
+          "line": 167,
+          "text": "    )"
+        },
+        {
+          "line": 168,
+          "text": "    state.anthropic_serving_messages = ("
+        },
+        {
+          "line": 169,
+          "text": "        AnthropicServingMessages("
+        },
+        {
+          "line": 170,
+          "text": "            engine_client,"
+        },
+        {
+          "line": 171,
+          "text": "            state.openai_serving_models,"
+        },
+        {
+          "line": 172,
+          "text": "            args.response_role,"
+        },
+        {
+          "line": 173,
+          "text": "            online_renderer=state.online_renderer,"
+        },
+        {
+          "line": 174,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 178,
+          "text": "            enable_auto_tools=args.enable_auto_tool_choice,"
+        },
+        {
+          "line": 179,
+          "text": "            tool_parser=args.tool_call_parser,"
+        },
+        {
+          "line": 180,
+          "text": "            reasoning_parser=args.structured_outputs_config.reasoning_parser,"
+        },
+        {
+          "line": 181,
+          "text": "            enable_prompt_tokens_details=args.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 182,
+          "text": "            enable_force_include_usage=args.enable_force_include_usage,"
+        },
+        {
+          "line": 183,
+          "text": "            default_chat_template_kwargs=default_chat_template_kwargs,"
+        },
+        {
+          "line": 184,
+          "text": "        )"
+        },
+        {
+          "line": 185,
+          "text": "        if \"generate\" in supported_tasks"
+        },
+        {
+          "line": 186,
+          "text": "        else None"
+        },
+        {
+          "line": 187,
+          "text": "    )"
+        },
+        {
+          "line": 188,
+          "text": "    state.cohere_serving_chat_v2 = ("
+        },
+        {
+          "line": 189,
+          "text": "        CohereServingChatV2("
+        },
+        {
+          "line": 190,
+          "text": "            engine_client,"
+        },
+        {
+          "line": 191,
+          "text": "            state.openai_serving_models,"
+        },
+        {
+          "line": 192,
+          "text": "            args.response_role,"
+        },
+        {
+          "line": 193,
+          "text": "            online_renderer=state.online_renderer,"
+        },
+        {
+          "line": 194,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 198,
+          "text": "            enable_auto_tools=args.enable_auto_tool_choice,"
+        },
+        {
+          "line": 199,
+          "text": "            tool_parser=args.tool_call_parser,"
+        },
+        {
+          "line": 200,
+          "text": "            reasoning_parser=args.structured_outputs_config.reasoning_parser,"
+        },
+        {
+          "line": 201,
+          "text": "            enable_prompt_tokens_details=args.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 202,
+          "text": "            enable_force_include_usage=args.enable_force_include_usage,"
+        },
+        {
+          "line": 203,
+          "text": "            default_chat_template_kwargs=default_chat_template_kwargs,"
+        },
+        {
+          "line": 204,
+          "text": "            is_reasoning_model=args.cohere_is_reasoning_model,"
+        },
+        {
+          "line": 205,
+          "text": "        )"
+        },
+        {
+          "line": 206,
+          "text": "        if CohereServingChatV2 is not None and \"generate\" in supported_tasks"
+        },
+        {
+          "line": 207,
+          "text": "        else None"
+        },
+        {
+          "line": 208,
+          "text": "    )"
+        },
+        {
+          "line": 209,
+          "text": ""
+        },
+        {
+          "line": 210,
+          "text": "    from .generative_scoring.serving import ServingGenerativeScoring"
+        },
+        {
+          "line": 211,
+          "text": ""
+        },
+        {
+          "line": 212,
+          "text": "    state.serving_generative_scoring = ServingGenerativeScoring("
+        },
+        {
+          "line": 213,
+          "text": "        engine_client,"
+        },
+        {
+          "line": 214,
+          "text": "        state.openai_serving_models,"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/scale_out/render/serving.py": {
+      "sha256": "d7eed5c70208e7a066a1ec99d718fc80b27901f88d4e5b6268aa54d6b681f5cf",
+      "lines": [
+        {
+          "line": 158,
+          "text": "            model=request.model,"
+        },
+        {
+          "line": 159,
+          "text": "            stream=bool(request.stream),"
+        },
+        {
+          "line": 160,
+          "text": "            stream_options=(request.stream_options if request.stream else None),"
+        },
+        {
+          "line": 161,
+          "text": "            cache_salt=request.cache_salt,"
+        },
+        {
+          "line": 162,
+          "text": "            priority=request.priority,"
+        },
+        {
+          "line": 163,
+          "text": "            token_offsets=engine_input.get(\"prompt_token_offsets\"),"
+        },
+        {
+          "line": 164,
+          "text": "        )"
+        },
+        {
+          "line": 165,
+          "text": ""
+        },
+        {
+          "line": 166,
+          "text": "    async def render_messages_request("
+        },
+        {
+          "line": 167,
+          "text": "        self,"
+        },
+        {
+          "line": 168,
+          "text": "        request: AnthropicMessagesRequest,"
+        },
+        {
+          "line": 169,
+          "text": "    ) -> GenerateRequest | ErrorResponse:"
+        },
+        {
+          "line": 170,
+          "text": "        \"\"\"Validate the model and preprocess an Anthropic Messages request."
+        },
+        {
+          "line": 171,
+          "text": ""
+        },
+        {
+          "line": 172,
+          "text": "        Converts the request to the OpenAI chat format using the same"
+        },
+        {
+          "line": 173,
+          "text": "        conversion as the /v1/messages server path, then delegates to"
+        },
+        {
+          "line": 174,
+          "text": "        render_chat_request so the rendered tokens match the server exactly."
+        },
+        {
+          "line": 229,
+          "text": "                    model=request.model,"
+        },
+        {
+          "line": 230,
+          "text": "                    stream=bool(request.stream),"
+        },
+        {
+          "line": 231,
+          "text": "                    stream_options=(request.stream_options if request.stream else None),"
+        },
+        {
+          "line": 232,
+          "text": "                    cache_salt=request.cache_salt,"
+        },
+        {
+          "line": 233,
+          "text": "                    priority=request.priority,"
+        },
+        {
+          "line": 234,
+          "text": "                    token_offsets=engine_input.get(\"prompt_token_offsets\"),"
+        },
+        {
+          "line": 235,
+          "text": "                )"
+        },
+        {
+          "line": 236,
+          "text": "            )"
+        },
+        {
+          "line": 237,
+          "text": ""
+        },
+        {
+          "line": 238,
+          "text": "        return generate_requests"
+        },
+        {
+          "line": 239,
+          "text": ""
+        },
+        {
+          "line": 240,
+          "text": "    async def render_responses_request("
+        },
+        {
+          "line": 241,
+          "text": "        self,"
+        },
+        {
+          "line": 242,
+          "text": "        request: ResponsesRequest,"
+        },
+        {
+          "line": 243,
+          "text": "    ) -> GenerateRequest | ErrorResponse:"
+        },
+        {
+          "line": 244,
+          "text": "        error_check_ret = await self._check_model(request)"
+        },
+        {
+          "line": 245,
+          "text": "        if error_check_ret is not None:"
+        },
+        {
+          "line": 288,
+          "text": "            sampling_params=params,"
+        },
+        {
+          "line": 289,
+          "text": "            model=request.model,"
+        },
+        {
+          "line": 290,
+          "text": "            stream=bool(request.stream),"
+        },
+        {
+          "line": 291,
+          "text": "            cache_salt=request.cache_salt,"
+        },
+        {
+          "line": 292,
+          "text": "            priority=request.priority,"
+        },
+        {
+          "line": 293,
+          "text": "            kv_transfer_params=request.kv_transfer_params,"
+        },
+        {
+          "line": 294,
+          "text": "            ec_transfer_params=request.ec_transfer_params,"
+        },
+        {
+          "line": 295,
+          "text": "            token_offsets=engine_input.get(\"prompt_token_offsets\"),"
+        },
+        {
+          "line": 296,
+          "text": "        )"
+        },
+        {
+          "line": 297,
+          "text": ""
+        },
+        {
+          "line": 298,
+          "text": "    def _placeholder_metadata_fields(self, modality: str) -> set[str]:"
+        },
+        {
+          "line": 299,
+          "text": "        \"\"\"Fields the EC consumer still requires after embeddings transfer.\"\"\""
+        },
+        {
+          "line": 300,
+          "text": "        if self._placeholder_metadata_parser_failed:"
+        },
+        {
+          "line": 301,
+          "text": "            return set()"
+        },
+        {
+          "line": 302,
+          "text": "        if self._placeholder_metadata_parser is None:"
+        },
+        {
+          "line": 303,
+          "text": "            try:"
+        },
+        {
+          "line": 304,
+          "text": "                from vllm.multimodal import MULTIMODAL_REGISTRY"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/scale_out/token_in_token_out/protocol.py": {
+      "sha256": "d1c2e7736ee6802d6e5008833ecc9f8c2da443cc81be3c37420e42d0ce93acee",
+      "lines": [
+        {
+          "line": 11,
+          "text": ")"
+        },
+        {
+          "line": 12,
+          "text": ""
+        },
+        {
+          "line": 13,
+          "text": "from vllm.config import ModelConfig"
+        },
+        {
+          "line": 14,
+          "text": "from vllm.entrypoints.generate.base.protocol import StreamOptions, validate_cache_salt"
+        },
+        {
+          "line": 15,
+          "text": "from vllm.entrypoints.openai.chat_completion.protocol import ("
+        },
+        {
+          "line": 16,
+          "text": "    ChatCompletionLogProbs,"
+        },
+        {
+          "line": 17,
+          "text": "    ChatCompletionRequest,"
+        },
+        {
+          "line": 18,
+          "text": "    ChatCompletionStreamResponse,"
+        },
+        {
+          "line": 19,
+          "text": ")"
+        },
+        {
+          "line": 20,
+          "text": "from vllm.entrypoints.openai.completion.protocol import ("
+        },
+        {
+          "line": 21,
+          "text": "    CompletionRequest,"
+        },
+        {
+          "line": 22,
+          "text": "    CompletionStreamResponse,"
+        },
+        {
+          "line": 23,
+          "text": ")"
+        },
+        {
+          "line": 24,
+          "text": "from vllm.entrypoints.serve.engine.protocol import UsageInfo"
+        },
+        {
+          "line": 25,
+          "text": "from vllm.logprobs import Logprob"
+        },
+        {
+          "line": 26,
+          "text": "from vllm.renderers import TokenizeParams"
+        },
+        {
+          "line": 27,
+          "text": "from vllm.sampling_params import SamplingParams"
+        },
+        {
+          "line": 211,
+          "text": ""
+        },
+        {
+          "line": 212,
+          "text": "    model: str | None = None"
+        },
+        {
+          "line": 213,
+          "text": ""
+        },
+        {
+          "line": 214,
+          "text": "    return_token_ids: bool | None = Field("
+        },
+        {
+          "line": 215,
+          "text": "        default=None,"
+        },
+        {
+          "line": 216,
+          "text": "        description=("
+        },
+        {
+          "line": 217,
+          "text": "            \"If true, return the final prompt token IDs after multimodal \""
+        },
+        {
+          "line": 218,
+          "text": "            \"placeholder expansion, together with multimodal placeholder ranges. \""
+        },
+        {
+          "line": 219,
+          "text": "            \"In streaming mode, this metadata is included only in the first chunk.\""
+        },
+        {
+          "line": 220,
+          "text": "        ),"
+        },
+        {
+          "line": 221,
+          "text": "    )"
+        },
+        {
+          "line": 222,
+          "text": ""
+        },
+        {
+          "line": 223,
+          "text": "    stream: bool | None = False"
+        },
+        {
+          "line": 224,
+          "text": "    stream_options: StreamOptions | None = None"
+        },
+        {
+          "line": 225,
+          "text": "    cache_salt: str | None = Field("
+        },
+        {
+          "line": 226,
+          "text": "        default=None,"
+        },
+        {
+          "line": 227,
+          "text": "        min_length=1,"
+        },
+        {
+          "line": 228,
+          "text": "        max_length=1024,"
+        },
+        {
+          "line": 229,
+          "text": "        description=("
+        },
+        {
+          "line": 230,
+          "text": "            \"If specified, the prefix cache will be salted with the provided \""
+        },
+        {
+          "line": 231,
+          "text": "            \"string to prevent an attacker to guess prompts in multi-user \""
+        },
+        {
+          "line": 232,
+          "text": "            \"environments. The salt should be random, protected from \""
+        },
+        {
+          "line": 233,
+          "text": "            \"access by 3rd parties, and long enough to be \""
+        },
+        {
+          "line": 234,
+          "text": "            \"unpredictable (e.g., 43 characters base64-encoded, corresponding \""
+        },
+        {
+          "line": 235,
+          "text": "            \"to 256 bit).\""
+        },
+        {
+          "line": 236,
+          "text": "        ),"
+        },
+        {
+          "line": 237,
+          "text": "    )"
+        },
+        {
+          "line": 238,
+          "text": "    priority: int = Field("
+        },
+        {
+          "line": 282,
+          "text": ""
+        },
+        {
+          "line": 283,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 284,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 285,
+          "text": "    def _validate_cache_salt(cls, data: Any) -> Any:"
+        },
+        {
+          "line": 286,
+          "text": "        if isinstance(data, dict):"
+        },
+        {
+          "line": 287,
+          "text": "            validate_cache_salt(data.get(\"cache_salt\"))"
+        },
+        {
+          "line": 288,
+          "text": "        return data"
+        },
+        {
+          "line": 289,
+          "text": ""
+        },
+        {
+          "line": 290,
+          "text": "    @model_validator(mode=\"after\")"
+        },
+        {
+          "line": 291,
+          "text": "    def _validate_multimodal_feature_bounds(self) -> \"GenerateRequest\":"
+        },
+        {
+          "line": 292,
+          "text": "        if self.features is None:"
+        },
+        {
+          "line": 293,
+          "text": "            return self"
+        },
+        {
+          "line": 294,
+          "text": ""
+        },
+        {
+          "line": 295,
+          "text": "        prompt_len = len(self.token_ids)"
+        },
+        {
+          "line": 296,
+          "text": "        for ranges in self.features.mm_placeholders.values():"
+        },
+        {
+          "line": 297,
+          "text": "            for placeholder in ranges:"
+        },
+        {
+          "line": 298,
+          "text": "                if placeholder.offset + placeholder.length > prompt_len:"
+        },
+        {
+          "line": 299,
+          "text": "                    raise ValueError("
+        },
+        {
+          "line": 300,
+          "text": "                        \"mm_placeholders must remain within the token_ids sequence\""
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/scale_out/token_in_token_out/serving.py": {
+      "sha256": "2f90ae935dc67cd7918ad2fe41b2835db0ab92ccbd3ca40ebd175d9160d5544a",
+      "lines": [
+        {
+          "line": 71,
+          "text": "        request_logger: RequestLogger | None,"
+        },
+        {
+          "line": 72,
+          "text": "        force_no_detokenize: bool = False,"
+        },
+        {
+          "line": 73,
+          "text": "        return_tokens_as_token_ids: bool = False,"
+        },
+        {
+          "line": 74,
+          "text": "        enable_prompt_tokens_details: bool = False,"
+        },
+        {
+          "line": 75,
+          "text": "        enable_log_outputs: bool = False,"
+        },
+        {
+          "line": 76,
+          "text": "    ):"
+        },
+        {
+          "line": 77,
+          "text": "        super().__init__("
+        },
+        {
+          "line": 78,
+          "text": "            engine_client=engine_client,"
+        },
+        {
+          "line": 79,
+          "text": "            models=models,"
+        },
+        {
+          "line": 80,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 81,
+          "text": "            return_tokens_as_token_ids=return_tokens_as_token_ids,"
+        },
+        {
+          "line": 82,
+          "text": "        )"
+        },
+        {
+          "line": 83,
+          "text": "        self.online_renderer = online_renderer"
+        },
+        {
+          "line": 84,
+          "text": "        self.enable_prompt_tokens_details = enable_prompt_tokens_details"
+        },
+        {
+          "line": 85,
+          "text": "        self.enable_log_outputs = enable_log_outputs"
+        },
+        {
+          "line": 86,
+          "text": "        self.force_no_detokenize = force_no_detokenize"
+        },
+        {
+          "line": 87,
+          "text": "        if force_no_detokenize:"
+        },
+        {
+          "line": 88,
+          "text": "            logger.info("
+        },
+        {
+          "line": 89,
+          "text": "                \"Tokens-only mode is enabled, skipping detokenization \""
+        },
+        {
+          "line": 90,
+          "text": "                \"step for incoming requests.\""
+        },
+        {
+          "line": 91,
+          "text": "            )"
+        },
+        {
+          "line": 92,
+          "text": ""
+        },
+        {
+          "line": 93,
+          "text": "        # Mirrors ``OpenAIServingChat`` so we can apply server-side"
+        },
+        {
+          "line": 94,
+          "text": "        # ``max_tokens`` defaulting when the client omits it. Without this,"
+        },
+        {
+          "line": 95,
+          "text": "        # ``SamplingParams.max_tokens`` falls back to its dataclass default"
+        },
+        {
+          "line": 96,
+          "text": "        # of 16 and silently truncates every generation."
+        },
+        {
+          "line": 97,
+          "text": "        self.default_sampling_params = self.model_config.get_diff_sampling_param()"
+        },
+        {
+          "line": 161,
+          "text": "                    mm_parser.parse_video(url, uuid)"
+        },
+        {
+          "line": 162,
+          "text": "            mm_data, mm_uuids = await tracker.resolve_items()"
+        },
+        {
+          "line": 163,
+          "text": "            prompt = TokensPrompt(prompt_token_ids=request.token_ids)"
+        },
+        {
+          "line": 164,
+          "text": "            if request.cache_salt is not None:"
+        },
+        {
+          "line": 165,
+          "text": "                prompt[\"cache_salt\"] = request.cache_salt"
+        },
+        {
+          "line": 166,
+          "text": "            if mm_data:"
+        },
+        {
+          "line": 167,
+          "text": "                prompt[\"multi_modal_data\"] = mm_data"
+        },
+        {
+          "line": 168,
+          "text": "            if mm_uuids:"
+        },
+        {
+          "line": 169,
+          "text": "                prompt[\"multi_modal_uuids\"] = mm_uuids"
+        },
+        {
+          "line": 170,
+          "text": "            (engine_input,) = await self.online_renderer.renderer.render_cmpl_async("
+        },
+        {
+          "line": 171,
+          "text": "                [prompt]"
+        },
+        {
+          "line": 172,
+          "text": "            )"
+        },
+        {
+          "line": 173,
+          "text": "        elif features := request.features:"
+        },
+        {
+          "line": 174,
+          "text": "            # Convert PlaceholderRangeInfo \u2192 PlaceholderRange per modality."
+        },
+        {
+          "line": 175,
+          "text": "            mm_placeholders: dict[str, list[PlaceholderRange]] = {"
+        },
+        {
+          "line": 176,
+          "text": "                modality: ["
+        },
+        {
+          "line": 177,
+          "text": "                    PlaceholderRange(offset=p.offset, length=p.length) for p in ranges"
+        },
+        {
+          "line": 178,
+          "text": "                ]"
+        },
+        {
+          "line": 188,
+          "text": "                mm_kwargs=MultiModalKwargsItems(mm_kwargs),"
+        },
+        {
+          "line": 189,
+          "text": "                mm_hashes=features.mm_hashes,"
+        },
+        {
+          "line": 190,
+          "text": "                mm_placeholders=mm_placeholders,"
+        },
+        {
+          "line": 191,
+          "text": "                cache_salt=request.cache_salt,"
+        },
+        {
+          "line": 192,
+          "text": "            )"
+        },
+        {
+          "line": 193,
+          "text": "        else:"
+        },
+        {
+          "line": 194,
+          "text": "            (engine_input,) = await self.online_renderer.preprocess_completion("
+        },
+        {
+          "line": 195,
+          "text": "                request,"
+        },
+        {
+          "line": 196,
+          "text": "                prompt_input=request.token_ids,"
+        },
+        {
+          "line": 197,
+          "text": "                prompt_embeds=None,"
+        },
+        {
+          "line": 198,
+          "text": "                skip_mm_cache=True,"
+        },
+        {
+          "line": 199,
+          "text": "            )"
+        },
+        {
+          "line": 200,
+          "text": ""
+        },
+        {
+          "line": 201,
+          "text": "        # Offsets are relative to the decoder prompt, so they are not"
+        },
+        {
+          "line": 202,
+          "text": "        # meaningful for encoder-decoder models."
+        },
+        {
+          "line": 203,
+          "text": "        request._response_mm_placeholders = ("
+        },
+        {
+          "line": 204,
+          "text": "            placeholder_ranges_from_engine_input(engine_input)"
+        },
+        {
+          "line": 205,
+          "text": "            if request.return_token_ids and not self.model_config.is_encoder_decoder"
+        },
+        {
+          "line": 206,
+          "text": "            else None"
+        },
+        {
+          "line": 207,
+          "text": "        )"
+        },
+        {
+          "line": 208,
+          "text": ""
+        },
+        {
+          "line": 209,
+          "text": "        # Schedule the request and get the result generator."
+        },
+        {
+          "line": 210,
+          "text": "        result_generator: AsyncGenerator[RequestOutput, None] | None = None"
+        },
+        {
+          "line": 211,
+          "text": ""
+        },
+        {
+          "line": 212,
+          "text": "        # Pass disaggregated-serving parameters through to the engine."
+        },
+        {
+          "line": 213,
+          "text": "        if request.kv_transfer_params is not None:"
+        },
+        {
+          "line": 214,
+          "text": "            extra = sampling_params.extra_args or {}"
+        },
+        {
+          "line": 215,
+          "text": "            extra[\"kv_transfer_params\"] = request.kv_transfer_params"
+        },
+        {
+          "line": 216,
+          "text": "            sampling_params.extra_args = extra"
+        },
+        {
+          "line": 217,
+          "text": "        if request.ec_transfer_params is not None:"
+        },
+        {
+          "line": 218,
+          "text": "            extra = sampling_params.extra_args or {}"
+        },
+        {
+          "line": 353,
+          "text": "            total_tokens=num_prompt_tokens + num_generated_tokens,"
+        },
+        {
+          "line": 354,
+          "text": "        )"
+        },
+        {
+          "line": 355,
+          "text": "        if ("
+        },
+        {
+          "line": 356,
+          "text": "            self.enable_prompt_tokens_details"
+        },
+        {
+          "line": 357,
+          "text": "            and final_res.num_cached_tokens is not None"
+        },
+        {
+          "line": 358,
+          "text": "        ):"
+        },
+        {
+          "line": 359,
+          "text": "            # This info is not available at the /coordinator level"
+        },
+        {
+          "line": 360,
+          "text": "            usage.prompt_tokens_details = PromptTokenUsageInfo("
+        },
+        {
+          "line": 361,
+          "text": "                cached_tokens=final_res.num_cached_tokens"
+        },
+        {
+          "line": 362,
+          "text": "            )"
+        },
+        {
+          "line": 363,
+          "text": ""
+        },
+        {
+          "line": 364,
+          "text": "        request_metadata.final_usage_info = usage"
+        },
+        {
+          "line": 365,
+          "text": ""
+        },
+        {
+          "line": 366,
+          "text": "        response = GenerateResponse("
+        },
+        {
+          "line": 367,
+          "text": "            request_id=request_id,"
+        },
+        {
+          "line": 368,
+          "text": "            created=created_time,"
+        },
+        {
+          "line": 369,
+          "text": "            model=model_name,"
+        },
+        {
+          "line": 371,
+          "text": "            usage=usage,"
+        },
+        {
+          "line": 372,
+          "text": "            prompt_logprobs=clamp_prompt_logprobs(final_res.prompt_logprobs),"
+        },
+        {
+          "line": 373,
+          "text": "            prompt_token_ids=("
+        },
+        {
+          "line": 374,
+          "text": "                final_res.prompt_token_ids if request.return_token_ids else None"
+        },
+        {
+          "line": 375,
+          "text": "            ),"
+        },
+        {
+          "line": 376,
+          "text": "            mm_placeholders=request._response_mm_placeholders,"
+        },
+        {
+          "line": 377,
+          "text": "            kv_transfer_params=final_res.kv_transfer_params,"
+        },
+        {
+          "line": 378,
+          "text": "            ec_transfer_params=final_res.ec_transfer_params,"
+        },
+        {
+          "line": 379,
+          "text": "        )"
+        },
+        {
+          "line": 380,
+          "text": ""
+        },
+        {
+          "line": 381,
+          "text": "        # Log complete response if output logging is enabled"
+        },
+        {
+          "line": 382,
+          "text": "        if self.enable_log_outputs and self.request_logger:"
+        },
+        {
+          "line": 383,
+          "text": "            for choice in choices:"
+        },
+        {
+          "line": 384,
+          "text": "                # Get the corresponding output token IDs"
+        },
+        {
+          "line": 385,
+          "text": "                output_token_ids = None"
+        },
+        {
+          "line": 386,
+          "text": "                if choice.index < len(final_res.outputs):"
+        },
+        {
+          "line": 387,
+          "text": "                    output_token_ids = final_res.outputs[choice.index].token_ids"
+        },
+        {
+          "line": 423,
+          "text": "                if first_iteration:"
+        },
+        {
+          "line": 424,
+          "text": "                    if res.prompt_token_ids is not None:"
+        },
+        {
+          "line": 425,
+          "text": "                        num_prompt_tokens = len(res.prompt_token_ids)"
+        },
+        {
+          "line": 426,
+          "text": "                        if request.return_token_ids:"
+        },
+        {
+          "line": 427,
+          "text": "                            prompt_token_ids = res.prompt_token_ids"
+        },
+        {
+          "line": 428,
+          "text": "                    if res.encoder_prompt_token_ids is not None:"
+        },
+        {
+          "line": 429,
+          "text": "                        num_prompt_tokens += len(res.encoder_prompt_token_ids)"
+        },
+        {
+          "line": 430,
+          "text": "                    num_cached_tokens = res.num_cached_tokens"
+        },
+        {
+          "line": 431,
+          "text": "                    num_generated_tokens = [0] * len(res.outputs)"
+        },
+        {
+          "line": 432,
+          "text": "                    first_iteration = False"
+        },
+        {
+          "line": 433,
+          "text": ""
+        },
+        {
+          "line": 434,
+          "text": "                for output in res.outputs:"
+        },
+        {
+          "line": 435,
+          "text": "                    i = output.index"
+        },
+        {
+          "line": 436,
+          "text": "                    delta_token_ids = output.token_ids"
+        },
+        {
+          "line": 437,
+          "text": "                    num_generated_tokens[i] += len(delta_token_ids)"
+        },
+        {
+          "line": 438,
+          "text": ""
+        },
+        {
+          "line": 439,
+          "text": "                    finish_reason = output.finish_reason"
+        },
+        {
+          "line": 501,
+          "text": "                total_tokens=num_prompt_tokens + total_completion_tokens,"
+        },
+        {
+          "line": 502,
+          "text": "            )"
+        },
+        {
+          "line": 503,
+          "text": ""
+        },
+        {
+          "line": 504,
+          "text": "            if self.enable_prompt_tokens_details and num_cached_tokens is not None:"
+        },
+        {
+          "line": 505,
+          "text": "                final_usage_info.prompt_tokens_details = PromptTokenUsageInfo("
+        },
+        {
+          "line": 506,
+          "text": "                    cached_tokens=num_cached_tokens"
+        },
+        {
+          "line": 507,
+          "text": "                )"
+        },
+        {
+          "line": 508,
+          "text": ""
+        },
+        {
+          "line": 509,
+          "text": "            if include_usage:"
+        },
+        {
+          "line": 510,
+          "text": "                final_chunk = GenerateStreamResponse("
+        },
+        {
+          "line": 511,
+          "text": "                    request_id=request_id,"
+        },
+        {
+          "line": 512,
+          "text": "                    choices=[],"
+        },
+        {
+          "line": 513,
+          "text": "                    usage=final_usage_info,"
+        },
+        {
+          "line": 514,
+          "text": "                )"
+        },
+        {
+          "line": 515,
+          "text": "                yield f\"data: {final_chunk.model_dump_json(exclude_none=True)}\\n\\n\""
+        },
+        {
+          "line": 516,
+          "text": ""
+        },
+        {
+          "line": 517,
+          "text": "            request_metadata.final_usage_info = final_usage_info"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/openai/chat_completion/protocol.py": {
+      "sha256": "51fb06a943201ffdc0a0bbae44b79a996bdd6ae3373593a67666868d996451b2",
+      "lines": [
+        {
+          "line": 33,
+          "text": "    StreamOptions,"
+        },
+        {
+          "line": 34,
+          "text": "    ToolCall,"
+        },
+        {
+          "line": 35,
+          "text": "    structured_outputs_from_response_format,"
+        },
+        {
+          "line": 36,
+          "text": "    validate_cache_salt,"
+        },
+        {
+          "line": 37,
+          "text": "    validate_structural_tag_response_format,"
+        },
+        {
+          "line": 38,
+          "text": "    validate_structured_outputs_structural_tag,"
+        },
+        {
+          "line": 39,
+          "text": ")"
+        },
+        {
+          "line": 40,
+          "text": "from vllm.entrypoints.serve.engine.protocol import OpenAIBaseModel, UsageInfo"
+        },
+        {
+          "line": 41,
+          "text": "from vllm.exceptions import VLLMValidationError"
+        },
+        {
+          "line": 42,
+          "text": "from vllm.logger import init_logger"
+        },
+        {
+          "line": 43,
+          "text": "from vllm.logprobs import Logprob"
+        },
+        {
+          "line": 44,
+          "text": "from vllm.renderers import ChatParams, TokenizeParams, merge_kwargs"
+        },
+        {
+          "line": 45,
+          "text": "from vllm.sampling_params import ("
+        },
+        {
+          "line": 46,
+          "text": "    BeamSearchParams,"
+        },
+        {
+          "line": 47,
+          "text": "    RepetitionDetectionParams,"
+        },
+        {
+          "line": 48,
+          "text": "    RequestOutputKind,"
+        },
+        {
+          "line": 49,
+          "text": "    SamplingParams,"
+        },
+        {
+          "line": 413,
+          "text": "            \"that are not JSON-encodable can be identified.\""
+        },
+        {
+          "line": 414,
+          "text": "        ),"
+        },
+        {
+          "line": 415,
+          "text": "    )"
+        },
+        {
+          "line": 416,
+          "text": "    return_token_ids: bool | None = Field("
+        },
+        {
+          "line": 417,
+          "text": "        default=None,"
+        },
+        {
+          "line": 418,
+          "text": "        description=("
+        },
+        {
+          "line": 419,
+          "text": "            \"If specified, the result will include token IDs alongside the \""
+        },
+        {
+          "line": 420,
+          "text": "            \"generated text. In streaming mode, prompt_token_ids is included \""
+        },
+        {
+          "line": 421,
+          "text": "            \"only in the first chunk, and token_ids contains the delta tokens \""
+        },
+        {
+          "line": 422,
+          "text": "            \"for each chunk. This is useful for debugging or when you \""
+        },
+        {
+          "line": 423,
+          "text": "            \"need to map generated text back to input tokens.\""
+        },
+        {
+          "line": 424,
+          "text": "        ),"
+        },
+        {
+          "line": 425,
+          "text": "    )"
+        },
+        {
+          "line": 426,
+          "text": "    routed_experts_prompt_start: int = Field("
+        },
+        {
+          "line": 427,
+          "text": "        default=0,"
+        },
+        {
+          "line": 428,
+          "text": "        ge=0,"
+        },
+        {
+          "line": 429,
+          "text": "        description=\"Skip the first N prompt tokens from returned routed-expert data.\","
+        },
+        {
+          "line": 465,
+          "text": "        ),"
+        },
+        {
+          "line": 466,
+          "text": "    )"
+        },
+        {
+          "line": 467,
+          "text": ""
+        },
+        {
+          "line": 468,
+          "text": "    cache_salt: str | None = Field("
+        },
+        {
+          "line": 469,
+          "text": "        default=None,"
+        },
+        {
+          "line": 470,
+          "text": "        min_length=1,"
+        },
+        {
+          "line": 471,
+          "text": "        max_length=1024,"
+        },
+        {
+          "line": 472,
+          "text": "        description=("
+        },
+        {
+          "line": 473,
+          "text": "            \"If specified, the prefix cache will be salted with the provided \""
+        },
+        {
+          "line": 474,
+          "text": "            \"string to prevent an attacker to guess prompts in multi-user \""
+        },
+        {
+          "line": 475,
+          "text": "            \"environments. The salt should be random, protected from \""
+        },
+        {
+          "line": 476,
+          "text": "            \"access by 3rd parties, and long enough to be \""
+        },
+        {
+          "line": 477,
+          "text": "            \"unpredictable (e.g., 43 characters base64-encoded, corresponding \""
+        },
+        {
+          "line": 478,
+          "text": "            \"to 256 bit).\""
+        },
+        {
+          "line": 479,
+          "text": "        ),"
+        },
+        {
+          "line": 480,
+          "text": "    )"
+        },
+        {
+          "line": 481,
+          "text": ""
+        },
+        {
+          "line": 523,
+          "text": ""
+        },
+        {
+          "line": 524,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 525,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 526,
+          "text": "    def check_cache_salt_support(cls, data: Any) -> Any:"
+        },
+        {
+          "line": 527,
+          "text": "        if not isinstance(data, dict):"
+        },
+        {
+          "line": 528,
+          "text": "            return data"
+        },
+        {
+          "line": 529,
+          "text": "        validate_cache_salt(data.get(\"cache_salt\"))"
+        },
+        {
+          "line": 530,
+          "text": "        return data"
+        },
+        {
+          "line": 531,
+          "text": ""
+        },
+        {
+          "line": 532,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 533,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 534,
+          "text": "    def _normalize_messages_before(cls, data: Any) -> Any:"
+        },
+        {
+          "line": 535,
+          "text": "        \"\"\"Pre-process message dicts before Pydantic field validation."
+        },
+        {
+          "line": 536,
+          "text": ""
+        },
+        {
+          "line": 537,
+          "text": "        Performs two normalizations in a single pass:"
+        },
+        {
+          "line": 538,
+          "text": "        - Converts tool_calls generators/iterators to lists so one-shot"
+        },
+        {
+          "line": 539,
+          "text": "          generators are not consumed during union type matching."
+        },
+        {
+          "line": 540,
+          "text": "        - Renames the deprecated ``reasoning_content`` field to"
+        },
+        {
+          "line": 541,
+          "text": "          ``reasoning`` so downstream code only needs to check one field."
+        },
+        {
+          "line": 542,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 628,
+          "text": "            truncate_prompt_tokens=self.truncate_prompt_tokens,"
+        },
+        {
+          "line": 629,
+          "text": "            truncation_side=self.truncation_side,"
+        },
+        {
+          "line": 630,
+          "text": "            add_special_tokens=self.add_special_tokens,"
+        },
+        {
+          "line": 631,
+          "text": "            needs_detokenization=bool(self.echo and not self.return_token_ids),"
+        },
+        {
+          "line": 632,
+          "text": "            max_total_tokens_param=\"max_model_len\","
+        },
+        {
+          "line": 633,
+          "text": "            max_output_tokens_param=max_output_tokens_param,"
+        },
+        {
+          "line": 634,
+          "text": "            return_token_offsets=bool(self.return_token_offsets),"
+        },
+        {
+          "line": 635,
+          "text": "        )"
+        },
+        {
+          "line": 636,
+          "text": ""
+        },
+        {
+          "line": 637,
+          "text": "    # Default sampling parameters for chat completion requests"
+        },
+        {
+          "line": 638,
+          "text": "    _DEFAULT_SAMPLING_PARAMS: dict = {"
+        },
+        {
+          "line": 639,
+          "text": "        \"repetition_penalty\": 1.0,"
+        },
+        {
+          "line": 640,
+          "text": "        \"temperature\": 1.0,"
+        },
+        {
+          "line": 641,
+          "text": "        \"top_p\": 1.0,"
+        },
+        {
+          "line": 642,
+          "text": "        \"top_k\": 0,"
+        },
+        {
+          "line": 643,
+          "text": "        \"min_p\": 0.0,"
+        },
+        {
+          "line": 644,
+          "text": "    }"
+        },
+        {
+          "line": 1120,
+          "text": "    media_io_kwargs: dict[str, dict[str, Any]] | None = None"
+        },
+        {
+          "line": 1121,
+          "text": "    mm_processor_kwargs: dict[str, Any] | None = None"
+        },
+        {
+          "line": 1122,
+          "text": "    priority: int = Field(default=0, ge=_INT64_MIN, le=_INT64_MAX)"
+        },
+        {
+          "line": 1123,
+          "text": "    cache_salt: str | None = None"
+        },
+        {
+          "line": 1124,
+          "text": "    include_stop_str_in_output: bool = False"
+        },
+        {
+          "line": 1125,
+          "text": "    guided_decoding_backend: str | None = None"
+        },
+        {
+          "line": 1126,
+          "text": "    echo: bool = False"
+        },
+        {
+          "line": 1127,
+          "text": "    # None falls back to the server-level --return-tokens-as-token-ids default,"
+        },
+        {
+          "line": 1128,
+          "text": "    # matching ChatCompletionRequest.return_tokens_as_token_ids."
+        },
+        {
+          "line": 1129,
+          "text": "    return_tokens_as_token_ids: bool | None = None"
+        },
+        {
+          "line": 1130,
+          "text": "    return_token_ids: bool = False"
+        },
+        {
+          "line": 1131,
+          "text": ""
+        },
+        {
+          "line": 1132,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 1133,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 1134,
+          "text": "    def check_batch_mode(cls, data: Any) -> Any:"
+        },
+        {
+          "line": 1135,
+          "text": "        if isinstance(data, BatchChatCompletionRequest):"
+        },
+        {
+          "line": 1136,
+          "text": "            data = data.model_dump(exclude_unset=True)"
+        },
+        {
+          "line": 1137,
+          "text": "        if not isinstance(data, dict):"
+        },
+        {
+          "line": 1138,
+          "text": "            return data"
+        },
+        {
+          "line": 1139,
+          "text": "        if data.get(\"use_beam_search\"):"
+        },
+        {
+          "line": 1140,
+          "text": "            raise VLLMValidationError("
+        },
+        {
+          "line": 1141,
+          "text": "                \"Batch chat completions do not support beam search. \""
+        },
+        {
+          "line": 1142,
+          "text": "                \"Please set `use_beam_search` to False.\","
+        },
+        {
+          "line": 1143,
+          "text": "                parameter=\"use_beam_search\","
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/openai/chat_completion/batch_serving.py": {
+      "sha256": "499ddf0a64030f5d0cf84074afb185fe4703cae56f2e13fe722dbaa68d376b2a",
+      "lines": [
+        {
+          "line": 308,
+          "text": "                    else \"stop\","
+        },
+        {
+          "line": 309,
+          "text": "                    stop_reason=output.stop_reason,"
+        },
+        {
+          "line": 310,
+          "text": "                    token_ids=("
+        },
+        {
+          "line": 311,
+          "text": "                        as_list(output.token_ids) if request.return_token_ids else None"
+        },
+        {
+          "line": 312,
+          "text": "                    ),"
+        },
+        {
+          "line": 313,
+          "text": "                )"
+        },
+        {
+          "line": 314,
+          "text": "                choices.append(choice_data)"
+        },
+        {
+          "line": 315,
+          "text": ""
+        },
+        {
+          "line": 316,
+          "text": "        usage = UsageInfo("
+        },
+        {
+          "line": 317,
+          "text": "            prompt_tokens=total_prompt_tokens,"
+        },
+        {
+          "line": 318,
+          "text": "            completion_tokens=total_completion_tokens,"
+        },
+        {
+          "line": 319,
+          "text": "            total_tokens=total_prompt_tokens + total_completion_tokens,"
+        },
+        {
+          "line": 320,
+          "text": "        )"
+        },
+        {
+          "line": 321,
+          "text": "        request_metadata.final_usage_info = usage"
+        },
+        {
+          "line": 322,
+          "text": ""
+        },
+        {
+          "line": 323,
+          "text": "        choices.sort(key=lambda c: c.index)"
+        },
+        {
+          "line": 324,
+          "text": ""
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/openai/chat_completion/serving.py": {
+      "sha256": "ea1f76074a9587c8054f54d30a6ba748b6a5fc4d90dd82c801504505c1da1f92",
+      "lines": [
+        {
+          "line": 88,
+          "text": ""
+        },
+        {
+          "line": 89,
+          "text": ""
+        },
+        {
+          "line": 90,
+          "text": "def _make_prompt_tokens_details("
+        },
+        {
+          "line": 91,
+          "text": "    enable_prompt_tokens_details: bool,"
+        },
+        {
+          "line": 92,
+          "text": "    num_cached_tokens: int | None,"
+        },
+        {
+          "line": 93,
+          "text": "    num_cache_creation_tokens: int | None,"
+        },
+        {
+          "line": 94,
+          "text": "    mm_token_counts: dict[str, int] | None,"
+        },
+        {
+          "line": 95,
+          "text": ") -> PromptTokenUsageInfo | None:"
+        },
+        {
+          "line": 96,
+          "text": "    \"\"\"Build ``prompt_tokens_details`` from cached + multimodal token counts.\"\"\""
+        },
+        {
+          "line": 97,
+          "text": "    if not enable_prompt_tokens_details:"
+        },
+        {
+          "line": 98,
+          "text": "        return None"
+        },
+        {
+          "line": 99,
+          "text": "    if ("
+        },
+        {
+          "line": 100,
+          "text": "        num_cached_tokens is None"
+        },
+        {
+          "line": 101,
+          "text": "        and num_cache_creation_tokens is None"
+        },
+        {
+          "line": 102,
+          "text": "        and not mm_token_counts"
+        },
+        {
+          "line": 103,
+          "text": "    ):"
+        },
+        {
+          "line": 104,
+          "text": "        return None"
+        },
+        {
+          "line": 105,
+          "text": "    return PromptTokenUsageInfo("
+        },
+        {
+          "line": 106,
+          "text": "        cached_tokens=num_cached_tokens,"
+        },
+        {
+          "line": 107,
+          "text": "        created_cache_tokens=num_cache_creation_tokens,"
+        },
+        {
+          "line": 108,
+          "text": "        multimodal_tokens=mm_token_counts or None,"
+        },
+        {
+          "line": 109,
+          "text": "    )"
+        },
+        {
+          "line": 110,
+          "text": ""
+        },
+        {
+          "line": 132,
+          "text": "        enable_auto_tools: bool = False,"
+        },
+        {
+          "line": 133,
+          "text": "        exclude_tools_when_tool_choice_none: bool = False,"
+        },
+        {
+          "line": 134,
+          "text": "        tool_parser: str | None = None,"
+        },
+        {
+          "line": 135,
+          "text": "        enable_prompt_tokens_details: bool = False,"
+        },
+        {
+          "line": 136,
+          "text": "        enable_force_include_usage: bool = False,"
+        },
+        {
+          "line": 137,
+          "text": "        enable_log_outputs: bool = False,"
+        },
+        {
+          "line": 138,
+          "text": "        enable_log_deltas: bool = True,"
+        },
+        {
+          "line": 139,
+          "text": "        default_chat_template_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 140,
+          "text": "        enable_per_request_metrics: bool = False,"
+        },
+        {
+          "line": 141,
+          "text": "    ) -> None:"
+        },
+        {
+          "line": 142,
+          "text": "        super().__init__("
+        },
+        {
+          "line": 143,
+          "text": "            engine_client=engine_client,"
+        },
+        {
+          "line": 144,
+          "text": "            models=models,"
+        },
+        {
+          "line": 145,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 146,
+          "text": "            return_tokens_as_token_ids=return_tokens_as_token_ids,"
+        },
+        {
+          "line": 147,
+          "text": "        )"
+        },
+        {
+          "line": 148,
+          "text": ""
+        },
+        {
+          "line": 166,
+          "text": "        )"
+        },
+        {
+          "line": 167,
+          "text": "        self.exclude_tools_when_tool_choice_none = exclude_tools_when_tool_choice_none"
+        },
+        {
+          "line": 168,
+          "text": ""
+        },
+        {
+          "line": 169,
+          "text": "        self.enable_prompt_tokens_details = enable_prompt_tokens_details"
+        },
+        {
+          "line": 170,
+          "text": "        self.enable_force_include_usage = enable_force_include_usage"
+        },
+        {
+          "line": 171,
+          "text": "        self.enable_per_request_metrics = enable_per_request_metrics"
+        },
+        {
+          "line": 172,
+          "text": "        self.default_sampling_params = self.model_config.get_diff_sampling_param()"
+        },
+        {
+          "line": 173,
+          "text": "        mc = self.model_config"
+        },
+        {
+          "line": 174,
+          "text": "        self.override_max_tokens = ("
+        },
+        {
+          "line": 175,
+          "text": "            self.default_sampling_params.get(\"max_tokens\")"
+        },
+        {
+          "line": 176,
+          "text": "            if mc.generation_config not in (\"auto\", \"vllm\")"
+        },
+        {
+          "line": 177,
+          "text": "            else getattr(mc, \"override_generation_config\", {}).get(\"max_new_tokens\")"
+        },
+        {
+          "line": 178,
+          "text": "        )"
+        },
+        {
+          "line": 179,
+          "text": "        # NOTE(woosuk): While OpenAI's chat completion API supports browsing"
+        },
+        {
+          "line": 180,
+          "text": "        # for some models, currently vLLM doesn't support it. Please use the"
+        },
+        {
+          "line": 181,
+          "text": "        # Responses API instead."
+        },
+        {
+          "line": 182,
+          "text": "        self.supports_browsing = False"
+        },
+        {
+          "line": 555,
+          "text": "                            model=model_name,"
+        },
+        {
+          "line": 556,
+          "text": "                            prompt_token_ids=("
+        },
+        {
+          "line": 557,
+          "text": "                                res.prompt_token_ids"
+        },
+        {
+          "line": 558,
+          "text": "                                if request.return_token_ids"
+        },
+        {
+          "line": 559,
+          "text": "                                else None"
+        },
+        {
+          "line": 560,
+          "text": "                            ),"
+        },
+        {
+          "line": 561,
+          "text": "                            prompt_text=prompt_text,"
+        },
+        {
+          "line": 562,
+          "text": "                        )"
+        },
+        {
+          "line": 563,
+          "text": ""
+        },
+        {
+          "line": 564,
+          "text": "                        # if continuous usage stats are requested, add it"
+        },
+        {
+          "line": 565,
+          "text": "                        if include_continuous_usage:"
+        },
+        {
+          "line": 566,
+          "text": "                            chunk.usage = UsageInfo("
+        },
+        {
+          "line": 567,
+          "text": "                                prompt_tokens=num_prompt_tokens,"
+        },
+        {
+          "line": 568,
+          "text": "                                completion_tokens=0,"
+        },
+        {
+          "line": 569,
+          "text": "                                total_tokens=num_prompt_tokens,"
+        },
+        {
+          "line": 570,
+          "text": "                                completion_tokens_details=("
+        },
+        {
+          "line": 571,
+          "text": "                                    _make_completion_tokens_details(0)"
+        },
+        {
+          "line": 692,
+          "text": "                        logprobs = None"
+        },
+        {
+          "line": 693,
+          "text": ""
+        },
+        {
+          "line": 694,
+          "text": "                    if delta_message is None:"
+        },
+        {
+          "line": 695,
+          "text": "                        # NOTE: If return_token_ids is enabled, we still need to"
+        },
+        {
+          "line": 696,
+          "text": "                        # send a chunk with token_ids even if delta_message is None"
+        },
+        {
+          "line": 697,
+          "text": "                        # to ensure all tokens are included in the response"
+        },
+        {
+          "line": 698,
+          "text": "                        if output.finish_reason is None and ("
+        },
+        {
+          "line": 699,
+          "text": "                            not request.return_token_ids or hide_stream_metadata"
+        },
+        {
+          "line": 700,
+          "text": "                        ):"
+        },
+        {
+          "line": 701,
+          "text": "                            continue"
+        },
+        {
+          "line": 702,
+          "text": "                        delta_message = DeltaMessage()"
+        },
+        {
+          "line": 703,
+          "text": ""
+        },
+        {
+          "line": 704,
+          "text": "                    # Log streaming delta if output logging is enabled"
+        },
+        {
+          "line": 705,
+          "text": "                    if self.enable_log_outputs and self.request_logger:"
+        },
+        {
+          "line": 706,
+          "text": "                        delta_content_parts = []"
+        },
+        {
+          "line": 707,
+          "text": "                        if delta_message.content:"
+        },
+        {
+          "line": 708,
+          "text": "                            delta_content_parts.append(delta_message.content)"
+        },
+        {
+          "line": 709,
+          "text": "                        if delta_message.reasoning:"
+        },
+        {
+          "line": 710,
+          "text": "                            reasoning = delta_message.reasoning"
+        },
+        {
+          "line": 711,
+          "text": "                            delta_content_parts.append(f\"[reasoning: {reasoning}]\")"
+        },
+        {
+          "line": 712,
+          "text": "                        if delta_message.tool_calls:"
+        },
+        {
+          "line": 730,
+          "text": "                            )"
+        },
+        {
+          "line": 731,
+          "text": ""
+        },
+        {
+          "line": 732,
+          "text": "                    include_token_ids = ("
+        },
+        {
+          "line": 733,
+          "text": "                        request.return_token_ids and not hide_stream_metadata"
+        },
+        {
+          "line": 734,
+          "text": "                    )"
+        },
+        {
+          "line": 735,
+          "text": ""
+        },
+        {
+          "line": 736,
+          "text": "                    if output.finish_reason is None:"
+        },
+        {
+          "line": 737,
+          "text": "                        # Send token-by-token response for each request.n"
+        },
+        {
+          "line": 738,
+          "text": "                        choice_data = ChatCompletionResponseStreamChoice("
+        },
+        {
+          "line": 739,
+          "text": "                            index=i,"
+        },
+        {
+          "line": 740,
+          "text": "                            delta=delta_message,"
+        },
+        {
+          "line": 741,
+          "text": "                            logprobs=logprobs,"
+        },
+        {
+          "line": 742,
+          "text": "                            finish_reason=None,"
+        },
+        {
+          "line": 743,
+          "text": "                            token_ids=("
+        },
+        {
+          "line": 744,
+          "text": "                                as_list(output.token_ids) if include_token_ids else None"
+        },
+        {
+          "line": 745,
+          "text": "                            ),"
+        },
+        {
+          "line": 746,
+          "text": "                        )"
+        },
+        {
+          "line": 828,
+          "text": "                    else None,"
+        },
+        {
+          "line": 829,
+          "text": "                )"
+        },
+        {
+          "line": 830,
+          "text": "                final_usage.prompt_tokens_details = _make_prompt_tokens_details("
+        },
+        {
+          "line": 831,
+          "text": "                    self.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 832,
+          "text": "                    num_cached_tokens,"
+        },
+        {
+          "line": 833,
+          "text": "                    num_cache_creation_tokens,"
+        },
+        {
+          "line": 834,
+          "text": "                    mm_token_counts,"
+        },
+        {
+          "line": 835,
+          "text": "                )"
+        },
+        {
+          "line": 836,
+          "text": ""
+        },
+        {
+          "line": 837,
+          "text": "                # In streaming, metrics ride on this final usage chunk, which is"
+        },
+        {
+          "line": 838,
+          "text": "                # only emitted when usage reporting is enabled (i.e."
+        },
+        {
+          "line": 839,
+          "text": "                # ``stream_options.include_usage=true`` or"
+        },
+        {
+          "line": 840,
+          "text": "                # ``--enable-force-include-usage``)."
+        },
+        {
+          "line": 841,
+          "text": "                stream_per_request_metrics: PerRequestMetrics | None = None"
+        },
+        {
+          "line": 842,
+          "text": "                # See note in chat_completion_full_generator: suppress for n>1."
+        },
+        {
+          "line": 843,
+          "text": "                if (request.n or 1) == 1:"
+        },
+        {
+          "line": 844,
+          "text": "                    if self.enable_per_request_metrics:"
+        },
+        {
+          "line": 1092,
+          "text": "                stop_reason=output.stop_reason,"
+        },
+        {
+          "line": 1093,
+          "text": "                token_ids=("
+        },
+        {
+          "line": 1094,
+          "text": "                    as_list(output.token_ids)"
+        },
+        {
+          "line": 1095,
+          "text": "                    if request.return_token_ids and not suppress_metadata"
+        },
+        {
+          "line": 1096,
+          "text": "                    else None"
+        },
+        {
+          "line": 1097,
+          "text": "                ),"
+        },
+        {
+          "line": 1098,
+          "text": "                routed_experts=routed_experts_b64,"
+        },
+        {
+          "line": 1099,
+          "text": "            )"
+        },
+        {
+          "line": 1100,
+          "text": "            choice_data = maybe_filter_parallel_tool_calls(choice_data, request)"
+        },
+        {
+          "line": 1101,
+          "text": ""
+        },
+        {
+          "line": 1102,
+          "text": "            choices.append(choice_data)"
+        },
+        {
+          "line": 1103,
+          "text": ""
+        },
+        {
+          "line": 1104,
+          "text": "        if request.echo:"
+        },
+        {
+          "line": 1105,
+          "text": "            last_msg_content: str | list[dict[str, str]] = \"\""
+        },
+        {
+          "line": 1106,
+          "text": "            if ("
+        },
+        {
+          "line": 1107,
+          "text": "                conversation"
+        },
+        {
+          "line": 1108,
+          "text": "                and \"content\" in conversation[-1]"
+        },
+        {
+          "line": 1134,
+          "text": "            else None,"
+        },
+        {
+          "line": 1135,
+          "text": "        )"
+        },
+        {
+          "line": 1136,
+          "text": "        usage.prompt_tokens_details = _make_prompt_tokens_details("
+        },
+        {
+          "line": 1137,
+          "text": "            self.enable_prompt_tokens_details,"
+        },
+        {
+          "line": 1138,
+          "text": "            final_res.num_cached_tokens,"
+        },
+        {
+          "line": 1139,
+          "text": "            final_res.num_cache_creation_tokens,"
+        },
+        {
+          "line": 1140,
+          "text": "            mm_token_counts,"
+        },
+        {
+          "line": 1141,
+          "text": "        )"
+        },
+        {
+          "line": 1142,
+          "text": ""
+        },
+        {
+          "line": 1143,
+          "text": "        request_metadata.final_usage_info = usage"
+        },
+        {
+          "line": 1144,
+          "text": ""
+        },
+        {
+          "line": 1145,
+          "text": "        per_request_metrics: PerRequestMetrics | None = None"
+        },
+        {
+          "line": 1146,
+          "text": "        # Per-request metrics (timing + spec-decode acceptance) describe a single"
+        },
+        {
+          "line": 1147,
+          "text": "        # generation stream. For n>1 the stats belong to only one of the n"
+        },
+        {
+          "line": 1148,
+          "text": "        # sequences, so they cannot be attributed to the request; suppress."
+        },
+        {
+          "line": 1149,
+          "text": "        if (request.n or 1) == 1:"
+        },
+        {
+          "line": 1150,
+          "text": "            if self.enable_per_request_metrics:"
+        },
+        {
+          "line": 1169,
+          "text": "            system_fingerprint=self.system_fingerprint,"
+        },
+        {
+          "line": 1170,
+          "text": "            prompt_logprobs=clamp_prompt_logprobs(final_res.prompt_logprobs),"
+        },
+        {
+          "line": 1171,
+          "text": "            prompt_token_ids=("
+        },
+        {
+          "line": 1172,
+          "text": "                final_res.prompt_token_ids if request.return_token_ids else None"
+        },
+        {
+          "line": 1173,
+          "text": "            ),"
+        },
+        {
+          "line": 1174,
+          "text": "            prompt_text=prompt_text,"
+        },
+        {
+          "line": 1175,
+          "text": "            kv_transfer_params=final_res.kv_transfer_params,"
+        },
+        {
+          "line": 1176,
+          "text": "            ec_transfer_params=final_res.ec_transfer_params,"
+        },
+        {
+          "line": 1177,
+          "text": "            metrics=per_request_metrics,"
+        },
+        {
+          "line": 1178,
+          "text": "        )"
+        },
+        {
+          "line": 1179,
+          "text": ""
+        },
+        {
+          "line": 1180,
+          "text": "        # Log complete response if output logging is enabled"
+        },
+        {
+          "line": 1181,
+          "text": "        if self.enable_log_outputs and self.request_logger:"
+        },
+        {
+          "line": 1182,
+          "text": "            for choice in choices:"
+        },
+        {
+          "line": 1183,
+          "text": "                output_text = \"\""
+        },
+        {
+          "line": 1184,
+          "text": "                if choice.message.content:"
+        },
+        {
+          "line": 1185,
+          "text": "                    output_text = choice.message.content"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/openai/completion/protocol.py": {
+      "sha256": "5f7930635fd3924826015211032fb298206b27c7f04cd6cd2224bb128e4a3a50",
+      "lines": [
+        {
+          "line": 16,
+          "text": "    StopParam,"
+        },
+        {
+          "line": 17,
+          "text": "    StreamOptions,"
+        },
+        {
+          "line": 18,
+          "text": "    structured_outputs_from_response_format,"
+        },
+        {
+          "line": 19,
+          "text": "    validate_cache_salt,"
+        },
+        {
+          "line": 20,
+          "text": "    validate_structural_tag_response_format,"
+        },
+        {
+          "line": 21,
+          "text": "    validate_structured_outputs_structural_tag,"
+        },
+        {
+          "line": 22,
+          "text": ")"
+        },
+        {
+          "line": 23,
+          "text": "from vllm.entrypoints.serve.engine.protocol import OpenAIBaseModel, UsageInfo"
+        },
+        {
+          "line": 24,
+          "text": "from vllm.exceptions import VLLMValidationError"
+        },
+        {
+          "line": 25,
+          "text": "from vllm.logger import init_logger"
+        },
+        {
+          "line": 26,
+          "text": "from vllm.logprobs import Logprob"
+        },
+        {
+          "line": 27,
+          "text": "from vllm.renderers import TokenizeParams"
+        },
+        {
+          "line": 28,
+          "text": "from vllm.sampling_params import ("
+        },
+        {
+          "line": 29,
+          "text": "    BeamSearchParams,"
+        },
+        {
+          "line": 30,
+          "text": "    RepetitionDetectionParams,"
+        },
+        {
+          "line": 31,
+          "text": "    RequestOutputKind,"
+        },
+        {
+          "line": 32,
+          "text": "    SamplingParams,"
+        },
+        {
+          "line": 166,
+          "text": "            \"that are not JSON-encodable can be identified.\""
+        },
+        {
+          "line": 167,
+          "text": "        ),"
+        },
+        {
+          "line": 168,
+          "text": "    )"
+        },
+        {
+          "line": 169,
+          "text": "    return_token_ids: bool | None = Field("
+        },
+        {
+          "line": 170,
+          "text": "        default=None,"
+        },
+        {
+          "line": 171,
+          "text": "        description=("
+        },
+        {
+          "line": 172,
+          "text": "            \"If specified, the result will include token IDs alongside the \""
+        },
+        {
+          "line": 173,
+          "text": "            \"generated text. In streaming mode, prompt_token_ids is included \""
+        },
+        {
+          "line": 174,
+          "text": "            \"only in the first chunk, and token_ids contains the delta tokens \""
+        },
+        {
+          "line": 175,
+          "text": "            \"for each chunk. This is useful for debugging or when you \""
+        },
+        {
+          "line": 176,
+          "text": "            \"need to map generated text back to input tokens.\""
+        },
+        {
+          "line": 177,
+          "text": "        ),"
+        },
+        {
+          "line": 178,
+          "text": "    )"
+        },
+        {
+          "line": 179,
+          "text": "    routed_experts_prompt_start: int = Field("
+        },
+        {
+          "line": 180,
+          "text": "        default=0,"
+        },
+        {
+          "line": 181,
+          "text": "        ge=0,"
+        },
+        {
+          "line": 182,
+          "text": "        description=\"Skip the first N prompt tokens from returned routed-expert data.\","
+        },
+        {
+          "line": 197,
+          "text": "        ),"
+        },
+        {
+          "line": 198,
+          "text": "    )"
+        },
+        {
+          "line": 199,
+          "text": ""
+        },
+        {
+          "line": 200,
+          "text": "    cache_salt: str | None = Field("
+        },
+        {
+          "line": 201,
+          "text": "        default=None,"
+        },
+        {
+          "line": 202,
+          "text": "        min_length=1,"
+        },
+        {
+          "line": 203,
+          "text": "        max_length=1024,"
+        },
+        {
+          "line": 204,
+          "text": "        description=("
+        },
+        {
+          "line": 205,
+          "text": "            \"If specified, the prefix cache will be salted with the provided \""
+        },
+        {
+          "line": 206,
+          "text": "            \"string to prevent an attacker to guess prompts in multi-user \""
+        },
+        {
+          "line": 207,
+          "text": "            \"environments. The salt should be random, protected from \""
+        },
+        {
+          "line": 208,
+          "text": "            \"access by 3rd parties, and long enough to be \""
+        },
+        {
+          "line": 209,
+          "text": "            \"unpredictable (e.g., 43 characters base64-encoded, corresponding \""
+        },
+        {
+          "line": 210,
+          "text": "            \"to 256 bit).\""
+        },
+        {
+          "line": 211,
+          "text": "        ),"
+        },
+        {
+          "line": 212,
+          "text": "    )"
+        },
+        {
+          "line": 213,
+          "text": ""
+        },
+        {
+          "line": 269,
+          "text": "            truncate_prompt_tokens=self.truncate_prompt_tokens,"
+        },
+        {
+          "line": 270,
+          "text": "            truncation_side=self.truncation_side,"
+        },
+        {
+          "line": 271,
+          "text": "            add_special_tokens=self.add_special_tokens,"
+        },
+        {
+          "line": 272,
+          "text": "            needs_detokenization=bool(self.echo and not self.return_token_ids),"
+        },
+        {
+          "line": 273,
+          "text": "            max_total_tokens_param=\"max_model_len\","
+        },
+        {
+          "line": 274,
+          "text": "            max_output_tokens_param=\"max_tokens\","
+        },
+        {
+          "line": 275,
+          "text": "            return_token_offsets=bool(self.return_token_offsets),"
+        },
+        {
+          "line": 276,
+          "text": "        )"
+        },
+        {
+          "line": 277,
+          "text": ""
+        },
+        {
+          "line": 278,
+          "text": "    # Default sampling parameters for completion requests"
+        },
+        {
+          "line": 279,
+          "text": "    _DEFAULT_SAMPLING_PARAMS: dict = {"
+        },
+        {
+          "line": 280,
+          "text": "        \"repetition_penalty\": 1.0,"
+        },
+        {
+          "line": 281,
+          "text": "        \"temperature\": 1.0,"
+        },
+        {
+          "line": 282,
+          "text": "        \"top_p\": 1.0,"
+        },
+        {
+          "line": 283,
+          "text": "        \"top_k\": 0,"
+        },
+        {
+          "line": 284,
+          "text": "        \"min_p\": 0.0,"
+        },
+        {
+          "line": 285,
+          "text": "    }"
+        },
+        {
+          "line": 408,
+          "text": ""
+        },
+        {
+          "line": 409,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 410,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 411,
+          "text": "    def check_cache_salt_support(cls, data: Any) -> Any:"
+        },
+        {
+          "line": 412,
+          "text": "        if not isinstance(data, dict):"
+        },
+        {
+          "line": 413,
+          "text": "            return data"
+        },
+        {
+          "line": 414,
+          "text": "        validate_cache_salt(data.get(\"cache_salt\"))"
+        },
+        {
+          "line": 415,
+          "text": "        return data"
+        },
+        {
+          "line": 416,
+          "text": ""
+        },
+        {
+          "line": 417,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 418,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 419,
+          "text": "    def normalize_null_max_tokens(cls, data):"
+        },
+        {
+          "line": 420,
+          "text": "        if isinstance(data, dict) and data.get(\"max_tokens\") is None:"
+        },
+        {
+          "line": 421,
+          "text": "            data = data.copy()"
+        },
+        {
+          "line": 422,
+          "text": "            data[\"max_tokens\"] = cls.model_fields[\"max_tokens\"].default"
+        },
+        {
+          "line": 423,
+          "text": "        return data"
+        },
+        {
+          "line": 424,
+          "text": ""
+        },
+        {
+          "line": 425,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 426,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 427,
+          "text": "    def validate_response_format(cls, data):"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/openai/completion/serving.py": {
+      "sha256": "75d05ddddf303734a078a3e42fcb173fef58ea56da09bc0b5c7525cb9bbbf527",
+      "lines": [
+        {
+          "line": 61,
+          "text": "        online_renderer: \"OnlineRenderer\","
+        },
+        {
+          "line": 62,
+          "text": "        request_logger: RequestLogger | None,"
+        },
+        {
+          "line": 63,
+          "text": "        return_tokens_as_token_ids: bool = False,"
+        },
+        {
+          "line": 64,
+          "text": "        enable_prompt_tokens_details: bool = False,"
+        },
+        {
+          "line": 65,
+          "text": "        enable_force_include_usage: bool = False,"
+        },
+        {
+          "line": 66,
+          "text": "        enable_per_request_metrics: bool = False,"
+        },
+        {
+          "line": 67,
+          "text": "    ):"
+        },
+        {
+          "line": 68,
+          "text": "        super().__init__("
+        },
+        {
+          "line": 69,
+          "text": "            engine_client=engine_client,"
+        },
+        {
+          "line": 70,
+          "text": "            models=models,"
+        },
+        {
+          "line": 71,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 72,
+          "text": "            return_tokens_as_token_ids=return_tokens_as_token_ids,"
+        },
+        {
+          "line": 73,
+          "text": "        )"
+        },
+        {
+          "line": 74,
+          "text": ""
+        },
+        {
+          "line": 75,
+          "text": "        self.online_renderer = online_renderer"
+        },
+        {
+          "line": 76,
+          "text": "        self.enable_prompt_tokens_details = enable_prompt_tokens_details"
+        },
+        {
+          "line": 77,
+          "text": "        self.enable_force_include_usage = enable_force_include_usage"
+        },
+        {
+          "line": 78,
+          "text": "        self.enable_per_request_metrics = enable_per_request_metrics"
+        },
+        {
+          "line": 79,
+          "text": ""
+        },
+        {
+          "line": 80,
+          "text": "        self.default_sampling_params = self.model_config.get_diff_sampling_param()"
+        },
+        {
+          "line": 81,
+          "text": "        mc = self.model_config"
+        },
+        {
+          "line": 82,
+          "text": "        self.override_max_tokens = ("
+        },
+        {
+          "line": 83,
+          "text": "            self.default_sampling_params.get(\"max_tokens\")"
+        },
+        {
+          "line": 84,
+          "text": "            if mc.generation_config not in (\"auto\", \"vllm\")"
+        },
+        {
+          "line": 85,
+          "text": "            else getattr(mc, \"override_generation_config\", {}).get(\"max_new_tokens\")"
+        },
+        {
+          "line": 86,
+          "text": "        )"
+        },
+        {
+          "line": 87,
+          "text": ""
+        },
+        {
+          "line": 88,
+          "text": "    async def render_completion_request("
+        },
+        {
+          "line": 89,
+          "text": "        self,"
+        },
+        {
+          "line": 329,
+          "text": "                for output in res.outputs:"
+        },
+        {
+          "line": 330,
+          "text": "                    i = output.index + prompt_idx * num_choices"
+        },
+        {
+          "line": 331,
+          "text": ""
+        },
+        {
+          "line": 332,
+          "text": "                    # Useful when request.return_token_ids is True"
+        },
+        {
+          "line": 333,
+          "text": "                    # Returning prompt token IDs shares the same logic"
+        },
+        {
+          "line": 334,
+          "text": "                    # with the echo implementation."
+        },
+        {
+          "line": 335,
+          "text": "                    prompt_token_ids_to_return: list[int] | None = None"
+        },
+        {
+          "line": 336,
+          "text": ""
+        },
+        {
+          "line": 337,
+          "text": "                    assert request.max_tokens is not None"
+        },
+        {
+          "line": 338,
+          "text": "                    if request.echo and not has_echoed[i]:"
+        },
+        {
+          "line": 339,
+          "text": "                        assert prompt_token_ids is not None"
+        },
+        {
+          "line": 340,
+          "text": "                        if request.return_token_ids:"
+        },
+        {
+          "line": 341,
+          "text": "                            prompt_text = \"\""
+        },
+        {
+          "line": 342,
+          "text": "                        assert prompt_text is not None"
+        },
+        {
+          "line": 343,
+          "text": "                        if request.max_tokens == 0:"
+        },
+        {
+          "line": 344,
+          "text": "                            # only return the prompt"
+        },
+        {
+          "line": 345,
+          "text": "                            delta_text = prompt_text"
+        },
+        {
+          "line": 346,
+          "text": "                            delta_token_ids = prompt_token_ids"
+        },
+        {
+          "line": 347,
+          "text": "                            out_logprobs = prompt_logprobs"
+        },
+        {
+          "line": 348,
+          "text": "                        else:"
+        },
+        {
+          "line": 349,
+          "text": "                            # echo the prompt and first token"
+        },
+        {
+          "line": 350,
+          "text": "                            delta_text = prompt_text + output.text"
+        },
+        {
+          "line": 351,
+          "text": "                            delta_token_ids = ["
+        },
+        {
+          "line": 352,
+          "text": "                                *prompt_token_ids,"
+        },
+        {
+          "line": 353,
+          "text": "                                *output.token_ids,"
+        },
+        {
+          "line": 366,
+          "text": ""
+        },
+        {
+          "line": 367,
+          "text": "                        # has_echoed[i] is reused here to indicate whether"
+        },
+        {
+          "line": 368,
+          "text": "                        # we have already returned the prompt token IDs."
+        },
+        {
+          "line": 369,
+          "text": "                        if not has_echoed[i] and request.return_token_ids:"
+        },
+        {
+          "line": 370,
+          "text": "                            prompt_token_ids_to_return = prompt_token_ids"
+        },
+        {
+          "line": 371,
+          "text": "                            has_echoed[i] = True"
+        },
+        {
+          "line": 372,
+          "text": ""
+        },
+        {
+          "line": 373,
+          "text": "                        if ("
+        },
+        {
+          "line": 374,
+          "text": "                            not delta_text"
+        },
+        {
+          "line": 375,
+          "text": "                            and not delta_token_ids"
+        },
+        {
+          "line": 376,
+          "text": "                            and not previous_num_tokens[i]"
+        },
+        {
+          "line": 377,
+          "text": "                        ):"
+        },
+        {
+          "line": 378,
+          "text": "                            # Chunked prefill case, don't return empty chunks"
+        },
+        {
+          "line": 379,
+          "text": "                            continue"
+        },
+        {
+          "line": 380,
+          "text": ""
+        },
+        {
+          "line": 381,
+          "text": "                    if request.logprobs is not None:"
+        },
+        {
+          "line": 382,
+          "text": "                        assert out_logprobs is not None, \"Did not output logprobs\""
+        },
+        {
+          "line": 414,
+          "text": "                                prompt_token_ids=prompt_token_ids_to_return,"
+        },
+        {
+          "line": 415,
+          "text": "                                token_ids=("
+        },
+        {
+          "line": 416,
+          "text": "                                    as_list(output.token_ids)"
+        },
+        {
+          "line": 417,
+          "text": "                                    if request.return_token_ids"
+        },
+        {
+          "line": 418,
+          "text": "                                    else None"
+        },
+        {
+          "line": 419,
+          "text": "                                ),"
+        },
+        {
+          "line": 420,
+          "text": "                            )"
+        },
+        {
+          "line": 421,
+          "text": "                        ],"
+        },
+        {
+          "line": 422,
+          "text": "                    )"
+        },
+        {
+          "line": 423,
+          "text": "                    # Stamp on terminal chunk only when no trailing usage chunk"
+        },
+        {
+          "line": 424,
+          "text": "                    # will follow (that one is the true final message)."
+        },
+        {
+          "line": 425,
+          "text": "                    if ("
+        },
+        {
+          "line": 426,
+          "text": "                        not include_usage"
+        },
+        {
+          "line": 427,
+          "text": "                        and self.system_fingerprint is not None"
+        },
+        {
+          "line": 428,
+          "text": "                        and finish_reason is not None"
+        },
+        {
+          "line": 429,
+          "text": "                    ):"
+        },
+        {
+          "line": 430,
+          "text": "                        chunk.system_fingerprint = self.system_fingerprint"
+        },
+        {
+          "line": 448,
+          "text": "                total_tokens=total_prompt_tokens + total_completion_tokens,"
+        },
+        {
+          "line": 449,
+          "text": "            )"
+        },
+        {
+          "line": 450,
+          "text": ""
+        },
+        {
+          "line": 451,
+          "text": "            if self.enable_prompt_tokens_details and num_cached_tokens is not None:"
+        },
+        {
+          "line": 452,
+          "text": "                final_usage_info.prompt_tokens_details = PromptTokenUsageInfo("
+        },
+        {
+          "line": 453,
+          "text": "                    cached_tokens=num_cached_tokens"
+        },
+        {
+          "line": 454,
+          "text": "                )"
+        },
+        {
+          "line": 455,
+          "text": ""
+        },
+        {
+          "line": 456,
+          "text": "            if include_usage:"
+        },
+        {
+          "line": 457,
+          "text": "                # In streaming, metrics ride on this final usage chunk, which is"
+        },
+        {
+          "line": 458,
+          "text": "                # only emitted when usage reporting is enabled (i.e."
+        },
+        {
+          "line": 459,
+          "text": "                # ``stream_options.include_usage=true`` or"
+        },
+        {
+          "line": 460,
+          "text": "                # ``--enable-force-include-usage``)."
+        },
+        {
+          "line": 461,
+          "text": "                stream_per_request_metrics: PerRequestMetrics | None = None"
+        },
+        {
+          "line": 462,
+          "text": "                # See note in request_output_to_completion_response: suppress when"
+        },
+        {
+          "line": 463,
+          "text": "                # not attributable to one stream (multi-prompt or n>1)."
+        },
+        {
+          "line": 464,
+          "text": "                if num_prompts == 1 and (request.n or 1) == 1:"
+        },
+        {
+          "line": 531,
+          "text": ""
+        },
+        {
+          "line": 532,
+          "text": "                assert request.max_tokens is not None"
+        },
+        {
+          "line": 533,
+          "text": "                if request.echo:"
+        },
+        {
+          "line": 534,
+          "text": "                    if request.return_token_ids:"
+        },
+        {
+          "line": 535,
+          "text": "                        prompt_text = \"\""
+        },
+        {
+          "line": 536,
+          "text": "                    assert prompt_text is not None"
+        },
+        {
+          "line": 537,
+          "text": "                    if request.max_tokens == 0:"
+        },
+        {
+          "line": 538,
+          "text": "                        token_ids = prompt_token_ids"
+        },
+        {
+          "line": 539,
+          "text": "                        out_logprobs = prompt_logprobs"
+        },
+        {
+          "line": 540,
+          "text": "                        output_text = prompt_text"
+        },
+        {
+          "line": 541,
+          "text": "                    else:"
+        },
+        {
+          "line": 542,
+          "text": "                        token_ids = [*prompt_token_ids, *output.token_ids]"
+        },
+        {
+          "line": 543,
+          "text": ""
+        },
+        {
+          "line": 544,
+          "text": "                        if request.logprobs is None:"
+        },
+        {
+          "line": 545,
+          "text": "                            out_logprobs = None"
+        },
+        {
+          "line": 546,
+          "text": "                        else:"
+        },
+        {
+          "line": 547,
+          "text": "                            assert prompt_logprobs is not None"
+        },
+        {
+          "line": 584,
+          "text": "                    stop_reason=output.stop_reason,"
+        },
+        {
+          "line": 585,
+          "text": "                    prompt_logprobs=final_res.prompt_logprobs,"
+        },
+        {
+          "line": 586,
+          "text": "                    prompt_token_ids=("
+        },
+        {
+          "line": 587,
+          "text": "                        prompt_token_ids if request.return_token_ids else None"
+        },
+        {
+          "line": 588,
+          "text": "                    ),"
+        },
+        {
+          "line": 589,
+          "text": "                    token_ids=("
+        },
+        {
+          "line": 590,
+          "text": "                        as_list(output.token_ids) if request.return_token_ids else None"
+        },
+        {
+          "line": 591,
+          "text": "                    ),"
+        },
+        {
+          "line": 592,
+          "text": "                    routed_experts=routed_experts_b64,"
+        },
+        {
+          "line": 593,
+          "text": "                )"
+        },
+        {
+          "line": 594,
+          "text": "                choices.append(choice_data)"
+        },
+        {
+          "line": 595,
+          "text": ""
+        },
+        {
+          "line": 596,
+          "text": "                num_generated_tokens += len(output.token_ids)"
+        },
+        {
+          "line": 597,
+          "text": ""
+        },
+        {
+          "line": 598,
+          "text": "            num_prompt_tokens += len(prompt_token_ids)"
+        },
+        {
+          "line": 599,
+          "text": ""
+        },
+        {
+          "line": 600,
+          "text": "        usage = UsageInfo("
+        },
+        {
+          "line": 601,
+          "text": "            prompt_tokens=num_prompt_tokens,"
+        },
+        {
+          "line": 602,
+          "text": "            completion_tokens=num_generated_tokens,"
+        },
+        {
+          "line": 603,
+          "text": "            total_tokens=num_prompt_tokens + num_generated_tokens,"
+        },
+        {
+          "line": 604,
+          "text": "        )"
+        },
+        {
+          "line": 605,
+          "text": ""
+        },
+        {
+          "line": 606,
+          "text": "        if ("
+        },
+        {
+          "line": 607,
+          "text": "            self.enable_prompt_tokens_details"
+        },
+        {
+          "line": 608,
+          "text": "            and last_final_res"
+        },
+        {
+          "line": 609,
+          "text": "            and last_final_res.num_cached_tokens is not None"
+        },
+        {
+          "line": 610,
+          "text": "        ):"
+        },
+        {
+          "line": 611,
+          "text": "            usage.prompt_tokens_details = PromptTokenUsageInfo("
+        },
+        {
+          "line": 612,
+          "text": "                cached_tokens=last_final_res.num_cached_tokens"
+        },
+        {
+          "line": 613,
+          "text": "            )"
+        },
+        {
+          "line": 614,
+          "text": ""
+        },
+        {
+          "line": 615,
+          "text": "        request_metadata.final_usage_info = usage"
+        },
+        {
+          "line": 616,
+          "text": ""
+        },
+        {
+          "line": 617,
+          "text": "        per_request_metrics: PerRequestMetrics | None = None"
+        },
+        {
+          "line": 618,
+          "text": "        # Per-request metrics (timing + spec-decode acceptance) describe a single"
+        },
+        {
+          "line": 619,
+          "text": "        # generation stream, so suppress them when they cannot be attributed to"
+        },
+        {
+          "line": 620,
+          "text": "        # one: multiple prompts (timestamps span prompts) or n>1 (stats belong to"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/openai/responses/protocol.py": {
+      "sha256": "95608b698c923f92e8494a98d4db92ca1fdbdde11b4aad4181c8e6eabb36585e",
+      "lines": [
+        {
+          "line": 60,
+          "text": "    ChatCompletionMessageParam,"
+        },
+        {
+          "line": 61,
+          "text": "    ChatTemplateContentFormatOption,"
+        },
+        {
+          "line": 62,
+          "text": ")"
+        },
+        {
+          "line": 63,
+          "text": "from vllm.entrypoints.generate.base.protocol import StopParam, validate_cache_salt"
+        },
+        {
+          "line": 64,
+          "text": "from vllm.entrypoints.serve.engine.protocol import OpenAIBaseModel"
+        },
+        {
+          "line": 65,
+          "text": "from vllm.exceptions import VLLMValidationError"
+        },
+        {
+          "line": 66,
+          "text": "from vllm.logger import init_logger"
+        },
+        {
+          "line": 67,
+          "text": "from vllm.renderers import ChatParams, TokenizeParams, merge_kwargs"
+        },
+        {
+          "line": 68,
+          "text": "from vllm.sampling_params import ("
+        },
+        {
+          "line": 69,
+          "text": "    RequestOutputKind,"
+        },
+        {
+          "line": 70,
+          "text": "    SamplingParams,"
+        },
+        {
+          "line": 71,
+          "text": "    StructuredOutputsParams,"
+        },
+        {
+          "line": 72,
+          "text": ")"
+        },
+        {
+          "line": 73,
+          "text": "from vllm.utils import random_uuid"
+        },
+        {
+          "line": 74,
+          "text": ""
+        },
+        {
+          "line": 75,
+          "text": "logger = init_logger(__name__)"
+        },
+        {
+          "line": 76,
+          "text": ""
+        },
+        {
+          "line": 251,
+          "text": "            \"if the served model does not use priority scheduling.\""
+        },
+        {
+          "line": 252,
+          "text": "        ),"
+        },
+        {
+          "line": 253,
+          "text": "    )"
+        },
+        {
+          "line": 254,
+          "text": "    cache_salt: str | None = Field("
+        },
+        {
+          "line": 255,
+          "text": "        default=None,"
+        },
+        {
+          "line": 256,
+          "text": "        min_length=1,"
+        },
+        {
+          "line": 257,
+          "text": "        max_length=1024,"
+        },
+        {
+          "line": 258,
+          "text": "        description=("
+        },
+        {
+          "line": 259,
+          "text": "            \"If specified, the prefix cache will be salted with the provided \""
+        },
+        {
+          "line": 260,
+          "text": "            \"string to prevent an attacker to guess prompts in multi-user \""
+        },
+        {
+          "line": 261,
+          "text": "            \"environments. The salt should be random, protected from \""
+        },
+        {
+          "line": 262,
+          "text": "            \"access by 3rd parties, and long enough to be \""
+        },
+        {
+          "line": 263,
+          "text": "            \"unpredictable (e.g., 43 characters base64-encoded, corresponding \""
+        },
+        {
+          "line": 264,
+          "text": "            \"to 256 bit).\""
+        },
+        {
+          "line": 265,
+          "text": "        ),"
+        },
+        {
+          "line": 266,
+          "text": "    )"
+        },
+        {
+          "line": 267,
+          "text": ""
+        },
+        {
+          "line": 470,
+          "text": ""
+        },
+        {
+          "line": 471,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 472,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 473,
+          "text": "    def check_cache_salt_support(cls, data: Any) -> Any:"
+        },
+        {
+          "line": 474,
+          "text": "        if not isinstance(data, dict):"
+        },
+        {
+          "line": 475,
+          "text": "            return data"
+        },
+        {
+          "line": 476,
+          "text": "        validate_cache_salt(data.get(\"cache_salt\"))"
+        },
+        {
+          "line": 477,
+          "text": "        return data"
+        },
+        {
+          "line": 478,
+          "text": ""
+        },
+        {
+          "line": 479,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 480,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 481,
+          "text": "    def validate_background(cls, data):"
+        },
+        {
+          "line": 482,
+          "text": "        if not isinstance(data, dict):"
+        },
+        {
+          "line": 483,
+          "text": "            return data"
+        },
+        {
+          "line": 484,
+          "text": "        if not data.get(\"background\"):"
+        },
+        {
+          "line": 485,
+          "text": "            return data"
+        },
+        {
+          "line": 486,
+          "text": "        if not data.get(\"store\", True):"
+        },
+        {
+          "line": 487,
+          "text": "            raise VLLMValidationError("
+        },
+        {
+          "line": 488,
+          "text": "                \"background can only be used when `store` is true\","
+        },
+        {
+          "line": 489,
+          "text": "                parameter=\"background\","
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/openai/responses/serving.py": {
+      "sha256": "dc720ca7038f73581f5576b0c5c56e086167fea3323f29f2d76bbacdb5b5b6db",
+      "lines": [
+        {
+          "line": 107,
+          "text": "        enable_auto_tools: bool = False,"
+        },
+        {
+          "line": 108,
+          "text": "        tool_parser: str | None = None,"
+        },
+        {
+          "line": 109,
+          "text": "        tool_server: ToolServer | None = None,"
+        },
+        {
+          "line": 110,
+          "text": "        enable_prompt_tokens_details: bool = False,"
+        },
+        {
+          "line": 111,
+          "text": "        enable_force_include_usage: bool = False,"
+        },
+        {
+          "line": 112,
+          "text": "        enable_log_outputs: bool = False,"
+        },
+        {
+          "line": 113,
+          "text": "        default_chat_template_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 114,
+          "text": "    ) -> None:"
+        },
+        {
+          "line": 115,
+          "text": "        super().__init__("
+        },
+        {
+          "line": 116,
+          "text": "            engine_client=engine_client,"
+        },
+        {
+          "line": 117,
+          "text": "            models=models,"
+        },
+        {
+          "line": 118,
+          "text": "            request_logger=request_logger,"
+        },
+        {
+          "line": 119,
+          "text": "            return_tokens_as_token_ids=return_tokens_as_token_ids,"
+        },
+        {
+          "line": 120,
+          "text": "        )"
+        },
+        {
+          "line": 121,
+          "text": ""
+        },
+        {
+          "line": 122,
+          "text": "        self.online_renderer = online_renderer"
+        },
+        {
+          "line": 123,
+          "text": "        self.chat_template = chat_template"
+        },
+        {
+          "line": 134,
+          "text": "            model_name=self.model_config.model,"
+        },
+        {
+          "line": 135,
+          "text": "            is_harmony=self.model_config.hf_config.model_type == \"gpt_oss\","
+        },
+        {
+          "line": 136,
+          "text": "        )"
+        },
+        {
+          "line": 137,
+          "text": "        self.enable_prompt_tokens_details = enable_prompt_tokens_details"
+        },
+        {
+          "line": 138,
+          "text": "        self.enable_force_include_usage = enable_force_include_usage"
+        },
+        {
+          "line": 139,
+          "text": ""
+        },
+        {
+          "line": 140,
+          "text": "        self.default_sampling_params = self.model_config.get_diff_sampling_param()"
+        },
+        {
+          "line": 141,
+          "text": "        mc = self.model_config"
+        },
+        {
+          "line": 142,
+          "text": "        self.override_max_tokens = ("
+        },
+        {
+          "line": 143,
+          "text": "            self.default_sampling_params.get(\"max_tokens\")"
+        },
+        {
+          "line": 144,
+          "text": "            if mc.generation_config not in (\"auto\", \"vllm\")"
+        },
+        {
+          "line": 145,
+          "text": "            else getattr(mc, \"override_generation_config\", {}).get(\"max_new_tokens\")"
+        },
+        {
+          "line": 146,
+          "text": "        )"
+        },
+        {
+          "line": 147,
+          "text": ""
+        },
+        {
+          "line": 148,
+          "text": "        # If False (default), the \"store\" option is (silently) ignored and the"
+        },
+        {
+          "line": 149,
+          "text": "        # response is not stored. If True, the response is stored in memory."
+        },
+        {
+          "line": 150,
+          "text": "        # NOTE(woosuk): This may not be intuitive for users, as the default"
+        },
+        {
+          "line": 618,
+          "text": "        reasoning_parser_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 619,
+          "text": "    ):"
+        },
+        {
+          "line": 620,
+          "text": "        max_model_len = self.model_config.max_model_len"
+        },
+        {
+          "line": 621,
+          "text": "        cache_salt = cast(str | None, engine_input.get(\"cache_salt\"))"
+        },
+        {
+          "line": 622,
+          "text": ""
+        },
+        {
+          "line": 623,
+          "text": "        orig_priority = priority"
+        },
+        {
+          "line": 624,
+          "text": "        sub_request = 0"
+        },
+        {
+          "line": 625,
+          "text": "        while True:"
+        },
+        {
+          "line": 626,
+          "text": "            # Ensure that each sub-request has a unique request id."
+        },
+        {
+          "line": 627,
+          "text": "            sub_request_id = f\"{request_id}_{sub_request}\""
+        },
+        {
+          "line": 628,
+          "text": ""
+        },
+        {
+          "line": 629,
+          "text": "            self._log_inputs("
+        },
+        {
+          "line": 630,
+          "text": "                sub_request_id,"
+        },
+        {
+          "line": 631,
+          "text": "                engine_input,"
+        },
+        {
+          "line": 632,
+          "text": "                params=sampling_params,"
+        },
+        {
+          "line": 633,
+          "text": "                lora_request=lora_request,"
+        },
+        {
+          "line": 634,
+          "text": "            )"
+        },
+        {
+          "line": 665,
+          "text": "            if isinstance(context, HarmonyContext):"
+        },
+        {
+          "line": 666,
+          "text": "                engine_input = self.online_renderer.render_responses_harmony_messages("
+        },
+        {
+          "line": 667,
+          "text": "                    context.messages,"
+        },
+        {
+          "line": 668,
+          "text": "                    cache_salt=cache_salt,"
+        },
+        {
+          "line": 669,
+          "text": "                    tok_params=tok_params,"
+        },
+        {
+          "line": 670,
+          "text": "                )"
+        },
+        {
+          "line": 671,
+          "text": ""
+        },
+        {
+          "line": 672,
+          "text": "                sampling_params.max_tokens = max_model_len - self._extract_prompt_len("
+        },
+        {
+          "line": 673,
+          "text": "                    engine_input"
+        },
+        {
+          "line": 674,
+          "text": "                )"
+        },
+        {
+          "line": 675,
+          "text": "            elif isinstance(context, ParsableContext):"
+        },
+        {
+          "line": 676,
+          "text": "                (engine_input,) = await self._render_next_turn("
+        },
+        {
+          "line": 677,
+          "text": "                    context.request,"
+        },
+        {
+          "line": 678,
+          "text": "                    context.response_messages,"
+        },
+        {
+          "line": 679,
+          "text": "                )"
+        },
+        {
+          "line": 680,
+          "text": ""
+        },
+        {
+          "line": 681,
+          "text": "                sampling_params.max_tokens = get_max_tokens("
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/pooling/base/protocol.py": {
+      "sha256": "44d5c445499c01dc23245ded8470776158b39624ceaa59ed07ab4a420836c171",
+      "lines": [
+        {
+          "line": 11,
+          "text": "    ChatCompletionMessageParam,"
+        },
+        {
+          "line": 12,
+          "text": "    ChatTemplateContentFormatOption,"
+        },
+        {
+          "line": 13,
+          "text": ")"
+        },
+        {
+          "line": 14,
+          "text": "from vllm.entrypoints.generate.base.protocol import validate_cache_salt"
+        },
+        {
+          "line": 15,
+          "text": "from vllm.entrypoints.serve.engine.protocol import OpenAIBaseModel"
+        },
+        {
+          "line": 16,
+          "text": "from vllm.exceptions import VLLMValidationError"
+        },
+        {
+          "line": 17,
+          "text": "from vllm.renderers import ChatParams, TokenizeParams, merge_kwargs"
+        },
+        {
+          "line": 18,
+          "text": "from vllm.tasks import check_removed_pooling_task"
+        },
+        {
+          "line": 19,
+          "text": "from vllm.utils import random_uuid"
+        },
+        {
+          "line": 20,
+          "text": "from vllm.utils.serial_utils import EmbedDType, EncodingFormat, Endianness"
+        },
+        {
+          "line": 21,
+          "text": ""
+        },
+        {
+          "line": 22,
+          "text": ""
+        },
+        {
+          "line": 23,
+          "text": "def reject_removed_pooling_parameters(data):"
+        },
+        {
+          "line": 24,
+          "text": "    if not isinstance(data, dict):"
+        },
+        {
+          "line": 25,
+          "text": "        return data"
+        },
+        {
+          "line": 26,
+          "text": "    if \"normalize\" in data:"
+        },
+        {
+          "line": 27,
+          "text": "        raise VLLMValidationError("
+        },
+        {
+          "line": 81,
+          "text": "        default=None,"
+        },
+        {
+          "line": 82,
+          "text": "        description=\"Additional kwargs to pass to the HF processor.\","
+        },
+        {
+          "line": 83,
+          "text": "    )"
+        },
+        {
+          "line": 84,
+          "text": "    cache_salt: str | None = Field("
+        },
+        {
+          "line": 85,
+          "text": "        default=None,"
+        },
+        {
+          "line": 86,
+          "text": "        min_length=1,"
+        },
+        {
+          "line": 87,
+          "text": "        max_length=1024,"
+        },
+        {
+          "line": 88,
+          "text": "        description=("
+        },
+        {
+          "line": 89,
+          "text": "            \"If specified, the prefix cache will be salted with the provided \""
+        },
+        {
+          "line": 90,
+          "text": "            \"string to prevent an attacker to guess prompts in multi-user \""
+        },
+        {
+          "line": 91,
+          "text": "            \"environments. The salt should be random, protected from \""
+        },
+        {
+          "line": 92,
+          "text": "            \"access by 3rd parties, and long enough to be \""
+        },
+        {
+          "line": 93,
+          "text": "            \"unpredictable (e.g., 43 characters base64-encoded, corresponding \""
+        },
+        {
+          "line": 94,
+          "text": "            \"to 256 bit).\""
+        },
+        {
+          "line": 95,
+          "text": "        ),"
+        },
+        {
+          "line": 96,
+          "text": "    )"
+        },
+        {
+          "line": 97,
+          "text": "    # --8<-- [end:pooling-common-extra-params]"
+        },
+        {
+          "line": 98,
+          "text": ""
+        },
+        {
+          "line": 99,
+          "text": "    @model_validator(mode=\"before\")"
+        },
+        {
+          "line": 100,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 101,
+          "text": "    def check_cache_salt_support(cls, data: Any) -> Any:"
+        },
+        {
+          "line": 102,
+          "text": "        if not isinstance(data, dict):"
+        },
+        {
+          "line": 103,
+          "text": "            return data"
+        },
+        {
+          "line": 104,
+          "text": ""
+        },
+        {
+          "line": 105,
+          "text": "        validate_cache_salt(data.get(\"cache_salt\"))"
+        },
+        {
+          "line": 106,
+          "text": "        return data"
+        },
+        {
+          "line": 107,
+          "text": ""
+        },
+        {
+          "line": 108,
+          "text": "    def _build_pooling_tok_params("
+        },
+        {
+          "line": 109,
+          "text": "        self,"
+        },
+        {
+          "line": 110,
+          "text": "        model_config: ModelConfig,"
+        },
+        {
+          "line": 111,
+          "text": "        *,"
+        },
+        {
+          "line": 112,
+          "text": "        add_special_tokens: bool,"
+        },
+        {
+          "line": 113,
+          "text": "        max_total_tokens: int | None,"
+        },
+        {
+          "line": 114,
+          "text": "        max_output_tokens: int,"
+        },
+        {
+          "line": 115,
+          "text": "        max_total_tokens_param: str = \"max_model_len\","
+        },
+        {
+          "line": 116,
+          "text": "        max_output_tokens_param: str | None = None,"
+        },
+        {
+          "line": 117,
+          "text": "    ) -> TokenizeParams:"
+        },
+        {
+          "line": 118,
+          "text": "        encoder_config = model_config.encoder_config or {}"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/pooling/base/serving.py": {
+      "sha256": "0366b4b0439ddeadf0b392f24ca6b132664816620b9e4441dafd9c5e1dd6012f",
+      "lines": [
+        {
+          "line": 120,
+          "text": "        priorities = getattr(request, \"priority\", 0)"
+        },
+        {
+          "line": 121,
+          "text": "        prompt_extras = {"
+        },
+        {
+          "line": 122,
+          "text": "            k: v"
+        },
+        {
+          "line": 123,
+          "text": "            for k in (\"mm_processor_kwargs\", \"cache_salt\", \"chat_template_kwargs\")"
+        },
+        {
+          "line": 124,
+          "text": "            if (v := getattr(request, k, None)) is not None"
+        },
+        {
+          "line": 125,
+          "text": "        }"
+        },
+        {
+          "line": 126,
+          "text": ""
+        },
+        {
+          "line": 127,
+          "text": "        ctx = PoolingServeContext("
+        },
+        {
+          "line": 128,
+          "text": "            request=request,"
+        },
+        {
+          "line": 129,
+          "text": "            raw_request=raw_request,"
+        },
+        {
+          "line": 130,
+          "text": "            model_name=model_name,"
+        },
+        {
+          "line": 131,
+          "text": "            pooling_params=pooling_params,"
+        },
+        {
+          "line": 132,
+          "text": "            request_id=request_id,"
+        },
+        {
+          "line": 133,
+          "text": "            lora_request=lora_request,"
+        },
+        {
+          "line": 134,
+          "text": "            priorities=priorities,"
+        },
+        {
+          "line": 135,
+          "text": "            prompt_extras=prompt_extras,"
+        },
+        {
+          "line": 136,
+          "text": "        )"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/pooling/scoring/io_processor.py": {
+      "sha256": "59590693cc42e0b37f200310352d97072a6872a94e240851f89459656dc09f26",
+      "lines": [
+        {
+          "line": 582,
+          "text": "        engine_prompt_extras = ("
+        },
+        {
+          "line": 583,
+          "text": "            {"
+        },
+        {
+          "line": 584,
+          "text": "                k: v"
+        },
+        {
+          "line": 585,
+          "text": "                for k in (\"mm_processor_kwargs\", \"cache_salt\")"
+        },
+        {
+          "line": 586,
+          "text": "                if (v := prompt_extras.get(k)) is not None"
+        },
+        {
+          "line": 587,
+          "text": "            }"
+        },
+        {
+          "line": 588,
+          "text": "            if prompt_extras"
+        },
+        {
+          "line": 589,
+          "text": "            else None"
+        },
+        {
+          "line": 590,
+          "text": "        )"
+        },
+        {
+          "line": 591,
+          "text": ""
+        },
+        {
+          "line": 592,
+          "text": "        if engine_prompt_extras:"
+        },
+        {
+          "line": 593,
+          "text": "            target_prompt = extract_target_prompt(self.model_config, engine_prompt)"
+        },
+        {
+          "line": 594,
+          "text": "            target_prompt.update(engine_prompt_extras)"
+        },
+        {
+          "line": 595,
+          "text": ""
+        },
+        {
+          "line": 596,
+          "text": "        engine_input = self.renderer.process_for_engine(engine_prompt, arrival_time)"
+        },
+        {
+          "line": 597,
+          "text": ""
+        },
+        {
+          "line": 598,
+          "text": "        return PoolingEngineInput("
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/generate/beam_search/utils.py": {
+      "sha256": "b478552b8ff4eb0d6fda5c293d72ea377b1693671d958c8e1e681b316bb331b6",
+      "lines": [
+        {
+          "line": 42,
+          "text": ""
+        },
+        {
+          "line": 43,
+          "text": "        # Handle decoder-only inputs"
+        },
+        {
+          "line": 44,
+          "text": "        prompt_text = prompt.get(\"prompt\")"
+        },
+        {
+          "line": 45,
+          "text": "        cache_salt = prompt.get(\"cache_salt\")"
+        },
+        {
+          "line": 46,
+          "text": ""
+        },
+        {
+          "line": 47,
+          "text": "        if prompt[\"type\"] == \"token\":"
+        },
+        {
+          "line": 48,
+          "text": "            return tokens_input("
+        },
+        {
+          "line": 49,
+          "text": "                self.tokens,"
+        },
+        {
+          "line": 50,
+          "text": "                prompt=prompt_text,"
+        },
+        {
+          "line": 51,
+          "text": "                cache_salt=cache_salt,"
+        },
+        {
+          "line": 52,
+          "text": "            )"
+        },
+        {
+          "line": 53,
+          "text": ""
+        },
+        {
+          "line": 54,
+          "text": "        return mm_input("
+        },
+        {
+          "line": 55,
+          "text": "            prompt_token_ids=self.tokens,"
+        },
+        {
+          "line": 56,
+          "text": "            mm_kwargs=prompt[\"mm_kwargs\"],"
+        },
+        {
+          "line": 57,
+          "text": "            mm_hashes=prompt[\"mm_hashes\"],"
+        },
+        {
+          "line": 58,
+          "text": "            mm_placeholders=prompt[\"mm_placeholders\"],"
+        },
+        {
+          "line": 59,
+          "text": "            prompt=prompt_text,"
+        },
+        {
+          "line": 60,
+          "text": "            cache_salt=cache_salt,"
+        },
+        {
+          "line": 61,
+          "text": "        )"
+        },
+        {
+          "line": 62,
+          "text": ""
+        },
+        {
+          "line": 63,
+          "text": "    def _build_encoder_decoder_inputs("
+        },
+        {
+          "line": 64,
+          "text": "        self, prompt: EncoderDecoderInput"
+        },
+        {
+          "line": 65,
+          "text": "    ) -> EncoderDecoderInput:"
+        },
+        {
+          "line": 66,
+          "text": "        \"\"\"Rebuild the encoder-decoder inputs with the current beam search"
+        },
+        {
+          "line": 67,
+          "text": "        sequence's tokens."
+        },
+        {
+          "line": 68,
+          "text": ""
+        },
+        {
+          "line": 69,
+          "text": "        FIXME (alex) - the encoder multimodal cache is not properly wired up"
+        },
+        {
+          "line": 70,
+          "text": "        yet, which means that currently we are running the encoder on every"
+        },
+        {
+          "line": 71,
+          "text": "        new beam because num_computed_tokens is 0 on each new request. This"
+        },
+        {
+          "line": 72,
+          "text": "        will be fixed once the cache is correctly implemented."
+        },
+        {
+          "line": 73,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 83,
+          "text": "                mm_hashes=dec_prompt[\"mm_hashes\"],"
+        },
+        {
+          "line": 84,
+          "text": "                mm_placeholders=dec_prompt[\"mm_placeholders\"],"
+        },
+        {
+          "line": 85,
+          "text": "                prompt=dec_prompt.get(\"prompt\"),"
+        },
+        {
+          "line": 86,
+          "text": "                cache_salt=dec_prompt.get(\"cache_salt\"),"
+        },
+        {
+          "line": 87,
+          "text": "            )"
+        },
+        {
+          "line": 88,
+          "text": "        else:"
+        },
+        {
+          "line": 89,
+          "text": "            new_dec_prompt = tokens_input("
+        },
+        {
+          "line": 90,
+          "text": "                self.tokens,"
+        },
+        {
+          "line": 91,
+          "text": "                prompt=dec_prompt.get(\"prompt\"),"
+        },
+        {
+          "line": 92,
+          "text": "                cache_salt=dec_prompt.get(\"cache_salt\"),"
+        },
+        {
+          "line": 93,
+          "text": "            )"
+        },
+        {
+          "line": 94,
+          "text": ""
+        },
+        {
+          "line": 95,
+          "text": "        return EncoderDecoderInput("
+        },
+        {
+          "line": 96,
+          "text": "            type=\"enc_dec\","
+        },
+        {
+          "line": 97,
+          "text": "            encoder_prompt=prompt[\"encoder_prompt\"],"
+        },
+        {
+          "line": 98,
+          "text": "            decoder_prompt=new_dec_prompt,"
+        },
+        {
+          "line": 99,
+          "text": "        )"
+        },
+        {
+          "line": 100,
+          "text": ""
+        },
+        {
+          "line": 101,
+          "text": ""
+        },
+        {
+          "line": 102,
+          "text": "@dataclass"
+        },
+        {
+          "line": 103,
+          "text": "class BeamSearchOutput:"
+        },
+        {
+          "line": 104,
+          "text": "    \"\"\"The output of beam search."
+        },
+        {
+          "line": 105,
+          "text": "    It contains the list of the best beam search sequences."
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/generate/base/protocol.py": {
+      "sha256": "cbf29ae008b7b51234d74e602f1395b5cbef660fa79e65eedab8228e9c49c9ee",
+      "lines": [
+        {
+          "line": 33,
+          "text": "_MAX_CACHE_SALT_LENGTH = 128"
+        },
+        {
+          "line": 34,
+          "text": ""
+        },
+        {
+          "line": 35,
+          "text": ""
+        },
+        {
+          "line": 36,
+          "text": "def validate_cache_salt(cache_salt: object) -> None:"
+        },
+        {
+          "line": 37,
+          "text": "    \"\"\"Validate cache salts before they reach downstream cache backends.\"\"\""
+        },
+        {
+          "line": 38,
+          "text": "    if cache_salt is None:"
+        },
+        {
+          "line": 39,
+          "text": "        return"
+        },
+        {
+          "line": 40,
+          "text": "    if not isinstance(cache_salt, str) or not cache_salt:"
+        },
+        {
+          "line": 41,
+          "text": "        raise VLLMValidationError("
+        },
+        {
+          "line": 42,
+          "text": "            \"Parameter 'cache_salt' must be a non-empty string if provided.\","
+        },
+        {
+          "line": 43,
+          "text": "            parameter=\"cache_salt\","
+        },
+        {
+          "line": 44,
+          "text": "        )"
+        },
+        {
+          "line": 45,
+          "text": "    if len(cache_salt) > _MAX_CACHE_SALT_LENGTH or any("
+        },
+        {
+          "line": 46,
+          "text": "        char in _CACHE_SALT_FORBIDDEN_CHARS for char in cache_salt"
+        },
+        {
+          "line": 47,
+          "text": "    ):"
+        },
+        {
+          "line": 48,
+          "text": "        raise VLLMValidationError("
+        },
+        {
+          "line": 49,
+          "text": "            \"Parameter 'cache_salt' must be at most 128 characters and must \""
+        },
+        {
+          "line": 50,
+          "text": "            \"not contain '@', '/', '\\\\\\\\', or NUL.\","
+        },
+        {
+          "line": 51,
+          "text": "            parameter=\"cache_salt\","
+        },
+        {
+          "line": 52,
+          "text": "        )"
+        },
+        {
+          "line": 53,
+          "text": ""
+        },
+        {
+          "line": 54,
+          "text": ""
+        },
+        {
+          "line": 55,
+          "text": "class SpeculativeDecodingMetrics(OpenAIBaseModel):"
+        },
+        {
+          "line": 56,
+          "text": "    \"\"\"Per-request speculative-decoding acceptance metrics."
+        },
+        {
+          "line": 57,
+          "text": ""
+        },
+        {
+          "line": 58,
+          "text": "    Experimental, subject to change. Only populated for single-sequence requests"
+        },
+        {
+          "line": 59,
+          "text": "    (`n == 1`); `null` for `n > 1`, mirroring the timing metrics."
+        },
+        {
+          "line": 60,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 61,
+          "text": ""
+        },
+        {
+          "line": 62,
+          "text": "    mean_acceptance_length: float"
+        },
+        {
+          "line": 63,
+          "text": "    draft_acceptance_rate: float"
+        },
+        {
+          "line": 64,
+          "text": "    # Dense histogram: index j holds the number of verify steps that accepted"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/entrypoints/serve/dev/cache/api_router.py": {
+      "sha256": "ba0e9be90c4fe8f42526c163d073ee5889492e4cdd8231599901d0b3aab669ce",
+      "lines": [
+        {
+          "line": 18,
+          "text": ""
+        },
+        {
+          "line": 19,
+          "text": ""
+        },
+        {
+          "line": 20,
+          "text": "@router.post(\"/reset_prefix_cache\")"
+        },
+        {
+          "line": 21,
+          "text": "async def reset_prefix_cache("
+        },
+        {
+          "line": 22,
+          "text": "    raw_request: Request,"
+        },
+        {
+          "line": 23,
+          "text": "    reset_running_requests: bool = Query(default=False),"
+        },
+        {
+          "line": 24,
+          "text": "    reset_external: bool = Query(default=False),"
+        },
+        {
+          "line": 25,
+          "text": "):"
+        },
+        {
+          "line": 26,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 27,
+          "text": "    Reset the local prefix cache."
+        },
+        {
+          "line": 28,
+          "text": ""
+        },
+        {
+          "line": 29,
+          "text": "    Optionally, if the query parameter `reset_external=true`"
+        },
+        {
+          "line": 30,
+          "text": "    also resets the external (connector-managed) prefix cache."
+        },
+        {
+          "line": 31,
+          "text": ""
+        },
+        {
+          "line": 32,
+          "text": "    Returns `{\"success\": bool}`. The reset fails (`success=false`) while"
+        },
+        {
+          "line": 33,
+          "text": "    blocks are still held, e.g. by running requests or in-flight async KV"
+        },
+        {
+          "line": 34,
+          "text": "    offload transfers; callers may retry."
+        }
+      ]
+    },
+    "/vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py": {
+      "sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+      "lines": [
+        {
+          "line": 441,
+          "text": "            \"ascend_log_path\": \"~/ascend/log/vllm_ascend\","
+        },
+        {
+          "line": 442,
+          "text": "            \"enable_fused_mc2\": 0,"
+        },
+        {
+          "line": 443,
+          "text": "            \"enable_mlapo\": true,"
+        },
+        {
+          "line": 444,
+          "text": "            \"mlapo_keep_prefill_weights\": false,"
+        },
+        {
+          "line": 445,
+          "text": "            \"msmonitor_use_daemon\": false,"
+        },
+        {
+          "line": 446,
+          "text": "            \"enable_transpose_kv_cache_by_block\": true,"
+        },
+        {
+          "line": 447,
+          "text": "            \"weight_nz_mode\": 1,"
+        },
+        {
+          "line": 448,
+          "text": "            \"enable_shared_expert_dp\": false,"
+        },
+        {
+          "line": 449,
+          "text": "            \"enable_sparse_sfa_c8\": false,"
+        },
+        {
+          "line": 450,
+          "text": "            \"enable_sparse_li_c8\": false,"
+        },
+        {
+          "line": 451,
+          "text": "            \"enable_sparse_li_c4\": false,"
+        },
+        {
+          "line": 452,
+          "text": "            \"c8_enable_reshape_optim\": true,"
+        },
+        {
+          "line": 453,
+          "text": "            \"ascend_compilation_config\": {"
+        },
+        {
+          "line": 454,
+          "text": "                \"enable_npugraph_ex\": true,"
+        },
+        {
+          "line": 455,
+          "text": "                \"enable_static_kernel\": false,"
+        },
+        {
+          "line": 456,
+          "text": "                \"fuse_norm_quant\": true,"
+        },
+        {
+          "line": 457,
+          "text": "                \"fuse_qknorm_rope\": true,"
+        },
+        {
+          "line": 612,
+          "text": "    # normal local-prefill paths (recompute / fallback / preempt) that crash"
+        },
+        {
+          "line": 613,
+          "text": "    # when the weights are freed (issue #11882). Default False (preserve"
+        },
+        {
+          "line": 614,
+          "text": "    # existing memory-saving behavior)."
+        },
+        {
+          "line": 615,
+          "text": "    mlapo_keep_prefill_weights: bool = False"
+        },
+        {
+          "line": 616,
+          "text": "    msmonitor_use_daemon: bool = False"
+        },
+        {
+          "line": 617,
+          "text": "    enable_transpose_kv_cache_by_block: bool = True"
+        },
+        {
+          "line": 618,
+          "text": "    weight_nz_mode: int = 1"
+        },
+        {
+          "line": 619,
+          "text": ""
+        },
+        {
+          "line": 620,
+          "text": "    # ---- sub-configs (no vllm_config dep): pydantic dict\u2192dataclass coercion ----"
+        },
+        {
+          "line": 621,
+          "text": "    ascend_compilation_config: AscendCompilationConfig = dataclasses.field(default_factory=AscendCompilationConfig)"
+        },
+        {
+          "line": 622,
+          "text": "    ascend_fusion_config: AscendFusionConfig = dataclasses.field(default_factory=AscendFusionConfig)"
+        },
+        {
+          "line": 623,
+          "text": "    ascend_warmup_config: AscendWarmupConfig = dataclasses.field(default_factory=AscendWarmupConfig)"
+        },
+        {
+          "line": 624,
+          "text": "    eplb_config: EplbConfig = dataclasses.field(default_factory=EplbConfig)"
+        },
+        {
+          "line": 625,
+          "text": "    rejection_sampler_config: RejectionSamplerConfig = dataclasses.field(default_factory=RejectionSamplerConfig)"
+        },
+        {
+          "line": 626,
+          "text": "    rl_config: RlConfig = dataclasses.field(default_factory=RlConfig)"
+        },
+        {
+          "line": 627,
+          "text": ""
+        },
+        {
+          "line": 628,
+          "text": "    # ---- sub-configs declared later in this module ----"
+        },
+        {
+          "line": 851,
+          "text": "                \"MegaMoe is not supported for this model config; additional_config.enable_fused_mc2 will be set to 0.\""
+        },
+        {
+          "line": 852,
+          "text": "            )"
+        },
+        {
+          "line": 853,
+          "text": ""
+        },
+        {
+          "line": 854,
+          "text": "        # mlapo_keep_prefill_weights preconditions: the prefill weights are only"
+        },
+        {
+          "line": 855,
+          "text": "        # freed by MLAPO in the MLA attention path, so the keep switch is only"
+        },
+        {
+          "line": 856,
+          "text": "        # meaningful under those same conditions. Fail fast on a no-op / mistaken"
+        },
+        {
+          "line": 857,
+          "text": "        # config instead of silently leaving the switch ineffective (issue #11882)."
+        },
+        {
+          "line": 858,
+          "text": "        if self.mlapo_keep_prefill_weights:"
+        },
+        {
+          "line": 859,
+          "text": "            if not self.enable_mlapo:"
+        },
+        {
+          "line": 860,
+          "text": "                raise ValueError("
+        },
+        {
+          "line": 861,
+          "text": "                    \"mlapo_keep_prefill_weights=True requires enable_mlapo=True. \""
+        },
+        {
+          "line": 862,
+          "text": "                    \"The prefill weights are only freed when MLAPO is enabled.\""
+        },
+        {
+          "line": 863,
+          "text": "                )"
+        },
+        {
+          "line": 864,
+          "text": "            if vc.model_config is None or not vc.model_config.is_deepseek_mla:"
+        },
+        {
+          "line": 865,
+          "text": "                raise ValueError("
+        },
+        {
+          "line": 866,
+          "text": "                    \"mlapo_keep_prefill_weights=True is only supported for MLA models \""
+        },
+        {
+          "line": 867,
+          "text": "                    \"(e.g., DeepSeek). The prefill weights are only freed by MLAPO \""
+        },
+        {
+          "line": 868,
+          "text": "                    \"in the MLA attention path.\""
+        },
+        {
+          "line": 869,
+          "text": "                )"
+        },
+        {
+          "line": 870,
+          "text": ""
+        },
+        {
+          "line": 871,
+          "text": "        # PD tp_ratio / head_ratio / num_head_replica derivation"
+        },
+        {
+          "line": 872,
+          "text": "        if vc.kv_transfer_config is not None and vc.model_config is not None and not vc.model_config.is_deepseek_mla:"
+        },
+        {
+          "line": 873,
+          "text": "            prefill_tp_size = vc.kv_transfer_config.get_from_extra_config(\"prefill\", {\"tp_size\": 1})[\"tp_size\"]"
+        },
+        {
+          "line": 874,
+          "text": "            decode_tp_size = vc.kv_transfer_config.get_from_extra_config(\"decode\", {\"tp_size\": 1})[\"tp_size\"]"
+        },
+        {
+          "line": 875,
+          "text": "            assert prefill_tp_size % decode_tp_size == 0, \"Prefill TP size must be divisible by Decode TP size.\""
+        },
+        {
+          "line": 876,
+          "text": "            self.pd_tp_ratio = prefill_tp_size // decode_tp_size"
+        },
+        {
+          "line": 877,
+          "text": "            if self.pd_tp_ratio > 1:"
+        },
+        {
+          "line": 878,
+          "text": "                num_kv_head = vc.model_config.get_total_num_kv_heads()"
+        },
+        {
+          "line": 879,
+          "text": "                if not num_kv_head or num_kv_head < 1:"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/v1/request.py": {
+      "sha256": "da610d5203e72d2d524adc5fb39df11502a23520f2f31d9a44cf13d343f9c25d",
+      "lines": [
+        {
+          "line": 69,
+          "text": "        prompt_is_token_ids: list[bool] | None = None,"
+        },
+        {
+          "line": 70,
+          "text": "        mm_features: list[MultiModalFeatureSpec] | None = None,"
+        },
+        {
+          "line": 71,
+          "text": "        lora_request: \"LoRARequest | None\" = None,"
+        },
+        {
+          "line": 72,
+          "text": "        cache_salt: str | None = None,"
+        },
+        {
+          "line": 73,
+          "text": "        priority: int = 0,"
+        },
+        {
+          "line": 74,
+          "text": "        trace_headers: Mapping[str, str] | None = None,"
+        },
+        {
+          "line": 75,
+          "text": "        block_hasher: Callable[[\"Request\"], list[\"BlockHash\"]] | None = None,"
+        },
+        {
+          "line": 76,
+          "text": "        resumable: bool = False,"
+        },
+        {
+          "line": 77,
+          "text": "        session_id: str | None = None,"
+        },
+        {
+          "line": 78,
+          "text": "        reasoning_ended: bool | None = None,"
+        },
+        {
+          "line": 79,
+          "text": "        reasoning_parser_kwargs: dict[str, Any] | None = None,"
+        },
+        {
+          "line": 80,
+          "text": "        abort_immediately: bool = False,"
+        },
+        {
+          "line": 81,
+          "text": "    ) -> None:"
+        },
+        {
+          "line": 82,
+          "text": "        self.request_id = request_id"
+        },
+        {
+          "line": 83,
+          "text": "        self.client_index = client_index"
+        },
+        {
+          "line": 84,
+          "text": "        self.priority = priority"
+        },
+        {
+          "line": 85,
+          "text": "        self.sampling_params = sampling_params"
+        },
+        {
+          "line": 180,
+          "text": ""
+        },
+        {
+          "line": 181,
+          "text": "        self.spec_token_ids: list[int] = []"
+        },
+        {
+          "line": 182,
+          "text": "        self.num_computed_tokens = 0"
+        },
+        {
+          "line": 183,
+          "text": "        self.cache_salt: str | None = cache_salt"
+        },
+        {
+          "line": 184,
+          "text": ""
+        },
+        {
+          "line": 185,
+          "text": "        # Multi-modal related"
+        },
+        {
+          "line": 186,
+          "text": "        self.mm_features = mm_features or []"
+        },
+        {
+          "line": 187,
+          "text": ""
+        },
+        {
+          "line": 188,
+          "text": "        # Read-only views"
+        },
+        {
+          "line": 189,
+          "text": "        # Prevent directly appending to these lists since"
+        },
+        {
+          "line": 190,
+          "text": "        # they should also be updated simultaneously."
+        },
+        {
+          "line": 191,
+          "text": "        self.output_token_ids = ConstantList(self._output_token_ids)"
+        },
+        {
+          "line": 192,
+          "text": "        self.all_token_ids = ConstantList(self._all_token_ids)"
+        },
+        {
+          "line": 193,
+          "text": "        # trace_headers"
+        },
+        {
+          "line": 194,
+          "text": "        self.trace_headers = trace_headers"
+        },
+        {
+          "line": 195,
+          "text": "        self.session_id = session_id"
+        },
+        {
+          "line": 196,
+          "text": ""
+        },
+        {
+          "line": 251,
+          "text": "            pooling_params=request.pooling_params,"
+        },
+        {
+          "line": 252,
+          "text": "            arrival_time=request.arrival_time,"
+        },
+        {
+          "line": 253,
+          "text": "            lora_request=request.lora_request,"
+        },
+        {
+          "line": 254,
+          "text": "            cache_salt=request.cache_salt,"
+        },
+        {
+          "line": 255,
+          "text": "            priority=request.priority,"
+        },
+        {
+          "line": 256,
+          "text": "            trace_headers=request.trace_headers,"
+        },
+        {
+          "line": 257,
+          "text": "            block_hasher=block_hasher,"
+        },
+        {
+          "line": 258,
+          "text": "            resumable=request.resumable,"
+        },
+        {
+          "line": 259,
+          "text": "            session_id=request.session_id,"
+        },
+        {
+          "line": 260,
+          "text": "            reasoning_ended=request.reasoning_ended,"
+        },
+        {
+          "line": 261,
+          "text": "            reasoning_parser_kwargs=request.reasoning_parser_kwargs,"
+        },
+        {
+          "line": 262,
+          "text": "            abort_immediately=request.abort_immediately,"
+        },
+        {
+          "line": 263,
+          "text": "        )"
+        },
+        {
+          "line": 264,
+          "text": ""
+        },
+        {
+          "line": 265,
+          "text": "    def append_output_token_ids("
+        },
+        {
+          "line": 266,
+          "text": "        self,"
+        },
+        {
+          "line": 267,
+          "text": "        token_ids: int | list[int],"
+        }
+      ]
+    },
+    "/vllm-workspace/vllm/vllm/v1/core/kv_cache_utils.py": {
+      "sha256": "2666c9f113584e52e7521058efd2c0d9598544559dc942d3a3da87001a3fedf2",
+      "lines": [
+        {
+          "line": 107,
+          "text": "# default seed, so independent vLLM processes compute identical block hashes for"
+        },
+        {
+          "line": 108,
+          "text": "# identical content and can share a prefix cache (e.g. KV cache reuse across"
+        },
+        {
+          "line": 109,
+          "text": "# nodes) without extra configuration. This does not weaken collision resistance,"
+        },
+        {
+          "line": 110,
+          "text": "# which for SHA-256 does not depend on keeping the seed secret; ``cache_salt``"
+        },
+        {
+          "line": 111,
+          "text": "# remains the mechanism for intentional cache isolation."
+        },
+        {
+          "line": 112,
+          "text": "#"
+        },
+        {
+          "line": 113,
+          "text": "# Non-cryptographic algorithms keep a per-process random seed, because a"
+        },
+        {
+          "line": 114,
+          "text": "# predictable seed would let an attacker precompute colliding blocks offline"
+        },
+        {
+          "line": 115,
+          "text": "# (see #12621). Setting PYTHONHASHSEED overrides the seed in both cases."
+        },
+        {
+          "line": 116,
+          "text": "#"
+        },
+        {
+          "line": 117,
+          "text": "# The function `init_none_hash` initializes this variable globally."
+        },
+        {
+          "line": 118,
+          "text": "NONE_HASH: BlockHash"
+        },
+        {
+          "line": 119,
+          "text": ""
+        },
+        {
+          "line": 120,
+          "text": "# Fixed seed used when the PYTHONHASHSEED environment variable is not set and"
+        },
+        {
+          "line": 121,
+          "text": "# the hash algorithm is cryptographic."
+        },
+        {
+          "line": 122,
+          "text": "DEFAULT_NONE_HASH_SEED = \"vllm-none-hash\""
+        },
+        {
+          "line": 123,
+          "text": ""
+        },
+        {
+          "line": 618,
+          "text": "        request, start_token_idx, end_token_idx, start_mm_idx"
+        },
+        {
+          "line": 619,
+          "text": "    )"
+        },
+        {
+          "line": 620,
+          "text": "    lora_extra_keys: list[str] = _gen_lora_extra_hash_keys(request)"
+        },
+        {
+          "line": 621,
+          "text": "    cache_salt_keys: list[str] = ("
+        },
+        {
+          "line": 622,
+          "text": "        [request.cache_salt] if (start_token_idx == 0 and request.cache_salt) else []"
+        },
+        {
+          "line": 623,
+          "text": "    )"
+        },
+        {
+          "line": 624,
+          "text": "    prompt_embeds_keys = _gen_prompt_embeds_extra_hash_keys("
+        },
+        {
+          "line": 625,
+          "text": "        request, start_token_idx, end_token_idx"
+        },
+        {
+          "line": 626,
+          "text": "    )"
+        },
+        {
+          "line": 627,
+          "text": ""
+        },
+        {
+          "line": 628,
+          "text": "    extra_keys: list[Any] = ("
+        },
+        {
+          "line": 629,
+          "text": "        lora_extra_keys + mm_extra_keys + cache_salt_keys + prompt_embeds_keys"
+        },
+        {
+          "line": 630,
+          "text": "    )"
+        },
+        {
+          "line": 631,
+          "text": ""
+        },
+        {
+          "line": 632,
+          "text": "    if not extra_keys:"
+        },
+        {
+          "line": 633,
+          "text": "        return None, new_start_mm_idx"
+        },
+        {
+          "line": 634,
+          "text": ""
+        },
+        {
+          "line": 635,
+          "text": "    return tuple(extra_keys), new_start_mm_idx"
+        },
+        {
+          "line": 636,
+          "text": ""
+        },
+        {
+          "line": 637,
+          "text": ""
+        },
+        {
+          "line": 638,
+          "text": "def hash_block_tokens("
+        },
+        {
+          "line": 639,
+          "text": "    hash_function: Callable[[Any], bytes],"
+        },
+        {
+          "line": 640,
+          "text": "    parent_block_hash: BlockHash | None,"
+        },
+        {
+          "line": 641,
+          "text": "    curr_block_token_ids: Sequence[int],"
+        },
+        {
+          "line": 642,
+          "text": "    extra_keys: tuple[Any, ...] | None = None,"
+        }
+      ]
+    }
+  }
+}

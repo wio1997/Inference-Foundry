@@ -1,0 +1,119 @@
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -20,0 +21 @@
++import os
+@@ -2233,0 +2235,21 @@
++        # Early delivery does not authorize reuse of device or pinned-host input
++        # buffers. Drain the previous compute/state-update work before any input
++        # preparation while the bounded first-output guard is active.
++        pending = getattr(self, "_glm53_early_output_input_fences", None)
++        if pending:
++            for fence in pending:
++                fence.synchronize()
++            self._glm53_early_output_input_fences = None
++        catchup = getattr(self, "_glm53_guard_catchup_ready", None)
++        if catchup is not None and catchup.query():
++            # A later, original-order output copy has completed. CPU completion
++            # of the newest pending batch is established above; native reuse rules
++            # now apply again without keeping extra guards on every step.
++            self._glm53_early_guard_active = False
++            self._glm53_guard_catchup_ready = None
++            if not getattr(self, "_glm53_guard_handoff_logged", False):
++                logger.info("[glm53/output-guard] Original-order output completed; guard window closed.")
++                self._glm53_guard_handoff_logged = True
++        seen = getattr(self, "_glm53_first_output_seen", None)
++        if seen is not None:
++            seen.difference_update(scheduler_output.finished_req_ids)
+@@ -2889,0 +2912,62 @@
++        def _glm53_make_async_output(output):
++            return AsyncGPUModelRunnerOutput(
++                model_runner_output=output,
++                sampled_token_ids=sampler_output.sampled_token_ids,
++                logprobs_tensors=sampler_output.logprobs_tensors,
++                invalid_req_indices=invalid_req_indices,
++                async_output_copy_stream=self.async_output_copy_stream,
++                vocab_size=self.input_batch.vocab_size,
++                num_nans=num_nans_device,
++            )
++
++        early_output = None
++        feature_context = (
++            os.environ.get("GLM53_EARLY_SPEC_OUTPUT_COPY") == "1"
++            and self.use_async_scheduling
++            and self.speculative_config is not None
++            and self.speculative_config.method == "mtp"
++            and self.is_kv_consumer
++            and not self.is_kv_producer
++            and pp.world_size == 1
++            and self.dp_size == 1
++            and not self.vllm_config.parallel_config.enable_expert_parallel
++            and not self.dynamic_eplb
++            and not self.is_multimodal_model
++        )
++        singleton_step = self.input_batch.num_reqs == 1
++        early_scope = (
++            feature_context
++            and singleton_step
++            and not scheduler_output.has_structured_output_requests
++            and sampler_output.logprobs_tensors is None
++            and not prompt_logprobs_dict
++            and num_nans_device is None
++        )
++        first_valid_output = False
++        if feature_context:
++            invalid = set(invalid_req_indices)
++            valid_ids = {
++                req_id
++                for index, req_id in enumerate(req_ids_output_copy)
++                if index not in invalid
++            }
++            seen = getattr(self, "_glm53_first_output_seen", None)
++            if seen is None:
++                seen = self._glm53_first_output_seen = set()
++            first_valid_output = bool(valid_ids - seen)
++            # Async optimistic output lengths may be rolled back; request IDs
++            # identify the first valid output independently of that progress.
++            seen.update(valid_ids)
++        if early_scope:
++            if first_valid_output:
++                # Copy the current sampled IDs before the following draft.
++                # Final output metadata is attached before exposing the object.
++                early_output = _glm53_make_async_output(copy(EMPTY_MODEL_RUNNER_OUTPUT))
++                self._glm53_early_guard_active = True
++                self._glm53_guard_catchup_ready = None
++                # Protect this read if the proposer modifies its sampled input.
++                torch.npu.current_stream().wait_event(early_output.async_copy_ready_event)
++                if not getattr(self, "_glm53_early_output_logged", False):
++                    logger.info("[glm53/early-output] First-token copy before draft; singleton step, input reuse fenced.")
++                    self._glm53_early_output_logged = True
++
+@@ -2957,9 +3041,7 @@
+-        async_output = AsyncGPUModelRunnerOutput(
+-            model_runner_output=model_runner_output,
+-            sampled_token_ids=sampler_output.sampled_token_ids,
+-            logprobs_tensors=sampler_output.logprobs_tensors,
+-            invalid_req_indices=invalid_req_indices,
+-            async_output_copy_stream=self.async_output_copy_stream,
+-            vocab_size=self.input_batch.vocab_size,
+-            num_nans=num_nans_device,
+-        )
++        if early_output is not None:
++            # This field is the pinned AsyncGPUModelRunnerOutput's metadata
++            # holder; no get_output call can occur before sample_tokens returns.
++            early_output._model_runner_output = model_runner_output
++            async_output = early_output
++        else:
++            async_output = _glm53_make_async_output(model_runner_output)
+@@ -2969,0 +3052,12 @@
++        guard_active = feature_context and getattr(self, "_glm53_early_guard_active", False)
++        if guard_active:
++            fences = []
++            for stream in (torch.npu.current_stream(), global_stream()):
++                fence = torch.npu.Event(blocking=True)
++                fence.record(stream)
++                fences.append(fence)
++            self._glm53_early_output_input_fences = fences
++            if early_output is None and getattr(self, "_glm53_guard_catchup_ready", None) is None:
++                # Retain this event until execute_model observes actual device
++                # completion; scheduling a normal copy alone is insufficient.
++                self._glm53_guard_catchup_ready = async_output.async_copy_ready_event

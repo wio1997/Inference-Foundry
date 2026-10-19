@@ -1,0 +1,20 @@
+{
+  "status": "Design only; no publication prototype implemented",
+  "dependency": "First require all16 shadow bitwise gate and actual early-token D2H profile.",
+  "candidate": "Publish from the existing early-copy object, keep original late object/event for InputBatch and source lifetime. Reuse native deferred_frees with a separate GPU retirement watermark.",
+  "key_FIFO_proof": "Both early-copy(k) and unchanged late-copy(k-1) use the identical runner async_output_copy_stream. Worker RPC sampling is ordered: late(k-1) is enqueued before early(k). Completion of early(k) therefore covers original native late(k-1), even if current MTP(k) remains in flight. All16 worker output aggregation is mandatory. This is a proposed dependency argument, not a validated implementation.",
+  "required_protocol": [
+    "Assign explicit monotonically increasing GPU step sequence in SchedulerOutput, including zero-token KV-copy-only steps when present.",
+    "ModelRunnerOutput reports per-rank retired-through sequence: early publication covers previous late sequence; native fallback covers current. KVOutputAggregator validates exact16 outputs and uses minimum retirement watermark.",
+    "Scheduler.update_from_output must advance processed_step_seq from validated retirement watermark, not from early token response count. Preserve original request/CoW deferred-free fences and all connector completion logic.",
+    "Keep engine polling while issued GPU steps or deferred_frees remain after final request/abort. A no-forward drain waits original last late event on each rank before ACK; zero-token KV writes need their own equivalent copy-stream/default-stream retirement event.",
+    "Keep original late event/tensor in InputBatch, and retain late Async GPU source references until its own event is complete. Reject unsupported/logprobs/grammar/dtype/shape cases to native.",
+    "Check cancellation before early model output, queued subsequent batch, immediate cross-request KV reuse, CoW retained blocks, load failure, empty drain, all16 mixed readiness, and shutdown. Do not infer backend abort coverage from client closes or zero abort logs."
+  ],
+  "risks": [
+    "Do not advance retirement merely because early sample data is ready for the current step.",
+    "Do not introduce first-rank ACK, discard source references early, or let zero-token/CoW drain quiesce with held blocks.",
+    "Keep fresh immutable build and frozen finite gates; no hot patches or parameter sweep."
+  ],
+  "performance": "No gain forecast. Early data availability may improve visible token timing while unchanged compute limits throughput; only a subsequent service comparison can establish that."
+}

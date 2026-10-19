@@ -1,0 +1,10 @@
+{
+  "created_utc": "2026-10-18T17:05:15.472876+00:00",
+  "evidence": "780 rank0 exact SliceAiCore kernels [1048576,128] -> [1048576,64], BF16, 359.872us median; pure CPU ownership trace, not wall contribution.",
+  "source_sha256": "403e1d0c0cac58a82898fa2596b923b60f19392d23560f4609967e4dfc8a411a",
+  "source_mechanism": "_record_cos_and_sin_cache_interleaved publishes strided cos/sin views; get_cos_and_sin_mla advanced-indexes them on every metadata lookup. Native implicit view materialization is a full-table slice before small position gather.",
+  "candidate": "Own one contiguous bitwise copy of each read-only cos/sin cache, then invoke the exact same native advanced-index expression. Preserve persistent _cos_mla/_sin_mla output buffer addresses for target graphs and native get_cos_and_sin_mla function. Extra memory256MiB/rank, one-time copy during warmup. Model buffers must own cached derived tensors for native sleep/reload lifecycle; unsupported lifecycle must fall back.",
+  "first_action": "One-NPU model-free fragment on node32 physical0, only while both owned models idle, pinned image, <=2GiB peak allocation, max120s. Native/cached ABBAx3 at N1/4/6/18/24, full cache + selected output bitwise equal. No full model reload until fragment value established.",
+  "scope": "Existing indexing/copy primitives and same precision; no external data transport or new operator. Fragment timing not claimed as service gain.",
+  "next": "If valuable, source-pinned default-off D helper around execute/sample state changes with strong native+cached references, model-buffer ownership and exact replay-pointer preservation; then minimal real path/quality and clean C1/C4. No extra full-profile gate for unchanged transport."
+}
