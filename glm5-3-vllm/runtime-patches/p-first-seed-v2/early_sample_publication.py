@@ -77,6 +77,16 @@ def install(ns, root=None):
         assert seq == q['last_seq'] + int(nonempty or writes)
         prune(self, q)
         if nonempty:
+            # Early replies release EngineCore queue slots before the native
+            # late tail retires. Preserve the original physical two-batch
+            # budget before reusing CPU/device input preparation buffers.
+            if len(q['retained']) >= self.vllm_config.max_concurrent_batches:
+                waited = q['retained'][0]['seq']
+                q['retained'][0]['event'].synchronize()
+                prune(self, q)
+                emit(self, q, kind='gpu_admission_wait', next_seq=seq,
+                     waited_native_late_seq=waited, retained_after=len(q['retained']))
+            assert len(q['retained']) < self.vllm_config.max_concurrent_batches
             q['current'] = seq
             result = execute_native(self, scheduled, *args, **kwargs)
             assert result is None, 'Only native PP1 generative execution is supported'
@@ -178,11 +188,12 @@ def install(ns, root=None):
         self._glm53_publication = dict(seq=seq, previous=frame['previous'], early=early,
                                       rank=runner.tp_rank, req_ids=frame['req_ids'])
         q['retained'].append(dict(seq=seq, late=self, early=early, event=self.async_copy_ready_event))
-        assert len(q['retained']) <= 8, 'Unexpected in-flight source-retention growth'
+        assert len(q['retained']) <= runner.vllm_config.max_concurrent_batches == 2
         q.update(last_seq=seq, last_event=self.async_copy_ready_event)
         emit(runner, q, kind='native_late_kept', seq=seq, previous=frame['previous'],
              early_copy=early is not None, shape=list(self.sampled_token_ids_cpu.shape),
              native_event_for_InputBatch=True, same_copy_stream=True,
+             retained_gpu_steps=len(q['retained']), physical_gpu_limit=2,
              refused=frame.get('refused'))
     Async.__init__ = init
 

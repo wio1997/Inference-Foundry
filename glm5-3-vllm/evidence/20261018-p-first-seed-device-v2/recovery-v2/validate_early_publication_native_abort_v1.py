@@ -32,6 +32,7 @@ def prepare(case,rid,budget):
     return row
 def consume(row,barrier=None,abort=False):
     if barrier:barrier.wait(timeout=20)
+    row['D_sent_monotonic_ns']=time.monotonic_ns()
     try:
         response=post(33,row['D_request'],row['request_id'],8 if abort else 120);row['D_response']=response
         if abort:
@@ -43,26 +44,43 @@ def consume(row,barrier=None,abort=False):
             assert len(tokens)==response['usage']['completion_tokens']==row['budget'];row['full_response_pass']=True
     except (TimeoutError,socket.timeout) as exc:
         assert abort;row['frontend_timeout_after_internal_abort']=str(exc)
+    except urllib.error.HTTPError as exc:
+        row['HTTP_error']=dict(status=exc.code,body=exc.read(2048).decode(errors='replace'))
+        raise
     except urllib.error.URLError as exc:
         assert abort and isinstance(exc.reason,(TimeoutError,socket.timeout));row['frontend_timeout_after_internal_abort']=str(exc)
 try:
     report['before']=idle();marker.touch();needle='earlypubabort-'+uuid.uuid4().hex
     ids=[needle]+['earlypubpeer-'+uuid.uuid4().hex for _ in range(3)]
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:prepared=list(pool.map(lambda pair:prepare(pair[0],pair[1],128),zip(cases['mixed'],ids)))
+    # Keep cold reuse KV ready before the abort; submit D immediately upon
+    # the native receipt instead of waiting eight seconds for the front end.
+    reuse=[prepare(case,'earlypubreuse-'+uuid.uuid4().hex,64) for case in cases['fixed']]
     command.write_text(json.dumps(dict(client_request_id=needle))+'\n');barrier=threading.Barrier(4)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
         jobs=[pool.submit(consume,row,barrier,index==0) for index,row in enumerate(prepared)]
+        receipt_path=probe/('abort-test-receipt-'+needle+'.json');started=time.monotonic()
+        while True:
+            raw=receipt_path.read_bytes() if receipt_path.exists() else b''
+            if raw.endswith(b'\n'):
+                receipt=json.loads(raw);break
+            assert time.monotonic()-started<30,'No native abort receipt'
+            time.sleep(.005)
+        report['native_receipt_observed_monotonic_ns']=time.monotonic_ns()
+        jobs += [pool.submit(consume,row) for row in reuse]
         for job in jobs:job.result()
-    receipt=json.loads((probe/('abort-test-receipt-'+needle+'.json')).read_text())
     assert receipt['client_request_id']==needle and receipt['native_finish_requests_called'] and receipt['deferred_after']>receipt['deferred_before']
     assert receipt['retired_in_reply']<receipt['output_step'] and receipt['processed_before']<receipt['last_request_step']
-    report['native_abort_receipt']=receipt;report['after_abort']=idle()
-    for case in cases['fixed']:
-        row=prepare(case,'earlypubreuse-'+uuid.uuid4().hex,64);consume(row);idle()
+    report['native_abort_receipt']=receipt
+    report['cold_reuse_dispatch_after_receipt_us']=[(z['D_sent_monotonic_ns']-report['native_receipt_observed_monotonic_ns'])/1000 for z in reuse]
     report['after_reuse']=idle();report['completed']=True
 except Exception as exc:report['failure']=type(exc).__name__+': '+str(exc)
 finally:
     marker.unlink(missing_ok=True);command.unlink(missing_ok=True)
+    for row in report['rows']:
+        if 'D_sent_monotonic_ns' not in row:
+            try:row['cleanup_unsent_D_response']=post(33,row['D_request'],row['request_id']);row['unsent_own_KV_drained']=True
+            except Exception as exc:row['cleanup_failure']=str(exc)
 (out/'result.json').write_text(json.dumps(report)+'\n')
 print('GLM53_RESULT_JSON_BEGIN\n'+json.dumps(report)+'\nGLM53_RESULT_JSON_END')
 assert report['completed'],report.get('failure')

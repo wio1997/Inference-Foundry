@@ -190,6 +190,18 @@ with tempfile.TemporaryDirectory() as tmp:
     checks.append('native_control_waits_and_retires_current_step')
     zero=r.execute_model(scheduled(4,0,True));assert zero.glm53_gpu_retired_through==4
     checks.append('zero_token_KV_write_gets_real_copy_stream_retirement')
+    (d/'enable').touch()
+    r2=Runner();r2.execute_model(scheduled(1));a2=r2.sample_tokens(None);a2.get_output()
+    r2.execute_model(scheduled(2));b2=r2.sample_tokens(None)
+    assert not a2.async_copy_ready_event.query() and not b2.async_copy_ready_event.query()
+    r2.execute_model(scheduled(3))
+    assert a2.async_copy_ready_event.query() and not b2.async_copy_ready_event.query()
+    assert len(r2._glm53_publication_state['retained'])==1
+    c2=r2.sample_tokens(None);assert len(r2._glm53_publication_state['retained'])==2
+    assert b2.get_output().glm53_gpu_retired_through==1
+    assert c2.get_output().glm53_gpu_retired_through==2
+    r2.execute_model(scheduled(3,0))
+    checks.append('third_GPU_step_waits_oldest_native_late_before_input_reuse')
     (d/'enable').touch();r.mutate=True;r.execute_model(scheduled(5));r.sample_tokens(None).get_output()
     rejection(lambda:r.execute_model(scheduled(5,0)),'late_comparison_detects_changed_source_before_retirement_ACK')
 print(json.dumps(dict(completed=True,passed=len(checks),checks=checks,

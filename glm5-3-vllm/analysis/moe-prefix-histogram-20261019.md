@@ -1,5 +1,11 @@
 # MoE prefix 表示与多图捕获：2026-10-19
 
+2026-10-19 14:33 CST：输出依赖调查已推进到独立的提前发布/安全退休原型。影子阶段 all16×685=10960 份副本逐位相同；一次真实四并发片段中，7步早token D2H比原生late D2H早6.201–7.453ms，中位7.064ms。这是数据就绪差值，不能当服务提速。完整all16原件备份125609065B，SHA `3f14e6a529d7e95371b082197e41b51ea5521568bbe13c190fc428df4b216830`。
+
+发布原型保留原生late对象/事件供InputBatch与GPU源生命周期，early(k)只通过同copy-stream FIFO证明late(k−1)完成；all16最小ACK单独推进KV/CoW退休，zero-token或仅KV工作必须drain对应原生事件。v4还在输入复用前保留原生物理2-batch admission，CPU23项检查通过。所有MoE优化关闭，原生target/MTP及已接受RoPE在两模式相同。v3 full64为24/26相同且当前原生控制未覆盖一项，因此没有formal；v4功能16、C4功能8、quality52、cached16数值全过，all16 late逐位/退休及真实native finish_requests后3 peers和2冷64立即reuse均通过。初轮25/26 full64相同；唯一差异的native/adaptive/native streaming控制中，初轮和重复候选均在当前原生完整输出集合内。仅据此允许有限formal，不归因无害舍入或作一般质量结论。
+
+当前精确D bfac6522…/immutable build226885a3…，保留P84bdaf26…与原样proxy，`early-sample-publication-formal-contract-v2.json`冻结联合门槛。C1 24与C4 ABBA×3 384条正式测量正在执行，尚无服务收益结论。
+
 2026-10-19 12:37 CST 最新归约：两份rank0导出均完成，all16原件和导出备份238437535B，SHA `7b2502fc08d1a674ba874c26a07cd439cd1e35105a191016b593af0cb7f6a6c7`。原生target525 Cumsum均AI_CPU，候选target0、仅MTP30保留；恢复count的Sub/Concat各450个均AI_VECTOR_CORE、中位2.28/2.30µs。两份7/6步及batch混合不同，不能以耗时总和归因服务结果。候选MTP CPU中位1.986ms、首device compute仍晚于CPU结束14.4–37.5ms，暂不支持重复仅减少MTP CPU提交的旧方向。
 
 输出fence从enqueue/dequeue/API连到物理D2H后，早计数copy至晚sample copy差原生5.892–7.279ms、候选6.030–7.617ms。这是诊断差值，早操作不是提前token副本，不是服务收益。exact-image源码显示原完成事件还用于InputBatch更新，engine输出后可能处理abort、结束和KV释放；下一步仅提前拷贝shadow、逐位核对原完成副本，保持原发布和退休依赖，需要新immutable build。尚无此helper设备结果。详见`prefix-count-output-fence-{native,adaptive}-v1.json`及`prefix-count-c4-supply-analysis-{native,adaptive}-v1.json`。
