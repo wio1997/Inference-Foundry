@@ -66,6 +66,8 @@
 
 - [M032：真实grammar缓存、FSM隔离/回滚与MTP host mask](evidence/2026-10-19-grammar-fsm-mask/README.md)
 
+- [M034：gateway HTTP/gRPC策略差异、字符预算与负载生命周期](evidence/2026-10-19-gateway-pd-source/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -107,7 +109,7 @@
 | [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | NEXTN三步历史参数确认；模型/PD原生待测 | config |
 | [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 真实grammar/hostMTP mask CPU已核验；原生待测 | conditional_candidate |
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 前端IPC/SSE组件已实测；原生/回收待测 | config |
-| [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 待路径核验 | config |
+| [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 实际Rust路径已核验；策略实测未运行 | config |
 | [M035](points/M035.md) | PD 分离、KV connector 与异步传输 | 待路径核验 | conditional_candidate |
 | [M036](points/M036.md) | 会话 / 混合模型 / LoRA / 多模态扩展 | 待路径核验 | conditional_candidate |
 

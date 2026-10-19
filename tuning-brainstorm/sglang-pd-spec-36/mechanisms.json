@@ -2299,7 +2299,7 @@
     "title": "Cache-aware routing 与副本亲和",
     "lesson": 13,
     "what": "路由决定把请求交给哪个副本。缓存亲和能少算重复前缀，但选中拥挤副本也会排队；这是 worker 内前缀树之外的一层选择。",
-    "how": "现有 gateway 在 PD 模式可分别设置 P 与 D 策略，已有 cache-aware 和负载阈值。路由器的缓存估计不等于 worker 的即时真实命中。",
+    "how": "固定源码HTTP PD读取独立P/D策略；gRPC PD factory保存两套策略，但实际selection为P/D共用model/default policy。cache-aware按pool::model的字符前缀估计亲和，失衡或低匹配时选择最小请求负载；这些代理量不等于实际KV命中或P引擎队列。",
     "cost": "维护路由树和负载信息有 CPU/通信成本；信息延迟会选错，多个 gateway 的估计也可能不一致。",
     "hypothesis": "存在至少两个 P 副本时，仅调整缓存亲和转负载均衡的一个已有阈值，测试节省的 prefill 是否覆盖多出的排队。",
     "classification": "config",
@@ -2324,7 +2324,7 @@
       "first_action": "核对实际副本拓扑和 gateway 策略；无多副本只完成适用性记录。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "待路径核验",
+    "status": "实际Rust路径已核验；策略实测未运行",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/sgl_model_gateway.mdx#L241-L252",
@@ -2333,6 +2333,18 @@
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/sgl_model_gateway.mdx#L880-L929",
         "support": "已有 cache-aware 与负载阈值配置。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/sgl-model-gateway/src/routers/http/pd_router.rs#L979",
+        "support": "HTTP PD读取独立P/D策略并筛可用候选。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/sgl-model-gateway/src/routers/grpc/common/stages/worker_selection.rs#L231",
+        "support": "gRPC PD实际selection共用model/default policy，不能从factory设置推定独立策略已生效。"
+      },
+      {
+        "url": "https://github.com/sgl-project/sglang/blob/ce0a8fea5f4245839d174b2b8c55692be1810a7f/sgl-model-gateway/src/policies/tree.rs#L718",
+        "support": "淘汰按tenant_char_count，而非native KV页数/字节数或节点数。"
       }
     ],
     "related_ids": [],
@@ -2351,7 +2363,24 @@
       "static_status": "ENTRY_LOCATED",
       "runtime_path_confirmed": false,
       "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
-    }
+    },
+    "evidence_checkpoint": "evidence/2026-10-19-gateway-pd-source/README.md",
+    "actual_implementation_source_confirmed": true,
+    "verified_gateway_source_blobs": 408,
+    "attached_source_files": 27,
+    "source_observations": 18,
+    "Rust_CPU_tests_executed": 0,
+    "Rust_build_attempted": false,
+    "HTTP_separate_PD_policy_source": true,
+    "gRPC_separate_PD_policy_source": false,
+    "gRPC_config_runtime_witness": false,
+    "deployment_gateway_identity_confirmed": false,
+    "deployment_topology_confirmed": false,
+    "native_executed": false,
+    "candidate_accepted": false,
+    "production_applied": false,
+    "overall_serving_evidence": "E0",
+    "performance_verdict": "NOT_MEASURED"
   },
   {
     "id": "M035",
