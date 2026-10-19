@@ -1,0 +1,106 @@
+--- a/sglang/srt/hardware_backend/npu/ops/flash_kpool_score.py
++++ b/sglang/srt/hardware_backend/npu/ops/flash_kpool_score.py
+@@ -25,7 +25,7 @@
+ QUERY_END_SENTINEL = torch.iinfo(torch.int32).max
+ 
+ 
+-@triton.jit(do_not_specialize=["requests", "pools_count", "blocks_count"])
++@triton.jit(do_not_specialize=["requests", "pools_count", "blocks_count", "TABLE_SR"])
+ def _gather_pool_cache(
+     cache,
+     table,
+@@ -38,7 +38,7 @@
+     CACHE_SB: tl.constexpr,
+     CACHE_ST: tl.constexpr,
+     CACHE_SD: tl.constexpr,
+-    TABLE_SR: tl.constexpr,
++    TABLE_SR,
+     TABLE_SP: tl.constexpr,
+     HEAD_DIM: tl.constexpr,
+     BLOCK: tl.constexpr,
+@@ -60,7 +60,7 @@
+         )
+ 
+ 
+-@triton.jit(do_not_specialize=["token_offset", "rows", "max_pool_seq_len", "num_reqs", "num_cache_blocks"])
++@triton.jit(do_not_specialize=["token_offset", "rows", "max_pool_seq_len", "num_reqs", "num_cache_blocks", "table_stride_r"])
+ def _glm5_next_lightning_indexer_score_kernel(
+     qbar,
+     cache,
+@@ -77,7 +77,7 @@
+     cache_stride_b: tl.constexpr,
+     cache_stride_t: tl.constexpr,
+     cache_stride_d: tl.constexpr,
+-    table_stride_r: tl.constexpr,
++    table_stride_r,
+     table_stride_p: tl.constexpr,
+     CACHE_BLOCK: tl.constexpr,
+     QUERY_END_SENTINEL: tl.constexpr,
+--- a/sglang/srt/hardware_backend/npu/ops/flash_kpool_indexer_npu.py
++++ b/sglang/srt/hardware_backend/npu/ops/flash_kpool_indexer_npu.py
+@@ -19,7 +19,8 @@
+                        layer_id, layer_scatter_modes=None, dynamic_scale=None):
+     from sglang.srt.model_executor.forward_context import get_attn_backend, get_token_to_kv_pool
+     from sglang.srt.hardware_backend.npu.ops.flash_kpool_compression import glm5_next_kpool_tail_compress_and_write_cache_triton
+-    from sglang.srt.hardware_backend.npu.ops.flash_kpool_score import glm5_next_lightning_indexer_triton
++    from sglang.srt.hardware_backend.npu.ops.flash_indexer_query_parallel import query_parallel_indexer
++    from sglang.srt.runtime_context import get_parallel
+ 
+     if not indexer.skip_rope or indexer.index_kpool != 4 or not indexer.index_kpool_compress:
+         raise ValueError('Initial NPU indexer supports Flash NoPE KPool4 only')
+@@ -126,9 +127,12 @@
+             'query_lengths':lengths,'request_slots':request_slots})
+     if not _PERFORMANCE:_model_after(_model_check,index_cache,tail_key,tail_score)
+     pool_seq_lens=torch.div(seq_lens,4,rounding_mode='floor')
+-    output=glm5_next_lightning_indexer_triton(query,index_cache,weights,query_ends,
++    parallel=get_parallel()
++    output=query_parallel_indexer(query,index_cache,weights,query_ends,
+         pool_seq_lens,block_tables,positions,index_topk=2048,index_kpool=4,
+         max_pool_seq_len=max(sequences)//4,pack_tail=True,
++        group=parallel.attn_tp_group,rank=parallel.attn_tp_rank,world_size=parallel.attn_tp_size,
++        prefill=forward_batch.forward_mode.is_extend(),
+         audit_context=None if _PERFORMANCE else {'layer_id':int(layer_id),'sequences':sequences,
+             'query_lengths':lengths,'request_slots':request_slots})
+     return output.squeeze(1)
+--- /dev/null
++++ b/sglang/srt/hardware_backend/npu/ops/flash_indexer_query_parallel.py
+@@ -0,0 +1,39 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Partition independent prefill query rows inside the native attention TP group.
++
++Cache compression/state ownership stay unchanged. Each rank scores its rows;
++the final native int32 token indices are gathered back in original row order.
++"""
++import torch
++from sglang.srt.hardware_backend.npu.ops.flash_kpool_score import glm5_next_lightning_indexer_triton
++
++def _local_audit_context(context,start,count):
++    if context is None:return None
++    value=dict(context);lengths=[];starts=[];offset=0
++    for length,sequence in zip(context['query_lengths'],context['sequences']):
++        left=min(max(start-offset,0),length)
++        right=min(max(start+count-offset,0),length)
++        lengths.append(max(0,right-left));starts.append(sequence-length+left)
++        offset+=length
++    value.update(query_lengths=lengths,query_start_positions=starts)
++    return value
++
++def query_parallel_indexer(query,cache,weights,query_ends,pool_lens,block_table,positions,*,group,rank,world_size,prefill,**kwargs):
++    if type(world_size) is not int or world_size<1 or not 0<=rank<world_size:raise ValueError('Invalid actual attention TP rank')
++    total=query.shape[0]
++    if not prefill or world_size==1 or total<world_size*32:
++        return glm5_next_lightning_indexer_triton(query,cache,weights,query_ends,pool_lens,block_table,positions,**kwargs)
++    if kwargs.get('output_buffer') is not None:raise ValueError('Query-parallel prefill does not replace an existing output buffer')
++    chunk=(total+world_size-1)//world_size;start=min(rank*chunk,total);count=min(chunk,total-start)
++    width=kwargs['index_topk']+kwargs['index_kpool']-1
++    # All ranks enter exactly one same-shape collective, including empty tails.
++    padded=torch.full((chunk,width),-1,dtype=torch.int32,device=query.device)
++    if count:
++        local_ends=torch.clamp(query_ends-start,min=0,max=count)
++        local_kwargs=dict(kwargs)
++        local_kwargs['audit_context']=_local_audit_context(kwargs.get('audit_context'),start,count)
++        local=glm5_next_lightning_indexer_triton(query[start:start+count],cache,weights[start:start+count],local_ends,pool_lens,block_table,positions[start:start+count],**local_kwargs)
++        padded[:count].copy_(local.squeeze(1))
++    gathered=group.all_gather(padded,dim=0)
++    if gathered.dtype!=torch.int32 or gathered.shape!=(chunk*world_size,width):raise ValueError('Native attention-TP gather returned wrong token-index ABI')
++    return gathered[:total].unsqueeze(1)
