@@ -1740,7 +1740,7 @@
       "first_action": "读取实际分派路径与一层 trace，区分通信、重排和 GEMM。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "完整原模型原生启动发现EP16分发/量化专家维度失败；性能基线未建立",
+    "status": "原Prefill的DeepEP完整warmup已通过；默认分发维度反例保留，完整PD性能基线仍未建立",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L151-L188",
@@ -1799,6 +1799,14 @@
         "verdict": "FAILED_EARLIER_DISPATCH_TILING",
         "old_GMM_shape_fix": "NOT_PROVEN",
         "evidence": "evidence/2026-10-19-910c-deepep-tiling/README.md"
+      },
+      "later_P_only_warmup": {
+        "run": "L039-R067",
+        "observation": "L039-R068/R074",
+        "old_failure_preserved": true,
+        "evidence": "evidence/2026-10-19-910c-group-memory-bootstrap/README.md",
+        "full_PD_quality_and_perf": false,
+        "FuseEP_path_confirmed": false
       }
     }
   },
@@ -1893,7 +1901,7 @@
       "first_action": "核对已安装 DeepEP API、分轮参数与 HCCL buffer 计算，不照搬主分支默认值。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "完整PD+MTP仍未就绪；原生诊断明确HCCL窗口不足，局部对照结果见证据",
+    "status": "910C16rank分组HCCL压力对照通过；原Prefill已就绪，Decode图OOM后仅D改EP1024启动中；PD基线未建立",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L249-L283",
@@ -1961,6 +1969,41 @@
         "corrected_checker_verdict": "NUMERIC_AND_COUNTS_PASS_EXPLICIT_GROUP_CLEANUP_PASS_PROCESS_EXIT_FAIL",
         "evidence": "evidence/2026-10-19-910c-hccl-window/README.md",
         "full_serving": "NOT_PROVEN"
+      },
+      "group_memory_diagnostic": {
+        "runs": [
+          "L039-R053",
+          "L039-R054",
+          "L039-R055",
+          "L039-R056",
+          "L039-R057",
+          "L039-R058",
+          "L039-R059",
+          "L039-R060",
+          "L039-R061",
+          "L039-R062",
+          "L039-R063",
+          "L039-R064",
+          "L039-R065",
+          "L039-R066",
+          "L039-R067",
+          "L039-R068",
+          "L039-R069",
+          "L039-R070",
+          "L039-R071",
+          "L039-R072",
+          "L039-R073",
+          "L039-R074"
+        ],
+        "evidence": "evidence/2026-10-19-910c-group-memory-bootstrap/README.md",
+        "P_ready": true,
+        "D_ready": false,
+        "full_PD_workload": false,
+        "performance": "NOT_MEASURED",
+        "production_source_patch": false,
+        "ordinary_TP_MB": 200,
+        "P_MoE_MB": 2048,
+        "D_MoE_MB": 1024
       }
     }
   },
