@@ -54,6 +54,8 @@
 
 - [M005/M017/M018：Ascend plan / WAR / 最后读取者与 266 项源策略检查](evidence/2026-10-19-npu-plan-war-source/README.md)
 
+- [M005/M031：PD drain、超时与 Ascend 传输错误路径](evidence/2026-10-19-pd-release-drain/README.md)
+
 ## 阅读方式
 
 每点按“用途 → 实现 → 成本 → 候选 → 适用/回退 → 最小实验 → 必要工作与上界 → 结果”阅读。可以从 M015 / M016 接着当前 CPU overlap 课程，也可以按原课程顺序浏览。最小实验只是进入优化循环的第一步；如果仍有可解释的剩余空间，继续下一轮单机制实验。
@@ -66,7 +68,7 @@
 | [M002](points/M002.md) | 进程分工、IPC 与流式背压 | 待路径核验 | config |
 | [M003](points/M003.md) | CPU affinity / NUMA / 线程数 | 待路径核验 | config |
 | [M004](points/M004.md) | Continuous batching 与请求状态机 | 待路径核验 | conditional_candidate |
-| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | PD overlap/WAR 源路径核验；transfer/free 原生未决 | config |
+| [M005](points/M005.md) | 多资源准入、输出预留与抢占重算 | PD abort/drain/timeout 源策略已核验；原生释放未决 | config |
 | [M006](points/M006.md) | Chunked Prefill 的游标与预算 | 16K chunk 与 200 页分支边界已界定；native 成功路径未验证 | config |
 | [M007](points/M007.md) | Mixed batch 与 ragged / packed 输入 | 条件不适用 | not_applicable |
 | [M008](points/M008.md) | Cache-aware scheduling：LPM / DFS-weight | 待路径核验 | config |
@@ -92,7 +94,7 @@
 | [M028](points/M028.md) | DeepEP dispatch / combine 的模式选择 | Ascend分派门控/状态模型已核验；DeepEP原生未决 | config |
 | [M029](points/M029.md) | TP / EP / DP / PP / CP 的切分边界 | 待路径核验 | config |
 | [M030](points/M030.md) | 专家负载均衡、冗余与最慢 rank | 路由必要工作边界已建立；实际rank负载未测 | config |
-| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | CPU交接组件已核验；原生PD正确性/性能未决 | config |
+| [M031](points/M031.md) | MTP / EAGLE：草稿、树验证与接受 | 验证/传输合同 CPU 核验；Ascend 条件路径与原生待测 | config |
 | [M032](points/M032.md) | 采样、grammar mask 与结构化输出 | 待路径核验 | conditional_candidate |
 | [M033](points/M033.md) | 增量反分词、SSE 合并与结束回收 | 待路径核验 | config |
 | [M034](points/M034.md) | Cache-aware routing 与副本亲和 | 待路径核验 | config |
