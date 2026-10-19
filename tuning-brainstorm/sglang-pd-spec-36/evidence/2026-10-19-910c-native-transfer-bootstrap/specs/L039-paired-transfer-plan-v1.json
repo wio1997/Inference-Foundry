@@ -1,0 +1,22 @@
+{
+  "scope": "Original SGLang AscendTransferEngine two-node correctness support only; no serving/performance claim",
+  "image": "sha256:c5cf2deb674cd1c8aba10a70d8dcb3e413d3739f6a54808c568e11d711d2e263",
+  "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+  "protocol": "sdma",
+  "store_url": "tcp://172.16.12.46:39431",
+  "buffer_bytes": 4194304,
+  "P_node": 44,
+  "D_node": 46,
+  "npu_id": 0,
+  "case_deadline_s": 60,
+  "init_deadline_s": 90,
+  "cases": [
+    {"id": "contiguous-g1", "generation": 1, "sentinel": 165, "method": "transfer_sync", "segments": [{"source_offset": 0, "destination_offset": 0, "bytes": 4194304}]},
+    {"id": "scatter-g2", "generation": 2, "sentinel": 90, "method": "batch_transfer_sync", "segments": [{"source_offset": 0, "destination_offset": 131072, "bytes": 65536}, {"source_offset": 2097280, "destination_offset": 1048704, "bytes": 131072}, {"source_offset": 3145728, "destination_offset": 3932032, "bytes": 262144}]},
+    {"id": "scatter-reuse-g3", "generation": 3, "sentinel": 60, "method": "batch_transfer_sync", "segments": [{"source_offset": 0, "destination_offset": 131072, "bytes": 65536}, {"source_offset": 2097280, "destination_offset": 1048704, "bytes": 131072}, {"source_offset": 3145728, "destination_offset": 3932032, "bytes": 262144}]}
+  ],
+  "CPU_golden": "source byte[i] = (17*i + 31*generation + 7) mod256; receiver independently fills full CPU buffer with sentinel then applies frozen source/destination spans",
+  "correctness_gate": "All SDK transfers return0; all4194304 receiver bytes equal independent golden for every case; register/deregister succeed; both owned containers removed",
+  "lifecycle": "Register once; reset/prepare→send complete→receiver compare for each generation; source deregisters/exits before receiver/store teardown",
+  "performance": "NOT_MEASURED; task artifact disk revalidation may run concurrently"
+}

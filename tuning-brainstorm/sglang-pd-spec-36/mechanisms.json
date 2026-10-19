@@ -1740,7 +1740,7 @@
       "first_action": "读取实际分派路径与一层 trace，区分通信、重排和 GEMM。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "NPU dispatcher源码/CPU状态已核验；原生MoE未决",
+    "status": "完整原模型原生启动发现EP16分发/量化专家维度失败；性能基线未建立",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L151-L188",
@@ -1775,7 +1775,22 @@
     "performance_verdict": "NOT_MEASURED",
     "overall_serving_evidence": "E0",
     "production_applied": false,
-    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement"
+    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement",
+    "native_startup_counterexample": {
+      "evidence": "evidence/2026-10-19-910c-native-transfer-bootstrap/README.md",
+      "run": "L039-R039",
+      "nodes": [
+        44,
+        46
+      ],
+      "TP": 16,
+      "EP": 16,
+      "moe_a2a_backend": "none",
+      "error": "NPU aclnnGroupedMatmulWeightNz161002:scale experts16 vs groupList256",
+      "baseline_accepted": false,
+      "weights_P_D_source_identical": true,
+      "hypothesis_single_change": "ExistingDeepEP per-local-expert dispatcher, R044notyetproven"
+    }
   },
   {
     "id": "M027",
@@ -1868,7 +1883,7 @@
       "first_action": "核对已安装 DeepEP API、分轮参数与 HCCL buffer 计算，不照搬主分支默认值。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "Ascend分派门控/状态模型已核验；DeepEP原生未决",
+    "status": "已有DeepEP CANN包/API核实；完整EP16启动单变量验证进行中，原生服务未通过",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L249-L283",
@@ -1903,7 +1918,18 @@
     "performance_verdict": "NOT_MEASURED",
     "overall_serving_evidence": "E0",
     "production_applied": false,
-    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement"
+    "evidence_scope": "Source/CPU-spy MoE subset; M030logicalderivation only, no actualrankmeasurement",
+    "native_bootstrap_candidate": {
+      "evidence": "evidence/2026-10-19-910c-native-transfer-bootstrap/README.md",
+      "dependency": "1.0.0+00db6cd6.cann.9.1.0.b243",
+      "before_failed_run": "L039-R039",
+      "new_run": "L039-R044",
+      "single_factor": "moe_a2a_backend:none→deepep",
+      "latest_observation": "L039-R045weightloading/API notready",
+      "normal_and_low_latency_functional_support": "UNPROVEN",
+      "PD_MTP_graph_preserved": true,
+      "performance_measured": false
+    }
   },
   {
     "id": "M029",
@@ -2413,7 +2439,7 @@
       "first_action": "按实际后端和运行 commit 画时间线；跨节点时钟未对齐不直接相减。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "待路径核验",
+    "status": "原生后端三组局部字节正确性通过；完整KV/PD+MTP路径及基线待验证",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/python/sglang/srt/disaggregation/prefill.py",
@@ -2447,6 +2473,24 @@
       "static_status": "ENTRY_LOCATED",
       "runtime_path_confirmed": false,
       "evidence": "evidence/2026-10-19-first-checkpoint/path-support.json"
+    },
+    "native_transport_support": {
+      "evidence": "evidence/2026-10-19-910c-native-transfer-bootstrap/README.md",
+      "run": "L039-R031",
+      "source_commit": "ce0a8fea5f4245839d174b2b8c55692be1810a7f",
+      "protocol": "sdma",
+      "nodes": [
+        44,
+        46
+      ],
+      "NPU_id_per_node": 0,
+      "cases": 3,
+      "receiver_checked_bytes": 12582912,
+      "mismatched_bytes": 0,
+      "periodic256byte_fixture_limit": true,
+      "actual_KVManager_and_MTP_payload_executed": false,
+      "performance_measured": false,
+      "candidate_accepted": false
     }
   },
   {
