@@ -1789,7 +1789,17 @@
       "error": "NPU aclnnGroupedMatmulWeightNz161002:scale experts16 vs groupList256",
       "baseline_accepted": false,
       "weights_P_D_source_identical": true,
-      "hypothesis_single_change": "ExistingDeepEP per-local-expert dispatcher, R044notyetproven"
+      "hypothesis_single_change": "ExistingDeepEP per-local-expert dispatcher, R044notyetproven",
+      "subsequent_DeepEP_result": {
+        "run": "L039-R044",
+        "observations": [
+          "L039-R046",
+          "L039-R047"
+        ],
+        "verdict": "FAILED_EARLIER_DISPATCH_TILING",
+        "old_GMM_shape_fix": "NOT_PROVEN",
+        "evidence": "evidence/2026-10-19-910c-deepep-tiling/README.md"
+      }
     }
   },
   {
@@ -1883,7 +1893,7 @@
       "first_action": "核对已安装 DeepEP API、分轮参数与 HCCL buffer 计算，不照搬主分支默认值。",
       "execution_level": "先核验路径与兼容性；通过后做局部实验；最后验证 PD 端到端"
     },
-    "status": "已有DeepEP CANN包/API核实；完整EP16启动单变量验证进行中，原生服务未通过",
+    "status": "完整EP16原生normal/low_latency均在CANN tiling失败；参数/注册原因与服务基线未明",
     "sources": [
       {
         "url": "https://github.com/sgl-project/sglang/blob/57db5089c207ae4ce189cc092a89a2027c8aea29/docs/docs/advanced_features/expert_parallelism.mdx#L249-L283",
@@ -1925,10 +1935,16 @@
       "before_failed_run": "L039-R039",
       "new_run": "L039-R044",
       "single_factor": "moe_a2a_backend:none→deepep",
-      "latest_observation": "L039-R045weightloading/API notready",
-      "normal_and_low_latency_functional_support": "UNPROVEN",
+      "latest_observation": "L039-R047 bothrolesfailed/terminal",
+      "normal_and_low_latency_functional_support": "FAILED_IN_THIS_FULL_MODEL_CONFIGURATION",
       "PD_MTP_graph_preserved": true,
-      "performance_measured": false
+      "performance_measured": false,
+      "actual_mode_failures": {
+        "prefill_normal": "aclnnCamMoeDispatchNormal EZ1008 tiling",
+        "decode_low_latency": "aclnnMoeLowLatencyDispatchV2 EZ1008 tiling"
+      },
+      "latest_evidence": "evidence/2026-10-19-910c-deepep-tiling/README.md",
+      "old16_256_fix": "NOT_PROVEN: dispatch failed before GMM"
     }
   },
   {
