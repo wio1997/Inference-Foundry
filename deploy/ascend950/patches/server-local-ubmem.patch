@@ -1,0 +1,122 @@
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/kernels/comm/hccl.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/kernels/comm/hccl.hpp
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include <algorithm>
++#include <cstdlib>
+ #include <chrono>
+ #include <cstring>
+ #include <limits>
+@@ -27,6 +28,13 @@
+ 
+ namespace deep_ep {
+ 
++// An explicit task-local override permits server-local mesh deployments.
++static uint32_t ubmem_layer_index() {
++    const char* value = std::getenv("DEEPINFER_UBMEM_NET_LAYER");
++    return value == nullptr ? 1 : static_cast<uint32_t>(std::stoul(value));
++}
++
++
+ struct HCCLContext {
+     std::shared_ptr<symmetric::SymmetricMemory> memory;
+     HcclComm comm = nullptr;
+@@ -55,7 +63,7 @@
+         EP_HOST_ASSERT(num_ranks > 0 and rank_idx >= 0 and rank_idx < num_ranks);
+ 
+         // TODO: relationships between layer and Jetties
+-        EP_HOST_ASSERT(num_jetties > 0);
++        EP_HOST_ASSERT(num_jetties >= 0);
+ 
+         // All ranks must create buffers in the same order within each group.
+         static std::unordered_map<std::string, int> context_idx_per_group;
+@@ -87,13 +95,14 @@
+             uint32_t* layers = nullptr;
+             uint32_t num_layers = 0;
+             HCCL_CHECK(HcclRankGraphGetLayers(comm, &layers, &num_layers));
+-            EP_HOST_ASSERT(num_layers > 1);
++            EP_HOST_ASSERT(num_layers > ubmem_layer_index());
+             // HCCL owns `layers` and subsequent calls may invalidate it, so copy the layer value immediately.
+-            const auto layer = layers[1];
++            const auto layer = layers[ubmem_layer_index()];
+ 
+             // Acquire UBMEM channels and Jetties
+             acquire_ubmem_channels(layer);
+-            acquire_jetties(layer, num_jetties, buffer_uid, num_cpu_timeout_secs);
++            if (num_jetties > 0)
++                acquire_jetties(layer, num_jetties, buffer_uid, num_cpu_timeout_secs);
+         }
+     }
+ 
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/comm/handle.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/comm/handle.hpp
+@@ -49,8 +49,8 @@
+     uint32_t* layers = nullptr;
+     uint32_t num_layers = 0;
+     HCCL_CHECK(HcclRankGraphGetLayers(comm, &layers, &num_layers));
+-    EP_HOST_ASSERT(num_layers > 1);
+-    const auto layer = layers[1];
++    EP_HOST_ASSERT(num_layers > ubmem_layer_index());
++    const auto layer = layers[ubmem_layer_index()];
+     for (int peer_rank_idx = 0; peer_rank_idx < num_ranks; ++ peer_rank_idx) {
+         if (peer_rank_idx == rank_idx)
+             continue;
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/kernels/comm/api.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/kernels/comm/api.hpp
+@@ -35,7 +35,7 @@
+             const int64_t& num_workspace_bytes, const int64_t& num_gpu_buffer_bytes,
+             const int64_t& num_rdma_storage_bytes, const bool& use_huge1g_page,
+             const int& num_cpu_timeout_secs, const int& num_gpu_timeout_secs,
+-            const std::shared_ptr<Context>& main_context = nullptr):
++            const std::shared_ptr<Context>& main_context = nullptr, const bool use_jetties = true):
+         rank_idx(rank_idx), num_ranks(num_ranks),
+         num_cpu_timeout_secs(num_cpu_timeout_secs),
+         num_gpu_timeout_cycles(static_cast<int64_t>(num_gpu_timeout_secs) * kNumSystemCyclesPerSecond),
+@@ -53,7 +53,7 @@
+             EP_HOST_ASSERT(main_context->num_rdma_storage_bytes == num_rdma_storage_bytes);
+         }
+         hccl_context = std::make_shared<HCCLContext>(
+-            hccl_group_name, rank_idx, num_ranks, num_bytes, runtime->get_num_vec_cores(),
++            hccl_group_name, rank_idx, num_ranks, num_bytes, use_jetties ? runtime->get_num_vec_cores() : 0,
+             num_cpu_timeout_secs, use_huge1g_page,
+             main_context == nullptr ? nullptr : main_context->symmetric_memory);
+         symmetric_memory = hccl_context->memory;
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/engram.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/engram.hpp
+@@ -34,9 +34,11 @@
+         BufferBase(explicitly_destroy) {
+         EP_HOST_ASSERT(num_gpu_bytes > 0 and num_gpu_bytes % kNumAllocationAlignmentBytes == 0);
+         EP_HOST_ASSERT(num_rdma_storage_bytes > 0 and num_rdma_storage_bytes % kNumAllocationAlignmentBytes == 0);
++        const char* ubmem_only = std::getenv("DEEPINFER_ENGRAM_UBMEM_ONLY");
++        const bool use_jetties = ubmem_only == nullptr or std::string(ubmem_only) != "1";
+         context = std::make_shared<comm::Context>(
+             hccl_group_name, rank_idx, num_ranks, sizeof(layout::EngramWorkspace), num_gpu_bytes,
+-            num_rdma_storage_bytes, use_huge1g_page, 300, num_gpu_timeout_secs);
++            num_rdma_storage_bytes, use_huge1g_page, 300, num_gpu_timeout_secs, nullptr, use_jetties);
+         main_context = context;
+         auto& workspace = *static_cast<layout::EngramWorkspace*>(context->workspace);
+         context->set_common_signals(&workspace.common_signals);
+--- a/src/DeepInfer/vendor/DeepGEMM-Ascend/csrc/backends/hccl.hpp
++++ b/src/DeepInfer/vendor/DeepGEMM-Ascend/csrc/backends/hccl.hpp
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include <atomic>
++#include <cstdlib>
+ #include <cstdint>
+ #include <memory>
+ #include <mutex>
+@@ -118,8 +119,10 @@
+         uint32_t* layers = nullptr;
+         uint32_t num_layers = 0;
+         DG_HCCL_CHECK(HcclRankGraphGetLayers(comm, &layers, &num_layers));
+-        DJ_HOST_ASSERT(num_layers > 1, "UBMEM requires network layer 1; got {} layers", num_layers);
+-        const uint32_t layer = layers[1];
++        const char* layer_override = std::getenv("DEEPINFER_UBMEM_NET_LAYER");
++        const uint32_t layer_index = layer_override == nullptr ? 1 : static_cast<uint32_t>(std::stoul(layer_override));
++        DJ_HOST_ASSERT(num_layers > layer_index, "UBMEM layer index {} unavailable; got {} layers", layer_index, num_layers);
++        const uint32_t layer = layers[layer_index];
+ 
+         std::vector<HcclChannelDesc> descriptors;
+         descriptors.reserve(num_ranks - 1);

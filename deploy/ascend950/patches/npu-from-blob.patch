@@ -1,0 +1,108 @@
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/engram.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/engram.hpp
+@@ -1,4 +1,6 @@
+ #pragma once
++
++#include <torch_npu/csrc/aten/common/from_blob.h>
+ 
+ #include <functional>
+ #include <optional>
+@@ -96,7 +98,7 @@
+         const auto dtype = num_engram_sf_packs > 0 ? torch::kFloat8_e4m3fn : torch::kBFloat16;
+         std::vector<torch::Tensor> tensors;
+         for (const auto& rows: num_engram_entries_per_layer) {
+-            tensors.push_back(torch::from_blob(
++            tensors.push_back(at_npu::native::from_blob(
+                 ptr, {rows, engram_hidden}, [context = context](void*) {},
+                 torch::TensorOptions().dtype(dtype).device(TORCH_DEVICE_NPU)));
+             ptr = math::advance_ptr<void>(ptr, static_cast<int64_t>(rows) * engram_hidden * engram_elem_size);
+@@ -176,7 +178,7 @@
+                                      num_entries_per_token * engram_hidden * engram_elem_size;
+         std::vector<torch::Tensor> fetched;
+         for (int layer_idx = 0; layer_idx < num_layers; ++ layer_idx)
+-            fetched.push_back(torch::from_blob(
++            fetched.push_back(at_npu::native::from_blob(
+                 math::advance_ptr<void>(context->buffer, layer_idx * num_layer_bytes),
+                 {num_tokens, num_entries_per_token * engram_hidden},
+                 [context = context](void*) {},
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/pp.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/pp.hpp
+@@ -1,4 +1,6 @@
+ #pragma once
++
++#include <torch_npu/csrc/aten/common/from_blob.h>
+ 
+ #include <limits>
+ 
+@@ -38,7 +40,7 @@
+         main_context = context;
+         auto& pp = *static_cast<layout::PPSignals*>(context->workspace);
+         context->set_common_signals(&pp.common_signals);
+-        storage = torch::from_blob(context->buffer, {num_storage_bytes}, [context = context](void*) {},
++        storage = at_npu::native::from_blob(context->buffer, {num_storage_bytes}, [context = context](void*) {},
+                                    torch::TensorOptions().dtype(torch::kByte).device(TORCH_DEVICE_NPU));
+     }
+ 
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/ep.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/ep.hpp
+@@ -1,4 +1,6 @@
+ #pragma once
++
++#include <torch_npu/csrc/aten/common/from_blob.h>
+ 
+ #include <algorithm>
+ #include <atomic>
+@@ -47,7 +49,7 @@
+         main_context = context;
+         auto& workspace = *static_cast<layout::EPSignals*>(context->workspace);
+         context->set_common_signals(&workspace.common_signals);
+-        lb_storage = torch::from_blob(
++        lb_storage = at_npu::native::from_blob(
+             context->buffer, {num_buffer_bytes + num_lb_buffer_bytes}, [context = context](void*) {},
+             torch::TensorOptions().dtype(torch::kByte).device(TORCH_DEVICE_NPU)
+         ).narrow(0, num_buffer_bytes, num_lb_buffer_bytes);
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/bucket.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/bucket.hpp
+@@ -1,4 +1,6 @@
+ #pragma once
++
++#include <torch_npu/csrc/aten/common/from_blob.h>
+ 
+ #include <functional>
+ #include <optional>
+@@ -44,7 +46,7 @@
+             contexts.back()->set_common_signals(&workspace.signals[context_idx].common_signals);
+         }
+         main_context = contexts.front();
+-        storage = torch::from_blob(main_context->buffer, {num_storage_bytes}, [context = main_context](void*) {},
++        storage = at_npu::native::from_blob(main_context->buffer, {num_storage_bytes}, [context = main_context](void*) {},
+                                    torch::TensorOptions().dtype(torch::kByte).device(TORCH_DEVICE_NPU));
+     }
+ 
+--- a/src/DeepInfer/vendor/DeepGEMM-Ascend/csrc/apis/mega_moe.hpp
++++ b/src/DeepInfer/vendor/DeepGEMM-Ascend/csrc/apis/mega_moe.hpp
+@@ -1,4 +1,6 @@
+ #pragma once
++
++#include <torch_npu/csrc/aten/common/from_blob.h>
+ 
+ #include <functional>
+ #include <limits>
+@@ -52,7 +54,7 @@
+         int32_t device_idx;
+         DJ_ACL_CHECK(aclrtGetDevice(&device_idx));
+         const c10::Device device(c10::DeviceType::PrivateUse1, device_idx);
+-        buffer = torch::from_blob(allocation->buffer, {num_bytes}, [allocation, device](void*) {
++        buffer = at_npu::native::from_blob(allocation->buffer, {num_bytes}, [allocation, device](void*) {
+             // Wait for device work before the last owner returns the lease to the pool
+             const c10::DeviceGuard guard(device);
+             DJ_ACL_CHECK(aclrtSynchronizeDevice());
+@@ -66,7 +68,7 @@
+     DJ_HOST_ASSERT(buffer.dim() == 1 and buffer.scalar_type() == torch::kInt8 and buffer.is_contiguous());
+     const auto num_bytes = c10::multiply_integers(shape) * c10::elementSize(dtype);
+     DJ_HOST_ASSERT(offset <= buffer.nbytes() and num_bytes <= buffer.nbytes() - offset);
+-    return torch::from_blob(static_cast<uint8_t*>(buffer.data_ptr()) + offset, shape, buffer.options().dtype(dtype));
++    return at_npu::native::from_blob(static_cast<uint8_t*>(buffer.data_ptr()) + offset, shape, buffer.options().dtype(dtype));
+ }
+ 
+ static auto get_symm_buffer_size_for_mega_moe(

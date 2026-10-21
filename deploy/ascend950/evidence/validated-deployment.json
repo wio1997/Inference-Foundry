@@ -1,0 +1,263 @@
+{
+  "captured_at": "2026-10-21T15:03:13.766888+08:00",
+  "state": "REAL_CHINESE_INFERENCE_VERIFIED",
+  "model": "DeepSeek-V4.1-Flash-1017",
+  "prepared_image": "local/deepinfer:950dt-20261020",
+  "prepared_image_id": "sha256:63345dc4a4ea2aa43178165c8acd26b36a73326141b5717105fa774dd9546376",
+  "driver": "25.6.rc1",
+  "firmware": "9.0.0.200.200",
+  "all_eight_driver_firmware_compatibility": "OK",
+  "model_generation_verified": true,
+  "chinese_checks": [
+    {
+      "check": "arithmetic",
+      "http": 200,
+      "elapsed_seconds": 6.99113982799463,
+      "content": "2",
+      "passed": true,
+      "usage": {
+        "prompt_tokens": 14,
+        "completion_tokens": 2,
+        "total_tokens": 16,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 14
+      }
+    },
+    {
+      "check": "chinese_reasoning",
+      "http": 200,
+      "elapsed_seconds": 30.566357716015773,
+      "content": "好的，我们一步一步来算。  \n\n**第一步：计算原来一共有多少支铅笔**  \n小明有3盒，每盒12支，所以：  \n3 × 12 = 36（支）  \n\n**第二步：送出8支后剩下的数量**  \n36 − 8 = 28（支）  \n\n**答案**：小明还剩 **28支** 铅笔。  \n\n计算过程可以写成：  \n3 × 12 − 8 = 36 − 8 = 28（支）",
+      "passed": true,
+      "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 105,
+        "total_tokens": 136,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 31
+      }
+    }
+  ],
+  "all_four_generations_eight_rank_tokens_equal": true,
+  "operator_tests": {
+    "flashmla": [
+      {
+        "s_q": 1,
+        "s_kv": 128,
+        "topk": 128,
+        "passed": true
+      },
+      {
+        "s_q": 62,
+        "s_kv": 592,
+        "topk": 128,
+        "passed": true
+      },
+      {
+        "s_q": 213,
+        "s_kv": 1840,
+        "topk": 256,
+        "passed": true
+      },
+      {
+        "s_q": 213,
+        "s_kv": 153,
+        "topk": 256,
+        "passed": true
+      }
+    ],
+    "deep_gemm_scale_layout": [
+      {
+        "groups": null,
+        "granularity": 32,
+        "passed": true
+      },
+      {
+        "groups": 4,
+        "granularity": 32,
+        "passed": true
+      },
+      {
+        "groups": null,
+        "granularity": 1,
+        "passed": true
+      }
+    ],
+    "candidate_topk": [
+      {
+        "width": 7,
+        "block_size": 8,
+        "topk_blocks": 2048,
+        "valid_lens": [
+          0,
+          1,
+          7,
+          7
+        ],
+        "passed": true
+      },
+      {
+        "width": 64,
+        "block_size": 8,
+        "topk_blocks": 2048,
+        "valid_lens": [
+          0,
+          1,
+          15,
+          64
+        ],
+        "passed": true
+      },
+      {
+        "width": 4096,
+        "block_size": 8,
+        "topk_blocks": 2048,
+        "valid_lens": [
+          0,
+          1,
+          15,
+          4096
+        ],
+        "passed": true
+      },
+      {
+        "width": 4096,
+        "block_size": 16,
+        "topk_blocks": 2048,
+        "valid_lens": [
+          0,
+          1,
+          15,
+          4096
+        ],
+        "passed": true
+      },
+      {
+        "width": 16401,
+        "block_size": 8,
+        "topk_blocks": 2048,
+        "valid_lens": [
+          0,
+          1,
+          15,
+          16401
+        ],
+        "passed": true
+      }
+    ],
+    "engram_eight_rank_fp8_bf16_bitwise_pass": true
+  },
+  "configuration": {
+    "cards": 8,
+    "attention_dp": 8,
+    "expert_parallel": 8,
+    "context_parallel": 1,
+    "max_model_len": 4096,
+    "max_num_batched_tokens": 256,
+    "max_num_seqs": 1,
+    "gpu_memory_utilization": 0.85,
+    "nextn": 0,
+    "graph_capture": false,
+    "engram_storage": "NPU sharded",
+    "ubmem_net_layer": 0
+  },
+  "scope": {
+    "text": true,
+    "streaming": false,
+    "mirrored_requests_across_dp": true,
+    "performance_comparison_ready": false
+  },
+  "limitations": [
+    "Single-request functional adapter mirrors each request to all eight DP ranks.",
+    "No throughput or TTFT benchmark has been performed.",
+    "No full model quality, long-context, multimodal or concurrency evaluation has been performed."
+  ],
+  "source_pins": [
+    {
+      "path": "DeepInfer",
+      "repo": "deepseek-ai/DeepInfer",
+      "sha": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01"
+    },
+    {
+      "path": "deepseek-recipe",
+      "repo": "deepseek-ai/deepseek-recipe",
+      "sha": "935817c66f5d6e64838f419692545f06787e485f"
+    },
+    {
+      "path": "DeepInfer/vendor/DeepEP-Ascend/third-party/deep_jit",
+      "repo": "deepseek-ai/DeepJIT",
+      "sha": "65f513952b8771408a19202f65e36398522db6db"
+    },
+    {
+      "path": "DeepInfer/vendor/DeepGEMM-Ascend/third-party/deep-jit",
+      "repo": "deepseek-ai/DeepJIT",
+      "sha": "65f513952b8771408a19202f65e36398522db6db"
+    },
+    {
+      "path": "DeepInfer/vendor/DeepGEMM-Ascend/third-party/magic_enum",
+      "repo": "Neargye/magic_enum",
+      "sha": "b233b96e49d371bad00300f59b5ba581100b8745"
+    },
+    {
+      "path": "DeepInfer/vendor/DeepSelect",
+      "repo": "deepseek-ai/DeepSelect",
+      "sha": "bfa4507d935f17ebfc3d0f00ff7d3c9a4d0e5c18"
+    },
+    {
+      "path": "DeepInfer/vendor/FlashMLA",
+      "repo": "deepseek-ai/FlashMLA",
+      "sha": "2e5429fc5653bab6e081f09477126f731882a6a9"
+    },
+    {
+      "path": "DeepInfer/vendor/DeepEP-Ascend",
+      "repo": "deepseek-ai/DeepEP-Ascend",
+      "sha": "3b25377d04b24fc6154698ded78a2bcb2c59afff"
+    },
+    {
+      "path": "DeepInfer/vendor/DeepGEMM-Ascend",
+      "repo": "deepseek-ai/DeepGEMM-Ascend",
+      "sha": "3a35326271b069b8b5bf1a754435acd6cc91575b"
+    }
+  ],
+  "checkpoint": {
+    "repo": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "file_count": 84,
+    "weight_shards": 48,
+    "total_bytes": 510311045870,
+    "sha256_verified_files": 84,
+    "elapsed_seconds": 29560.97814297676
+  },
+  "native_artifacts": [
+    {
+      "component": "deep_select",
+      "bytes": 18378640,
+      "sha256": "7813f21f2d9d8d046e0261a46f239b67e178c68e743338518c4199c0e89801d5"
+    },
+    {
+      "component": "flash_mla",
+      "bytes": 38182760,
+      "sha256": "7ae268b6cb793451929c3774ae14493b7cdcd687572442e19fc48634eaf3d363"
+    },
+    {
+      "component": "deep_ep",
+      "bytes": 5359872,
+      "sha256": "ab2cec0540797aa8c58eebdb17c1a039b385b7ad1ec890cf6031a12d8804b5a7"
+    },
+    {
+      "component": "deep_gemm",
+      "bytes": 7148352,
+      "sha256": "8ee26762cb961e7ce4a27e1398e6d3d27f0a2f5e1cd1002678dbde834033ec50"
+    },
+    {
+      "component": "deepinfer._C",
+      "bytes": 14695344,
+      "sha256": "20b0fbf91b94b9424bbe39d50c3a8c2949d7bb67bddc067f1191f767225753c0"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/engram.hpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/buffers/engram.hpp
+@@ -86,6 +86,22 @@
+         num_engram_sf_packs = num_sf_packs;
+     }
+ 
++    // HF loading can populate final NPU shards directly, avoiding a second
++    // full-size table allocation during model initialization.
++    std::vector<torch::Tensor> get_storage_tensors() const {
++        EP_HOST_ASSERT(not destroyed and not num_engram_entries_per_layer.empty());
++        auto* ptr = context->local_rdma_storage_ptr;
++        const auto dtype = num_engram_sf_packs > 0 ? torch::kFloat8_e4m3fn : torch::kBFloat16;
++        std::vector<torch::Tensor> tensors;
++        for (const auto& rows: num_engram_entries_per_layer) {
++            tensors.push_back(torch::from_blob(
++                ptr, {rows, engram_hidden}, [context = context](void*) {},
++                torch::TensorOptions().dtype(dtype).device(TORCH_DEVICE_NPU)));
++            ptr = math::advance_ptr<void>(ptr, static_cast<int64_t>(rows) * engram_hidden * engram_elem_size);
++        }
++        return tensors;
++    }
++
+     void write(const std::vector<torch::Tensor>& storages,
+                const std::optional<std::vector<torch::Tensor>>& sfs) {
+         EP_HOST_ASSERT(not destroyed);
+@@ -106,10 +122,12 @@
+             EP_HOST_ASSERT(storage.scalar_type() == (num_engram_sf_packs > 0 ? torch::kFloat8_e4m3fn : torch::kBFloat16));
+             EP_HOST_ASSERT(storage.device().type() == TORCH_DEVICE_NPU and storage.is_contiguous());
+ 
+-            ACL_CHECK(aclrtMemcpy(
+-                storage_ptr, storage.nbytes(),
+-                storage.data_ptr(), storage.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE
+-            ));
++            if (storage_ptr != storage.data_ptr()) {
++                ACL_CHECK(aclrtMemcpy(
++                    storage_ptr, storage.nbytes(),
++                    storage.data_ptr(), storage.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE
++                ));
++            }
+             storage_ptr = math::advance_ptr<void>(storage_ptr, storage.nbytes());
+         }
+         // Write the local SF shard
+--- a/src/DeepInfer/vendor/DeepEP-Ascend/csrc/python_api.cpp
++++ b/src/DeepInfer/vendor/DeepEP-Ascend/csrc/python_api.cpp
+@@ -50,6 +50,7 @@
+         .def(py::init<int, int, std::string, int64_t, int64_t, bool, int, bool>())
+         .def_readonly("context", &EngramBuffer::context)
+         .def("set_config", &EngramBuffer::set_config)
++        .def("get_storage_tensors", &EngramBuffer::get_storage_tensors)
+         .def("write", &EngramBuffer::write)
+         .def("fetch", &EngramBuffer::fetch);
+ 
+--- a/src/DeepInfer/deepinfer/model_executor/models/deepseek.py
++++ b/src/DeepInfer/deepinfer/model_executor/models/deepseek.py
+@@ -469,6 +469,17 @@
+             hf_coverage = cover_tied_parameters(hf_coverage, set(model_params(gpt)), n_layer=model_cfg.gpt.num_hidden_layers)
+         started = log_load_phase("plan_build", started)
+ 
++        # Ascend Engram shards must fit alongside all other weights. Materialize
++        # into their final registered NPU storage instead of retaining a duplicate.
++        engram_storage = {}
++        if model_cfg.gpt.engram and not skip_load and envs.DEEPINFER_ACCELERATOR == "ascend":
++            engram_layers = [gpt.module.module[i + 1].engram_embedding for i in model_cfg.gpt.engram.engram_layer_ids]
++            EngramRuntime.preallocate(engram_layers, model_cfg.gpt)
++            engram_storage = {
++                id(layer.embedding.embedding): storage
++                for layer, storage in zip(engram_layers, userbuffer.engram.runtime.get_storage_tensors(), strict=True)
++            }
++
+         # Materialize on GPU/CPU, retaining runtime layout metadata and scales.
+         engram_device = "cuda" if envs.DEEPINFER_ENGRAM_FORCE_GPU_STORAGE else "cpu"
+         materialized_by_name: dict[str, torch.nn.Parameter] = {}
+@@ -483,6 +494,12 @@
+                     # Keep independent layer metadata but share storage from the
+                     # start, so MTP never allocates another vocabulary matrix.
+                     materialized_p = torch.nn.Parameter(source.data, requires_grad=False)
++                elif id(p) in engram_storage:
++                    storage = engram_storage[id(p)]
++                    assert storage.shape == p.shape and storage.dtype == p.dtype
++                    materialized_p = torch.nn.Parameter(storage, requires_grad=False)
++                    if hasattr(p, "sf"):
++                        materialized_p.sf = torch.empty(p.sf.shape, dtype=p.sf.dtype, device="cuda")
+                 elif not skip_load:
+                     materialized_p = materialize_hf_parameter(p, device=device, packed_fp4=packed_fp4)
+                 else:
+@@ -499,7 +516,7 @@
+         del m, materialized_p, materialized_by_name
+         started = log_load_phase("materialize", started)
+ 
+-        if model_cfg.gpt.engram:
++        if model_cfg.gpt.engram and userbuffer.engram is None:
+             EngramRuntime.preallocate(
+                 [gpt.module.module[layer_id + 1].engram_embedding for layer_id in model_cfg.gpt.engram.engram_layer_ids],
+                 model_cfg.gpt,
