@@ -1,4 +1,4 @@
-import pathlib,urllib.request,json,tarfile,io,concurrent.futures,subprocess
+import pathlib,urllib.request,json,tarfile,io,concurrent.futures,subprocess,sys
 ROOT=pathlib.Path(__file__).resolve().parent
 PINS={
  'DeepInfer':('deepseek-ai/DeepInfer','774ce244b87cc0eb8d4b94ab9f5de2ab22049f01'),
@@ -11,6 +11,19 @@ PINS={
  'DeepInfer/vendor/DeepEP-Ascend':('deepseek-ai/DeepEP-Ascend','3b25377d04b24fc6154698ded78a2bcb2c59afff'),
  'DeepInfer/vendor/DeepGEMM-Ascend':('deepseek-ai/DeepGEMM-Ascend','3a35326271b069b8b5bf1a754435acd6cc91575b'),
 }
+marker=ROOT/'source-pins.json'
+if marker.exists():
+ recorded=json.loads(marker.read_text())
+ expected={path:(repo,sha) for path,(repo,sha) in PINS.items()}
+ actual={x['path']:(x['repo'],x['sha']) for x in recorded}
+ if actual!=expected or not all((ROOT/'src'/path).is_dir() for path in expected):
+  raise SystemExit('Source state mismatch; keep this directory and use a separate clean deployment directory.')
+ for path in ['DeepInfer/deepinfer/config.py','DeepInfer/vendor/DeepEP-Ascend/csrc/python_api.cpp','DeepInfer/vendor/DeepGEMM-Ascend/csrc/backends/hccl.hpp','deepseek-recipe/server-py/main.py']:
+  if not (ROOT/'src'/path).is_file():raise SystemExit('Source file missing: '+path)
+ print('PINNED_SOURCES_ALREADY_PRESENT')
+ sys.exit(0)
+if (ROOT/'patch-state.json').exists():
+ raise SystemExit('Patched source has no source-pins.json; inspect the directory instead of overwriting it.')
 def fetch(item):
  path,(repo,sha)=item; dest=ROOT/'src'/path;dest.mkdir(parents=True,exist_ok=True)
  data=subprocess.check_output(['curl','-4','-fLsS','--connect-timeout','10','--max-time','120','--retry','2',f'https://codeload.github.com/{repo}/tar.gz/{sha}'])

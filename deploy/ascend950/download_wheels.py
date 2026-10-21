@@ -5,9 +5,18 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import time
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parent
+
+
+def digest_file(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as source:
+        for block in iter(lambda: source.read(4 * 1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def main():
@@ -20,15 +29,21 @@ def main():
         name = unquote(urlsplit(item['url']).path.rsplit('/', 1)[-1])
         target = folder / name
         if target.exists():
-            with target.open('rb') as source:
-                if hashlib.file_digest(source, 'sha256').hexdigest() == item['sha256']:
-                    return
+            if digest_file(target) == item['sha256']:
+                return
         partial = target.with_name(name + '.partial')
-        subprocess.run(['curl', '-4', '-fLsS', '--connect-timeout', '20', '--retry', '5',
-                        '--retry-all-errors', '-C', '-', '-o', str(partial), item['url']], check=True)
-        with partial.open('rb') as source:
-            actual = hashlib.file_digest(source, 'sha256').hexdigest()
+        command = ['curl', '-4', '-fLsS', '--connect-timeout', '20', '--retry', '5',
+                   '--retry-all-errors', '-C', '-', '-o', str(partial), item['url']]
+        try:
+            subprocess.run(command, check=True)
+        except subprocess.CalledProcessError as error:
+            if error.returncode not in (22, 33, 36) or not partial.exists():
+                raise
+            partial.rename(partial.with_name(partial.name + '.bad-' + str(time.time_ns())))
+            subprocess.run(command, check=True)
+        actual = digest_file(partial)
         if actual != item['sha256']:
+            partial.rename(partial.with_name(partial.name + '.bad-' + str(time.time_ns())))
             raise RuntimeError('SHA256 mismatch: ' + name)
         partial.replace(target)
         print('VERIFIED', name, flush=True)

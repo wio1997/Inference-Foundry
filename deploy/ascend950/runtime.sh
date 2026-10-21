@@ -125,10 +125,12 @@ if [ "$MODE" = --operator-checks ]; then
   exit 0
 fi
 : "${MODEL_DIR:?Set MODEL_DIR to the verified checkpoint directory}"
-python3 - "$MODEL_DIR/.deployment-verification.json" <<'PY'
-import json, sys
+python3 - "$ROOT/model-verification.json" "$MODEL_DIR" "$ROOT/locks/model-manifest.json" <<'PY'
+import hashlib, json, pathlib, sys
 d = json.load(open(sys.argv[1]))
 assert d['phase'] == 'complete' and d['sha256_verified_files'] == 84 and d['weight_shards'] == 48
+assert pathlib.Path(d['path']).resolve() == pathlib.Path(sys.argv[2]).resolve(), 'Verified model path differs'
+assert d['manifest_sha256'] == hashlib.sha256(pathlib.Path(sys.argv[3]).read_bytes()).hexdigest(), 'Model manifest changed'
 PY
 if docker container inspect "$ENGINE" >/dev/null 2>&1; then
   docker start "$ENGINE"

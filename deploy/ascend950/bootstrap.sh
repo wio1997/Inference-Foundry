@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Runs inside a dedicated ARM64 build container, without NPU device passthrough.
 set -Eeuo pipefail
+trap 'printf "BUILD_FAILED at line %s; inspect docker logs for this build container\\n" "$LINENO" >&2' ERR
 export DEBIAN_FRONTEND=noninteractive DEEPINFER_ACCELERATOR=ascend
 export ASCEND_HOME_PATH=/usr/local/Ascend/cann-9.2.0 ASCEND_TOOLKIT_HOME=/usr/local/Ascend/cann-9.2.0
 export MAX_JOBS=${MAX_JOBS:-16} PYTHONUNBUFFERED=1
 cd /work
+rm -f /work/build-state.txt
 test -f locks/requirements-engine.txt
 test -f src/DeepInfer/requirements-dev.txt
 
