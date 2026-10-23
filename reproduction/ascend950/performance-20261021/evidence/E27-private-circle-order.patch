@@ -1,0 +1,11 @@
+--- official/dsa_v41.py
++++ task-native-order/dsa_v41.py
+@@ -1723,6 +1723,8 @@
+ class DeepseekV41MetadataBuilder(AttentionMetadataBuilder[DeepseekV41Metadata]):
+     def __init__(self, kv_cache_spec, layer_names, vllm_config, device):
+         super().__init__(kv_cache_spec, layer_names, vllm_config, device)
++        # E27: activate the native decode-first reorder protocol for mixed batches.
++        self._init_reorder_batch_threshold(supports_spec_as_decode=True)
+         max_tokens = getattr(vllm_config.scheduler_config, "max_num_batched_tokens", 4096)
+         max_reqs = getattr(vllm_config.scheduler_config, "max_num_seqs", 256)
+         self._supports_device_ops = getattr(device, "type", "cpu") != "cpu"

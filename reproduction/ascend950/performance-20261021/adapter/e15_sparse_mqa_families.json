@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "family": "sparse_mqa_logits_metadata",
+  "source": "vendor/DeepGEMM-Ascend/csrc/jit_kernels/sparse_mqa_logits.hpp:43-66 (installed package csrc/jit_kernels/sparse_mqa_logits.hpp)",
+  "api": "deep_gemm.get_sparse_mqa_logits_metadata -> csrc/apis/attention.hpp:59-84",
+  "template": "sparse_mqa_logits_metadata<sparse_block_kv, num_metadata_cores, num_ai_cores, num_schedule_cores>",
+  "dry_run_path": "runtime->get_dry_run() -> jit->compile_without_load('sparse_mqa_logits_metadata', code); return before any launch",
+  "block_sizes": [
+    8
+  ],
+  "qk_dtypes": [
+    "float8_e4m3fn (compile-API validation dtype; template key has no dtype)"
+  ],
+  "q_range": [
+    1,
+    512
+  ],
+  "capacity": 2048,
+  "num_kv_tokens": 33024,
+  "max_q": 512,
+  "actual_model_basis": {
+    "candidate_block_size": 8,
+    "candidate_topk_blocks": 2048,
+    "checkpoint": "/data/wio/DeepSeek-V4.1-Flash-1017"
+  },
+  "notes": [
+    "The compile key does not include num_max_sparse_blocks or num_kv_tokens; capacity 2048 and num_kv_tokens 33024 match the production checkpoint/layout.",
+    "block size 16 is allowed by the header but this checkpoint config uses candidate_block_size=8; no cached block-16 signature was observed.",
+    "Only compile_without_load runs. Dry-run never launches the metadata kernel and no device data values are read."
+  ],
+  "out_of_scope": [
+    "dense fp8/bf16 GEMM families (covered by e14_gemm_families.json)",
+    "paged sparse-MQA metadata",
+    "TileLang/DFlash/ZOS kernels",
+    "DeepEP/Engram kernels",
+    "full model forward or graph capture"
+  ],
+  "compile_api_validation_dtype": "float8_e4m3fn",
+  "actual_indexer_qk_dtype": "packed FP4 (E2M1 + UE8M0 scale) per index_attn.py:85; weights and psum are BF16",
+  "dtype_key_note": "The metadata JIT template key is sparse_mqa_logits_metadata<block, metadata_cores, ai_cores, schedule_cores> and has no dtype. The 88 block-8 signatures are identical for the FP8 compile-API validation call and the actual packed-FP4 production dtype; no recompile is required for the dtype wording.",
+  "actual_topology": {
+    "candidate_source_layer_id": 20,
+    "candidate_block_size": 8,
+    "source_compress_ratio": 1,
+    "candidate_block_size_before_compress": 8,
+    "route": "index_attn.py:243 candidate_block_size = candidate_block_size_before_compress // kv_compress_ratio",
+    "observed_kernel_asc_examples": [
+      "sparse_mqa_logits_metadata<8, 13, 32, 1>",
+      "sparse_mqa_logits_metadata<8, 62, 32, 1>"
+    ],
+    "block16": "allowed by the header but not exercised by this checkpoint; not compiled"
+  }
+}

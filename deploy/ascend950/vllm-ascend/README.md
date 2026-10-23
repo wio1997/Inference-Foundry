@@ -19,4 +19,4 @@ bash 04_verify.sh
 
 `02_prepare.sh` 使用固定版本的官方 Ascend C 源码构建路由算子，安装到容器挂载目录；`patch_dsa.py` 检查原文件 SHA 后启用原生混合批次重排初始化。脚本不修改宿主机驱动和全局 CANN。
 
-完整参数说明见 [HTML 部署手册](../../../docs/ascend950/vllm-ascend-deployment.html)。这些脚本从实测环境整理，已做语法、补丁与路径检查；整理后的整套新主机部署尚未重跑。性能测试使用的内部配置和数据未包含在本次代码发布中。
+完整参数说明见 [HTML 部署手册](../../../docs/ascend950/vllm-ascend-deployment.html)。这些脚本从实测环境整理，已做语法、补丁与路径检查；整理后的整套新主机部署尚未重跑。性能测试需另外遵循 [测试合同](../../../docs/ascend950/PERFORMANCE_REPRODUCTION.md)。
