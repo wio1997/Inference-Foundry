@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="DeepSeek-V4.1-Flash 在 Ascend 950DT 单机八卡上的 vLLM Ascend 适配部署实施指南。"><title>vLLM Ascend 适配部署指南 · Ascend 950DT</title><style>
+:root{--ink:#172536;--muted:#536577;--line:#dce3eb;--blue:#174b85;--light:#f3f6fa;--paper:#fff}
+*{box-sizing:border-box}html{scroll-padding-top:24px}body{margin:0;background:#f7f9fc;color:var(--ink);font:15px/1.8 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+a{color:var(--blue);text-underline-offset:3px;overflow-wrap:anywhere}a:hover{color:#083363}code{font:0.88em/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#edf2f7;padding:2px 5px;border-radius:3px;overflow-wrap:anywhere}code.hash{word-break:break-all}
+.layout{max-width:1470px;margin:auto;display:grid;grid-template-columns:232px minmax(0,1fr);gap:32px;padding:36px 36px 64px}.sidebar{position:sticky;top:32px;align-self:start}.sidebar-title{font-size:13px;font-weight:650;color:var(--muted);letter-spacing:.06em;margin:8px 0 12px}.sidebar a{display:block;text-decoration:none;border-left:2px solid var(--line);padding:7px 0 7px 16px;font-size:13px;line-height:1.5}.sidebar a:hover{background:#eaf0f8;border-color:var(--blue)}
+main{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:42px 48px;min-width:0}.eyebrow{color:var(--blue);font-size:12px;letter-spacing:.08em;font-weight:650}h1{font-size:30px;line-height:1.35;font-weight:650;margin:10px 0 12px}.subtitle{font-size:16px;margin:0 0 20px;color:var(--muted)}.meta{display:flex;gap:12px 28px;flex-wrap:wrap;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}.meta b{color:var(--ink);font-weight:600}
+section{margin-top:44px}h2{font-size:22px;font-weight:650;line-height:1.5;padding-bottom:9px;border-bottom:1px solid var(--line);margin:0 0 18px}h3{font-size:17px;line-height:1.6;margin:25px 0 10px;font-weight:650}p{margin:12px 0}.note{border-left:3px solid #648bb7;background:var(--light);padding:13px 16px;font-size:14px}.table-wrap{overflow:auto;margin:16px 0}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{border:1px solid var(--line);text-align:left;vertical-align:top;padding:10px 12px}th{background:#edf2f7;font-weight:650}td:first-child{min-width:125px}td code{padding:1px 3px}
+.code-label{font-size:11px;font-weight:600;color:var(--muted);background:#eaf0f6;border:1px solid #d5dfeb;border-bottom:0;padding:6px 12px;margin-top:18px;border-radius:4px 4px 0 0}pre{margin:0 0 18px;background:#f6f8fb;border:1px solid #d5dfeb;border-radius:0 0 4px 4px;padding:16px;overflow:auto;line-height:1.65;font-size:12px;tab-size:4}pre code{background:none;padding:0;border:0;font:inherit;white-space:pre;overflow-wrap:normal}details{margin:16px 0;border:1px solid var(--line);border-radius:4px;padding:10px 14px}summary{cursor:pointer;font-size:13px;color:var(--blue);font-weight:600}details .code-label{margin-top:12px}details pre{max-height:600px}details ul{padding-left:22px;font-size:13px}.download{display:inline-block;border:1px solid var(--blue);border-radius:4px;padding:7px 13px;text-decoration:none;font-size:13px;font-weight:600;margin-right:10px}.muted{color:var(--muted);font-size:12px}footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:40px;padding-top:15px}
+@media(max-width:1050px){.layout{grid-template-columns:190px minmax(0,1fr);gap:20px;padding:24px 20px}main{padding:30px 28px}.sidebar a{font-size:12px;padding-left:10px}}
+@media(max-width:760px){.layout{display:block;padding:12px}.sidebar{position:static;margin:6px 4px 20px}.sidebar nav{columns:2}.sidebar a{break-inside:avoid}main{padding:24px 18px}h1{font-size:25px}h2{font-size:20px}table{min-width:580px}.meta{gap:6px 18px}}
+@media print{@page{size:A4;margin:16mm}body{background:#fff;font-size:10pt}.layout{display:block;padding:0;max-width:none}.sidebar{display:none}main{border:0;padding:0}section{margin-top:25px}h1{font-size:22pt}h2{font-size:15pt;break-after:avoid}h3{font-size:11pt;break-after:avoid}table{font-size:8pt;min-width:0}tr{break-inside:avoid}.table-wrap,pre{overflow:visible}pre{white-space:pre-wrap;font-size:7.5pt}pre code{white-space:pre-wrap;word-break:break-word}details{display:none}.download{display:none}a{text-decoration:none;color:#163b67}.note{background:#f3f5f8}.meta{font-size:8pt}}
+</style></head>
+<body><div class="layout"><aside class="sidebar" aria-label="文档目录"><div class="sidebar-title">部署实施指南</div><nav><a href="#scope">1. 部署方案</a><a href="#environment">2. 环境要求</a><a href="#materials">3. 镜像与模型准备</a><a href="#files">4. 目录与拓扑配置</a><a href="#container">5. 创建容器</a><a href="#compatibility">6. 算子构建与兼容补丁</a><a href="#start">7. 启动服务</a><a href="#acceptance">8. 部署验收</a><a href="#operations">9. 停止、恢复与回退</a><a href="#troubleshooting">10. 常见问题</a><a href="#sources">11. 官方资料与交付附件</a></nav></aside><main><header><div class="eyebrow">DEPLOYMENT GUIDE · ASCEND 950DT</div><h1>vLLM Ascend 适配部署指南</h1><p class="subtitle">DeepSeek-V4.1-Flash · 单机 8 卡 · OpenAI 兼容服务</p><div class="meta"><span><b>文档编号</b> VLLM-950DT-DS41</span><span><b>版本</b> 1.0</span><span><b>更新日期</b> 2026-10-23</span></div></header><section id="scope"><h2>1. 部署方案</h2>
+<p>在单台 8 卡 Ascend 950DT 服务器上部署 DeepSeek-V4.1-Flash，提供 OpenAI 兼容 HTTP 接口。使用官方 <code>vllm_cann:ds41</code> 镜像、原始 Hybrid FP8-MXFP4 权重，以及 DP8 / TP1 / EP8 并行配置。</p>
+<p class="note">官方 950 vLLM 示例采用双机 PD 分离。本指南以该软件发布为基线，给出本机的单机 PD 混部实施配置；单机启动参数及兼容修改见第 6、7 节。官方来源：<a href="https://gitcode.com/cann/cann-recipes-infer/blob/master/models/deepseek_v4_1/README.md" target="_blank" rel="noopener noreferrer">CANN DeepSeek-V4.1 部署说明</a>。</p>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>配置</th></tr></thead><tbody><tr><td>服务形态</td><td>单机 PD 混部；Prefill 与 Decode 共用 8 张 NPU</td></tr><tr><td>模型与量化</td><td>DeepSeek-V4.1-Flash；原始 Hybrid FP8-MXFP4；<code>deepseek_v4_fp8</code></td></tr><tr><td>并行方式</td><td>DP = 8；Attention TP = 1；开启 Expert Parallel，MoE EP = 8</td></tr><tr><td>主要特性</td><td>DSpark 5、Engram FP8 与 CPU 卸载、前缀缓存、异步调度、Decode 图模式、静态 Kernel、共享专家多流重叠</td></tr><tr><td>接口</td><td><code>/health</code>、<code>/v1/models</code>、<code>/v1/completions</code>、<code>/v1/chat/completions</code>、<code>/metrics</code></td></tr><tr><td>默认监听</td><td><code>0.0.0.0:8000</code>；服务模型名 <code>DeepSeek-V4.1-Flash-1017</code></td></tr></tbody></table></div>
+<p>实施顺序：环境核验 → 准备镜像、权重和拓扑 → 创建容器 → 编译算子并应用补丁 → 启动服务 → 验收与归档。</p>
+</section><section id="environment"><h2>2. 环境要求</h2>
+<h3>2.1 本机硬件与系统</h3>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>已核对配置</th><th>实施要求</th></tr></thead><tbody><tr><td>NPU</td><td>8 × Ascend 950DT；每卡 96 GiB HBM</td><td>使用设备 0–7；8 卡健康状态为 OK，部署时资源可用</td></tr><tr><td>CPU</td><td>aarch64；2 路，192 物理核 / 384 逻辑 CPU</td><td>容器 CPU 配额 384，允许 CPU 0–383</td></tr><tr><td>主机内存</td><td>约 2.2 TiB</td><td>容器内存上限 1024 GiB；为 Engram CPU 卸载保留可用内存</td></tr><tr><td>NUMA / 卡间互联</td><td>4 个 NUMA 节点；8 卡 UB 互联</td><td>保留本机拓扑；启动完成后检查 worker CPU 亲和性</td></tr><tr><td>操作系统</td><td>openEuler 24.03 LTS-SP4</td><td>宿主机具备 Docker、Bash、curl、Python 3、iproute、unzip</td></tr><tr><td>驱动</td><td>25.6.rc1</td><td>沿用本机已运行版本；驱动目录以只读方式映射进容器</td></tr><tr><td>通信网卡</td><td><code>enp161s0f0</code></td><td><code>HCCL_SOCKET_IFNAME</code> 与本机有效网卡一致</td></tr></tbody></table></div>
+<h3>2.2 软件版本</h3>
+<div class="table-wrap"><table><thead><tr><th>组件</th><th>固定版本或来源</th><th>核验方式</th></tr></thead><tbody><tr><td>镜像</td><td><code>vllm_cann:ds41</code>，linux/arm64</td><td>同时核对镜像 ID 与归档文件 SHA256，见第 3 节</td></tr><tr><td>vLLM</td><td><code>0.27.1</code><br><code class="hash">6e448d0ea9bf3d88d898b65449ca6dc2aec170ac</code></td><td><code>/vllm-workspace/vllm</code> 的 Git HEAD</td></tr><tr><td>vLLM Ascend</td><td><code>releases/v0.27.1rc</code><br><code class="hash">2c00c27e5fa1c5458720a516a8b7897f0b2dc7ac</code></td><td><code>/opt/vllm-ascend-dsnext</code> 的 Git HEAD 与实际导入路径</td></tr><tr><td>Python / PyTorch</td><td><code>3.12.13</code> / <code>2.10.0+cpu</code></td><td>使用镜像内 Python；NPU 由 torch_npu 扩展提供</td></tr><tr><td>torch_npu</td><td><code>2.10.0.post4</code></td><td>镜像内安装版本</td></tr><tr><td>CANN / ATB</td><td>镜像内 CANN 9.2.0 及随镜像提供的 IR、ATB 环境</td><td>运行脚本加载镜像自带环境；其中 IR 路径位于 <code>cann-9.1.0</code> 目录</td></tr><tr><td>补充算子源码</td><td><code class="hash">6d060311ae75f6105fe4216e20566875da5a8838</code></td><td><a href="https://gitcode.com/cann/cann-recipes-infer/blob/6d060311ae75f6105fe4216e20566875da5a8838/ops/ascendc/README.md" target="_blank" rel="noopener noreferrer">官方 Ascend C 算子构建说明（固定提交）</a></td></tr></tbody></table></div>
+<p><code>pip show vllm-ascend</code> 的版本字符串与镜像内实际源码存在差异，部署记录应保存 Git HEAD 和导入路径。升级镜像时，应重新核对这些值及补丁兼容性。</p>
+<div class="code-label">宿主机 · Bash</div><pre><code>uname -m
+cat /etc/os-release
+lscpu
+free -h
+df -h /data /dev/shm
+npu-smi info
+npu-smi info -t topo
+docker version
+ip addr show enp161s0f0
+ss -ltnp</code></pre>
+<p>开始创建容器前，确认 8 张 NPU 的占用情况，并安排独占部署窗口。<code>--ipc=host</code> 使用宿主机共享内存，需检查宿主机 <code>/dev/shm</code> 的容量与余量。</p>
+</section><section id="materials"><h2>3. 镜像与模型准备</h2>
+<h3>3.1 下载并导入镜像</h3>
+<p>在 <a href="https://gitcode.com/cann/cann-recipes-infer/blob/master/models/deepseek_v4_1/README.md" target="_blank" rel="noopener noreferrer">官方 README</a> 的“vLLM 框架 PD 分离部署 → 下载并导入镜像”中获取 <code>vllm_cann_ds41.tar</code>。该归档对应以下部署基线：</p>
+<div class="table-wrap"><table><thead><tr><th>核验项</th><th>预期值</th></tr></thead><tbody><tr><td>归档 SHA256</td><td><code class="hash">b56431aba30e78e31c3a6e095e7728b78246a4600e5a0a86100e48777b67375c</code></td></tr><tr><td>镜像 ID</td><td><code class="hash">sha256:eed33114ff8ab28bb2ae83ca6d56b9fad0725a1e13de784a2922cf2ab28c9274</code></td></tr><tr><td>导入标签</td><td><code>vllm_cann:ds41</code></td></tr></tbody></table></div>
+<div class="code-label">宿主机 · Bash</div><pre><code>cd /path/to/image
+echo &#x27;b56431aba30e78e31c3a6e095e7728b78246a4600e5a0a86100e48777b67375c  vllm_cann_ds41.tar&#x27; | sha256sum -c -
+docker load -i vllm_cann_ds41.tar
+docker image inspect vllm_cann:ds41 --format &#x27;{{.Id}} {{.Os}}/{{.Architecture}}&#x27;</code></pre>
+<p>核验不一致时先确认官方是否更换归档，不应跳过脚本中的镜像校验继续套用本版补丁。</p>
+<h3>3.2 准备原始权重</h3>
+<p>使用 <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash" target="_blank" rel="noopener noreferrer">DeepSeek 官方模型仓库</a> 提供的原始 Hybrid FP8-MXFP4 权重。保存完整权重分片、索引、<code>config.json</code>、tokenizer 及模型配套文件；vLLM 直接加载该目录。</p>
+<div class="code-label">宿主机 · Bash</div><pre><code># 本机已有模型目录；新部署时修改 deploy.env 中的 MODEL_DIR。
+MODEL_DIR=/data/wio/DeepSeek-V4.1-Flash-1017
+test -f &quot;$MODEL_DIR/config.json&quot;
+test -f &quot;$MODEL_DIR/model.safetensors.index.json&quot;
+python3 - &quot;$MODEL_DIR&quot; &lt;&lt;&#x27;PY&#x27;
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1])
+config = json.loads((p / &#x27;config.json&#x27;).read_text())
+assert config[&#x27;model_type&#x27;] == &#x27;deepseek_v41&#x27;, config[&#x27;model_type&#x27;]
+index = json.loads((p / &#x27;model.safetensors.index.json&#x27;).read_text())
+shards = set(index[&#x27;weight_map&#x27;].values())
+missing = [s for s in sorted(shards) if not (p / s).is_file()]
+assert not missing, missing
+print(&#x27;Model type:&#x27;, config[&#x27;model_type&#x27;], &#x27;Weight shards:&#x27;, len(shards))
+PY</code></pre>
+<p>交付时记录模型仓库 revision 或本地文件清单，确保重新部署使用相同权重。</p>
+</section><section id="files"><h2>4. 目录与拓扑配置</h2>
+<p>将配套脚本包解压到部署目录。以下示例使用 <code>/data/deploy/vllm-ascend-ds41</code>，后续命令均在该目录执行。</p>
+<div class="code-label">宿主机 · Bash</div><pre><code>mkdir -p /data/deploy
+unzip 07-vllm-ascend-950dt-scripts.zip -d /data/deploy
+cd /data/deploy/vllm-ascend-ds41
+sha256sum -c SHA256SUMS
+mkdir -p topology logs artifacts backups
+vi deploy.env</code></pre>
+<div class="code-label">宿主机 · deploy.env</div><pre><code># Edit on the deployment host before creating the container.
+DEPLOY_DIR=/data/deploy/vllm-ascend-ds41
+CONTAINER_NAME=vllm-dsv41-950dt
+IMAGE=vllm_cann:ds41
+MODEL_DIR=/data/wio/DeepSeek-V4.1-Flash-1017
+TOPOLOGY_DIR=/data/deploy/vllm-ascend-ds41/topology
+HCCL_NIC=enp161s0f0
+SERVICE_PORT=8000
+CPUSET=0-383
+CPU_QUOTA=384
+MEMORY_LIMIT=1024g
+MEMORY_SWAP_LIMIT=2048g</code></pre>
+<p>按 <a href="https://gitcode.com/cann/hixl/wiki/A5%20LocalCommRes%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97.md" target="_blank" rel="noopener noreferrer">官方 A5 LocalCommRes 配置指南</a> 准备本机拓扑，将有效的 <code>hccl_rootinfo.json</code> 与 <code>hixlep</code> 文件或目录放入 <code>TOPOLOGY_DIR</code>。需要与本机设备、UB 通信资源及网络配置匹配。</p>
+<div class="code-label">宿主机 · Bash</div><pre><code># 已由设备侧配置完成时，可从本机有效位置复制；否则先按官方指南生成。
+test -e /etc/hccl_rootinfo.json
+test -e /etc/hixlep
+cp -a /etc/hccl_rootinfo.json ./topology/hccl_rootinfo.json
+cp -a /etc/hixlep ./topology/hixlep
+python3 -m json.tool ./topology/hccl_rootinfo.json &gt; /dev/null</code></pre>
+<p>如有效拓扑位于独立目录，直接复制该目录中的本机配置。已有运行容器使用独立拓扑时，应核对其挂载源，不能仅凭 <code>/etc</code> 中存在同名文件判断有效。</p>
+<div class="table-wrap"><table><thead><tr><th>宿主机位置</th><th>容器位置</th><th>权限</th></tr></thead><tbody><tr><td><code>MODEL_DIR</code></td><td><code>/models/DeepSeek-V4.1-Flash</code></td><td>只读</td></tr><tr><td><code>DEPLOY_DIR</code></td><td><code>/workspace/deploy</code></td><td>读写</td></tr><tr><td><code>TOPOLOGY_DIR/hccl_rootinfo.json</code></td><td><code>/etc/hccl_rootinfo.json</code></td><td>只读</td></tr><tr><td><code>TOPOLOGY_DIR/hixlep</code></td><td><code>/etc/hixlep</code></td><td>只读</td></tr><tr><td><code>/usr/local/Ascend/driver</code></td><td>同路径</td><td>只读</td></tr></tbody></table></div>
+</section><section id="container"><h2>5. 创建容器</h2>
+<p>脚本映射 8 个 NPU、管理设备和本机 UB 设备，设置主机网络、主机 IPC、CPU 配额和内存上限。容器名已存在时停止创建，避免覆盖已有部署。</p>
+<div class="code-label">宿主机 · Bash</div><pre><code>bash 01_create_container.sh
+source ./deploy.env
+docker inspect &quot;$CONTAINER_NAME&quot; --format &#x27;{{.HostConfig.NanoCpus}} {{.HostConfig.CpusetCpus}} {{.HostConfig.Memory}}&#x27;
+docker exec &quot;$CONTAINER_NAME&quot; bash -c &#x27;git -C /vllm-workspace/vllm rev-parse HEAD; git -C /opt/vllm-ascend-dsnext rev-parse HEAD&#x27;</code></pre>
+<p>资源核验预期：<code>NanoCpus=384000000000</code>、<code>CpusetCpus=0-383</code>、<code>Memory=1099511627776</code>。<code>--memory-swap=2048g</code> 是内存与交换空间的总额度，实际可用交换空间受宿主机限制。</p>
+<details><summary>查看完整容器创建脚本</summary><div class="code-label">宿主机 · 01_create_container.sh</div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+source &quot;$(dirname -- &quot;${BASH_SOURCE[0]}&quot;)/host_common.sh&quot;
+EXPECTED_IMAGE=sha256:eed33114ff8ab28bb2ae83ca6d56b9fad0725a1e13de784a2922cf2ab28c9274
+test &quot;$(docker image inspect --format &#x27;{{.Id}}&#x27; &quot;$IMAGE&quot;)&quot; = &quot;$EXPECTED_IMAGE&quot;
+test &quot;$(docker image inspect --format &#x27;{{.Architecture}}&#x27; &quot;$IMAGE&quot;)&quot; = aarch64 || \
+  test &quot;$(docker image inspect --format &#x27;{{.Architecture}}&#x27; &quot;$IMAGE&quot;)&quot; = arm64
+if docker container inspect &quot;$CONTAINER_NAME&quot; &gt;/dev/null 2&gt;&amp;1; then
+  echo &#x27;Container already exists; choose a new name or inspect the existing deployment.&#x27; &gt;&amp;2
+  exit 1
+fi
+for p in &quot;$MODEL_DIR/config.json&quot; &quot;$TOPOLOGY_DIR/hccl_rootinfo.json&quot; \
+  &quot;$TOPOLOGY_DIR/hixlep&quot; /usr/local/Ascend/driver /usr/local/sbin/npu-smi \
+  /lib/route.conf /etc/ascend_install.info; do
+  test -e &quot;$p&quot; || { echo &quot;Missing prerequisite: $p&quot; &gt;&amp;2; exit 1; }
+done
+ip link show &quot;$HCCL_NIC&quot; &gt;/dev/null
+if ss -H -ltn &quot;sport = :$SERVICE_PORT&quot; | grep -q .; then
+  echo &quot;Port $SERVICE_PORT is already in use.&quot; &gt;&amp;2; exit 1
+fi
+devices=()
+for i in {0..7}; do devices+=(&quot;/dev/davinci$i&quot;); done
+devices+=(/dev/davinci_manager /dev/hisi_hdc /dev/ummu)
+for d in 0 1; do
+  for e in 2 3 4 5 6; do devices+=(&quot;/dev/uburma/udmac${d}d1e${e}&quot;); done
+done
+device_args=()
+for p in &quot;${devices[@]}&quot;; do
+  test -c &quot;$p&quot; || { echo &quot;Missing device: $p&quot; &gt;&amp;2; exit 1; }
+  device_args+=(--device &quot;$p:$p:rwm&quot;)
+done
+mkdir -p &quot;$DEPLOY_DIR/logs&quot; &quot;$DEPLOY_DIR/backups&quot; &quot;$DEPLOY_DIR/artifacts&quot;
+docker run -d --name &quot;$CONTAINER_NAME&quot; --label &quot;deployment.id=$DEPLOY_LABEL&quot; \
+  --network host --ipc host --security-opt label=disable \
+  --ulimit memlock=-1:-1 \
+  --cpus &quot;$CPU_QUOTA&quot; --cpuset-cpus &quot;$CPUSET&quot; \
+  --memory &quot;$MEMORY_LIMIT&quot; --memory-swap &quot;$MEMORY_SWAP_LIMIT&quot; \
+  &quot;${device_args[@]}&quot; \
+  --mount &quot;type=bind,src=$MODEL_DIR,dst=/models/DeepSeek-V4.1-Flash,readonly&quot; \
+  --mount &quot;type=bind,src=$DEPLOY_DIR,dst=/workspace/deploy&quot; \
+  --mount type=bind,src=/usr/local/Ascend/driver,dst=/usr/local/Ascend/driver,readonly \
+  --mount type=bind,src=/usr/local/sbin/npu-smi,dst=/usr/local/bin/npu-smi,readonly \
+  --mount type=bind,src=/lib/route.conf,dst=/lib/route.conf,readonly \
+  --mount type=bind,src=/etc/ascend_install.info,dst=/etc/ascend_install.info,readonly \
+  --mount &quot;type=bind,src=$TOPOLOGY_DIR/hccl_rootinfo.json,dst=/etc/hccl_rootinfo.json,readonly&quot; \
+  --mount &quot;type=bind,src=$TOPOLOGY_DIR/hixlep,dst=/etc/hixlep,readonly&quot; \
+  -e ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+  -e GLOO_SOCKET_IFNAME=lo -e &quot;HCCL_SOCKET_IFNAME=$HCCL_NIC&quot; \
+  -e HCCL_IF_BASE_PORT=49381 -e HCCL_BUFFSIZE=1024 \
+  -e LOCAL_WORLD_SIZE=8 -e TASK_QUEUE_ENABLE=1 -e OMP_NUM_THREADS=1 \
+  -e PYTORCH_NPU_ALLOC_CONF=expandable_segments:True -e PYTHONUNBUFFERED=1 \
+  -e &quot;SERVICE_PORT=$SERVICE_PORT&quot; \
+  --workdir /workspace/deploy --entrypoint /bin/bash &quot;$IMAGE&quot; -c &#x27;sleep infinity&#x27;
+docker exec &quot;$CONTAINER_NAME&quot; npu-smi info</code></pre></details>
+</section><section id="compatibility"><h2>6. 算子构建与兼容补丁</h2>
+<h3>6.1 MoE 路由算子接口对齐</h3>
+<p>本镜像的 <code>custom_ops</code> 绑定包含 <code>additional_bias</code>、<code>additional_token_mask</code> 等参数，需要匹配 20 参数的 <code>aclnnMoeGatingTopKHashGetWorkspaceSize</code> 接口。重建官方 <code>moe_gating_top_k_hash</code> 算子，并安装到本部署独立目录，使运行时优先加载该实现。</p>
+<p>源码：<a href="https://gitcode.com/cann/cann-recipes-infer" target="_blank" rel="noopener noreferrer">CANN recipes infer 官方仓库</a>；固定提交 <code class="hash">6d060311ae75f6105fe4216e20566875da5a8838</code>。构建参数采用官方 <code>ascend950</code> 目标，参考 <a href="https://gitcode.com/cann/cann-recipes-infer/blob/6d060311ae75f6105fe4216e20566875da5a8838/ops/ascendc/README.md" target="_blank" rel="noopener noreferrer">自定义算子编译说明</a>。</p>
+<h3>6.2 DSA 混合批次排序初始化</h3>
+<p>在 <code>DeepseekV41MetadataBuilder.__init__</code> 中初始化 Decode 优先排序协议，使 DSpark 与私有循环池在混合 Prefill / Decode 批次下使用一致顺序。补丁只增加下面一行：</p>
+<div class="code-label">容器内 · dsa_v41.py</div><pre><code>self._init_reorder_batch_threshold(supports_spec_as_decode=True)</code></pre>
+<p>目标文件为 <code>/opt/vllm-ascend-dsnext/vllm_ascend/attention/dsa_v41.py</code>。脚本校验原文件 SHA256、保存备份，并检查修改后的 Python 语法；文件版本不符时中止。</p>
+<h3>6.3 执行准备</h3>
+<div class="code-label">宿主机 · Bash</div><pre><code>source ./deploy.env
+docker exec &quot;$CONTAINER_NAME&quot; bash /workspace/deploy/02_prepare.sh
+
+# 在模型启动前执行一次路由接口检查。
+docker exec &quot;$CONTAINER_NAME&quot; bash -c &#x27;set -e; source /workspace/deploy/runtime_env.sh; python3 /workspace/deploy/check_routing.py&#x27; \
+  | tee ./artifacts/routing-check.jsonl</code></pre>
+<p>路由检查包含混合 mask、文本 mask、hash 路由和 BF16 四个小用例，末尾应输出 <code>"cases": 4</code>、<code>"ok": true</code>。同时检查输出中的动态库路径，确认加载 <code>/workspace/deploy/opp/vendors/customize/op_api/lib/libcust_opapi.so</code>。</p>
+<div class="table-wrap"><table><thead><tr><th>实施项</th><th>内容</th></tr></thead><tbody><tr><td>构建命令</td><td><code>OPS_CPU_NUMBER=16 bash build.sh -c ascend950 -n moe_gating_top_k_hash</code></td></tr><tr><td>安装根目录</td><td><code>/workspace/deploy/opp</code>；安装器在其下生成 <code>vendors/customize</code></td></tr><tr><td>库加载优先级</td><td>部署目录 provider → 镜像 CANN customize → custom_transformer</td></tr><tr><td>环境处理</td><td>加载镜像自带 CANN、IR、ATB；清理环境变量中可能遮蔽算子库的 <code>/vllm-workspace</code> 路径项</td></tr><tr><td>编译线程</td><td><code>OPS_CPU_NUMBER=16</code> 仅限制算子编译并行度；推理容器仍使用 384 逻辑 CPU 配额</td></tr></tbody></table></div>
+<details><summary>查看算子构建与安装脚本</summary><div class="code-label">容器内 · 02_prepare.sh</div><pre><code>#!/usr/bin/env bash
+# Run inside the new deployment container.
+set -euo pipefail
+cd /workspace/deploy
+source ./cann_env.sh
+test &quot;$(git -C /vllm-workspace/vllm rev-parse HEAD)&quot; = 6e448d0ea9bf3d88d898b65449ca6dc2aec170ac
+test &quot;$(git -C /opt/vllm-ascend-dsnext rev-parse HEAD)&quot; = 2c00c27e5fa1c5458720a516a8b7897f0b2dc7ac
+python3 ./patch_dsa.py
+SRC=/workspace/deploy/src/cann-recipes-infer
+PIN=6d060311ae75f6105fe4216e20566875da5a8838
+mkdir -p /workspace/deploy/src /workspace/deploy/opp /workspace/deploy/artifacts
+if [ ! -e &quot;$SRC&quot; ]; then
+  git clone https://gitcode.com/cann/cann-recipes-infer.git &quot;$SRC&quot;
+  git -C &quot;$SRC&quot; checkout --detach &quot;$PIN&quot;
+fi
+test &quot;$(git -C &quot;$SRC&quot; rev-parse HEAD)&quot; = &quot;$PIN&quot;
+test -z &quot;$(git -C &quot;$SRC&quot; status --porcelain --untracked-files=no)&quot;
+cd &quot;$SRC/ops/ascendc&quot;
+OPS_CPU_NUMBER=16 bash build.sh -c ascend950 -n moe_gating_top_k_hash \
+  2&gt;&amp;1 | tee /workspace/deploy/logs/build-moe-routing.log
+PACKAGE=&quot;$SRC/ops/ascendc/build/CANN-custom_ops-none-linux.aarch64.run&quot;
+test -f &quot;$PACKAGE&quot;
+UNPACK=&quot;/workspace/deploy/artifacts/moe-routing-$(date -u +%Y%m%dT%H%M%SZ)&quot;
+bash &quot;$PACKAGE&quot; --noexec --extract=&quot;$UNPACK&quot;
+cd &quot;$UNPACK&quot;
+bash ./install.sh --install-path=/workspace/deploy/opp --quiet
+PROVIDER=/workspace/deploy/opp/vendors/customize
+test -f &quot;$PROVIDER/op_api/lib/libcust_opapi.so&quot;
+nm -D &quot;$PROVIDER/op_api/lib/libcust_opapi.so&quot; | grep -E &#x27;aclnnMoeGatingTopKHash(GetWorkspaceSize)?$&#x27;
+sha256sum &quot;$PACKAGE&quot; &quot;$PROVIDER/op_api/lib/libcust_opapi.so&quot; \
+  &quot;$PROVIDER/op_api/include/aclnn_moe_gating_top_k_hash.h&quot; \
+  &gt; /workspace/deploy/artifacts/operator-sha256.txt
+echo &#x27;Preparation complete. Run the routing smoke before starting the model.&#x27;</code></pre></details>
+<details><summary>查看 DSA 补丁脚本</summary><div class="code-label">容器内 · patch_dsa.py</div><pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Apply a version-checked DSA metadata initialization patch; no NPU calls.&quot;&quot;&quot;
+import hashlib
+import pathlib
+
+TARGET = pathlib.Path(&#x27;/opt/vllm-ascend-dsnext/vllm_ascend/attention/dsa_v41.py&#x27;)
+BASE_SHA = &#x27;47cfb57d13143ed56f7eb0c76511f80d28af3deeb6477c1380c9845345782ef2&#x27;
+ANCHOR = b&#x27;&#x27;&#x27;class DeepseekV41MetadataBuilder(AttentionMetadataBuilder[DeepseekV41Metadata]):
+    def __init__(self, kv_cache_spec, layer_names, vllm_config, device):
+        super().__init__(kv_cache_spec, layer_names, vllm_config, device)
+&#x27;&#x27;&#x27;
+ADDITION = b&#x27;        self._init_reorder_batch_threshold(supports_spec_as_decode=True)\n&#x27;
+
+def patched(base):
+    assert hashlib.sha256(base).hexdigest() == BASE_SHA, &#x27;Unexpected source SHA256&#x27;
+    assert base.count(ANCHOR) == 1, &#x27;Unexpected metadata builder layout&#x27;
+    out = base.replace(ANCHOR, ANCHOR + ADDITION, 1)
+    compile(out, str(TARGET), &#x27;exec&#x27;)
+    return out
+
+def main():
+    backup = pathlib.Path(&#x27;/workspace/deploy/backups/dsa_v41.py.original&#x27;)
+    current = TARGET.read_bytes()
+    if backup.exists():
+        desired = patched(backup.read_bytes())
+        if current == desired:
+            print(&#x27;DSA patch already applied&#x27;); return
+        assert current == backup.read_bytes(), &#x27;Source differs from backup and patch&#x27;
+    else:
+        desired = patched(current)
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        backup.write_bytes(current)
+    TARGET.write_bytes(desired)
+    print(&#x27;DSA patched SHA256=&#x27; + hashlib.sha256(desired).hexdigest())
+
+if __name__ == &#x27;__main__&#x27;:
+    main()</code></pre></details>
+</section><section id="start"><h2>7. 启动服务</h2>
+<h3>7.1 运行参数</h3>
+<div class="table-wrap"><table><thead><tr><th>参数</th><th>基线值</th><th>含义</th></tr></thead><tbody><tr><td><code>data-parallel-size / size-local</code></td><td>8 / 8</td><td>8 个本地 DP worker</td></tr><tr><td><code>tensor-parallel-size</code></td><td>1</td><td>Attention 不做 TP 切分；专家通过 EP 跨 8 卡分布</td></tr><tr><td><code>max-model-len</code></td><td>98304</td><td>单请求输入与输出的总上下文上限</td></tr><tr><td><code>max-num-batched-tokens</code></td><td>8256</td><td>本固定版本在 DSpark 5、max-num-seqs=16 时预留 64，实际调度预算为 8192；以解析后的运行日志为准</td></tr><tr><td><code>max-num-seqs</code></td><td>16</td><td>每个 DP worker 的序列上限；客户端并发单独设置</td></tr><tr><td><code>gpu-memory-utilization / block-size</code></td><td>0.85 / 128</td><td>NPU 内存预算比例与 KV block 粒度</td></tr><tr><td><code>async-scheduling / prefix-caching</code></td><td>开启 / 开启</td><td>异步调度；复用相同 token 前缀</td></tr><tr><td><code>speculative-config</code></td><td>DSpark，5 token</td><td>模型推测解码</td></tr><tr><td><code>cudagraph_mode</code></td><td>FULL_DECODE_ONLY</td><td>Decode 图捕获；档位 [6,12,24,48,96]</td></tr><tr><td><code>enable_npugraph_ex / enable_static_kernel</code></td><td>true / true</td><td>扩展图模式与静态 Kernel</td></tr><tr><td>Engram</td><td>FP8、CPU offload、TP8</td><td>Engram 存储与 CPU 卸载配置</td></tr><tr><td>CPU binding / shared expert overlap</td><td>true / true</td><td>启用 worker CPU 绑定与共享专家多流重叠</td></tr></tbody></table></div>
+<p>上述参数作为本机可复现部署基线。修改序列上限、DSpark 数量、上下文长度或图档位时，需要重新检查有效 token 预算、显存余量与图捕获结果。</p>
+<h3>7.2 提交启动</h3>
+<div class="code-label">宿主机 · Bash</div><pre><code>bash 03_start.sh
+tail -f ./logs/service.log</code></pre>
+<p>初始化依次进行权重加载、KV 分配、静态 Kernel 编译和 8 个 rank 的图捕获。等待图捕获完成及 HTTP 健康检查通过后，再接入业务流量。</p>
+<div class="code-label">容器内 · 完整 vLLM 启动命令</div><pre><code>#!/usr/bin/env bash
+# Run inside the deployment container; foreground service.
+set -euo pipefail
+source /workspace/deploy/runtime_env.sh
+cd /workspace/deploy
+exec vllm serve /models/DeepSeek-V4.1-Flash \
+  --host 0.0.0.0 --port &quot;${SERVICE_PORT:-8000}&quot; \
+  --served-model-name DeepSeek-V4.1-Flash-1017 \
+  --data-parallel-size 8 --data-parallel-size-local 8 \
+  --tensor-parallel-size 1 --enable-expert-parallel \
+  --max-model-len 98304 --max-num-batched-tokens 8256 --max-num-seqs 16 \
+  --async-scheduling --gpu-memory-utilization 0.85 --block-size 128 \
+  --trust-remote-code --safetensors-load-strategy lazy \
+  --quantization deepseek_v4_fp8 --enable-prefix-caching \
+  --compilation-config &#x27;{&quot;cudagraph_mode&quot;:&quot;FULL_DECODE_ONLY&quot;,&quot;cudagraph_capture_sizes&quot;:[6,12,24,48,96]}&#x27; \
+  --speculative-config &#x27;{&quot;num_speculative_tokens&quot;:5,&quot;method&quot;:&quot;dspark&quot;}&#x27; \
+  --additional-config &#x27;{&quot;enable_engram&quot;:true,&quot;engram_storage&quot;:&quot;fp8&quot;,&quot;enable_engram_offload&quot;:true,&quot;engram_tp_size&quot;:8,&quot;weight_nz_mode&quot;:2,&quot;multistream_overlap_shared_expert&quot;:true,&quot;enable_cpu_binding&quot;:true,&quot;ascend_compilation_config&quot;:{&quot;enable_npugraph_ex&quot;:true,&quot;enable_static_kernel&quot;:true}}&#x27;</code></pre>
+<details><summary>查看 CANN 与算子加载环境</summary><div class="code-label">容器内 · cann_env.sh</div><pre><code>#!/usr/bin/env bash
+# Source inside the pinned official image.
+set +u
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
+source /usr/local/Ascend/cann-9.1.0/share/info/ascendnpu-ir/bin/set_env.sh
+source /usr/local/Ascend/nnal/atb/set_env.sh --cxx_abi=&quot;${ATB_CXX_ABI:-1}&quot;
+export PYTHONPATH=&quot;/usr/local/python3.12.13/lib/python3.12/site-packages:${PYTHONPATH:-}&quot;
+filter_workspace_paths() {
+  local item result=&#x27;&#x27; items=()
+  IFS=: read -r -a items &lt;&lt;&lt; &quot;$1&quot;
+  for item in &quot;${items[@]}&quot;; do
+    case &quot;$item&quot; in &#x27;&#x27;|*/vllm-workspace*) continue ;; esac
+    result=&quot;${result:+$result:}$item&quot;
+  done
+  printf &#x27;%s&#x27; &quot;$result&quot;
+}
+export PYTHONPATH=&quot;$(filter_workspace_paths &quot;${PYTHONPATH:-}&quot;)&quot;
+export LD_LIBRARY_PATH=&quot;$(filter_workspace_paths &quot;${LD_LIBRARY_PATH:-}&quot;)&quot;
+set -u</code></pre><div class="code-label">容器内 · runtime_env.sh</div><pre><code>#!/usr/bin/env bash
+source /workspace/deploy/cann_env.sh
+PROVIDER=/workspace/deploy/opp/vendors/customize
+test -f &quot;$PROVIDER/op_api/lib/libcust_opapi.so&quot;
+export ASCEND_CUSTOM_OPP_PATH=&quot;$PROVIDER:/usr/local/Ascend/cann-9.2.0/opp/vendors/customize:/usr/local/Ascend/cann-9.2.0/opp/vendors/custom_transformer&quot;
+export LD_LIBRARY_PATH=&quot;$PROVIDER/op_api/lib:/usr/local/Ascend/cann-9.2.0/opp/vendors/customize/op_api/lib:/usr/local/Ascend/cann-9.2.0/opp/vendors/custom_transformer/op_api/lib:${LD_LIBRARY_PATH:-}&quot;
+export VLLM_ASCEND_ENABLE_PRIVATE_CIRCLE_POOL=1
+export LOCAL_WORLD_SIZE=8 TASK_QUEUE_ENABLE=1</code></pre></details>
+</section><section id="acceptance"><h2>8. 部署验收</h2>
+<h3>8.1 接口与真实生成</h3>
+<div class="code-label">宿主机 · Bash</div><pre><code>bash 04_verify.sh
+
+# SSE 流式接口验证。
+source ./deploy.env
+curl --fail --no-buffer --max-time 180 \
+  &quot;http://127.0.0.1:$SERVICE_PORT/v1/completions&quot; \
+  -H &#x27;Content-Type: application/json&#x27; \
+  --data &#x27;{&quot;model&quot;:&quot;DeepSeek-V4.1-Flash-1017&quot;,&quot;prompt&quot;:&quot;Explain what an NPU is.&quot;,&quot;max_tokens&quot;:64,&quot;temperature&quot;:0,&quot;stream&quot;:true}&#x27;</code></pre>
+<p>非流式响应应包含实际生成文本、<code>usage.completion_tokens &gt; 0</code>；流式响应应持续返回有效事件，并以 <code>[DONE]</code> 正常结束。</p>
+<h3>8.2 八卡与特性检查</h3>
+<div class="table-wrap"><table><thead><tr><th>检查项</th><th>验收标准</th></tr></thead><tbody><tr><td>NPU 状态</td><td>8 卡健康；8 个 worker 均成功加载模型，无 worker 退出或持续重启</td></tr><tr><td>图捕获</td><td>当前启动日志中 DP0–DP7 均出现 <code>Graph capturing finished</code>；结合 rank 日志确认完整性</td></tr><tr><td>静态 Kernel</td><td>记录编译汇总、失败项与是否回退；存在失败项时单独确认受影响路径</td></tr><tr><td>DSpark</td><td>生成请求后，相关 draft / accepted token 计数增长；仅配置为开启不足以证明执行</td></tr><tr><td>前缀缓存</td><td>相同 token 前缀预热后发送新请求，检查命中 token 计数增量；90% 命中需以实际 token 数核验</td></tr><tr><td>CPU 绑定</td><td>图捕获结束后检查 worker 主线程亲和性：卡 0–3 位于 CPU 288–383，卡 4–7 位于 CPU 96–191</td></tr><tr><td>内存</td><td>记录负载前后各卡 HBM、主机 RSS 与剩余内存；不能用启动快照代替运行峰值</td></tr></tbody></table></div>
+<div class="code-label">宿主机 · Bash</div><pre><code>grep -E &#x27;Graph capturing finished|static kernel|DSpark|speculat|prefix|ERROR|Traceback&#x27; ./logs/service.log
+grep -Ei &#x27;spec|draft|accept|prefix_cache&#x27; ./artifacts/metrics.prom
+npu-smi info
+source ./deploy.env
+docker top &quot;$CONTAINER_NAME&quot; -eo pid,comm,args
+
+# 将 WORKER_PID 替换为上一步获得的宿主机 worker PID。
+WORKER_PID=12345
+grep -E &#x27;Cpus_allowed_list|Mems_allowed_list&#x27; &quot;/proc/$WORKER_PID/status&quot;</code></pre>
+<p>CPU 绑定发生在初始化后期，应在图捕获结束后检查。CPU 亲和性与内存页 NUMA 归属是两个检查项，不能据 CPU 绑定推定 Engram 已绑定到相邻 NUMA 内存。</p>
+<h3>8.3 验收记录</h3>
+<p>保存 <code>artifacts/</code>、<code>logs/</code>、部署配置、镜像 ID、源码提交、算子产物 SHA256、模型 revision 和补丁前后摘要。性能验收另行记录输入长度、输出长度、客户端并发、缓存命中、TTFT、TPOT、输出 TPS 及错误数。</p>
+<p>测试 90% 前缀命中时，先发送包含目标共享前缀的预热请求，再发送独立的新 HTTP 请求；使用 tokenizer 计数和服务端命中计数确认比例。</p>
+</section><section id="operations"><h2>9. 停止、恢复与回退</h2>
+<h3>9.1 停止部署</h3>
+<div class="code-label">宿主机 · Bash</div><pre><code>bash 05_stop.sh
+npu-smi info</code></pre>
+<p>停止脚本先校验部署标签，再停止指定容器，并检查服务端口。保留容器、日志、算子目录和原始文件备份。</p>
+<h3>9.2 恢复服务</h3>
+<div class="code-label">宿主机 · Bash</div><pre><code>source ./deploy.env
+source ./host_common.sh
+check_container
+docker start &quot;$CONTAINER_NAME&quot;
+bash 03_start.sh
+# 等待图捕获和初始化完成后执行。
+bash 04_verify.sh</code></pre>
+<h3>9.3 版本回退</h3>
+<p>保留原镜像和已验收配置。回退时停止当前部署，使用原镜像、对应脚本目录、模型与拓扑重新部署。DSA 原文件位于 <code>backups/dsa_v41.py.original</code>；其备份用于源码核对，单独恢复该文件后仍需检查 DSpark 与混合批次的兼容性。</p>
+<p>宿主机沿用现有驱动，CANN 使用镜像内环境。算子 provider 由本服务的环境变量启用。</p>
+</section><section id="troubleshooting"><h2>10. 常见问题</h2>
+<div class="table-wrap"><table><thead><tr><th>现象</th><th>优先检查</th><th>处理</th></tr></thead><tbody><tr><td>MoE 路由调用段错误 / SIGSEGV</td><td>custom_ops 绑定与实际加载的 ACLNN 接口是否同为 20 参数</td><td>检查第 6 节构建产物与路由检查结果；核对进程映射中的 libcust_opapi 路径</td></tr><tr><td><code>MC2 GetWinSize</code> / <code>561002</code></td><td>HCCL buffer、网卡与本机 UB 拓扑</td><td>按本版设置 <code>HCCL_BUFFSIZE=1024</code>；核对网卡与 LocalCommRes 文件</td></tr><tr><td>混合 Prefill / Decode 批次断言或次序异常</td><td>DSA metadata 初始化补丁、源码摘要</td><td>确认补丁已应用到实际导入文件，重新启动并完成八卡验收</td></tr><tr><td>静态 Kernel 只在部分 rank 工作</td><td>LOCAL_WORLD_SIZE、TASK_QUEUE_ENABLE、编译日志</td><td>确认值分别为 8、1；按 rank 排查编译与加载结果</td></tr><tr><td>CPU 占用受限、调度延迟明显</td><td>Docker quota、cpuset、worker 亲和性</td><td>核对配额 384、CPU 0–383；在图捕获完成后检查绑定</td></tr><tr><td>首启时间长、HTTP 尚未就绪</td><td>权重加载、静态编译及各 rank 图捕获进度</td><td>查看当前日志和资源状态，等待明确的 ready 信号；失败时依据首个错误处理</td></tr><tr><td>NPU OOM / KV 容量不足</td><td>上下文、实际并发、图内存、Engram 与 HBM 余量</td><td>记录失败前峰值；先恢复本版参数，再分项调整并复验</td></tr><tr><td>前缀缓存收益不稳定</td><td>token 前缀一致性、DP 路由、缓存淘汰</td><td>使用明确的共享前缀预热，核对各 DP worker 的实际命中计数</td></tr><tr><td>长输入 SSE 客户端报 <code>LineTooLong</code></td><td>客户端 SSE 行缓冲、响应是否回传 prompt_token_ids</td><td>按最大 SSE 事件设置缓冲；80K 输入场景已验证 2 MiB read buffer 可解析对应事件，随后核验请求完成数</td></tr></tbody></table></div>
+</section><section id="sources"><h2>11. 官方资料与交付附件</h2>
+<div class="table-wrap"><table><thead><tr><th>资料</th><th>用途</th></tr></thead><tbody><tr><td><a href="https://gitcode.com/cann/cann-recipes-infer/blob/master/models/deepseek_v4_1/README.md" target="_blank" rel="noopener noreferrer">CANN DeepSeek-V4.1 模型部署说明</a></td><td>950 官方镜像、原始权重与 PD 分离部署来源</td></tr><tr><td><a href="https://gitcode.com/cann/cann-recipes-infer" target="_blank" rel="noopener noreferrer">CANN recipes infer 源码</a></td><td>模型配方及融合算子源码</td></tr><tr><td><a href="https://gitcode.com/cann/cann-recipes-infer/blob/6d060311ae75f6105fe4216e20566875da5a8838/ops/ascendc/README.md" target="_blank" rel="noopener noreferrer">Ascend C 算子构建说明（固定提交）</a></td><td>ascend950 构建目标与按算子构建参数</td></tr><tr><td><a href="https://gitcode.com/cann/hixl/wiki/A5%20LocalCommRes%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97.md" target="_blank" rel="noopener noreferrer">HIXL A5 LocalCommRes 配置指南</a></td><td>950 本机通信资源配置</td></tr><tr><td><a href="https://github.com/vllm-project/vllm-ascend" target="_blank" rel="noopener noreferrer">vLLM Ascend 官方开源仓库</a></td><td>框架适配源码与项目文档入口</td></tr><tr><td><a href="https://github.com/vllm-project/vllm" target="_blank" rel="noopener noreferrer">vLLM 官方开源仓库</a></td><td>推理引擎与服务实现</td></tr><tr><td><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash" target="_blank" rel="noopener noreferrer">DeepSeek-V4.1-Flash 官方权重</a></td><td>原始权重与模型配置</td></tr><tr><td><a href="https://docs.vllm.ai/projects/ascend/en/latest/tutorials/models/DeepSeek-V4.1-Flash.html" target="_blank" rel="noopener noreferrer">vLLM Ascend DeepSeek-V4.1 教程</a></td><td>上游通用部署参考；硬件和软件版本以本文固定基线为准</td></tr></tbody></table></div>
+<p><a class="download" href="07-vllm-ascend-950dt-scripts.zip" download>下载部署脚本包 ZIP</a> <span class="muted">包含配置、容器创建、算子构建、兼容补丁、启动、验收及停止脚本。</span></p>
+<p>文档依据本机已运行配置整理；附件已完成语法、补丁适用性和路径一致性校验。附件重新部署的完整执行与现场验收，按第 8 节记录。</p>
+<details><summary>附件文件清单</summary><ul><li><code>01_create_container.sh</code></li><li><code>02_prepare.sh</code></li><li><code>03_start.sh</code></li><li><code>04_verify.sh</code></li><li><code>05_stop.sh</code></li><li><code>cann_env.sh</code></li><li><code>check_routing.py</code></li><li><code>deploy.env</code></li><li><code>host_common.sh</code></li><li><code>manifest.json</code></li><li><code>patch_dsa.py</code></li><li><code>runtime_env.sh</code></li><li><code>serve.sh</code></li></ul></details>
+</section><footer>VLLM-950DT-DS41 · v1.0 · 本文外部引用均指向官方项目、官方文档或模型发布仓库。</footer></main></div></body></html>

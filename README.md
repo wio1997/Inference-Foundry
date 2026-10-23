@@ -1,9 +1,12 @@
-# Inference-Foundry
+# Inference-Foundry · Ascend 950DT
 
-## Ascend 950DT 部署资料
+本分支保存 DeepSeek-V4.1-Flash 在单机 8×Ascend 950DT 上的部署与复现代码。
 
-- [950DT部署操作手册：按1→9复制命令，完成下载、修复、编译、启动和真实中文验收](docs/ascend950/README.md)
-- [鲲鹏 950 与上一代：可以量化的差异及本机识别边界](docs/ascend950/KUNPENG950.md)
-- [部署脚本、固定版本、补丁和验收证据](deploy/ascend950/)
+- [部署与复现代码入口](reproduction/ascend950/README.md)
+- [DeepInfer 部署操作手册](docs/ascend950/README.md)
+- [vLLM Ascend 部署脚本](deploy/ascend950/vllm-ascend/README.md)及[HTML 手册](docs/ascend950/vllm-ascend-deployment.html)
+- [鲲鹏 950 硬件说明](docs/ascend950/KUNPENG950.md)
 
-`950` 分支记录 8×Ascend 950DT 的真实功能部署。已验证的布局为 Attention DP8 / MoE EP8 / CP1；性能研究结果按独立测试记录更新。
+本次公开部署、适配、采集与分析代码，不包含内部测试配置、冻结输入、性能结果、原始 profile、模型或镜像。新主机重部署和最终性能归因尚未完成。
+
+分支继承了其他模型和旧硬件的历史目录。可以在 950 分支删除无关文件并提交；main 不随之改变。将此分支合并回 main 时，需要审查这些删除。
