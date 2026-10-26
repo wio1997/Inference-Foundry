@@ -1,23 +1,40 @@
 {
-  "updated_at": "2026-10-26T17:12:16+08:00",
-  "status": "ASSETS_READY_RUNTIME_ACCESS_BLOCKED",
+  "updated_at": "2026-10-26T17:54:54+08:00",
+  "status": "FAILED_DP1_TP8_NPU_OOM",
   "target_server": "172",
   "data_root": "<WIO_ROOT>",
   "model": "DeepSeek-V4.1-Flash-1017-w8a8",
-  "physical_cards": 8,
-  "logical_devices": 16,
+  "physical_cards": 4,
+  "logical_devices": 8,
   "parallelism": {
-    "dp": 4,
-    "tp": 4,
-    "ep": 16
+    "dp": 1,
+    "tp": 8,
+    "ep": 8
   },
   "checkpoint_header_validation": "PASS",
   "vllm_started": false,
   "health_verified": false,
   "text_smoke_verified": false,
   "sglang_started": false,
-  "blocker": "Ordinary container NPU access fails with Conflict open udevid. Privileged preflight was rejected by automatic approval; explicit user approval requested.",
-  "next_action": "After explicit permission, run privileged preflight with read-only checkpoint and writes limited to the project; only start if device access passes.",
+  "blocker": "Current W8A8 checkpoint exceeds NPU capacity in DP1 TP8 with Engram-only offload. Model construction raises NPU OutOfMemoryError.",
+  "next_action": "Preserve eight logical devices, DP1 TP8 and no backbone prefetch. Need a compatible smaller checkpoint or user-approved constraint change.",
   "checkpoint_copy_sha256": "PASS_ALL_153_FILES",
-  "runtime_preflight": "FAIL_NPU_NAMESPACE_CONFLICT"
+  "runtime_preflight": "PASS_PRIVILEGED_DEVICE_ACCESS",
+  "privileged_authorization": "Explicit user approval in current chat, 2026-10-26",
+  "logical_device_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "weight_offload": {
+    "backend": "none"
+  },
+  "initial_16_device_run": "Stopped after user clarified eight logical devices; old text smoke is not validation of current DP1 TP8 configuration.",
+  "engram_cpu_offload": true,
+  "engram_dp_shared_memory": false
 }
