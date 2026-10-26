@@ -23,12 +23,12 @@ export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 if [[ -f /usr/lib/aarch64-linux-gnu/libjemalloc.so.2 ]]; then
   export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libjemalloc.so.2
 fi
-# First bring-up: eager, short context, no speculative decoding.
+# Long-input baseline: eager, 34816-token context, no speculative decoding.
 # Sixteen logical devices: DP2 x TP8 / EP16 with Engram CPU offload only.
 exec vllm serve "$MODEL_PATH" \
   --host 0.0.0.0 --port "$SERVICE_PORT" --served-model-name dsv41 \
   --data-parallel-size 2 --tensor-parallel-size 8 --enable-expert-parallel --api-server-count 1 \
-  --max-model-len 8192 --max-num-batched-tokens 2048 --max-num-seqs 4 \
+  --max-model-len 34816 --max-num-batched-tokens 2048 --max-num-seqs 4 \
   --gpu-memory-utilization 0.9 --block-size 128 --quantization ascend \
   --tokenizer-mode deepseek_v41 --reasoning-parser deepseek_v41 \
   --tool-call-parser deepseek_v41 --enable-auto-tool-choice \

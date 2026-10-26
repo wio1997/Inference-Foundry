@@ -2,7 +2,7 @@
 
 当前用户配置：**DP2×TP8，逻辑设备 0–15，共16个；仅 Engram CPU 卸载，不使用主干 CPU prefetch。**
 
-**本轮 DP2×TP8 已通过验证：健康接口 HTTP 200、模型注册成功、文本问题“1加1等于几”返回“2”；16个逻辑设备均检测到本服务 worker。**
+**32K 输入 / 1K 输出基线通过：单并发6.32 token/s，双并发总输出吞吐12.38 token/s；6个正式请求全部成功，最终健康接口 HTTP 200。16个逻辑设备均有本服务 worker。**
 
 本轮运行状态见 [STATUS.json](STATUS.json)。旧 DP1×TP8 的 OOM 和早期 DP4×TP4 的文本结果仅作历史，不替代当前配置验证。
 
@@ -20,7 +20,7 @@
 | SGLang 候选 | `quay.io/ascend/sglang:main-cann9.1.0-a3`；未启动 |
 | 容器 | `wio-dsv41-vllm-s172` |
 | API | `http://<TARGET_HOST>:8172/v1`，model=`dsv41`；以本轮验收为准 |
-| 其他参数 | 8192 context、2048 batched tokens、4 seq/DP、eager、async、无 DSpark |
+| 其他参数 | 34816 context、2048 batched tokens、4 seq/DP、eager、async、无 DSpark |
 
 ## 启动与验证
 
@@ -47,7 +47,7 @@ Docker 已有镜像层和容器元数据仍由宿主 daemon 管理在 `<DOCKER_D
 本地142个索引分片、143,324个索引张量的存在性、safetensors header 和 offset 通过。
 见 [镜像与权重身份](evidence/inventory.json)、[复制验收](runs/copy-summary.json)。
 
-当前 smoke 仅检查健康、模型注册和文本生成，不代表正式准确率、性能或多模态验收。
+历史短文本 smoke 验证的是当时8K上下文配置。当前性能结果见 [32K/1K 基线](benchmarks/2026-10-26-32k-1k/README.md)，属于小样本初始基线，不代表高并发极限、尾延迟或模型准确率。
 历史8设备结果见 [DP1 TP8 OOM](runs/dp1tp8-engram-only-summary.json)，不能将它当16设备的运行结论。
 
 公开仓库仅保存脱敏模板。真实服务器地址、主机名、部署路径和完整现场证据只保存在授权服务器本地。
