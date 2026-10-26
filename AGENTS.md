@@ -1,9 +1,9 @@
 # Current branch scope
 
-- 当前唯一活动项目为 `projects/deepseek-v41-172`。先读其 README 和 STATUS.json。
+- 当前唯一活动项目为 `projects/910c-deepseek-v4.1-flash`。先读其 README 和 STATUS.json。
 - 服务器由用户逐次指定；本项目明确为 172，不能把它当其他任务的默认目标。
 - 本项目的模型、配置、运行日志、缓存和证据均放在 `<WIO_ROOT>`。
-- 用户已明确仅使用逻辑设备 0–7，固定 DP1×TP8、EP8；用户禁止主干权重 CPU prefetch 卸载；仅保留 Engram CPU offload。不可恢复旧 16 设备配置。
+- 用户最新指定逻辑设备 0–15，共16个，固定 DP2×TP8、EP16；仅 Engram CPU offload，禁止主干 CPU prefetch。旧 DP1×TP8 OOM 属于历史，不是当前配置。
 - 仅在用户授权范围内操作；不要停止其他容器/调优进程。设备空闲检查不能代替已知任务的协调。
 - 凭证从当前 Mac 钥匙串直接送入认证；禁止打印、落盘或提交凭证。
 - 不把容器运行、模型加载中或接口就绪等同于功能验证成功；每个状态保留实际证据。

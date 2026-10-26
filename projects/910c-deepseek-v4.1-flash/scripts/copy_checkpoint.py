@@ -15,7 +15,7 @@ root = Path(os.environ['WIO_ROOT'])
 source = Path(os.environ['PUBLIC_MODEL_SOURCE'])
 target = root / source.name
 staging = root / ('.' + source.name + '.partial')
-project = root / 'projects/deepseek-v41-172'
+project = root / 'projects/910c-deepseek-v4.1-flash'
 run = project / 'runs/copy-checkpoint'
 run.mkdir(parents=True, exist_ok=True)
 lock = (run / 'copy.lock').open('w')

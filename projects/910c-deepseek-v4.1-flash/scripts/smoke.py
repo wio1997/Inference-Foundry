@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 import urllib.request
 
-root = Path(os.environ['WIO_ROOT']) / 'projects/deepseek-v41-172'
+root = Path(os.environ['WIO_ROOT']) / 'projects/910c-deepseek-v4.1-flash'
 out = root / 'runs' / datetime.now().astimezone().strftime('smoke-%Y%m%dT%H%M%S%z')
 out.mkdir(parents=True, exist_ok=True)
 base = 'http://127.0.0.1:8172'

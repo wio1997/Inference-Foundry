@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 root = Path(os.environ['WIO_ROOT'])
-project = root / 'projects/deepseek-v41-172'
+project = root / 'projects/910c-deepseek-v4.1-flash'
 model = root / 'DeepSeek-V4.1-Flash-1017-w8a8'
 stamp = datetime.now().astimezone().strftime('%Y%m%dT%H%M%S%z')
 out = project / 'evidence' / stamp

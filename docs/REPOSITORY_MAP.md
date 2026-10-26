@@ -6,7 +6,7 @@
 README.md
 AGENTS.md
 docs/REPOSITORY_MAP.md
-projects/deepseek-v41-172/
+projects/910c-deepseek-v4.1-flash/
   README.md
   STATUS.json
   config/       # 固定模型、镜像身份与端口
