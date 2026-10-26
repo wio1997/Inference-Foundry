@@ -1,12 +1,16 @@
 # 仓库整理记录 · 2026-10-26
 
+2026-10-27新增独立[172 DeepInfer项目](../projects/910c-deepinfer-172/README.md)，保存原生适配、完整补丁、固定吞吐验收和恢复脚本。
+原vLLM项目为冻结基线，其历史状态保持原样。此前整理记录如下。
+
 本次将“当前任务”和“历史研究”分开，使根目录只有一个当前入口。
 
 ```text
 README.md
 AGENTS.md
 docs/REPOSITORY_MAP.md
-projects/910c-deepseek-v4.1-flash/
+projects/910c-deepinfer-172/       # 当前native结果/源码/恢复
+projects/910c-deepseek-v4.1-flash/  # 原vLLM冻结基线
   README.md
   STATUS.json
   config/       # 固定模型、镜像身份与端口

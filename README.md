@@ -1,14 +1,17 @@
 # Inference Foundry
 
-本分支用于记录 **172 上的 DeepSeek V4.1 Flash W8A8 单机部署**。
+本分支记录 **172 上的 DeepSeek V4.1 Flash W8A8 部署与 DeepInfer 910C 适配**。
+
+当前 DeepInfer 固定吞吐验收 **668.35 token/s**，原冻结 vLLM-Ascend 基线 **518.42 token/s**；16/16全文一致。首token延迟仍更高，性能范围见独立项目。
 
 | 入口 | 内容 |
 |---|---|
-| [当前项目](projects/910c-deepseek-v4.1-flash/README.md) | 模型、镜像、启动命令、现场状态与验证证据 |
+| [当前 DeepInfer 项目](projects/910c-deepinfer-172/README.md) | 原生W8A8源码、配置、两轮结果、适用范围和回切入口 |
+| [冻结 vLLM 基线](projects/910c-deepseek-v4.1-flash/README.md) | 原始调优与基线证据，按冻结时现场保留 |
 | [仓库导航](docs/REPOSITORY_MAP.md) | 当前资料与历史研究的位置 |
 | [完整历史快照](archive/legacy-20261019/README.md) | 整理前分支的全部文件，内部目录结构保持原样 |
 
-当前状态以项目内 `STATUS.json` 为准。历史记录不代表当前服务器或服务状态。
+当前native状态以 `projects/910c-deepinfer-172/STATUS.json` 为准；原vLLM容器已停止并保留。历史记录不代表当前服务状态。
 
 本次整理发生在 `910c-deepseek-v4.1-flash`，来源为
 `codex/ascend-sglang-vllm-comparison@59dde6baad3e55feb9338db02b71d28e740d38e5`。
