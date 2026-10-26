@@ -1,0 +1,76 @@
+{
+  "configuration": {
+    "name": "final-best",
+    "graph": true,
+    "batched_tokens": 8192,
+    "max_seqs": 4,
+    "capture_sizes": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      24
+    ],
+    "speculative": {
+      "method": "dspark",
+      "num_speculative_tokens": 5,
+      "enforce_eager": true
+    },
+    "additional_config": {
+      "ascend_compilation_config": {
+        "enable_npugraph_ex": true,
+        "enable_static_kernel": false
+      }
+    }
+  },
+  "fixed_service": {
+    "max_model_len": 34816,
+    "block_size": 128,
+    "gpu_memory_utilization": 0.9,
+    "async_scheduling": true,
+    "prefix_caching": true,
+    "chunked_prefill": true,
+    "engram_cpu_offload": true,
+    "engram_dp_shared_memory": true,
+    "backbone_cpu_prefetch": false,
+    "additional_config": {
+      "enable_cpu_binding": true,
+      "enable_fused_mc2": 1,
+      "enable_dsa_cp": true,
+      "enable_flashcomm1": true,
+      "enable_shared_expert_dp": true,
+      "ascend_compilation_config": {
+        "enable_npugraph_ex": true,
+        "enable_static_kernel": false
+      }
+    },
+    "compilation_config": {
+      "cudagraph_mode": "FULL_DECODE_ONLY",
+      "cudagraph_capture_sizes": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        24
+      ],
+      "max_cudagraph_capture_size": 24
+    },
+    "environment": {
+      "VLLM_USE_V2_MODEL_RUNNER": "0",
+      "ASCEND_RT_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+      "ASCEND_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+      "HCCL_BUFFSIZE": "1024",
+      "HCCL_OP_EXPANSION_MODE": "AIV",
+      "VLLM_ENGINE_READY_TIMEOUT_S": "36000"
+    }
+  },
+  "parallelism": {
+    "dp": 2,
+    "tp": 8,
+    "ep": 16
+  },
+  "image": "quay.io/ascend/vllm-ascend:v0.30.0rc2-a3",
+  "image_id": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b"
+}

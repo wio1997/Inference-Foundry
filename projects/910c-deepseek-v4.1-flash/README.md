@@ -2,11 +2,9 @@
 
 当前用户配置：**DP2×TP8，逻辑设备 0–15，共16个；仅 Engram CPU 卸载，不使用主干 CPU prefetch。**
 
-**32K 输入 / 1K 输出基线通过：单并发6.32 token/s，双并发总输出吞吐12.38 token/s；6个正式请求全部成功，最终健康接口 HTTP 200。16个逻辑设备均有本服务 worker。**
+**调优后基线：32K 输入 / 1K 输出、8 并发、89.99% 前缀命中；两轮合并总输出吞吐 518.42 token/s，16/16 成功，服务保持运行。**
 
-**最新 AISBench：32K 输入 / 1K 输出、8 并发、两轮 16/16 成功，实际前缀命中率 89.99%；总输出吞吐 48.06 / 50.61 token/s。**
-
-详情见 [AISBench C8 / 90% 命中](benchmarks/2026-10-26-32k-1k-c8-p90-aisbench/README.md)。
+详情见 [调优配置与基线](benchmarks/2026-10-26-32k-1k-c8-p90-tuned/README.md)。
 
 本轮运行状态见 [STATUS.json](STATUS.json)。旧 DP1×TP8 的 OOM 和早期 DP4×TP4 的文本结果仅作历史，不替代当前配置验证。
 
@@ -24,7 +22,7 @@
 | SGLang 候选 | `quay.io/ascend/sglang:main-cann9.1.0-a3`；未启动 |
 | 容器 | `wio-dsv41-vllm-s172` |
 | API | `http://<TARGET_HOST>:8172/v1`，model=`dsv41`；以本轮验收为准 |
-| 其他参数 | 34816 context、2048 batched tokens、4 seq/DP、eager、async、无 DSpark |
+| 其他参数 | 34816 context、8192 batched tokens、4 seq/DP、有效 Decode 图、async、DSpark，5 个草稿 token；draft eager，target Decode 图 |
 
 ## 启动与验证
 
@@ -55,3 +53,6 @@ Docker 已有镜像层和容器元数据仍由宿主 daemon 管理在 `<DOCKER_D
 历史8设备结果见 [DP1 TP8 OOM](runs/dp1tp8-engram-only-summary.json)，不能将它当16设备的运行结论。
 
 公开仓库仅保存脱敏模板。真实服务器地址、主机名、部署路径和完整现场证据只保存在授权服务器本地。
+
+**历史 eager 初始基线：单并发6.32 token/s，双并发总输出吞吐12.38 token/s；6个正式请求全部成功，最终健康接口 HTTP 200。16个逻辑设备均有本服务 worker。**
+

@@ -23,17 +23,6 @@ export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 if [[ -f /usr/lib/aarch64-linux-gnu/libjemalloc.so.2 ]]; then
   export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libjemalloc.so.2
 fi
-# Long-input baseline: eager, 34816-token context, no speculative decoding.
+# Tuned fixed-workload baseline; actual graph capture and output equality verified.
 # Sixteen logical devices: DP2 x TP8 / EP16 with Engram CPU offload only.
-exec vllm serve "$MODEL_PATH" \
-  --host 0.0.0.0 --port "$SERVICE_PORT" --served-model-name dsv41 \
-  --data-parallel-size 2 --tensor-parallel-size 8 --enable-expert-parallel --api-server-count 1 \
-  --max-model-len 34816 --max-num-batched-tokens 2048 --max-num-seqs 4 \
-  --gpu-memory-utilization 0.9 --block-size 128 --quantization ascend \
-  --tokenizer-mode deepseek_v41 --reasoning-parser deepseek_v41 \
-  --tool-call-parser deepseek_v41 --enable-auto-tool-choice \
-  --safetensors-load-strategy lazy \
-  --model-loader-extra-config '{"enable_multithread_load":true,"num_threads":32}' \
-  --engram-config '{"cpu_offload":true,"dp_shared_memory":true}' \
-  --enforce-eager --async-scheduling \
-  --additional-config '{"enable_cpu_binding":true,"enable_fused_mc2":1,"enable_dsa_cp":true,"enable_flashcomm1":true,"enable_shared_expert_dp":true}'
+exec /usr/local/python3.12.13/bin/vllm serve "$MODEL_PATH" --host 0.0.0.0 --port "$SERVICE_PORT" --served-model-name dsv41 --data-parallel-size 2 --tensor-parallel-size 8 --enable-expert-parallel --api-server-count 1 --max-model-len 34816 --gpu-memory-utilization 0.9 --block-size 128 --quantization ascend --tokenizer-mode deepseek_v41 --reasoning-parser deepseek_v41 --tool-call-parser deepseek_v41 --enable-auto-tool-choice --safetensors-load-strategy lazy --model-loader-extra-config '{"enable_multithread_load":true,"num_threads":32}' --engram-config '{"cpu_offload":true,"dp_shared_memory":true}' --async-scheduling --max-num-batched-tokens 8192 --max-num-seqs 4 --seed 0 --additional-config '{"enable_cpu_binding":true,"enable_fused_mc2":1,"enable_dsa_cp":true,"enable_flashcomm1":true,"enable_shared_expert_dp":true,"ascend_compilation_config":{"enable_npugraph_ex":true,"enable_static_kernel":false}}' --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY","cudagraph_capture_sizes":[1,2,4,8,16,24],"max_cudagraph_capture_size":24}' --speculative-config '{"method":"dspark","num_speculative_tokens":5,"enforce_eager":true}'
