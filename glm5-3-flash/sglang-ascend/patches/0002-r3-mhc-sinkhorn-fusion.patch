@@ -1,0 +1,509 @@
+diff --git a/python/sglang/kernels/ops/layernorm/mhc.py b/python/sglang/kernels/ops/layernorm/mhc.py
+index 26cdd40eaa69de1dda3cf0b146b3fa26d724db8b..73cac226f2d6bb7e2946fd060fe750fab54d1e0f 100644
+--- a/python/sglang/kernels/ops/layernorm/mhc.py
++++ b/python/sglang/kernels/ops/layernorm/mhc.py
+@@ -2,6 +2,7 @@ import functools
+ import importlib
+ import logging
+ import math
++import os
+ import threading
+ from typing import Tuple
+ 
+@@ -23,6 +24,9 @@ from sglang.srt.utils.common import is_gfx1250_supported
+ 
+ logger = logging.getLogger(__name__)
+ 
++_R3_SINKHORN_FUSED = os.environ.get("GLM53_MHC_SINKHORN_FUSED", "0") == "1"
++_R3_SINKHORN_IMPLEMENTATION = os.environ.get("GLM53_MHC_SINKHORN_IMPLEMENTATION", "triton")
++
+ _AITER_MHC_RUNTIME_DISABLED = False
+ _AITER_MHC_ACTIVE_LOGGED = False
+ 
+@@ -1918,10 +1922,22 @@ def _mhc_pre_torch(
+     comb = comb_raw * hc_scale[2] + comb_base
+ 
+     comb = comb.softmax(-1) + hc_sinkhorn_eps
+-    comb = comb / (comb.sum(-2, keepdim=True) + hc_sinkhorn_eps)
+-    for _ in range(sinkhorn_repeat - 1):
+-        comb = comb / (comb.sum(-1, keepdim=True) + hc_sinkhorn_eps)
++    if _R3_SINKHORN_FUSED:
++        if _R3_SINKHORN_IMPLEMENTATION == "tilelang-aot":
++            from sglang.kernels.ops.layernorm.mhc_sinkhorn_tilelang_aot_npu import fused_sinkhorn_normalize
++        elif _R3_SINKHORN_IMPLEMENTATION == "tilelang":
++            from sglang.kernels.ops.layernorm.mhc_sinkhorn_tilelang_npu import fused_sinkhorn_normalize
++        elif _R3_SINKHORN_IMPLEMENTATION == "triton":
++            from sglang.kernels.ops.layernorm.mhc_sinkhorn_npu import fused_sinkhorn_normalize
++        else:
++            raise ValueError("Unknown explicit mHC Sinkhorn implementation")
++
++        comb = fused_sinkhorn_normalize(comb, hc_sinkhorn_eps, sinkhorn_repeat)
++    else:
+         comb = comb / (comb.sum(-2, keepdim=True) + hc_sinkhorn_eps)
++        for _ in range(sinkhorn_repeat - 1):
++            comb = comb / (comb.sum(-1, keepdim=True) + hc_sinkhorn_eps)
++            comb = comb / (comb.sum(-2, keepdim=True) + hc_sinkhorn_eps)
+ 
+     layer_input = (pre.unsqueeze(-1) * residual.float()).sum(dim=1).to(dtype)
+     return post.unsqueeze(-1), comb, layer_input
+diff --git a/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_npu.py b/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_npu.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e7f188f01ec5bc992226c1dad311ba11ba4b4af7
+--- /dev/null
++++ b/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_npu.py
+@@ -0,0 +1,101 @@
++"""Opt-in HC4 FP32 normalization only; projection/gates/softmax/mixing stay Torch."""
++import hashlib
++import json
++import math
++import os
++from pathlib import Path
++
++import torch
++import triton
++import triton.language as tl
++
++_IDENTITY_EMITTED = False
++
++
++@triton.jit
++def _sum4_balanced_01(value, columns):
++    # Actual NPU Torch last-axis ReduceSum uses (v0+v1)+(v2+v3).
++    # Masked two-element reductions preserve each intermediate FP32 rounding.
++    return tl.sum(tl.where(columns < 2, value, 0.0), 0) + tl.sum(tl.where(columns >= 2, value, 0.0), 0)
++
++
++@triton.jit
++def _sinkhorn_hc4_fp32_kernel(Comb, Out, EPS: tl.constexpr):
++    token = tl.program_id(0)
++    columns = tl.arange(0, 4)
++    r0 = tl.load(Comb + token * 16 + columns).to(tl.float32)
++    r1 = tl.load(Comb + token * 16 + 4 + columns).to(tl.float32)
++    r2 = tl.load(Comb + token * 16 + 8 + columns).to(tl.float32)
++    r3 = tl.load(Comb + token * 16 + 12 + columns).to(tl.float32)
++    # Actual NPU Torch non-last-axis ReduceSum is left-associated.
++    col = ((r0 + r1) + r2) + r3 + EPS
++    r0 = tl.div_rn(r0, col)
++    r1 = tl.div_rn(r1, col)
++    r2 = tl.div_rn(r2, col)
++    r3 = tl.div_rn(r3, col)
++    for _ in tl.static_range(19):
++        r0 = tl.div_rn(r0, _sum4_balanced_01(r0, columns) + EPS)
++        r1 = tl.div_rn(r1, _sum4_balanced_01(r1, columns) + EPS)
++        r2 = tl.div_rn(r2, _sum4_balanced_01(r2, columns) + EPS)
++        r3 = tl.div_rn(r3, _sum4_balanced_01(r3, columns) + EPS)
++        col = ((r0 + r1) + r2) + r3 + EPS
++        r0 = tl.div_rn(r0, col)
++        r1 = tl.div_rn(r1, col)
++        r2 = tl.div_rn(r2, col)
++        r3 = tl.div_rn(r3, col)
++    tl.store(Out + token * 16 + columns, r0)
++    tl.store(Out + token * 16 + 4 + columns, r1)
++    tl.store(Out + token * 16 + 8 + columns, r2)
++    tl.store(Out + token * 16 + 12 + columns, r3)
++
++
++def _record_first_execution(comb, sinkhorn_eps):
++    global _IDENTITY_EMITTED
++    location = os.environ.get("GLM53_EXECUTION_IDENTITY_DIR")
++    if _IDENTITY_EMITTED or not location:
++        return
++    # Startup-only synchronization, before any measured request. A record
++    # proves the actual fused invocation completed, rather than mere import.
++    torch.npu.synchronize(comb.device)
++    import torch.distributed as dist
++    rank = dist.get_rank() if dist.is_initialized() else 0
++    source = Path(__file__).resolve()
++    caller = source.with_name("mhc.py")
++    value = {"pid": os.getpid(), "rank": rank,
++             "candidate_commit": os.environ.get("GLM53_CANDIDATE_COMMIT"),
++             "selected_implementation": "triton-hc4-fp32-normalization-only",
++             "first_shape": list(comb.shape), "input_dtype": str(comb.dtype),
++             "output_dtype": "torch.float32", "sinkhorn_eps": sinkhorn_eps,
++             "sinkhorn_repeat": 20, "first_execution_synchronized": True,
++             "source": {"path": str(source), "sha256": hashlib.sha256(source.read_bytes()).hexdigest()},
++             "caller": {"path": str(caller), "sha256": hashlib.sha256(caller.read_bytes()).hexdigest()}}
++    directory = Path(location); directory.mkdir(parents=True, exist_ok=True)
++    target = directory / ("mhc-fused-rank-" + str(rank) + ".json")
++    with target.open("x") as stream:
++        json.dump(value, stream, indent=2); stream.write("\n")
++    _IDENTITY_EMITTED = True
++    print("GLM53_MHC_FUSED_EXECUTION " + json.dumps(value), flush=True)
++
++
++def fused_sinkhorn_normalize(comb: torch.Tensor, sinkhorn_eps: float,
++                             sinkhorn_repeat: int = 20) -> torch.Tensor:
++    """Normalize positive FP32 [T,4,4] after the unchanged softmax+epsilon.
++
++    This experimental entry has an explicit HC4/20-iteration contract; unsupported
++    inputs fail rather than silently changing arithmetic or falling back.
++    """
++    if comb.device.type != "npu" or comb.dtype != torch.float32:
++        raise ValueError("mHC fused normalization requires NPU FP32 input")
++    if comb.ndim != 3 or tuple(comb.shape[1:]) != (4, 4) or not comb.is_contiguous():
++        raise ValueError("mHC fused normalization requires contiguous [T,4,4]")
++    if type(sinkhorn_repeat) is not int or sinkhorn_repeat != 20:
++        raise ValueError("mHC fused normalization supports exactly 20 Sinkhorn iterations")
++    if isinstance(sinkhorn_eps, bool) or not isinstance(sinkhorn_eps, (int, float)) or not math.isfinite(sinkhorn_eps) or sinkhorn_eps <= 0:
++        raise ValueError("mHC fused normalization requires finite positive epsilon")
++    result = torch.empty_like(comb)
++    if comb.shape[0] == 0:
++        return result
++    _sinkhorn_hc4_fp32_kernel[(comb.shape[0],)](comb, result, float(sinkhorn_eps),
++                                              num_warps=4, enable_fp_fusion=False)
++    _record_first_execution(comb, float(sinkhorn_eps))
++    return result
+diff --git a/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_tilelang_aot_npu.py b/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_tilelang_aot_npu.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7ce1809277f9e088e9db6b309b57e24a765d3122
+--- /dev/null
++++ b/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_tilelang_aot_npu.py
+@@ -0,0 +1,131 @@
++# SPDX-License-Identifier: MIT
++"""Pure ctypes runtime for the fixed public ordered HC4 tail's existing C ABI.
++
++ABI source: tile-ai/tilelang-ascend@2f22c6ac17a4235aa3de5ccf25729c3553b46e02,
++examples/gemm_aot/test_example_gemm.py and src/target/codegen_ascend.cc.
++Math remains the already tested c27 ordered public tail; no compiler/frontend
++module, pickle, new math kernel, device switch or global library-path edit here.
++Library identity is checked before load; first completed call is recorded only.
++"""
++import ctypes
++import hashlib
++import json
++import os
++from pathlib import Path
++import re
++import sys
++import threading
++import time
++
++import torch
++
++_LIB = None
++_LIB_ID = None
++_LOADER_LOCK = threading.Lock()
++_EXECUTION_RECORDED = False
++_SELECTED_KERNEL_SHA = "8b4ab5f9c4eb37f64b4d9746def519a2247a959119db6e19caae0297af988945"
++_SELECTED_SOURCE_SHA = "c6b161af7acf52e25019a730d201811179ac73cf58101850f6c61a3a51949331"
++
++
++def _identity(path):
++    path = Path(path).resolve(strict=True)
++    before = path.stat()
++    h = hashlib.sha256()
++    with path.open("rb") as stream:
++        for block in iter(lambda: stream.read(1024 * 1024), b""):
++            h.update(block)
++    after = path.stat()
++    if (before.st_size, before.st_mtime_ns, before.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ino):
++        raise RuntimeError("bound artifact changed while hashing")
++    return {"path": str(path), "bytes": after.st_size, "sha256": h.hexdigest(), "stat_stable": True}
++
++
++def _library():
++    global _LIB, _LIB_ID
++    if _LIB is not None:
++        return _LIB
++    with _LOADER_LOCK:
++        if _LIB is not None:
++            return _LIB
++        location = os.environ.get("GLM53_MHC_AOT_LIBRARY")
++        expected = os.environ.get("GLM53_MHC_AOT_SHA256", "")
++        if not location or not re.fullmatch(r"[0-9a-f]{64}", expected):
++            raise RuntimeError("explicit AOT library path and full expected SHA256 are required")
++        if expected != _SELECTED_KERNEL_SHA:
++            raise RuntimeError("only the fixed already selected public c27 artifact is supported")
++        observed = _identity(location)
++        if observed["sha256"] != expected:
++            raise RuntimeError("AOT kernel SHA256 does not match the declared artifact")
++        lib = ctypes.CDLL(observed["path"], mode=ctypes.RTLD_LOCAL)
++        lib.call.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int64, ctypes.c_void_p]
++        lib.call.restype = None  # Existing AscendC launcher returns void, not status int.
++        # No lib.init(): public NPU AOT example and Cython adapter do not call it.
++        _LIB_ID, _LIB = observed, lib
++        return _LIB
++
++
++def _record_first_execution(comb):
++    global _EXECUTION_RECORDED
++    location = os.environ.get("GLM53_EXECUTION_IDENTITY_DIR")
++    if _EXECUTION_RECORDED or not location:
++        return
++    with _LOADER_LOCK:
++        if _EXECUTION_RECORDED:
++            return
++        torch.npu.synchronize(comb.device)  # First warmup only; no per-token hash/sync.
++        observed_epoch = time.time()
++        import torch.distributed as dist
++        rank = dist.get_rank() if dist.is_initialized() else 0
++        caller_frame = sys._getframe(2)
++        tvm = sys.modules.get("tvm")  # CANN may own its own TVM; this module never imports it.
++        value = {"pid": os.getpid(), "rank": rank,
++            "candidate_commit": os.environ.get("GLM53_CANDIDATE_COMMIT"),
++            "selected_implementation": "tilelang-public-ordered-tail-aot-ctypes",
++            "math_origin_commit": "c27da9d1b830db29237fe26f61a637a27ef5aabe",
++            "upstream_commit": "2f22c6ac17a4235aa3de5ccf25729c3553b46e02",
++            "source": _identity(__file__), "caller": _identity(caller_frame.f_code.co_filename),
++            "kernel_library": _LIB_ID, "call_abi": "void(void*,void*,int64_t,aclrtStream)",
++            "generated_source_sha256": _SELECTED_SOURCE_SHA,
++            "target": "ascendc", "platform": "A3", "sinkhorn_eps": 1e-6, "sinkhorn_repeat": 20,
++            "observed_epoch": observed_epoch, "input_dtype": str(comb.dtype), "output_dtype": "torch.float32",
++            "first_shape": list(comb.shape), "first_stride": list(comb.stride()),
++            "first_execution_synchronized": True,
++            "phase_contract": "controller must bind first nonempty call to warmup before formal timing",
++            "tilelang_python_present": "tilelang" in sys.modules,
++            "existing_tvm_module_file": getattr(tvm, "__file__", None),
++            "loader_policy": "RTLD_LOCAL; no compiler import, dlpack, namespace or environment mutation"}
++        directory = Path(location)
++        directory.mkdir(parents=True, exist_ok=True)
++        with (directory / f"mhc-fused-rank-{rank}.json").open("x") as stream:
++            json.dump(value, stream, indent=2)
++            stream.write("\n")
++        _EXECUTION_RECORDED = True
++        print("GLM53_MHC_FUSED_EXECUTION " + json.dumps(value), flush=True)
++
++
++def fused_sinkhorn_normalize(comb: torch.Tensor, sinkhorn_eps: float,
++                             sinkhorn_repeat: int = 20) -> torch.Tensor:
++    """Same strict [T,4,4] contract; compiled epsilon/iterations are immutable."""
++    if not isinstance(comb, torch.Tensor) or comb.device.type != "npu" or comb.dtype != torch.float32:
++        raise ValueError("AOT public normalization requires NPU FP32")
++    if comb.ndim != 3 or tuple(comb.shape[1:]) != (4, 4) or not comb.is_contiguous():
++        raise ValueError("AOT public normalization requires contiguous [T,4,4]")
++    if type(sinkhorn_repeat) is not int or sinkhorn_repeat != 20:
++        raise ValueError("AOT artifact is specialized for 20 Sinkhorn iterations")
++    if isinstance(sinkhorn_eps, bool) or not isinstance(sinkhorn_eps, (int, float)) or sinkhorn_eps != 1e-6:
++        raise ValueError("AOT artifact is specialized for epsilon 1e-6")
++    if torch.npu.current_device() != comb.device.index:
++        raise ValueError("input must belong to the current NPU device")
++    result = torch.empty_like(comb)
++    if comb.shape[0] == 0:
++        return result
++    lib = _library()
++    stream = torch.npu.current_stream()
++    # Preserve tensor lifetime on the actual launch stream for the external call.
++    comb.record_stream(stream)
++    result.record_stream(stream)
++    lib.call(ctypes.c_void_p(comb.data_ptr()), ctypes.c_void_p(result.data_ptr()),
++             ctypes.c_int64(comb.shape[0]), ctypes.c_void_p(stream.npu_stream))
++    if not _EXECUTION_RECORDED:
++        _record_first_execution(comb)
++    return result
+diff --git a/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_tilelang_npu.py b/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_tilelang_npu.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..27f5f25b4c0fad88862d6601b9c0e9ff3f53a2b8
+--- /dev/null
++++ b/python/sglang/kernels/ops/layernorm/mhc_sinkhorn_tilelang_npu.py
+@@ -0,0 +1,211 @@
++# Copyright (c) Tile-AI Corporation.
++# SPDX-License-Identifier: MIT
++# Licensed under the MIT License. The normalizer tail below is adapted from:
++# https://github.com/tile-ai/tilelang-ascend/blob/
++# 2f22c6ac17a4235aa3de5ccf25729c3553b46e02/examples/deepseek_v4/hc_split_sinkhorn.py
++# Upstream raw Git blob SHA256:
++# 73b90d4279be959b5436941072bd6428bdc0ccc9e9f22989c874081a250d5400
++"""HC4 FP32 normalization after unchanged Torch softmax+eps.
++
++No projection, affine, sigmoid, softmax, norm or residual mixing is performed.
++No example module is imported; global device, seed, logging and cache policy
++are not changed. Execution and qualification are recorded separately by immutable run evidence.
++
++MIT License -- Copyright (c) Tile-AI.
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE
++"""
++import hashlib
++import json
++import math
++import os
++from pathlib import Path
++import sys
++import threading
++import time
++
++import torch
++import tilelang
++from tilelang import language as T
++
++UPSTREAM_COMMIT = "2f22c6ac17a4235aa3de5ccf25729c3553b46e02"
++UPSTREAM_FILE = "examples/deepseek_v4/hc_split_sinkhorn.py"
++UPSTREAM_SHA256 = "73b90d4279be959b5436941072bd6428bdc0ccc9e9f22989c874081a250d5400"
++_IDENTITY_EMITTED = False
++_IDENTITY_LOCK = threading.Lock()
++_PASS_CONFIGS = {
++    tilelang.PassConfigKey.TL_ASCEND_AUTO_CV_COMBINE: True,
++    tilelang.PassConfigKey.TL_ASCEND_AUTO_SYNC: True,
++    tilelang.PassConfigKey.TL_ASCEND_MEMORY_PLANNING: True,
++}
++
++
++@tilelang.jit(out_idx=[1], workspace_idx=None, target="ascendc", platform="A3",
++              pass_configs=_PASS_CONFIGS)
++def _sinkhorn_hc4_fp32(sinkhorn_eps: float):
++    n = T.symbolic("n")
++    block_M, VEC_NUM = 2, 2
++    m_num = tilelang.cdiv(n, block_M)
++
++    @T.prim_func
++    def main(comb: T.Tensor([n, 4, 4], "float"),
++             out: T.Tensor([n, 4, 4], "float")):
++        with T.Kernel(m_num, is_npu=True) as (cid, vid):
++            value = T.alloc_shared((4, 8), "float")
++            row_sum = T.alloc_shared(8, "float")
++            col_sum = T.alloc_shared((1, 8), "float")
++            row_div = T.alloc_shared((4, 8), "float")
++            col_broadcast = T.alloc_shared((4, 8), "float")
++            column_row = T.alloc_shared((1, 8), "float")
++            if cid * block_M + vid * block_M // VEC_NUM < n:
++                # Logical width is four; physical rows stay 32-byte aligned.
++                T.tile.fill(value, 0.0)
++                for i in T.serial(4):
++                    T.copy(comb[cid * block_M + vid * block_M // VEC_NUM, i, 0:4],
++                           value[i, 0:4])
++                # Input already equals the existing Torch softmax(-1) + eps.
++                # Match the measured Torch non-last-axis FP32 order:
++                # ((row0 + row1) + row2) + row3, with separate UB FP32 stores.
++                T.copy(value[0:1, :], col_sum)
++                for column_i in T.serial(1, 4):
++                    T.copy(value[column_i:column_i + 1, :], column_row)
++                    T.tile.add(col_sum, col_sum, column_row)
++                T.tile.add(col_sum, col_sum, sinkhorn_eps)
++                T.tile.broadcast(col_broadcast, col_sum)
++                T.tile.div(value, value, col_broadcast)
++                for _ in T.serial(19):
++                    T.reduce_sum(value, row_sum, dim=-1, real_shape=[4, 4])
++                    T.tile.add(row_sum, row_sum, sinkhorn_eps)
++                    for i in T.serial(4):
++                        T.tile.fill(row_div[i, :], row_sum[i])
++                    T.tile.div(value, value, row_div)
++                    # Match the measured Torch non-last-axis FP32 order:
++                    # ((row0 + row1) + row2) + row3, with separate UB FP32 stores.
++                    T.copy(value[0:1, :], col_sum)
++                    for column_i in T.serial(1, 4):
++                        T.copy(value[column_i:column_i + 1, :], column_row)
++                        T.tile.add(col_sum, col_sum, column_row)
++                    T.tile.add(col_sum, col_sum, sinkhorn_eps)
++                    T.tile.broadcast(col_broadcast, col_sum)
++                    T.tile.div(value, value, col_broadcast)
++                for i in T.serial(4):
++                    T.copy(value[i, 0:4],
++                           out[cid * block_M + vid * block_M // VEC_NUM, i, 0:4])
++    return main
++
++
++def _file_identity(path):
++    path = Path(path).resolve()
++    try:
++        before = path.stat()
++        h = hashlib.sha256()
++        with path.open("rb") as stream:
++            for block in iter(lambda: stream.read(1024 * 1024), b""):
++                h.update(block)
++        after = path.stat()
++        return {"path": str(path), "bytes": after.st_size, "sha256": h.hexdigest(),
++                "stat_stable": (before.st_size, before.st_mtime_ns, before.st_ino) ==
++                               (after.st_size, after.st_mtime_ns, after.st_ino)}
++    except OSError as error:
++        return {"path": str(path), "sha256": None, "error": type(error).__name__}
++
++
++def _mapped_tilelang_libraries():
++    paths = set()
++    try:
++        for line in Path("/proc/self/maps").read_text().splitlines():
++            parts = line.split(None, 5)
++            if len(parts) == 6 and parts[5].startswith("/"):
++                path = parts[5]
++                if ".so" in Path(path).name and any(word in path.lower() for word in ("tilelang", "tvm")):
++                    paths.add(path)
++        return [{**_file_identity(path), "mapped_path": path} for path in sorted(paths)], None
++    except OSError as error:
++        return [], type(error).__name__
++
++
++def _record_first_execution(comb, sinkhorn_eps):
++    global _IDENTITY_EMITTED
++    location = os.environ.get("GLM53_EXECUTION_IDENTITY_DIR")
++    if _IDENTITY_EMITTED or not location:
++        return
++    with _IDENTITY_LOCK:
++        if _IDENTITY_EMITTED:
++            return
++        # Startup-only proof of the completed nonempty call. The controller
++        # must schedule this first invocation in warmup, not timed requests.
++        torch.npu.synchronize(comb.device)
++        import torch.distributed as dist
++        rank = dist.get_rank() if dist.is_initialized() else 0
++        caller_frame = sys._getframe(2)
++        caller = Path(caller_frame.f_code.co_filename)
++        libraries, maps_error = _mapped_tilelang_libraries()
++        modules = {name: _file_identity(module.__file__) for name in ("tilelang", "tilelang.jit", "tvm")
++                   if (module := sys.modules.get(name)) is not None and getattr(module, "__file__", None)}
++        value = {"pid": os.getpid(), "rank": rank, "observed_epoch": time.time(),
++            "candidate_commit": os.environ.get("GLM53_CANDIDATE_COMMIT"),
++            "selected_implementation": "tilelang-ascend-public-tail-hc4-fp32-normalization-only",
++            "first_shape": list(comb.shape), "first_stride": list(comb.stride()),
++            "input_dtype": str(comb.dtype), "output_dtype": "torch.float32",
++            "sinkhorn_eps": sinkhorn_eps, "sinkhorn_repeat": 20,
++            "first_execution_synchronized": True,
++            "phase_contract": "first nonempty invocation; controller must bind actual warmup phase",
++            "target": "ascendc", "platform": "A3", "tilelang_version": getattr(tilelang, "__version__", None),
++            "cache_policy": "normal TileLang policy; adapter does not disable or mutate cache",
++            "upstream": {"repository": "https://github.com/tile-ai/tilelang-ascend.git",
++                         "commit": UPSTREAM_COMMIT, "path": UPSTREAM_FILE, "sha256": UPSTREAM_SHA256},
++            "source": _file_identity(__file__), "caller": _file_identity(caller),
++            "caller_function": caller_frame.f_code.co_name, "import_modules": modules,
++            "mapped_tilelang_tvm_libraries": libraries, "maps_error": maps_error,
++            "library_scope": "actual mapped .so paths containing tilelang or tvm; not all dependencies",
++            "library_inventory_complete": bool(libraries) and maps_error is None and
++                all(item.get("sha256") and item.get("stat_stable") for item in libraries)}
++        directory = Path(location)
++        directory.mkdir(parents=True, exist_ok=True)
++        with (directory / f"mhc-fused-rank-{rank}.json").open("x") as stream:
++            json.dump(value, stream, indent=2)
++            stream.write("\n")
++        _IDENTITY_EMITTED = True
++        print("GLM53_MHC_FUSED_EXECUTION " + json.dumps(value), flush=True)
++
++
++def fused_sinkhorn_normalize(comb: torch.Tensor, sinkhorn_eps: float,
++                             sinkhorn_repeat: int = 20) -> torch.Tensor:
++    """Strict FP32 contiguous NPU [T,4,4] adapter; no hidden fallback.
++
++    JIT target/platform/out_idx are supported by the fixed source API, but
++    compilation, generated reduction order and exact numerical gates remain
++    unverified until the caller's isolated-container component execution.
++    """
++    if not isinstance(comb, torch.Tensor) or comb.device.type != "npu" or comb.dtype != torch.float32:
++        raise ValueError("mHC TileLang normalization requires NPU FP32 input")
++    if comb.ndim != 3 or tuple(comb.shape[1:]) != (4, 4) or not comb.is_contiguous():
++        raise ValueError("mHC TileLang normalization requires contiguous [T,4,4]")
++    if type(sinkhorn_repeat) is not int or sinkhorn_repeat != 20:
++        raise ValueError("mHC TileLang normalization supports exactly 20 Sinkhorn iterations")
++    if isinstance(sinkhorn_eps, bool) or not isinstance(sinkhorn_eps, (int, float)) or not math.isfinite(sinkhorn_eps) or sinkhorn_eps <= 0:
++        raise ValueError("mHC TileLang normalization requires finite positive epsilon")
++    if comb.shape[0] == 0:
++        return torch.empty_like(comb)
++    if torch.npu.current_device() != comb.device.index:
++        raise ValueError("mHC TileLang input must belong to the current NPU device")
++    kernel = _sinkhorn_hc4_fp32(float(sinkhorn_eps))
++    result = kernel(comb)
++    if not isinstance(result, torch.Tensor) or result.dtype != comb.dtype or result.device != comb.device or tuple(result.shape) != tuple(comb.shape) or not result.is_contiguous():
++        raise RuntimeError("TileLang single-output allocation did not preserve the declared comb contract")
++    if not _IDENTITY_EMITTED:
++        _record_first_execution(comb, float(sinkhorn_eps))
++    return result

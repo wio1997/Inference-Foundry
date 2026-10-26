@@ -1,0 +1,198 @@
+diff --git a/python/sglang/srt/hardware_backend/npu/attention/ascend_backend.py b/python/sglang/srt/hardware_backend/npu/attention/ascend_backend.py
+index bfeea9b1a04bdc6d2031e4c692cd7c89375c5aea..09d4cf9d3d6bf009218a9508561f37c5be84505d 100644
+--- a/python/sglang/srt/hardware_backend/npu/attention/ascend_backend.py
++++ b/python/sglang/srt/hardware_backend/npu/attention/ascend_backend.py
+@@ -3,6 +3,7 @@ from __future__ import annotations
+ from dataclasses import dataclass
+ from typing import TYPE_CHECKING, List, Optional
+ 
++import os
+ import torch
+ import torch_npu
+ from sgl_kernel_npu.attention.sinks_attention import (
+@@ -63,6 +64,7 @@ import numpy as np
+ 
+ logger = logging.getLogger(__name__)
+ FULL_ATTENTION_WINDOW = 2147483647
++_SPARSE_KV_LENGTH_DEVICE_CACHE = os.environ.get("GLM53_SPARSE_KV_LENGTH_DEVICE_CACHE", "0") == "1"
+ 
+ 
+ def _is_dflash_verify(spec_info: Optional[SpecInput]) -> bool:
+@@ -1639,11 +1641,15 @@ class AscendAttnBackend(AttentionBackend):
+                 )
+             elif q_pe is None and k_pe is None:
+                 from sglang.srt.hardware_backend.npu.flash_sparse_nope_npu import flash_sparse_nope
++                from sglang.srt.hardware_backend.npu.ops.flash_sparse_kv_length_cache_npu import sparse_kv_lengths_to_device
+                 attn_out = flash_sparse_nope(
+                     q_nope, k_nope, topk_indices,
+                     self.forward_metadata.block_tables,
+                     actual_seq_qlen.to(device=q_nope.device, dtype=torch.int32),
+-                    actual_seq_lengths_kv.to(device=q_nope.device, dtype=torch.int32),
++                    sparse_kv_lengths_to_device(
++                        self, forward_batch, actual_seq_lengths_kv, q_nope.device,
++                        q_nope.shape[0], enabled=_SPARSE_KV_LENGTH_DEVICE_CACHE,
++                        caller_file=__file__),
+                     layer.scaling,
+                 )
+             else:
+diff --git a/python/sglang/srt/hardware_backend/npu/ops/flash_sparse_kv_length_cache_npu.py b/python/sglang/srt/hardware_backend/npu/ops/flash_sparse_kv_length_cache_npu.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6bef300b759653b42bc0de933ce093b8956ab295
+--- /dev/null
++++ b/python/sglang/srt/hardware_backend/npu/ops/flash_sparse_kv_length_cache_npu.py
+@@ -0,0 +1,155 @@
++"""Opt-in R5: selected Sparse NoPE KV-length conversion, one eager forward.
++
++Only CPU integral 1-D sources are cached. Preserve the caller's original source
++priority and first .to(device=..., dtype=int32), without non_blocking/copy/stream
++changes. Other paths execute the original conversion. No value is logged.
++"""
++from __future__ import annotations
++from dataclasses import dataclass
++import hashlib
++import json
++import os
++from pathlib import Path
++import time
++import torch
++
++_CACHE_ATTRIBUTE = "_glm53_sparse_kv_length_device_cache"
++_IDENTITY_RECORDED = False
++
++
++def _version(tensor):
++    try: return tensor._version
++    except RuntimeError: return None
++
++
++def _source_kind(metadata, source):
++    # Validation only: the caller already selected its original first non-None
++    # value. Never replace it with a different CPU/device mirror here.
++    for name in ("actual_seq_lengths_kv", "seq_lens_cpu_int", "seq_lens"):
++        value = getattr(metadata, name, None)
++        if value is not None: return name if value is source else None
++    return None
++
++
++def _current_stream_key(device):
++    # Query metadata only; never synchronize. Unknown stream identity bypasses.
++    try:
++        stream = torch.npu.current_stream(device)
++        # Same public pointer conventions already used by fixed C17
++        # sparsity_driven_kv_offload/host_callback.py; no callback import.
++        for name in ("npu_stream", "stream_ptr", "cuda_stream"):
++            handle = getattr(stream, name, None)
++            handle = handle() if callable(handle) else handle
++            if handle is not None: return (str(device), int(handle))
++        return None
++    except (AttributeError, RuntimeError, TypeError, ValueError):
++        return None
++
++
++def _convert(source, device):
++    # Exactly the old kwargs/default blocking semantics. No explicit async copy.
++    return source.to(device=device, dtype=torch.int32)
++
++
++@dataclass(frozen=True)
++class _Key:
++    source: torch.Tensor  # strong reference, not just data_ptr/id
++    source_kind: str
++    layout: tuple
++    version: object
++    values: tuple  # CPU source.tolist(): no NPU D2H or new synchronization
++    mode: object
++    count: int
++    device: str
++    stream: tuple
++
++    def matches(self, other):
++        return (self.source is other.source and self.source_kind == other.source_kind
++                and self.layout == other.layout and self.version == other.version
++                and self.values == other.values and self.mode == other.mode
++                and self.count == other.count and self.device == other.device
++                and self.stream == other.stream)
++
++
++@dataclass(frozen=True)
++class _Entry:
++    key: _Key
++    value: torch.Tensor
++    value_version: object
++
++
++def _eligible(backend, batch, source, device, count):
++    mode = batch.forward_mode
++    return (getattr(backend, "graph_mode", None) is False
++        and getattr(batch, "spec_info", None) is None
++        and not bool(getattr(batch, "can_run_tbo", True))
++        and getattr(batch, "forward_metadata_ready", True) is False
++        and getattr(batch, "attn_cp_metadata", None) is None
++        and (mode.is_decode() or mode.is_extend())
++        and not mode.is_target_verify() and not mode.is_draft_extend_v2()
++        and isinstance(source, torch.Tensor) and source.device.type == "cpu"
++        and source.ndim == 1 and source.layout == torch.strided
++        and source.dtype in (torch.int32, torch.int64)
++        and type(count) is int and count > 0
++        and getattr(device, "type", None) == "npu")
++
++
++def _emit_first_hit(caller_file, key, value):
++    global _IDENTITY_RECORDED
++    if _IDENTITY_RECORDED: return
++    directory = os.environ.get("GLM53_EXECUTION_IDENTITY_DIR")
++    if not directory: return
++    from sglang.srt.runtime_context import get_parallel
++    def identity(filename):
++        filename = Path(filename).resolve()
++        return {"path": str(filename), "sha256": hashlib.sha256(filename.read_bytes()).hexdigest()}
++    rank = get_parallel().attn_tp_rank
++    record = {"event": "sparse_nope_kv_length_device_cache_first_hit",
++        "observed_epoch": time.time(), "rank": rank, "pid": os.getpid(),
++        "candidate_commit": os.environ.get("GLM53_CANDIDATE_COMMIT"),
++        "enabled": True, "cache_scope": "same_eager_forward",
++        "caller_source": identity(caller_file), "helper_source": identity(__file__),
++        "source_kind": key.source_kind, "source_dtype": str(key.source.dtype),
++        "source_shape": list(key.source.shape), "output_dtype": str(value.dtype),
++        "output_shape": list(value.shape), "stream_identity_known": True,
++        "CPU_value_key": True, "source_version_available": key.version is not None}
++    directory = Path(directory); directory.mkdir(parents=True, exist_ok=True)
++    with (directory / ("sparse-kv-length-cache-rank-"+str(rank)+".json")).open("x") as stream:
++        json.dump(record, stream, indent=2); stream.write("\n")
++    _IDENTITY_RECORDED = True
++
++
++def sparse_kv_lengths_to_device(backend, forward_batch, source, device, count,
++                                *, enabled=False, caller_file=None):
++    """Return original conversion or same-forward immutable device copy.
++
++    Caller source-selection block, q-length conversion and all other branches
++    stay unchanged. CPU value-key detects inference/.data writes between calls,
++    but is not an atomic concurrency protocol. This ordinary path is read-only
++    on one Python forward thread; no arbitrary concurrent mutation is qualified.
++    """
++    if not enabled or not _eligible(backend, forward_batch, source, device, count):
++        return _convert(source, device)
++    metadata = backend.forward_metadata
++    kind = _source_kind(metadata, source)
++    stream = _current_stream_key(device)
++    if kind is None or stream is None:
++        return _convert(source, device)
++    key = _Key(source, kind, (tuple(source.shape), tuple(source.stride()),
++        source.storage_offset(), source.dtype, str(source.device)), _version(source),
++        tuple(source.tolist()), forward_batch.forward_mode, count, str(device), stream)
++    previous = getattr(metadata, _CACHE_ATTRIBUTE, None)
++    # A different stream uses its original copy and leaves the first-stream
++    # cached value alive; never add an event/wait to force cross-stream reuse.
++    if previous is not None and previous.key.stream != stream:
++        return _convert(source, device)
++    if previous is not None and previous.key.matches(key) and _version(previous.value) == previous.value_version:
++        value = previous.value  # actual reuse before one warm-up identity event
++        _emit_first_hit(caller_file, key, value)
++        return value
++    value = _convert(source, device)
++    # If a CPU source changed during the first blocking conversion, do not memoize
++    # it. Preserve the original result; next call takes the old path again.
++    if tuple(source.tolist()) == key.values and _version(source) == key.version:
++        setattr(metadata, _CACHE_ATTRIBUTE, _Entry(key, value, _version(value)))
++    return value

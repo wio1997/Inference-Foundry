@@ -1,0 +1,179 @@
+diff --git a/python/sglang/srt/hardware_backend/npu/ops/flash_kpool_indexer_npu.py b/python/sglang/srt/hardware_backend/npu/ops/flash_kpool_indexer_npu.py
+index f65791363f2c59b7c9a13ae04eec85e21f859ea3..eafa1e7c50d3787af41ccfc34d726f409d39d4de 100644
+--- a/python/sglang/srt/hardware_backend/npu/ops/flash_kpool_indexer_npu.py
++++ b/python/sglang/srt/hardware_backend/npu/ops/flash_kpool_indexer_npu.py
+@@ -6,9 +6,12 @@ vLLM-Ascend Flash backend. Licensed compression/score kernels are generated
+ separately. CPU metadata validation is diagnostic, not a performance path.
+ """
+ import torch
++from sglang.srt.hardware_backend.npu.ops.flash_kpool_metadata_cache_npu import read_kpool_cpu_metadata
+ import os
+ import torch.nn.functional as F
+ 
++_KPOOL_FORWARD_METADATA_CACHE = os.environ.get('GLM53_KPOOL_FORWARD_METADATA_CACHE','0') == '1'
++_CACHE_IDENTITY_RECORDED = False
+ _PERFORMANCE = os.environ.get('FLASH_PD_PERF_MODE','0') == '1'
+ if _PERFORMANCE and any(os.environ.get(key) != '0' for key in
+     ['FLASH_PD_COMPRESSION_ABI_AUDIT','FLASH_PD_SCORE_ABI_AUDIT','FLASH_SDMA_VERIFY_BYTES']):
+@@ -17,6 +20,7 @@ if _PERFORMANCE and any(os.environ.get(key) != '0' for key in
+ 
+ def forward_flash_kpool(indexer, x, q_lora, positions, forward_batch,
+                        layer_id, layer_scatter_modes=None, dynamic_scale=None):
++    global _CACHE_IDENTITY_RECORDED
+     from sglang.srt.model_executor.forward_context import get_attn_backend, get_token_to_kv_pool
+     from sglang.srt.hardware_backend.npu.ops.flash_kpool_compression import glm5_next_kpool_tail_compress_and_write_cache_triton
+     from sglang.srt.hardware_backend.npu.ops.flash_indexer_query_parallel import query_parallel_indexer
+@@ -59,10 +63,28 @@ def forward_flash_kpool(indexer, x, q_lora, positions, forward_batch,
+         # read it. Old tail contents are never consumed for a fresh request.
+     else:
+         # Validate complete query boundaries before writing any persistent state.
+-        lengths=query_lens.detach().cpu().tolist()
+-        sequences=seq_lens.detach().cpu().tolist()
+-        request_slots=slots.detach().cpu().tolist()
+-        actual_positions=positions.detach().cpu().tolist()
++        (lengths,sequences,request_slots,actual_positions),_cache_event = read_kpool_cpu_metadata(
++            backend,forward_batch,positions,query_lens,seq_lens,slots,count,
++            enabled=_KPOOL_FORWARD_METADATA_CACHE)
++        if _cache_event == 'hit' and not _CACHE_IDENTITY_RECORDED:
++            location=os.environ.get('GLM53_EXECUTION_IDENTITY_DIR')
++            if location:
++                import hashlib,json
++                from pathlib import Path
++                from sglang.srt.hardware_backend.npu.ops import flash_kpool_metadata_cache_npu as _cache_module
++                def _source(path):
++                    p=Path(path).resolve()
++                    return {'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
++                rank=get_parallel().attn_tp_rank
++                value={'event':'kpool_forward_cache_first_hit','rank':rank,'pid':os.getpid(),
++                    'candidate_commit':os.environ.get('GLM53_CANDIDATE_COMMIT'),
++                    'enabled':_KPOOL_FORWARD_METADATA_CACHE,'diagnostic_performance_mode':_PERFORMANCE,
++                    'cache_only':'four CPU metadata copies; original per-layer validation and state operations follow',
++                    'caller_source':_source(__file__),'helper_source':_source(_cache_module.__file__)}
++                directory=Path(location);directory.mkdir(parents=True,exist_ok=True)
++                with (directory/('kpool-cache-rank-'+str(rank)+'.json')).open('x') as out:
++                    json.dump(value,out,indent=2);out.write('\n')
++            _CACHE_IDENTITY_RECORDED=True
+         if sum(lengths)!=count or len(lengths)!=len(sequences) or len(lengths)!=len(request_slots):
+             raise ValueError('Flash KPool actual-token/request boundaries mismatch')
+         active_slots=[slot for slot,length in zip(request_slots,lengths) if length]
+diff --git a/python/sglang/srt/hardware_backend/npu/ops/flash_kpool_metadata_cache_npu.py b/python/sglang/srt/hardware_backend/npu/ops/flash_kpool_metadata_cache_npu.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..9ce7fac573fc39311a235015f696204167ca9722
+--- /dev/null
++++ b/python/sglang/srt/hardware_backend/npu/ops/flash_kpool_metadata_cache_npu.py
+@@ -0,0 +1,115 @@
++"""Opt-in R4: narrow eager KPool CPU metadata snapshot cache.
++
++No environment is changed here. The production caller must keep all original
++validation, per-layer tail zeroing and audit calls outside this helper.
++Inference tensors have no version counter: reuse for them is justified only by
++this exact eager/no-preplan/no-TBO/no-spec lifecycle and read-only source path.
++This is not a general mutation-safe tensor memoizer.
++"""
++from __future__ import annotations
++
++from dataclasses import dataclass
++from typing import Optional
++
++import torch
++
++_CACHE_ATTRIBUTE = "_glm53_kpool_cpu_metadata_snapshot"
++
++
++@dataclass(frozen=True)
++class _TensorKey:
++    tensor: torch.Tensor  # Strong reference; no id-reuse ambiguity.
++    layout: tuple
++    version: Optional[int]
++
++    @classmethod
++    def of(cls, tensor):
++        try:
++            version = tensor._version
++        except RuntimeError:
++            # Inference tensors do not track version counters. See module
++            # contract. We still retain object identity and the eager lifetime.
++            version = None
++        return cls(tensor, (tuple(tensor.shape), tuple(tensor.stride()),
++                           tensor.storage_offset(), tensor.dtype, tensor.device),
++                   version)
++
++    def matches(self, other):
++        return (self.tensor is other.tensor and self.layout == other.layout
++                and self.version == other.version)
++
++
++@dataclass(frozen=True)
++class _Key:
++    mode: object
++    count: int
++    tensors: tuple[_TensorKey, ...]
++
++    def matches(self, other):
++        return (self.mode == other.mode and self.count == other.count
++                and len(self.tensors) == len(other.tensors)
++                and all(a.matches(b) for a, b in zip(self.tensors, other.tensors)))
++
++
++@dataclass(frozen=True)
++class _Entry:
++    key: _Key
++    # Four flat immutable CPU tuples in original readback order.
++    values: tuple[tuple, tuple, tuple, tuple]
++
++
++def _eligible(enabled, backend, forward_batch, positions):
++    mode = forward_batch.forward_mode
++    return (
++        enabled
++        and getattr(backend, "graph_mode", None) is False
++        and getattr(forward_batch, "spec_info", None) is None
++        and not bool(getattr(forward_batch, "can_run_tbo", True))
++        # False forces eager_runner to init a new ForwardMetadata for this pass.
++        # Pre-planned/skip-init paths intentionally retain original readbacks.
++        and getattr(forward_batch, "forward_metadata_ready", True) is False
++        and (mode.is_decode() or mode.is_extend())
++        and not mode.is_target_verify()
++        and not mode.is_draft_extend_v2()
++        and positions.dim() == 1
++        and forward_batch.seq_lens.dim() == 1
++        and forward_batch.req_pool_indices.dim() == 1
++        and (not mode.is_extend()
++             or forward_batch.extend_seq_lens.dim() == 1)
++    )
++
++
++def _read(query_lens, seq_lens, slots, positions):
++    # Preserve readback ordering: first barrier remains at the first KPool layer.
++    return (query_lens.detach().cpu().tolist(),
++            seq_lens.detach().cpu().tolist(),
++            slots.detach().cpu().tolist(),
++            positions.detach().cpu().tolist())
++
++
++def read_kpool_cpu_metadata(backend, forward_batch, positions, query_lens,
++                            seq_lens, slots, count, *, enabled=False):
++    """Return (four original-list values, event) for the existing validation.
++
++    event is only a cheap optional diagnostic token: bypass/miss/hit. Do not log
++    per-layer values in timed runs. This helper does not cache validation or
++    persistent state operations. Decode key uses original seq_lens/mode, never
++    its fresh per-layer ones_like query_lens. .to() temporaries are not keys.
++    """
++    if not _eligible(enabled, backend, forward_batch, positions):
++        return _read(query_lens, seq_lens, slots, positions), "bypass"
++    originals = (forward_batch.seq_lens, forward_batch.req_pool_indices,
++                 positions)
++    if forward_batch.forward_mode.is_extend():
++        originals += (forward_batch.extend_seq_lens,)
++    key = _Key(forward_batch.forward_mode, count,
++               tuple(_TensorKey.of(t) for t in originals))
++    metadata = backend.forward_metadata
++    previous = getattr(metadata, _CACHE_ATTRIBUTE, None)
++    if previous is not None and previous.key.matches(key):
++        # Fresh lists preserve original audit_context types and isolate callers.
++        return tuple(list(v) for v in previous.values), "hit"
++    values = _read(query_lens, seq_lens, slots, positions)
++    setattr(metadata, _CACHE_ATTRIBUTE,
++            _Entry(key, tuple(tuple(v) for v in values)))
++    return values, "miss"
