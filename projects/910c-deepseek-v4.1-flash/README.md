@@ -4,6 +4,10 @@
 
 **32K 输入 / 1K 输出基线通过：单并发6.32 token/s，双并发总输出吞吐12.38 token/s；6个正式请求全部成功，最终健康接口 HTTP 200。16个逻辑设备均有本服务 worker。**
 
+**最新 AISBench：32K 输入 / 1K 输出、8 并发、两轮 16/16 成功，实际前缀命中率 89.99%；总输出吞吐 48.06 / 50.61 token/s。**
+
+详情见 [AISBench C8 / 90% 命中](benchmarks/2026-10-26-32k-1k-c8-p90-aisbench/README.md)。
+
 本轮运行状态见 [STATUS.json](STATUS.json)。旧 DP1×TP8 的 OOM 和早期 DP4×TP4 的文本结果仅作历史，不替代当前配置验证。
 
 | 项目 | 配置 |
