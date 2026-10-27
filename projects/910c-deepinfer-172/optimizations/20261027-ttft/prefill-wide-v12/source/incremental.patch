@@ -1,0 +1,60 @@
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index c69b252..4ac38bc 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -296,6 +296,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             layer.eager_attention_calls = layer.cann_attention_calls = 0
+             if layer.mc2 is not None:
+                 layer.mc2.fused_calls=0
++                layer.mc2.fused_max_output_size=0
+         if getattr(self,'_decode_graph',None) is not None:
+             self._decode_graph.reset_sequence()
+         if getattr(self,'_verify_graph',None) is not None:
+@@ -349,6 +350,8 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'mc2_layers': sum(layer.mc2 is not None for layer in self.layers),
+                 'fused_mc2_prefill_layers': sum(layer.fused_mc2_prefill for layer in self.layers),
+                 'fused_mc2_calls': sum(layer.mc2.fused_calls for layer in self.layers if layer.mc2 is not None),
++                'fused_mc2_max_output_size': max((layer.mc2.fused_max_output_size for layer in self.layers
++                                                if layer.mc2 is not None),default=0),
+                 'sequence_parallel_enabled': self.sequence_parallel,
+                 'sequence_parallel_prefill_forwards': self.sequence_parallel_prefill_forwards,
+                 'sequence_parallel_tp_size': self.sp.world,
+diff --git a/deepinfer/npu_ops/mc2_910c.py b/deepinfer/npu_ops/mc2_910c.py
+index aa587a0..01876f7 100644
+--- a/deepinfer/npu_ops/mc2_910c.py
++++ b/deepinfer/npu_ops/mc2_910c.py
+@@ -37,6 +37,7 @@ class NativeMC2:
+         self.world=dist.get_world_size(self.group)
+         self.name=self.group._get_backend(torch.device('npu')).get_hccl_comm_name(self.rank)
+         self.fused_calls=0
++        self.fused_max_output_size=0
+         self._fused_masks={}
+         # Ignored by the INT8 C++ adapter, retained for its Tensor[] ABI.
+         self._empty_bias=[torch.tensor([],dtype=torch.float32)]
+@@ -67,9 +68,13 @@ class NativeMC2:
+         """
+         capacity=global_bs//self.world
+         count=x.shape[0]
++        # Every route from every rank could target this rank's experts.
++        # Retain the pinned 65536 baseline, increasing to the complete route
++        # bound for the validated 4096-token/request prefill capacity.
++        max_output_size=max(65536,global_bs*ids.shape[1])
+         if (global_bs%self.world or not 0<count<=capacity
+-                or capacity*self.world*ids.shape[1]>65536):
+-            raise ValueError('fused MC2 capacity must cover every rank and fit max_output_size=65536')
++                or max_output_size>196608):
++            raise ValueError('fused MC2 capacity must cover every rank and fit at most196608 routes')
+         if not hasattr(bank,'fused_first_scale'):
+             raise RuntimeError('prepare_fused_mc2() before fused prefill')
+         mask=self._fused_masks.get((capacity,count))
+@@ -85,8 +90,9 @@ class NativeMC2:
+             x=x,weight1=[bank.first],weight2=[bank.second],expert_idx=ids.int(),
+             scale1=[bank.fused_first_scale],scale2=[bank.fused_second_scale],
+             bias1=self._empty_bias,bias2=self._empty_bias,probs=weights.float(),
+-            group=self.name,max_output_size=65536,out=out,
++            group=self.name,max_output_size=max_output_size,out=out,
+             expert_token_nums=bank.fused_expert_tokens,x_active_mask=mask,
+             swiglu_limit=0. if bank.limit is None else bank.limit,world_size=self.world)
+         self.fused_calls+=1
++        self.fused_max_output_size=max(self.fused_max_output_size,max_output_size)
+         return out[:count]

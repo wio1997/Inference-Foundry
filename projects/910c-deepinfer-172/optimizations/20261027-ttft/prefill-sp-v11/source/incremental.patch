@@ -1,0 +1,264 @@
+diff --git a/deepinfer/engine/ascend_w8a8_serving.py b/deepinfer/engine/ascend_w8a8_serving.py
+index 5575935..7cf8ff3 100644
+--- a/deepinfer/engine/ascend_w8a8_serving.py
++++ b/deepinfer/engine/ascend_w8a8_serving.py
+@@ -97,7 +97,8 @@ class NativeServingRunner:
+                 if not slots:
+                     self._reset_scratch()
+                     slots,chunks=[self.slots],[[requests[0]['token_ids'][0]]]
+-                logits=self.model.forward_tokens(chunks,slots)
++                logits=self.model.forward_tokens(chunks,slots,
++                    sequence_parallel=self.model.sequence_parallel)
+                 for row,slot in enumerate(slots):
+                     if slot==self.slots:
+                         continue
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 6c08f72..c69b252 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -15,6 +15,7 @@ import torch.nn.functional as F
+ 
+ from deepinfer.npu_ops import mhc910c as mhc
+ from deepinfer.npu_ops.dsa910c import DSABatch, sparse_mla
++from deepinfer.npu_ops.sp910c import SequenceShard
+ from .ascend_w8a8_layer import AscendW8A8Layer
+ from .w8a8_compressor910c import compress_batch
+ from .w8a8_engram910c import AscendW8A8Engram, CpuEngramHistory, load_rotation
+@@ -36,12 +37,14 @@ class PackedForward:
+     mc2_global_bs: int = 4096
+     decode_frame: object | None = None
+     source_metadata: dict | None = None
++    sequence_parallel: bool = False
+ 
+ 
+ class AscendW8A8PackedLayer(AscendW8A8Layer):
+     def __init__(self, reader, device, *, layer_id, group=None, tp_group=None):
+         super().__init__(reader, device, layer_id=layer_id, group=group)
+         self.tp_group = tp_group
++        self.sp = SequenceShard(tp_group)
+         self.eager_attention_calls = self.cann_attention_calls = 0
+         # Reuse the same shifted-mHC kernels as the deployed V4.1 model.
+         self.fused_mhc = (hasattr(torch.ops._C_ascend, 'npu_hc_pre_v3')
+@@ -86,14 +89,14 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                 raise ValueError('fused MC2 prefill requires native MC2 communicator')
+             self.expert_bank.prepare_fused_mc2()
+ 
+-    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False):
++    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False,already_sharded=False):
+         from deepinfer.npu_ops.moe910c import dispatch_combine,route
+         # Attention returns the same token batch on each TP rank. Dispatch
+         # each token once to global EP16, then restore the TP-replicated batch.
+         count=x.shape[0]
+-        width=(count+self.tp_size-1)//self.tp_size
++        width=count if already_sharded else (count+self.tp_size-1)//self.tp_size
+         rank=dist.get_rank(self.tp_group) if self.tp_size>1 else 0
+-        first=rank*width
++        first=0 if already_sharded else rank*width
+         local=x[first:first+width]
+         routing=router_x[first:first+width]
+         valid=local.shape[0]
+@@ -114,7 +117,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         shared=self.shared_expert(local)
+         output=(shared.float()+routed.float()*self.config['routed_scaling_factor']).bfloat16()
+         output=output[:valid]
+-        if self.tp_size>1:
++        if self.tp_size>1 and not already_sharded:
+             padded=x.new_zeros((width,x.shape[1]))
+             padded[:output.shape[0]].copy_(output)
+             gathered=x.new_empty((width*self.tp_size,x.shape[1]))
+@@ -122,7 +125,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             return gathered[:count]
+         return output
+ 
+-    def packed_attention(self, x, cache, pending, state):
++    def packed_attention(self, x, cache, pending, state, *, reduce_results=True):
+         c, batch = self.config, state.batch
+         qr = rms_norm_mixed(self.projections['wq_a'](x), self.attn_q_norm_weight, c['rms_norm_eps'])[0]
+         q = self.projections['wq_b'](qr).unflatten(-1, (self.local_heads, c['head_dim']))
+@@ -205,7 +208,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         grouped = context.reshape(x.shape[0], self.local_o_groups, -1)
+         projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
+         output = self.projections['wo_b'](projected.flatten(1))
+-        if self.tp_size > 1:
++        if self.tp_size > 1 and reduce_results:
+             dist.all_reduce(output, group=self.tp_group)
+         return output
+ 
+@@ -216,7 +219,12 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         else:
+             x, pre, post, comb = self._pre(trunk, previous, 'attn')
+         x = rms_norm_mixed(x, self.attn_norm_weight, c['rms_norm_eps'])[0]
+-        attn = self.packed_attention(x, cache, pending, state)
++        if state.sequence_parallel:
++            x = self.sp.gather(x, sum(state.batch.query_lengths))
++        attn = self.packed_attention(x, cache, pending, state,
++                                     reduce_results=not state.sequence_parallel)
++        if state.sequence_parallel:
++            attn = self.sp.reduce(attn)
+         after_attn = self._hc_post(attn, trunk, post, comb) if self.fused_mhc else mhc.mhc_post(attn, trunk, post, comb)
+         if self.fused_mhc:
+             x, post, comb, next_pre = self._hc_pre(after_attn, pre, 'ffn')
+@@ -228,7 +236,8 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             x, router_x = rms_norm_mixed(x, self.ffn_norm_weight, c['rms_norm_eps'])
+         ffn = self.packed_ffn(x,router_x,state.mc2_global_bs,
+             fused_mc2=(self.fused_mc2_prefill and state.decode_frame is None
+-                       and state.mc2_global_bs>self.mc2.world))
++                       and state.mc2_global_bs>self.mc2.world),
++            already_sharded=state.sequence_parallel)
+         if self.fused_mhc:
+             return self._hc_post(ffn, after_attn, post, comb), next_pre.unsqueeze(-1)
+         return mhc.mhc_post(ffn, after_attn, post, comb), next_pre
+@@ -257,6 +266,8 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 or any(r not in (0, 1, 2) for r in c['compress_ratios'][:c['num_hidden_layers']])):
+             raise ValueError('unsupported native paged W8A8 model/cache contract')
+         self.reader, self.device, self.cfg = reader, torch.device(device), c
++        self.sequence_parallel = (os.environ.get('DEEPINFER_910C_SEQUENCE_PARALLEL') == '1'
++                                  and tp_group is not None and dist.get_world_size(tp_group) > 1)
+         self.max_tokens, self.requests, self.chunk_size = max_tokens, requests, chunk_size
+         progress = progress or (lambda event: None)
+         progress({'stage': 'embedding_and_head', 'backend': 'native-paged'})
+@@ -272,6 +283,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             layer = AscendW8A8PackedLayer(reader, device, layer_id=i, group=group, tp_group=tp_group)
+             layer.load_local_experts(); self.layers.append(layer)
+             progress({'stage': 'resident_layer', 'layer': i, 'local_experts': layer.local_expert_count, 'backend': 'native-paged'})
++        self.sp = self.layers[0].sp
+         self.cache = W8A8PagedCache(reader.config, device, max_tokens=max_tokens, requests=requests, max_query_tokens=chunk_size)
+         self.reset()
+ 
+@@ -289,6 +301,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         if getattr(self,'_verify_graph',None) is not None:
+             self._verify_graph.reset_sequence()
+         self.use_decode_graph=False
++        self.sequence_parallel_prefill_forwards=0
+         self.prompt_lookup_stats={}
+ 
+     def capture_prefix(self,slot,token_ids):
+@@ -336,6 +349,9 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'mc2_layers': sum(layer.mc2 is not None for layer in self.layers),
+                 'fused_mc2_prefill_layers': sum(layer.fused_mc2_prefill for layer in self.layers),
+                 'fused_mc2_calls': sum(layer.mc2.fused_calls for layer in self.layers if layer.mc2 is not None),
++                'sequence_parallel_enabled': self.sequence_parallel,
++                'sequence_parallel_prefill_forwards': self.sequence_parallel_prefill_forwards,
++                'sequence_parallel_tp_size': self.sp.world,
+                 'native_graph_captures': self._decode_graph.captures if getattr(self,'_decode_graph',None) is not None else 0,
+                 'native_graph_replays': self._decode_graph.replays if getattr(self,'_decode_graph',None) is not None else 0,
+                 'decode_host_staging_seconds': self._decode_graph.staging_seconds if getattr(self,'_decode_graph',None) is not None else 0.,
+@@ -357,7 +373,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         return self._verify_graph.step(chunks).reshape(4,width,-1)
+ 
+     @torch.inference_mode()
+-    def forward_tokens(self, chunks, slots=None):
++    def forward_tokens(self, chunks, slots=None, *, sequence_parallel=False):
+         chunks = [list(tokens) for tokens in chunks]
+         slots = list(range(len(chunks))) if slots is None else list(slots)
+         if (not chunks or len(chunks) != len(slots) or len(set(slots)) != len(slots)
+@@ -385,10 +401,16 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         state = PackedForward(batch, slots, batch.positions(), self.cache.swa_plan(0, batch, slots), self.cache.swa[0].table(slots))
+         state.source_metadata = self.cache.prepare_compressed(batch, slots)
+         state.mc2_global_bs=getattr(self,'mc2_global_bs',4096)
++        state.sequence_parallel=bool(sequence_parallel and self.sequence_parallel)
+         ids = torch.tensor(flat_ids, dtype=torch.int64, device=self.device)
+         trunk = self.embedding.index_select(0, ids)[:, None].expand(-1, self.cfg['hc_mult'], -1).contiguous()
+         previous = torch.zeros((len(flat_ids), self.cfg['hc_mult'], 1), dtype=torch.float32, device=self.device)
+         previous[:, 0] = 1.
++        if state.sequence_parallel:
++            trunk=self.sp.split(trunk)
++            previous=self.sp.split(previous)
++            hashes={i:self.sp.split(value,fill=-1) for i,value in hashes.items()}
++            self.sequence_parallel_prefill_forwards+=1
+         for i, layer in enumerate(self.layers):
+             if str(i) in self.engrams:
+                 trunk = self.engrams[str(i)](trunk, hashes[i], self.engram_rotation)
+@@ -396,7 +418,11 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         # Prefill only needs each request's final logit, not a vocabulary-sized
+         # output tensor for every prompt token.
+         last = batch.cu_query[1:].long()-1
+-        hidden = (trunk.index_select(0, last).float()*previous.index_select(0, last)).sum(-2).bfloat16()
++        if state.sequence_parallel:
++            local_hidden=(trunk.float()*previous).sum(-2).bfloat16()
++            hidden=self.sp.gather(local_hidden,len(flat_ids)).index_select(0,last)
++        else:
++            hidden = (trunk.index_select(0, last).float()*previous.index_select(0, last)).sum(-2).bfloat16()
+         hidden = rms_norm_mixed(hidden, self.norm, self.cfg['rms_norm_eps'])[0]
+         logits = F.linear(hidden, self.head).float()
+         for slot, end in zip(slots, seq_lengths):
+diff --git a/deepinfer/npu_ops/sp910c.py b/deepinfer/npu_ops/sp910c.py
+new file mode 100644
+index 0000000..11575a3
+--- /dev/null
++++ b/deepinfer/npu_ops/sp910c.py
+@@ -0,0 +1,43 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Token-axis ownership for native TP attention and sequence-parallel trunk.
++
++Attention caches retain full request coordinates on every TP rank. Only the
++mHC residual stream, normalization and FFN own disjoint token slices; gather
++normalized attention inputs and reduce-scatter the partial output projection.
++"""
++import torch.distributed as dist
++
++
++class SequenceShard:
++    def __init__(self, group):
++        self.group = group
++        self.world = dist.get_world_size(group) if group is not None else 1
++        self.rank = dist.get_rank(group) if group is not None else 0
++
++    def _pad(self, value, *, fill=0):
++        tokens = value.shape[0]
++        width = (tokens + self.world - 1) // self.world
++        if width * self.world == tokens:
++            return value.contiguous(), width
++        padded = value.new_full((width * self.world, *value.shape[1:]), fill)
++        padded[:tokens].copy_(value)
++        return padded, width
++
++    def split(self, value, *, fill=0):
++        padded, width = self._pad(value, fill=fill)
++        return padded[self.rank * width:(self.rank + 1) * width].contiguous()
++
++    def gather(self, local, tokens):
++        if self.world == 1:
++            return local[:tokens]
++        output = local.new_empty((local.shape[0] * self.world, *local.shape[1:]))
++        dist.all_gather_into_tensor(output, local.contiguous(), group=self.group)
++        return output[:tokens]
++
++    def reduce(self, partial):
++        padded, width = self._pad(partial)
++        if self.world == 1:
++            return padded
++        local = padded.new_empty((width, *padded.shape[1:]))
++        dist.reduce_scatter_tensor(local, padded, group=self.group)
++        return local
+diff --git a/tests/test_ascend910c_sequence_shard.py b/tests/test_ascend910c_sequence_shard.py
+new file mode 100644
+index 0000000..b5ad50b
+--- /dev/null
++++ b/tests/test_ascend910c_sequence_shard.py
+@@ -0,0 +1,25 @@
++"""CPU contracts for TP token ownership, including an idle DP scratch row."""
++import pytest
++import torch
++
++from deepinfer.npu_ops.sp910c import SequenceShard
++
++
++@pytest.mark.parametrize('tokens', [1, 7, 9, 640])
++def test_sequence_shards_preserve_tokens_and_mask_padding(tokens):
++    values = torch.arange(tokens * 3, dtype=torch.int32).reshape(tokens, 3)
++    slices = []
++    for rank in range(8):
++        shard = SequenceShard(None)
++        shard.world, shard.rank = 8, rank
++        slices.append(shard.split(values, fill=-1))
++    combined = torch.cat(slices)
++    torch.testing.assert_close(combined[:tokens], values, rtol=0, atol=0)
++    assert (combined[tokens:] == -1).all()
++    assert len({piece.shape for piece in slices}) == 1
++
++
++def test_single_rank_preserves_mhc_axes():
++    value = torch.arange(7 * 4 * 16).reshape(7, 4, 16)
++    shard = SequenceShard(None)
++    torch.testing.assert_close(shard.gather(shard.split(value), 7), value)

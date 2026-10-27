@@ -1,0 +1,261 @@
+{
+  "state": "INCONCLUSIVE",
+  "mechanism": "Replace supported NPU BF16 RMSNorm FP32 decomposition with pinned npu_rms_norm_cast; keep both BF16 result and FP32 pre-cast output",
+  "previous": "prefill-wide-v12",
+  "baseline_ttft_ms": 1838.35,
+  "baseline_tps": 997.8972470491426,
+  "fixed": [
+    "all v12 settings includingchunk4096/MC2window1024MiB",
+    "W8A8 weights/image",
+    "DP2TP8EP16",
+    "same AISBench32K/1K/C8/2rounds/actualcache235904"
+  ],
+  "constraints": [
+    "Input/gamma must both be BF16. Mixed-dtype weights retain original FP32 math; no weight casts.",
+    "Columns supported by pinned kernel UB tiling; model norms512/1024/5120 all fit.",
+    "16 exact complete outputs required before acceptance."
+  ],
+  "source_evidence": "diagnostics/rms-v13-source; pinned C++ adapter and kernel confirm FP32 reduction/multiply and BF16 plus FP32 outputs. Current router norm already uses the same op.",
+  "prediction": "Fewer launches and less full-tensor intermediate traffic in Q/KV, attention-input, compressor and final RMSNorm; may also improve graph verification.",
+  "acceptance": "Lower meanTTFT than1838.35ms and no>5% output TPS regression vs997.90TPS",
+  "rollback": "Return accepted v12 source if unsupported, incorrect or slower; preserve rejected evidence",
+  "budget": "One implementation and two formal rounds, no blind scan",
+  "created": 1793094869.190163,
+  "selected": false,
+  "observed": {
+    "aggregate_tps": 1042.2107702585158,
+    "mean_ttft_ms": 1868.8000000000002,
+    "full_outputs_exact": 16,
+    "phases": [
+      {
+        "phase": "measure1",
+        "state": "PASS",
+        "path_proof": {
+          "job": "a04d317ed5be4cc181221878ef63ed78",
+          "runtime_stats": [
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                1
+              ],
+              "native_eager_attention_calls": 120,
+              "native_cann_attention_calls": 1080,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 400,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "rms_norm_runtime": {
+                "enabled": true,
+                "fused_eager_or_capture_calls": 1335,
+                "npu_fallback_calls": 0,
+                "counts_include_graph_capture_but_not_graph_replays": true
+              },
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.27406881377100945,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 64,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4032,
+                "draft_tokens_accepted": 4032,
+                "emitted_target_tokens": 4096
+              }
+            },
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1200,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 400,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "rms_norm_runtime": {
+                "enabled": true,
+                "fused_eager_or_capture_calls": 1365,
+                "npu_fallback_calls": 0,
+                "counts_include_graph_capture_but_not_graph_replays": true
+              },
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.3131822692230344,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 72,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4536,
+                "draft_tokens_accepted": 4052,
+                "emitted_target_tokens": 4096
+              }
+            }
+          ]
+        },
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 7.203249,
+        "output_throughput_tokens_per_second": 1137.264587132834,
+        "mean_ttft_ms": 1958.7,
+        "mean_tpot_ms": 4.1,
+        "mean_e2el_ms": 6144.3,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      },
+      {
+        "phase": "measure2",
+        "state": "PASS",
+        "path_proof": {
+          "job": "283fb78aa63b4824aae65acf9d6c1d71",
+          "runtime_stats": [
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                1
+              ],
+              "native_eager_attention_calls": 40,
+              "native_cann_attention_calls": 1440,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 640,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "rms_norm_runtime": {
+                "enabled": true,
+                "fused_eager_or_capture_calls": 2175,
+                "npu_fallback_calls": 0,
+                "counts_include_graph_capture_but_not_graph_replays": true
+              },
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.2938062995672226,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 70,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4410,
+                "draft_tokens_accepted": 4057,
+                "emitted_target_tokens": 4096
+              }
+            },
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1480,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 640,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "rms_norm_runtime": {
+                "enabled": true,
+                "fused_eager_or_capture_calls": 2187,
+                "npu_fallback_calls": 0,
+                "counts_include_graph_capture_but_not_graph_replays": true
+              },
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.34783771354705095,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 76,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4788,
+                "draft_tokens_accepted": 4065,
+                "emitted_target_tokens": 4096
+              }
+            }
+          ]
+        },
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 8.517179599999999,
+        "output_throughput_tokens_per_second": 961.8207416924731,
+        "mean_ttft_ms": 1778.9,
+        "mean_tpot_ms": 5.6,
+        "mean_e2el_ms": 7484.8,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      }
+    ]
+  },
+  "source_commit": "715a039916b915592f5257e662728d7826913a20",
+  "evidence": "final/prefill-rms-v13",
+  "recorded_at": "2026-10-27T18:11:57.742064+08:00"
+}

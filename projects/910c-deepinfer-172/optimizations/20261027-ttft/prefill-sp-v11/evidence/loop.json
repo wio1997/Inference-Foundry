@@ -1,0 +1,235 @@
+{
+  "state": "ACCEPTED",
+  "mechanism": "Sequence-parallel token ownership only during prefill; residual/mHC/norm/router/Engram work on TP token shards, all-gather before attention and reduce-scatter after attention. Cache positions and verification graph unchanged.",
+  "baseline": "fused-moe-v10 / 0ea97796d0f9e37e8e68cc07c1febf5394bf92d8",
+  "baseline_ttft_ms": 2821.0,
+  "baseline_tps": 884.569161233586,
+  "fixed": [
+    "image/weights/DP2TP8EP16",
+    "chunk1024 and MC2buffer5120MiB",
+    "fused eager MoE from v10",
+    "verification graph and prompt lookup63",
+    "AISBench32K/1K/C8/2rounds/actualcache89.990234375%"
+  ],
+  "hard_constraints": [
+    "16 complete greedy outputs equal frozen vLLM",
+    "all metric deltas exactly match",
+    "only project processes stopped",
+    "only wio writes"
+  ],
+  "acceptance": "Lower TTFT vs2821ms and no more than5% throughput regression",
+  "evidence_maturity": "E4 for prior fused-MoE mechanism; E3 source+wall-profile for repeated trunk work",
+  "predicted_observation": "First token improves as TP8 duplicate trunk/Engram row work is removed; mandatory collectives replace existing all-reduce and FFN all-gather",
+  "lower_bound": "Not established; vLLM831.25ms is a measured reference, not a hardware bound",
+  "rollback": "Retain accepted v10 source and frozen data; restart v10 only if this candidate fails correctness or performance",
+  "created": 1793093412.479908,
+  "selected": false,
+  "observed": {
+    "aggregate_tps": 963.0803409920441,
+    "mean_ttft_ms": 2154.55,
+    "full_outputs_exact": 16,
+    "phases": [
+      {
+        "phase": "measure1",
+        "state": "PASS",
+        "path_proof": {
+          "job": "e914f7e7512641c1a1139084d11a59bc",
+          "runtime_stats": [
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1320,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 520,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 4,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.30523292534053326,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 68,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4284,
+                "draft_tokens_accepted": 4041,
+                "emitted_target_tokens": 4096
+              }
+            },
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1320,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 520,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 4,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.2609009128063917,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 68,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4284,
+                "draft_tokens_accepted": 4043,
+                "emitted_target_tokens": 4096
+              }
+            }
+          ]
+        },
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 7.7229358,
+        "output_throughput_tokens_per_second": 1060.736514215229,
+        "mean_ttft_ms": 2157.2,
+        "mean_tpot_ms": 4.3,
+        "mean_e2el_ms": 6587.8,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      },
+      {
+        "phase": "measure2",
+        "state": "PASS",
+        "path_proof": {
+          "job": "299b55b4d7fe443f97e16b85090ef9a3",
+          "runtime_stats": [
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1600,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 760,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 4,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.346604410558939,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 77,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4851,
+                "draft_tokens_accepted": 4067,
+                "emitted_target_tokens": 4096
+              }
+            },
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                1
+              ],
+              "native_eager_attention_calls": 40,
+              "native_cann_attention_calls": 1560,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 760,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 4,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.2942743794992566,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 69,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4347,
+                "draft_tokens_accepted": 4055,
+                "emitted_target_tokens": 4096
+              }
+            }
+          ]
+        },
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 9.2891444,
+        "output_throughput_tokens_per_second": 881.889617304259,
+        "mean_ttft_ms": 2151.9,
+        "mean_tpot_ms": 5.9,
+        "mean_e2el_ms": 8207.5,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      }
+    ]
+  },
+  "source_commit": "e2425e5bc5dcdb03dd081c9699eebf53a89e6596",
+  "evidence": "final/prefill-sp-v11",
+  "recorded_at": "2026-10-27T18:11:57.742064+08:00"
+}

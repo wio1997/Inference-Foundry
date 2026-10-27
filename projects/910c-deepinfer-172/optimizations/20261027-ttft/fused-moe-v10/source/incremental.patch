@@ -1,0 +1,151 @@
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 05b1d73..6c08f72 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -70,6 +70,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         if layer_id in self.config['index_source_layer_ids']:
+             self.indexer = AscendW8A8Indexer(reader, device, layer_id=layer_id)
+         self.mc2=None
++        self.fused_mc2_prefill=os.environ.get('DEEPINFER_910C_FUSED_MC2_PREFILL')=='1'
+         if os.environ.get('DEEPINFER_910C_MC2')=='1':
+             from deepinfer.npu_ops.mc2_910c import NativeMC2
+             self.mc2=NativeMC2(group)
+@@ -80,8 +81,12 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         self.local_expert_count=len(self.expert_cache)
+         self.expert_bank=AscendW8A8ExpertBank(self.expert_cache.values())
+         self.expert_cache.clear()
++        if self.fused_mc2_prefill:
++            if self.mc2 is None:
++                raise ValueError('fused MC2 prefill requires native MC2 communicator')
++            self.expert_bank.prepare_fused_mc2()
+ 
+-    def packed_ffn(self,x,router_x,global_bs):
++    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False):
+         from deepinfer.npu_ops.moe910c import dispatch_combine,route
+         # Attention returns the same token batch on each TP rank. Dispatch
+         # each token once to global EP16, then restore the TP-replicated batch.
+@@ -101,7 +106,8 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         elif not valid:
+             weights=weights.zero_()
+         if self.mc2 is not None:
+-            routed=self.mc2(local,ids,weights,self.expert_bank,num_experts=self.config['n_routed_experts'],global_bs=global_bs)
++            routed=self.mc2(local,ids,weights,self.expert_bank,num_experts=self.config['n_routed_experts'],global_bs=global_bs,
++                            fused=fused_mc2)
+         else:
+             routed=dispatch_combine(local,ids,weights,self.config['n_routed_experts'],None,self.group,
+                 weight_on_output=True,local_batch=self.expert_bank,trusted_indices=True)
+@@ -220,7 +226,9 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             x, router_x = torch.ops._C_ascend.npu_rms_norm_cast(x, self.ffn_norm_weight, c['rms_norm_eps'])
+         else:
+             x, router_x = rms_norm_mixed(x, self.ffn_norm_weight, c['rms_norm_eps'])
+-        ffn = self.packed_ffn(x,router_x,state.mc2_global_bs)
++        ffn = self.packed_ffn(x,router_x,state.mc2_global_bs,
++            fused_mc2=(self.fused_mc2_prefill and state.decode_frame is None
++                       and state.mc2_global_bs>self.mc2.world))
+         if self.fused_mhc:
+             return self._hc_post(ffn, after_attn, post, comb), next_pre.unsqueeze(-1)
+         return mhc.mhc_post(ffn, after_attn, post, comb), next_pre
+@@ -274,6 +282,8 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             history.reset()
+         for layer in self.layers:
+             layer.eager_attention_calls = layer.cann_attention_calls = 0
++            if layer.mc2 is not None:
++                layer.mc2.fused_calls=0
+         if getattr(self,'_decode_graph',None) is not None:
+             self._decode_graph.reset_sequence()
+         if getattr(self,'_verify_graph',None) is not None:
+@@ -324,6 +334,8 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'fused_mhc_layers': sum(layer.fused_mhc for layer in self.layers),
+                 'fused_router_norm_layers': sum(layer.fused_router_norm for layer in self.layers),
+                 'mc2_layers': sum(layer.mc2 is not None for layer in self.layers),
++                'fused_mc2_prefill_layers': sum(layer.fused_mc2_prefill for layer in self.layers),
++                'fused_mc2_calls': sum(layer.mc2.fused_calls for layer in self.layers if layer.mc2 is not None),
+                 'native_graph_captures': self._decode_graph.captures if getattr(self,'_decode_graph',None) is not None else 0,
+                 'native_graph_replays': self._decode_graph.replays if getattr(self,'_decode_graph',None) is not None else 0,
+                 'decode_host_staging_seconds': self._decode_graph.staging_seconds if getattr(self,'_decode_graph',None) is not None else 0.,
+diff --git a/deepinfer/npu_ops/mc2_910c.py b/deepinfer/npu_ops/mc2_910c.py
+index 117d155..aa587a0 100644
+--- a/deepinfer/npu_ops/mc2_910c.py
++++ b/deepinfer/npu_ops/mc2_910c.py
+@@ -36,8 +36,14 @@ class NativeMC2:
+         self.rank=dist.get_rank(self.group)
+         self.world=dist.get_world_size(self.group)
+         self.name=self.group._get_backend(torch.device('npu')).get_hccl_comm_name(self.rank)
++        self.fused_calls=0
++        self._fused_masks={}
++        # Ignored by the INT8 C++ adapter, retained for its Tensor[] ABI.
++        self._empty_bias=[torch.tensor([],dtype=torch.float32)]
+ 
+-    def __call__(self,x,ids,weights,bank,*,num_experts,global_bs):
++    def __call__(self,x,ids,weights,bank,*,num_experts,global_bs,fused=False):
++        if fused:
++            return self._fused(x,ids,weights,bank,global_bs=global_bs)
+         import torch_npu
+         # The A3 profile passes the TP ABI fields even though experts are EP.
+         common=dict(group_ep=self.name,ep_world_size=self.world,ep_rank_id=self.rank,
+@@ -50,3 +56,37 @@ class NativeMC2:
+         return torch_npu.npu_moe_distribute_combine_v2(expand_x=values,expert_ids=ids.int(),
+             expert_scales=weights.float(),ep_send_counts=ep_counts,tp_send_counts=tp_counts,
+             assist_info_for_combine=assist,expand_scales=expand_scales,comm_quant_mode=0,**common)
++
++    def _fused(self,x,ids,weights,bank,*,global_bs):
++        """Fused routed FFN, independent of vLLM's scheduler/parallel state.
++
++        Unlike dispatch_v2's global_bs mode, this kernel sizes peer windows
++        from local M. All ranks must therefore submit the same padded M;
++        x_active_mask excludes padding from routing and expert computation.
++        The prefill runner already provides a common global capacity.
++        """
++        capacity=global_bs//self.world
++        count=x.shape[0]
++        if (global_bs%self.world or not 0<count<=capacity
++                or capacity*self.world*ids.shape[1]>65536):
++            raise ValueError('fused MC2 capacity must cover every rank and fit max_output_size=65536')
++        if not hasattr(bank,'fused_first_scale'):
++            raise RuntimeError('prepare_fused_mc2() before fused prefill')
++        mask=self._fused_masks.get((capacity,count))
++        if mask is None:
++            mask=torch.arange(capacity,device=x.device)<count
++            self._fused_masks[(capacity,count)]=mask
++        if count<capacity:
++            x=torch.nn.functional.pad(x,(0,0,0,capacity-count))
++            ids=torch.nn.functional.pad(ids,(0,0,0,capacity-count))
++            weights=torch.nn.functional.pad(weights,(0,0,0,capacity-count))
++        out=torch.empty_like(x)
++        torch.ops._C_ascend.dispatch_ffn_combine(
++            x=x,weight1=[bank.first],weight2=[bank.second],expert_idx=ids.int(),
++            scale1=[bank.fused_first_scale],scale2=[bank.fused_second_scale],
++            bias1=self._empty_bias,bias2=self._empty_bias,probs=weights.float(),
++            group=self.name,max_output_size=65536,out=out,
++            expert_token_nums=bank.fused_expert_tokens,x_active_mask=mask,
++            swiglu_limit=0. if bank.limit is None else bank.limit,world_size=self.world)
++        self.fused_calls+=1
++        return out[:count]
+diff --git a/deepinfer/npu_ops/w8a8.py b/deepinfer/npu_ops/w8a8.py
+index 86524d2..536b626 100644
+--- a/deepinfer/npu_ops/w8a8.py
++++ b/deepinfer/npu_ops/w8a8.py
+@@ -119,6 +119,23 @@ class AscendW8A8ExpertBank(torch.nn.Module):
+         for name in ('first_scale','second_scale'):
+             self.register_buffer(name,torch.cat([getattr(e,name) for e in experts],0).contiguous())
+ 
++    def prepare_fused_mc2(self):
++        """Prepare the pinned dispatch_ffn_combine scale ABI once at load.
++
++        The Ascend W8A8 implementation sign-extends the FP32 bit pattern to
++        INT64; this is a bit representation, not a numeric scale conversion.
++        The existing NZ INT8 banks already have its [E,K,N] weight layout.
++        """
++        if hasattr(self, 'fused_first_scale'):
++            return
++        for source, target in (('first_scale', 'fused_first_scale'),
++                               ('second_scale', 'fused_second_scale')):
++            scale = getattr(self, source)
++            packed = scale.detach().cpu().float().contiguous().view(torch.int32).long()
++            self.register_buffer(target, packed.flatten().to(scale.device))
++        self.register_buffer('fused_expert_tokens',
++                             torch.zeros(self.count, dtype=torch.int32, device=self.first.device))
++
+     def forward(self,x,local_ids):
+         if not x.shape[0]:
+             return torch.empty_like(x)

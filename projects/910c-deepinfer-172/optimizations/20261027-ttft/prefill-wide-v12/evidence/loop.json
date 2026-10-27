@@ -1,0 +1,252 @@
+{
+  "state": "ACCEPTED",
+  "mechanism": "Larger prefill capacity made feasible by accepted fused MoE and sequence-parallel trunk; replace4 model forwards with1 for canonical uncached3200/3328 tokens/request",
+  "previous": "prefill-sp-v11",
+  "baseline_ttft_ms": 2154.55,
+  "baseline_tps": 963.0803409920441,
+  "allowed_changes": [
+    "chunk1024->4096",
+    "MC2 dedicated buffer5120->1024MiB",
+    "fused receive bound65536->196608 routes using actual global token capacity"
+  ],
+  "requires": [
+    "accepted fused-moe-v10",
+    "accepted prefill-sp-v11"
+  ],
+  "fixed": [
+    "DP2TP8EP16/16 logical devices",
+    "same model/image",
+    "same algorithms and graph",
+    "2 rounds AISBench32K/1K/C8/actualhit235904"
+  ],
+  "memory_model": {
+    "source": "pinned dispatch_ffn_combine tiling and SWA formula; this is a feasibility estimate, not measured kernel time",
+    "dedicated_window_freed_MiB": 4096,
+    "fused_workspace_increase_MiB": 1920.0,
+    "swa_payload_increase_MiB": 600.0,
+    "fused_window_formula_MiB": 190.0,
+    "routed_token_bound": 196608,
+    "prior_resident_HBM_MiB_per_device_approx": 57781,
+    "device_capacity_MiB": 65536,
+    "ordinary_MC2_verification_window_required_bytes_estimate": 268173312.0,
+    "ordinary_MC2_group_selected_MiB": 1024,
+    "confidence": "medium; include variable attention temporaries and validate actual workload"
+  },
+  "acceptance": "16 exact outputs; lower TTFT than2154.55ms; no material (>5%) output TPS regression vs963.08",
+  "rejection": "OOM/kernel bound/correctness failure/material regression -> preserve raw evidence and restore v11",
+  "tests": "Required warmups plus exactly two formal rounds, no parameter sweep",
+  "created": 1793094306.8876522,
+  "selected": true,
+  "observed": {
+    "aggregate_tps": 997.8972470491426,
+    "mean_ttft_ms": 1838.35,
+    "full_outputs_exact": 16,
+    "phases": [
+      {
+        "phase": "measure1",
+        "state": "PASS",
+        "path_proof": {
+          "job": "4a717aa0ba6e49f18fe4f2507f378958",
+          "runtime_stats": [
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1200,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 400,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.27022822480648756,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 69,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4347,
+                "draft_tokens_accepted": 4042,
+                "emitted_target_tokens": 4096
+              }
+            },
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1200,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 400,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.27163688745349646,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 67,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4221,
+                "draft_tokens_accepted": 4042,
+                "emitted_target_tokens": 4096
+              }
+            }
+          ]
+        },
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 7.5946399,
+        "output_throughput_tokens_per_second": 1078.6554870099899,
+        "mean_ttft_ms": 1921.4,
+        "mean_tpot_ms": 4.4,
+        "mean_e2el_ms": 6405.9,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      },
+      {
+        "phase": "measure2",
+        "state": "PASS",
+        "path_proof": {
+          "job": "3bec46d78dd44dcca48f4f4286c9664e",
+          "runtime_stats": [
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1480,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 640,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.3028832720592618,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 70,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4410,
+                "draft_tokens_accepted": 4052,
+                "emitted_target_tokens": 4096
+              }
+            },
+            {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1480,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 640,
+              "fused_mc2_max_output_size": 196608,
+              "sequence_parallel_enabled": true,
+              "sequence_parallel_prefill_forwards": 1,
+              "sequence_parallel_tp_size": 8,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.3364957179874182,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 76,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4788,
+                "draft_tokens_accepted": 4070,
+                "emitted_target_tokens": 4096
+              }
+            }
+          ]
+        },
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 8.8238842,
+        "output_throughput_tokens_per_second": 928.3893367503622,
+        "mean_ttft_ms": 1755.3,
+        "mean_tpot_ms": 5.9,
+        "mean_e2el_ms": 7798.6,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      }
+    ]
+  },
+  "source_commit": "807448d4073ba461388791f3a1d372800ba71da4",
+  "evidence": "final/prefill-wide-v12",
+  "recorded_at": "2026-10-27T18:11:57.742064+08:00"
+}

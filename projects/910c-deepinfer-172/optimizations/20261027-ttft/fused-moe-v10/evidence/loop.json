@@ -1,0 +1,251 @@
+{
+  "state": "ACCEPTED",
+  "mechanism": "Replace split MC2/GMM W8A8 routed expert path with pinned dispatch_ffn_combine",
+  "baseline": "prefill-v9c / a713eca2",
+  "fixed": [
+    "DP2 TP8 EP16",
+    "16 logical 910C",
+    "same weights and image",
+    "chunk1024",
+    "MC2buffer5120MiB",
+    "same prompt lookup algorithm",
+    "canonical AISBench32768/1024/C8/2rounds/cache235904"
+  ],
+  "allowed_variables": [
+    "routed MoE ABI adapter",
+    "one-time expert scale preparation",
+    "fused path enable selector"
+  ],
+  "hypothesis": "Fused communication+FFN reduces NPU work and intermediate launch/memory traffic; predicts lower TTFT without sacrificing correctness or output TPS",
+  "acceptance": "Correctness first; same formal two-round scheme; lower mean TTFT than4315.8ms and no material output throughput regression vs737.99TPS",
+  "reject": "Kernel unsupported, incorrect output, OOM, or material performance regression; preserve evidence and return to prior service",
+  "rollback": "Retain src/DeepInfer-v9 and serving/prefill-v9c; stop only own verified v10 processes, restart prior known service",
+  "estimated_lower_bound": "Not established: wall-stack samples include queued-device waits; vLLM0.831s is measured reference not hardware lower bound",
+  "budget": "one documented ABI implementation, required correctness and two formal rounds; no blind scan",
+  "created": 1793091978.970216,
+  "selected": false,
+  "observed": {
+    "aggregate_tps": 884.569161233586,
+    "mean_ttft_ms": 2821.0,
+    "full_outputs_exact": 16,
+    "phases": [
+      {
+        "phase": "measure1",
+        "state": "PASS",
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 8.5139362,
+        "output_throughput_tokens_per_second": 962.187149112064,
+        "mean_ttft_ms": 2881.0,
+        "mean_tpot_ms": 4.4,
+        "mean_e2el_ms": 7369.4,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8,
+        "job": "bf98deea5de74b9aaa33113e05a989df",
+        "fused_path_proof": [
+          {
+            "dp_rank": 0,
+            "fused_mc2_calls": 520,
+            "fused_mc2_prefill_calls": 160,
+            "repair_forwards": 9,
+            "eager_attention_calls": 0,
+            "cann_attention_calls": 1320,
+            "runtime_stats": {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1320,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 520,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.30523932073265314,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 69,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4347,
+                "draft_tokens_accepted": 4042,
+                "emitted_target_tokens": 4096
+              }
+            }
+          },
+          {
+            "dp_rank": 1,
+            "fused_mc2_calls": 520,
+            "fused_mc2_prefill_calls": 160,
+            "repair_forwards": 9,
+            "eager_attention_calls": 0,
+            "cann_attention_calls": 1320,
+            "runtime_stats": {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1320,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 520,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 20,
+              "verification_host_staging_seconds": 0.3002429874613881,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 20,
+                "repair_forwards": 9,
+                "lookup_hits": 67,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4221,
+                "draft_tokens_accepted": 4042,
+                "emitted_target_tokens": 4096
+              }
+            }
+          }
+        ]
+      },
+      {
+        "phase": "measure2",
+        "state": "PASS",
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 10.0080751,
+        "output_throughput_tokens_per_second": 818.5390215547044,
+        "mean_ttft_ms": 2761.0,
+        "mean_tpot_ms": 6.0,
+        "mean_e2el_ms": 8926.2,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8,
+        "job": "602aed6ef64f4ad387680a4111ebe122",
+        "fused_path_proof": [
+          {
+            "dp_rank": 1,
+            "fused_mc2_calls": 760,
+            "fused_mc2_prefill_calls": 160,
+            "repair_forwards": 15,
+            "eager_attention_calls": 0,
+            "cann_attention_calls": 1600,
+            "runtime_stats": {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                0
+              ],
+              "native_eager_attention_calls": 0,
+              "native_cann_attention_calls": 1600,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 760,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.3117052176967263,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 77,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4851,
+                "draft_tokens_accepted": 4067,
+                "emitted_target_tokens": 4096
+              }
+            }
+          },
+          {
+            "dp_rank": 0,
+            "fused_mc2_calls": 760,
+            "fused_mc2_prefill_calls": 160,
+            "repair_forwards": 15,
+            "eager_attention_calls": 40,
+            "cann_attention_calls": 1560,
+            "runtime_stats": {
+              "sequence_positions": [
+                33791,
+                33791,
+                33791,
+                33791,
+                1
+              ],
+              "native_eager_attention_calls": 40,
+              "native_cann_attention_calls": 1560,
+              "fused_mhc_layers": 40,
+              "fused_router_norm_layers": 40,
+              "mc2_layers": 40,
+              "fused_mc2_prefill_layers": 40,
+              "fused_mc2_calls": 760,
+              "native_graph_captures": 0,
+              "native_graph_replays": 0,
+              "decode_host_staging_seconds": 0.0,
+              "verification_graph_captures": 1,
+              "verification_graph_replays": 21,
+              "verification_host_staging_seconds": 0.33224924094974995,
+              "prompt_lookup": {
+                "method": "prompt_lookup",
+                "max_draft_tokens": 63,
+                "verification_query_tokens": 64,
+                "verification_forwards": 21,
+                "repair_forwards": 15,
+                "lookup_hits": 69,
+                "lookup_misses": 0,
+                "draft_tokens_verified": 4347,
+                "draft_tokens_accepted": 4055,
+                "emitted_target_tokens": 4096
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "source_commit": "0ea97796d0f9e37e8e68cc07c1febf5394bf92d8",
+  "evidence": "final/fused-moe-v10",
+  "recorded_at": "2026-10-27T18:11:57.742064+08:00"
+}

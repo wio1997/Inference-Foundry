@@ -1,0 +1,72 @@
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 4ac38bc..de956da 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -20,7 +20,7 @@ from .ascend_w8a8_layer import AscendW8A8Layer
+ from .w8a8_compressor910c import compress_batch
+ from .w8a8_engram910c import AscendW8A8Engram, CpuEngramHistory, load_rotation
+ from .w8a8_indexer910c import AscendW8A8Indexer
+-from .w8a8_math910c import rms_norm_mixed, rotate_positions
++from .w8a8_math910c import rms_norm_mixed, rotate_positions, reset_rms_norm_stats, rms_norm_stats
+ from .w8a8_paged_cache910c import W8A8PagedCache
+ 
+ 
+@@ -288,6 +288,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         self.reset()
+ 
+     def reset(self):
++        reset_rms_norm_stats()
+         self.next_positions = [0]*self.requests
+         self.pending = {}
+         for history in self.histories:
+@@ -355,6 +356,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'sequence_parallel_enabled': self.sequence_parallel,
+                 'sequence_parallel_prefill_forwards': self.sequence_parallel_prefill_forwards,
+                 'sequence_parallel_tp_size': self.sp.world,
++                'rms_norm_runtime': rms_norm_stats(),
+                 'native_graph_captures': self._decode_graph.captures if getattr(self,'_decode_graph',None) is not None else 0,
+                 'native_graph_replays': self._decode_graph.replays if getattr(self,'_decode_graph',None) is not None else 0,
+                 'decode_host_staging_seconds': self._decode_graph.staging_seconds if getattr(self,'_decode_graph',None) is not None else 0.,
+diff --git a/deepinfer/model_executor/models/w8a8_math910c.py b/deepinfer/model_executor/models/w8a8_math910c.py
+index ceddf6f..d9e95c2 100644
+--- a/deepinfer/model_executor/models/w8a8_math910c.py
++++ b/deepinfer/model_executor/models/w8a8_math910c.py
+@@ -6,12 +6,38 @@ They are shared by the eager 910C integration and offline contract checks.
+ """
+ from dataclasses import dataclass, field
+ import math
++import os
+ 
+ import torch
+ import torch.nn.functional as F
+ 
++_FUSED_RMS_ENABLED = os.environ.get('DEEPINFER_910C_FUSED_RMS') == '1'
++_FUSED_RMS_CALLS = 0
++_RMS_NPU_FALLBACK_CALLS = 0
++
++
++def reset_rms_norm_stats():
++    global _FUSED_RMS_CALLS, _RMS_NPU_FALLBACK_CALLS
++    _FUSED_RMS_CALLS = _RMS_NPU_FALLBACK_CALLS = 0
++
++
++def rms_norm_stats():
++    return {'enabled': _FUSED_RMS_ENABLED, 'fused_eager_or_capture_calls': _FUSED_RMS_CALLS,
++            'npu_fallback_calls': _RMS_NPU_FALLBACK_CALLS,
++            'counts_include_graph_capture_but_not_graph_replays': True}
++
+ 
+ def rms_norm_mixed(x, weight, eps):
++    global _FUSED_RMS_CALLS, _RMS_NPU_FALLBACK_CALLS
++    if _FUSED_RMS_ENABLED and x.device.type == 'npu':
++        # The pinned op keeps the BF16 result AND its FP32 pre-cast value.
++        # Its gamma ABI requires the input dtype; retain mixed-dtype math
++        # rather than silently round a higher-precision checkpoint weight.
++        if x.dtype == torch.bfloat16 and weight.dtype == x.dtype:
++            result = torch.ops._C_ascend.npu_rms_norm_cast(x, weight, eps)
++            _FUSED_RMS_CALLS += 1
++            return result
++        _RMS_NPU_FALLBACK_CALLS += 1
+     value = x.float() * torch.rsqrt(x.float().square().mean(-1, keepdim=True) + eps) * weight.float()
+     return value.bfloat16(), value
+ 
