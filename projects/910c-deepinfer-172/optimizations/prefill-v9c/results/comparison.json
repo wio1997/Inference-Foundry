@@ -1,0 +1,148 @@
+{
+  "workload": {
+    "input_tokens": 32768,
+    "output_tokens": 1024,
+    "concurrency": 8,
+    "rounds": 2,
+    "target_actual_cached_tokens_per_round": 235904
+  },
+  "frozen_vllm": {
+    "aggregate_tps": 518.4171948453181,
+    "mean_ttft_ms": 831.25
+  },
+  "frozen_native_v8": {
+    "aggregate_tps": 668.3463273745184,
+    "mean_ttft_ms": 5334.6
+  },
+  "optimized_native": {
+    "aggregate_tps": 737.9902137380734,
+    "mean_ttft_ms": 4315.799999999999,
+    "full_outputs_exact": 16,
+    "phases": [
+      {
+        "phase": "measure1",
+        "state": "PASS",
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 10.262384899999999,
+        "output_throughput_tokens_per_second": 798.254994314236,
+        "mean_ttft_ms": 4361.4,
+        "mean_tpot_ms": 4.5,
+        "mean_e2el_ms": 8975.8,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      },
+      {
+        "phase": "measure2",
+        "state": "PASS",
+        "requests": 8,
+        "success": 8,
+        "duration_seconds": 11.9384515,
+        "output_throughput_tokens_per_second": 686.1861439902822,
+        "mean_ttft_ms": 4270.2,
+        "mean_tpot_ms": 6.3,
+        "mean_e2el_ms": 10746.9,
+        "actual_prefix_hit_rate": 0.89990234375,
+        "server_counter_deltas": {
+          "deepinfer_requests_total": 8,
+          "deepinfer_prompt_tokens_total": 262144,
+          "deepinfer_cached_tokens_total": 235904,
+          "deepinfer_output_tokens_total": 8192,
+          "deepinfer_failed_requests_total": 0
+        },
+        "exact_full1024_predictions_matching_frozen_vllm": 8
+      }
+    ]
+  },
+  "ttft_reduction_percent": 19.09796423349457,
+  "throughput_improvement_percent": 10.420329028684705,
+  "runtime": {
+    "source_dir": "/data/tiankuan/wio/910c-deepinfer-172/src/DeepInfer-v9",
+    "control_dir": "/data/tiankuan/wio/910c-deepinfer-172/serving/prefill-v9c",
+    "prefill_chunk_size": 1024,
+    "mc2_buffer_mib": 5120,
+    "dp": 2,
+    "tp": 8,
+    "ep": 16,
+    "logical_devices": 16,
+    "image_id": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+    "model_dir": "/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8",
+    "backbone_cpu_prefetch": false,
+    "engram_cpu_offload": true,
+    "serving": {
+      "state": "READY",
+      "started": 1793085390.4540162,
+      "worker_command": [
+        "docker",
+        "exec",
+        "-e",
+        "DEEPINFER_910C_MC2=1",
+        "-e",
+        "PYTHONPATH=/data/tiankuan/wio/910c-deepinfer-172/src/DeepInfer-v9:/usr/local/Ascend/cann-9.2.0/python/site-packages:/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe",
+        "-w",
+        "/data/tiankuan/wio/910c-deepinfer-172/src/DeepInfer-v9",
+        "wio-deepinfer-s172-npu",
+        "python",
+        "-m",
+        "torch.distributed.run",
+        "--standalone",
+        "--nproc-per-node=16",
+        "examples/ascend910c_w8a8_worker.py",
+        "--model-dir",
+        "/models/DeepSeek-V4.1-Flash-1017-w8a8",
+        "--control-dir",
+        "/data/tiankuan/wio/910c-deepinfer-172/serving/prefill-v9c",
+        "--chunk-size",
+        "1024",
+        "--mc2-buffer-mib",
+        "5120"
+      ],
+      "api_command": [
+        "docker",
+        "exec",
+        "-e",
+        "PYTHONPATH=/data/tiankuan/wio/910c-deepinfer-172/src/DeepInfer-v9:/usr/local/Ascend/cann-9.2.0/python/site-packages:/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe",
+        "-w",
+        "/data/tiankuan/wio/910c-deepinfer-172/src/DeepInfer-v9",
+        "wio-deepinfer-s172",
+        "python",
+        "examples/ascend910c_w8a8_api.py",
+        "--model-dir",
+        "/models/DeepSeek-V4.1-Flash-1017-w8a8",
+        "--control-dir",
+        "/data/tiankuan/wio/910c-deepinfer-172/serving/prefill-v9c"
+      ],
+      "source_manifest": "evidence/prefill-v9c-source/SHA256.json",
+      "worker_host_pid": 1780399,
+      "api_host_pid": 1816012,
+      "health": {
+        "status": "ok",
+        "backend": "DeepInfer-native"
+      },
+      "benchmark_host_pid": 1821655
+    },
+    "health": {
+      "status": "ok",
+      "backend": "DeepInfer-native"
+    }
+  },
+  "failed_candidates": [
+    {
+      "version": "prefill-v9",
+      "reason": "2048 chunk exceeded dedicated MC2 2560MiB window; kernel required8581545984 bytes"
+    },
+    {
+      "version": "prefill-v9b",
+      "reason": "2048 chunk with9216MiB MC2 window caused expert GMM OOM during cold warmup"
+    }
+  ],
+  "limits": "Two rounds on the frozen repeated-context prompt-lookup workload; do not generalize to arbitrary prompts. Wall-stack diagnosis is not exclusive kernel timing.",
+  "recorded_at_unix": 1793085668.2143984
+}

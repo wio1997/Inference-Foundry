@@ -13,5 +13,7 @@
 - 公共网站用 API、HTTP 或 Web Search；浏览器访问需先取得用户许可。
 
 - 简单机械工作（环境检查、服务启停、运行现成脚本、基准测试和日志提取）交给本机 ZCode 中配置的 DeepSeek。主 Agent 负责方案、复杂修改和独立验收，并从实际 rollout 核对模型身份；ZCode 不需要自行查询凭证或模型配置来证明身份。
-- 当前native固定32768输入/1024输出/C8/89.99%命中两轮验收已完成：668.35token/s，16/16完整输出与冻结vLLM一致。TTFT仍比vLLM慢；提示查找收益依赖重复上下文。仅Engram CPU卸载，主干CPU prefetch关闭。
+- 当前native固定32768输入/1024输出/C8/89.99%命中两轮验收已完成：737.99token/s，16/16完整输出与冻结vLLM一致。TTFT仍比vLLM慢；提示查找收益依赖重复上下文。仅Engram CPU卸载，主干CPU prefetch关闭。
 - 用户要求先看文档、减少无用测试；固定目标已通过，不为交付重跑或重启。新任务不得覆盖冻结证据。
+
+- 当前预填充优化配置与证据在 `projects/910c-deepinfer-172/optimizations/prefill-v9c`：chunk1024，MC2专用组5120MiB，TTFT4.3158s；服务控制目录`serving/prefill-v9c`。2048候选两次冷预热失败已归档，不作为可用配置。

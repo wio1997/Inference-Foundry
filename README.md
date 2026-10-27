@@ -2,7 +2,7 @@
 
 本分支记录 **172 上的 DeepSeek V4.1 Flash W8A8 部署与 DeepInfer 910C 适配**。
 
-当前 DeepInfer 固定吞吐验收 **668.35 token/s**，原冻结 vLLM-Ascend 基线 **518.42 token/s**；16/16全文一致。首token延迟仍更高，性能范围见独立项目。
+当前 DeepInfer 优化结果 **737.99 token/s**，平均首token **4.32s**，原冻结 vLLM-Ascend 基线 **518.42 token/s**；16/16全文一致。首token延迟仍更高，性能范围见独立项目。
 
 | 入口 | 内容 |
 |---|---|

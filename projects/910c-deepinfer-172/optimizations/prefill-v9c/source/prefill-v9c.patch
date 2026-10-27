@@ -1,0 +1,258 @@
+diff --git a/deepinfer/engine/ascend_w8a8_serving.py b/deepinfer/engine/ascend_w8a8_serving.py
+index 2243401..5575935 100644
+--- a/deepinfer/engine/ascend_w8a8_serving.py
++++ b/deepinfer/engine/ascend_w8a8_serving.py
+@@ -80,16 +80,18 @@ class NativeServingRunner:
+                 hits.append(self.model.next_positions[slot])
+                 emit({'type':'start','index':index,'prompt_tokens':len(ids),'cached_tokens':hits[-1]})
+             last_logits={}
+-            self.model.mc2_global_bs=((self.model.chunk_size*self.slots+self.tp_size-1)//self.tp_size)*dist.get_world_size()
++            prefill_slots=max(1,(len(requests)+self.dp_size-1)//self.dp_size)
++            self.model.mc2_global_bs=((self.model.chunk_size*prefill_slots+self.tp_size-1)//self.tp_size)*dist.get_world_size()
+             while self._global_busy(any(self.model.next_positions[s]<len(r['token_ids'])
+                                          for s,(_,r) in enumerate(owned))):
+                 slots,chunks=[],[]
+                 for slot,(_,request) in enumerate(owned):
+                     offset=self.model.next_positions[slot]
+                     end=min(offset+self.model.chunk_size,len(request['token_ids']))
+-                    for point in self.prefix_points:
+-                        if offset<point<end:
+-                            end=point;break
++                    if not hits[slot]:
++                        for point in self.prefix_points:
++                            if offset<point<end:
++                                end=point;break
+                     if offset<end:
+                         slots.append(slot);chunks.append(request['token_ids'][offset:end])
+                 if not slots:
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 72ff372..05b1d73 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -35,6 +35,7 @@ class PackedForward:
+     candidates: torch.Tensor | None = None
+     mc2_global_bs: int = 4096
+     decode_frame: object | None = None
++    source_metadata: dict | None = None
+ 
+ 
+ class AscendW8A8PackedLayer(AscendW8A8Layer):
+@@ -134,8 +135,9 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                     self.compressor_norm_weight, c['rms_norm_eps'], pending.setdefault(self.layer_id, {}))
+                 has_latents=bool(positions)
+                 if has_latents:
+-                    source_positions = torch.tensor(positions, dtype=torch.int32, device=x.device)
+-                    plans = cache.compressed_plans(self.layer_id, positions, slots)
++                    expected, source_positions, plans = state.source_metadata[self.layer_id]
++                    if tuple(positions) != expected:
++                        raise RuntimeError('compressor rows differ from prepared cache coordinates')
+             if has_latents:
+                 key, scale = self.indexer.key(latent, source_positions)
+                 rotated = rotate_positions(latent, source_positions, self.rope_freq)
+@@ -369,6 +371,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             hashes = {i: torch.cat([entry[i] for entry in per_request]) for i in self.cfg['engram_layer_ids']}
+         batch = DSABatch.build([len(tokens) for tokens in chunks], seq_lengths, self.device)
+         state = PackedForward(batch, slots, batch.positions(), self.cache.swa_plan(0, batch, slots), self.cache.swa[0].table(slots))
++        state.source_metadata = self.cache.prepare_compressed(batch, slots)
+         state.mc2_global_bs=getattr(self,'mc2_global_bs',4096)
+         ids = torch.tensor(flat_ids, dtype=torch.int64, device=self.device)
+         trunk = self.embedding.index_select(0, ids)[:, None].expand(-1, self.cfg['hc_mult'], -1).contiguous()
+diff --git a/deepinfer/model_executor/models/w8a8_paged_cache910c.py b/deepinfer/model_executor/models/w8a8_paged_cache910c.py
+index 6b0d4f8..72a6949 100644
+--- a/deepinfer/model_executor/models/w8a8_paged_cache910c.py
++++ b/deepinfer/model_executor/models/w8a8_paged_cache910c.py
+@@ -34,6 +34,7 @@ class PagedPlane:
+         page = torch.arange(self.logical_pages, dtype=torch.int32, device=device).remainder(self.resident_pages)
+         request = torch.arange(requests, dtype=torch.int32, device=device)[:, None]
+         self.block_table = page[None]+request*self.resident_pages
++        self._active_tables = {}
+ 
+     def plan(self, positions, request_ids):
+         """Host token coordinates -> validated contiguous device write indices."""
+@@ -55,11 +56,24 @@ class PagedPlane:
+         self.cache.flatten(0, 1).index_copy_(0, plan.physical_rows, values)
+ 
+     def table(self, request_slots):
+-        slots = list(request_slots)
++        slots = tuple(request_slots)
+         if any(type(s) is not int or not 0 <= s < self.requests for s in slots):
+             raise ValueError('invalid active request slots')
++        if not slots:
++            return self.block_table[:0]
++        # Serving slots are normally contiguous. The table is immutable, so
++        # return its device view instead of synchronously uploading four IDs
++        # again at every attention/indexer layer.
++        if slots == tuple(range(slots[0], slots[0]+len(slots))):
++            return self.block_table[slots[0]:slots[0]+len(slots)]
++        if slots in self._active_tables:
++            return self._active_tables[slots]
+         indices = torch.tensor(slots, dtype=torch.int64, device=self.cache.device)
+-        return self.block_table.index_select(0, indices).contiguous()
++        table = self.block_table.index_select(0, indices).contiguous()
++        if len(self._active_tables) >= 32:
++            self._active_tables.pop(next(iter(self._active_tables)))
++        self._active_tables[slots] = table
++        return table
+ 
+     def physical_indices(self, logical_rows, request_ids):
+         """Translate padded per-query logical rows for the native eager path."""
+@@ -115,8 +129,35 @@ class W8A8PagedCache:
+         if any(type(p) is not int or p % ratio for p in positions):
+             raise ValueError('compressor source position must begin a completed group')
+         logical = [p//ratio for p in positions]
+-        return tuple(plane[source].plan(logical, request_ids)
+-                     for plane in (self.compressed, self.index_key, self.index_scale))
++        # All three source planes have identical page coordinates. Their
++        # payload widths/dtypes differ, but their write indices do not.
++        plan = self.compressed[source].plan(logical, request_ids)
++        return (plan, plan, plan)
++
++    def prepare_compressed(self, batch, request_slots):
++        """Stage source coordinates before model compute, once per ratio.
++
++        An odd-start C2 chunk completes the pending pair from the previous
++        chunk; a trailing even token does not write a completed cache row.
++        """
++        slots = tuple(request_slots)
++        if len(slots) != len(batch.query_lengths) or len(set(slots)) != len(slots):
++            raise ValueError('one distinct request slot per packed query required')
++        by_ratio, result = {}, {}
++        for source in self.compressed:
++            ratio = self.config['compress_ratios'][source]
++            if ratio not in by_ratio:
++                positions, requests = [], []
++                for q, end, slot in zip(batch.query_lengths, batch.seq_lengths, slots):
++                    start = end-q
++                    rows = list(range(start, end)) if ratio == 1 else list(range(start//2*2, end-1, 2))
++                    positions.extend(rows)
++                    requests.extend([slot]*len(rows))
++                device_positions = torch.tensor(positions, dtype=torch.int32, device=batch.seq_used.device)
++                plans = self.compressed_plans(source, positions, requests)
++                by_ratio[ratio] = (tuple(positions), device_positions, plans)
++            result[source] = by_ratio[ratio]
++        return result
+ 
+     def resident_bytes(self):
+         """Payload bytes; excludes small page-table/host-plan allocations."""
+diff --git a/deepinfer/npu_ops/dsa910c.py b/deepinfer/npu_ops/dsa910c.py
+index 9b65b44..6834895 100644
+--- a/deepinfer/npu_ops/dsa910c.py
++++ b/deepinfer/npu_ops/dsa910c.py
+@@ -97,8 +97,11 @@ class DSABatch:
+     def positions(self):
+         if self.position_values is not None:
+             return self.position_values
+-        return torch.cat([torch.arange(s-q, s, device=self.seq_used.device, dtype=torch.int32)
+-                          for q, s in zip(self.query_lengths, self.seq_lengths)])
++        if 'positions' not in self.metadata_cache:
++            self.metadata_cache['positions'] = torch.cat([
++                torch.arange(s-q, s, device=self.seq_used.device, dtype=torch.int32)
++                for q, s in zip(self.query_lengths, self.seq_lengths)])
++        return self.metadata_cache['positions']
+ 
+ 
+ def quantize_query(query):
+diff --git a/examples/ascend910c_w8a8_worker.py b/examples/ascend910c_w8a8_worker.py
+index 134a183..6d3a01e 100644
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -15,6 +15,7 @@ def main():
+     p.add_argument('--max-tokens',type=int,default=34816)
+     p.add_argument('--chunk-size',type=int,default=512)
+     p.add_argument('--prefix-tokens',type=int,default=29568)
++    p.add_argument('--mc2-buffer-mib',type=int,default=2560)
+     args=p.parse_args()
+     rank=int(os.environ['LOCAL_RANK'])
+     os.environ['ASCEND_RT_VISIBLE_DEVICES']=str(rank)
+@@ -33,7 +34,7 @@ def main():
+             tp_group=group
+     if os.environ.get('DEEPINFER_910C_MC2')=='1':
+         from deepinfer.npu_ops.mc2_910c import initialize_mc2_group
+-        initialize_mc2_group()
++        initialize_mc2_group(args.mc2_buffer_mib)
+     args.control_dir.mkdir(parents=True,exist_ok=True)
+     progress=lambda event: print(json.dumps({'rank':rank,**event}),flush=True)
+     runner=NativeServingRunner(args.model_dir,tp_group=tp_group,slots_per_dp=args.slots_per_dp,
+diff --git a/tests/test_ascend910c_packed_prefill.py b/tests/test_ascend910c_packed_prefill.py
+index f27b9dc..442b299 100644
+--- a/tests/test_ascend910c_packed_prefill.py
++++ b/tests/test_ascend910c_packed_prefill.py
+@@ -38,6 +38,7 @@ def fake_history():
+     history = CpuEngramHistory.__new__(CpuEngramHistory)
+     history.cfg = {'engram_max_ngram_size': 4}
+     history.token_map = list(range(32))
++    history.token_lookup = torch.tensor(history.token_map, dtype=torch.int32)
+     history.pad_id = 2
+     history.layers = [1, 14]
+     history.multipliers = torch.tensor([[3, 5, 7, 11], [13, 17, 19, 23]], dtype=torch.int64)
+diff --git a/tests/test_ascend910c_paged_cache.py b/tests/test_ascend910c_paged_cache.py
+index 05e2828..1b0d903 100644
+--- a/tests/test_ascend910c_paged_cache.py
++++ b/tests/test_ascend910c_paged_cache.py
+@@ -13,15 +13,17 @@ def read_rows(plane, positions, slot):
+                         for p in positions])
+ 
+ 
+-def test_swa_ring_retains_first_query_history_after_full_chunk_write():
++@pytest.mark.parametrize('capacity,lengths', [(257, (127, 257, 129, 257, 257, 257)),
++                                            (2048, (127, 2048, 129, 2048, 2048))])
++def test_swa_ring_retains_first_query_history_after_full_chunk_write(capacity, lengths):
+     config = json.loads((Path(__file__).parent/'data/ascend_w8a8_config.json').read_text())
+     config['text_config']['num_hidden_layers'] = 1
+     config['text_config']['kv_source_layer_ids'] = []
+-    cache = W8A8PagedCache(config, 'cpu', max_tokens=2000, requests=3, max_query_tokens=257)
++    cache = W8A8PagedCache(config, 'cpu', max_tokens=10000, requests=3, max_query_tokens=capacity)
+     plane = cache.swa[0]
+     end = 0
+     # Unaligned full chunks cross the physical ring boundary multiple times.
+-    for length in (127, 257, 129, 257, 257, 257):
++    for length in lengths:
+         batch = DSABatch.build([length, length], [end+length, end+length], 'cpu')
+         ids = list(range(end, end+length))
+         values = torch.tensor(ids+ids, dtype=torch.bfloat16)[:, None, None].expand(-1, 1, 512).contiguous()
+@@ -67,3 +69,45 @@ def test_host_plans_reject_physical_aliases_and_out_of_range():
+     plane.write(torch.tensor([[[9]], [[-7]]], dtype=torch.int8), plane.plan([127, 128], [1, 0]))
+     assert read_rows(plane, [127], 1).item() == 9
+     assert read_rows(plane, [128], 0).item() == -7
++
++
++def test_active_tables_preserve_slot_order_without_recreating_contiguous_views(monkeypatch):
++    plane = PagedPlane(requests=5, logical_rows=512, block_size=128,
++                       width=1, dtype=torch.int8, device='cpu')
++    original = torch.tensor
++    def reject_tensor(*args, **kwargs):
++        raise AssertionError('contiguous table lookup must not upload slot IDs')
++    monkeypatch.setattr(torch, 'tensor', reject_tensor)
++    view = plane.table([1, 2, 3])
++    monkeypatch.setattr(torch, 'tensor', original)
++    assert view.data_ptr() == plane.block_table[1:].data_ptr()
++    torch.testing.assert_close(view, plane.block_table[1:4])
++    selected = plane.table([3, 0, 3])
++    torch.testing.assert_close(selected, plane.block_table[[3, 0, 3]])
++    assert plane.table([3, 0, 3]) is selected
++
++
++@pytest.mark.parametrize('lengths,ends', [([1, 3], [1, 4]), ([3, 2], [4, 7]),
++                                       ([2048, 2048], [31488, 31616])])
++def test_prepared_compression_matches_completed_c2_pairs_and_source_coordinates(lengths, ends):
++    from deepinfer.model_executor.models.w8a8_compressor910c import compress_batch
++    config = json.loads((Path(__file__).parent/'data/ascend_w8a8_config.json').read_text())
++    config['text_config']['num_hidden_layers'] = 1
++    config['text_config']['kv_source_layer_ids'] = [2, 8, 20]
++    cache = W8A8PagedCache(config, 'cpu', max_tokens=32769, requests=3, max_query_tokens=2048)
++    batch = DSABatch.build(lengths, ends, 'cpu')
++    slots = [2, 0]
++    prepared = cache.prepare_compressed(batch, slots)
++    x = torch.randn(sum(lengths), 4)
++    wkv, gate, norm = torch.eye(4), torch.eye(4), torch.ones(4)
++    for source, (expected, device_positions, plans) in prepared.items():
++        ratio = config['text_config']['compress_ratios'][source]
++        pending = {slot:(torch.zeros(1, 4), torch.zeros(1, 4))
++                   for q, end, slot in zip(lengths, ends, slots) if (end-q)%2}
++        _, positions, requests = compress_batch(x, batch, slots, ratio, wkv,
++            gate if ratio == 2 else None, norm, 1e-5, pending)
++        assert tuple(positions) == expected
++        assert device_positions.tolist() == positions
++        reference = cache.compressed[source].plan([p//ratio for p in positions], requests)
++        assert all(torch.equal(plan.physical_rows, reference.physical_rows) for plan in plans)
++    assert prepared[2] is prepared[8]
