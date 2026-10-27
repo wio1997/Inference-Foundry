@@ -1,0 +1,1458 @@
+diff --git a/deepinfer/engine/ascend_w8a8_serving.py b/deepinfer/engine/ascend_w8a8_serving.py
+index 7cf8ff3..11f629c 100644
+--- a/deepinfer/engine/ascend_w8a8_serving.py
++++ b/deepinfer/engine/ascend_w8a8_serving.py
+@@ -28,7 +28,9 @@ class NativeServingRunner:
+         self.root=self.dp_rank*self.tp_size
+         self.slots=slots_per_dp
+         self.prefix_tokens=prefix_tokens
+-        self.lookup_tokens=int(os.environ.get('DEEPINFER_PROMPT_LOOKUP_TOKENS','63'))
++        self.lookup_tokens=int(os.environ.get('DEEPINFER_PROMPT_LOOKUP_TOKENS','0'))
++        if os.environ.get('DEEPINFER_910C_DSPARK')=='1' and self.lookup_tokens:
++            raise ValueError('DSpark cannot be combined with prompt lookup')
+         if not 0<=self.lookup_tokens<kwargs.get('chunk_size',512):
+             raise ValueError('lookup width must fit the native query ring')
+         # Retain the two 128-token block boundaries around the target prefix.
+@@ -40,6 +42,34 @@ class NativeServingRunner:
+             tp_group=tp_group,**kwargs)
+         self.model=self.engine.model
+ 
++    @torch.inference_mode()
++    def initialize_dspark_graphs(self):
++        """Capture device graphs before declaring the resident engine ready.
++
++        Initialization uses throwaway cache coordinates and mask tokens, not
++        requests or saved predictions. Actual requests reset positions/history
++        and write their own causal keys. Scores never include this startup.
++        """
++        if self.model.dspark is None:return
++        position=2*(min(32768,self.model.max_tokens-12)//2)
++        if position<2*self.model.cfg['index_topk']:return
++        noise=self.model.cfg['dspark_noise_token_id']
++        self.model.mc2_global_bs=((self.slots*6+self.tp_size-1)//self.tp_size)*dist.get_world_size()
++        self.model.next_positions[:4]=[position]*4
++        variable=os.environ.get('DEEPINFER_ENABLE_MTP_VARLEN')=='1'
++        if variable:
++            from .dspark_graphs910c import DSparkTargetGraphs
++            self.model.dspark_graphs=DSparkTargetGraphs(self.model)
++        self.model.verify_chunks([[noise]*6 for _ in range(4)])
++        self.model.dspark.propose([noise]*4,self.model.next_positions[:4],list(range(4)))
++        if variable:
++            self.model.dspark_graphs.capture_initial([noise]*4,[[noise]*5 for _ in range(4)])
++        torch.npu.synchronize()
++        self.model.reset()
++        self.engine.progress({'stage':'dspark_graph_initialization_complete',
++            'target_graph_captures':self.model._verify_graph.captures,
++            'draft_graphs':len(self.model.dspark.graphs)})
++
+     def _global_busy(self,value):
+         tensor=torch.tensor([int(value)],dtype=torch.int32,device=self.model.device)
+         dist.all_reduce(tensor,op=dist.ReduceOp.MAX)
+@@ -127,6 +157,16 @@ class NativeServingRunner:
+             self.model.use_decode_graph=uniform_graph
+             generated=[[] for _ in owned]
+             maximum=max(r['max_tokens'] for r in requests)
++            # CANN graph verification needs at least index_topk complete C2
++            # keys. This is a backend bound, independent of benchmark length.
++            dspark_batch=(len(requests)==self.slots*self.dp_size and
++                all(len(r['token_ids'])>=2*self.model.cfg['index_topk'] and
++                    len(r['token_ids'])+r['max_tokens']+6<=self.model.max_tokens
++                    for r in requests))
++            if dspark_batch and self.model.dspark is not None:
++                from .dspark910c import generate
++                generated=generate(self,owned,logits,hits,emit,start)
++                maximum=0
+             if (uniform_graph and self.lookup_tokens and
+                     all(len(r['token_ids'])+r['max_tokens']+self.lookup_tokens+1<=self.model.max_tokens for r in requests)):
+                 from .prompt_lookup910c import generate
+diff --git a/deepinfer/engine/dspark910c.py b/deepinfer/engine/dspark910c.py
+new file mode 100644
+index 0000000..e2f376f
+--- /dev/null
++++ b/deepinfer/engine/dspark910c.py
+@@ -0,0 +1,143 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Native DSpark greedy rejection sampling for the fixed DP2/TP8 service.
++
++Candidates come exclusively from checkpoint mtp layers, never from text
++lookup. All accepted outputs are checked against the full target model.
++"""
++import torch
++import torch.distributed as dist
++import time
++import os
++
++
++def target_tokens(runner,logits):
++    shape=logits.shape[:-1]
++    result=logits.argmax(-1).long() if runner.tp_rank==0 else torch.empty(
++        shape,dtype=torch.int64,device=runner.model.device)
++    dist.broadcast(result,runner.root,group=runner.tp_group)
++    return result.cpu().tolist()
++
++
++@torch.inference_mode()
++def generate(runner,owned,logits,hits,emit,started):
++    model=runner.model
++    draft=model.dspark
++    count=len(owned)
++    if count!=runner.slots or count!=4:
++        raise ValueError('DSpark fixed profile requires four requests per DP')
++    model.use_decode_graph=False
++    n=draft.nextn
++    width=n+1
++    model.mc2_global_bs=((count*width+runner.tp_size-1)//runner.tp_size)*dist.get_world_size()
++    maximum=[r['max_tokens'] for _,r in owned]
++    generated=[[] for _ in owned]
++    finished=[False]*count
++    eos=runner.engine.model.reader.config['eos_token_id']
++    stats={'method':'dspark','max_draft_tokens':n,'draft_network_layers':len(draft.layers),
++        'target_feature_layers':list(draft.target_layer_ids),'verification_query_tokens':width,
++        'confidence_head_executed':False,'markov_head_executed':False,
++        'verification_mode':'fixed-5','proposals':0,'draft_tokens_verified':0,
++        'draft_tokens_accepted':0,'emitted_target_tokens':0,'repair_forwards':0,
++        'draft_and_sampling_wall_seconds':0.,'target_and_sampling_wall_seconds':0.,
++        'commit_and_emit_wall_seconds':0.}
++    model.dspark_stats=stats
++    variable=os.environ.get('DEEPINFER_ENABLE_MTP_VARLEN')=='1'
++    policy=None
++    if variable:
++        from .dspark_graphs910c import DSparkTargetGraphs
++        from .dspark_confidence910c import DSparkConfidenceScheduler
++        if model.dspark_graphs is None:
++            model.dspark_graphs=DSparkTargetGraphs(model)
++        stats.update(verification_mode='confidence-scheduled',query_length_histogram={},
++                     selected_total_queries=0,padded_target_queries=0)
++
++    def output(slot,tokens):
++        import time
++        index,request=owned[slot]
++        if finished[slot]:return
++        for token in tokens:
++            generated[slot].append(token)
++            stats['emitted_target_tokens']+=1
++            emit({'type':'token','index':index,'token_id':token,'step':len(generated[slot])-1,
++                  'elapsed':time.monotonic()-started})
++            if (len(generated[slot])==maximum[slot] or
++                    (not request.get('ignore_eos',False) and token==eos)):
++                finished[slot]=True
++                break
++        if finished[slot]:
++            emit({'type':'done','index':index,'prompt_tokens':len(request['token_ids']),
++                'cached_tokens':hits[slot],'output_tokens':len(generated[slot]),
++                'token_ids':generated[slot],'finish_reason':
++                    'length' if len(generated[slot])==maximum[slot] else 'stop'})
++
++    for slot,token in enumerate(target_tokens(runner,logits)):
++        output(slot,[token])
++    first_proposal=True
++    while runner._global_busy(not all(finished)):
++        bases=[model.next_positions[s] for s in range(count)]
++        golden=[row[-1] for row in generated]
++        draft_start=time.perf_counter()
++        proposals,confidence=draft.propose(golden,bases,list(range(count)))
++        proposal_values=proposals.cpu().tolist()
++        stats['confidence_head_executed']=stats['markov_head_executed']=True
++        draft_seconds=time.perf_counter()-draft_start
++        stats['draft_and_sampling_wall_seconds']+=draft_seconds
++        confidence_values=confidence.cpu().tolist() if variable or first_proposal else None
++        if first_proposal:
++            stats['first_draft_token_ids']=proposal_values
++            stats['first_confidence']=confidence_values
++            first_proposal=False
++        if variable:
++            if policy is None:
++                curve=model.dspark_graphs.profile(golden,proposal_values)
++                policy=DSparkConfidenceScheduler(curve)
++                stats['measured_target_curve_ms']=curve
++                stats['variable_target_prefix_validation']=model.dspark_graphs.prefix_validation
++            lengths=policy.schedule()
++        else:lengths=[width]*count
++        chunks=[[g,*row[:length-1]] for g,row,length in zip(golden,proposal_values,lengths)]
++        target_start=time.perf_counter()
++        if variable:
++            values=target_tokens(runner,model.dspark_graphs.run(chunks,[[g,*row] for g,row in zip(golden,proposal_values)]))
++            predictions=model.dspark_graphs.split_predictions(values,lengths)
++            frame=model.dspark_graphs.last_frame
++            stats['selected_total_queries']+=sum(lengths)
++            stats['padded_target_queries']+=frame.tokens-sum(lengths)
++        else:
++            predictions=target_tokens(runner,model.verify_chunks(chunks))
++            frame=model._verify_graph
++        target_seconds=time.perf_counter()-target_start
++        stats['target_and_sampling_wall_seconds']+=target_seconds
++        commit_start=time.perf_counter()
++        stats['proposals']+=1
++        commits=[]
++        for slot,(candidates,targets,length) in enumerate(zip(proposal_values,predictions,lengths)):
++            if finished[slot]:
++                commits.append(0);continue
++            accepted=0
++            for candidate,target in zip(candidates[:length-1],targets):
++                if candidate!=target:break
++                accepted+=1
++            stats['draft_tokens_verified']+=length-1
++            stats['draft_tokens_accepted']+=accepted
++            if variable:
++                histogram=stats['query_length_histogram']
++                histogram[str(length)]=histogram.get(str(length),0)+1
++            commit=min(accepted+1,maximum[slot]-len(generated[slot]))
++            before=len(generated[slot])
++            output(slot,targets[:commit])
++            commits.append(len(generated[slot])-before)
++        frame.commit_prefixes(bases,commits)
++        commit_seconds=time.perf_counter()-commit_start
++        stats['commit_and_emit_wall_seconds']+=commit_seconds
++        if variable:
++            events=frame.last_forward_events
++            forward_ms=events[0].elapsed_time(events[1])
++            policy.observe_forward_ms(model.dspark_graphs.last_graph_size,forward_ms)
++            policy.observe_sampler_ms(max(0.,1000*(draft_seconds+target_seconds+commit_seconds)-forward_ms))
++            policy.observe_confidence(confidence_values)
++            stats['confidence_fp32_roundoff_clamps']=policy.confidence_roundoff_clamps
++        if runner.tp_rank==0 and stats['proposals']%32==0:
++            runner.engine.progress({'stage':'dspark','dp_rank':runner.dp_rank,
++                'generated_tokens':[len(row) for row in generated],**stats})
++    return generated
+diff --git a/deepinfer/engine/dspark_confidence910c.py b/deepinfer/engine/dspark_confidence910c.py
+new file mode 100644
+index 0000000..8d30aef
+--- /dev/null
++++ b/deepinfer/engine/dspark_confidence910c.py
+@@ -0,0 +1,81 @@
++# SPDX-License-Identifier: Apache-2.0
++"""CPU counterpart of upstream csrc/engine/mtp_varlen.hpp::MTPVarlen.
++
++Native file-IPC serving has synchronous completion, so process/schedule are
++paired. Keep the upstream two-round budget lag and one-round prefix-allocation
++lag. Current proposal confidence must not select its own verification budget.
++Hardware curve entries must be measured on the actual target graphs.
++"""
++import bisect
++import collections
++import statistics
++import math
++
++
++class DSparkConfidenceScheduler:
++    def __init__(self, curve, requests=4, nextn=5):
++        self.curve=sorted((int(size),float(ms)) for size,ms in curve)
++        if (not self.curve or any(ms<=0 for _,ms in self.curve)
++                or self.curve[-1][0]<requests*(nextn+1)):
++            raise ValueError('measured target graph curve must cover the full draft budget')
++        self.requests,self.nextn=requests,nextn
++        self.confidence_roundoff_clamps=0
++        self.accept_rates=None
++        self.prev_accept_rates=None
++        self.sampler_times=collections.deque(maxlen=9)
++        self.forward_samples=collections.deque(maxlen=5000)
++
++    def observe_forward_ms(self,graph_size,elapsed):
++        index=bisect.bisect_left([size for size,_ in self.curve],graph_size)
++        baseline=self.curve[index][1]
++        self.forward_samples.append((graph_size,(elapsed-baseline)/graph_size))
++
++    def observe_confidence(self, conditional):
++        if len(conditional)!=self.requests or any(len(row)!=self.nextn for row in conditional):
++            raise ValueError('one confidence value per request/draft position required')
++        marginal=[]
++        for row in conditional:
++            cumulative=1.
++            values=[]
++            for rate in row:
++                if not math.isfinite(rate) or not -1e-6<=rate<=1+1e-6:
++                    raise ValueError(f'invalid learned acceptance confidence {rate!r}; row={row!r}')
++                # Device sigmoid may overshoot [0,1] by a few FP32 ULPs.
++                # Bound only that roundoff; never conceal NaN/invalid values.
++                if not 0<=rate<=1:self.confidence_roundoff_clamps+=1
++                cumulative*=min(1.,max(0.,rate))
++                values.append(cumulative)
++            marginal.append(values)
++        self.prev_accept_rates=self.accept_rates
++        self.accept_rates=marginal
++
++    def observe_sampler_ms(self, elapsed):
++        if elapsed>=0:self.sampler_times.append(float(elapsed))
++
++    def schedule(self):
++        count,n=self.requests,self.nextn
++        default=[[1.]*n for _ in range(count)]
++        budget_rates=self.prev_accept_rates or default
++        allocation_rates=self.accept_rates or default
++        budget_queue=sorted(((rate,seq) for seq,row in enumerate(budget_rates)
++                             for rate in row),key=lambda x:(-x[0],x[1]))
++        allocation_queue=sorted(((rate,seq) for seq,row in enumerate(allocation_rates)
++                                 for rate in row),key=lambda x:(-x[0],x[1]))
++        sizes=[size for size,_ in self.curve]
++        sampling=statistics.median(self.sampler_times) if len(self.sampler_times)>=5 else 0.
++        groups=collections.defaultdict(list)
++        for size,residual in self.forward_samples:groups[size].append(residual)
++        medians=[statistics.median(values) for values in groups.values() if len(values)>=10]
++        slope=max(0.,statistics.median(medians)) if medians else 0.
++        expected=float(count)
++        best_throughput,budget=-1.,count
++        for total in range(count,count*(n+1)+1):
++            if total>count:expected+=budget_queue[total-count-1][0]
++            index=bisect.bisect_left(sizes,total)
++            elapsed=self.curve[index][1]+slope*self.curve[index][0]+sampling
++            throughput=expected/elapsed
++            if throughput>best_throughput:
++                best_throughput,budget=throughput,total
++        lengths=[1]*count
++        for _,seq in allocation_queue[:budget-count]:lengths[seq]+=1
++        return lengths
+diff --git a/deepinfer/engine/dspark_graphs910c.py b/deepinfer/engine/dspark_graphs910c.py
+new file mode 100644
+index 0000000..951bfca
+--- /dev/null
++++ b/deepinfer/engine/dspark_graphs910c.py
+@@ -0,0 +1,129 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Native DSpark target-graph pool and measured confidence-scheduler curve."""
++import torch
++import torch.distributed as dist
++
++from deepinfer.model_executor.models.w8a8_graph910c import NativeDecodeGraph
++from deepinfer.model_executor.models.dspark_varlen910c import DSparkVarlenGraph
++
++
++class DSparkTargetGraphs:
++    def __init__(self,model):
++        self.model=model
++        # Keep sparse-MLA query spans positive in this pinned backend.
++        # Reserve one real scratch query in padded graphs; curve keys are
++        # supported REAL-query budget7, physical shape8.
++        # The all-real six-per-request graph supports budget24 directly.
++        # Reject the numerically inconsistent16-query graph (v13) and
++        # dominated23-query graph (v11). Keep verified real budgets4/7/24.
++        self.frames={4:NativeDecodeGraph(model,list(range(4))),
++                     7:DSparkVarlenGraph(model,8)}
++        self.full=NativeDecodeGraph(model,list(range(4)),query_tokens=6)
++        model._decode_graph=self.frames[4]
++        model._verify_graph=self.full
++        self.curve=None
++        self.prefix_validation=None
++        self.last_frame=None
++        self.last_graph_size=None
++
++    def reset_sequence(self):
++        for frame in self.frames.values():frame.reset_sequence()
++        self.full.reset_sequence()
++
++    def select(self,lengths):
++        total=sum(lengths)
++        size=4 if total==4 else 7 if total<=7 else 24
++        return size,self.full if size==24 else self.frames[size]
++
++    def run(self,chunks,full_chunks):
++        size,frame=self.select(list(map(len,chunks)))
++        self.last_frame,self.last_graph_size=frame,size
++        if frame is self.full:
++            lengths=list(map(len,chunks))
++            # Compute actual five-token proposals even outside the admitted
++            # prefix, retaining exactly the full target's numerical shape.
++            values=frame.step(full_chunks)
++            if lengths==[6]*4:return values
++            # Extra future positions are causal padding and never sampled.
++            return torch.cat([values[slot*6:slot*6+length] for slot,length in enumerate(lengths)])
++        return frame.step(chunks)
++
++    def split_predictions(self,values,lengths):
++        result=[];offset=0
++        for length in lengths:
++            result.append(values[offset:offset+length]);offset+=length
++        return result
++
++    def capture_initial(self,golden,proposals):
++        """Capture every selectable EP graph in the same startup order.
++
++        Request warmups then run after all graph-private memory is allocated.
++        The hardware curve is still measured on the actual warmup requests.
++        """
++        bases=self.model.next_positions[:4]
++        chunks=[[g,*p] for g,p in zip(golden,proposals)]
++        cases=[(self.frames[4],[1]*4),(self.frames[7],[2,2,2,1]),
++               (self.full,[6]*4)]
++        for frame,lengths in cases:
++            frame.step([row[:n] for row,n in zip(chunks,lengths)])
++            frame.commit_prefixes(bases,[0]*4)
++            dist.barrier()
++        self.reset_sequence()
++
++    def profile(self,golden,proposals):
++        if self.curve is not None:return self.curve
++        model=self.model
++        bases=model.next_positions[:4]
++        chunks=[[g,*p] for g,p in zip(golden,proposals)]
++        # All ranks capture the same graph pool in the same order before
++        # adaptive scheduling. Asymmetric lazy capture would break global EP
++        # ordering when the two DP replicas choose different graph sizes.
++        cases=[(4,self.frames[4],[1]*4),(7,self.frames[7],[2,2,2,1]),
++               (24,self.full,[6]*4)]
++        measured_curve={}
++        prefix_predictions=[]
++        for size,frame,lengths in cases:
++            frame.forward_event_timing=False
++            sample=[row[:n] for row,n in zip(chunks,lengths)]
++            logits=frame.step(sample)
++            predicted=logits[:sum(lengths)].argmax(-1).cpu().tolist()
++            offset=0;rows=[]
++            for length in lengths:
++                rows.append(predicted[offset:offset+length]);offset+=length
++            prefix_predictions.append((size,lengths,rows))
++            frame.commit_prefixes(bases,[0]*4)
++            dist.barrier()
++            frame.graph.replay()
++            dist.barrier()
++            events=[]
++            for _ in range(5):
++                start=torch.npu.Event(enable_timing=True)
++                end=torch.npu.Event(enable_timing=True)
++                start.record();frame.graph.replay();end.record()
++                events.append((start,end))
++                dist.barrier()
++            torch.npu.synchronize()
++            measured=sorted(start.elapsed_time(end) for start,end in events)
++            average=sum(measured[1:-1])/3
++            value=torch.tensor([average],dtype=torch.float32,device=model.device)
++            dist.all_reduce(value)
++            measured_curve[size]=max(measured_curve.get(size,0.),value.item()/dist.get_world_size())
++            frame.forward_event_timing=True
++        # These are the same real-context forwards already needed for the
++        # startup cost curve. Check all shorter/nonuniform queries against
++        # the full causal target; no extra API/model request is added.
++        reference=prefix_predictions[-1][2]
++        checked=0
++        for size,lengths,rows in prefix_predictions[:-1]:
++            for slot,(length,row) in enumerate(zip(lengths,rows)):
++                if row!=reference[slot][:length]:
++                    raise ValueError(f'variable DSpark target prefix mismatch: budget={size}, slot={slot}, actual={row}, full={reference[slot][:length]}')
++                checked+=length
++        self.prefix_validation={'state':'PASS','real_context_query_tokens_compared':checked,
++            'budgets':[size for size,_,_ in prefix_predictions],
++            'query_lengths':[lengths for _,lengths,_ in prefix_predictions],
++            'reference':'same-context full causal target graph; no saved predictions',
++            'additional_model_forwards':0}
++        self.curve=sorted(measured_curve.items())
++        self.reset_sequence()
++        return self.curve
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_layer.py b/deepinfer/model_executor/models/ascend_w8a8_layer.py
+index a2d83d6..48fe36f 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_layer.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_layer.py
+@@ -12,7 +12,7 @@ from deepinfer.npu_ops import mhc910c as mhc
+ from deepinfer.npu_ops.attention910c import prefill
+ from deepinfer.npu_ops.moe910c import dispatch_combine,route
+ from deepinfer.npu_ops.w8a8 import AscendW8A8Expert
+-from .w8a8_math910c import rms_norm_mixed,rope_frequencies,rotate_partial,compress_step
++from .w8a8_math910c import rms_norm_mixed,rope_frequencies,device_rope_frequencies,rotate_partial,compress_step
+ 
+ 
+ class AscendW8A8Layer(torch.nn.Module):
+@@ -31,7 +31,7 @@ class AscendW8A8Layer(torch.nn.Module):
+         weight=reader.linear_payload(f'{self.prefix}.attn.wo_a')[0]
+         self.register_buffer('wv',weight.to(device).reshape(c['o_groups'],c['o_lora_rank'],-1))
+         self.shared_expert=self._load_expert('shared_experts')
+-        self.register_buffer('rope_freq',rope_frequencies(c,compressed=bool(self.ratio)).to(device))
++        self.register_buffer('rope_freq',device_rope_frequencies(c,device,compressed=bool(self.ratio)))
+         if layer_id in c['kv_source_layer_ids']:
+             for name in ('wkv.weight','norm.weight')+ (('wgate.weight',) if self.ratio==2 else ()):
+                 value=reader.tensor(f'{self.prefix}.attn.compressor.{name}')[0].to(device)
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index b907323..19b7362 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -8,6 +8,7 @@ No vLLM engine, scheduler, forward context or Python model is imported.
+ from dataclasses import dataclass
+ import copy
+ import os
++import time
+ 
+ import torch
+ import torch.distributed as dist
+@@ -44,6 +45,8 @@ class PackedForward:
+     query_slots: list[int] | None = None
+     query_swa_table: object | None = None
+     tail_ffn_indices: dict | None = None
++    valid_query_lengths: tuple | None = None
++    prefill_padding_margin: int = 0
+ 
+ 
+ class AscendW8A8PackedLayer(AscendW8A8Layer):
+@@ -84,7 +87,9 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             weight = weight[:, rank*width:(rank+1)*width].contiguous().to(device)
+             self.projections['wo_b'] = FloatLinear(weight) if scale is None else AscendW8A8Linear(weight, scale.to(device))
+         self.fused_o_proj = os.environ.get('DEEPINFER_910C_FUSED_O_PROJ') == '1'
++        self.fused_o_proj_decode = os.environ.get('DEEPINFER_910C_FUSED_O_PROJ_DECODE') == '1'
+         self.fused_o_proj_calls = 0
++        self.fused_o_proj_decode_calls = 0
+         if self.fused_o_proj:
+             if self.wv.dtype != torch.bfloat16:
+                 raise ValueError('fused O projection requires checkpoint BF16 FLOAT weights')
+@@ -95,6 +100,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             self.indexer = AscendW8A8Indexer(reader, device, layer_id=layer_id)
+         self.mc2=None
+         self.fused_mc2_prefill=os.environ.get('DEEPINFER_910C_FUSED_MC2_PREFILL')=='1'
++        self.fused_mc2_decode=os.environ.get('DEEPINFER_910C_FUSED_MC2_DECODE')=='1'
+         if os.environ.get('DEEPINFER_910C_MC2')=='1':
+             from deepinfer.npu_ops.mc2_910c import NativeMC2
+             self.mc2=NativeMC2(group)
+@@ -105,7 +111,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         self.local_expert_count=len(self.expert_cache)
+         self.expert_bank=AscendW8A8ExpertBank(self.expert_cache.values())
+         self.expert_cache.clear()
+-        if self.fused_mc2_prefill:
++        if self.fused_mc2_prefill or self.fused_mc2_decode:
+             if self.mc2 is None:
+                 raise ValueError('fused MC2 prefill requires native MC2 communicator')
+             self.expert_bank.prepare_fused_mc2()
+@@ -281,12 +287,13 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         if cp is not None:
+             context = restore_tp_heads(context, self.tp_group, total_tokens=total_tokens, width=cp.width)
+         grouped = context.reshape(total_tokens, self.local_o_groups, -1)
+-        if self.fused_o_proj and state.sequence_parallel:
++        if self.fused_o_proj and (state.sequence_parallel or
++                (self.fused_o_proj_decode and state.decode_frame is not None)):
+             import torch_npu
+             projected = torch_npu.npu_transpose_batchmatmul(grouped, self.wv_bmm,
+                 bias=None, scale=None, perm_x1=(1, 0, 2), perm_x2=(0, 1, 2),
+                 perm_y=(1, 0, 2), batch_split_factor=1)
+-            self.fused_o_proj_calls += 1
++            if state.sequence_parallel:self.fused_o_proj_calls += 1
+         else:
+             projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
+         output = self.projections['wo_b'](projected.flatten(1))
+@@ -322,7 +329,8 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             x, router_x = rms_norm_mixed(x, self.ffn_norm_weight, c['rms_norm_eps'])
+         ffn = self.packed_ffn(x,router_x,state.mc2_global_bs,
+             fused_mc2=(self.fused_mc2_prefill and state.decode_frame is None
+-                       and state.mc2_global_bs>self.mc2.world),
++                       and state.mc2_global_bs>self.mc2.world)
++                       or (self.fused_mc2_decode and state.decode_frame is not None),
+             already_sharded=state.sequence_parallel,
+             token_indices=(state.tail_ffn_indices.get(self.layer_id)
+                            if state.tail_ffn_indices is not None else None))
+@@ -377,6 +385,12 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             progress({'stage': 'resident_layer', 'layer': i, 'local_experts': layer.local_expert_count, 'backend': 'native-paged'})
+         self.sp = self.layers[0].sp
+         self.cache = W8A8PagedCache(reader.config, device, max_tokens=max_tokens, requests=requests, max_query_tokens=chunk_size)
++        self.dspark = None
++        self.dspark_graphs = None
++        if os.environ.get('DEEPINFER_910C_DSPARK') == '1':
++            from .dspark910c import DSpark910C
++            self.dspark = DSpark910C(reader,device,requests=requests,
++                max_tokens=max_tokens,group=group,tp_group=tp_group,progress=progress)
+         self.reset()
+ 
+     def reset(self):
+@@ -388,6 +402,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         for layer in self.layers:
+             layer.eager_attention_calls = layer.cann_attention_calls = 0
+             layer.fused_o_proj_calls = 0
++            layer.fused_o_proj_decode_calls = 0
+             layer.context_parallel_calls = layer.context_parallel_query_tokens = 0
+             layer.kv_token_parallel_calls = 0
+             layer.tail_ffn_calls = layer.tail_ffn_tokens = layer.tail_ffn_skipped = 0
+@@ -400,7 +415,15 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             self._verify_graph.reset_sequence()
+         self.use_decode_graph=False
+         self.sequence_parallel_prefill_forwards=0
++        self.prefill_padding_forwards=0
++        self.prefill_padding_tokens=0
++        self.prefill_wall_components={}
+         self.prompt_lookup_stats={}
++        self.dspark_stats={}
++        if self.dspark is not None:
++            self.dspark.reset_stats()
++        if self.dspark_graphs is not None:
++            self.dspark_graphs.reset_sequence()
+ 
+     def capture_prefix(self,slot,token_ids):
+         """Snapshot an exact prefix boundary, including SWA ring and Engram.
+@@ -423,7 +446,8 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         pending={key:tuple(value.clone() for value in slots[slot])
+                  for key,slots in self.pending.items() if slot in slots}
+         return {'ids':tuple(token_ids),'planes':planes,'pending':pending,
+-                'history':list(self.histories[slot].history) if self.histories else None}
++                'history':list(self.histories[slot].history) if self.histories else None,
++                'dspark':self.dspark.snapshot(slot) if self.dspark is not None else None}
+ 
+     def restore_prefix(self,snapshot,slot):
+         for name,key,value in snapshot['planes']:
+@@ -436,6 +460,10 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             self.pending.setdefault(key,{})[slot]=tuple(t.clone() for t in value)
+         if self.histories:
+             self.histories[slot].history=list(snapshot['history'])
++        if self.dspark is not None:
++            if snapshot.get('dspark') is None:
++                raise ValueError('DSpark requires matching draft context in prefix snapshots')
++            self.dspark.restore(snapshot['dspark'],slot)
+         self.next_positions[slot]=len(snapshot['ids'])
+         self.restored_prefix_slots.add(slot)
+ 
+@@ -447,6 +475,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'fused_router_norm_layers': sum(layer.fused_router_norm for layer in self.layers),
+                 'mc2_layers': sum(layer.mc2 is not None for layer in self.layers),
+                 'fused_mc2_prefill_layers': sum(layer.fused_mc2_prefill for layer in self.layers),
++                'fused_mc2_decode_layers': sum(layer.fused_mc2_decode for layer in self.layers),
+                 'fused_mc2_calls': sum(layer.mc2.fused_calls for layer in self.layers if layer.mc2 is not None),
+                 'fused_mc2_max_output_size': max((layer.mc2.fused_max_output_size for layer in self.layers
+                                                 if layer.mc2 is not None),default=0),
+@@ -465,8 +494,13 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'context_parallel_query_tokens': sum(layer.context_parallel_query_tokens for layer in self.layers),
+                 'fused_o_proj_enabled': all(layer.fused_o_proj for layer in self.layers),
+                 'fused_o_proj_prefill_calls': sum(layer.fused_o_proj_calls for layer in self.layers),
++                'fused_o_proj_decode_layers':sum(layer.fused_o_proj_decode for layer in self.layers),
++                'fused_o_proj_decode_calls':sum(layer.fused_o_proj_decode_calls for layer in self.layers),
+                 'sequence_parallel_enabled': self.sequence_parallel,
+                 'sequence_parallel_prefill_forwards': self.sequence_parallel_prefill_forwards,
++                'prefill_padding_forwards':self.prefill_padding_forwards,
++                'prefill_padding_tokens':self.prefill_padding_tokens,
++                'prefill_wall_components':self.prefill_wall_components,
+                 'sequence_parallel_tp_size': self.sp.world,
+                 'native_graph_captures': self._decode_graph.captures if getattr(self,'_decode_graph',None) is not None else 0,
+                 'native_graph_replays': self._decode_graph.replays if getattr(self,'_decode_graph',None) is not None else 0,
+@@ -474,7 +508,12 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'verification_graph_captures': self._verify_graph.captures if getattr(self,'_verify_graph',None) is not None else 0,
+                 'verification_graph_replays': self._verify_graph.replays if getattr(self,'_verify_graph',None) is not None else 0,
+                 'verification_host_staging_seconds': self._verify_graph.staging_seconds if getattr(self,'_verify_graph',None) is not None else 0.,
+-                'prompt_lookup':self.prompt_lookup_stats}
++                'prompt_lookup':self.prompt_lookup_stats,
++                'dspark':self.dspark_stats,
++                'dspark_varlen_graph_replays':({str(k):v.replays for k,v in self.dspark_graphs.frames.items()}
++                                               if self.dspark_graphs is not None else {}),
++                'dspark_weights_loaded':self.dspark is not None,
++                'dspark_draft_layers':len(self.dspark.layers) if self.dspark is not None else 0}
+ 
+     def verify_chunks(self,chunks):
+         """Return every target logit for fixed four-request verification."""
+@@ -490,6 +529,9 @@ class AscendW8A8PackedModel(torch.nn.Module):
+ 
+     @torch.inference_mode()
+     def forward_tokens(self, chunks, slots=None, *, sequence_parallel=False):
++        forward_started=time.perf_counter()
++        from deepinfer.npu_ops.rope910c import begin_forward
++        begin_forward()
+         chunks = [list(tokens) for tokens in chunks]
+         slots = list(range(len(chunks))) if slots is None else list(slots)
+         if (not chunks or len(chunks) != len(slots) or len(set(slots)) != len(slots)
+@@ -505,6 +547,31 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 from .w8a8_graph910c import NativeDecodeGraph
+                 self._decode_graph=NativeDecodeGraph(self,slots)
+             return self._decode_graph.step(chunks)
++        actual_lengths=tuple(map(len,chunks))
++        actual_ends=list(seq_lengths)
++        padding_margin=0
++        if (sequence_parallel and self.sequence_parallel and
++                os.environ.get('DEEPINFER_910C_PREFILL_QUERY_PADDING')=='1'):
++            # Request arrival order changes which DP replica owns the shorter
++            # cached prefix. Equalize query shapes before the model, rather
++            # than letting the first formal request initialize many new GEMM
++            # shapes inside the layer loop. No output/prefix token is counted
++            # for the additional, strictly future query positions.
++            eligible=(len(chunks)==4 and slots==list(range(4)) and
++                all(slot in self.restored_prefix_slots for slot in slots) and
++                all(end%2==0 for end in actual_ends))
++            values=torch.tensor([int(not eligible),max(actual_lengths),
++                -min(actual_lengths),max(self.next_positions[s] for s in slots)],
++                dtype=torch.int32,device=self.device)
++            dist.all_reduce(values,op=dist.ReduceOp.MAX)
++            reject,width,negative_minimum,latest_start=values.cpu().tolist()
++            if not reject and width+negative_minimum>0 and latest_start+width<=self.max_tokens:
++                padding_margin=width+negative_minimum
++                noise=self.cfg['dspark_noise_token_id']
++                chunks=[row+[noise]*(width-len(row)) for row in chunks]
++                seq_lengths=[self.next_positions[s]+width for s in slots]
++                self.prefill_padding_forwards+=1
++                self.prefill_padding_tokens+=sum(width-length for length in actual_lengths)
+         flat_ids = [token for tokens in chunks for token in tokens]
+         image_ids = {self.reader.config.get('image_token_id'), self.reader.config.get('image_pad_token_id')}
+         if any(type(t) is not int or not 0 <= t < self.embedding.shape[0] or t in image_ids for t in flat_ids):
+@@ -515,6 +582,13 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             hashes = {i: torch.cat([entry[i] for entry in per_request]) for i in self.cfg['engram_layer_ids']}
+         batch = DSABatch.build([len(tokens) for tokens in chunks], seq_lengths, self.device)
+         state = PackedForward(batch, slots, batch.positions(), self.cache.swa_plan(0, batch, slots), self.cache.swa[0].table(slots))
++        state.valid_query_lengths=actual_lengths
++        state.prefill_padding_margin=padding_margin
++        if padding_margin:
++            last_rows=[];offset=0
++            for valid,chunk in zip(actual_lengths,chunks):
++                last_rows.append(offset+valid-1);offset+=len(chunk)
++            valid_last=torch.tensor(last_rows,dtype=torch.int64,device=self.device)
+         state.source_metadata = self.cache.prepare_compressed(batch, slots)
+         state.mc2_global_bs=getattr(self,'mc2_global_bs',4096)
+         state.sequence_parallel=bool(sequence_parallel and self.sequence_parallel)
+@@ -536,7 +610,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             cp=state.context_query
+             state.tail_ffn_indices={}
+             for i in range(self.tail_ffn_source,len(self.layers)):
+-                required=1+(len(self.layers)-1-i)*(self.cfg['sliding_window']-1)
++                required=1+(len(self.layers)-1-i)*(self.cfg['sliding_window']-1)+padding_margin
+                 indices=[];offset=0
+                 for q in batch.query_lengths:
+                     left=max(offset+max(0,q-required),cp.start)
+@@ -553,13 +627,32 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             previous=self.sp.split(previous)
+             hashes={i:self.sp.split(value,fill=-1) for i,value in hashes.items()}
+             self.sequence_parallel_prefill_forwards+=1
++        draft_features=[]
++        if self.dspark is not None:
++            self.dspark.prepare_capture(state,self.sp)
++        observe=bool(state.sequence_parallel and state.context_query is not None)
++        layer_times=[]
++        before_layers=time.perf_counter()
+         for i, layer in enumerate(self.layers):
++            layer_start=time.perf_counter()
+             if str(i) in self.engrams:
+                 trunk = self.engrams[str(i)](trunk, hashes[i], self.engram_rotation)
++            after_engram=time.perf_counter()
++            if self.dspark is not None and i in self.dspark.target_layer_ids:
++                draft_features.append(self.dspark.capture(trunk,state))
++            after_capture=time.perf_counter()
+             trunk, previous = layer(trunk, previous, cache=self.cache, pending=self.pending, state=state)
++            if observe:
++                layer_times.append({'layer':i,'engram_wall_seconds':after_engram-layer_start,
++                    'feature_wall_seconds':after_capture-after_engram,
++                    'layer_enqueue_wall_seconds':time.perf_counter()-after_capture})
++        before_draft_context=time.perf_counter()
++        if self.dspark is not None:
++            self.dspark.update_main(draft_features,state.dspark_positions,state.dspark_requests)
++        before_head=time.perf_counter()
+         # Prefill only needs each request's final logit, not a vocabulary-sized
+         # output tensor for every prompt token.
+-        last = batch.cu_query[1:].long()-1
++        last = valid_last if padding_margin else batch.cu_query[1:].long()-1
+         if state.sequence_parallel:
+             local_hidden=(trunk.float()*previous).sum(-2).bfloat16()
+             hidden=self.sp.gather(local_hidden,len(flat_ids)).index_select(0,last)
+@@ -567,8 +660,20 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             hidden = (trunk.index_select(0, last).float()*previous.index_select(0, last)).sum(-2).bfloat16()
+         hidden = rms_norm_mixed(hidden, self.norm, self.cfg['rms_norm_eps'])[0]
+         logits = F.linear(hidden, self.head).float()
+-        for slot, end in zip(slots, seq_lengths):
++        after_head=time.perf_counter()
++        if observe:
++            self.prefill_wall_components={'scope':'CPU wall spans including implicit waits, not exclusive NPU kernel times',
++                'preparation_seconds':before_layers-forward_started,'layers':layer_times,
++                'draft_context_enqueue_seconds':before_head-before_draft_context,
++                'head_enqueue_seconds':after_head-before_head,
++                'total_enqueue_seconds':after_head-forward_started}
++        for slot, end in zip(slots, actual_ends):
+             self.next_positions[slot] = end
++            if padding_margin:
++                if self.histories:del self.histories[slot].history[end:]
++                # Eligibility requires an even committed boundary. Future C2
++                # pairs need no retained activation at that exact boundary.
++                for pending_slots in self.pending.values():pending_slots.pop(slot,None)
+         return logits
+ 
+     def resident_bytes(self):
+diff --git a/deepinfer/model_executor/models/dspark910c.py b/deepinfer/model_executor/models/dspark910c.py
+new file mode 100644
+index 0000000..c30ff56
+--- /dev/null
++++ b/deepinfer/model_executor/models/dspark910c.py
+@@ -0,0 +1,291 @@
++# SPDX-License-Identifier: Apache-2.0
++"""910C W8A8 backend for the upstream DeepInfer DSpark computation.
++
++The checkpoint's three mtp blocks, target attention-input features, main
++projection/cache, noncausal five-position draft attention, Markov correction
++and confidence head follow models/mtp/dflash.py. Only device execution and
++ModelSlim name/INT8 layout adapters are different. No text lookup proposer.
++"""
++import copy
++import math
++import os
++
++import torch
++import torch.distributed as dist
++import torch.nn.functional as F
++
++from deepinfer.npu_ops.dsa910c import DSABatch
++from .ascend_w8a8_packed import AscendW8A8PackedLayer, PackedForward
++from .w8a8_math910c import rms_norm_mixed, rotate_positions
++from .w8a8_paged_cache910c import PagedPlane, CacheWritePlan
++
++
++class DraftCheckpoint:
++    """Map the validated block loader to mtp.i without rewriting weights."""
++    def __init__(self, reader):
++        self.reader = reader
++        self.config = copy.deepcopy(reader.config)
++        c = self.config['text_config']
++        c['n_routed_experts'] = c['dspark_n_routed_experts']
++        c['num_experts_per_tok'] = c['dspark_num_experts_per_tok']
++
++    def name(self, name):
++        if name.startswith('layers.'):
++            _, number, rest = name.split('.', 2)
++            return f"mtp.{int(number)-self.config['text_config']['num_hidden_layers']}.{rest}"
++        return name
++
++    def tensor(self, name):
++        return self.reader.tensor(self.name(name))
++
++    def linear_payload(self, name, **kwargs):
++        return self.reader.linear_payload(self.name(name), **kwargs)
++
++    def load_linear(self, name, device, **kwargs):
++        return self.reader.load_linear(self.name(name), device, **kwargs)
++
++
++def noncausal_draft_attention(query, plane, state, sink):
++    """Pinned A3 sparse-MLA ABI, using explicit logical noncausal indices.
++
++    All five positions see the same preceding 128 main keys and all five
++    temporary draft keys, as in upstream get_fused_dflash_get_input_ref.
++    """
++    batch = state.batch
++    indices, lengths = state.dspark_indices, state.dspark_lengths
++    common = dict(cu_seqlens_q=batch.cu_query, seqused_ori_kv=batch.seq_used,
++                  seqused_cmp_kv=None, cmp_residual_kv=None, cmp_ratio=0,
++                  ori_mask_mode=0, cmp_mask_mode=0, ori_win_left=127,
++                  ori_win_right=0, layout_q='TND', layout_kv='PA_BBND')
++    key = ('dspark-noncausal', query.shape[1])
++    metadata = batch.metadata_cache.get(key)
++    if metadata is None:
++        metadata = torch.ops._C_ascend.npu_sparse_flash_mla_metadata(
++            query.shape[1], 1, 512, batch_size=len(batch.query_lengths),
++            max_seqlen_q=max(batch.query_lengths),
++            max_seqlen_ori_kv=max(batch.seq_lengths), max_seqlen_cmp_kv=0,
++            ori_topk=indices.shape[-1], ori_topk_length=lengths, cmp_topk=0,
++            has_ori_kv=True, has_cmp_kv=False, **common)
++        batch.metadata_cache[key] = metadata
++    result, _ = torch.ops._C_ascend.npu_sparse_flash_mla(
++        query, ori_kv=plane.cache, cmp_kv=None,
++        ori_sparse_indices=indices, ori_topk_length=lengths,
++        ori_block_table=plane.table(state.slots), cmp_block_table=None,
++        sinks=sink, metadata=metadata, softmax_scale=512**-.5,
++        topk_value_mode=1, return_softmax_lse=False, **common)
++    return result
++
++
++class DSparkDraftLayer(AscendW8A8PackedLayer):
++    def packed_attention(self, x, cache, pending, state, *, reduce_results=True,
++                         input_is_sharded=False):
++        c = self.config
++        qa = rms_norm_mixed(self.projections['wq_a'](x), self.attn_q_norm_weight,
++                            c['rms_norm_eps'])[0]
++        q = self.projections['wq_b'](qa).reshape(-1, self.local_heads, c['head_dim'])
++        q = rotate_positions(q, state.positions, self.rope_freq)
++        kv = rms_norm_mixed(self.projections['wkv'](x), self.attn_kv_norm_weight,
++                            c['rms_norm_eps'])[0]
++        kv = rotate_positions(kv, state.positions, self.rope_freq)
++        cache.write(kv[:, None], state.swa_plan)
++        context = noncausal_draft_attention(q, cache, state, self.attn_attn_sink)
++        context = rotate_positions(context, state.positions, self.rope_freq, inverse=True)
++        grouped = context.reshape(x.shape[0], self.local_o_groups, -1)
++        if self.fused_o_proj and self.fused_o_proj_decode:
++            import torch_npu
++            projected=torch_npu.npu_transpose_batchmatmul(grouped,self.wv_bmm,
++                bias=None,scale=None,perm_x1=(1,0,2),perm_x2=(0,1,2),
++                perm_y=(1,0,2),batch_split_factor=1)
++        else:
++            projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
++        output = self.projections['wo_b'](projected.flatten(1))
++        if self.tp_size > 1:
++            dist.all_reduce(output, group=self.tp_group)
++        return output
++
++
++class DSpark910C(torch.nn.Module):
++    def __init__(self, reader, device, *, requests, max_tokens, group=None,
++                 tp_group=None, progress=None):
++        super().__init__()
++        self.reader, self.device = reader, torch.device(device)
++        self.cfg = c = reader.config['text_config']
++        self.tp_group = tp_group
++        self.tp_size = dist.get_world_size(tp_group)
++        self.tp_rank = dist.get_rank(tp_group)
++        self.nextn = int(os.environ.get('DEEPINFER_USE_NEXTN_DECODE', '5'))
++        if self.nextn != c['dspark_block_size'] or self.nextn != 5:
++            raise ValueError('this W8A8 backend currently implements checkpoint DSpark block size 5')
++        self.target_layer_ids = tuple(c['dspark_target_layer_ids'])
++        if self.target_layer_ids != (37, 38, 39):
++            raise ValueError('unexpected target attention-input feature contract')
++        self.max_tokens, self.requests = max_tokens, requests
++        self.graphs = {}
++        self.slot_requests = {}
++        self.proposals = 0
++        self.context_updates = 0
++        self.reset_stats()
++        adapted = DraftCheckpoint(reader)
++        self.layers = torch.nn.ModuleList()
++        self.planes = []
++        for i in range(c['num_nextn_predict_layers']):
++            layer = DSparkDraftLayer(adapted, device,
++                layer_id=c['num_hidden_layers']+i, group=group, tp_group=tp_group)
++            layer.load_local_experts()
++            self.layers.append(layer)
++            self.planes.append(PagedPlane(requests=requests, logical_rows=max_tokens,
++                block_size=128, width=512, dtype=torch.bfloat16,
++                device=device, resident_pages=3))
++            if progress:
++                progress({'stage':'resident_dspark_layer', 'layer':i,
++                          'local_experts':layer.local_expert_count, 'quantization':'W8A8_DYNAMIC'})
++        self.main_proj = reader.load_linear('mtp.0.main_proj', device)
++        self.register_buffer('main_norm', reader.tensor('mtp.0.main_norm.weight')[0].to(device))
++        self.register_buffer('norm', reader.tensor('mtp.2.norm.weight')[0].to(device))
++        self.register_buffer('markov_embed', reader.materialize('mtp.2.markov_head.embed.weight',device))
++        self.register_buffer('confidence_weight', reader.tensor('mtp.2.confidence_head.proj.weight')[0].to(device).bfloat16())
++        vocabulary = c['vocab_size']
++        if vocabulary % self.tp_size:
++            raise ValueError('DSpark vocabulary must divide tensor parallel size')
++        self.vocab_width = vocabulary//self.tp_size
++        self.vocab_first = self.tp_rank*self.vocab_width
++        first, end = self.vocab_first, self.vocab_first+self.vocab_width
++        # Runtime parameters are BF16 in upstream. Accumulate output logits in
++        # FP32, including the low-rank Markov add, before choosing a token.
++        self.register_buffer('embedding',reader.row_slice('mtp.0.embed.weight',first,end)[0].to(device).bfloat16())
++        self.register_buffer('head',reader.row_slice('mtp.2.head.weight',first,end)[0].bfloat16().float().to(device))
++        self.register_buffer('markov_head',reader.row_slice('mtp.2.markov_head.head.weight',first,end)[0].float().to(device))
++        raw = os.environ.get('DEEPINFER_DFLASH_CONFIDENCE_HEAD_TEMPERATURE','1')
++        temps = tuple(float(x) for x in raw.split(','))
++        self.temperatures = temps*self.nextn if len(temps)==1 else temps
++        if len(self.temperatures)!=self.nextn or min(self.temperatures)<=0:
++            raise ValueError('invalid DSpark confidence temperatures')
++
++    def reset_stats(self):
++        self.proposals = self.context_updates = 0
++
++    def snapshot(self, slot):
++        return [p.cache[slot*p.resident_pages:(slot+1)*p.resident_pages].clone()
++                for p in self.planes]
++
++    def restore(self, values, slot):
++        for plane, value in zip(self.planes, values):
++            plane.cache[slot*plane.resident_pages:(slot+1)*plane.resident_pages].copy_(value)
++
++    def prepare_capture(self, state, sp):
++        rows, positions, requests = [], [], []
++        offset = 0
++        valid_lengths=state.valid_query_lengths or state.batch.query_lengths
++        for slot,q,valid,end in zip(state.slots,state.batch.query_lengths,valid_lengths,state.batch.seq_lengths):
++            take = min(valid,self.cfg['sliding_window'])
++            rows.extend(range(offset+valid-take,offset+valid))
++            positions.extend(range(end-q+valid-take,end-q+valid))
++            requests.extend([slot]*take)
++            offset += q
++        state.dspark_positions = torch.tensor(positions,dtype=torch.int32,device=self.device)
++        state.dspark_requests = torch.tensor(requests,dtype=torch.int32,device=self.device)
++        if state.sequence_parallel:
++            local_width = math.ceil(offset/sp.world)
++            local_rows = torch.tensor(rows,dtype=torch.int64,device=self.device)-sp.rank*local_width
++            state.dspark_local_rows = local_rows.clamp(0,local_width-1)
++            state.dspark_own_rows = ((local_rows>=0)&(local_rows<local_width))[:,None]
++        else:
++            state.dspark_local_rows = torch.tensor(rows,dtype=torch.int64,device=self.device)
++            state.dspark_own_rows = None
++
++    def capture(self, trunk, state):
++        # Upstream dflash_input_store averages the full HC trunk immediately
++        # before the target layer's attention, before its norm/pre-mix.
++        value = trunk.index_select(0,state.dspark_local_rows).float().mean(-2).bfloat16()
++        if state.dspark_own_rows is not None:
++            value = torch.where(state.dspark_own_rows,value,0.)
++            dist.all_reduce(value,group=self.tp_group)
++        return value
++
++    def update_main(self, features, positions, requests):
++        hidden = rms_norm_mixed(self.main_proj(torch.cat(features,-1)),self.main_norm,
++                                self.cfg['rms_norm_eps'])[0]
++        for layer,plane in zip(self.layers,self.planes):
++            kv = rms_norm_mixed(layer.projections['wkv'](hidden),layer.attn_kv_norm_weight,
++                                self.cfg['rms_norm_eps'])[0]
++            kv = rotate_positions(kv,positions,layer.rope_freq)
++            physical = plane.physical_indices(positions[:,None],requests).squeeze(-1).long()
++            plane.write(kv[:,None],CacheWritePlan(physical,len(positions)))
++
++    def _forward(self, golden, starts, slots):
++        from deepinfer.npu_ops.rope910c import begin_forward
++        begin_forward()
++        count, n = len(slots), self.nextn
++        offsets = torch.arange(n,dtype=torch.int32,device=self.device)
++        positions = (starts[:,None]+offsets).flatten()
++        ids = torch.full((count,n),self.cfg['dspark_noise_token_id'],dtype=torch.int64,device=self.device)
++        ids[:,0] = golden
++        local = ids.flatten()-self.vocab_first
++        trunk = self.embedding.index_select(0,local.clamp(0,self.vocab_width-1))
++        trunk = torch.where(((local>=0)&(local<self.vocab_width))[:,None],trunk,0.)
++        dist.all_reduce(trunk,group=self.tp_group)
++        trunk = trunk[:,None].expand(-1,self.cfg['hc_mult'],-1).contiguous()
++        previous = torch.zeros((count*n,self.cfg['hc_mult'],1),dtype=torch.float32,device=self.device)
++        previous[:,0] = 1.
++        batch = DSABatch((n,)*count,(self.max_tokens,)*count,
++            torch.arange(count+1,dtype=torch.int32,device=self.device)*n,starts+n,
++            position_values=positions)
++        reqs = self.slot_requests[tuple(slots)]
++        plan = CacheWritePlan(self.planes[0].physical_indices(positions[:,None],reqs).squeeze(-1).long(),count*n)
++        state = PackedForward(batch,slots,positions,plan,self.planes[0].table(slots),
++            mc2_global_bs=dist.get_world_size()*math.ceil(count*n/self.tp_size))
++        columns = torch.arange(192,dtype=torch.int32,device=self.device)
++        left = (starts-self.cfg['sliding_window']).clamp_min(0)
++        visible = starts+n-left
++        indices = left[:,None]+columns
++        indices = torch.where(columns[None]<visible[:,None],indices,-1)
++        state.dspark_indices = indices[:,None,:].expand(-1,n,-1).reshape(count*n,1,192).contiguous()
++        state.dspark_lengths = visible[:,None,None].expand(-1,n,1).reshape(count*n,1).contiguous()
++        for layer,plane in zip(self.layers,self.planes):
++            trunk,previous = layer(trunk,previous,cache=plane,pending=None,state=state)
++        hidden = (trunk.float()*previous).sum(-2).bfloat16().reshape(count,n,-1)
++        normed = rms_norm_mixed(hidden,self.norm,self.cfg['rms_norm_eps'])[0]
++        base_logits = F.linear(normed.float(),self.head)
++        prior = golden
++        tokens,confidences = [],[]
++        weight = self.confidence_weight.float().flatten()
++        for step in range(n):
++            markov = self.markov_embed.index_select(0,prior)
++            logits = F.linear(markov.float(),self.markov_head)+base_logits[:,step]
++            score,token = logits.max(-1)
++            local_best = torch.stack((score,token.float()+self.vocab_first),-1)
++            gathered = local_best.new_empty((self.tp_size*count,2))
++            dist.all_gather_into_tensor(gathered,local_best.contiguous(),group=self.tp_group)
++            gathered = gathered.reshape(self.tp_size,count,2)
++            winner = gathered[:,:,0].argmax(0)
++            prior = gathered[winner,torch.arange(count,device=self.device),1].long()
++            confidence_input = torch.cat((hidden[:,step],markov),-1).float()
++            raw = (confidence_input*weight).sum(-1)/self.temperatures[step]
++            confidences.append(torch.sigmoid(raw.clamp(-60,60)))
++            tokens.append(prior)
++        return torch.stack(tokens,1),torch.stack(confidences,1)
++
++    @torch.inference_mode()
++    def propose(self, golden, starts, slots):
++        key = tuple(slots)
++        if key not in self.slot_requests:
++            self.slot_requests[key] = torch.tensor(slots,dtype=torch.int32,
++                device=self.device).repeat_interleave(self.nextn)
++        cached = self.graphs.get(key)
++        gold = torch.tensor(golden,dtype=torch.int64,device=self.device)
++        position = torch.tensor(starts,dtype=torch.int32,device=self.device)
++        if cached is None:
++            for _ in range(2):
++                self._forward(gold,position,slots)
++            torch.npu.synchronize()
++            graph = torch.npu.NPUGraph()
++            with torch.npu.graph(graph):
++                output = self._forward(gold,position,slots)
++            cached = (graph,gold,position,output)
++            self.graphs[key] = cached
++        graph,input_ids,input_positions,output = cached
++        input_ids.copy_(gold)
++        input_positions.copy_(position)
++        graph.replay()
++        self.proposals += 1
++        return output
+diff --git a/deepinfer/model_executor/models/dspark_varlen910c.py b/deepinfer/model_executor/models/dspark_varlen910c.py
+new file mode 100644
+index 0000000..e92bec2
+--- /dev/null
++++ b/deepinfer/model_executor/models/dspark_varlen910c.py
+@@ -0,0 +1,168 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Padded target graphs with genuinely variable per-request DSpark queries.
++
++Real request boundaries/positions are staged into persistent inputs. Padding
++uses the fifth, private scratch request; its logits never reach the sampler.
++The 40-layer target receives each request's actual query length through its
++device cu_seqlens, so low-confidence positions need not be computed.
++"""
++import time
++
++import torch
++import torch.nn.functional as F
++
++from deepinfer.npu_ops.dsa910c import DSABatch
++from .ascend_w8a8_packed import PackedForward
++from .w8a8_graph910c import NativeDecodeGraph
++from .w8a8_math910c import rms_norm_mixed
++
++
++class DSparkVarlenGraph(NativeDecodeGraph):
++    def __init__(self,model,capacity):
++        if capacity not in (8,) or model.requests!=5:
++            raise ValueError('variable DSpark uses four real slots plus one scratch slot')
++        super().__init__(model,list(range(5)))
++        self.capacity=capacity
++        self.tokens=capacity
++        self.inputs=torch.zeros(3*capacity+11,dtype=torch.int32,device=model.device)
++        self.cpu_inputs=torch.empty_like(self.inputs,device='cpu',pin_memory=True)
++        self.ids=self.inputs[:capacity]
++        self.used=self.inputs[capacity:capacity+5]
++        self.cu_query=self.inputs[capacity+5:capacity+11]
++        self.query_requests=self.inputs[capacity+11:2*capacity+11]
++        self.positions=self.inputs[2*capacity+11:]
++        self.scratch_rows=torch.arange(capacity,dtype=torch.int32,device=model.device)
++        self.previous_rows=(torch.arange(capacity,dtype=torch.int64,device=model.device)-1).clamp_min(0)
++        self.valid=torch.ones(capacity,dtype=torch.bool,device=model.device)
++        self.rows={i:torch.empty((capacity,buffer.shape[-1]),dtype=buffer.dtype,
++                                device=model.device) for i,buffer in self.rows.items()}
++        self.host_lengths=None
++        self.host_cu=None
++        self.host_starts=None
++
++    def _stage(self,chunks):
++        if len(chunks)!=4 or any(not 1<=len(row)<=6 for row in chunks):
++            raise ValueError('four DSpark query prefixes of length1..6 required')
++        total=sum(map(len,chunks))
++        if total>=self.capacity:
++            raise ValueError('variable target graph needs a positive scratch-query span')
++        lengths=list(map(len,chunks))+[self.capacity-total]
++        starts=[self.model.next_positions[slot] for slot in range(4)]+[1024]
++        if any(start+length>self.model.max_tokens for start,length in zip(starts,lengths)):
++            raise ValueError('variable verification exceeds context capacity')
++        cu=[0]
++        for length in lengths:cu.append(cu[-1]+length)
++        rows=[list(row) for row in chunks]+[[self.model.cfg['dspark_noise_token_id']] * lengths[4]]
++        positions=[pos for start,length in zip(starts,lengths) for pos in range(start,start+length)]
++        requests=[slot for slot,length in enumerate(lengths) for _ in range(length)]
++        ids=[token for row in rows for token in row]
++        values=ids+[start+length for start,length in zip(starts,lengths)]+cu+requests+positions
++        self.cpu_inputs.copy_(torch.tensor(values,dtype=torch.int32))
++        self.inputs.copy_(self.cpu_inputs,non_blocking=True)
++        self.model.histories[4].reset()
++        hashes=[self.model.histories[slot].batch(row) for slot,row in enumerate(rows) if row]
++        for layer,buffer in self.rows.items():
++            indices=torch.cat([entry[layer] for entry in hashes])
++            buffer.copy_(self.model.reader.engram_rows(layer,indices,self.model.device).reshape(self.capacity,-1))
++        self.host_lengths,self.host_starts,self.host_cu=lengths,starts,cu
++
++    def compress(self,layer,x,positions):
++        if layer.ratio==1:
++            latent=rms_norm_mixed(F.linear(x,layer.compressor_wkv_weight),
++                layer.compressor_norm_weight,layer.config['rms_norm_eps'])[0]
++            return latent,positions
++        current=F.linear(x.float(),layer.compressor_wkv_weight.float())
++        gate=F.linear(x.float(),layer.compressor_wgate_weight.float())
++        self.even_rows[layer.layer_id]=(current,gate)
++        previous,previous_gate=self.even[layer.layer_id]
++        for saved,value in zip(self.even_before[layer.layer_id],(previous,previous_gate)):
++            saved.copy_(value)
++        requests=self.query_requests.long()
++        offsets=torch.arange(self.capacity,dtype=torch.int32,device=x.device)-self.cu_query.index_select(0,requests)
++        left=torch.where((offsets==0)[:,None],previous.index_select(0,requests),
++                         current.index_select(0,self.previous_rows))
++        left_gate=torch.where((offsets==0)[:,None],previous_gate.index_select(0,requests),
++                              gate.index_select(0,self.previous_rows))
++        pairs=torch.stack((left,current),1)
++        scores=torch.stack((left_gate,gate),1)
++        pooled=(pairs*scores.softmax(1)).sum(1).bfloat16()
++        latent=rms_norm_mixed(pooled,layer.compressor_norm_weight,layer.config['rms_norm_eps'])[0]
++        return latent,torch.div(positions,2,rounding_mode='floor')*2
++
++    def _forward(self):
++        from deepinfer.npu_ops.rope910c import begin_forward
++        begin_forward()
++        model=self.model
++        # Host tuples supply static tiling bounds and token count only. The
++        # five actual lengths are carried by persistent cu_query/used inputs.
++        query_bounds=(0,0,0,0,self.capacity)
++        batch=DSABatch(query_bounds,(model.max_tokens,)*5,self.cu_query,
++                       self.used,position_values=self.positions)
++        plan=self._plan(model.cache.swa[0],self.positions,self.query_requests)
++        state=PackedForward(batch,self.slots,self.positions,plan,self.tables['swa'][0],
++                            mc2_global_bs=model.mc2_global_bs,decode_frame=self)
++        trunk=model.embedding.index_select(0,self.ids.long())[:,None].expand(
++            -1,model.cfg['hc_mult'],-1).contiguous()
++        previous=torch.zeros((self.capacity,model.cfg['hc_mult'],1),dtype=torch.float32,device=model.device)
++        previous[:,0]=1.
++        features=[]
++        for i,layer in enumerate(model.layers):
++            if str(i) in model.engrams:
++                trunk=model.engrams[str(i)].forward_rows(trunk,self.rows[i],model.engram_rotation,self.valid)
++            if i in model.dspark.target_layer_ids:
++                features.append(trunk.float().mean(-2).bfloat16())
++            trunk,previous=layer(trunk,previous,cache=model.cache,pending=model.pending,state=state)
++        model.dspark.update_main(features,self.positions,self.query_requests)
++        hidden=(trunk.float()*previous).sum(-2).bfloat16()
++        hidden=rms_norm_mixed(hidden,model.norm,model.cfg['rms_norm_eps'])[0]
++        return F.linear(hidden,model.head).float()
++
++    @torch.inference_mode()
++    def step(self,chunks):
++        if not self.prepared:self._prepare_sequence()
++        staged=time.perf_counter()
++        self._stage(chunks)
++        self.staging_seconds+=time.perf_counter()-staged
++        if self.graph is None:
++            for _ in range(2):self._forward()
++            torch.npu.synchronize()
++            self.graph=torch.npu.NPUGraph()
++            with torch.npu.graph(self.graph):self.output=self._forward()
++            self.captures+=1
++        else:
++            for layer in self.model.layers:layer.cann_attention_calls+=1
++        if getattr(self,'forward_event_timing',False):
++            start_event=torch.npu.Event(enable_timing=True)
++            end_event=torch.npu.Event(enable_timing=True)
++            start_event.record()
++        self.graph.replay()
++        if getattr(self,'forward_event_timing',False):
++            end_event.record()
++            self.last_forward_events=(start_event,end_event)
++        self.replays+=1
++        for layer in self.model.layers:
++            if layer.fused_mc2_decode:layer.mc2.fused_calls+=1
++            if layer.fused_o_proj and layer.fused_o_proj_decode:
++                layer.fused_o_proj_decode_calls+=1
++        for slot,(start,length) in enumerate(zip(self.host_starts,self.host_lengths)):
++            self.model.next_positions[slot]=start+length
++        return self.output
++
++    def request_logits(self,output):
++        return [output[self.host_cu[slot]:self.host_cu[slot+1]] for slot in range(4)]
++
++    def commit_prefixes(self,bases,commits):
++        model=self.model
++        for row,(base,count) in enumerate(zip(bases,commits)):
++            end=base+count
++            model.next_positions[row]=end
++            del model.histories[row].history[end:]
++            for source,values in self.even_rows.items():
++                pending=model.pending.setdefault(source,{})
++                if end%2:
++                    offset=self.host_cu[row]+count-1
++                    pending[row]=tuple(value[offset:offset+1].clone() if count
++                        else before[row:row+1].clone()
++                        for value,before in zip(values,self.even_before[source]))
++                else:pending.pop(row,None)
++        self.prepared=False
+diff --git a/deepinfer/model_executor/models/w8a8_graph910c.py b/deepinfer/model_executor/models/w8a8_graph910c.py
+index 42692ac..f2939d3 100644
+--- a/deepinfer/model_executor/models/w8a8_graph910c.py
++++ b/deepinfer/model_executor/models/w8a8_graph910c.py
+@@ -44,6 +44,7 @@ class NativeDecodeGraph:
+                 self.even[layer.layer_id]=tuple(torch.zeros((self.count,weight.shape[0]),dtype=torch.float32,device=model.device)
+                     for weight in (layer.compressor_wkv_weight,layer.compressor_wgate_weight))
+         self.even_before={key:tuple(torch.empty_like(t) for t in pair) for key,pair in self.even.items()}
++        self.even_rows={}
+         self.graph=None
+         self.replays=0
+         self.captures=0
+@@ -109,6 +110,7 @@ class NativeDecodeGraph:
+             return latent,positions
+         current=F.linear(x.float(),layer.compressor_wkv_weight.float()).reshape(self.count,self.query_tokens,-1)
+         gate=F.linear(x.float(),layer.compressor_wgate_weight.float()).reshape(self.count,self.query_tokens,-1)
++        self.even_rows[layer.layer_id]=(current,gate)
+         previous,previous_gate=self.even[layer.layer_id]
+         for saved,value in zip(self.even_before[layer.layer_id],(previous,previous_gate)):
+             saved.copy_(value)
+@@ -126,6 +128,8 @@ class NativeDecodeGraph:
+         return latent,torch.div(positions,2,rounding_mode='floor')*2
+ 
+     def _forward(self):
++        from deepinfer.npu_ops.rope910c import begin_forward
++        begin_forward()
+         model=self.model
+         used=self.inputs[self.tokens:]
+         positions=(used[:,None]-self.query_tokens+self.query_offsets[None]).flatten()
+@@ -138,10 +142,15 @@ class NativeDecodeGraph:
+         trunk=model.embedding.index_select(0,self.inputs[:self.tokens].long())[:,None].expand(-1,model.cfg['hc_mult'],-1).contiguous()
+         previous=torch.zeros((self.tokens,model.cfg['hc_mult'],1),dtype=torch.float32,device=model.device)
+         previous[:,0]=1.
++        draft_features=[]
+         for i,layer in enumerate(model.layers):
+             if str(i) in model.engrams:
+                 trunk=model.engrams[str(i)].forward_rows(trunk,self.rows[i],model.engram_rotation,self.valid)
++            if model.dspark is not None and i in model.dspark.target_layer_ids:
++                draft_features.append(trunk.float().mean(-2).bfloat16())
+             trunk,previous=layer(trunk,previous,cache=model.cache,pending=model.pending,state=state)
++        if model.dspark is not None:
++            model.dspark.update_main(draft_features,positions,self.query_requests)
+         hidden=(trunk.float()*previous).sum(-2).bfloat16()
+         hidden=rms_norm_mixed(hidden,model.norm,model.cfg['rms_norm_eps'])[0]
+         return F.linear(hidden,model.head).float()
+@@ -177,8 +186,44 @@ class NativeDecodeGraph:
+                 layer.cann_attention_calls+=1
+         # Capture records the model; it does not produce a usable inference
+         # output. Launch once before consuming the first captured output too.
++        if getattr(self,'forward_event_timing',False):
++            start_event=torch.npu.Event(enable_timing=True)
++            end_event=torch.npu.Event(enable_timing=True)
++            start_event.record()
+         self.graph.replay()
++        if getattr(self,'forward_event_timing',False):
++            end_event.record()
++            self.last_forward_events=(start_event,end_event)
+         self.replays+=1
++        for layer in self.model.layers:
++            if layer.fused_mc2_decode:
++                layer.mc2.fused_calls+=1
++            if layer.fused_o_proj and layer.fused_o_proj_decode:
++                layer.fused_o_proj_decode_calls+=1
+         for slot in self.slots:
+             self.model.next_positions[slot]+=self.query_tokens
+         return self.output
++
++    def commit_prefixes(self,bases,commits):
++        """Restore C2/Engram lengths after exact target rejection sampling.
++
++        Keep target-written causal cache rows. Future rows are masked by the
++        committed lengths; they cannot overwrite live SWA history in this
++        enlarged ring. Restore the actual last even C2 activation, avoiding
++        a second complete model forward solely to repair compressor state.
++        """
++        model=self.model
++        for row,(slot,base,count) in enumerate(zip(self.slots,bases,commits)):
++            end=base+count
++            model.next_positions[slot]=end
++            if model.histories:
++                del model.histories[slot].history[end:]
++            for source,values in self.even_rows.items():
++                pending=model.pending.setdefault(source,{})
++                if end%2:
++                    pending[slot]=tuple(value[row:row+1,count-1].clone() if count
++                        else before[row:row+1].clone()
++                        for value,before in zip(values,self.even_before[source]))
++                else:
++                    pending.pop(slot,None)
++        self.prepared=False
+diff --git a/deepinfer/model_executor/models/w8a8_indexer910c.py b/deepinfer/model_executor/models/w8a8_indexer910c.py
+index 94499c0..2c92f53 100644
+--- a/deepinfer/model_executor/models/w8a8_indexer910c.py
++++ b/deepinfer/model_executor/models/w8a8_indexer910c.py
+@@ -8,7 +8,7 @@ consumes q_a after its normalization. All index heads remain replicated.
+ import torch
+ 
+ from deepinfer.npu_ops.dsa910c import quantize_query, select
+-from .w8a8_math910c import rms_norm_mixed, rope_frequencies, rotate_positions
++from .w8a8_math910c import rms_norm_mixed, rope_frequencies, device_rope_frequencies, rotate_positions
+ 
+ 
+ class AscendW8A8Indexer(torch.nn.Module):
+@@ -24,7 +24,7 @@ class AscendW8A8Indexer(torch.nn.Module):
+         prefix = f'layers.{layer_id}.attn.indexer'
+         self.query_projection = reader.load_linear(prefix+'.wq_b', device)
+         self.weights_projection = reader.load_linear(prefix+'.weights_proj', device)
+-        self.register_buffer('frequencies', rope_frequencies(c, compressed=True).to(device))
++        self.register_buffer('frequencies', device_rope_frequencies(c,device,compressed=True))
+         if self.owns_key:
+             self.key_projection = reader.load_linear(prefix+'.wk', device)
+             self.register_buffer('key_norm', reader.tensor(prefix+'.k_norm.weight')[0].to(device))
+diff --git a/deepinfer/model_executor/models/w8a8_math910c.py b/deepinfer/model_executor/models/w8a8_math910c.py
+index ceddf6f..424db0c 100644
+--- a/deepinfer/model_executor/models/w8a8_math910c.py
++++ b/deepinfer/model_executor/models/w8a8_math910c.py
+@@ -33,6 +33,13 @@ def rope_frequencies(config, *, compressed):
+     return (1 / (yarn['factor'] * frequencies)) * (1 - mask) + frequencies.reciprocal() * mask
+ 
+ 
++def device_rope_frequencies(config, device, *, compressed):
++    cpu=rope_frequencies(config,compressed=compressed)
++    frequencies=cpu.to(device)
++    from deepinfer.npu_ops.rope910c import register
++    return register(frequencies,cpu)
++
++
+ def rotate_partial(x, position, frequencies, *, inverse=False):
+     """Interleaved complex rotation on the final RoPE channels, BF16 output."""
+     dim = frequencies.numel() * 2
+@@ -55,6 +62,9 @@ def rotate_positions(x, positions, frequencies, *, inverse=False):
+     dim = frequencies.numel()*2
+     if dim > x.shape[-1]:
+         raise ValueError('RoPE dimension exceeds head width')
++    if x.dtype==torch.bfloat16 and hasattr(frequencies,'_native_rope_table'):
++        from deepinfer.npu_ops.rope910c import apply
++        return apply(x,positions,frequencies,inverse=inverse)
+     angles = positions.float()[:, None]*frequencies[None]
+     shape = (x.shape[0], *((1,)*(x.ndim-2)), frequencies.numel())
+     cos, sin = angles.cos().reshape(shape), angles.sin().reshape(shape)
+diff --git a/deepinfer/npu_ops/rope910c.py b/deepinfer/npu_ops/rope910c.py
+new file mode 100644
+index 0000000..667e467
+--- /dev/null
++++ b/deepinfer/npu_ops/rope910c.py
+@@ -0,0 +1,54 @@
++# SPDX-License-Identifier: Apache-2.0
++"""CANN interleaved RoPE with exact FP32 angle tables on the pinned A3 ABI.
++
++Reuse only the public torch_npu operator. Tables follow the same NPU FP32
++position/frequency multiply and trig operations as the existing reference.
++Share angle gathers within one target/draft forward, including graph capture.
++"""
++import os
++
++import torch
++
++_TABLES={}
++_ACTIVE={}
++
++
++def begin_forward():
++    _ACTIVE.clear()
++
++
++def register(frequencies, cpu_frequencies):
++    if os.environ.get('DEEPINFER_910C_FUSED_ROPE')!='1':
++        return frequencies
++    limit=int(os.environ.get('DEEPINFER_910C_ROPE_MAX_TOKENS','34816'))
++    key=(str(frequencies.device),limit,tuple(cpu_frequencies.tolist()))
++    table=_TABLES.get(key)
++    if table is None:
++        positions=torch.arange(limit,dtype=torch.float32,device=frequencies.device)
++        angles=positions[:,None]*frequencies[None]
++        cos=angles.cos().repeat_interleave(2,-1).contiguous()
++        sin=angles.sin().repeat_interleave(2,-1).contiguous()
++        table=(cos,sin,-sin)
++        _TABLES[key]=table
++    frequencies._native_rope_table=table
++    return frequencies
++
++
++def apply(x,positions,frequencies,*,inverse=False):
++    import torch_npu
++    tables=frequencies._native_rope_table
++    key=(id(tables),positions.data_ptr(),positions.numel(),tuple(positions.stride()))
++    cached=_ACTIVE.get(key)
++    if cached is None:
++        ids=positions.long()
++        cached=(positions,tuple(table.index_select(0,ids)[:,None,None,:]
++                                for table in tables))
++        _ACTIVE[key]=cached
++    cos,sin,negative=cached[1]
++    dim=frequencies.numel()*2
++    tail=x[...,-dim:]
++    shape=tail.shape
++    rotated=torch_npu.npu_rotary_mul(tail.reshape(x.shape[0],1,-1,dim),cos,
++                                    negative if inverse else sin,
++                                    rotary_mode='interleave').reshape(shape)
++    return torch.cat((x[...,:-dim],rotated),-1)
+diff --git a/deepinfer/npu_ops/w8a8.py b/deepinfer/npu_ops/w8a8.py
+index 536b626..6f952c7 100644
+--- a/deepinfer/npu_ops/w8a8.py
++++ b/deepinfer/npu_ops/w8a8.py
+@@ -76,11 +76,12 @@ unfused vLLM-Ascend W8A8 compute decomposition.
+     def _gmm(self,x,weight,scale,*,return_quantized=False):
+         import torch_npu
+         codes,token_scale=torch_npu.npu_dynamic_quant(x,dst_type=torch.int8)
+-        # Capture cannot perform a synchronous host-to-device tensor copy.
+-        # Warmup creates one persistent count per static token-batch shape.
++        # Create device constants asynchronously. Request arrival order can
++        # change the packed prefill shape after warmup; a host-to-device
++        # torch.tensor copy here would synchronize once in every model layer.
+         groups=self._group_counts.get(x.shape[0])
+         if groups is None:
+-            groups=torch.tensor([x.shape[0]],dtype=torch.int64,device=x.device)
++            groups=torch.full((1,),x.shape[0],dtype=torch.int64,device=x.device)
+             self._group_counts[x.shape[0]]=groups
+         output=torch_npu.npu_grouped_matmul(x=[codes],weight=[weight],scale=[scale],per_token_scale=[token_scale],group_list=groups,group_list_type=0,split_item=2,group_type=0,output_dtype=x.dtype)[0]
+         return (output,codes,token_scale) if return_quantized else output
+diff --git a/examples/ascend910c_w8a8_worker.py b/examples/ascend910c_w8a8_worker.py
+index a330694..75f4fc6 100644
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -41,7 +41,12 @@ def main():
+         prefix_tokens=args.prefix_tokens,device='npu:0',max_tokens=args.max_tokens,
+         chunk_size=args.chunk_size,progress=progress)
+     dist.barrier()
+-    (args.control_dir/f'ready-rank{rank}.json').write_text(json.dumps({'rank':rank,'state':'READY'}))
++    if os.environ.get('DEEPINFER_910C_STARTUP_GRAPHS')=='1':
++        runner.initialize_dspark_graphs()
++    dist.barrier()
++    (args.control_dir/f'ready-rank{rank}.json').write_text(json.dumps({'rank':rank,'state':'READY',
++        'dspark_graphs_initialized':bool(runner.model.dspark is not None and
++            getattr(runner.model,'_verify_graph',None) is not None and runner.model.dspark.graphs)}))
+     previous=None
+     while True:
+         current=args.control_dir/'current.json'

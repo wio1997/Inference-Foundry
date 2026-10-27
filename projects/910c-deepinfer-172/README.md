@@ -1,12 +1,10 @@
-# 172 · DeepInfer / DeepSeek V4.1 Flash W8A8
+# 172 · DeepInfer / DeepSeek-V4.1-Flash W8A8
 
-**固定重复文本热身方案：815.25ms平均首token、1312.32token/s，16/16完整输出一致。** 冻结vLLM为831.25ms/518.42token/s。
+**真实DSpark固定5：521.59 token/s、平均首token795.65ms，16/16完整输出一致。** 对照冻结vLLM518.42/831.25ms，吞吐仅领先0.61%，只代表指定两轮热文本负载。172当前被他人训练占用，按用户条件暂停；置信度变长路径仍待最终验收，当前无本项目NPU服务。
 
-结果包含额外的输入分词LRU缓存；实际模型KV命中仍为89.990234375%。无此输入缓存的v20为1013.35ms，首次新文本仍付BPE成本；不能把815ms外推到新文本或任意负载。两轮平均领先16ms，见[差距排查/源码/原始结果](optimizations/20261027-gap-closure/README.md)。
+此前提示查找63＋验证64的完成结论撤回。现在使用学习式DSpark三层草稿、Markov/置信头及完整目标验证。[官方DSpark源码、数据与恢复点](optimizations/20261027-dspark/README.md) · [状态](STATUS.json)。下方仅是历史提示查找实验。
 
-当前真实模型worker为v20，HTTP为v21；当前记录优先于下方v8/v12历史现场。[实际配置](optimizations/20261027-gap-closure/runtime.json) · [状态](STATUS.json) · [上一轮v10–v13](optimizations/20261027-ttft/README.md)。
-
-## v8 冻结结果（此前版本）
+## 历史提示查找 v8 冻结结果
 
 **固定吞吐目标达标：668.35 token/s，对比已冻结 vLLM-Ascend 518.42 token/s，提升28.92%。**
 16/16正式请求成功，每个完整1024-token输出文本与冻结vLLM预测逐字节一致。
@@ -27,11 +25,11 @@
 投机验证以块返回token，SSE到达节奏与逐token解码不同，TPOT不能单独代表均匀的实时输出速度。
 这组重复上下文利于提示查找；结果不外推到任意输入、随机采样、通用连续批处理或通用模型准确率。
 
-## 实际实现
+## 历史提示查找实现
 
 从170已有源码快照继承910C适配基础，在172实现完整40层原生W8A8加载、TP8注意力、全局EP16 MC2、INT8 grouped matmul、
 C1/C2压缩、索引/MLA、物理SWA页缓存、跨两DP副本调度、前缀快照和HTTP/SSE接口。
-当前性能路径为 **输入提示n-gram查找（8/4阶，最多63草稿token）+64-query完整目标模型图验证**，不是DSpark/MTP。
+该历史实验性能路径为 **输入提示n-gram查找（8/4阶，最多63草稿token）+64-query完整目标模型图验证**，不是DSpark/MTP。
 每个输出token均经完整目标模型验证；拒绝时恢复长度、CPU Engram历史、C2待配对状态并做原生修复。
 引擎不读取保存的vLLM预测；预测仅由独立基准客户端用于验收。
 
@@ -39,7 +37,7 @@ C1/C2压缩、索引/MLA、物理SWA页缓存、跨两DP副本调度、前缀快
 仅Engram表在CPU，主干与专家权重常驻NPU，不开启主干CPU prefetch。CPU侧通过固定vocabulary lookup和只读mmap选行减少开销。
 当前MC2独立HCCL组1024MiB、预填充分块4096；v8冻结配置为2560MiB/512；图覆盖40层目标、索引/注意力、缓存写入和MC2。历史native基线59.40、138.83 token/s均保留。
 
-## 当前服务与文件
+## 历史提示查找服务与文件
 
 - 目标仅172，`172.16.10.172`；监听`127.0.0.1:8172`，model=`dsv41`。
 - 项目：`/data/tiankuan/wio/910c-deepinfer-172`；权重：`/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8`，只读。

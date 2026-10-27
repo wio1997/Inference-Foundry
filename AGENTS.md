@@ -1,23 +1,13 @@
-# Current branch scope
+# DSpark current scope — 2026-10-27 correction
 
-- 当前172运行与适配记录为 `projects/910c-deepinfer-172`。先读其 README、STATUS.json 和 runtime 配置。
-- `projects/910c-deepseek-v4.1-flash` 是已冻结 vLLM 基线；其原 STATUS 描述冻结时现场，当前容器 STOPPED 且保留，不覆盖原基线数据。
-- 服务器由用户逐次指定；本项目明确为 172，不能把它当其他任务的默认目标。
-- 本项目的模型、配置、运行日志、缓存和证据均放在 `<WIO_ROOT>`。
-- 用户最新指定逻辑设备 0–15，共16个，固定 DP2×TP8、EP16；仅 Engram CPU offload，禁止主干 CPU prefetch。旧 DP1×TP8 OOM 属于历史，不是当前配置。
-- 仅在用户授权范围内操作；不要停止其他容器/调优进程。设备空闲检查不能代替已知任务的协调。
-- 凭证从当前 Mac 钥匙串直接送入认证；禁止打印、落盘或提交凭证。
-- 不把容器运行、模型加载中或接口就绪等同于功能验证成功；每个状态保留实际证据。
-- Git 仅存脚本、配置和小型证据；不要提交权重、离线镜像、大日志或编译缓存。
-- `archive/legacy-20261019` 是完整历史快照；其旧 Current、KEEP、PID、任务及 AGENTS 只用于相应历史线。
-- 公共网站用 API、HTTP 或 Web Search；浏览器访问需先取得用户许可。
+- 用户明确要求官方 DSpark：学习式草稿、目标验证及置信度调度；提示查找不能替代。此前提示查找实验的完成结论撤回。
+- 当前按用户条件PAUSED：172有外部训练占用；固定5指定两轮通过，变长调度未最终验收。旧文本中的“当前”“完成”“不再测试”仅对应历史提示查找实验，不约束新获授权的 DSpark 工作。
+- 本次仅172，16逻辑设备，DP2 TP8 EP16。所有模型、配置、日志、缓存和证据放在 /data/tiankuan/wio。
+- 简单机械工作交给本机 ZCode 配置的 DeepSeek；主控负责复杂设计、修改与独立验收。不向170发送消息，不停止其他任务。
+- 仅本次172 DeepInfer privileged 容器已明确授权；权重和驱动只读，仅Engram CPU卸载，主干CPU prefetch关闭。
+- 冻结 vLLM 与旧实验数据不覆盖；历史目录内的现场描述仅适用于其对应版本。
+- 认证仅从当前Mac钥匙串直接送入SSH，不打印、不落盘、不提交凭证。公共网站用API/HTTP/Web Search，不打开浏览器。
+- 同一AISBench 32768输入/1024输出/C8/两轮/89.990234%真实KV命中；校验16个完整输出，报告真实接受输出TPS及TTFT。
+- 不把模型加载、接口就绪、置信头执行或正确性通过等同于性能达标。当前状态见STATUS及optimizations/20261027-dspark。
 
-- 简单机械工作（环境检查、服务启停、运行现成脚本、基准测试和日志提取）交给本机 ZCode 中配置的 DeepSeek。主 Agent 负责方案、复杂修改和独立验收，并从实际 rollout 核对模型身份；ZCode 不需要自行查询凭证或模型配置来证明身份。
-- 此前v9c固定32768输入/1024输出/C8/89.99%命中两轮验收已完成：737.99token/s，16/16完整输出与冻结vLLM一致。TTFT仍比vLLM慢；提示查找收益依赖重复上下文。仅Engram CPU卸载，主干CPU prefetch关闭。
-- 用户要求先看文档、减少无用测试；固定目标已通过，不为交付重跑或重启。新任务不得覆盖冻结证据。
-
-- 此前v9c预填充优化配置与证据在 `projects/910c-deepinfer-172/optimizations/prefill-v9c`：chunk1024，MC2专用组5120MiB，TTFT4.3158s；服务控制目录`serving/prefill-v9c`。2048候选两次冷预热失败已归档，不作为可用配置。
-
-- 此前172接受版本为`prefill-wide-v12`：997.90token/s、平均TTFT1838.35ms、16/16完整输出一致。当前配置、源码链和历史版本见`projects/910c-deepinfer-172/optimizations/20261027-ttft`；此前v9c和2048失败记录保留。当前runtime/STATUS优先于历史现场描述。不要为归档交付再次测试或重启。
-
-- 当前接受v21：固定重复文本热身/C8/32k输入/1k输出/两轮为815.25ms、1312.32token/s，16/16完整输出一致；模型workerv20/APIv21，实际KV命中89.99%。额外精确文本输入ID缓存已热，新文本仍付分词成本，关闭缓存v20为1013.35ms。当前STATUS与20261027-gap-closure优先；不为交付重跑/重启，全部原始基线保留。
+- 当前无本项目NPU服务。候选14只准备未启动；恢复先确认172无外部占用，不停止他人任务，不盲目重跑依赖已退出worker的旧transition。源码、数据和恢复点见STATUS及optimizations/20261027-dspark。
