@@ -1,0 +1,19 @@
+# gen35：SG显式step→输出token补证，阶段完成待root验收
+
+本轮利用已经结束的cleanSG gen67历史观测，闭合一段此前未利用的输出谱系；没有起服务、跑NPU、借SDK slot或重跑基线/消融。只写本代新目录和任务根executor-checkpoint。整体仍未完成、未分R、未发布、优化未采用。
+
+客户端完整请求ID通过同一条sg_request_id_link关联RID `2c5eaae2bdde47ff97f79991f1cf4236`，与保存SSE id相同。四rank各有32次正增量commit，逐次delta=1且累计output_ids长度连续1–32，因此每次last_token_id就是该次新提交token；完整32ID序列四rank一致，也与独立frontend BatchStrOutput记录的32ID一致。第33次commit是零增量，保留原末token，不能当作第33个输出。
+
+每rank第10步prefill提交第1个输出；第11–41步decode提交第2–32个输出；第42步decode为零增量tail。按同rank/PID、明确work_key.step和RID，对应scheduler_commit.forward_iter和token_commit.rid，关联到原root已验收compact中的确切invocation。每rank31个正输出graph回放与1个零输出tail，共124个TP副本正输出关联和4个tail；复用的原生层端点行分别7936与256。它们不是128个逻辑token，不代表独占kernel、全stream关键路径或可恢复收益；四rank不相加成墙钟。原始trace没有重审，复用root接受的compact全SHA和invocation，未知/跨边界原生行继续保留。
+
+当前mounted tokenizer.json的全文件SHA为0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3。轻量stdlib ByteLevel反解与现有CPU exporter中tokenizers 0.22.2原生Rust解码相互独立，完整文本及全部32个累积前缀都与保存SSE逐字节一致。原生解码只把12,809,320字节JSON经内存stdin送入原CPU容器，未落额外文件、未加载torch/torch_npu/model、未启动profiling/SDK/NPU作业。首次inspect发现该CPU容器没有tokenizer挂载，因此没有在那里启动首次解码；后续stdin方法完成。当前读到的tokenizer SHA不能冒充历史已加载tokenizer的不可变收据。
+
+SG的<think>对应ID248068，当前added_tokens配置special=false；即使skip_special_tokens=true，原生解码仍保留它。这解释该序列的解码保留，不解释模型为什么生成它。SG输出不是仅在HTTP层凭空多出来的一段推理文本：scheduler和frontend确实记录对应ID。但vLLM保存记录只有token数量，不能拿文本重编码冒充它的采样ID，也不能确定首个不同采样token、logits差异或跨框架根因。SSE逐帧没有token IDs；32个累积内容前缀相等不升级成每消息传输身份观测。整个原性能矩阵质量/greedy等价依然未知。
+
+本代从历史相同container/image读取scheduler.py、schedule_batch.py、detokenizer_manager.py，三份实际安装字节与git show冻结commit 4e60d70ba406ef195a7d2090e55ad040ba584e1c完全一致。六个AST事实确认run_batch写forward_iter、overlap队列保存(batch.copy(), result)、处理同一batch/result、copy保留forward_iter/forward_mode，以及detokenizer按原RID传递output_ids。首次按PYTHONPATH猜包位置失败；只读find_spec定位真实/sgl-workspace/sglang/python路径后成功。这是新取证脚本的路径假设修正，不是模型容量、实验或候选失败。
+
+14个本地x86_64 CPU身份/负向测试通过，拒绝多token增量、累计跳号、重复step、错误零增量、混入别的RID、前缀ID、缺少端点、冲突work key、别的PID以及缺失原生层。它们验证审计器边界，不是aarch64 NPU性能/输出质量结论。
+
+本代两次有目的快照均为124归档、123submitted/3inflight/77pending，后级仍等待；submitted不是completed。原4个主进程、4个CPU worker和当前父进程控制的export PID1767963的start ticks、命令、日志及boot ID保存external-jobs-receipt。SDK确切容器已停、slot resumed；没有新borrow。所有原后台作业继续，原8卡逻辑归属不变，无资源释放。launch argv明确gpt-6.1-sol/high；服务端实际模型身份未暴露，原Codex argv hash差异保留，不另开代理或切账户。
+
+MAP_SUPPLEMENT.json及132行ledger已准备好，尚未改gen33地图或gen32私有归档候选。下一轮在新树显式整合并做浏览器/附件SHA QA；完整204终态与原父进程关闭门禁通过后再验实际assembler/sharder/autostage，合并最新补证并重包。当前没有实际204完成、正式发布或整体接受；root负责最后核验。HCCL等待/别名去重、跨CANN/卡组混杂及所有旧范围限制不变。

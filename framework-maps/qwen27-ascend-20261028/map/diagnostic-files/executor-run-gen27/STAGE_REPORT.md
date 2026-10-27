@@ -1,0 +1,19 @@
+# 第27代：短诊断溯源与输出文本不一致（阶段完成，待root验收）
+
+本代只核对已结束的vLLM gen81/SDK82与cleanSG gen67/SDK68历史文件，没有新模型、服务、NPU、SDK或性能测量，没有重跑原基线/消融。新目录为executor-run-gen27；未写unattended、AGENTS或旧输入，未分配R、未发布，overall_complete=false。
+
+本代得到一项新增实证：这两个512/C1/out32插桩诊断使用完全相同的canonical payload（2758 bytes）、512个prompt IDs、seed20261637、temperature=0、top_p=1、ignore_eos=true；都报告32个completion tokens、finish_reason=length、HTTP200、唯一DONE且协议有效，但**重建输出文本不同**。vLLM文本SHA为e4fd3bb9ee81021e8c049b454d9c16adb03619a464625c21ba672c1412a55862，SG为30d34bcdd230138f6b018142ec450e4f7e587c51444383f0ea5ff80c0c84eaaa。两者UTF-8各158 bytes，Unicode码点分别66和158，共同前缀0码点。原客户端CPU解析器和独立SSE逐帧拼接各自复算，与保存的result SHA一致；不是只比较历史摘要。
+
+结论严格限于这两个已保存的插桩请求：精确decoded-text等价不成立。SSE未提供完整output token IDs/logits，无法定位首个不同token或证明差异根因。不能把协议/长度成功升级为模型质量通过，不能倒推原out1024无profiler矩阵的质量结论，也不能归因为某个框架、GDN补丁或本轮观察器。没有无插桩同栈控制；整体质量/greedy门禁继续未闭合，未采用优化。
+
+`diagnostic-provenance.json`记录162份下载文件的字节数/SHA核对、45份实际运行时源码SHA、两份历史launch record与完整argv/env白名单、两个冻结container/image身份、8个rank的aarch64/910B1/CANN/torch_npu、正式profiler metadata及原SDK trace SHA。9类compat模块各由4个实际worker收据核对，共36份；SG底座的packed/offset/GDN布局修复与诊断profiler替换显式保留。`runtime-config-lines.json`另按原日志行号保存3条vLLM和1条SG运行配置/架构记录；launch record不被当作每个内部语义都相同的证明。
+
+8个rank的40份正式profile元数据又与先前SDK raw-copy manifest的全文件SHA逐项绑定。每rank的formal collectionTimeEnd均处于该波profile start/stop返回包络内并晚于客户端finish；start_monotonic、MonotonicTimeEnd与epoch字段各自保留，不混用。`diagnostic-acquisition.csv`两行明确区分真实采集时段和离线SDK导出时段；`diagnostic-rank-deployments.csv`有8行rank/依赖/卡组/元数据及trace SHA。vLLM CANN9.2.0/torch_npu2.10.0.post7、卡0–3；SG CANN9.0.0/torch_npu2.10.0、卡4–7。TP4、bucket1、8192预算与prefix cache关闭已沿真实启动记录、deployment和wave互查；原生cache/scheduling与插桩仍不同，不能当纯框架因果比较。
+
+两栈所有4rank在启动和正式采集各有一次RECORD-stop可能导致incomplete parsed data的警告，共16条；逐rank原日志行号和原文完整保留。本代没有重跑旧native trace审计。gen6的vLLM124个观察回放/7936层端点区间及SG原128个formal回放/8192层区间仍是其原审计范围，不能以本代元数据核对升级为全profile完整、独占kernel或全stream关键路径。HCCL等待/别名去重以及不可四rank求墙钟的边界不变。
+
+原后台链本代仅观察一次：parent报告rank列表117 verified_archived，pipeline submitted117/inflight4/pending83，后级等待。submitted不是最终204验收。原parent4068537、assembler7390、sharder7391、autostage18358确切PID/start/command复核一致，日志/boot ID/终止条件保存external-jobs-receipt.json。旧SDK1301805不存在、自有完整container身份匹配且已停止、slot resumed；未借新slot。原all8归属不变，不释放、不终止原CPU worker或任何后台作业。
+
+工具失败一次：初版离线审计误以为历史analyze_stream直接返回text_sha256_by_choice，实际返回texts，KeyError后按历史源码对texts显式算SHA再与结果互核；最终审计全部通过。此为新审计接口适配错误，不是模型容量问题、实验失败或技术候选被推翻。首次下载158文件，随后增加原serve.log及preflight共4文件；第二份下载收据包含完整162文件，两份收据均逐件复核，相同路径原字节未改。
+
+`ARCHIVE_SUPPLEMENT.md`提供待写入私有未编号研究记录的小补证；不改旧gen25草稿。`MAP_SUPPLEMENT.json`是后续显式合并输入，当前gen26地图尚未展示本代文本不一致，必须新增质量说明后重做实际树QA，不能沿用旧截图冒充。发布前刷新真实仓规则、全部refs/编号与leafsys1权限；root最终接受待办。

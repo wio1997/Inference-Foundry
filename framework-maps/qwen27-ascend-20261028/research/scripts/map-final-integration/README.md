@@ -1,0 +1,7 @@
+# 完整补证与原生分片地图的最终合并
+
+原gen91底稿遗漏此前完成的12项补证。本组件在独立目录把完整补证源与真实204原生分片地图合并，逐项检查baseline、非postfreeze数组和原有postfreeze值不变；原生索引、41份CPU数据和204份本地原生sidecar保留原字节。附件来自342文件冻结清单，合并前核对全部SHA。metadata与CPU native状态沿用已核验原生composition，其他值不得静默改写。
+
+入口依赖上一组件的build_native_file_map.py、native-map-postprocess组件的renderer.py和build_portable_map.py，运行时放在同一目录。common.py保存任务侧收据/原子写工具的三个原字节函数，脱离任务目录也可导入；不含进程、锁或设备管理，不属于推理改动。输入、完整输出及运行日志留仓外；本组件不包含SSH transport、凭据、服务/NPU控制器或原始profile。
+
+本代实际部署了有限等待的控制器；342文件输入契约与独立锁已经核验。最终204合并和浏览器QA尚未完成。代码用于证据地图交付，没有新的推理性能测量、收益或采用结论。quality/greedy、外围完成语义与全stream关键路径仍未知。
