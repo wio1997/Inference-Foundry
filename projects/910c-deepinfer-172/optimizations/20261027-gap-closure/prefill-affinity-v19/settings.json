@@ -1,0 +1,40 @@
+{
+  "version": "prefill-affinity-v19",
+  "source": "DeepInfer-v18-kvgather",
+  "previous": "prefill-kv-gather-v18",
+  "controllers": [
+    "native_service_prefill_kv_gather_v18_job.py",
+    "native_prefill_kv_gather_v18_benchmark.py",
+    "native_prefill_kv_gather_v18_benchmark_job.py",
+    "native_prefill_affinity_v19_benchmark.py",
+    "native_prefill_affinity_v19_benchmark_job.py",
+    "apply_worker_affinity_v19.py"
+  ],
+  "changed_files": [
+    "deepinfer/model_executor/models/ascend_w8a8_packed.py"
+  ],
+  "runtime": {
+    "prefill_chunk_size": 4096,
+    "mc2_buffer_mib": 1024,
+    "context_parallel_scope": "cached-compressed-query-and-MLA",
+    "context_parallel_attention_layers": 38,
+    "original_tp_swa_layers": 2,
+    "token_local_kv_layers": 34,
+    "selected_for_deployment": true,
+    "overall_goal_met": false,
+    "cpu_binding": "16 own workers,36 main cores+1acl+1release per rank,40core global slices",
+    "irq_changes": false,
+    "memory_migration": false,
+    "actual_model_source_version": "prefill-kv-gather-v18"
+  },
+  "allowed_states": [
+    "PERFORMANCE_GAP"
+  ],
+  "outcome": "ACCEPTED",
+  "decision_reason": "Own-worker CPU/thread affinity matched frozen vLLM main/ACL/release slices; 16/16 exact, TTFT1118.85 to1070.05ms(-4.36%), TPS1087.25 to1214.13(+11.67%). Overall TTFT goal831.25ms remains unmet. KV source remains v18; no IRQ or memory-migration changes.",
+  "control_version": "prefill-kv-gather-v18",
+  "log_version": "prefill-kv-gather-v18",
+  "extra_evidence": [
+    "diagnostics/prefill-affinity-v19/transition.json"
+  ]
+}

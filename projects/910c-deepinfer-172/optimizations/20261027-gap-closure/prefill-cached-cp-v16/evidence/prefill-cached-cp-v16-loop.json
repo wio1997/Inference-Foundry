@@ -1,0 +1,26 @@
+{
+  "version": "prefill-cached-cp-v16",
+  "parent": "prefill-oproj-v15",
+  "goal_status": "active",
+  "mechanism": "Full query-token CP only when every active request restored a real prefix snapshot. Preserve the proven cold-prefix TP-head path. Full-head local MLA, local Q-A/indexer, global KV writes and head all-to-all before existing BF16 O projection.",
+  "evidence": [
+    "v15 current trace40-layer coverage: SparseFlashMla386.6ms, largest individual kernel family. G8 native CSA pads cube rows to16 and repeats key reads across TP heads; grouping64 queries can improve reuse. Source evidence does not by itself quantify attainable gain.",
+    "v14 full CP diverged on1 of8 long outputs; v14b indexer-only CP16/16 exact. Cold-prefix per-rank eager/CANN branch and query head shape differ in full CP. Preserve cold path in this loop rather than attributing divergence to an unproven cause."
+  ],
+  "variables": [
+    "query/MLA ownership and head exchange only for real prefix hits",
+    "prefix-restored slot tracking"
+  ],
+  "fixed": [
+    "cold prefix numerical path inherited v12",
+    "DP2 TP8 EP16",
+    "same weights/image",
+    "4096chunk/1024MiBMC2",
+    "v15 BF16 O prefill",
+    "verification and eager repair paths",
+    "AISBench32K/1K/C8/two rounds/235904hits"
+  ],
+  "acceptance": "16/16 full outputs exact; TPS>=518.417; TTFT decrease vs1438.65ms. Overall goal only when TTFT<=831.25ms.",
+  "budget": "one normal warmup plus two formal rounds; stop phase2 if full-output mismatch; no blind sweep",
+  "rollback": "Retain v15 source/service controls and all frozen evidence."
+}

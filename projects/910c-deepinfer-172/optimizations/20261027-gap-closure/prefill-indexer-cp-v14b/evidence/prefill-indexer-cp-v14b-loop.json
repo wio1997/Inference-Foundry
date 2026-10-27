@@ -1,0 +1,26 @@
+{
+  "version": "prefill-indexer-cp-v14b",
+  "parent": "prefill-wide-v12",
+  "goal_status": "active",
+  "mechanism": "Only shard QLI query projection/quantization/topk among TP8 token slices; all-gather indices and candidate rows. Q-A, Q-B, MLA and output projection retain exact v12 TP head layout.",
+  "evidence": "Pinned V4.1 AscendDSAV41CPImpl performs local Q/indexer plus global KV, then restore_tp_heads all-to-all. v12 repeats full QLI 8 times.",
+  "variables": [
+    "indexer token ownership",
+    "QLI causal slice metadata",
+    "gather selection/candidate rows"
+  ],
+  "fixed": [
+    "all weights including Engram",
+    "DP2 TP8 EP16",
+    "chunk4096",
+    "MC2 window1024MiB",
+    "MoE fused path",
+    "verification graph",
+    "AISBench32768/1024/C8/2rounds/235904cachehits"
+  ],
+  "prediction": "Eliminate 8x duplicated QLI work without changing sparse MLA head count or reduction tiling; full output comparison determines safety.",
+  "acceptance": "16/16 full outputs frozen-vLLM exact, actualcache235904 each, TPS>=518.4171948453181, TTFT improved vs1838.35ms. Overall goal only if TTFT<=831.25ms.",
+  "rollback": "Stop only CP owned service and restore frozen v12; never overwrite accepted sources or artifacts.",
+  "budget": "one required warmup and two formal rounds; no broad parameter sweep",
+  "reason_for_refinement": "Full Q/MLA CP v14 passed32-token warmup but failed one full1024 output in phase1; no phase2 run and no performance adoption."
+}

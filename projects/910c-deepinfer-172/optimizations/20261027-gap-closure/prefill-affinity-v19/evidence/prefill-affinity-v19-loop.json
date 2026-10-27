@@ -1,0 +1,21 @@
+{
+  "version": "prefill-affinity-v19",
+  "parent_model": "prefill-kv-gather-v18",
+  "best_validated_reference": "prefill-hybrid-cp-v17",
+  "mechanism": "Match proven vLLM A3 global-slice thread roles using only owned worker/TIDs. No IRQ changes or page migration.",
+  "evidence": "Frozen vLLM enable_cpu_binding=True and server.log allocation/IRQ CPU rows; original16native worker main affinities640CPUs each.",
+  "variables": [
+    "owned CPU thread affinity only"
+  ],
+  "fixed": [
+    "all model source18",
+    "DP2 TP8 EP16",
+    "same weights/image/KV source",
+    "all canonical inputs/output/hits",
+    "OMP4 unchanged",
+    "no inference process restart"
+  ],
+  "acceptance": "16/16full outputs exact,235904hits/round,TPS>=518.417,TTFT lower than selected1112.7ms. Overall target831.25ms.",
+  "rollback": "Restore every still-live owned TID from diagnostics/prefill-affinity-v19/transition.json.",
+  "budget": "required warm state and2formal rounds only"
+}

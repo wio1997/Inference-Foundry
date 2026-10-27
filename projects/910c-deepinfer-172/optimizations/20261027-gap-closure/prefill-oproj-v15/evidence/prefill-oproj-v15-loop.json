@@ -1,0 +1,22 @@
+{
+  "mechanism": "Replace prefill-only FP32 einsum wo_a with the pinned BF16 npu_transpose_batchmatmul kernel. Static weight conversion [G,D,K] to [G,K,D] once during load. Preserve all verification and repair paths.",
+  "source_reference": "evidence/ttft-v9c-single-profile-20261027/vllm-dsa_v1.py::_wo_a_bmm and evidence/ttft-source-located-20261027/installed/vllm_ascend/ops/linear.py::_should_reshape_wo_a_to_3d",
+  "fixed": [
+    "selected correct parent determined after v14b",
+    "all workload and cache settings",
+    "MC2 and SP",
+    "DSpark/native prompt lookup unchanged"
+  ],
+  "correctness_requirement": "BF16 inputs and checkpoint FLOAT BF16 weights; full16 outputs must match frozen vLLM. No BF16 recast of F32 checkpoints.",
+  "predicted_effect": "Remove per-call FP32 cast and general FP32 BMM at40 layers. Latency gain must be measured; source difference is not yet an exclusive-time attribution.",
+  "budget": "same2 formal rounds only, stop early on full-output mismatch",
+  "version": "prefill-oproj-v15",
+  "parent": "prefill-indexer-cp-v14b",
+  "goal_status": "active",
+  "goal": {
+    "ttft_ms_max": 831.25,
+    "tps_min": 518.4171948453181
+  },
+  "acceptance": "16/16 full outputs identical; TPS>=518.417; meaningful TTFT decrease from1578.85ms; goal remains active unless TTFT<=831.25ms.",
+  "diagnostics": "Opt-in profile_npu job hook on rank0. Never enabled in formal requests; permits one kernel-trace diagnostic after2 rounds if goal still unmet."
+}

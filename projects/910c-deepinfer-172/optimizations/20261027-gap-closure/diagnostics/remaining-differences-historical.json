@@ -1,0 +1,89 @@
+{
+  "state": "GOAL_ACTIVE_TTFT_GAP",
+  "updated": "2026-10-27T18:56:04.105400",
+  "best_confirmed": {
+    "version": "prefill-affinity-v19",
+    "mean_ttft_ms": 1070.05,
+    "output_tps": 1214.1349076102176,
+    "full_outputs_exact": 16,
+    "source_commit": "534e994d0290b66c62e55d3046b7009fa0be6c1a"
+  },
+  "goal": {
+    "mean_ttft_ms_max": 831.25,
+    "output_tps_min": 518.4171948453181,
+    "exact_outputs": 16
+  },
+  "candidate_running": "prefill-tail-ffn-v20",
+  "differences": [
+    {
+      "path": "DSA-CP",
+      "vllm": "Q/Q-A/indexer use disjoint token slices with full query heads; KV/compression global; head all-to-all before TP O projection",
+      "native_v12": "Local attention heads but full Q-A and QLI queries duplicated across TP8",
+      "action": "v14 ports local-query, global-cache and head exchange; awaiting fixed two-round evidence"
+    },
+    {
+      "path": "O projection A",
+      "vllm": "BF16 npu_transpose_batchmatmul with static [groups,K,D] weight",
+      "native_v12": "FP32 torch.einsum plus per-call FP32 activation/weight casts then BF16 output",
+      "status": "source-proven difference; marginal time not measured; next candidate if CP insufficient"
+    },
+    {
+      "path": "RoPE",
+      "vllm": "Cached trig tables and specialized apply",
+      "native_v12": "Per layer and input FP32 trig/casts/arithmetic",
+      "status": "source-proven; old profiles are not exclusive time; no new result claim"
+    },
+    {
+      "path": "Engram",
+      "vllm": "Head-sharded registered host UVA lookup/dequant; rotated gate uses existing reference gate",
+      "native_v12": "Token-sharded CPU mmap row gather/E8M0 BF16 dequant and blocking H2D",
+      "status": "same selected row volume after SP but different critical path and staging; need quantify before large UVA port"
+    },
+    {
+      "path": "Stream scheduling",
+      "vllm": "Q/KV multistream when enabled; indexer projection/quant auxiliary stream",
+      "native_v12": "Eager single primary stream for attention preparation",
+      "status": "Need confirm actual baseline multistream setting; do not infer every optional switch enabled"
+    },
+    {
+      "path": "Decode/speculation",
+      "vllm": "DSpark5/full decode graph",
+      "native_v12": "Prompt-only lookup63 and full-target graph verifier64",
+      "status": "Different algorithm; TTFT emitted before native lookup/verifier; not direct cause of first-token gap"
+    },
+    {
+      "path": "MoE",
+      "vllm": "enable_fused_mc2=1 selects dispatch_ffn_combine for EP16 A3",
+      "native_v12": "Same pinned fused op for eager prefill/repair, graph verify split MC2",
+      "status": "Main prefill fused mechanism already aligned; do not misidentify vLLM as MegaMoe/AlltoAll"
+    },
+    {
+      "path": "CPU thread placement",
+      "baseline": "enable_cpu_binding=True,40globalCPU slice/NPU,36main+1ACL+1release",
+      "oldnative": "All640CPUs per worker",
+      "current": "Matched roles only for own16workers, noIRQ changes ormemorymigration; meanTTFT1118.85→1070.05ms,16exact. Residual238.8ms remains."
+    }
+  ],
+  "pinned_source_provenance": "ttft-v12-cp-source/provenance.json",
+  "published_checkpoint": "d659386172f419266d409d2afc52d339fd596410",
+  "overall_goal_met": false,
+  "accepted_loops": [
+    "prefill-indexer-cp-v14b",
+    "prefill-oproj-v15",
+    "prefill-hybrid-cp-v17",
+    "prefill-affinity-v19"
+  ],
+  "rejected_loops": [
+    "prefill-cp-v14",
+    "prefill-cached-cp-v16"
+  ],
+  "profile_evidence": "affinity-v19-profile/analysis.json",
+  "cp_parity_root_cause": "diagnose-cp-v16d/conclusion.json",
+  "communication_custom_path_hypothesis": "Not supported by installed communicator: no custom_all_gather or custom_reduce_scatter implementation; both use standard HCCL.",
+  "newly_ruled_out": [
+    "Same head all-to-all and O reduce-scatter layout",
+    "Same legacy fusedMC2op, notnewCANNMegaMoe",
+    "NoCPUquota/cpuset/throttling",
+    "NoinstalledcustomTPcollectives"
+  ]
+}

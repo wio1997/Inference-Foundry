@@ -1,0 +1,15 @@
+{
+  "version": "prefill-tokenizer-v21",
+  "parent": "prefill-tail-ffn-v20",
+  "status": "FROZEN_BEFORE_RUN",
+  "mechanism": "Bounded exact-text input tokenization LRU;1048576inputID budget,64entries. Cache starts empty; normal canonical warmups fill it. Never caches inference outputs, logits, or new KV. Coldtext still actual tokenizer.encode with unchangedBOS/options.",
+  "evidence": "Prior CPU profile8threads120\u2013180ms; alternatebatch/process limited. Frozen tokenizer sources have object/template caches but noexacttextencode-result cache in inspected paths. This is additional native optimization, not falsely claiming baseline lacksKVcache.",
+  "fixed": [
+    "allNPUworkers v20 unchanged",
+    "same model/image/DP/TP",
+    "same coldseed+C8warm32 from canonical controllers",
+    "same16full1024outputs and235904cached tokens/round"
+  ],
+  "acceptance": "16exact, separate262144tokenizerhitIDtokens/round, actualKVhit235904,TTFT<1013.35,TPS>=518.417; overallTTFT<=831.25",
+  "limits": "Benefit applies to exact repeated input strings after normal warmup; novel strings still payBPE. Do not generalize TTFTgain to unseen text."
+}

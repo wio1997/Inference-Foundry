@@ -1,0 +1,18 @@
+{
+  "mechanism": "For34 cached non-source compressed layers, keep normalized hidden tokens local, project512-dimensional KV locally and gather only KV.2SWA+4compressor source layers retain full5120-dimensional hidden gathers. All global RoPE/cache/attention/output coordinates preserved.",
+  "evidence": "v15 trace shows40 SP full-hidden allgathers; full hidden5120 vsKV512 is10x the token width. Native CP currently gathers globalx even though local query uses only its own slice. Source metadata/cache writes still require global KV but not globalx at36 non-source layers.",
+  "estimated_bytes": "Per forward output payload: before40*5120 channels; after6*5120+34*512 channels.76.5% fewer gathered bytes; unchanged collective count. Latency gain must be measured.",
+  "constraints": [
+    "Only enabled when cached-query fullCP active",
+    "All global cache coordinates unchanged",
+    "Projection dynamicINT8 accumulation and per-row RMS stay same math",
+    "Compressor layers retain globalx input exactly",
+    "16/16 full output parity required"
+  ],
+  "acceptance": "16/16 full outputs exact,235904cached/round, TPS>=518.417, TTFT decrease from1112.7ms. Overall target onlyTTFT<=831.25ms.",
+  "status": "FROZEN_BEFORE_RUN",
+  "version": "prefill-kv-gather-v18",
+  "parent": "prefill-hybrid-cp-v17",
+  "goal_status": "active",
+  "budget": "Only required warm state and2formal rounds; stop phase2 if full output mismatch."
+}

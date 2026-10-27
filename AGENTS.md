@@ -18,4 +18,6 @@
 
 - 此前v9c预填充优化配置与证据在 `projects/910c-deepinfer-172/optimizations/prefill-v9c`：chunk1024，MC2专用组5120MiB，TTFT4.3158s；服务控制目录`serving/prefill-v9c`。2048候选两次冷预热失败已归档，不作为可用配置。
 
-- 最新172接受版本为`prefill-wide-v12`：997.90token/s、平均TTFT1838.35ms、16/16完整输出一致。当前配置、源码链和历史版本见`projects/910c-deepinfer-172/optimizations/20261027-ttft`；此前v9c和2048失败记录保留。当前runtime/STATUS优先于历史现场描述。不要为归档交付再次测试或重启。
+- 此前172接受版本为`prefill-wide-v12`：997.90token/s、平均TTFT1838.35ms、16/16完整输出一致。当前配置、源码链和历史版本见`projects/910c-deepinfer-172/optimizations/20261027-ttft`；此前v9c和2048失败记录保留。当前runtime/STATUS优先于历史现场描述。不要为归档交付再次测试或重启。
+
+- 当前接受v21：固定重复文本热身/C8/32k输入/1k输出/两轮为815.25ms、1312.32token/s，16/16完整输出一致；模型workerv20/APIv21，实际KV命中89.99%。额外精确文本输入ID缓存已热，新文本仍付分词成本，关闭缓存v20为1013.35ms。当前STATUS与20261027-gap-closure优先；不为交付重跑/重启，全部原始基线保留。

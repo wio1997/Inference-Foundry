@@ -1,0 +1,274 @@
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index b0a7a87..390423e 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -16,7 +16,7 @@ import torch.nn.functional as F
+ from deepinfer.npu_ops import mhc910c as mhc
+ from deepinfer.npu_ops.dsa910c import DSABatch, sparse_mla
+ from deepinfer.npu_ops.sp910c import SequenceShard
+-from deepinfer.npu_ops.cp910c import QuerySlice
++from deepinfer.npu_ops.cp910c import QuerySlice, restore_tp_heads
+ from .ascend_w8a8_layer import AscendW8A8Layer
+ from .w8a8_compressor910c import compress_batch
+ from .w8a8_engram910c import AscendW8A8Engram, CpuEngramHistory, load_rotation
+@@ -42,6 +42,7 @@ class PackedForward:
+     context_query: object | None = None
+     query_batch: object | None = None
+     query_slots: list[int] | None = None
++    query_swa_table: object | None = None
+ 
+ 
+ class AscendW8A8PackedLayer(AscendW8A8Layer):
+@@ -55,12 +56,15 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                           and hasattr(torch.ops._C_ascend, 'npu_hc_post'))
+         self.fused_router_norm = hasattr(torch.ops._C_ascend, 'npu_rms_norm_cast')
+         self.tp_size = dist.get_world_size(tp_group) if tp_group is not None else 1
+-        self.context_parallel = (os.environ.get('DEEPINFER_910C_INDEXER_CP') == '1' and self.tp_size > 1)
+-        self.context_parallel_calls = self.context_parallel_query_tokens = 0
+         self.local_heads = self.config['num_attention_heads']//self.tp_size
+         self.local_o_groups = self.config['o_groups']//self.tp_size
+         if self.config['num_attention_heads'] % self.tp_size or self.config['o_groups'] % self.tp_size:
+             raise ValueError('attention heads/output groups must divide TP size')
++        self.context_parallel = (os.environ.get('DEEPINFER_910C_CONTEXT_PARALLEL') == '1' and self.tp_size > 1)
++        self.context_parallel_calls = self.context_parallel_query_tokens = 0
++        if self.context_parallel:
++            self.cp_wq_b = reader.load_linear(self.prefix+'.attn.wq_b', device)
++            self.register_buffer('cp_attn_sink', self.attn_attn_sink.clone())
+         if self.tp_size > 1:
+             from deepinfer.hugging_face.modelslim910c import FloatLinear
+             from deepinfer.npu_ops.w8a8 import AscendW8A8Linear
+@@ -139,11 +143,22 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         return output
+ 
+     def packed_attention(self, x, cache, pending, state, *, reduce_results=True):
+-        c, batch = self.config, state.batch
+-        qr = rms_norm_mixed(self.projections['wq_a'](x), self.attn_q_norm_weight, c['rms_norm_eps'])[0]
+-        q = self.projections['wq_b'](qr).unflatten(-1, (self.local_heads, c['head_dim']))
++        c = self.config
++        # The pinned pure-SWA kernel changes BF16 rounding with head grouping.
++        # Preserve the proven TP head layout for SWA; compressed MLA uses CP.
++        cp = state.context_query if self.ratio else None
++        batch = state.query_batch if cp is not None else state.batch
++        query_x = x[cp.start:cp.end] if cp is not None else x
++        positions = state.positions[cp.start:cp.end] if cp is not None else state.positions
++        slots = state.query_slots if cp is not None else state.slots
++        swa_table = state.query_swa_table if cp is not None else state.swa_table
++        heads = c['num_attention_heads'] if cp is not None else self.local_heads
++        sink = self.cp_attn_sink if cp is not None else self.attn_attn_sink
++        if query_x.shape[0]:
++            qr = rms_norm_mixed(self.projections['wq_a'](query_x), self.attn_q_norm_weight, c['rms_norm_eps'])[0]
++            q = (self.cp_wq_b if cp is not None else self.projections['wq_b'])(qr).unflatten(-1, (heads, c['head_dim']))
++            q = rotate_positions(q, positions, self.rope_freq)
+         kv = rms_norm_mixed(self.projections['wkv'](x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
+-        q = rotate_positions(q, state.positions, self.rope_freq)
+         kv = rotate_positions(kv, state.positions, self.rope_freq)
+         cache.swa[self.layer_id].write(kv[:, None], state.swa_plan)
+         if self.layer_id in c['kv_source_layer_ids']:
+@@ -152,13 +167,13 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                 plans=state.decode_frame.compressed_plans(self.layer_id,source_positions)
+                 has_latents=True
+             else:
+-                latent, positions, slots = compress_batch(x, batch, state.slots, self.ratio,
++                latent, source_position_list, source_slots = compress_batch(x, state.batch, state.slots, self.ratio,
+                     self.compressor_wkv_weight, getattr(self, 'compressor_wgate_weight', None),
+                     self.compressor_norm_weight, c['rms_norm_eps'], pending.setdefault(self.layer_id, {}))
+-                has_latents=bool(positions)
++                has_latents=bool(source_position_list)
+                 if has_latents:
+                     expected, source_positions, plans = state.source_metadata[self.layer_id]
+-                    if tuple(positions) != expected:
++                    if tuple(source_position_list) != expected:
+                         raise RuntimeError('compressor rows differ from prepared cache coordinates')
+             if has_latents:
+                 key, scale = self.indexer.key(latent, source_positions)
+@@ -166,87 +181,71 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                 cache.compressed[self.layer_id].write(rotated[:, None], plans[0])
+                 cache.index_key[self.layer_id].write(key, plans[1])
+                 cache.index_scale[self.layer_id].write(scale[..., None], plans[2])
+-        has_compressed = self.ratio and max(batch.seq_lengths)//self.ratio > 0
+-        if self.ratio and hasattr(self, 'indexer'):
+-            if max(batch.seq_lengths)//self.ratio <= c['index_topk']:
+-                # Exact shortcut: all completed keys fit top512, so scoring
+-                # cannot exclude any key. Larger contexts use actual INT8 QLI.
+-                keys = torch.arange(c['index_topk'], dtype=torch.int32, device=x.device)[None]
+-                visible = torch.div(state.positions+1, self.ratio, rounding_mode='floor')[:, None]
+-                state.selected = torch.where(keys < visible, keys, -1).contiguous()
+-                if self.layer_id == c['candidate_source_layer_id']:
+-                    blocks = torch.arange(c['candidate_topk_blocks'], dtype=torch.int32, device=x.device)[None]
+-                    visible_blocks = torch.div(visible+c['candidate_block_size']-1, c['candidate_block_size'], rounding_mode='floor')
+-                    state.candidates = torch.where(blocks < visible_blocks, blocks, -1)[:, None].contiguous()
+-            else:
+-                source = self.kv_source
+-                cp = state.context_query
+-                if cp is None:
+-                    selected, emitted = self.indexer.select(qr, x, batch,
++        if cp is not None:
++            self.context_parallel_calls += 1
++            self.context_parallel_query_tokens += query_x.shape[0]
++        if query_x.shape[0]:
++            has_compressed = self.ratio and max(batch.seq_lengths)//self.ratio > 0
++            if self.ratio and hasattr(self, 'indexer'):
++                if max(batch.seq_lengths)//self.ratio <= c['index_topk']:
++                    # Exact shortcut: all completed keys fit top512, so scoring
++                    # cannot exclude any key. Larger contexts use actual INT8 QLI.
++                    keys = torch.arange(c['index_topk'], dtype=torch.int32, device=x.device)[None]
++                    visible = torch.div(positions+1, self.ratio, rounding_mode='floor')[:, None]
++                    state.selected = torch.where(keys < visible, keys, -1).contiguous()
++                    if self.layer_id == c['candidate_source_layer_id']:
++                        blocks = torch.arange(c['candidate_topk_blocks'], dtype=torch.int32, device=x.device)[None]
++                        visible_blocks = torch.div(visible+c['candidate_block_size']-1, c['candidate_block_size'], rounding_mode='floor')
++                        state.candidates = torch.where(blocks < visible_blocks, blocks, -1)[:, None].contiguous()
++                else:
++                    source = self.kv_source
++                    selected, emitted = self.indexer.select(qr, query_x, batch,
+                         cache.index_key[source].cache, cache.index_scale[source].cache.squeeze(-1),
+-                        state.decode_frame.tables['index_key'][source] if state.decode_frame is not None else cache.index_key[source].table(state.slots),
++                        state.decode_frame.tables['index_key'][source] if state.decode_frame is not None else cache.index_key[source].table(slots),
+                         candidates=state.candidates if self.layer_id > c['candidate_source_layer_id'] else None)
+-                else:
+-                    self.context_parallel_calls += 1
+-                    count = cp.end-cp.start
+-                    self.context_parallel_query_tokens += count
+-                    # Keep Q, MLA and O projection on the unchanged TP-head
+-                    # layout. Only the replicated indexer owns disjoint queries.
+-                    emitted = None
+-                    if count:
+-                        candidates = None
+-                        if self.layer_id > c['candidate_source_layer_id']:
+-                            candidates = state.candidates[cp.start:cp.end].contiguous()
+-                        selected, emitted = self.indexer.select(qr[cp.start:cp.end], x[cp.start:cp.end], state.query_batch,
+-                            cache.index_key[source].cache, cache.index_scale[source].cache.squeeze(-1),
+-                            cache.index_key[source].table(state.query_slots), candidates=candidates)
+-                    else:
+-                        selected = torch.empty((0, c['index_topk']), dtype=torch.int32, device=x.device)
+-                    padded = selected.new_full((cp.width, c['index_topk']), -1)
+-                    padded[:count].copy_(selected)
+-                    selected = self.sp.gather(padded, x.shape[0])
++                    state.selected = selected
+                     if self.layer_id == c['candidate_source_layer_id']:
+-                        shape = (cp.width, 1, c['candidate_topk_blocks'])
+-                        padded_candidates = selected.new_full(shape, -1)
+-                        if count:
+-                            if emitted.shape != (count, *shape[1:]):
+-                                raise RuntimeError('unexpected QLI candidate shape')
+-                            padded_candidates[:count].copy_(emitted)
+-                        emitted = self.sp.gather(padded_candidates, x.shape[0])
+-                state.selected = selected
+-                if self.layer_id == c['candidate_source_layer_id']:
+-                    state.candidates = emitted
+-            state.index_source = self.layer_id
+-        if self.ratio and state.index_source != self.index_source:
+-            raise RuntimeError('compressed attention lacks its current-forward index source')
+-        kwargs = {}
+-        if has_compressed:
+-            kwargs = dict(compressed_cache=cache.compressed[self.kv_source].cache,
+-                          compressed_table=state.decode_frame.tables['compressed'][self.kv_source] if state.decode_frame is not None else cache.compressed[self.kv_source].table(state.slots),
+-                          compressed_indices=state.selected)
+-        short_prefix = (max(batch.seq_lengths) <= c['index_topk']
+-                        or (self.ratio and max(batch.seq_lengths)//self.ratio <= c['index_topk']))
+-        if short_prefix:
+-            self.eager_attention_calls += 1
+-            # Reuse the native eager sparse implementation for the exact
+-            # select-all prefix. The indexed long-context route stays CANN.
+-            from deepinfer.npu_ops.attention910c import decode, ReferenceMLASchedMeta
+-            requests = torch.tensor([slot for slot, count in zip(state.slots, batch.query_lengths)
+-                                     for _ in range(count)], dtype=torch.int32, device=x.device)
+-            window = state.positions[:, None]-c['sliding_window']+1+torch.arange(c['sliding_window'], dtype=torch.int32, device=x.device)[None]
+-            swa_indices = cache.swa[self.layer_id].physical_indices(window, requests)
+-            extra = {}
++                        state.candidates = emitted
++                state.index_source = self.layer_id
++            if self.ratio and state.index_source != self.index_source:
++                raise RuntimeError('compressed attention lacks its current-forward index source')
++            kwargs = {}
+             if has_compressed:
+-                extra = dict(key_cache_extra=cache.compressed[self.kv_source].cache,
+-                             indices_in_kvcache_extra=cache.compressed[self.kv_source].physical_indices(state.selected, requests))
+-            context, _ = decode(q, cache.swa[self.layer_id].cache, 512, swa_indices,
+-                ReferenceMLASchedMeta(), 512**-.5, self.attn_attn_sink, **extra)
++                kwargs = dict(compressed_cache=cache.compressed[self.kv_source].cache,
++                              compressed_table=state.decode_frame.tables['compressed'][self.kv_source] if state.decode_frame is not None else cache.compressed[self.kv_source].table(slots),
++                              compressed_indices=state.selected)
++            short_prefix = (max(batch.seq_lengths) <= c['index_topk']
++                            or (self.ratio and max(batch.seq_lengths)//self.ratio <= c['index_topk']))
++            if short_prefix:
++                self.eager_attention_calls += 1
++                # Reuse the native eager sparse implementation for the exact
++                # select-all prefix. The indexed long-context route stays CANN.
++                from deepinfer.npu_ops.attention910c import decode, ReferenceMLASchedMeta
++                requests = torch.tensor([slot for slot, count in zip(slots, batch.query_lengths)
++                                         for _ in range(count)], dtype=torch.int32, device=x.device)
++                window = positions[:, None]-c['sliding_window']+1+torch.arange(c['sliding_window'], dtype=torch.int32, device=x.device)[None]
++                swa_indices = cache.swa[self.layer_id].physical_indices(window, requests)
++                extra = {}
++                if has_compressed:
++                    extra = dict(key_cache_extra=cache.compressed[self.kv_source].cache,
++                                 indices_in_kvcache_extra=cache.compressed[self.kv_source].physical_indices(state.selected, requests))
++                context, _ = decode(q, cache.swa[self.layer_id].cache, 512, swa_indices,
++                    ReferenceMLASchedMeta(), 512**-.5, sink, **extra)
++            else:
++                self.cann_attention_calls += 1
++                context = sparse_mla(q, cache.swa[self.layer_id].cache, batch, swa_table,
++                                     sink=sink, ratio=self.ratio if has_compressed else 0,
++                                     window=c['sliding_window'], **kwargs)
++            context = rotate_positions(context, positions, self.rope_freq, inverse=True)
+         else:
+-            self.cann_attention_calls += 1
+-            context = sparse_mla(q, cache.swa[self.layer_id].cache, batch, state.swa_table,
+-                                 sink=self.attn_attn_sink, ratio=self.ratio if has_compressed else 0,
+-                                 window=c['sliding_window'], **kwargs)
+-        context = rotate_positions(context, state.positions, self.rope_freq, inverse=True)
++            if hasattr(self, 'indexer'):
++                state.selected = x.new_empty((0, c['index_topk']), dtype=torch.int32)
++                state.index_source = self.layer_id
++                if self.layer_id == c['candidate_source_layer_id']:
++                    state.candidates = x.new_empty((0, 1, c['candidate_topk_blocks']), dtype=torch.int32)
++            context = x.new_empty((0, heads, c['head_dim']))
++        if cp is not None:
++            context = restore_tp_heads(context, self.tp_group, total_tokens=x.shape[0], width=cp.width)
+         grouped = context.reshape(x.shape[0], self.local_o_groups, -1)
+         if self.fused_o_proj and state.sequence_parallel:
+             import torch_npu
+@@ -338,6 +337,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+ 
+     def reset(self):
+         self.next_positions = [0]*self.requests
++        self.restored_prefix_slots = set()
+         self.pending = {}
+         for history in self.histories:
+             history.reset()
+@@ -391,6 +391,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         if self.histories:
+             self.histories[slot].history=list(snapshot['history'])
+         self.next_positions[slot]=len(snapshot['ids'])
++        self.restored_prefix_slots.add(slot)
+ 
+     def runtime_stats(self):
+         return {'sequence_positions': list(self.next_positions),
+@@ -404,7 +405,9 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'fused_mc2_max_output_size': max((layer.mc2.fused_max_output_size for layer in self.layers
+                                                 if layer.mc2 is not None),default=0),
+                 'context_parallel_enabled': all(layer.context_parallel for layer in self.layers),
+-                'context_parallel_scope': 'indexer-only',
++                'context_parallel_scope': 'cached-compressed-query-and-MLA',
++                'context_parallel_swa_preserve_tp_heads': True,
++                'context_parallel_requires_prefix_restore': True,
+                 'context_parallel_calls': sum(layer.context_parallel_calls for layer in self.layers),
+                 'context_parallel_query_tokens': sum(layer.context_parallel_query_tokens for layer in self.layers),
+                 'fused_o_proj_enabled': all(layer.fused_o_proj for layer in self.layers),
+@@ -462,12 +465,14 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         state.source_metadata = self.cache.prepare_compressed(batch, slots)
+         state.mc2_global_bs=getattr(self,'mc2_global_bs',4096)
+         state.sequence_parallel=bool(sequence_parallel and self.sequence_parallel)
+-        if state.sequence_parallel and self.layers[0].context_parallel:
++        if (state.sequence_parallel and self.layers[0].context_parallel
++                and all(slot in self.restored_prefix_slots for slot in slots)):
+             cp = QuerySlice.build(batch.query_lengths, batch.seq_lengths, self.sp.world, self.sp.rank)
+             state.context_query = cp
+             state.query_slots = [slots[i] for i in cp.request_indices]
+             if cp.query_lengths:
+                 state.query_batch = DSABatch.build(cp.query_lengths, cp.seq_lengths, self.device)
++                state.query_swa_table = self.cache.swa[0].table(state.query_slots)
+         ids = torch.tensor(flat_ids, dtype=torch.int64, device=self.device)
+         trunk = self.embedding.index_select(0, ids)[:, None].expand(-1, self.cfg['hc_mult'], -1).contiguous()
+         previous = torch.zeros((len(flat_ids), self.cfg['hc_mult'], 1), dtype=torch.float32, device=self.device)

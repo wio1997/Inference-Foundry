@@ -1,0 +1,99 @@
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 390423e..5c885c1 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -62,6 +62,8 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             raise ValueError('attention heads/output groups must divide TP size')
+         self.context_parallel = (os.environ.get('DEEPINFER_910C_CONTEXT_PARALLEL') == '1' and self.tp_size > 1)
+         self.context_parallel_calls = self.context_parallel_query_tokens = 0
++        self.kv_token_parallel = os.environ.get('DEEPINFER_910C_KV_TOKEN_PARALLEL') == '1'
++        self.kv_token_parallel_calls = 0
+         if self.context_parallel:
+             self.cp_wq_b = reader.load_linear(self.prefix+'.attn.wq_b', device)
+             self.register_buffer('cp_attn_sink', self.attn_attn_sink.clone())
+@@ -142,13 +144,19 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             return gathered[:count]
+         return output
+ 
+-    def packed_attention(self, x, cache, pending, state, *, reduce_results=True):
++    def packed_attention(self, x, cache, pending, state, *, reduce_results=True, input_is_sharded=False):
+         c = self.config
+         # The pinned pure-SWA kernel changes BF16 rounding with head grouping.
+         # Preserve the proven TP head layout for SWA; compressed MLA uses CP.
+         cp = state.context_query if self.ratio else None
+         batch = state.query_batch if cp is not None else state.batch
+-        query_x = x[cp.start:cp.end] if cp is not None else x
++        total_tokens = sum(state.batch.query_lengths)
++        if input_is_sharded:
++            if cp is None or self.layer_id in c['kv_source_layer_ids']:
++                raise ValueError('token-local KV requires compressed non-source CP layer')
++            query_x = x[:cp.end-cp.start]
++        else:
++            query_x = x[cp.start:cp.end] if cp is not None else x
+         positions = state.positions[cp.start:cp.end] if cp is not None else state.positions
+         slots = state.query_slots if cp is not None else state.slots
+         swa_table = state.query_swa_table if cp is not None else state.swa_table
+@@ -158,7 +166,17 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             qr = rms_norm_mixed(self.projections['wq_a'](query_x), self.attn_q_norm_weight, c['rms_norm_eps'])[0]
+             q = (self.cp_wq_b if cp is not None else self.projections['wq_b'])(qr).unflatten(-1, (heads, c['head_dim']))
+             q = rotate_positions(q, positions, self.rope_freq)
+-        kv = rms_norm_mixed(self.projections['wkv'](x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
++        if input_is_sharded:
++            # Query already owns local normalized tokens. Publish512 KV
++            # channels instead of gathering5120 hidden channels. Keep global
++            # RoPE/cache-write coordinates and all compressor source math.
++            local_kv = rms_norm_mixed(self.projections['wkv'](query_x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
++            padded = local_kv.new_zeros((cp.width, c['head_dim']))
++            padded[:local_kv.shape[0]].copy_(local_kv)
++            kv = self.sp.gather(padded, total_tokens)
++            self.kv_token_parallel_calls += 1
++        else:
++            kv = rms_norm_mixed(self.projections['wkv'](x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
+         kv = rotate_positions(kv, state.positions, self.rope_freq)
+         cache.swa[self.layer_id].write(kv[:, None], state.swa_plan)
+         if self.layer_id in c['kv_source_layer_ids']:
+@@ -245,8 +263,8 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                     state.candidates = x.new_empty((0, 1, c['candidate_topk_blocks']), dtype=torch.int32)
+             context = x.new_empty((0, heads, c['head_dim']))
+         if cp is not None:
+-            context = restore_tp_heads(context, self.tp_group, total_tokens=x.shape[0], width=cp.width)
+-        grouped = context.reshape(x.shape[0], self.local_o_groups, -1)
++            context = restore_tp_heads(context, self.tp_group, total_tokens=total_tokens, width=cp.width)
++        grouped = context.reshape(total_tokens, self.local_o_groups, -1)
+         if self.fused_o_proj and state.sequence_parallel:
+             import torch_npu
+             projected = torch_npu.npu_transpose_batchmatmul(grouped, self.wv_bmm,
+@@ -267,10 +285,14 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         else:
+             x, pre, post, comb = self._pre(trunk, previous, 'attn')
+         x = rms_norm_mixed(x, self.attn_norm_weight, c['rms_norm_eps'])[0]
+-        if state.sequence_parallel:
++        kv_shard = bool(self.kv_token_parallel and state.sequence_parallel
++                        and state.context_query is not None and self.ratio
++                        and self.layer_id not in c['kv_source_layer_ids'])
++        if state.sequence_parallel and not kv_shard:
+             x = self.sp.gather(x, sum(state.batch.query_lengths))
+         attn = self.packed_attention(x, cache, pending, state,
+-                                     reduce_results=not state.sequence_parallel)
++                                     reduce_results=not state.sequence_parallel,
++                                     input_is_sharded=kv_shard)
+         if state.sequence_parallel:
+             attn = self.sp.reduce(attn)
+         after_attn = self._hc_post(attn, trunk, post, comb) if self.fused_mhc else mhc.mhc_post(attn, trunk, post, comb)
+@@ -345,6 +367,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             layer.eager_attention_calls = layer.cann_attention_calls = 0
+             layer.fused_o_proj_calls = 0
+             layer.context_parallel_calls = layer.context_parallel_query_tokens = 0
++            layer.kv_token_parallel_calls = 0
+             if layer.mc2 is not None:
+                 layer.mc2.fused_calls=0
+                 layer.mc2.fused_max_output_size=0
+@@ -405,6 +428,8 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'fused_mc2_max_output_size': max((layer.mc2.fused_max_output_size for layer in self.layers
+                                                 if layer.mc2 is not None),default=0),
+                 'context_parallel_enabled': all(layer.context_parallel for layer in self.layers),
++                'kv_token_parallel_enabled': all(layer.kv_token_parallel for layer in self.layers),
++                'kv_token_parallel_calls': sum(layer.kv_token_parallel_calls for layer in self.layers),
+                 'context_parallel_scope': 'cached-compressed-query-and-MLA',
+                 'context_parallel_swa_preserve_tp_heads': True,
+                 'context_parallel_requires_prefix_restore': True,

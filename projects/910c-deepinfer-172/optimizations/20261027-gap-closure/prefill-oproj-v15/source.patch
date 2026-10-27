@@ -1,0 +1,76 @@
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index f76ad84..b0a7a87 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -75,6 +75,13 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             weight, scale = reader.linear_payload(self.prefix+'.attn.wo_b')
+             weight = weight[:, rank*width:(rank+1)*width].contiguous().to(device)
+             self.projections['wo_b'] = FloatLinear(weight) if scale is None else AscendW8A8Linear(weight, scale.to(device))
++        self.fused_o_proj = os.environ.get('DEEPINFER_910C_FUSED_O_PROJ') == '1'
++        self.fused_o_proj_calls = 0
++        if self.fused_o_proj:
++            if self.wv.dtype != torch.bfloat16:
++                raise ValueError('fused O projection requires checkpoint BF16 FLOAT weights')
++            # Pinned V4.1 BF16 ABI consumes [groups, input, output] in ND.
++            self.register_buffer('wv_bmm', self.wv.transpose(1, 2).contiguous())
+         self.index_source = max((s for s in self.config['index_source_layer_ids'] if s <= layer_id), default=None) if self.ratio else None
+         if layer_id in self.config['index_source_layer_ids']:
+             self.indexer = AscendW8A8Indexer(reader, device, layer_id=layer_id)
+@@ -241,7 +248,14 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                                  window=c['sliding_window'], **kwargs)
+         context = rotate_positions(context, state.positions, self.rope_freq, inverse=True)
+         grouped = context.reshape(x.shape[0], self.local_o_groups, -1)
+-        projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
++        if self.fused_o_proj and state.sequence_parallel:
++            import torch_npu
++            projected = torch_npu.npu_transpose_batchmatmul(grouped, self.wv_bmm,
++                bias=None, scale=None, perm_x1=(1, 0, 2), perm_x2=(0, 1, 2),
++                perm_y=(1, 0, 2), batch_split_factor=1)
++            self.fused_o_proj_calls += 1
++        else:
++            projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
+         output = self.projections['wo_b'](projected.flatten(1))
+         if self.tp_size > 1 and reduce_results:
+             dist.all_reduce(output, group=self.tp_group)
+@@ -329,6 +343,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             history.reset()
+         for layer in self.layers:
+             layer.eager_attention_calls = layer.cann_attention_calls = 0
++            layer.fused_o_proj_calls = 0
+             layer.context_parallel_calls = layer.context_parallel_query_tokens = 0
+             if layer.mc2 is not None:
+                 layer.mc2.fused_calls=0
+@@ -392,6 +407,8 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'context_parallel_scope': 'indexer-only',
+                 'context_parallel_calls': sum(layer.context_parallel_calls for layer in self.layers),
+                 'context_parallel_query_tokens': sum(layer.context_parallel_query_tokens for layer in self.layers),
++                'fused_o_proj_enabled': all(layer.fused_o_proj for layer in self.layers),
++                'fused_o_proj_prefill_calls': sum(layer.fused_o_proj_calls for layer in self.layers),
+                 'sequence_parallel_enabled': self.sequence_parallel,
+                 'sequence_parallel_prefill_forwards': self.sequence_parallel_prefill_forwards,
+                 'sequence_parallel_tp_size': self.sp.world,
+diff --git a/examples/ascend910c_w8a8_worker.py b/examples/ascend910c_w8a8_worker.py
+index 6d3a01e..a330694 100644
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -54,7 +54,19 @@ def main():
+         directory=args.control_dir/'jobs'/previous
+         job=json.loads((directory/'request.json').read_text())
+         try:
+-            runner.run(job,directory)
++            # Opt-in diagnostic job only. Formal AISBench requests never set
++            # profile_npu, so their execution path and metrics stay unchanged.
++            if job.get('profile_npu', False) and rank == 0:
++                with torch_npu.profiler.profile(
++                    activities=[torch_npu.profiler.ProfilerActivity.CPU,
++                                torch_npu.profiler.ProfilerActivity.NPU],
++                    record_shapes=True, profile_memory=False, with_stack=False,
++                    on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
++                        str(directory/'profile-rank0')),
++                ):
++                    runner.run(job,directory)
++            else:
++                runner.run(job,directory)
+         except Exception:
+             import traceback
+             (directory/f'error-rank{rank}.txt').write_text(traceback.format_exc())

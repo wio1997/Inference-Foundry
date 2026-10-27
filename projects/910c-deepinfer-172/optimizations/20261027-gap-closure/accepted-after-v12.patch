@@ -1,0 +1,628 @@
+diff --git a/deepinfer/engine/tokenization_cache.py b/deepinfer/engine/tokenization_cache.py
+new file mode 100644
+index 0000000..0fe2ad5
+--- /dev/null
++++ b/deepinfer/engine/tokenization_cache.py
+@@ -0,0 +1,45 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Bounded exact-text tokenization reuse for repeated serving requests.
++
++A cache instance owns one immutable tokenizer/encode configuration. Entries
++contain input IDs only, with no model state or generated text. Callers receive
++fresh lists so mutation cannot alter another request's input. Concurrent misses
++encode outside the lock; accounting remains correct if they race to insert.
++"""
++from collections import OrderedDict
++import threading
++
++
++class TokenizationCache:
++    def __init__(self, encode, *, token_budget=0, max_entries=64):
++        if token_budget < 0 or max_entries < 1:
++            raise ValueError('invalid tokenization cache capacity')
++        self.encode = encode
++        self.token_budget = token_budget
++        self.max_entries = max_entries
++        self.entries = OrderedDict()
++        self.tokens = 0
++        self.lock = threading.Lock()
++
++    def get(self, text):
++        if not self.token_budget:
++            return self.encode(text), False
++        with self.lock:
++            value = self.entries.get(text)
++            if value is not None:
++                self.entries.move_to_end(text)
++                return list(value), True
++        ids = self.encode(text)
++        if len(ids) > self.token_budget or len(text) > self.token_budget * 4:
++            return ids, False
++        value = tuple(ids)
++        with self.lock:
++            previous = self.entries.pop(text, None)
++            if previous is not None:
++                self.tokens -= len(previous)
++            self.entries[text] = value
++            self.tokens += len(value)
++            while self.tokens > self.token_budget or len(self.entries) > self.max_entries:
++                _, removed = self.entries.popitem(last=False)
++                self.tokens -= len(removed)
++        return ids, False
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 4ac38bc..b907323 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -16,6 +16,7 @@ import torch.nn.functional as F
+ from deepinfer.npu_ops import mhc910c as mhc
+ from deepinfer.npu_ops.dsa910c import DSABatch, sparse_mla
+ from deepinfer.npu_ops.sp910c import SequenceShard
++from deepinfer.npu_ops.cp910c import QuerySlice, restore_tp_heads
+ from .ascend_w8a8_layer import AscendW8A8Layer
+ from .w8a8_compressor910c import compress_batch
+ from .w8a8_engram910c import AscendW8A8Engram, CpuEngramHistory, load_rotation
+@@ -38,6 +39,11 @@ class PackedForward:
+     decode_frame: object | None = None
+     source_metadata: dict | None = None
+     sequence_parallel: bool = False
++    context_query: object | None = None
++    query_batch: object | None = None
++    query_slots: list[int] | None = None
++    query_swa_table: object | None = None
++    tail_ffn_indices: dict | None = None
+ 
+ 
+ class AscendW8A8PackedLayer(AscendW8A8Layer):
+@@ -55,6 +61,14 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         self.local_o_groups = self.config['o_groups']//self.tp_size
+         if self.config['num_attention_heads'] % self.tp_size or self.config['o_groups'] % self.tp_size:
+             raise ValueError('attention heads/output groups must divide TP size')
++        self.context_parallel = (os.environ.get('DEEPINFER_910C_CONTEXT_PARALLEL') == '1' and self.tp_size > 1)
++        self.context_parallel_calls = self.context_parallel_query_tokens = 0
++        self.kv_token_parallel = os.environ.get('DEEPINFER_910C_KV_TOKEN_PARALLEL') == '1'
++        self.kv_token_parallel_calls = 0
++        self.tail_ffn_calls = self.tail_ffn_tokens = self.tail_ffn_skipped = 0
++        if self.context_parallel:
++            self.cp_wq_b = reader.load_linear(self.prefix+'.attn.wq_b', device)
++            self.register_buffer('cp_attn_sink', self.attn_attn_sink.clone())
+         if self.tp_size > 1:
+             from deepinfer.hugging_face.modelslim910c import FloatLinear
+             from deepinfer.npu_ops.w8a8 import AscendW8A8Linear
+@@ -69,6 +83,13 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             weight, scale = reader.linear_payload(self.prefix+'.attn.wo_b')
+             weight = weight[:, rank*width:(rank+1)*width].contiguous().to(device)
+             self.projections['wo_b'] = FloatLinear(weight) if scale is None else AscendW8A8Linear(weight, scale.to(device))
++        self.fused_o_proj = os.environ.get('DEEPINFER_910C_FUSED_O_PROJ') == '1'
++        self.fused_o_proj_calls = 0
++        if self.fused_o_proj:
++            if self.wv.dtype != torch.bfloat16:
++                raise ValueError('fused O projection requires checkpoint BF16 FLOAT weights')
++            # Pinned V4.1 BF16 ABI consumes [groups, input, output] in ND.
++            self.register_buffer('wv_bmm', self.wv.transpose(1, 2).contiguous())
+         self.index_source = max((s for s in self.config['index_source_layer_ids'] if s <= layer_id), default=None) if self.ratio else None
+         if layer_id in self.config['index_source_layer_ids']:
+             self.indexer = AscendW8A8Indexer(reader, device, layer_id=layer_id)
+@@ -89,7 +110,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                 raise ValueError('fused MC2 prefill requires native MC2 communicator')
+             self.expert_bank.prepare_fused_mc2()
+ 
+-    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False,already_sharded=False):
++    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False,already_sharded=False,token_indices=None):
+         from deepinfer.npu_ops.moe910c import dispatch_combine,route
+         # Attention returns the same token batch on each TP rank. Dispatch
+         # each token once to global EP16, then restore the TP-replicated batch.
+@@ -99,6 +120,14 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         first=0 if already_sharded else rank*width
+         local=x[first:first+width]
+         routing=router_x[first:first+width]
++        if token_indices is not None:
++            if not already_sharded:
++                raise ValueError('tail FFN pruning requires sequence-parallel ownership')
++            local=local.index_select(0,token_indices)
++            routing=routing.index_select(0,token_indices)
++            self.tail_ffn_calls += 1
++            self.tail_ffn_tokens += local.shape[0]
++            self.tail_ffn_skipped += count-local.shape[0]
+         valid=local.shape[0]
+         if not valid:
+             local=x[:1];routing=router_x[:1]
+@@ -117,6 +146,12 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         shared=self.shared_expert(local)
+         output=(shared.float()+routed.float()*self.config['routed_scaling_factor']).bfloat16()
+         output=output[:valid]
++        if token_indices is not None:
++            # Only a suffix can influence the final logit after the last KV
++            # source. The discarded rows never feed a future valid SWA row.
++            restored=torch.zeros_like(x)
++            restored.index_copy_(0,token_indices,output)
++            return restored
+         if self.tp_size>1 and not already_sharded:
+             padded=x.new_zeros((width,x.shape[1]))
+             padded[:output.shape[0]].copy_(output)
+@@ -125,12 +160,39 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+             return gathered[:count]
+         return output
+ 
+-    def packed_attention(self, x, cache, pending, state, *, reduce_results=True):
+-        c, batch = self.config, state.batch
+-        qr = rms_norm_mixed(self.projections['wq_a'](x), self.attn_q_norm_weight, c['rms_norm_eps'])[0]
+-        q = self.projections['wq_b'](qr).unflatten(-1, (self.local_heads, c['head_dim']))
+-        kv = rms_norm_mixed(self.projections['wkv'](x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
+-        q = rotate_positions(q, state.positions, self.rope_freq)
++    def packed_attention(self, x, cache, pending, state, *, reduce_results=True, input_is_sharded=False):
++        c = self.config
++        # The pinned pure-SWA kernel changes BF16 rounding with head grouping.
++        # Preserve the proven TP head layout for SWA; compressed MLA uses CP.
++        cp = state.context_query if self.ratio else None
++        batch = state.query_batch if cp is not None else state.batch
++        total_tokens = sum(state.batch.query_lengths)
++        if input_is_sharded:
++            if cp is None or self.layer_id in c['kv_source_layer_ids']:
++                raise ValueError('token-local KV requires compressed non-source CP layer')
++            query_x = x[:cp.end-cp.start]
++        else:
++            query_x = x[cp.start:cp.end] if cp is not None else x
++        positions = state.positions[cp.start:cp.end] if cp is not None else state.positions
++        slots = state.query_slots if cp is not None else state.slots
++        swa_table = state.query_swa_table if cp is not None else state.swa_table
++        heads = c['num_attention_heads'] if cp is not None else self.local_heads
++        sink = self.cp_attn_sink if cp is not None else self.attn_attn_sink
++        if query_x.shape[0]:
++            qr = rms_norm_mixed(self.projections['wq_a'](query_x), self.attn_q_norm_weight, c['rms_norm_eps'])[0]
++            q = (self.cp_wq_b if cp is not None else self.projections['wq_b'])(qr).unflatten(-1, (heads, c['head_dim']))
++            q = rotate_positions(q, positions, self.rope_freq)
++        if input_is_sharded:
++            # Query already owns local normalized tokens. Publish512 KV
++            # channels instead of gathering5120 hidden channels. Keep global
++            # RoPE/cache-write coordinates and all compressor source math.
++            local_kv = rms_norm_mixed(self.projections['wkv'](query_x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
++            padded = local_kv.new_zeros((cp.width, c['head_dim']))
++            padded[:local_kv.shape[0]].copy_(local_kv)
++            kv = self.sp.gather(padded, total_tokens)
++            self.kv_token_parallel_calls += 1
++        else:
++            kv = rms_norm_mixed(self.projections['wkv'](x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
+         kv = rotate_positions(kv, state.positions, self.rope_freq)
+         cache.swa[self.layer_id].write(kv[:, None], state.swa_plan)
+         if self.layer_id in c['kv_source_layer_ids']:
+@@ -139,13 +201,13 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                 plans=state.decode_frame.compressed_plans(self.layer_id,source_positions)
+                 has_latents=True
+             else:
+-                latent, positions, slots = compress_batch(x, batch, state.slots, self.ratio,
++                latent, source_position_list, source_slots = compress_batch(x, state.batch, state.slots, self.ratio,
+                     self.compressor_wkv_weight, getattr(self, 'compressor_wgate_weight', None),
+                     self.compressor_norm_weight, c['rms_norm_eps'], pending.setdefault(self.layer_id, {}))
+-                has_latents=bool(positions)
++                has_latents=bool(source_position_list)
+                 if has_latents:
+                     expected, source_positions, plans = state.source_metadata[self.layer_id]
+-                    if tuple(positions) != expected:
++                    if tuple(source_position_list) != expected:
+                         raise RuntimeError('compressor rows differ from prepared cache coordinates')
+             if has_latents:
+                 key, scale = self.indexer.key(latent, source_positions)
+@@ -153,60 +215,80 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                 cache.compressed[self.layer_id].write(rotated[:, None], plans[0])
+                 cache.index_key[self.layer_id].write(key, plans[1])
+                 cache.index_scale[self.layer_id].write(scale[..., None], plans[2])
+-        has_compressed = self.ratio and max(batch.seq_lengths)//self.ratio > 0
+-        if self.ratio and hasattr(self, 'indexer'):
+-            if max(batch.seq_lengths)//self.ratio <= c['index_topk']:
+-                # Exact shortcut: all completed keys fit top512, so scoring
+-                # cannot exclude any key. Larger contexts use actual INT8 QLI.
+-                keys = torch.arange(c['index_topk'], dtype=torch.int32, device=x.device)[None]
+-                visible = torch.div(state.positions+1, self.ratio, rounding_mode='floor')[:, None]
+-                state.selected = torch.where(keys < visible, keys, -1).contiguous()
+-                if self.layer_id == c['candidate_source_layer_id']:
+-                    blocks = torch.arange(c['candidate_topk_blocks'], dtype=torch.int32, device=x.device)[None]
+-                    visible_blocks = torch.div(visible+c['candidate_block_size']-1, c['candidate_block_size'], rounding_mode='floor')
+-                    state.candidates = torch.where(blocks < visible_blocks, blocks, -1)[:, None].contiguous()
++        if cp is not None:
++            self.context_parallel_calls += 1
++            self.context_parallel_query_tokens += query_x.shape[0]
++        if query_x.shape[0]:
++            has_compressed = self.ratio and max(batch.seq_lengths)//self.ratio > 0
++            if self.ratio and hasattr(self, 'indexer'):
++                if max(batch.seq_lengths)//self.ratio <= c['index_topk']:
++                    # Exact shortcut: all completed keys fit top512, so scoring
++                    # cannot exclude any key. Larger contexts use actual INT8 QLI.
++                    keys = torch.arange(c['index_topk'], dtype=torch.int32, device=x.device)[None]
++                    visible = torch.div(positions+1, self.ratio, rounding_mode='floor')[:, None]
++                    state.selected = torch.where(keys < visible, keys, -1).contiguous()
++                    if self.layer_id == c['candidate_source_layer_id']:
++                        blocks = torch.arange(c['candidate_topk_blocks'], dtype=torch.int32, device=x.device)[None]
++                        visible_blocks = torch.div(visible+c['candidate_block_size']-1, c['candidate_block_size'], rounding_mode='floor')
++                        state.candidates = torch.where(blocks < visible_blocks, blocks, -1)[:, None].contiguous()
++                else:
++                    source = self.kv_source
++                    selected, emitted = self.indexer.select(qr, query_x, batch,
++                        cache.index_key[source].cache, cache.index_scale[source].cache.squeeze(-1),
++                        state.decode_frame.tables['index_key'][source] if state.decode_frame is not None else cache.index_key[source].table(slots),
++                        candidates=state.candidates if self.layer_id > c['candidate_source_layer_id'] else None)
++                    state.selected = selected
++                    if self.layer_id == c['candidate_source_layer_id']:
++                        state.candidates = emitted
++                state.index_source = self.layer_id
++            if self.ratio and state.index_source != self.index_source:
++                raise RuntimeError('compressed attention lacks its current-forward index source')
++            kwargs = {}
++            if has_compressed:
++                kwargs = dict(compressed_cache=cache.compressed[self.kv_source].cache,
++                              compressed_table=state.decode_frame.tables['compressed'][self.kv_source] if state.decode_frame is not None else cache.compressed[self.kv_source].table(slots),
++                              compressed_indices=state.selected)
++            short_prefix = (max(batch.seq_lengths) <= c['index_topk']
++                            or (self.ratio and max(batch.seq_lengths)//self.ratio <= c['index_topk']))
++            if short_prefix:
++                self.eager_attention_calls += 1
++                # Reuse the native eager sparse implementation for the exact
++                # select-all prefix. The indexed long-context route stays CANN.
++                from deepinfer.npu_ops.attention910c import decode, ReferenceMLASchedMeta
++                requests = torch.tensor([slot for slot, count in zip(slots, batch.query_lengths)
++                                         for _ in range(count)], dtype=torch.int32, device=x.device)
++                window = positions[:, None]-c['sliding_window']+1+torch.arange(c['sliding_window'], dtype=torch.int32, device=x.device)[None]
++                swa_indices = cache.swa[self.layer_id].physical_indices(window, requests)
++                extra = {}
++                if has_compressed:
++                    extra = dict(key_cache_extra=cache.compressed[self.kv_source].cache,
++                                 indices_in_kvcache_extra=cache.compressed[self.kv_source].physical_indices(state.selected, requests))
++                context, _ = decode(q, cache.swa[self.layer_id].cache, 512, swa_indices,
++                    ReferenceMLASchedMeta(), 512**-.5, sink, **extra)
+             else:
+-                source = self.kv_source
+-                selected, emitted = self.indexer.select(qr, x, batch,
+-                    cache.index_key[source].cache, cache.index_scale[source].cache.squeeze(-1),
+-                    state.decode_frame.tables['index_key'][source] if state.decode_frame is not None else cache.index_key[source].table(state.slots),
+-                    candidates=state.candidates if self.layer_id > c['candidate_source_layer_id'] else None)
+-                state.selected = selected
++                self.cann_attention_calls += 1
++                context = sparse_mla(q, cache.swa[self.layer_id].cache, batch, swa_table,
++                                     sink=sink, ratio=self.ratio if has_compressed else 0,
++                                     window=c['sliding_window'], **kwargs)
++            context = rotate_positions(context, positions, self.rope_freq, inverse=True)
++        else:
++            if hasattr(self, 'indexer'):
++                state.selected = x.new_empty((0, c['index_topk']), dtype=torch.int32)
++                state.index_source = self.layer_id
+                 if self.layer_id == c['candidate_source_layer_id']:
+-                    state.candidates = emitted
+-            state.index_source = self.layer_id
+-        if self.ratio and state.index_source != self.index_source:
+-            raise RuntimeError('compressed attention lacks its current-forward index source')
+-        kwargs = {}
+-        if has_compressed:
+-            kwargs = dict(compressed_cache=cache.compressed[self.kv_source].cache,
+-                          compressed_table=state.decode_frame.tables['compressed'][self.kv_source] if state.decode_frame is not None else cache.compressed[self.kv_source].table(state.slots),
+-                          compressed_indices=state.selected)
+-        short_prefix = (max(batch.seq_lengths) <= c['index_topk']
+-                        or (self.ratio and max(batch.seq_lengths)//self.ratio <= c['index_topk']))
+-        if short_prefix:
+-            self.eager_attention_calls += 1
+-            # Reuse the native eager sparse implementation for the exact
+-            # select-all prefix. The indexed long-context route stays CANN.
+-            from deepinfer.npu_ops.attention910c import decode, ReferenceMLASchedMeta
+-            requests = torch.tensor([slot for slot, count in zip(state.slots, batch.query_lengths)
+-                                     for _ in range(count)], dtype=torch.int32, device=x.device)
+-            window = state.positions[:, None]-c['sliding_window']+1+torch.arange(c['sliding_window'], dtype=torch.int32, device=x.device)[None]
+-            swa_indices = cache.swa[self.layer_id].physical_indices(window, requests)
+-            extra = {}
+-            if has_compressed:
+-                extra = dict(key_cache_extra=cache.compressed[self.kv_source].cache,
+-                             indices_in_kvcache_extra=cache.compressed[self.kv_source].physical_indices(state.selected, requests))
+-            context, _ = decode(q, cache.swa[self.layer_id].cache, 512, swa_indices,
+-                ReferenceMLASchedMeta(), 512**-.5, self.attn_attn_sink, **extra)
++                    state.candidates = x.new_empty((0, 1, c['candidate_topk_blocks']), dtype=torch.int32)
++            context = x.new_empty((0, heads, c['head_dim']))
++        if cp is not None:
++            context = restore_tp_heads(context, self.tp_group, total_tokens=total_tokens, width=cp.width)
++        grouped = context.reshape(total_tokens, self.local_o_groups, -1)
++        if self.fused_o_proj and state.sequence_parallel:
++            import torch_npu
++            projected = torch_npu.npu_transpose_batchmatmul(grouped, self.wv_bmm,
++                bias=None, scale=None, perm_x1=(1, 0, 2), perm_x2=(0, 1, 2),
++                perm_y=(1, 0, 2), batch_split_factor=1)
++            self.fused_o_proj_calls += 1
+         else:
+-            self.cann_attention_calls += 1
+-            context = sparse_mla(q, cache.swa[self.layer_id].cache, batch, state.swa_table,
+-                                 sink=self.attn_attn_sink, ratio=self.ratio if has_compressed else 0,
+-                                 window=c['sliding_window'], **kwargs)
+-        context = rotate_positions(context, state.positions, self.rope_freq, inverse=True)
+-        grouped = context.reshape(x.shape[0], self.local_o_groups, -1)
+-        projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
++            projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
+         output = self.projections['wo_b'](projected.flatten(1))
+         if self.tp_size > 1 and reduce_results:
+             dist.all_reduce(output, group=self.tp_group)
+@@ -219,10 +301,14 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         else:
+             x, pre, post, comb = self._pre(trunk, previous, 'attn')
+         x = rms_norm_mixed(x, self.attn_norm_weight, c['rms_norm_eps'])[0]
+-        if state.sequence_parallel:
++        kv_shard = bool(self.kv_token_parallel and state.sequence_parallel
++                        and state.context_query is not None and self.ratio
++                        and self.layer_id not in c['kv_source_layer_ids'])
++        if state.sequence_parallel and not kv_shard:
+             x = self.sp.gather(x, sum(state.batch.query_lengths))
+         attn = self.packed_attention(x, cache, pending, state,
+-                                     reduce_results=not state.sequence_parallel)
++                                     reduce_results=not state.sequence_parallel,
++                                     input_is_sharded=kv_shard)
+         if state.sequence_parallel:
+             attn = self.sp.reduce(attn)
+         after_attn = self._hc_post(attn, trunk, post, comb) if self.fused_mhc else mhc.mhc_post(attn, trunk, post, comb)
+@@ -237,7 +323,9 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         ffn = self.packed_ffn(x,router_x,state.mc2_global_bs,
+             fused_mc2=(self.fused_mc2_prefill and state.decode_frame is None
+                        and state.mc2_global_bs>self.mc2.world),
+-            already_sharded=state.sequence_parallel)
++            already_sharded=state.sequence_parallel,
++            token_indices=(state.tail_ffn_indices.get(self.layer_id)
++                           if state.tail_ffn_indices is not None else None))
+         if self.fused_mhc:
+             return self._hc_post(ffn, after_attn, post, comb), next_pre.unsqueeze(-1)
+         return mhc.mhc_post(ffn, after_attn, post, comb), next_pre
+@@ -269,6 +357,10 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         self.sequence_parallel = (os.environ.get('DEEPINFER_910C_SEQUENCE_PARALLEL') == '1'
+                                   and tp_group is not None and dist.get_world_size(tp_group) > 1)
+         self.max_tokens, self.requests, self.chunk_size = max_tokens, requests, chunk_size
++        self.tail_ffn = os.environ.get('DEEPINFER_910C_TAIL_FFN') == '1'
++        self.tail_ffn_source = max(c['kv_source_layer_ids'])
++        if self.tail_ffn and any(i > self.tail_ffn_source for i in c.get('engram_layer_ids', [])):
++            raise ValueError('tail FFN pruning does not support downstream Engram')
+         progress = progress or (lambda event: None)
+         progress({'stage': 'embedding_and_head', 'backend': 'native-paged'})
+         self.register_buffer('embedding', reader.materialize('embed.weight', device))
+@@ -289,11 +381,16 @@ class AscendW8A8PackedModel(torch.nn.Module):
+ 
+     def reset(self):
+         self.next_positions = [0]*self.requests
++        self.restored_prefix_slots = set()
+         self.pending = {}
+         for history in self.histories:
+             history.reset()
+         for layer in self.layers:
+             layer.eager_attention_calls = layer.cann_attention_calls = 0
++            layer.fused_o_proj_calls = 0
++            layer.context_parallel_calls = layer.context_parallel_query_tokens = 0
++            layer.kv_token_parallel_calls = 0
++            layer.tail_ffn_calls = layer.tail_ffn_tokens = layer.tail_ffn_skipped = 0
+             if layer.mc2 is not None:
+                 layer.mc2.fused_calls=0
+                 layer.mc2.fused_max_output_size=0
+@@ -340,6 +437,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         if self.histories:
+             self.histories[slot].history=list(snapshot['history'])
+         self.next_positions[slot]=len(snapshot['ids'])
++        self.restored_prefix_slots.add(slot)
+ 
+     def runtime_stats(self):
+         return {'sequence_positions': list(self.next_positions),
+@@ -352,6 +450,21 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'fused_mc2_calls': sum(layer.mc2.fused_calls for layer in self.layers if layer.mc2 is not None),
+                 'fused_mc2_max_output_size': max((layer.mc2.fused_max_output_size for layer in self.layers
+                                                 if layer.mc2 is not None),default=0),
++                'context_parallel_enabled': all(layer.context_parallel for layer in self.layers),
++                'kv_token_parallel_enabled': all(layer.kv_token_parallel for layer in self.layers),
++                'kv_token_parallel_calls': sum(layer.kv_token_parallel_calls for layer in self.layers),
++                'tail_ffn_enabled': self.tail_ffn,
++                'tail_ffn_source_layer': self.tail_ffn_source,
++                'tail_ffn_calls': sum(layer.tail_ffn_calls for layer in self.layers),
++                'tail_ffn_active_tokens': sum(layer.tail_ffn_tokens for layer in self.layers),
++                'tail_ffn_skipped_tokens': sum(layer.tail_ffn_skipped for layer in self.layers),
++                'context_parallel_scope': 'cached-compressed-query-and-MLA',
++                'context_parallel_swa_preserve_tp_heads': True,
++                'context_parallel_requires_prefix_restore': True,
++                'context_parallel_calls': sum(layer.context_parallel_calls for layer in self.layers),
++                'context_parallel_query_tokens': sum(layer.context_parallel_query_tokens for layer in self.layers),
++                'fused_o_proj_enabled': all(layer.fused_o_proj for layer in self.layers),
++                'fused_o_proj_prefill_calls': sum(layer.fused_o_proj_calls for layer in self.layers),
+                 'sequence_parallel_enabled': self.sequence_parallel,
+                 'sequence_parallel_prefill_forwards': self.sequence_parallel_prefill_forwards,
+                 'sequence_parallel_tp_size': self.sp.world,
+@@ -405,6 +518,32 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         state.source_metadata = self.cache.prepare_compressed(batch, slots)
+         state.mc2_global_bs=getattr(self,'mc2_global_bs',4096)
+         state.sequence_parallel=bool(sequence_parallel and self.sequence_parallel)
++        if (state.sequence_parallel and self.layers[0].context_parallel
++                and all(slot in self.restored_prefix_slots for slot in slots)):
++            cp = QuerySlice.build(batch.query_lengths, batch.seq_lengths, self.sp.world, self.sp.rank)
++            state.context_query = cp
++            state.query_slots = [slots[i] for i in cp.request_indices]
++            if cp.query_lengths:
++                state.query_batch = DSABatch.build(cp.query_lengths, cp.seq_lengths, self.device)
++                state.query_swa_table = self.cache.swa[0].table(state.query_slots)
++        if self.tail_ffn and state.context_query is not None:
++            # Once the final long-KV source is written, later long attention
++            # reads fixed caches. Only SWA expands token dependence, by W-1
++            # per layer. After layer i the final query needs exactly the tail
++            # 1+(L-1-i)*(W-1). Its last128 input rows also retain every layer's
++            # exact SWA state for subsequent decode. Indexer sharing remains
++            # query-local and reads the unchanged full long-KV source.
++            cp=state.context_query
++            state.tail_ffn_indices={}
++            for i in range(self.tail_ffn_source,len(self.layers)):
++                required=1+(len(self.layers)-1-i)*(self.cfg['sliding_window']-1)
++                indices=[];offset=0
++                for q in batch.query_lengths:
++                    left=max(offset+max(0,q-required),cp.start)
++                    right=min(offset+q,cp.end)
++                    indices.extend(range(left-cp.start,max(left,right)-cp.start))
++                    offset+=q
++                state.tail_ffn_indices[i]=torch.tensor(indices,dtype=torch.int64,device=self.device)
+         ids = torch.tensor(flat_ids, dtype=torch.int64, device=self.device)
+         trunk = self.embedding.index_select(0, ids)[:, None].expand(-1, self.cfg['hc_mult'], -1).contiguous()
+         previous = torch.zeros((len(flat_ids), self.cfg['hc_mult'], 1), dtype=torch.float32, device=self.device)
+diff --git a/deepinfer/npu_ops/cp910c.py b/deepinfer/npu_ops/cp910c.py
+new file mode 100644
+index 0000000..cc69384
+--- /dev/null
++++ b/deepinfer/npu_ops/cp910c.py
+@@ -0,0 +1,60 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Query-token CP with replicated KV, matching the pinned V4.1 DSACP layout.
++
++Each query belongs to one TP rank and owns all query heads. Cache writes
++retain the original global request layout. Exchange heads before the existing
++TP output projection. No vLLM Python model or runtime is imported.
++"""
++from dataclasses import dataclass
++import torch.distributed as dist
++
++
++@dataclass(frozen=True)
++class QuerySlice:
++    start: int
++    end: int
++    width: int
++    request_indices: tuple[int, ...]
++    query_lengths: tuple[int, ...]
++    seq_lengths: tuple[int, ...]
++
++    @classmethod
++    def build(cls, query_lengths, seq_lengths, world, rank):
++        if world < 1 or not 0 <= rank < world:
++            raise ValueError('invalid CP rank/world')
++        if len(query_lengths) != len(seq_lengths) or any(q < 1 or s < q for q, s in zip(query_lengths, seq_lengths)):
++            raise ValueError('invalid global request coordinates')
++        total = sum(query_lengths)
++        width = (total + world - 1) // world
++        start, end = min(rank * width, total), min((rank + 1) * width, total)
++        indices, queries, seqs = [], [], []
++        offset = 0
++        for i, (q, s) in enumerate(zip(query_lengths, seq_lengths)):
++            left, right = max(offset, start), min(offset + q, end)
++            if right > left:
++                indices.append(i)
++                queries.append(right - left)
++                seqs.append(s - (offset + q - right))
++            offset += q
++        return cls(start, end, width, tuple(indices), tuple(queries), tuple(seqs))
++
++
++def restore_tp_heads(output, group, *, total_tokens, width):
++    """[local tokens, full heads] -> [global tokens, local heads].
++
++    All ranks exchange the same padded token width, including empty query
++    ranks. The receive order is rank-major, equal to global packed token order.
++    """
++    world = dist.get_world_size(group) if group is not None else 1
++    if output.ndim != 3 or output.shape[0] > width or output.shape[1] % world:
++        raise ValueError('invalid CP attention output layout')
++    if world == 1:
++        return output[:total_tokens]
++    padded = output.new_zeros((width, *output.shape[1:]))
++    padded[:output.shape[0]].copy_(output)
++    heads, dim = output.shape[1:]
++    local_heads = heads // world
++    send = padded.view(width, world, local_heads, dim).permute(1, 0, 2, 3).contiguous().view(-1, local_heads, dim)
++    recv = send.new_empty(send.shape)
++    dist.all_to_all_single(recv, send, group=group)
++    return recv[:total_tokens]
+diff --git a/examples/ascend910c_w8a8_api.py b/examples/ascend910c_w8a8_api.py
+index 678a8de..901c1a2 100644
+--- a/examples/ascend910c_w8a8_api.py
++++ b/examples/ascend910c_w8a8_api.py
+@@ -31,8 +31,11 @@ class Frontend:
+         self.tokenizer=get_tokenizer(args.model_dir,tokenizer_mode='deepseek_v41')
+         config=json.loads((Path(args.model_dir)/'config.json').read_text())
+         self.eos=config['eos_token_id']
++        from deepinfer.engine.tokenization_cache import TokenizationCache
++        self.token_cache=TokenizationCache(self.tokenizer.encode,token_budget=args.tokenizer_cache_tokens)
+         self.pending=queue.Queue()
+-        self.counts={'requests':0,'prompt_tokens':0,'cached_tokens':0,'output_tokens':0,'failed_requests':0}
++        self.counts={'requests':0,'prompt_tokens':0,'cached_tokens':0,'output_tokens':0,'failed_requests':0,
++                     'tokenizer_cache_hits':0,'tokenizer_cache_hit_tokens':0}
+         self.lock=threading.Lock()
+ 
+     def ready(self):
+@@ -117,6 +120,7 @@ def main():
+     p.add_argument('--host',default='127.0.0.1')
+     p.add_argument('--port',type=int,default=8172)
+     p.add_argument('--batch-wait-ms',type=int,default=500)
++    p.add_argument('--tokenizer-cache-tokens',type=int,default=0)
+     p.add_argument('--request-timeout',type=int,default=3600)
+     args=p.parse_args()
+     frontend=Frontend(args)
+@@ -155,8 +159,13 @@ def main():
+                 if body.get('temperature',0) not in (0,0.0):
+                     raise ValueError('native backend currently supports temperature=0')
+                 prompt=body['prompt']
++                tokenizer_hit=False
+                 if isinstance(prompt,str):
+-                    ids=frontend.tokenizer.encode(prompt)
++                    ids,tokenizer_hit=frontend.token_cache.get(prompt)
++                    if tokenizer_hit:
++                        with frontend.lock:
++                            frontend.counts['tokenizer_cache_hits']+=1
++                            frontend.counts['tokenizer_cache_hit_tokens']+=len(ids)
+                 elif isinstance(prompt,list) and all(type(i) is int for i in prompt):
+                     ids=prompt
+                 else:
+@@ -216,7 +225,7 @@ def main():
+                             self.send_json({'id':request.id,'object':'text_completion','created':created,'model':'dsv41',
+                                 'choices':[{'index':0,'text':decoded,'logprobs':None,'finish_reason':event['finish_reason']}],
+                                 'usage':usage})
+-                        audit={'id':request.id,'input_tokens':len(ids),'cached_tokens':hit,
++                        audit={'id':request.id,'tokenizer_cache_hit':tokenizer_hit,'input_tokens':len(ids),'cached_tokens':hit,
+                             'prompt_ids_sha256':hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest(),
+                             'generated_token_ids':generated,'text':decoded,'token_times':timings,'finish_reason':event['finish_reason']}
+                         with frontend.lock:
+diff --git a/examples/ascend910c_w8a8_worker.py b/examples/ascend910c_w8a8_worker.py
+index 6d3a01e..a330694 100644
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -54,7 +54,19 @@ def main():
+         directory=args.control_dir/'jobs'/previous
+         job=json.loads((directory/'request.json').read_text())
+         try:
+-            runner.run(job,directory)
++            # Opt-in diagnostic job only. Formal AISBench requests never set
++            # profile_npu, so their execution path and metrics stay unchanged.
++            if job.get('profile_npu', False) and rank == 0:
++                with torch_npu.profiler.profile(
++                    activities=[torch_npu.profiler.ProfilerActivity.CPU,
++                                torch_npu.profiler.ProfilerActivity.NPU],
++                    record_shapes=True, profile_memory=False, with_stack=False,
++                    on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
++                        str(directory/'profile-rank0')),
++                ):
++                    runner.run(job,directory)
++            else:
++                runner.run(job,directory)
+         except Exception:
+             import traceback
+             (directory/f'error-rank{rank}.txt').write_text(traceback.format_exc())
+diff --git a/tests/test_ascend910c_cp.py b/tests/test_ascend910c_cp.py
+new file mode 100644
+index 0000000..980afd6
+--- /dev/null
++++ b/tests/test_ascend910c_cp.py
+@@ -0,0 +1,27 @@
++import unittest
++from deepinfer.npu_ops.cp910c import QuerySlice
++class Layout(unittest.TestCase):
++ def assert_layout(self,q,s,world):
++  rows=[QuerySlice.build(q,s,world,i) for i in range(world)]
++  global_positions=[p for n,end in zip(q,s) for p in range(end-n,end)]
++  for row in rows:
++   actual=[p for n,end in zip(row.query_lengths,row.seq_lengths) for p in range(end-n,end)]
++   self.assertEqual(actual,global_positions[row.start:row.end])
++  self.assertEqual(sum(sum(x.query_lengths) for x in rows),sum(q))
++  return rows
++ def test_wide(self):
++  rows=self.assert_layout([3328,3328,3200,3328],[32768]*4,8)
++  self.assertLessEqual(max(sum(x.query_lengths) for x in rows),1648)
++ def test_request_crossing(self):
++  rows=self.assert_layout([5,7,3],[17,30,9],3)
++  self.assertEqual(rows[2].request_indices,(1,2))
++  self.assertEqual(rows[2].seq_lengths,(30,9))
++ def test_partial_c2(self):
++  rows=self.assert_layout([7],[32769],4)
++  self.assertEqual([x.seq_lengths for x in rows],[(32764,),(32766,),(32768,),(32769,)])
++ def test_empty_ranks(self):
++  rows=self.assert_layout([1],[1],8)
++  self.assertEqual([len(x.query_lengths) for x in rows],[1,0,0,0,0,0,0,0])
++ def test_ragged_prefix(self):
++  self.assert_layout([4,1,9,2],[1025,29440,16385,3],8)
++unittest.main()

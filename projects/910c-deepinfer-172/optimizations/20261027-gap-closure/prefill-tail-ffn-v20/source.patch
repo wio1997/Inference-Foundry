@@ -1,0 +1,124 @@
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 5c885c1..b907323 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -43,6 +43,7 @@ class PackedForward:
+     query_batch: object | None = None
+     query_slots: list[int] | None = None
+     query_swa_table: object | None = None
++    tail_ffn_indices: dict | None = None
+ 
+ 
+ class AscendW8A8PackedLayer(AscendW8A8Layer):
+@@ -64,6 +65,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         self.context_parallel_calls = self.context_parallel_query_tokens = 0
+         self.kv_token_parallel = os.environ.get('DEEPINFER_910C_KV_TOKEN_PARALLEL') == '1'
+         self.kv_token_parallel_calls = 0
++        self.tail_ffn_calls = self.tail_ffn_tokens = self.tail_ffn_skipped = 0
+         if self.context_parallel:
+             self.cp_wq_b = reader.load_linear(self.prefix+'.attn.wq_b', device)
+             self.register_buffer('cp_attn_sink', self.attn_attn_sink.clone())
+@@ -108,7 +110,7 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+                 raise ValueError('fused MC2 prefill requires native MC2 communicator')
+             self.expert_bank.prepare_fused_mc2()
+ 
+-    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False,already_sharded=False):
++    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False,already_sharded=False,token_indices=None):
+         from deepinfer.npu_ops.moe910c import dispatch_combine,route
+         # Attention returns the same token batch on each TP rank. Dispatch
+         # each token once to global EP16, then restore the TP-replicated batch.
+@@ -118,6 +120,14 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         first=0 if already_sharded else rank*width
+         local=x[first:first+width]
+         routing=router_x[first:first+width]
++        if token_indices is not None:
++            if not already_sharded:
++                raise ValueError('tail FFN pruning requires sequence-parallel ownership')
++            local=local.index_select(0,token_indices)
++            routing=routing.index_select(0,token_indices)
++            self.tail_ffn_calls += 1
++            self.tail_ffn_tokens += local.shape[0]
++            self.tail_ffn_skipped += count-local.shape[0]
+         valid=local.shape[0]
+         if not valid:
+             local=x[:1];routing=router_x[:1]
+@@ -136,6 +146,12 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         shared=self.shared_expert(local)
+         output=(shared.float()+routed.float()*self.config['routed_scaling_factor']).bfloat16()
+         output=output[:valid]
++        if token_indices is not None:
++            # Only a suffix can influence the final logit after the last KV
++            # source. The discarded rows never feed a future valid SWA row.
++            restored=torch.zeros_like(x)
++            restored.index_copy_(0,token_indices,output)
++            return restored
+         if self.tp_size>1 and not already_sharded:
+             padded=x.new_zeros((width,x.shape[1]))
+             padded[:output.shape[0]].copy_(output)
+@@ -307,7 +323,9 @@ class AscendW8A8PackedLayer(AscendW8A8Layer):
+         ffn = self.packed_ffn(x,router_x,state.mc2_global_bs,
+             fused_mc2=(self.fused_mc2_prefill and state.decode_frame is None
+                        and state.mc2_global_bs>self.mc2.world),
+-            already_sharded=state.sequence_parallel)
++            already_sharded=state.sequence_parallel,
++            token_indices=(state.tail_ffn_indices.get(self.layer_id)
++                           if state.tail_ffn_indices is not None else None))
+         if self.fused_mhc:
+             return self._hc_post(ffn, after_attn, post, comb), next_pre.unsqueeze(-1)
+         return mhc.mhc_post(ffn, after_attn, post, comb), next_pre
+@@ -339,6 +357,10 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         self.sequence_parallel = (os.environ.get('DEEPINFER_910C_SEQUENCE_PARALLEL') == '1'
+                                   and tp_group is not None and dist.get_world_size(tp_group) > 1)
+         self.max_tokens, self.requests, self.chunk_size = max_tokens, requests, chunk_size
++        self.tail_ffn = os.environ.get('DEEPINFER_910C_TAIL_FFN') == '1'
++        self.tail_ffn_source = max(c['kv_source_layer_ids'])
++        if self.tail_ffn and any(i > self.tail_ffn_source for i in c.get('engram_layer_ids', [])):
++            raise ValueError('tail FFN pruning does not support downstream Engram')
+         progress = progress or (lambda event: None)
+         progress({'stage': 'embedding_and_head', 'backend': 'native-paged'})
+         self.register_buffer('embedding', reader.materialize('embed.weight', device))
+@@ -368,6 +390,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             layer.fused_o_proj_calls = 0
+             layer.context_parallel_calls = layer.context_parallel_query_tokens = 0
+             layer.kv_token_parallel_calls = 0
++            layer.tail_ffn_calls = layer.tail_ffn_tokens = layer.tail_ffn_skipped = 0
+             if layer.mc2 is not None:
+                 layer.mc2.fused_calls=0
+                 layer.mc2.fused_max_output_size=0
+@@ -430,6 +453,11 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'context_parallel_enabled': all(layer.context_parallel for layer in self.layers),
+                 'kv_token_parallel_enabled': all(layer.kv_token_parallel for layer in self.layers),
+                 'kv_token_parallel_calls': sum(layer.kv_token_parallel_calls for layer in self.layers),
++                'tail_ffn_enabled': self.tail_ffn,
++                'tail_ffn_source_layer': self.tail_ffn_source,
++                'tail_ffn_calls': sum(layer.tail_ffn_calls for layer in self.layers),
++                'tail_ffn_active_tokens': sum(layer.tail_ffn_tokens for layer in self.layers),
++                'tail_ffn_skipped_tokens': sum(layer.tail_ffn_skipped for layer in self.layers),
+                 'context_parallel_scope': 'cached-compressed-query-and-MLA',
+                 'context_parallel_swa_preserve_tp_heads': True,
+                 'context_parallel_requires_prefix_restore': True,
+@@ -498,6 +526,24 @@ class AscendW8A8PackedModel(torch.nn.Module):
+             if cp.query_lengths:
+                 state.query_batch = DSABatch.build(cp.query_lengths, cp.seq_lengths, self.device)
+                 state.query_swa_table = self.cache.swa[0].table(state.query_slots)
++        if self.tail_ffn and state.context_query is not None:
++            # Once the final long-KV source is written, later long attention
++            # reads fixed caches. Only SWA expands token dependence, by W-1
++            # per layer. After layer i the final query needs exactly the tail
++            # 1+(L-1-i)*(W-1). Its last128 input rows also retain every layer's
++            # exact SWA state for subsequent decode. Indexer sharing remains
++            # query-local and reads the unchanged full long-KV source.
++            cp=state.context_query
++            state.tail_ffn_indices={}
++            for i in range(self.tail_ffn_source,len(self.layers)):
++                required=1+(len(self.layers)-1-i)*(self.cfg['sliding_window']-1)
++                indices=[];offset=0
++                for q in batch.query_lengths:
++                    left=max(offset+max(0,q-required),cp.start)
++                    right=min(offset+q,cp.end)
++                    indices.extend(range(left-cp.start,max(left,right)-cp.start))
++                    offset+=q
++                state.tail_ffn_indices[i]=torch.tensor(indices,dtype=torch.int64,device=self.device)
+         ids = torch.tensor(flat_ids, dtype=torch.int64, device=self.device)
+         trunk = self.embedding.index_select(0, ids)[:, None].expand(-1, self.cfg['hc_mult'], -1).contiguous()
+         previous = torch.zeros((len(flat_ids), self.cfg['hc_mult'], 1), dtype=torch.float32, device=self.device)

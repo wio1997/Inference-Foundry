@@ -1,0 +1,100 @@
+diff --git a/deepinfer/engine/tokenization_cache.py b/deepinfer/engine/tokenization_cache.py
+new file mode 100644
+index 0000000..0fe2ad5
+--- /dev/null
++++ b/deepinfer/engine/tokenization_cache.py
+@@ -0,0 +1,45 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Bounded exact-text tokenization reuse for repeated serving requests.
++
++A cache instance owns one immutable tokenizer/encode configuration. Entries
++contain input IDs only, with no model state or generated text. Callers receive
++fresh lists so mutation cannot alter another request's input. Concurrent misses
++encode outside the lock; accounting remains correct if they race to insert.
++"""
++from collections import OrderedDict
++import threading
++
++
++class TokenizationCache:
++    def __init__(self, encode, *, token_budget=0, max_entries=64):
++        if token_budget < 0 or max_entries < 1:
++            raise ValueError('invalid tokenization cache capacity')
++        self.encode = encode
++        self.token_budget = token_budget
++        self.max_entries = max_entries
++        self.entries = OrderedDict()
++        self.tokens = 0
++        self.lock = threading.Lock()
++
++    def get(self, text):
++        if not self.token_budget:
++            return self.encode(text), False
++        with self.lock:
++            value = self.entries.get(text)
++            if value is not None:
++                self.entries.move_to_end(text)
++                return list(value), True
++        ids = self.encode(text)
++        if len(ids) > self.token_budget or len(text) > self.token_budget * 4:
++            return ids, False
++        value = tuple(ids)
++        with self.lock:
++            previous = self.entries.pop(text, None)
++            if previous is not None:
++                self.tokens -= len(previous)
++            self.entries[text] = value
++            self.tokens += len(value)
++            while self.tokens > self.token_budget or len(self.entries) > self.max_entries:
++                _, removed = self.entries.popitem(last=False)
++                self.tokens -= len(removed)
++        return ids, False
+diff --git a/examples/ascend910c_w8a8_api.py b/examples/ascend910c_w8a8_api.py
+index 678a8de..901c1a2 100644
+--- a/examples/ascend910c_w8a8_api.py
++++ b/examples/ascend910c_w8a8_api.py
+@@ -31,8 +31,11 @@ class Frontend:
+         self.tokenizer=get_tokenizer(args.model_dir,tokenizer_mode='deepseek_v41')
+         config=json.loads((Path(args.model_dir)/'config.json').read_text())
+         self.eos=config['eos_token_id']
++        from deepinfer.engine.tokenization_cache import TokenizationCache
++        self.token_cache=TokenizationCache(self.tokenizer.encode,token_budget=args.tokenizer_cache_tokens)
+         self.pending=queue.Queue()
+-        self.counts={'requests':0,'prompt_tokens':0,'cached_tokens':0,'output_tokens':0,'failed_requests':0}
++        self.counts={'requests':0,'prompt_tokens':0,'cached_tokens':0,'output_tokens':0,'failed_requests':0,
++                     'tokenizer_cache_hits':0,'tokenizer_cache_hit_tokens':0}
+         self.lock=threading.Lock()
+ 
+     def ready(self):
+@@ -117,6 +120,7 @@ def main():
+     p.add_argument('--host',default='127.0.0.1')
+     p.add_argument('--port',type=int,default=8172)
+     p.add_argument('--batch-wait-ms',type=int,default=500)
++    p.add_argument('--tokenizer-cache-tokens',type=int,default=0)
+     p.add_argument('--request-timeout',type=int,default=3600)
+     args=p.parse_args()
+     frontend=Frontend(args)
+@@ -155,8 +159,13 @@ def main():
+                 if body.get('temperature',0) not in (0,0.0):
+                     raise ValueError('native backend currently supports temperature=0')
+                 prompt=body['prompt']
++                tokenizer_hit=False
+                 if isinstance(prompt,str):
+-                    ids=frontend.tokenizer.encode(prompt)
++                    ids,tokenizer_hit=frontend.token_cache.get(prompt)
++                    if tokenizer_hit:
++                        with frontend.lock:
++                            frontend.counts['tokenizer_cache_hits']+=1
++                            frontend.counts['tokenizer_cache_hit_tokens']+=len(ids)
+                 elif isinstance(prompt,list) and all(type(i) is int for i in prompt):
+                     ids=prompt
+                 else:
+@@ -216,7 +225,7 @@ def main():
+                             self.send_json({'id':request.id,'object':'text_completion','created':created,'model':'dsv41',
+                                 'choices':[{'index':0,'text':decoded,'logprobs':None,'finish_reason':event['finish_reason']}],
+                                 'usage':usage})
+-                        audit={'id':request.id,'input_tokens':len(ids),'cached_tokens':hit,
++                        audit={'id':request.id,'tokenizer_cache_hit':tokenizer_hit,'input_tokens':len(ids),'cached_tokens':hit,
+                             'prompt_ids_sha256':hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest(),
+                             'generated_token_ids':generated,'text':decoded,'token_times':timings,'finish_reason':event['finish_reason']}
+                         with frontend.lock:

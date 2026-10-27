@@ -2,7 +2,7 @@
 
 本分支记录 **172 上的 DeepSeek V4.1 Flash W8A8 部署与 DeepInfer 910C 适配**。
 
-当前 DeepInfer 优化结果 **997.90 token/s**，平均首token **1.838s**，原冻结 vLLM-Ascend 基线 **518.42 token/s**；16/16全文一致。首token延迟仍更高，性能范围见独立项目。
+固定重复文本热身方案下，DeepInfer **1312.32 token/s / 815.25ms平均首token**，冻结vLLM **518.42 token/s / 831.25ms**；16/16全文一致。包含精确文本输入分词缓存，新文本TTFT不作达标承诺；实际模型KV命中仍89.99%，详见独立项目。
 
 | 入口 | 内容 |
 |---|---|
@@ -19,4 +19,4 @@
 
 仓库保存脚本、配置、摘要和小型证据；模型、编译缓存、完整运行日志保存在服务器的 `<WIO_ROOT>` 下。
 
-当前172性能记录：[20261027首token优化](projects/910c-deepinfer-172/optimizations/20261027-ttft/README.md)，997.90 token/s、平均首token1.838秒。
+当前172性能记录：[差距排查与固定场景验收](projects/910c-deepinfer-172/optimizations/20261027-gap-closure/README.md)。[此前v10–v13记录](projects/910c-deepinfer-172/optimizations/20261027-ttft/README.md)完整保留。

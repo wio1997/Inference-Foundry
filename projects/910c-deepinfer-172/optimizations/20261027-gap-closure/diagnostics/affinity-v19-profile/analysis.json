@@ -1,0 +1,28 @@
+{
+  "version": "prefill-affinity-v19",
+  "coverage": {
+    "SparseFlashMla": 40,
+    "DispatchFFNCombine": 40,
+    "context_alltoall": 38,
+    "reduce_scatter": 40,
+    "O_BF16_projection": 40
+  },
+  "summed_kernel_lifetimes_ms": {
+    "DispatchFFNCombine": 235.993,
+    "alltoallAicpuKernel": 175.53,
+    "reduce_scatterAicpuKernel": 102.933,
+    "SparseFlashMla": 53.413,
+    "QLI": 39.16,
+    "allgatherAicpuKernel": 35.731
+  },
+  "whole_trace_span_ms": 909.95075,
+  "caveat": "Kernel lifetimes overlap and cannot be added as exclusive TTFT. Trace includes post-first-token PromptLookup map construction and final global completion check:104.541ms gap after first-token broadcast is not TTFT. Profile is one diagnostic not performance score.",
+  "source_checks": {
+    "head_exchange": "Same restore_tp_heads all_to_all_single as frozen vLLM DSACP; cannot simply remove.",
+    "O_reduce_scatter": "Same SP layout as frozen V41.",
+    "MoE": "Frozen enable_fused_mc2=1 explicitly disables newer CANN MegaMoe and selects same dispatch_ffn_combine.",
+    "native_extra_capacity": "Native2048 padded M vs actual1632/1664; no unsafe receive-cap truncation attempted.",
+    "engram": "Native CPU mmap+E8M0 dequant+blockingH2D; vLLM registered host UVA, readiness events and auxiliary lookup pipeline.",
+    "rope": "Native per-call vector decomposition vs vLLM precomputed cos/sin and npu_rotary_mul."
+  }
+}

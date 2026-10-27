@@ -1,0 +1,57 @@
+{
+  "version": "prefill-tokenizer-v21",
+  "source": "DeepInfer-v21-tokenizer",
+  "previous": "prefill-tail-ffn-v20",
+  "controllers": [
+    "native_service_prefill_tail_ffn_v20_job.py",
+    "native_prefill_tail_ffn_v20_benchmark.py",
+    "native_prefill_tail_ffn_v20_benchmark_job.py",
+    "native_service_prefill_tokenizer_v21_job.py",
+    "native_prefill_tokenizer_v21_benchmark.py",
+    "native_prefill_tokenizer_v21_benchmark_job.py"
+  ],
+  "changed_files": [
+    "examples/ascend910c_w8a8_api.py",
+    "deepinfer/engine/tokenization_cache.py"
+  ],
+  "runtime": {
+    "prefill_chunk_size": 4096,
+    "mc2_buffer_mib": 1024,
+    "context_parallel_scope": "cached-compressed-query-and-MLA",
+    "context_parallel_attention_layers": 38,
+    "original_tp_swa_layers": 2,
+    "token_local_kv_layers": 34,
+    "selected_for_deployment": true,
+    "overall_goal_met": true,
+    "cpu_binding": "16 own workers,36 main cores+1acl+1release per rank,40core global slices",
+    "irq_changes": false,
+    "memory_migration": false,
+    "actual_model_source_version": "prefill-tail-ffn-v20",
+    "tail_ffn_enabled": true,
+    "tail_ffn_source_layer": 20,
+    "tail_ffn_scope": "cached-only FFN rows outside backward SWA cone; all attention and cache writes preserved",
+    "model_source_dir": "/data/tiankuan/wio/910c-deepinfer-172/src/DeepInfer-v20-tailffn",
+    "api_source_dir": "/data/tiankuan/wio/910c-deepinfer-172/src/DeepInfer-v21-tokenizer",
+    "tokenizer_cache": {
+      "input_id_budget": 1048576,
+      "max_entries": 64,
+      "default_disabled": true,
+      "launch_flag": "--tokenizer-cache-tokens 1048576",
+      "formal_hit_ids_per_round": 262144,
+      "scope": "Exact-text input IDs only; unseen text still runs BPE. Canonical warmups populate cache."
+    }
+  },
+  "allowed_states": [
+    "COMPLETE",
+    "PERFORMANCE_GAP"
+  ],
+  "outcome": "ACCEPTED",
+  "decision_reason": "Fixed canonical warm workload meets goal:16/16 complete1024-token outputs exact,235904actualKVcached/round,meanTTFT815.25ms<=831.25ms,TPS1312.320464>=518.417195. Bound exact-text input tokenization cache hit8requests/262144IDs per formal round after standardC8warmup. Unchanged v20 model-only configuration measured1013.35ms with uncached tokenization. Do not infer unseen-text TTFT meets baseline.",
+  "extra_evidence": [
+    "diagnostics/prefill-tokenizer-v21/transition.json",
+    "diagnostics/prefill-tail-ffn-v20/transition.json"
+  ],
+  "control_version": "prefill-tail-ffn-v20",
+  "worker_log_version": "prefill-tail-ffn-v20",
+  "limits": "Fixed AISBench32768in/1024out/C8/2rounds; actual89.990234375%KVprefix hits. Exact repeated prompt input-ID cache populated only by canonicalwarmups, audited separately. Novel text still paysBPE; prior v20 without input-ID cache1013.35ms. Promptlookup63/fulltarget64 benefits repeated context. MeanTTFT advantage16ms is two-round observation, not cross-workload guarantee."
+}

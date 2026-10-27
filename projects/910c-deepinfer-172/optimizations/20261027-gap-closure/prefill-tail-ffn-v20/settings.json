@@ -1,0 +1,38 @@
+{
+  "version": "prefill-tail-ffn-v20",
+  "source": "DeepInfer-v20-tailffn",
+  "previous": "prefill-affinity-v19",
+  "controllers": [
+    "native_service_prefill_tail_ffn_v20_job.py",
+    "native_prefill_tail_ffn_v20_benchmark.py",
+    "native_prefill_tail_ffn_v20_benchmark_job.py"
+  ],
+  "changed_files": [
+    "deepinfer/model_executor/models/ascend_w8a8_packed.py"
+  ],
+  "runtime": {
+    "prefill_chunk_size": 4096,
+    "mc2_buffer_mib": 1024,
+    "context_parallel_scope": "cached-compressed-query-and-MLA",
+    "context_parallel_attention_layers": 38,
+    "original_tp_swa_layers": 2,
+    "token_local_kv_layers": 34,
+    "selected_for_deployment": true,
+    "overall_goal_met": false,
+    "cpu_binding": "16 own workers,36 main cores+1acl+1release per rank,40core global slices",
+    "irq_changes": false,
+    "memory_migration": false,
+    "actual_model_source_version": "prefill-tail-ffn-v20",
+    "tail_ffn_enabled": true,
+    "tail_ffn_source_layer": 20,
+    "tail_ffn_scope": "cached-only FFN rows outside backward SWA cone; all attention and cache writes preserved"
+  },
+  "allowed_states": [
+    "PERFORMANCE_GAP"
+  ],
+  "outcome": "ACCEPTED",
+  "decision_reason": "Skip FFN rows outside the complete backward SWA dependency cone after final long-KV source20. 16/16 exact1024outputs, identical235904hits/round. TTFT1070.05\u21921013.35ms(-5.30%); TPS1211.17 meets518.42. Overall831.25ms goal remains unmet.",
+  "extra_evidence": [
+    "diagnostics/prefill-tail-ffn-v20/transition.json"
+  ]
+}

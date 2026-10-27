@@ -1,0 +1,25 @@
+{
+  "version": "prefill-cp-v14",
+  "parent": "prefill-wide-v12",
+  "goal_status": "active",
+  "mechanism": "Shard full-head attention queries and QLI over TP token slices; replicate global KV/cache/compressor; exchange query heads before existing TP O-projection.",
+  "evidence": "Pinned V4.1 AscendDSAV41CPImpl performs local Q/indexer plus global KV, then restore_tp_heads all-to-all. v12 repeats full QLI 8 times.",
+  "variables": [
+    "CP query ownership",
+    "full-head wq_b for prefill",
+    "TP head all-to-all"
+  ],
+  "fixed": [
+    "all weights including Engram",
+    "DP2 TP8 EP16",
+    "chunk4096",
+    "MC2 window1024MiB",
+    "MoE fused path",
+    "verification graph",
+    "AISBench32768/1024/C8/2rounds/235904cachehits"
+  ],
+  "prediction": "Per rank prefill QLI work and query-A rows reduced approximately8x; attention arithmetic same, additional head all-to-all. TTFT should decrease if replicated indexer is material.",
+  "acceptance": "16/16 full outputs frozen-vLLM exact, actualcache235904 each, TPS>=518.4171948453181, TTFT improved vs1838.35ms. Overall goal only if TTFT<=831.25ms.",
+  "rollback": "Stop only CP owned service and restore frozen v12; never overwrite accepted sources or artifacts.",
+  "budget": "one required warmup and two formal rounds; no broad parameter sweep"
+}

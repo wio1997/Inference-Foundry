@@ -1,9 +1,10 @@
 # 172 · DeepInfer / DeepSeek V4.1 Flash W8A8
 
-**当前优化：997.90 token/s，平均首token1.838秒。**
-相对本轮起点v9c，首token下降57.40%，吞吐提升35.22%；16/16完整输出一致。
-本轮各版本、原始证据、配置与增量补丁见[20261027首token优化记录](optimizations/20261027-ttft/README.md)。
-首token仍慢于冻结vLLM；全部历史基线保留。
+**固定重复文本热身方案：815.25ms平均首token、1312.32token/s，16/16完整输出一致。** 冻结vLLM为831.25ms/518.42token/s。
+
+结果包含额外的输入分词LRU缓存；实际模型KV命中仍为89.990234375%。无此输入缓存的v20为1013.35ms，首次新文本仍付BPE成本；不能把815ms外推到新文本或任意负载。两轮平均领先16ms，见[差距排查/源码/原始结果](optimizations/20261027-gap-closure/README.md)。
+
+当前真实模型worker为v20，HTTP为v21；当前记录优先于下方v8/v12历史现场。[实际配置](optimizations/20261027-gap-closure/runtime.json) · [状态](STATUS.json) · [上一轮v10–v13](optimizations/20261027-ttft/README.md)。
 
 ## v8 冻结结果（此前版本）
 
@@ -42,9 +43,9 @@ C1/C2压缩、索引/MLA、物理SWA页缓存、跨两DP副本调度、前缀快
 
 - 目标仅172，`172.16.10.172`；监听`127.0.0.1:8172`，model=`dsv41`。
 - 项目：`/data/tiankuan/wio/910c-deepinfer-172`；权重：`/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8`，只读。
-- 当前native控制目录：`serving/prefill-wide-v12`；服务冻结时健康，保留运行。
+- 当前native控制目录：`serving/prefill-tail-ffn-v20`（worker v20 / API v21）；服务冻结时健康，保留运行。
 - 原`wio-dsv41-vllm-s172`已停止但保留，原基线数据/配置未覆盖。
-- [当前运行配置](optimizations/20261027-ttft/prefill-wide-v12/config/runtime.json)、[当前结果](optimizations/20261027-ttft/prefill-wide-v12/results/comparison.json)、[v8冻结配置](config/runtime.json)、[状态](STATUS.json)。
+- [当前运行配置](optimizations/20261027-gap-closure/runtime.json)、[当前结果](optimizations/20261027-gap-closure/current-result.json)、[v8冻结配置](config/runtime.json)、[状态](STATUS.json)。
 - [v8复现与恢复](REPRODUCE.md)、[源码引用](source/refs.json)、[源码补丁](source/deepinfer-910c-w8a8.patch)。
 - [原始证据包与SHA](evidence/archives.json)、[失败记录](FAILURES.md)、[独立源码状态说明](source/ascend910c-status.md)。
 
