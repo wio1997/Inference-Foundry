@@ -1,6 +1,6 @@
 # Qwen27 昇腾双框架对比地图：公开研究归档
 
-**先看：[从请求输入到全部输出的分解对比](REQUEST_FLOW_COMPARISON.md)** · [专门的交互分解页](request-flow/index.html) · [全部请求明细](request-flow/formal-requests.csv)。按 13 个阶段并排展示组件、机制、精确源码及已测时间；交互页可选单请求、诊断 RID 和设备窗口。
+**先下载：[面向读者的中文详解报告](request-flow/report.html)** · [GitHub直接阅读版](REQUEST_FLOW_COMPARISON.md) · [全部请求明细](request-flow/formal-requests.csv)。HTML为11章中文解读，将调度字段、图大小和算子记录转成流程说明、时间线及对比表；不再直接展示原始JSON。原 `request-flow/index.html` 入口也已替换为同一阅读版。
 
 这是 2026-10-28 导出的研究快照，比较同一实际 Qwen27 W8A8 checkpoint 在 vLLM Ascend 与 SGLang Ascend 两套冻结部署中的表现。**地图与数据已经产出，完整机制验收仍未通过；本目录不是 Foundry 当前任务的 KEEP、优化采用或性能目标达成记录。**
 
@@ -9,7 +9,7 @@
 | 内容 | 入口 | 范围 |
 |---|---|---|
 | 逐请求流程分解 | [直接阅读](REQUEST_FLOW_COMPARISON.md)、[交互页](request-flow/index.html) | 13 阶段组件比较、1,344 条正式请求、262 个诊断步、500 个算子窗口、原生阶段子集与 EOF 链路；缺测单列 |
-| 交互地图 | [map/index.html](map/index.html) | 性能、请求时间线、流程、源码机制、通信、消融、18 个候选方向、Strata/DeepInfer 可借鉴机制；原生事件明细入口关闭 |
+| 原始技术快照 | [map/index.html](map/index.html) | 历史证据浏览器，保留原字节，含原始字段；阅读详解请用上方新版报告。原生事件明细入口关闭 |
 | 完整文字报告 | [research/README.md](research/README.md) | 28 场景数据、消融、波动及适用边界；保留原研究的历史状态说明 |
 | 采样与输出谱系 | [采样契约](research/SAMPLING_CONTRACT.md)、[输出谱系](research/SG_OUTPUT_LINEAGE.md) | 区分协议有效、argmax 路径、token 谱系和输出质量 |
 | 诊断与地图代码 | [research/CODE.md](research/CODE.md)、[research/scripts/](research/scripts/) | 观察器、身份审计、后处理和地图构建代码；不是新推理优化 |
@@ -17,7 +17,7 @@
 | 公开副本的逐文件校验 | [PUBLIC_EXPORT_MANIFEST.json](PUBLIC_EXPORT_MANIFEST.json) | 每文件公开 SHA、原始内容 SHA、变换状态、数字保留检查 |
 | 导出与完整性工具 | [tools/](tools/) | 可复核公开文件、内嵌 CPU 分片、JSON 与 JavaScript 语法 |
 
-先下载或克隆本目录，在本地打开 `map/index.html`。地图内嵌核心数据及 CPU lifecycle 分片；需要浏览器支持 gzip `DecompressionStream` 和 Web Crypto。也可在本目录运行 `python3 -m http.server 8000`，访问本地 `/map/`。GitHub 文件页本身不执行交互 HTML。
+阅读报告请下载后打开 `request-flow/report.html`，核心图表数据全部内嵌，不需要本地服务器或网络。`map/index.html` 作为原始技术快照保留，需要支持 gzip `DecompressionStream` 和 Web Crypto；不要把它当作新版阅读报告。GitHub 文件页本身不执行交互 HTML。
 
 ## 原理与已观察到的差异
 

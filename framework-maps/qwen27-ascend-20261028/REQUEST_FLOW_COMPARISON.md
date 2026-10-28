@@ -1,6 +1,6 @@
 # 一个请求从输入到全部解码结束：vLLM Ascend / SGLang Ascend 分解对比
 
-**这是直接可读的流程分解入口。** [交互分解地图](request-flow/index.html) · [1344条正式请求CSV](request-flow/formal-requests.csv) · [结构化证据](request-flow/data.json)
+**这是GitHub直接可读的流程分解入口。** [新版中文详解HTML](request-flow/report.html) · [1344条正式请求CSV](request-flow/formal-requests.csv) · [结构化证据](request-flow/data.json)。HTML已重写为11章阅读报告；图和调度字段转换为中文，原始JSON不直接充当正文。
 
 交互页可按输入长度、并发、重复轮次和请求序号比较两框架；也可选诊断RID，查看它实际经历的prefill/mixed/decode步、chunk与graph。下载目录后打开HTML，或从本地HTTP服务访问；GitHub源码页不执行HTML。
 
@@ -159,7 +159,7 @@ SG每rank2686节点、260信号门、130collective；vLLM每rank3250节点、256
 
 [结构化数据](request-flow/data.json)保存32张机制卡的冻结源码、commit/行号/SHA、正式请求、500个profile窗口类别、诊断步表、阶段区间及逐边输出链路。来源文件指纹见[source-manifest.json](request-flow/source-manifest.json)。本公开副本移除私有定位；原生完整trace不入Git。
 
-本次没有运行新模型、NPU压测或新浏览器验收。校验器检查计数、请求分解恒等式、两端配对、diag阶段映射和HTML/JSON一致性。
+没有运行新模型或NPU压测。新版HTML已在本地Chromium离线检查1440/768/390宽度，遍历672组请求配对和500个profile窗口；检查结果见[浏览器检查收据](request-flow/human-browser-qa.json)。数据校验器继续检查计数、请求分解恒等式、两端配对、diag阶段映射和页面嵌入数据一致性。这些是呈现与数据检查，不是新性能收益验收。
 
 
 ## 9. 逐组件的精确源码入口

@@ -19,8 +19,13 @@ def close(a, b):
 def main():
     d = json.loads((HERE / 'data.json').read_text())
     html = (HERE / 'index.html').read_text()
-    embedded = re.search(r'<script id="flow-data" type="application/json">(.*?)</script>', html, re.S).group(1)
-    assert json.loads(embedded) == d
+    embedded = re.search(r'<script id="report-data" type="application/json">(.*?)</script>', html, re.S).group(1)
+    readable = json.loads(embedded)
+    assert readable['requests'] == d['requests']
+    assert readable['steps'] == d['diagnostic_steps']
+    assert readable['summaries'] == d['summaries']
+    assert readable['profiles'] == [{k:p[k] for k in ['framework','n','c','rank','phase','window_label','operator_categories','communication_by_family']} for p in d['profiles']]
+    assert html == (HERE / 'report.html').read_text()
     requests = d['requests']
     assert len(requests) == 1344 and len(d['components']) == 13
     assert len(d['profiles']) == 500 and len(d['diagnostic_steps']) == 262
@@ -89,7 +94,7 @@ def main():
                    paired_request_positions=672, components=13, profile_windows=500,
                    diagnostic_steps=262, decode_windows=8, phase_subsets=5,
                    data_sha256=hashlib.sha256((HERE / 'data.json').read_bytes()).hexdigest(),
-                   javascript_syntax='passed', browser_validation='not_run',
+                   javascript_syntax='passed', browser_validation='see human-browser-qa.json',
                    performance_acceptance='not_evaluated_by_this_checker')
     print(json.dumps(receipt, ensure_ascii=False, indent=2))
 
