@@ -1,13 +1,8 @@
-# DSpark current scope — 2026-10-27 correction
+# 172 官方 DSpark 当前状态
 
-- 用户明确要求官方 DSpark：学习式草稿、目标验证及置信度调度；提示查找不能替代。此前提示查找实验的完成结论撤回。
-- 当前按用户条件PAUSED：172有外部训练占用；固定5指定两轮通过，变长调度未最终验收。旧文本中的“当前”“完成”“不再测试”仅对应历史提示查找实验，不约束新获授权的 DSpark 工作。
-- 本次仅172，16逻辑设备，DP2 TP8 EP16。所有模型、配置、日志、缓存和证据放在 /data/tiankuan/wio。
-- 简单机械工作交给本机 ZCode 配置的 DeepSeek；主控负责复杂设计、修改与独立验收。不向170发送消息，不停止其他任务。
-- 仅本次172 DeepInfer privileged 容器已明确授权；权重和驱动只读，仅Engram CPU卸载，主干CPU prefetch关闭。
-- 冻结 vLLM 与旧实验数据不覆盖；历史目录内的现场描述仅适用于其对应版本。
-- 认证仅从当前Mac钥匙串直接送入SSH，不打印、不落盘、不提交凭证。公共网站用API/HTTP/Web Search，不打开浏览器。
-- 同一AISBench 32768输入/1024输出/C8/两轮/89.990234%真实KV命中；校验16个完整输出，报告真实接受输出TPS及TTFT。
-- 不把模型加载、接口就绪、置信头执行或正确性通过等同于性能达标。当前状态见STATUS及optimizations/20261027-dspark。
-
-- 当前无本项目NPU服务。候选14只准备未启动；恢复先确认172无外部占用，不停止他人任务，不盲目重跑依赖已退出worker的旧transition。源码、数据和恢复点见STATUS及optimizations/20261027-dspark。
+- 指定贪心32K/1K/C8两轮：置信度调度版v15正确且达冻结vLLM吞吐/TTFT门槛，16完整输出一致；结果仅限该负载，不宣称稳定或通用领先。当前资料见projects/910c-deepinfer-172/STATUS.json及optimizations/20261028-dspark。
+- 当前172服务已按用户要求恢复，16逻辑设备DP2TP8EP16；保留现场服务和冻结结果，不为交付额外重跑或重启。旧目录现场描述仅对应旧版本。
+- 必须保持学习式草稿、完整目标验证和官方置信度策略；提示查找不能替代。此前promptlookup63/verify64完成结论撤回，历史数据不删除。
+- 所有远端项目数据仅在/data/tiankuan/wio；目标仅172。冻结vLLM、旧实验和旧优化目录不覆盖；不停止外部任务，不发送170消息。
+- 简单执行交给本机ZCode配置的DeepSeek；主控负责设计、实现和独立验收。本次172 DeepInfer既有privileged授权保留；权重与驱动只读，只有Engram CPU卸载、主干prefetch关闭。
+- 凭证只由当前Mac钥匙串直接送入SSH，不打印、不落盘或提交；公共网站使用HTTP/API/Web Search，不使用浏览器。

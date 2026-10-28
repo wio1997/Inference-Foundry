@@ -1,0 +1,150 @@
+diff --git a/deepinfer/engine/dspark910c.py b/deepinfer/engine/dspark910c.py
+index e2f376f..fd2cea3 100644
+--- a/deepinfer/engine/dspark910c.py
++++ b/deepinfer/engine/dspark910c.py
+@@ -12,9 +12,15 @@ import os
+ 
+ def target_tokens(runner,logits):
+     shape=logits.shape[:-1]
+-    result=logits.argmax(-1).long() if runner.tp_rank==0 else torch.empty(
+-        shape,dtype=torch.int64,device=runner.model.device)
+-    dist.broadcast(result,runner.root,group=runner.tp_group)
++    if (runner.model.target_vocab_parallel and
++            logits.shape[-1]==runner.model.target_vocab_width):
++        from deepinfer.npu_ops.greedy910c import global_argmax
++        result=global_argmax(logits,runner.tp_group,runner.model.cfg['vocab_size'])
++        runner.model.target_vocab_top1_calls+=1
++    else:
++        result=logits.argmax(-1).long() if runner.tp_rank==0 else torch.empty(
++            shape,dtype=torch.int64,device=runner.model.device)
++        dist.broadcast(result,runner.root,group=runner.tp_group)
+     return result.cpu().tolist()
+ 
+ 
+diff --git a/deepinfer/engine/dspark_graphs910c.py b/deepinfer/engine/dspark_graphs910c.py
+index 951bfca..f457678 100644
+--- a/deepinfer/engine/dspark_graphs910c.py
++++ b/deepinfer/engine/dspark_graphs910c.py
+@@ -86,7 +86,8 @@ class DSparkTargetGraphs:
+             frame.forward_event_timing=False
+             sample=[row[:n] for row,n in zip(chunks,lengths)]
+             logits=frame.step(sample)
+-            predicted=logits[:sum(lengths)].argmax(-1).cpu().tolist()
++            from deepinfer.npu_ops.greedy910c import global_argmax
++            predicted=global_argmax(logits[:sum(lengths)],model.tp_group,model.cfg['vocab_size']).cpu().tolist()
+             offset=0;rows=[]
+             for length in lengths:
+                 rows.append(predicted[offset:offset+length]);offset+=length
+diff --git a/deepinfer/model_executor/models/ascend_w8a8_packed.py b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+index 19b7362..3026b55 100644
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -373,6 +373,17 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         progress({'stage': 'embedding_and_head', 'backend': 'native-paged'})
+         self.register_buffer('embedding', reader.materialize('embed.weight', device))
+         self.register_buffer('head', reader.materialize('head.weight', device))
++        self.tp_group=tp_group
++        self.target_vocab_parallel=(os.environ.get('DEEPINFER_910C_TARGET_VOCAB_PARALLEL')=='1'
++                                    and tp_group is not None and dist.get_world_size(tp_group)>1)
++        size=dist.get_world_size(tp_group) if self.target_vocab_parallel else 1
++        rank=dist.get_rank(tp_group) if self.target_vocab_parallel else 0
++        if c['vocab_size']%size:raise ValueError('target vocabulary must divide TP')
++        self.target_vocab_width=c['vocab_size']//size
++        self.target_vocab_start=rank*self.target_vocab_width
++        # A view retains the proven full head for prefill/ordinary AR. Only
++        # verification reads a1/TP vocabulary slice, avoiding repeated logits.
++        self.register_buffer('target_head',self.head.narrow(0,self.target_vocab_start,self.target_vocab_width))
+         self.register_buffer('norm', reader.tensor('norm.weight')[0].to(device))
+         history = CpuEngramHistory(reader) if c.get('engram_layer_ids') else None
+         self.histories = [copy.copy(history) for _ in range(requests)] if history else []
+@@ -418,6 +429,7 @@ class AscendW8A8PackedModel(torch.nn.Module):
+         self.prefill_padding_forwards=0
+         self.prefill_padding_tokens=0
+         self.prefill_wall_components={}
++        self.target_vocab_top1_calls=0
+         self.prompt_lookup_stats={}
+         self.dspark_stats={}
+         if self.dspark is not None:
+@@ -508,6 +520,10 @@ class AscendW8A8PackedModel(torch.nn.Module):
+                 'verification_graph_captures': self._verify_graph.captures if getattr(self,'_verify_graph',None) is not None else 0,
+                 'verification_graph_replays': self._verify_graph.replays if getattr(self,'_verify_graph',None) is not None else 0,
+                 'verification_host_staging_seconds': self._verify_graph.staging_seconds if getattr(self,'_verify_graph',None) is not None else 0.,
++                'target_vocab_parallel_enabled':self.target_vocab_parallel,
++                'target_vocab_shard_width':self.target_vocab_width,
++                'target_vocab_total_size':self.cfg['vocab_size'],
++                'target_vocab_parallel_top1_calls':self.target_vocab_top1_calls,
+                 'prompt_lookup':self.prompt_lookup_stats,
+                 'dspark':self.dspark_stats,
+                 'dspark_varlen_graph_replays':({str(k):v.replays for k,v in self.dspark_graphs.frames.items()}
+diff --git a/deepinfer/model_executor/models/dspark_varlen910c.py b/deepinfer/model_executor/models/dspark_varlen910c.py
+index e92bec2..143b702 100644
+--- a/deepinfer/model_executor/models/dspark_varlen910c.py
++++ b/deepinfer/model_executor/models/dspark_varlen910c.py
+@@ -115,7 +115,7 @@ class DSparkVarlenGraph(NativeDecodeGraph):
+         model.dspark.update_main(features,self.positions,self.query_requests)
+         hidden=(trunk.float()*previous).sum(-2).bfloat16()
+         hidden=rms_norm_mixed(hidden,model.norm,model.cfg['rms_norm_eps'])[0]
+-        return F.linear(hidden,model.head).float()
++        return F.linear(hidden,model.target_head).float()
+ 
+     @torch.inference_mode()
+     def step(self,chunks):
+diff --git a/deepinfer/model_executor/models/w8a8_graph910c.py b/deepinfer/model_executor/models/w8a8_graph910c.py
+index f2939d3..f9b0922 100644
+--- a/deepinfer/model_executor/models/w8a8_graph910c.py
++++ b/deepinfer/model_executor/models/w8a8_graph910c.py
+@@ -153,7 +153,8 @@ class NativeDecodeGraph:
+             model.dspark.update_main(draft_features,positions,self.query_requests)
+         hidden=(trunk.float()*previous).sum(-2).bfloat16()
+         hidden=rms_norm_mixed(hidden,model.norm,model.cfg['rms_norm_eps'])[0]
+-        return F.linear(hidden,model.head).float()
++        head=model.target_head if model.target_vocab_parallel and self.query_tokens>1 else model.head
++        return F.linear(hidden,head).float()
+ 
+     @torch.inference_mode()
+     def step(self,chunks):
+diff --git a/deepinfer/npu_ops/greedy910c.py b/deepinfer/npu_ops/greedy910c.py
+new file mode 100644
+index 0000000..211f454
+--- /dev/null
++++ b/deepinfer/npu_ops/greedy910c.py
+@@ -0,0 +1,25 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Exact greedy selection from ordered TP vocabulary shards on910C."""
++import torch
++import torch.distributed as dist
++
++
++def global_argmax(logits,group,vocabulary):
++    """Gather only each shard's top score/ID, keeping lowest-ID tie breaks.
++
++    FP32 represents these vocabulary IDs exactly. Every rank in one TP group
++    receives the same result; no complete logits gather or target replay.
++    """
++    if logits.shape[-1]==vocabulary:return logits.argmax(-1).long()
++    size=dist.get_world_size(group)
++    if vocabulary%size or not 0<vocabulary<2**24 or logits.shape[-1]!=vocabulary//size:
++        raise ValueError('target logits must contain one complete ordered vocabulary shard')
++    shape=logits.shape[:-1]
++    values,ids=logits.reshape(-1,logits.shape[-1]).max(-1)
++    local=torch.stack((values.float(),ids.float()+dist.get_rank(group)*(vocabulary//size)),-1)
++    gathered=local.new_empty((size*local.shape[0],2))
++    dist.all_gather_into_tensor(gathered,local.contiguous(),group=group)
++    gathered=gathered.reshape(size,local.shape[0],2)
++    winner=gathered[:,:,0].argmax(0)
++    rows=torch.arange(local.shape[0],device=logits.device)
++    return gathered[winner,rows,1].long().reshape(shape)
+diff --git a/examples/ascend910c_w8a8_worker.py b/examples/ascend910c_w8a8_worker.py
+index 75f4fc6..c35bc99 100644
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -45,6 +45,9 @@ def main():
+         runner.initialize_dspark_graphs()
+     dist.barrier()
+     (args.control_dir/f'ready-rank{rank}.json').write_text(json.dumps({'rank':rank,'state':'READY',
++        'target_vocab_parallel':runner.model.target_vocab_parallel,
++        'target_vocab_start':runner.model.target_vocab_start,
++        'target_vocab_width':runner.model.target_vocab_width,
+         'dspark_graphs_initialized':bool(runner.model.dspark is not None and
+             getattr(runner.model,'_verify_graph',None) is not None and runner.model.dspark.graphs)}))
+     previous=None

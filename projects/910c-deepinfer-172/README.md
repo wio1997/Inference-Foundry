@@ -1,8 +1,8 @@
 # 172 · DeepInfer / DeepSeek-V4.1-Flash W8A8
 
-**真实DSpark固定5：521.59 token/s、平均首token795.65ms，16/16完整输出一致。** 对照冻结vLLM518.42/831.25ms，吞吐仅领先0.61%，只代表指定两轮热文本负载。172当前被他人训练占用，按用户条件暂停；置信度变长路径仍待最终验收，当前无本项目NPU服务。
+**官方 DSpark 置信度调度版 v15：521.07 token/s，平均首 token 805.65 ms，16/16 完整输出与冻结 vLLM 一致。** 对照 vLLM 518.42 token/s、831.25 ms；指定两轮吞吐高 0.51%。
 
-此前提示查找63＋验证64的完成结论撤回。现在使用学习式DSpark三层草稿、Markov/置信头及完整目标验证。[官方DSpark源码、数据与恢复点](optimizations/20261027-dspark/README.md) · [状态](STATUS.json)。下方仅是历史提示查找实验。
+[最终DSpark源码、配置与结果](optimizations/20261028-dspark/README.md) · [当前状态](STATUS.json)。下方仅为历史提示查找实验，其完成结论不能代表官方DSpark适配。
 
 ## 历史提示查找 v8 冻结结果
 

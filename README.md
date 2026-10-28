@@ -2,7 +2,7 @@
 
 本分支记录 **172 上的 DeepSeek V4.1 Flash W8A8 部署与 DeepInfer 910C 适配**。
 
-**真实DSpark固定5：521.59 token/s、平均首token795.65ms，16/16完整输出一致。** 对照冻结vLLM518.42/831.25ms，吞吐仅领先0.61%，只代表指定两轮热文本负载。172当前被他人训练占用，按用户条件暂停；置信度变长路径仍待最终验收，当前无本项目NPU服务。 此前提示查找实验的完成结论已撤回，见[官方DSpark进度](projects/910c-deepinfer-172/optimizations/20261027-dspark/README.md)。
+**官方 DSpark 置信度调度版 v15：521.07 token/s，平均首 token 805.65 ms，16/16 完整输出与冻结 vLLM 一致。** 对照 vLLM 518.42 token/s、831.25 ms；指定两轮吞吐高 0.51%。 见[最终DSpark结果](projects/910c-deepinfer-172/optimizations/20261028-dspark/README.md)。服务已按用户要求恢复，旧实验完成结论已撤回。
 
 | 入口 | 内容 |
 |---|---|
