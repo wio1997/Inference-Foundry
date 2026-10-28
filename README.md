@@ -1,4 +1,7 @@
 # Inference-Foundry
+
+**Qwen27 两框架逐请求对比：[组件、流程、机制、源码与实测耗时分解](framework-maps/qwen27-ascend-20261028/REQUEST_FLOW_COMPARISON.md)。** 含 1,344 条请求端点、逐步 chunk/graph、算子通信窗口及输出至 EOF 的诊断链路；未采全的内部时间明确标示。
+
 ## 框架对比研究归档
 
 | 归档 | 内容 | 状态 |
