@@ -76,6 +76,22 @@
 
 独立核对文件为 `fair-comparison-20261028/completion/engram-fetch-ab3-20261029/independent-engram-review-20261029.json`，SHA256 为 `53e3bdc63399599ba37b3d15419ee645bd5b01ce0ecb9aca9c08092d6894c6a8`。设备缓存张量未逐项比较，其他并发、填充、EOS 和缓存状态尚未验收。
 
+## DSpark 设备侧状态接续
+
+在固定 4 × 6、greedy、忽略 EOS 的验证请求中，以保留的 CPU 状态为参考，逐步检查设备侧位置、剩余长度、golden token、Engram 历史尾部和 C2 状态。设备构造的目标 token 输入经相等检查后进入目标图；设备构造的 Engram 原始窗口经相等检查后进入设备哈希。CPU 仍负责请求状态和提交。
+
+| 检查项 | 结果 |
+|---|---|
+| 设备状态连续接续 | 16 个 rank 各通过 7 轮 |
+| 目标图输入及 Engram 窗口 | 16 个 rank 各通过 7 轮实际消费检查 |
+| C2 source 2、8、14 | 每 rank、每 source 比较 15 或 20 个有效槽的 value 和 gate 位模式 |
+| 输出 | 8 条请求各 32 个 token，与保留的 B 参考逐 token 一致 |
+| 缓存 | 235904 / 262144 token |
+
+该诊断每轮执行 CPU 对照和同步，不能作为性能结果，也不代表完整 ZOS 已接入。变长图、请求重映射、EOS、设备侧状态提交和异步调度仍待验证；B 参考原始输出在先前审计中未单独固定哈希，本次对照对象为保留文件。
+
+独立核对文件为 `diagnostics/fixed24-engram-window-ipc-20261029/independent-engram-window-review-20261029.json`，SHA256 为 `f6266a13bfee0e1cc0d3e88fcde342d2242ae399a2c1596cf6d86c5bf0ebe49e`。
+
 ## 边界与后续工作
 
 压缩候选的第 20 层记录包含主机排队和异步等待，不能将其当作设备算子独占耗时。后续应继续减少并验证边界重排、索引重分配及设备状态接续的开销；任何候选均须保留完整输出、实际缓存命中及 TTFT、TPOT、吞吐的逐项对照。vLLM Ascend 用作最终同期对照，不作为整体替换目标。
