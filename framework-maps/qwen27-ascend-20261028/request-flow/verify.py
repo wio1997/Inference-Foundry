@@ -75,6 +75,24 @@ def main():
     assert manifest['sources'] == d['sources'] and len(d['sources']) == 16
     for source in d['sources']:
         assert re.fullmatch('[0-9a-f]{64}', source['sha256'])
+    gap = json.loads((HERE / 'gap-analysis.json').read_text())
+    baseline_file = HERE.parent / 'map/combined-map.json'
+    assert gap['source_data_sha256'] == hashlib.sha256(baseline_file.read_bytes()).hexdigest()
+    baseline = json.loads(baseline_file.read_text())
+    scenes = {(x['framework'], x['n'], x['c']): x for x in baseline['baseline']['bench_scenes'] if x['phase'] == 'formal'}
+    assert len(gap['rows']) == 28
+    assert len({(x['input_tokens'], x['concurrency']) for x in gap['rows']}) == 28
+    for row in gap['rows']:
+        v = scenes['vllm', row['input_tokens'], row['concurrency']]['metrics']['output_tps']['median']
+        s = scenes['sglang', row['input_tokens'], row['concurrency']]['metrics']['output_tps']['median']
+        close(row['vllm_output_tps'], v)
+        close(row['sglang_output_tps'], s)
+        close(row['sglang_over_vllm'], s/v)
+    ratios = [x['sglang_over_vllm'] for x in gap['rows']]
+    for label, value in [('min', min(ratios)), ('median', statistics.median(ratios)), ('max', max(ratios))]:
+        close(gap['ratio_summary'][label], value)
+    assert gap['ratio_summary']['scenes_below_60_percent'] == 0
+    assert gap['remaining_root_cause_closed'] is False
     for component in d['components']:
         for source in component['sources']:
             if source['url']:
@@ -94,6 +112,7 @@ def main():
                    paired_request_positions=672, components=13, profile_windows=500,
                    diagnostic_steps=262, decode_windows=8, phase_subsets=5,
                    data_sha256=hashlib.sha256((HERE / 'data.json').read_bytes()).hexdigest(),
+                   throughput_ratio_sglang_over_vllm=gap['ratio_summary'],
                    javascript_syntax='passed', browser_validation='see human-browser-qa.json',
                    performance_acceptance='not_evaluated_by_this_checker')
     print(json.dumps(receipt, ensure_ascii=False, indent=2))

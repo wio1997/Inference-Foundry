@@ -2,6 +2,8 @@
 
 **这是GitHub直接可读的流程分解入口。** [新版中文详解HTML](request-flow/report.html) · [1344条正式请求CSV](request-flow/formal-requests.csv) · [结构化证据](request-flow/data.json)。HTML已重写为11章阅读报告；图和调度字段转换为中文，原始JSON不直接充当正文。
 
+**吞吐差距核对：**正式28场景中，SGLang是vLLM的89.1%～99.1%，场景比值中位数93.0%，没有“一半吞吐”的正式场景。[逐场景复算](request-flow/gap-analysis.json)来自三轮吞吐中位数之比。修复前native mixed attention曾把1行decode Q扩到约13万行；同131072/C5/out1024单波链1127.198→257.210→114.538→116.620秒支持该路径的大量无效工作。正式矩阵已启用FIA。修复后剩余差距优先调查metadata/图更新/发射与同步依赖，但完整关键路径、同环境干预及其归因比例仍未闭合。详解HTML第一章已分开说明历史根因和当前未知。
+
 交互页可按输入长度、并发、重复轮次和请求序号比较两框架；也可选诊断RID，查看它实际经历的prefill/mixed/decode步、chunk与graph。下载目录后打开HTML，或从本地HTTP服务访问；GitHub源码页不执行HTML。
 
 正式矩阵：aarch64、8×910B1分两组TP4、同实际Qwen27 W8A8 checkpoint、7长度×4并发×2框架×N3=168波/1344请求，输出1024。vLLM CANN9.2、SGLang CANN9.0且卡组固定；冻结组合比较，不作纯框架归因。

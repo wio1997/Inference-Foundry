@@ -3,6 +3,7 @@ from pathlib import Path
 from html import escape as esc
 import hashlib
 import json
+import statistics
 
 U = Path(__file__).resolve().parent
 ROOT = U.parent
@@ -31,6 +32,20 @@ def build():
     tpot_v = sum(s['vllm']['endpoint_tpot_ms'] < s['sglang']['endpoint_tpot_ms'] for s in F['summaries'])
     tps_v = sum(scene_index['vllm',s['n'],s['c']]['metrics']['output_tps']['median'] > scene_index['sglang',s['n'],s['c']]['metrics']['output_tps']['median'] for s in F['summaries'])
     assert (ttft_sg,tpot_v,tps_v)==(18,28,28)
+    ratios=[]
+    for x in F['summaries']:
+        v=scene_index['vllm',x['n'],x['c']]['metrics']['output_tps']['median']
+        s=scene_index['sglang',x['n'],x['c']]['metrics']['output_tps']['median']
+        ratios.append(dict(input_tokens=x['n'],concurrency=x['c'],vllm_output_tps=v,sglang_output_tps=s,sglang_over_vllm=s/v))
+    low,median,high=min(x['sglang_over_vllm'] for x in ratios),statistics.median(x['sglang_over_vllm'] for x in ratios),max(x['sglang_over_vllm'] for x in ratios)
+    selected=[x for x in ratios if (x['input_tokens'],x['concurrency']) in [(512,16),(8192,5),(131072,10),(256000,16)]]
+    gap_table=table(['负载','vLLM输出tok/s','SGLang输出tok/s','SGLang / vLLM'],[[f"{x['input_tokens']:,} / C{x['concurrency']}",f"{x['vllm_output_tps']:.3f}",f"{x['sglang_output_tps']:.3f}",f"{x['sglang_over_vllm']*100:.1f}%"] for x in selected])
+    gap_intro=f'<h3>差距核对：正式计分没有“一半吞吐”</h3><p>28场景中，SGLang吞吐是vLLM的<b>{low*100:.1f}%～{high*100:.1f}%</b>，场景比值的中位数为<b>{median*100:.1f}%</b>。对应吞吐差距约0.9%～10.9%，而不是50%。这是各场景各框架三轮吞吐中位数的比值，不是把不同负载混合计算的总吞吐。</p>'+gap_table
+    gap_history='<h3>已经证实的严重路径问题：发生在修复前</h3><p>SGLang原始native attention在混合批次中，把实际只有1行的decode query物理补到历史长度再计算。捕获到的Q长度达到131075/131076行，大量零query仍进入attention；这属于多做了工作，不能归咎为模型本身算得慢。</p><p>同一131072输入/C5/输出1024的单波链：<b>FIA关、mixed开：1127.198s → FIA关、mixed关：257.210s → FIA开、mixed关：114.538s → FIA开、mixed开：116.620s</b>。相邻只改一个开关，支持定位native mixed路径的严重额外工作。但各配置仅1波、固定顺序，最后两项约2%的差异不构成稳定优劣。</p><p><b>正式28场景已经启用FIA，不再是上述原始回退栈。</b>两框架正式配置都开启decode图和异步调度，都关闭投机；不能拿其它模型中“关闭图/关闭overlap/缺少MTP”的历史配置解释本次结果。</p>'
+    gap_current='<h3>修复后约1%～11%的吞吐差距：已缩小范围，尚未完成最终归因</h3><p>在512/C1、正式第1轮这对请求中，SGLang总耗时多1.548s，其中首文本前多0.063s、首文本后多1.484s。131072/C1同轮，SGLang首文本早0.691s，却在首文本后多用3.213s。这两对真实请求把现象定位到首文本后的生成与输出窗口，但不能进一步把它全叫作设备decode或CPU开销。</p><p>独立的512/C1/out32 rank0诊断：vLLM/SGLang计算并集为<b>12.414/12.563ms</b>，通信包络并集为<b>3.337/3.420ms</b>，两类未覆盖区间为<b>2.231/9.258ms</b>。两次窗口的token位置不同，外层信号依赖也未闭合；这支持优先追查metadata、graph update、host发射与同步依赖，不能把7ms差额全部当成可回收空闲。</p><p>更具体的线索是SGLang16元素INT64的copy调用曾出现<b>16.103ms</b>长CPU事件，源码与seq_lens的CPU镜像/图更新路径相容。但它可能等待此前设备工作，不是128字节传输本身花16ms；CPU镜像候选的长输入试验还发生过同步停顿，不能声称该方案已修复问题。</p><p>通信链路“只有一半”也没有得到所测微基准支持：16行BF16 AllReduce图内摊销、四rank各自中位数再取中位，vLLM/SGLang约<b>0.0424/0.0445ms</b>。只限该payload和测试方式，不能据此排除所有大payload或到达等待问题。GDN对齐后的局部融合反而是SGLang较快，说明不能用“所有kernel都更慢”解释整波差距。</p><div class="note"><b>当前根因结论：</b>历史数量级退化已定位到native mixed attention的无效Q扩张，并以FIA路径绕开；正式矩阵剩余差距更应调查每轮非主计算路径及其依赖。究竟多少来自框架、多少来自CANN 9.0/9.2与固定卡组，还缺同环境干预和同次完整关键路径，不能编造归因比例。</div>'
+    gap_analysis=gap_intro+gap_history+gap_current
+    analysis=dict(scope='Frozen deployment comparison; historical fallback cause separated from remaining unclosed causality',source_data_sha256=hashlib.sha256((ROOT/'map/combined-map.json').read_bytes()).hexdigest(),rows=ratios,ratio_summary=dict(min=low,median=median,max=high,scenes_below_60_percent=sum(x['sglang_over_vllm']<.6 for x in ratios)),remaining_root_cause_closed=False)
+    (ROOT/'request-flow/gap-analysis.json').write_text(json.dumps(analysis,ensure_ascii=False,indent=2)+'\n')
     flows = []
     # Each stage gets short, comparable interpretations rather than serialized cards.
     takeaways = {
@@ -69,6 +84,7 @@ def build():
             cells.append(f'<b class="'+('vtext' if v<sg else 'stext')+f'">{v:.3f} / {sg:.3f}</b> '+unit)
         v,sg=(scene_index[fw,s['n'],s['c']]['metrics']['output_tps']['median'] for fw in ['vllm','sglang'])
         cells.append(f'<b class="vtext">{v:.2f} / {sg:.2f}</b> tok/s')
+        cells.append(f'{sg/v*100:.1f}%')
         spreads=[scene_index[fw,s['n'],s['c']]['metrics']['output_tps']['relative_range']*100 for fw in ['vllm','sglang']]
         cells.append(f'{spreads[0]:.2f}% / {spreads[1]:.2f}%')
         summary_rows.append(cells)
@@ -102,8 +118,9 @@ def build():
                 profiles=[{k:x[k] for k in ['framework','n','c','rank','phase','window_label','operator_categories','communication_by_family']} for x in F['profiles']])
     replacements={
         '__STAGES__':''.join(flows),
+        '__GAP_ANALYSIS__':gap_analysis,
         '__CONFIG_TABLE__':table(['比较项目','vLLM部署','SGLang部署','怎样影响比较'],[[e(x['parameter']),e(x['vllm']),e(x['sglang']),e(x['interpretation'])] for x in D['baseline']['configuration_rows']]),
-        '__PERFORMANCE_TABLE__':table(['输入token / 并发','首文本等待，越小越好<br>V / S','端点每token耗时，越小越好<br>V / S','整波输出吞吐，越大越好<br>V / S','吞吐三轮极差 / 中位数<br>V / S'],summary_rows),
+        '__PERFORMANCE_TABLE__':table(['输入token / 并发','首文本等待，越小越好<br>V / S','端点每token耗时，越小越好<br>V / S','整波输出吞吐，越大越好<br>V / S','SGLang / vLLM<br>吞吐比例','吞吐三轮极差 / 中位数<br>V / S'],summary_rows),
         '__DECODE_TABLE__':table(['框架 / rank','窗口','计算并集','通信包络并集','计算通信重叠','二者未覆盖','传输命名任务','等待通知任务'],decode_rows),
         '__PHASE_TABLE__':table(['框架','阶段','原始步标识','collective数','计算子集','通信包络','传输命名任务','等待通知任务'],phase_rows),
         '__CHAIN_TABLE__':table(['人能读懂的阶段','框架','真实测量边界','耗时ms','怎么理解'],[[e(c) for c in row] for row in chain_rows]),
