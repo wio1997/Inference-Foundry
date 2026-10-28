@@ -1,22 +1,16 @@
-# Inference Foundry
+# DeepInfer · DeepSeek V4.1 · Ascend 910C
 
-本分支记录 **172 上的 DeepSeek V4.1 Flash W8A8 部署与 DeepInfer 910C 适配**。
+分支 `deepinfer-dsv41-910c` 用于 DeepSeek V4.1 Flash W8A8 在 Ascend 910C 上的 DeepInfer 适配与部署，保存已验证源码、部署步骤、启动配置及性能记录。
 
-**官方 DSpark 置信度调度版 v15：521.07 token/s，平均首 token 805.65 ms，16/16 完整输出与冻结 vLLM 一致。** 对照 vLLM 518.42 token/s、831.25 ms；指定两轮吞吐高 0.51%。 见[最终DSpark结果](projects/910c-deepinfer-172/optimizations/20261028-dspark/README.md)。服务已按用户要求恢复，旧实验完成结论已撤回。
-
-| 入口 | 内容 |
+| 文档 | 内容 |
 |---|---|
-| [当前 DeepInfer 项目](projects/910c-deepinfer-172/README.md) | 原生W8A8源码、配置、两轮结果、适用范围和回切入口 |
-| [冻结 vLLM 基线](projects/910c-deepseek-v4.1-flash/README.md) | 原始调优与基线证据，按冻结时现场保留 |
-| [仓库导航](docs/REPOSITORY_MAP.md) | 当前资料与历史研究的位置 |
-| [完整历史快照](archive/legacy-20261019/README.md) | 整理前分支的全部文件，内部目录结构保持原样 |
+| [部署文档](projects/deepinfer-dsv41-910c/README.md) | 环境要求、目录准备、容器创建、服务启动、检查与复测 |
+| [适配说明](projects/deepinfer-dsv41-910c/ADAPTATION.md) | W8A8、注意力与缓存、并行通信、DSpark、图执行、Engram 的实现与边界 |
+| [测试结果](projects/deepinfer-dsv41-910c/RESULTS.md) | 固定负载、两轮原始指标、vLLM Ascend 对照及结论范围 |
+| [源码与版本](projects/deepinfer-dsv41-910c/SOURCE.md) | 源码归档、文件校验、依赖版本和许可 |
 
-当前native状态以 `projects/910c-deepinfer-172/STATUS.json` 为准；原vLLM容器已停止并保留。历史记录不代表当前服务状态。
+部署配置为 **8 张物理卡、16 个逻辑设备，DP2 × TP8、EP16**。仅 Engram 表卸载至 CPU，主干和专家权重常驻 NPU；草稿生成采用学习式 DSpark。
 
-本次整理发生在 `910c-deepseek-v4.1-flash`，来源为
-`codex/ascend-sglang-vllm-comparison@59dde6baad3e55feb9338db02b71d28e740d38e5`。
-原分支和 main 未修改。历史文件整体放入归档，Git 历史继续保留。
+2026 年 10 月 28 日归档版本的指定两轮测试为 **551.11 输出 token/s、784.90 ms 平均首 token 延迟**，16 个完整输出均与冻结参考一致。该结果限定于文档中的 32K 输入、1K 输出、并发 8 和真实约 90% KV 命中负载。全部上游优化的迁移与同期跨引擎对照仍在进行。
 
-仓库保存脚本、配置、摘要和小型证据；模型、编译缓存、完整运行日志保存在服务器的 `<WIO_ROOT>` 下。
-
-历史提示查找实验：[差距排查与固定场景验收](projects/910c-deepinfer-172/optimizations/20261027-gap-closure/README.md)。[此前v10–v13记录](projects/910c-deepinfer-172/optimizations/20261027-ttft/README.md)完整保留。
+`projects/910c-deepinfer-172` 保存此前的适配与实验记录，`projects/910c-deepseek-v4.1-flash` 保存冻结的 vLLM Ascend 基线；其中的运行状态按各自记录日期解释。本分支的部署入口为上表所列文档。
