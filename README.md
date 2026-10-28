@@ -13,4 +13,6 @@
 
 2026 年 10 月 28 日归档版本的指定两轮测试为 **551.11 输出 token/s、784.90 ms 平均首 token 延迟**，16 个完整输出均与冻结参考一致。该结果限定于文档中的 32K 输入、1K 输出、并发 8 和真实约 90% KV 命中负载。全部上游优化的迁移与同期跨引擎对照仍在进行。
 
+上述部署记录对应冻结源码版本 `allopt-mc2-cap4096-v1-20261028`。后续设备 hash 与共享专家多流的实验结果及源码补丁见[补充记录](projects/deepinfer-dsv41-910c/optimizations/20261028-device-hash-overlap/RESULTS.md)；旧版部署脚本继续对应冻结版本。
+
 `projects/910c-deepinfer-172` 保存此前的适配与实验记录，`projects/910c-deepseek-v4.1-flash` 保存冻结的 vLLM Ascend 基线；其中的运行状态按各自记录日期解释。本分支的部署入口为上表所列文档。

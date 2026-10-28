@@ -1,0 +1,255 @@
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -393,6 +393,10 @@
+         if history and os.environ.get('DEEPINFER_910C_ENGRAM_UVA_AVAILABLE') == '1':
+             from .engram_uva910c import NativeUvaEngram
+             self.engram_uva_runtime = NativeUvaEngram(reader,history,device,tp_group,progress)
++        self.engram_device_hash = None
++        if history and os.environ.get('DEEPINFER_910C_ENGRAM_DEVICE_HASH_AVAILABLE') == '1':
++            from deepinfer.npu_ops.engram_hash910c import DeviceEngramHash
++            self.engram_device_hash = DeviceEngramHash(history,device)
+         self.layers = torch.nn.ModuleList()
+         for i in range(c['num_hidden_layers']):
+             layer = AscendW8A8PackedLayer(reader, device, layer_id=i, group=group, tp_group=tp_group)
+@@ -495,6 +499,11 @@
+             if frame is not None:frames[id(frame)]=frame
+         return {'sequence_positions': list(self.next_positions),
+                 'engram_uva_enabled':os.environ.get('DEEPINFER_910C_ENGRAM_UVA')=='1',
++                'engram_device_hash_enabled':os.environ.get('DEEPINFER_910C_ENGRAM_DEVICE_HASH')=='1',
++                'engram_device_hash_calls':sum(f.engram_hash_calls for f in frames.values()),
++                'engram_device_hash_tokens':sum(f.engram_hash_tokens for f in frames.values()),
++                'engram_device_hash_frame_calls':{str(size):sum(f.engram_hash_calls for f in frames.values() if f.tokens==size)
++                                                  for size in sorted({f.tokens for f in frames.values()})},
+                 'engram_uva':(dict(self.engram_uva_runtime.stats)
+                               if self.engram_uva_runtime is not None else None),
+                 'engram_prefetch_enabled':os.environ.get('DEEPINFER_910C_ENGRAM_PREFETCH')=='1',
+--- a/deepinfer/model_executor/models/dspark_varlen910c.py
++++ b/deepinfer/model_executor/models/dspark_varlen910c.py
+@@ -60,10 +60,7 @@
+         self.cpu_inputs.copy_(torch.tensor(values,dtype=torch.int32))
+         self.inputs.copy_(self.cpu_inputs,non_blocking=True)
+         self.model.histories[4].reset()
+-        hashes=[self.model.histories[slot].batch(row) for slot,row in enumerate(rows) if row]
+-        for layer,buffer in self.rows.items():
+-            indices=torch.cat([entry[layer] for entry in hashes])
+-            self._stage_engram_rows(layer,indices,buffer)
++        self._stage_engram(self.model.histories[:len(rows)],rows)
+         self.host_lengths,self.host_starts,self.host_cu=lengths,starts,cu
+ 
+     def compress(self,layer,x,positions):
+--- a/deepinfer/model_executor/models/w8a8_graph910c.py
++++ b/deepinfer/model_executor/models/w8a8_graph910c.py
+@@ -57,6 +57,12 @@
+         self.engram_pinned_bytes=0
+         self.engram_device_ids={}
+         self.engram_cpu_ids={}
++        self.engram_hash_host=None
++        self.engram_hash_context=None
++        self.engram_hash_output=None
++        self.engram_hash_copy_done=None
++        self.engram_hash_calls=0
++        self.engram_hash_tokens=0
+ 
+     def reset_sequence(self):
+         self.prepared=False
+@@ -64,6 +70,43 @@
+         self.staging_seconds=0.
+         self.engram_pinned_calls=0
+         self.engram_pinned_bytes=0
++        self.engram_hash_calls=0
++        self.engram_hash_tokens=0
++
++    def _stage_engram(self,histories,chunks):
++        if not self.rows:return
++        if os.environ.get('DEEPINFER_910C_ENGRAM_DEVICE_HASH')!='1':
++            hashes=[history.batch(chunk) for history,chunk in zip(histories,chunks)]
++            for layer,buffer in self.rows.items():
++                self._stage_engram_rows(layer,torch.cat([entry[layer] for entry in hashes]),buffer)
++            return
++        runtime=self.model.engram_uva_runtime
++        device_hash=self.model.engram_device_hash
++        if os.environ.get('DEEPINFER_910C_ENGRAM_UVA')!='1' or runtime is None or device_hash is None:
++            raise RuntimeError('device hash requires the enabled registered UVA lookup')
++        from deepinfer.npu_ops.engram_hash910c import raw_contexts
++        original_lengths=[len(history.history) for history in histories]
++        try:
++            contexts=raw_contexts(histories,chunks)
++            if len(contexts)!=self.tokens:
++                raise ValueError('raw history windows must match the physical graph token count')
++            if self.engram_hash_host is None:
++                self.engram_hash_host=torch.empty((self.tokens,device_hash.width),dtype=torch.int32,device='cpu',pin_memory=True)
++                self.engram_hash_context=torch.empty_like(self.engram_hash_host,device=self.model.device)
++                self.engram_hash_output=torch.empty((len(device_hash.layers),self.tokens,device_hash.heads),dtype=torch.int32,device=self.model.device)
++            # A frame may be staged repeatedly. Do not overwrite its pinned
++            # host windows until the previous asynchronous H2D has completed.
++            if self.engram_hash_copy_done is not None:self.engram_hash_copy_done.synchronize()
++            self.engram_hash_host.copy_(torch.tensor(contexts,dtype=torch.int32))
++            self.engram_hash_context.copy_(self.engram_hash_host,non_blocking=True)
++            event=torch.npu.Event();event.record();self.engram_hash_copy_done=event
++            hashes=device_hash.compute(self.engram_hash_context,self.engram_hash_output)
++            for layer,buffer in self.rows.items():runtime.rows(layer,hashes[layer],buffer)
++        except BaseException:
++            for history,length in zip(histories,original_lengths):del history.history[length:]
++            raise
++        self.engram_hash_calls+=1
++        self.engram_hash_tokens+=self.tokens
+ 
+     def _stage_engram_rows(self,layer,indices,buffer):
+         if os.environ.get('DEEPINFER_910C_ENGRAM_UVA')=='1':
+@@ -113,10 +156,7 @@
+             raise ValueError('verification lookahead exceeds native context capacity')
+         self.cpu_inputs.copy_(torch.tensor(tokens+[p+self.query_tokens for p in positions],dtype=torch.int32))
+         self.inputs.copy_(self.cpu_inputs,non_blocking=True)
+-        hashes=[model.histories[slot].batch(chunk) for slot,chunk in zip(self.slots,chunks)] if model.histories else []
+-        for layer,buffer in self.rows.items():
+-            indices=torch.cat([entry[layer] for entry in hashes])
+-            self._stage_engram_rows(layer,indices,buffer)
++        if model.histories:self._stage_engram([model.histories[slot] for slot in self.slots],chunks)
+ 
+     @staticmethod
+     def _plan(plane,positions,requests):
+--- /dev/null
++++ b/deepinfer/npu_ops/engram_hash910c.py
+@@ -0,0 +1,93 @@
++# SPDX-License-Identifier: Apache-2.0
++# Follows the Apache-2.0 vLLM Ascend Engram hash kernel's exact mapping,
++# multipliers, XOR/modulo and dead-token semantics. CPU provides only a
++# bounded raw lookback window here; this is not a complete ZOS history path.
++"""910C integer Engram hashes with immutable checkpoint-derived constants."""
++import torch
++import triton
++import triton.language as tl
++
++
++@triton.jit
++def _hash_windows(context,token_map,multipliers,primes,offsets,output,
++                  TOKENS:tl.constexpr,NGRAM:tl.constexpr,HEADS:tl.constexpr,
++                  HEADS_PER_ORDER:tl.constexpr,BLOCK_H:tl.constexpr,
++                  MAP_SIZE:tl.constexpr,PAD_ID:tl.constexpr,
++                  IMAGE_ID:tl.constexpr,IMAGE_PAD_ID:tl.constexpr):
++    token=tl.program_id(0)
++    layer=tl.program_id(1)
++    head=tl.arange(0,BLOCK_H)
++    order=head//HEADS_PER_ORDER+2
++    rolling=tl.full((BLOCK_H,),0,tl.int64)
++    blocked=tl.full((),False,tl.int1)
++    current=tl.load(context+token*NGRAM)
++    dead=(current==IMAGE_ID)|(current==IMAGE_PAD_ID)
++    for shift in tl.static_range(NGRAM):
++        raw=tl.load(context+token*NGRAM+shift)
++        known=(raw>=0)&(raw<MAP_SIZE)
++        blocked|=~known|(raw==IMAGE_ID)|(raw==IMAGE_PAD_ID)
++        mapped=tl.load(token_map+tl.maximum(raw,0),known,other=PAD_ID)
++        value=tl.where(blocked,PAD_ID,mapped).to(tl.int64)
++        multiplier=tl.load(multipliers+layer*NGRAM+shift)
++        rolling^=tl.where(shift<order,value*multiplier,0)
++    prime=tl.load(primes+layer*HEADS+head,head<HEADS,other=1).to(tl.int64)
++    offset=tl.load(offsets+layer*HEADS+head,head<HEADS,other=0)
++    remainder=rolling%prime
++    remainder=tl.where(remainder<0,remainder+prime,remainder)
++    ids=tl.where(dead,-1,remainder+offset)
++    tl.store(output+(layer*TOKENS+token)*HEADS+head,ids.to(tl.int32),head<HEADS)
++
++
++def raw_contexts(histories,chunks):
++    """Raw newest-first windows; keep exactly the CPU history commit API.
++
++    No hashing, compression or table lookup runs on the CPU in this helper.
++    Padding -1 denotes missing older tokens and is normalized by the kernel.
++    """
++    if len(histories)!=len(chunks) or not histories:
++        raise ValueError('one nonempty history/chunk pair per request required')
++    width=histories[0].cfg['engram_max_ngram_size']
++    rows=[]
++    pending=[]
++    for history,chunk in zip(histories,chunks):
++        if not chunk or any(type(x) is not int or not 0<=x<len(history.token_map) for x in chunk):
++            raise ValueError('expected nonempty valid integer token chunks')
++        tail=history.history[-(width-1):] if width>1 else []
++        joined=[-1]*(width-1-len(tail))+tail+list(chunk)
++        rows.extend(joined[i:i+width][::-1] for i in range(len(chunk)))
++        pending.append((history,chunk))
++    for history,chunk in pending:history.history.extend(chunk)
++    return rows
++
++
++class DeviceEngramHash:
++    def __init__(self,history,device):
++        self.layers=tuple(history.layers)
++        self.width=history.cfg['engram_max_ngram_size']
++        self.pad_id=history.pad_id
++        image_ids=history.image_ids-{None}
++        if len(image_ids)>2:raise ValueError('at most two Engram image sentinel IDs')
++        self.image_ids=tuple(sorted(image_ids))+(-1001,-1002)
++        self.token_map=history.token_lookup.to(device=device,dtype=torch.int32)
++        self.multipliers=history.multipliers.to(device)
++        self.primes=history.primes.flatten(1).contiguous().to(device)
++        self.offsets=history.offsets.to(device)
++        self.heads_per_order=history.primes.shape[-1]
++        self.heads=self.primes.shape[-1]
++        if self.heads!=(self.width-1)*self.heads_per_order:
++            raise ValueError('invalid Engram order/head layout')
++
++    def compute(self,context,output=None):
++        if context.ndim!=2 or context.shape[1]!=self.width or context.dtype!=torch.int32 or not context.is_contiguous():
++            raise ValueError('expected contiguous raw [tokens,max_ngram] int32 windows')
++        shape=(len(self.layers),context.shape[0],self.heads)
++        if output is None:output=torch.empty(shape,dtype=torch.int32,device=context.device)
++        if output.shape!=shape or output.dtype!=torch.int32 or not output.is_contiguous():
++            raise ValueError('expected contiguous [layers,tokens,heads] int32 output')
++        if context.shape[0]:
++            _hash_windows[(context.shape[0],len(self.layers))](context,self.token_map,
++                self.multipliers,self.primes,self.offsets,output,TOKENS=context.shape[0],
++                NGRAM=self.width,HEADS=self.heads,HEADS_PER_ORDER=self.heads_per_order,
++                BLOCK_H=triton.next_power_of_2(self.heads),MAP_SIZE=self.token_map.numel(),
++                PAD_ID=self.pad_id,IMAGE_ID=self.image_ids[0],IMAGE_PAD_ID=self.image_ids[1],num_warps=4)
++        return {layer:output[i] for i,layer in enumerate(self.layers)}
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -63,7 +63,7 @@
+                 'max_tokens':r.max_tokens,'ignore_eos':r.ignore_eos} for r in batch]}
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+-                if (not isinstance(mode,dict) or set(mode)!={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva'}
++                if (not isinstance(mode,dict) or set(mode)!={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash'}
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+                 body['single_point_ablation']=mode
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -66,7 +66,7 @@
+             # by the CPU frontend, so every EP rank receives the same mode.
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+-                if (not isinstance(mode,dict) or set(mode)!={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva'}
++                if (not isinstance(mode,dict) or set(mode)!={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash'}
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+                 os.environ['DEEPINFER_ENABLE_MTP_VARLEN']='1' if mode['varlen'] else '0'
+@@ -74,6 +74,7 @@
+                 os.environ['DEEPINFER_910C_ENGRAM_PREFETCH']='1' if mode['engram_prefetch'] else '0'
+                 os.environ['DEEPINFER_910C_ENGRAM_PINNED_STAGING']='1' if mode['engram_pinned'] else '0'
+                 os.environ['DEEPINFER_910C_ENGRAM_UVA']='1' if mode['engram_uva'] else '0'
++                os.environ['DEEPINFER_910C_ENGRAM_DEVICE_HASH']='1' if mode['engram_device_hash'] else '0'
+                 (directory/f'ablation-rank{rank}.json').write_text(json.dumps({
+                     'rank':rank,'mode':mode,'all_graphs_retained':True}))
+             elif mode is not None:
+@@ -91,6 +92,18 @@
+                     runner.run(job,directory)
+             else:
+                 runner.run(job,directory)
++            if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
++                stats=runner.model.runtime_stats()
++                proof={'rank':rank,'mode':mode,
++                    'device_hash_enabled':stats['engram_device_hash_enabled'],
++                    'device_hash_calls':stats['engram_device_hash_calls'],
++                    'device_hash_tokens':stats['engram_device_hash_tokens'],
++                    'device_hash_frame_calls':stats['engram_device_hash_frame_calls'],
++                    'verification_graph_captures':stats['verification_graph_captures'],
++                    'verification_graph_replays':stats['verification_graph_replays'],
++                    'varlen_graph_replays':stats['dspark_varlen_graph_replays']}
++                path=directory/f'hash-proof-rank{rank}.json'
++                tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(proof));tmp.replace(path)
+         except Exception:
+             import traceback
+             (directory/f'error-rank{rank}.txt').write_text(traceback.format_exc())

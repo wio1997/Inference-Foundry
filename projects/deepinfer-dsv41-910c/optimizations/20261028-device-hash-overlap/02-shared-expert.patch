@@ -1,0 +1,449 @@
+--- a/deepinfer/engine/dspark910c.py
++++ b/deepinfer/engine/dspark910c.py
+@@ -10,7 +10,7 @@
+ import os
+ 
+ 
+-def target_tokens(runner,logits):
++def target_tokens(runner,logits,*,return_device=False):
+     shape=logits.shape[:-1]
+     if (runner.model.target_vocab_parallel and
+             logits.shape[-1]==runner.model.target_vocab_width):
+@@ -21,7 +21,8 @@
+         result=logits.argmax(-1).long() if runner.tp_rank==0 else torch.empty(
+             shape,dtype=torch.int64,device=runner.model.device)
+         dist.broadcast(result,runner.root,group=runner.tp_group)
+-    return result.cpu().tolist()
++    values=result.cpu().tolist()
++    return (values,result) if return_device else values
+ 
+ 
+ @torch.inference_mode()
+@@ -47,6 +48,11 @@
+         'draft_and_sampling_wall_seconds':0.,'target_and_sampling_wall_seconds':0.,
+         'commit_and_emit_wall_seconds':0.}
+     model.dspark_stats=stats
++    shadow=None
++    if os.environ.get('DEEPINFER_910C_GREEDY_SHADOW')=='1':
++        from .dspark_greedy_shadow910c import GreedyShadow
++        shadow=GreedyShadow()
++        model.greedy_shadow_record=shadow.stats
+     variable=os.environ.get('DEEPINFER_ENABLE_MTP_VARLEN')=='1'
+     policy=None
+     if variable:
+@@ -102,23 +108,31 @@
+             lengths=policy.schedule()
+         else:lengths=[width]*count
+         chunks=[[g,*row[:length-1]] for g,row,length in zip(golden,proposal_values,lengths)]
++        shadow_call=bool(shadow is not None and shadow.wants(lengths,owned,variable))
++        if shadow_call:
++            shadow_remaining=[maximum[i]-len(generated[i]) for i in range(count)]
++            shadow_finished=list(finished)
+         target_start=time.perf_counter()
+         if variable:
+-            values=target_tokens(runner,model.dspark_graphs.run(chunks,[[g,*row] for g,row in zip(golden,proposal_values)]))
++            values=target_tokens(runner,model.dspark_graphs.run(chunks,[[g,*row] for g,row in zip(golden,proposal_values)]),return_device=shadow_call)
++            if shadow_call:values,shadow_target_device=values
+             predictions=model.dspark_graphs.split_predictions(values,lengths)
+             frame=model.dspark_graphs.last_frame
+             stats['selected_total_queries']+=sum(lengths)
+             stats['padded_target_queries']+=frame.tokens-sum(lengths)
+         else:
+-            predictions=target_tokens(runner,model.verify_chunks(chunks))
++            predictions=target_tokens(runner,model.verify_chunks(chunks),return_device=shadow_call)
++            if shadow_call:predictions,shadow_target_device=predictions
+             frame=model._verify_graph
+         target_seconds=time.perf_counter()-target_start
+         stats['target_and_sampling_wall_seconds']+=target_seconds
+         commit_start=time.perf_counter()
+         stats['proposals']+=1
+         commits=[]
++        if shadow_call:shadow_accepted=[];shadow_emitted=[]
+         for slot,(candidates,targets,length) in enumerate(zip(proposal_values,predictions,lengths)):
+             if finished[slot]:
++                if shadow_call:shadow_accepted.append(0);shadow_emitted.append([])
+                 commits.append(0);continue
+             accepted=0
+             for candidate,target in zip(candidates[:length-1],targets):
+@@ -133,6 +147,9 @@
+             before=len(generated[slot])
+             output(slot,targets[:commit])
+             commits.append(len(generated[slot])-before)
++            if shadow_call:
++                shadow_accepted.append(accepted)
++                shadow_emitted.append(list(generated[slot][before:]))
+         frame.commit_prefixes(bases,commits)
+         commit_seconds=time.perf_counter()-commit_start
+         stats['commit_and_emit_wall_seconds']+=commit_seconds
+@@ -143,6 +160,9 @@
+             policy.observe_sampler_ms(max(0.,1000*(draft_seconds+target_seconds+commit_seconds)-forward_ms))
+             policy.observe_confidence(confidence_values)
+             stats['confidence_fp32_roundoff_clamps']=policy.confidence_roundoff_clamps
++        if shadow_call:
++            shadow.compare(proposals,shadow_target_device,proposal_values,predictions,
++                           shadow_remaining,shadow_finished,shadow_accepted,commits,shadow_emitted)
+         if runner.tp_rank==0 and stats['proposals']%32==0:
+             runner.engine.progress({'stage':'dspark','dp_rank':runner.dp_rank,
+                 'generated_tokens':[len(row) for row in generated],**stats})
+--- /dev/null
++++ b/deepinfer/engine/dspark_greedy_shadow910c.py
+@@ -0,0 +1,87 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Bounded diagnostic comparison of real DSpark greedy proposals.
++
++This deliberately does not drive model outputs, scheduling, or state commits.
++It introduces synchronization and must be disabled for performance benchmarks.
++"""
++import os
++import traceback
++
++
++class GreedyShadow:
++    def __init__(self):
++        try:
++            limit = int(os.environ.get('DEEPINFER_910C_GREEDY_SHADOW_LIMIT', '3'))
++            if not 1 <= limit <= 16:
++                raise ValueError('shadow limit must be 1..16')
++            error = None
++        except ValueError as exc:
++            limit, error = 0, str(exc)
++        self.stats = {'enabled': True, 'limit': limit, 'calls': 0, 'passes': 0,
++                      'failures': 0, 'skipped_non_full': 0, 'skipped_eos': 0,
++                      'skipped_nonformal': 0, 'config_error': error, 'details': []}
++
++    def wants(self, lengths, requests, variable):
++        if self.stats['calls'] >= self.stats['limit']:
++            return False
++        if not variable:
++            self.stats['skipped_nonformal'] += 1
++            return False
++        if len(lengths) != 4 or list(lengths) != [6] * 4:
++            self.stats['skipped_non_full'] += 1
++            return False
++        if len(requests) != 4 or not all(req.get('ignore_eos', False) for _, req in requests):
++            self.stats['skipped_eos'] += 1
++            return False
++        return True
++
++    def compare(self, proposal_device, target_device, proposal_cpu, target_cpu,
++                remaining, finished, accepted, commits, emitted):
++        self.stats['calls'] += 1
++        call = self.stats['calls']
++        try:
++            import torch
++            from deepinfer.npu_ops.greedy_prefix910c import GreedyPrefixBuffers, verify_greedy_prefix
++
++            device = target_device.device
++            draft = proposal_device.to(dtype=torch.int32).contiguous()
++            target = target_device.reshape(4, 6).to(dtype=torch.int32).contiguous()
++            lengths_t = torch.full((4,), 6, dtype=torch.int32, device=device)
++            remaining_t = torch.tensor(remaining, dtype=torch.int32, device=device)
++            finished_t = torch.tensor(finished, dtype=torch.bool, device=device)
++            buffers = GreedyPrefixBuffers.allocate(device)
++            verify_greedy_prefix(draft, target, lengths_t, remaining_t, finished_t, buffers)
++            actual = {name: getattr(buffers, name).cpu().tolist() for name in
++                      ('accepted', 'commit', 'last', 'emitted', 'accept_mask', 'final_mask', 'status')}
++            expected = self.expected(accepted, commits, emitted, finished)
++            mismatches = []
++            for name in actual:
++                for slot, (got, want) in enumerate(zip(actual[name], expected[name])):
++                    if got != want:
++                        mismatches.append({'field': name, 'slot': slot, 'actual': got, 'expected': want})
++            if mismatches:
++                self.stats['failures'] += 1
++                self.stats['details'].append({'call': call, 'mismatches': mismatches,
++                    'draft': proposal_cpu, 'target': target_cpu,
++                    'remaining': remaining, 'finished': finished})
++            else:
++                self.stats['passes'] += 1
++        except Exception:
++            self.stats['failures'] += 1
++            self.stats['details'].append({'call': call, 'error': traceback.format_exc()})
++
++    @staticmethod
++    def expected(accepted, commits, emitted, finished):
++        """Use actual CPU-loop decisions/output, not a new acceptance oracle."""
++        expected = {name: [] for name in
++                    ('accepted', 'commit', 'last', 'emitted', 'accept_mask', 'final_mask', 'status')}
++        for a, c, tokens, done in zip(accepted, commits, emitted, finished):
++            active = not done and c > 0
++            expected['accepted'].append(a if active else 0)
++            expected['commit'].append(c)
++            expected['last'].append(tokens[-1] if tokens else -1)
++            expected['emitted'].append(tokens + [-1] * (6 - len(tokens)))
++            expected['accept_mask'].append([active and j < a for j in range(6)])
++            expected['final_mask'].append([active and j == a for j in range(6)])
++            expected['status'].append(0)
++        return expected
+--- /dev/null
++++ b/deepinfer/engine/greedy_shadow_config910c.py
+@@ -0,0 +1,18 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Load optional job-local shadow controls without mutating benchmark modes."""
++import json
++
++
++def read_shadow_control(control_dir):
++    path = control_dir / 'greedy-shadow.json'
++    try:
++        data = json.loads(path.read_text())
++    except FileNotFoundError:
++        return {'enabled': False, 'limit': 3, 'config_error': None}
++    except (OSError, ValueError, UnicodeError) as exc:
++        return {'enabled': False, 'limit': 3, 'config_error': type(exc).__name__}
++    if (not isinstance(data, dict) or set(data) - {'enabled', 'limit'}
++            or type(data.get('enabled')) is not bool
++            or type(data.get('limit', 3)) is not int or not 1 <= data.get('limit', 3) <= 16):
++        return {'enabled': False, 'limit': 3, 'config_error': 'invalid shadow control'}
++    return {'enabled': data['enabled'], 'limit': data.get('limit', 3), 'config_error': None}
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -99,6 +99,7 @@
+         if layer_id in self.config['index_source_layer_ids']:
+             self.indexer = AscendW8A8Indexer(reader, device, layer_id=layer_id)
+         self.mc2=None
++        self.shared_expert_stream=None
+         self.fused_mc2_prefill=os.environ.get('DEEPINFER_910C_FUSED_MC2_PREFILL')=='1'
+         self.fused_mc2_decode=os.environ.get('DEEPINFER_910C_FUSED_MC2_DECODE')=='1'
+         if os.environ.get('DEEPINFER_910C_MC2')=='1':
+@@ -116,7 +117,7 @@
+                 raise ValueError('fused MC2 prefill requires native MC2 communicator')
+             self.expert_bank.prepare_fused_mc2()
+ 
+-    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False,already_sharded=False,token_indices=None):
++    def packed_ffn(self,x,router_x,global_bs,*,fused_mc2=False,already_sharded=False,token_indices=None,decode_graph=False):
+         from deepinfer.npu_ops.moe910c import dispatch_combine,route
+         # Attention returns the same token batch on each TP rank. Dispatch
+         # each token once to global EP16, then restore the TP-replicated batch.
+@@ -138,6 +139,16 @@
+         if not valid:
+             local=x[:1];routing=router_x[:1]
+         logits=F.linear(routing,self.ffn_gate_weight)
++        # One model-owned stream per rank. The flag is frozen before graph
++        # capture: changing it later cannot change an already captured graph.
++        overlap = decode_graph and fused_mc2 and self.mc2 is not None and self.shared_expert_stream is not None
++        if overlap:
++            main_stream=torch.npu.current_stream()
++            self.shared_expert_stream.wait_stream(main_stream)
++            with torch.npu.stream(self.shared_expert_stream):
++                local.record_stream(self.shared_expert_stream)
++                shared=self.shared_expert(local)
++                shared.record_stream(main_stream)
+         ids,weights=route(logits,self.ffn_gate_bias,self.config['num_experts_per_tok'],1.)
+         if not valid and self.mc2 is None:
+             ids=ids.fill_(-1);weights=weights.zero_()
+@@ -149,7 +160,10 @@
+         else:
+             routed=dispatch_combine(local,ids,weights,self.config['n_routed_experts'],None,self.group,
+                 weight_on_output=True,local_batch=self.expert_bank,trusted_indices=True)
+-        shared=self.shared_expert(local)
++        if overlap:
++            main_stream.wait_stream(self.shared_expert_stream)
++        else:
++            shared=self.shared_expert(local)
+         output=(shared.float()+routed.float()*self.config['routed_scaling_factor']).bfloat16()
+         output=output[:valid]
+         if token_indices is not None:
+@@ -333,7 +347,8 @@
+                        or (self.fused_mc2_decode and state.decode_frame is not None),
+             already_sharded=state.sequence_parallel,
+             token_indices=(state.tail_ffn_indices.get(self.layer_id)
+-                           if state.tail_ffn_indices is not None else None))
++                           if state.tail_ffn_indices is not None else None),
++            decode_graph=state.decode_frame is not None)
+         if self.fused_mhc:
+             return self._hc_post(ffn, after_attn, post, comb), next_pre.unsqueeze(-1)
+         return mhc.mhc_post(ffn, after_attn, post, comb), next_pre
+@@ -397,9 +412,14 @@
+         if history and os.environ.get('DEEPINFER_910C_ENGRAM_DEVICE_HASH_AVAILABLE') == '1':
+             from deepinfer.npu_ops.engram_hash910c import DeviceEngramHash
+             self.engram_device_hash = DeviceEngramHash(history,device)
++        # Create before any decode graph is captured; every layer on this rank
++        # shares the stream and joins it before consuming its shared output.
++        self.shared_expert_stream = (torch.npu.Stream(device=self.device)
++            if os.environ.get('DEEPINFER_910C_SHARED_EXPERT_OVERLAP_DECODE') == '1' else None)
+         self.layers = torch.nn.ModuleList()
+         for i in range(c['num_hidden_layers']):
+             layer = AscendW8A8PackedLayer(reader, device, layer_id=i, group=group, tp_group=tp_group)
++            layer.shared_expert_stream = self.shared_expert_stream
+             layer.load_local_experts(); self.layers.append(layer)
+             progress({'stage': 'resident_layer', 'layer': i, 'local_experts': layer.local_expert_count, 'backend': 'native-paged'})
+         self.sp = self.layers[0].sp
+--- /dev/null
++++ b/deepinfer/npu_ops/greedy_prefix910c.py
+@@ -0,0 +1,115 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Fixed four-slot greedy prefix verification for the Ascend Triton backend.
++
++This is a standalone primitive.  It neither schedules a model nor implements
++ZOS.  Each slot has six physical target rows and at most five draft tokens.
++"""
++
++from dataclasses import dataclass
++
++import torch
++import triton
++import triton.language as tl
++
++
++@triton.jit
++def _greedy_prefix(draft, target, lengths, remaining, finished,
++                   accepted_out, commit_out, last_out, emitted_out,
++                   accept_mask_out, final_mask_out, status_out):
++    slot = tl.arange(0, 4)
++    col = tl.arange(0, 8)
++    length = tl.load(lengths + slot)
++    left = tl.load(remaining + slot)
++    done = tl.load(finished + slot)
++    valid = (length >= 1) & (length <= 6) & (left >= 0)
++    active = valid & (~done) & (left > 0)
++
++    pred = tl.load(target + slot[:, None] * 6 + col[None, :],
++                   col[None, :] < 6, other=0)
++    proposed = tl.load(draft + slot[:, None] * 5 + col[None, :],
++                       col[None, :] < 5, other=0)
++    verification = col[None, :] < (length[:, None] - 1)
++    mismatch = verification & (proposed != pred)
++    # The final fresh row at length-1 is the fallback when all drafts pass.
++    first = tl.min(tl.where(mismatch, col[None, :], length[:, None] - 1), axis=1)
++    accepted = tl.where(active, first, 0)
++    commit = tl.where(active, tl.minimum(first + 1, left), 0)
++    # Select from the same 2-D rows already loaded for verification.  This
++    # avoids a second per-slot dynamically indexed global load, which produced
++    # an incorrect value on the pinned Ascend Triton backend.  Token IDs are
++    # nonnegative, so -1 is a safe masked reduction identity.
++    selected = (col[None, :] == commit[:, None] - 1) & (commit[:, None] > 0)
++    last = tl.max(tl.where(selected, pred, -1), axis=1)
++
++    tl.store(accepted_out + slot, accepted)
++    tl.store(commit_out + slot, commit)
++    tl.store(last_out + slot, last)
++    tl.store(status_out + slot, tl.where(valid, 0, 1))
++    physical = col[None, :] < 6
++    offsets = slot[:, None] * 6 + col[None, :]
++    tl.store(emitted_out + offsets,
++             tl.where(active[:, None] & (col[None, :] < commit[:, None]), pred, -1),
++             physical)
++    tl.store(accept_mask_out + offsets,
++             active[:, None] & (col[None, :] < accepted[:, None]), physical)
++    tl.store(final_mask_out + offsets,
++             active[:, None] & (col[None, :] == accepted[:, None]), physical)
++
++
++@dataclass
++class GreedyPrefixBuffers:
++    accepted: torch.Tensor
++    commit: torch.Tensor
++    last: torch.Tensor
++    emitted: torch.Tensor
++    accept_mask: torch.Tensor
++    final_mask: torch.Tensor
++    status: torch.Tensor
++
++    @classmethod
++    def allocate(cls, device):
++        def make(shape, dtype):
++            return torch.empty(shape, dtype=dtype, device=device)
++        return cls(make((4,), torch.int32), make((4,), torch.int32),
++                   make((4,), torch.int32), make((4, 6), torch.int32),
++                   make((4, 6), torch.bool), make((4, 6), torch.bool),
++                   make((4,), torch.int32))
++
++
++def verify_greedy_prefix(draft, target, lengths, remaining, finished, out):
++    """Enqueue verification on the current NPU stream with persistent buffers.
++
++    draft/target: contiguous int32 [4,5]/[4,6] *global* vocabulary IDs;
++    lengths: int32 [4], valid range 1..6, including the final fresh row;
++    remaining: nonnegative int32 [4]; finished: bool [4].
++    All inputs and buffers must live on the same NPU, with no aliasing.
++
++    The accept/final masks match upstream prefix verification for active
++    slots; completion and output clipping are separate serving semantics.
++    ``status`` is 1 for invalid length/remaining and 0 otherwise.  Callers
++    must inspect it before consuming untrusted inputs.  The graph-safe hot
++    path does not synchronize or read tensor values on the CPU.
++    """
++    if not isinstance(out, GreedyPrefixBuffers):
++        raise TypeError('out must be persistent GreedyPrefixBuffers')
++    tensors = ((draft, (4, 5), torch.int32), (target, (4, 6), torch.int32),
++               (lengths, (4,), torch.int32), (remaining, (4,), torch.int32),
++               (finished, (4,), torch.bool),
++               (out.accepted, (4,), torch.int32), (out.commit, (4,), torch.int32),
++               (out.last, (4,), torch.int32), (out.emitted, (4, 6), torch.int32),
++               (out.accept_mask, (4, 6), torch.bool), (out.final_mask, (4, 6), torch.bool),
++               (out.status, (4,), torch.int32))
++    device = target.device
++    if device.type != 'npu':
++        raise ValueError('all tensors must be on an Ascend NPU')
++    for value, shape, dtype in tensors:
++        if value.device != device or tuple(value.shape) != shape or value.dtype != dtype or not value.is_contiguous():
++            raise ValueError(f'expected contiguous {shape} {dtype} on {device}')
++    ranges = sorted((value.data_ptr(), value.data_ptr() + value.numel() * value.element_size())
++                    for value, _, _ in tensors)
++    if any(end > next_start for (_, end), (next_start, _) in zip(ranges, ranges[1:])):
++        raise ValueError('input and output tensors must not alias')
++    _greedy_prefix[(1,)](draft, target, lengths, remaining, finished,
++                          out.accepted, out.commit, out.last, out.emitted,
++                          out.accept_mask, out.final_mask, out.status, num_warps=4)
++    return out
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -61,6 +61,10 @@
+             directory.mkdir(parents=True)
+             body={'eos_token_id':self.eos,'requests':[{'id':r.id,'token_ids':r.token_ids,
+                 'max_tokens':r.max_tokens,'ignore_eos':r.ignore_eos} for r in batch]}
++            # One immutable control snapshot is shared by all EP ranks.
++            # Missing/disabled/invalid shadow control never changes the mode.
++            from deepinfer.engine.greedy_shadow_config910c import read_shadow_control
++            body['greedy_shadow']=read_shadow_control(self.args.control_dir)
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 if (not isinstance(mode,dict) or set(mode)!={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash'}
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -61,6 +61,16 @@
+         previous=command['id']
+         directory=args.control_dir/'jobs'/previous
+         job=json.loads((directory/'request.json').read_text())
++        shadow_control=job.get('greedy_shadow',{'enabled':False,'limit':3,'config_error':None})
++        if (not isinstance(shadow_control,dict) or set(shadow_control)!={'enabled','limit','config_error'}
++                or type(shadow_control['enabled']) is not bool or type(shadow_control['limit']) is not int
++                or not 1<=shadow_control['limit']<=16
++                or not (shadow_control['config_error'] is None or isinstance(shadow_control['config_error'],str))):
++            raise ValueError('invalid immutable greedy shadow job control')
++        shadow_enabled=shadow_control['enabled'] and shadow_control['config_error'] is None
++        os.environ['DEEPINFER_910C_GREEDY_SHADOW']='1' if shadow_enabled else '0'
++        os.environ['DEEPINFER_910C_GREEDY_SHADOW_LIMIT']=str(shadow_control['limit'])
++        if shadow_enabled or shadow_control['config_error']:runner.model.greedy_shadow_record=None
+         try:
+             # Frozen experiment controls are copied into the immutable IPC job
+             # by the CPU frontend, so every EP rank receives the same mode.
+@@ -76,7 +86,7 @@
+                 os.environ['DEEPINFER_910C_ENGRAM_UVA']='1' if mode['engram_uva'] else '0'
+                 os.environ['DEEPINFER_910C_ENGRAM_DEVICE_HASH']='1' if mode['engram_device_hash'] else '0'
+                 (directory/f'ablation-rank{rank}.json').write_text(json.dumps({
+-                    'rank':rank,'mode':mode,'all_graphs_retained':True}))
++                    'rank':rank,'mode':mode,'all_graphs_retained':True,'greedy_shadow':shadow_control}))
+             elif mode is not None:
+                 raise ValueError('single-point mode requires explicit worker opt-in')
+             # Opt-in diagnostic job only. Formal AISBench requests never set
+@@ -108,6 +118,18 @@
+             import traceback
+             (directory/f'error-rank{rank}.txt').write_text(traceback.format_exc())
+             raise
++        finally:
++            if shadow_enabled or shadow_control['config_error']:
++                record=getattr(runner.model,'greedy_shadow_record',None)
++                if record is None:
++                    record={'enabled':shadow_enabled,'calls':0,'passes':0,'failures':0,
++                            'config_error':shadow_control['config_error'],
++                            'reason':'no eligible DSpark generation' if shadow_enabled else 'invalid control'}
++                path=directory/f'greedy-shadow-rank{rank}.json'
++                temp=path.with_suffix('.tmp')
++                temp.write_text(json.dumps({'rank':rank,'job_id':previous,
++                                            'control':shadow_control,'shadow':record}))
++                temp.replace(path)
+ 
+ 
+ if __name__=='__main__':
