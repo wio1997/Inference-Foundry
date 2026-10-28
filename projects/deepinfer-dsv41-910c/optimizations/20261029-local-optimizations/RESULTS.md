@@ -130,6 +130,16 @@
 
 独立核对文件为 `diagnostics/fixed24-engram-window-ipc-20261029/independent-engram-window-review-20261029.json`，SHA256 为 `f6266a13bfee0e1cc0d3e88fcde342d2242ae399a2c1596cf6d86c5bf0ebe49e`。
 
+## DSpark 草稿图设备状态输入
+
+在前述设备状态和 Engram 窗口诊断的基础上，独立候选将上一轮设备状态中的 golden token 和位置传入 DSpark 草稿图。候选保持 CPU 参考、逐轮同步检查和原路径回退，不改变 learned draft、目标验证或 Engram 表的存储方式。
+
+16 个 rank 均连续通过 7 轮状态检查，其中各有 6 轮实际使用设备状态作为草稿图输入。C2 source 2、8、14 的有效状态按位核对，8 条请求的前 32 个输出 token 与保留参考逐项一致；实际缓存命中为 235904 / 262144 token。
+
+此结果验证固定 4 × 6、greedy、忽略 EOS 的接口，不是完整输出或性能验收。CPU 状态仍为权威，设备提交、动态请求重映射和跨步异步流水尚未接入；因此不能将该结果视作完整 ZOS，也没有 TTFT、TPOT 或吞吐收益结论。
+
+独立核对文件为 `diagnostics/official-zos-draft-device-ipc-20261029/independent-zos-draft-device-review-20261029.json`，SHA256 为 `42e7a1c8b93f39f1b5b0956cb035266186addaf4633c4918e98bb64db9425170`。
+
 ## 边界与后续工作
 
 压缩候选的第 20 层记录包含主机排队和异步等待，不能将其当作设备算子独占耗时。后续应继续减少并验证边界重排、索引重分配及设备状态接续的开销；任何候选均须保留完整输出、实际缓存命中及 TTFT、TPOT、吞吐的逐项对照。vLLM Ascend 用作最终同期对照，不作为整体替换目标。
