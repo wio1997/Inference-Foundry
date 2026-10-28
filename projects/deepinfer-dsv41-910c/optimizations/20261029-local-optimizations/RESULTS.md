@@ -140,6 +140,16 @@
 
 独立核对文件为 `diagnostics/official-zos-draft-device-ipc-20261029/independent-zos-draft-device-review-20261029.json`，SHA256 为 `42e7a1c8b93f39f1b5b0956cb035266186addaf4633c4918e98bb64db9425170`。
 
+## DSpark 草稿图预发
+
+在设备状态输入候选上，独立诊断在目标验证后使用待提交的设备状态预发下一轮 DSpark 草稿图。预发前由所有 rank 对执行资格和准备状态进行投票；CPU 对照和状态核验通过后，下一轮才消费预发结果。上一轮草稿保留独立设备副本，以避免图输出缓冲复用时被覆盖。
+
+16 个 rank 各预发 7 次，分别有 6 次由下一轮实际消费；C2 source 2、8、14 的有效状态按位核对，8 条请求的前 32 个 token 与保留参考一致，实际缓存命中为 235904 / 262144 token。
+
+该路径仍在目标结果回读后预发，并包含逐轮投票与 CPU 同步检查。结果验证固定 4 × 6、greedy、忽略 EOS 条件下的执行顺序和状态一致性，不代表完整 ZOS，也不能作为性能提升证据。其他请求形状、异步错误传播和完整输出仍待验收。
+
+独立核对文件为 `diagnostics/official-zos-draft-prelaunch-ipc-20261029/independent-zos-draft-prelaunch-review-20261029.json`，SHA256 为 `36426c3c72b0b3edcc368b78fb27412ba007efdd83ebaabbba872cb02ed83595`。
+
 ## 边界与后续工作
 
 压缩候选的第 20 层记录包含主机排队和异步等待，不能将其当作设备算子独占耗时。后续应继续减少并验证边界重排、索引重分配及设备状态接续的开销；任何候选均须保留完整输出、实际缓存命中及 TTFT、TPOT、吞吐的逐项对照。vLLM Ascend 用作最终同期对照，不作为整体替换目标。
