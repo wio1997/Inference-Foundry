@@ -558,6 +558,12 @@ T ≥ max(0, W_min − b) / P_max
 
 例如，[Ascend C 的一种 AIC/AIV 同步接口](https://asc.gitcode.com/api/SIMD-API/c_api/sync/inter_core_sync/asc_sync_block_arrive.html)对单个同步计数器规定最多累加到 15，并说明通知不会阻塞该流水的后续指令。这是特定协议的条件约束，不能把 15 当作整卡在途任务或字节数上限。页面为持续开发预览版，尚未与历史 kernel 绑定，也不能据此设定本次短窗初始信用或吞吐硬上界。
 
+### 同层跨模块对照与 C2 共享条件
+
+对一份已保存、带 profiler 的同层样本，按每卡自身 scope 唯一关联设备任务，在七卡上逐类核对完整导出 shape、dtype、format、核心与 block 签名。以其中一张为参照，其他六张卡的 `DispatchFFNCombine` 时长为 **4.777–4.789 倍**，而 `SparseFlashMla` 为 **1.001–1.014 倍**；第八卡 attention 的首维不同，未纳入此比较。它排除这两类所选记录都按同一约 4.8 倍变化的解释，但相同静态签名不保证实际专家路由、有效 token 或 attention 工作量相同，也不能确定通信、硬件或 profiler 是否导致差异。这不是线上吞吐或整层耗时。
+
+冻结源码的条件性反例还提示，若不同 C2 compressor builder 持有独立状态缓冲却人为共享同一个 metadata 字典，第二实例可能命中缓存键而跳过自己的状态构建，但仍向消费者发布自身缓冲。跨 builder 重组需证明整套 ring、mask、位置、cache group 和就绪事件的对应关系；历史运行是否存在该共享组合尚未证实，不能将反例称为实际故障或收益。
+
 ## 七、尚需解决的问题
 
 - **定位最低利用率模块：**补齐同一口径下相关模块、rank、请求和图重放的覆盖；分别解释设备任务覆盖、AIC/AIV 活动和等待，避免用局部排序代表全模型。
