@@ -132,4 +132,12 @@ assert len(other) == 136
 assert [round(min(mc2[0]['ratios_l14_over_l39']), 3), round(max(mc2[0]['ratios_l14_over_l39']), 3)] == [19.344, 19.516]
 assert [round(min(other), 3), round(max(other), 3)] == [0.794, 1.286]
 print('Selected same-stream L14/L39 ratios: MC2 19.344–19.516; 17 other matched signatures 0.794–1.286. Not equal work or causal evidence.')
+cross = profile['mc2_cross_group_layer_medians']
+assert [c['physical_input_rows'] for c in cross] == [1023, 643]
+assert all(len(c['ratios']) == 40 and min(c['ratios']) > 0 for c in cross)
+assert [sum(v > 1 for v in c['ratios']) for c in cross] == [33, 40]
+assert [[round(min(c['ratios']), 3), round(median(c['ratios']), 3), round(max(c['ratios']), 3)] for c in cross] == [[0.990, 1.531, 8.528], [1.174, 1.456, 10.331]]
+assert histogram_statistics(profile['q_scatter_tail_minus_rope_ns_histogram']) == (1920, 4899, 7360.0, 14940)
+print('Selected Q scatter-tail minus RoPE duration: 1920 samples, min/median/max 4.899/7.360/14.940 us; not proof of executable overlap.')
+print('Selected MC2 groups: 40 layer medians per shape; different groups, not matched workloads.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
