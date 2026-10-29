@@ -11,6 +11,11 @@ for phase,row in data['rounds'].items():
     prefill=list(map(Decimal,row['means']['request_prefill_time_seconds']))
     decode=list(map(Decimal,row['means']['request_decode_time_seconds']))
     assert row['ttft_bucket_deltas']=={'0.5':[0,2],'0.75':[1,2],'1.0':[3,4],'2.5':[4,4]}
+    counters=row['prompt_cache_counter_deltas']
+    assert counters['request_prompt_tokens_sum']==[131072,131072]
+    assert counters['request_prefill_kv_computed_tokens_sum']==[13056,13184]
+    assert counters['prefix_cache_hits_total']==[118016,117888]
     print(phase,'TTFT means ms:',*[round(x*1000,3) for x in ttft],'; delta ms:',round((ttft[0]-ttft[1])*1000,3))
     print('  prefill means ms:',*[round(x*1000,3) for x in prefill],'; decode means s:',*[round(x,3) for x in decode])
+    print('  engine 0/1 prompt totals:',counters['request_prompt_tokens_sum'],'computed tokens:',counters['request_prefill_kv_computed_tokens_sum'])
 print('Aggregated histogram observations only: not matched per-request or causal evidence.')
