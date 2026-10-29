@@ -40,3 +40,5 @@ python3 "$PATCH_DIR/verify.py" "$CANDIDATE" candidate
 四轮各 8 条完整 1024 token 输出与保留参考逐 token 一致，分词缓存每轮 8 / 8 命中；16 个 rank 的查表分支、有界重放和 DSpark 异步预发均经核验。性能和输出审计 SHA256 `26bd10a16547b98eab1ab48482ef03c02ca7e8121a5001b149278f9b77cf302f`；rank 与分词审计 SHA256 `924feb0bc070b5c6d31fef6c40fbc760e781adcb3af50e5c1973b44b33046fbc`。审计文件位于服务器 `fair-comparison-20261028/completion/official-engram-overlap-ab-20261029/`。
 
 两组均包含新增事件图与通信组，因此本表不能衡量这些共同开销相对于父版本的影响；侧流派发计数也不能证明设备计算与查表实际重叠。验证仅覆盖固定负载，未逐项比较设备缓存张量，也未完成其他输入及模型质量验证。
+
+已有请求时标对第二轮的服务端耗时进行分账：主流与侧流从 IPC 发布至收到 worker 首 token 分别为 540.723 和 582.875 ms；worker 自报首 token elapsed 分别为 505.059 和 547.161 ms。分词缓存均命中，批次形成与 IPC 发布阶段的差异较小。该 worker 区间包含缓存恢复、prefill、首轮生成和 IPC，不构成对单一算子或侧流影响的因果证明；两轮测量仍可能受到波动影响。分账审计 SHA256 为 `b5fc63ffdf96bc64c62e13ce0e15f69d55b7bfdcc65b117db522097193dc5f4e`。
