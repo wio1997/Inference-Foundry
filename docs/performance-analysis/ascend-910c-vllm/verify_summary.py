@@ -123,4 +123,13 @@ c=profile['client_first_data_comparison']
 assert c['recapture_requests'] == c['recapture_first_data_nonempty_count'] == 8
 assert c['baseline_first_data_ms']['max'] < c['recapture_first_data_ms']['min']
 print('Selected baseline and diagnostic client first-data ranges do not overlap; timing semantics differ.')
+matched = profile['same_stream_l14_l39_matched']['groups']
+assert len(matched) == 18 and all(len(g['ratios_l14_over_l39']) == 8 and min(g['ratios_l14_over_l39']) > 0 for g in matched)
+mc2 = [g for g in matched if g['name'] == 'DispatchFFNCombine']
+assert len(mc2) == 1
+other = [x for g in matched if g['name'] != 'DispatchFFNCombine' for x in g['ratios_l14_over_l39']]
+assert len(other) == 136
+assert [round(min(mc2[0]['ratios_l14_over_l39']), 3), round(max(mc2[0]['ratios_l14_over_l39']), 3)] == [19.344, 19.516]
+assert [round(min(other), 3), round(max(other), 3)] == [0.794, 1.286]
+print('Selected same-stream L14/L39 ratios: MC2 19.344–19.516; 17 other matched signatures 0.794–1.286. Not equal work or causal evidence.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
