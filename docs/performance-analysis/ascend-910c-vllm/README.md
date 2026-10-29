@@ -297,3 +297,9 @@ python3 verify_summary.py
 
 
 F31 的共享接口补查：冻结的 DSpark proposer 在压缩模式传入 `common_ratio_to_sas_metadata`，而 V4.1 metadata builder 的共享入口读取 `common_v41_metadata` 和 `common_v41_batch_metadata`。因此即使假设只让该 builder 转发现有参数，也不能据此认定 V4.1 的跨组共享会生效；还需核对共享范围、每组 block table/slot 和缓冲生命周期。历史运行是否采用这些对象、是否真的重复工作及性能影响均未知。
+
+
+F31 的构造器选择链进一步收窄：保存的 DSpark 源码将 draft SWA cache 指向 V4.1 backend，draft group 由该 backend 选择 metadata builder；当前 stage 的 `AttentionGroup` 创建逻辑与之相容。在历史确实加载这些对象、cache 属于该 group 且 legacy CP 开启、PCP 关闭的条件下，会选择 V4.1 CP builder；启动参数和当前文件哈希仍不足以证明历史实例及生效配置。
+
+
+进一步核对 Engram 候选的单个 EP8 采集子树：保存的配置中 `hardware_mem`、`sys_profiling` 为 off，HBM、DDR 和 L2 的相关字段为空；空字段不能直接解释为关闭。在指定的两个目录直属文件名中未发现访存相关名称，原始二进制未解码。当前仍不能判断矩阵任务的数据来自 HBM 还是缓存，不能从 MTE2 活动比例计算实际带宽。昇腾 [CANN 9.1 文档](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0516.html)列出了不同访存采集类别，但不能证明本次历史 9.2 已启用或支持它们。
