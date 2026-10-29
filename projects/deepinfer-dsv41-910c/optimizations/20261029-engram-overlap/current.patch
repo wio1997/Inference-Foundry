@@ -1,0 +1,243 @@
+--- a/deepinfer/model_executor/models/engram_uva910c.py
++++ b/deepinfer/model_executor/models/engram_uva910c.py
+@@ -35,6 +35,19 @@
+                 ranks=[tp_rank,tp_rank+self.world]
+                 cpu_group=dist.new_group(ranks,backend='gloo')
+                 if dist.get_rank() in ranks:self.dp_group=cpu_group
++        # Background TP gathering must not race model collectives on the same
++        # communicator. Every rank creates the groups in the same order.
++        self.fetch_group=None
++        if os.environ.get('DEEPINFER_910C_ENGRAM_OVERLAP')=='1':
++            if self.world!=8 or dist.get_world_size()!=16 or group is None:
++                raise ValueError('Engram overlap requires DP2/TP8/EP16')
++            rank=dist.get_rank()
++            for first in range(0,16,self.world):
++                ranks=list(range(first,first+self.world))
++                fetch_group=dist.new_group(ranks,backend='hccl')
++                if rank in ranks:self.fetch_group=fetch_group
++            if self.fetch_group is None:
++                raise RuntimeError('missing dedicated Engram TP group')
+         self.tables = {}
+         self.registrations = []
+         try:
+@@ -74,7 +87,7 @@
+             'scale':'original E8M0 bytes, device decode; no table expansion',
+             'scope':'decode lookup before graph entry; not full ZOS/consumer overlap'}
+ 
+-    def rows(self, layer, ids, output):
++    def rows(self, layer, ids, output, *, background=False):
+         code,scale,first,last=self.tables[layer]
+         local=lookup(code,scale,ids,vocab_start=first,vocab_end=last,
+             head_start=self.head_start,heads=self.local_heads)
+@@ -82,7 +95,10 @@
+             output.copy_(local.reshape_as(output))
+         else:
+             gathered=local.new_empty((self.world*local.shape[0],self.local_heads,256))
+-            dist.all_gather_into_tensor(gathered,local,group=self.group)
++            group=self.fetch_group if background else self.group
++            if group is None:
++                raise RuntimeError('dedicated Engram group unavailable')
++            dist.all_gather_into_tensor(gathered,local,group=group)
+             output.copy_(gathered.view(self.world,ids.shape[0],self.local_heads,256)
+                 .permute(1,0,2,3).reshape_as(output))
+         self.stats['calls']+=1
+--- a/deepinfer/model_executor/models/w8a8_graph910c.py
++++ b/deepinfer/model_executor/models/w8a8_graph910c.py
+@@ -67,6 +67,27 @@
+         self.engram_hash_copy_done=None
+         self.engram_hash_calls=0
+         self.engram_hash_tokens=0
++        self.engram_overlap_batches=0
++        self.engram_serial_batches=0
++        # Only the fixed 4x6 verification graph has been prepared for the
++        # asynchronous consumer path. Other shapes keep the existing staging.
++        self.engram_overlap=(os.environ.get('DEEPINFER_910C_ENGRAM_OVERLAP')=='1'
++            and self.count==4 and self.query_tokens==6 and self.tokens==24
++            and bool(self.rows) and model.engram_uva_runtime is not None)
++        self.engram_capture_waits=False
++        self.engram_lookup_stream=None
++        self.engram_ready={}
++        self.engram_hash_ready=None
++        if self.engram_overlap:
++            if getattr(model.engram_uva_runtime,'fetch_group',None) is None:
++                raise RuntimeError('Engram overlap needs a dedicated TP group')
++            self.engram_lookup_stream=torch.npu.Stream(device=model.device)
++            self.engram_hash_ready=torch.npu.Event()
++            self.engram_ready={layer:torch.npu.ExternalEvent() for layer in self.rows}
++            # Establish a reset event before the first producer publication.
++            for event in self.engram_ready.values():
++                event.record(torch.npu.current_stream())
++                event.reset(torch.npu.current_stream())
+ 
+     def reset_sequence(self):
+         self.prepared=False
+@@ -76,6 +97,8 @@
+         self.engram_pinned_bytes=0
+         self.engram_hash_calls=0
+         self.engram_hash_tokens=0
++        self.engram_overlap_batches=0
++        self.engram_serial_batches=0
+ 
+     def _stage_engram(self,histories,chunks):
+         if not self.rows:return
+@@ -83,6 +106,7 @@
+             hashes=[history.batch(chunk) for history,chunk in zip(histories,chunks)]
+             for layer,buffer in self.rows.items():
+                 self._stage_engram_rows(layer,torch.cat([entry[layer] for entry in hashes]),buffer)
++                if self.engram_overlap:self.engram_ready[layer].record(torch.npu.current_stream())
+             return
+         runtime=self.model.engram_uva_runtime
+         device_hash=self.model.engram_device_hash
+@@ -114,7 +138,23 @@
+                 event=torch.npu.Event();event.record();self.engram_hash_copy_done=event
+                 context=self.engram_hash_context
+             hashes=device_hash.compute(context,self.engram_hash_output)
+-            for layer,buffer in self.rows.items():runtime.rows(layer,hashes[layer],buffer)
++            if self.engram_overlap and os.environ.get('DEEPINFER_910C_ENGRAM_OVERLAP_ACTIVE')=='1':
++                self.engram_overlap_batches+=1
++                # Prior graph wait/reset and the current hash precede this
++                # main-stream gate. The side stream may then publish each
++                # layer's rows and record its external completion event.
++                main=torch.npu.current_stream()
++                self.engram_hash_ready.record(main)
++                self.engram_lookup_stream.wait_event(self.engram_hash_ready)
++                with torch.npu.stream(self.engram_lookup_stream):
++                    for layer,buffer in self.rows.items():
++                        runtime.rows(layer,hashes[layer],buffer,background=True)
++                        self.engram_ready[layer].record(self.engram_lookup_stream)
++            else:
++                if self.engram_overlap:self.engram_serial_batches+=1
++                for layer,buffer in self.rows.items():
++                    runtime.rows(layer,hashes[layer],buffer)
++                    if self.engram_overlap:self.engram_ready[layer].record(torch.npu.current_stream())
+         except BaseException:
+             for history,length in zip(histories,original_lengths):del history.history[length:]
+             raise
+@@ -248,6 +288,9 @@
+         draft_features=[]
+         for i,layer in enumerate(model.layers):
+             if str(i) in model.engrams:
++                if self.engram_capture_waits:
++                    self.engram_ready[i].wait(torch.npu.current_stream())
++                    self.engram_ready[i].reset(torch.npu.current_stream())
+                 trunk=model.engrams[str(i)].forward_rows(trunk,self.rows[i],model.engram_rotation,self.valid)
+             if model.dspark is not None and i in model.dspark.target_layer_ids:
+                 draft_features.append(trunk.float().mean(-2).bfloat16())
+@@ -267,6 +310,9 @@
+         self._stage(chunks)
+         self.staging_seconds+=time.perf_counter()-staged_at
+         if self.graph is None:
++            if self.engram_overlap:
++                # Warmup forwards run eagerly and do not have captured waits.
++                self.engram_lookup_stream.synchronize()
+             # Repeated writes at the same position are idempotent. C2 even
+             # rows are invisible and odd steps retain the preceding even KV.
+             # This warms real decode kernels without advancing CPU histories.
+@@ -281,8 +327,12 @@
+             torch.npu.synchronize()
+             restore_even()
+             self.graph=torch.npu.NPUGraph()
+-            with torch.npu.graph(self.graph):
+-                self.output=self._forward()
++            self.engram_capture_waits=self.engram_overlap
++            try:
++                with torch.npu.graph(self.graph):
++                    self.output=self._forward()
++            finally:
++                self.engram_capture_waits=False
+             self.captures+=1
+             restore_even()
+         else:
+@@ -308,6 +358,11 @@
+             self.model.next_positions[slot]+=self.query_tokens
+         return self.output
+ 
++    def prime_static_engram_events(self):
++        """Re-signal unchanged rows before a direct graph profiling replay."""
++        if self.engram_overlap:
++            for event in self.engram_ready.values():event.record(torch.npu.current_stream())
++
+     def commit_prefixes(self,bases,commits):
+         """Restore C2/Engram lengths after exact target rejection sampling.
+ 
+--- a/deepinfer/engine/dspark_graphs910c.py
++++ b/deepinfer/engine/dspark_graphs910c.py
+@@ -94,12 +94,15 @@
+             prefix_predictions.append((size,lengths,rows))
+             frame.commit_prefixes(bases,[0]*4)
+             dist.barrier()
++            prime=getattr(frame,'prime_static_engram_events',None)
++            if prime is not None:prime()
+             frame.graph.replay()
+             dist.barrier()
+             events=[]
+             for _ in range(5):
+                 start=torch.npu.Event(enable_timing=True)
+                 end=torch.npu.Event(enable_timing=True)
++                if prime is not None:prime()
+                 start.record();frame.graph.replay();end.record()
+                 events.append((start,end))
+                 dist.barrier()
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -564,6 +564,8 @@
+                 'engram_device_hash_enabled':os.environ.get('DEEPINFER_910C_ENGRAM_DEVICE_HASH')=='1',
+                 'engram_device_hash_calls':sum(f.engram_hash_calls for f in frames.values()),
+                 'engram_device_hash_tokens':sum(f.engram_hash_tokens for f in frames.values()),
++                'engram_overlap_batches':sum(getattr(f,'engram_overlap_batches',0) for f in frames.values()),
++                'engram_serial_batches':sum(getattr(f,'engram_serial_batches',0) for f in frames.values()),
+                 'engram_device_hash_frame_calls':{str(size):sum(f.engram_hash_calls for f in frames.values() if f.tokens==size)
+                                                   for size in sorted({f.tokens for f in frames.values()})},
+                 'engram_uva':(dict(self.engram_uva_runtime.stats)
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','engram_overlap'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -100,8 +100,11 @@
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
+                 if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
+                     raise ValueError('140-token replay requires bounded replay')
++                if mode.get('engram_overlap',False) and (not mode['engram_uva'] or not mode['engram_device_hash'] or os.environ.get('DEEPINFER_910C_ENGRAM_OVERLAP')!='1'):
++                    raise ValueError('Engram overlap requires prepared graph, UVA and device hash')
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED']='1' if mode.get('yoco_bounded',False) else '0'
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED_140']='1' if mode.get('yoco_bounded_140',False) else '0'
++                os.environ['DEEPINFER_910C_ENGRAM_OVERLAP_ACTIVE']='1' if mode.get('engram_overlap',False) else '0'
+                 if mode['reset_prefix_cache']:
+                     runner.prefix_cache.clear()
+                 (directory/f'ablation-rank{rank}.json').write_text(json.dumps({
+@@ -128,6 +131,8 @@
+                     'device_hash_calls':stats['engram_device_hash_calls'],
+                     'device_hash_tokens':stats['engram_device_hash_tokens'],
+                     'device_hash_frame_calls':stats['engram_device_hash_frame_calls'],
++                    'engram_overlap_batches':stats['engram_overlap_batches'],
++                    'engram_serial_batches':stats['engram_serial_batches'],
+                     'verification_graph_captures':stats['verification_graph_captures'],
+                     'verification_graph_replays':stats['verification_graph_replays'],
+                     'varlen_graph_replays':stats['dspark_varlen_graph_replays'],
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -77,7 +77,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','engram_overlap'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+@@ -87,6 +87,8 @@
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
+                 if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
+                     raise ValueError('140-token replay requires bounded replay')
++                if mode.get('engram_overlap',False) and (not mode['engram_uva'] or not mode['engram_device_hash'] or os.environ.get('DEEPINFER_910C_ENGRAM_OVERLAP')!='1'):
++                    raise ValueError('Engram overlap requires prepared graph, UVA and device hash')
+                 body['single_point_ablation']=mode
+             (directory/'request.json').write_text(json.dumps(body,separators=(',',':')))
+             pending=self.args.control_dir/'current.tmp'
