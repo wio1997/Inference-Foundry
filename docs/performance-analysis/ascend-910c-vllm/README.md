@@ -303,3 +303,6 @@ F31 的构造器选择链进一步收窄：保存的 DSpark 源码将 draft SWA 
 
 
 进一步核对 Engram 候选的单个 EP8 采集子树：保存的配置中 `hardware_mem`、`sys_profiling` 为 off，HBM、DDR 和 L2 的相关字段为空；空字段不能直接解释为关闭。在指定的两个目录直属文件名中未发现访存相关名称，原始二进制未解码。当前仍不能判断矩阵任务的数据来自 HBM 还是缓存，不能从 MTE2 活动比例计算实际带宽。昇腾 [CANN 9.1 文档](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0516.html)列出了不同访存采集类别，但不能证明本次历史 9.2 已启用或支持它们。
+
+
+同一 EP8 采集数据库的 `AICORE_FREQ` 有三条记录，值均为 1800；六个选定矩阵任务区间内没有频率表行，前后最近记录的值均为 1800，但间隔约 0.258–2.363 秒。[昇腾旧版表说明](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta1/devaids/Profiling/atlasprofiling_16_1144.html)将该表描述为频率变化记录，当前安装解析器也可能初始化默认频率；历史生成链、时钟与数据完整性尚未闭合。因此这些数据不能证明任务期间频率恒定、没有短时变频或 1800 是硬上限。此前仅凭 `lpmInfoConv` 前缀将其称为内存信号的推测已撤回。
