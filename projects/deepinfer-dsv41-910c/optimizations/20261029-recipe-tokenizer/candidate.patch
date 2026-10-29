@@ -1,0 +1,89 @@
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -35,11 +35,29 @@
+         self.eos=config['eos_token_id']
+         from deepinfer.engine.tokenization_cache import TokenizationCache
+         self.token_cache=TokenizationCache(self.tokenizer.encode,token_budget=args.tokenizer_cache_tokens)
++        self.recipe_token_cache=None
++        if os.environ.get('DEEPINFER_910C_RECIPE_AVAILABLE')=='1':
++            from deepseek_recipe import Tokenizer as RecipeTokenizer
++            self.recipe_tokenizer=RecipeTokenizer.from_file(str(Path(args.model_dir)/'tokenizer.json'))
++            self.recipe_token_cache=TokenizationCache(self.recipe_tokenizer.encode,token_budget=args.tokenizer_cache_tokens)
+         self.pending=queue.Queue()
+         self.counts={'requests':0,'prompt_tokens':0,'cached_tokens':0,'output_tokens':0,'failed_requests':0,
+                      'tokenizer_cache_hits':0,'tokenizer_cache_hit_tokens':0}
+         self.lock=threading.Lock()
+         self.ttft_trace_enabled=os.environ.get('DEEPINFER_910C_TTFT_TRACE')=='1'
++
++    def tokenizer_cache_for_mode(self):
++        enabled=False
++        if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
++            mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
++            enabled=mode.get('recipe_tokenizer',False)
++            if type(enabled) is not bool:
++                raise ValueError('invalid Recipe tokenizer mode')
++        if enabled:
++            if self.recipe_token_cache is None:
++                raise ValueError('Recipe tokenizer is unavailable')
++            return self.recipe_token_cache,'recipe'
++        return self.token_cache,'original'
+ 
+     def ready(self):
+         return len(list(self.args.control_dir.glob('ready-rank*.json')))==16
+@@ -77,7 +95,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+@@ -215,12 +233,13 @@
+                     if not isinstance(prompts,list) or len(prompts)!=8 or any(not isinstance(x,str) or not x or len(x)>4*1024*1024 for x in prompts):
+                         raise ValueError('exactly eight bounded prompt strings required')
+                     rows=[]
++                    cache,_=frontend.tokenizer_cache_for_mode()
+                     for prompt in prompts:
+-                        ids,hit=frontend.token_cache.get(prompt)
++                        ids,hit=cache.get(prompt)
+                         rows.append({'prompt_sha256':hashlib.sha256(prompt.encode()).hexdigest(),
+                             'token_ids_sha256':hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest(),
+                             'tokens':len(ids),'hit_before':hit})
+-                    if not all(frontend.token_cache.get(prompt)[1] for prompt in prompts):
++                    if not all(cache.get(prompt)[1] for prompt in prompts):
+                         raise ValueError('tokenizer cache cannot retain all eight prompts')
+                     self.send_json({'items':rows});return
+                 except (ValueError,KeyError,TypeError,json.JSONDecodeError) as exc:
+@@ -241,8 +260,10 @@
+                 prompt=body['prompt']
+                 if trace is not None:trace['tokenize_start_ns']=time.monotonic_ns()
+                 tokenizer_hit=False
++                tokenizer_engine='token_ids'
+                 if isinstance(prompt,str):
+-                    ids,tokenizer_hit=frontend.token_cache.get(prompt)
++                    cache,tokenizer_engine=frontend.tokenizer_cache_for_mode()
++                    ids,tokenizer_hit=cache.get(prompt)
+                     if tokenizer_hit:
+                         with frontend.lock:
+                             frontend.counts['tokenizer_cache_hits']+=1
+@@ -251,7 +272,7 @@
+                     ids=prompt
+                 else:
+                     raise ValueError('prompt must be text or one token-ID list')
+-                if trace is not None:trace.update(tokenize_end_ns=time.monotonic_ns(),tokenizer_hit=tokenizer_hit)
++                if trace is not None:trace.update(tokenize_end_ns=time.monotonic_ns(),tokenizer_hit=tokenizer_hit,tokenizer_engine=tokenizer_engine)
+                 maximum=int(body.get('max_tokens',16))
+                 if not ids or maximum<1 or len(ids)+maximum>34816:
+                     raise ValueError('prompt/output must fit context34816')
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
