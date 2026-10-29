@@ -91,4 +91,16 @@ assert len(records) == 32 and all(len(p) == 4 and all(len(q) == 2 and min(q) > 0
 medians = [median(p[i][1] / p[i][0] for p in records) for i in range(4)]
 assert [round(v, 3) for v in medians] == [1.242, 1.369, 1.422, 1.293]
 print('Four selected task 1023/595 duration ratio medians: ' + '/'.join(f'{x:.3f}' for x in medians))
+# Five task timings are within one profiled pair of layer scopes.
+five = profile['selected_layer36_five_task_pairs']['durations_us']
+assert len(five) == 5 and all(len(p) == 3 and p[1] > 0 and p[2] > 0 for p in five)
+assert [round(p[2] / p[1], 3) for p in five] == [1.346, 1.130, 1.006, 0.990, 0.942]
+print('Selected five task duration ratios: ' + '/'.join(f'{p[2]/p[1]:.3f}' for p in five))
+# The following model is conditional, not independently established hardware capacity.
+capacity = 24 * 1_800_000_000 * 8192
+for i, k, n in ((1, 5120, 4608), (3, 2304, 5120)):
+    for j, m in enumerate((595, 1023)):
+        model_us = m*k*n/capacity*1e6
+        observed_us = median(p[i][j] for p in records)
+        print(f'Conditional INT8 model M={m} K={k} N={n}: {model_us:.3f} us; observed median {observed_us:.2f} us')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
