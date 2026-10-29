@@ -103,4 +103,14 @@ for i, k, n in ((1, 5120, 4608), (3, 2304, 5120)):
         model_us = m*k*n/capacity*1e6
         observed_us = median(p[i][j] for p in records)
         print(f'Conditional INT8 model M={m} K={k} N={n}: {model_us:.3f} us; observed median {observed_us:.2f} us')
+q = profile['q_two_projection_shapes']
+macs = [q['m'] * q['k'] * n for n in q['outputs']]
+assert macs == [42907729920, 5363466240] and macs[0] == 8 * macs[1]
+assert [round(m/t/1e6,3) for m,t in zip(macs,q['duration_us'])] == [139.347, 105.455]
+for n, nz in zip(q['outputs'], q['weight_nz_shapes']):
+    assert [(n+31)//32, (q['k']+15)//16, 16, 32] == nz
+r=profile['f32_selected_projection_rows']; assert r['q_rows_histogram'] == {'1023':7, '1019':1} and r['kv_rows_histogram'] == {'8180':8}
+assert 7*1023+1019 == 8180 and 1023*512 != 1019*512
+print('Q pair conditional MACs: 42.908G / 5.363G; 9.1 non-transpose shapes are compatible, historical parameters unbound.')
+print('Selected Q rows: seven 1023, one 1019; same communication group and valid rows unproven.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
