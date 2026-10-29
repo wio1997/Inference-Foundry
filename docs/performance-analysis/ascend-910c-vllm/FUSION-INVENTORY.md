@@ -45,7 +45,7 @@
 | F29 | DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入 | 条件 | 部分分支的源码支持上下文到 KV 的路径；有效槽位、持久缓存及所有消费者需绑定。 |
 | F30 | DSpark collapse/norm → Markov bias、logits/置信度/验证 | 未知 | 多消费者、逐步采样和接受验证关系尚不完整；不得跳过步骤或直接删除原 logits。 |
 | F31 | Attention/DSpark 相关 metadata 构造、共享与发布 | 未知 | 当前只有部分源码图；实际分支、buffer 别名、所有消费者和跨步状态未知。 |
-| F32 | SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信 | 条件 | 满足行独立、rank 权重一致、数值语义与通信分片条件时可研究；source 层另需原 hidden，CP/PCP 行域与通信组、全部消费者和实际运行绑定未知。与 F02/F06 工作重叠，不能重复计收益。 |
+| F32 | SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信 | 条件 | 满足行独立、rank 权重一致、数值语义与通信分片条件时可研究；index source 需本地 query hidden，兼作 KV source 的层还需全局 cache hidden 或等价信息；CP/PCP 行域与通信组、全部消费者和实际运行绑定未知。与 F02/F06 工作重叠，不能重复计收益。 |
 
 后续还单独检查了 target rejection 路径的取行、FP32 转换与原值副本初始化：可作为条件性组合候选；原值可能被 entropy 验证或 raw logprobs 消费，不能无条件删除副本。此项不是上表 F30 的独立收益，也尚未绑定历史运行。
 
