@@ -39,7 +39,7 @@
 | F17 | Compressor 两路输入投影，共享转换或分块 | 条件 | 源码有双投影；两路消费者、转换精度及各自分块同步需保留。 |
 | F18 | Compressor 状态池化 → norm | 条件 | 池化本身已有复合调用；状态、历史页、槽位及 norm 的数据依赖待核对。 |
 | F19 | Compressor latent 分叉 → index key 与压缩 KV | 条件 | 两条消费路径及持久状态来自源码；不得消去某一分支或更改其缓存语义。 |
-| F20 | MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用 | 条件 | 320 组 pad、比较、填值、选择与 gate 已逐类以 host 栈和既有 flow 关联；保存的 A3 路由源码在读取 ID 时也映射 `-1`。可条件研究合并或吸收映射，需保留有效行信息并证明实际二进制、值、分片、buffer 与同步。路由 TopK 的全局顺序及精度仍须保持。 |
+| F20 | MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用 | 条件 | 320 组 pad、比较、填值、选择与 gate 已逐类以 host 栈和既有 flow 关联；保存的 A3 路由源码在读取 ID 时也映射 `-1`。可条件研究合并或吸收映射，需保留有效行信息并证明实际二进制、值、分片、buffer 与同步；绕过映射还须核查自动连续化与原 buffer 快照。路由 TopK 的全局顺序及精度仍须保持。 |
 | F21 | MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水 | 条件 | 现有 MC2 已是复合算子；其内部实现、逐 tile 就绪及资源占用未完整掌握，不能假定可以进一步拆分。 |
 | F22 | 共享 expert 的投影 → 激活量化 → 下投影 | 条件 | 单样本的 shared expert 调用角色已有主机调用栈及设备 flow 关联；实际张量边与历史加载版本尚未闭合。采样已有 `DequantSwigluQuant` 复合任务，不能将其内部步骤重复作为新增融合；跨矩阵乘的连接仍需保留 clamp、scale、量化边界和中间舍入。 |
 | F23 | 共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC | 条件 | 双分支 join 与后续残差需同时满足；不能把已有条件性 scaling/add 当作新增收益。 |
