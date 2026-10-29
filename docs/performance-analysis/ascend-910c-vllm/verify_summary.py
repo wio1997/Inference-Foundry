@@ -42,4 +42,29 @@ assert 3 * 1280 + 1280 * 32768 == 41946880
 print('Conditional cold-input example: 41946880 distinct raw bytes')
 print('Conditional model assumptions and observed task identity are not independently verified.')
 print('F08: scatter individually longest in 1207/1280 selected profiled triples')
+
+# Published distributions contain anonymous marginal counts, not raw events.
+def histogram_statistics(histogram):
+    assert histogram and all(isinstance(value, int) and isinstance(count, int) and count > 0
+                             for value, count in histogram)
+    assert all(histogram[i][0] < histogram[i + 1][0] for i in range(len(histogram) - 1))
+    total = sum(count for _, count in histogram)
+    def value_at(position):
+        seen = 0
+        for value, count in histogram:
+            seen += count
+            if position < seen:
+                return value
+        raise ValueError('histogram position outside total')
+    median_ns = (value_at((total - 1) // 2) + value_at(total // 2)) / 2
+    return total, histogram[0][0], median_ns, histogram[-1][0]
+
+pair = profile['q_scatter_rope_aggregate']
+overlap = histogram_statistics(pair['overlap_ns_histogram'])
+gap = histogram_statistics(pair['scatter_end_to_rope_start_ns_histogram'])
+assert overlap == (1920, 7120, 22829.5, 30000)
+assert gap == (1920, 520, 620, 1020)
+print(f'Selected Q/scatter overlap median: {overlap[2] / 1000:.4f} us')
+print(f'Selected scatter-to-RoPE gap median: {gap[2] / 1000:.3f} us')
+print('Separate anonymous histograms verify these marginal distributions, not event identity or causality.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
