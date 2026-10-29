@@ -25,5 +25,13 @@ assert sum(x['scatter_longest_count'] for x in f08.values()) == 1207
 assert all(0 <= x['scatter_fraction_median'] <= 1 for x in f08.values())
 print(f'Formal output throughput: {aggregate:.4f} tokens/s')
 print(f"Prefix-hit rate: {rounds[0]['prefix_hits'] / rounds[0]['prefix_queries']:.4%}")
+total_window = sum(x['duration_seconds'] for x in rounds)
+input_total = sum(x['input_tokens'] for x in rounds)
+query_total = sum(x['prefix_queries'] for x in rounds)
+hit_total = sum(x['prefix_hits'] for x in rounds)
+assert query_total == input_total and 0 <= hit_total <= query_total
+print(f'Input tokens / full workload window: {input_total / total_window:.2f} tokens/s')
+print(f'Prefix queries minus hits / full workload window: {(query_total - hit_total) / total_window:.2f} tokens/s')
+print('These rates are workload-window accounting, not standalone prefill performance.')
 print('F08: scatter individually longest in 1207/1280 selected profiled triples')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
