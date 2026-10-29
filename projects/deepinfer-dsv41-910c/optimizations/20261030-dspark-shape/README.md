@@ -21,3 +21,11 @@
 另一组独立诊断在精确路径复现同类 NaN：受影响的 8 个 rank 上，草稿隐藏状态和 logits 已非有限，而 Markov 输入及置信度权重有限。受影响 DP 的四条请求在异常前均已输出 EOS，且随后各连续输出 7 个 token ID 0。再次增加目标 logits 检查与设备同步后，同一短序列未复现。诊断会改变时序；首次出现非有限值的位置、两次异常是否同源以及与 Engram 候选的关系均未确定。
 
 原始审计保存在服务器项目目录：`evidence/engram-shape-20261030/engram-shape-result.json`，SHA256 `32ff98aab64ec7ab21a01d5b74c20dea2e9006c270823d8935d7a1770bc8e5b7`；`fair-comparison-20261028/completion/engram-m24-quality-32k-20261030/partial-gsm-audit.json`，SHA256 `ae0f9446644e433f3ab6ba18c57d419db5b688c3e34a6a0743b8f4789880fde0`；`evidence/nan-history-diagnostic-result-20261030.json`，SHA256 `4f7bf3403ff45083216d821c928a0b39e3f9308836fd3deca8358178a7fab2ef`。
+
+## 长会话复现
+
+在新的独立诊断副本中，仅在设备上记录上一轮目标 logits 的有限值标志，并在置信度异常时才回读。按照原有请求组和模式顺序完成 26 组 32K 请求，每组 8 条、每条生成 512 token，实际缓存命中均为 29,568；本次未再次出现 NaN。该检查仍会影响设备执行，一次未复现不能证明问题已经解决。
+
+与此前 25 组完整参考比较，所有请求的 DP 和槽位一致；200 条输出中 186 条完整一致，199 条在首个 EOS 前一致。唯一一条 EOS 前差异发生在精确路径，两次生成到 512 token 均未输出 EOS，第一个不同位置为零起始索引 383。该请求所在 DP 的记录显示两次验证长度均为 6、均使用完整目标图；草稿接受数不同，不能据此判断因果，也不能直接归因于先前预算 7 图问题。此前失败的检索请求在本次完成，但原失败输出不完整，不能作为完整参考。
+
+审计 `evidence/nan-async-history-audit-20261030.json`，SHA256 `1d8ccc97e8361bd30a705f55b93c5ea936b60d6a22b83bc834b6efd0dc5b5e5e`。保留基线已恢复，Engram M24 候选仍未采用。
