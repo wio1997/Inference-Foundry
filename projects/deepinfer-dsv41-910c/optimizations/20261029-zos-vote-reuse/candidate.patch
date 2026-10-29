@@ -1,0 +1,68 @@
+--- a/deepinfer/engine/ascend_w8a8_serving.py
++++ b/deepinfer/engine/ascend_w8a8_serving.py
+@@ -78,7 +78,18 @@
+     def _global_zos_vote(self,busy,eligible,failed):
+         # One collective replaces the existing _global_busy call in fast mode.
+         # MAX implements any-busy, any-ineligible, and any-failed.
+-        tensor=torch.tensor([int(busy),int(not eligible),int(failed)],dtype=torch.int32,device=self.model.device)
++        if os.environ.get('DEEPINFER_910C_ZOS_VOTE_REUSE')=='1':
++            buffers=getattr(self,'_zos_vote_reuse_buffers',None)
++            if buffers is None:
++                buffers=(torch.empty((3,),dtype=torch.int32,device='cpu',pin_memory=True),
++                         torch.empty((3,),dtype=torch.int32,device=self.model.device))
++                self._zos_vote_reuse_buffers=buffers
++            host,tensor=buffers
++            host[0]=int(busy);host[1]=int(not eligible);host[2]=int(failed)
++            tensor.copy_(host,non_blocking=True)
++            self.zos_vote_reuse_calls+=1
++        else:
++            tensor=torch.tensor([int(busy),int(not eligible),int(failed)],dtype=torch.int32,device=self.model.device)
+         dist.all_reduce(tensor,op=dist.ReduceOp.MAX)
+         any_busy,any_ineligible,any_failed=tensor.cpu().tolist()
+         return bool(any_busy),not bool(any_ineligible),bool(any_failed)
+@@ -86,6 +97,7 @@
+     @torch.inference_mode()
+     def run(self,job,directory):
+         directory=Path(directory)
++        self.zos_vote_reuse_calls=0
+         requests=job['requests']
+         owned=[(i,r) for i,r in enumerate(requests) if i%self.dp_size==self.dp_rank]
+         # A single-request warmup also builds the other DP replica's cache.
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -93,6 +93,7 @@
+                 os.environ['DEEPINFER_910C_YOCO_META_FUSE']='1' if mode['yoco_meta_fuse'] else '0'
+                 if mode['zos_fast'] and shadow_enabled:raise ValueError('fast ZOS and shadow diagnostics cannot share a job')
+                 os.environ['DEEPINFER_910C_ZOS_FAST']='1' if mode['zos_fast'] else '0'
++                os.environ['DEEPINFER_910C_ZOS_VOTE_REUSE']='1' if mode.get('zos_vote_reuse',False) else '0'
+                 if mode.get('zos_engram_window_check',False) and not mode.get('zos_engram_window',False):
+                     raise ValueError('device Engram window check requires device window')
+                 if mode.get('zos_engram_window',False) and (not mode['zos_fast'] or not mode['engram_uva'] or not mode['engram_device_hash']):
+@@ -178,6 +179,7 @@
+                     'bounded_swa_calls':stats['yoco_bounded_swa_calls'],
+                     'bounded_swa_packed_calls':stats['yoco_bounded_swa_packed_calls'],
+                     'zos_fast_stats':getattr(runner.model,'dspark_stats',{}).get('zos_fast',{})}
++                proof['zos_vote_reuse_calls']=runner.zos_vote_reuse_calls
+                 path=directory/f'hash-proof-rank{rank}.json'
+                 tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(proof));tmp.replace(path)
+         except Exception:
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -95,7 +95,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
