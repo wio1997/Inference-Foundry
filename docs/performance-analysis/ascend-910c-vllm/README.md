@@ -294,3 +294,6 @@ python3 verify_summary.py
 
 
 对与 Engram 形状相容的两处层间候选区间做同卡同轮配对，48 对中第一处均更长；逐对减去所选大矩阵任务时长差后，三个采样轮次的残差中位分别约 0.050、0.620、0.280 µs。这只是采样范围内的算术对照，残差包含其他活动及未覆盖区间；相关形状没有绑定权重和请求，不能认定矩阵任务造成差异、位于关键路径或对应可节省时间。
+
+
+F31 的共享接口补查：冻结的 DSpark proposer 在压缩模式传入 `common_ratio_to_sas_metadata`，而 V4.1 metadata builder 的共享入口读取 `common_v41_metadata` 和 `common_v41_batch_metadata`。因此即使假设只让该 builder 转发现有参数，也不能据此认定 V4.1 的跨组共享会生效；还需核对共享范围、每组 block table/slot 和缓冲生命周期。历史运行是否采用这些对象、是否真的重复工作及性能影响均未知。
