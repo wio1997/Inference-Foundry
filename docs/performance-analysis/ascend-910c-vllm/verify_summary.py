@@ -33,5 +33,9 @@ assert query_total == input_total and 0 <= hit_total <= query_total
 print(f'Input tokens / full workload window: {input_total / total_window:.2f} tokens/s')
 print(f'Prefix queries minus hits / full workload window: {(query_total - hit_total) / total_window:.2f} tokens/s')
 print('These rates are workload-window accounting, not standalone prefill performance.')
+nominal_macs = 3 * 1280 * 32768
+nominal_macs_per_second = 24 * 1800 * 10**6 * 8192
+print(f'Conditional compute-only model: {nominal_macs / nominal_macs_per_second * 10**6:.6f} us')
+print('Conditional model assumptions and observed task identity are not independently verified.')
 print('F08: scatter individually longest in 1207/1280 selected profiled triples')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
