@@ -1,0 +1,283 @@
+--- a/deepinfer/npu_ops/dsa910c.py
++++ b/deepinfer/npu_ops/dsa910c.py
+@@ -182,7 +182,7 @@
+ 
+ 
+ def sparse_mla(query, swa_cache, batch, swa_table, *, sink, compressed_cache=None,
+-               compressed_table=None, compressed_indices=None, ratio=0, window=128, swa_base=0):
++               compressed_table=None, compressed_indices=None, ratio=0, window=128, swa_base=0, swa_repacked=False):
+     """Paged BF16 SWA + source-shared sparse compressed MLA in one CANN call."""
+     has_compressed = ratio in (1, 2)
+     if ratio not in (0, 1, 2) or query.ndim != 3 or query.shape[-1] != 512 or query.dtype != torch.bfloat16:
+@@ -204,16 +204,28 @@
+     seq, residual = batch.compressed(ratio) if has_compressed else (None, None)
+     ori_used=batch.seq_used
+     if swa_base:
+-        if (type(swa_base) is not int or swa_base<0 or swa_base%128 or
+-                swa_base//128>=swa_table.shape[1] or
++        if (type(swa_base) is not int or swa_base<0 or
+                 any(s-q<swa_base for q,s in zip(batch.query_lengths,batch.seq_lengths))):
+-            raise ValueError('invalid page-aligned SWA replay base')
+-        table_key=('bounded_swa',swa_base,swa_table.data_ptr())
+-        retained_table=batch.metadata_cache.get(table_key)
+-        if retained_table is None:
+-            retained_table=(swa_table[:,swa_base//128:].contiguous(),batch.seq_used-swa_base)
+-            batch.metadata_cache[table_key]=retained_table
+-        swa_table,ori_used=retained_table
++            raise ValueError('invalid SWA replay base')
++        if swa_repacked:
++            if max(batch.seq_lengths)-swa_base>swa_table.shape[1]*128:
++                raise ValueError('repacked SWA table is too small')
++            used_key=('bounded_swa_used',swa_base)
++            ori_used=batch.metadata_cache.get(used_key)
++            if ori_used is None:
++                ori_used=batch.seq_used-swa_base
++                batch.metadata_cache[used_key]=ori_used
++        else:
++            if swa_base%128 or swa_base//128>=swa_table.shape[1]:
++                raise ValueError('invalid page-aligned SWA replay base')
++            table_key=('bounded_swa',swa_base,swa_table.data_ptr())
++            retained_table=batch.metadata_cache.get(table_key)
++            if retained_table is None:
++                retained_table=(swa_table[:,swa_base//128:].contiguous(),batch.seq_used-swa_base)
++                batch.metadata_cache[table_key]=retained_table
++            swa_table,ori_used=retained_table
++    elif swa_repacked:
++        raise ValueError('repacked SWA requires a positive replay base')
+     # This pinned image's custom host ABI explicitly requires ratio0 when
+     # has_cmp_kv=False; the public CANN9.1 default1 belongs to another version.
+     operator_ratio = ratio
+@@ -222,7 +234,7 @@
+                   ori_mask_mode=4, cmp_mask_mode=3 if has_compressed else 0,
+                   ori_win_left=window-1, ori_win_right=0,
+                   layout_q='TND', layout_kv='PA_BBND')
+-    key = (query.shape[1], ratio, window, swa_base)
++    key = (query.shape[1], ratio, window, swa_base, swa_repacked)
+     retained = batch.metadata_cache.get(key)
+     if retained is None:
+         metadata = torch.ops._C_ascend.npu_sparse_flash_mla_metadata(
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -48,6 +48,31 @@
+     valid_query_lengths: tuple | None = None
+     prefill_padding_margin: int = 0
+     bounded_swa_base: int = 0
++    bounded_swa_keep: int = 0
++
++
++def repack_swa(plane, slots, base, keep, batch):
++    """Gather an unaligned final SWA interval into reusable compact pages."""
++    if (keep!=140 or base<0 or plane.block_size!=128 or not slots or
++            base+keep>plane.logical_rows or len(set(slots))!=len(slots)):
++        raise ValueError('invalid unaligned SWA replay interval')
++    geometry=(plane.requests,plane.logical_pages,plane.resident_pages,plane.block_size)
++    key=('bounded_swa_pack',base,keep,tuple(slots),geometry)
++    item=batch.metadata_cache.get(key)
++    if item is None:
++        device=plane.cache.device
++        requests=torch.tensor(slots,dtype=torch.int32,device=device)
++        logical=torch.arange(base,base+keep,dtype=torch.int32,device=device)[None,:].expand(len(slots),-1)
++        indices=plane.physical_indices(logical,requests).reshape(-1).long()
++        pages=(keep+127)//128
++        packed=plane.cache.new_zeros((len(slots),pages*128,1,plane.width))
++        table=torch.arange(len(slots)*pages,dtype=torch.int32,device=device).reshape(len(slots),pages)
++        item=(indices,packed,table)
++        batch.metadata_cache[key]=item
++    indices,packed,table=item
++    values=plane.cache.flatten(0,1).index_select(0,indices).view(len(slots),keep,1,plane.width)
++    packed[:,:keep].copy_(values)
++    return packed.view(-1,128,1,plane.width),table
+ 
+ 
+ class AscendW8A8PackedLayer(AscendW8A8Layer):
+@@ -57,6 +82,7 @@
+         self.sp = SequenceShard(tp_group)
+         self.eager_attention_calls = self.cann_attention_calls = 0
+         self.bounded_swa_calls = 0
++        self.bounded_swa_packed_calls = 0
+         # Reuse the same shifted-mHC kernels as the deployed V4.1 model.
+         self.fused_mhc = (hasattr(torch.ops._C_ascend, 'npu_hc_pre_v3')
+                           and hasattr(torch.ops._C_ascend, 'npu_hc_post'))
+@@ -290,9 +316,15 @@
+             else:
+                 self.cann_attention_calls += 1
+                 if state.bounded_swa_base:self.bounded_swa_calls += 1
+-                context = sparse_mla(q, cache.swa[self.layer_id].cache, batch, swa_table,
++                ori=cache.swa[self.layer_id].cache
++                repacked=state.bounded_swa_keep==140
++                if repacked:
++                    ori,swa_table=repack_swa(cache.swa[self.layer_id],slots,state.bounded_swa_base,140,batch)
++                    self.bounded_swa_packed_calls+=1
++                context = sparse_mla(q, ori, batch, swa_table,
+                                      sink=sink, ratio=self.ratio if has_compressed else 0,
+-                                     window=c['sliding_window'], swa_base=state.bounded_swa_base, **kwargs)
++                                     window=c['sliding_window'], swa_base=state.bounded_swa_base,
++                                     swa_repacked=repacked, **kwargs)
+             context = rotate_positions(context, positions, self.rope_freq, inverse=True)
+         else:
+             if hasattr(self, 'indexer'):
+@@ -449,6 +481,7 @@
+         for layer in self.layers:
+             layer.eager_attention_calls = layer.cann_attention_calls = 0
+             layer.bounded_swa_calls = 0
++            layer.bounded_swa_packed_calls = 0
+             layer.fused_o_proj_calls = 0
+             layer.fused_o_proj_decode_calls = 0
+             layer.context_parallel_calls = layer.context_parallel_query_tokens = 0
+@@ -585,6 +618,7 @@
+                 'yoco_bounded_compactions':self.yoco_bounded_compactions,
+                 'yoco_bounded_discarded_tokens':self.yoco_bounded_discarded_tokens,
+                 'yoco_bounded_swa_calls':sum(layer.bounded_swa_calls for layer in self.layers),
++                'yoco_bounded_swa_packed_calls':sum(layer.bounded_swa_packed_calls for layer in self.layers),
+                 'sequence_parallel_tp_size': self.sp.world,
+                 'native_graph_captures': self._decode_graph.captures if getattr(self,'_decode_graph',None) is not None else 0,
+                 'native_graph_replays': self._decode_graph.replays if getattr(self,'_decode_graph',None) is not None else 0,
+@@ -616,11 +650,13 @@
+         return self._verify_graph.step(chunks).reshape(4,width,-1)
+ 
+     @torch.inference_mode()
+-    def forward_tokens(self, chunks, slots=None, *, sequence_parallel=False, bounded_replay=False):
++    def forward_tokens(self, chunks, slots=None, *, sequence_parallel=False, bounded_keep=0):
+         forward_started=time.perf_counter()
+         from deepinfer.npu_ops.rope910c import begin_forward
+         begin_forward()
+         chunks = [list(tokens) for tokens in chunks]
++        if type(bounded_keep) is not int or bounded_keep not in (0,140,256):
++            raise ValueError('unsupported bounded replay width')
+         slots = list(range(len(chunks))) if slots is None else list(slots)
+         if (not chunks or len(chunks) != len(slots) or len(set(slots)) != len(slots)
+                 or any(type(s) is not int or not 0 <= s < self.requests for s in slots)
+@@ -706,7 +742,7 @@
+                     indices.extend(range(left-cp.start,max(left,right)-cp.start))
+                     offset+=q
+                 state.tail_ffn_indices[i]=torch.tensor(indices,dtype=torch.int64,device=self.device)
+-        if bounded_replay and (not self.tail_ffn or state.context_query is None or padding_margin):
++        if bounded_keep and (not self.tail_ffn or state.context_query is None or padding_margin):
+             raise RuntimeError('bounded replay lost globally agreed prefill eligibility')
+         ids = torch.tensor(flat_ids, dtype=torch.int64, device=self.device)
+         trunk = self.embedding.index_select(0, ids)[:, None].expand(-1, self.cfg['hc_mult'], -1).contiguous()
+@@ -742,16 +778,16 @@
+                 draft_features.append(self.dspark.capture(trunk,state))
+             after_capture=time.perf_counter()
+             trunk, previous = layer(trunk, previous, cache=self.cache, pending=self.pending, state=state)
+-            if ((os.environ.get('DEEPINFER_910C_YOCO_EXACT_COMPACT') == '1' or bounded_replay)
++            if ((os.environ.get('DEEPINFER_910C_YOCO_EXACT_COMPACT') == '1' or bounded_keep)
+                     and i == self.tail_ffn_source and self.tail_ffn
+                     and state.context_query is not None and not padding_margin):
+                 from .yoco_exact_compact910c import compact
+                 before = sum(state.batch.query_lengths)
+-                compacted = compact(self, state, trunk, previous, bounded_keep=256 if bounded_replay else None)
++                compacted = compact(self, state, trunk, previous, bounded_keep=bounded_keep or None)
+                 if compacted is not None:
+                     trunk, previous, state = compacted
+                     batch = state.batch
+-                    if bounded_replay:
++                    if bounded_keep:
+                         self.yoco_bounded_compactions += 1
+                         self.yoco_bounded_discarded_tokens += before - sum(batch.query_lengths)
+                     else:
+--- a/deepinfer/model_executor/models/yoco_exact_compact910c.py
++++ b/deepinfer/model_executor/models/yoco_exact_compact910c.py
+@@ -39,7 +39,7 @@
+         keep = 1 + (len(model.layers) - 1 - source) * (model.cfg['sliding_window'] - 1)
+     else:
+         keep=bounded_keep
+-        if (type(keep) is not int or keep%128 or model.dspark is None or
++        if (type(keep) is not int or keep not in (140,256) or model.dspark is None or
+                 keep < model.cfg['sliding_window']+model.dspark.nextn+1 or
+                 len(set(old_batch.seq_lengths))!=1 or old_batch.seq_lengths[0]%128 or
+                 old_batch.seq_lengths[0]<=keep or any(q<keep for q in old_batch.query_lengths)):
+@@ -105,6 +105,7 @@
+         # Original KV table is shifted only at attention consumption. Writes,
+         # compressed KV, positions and index selection remain absolute.
+         new.bounded_swa_base=old_batch.seq_lengths[0]-keep
++        new.bounded_swa_keep=keep
+     new.source_metadata = state.source_metadata
+     new.mc2_global_bs = state.mc2_global_bs
+     new.sequence_parallel = True
+--- a/deepinfer/engine/ascend_w8a8_serving.py
++++ b/deepinfer/engine/ascend_w8a8_serving.py
+@@ -135,17 +135,18 @@
+                 if not slots:
+                     self._reset_scratch()
+                     slots,chunks=[self.slots],[[requests[0]['token_ids'][0]]]
+-                bounded=False
++                bounded_keep=0
+                 if os.environ.get('DEEPINFER_910C_YOCO_BOUNDED')=='1':
+                     from .bounded_replay910c import eligible
+-                    local=eligible(self.model,owned,slots,chunks,hits,internal=internal)
++                    keep=140 if os.environ.get('DEEPINFER_910C_YOCO_BOUNDED_140')=='1' else 256
++                    local=eligible(self.model,owned,slots,chunks,hits,internal=internal,keep=keep)
+                     # Padding can alter final query coordinates after this vote.
+                     if (os.environ.get('DEEPINFER_910C_PREFILL_QUERY_PADDING')=='1'
+                             and len({len(x) for x in chunks})!=1):
+                         local=False
+-                    bounded=not self._global_busy(not local)
++                    if not self._global_busy(not local):bounded_keep=keep
+                 logits=self.model.forward_tokens(chunks,slots,
+-                    sequence_parallel=self.model.sequence_parallel,bounded_replay=bounded)
++                    sequence_parallel=self.model.sequence_parallel,bounded_keep=bounded_keep)
+                 for row,slot in enumerate(slots):
+                     if slot==self.slots:
+                         continue
+--- a/deepinfer/engine/bounded_replay910c.py
++++ b/deepinfer/engine/bounded_replay910c.py
+@@ -6,7 +6,7 @@
+     """Return local eligibility; caller must reach the same decision on all EP ranks."""
+     if internal or len(owned)!=4 or slots!=list(range(4)) or len(chunks)!=4 or len(hits)!=4:
+         return False
+-    if (type(keep) is not int or keep%128 or not model.tail_ffn or
++    if (type(keep) is not int or keep not in (140,256) or not model.tail_ffn or
+             not model.sequence_parallel or not model.layers[0].context_parallel or
+             model.sp.world!=8 or model.dspark is None):
+         return False
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -77,7 +77,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+@@ -85,6 +85,8 @@
+                     raise ValueError('device target input requires fast ZOS')
+                 if mode.get('yoco_bounded',False) and (not mode['tail_ffn'] or mode['yoco_exact_compact'] or mode['yoco_meta_fuse']):
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
++                if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
++                    raise ValueError('140-token replay requires bounded replay')
+                 body['single_point_ablation']=mode
+             (directory/'request.json').write_text(json.dumps(body,separators=(',',':')))
+             pending=self.args.control_dir/'current.tmp'
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -98,7 +98,10 @@
+                 os.environ['DEEPINFER_910C_ZOS_TARGET_DEVICE']='1' if mode.get('zos_target_device',False) else '0'
+                 if mode.get('yoco_bounded',False) and (not mode['tail_ffn'] or mode['yoco_exact_compact'] or mode['yoco_meta_fuse']):
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
++                if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
++                    raise ValueError('140-token replay requires bounded replay')
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED']='1' if mode.get('yoco_bounded',False) else '0'
++                os.environ['DEEPINFER_910C_YOCO_BOUNDED_140']='1' if mode.get('yoco_bounded_140',False) else '0'
+                 if mode['reset_prefix_cache']:
+                     runner.prefix_cache.clear()
+                 (directory/f'ablation-rank{rank}.json').write_text(json.dumps({
+@@ -131,6 +134,7 @@
+                     'bounded_compactions':stats['yoco_bounded_compactions'],
+                     'bounded_discarded_tokens':stats['yoco_bounded_discarded_tokens'],
+                     'bounded_swa_calls':stats['yoco_bounded_swa_calls'],
++                    'bounded_swa_packed_calls':stats['yoco_bounded_swa_packed_calls'],
+                     'zos_fast_stats':getattr(runner.model,'dspark_stats',{}).get('zos_fast',{})}
+                 path=directory/f'hash-proof-rank{rank}.json'
+                 tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(proof));tmp.replace(path)
