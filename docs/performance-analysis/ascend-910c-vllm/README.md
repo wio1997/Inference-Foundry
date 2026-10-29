@@ -288,3 +288,6 @@ python3 verify_summary.py
 官网接口补查：CANN 9.1 的 [DequantSwigluQuant](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDequantSwigluQuant.md) 与 [V2](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDequantSwigluQuantV2.md) 产品表对 A3 的支持不同；前者同页约束段也提及 A3。V2 的 mode 1 使用奇偶交错输入，本次保存的 activation wrapper 使用前后两半，不能只凭形状和名称直接替换；重排后的精度、scale、group 和历史调用仍需验证。设备任务同名不证明调用了某公开 API。
 
 另据 [CANN 9.1 msOpProf 指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/devaids/optool/docs/zh/user_guide/msopprof_user_guide.md)，上板 PipeTimeline、instrTimeLine 仅支持 950 且暂不支持通算融合；PcSampling 仅支持 950。指南另有条件性的通算流水图，不能等同于逐指令流水。当前保存的 9.2 工具帮助未列出前三个选项；自定义融合算子的支持及历史版本绑定仍未知，因此这些不是当前已验证的内部阶段证据。
+
+
+对已保存的 MC2 INT8 peer 搬运源码作条件性工作量核对：若该源码及其常量确实用于目标调用，且 K=5120，令 R 为各次经容量截断后实际搬运行数之和，该 helper 的 GM→UB 逻辑读取请求为 `5152×R` 字节；按每次调用的行数 `r_i`，读取调用次数为 `sum(ceil(r_i/2))`。同样的 R 可能因行分布不同产生不同调用次数。这里的 32 字节包含预留区，不能都称为有效 payload；公式不代表物理 HBM/网络字节或等待时间。当前 R、历史二进制与执行分支未知，无法用于对实际瓶颈定量归因。计数单位参考 [昇腾 CANN 9.1 DataCopy 文档](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/ascendcopapi/docs/en/api/SIMD-API/basic_api/data_move_guide/gm_and_ub_data_movement.md)，与历史 9.2 未绑定。
