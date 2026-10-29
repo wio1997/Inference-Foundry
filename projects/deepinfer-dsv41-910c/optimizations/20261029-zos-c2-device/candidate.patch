@@ -1,0 +1,201 @@
+--- a/deepinfer/engine/dspark910c.py
++++ b/deepinfer/engine/dspark910c.py
+@@ -97,8 +97,12 @@
+     async_state=None
+     async_error=False
+     device_target_enabled=(fast_enabled and os.environ.get('DEEPINFER_910C_ZOS_TARGET_DEVICE')=='1')
++    device_c2_enabled=(fast_enabled and os.environ.get('DEEPINFER_910C_ZOS_C2_DEVICE')=='1')
++    device_c2_check=(device_c2_enabled and os.environ.get('DEEPINFER_910C_ZOS_C2_CHECK')=='1')
+     stats['zos_fast']={'enabled':fast_enabled,'prelaunches':0,'consumed':0,'verified':0,'fallback_steps':0,'errors':0,
+-                       'device_target_enabled':device_target_enabled,'device_target_calls':0}
++                       'device_target_enabled':device_target_enabled,'device_target_calls':0,
++                       'device_c2_enabled':device_c2_enabled,'device_c2_calls':0,'device_c2_errors':0,
++                       'device_c2_check':device_c2_check,'device_c2_checked_rows':0}
+     prelaunched=None
+     prelaunch_audit=(os.environ.get('DEEPINFER_910C_SPEC_DRAFT_AUDIT')=='1' and shadow is not None)
+     if prelaunch_audit and persistent_state_audit is None:
+@@ -201,6 +205,8 @@
+                 draft_golden,draft_positions=async_state.queue(proposals,pending.device_result)
+                 prelaunched=draft.propose(draft_golden,draft_positions,list(range(count)))
+                 stats['zos_fast']['prelaunches']+=1
++                if device_c2_enabled:
++                    async_state.queue_c2(frame)
+                 values=pending.wait()
+             else:
+                 values=target_tokens(runner,target_logits,return_device=shadow_call)
+@@ -261,9 +267,22 @@
+             if shadow_call or eligible:
+                 shadow_accepted.append(accepted)
+                 shadow_emitted.append(list(generated[slot][before:]))
+-        frame.commit_prefixes(bases,commits)
++        device_pending=None
++        if eligible and device_c2_enabled:
++            device_pending,c2_ok,checked_rows=async_state.settle_c2(bases,commits,frame,check=device_c2_check)
++            stats['zos_fast']['device_c2_checked_rows']+=checked_rows
++            async_ok=async_state.settle(shadow_accepted,commits,shadow_emitted)
++            stats['zos_fast']['device_c2_calls']+=1
++            if not c2_ok:
++                stats['zos_fast']['device_c2_errors']+=1
++            async_error=not (async_ok and c2_ok)
++            if async_error:device_pending=None
++            frame.commit_prefixes(bases,commits,device_pending=device_pending)
++        else:
++            frame.commit_prefixes(bases,commits)
++            if eligible:
++                async_error=not async_state.settle(shadow_accepted,commits,shadow_emitted)
+         if eligible:
+-            async_error=not async_state.settle(shadow_accepted,commits,shadow_emitted)
+             if async_error:stats['zos_fast']['errors']+=1
+             else:stats['zos_fast']['verified']+=1
+         commit_seconds=time.perf_counter()-commit_start
+--- a/deepinfer/engine/async_draft_state910c.py
++++ b/deepinfer/engine/async_draft_state910c.py
+@@ -59,6 +59,61 @@
+         self.host=torch.empty((20,),dtype=torch.int32,device='cpu',pin_memory=True)
+         self.event=None;self.pending=False;self.retained=None
+         self.target_tokens=PendingTokens(self.device)
++        self.c2_pending=None
++
++    def queue_c2(self,frame):
++        """Compute C2 pending values on device for the current full graph.
++
++        Fresh payloads are retained by model.pending until a later commit or
++        snapshot. This deliberately avoids recycling storage across graph
++        changes, request termination, and prefix-cache snapshot creation.
++        """
++        if not self.pending or self.c2_pending is not None:
++            raise RuntimeError('C2 transition requires one pending greedy result')
++        if frame.count!=4 or frame.query_tokens!=6 or tuple(frame.slots)!=(0,1,2,3):
++            raise ValueError('C2 device path requires the four-slot full graph')
++        if set(frame.even_rows)!={2,8,14} or set(frame.even_before)!={2,8,14}:
++            raise ValueError('unexpected C2 graph sources')
++        from deepinfer.npu_ops.c2_pending910c import allocate,launch
++        before_valid=(self.current.pos.remainder(2)!=0).contiguous()
++        out={}; host=torch.empty((24,),dtype=torch.int32,device='cpu',pin_memory=True)
++        for index,source in enumerate((2,8,14)):
++            old_v,old_g=frame.even_before[source]
++            rows_v,rows_g=frame.even_rows[source]
++            outputs=allocate(old_v,old_g)
++            launch(old_v,old_g,before_valid,rows_v,rows_g,self.current.pos,
++                   self.greedy.commit,outputs,max_pos=self.max_pos)
++            host[index*8:index*8+4].copy_(outputs[2],non_blocking=True)
++            host[index*8+4:index*8+8].copy_(outputs[3],non_blocking=True)
++            out[source]=outputs
++        event=torch.npu.Event();event.record()
++        self.c2_pending=(out,host,event,before_valid)
++        return out
++
++    def settle_c2(self,bases,commits,frame,*,check=False):
++        if self.c2_pending is None:raise RuntimeError('no pending C2 transition')
++        out,host,event,_=self.c2_pending
++        event.synchronize();observed=host.tolist()
++        expected=[int((base+count)%2!=0) for base,count in zip(bases,commits)]
++        ok=all(observed[i*8:i*8+4]==expected and
++               observed[i*8+4:i*8+8]==[0]*4 for i in range(3))
++        checked_rows=0
++        if ok and check:
++            # Diagnostic only: compare actual device C2 payload to the old
++            # Python selection, bit-for-bit, before it can be published.
++            for source in (2,8,14):
++                for slot,(base,count) in enumerate(zip(bases,commits)):
++                    if (base+count)%2:
++                        for k in range(2):
++                            expected_value=(frame.even_rows[source][k][slot:slot+1,count-1]
++                                            if count else frame.even_before[source][k][slot:slot+1])
++                            actual=out[source][k][slot:slot+1]
++                            if not torch.equal(actual.contiguous().cpu().view(torch.int32),
++                                               expected_value.contiguous().cpu().view(torch.int32)):
++                                ok=False
++                        checked_rows+=1
++        self.c2_pending=None
++        return out,ok,checked_rows
+ 
+     def target_graph_input(self, proposals):
+         """Build the full target input from the published device state.
+--- a/deepinfer/model_executor/models/w8a8_graph910c.py
++++ b/deepinfer/model_executor/models/w8a8_graph910c.py
+@@ -308,7 +308,7 @@
+             self.model.next_positions[slot]+=self.query_tokens
+         return self.output
+ 
+-    def commit_prefixes(self,bases,commits):
++    def commit_prefixes(self,bases,commits,device_pending=None):
+         """Restore C2/Engram lengths after exact target rejection sampling.
+ 
+         Keep target-written causal cache rows. Future rows are masked by the
+@@ -317,6 +317,14 @@
+         a second complete model forward solely to repair compressor state.
+         """
+         model=self.model
++        if device_pending is not None:
++            if self.count!=4 or self.query_tokens!=6 or set(device_pending)!=set(self.even_rows):
++                raise ValueError('invalid device C2 pending map')
++            for source,(value,gate,valid,status) in device_pending.items():
++                before=self.even_before[source]
++                if (value.shape!=before[0].shape or gate.shape!=before[1].shape or
++                        value.device!=model.device or gate.device!=model.device):
++                    raise ValueError('invalid device C2 payload')
+         for row,(slot,base,count) in enumerate(zip(self.slots,bases,commits)):
+             end=base+count
+             model.next_positions[slot]=end
+@@ -325,9 +333,12 @@
+             for source,values in self.even_rows.items():
+                 pending=model.pending.setdefault(source,{})
+                 if end%2:
+-                    pending[slot]=tuple(value[row:row+1,count-1].clone() if count
+-                        else before[row:row+1].clone()
+-                        for value,before in zip(values,self.even_before[source]))
++                    if device_pending is None:
++                        pending[slot]=tuple(value[row:row+1,count-1].clone() if count
++                            else before[row:row+1].clone()
++                            for value,before in zip(values,self.even_before[source]))
++                    else:
++                        pending[slot]=tuple(value[row:row+1] for value in device_pending[source][:2])
+                 else:
+                     pending.pop(slot,None)
+         self.prepared=False
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -93,9 +93,15 @@
+                 os.environ['DEEPINFER_910C_YOCO_META_FUSE']='1' if mode['yoco_meta_fuse'] else '0'
+                 if mode['zos_fast'] and shadow_enabled:raise ValueError('fast ZOS and shadow diagnostics cannot share a job')
+                 os.environ['DEEPINFER_910C_ZOS_FAST']='1' if mode['zos_fast'] else '0'
++                if mode.get('zos_c2_check',False) and not mode.get('zos_c2_device',False):
++                    raise ValueError('device C2 check requires device C2')
++                if mode.get('zos_c2_device',False) and not mode['zos_fast']:
++                    raise ValueError('device C2 requires fast ZOS')
+                 if mode.get('zos_target_device',False) and not mode['zos_fast']:
+                     raise ValueError('device target input requires fast ZOS')
+                 os.environ['DEEPINFER_910C_ZOS_TARGET_DEVICE']='1' if mode.get('zos_target_device',False) else '0'
++                os.environ['DEEPINFER_910C_ZOS_C2_DEVICE']='1' if mode.get('zos_c2_device',False) else '0'
++                os.environ['DEEPINFER_910C_ZOS_C2_CHECK']='1' if mode.get('zos_c2_check',False) else '0'
+                 if mode.get('yoco_bounded',False) and (not mode['tail_ffn'] or mode['yoco_exact_compact'] or mode['yoco_meta_fuse']):
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
+                 if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -77,10 +77,14 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
++                if mode.get('zos_c2_check',False) and not mode.get('zos_c2_device',False):
++                    raise ValueError('device C2 check requires device C2')
++                if mode.get('zos_c2_device',False) and not mode['zos_fast']:
++                    raise ValueError('device C2 requires fast ZOS')
+                 if mode.get('zos_target_device',False) and not mode['zos_fast']:
+                     raise ValueError('device target input requires fast ZOS')
+                 if mode.get('yoco_bounded',False) and (not mode['tail_ffn'] or mode['yoco_exact_compact'] or mode['yoco_meta_fuse']):
