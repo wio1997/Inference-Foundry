@@ -30,9 +30,9 @@ input_total = sum(x['input_tokens'] for x in rounds)
 query_total = sum(x['prefix_queries'] for x in rounds)
 hit_total = sum(x['prefix_hits'] for x in rounds)
 assert query_total == input_total and 0 <= hit_total <= query_total
-print(f'Input tokens / full workload window: {input_total / total_window:.2f} tokens/s')
-print(f'Prefix queries minus hits / full workload window: {(query_total - hit_total) / total_window:.2f} tokens/s')
-print('These rates are workload-window accounting, not standalone prefill performance.')
+print(f'Input tokens / sum of two AISBench windows: {input_total / total_window:.2f} tokens/s')
+print(f'Prefix queries minus hits / sum of two AISBench windows: {(query_total - hit_total) / total_window:.2f} tokens/s')
+print('These rates exclude warmup, inter-round time and full HTTP completion; they are not standalone prefill performance.')
 nominal_macs = 3 * 1280 * 32768
 nominal_macs_per_second = 24 * 1800 * 10**6 * 8192
 print(f'Conditional compute-only model: {nominal_macs / nominal_macs_per_second * 10**6:.6f} us')
