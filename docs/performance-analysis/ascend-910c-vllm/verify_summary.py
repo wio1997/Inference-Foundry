@@ -163,4 +163,8 @@ assert [k*dot['signed_input_abs_max']**2 for k in dot['k_values']] == [83886080,
 assert max(k*dot['signed_input_abs_max']**2 for k in dot['k_values']) < dot['int32_max']
 print('Selected HC paired ratio medians verified; equal signatures do not prove equal workloads.')
 print('Conditional signed INT8 exact dot absolute bounds verified; historical operator contract remains unbound.')
+tail_cases = [(595,5120,4608),(1023,5120,4608),(595,2304,5120),(1023,2304,5120)]
+padded_us = [((m+15)//16*16)*k*n/capacity*1e6 for m,k,n in tail_cases]
+assert [round(t,2) for t in padded_us] == [40.53,68.27,20.27,34.13]
+print('Conditional 16-row padding example verified; actual tiling and capacity unbound.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
