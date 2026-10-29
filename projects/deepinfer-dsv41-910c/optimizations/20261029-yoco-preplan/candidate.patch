@@ -1,0 +1,186 @@
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -508,6 +508,8 @@
+         self.yoco_exact_compactions=0
+         self.yoco_exact_discarded_tokens=0
+         self.yoco_metadata_fusions=0
++        self.yoco_preplan_prepared=0
++        self.yoco_preplan_consumed=0
+         self.yoco_bounded_compactions=0
+         self.yoco_bounded_discarded_tokens=0
+         self.target_vocab_top1_calls=0
+@@ -627,6 +629,8 @@
+                 'yoco_exact_compactions':self.yoco_exact_compactions,
+                 'yoco_exact_discarded_tokens':self.yoco_exact_discarded_tokens,
+                 'yoco_metadata_fusions':self.yoco_metadata_fusions,
++                'yoco_preplan_prepared':self.yoco_preplan_prepared,
++                'yoco_preplan_consumed':self.yoco_preplan_consumed,
+                 'yoco_bounded_compactions':self.yoco_bounded_compactions,
+                 'yoco_bounded_discarded_tokens':self.yoco_bounded_discarded_tokens,
+                 'yoco_bounded_swa_calls':sum(layer.bounded_swa_calls for layer in self.layers),
+@@ -793,6 +797,13 @@
+                 state.tail_ffn_indices[i]=torch.tensor(indices,dtype=torch.int64,device=self.device)
+         if bounded_keep and (not self.tail_ffn or state.context_query is None or padding_margin):
+             raise RuntimeError('bounded replay lost globally agreed prefill eligibility')
++        if bounded_keep and os.environ.get('DEEPINFER_910C_YOCO_PREPLAN')=='1':
++            # Like official metadata preparation, construct query layout before
++            # the producer layers. All graph and gather operations remain intact.
++            from .yoco_exact_compact910c import prepare_compaction_plan
++            state.yoco_prepared_plan=prepare_compaction_plan(self,state,bounded_keep)
++            if state.yoco_prepared_plan is not None:
++                self.yoco_preplan_prepared+=1
+         ids = torch.tensor(flat_ids, dtype=torch.int64, device=self.device)
+         trunk = self.embedding.index_select(0, ids)[:, None].expand(-1, self.cfg['hc_mult'], -1).contiguous()
+         previous = torch.zeros((len(flat_ids), self.cfg['hc_mult'], 1), dtype=torch.float32, device=self.device)
+--- a/deepinfer/model_executor/models/yoco_exact_compact910c.py
++++ b/deepinfer/model_executor/models/yoco_exact_compact910c.py
+@@ -26,6 +26,34 @@
+     return tuple(compact_lengths), selected
+ 
+ 
++def plan_key(model, state, keep):
++    cp = state.context_query
++    return (tuple(state.batch.query_lengths), keep, model.sp.world, model.sp.rank,
++            cp.start, cp.end, cp.width, str(model.device))
++
++
++def prepare_compaction_plan(model, state, keep):
++    """Prepare query-only indices; inputs are immutable within this forward."""
++    old_batch, old_cp = state.batch, state.context_query
++    lengths, selected = suffix_plan(list(old_batch.query_lengths), keep)
++    total = sum(old_batch.query_lengths)
++    if len(selected) == total:
++        return None
++    local_rows = [i - old_cp.start for i in selected if old_cp.start <= i < old_cp.end]
++    counts = []
++    for rank in range(model.sp.world):
++        start = min(rank * old_cp.width, total)
++        end = min((rank + 1) * old_cp.width, total)
++        counts.append(sum(start <= i < end for i in selected))
++    width = max(counts)
++    if not width or counts[model.sp.rank] != len(local_rows) or sum(counts) != len(selected):
++        raise ValueError('invalid old CP contribution plan')
++    local_index = torch.tensor(local_rows, dtype=torch.int64, device=model.device)
++    gathered_index = torch.tensor([rank * width + j for rank, count in enumerate(counts)
++                                   for j in range(count)], dtype=torch.int64, device=model.device)
++    return (plan_key(model, state, keep), lengths, selected, local_rows, width, local_index, gathered_index)
++
++
+ def compact(model, state, trunk, previous, *, bounded_keep=None):
+     detail = os.environ.get('DEEPINFER_910C_PREFILL_TIMING_DETAIL') == '1'
+     marks = []
+@@ -51,27 +79,36 @@
+                 len(set(old_batch.seq_lengths))!=1 or old_batch.seq_lengths[0]%128 or
+                 old_batch.seq_lengths[0]<=keep or any(q<keep for q in old_batch.query_lengths)):
+             raise ValueError('invalid page-aligned bounded replay contract')
+-    lengths, selected = suffix_plan(list(old_batch.query_lengths), keep)
+-    total = sum(old_batch.query_lengths)
+-    if len(selected) == total:
+-        return None
+-    if state.index_source != source or state.selected is None:
+-        raise ValueError('the final source index must be available before compaction')
+-    # Match the official compaction pattern: each old CP rank contributes
+-    # only retained rows, pads to the common contribution width, gathers,
+-    # and removes rank padding before the new partition is formed.
+-    local_rows = [i - old_cp.start for i in selected if old_cp.start <= i < old_cp.end]
+-    counts = []
+-    for rank in range(model.sp.world):
+-        start = min(rank * old_cp.width, total)
+-        end = min((rank + 1) * old_cp.width, total)
+-        counts.append(sum(start <= i < end for i in selected))
+-    width = max(counts)
+-    if not width or counts[model.sp.rank] != len(local_rows) or sum(counts) != len(selected):
+-        raise ValueError('invalid old CP contribution plan')
+-    local_index = torch.tensor(local_rows, dtype=torch.int64, device=model.device)
+-    gathered_index = torch.tensor([rank * width + j for rank, count in enumerate(counts)
+-                                   for j in range(count)], dtype=torch.int64, device=model.device)
++    plan = getattr(state, 'yoco_prepared_plan', None)
++    if plan is not None:
++        if plan[0] != plan_key(model, state, keep):
++            raise ValueError('prepared YOCO plan no longer matches the input layout')
++        if state.index_source != source or state.selected is None:
++            raise ValueError('the final source index must be available before compaction')
++        model.yoco_preplan_consumed += 1
++        _, lengths, selected, local_rows, width, local_index, gathered_index = plan
++    else:
++        lengths, selected = suffix_plan(list(old_batch.query_lengths), keep)
++        total = sum(old_batch.query_lengths)
++        if len(selected) == total:
++            return None
++        if state.index_source != source or state.selected is None:
++            raise ValueError('the final source index must be available before compaction')
++        # Match the official compaction pattern: each old CP rank contributes
++        # only retained rows, pads to the common contribution width, gathers,
++        # and removes rank padding before the new partition is formed.
++        local_rows = [i - old_cp.start for i in selected if old_cp.start <= i < old_cp.end]
++        counts = []
++        for rank in range(model.sp.world):
++            start = min(rank * old_cp.width, total)
++            end = min((rank + 1) * old_cp.width, total)
++            counts.append(sum(start <= i < end for i in selected))
++        width = max(counts)
++        if not width or counts[model.sp.rank] != len(local_rows) or sum(counts) != len(selected):
++            raise ValueError('invalid old CP contribution plan')
++        local_index = torch.tensor(local_rows, dtype=torch.int64, device=model.device)
++        gathered_index = torch.tensor([rank * width + j for rank, count in enumerate(counts)
++                                       for j in range(count)], dtype=torch.int64, device=model.device)
+ 
+     def gather_kept(value, fill=0):
+         if value is None:
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -112,6 +112,8 @@
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
+                 if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
+                     raise ValueError('140-token replay requires bounded replay')
++                if mode.get('yoco_preplan',False) and not mode.get('yoco_bounded',False):
++                    raise ValueError('YOCO preplan requires bounded replay')
+                 if mode.get('prefill_timing_detail',False) and not mode.get('prefill_timing_split',False):
+                     raise ValueError('prefill timing detail requires split timing')
+                 if mode.get('prefill_engram_uva',False) and (not mode['engram_uva'] or mode['engram_prefetch']):
+@@ -126,6 +128,7 @@
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED_140']='1' if mode.get('yoco_bounded_140',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_TIMING_SPLIT']='1' if mode.get('prefill_timing_split',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_TIMING_DETAIL']='1' if mode.get('prefill_timing_detail',False) else '0'
++                os.environ['DEEPINFER_910C_YOCO_PREPLAN']='1' if mode.get('yoco_preplan',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA']='1' if mode.get('prefill_engram_uva',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA_CHECK']='1' if mode.get('prefill_engram_uva_check',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_DEVICE_HASH']='1' if mode.get('prefill_device_hash',False) else '0'
+@@ -165,6 +168,8 @@
+                     'verification_graph_captures':stats['verification_graph_captures'],
+                     'verification_graph_replays':stats['verification_graph_replays'],
+                     'varlen_graph_replays':stats['dspark_varlen_graph_replays'],
++                    'yoco_preplan_prepared':stats['yoco_preplan_prepared'],
++                    'yoco_preplan_consumed':stats['yoco_preplan_consumed'],
+                     'bounded_compactions':stats['yoco_bounded_compactions'],
+                     'bounded_discarded_tokens':stats['yoco_bounded_discarded_tokens'],
+                     'bounded_swa_calls':stats['yoco_bounded_swa_calls'],
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -77,7 +77,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+@@ -95,6 +95,8 @@
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
+                 if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
+                     raise ValueError('140-token replay requires bounded replay')
++                if mode.get('yoco_preplan',False) and not mode.get('yoco_bounded',False):
++                    raise ValueError('YOCO preplan requires bounded replay')
+                 if mode.get('prefill_timing_detail',False) and not mode.get('prefill_timing_split',False):
+                     raise ValueError('prefill timing detail requires split timing')
+                 if mode.get('prefill_engram_uva',False) and (not mode['engram_uva'] or mode['engram_prefetch']):
