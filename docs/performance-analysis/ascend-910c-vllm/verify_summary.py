@@ -23,6 +23,12 @@ f08 = profile['f08_by_reported_rows']
 assert sum(x['scope_count'] for x in f08.values()) == 1280
 assert sum(x['scatter_longest_count'] for x in f08.values()) == 1207
 assert all(0 <= x['scatter_fraction_median'] <= 1 for x in f08.values())
+# Counter deltas are service aggregate, not per-request timing or accuracy.
+for row, expected in zip(rounds, ((1751,8755,6447),(1746,8730,6456))):
+    c = row['draft_counter_delta']
+    assert (c['drafts'],c['draft_tokens'],c['accepted_tokens']) == expected
+    assert sum(c['accepted_per_position']) == c['accepted_tokens']
+    print(f"Draft token counter acceptance: {100*c['accepted_tokens']/c['draft_tokens']:.2f}%; accepted per draft: {c['accepted_tokens']/c['drafts']:.3f}")
 print(f'Formal output throughput: {aggregate:.4f} tokens/s')
 print(f"Prefix-hit rate: {rounds[0]['prefix_hits'] / rounds[0]['prefix_queries']:.4%}")
 total_window = sum(x['duration_seconds'] for x in rounds)
@@ -113,4 +119,8 @@ r=profile['f32_selected_projection_rows']; assert r['q_rows_histogram'] == {'102
 assert 7*1023+1019 == 8180 and 1023*512 != 1019*512
 print('Q pair conditional MACs: 42.908G / 5.363G; 9.1 non-transpose shapes are compatible, historical parameters unbound.')
 print('Selected Q rows: seven 1023, one 1019; same communication group and valid rows unproven.')
+c=profile['client_first_data_comparison']
+assert c['recapture_requests'] == c['recapture_first_data_nonempty_count'] == 8
+assert c['baseline_first_data_ms']['max'] < c['recapture_first_data_ms']['min']
+print('Selected baseline and diagnostic client first-data ranges do not overlap; timing semantics differ.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
