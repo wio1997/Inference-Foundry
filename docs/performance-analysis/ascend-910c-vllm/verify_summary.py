@@ -36,6 +36,10 @@ print('These rates are workload-window accounting, not standalone prefill perfor
 nominal_macs = 3 * 1280 * 32768
 nominal_macs_per_second = 24 * 1800 * 10**6 * 8192
 print(f'Conditional compute-only model: {nominal_macs / nominal_macs_per_second * 10**6:.6f} us')
+row_limited_capacity = nominal_macs_per_second * 3 / 16
+print(f'Additional 3-of-16-row model: {nominal_macs / row_limited_capacity * 10**6:.6f} us')
+assert 3 * 1280 + 1280 * 32768 == 41946880
+print('Conditional cold-input example: 41946880 distinct raw bytes')
 print('Conditional model assumptions and observed task identity are not independently verified.')
 print('F08: scatter individually longest in 1207/1280 selected profiled triples')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
