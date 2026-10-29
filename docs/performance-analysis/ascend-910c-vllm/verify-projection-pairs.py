@@ -27,3 +27,10 @@ assert len(full)==87 and len(long)==9 and all(p['quant_before_first'] for p in l
 assert all(Decimal(p['quant_second_overlap_us'])==0 for p in pairs)
 print('Selected quant interval fully overlaps first FLOAT in 87/96 scopes; 9 gaps >100 us have quant ending before first FLOAT.')
 print('These are exported intervals, not evidence of physical idle time, causal dependence or end-to-end savings.')
+before=[p for p in pairs if p['quant_before_first']]
+assert len(before)==9 and len(full)+len(before)==len(pairs)
+def first_longer(group):
+    return sum(Decimal(p['float_us'][0]) > Decimal(p['float_us'][1]) for p in group)
+assert first_longer(pairs)==95 and first_longer(full)==86 and first_longer(before)==9
+print('First FLOAT longer: 95/96 overall, 86/87 with selected quant interval inside it, 9/9 when selected quant ended before it.')
+print('The selected overlap is not a necessary condition in these records; no causal attribution is implied.')
