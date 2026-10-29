@@ -1,0 +1,135 @@
+{
+  "state": "PASS_WITH_LIMITATIONS",
+  "scenario": {
+    "model": "DeepSeek V4.1 Flash W8A8",
+    "server": "172",
+    "logical_devices": 16,
+    "dp": 2,
+    "tp": 8,
+    "ep": 16,
+    "input_tokens": 32768,
+    "output_tokens": 1024,
+    "concurrency": 8,
+    "actual_kv_hit_total": 235904,
+    "actual_query_total": 262144,
+    "greedy": true,
+    "ignore_eos": true,
+    "client": "AISBench, streaming"
+  },
+  "sequence": [
+    "vllm1 measure1",
+    "DeepInfer measure1",
+    "DeepInfer measure2",
+    "vllm2 measure2"
+  ],
+  "vllm": {
+    "rounds": [
+      {
+        "ttft_ms": 2513.1,
+        "tpot_ms": 14.5,
+        "output_tps": 465.30573750715155,
+        "duration_seconds": 17.6056286,
+        "complete_matching_texts": 8
+      },
+      {
+        "ttft_ms": 2523.2,
+        "tpot_ms": 14.5,
+        "output_tps": 459.16018458822344,
+        "duration_seconds": 17.8412682,
+        "complete_matching_texts": 8
+      }
+    ],
+    "combined_output_tps": 462.212534215407,
+    "mean_ttft_ms": 2518.1499999999996,
+    "mean_tpot_ms": 14.5
+  },
+  "deepinfer": {
+    "rounds": [
+      {
+        "phase": "measure1",
+        "ttft_ms": 1365.0,
+        "tpot_ms": 12.4,
+        "throughput_token_s": 573.4465625224615,
+        "duration_seconds": 14.285550800000001,
+        "cached_tokens": 235904,
+        "tokenizer_cache_hits": 0,
+        "complete_token_sequences_equal": 8,
+        "full_texts_equal": 8,
+        "seed_cached_tokens": [
+          0,
+          0
+        ],
+        "counter_deltas": {
+          "cached": 235904.0,
+          "success": 8.0,
+          "output": 8192.0,
+          "prompt": 262144.0,
+          "failed": 0.0
+        },
+        "rank_count": 16,
+        "source_hashes": {
+          "request": "1537bffb0cda5563f4a6c56182fee0f120f8ae94f2983249ee4e18efef2aa673",
+          "summary": "0c21e41e82863f9d9cb5c6066a09bcddd380a12919e9ed13cc8a6259544a57b1",
+          "details": "0168c49ae350871bb70f759c046077cc051c5513e0849b30b4bfb502e35c0d0d",
+          "csv": "ba9998f8eae35cc2a7e29eb37a8f2896332e300b47cf7e0168744d4746b05584",
+          "metrics_before": "4782e82bfb9d81f329154ff1cad33bb30aead1717af95388547a0bc9cf922fa6",
+          "metrics_after": "eeb63fc175306050fcf0d3bcf380efd77398017a42e5b346bc3c19ebf8aeb817"
+        }
+      },
+      {
+        "phase": "measure2",
+        "ttft_ms": 744.2,
+        "tpot_ms": 12.2,
+        "throughput_token_s": 599.8909490230144,
+        "duration_seconds": 13.6558153,
+        "cached_tokens": 235904,
+        "tokenizer_cache_hits": 0,
+        "complete_token_sequences_equal": 8,
+        "full_texts_equal": 8,
+        "seed_cached_tokens": [
+          0,
+          0
+        ],
+        "counter_deltas": {
+          "cached": 235904.0,
+          "success": 8.0,
+          "output": 8192.0,
+          "prompt": 262144.0,
+          "failed": 0.0
+        },
+        "rank_count": 16,
+        "source_hashes": {
+          "request": "f0782887a6b35e061a2e6c2a70c682cd176085bba683ae5424da35d6e4144b74",
+          "summary": "22f903bdce63c8c8d0b5e84eb889ab330cbfde18567ce139dfda5aa7c0c55725",
+          "details": "d07a917b62ea1ddf9563ce49964dff92fc51c38f5117baee5eac131206c9d729",
+          "csv": "3a65304553a9e8d9afe5eb9932cc173c3f78b6778da415a4d8a1f6e3d8fa0f96",
+          "metrics_before": "446fa65f1f81e3d870f1462f7fd05aab58c6fc0117aefd79bdb5c570269051e0",
+          "metrics_after": "49c9d64accd5ea48c7bed7169d2071ef570afd1f2a636f0c50f85ecfda5d438f"
+        }
+      }
+    ],
+    "combined_output_tps": 586.3707572980835,
+    "mean_ttft_ms": 1054.6,
+    "mean_tpot_ms": 12.3
+  },
+  "observed_change_percent": {
+    "throughput": 26.861717043963694,
+    "ttft": -58.12004844826559,
+    "tpot": -15.172413793103445
+  },
+  "audit_sha256": [
+    "3ccb3a03194e75f6a97216f1a6285d6d4969801a9a416468f9c6f4e746967d59",
+    "f35e58f0177153086160ad3bf32b840c9e6aa052502bbdc0a4bf584b0e93148f",
+    "7fa960f80e72ddaca066c9d2981207ea6c24783ee5c599c0752826e6abce86f5"
+  ],
+  "limits": [
+    "two rounds per engine; request phases differ and temporal drift is not eliminated",
+    "vLLM per-request cache hits, DP mapping and actual token IDs unavailable; matching full output text does not prove token IDs match",
+    "vLLM tokenizer-cache state unavailable; DeepInfer tokenizer cache hits 0/8 in both phases",
+    "external loopback traffic not fully excluded by local lock",
+    "vLLM decode graph capture confirmed, replay not independently observed",
+    "DeepInfer bounded replay is approximate; correctness established only for this fixed workload and frozen reference",
+    "DeepInfer TTFT traced; vLLM and DeepInfer trace overhead may differ",
+    "this comparison does not establish that all applicable official optimizations are restored"
+  ]
+}
