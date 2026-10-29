@@ -1,0 +1,31 @@
+--- a/deepinfer/npu_ops/dsa910c.py
++++ b/deepinfer/npu_ops/dsa910c.py
+@@ -164,12 +164,22 @@
+     if block_table.dtype != torch.int32 or block_table.shape[0] != len(batch.seq_lengths):
+         raise ValueError('INT32 page table must match request count')
+     load_ops()
+-    seq, residual = batch.compressed(ratio)
+-    metadata = torch.ops._C_ascend.npu_quant_lightning_indexer_v2_metadata(
+-        query.shape[1], 1, 128, topk, 2, cu_seqlens_q=batch.cu_query,
+-        seqused_k=seq, cmp_residual_k=residual, batch_size=len(batch.seq_lengths),
+-        max_seqlen_q=max(batch.query_lengths), max_seqlen_k=max(batch.seq_lengths)//ratio,
+-        layout_q='TND', layout_k='PA_BBND', mask_mode=3, cmp_ratio=ratio)
++    # Reuse only within this immutable forward batch. Its device lengths are
++    # captured as graph inputs, so metadata is regenerated on every replay.
++    reuse = os.environ.get('DEEPINFER_910C_QLI_METADATA_REUSE') == '1'
++    metadata_key = ('qli-index-metadata-v1', query.shape[1], topk, ratio)
++    retained = batch.metadata_cache.get(metadata_key) if reuse else None
++    if retained is None:
++        seq, residual = batch.compressed(ratio)
++        metadata = torch.ops._C_ascend.npu_quant_lightning_indexer_v2_metadata(
++            query.shape[1], 1, 128, topk, 2, cu_seqlens_q=batch.cu_query,
++            seqused_k=seq, cmp_residual_k=residual, batch_size=len(batch.seq_lengths),
++            max_seqlen_q=max(batch.query_lengths), max_seqlen_k=max(batch.seq_lengths)//ratio,
++            layout_q='TND', layout_k='PA_BBND', mask_mode=3, cmp_ratio=ratio)
++        if reuse:
++            batch.metadata_cache[metadata_key] = (metadata, seq, residual)
++    else:
++        metadata, seq, residual = retained
+     selected, _, emitted = torch.ops._C_ascend.npu_quant_lightning_indexer_v3(
+         query, key, weights, query_scale, key_scale, topk, 2,
+         candidate_topk_index=candidates, cu_seqlens_q=batch.cu_query,
