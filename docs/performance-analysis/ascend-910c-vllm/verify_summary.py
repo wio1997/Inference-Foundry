@@ -79,4 +79,16 @@ assert round(min(ratios), 3) == 1.030 and round(median(ratios), 3) == 1.242 and 
 assert round(median(per_row), 3) == 0.722
 print(f'DynamicQuant 1023/595 duration ratio (min/median/max): {min(ratios):.3f}/{median(ratios):.3f}/{max(ratios):.3f}')
 print(f'DynamicQuant per-physical-row ratio median: {median(per_row):.3f}; different profiled batches, not equal-work comparison.')
+# Paired summaries retain no request, tensor or device identifiers.
+gate = profile['mc2_gate_l14_l39']['anonymous_paired_durations_us']
+assert len(gate) == 8 and all(len(p) == 4 and min(p) > 0 for p in gate)
+assert sum(p[0] > p[1] for p in gate) == 4 and sum(p[0] < p[1] for p in gate) == 4
+assert round(median([p[0] for p in gate]), 3) == 41.579
+assert round(median([p[1] for p in gate]), 3) == 38.449
+print('Eight gate pair comparisons: four L14 longer, four L14 shorter; no causal claim.')
+chain = profile['ffn_crossshape_four_tasks']; records = chain['anonymous_paired_durations_us']
+assert len(records) == 32 and all(len(p) == 4 and all(len(q) == 2 and min(q) > 0 for q in p) for p in records)
+medians = [median(p[i][1] / p[i][0] for p in records) for i in range(4)]
+assert [round(v, 3) for v in medians] == [1.242, 1.369, 1.422, 1.293]
+print('Four selected task 1023/595 duration ratio medians: ' + '/'.join(f'{x:.3f}' for x in medians))
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
