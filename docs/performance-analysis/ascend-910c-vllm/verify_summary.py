@@ -167,4 +167,17 @@ tail_cases = [(595,5120,4608),(1023,5120,4608),(595,2304,5120),(1023,2304,5120)]
 padded_us = [((m+15)//16*16)*k*n/capacity*1e6 for m,k,n in tail_cases]
 assert [round(t,2) for t in padded_us] == [40.53,68.27,20.27,34.13]
 print('Conditional 16-row padding example verified; actual tiling and capacity unbound.')
+outstanding = profile['baseline_client_outstanding']
+assert len(outstanding)==2
+for item in outstanding:
+    durations=item['outstanding_duration_ms_by_count']; window=item['window_ms']; assert len(durations)==9 and abs(sum(durations)-window)<1e-6
+    assert item['request_count']==8 and item['tokens']==8192
+assert [round(x['outstanding_duration_ms_by_count'][8]/x['window_ms']*100,2) for x in outstanding] == [96.35,92.13]
+assert [round(sum(i*t for i,t in enumerate(x['outstanding_duration_ms_by_count']))/x['window_ms'],3) for x in outstanding] == [7.860,7.755]
+assert [round(x['tokens']*1000/x['window_ms'],2) for x in outstanding] == [522.37,517.35]
+print('Client POST-to-last-SSE overlap summaries verified; not service-side concurrency.')
+qli = profile['qli_layer_role_ratios']
+assert len(qli) == 28 and min(qli)>0
+assert [round(min(qli),3), round(median(qli),3), round(max(qli),3)] == [2.537,2.588,2.676]
+print('Selected QLI later-layer / layer20 ratios verified; no tensor identity or causal claim.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
