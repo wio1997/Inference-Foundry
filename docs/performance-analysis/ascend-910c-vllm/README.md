@@ -30,6 +30,8 @@
 | 基线结果 | 两轮共 16 个成功请求、16,384 个输出 tokens，整体耗时相加约 31.517 秒，约 519.84 输出 tokens/s |
 | 性能采集 | 另有开启 profiler 的诊断采样；其任务区间不等同于无 profiler 的线上耗时 |
 
+该诊断还使用了记录层调用的 hook。保存的 hook 源码显示，它会在调用前后写日志并进入 profiler 标记范围；如果历史加载的正是该版本，它可能带来额外主机侧开销。现有无 profiler 基线与诊断并非同一请求，不能把两者的差异单独归因于 profiler，也没有测出 hook 的独立开销。
+
 吞吐分母是两轮各自从最早发送到最晚完成的整体窗口之和，不是各请求延迟相加；这是**输出**吞吐，不含输入 tokens。两轮首条有效 SSE 响应各自约为 0.30–1.10 秒，但留存数据不能严格证明首条含首个生成 token，也无法拆分服务端排队、prefill、采样和网络返回，不能把它直接称作精确 TTFT 或 prefill 时间。
 
 如果用同一整体窗口作分母，两轮 **524,288 输入 tokens / 31.517 秒 ≈ 16,635 输入 tokens/s**；这包含命中前缀，且分母包含生成阶段，不是单独的 prefill 计算速率。两轮前缀查询数减命中数合计 52,480，除以同一总窗口约为 **1,665 查询差额/s**；这只是计数差额的归一化，不能代替实际执行的 token 数、prefill 用时或硬件计算吞吐。
@@ -226,6 +228,8 @@
 进一步沿同一次 host 调用的 flow，可以关联到一条 hcom reduce-scatter 记录和一条 AI CPU 任务。导出时间线上，hcom 记录区间落在此前选中 WAIT 区间内；不同轨道的时钟转换及误差、WAIT 的 event handle 与配对 record 均未独立绑定，因此这只是采集中的时间关系，不能证明 WAIT 在等待该通信或据此计算可隐藏的耗时。
 
 官方 CANN 文档提供 BF16 矩阵乘与 reduce-scatter 复合接口；现存源码还有另一模型使用该类接口的例子。但当前 DeepSeek 的部分结果先写入 attention 输出、通信在后续模块进行，若跨边界组合，必须重新证明输出消费者、通信组、分片及舍入。不同版本对通信模式的说明不同，不能由其他模型源码断定历史 9.2 运行支持或性能收益。参见 [CANN 9.1 接口](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-transformer/aclnnMatmulReduceScatterV2.md) 和 [CANN 8.5 接口](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/850/API/aolapi/context/ops-transformer/aclnnMatmulReduceScatterV2.md)。
+
+9.1 接口文档还要求左矩阵为二维连续输入；对 A2/A3 的 BF16 路径规定使用 AIV 通信，并对 bias、scale 等参数有限制。现有样本未保存可确认的输入 stride 或张量身份，也尚未证明历史 9.2 实例支持同样接口，因此这些是融合候选需要满足的条件，不是已确认的融合方案或资源争用。
 
 继续追查同次调用，已把通信前后两条流上的多个 RECORD/WAIT 任务分别关联到主机事件 API，顺序与双向同步相容；但 event handle 未保存，尤其通信流尾部有两条候选 RECORD，无法确定另一流的 WAIT 实际等待哪一条。不同轨道的约 1 微秒时间差也没有时钟精度保证。
 
