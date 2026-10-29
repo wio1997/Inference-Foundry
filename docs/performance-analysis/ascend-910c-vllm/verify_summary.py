@@ -140,4 +140,14 @@ assert [[round(min(c['ratios']), 3), round(median(c['ratios']), 3), round(max(c[
 assert histogram_statistics(profile['q_scatter_tail_minus_rope_ns_histogram']) == (1920, 4899, 7360.0, 14940)
 print('Selected Q scatter-tail minus RoPE duration: 1920 samples, min/median/max 4.899/7.360/14.940 us; not proof of executable overlap.')
 print('Selected MC2 groups: 40 layer medians per shape; different groups, not matched workloads.')
+gaps = profile['selected_mc2_gap_coverage_fractions']
+assert len(gaps) == 32 and all(len(x) == 3 and 0 <= x[0] <= 1 and 0 <= x[1] <= x[2] <= 1 for x in gaps)
+assert [[round(min(r[i] for r in gaps)*100,2), round(max(r[i] for r in gaps)*100,2)] for i in (1,2)] == [[8.52,68.56],[11.34,97.05]]
+print('Selected inter-MC2 gap coverage: other same-stream 8.52-68.56%; all selected streams 11.34-97.05%; uncovered is not idle.')
+client_gaps = profile['baseline_sse_line_gaps']
+assert [v['request_count'] for v in client_gaps] == [8,8]
+assert [v['sse_gap_count'] for v in client_gaps] == [1759,1754]
+assert [v['gaps_over_100ms_count'] for v in client_gaps] == [11,11]
+assert [[round(v['pooled_quantiles_ms'][k],2) for k in ('p50','p99')] for v in client_gaps] == [[65.33,73.76],[65.13,78.07]]
+print('Baseline SSE-line gap summaries consistent; not per-token TPOT and quantiles are not recomputed from raw intervals here.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
