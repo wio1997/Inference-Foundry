@@ -67,4 +67,16 @@ assert gap == (1920, 520, 620, 1020)
 print(f'Selected Q/scatter overlap median: {overlap[2] / 1000:.4f} us')
 print(f'Selected scatter-to-RoPE gap median: {gap[2] / 1000:.3f} us')
 print('Separate anonymous histograms verify these marginal distributions, not event identity or causality.')
+# The following checks paired anonymous reported durations, not equal effective work.
+from statistics import median
+pairs = profile['dynamic_quant_crossshape_pairs']['durations_us_anonymous_pairs']
+rows = profile['dynamic_quant_crossshape_pairs']['rows_per_pair']
+assert len(pairs) == 32 and rows == [595, 1023]
+assert all(len(p) == 2 and p[0] > 0 and p[1] > 0 for p in pairs)
+ratios = [p[1] / p[0] for p in pairs]
+per_row = [x * rows[0] / rows[1] for x in ratios]
+assert round(min(ratios), 3) == 1.030 and round(median(ratios), 3) == 1.242 and round(max(ratios), 3) == 1.388
+assert round(median(per_row), 3) == 0.722
+print(f'DynamicQuant 1023/595 duration ratio (min/median/max): {min(ratios):.3f}/{median(ratios):.3f}/{max(ratios):.3f}')
+print(f'DynamicQuant per-physical-row ratio median: {median(per_row):.3f}; different profiled batches, not equal-work comparison.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
