@@ -1,0 +1,130 @@
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -502,6 +502,9 @@
+         self.prefill_engram_uva_calls=0
+         self.prefill_engram_uva_tokens=0
+         self.prefill_engram_uva_checked=0
++        self.prefill_device_hash_calls=0
++        self.prefill_device_hash_tokens=0
++        self.prefill_device_hash_checked=0
+         self.yoco_exact_compactions=0
+         self.yoco_exact_discarded_tokens=0
+         self.yoco_metadata_fusions=0
+@@ -568,6 +571,9 @@
+                 'prefill_engram_uva_calls':self.prefill_engram_uva_calls,
+                 'prefill_engram_uva_tokens':self.prefill_engram_uva_tokens,
+                 'prefill_engram_uva_checked':self.prefill_engram_uva_checked,
++                'prefill_device_hash_calls':self.prefill_device_hash_calls,
++                'prefill_device_hash_tokens':self.prefill_device_hash_tokens,
++                'prefill_device_hash_checked':self.prefill_device_hash_checked,
+                 'engram_device_hash_calls':sum(f.engram_hash_calls for f in frames.values()),
+                 'engram_device_hash_tokens':sum(f.engram_hash_tokens for f in frames.values()),
+                 'engram_device_hash_frame_calls':{str(size):sum(f.engram_hash_calls for f in frames.values() if f.tokens==size)
+@@ -707,9 +713,46 @@
+         if any(type(t) is not int or not 0 <= t < self.embedding.shape[0] or t in image_ids for t in flat_ids):
+             raise ValueError('native paged entry requires valid text token IDs')
+         hashes = {}
+-        if self.histories:
++        prefill_device_hash=(os.environ.get('DEEPINFER_910C_PREFILL_DEVICE_HASH')=='1' and
++            os.environ.get('DEEPINFER_910C_PREFILL_ENGRAM_UVA')=='1' and
++            os.environ.get('DEEPINFER_910C_ENGRAM_UVA')=='1' and
++            os.environ.get('DEEPINFER_910C_ENGRAM_PREFETCH')!='1' and
++            self.engram_uva_runtime is not None and self.engram_device_hash is not None and
++            sequence_parallel and self.sequence_parallel and self.layers[0].context_parallel and
++            bool(self.histories) and all(slot in self.restored_prefix_slots for slot in slots))
++        hash_check=os.environ.get('DEEPINFER_910C_PREFILL_DEVICE_HASH_CHECK')=='1'
++        hash_mismatch=False
++        if self.histories and prefill_device_hash:
++            from deepinfer.npu_ops.engram_hash910c import raw_contexts
++            histories=[self.histories[s] for s in slots]
++            lengths=[len(history.history) for history in histories]
++            expected=None
++            try:
++                if hash_check:
++                    clones=[copy.copy(history) for history in histories]
++                    for clone,history in zip(clones,histories):clone.history=list(history.history)
++                    expected_parts=[history.batch(tokens) for history,tokens in zip(clones,chunks)]
++                    expected={i:torch.cat([entry[i] for entry in expected_parts]) for i in self.cfg['engram_layer_ids']}
++                contexts=raw_contexts(histories,chunks)
++                raw=torch.tensor(contexts,dtype=torch.int32,device=self.device)
++                hashes=self.engram_device_hash.compute(raw)
++                self.prefill_device_hash_calls+=1
++                self.prefill_device_hash_tokens+=len(contexts)
++                if hash_check:
++                    for layer in self.cfg['engram_layer_ids']:
++                        expected_layer=expected[layer].to(device=self.device,dtype=torch.int64)
++                        hash_mismatch |= not torch.equal(hashes[layer].to(torch.int64),expected_layer)
++                        self.prefill_device_hash_checked+=1
++            except BaseException:
++                for history,length in zip(histories,lengths):del history.history[length:]
++                raise
++        elif self.histories:
+             per_request = [self.histories[s].batch(tokens) for tokens, s in zip(chunks, slots)]
+             hashes = {i: torch.cat([entry[i] for entry in per_request]) for i in self.cfg['engram_layer_ids']}
++        if hash_check:
++            failed=torch.tensor([int(hash_mismatch)],dtype=torch.int32,device=self.device)
++            dist.all_reduce(failed,op=dist.ReduceOp.MAX)
++            if bool(failed.item()):raise RuntimeError('prefill device hash differs from CPU hash on an EP rank')
+         batch = DSABatch.build([len(tokens) for tokens in chunks], seq_lengths, self.device)
+         state = PackedForward(batch, slots, batch.positions(), self.cache.swa_plan(0, batch, slots), self.cache.swa[0].table(slots))
+         state.valid_query_lengths=actual_lengths
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -104,10 +104,16 @@
+                     raise ValueError('prefill UVA requires UVA and excludes CPU row prefetch')
+                 if mode.get('prefill_engram_uva_check',False) and not mode.get('prefill_engram_uva',False):
+                     raise ValueError('prefill UVA check requires prefill UVA')
++                if mode.get('prefill_device_hash',False) and (not mode.get('prefill_engram_uva',False) or not mode['engram_device_hash']):
++                    raise ValueError('prefill device hash requires prefill UVA and device hash')
++                if mode.get('prefill_device_hash_check',False) and not mode.get('prefill_device_hash',False):
++                    raise ValueError('prefill device hash check requires device hash')
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED']='1' if mode.get('yoco_bounded',False) else '0'
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED_140']='1' if mode.get('yoco_bounded_140',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA']='1' if mode.get('prefill_engram_uva',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA_CHECK']='1' if mode.get('prefill_engram_uva_check',False) else '0'
++                os.environ['DEEPINFER_910C_PREFILL_DEVICE_HASH']='1' if mode.get('prefill_device_hash',False) else '0'
++                os.environ['DEEPINFER_910C_PREFILL_DEVICE_HASH_CHECK']='1' if mode.get('prefill_device_hash_check',False) else '0'
+                 if mode['reset_prefix_cache']:
+                     runner.prefix_cache.clear()
+                 (directory/f'ablation-rank{rank}.json').write_text(json.dumps({
+@@ -137,6 +143,9 @@
+                     'prefill_engram_uva_calls':stats['prefill_engram_uva_calls'],
+                     'prefill_engram_uva_tokens':stats['prefill_engram_uva_tokens'],
+                     'prefill_engram_uva_checked':stats['prefill_engram_uva_checked'],
++                    'prefill_device_hash_calls':stats['prefill_device_hash_calls'],
++                    'prefill_device_hash_tokens':stats['prefill_device_hash_tokens'],
++                    'prefill_device_hash_checked':stats['prefill_device_hash_checked'],
+                     'verification_graph_captures':stats['verification_graph_captures'],
+                     'verification_graph_replays':stats['verification_graph_replays'],
+                     'varlen_graph_replays':stats['dspark_varlen_graph_replays'],
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -77,7 +77,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+@@ -91,6 +91,10 @@
+                     raise ValueError('prefill UVA requires UVA and excludes CPU row prefetch')
+                 if mode.get('prefill_engram_uva_check',False) and not mode.get('prefill_engram_uva',False):
+                     raise ValueError('prefill UVA check requires prefill UVA')
++                if mode.get('prefill_device_hash',False) and (not mode.get('prefill_engram_uva',False) or not mode['engram_device_hash']):
++                    raise ValueError('prefill device hash requires prefill UVA and device hash')
++                if mode.get('prefill_device_hash_check',False) and not mode.get('prefill_device_hash',False):
++                    raise ValueError('prefill device hash check requires device hash')
+                 body['single_point_ablation']=mode
+             (directory/'request.json').write_text(json.dumps(body,separators=(',',':')))
+             pending=self.args.control_dir/'current.tmp'
