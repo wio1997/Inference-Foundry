@@ -283,3 +283,8 @@ python3 verify_summary.py
 昇腾 [CANN 9.1 msopprof 指标说明](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/devaids/optool/docs/zh/user_guide/msopprof_user_guide.md) 将 Cube/Vector 指令占比定义在对应核的总周期之上；这些比例不能单独等同于整芯片利用率，也不能单独归因于等待、通信或访存。指标与采集版本、设备型号的对应关系仍需核实。
 
 昇腾 [CANN 9.1 通算融合说明](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta1/programug/Ascendcopdevg/docs/guide/%E7%AE%97%E5%AD%90%E5%AE%9E%E8%B7%B5%E5%8F%82%E8%80%83/%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/%E8%8E%B7%E5%8F%96%E6%80%A7%E8%83%BD%E6%95%B0%E6%8D%AE.md) 和 [CANN 8.0 profiler 示例](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/80RC3alpha003/devaids/auxiliarydevtool/atlasprofiling_16_0046.html) 分别描述分块流水和示例中的通信侧阶段：不同块可以重叠，但数据依赖、分块、同步和资源争用会约束掩盖。后者只为对应版本及示例提供字段解释，尚不能直接解释本次 9.2 的 MoE 融合算子内部阶段；既有记录无法据此量化通信被隐藏的时间。
+
+
+官网接口补查：CANN 9.1 的 [DequantSwigluQuant](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDequantSwigluQuant.md) 与 [V2](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDequantSwigluQuantV2.md) 产品表对 A3 的支持不同；前者同页约束段也提及 A3。V2 的 mode 1 使用奇偶交错输入，本次保存的 activation wrapper 使用前后两半，不能只凭形状和名称直接替换；重排后的精度、scale、group 和历史调用仍需验证。设备任务同名不证明调用了某公开 API。
+
+另据 [CANN 9.1 msOpProf 指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/devaids/optool/docs/zh/user_guide/msopprof_user_guide.md)，上板 PipeTimeline、instrTimeLine 仅支持 950 且暂不支持通算融合；PcSampling 仅支持 950。指南另有条件性的通算流水图，不能等同于逐指令流水。当前保存的 9.2 工具帮助未列出前三个选项；自定义融合算子的支持及历史版本绑定仍未知，因此这些不是当前已验证的内部阶段证据。
