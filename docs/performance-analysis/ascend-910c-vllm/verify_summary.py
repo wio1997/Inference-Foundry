@@ -150,4 +150,17 @@ assert [v['sse_gap_count'] for v in client_gaps] == [1759,1754]
 assert [v['gaps_over_100ms_count'] for v in client_gaps] == [11,11]
 assert [[round(v['pooled_quantiles_ms'][k],2) for k in ('p50','p99')] for v in client_gaps] == [[65.33,73.76],[65.13,78.07]]
 print('Baseline SSE-line gap summaries consistent; not per-token TPOT and quantiles are not recomputed from raw intervals here.')
+hc = profile['hc_repeated_scope_ratios']
+assert len(hc) == 8 and all(len(g['ratios']) == 320 and min(g['ratios']) > 0 for g in hc)
+post = [g for g in hc if g['name'] == 'HcPost']
+pre = [g for g in hc if g['name'] == 'HcPre']
+assert len(post) == len(pre) == 4
+assert sorted(round(median(g['ratios']),3) for g in post if g['physical_rows'] == 1023) == [0.856,0.863]
+assert sorted(round(median(g['ratios']),3) for g in post if g['physical_rows'] != 1023) == [0.974,0.998]
+assert [round(min(median(g['ratios']) for g in pre),3), round(max(median(g['ratios']) for g in pre),3)] == [0.990,1.029]
+dot = profile['int8_exact_dot_abs_bounds']
+assert [k*dot['signed_input_abs_max']**2 for k in dot['k_values']] == [83886080,37748736]
+assert max(k*dot['signed_input_abs_max']**2 for k in dot['k_values']) < dot['int32_max']
+print('Selected HC paired ratio medians verified; equal signatures do not prove equal workloads.')
+print('Conditional signed INT8 exact dot absolute bounds verified; historical operator contract remains unbound.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
