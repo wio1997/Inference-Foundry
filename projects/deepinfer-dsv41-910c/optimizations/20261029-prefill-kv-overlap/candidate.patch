@@ -1,0 +1,109 @@
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -96,6 +96,8 @@
+         self.context_parallel_calls = self.context_parallel_query_tokens = 0
+         self.kv_token_parallel = os.environ.get('DEEPINFER_910C_KV_TOKEN_PARALLEL') == '1'
+         self.kv_token_parallel_calls = 0
++        self.prefill_kv_overlap_started = 0
++        self.prefill_kv_overlap_completed = 0
+         self.tail_ffn_calls = self.tail_ffn_tokens = self.tail_ffn_skipped = 0
+         if self.context_parallel:
+             self.cp_wq_b = reader.load_linear(self.prefix+'.attn.wq_b', device)
+@@ -226,6 +228,20 @@
+         swa_table = state.query_swa_table if cp is not None else state.swa_table
+         heads = c['num_attention_heads'] if cp is not None else self.local_heads
+         sink = self.cp_attn_sink if cp is not None else self.attn_attn_sink
++        # The fixed eager CP path can submit the KV exchange before the
++        # independent Q projection. Hold both tensors and Work through wait.
++        kv_work = None
++        kv_gathered = None
++        if (input_is_sharded and state.decode_frame is None and self.sp.world > 1
++                and os.environ.get('DEEPINFER_910C_PREFILL_KV_OVERLAP') == '1'):
++            local_kv = rms_norm_mixed(self.projections['wkv'](query_x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
++            padded = local_kv.new_zeros((cp.width, c['head_dim']))
++            padded[:local_kv.shape[0]].copy_(local_kv)
++            kv_gathered = local_kv.new_empty((cp.width * self.sp.world, c['head_dim']))
++            kv_work = dist.all_gather_into_tensor(kv_gathered, padded.contiguous(), group=self.sp.group, async_op=True)
++            if kv_work is None:
++                raise RuntimeError('asynchronous KV gather returned no work handle')
++            self.prefill_kv_overlap_started += 1
+         if query_x.shape[0]:
+             qr = rms_norm_mixed(self.projections['wq_a'](query_x), self.attn_q_norm_weight, c['rms_norm_eps'])[0]
+             q = (self.cp_wq_b if cp is not None else self.projections['wq_b'])(qr).unflatten(-1, (heads, c['head_dim']))
+@@ -234,10 +250,16 @@
+             # Query already owns local normalized tokens. Publish512 KV
+             # channels instead of gathering5120 hidden channels. Keep global
+             # RoPE/cache-write coordinates and all compressor source math.
+-            local_kv = rms_norm_mixed(self.projections['wkv'](query_x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
+-            padded = local_kv.new_zeros((cp.width, c['head_dim']))
+-            padded[:local_kv.shape[0]].copy_(local_kv)
+-            kv = self.sp.gather(padded, total_tokens)
++            if kv_work is None:
++                local_kv = rms_norm_mixed(self.projections['wkv'](query_x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
++                padded = local_kv.new_zeros((cp.width, c['head_dim']))
++                padded[:local_kv.shape[0]].copy_(local_kv)
++                kv = self.sp.gather(padded, total_tokens)
++            else:
++                if kv_work.wait() is False:
++                    raise RuntimeError('asynchronous KV gather failed')
++                kv = kv_gathered[:total_tokens]
++                self.prefill_kv_overlap_completed += 1
+             self.kv_token_parallel_calls += 1
+         else:
+             kv = rms_norm_mixed(self.projections['wkv'](x), self.attn_kv_norm_weight, c['rms_norm_eps'])[0]
+@@ -486,6 +508,7 @@
+             layer.fused_o_proj_decode_calls = 0
+             layer.context_parallel_calls = layer.context_parallel_query_tokens = 0
+             layer.kv_token_parallel_calls = 0
++            layer.prefill_kv_overlap_started = layer.prefill_kv_overlap_completed = 0
+             layer.tail_ffn_calls = layer.tail_ffn_tokens = layer.tail_ffn_skipped = 0
+             if layer.mc2 is not None:
+                 layer.mc2.fused_calls=0
+@@ -607,6 +630,8 @@
+                 'context_parallel_enabled': all(layer.context_parallel for layer in self.layers),
+                 'kv_token_parallel_enabled': all(layer.kv_token_parallel for layer in self.layers),
+                 'kv_token_parallel_calls': sum(layer.kv_token_parallel_calls for layer in self.layers),
++                'prefill_kv_overlap_started': sum(layer.prefill_kv_overlap_started for layer in self.layers),
++                'prefill_kv_overlap_completed': sum(layer.prefill_kv_overlap_completed for layer in self.layers),
+                 'tail_ffn_enabled': self.tail_ffn,
+                 'tail_ffn_source_layer': self.tail_ffn_source,
+                 'tail_ffn_calls': sum(layer.tail_ffn_calls for layer in self.layers),
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -95,7 +95,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -128,6 +128,7 @@
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED_140']='1' if mode.get('yoco_bounded_140',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_TIMING_SPLIT']='1' if mode.get('prefill_timing_split',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_TIMING_DETAIL']='1' if mode.get('prefill_timing_detail',False) else '0'
++                os.environ['DEEPINFER_910C_PREFILL_KV_OVERLAP']='1' if mode.get('prefill_kv_overlap',False) else '0'
+                 os.environ['DEEPINFER_910C_YOCO_PREPLAN']='1' if mode.get('yoco_preplan',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA']='1' if mode.get('prefill_engram_uva',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA_CHECK']='1' if mode.get('prefill_engram_uva_check',False) else '0'
+@@ -170,6 +171,8 @@
+                     'varlen_graph_replays':stats['dspark_varlen_graph_replays'],
+                     'yoco_preplan_prepared':stats['yoco_preplan_prepared'],
+                     'yoco_preplan_consumed':stats['yoco_preplan_consumed'],
++                    'prefill_kv_overlap_started':stats['prefill_kv_overlap_started'],
++                    'prefill_kv_overlap_completed':stats['prefill_kv_overlap_completed'],
+                     'bounded_compactions':stats['yoco_bounded_compactions'],
+                     'bounded_discarded_tokens':stats['yoco_bounded_discarded_tokens'],
+                     'bounded_swa_calls':stats['yoco_bounded_swa_calls'],
