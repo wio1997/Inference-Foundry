@@ -1,0 +1,65 @@
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -817,6 +817,7 @@
+                 self.engram_prefetch_runtime=EngramPrefetch(self.reader,self.device)
+             engram_fetch=self.engram_prefetch_runtime.begin(hashes)
+         observe=bool(state.sequence_parallel and state.context_query is not None)
++        split_timing=observe and os.environ.get('DEEPINFER_910C_PREFILL_TIMING_SPLIT')=='1'
+         layer_times=[]
+         before_layers=time.perf_counter()
+         for i, layer in enumerate(self.layers):
+@@ -848,6 +849,7 @@
+                 draft_features.append(self.dspark.capture(trunk,state))
+             after_capture=time.perf_counter()
+             trunk, previous = layer(trunk, previous, cache=self.cache, pending=self.pending, state=state)
++            after_layer = time.perf_counter() if split_timing else None
+             if ((os.environ.get('DEEPINFER_910C_YOCO_EXACT_COMPACT') == '1' or bounded_keep)
+                     and i == self.tail_ffn_source and self.tail_ffn
+                     and state.context_query is not None and not padding_margin):
+@@ -864,9 +866,14 @@
+                         self.yoco_exact_compactions += 1
+                         self.yoco_exact_discarded_tokens += before - sum(batch.query_lengths)
+             if observe:
+-                layer_times.append({'layer':i,'engram_wall_seconds':after_engram-layer_start,
++                after_compaction = time.perf_counter()
++                layer_record = {'layer':i,'engram_wall_seconds':after_engram-layer_start,
+                     'feature_wall_seconds':after_capture-after_engram,
+-                    'layer_enqueue_wall_seconds':time.perf_counter()-after_capture})
++                    'layer_enqueue_wall_seconds':after_compaction-after_capture}
++                if split_timing:
++                    layer_record['layer_forward_host_seconds']=after_layer-after_capture
++                    layer_record['post_layer_host_seconds']=after_compaction-after_layer
++                layer_times.append(layer_record)
+         if engram_fetch is not None:engram_fetch.finish()
+         before_draft_context=time.perf_counter()
+         if self.dspark is not None:
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -122,6 +122,7 @@
+                     raise ValueError('prefill device hash check requires device hash')
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED']='1' if mode.get('yoco_bounded',False) else '0'
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED_140']='1' if mode.get('yoco_bounded_140',False) else '0'
++                os.environ['DEEPINFER_910C_PREFILL_TIMING_SPLIT']='1' if mode.get('prefill_timing_split',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA']='1' if mode.get('prefill_engram_uva',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_ENGRAM_UVA_CHECK']='1' if mode.get('prefill_engram_uva_check',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_DEVICE_HASH']='1' if mode.get('prefill_device_hash',False) else '0'
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -77,7 +77,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
