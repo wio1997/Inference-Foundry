@@ -291,3 +291,6 @@ python3 verify_summary.py
 
 
 对已保存的 MC2 INT8 peer 搬运源码作条件性工作量核对：若该源码及其常量确实用于目标调用，且 K=5120，令 R 为各次经容量截断后实际搬运行数之和，该 helper 的 GM→UB 逻辑读取请求为 `5152×R` 字节；按每次调用的行数 `r_i`，读取调用次数为 `sum(ceil(r_i/2))`。同样的 R 可能因行分布不同产生不同调用次数。这里的 32 字节包含预留区，不能都称为有效 payload；公式不代表物理 HBM/网络字节或等待时间。当前 R、历史二进制与执行分支未知，无法用于对实际瓶颈定量归因。计数单位参考 [昇腾 CANN 9.1 DataCopy 文档](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/ascendcopapi/docs/en/api/SIMD-API/basic_api/data_move_guide/gm_and_ub_data_movement.md)，与历史 9.2 未绑定。
+
+
+对与 Engram 形状相容的两处层间候选区间做同卡同轮配对，48 对中第一处均更长；逐对减去所选大矩阵任务时长差后，三个采样轮次的残差中位分别约 0.050、0.620、0.280 µs。这只是采样范围内的算术对照，残差包含其他活动及未覆盖区间；相关形状没有绑定权重和请求，不能认定矩阵任务造成差异、位于关键路径或对应可节省时间。
