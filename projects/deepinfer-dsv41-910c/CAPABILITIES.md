@@ -9,8 +9,8 @@
 | ZOS 设备状态及草稿预发 | 部分适配并启用固定路径 | 设备状态参与固定 4×6 草稿预发；CPU 仍参与历史、接受结果和状态提交。变长、动态 remap、完整 EOS 和连续批处理不能由该路径推断。 |
 | ZOS 状态投票缓冲复用 | 已启用 | 保留全 rank 投票及阻塞回读；同服务 ABBA 固定负载中，合并吞吐由约 603.94 提升至 611.01 token/s，两轮逐项 TTFT、TPOT 未退化。结果仅针对该次负载与运行条件。[投票复用](optimizations/20261029-zos-vote-reuse/README.md) |
 | ZOS 设备 C2 和 Engram 窗口 | 候选未采纳 | 两项均完成固定负载与 16 rank 验证；分别未证明稳定收益，当前关闭。[设备 C2](optimizations/20261029-zos-c2-device/README.md)、[Engram 窗口](optimizations/20261029-zos-engram-window/README.md) |
-| Engram 设备 hash 与 CPU 表 | 已启用 | 使用 CPU 共享表、UVA 读取和设备 hash；主干 CPU prefetch 关闭。prefill UVA 已有 16 rank 和固定负载证据，不代表完整官方后端。[设备 hash](optimizations/20261028-device-hash-overlap/README.md)、[prefill UVA](optimizations/20261029-engram-prefill-uva/README.md) |
-| 共享专家和路由专家的 decode 重叠 | 已启用局部路径 | 当前配置保留 decode 多流；不能据此称 prefill 同样完成重叠验证。[路径记录](optimizations/20261028-device-hash-overlap/README.md) |
+| Engram 设备 hash 与 CPU 表 | 已启用 | 使用 CPU 共享表、UVA 读取和设备 hash；主干 CPU prefetch 关闭。prefill UVA 已有 16 rank 和固定负载证据，不代表完整官方后端。[设备 hash](optimizations/20261028-device-hash-overlap/RESULTS.md)、[prefill UVA](optimizations/20261029-engram-prefill-uva/README.md) |
+| 共享专家和路由专家的 decode 重叠 | 已启用局部路径 | 当前配置保留 decode 多流；不能据此称 prefill 同样完成重叠验证。[路径记录](optimizations/20261028-device-hash-overlap/RESULTS.md) |
 | 共享专家激活融合 | 候选未采纳 | 两轮吞吐分别增加约 0.56% 和 0.27%，TTFT 分别高 16.0 和 15.2 ms；样本和启动顺序不足以确定因果，未替换原路径。[单项对照](optimizations/20261030-shared-expert-activation/README.md) |
 | YOCO 有界重放 | 256 token 近似路径启用 | 官方示例的 140 与当前 256 不等价；精确、140、256 在选定样本上出现输出差异，模型质量与缓存语义尚未充分验证。[语义与范围](optimizations/20261030-replay-semantics/README.md)、[边界核验](optimizations/20261030-yoco-boundaries/README.md) |
 | YOCO 索引提前准备 | 候选未采纳 | 16 rank 与固定负载完整输出通过，两轮结果未证明稳定收益；第二轮 TTFT 略高、吞吐略低。[单项对照](optimizations/20261030-yoco-index/README.md) |
