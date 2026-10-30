@@ -2,9 +2,52 @@
 """Check published summary arithmetic; this does not reproduce measurements."""
 import json
 from pathlib import Path
+from statistics import median
 
 summary = json.loads((Path(__file__).parent / 'evidence-summary.json').read_text())
 stage = summary.get('stage_consolidation', {})
+if 'whole_model_overview' in stage:
+    overview = stage['whole_model_overview']
+    cohort = overview['target_mainstream']
+    samples = cohort['anonymous_samples']
+    assert len(samples) == cohort['rank_count'] == 16
+    assert abs(median(x['span_ns'] / 1000 for x in samples) - cohort['span_us']['median']) < 1e-9
+    for row in cohort['types']:
+        name = row['type']
+        assert sorted({x['type_event_count'][name] for x in samples}) == row['records_per_rank']
+        assert abs(median(x['type_union_ns'][name] / 1000 for x in samples) - row['median_union_us']) < 1e-9
+        assert abs(median(x['type_union_ns'][name] / x['span_ns'] for x in samples) - row['median_rank_fraction']) < 1e-12
+    assert all(sum(x['type_union_ns'].values()) == x['all_types_union_ns'] for x in samples)
+    coverage = median(x['all_types_union_ns'] / x['span_ns'] for x in samples)
+    assert abs(coverage - cohort['exported_union_fraction_median']) < 1e-12
+    engram = overview['engram_shape_compatible_only']
+    assert abs(median(x['engram_compatible_pair_ns'] / x['span_ns'] for x in samples) - engram['run2_pair_fraction_median']) < 1e-12
+    assert engram['logical_MAC_per_selected_task'] == 3 * 6144 * 25600
+    assert engram['conditional_BF16_weight_bytes'] == 6144 * 25600 * 2
+    draft = overview['draft_separate_cohort']
+    draft_samples = draft['anonymous_samples']
+    assert len(draft_samples) == draft['block_window_us']['n'] == 162
+    assert all(0 < x['moe_us'] <= x['window_us'] for x in draft_samples)
+    assert abs(median(x['window_us'] for x in draft_samples) - draft['block_window_us']['median']) < 1e-9
+    fraction = sum(x['moe_us'] for x in draft_samples) / sum(x['window_us'] for x in draft_samples)
+    assert abs(fraction - draft['sum_moe_over_sum_window']) < 1e-12
+    print(f'Same-cohort target span: {cohort["span_us"]["median"]:.3f} us; exported coverage {100 * coverage:.2f}% (not utilization).')
+    print(f'Separate draft cohort: median {draft["block_window_us"]["median"]:.3f} us; weighted MoE fraction {100 * fraction:.2f}%.')
+if 'single_group_projection_diagnostic' in stage:
+    diag = stage['single_group_projection_diagnostic']
+    assert diag['status'] == 'MEASURED_ISOLATED_EAGER_INTERVALS'
+    for name, values in diag['event_interval_us'].items():
+        assert len(values) == 16 and all(v > 0 for v in values)
+        assert abs(median(values) - diag['median_event_us'][name]) < 1e-9
+    assert diag['output_check']['both_finite']
+    print('Isolated interface samples reproduce; non-bitwise output and timing drift remain limitations.')
+if 'q_b_head_partition_candidate' in stage:
+    head = stage['q_b_head_partition_candidate']
+    a,b,c = head['old_shape']; d,e,f = head['candidate_shape']
+    assert a*b*c == d*e*f == head['MAC_per_rank_both']
+    assert b*c == head['old_INT8_weight_bytes'] and e*f == head['candidate_INT8_weight_bytes']
+    assert a*c == d*f == head['output_elements_per_rank_both']
+    print('Conditional head-partition ledger: equal MAC/output elements, weight body 40 -> 5 MiB; not a speedup claim.')
 if 'indexer_token_k_specialization' in stage:
     k = stage['indexer_token_k_specialization']
     assert k['token_retained_old'] == k['tile_sort_length_unchanged'] == 2048
@@ -211,3 +254,10 @@ assert len(qli) == 28 and min(qli)>0
 assert [round(min(qli),3), round(median(qli),3), round(max(qli),3)] == [2.537,2.588,2.676]
 print('Selected QLI later-layer / layer20 ratios verified; no tensor identity or causal claim.')
 print('Arithmetic check only: source measurements and hardware bounds are not independently verified.')
+
+# Historical layer-window aggregates: complete 40-layer list, not a device-utilization claim.
+layers = summary["stage_consolidation"]["whole_model_overview"]["layer_windows"]["layers"]
+assert [v["layer"] for v in layers] == list(range(40))
+assert all(v["calls"] == 48 and v["rank_count"] == 16 and 0 < v["mean_layer_window_us"] <= v["max_layer_window_us"] for v in layers)
+assert [v["layer"] for v in sorted(layers, key=lambda x: x["mean_layer_window_us"], reverse=True)[:6]] == [0,28,24,32,36,8]
+print("Historical layer windows: 40 layers, 48 windows/layer; six longest means 0/28/24/32/36/8, not equal work or utilization.")
