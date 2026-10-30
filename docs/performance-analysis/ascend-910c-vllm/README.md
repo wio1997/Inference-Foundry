@@ -36,7 +36,7 @@
 <details>
 <summary>展开近期分析细节</summary>
 
-融合覆盖复核发现一个图模型缺口：在源码的特定 DSpark fallback 条件下，现有辅助状态层号有一处错位；草稿模型片段也缺少 context 位置和分组 slot 的来源连接。旧图与候选索引因此不能证明这些路径已经完整覆盖。该条件未绑定历史运行，不代表服务出错；修订须版本化并重建受影响索引。
+融合覆盖复核发现一个图模型缺口：在源码的特定 DSpark fallback 条件下，现有辅助状态层号有一处错位；草稿模型片段也缺少 context 位置和分组 slot 的来源连接。已建立独立的条件修订图和受影响索引，并通过结构与引用一致性校验；旧图保留。该条件未绑定历史运行，不代表服务出错，也不证明所有分支或融合已覆盖。
 
 昇腾 [Ascend DMI 带宽测试说明](https://www.hiascend.com/doc_center/source/zh/mindcluster/2610/toolbox/toolboxug/toolboxug_0015.html) 对所列 A3 产品说明，h2d/d2h 测试项报告 HCCS 平面总带宽；d2d 和 p2p 采用其他数据路径。测试标签或观测峰值不能单独当成某条 PCIe 链路、HBM 或指定跨卡路径的硬上限。该文档版本和产品尚未绑定 169 的实际工具与硬件。
 
