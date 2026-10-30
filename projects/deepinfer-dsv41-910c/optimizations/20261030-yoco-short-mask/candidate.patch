@@ -1,0 +1,154 @@
+--- a/deepinfer/engine/ascend_w8a8_serving.py
++++ b/deepinfer/engine/ascend_w8a8_serving.py
+@@ -179,8 +179,17 @@
+                             and len({len(x) for x in chunks})!=1):
+                         local=False
+                     if not self._global_busy(not local):bounded_keep=keep
++                short_mask_keep=0
++                if os.environ.get('DEEPINFER_910C_YOCO_SHORT_MASK')=='1' and not bounded_keep:
++                    from .short_mask910c import eligible_short_mask
++                    local=eligible_short_mask(self.model,owned,slots,chunks,hits,internal=internal)
++                    if (os.environ.get('DEEPINFER_910C_PREFILL_QUERY_PADDING')=='1'
++                            and len({len(x) for x in chunks})!=1):
++                        local=False
++                    if not self._global_busy(not local):short_mask_keep=256
+                 logits=self.model.forward_tokens(chunks,slots,
+-                    sequence_parallel=self.model.sequence_parallel,bounded_keep=bounded_keep)
++                    sequence_parallel=self.model.sequence_parallel,bounded_keep=bounded_keep,
++                    short_mask_keep=short_mask_keep)
+                 for row,slot in enumerate(slots):
+                     if slot==self.slots:
+                         continue
+--- a/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -533,6 +533,7 @@
+         self.yoco_metadata_fusions=0
+         self.yoco_preplan_prepared=0
+         self.yoco_preplan_consumed=0
++        self.yoco_short_mask_calls=0
+         self.yoco_bounded_compactions=0
+         self.yoco_bounded_discarded_tokens=0
+         self.target_vocab_top1_calls=0
+@@ -656,6 +657,7 @@
+                 'yoco_metadata_fusions':self.yoco_metadata_fusions,
+                 'yoco_preplan_prepared':self.yoco_preplan_prepared,
+                 'yoco_preplan_consumed':self.yoco_preplan_consumed,
++                'yoco_short_mask_calls':self.yoco_short_mask_calls,
+                 'yoco_bounded_compactions':self.yoco_bounded_compactions,
+                 'yoco_bounded_discarded_tokens':self.yoco_bounded_discarded_tokens,
+                 'yoco_bounded_swa_calls':sum(layer.bounded_swa_calls for layer in self.layers),
+@@ -691,11 +693,13 @@
+         return self._verify_graph.step(chunks).reshape(4,width,-1)
+ 
+     @torch.inference_mode()
+-    def forward_tokens(self, chunks, slots=None, *, sequence_parallel=False, bounded_keep=0):
++    def forward_tokens(self, chunks, slots=None, *, sequence_parallel=False, bounded_keep=0, short_mask_keep=0):
+         forward_started=time.perf_counter()
+         from deepinfer.npu_ops.rope910c import begin_forward
+         begin_forward()
+         chunks = [list(tokens) for tokens in chunks]
++        if type(short_mask_keep) is not int or short_mask_keep not in (0,256) or (short_mask_keep and bounded_keep):
++            raise ValueError('invalid short mask mode')
+         if type(bounded_keep) is not int or bounded_keep not in (0,140,256):
+             raise ValueError('unsupported bounded replay width')
+         slots = list(range(len(chunks))) if slots is None else list(slots)
+@@ -902,6 +906,15 @@
+                     else:
+                         self.yoco_exact_compactions += 1
+                         self.yoco_exact_discarded_tokens += before - sum(batch.query_lengths)
++            if short_mask_keep and i == self.tail_ffn_source:
++                if (not self.tail_ffn or state.context_query is None or padding_margin or
++                        len(set(state.batch.seq_lengths)) != 1 or
++                        state.batch.seq_lengths[0] % 128 or
++                        any(q < 1 or q > short_mask_keep for q in state.batch.query_lengths)):
++                    raise ValueError('invalid short YOCO mask contract')
++                state.bounded_swa_base=state.batch.seq_lengths[0]-short_mask_keep
++                state.bounded_swa_keep=short_mask_keep
++                self.yoco_short_mask_calls+=1
+             if observe:
+                 after_compaction = time.perf_counter()
+                 layer_record = {'layer':i,'engram_wall_seconds':after_engram-layer_start,
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse','yoco_short_mask'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -111,6 +111,8 @@
+                 os.environ['DEEPINFER_910C_ZOS_ENGRAM_WINDOW_CHECK']='1' if mode.get('zos_engram_window_check',False) else '0'
+                 if mode.get('yoco_bounded',False) and (not mode['tail_ffn'] or mode['yoco_exact_compact'] or mode['yoco_meta_fuse']):
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
++                if mode.get('yoco_short_mask',False) and (not mode.get('yoco_bounded',False) or mode.get('yoco_bounded_140',False)):
++                    raise ValueError('short mask requires 256 bounded mode')
+                 if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
+                     raise ValueError('140-token replay requires bounded replay')
+                 if mode.get('yoco_preplan',False) and not mode.get('yoco_bounded',False):
+@@ -127,6 +129,7 @@
+                     raise ValueError('prefill device hash check requires device hash')
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED']='1' if mode.get('yoco_bounded',False) else '0'
+                 os.environ['DEEPINFER_910C_YOCO_BOUNDED_140']='1' if mode.get('yoco_bounded_140',False) else '0'
++                os.environ['DEEPINFER_910C_YOCO_SHORT_MASK']='1' if mode.get('yoco_short_mask',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_TIMING_SPLIT']='1' if mode.get('prefill_timing_split',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_TIMING_DETAIL']='1' if mode.get('prefill_timing_detail',False) else '0'
+                 os.environ['DEEPINFER_910C_PREFILL_KV_OVERLAP']='1' if mode.get('prefill_kv_overlap',False) else '0'
+@@ -174,6 +177,7 @@
+                     'yoco_preplan_consumed':stats['yoco_preplan_consumed'],
+                     'prefill_kv_overlap_started':stats['prefill_kv_overlap_started'],
+                     'prefill_kv_overlap_completed':stats['prefill_kv_overlap_completed'],
++                    'short_mask_calls':stats['yoco_short_mask_calls'],
+                     'bounded_compactions':stats['yoco_bounded_compactions'],
+                     'bounded_discarded_tokens':stats['yoco_bounded_discarded_tokens'],
+                     'bounded_swa_calls':stats['yoco_bounded_swa_calls'],
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -95,7 +95,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse','yoco_short_mask'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
+@@ -111,6 +111,8 @@
+                     raise ValueError('device target input requires fast ZOS')
+                 if mode.get('yoco_bounded',False) and (not mode['tail_ffn'] or mode['yoco_exact_compact'] or mode['yoco_meta_fuse']):
+                     raise ValueError('bounded replay requires tail FFN and an exclusive replay path')
++                if mode.get('yoco_short_mask',False) and (not mode.get('yoco_bounded',False) or mode.get('yoco_bounded_140',False)):
++                    raise ValueError('short mask requires 256 bounded mode')
+                 if mode.get('yoco_bounded_140',False) and not mode.get('yoco_bounded',False):
+                     raise ValueError('140-token replay requires bounded replay')
+                 if mode.get('yoco_preplan',False) and not mode.get('yoco_bounded',False):
+--- a/deepinfer/engine/short_mask910c.py
++++ b/deepinfer/engine/short_mask910c.py
+@@ -0,0 +1,25 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Eligibility for page-aligned YOCO mask on a short final prefill chunk.
++
++This is an opt-in diagnostic candidate, not the default exact fallback. The
++retained queries are unchanged; only the consumer SWA left edge is shortened.
++"""
++def eligible_short_mask(model, owned, slots, chunks, hits, *, internal):
++    keep = 256
++    if internal or len(owned) != 4 or slots != list(range(4)) or len(chunks) != 4 or len(hits) != 4:
++        return False
++    if (not model.tail_ffn or not model.sequence_parallel or not model.layers[0].context_parallel
++            or model.sp.world != 8 or model.dspark is None or keep < model.cfg['sliding_window'] + model.dspark.nextn + 1):
++        return False
++    if any(slot not in model.restored_prefix_slots or hits[slot] <= 0 for slot in slots):
++        return False
++    if any(not req.get('ignore_eos', False) for _, req in owned):
++        return False
++    qlens = [len(chunk) for chunk in chunks]
++    if min(qlens) < 1 or max(qlens) > keep or max(qlens) <= keep - (model.cfg['sliding_window'] - 1):
++        return False
++    ends = [model.next_positions[slot] + len(chunk) for slot,chunk in zip(slots,chunks)]
++    if (len(set(ends)) != 1 or ends[0] % 128 or ends[0] - keep <= model.cfg['index_topk']
++            or any(end != len(owned[slot][1]['token_ids']) for slot,end in zip(slots,ends))):
++        return False
++    return True
