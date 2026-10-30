@@ -40,7 +40,7 @@
 ## 尚不能给出单项收益的能力
 
 - 学习式 DSpark、Markov、confidence 和目标验证已运行，但没有覆盖所有输入与调度形态的单因素端到端收益；[变长目标图](20261030-dspark-shape/README.md)的 4K 校验差异及非有限值尚未完全解释。
-- [YOCO 官方元数据和注意力](20261030-replay-semantics/OFFICIAL-ALIGNMENT.md)已有合成输入及单设备对照；[完整模型中间张量](20261030-replay-semantics/MODEL-TRACE.md)仍存在后续索引差异。Q 投影形状候选为诊断用途，未测端到端性能、未采纳。官方 NVIDIA 注意力内核未在 910C 执行。
+- [YOCO 官方元数据和注意力](20261030-replay-semantics/OFFICIAL-ALIGNMENT.md)已有合成输入、单设备对照及短末块首个 consumer 层真实张量抽查；[完整模型中间张量](20261030-replay-semantics/MODEL-TRACE.md)仍存在后续索引差异。Q 投影形状候选为诊断用途，未测端到端性能、未采纳。官方 NVIDIA 注意力内核未在 910C 执行。
 - [SparseFlashMla](20261030-sparse-mla/README.md)当前 BF16 绑定已使用；新版混合量化要求的接口、压缩比与本模型现有缓存不同，固定镜像缺少相关 Python 模块。没有本机等价性或性能数据，不能宣称无法适配所有版本，也不能估算收益。
 - 动态批处理、正常 EOS 与混合请求、在线 EPLB、通用采样以及可选 token 黑名单尚未全面验收；它们不应被当作已验证的加速。正常 EOS 的局部 256 重放候选有单独[两轮数据](20261030-yoco-normal-eos/LONG-OUTPUT.md)，但该条件使 DSpark 预发回退，不可与 ignore-EOS 基线直接混比。
 
