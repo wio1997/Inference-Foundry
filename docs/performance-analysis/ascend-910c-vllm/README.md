@@ -15,7 +15,7 @@
 
 三轮各自 16 张卡上，所选 MoE 的合计时长都大于所选 Indexer；因此现有样本支持先查 MoE，同时继续研究 Indexer。每轮未证明是同一请求或相同工作量，其他流及未导出活动也未覆盖；这不是线上请求占比或可节省时间。Indexer 在不同轮次的差异值得核查有效长度、缓存页和候选数，但当前不能归因。例如第 24 层，三轮 Indexer 单次时长的 16 卡中位数约为 **21.56 / 495.50 / 495.58 微秒**；同窗注意力任务分别约为 **16.54 / 44.08 / 44.28 微秒**。它们都变长，但并未证明是同一请求或相同有效工作量，不能认定哪个因素导致差异。
 
-**Indexer 的重组方向。** 保存的 Ascend QLI 源码已经把分块排序、归并和双缓冲组合起来；其中 score tile 先写 GM，再由 Vector 读入做缩放与排序。可以研究在硬件接口允许时用更近的存储或分块交付减少这次逻辑写读，但需要验证 Cube 与两个 Vector 的数据可见性、同步、score 精度和排序语义；历史运行的二进制与有效 tile 尚未绑定，物理 HBM 流量和收益未知。另一候选是把 QLI 输出后的索引整理吸收进输出路径：一次选定采样中 QLI、整理、attention 分别约 **498.5、13.1、45.1 微秒**，不能把 13.1 微秒直接当作可节省时间。
+**Indexer 的重组方向。** 保存的 Ascend QLI 源码已经把分块排序、归并和双缓冲组合起来；其中 score tile 先写 GM，再由 Vector 读入做缩放与排序。可以研究在硬件接口允许时用更近的存储或分块交付减少这次逻辑写读，但需要验证 Cube 与两个 Vector 的数据可见性、同步、score 精度和排序语义；历史运行的二进制与有效 tile 尚未绑定，物理 HBM 流量和收益未知。昇腾公开接口进一步收窄了“片上直达”方案：文档中 [L1→UB DataCopyL1ToUB](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/ascendcopapi/docs/en/api/SIMD-API/basic_api/cube_compute_ISASI/cube_compute_store/DataCopyL1ToUB.md) 和 [L0C→UB Tensor Copy](https://asc.gitcode.com/api/SIMD-API/basic_api/cube_compute_TensorAPI/cube_compute_store/Copy_L0CToUB.html) 均列 Atlas A3 不支持；不能把 950 接口直接用于此 A3 路径。公开的 [核间同步模式 2](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta2/API/ascendcopapi/atlasascendc_api_07_0273.html) 可协调一个 Cube 和两个 Vector，但它不搬数据。下一步转向 GM 中转下的分块发布、减少中间量或优化缓存复用；现有候选不是已证明可以消除 GM，也不排除其他未证实的底层机制。另一候选是把 QLI 输出后的索引整理吸收进输出路径：一次选定采样中 QLI、整理、attention 分别约 **498.5、13.1、45.1 微秒**，不能把 13.1 微秒直接当作可节省时间。
 
 **MoE 的现有证据。** 数据沿“路由选专家 → 跨卡分发和量化 → 专家两次矩阵乘及激活 → 按权重合并”流动；后几步在现有 `DispatchFFNCombine` 中已是复合调用，并且源码已支持按专家组将分发与第一矩阵乘重叠。一次预填充重 profiler 并带 hook 的采样中，同一组八卡第 14 层约 **160 ms**、第 39 层约 **8.2 ms**，另外 17 组已选同流任务没有一起放大约 19 倍。这提示先查 MoE 内部，但两层实际路由、专家行数和采样扰动未知，不能视作线上时延或确定根因。另一份更接近冻结负载的带 profiler 采样中，16 卡各三次的 target 层窗口也显示第 0 层 MoE 的组间时长差异；它与无 profiler 请求未逐条绑定，不能据此推算在线影响。
 
@@ -36,6 +36,8 @@
 专家分布也影响访存：假设本卡都处理 240 条专家行，两次矩阵乘的逻辑计算量相同；若分别涉及 24 个或 4 个活跃专家，且每个活跃专家权重恰从 HBM 读取一次，权重逻辑量约为 **849 MB / 142 MB**。这是用来说明需要测量“逐专家行数和权重复用”的假设例子，不是实际 HBM 流量；缓存、分块和并行度可能改变结果。
 
 **最关键的数据从哪来。** 保存的 custom INT8 源码会输出每个本地专家收到的行数，但该输出缓冲会被后续调用覆盖，历史 profile 目前只有形状，没有绑定的数值。若能确认运行二进制及本次容量，按源码可从计数推算每张卡实际参加专家矩阵乘的逻辑行数；它仍不能解释通信等待。最小取证需在隔离诊断实例中，在算子写出后、下次覆盖前安全保存同次各 rank 的计数，并绑定层、批次和设备任务；图回放不能假定每次都触发 Python hook。已有采集草稿只通过 CPU 模拟，尚未实现或验证 NPU 图内取数。
+
+**采集入口的实际限制。** 官方 [动态 profiling](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/920beta1/devaids/Profiling/atlasprofiling_16_0016.html) 的 attach 模式要求进程启动前配置 `PROFILING_MODE=dynamic`；只读检查当前容器 16 个 vLLM worker 的 `/proc` 环境，没有发现该变量。`/proc` 环境不一定反映进程后续修改，不能以此证明所有动态采集均不可用，但不能假定该文档前提成立。官方 [aclDumpOpTensors](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta3/API/aolapi/operatorlist_00178.html) 是开启 dump 后在应用进程内调用的接口，可研究在隔离实例只导出专家计数；其零输入参数、当前版本和图回放是否支持尚未验证，也会带来采集扰动。当前服务不作注入或重启。
 
 **下一步。** 最小诊断是对同一批次的第 14、39 层，按实际通信组记录每卡逐专家计数、有效行汇总、容量、任务身份和起止；再依据相同口径区分工作量与等待，同时补齐持续输出阶段的请求关联。必须确保 graph 回放身份、流事件和缓冲不被覆盖，并记录采集扰动。已有服务的指标按 expert/moe/rout 名称筛选未发现对应指标，这不能排除其他名称。当前 16 个 NPU 都由用户的复现服务持有约 59 GB 显存，尚未发现可安全运行独立诊断的空闲资源；不重启或修改现有服务。其他模块和既有证据见下文。
 
