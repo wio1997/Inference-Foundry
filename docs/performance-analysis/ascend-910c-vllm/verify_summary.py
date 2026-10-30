@@ -4,6 +4,23 @@ import json
 from pathlib import Path
 
 summary = json.loads((Path(__file__).parent / 'evidence-summary.json').read_text())
+stage = summary.get('stage_consolidation', {})
+if 'indexer_ledger' in stage:
+    ledger = stage['indexer_ledger']
+    example = ledger['example']
+    positions = example['assumed_query_rows'] * example['assumed_keys_per_query']
+    assert positions == example['position_count']
+    assert ledger['INT8_QK_MAC_per_position'] == 32 * 128
+    assert ledger['FP16_weighted_head_MAC_per_position'] == 32
+    assert example['logical_score_roundtrip_bytes'] == 8 * positions
+    p8 = 24 * 1_800_000_000 * 8192
+    p16 = 24 * 1_800_000_000 * 4096
+    cube_us = (4096 / p8 + 32 / p16) * positions * 1e6
+    assert abs(cube_us - example['nominal_cube_only_us']) < 1e-10
+    tasks = ledger['selected_three_task_us']
+    assert abs(tasks['prepare'] / sum(tasks.values()) - ledger['prepare_fraction_of_three_task_sum']) < 1e-12
+    print(f'Conditional QLI example: Cube only {cube_us:.6f} us; logical score GM bytes {8 * positions}')
+    print('This excludes sorting, key traffic, padding and waits; it is not complete QLI efficiency.')
 baseline = summary['formal_baseline']
 rounds = baseline['rounds']
 assert len(rounds) == 2
