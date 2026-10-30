@@ -46,7 +46,7 @@
 | F24 | Engram hash/lookup → ready → 行视图或分片；host-UVA 寻址 | 条件 | 可研究分块指针表改写为基址与宽行偏移，但设备映射连续性和溢出安全未知；每 rank 注册、scale、无效 ID、event 与 buffer 生命周期须保持。不能据源码寻址次数判断实际外存流量。 |
 | F25 | Engram 投影 → gate/残差 | 条件 | 源码含 gate 复合路径；mask/rotation、残差消费者与数值契约需保留。 |
 | F26 | 最终 HC collapse → norm 及 logits 边界 | 条件 | 中间量可能有 MTP 等条件消费者；FP32/BF16 转换、分支和生命周期需核实。 |
-| F27 | DSpark 辅助上下文投影 → norm，候选流水 | 条件 | 仅在相关源码分支下讨论；不能把早期图中的直接连接当作已确认的运行绑定。 |
+| F27 | DSpark 辅助上下文投影 → norm，候选流水 | 条件 | 若 token 行与输出权重分别分片，仅算各 rank 本地对角块不足以恢复一般的完整投影；需保留跨卡所需信息或调整所有权。实际历史分片与调用尚未绑定。 |
 | F28 | DSpark embedding → HC 重复/初始化 → decoder | 条件 | 多消费者、初始化状态及 decoder 内部依赖未完全展开；需保留逐步生成语义。 |
 | F29 | DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引 | 条件 | 需保留有效槽位和持久缓存；若复用索引，空请求与 padding 行仍需保持原长度及 -1，实际广播、存储与事件尚未绑定。 |
 | F30 | DSpark collapse/norm → Markov bias、logits/置信度/验证 | 未知 | target logits 还有 bonus 行采样与条件 logprobs 消费；仅留 top1 不覆盖所有模式，可研究充分统计或等价重算。历史分支与通信绑定尚缺。 |
