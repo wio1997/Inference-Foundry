@@ -40,3 +40,9 @@
 每次 collective 内，16 个 rank 进入 collective 的时间跨度中位数为 0.857 ms、P90 1.501 ms、最大 3.260 ms。这里是每轮最早与最晚主机时标的差，不是某个 rank 独占等待；不能与上表的分位数相加。collective 的主机返回不保证设备完成，后续读回可能等待前序设备工作、collective 和其他 rank，现有数据不足以把 3.178 ms 归因于网络、设备计算或传输。不能据此删除投票、跳过同步或将其全部作为可回收开销。
 
 再次核验实际缓存命中 235,904 / 262,144，8 条 256 token 输出与参考一致，投票复用及 16 rank 的既有路径证明通过；限于单次短诊断，不构成端到端性能比较。逐 rank 结果 `evidence/zos-vote-ranktrace-diagnostic-20261030.json` SHA256 `26c909fe942df402facb8b286deec29e8a38ced6cdb1133c98b6e79418a9269d`；包含全部 rank 时标的原始证明保存在 `serving/zos-vote-ranktrace-run-20261030/jobs/zos-vote-ranktrace-ipc-20261030`。
+
+## 进入顺序与读回完成时间
+
+对 57 个 `any_busy` 为真的轮次，在同一轮内比较 16 个 rank 的 collective 进入时标与主机回读耗时：相关系数的逐轮中位数为 −0.996，57 轮均为负。每轮最早进入者的回读时间均长于最晚进入者，两者差值中位数为 0.861 ms；16 个 rank 回读结束时标的跨度中位数为 0.064 ms。57 轮中，最后进入者有 19 次为 rank 0、22 次为 rank 8，两者均为各自 DP 的 TP rank 0。
+
+这些是同一短诊断的描述性关联，支持优先检查同步前各 rank 的工作差异，但不能证明早到 rank 仅在等待晚到 rank，也不能将 rank 0/8 的晚到直接归因于特定代码。时间均为主机时标，读回仍包含未完成设备工作。分析结果 `evidence/zos-vote-ranktrace-arrival-analysis-20261030.json` SHA256 `b974cd4ae22d6d293476bea86e9ace94c6fa29092a317ddb08c5bf73dc6fc4f8`。
