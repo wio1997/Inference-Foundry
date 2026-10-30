@@ -86,6 +86,12 @@
 
 证据位于 172 的项目目录：`evidence/yoco-qshape-b-reference-audit-20261030.json` SHA256 `7462f4ce974a240ce06dff983b7940205e09df355ea6e808ad03f6b2e996399e`；`evidence/yoco-qshape-b-qa-vs-mask-overlap-20261030.json` SHA256 `38d71cbcb98793fda3dccb9fdd53d7c18f0cea0c31e99334fde27b96f1ffea0c`；`evidence/yoco-qshape-b-qab-vs-mask-overlap-20261030.json` SHA256 `4be26bb720f2c6194cedbbccf1b4f0da729e893e88b9fd03c6ca13b23e6157d0`。
 
+## 首层注意力和 SWA 缓存的补充核对
+
+对已保存张量执行 CPU 对照，无需再次运行模型。Q-A 和 Q-B 均补齐后，第 21 层查询逐位一致，但采样的 1,024 行注意力输出没有一行逐位一致：最大绝对差 0.015625，逐行平均绝对差的均值约 0.000000888，参考输出的平均绝对值约 0.173。对应 16 个 rank 的最后 128 个 SWA 缓存位置均存在非逐位差异，最大绝对差 0.0078125，平均绝对差约 0.000000250，参考缓存平均绝对值约 0.409。
+
+该结果提示首层查询之外仍有数值差异，但只覆盖缓存尾部和一个输入；查询形状、缓存投影和跨次执行等因素尚未单独隔离，不能将差异直接认定为缓存恢复错误，也不能用绝对误差代替模型质量验收。上游 NVIDIA 注意力内核未在本实验执行。逐层记录为 `evidence/yoco-qshape-b-attention-vs-mask-20261030.json`，SHA256 `63824d59f4a48f28a9bffe676601afd8e3f89ea48401764d8d0c7fca220b6e6c`。
+
 ## 证据与后续检查
 
 原始数据位于 172 的 `/data/tiankuan/wio/910c-deepinfer-172/diagnostics/yoco-mask-model-test-v2-20261030/`。独立审计文件及 SHA256：
