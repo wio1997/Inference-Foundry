@@ -43,7 +43,7 @@
 | F21 | MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水 | 条件 | 现有 MC2 已是复合算子；其内部实现、逐 tile 就绪及资源占用未完整掌握，不能假定可以进一步拆分。 |
 | F22 | 共享 expert 的投影 → 激活量化 → 下投影 | 条件 | 单样本的 shared expert 调用角色已有主机调用栈及设备 flow 关联；实际张量边与历史加载版本尚未闭合。采样已有 `DequantSwigluQuant` 复合任务，不能将其内部步骤重复作为新增融合；跨矩阵乘的连接仍需保留 clamp、scale、量化边界和中间舍入。 |
 | F23 | 共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC | 条件 | 双分支 join 与后续残差需同时满足；不能把已有条件性 scaling/add 当作新增收益。 |
-| F24 | Engram hash/lookup → ready → 行视图或分片 | 条件 | 条件通信、event、buffer 生命周期、状态与跨设备读取需保持；不能简单把整个 lookup 归为 CPU 计算。 |
+| F24 | Engram hash/lookup → ready → 行视图或分片；host-UVA 寻址 | 条件 | 可研究分块指针表改写为基址与宽行偏移，但设备映射连续性和溢出安全未知；每 rank 注册、scale、无效 ID、event 与 buffer 生命周期须保持。不能据源码寻址次数判断实际外存流量。 |
 | F25 | Engram 投影 → gate/残差 | 条件 | 源码含 gate 复合路径；mask/rotation、残差消费者与数值契约需保留。 |
 | F26 | 最终 HC collapse → norm 及 logits 边界 | 条件 | 中间量可能有 MTP 等条件消费者；FP32/BF16 转换、分支和生命周期需核实。 |
 | F27 | DSpark 辅助上下文投影 → norm，候选流水 | 条件 | 仅在相关源码分支下讨论；不能把早期图中的直接连接当作已确认的运行绑定。 |
