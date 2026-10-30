@@ -30,7 +30,7 @@
 | F08 | KV 投影 → norm → RoPE → SWA 缓存写入 | 条件 | 选定样本有同流连续任务的结构线索；运行张量身份未确认，持久缓存及后续层消费者必须保留。 |
 | F09 | Index query 投影 → RoPE → 量化 | 条件 | 源码链；量化归约、scale 和下游消费者/就绪关系需核对。 |
 | F10 | Index weight 投影 → 转换与缩放 | 条件 | 非 packed 路径的 weight 与 query scale 分支各有 FP16 舍入；将缩放跨分支移动可能改变结果，query scale 的量化消费者及实际 kernel 绑定需保留。 |
-| F11 | Index key norm → RoPE → 量化 → key/scale 缓存写入 | 条件 | 多输出结构来自源码；key scale 的 FP16 缓存舍入可能影响候选分数排序，需保持其数值语义，以及持久 key/scale、位置和消费者。 |
+| F11 | Index key norm → RoPE → 量化 → key/scale 缓存写入 | 条件 | FP16 scale 舍入可能影响候选排序；分页读取还须遵守 block table 与真实页 stride，保留持久 key/scale、位置、消费者及就绪。历史布局未绑定。 |
 | F12 | Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask | 条件 | 保存源码按行排序块号；在限定整数精度与有效值域内，逐行位图可生成相同成员 mask。需保留原候选及有限惩罚后的 TopK 语义，证明行版本与同步，并评估额外空间；packed 路径另需证明。历史张量身份、分支及收益未知。 |
 | F13 | 稀疏注意力复合边界 | 已有复合调用 | 源码已有 sparse flash 复合调用；宽实现域不必然独立计算每个分支，须保留可观察输出、sink/mask、缓存副作用与舍入。 |
 | F14 | Attention → 逆 RoPE → 布局恢复 → 输出投影 | 条件 | 源码边界；保留张量布局、别名、通信及既有精度；运行实例需绑定。 |
