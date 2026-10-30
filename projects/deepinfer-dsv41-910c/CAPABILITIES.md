@@ -12,7 +12,7 @@
 | Engram 设备 hash 与 CPU 表 | 已启用 | 使用 CPU 共享表、UVA 读取和设备 hash；主干 CPU prefetch 关闭。prefill UVA 已有 16 rank 和固定负载证据，不代表完整官方后端。[设备 hash](optimizations/20261028-device-hash-overlap/RESULTS.md)、[prefill UVA](optimizations/20261029-engram-prefill-uva/README.md) |
 | 共享专家和路由专家的 decode 重叠 | 已启用局部路径 | 当前配置保留 decode 多流；不能据此称 prefill 同样完成重叠验证。[路径记录](optimizations/20261028-device-hash-overlap/RESULTS.md) |
 | 共享专家激活融合 | 候选未采纳 | 两轮吞吐分别增加约 0.56% 和 0.27%，TTFT 分别高 16.0 和 15.2 ms；样本和启动顺序不足以确定因果，未替换原路径。[单项对照](optimizations/20261030-shared-expert-activation/README.md) |
-| YOCO 有界重放 | 256 token 近似路径启用 | 官方示例的 140 与当前 256 不等价；精确、140、256 在选定样本上出现输出差异，模型质量与缓存语义尚未充分验证。[语义与范围](optimizations/20261030-replay-semantics/README.md)、[边界核验](optimizations/20261030-yoco-boundaries/README.md) |
+| YOCO 有界重放 | 256 token 近似路径启用 | 官方示例的 140 与当前 256 不等价；先前自定义样本出现输出差异，七题 LongBench 配对结果相同，但质量与缓存语义尚未充分验证。[语义与范围](optimizations/20261030-replay-semantics/README.md)、[长文配对](optimizations/20261030-yoco-longbench/README.md) |
 | YOCO 索引提前准备 | 候选未采纳 | 16 rank 与固定负载完整输出通过，两轮结果未证明稳定收益；第二轮 TTFT 略高、吞吐略低。[单项对照](optimizations/20261030-yoco-index/README.md) |
 | QLI metadata 复用 | 候选未采纳 | 正反顺序对照中吞吐变化较小，部分 TTFT 退化；曾出现 EOS 后继续生成差异，原因未确定。[单项对照](optimizations/20261030-qli-metadata/README.md) |
 | prefill KV 通信与 Q 投影重叠 | 候选未采纳 | 16 rank 路径及完整输出通过；两轮未证明稳定收益，设备侧重叠尚未确证。[单项对照](optimizations/20261029-prefill-kv-overlap/README.md) |
