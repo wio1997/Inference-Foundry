@@ -1,0 +1,23 @@
+--- a/deepinfer/engine/bounded_replay910c.py
++++ b/deepinfer/engine/bounded_replay910c.py
+@@ -1,7 +1,9 @@
+ # SPDX-License-Identifier: Apache-2.0
+ """Eligibility for one page-aligned final-chunk YOCO replay candidate."""
+ 
++import os
+ 
++
+ def eligible(model, owned, slots, chunks, hits, *, internal, keep=256):
+     """Return local eligibility; caller must reach the same decision on all EP ranks."""
+     if internal or len(owned)!=4 or slots!=list(range(4)) or len(chunks)!=4 or len(hits)!=4:
+@@ -15,7 +17,9 @@
+     if any(slot not in model.restored_prefix_slots or hits[slot]<=0 for slot in slots):
+         return False
+     if any(not req.get('ignore_eos',False) for _,req in owned):
+-        return False
++        if (os.environ.get('DEEPINFER_910C_YOCO_NORMAL_EOS')!='1' or
++                any(req.get('ignore_eos',False) for _,req in owned)):
++            return False
+     ends=[model.next_positions[slot]+len(chunk) for slot,chunk in zip(slots,chunks)]
+     if (any(len(chunk)<keep for chunk in chunks) or max(map(len,chunks))<=keep or len(set(ends))!=1 or
+             ends[0]%128 or ends[0]-keep<=model.cfg['index_topk'] or
