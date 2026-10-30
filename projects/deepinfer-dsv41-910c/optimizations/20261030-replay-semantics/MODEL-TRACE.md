@@ -59,6 +59,14 @@
 
 这个单设备重放证明该样本的 Q 数值差异可以在相同输入和权重下，由查询形状变化复现；它不证明后续所有索引分叉均由该因素造成。长形状的非保留行使用零填充，不能据此推断其他输入及模型质量。原始结果 `evidence/yoco-q-shape-probe-20261030.json` SHA256 为 `bded47544f3a72ed36678657e2e711569813901032b6728da088b23f4febe343`；独立 CPU 重算 `evidence/yoco-q-shape-independent-20261030.json` SHA256 为 `dd0ed796d811bc2eecad61f4804205f142c7247ddf0509fc7e88f39224c2bbe7`。
 
+## 首层 Q 投影形状候选
+
+在独立候选中，仅对第 21 层 `wq_a` 恢复原 CP 查询块的形状，保留查询映射与官方 `compact` 元数据一致。与之前保存的 `mask` 参考相比，低秩 Q 逐位一致的采样行从 782 / 1,024 增至 1,024 / 1,024；旋转后 Q 逐位一致的行数为 894 / 1,024。8 个请求各 16 个输出 token 与修改前一致。
+
+第 24 层与 `mask` 参考仍平均每行有 3.43 / 512 个索引不同，第 36 层平均不同 10.25 / 512，未消除后续分叉。完整块填充在 3,200 token 查询、保留 256 的示例中需要投影 12.5 倍行数；这是静态工作量估算，不是实测性能。该候选未通过完整语义验收，未纳入生产，也未作为正式性能测试的优化结果。
+
+证据：模型审计 `evidence/yoco-qshape-model-audit-20261030.json` SHA256 `4b9b6fc1ef4591a508cbbe6c75a92d24d7a6d47b41b22effb5f44633ce739e73`；首层参考对照 `evidence/yoco-qshape-reference-audit-20261030.json` SHA256 `b66c0cd7a4663ca133cdfb85ce46f52ee46b55b74ce336c1cfb7cb4c54dce237`；后续索引重合度 `evidence/yoco-qshape-vs-mask-overlap-20261030.json` SHA256 `eed736d822083d14524d9eb3ee3e5916d52e291acad2576f73715b082804a9ba`。
+
 ## 证据与后续检查
 
 原始数据位于 172 的 `/data/tiankuan/wio/910c-deepinfer-172/diagnostics/yoco-mask-model-test-v2-20261030/`。独立审计文件及 SHA256：
@@ -66,4 +74,4 @@
 - `evidence/yoco-mask-model-audit-v2-20261030.json`：`e593bbf6ad343b8e0c50227cfb672606dfdd494b70a1d81c1830f15952229131`。
 - `evidence/yoco-mask-model-audit-detail-v2-20261030.json`：`018e87ae80f509106a3fedaff89abdb2a3bd8b29d19f73667b8ff00b5601e580`。
 
-下一步在独立候选中局部保持 Q 投影的查询形状，验证索引、模型输出及整体性能；如收益不足或其他指标退化，保留原路径。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
+下一步定位旋转前的 `wq_b` 及后续输入，评估不完整块填充的可行性；正确性不足或无综合收益的候选继续保留为诊断记录。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
