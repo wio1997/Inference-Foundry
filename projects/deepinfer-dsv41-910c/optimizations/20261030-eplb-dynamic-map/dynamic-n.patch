@@ -1,0 +1,13 @@
+--- a/deepinfer/engine/eplb_fusedmap910c.py
++++ b/deepinfer/engine/eplb_fusedmap910c.py
+@@ -9,8 +9,8 @@
+ import triton.language as tl
+ 
+ 
+-@triton.jit
+-def _map_kernel(ids, inverse, counts, out, N: tl.constexpr,
++@triton.jit(do_not_specialize=['N'])
++def _map_kernel(ids, inverse, counts, out, N,
+                 TOPK: tl.constexpr, EP_RANK: tl.constexpr,
+                 BLOCK: tl.constexpr):
+     i = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
