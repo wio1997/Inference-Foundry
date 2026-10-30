@@ -13,8 +13,8 @@
 | 共享专家和路由专家的 decode 重叠 | 已启用局部路径 | 当前配置保留 decode 多流；不能据此称 prefill 同样完成重叠验证。[路径记录](optimizations/20261028-device-hash-overlap/RESULTS.md) |
 | 共享专家激活融合 | 候选未采纳 | 两轮吞吐分别增加约 0.56% 和 0.27%，TTFT 分别高 16.0 和 15.2 ms；样本和启动顺序不足以确定因果，未替换原路径。[单项对照](optimizations/20261030-shared-expert-activation/README.md) |
 | YOCO 有界重放 | 256 token 近似路径启用 | 官方示例的 140 与当前 256 不等价；先前自定义样本出现输出差异，七题 LongBench 配对结果相同，但质量与缓存语义尚未充分验证。[语义与范围](optimizations/20261030-replay-semantics/README.md)、[长文配对](optimizations/20261030-yoco-longbench/README.md) |
-| 正常 EOS 的 YOCO 有界重放 | 候选未采纳 | 七题正常 EOS 的精确、140、256 输出及结束原因一致；单次短输出诊断部分 TPOT 退化，尚需重复性能和更广泛边界验证。[候选记录](optimizations/20261030-yoco-normal-eos/README.md) |
-| YOCO 索引提前准备 | 候选未采纳 | 16 rank 与固定负载完整输出通过，两轮结果未证明稳定收益；第二轮 TTFT 略高、吞吐略低。[单项对照](optimizations/20261030-yoco-index/README.md) |
+| 正常 EOS 的 YOCO 有界重放 | 候选未采纳 | 七题精确、140、256 输出及结束原因一致；两轮正常 EOS 长输出中 256 相较精确路径 TTFT 较低，TPOT 持平或略低。正常 EOS 使现有 DSpark 预发回退；样本和缓存边界不足，不能直接对照 ignore-EOS 基线。[短输出](optimizations/20261030-yoco-normal-eos/README.md)、[长输出](optimizations/20261030-yoco-normal-eos/LONG-OUTPUT.md) |
+| YOCO 索引提前准备 | 候选未采纳 | 固定负载的正反顺序对照及 16 rank 输出检查通过；两次测试均有首组额外等待，未证明稳定综合收益，第二轮开启时 TTFT 和吞吐均略差。[原对照](optimizations/20261030-yoco-index/README.md)、[反向顺序](optimizations/20261030-yoco-index/REVERSE-ORDER.md) |
 | QLI metadata 复用 | 候选未采纳 | 正反顺序对照中吞吐变化较小，部分 TTFT 退化；曾出现 EOS 后继续生成差异，原因未确定。[单项对照](optimizations/20261030-qli-metadata/README.md) |
 | prefill KV 通信与 Q 投影重叠 | 候选未采纳 | 16 rank 路径及完整输出通过；两轮未证明稳定收益，设备侧重叠尚未确证。[单项对照](optimizations/20261029-prefill-kv-overlap/README.md) |
 | lazy mHC 跨子层融合 | 候选未采纳 | 固定 24 行候选完成短诊断与固定负载对照，未测出性能收益；不代表完整官方实现。[单项记录](optimizations/20261029-mhc-crosslayer/README.md) |
