@@ -47,6 +47,12 @@
 
 该实验的审计文件 `evidence/yoco-eager-audit-20261030.json` SHA256 为 `f20036733cd4bb29e3e28544c2159863766d7c4aaa676b1263c3d9a9e6fbf911`；索引集合统计 `evidence/yoco-eager-overlap-20261030.json` SHA256 为 `991fbb8f35069a74565dfc8539b3bca6376521d5a266f2564b887a9c82341fc0`。两侧的张量保存在 `diagnostics/yoco-eager-test-20261030/`。该候选仅用于定位，不用于生产性能对照。
 
+## 首个数值差异位置
+
+在同一 eager 注意力实现下，对第 20 层生产端的保留位置执行逐位检查。两个 DP 副本在截取前后各自的 `trunk` 和 `previous` 都一致，两侧之间的相同位置也一致。第 21 层中，1,024 个采样行的归一化前输出和 Q 投影输入全部逐位一致；经过 `wq_a` 与后续归一化后，低秩 Q 有 242 行不逐位一致，最大绝对差 0.015625。旋转后的 Q 有 140 行不逐位一致，最大绝对差 0.0625。
+
+因此，本样本中观察到的最早差异位于相同 Q 投影输入之后、低秩 Q 输出之前，尚不能判断是动态量化、矩阵乘法、后续归一化或查询形状引起。该检查不能证明其他位置、缓存状态或更长输出均一致。证据 `evidence/yoco-boundary-audit-20261030.json` 的 SHA256 为 `ebe3033e7f94b56096bba467aa17d353ea9770b1f7d9a1afd3b93f1120510db9`。
+
 ## 证据与后续检查
 
 原始数据位于 172 的 `/data/tiankuan/wio/910c-deepinfer-172/diagnostics/yoco-mask-model-test-v2-20261030/`。独立审计文件及 SHA256：
@@ -54,4 +60,4 @@
 - `evidence/yoco-mask-model-audit-v2-20261030.json`：`e593bbf6ad343b8e0c50227cfb672606dfdd494b70a1d81c1830f15952229131`。
 - `evidence/yoco-mask-model-audit-detail-v2-20261030.json`：`018e87ae80f509106a3fedaff89abdb2a3bd8b29d19f73667b8ff00b5601e580`。
 
-下一步检查生产层输出、首个消费层输入与 Q 投影，区分查询布局、数值漂移、索引器执行和 SWA 缓存状态。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
+下一步固定相同 Q 输入，分别记录动态量化、矩阵乘法和归一化结果，以区分查询形状和算子计算的影响。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
