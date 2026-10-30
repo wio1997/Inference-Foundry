@@ -20,6 +20,7 @@
 | EPLB 静态副本及映射融合 | 候选未采纳 | 真实输出与固定负载已核验；静态融合首轮 TTFT 严重退化，动态长度候选相对原映射吞吐基本持平。在线统计和迁移未完成。[动态映射](optimizations/20261030-eplb-dynamic-map/README.md) |
 | SparseFlashMla | 已使用 BF16 绑定；混合量化未接入 | 当前目标及草稿均使用固定镜像绑定。官方主线的 910 架构注册支持 TurboQuant 模式，接口约束及 KV 格式与当前路径不同；FP8 模式不能直接套用于本机。数值、质量及收益未验证。[接口评估](optimizations/20261030-sparse-mla/README.md) |
 | Recipe 原始文本分词 | 已启用 | 固定冷分词工作负载两轮平均 TTFT 约从 756.35 降至 657.80 ms；不代表官方聊天模板或其他文本均已验证。[分词记录](optimizations/20261029-recipe-tokenizer/README.md) |
+| 可选解码 token 黑名单 | 未接入当前贪心路径 | 官方 Sampler 提供可选屏蔽，评测入口有自己的默认配置；当前服务未设置该选项。七题样本的相关 token 只出现在 EOS 后，不能推断其他输入。[接口与证据](optimizations/20261030-token-blacklist/README.md) |
 | 连续批处理、动态 remap、通用采样 | 未完成验收 | 固定 C8、greedy 和 ignore-EOS 数据不能证明通用支持；需按请求状态、输出顺序和模型语义分别验证。 |
 
 本地探索的 [DSpark 输出事件合并写入](optimizations/20261030-event-batch/README.md)不属于已验证的官方能力：两轮实际写入调用减少，但吞吐略低、TTFT 略高，候选未采纳。各单项结果来自不同候选与测试时段，不可直接相加。整体对照及其限制见[同期比较](comparisons/20261030-910c/README.md)。
