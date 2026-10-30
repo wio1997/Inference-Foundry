@@ -67,6 +67,12 @@
 
 证据：模型审计 `evidence/yoco-qshape-model-audit-20261030.json` SHA256 `4b9b6fc1ef4591a508cbbe6c75a92d24d7a6d47b41b22effb5f44633ce739e73`；首层参考对照 `evidence/yoco-qshape-reference-audit-20261030.json` SHA256 `b66c0cd7a4663ca133cdfb85ce46f52ee46b55b74ce336c1cfb7cb4c54dce237`；后续索引重合度 `evidence/yoco-qshape-vs-mask-overlap-20261030.json` SHA256 `eed736d822083d14524d9eb3ee3e5916d52e291acad2576f73715b082804a9ba`。
 
+## Q-B 动态量化投影重放
+
+第 21 层 `wq_b` 的权重配方为 `W8A8_DYNAMIC`。对候选与 `mask` 参考中逐位相同的 128 行低秩 Q，分别重放短、长查询形状：动态量化的 INT8 值和缩放均逐位一致；INT8 矩阵乘法的 4,194,304 个元素中有 20 个不同，最大绝对差 0.03125。RoPE 后仍有 20 个元素不同，两种结果分别与模型记录逐位一致。
+
+这进一步将本样本首层的剩余 Q 差异定位到投影计算的形状敏感性，不代表所有后续差异都已经解释。结果 `evidence/yoco-qb-shape-probe-20261030.json` SHA256 `f0a1f636b5087ad6cb421cc4fd559be2989890e9d09d7d817d8ea60318dd65ff`；独立 CPU 复核 `evidence/yoco-qb-shape-independent-20261030.json` SHA256 `fdeeb5c16c936bfac1ecf1b7a229347b2bc9360c29dcede550053d6d4a9abb6a`。
+
 ## 证据与后续检查
 
 原始数据位于 172 的 `/data/tiankuan/wio/910c-deepinfer-172/diagnostics/yoco-mask-model-test-v2-20261030/`。独立审计文件及 SHA256：
@@ -74,4 +80,4 @@
 - `evidence/yoco-mask-model-audit-v2-20261030.json`：`e593bbf6ad343b8e0c50227cfb672606dfdd494b70a1d81c1830f15952229131`。
 - `evidence/yoco-mask-model-audit-detail-v2-20261030.json`：`018e87ae80f509106a3fedaff89abdb2a3bd8b29d19f73667b8ff00b5601e580`。
 
-下一步定位旋转前的 `wq_b` 及后续输入，评估不完整块填充的可行性；正确性不足或无综合收益的候选继续保留为诊断记录。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
+下一步验证局部 Q-B 形状对齐能否改善后续结果，评估不完整块填充的可行性；正确性不足或无综合收益的候选继续保留为诊断记录。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
