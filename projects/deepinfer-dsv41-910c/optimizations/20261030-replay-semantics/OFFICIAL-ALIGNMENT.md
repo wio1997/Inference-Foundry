@@ -69,13 +69,13 @@
 
 ## 索引器格式和当前接口限制
 
-固定官方提交的 [V4 索引器](https://github.com/deepseek-ai/DeepInfer/blob/553741557a57df44a46fb3ab72b6aafeaf945337/deepinfer/model_executor/models/v4_modules/index_attn.py)对索引查询和键应用 RoPE、Hadamard 及 E2M1/UE8M0 FP4 量化后计算索引分数。当前 910C 的 `w8a8_indexer910c.py` 对索引查询和键执行 RoPE 与 INT8 量化，所核查路径没有 Hadamard；调用 `dsa910c.py` 的量化索引接口，使用 INT8 Q/K、FP16 缩放和 `quant_mode=2`。索引 Q/K 格式不同于模型权重的 W8A8 配置。
+固定官方提交的 [V4 索引器](https://github.com/deepseek-ai/DeepInfer/blob/553741557a57df44a46fb3ab72b6aafeaf945337/deepinfer/model_executor/models/v4_modules/index_attn.py)对索引查询和键应用 RoPE 及 E2M1/UE8M0 FP4 量化后计算索引分数。官方调用使用的融合函数名称包含 Hadamard，但这两处调用没有传入可选的 `hadamard_args`，融合函数仅在该参数非空时启用该变换。当前 910C 的 `w8a8_indexer910c.py` 对索引查询和键执行 RoPE 与 INT8 量化；调用 `dsa910c.py` 的量化索引接口，使用 INT8 Q/K、FP16 缩放和 `quant_mode=2`。索引 Q/K 格式不同于模型权重的 W8A8 配置。
 
 固定镜像内的 `quant_lightning_indexer_v2/docs/aclnnQuantLightningIndexerV2.md` 在 A2/A3 部分列出 `quant_mode=2`、INT8 Q/K 和 FP16 缩放，明确不支持该接口的 FLOAT4；同目录算子注册和 tiling 源码也限定对应架构使用 INT8。镜像中注册的 `npu_quant_lightning_indexer_v3` 绑定及包装源码调用该候选索引器接口。镜像源码与实际运行的编译二进制尚未逐项建立对应关系；这是**当前接口**的限制，不能扩展为所有 910C FP4 实现均不可行。模型服务未修改。
 
-因此，目前只能对照同一 910C 算子消费的查询、索引和可见范围，不能声称索引选择已与官方 FP4 路径相同。不同量化和变换可能改变 top-k，影响尚未实测，也不能据此归因已有后续层差异。后续应在独立候选中采集相同查询、索引键和权重，先用可信的官方格式参考比较分数及 top-k，再判断是否有局部实现价值；须保留现有 INT8 路径并验证完整模型质量和端到端性能。
+因此，目前只能对照同一 910C 算子消费的查询、索引和可见范围，不能声称索引选择已与官方 FP4 路径相同。不同量化可能改变 top-k，影响尚未实测，也不能据此归因已有后续层差异。后续应在独立候选中采集相同查询、索引键和权重，先用可信的官方格式参考比较分数及 top-k，再判断是否有局部实现价值；须保留现有 INT8 路径并验证完整模型质量和端到端性能。
 
-审计 `evidence/yoco-index-fp4-constraint-20261030.json` SHA256 `96d5359dbfc6a13da0524b07ca05b807ebcabf2853a0b89f3434e73f4567b774`，记录上游文件 Git blob、910C 文件及镜像内文档和源码的哈希。
+审计 `evidence/yoco-index-fp4-constraint-20261030.json` SHA256 `96d5359dbfc6a13da0524b07ca05b807ebcabf2853a0b89f3434e73f4567b774`，记录上游文件 Git blob、910C 文件及镜像内文档和源码的哈希。该初版审计曾错误地从函数名推断启用 Hadamard；后续核查调用和默认参数后已更正，修正证据 `evidence/yoco-index-hadamard-correction-20261030.json` SHA256 `64b5c78e2d9ed4ececd4ba0ca1699e4b1a8d4199ee081db9ed985a688616f0c7`。
 
 ## 环境差异与限制
 
