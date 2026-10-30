@@ -49,3 +49,5 @@
 核对 `hicann/ops-transformer` 主线提交 `6bff82496a8720343fc6144218f059a06a7b9b48`：[算子注册](https://github.com/hicann/ops-transformer/blob/6bff82496a8720343fc6144218f059a06a7b9b48/attention/mixed_quant_sparse_flash_mla/op_host/mixed_quant_sparse_flash_mla_def.cpp)包含 `ascend910_93`；[参数检查](https://github.com/hicann/ops-transformer/blob/6bff82496a8720343fc6144218f059a06a7b9b48/attention/mixed_quant_sparse_flash_mla/op_host/checkers/mixed_quant_variant_checker.cpp)限定 arch22 使用 `quant_mode=3`（TurboQuant），`quant_mode=1/2` 使用 arch35。该主线源码不是当前镜像已安装版本，源码注册也不是本机运行证明。
 
 因此，本次评估的 FP8 KV 接口不能据此直接套用于 910C；TurboQuant 是可独立研究的另一种缓存量化方案，会改变缓存格式和数值。其检查还要求 `cmp_ratio` 为 4 或 128、特定 mask 和对齐条件；当前固定绑定的参数使用 1 或 2，两个接口的压缩比语义需要进一步对照，不能仅按数字映射。当前镜像未发现该模块；没有本机依赖、语义、精度、质量和性能证据前，不替换 BF16 保留路径。
+
+当前 checkpoint 的 `text_config.compress_ratios` 在四个 KV 源层分别为 2、2、2、1；配置文件 SHA256 为 `43d3b2bc55626893d59275b32e04068c0fc916f5c382eb91de73bdbade9c88f7`。保留版按该参数将原始位置除以 1 或 2 写入压缩缓存，容量和因果可见上界也使用同一比例；不能把 `cmp_ratio` 直接改为 4 或 128 而保持相同缓存内容和可见范围。是否存在保持计算语义的接口或布局适配，仍须依据实际算子契约另行证明。
