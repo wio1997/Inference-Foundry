@@ -1,0 +1,121 @@
+--- a/deepinfer/npu_ops/w8a8.py
++++ b/deepinfer/npu_ops/w8a8.py
+@@ -92,10 +92,16 @@
+         if return_stages:
+             combined,q1,s1=self._gmm(x,self.first,self.first_scale,return_quantized=True)
+         else:combined=self._gmm(x,self.first,self.first_scale)
+-        gate,up=combined.chunk(2,-1)
+-        gate=gate.float();up=up.float()
+-        if self.limit is not None:gate=gate.clamp_max(self.limit);up=up.clamp(-self.limit,self.limit)
+-        activated=(torch.nn.functional.silu(gate)*up).bfloat16()
++        if (getattr(self,'_shared_swiglu_fused',False) and self.limit==10.0
++                and tuple(combined.shape)==(3,4608) and combined.is_contiguous()):
++            from deepinfer.npu_ops.fused_swiglu910c import fused_shared_activation
++            self._shared_swiglu_fused_calls=getattr(self,'_shared_swiglu_fused_calls',0)+1
++            activated=fused_shared_activation(combined)
++        else:
++            gate,up=combined.chunk(2,-1)
++            gate=gate.float();up=up.float()
++            if self.limit is not None:gate=gate.clamp_max(self.limit);up=up.clamp(-self.limit,self.limit)
++            activated=(torch.nn.functional.silu(gate)*up).bfloat16()
+         if return_stages:
+             output,q2,s2=self._gmm(activated,self.second,self.second_scale,return_quantized=True)
+             return output,{'combined':combined,'input_codes':q1,'input_scale':s1,'activated':activated,'second_codes':q2,'second_scale':s2}
+--- a/deepinfer/model_executor/models/ascend_w8a8_layer.py
++++ b/deepinfer/model_executor/models/ascend_w8a8_layer.py
+@@ -5,6 +5,7 @@
+ while every available compressed key fits index_topk. INT8 operators and
+ HCCL run only when explicitly constructing/executing this layer on an NPU.
+ """
++import os
+ import torch
+ import torch.distributed as dist
+ 
+@@ -52,7 +53,9 @@
+         prefix=f'{self.prefix}.ffn.{expert}'
+         payload=[self.reader.linear_payload(prefix+f'.w{i}') for i in (1,3,2)]
+         if any(scale is None for _,scale in payload):raise ValueError('expected actual W8A8 expert payload')
+-        return AscendW8A8Expert(*[value.to(self.device) for pair in payload for value in pair],limit=self.config['swiglu_limit'])
++        instance=AscendW8A8Expert(*[value.to(self.device) for pair in payload for value in pair],limit=self.config['swiglu_limit'])
++        instance._shared_swiglu_fused=(expert=='shared_experts' and os.environ.get('DEEPINFER_910C_SHARED_SWIGLU_TRITON')=='1')
++        return instance
+ 
+     def _pre(self,trunk,previous,kind):
+         c=self.config;m=c['hc_mult'];x=trunk.unsqueeze(0)
+--- a/deepinfer/model_executor/models/w8a8_graph910c.py
++++ b/deepinfer/model_executor/models/w8a8_graph910c.py
+@@ -313,8 +313,15 @@
+             torch.npu.synchronize()
+             restore_even()
+             self.graph=torch.npu.NPUGraph()
++            # CPU-only evidence: exactly which layer calls were recorded in this graph.
++            proof_on=(self.query_tokens==6 and os.environ.get('DEEPINFER_910C_SHARED_SWIGLU_TRITON')=='1')
++            if proof_on:
++                before=[getattr(layer.shared_expert,'_shared_swiglu_fused_calls',0) for layer in self.model.layers]
+             with torch.npu.graph(self.graph):
+                 self.output=self._forward()
++            if proof_on:
++                after=[getattr(layer.shared_expert,'_shared_swiglu_fused_calls',0) for layer in self.model.layers]
++                self.shared_swiglu_capture_deltas=[b-a for a,b in zip(before,after)]
+             self.captures+=1
+             restore_even()
+         else:
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -180,6 +180,16 @@
+                     'bounded_swa_packed_calls':stats['yoco_bounded_swa_packed_calls'],
+                     'zos_fast_stats':getattr(runner.model,'dspark_stats',{}).get('zos_fast',{})}
+                 proof['zos_vote_reuse_calls']=runner.zos_vote_reuse_calls
++                if os.environ.get('DEEPINFER_910C_SHARED_SWIGLU_TRITON')=='1':
++                    pool=runner.model.dspark_graphs
++                    frame=pool.full if pool is not None else None
++                    proof['shared_swiglu_triton']={
++                        'enabled':True,
++                        'target_query_tokens':frame.query_tokens if frame is not None else None,
++                        'target_graph_captures':frame.captures if frame is not None else None,
++                        'target_graph_replays':frame.replays if frame is not None else None,
++                        'layer_capture_calls':getattr(frame,'shared_swiglu_capture_deltas',None) if frame is not None else None,
++                    }
+                 path=directory/f'hash-proof-rank{rank}.json'
+                 tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(proof));tmp.replace(path)
+         except Exception:
+--- /dev/null
++++ b/deepinfer/npu_ops/fused_swiglu910c.py
+@@ -0,0 +1,37 @@
++# SPDX-License-Identifier: Apache-2.0
++"""Experimental shared-expert clamp/SwiGLU with a BF16 output boundary.
++
++This standalone candidate is not connected to the service.  It keeps the
++existing dynamic INT8 quantization as a separate operation.  Numerical and
++graph equivalence on 910C must be established before integration.
++"""
++import torch
++import triton
++import triton.language as tl
++
++
++@triton.jit
++def _clamped_swiglu(x, output, ROWS: tl.constexpr, HALF: tl.constexpr,
++                    LIMIT: tl.constexpr, BLOCK: tl.constexpr):
++    offsets = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
++    mask = offsets < ROWS * HALF
++    row = offsets // HALF
++    col = offsets % HALF
++    gate = tl.load(x + row * (2 * HALF) + col, mask=mask, other=0).to(tl.float32)
++    up = tl.load(x + row * (2 * HALF) + HALF + col, mask=mask, other=0).to(tl.float32)
++    gate = tl.minimum(gate, LIMIT)
++    up = tl.maximum(-LIMIT, tl.minimum(up, LIMIT))
++    activated = (gate * tl.sigmoid(gate)) * up
++    tl.store(output + offsets, activated.to(tl.bfloat16), mask=mask)
++
++
++def fused_shared_activation(combined):
++    """Return the experimental BF16 activation for the fixed 3×4608 case."""
++    if (combined.ndim != 2 or tuple(combined.shape) != (3, 4608) or
++            combined.dtype != torch.bfloat16 or not combined.is_contiguous() or
++            combined.device.type != 'npu'):
++        raise ValueError('expected contiguous BF16 [3,4608] on an NPU')
++    output = torch.empty((3, 2304), dtype=torch.bfloat16, device=combined.device)
++    _clamped_swiglu[(triton.cdiv(3 * 2304, 512),)](
++        combined, output, ROWS=3, HALF=2304, LIMIT=10.0, BLOCK=512, num_warps=4)
++    return output
