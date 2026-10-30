@@ -53,7 +53,7 @@
 | F27 | DSpark 辅助上下文投影 → norm，候选流水 | 条件 | 若 token 行与输出权重分别分片，仅算各 rank 本地对角块不足以恢复一般的完整投影；需保留跨卡所需信息或调整所有权。实际历史分片与调用尚未绑定。 |
 | F28 | DSpark embedding → HC 重复/初始化 → decoder | 条件 | 多消费者、初始化状态及 decoder 内部依赖未完全展开；需保留逐步生成语义。 |
 | F29 | DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引 | 条件 | 需保留有效槽位和持久缓存；context buffer 具有独立 dtype、容量、跨层消费者和生命周期，分块供数不能无条件删复制或转换。若复用索引，空请求与 padding 行仍需保持原长度及 -1，实际广播、存储与事件尚未绑定。 |
-| F30 | DSpark collapse/norm → Markov bias、logits/置信度/验证 | 未知 | target logits 还有 bonus 行采样与条件 logprobs 消费；草稿概率须按请求 ID 与草稿长度重排，非零请求缺缓存时整批回退。可研究融合验证读取，但必须保留行对应、回退、连续布局和随机数语义。历史分支与通信绑定尚缺。 |
+| F30 | DSpark collapse/norm → Markov bias、logits/置信度/验证 | 未知 | target logits 还有 bonus 行采样与条件 logprobs 消费；概率路径按请求 ID 重排并有整批回退。基线请求 temperature=0，若实际采用保存源码的 greedy 默认及对应调用链，草稿概率重排不发生，故该子候选不优先；历史运行分支尚未绑定。 |
 | F31 | Attention/DSpark 相关 metadata 构造、共享与发布 | 未知 | 当前只有部分源码图；实际分支、buffer 别名、所有消费者和跨步状态未知。 |
 | F32 | SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信 | 条件 | 满足行独立、rank 权重一致、数值语义与通信分片条件时可研究；index source 需本地 query hidden，兼作 KV source 的层还需全局 cache hidden 或等价信息；PCP 条件路径须按恢复索引重排后再截有效行；CP/PCP 行域与通信组、全部消费者和实际运行绑定未知。与 F02/F06 工作重叠，不能重复计收益。 |
 
