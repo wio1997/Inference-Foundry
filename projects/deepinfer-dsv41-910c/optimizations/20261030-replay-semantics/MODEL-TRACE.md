@@ -41,6 +41,12 @@
 
 补充证据 `evidence/yoco-mask-index-overlap-20261030.json` 的 SHA256 为 `55c71ace345dcb5b60eebc22fa7ecd986e314f47d266d29078b166c40a2c0310`；逐层位置数据 `evidence/yoco-mask-index-audit-detail-20261030.json` 的 SHA256 为 `7fcd82c572a3a09ff2aa35752d01fd0c08d19b8cedb7d50836b2de2cfbbb51e3`。复用的审计程序在限制文字中沿用了“两层”的旧描述；本次注意力实际采样六层，隐藏状态采样两层，以上述范围为准。
 
+## 相同注意力实现的对照
+
+隔离候选将两侧的注意力都切换为相同的逐索引 eager 实现，`mask` 保留完整查询，`compact` 保留截取后的查询；请求、缓存长度和生成设置与前述诊断一致。8 个请求各 16 个输出 token 一致。第 24 层仍有 1,020 / 1,024 行索引集合不同，每行平均不同 3.52 个；第 36 层平均不同 10.07 个。相同注意力实现没有消除该样本的分叉。两侧查询形状、CP 分区和 tail FFN 行选择仍有差异，结果不能单独归因于其中任何一项。
+
+该实验的审计文件 `evidence/yoco-eager-audit-20261030.json` SHA256 为 `f20036733cd4bb29e3e28544c2159863766d7c4aaa676b1263c3d9a9e6fbf911`；索引集合统计 `evidence/yoco-eager-overlap-20261030.json` SHA256 为 `991fbb8f35069a74565dfc8539b3bca6376521d5a266f2564b887a9c82341fc0`。两侧的张量保存在 `diagnostics/yoco-eager-test-20261030/`。该候选仅用于定位，不用于生产性能对照。
+
 ## 证据与后续检查
 
 原始数据位于 172 的 `/data/tiankuan/wio/910c-deepinfer-172/diagnostics/yoco-mask-model-test-v2-20261030/`。独立审计文件及 SHA256：
@@ -48,4 +54,4 @@
 - `evidence/yoco-mask-model-audit-v2-20261030.json`：`e593bbf6ad343b8e0c50227cfb672606dfdd494b70a1d81c1830f15952229131`。
 - `evidence/yoco-mask-model-audit-detail-v2-20261030.json`：`018e87ae80f509106a3fedaff89abdb2a3bd8b29d19f73667b8ff00b5601e580`。
 
-下一步使用相同注意力实现，区分查询布局、查询数值漂移、索引器执行和 SWA 缓存状态。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
+下一步检查生产层输出、首个消费层输入与 Q 投影，区分查询布局、数值漂移、索引器执行和 SWA 缓存状态。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
