@@ -49,6 +49,10 @@
 
 原始结果 `evidence/yoco-short-fallback-npu-20261030/result.json` SHA256 `ab56e8fc4a7e37e5d39e995a8ad3ae5f66b1e4737bf81bce694ca07eea29d113`；独立复核 `evidence/yoco-short-fallback-independent-20261030.json` SHA256 `c45e00c877a9beaf2dbe0fe388f37d9234d7f434eeefa8a489e38928da91c47a`。当前保留版本没有更改。
 
+### 真实模型首个 consumer 层抽查
+
+独立候选对一条重复长输入进行 16 rank 检查，从首个 consumer 层每 rank 抽取 3 行：关闭与开启短末块 mask 的查询、压缩索引和对应 SWA、压缩 KV 样本逐位一致。两侧真实 910C 注意力输出分别与使用官方 C++ 元数据及独立 CPU 公式计算的参考比较，最大绝对误差均为 0.008895，限值 0.01。两种可见范围输出最大绝对差为 1.941406；窗口不同，不能直接视作相同计算的误差。8 条请求各 16 个输出 token 相同。详情及限制见 [短末块候选](../20261030-yoco-short-mask/README.md#真实模型中间张量抽查)。这不是官方 NVIDIA 内核对照，也不证明其他层或完整模型已对齐。
+
 ## 环境差异与限制
 
 直接构建官方参考时，GCC 11 缺少 C++20 `<format>`。隔离参考构建仅将日志和错误格式化接口替换为镜像内的 fmt。隐藏全部 NPU 后，原有固定内存分配触发 ACL 初始化错误；为运行 CPU 元数据参考，隔离构建将两处固定内存分配替换为普通 CPU 内存。官方 YOCO 元数据核心源码未修改，SHA256 为 `93a6b1dd533db116d2f7540c78d6bb5419bdb8c1d2063b031ab8b1a8cc138fe2`。这不证明固定内存在有 NPU 可见时无法使用，也不验证异步传输行为。测试构造器未对 Python 暴露 `SequenceMetadata.swa_valid_start`，尽管正式调度会从 Sequence 传递该字段；为注入测试值，隔离参考构建只增加该已有字段的 Python 绑定，未更改元数据计算。
