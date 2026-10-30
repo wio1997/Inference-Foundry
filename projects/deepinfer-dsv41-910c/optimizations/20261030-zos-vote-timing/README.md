@@ -24,3 +24,19 @@
 在保留版本的独立诊断副本中，计划记录每个 rank 的投票入口、collective 调用前后和回读完成的主机单调时标，不增加设备同步、不改变任何集体操作顺序或投票逻辑。该方案能够比较主机调用区间和跨 rank 到达时间，但不能据此单独判断设备执行或网络瓶颈；需要确认所有 rank 时钟属于同一时间命名空间，且时标插入可能扰动运行。只有排除上述问题后才评估局部优化。
 
 审计结果：`/data/tiankuan/wio/910c-deepinfer-172/evidence/zos-vote-timing-diagnostic-20261030.json`，SHA256 `d51b7d67574711e2340e95073a4370eff90f4582b73146f5b8b0a4324585f86b`。原始请求、两 DP 结果和 16 rank 证明保存在 `serving/zos-vote-timing-run-20261030/jobs/zos-vote-timing-ipc-20261030`。保留版源码没有修改。
+
+## 逐 rank 主机时标
+
+在单独的诊断副本中，对上述相同 32K/256/C8 请求再次采样。16 个 worker 属于同一 Linux 时间命名空间；每个 rank 记录投票进入、发起 collective 前、调用返回以及 CPU 读回完成的主机单调时标。该实现保持原来的全 rank 投票、collective 次序与设备操作，没有新增设备同步；主机插桩仍可能影响调度。
+
+本次核验了 58 次 collective 中每次 16 个 rank 的最终投票标志一致、各 rank 的记录数与实际投票复用调用数相同。每个 DP 的稳定阶段各 56 次投票，平均主机时间为 3.130 / 3.113 ms。16 rank、58 次的 928 条记录合并后，主机分段如下：
+
+| 主机区间 | 中位数 | P90 | 最大值 |
+| --- | ---: | ---: | ---: |
+| 投票入口至 collective 调用前 | 0.053 ms | 0.067 ms | 0.202 ms |
+| collective 调用至主机返回 | 0.093 ms | 0.119 ms | 4.726 ms |
+| 主机返回至 CPU 读回完成 | 3.178 ms | 3.573 ms | 5.056 ms |
+
+每次 collective 内，16 个 rank 进入 collective 的时间跨度中位数为 0.857 ms、P90 1.501 ms、最大 3.260 ms。这里是每轮最早与最晚主机时标的差，不是某个 rank 独占等待；不能与上表的分位数相加。collective 的主机返回不保证设备完成，后续读回可能等待前序设备工作、collective 和其他 rank，现有数据不足以把 3.178 ms 归因于网络、设备计算或传输。不能据此删除投票、跳过同步或将其全部作为可回收开销。
+
+再次核验实际缓存命中 235,904 / 262,144，8 条 256 token 输出与参考一致，投票复用及 16 rank 的既有路径证明通过；限于单次短诊断，不构成端到端性能比较。逐 rank 结果 `evidence/zos-vote-ranktrace-diagnostic-20261030.json` SHA256 `26c909fe942df402facb8b286deec29e8a38ced6cdb1133c98b6e79418a9269d`；包含全部 rank 时标的原始证明保存在 `serving/zos-vote-ranktrace-run-20261030/jobs/zos-vote-ranktrace-ipc-20261030`。
