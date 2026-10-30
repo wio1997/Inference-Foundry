@@ -1,0 +1,101 @@
+--- a/deepinfer/engine/dspark910c.py
++++ b/deepinfer/engine/dspark910c.py
+@@ -71,24 +71,30 @@
+         stats.update(verification_mode='confidence-scheduled',query_length_histogram={},
+                      selected_total_queries=0,padded_target_queries=0)
+ 
++    batch_events=os.environ.get('DEEPINFER_910C_DSPARK_EVENT_BATCH')=='1'
+     def output(slot,tokens):
+         import time
+         index,request=owned[slot]
+         if finished[slot]:return
++        pending=[] if batch_events else None
++        def send(event):
++            if pending is None:emit(event)
++            else:pending.append(event)
+         for token in tokens:
+             generated[slot].append(token)
+             stats['emitted_target_tokens']+=1
+-            emit({'type':'token','index':index,'token_id':token,'step':len(generated[slot])-1,
++            send({'type':'token','index':index,'token_id':token,'step':len(generated[slot])-1,
+                   'elapsed':time.monotonic()-started})
+             if (len(generated[slot])==maximum[slot] or
+                     (not request.get('ignore_eos',False) and token==eos)):
+                 finished[slot]=True
+                 break
+         if finished[slot]:
+-            emit({'type':'done','index':index,'prompt_tokens':len(request['token_ids']),
++            send({'type':'done','index':index,'prompt_tokens':len(request['token_ids']),
+                 'cached_tokens':hits[slot],'output_tokens':len(generated[slot]),
+                 'token_ids':generated[slot],'finish_reason':
+                     'length' if len(generated[slot])==maximum[slot] else 'stop'})
++        if pending:emit.batch(pending)
+ 
+     for slot,token in enumerate(target_tokens(runner,logits)):
+         output(slot,[token])
+--- a/deepinfer/engine/ascend_w8a8_serving.py
++++ b/deepinfer/engine/ascend_w8a8_serving.py
+@@ -98,6 +98,8 @@
+     def run(self,job,directory):
+         directory=Path(directory)
+         self.zos_vote_reuse_calls=0
++        self.dspark_event_batch_calls=0
++        self.dspark_event_batch_events=0
+         requests=job['requests']
+         owned=[(i,r) for i,r in enumerate(requests) if i%self.dp_size==self.dp_rank]
+         # A single-request warmup also builds the other DP replica's cache.
+@@ -121,6 +123,15 @@
+                 cache_timing['first_token_host_seconds']=time.monotonic()-start
+             if event_file is not None and not internal:
+                 event_file.write(json.dumps(event,separators=(',',':'))+'\n')
++        def emit_batch(events):
++            for event in events:
++                if timing_on and cache_timing['first_token_host_seconds'] is None and event.get('type')=='token':
++                    cache_timing['first_token_host_seconds']=time.monotonic()-start
++            if event_file is not None and not internal:
++                event_file.write(''.join(json.dumps(event,separators=(',',':'))+'\n' for event in events))
++                self.dspark_event_batch_calls+=1
++                self.dspark_event_batch_events+=len(events)
++        emit.batch=emit_batch
+         try:
+             hits=[]
+             for slot,(index,request) in enumerate(owned):
+--- a/examples/ascend910c_w8a8_worker.py
++++ b/examples/ascend910c_w8a8_worker.py
+@@ -77,7 +77,7 @@
+             mode=job.get('single_point_ablation')
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse','dspark_event_batch'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('explicit boolean single-point mode required')
+@@ -94,6 +94,7 @@
+                 if mode['zos_fast'] and shadow_enabled:raise ValueError('fast ZOS and shadow diagnostics cannot share a job')
+                 os.environ['DEEPINFER_910C_ZOS_FAST']='1' if mode['zos_fast'] else '0'
+                 os.environ['DEEPINFER_910C_ZOS_VOTE_REUSE']='1' if mode.get('zos_vote_reuse',False) else '0'
++                os.environ['DEEPINFER_910C_DSPARK_EVENT_BATCH']='1' if mode.get('dspark_event_batch',False) else '0'
+                 if mode.get('zos_engram_window_check',False) and not mode.get('zos_engram_window',False):
+                     raise ValueError('device Engram window check requires device window')
+                 if mode.get('zos_engram_window',False) and (not mode['zos_fast'] or not mode['engram_uva'] or not mode['engram_device_hash']):
+@@ -180,6 +181,8 @@
+                     'bounded_swa_packed_calls':stats['yoco_bounded_swa_packed_calls'],
+                     'zos_fast_stats':getattr(runner.model,'dspark_stats',{}).get('zos_fast',{})}
+                 proof['zos_vote_reuse_calls']=runner.zos_vote_reuse_calls
++                proof['dspark_event_batch_calls']=runner.dspark_event_batch_calls
++                proof['dspark_event_batch_events']=runner.dspark_event_batch_events
+                 path=directory/f'hash-proof-rank{rank}.json'
+                 tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(proof));tmp.replace(path)
+         except Exception:
+--- a/examples/ascend910c_w8a8_api_fixed_routing.py
++++ b/examples/ascend910c_w8a8_api_fixed_routing.py
+@@ -95,7 +95,7 @@
+             if os.environ.get('DEEPINFER_SINGLE_POINT_ABLATION')=='1':
+                 mode=json.loads((self.args.control_dir/'single-point-mode.json').read_text())
+                 required={'varlen','tail_ffn','engram_prefetch','engram_pinned','engram_uva','engram_device_hash','yoco_exact_compact','reset_prefix_cache','yoco_meta_fuse','zos_fast'}
+-                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse'}
++                optional={'zos_target_device','yoco_bounded','yoco_bounded_140','prefill_engram_uva','prefill_engram_uva_check','prefill_device_hash','prefill_device_hash_check','zos_c2_device','zos_c2_check','zos_engram_window','zos_engram_window_check','prefill_timing_split','prefill_timing_detail','yoco_preplan','recipe_tokenizer','prefill_kv_overlap','cache_restore_event','zos_vote_reuse','dspark_event_batch'}
+                 if (not isinstance(mode,dict) or not required.issubset(mode) or set(mode)-required-optional
+                         or any(type(value) is not bool for value in mode.values())):
+                     raise ValueError('invalid frozen single-point mode')
