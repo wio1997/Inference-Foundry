@@ -5,6 +5,19 @@ from pathlib import Path
 
 summary = json.loads((Path(__file__).parent / 'evidence-summary.json').read_text())
 stage = summary.get('stage_consolidation', {})
+if 'indexer_token_k_specialization' in stage:
+    k = stage['indexer_token_k_specialization']
+    assert k['token_retained_old'] == k['tile_sort_length_unchanged'] == 2048
+    assert k['token_retained_candidate'] == 512
+    assert k['logical_merge_input_pairs_old'] == 2048 + 2048
+    assert k['logical_merge_input_pairs_candidate'] == 2048 + 512
+    assert k['state_copy_bytes_old'] == 2048 * 8
+    assert k['state_copy_bytes_candidate'] == 512 * 8
+    assert k['extract_repeats_old'] == 2048 * 8 // 256
+    assert k['extract_repeats_candidate'] == 512 * 8 // 256
+    assert k['two_row_token_state_bytes_old'] == 2 * 2048 * 8
+    assert k['two_row_token_state_bytes_candidate'] == 2 * 512 * 8
+    print('Conditional token-K specialization: merge pairs -37.5%, state copy bytes -75%; not speedup.')
 if 'indexer_ledger' in stage:
     ledger = stage['indexer_ledger']
     example = ledger['example']
