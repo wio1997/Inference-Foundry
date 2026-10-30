@@ -73,6 +73,19 @@
 
 这进一步将本样本首层的剩余 Q 差异定位到投影计算的形状敏感性，不代表所有后续差异都已经解释。结果 `evidence/yoco-qb-shape-probe-20261030.json` SHA256 `f0a1f636b5087ad6cb421cc4fd559be2989890e9d09d7d817d8ea60318dd65ff`；独立 CPU 复核 `evidence/yoco-qb-shape-independent-20261030.json` SHA256 `fdeeb5c16c936bfac1ecf1b7a229347b2bc9360c29dcede550053d6d4a9abb6a`。
 
+## Q-A 与 Q-B 形状对齐候选
+
+在同一隔离服务内比较两种 compact 模式：两侧均对首个消费层的 Q-A 投影补齐原 CP 形状，候选仅额外对 Q-B 投影补齐形状，注意力均采用相同的 eager 实现。两个 DP 副本的生产层保留状态在截取前后逐位一致。与此前相同输入的完整查询 mask 参考相比，候选第 21 层的低秩 Q 和旋转后 Q 均为 1,024 / 1,024 行逐位一致；仅补齐 Q-A 时，旋转后 Q 为 894 / 1,024 行一致。两侧第 21 层索引集合均为 1,024 / 1,024 行一致。
+
+| 与 mask 参考比较 | 仅补齐 Q-A | 补齐 Q-A 和 Q-B |
+| --- | ---: | ---: |
+| 第 24 层：每行平均不同索引数（512 个中） | 3.426 | 3.467 |
+| 第 36 层：每行平均不同索引数（512 个中） | 10.254 | 9.871 |
+
+8 个请求各 16 个生成 token 在两种 compact 模式中一致。首层查询逐位一致仍未消除后续索引差异；当前采样不足以证明完整模型语义或质量一致，也不能说明差异的全部成因。诊断过程包含同步及张量采集，不作为 TTFT、TPOT 或吞吐量的性能数据。候选未采纳；保留原服务与回退路径。
+
+证据位于 172 的项目目录：`evidence/yoco-qshape-b-reference-audit-20261030.json` SHA256 `7462f4ce974a240ce06dff983b7940205e09df355ea6e808ad03f6b2e996399e`；`evidence/yoco-qshape-b-qa-vs-mask-overlap-20261030.json` SHA256 `38d71cbcb98793fda3dccb9fdd53d7c18f0cea0c31e99334fde27b96f1ffea0c`；`evidence/yoco-qshape-b-qab-vs-mask-overlap-20261030.json` SHA256 `4be26bb720f2c6194cedbbccf1b4f0da729e893e88b9fd03c6ca13b23e6157d0`。
+
 ## 证据与后续检查
 
 原始数据位于 172 的 `/data/tiankuan/wio/910c-deepinfer-172/diagnostics/yoco-mask-model-test-v2-20261030/`。独立审计文件及 SHA256：
@@ -80,4 +93,4 @@
 - `evidence/yoco-mask-model-audit-v2-20261030.json`：`e593bbf6ad343b8e0c50227cfb672606dfdd494b70a1d81c1830f15952229131`。
 - `evidence/yoco-mask-model-audit-detail-v2-20261030.json`：`018e87ae80f509106a3fedaff89abdb2a3bd8b29d19f73667b8ff00b5601e580`。
 
-下一步验证局部 Q-B 形状对齐能否改善后续结果，评估不完整块填充的可行性；正确性不足或无综合收益的候选继续保留为诊断记录。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
+下一步继续定位首层查询一致后仍存在的后续差异，并评估避免完整块填充的可行性；正确性不足或无综合收益的候选继续保留为诊断记录。控制每次修改的变量，验证原有 DSpark、Engram 和 decode 行为；问题未解释前，不将该候选用于正式性能验收。
