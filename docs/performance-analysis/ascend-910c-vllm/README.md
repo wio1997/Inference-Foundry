@@ -37,7 +37,7 @@
 
 **最关键的数据从哪来。** 保存的 custom INT8 源码会输出每个本地专家收到的行数，但该输出缓冲会被后续调用覆盖，历史 profile 目前只有形状，没有绑定的数值。若能确认运行二进制及本次容量，按源码可从计数推算每张卡实际参加专家矩阵乘的逻辑行数；它仍不能解释通信等待。最小取证需在隔离诊断实例中，在算子写出后、下次覆盖前安全保存同次各 rank 的计数，并绑定层、批次和设备任务；图回放不能假定每次都触发 Python hook。已有采集草稿只通过 CPU 模拟，尚未实现或验证 NPU 图内取数。
 
-**采集入口的实际限制。** 官方 [动态 profiling](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/920beta1/devaids/Profiling/atlasprofiling_16_0016.html) 的 attach 模式要求进程启动前配置 `PROFILING_MODE=dynamic`；只读检查当前容器 16 个 vLLM worker 的 `/proc` 环境，没有发现该变量。`/proc` 环境不一定反映进程后续修改，不能以此证明所有动态采集均不可用，但不能假定该文档前提成立。官方 [aclDumpOpTensors](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta3/API/aolapi/operatorlist_00178.html) 是开启 dump 后在应用进程内调用的接口，可研究在隔离实例只导出专家计数；stage 容器的 CANN 安装信息标为 9.2.0，其头文件确有该接口声明；对 33 个 ACL/opapi 名称库的限定扫描未发现导出，其他运行库尚未覆盖。接口声明不能证明服务的实际链接、零输入参数或图回放支持，采集也会带来扰动。当前服务不作注入或重启。
+**采集入口的实际限制。** 官方 [动态 profiling](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/920beta1/devaids/Profiling/atlasprofiling_16_0016.html) 的 attach 模式要求进程启动前配置 `PROFILING_MODE=dynamic`；只读检查当前容器 16 个 vLLM worker 的 `/proc` 环境，没有发现该变量。`/proc` 环境不一定反映进程后续修改，不能以此证明所有动态采集均不可用，但不能假定该文档前提成立。官方 [aclDumpOpTensors](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta3/API/aolapi/operatorlist_00178.html) 是开启 dump 后在应用进程内调用的接口，可研究在隔离实例只导出专家计数；stage 容器的 CANN 安装信息标为 9.2.0，其头文件声明该接口，`libnnopbase.so` 的动态符号表也有该导出；只读检查显示当前 16 个 worker 均映射该库，映射路径对应文件的哈希与 stage 库一致。接口存在与库映射不能证明零输入参数、当前服务的调用能力或图回放支持，采集也会带来扰动。当前服务不作注入或重启。
 
 **下一步。** 最小诊断是对同一批次的第 14、39 层，按实际通信组记录每卡逐专家计数、有效行汇总、容量、任务身份和起止；再依据相同口径区分工作量与等待，同时补齐持续输出阶段的请求关联。必须确保 graph 回放身份、流事件和缓冲不被覆盖，并记录采集扰动。已有服务的指标按 expert/moe/rout 名称筛选未发现对应指标，这不能排除其他名称。当前 16 个 NPU 都由用户的复现服务持有约 59 GB 显存，尚未发现可安全运行独立诊断的空闲资源；不重启或修改现有服务。其他模块和既有证据见下文。
 
