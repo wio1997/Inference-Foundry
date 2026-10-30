@@ -1,6 +1,6 @@
 # DeepInfer 910C 优化能力与验证状态
 
-记录时间：2026-10-30。适配参照 DeepInfer 提交 `553741557a57df44a46fb3ab72b6aafeaf945337`，部署条件为 172、DeepSeek-V4.1-Flash W8A8、16 个逻辑设备、DP2×TP8/EP16。表中状态针对[当前保留版本](CURRENT.md)，不表示其他硬件或工作负载的支持范围。
+记录时间：2026-10-30。适配参照 DeepInfer 提交 `553741557a57df44a46fb3ab72b6aafeaf945337`，部署条件为 172、DeepSeek-V4.1-Flash W8A8、16 个逻辑设备、DP2×TP8/EP16。[单项性能汇总](optimizations/RESULTS.md)列出已测指标、适用条件及未测能力。表中状态针对[当前保留版本](CURRENT.md)，不表示其他硬件或工作负载的支持范围。
 
 | 能力 | 当前状态 | 证据与边界 |
 | --- | --- | --- |
