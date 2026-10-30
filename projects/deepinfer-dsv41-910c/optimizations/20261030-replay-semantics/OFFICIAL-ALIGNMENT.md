@@ -63,7 +63,19 @@
 
 对最大误差行补充 FP64 CPU 复算：FP32 与 FP64 参考最大差为 0.00000125；最大误差点的设备输出为 2.296875，FP64 参考为 2.308436，该数值附近一个 BF16 间隔为 0.015625，误差约为 0.74 个间隔。该行 32,768 个元素中 1 个的绝对误差超过 0.01。这个结果提供了数值尺度，但不能确定设备误差根因，也不能替代原先的绝对误差门槛；复算记录 `evidence/yoco-main-compact-precision-review-20261030.json` SHA256 `705ff34a5efb1fbbc8ae442d8813c3e5260feef8a43f859048ae08fd3ee42f95`。
 
+补充按现有 910C 参考测试中使用的 `atol=0.008、rtol=0.008` 统计同一批数据，1,572,864 个元素均在该组合范围内，最大误差与对应范围之比为 0.437。该测试文件是 910C 适配测试，不是官方 YOCO 标准，且测试的不是这里的同一 CANN 算子；这是事后补充的数值背景，不替代预先设定的 0.01 绝对误差验收。证据 `evidence/yoco-main-compact-trace-tolerance-context-20261030.json` SHA256 `bc8d71522c10b8f2beab8730354f4144c0319a48f45c3674497fb9422fc0886e`。
+
 该抽查没有执行官方 NVIDIA 注意力内核，也没有独立验证索引选择本身、全部缓存、后续层或模型质量。实际捕获 3 行 / rank；插桩同步改变时序。独立复算 `evidence/yoco-main-compact-trace-tensor-audit-20261030.json` SHA256 `980d2b36f4b8fa8e3bf3425f2b59ab6b8c04a038e7b54ae08b488e9cb93919eb`；生成输出比较 `diagnostics/yoco-main-compact-trace-test-20261030/model-comparison.json` SHA256 `986ba7d6edec876ee9dbe0a92d2f77efb0dca7629a496cc4939dc99fa70bde71`。原服务已恢复，现有路径未替换。
+
+## 索引器格式和当前接口限制
+
+固定官方提交的 [V4 索引器](https://github.com/deepseek-ai/DeepInfer/blob/553741557a57df44a46fb3ab72b6aafeaf945337/deepinfer/model_executor/models/v4_modules/index_attn.py)对索引查询和键应用 RoPE、Hadamard 及 E2M1/UE8M0 FP4 量化后计算索引分数。当前 910C 的 `w8a8_indexer910c.py` 对索引查询和键执行 RoPE 与 INT8 量化，所核查路径没有 Hadamard；调用 `dsa910c.py` 的量化索引接口，使用 INT8 Q/K、FP16 缩放和 `quant_mode=2`。索引 Q/K 格式不同于模型权重的 W8A8 配置。
+
+固定镜像内的 `quant_lightning_indexer_v2/docs/aclnnQuantLightningIndexerV2.md` 在 A2/A3 部分列出 `quant_mode=2`、INT8 Q/K 和 FP16 缩放，明确不支持该接口的 FLOAT4；同目录算子注册和 tiling 源码也限定对应架构使用 INT8。镜像中注册的 `npu_quant_lightning_indexer_v3` 绑定及包装源码调用该候选索引器接口。镜像源码与实际运行的编译二进制尚未逐项建立对应关系；这是**当前接口**的限制，不能扩展为所有 910C FP4 实现均不可行。模型服务未修改。
+
+因此，目前只能对照同一 910C 算子消费的查询、索引和可见范围，不能声称索引选择已与官方 FP4 路径相同。不同量化和变换可能改变 top-k，影响尚未实测，也不能据此归因已有后续层差异。后续应在独立候选中采集相同查询、索引键和权重，先用可信的官方格式参考比较分数及 top-k，再判断是否有局部实现价值；须保留现有 INT8 路径并验证完整模型质量和端到端性能。
+
+审计 `evidence/yoco-index-fp4-constraint-20261030.json` SHA256 `96d5359dbfc6a13da0524b07ca05b807ebcabf2853a0b89f3434e73f4567b774`，记录上游文件 Git blob、910C 文件及镜像内文档和源码的哈希。
 
 ## 环境差异与限制
 
