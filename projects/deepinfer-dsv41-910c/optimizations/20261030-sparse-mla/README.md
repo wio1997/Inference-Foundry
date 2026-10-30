@@ -41,3 +41,11 @@
 [PR 17354](https://github.com/vllm-project/vllm-ascend/pull/17354) 的说明将设备到主机同步消除列为单独的改进：相关最大长度与窗口边界由主机已有信息计算，避免在热路径读取设备张量标量。它同时将 FP8 KV 布局调整为每 token 608 字节，包含 BF16 的位置编码部分、FP8 的其余部分、比例值和填充；这一布局改变不能与单纯减少同步混为一项等价改动。
 
 对照当前保留版固定 SHA 的目标 `sparse_mla` 和草稿 `noncausal_draft_attention`，两处 metadata 所需最大序列长度均由批次的主机侧长度列表计算，已核对的函数内没有以 `.item()` 获取长度；因此该 PR 的这一处优化目前没有明确的直接移植点。这是函数级静态检查，不证明整个推理链不存在其他同步，也没有测量同步耗时。当前不修改代码、不将其记为新收益。
+
+## 910C 混合量化算子的量化模式限制
+
+官方资料随版本变化。CANN 9.2 beta 1 的[接口文档](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920beta1/API/aolapi/context/ops-transformer/aclnnMixedQuantSparseFlashMla.md)将 A3 列为不支持；9.2.0 [发布公告](https://www.hiascend.com/productbulletins/detail/830)在 A2/A3 功能增强中列出 CSA 的 TurboQuant TQ4。不能用较早文档否定后续版本的所有 A3 支持。
+
+核对 `hicann/ops-transformer` 主线提交 `6bff82496a8720343fc6144218f059a06a7b9b48`：[算子注册](https://github.com/hicann/ops-transformer/blob/6bff82496a8720343fc6144218f059a06a7b9b48/attention/mixed_quant_sparse_flash_mla/op_host/mixed_quant_sparse_flash_mla_def.cpp)包含 `ascend910_93`；[参数检查](https://github.com/hicann/ops-transformer/blob/6bff82496a8720343fc6144218f059a06a7b9b48/attention/mixed_quant_sparse_flash_mla/op_host/checkers/mixed_quant_variant_checker.cpp)限定 arch22 使用 `quant_mode=3`（TurboQuant），`quant_mode=1/2` 使用 arch35。该主线源码不是当前镜像已安装版本，源码注册也不是本机运行证明。
+
+因此，本次评估的 FP8 KV 接口不能据此直接套用于 910C；TurboQuant 是可独立研究的另一种缓存量化方案，会改变缓存格式和数值。其检查还要求 `cmp_ratio` 为 4 或 128、特定 mask 和对齐条件；当前固定绑定的参数使用 1 或 2，两个接口的压缩比语义需要进一步对照，不能仅按数字映射。当前镜像未发现该模块；没有本机依赖、语义、精度、质量和性能证据前，不替换 BF16 保留路径。
