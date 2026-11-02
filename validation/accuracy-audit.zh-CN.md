@@ -53,3 +53,9 @@
 四 die 各用首位置捕获操作数生成非零状态，再将位置 40、41、42 的捕获操作数直接接续，比较显式归一化 native recurrent 的三 token 一次运行与逐 token 运行。四 rank 的输出与最终状态均逐位相同；其相对数学 recurrence 的状态相对 RMSE 为 `1.82e-8`–`3.51e-8`。安装版 decode 相对数学 recurrence 的状态相对 RMSE 为 `0.00122`–`0.00156`。逐 rank 结果见 [kda-state-continuation-round371.json](kda-state-continuation-round371.json)。
 
 这是拼接的操作数序列：位置 0 后直接接位置 40–42，不代表原提示的完整历史，也没有规定质量容差。该有限结果支持继续对已有 native backend 做完整模型回归；不能据此宣称整体质量或生产验收通过。
+
+## 现有 recurrent backend 的整模型短回归
+
+固定多轮案例、相同检查点和四 rank 执行，将实验中的 KDA backend 由 `ascendc_installed_decode` 切换为已有 `ascendc`；未修改模型源码。生成上限 3 token，四 rank 一致，生成 `[785,1196,738]`，与已保存参考的前三 token 一致；原 installed-decode 基线为 `[785,1196,3229]`。位置 0 注意力输出相对参考的 RMSE/RMS 由约 `0.006138` 变为 `0.005685`。原始范围内指标见 [recurrent-fullmodel-round372.json](recurrent-fullmodel-round372.json)。
+
+本次达到长度上限，未获得完整回答；单案例、三 token 和首层指标无法证明整体精度改善，也不构成 backend 切换或生产验收。保留原 backend 作为回退，后续需完成同配置完整输出和状态回归。
