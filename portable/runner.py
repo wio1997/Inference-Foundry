@@ -48,6 +48,7 @@ def main():
     parser.add_argument('--expected-final')
     parser.add_argument('--restore-after-first-token', action='store_true')
     parser.add_argument('--experimental-fp32-dsa', action='store_true')
+    parser.add_argument('--rollback-probe', action='store_true', help='run the bounded nonzero-state rollback probe')
     args = parser.parse_args()
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
@@ -92,7 +93,7 @@ def main():
         for rel, digest in manifest.items():
             if not rel.startswith('cli:') and sha(Path(cfg['source_host']) / rel) != digest:
                 raise RuntimeError('source manifest mismatch: ' + rel)
-        for file in ('worker.py', 'launcher.py', 'runner.py'):
+        for file in ('worker.py', 'launcher.py', 'runner.py') + (('rollback_probe.py',) if args.rollback_probe else ()):
             manifest['portable:' + file] = sha(Path(__file__).resolve().parent / file)
         payload = json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
         source_digest = hashlib.sha256(payload).hexdigest()
@@ -135,7 +136,10 @@ def main():
                 argv = ['docker', 'exec']
                 for key, value in env.items():
                     argv += ['-e', key + '=' + value]
-                argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', cfg['launcher_container'], 'rank', '--rank', str(rank), '--die', str(die), '--port', str(port)]
+                if args.rollback_probe:
+                    argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', str(Path(cfg['launcher_container']).with_name('rollback_probe.py')), str(rank), str(die), str(port), 'four']
+                else:
+                    argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', cfg['launcher_container'], 'rank', '--rank', str(rank), '--die', str(die), '--port', str(port)]
                 proc = subprocess.Popen(argv, stdout=log, stderr=subprocess.STDOUT)
                 workers.append((item, proc, log))
                 ownership['active_jobs'].append({'job_id': f'bounded-cli-{args.run_id}-rank{rank}', 'host': os.uname().nodename, 'physical_die': die, 'rank': rank, 'docker_exec_pid': proc.pid, 'started_at': stamp, 'command': argv, 'log': str(run / f'rank{rank}.log'), 'stop_condition': '2100-second timeout, 180-second mapping barrier'})
@@ -152,7 +156,9 @@ def main():
             (run / 'mapping.txt').write_text(top + '\n' + info)
             for item, proc, log in workers:
                 rank, die = item['rank'], item['die']
-                rows = [line for line in top.splitlines() if len(line.split(None, 2)) == 3 and line.split(None, 2)[2].startswith('python3 ') and 'worker.py' in line and line.split()[-3:] == [str(rank), str(die), str(port)]]
+                worker_name = 'rollback_probe.py' if args.rollback_probe else 'worker.py'
+                worker_args = [str(rank), str(die), str(port), 'four'] if args.rollback_probe else [str(rank), str(die), str(port)]
+                rows = [line for line in top.splitlines() if len(line.split(None, 2)) == 3 and line.split(None, 2)[2].startswith('python3 ') and worker_name in line and line.split()[-len(worker_args):] == worker_args]
                 if len(rows) != 1:
                     raise RuntimeError('worker PID mapping ambiguous')
                 host_pid = int(rows[0].split()[0])
@@ -184,7 +190,11 @@ def main():
             for rank in range(4):
                 try:
                     x = read(run / f'rank{rank}' / 'result.json')
-                    if not all(x[k] for k in ('rank_commit_agreement_enabled', 'semantic_pass', 'rank_agreement', 'stop_set_reached', 'destroyed')) or x['status'] != 'passed' or x['cap_reached']:
+                    if args.rollback_probe:
+                        passed = (x['status'] == 'passed' and x['rank_commit_agreement_enabled'] and x['failure_coordinated'] and x['failure_tokens_seen'] == 3 and x['nonzero_kda'] and all(x['prefix_logits_equal']) and len(x['failure_state_equal']) == 45 and all(x['failure_state_equal'].values()) and x['retry_logits_equal'] and len(x['retry_state_equal']) == 45 and all(x['retry_state_equal'].values()) and x['request_owners_remaining'] == 0 and x['destroyed'])
+                    else:
+                        passed = (all(x[k] for k in ('rank_commit_agreement_enabled', 'semantic_pass', 'rank_agreement', 'stop_set_reached', 'destroyed')) and x['status'] == 'passed' and not x['cap_reached'])
+                    if not passed:
                         errors.append(f'rank{rank} semantic failure')
                 except (OSError, ValueError, KeyError, TypeError) as error:
                     errors.append(f'rank{rank}: {error!r}')

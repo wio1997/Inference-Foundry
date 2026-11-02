@@ -91,3 +91,11 @@ python3 portable/runner.py --config /path/to/operator-config.json \
 ## 四 rank 状态回滚探针
 
 [portable/rollback_probe.py](portable/rollback_probe.py) 的四 rank 硬件结果见 [验证记录](validation/portable-rollback-round388.json)。它是实验探针，要求由操作者提供已持锁且已登记的四 rank 分配、隔离容器、超时、独立运行目录和 host PID 到 die/card/chip 的核验；探针不会停止或接管其他作业。各 rank 运行前将 `GLM_MODEL_DIR`、`GLM_SOURCE_DIR`、`GLM_ASCEND_LIBRARY`、`GLM_EXPERIMENT_RUN_DIR` 和只含该 die 的 `ASCEND_RT_VISIBLE_DEVICES` 设置为现场真实路径和设备，并以 `python3 rollback_probe.py <rank> <die> <共同端口> four` 启动。各 rank 创建 `rankN/ready` 后，操作者须验证宿主 PID 与授权设备映射，再分别创建对应的 `rankN/go`；启动、登记、错误处理和回收由操作者负责。权重索引、配置、运行时依赖和实际 probe 哈希必须与验证记录核对；该示例不替代现场的资源策略。
+
+公开运行器也支持在已有配置和消息文件的调用中增加 `--rollback-probe`，使用同一互斥、登记、授权、PID 映射和 2100 秒工作进程上限启动探针；仍需 `--experimental-fp32-dsa` 和有效的 `--messages` 文件。示例：
+
+```bash
+python3 portable/runner.py --config "$OPERATOR_CONFIG" --messages "$MESSAGES" --run-id rollback-check --goal reproducible-release --experimental-fp32-dsa --rollback-probe
+```
+
+探针模式固定使用 `ascendc` 和四个短 token；普通文本模式仍为默认模式。四 rank 实测和普通模式回归见 [运行器记录](validation/public-rollback-runner-round389.json)。
