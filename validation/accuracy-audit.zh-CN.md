@@ -95,3 +95,9 @@
 修复此前管理器报错、worker 退出非零或退出状态未知时，`summary.json` 仍可能记录 `pass` 的缺陷；这些情况现在会产生失败摘要。正常路径在四 rank NPU 上运行固定 `8+5` 案例，生成 `[154842,99366,154827]`，与保留参考案例一致，最终答案 `13`，各 rank 已清理。停止 ID `154827` 是配置的 `<|user|>`，不是 tokenizer EOS `154820`；未达到生成上限。管理器错误、非零/未知退出和缺少 worker 的摘要分支由本地无设备检查覆盖，未在硬件上人为制造这些故障。细节见 [runner-summary-round379.json](runner-summary-round379.json)。
 
 该检查不代表整体质量或生产验收。
+
+## 公开运行器缓存路径回归
+
+当前公开 runner 使用 `ascendc` 后端和每 rank 128 MiB 缓存，固定 `8+5` 案例的提示逐位置 argmax 与全部生成 token `[154842,99366,154827]` 同源无缓存运行一致；最终答案为 `13`。四 rank 缓存关闭后均为零保留字节且无活动租约，关闭前均记录 0 次命中；因此不能声称缓存复用或速度收益。停止 ID `154827` 为配置的 `<|user|>`，不是 tokenizer EOS，未达到生成上限。逐 rank 计数及配置见 [public-cache-round380.json](public-cache-round380.json)。
+
+这里只比较了 argmax 和生成 token，未比较完整 logits；不是整体质量或生产验收。
