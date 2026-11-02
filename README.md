@@ -66,6 +66,8 @@ sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b
 
 [portable/runner.py](portable/runner.py) 是操作者持有的参数化四 rank 运行器：它使用既有共享锁和登记文件，核对分配、卡占用、镜像及源码/权重哈希，调用操作者的有界预算 helper，启动并登记进程，确认宿主 PID 到 card/chip 的映射后释放 `go` 屏障。它不停止其他工作负载。运行器配合 [launcher.py](portable/launcher.py) 与 [worker.py](portable/worker.py) 在四 rank 上执行一次短多轮恢复：每个 rank 的 prompt argmax 与 44 个生成 token 均匹配 round 360，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round361.json](validation/restore-round361.json)。
 
+可显式传入 `--kda-backend ascendc` 选择显式归一化的实验递推路径；默认仍为 `ascendc_installed_decode`，可通过同一选项明确回退。实际便携命令在四 rank 短多轮案例中验证了 `ascendc` 选项传播、首 token 后 archive-v2 恢复和自然停止，生成 45 个 token 与 round 373 一致；见 [结果](validation/portable-recurrent-round376.json)。这不是全模型质量或生产验收。
+
 先将 [operator-config.example.json](portable/operator-config.example.json) 复制到任务目录并填写自己的**真实**路径、锁、已运行隔离容器 ID、镜像本地 ID、授权 die/card/chip 对应关系、赋权和登记 JSON、源码清单及 SHA-256。示例中的零值、路径和设备号只是占位符，不表示授权或已验证配置。`pinned_files` 必须包含可信源码清单、权重索引、模型配置与模板哈希。容器内外的源码、运行目录和 launcher 路径必须分别映射到同一内容；模型权重应只读挂载。
 
 运行器要求操作者提供可信的预算 helper 和策略文件；helper 必须实现 `reserve(root, lock, goal, source_sha256, attempt_id, workers, timeout_seconds)`，并在传入的同一共享锁下原子核对授权和持久化预算。公共仓不包含现场策略或现场控制器。分配与登记 schema、设备映射、容器环境、NPU 可用性和 helper 的正确性由操作者按现场资源协议核验；没有兼容策略时不能运行。公开代码不提供服务、部署或自动抢占。

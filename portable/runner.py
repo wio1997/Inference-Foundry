@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--context-tokens', type=int, default=128)
     parser.add_argument('--max-new-tokens', type=int, default=64)
     parser.add_argument('--cache-mib', type=int, default=0)
+    parser.add_argument('--kda-backend', choices=('ascendc_installed_decode', 'ascendc'), default='ascendc_installed_decode')
     parser.add_argument('--expected-final')
     parser.add_argument('--restore-after-first-token', action='store_true')
     parser.add_argument('--experimental-fp32-dsa', action='store_true')
@@ -99,14 +100,14 @@ def main():
                    '-e', 'HF_HUB_OFFLINE=1', '-e', 'TRANSFORMERS_OFFLINE=1', cfg['container'],
                    'python3', cfg['launcher_container'], 'prepare', '--run-id', args.run_id,
                    '--context-tokens', str(args.context_tokens), '--max-new-tokens', str(args.max_new_tokens),
-                   '--cache-mib', str(args.cache_mib)]
+                   '--cache-mib', str(args.cache_mib), '--kda-backend', args.kda_backend]
         if args.expected_final is not None:
             prepare += ['--expected-final', args.expected_final]
         if args.restore_after_first_token:
             prepare.append('--restore-after-first-token')
         result = subprocess.run(prepare, input=input_text, capture_output=True, text=True, timeout=90, check=True)
         request = json.loads(result.stdout.strip().splitlines()[-1])
-        if request['run_id'] != args.run_id or request['messages'] != json.loads(input_text):
+        if request['run_id'] != args.run_id or request['messages'] != json.loads(input_text) or request['kda_backend'] != args.kda_backend:
             raise RuntimeError('request builder returned a different request')
         helper = Path(cfg['reservation_helper'])
         if sha(helper) != cfg['reservation_helper_sha256'] or sha(cfg['policy']) != cfg['policy_sha256']:

@@ -21,6 +21,7 @@ def main():
     prep.add_argument('--context-tokens', type=int, required=True)
     prep.add_argument('--max-new-tokens', type=int, required=True)
     prep.add_argument('--cache-mib', type=int, default=0)
+    prep.add_argument('--kda-backend', choices=('ascendc_installed_decode', 'ascendc'), default='ascendc_installed_decode')
     prep.add_argument('--expected-final')
     prep.add_argument('--restore-after-first-token', action='store_true')
     rank = commands.add_parser('rank')
@@ -63,7 +64,7 @@ def main():
         parser.error('prompt and generation exceed the context bound')
     print(json.dumps({'run_id': args.run_id, 'messages': messages, 'prompt_ids': ids,
                       'context_tokens': args.context_tokens, 'max_new_tokens': args.max_new_tokens,
-                      'cache_mib': args.cache_mib, 'expected_final': args.expected_final,
+                      'cache_mib': args.cache_mib, 'kda_backend': args.kda_backend, 'expected_final': args.expected_final,
                       'restore_after_first_token': args.restore_after_first_token}))
 
 

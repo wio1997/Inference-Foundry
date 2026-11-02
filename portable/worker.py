@@ -36,16 +36,16 @@ try:
  os.environ['HF_HUB_OFFLINE']='1';os.environ['TRANSFORMERS_OFFLINE']='1';os.environ['HF_HOME']=str(root/'hf-cache')
  from transformers import AutoTokenizer
  tok=AutoTokenizer.from_pretrained(model,local_files_only=True,trust_remote_code=False)
- request=json.loads((root/'request.json').read_text());messages=request['messages'];ids=request['prompt_ids'];cap=request['max_new_tokens'];context=request['context_tokens'];expected=request['expected_final'];cache_bytes=request['cache_mib']*1024**2
+ request=json.loads((root/'request.json').read_text());messages=request['messages'];ids=request['prompt_ids'];cap=request['max_new_tokens'];context=request['context_tokens'];expected=request['expected_final'];cache_bytes=request['cache_mib']*1024**2;kda_backend=request['kda_backend'];assert kda_backend in ('ascendc_installed_decode','ascendc')
  encoded=tok.apply_chat_template(messages,tokenize=True,add_generation_prompt=True,reasoning_effort='low');actual_ids=encoded['input_ids'] if hasattr(encoded,'keys') else encoded
  assert ids==actual_ids and len(ids)+cap<=context<=128, 'request tokenizer or token bound mismatch'
- report.update(messages=messages,expected_final=expected,context_bound=context,cache_mib=request['cache_mib'])
+ report.update(messages=messages,expected_final=expected,context_bound=context,cache_mib=request['cache_mib'],kda_backend=kda_backend)
  stops=sorted(json.loads((model/'generation_config.json').read_text())['eos_token_id']);assert stops==[154820,154827,154829]
  report.update(prompt_ids=ids,stop_ids=stops,tokenizer_eos_id=tok.eos_token_id,generation_cap=cap,phase='assembly',prompt_argmax=[]);save()
  torch.ops.load_library(str(lib));config=Glm5NextConfig.from_checkpoint(model);reader=ModelSlimCheckpoint(model,max_read_bytes=2*1024**3)
  with torch.inference_mode():
   ops=make_experimental_fp32_expanded_dsa_operations(config,max_total_tokens=context)
-  runner=load_native_text_runner(reader,'npu',dsa_operations=ops,expert_policy='selected_per_token',max_expert_checkpoint_bytes=512*1024**2,max_expert_resident_bytes=512*1024**2,vocab_start=0,vocab_stop=config.vocab_size,max_head_rows=config.vocab_size,max_tokens=1,max_context_tokens=context,logical_block_size=128,hc_backend='ascend_installed',kda_backend='ascendc_installed_decode')
+  runner=load_native_text_runner(reader,'npu',dsa_operations=ops,expert_policy='selected_per_token',max_expert_checkpoint_bytes=512*1024**2,max_expert_resident_bytes=512*1024**2,vocab_start=0,vocab_stop=config.vocab_size,max_head_rows=config.vocab_size,max_tokens=1,max_context_tokens=context,logical_block_size=128,hc_backend='ascend_installed',kda_backend=kda_backend)
   for i,layer in enumerate(runner.stack.layers):
    if config.layers[i].attention=='deepseek_sparse_attention':layer.attention.operation=ops[i].bind(layer.attention.mla,layer.attention.indexer)
   report['installed']=install_rank_text_seams(runner,reader,rank=rank,world_size=4,cache_bytes=128*1024**2,max_assembled_bytes=16*1024**2,max_intermediate_rows=12288,max_packed_rows=8)
