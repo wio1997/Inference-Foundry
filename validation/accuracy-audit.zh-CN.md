@@ -41,3 +41,9 @@
 使用参考首位置捕获的卷积输出、门控、beta 和全零状态，在四个 die 上直接调用适配侧安装版 decode core，与参考 chunk prefill 的对应输出比较。对齐后相对 RMSE 仍约为 `0.00073` 至 `0.00521`，与对齐前几乎相同；逐 rank 指标见 [kda-aligned-core-round369.json](kda-aligned-core-round369.json)。
 
 该结果显示当前首位置核心输出差异在对齐上述操作数后仍存在，支持继续检查两条递推路径；它不证明具体内核机制、整模型输出因果关系或精度合格。后续须验证有界修正的状态与分段续算，并在 NPU 上回归。
+
+## 因果递推备选路径
+
+四个 die 上使用相同首 token 捕获操作数及零状态，比较安装版 decode、显式归一化 native recurrent 与数学 recurrence。相对参考 chunk prefill，显式归一化 native 和数学 recurrence 的输出相对 RMSE 约 `0.000615`–`0.00513`，仍有差异；这两种路径的状态彼此很接近，而相对安装版 decode 的状态相对 RMSE 约 `0.00160`–`0.00229`。逐 rank 指标见 [kda-causal-alternatives-round370.json](kda-causal-alternatives-round370.json)。
+
+这是单 token 检查，不证明替换后状态和多 token 续算正确。历史测试还观察到安装版 chunk 的未来位置敏感性，ABI 与根因尚未确认；不能仅为接近该参考而切换内核。任何候选替换需要先做非零状态、分段续算和整模型硬件回归；整体精度仍未验收。
