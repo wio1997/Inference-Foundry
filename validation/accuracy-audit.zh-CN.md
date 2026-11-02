@@ -59,3 +59,9 @@
 固定多轮案例、相同检查点和四 rank 执行，将实验中的 KDA backend 由 `ascendc_installed_decode` 切换为已有 `ascendc`；未修改模型源码。生成上限 3 token，四 rank 一致，生成 `[785,1196,738]`，与已保存参考的前三 token 一致；原 installed-decode 基线为 `[785,1196,3229]`。位置 0 注意力输出相对参考的 RMSE/RMS 由约 `0.006138` 变为 `0.005685`。原始范围内指标见 [recurrent-fullmodel-round372.json](recurrent-fullmodel-round372.json)。
 
 本次达到长度上限，未获得完整回答；单案例、三 token 和首层指标无法证明整体精度改善，也不构成 backend 切换或生产验收。保留原 backend 作为回退，后续需完成同配置完整输出和状态回归。
+
+## recurrent backend 完整短案例
+
+固定三消息记忆案例采用 `ascendc` 后端、64 token 上限和真实模板，四 rank 生成一致并自然停止，最终答案为 `42`。生成的全部 45 个 token 与同提示、同检查点的已保存独立参考逐位一致；先前 `ascendc_installed_decode` 的 44 token 输出在下标 2 首次不同。停止 ID `154827` 对应 `<|user|>`，属于配置的停止集合，不是 tokenizer EOS `154820`；未达到长度上限。结果和 top-five 概率见 [recurrent-complete-round373.json](recurrent-complete-round373.json)。
+
+该结果仅覆盖一个短案例和当前实验配置，不能推断整模型精度或生产可用性；路径间浮点及概率仍需进一步核对，状态恢复和其他负载也未因此自动验收。当前未修改模型默认后端，保留 installed-decode 回退。
