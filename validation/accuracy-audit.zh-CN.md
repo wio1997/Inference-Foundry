@@ -137,3 +137,9 @@
 四 rank 使用 `ascendc` 后端，先提交三个 token 并确认 KDA 状态非零，在第四个 token 的模型栈执行后令 rank 2 的 head 抛出 Python 异常。四 rank 均拒绝提交，失败前后的 token 计数及全部 45 层状态逐位一致；恢复 head 后重试同一 token，完整 logits 和全部 45 层最终状态均与干净的四 token 运行逐位一致。四个请求均已关闭，进程组已销毁。输入、依赖和逐 rank 结果见 [nonzero-rollback-round386.json](nonzero-rollback-round386.json)。
 
 该检查覆盖存活 rank 在 head 阶段的受控异常，不覆盖栈内异常、进程或设备失联，也不构成独立整体质量或生产验收。
+
+## 当前公开运行器的恢复回归
+
+当前公开 worker 使用 `ascendc` 后端，固定 `8+5` 输入并在首个生成 token 后执行 archive-v2 恢复。四 rank 均恢复成功，提示逐位置 argmax 与同源码不恢复运行一致，生成 `[154842,99366,154827]`，最终答案 `13` 并通过显式预期值检查。停止 ID `154827` 是配置的 `<|user|>`，不是 tokenizer EOS；未达到生成上限。进程组均已销毁，资源登记采集时为空。配置与逐 rank 结果见 [public-restore-round387.json](public-restore-round387.json)。
+
+该检查比较 token 和提示 argmax，未比较完整 logits；不构成独立整体质量或生产验收。
