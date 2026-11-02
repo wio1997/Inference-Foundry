@@ -188,6 +188,10 @@ def main():
                         errors.append(f'rank{rank} semantic failure')
                 except (OSError, ValueError, KeyError, TypeError) as error:
                     errors.append(f'rank{rank}: {error!r}')
+            if fatal:
+                errors.append('manager failure: ' + fatal)
+            if len(results) != 4 or any(item['exit_code'] != 0 for item in results):
+                errors.append('worker completion failure or unknown exit status')
             summary = {'semantic_status': 'pass' if not errors else 'fail', 'semantic_errors': errors, 'batch_id': 'cli-' + args.run_id, 'started_at': stamp, 'finished_at': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'port': port, 'fatal': fatal, 'workers': results}
             write(run / 'summary.json', summary)
             print(json.dumps(summary), flush=True)

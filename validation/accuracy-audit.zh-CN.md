@@ -89,3 +89,9 @@
 当前公开 runner 省略 `--kda-backend`，在相同三消息记忆输入及首 token 后恢复设置下，四 rank 均实际选择 `ascendc_installed_decode`，提示逐位置 argmax 和全部 44 个生成 token 与历史同运行时基线一致；最终答案为 `42`，各 rank 恢复与清理完成。停止 ID `154827` 是配置中的 `<|user|>`，不是 tokenizer EOS `154820`；未达到生成上限。配置、版本和 rank 结果见 [default-backend-round378.json](default-backend-round378.json)。
 
 这是固定案例的默认回退回归；基线和当前 launcher 来源版本不同，比较限定于记录的输入和配置。该结果不构成独立整体质量或生产验收。
+
+## 运行器摘要一致性修复与回归
+
+修复此前管理器报错、worker 退出非零或退出状态未知时，`summary.json` 仍可能记录 `pass` 的缺陷；这些情况现在会产生失败摘要。正常路径在四 rank NPU 上运行固定 `8+5` 案例，生成 `[154842,99366,154827]`，与保留参考案例一致，最终答案 `13`，各 rank 已清理。停止 ID `154827` 是配置的 `<|user|>`，不是 tokenizer EOS `154820`；未达到生成上限。管理器错误、非零/未知退出和缺少 worker 的摘要分支由本地无设备检查覆盖，未在硬件上人为制造这些故障。细节见 [runner-summary-round379.json](runner-summary-round379.json)。
+
+该检查不代表整体质量或生产验收。
