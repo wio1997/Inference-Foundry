@@ -77,3 +77,9 @@
 使用已有 `ascendc` 递推后端、45 层短上下文实验工厂和四 rank：各 rank 的 22 个提示位置在直接执行与分片执行之间 logits 逐位相同；生成、续算 logits 及全部 45 层最终状态一致。archive-v2 序列化、重新打开并恢复后，续算 logits、生成 token 和全部 45 层状态也均逐位一致。完整逐 rank 结果见 [recurrent-restore-round375.json](recurrent-restore-round375.json)。
 
 本测试生成四个 token 后达到上限，未自然停止，不能视为完整回答；它验证该配置下的状态/恢复一致性，不代表跨请求、长上下文、整体质量或生产验收。原 installed-decode 后端仍可回退。
+
+## recurrent backend 第二个记忆案例
+
+固定三消息记忆案例采用公开 runner 的 `ascendc` 后端、41 token 提示和 64 token 上限。四 rank 均返回最终答案 `17` 并在配置停止 token `154827` 自然停止，没有达到上限；该停止 token 不等于 tokenizer EOS `154820`。生成 38 token，与同提示和检查点的保留独立参考生成序列从下标 0 起不同；参考同样回答 `17`，生成 13 token。配置、逐 rank 序列与依赖见 [recurrent-recall17-round377.json](recurrent-recall17-round377.json)。
+
+该案例证明有限配置下的答案一致和 rank 一致，不能证明完整生成一致、整体质量或生产验收。独立质量验收仍待完成，原后端保持回退。
