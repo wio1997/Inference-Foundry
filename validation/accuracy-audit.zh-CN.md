@@ -125,3 +125,9 @@
 固定 `8+5` 输入、四 rank、`ascendc` 后端和每 rank 128 MiB 缓存下，三次瞬时设备工具报告的 HBM 使用量为各 die 18,718–19,039 MB；各 rank 框架峰值分配为 15,701,075,456 字节。采样时 worker 的 RSS/HWM 和逐 die 数据见 [memory-accounting-round384.json](memory-accounting-round384.json)。HBM 是设备总占用的瞬时样本，不能视为作业独占或完整峰值；框架峰值和逻辑缓存口径不同，不可相加。
 
 四 rank 缓存关闭前各为 126,156,800 字节，关闭后为零且无活动租约；命中均为零。生成 `[154842,99366,154827]`，最终答案 `13`；停止 ID `154827` 属于配置停止集合而非 tokenizer EOS，未达到生成上限。该短案例不是容量、吞吐或整体质量验收。
+
+## 同一模型实例的串行请求隔离
+
+四 rank 使用现有 `ascendc` 后端，在同一 45 层 runner 上依次执行三 token 的请求 B、不同的请求 A、再执行全新请求 B。四个 rank 中，两次 B 的逐步完整 logits 和全部 45 层最终状态均逐位一致，全部请求关闭后所有权计数为零。逐 rank 和配置见 [sequential-requests-round385.json](sequential-requests-round385.json)。
+
+这是已支持的单活动请求串行生命周期检查；不验证并发、长上下文、完整回答、整体质量或生产服务。
