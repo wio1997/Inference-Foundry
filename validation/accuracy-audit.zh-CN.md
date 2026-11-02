@@ -83,3 +83,9 @@
 固定三消息记忆案例采用公开 runner 的 `ascendc` 后端、41 token 提示和 64 token 上限。四 rank 均返回最终答案 `17` 并在配置停止 token `154827` 自然停止，没有达到上限；该停止 token 不等于 tokenizer EOS `154820`。生成 38 token，与同提示和检查点的保留独立参考生成序列从下标 0 起不同；参考同样回答 `17`，生成 13 token。配置、逐 rank 序列与依赖见 [recurrent-recall17-round377.json](recurrent-recall17-round377.json)。
 
 该案例证明有限配置下的答案一致和 rank 一致，不能证明完整生成一致、整体质量或生产验收。独立质量验收仍待完成，原后端保持回退。
+
+## 公开命令默认后端回归
+
+当前公开 runner 省略 `--kda-backend`，在相同三消息记忆输入及首 token 后恢复设置下，四 rank 均实际选择 `ascendc_installed_decode`，提示逐位置 argmax 和全部 44 个生成 token 与历史同运行时基线一致；最终答案为 `42`，各 rank 恢复与清理完成。停止 ID `154827` 是配置中的 `<|user|>`，不是 tokenizer EOS `154820`；未达到生成上限。配置、版本和 rank 结果见 [default-backend-round378.json](default-backend-round378.json)。
+
+这是固定案例的默认回退回归；基线和当前 launcher 来源版本不同，比较限定于记录的输入和配置。该结果不构成独立整体质量或生产验收。
