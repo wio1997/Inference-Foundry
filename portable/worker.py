@@ -82,7 +82,7 @@ try:
    text=tok.decode(body,skip_special_tokens=False);report['reason_final_boundary_present']='</think>' in text
    report['reasoning_text'],report['final_text']=(text.rsplit('</think>',1) if report['reason_final_boundary_present'] else (text,None))
    report['final_answer_exact']=report['final_text'] is not None and report['final_text'].strip()==expected if expected is not None else None
-   report['semantic_pass']=report['rank_agreement'] and report['stop_set_reached'] and not report['cap_reached'] and (expected is None or report['final_answer_exact']) and (not request['restore_after_first_token'] or report.get('restore_after_first_token_completed',False))
+   report['semantic_pass']=report['rank_agreement'] and report['stop_set_reached'] and not report['cap_reached'] and report['final_text'] is not None and bool(report['final_text'].strip()) and (expected is None or report['final_answer_exact']) and (not request['restore_after_first_token'] or report.get('restore_after_first_token_completed',False))
    save();assert report['semantic_pass'], 'recall did not produce naturally terminated exact final answer'
 
   finally:
