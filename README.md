@@ -82,7 +82,7 @@ python3 portable/runner.py --config /path/to/operator-config.json \
   --experimental-fp32-dsa
 ```
 
-消息文件必须位于任务目录内，且与 `--expected-final` 一致。结果写入唯一运行目录；若 worker 状态不确定，登记保留，必须先核实后接管。示例命令之外的部署、镜像重建、生产 TP/EP、服务生命周期、长上下文及独立整模型精度尚未验收。参考对比脚本的参数化 rank 映射仍未验证。
+消息文件必须位于任务目录内，且与 `--expected-final` 一致。结果写入唯一运行目录；若 worker 状态不确定，登记保留，必须先核实后接管。示例命令之外的部署、镜像重建、生产 TP/EP、服务生命周期、长上下文及独立整模型精度尚未验收。参数化参考入口只在下述四 rank 分配和固定案例上验证。
 
 ## 第三方依赖
 
@@ -99,3 +99,15 @@ python3 portable/runner.py --config "$OPERATOR_CONFIG" --run-id rollback-check -
 ```
 
 探针模式要求显式指定 `--kda-backend ascendc`，并固定使用四个短 token；普通文本模式仍为默认模式。四 rank 实测和普通模式回归见 [运行器记录](validation/public-rollback-runner-round389.json)。
+
+## 四 rank 参考对照
+
+公开运行器支持 `--reference-probe`，调用容器中已安装的 vLLM-Ascend 参考实现。先在操作者配置的 `container_env` 中填写 `GLM_REFERENCE_ROOT`，指向容器内安装的 `vllm_ascend` 包目录；参考模型和预取源码必须匹配 [探针](portable/reference_probe.py) 的哈希，参考环境、权重挂载、离线缓存目录和受控预取设置必须可用。沿用同一资源锁、登记、分配和 PID 映射屏障；`--experimental-fp32-dsa` 是当前运行器要求的显式实验开关，参考模型本身不使用 DeepInfer 的 DSA 工厂。参考模式不支持 DeepInfer 缓存或归档恢复。
+
+```bash
+python3 portable/runner.py --config "$OPERATOR_CONFIG" --messages "$MESSAGES" --run-id reference-check --goal reference-compatibility --experimental-fp32-dsa --reference-probe --context-tokens 128 --max-new-tokens 6 --expected-final 13
+python3 portable/runner.py --config "$OPERATOR_CONFIG" --messages "$MESSAGES" --run-id adaptation-check --goal bounded-input-cli --experimental-fp32-dsa --kda-backend ascendc --context-tokens 128 --max-new-tokens 6 --expected-final 13
+python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
+```
+
+两次运行必须顺序完成，消息及生成配置一致。对照工具接受运行目录（含 `summary.json` 和 `rank0`–`rank3/result.json`）或已有聚合 JSON；目录哈希按文件名与内容长度及字节计算，聚合文件哈希按文件原始字节计算。实测固定 `8+5` 案例的四 rank 生成 token 一致，详见 [结果](validation/portable-reference-round392.json)。这是单案例检查，不等同整体质量或生产验收。

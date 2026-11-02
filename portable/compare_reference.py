@@ -7,8 +7,23 @@ from pathlib import Path
 
 
 def load(path):
-    raw = Path(path).read_bytes()
-    result = json.loads(raw)
+    path = Path(path)
+    if path.is_dir():
+        files = [path / 'summary.json'] + [path / f'rank{i}' / 'result.json' for i in range(4)]
+        digest = hashlib.sha256()
+        contents = []
+        for file in files:
+            name = file.relative_to(path).as_posix().encode('utf-8')
+            data = file.read_bytes()
+            digest.update(len(name).to_bytes(8, 'big') + name)
+            digest.update(len(data).to_bytes(8, 'big') + data)
+            contents.append(json.loads(data))
+        result = {'summary': contents[0], 'ranks': contents[1:]}
+        source_sha = digest.hexdigest()
+    else:
+        raw = path.read_bytes()
+        result = json.loads(raw)
+        source_sha = hashlib.sha256(raw).hexdigest()
     ranks = result['ranks']
     if len(ranks) != 4 or sorted(r['rank'] for r in ranks) != list(range(4)) or len({r['die'] for r in ranks}) != 4:
         raise ValueError(f'{path}: expected four distinct ranks and dies')
@@ -20,7 +35,7 @@ def load(path):
     for key in ('stop_reason', 'finish_reason', 'stop_token_id', 'cap_reached', 'stop_ids'):
         if any(r.get(key) != ranks[0].get(key) for r in ranks[1:]):
             raise ValueError(f'{path}: ranks disagree on {key}')
-    return ranks[0], hashlib.sha256(raw).hexdigest()
+    return ranks[0], source_sha
 
 
 def main():
