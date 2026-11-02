@@ -4,14 +4,14 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态：已冻结源码有下述硬件验证；便携运行脚本仍是草稿，尚不能按本页一键完成环境复现。整体精度、性能及生产部署均未验收。**
+**当前状态：已冻结源码有下述硬件验证；便携请求与 rank 入口已做限定硬件验证，仍不能按本页一键完成环境复现。整体精度、性能及生产部署均未验收。**
 
 ## 目录导航
 
 | 目录或文件 | 内容 |
 |---|---|
 | [DeepInfer/](DeepInfer/) | 包含适配修改的源码快照 |
-| [portable/](portable/) | 参数化后的运行、结果对比脚本和示例消息；修改后尚未在 NPU 验证 |
+| [portable/](portable/) | 参数化请求构造、rank 入口、运行和结果对比脚本；验证范围见下文 |
 | [validation/](validation/) | 算术、多轮记忆及状态恢复验证材料，含源码文件哈希清单 |
 | [OPERATORS.md](OPERATORS.md) | 算子与模型接口适配清单：改动、源码位置、实际后端和验证限制 |
 | [SUBMODULES.md](SUBMODULES.md) | 上游第三方子模块的固定版本 |
@@ -48,7 +48,7 @@ sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b
 | 对话模板 | `34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891` |
 | 实测模型源码清单 | `7b6f73ccab6987daec9d29fdc46804a7a67a25c684222d5310914fb36c8b1857` |
 
-单文件哈希见 [validation/source-files.sha256.json](validation/source-files.sha256.json)。`portable/` 是在实测快照之后修改的版本，其通过语法检查不等于完成硬件验证。
+单文件哈希见 [validation/source-files.sha256.json](validation/source-files.sha256.json)。`portable/` 在实测源码快照之后修改；请求构造器和 rank 入口已按下述范围进行硬件验证。
 
 ## 已验证的范围及结果
 
@@ -62,25 +62,25 @@ sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b
 
 上述结果仅覆盖具体的短请求和配置，不代表独立整模型精度、性能或生产可用性已验收。生产级 TP/EP、批处理、服务生命周期及长上下文质量仍未验证。
 
-## 便携运行脚本：当前仍需补齐的复现步骤
+## 便携运行入口与复现边界
 
-[portable/worker.py](portable/worker.py) 保留了状态恢复和有界生成实验，并将模型、源码、自定义算子库等路径改为参数化配置。原现场控制器和绑定特定主机的启动器未公开；**修改后的便携脚本尚未在 NPU 执行**。
+[portable/launcher.py](portable/launcher.py) 的 `prepare` 读取交替对话 JSON、按模板分词并核对长度；`rank` 启动 [worker.py](portable/worker.py)。在现场分配器的锁、登记和映射门禁下，这两个入口已在四 rank 执行：每 rank 的 prompt argmax 和 44 个生成 token 均匹配 round 357，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round360.json](validation/restore-round360.json)。
 
-运行环境目前需要由操作者提供启动器，完成资源互斥、物理 die 与进程映射核验、请求 JSON 构造、各 rank 的 `go` 屏障文件，以及四个 HCCL rank 的启动。示例消息不是可直接执行的完整请求 JSON。
+**仍不能一键独立部署。** 测试时由未公开的现场分配器持有共享资源锁、登记进程、核验宿主 PID 到物理 die 的映射并释放各 rank 的 `go` 屏障。公开入口不负责这些操作；操作者必须提供等效的资源分配、互斥、登记、核验及超时机制。以下为经测试入口的参数化示例，须先完成授权资源分配并设置镜像内实际路径：
 
-各进程涉及以下环境变量，具体路径和设备范围应按操作者自己的环境设置：
+```sh
+export GLM_MODEL_DIR=/path/to/GLM-5.3-Flash-w8a8
+export GLM_SOURCE_DIR=/path/to/DeepInfer
+export GLM_ASCEND_LIBRARY=/path/to/vllm_ascend_C.so
+export GLM_EXPERIMENT_RUN_DIR=/path/to/unique-run
+python3 portable/launcher.py prepare --run-id example --context-tokens 128 \
+  --max-new-tokens 64 --cache-mib 0 --expected-final 42 \
+  --restore-after-first-token < /path/to/messages.json > "$GLM_EXPERIMENT_RUN_DIR/request.json"
+# 由资源分配器给每个 rank 设置经核验的 ASCEND_RT_VISIBLE_DEVICES：
+python3 portable/launcher.py rank --rank "$RANK" --die "$DIE" --port "$PORT"
+```
 
-| 变量 | 用途 |
-|---|---|
-| `GLM_MODEL_DIR` | 模型权重目录 |
-| `GLM_SOURCE_DIR` | DeepInfer 源码目录 |
-| `GLM_ASCEND_LIBRARY` | 自定义昇腾算子动态库 |
-| `GLM_EXPERIMENT_RUN_DIR` | 本次运行的独立产物目录 |
-| `ASCEND_RT_VISIBLE_DEVICES` | 当前进程获授权使用的设备 |
-
-[portable/compare_reference.py](portable/compare_reference.py) 接收两份兼容的四 rank 结果 JSON；参数化后的 rank 映射尚未执行验证。当前没有已验收的完整容器部署命令，不应把这份脚本草稿当成开箱即用部署包。
-
-后续优先补齐参数化启动入口，并在真实 NPU 上执行公开文档中的命令，记录结果后再更新复现状态。
+分配器还需提供四个不同 rank/die、共同端口、HCCL 和镜像环境，并在核验全部映射后才建立每个 `rankN/go`。仓库示例消息是算术请求，应使用对应预期答案和生成长度。参考结果对比脚本的参数化 rank 映射尚未验证。精确 CANN 版本与镜像重建仍未验证。
 
 ## 第三方依赖
 
