@@ -1,0 +1,82 @@
+[build-system]
+requires = [
+    "ninja",
+    "setuptools >= 77.0.3",
+    "torch >= 2.7",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepinfer"
+version = "0.1.0"
+description = "DeepInfer: High-performance, large-scale inference framework for DeepSeek models"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "DeepSeek-AI" }]
+keywords = ["llm", "inference", "deepseek", "cuda", "ascend"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dynamic = ["dependencies"]
+urls = { Repository = "https://github.com/deepseek-ai/deepinfer", Issues = "https://github.com/deepseek-ai/deepinfer/issues" }
+
+[tool.pytest.ini_options]
+# Use importlib import mode so that collecting test files inside the deepinfer
+# package (e.g. deepinfer/model_executor/layers/tilelang_ops/*.py) does NOT
+# trigger the package __init__.py chain (which imports heavy deps like
+# deep_gemm).
+addopts = ["--import-mode=importlib"]
+testpaths = ["tests"]
+markers = [
+    "ci: core tests that run on every CI pipeline",
+    "ci_npu: core tests that run on the NPU/Ascend CI pipeline",
+    "benchmark: performance tests selected by benchmark jobs",
+    "long_context: long-input/output decode PPL regression",
+    "gpu: unit tests requiring a working GPU",
+]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # type hint
+    "ANN",
+    # disallow specific packages
+    "TID251",
+]
+ignore = [
+    # missing return type for private function; dynamically typed Any
+    "ANN202", "ANN401",
+    # star imports
+    "F405", "F403",
+    # lambda expression assignment
+    "E731",
+    # f-string without any placeholders
+    "F541",
+    # line too long, handled by black formatting
+    "E501",
+    # module level import not at top of file
+    "E402",
+    # function definition does not bind loop variable
+    "B023",
+]
+
+[tool.ruff]
+line-length = 140
+include = ["./**/*.py"]
+extend-exclude = ["vendor"]
