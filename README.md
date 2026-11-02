@@ -4,14 +4,14 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态：已冻结源码有下述硬件验证；便携请求与 rank 入口已做限定硬件验证，仍不能按本页一键完成环境复现。整体精度、性能及生产部署均未验收。**
+**当前状态：已冻结源码有下述硬件验证；便携请求、rank 入口和参数化运行器已做限定硬件验证；复现仍依赖操作者提供兼容的资源登记和预算策略。整体精度、性能及生产部署均未验收。**
 
 ## 目录导航
 
 | 目录或文件 | 内容 |
 |---|---|
 | [DeepInfer/](DeepInfer/) | 包含适配修改的源码快照 |
-| [portable/](portable/) | 参数化请求构造、rank 入口、运行和结果对比脚本；验证范围见下文 |
+| [portable/](portable/) | 参数化请求构造、四 rank 运行器和结果对比脚本；验证范围见下文 |
 | [validation/](validation/) | 算术、多轮记忆及状态恢复验证材料，含源码文件哈希清单 |
 | [OPERATORS.md](OPERATORS.md) | 算子与模型接口适配清单：改动、源码位置、实际后端和验证限制 |
 | [SUBMODULES.md](SUBMODULES.md) | 上游第三方子模块的固定版本 |
@@ -64,23 +64,23 @@ sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b
 
 ## 便携运行入口与复现边界
 
-[portable/launcher.py](portable/launcher.py) 的 `prepare` 读取交替对话 JSON、按模板分词并核对长度；`rank` 启动 [worker.py](portable/worker.py)。在现场分配器的锁、登记和映射门禁下，这两个入口已在四 rank 执行：每 rank 的 prompt argmax 和 44 个生成 token 均匹配 round 357，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round360.json](validation/restore-round360.json)。
+[portable/runner.py](portable/runner.py) 是操作者持有的参数化四 rank 运行器：它使用既有共享锁和登记文件，核对分配、卡占用、镜像及源码/权重哈希，调用操作者的有界预算 helper，启动并登记进程，确认宿主 PID 到 card/chip 的映射后释放 `go` 屏障。它不停止其他工作负载。运行器配合 [launcher.py](portable/launcher.py) 与 [worker.py](portable/worker.py) 在四 rank 上执行一次短多轮恢复：每个 rank 的 prompt argmax 与 44 个生成 token 均匹配 round 360，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round361.json](validation/restore-round361.json)。
 
-**仍不能一键独立部署。** 测试时由未公开的现场分配器持有共享资源锁、登记进程、核验宿主 PID 到物理 die 的映射并释放各 rank 的 `go` 屏障。公开入口不负责这些操作；操作者必须提供等效的资源分配、互斥、登记、核验及超时机制。以下为经测试入口的参数化示例，须先完成授权资源分配并设置镜像内实际路径：
+先将 [operator-config.example.json](portable/operator-config.example.json) 复制到任务目录并填写自己的**真实**路径、锁、已运行隔离容器 ID、镜像本地 ID、授权 die/card/chip 对应关系、赋权和登记 JSON、源码清单及 SHA-256。示例中的零值、路径和设备号只是占位符，不表示授权或已验证配置。`pinned_files` 必须包含可信源码清单、权重索引、模型配置与模板哈希。容器内外的源码、运行目录和 launcher 路径必须分别映射到同一内容；模型权重应只读挂载。
+
+运行器要求操作者提供可信的预算 helper 和策略文件；helper 必须实现 `reserve(root, lock, goal, source_sha256, attempt_id, workers, timeout_seconds)`，并在传入的同一共享锁下原子核对授权和持久化预算。公共仓不包含现场策略或现场控制器。分配与登记 schema、设备映射、容器环境、NPU 可用性和 helper 的正确性由操作者按现场资源协议核验；没有兼容策略时不能运行。公开代码不提供服务、部署或自动抢占。
+
+在已授权且配置完整的现场，参数化调用方式为：
 
 ```sh
-export GLM_MODEL_DIR=/path/to/GLM-5.3-Flash-w8a8
-export GLM_SOURCE_DIR=/path/to/DeepInfer
-export GLM_ASCEND_LIBRARY=/path/to/vllm_ascend_C.so
-export GLM_EXPERIMENT_RUN_DIR=/path/to/unique-run
-python3 portable/launcher.py prepare --run-id example --context-tokens 128 \
-  --max-new-tokens 64 --cache-mib 0 --expected-final 42 \
-  --restore-after-first-token < /path/to/messages.json > "$GLM_EXPERIMENT_RUN_DIR/request.json"
-# 由资源分配器给每个 rank 设置经核验的 ASCEND_RT_VISIBLE_DEVICES：
-python3 portable/launcher.py rank --rank "$RANK" --die "$DIE" --port "$PORT"
+python3 portable/runner.py --config /path/to/operator-config.json \
+  --messages /path/to/task-root/messages.json --run-id example \
+  --goal reproducible-release --context-tokens 128 --max-new-tokens 64 \
+  --cache-mib 0 --expected-final 42 --restore-after-first-token \
+  --experimental-fp32-dsa
 ```
 
-分配器还需提供四个不同 rank/die、共同端口、HCCL 和镜像环境，并在核验全部映射后才建立每个 `rankN/go`。仓库示例消息是算术请求，应使用对应预期答案和生成长度。参考结果对比脚本的参数化 rank 映射尚未验证。精确 CANN 版本与镜像重建仍未验证。
+消息文件必须位于任务目录内，且与 `--expected-final` 一致。结果写入唯一运行目录；若 worker 状态不确定，登记保留，必须先核实后接管。示例命令之外的部署、镜像重建、生产 TP/EP、服务生命周期、长上下文及独立整模型精度尚未验收。参考对比脚本的参数化 rank 映射仍未验证。
 
 ## 第三方依赖
 
