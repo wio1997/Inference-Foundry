@@ -75,6 +75,11 @@ def main():
         if args.reference_probe and (args.cache_mib or args.restore_after_first_token or args.kda_backend != 'ascendc_installed_decode'):
             parser.error('reference mode does not support DeepInfer cache, restore or backend selection')
     cfg = read(args.config)
+    manifest_path = Path(cfg['base_source_manifest']).resolve()
+    manifest_pins = [entry for entry in cfg['pinned_files']
+                     if Path(entry['path']).resolve() == manifest_path]
+    if len(manifest_pins) != 1 or sha(manifest_path) != manifest_pins[0]['sha256']:
+        raise RuntimeError('base source manifest must have exactly one matching SHA256 pin')
     root = Path(cfg['task_root']).resolve()
     if not args.rollback_probe:
         messages = Path(args.messages).resolve()
