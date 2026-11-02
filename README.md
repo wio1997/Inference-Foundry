@@ -95,7 +95,7 @@ python3 portable/runner.py --config /path/to/operator-config.json \
 公开运行器也支持在已有配置和消息文件的调用中增加 `--rollback-probe`，使用同一互斥、登记、授权、PID 映射和 2100 秒工作进程上限启动探针；仍需 `--experimental-fp32-dsa` 和有效的 `--messages` 文件。示例：
 
 ```bash
-python3 portable/runner.py --config "$OPERATOR_CONFIG" --messages "$MESSAGES" --run-id rollback-check --goal reproducible-release --experimental-fp32-dsa --rollback-probe
+python3 portable/runner.py --config "$OPERATOR_CONFIG" --messages "$MESSAGES" --run-id rollback-check --goal reproducible-release --experimental-fp32-dsa --rollback-probe --kda-backend ascendc
 ```
 
-探针模式固定使用 `ascendc` 和四个短 token；普通文本模式仍为默认模式。四 rank 实测和普通模式回归见 [运行器记录](validation/public-rollback-runner-round389.json)。
+探针模式要求显式指定 `--kda-backend ascendc`，并固定使用四个短 token；普通文本模式仍为默认模式。四 rank 实测和普通模式回归见 [运行器记录](validation/public-rollback-runner-round389.json)。

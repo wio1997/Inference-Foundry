@@ -52,6 +52,8 @@ def main():
     args = parser.parse_args()
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
+    if args.rollback_probe and args.kda_backend != 'ascendc':
+        parser.error('--rollback-probe requires --kda-backend ascendc')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', args.run_id):
         parser.error('invalid run ID')
     if not (1 <= args.context_tokens <= 128 and 1 <= args.max_new_tokens <= 64 and 0 <= args.cache_mib <= 128):
