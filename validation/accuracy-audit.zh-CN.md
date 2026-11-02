@@ -47,3 +47,9 @@
 四个 die 上使用相同首 token 捕获操作数及零状态，比较安装版 decode、显式归一化 native recurrent 与数学 recurrence。相对参考 chunk prefill，显式归一化 native 和数学 recurrence 的输出相对 RMSE 约 `0.000615`–`0.00513`，仍有差异；这两种路径的状态彼此很接近，而相对安装版 decode 的状态相对 RMSE 约 `0.00160`–`0.00229`。逐 rank 指标见 [kda-causal-alternatives-round370.json](kda-causal-alternatives-round370.json)。
 
 这是单 token 检查，不证明替换后状态和多 token 续算正确。历史测试还观察到安装版 chunk 的未来位置敏感性，ABI 与根因尚未确认；不能仅为接近该参考而切换内核。任何候选替换需要先做非零状态、分段续算和整模型硬件回归；整体精度仍未验收。
+
+## 非零状态与分段续算
+
+四 die 各用首位置捕获操作数生成非零状态，再将位置 40、41、42 的捕获操作数直接接续，比较显式归一化 native recurrent 的三 token 一次运行与逐 token 运行。四 rank 的输出与最终状态均逐位相同；其相对数学 recurrence 的状态相对 RMSE 为 `1.82e-8`–`3.51e-8`。安装版 decode 相对数学 recurrence 的状态相对 RMSE 为 `0.00122`–`0.00156`。逐 rank 结果见 [kda-state-continuation-round371.json](kda-state-continuation-round371.json)。
+
+这是拼接的操作数序列：位置 0 后直接接位置 40–42，不代表原提示的完整历史，也没有规定质量容差。该有限结果支持继续对已有 native backend 做完整模型回归；不能据此宣称整体质量或生产验收通过。
