@@ -13,6 +13,7 @@
 | [DeepInfer/](DeepInfer/) | 包含适配修改的源码快照 |
 | [portable/](portable/) | 参数化后的运行、结果对比脚本和示例消息；修改后尚未在 NPU 验证 |
 | [validation/](validation/) | 算术、多轮记忆及状态恢复验证材料，含源码文件哈希清单 |
+| [OPERATORS.md](OPERATORS.md) | 算子与模型接口适配清单：改动、源码位置、实际后端和验证限制 |
 | [SUBMODULES.md](SUBMODULES.md) | 上游第三方子模块的固定版本 |
 
 ## 已验证的开发环境与镜像
