@@ -71,3 +71,9 @@
 固定 `8+5` 案例使用 `ascendc` 后端、真实模板和 6 token 上限；四 rank 生成一致，完整 token `[154842,99366,154827]` 与保留的独立参考及先前 installed-decode 基线均一致，最终答案 `13`。停止 ID `154827` 是配置的 `<|user|>`，不是 tokenizer EOS `154820`；未达到上限。指标见 [recurrent-arithmetic-round374.json](recurrent-arithmetic-round374.json)。
 
 该结果只覆盖一个短算术案例，不能代表整模型精度或生产验收。候选后端仍需整模型归档恢复、状态和续算验证，原 backend 保留为回退。
+
+## recurrent backend 整模型归档恢复
+
+使用已有 `ascendc` 递推后端、45 层短上下文实验工厂和四 rank：各 rank 的 22 个提示位置在直接执行与分片执行之间 logits 逐位相同；生成、续算 logits 及全部 45 层最终状态一致。archive-v2 序列化、重新打开并恢复后，续算 logits、生成 token 和全部 45 层状态也均逐位一致。完整逐 rank 结果见 [recurrent-restore-round375.json](recurrent-restore-round375.json)。
+
+本测试生成四个 token 后达到上限，未自然停止，不能视为完整回答；它验证该配置下的状态/恢复一致性，不代表跨请求、长上下文、整体质量或生产验收。原 installed-decode 后端仍可回退。
