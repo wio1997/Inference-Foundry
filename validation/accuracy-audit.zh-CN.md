@@ -131,3 +131,9 @@
 四 rank 使用现有 `ascendc` 后端，在同一 45 层 runner 上依次执行三 token 的请求 B、不同的请求 A、再执行全新请求 B。四个 rank 中，两次 B 的逐步完整 logits 和全部 45 层最终状态均逐位一致，全部请求关闭后所有权计数为零。逐 rank 和配置见 [sequential-requests-round385.json](sequential-requests-round385.json)。
 
 这是已支持的单活动请求串行生命周期检查；不验证并发、长上下文、完整回答、整体质量或生产服务。
+
+## 非零状态下的分布式失败与重试
+
+四 rank 使用 `ascendc` 后端，先提交三个 token 并确认 KDA 状态非零，在第四个 token 的模型栈执行后令 rank 2 的 head 抛出 Python 异常。四 rank 均拒绝提交，失败前后的 token 计数及全部 45 层状态逐位一致；恢复 head 后重试同一 token，完整 logits 和全部 45 层最终状态均与干净的四 token 运行逐位一致。四个请求均已关闭，进程组已销毁。输入、依赖和逐 rank 结果见 [nonzero-rollback-round386.json](nonzero-rollback-round386.json)。
+
+该检查覆盖存活 rank 在 head 阶段的受控异常，不覆盖栈内异常、进程或设备失联，也不构成独立整体质量或生产验收。
