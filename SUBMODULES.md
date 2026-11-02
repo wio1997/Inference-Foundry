@@ -1,6 +1,6 @@
-# Upstream submodule pins
+# 上游第三方子模块固定版本
 
-Pins from the baseline tree. Submodules are not included. URLs are in `DeepInfer/.gitmodules`.
+以下提交号来自上游基线源码。分支未包含子模块实体；仓库地址见 [DeepInfer/.gitmodules](DeepInfer/.gitmodules)。请从对应上游仓库显式获取指定提交，保留其许可证及版权说明。
 
 - `vendor/DeepEP`: `f6aa38fe06cd4a0489e7730365d4e0114970a2f3`
 - `vendor/DeepEP-Ascend`: `3b25377d04b24fc6154698ded78a2bcb2c59afff`
