@@ -75,7 +75,15 @@ try:
    finally:runner.head.forward=original_head
    after=q.snapshot();report['failure_coordinated']=True;report['failure_tokens_seen']=after.tokens_seen;report['failure_state_equal']=state_eq(before,after,config)
    assert after.tokens_seen==3 and len(report['failure_state_equal'])==45 and all(report['failure_state_equal'].values())
-   del before,after
+   del after
+   report['phase']='rank_input_mismatch';save()
+   try:q.step(torch.tensor([25063 if rank==2 else tokens[3]],dtype=torch.int64),expected_tokens_seen=3)
+   except ValueError as exc:
+    assert str(exc)=='rank linear inputs differ',repr(exc)
+   else:raise AssertionError('rank input mismatch unexpectedly committed')
+   mismatch=q.snapshot();report['rank_input_mismatch_coordinated']=True;report['rank_input_mismatch_tokens_seen']=mismatch.tokens_seen;report['rank_input_mismatch_state_equal']=state_eq(before,mismatch,config)
+   assert mismatch.tokens_seen==3 and len(report['rank_input_mismatch_state_equal'])==45 and all(report['rank_input_mismatch_state_equal'].values())
+   del before,mismatch
    report['phase']='retry';save();retry=step(q,tokens[3],3);retry_state=q.snapshot()
   finally:q.close()
   report['tokens']=tokens;report['retry_logits_equal']=torch.equal(clean[3],retry);report['retry_state_equal']=state_eq(clean_state,retry_state,config);report['request_owners_remaining']=len(runner._requests)

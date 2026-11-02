@@ -120,7 +120,7 @@ def main():
             request = {'run_id': args.run_id, 'mode': 'rollback_probe',
                        'kda_backend': 'ascendc', 'context_tokens': 32, 'cache_mib': 0,
                        'tokens': [154822, 154824, 154826, 25062],
-                       'injected_rank': 2, 'failure_point': 'head_after_stack',
+                       'injected_rank': 2, 'failure_points': ['head_after_stack', 'rank_input_mismatch'], 'mismatch_token': 25063,
                        'committed_prefix_tokens': 3}
         else:
             prepare = ['docker', 'exec', '-i', '-e', 'GLM_MODEL_DIR=' + cfg['model_container'],
@@ -223,7 +223,7 @@ def main():
                 try:
                     x = read(run / f'rank{rank}' / 'result.json')
                     if args.rollback_probe:
-                        passed = (x['status'] == 'passed' and x['rank_commit_agreement_enabled'] and x['failure_coordinated'] and x['failure_tokens_seen'] == 3 and x['nonzero_kda'] and all(x['prefix_logits_equal']) and len(x['failure_state_equal']) == 45 and all(x['failure_state_equal'].values()) and x['retry_logits_equal'] and len(x['retry_state_equal']) == 45 and all(x['retry_state_equal'].values()) and x['request_owners_remaining'] == 0 and x['destroyed'])
+                        passed = (x['status'] == 'passed' and x['rank_commit_agreement_enabled'] and x['failure_coordinated'] and x['failure_tokens_seen'] == 3 and x['nonzero_kda'] and all(x['prefix_logits_equal']) and len(x['failure_state_equal']) == 45 and all(x['failure_state_equal'].values()) and x['rank_input_mismatch_coordinated'] and x['rank_input_mismatch_tokens_seen'] == 3 and len(x['rank_input_mismatch_state_equal']) == 45 and all(x['rank_input_mismatch_state_equal'].values()) and x['retry_logits_equal'] and len(x['retry_state_equal']) == 45 and all(x['retry_state_equal'].values()) and x['request_owners_remaining'] == 0 and x['destroyed'])
                     elif args.reference_probe:
                         passed = (x['status'] == 'passed' and bool(x['checks']) and all(x['checks'].values()) and not x['cap_reached'])
                     else:
