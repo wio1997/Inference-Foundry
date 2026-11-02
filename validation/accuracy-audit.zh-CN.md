@@ -65,3 +65,9 @@
 固定三消息记忆案例采用 `ascendc` 后端、64 token 上限和真实模板，四 rank 生成一致并自然停止，最终答案为 `42`。生成的全部 45 个 token 与同提示、同检查点的已保存独立参考逐位一致；先前 `ascendc_installed_decode` 的 44 token 输出在下标 2 首次不同。停止 ID `154827` 对应 `<|user|>`，属于配置的停止集合，不是 tokenizer EOS `154820`；未达到长度上限。结果和 top-five 概率见 [recurrent-complete-round373.json](recurrent-complete-round373.json)。
 
 该结果仅覆盖一个短案例和当前实验配置，不能推断整模型精度或生产可用性；路径间浮点及概率仍需进一步核对，状态恢复和其他负载也未因此自动验收。当前未修改模型默认后端，保留 installed-decode 回退。
+
+## recurrent backend 算术回归
+
+固定 `8+5` 案例使用 `ascendc` 后端、真实模板和 6 token 上限；四 rank 生成一致，完整 token `[154842,99366,154827]` 与保留的独立参考及先前 installed-decode 基线均一致，最终答案 `13`。停止 ID `154827` 是配置的 `<|user|>`，不是 tokenizer EOS `154820`；未达到上限。指标见 [recurrent-arithmetic-round374.json](recurrent-arithmetic-round374.json)。
+
+该结果只覆盖一个短算术案例，不能代表整模型精度或生产验收。候选后端仍需整模型归档恢复、状态和续算验证，原 backend 保留为回退。
