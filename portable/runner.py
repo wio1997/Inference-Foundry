@@ -38,12 +38,12 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', required=True)
-    parser.add_argument('--messages', required=True)
+    parser.add_argument('--messages')
     parser.add_argument('--run-id', required=True)
     parser.add_argument('--goal', default='reproducible-release')
-    parser.add_argument('--context-tokens', type=int, default=128)
-    parser.add_argument('--max-new-tokens', type=int, default=64)
-    parser.add_argument('--cache-mib', type=int, default=0)
+    parser.add_argument('--context-tokens', type=int)
+    parser.add_argument('--max-new-tokens', type=int)
+    parser.add_argument('--cache-mib', type=int)
     parser.add_argument('--kda-backend', choices=('ascendc_installed_decode', 'ascendc'), default='ascendc_installed_decode')
     parser.add_argument('--expected-final')
     parser.add_argument('--restore-after-first-token', action='store_true')
@@ -56,14 +56,26 @@ def main():
         parser.error('--rollback-probe requires --kda-backend ascendc')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', args.run_id):
         parser.error('invalid run ID')
-    if not (1 <= args.context_tokens <= 128 and 1 <= args.max_new_tokens <= 64 and 0 <= args.cache_mib <= 128):
-        parser.error('invalid context, generation or cache bound')
+    if args.rollback_probe:
+        if (args.messages is not None or args.context_tokens is not None or
+                args.max_new_tokens is not None or args.cache_mib is not None or
+                args.expected_final is not None or args.restore_after_first_token):
+            parser.error('text request options are not valid with --rollback-probe')
+    else:
+        if args.messages is None:
+            parser.error('--messages is required for text mode')
+        args.context_tokens = 128 if args.context_tokens is None else args.context_tokens
+        args.max_new_tokens = 64 if args.max_new_tokens is None else args.max_new_tokens
+        args.cache_mib = 0 if args.cache_mib is None else args.cache_mib
+        if not (1 <= args.context_tokens <= 128 and 1 <= args.max_new_tokens <= 64 and 0 <= args.cache_mib <= 128):
+            parser.error('invalid context, generation or cache bound')
     cfg = read(args.config)
     root = Path(cfg['task_root']).resolve()
-    messages = Path(args.messages).resolve()
-    if not messages.is_file() or not messages.is_relative_to(root) or messages.stat().st_size > 16384:
-        parser.error('message file must be under task root and <=16 KiB')
-    input_text = messages.read_text()
+    if not args.rollback_probe:
+        messages = Path(args.messages).resolve()
+        if not messages.is_file() or not messages.is_relative_to(root) or messages.stat().st_size > 16384:
+            parser.error('message file must be under task root and <=16 KiB')
+        input_text = messages.read_text()
     run = root / cfg['run_relative'] / ('bounded-cli-' + args.run_id)
     allocation = cfg['allocation']
     if len(allocation) != 4 or sorted(x['rank'] for x in allocation) != list(range(4)) or len({x['die'] for x in allocation}) != 4 or len({(x['card'], x['chip']) for x in allocation}) != 4:
@@ -99,19 +111,26 @@ def main():
             manifest['portable:' + file] = sha(Path(__file__).resolve().parent / file)
         payload = json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
         source_digest = hashlib.sha256(payload).hexdigest()
-        prepare = ['docker', 'exec', '-i', '-e', 'GLM_MODEL_DIR=' + cfg['model_container'],
-                   '-e', 'HF_HUB_OFFLINE=1', '-e', 'TRANSFORMERS_OFFLINE=1', cfg['container'],
-                   'python3', cfg['launcher_container'], 'prepare', '--run-id', args.run_id,
-                   '--context-tokens', str(args.context_tokens), '--max-new-tokens', str(args.max_new_tokens),
-                   '--cache-mib', str(args.cache_mib), '--kda-backend', args.kda_backend]
-        if args.expected_final is not None:
-            prepare += ['--expected-final', args.expected_final]
-        if args.restore_after_first_token:
-            prepare.append('--restore-after-first-token')
-        result = subprocess.run(prepare, input=input_text, capture_output=True, text=True, timeout=90, check=True)
-        request = json.loads(result.stdout.strip().splitlines()[-1])
-        if request['run_id'] != args.run_id or request['messages'] != json.loads(input_text) or request['kda_backend'] != args.kda_backend:
-            raise RuntimeError('request builder returned a different request')
+        if args.rollback_probe:
+            request = {'run_id': args.run_id, 'mode': 'rollback_probe',
+                       'kda_backend': 'ascendc', 'context_tokens': 32, 'cache_mib': 0,
+                       'tokens': [154822, 154824, 154826, 25062],
+                       'injected_rank': 2, 'failure_point': 'head_after_stack',
+                       'committed_prefix_tokens': 3}
+        else:
+            prepare = ['docker', 'exec', '-i', '-e', 'GLM_MODEL_DIR=' + cfg['model_container'],
+                       '-e', 'HF_HUB_OFFLINE=1', '-e', 'TRANSFORMERS_OFFLINE=1', cfg['container'],
+                       'python3', cfg['launcher_container'], 'prepare', '--run-id', args.run_id,
+                       '--context-tokens', str(args.context_tokens), '--max-new-tokens', str(args.max_new_tokens),
+                       '--cache-mib', str(args.cache_mib), '--kda-backend', args.kda_backend]
+            if args.expected_final is not None:
+                prepare += ['--expected-final', args.expected_final]
+            if args.restore_after_first_token:
+                prepare.append('--restore-after-first-token')
+            result = subprocess.run(prepare, input=input_text, capture_output=True, text=True, timeout=90, check=True)
+            request = json.loads(result.stdout.strip().splitlines()[-1])
+            if request['run_id'] != args.run_id or request['messages'] != json.loads(input_text) or request['kda_backend'] != args.kda_backend:
+                raise RuntimeError('request builder returned a different request')
         helper = Path(cfg['reservation_helper'])
         if sha(helper) != cfg['reservation_helper_sha256'] or sha(cfg['policy']) != cfg['policy_sha256']:
             raise RuntimeError('reservation helper or policy pin mismatch')
