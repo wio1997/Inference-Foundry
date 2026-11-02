@@ -112,4 +112,4 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 
 两次运行必须顺序完成，消息及生成配置一致。对照工具接受运行目录（含 `summary.json` 和 `rank0`–`rank3/result.json`）或已有聚合 JSON；目录哈希按文件名与内容长度及字节计算，聚合文件哈希按文件原始字节计算。实测固定 `8+5` 案例的四 rank 生成 token 一致，详见 [结果](validation/portable-reference-round392.json)；三消息回忆案例的参考序列与保留参考一致，但与适配序列不同，见 [多轮结果](validation/portable-reference-recall-round393.json)。这是单案例检查，不等同整体质量或生产验收。
 
-回滚探针现依次验证 rank 2 的 head 异常和单 rank 输入不一致，再核对状态与重试；四 rank 实测见 [结果](validation/portable-rank-mismatch-round395.json)。本次只重跑了探针模式，普通文本模式沿用先前版本的验证结果。
+回滚探针现依次验证 rank 2 的 head 异常和单 rank 输入不一致，再核对状态与重试；四 rank 实测见 [结果](validation/portable-rank-mismatch-round395.json)。同版本普通文本模式的四 rank 回归见 [结果](validation/public-normal-round396.json)；参考模式尚未在此版本重跑。
