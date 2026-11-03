@@ -89,3 +89,5 @@ CLI 请求开启恢复时，反序列化后比较45层状态并跨 rank 汇总�
 单 token rank preflight 将 token ID 与身份和位置一并汇总，不一致在 embedding 前拒绝；[四 rank 测试](validation/rank-token-preflight-round420.json) 不涵盖设备/进程故障。
 
 reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 回归范围见 [记录](validation/cache-binding-round420.json)，零 hit 不代表性能收益。
+
+单 die 的真实 recall17 layer0 八 token 边界和40 token尾部控制见 [记录](validation/kda-eight-boundary-round421.json)；未验收整体精度或性能。

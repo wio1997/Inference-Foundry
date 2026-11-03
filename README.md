@@ -149,3 +149,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 单 token rank 提交 preflight 现同时比较 token ID，已实测 rank 2 token 不一致时在 embedding 前协同拒绝；状态和重试结果见 [验证记录](validation/rank-token-preflight-round420.json)。
 
 指定非零 reusable cache 时，rank 专家适配器现使用与请求相同的预算；64 MiB 四 rank 曾因固定128 MiB绑定失败，修正后短请求通过。零 session 仍使用原128 MiB临时 cache 上限；这些预算不包含临时副本、native 分配或 allocator 开销。[验证记录](validation/cache-binding-round420.json)。
+
+真实 recall17 的 layer0 首8 token 实验回放中，rank0 的 position0 投影与保留参考相同，core、gated 和 attention 输出有数值差异；固定40 token长度并只改变后32个输入时，首位置 core 在各自重复中稳定但两种尾部之间不同。该单 die 检查不证明内部根因或整模型精度。[记录](validation/kda-eight-boundary-round421.json)。
