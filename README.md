@@ -201,3 +201,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地投影分为最多8行；默认仍为8。四 rank 算子范围验证见 [记录](validation/rank-linear-tiles-round434.json)；40 token 整模型路径尚未集成。
 
 实验性45层40+1 token预填充在四 rank 完成，recall17 首生成 token 与保留参考一致；完整 logits 和生成序列尚未比较。[范围](validation/prefill40-round436.json)。默认仍是8 token，公共 CLI 尚未接入此模式。
+
+40+1 预填充的 recall17 完整生成自然停止，与保留参考的前6个生成 token 相同、索引6首次不同；完整 logits 未比较。[记录](validation/recall17-prefill40-round437.json)。

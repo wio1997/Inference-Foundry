@@ -125,3 +125,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 rank W8A8 输出投影可显式配置最多40个输入 token，以8行分块；[验证范围](validation/rank-linear-tiles-round434.json)仅覆盖算子与受控 rank 故障。
 
 KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入结果见 [记录](validation/prefill40-round436.json)；默认界限仍为8。
+
+40+1 实验路径的 recall17 完整生成范围与差异见 [记录](validation/recall17-prefill40-round437.json)。
