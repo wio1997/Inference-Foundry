@@ -137,3 +137,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 当前源码的四 rank 三消息 recall17 在第一个生成 token 后进行 archive-v2 恢复，生成的38个 IDs 与保留的未恢复适配运行一致，正常以配置 stop 结束；独立参考的首 token 仍不同。该检查未比较完整 logits 或全部状态。[实测记录](validation/recall-restore-round417.json)。 恢复时现在逐层比较快照与反序列化状态，并先跨 rank 确认；同一 recall17 在四 rank 的45层状态均逐位相等。
 
 发布回滚探针现包含旧单 token 路径的单 rank 过期位置预检；四 rank 的45层状态保持与重试结果见 [实测记录](validation/legacy-rollback-runner-round418.json)。
+
+固定 archive probe 显式要求四 rank；错误 rank 数在读取配置或认领资源前拒绝，修正后四 rank 硬件恢复回归见 [记录](validation/snapshot-rank-guard-round418.json)。

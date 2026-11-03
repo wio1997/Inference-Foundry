@@ -60,7 +60,7 @@ def main():
     timeout_seconds = 1200 if args.cache_equivalence_probe else 900 if (args.snapshot_probe or args.rollback_probe) else 2100
     if args.cache_equivalence_probe and world_size != 4:
         parser.error('cache equivalence probe requires four ranks')
-    if args.reference_probe and world_size != 4:
+    if args.snapshot_probe and world_size != 4:
         parser.error('snapshot probe requires four ranks')
     if args.reference_probe and world_size != 4:
         parser.error('reference probe requires four ranks')
