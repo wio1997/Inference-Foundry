@@ -1,0 +1,48 @@
+{
+  "scope": "实验性四分片输入投影，仅显式开启；默认完整模型路径保持关闭",
+  "architecture": "aarch64",
+  "device": "Ascend910_9382",
+  "world_size": 4,
+  "versions": {
+    "torch": "2.10.0+cpu",
+    "torch-npu": "2.10.0.post7",
+    "flash-linear-attention-npu-a3": "26.9.1+deva4a7958"
+  },
+  "checkpoint_index_sha256": "dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4",
+  "config_sha256": "33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943",
+  "template_sha256": "34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891",
+  "kda_source_sha256": "4f30e08db50a9d6f6704602e2ea3409b3128974f227c3fb1544fb79e2cf4f4fb",
+  "request_source_sha256": "2dce394f0a92ca31a766c61bd7eac7a77ddd9869e299b3744e77cb109bdb2516",
+  "distributed_probe_sha256": "c39722e18d34df5d8a1f98b9bfda84c3377f433fd2ea5eb2bbcfa814d8d480ee",
+  "layer_result": "四个 die 在真实 recall 输入下，与参考 rank 的第0位置投影逐位相等；40+1 chunk 和递推交接的输入状态保持及直接算子比较通过。",
+  "distributed_result": "四 rank 模式掩码不一致在入栈前协同拒绝，45 层状态不变；一致启用后 singleton chunk 与递推交接通过。",
+  "recall17": {
+    "prompt_tokens": 41,
+    "groups": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      1
+    ],
+    "experimental_argmax": 99419,
+    "reference_argmax": 1474,
+    "prior_argmax": 99419,
+    "reference_comparison": {
+      "bitwise_equal": false,
+      "max_abs": 4.5390625,
+      "rmse": 0.8634182214736938,
+      "different_elements": 154227
+    },
+    "prior_comparison": {
+      "bitwise_equal": false,
+      "max_abs": 4.375,
+      "rmse": 0.8022701740264893,
+      "different_elements": 154160
+    },
+    "status": "首 token 仍未对齐；相较上轮参考 RMSE 上升；无批准精度阈值"
+  },
+  "default": "选项关闭时四 rank 的8+5 prompt ID、argmax 和生成 ID 与上轮一致；未比较完整 logits。",
+  "limits": "这是隔离实验，不视为修复或精度通过。该实现逐次临时构造四个本地投影权重，不具备性能结论；仅限已测试的四分片形状，其他 rank 数、整模型质量与生产场景未验收。"
+}

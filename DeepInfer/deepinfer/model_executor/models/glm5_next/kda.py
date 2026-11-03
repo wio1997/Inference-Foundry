@@ -191,6 +191,7 @@ class Glm5NextKDA(nn.Module):
         self.hidden_size, self.conv_width = config.hidden_size, lc['short_conv_kernel_size']
         self.lower_bound, self.backend = lc['gate_lower_bound'], backend
         self.chunk_prefill_single = False  # explicit singleton prefill, not decode
+        self.reference_sharded_projection = False  # experimental reference-shaped GEMMs
         self.norm_eps = 1e-5  # FusedRMSNormGated GLM default; independent of hc_eps.
         prefix = f'model.language_model.layers.{layer_id}.self_attn'
         for attr, suffix in [('q_proj','q_proj'),('k_proj','k_proj'),('v_proj','v_proj'),
@@ -245,8 +246,27 @@ class Glm5NextKDA(nn.Module):
             raw_beta, f_a, g_a = self.b_proj(x), self.f_a_proj(x), self.g_a_proj(x)
         else:
             width = self.num_heads * self.head_dim
-            q, k, v, raw_beta, f_a, g_a = self.in_proj_qkvbfg_a(x).split(
-                (width, width, width, self.num_heads, self.head_dim, self.head_dim), dim=-1)
+            sizes = (width, width, width, self.num_heads, self.head_dim, self.head_dim)
+            if type(self.reference_sharded_projection) is not bool:
+                raise ValueError('reference projection mode must be boolean')
+            if self.reference_sharded_projection:
+                if self.backend != 'ascendc_chunk_prefill' or width % 4 or self.num_heads % 4:
+                    raise ValueError('reference projection requires compatible chunk KDA')
+                # Match four rank-local GEMM shapes, preserving replicated f/g gates.
+                weights = self.in_proj_qkvbfg_a.weight.split(sizes, dim=0)
+                local_sizes = (width//4, width//4, width//4, self.num_heads//4,
+                               self.head_dim, self.head_dim)
+                parts = []
+                for shard in range(4):
+                    local_weight = torch.cat(tuple(
+                        w[shard*(w.shape[0]//4):(shard+1)*(w.shape[0]//4)] if i < 4 else w
+                        for i, w in enumerate(weights)), dim=0).contiguous()
+                    parts.append(F.linear(x, local_weight).split(local_sizes, dim=-1))
+                q, k, v, raw_beta, f_a, g_a = tuple(
+                    torch.cat([part[i] for part in parts], dim=-1) if i < 4 else parts[0][i]
+                    for i in range(6))
+            else:
+                q, k, v, raw_beta, f_a, g_a = self.in_proj_qkvbfg_a(x).split(sizes, dim=-1)
         qkv, histories = [], []
         for projected, weight, history in zip((q,k,v),
                                         (self.q_conv,self.k_conv,self.v_conv),state.conv,strict=True):
