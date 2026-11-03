@@ -16,9 +16,11 @@ from .rank_expert_adapter import install_rank_experts
 
 def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
                             max_assembled_bytes,max_intermediate_rows,max_packed_rows,group=None,cache_session=None):
-    if world_size==4:
+    if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:
+        raise ValueError('explicit supported rank/world required')
+    if world_size>1:
         import hashlib,json,torch,torch.distributed as dist
-        if not dist.is_initialized() or dist.get_world_size(group)!=4 or dist.get_rank(group)!=rank:
+        if not dist.is_initialized() or dist.get_world_size(group)!=world_size or dist.get_rank(group)!=rank:
             raise ValueError('explicit initialized matching process group required')
         failure=None;signature=[0,0,0,0];count=0
         try:
@@ -57,7 +59,7 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
             count=len(shape)
         except Exception as exc:failure=exc
         metadata=torch.tensor([int(failure is not None),count,*signature],dtype=torch.int64,device='npu')
-        gathered=[torch.empty_like(metadata) for _ in range(4)]
+        gathered=[torch.empty_like(metadata) for _ in range(world_size)]
         dist.all_gather(gathered,metadata,group=group)
         if any(int(item[0].item()) for item in gathered) or not all(torch.equal(gathered[0],item) for item in gathered[1:]):
             raise RuntimeError('rank text installation structure differs or is invalid') from failure
@@ -76,20 +78,20 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
                 saved.append(('sparse',layer,layer.mlp.experts,None))
                 # A sparse adapter can reject rank-local reader/session state.
                 # Agree before any peer can enter the next dense collective.
-                if world_size==4:
+                if world_size>1:
                     import torch,torch.distributed as dist
-                    if not dist.is_initialized() or dist.get_world_size(group)!=4 or dist.get_rank(group)!=rank:
+                    if not dist.is_initialized() or dist.get_world_size(group)!=world_size or dist.get_rank(group)!=rank:
                         raise ValueError('explicit initialized matching process group required')
                     status=torch.zeros((1,),dtype=torch.int32,device='npu')
                 failure=None
                 try:
                     install_rank_experts(layer,reader,rank=rank,world_size=world_size,cache_bytes=cache_bytes,
                         max_assembled_bytes=max_assembled_bytes,max_packed_rows=max_packed_rows,group=group,cache_session=cache_session)
-                    if world_size==4:
+                    if world_size>1:
                         import torch_npu
                         torch_npu.npu.synchronize()
                 except Exception as exc:failure=exc
-                if world_size==4:
+                if world_size>1:
                     status.fill_(int(failure is not None));dist.all_reduce(status,op=dist.ReduceOp.MAX,group=group)
                     if int(status.item()):raise RuntimeError('one or more ranks failed sparse installation') from failure
                 elif failure is not None:raise failure

@@ -11,7 +11,7 @@
 | 目录或文件 | 内容 |
 |---|---|
 | [DeepInfer/](DeepInfer/) | 包含适配修改的源码快照 |
-| [portable/](portable/) | 参数化请求构造、四 rank 运行器和结果对比脚本；验证范围见下文 |
+| [portable/](portable/) | 参数化请求构造、分布式运行器和结果对比脚本；验证范围见下文 |
 | [validation/](validation/) | 算术、多轮记忆及状态恢复验证材料，含源码文件哈希清单 |
 | [OPERATORS.md](OPERATORS.md) | 算子与模型接口适配清单：改动、源码位置、实际后端和验证限制 |
 | [SUBMODULES.md](SUBMODULES.md) | 上游第三方子模块的固定版本 |
@@ -64,7 +64,7 @@ sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b
 
 ## 便携运行入口与复现边界
 
-[portable/runner.py](portable/runner.py) 是操作者持有的参数化四 rank 运行器：它使用既有共享锁和登记文件，核对分配、卡占用、镜像及源码/权重哈希，调用操作者的有界预算 helper，启动并登记进程，确认宿主 PID 到 card/chip 的映射后释放 `go` 屏障。它不停止其他工作负载。运行器配合 [launcher.py](portable/launcher.py) 与 [worker.py](portable/worker.py) 在四 rank 上执行一次短多轮恢复：每个 rank 的 prompt argmax 与 44 个生成 token 均匹配 round 360，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round361.json](validation/restore-round361.json)。
+[portable/runner.py](portable/runner.py) 是操作者持有的参数化分布式运行器（当前仅四 rank 实测）：它使用既有共享锁和登记文件，核对分配、卡占用、镜像及源码/权重哈希，调用操作者的有界预算 helper，启动并登记进程，确认宿主 PID 到 card/chip 的映射后释放 `go` 屏障。它不停止其他工作负载。运行器配合 [launcher.py](portable/launcher.py) 与 [worker.py](portable/worker.py) 在四 rank 上执行一次短多轮恢复：每个 rank 的 prompt argmax 与 44 个生成 token 均匹配 round 360，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round361.json](validation/restore-round361.json)。
 
 可显式传入 `--kda-backend ascendc` 选择显式归一化的实验递推路径；默认仍为 `ascendc_installed_decode`，可通过同一选项明确回退。实际便携命令在四 rank 短多轮案例中验证了 `ascendc` 选项传播、首 token 后 archive-v2 恢复和自然停止，生成 45 个 token 与 round 373 一致；见 [结果](validation/portable-recurrent-round376.json)。这不是全模型质量或生产验收。
 
@@ -113,3 +113,7 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 两次运行必须顺序完成，消息及生成配置一致。对照工具接受运行目录（含 `summary.json` 和 `rank0`–`rank3/result.json`）或已有聚合 JSON；目录哈希按文件名与内容长度及字节计算，聚合文件哈希按文件原始字节计算。实测固定 `8+5` 案例的四 rank 生成 token 一致，详见 [结果](validation/portable-reference-round392.json)；三消息回忆案例的参考序列与保留参考一致，但与适配序列不同，见 [多轮结果](validation/portable-reference-recall-round393.json)。这是单案例检查，不等同整体质量或生产验收。
 
 回滚探针现依次验证 rank 2 的 head 异常和单 rank 输入不一致，再核对状态与重试；四 rank 实测见 [结果](validation/portable-rank-mismatch-round395.json)。同版本普通文本模式及参考模式的四 rank 回归分别见 [普通模式](validation/public-normal-round396.json) 和 [参考模式](validation/public-reference-round397.json)。
+
+### 实验性 world size 参数
+
+普通文本模式可显式传入 `--world-size`（默认 4，候选 2、4、8、16）；分配数量、授权、登记和有界 helper 必须匹配该值。当前 helper 与实际硬件验收仅覆盖四 rank；其他数量的资源、通信、显存和完整模型行为均未验证。参考与回滚探针仍限定四 rank。更新源码后须重新生成并固定源码清单，不能沿用旧配置的源码哈希。[四 rank 实测](validation/rank-portable-round408.json) 仅覆盖固定短案例，不构成其他规模或独立质量验收。

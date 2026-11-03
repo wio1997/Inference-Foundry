@@ -21,9 +21,9 @@ def replicated_rank_moe(reader, hidden, routes, *, layer_id, rank, world_size,
                         cache_bytes, max_assembled_bytes, max_packed_rows,
                         max_checkpoint_bytes=512*1024**2,
                         max_resident_bytes=512*1024**2, group=None, cache_session=None):
-    if type(world_size) is not int or world_size not in (1,4) or type(rank) is not int or not 0<=rank<world_size:
+    if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:
         raise ValueError('explicit rank and supported world required')
-    if world_size==4:
+    if world_size>1:
         if not dist.is_initialized() or dist.get_rank(group)!=rank or dist.get_world_size(group)!=world_size:
             raise ValueError('matching initialized group required')
     elif dist.is_initialized():
@@ -50,7 +50,7 @@ def replicated_rank_moe(reader, hidden, routes, *, layer_id, rank, world_size,
     # participate in the preflight, provided the group and device remain usable.
     except Exception as exc:
         local_error=exc
-    if world_size==4:
+    if world_size>1:
         if local_error is None:
             # Fixed-length vector: validity, tensor geometry/dtypes and
             # layer/packing parameters that determine collective shapes.
@@ -68,7 +68,7 @@ def replicated_rank_moe(reader, hidden, routes, *, layer_id, rank, world_size,
             raise ValueError('rank input preflight failed or metadata differs') from local_error
     elif local_error is not None:
         raise local_error
-    if world_size==4:
+    if world_size>1:
         # Compare actual replicated tensors before loading any weights. Every
         # rank performs the same collectives and checks the same inputs.
         for value in (hidden.contiguous(),routes.expert_ids.contiguous(),routes.weights.contiguous()):
@@ -107,7 +107,7 @@ def replicated_rank_moe(reader, hidden, routes, *, layer_id, rank, world_size,
             # before any peer enters broadcast or all_gather.
             stats={k:v for k,v in cache.stats().items() if k!='keys_lru'}
             padded=gathered=None
-            if world_size==4:
+            if world_size>1:
                 capacity=max(1,packed.expert_ids.numel())
                 padded=hidden.new_zeros((capacity,hidden.shape[1]));padded[:len(local)].copy_(local)
                 gathered=[torch.empty_like(padded) for _ in range(world_size)]
@@ -116,7 +116,7 @@ def replicated_rank_moe(reader, hidden, routes, *, layer_id, rank, world_size,
             torch_npu.npu.synchronize()
             return local,shared,stats,padded,gathered
         local,shared,stats,padded,gathered=coordinated_local_stage(local_stage,device=hidden.device,rank=rank,world_size=world_size,group=group)
-        if world_size==4:
+        if world_size>1:
             dist.broadcast(shared,src=(dist.get_global_rank(group,0) if group is not None else 0),group=group)
             dist.all_gather(gathered,padded,group=group)
             outputs=[value[:plan.partitions[i].packed_indices.numel()] for i,value in enumerate(gathered)]

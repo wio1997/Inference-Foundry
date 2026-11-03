@@ -14,15 +14,15 @@ class RankW8A8OutputLinear(nn.Module):
  def __init__(self,reader,prefix,device,*,rank,world_size,row_start,row_stop,max_output_rows,group=None):
   super().__init__()
   if torch.device(device).type!='npu':raise ValueError('explicit NPU device required')
-  if type(world_size) is not int or world_size not in (1,4) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
-  if world_size==4:
+  if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
+  if world_size>1:
    if not dist.is_initialized() or dist.get_world_size(group)!=world_size or dist.get_rank(group)!=rank:raise ValueError('explicit initialized matching process group required')
   elif dist.is_initialized():raise ValueError('one-rank path requires no initialized group')
   self.rank,self.world_size,self.group,self.row_start,self.row_stop=rank,world_size,group,row_start,row_stop
   self.device=torch.device(device)
   # Reserve the control flag before loading a local shard. All live ranks
   # must agree that initialization succeeded before any proceeds to forward.
-  status=torch.zeros((1,),dtype=torch.int32,device=self.device) if world_size==4 else None
+  status=torch.zeros((1,),dtype=torch.int32,device=self.device) if world_size>1 else None
   failure=None
   try:
    if any(type(v) is not int for v in (row_start,row_stop,max_output_rows)) or not 0<=row_start<row_stop or max_output_rows<1 or row_stop-row_start>max_output_rows:raise ValueError('invalid bounded output rows')
@@ -36,11 +36,11 @@ class RankW8A8OutputLinear(nn.Module):
    self.local_start,self.local_stop=first,last;self.input_size=d['shape'][1]
    self.local=reader.load_linear(prefix,device,output_slice=slice(first,last))
    if self.local.output_size!=width or self.local.input_size!=self.input_size:raise ValueError('loader returned incorrect local geometry')
-   if world_size==4:
+   if world_size>1:
     import torch_npu
     torch_npu.npu.synchronize()
   except Exception as exc:failure=exc
-  if world_size==4:
+  if world_size>1:
    status.fill_(int(failure is not None));dist.all_reduce(status,op=dist.ReduceOp.MAX,group=group)
    if int(status.item()):raise RuntimeError('one or more ranks failed linear initialization') from failure
   elif failure is not None:raise failure

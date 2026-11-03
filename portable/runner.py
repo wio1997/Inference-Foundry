@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run four bounded ranks under an operator-provided shared allocation policy.
+"""Run bounded ranks under an operator-provided shared allocation policy.
 
 The operator config is private to the environment and must identify an existing
 assignment, ownership registry, shared lock, bounded reservation helper, pinned
@@ -38,6 +38,7 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', required=True)
+    parser.add_argument('--world-size', type=int, choices=(2,4,8,16), default=4)
     parser.add_argument('--messages')
     parser.add_argument('--run-id', required=True)
     parser.add_argument('--goal', default='reproducible-release')
@@ -53,6 +54,9 @@ def main():
     args = parser.parse_args()
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
+    world_size = args.world_size
+    if world_size != 4 and (args.rollback_probe or args.reference_probe):
+        parser.error('reference and rollback probes require four ranks')
     if args.rollback_probe and args.reference_probe:
         parser.error('select at most one probe mode')
     if args.rollback_probe and args.kda_backend != 'ascendc':
@@ -88,8 +92,8 @@ def main():
         input_text = messages.read_text()
     run = root / cfg['run_relative'] / ('bounded-cli-' + args.run_id)
     allocation = cfg['allocation']
-    if len(allocation) != 4 or sorted(x['rank'] for x in allocation) != list(range(4)) or len({x['die'] for x in allocation}) != 4 or len({(x['card'], x['chip']) for x in allocation}) != 4:
-        parser.error('allocation must contain four distinct rank/die/card-chip mappings')
+    if len(allocation) != world_size or sorted(x['rank'] for x in allocation) != list(range(world_size)) or len({x['die'] for x in allocation}) != world_size or len({(x['card'], x['chip']) for x in allocation}) != world_size:
+        parser.error('allocation must contain world-size distinct rank/die/card-chip mappings')
     allocation = sorted(allocation, key=lambda x: x['rank'])
     with open(cfg['shared_lock'], 'a+') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -119,6 +123,7 @@ def main():
                 raise RuntimeError('source manifest mismatch: ' + rel)
         for file in ('worker.py', 'launcher.py', 'runner.py') + (('rollback_probe.py',) if args.rollback_probe else ('reference_probe.py',) if args.reference_probe else ()):
             manifest['portable:' + file] = sha(Path(__file__).resolve().parent / file)
+        manifest['portable:world-size'] = hashlib.sha256(str(world_size).encode()).hexdigest()
         payload = json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
         source_digest = hashlib.sha256(payload).hexdigest()
         if args.rollback_probe:
@@ -151,7 +156,7 @@ def main():
         spec = importlib.util.spec_from_file_location('operator_unit_budget', helper)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        reservation = module.reserve(root, lock, args.goal, source_digest, 'bounded-cli-' + args.run_id, workers=4, timeout_seconds=2100)
+        reservation = module.reserve(root, lock, args.goal, source_digest, 'bounded-cli-' + args.run_id, workers=world_size, timeout_seconds=2100)
         run.mkdir(parents=True, exist_ok=False)
         write(run / 'reservation.json', reservation)
         (run / 'source-manifest.json').write_bytes(payload + b'\n')
@@ -167,7 +172,7 @@ def main():
                 (run / f'rank{rank}').mkdir()
                 log = (run / f'rank{rank}.log').open('w')
                 env = dict(cfg['container_env'])
-                env.update(GLM_MODEL_DIR=cfg['model_container'], GLM_SOURCE_DIR=cfg['source_container'], GLM_ASCEND_LIBRARY=cfg['library_container'], GLM_EXPERIMENT_RUN_DIR=cfg['run_container_prefix'] + '/bounded-cli-' + args.run_id, ASCEND_RT_VISIBLE_DEVICES=str(die), RANK=str(rank), WORLD_SIZE='4', MASTER_ADDR='127.0.0.1', MASTER_PORT=str(port))
+                env.update(GLM_MODEL_DIR=cfg['model_container'], GLM_SOURCE_DIR=cfg['source_container'], GLM_ASCEND_LIBRARY=cfg['library_container'], GLM_EXPERIMENT_RUN_DIR=cfg['run_container_prefix'] + '/bounded-cli-' + args.run_id, ASCEND_RT_VISIBLE_DEVICES=str(die), RANK=str(rank), WORLD_SIZE=str(world_size), MASTER_ADDR='127.0.0.1', MASTER_PORT=str(port))
                 argv = ['docker', 'exec']
                 for key, value in env.items():
                     argv += ['-e', key + '=' + value]
@@ -186,7 +191,7 @@ def main():
                 if any(p.poll() is not None for _, p, _ in workers):
                     break
                 time.sleep(.5)
-            if len(workers) != 4 or not all((run / f"rank{x['rank']}" / 'ready').exists() for x, _, _ in workers):
+            if len(workers) != world_size or not all((run / f"rank{x['rank']}" / 'ready').exists() for x, _, _ in workers):
                 raise RuntimeError('worker failed before mapping barrier')
             top = subprocess.check_output(['docker', 'top', cfg['container'], '-eo', 'pid,ppid,args'], text=True)
             info = subprocess.check_output(['npu-smi', 'info'], text=True)
@@ -224,7 +229,7 @@ def main():
                     write(cfg['ownership'], ownership)
                 results.append({'rank': item['rank'], 'die': item['die'], 'docker_exec_pid': proc.pid, 'exit_code': code})
             errors = []
-            for rank in range(4):
+            for rank in range(world_size):
                 try:
                     x = read(run / f'rank{rank}' / 'result.json')
                     if args.rollback_probe:
@@ -239,12 +244,12 @@ def main():
                     errors.append(f'rank{rank}: {error!r}')
             if fatal:
                 errors.append('manager failure: ' + fatal)
-            if len(results) != 4 or any(item['exit_code'] != 0 for item in results):
+            if len(results) != world_size or any(item['exit_code'] != 0 for item in results):
                 errors.append('worker completion failure or unknown exit status')
             summary = {'semantic_status': 'pass' if not errors else 'fail', 'semantic_errors': errors, 'batch_id': 'cli-' + args.run_id, 'started_at': stamp, 'finished_at': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'port': port, 'fatal': fatal, 'workers': results}
             write(run / 'summary.json', summary)
             print(json.dumps(summary), flush=True)
-        if fatal or len(results) != 4 or any(x['exit_code'] != 0 for x in results) or errors:
+        if fatal or len(results) != world_size or any(x['exit_code'] != 0 for x in results) or errors:
             raise SystemExit(1)
 
 

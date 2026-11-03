@@ -237,3 +237,5 @@
 ## Rank 接缝泛化隔离验证
 
 六个模型 rank 组件的实验补丁在授权四 die 上完成 45 层同运行时 direct/ranked 比较：四个 rank 的前后缀 logits、生成 ID、45 层状态及 archive-v2 恢复匹配，进程组正常销毁。短请求生成达到四 token 上限；不是完整答复或独立质量验收。补丁、范围和针脚见 [试验说明](../experimental/rank-generalization/README.zh-CN.md)。其他 world size 和参数化启动器尚未验证。
+
+参数化普通文本入口与上述六个模型接缝组合后，在四 die 上实际运行固定 `8+5`：四 rank 的提示 argmax 和生成 `[154842,99366,154827]` 与保留基线一致，答案 13，按配置停止且未达到上限，进程组销毁；未比较完整 logits。[逐 rank 记录](rank-portable-round408.json)。其他 world size 尚未运行或验收。

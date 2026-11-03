@@ -26,8 +26,8 @@ class RankRoutePlan:
 
 
 def partition_routes(routes, *, world_size, max_packed_rows):
-    if type(world_size) is not int or world_size not in (1,4):
-        raise ValueError('world size must be explicitly 1 or 4')
+    if type(world_size) is not int or world_size not in (1,2,4,8,16):
+        raise ValueError('world size must be explicitly 1, 2, 4, 8 or 16')
     if type(max_packed_rows) is not int or max_packed_rows < 0:
         raise ValueError('nonnegative packed-row bound required')
     if not isinstance(routes,PackedRoutes):
@@ -49,7 +49,7 @@ def partition_routes(routes, *, world_size, max_packed_rows):
 
 
 def combine_rank_outputs(plan, rank_outputs, *, shared_output=None):
-    if not isinstance(plan,RankRoutePlan) or type(plan.world_size) is not int or plan.world_size not in (1,4):
+    if not isinstance(plan,RankRoutePlan) or type(plan.world_size) is not int or plan.world_size not in (1,2,4,8,16):
         raise ValueError('explicit rank route plan required')
     routes=plan.routes
     compact_expert_plan(routes)

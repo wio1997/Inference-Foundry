@@ -12,9 +12,9 @@ import torch.distributed as dist
 
 @contextmanager
 def coordinated_bank_lease(lease, *, device, rank, world_size, group=None):
-    if type(world_size) is not int or world_size not in (1, 4) or type(rank) is not int or not 0 <= rank < world_size:
+    if type(world_size) is not int or world_size not in (1, 2, 4, 8, 16) or type(rank) is not int or not 0 <= rank < world_size:
         raise ValueError('explicit supported rank/world required')
-    if world_size == 4 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
+    if world_size > 1 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
         raise ValueError('matching initialized group required')
     with ExitStack() as stack:
         failure = None
@@ -23,7 +23,7 @@ def coordinated_bank_lease(lease, *, device, rank, world_size, group=None):
             value = stack.enter_context(lease)
         except Exception as exc:
             failure = exc
-        if world_size == 4:
+        if world_size > 1:
             status = torch.tensor([int(failure is not None)], dtype=torch.int32, device=device)
             dist.all_reduce(status, op=dist.ReduceOp.MAX, group=group)
             if int(status.item()) != 0:
@@ -51,9 +51,9 @@ def coordinated_local_stage(operation, *, device, rank, world_size, group=None):
     Process loss, a failed status collective and later errors remain outside
     this guarantee.
     """
-    if type(world_size) is not int or world_size not in (1, 4) or type(rank) is not int or not 0 <= rank < world_size:
+    if type(world_size) is not int or world_size not in (1, 2, 4, 8, 16) or type(rank) is not int or not 0 <= rank < world_size:
         raise ValueError('explicit supported rank/world required')
-    if world_size == 4 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
+    if world_size > 1 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
         raise ValueError('matching initialized group required')
     failure = None
     value = None
@@ -61,7 +61,7 @@ def coordinated_local_stage(operation, *, device, rank, world_size, group=None):
         value = operation()
     except Exception as exc:
         failure = exc
-    if world_size == 4:
+    if world_size > 1:
         status = torch.tensor([int(failure is not None)], dtype=torch.int32, device=device)
         dist.all_reduce(status, op=dist.ReduceOp.MAX, group=group)
         if int(status.item()) != 0:

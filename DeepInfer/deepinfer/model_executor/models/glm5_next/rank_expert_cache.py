@@ -31,7 +31,7 @@ class RankExpertHostCache:
  NPU execution, shared-expert handling or cross-rank dispatch is implied.
  """
  def __init__(self,reader,*,rank,world_size,max_bytes):
-  if type(world_size) is not int or world_size not in (1,4) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
+  if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
   if type(max_bytes) is not int or max_bytes<1:raise ValueError('positive host payload budget required')
   text=reader.config['text_config'];self._count=text['n_routed_experts'];self._layers=text['mlp_layer_types'];self.reader=reader;self.rank=rank;self.world_size=world_size;self.max_bytes=max_bytes
   self._entries=OrderedDict();self._used=0;self._closed=False;self._lock=RLock();self._hits=0;self._misses=0
