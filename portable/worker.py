@@ -44,7 +44,7 @@ try:
  os.environ['HF_HUB_OFFLINE']='1';os.environ['TRANSFORMERS_OFFLINE']='1';os.environ['HF_HOME']=str(root/'hf-cache')
  from transformers import AutoTokenizer
  tok=AutoTokenizer.from_pretrained(model,local_files_only=True,trust_remote_code=False)
- request=json.loads((root/'request.json').read_text());layer_major=request.get('experimental_layer_major_kda',False);assert type(layer_major) is bool and (not layer_major or world_size==4), 'experimental layer-major KDA requires four ranks';messages=request['messages'];ids=request['prompt_ids'];cap=request['max_new_tokens'];context=request['context_tokens'];expected=request['expected_final'];cache_bytes=request['cache_mib']*1024**2;kda_backend=request['kda_backend'];assert kda_backend in ('ascendc_installed_decode','ascendc')
+ request=json.loads((root/'request.json').read_text());layer_major=request.get('experimental_layer_major_kda',False);sparse_kda=request.get('experimental_sparse_kda_layer4',False);assert type(sparse_kda) is bool and (not sparse_kda or layer_major), 'sparse KDA layer4 requires layer-major';assert type(layer_major) is bool and (not layer_major or world_size==4), 'experimental layer-major KDA requires four ranks';messages=request['messages'];ids=request['prompt_ids'];cap=request['max_new_tokens'];context=request['context_tokens'];expected=request['expected_final'];cache_bytes=request['cache_mib']*1024**2;kda_backend=request['kda_backend'];assert kda_backend in ('ascendc_installed_decode','ascendc')
  encoded=tok.apply_chat_template(messages,tokenize=True,add_generation_prompt=True,reasoning_effort='low');actual_ids=encoded['input_ids'] if hasattr(encoded,'keys') else encoded
  assert ids==actual_ids and len(ids)+cap<=context<=128, 'request tokenizer or token bound mismatch'
  report.update(messages=messages,expected_final=expected,context_bound=context,cache_mib=request['cache_mib'],kda_backend=kda_backend)
@@ -67,8 +67,12 @@ try:
     if layer.attention_kind=='linear_attention' and layer.mlp_kind=='dense':
      layer.attention.backend='ascendc_chunk_prefill';layer.attention.reference_sharded_projection=True;layer.native_chunk_prefill=True;selected.append(layer.layer_id)
    assert selected==[0,1,2]
+   if sparse_kda:
+    layer=runner.stack.layers[4]
+    if layer.attention_kind!='linear_attention' or layer.mlp_kind!='sparse':raise ValueError('layer4 must be sparse-MLP KDA')
+    layer.attention.backend='ascendc_chunk_prefill';layer.attention.reference_sharded_projection=True;layer.native_chunk_prefill=True;selected.append(4)
    runner.enable_rank_batch_commit(max_tokens=8,layer_major_dense_kda=True)
-  report.update(rank_commit_agreement_enabled=True,experimental_layer_major_kda=layer_major,chunk_layers=selected,prefill_groups=[])
+  report.update(rank_commit_agreement_enabled=True,experimental_layer_major_kda=layer_major,experimental_sparse_kda_layer4=sparse_kda,chunk_layers=selected,prefill_groups=[])
   states={i:(layer.attention.initial_state() if config.layers[i].attention=='linear_attention' else state_from_aligned_prefix(torch.empty((0,512),dtype=torch.bfloat16,device='npu'),torch.empty((0,128),dtype=torch.bfloat16,device='npu'),runner.stack.layout)) for i,layer in enumerate(runner.stack.layers)}
   scope=ExitStack();session=scope.enter_context(optional_rank_cache_session(reader,enabled=cache_bytes>0,rank=rank,world_size=world_size,cache_bytes=cache_bytes,max_assembled_bytes=16*1024**2));adapters=[layer.mlp.experts for layer in runner.stack.layers if isinstance(getattr(layer.mlp,'experts',None),ReplicatedRankExperts)]
   if session is not None:
