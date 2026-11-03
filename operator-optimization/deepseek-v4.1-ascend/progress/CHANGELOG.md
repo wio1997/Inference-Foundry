@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F05-DATAFLOW-JOIN-CORRECTION
+
+涉及：[F05](F05.md)
+
+类型：EXPLANATION_GRAPH_CORRECTION_NOT_RUNTIME_PROMOTION；依据：用户指出先访问缓存选择再正式Attention的先后关系；定点核对源调用及npu_sparse_flash_mla的q/KV/索引输入。
+
+补齐qr分叉后在正式Attention汇合的图；分支是两个消费者，不表示执行独立/已并行。Indexer选择在正式Attention前，BF16需求来自Indexer查询投影。没有新增实现、运行或性能结论。
+
 ## 2026-11-03 · 20261103-F05-INDEXER-ROLE-QUESTION
 
 涉及：[F05](F05.md)

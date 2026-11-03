@@ -1,0 +1,29 @@
+{
+  "candidate": "F05",
+  "date": "2026-11-03",
+  "kind": "DATAFLOW_JOIN_EXPLANATION_CORRECTION",
+  "question": "为什么说是分支，不是先看KV缓存再进入Attention？",
+  "checks": {
+    "common_qr_has_two_projection_consumers": true,
+    "selection_precedes_attention_call": true,
+    "native_attention_takes_q_cache_and_selected_indices": true,
+    "indexer_cache_and_attention_cache_roles_distinct_in_source": true
+  },
+  "answer": "qr被主Q投影和Indexer查询投影两处消费，是数据流分叉。Indexer用其查询和索引缓存先选位置，主Attention随后汇合主Q、选出的索引及对应K/V等输入。当前调用先选择再forward_attention；分支不等于执行独立或已并行。",
+  "evidence": [
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+      "source_lines": [
+        "320-324",
+        "394-409",
+        "567-611",
+        "657-675",
+        "701-711"
+      ]
+    }
+  ],
+  "correction": "前说明图未清楚画出两路在主Attention汇合，现补齐；不改变原BF16消费者约束。",
+  "new_runtime_evidence": false,
+  "implementation_maturity_changed": false
+}
