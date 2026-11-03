@@ -211,3 +211,5 @@ rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地�
 当前源码默认 tokenwise CLI 的四 rank 固定输入回归与先前基线 token 和逐位置 argmax 一致；完整 logits 未比较。[记录](validation/default-cli-round440.json)。
 
 公共 CLI 40+1 预填充的 recall42 生成与参考 token 对比见记录；完整 logits 未比较。[记录](validation/cli-recall42-prefill40-round441.json)。
+
+实验性40 token续算在非零前缀后的受控 head 故障回滚与重试范围见 [记录](validation/rollback40-round442.json)。

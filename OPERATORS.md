@@ -135,3 +135,5 @@ KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入�
 当前默认 tokenwise 路径的固定输入回归范围见 [记录](validation/default-cli-round440.json)。
 
 公共 CLI 40+1 实验路径的 recall42 完整生成范围与差异见 [记录](validation/cli-recall42-prefill40-round441.json)。
+
+40 token分布式事务受控回滚及重试见 [记录](validation/rollback40-round442.json)。
