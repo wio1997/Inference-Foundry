@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F05-NORM-DUPLICATION-CORRECTION
+
+涉及：[F05](F05.md)
+
+类型：USER_CLARIFICATION_AND_DESIGN_RESTRICTION_CORRECTION；依据：用户澄清归一化加索引查询、选位置也在融合边界内；复用已有数值合同、Indexer输入及Attention汇合证据，无新native运行。
+
+纠正此前归一化不可重复的过强限制；记录共享一次与两路重算两种备选，允许以重算换减少中间交接。完整Indexer单kernel、qr可删除和实际收益仍待证明，不提升实现/正确性/性能状态。
+
 ## 2026-11-03 · 20261103-F05-BRANCH-REGION-QUESTION
 
 涉及：[F05](F05.md)
