@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F08-KV-NORM-ROPE-SCATTER-PARTIAL-REVIEW
+
+涉及：[F08](F08.md)
+
+类型：NEXT_EXAMPLE_SOURCE_AND_CONDITIONAL_IO_PARTIAL_REVIEW；依据：用户表示理解F07并要求下一条；定点核对SWA归一化/部分RoPE/SK scatter、slot/stride及packed分支，复用v61/v63合同并查公开7.3.0融合API。
+
+选择保留Wkv的三步小范围融合，公开576=512+64分支API不是当前512先norm再尾64旋转的直接替代。明确最终cache与无效slot/读者/数值/原CV交错保留，54KiB只是M24限定域逻辑接口算式；无新实现、收益或全族完成结论。
+
 ## 2026-11-04 · 20261104-F07-QB-ROPE-PARTIAL-REVIEW
 
 涉及：[F07](F07.md)

@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "candidate": "F08",
+  "selected_variant": "SWA-BF16-NORM-ROPE-SCATTER",
+  "status": "PARTIAL_SOURCE_AND_CONDITIONAL_IO_REVIEW_NOT_IMPLEMENTATION",
+  "scope": "本轮只看非packed BF16 SWA缓存分支的KV RMSNorm→部分RoPE→cacheScatter；Wkv矩阵投影保留原算子。全族含投影的更大融合及压缩/Indexer分叉不在本轮关闭。",
+  "sources": [
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/device_op.py",
+    "records/history/continuation/profile-first-20261031/router-vector-numerical-contract-v63.json",
+    "records/history/continuation/profile-first-20261031/router-vector-fusion-variants-v63.json",
+    "records/history/continuation/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "records/history/continuation/profile-first-20261031/projection-fusion-and-partition-costs-v61.json",
+    "records/history/continuation/profile-first-20261031/projection-graph-chains-v61.json.gz"
+  ],
+  "source_lines": {
+    "dsa_v41.py": "227-242,291-308,326-345,369-385,483-495",
+    "device_op.py": "76-91"
+  },
+  "operators": [
+    {
+      "name": "attn.wkv / cv_wkv.matmul",
+      "role": "本轮保留在融合边界外的KV矩阵投影，原BF16输出仍保留"
+    },
+    {
+      "name": "attn.kv_norm / RmsNorm",
+      "role": "整512维平方均值及原eps/gamma归一化，按原规则得到BF16"
+    },
+    {
+      "name": "torch.ops._C_ascend.inplace_partial_rotary_mul",
+      "role": "在已归一化512维中仅旋转末尾64维，保留interleave与原FP32运算/CAST_RINT"
+    },
+    {
+      "name": "torch.ops._C_ascend.npu_scatter_nd_update_sk",
+      "role": "按构建器提供二维slot坐标写入真实stride的缓存视图，[-1,-1]跳过；保留原cache dtype转换"
+    }
+  ],
+  "baseline": "Wkv BF16→RMS512输出中间BF16→原位tail64 RoPE→values到cache dtype/contiguous准备（只有必要时才有实际copy）→SK scatter写缓存。",
+  "proposal": "原Wkv BF16结果→[完整512 RMS→原BF16舍入→tail64 FP32旋转→原BF16舍入/原cache dtype转换→直接按slot写cache]。",
+  "why_candidate": "同一条KV上连续的向量处理与最终发布，可研究片上完成并减少中间输出写读/任务交接；不增加矩阵乘法工作，也不假定原MatMul可改写。",
+  "critical_constraints": [
+    "RMS统计覆盖完整512维，不能只统计将旋转的64维；gamma/eps及原各阶段舍入保持",
+    "当前所选SWA调用链的post-RoPE值写cache；其他返回值/aux rstd/中间读者存在时必须保留对应输出，压缩路径pre-RoPE Indexer分叉不能默认消失",
+    "保持二维slot坐标、[-1,-1]跳过及实际物理page/plane stride；不能按连续shape猜地址",
+    "重复有效slot、alias/cache bank代际、其他读者和就绪事件按原协议，未证明的更强域不擅自删除",
+    "packed_cache_ops分支可能有不同格式/量化，不能直接套所选BF16 SK方案",
+    "保留cache-only即Q0/KV非0、空KV等适用条件及已有Q_B/KV CV交错；不能用统一路径多算或漏写",
+    "当前目标加载二进制和profile关键路径未在此侧聊重新绑定；片上容量和实际带宽/同步收益待验"
+  ],
+  "conditional_io_model": {
+    "domain": "所有M行均有效、BF16 H512/tail64、无额外所需norm/RoPE输出读者，且旧scatter只读取这些行时的逻辑接口模型",
+    "narrow_removed_formula": "4*M*512 + 4*M*64 bytes",
+    "explanation": "省RMS中间输出写+scatter读各2MH，以及tail RoPE读/写各2Mr；原投影输出及融合输入读保留，最终cache写2MH仍保留。",
+    "illustrative_M": 24,
+    "illustrative_removed_bytes": 55296,
+    "illustrative_final_cache_write_bytes_retained": 24576,
+    "not_actual_24_rows_validity_attestation": true,
+    "not_measured_HBM_or_allocation_savings": true,
+    "larger_family_formula": "若另外融合Wkv，v61更大域为8*M*512+4*M*64；本轮不使用这项更大域收益。"
+  },
+  "public_library_check": {
+    "reference": "https://github.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch_npu-npu_kv_rmsnorm_rope_cache.md",
+    "read_via": "https://raw.githubusercontent.com/Ascend/op-plugin/7.3.0/docs/context/torch_npu-npu_kv_rmsnorm_rope_cache.md",
+    "documented_function": "torch_npu.npu_kv_rmsnorm_rope_cache",
+    "documented_support": "该7.3.0文档列出A2/A3和图模式支持；不代表当前安装版本/加载实现已绑定",
+    "mismatch": "公开接口输入576=512 RMS分支+64 RoPE分支，分别处理并写两块cache；当前链是全部512 RMS后，再对其中尾64做interleave RoPE，写SWA512单平面。该接口不是已证直接替代。",
+    "other_restrictions": "公开接口的cos/sin dtype、cache模式及唯一index等约束也需另核，不推断所有其他版本/算子变体不可行。",
+    "verdict": "NO_PROVED_DROP_IN_FOR_SELECTED_CHAIN"
+  },
+  "priority": "比将GEMM全并入的方案更适合先做低成本小原型评估，但profile完整链和原协议未通过前仍仅候选；不可承诺提速或删除持久cache。",
+  "implemented": false,
+  "native_correctness": "NOT_RUN",
+  "new_measured_speedup": false,
+  "whole_family_closed": false,
+  "archived_component_timing": {
+    "cohort": "old166-v61-root-bound",
+    "KV_NORM_task_ns": {
+      "n": 2560,
+      "minimum": 9661,
+      "median": 13080.0,
+      "p90": 14600,
+      "maximum": 16581
+    },
+    "not_full_three_stage_chain_or_gain": true
+  }
+}

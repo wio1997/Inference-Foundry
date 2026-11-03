@@ -806,32 +806,48 @@
     {
       "id": "F08",
       "name": "KV 投影 → norm → RoPE → SWA 缓存写入",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-04",
       "kind": "投影/归一化/旋转/缓存发布融合",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
+      "review_status": "已复核非packed BF16 SWA的norm→部分RoPE→SK scatter；小边界实现、精度、收益和其他变体待证",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
-      "operator_binding": "历史语义链：Wkv → RMSNorm → RoPE → SWA scatter。",
-      "baseline_flow": "历史登记的原流程：Wkv → KV RMSNorm → RoPE → SWA scatter。本页登记不等于对当前运行二进制完成重新绑定。",
-      "proposal": "KV投影、norm、RoPE后直接写最终cache。",
-      "mechanism": "把规定数值阶段接合，并直接写最终 paged cache，保留持久结果。",
-      "conditions": "整行归约、invalidslot、pagedlayout和缓存读者保留。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
+      "operator_binding": "attn.kv_norm/RmsNorm→inplace_partial_rotary_mul→npu_scatter_nd_update_sk；Wkv暂留边界外，所选源码非packed BF16 SWA域。",
+      "baseline_flow": "Wkv BF16→完整512归一化BF16→尾64部分RoPE BF16→原cache dtype/布局准备→按二维slot和真实stride写cache。",
+      "proposal": "本次仅融合完整KV归一化、尾部旋转及最终缓存写入，减少中间结果交接；不强并矩阵投影。",
+      "mechanism": "同一KV行在片上按原数值阶段处理后直接写最终slot，保留持久缓存和原读者/事件。",
+      "conditions": "完整512统计、两次BF16边界、实际slot/stride、[-1,-1]跳过、原cache dtype/读者/重复slot与就绪协议保持；packed与压缩分支另证，原CV交错计入。",
       "next_steps": [
         {
           "id": "F08-01",
-          "title": "明确整行归约与最终 cache 写入边界",
-          "description": "只补拟改变的 slot/page/stride/就绪条件；invalid slot、缓存读者及原 Q/KV 重叠都保留。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+          "title": "固定小边界及原cache读写合同",
+          "status": "DONE",
+          "evidence": [
+            "evidence/F08-kv-norm-rope-scatter-review-20261104.json"
+          ],
+          "description": "已核对所选SWA源码、完整512→尾64顺序、SK二维slot/stride及现成公开API的不同语义；仅局部源域复核。",
+          "decision_rule": "不因API名字相似直接替换，不将packed/压缩/其他读者或实际cache槽有效性视为已关闭。"
         },
         {
           "id": "F08-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "title": "若实施，先固定非packed BF16 SWA小原型",
+          "description": "未来保持原Wkv接口，融合512 RMS、原舍入、tail64 RoPE及cache写；绑定真实slot、stride、gamma/eps和cos/sin。",
+          "decision_rule": "只改变所选调用点，保留所有需要的辅助/中间输出与事件；invalid slot、view stride、重复/alias条件按原合同，不动其他缓存路径。"
+        },
+        {
+          "id": "F08-03",
+          "title": "正确性及完整链性能/内存验收",
+          "description": "未来同输入/位置/slot/图集合比较最终cache和Attention，验证跳过位置、未改区域、前448维和精度边界；比较原Q/KV重叠、常驻/峰值、KV容量及请求指标。",
+          "decision_rule": "逻辑54KiB仅限定域算式，单norm耗时不是可省收益；没有稳定整体收益不接受实现。"
+        },
+        {
+          "id": "F08-04",
+          "title": "大边界及其他缓存格式单独评估",
+          "description": "Wkv一并融合、packed cache、压缩/Indexer分叉等保持原范围；仅当新增证据改变决策时重开。",
+          "decision_rule": "各边界预算只计一次；公开单个API反例不排除所有其他实现。"
         }
       ],
       "evidence": [
@@ -849,12 +865,18 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F08.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "KV归一化/部分RoPE/缓存发布的本次复核",
+          "path": "evidence/F08-kv-norm-rope-scatter-review-20261104.json",
+          "scope": "固定SWA小边界、数值/slot/stride与公开API差异；没有新native正确性或提速。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "details_markdown": "\n## 第八条：KV归一化＋位置旋转＋写缓存\n\n本轮先选小范围 **SWA-BF16-NORM-ROPE-SCATTER**：前面的Wkv矩阵投影保持原算子，只研究后面三个操作的融合。包含投影的更大方案、packed缓存及压缩/Indexer分支保留原条件，不一起算作已分析完。\n\n### 当前三个操作和底层算法\n\n|操作|接口|做什么|\n|---|---|---|\n|KV归一化|`attn.kv_norm / RmsNorm`|对一条KV的完整512维求平方均值，按原eps/gamma归一化，得到BF16结果|\n|位置旋转|`inplace_partial_rotary_mul`|仅对归一化结果末尾64维成对旋转，前448维保留|\n|写入缓存|`npu_scatter_nd_update_sk`|根据slot_mapping提供的坐标，把最终512维写到对应缓存位置|\n\n归一化公式为u_i=gamma_i*v_i/sqrt(mean(v_j²)+eps)，均值覆盖整512维。RoPE沿用前一条的数对乘加规则；原归一化BF16舍入必须发生在RoPE前，旋转再按原规则舍入。\n\n### 融合前后\n\n```text\n现在：\nWkv → KV中间结果\n          ↓\n归一化 → 写中间结果\n          ↓\n读取尾部 → 旋转 → 原位写回\n          ↓\n读取处理好的KV → 按位置写入最终缓存\n\n候选：\nWkv → KV中间结果\n          ↓\n[整512维归一化 → 原舍入 → 尾64维旋转 → 原舍入 → 按位置写缓存]\n```\n\n三步必要计算/效果都保留。希望同一条数据处理好后直接放到最终位置，减少中间暂存的写读及任务交接。归一化和旋转不是把KV缓存压缩或删除；最终缓存中的数据仍供后续Attention读取。\n\n### 这条为什么有讨论价值\n\n所选源码SWA链中，post-RoPE KV沿调用点写缓存；这三步属于同一KV行的连续向量处理，不需要为了融合而增加Q行数或重写Wkv矩阵核。比“整个投影一起重写”的边界更小，适合先评估低成本实现。\n\n但整512维统计、成对旋转、slot寻址和所有数值边界必须一致。当前cache平面可能是大张量中的视图，实际页步长不能由shape猜；[-1,-1]表示跳过，不能写错位置。重复slot、其他读者、aux输出及原Q/KV交错都须保留原合同。源码中的dtype转换/contiguous只有在实际需要时才产生工作，不默认都是额外copy。\n\n### 逻辑流量和显存区别\n\n在所有M行有效、没有额外必需中间读者等限定域下，所选小边界可研究省4M×512＋4M×64字节中间写读；以M24作算式示例是55,296B（54KiB）。最后写入cache的24,576B（24KiB）仍保留。这个数字没有证明当前实际24行全有效，也不是实测HBM流量、峰值显存减少或提速。\n\n若进一步把Wkv也融合，属于另一更大边界，不能把它的额外预算算入本轮。其他路径若需要归一化后但旋转前的值，仍要输出；压缩/Indexer分支尤其不能直接套本例。\n\n### 查到的现成库为什么不能直接替换\n\nAscend/op-plugin 7.3.0公开文档确有`npu_kv_rmsnorm_rope_cache`，并列出A2/A3及图模式支持。但它把576维输入拆成512维归一化分支和额外64维旋转分支，分别写缓存；当前需求是完整512先归一化，再旋转其中末尾64维，语义及cache布局不同。因此不是本case已证直接替代；也不因此排除所有其他版本/实现。\n\n### 当前判断\n\n**保留为值得低成本验证的融合候选，尚无新实现或提速结论。** 先固定BF16 SWA域、原数值及cache协议，比较三步整链和最终Attention就绪、图内存及KV容量。旧单算子时间不等于可省时间，不为了融合破坏已有CV交错。本轮不关闭F08整个候选族。\n"
     },
     {
       "id": "F09",
@@ -2709,7 +2731,7 @@
     }
   ],
   "current_focus": {
-    "candidate": "F07",
-    "variant": "Q_B收尾→部分RoPE（待验证）"
+    "candidate": "F08",
+    "variant": "非packed BF16 SWA：RMS512→tail64 RoPE→cacheScatter（待验证）"
   }
 }
