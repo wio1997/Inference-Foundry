@@ -171,3 +171,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 实际便携CLI开启实验分块后，四 rank 的 recall17 提示分组 `[8,8,8,8,8,1]`，未强制生成的13个 token 与保留参考一致，停止于配置 token 154827，未到 tokenizer EOS 或上限。该CLI测试仅将运行器超时缩短至1200秒；同例首 token 全 logits 仍存在差异，recall42 token序列不一致，不能据此宣称整体精度通过。[结果](validation/layer-major-cli-round424.json)。
 
 实际便携CLI的实验分块与 `--restore-after-first-token` 组合在四 rank 固定8+5案例通过：位置27的 archive-v2 恢复后45层状态均一致，rank协调成功并返回预期3个 token。该CLI案例未比较续算全部logits；测试运行器超时缩短为420秒。[范围](validation/layer-major-cli-round424.json)。
+
+实验分块的实际便携CLI recall42 输出与此前探针48 token一致，仍与独立参考45 token在索引2开始不同；最终答案42，停止于配置token 154827，未到EOS或上限。[结果](validation/layer-major-cli-round424.json)。另一个四rank独立探针对固定7+6在缓存关闭与128 MiB会话缓存之间逐位比较了每rank六个完整logits张量和生成token，全部一致；关闭后缓存零字节且无活动租约，记录到命中但未测性能。此探针不等于CLI缓存选项验收。[范围](validation/layer-major-cache-round425.json)，[探针](portable/layer_major_cache_probe.py)。
