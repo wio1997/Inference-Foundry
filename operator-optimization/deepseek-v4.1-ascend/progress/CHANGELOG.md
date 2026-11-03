@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F08-Q-AND-SHARED-KV-ROTARY-TARGETS
+
+涉及：[F08](F08.md)
+
+类型：SOURCE_TARGET_AND_SHARED_KV_SEMANTICS_CLARIFICATION；依据：用户追问QKV是否共同旋转；核对Q/KV独立调用、SMLA共享KV接口、native同一KV的mm1/mm2读取及输出inverse=True，并用Llama官方实现区分参照架构。
+
+明确仅指定末64维、两次独立调用及本轮待写KV行；本版共享KV不能套V完全不转，补记另有输出逆旋转。无新实现/性能或全覆盖结论。
+
 ## 2026-11-04 · 20261104-F08-ROPE-PREPARE-VS-APPLY-CLARIFICATION
 
 涉及：[F08](F08.md)

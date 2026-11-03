@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "candidate": "F08",
+  "status": "SOURCE_TARGET_AND_SHARED_KV_SEMANTICS_CLARIFICATION_NOT_NEW_IMPLEMENTATION",
+  "question": "RoPE是否把Q、K、V一起旋转，实际作用哪些数据？",
+  "sources": [
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+    "records/history/continuation/profile-first-20261031/attention-indexer-native-numerical-contract-v60.json",
+    "progress/evidence/F07-qb-rope-review-20261104.json",
+    "progress/evidence/F08-kv-norm-rope-scatter-review-20261104.json"
+  ],
+  "caller_proof": {
+    "q": "dsa_v41.py 320-324：q_norm(wq_a)→wq_b→_apply_rotary(q)",
+    "kv": "dsa_v41.py 326-330：kv_norm(wkv)→view(-1,1,head_dim)→_apply_rotary(kv)",
+    "attention": "dsa_v41.py 657-660：分别传q、ori_kv和cmp_kv，未传独立K、V两个张量",
+    "output_inverse": "dsa_v41.py 711-712：Attention后对attention_output调用_apply_rotary(... inverse=True)",
+    "scope": "源路径证明；非目标171当前加载二进制/本轮运行时并行关系的证明"
+  },
+  "targets": [
+    {
+      "tensor": "Q",
+      "data": "Q_B投影生成的主Q，每个head只对512维中的448..511（末64）成对旋转，前448保持原值",
+      "call": "独立Q旋转调用"
+    },
+    {
+      "tensor": "shared KV",
+      "data": "KV投影并完整512归一化后，本轮待写缓存的共享KV张量末64维；不是把全部历史缓存再转一遍",
+      "call": "独立KV旋转调用"
+    },
+    {
+      "tensor": "V",
+      "data": "该源路径没有独立V投影后再调用RoPE的步骤；共享KV也用于native加权求和，不能据无独立V调用断言value路径没有旋转影响",
+      "call": "无独立V旋转调用"
+    },
+    {
+      "tensor": "attention_output",
+      "data": "Attention后另有指定tail的逆旋转，归F16等后续边界；不是F08输入旋转",
+      "call": "另一个inverse=True调用"
+    }
+  ],
+  "execution_note": "当前是Q和KV分别调用，不是单个QKV共同旋转kernel；数学上均处理对应位置/维度对的数值，实际重叠取决于源分支与调度。",
+  "general_reference": {
+    "url": "https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py",
+    "lines": "116-137,221-228",
+    "claim": "常见Llama独立Q/K/V实现只对Q和K调用RoPE；这是一种参照架构，不是当前共享KV模型的语义证明。"
+  },
+  "implementation": false,
+  "native_correctness": "NOT_RUN",
+  "measured_speedup": false,
+  "whole_family_closed": false,
+  "native_shared_KV_proof": {
+    "file": "sparse_flash_mla_csa_block_cube.h",
+    "sha256": "55210741e16d8cc455215849c73e2c06db10f23efeb73ca87b4a16847339ccc3",
+    "stage_examples": [
+      {
+        "line_range": [
+          449,
+          452
+        ],
+        "enclosing_function_header": "__aicore__ inline void SMLACubeBlock<SMLAT>::ComputeMm1(const RunInfo &info, const MSplitInfo mSplitInfo) {     uint32_t mSize = mSplitInfo.nBufferDealM;",
+        "source": [
+          "                        DataCopy(bL1Tensor,",
+          "                                 oriKvGm[info.tensorBOffset + curS2Offset * constInfo.headDim +",
+          "                                         (constInfo.headDim >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDim],",
+          "                                 nd2nzPara);"
+        ]
+      },
+      {
+        "line_range": [
+          701,
+          704
+        ],
+        "enclosing_function_header": "__aicore__ inline void SMLACubeBlock<SMLAT>::ComputeMm2(const RunInfo &info, const MSplitInfo mSplitInfo) {     uint32_t mSize = mSplitInfo.nBufferDealM;",
+        "source": [
+          "                        DataCopy(bL1Tensor[(kL1 - kOffset) * 128 * N_SPLIT_SIZE],",
+          "                                 oriKvGm[info.tensorBOffset + curS2Offset * constInfo.headDim +",
+          "                                         kL1 * 128 * constInfo.headDim + nL1 * N_SPLIT_SIZE],",
+          "                                 nd2nzPara);"
+        ]
+      }
+    ],
+    "interpretation": "mm1打分和mm2加权求和读取同一oriKvGm；合并压缩缓存也使用kvMergeGm_。源码域证明，不等于当前加载二进制attestation。"
+  }
+}
