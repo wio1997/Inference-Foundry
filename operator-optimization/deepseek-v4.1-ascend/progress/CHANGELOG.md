@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F08-ROPE-PREPARE-VS-APPLY-CLARIFICATION
+
+涉及：[F08](F08.md)
+
+类型：EXPLANATION_ORDER_CLARIFICATION_NOT_NEW_TECHNICAL_PROGRESS；依据：用户在继续下一条前追问旋转时机；定点核对dsa_v41.py 320-330及350-374，复用当前F08源合同。
+
+明确先取cos/sin不等于已旋转；本版KV投影→归一化→尾64旋转→写缓存，随后正式Attention。区分新KV向量与KV缓存，不新增性能/实现结论。
+
 ## 2026-11-04 · 20261104-F08-KV-NORM-ROPE-SCATTER-PARTIAL-REVIEW
 
 涉及：[F08](F08.md)
