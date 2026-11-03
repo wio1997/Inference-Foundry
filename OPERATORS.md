@@ -87,3 +87,5 @@ CLI 请求开启恢复时，反序列化后比较45层状态并跨 rank 汇总�
 单 token rank preflight 包含 token 类型及词表范围检查，embedding 读取故障在进入 stack 前协同汇总；[注入结果](validation/rank-embedding-preflight-round419.json) 不涵盖设备/进程故障。
 
 单 token rank preflight 将 token ID 与身份和位置一并汇总，不一致在 embedding 前拒绝；[四 rank 测试](validation/rank-token-preflight-round420.json) 不涵盖设备/进程故障。
+
+reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 回归范围见 [记录](validation/cache-binding-round420.json)，零 hit 不代表性能收益。

@@ -56,7 +56,8 @@ try:
   runner=load_native_text_runner(reader,'npu',dsa_operations=ops,expert_policy='selected_per_token',max_expert_checkpoint_bytes=512*1024**2,max_expert_resident_bytes=512*1024**2,vocab_start=0,vocab_stop=config.vocab_size,max_head_rows=config.vocab_size,max_tokens=1,max_context_tokens=context,logical_block_size=128,hc_backend='ascend_installed',kda_backend=kda_backend)
   for i,layer in enumerate(runner.stack.layers):
    if config.layers[i].attention=='deepseek_sparse_attention':layer.attention.operation=ops[i].bind(layer.attention.mla,layer.attention.indexer)
-  report['installed']=install_rank_text_seams(runner,reader,rank=rank,world_size=world_size,cache_bytes=128*1024**2,max_assembled_bytes=16*1024**2,max_intermediate_rows=12288,max_packed_rows=8)
+  report['expert_lease_cache_mib']=request['cache_mib'] if cache_bytes>0 else 128
+  report['installed']=install_rank_text_seams(runner,reader,rank=rank,world_size=world_size,cache_bytes=report['expert_lease_cache_mib']*1024**2,max_assembled_bytes=16*1024**2,max_intermediate_rows=12288,max_packed_rows=8)
   assert len(report['installed']['dense_layers'])==3 and len(report['installed']['sparse_layers'])==42
   runner.enable_rank_commit_agreement()
   report['rank_commit_agreement_enabled']=True

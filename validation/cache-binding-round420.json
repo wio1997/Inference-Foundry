@@ -1,0 +1,113 @@
+{
+  "scope": "四 rank 固定8+5请求：指定64 MiB reusable expert session 的绑定修复及零 session 回归",
+  "architecture": "aarch64",
+  "device": "Ascend910_9382",
+  "world_size": 4,
+  "versions": {
+    "torch": "2.10.0+cpu",
+    "torch-npu": "2.10.0.post7",
+    "flash-linear-attention-npu-a3": "26.9.1+deva4a7958"
+  },
+  "checkpoint_index_sha256": "dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4",
+  "config_sha256": "33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943",
+  "template_sha256": "34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891",
+  "old_source_manifest_sha256": "f921f52f7010fb9221a4e454aa66d10ef17de7eaaef00fa4381bbad1c30e1d83",
+  "fixed_source_manifest_sha256": "7371dbef0c3acfa6757ba3ad802e559cd767ca2cb863cdea4fea3599927d8af4",
+  "worker_sha256": "cf42dafcc0bb55c0f9fb5f0fd120ddaea4c0a395ec514f2914d221bdd9789427",
+  "before": "指定64 MiB session 时，worker 将适配器固定为128 MiB；四 rank 因 session binding 不一致而在首次 MoE 时失败。",
+  "after": "启用 reusable session 时适配器使用相同的请求预算；四 rank 完整短请求通过，cache 容量每 rank 为67108864字节，关闭后 used_bytes 为0且无活动 lease。未启用 session 时，适配器保留原128 MiB临时 cache 上限。",
+  "cache_64_before_close": [
+    {
+      "rank": 0,
+      "world_size": 4,
+      "used_bytes": 58884096,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 7137,
+      "closed": false,
+      "active_lease": false
+    },
+    {
+      "rank": 1,
+      "world_size": 4,
+      "used_bytes": 58884096,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 7032,
+      "closed": false,
+      "active_lease": false
+    },
+    {
+      "rank": 2,
+      "world_size": 4,
+      "used_bytes": 58884096,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 6831,
+      "closed": false,
+      "active_lease": false
+    },
+    {
+      "rank": 3,
+      "world_size": 4,
+      "used_bytes": 58884096,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 7224,
+      "closed": false,
+      "active_lease": false
+    }
+  ],
+  "cache_64_after_close": [
+    {
+      "rank": 0,
+      "world_size": 4,
+      "used_bytes": 0,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 7137,
+      "closed": true,
+      "active_lease": false
+    },
+    {
+      "rank": 1,
+      "world_size": 4,
+      "used_bytes": 0,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 7032,
+      "closed": true,
+      "active_lease": false
+    },
+    {
+      "rank": 2,
+      "world_size": 4,
+      "used_bytes": 0,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 6831,
+      "closed": true,
+      "active_lease": false
+    },
+    {
+      "rank": 3,
+      "world_size": 4,
+      "used_bytes": 0,
+      "max_bytes": 67108864,
+      "hits": 0,
+      "misses": 7224,
+      "closed": true,
+      "active_lease": false
+    }
+  ],
+  "normal_zero": {
+    "source_manifest_sha256": "7371dbef0c3acfa6757ba3ad802e559cd767ca2cb863cdea4fea3599927d8af4",
+    "result": "四 rank 零 session 固定8+5的 prompt IDs、prompt argmax、生成 IDs 与前版相同，完整 logits 未比较。",
+    "generated_ids": [
+      154842,
+      99366,
+      154827
+    ]
+  },
+  "limits": "实测64 MiB和0 MiB两个配置；不推断所有其他预算通过。64 MiB各 rank 均为零 hit，不声明缓存收益或性能提升。此项未完成独立精度或生产验收。"
+}
