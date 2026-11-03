@@ -1,0 +1,30 @@
+{
+  "candidate": "F05",
+  "question": "BF16归一化结果送到的索引分支是干什么的？",
+  "date": "2026-11-03",
+  "kind": "SOURCE_ROLE_CLARIFICATION_NOT_IMPLEMENTATION",
+  "checks": {
+    "qr_feeds_index_query": true,
+    "indexer_emits_selected_indices": true,
+    "selected_published_as_topk": true,
+    "attention_consumes_compressed_selection": true,
+    "window_cache_path_retained": true
+  },
+  "answer": "在适用长上下文分支中，Indexer从qr生成索引查询，与缓存key打分并选择位置，发布索引供SparseFlashMla读取对应长上下文/压缩缓存。窗口缓存路径另保留。原qr的主Q投影和索引查询投影是不同用途，当前索引接口仍消费BF16 qr。",
+  "limits": [
+    "Indexing itself has computation cost.",
+    "No proof that replacing every qr consumer with a shared INT8 input is already supported.",
+    "Not every layer computes a fresh selection; source roles may share existing topk.",
+    "No new runtime test or performance claim."
+  ],
+  "evidence": [
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd"
+    },
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/indexer.py",
+      "sha256": "d5d6a438bbced4e63d729dac94c08869df30dab4a71ceacecdea211386b3db33"
+    }
+  ]
+}

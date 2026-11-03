@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F05-INDEXER-ROLE-QUESTION
+
+涉及：[F05](F05.md)
+
+类型：QUESTION_ROLE_CLARIFICATION_NOT_MATURITY_PROMOTION；依据：用户追问BF16归一化输出的索引分支用途；定点核对Indexer选择输出与SparseFlashMla的cmp_sparse_indices接入。
+
+明确索引分支选择长上下文缓存位置，为Attention发布索引编号；窗口路径仍保留。当前Indexer消费qr，不能随主Q量化删除；此说明不记新实现或收益。
+
 ## 2026-11-03 · 20261103-F05-NORM-QUANT-REVIEW
 
 涉及：[F05](F05.md)
