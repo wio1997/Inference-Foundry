@@ -287,9 +287,9 @@ class TextRequest:
                 # before ranks enter any stack collective or publish state.
                 import torch.distributed as dist
                 if failure is None:
-                    metadata=[0,start,count,identity]
+                    metadata=[0,start,count,identity,int(token_ids[0].item())]
                 else:
-                    metadata=[1,0,0,0]
+                    metadata=[1,0,0,0,0]
                 header=torch.tensor(metadata,dtype=torch.int64,device=r.boundary.norm_weight.device)
                 headers=[torch.empty_like(header) for _ in range(dist.get_world_size(r._rank_commit_group))]
                 dist.all_gather(headers,header,group=r._rank_commit_group)

@@ -1,0 +1,32 @@
+{
+  "identity_probe_manifest_sha256": "019960bff0f47deea909c8cb2b93f403296b20758a4c47d19e2af9e0fbd3437e",
+  "scope": "四 rank 单 token 请求在 nonzero state 下同步校验 token ID，并通过公开 rollback 模式验证入 embedding 前拒绝",
+  "architecture": "aarch64",
+  "device": "Ascend910_9382",
+  "world_size": 4,
+  "versions": {
+    "torch": "2.10.0+cpu",
+    "torch-npu": "2.10.0.post7",
+    "flash-linear-attention-npu-a3": "26.9.1+deva4a7958"
+  },
+  "checkpoint_index_sha256": "dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4",
+  "config_sha256": "33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943",
+  "template_sha256": "34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891",
+  "source_manifest_sha256": "dad117844984d5188cea5fa7303bea18f6989c2bee62bbfb347538cc1400ea79",
+  "text_request_sha256": "a2b3e8f88c8ee0bb1bac45f1696dd540a954f35a1723256812a4c446ca752ea8",
+  "runner_sha256": "158eb898e4d8537d3f5bfea7dd75d5237eae0e54b1a5e906216b1f10b9f2ca96",
+  "rollback_probe_sha256": "439a597b5b791961931fa057474277d65ca9c51762107928edee77ad18f04646",
+  "result": "rank 2 的 token ID 与其他 rank 不同，四 rank 在 embedding 之前协同拒绝；每 rank token 计数保持3，全部45层状态不变；随后同 token 重试的 logits 和45层状态与干净执行一致。",
+  "normal_regression": {
+    "source_manifest_sha256": "f921f52f7010fb9221a4e454aa66d10ef17de7eaaef00fa4381bbad1c30e1d83",
+    "result": "四 rank 固定8+5请求的 prompt IDs、prompt argmax 和生成 IDs 与前一版本一致；未比较完整 logits。",
+    "generated_ids": [
+      154842,
+      99366,
+      154827
+    ],
+    "test_timeout_seconds": 480,
+    "published_timeout_seconds": 2100
+  },
+  "limits": "仅覆盖进入 preflight 的存活 rank 和指定故障，不涵盖设备/进程丢失、stack 内 collective 及不可控副作用。沿用现有 all_gather，性能影响未测；独立模型精度和生产验收未完成。"
+}

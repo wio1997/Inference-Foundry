@@ -145,3 +145,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 同一 preflight 也已实测各 rank 自身位置有效但跨 rank 不一致：2/3 token 状态均保持不变，随后正常重试通过。[结果](validation/rank-request-identity-round419.json)。
 
 单 token rank 路径在共享 preflight 中校验 CPU 整数 token 和词表范围；embedding 读取异常在入栈前跨 rank 汇总。四 rank 注入与状态重试见 [结果](validation/rank-embedding-preflight-round419.json)；新增 collective 的性能未测。
+
+单 token rank 提交 preflight 现同时比较 token ID，已实测 rank 2 token 不一致时在 embedding 前协同拒绝；状态和重试结果见 [验证记录](validation/rank-token-preflight-round420.json)。

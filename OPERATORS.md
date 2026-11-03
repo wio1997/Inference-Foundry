@@ -85,3 +85,5 @@ CLI 请求开启恢复时，反序列化后比较45层状态并跨 rank 汇总�
 单 token rank 提交 preflight 现同步校验请求身份指纹、位置和 token 数；[四 rank 结果](validation/rank-request-identity-round419.json) 不覆盖进程或设备故障，collective 开销未测。
 
 单 token rank preflight 包含 token 类型及词表范围检查，embedding 读取故障在进入 stack 前协同汇总；[注入结果](validation/rank-embedding-preflight-round419.json) 不涵盖设备/进程故障。
+
+单 token rank preflight 将 token ID 与身份和位置一并汇总，不一致在 embedding 前拒绝；[四 rank 测试](validation/rank-token-preflight-round420.json) 不涵盖设备/进程故障。

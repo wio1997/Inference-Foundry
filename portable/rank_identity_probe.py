@@ -138,11 +138,15 @@ try:
    after=q.snapshot();report['failure_coordinated']=True;report['failure_tokens_seen']=after.tokens_seen;report['failure_state_equal']=state_eq(before,after,config)
    assert after.tokens_seen==3 and len(report['failure_state_equal'])==45 and all(report['failure_state_equal'].values())
    del after
-   report['phase']='rank_input_mismatch';save()
-   try:q.step(torch.tensor([25063 if rank==injected_rank else tokens[3]],dtype=torch.int64),expected_tokens_seen=3)
-   except ValueError as exc:
-    assert str(exc)=='rank linear inputs differ',repr(exc)
-   else:raise AssertionError('rank input mismatch unexpectedly committed')
+   report['phase']='rank_input_mismatch';save();original_embed=runner.boundary.embed
+   def forbidden_mismatch_embed(ids):raise AssertionError('embedding entered for rank token mismatch')
+   runner.boundary.embed=forbidden_mismatch_embed
+   try:
+    try:q.step(torch.tensor([25063 if rank==injected_rank else tokens[3]],dtype=torch.int64),expected_tokens_seen=3)
+    except ValueError as exc:assert str(exc)=='rank commit preflight failed',repr(exc)
+    else:raise AssertionError('rank input mismatch unexpectedly committed')
+   finally:runner.boundary.embed=original_embed
+   report['rank_input_mismatch_before_embedding']=True
    mismatch=q.snapshot();report['rank_input_mismatch_coordinated']=True;report['rank_input_mismatch_tokens_seen']=mismatch.tokens_seen;report['rank_input_mismatch_state_equal']=state_eq(before,mismatch,config)
    assert mismatch.tokens_seen==3 and len(report['rank_input_mismatch_state_equal'])==45 and all(report['rank_input_mismatch_state_equal'].values())
    del before,mismatch
