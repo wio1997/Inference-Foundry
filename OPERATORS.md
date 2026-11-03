@@ -129,3 +129,5 @@ KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入�
 40+1 实验路径的 recall17 完整生成范围与差异见 [记录](validation/recall17-prefill40-round437.json)。
 
 40+1 实验路径的 recall42 完整生成范围与差异见 [记录](validation/recall42-prefill40-round438.json)。
+
+公共 CLI 的40 token 实验性预填充和 singleton 路径见 [验证记录](validation/cli-prefill40-round439.json)；此项不证明全模型精度。
