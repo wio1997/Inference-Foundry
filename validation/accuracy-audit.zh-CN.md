@@ -203,3 +203,9 @@
 同一公开运行器的参考模式使用固定 `8+5` 输入在四 rank 生成 `[154842,99366,154827]`、答案 `13`。提示 token 和生成 token 与当前普通模式一致；生成 token 也与保留的 round 392 参考运行一致。均在配置停止 ID `154827` 停止，未达上限且不是 tokenizer EOS。逐 rank 结果见 [记录](public-reference-round397.json)。
 
 这只是单一短案例的 token 对照，未比较完整 logits；独立整体质量与生产验收仍未验证。
+
+## recall17 首 token 与层边界
+
+针对与已有参考及 `ascendc` 运行相同的 41 token 提示，四 rank 的完整首 token logits 共 154880 项，参考 argmax 为 1474，适配为 785；每 rank 的最大绝对差为 4.1875、RMSE 为 0.6980808973。第 0 层所捕获边界按位置比较，位置 0 的 embedding 和 attention 输入逐位相等，attention 输出首次出现逐位差异（最大绝对差 0.00006103515625）。参考使用批量 prefill，适配逐 token；计算路径或数值顺序可能相关，但尚未证明因果。原始比较范围、针脚和全部边界统计见 [记录](recall17-first-logits-round404.json)。
+
+首轮采集误取参考 warm-up logits 且适配多推进一步；该轮被拒绝，以上仅采用修正后、argmax 经核对的重采结果。这不是整模型精度或生产验收。
