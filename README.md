@@ -245,3 +245,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 直接启动 rank 时若未设置 WORLD_SIZE，launcher 会将校验过的默认值4传给 worker；四 rank 实机验证见 [记录](validation/launcher-world-size-round458.json)。
 
 稀疏KDA与40+1预填的archive-v2恢复后，续算完整logits及45层状态在受测配置下相等，见 [记录](validation/sparsearchive40-round460.json)。
+
+分配器在启动 worker 前以 `npu-smi info -m` 核对卡/芯片到逻辑 die 的映射；不匹配或无法解析时拒绝启动。[验证](validation/allocator-mapping-round461.json)。

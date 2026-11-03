@@ -35,6 +35,23 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def validate_device_mapping(allocation, mapping_text):
+    """Match configured card/chip to npu-smi logical die before occupancy checks."""
+    matches = {}
+    for line in mapping_text.splitlines():
+        columns = line.split()
+        if len(columns) < 5 or not all(x.isdecimal() for x in columns[:4]):
+            continue
+        card, chip, die = map(int, columns[:3])
+        key = (card, chip)
+        if key in matches:
+            raise RuntimeError('ambiguous npu-smi card/chip mapping')
+        matches[key] = die
+    for item in allocation:
+        if matches.get((item['card'], item['chip'])) != item['die']:
+            raise RuntimeError('allocation card/chip to logical die mismatch')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', required=True)
@@ -140,6 +157,8 @@ def main():
             raise RuntimeError('container/image identity or state mismatch')
         if subprocess.check_output(['docker', 'top', cfg['container'], '-eo', 'pid,ppid,args'], text=True).strip().count('\n') != 1:
             raise RuntimeError('container has active processes')
+        mapping = subprocess.check_output(['npu-smi', 'info', '-m'], text=True, timeout=20)
+        validate_device_mapping(allocation, mapping)
         info = subprocess.check_output(['npu-smi', 'info'], text=True)
         for card in {x['card'] for x in allocation}:
             if f'No running processes found in NPU {card}' not in info:
