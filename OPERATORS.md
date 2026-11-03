@@ -91,3 +91,5 @@ CLI 请求开启恢复时，反序列化后比较45层状态并跨 rank 汇总�
 reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 回归范围见 [记录](validation/cache-binding-round420.json)，零 hit 不代表性能收益。
 
 单 die 的真实 recall17 layer0 八 token 边界和40 token尾部控制见 [记录](validation/kda-eight-boundary-round421.json)；未验收整体精度或性能。
+
+实验性四分片输出投影复用同一默认关闭的参考分片开关，在本地以 BF16 平衡树汇合；单 die 的真实 recall17 第0层40 token回放位置0与保留参考逐位一致，8 token 仍有差异。一般 HCCL 等价及性能未测。[记录](validation/kda-eight-boundary-round421.json)。
