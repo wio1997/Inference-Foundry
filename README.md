@@ -153,3 +153,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 真实 recall17 的 layer0 首8 token 实验回放中，rank0 的 position0 投影与保留参考相同，core、gated 和 attention 输出有数值差异；固定40 token长度并只改变后32个输入时，首位置 core 在各自重复中稳定但两种尾部之间不同。该单 die 检查不证明内部根因或整模型精度。[记录](validation/kda-eight-boundary-round421.json)。
 
 在该单 die 固定输入的40 token尾部单因子控制中，单独替换后续 raw gate 即复现了首位置 core 差异，单独替换后续 Q/K/V/beta 未产生逐位差异；这不构成算子内部根因或整模型精度验收。[记录](validation/kda-eight-boundary-round421.json)。
+
+默认关闭的 `reference_sharded_projection` 实验选项还将输出投影拆为四个本地 BF16 分片并以平衡树相加。单 die、真实 recall17 第0层 position0 的40 token回放中 core 和输出与保留参考逐位相等；8 token 仍有差异。默认选项关闭时，四 die 的短算术请求 token 结果与此前同运行时记录一致；未验证一般输入的 HCCL 等价、完整 logits、整模型精度或性能。[范围](validation/kda-eight-boundary-round421.json)。

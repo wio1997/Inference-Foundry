@@ -496,5 +496,79 @@
       }
     },
     "结论": "此单一输入和单 die 条件下，单独替换后续 raw gate 与全部尾部替换得到相同的首位置差异；单独替换后续 Q、K、V 或 raw beta 没有逐位差异。不能据此判定算子内部机制或整模型精度。"
+  },
+  "experimental_output_tree": {
+    "scope": "单 die 本地四个 BF16 行分片投影及平衡树相加；仅真实 recall17 第0层 position0 的 8 与 40 token 实验回放。",
+    "kda_sha256": "9150896b2caaf6bfbc84f8eb205a2bb92cfb2b7d9abf8dc1946e95d445f1412b",
+    "source_manifest_sha256": "8375ecf20d132b92e471af4e4e04a208c72b867eefef28e889cde9f4633d563d",
+    "checks": {
+      "chunk8_initial_state_unchanged": true,
+      "chunk8_tokens_seen": true,
+      "chunk8_output_finite": true,
+      "chunk40_initial_state_unchanged": true,
+      "chunk40_tokens_seen": true,
+      "chunk40_output_finite": true,
+      "forty_core_matches_reference": true,
+      "forty_output_matches_reference": true
+    },
+    "comparisons": {
+      "8": {
+        "core": {
+          "shape": [
+            1,
+            16,
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "bitwise_equal": false,
+          "max_abs": 9.5367431640625e-07,
+          "rmse": 5.62327926445505e-08,
+          "reference_rms": 5.602965029538609e-05,
+          "relative_rmse": 0.0010036256222927227
+        },
+        "attention_output": {
+          "shape": [
+            1,
+            4096
+          ],
+          "dtype": "torch.bfloat16",
+          "bitwise_equal": false,
+          "max_abs": 6.103515625e-05,
+          "rmse": 1.5710011211922392e-05,
+          "reference_rms": 0.003025895683094859,
+          "relative_rmse": 0.0051918548612536215
+        }
+      },
+      "40": {
+        "core": {
+          "shape": [
+            1,
+            16,
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "bitwise_equal": true,
+          "max_abs": 0.0,
+          "rmse": 0.0,
+          "reference_rms": 5.602965029538609e-05,
+          "relative_rmse": 0.0
+        },
+        "attention_output": {
+          "shape": [
+            1,
+            4096
+          ],
+          "dtype": "torch.bfloat16",
+          "bitwise_equal": true,
+          "max_abs": 0.0,
+          "rmse": 0.0,
+          "reference_rms": 0.003025895683094859,
+          "relative_rmse": 0.0
+        }
+      }
+    },
+    "default_four_die_source_manifest_digest": "6ac1f62b5deab4337d87be12c9309c114bd620b5c9aee8acf45520e1dfa98820",
+    "default_four_die": "默认选项关闭，四 rank 的短算术请求 prompt IDs、prompt argmax 和生成 IDs 与此前同运行时记录一致；不是完整 logits 或整模型精度验收。",
+    "limitations": "单 die 本地加法不证明一般输入与 HCCL 等价；8 token core 和输出仍与保留参考不同，性能未测。"
   }
 }

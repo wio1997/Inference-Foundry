@@ -285,5 +285,13 @@ class Glm5NextKDA(nn.Module):
         gate = self.g_b_proj(g_a).reshape(-1,self.num_heads,self.head_dim)
         normed = output.float() * torch.rsqrt(output.float().square().mean(-1,keepdim=True)+self.norm_eps)
         gated = (normed*self.o_norm_weight.float()*gate.float().sigmoid()).to(x.dtype)
-        result = self.o_proj(gated.reshape(x.shape[0],self.num_heads*self.head_dim))
+        flat = gated.reshape(x.shape[0],self.num_heads*self.head_dim)
+        if self.reference_sharded_projection:
+            # Experimental local reconstruction of the four BF16 row shards.
+            # This does not claim equivalence to HCCL for arbitrary inputs.
+            width=flat.shape[-1]//4
+            partial=[F.linear(flat[:,i*width:(i+1)*width].contiguous(),self.o_proj.weight[:,i*width:(i+1)*width].contiguous()) for i in range(4)]
+            result=(partial[0]+partial[1])+(partial[2]+partial[3])
+        else:
+            result=self.o_proj(flat)
         return result, KDAState(tuple(histories),recurrent,state.tokens_seen+x.shape[0])
