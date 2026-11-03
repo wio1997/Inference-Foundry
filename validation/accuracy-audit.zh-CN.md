@@ -229,3 +229,5 @@
 相同对齐输入下，现有显式 Torch 与 installed decode 两种核心均未与参考 chunk prefill 核心逐位一致；在记录精度下显式 Torch 的 RMSE 与 AscendC 相同，installed decode 的 RMSE 在四个 rank 均更大。具体数字和针脚见 [记录](recall17-sharded-core-round407.json)。这不是默认实现修复，也不构成整体精度或生产验收。
 
 尝试用已安装的 chunk 核心对同一首 token 和零初态单独执行时，四个 rank 均在 `aclnnChunkKdaFwdGetWorkspaceSize` 返回 161002，因此没有获得 chunk 数值对照；原因尚未确定。管理器的总体 pass 只覆盖其余探针检查，不能视为 chunk 通过。详见 [失败记录](recall17-chunk-attempt-round407.json)。
+
+进一步使用实际 41 行输入和参考 chunk 形状时，四个 rank 的 chunk 调用仍返回 161002；管理器语义结果为失败，没有得到 chunk 数值对照。详见 [批量失败记录](recall17-batch-chunk-attempt-round407.json)。后续需先找到调用条件的实际差异，不能把该失败当作模型精度结果。
