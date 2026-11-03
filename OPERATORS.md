@@ -143,3 +143,5 @@ KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入�
 40 token预填后的状态序列化、恢复和续算验证见 [记录](validation/archive40-round444.json)。
 
 40 token预填的专家缓存等价验证见 [记录](validation/cache40-round445.json)。
+
+40+1 预填首 token 的参考完整 logits 对照及限制见 [记录](validation/reference40-logits-round447.json)。
