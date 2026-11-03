@@ -286,7 +286,7 @@
       "kind": "已有归一化/转换融合；可选下游接口重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
       "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
-      "review_status": "已核对路径NormCast已有融合；新衔接方案待验证",
+      "review_status": "已有融合已确认；整体耗时已分批统计，纯转换与新收益未知",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -308,10 +308,21 @@
           "decision_rule": "首次融合机会排除；该项完成不表示有新实现或收益。"
         },
         {
+          "id": "F04-04",
+          "title": "用已有profile筛查量级",
+          "status": "DONE",
+          "evidence": [
+            "evidence/F04-171-npuonly-whole-normcast-timing-20261103.json",
+            "evidence/F04-old166-whole-normcast-timing-20261103.json"
+          ],
+          "description": "171已保存NPU-only图内11520次整个RmsNormCast的加权平均为2.913µs；旧166按shape统计，小M约3µs、大M约33–35µs。纯转换没有独立计时。",
+          "decision_rule": "两批不能作前后对比；整算子耗时不是可省时间，多卡/窗口总和不当请求收益。"
+        },
+        {
           "id": "F04-02",
           "title": "决定是否选择Router内转换子方案",
-          "description": "复用已证实数值合同，只为拟改变的新生产/消费接口核对FP32其他读者、行域及FP32路由计算资格；当前不声称原F.linear自动支持。",
-          "decision_rule": "无合法接口或仍需完整FP32平面时保留条件/剪去该变体；无变化不重查已有融合。"
+          "description": "用户认可可以尝试，先保留低成本验证：用当前171同一case固定小输入/大输入的真实接口、FP32其他读者和原精度，选择无需大范围重写的最小路径；旧166大小只作预算参考，不作当前171基线。",
+          "decision_rule": "新接口合法且试验成本与潜在收益相称才实施；小输入不为几微秒总算子耗时启动大工程。无新证据不重查已有融合。"
         },
         {
           "id": "F04-03",
@@ -375,13 +386,43 @@
           "label": "ROUTER-WIDEN历史候选",
           "path": "../records/history/continuation/profile-first-20261031/router-vector-fusion-variants-v63.json",
           "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
+        },
+        {
+          "label": "171整NormCast包络耗时统计",
+          "path": "evidence/F04-171-npuonly-whole-normcast-timing-20261103.json",
+          "scope": "11520次整算子加权平均；不是单独转换，不单独绑定shape，也不是v164 PMU批次。"
+        },
+        {
+          "label": "旧166逐shape整算子耗时",
+          "path": "evidence/F04-old166-whole-normcast-timing-20261103.json",
+          "scope": "32个只读SQLite、4472条TASK；含SQL与命令，原始profile不上传。"
+        },
+        {
+          "label": "可复用的只读计时工具",
+          "path": "../tools/operator_timing.py",
+          "scope": "分开统计数据库与包络，不跨批次比较或推导纯转换/端到端收益。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
-      "details_markdown": "## 本轮分类\n\n**已核对路径的归一化与类型转换已有RmsNormCast融合实现。** 不把它们再次记成一个首次融合任务。当前新增实现数仍为0；可选下游重组仍为CONDITIONAL。\n\n### 原算法和两份输出\n\n```text\nFFN前的Y → 原RMSNorm → BF16舍入\n                          ├→ BF16输出 → 专家/共享路径\n                          └→ 同值扩展为FP32 → 已核对的路由分支\n```\n\nBF16和FP32是两种数字存储格式。这里FP32是已舍入BF16值的扩展，不能直接拿未舍入的FP32归一化中间结果替代。路由器负责选择数据交给哪些专家。\n\n归档BF16 kernel按原次序做输入扩展、平方与按列数缩放、归约、加epsilon、开方求倒数，再将输入乘缩放和gamma。第115行将归一化结果舍入BF16；第122行由该BF16扩展FP32；第128/129行分别写出两份结果。输入最初也有一次FP32扩展，不能把它与输出的扩展混淆。\n\n### 适用分支\n\nDeviceOperator要求硬件RMS_NORM_CAST能力、自定义算子启用和npu_rms_norm_cast存在。否则模型执行普通post_attention_layernorm，再返回`normalized, normalized.float()`。\n\n仅gate有weight_fp32时，所核对helper选择预转换FP32并直接F.linear；其他gate保留原forward。旧166选定1272条API正向到达该分支，但这不是171全部调用或加载二进制身份的证明。\n\n### 剩余可选改法：ROUTER-WIDEN\n\n```text\n当前：BF16归一化结果 → 扩展FP32并写出 → Router读FP32做原计算\n候选：BF16归一化结果 → Router内部扩展成相同FP32值并做原计算\n```\n\nBF16专家输出保留。还要改生产者，使无其他读者的FP32平面不再发布；只改消费者并不省掉原写出。需要新接口/底层实现，不能把当前F.linear仅换输入dtype当作等价方案，也不把路由矩阵计算降为BF16。\n\nM=3、H=5120时FP32平面为61440B；若一写一读均能避免，条件逻辑接口为122880B（120KiB），不是已测HBM或提速。新暂存/转换/调度成本和全部读者仍需核对。\n\n### 本轮结论\n\n已有融合、已核对BF16双输出数值语义得到支持；**没有新增kernel或性能验收**。新Router内转换只是可选接口重组，不关闭F04其他变体。\n"
+      "details_markdown": "## 本轮分类\n\n**已核对路径的归一化与类型转换已有RmsNormCast融合实现。** 不把它们再次记成一个首次融合任务。当前新增实现数仍为0；可选下游重组仍为CONDITIONAL。\n\n### 原算法和两份输出\n\n```text\nFFN前的Y → 原RMSNorm → BF16舍入\n                          ├→ BF16输出 → 专家/共享路径\n                          └→ 同值扩展为FP32 → 已核对的路由分支\n```\n\nBF16和FP32是两种数字存储格式。这里FP32是已舍入BF16值的扩展，不能直接拿未舍入的FP32归一化中间结果替代。路由器负责选择数据交给哪些专家。\n\n归档BF16 kernel按原次序做输入扩展、平方与按列数缩放、归约、加epsilon、开方求倒数，再将输入乘缩放和gamma。第115行将归一化结果舍入BF16；第122行由该BF16扩展FP32；第128/129行分别写出两份结果。输入最初也有一次FP32扩展，不能把它与输出的扩展混淆。\n\n### 适用分支\n\nDeviceOperator要求硬件RMS_NORM_CAST能力、自定义算子启用和npu_rms_norm_cast存在。否则模型执行普通post_attention_layernorm，再返回`normalized, normalized.float()`。\n\n仅gate有weight_fp32时，所核对helper选择预转换FP32并直接F.linear；其他gate保留原forward。旧166选定1272条API正向到达该分支，但这不是171全部调用或加载二进制身份的证明。\n\n### 剩余可选改法：ROUTER-WIDEN\n\n```text\n当前：BF16归一化结果 → 扩展FP32并写出 → Router读FP32做原计算\n候选：BF16归一化结果 → Router内部扩展成相同FP32值并做原计算\n```\n\nBF16专家输出保留。还要改生产者，使无其他读者的FP32平面不再发布；只改消费者并不省掉原写出。需要新接口/底层实现，不能把当前F.linear仅换输入dtype当作等价方案，也不把路由矩阵计算降为BF16。\n\nM=3、H=5120时FP32平面为61440B；若一写一读均能避免，条件逻辑接口为122880B（120KiB），不是已测HBM或提速。新暂存/转换/调度成本和全部读者仍需核对。\n\n### 本轮结论\n\n已有融合、已核对BF16双输出数值语义得到支持；**没有新增kernel或性能验收**。新Router内转换只是可选接口重组，不关闭F04其他变体。\n\n## 本次耗时与优先级问题\n\n用户认可这个方向可尝试，并追问是否太小、单次转换耗时。当前动作是已有数据的只读量级筛选，不是实施或NPU试验。\n\n### 171：已有NPU-only采集中的整算子\n\n2026-11-02的v166 NPU-only cohort有288个所选原生图回放段，每段含40次RmsNormCast，共11520次；按总记录耗时除以总次数，平均单次 **2.913µs**。\n\n各回放段“平均单次耗时”的中位为2.916µs，范围约2.830–3.028µs。这些是段均值的统计，不是单个kernel的延迟分位数。NPU-only包络本身不独立绑定输入shape或Python creator，因此不把这组数据直接标成特定M。\n\n### 旧166：32个只读数据库按实际记录shape分组\n\n|输入行数M（每行5120）|记录数|整RmsNormCast中位µs|P90 µs|\n|---|---|---|---|\n|2|96|3.020|3.220|\n|3|3416|3.160|3.380|\n|800|320|33.471|35.201|\n|816|320|34.091|36.341|\n|834|320|34.631|36.401|\n\n这些是旧166的逐TASK统计，与171 NPU-only批次不能作性能前后对照。输入/输出dtype和block配置分别分组，不跨定义重复计数。\n\n### 为什么还不能回答“转换本身多少微秒”\n\n现有RmsNormCast把归一化、舍入、输出转换和写出放在一个任务里，profile没有单独分解输出转换耗时。**约3µs或33µs均为整个算子，不能算作转换耗时，也不能全部计作可省。**\n\n而ROUTER-WIDEN仍需在消费者内执行相同的数值扩展，移动的不是可以无条件删除的数学工作。主要研究省掉FP32平面的发布和重新读取。\n\n### 当前判断\n\n- 小输入下，整个算子只有约几微秒，单独这项重组的预算偏小，宜低成本验证，避免先做大范围改造。\n- 大输入的条件式接口量更大：M=800时FP32平面一写一读为32768000B（约31.25MiB），M=3为122880B（120KiB）。逻辑量不等于实际HBM流量或时间，但支持优先筛查大输入域。\n- 高频调用可能累积影响，仍需完整NormCast+Router同case对照和真实完成边界；不能把多卡/多窗口任务时间相加当端到端可省时延。\n\n### 复用计时工具\n\n`tools/operator_timing.py`只读查询某个完整算子，不运行NPU或采profile。数据库模式按记录shape、输入输出dtype、block配置分组；包络模式明确报告段均值，不能冒充单kernel分位数。\n\n```sh\npython tools/operator_timing.py --envelopes records/history/continuation/shared-profile-analysis-v166/NATIVE-ENVELOPES-v166.json --operator RmsNormCast --cohort 171-npu-only-v166-20261102T1635 --calls-per-envelope 40\n```\n\n原始数据库未上传。旧166结果保存为小型聚合；更换profile时显式提供新根目录和cohort标签，不继承旧观测值。\n",
+      "trial_interest": {
+        "date": "2026-11-03",
+        "user_request": "这个思路可以 尝试 会不会太小了 这个算子的一次转换需要多少时间",
+        "current_action": "先用已有profile做量级筛选；未启动NPU试验或改推理服务。",
+        "judgment": "小输入收益预算偏小，适合低成本验证；优先检查大输入接口量。是否提速仍需同case对照。"
+      },
+      "timing_observations": {
+        "current171_npuonly_mean_whole_op_us": 2.9133575520833332,
+        "selected_native_envelopes": 288,
+        "selected_tasks": 11520,
+        "scope": "171 NPU-only v166; individual-shape not inferred",
+        "conversion_only_us": null,
+        "optimized_comparison": "not performed",
+        "old166_per_shape_evidence": "evidence/F04-old166-whole-normcast-timing-20261103.json"
+      }
     },
     {
       "id": "F05",
