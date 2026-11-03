@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F05-GRAPH-MEMORY-COST-CONSTRAINT
+
+涉及：[F05](F05.md)
+
+类型：USER_RAISED_COST_CONSTRAINT_NOT_MEASUREMENT；依据：用户质疑算子增加/重复归一化引发图模式显存增长；本地lookup未命中graph memory测量，参考官方图池/多图复用说明。
+
+把常驻内存、重放峰值及KV容量纳入完整链接受条件；共享一次为基线、重算为备选。区分算子种类/图任务/图份数，不按数量线性估算。未运行目标设备或新增内存实测，未提升实现/性能状态。
+
 ## 2026-11-03 · 20261103-F05-NORM-DUPLICATION-CORRECTION
 
 涉及：[F05](F05.md)

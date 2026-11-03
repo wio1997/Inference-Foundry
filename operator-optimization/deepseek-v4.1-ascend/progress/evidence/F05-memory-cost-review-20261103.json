@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "candidate": "F05",
+  "status": "DESIGN_COST_CONSTRAINT_NOT_TARGET_MEMORY_MEASUREMENT",
+  "question": "增加分支算子或重复归一化，是否会放大图模式显存占用？",
+  "scope": "复用已核对的F05源链；补充官方通用图内存机制和评估条件，不运行服务器或采集profile。",
+  "findings": [
+    {
+      "claim": "算子实现种类、捕获图内任务数量、捕获图份数是不同计数；任何一个计数单独都不能推出显存线性翻倍。",
+      "kind": "DESIGN_REASONING"
+    },
+    {
+      "claim": "当前公开NPUGraph源码在未传共享pool时创建图池，提供共享pool路径；捕获结束保留图相关分配器记录直到reset释放私有池。",
+      "kind": "PUBLIC_SOURCE_NOT_INSTALLED_BINARY_ATTESTATION",
+      "source": "https://github.com/Ascend/pytorch/blob/master/torch_npu/csrc/core/npu/NPUGraph.cpp",
+      "source_lines": "258-279,340-342"
+    },
+    {
+      "claim": "TorchAir当前npugraph_ex文档说明不同shape可能产生多张aclgraph、多份内存，并描述池复用选项；不据此假定本case已启用任何复用配置。",
+      "kind": "PUBLIC_DOCUMENTATION_NOT_TARGET_CONFIGURATION",
+      "source": "https://github.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/basic/memory_reuse.md"
+    },
+    {
+      "claim": "CANN图捕获文档说明捕获任务与相关Event/Stream会消耗调度资源；不提供本case每节点HBM数值。",
+      "kind": "PUBLIC_DOCUMENTATION",
+      "source": "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1782.html"
+    },
+    {
+      "claim": "两路各自归一化是重算备选；若融合替代多个旧任务，捕获任务数可能减少；若新增工作区、同时活跃缓存或额外图份数，也可能增加HBM。当前两种方向均未实测。",
+      "kind": "CONDITIONAL_CASE_REASONING"
+    }
+  ],
+  "measurement_gaps": [
+    "本case图捕获后设备常驻内存增量及其构成",
+    "同配置重放峰值与两路临时工作区/中间结果生命周期",
+    "所有batch/shape捕获图份数及实际安全复用方式",
+    "剩余可分配KV容量以及并发/吞吐影响"
+  ],
+  "comparison_rules": [
+    "保持模型、负载、batch/shape图集合、并发和后端配置一致，区分冷捕获及稳定重放",
+    "分别记录框架allocated/reserved及设备进程占用，避免内存池双重计数；运行时外部分配不能只靠张量allocated判断",
+    "单图替换比较时不把同时保留旧图和新图的AB测试开销当成部署增量",
+    "共享一次归一化为基线，两路重算为备选；完整链耗时、常驻内存、峰值及KV容量一起决策"
+  ],
+  "not_proven": [
+    "用户举例1-2GB并非本轮测得的本case数值",
+    "未证明重复归一化节省或增加特定字节数",
+    "未证明两支路能并行、私有池可在当前调度安全共享或整段Indexer单kernel可行"
+  ]
+}
