@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "candidate": "F06",
+  "selected_variant": "SAME-ROW-QA-KV-JOINT",
+  "status": "PARTIAL_SOURCE_AND_LOGICAL_WORK_REVIEW_NOT_IMPLEMENTATION",
+  "scope": "用户要求继续逐条讲解，回到F05之后的F06；只分析同输入的Q_A/KV多输出投影，并复用不同行域反例，不关闭其他变体。",
+  "sources": [
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+    "records/history/continuation/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+    "records/history/continuation/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "records/history/continuation/profile-first-20261031/projection-fusion-and-partition-costs-v61.json"
+  ],
+  "source_lines": {
+    "dsa_v41.py": "350-389,440-490"
+  },
+  "original_operators": {
+    "Q_A": "attn.wq_a / cv_wq_a: Q路径第一段线性投影，后续q_norm和Q_B仍独立",
+    "KV": "attn.wkv / cv_wkv: KV路径线性投影，后续kv_norm、RoPE和缓存写入仍保留"
+  },
+  "mathematical_candidate": "仅同一X/行映射/代际等域，令Q_A=X*WqA、KV=X*Wkv；沿输出维组织两套权重后一次多输出投影得到[Q_A,KV]。PyTorch实际Linear按权重(out,in)存放时对应沿输出行拼接，不能混淆数学记号与物理布局。",
+  "benefit_hypothesis": "可能共享输入读取、减少启动/交接或改善矩阵形状；两套权重、两个输出及必要乘加仍存在。真正native调用数及共享加载需实现证据。",
+  "existing_fusion_or_overlap": [
+    "share_inputs且量化方法类型/通信属性匹配时，当前源码share_quant分支已让Q_A和KV共用q_quant/q_scale，不能再次计入新量化复用收益。",
+    "CV路径源码将Q归一化/量化与KV矩阵计算、Q_B矩阵计算与KV归一化/RoPE交错；联合投影可能改变准备时刻及重叠，需要比较完整依赖链。",
+    "不同metadata分别裁query_hidden/cache_hidden行数；query为0时仍有_update_caches，不能强制共同非空矩阵。"
+  ],
+  "constraints": [
+    "同一实际输入值、行数/顺序、参数及代际，不只shape相同",
+    "两套权重、独立bias/scale、原BF16舍入及后续各自归一化维度保持",
+    "量化/通信/权重布局与输出stride/所有读者/缓存协议兼容",
+    "输入不同行域不得为拼接而给小分支强补无用计算",
+    "不把模型数学等价当浮点/量化native逐值等价或提速；不破坏已有有益重叠",
+    "记录图内存池、峰值、KV容量；拼接常量权重是否临时双份也计价"
+  ],
+  "known_counterexample": {
+    "query_rows": 3,
+    "KV_rows": 24,
+    "hidden_width": 5120,
+    "QA_width": 1280,
+    "KV_width": 512,
+    "separate_logical_ops": 165150720,
+    "naive_all_24_rows_logical_ops": 440401920,
+    "ratio": 2.6666666666666665,
+    "scope": "v61归档行域模型；排除无条件全24行拼接，非当前171实测，也不排除局部先投影再分发等不同变换。"
+  },
+  "next_decision": "先限定同行输入的适用分支，若候选仍有边际价值，再选择实现和profile完整链；不建议将当前所有Q_A/KV无条件合并。",
+  "native_correctness": "NOT_RUN",
+  "implemented": false,
+  "new_measured_speedup": false,
+  "whole_family_closed": false,
+  "public_reference": {
+    "url": "https://docs.pytorch.org/docs/2.15/generated/torch.nn.Linear.html",
+    "use": "线性层仿射变换及权重(out,in)的通用数学背景，不用于本case安装版本/后端证明。"
+  }
+}

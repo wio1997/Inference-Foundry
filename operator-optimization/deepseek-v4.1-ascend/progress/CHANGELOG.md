@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F06-JOINT-PROJECTION-PARTIAL-REVIEW
+
+涉及：[F06](F06.md)
+
+类型：NEXT_EXAMPLE_SOURCE_LOGIC_PARTIAL_REVIEW；依据：用户在TopK/条件分支讨论后要求继续；按原顺序从F05转F06，定点核对Q_A/KV裁行、share_quant、CV交错并复用v61行域反例。
+
+限定同输入行域联合投影为候选；记录3/24行盲拼计算约2.67倍的反例及已有量化复用/重叠，原候选族与前面待验证项不关闭。无新实现、native测试或收益。
+
 ## 2026-11-03 · 20261103-F20-CONDITIONAL-FUSION-CLARIFICATION
 
 涉及：[F20](F20.md)
