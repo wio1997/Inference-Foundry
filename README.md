@@ -177,3 +177,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 实际便携CLI实验分块与128 MiB缓存组合在四rank固定8+5案例中与缓存关闭的提示argmax和生成token一致；关闭后各rank缓存零字节、无活动租约。此CLI案例未比较完整logits，独立7+6探针另做了完整logits对照；均未测性能。[结果](validation/layer-major-cache-round425.json)。
 
 实验分块、128 MiB 专家缓存和首生成 token 后 archive-v2 恢复组合，在四 rank 固定 8+5 请求中恢复了全部45层记录状态并得到预期生成 token；各 rank 关闭后缓存为零且无活动租约。此案例未比较恢复后续算完整 logits，亦未测性能。[结果](validation/layer-major-cache-restore-round426.json)。
+
+四 rank 实验分块路径对非零45层状态进行归档恢复后，依次续算8 token与1 token；恢复路径和未中断路径的完整续算 logits、全部45层状态逐位一致，所有请求 owner 已释放。该短输入测试不覆盖设备丢失、跨版本恢复或独立整模型精度。[范围](validation/chunk-archive-tail-round427.json)。
