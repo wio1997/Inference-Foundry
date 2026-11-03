@@ -129,3 +129,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 实验层 `Glm5NextKDA.from_checkpoint(..., backend="ascendc_chunk_prefill")` 对 2–64 token 使用四个本地 head 分片调用 chunk，单 token 切换到 `ascendc` 递推；不改变已有后端。四 die 单层使用真实 41 token 输入后接一个重复输入，验证 chunk 核心第0位置与参考捕获一致、输入状态不变及 41→42 token 状态交接。四个本地分片不是分布式 TP；该选项不接入文本 runner，也不表示整模型 chunk、质量或性能已验收。[结果](validation/kda-chunk-handoff-round409.json)。
 
 显式实验工厂参数 `load_native_decoder(..., kda_backend="ascendc_chunk_prefill", chunk_prefill=True)` 仅允许 dense KDA 层、每次最多 8 行；DSA、sparse 专家层和完整文本 runner 尚未接入。四 die 真实权重两行测试检查了分派、状态不变和上限，并与同层显式批处理对照；默认逐 token 整模型 8+5 回归的提示 argmax 与生成 ID 保持一致。前者使用参考归一化注意力行作为确定性残差输入，不是整模型精度对照；完整 logits 未比较。[验证范围](validation/decoder-chunk-round410.json)。
+
+当前 rank-commit 源码在四 die 上通过 archive-v2 的45层保存与恢复检查：固定 8+5 提示后恢复续写的完整 logits、IDs 和全部最终层状态一致。[实测记录](validation/archive-restore-round415.json)。[参数化 probe](portable/rank_snapshot_probe.py) 需要操作方提供四 rank 互斥、物理映射及 go 栅栏；发布 runner 暂不提供此 probe 的入口。
