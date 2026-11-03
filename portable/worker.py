@@ -44,7 +44,7 @@ try:
  os.environ['HF_HUB_OFFLINE']='1';os.environ['TRANSFORMERS_OFFLINE']='1';os.environ['HF_HOME']=str(root/'hf-cache')
  from transformers import AutoTokenizer
  tok=AutoTokenizer.from_pretrained(model,local_files_only=True,trust_remote_code=False)
- request=json.loads((root/'request.json').read_text());messages=request['messages'];ids=request['prompt_ids'];cap=request['max_new_tokens'];context=request['context_tokens'];expected=request['expected_final'];cache_bytes=request['cache_mib']*1024**2;kda_backend=request['kda_backend'];assert kda_backend in ('ascendc_installed_decode','ascendc')
+ request=json.loads((root/'request.json').read_text());layer_major=request.get('experimental_layer_major_kda',False);assert type(layer_major) is bool and (not layer_major or world_size==4), 'experimental layer-major KDA requires four ranks';messages=request['messages'];ids=request['prompt_ids'];cap=request['max_new_tokens'];context=request['context_tokens'];expected=request['expected_final'];cache_bytes=request['cache_mib']*1024**2;kda_backend=request['kda_backend'];assert kda_backend in ('ascendc_installed_decode','ascendc')
  encoded=tok.apply_chat_template(messages,tokenize=True,add_generation_prompt=True,reasoning_effort='low');actual_ids=encoded['input_ids'] if hasattr(encoded,'keys') else encoded
  assert ids==actual_ids and len(ids)+cap<=context<=128, 'request tokenizer or token bound mismatch'
  report.update(messages=messages,expected_final=expected,context_bound=context,cache_mib=request['cache_mib'],kda_backend=kda_backend)
@@ -53,14 +53,22 @@ try:
  torch.ops.load_library(str(lib));config=Glm5NextConfig.from_checkpoint(model);reader=ModelSlimCheckpoint(model,max_read_bytes=2*1024**3)
  with torch.inference_mode():
   ops=make_experimental_fp32_expanded_dsa_operations(config,max_total_tokens=context)
-  runner=load_native_text_runner(reader,'npu',dsa_operations=ops,expert_policy='selected_per_token',max_expert_checkpoint_bytes=512*1024**2,max_expert_resident_bytes=512*1024**2,vocab_start=0,vocab_stop=config.vocab_size,max_head_rows=config.vocab_size,max_tokens=1,max_context_tokens=context,logical_block_size=128,hc_backend='ascend_installed',kda_backend=kda_backend)
+  runner=load_native_text_runner(reader,'npu',dsa_operations=ops,expert_policy='selected_per_token',max_expert_checkpoint_bytes=512*1024**2,max_expert_resident_bytes=512*1024**2,vocab_start=0,vocab_stop=config.vocab_size,max_head_rows=config.vocab_size,max_tokens=8 if layer_major else 1,max_context_tokens=context,logical_block_size=128,hc_backend='ascend_installed',kda_backend=kda_backend)
   for i,layer in enumerate(runner.stack.layers):
    if config.layers[i].attention=='deepseek_sparse_attention':layer.attention.operation=ops[i].bind(layer.attention.mla,layer.attention.indexer)
   report['expert_lease_cache_mib']=request['cache_mib'] if cache_bytes>0 else 128
   report['installed']=install_rank_text_seams(runner,reader,rank=rank,world_size=world_size,cache_bytes=report['expert_lease_cache_mib']*1024**2,max_assembled_bytes=16*1024**2,max_intermediate_rows=12288,max_packed_rows=8)
   assert len(report['installed']['dense_layers'])==3 and len(report['installed']['sparse_layers'])==42
   runner.enable_rank_commit_agreement()
-  report['rank_commit_agreement_enabled']=True
+  selected=[]
+  if layer_major:
+   if kda_backend!='ascendc':raise ValueError('experimental layer-major KDA requires ascendc backend')
+   for layer in runner.stack.layers:
+    if layer.attention_kind=='linear_attention' and layer.mlp_kind=='dense':
+     layer.attention.backend='ascendc_chunk_prefill';layer.attention.reference_sharded_projection=True;layer.native_chunk_prefill=True;selected.append(layer.layer_id)
+   assert selected==[0,1,2]
+   runner.enable_rank_batch_commit(max_tokens=8,layer_major_dense_kda=True)
+  report.update(rank_commit_agreement_enabled=True,experimental_layer_major_kda=layer_major,chunk_layers=selected,prefill_groups=[])
   states={i:(layer.attention.initial_state() if config.layers[i].attention=='linear_attention' else state_from_aligned_prefix(torch.empty((0,512),dtype=torch.bfloat16,device='npu'),torch.empty((0,128),dtype=torch.bfloat16,device='npu'),runner.stack.layout)) for i,layer in enumerate(runner.stack.layers)}
   scope=ExitStack();session=scope.enter_context(optional_rank_cache_session(reader,enabled=cache_bytes>0,rank=rank,world_size=world_size,cache_bytes=cache_bytes,max_assembled_bytes=16*1024**2));adapters=[layer.mlp.experts for layer in runner.stack.layers if isinstance(getattr(layer.mlp,'experts',None),ReplicatedRankExperts)]
   if session is not None:
@@ -70,8 +78,19 @@ try:
    z=q.step(torch.tensor([token],dtype=torch.int64),expected_tokens_seen=pos);torch_npu.npu.synchronize();assert torch.isfinite(z.logits).all();return z.logits
   try:
    report['phase']='prompt';save()
-   for i,token in enumerate(ids):
-    logits=step(token,i);report['prompt_argmax'].append(int(logits.argmax(-1).item()));save()
+   if layer_major:
+    for pos in range(0,len(ids),8):
+     part=ids[pos:pos+8]
+     if len(part)==1:
+      for i in selected:runner.stack.layers[i].attention.chunk_prefill_single=True
+     try:z=q.step(torch.tensor(part,dtype=torch.int64),expected_tokens_seen=pos)
+     finally:
+      for i in selected:runner.stack.layers[i].attention.chunk_prefill_single=False
+     torch_npu.npu.synchronize();assert z.token_stop==pos+len(part) and torch.isfinite(z.logits).all()
+     report['prefill_groups'].append(len(part));report['prompt_argmax'].extend(z.logits.argmax(dim=-1).cpu().tolist());logits=z.logits[-1:];save()
+   else:
+    for i,token in enumerate(ids):
+     logits=step(token,i);report['prompt_argmax'].append(int(logits.argmax(-1).item()));save()
    generated=[];report['phase']='generation';report['rank_agreement']=True;save();pos=len(ids)
    for i in range(cap):
     token=int(logits.argmax(-1).item())
