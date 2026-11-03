@@ -34,7 +34,7 @@ def _dsa_binding(operation):
 
 def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
                         max_expert_checkpoint_bytes,max_expert_resident_bytes,
-                        logical_block_size=128,config=None,tokenwise=True,expert_policy='all',dense_down_partitions=1,shared_down_partitions=1,fused_guard=False,fused_reference=False,hc_backend='torch',kda_backend='ascendc'):
+                        logical_block_size=128,config=None,tokenwise=True,expert_policy='all',dense_down_partitions=1,shared_down_partitions=1,fused_guard=False,fused_reference=False,hc_backend='torch',kda_backend='ascendc',chunk_prefill=False):
     """Actual component loaders for one KDA/DSA and dense/all-expert layer.
 
     DSA operation must implement (DSAStep,DSAState)->(BF16[T,64,256],
@@ -44,7 +44,9 @@ def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
     """
     _native_device(device)
     if hc_backend not in ('torch','ascend_installed'):raise ValueError('unknown mHC backend')
-    if kda_backend not in ('ascendc','ascendc_installed_decode'):raise ValueError('unknown native KDA backend')
+    if kda_backend not in ('ascendc','ascendc_installed_decode','ascendc_chunk_prefill'):raise ValueError('unknown native KDA backend')
+    if type(chunk_prefill) is not bool or chunk_prefill != (kda_backend=='ascendc_chunk_prefill'):raise ValueError('chunk backend requires explicit chunk_prefill opt-in')
+    if chunk_prefill and tokenwise is not True:raise ValueError('chunk prefill requires tokenwise mode')
     if kda_backend=='ascendc_installed_decode' and tokenwise is not True:raise ValueError('installed decode KDA requires tokenwise execution')
     if hc_backend == 'ascend_installed':
         for op in ('npu_hc_pre_v2','npu_hc_post'):
@@ -54,6 +56,7 @@ def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
     c=Glm5NextConfig.from_checkpoint(reader.root) if config is None else config
     if type(layer_id) is not int or not 0<=layer_id<len(c.layers):raise ValueError('backbone layer ID required')
     spec=c.layers[layer_id]
+    if chunk_prefill and (spec.attention!='linear_attention' or spec.mlp!='dense'):raise ValueError('chunk prototype supports dense KDA layers only')
     if spec.attention=='deepseek_sparse_attention':_dsa_binding(dsa_operation)
     elif dsa_operation is not None:raise ValueError('KDA layer does not accept a DSA operation')
     # Check all selected expert metadata/budgets before attention allocations.
@@ -90,6 +93,7 @@ def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
     layer.attn_hc.backend=hc_backend
     layer.ffn_hc.backend=hc_backend
     layer.native_tokenwise=tokenwise
+    layer.native_chunk_prefill=chunk_prefill
     return layer
 
 

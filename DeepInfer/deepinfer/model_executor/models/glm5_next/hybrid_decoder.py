@@ -106,6 +106,7 @@ class GlmHybridDecoder(Glm5NextDenseDecoder):
         super().__init__(**components)
         self.attention_kind,self.mlp_kind=attention_kind,mlp_kind
         self.native_tokenwise=False  # explicitly enabled by diagnostic native factory
+        self.native_chunk_prefill=False  # isolated dense KDA prototype, at most 8 rows
 
     @classmethod
     def from_checkpoint(cls,*args,**kwargs):
@@ -147,7 +148,12 @@ class GlmHybridDecoder(Glm5NextDenseDecoder):
         # Stable per-token native execution avoids batch-shape-dependent BF16
         # perturbations amplifying across layers. This is a correctness mode,
         # not a throughput optimization; ordinary prepared paths remain batched.
-        if self.native_tokenwise and len(hidden)>1:
+        chunk = self.native_chunk_prefill
+        if type(chunk) is not bool:raise ValueError('native chunk flag must be boolean')
+        if chunk and (not self.native_tokenwise or self.attention_kind!='linear_attention' or self.mlp_kind!='dense' or getattr(self.attention,'backend',None)!='ascendc_chunk_prefill'):
+            raise ValueError('chunk prefill requires tokenwise dense KDA and the explicit chunk backend')
+        if chunk and len(hidden)>8:raise ValueError('native chunk prefill is bounded to eight rows')
+        if self.native_tokenwise and len(hidden)>1 and not chunk:
             if type(selected) is CPUProjectedDSAOperation:raise ValueError('CPU projected plans cannot be split by native tokenwise mode')
             current=state;parts=[]
             for row in hidden.split(1,dim=0):
