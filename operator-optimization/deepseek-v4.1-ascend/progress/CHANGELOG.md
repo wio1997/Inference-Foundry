@@ -2,6 +2,22 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F04-EXISTING-NORMCAST-REVIEW
+
+涉及：[F04](F04.md)
+
+类型：EXISTING_FUSION_AND_CONDITIONAL_INTERFACE_REVIEW；依据：核对归档DeviceOperator守卫/回退、BF16 NormCast kernel输出舍入及扩展，并复用v29/v63路由消费者证据。
+
+归一化+转换已融合，首次融合机会排除；FP32来自舍入BF16。新改法仅保留ROUTER-WIDEN条件候选，不声称原API直接支持或已有收益。
+
+## 2026-11-03 · 20261103-F03-USER-UNDERSTANDING
+
+涉及：[F03](F03.md)
+
+类型：USER_UNDERSTANDING_NOT_VALIDATION；依据：用户回复“ok 了解了下一个”。
+
+记录用户了解F03解释并转F04；不记作新接口、数值正确性或性能通过。
+
 ## 2026-11-03 · 20261103-F03-POST-PRE-REVIEW
 
 涉及：[F03](F03.md)

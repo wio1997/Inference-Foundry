@@ -1,0 +1,81 @@
+{
+  "candidate": "F04",
+  "variant": "EXISTING_NORMCAST_AND_OPTIONAL_ROUTER_WIDEN",
+  "date": "2026-11-03",
+  "kind": "ARCHIVED_SOURCE_REVIEW_NOT_NATIVE_TEST",
+  "status": "EXISTING_FUSION_CONFIRMED_IN_SCOPED_EVIDENCE",
+  "checks": {
+    "dispatch_guards_and_fallback": true,
+    "fallback_widens_normalized_output": true,
+    "BF16_round_then_output_widen_then_publish": true,
+    "both_output_planes_written": true,
+    "selected_FP32_router_branch": true,
+    "old_selected_APIs_reach_direct_branch": true,
+    "new_router_variant_not_implemented": true
+  },
+  "evidence": [
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91"
+    },
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/device_op.py",
+      "sha256": "01ce13ea60e46f901ad69ad4c71e4be0e31cd69fbc56ebb7d898f957d5e54f67"
+    },
+    {
+      "path": "records/history/continuation/F04-kernel-gate166-v29.json",
+      "sha256": "94f519dc9c57f5669dd40c66ff8f5b031422806ad59490beead1e2cbd229bc42"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/F04-precision-routing-and-row-contract-v29.json",
+      "sha256": "81d75c002e425f26028a682322ada01ed49f5ab62c251b0f441e6be73782a35c"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/F04-actual-router-input-branch-v29.json",
+      "sha256": "bfd8f4b982dcd47c1d3d88c429ab3f56907f196286ab4d35bf6ef91355fc1014"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/F04-router-input-selection-v29.json",
+      "sha256": "0cb9f25bb85fcf0ef95976848bcf1c6992eb7adfdf28a60858d5085bc4062e50"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/router-vector-fusion-variants-v63.json",
+      "sha256": "4dab18372a8cc9b49ae9ed4f9bf9fe0524ca00563bf98c86d4b81d987d03dc46"
+    }
+  ],
+  "kernel_pin": {
+    "path": "/vllm-workspace/vllm-ascend/csrc/moe/rms_norm_cast/op_kernel/rms_norm_cast.h",
+    "sha256": "5a05b11cce4a727b8c48aec4fe764d854c71c5a8ba072dad315a2acec342d472",
+    "BF16_round_line": 115,
+    "output_FP32_widen_line": 122,
+    "publish_lines": [
+      128,
+      129
+    ]
+  },
+  "algorithm": "原RMSNorm→BF16舍入→由该BF16扩展FP32→分别发布BF16与FP32；输出FP32不是未舍入的归一化临时值。",
+  "historical_profile_scope": {
+    "host": "166",
+    "native_router_API_records": 1272,
+    "branch": "DIRECT_PRECAST_FP32_LINEAR_408",
+    "not_current171_all_calls_or_binary_identity": true
+  },
+  "new_optional_variant": "ROUTER-WIDEN：保留BF16专家输出，在路由消费者内部扩展为同值FP32并做原FP32计算；只有无其他有效FP32读者且生产者停止相应发布时，才有这项接口节省。",
+  "logical_example": {
+    "M": 3,
+    "H": 5120,
+    "FP32_plane_bytes": 61440,
+    "conditional_write_read_bytes": 122880,
+    "not_HBM_or_measured_gain": true
+  },
+  "not_established": [
+    "新消费者接口/生产者改动可行",
+    "全部受影响读者与行域闭合",
+    "新实现数值正确性",
+    "同条件性能收益",
+    "171当前加载二进制身份"
+  ],
+  "new_implementation": false,
+  "new_native_execution": false,
+  "independent_review": false
+}

@@ -272,37 +272,52 @@
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
-      "details_markdown": "## 本轮只看哪一段\n\nF03覆盖Post与后续Pre的重组。本轮先看最直接的**同一层内Attention HcPost→FFN HcPre**，不把跨层Engram/aux分支一起判定，也不把F02的归一化再次计入。\n\n### 两个算子各自做什么\n\n|操作|输入与算法|输出/用途|\n|---|---|---|\n|HcPost|把Attention新结果按post配比分到4路，再按comb配比混合旧4路residual，按原顺序相加并舍入|新的4路数据R|\n|下一HcPre的Y生成部分|读取R，按先前Attention HcPre已产出的attn_pre逐项乘配比并沿4路相加，按原精度舍入|给FFN后续计算用的1路Y|\n|下一HcPre的系数部分|另用完整R计算新的ffn_pre/post/comb|仍是必须保留的工作|\n\n原模型关系为：\n\n```python\nhidden_states = self.hc_post(x, residual, attn_post, attn_comb)\nresidual = hidden_states\nx, ffn_post, ffn_comb, ffn_pre = self.hc_pre(\n    hidden_states, ..., attn_pre\n)\n# 中间还有FFN计算\nhidden_states = self.hc_post(x, residual, ffn_post, ffn_comb)\n```\n\n以上为保留关键调用的摘录，省略参数不构成新实现。`residual = hidden_states`说明R在下一Pre消费后仍然被后面的FFN Post使用。\n\n### 怎么接合\n\n```text\n原来：HcPost生成R → 写出4路R → 下一Pre重新读取R → 按配比生成Y\n候选：HcPost生成并舍入R → 直接交给下一Y生成部分 → 输出原精度的Y\n                      └→ R仍按其他读者的需要写出/保留\n```\n\n这属于生产者与消费者的融合/交接重组候选。新实现需要覆盖双方接口：既把R正确交过去，又让该消费者不再重复读取/重算这一部分。只把原HcPost和原HcPre放进一个Python函数不会自动实现。\n\n### 为什么不能删掉R\n\n当前R至少仍是：\n\n- 下一HcPre中新系数生产的输入。\n- 后续FFN HcPost的residual。\n\n因此，本轮选定保留原4路数据发布的方案，只研究减少**下一Y生成的一个读取**，不声称R的写入或全部Pre读者都消失。\n\n若以后另做长期片上保留、重算或状态表示方案，需要单独验证容量和所有读者，不能把它当作本轮已满足条件。跨层场景还可能有aux读取或Engram改写，不能跨过它们直接转交旧版本。\n\n### 数值与代价约束\n\n必须先保留HcPost的原BF16舍入，再做下一次加权混合。把两个矩阵/配比直接预乘、删除中间舍入，未证明等价；HcPre的新系数还依赖完整R及非线性处理。\n\n以M=3、H=5120、4路BF16为例，一个选定R读取的逻辑大小为122880B（120KiB）。它不是已测HBM流量或提速，R写入及其他读者仍在。若进一步接norm，与F02相同接口只计一次。\n\n### 本轮结论\n\n**源码证明了指定的层内Post→Pre数据链及R的其他存活用途，支持研究直接交接；新接口/切块调度、数值等价和收益未验证。** F03全族保持CONDITIONAL，转下一条不代表之前方案实施完成。\n"
+      "details_markdown": "## 本轮只看哪一段\n\nF03覆盖Post与后续Pre的重组。本轮先看最直接的**同一层内Attention HcPost→FFN HcPre**，不把跨层Engram/aux分支一起判定，也不把F02的归一化再次计入。\n\n### 两个算子各自做什么\n\n|操作|输入与算法|输出/用途|\n|---|---|---|\n|HcPost|把Attention新结果按post配比分到4路，再按comb配比混合旧4路residual，按原顺序相加并舍入|新的4路数据R|\n|下一HcPre的Y生成部分|读取R，按先前Attention HcPre已产出的attn_pre逐项乘配比并沿4路相加，按原精度舍入|给FFN后续计算用的1路Y|\n|下一HcPre的系数部分|另用完整R计算新的ffn_pre/post/comb|仍是必须保留的工作|\n\n原模型关系为：\n\n```python\nhidden_states = self.hc_post(x, residual, attn_post, attn_comb)\nresidual = hidden_states\nx, ffn_post, ffn_comb, ffn_pre = self.hc_pre(\n    hidden_states, ..., attn_pre\n)\n# 中间还有FFN计算\nhidden_states = self.hc_post(x, residual, ffn_post, ffn_comb)\n```\n\n以上为保留关键调用的摘录，省略参数不构成新实现。`residual = hidden_states`说明R在下一Pre消费后仍然被后面的FFN Post使用。\n\n### 怎么接合\n\n```text\n原来：HcPost生成R → 写出4路R → 下一Pre重新读取R → 按配比生成Y\n候选：HcPost生成并舍入R → 直接交给下一Y生成部分 → 输出原精度的Y\n                      └→ R仍按其他读者的需要写出/保留\n```\n\n这属于生产者与消费者的融合/交接重组候选。新实现需要覆盖双方接口：既把R正确交过去，又让该消费者不再重复读取/重算这一部分。只把原HcPost和原HcPre放进一个Python函数不会自动实现。\n\n### 为什么不能删掉R\n\n当前R至少仍是：\n\n- 下一HcPre中新系数生产的输入。\n- 后续FFN HcPost的residual。\n\n因此，本轮选定保留原4路数据发布的方案，只研究减少**下一Y生成的一个读取**，不声称R的写入或全部Pre读者都消失。\n\n若以后另做长期片上保留、重算或状态表示方案，需要单独验证容量和所有读者，不能把它当作本轮已满足条件。跨层场景还可能有aux读取或Engram改写，不能跨过它们直接转交旧版本。\n\n### 数值与代价约束\n\n必须先保留HcPost的原BF16舍入，再做下一次加权混合。把两个矩阵/配比直接预乘、删除中间舍入，未证明等价；HcPre的新系数还依赖完整R及非线性处理。\n\n以M=3、H=5120、4路BF16为例，一个选定R读取的逻辑大小为122880B（120KiB）。它不是已测HBM流量或提速，R写入及其他读者仍在。若进一步接norm，与F02相同接口只计一次。\n\n### 本轮结论\n\n**源码证明了指定的层内Post→Pre数据链及R的其他存活用途，支持研究直接交接；新接口/切块调度、数值等价和收益未验证。** F03全族保持CONDITIONAL，转下一条不代表之前方案实施完成。\n\n## 用户理解记录\n\n2026-11-03，用户回复“ok 了解了下一个”，随后转F04。该理解确认不改变F03尚未实现、未验证数值与收益的状态。\n",
+      "user_understanding_confirmation": {
+        "date": "2026-11-03",
+        "response": "ok 了解了下一个",
+        "meaning": "对上一条解释表示了解并转F04；不是实现或收益验收。"
+      }
     },
     {
       "id": "F04",
       "name": "FFN 归一化与类型转换",
       "updated_at": "2026-11-03",
-      "kind": "已有融合的上下游衔接",
+      "kind": "已有归一化/转换融合；可选下游接口重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
+      "review_status": "已核对路径NormCast已有融合；新衔接方案待验证",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
-      "operator_binding": "历史已有 RmsNormCast；主干 BF16 与 router 使用的 FP32 扩展值是两份有效输出。",
-      "baseline_flow": "历史登记的原流程：post-attention RMSNorm → FP32 routing 输入。本页登记不等于对当前运行二进制完成重新绑定。",
-      "proposal": "在已有RMSNormCast双输出基础上与router/shared/routed输入接合。",
-      "mechanism": "在已融合归一化/转换的基础上研究消费者衔接，不再次声称首次融合这两个操作。",
-      "conditions": "BF16与其舍入后FP32扩展值都保留，不重算已有融合。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
+      "operator_binding": "模型 rms_norm_cast → DeviceOperator.rms_norm_cast → npu_rms_norm_cast / aclnnRmsNormCast；历史profile名RmsNormCast。能力/配置/API条件不满足时有普通RMSNorm后float回退。",
+      "baseline_flow": "FFN前Y经已有RmsNormCast归一化，输出舍入后的BF16，以及由该BF16扩展的同值FP32。BF16给专家/共享路径；已核对的weight_fp32路由分支使用FP32输入。",
+      "proposal": "不新增“首次融合归一化+转换”任务，因为已经融合。可选ROUTER-WIDEN研究由消费者内部从BF16扩展FP32，保留原FP32路由计算，并在没有其他读者时停止单独FP32平面的生产/发布。",
+      "mechanism": "已有融合减少普通RMSNorm后单独float的交接，不是本次新增收益。新候选仅争取减少FP32平面的一写一读；BF16输出和路由原精度仍保留。",
+      "conditions": "FP32必须来自原来已舍入BF16的扩展，不能改用未舍入FP32归一化临时值。保留BF16专家路径、其他FP32读者及行/填充/后端条件；不能仅换输入dtype就把路由矩阵计算降为BF16。旧166分支证据不迁移到171全部调用。",
       "next_steps": [
         {
           "id": "F04-01",
-          "title": "固定双输出与拟改变的衔接边界",
-          "description": "FP32 必须来自原舍入后 BF16 的扩展值；无接口变化则直接复用原合同。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+          "title": "核对已有融合与双输出含义",
+          "status": "DONE",
+          "evidence": [
+            "evidence/F04-normcast-review-20261103.json"
+          ],
+          "description": "已核对DeviceOperator守卫、模型回退、BF16 kernel先舍入后扩展及双输出，并复用旧166选定路由分支证据。",
+          "decision_rule": "首次融合机会排除；该项完成不表示有新实现或收益。"
         },
         {
           "id": "F04-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "title": "决定是否选择Router内转换子方案",
+          "description": "复用已证实数值合同，只为拟改变的新生产/消费接口核对FP32其他读者、行域及FP32路由计算资格；当前不声称原F.linear自动支持。",
+          "decision_rule": "无合法接口或仍需完整FP32平面时保留条件/剪去该变体；无变化不重查已有融合。"
+        },
+        {
+          "id": "F04-03",
+          "title": "若值得实施，再做同条件完整对照",
+          "description": "未来比较原NormCast+Router与选定BF16生产/Router内扩展，核对有效双分支输出、分数/路由及原精度，计入转换和暂存成本。此项未执行。",
+          "decision_rule": "正确性和完整范围稳定改善均有证据才接受；逻辑字节数不当HBM或收益。"
         }
       ],
       "evidence": [
@@ -320,12 +335,53 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F04.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "本次NormCast复核摘要",
+          "path": "evidence/F04-normcast-review-20261103.json",
+          "scope": "只读归档检查，区分已有融合与新候选；无新native执行。"
+        },
+        {
+          "label": "模型与回退",
+          "path": "../records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
+        },
+        {
+          "label": "能力守卫与接口",
+          "path": "../records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/device_op.py",
+          "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
+        },
+        {
+          "label": "NormCast底层源行回执",
+          "path": "../records/history/continuation/F04-kernel-gate166-v29.json",
+          "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
+        },
+        {
+          "label": "精度与消费者合同",
+          "path": "../records/history/continuation/profile-first-20261031/F04-precision-routing-and-row-contract-v29.json",
+          "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
+        },
+        {
+          "label": "旧166选定路由分支",
+          "path": "../records/history/continuation/profile-first-20261031/F04-actual-router-input-branch-v29.json",
+          "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
+        },
+        {
+          "label": "weight_fp32输入选择源函数",
+          "path": "../records/history/continuation/profile-first-20261031/F04-router-input-selection-v29.json",
+          "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
+        },
+        {
+          "label": "ROUTER-WIDEN历史候选",
+          "path": "../records/history/continuation/profile-first-20261031/router-vector-fusion-variants-v63.json",
+          "scope": "归档源码/对应旧采集的有界证据；不是171当前二进制或新性能验证。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "details_markdown": "## 本轮分类\n\n**已核对路径的归一化与类型转换已有RmsNormCast融合实现。** 不把它们再次记成一个首次融合任务。当前新增实现数仍为0；可选下游重组仍为CONDITIONAL。\n\n### 原算法和两份输出\n\n```text\nFFN前的Y → 原RMSNorm → BF16舍入\n                          ├→ BF16输出 → 专家/共享路径\n                          └→ 同值扩展为FP32 → 已核对的路由分支\n```\n\nBF16和FP32是两种数字存储格式。这里FP32是已舍入BF16值的扩展，不能直接拿未舍入的FP32归一化中间结果替代。路由器负责选择数据交给哪些专家。\n\n归档BF16 kernel按原次序做输入扩展、平方与按列数缩放、归约、加epsilon、开方求倒数，再将输入乘缩放和gamma。第115行将归一化结果舍入BF16；第122行由该BF16扩展FP32；第128/129行分别写出两份结果。输入最初也有一次FP32扩展，不能把它与输出的扩展混淆。\n\n### 适用分支\n\nDeviceOperator要求硬件RMS_NORM_CAST能力、自定义算子启用和npu_rms_norm_cast存在。否则模型执行普通post_attention_layernorm，再返回`normalized, normalized.float()`。\n\n仅gate有weight_fp32时，所核对helper选择预转换FP32并直接F.linear；其他gate保留原forward。旧166选定1272条API正向到达该分支，但这不是171全部调用或加载二进制身份的证明。\n\n### 剩余可选改法：ROUTER-WIDEN\n\n```text\n当前：BF16归一化结果 → 扩展FP32并写出 → Router读FP32做原计算\n候选：BF16归一化结果 → Router内部扩展成相同FP32值并做原计算\n```\n\nBF16专家输出保留。还要改生产者，使无其他读者的FP32平面不再发布；只改消费者并不省掉原写出。需要新接口/底层实现，不能把当前F.linear仅换输入dtype当作等价方案，也不把路由矩阵计算降为BF16。\n\nM=3、H=5120时FP32平面为61440B；若一写一读均能避免，条件逻辑接口为122880B（120KiB），不是已测HBM或提速。新暂存/转换/调度成本和全部读者仍需核对。\n\n### 本轮结论\n\n已有融合、已核对BF16双输出数值语义得到支持；**没有新增kernel或性能验收**。新Router内转换只是可选接口重组，不关闭F04其他变体。\n"
     },
     {
       "id": "F05",
@@ -2343,7 +2399,7 @@
     }
   ],
   "current_focus": {
-    "candidate": "F03",
-    "variant": "Attention HcPost→FFN HcPre 的Y生成交接"
+    "candidate": "F04",
+    "variant": "已有RmsNormCast及可选Router内转换"
   }
 }

@@ -50,9 +50,14 @@ def render():
                  item['proposal'], '', item['mechanism'], '', '## 成立条件与证据边界', '', item['conditions'], '']
         if item.get('details_markdown'):
             lines += [item['details_markdown'], '']
-        lines += ['## 可能要做的事', '', '以下是待办计划；没有执行证据时不能改为“已完成”。', '']
+        lines += ['## 可能要做的事', '', '清单保留已完成复核和未执行计划；没有执行证据时不能勾选。复核完成不表示实现或性能通过。', '']
         for action in item['next_steps']:
-            lines.append(f"- [ ] **{action['id']} · {action['title']}**：{action['description']} 接受/停止条件：{action['decision_rule']}")
+            done = action.get('status') == 'DONE'
+            if done and not action.get('evidence'):
+                raise ValueError(f"{cid}/{action['id']}: a completed action requires evidence.")
+            mark = 'x' if done else ' '
+            refs = ' '.join(f'[记录{i+1}]({path})' for i, path in enumerate(action.get('evidence', [])))
+            lines.append(f"- [{mark}] **{action['id']} · {action['title']}**：{action['description']} 接受/停止条件：{action['decision_rule']}" + (f' {refs}' if refs else ''))
         lines += ['', '## 证据入口', '']
         for evidence in item['evidence']:
             lines.append(f"- [{evidence['label']}]({evidence['path']})：{evidence['scope']}")
@@ -82,7 +87,9 @@ def render():
              '- 已登记 F01 Task 的机器恢复入口：[Task README](tasks/f01-early-y/README.md)和[恢复包](tasks/f01-early-y/resume-pack.json)。转向下一候选不代表关闭 F01。', '',
              '## 候选看板', '', '|编号|对象|优化类型|本轮状态|下一步|', '|---|---|---|---|---|']
     for c in candidates:
-        index.append(f"|[{c['id']}]({c['id']}.md)|{c['name']}|{c['kind']}|{c['review_status']}|{c['next_steps'][0]['title']}|")
+        pending = next((a for a in c['next_steps'] if a.get('status') != 'DONE'), None)
+        next_title = pending['title'] if pending else '无已登记待办；不据此关闭候选'
+        index.append(f"|[{c['id']}]({c['id']}.md)|{c['name']}|{c['kind']}|{c['review_status']}|{next_title}|")
     index += ['', '## 读表时的边界', '',
               '42 个是候选族，包含融合、拆分、复用、状态重组和调度。不是 42 个新增融合算子。相互重叠的方案不能重复计算收益。', '',
               '源码逻辑成立、当前二进制实际执行、可实现性、数值正确性、性能收益分别记录。旧 166 时序、新 171 图回放、不同采集批次的工作量不能混成同一次实验。', '',

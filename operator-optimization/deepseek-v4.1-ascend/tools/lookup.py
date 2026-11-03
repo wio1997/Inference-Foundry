@@ -10,7 +10,7 @@ progress=[]
 if progress_file.exists():
     progress=[{'id':x['id'],'kind':'CURRENT_PROGRESS','title':x['name'],
                'review_status':x['review_status'],'optimization_kind':x['kind'],
-               'page':f"progress/{x['id']}.md",'next_step':x['next_steps'][0]}
+               'page':f"progress/{x['id']}.md",'next_step':next((a for a in x['next_steps'] if a.get('status')!='DONE'),None)}
               for x in json.loads(progress_file.read_text())['candidates']]
 hits=[x for x in progress+facts+questions if q in json.dumps(x,ensure_ascii=False).casefold()]
 print(json.dumps({'query':args.query,'total':len(hits),'results':hits[:args.limit],
