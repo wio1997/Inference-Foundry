@@ -81,3 +81,5 @@ DSA：make_experimental_fp32_expanded_dsa_operations（显式实验路径）
 CLI 请求开启恢复时，反序列化后比较45层状态并跨 rank 汇总结果，验证通过才继续生成；recall17 的四 rank 实测见 [记录](validation/recall-restore-round417.json)。
 
 发布回滚探针覆盖单 rank 过期位置协同拒绝、45层状态保持及重试，worker 上限900秒；固定案例与普通路径回归见 [记录](validation/legacy-rollback-runner-round418.json)。
+
+单 token rank 提交 preflight 现同步校验请求身份指纹、位置和 token 数；[四 rank 结果](validation/rank-request-identity-round419.json) 不覆盖进程或设备故障，collective 开销未测。

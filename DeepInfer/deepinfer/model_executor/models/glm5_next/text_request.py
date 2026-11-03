@@ -276,12 +276,20 @@ class TextRequest:
             except Exception as exc:
                 failure=exc
             if r._rank_commit_enabled:
-                # Peers must agree on local validation before any rank enters
-                # stack collectives; otherwise one invalid rank strands peers.
+                # Validate both local state and shared request identity/position
+                # before ranks enter any stack collective or publish state.
+                import hashlib
                 import torch.distributed as dist
-                status=torch.tensor([int(failure is not None)],dtype=torch.int32,device=r.boundary.norm_weight.device)
-                dist.all_reduce(status,op=dist.ReduceOp.MAX,group=r._rank_commit_group)
-                if int(status.item()):raise ValueError('rank commit preflight failed') from failure
+                if failure is None:
+                    identity=int.from_bytes(hashlib.sha256(self.request_id.encode()).digest()[:7],'big')
+                    metadata=[0,start,count,identity]
+                else:
+                    metadata=[1,0,0,0]
+                header=torch.tensor(metadata,dtype=torch.int64,device=r.boundary.norm_weight.device)
+                headers=[torch.empty_like(header) for _ in range(dist.get_world_size(r._rank_commit_group))]
+                dist.all_gather(headers,header,group=r._rank_commit_group)
+                if any(int(item[0].item()) for item in headers) or not all(torch.equal(headers[0],item) for item in headers[1:]):
+                    raise ValueError('rank commit preflight failed') from failure
             elif failure is not None:
                 raise failure
             hidden=r.boundary.embed(token_ids)

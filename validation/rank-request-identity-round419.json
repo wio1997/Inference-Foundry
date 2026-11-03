@@ -1,0 +1,33 @@
+{
+  "scope": "45层非零状态事务与 rank 请求身份一致性：四 rank 实验性单 token 提交路径",
+  "architecture": "aarch64",
+  "device": "Ascend910_9382",
+  "world_size": 4,
+  "versions": {
+    "torch": "2.10.0+cpu",
+    "torch-npu": "2.10.0.post7",
+    "flash-linear-attention-npu-a3": "26.9.1+deva4a7958"
+  },
+  "checkpoint_index_sha256": "dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4",
+  "config_sha256": "33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943",
+  "template_sha256": "34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891",
+  "old_source_manifest_sha256": "33a73fd013fcdbc6f002ec37be1b40087fa4d61de0a16bfe6ff653af1a017e4f",
+  "fixed_source_manifest_sha256": "3a4a68d43957e0eaad7e7d6cabb26482b1ccccc0c6a7af6c2da6ac677cf20bf1",
+  "text_request_sha256": "6e84da6f26c47b2edf346ef114289ed7b0cf04601036df48117c7d1bed707acf",
+  "probe_sha256": "045314e61c8a6f33aeab3ecc29c2e04e6191a5b8a7e07877a65b13298cf41705",
+  "before": "rank 2 使用不同请求 ID，四 rank 仍提交3 token；该结果说明旧 preflight 未核对跨 rank 请求身份，不表示常规同 ID 请求输出错误。",
+  "after": "不同请求 ID 在进入模型栈前协同拒绝，四 rank 的45层状态和 token 计数不变；随后同 ID 正常前缀及 head 故障、输入不一致回滚和重试通过，重试 logits 与全部45层状态匹配干净执行。",
+  "identity_method": "按现有 batch 路径使用请求 ID 的 SHA256 前7字节指纹，连同位置与 token 数通过 all_gather 比较；有限指纹有碰撞可能。",
+  "normal_regression": {
+    "source_manifest_sha256": "86a1f256941d74ddbb798d7e549889186f8aeeae3ac69311e199bf7c426e5a58",
+    "result": "四 rank 固定8+5请求 prompt IDs、prompt argmax 和生成 IDs 与前一源码一致，完整 logits 未比较。",
+    "generated_ids": [
+      154842,
+      99366,
+      154827
+    ],
+    "test_timeout_seconds": 480,
+    "published_timeout_seconds": 2100
+  },
+  "limitations": "本地验证和已到达 preflight 的 rank 才参与协同；不覆盖进程/设备丢失、collective 故障或栈内异常。新增 collective 的性能开销未测。独立模型精度和生产验收仍未完成。"
+}

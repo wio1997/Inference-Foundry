@@ -139,3 +139,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 发布回滚探针现包含旧单 token 路径的单 rank 过期位置预检；四 rank 的45层状态保持与重试结果见 [实测记录](validation/legacy-rollback-runner-round418.json)。
 
 固定 archive probe 显式要求四 rank；错误 rank 数在读取配置或认领资源前拒绝，修正后四 rank 硬件恢复回归见 [记录](validation/snapshot-rank-guard-round418.json)。
+
+旧单 token rank 提交路径现会在入栈前比较请求身份指纹、位置和 token 数。四 rank 实测发现旧版允许不同请求 ID 提交；修正后协同拒绝并保持45层状态，详见 [验证记录](validation/rank-request-identity-round419.json)。该检查使用56位指纹，存在碰撞可能；新增 collective 的开销尚未测量。
