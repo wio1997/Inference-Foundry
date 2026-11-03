@@ -1,0 +1,66 @@
+{
+  "candidate": "F02",
+  "variant": "F02-PRENORM-ATTENTION",
+  "date": "2026-11-03",
+  "kind": "ARCHIVED_SOURCE_REVIEW_AND_CONDITIONAL_LOGICAL_BYTE_ACCOUNTING",
+  "status": "SOURCE_BOUNDARY_CLARIFIED_NOT_NATIVE_VALIDATED",
+  "checks": {
+    "model_hc_pre_then_input_norm": true,
+    "norm_weight_eps_are_original_parameters": true,
+    "rms_norm_math_explicit_in_source": true,
+    "variant_retains_Y_BF16_round": true,
+    "variant_retains_coefficients_and_other_readers": true
+  },
+  "sources": [
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "scope": "archived source snapshot; not current loaded binary identity"
+    },
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/model_executor/layers/layernorm.py",
+      "sha256": "4126258bf85aa3af54c78cfbf2a0f32000491e42be37661f2d1ac9f0beea00f3",
+      "scope": "archived source snapshot; not current loaded binary identity"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/HC-fusion-split-reorganization-variants-v59.json",
+      "sha256": "f0a185a7da94e681e87e91fd9c3441488d7a6098394f436de89adae67b2f3007",
+      "scope": "historical conditional variant and numerical/reader gates"
+    }
+  ],
+  "baseline": "HcPre returns BF16 Y and live coefficients; separate input RMSNorm consumes Y using its original learned weight and epsilon.",
+  "algorithm": "First produce Y with original BF16 rounding. RMSNorm mathematically returns weight * Y / sqrt(mean(Y^2) + eps); actual native reduction/rounding order remains a validation constraint.",
+  "proposal": "Within an operator implementation, retain the rounded Y for full-H normalization and publish normalized output; preserve current coefficient/residual/reader interfaces. No F01 parallelism required.",
+  "logical_interface_example": {
+    "M": 3,
+    "H": 5120,
+    "dtype": "BF16",
+    "bytes_per_element": 2,
+    "Y_bytes": 30720,
+    "conditional_write_plus_read_bytes": 61440,
+    "KiB": 60.0,
+    "assumptions": [
+      "no other live Y observer needs the original materialized output",
+      "legal tiling/capacity and original numeric contract"
+    ],
+    "not_claimed": [
+      "mandatory HBM traffic",
+      "guaranteed removed physical bytes",
+      "measured latency/speedup"
+    ]
+  },
+  "not_established": [
+    "current binary identity",
+    "matching native RMSNorm reduction behavior",
+    "on-chip capacity/tiling and live observer closure",
+    "new implementation correctness",
+    "same-case performance improvement"
+  ],
+  "excluded_subvariants_this_review": [
+    "first-layer embedding/init/projection sharing",
+    "FFN RMSNormCast dual-output integration",
+    "F01 early-Y parallel handoff"
+  ],
+  "new_native_execution": false,
+  "independent_review": false
+}

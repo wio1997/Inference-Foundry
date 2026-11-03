@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F02-PRENORM-REVIEW
+
+涉及：[F02](F02.md)
+
+类型：SOURCE_BOUNDARY_AND_ALGORITHM_REVIEW；依据：用户转向第二条后，核对固定模型的HcPre→input_layernorm关系、RMSNorm定义及F02-PRENORM历史数值合同；原源码SHA匹配归档。
+
+本轮仅澄清Attention侧Y→RMSNorm融合；保留BF16中间舍入和完整行归约。条件式60KiB接口不是HBM或收益证据。其他F02子方案未关闭，F01仍待验证；没有新实现、NPU执行、独立代理或性能对照。
+
 ## 2026-11-03 · 20261103-F01-INDEPENDENT-REVIEW-REQUEST
 
 涉及：[F01](F01.md)

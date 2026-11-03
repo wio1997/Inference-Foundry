@@ -16,6 +16,9 @@ def render():
     expected = [f'F{i:02}' for i in range(1, 36)] + [f'H{i:02}' for i in range(1, 8)]
     if [item['id'] for item in candidates] != expected:
         raise ValueError('The register must retain exactly the existing 35+7 stable IDs, in order.')
+    focus = register.get('current_focus', {'candidate': 'F01', 'variant': 'EARLY-Y'})
+    if focus['candidate'] not in expected:
+        raise ValueError('Unknown current focus candidate.')
     if len({e['event_id'] for e in events}) != len(events):
         raise ValueError('Event IDs must be unique; append corrections instead of replacing past events.')
     known_ids = set(expected)
@@ -73,10 +76,10 @@ def render():
              f"- 其余 {counts['HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW']}/42 沿用历史条件分析，待按用户顺序逐条复核。",
              f'- 新实现：{implementation_count}/42；新实现正确性通过：{correctness_count}/42；有同条件性能结论：{performance_count}/42；已完成独立复核：{independent_count}/42。', '',
              '## 从这里看', '',
-             '- 当前讨论：[F01 · HcPre 提前交付 Y](F01.md)。',
+             f"- 当前讨论：[{focus['candidate']} · {focus['variant']}]({focus['candidate']}.md)。",
              '- 更新规则：[记录规范](PROCESS.md)；新记录使用[模板](TEMPLATE.md)。',
              '- 所有进展：[变更记录](CHANGELOG.md)；结构化状态：[candidates.json](candidates.json)；追加事件：[events.jsonl](events.jsonl)。',
-             '- F01 的机器恢复入口：[Task README](tasks/f01-early-y/README.md)和[恢复包](tasks/f01-early-y/resume-pack.json)。', '',
+             '- 已登记 F01 Task 的机器恢复入口：[Task README](tasks/f01-early-y/README.md)和[恢复包](tasks/f01-early-y/resume-pack.json)。转向下一候选不代表关闭 F01。', '',
              '## 候选看板', '', '|编号|对象|优化类型|本轮状态|下一步|', '|---|---|---|---|---|']
     for c in candidates:
         index.append(f"|[{c['id']}]({c['id']}.md)|{c['name']}|{c['kind']}|{c['review_status']}|{c['next_steps'][0]['title']}|")

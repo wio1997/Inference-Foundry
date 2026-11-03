@@ -108,31 +108,37 @@
       "id": "F02",
       "name": "embedding → 首层 mHC 系数投影；mHC pre → 输入归一化",
       "updated_at": "2026-11-03",
-      "kind": "输入复用与相邻操作融合",
+      "kind": "相邻操作融合（本轮仅 Attention 侧 PRENORM）",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
+      "review_status": "PRENORM 源码边界已澄清；数值/实现/收益待验证",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
-      "operator_binding": "历史语义链：embedding/初始化 → HcPre 的 Y 生成 → 输入 RMSNorm。具体选定路径待本轮核对。",
-      "baseline_flow": "历史登记的原流程：mHC pre → input RMSNorm。本页登记不等于对当前运行二进制完成重新绑定。",
-      "proposal": "embedding/HC首层展开、初始化、系数投影共读输入；Y产出后接norm。",
-      "mechanism": "共享首层输入读取，或将 Y 的生成与归一化接合；保留首层特例和原有数值边界。",
-      "conditions": "保留HC4残差/premix及舍入；首层特例不能推广到后续层。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
+      "operator_binding": "模型 self.hc_pre → npu_hc_pre_v3 / aclnnHcPre（历史profile语义名HcPre），随后 self.input_layernorm（RMSNorm；历史profile名RmsNorm）。新融合接口尚未实现。",
+      "baseline_flow": "HcPre 产生 BF16 Y 和新 pre/post/comb；独立的 input_layernorm 使用 Y、原训练权重及 self.norm_eps 做 RMSNorm。中间 Y 是两者之间的交接。",
+      "proposal": "本轮只看 F02-PRENORM 的 Attention 输入侧：把 HcPre 内生成 Y 的收尾与随后 RMSNorm 接入同一算子实现，保留舍入后的 Y 供整行归一化，直接输出归一化后的结果以及全部仍需保留的原输出。",
+      "mechanism": "融合减少的是可能的 Y 中间写出/再读取，以及单独归一化任务的启动/交接。归一化的平方、求和、开方、缩放和学习权重乘法仍要计算；本子方案不要求 F01 的拆分并行。",
+      "conditions": "必须先得到按原 BF16 精度舍入的 Y，再做原 RMSNorm；保留完整 hidden 行的归约、原 gamma/epsilon、全部有效系数/残差及 rstd/其他观察者。能否留在片上取决于容量和切块方案；若仍有其他 Y 消费者，其所需物化不能删除。首层 embedding 复用、FFN 双输出和 F01 并行不纳入本轮结论。",
       "next_steps": [
         {
           "id": "F02-01",
-          "title": "分别界定首层复用与 Y→norm 子方案",
-          "description": "选择一个子方案；保留 pre/post/comb、HC4 可写残差和 Y 的 BF16 舍入；与 F01 共用的工作只计一次。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+          "title": "只补整行片上保留与数值归约的决策缺口",
+          "description": "复用已核对的Y→norm调用和BF16边界，围绕选定shape检查原D切块/活跃缓冲能否保留舍入后Y；明确原RMSNorm归约/舍入和rstd等读者。相同源码不重新发现依赖。",
+          "decision_rule": "容量或归约不支持时比较重新读取/重算等有边界替代方案并计入成本；不默认整行能免费留在片上。"
         },
         {
           "id": "F02-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "title": "若选定实现，再做同条件融合对照",
+          "description": "原版HcPre+RMSNorm与融合版使用相同输入、配比、gamma/epsilon和精度。验证归一化输出、所有仍需保留的系数及其他输出；计时到这些所需输出全部就绪。此项尚未执行。",
+          "decision_rule": "正确性通过且完整范围稳定改善才接受；不能把独立RMSNorm整段耗时或60KiB逻辑接口量直接报成收益。"
+        },
+        {
+          "id": "F02-03",
+          "title": "其他F02子方案单独排期",
+          "description": "首层embedding/HC展开与系数投影共享、FFN RMSNormCast双输出目前沿用历史条件分析。本次不顺带关闭这些范围。",
+          "decision_rule": "每次指定一个子方案、独立证据边界；与F01或其他候选重叠的工作只计算一次。"
         }
       ],
       "evidence": [
@@ -150,12 +156,33 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F02.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "本次PRENORM复核摘要",
+          "path": "evidence/F02-prenorm-review-20261103.json",
+          "scope": "归档源码检查、数学语义和条件式逻辑字节核算；不是native执行。"
+        },
+        {
+          "label": "固定模型源码",
+          "path": "../records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "scope": "hc_collapse的舍入、HcPre调用、input_layernorm构造参数和紧随消费；源快照不等于当前二进制身份。"
+        },
+        {
+          "label": "RMSNorm语义与接口",
+          "path": "../records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/model_executor/layers/layernorm.py",
+          "scope": "第37行起声明原数学式、学习权重和epsilon；不借CPU/CUDA分支推断NPU精确归约。"
+        },
+        {
+          "label": "PRENORM历史条件",
+          "path": "../records/history/continuation/profile-first-20261031/HC-fusion-split-reorganization-variants-v59.json",
+          "scope": "F02-PRENORM要求BF16Y、整行归约、保留系数/双输出/rstd等；本轮只取Attention侧。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "details_markdown": "## 本轮只讨论哪一项\n\nF02 是候选族。本轮只讨论 **Attention 输入侧的 Y→RMSNorm 融合**。首层 embedding 复用和 FFN 的 RMSNormCast 双输出保留为其他子方案，未在本轮重新核对。\n\n### 两个已有操作\n\n原代码的关键关系是：\n\n```python\nx, attn_post, attn_comb, attn_pre = self.hc_pre(...)\nx = self.input_layernorm(x)\n```\n\n第一行的 x 就是 BF16 的 Y。HcPre 其他三个输出仍有后续消费者。第二行使用学习到的权重和构造时传入的 self.norm_eps，不是任意换一个默认 epsilon。\n\nHcPre 自己为新系数计算所做的4路X统计，与这里对1路Y的归一化是不同数据域；不能直接复用同一平方和。\n\n### RMSNorm 的底层算法\n\n把 Y 看成一排数字，学习权重 gamma 也是一排数字。对每一排：\n\n1. 每个 Y 数字平方，求平均值。\n2. 平均值加原 epsilon，再开平方，得到这一排共同的缩放分母。\n3. 每个 Y 数字除以这个分母。\n4. 再乘该位置的学习权重。\n\n数学语义为 `Z[i] = gamma[i] * Y[i] / sqrt(mean(Y*Y) + epsilon)`。这不是对 native 指令/结合顺序的等价证明；融合实现还必须匹配原有归约与舍入要求。\n\n### 怎样融合\n\n```text\n原来：生成Y → Y写入中间输出 → 独立RMSNorm读取Y → 计算并输出Z\n候选：生成Y → 按原BF16舍入 → 在片上保留并做RMSNorm → 输出Z\n```\n\n新 pre/post/comb、原 residual 和其他有效输出仍保留。如果有别的读者需要原 Y，仍要为它保留输出，不能直接删除。\n\n新融合接口需要接入原RMSNorm的gamma/epsilon，并约定归一化结果及仍存活的原输出；当前aclnnHcPre并没有因此自动具备输出归一化结果的能力。调用端也必须选择这个新接口，不能静默改变原HcPre输出含义。\n\n片上是NPU内部的暂存空间。归一化需要完整5120维行的统计；不能把每个小块分别归一化后拼起来。若暂存不下，额外搬运或重算必须重新定价。\n\n这里做的是生产者与消费者接合，属于新增融合候选；它不依赖 F01 提前交付 Y 的并行安排。两方案未来可以组合，但相同 Y 接口不能重复计算收益。\n\n### 为什么原来的舍入必须保留\n\n原来先把加权求和结果变为BF16的Y，RMSNorm处理的就是这份已经舍入的数据。融合后仍要在内部产生同样的数值，不能直接使用未舍入的FP32累加值去归一化。\n\n```text\n保留：加权求和 → BF16舍入后的Y → 原RMSNorm\n未证明等价：加权求和的FP32临时值 → 直接RMSNorm\n```\n\n所以可以省去中间结果的外部交接，但不等于可以省去这个数值边界。\n\n### 机会量与未证明事项\n\n以旧profile登记的M=3、H=5120、BF16为例：Y本身是30720B（30KiB）；如果允许完全消除一次中间写和一次读，则逻辑接口为61440B（60KiB）。\n\n这只是条件式逻辑字节数，不证明原数据必经HBM，不证明全部物理字节能删除，也不代表60KiB带宽换算就是端到端收益。原来的RMSNorm计算仍需执行，不能把它的整段耗时当成可省时间。\n\n### 本轮结论\n\n**源调用与数学语义支持把Y的生产和紧随的RMSNorm视为一个融合候选；片上容量、native归约等价、其他读者、新实现正确性及实测收益仍未验证。** F02 全族保持 CONDITIONAL，未实现、未声称提速。\n"
     },
     {
       "id": "F03",
@@ -2277,5 +2304,9 @@
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED"
     }
-  ]
+  ],
+  "current_focus": {
+    "candidate": "F02",
+    "variant": "PRENORM：Attention侧 Y→RMSNorm"
+  }
 }
