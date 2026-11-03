@@ -119,3 +119,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 第4层 sparse KDA 的非零状态归档恢复及8加1 token 续算对照见 [记录](validation/sparse-kda-archive-round431.json)。
 
 第4层 sparse KDA singleton 续算中受控 head 失败的协调回滚与重试见 [记录](validation/sparse-kda-singleton-rollback-round431.json)。
+
+实验性 sparse KDA CLI 的 cache 与首 token 后恢复组合见 [记录](validation/sparse-kda-cli-restore-round431.json)。
