@@ -1,0 +1,37 @@
+{
+  "status": "DRAFT_NOT_EXECUTED_ON_MODEL",
+  "question": "Bind real custom FUSED_MC2 returned expert counts, active mask, routing IDs and actual capacity on the same call before shared buffer overwrite",
+  "fixed_case": "C8/P90/32768in/1024out; TP8 DP2; CANN9.2; frozen image/serve/weights",
+  "planned_scope": "all actually executed target/draft FusedMC2CommImpl calls on all16 EP ranks, capturing paths plus bounded eager samples; other MoE backends remain open",
+  "budgets": {
+    "graph_capture_paths_per_process": 2048,
+    "eager_samples_per_layer_shape_phase": 3,
+    "eager_samples_per_rank_phase": 256,
+    "observer_disk_bytes": 268435456,
+    "model_measurement_requests": 8,
+    "request_output_tokens": 1024
+  },
+  "required_checks": [
+    "single/list replay probe passed",
+    "full fixed case reference valid",
+    "observer isolated runtime and lazy import CPU preflight",
+    "original baseline identity/healthy+idle/own-only cards",
+    "fixed output/mask/capacity same TensorList; result.expert_tokens not stale shared attribute",
+    "initialization/warmup snapshots separated; captured paths reused and replay ordinal retained",
+    "all rank/layer/group identities, source hashes and actual numerical values parsed",
+    "unmodified original baseline restored and healthy; prefix cold declared"
+  ],
+  "limits": [
+    "No optimization implementation or timing speedup claimed",
+    "Observer ordinal is not scheduler step/request identity; cross-rank alignment and conservation must be checked",
+    "No all-module closure from successful collection",
+    "Non-FUSED_MC2/prefill/indexer/Engram and other outstanding coverage remain open"
+  ],
+  "code_hashes": {
+    "sitecustomize.py": "00e6b820173fb8c5b643b4142eeb00118e29a37ee11b5b0d333509ca059d0e94",
+    "wio_moe_observer.py": "3c91368c61181103946a687fd4f7f2800e9cd1bd69463f6bdb0c77814eab0810"
+  },
+  "notes": [
+    "Large auxiliary maps retain shape/dtype and explicit value omission; primary same-call counts/mask/topk are never omitted"
+  ]
+}

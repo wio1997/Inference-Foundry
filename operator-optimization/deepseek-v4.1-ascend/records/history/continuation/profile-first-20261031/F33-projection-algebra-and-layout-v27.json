@@ -1,0 +1,85 @@
+{
+  "generated_utc": "2026-10-31T04:54:59.211479+00:00",
+  "evidence_grade": "DERIVED_IN_DECLARED_ARITHMETIC_DOMAIN",
+  "exact_projection_identity": "For fixed matrices A,B: concat_features(X*A^T,X*B^T)=X*concat_rows(A,B)^T in exact arithmetic. A andB need not be equal;both parameter sets must be preserved.",
+  "required_norm_identity": "For U=X*A^T,V=X*B^T,use concat(RMS512(U;gammaA,epsA),RMS512(V;gammaB,epsB));do not substitute RMS1024(concat(U,V)).",
+  "joint_norm_counterexample": {
+    "each_group_width": 512,
+    "groupA_all_values": 1,
+    "groupB_all_values": 2,
+    "all_gamma": 1,
+    "illustrative_eps": "1/1000000",
+    "independent_output_squared": [
+      "1000000/1000001",
+      "4000000/4000001"
+    ],
+    "joint_output_squared": [
+      "1000000/2500001",
+      "4000000/2500001"
+    ],
+    "scope": "Counterexample to universal jointnormequivalence,not a claim this is the deployed model epsilon/input or a native BF16 parity check."
+  },
+  "output_layout": {
+    "packed_shape": [
+      24,
+      1024
+    ],
+    "packed_contiguous_strides": [
+      1024,
+      1
+    ],
+    "each_512_slice_strides": [
+      1024,
+      1
+    ],
+    "contiguous_24x512_strides": [
+      512,
+      1
+    ],
+    "conclusion": "Each feature half is row-strided. Use proven strided consumers,separate output buffers orexplicit conversion;no claim a copy is universally mandatory."
+  },
+  "row_allgather_identity": "For same per-rank A,B and identical row order, row_allgather(rowwise_projection(Xr))=rowwise_projection(row_allgather(Xr)) in exact arithmetic;rowwise feature norms similarly commute. Loaded rankweights,precision,padding/position/cacheownership remain conditions.",
+  "materialization_boundary": "Native recorded GEMMs output BF16 and norms consume BF16. A fused path may retain an explicit BF16 rounding step without HBM materialization;direct FP32-accumulator norm is not automatically the same function.",
+  "logical_operand_examples": [
+    {
+      "rows": 24,
+      "one_input_bytes": 245760,
+      "two_distinct_weight_bytes": 10485760,
+      "independent_single_read_logical_operand_bytes": 10977280,
+      "joint_single_read_logical_operand_bytes": 10731520,
+      "avoided_duplicate_logical_input_bytes": 245760,
+      "avoided_fraction_of_that_operand_count": "3/134"
+    },
+    {
+      "rows": 6400,
+      "one_input_bytes": 65536000,
+      "two_distinct_weight_bytes": 10485760,
+      "independent_single_read_logical_operand_bytes": 141557760,
+      "joint_single_read_logical_operand_bytes": 76021760,
+      "avoided_duplicate_logical_input_bytes": 65536000,
+      "avoided_fraction_of_that_operand_count": "25/54"
+    },
+    {
+      "rows": 6528,
+      "one_input_bytes": 66846720,
+      "two_distinct_weight_bytes": 10485760,
+      "independent_single_read_logical_operand_bytes": 144179200,
+      "joint_single_read_logical_operand_bytes": 77332480,
+      "avoided_duplicate_logical_input_bytes": 66846720,
+      "avoided_fraction_of_that_operand_count": "51/110"
+    },
+    {
+      "rows": 6668,
+      "one_input_bytes": 68280320,
+      "two_distinct_weight_bytes": 10485760,
+      "independent_single_read_logical_operand_bytes": 147046400,
+      "joint_single_read_logical_operand_bytes": 78766080,
+      "avoided_duplicate_logical_input_bytes": 68280320,
+      "avoided_fraction_of_that_operand_count": "1667/3590"
+    }
+  ],
+  "operand_count_scope": "Two dense BF16 matrices,each operand counted once per independent/joint projection;illustrative logical counting only,not measured HBM,universal I/O lower bound or speedup.",
+  "native_validation": false,
+  "hardware_peak_or_physical_gain": null,
+  "overall_complete": false
+}

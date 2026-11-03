@@ -1,0 +1,1558 @@
+{
+  "id": "DSPARK_CONTEXT_TWO_TEMPLATE_CONDITIONAL_JOIN_V1",
+  "source_G5_sha256": "b03954a51a7ded678179554d8a430cd33cea0528a453aab96d24e843d5b75ae3",
+  "nodes": [
+    {
+      "id": "B::aux",
+      "kind": "EXTERNAL",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "aux"
+    },
+    {
+      "id": "B::main_proj",
+      "kind": "LINEAR",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "main_proj"
+    },
+    {
+      "id": "B::main_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "main_norm"
+    },
+    {
+      "id": "B::tokens",
+      "kind": "PRODUCED_DRAFT_INPUT",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "tokens"
+    },
+    {
+      "id": "B::embedding",
+      "kind": "EMBEDDING",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "embedding"
+    },
+    {
+      "id": "B::repeat",
+      "kind": "HC_REPEAT_AND_INIT",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "repeat"
+    },
+    {
+      "id": "B::block0",
+      "kind": "DECODER_OPAQUE",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "block0"
+    },
+    {
+      "id": "B::block1",
+      "kind": "DECODER_OPAQUE",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "block1"
+    },
+    {
+      "id": "B::block2",
+      "kind": "DECODER_OPAQUE",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "block2"
+    },
+    {
+      "id": "B::collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "collapse"
+    },
+    {
+      "id": "B::norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "norm"
+    },
+    {
+      "id": "B::logits",
+      "kind": "LM_HEAD",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "logits"
+    },
+    {
+      "id": "B::confidence",
+      "kind": "CONFIDENCE_HEAD_OPAQUE",
+      "resource": "NPU",
+      "condition": "dynamic_spec is not configured in frozen-serve.sh and default method is None; inactive under that config unless overridden elsewhere",
+      "connection": "UNKNOWN: dynamic scheduler implementation not present in source snapshot",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "confidence"
+    },
+    {
+      "id": "B::context_buffer",
+      "kind": "COPY_OR_VIEW",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "context_buffer"
+    },
+    {
+      "id": "B::context_slots",
+      "kind": "EXTERNAL_SLOT_METADATA",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "context_slots"
+    },
+    {
+      "id": "B::kv_precompute",
+      "kind": "CONTEXT_KV_PRECOMPUTE_COMPOSITE",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "kv_precompute"
+    },
+    {
+      "id": "B::kv_state",
+      "kind": "PERSISTENT_SWA_STATE",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "kv_state"
+    },
+    {
+      "id": "B::seed",
+      "kind": "PRODUCED_DRAFT_SEED",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "seed"
+    },
+    {
+      "id": "B::draft_token_output",
+      "kind": "EXTERNAL_OUTPUT",
+      "resource": "UNKNOWN",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "draft_token_output"
+    },
+    {
+      "id": "B::last_hidden_dynamic_input",
+      "kind": "EXTERNAL_OR_UNRESOLVED_VALUE",
+      "resource": "UNKNOWN",
+      "condition": "dynamic_spec branch only; scheduler binding UNKNOWN",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "last_hidden_dynamic_input"
+    },
+    {
+      "id": "B::dynamic_scheduler",
+      "kind": "OPAQUE_CONDITIONAL_SCHEDULER",
+      "resource": "UNKNOWN",
+      "condition": "only if dynamic_spec enabled; implementation absent from source snapshot",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "dynamic_scheduler"
+    },
+    {
+      "id": "B::embed_0",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "embed_0"
+    },
+    {
+      "id": "B::bias_0",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "bias_0"
+    },
+    {
+      "id": "B::add_0",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "add_0"
+    },
+    {
+      "id": "B::sample_0",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sample_0"
+    },
+    {
+      "id": "B::embed_1",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "embed_1"
+    },
+    {
+      "id": "B::bias_1",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "bias_1"
+    },
+    {
+      "id": "B::add_1",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "add_1"
+    },
+    {
+      "id": "B::sample_1",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sample_1"
+    },
+    {
+      "id": "B::embed_2",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "embed_2"
+    },
+    {
+      "id": "B::bias_2",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "bias_2"
+    },
+    {
+      "id": "B::add_2",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "add_2"
+    },
+    {
+      "id": "B::sample_2",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sample_2"
+    },
+    {
+      "id": "B::embed_3",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "embed_3"
+    },
+    {
+      "id": "B::bias_3",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "bias_3"
+    },
+    {
+      "id": "B::add_3",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "add_3"
+    },
+    {
+      "id": "B::sample_3",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sample_3"
+    },
+    {
+      "id": "B::embed_4",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "embed_4"
+    },
+    {
+      "id": "B::bias_4",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "bias_4"
+    },
+    {
+      "id": "B::add_4",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "add_4"
+    },
+    {
+      "id": "B::sample_4",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sample_4"
+    },
+    {
+      "id": "B::next_token_ids",
+      "kind": "EXTERNAL_INPUT",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "next_token_ids"
+    },
+    {
+      "id": "B::draft_input_metadata",
+      "kind": "EXTERNAL_METADATA",
+      "resource": "UNKNOWN",
+      "description": "target positions, query start, sequence length, rejection counts and per-group slot mapping",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "draft_input_metadata"
+    },
+    {
+      "id": "B::seed_copy",
+      "kind": "COPY_OR_FILL",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "seed_copy"
+    },
+    {
+      "id": "B::input_expand",
+      "kind": "DRAFT_INPUT_EXPAND_COMPOSITE",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "input_expand"
+    },
+    {
+      "id": "B::sample_indices",
+      "kind": "PRODUCED_INDEX_METADATA",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sample_indices"
+    },
+    {
+      "id": "B::query_positions",
+      "kind": "PRODUCED_POSITION_METADATA",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "query_positions"
+    },
+    {
+      "id": "B::slot_outputs",
+      "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+      "resource": "UNKNOWN",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "slot_outputs"
+    },
+    {
+      "id": "B::sp_gather_slice",
+      "kind": "CONDITIONAL_SP_GATHER_SLICE",
+      "resource": "COMM_NPU",
+      "condition": "use_sequence_parallel_moe, else identity",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sp_gather_slice"
+    },
+    {
+      "id": "B::sample_select_pad",
+      "kind": "GATHER_SELECT_AND_CONDITIONAL_PAD",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sample_select_pad"
+    },
+    {
+      "id": "B::sampling_metadata",
+      "kind": "EXTERNAL_METADATA",
+      "resource": "UNKNOWN",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "sampling_metadata"
+    },
+    {
+      "id": "B::rng_state",
+      "kind": "EXTERNAL_SHARED_STATE",
+      "resource": "UNKNOWN",
+      "condition": "only non-greedy probabilistic sampling; exact RNG state/implementation boundary unknown",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "rng_state"
+    },
+    {
+      "id": "B::stack_probs",
+      "kind": "CONDITIONAL_STACK_PROBS",
+      "resource": "NPU",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "stack_probs"
+    },
+    {
+      "id": "B::probability_output",
+      "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+      "resource": "UNKNOWN",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "probability_output"
+    },
+    {
+      "id": "B::context_positions",
+      "kind": "PRODUCED_CONTEXT_POSITION_METADATA",
+      "resource": "NPU",
+      "shape": "[num_context]",
+      "dtype": "int32",
+      "condition": "input_expand executes for draft group; empty context separate",
+      "template": "DSPARK_BOUNDARIES",
+      "original_node_id": "context_positions"
+    },
+    {
+      "id": "K::context",
+      "kind": "EXTERNAL",
+      "resource": "NPU",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "context"
+    },
+    {
+      "id": "K::proj",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "proj"
+    },
+    {
+      "id": "K::norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "norm"
+    },
+    {
+      "id": "K::rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "rope"
+    },
+    {
+      "id": "K::cat",
+      "kind": "COPY_OR_VIEW",
+      "resource": "NPU",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "cat"
+    },
+    {
+      "id": "K::slots",
+      "kind": "SLOT_FIXUP",
+      "resource": "NPU",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "slots"
+    },
+    {
+      "id": "K::scatter",
+      "kind": "PERSISTENT_SCATTER",
+      "resource": "NPU",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "scatter"
+    },
+    {
+      "id": "K::persistent_swa_state",
+      "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+      "resource": "UNKNOWN",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "persistent_swa_state"
+    },
+    {
+      "id": "K::context_positions",
+      "kind": "EXTERNAL_CONTEXT_POSITION_METADATA",
+      "resource": "NPU",
+      "shape": "[num_context]",
+      "dtype": "int32",
+      "template": "DSPARK_SHARED_KV",
+      "original_node_id": "context_positions"
+    }
+  ],
+  "edges": [
+    {
+      "producer": "B::aux",
+      "consumer": "B::main_proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 0,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::main_proj",
+      "consumer": "B::main_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 1,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::tokens",
+      "consumer": "B::embedding",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 2,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::embedding",
+      "consumer": "B::repeat",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 3,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::repeat",
+      "consumer": "B::block0",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 4,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::block0",
+      "consumer": "B::block1",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 5,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::block1",
+      "consumer": "B::block2",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 6,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::block2",
+      "consumer": "B::collapse",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 7,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::norm",
+      "consumer": "B::logits",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 8,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::main_norm",
+      "consumer": "B::context_buffer",
+      "value": "combined target auxiliary states copied to draft context buffer",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1062-1081; spec_decode/dspark_proposer.py:255-259",
+      "condition": "K>0 and context projection path reached; context copy itself does not require valid per-layer KV slots.",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 9,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::context_buffer",
+      "consumer": "B::kv_precompute",
+      "value": "draft context hidden states",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/dflash_proposer.py:300-319; spec_decode/llm_base_proposer.py:1478-1494",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ.",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 10,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::context_slots",
+      "consumer": "B::kv_precompute",
+      "value": "per-layer context slot mapping",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/dspark_proposer.py:267-313; spec_decode/dflash_proposer.py:300-319",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ.",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 11,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::kv_precompute",
+      "consumer": "B::kv_state",
+      "value": "per-layer context SWA cache writes",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:284-309",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ.",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 12,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::kv_state",
+      "consumer": "B::block0",
+      "value": "relevant cached context subranges",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing.",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 13,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::kv_state",
+      "consumer": "B::block1",
+      "value": "relevant cached context subranges",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing.",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 14,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::kv_state",
+      "consumer": "B::block2",
+      "value": "relevant cached context subranges",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing.",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 15,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::last_hidden_dynamic_input",
+      "consumer": "B::dynamic_scheduler",
+      "value": "last_hidden_states",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1611-1617",
+      "condition": "dynamic_spec != None; exact scheduler implementation UNKNOWN",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 16,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::seed",
+      "consumer": "B::embed_0",
+      "value": "draft token at index 0",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 17,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::embed_0",
+      "consumer": "B::bias_0",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 18,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::bias_0",
+      "consumer": "B::add_0",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 19,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::logits",
+      "consumer": "B::add_0",
+      "value": "raw logits slice 0",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 20,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::add_0",
+      "consumer": "B::sample_0",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 21,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_0",
+      "consumer": "B::draft_token_output",
+      "value": "sampled token 1",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 22,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_0",
+      "consumer": "B::embed_1",
+      "value": "draft token at index 1",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 23,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::embed_1",
+      "consumer": "B::bias_1",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 24,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::bias_1",
+      "consumer": "B::add_1",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 25,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::logits",
+      "consumer": "B::add_1",
+      "value": "raw logits slice 1",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 26,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::add_1",
+      "consumer": "B::sample_1",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 27,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_1",
+      "consumer": "B::draft_token_output",
+      "value": "sampled token 2",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 28,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_1",
+      "consumer": "B::embed_2",
+      "value": "draft token at index 2",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 29,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::embed_2",
+      "consumer": "B::bias_2",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 30,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::bias_2",
+      "consumer": "B::add_2",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 31,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::logits",
+      "consumer": "B::add_2",
+      "value": "raw logits slice 2",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 32,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::add_2",
+      "consumer": "B::sample_2",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 33,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_2",
+      "consumer": "B::draft_token_output",
+      "value": "sampled token 3",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 34,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_2",
+      "consumer": "B::embed_3",
+      "value": "draft token at index 3",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 35,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::embed_3",
+      "consumer": "B::bias_3",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 36,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::bias_3",
+      "consumer": "B::add_3",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 37,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::logits",
+      "consumer": "B::add_3",
+      "value": "raw logits slice 3",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 38,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::add_3",
+      "consumer": "B::sample_3",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 39,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_3",
+      "consumer": "B::draft_token_output",
+      "value": "sampled token 4",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 40,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_3",
+      "consumer": "B::embed_4",
+      "value": "draft token at index 4",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 41,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::embed_4",
+      "consumer": "B::bias_4",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 42,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::bias_4",
+      "consumer": "B::add_4",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 43,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::logits",
+      "consumer": "B::add_4",
+      "value": "raw logits slice 4",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 44,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::add_4",
+      "consumer": "B::sample_4",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 45,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_4",
+      "consumer": "B::draft_token_output",
+      "value": "sampled token 5",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 46,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::draft_token_output",
+      "consumer": "B::dynamic_scheduler",
+      "value": "draft_token_ids",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1611-1617",
+      "condition": "dynamic_spec != None; exact scheduler implementation UNKNOWN",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 47,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::next_token_ids",
+      "consumer": "B::seed_copy",
+      "value": "next-token IDs",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 48,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::seed_copy",
+      "consumer": "B::seed",
+      "value": "seed buffer",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 49,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::next_token_ids",
+      "consumer": "B::input_expand",
+      "value": "next-token IDs",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 50,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::draft_input_metadata",
+      "consumer": "B::input_expand",
+      "value": "position/slot/index metadata",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 51,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::input_expand",
+      "consumer": "B::tokens",
+      "value": "expanded draft input IDs",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 52,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::input_expand",
+      "consumer": "B::sample_indices",
+      "value": "token_indices_to_sample",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 53,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::input_expand",
+      "consumer": "B::query_positions",
+      "value": "query positions",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 54,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::input_expand",
+      "consumer": "B::slot_outputs",
+      "value": "context/query slot mappings",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 55,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::query_positions",
+      "consumer": "B::block0",
+      "value": "positions",
+      "source": "spec_decode/llm_base_proposer.py:1473-1495; models/deepseek_v41/dspark.py:248-270",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 56,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::query_positions",
+      "consumer": "B::block1",
+      "value": "positions",
+      "source": "models/deepseek_v41/dspark.py:248-270",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 57,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::query_positions",
+      "consumer": "B::block2",
+      "value": "positions",
+      "source": "models/deepseek_v41/dspark.py:248-270",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 58,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::collapse",
+      "consumer": "B::sp_gather_slice",
+      "value": "collapsed hidden states",
+      "source": "models/deepseek_v41/dspark.py:272-276",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 59,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sp_gather_slice",
+      "consumer": "B::sample_select_pad",
+      "value": "last hidden states",
+      "source": "spec_decode/llm_base_proposer.py:1510-1534",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 60,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_indices",
+      "consumer": "B::sample_select_pad",
+      "value": "selection indices and conditional padding",
+      "source": "spec_decode/llm_base_proposer.py:1510-1534",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 61,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_select_pad",
+      "consumer": "B::norm",
+      "value": "sample hidden states",
+      "source": "spec_decode/llm_base_proposer.py:1534,1577; models/deepseek_v41/dspark.py:326-336",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 62,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::stack_probs",
+      "consumer": "B::probability_output",
+      "value": "draft_probs_step0",
+      "source": "spec_decode/llm_base_proposer.py:1603-1606,1636-1641",
+      "condition": "probabilistic branch and nonempty probabilities",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 63,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sampling_metadata",
+      "consumer": "B::sample_0",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 64,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::rng_state",
+      "consumer": "B::sample_0",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 65,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_0",
+      "consumer": "B::rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 66,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_0",
+      "consumer": "B::stack_probs",
+      "value": "probabilities for step 0",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 67,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sampling_metadata",
+      "consumer": "B::sample_1",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 68,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::rng_state",
+      "consumer": "B::sample_1",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 69,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_1",
+      "consumer": "B::rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 70,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_1",
+      "consumer": "B::stack_probs",
+      "value": "probabilities for step 1",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 71,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sampling_metadata",
+      "consumer": "B::sample_2",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 72,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::rng_state",
+      "consumer": "B::sample_2",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 73,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_2",
+      "consumer": "B::rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 74,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_2",
+      "consumer": "B::stack_probs",
+      "value": "probabilities for step 2",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 75,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sampling_metadata",
+      "consumer": "B::sample_3",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 76,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::rng_state",
+      "consumer": "B::sample_3",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 77,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_3",
+      "consumer": "B::rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 78,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_3",
+      "consumer": "B::stack_probs",
+      "value": "probabilities for step 3",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 79,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sampling_metadata",
+      "consumer": "B::sample_4",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 80,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::rng_state",
+      "consumer": "B::sample_4",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 81,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_4",
+      "consumer": "B::rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 82,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::sample_4",
+      "consumer": "B::stack_probs",
+      "value": "probabilities for step 4",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 83,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::input_expand",
+      "consumer": "B::context_positions",
+      "value": "copied target context positions",
+      "dependency_kind": "RAW",
+      "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+      "source": "spec_decode/dspark_proposer.py:274-285; ops/triton/spec_decode/utils.py:111-120",
+      "condition": "draft group kernel executes",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 84,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::context_positions",
+      "consumer": "B::kv_precompute",
+      "value": "context positions sliced to num_context",
+      "dependency_kind": "RAW",
+      "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+      "source": "spec_decode/dflash_proposer.py:301-319; models/deepseek_v41/dspark.py:295-309",
+      "condition": "nonempty context and slots supplied",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 85,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::slot_outputs",
+      "consumer": "B::context_slots",
+      "value": "group context slot subdomain mapped to layers",
+      "dependency_kind": "RAW",
+      "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+      "source": "spec_decode/dspark_proposer.py:280-310; spec_decode/dflash_proposer.py:301-319",
+      "condition": "draft group kernel executes; per-layer group mapping",
+      "original_template": "DSPARK_BOUNDARIES",
+      "original_edge_index": 86,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::context",
+      "consumer": "K::proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 0,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::proj",
+      "consumer": "K::norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 1,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::norm",
+      "consumer": "K::rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 2,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::rope",
+      "consumer": "K::cat",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 3,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::cat",
+      "consumer": "K::scatter",
+      "value": "intermediate",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 4,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::slots",
+      "consumer": "K::scatter",
+      "value": "validated physical slots",
+      "dependency_kind": "RAW",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 5,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::scatter",
+      "consumer": "K::persistent_swa_state",
+      "value": "context KV cache state",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:284-309",
+      "condition": "slot mapping and future readers are retained; exact consumer set unknown",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 6,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "K::context_positions",
+      "consumer": "K::rope",
+      "value": "context position for RoPE tables",
+      "dependency_kind": "RAW",
+      "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+      "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+      "condition": "nonempty context and slots supplied",
+      "original_template": "DSPARK_SHARED_KV",
+      "original_edge_index": 7,
+      "edge_role": "TEMPLATE_SOURCE_EDGE"
+    },
+    {
+      "producer": "B::context_buffer",
+      "consumer": "K::context",
+      "value": "context states slice [:num_context]",
+      "source": "spec_decode/dspark_proposer.py:257-259; spec_decode/dflash_proposer.py:301-319; models/deepseek_v41/dspark.py:295-308",
+      "condition": "Same invocation, K>0, draft group exists, selected layer belongs to the per-layer group mapping, num_context>0 and valid supplied slot list; tensor/stream/event identities not historically bound.",
+      "dependency_kind": "CONDITIONAL_VIEW_OR_VALUE_BINDING",
+      "edge_role": "CROSS_TEMPLATE_SOURCE_BINDING",
+      "semantic_class": "CONTEXT_HIDDEN_VIEW",
+      "is_new_operator": false,
+      "runtime_storage_or_event_identity": "UNKNOWN"
+    },
+    {
+      "producer": "B::context_positions",
+      "consumer": "K::context_positions",
+      "value": "context position slice [:num_context]",
+      "source": "spec_decode/dspark_proposer.py:274-285; spec_decode/dflash_proposer.py:301-318; models/deepseek_v41/dspark.py:55-68,284-308",
+      "condition": "Same invocation, K>0, draft group exists, selected layer belongs to the per-layer group mapping, num_context>0 and valid supplied slot list; tensor/stream/event identities not historically bound.",
+      "dependency_kind": "CONDITIONAL_VIEW_OR_VALUE_BINDING",
+      "edge_role": "CROSS_TEMPLATE_SOURCE_BINDING",
+      "semantic_class": "CONTEXT_POSITION_VIEW",
+      "is_new_operator": false,
+      "runtime_storage_or_event_identity": "UNKNOWN"
+    },
+    {
+      "producer": "B::context_slots",
+      "consumer": "K::slots",
+      "value": "group slot buffer selected for the same layer and sliced [:num_context]",
+      "source": "spec_decode/dspark_proposer.py:280-310; spec_decode/dflash_proposer.py:301-319; models/deepseek_v41/dspark.py:295-309",
+      "condition": "Same invocation, K>0, draft group exists, selected layer belongs to the per-layer group mapping, num_context>0 and valid supplied slot list; tensor/stream/event identities not historically bound.",
+      "dependency_kind": "CONDITIONAL_VIEW_OR_VALUE_BINDING",
+      "edge_role": "CROSS_TEMPLATE_SOURCE_BINDING",
+      "semantic_class": "PER_LAYER_GROUP_SLOT_VIEW",
+      "is_new_operator": false,
+      "runtime_storage_or_event_identity": "UNKNOWN"
+    }
+  ],
+  "cross_bindings": [
+    95,
+    96,
+    97
+  ],
+  "hierarchy_exclusion": [
+    "B::kv_precompute"
+  ],
+  "scope": "One symbolic draft layer in one invocation; source-level correspondence is conditional, not runtime tensor alias or a whole-model graph.",
+  "limitations": [
+    "B::kv_precompute is an enclosing aggregate of the K fragment; excluded from combination connectivity to avoid hierarchical double counting, but retained as an external reference.",
+    "All slot mappings refer to the same layer-group selection, not aggregate equality across groups or three layer caches.",
+    "View edges are not operators, not established zero-copy, and not proof of device stream readiness.",
+    "Source branches and tensors may not match historical runtime."
+  ]
+}

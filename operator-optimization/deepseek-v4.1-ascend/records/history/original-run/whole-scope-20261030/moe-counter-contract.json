@@ -1,0 +1,497 @@
+{
+  "status": "PARTIAL_COUNTER_CONTRACT_AND_MEASURED_INTERFACES",
+  "facts": [
+    {
+      "id": "MC-ROLLBACK",
+      "fact_kind": "DOCUMENTED",
+      "claim": "user enable=1 sets global MegaMoe-supported false; only user2 tests CANN then normalizes effective enable to1",
+      "evidence": {
+        "source": "vllm-ascend/vllm_ascend/ascend_config.py",
+        "source_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+        "line": 670
+      }
+    },
+    {
+      "id": "MC-RESULT",
+      "fact_kind": "DOCUMENTED",
+      "claim": "custom branch passes preallocated counter as op output; CANN branch receives fresh tensor; result object carries actual counter",
+      "evidence": {
+        "source": "vllm-ascend/vllm_ascend/ops/fused_moe/moe_comm_method.py",
+        "source_sha256": "7040f691355bd9acb3c668e698de3f7d3854edbc22e3f979f9b03d99800364d7",
+        "line": 581
+      }
+    },
+    {
+      "id": "MC-COUNT-AXIS",
+      "fact_kind": "DOCUMENTED_SOURCE_SEMANTICS",
+      "claim": "GetCumsumForMMAIV accumulates each expert across source ranks; last rank row is per-expert total, not expert-axis prefix",
+      "evidence": {
+        "source": "vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/dispatch_ffn_combine_kernel.hpp",
+        "source_sha256": "7dcef4c08c4c47e38bdd01aef0dee997798658ee4d7b871c8e6c70f7ffe596ba",
+        "line": 402
+      }
+    },
+    {
+      "id": "MC-COUNT-WRITE",
+      "fact_kind": "DOCUMENTED_SOURCE_EFFECT",
+      "claim": "core0 copies last source-rank row to INT32 expert output before later maxOutputSize clipping",
+      "evidence": {
+        "source": "vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/dispatch_ffn_combine_kernel.hpp",
+        "source_sha256": "7dcef4c08c4c47e38bdd01aef0dee997798658ee4d7b871c8e6c70f7ffe596ba",
+        "line": 825
+      }
+    },
+    {
+      "id": "MC-CAPACITY",
+      "fact_kind": "DOCUMENTED_SOURCE_EFFECT",
+      "claim": "subsequent rowStart/row count and later expert processing may be clipped to maxOutputSize; raw counts are not processed-work identity",
+      "evidence": {
+        "source": "vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/dispatch_ffn_combine_kernel.hpp",
+        "source_sha256": "7dcef4c08c4c47e38bdd01aef0dee997798658ee4d7b871c8e6c70f7ffe596ba",
+        "line": 848
+      }
+    },
+    {
+      "id": "MC-GROUP-TYPE",
+      "fact_kind": "DOCUMENTED",
+      "claim": "FusedExpertsResult defaults group_list_type=1; EPLB consumer treats1 as counts and0 as expert-axis prefix",
+      "evidence": {
+        "source": "vllm-ascend/vllm_ascend/ops/fused_moe/moe_comm_method.py",
+        "source_sha256": "7040f691355bd9acb3c668e698de3f7d3854edbc22e3f979f9b03d99800364d7",
+        "line": 89
+      }
+    }
+  ],
+  "same_capture_families": {
+    "target_compatible": {
+      "per_rank": [
+        {
+          "rank": 0,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 320584.0
+        },
+        {
+          "rank": 1,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 319333.5
+        },
+        {
+          "rank": 2,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 320173.5
+        },
+        {
+          "rank": 3,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 320340.0
+        },
+        {
+          "rank": 4,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 320143.5
+        },
+        {
+          "rank": 5,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 319453.0
+        },
+        {
+          "rank": 6,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 321693.5
+        },
+        {
+          "rank": 7,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 319874.0
+        },
+        {
+          "rank": 8,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 318924.0
+        },
+        {
+          "rank": 9,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 321324.0
+        },
+        {
+          "rank": 10,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 319783.0
+        },
+        {
+          "rank": 11,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 318300.0
+        },
+        {
+          "rank": 12,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 320903.5
+        },
+        {
+          "rank": 13,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 318423.5
+        },
+        {
+          "rank": 14,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 320203.0
+        },
+        {
+          "rank": 15,
+          "input_rows": 3,
+          "local_experts": 24,
+          "topk": 6,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            24
+          ],
+          "count": 480,
+          "median_ns": 320983.5
+        }
+      ],
+      "rank_median_call_median_ns": 320158.5
+    },
+    "draft_compatible": {
+      "per_rank": [
+        {
+          "rank": 0,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 174057.0
+        },
+        {
+          "rank": 1,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 179877.0
+        },
+        {
+          "rank": 2,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 175666.0
+        },
+        {
+          "rank": 3,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 173540.0
+        },
+        {
+          "rank": 4,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 174477.0
+        },
+        {
+          "rank": 5,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 181096.0
+        },
+        {
+          "rank": 6,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 175586.5
+        },
+        {
+          "rank": 7,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 178036.0
+        },
+        {
+          "rank": 8,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 176316.5
+        },
+        {
+          "rank": 9,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 175906.0
+        },
+        {
+          "rank": 10,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 177287.0
+        },
+        {
+          "rank": 11,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 176880.0
+        },
+        {
+          "rank": 12,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 177856.0
+        },
+        {
+          "rank": 13,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 177606.5
+        },
+        {
+          "rank": 14,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 176476.5
+        },
+        {
+          "rank": 15,
+          "input_rows": 3,
+          "local_experts": 8,
+          "topk": 3,
+          "counter_output_dtype": "INT32",
+          "counter_output_shape": [
+            8
+          ],
+          "count": 36,
+          "median_ns": 178767.0
+        }
+      ],
+      "rank_median_call_median_ns": 176678.25
+    }
+  },
+  "actual_counter_values": null,
+  "actual_active_mask_values": null,
+  "actual_max_output_size_same_call": null,
+  "actual_ep_group_identity_same_call": null,
+  "conditional_later_bucket_bounds": {
+    "premises": "all16 ranks form the same EP group, each at most3 physical rows; valid top-k IDs and receiver expertise; same bound for all ranks",
+    "target_max_requested_receive_rows": 288,
+    "draft_max_requested_receive_rows": 144,
+    "not_a_necessary_work_lower_bound": true,
+    "not_valid_for_prefill_or_other_buckets_without_rebinding": true
+  },
+  "finite_capture_requirements": [
+    "actual resolved branch and kernel/binary identity",
+    "same request/step, phase and target/draft/layer",
+    "EP membership and expert ownership",
+    "input physical/valid rows and active mask",
+    "counter values copied after production before shared buffer overwrite",
+    "same-call capacity and before/after clipping meaning",
+    "capture/replay-aware observation; do not report capture-time zeros as replay results",
+    "reference run, overhead and exact owned-environment restoration"
+  ],
+  "all_consumers_closed": false,
+  "whole_module_closed": false,
+  "overall_complete": false,
+  "review": "MOE-COUNTER-CONTRACT.md",
+  "new_166_observed_values": {
+    "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/local-observation-contract166.json",
+    "formal_main_cohorts": 87,
+    "prefix_seed_cohorts": 169,
+    "captured_replay_phase_unresolved": 40,
+    "all_296_routing_histogram_matches": true,
+    "capacity_argument": 65536,
+    "use_mega_moe": false,
+    "historical169_call_values_still_not_bound": true,
+    "all_module_or_iteration_closure": false
+  }
+}

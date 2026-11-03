@@ -1,0 +1,87 @@
+{
+  "generated_utc": "2026-10-31T18:33:33.414670+00:00",
+  "variants": [
+    {
+      "id": "F02-YCOEFF-SPLIT",
+      "decision": "CONDITIONAL_PRIORITY",
+      "proposal": "Split delayedexternal-pre_mix collapse+RMSNorm from currentHCcoefficient production; scheduleY branch without waiting forcurrentprojection/Sinkhorn.",
+      "conditions": [
+        "Externalpre_mix present (allcaptured16regimes); retainnewpre/post/comb andtheirdeadlines atHCpost/nextpre.",
+        "PreserveYBF16round andnorm numerics. Price2launches/sync pluscompetitionforVector/HBM/Cube-caststage;coefficientdeadline andnewvisibility/alias contract required."
+      ],
+      "traffic_delta": "Splittingalone neednotremovebytes; collapsingwithnorm conditionally removes4MH BF16interface. Mainopportunity isdependencypathreordering,not deletingprojectionwork."
+    },
+    {
+      "id": "F02-PRENORM",
+      "decision": "CONDITIONAL",
+      "proposal": "Fuse currentHcPre Y collapse epilogue withRMSNorm/RmsNormCast.",
+      "conditions": [
+        "KeepBF16Yround beforeRMS andwholeH reduction.",
+        "Keepnewpre/post/comb;forFFNpreserveBF16normoutput plusFLOATwidenedroundedplane. Anyrstd/otherreaders mustremain."
+      ],
+      "traffic_delta": "4MH Y write/read ifnootherYconsumer; coeff/HF32/Sinkhornworknotremoved. Fullkernel maystilldelayY behindcoefficientpath."
+    },
+    {
+      "id": "F03-POST-COLLAPSE-NORM",
+      "decision": "CONDITIONAL",
+      "proposal": "HcPost producesroundedresidual tiles fornext delayedcollapse+norm onchip.",
+      "conditions": [
+        "KeepPostseparateMul/Addorder andBF16round beforecollapse.",
+        "RetainresidualwritefornextHcPost/aux/Engram/tail andcurrentcoefficientproducer;cannot erase interveningconsumers.",
+        "NeedwholeHnorm reduction,matchingrowmap/pre_mix andrealreadiness;graphadjacencyaloneisinsufficient."
+      ],
+      "traffic_delta": "Can saveone2MhH residualread bycollapse plus4MH Yinterface ifallconditionshold. Cannotcountfull4MhH producerwrite/readelimination whilelaterresidualconsumer remains."
+    },
+    {
+      "id": "F02-CAST-WORKSPACE",
+      "decision": "CONDITIONAL",
+      "proposal": "AvoidexternalFP32castwrite/read usingcompatibleonchipVector→Cube handoff, orretilewithinHC.",
+      "conditions": [
+        "Nativepath explicitlyHF32AB andFLOATweights;dtypechangesmustpreservesemantics. NounqualifiedBF16weightconversion.",
+        "Priceonchipcapacity,barriers,layout,split-K andCube/Vectorparallelism."
+      ],
+      "traffic_delta": "Currentcastinterface8MK logicalbytes;M3=491520B,notprovenHBMtraffic."
+    },
+    {
+      "id": "F02-GRAM-DIAGONAL",
+      "decision": "CONDITIONAL_NUMERICAL_VARIANT",
+      "proposal": "Replace full16x16 A2Gramblock work withnecessaryrow-sumsquares.",
+      "conditions": [
+        "Preserve orexplicitlydefineFP32/Cube reductionerror contract;Vectorreductionnotunconditionallybit-equivalent.",
+        "PriceVectoroccupancy andchangedprojection/Sinkhornreadiness;do notuseBF16peakforHF32/A2."
+      ],
+      "traffic_delta": "Semantic2MK sumsquareworkversussource2*Mpadded*16*K requestedGramwork;fulltilepadding andoffdiagonalworkaredistinctfromprojection."
+    },
+    {
+      "id": "F23-MERGE-POST",
+      "decision": "CONDITIONAL_RETAINED",
+      "proposal": "Inline singletonshared+routed BF16merge intoHcPost.",
+      "conditions": [
+        "PreserveDownBF16round thenmergeBF16round beforeFP32HCPost arithmetic;keeproutedready andallreaders.",
+        "Alternative/sharedinterfacewithv57ONEADD/DownAdd;do notcountsameAddremovaltwice."
+      ],
+      "traffic_delta": "4MH mergewrite+HCreadconditional;doesnotremoveHCresidualread/output."
+    },
+    {
+      "id": "F03-ALGEBRAIC-PREFOLD",
+      "decision": "REJECT_UNCONDITIONAL",
+      "proposal": "Cancel/foldpost→pre intooneunroundedmatrix or eliminateallresidualstorage.",
+      "conditions": [
+        "FailsunconditionalBF16/reduction-ordercontract;currentHCnewcoefficients dependonroundedresidual andnonlinearRMS/sigmoid/Sinkhorn.",
+        "Newtensor/alias/generationconstraintsandaux/Engram/tailconsumersremain."
+      ],
+      "traffic_delta": null
+    }
+  ],
+  "interactions": [
+    "YCOEFF-SPLIT andPRENORM cancompose;their4MH interface saving iscountedonce.",
+    "POST-COLLAPSE-NORM andwholeHCfusion competeonresourceownership;residualwritecannotbeclaimedgoneifnextHCPostreadsit.",
+    "CAST-WORKSPACE andGRAM-DIAGONAL changeinternalresourcebalance;bytedeletionplusCubeopsavingsnotindependentruntimegains.",
+    "MERGE-POST,ONEADD andDOWNADD refer tosameAddstage/removableinterfaces;preservebothBF16rounds andavoiddoublecounting."
+  ],
+  "no_new_main_candidate": true,
+  "conditional_operator_analysis_deliverable": true,
+  "measured_speedup": null,
+  "implementation": false,
+  "overall_complete": false
+}

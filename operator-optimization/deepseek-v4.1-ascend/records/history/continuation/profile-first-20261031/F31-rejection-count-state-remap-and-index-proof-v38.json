@@ -1,0 +1,60 @@
+{
+  "generated_utc": "2026-10-31T10:19:57.060581+00:00",
+  "evidence_grade": "DERIVED_ON_VALID_BASELINE_DOMAINS",
+  "padded_formula": {
+    "draft_i": "D[i] - (D[i-1] if i>0 else 0)",
+    "rejected_i": "draft_i+1-count_i if draft_i>0 else 0",
+    "selector_i": "QSL[i+1]-1-rejected_i",
+    "keep": [
+      "D is inclusive prefix without leading zero.",
+      "Preserve baseline signed arithmetic,INT32 output casts and mask;no new nonnegative clamp.",
+      "count is exact v36 sentinel/vocab-count result,not rightmost valid index.",
+      "No-draft branch rejects0 even if count0.",
+      "Keep all original padded queries and metadata/sequence mirrors;selector is not permission to compact noncausal query/KV rows."
+    ]
+  },
+  "state_formula": {
+    "gather_i": "max(prev_position_i,0)",
+    "participating_i": "prev_position_i>=0 and old_draft[gather_i]>0",
+    "new_computed_i": "old_computed[gather_i]+int32(old_valid_count[gather_i]) if participating_i else CPU_computed_i",
+    "new_accepted_i": "old_valid_count[gather_i] if participating_i else old_accepted_i",
+    "snapshots": "All gathered old values refer to the same pre-commit generation;copy_ retains its output dtype and alias semantics."
+  },
+  "in_place_counterexample": {
+    "old_computed": [
+      100,
+      200
+    ],
+    "old_valid_count": [
+      1,
+      2
+    ],
+    "old_draft": [
+      1,
+      1
+    ],
+    "prev_position": [
+      1,
+      0
+    ],
+    "baseline_result": [
+      202,
+      101
+    ],
+    "invalid_serial_row0_then_row1": [
+      202,
+      203
+    ],
+    "reason": "Writing current row0 into old slot0 before row1 gathers it destroys the old100. Threads on separate programs need a real snapshot/two-phase protocol; a local barrier is insufficient across programs."
+  },
+  "compositional_opportunities": [
+    "Valid-count producer may additionally emit padded rejection/selector if the same request order,D/QSL generation andoutput layout are ready. Preserve count/GPU/CPU last readers andall original sampled matrices/backup semantics.",
+    "Remap correction may feed position/sequence/slot geometry in a composite pipeline. Snapshot old state before writing, keep CP rebuild path andstable published position/length banks required by other readers.",
+    "On valid indices input_ids[logits_indices][target_logits_indices+1] equals input_ids[logits_indices[target_logits_indices+1]]. Skipping first-gather checks outside the selected subset is only legal on the original valid-input domain."
+  ],
+  "native_validation": false,
+  "implemented": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

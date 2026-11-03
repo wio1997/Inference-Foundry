@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_b514de11-01af-44ac-a44c-e7f0675adfa3",
+  "traceId": "1bd14315-d32a-4a8d-8bce-7249db62eced",
+  "turnId": "turn_7aa1f665-0f67-4b38-94a9-285f3eee7b20",
+  "response": "检查已按原命令执行一次，未重试、未修改任何脚本或服务。\n\n**结果：真实 returncode = 0**（`remote_run.py` 包装层与实际远端脚本均为 0，stderr 为空）。\n\n- **容器身份**：两个容器都在运行且身份完全匹配。\n  - `wio-vllm-v41-repro166-20261030`：ID `8757dcc7…fd48e3`，镜像 `sha256:ce42d65b…c5e98b`，running=true，restart_count=0，无诊断注入环境变量。\n  - `wio-vllm-v41-repro166-stage-20261030`：ID `bd6ff19d…48f46d`，同一镜像，running=true，restart_count=0。\n  - `serve.sh` 的 SHA256 为 `c2972011…0b7bba`，与预期一致。\n- **HTTP 状态**：`/health` 返回 200；`/v1/models` 返回 200，模型 ID 为 `dsv41`。\n- **额外 NPU 进程**：`extra_npu_pids_outside_base = []`。npu-smi 进程表存在，共观察到 17 个 NPU PID，全部属于基础容器；stage 容器仅持有 PID 2032500（非 NPU 进程）。\n- **结果 SHA256**：`a8d8c4a9b0c5bf76eeb99b9353d2703bf38f6607c893879b764d870b5f3afce0`\n- **结果文件**：远端 `/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/server-readonly-health-v12.json`；本地回执 `server-readonly-health166-v12.json`。\n- 检查时间为 2026-10-30T21:18:01Z，任务盘剩余约 54.5 TB。\n\n全程未启动模型、未杀进程、未改动服务；脚本自身的 limits 也注明这是时点观测，任何后续隔离诊断前需重新核对归属。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 4,
+    "inputTokens": 42711,
+    "outputTokens": 1873,
+    "totalTokens": 44584,
+    "cacheReadTokens": 30720,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1436,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 44584,
+    "contextUsed": 13543,
+    "contextWindow": 200000
+  }
+}

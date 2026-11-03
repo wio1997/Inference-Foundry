@@ -1,0 +1,17 @@
+本轮继续M21，先补profile范围再定点源码。32份raw DB经SHA和只读stat校验，选出64008条host copy/scalar/sync记录，其中37280在prepare内、26728在外。primary H2D总8744=原prepare7392+区间外1352，primary D2H176均在外。Enqueue/Dequeue另列，不当成额外DMA；它们的connection标识与重复primary标识不能直接相等配对。初版主事件计数有效，v2改用canonical完整栈内容+同线程host包含匹配copy父节点，修正raw callchainId不等于内容身份的问题。旧prepare台账仍按其原范围保留。
+
+正向确认88次backup INT32[B]H2D、88次valid-count INT64[B]D2H，以及另一88次target sampled-ID INT32[B,1/6]D2H。后一项来自AsyncGPUModelRunnerOutput，不是draft IDs。额外H2D中1088条属于dummy ancestry，仍不解释成只在启动发生。item/local_scalar是嵌套API记录，缺少tensor device信息，不能统称NPU同步；传输记录/逻辑shape也不等于实际DMA字节或关键路径。
+
+88次host index_fill_的INT64索引长度均为0，native没有因此出现IndexFill ComputeInfo。源码表明helper仅为discard fill先clone，后续对矩阵只读。因此可在空索引、合法dtype/dim和稳定输入代际下直接读原sampled矩阵，省私有clone/empty fill调用。它与v36虚拟discard单核重叠，不重复计收益。空discard不保证count>0，原!=−1且<V、count−1选择、零数量backup和所有原矩阵读者保留；不能据此删88次backup拷贝。
+
+native metadata/input ancestry覆盖60404 API、76033 TASK、186条链。321次SMLA和208次QLI metadata与原529条缺PMU范围一致，不用它们声称物理低利用率。SMLA另有79次零输出callback（target24/dummy36/draft19），既有代码已对空query零化并维持frontier。QLI没有同样guard，其空query/captured-reader是否可省仍待核对，不能直接套用SMLA零格式。
+
+SWA长度发现是本轮主要局部结论：88次索引kernel原本就生成indices与raw visible_len，复制进稳定bank并随global metadata返回；CP165只转发切片后的indices，base1070又把length置None，局部1116遂有69组、276TASK的有效列重算。应补明确消费接口并传已有长度，不是新造长度producer。对逻辑slot，完整列计数为clamp(visible_len,0,index_width)。wrapper的容量校验配合query_len不超过配置spec宽度可证明无需cap；未证明时要保持局部recount的cap语义，不能改全局raw长度，也不能扩展到可能有负physical slot的后端。CP rowmap、INT32[R,1]、bank和ready/last-reader代际均保留。
+
+SMLA/QLI的全部调用输入和metadata executor局部合同已补齐。现有executor已经在专用stream上等待inputs/reuse fence，按stage/group运行并逐frontier记event；capture batch descriptor要求frontier集合稳定，wait外部event会reset，release记录可复用栅栏。metadata plan cache、direct-out或composite接口可以作为条件方案，但不能省这些事件，不能按type/shape合并不同group，也不能把已有async当新收益。当前opaque plan格式/地址绑定仍是合法性条件，未为登记候选而追SDK内部。
+
+输出构造会保持device sampled矩阵，copy stream等待default，再拷IDs及可选logprobs/routing/NaN/fault字段，最后event约束CPU解析。可研究把只读IDs快照放到实际sampler就绪边界，或把IDs与counts按同一request/generation发布；它们dtype、消费者、last-readers不同，packing不保证更快，worker证据不证明frontend DecodeStream长等待由此造成。
+
+本轮登记7项条件细化、30项约束，更新F31及H02并关联F35/F29/H05/H06。186条profile链均进入导航台账，明确区分ANALYZED_CONDITIONAL、部分复用及真正未分析字段。仍有24普通/64adaptive slotmapping、72prepare_inputs_padded/reject correction及QLI captured-reader等范围待查，所以整体不完成；未实现/未测速是候选证据级别，不单独当成“未分析”的理由。
+
+6次远端CPU作业均pass；最初本地inline SQL/Python引号冲突的准备错误保留，未启动远端，主审通过。35模型候选、7框架候选、0整模块关闭，26项理论比较INCOMPLETE、3136candidate资源行、849PMU缺失、16个phase-unbound图保持。无model/torch导入、新NPU负载、服务更改或新健康检查，最后健康仍v12post。下一批继续M21剩余slot/reject/字段合同，之后M22-M25与全范围有限完成审计。Goal active。

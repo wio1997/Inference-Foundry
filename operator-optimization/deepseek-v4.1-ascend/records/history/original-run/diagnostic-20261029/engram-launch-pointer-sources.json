@@ -1,0 +1,285 @@
+{
+  "roots": [
+    "/usr/local/python3.12.13/lib/python3.12/site-packages/triton"
+  ],
+  "hits": [
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/amd/driver.py",
+      "sha256": "8f6569a35754508b27d2a70e1034d33ee19f0ef9f24a9eaa5e4ff999cddf2044",
+      "snippets": [
+        {
+          "line": 535,
+          "excerpt": [
+            "    bool valid;",
+            "}} DevicePtrInfo;",
+            "",
+            "static PyObject* data_ptr_str = NULL;",
+            "static PyObject* py_tdm_descriptor_type = NULL;",
+            "",
+            "static inline DevicePtrInfo getPointer(PyObject *obj, int idx) {{",
+            "  DevicePtrInfo ptr_info;"
+          ]
+        },
+        {
+          "line": 551,
+          "excerpt": [
+            "    // valid nullptr",
+            "    return ptr_info;",
+            "  }}",
+            "  PyObject *ret = PyObject_CallMethodNoArgs(obj, data_ptr_str);",
+            "  if (!ret) {{",
+            "    PyErr_SetString(PyExc_TypeError, \"Pointer argument must be either uint64 or have data_ptr method\");",
+            "    ptr_info.valid = false;",
+            "    goto cleanup;"
+          ]
+        },
+        {
+          "line": 553,
+          "excerpt": [
+            "  }}",
+            "  PyObject *ret = PyObject_CallMethodNoArgs(obj, data_ptr_str);",
+            "  if (!ret) {{",
+            "    PyErr_SetString(PyExc_TypeError, \"Pointer argument must be either uint64 or have data_ptr method\");",
+            "    ptr_info.valid = false;",
+            "    goto cleanup;",
+            "  }}",
+            "  if (!PyLong_Check(ret)) {{"
+          ]
+        },
+        {
+          "line": 558,
+          "excerpt": [
+            "    goto cleanup;",
+            "  }}",
+            "  if (!PyLong_Check(ret)) {{",
+            "    PyErr_SetString(PyExc_TypeError, \"data_ptr method of Pointer object must return 64-bit int\");",
+            "    ptr_info.valid = false;",
+            "    goto cleanup;",
+            "  }}",
+            "  ptr_info.dev_ptr = (hipDeviceptr_t)PyLong_AsUnsignedLongLong(ret);"
+          ]
+        },
+        {
+          "line": 696,
+          "excerpt": [
+            "  if(m == NULL) {{",
+            "    return NULL;",
+            "  }}",
+            "  data_ptr_str = PyUnicode_InternFromString(\"data_ptr\");",
+            "  if(data_ptr_str == NULL) {{",
+            "    return NULL;",
+            "  }}",
+            "  PyObject* driver_mod = PyImport_ImportModule(\"triton.backends.amd.driver\");"
+          ]
+        },
+        {
+          "line": 697,
+          "excerpt": [
+            "    return NULL;",
+            "  }}",
+            "  data_ptr_str = PyUnicode_InternFromString(\"data_ptr\");",
+            "  if(data_ptr_str == NULL) {{",
+            "    return NULL;",
+            "  }}",
+            "  PyObject* driver_mod = PyImport_ImportModule(\"triton.backends.amd.driver\");",
+            "  if (driver_mod == NULL) {{"
+          ]
+        },
+        {
+          "line": 736,
+          "excerpt": [
+            "",
+            "    shape = arg.shape",
+            "    strides = arg.strides",
+            "    base = arg.base.data_ptr()",
+            "",
+            "    assert \"elem_bits\" in tensordesc_metadata and \"block_size\" in tensordesc_metadata",
+            "    elem_bits = tensordesc_metadata[\"elem_bits\"]",
+            "    block_size = tensordesc_metadata[\"block_size\"]"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/driver.py",
+      "sha256": "ab4d1031efdfb07492ca95d9405089e3b7166ccee0555dbc756f191abe53b1e7",
+      "snippets": [
+        {
+          "line": 601,
+          "excerpt": [
+            "  if (obj == Py_None) {",
+            "    return ptr_info;",
+            "  }",
+            "  // Cache the interned \"data_ptr\" key once instead of rebuilding a temporary",
+            "  // PyUnicode on every call. Function-local static init is thread-safe in C++11",
+            "  // and the GIL is held here, so the one-time init is safe.",
+            "  static PyObject* data_ptr_str = PyUnicode_InternFromString(\"data_ptr\");",
+            "  // PyObject_CallMethodNoArgs avoids creating a temporary tuple and a temporary"
+          ]
+        },
+        {
+          "line": 604,
+          "excerpt": [
+            "  // Cache the interned \"data_ptr\" key once instead of rebuilding a temporary",
+            "  // PyUnicode on every call. Function-local static init is thread-safe in C++11",
+            "  // and the GIL is held here, so the one-time init is safe.",
+            "  static PyObject* data_ptr_str = PyUnicode_InternFromString(\"data_ptr\");",
+            "  // PyObject_CallMethodNoArgs avoids creating a temporary tuple and a temporary",
+            "  // method-name PyUnicode on every call (Python 3.9+).",
+            "  PyObject* ret = PyObject_CallMethodNoArgs(obj, data_ptr_str);",
+            "  if (ret) {"
+          ]
+        },
+        {
+          "line": 607,
+          "excerpt": [
+            "  static PyObject* data_ptr_str = PyUnicode_InternFromString(\"data_ptr\");",
+            "  // PyObject_CallMethodNoArgs avoids creating a temporary tuple and a temporary",
+            "  // method-name PyUnicode on every call (Python 3.9+).",
+            "  PyObject* ret = PyObject_CallMethodNoArgs(obj, data_ptr_str);",
+            "  if (ret) {",
+            "    if (!PyLong_Check(ret)) {",
+            "      PyErr_SetString(PyExc_TypeError, \"data_ptr method of Pointer object must return 64-bit int\");",
+            "      ptr_info.valid = false;"
+          ]
+        },
+        {
+          "line": 610,
+          "excerpt": [
+            "  PyObject* ret = PyObject_CallMethodNoArgs(obj, data_ptr_str);",
+            "  if (ret) {",
+            "    if (!PyLong_Check(ret)) {",
+            "      PyErr_SetString(PyExc_TypeError, \"data_ptr method of Pointer object must return 64-bit int\");",
+            "      ptr_info.valid = false;",
+            "      Py_DECREF(ret);",
+            "      return ptr_info;",
+            "    }"
+          ]
+        },
+        {
+          "line": 622,
+          "excerpt": [
+            "    }",
+            "    return ptr_info;",
+            "  }",
+            "  PyErr_SetString(PyExc_TypeError, \"Pointer argument must be either uint64 or have data_ptr method\");",
+            "  ptr_info.valid = false;",
+            "  return ptr_info;",
+            "}",
+            "\"\"\""
+          ]
+        },
+        {
+          "line": 1428,
+          "excerpt": [
+            "  }}",
+            "",
+            "  // Only 1D parallelization is supported for NPU.",
+            "  // Pointer type becomes flattened 1-D Memref tuple: base_ptr, data_ptr,",
+            "  // offset, shape, stride. base_ptr offset shape and stride are not used,",
+            "  // arbitrarily set for now.",
+            "{_launch_preamble}",
+            "{_launch_lambda_pre}"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/nvidia/driver.py",
+      "sha256": "4ad4b4440aa4a5ee15ac2382ae78a7aa8029986c22ec2acbd072a91810e85e94",
+      "snippets": [
+        {
+          "line": 385,
+          "excerpt": [
+            "    bool valid;",
+            "}} DevicePtrInfo;",
+            "",
+            "static PyObject* data_ptr_str = NULL;",
+            "static PyObject* py_tensor_map_type = NULL;",
+            "",
+            "static inline DevicePtrInfo getPointer(PyObject *obj, int idx) {{",
+            "  DevicePtrInfo ptr_info;"
+          ]
+        },
+        {
+          "line": 400,
+          "excerpt": [
+            "    // valid nullptr",
+            "    return ptr_info;",
+            "  }}",
+            "  PyObject *ret = PyObject_CallMethodNoArgs(obj, data_ptr_str);",
+            "  if (!ret) {{",
+            "    PyErr_SetString(PyExc_TypeError, \"Pointer argument must be either uint64 or have data_ptr method\");",
+            "    ptr_info.valid = false;",
+            "    goto cleanup;"
+          ]
+        },
+        {
+          "line": 402,
+          "excerpt": [
+            "  }}",
+            "  PyObject *ret = PyObject_CallMethodNoArgs(obj, data_ptr_str);",
+            "  if (!ret) {{",
+            "    PyErr_SetString(PyExc_TypeError, \"Pointer argument must be either uint64 or have data_ptr method\");",
+            "    ptr_info.valid = false;",
+            "    goto cleanup;",
+            "  }}",
+            "  if (!PyLong_Check(ret)) {{"
+          ]
+        },
+        {
+          "line": 407,
+          "excerpt": [
+            "    goto cleanup;",
+            "  }}",
+            "  if (!PyLong_Check(ret)) {{",
+            "    PyErr_SetString(PyExc_TypeError, \"data_ptr method of Pointer object must return 64-bit int\");",
+            "    ptr_info.valid = false;",
+            "    goto cleanup;",
+            "  }}",
+            "  ptr_info.dev_ptr = PyLong_AsUnsignedLongLong(ret);"
+          ]
+        },
+        {
+          "line": 579,
+          "excerpt": [
+            "}};",
+            "",
+            "PyMODINIT_FUNC PyInit___triton_launcher(void) {{",
+            "  data_ptr_str = PyUnicode_InternFromString(\"data_ptr\");",
+            "  if(data_ptr_str == NULL) {{",
+            "    return NULL;",
+            "  }}",
+            "  PyObject* driver_mod = PyImport_ImportModule(\"triton.backends.nvidia.driver\");"
+          ]
+        },
+        {
+          "line": 580,
+          "excerpt": [
+            "",
+            "PyMODINIT_FUNC PyInit___triton_launcher(void) {{",
+            "  data_ptr_str = PyUnicode_InternFromString(\"data_ptr\");",
+            "  if(data_ptr_str == NULL) {{",
+            "    return NULL;",
+            "  }}",
+            "  PyObject* driver_mod = PyImport_ImportModule(\"triton.backends.nvidia.driver\");",
+            "  if (driver_mod == NULL) {{"
+          ]
+        },
+        {
+          "line": 636,
+          "excerpt": [
+            "        shape[-1] *= 2",
+            "",
+            "    cu_tensor_map = triton.runtime.driver.active.utils.fill_tma_descriptor(",
+            "        arg.base.data_ptr(),",
+            "        swizzle,",
+            "        elem_size,",
+            "        TMA_DTYPE_DEVICE_TO_HOST[elem_type],",
+            "        block_size,"
+          ]
+        }
+      ]
+    }
+  ]
+}

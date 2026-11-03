@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c4ab80c2-e781-47cc-99b5-eea6dc788ea4",
+  "traceId": "bd18a71b-f5fd-493e-989b-bb3e9a4fcbb3",
+  "turnId": "turn_a699a175-ec78-4702-aa54-7747a144d8ce",
+  "response": "查询已按原命令执行成功，实际 `returncode=0`，脚本内 `database_stat_unchanged=true`（DB 前后 size/mtime 一致，且 SHA 校验为固定值 `084b8718…234c4`），65 个已知 callchain 全部返回，`unknown` 为 0。整体状态未标记完成（`overall_complete=false`）。\n\n计数如下（dummy 与 proposal 分开，dummy 优先归类）：\n\n| role | dummy | proposal | unknown | 合计 |\n|---|---|---|---|---|\n| repeat (Tile) | 1 | 12 | 0 | 13 |\n| context_projection | 3 | 36 | 0 | 39 |\n| base_head | 1 | 12 | 0 | 13 |\n| **合计** | **5** | **60** | **0** | **65** |\n\n首个 embedding/context_projection 例子（task 38530，callchain 995999，shape `20,5120;512,5120`）的完整父栈确实是 `_run_merged_draft → dummy_run → _dummy_run`，被单独计入 DUMMY（context_projection 的 3 个 dummy 之一），未与其余 36 个 proposal 祖先混算。其后的同类调用栈为 `_run_merged_draft → _propose → propose_draft_token_ids`，单独计入 proposal。\n\n需要强调的边界：proposal 祖先只证明这些 169 记录处于 draft 提议调用上下文，不构成正式客户端 C8 请求身份；本次也没有把 166 的计数快照时序与这些记录做关联。完整结果保存在远端 `/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/ep3-dspark-phase-ancestry-v7.json`（result SHA `5212d636…1116`），本地回执为 `archived-ep3-dspark-phase-ancestry166-v7.json`。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 82794,
+    "outputTokens": 3624,
+    "totalTokens": 86418,
+    "cacheReadTokens": 59776,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2971,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 86418,
+    "contextUsed": 26263,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,584 @@
+{
+  "id": "F35_CONDITIONAL_PARTITION_V180",
+  "original_graph_id": "G0_FIXED_SOURCE_PUBLIC_CONDITIONAL_V180",
+  "original_graph_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/graphs/G0-current-v180.json",
+  "original_graph_sha256": "e79b3df3ff21e45568d720feaeaa03f01af01ce72c339a2ae84d74837f742ee6",
+  "source_instance_ids": [
+    "draft.pipeline"
+  ],
+  "source_case_templates": [
+    "SCORE_SELECTION_AND_REJECTION",
+    "DSPARK_BOUNDARIES"
+  ],
+  "original_atom_union": [
+    "target.head",
+    "target.score_processors",
+    "target.greedy",
+    "target.raw_scores",
+    "target.reject_output",
+    "sampler.actual_n1_not_output_S1",
+    "sampler.synthetic_target_argmax_demand",
+    "sampler.greedy_output_epoch",
+    "sampler.original_P_cutoff_fork",
+    "sampler.existing_CDF_upper_bound",
+    "sampler.privateP_Div_argmax",
+    "sampler.mixed_LT_EPS",
+    "sampler.Q_default_seeded_effects",
+    "sampler.ordered_fuzzy_min_count",
+    "sampler.pivot_search_epoch",
+    "sampler.virtual_duplicate_quota_mask",
+    "sampler.workspace_prefix_ownership"
+  ],
+  "original_specific_node_mapping": {
+    "bonus": "rejection_sampler.forward192-204;Sampler.forward87-150",
+    "target": "rejection_sampler.forward209-249",
+    "greedy": "AscendSampler84;rejection_sample510/513",
+    "raw_entropy": "rejection_sample436/461-464"
+  },
+  "nodes": [
+    {
+      "id": "F35/conditional_region",
+      "kind": "PROPOSED_FUSION_SPLIT_OR_REPARTITION_REGION",
+      "not_all_footprint_nodes_must_be_fused_simultaneously": true
+    },
+    {
+      "id": "SCORES_SAMPLING_RNG",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "SCORES_SAMPLING_RNG",
+        "modules": [
+          "M01",
+          "M16",
+          "M17",
+          "M20",
+          "M24",
+          "M25"
+        ],
+        "writer_ports": [
+          "target/draft head",
+          "score processing",
+          "Markov steps",
+          "RNG draws"
+        ],
+        "reader_ports": [
+          "greedy/random selection",
+          "rejection/recovery/bonus",
+          "raw logprob/entropy readers",
+          "next RNG state"
+        ],
+        "identity_and_epoch": "request,row/head domain,step0..4,score precision,tie policy,generator state",
+        "conditional_fusion_split_or_reorder_answer": "1104 recorded calls allGreedy are positive partial calls; future/global all-score deadness not inferred. Preserve order and all RNG effects",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "TARGET_DRAFT_HEAD_AND_MARKOV_WEIGHTS",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "TARGET_DRAFT_HEAD_AND_MARKOV_WEIGHTS",
+        "modules": [
+          "M05",
+          "M16",
+          "M19",
+          "M20",
+          "M23"
+        ],
+        "writer_ports": [
+          "load/quant/rotation selection"
+        ],
+        "reader_ports": [
+          "target H5120 TP8 head",
+          "draft H5120 TP8 head",
+          "replicated H256 Markov bias",
+          "selected Markov embedding rows"
+        ],
+        "identity_and_epoch": "root,parameter identity,layout,dtype,quant scale/rounding and owner",
+        "conditional_fusion_split_or_reorder_answer": "four target/draft embedding/head storages distinct; this does not prove numerical inequality. Replicated Markov head not TP8. No blanket weight CSE",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "OUTPUT_COMMIT_QUEUE_LIFETIME",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "OUTPUT_COMMIT_QUEUE_LIFETIME",
+        "modules": [
+          "M01",
+          "M03",
+          "M17",
+          "M21",
+          "M24",
+          "M25"
+        ],
+        "writer_ports": [
+          "accept/recover result",
+          "state commit",
+          "D2H completion",
+          "host queue publication"
+        ],
+        "reader_ports": [
+          "next input packing",
+          "cache rollback/recycle",
+          "client stream",
+          "stop accounting",
+          "buffer retirement"
+        ],
+        "identity_and_epoch": "request generation,iteration,accepted count,token order,copy/event readiness",
+        "conditional_fusion_split_or_reorder_answer": "preserve request cancellation/termination/output errors and untouched buffers; coalescing needs every queue consumer, not an inferred host critical path",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "producer": "F35/conditional_region",
+      "consumer": "SCORES_SAMPLING_RNG",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F35/conditional_region",
+      "consumer": "TARGET_DRAFT_HEAD_AND_MARKOV_WEIGHTS",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F35/conditional_region",
+      "consumer": "OUTPUT_COMMIT_QUEUE_LIFETIME",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    }
+  ],
+  "original_node_mapping": [
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/target_hidden",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/target_head",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/target_scores",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/score_processors",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/raw_score_observers",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/target_argmax_or_random",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/bonus",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/draft_ids",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/draft_probabilities",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/sampling_metadata",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/rng_old",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/rng_new",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/verify_recover",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/accepted_ids",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/accepted_lengths",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/state_commit",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:SCORE_SELECTION_AND_REJECTION/output_payload",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/aux",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/main_proj",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/main_norm",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/tokens",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/embedding",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/repeat",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/block0",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/block1",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/block2",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/collapse",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/norm",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/logits",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/confidence",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/context_buffer",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/context_slots",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/kv_precompute",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/kv_state",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/seed",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/draft_token_output",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/last_hidden_dynamic_input",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/dynamic_scheduler",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/embed_0",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/bias_0",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/add_0",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sample_0",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/embed_1",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/bias_1",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/add_1",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sample_1",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/embed_2",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/bias_2",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/add_2",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sample_2",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/embed_3",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/bias_3",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/add_3",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sample_3",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/embed_4",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/bias_4",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/add_4",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sample_4",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/next_token_ids",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/draft_input_metadata",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/seed_copy",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/input_expand",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sample_indices",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/query_positions",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/slot_outputs",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sp_gather_slice",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sample_select_pad",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/sampling_metadata",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/rng_state",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/stack_probs",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/probability_output",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/context_positions",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/ordered_markov_inputs",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/dynamic_policy_state_old",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/dynamic_policy_state_new",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/dynamic_keep_lengths",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_BOUNDARIES/retrieved_trimmed_draft_ids",
+      "proposed_region": "F35/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    }
+  ],
+  "allowed_transformations": "Existingfamily-specific variants and typed conditions in immutable candidate/semantic/cost records;region is a footprint,not proof that its union is oneinvocation or onelegal kernel.",
+  "specific_variant_authorities": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v179.json#F35",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v179/semantic-contract-sufficiency-review.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v174/all42-composition-coverage.json"
+  ],
+  "conditional_limits": {
+    "candidate": "F35",
+    "templates": [
+      "SCORE_SELECTION_AND_REJECTION",
+      "DSPARK_BOUNDARIES"
+    ],
+    "instance_ids": [
+      "draft.pipeline"
+    ],
+    "conditional_template_refs": [
+      "SCORE_SELECTION_AND_REJECTION"
+    ],
+    "state_envelope_refs": [
+      "SCORES_SAMPLING_RNG",
+      "TARGET_DRAFT_HEAD_AND_MARKOV_WEIGHTS",
+      "OUTPUT_COMMIT_QUEUE_LIFETIME"
+    ],
+    "conditional_native_legality_not_promoted": true
+  },
+  "implemented": false,
+  "performance_gain_measured": false
+}

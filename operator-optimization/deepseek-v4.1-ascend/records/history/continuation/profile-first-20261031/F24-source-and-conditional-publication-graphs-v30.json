@@ -1,0 +1,834 @@
+{
+  "generated_utc": "2026-10-31T06:20:19.729215+00:00",
+  "baseline": {
+    "nodes": [
+      {
+        "id": "raw_IDs"
+      },
+      {
+        "id": "lookback_IDs"
+      },
+      {
+        "id": "row_metadata"
+      },
+      {
+        "id": "slot_map"
+      },
+      {
+        "id": "dead_current"
+      },
+      {
+        "id": "dead_lookback"
+      },
+      {
+        "id": "mask_ready"
+      },
+      {
+        "id": "request_index"
+      },
+      {
+        "id": "cache_before"
+      },
+      {
+        "id": "cache_write"
+      },
+      {
+        "id": "cache_after"
+      },
+      {
+        "id": "hash_all_layers"
+      },
+      {
+        "id": "DP_hash_gather"
+      },
+      {
+        "id": "next_generation_cache_reader"
+      },
+      {
+        "id": "L1_prezero"
+      },
+      {
+        "id": "L1_UVA_lookup"
+      },
+      {
+        "id": "L1_DP_row_exchange"
+      },
+      {
+        "id": "L1_TP_head_AllGather"
+      },
+      {
+        "id": "L1_global_bank"
+      },
+      {
+        "id": "L1_layer_ready"
+      },
+      {
+        "id": "L1_SP_rows"
+      },
+      {
+        "id": "L1_WKV"
+      },
+      {
+        "id": "L1_gate"
+      },
+      {
+        "id": "L14_prezero"
+      },
+      {
+        "id": "L14_UVA_lookup"
+      },
+      {
+        "id": "L14_DP_row_exchange"
+      },
+      {
+        "id": "L14_TP_head_AllGather"
+      },
+      {
+        "id": "L14_global_bank"
+      },
+      {
+        "id": "L14_layer_ready"
+      },
+      {
+        "id": "L14_SP_rows"
+      },
+      {
+        "id": "L14_WKV"
+      },
+      {
+        "id": "L14_gate"
+      }
+    ],
+    "edges": [
+      {
+        "a": "raw_IDs",
+        "b": "dead_current",
+        "kind": "CURRENT_IMAGE_SENTINELS"
+      },
+      {
+        "a": "lookback_IDs",
+        "b": "dead_lookback",
+        "kind": "LOOKBACK_IMAGE_SENTINELS"
+      },
+      {
+        "a": "dead_current",
+        "b": "mask_ready",
+        "kind": "EARLY_MASK_PUBLICATION"
+      },
+      {
+        "a": "row_metadata",
+        "b": "request_index",
+        "kind": "QUERY_ROWS"
+      },
+      {
+        "a": "raw_IDs",
+        "b": "cache_write",
+        "kind": "MAPPED_IDS"
+      },
+      {
+        "a": "dead_current",
+        "b": "cache_write",
+        "kind": "DEAD_SENTINEL"
+      },
+      {
+        "a": "slot_map",
+        "b": "cache_write",
+        "kind": "VALID_SLOT"
+      },
+      {
+        "a": "cache_before",
+        "b": "cache_write",
+        "kind": "STATE_VERSION"
+      },
+      {
+        "a": "cache_write",
+        "b": "cache_after",
+        "kind": "WRITE_BEFORE_HASH"
+      },
+      {
+        "a": "cache_after",
+        "b": "hash_all_layers",
+        "kind": "OPTIONAL_FALLBACK"
+      },
+      {
+        "a": "request_index",
+        "b": "hash_all_layers",
+        "kind": "REQUEST_MAP"
+      },
+      {
+        "a": "raw_IDs",
+        "b": "hash_all_layers",
+        "kind": "CURRENT_CHUNK"
+      },
+      {
+        "a": "lookback_IDs",
+        "b": "hash_all_layers",
+        "kind": "WINDOW"
+      },
+      {
+        "a": "dead_lookback",
+        "b": "hash_all_layers",
+        "kind": "WINDOW_SENTINELS"
+      },
+      {
+        "a": "row_metadata",
+        "b": "hash_all_layers",
+        "kind": "POSITIONS_TABLES"
+      },
+      {
+        "a": "hash_all_layers",
+        "b": "DP_hash_gather",
+        "kind": "ALL_LAYER_HASHES"
+      },
+      {
+        "a": "cache_after",
+        "b": "next_generation_cache_reader",
+        "kind": "PERSISTENT_STATE_OBLIGATION"
+      },
+      {
+        "a": "DP_hash_gather",
+        "b": "L1_UVA_lookup",
+        "kind": "LAYER_HASH_VIEW"
+      },
+      {
+        "a": "L1_prezero",
+        "b": "L1_UVA_lookup",
+        "kind": "INITIAL_CONTENT_OVERWRITTEN_CURRENT_UVA"
+      },
+      {
+        "a": "L1_UVA_lookup",
+        "b": "L1_DP_row_exchange",
+        "kind": "LOCAL_HEADS"
+      },
+      {
+        "a": "L1_DP_row_exchange",
+        "b": "L1_TP_head_AllGather",
+        "kind": "OWN_DP_ROWS"
+      },
+      {
+        "a": "L1_TP_head_AllGather",
+        "b": "L1_global_bank",
+        "kind": "FULL_HEADS_GLOBAL_ROWS"
+      },
+      {
+        "a": "L1_global_bank",
+        "b": "L1_layer_ready",
+        "kind": "COPY_TAIL_AND_PUBLICATION"
+      },
+      {
+        "a": "L1_layer_ready",
+        "b": "L1_SP_rows",
+        "kind": "WAIT_THEN_PAD_SHARD"
+      },
+      {
+        "a": "L1_SP_rows",
+        "b": "L1_WKV",
+        "kind": "LOCAL_ROWS"
+      },
+      {
+        "a": "L1_WKV",
+        "b": "L1_gate",
+        "kind": "BF16_KEY_SHARED_VALUE"
+      },
+      {
+        "a": "mask_ready",
+        "b": "L1_gate",
+        "kind": "TOKEN_MASK"
+      },
+      {
+        "a": "DP_hash_gather",
+        "b": "L14_UVA_lookup",
+        "kind": "LAYER_HASH_VIEW"
+      },
+      {
+        "a": "L14_prezero",
+        "b": "L14_UVA_lookup",
+        "kind": "INITIAL_CONTENT_OVERWRITTEN_CURRENT_UVA"
+      },
+      {
+        "a": "L14_UVA_lookup",
+        "b": "L14_DP_row_exchange",
+        "kind": "LOCAL_HEADS"
+      },
+      {
+        "a": "L14_DP_row_exchange",
+        "b": "L14_TP_head_AllGather",
+        "kind": "OWN_DP_ROWS"
+      },
+      {
+        "a": "L14_TP_head_AllGather",
+        "b": "L14_global_bank",
+        "kind": "FULL_HEADS_GLOBAL_ROWS"
+      },
+      {
+        "a": "L14_global_bank",
+        "b": "L14_layer_ready",
+        "kind": "COPY_TAIL_AND_PUBLICATION"
+      },
+      {
+        "a": "L14_layer_ready",
+        "b": "L14_SP_rows",
+        "kind": "WAIT_THEN_PAD_SHARD"
+      },
+      {
+        "a": "L14_SP_rows",
+        "b": "L14_WKV",
+        "kind": "LOCAL_ROWS"
+      },
+      {
+        "a": "L14_WKV",
+        "b": "L14_gate",
+        "kind": "BF16_KEY_SHARED_VALUE"
+      },
+      {
+        "a": "mask_ready",
+        "b": "L14_gate",
+        "kind": "TOKEN_MASK"
+      }
+    ]
+  },
+  "candidate_without_current_UVA_prezero": {
+    "nodes": [
+      {
+        "id": "raw_IDs"
+      },
+      {
+        "id": "lookback_IDs"
+      },
+      {
+        "id": "row_metadata"
+      },
+      {
+        "id": "slot_map"
+      },
+      {
+        "id": "dead_current"
+      },
+      {
+        "id": "dead_lookback"
+      },
+      {
+        "id": "mask_ready"
+      },
+      {
+        "id": "request_index"
+      },
+      {
+        "id": "cache_before"
+      },
+      {
+        "id": "cache_write"
+      },
+      {
+        "id": "cache_after"
+      },
+      {
+        "id": "hash_all_layers"
+      },
+      {
+        "id": "DP_hash_gather"
+      },
+      {
+        "id": "next_generation_cache_reader"
+      },
+      {
+        "id": "L1_UVA_lookup"
+      },
+      {
+        "id": "L1_DP_row_exchange"
+      },
+      {
+        "id": "L1_TP_head_AllGather"
+      },
+      {
+        "id": "L1_global_bank"
+      },
+      {
+        "id": "L1_layer_ready"
+      },
+      {
+        "id": "L1_SP_rows"
+      },
+      {
+        "id": "L1_WKV"
+      },
+      {
+        "id": "L1_gate"
+      },
+      {
+        "id": "L14_UVA_lookup"
+      },
+      {
+        "id": "L14_DP_row_exchange"
+      },
+      {
+        "id": "L14_TP_head_AllGather"
+      },
+      {
+        "id": "L14_global_bank"
+      },
+      {
+        "id": "L14_layer_ready"
+      },
+      {
+        "id": "L14_SP_rows"
+      },
+      {
+        "id": "L14_WKV"
+      },
+      {
+        "id": "L14_gate"
+      }
+    ],
+    "edges": [
+      {
+        "a": "raw_IDs",
+        "b": "dead_current",
+        "kind": "CURRENT_IMAGE_SENTINELS"
+      },
+      {
+        "a": "lookback_IDs",
+        "b": "dead_lookback",
+        "kind": "LOOKBACK_IMAGE_SENTINELS"
+      },
+      {
+        "a": "dead_current",
+        "b": "mask_ready",
+        "kind": "EARLY_MASK_PUBLICATION"
+      },
+      {
+        "a": "row_metadata",
+        "b": "request_index",
+        "kind": "QUERY_ROWS"
+      },
+      {
+        "a": "raw_IDs",
+        "b": "cache_write",
+        "kind": "MAPPED_IDS"
+      },
+      {
+        "a": "dead_current",
+        "b": "cache_write",
+        "kind": "DEAD_SENTINEL"
+      },
+      {
+        "a": "slot_map",
+        "b": "cache_write",
+        "kind": "VALID_SLOT"
+      },
+      {
+        "a": "cache_before",
+        "b": "cache_write",
+        "kind": "STATE_VERSION"
+      },
+      {
+        "a": "cache_write",
+        "b": "cache_after",
+        "kind": "WRITE_BEFORE_HASH"
+      },
+      {
+        "a": "cache_after",
+        "b": "hash_all_layers",
+        "kind": "OPTIONAL_FALLBACK"
+      },
+      {
+        "a": "request_index",
+        "b": "hash_all_layers",
+        "kind": "REQUEST_MAP"
+      },
+      {
+        "a": "raw_IDs",
+        "b": "hash_all_layers",
+        "kind": "CURRENT_CHUNK"
+      },
+      {
+        "a": "lookback_IDs",
+        "b": "hash_all_layers",
+        "kind": "WINDOW"
+      },
+      {
+        "a": "dead_lookback",
+        "b": "hash_all_layers",
+        "kind": "WINDOW_SENTINELS"
+      },
+      {
+        "a": "row_metadata",
+        "b": "hash_all_layers",
+        "kind": "POSITIONS_TABLES"
+      },
+      {
+        "a": "hash_all_layers",
+        "b": "DP_hash_gather",
+        "kind": "ALL_LAYER_HASHES"
+      },
+      {
+        "a": "cache_after",
+        "b": "next_generation_cache_reader",
+        "kind": "PERSISTENT_STATE_OBLIGATION"
+      },
+      {
+        "a": "DP_hash_gather",
+        "b": "L1_UVA_lookup",
+        "kind": "LAYER_HASH_VIEW"
+      },
+      {
+        "a": "L1_UVA_lookup",
+        "b": "L1_DP_row_exchange",
+        "kind": "LOCAL_HEADS"
+      },
+      {
+        "a": "L1_DP_row_exchange",
+        "b": "L1_TP_head_AllGather",
+        "kind": "OWN_DP_ROWS"
+      },
+      {
+        "a": "L1_TP_head_AllGather",
+        "b": "L1_global_bank",
+        "kind": "FULL_HEADS_GLOBAL_ROWS"
+      },
+      {
+        "a": "L1_global_bank",
+        "b": "L1_layer_ready",
+        "kind": "COPY_TAIL_AND_PUBLICATION"
+      },
+      {
+        "a": "L1_layer_ready",
+        "b": "L1_SP_rows",
+        "kind": "WAIT_THEN_PAD_SHARD"
+      },
+      {
+        "a": "L1_SP_rows",
+        "b": "L1_WKV",
+        "kind": "LOCAL_ROWS"
+      },
+      {
+        "a": "L1_WKV",
+        "b": "L1_gate",
+        "kind": "BF16_KEY_SHARED_VALUE"
+      },
+      {
+        "a": "mask_ready",
+        "b": "L1_gate",
+        "kind": "TOKEN_MASK"
+      },
+      {
+        "a": "DP_hash_gather",
+        "b": "L14_UVA_lookup",
+        "kind": "LAYER_HASH_VIEW"
+      },
+      {
+        "a": "L14_UVA_lookup",
+        "b": "L14_DP_row_exchange",
+        "kind": "LOCAL_HEADS"
+      },
+      {
+        "a": "L14_DP_row_exchange",
+        "b": "L14_TP_head_AllGather",
+        "kind": "OWN_DP_ROWS"
+      },
+      {
+        "a": "L14_TP_head_AllGather",
+        "b": "L14_global_bank",
+        "kind": "FULL_HEADS_GLOBAL_ROWS"
+      },
+      {
+        "a": "L14_global_bank",
+        "b": "L14_layer_ready",
+        "kind": "COPY_TAIL_AND_PUBLICATION"
+      },
+      {
+        "a": "L14_layer_ready",
+        "b": "L14_SP_rows",
+        "kind": "WAIT_THEN_PAD_SHARD"
+      },
+      {
+        "a": "L14_SP_rows",
+        "b": "L14_WKV",
+        "kind": "LOCAL_ROWS"
+      },
+      {
+        "a": "L14_WKV",
+        "b": "L14_gate",
+        "kind": "BF16_KEY_SHARED_VALUE"
+      },
+      {
+        "a": "mask_ready",
+        "b": "L14_gate",
+        "kind": "TOKEN_MASK"
+      }
+    ]
+  },
+  "candidate_row_head_exchange": {
+    "nodes": [
+      {
+        "id": "raw_IDs"
+      },
+      {
+        "id": "lookback_IDs"
+      },
+      {
+        "id": "row_metadata"
+      },
+      {
+        "id": "slot_map"
+      },
+      {
+        "id": "dead_current"
+      },
+      {
+        "id": "dead_lookback"
+      },
+      {
+        "id": "mask_ready"
+      },
+      {
+        "id": "request_index"
+      },
+      {
+        "id": "cache_before"
+      },
+      {
+        "id": "cache_write"
+      },
+      {
+        "id": "cache_after"
+      },
+      {
+        "id": "hash_all_layers"
+      },
+      {
+        "id": "DP_hash_gather"
+      },
+      {
+        "id": "next_generation_cache_reader"
+      },
+      {
+        "id": "L1_prezero"
+      },
+      {
+        "id": "L1_UVA_lookup"
+      },
+      {
+        "id": "L1_DP_row_exchange"
+      },
+      {
+        "id": "L1_WKV"
+      },
+      {
+        "id": "L1_gate"
+      },
+      {
+        "id": "L14_prezero"
+      },
+      {
+        "id": "L14_UVA_lookup"
+      },
+      {
+        "id": "L14_DP_row_exchange"
+      },
+      {
+        "id": "L14_WKV"
+      },
+      {
+        "id": "L14_gate"
+      },
+      {
+        "id": "L1_row_head_AlltoAll"
+      },
+      {
+        "id": "L1_local_bank"
+      },
+      {
+        "id": "L1_local_ready"
+      },
+      {
+        "id": "L14_row_head_AlltoAll"
+      },
+      {
+        "id": "L14_local_bank"
+      },
+      {
+        "id": "L14_local_ready"
+      }
+    ],
+    "edges": [
+      {
+        "a": "raw_IDs",
+        "b": "dead_current",
+        "kind": "CURRENT_IMAGE_SENTINELS"
+      },
+      {
+        "a": "lookback_IDs",
+        "b": "dead_lookback",
+        "kind": "LOOKBACK_IMAGE_SENTINELS"
+      },
+      {
+        "a": "dead_current",
+        "b": "mask_ready",
+        "kind": "EARLY_MASK_PUBLICATION"
+      },
+      {
+        "a": "row_metadata",
+        "b": "request_index",
+        "kind": "QUERY_ROWS"
+      },
+      {
+        "a": "raw_IDs",
+        "b": "cache_write",
+        "kind": "MAPPED_IDS"
+      },
+      {
+        "a": "dead_current",
+        "b": "cache_write",
+        "kind": "DEAD_SENTINEL"
+      },
+      {
+        "a": "slot_map",
+        "b": "cache_write",
+        "kind": "VALID_SLOT"
+      },
+      {
+        "a": "cache_before",
+        "b": "cache_write",
+        "kind": "STATE_VERSION"
+      },
+      {
+        "a": "cache_write",
+        "b": "cache_after",
+        "kind": "WRITE_BEFORE_HASH"
+      },
+      {
+        "a": "cache_after",
+        "b": "hash_all_layers",
+        "kind": "OPTIONAL_FALLBACK"
+      },
+      {
+        "a": "request_index",
+        "b": "hash_all_layers",
+        "kind": "REQUEST_MAP"
+      },
+      {
+        "a": "raw_IDs",
+        "b": "hash_all_layers",
+        "kind": "CURRENT_CHUNK"
+      },
+      {
+        "a": "lookback_IDs",
+        "b": "hash_all_layers",
+        "kind": "WINDOW"
+      },
+      {
+        "a": "dead_lookback",
+        "b": "hash_all_layers",
+        "kind": "WINDOW_SENTINELS"
+      },
+      {
+        "a": "row_metadata",
+        "b": "hash_all_layers",
+        "kind": "POSITIONS_TABLES"
+      },
+      {
+        "a": "hash_all_layers",
+        "b": "DP_hash_gather",
+        "kind": "ALL_LAYER_HASHES"
+      },
+      {
+        "a": "cache_after",
+        "b": "next_generation_cache_reader",
+        "kind": "PERSISTENT_STATE_OBLIGATION"
+      },
+      {
+        "a": "DP_hash_gather",
+        "b": "L1_UVA_lookup",
+        "kind": "LAYER_HASH_VIEW"
+      },
+      {
+        "a": "L1_prezero",
+        "b": "L1_UVA_lookup",
+        "kind": "INITIAL_CONTENT_OVERWRITTEN_CURRENT_UVA"
+      },
+      {
+        "a": "L1_UVA_lookup",
+        "b": "L1_DP_row_exchange",
+        "kind": "LOCAL_HEADS"
+      },
+      {
+        "a": "L1_WKV",
+        "b": "L1_gate",
+        "kind": "BF16_KEY_SHARED_VALUE"
+      },
+      {
+        "a": "mask_ready",
+        "b": "L1_gate",
+        "kind": "TOKEN_MASK"
+      },
+      {
+        "a": "DP_hash_gather",
+        "b": "L14_UVA_lookup",
+        "kind": "LAYER_HASH_VIEW"
+      },
+      {
+        "a": "L14_prezero",
+        "b": "L14_UVA_lookup",
+        "kind": "INITIAL_CONTENT_OVERWRITTEN_CURRENT_UVA"
+      },
+      {
+        "a": "L14_UVA_lookup",
+        "b": "L14_DP_row_exchange",
+        "kind": "LOCAL_HEADS"
+      },
+      {
+        "a": "L14_WKV",
+        "b": "L14_gate",
+        "kind": "BF16_KEY_SHARED_VALUE"
+      },
+      {
+        "a": "mask_ready",
+        "b": "L14_gate",
+        "kind": "TOKEN_MASK"
+      },
+      {
+        "a": "L1_DP_row_exchange",
+        "b": "L1_row_head_AlltoAll",
+        "kind": "DESTINATION_ROW_BLOCKS"
+      },
+      {
+        "a": "L1_row_head_AlltoAll",
+        "b": "L1_local_bank",
+        "kind": "TP_HEAD_ORDER_PLUS_TRIM"
+      },
+      {
+        "a": "L1_local_bank",
+        "b": "L1_local_ready",
+        "kind": "CAPTURE_ABI_TAIL_PUBLICATION"
+      },
+      {
+        "a": "L1_local_ready",
+        "b": "L1_WKV",
+        "kind": "WAIT_LOCAL_ROWS"
+      },
+      {
+        "a": "L14_DP_row_exchange",
+        "b": "L14_row_head_AlltoAll",
+        "kind": "DESTINATION_ROW_BLOCKS"
+      },
+      {
+        "a": "L14_row_head_AlltoAll",
+        "b": "L14_local_bank",
+        "kind": "TP_HEAD_ORDER_PLUS_TRIM"
+      },
+      {
+        "a": "L14_local_bank",
+        "b": "L14_local_ready",
+        "kind": "CAPTURE_ABI_TAIL_PUBLICATION"
+      },
+      {
+        "a": "L14_local_ready",
+        "b": "L14_WKV",
+        "kind": "WAIT_LOCAL_ROWS"
+      }
+    ]
+  },
+  "scope": "Separateconditionalgraphprojections;notautomaticcompositionorcompletepointer/eventDAG.",
+  "overall_complete": false
+}

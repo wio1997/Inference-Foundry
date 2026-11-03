@@ -1,0 +1,140 @@
+{
+  "id": "F28_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "DSPARK_BOUNDARIES",
+  "original_node_mapping": {
+    "embedding": "embedding",
+    "repeat": "repeat",
+    "block0": "block0"
+  },
+  "nodes": [
+    {
+      "id": "embedding",
+      "kind": "EMBEDDING",
+      "resource": "NPU"
+    },
+    {
+      "id": "repeat",
+      "kind": "HC_REPEAT_AND_INIT",
+      "resource": "NPU"
+    },
+    {
+      "id": "block0",
+      "kind": "DECODER_OPAQUE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "embedding",
+      "consumer": "repeat",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "repeat",
+      "consumer": "block0",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "tokens",
+      "consumer": "embedding",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "main_norm",
+      "consumer": "block0",
+      "value": "combined context; runner binding not expanded",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "block0",
+      "consumer": "block1",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v35": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-embedding-HC-CP-row-and-consumer-contract-v35.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-layout-ownership-and-context-query-reorganization-v35.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-optimization-condition-ledger-v35.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-source-and-conditional-decoder-graphs-v35.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "variants": [
+      {
+        "id": "F28-v35-LOCAL-REPEAT",
+        "parent": "F28",
+        "transformation": "Shard the single-channel embedding before four-way repeat; preserve global-mask input and local ID/premix alignment.",
+        "argument": "S_p pad(E repeated4)=repeat4(S_p pad(E)); identical value/copy map including padding zeros. Source still needs a full initial four-channel residual at its eventual HCpost consumer.",
+        "conditions": "Maintain no-pad clone/custom-op alias contract, contiguous local layout, original mask values and all bank lifetimes. Logical output-byte reduction is not measured traffic or peak memory.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F28-v35-EMBED-RS",
+        "parent": "F28",
+        "transformation": "Replace full-row embedding SUM AllReduce followed by SP shard with a correctly padded SUM ReduceScatter, then local repeat.",
+        "argument": "For masked vocab contributions E_r, S_p pad(sum_r E_r)=sum_r S_p pad(E_r). Current plan output reduction and SP use the TP group in the reviewed domains; required PCP/token exchange stays before this transformation.",
+        "conditions": "Same rank order/group and token rows, zero padding, dtype/reduction numerical contract and all embedding observers required. Padding can offset communication savings for small N.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F28-v35-ID-MASK-PUBLISH",
+        "parent": "F28",
+        "transformation": "Publish local IDs and padding mask together with existing input metadata or local embedding publication.",
+        "argument": "SP IDs/mask are deterministic slices/pad of the same original global generation. A shared producer may supply those views rather than independent private pad/cast/copy stages.",
+        "conditions": "Preserve incoming non-None mask values, global outputs still needed by embedding/KV, rejected/anchor/DCP metadata effects and original captured banks. Linked to existing F31, not a new candidate.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F28-v35-BROADCAST-RESIDUAL",
+        "parent": "F28",
+        "transformation": "Delay materialization of identical initial HC channels through first-pre consumers and reconstruct the required residual at first-post or keep a suitable view.",
+        "argument": "The first HC state is a logical four-channel broadcast of one embedding row. Layout representation can be specialized if every first-pre and first-post read is represented.",
+        "conditions": "Full initial residual is still required. Existing operator may require contiguous storage; new view/tiling/alias interface and all numerical paths remain conditional, overlapping local-repeat and F02.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F28-v35-PADDING-ROWS",
+        "parent": "F28",
+        "transformation": "Prune local row-local HC/FFN arithmetic for provably dead padding while retaining original collective ABI and global model-parallel work.",
+        "argument": "N10 pads to16 physical rows and N20 to24 under TP8 shard; selected noQ patterns show reachable empty local query domains.",
+        "conditions": "NoQ does not prove an entire rank dead. Keep globalKV, head AllToAll, Wo_a/Wo_b, collective participation, MC2 uniform domains, output padding and all possible observers. No row count alone establishes safe pruning.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      }
+    ]
+  },
+  "review_v67": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-regime-models-v67.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-native-chains-v67.json",
+    "work_value_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-fusion-costs-v67.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-operator-contract-v67.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-fusion-variants-v67.json",
+    "pending_evidence": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/initialization-profile-insufficiency-v67.json",
+    "candidate_specific_scope": "104draftglobalHC4repeat-before-SP15TASKinitializations;N10/20A16/24copy-mapcommutation/delayedTile/directownerinit,maskNonepositiveversussuppliedTrueprefix,globalKV/outputreadersandunpricedMemSetsretained.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

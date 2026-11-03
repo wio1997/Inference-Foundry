@@ -1,0 +1,51 @@
+{
+  "id": "F27_G5_AUX_CONTEXT_V2",
+  "template": "DSPARK_BOUNDARIES",
+  "old_candidate_path": "candidates/F27-G5.json",
+  "old_candidate_sha256": "2bbe06defc7cd8c86327ca47cf43be7f01b17976bc05179526be33361d1a0d92",
+  "nodes": [
+    {
+      "id": "aux",
+      "kind": "EXTERNAL",
+      "resource": "NPU"
+    },
+    {
+      "id": "main_proj",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "main_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "aux",
+      "consumer": "main_proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "main_proj",
+      "consumer": "main_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [],
+  "external_outputs": [
+    {
+      "producer": "main_norm",
+      "consumer": "context_buffer",
+      "value": "combined target auxiliary states copied to draft context buffer",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1062-1081; spec_decode/dspark_proposer.py:255-259",
+      "condition": "K>0 and context projection path reached; context copy itself does not require valid per-layer KV slots."
+    }
+  ],
+  "status": "STRUCTURAL_ONLY",
+  "all_consumers_and_aliases": "UNKNOWN",
+  "template_graph_sha256": "b03954a51a7ded678179554d8a430cd33cea0528a453aab96d24e843d5b75ae3"
+}

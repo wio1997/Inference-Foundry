@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_a65e264a-3a41-4ddc-a649-eb4d02f9fe2e",
+  "traceId": "c55d4850-48c8-4a44-94b9-27d839148de2",
+  "turnId": "turn_b87c5622-7b86-4e8f-8554-0ac5688afed2",
+  "response": "执行完成，只跑了一次，未修改、未重试。\n\n**真实结果**\n\n- 命令：`python3 remote_run.py 166 query_communication_fullchains_v15_166.py communication-fullchains166-v15`\n- rc = 0，stderr 为空\n- receipt：`/Users/wio/work/166-vllm-analysis-continuation-20261030/communication-fullchains166-v15.json`\n- 结果文件 SHA-256：`2781a2a848883e6dee25ce4af368017dbc09627f4c2adc57ada9b37305360800`\n- 远端结果：`.../native-communications-v15/communication-fullchains-v15.json`\n\n**summary（脚本原样输出）**\n\n- databases = 32，COMM_OP_records = 14720\n- with_direct_fullchain = 4639\n- with_enclosing_source_candidate = 0\n- canonical_fullchains = 21\n- no_target_source_or_device_work = true，overall_complete = false\n\nfirst_project_source_counts（首帧属于项目源码的候选计数）：`base_device_communicator.py(232) all_reduce` 192、`base_device_communicator.py(261) all_gather` 1952、`base_device_communicator.py(306) reduce_scatter` 1272、`dsa_cp.py(90) restore_tp_heads` 1223，合计正好 4639，与 direct-chain 计数一致。\n\n**保留的未知与边界**\n\n- 14720 条 COMM_OP 中其余 10081 条既无 direct chain，也无带栈的 same-thread 包络候选；它们为何没有链接、是否属于图模式 collective，本次输出未回答，保持未知。\n- 0 条 enclosing source candidate 只说明“同线程父区间候选带链”的路径本次没有命中，不能反推通信完整。\n- 脚本自身声明 `overall_complete=false`：设备节点可能不在 COMPUTE_TASK_INFO 中，compute-only 的 fullchain 索引不是通信完整性证明。\n- 以上全部是源码链候选（source-chain candidates），不是实现确认，也不是提速证据；没有做任何几何算术推断，也未把 counter/代理量当作实现或性能。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 65656,
+    "outputTokens": 3164,
+    "totalTokens": 68820,
+    "cacheReadTokens": 54144,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2124,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 68820,
+    "contextUsed": 14224,
+    "contextWindow": 200000
+  }
+}

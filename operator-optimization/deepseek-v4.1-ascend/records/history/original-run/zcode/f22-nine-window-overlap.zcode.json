@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_ac73ed35-650a-468f-8de1-4e0838218673",
+  "traceId": "6e5f6c1b-7b41-4e0d-896d-a21872c70a15",
+  "turnId": "turn_8bf76936-987b-4597-9e7b-b091021128e6",
+  "response": "**Bottom line: zero cross-stream overlaps — all nine selected targets have an empty overlap list.**\n\nEach of the nine samples contains exactly one main-stream (`89`) `QuantBatchMatmulV3` with `output_shapes == '\"3,4608\"'`, and no event on stream `87` (the only other numeric stream present) overlaps its `[start_rel_ns, end_rel_ns)` half-open interval.\n\n| run/layer | target task | target interval (ns) | duration (ns) | overlapping events / ns | nearest stream-87 event |\n|---|---|---|---|---|---|\n| 1 / 0 | 66 | 2421372–2449951 | 28579 | none | ends 2,275,635 ns before start |\n| 1 / 2 | 225 | 846243–871842 | 25599 | none | ends 667,167 ns before start |\n| 1 / 24 | 1300 | 798484–824364 | 25880 | none | ends 621,247 ns before start |\n| 2 / 0 | 66 | 1340734–1367533 | 26799 | none | ends 1,243,957 ns before start |\n| 2 / 2 | 225 | 999440–1025019 | 25579 | none | ends 821,184 ns before start |\n| 2 / 24 | 1300 | 1260855–1286835 | 25980 | none | ends 1,080,418 ns before start |\n| 3 / 0 | 66 | 2055939–2083979 | 28040 | none | ends 1,964,200 ns before start |\n| 3 / 2 | 225 | 1000860–1026359 | 25499 | none | ends 819,604 ns before start |\n| 3 / 24 | 1300 | 1216735–1242735 | 26000 | none | ends 1,032,019 ns before start |\n\nAll targets: stream `89`, model `49`, 25.5–28.6 µs duration.\n\nHow the match and overlap test were done (Python, read-only on the one JSON; no writes, no device, no network):\n\n- **Target selection**: `type == \"QuantBatchMatmulV3\"`, `stream == sample.main_stream`, `output_shapes == '\"3,4608\"'` (exact string compare, quotes included). The `assert` that each sample yields exactly one match passed for all nine. Other QBMV3 events in the same windows (`\"3,32768\"`, `\"3,4096\"`, `\"3,5120\"`) were excluded.\n- **Overlap test**: other event counts as numeric-stream if `stream` is all digits (a `.isdigit()` check) and differs from the main stream; overlap iff `other.start < target.end and target.start < other.end`, i.e. strict half-open. Overlap width is `min(end) - max(start)`.\n\nContext on the other stream, for orientation on the negative result: stream `87` carries 4–5 events per sample (`MatMulV2`, `RmsNorm`, `InplacePartialRotaryMul`, `ScatterNdUpdateSk`), all clustered in the first ~185 µs of the window, whereas every `\"3,4608\"` target sits at 0.8–2.4 ms. So they are separated by at least 621 µs, not merely touching at a boundary. The only stream values anywhere in the file are `'87'` and `'89'`, and every event's model is `'49'`, so there were no non-numeric or missing IDs to exclude in practice.\n\nScope limits, per your instruction: this says nothing beyond the selected event lists in these nine windows. A \"none\" row does not prove the target was non-overlapping in the underlying full trace (unselected event types and any events with missing stream IDs are not represented), and I am not inferring any producer/consumer or dependency relationship from the temporal ordering or the shared model ID.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 94079,
+    "outputTokens": 4608,
+    "totalTokens": 98687,
+    "cacheReadTokens": 79744,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2502,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 98687,
+    "contextUsed": 18366,
+    "contextWindow": 200000
+  }
+}

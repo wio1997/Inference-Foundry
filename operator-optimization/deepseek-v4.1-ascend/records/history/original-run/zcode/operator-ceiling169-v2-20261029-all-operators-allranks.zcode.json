@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_70774b8b-27c1-4186-921b-d2cf5c81f92e",
+  "traceId": "0eb2217c-a956-4f0d-88fa-484168a1b963",
+  "turnId": "turn_6564736d-153b-42f7-8bf4-2fc6ae229dda",
+  "response": "执行完成，退出码为 0。该 bash 只执行了一次（脚本内部以 `nice -n 15 ionice -c 3` 在 stage 容器内单进程流式读取，无 NPU 推理、未改动旧 trace、未触碰 172）；未修改任何脚本或输入文件，最终产物 `target-layer-all-kernels-16rank.jsonl`（88,483,785 字节，`.part` 已经校验后改名，无残留）。\n\n原始输出（stdout 全文，与 `zcode/...output.txt` 内容一致）：\n\n```\n{\"output\": \"/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/target-layer-all-kernels-16rank.jsonl\", \"completed_ranks\": 16, \"rank_errors\": [], \"missing_expected_ep\": [], \"unexpected_ep\": [], \"layer_scopes\": 1280, \"matched_tasks\": 53918}\n```\n\n退出码文件 `operator-ceiling169-v2-20261029-all-operators-allranks.exit-code` 内容为 `0`。\n\n从输出可核对的范围：16 个 rank 全部完成且 `rank_errors` 为空，1280 个 layer scope 即 16 rank × 80 层，唯一匹配目标任务共 53,918；缺失与意外的 EP 列表均为空。JSONL 结构为 wrapper 行 + header 行 + 16 个 rank 行 + footer 行，footer 的 `completed_ranks` 与实到 16 一致。按约定未对 AIC/AIV 汇总数值做二次解读，也不把 flow 匹配当作张量依赖或关键路径证据；逐 rank 的计数明细以该 JSONL 为准。\n\n补充事实：运行窗口约 11:08–11:14（本地时间），中间态显示单 rank 匹配数为 3,159–3,640、每 rank 80 层，与最终总数一致。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 123210,
+    "outputTokens": 4491,
+    "totalTokens": 127701,
+    "cacheReadTokens": 108928,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2810,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 127701,
+    "contextUsed": 18320,
+    "contextWindow": 200000
+  }
+}

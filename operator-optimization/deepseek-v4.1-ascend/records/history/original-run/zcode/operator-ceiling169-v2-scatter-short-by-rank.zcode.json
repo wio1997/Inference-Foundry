@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_bdb09c2d-32d9-47e3-8d05-e43ab9c9b18f",
+  "traceId": "8303b060-8649-4b05-8764-c8dd398bea1f",
+  "turnId": "turn_85e3655d-7275-4e57-b47d-cb11cdee584e",
+  "response": "Read only `agents/fusion/f08-gap-stratification.json` and grouped `all_selected_rows` (640 rows) by `(ep, digest[:8])`.\n\n**Groups containing at least one `short` sample (3 of 16 groups):**\n\n| ep | digest prefix | short | middle | long |\n|---|---|---|---|---|\n| 0 | db852bff | 1 | 0 | 39 |\n| 3 | db852bff | 29 | 0 | 11 |\n| 8 | 1b826883 | 1 | 0 | 39 |\n\n**Total per class:** short = 31, middle = 0, long = 609 (sum = 640; matches `all_by_class` n values in the same file).\n\nNote: `middle` has zero samples anywhere in `all_selected_rows`, and all 31 `short` samples fall in only these 3 groups. These are selected rows from a single profiled capture; the class assignment is descriptive of that capture and does not establish what causes timing differences.\n\n**Actual command (run from the run directory; exit code 0):**\n\n```bash\ncd /Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41 && python3 - <<'PY'\nimport json, collections\np='agents/fusion/f08-gap-stratification.json'\nd=json.load(open(p))\nrows=d['all_selected_rows']\nclasses=['short','middle','long']\ng=collections.defaultdict(lambda: collections.Counter())\ntot=collections.Counter()\nfor r in rows:\n    k=(r['ep'], r['digest'][:8])\n    g[k][r['class']]+=1\n    tot[r['class']]+=1\nprint('file:', p)\nprint('rows:', len(rows))\nprint()\nprint('groups with >=1 short sample (ep, digest8): short middle long')\nsel=[(k,c) for k,c in g.items() if c['short']>0]\nfor k,c in sorted(sel, key=lambda x:(x[0][0], x[0][1])):\n    print(f\"{k[0]:>3}  {k[1]}  short={c['short']:>3}  middle={c['middle']:>3}  long={c['long']:>3}\")\nprint()\nprint('groups shown:', len(sel), 'of', len(g))\nprint('TOTAL per class: short=%d middle=%d long=%d' % (tot['short'],tot['middle'],tot['long']))\nprint('class sums == rows:', tot['short']+tot['middle']+tot['long']==len(rows))\nprint('file all_by_class:', json.dumps(d['all_by_class'], sort_keys=True))\nPY\necho \"EXIT_CODE=$?\"\n```\n\nObserved `EXIT_CODE=0`. No other files were read or written; no NPU, services, request texts, or model weights were touched.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 30798,
+    "outputTokens": 2044,
+    "totalTokens": 32842,
+    "cacheReadTokens": 20608,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1420,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 32842,
+    "contextUsed": 12193,
+    "contextWindow": 200000
+  }
+}

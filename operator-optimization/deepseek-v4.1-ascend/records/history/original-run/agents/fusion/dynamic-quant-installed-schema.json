@@ -1,0 +1,2577 @@
+{
+  "python_version": "3.12.13 (main, Oct  3 2026, 08:05:10) [GCC 11.4.0]",
+  "site": "/usr/local/python3.12.13/lib/python3.12/site-packages",
+  "distributions": [
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu-2.10.0.post7.dist-info",
+      "METADATA_sha256": "3b2748974d953f767c8d3ee27f0e1b8278fedadd283ddba6aa2bed13b80b09f8",
+      "metadata_header": [
+        "Name: torch_npu",
+        "Version: 2.10.0.post7"
+      ],
+      "RECORD_sha256": "6ddb1939fb0a5d7babe8c447878fb8091f41e02067a8feade40bdaee65f95991"
+    }
+  ],
+  "files": [
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/_op_plugin_docs.py",
+      "size": 1057754,
+      "sha256": "636706a8a1ca65c5948c7da751c36448a9729c4bd764d093ee4015ae4f61511f",
+      "hits": [
+        {
+          "line": 4655,
+          "context": [
+            {
+              "line": 4653,
+              "text": ""
+            },
+            {
+              "line": 4654,
+              "text": "_add_torch_npu_docstr("
+            },
+            {
+              "line": 4655,
+              "text": "    \"npu_dynamic_quant\","
+            },
+            {
+              "line": 4656,
+              "text": "    \"\"\""
+            },
+            {
+              "line": 4657,
+              "text": "功能描述:"
+            },
+            {
+              "line": 4658,
+              "text": "算子功能: 对输入的张量进行per-token对称动态量化."
+            },
+            {
+              "line": 4659,
+              "text": "如果是MoE(Mixture of Experts, 混合专家模型)场景, 会引入group_index, smooth_scales中包含多组smooth向量, 按group_index中的数值作用到x的不同行上. 具体的, 假如x包含m个token, smooth_scales有n行, smooth_scales[0]会作用到x[0:group_index[0]]上, smooth_scales[i]会作用到x[group_index[i-1]: group_index[i]]上, i=1, 2, ..., n-1."
+            },
+            {
+              "line": 4660,
+              "text": "计算公式:"
+            },
+            {
+              "line": 4661,
+              "text": "如果smooth_scales不存在:"
+            },
+            {
+              "line": 4662,
+              "text": "scale=rowMax(abs(x))/DTYPE_MAX"
+            },
+            {
+              "line": 4663,
+              "text": "y=round(x/scale)"
+            }
+          ]
+        },
+        {
+          "line": 4670,
+          "context": [
+            {
+              "line": 4668,
+              "text": ""
+            },
+            {
+              "line": 4669,
+              "text": "接口原型:"
+            },
+            {
+              "line": 4670,
+              "text": "torch_npu.npu_dynamic_quant(Tensor x, *, Tensor? smooth_scales=None, Tensor? group_index=None, int? dst_type=None) ->(Tensor, Tensor)"
+            },
+            {
+              "line": 4671,
+              "text": ""
+            },
+            {
+              "line": 4672,
+              "text": "参数说明:"
+            },
+            {
+              "line": 4673,
+              "text": "x: Tensor类型, 需要进行量化的源数据张量, 必选输入, 数据类型支持torch.float16、torch.bfloat16, 数据格式支持ND, 支持非连续的Tensor. 输入x的维度必须大于1. 进行int4量化时, 要求x形状的最后一维是8的整数倍."
+            },
+            {
+              "line": 4674,
+              "text": "smooth_scales: Tensor类型, 对x进行scales的张量, 可选输入, 数据类型支持torch.float16、torch.bfloat16, 数据格式支持ND, 支持非连续的Tensor. shape必须是1维, 和x的最后一维相等."
+            },
+            {
+              "line": 4675,
+              "text": "单算子模式: smooth_scales的dtype必须和x保持一致."
+            },
+            {
+              "line": 4676,
+              "text": "group_index: Tensor类型, 对smooth_scales进行分组的下标, 可选输入, 仅在MoE场景下生效. 数据类型支持int32, 数据格式支持ND, 支持非连续的Tensor."
+            },
+            {
+              "line": 4677,
+              "text": "dst_type: int类型, 指定量化输出的类型, 可选输入, 传None时当做torch.int8处理."
+            },
+            {
+              "line": 4678,
+              "text": "Atlas A2 训练系列产品/Atlas 800I A2 推理产品: 支持取值torch.int8、torch.quint4x2."
+            }
+          ]
+        },
+        {
+          "line": 4712,
+          "context": [
+            {
+              "line": 4710,
+              "text": ""
+            },
+            {
+              "line": 4711,
+              "text": "x = torch.rand((3, 3), dtype = torch.float16).to(\"npu\")"
+            },
+            {
+              "line": 4712,
+              "text": "output, scale = torch_npu.npu_dynamic_quant(x)"
+            },
+            {
+              "line": 4713,
+              "text": "print(output)"
+            },
+            {
+              "line": 4714,
+              "text": "print(scale)"
+            },
+            {
+              "line": 4715,
+              "text": "使用smooth_scales输入"
+            },
+            {
+              "line": 4716,
+              "text": "import torch"
+            },
+            {
+              "line": 4717,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4718,
+              "text": ""
+            },
+            {
+              "line": 4719,
+              "text": "x = torch.rand((3, 3), dtype = torch.float16).to(\"npu\")"
+            },
+            {
+              "line": 4720,
+              "text": "smooth_scales = torch.rand((3,), dtype = torch.float16).to(\"npu\")"
+            }
+          ]
+        },
+        {
+          "line": 4721,
+          "context": [
+            {
+              "line": 4719,
+              "text": "x = torch.rand((3, 3), dtype = torch.float16).to(\"npu\")"
+            },
+            {
+              "line": 4720,
+              "text": "smooth_scales = torch.rand((3,), dtype = torch.float16).to(\"npu\")"
+            },
+            {
+              "line": 4721,
+              "text": "output, scale = torch_npu.npu_dynamic_quant(x, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 4722,
+              "text": "print(output)"
+            },
+            {
+              "line": 4723,
+              "text": "print(scale)"
+            },
+            {
+              "line": 4724,
+              "text": "图模式调用"
+            },
+            {
+              "line": 4725,
+              "text": "import torch"
+            },
+            {
+              "line": 4726,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4727,
+              "text": "import torchair as tng"
+            },
+            {
+              "line": 4728,
+              "text": "from torchair.configs.compiler_config import CompilerConfig"
+            },
+            {
+              "line": 4729,
+              "text": "torch_npu.npu.set_compile_mode(jit_compile=True)"
+            }
+          ]
+        },
+        {
+          "line": 4742,
+          "context": [
+            {
+              "line": 4740,
+              "text": ""
+            },
+            {
+              "line": 4741,
+              "text": "    def forward(self, input_tensor, smooth_scales=None, group_index=None, dst_type=None):"
+            },
+            {
+              "line": 4742,
+              "text": "        out, scale = torch_npu.npu_dynamic_quant(input_tensor, smooth_scales=smooth_scales, group_index=group_index, dst_type=dst_type)"
+            },
+            {
+              "line": 4743,
+              "text": "        return out, scale"
+            },
+            {
+              "line": 4744,
+              "text": ""
+            },
+            {
+              "line": 4745,
+              "text": "x = torch.randn((2, 4, 6),device='npu',dtype=torch.float16).npu()"
+            },
+            {
+              "line": 4746,
+              "text": "smooth_scales = torch.randn((6),device='npu',dtype=torch.float16).npu()"
+            },
+            {
+              "line": 4747,
+              "text": "dynamic_quant_model = DynamicQuantModel().npu()"
+            },
+            {
+              "line": 4748,
+              "text": "dynamic_quant_model = torch.compile(dynamic_quant_model, backend=npu_backend, dynamic=True)"
+            },
+            {
+              "line": 4749,
+              "text": "out, scale = dynamic_quant_model(x, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 4750,
+              "text": "print(out)"
+            }
+          ]
+        },
+        {
+          "line": 4756,
+          "context": [
+            {
+              "line": 4754,
+              "text": ""
+            },
+            {
+              "line": 4755,
+              "text": "_add_torch_npu_docstr("
+            },
+            {
+              "line": 4756,
+              "text": "    \"npu_dynamic_quant_asymmetric\","
+            },
+            {
+              "line": 4757,
+              "text": "    \"\"\""
+            },
+            {
+              "line": 4758,
+              "text": "功能描述:"
+            },
+            {
+              "line": 4759,
+              "text": "算子功能: 对输入的张量进行per-token非对称动态量化. 其中输入的最后一个维度对应一个token, 每个token作为一组进行量化."
+            },
+            {
+              "line": 4760,
+              "text": "计算公式: 假设待量化张量为x,"
+            },
+            {
+              "line": 4761,
+              "text": "scale=(rowMax(x)-rowMin(x))/(DST_MAX-DST_MIN)"
+            },
+            {
+              "line": 4762,
+              "text": "offset=DST_MAX-rowMax(x)/scale"
+            },
+            {
+              "line": 4763,
+              "text": "y=round(x/scale+offset)"
+            },
+            {
+              "line": 4764,
+              "text": "owMax、rowMin代表按行取最大值、按行取最小值, 此处的“行”对应x最后一个维度的数据, 即一个token."
+            }
+          ]
+        },
+        {
+          "line": 4770,
+          "context": [
+            {
+              "line": 4768,
+              "text": ""
+            },
+            {
+              "line": 4769,
+              "text": "接口原型:"
+            },
+            {
+              "line": 4770,
+              "text": "torch_npu.npu_dynamic_quant_asymmetric(Tensor x, *, Tensor? smooth_scales=None, Tensor? group_index=None, ScalarType? dst_type=None) -> (Tensor, Tensor, Tensor)"
+            },
+            {
+              "line": 4771,
+              "text": ""
+            },
+            {
+              "line": 4772,
+              "text": "参数说明:"
+            },
+            {
+              "line": 4773,
+              "text": "x: Tensor类型, 需要进行量化的源数据张量, 必选输入, 数据类型支持float16、bfloat16, 数据格式支持ND, 支持非连续的Tensor. 输入x的维度必须大于1. 进行int4量化时, 要求x形状的最后一维是8的整数倍."
+            },
+            {
+              "line": 4774,
+              "text": "smooth_scales: Tensor类型, 对x进行平滑缩放的张量, 可选输入, 数据类型需要与x保持一致, 数据格式支持ND, 支持非连续的Tensor."
+            },
+            {
+              "line": 4775,
+              "text": "group_index: Tensor类型, 在MoE场景下, 对smooth_scales进行分组的下标, 可选输入, 数据类型支持int32, 数据格式支持ND, 支持非连续的Tensor."
+            },
+            {
+              "line": 4776,
+              "text": "dst_type: ScalarType类型, 用于选择进行int8/int4量化, 可选输入, 输入值只能是torch.int8和torch.quint4x2, 默认为int8量化."
+            },
+            {
+              "line": 4777,
+              "text": ""
+            },
+            {
+              "line": 4778,
+              "text": "输出说明："
+            }
+          ]
+        },
+        {
+          "line": 4807,
+          "context": [
+            {
+              "line": 4805,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4806,
+              "text": "x = torch.rand((3, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4807,
+              "text": "y, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(x)"
+            },
+            {
+              "line": 4808,
+              "text": "print(y, scale, offset)"
+            },
+            {
+              "line": 4809,
+              "text": "只有一个输入x, 进行int4量化"
+            },
+            {
+              "line": 4810,
+              "text": "import torch"
+            },
+            {
+              "line": 4811,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4812,
+              "text": "x = torch.rand((3, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4813,
+              "text": "y, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(x, dst_type=torch.quint4x2)"
+            },
+            {
+              "line": 4814,
+              "text": "print(y, scale, offset)"
+            },
+            {
+              "line": 4815,
+              "text": "使用smooth_scales输入, 非MoE场景(不使用group_index), 进行int8量化"
+            }
+          ]
+        },
+        {
+          "line": 4813,
+          "context": [
+            {
+              "line": 4811,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4812,
+              "text": "x = torch.rand((3, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4813,
+              "text": "y, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(x, dst_type=torch.quint4x2)"
+            },
+            {
+              "line": 4814,
+              "text": "print(y, scale, offset)"
+            },
+            {
+              "line": 4815,
+              "text": "使用smooth_scales输入, 非MoE场景(不使用group_index), 进行int8量化"
+            },
+            {
+              "line": 4816,
+              "text": "import torch"
+            },
+            {
+              "line": 4817,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4818,
+              "text": "x = torch.rand((3, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4819,
+              "text": "smooth_scales = torch.rand((8,), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4820,
+              "text": "y, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(x, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 4821,
+              "text": "print(y, scale, offset)"
+            }
+          ]
+        },
+        {
+          "line": 4820,
+          "context": [
+            {
+              "line": 4818,
+              "text": "x = torch.rand((3, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4819,
+              "text": "smooth_scales = torch.rand((8,), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4820,
+              "text": "y, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(x, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 4821,
+              "text": "print(y, scale, offset)"
+            },
+            {
+              "line": 4822,
+              "text": "使用smooth_scales输入, MoE场景(使用group_index), 进行int8量化"
+            },
+            {
+              "line": 4823,
+              "text": "import torch"
+            },
+            {
+              "line": 4824,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4825,
+              "text": "x = torch.rand((3, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4826,
+              "text": "smooth_scales = torch.rand((2, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4827,
+              "text": "group_index = torch.Tensor([1, 3]).to(torch.int32).npu()"
+            },
+            {
+              "line": 4828,
+              "text": "y, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(x, smooth_scales=smooth_scales, group_index=group_index)"
+            }
+          ]
+        },
+        {
+          "line": 4828,
+          "context": [
+            {
+              "line": 4826,
+              "text": "smooth_scales = torch.rand((2, 8), dtype=torch.half).npu()"
+            },
+            {
+              "line": 4827,
+              "text": "group_index = torch.Tensor([1, 3]).to(torch.int32).npu()"
+            },
+            {
+              "line": 4828,
+              "text": "y, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(x, smooth_scales=smooth_scales, group_index=group_index)"
+            },
+            {
+              "line": 4829,
+              "text": "print(y, scale, offset)"
+            },
+            {
+              "line": 4830,
+              "text": "图模式调用"
+            },
+            {
+              "line": 4831,
+              "text": "import torch"
+            },
+            {
+              "line": 4832,
+              "text": "import torch_npu"
+            },
+            {
+              "line": 4833,
+              "text": "import torchair as tng"
+            },
+            {
+              "line": 4834,
+              "text": "from torchair.configs.compiler_config import CompilerConfig"
+            },
+            {
+              "line": 4835,
+              "text": "torch_npu.npu.set_compile_mode(jit_compile=True)"
+            },
+            {
+              "line": 4836,
+              "text": "config = CompilerConfig()"
+            }
+          ]
+        },
+        {
+          "line": 4848,
+          "context": [
+            {
+              "line": 4846,
+              "text": ""
+            },
+            {
+              "line": 4847,
+              "text": "    def forward(self, input_tensor, smooth_scales=None, group_index=None, dst_type=None):"
+            },
+            {
+              "line": 4848,
+              "text": "        out, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(input_tensor, smooth_scales=smooth_scales, group_index=group_index, dst_type=dst_type)"
+            },
+            {
+              "line": 4849,
+              "text": "        return out, scale, offset"
+            },
+            {
+              "line": 4850,
+              "text": ""
+            },
+            {
+              "line": 4851,
+              "text": "x = torch.randn((2, 4, 6),device='npu',dtype=torch.float16).npu()"
+            },
+            {
+              "line": 4852,
+              "text": "smooth_scales = torch.randn((6),device='npu',dtype=torch.float16).npu()"
+            },
+            {
+              "line": 4853,
+              "text": "dynamic_quant_model = DynamicQuantModel().npu()"
+            },
+            {
+              "line": 4854,
+              "text": "dynamic_quant_model = torch.compile(dynamic_quant_model, backend=npu_backend, dynamic=True)"
+            },
+            {
+              "line": 4855,
+              "text": "out, scale, offset = dynamic_quant_model(x, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 4856,
+              "text": "print(out)"
+            }
+          ]
+        }
+      ],
+      "hit_count": 12
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/dynamo/npugraph_ex/patterns/add_rms_norm_dynamic_quant.py",
+      "size": 11327,
+      "sha256": "5d1ccb0a5eca6835e77d9a6937bb2147d133a91a69b9ee59cce9820a8e8917d9",
+      "hits": [
+        {
+          "line": 76,
+          "context": [
+            {
+              "line": 74,
+              "text": "    def search_fn(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 75,
+              "text": "        y, _, xOut = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma)"
+            },
+            {
+              "line": 76,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 77,
+              "text": "        return yOut, xOut, scale1Out"
+            },
+            {
+              "line": 78,
+              "text": ""
+            },
+            {
+              "line": 79,
+              "text": "    # For scenarios in DS networks, replace the operator combination of npu_add_rms_norm and npu_dynamic_quant"
+            },
+            {
+              "line": 80,
+              "text": "    # with the npu_add_rms_norm_dynamic_quant operator."
+            },
+            {
+              "line": 81,
+              "text": "    # Since only the first path is quantized, pass [True, False] to the fusion operator's input parameter output_mask,"
+            },
+            {
+              "line": 82,
+              "text": "    # indicating that only the first path is used for quantization."
+            },
+            {
+              "line": 83,
+              "text": "    def replace_fn(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 84,
+              "text": "        yOut, _, xOut, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            }
+          ]
+        },
+        {
+          "line": 79,
+          "context": [
+            {
+              "line": 77,
+              "text": "        return yOut, xOut, scale1Out"
+            },
+            {
+              "line": 78,
+              "text": ""
+            },
+            {
+              "line": 79,
+              "text": "    # For scenarios in DS networks, replace the operator combination of npu_add_rms_norm and npu_dynamic_quant"
+            },
+            {
+              "line": 80,
+              "text": "    # with the npu_add_rms_norm_dynamic_quant operator."
+            },
+            {
+              "line": 81,
+              "text": "    # Since only the first path is quantized, pass [True, False] to the fusion operator's input parameter output_mask,"
+            },
+            {
+              "line": 82,
+              "text": "    # indicating that only the first path is used for quantization."
+            },
+            {
+              "line": 83,
+              "text": "    def replace_fn(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 84,
+              "text": "        yOut, _, xOut, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 85,
+              "text": "            x1,"
+            },
+            {
+              "line": 86,
+              "text": "            x2,"
+            },
+            {
+              "line": 87,
+              "text": "            gamma,"
+            }
+          ]
+        },
+        {
+          "line": 95,
+          "context": [
+            {
+              "line": 93,
+              "text": "    def search_fn_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 94,
+              "text": "        y, _, xOut = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma, epsilon)"
+            },
+            {
+              "line": 95,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 96,
+              "text": "        return yOut, xOut, scale1Out"
+            },
+            {
+              "line": 97,
+              "text": ""
+            },
+            {
+              "line": 98,
+              "text": "    def replace_fn_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 99,
+              "text": "        yOut, _, xOut, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 100,
+              "text": "            x1,"
+            },
+            {
+              "line": 101,
+              "text": "            x2,"
+            },
+            {
+              "line": 102,
+              "text": "            gamma,"
+            },
+            {
+              "line": 103,
+              "text": "            smooth_scale1=smooth_scales,"
+            }
+          ]
+        },
+        {
+          "line": 111,
+          "context": [
+            {
+              "line": 109,
+              "text": "    def search_fn_no_xout(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 110,
+              "text": "        y, _, _ = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma)"
+            },
+            {
+              "line": 111,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 112,
+              "text": "        return yOut, scale1Out"
+            },
+            {
+              "line": 113,
+              "text": ""
+            },
+            {
+              "line": 114,
+              "text": "    def replace_fn_no_xout(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 115,
+              "text": "        yOut, _, _, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 116,
+              "text": "            x1,"
+            },
+            {
+              "line": 117,
+              "text": "            x2,"
+            },
+            {
+              "line": 118,
+              "text": "            gamma,"
+            },
+            {
+              "line": 119,
+              "text": "            smooth_scale1=smooth_scales,"
+            }
+          ]
+        },
+        {
+          "line": 126,
+          "context": [
+            {
+              "line": 124,
+              "text": "    def search_fn_no_xout_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 125,
+              "text": "        y, _, _ = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma, epsilon)"
+            },
+            {
+              "line": 126,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 127,
+              "text": "        return yOut, scale1Out"
+            },
+            {
+              "line": 128,
+              "text": ""
+            },
+            {
+              "line": 129,
+              "text": "    def replace_fn_no_xout_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 130,
+              "text": "        yOut, _, _, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 131,
+              "text": "            x1,"
+            },
+            {
+              "line": 132,
+              "text": "            x2,"
+            },
+            {
+              "line": 133,
+              "text": "            gamma,"
+            },
+            {
+              "line": 134,
+              "text": "            smooth_scale1=smooth_scales,"
+            }
+          ]
+        },
+        {
+          "line": 178,
+          "context": [
+            {
+              "line": 176,
+              "text": "    def search_fn(x1, x2, gamma):"
+            },
+            {
+              "line": 177,
+              "text": "        y, _, xOut = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma)"
+            },
+            {
+              "line": 178,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y.flatten(0, 1))"
+            },
+            {
+              "line": 179,
+              "text": "        scale1Out_view = scale1Out.view(-1, 1)"
+            },
+            {
+              "line": 180,
+              "text": "        return yOut, scale1Out_view, xOut"
+            },
+            {
+              "line": 181,
+              "text": ""
+            },
+            {
+              "line": 182,
+              "text": "    - dynamic_quant_output0: 1st output of npu_dynamic_quant.default (corresponds to yOut in search_fn)"
+            },
+            {
+              "line": 183,
+              "text": "    - CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]): output of scale1Out.view(-1, 1)"
+            },
+            {
+              "line": 184,
+              "text": "      (corresponds to scale1Out_view in search_fn)"
+            },
+            {
+              "line": 185,
+              "text": "    - add_rms_norm_output2: 3rd output of npu_add_rms_norm.default (corresponds to xOut in search_fn)"
+            },
+            {
+              "line": 186,
+              "text": "    \"\"\""
+            }
+          ]
+        },
+        {
+          "line": 182,
+          "context": [
+            {
+              "line": 180,
+              "text": "        return yOut, scale1Out_view, xOut"
+            },
+            {
+              "line": 181,
+              "text": ""
+            },
+            {
+              "line": 182,
+              "text": "    - dynamic_quant_output0: 1st output of npu_dynamic_quant.default (corresponds to yOut in search_fn)"
+            },
+            {
+              "line": 183,
+              "text": "    - CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]): output of scale1Out.view(-1, 1)"
+            },
+            {
+              "line": 184,
+              "text": "      (corresponds to scale1Out_view in search_fn)"
+            },
+            {
+              "line": 185,
+              "text": "    - add_rms_norm_output2: 3rd output of npu_add_rms_norm.default (corresponds to xOut in search_fn)"
+            },
+            {
+              "line": 186,
+              "text": "    \"\"\""
+            },
+            {
+              "line": 187,
+              "text": "    norm_args = ["
+            },
+            {
+              "line": 188,
+              "text": "        torch.ops.npu.npu_add_rms_norm.default,"
+            },
+            {
+              "line": 189,
+              "text": "        KeywordArg('x1'),"
+            },
+            {
+              "line": 190,
+              "text": "        KeywordArg('x2'),"
+            }
+          ]
+        },
+        {
+          "line": 202,
+          "context": [
+            {
+              "line": 200,
+              "text": "    add_rms_norm_output2 = CallFunction(operator.getitem, npu_add_rms_norm_func, 2)"
+            },
+            {
+              "line": 201,
+              "text": ""
+            },
+            {
+              "line": 202,
+              "text": "    npu_dynamic_quant_func = CallFunction("
+            },
+            {
+              "line": 203,
+              "text": "        torch.ops.npu.npu_dynamic_quant.default,"
+            },
+            {
+              "line": 204,
+              "text": "        CallFunction(torch.ops.aten.view.default, add_rms_norm_output0, Ignored()),"
+            },
+            {
+              "line": 205,
+              "text": "        _users=2,"
+            },
+            {
+              "line": 206,
+              "text": "    )"
+            },
+            {
+              "line": 207,
+              "text": ""
+            },
+            {
+              "line": 208,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 209,
+              "text": ""
+            },
+            {
+              "line": 210,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            }
+          ]
+        },
+        {
+          "line": 203,
+          "context": [
+            {
+              "line": 201,
+              "text": ""
+            },
+            {
+              "line": 202,
+              "text": "    npu_dynamic_quant_func = CallFunction("
+            },
+            {
+              "line": 203,
+              "text": "        torch.ops.npu.npu_dynamic_quant.default,"
+            },
+            {
+              "line": 204,
+              "text": "        CallFunction(torch.ops.aten.view.default, add_rms_norm_output0, Ignored()),"
+            },
+            {
+              "line": 205,
+              "text": "        _users=2,"
+            },
+            {
+              "line": 206,
+              "text": "    )"
+            },
+            {
+              "line": 207,
+              "text": ""
+            },
+            {
+              "line": 208,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 209,
+              "text": ""
+            },
+            {
+              "line": 210,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            },
+            {
+              "line": 211,
+              "text": ""
+            }
+          ]
+        },
+        {
+          "line": 208,
+          "context": [
+            {
+              "line": 206,
+              "text": "    )"
+            },
+            {
+              "line": 207,
+              "text": ""
+            },
+            {
+              "line": 208,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 209,
+              "text": ""
+            },
+            {
+              "line": 210,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            },
+            {
+              "line": 211,
+              "text": ""
+            },
+            {
+              "line": 212,
+              "text": "    return MultiOutputPattern("
+            },
+            {
+              "line": 213,
+              "text": "        ["
+            },
+            {
+              "line": 214,
+              "text": "            dynamic_quant_output0,"
+            },
+            {
+              "line": 215,
+              "text": "            CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]),"
+            },
+            {
+              "line": 216,
+              "text": "            add_rms_norm_output2,"
+            }
+          ]
+        },
+        {
+          "line": 210,
+          "context": [
+            {
+              "line": 208,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 209,
+              "text": ""
+            },
+            {
+              "line": 210,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            },
+            {
+              "line": 211,
+              "text": ""
+            },
+            {
+              "line": 212,
+              "text": "    return MultiOutputPattern("
+            },
+            {
+              "line": 213,
+              "text": "        ["
+            },
+            {
+              "line": 214,
+              "text": "            dynamic_quant_output0,"
+            },
+            {
+              "line": 215,
+              "text": "            CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]),"
+            },
+            {
+              "line": 216,
+              "text": "            add_rms_norm_output2,"
+            },
+            {
+              "line": 217,
+              "text": "        ]"
+            },
+            {
+              "line": 218,
+              "text": "    )"
+            }
+          ]
+        }
+      ],
+      "hit_count": 11
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/dynamo/torchair/_ge_concrete_graph/ge_converter/custom/npu_dynamic_quant.py",
+      "size": 3290,
+      "sha256": "19e572fb3e8ff63d0002971e3e7ca945ad31dacec8d0e3823a929d76dfc892e2",
+      "hits": [
+        {
+          "line": 10,
+          "context": [
+            {
+              "line": 8,
+              "text": "    ]"
+            },
+            {
+              "line": 9,
+              "text": ")"
+            },
+            {
+              "line": 10,
+              "text": "@register_fx_node_ge_converter(torch.ops.npu.npu_dynamic_quant.default)"
+            },
+            {
+              "line": 11,
+              "text": "def conveter_npu_dynamic_quant_default("
+            },
+            {
+              "line": 12,
+              "text": "    input_data: Tensor,"
+            },
+            {
+              "line": 13,
+              "text": "    smooth_scales: Optional[Tensor] = None,"
+            },
+            {
+              "line": 14,
+              "text": "    group_index: Optional[Tensor] = None,"
+            },
+            {
+              "line": 15,
+              "text": "    dst_type: int = 1,"
+            },
+            {
+              "line": 16,
+              "text": "    quant_mode: str = \"pertoken\","
+            },
+            {
+              "line": 17,
+              "text": "    dst_type_max: float = 0.0,"
+            },
+            {
+              "line": 18,
+              "text": "    meta_outputs: List[TensorSpec] = None,"
+            }
+          ]
+        },
+        {
+          "line": 11,
+          "context": [
+            {
+              "line": 9,
+              "text": ")"
+            },
+            {
+              "line": 10,
+              "text": "@register_fx_node_ge_converter(torch.ops.npu.npu_dynamic_quant.default)"
+            },
+            {
+              "line": 11,
+              "text": "def conveter_npu_dynamic_quant_default("
+            },
+            {
+              "line": 12,
+              "text": "    input_data: Tensor,"
+            },
+            {
+              "line": 13,
+              "text": "    smooth_scales: Optional[Tensor] = None,"
+            },
+            {
+              "line": 14,
+              "text": "    group_index: Optional[Tensor] = None,"
+            },
+            {
+              "line": 15,
+              "text": "    dst_type: int = 1,"
+            },
+            {
+              "line": 16,
+              "text": "    quant_mode: str = \"pertoken\","
+            },
+            {
+              "line": 17,
+              "text": "    dst_type_max: float = 0.0,"
+            },
+            {
+              "line": 18,
+              "text": "    meta_outputs: List[TensorSpec] = None,"
+            },
+            {
+              "line": 19,
+              "text": "):"
+            }
+          ]
+        },
+        {
+          "line": 58,
+          "context": [
+            {
+              "line": 56,
+              "text": "    ]"
+            },
+            {
+              "line": 57,
+              "text": ")"
+            },
+            {
+              "line": 58,
+              "text": "@register_fx_node_ge_converter(torch.ops.npu.npu_dynamic_quant_asymmetric.default)"
+            },
+            {
+              "line": 59,
+              "text": "def conveter_npu_dynamic_quant_asymmetric_default("
+            },
+            {
+              "line": 60,
+              "text": "    input_data: Tensor,"
+            },
+            {
+              "line": 61,
+              "text": "    smooth_scales: Optional[Tensor] = None,"
+            },
+            {
+              "line": 62,
+              "text": "    group_index: Optional[Tensor] = None,"
+            },
+            {
+              "line": 63,
+              "text": "    dst_type: int = 1,"
+            },
+            {
+              "line": 64,
+              "text": "    quant_mode: str = \"pertoken\","
+            },
+            {
+              "line": 65,
+              "text": "    dst_type_max: float = 0.0,"
+            },
+            {
+              "line": 66,
+              "text": "    meta_outputs: List[TensorSpec] = None,"
+            }
+          ]
+        },
+        {
+          "line": 59,
+          "context": [
+            {
+              "line": 57,
+              "text": ")"
+            },
+            {
+              "line": 58,
+              "text": "@register_fx_node_ge_converter(torch.ops.npu.npu_dynamic_quant_asymmetric.default)"
+            },
+            {
+              "line": 59,
+              "text": "def conveter_npu_dynamic_quant_asymmetric_default("
+            },
+            {
+              "line": 60,
+              "text": "    input_data: Tensor,"
+            },
+            {
+              "line": 61,
+              "text": "    smooth_scales: Optional[Tensor] = None,"
+            },
+            {
+              "line": 62,
+              "text": "    group_index: Optional[Tensor] = None,"
+            },
+            {
+              "line": 63,
+              "text": "    dst_type: int = 1,"
+            },
+            {
+              "line": 64,
+              "text": "    quant_mode: str = \"pertoken\","
+            },
+            {
+              "line": 65,
+              "text": "    dst_type_max: float = 0.0,"
+            },
+            {
+              "line": 66,
+              "text": "    meta_outputs: List[TensorSpec] = None,"
+            },
+            {
+              "line": 67,
+              "text": "):"
+            }
+          ]
+        }
+      ],
+      "hit_count": 4
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/dynamo/torchair/patterns/add_rms_norm_dynamic_quant.py",
+      "size": 11032,
+      "sha256": "c27dc5ad29f6ca539446ce0e37a3553ff6b4c7289843af92764f3d5f90cf1dc9",
+      "hits": [
+        {
+          "line": 76,
+          "context": [
+            {
+              "line": 74,
+              "text": "    def search_fn(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 75,
+              "text": "        y, _, xOut = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma)"
+            },
+            {
+              "line": 76,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 77,
+              "text": "        return yOut, xOut, scale1Out"
+            },
+            {
+              "line": 78,
+              "text": ""
+            },
+            {
+              "line": 79,
+              "text": "    # For scenarios in DS networks, replace the operator combination of npu_add_rms_norm and npu_dynamic_quant"
+            },
+            {
+              "line": 80,
+              "text": "    # with the npu_add_rms_norm_dynamic_quant operator."
+            },
+            {
+              "line": 81,
+              "text": "    # Since only the first path is quantized, pass [True, False] to the fusion operator's input parameter output_mask,"
+            },
+            {
+              "line": 82,
+              "text": "    # indicating that only the first path is used for quantization."
+            },
+            {
+              "line": 83,
+              "text": "    def replace_fn(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 84,
+              "text": "        yOut, _, xOut, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            }
+          ]
+        },
+        {
+          "line": 79,
+          "context": [
+            {
+              "line": 77,
+              "text": "        return yOut, xOut, scale1Out"
+            },
+            {
+              "line": 78,
+              "text": ""
+            },
+            {
+              "line": 79,
+              "text": "    # For scenarios in DS networks, replace the operator combination of npu_add_rms_norm and npu_dynamic_quant"
+            },
+            {
+              "line": 80,
+              "text": "    # with the npu_add_rms_norm_dynamic_quant operator."
+            },
+            {
+              "line": 81,
+              "text": "    # Since only the first path is quantized, pass [True, False] to the fusion operator's input parameter output_mask,"
+            },
+            {
+              "line": 82,
+              "text": "    # indicating that only the first path is used for quantization."
+            },
+            {
+              "line": 83,
+              "text": "    def replace_fn(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 84,
+              "text": "        yOut, _, xOut, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 85,
+              "text": "            x1,"
+            },
+            {
+              "line": 86,
+              "text": "            x2,"
+            },
+            {
+              "line": 87,
+              "text": "            gamma,"
+            }
+          ]
+        },
+        {
+          "line": 95,
+          "context": [
+            {
+              "line": 93,
+              "text": "    def search_fn_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 94,
+              "text": "        y, _, xOut = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma, epsilon)"
+            },
+            {
+              "line": 95,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 96,
+              "text": "        return yOut, xOut, scale1Out"
+            },
+            {
+              "line": 97,
+              "text": ""
+            },
+            {
+              "line": 98,
+              "text": "    def replace_fn_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 99,
+              "text": "        yOut, _, xOut, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 100,
+              "text": "            x1,"
+            },
+            {
+              "line": 101,
+              "text": "            x2,"
+            },
+            {
+              "line": 102,
+              "text": "            gamma,"
+            },
+            {
+              "line": 103,
+              "text": "            smooth_scale1=smooth_scales,"
+            }
+          ]
+        },
+        {
+          "line": 111,
+          "context": [
+            {
+              "line": 109,
+              "text": "    def search_fn_no_xout(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 110,
+              "text": "        y, _, _ = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma)"
+            },
+            {
+              "line": 111,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 112,
+              "text": "        return yOut, scale1Out"
+            },
+            {
+              "line": 113,
+              "text": ""
+            },
+            {
+              "line": 114,
+              "text": "    def replace_fn_no_xout(x1, x2, gamma, smooth_scales):"
+            },
+            {
+              "line": 115,
+              "text": "        yOut, _, _, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 116,
+              "text": "            x1,"
+            },
+            {
+              "line": 117,
+              "text": "            x2,"
+            },
+            {
+              "line": 118,
+              "text": "            gamma,"
+            },
+            {
+              "line": 119,
+              "text": "            smooth_scale1=smooth_scales,"
+            }
+          ]
+        },
+        {
+          "line": 126,
+          "context": [
+            {
+              "line": 124,
+              "text": "    def search_fn_no_xout_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 125,
+              "text": "        y, _, _ = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma, epsilon)"
+            },
+            {
+              "line": 126,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y, smooth_scales=smooth_scales)"
+            },
+            {
+              "line": 127,
+              "text": "        return yOut, scale1Out"
+            },
+            {
+              "line": 128,
+              "text": ""
+            },
+            {
+              "line": 129,
+              "text": "    def replace_fn_no_xout_with_epsilon(x1, x2, gamma, smooth_scales, epsilon):"
+            },
+            {
+              "line": 130,
+              "text": "        yOut, _, _, scale1Out, _ = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default("
+            },
+            {
+              "line": 131,
+              "text": "            x1,"
+            },
+            {
+              "line": 132,
+              "text": "            x2,"
+            },
+            {
+              "line": 133,
+              "text": "            gamma,"
+            },
+            {
+              "line": 134,
+              "text": "            smooth_scale1=smooth_scales,"
+            }
+          ]
+        },
+        {
+          "line": 171,
+          "context": [
+            {
+              "line": 169,
+              "text": "    def search_fn(x1, x2, gamma):"
+            },
+            {
+              "line": 170,
+              "text": "        y, _, xOut = torch.ops.npu.npu_add_rms_norm.default(x1, x2, gamma)"
+            },
+            {
+              "line": 171,
+              "text": "        yOut, scale1Out = torch.ops.npu.npu_dynamic_quant.default(y.flatten(0, 1))"
+            },
+            {
+              "line": 172,
+              "text": "        scale1Out_view = scale1Out.view(-1, 1)"
+            },
+            {
+              "line": 173,
+              "text": "        return yOut, scale1Out_view, xOut"
+            },
+            {
+              "line": 174,
+              "text": ""
+            },
+            {
+              "line": 175,
+              "text": "    - dynamic_quant_output0: 1st output of npu_dynamic_quant.default (corresponds to yOut in search_fn)"
+            },
+            {
+              "line": 176,
+              "text": "    - CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]): output of scale1Out.view(-1, 1)"
+            },
+            {
+              "line": 177,
+              "text": "      (corresponds to scale1Out_view in search_fn)"
+            },
+            {
+              "line": 178,
+              "text": "    - add_rms_norm_output2: 3rd output of npu_add_rms_norm.default (corresponds to xOut in search_fn)"
+            },
+            {
+              "line": 179,
+              "text": "    \"\"\""
+            }
+          ]
+        },
+        {
+          "line": 175,
+          "context": [
+            {
+              "line": 173,
+              "text": "        return yOut, scale1Out_view, xOut"
+            },
+            {
+              "line": 174,
+              "text": ""
+            },
+            {
+              "line": 175,
+              "text": "    - dynamic_quant_output0: 1st output of npu_dynamic_quant.default (corresponds to yOut in search_fn)"
+            },
+            {
+              "line": 176,
+              "text": "    - CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]): output of scale1Out.view(-1, 1)"
+            },
+            {
+              "line": 177,
+              "text": "      (corresponds to scale1Out_view in search_fn)"
+            },
+            {
+              "line": 178,
+              "text": "    - add_rms_norm_output2: 3rd output of npu_add_rms_norm.default (corresponds to xOut in search_fn)"
+            },
+            {
+              "line": 179,
+              "text": "    \"\"\""
+            },
+            {
+              "line": 180,
+              "text": "    norm_args = ["
+            },
+            {
+              "line": 181,
+              "text": "        torch.ops.npu.npu_add_rms_norm.default,"
+            },
+            {
+              "line": 182,
+              "text": "        KeywordArg('x1'),"
+            },
+            {
+              "line": 183,
+              "text": "        KeywordArg('x2'),"
+            }
+          ]
+        },
+        {
+          "line": 195,
+          "context": [
+            {
+              "line": 193,
+              "text": "    add_rms_norm_output2 = CallFunction(operator.getitem, npu_add_rms_norm_func, 2)"
+            },
+            {
+              "line": 194,
+              "text": ""
+            },
+            {
+              "line": 195,
+              "text": "    npu_dynamic_quant_func = CallFunction("
+            },
+            {
+              "line": 196,
+              "text": "        torch.ops.npu.npu_dynamic_quant.default,"
+            },
+            {
+              "line": 197,
+              "text": "        CallFunction(torch.ops.aten.view.default, add_rms_norm_output0, Ignored()),"
+            },
+            {
+              "line": 198,
+              "text": "        _users=2,"
+            },
+            {
+              "line": 199,
+              "text": "    )"
+            },
+            {
+              "line": 200,
+              "text": ""
+            },
+            {
+              "line": 201,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 202,
+              "text": ""
+            },
+            {
+              "line": 203,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            }
+          ]
+        },
+        {
+          "line": 196,
+          "context": [
+            {
+              "line": 194,
+              "text": ""
+            },
+            {
+              "line": 195,
+              "text": "    npu_dynamic_quant_func = CallFunction("
+            },
+            {
+              "line": 196,
+              "text": "        torch.ops.npu.npu_dynamic_quant.default,"
+            },
+            {
+              "line": 197,
+              "text": "        CallFunction(torch.ops.aten.view.default, add_rms_norm_output0, Ignored()),"
+            },
+            {
+              "line": 198,
+              "text": "        _users=2,"
+            },
+            {
+              "line": 199,
+              "text": "    )"
+            },
+            {
+              "line": 200,
+              "text": ""
+            },
+            {
+              "line": 201,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 202,
+              "text": ""
+            },
+            {
+              "line": 203,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            },
+            {
+              "line": 204,
+              "text": ""
+            }
+          ]
+        },
+        {
+          "line": 201,
+          "context": [
+            {
+              "line": 199,
+              "text": "    )"
+            },
+            {
+              "line": 200,
+              "text": ""
+            },
+            {
+              "line": 201,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 202,
+              "text": ""
+            },
+            {
+              "line": 203,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            },
+            {
+              "line": 204,
+              "text": ""
+            },
+            {
+              "line": 205,
+              "text": "    return MultiOutputPattern("
+            },
+            {
+              "line": 206,
+              "text": "        ["
+            },
+            {
+              "line": 207,
+              "text": "            dynamic_quant_output0,"
+            },
+            {
+              "line": 208,
+              "text": "            CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]),"
+            },
+            {
+              "line": 209,
+              "text": "            add_rms_norm_output2,"
+            }
+          ]
+        },
+        {
+          "line": 203,
+          "context": [
+            {
+              "line": 201,
+              "text": "    dynamic_quant_output0 = CallFunction(operator.getitem, npu_dynamic_quant_func, 0)"
+            },
+            {
+              "line": 202,
+              "text": ""
+            },
+            {
+              "line": 203,
+              "text": "    dynamic_quant_output1 = CallFunction(operator.getitem, npu_dynamic_quant_func, 1)"
+            },
+            {
+              "line": 204,
+              "text": ""
+            },
+            {
+              "line": 205,
+              "text": "    return MultiOutputPattern("
+            },
+            {
+              "line": 206,
+              "text": "        ["
+            },
+            {
+              "line": 207,
+              "text": "            dynamic_quant_output0,"
+            },
+            {
+              "line": 208,
+              "text": "            CallFunction(torch.ops.aten.view.default, dynamic_quant_output1, [-1, 1]),"
+            },
+            {
+              "line": 209,
+              "text": "            add_rms_norm_output2,"
+            },
+            {
+              "line": 210,
+              "text": "        ]"
+            },
+            {
+              "line": 211,
+              "text": "    )"
+            }
+          ]
+        }
+      ],
+      "hit_count": 11
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/onnx/wrapper_onnx_ops.py",
+      "size": 59265,
+      "sha256": "af690a44ba7d26d5df84e4d03e3453629220d7aa00a7772d23fb65c62c51bf42",
+      "hits": [
+        {
+          "line": 744,
+          "context": [
+            {
+              "line": 742,
+              "text": "    @staticmethod"
+            },
+            {
+              "line": 743,
+              "text": "    def forward(ctx, input_dummy, smooth_scales, group_index, dst_type):"
+            },
+            {
+              "line": 744,
+              "text": "        return torch.ops.npu.npu_dynamic_quant(input_dummy, smooth_scales=smooth_scales,"
+            },
+            {
+              "line": 745,
+              "text": "                                                group_index=group_index, dst_type=dst_type)"
+            },
+            {
+              "line": 746,
+              "text": ""
+            },
+            {
+              "line": 747,
+              "text": "    @staticmethod"
+            },
+            {
+              "line": 748,
+              "text": "    def symbolic(g, input_dummy: Tensor, smooth_scales: Optional[Tensor] = None,"
+            },
+            {
+              "line": 749,
+              "text": "                 group_index: Optional[Tensor] = None, dst_type: torch.dtype = torch.int8):"
+            },
+            {
+              "line": 750,
+              "text": "        if smooth_scales is None:"
+            },
+            {
+              "line": 751,
+              "text": "            smooth_scales = g.op(\"Constant\", value_t=torch.tensor([]).to(input_dummy.type().dtype()))"
+            },
+            {
+              "line": 752,
+              "text": "        if group_index is None:"
+            }
+          ]
+        },
+        {
+          "line": 766,
+          "context": [
+            {
+              "line": 764,
+              "text": "    @staticmethod"
+            },
+            {
+              "line": 765,
+              "text": "    def forward(ctx, input_dummy, smooth_scales, group_index, dst_type):"
+            },
+            {
+              "line": 766,
+              "text": "        return torch.ops.npu.npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=smooth_scales,"
+            },
+            {
+              "line": 767,
+              "text": "                                                            group_index=group_index, dst_type=dst_type)"
+            },
+            {
+              "line": 768,
+              "text": ""
+            },
+            {
+              "line": 769,
+              "text": "    @staticmethod"
+            },
+            {
+              "line": 770,
+              "text": "    def symbolic(g, input_dummy: Tensor, smooth_scales: Optional[Tensor] = None,"
+            },
+            {
+              "line": 771,
+              "text": "                 group_index: Optional[Tensor] = None, dst_type: torch.dtype = torch.int8):"
+            },
+            {
+              "line": 772,
+              "text": "        if smooth_scales is None:"
+            },
+            {
+              "line": 773,
+              "text": "            smooth_scales = g.op(\"Constant\", value_t=torch.tensor([]).to(input_dummy.type().dtype()))"
+            },
+            {
+              "line": 774,
+              "text": "        if group_index is None:"
+            }
+          ]
+        },
+        {
+          "line": 1216,
+          "context": [
+            {
+              "line": 1214,
+              "text": ""
+            },
+            {
+              "line": 1215,
+              "text": ""
+            },
+            {
+              "line": 1216,
+              "text": "def _wrapper_npu_dynamic_quant(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8):"
+            },
+            {
+              "line": 1217,
+              "text": "    return _NPUDynamicQuantOp.apply(input_dummy, smooth_scales, group_index, dst_type)"
+            },
+            {
+              "line": 1218,
+              "text": ""
+            },
+            {
+              "line": 1219,
+              "text": ""
+            },
+            {
+              "line": 1220,
+              "text": "def _wrapper_npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8):"
+            },
+            {
+              "line": 1221,
+              "text": "    return _NPUDynamicQuantV2Op.apply(input_dummy, smooth_scales, group_index, dst_type)"
+            },
+            {
+              "line": 1222,
+              "text": ""
+            },
+            {
+              "line": 1223,
+              "text": ""
+            },
+            {
+              "line": 1224,
+              "text": "def _wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,"
+            }
+          ]
+        },
+        {
+          "line": 1220,
+          "context": [
+            {
+              "line": 1218,
+              "text": ""
+            },
+            {
+              "line": 1219,
+              "text": ""
+            },
+            {
+              "line": 1220,
+              "text": "def _wrapper_npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8):"
+            },
+            {
+              "line": 1221,
+              "text": "    return _NPUDynamicQuantV2Op.apply(input_dummy, smooth_scales, group_index, dst_type)"
+            },
+            {
+              "line": 1222,
+              "text": ""
+            },
+            {
+              "line": 1223,
+              "text": ""
+            },
+            {
+              "line": 1224,
+              "text": "def _wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,"
+            },
+            {
+              "line": 1225,
+              "text": "                    seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first):"
+            },
+            {
+              "line": 1226,
+              "text": "    return _NPUGruOP.apply(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,"
+            },
+            {
+              "line": 1227,
+              "text": "                          seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)"
+            },
+            {
+              "line": 1228,
+              "text": ""
+            }
+          ]
+        },
+        {
+          "line": 1343,
+          "context": [
+            {
+              "line": 1341,
+              "text": "    torch_npu.npu_scatter_nd_update = _wrapper_npu_scatter_nd_update"
+            },
+            {
+              "line": 1342,
+              "text": "    torch_npu.npu_lstm = _wrapper_npu_lstm"
+            },
+            {
+              "line": 1343,
+              "text": "    torch_npu.npu_dynamic_quant = _wrapper_npu_dynamic_quant"
+            },
+            {
+              "line": 1344,
+              "text": "    torch_npu.npu_dynamic_quant_asymmetric = _wrapper_npu_dynamic_quant_asymmetric"
+            },
+            {
+              "line": 1345,
+              "text": "    torch_npu.npu_rms_norm = _wrapper_npu_rms_norm"
+            },
+            {
+              "line": 1346,
+              "text": "    torch_npu.npu_add_rms_norm = _wrapper_npu_add_rms_norm"
+            },
+            {
+              "line": 1347,
+              "text": "    torch_npu.npu_lstm_cell = _wrapper_npu_lstm_cell"
+            },
+            {
+              "line": 1348,
+              "text": "    torch_npu.npu_gru = _wrapper_npu_gru"
+            },
+            {
+              "line": 1349,
+              "text": "    torch_npu.npu_dropout_with_add_softmax = _wrapper_npu_dropout_with_add_softmax"
+            },
+            {
+              "line": 1350,
+              "text": "    torch_npu.npu_scaled_masked_softmax = _wrapper_npu_scaled_masked_softmax"
+            },
+            {
+              "line": 1351,
+              "text": "    torch_npu.npu_mish = _wrapper_npu_mish"
+            }
+          ]
+        },
+        {
+          "line": 1344,
+          "context": [
+            {
+              "line": 1342,
+              "text": "    torch_npu.npu_lstm = _wrapper_npu_lstm"
+            },
+            {
+              "line": 1343,
+              "text": "    torch_npu.npu_dynamic_quant = _wrapper_npu_dynamic_quant"
+            },
+            {
+              "line": 1344,
+              "text": "    torch_npu.npu_dynamic_quant_asymmetric = _wrapper_npu_dynamic_quant_asymmetric"
+            },
+            {
+              "line": 1345,
+              "text": "    torch_npu.npu_rms_norm = _wrapper_npu_rms_norm"
+            },
+            {
+              "line": 1346,
+              "text": "    torch_npu.npu_add_rms_norm = _wrapper_npu_add_rms_norm"
+            },
+            {
+              "line": 1347,
+              "text": "    torch_npu.npu_lstm_cell = _wrapper_npu_lstm_cell"
+            },
+            {
+              "line": 1348,
+              "text": "    torch_npu.npu_gru = _wrapper_npu_gru"
+            },
+            {
+              "line": 1349,
+              "text": "    torch_npu.npu_dropout_with_add_softmax = _wrapper_npu_dropout_with_add_softmax"
+            },
+            {
+              "line": 1350,
+              "text": "    torch_npu.npu_scaled_masked_softmax = _wrapper_npu_scaled_masked_softmax"
+            },
+            {
+              "line": 1351,
+              "text": "    torch_npu.npu_mish = _wrapper_npu_mish"
+            },
+            {
+              "line": 1352,
+              "text": "    torch_npu.npu_rotary_mul = _wrapper_npu_rotary_mul"
+            }
+          ]
+        }
+      ],
+      "hit_count": 6
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/op_plugin/meta/_meta_registrations.py",
+      "size": 346004,
+      "sha256": "1f39ee98533f377d8a71cb457ca1f9d0ade2f3e82e6cdfda9707e05fe606787d",
+      "hits": [
+        {
+          "line": 5240,
+          "context": [
+            {
+              "line": 5238,
+              "text": ""
+            },
+            {
+              "line": 5239,
+              "text": ""
+            },
+            {
+              "line": 5240,
+              "text": "@impl(m, \"npu_dynamic_quant\")"
+            },
+            {
+              "line": 5241,
+              "text": "def npu_dynamic_quant(input_dummy, *, smooth_scales=None, group_index=None,"
+            },
+            {
+              "line": 5242,
+              "text": "                      dst_type=1, quant_mode=\"pertoken\", dst_type_max=0.0):"
+            },
+            {
+              "line": 5243,
+              "text": "    # default dst_type 1 is the enum of torch.int8"
+            },
+            {
+              "line": 5244,
+              "text": "    dim_num = input_dummy.dim()"
+            },
+            {
+              "line": 5245,
+              "text": "    scale_shape = []"
+            },
+            {
+              "line": 5246,
+              "text": "    for dim in range(dim_num - 2):"
+            },
+            {
+              "line": 5247,
+              "text": "        scale_shape.append(input_dummy.size(dim))"
+            },
+            {
+              "line": 5248,
+              "text": "    if quant_mode == \"perchannel\":"
+            }
+          ]
+        },
+        {
+          "line": 5241,
+          "context": [
+            {
+              "line": 5239,
+              "text": ""
+            },
+            {
+              "line": 5240,
+              "text": "@impl(m, \"npu_dynamic_quant\")"
+            },
+            {
+              "line": 5241,
+              "text": "def npu_dynamic_quant(input_dummy, *, smooth_scales=None, group_index=None,"
+            },
+            {
+              "line": 5242,
+              "text": "                      dst_type=1, quant_mode=\"pertoken\", dst_type_max=0.0):"
+            },
+            {
+              "line": 5243,
+              "text": "    # default dst_type 1 is the enum of torch.int8"
+            },
+            {
+              "line": 5244,
+              "text": "    dim_num = input_dummy.dim()"
+            },
+            {
+              "line": 5245,
+              "text": "    scale_shape = []"
+            },
+            {
+              "line": 5246,
+              "text": "    for dim in range(dim_num - 2):"
+            },
+            {
+              "line": 5247,
+              "text": "        scale_shape.append(input_dummy.size(dim))"
+            },
+            {
+              "line": 5248,
+              "text": "    if quant_mode == \"perchannel\":"
+            },
+            {
+              "line": 5249,
+              "text": "        scale_shape.append(input_dummy.size(dim_num - 1))"
+            }
+          ]
+        },
+        {
+          "line": 5274,
+          "context": [
+            {
+              "line": 5272,
+              "text": ""
+            },
+            {
+              "line": 5273,
+              "text": ""
+            },
+            {
+              "line": 5274,
+              "text": "@impl(m, \"npu_dynamic_quant_asymmetric\")"
+            },
+            {
+              "line": 5275,
+              "text": "def npu_dynamic_quant_asymmetric(input_dummy, *, smooth_scales=None, group_index=None,"
+            },
+            {
+              "line": 5276,
+              "text": "                                 dst_type=1, quant_mode=\"pertoken\", dst_type_max=0.0):"
+            },
+            {
+              "line": 5277,
+              "text": "    # default dst_type 1 is the enum of torch.int8"
+            },
+            {
+              "line": 5278,
+              "text": "    dim_num = input_dummy.dim()"
+            },
+            {
+              "line": 5279,
+              "text": "    scale_offset_shape = []"
+            },
+            {
+              "line": 5280,
+              "text": "    for dim in range(dim_num - 2):"
+            },
+            {
+              "line": 5281,
+              "text": "        scale_offset_shape.append(input_dummy.size(dim))"
+            },
+            {
+              "line": 5282,
+              "text": "    if quant_mode == \"perchannel\":"
+            }
+          ]
+        },
+        {
+          "line": 5275,
+          "context": [
+            {
+              "line": 5273,
+              "text": ""
+            },
+            {
+              "line": 5274,
+              "text": "@impl(m, \"npu_dynamic_quant_asymmetric\")"
+            },
+            {
+              "line": 5275,
+              "text": "def npu_dynamic_quant_asymmetric(input_dummy, *, smooth_scales=None, group_index=None,"
+            },
+            {
+              "line": 5276,
+              "text": "                                 dst_type=1, quant_mode=\"pertoken\", dst_type_max=0.0):"
+            },
+            {
+              "line": 5277,
+              "text": "    # default dst_type 1 is the enum of torch.int8"
+            },
+            {
+              "line": 5278,
+              "text": "    dim_num = input_dummy.dim()"
+            },
+            {
+              "line": 5279,
+              "text": "    scale_offset_shape = []"
+            },
+            {
+              "line": 5280,
+              "text": "    for dim in range(dim_num - 2):"
+            },
+            {
+              "line": 5281,
+              "text": "        scale_offset_shape.append(input_dummy.size(dim))"
+            },
+            {
+              "line": 5282,
+              "text": "    if quant_mode == \"perchannel\":"
+            },
+            {
+              "line": 5283,
+              "text": "        scale_offset_shape.append(input_dummy.size(dim_num - 1))"
+            }
+          ]
+        }
+      ],
+      "hit_count": 4
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/utils/custom_ops.py",
+      "size": 29484,
+      "sha256": "4b5d2cac3f851dc8001d0bba3ef94546e9cce7d25c2a3fecd43cc9e8b9a4897a",
+      "hits": [
+        {
+          "line": 11,
+          "context": [
+            {
+              "line": 9,
+              "text": "torch_npu._npu_swiglu_backward_mx_quant_with_dual_axis = torch.ops.npu._npu_swiglu_backward_mx_quant_with_dual_axis"
+            },
+            {
+              "line": 10,
+              "text": "torch_npu.npu_moe_token_unpermute = torch.ops.npu.npu_moe_token_unpermute"
+            },
+            {
+              "line": 11,
+              "text": "torch_npu.npu_dynamic_quant_asymmetric = torch.ops.npu.npu_dynamic_quant_asymmetric"
+            },
+            {
+              "line": 12,
+              "text": "torch_npu.npu_ciou_backward = torch.ops.npu.npu_ciou_backward"
+            },
+            {
+              "line": 13,
+              "text": "torch_npu.get_npu_format = torch.ops.npu.get_npu_format"
+            },
+            {
+              "line": 14,
+              "text": "torch_npu.npu_gather_backward = torch.ops.npu.npu_gather_backward"
+            },
+            {
+              "line": 15,
+              "text": "torch_npu.attention_worker_scheduler = torch.ops.npu.attention_worker_scheduler"
+            },
+            {
+              "line": 16,
+              "text": "torch_npu.npu_nsa_compress_infer = torch.ops.npu.npu_nsa_compress_infer"
+            },
+            {
+              "line": 17,
+              "text": "torch_npu.npu_mm_reduce_scatter_base = torch.ops.npu.npu_mm_reduce_scatter_base"
+            },
+            {
+              "line": 18,
+              "text": "torch_npu.npu_moe_re_routing = torch.ops.npu.npu_moe_re_routing"
+            },
+            {
+              "line": 19,
+              "text": "torch_npu._npu_ciou = torch.ops.npu._npu_ciou"
+            }
+          ]
+        },
+        {
+          "line": 363,
+          "context": [
+            {
+              "line": 361,
+              "text": "torch_npu.repeat_interleave_backward_int = torch.ops.npu.repeat_interleave_backward_int"
+            },
+            {
+              "line": 362,
+              "text": "torch_npu.scatter_update_ = torch.ops.npu.scatter_update_"
+            },
+            {
+              "line": 363,
+              "text": "torch_npu.npu_dynamic_quant = torch.ops.npu.npu_dynamic_quant"
+            },
+            {
+              "line": 364,
+              "text": "torch_npu.npu_rotated_iou = torch.ops.npu.npu_rotated_iou"
+            },
+            {
+              "line": 365,
+              "text": "torch_npu.npu_masked_causal_conv1d_backward = torch.ops.npu.npu_masked_causal_conv1d_backward"
+            },
+            {
+              "line": 366,
+              "text": "torch_npu.npu_conv_transpose2d_backward = torch.ops.npu.npu_conv_transpose2d_backward"
+            },
+            {
+              "line": 367,
+              "text": "torch_npu._npu_fused_infer_attention_score_get_max_workspace = torch.ops.npu._npu_fused_infer_attention_score_get_max_workspace"
+            },
+            {
+              "line": 368,
+              "text": "torch_npu.npu_apply_adam_w = torch.ops.npu.npu_apply_adam_w"
+            },
+            {
+              "line": 369,
+              "text": "torch_npu.npu_all_gather_quant_mm = torch.ops.npu.npu_all_gather_quant_mm"
+            },
+            {
+              "line": 370,
+              "text": "torch_npu.npu_min = torch.ops.npu.npu_min"
+            },
+            {
+              "line": 371,
+              "text": "torch_npu.npu_ifmr = torch.ops.npu.npu_ifmr"
+            }
+          ]
+        }
+      ],
+      "hit_count": 2
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/utils/exposed_api.py",
+      "size": 2890,
+      "sha256": "837ee736a27b482dbe25c7897919c87f4a40cb8b3543ff3d31c38ad5686d78b8",
+      "hits": [
+        {
+          "line": 1,
+          "context": [
+            {
+              "line": 1,
+              "text": "public_npu_functions = ['npu_clipped_swiglu', 'npu_bmmV2', 'npu_moe_init_routing', 'npu_sign_bits_pack', 'npu_sparse_lightning_indexer_grad_kl_loss', 'npu_softmax_cross_entropy_with_logits', 'npu_rotate_quant', 'npu_format_cast_', 'npu_swiglu', 'npu_quantize', 'npu_bounding_box_encode', 'scatter_update_', 'npu_sign_bits_unpack', 'npu_clear_float_status', 'npu_moe_finalize_routing', 'npu_scatter_nd_update_', 'npu_confusion_transpose', 'npu_max', 'npu_mhc_post_backward', 'npu_get_float_status', 'npu_moe_gating_top_k_softmax_v2', 'npu_lightning_indexer', 'npu_sparse_flash_attention', 'npu_dynamic_block_quant', 'npu_moe_update_expert', 'npu_mrope', 'npu_nms_with_mask', 'npu_ffn', 'npu_recurrent_gated_delta_rule_functional', 'npu_trans_quant_param', 'scatter_update', 'npu_sim_exponential_', 'npu_transpose_quant_batchmatmul', 'fast_gelu', 'npu_dynamic_quant', 'npu_quant_scatter', 'npu_indexing', 'npu_convert_weight_to_int4pack', 'npu_yolo_boxes_encode', 'npu_cross_entropy_loss', 'npu_group_n"
+            }
+          ]
+        }
+      ],
+      "hit_count": 1
+    }
+  ],
+  "binary_hits": [
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so",
+      "size": 85471025,
+      "sha256": "7e5eb430fd0f1d438e9598cd89e609332d4d1eea1c458e8f42fd01060afa47a1",
+      "strings": [
+        "*ZN6op_api12_GLOBAL__N_120npu_dynamic_quant_v0ERKN2at6TensorERKSt8optionalIS2_ES8_S5_IlEEUlvE_",
+        "*ZN6op_api12_GLOBAL__N_120npu_dynamic_quant_v0ERKN2at6TensorERKSt8optionalIS2_ES8_S5_IlEEUlvE1_",
+        "Current operator npu_dynamic_quant do not support internal format. ",
+        "wrapper_NPU__npu_dynamic_quant_asymmetric",
+        "npu_dynamic_quant_v0(input, smooth_scales, group_index, dst_type)",
+        "wrapper_NPU__npu_dynamic_quant",
+        "npu_dynamic_quant_asymmetric",
+        "wrapper__npu_dynamic_quant",
+        "npu_dynamic_quant_v0",
+        "Current operator npu_dynamic_quant_asymmetric do not support internal format. ",
+        "wrapper__npu_dynamic_quant_asymmetric",
+        "npu::npu_dynamic_quant",
+        "npu_dynamic_quant_asymmetric(Tensor input, *, Tensor? smooth_scales=None, Tensor? group_index=None, int? dst_type=None, str quant_mode=\"pertoken\", float dst_type_max=0.0) -> (Tensor, Tensor, Tensor)",
+        "npu::npu_dynamic_quant_asymmetric",
+        "npu_dynamic_quant(Tensor input, *, Tensor? smooth_scales=None, Tensor? group_index=None, int? dst_type=None, str quant_mode=\"pertoken\", float dst_type_max=0.0) -> (Tensor, Tensor)",
+        "npu_dynamic_quant",
+        "_ZN6at_npu10redispatch28npu_dynamic_quant_asymmetricEN3c1014DispatchKeySetERKN2at6TensorERKSt8optionalIS4_ESA_S7_IlESt17basic_string_viewIcSt11char_traitsIcEEd",
+        "_ZN6at_npu10redispatch17npu_dynamic_quantEN3c1014DispatchKeySetERKN2at6TensorERKSt8optionalIS4_ESA_S7_IlESt17basic_string_viewIcSt11char_traitsIcEEd",
+        "_ZN6at_npu6native10custom_ops28npu_dynamic_quant_asymmetricERKN2at6TensorERKSt8optionalIS3_ES9_S6_IlESt17basic_string_viewIcSt11char_traitsIcEEd",
+        "_ZN6at_npu6native10custom_ops17npu_dynamic_quantERKN2at6TensorERKSt8optionalIS3_ES9_S6_IlESt17basic_string_viewIcSt11char_traitsIcEEd"
+      ]
+    }
+  ],
+  "selected_count": 162,
+  "read_bytes": 3712118,
+  "container": "wio-vllm-v41-repro169-stage-20261028",
+  "image_id": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "site_mount_checked": true,
+  "no_device_work": true,
+  "no_torch_npu_import": true,
+  "record_scope": "static text paths indexed by installed torch_npu RECORD, plus three exact binary names"
+}

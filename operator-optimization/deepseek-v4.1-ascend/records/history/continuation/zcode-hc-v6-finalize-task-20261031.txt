@@ -1,0 +1,6 @@
+主控复核后只更新ledger元数据，避免沿用旧gap描述和旧new_source_read标志。按顺序执行：
+1. python3 /Users/wio/work/166-vllm-analysis-continuation-20261030/reconcile_hc_engram_tail_v6.py
+2. 第1步退出码0才执行：python3 /Users/wio/work/166-vllm-analysis-continuation-20261030/finalize_hc_v6_checkpoint.py
+
+仅本地确定性的合并、Run登记、恢复索引和taskctl校验，不远程连接、不设备/推理、不改目标源码、不修改准备脚本，不开agent。脚本把两次失败及其恢复分别保留，不抹掉异常。
+成功回报两个实际子进程退出码、registered_runs、validate结果与pending，整体Goal保持active未完成。若失败原样停止，不自行重复执行finalize（它拒绝重复），不自行修复。

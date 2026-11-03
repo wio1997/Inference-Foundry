@@ -1,0 +1,267 @@
+{
+  "id": "F34",
+  "name": "C2 ring 状态的可观测性裁剪、稀疏维护与表示重组",
+  "profile_review_state": "SOURCE_OBJECT_AND_V41_TUPLE_POLICY_REVIEWED;ODD_WRITE_PRUNING_CONDITIONAL;STANDALONE_CAPACITY_GAIN_EXCLUDED_IN_ANCHOR_DOMAIN",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "ring_pool": "Source-refined stateful compound:old-ringpool + tail-stateupdate;do not treatrefinement asalreadydistinctG1nodes."
+  },
+  "source_semantics": "TOKEN_ALIGNED=True,RATIO=2,CACHE_SIZE=32. Effective historical reads useeven positions/slots;preserveallvalid even-slot FP32values andgenerations.",
+  "candidate_graph": {
+    "nodes": [
+      {
+        "id": "zero_pooled",
+        "kind": "VALUE_INIT"
+      },
+      {
+        "id": "pool",
+        "kind": "STATEFUL_POOL"
+      },
+      {
+        "id": "ring_update",
+        "kind": "STATE_MAINTENANCE"
+      },
+      {
+        "id": "norm",
+        "kind": "VALUE_TRANSFORM"
+      },
+      {
+        "id": "index_projection",
+        "kind": "OLD_LATENT_READER"
+      },
+      {
+        "id": "index_publish",
+        "kind": "PERSISTENT_PUBLISH"
+      },
+      {
+        "id": "long_publish",
+        "kind": "ROTARY_AND_PERSISTENT_PUBLISH"
+      },
+      {
+        "id": "future_pool",
+        "kind": "EXTERNAL_STATE_READER"
+      },
+      {
+        "id": "future_index",
+        "kind": "EXTERNAL_INDEX_READER"
+      },
+      {
+        "id": "future_attention",
+        "kind": "EXTERNAL_CACHE_READER"
+      }
+    ],
+    "retained_edges": [
+      {
+        "a": "zero_pooled",
+        "b": "pool",
+        "kind": "WAW",
+        "value": "pooled_completed_rows"
+      },
+      {
+        "a": "zero_pooled",
+        "b": "norm",
+        "kind": "RAW",
+        "value": "pooled_unproduced_zero_rows"
+      },
+      {
+        "a": "pool",
+        "b": "norm",
+        "kind": "RAW",
+        "value": "pooled_BF16"
+      },
+      {
+        "a": "pool",
+        "b": "ring_update",
+        "kind": "WAR",
+        "value": "old_ring_same_slot_read"
+      },
+      {
+        "a": "ring_update",
+        "b": "norm",
+        "kind": "CURRENT_SCHEDULE_CONTROL",
+        "value": "retained_for_F34_alone;F18_fork_is_separate"
+      },
+      {
+        "a": "ring_update",
+        "b": "future_pool",
+        "kind": "PERSISTENT_STATE_GENERATION",
+        "value": "even_ring_values"
+      },
+      {
+        "a": "norm",
+        "b": "index_projection",
+        "kind": "RAW",
+        "value": "latent_before_long_rope"
+      },
+      {
+        "a": "index_projection",
+        "b": "index_publish",
+        "kind": "RAW",
+        "value": "index_key"
+      },
+      {
+        "a": "index_projection",
+        "b": "long_publish",
+        "kind": "WAR",
+        "value": "complete_old_latent_read_before_inplace_long_rope"
+      },
+      {
+        "a": "norm",
+        "b": "long_publish",
+        "kind": "RAW",
+        "value": "latent"
+      },
+      {
+        "a": "index_publish",
+        "b": "long_publish",
+        "kind": "CURRENT_SCHEDULE_CONTROL",
+        "value": "retained_for_F34_alone;F19_fork_is_separate"
+      },
+      {
+        "a": "index_publish",
+        "b": "future_index",
+        "kind": "PERSISTENT_STATE_GENERATION",
+        "value": "INT8_key_and_FP16_scale"
+      },
+      {
+        "a": "long_publish",
+        "b": "future_attention",
+        "kind": "PERSISTENT_STATE_GENERATION",
+        "value": "long_KV"
+      }
+    ],
+    "external_inputs": [
+      "FP32_kv",
+      "FP32_score",
+      "device_metadata",
+      "ring_old_even_values",
+      "RMS_parameters",
+      "slot_and_position_metadata"
+    ],
+    "scope": "Explicit original source operation/refinement graph withexternalreaders;F34-Aonlychangesringwriteobservability,not scheduling. F18forkisaseparateconditionalcomposition.",
+    "alias_ownership_constraints": [
+      "V41tupleviews can aliasSWA/long/index/ring backing;storageobjectdisjointnessisnot assumed.",
+      "Onlyring-ownedglobalblockIDs/pagesmaybewritten;retainexclusiveownership,generation andproperinitialization beforea pageisreusedbyanothercachetype.",
+      "F34-Akeepscurrentordering;F18/F19schedulechangesareseparateconditionalcompositions."
+    ]
+  },
+  "variants": [
+    {
+      "id": "F34-A",
+      "change": "Keep32-slot physical layout;study suppressingodd-position maintenance",
+      "status": "CONDITIONAL",
+      "requires": "Onlyspecifiedeven-observing ringconsumers;sameevenwrite values/order/pages/generations;otherodd-byteABIunobservable."
+    },
+    {
+      "id": "F34-B",
+      "change": "Study16-slot representationforevenstate",
+      "status": "EXCLUDED_AS_STANDALONE_POOL_CAPACITY_OPTIMIZATION_IN_CURRENT_V41_SWA_ANCHOR_DOMAIN",
+      "requires": "A broaderrepresentation/tupleallocationchange needsitsown allconsumer/ABI proof;simply16logicalslotsdoesnotshrinkexistingbacking."
+    },
+    {
+      "id": "F34-C",
+      "change": "Retainonlylatesttoken/latest-even token",
+      "status": "EXCLUDED_IN_ROLLBACK_DOMAIN",
+      "reason": "Afterprocessingpositions0..5,nextstart1readsoldposition0,notlatest-even4."
+    },
+    {
+      "id": "F34-D",
+      "change": "Applyfilterwhileallowingfull-bufferobservability orarbitrary foreignreader",
+      "status": "EXCLUDED_IN_THAT_DOMAIN",
+      "reason": "Odd-slot readerdistinguishes newvsoldstate bytes;RATIO!=2notcovered."
+    }
+  ],
+  "proof_scope": "Naturalinteger/read-set argument plusfinite12804addresscases/9abstractsequences/59updates;not a nativecorrectnesstest orformalchecker.",
+  "relation_to_existing": "F17optimizesprojection production,F18pool/normvalueboundary,F19dualpublication.F34changespersistentstateobservablecontent/representationacrossiterations;donotdoublecounttheirboundaries.",
+  "dependencies": [
+    "Allringconsumers/alias/stateABI",
+    "Same-address writeownership andpagegeneration",
+    "Metadata/ready/inputlifetimes",
+    "CurrentTriton/nativecompileandpackedbranch binding",
+    "Allocatorpaddingforcompactvariant"
+  ],
+  "evidence_files": [
+    "C2-state-opportunity-contract-v24.json",
+    "C2-ring-observability-integer-review-v24.json",
+    "M08-C2-state-condition-ledger-v24.json",
+    "C2-cache-object-and-allocation-contract-v25.json",
+    "V41-tuple-capacity-and-F34-graph-review-v25-v2.json",
+    "C2-cache-allocation-condition-ledger-v25.json"
+  ],
+  "legal_fusion_proved": false,
+  "candidate_closed": false,
+  "critical_path_gain_us": null,
+  "critical_path_gain_status": "UNKNOWN_NOT_LOGICAL_BYTE_RATIO",
+  "implementation": false,
+  "new_performance_result": false,
+  "overall_complete": false,
+  "allocation_v25": {
+    "current_tuple_contract": "Views in oneV41descriptor sharebacking. EqualglobalblockIDs canaddress overlappingbytes acrosscacheroles;validconcurrentownershipofdistinctIDs keepspageregionsseparate.",
+    "page_capacity": "max(long+index+optional_folded,eachalias_unpadded_page)",
+    "conditional_compaction_exclusion": "IfSWAanchor>=oldringpage,shrinkingringalonecannotshrinktuplepagecapacity. Thenfixedgroups/fixedbudget/overridegiveunchangednum_blocks,descriptorsizesandtotalpoolallocation.",
+    "scope": "Sourceconstructorcontract plusprofile-consistentpagegeometry,not actualpointer/groupconfiguration snapshot.",
+    "native_reader_and_ownership_closure": false
+  },
+  "graph_review_v25": {
+    "previous_shorthand_undefined_endpoint_count": 2,
+    "correction": "Declareexternalreaders anduseconsistentoperationIDs;addthevalue/publication/WAR edges andretainoriginalscheduleedgeforF34alone.",
+    "structural_validation_pass": true,
+    "semantic_native_proof": false
+  },
+  "state_namespace_v25": [
+    "descriptor_or_tuple",
+    "global_block_ID",
+    "token_slot",
+    "ownership_generation"
+  ],
+  "allocation_question_closed_scope_v25": "SameV41tupleplanner,SWAanchor>=oldringpage,unchangedotherresources/groups/budget/override:halvingringalonecannotreducepooldescriptorallocation.",
+  "remaining_native_obligations_v25": [
+    "Actualblockownership/aliasgeneration andalllegitimatestateobservers",
+    "PreservedFP32evenwritevalues/order andWAR",
+    "Nativeexecution/cachebinarybinding",
+    "Changed-layout ABI/contiguity/graphaddressesifbroaderrewritechosen"
+  ],
+  "review_v39": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-metadata-fill-and-existing-fusion-contract-v39.json",
+    "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-C2-existing-fused-builder-equivalence-v39.json",
+    "fill": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-initialization-write-ownership-review-v39.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-and-initialization-variants-v39.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v39.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "used/live/complete/skip exactmetadataformulasnowbound;actualdevicevalues/pageowner generationremainunobserved. No automaticringcapacitysavingor7/16measuredendpointclaim."
+  },
+  "review_v40": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-coordinate-draft-cache-and-QLI-consumer-contract-v40.json",
+    "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-slot-fusion-domain-and-draft-cache-gap-proof-v40.json",
+    "QLI": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-QLI-empty-query-and-capture-reader-review-v40.json",
+    "CP": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-CP-target-dummy-draft-publication-review-v40.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-field-reconciliation-variants-v40.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v40.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "C2logicalcompleteandphysicalcompressedslotcompletionaredifferentpredicates;keepring/pageownerdomainandv25nocapacitysavingexclusion."
+  },
+  "review_v47": {
+    "hardware_dispatch": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-hardware-and-DSACP-dispatch-contract-v47.json",
+    "data_access": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/original-profile-access-status-v47.json",
+    "resource_units": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/whole-scope-resource-denominator-audit-v47.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Packed cache A5 software adaptor is not normal A3 getter;source historical A3condition does not attest current166generatedfile. Existing unchanged-SWA-anchor memory rejection remains;new whole-pool layout requires its own owner/ABI/actual memory denominator,not typed slot counts."
+  },
+  "review_v62": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-regime-models-v62.json",
+    "graph_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-graph-operator-chains-v62.json",
+    "C2_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/C2-state-and-pool-costs-v62.json",
+    "Engram_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-UVA-and-gate-costs-v62.json",
+    "operator_contracts": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-operator-contract-v62.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-fusion-variants-v62.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v62.json",
+    "relation": "276M08member/M14strictregimes13704exactnativeexecutions,13projectionoverlap808;263newregimes12896exec. 25conditional/rejectiondecisionswithsourcework/logicalIOandtypedcapacitygates,31semanticfamilies. No wholemodelcompletion.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "id": "F18_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "ring_pool": "ring_pool",
+    "compress_norm": "compress_norm"
+  },
+  "nodes": [
+    {
+      "id": "ring_pool",
+      "kind": "STATEFUL_POOL_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "compress_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "ring_pool",
+      "consumer": "compress_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "compress_proj",
+      "consumer": "ring_pool",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "score_proj",
+      "consumer": "ring_pool",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "compress_norm",
+      "consumer": "ik",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "compress_norm",
+      "consumer": "cmp_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

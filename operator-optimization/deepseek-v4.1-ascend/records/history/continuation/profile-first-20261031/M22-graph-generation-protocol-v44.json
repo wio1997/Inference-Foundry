@@ -1,0 +1,86 @@
+{
+  "generated_utc": "2026-10-31T12:55:44.753108+00:00",
+  "conditional_generation_graph": {
+    "nodes": [
+      {
+        "id": "generation_inputs_ready"
+      },
+      {
+        "id": "bank_prior_readers_complete"
+      },
+      {
+        "id": "GPU_tensor_producers"
+      },
+      {
+        "id": "CPU_native_parameter_mutators"
+      },
+      {
+        "id": "bank_generation_ready"
+      },
+      {
+        "id": "graph_replay"
+      },
+      {
+        "id": "all_output_and_plan_readers"
+      },
+      {
+        "id": "generation_retired"
+      },
+      {
+        "id": "bank_reuse"
+      }
+    ],
+    "edges": [
+      {
+        "a": "generation_inputs_ready",
+        "b": "GPU_tensor_producers",
+        "kind": "NO_STALE_FEEDBACK"
+      },
+      {
+        "a": "bank_prior_readers_complete",
+        "b": "GPU_tensor_producers",
+        "kind": "NO_WAR"
+      },
+      {
+        "a": "bank_prior_readers_complete",
+        "b": "CPU_native_parameter_mutators",
+        "kind": "HOST_COMPLETION_OR_DISTINCT_NATIVE_OBJECT"
+      },
+      {
+        "a": "GPU_tensor_producers",
+        "b": "bank_generation_ready",
+        "kind": "DEVICE_READY_EVENT"
+      },
+      {
+        "a": "CPU_native_parameter_mutators",
+        "b": "bank_generation_ready",
+        "kind": "NATIVE_EPOCH_READY"
+      },
+      {
+        "a": "bank_generation_ready",
+        "b": "graph_replay",
+        "kind": "MATCH_CAPTURED_BANK_ADDRESSES"
+      },
+      {
+        "a": "graph_replay",
+        "b": "all_output_and_plan_readers",
+        "kind": "OUTPUT_WEAKREF_LIFETIME"
+      },
+      {
+        "a": "all_output_and_plan_readers",
+        "b": "generation_retired",
+        "kind": "ALL_LAST_READERS"
+      },
+      {
+        "a": "generation_retired",
+        "b": "bank_reuse",
+        "kind": "REUSE_FENCE"
+      }
+    ]
+  },
+  "graphs_acyclic": true,
+  "native_parameter_epoch_latch_not_assumed": true,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

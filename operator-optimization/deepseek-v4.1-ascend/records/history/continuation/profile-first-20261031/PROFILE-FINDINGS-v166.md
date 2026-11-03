@@ -1,0 +1,19 @@
+# v166：设备时间、replay身份与算子工作边界
+
+本轮实际完成同一C8、32768输入/1024输出、P90负载的32份NPU-only窗口；8个请求文本与原参照逐字一致，实际前缀计数235904/262144，8192输出token，无抢占。原服务健康检查200，启动脚本恢复原SHA。全部32份元数据为NPU活动、Level0、无CPU栈/内存/PMU；原始torch.op_range总字节0，数据库CPU与PMU行数0。官方离线导出全部返回，966674条计算执行已按实际native name统计。
+
+采集成功后的控制器检查写错：16个profiler对象各复用两次，产生32份profile，检查却要求32个构造对象，触发多余恢复。原失败记录保留，独立复核按每worker1构造/2profile确认数据有效。实际发生一次计划重载和一次自动回退重载，当前没有留下live可复用profile入口。没有重采成功Case，也不把控制器错误改写成PASS。
+
+DispatchFFNCombine仍为累计任务工作时长第一，占新窗口42.44%。Level0缺失opType而保留native name，因此按记录的native name排序；AivKernel不臆拆成多个通信family。这个比例与旧68.28%来自不同采集方式、窗口长度和动态工作状态，不能当生产延迟占比、优化收益或物理MFU。
+
+现有上一批171 profile自身补出64条强关联：同线程RuntimeAPI完整嵌入唯一replay marker；marker名称与补充process UUID/graph token/capture epoch精确一致；官方connectionID再连到同model/device/pid/stream的MODEL_EXECUTE及唯一MODEL_WAIT_COMPLETE。64个scope均正常返回，105600条图内计算执行唯一落入相应原生完成范围，没有最近时间补配。这里只新增本域图身份/执行范围，不是每个captured算子的源位置、参数或全部读者，也不回填旧169/166历史。
+
+新NPU-only域另有288个原生模型完成范围、475200条图内计算执行，每范围40个DispatchFFNCombine。范围时长中位数37.03ms，最小30.44ms、最大50.45ms；这是本域原生记录，不是整个请求关键路径。此域没有Python图对象记录，不以相同model49跨cohort串接。
+
+修正了一个通信投影错误：COMMUNICATION_OP.dataType必须通过ENUM_HCCL_DATA_TYPE解释，旧STRING_IDS投影无效。新结果有14704条typed通信记录和424个唯一CPU连接/调用栈邻域，分开SP输入、最终HC、Engram及DSpark通信。group_name_N只是本地导出别名，不能凭同号当全局communicator；API count也不是wire字节。现有F26已经包含本地collapse/norm后再gather等条件变体，F32已包含投影前移，直接复用这些分析，不新增重复候选或笛卡尔配对。
+
+对记录的3行/24本地expert/K6形状建立了条件工作多面体：仅在同一语义EP16交换的所有参与者均不超过3行、24expert分区和不重复TopK6合同成立时，全球有效行不超过48、assignment不超过288、384个expert中至少96个为空。单expert最多48接收行；直接两GMM每assignment35389440MAC。一般混合prefill/decode必须用N_valid<=sum_r M_r，不能把单rank的M3套到全组。本条件未绑定到任何具体跨卡迭代；空expert不授权删除Set/Wait/SyncAll，逻辑权重域不等于HBM流量，更不是25%时间收益。条件下界仍为max_r(n_r*35389440/P_MAC_upper_r)，实际n_r与匹配物理上界继续缺失。
+
+动态attach旧尝试的前置条件另核实于启动脚本、配置和容器环境：未启用动态模式，/root及实际脚本home均无socket。/proc环境快照的空字段本身不作为当前Python环境证明。官方9.2beta1文档还说明dynamic不能与duration共用；该文档不替代本机9.2.0二进制合同。本轮已经采用实际成功的内置NPU路线，不继续变换PID重复试错。
+
+下一步沿F21内部工作/等待和实际通信邻域处理缺少的消费者、row ownership、数值与ready协议；现有profile不能定案时只定点查算子代码。全部35+7候选、26模块358行及G00—G14保留；原9/1352、849PMU、16phase、3136归属、copy/control、all-reader/物理容量与最低MFU继续open。整体为PROGRESS，未完成。

@@ -1,0 +1,105 @@
+{
+  "generated_utc": "2026-10-31T04:45:16.519807+00:00",
+  "candidate_id": "H07",
+  "analysis_only": true,
+  "graph_scope": "Source-consistent conditional data/control illustration, not a reconstructed tensor-pointer or event-complete native DAG.",
+  "baseline": {
+    "nodes": [
+      "input_id_update",
+      "clamp",
+      "external_embedding",
+      "external_TP_allreduce",
+      "persistent_buffer_copy",
+      "runtime_inputs_embeds_argument",
+      "cached_entry_call",
+      "captured_raw_ID_embedding",
+      "Engram_metadata_history",
+      "graph_body"
+    ],
+    "edges": [
+      {
+        "source": "input_id_update",
+        "target": "clamp",
+        "kind": "DATA"
+      },
+      {
+        "source": "clamp",
+        "target": "external_embedding",
+        "kind": "DATA"
+      },
+      {
+        "source": "external_embedding",
+        "target": "external_TP_allreduce",
+        "kind": "DATA"
+      },
+      {
+        "source": "external_TP_allreduce",
+        "target": "persistent_buffer_copy",
+        "kind": "DATA"
+      },
+      {
+        "source": "persistent_buffer_copy",
+        "target": "runtime_inputs_embeds_argument",
+        "kind": "DATA"
+      },
+      {
+        "source": "runtime_inputs_embeds_argument",
+        "target": "cached_entry_call",
+        "kind": "CALL_ARGUMENT_IGNORED_ONLY_FOR_EXISTING_CACHED_ENTRY"
+      },
+      {
+        "source": "clamp",
+        "target": "Engram_metadata_history",
+        "kind": "DATA_AND_STATE"
+      },
+      {
+        "source": "clamp",
+        "target": "captured_raw_ID_embedding",
+        "kind": "CAPTURED_STORAGE_INPUT_CONDITIONAL"
+      },
+      {
+        "source": "cached_entry_call",
+        "target": "captured_raw_ID_embedding",
+        "kind": "CONTROL"
+      },
+      {
+        "source": "captured_raw_ID_embedding",
+        "target": "graph_body",
+        "kind": "DATA"
+      },
+      {
+        "source": "Engram_metadata_history",
+        "target": "graph_body",
+        "kind": "METADATA_AND_STATE"
+      }
+    ]
+  },
+  "variants": [
+    {
+      "id": "H07-A",
+      "status": "CONDITIONAL;UNPRICED",
+      "transformation": "Under an existing raw-ID cached-entry and dead external-buffer-generation contract, omit only external embedding/TP collective/copy production; retain raw-ID updates/clamp, metadata/history, graph replay, all other live effects and persistent storage needed elsewhere.",
+      "eligible_observed_control_lineage_roots": 64,
+      "actually_validated_removal_roots": null,
+      "excluded_from_blanket_removal": "24 long-input roots; capture/dummy/prompt/MM/eager branches;16 graph executions without exact phase bindings.",
+      "group_condition": "Collective omission must be uniform across the affected TP8 communicator. Observed cohorts are not a future guard proof."
+    },
+    {
+      "id": "H07-B",
+      "status": "CONDITIONAL_ALTERNATIVE;UNPRICED",
+      "transformation": "A differently captured inputs_embeds-consuming graph may reuse the external producer and omit internal embedding, preserving all raw-ID consumers and capture/update lifetimes.",
+      "cannot_reuse_same_M_assumption": "B2 external extent12 differs from captured graph embedding extent24. Establish padded-tail and consumer semantics separately.",
+      "relation_to_A": "Alternative producer ownership; do not add both savings."
+    },
+    {
+      "id": "H07-C",
+      "status": "CONDITIONAL_COMMUNICATION_REORGANIZATION;UNPRICED",
+      "transformation": "Review embedding TP reduction with subsequent SP consumers as a separate redistribution candidate.",
+      "requirements": "Exact row ownership, TP/SP routing, all raw-ID/hidden consumers, padding, communicator and arithmetic contracts; no byte/count-only claim."
+    }
+  ],
+  "physical_memory_or_latency_gain": null,
+  "source_contract": "H07-primitive-and-buffer-contract-v26.json",
+  "profile_contract": "H07-exact-profile-lineage-v26.json",
+  "overall_complete": false
+}

@@ -1,0 +1,20 @@
+{
+  "status": "CONDITIONAL_CEILING",
+  "normal_domain": [
+    "For each request n_j>=1 current context rows occupy contiguous logical cache interval[s_j-n_j,s_j).",
+    "0<=r_j<=n_j;query countq_j>=1;correct shared per-group slot mapping/CP owner transform is applied to both sides.",
+    "Valid injective page maps within each request andexclusive ownership or resolved COW across requests;negative/masked slots excluded.",
+    "Source current context slots really correspond to these logical rows and loaded cachebank/writer format agrees. No such runtime operand assertion is made."
+  ],
+  "C_j": "[s_j-n_j,s_j)",
+  "Q_j": "[s_j-r_j,s_j-r_j+q_j)",
+  "intersection": "[s_j-r_j,min(s_j,s_j-r_j+q_j))",
+  "O_j": "min(r_j,q_j)",
+  "physical_per_rank": "Apply owner/local/page map;sum across the DCP owner ranks recovers O_j. Do not multiply a per-owner row count by all ranks.",
+  "arbitrary_actual_maps": "O_l=unique valid physical slot intersection(C_l,Q_l);use actual group/bank/byteextent. Formula min(r,q) need not survive invalid slots,noninjective aliases or mismatched table generations.",
+  "request_sum": "O=sum_j min(r_j,q_j) only under cross-request disjointness;otherwiseusephysicalsets and writer/read order.",
+  "DCP_inverse": "p=(local//I)*(D*I)+rank*I+local%I for an owned local slot,so logical compact map is injective.",
+  "no_reuse_of_context_KV_as_query_KV": "Even at identical slot/RoPEposition,main_norm context and current query layernorm have different hidden provenance;same W does not imply same value.",
+  "runtime_overlap_count": null,
+  "overall_complete": false
+}

@@ -1,0 +1,24 @@
+{
+  "domain": "Ordered raw rows R_p[r,j,h] and premix a_p[r,j] from same SP group and row generation; C preserves original per-row h-reduction and BF16 rounding. G concatenates rank rows in the same order then trims the same suffix.",
+  "collapse_identity": "For every retained output row k=p*M+r, C(G(R),G(a))[k,:] is exactly C(R_p[r,:,:],a_p[r,:]); hence C(G(R),G(a))=G(C(R,a)) for the same row function, including casts/rounding.",
+  "norm_identity": "G(N_p(C_p))=N_receiver(G(C_p)) only when the row-normalizer gamma/eps/numerical policy of every owner equals the receiver. The existing localC->G->globalN plan does not need this crossrank-normalizer equality premise.",
+  "final_post_identity": "P computes rounded BF16 R_j using original separate FP32 Mul/Add order. C(P(...)) may consume those rounded values locally; replacing P by unrounded partials before C is not equivalent.",
+  "padding_and_empty_domain": "Preserve exact initialized physical row range/group participation and final trim; a locally empty logical row set is not permission to drop a collective. New computations on padded rows must stay within valid storage and preserve observable numerical/error behavior.",
+  "protected_readers": [
+    "full normalized target hidden",
+    "three pre-layer aux mean tensors",
+    "draft raw collapsed hidden for confidence",
+    "last post input residual,post/comb/final premix"
+  ],
+  "native_kernel_batchshape_or_tiling_equivalence_attested": false,
+  "formal_solver_or_device_test": false,
+  "overall_complete": false,
+  "remaining_raw_observer_and_lifetime_guards": [
+    "Direct Ascend v1 DSpark drafter-content question was answered at v11; it does not close all snapshot observers.",
+    "No additional registered/external/native content observer may require the removed snapshot or final Post output; this is still an open applicability guard.",
+    "Preserve exact active implementation/method, parameter epochs, output aliases, graph buffer addresses and last-reader/event/lifetime contracts; loaded historical bytes are not attested.",
+    "For no-buffer/localization, also preserve all normalized-output readers, TP group/order/pad/trim/readiness and native changed-shape reduction/rounding policy."
+  ],
+  "all_snapshot_observers_closed": false,
+  "prior_direct_drafter_content_answer_v11": true
+}

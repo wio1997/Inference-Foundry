@@ -1,0 +1,156 @@
+"""Named raw-HC value-reader closure for the pinned DSpark serving pipeline."""
+from pathlib import Path
+from collections import defaultdict,Counter
+from statistics import median
+from itertools import product
+import ast,hashlib,re,subprocess,zipfile
+from finalize_origin_coverage_v9 import O,W,read,write
+from mirror_saved_profile_core_v53 import CACHE
+from analyze_state_engram_v62 import dimensions
+
+
+def stats(values):
+    return dict(n=len(values),minimum=min(values),median=median(values),maximum=max(values))if values else None
+
+
+def main():
+    assert not(O/'DSpark-tail-reader-closure-v85.json').exists()
+    frozen=W/'frozen-source-snapshot'
+    specs=[
+      ('vllm-ascend/vllm_ascend/models/deepseek_v41/model.py',[(852,856),(974,988),(1554,1564),(1592,1608),(1798,1802)]),
+      ('vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py',[(277,287)]),
+      ('vllm-ascend/vllm_ascend/worker/model_runner_v1.py',[(750,766),(2052,2092)]),
+      ('vllm/vllm/config/speculative.py',[(1909,1913),(1922,1929)]),
+      ('vllm/vllm/v1/worker/gpu_model_runner.py',[(5207,5229)]),
+      ('vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py',[(1048,1077)]),
+      ('vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py',[(281,282)]),
+      ('vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py',[(257,259)])]
+    archive=W/'frozen-sources.zip';archive_hash=hashlib.sha256(archive.read_bytes()).hexdigest()
+    assert archive_hash=='ce1c110c6a558c4ce736495fb843312571a9510a5755f20b0576a3018d9570b9'
+    sources=[]
+    with zipfile.ZipFile(archive)as bundle:
+        for relative,ranges in specs:
+            path=frozen/relative;blob=path.read_bytes();lines=blob.decode().splitlines()
+            members=[m for m in bundle.namelist()if m.endswith('/'+relative)or m==relative]
+            assert len(members)==1,(relative,members)
+            assert bundle.read(members[0])==blob
+            sources.append(dict(path=str(path),sha256=hashlib.sha256(blob).hexdigest(),bytes=len(blob),archive_member=members[0],
+                clauses=[dict(first=a,last=z,source=lines[a-1:z])for a,z in ranges]))
+    search=subprocess.run(['rg','-n','_mtp_hidden_buffer|get_mtp_target_hidden_states',str(frozen)],text=True,capture_output=True)
+    assert search.returncode==0
+    hits=[]
+    for line in search.stdout.splitlines():
+        path,number,text=line.split(':',2);hits.append(dict(path=path,line=int(number),source=text))
+    hit_paths={h['path']for h in hits}
+    # The speculative config defines the guard but does not reference the buffer/getter.
+    expected_paths={str(frozen/specs[i][0])for i in[0,1,2,4]}
+    assert hit_paths==expected_paths
+    # Prove the two local consumers of the getter result are under method=mtp.
+    worker=frozen/'vllm-ascend/vllm_ascend/worker/model_runner_v1.py'
+    tree=ast.parse(worker.read_text());parents={child:parent for parent in ast.walk(tree)for child in ast.iter_child_nodes(parent)}
+    loads=[n for n in ast.walk(tree)if isinstance(n,ast.Name)and n.id=='mtp_hidden_states'and isinstance(n.ctx,ast.Load)]
+    assert {n.lineno for n in loads}=={2059,2060}
+    conditional=next(n for n in ast.walk(tree)if isinstance(n,ast.If)and n.lineno==2059)
+    condition_source=ast.get_source_segment(worker.read_text(),conditional.test)
+    assert '"mtp"'in condition_source or "'mtp'"in condition_source
+    assert isinstance(conditional.test,ast.BoolOp)and isinstance(conditional.test.op,ast.And)
+    assign=next(n for n in conditional.body if isinstance(n,ast.Assign))
+    assert isinstance(assign.value,ast.Name)and assign.value.id=='mtp_hidden_states'
+    assert any(isinstance(t,ast.Name)and t.id=='hidden_states'for t in assign.targets)
+    # The direct callee namespaces are retained as provenance, not a general framework audit.
+    spec_tree=ast.parse((frozen/'vllm/vllm/config/speculative.py').read_text())
+    eagle=next(n for n in ast.walk(spec_tree)if isinstance(n,ast.FunctionDef)and n.name=='use_eagle')
+    eagle_methods=ast.literal_eval(eagle.body[-1].value.comparators[0]);assert 'dspark'in eagle_methods
+    serve=CACHE/'runtime/scripts/serve.sh';text=serve.read_text()
+    config_match=re.search(r'--speculative-config\s+\x27([^\x27]+)\x27',text);assert config_match
+    import json
+    spec=json.loads(config_match.group(1));assert spec['method']=='dspark'and spec['num_speculative_tokens']==5
+    capacity=int(re.search(r'--max-num-batched-tokens\s+(\d+)',text).group(1));assert capacity==8192
+    tp=int(re.search(r'--tensor-parallel-size\s+(\d+)',text).group(1));assert tp==8
+    guard_cases=[]
+    for buffer_exists,is_mtp,aux in product([False,True],repeat=3):
+        guard_cases.append(dict(buffer_exists=buffer_exists,method_is_mtp=is_mtp,aux_output_path=aux,
+            Ascend_getter_result_rebinds_hidden=buffer_exists and is_mtp,
+            raw_values_reach_drafter_via_this_argument=buffer_exists and is_mtp and not aux,
+            runtime_hit_claimed=False))
+    write(O/'DSpark-tail-source-index-v85.json',dict(source_files=sources,
+        original_archive=dict(path=str(archive),sha256=archive_hash),symbol_reference_inventory=hits,
+        exact_named_search_scope=str(frozen),search_is_not_framework_catalog_audit=True,
+        saved_runtime_script=dict(path=str(serve),sha256=hashlib.sha256(serve.read_bytes()).hexdigest(),bytes=serve.stat().st_size,
+            selected_arguments=dict(spec_method=spec['method'],num_speculative_tokens=spec['num_speculative_tokens'],max_num_batched_tokens=capacity,TP=tp)),
+        reused_local_operator_reader_files=len(sources),new_target_source_files_obtained=0,new_remote_source_read=False,overall_complete=False))
+    write(O/'DSpark-tail-reader-closure-v85.json',dict(
+        decision='SOURCE_VALUE_READER_CLOSURE_IN_STATED_FROZEN_DSPARK_SERVING_PIPELINE',
+        scope='Pinned normal Ascend serving method=dspark, DSpark auxiliary-output path, model API returns normalized2D hidden plus3aux means. Excludes out-of-band getter clients/custom hooks, other methods and unbound runtime code replacements; not an assertion about arbitrary public API callers.',
+        proof=[
+          'Constructor allocates rawHC buffer for use_eagle() OR uses_draft_model(); use_eagle includes dspark, so allocation guard is broader than the Ascend getter-consumption guard.',
+          'Model copies pre-collapse HC into this buffer. Named references elsewhere are only delegated getter and two runner callsites; current Ascend local result is loaded only in method==mtp guarded rebind.',
+          'Saved serve method is dspark, so this guarded value flow is inactive. Ascend constructor independently forces auxiliary outputs true for DSpark; drafter context argument is selected3aux concatenation, then main_proj/main_norm.',
+          'GPU base caller can consume getter output in nonaux paths and is preserved as another scope; it is not a basis for declaring all methods raw-dead.',
+          'Buffer presence also chooses tail control flow. Removing the copy alone leaves rawHC/premix gathers; switching buffer representation toNone enables existing localcollapse->collapsedAG branch. These are separate rewrites.',
+          'The normalized target output, all3checkpoint means and draft raw hidden used by confidence remain live. Current final HC residual has no further model value reader after collapse once the scoped raw snapshot is removed.'
+        ],
+        current_source_aux_output_forced=True,current_method_is_mtp=False,raw_buffer_source_value_read_in_this_pipeline=False,
+        buffer_presence_has_control_effect=True,allocation_capacity_rows=capacity,
+        BF16_full_HC_buffer_requested_bytes=capacity*4*5120*2,
+        allocated_or_reclaimable_physical_memory_measured=False,
+        eight_consumer_guard_cases=guard_cases,native_aliases_or_loaded_binary_observers_proved=False,
+        numerical_repartition_or_new_graph_legality_proved=False,whole_module_closed=False,overall_complete=False))
+    tails=read(O/'heads-sampling-native-chains-v65.json')['target_tails'];assert len(tails)==104
+    operations=read(O/'communication-native-operator-population-v66.json')['operations']
+    selected=[r for r in operations if r['semantic_role']in['MTP_FULL_HC_STATE_ALLGATHER','MTP_FP32_PREMIX_ALLGATHER']]
+    assert len(selected)==208
+    typed=[]
+    for op in selected:
+        divisor=20480 if op['semantic_role']=='MTP_FULL_HC_STATE_ALLGATHER'else 4
+        assert op['count']%divisor==0 and op['rankSize']==8
+        local_rows=op['count']//divisor
+        typed.append(dict(**op,local_rows_from_actual_count=local_rows,physical_gather_rows=8*local_rows,
+            count_is_per_rank_input=True,not_physical_wire_or_tensor_alias_proof=True))
+    graph_comm=defaultdict(dict)
+    for op in typed:
+        if op.get('graph_ordinal')is not None:graph_comm[(op['database_index'],op['graph_ordinal'])][op['semantic_role']]=op
+    assignments=defaultdict(dict)
+    for a in read(CACHE/'analysis/native-PMU-complete-v18/resource-functional-attribution-and-uncertainty-v20-v3.json')['execution_assignments']:
+        assignments[a[0]][a[1]]=a
+    graph_tails=defaultdict(list)
+    for t in tails:
+        if t.get('graph_ordinal')is not None:graph_tails[t['database_index']].append(t)
+    bound=[]
+    for db,rows in graph_tails.items():
+        native=read(CACHE/f'analysis/native-execution-identity-v14/db-{db:02d}.json')
+        defs={r['globalTaskId']:r for r in native['COMPUTE_definitions']};tasks={r['task_record_rowid']:r for r in native['TASK_records']}
+        groups=defaultdict(list)
+        for tid,a in assignments[db].items():
+            if a[2]=='GRAPH'and a[9]==39:groups[a[8]].append((tasks[tid],defs[tasks[tid]['globalTaskId']]))
+        for tail in rows:
+            key=(db,tail['graph_ordinal']);comm=graph_comm[key]
+            raw=comm['MTP_FULL_HC_STATE_ALLGATHER'];mix=comm['MTP_FP32_PREMIX_ALLGATHER']
+            assert raw['group_name']==mix['group_name']and raw['local_rows_from_actual_count']==mix['local_rows_from_actual_count']==3
+            posts=sorted([r for r in groups[tail['graph_ordinal']]if r[1]['opType_text']=='HcPost'],key=lambda r:r[0]['startNs'])
+            merges=[r for r in groups[tail['graph_ordinal']]if r[1]['opType_text']=='ForeachAddList']
+            assert len(posts)==2 and len(merges)==1
+            copy=tasks[tail['stages'][0]['TASK_rowid']];definition=defs[copy['globalTaskId']]
+            assert definition['opType_text']=='TensorMove'and definition['outputDataTypes_text']=='DT_BF16'
+            assert dimensions(definition['outputShapes_text'])[0]==[24,20480]
+            bound.append(dict(database_index=db,graph_ordinal=tail['graph_ordinal'],root_bound=tail['root_bound'],
+                layer=39,local_M=3,gather_N=24,last_shared_routed_merge_TASK=merges[0][0]['task_record_rowid'],
+                last_FFN_HcPost_TASK=posts[-1][0]['task_record_rowid'],raw_HC_COMM_OP_rowid=raw['COMM_OP_rowid'],
+                premix_COMM_OP_rowid=mix['COMM_OP_rowid'],snapshot_copy_TASK=copy['task_record_rowid'],
+                snapshot_copy_duration_ns=copy['endNs']-copy['startNs'],tail_TASKs=tail['stages'],
+                grade='EXACT_GRAPH_KEY+LAST_BLOCK_ROLE+TYPED_SHAPES_AND_SOURCE_SCHEMA;NO_POINTER_OR_CRITICAL_PATH_GAIN'))
+    assert len(bound)==80 and sum(r['root_bound']for r in bound)==64
+    write(O/'DSpark-tail-native-boundaries-v85.json',dict(graph_boundaries=bound,graph_count=80,root_bound_graphs=64,phase_unbound_graphs=16,
+        all_target_tail_groups=104,target_tail_N_counts=dict(Counter(str(t['N'])for t in tails)),
+        raw_HC_and_premix_operations=typed,raw_HC_AG_count=104,premix_AG_count=104,
+        direct_raw_HC_AG_without_ComputeInfo=sum(r['semantic_role']=='MTP_FULL_HC_STATE_ALLGATHER'and r['TASK_rowid']is None for r in typed),
+        root_bound_snapshot_copy_ns=stats([r['snapshot_copy_duration_ns']for r in bound if r['root_bound']]),
+        target_tail_snapshot_dtype='BF16',actual_valid_rows_or_I_values_unrecorded=True,
+        important_row_domain='ObservedtargettailphysicalN6672differsfromcontextmainM6668andotheroutputdomains;do not force those row sets equal.',
+        no_new_device_or_capture_work=True,global_uncertainty_849_16_3136_preserved=True,overall_complete=False))
+    print(dict(source_value_reader_closure='FIXED_DSPARK_PIPELINE',source_files=len(sources),symbol_files=len(hit_paths),
+        snapshot_capacity_bytes=capacity*4*5120*2,target_tails=104,tail_AG_ops=208,graph_lastmerge_post_tail=[80,64,16],
+        numerical_repartition_or_physical_gain_proved=False))
+
+
+if __name__=='__main__':main()

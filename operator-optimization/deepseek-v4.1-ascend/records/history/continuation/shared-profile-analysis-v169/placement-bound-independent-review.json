@@ -1,0 +1,72 @@
+{
+  "status": "ANALYTIC_PROXY_BOUNDS_REVIEWED_IN_STATED_DOMAINS",
+  "scope": "Necessary placement/replica resource bounds,not physical time or achievable speedup. Crossrank data application remains conditional on cohortidentity/order premises.",
+  "proofs": [
+    {
+      "name": "Whole expert row-makespan lower bound",
+      "domain": "E nonnegative indivisible expert workloads n_e,each assigned tooneofp ranks;fixedperrankexpertcapacity onlynarrows admissibleplacements.",
+      "derivation": "For sorted w_k,one rank mustown at leastceil(k/p) ofthetopkexperts,so maxload>=ceil(k/p)*w_k. Also maxload>=ceil(sum n_e/p). Take maximum of allnecessarybounds.",
+      "ratio_direction": "Ifproxyoptimum>=L>0,then current/optimum<=current/L. No exhibitedfeasibleplacement is inverted."
+    },
+    {
+      "name": "Active expert reference lower bound",
+      "domain": "Eachactiveexpert remainsone whole owner andlogicalmatrixpair isreferencedonceperactiveexpert inthiscostproxy.",
+      "derivation": "A activeexperts distributedoverp ranks force maxactive>=ceil(A/p). Referenced coefficients are not necessarily HBMtraffic."
+    },
+    {
+      "name": "Full-pair row-splitting replica lower bound",
+      "domain": "Eachcopycontainsfulluncompressed W1/W2 expertpair;atmostbtotalrowsperrank;originalonecopy/expertretained;no compression,eviction,axis sharding orcross-expert/layer dedup.",
+      "derivation": "Onecopy canserveatmostbrows,so c_e>=ceil(n_e/b). A staticlayout mustsatisfyeverycall,so c_e>=max(1,max_tceil(n_e,t/b_t)).",
+      "necessary_not_sufficient": "Copiesmaystillbeunplaceable orfailjointnumerical/control/memoryconstraints;theboundisnot a construction."
+    }
+  ],
+  "matrix_constants": {
+    "H": 5120,
+    "D": 2304,
+    "direct_MAC_per_assignment": "H*(2D)+D*H=35389440 MAC",
+    "full_INT8_weight_pair_bytes": "(H*2D+D*H)*1B=35389440 B",
+    "scales_biases_padding": "Omittedfromreplicabytestightening;onlymakesactualstoragehigher."
+  },
+  "independent_small_model_check": {
+    "two_ranks_four_experts_loads_0through3": 256,
+    "row_splitting_cases": 256,
+    "all_lower_bounds_valid": true,
+    "strict_replica_examples": [
+      {
+        "weights": [
+          0,
+          2,
+          2,
+          2
+        ],
+        "per_rank_row_cap": 3,
+        "replica_extra_pair_LB": 0,
+        "true_min_extra_pairs_in_two_rank_model": 1
+      },
+      {
+        "weights": [
+          0,
+          2,
+          3,
+          3
+        ],
+        "per_rank_row_cap": 4,
+        "replica_extra_pair_LB": 0,
+        "true_min_extra_pairs_in_two_rank_model": 1
+      },
+      {
+        "weights": [
+          0,
+          3,
+          2,
+          3
+        ],
+        "per_rank_row_cap": 4,
+        "replica_extra_pair_LB": 0,
+        "true_min_extra_pairs_in_two_rank_model": 1
+      }
+    ],
+    "is_general_formal_verification": false
+  },
+  "overall_complete": false
+}

@@ -1,0 +1,19 @@
+本轮有实质进展，整体仍未完成。先读取保存profile运行配置，再对影响解释的三个文件做定点取证；没有运行模型/NPU、修改源码或服务。
+
+上轮“共享专家为何全部在MC2之后、同stream执行”的具体问题已在固定配置与源码契约下回答。保存的原始serve脚本和profiler脚本均设置enable_fused_mc2=1、enable_shared_expert_dp=true、FULL_DECODE_ONLY。未显式设置共享多流重叠开关，但本轮没有仅凭“缺失”把它当False：精确源码确认multistream_overlap_shared_expert默认False，而且derive_and_validate在enable_fused_mc2=1时会将请求开启的该开关强制设回False。工厂在发布配置单例前调用这个校验。
+
+因此，在保持当前MC2设置时只请求打开重叠开关，并不能进入现有共享异步路径。这个实现限制不是所有未来融合/重组算法的数学不可能性，也不意味着删除guard就已经可行。
+
+配置与profile调用栈形成了闭合解释：AscendSharedExperts从配置复制开关；关闭时runner的prepare返回None，先执行routed.forward_impl，再走528行的shared.forward。保存的12条直接shared调用链、5,087次执行全部经过528 fallback；另1次精确队列桥接的gate/up也经过该路径，合计覆盖5,088次原生四阶段计算执行。它们与已核对的80图、3,200层块全部共享阶段after-MC2/same-TASK-stream一致。本轮没有宣称读到了历史运行对象中的布尔字段，而是明确区分保存配置、精确源码与实际分支调用栈。
+
+这使“capture单独意外串行化”或“硬件根本不能并发”不再是解释当前无重叠所必需的假设。未来开启路径是否受graph/事件或资源占用限制仍未验证；当前低MAC周期比例也没有由这个guard解释完毕，MC2内部等待原因仍独立开放。
+
+为F20–F23补齐四个分析域：当前MC2+serial shared基线；更换routed后端后使用现有shared多流能力；保留MC2但引入新的兼容重叠/融合实现；以及共享专家混合放置的另一条件域。后两者仅登记约束，没有设计或实现。更换后端会改变dispatch/GMM/量化/collective成本，不能沿用原MC2时长再叠加“免费隐藏shared”的收益。mix_placement还与shared DP或shared overlap互斥，当前DP=true不能直接与它组合。
+
+共享专家条件台账新增11项，另有16个仅覆盖这两条配置约束的布尔子用例、8个layout-mode子用例。物理TP group大小与routed局部tp_size不同；SP+复制权重、SP-only、local-DP和普通TP有不同输入分片/gather、输出归约和join条件。Kimi/latent-transform的guard只控制early-gather及deferred-output接口，不是全局shared重叠开关，不能拿它的注释直接断言DeepSeek没有相关能力。
+
+数值与事件边界也已记录：W8A8 INT路径保留输入scale、SwiGLU clamp/硬件参数、activation量化及down输出dtype；存在细粒度routed阶段事件时，activation/down分别等待相应milestone；缺少必须的event会报错。源码关于MC2没有中间事件而可运行独立aux workload的注释，并不能覆盖配置层的MC2互斥限制。ACL Graph下输出join使用wait_stream，还需保留consumer和buffer代际。
+
+开启选项会安装加载期数值检查，但检查只使用10行[-1,1]随机输入、torch.allclose比较split与integrated计算；它不是所有shape/输入/异步生命周期的证明，本轮也未执行该设备检查。其他量化类型及active-LoRA的wrapper路径单独列为条件，未冒充本次W8A8捕获事实。
+
+主台账仍为33项模型候选、7项框架候选；一个具体profile解释缺口已关闭，26模块的完整条件/消费者/理论比较仍未全部闭合。当前166 EngineCore成本、物理拓扑、MC2内部时序、F33/H07及状态生命周期等范围继续保留。Goal保持active，最后健康观测仍是旧v12post，没有新健康或空闲声明。

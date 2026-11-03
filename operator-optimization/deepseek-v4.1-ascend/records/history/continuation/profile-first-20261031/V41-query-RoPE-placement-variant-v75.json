@@ -1,0 +1,34 @@
+{
+  "candidate": "F07",
+  "related_candidates": [
+    "F06",
+    "F08",
+    "F13"
+  ],
+  "variant_id": "F07-QUERY-ROPE-BEFORE-KV-JOIN",
+  "current_source_sequence": [
+    "query C/S prepared",
+    "QB matmul",
+    "KV aux-stream join",
+    "query RoPE",
+    "index/compression/attention consumers"
+  ],
+  "candidate_sequence": [
+    "query C/S prepared",
+    "QB completion",
+    "query RoPE",
+    "KV aux-stream join before actual KV-dependent consumers"
+  ],
+  "related_existing_variant": "QB-RoPE epilogue fusion;this scheduling subvariant can be evaluated separately from replacing the GEMM kernel.",
+  "new_main_candidate": false,
+  "conditions": [
+    "Positive query rows and unchanged source BF16/RINT values",
+    "Fresh/live q versus KV/cache write alias and C/S/table-generation proof",
+    "All other query observers see identical readiness/publication",
+    "Same global collective participation/order;no-query cache work retained",
+    "Price Vector/memory sharing with KV norm/RoPE/scatter and actual queue/graph-capture protocol"
+  ],
+  "implementation": false,
+  "actual_measured_speedup": null,
+  "overall_complete": false
+}

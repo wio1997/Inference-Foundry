@@ -1,0 +1,303 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-11-02T13:50:53Z",
+  "context_policy": {
+    "max_knowledge": 20,
+    "max_loops": 5,
+    "max_cases": 12,
+    "dtype_filter": null,
+    "case_group_filter": null,
+    "raw_runs_loaded": false
+  },
+  "task": {
+    "task_dir": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage",
+    "task_id": "whole-opportunity-coverage",
+    "title": "指定冻结场景的整体优化机会完整覆盖",
+    "goal": "完整分析全部模块、条件分支与跨算子/层/卡/迭代融合拆分重组；建立完整覆盖台账并补齐影响判断的证据，未分析范围不得以报告成稿替代完成",
+    "operator": "DeepSeek V4.1 Flash W8A8 whole inference graph and state",
+    "framework": "vLLM-Ascend",
+    "source_root": "/Users/wio/work/169-vllm-ascend-reproduce-172",
+    "status": "ACTIVE",
+    "phase": "DEFINED",
+    "evidence_level": "E1_RUNNABLE",
+    "active_loop": "loop-004",
+    "next_action": "继续原完整全模块目标与Loop004，按共享算子证据问题推进，不把383旧关系行当383逐对任务。v159已核对142个检查点分片header、143324个索引声明和143330个物理条目；80主层/6MTP的WO_A/B均为BF16，FLOAT量化类别不是FP32存储。6个Engram同名条目在基础/extra分片均出现，值相等和实际load胜出者尚未证明；下一步优先定点核对这6个值域，避免无关框架研究。精确声明TorchNPU提交和3份已安装/缓存Python字节匹配显示：正常CPU回调内，输入细节需要record_shapes&&(with_stack||with_modules)&&profile_memory；record_op_args不在此Torch细节门内，但另有CANN配置转发。复用内置TensorImpl/存储基址/类型/元素大小/shape/stride/device字段，不重写全量tensor logger；storage_offset、实际storage范围/格式、分配和更新代次、实际标量/列表/掩码值、原生任务桥和全部读者仍需补证。P3先核对实际CANN9.2 provider/头文件/ELF及v127 ABI与bypass边界，再准备有界验证；旧109/120单次探针授权不扩展成新的诊断授权。80capturedBOOL的creation/update证据与1272eagerHostArgs入口不可替代。171已单独完成迁移，当前普通模型启动/单次生成由本次继续指令授权；其正常初始化及图运行不是v159字段取证，也不是新诊断profile或完整C8输入32k输出1k前缀90%测量。原169/166-105 profile继续保留原主机和run身份，迁移和新单次生成不回填旧9/1352。全部35+7候选、26模块358行及分支穷尽性、849PMU、16phase、3136归属、G14 copy/control、原生数值/读者/物理容量与最低MFU结论仍未闭合；不能因报告/清单成稿标记完成。",
+    "blockers": [],
+    "skill_route": {
+      "coordinator": "operator-task-loop",
+      "decision": null,
+      "execution": "none"
+    }
+  },
+  "case_summary": {
+    "total": 5,
+    "groups": {
+      "frozen-end-to-end": 1,
+      "frozen-end-to-end-166": 1,
+      "frozen-end-to-end-171": 1,
+      "runtime-bringup-171": 1,
+      "bounded-provider-capability-171": 1
+    },
+    "selected": [
+      {
+        "id": "bringup-one-chat-171",
+        "shape": [
+          1,
+          40
+        ],
+        "numel": 40,
+        "dtype": "token IDs; model mixed precision",
+        "layout": "TP8 DP2 EP16",
+        "attributes": {
+          "max_output_tokens": 128,
+          "actual_output_tokens": 26,
+          "answer": "2",
+          "prompt": "请直接回答：1加1等于几？",
+          "temperature": 0,
+          "scope": "One health/model-registration/basic-generation check only; not full accuracy or performance."
+        },
+        "weight": 1.0,
+        "group": "runtime-bringup-171",
+        "protected": true,
+        "reason": "单次基础生成单独登记，不能替代完整负载性能或模型精度验收。",
+        "created_at": "2026-11-02T13:50:53Z",
+        "updated_at": "2026-11-02T13:50:53Z"
+      },
+      {
+        "id": "c8-input32k-output1k-prefix90",
+        "shape": [
+          8,
+          32768
+        ],
+        "numel": 262144,
+        "dtype": "token IDs; internal W8A8/BF16/FP32",
+        "layout": "TP8xDP2; frozen implementation-specific layouts",
+        "attributes": {
+          "output_tokens_per_request": 1024,
+          "prefix_hit_target": 0.9,
+          "hardware": "169 Ascend 910C logical16",
+          "vllm_commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+          "ascend_commit": "8fde6d4e335fe300e2b949aab0e31659cce0811d",
+          "correctness": "preserve frozen numerical, cache, alias, RNG and collective semantics; no optimization implementation claimed"
+        },
+        "weight": 1.0,
+        "group": "frozen-end-to-end",
+        "protected": true,
+        "reason": "用户指定负载；shape仅指输入token矩阵，输出长度与缓存条件独立登记",
+        "created_at": "2026-10-30T11:39:52Z",
+        "updated_at": "2026-10-30T11:39:52Z"
+      },
+      {
+        "id": "c8-input32k-output1k-prefix90-166",
+        "shape": [
+          8,
+          32768
+        ],
+        "numel": 262144,
+        "dtype": "token IDs; internal W8A8/BF16/FP32",
+        "layout": "TP8xDP2 EP16",
+        "attributes": {
+          "output_tokens_per_request": 1024,
+          "prefix_queries": 262144,
+          "prefix_hits": 235904,
+          "hardware": "asset10.55.0.166 actual105 Ascend910C/A3 logical16",
+          "CANN": "9.2.0",
+          "vllm_commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+          "ascend_commit": "8fde6d4e335fe300e2b949aab0e31659cce0811d",
+          "driver_firmware_variation_accepted_by_user": true,
+          "semantics": "Same frozen weights/input/serve/config; measurements retain host identity; no speedup inferred from one reference"
+        },
+        "weight": 1.0,
+        "group": "frozen-end-to-end-166",
+        "protected": true,
+        "reason": "用户迁移到166继续原任务，明确接受驱动固件不同、要求CANN一致；保留169历史用例。",
+        "created_at": "2026-10-30T15:30:38Z",
+        "updated_at": "2026-10-30T15:30:38Z"
+      },
+      {
+        "id": "c8-input32k-output1k-prefix90-171",
+        "shape": [
+          8,
+          32768
+        ],
+        "numel": 262144,
+        "dtype": "token IDs; internal W8A8/BF16/FP32",
+        "layout": "TP8 DP2 EP16",
+        "attributes": {
+          "output_tokens_per_request": 1024,
+          "prefix_hit_target": 0.9,
+          "hardware": "172.16.10.171 Ascend910C/A3 logical16",
+          "CANN": "9.2.0",
+          "vllm_commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+          "ascend_commit": "8fde6d4e335fe300e2b949aab0e31659cce0811d",
+          "full_case_on_171_status": "NOT_MEASURED",
+          "driver_firmware_variation_accepted_by_user": true,
+          "semantics": "Preserve frozen numerical/cache/RNG/collective/alias/state contracts; no implementation changes."
+        },
+        "weight": 1.0,
+        "group": "frozen-end-to-end-171",
+        "protected": true,
+        "reason": "用户迁移至171继续原整体目标；保存独立硬件身份，未运行完整Case。",
+        "created_at": "2026-11-02T13:50:53Z",
+        "updated_at": "2026-11-02T13:50:53Z"
+      },
+      {
+        "id": "provider-pad20-view-offset1-171",
+        "shape": [
+          20
+        ],
+        "numel": 20,
+        "dtype": "BOOL",
+        "layout": "strided contiguous view, storage_offset=1",
+        "attributes": {
+          "device": 0,
+          "input_owner_shape": [
+            21
+          ],
+          "storage_offset": 1,
+          "outputs": [
+            [
+              24
+            ],
+            [
+              24
+            ]
+          ],
+          "application_NPU_tensor_bytes": 69,
+          "runtime_context_workspace_overhead_separate": true,
+          "CPU_profiler_sessions": 2,
+          "profile_memory_control": false,
+          "profile_memory_observed": true,
+          "record_shapes": true,
+          "with_stack": true,
+          "NPU_profiler_activity": false,
+          "model_loads_in_probe": 0,
+          "graph_capture": false,
+          "graph_replay": false,
+          "native_attempts": 1,
+          "native_record_limit": 2,
+          "packet_limit_bytes": 4096,
+          "timeout_seconds": 45,
+          "diagnostic_limit_bytes": 8388608
+        },
+        "weight": 1.0,
+        "group": "bounded-provider-capability-171",
+        "protected": true,
+        "reason": "本次单独授权的联合最小探针；原模型历史任务不回填。",
+        "created_at": "2026-11-02T13:50:53Z",
+        "updated_at": "2026-11-02T13:50:53Z"
+      }
+    ]
+  },
+  "baseline_summary": [],
+  "knowledge_summary": {
+    "total": 1,
+    "selected": [
+      {
+        "id": "K166-OBSERVED-MOE-COUNT-IDENTITY",
+        "kind": "fact",
+        "statement": "166CANN9.2有界观察中296组×16rank的逐专家计数与同调用mask/topk直方图完全一致；正式C8能绑定87组、覆盖40target+3draft。prefix seeds169组与phase未定graph40组分开，原服务已恢复；不推导旧169同调用时延/全迭代覆盖。",
+        "status": "accepted",
+        "confidence": "high",
+        "scope": {
+          "case": "c8-input32k-output1k-prefix90-166",
+          "observed_only": true,
+          "phase_gap": true,
+          "no_timing_join": true
+        },
+        "supporting_evidence": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/local-observation-contract166.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "loop-003",
+        "staged_at": "2026-10-30T16:37:19Z",
+        "verdict": "ACCEPTED",
+        "updated_at": "2026-10-30T16:37:20Z"
+      }
+    ]
+  },
+  "recent_loops": [
+    {
+      "loop_id": "loop-001",
+      "title": "补全源码依据并建立模块分支与状态覆盖底账",
+      "mode": "spec",
+      "cases": [
+        "c8-input32k-output1k-prefix90"
+      ],
+      "hypothesis": "旧图与本机选存源码未覆盖全部运行栈；冻结源的模块/分支/调用/状态清点可给出实际未覆盖入口并指导逐项语义审阅",
+      "verdict": "ACCEPTED",
+      "reason": "这里只满足Loop001冻结的局部门槛（不是Task或全局Goal）：固定源码身份、模块/分支/状态ID底账，且新增初始化/尾部/MoE局部语义合同。573索引、47局部合同和19状态边均不是语义穷尽，0整模块关闭，整体目标未完成。",
+      "evidence_paths": [
+        "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/recovery-checkpoint-v4-verification.json",
+        "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/MOE-COUNTER-CONTRACT.md"
+      ],
+      "decided_at": "2026-10-30T15:31:28Z"
+    },
+    {
+      "loop_id": "loop-002",
+      "title": "166同调用MoE专家计数与有效路由证据",
+      "mode": "correctness",
+      "cases": [
+        "c8-input32k-output1k-prefix90-166"
+      ],
+      "hypothesis": "已验证的TensorList graph observer可在隔离诊断入口中读取实际FusedExpertsResult计数、mask、topk和调用序号，避免capture常量及跨层共享buffer覆盖误读；不改变模型返回值。",
+      "verdict": "PIVOTED",
+      "reason": "合成graph helper与全负载参照有效，但模型取证入口的额外512行断言不成立为通用调用前提；源selector可无num_tokens检查进入custom FUSED。首轮未得到有效模型计数，原服务已恢复。修订形状域与ownership非原子采样处理后建立派生Loop。",
+      "evidence_paths": [
+        "/Users/wio/work/166-vllm-analysis-continuation-20261030/observer-failure166.json",
+        "/Users/wio/work/166-vllm-analysis-continuation-20261030/RETRY-CORRECTION.json"
+      ],
+      "decided_at": "2026-10-30T16:03:15Z"
+    },
+    {
+      "loop_id": "loop-003",
+      "title": "扩展启动与请求形状域的166同调用MoE取证",
+      "mode": "correctness",
+      "cases": [
+        "c8-input32k-output1k-prefix90-166"
+      ],
+      "hypothesis": "取证范围按实际配置和显式资源预算定义，512容量常数不作调用硬上限；同一返回点TensorList可保留真实计数/mask/topk/ordinal并支持跨rank路由守恒复核。",
+      "verdict": "ACCEPTED",
+      "reason": "只满足本Loop有限观察合同：真实TensorList快照、同调用组守恒、实际容量65536与custom分支、各层/rank样本身份及恢复均已复核；正式C8样本87组覆盖43层。未覆盖全部迭代，40组graph的阶段未定，缺口继续保留；whole_modules_closed=0，整体Goal未完成。",
+      "evidence_paths": [
+        "/Users/wio/work/166-vllm-analysis-continuation-20261030/local-observation-contract166.json",
+        "/Users/wio/work/166-vllm-analysis-continuation-20261030/observer-phase-audit166.json"
+      ],
+      "decided_at": "2026-10-30T16:37:20Z"
+    }
+  ],
+  "active_loop_summary": {
+    "loop_id": "loop-004",
+    "title": "Profile主导的全模块融合候选证据分级",
+    "mode": "spec",
+    "status": "EVALUATING",
+    "verdict": "PENDING",
+    "reason": "",
+    "next_action": "继续原完整全模块目标与Loop004，按共享算子证据问题推进，不把383旧关系行当383逐对任务。v159已核对142个检查点分片header、143324个索引声明和143330个物理条目；80主层/6MTP的WO_A/B均为BF16，FLOAT量化类别不是FP32存储。6个Engram同名条目在基础/extra分片均出现，值相等和实际load胜出者尚未证明；下一步优先定点核对这6个值域，避免无关框架研究。精确声明TorchNPU提交和3份已安装/缓存Python字节匹配显示：正常CPU回调内，输入细节需要record_shapes&&(with_stack||with_modules)&&profile_memory；record_op_args不在此Torch细节门内，但另有CANN配置转发。复用内置TensorImpl/存储基址/类型/元素大小/shape/stride/device字段，不重写全量tensor logger；storage_offset、实际storage范围/格式、分配和更新代次、实际标量/列表/掩码值、原生任务桥和全部读者仍需补证。P3先核对实际CANN9.2 provider/头文件/ELF及v127 ABI与bypass边界，再准备有界验证；旧109/120单次探针授权不扩展成新的诊断授权。80capturedBOOL的creation/update证据与1272eagerHostArgs入口不可替代。171已单独完成迁移，当前普通模型启动/单次生成由本次继续指令授权；其正常初始化及图运行不是v159字段取证，也不是新诊断profile或完整C8输入32k输出1k前缀90%测量。原169/166-105 profile继续保留原主机和run身份，迁移和新单次生成不回填旧9/1352。全部35+7候选、26模块358行及分支穷尽性、849PMU、16phase、3136归属、G14 copy/control、原生数值/读者/物理容量与最低MFU结论仍未闭合；不能因报告/清单成稿标记完成。",
+    "cases": [
+      "c8-input32k-output1k-prefix90",
+      "c8-input32k-output1k-prefix90-166"
+    ],
+    "execution_skill": "none",
+    "updated_at": "2026-11-02T11:48:21.996377+00:00"
+  },
+  "read_first": [
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/README.md",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/index.json",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/status.md",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/knowledge-state.json",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/loops/loop-004/goal.md",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/loops/loop-004/state.json",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/loops/loop-004/hypotheses.md",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/loops/loop-004/decision.json",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/loops/loop-004/status.md",
+    "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/loops/loop-004/knowledge-delta.json"
+  ],
+  "history_indexes": {
+    "loops": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/loop-index.jsonl",
+    "knowledge": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/knowledge-events.jsonl",
+    "task_events": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/tasks/whole-opportunity-coverage/task-events.jsonl"
+  }
+}

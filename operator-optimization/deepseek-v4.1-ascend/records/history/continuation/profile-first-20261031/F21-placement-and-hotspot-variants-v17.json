@@ -1,0 +1,45 @@
+{
+  "generated_utc": "2026-10-31T01:24:48.465796+00:00",
+  "variants": [
+    {
+      "id": "F21-P1-global",
+      "status": "COUNT_SUPPORTED_CONDITIONAL_ABI_NUMERICS_TOPOLOGY",
+      "description": "Per-layer fixed expert owner permutation across EP16 with fixed slots; first-formal training/later-sample evaluation retained.",
+      "evidence": "40/40target and4/4draft saved later samples reduce max receiver rows; no runtime performance validation.",
+      "constraints": [
+        "Bind checkpoint-logical/native-physical expert IDs and exact weights/scales/score-correction/hash lookup semantics.",
+        "Every rank retains its expert-slot capacity; graph addresses/parameter generations and collective agreement must survive setup.",
+        "Optimize receiver work together with remote/local/link cost; global count-only placement increases crossTP8 assignment count in22/40target cases.",
+        "Preserve actualTopK/probabilities and per-token combine ordering; do not route to a different logical expert."
+      ]
+    },
+    {
+      "id": "F21-P1-within-TP8",
+      "status": "COUNT_SUPPORTED_PARTITION_CONSTRAINED_ALTERNATIVE",
+      "description": "Per-layer fixed owner permutation confined to each existing TP8 half of EP16.",
+      "evidence": "40/40target evaluation samples improve max row count,median baseline/new1.5322567155295035; cross-half assignment counts preserved40/40 by owner-half invariant.",
+      "constraints": [
+        "Preserves cross-half assignment counts,not physical link bytes,bandwidth or elapsed time.",
+        "Within-half on-rank locality and specific links can change. Same ABI/numeric/weight/graph constraints apply."
+      ]
+    },
+    {
+      "id": "F21-P2-hotspot-replication-split",
+      "status": "CONDITIONAL_DISTINCT_ALGORITHM_UNPRICED",
+      "description": "Replicate a hot expert or split its token assignments while preserving the same logical expert function; compare to unreplicated max-expert work limit.",
+      "evidence": "Draft formal median37of38 hottest-rank rows belong to one expert; existing linear placement has0 redundant experts. Optimistic replica count bounds retained server-side.",
+      "constraints": [
+        "Extra resident physical weight slots and quant scales,KV/cache memory headroom and one-time/stateful migration cost.",
+        "Select exactly one replica per logical assignment; same weights/scales/activation full-row quantization/numerical output and ordered combine.",
+        "Native dispatch ABI and any logical-to-physical mapping must support replicas; not established by these counterfactual arrays.",
+        "Do not change logicalTopK or substitute another expert. No elapsed-time gain follows from a count lower bound."
+      ]
+    }
+  ],
+  "logical_native_INT8_weight_and_INT64_scale_bytes_per_expert": 35467264,
+  "byte_model_limit": "Derived from current recorded native operand dimensions/dtypes; not allocated/resident bytes or proof replicas fit memory.",
+  "actual_route_contract": "EP-routing-and-placement-contract-v17.json",
+  "model_changed": false,
+  "implementation": false,
+  "overall_complete": false
+}

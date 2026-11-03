@@ -1,0 +1,2996 @@
+{
+  "scope": "EP8 six exact matched CSV rows, all PMU records for their two globalTaskIds; all SQLite table schemas",
+  "db_sha256": "67d14f7f386658f8c8c5d3c9059dff9b0f1decb200eba621a3432fcf1e23de58",
+  "csv_sha256": "488d3e3736677d7d041edbe8307d3c06b79553362e54aef07aba37fd74229cc7",
+  "target_sha256": "3e6196f3005366117421c78a359dc036e9d79f7299f2b72d239c2401202e76d1",
+  "csv_columns": [
+    "Device_id",
+    "Model ID",
+    "Task ID",
+    "Stream ID",
+    "Name",
+    "Type",
+    "OP State",
+    "Accelerator Core",
+    "Start Time(us)",
+    "Duration(us)",
+    "Wait Time(us)",
+    "Block Num",
+    "Mix Block Num",
+    "HF32 Eligible",
+    "Input Shapes",
+    "Input Data Types",
+    "Input Formats",
+    "Output Shapes",
+    "Output Data Types",
+    "Output Formats",
+    "Context ID",
+    "aicore_time(us)",
+    "aic_total_cycles",
+    "aic_mac_time(us)",
+    "aic_mac_ratio",
+    "aic_scalar_time(us)",
+    "aic_scalar_ratio",
+    "aic_mte1_time(us)",
+    "aic_mte1_ratio",
+    "aic_mte2_time(us)",
+    "aic_mte2_ratio",
+    "aic_fixpipe_time(us)",
+    "aic_fixpipe_ratio",
+    "aic_icache_miss_rate",
+    "aiv_time(us)",
+    "aiv_total_cycles",
+    "aiv_vec_time(us)",
+    "aiv_vec_ratio",
+    "aiv_scalar_time(us)",
+    "aiv_scalar_ratio",
+    "aiv_mte2_time(us)",
+    "aiv_mte2_ratio",
+    "aiv_mte3_time(us)",
+    "aiv_mte3_ratio",
+    "aiv_icache_miss_rate",
+    "cube_utilization(%)"
+  ],
+  "db_table_schemas": [
+    {
+      "name": "AICORE_FREQ",
+      "sql": "CREATE TABLE AICORE_FREQ (deviceId INTEGER, timestampNs NUMERIC, freq INTEGER, dieId NUMERIC)"
+    },
+    {
+      "name": "CANN_API",
+      "sql": "CREATE TABLE CANN_API (startNs INTEGER, endNs INTEGER, type INTEGER, globalTid INTEGER, connectionId INTEGER PRIMARY KEY, name INTEGER)"
+    },
+    {
+      "name": "COMMUNICATION_OP",
+      "sql": "CREATE TABLE COMMUNICATION_OP (opName INTEGER, startNs INTEGER, endNs INTEGER, connectionId INTEGER, groupName INTEGER, opId INTEGER PRIMARY KEY, relay INTEGER, retry INTEGER, dataType INTEGER, algType INTEGER, count NUMERIC, opType INTEGER, deviceId INTEGER, rankSize INTEGER)"
+    },
+    {
+      "name": "COMMUNICATION_SCHEDULE_TASK_INFO",
+      "sql": "CREATE TABLE COMMUNICATION_SCHEDULE_TASK_INFO (name INTEGER, globalTaskId INTEGER PRIMARY KEY, taskType INTEGER, opType INTEGER)"
+    },
+    {
+      "name": "COMMUNICATION_TASK_INFO",
+      "sql": "CREATE TABLE COMMUNICATION_TASK_INFO (timestampNs INTEGER, name INTEGER, globalTaskId INTEGER, taskType INTEGER, planeId INTEGER, groupName INTEGER, notifyId INTEGER, rdmaType INTEGER, srcRank INTEGER, dstRank INTEGER, transportType INTEGER, size INTEGER, dataType INTEGER, linkType INTEGER, opId INTEGER, isMaster INTEGER, bandwidth NUMERIC)"
+    },
+    {
+      "name": "COMPUTE_TASK_INFO",
+      "sql": "CREATE TABLE COMPUTE_TASK_INFO (name INTEGER, globalTaskId INTEGER PRIMARY KEY, blockNum INTEGER, mixBlockNum INTEGER, taskType INTEGER, opType INTEGER, inputFormats INTEGER, inputDataTypes INTEGER, inputShapes INTEGER, outputFormats INTEGER, outputDataTypes INTEGER, outputShapes INTEGER, attrInfo INTEGER, opState INTEGER, hf32Eligible INTEGER, gridDim INTEGER, blockDim INTEGER)"
+    },
+    {
+      "name": "CONNECTION_IDS",
+      "sql": "CREATE TABLE CONNECTION_IDS (id INTEGER, connectionId INTEGER)"
+    },
+    {
+      "name": "ENUM_API_TYPE",
+      "sql": "CREATE TABLE ENUM_API_TYPE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_HCCL_DATA_TYPE",
+      "sql": "CREATE TABLE ENUM_HCCL_DATA_TYPE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_HCCL_LINK_TYPE",
+      "sql": "CREATE TABLE ENUM_HCCL_LINK_TYPE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_HCCL_RDMA_TYPE",
+      "sql": "CREATE TABLE ENUM_HCCL_RDMA_TYPE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_HCCL_TRANSPORT_TYPE",
+      "sql": "CREATE TABLE ENUM_HCCL_TRANSPORT_TYPE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_MEMCPY_OPERATION",
+      "sql": "CREATE TABLE ENUM_MEMCPY_OPERATION (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_MODULE",
+      "sql": "CREATE TABLE ENUM_MODULE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_MSTX_EVENT_TYPE",
+      "sql": "CREATE TABLE ENUM_MSTX_EVENT_TYPE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "ENUM_OVERLAP_ANALYSIS_TYPE",
+      "sql": "CREATE TABLE ENUM_OVERLAP_ANALYSIS_TYPE (id INTEGER PRIMARY KEY, name TEXT)"
+    },
+    {
+      "name": "HOST_INFO",
+      "sql": "CREATE TABLE HOST_INFO (hostUid TEXT, hostName TEXT)"
+    },
+    {
+      "name": "META_DATA",
+      "sql": "CREATE TABLE META_DATA (name TEXT, value TEXT)"
+    },
+    {
+      "name": "NPU_INFO",
+      "sql": "CREATE TABLE NPU_INFO (id INTEGER, name TEXT)"
+    },
+    {
+      "name": "OVERLAP_ANALYSIS",
+      "sql": "CREATE TABLE OVERLAP_ANALYSIS (id INTEGER PRIMARY KEY, deviceId INTEGER, startNs NUMERIC, endNs NUMERIC, type INTEGER)"
+    },
+    {
+      "name": "PYTORCH_API",
+      "sql": "CREATE TABLE PYTORCH_API (startNs TEXT, endNs TEXT, globalTid INTEGER, connectionId INTEGER, name INTEGER, sequenceNumber INTEGER, fwdThreadId INTEGER, inputDtypes INTEGER, inputShapes INTEGER, callchainId INTEGER, type INTEGER)"
+    },
+    {
+      "name": "RANK_DEVICE_MAP",
+      "sql": "CREATE TABLE RANK_DEVICE_MAP (rankId INTEGER, deviceId INTEGER)"
+    },
+    {
+      "name": "SESSION_TIME_INFO",
+      "sql": "CREATE TABLE SESSION_TIME_INFO (startTimeNs INTEGER, endTimeNs INTEGER)"
+    },
+    {
+      "name": "STRING_IDS",
+      "sql": "CREATE TABLE STRING_IDS (id INTEGER PRIMARY KEY, value TEXT)"
+    },
+    {
+      "name": "TASK",
+      "sql": "CREATE TABLE TASK (startNs INTEGER, endNs INTEGER, deviceId INTEGER, connectionId INTEGER, globalTaskId INTEGER, globalPid INTEGER, taskType INTEGER, contextId INTEGER, streamId INTEGER, taskId INTEGER, modelId INTEGER)"
+    },
+    {
+      "name": "TASK_PMU_INFO",
+      "sql": "CREATE TABLE TASK_PMU_INFO (timestampNs INTEGER, globalTaskId INTEGER, name INTEGER, value NUMERIC)"
+    }
+  ],
+  "samples": [
+    {
+      "target": {
+        "run": 1,
+        "after_layer": 0,
+        "stream": 89,
+        "model": 49,
+        "start_ns": 1793152958877913302,
+        "end_ns": 1793152958878193876
+      },
+      "globalTaskId": 18536,
+      "csv_all_fields": {
+        "Device_id": "8",
+        "Model ID": "49",
+        "Task ID": "72",
+        "Stream ID": "89",
+        "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+        "Type": "MatMulV2",
+        "OP State": "static",
+        "Accelerator Core": "AI_CORE",
+        "Start Time(us)": "1793152958877913.302\t",
+        "Duration(us)": "280.574",
+        "Wait Time(us)": "0.700000",
+        "Block Num": "20",
+        "Mix Block Num": "0",
+        "HF32 Eligible": "NO",
+        "Input Shapes": "\"3,6144;25600,6144\"",
+        "Input Data Types": "DT_BF16;DT_BF16",
+        "Input Formats": "ND;ND",
+        "Output Shapes": "\"3,25600\"",
+        "Output Data Types": "DT_BF16",
+        "Output Formats": "ND",
+        "Context ID": "N/A",
+        "aicore_time(us)": "274.711",
+        "aic_total_cycles": "9889584",
+        "aic_mac_time(us)": "32.179",
+        "aic_mac_ratio": "0.117",
+        "aic_scalar_time(us)": "85.669",
+        "aic_scalar_ratio": "0.312",
+        "aic_mte1_time(us)": "81.418",
+        "aic_mte1_ratio": "0.296",
+        "aic_mte2_time(us)": "270.345",
+        "aic_mte2_ratio": "0.984",
+        "aic_fixpipe_time(us)": "0.8",
+        "aic_fixpipe_ratio": "0.003",
+        "aic_icache_miss_rate": "0.002",
+        "aiv_time(us)": "0.0",
+        "aiv_total_cycles": "0",
+        "aiv_vec_time(us)": "0.0",
+        "aiv_vec_ratio": "0.0",
+        "aiv_scalar_time(us)": "0.0",
+        "aiv_scalar_ratio": "0.0",
+        "aiv_mte2_time(us)": "0.0",
+        "aiv_mte2_ratio": "0.0",
+        "aiv_mte3_time(us)": "0.0",
+        "aiv_mte3_ratio": "0.0",
+        "aiv_icache_miss_rate": "0.0",
+        "cube_utilization(%)": "81.592"
+      },
+      "nearest_pmu_timestamp_ns": 1793152958878193756,
+      "nearest_pmu_delta_ns": -120
+    },
+    {
+      "target": {
+        "run": 1,
+        "after_layer": 13,
+        "stream": 89,
+        "model": 49,
+        "start_ns": 1793152958888196636,
+        "end_ns": 1793152958888461091
+      },
+      "globalTaskId": 19042,
+      "csv_all_fields": {
+        "Device_id": "8",
+        "Model ID": "49",
+        "Task ID": "730",
+        "Stream ID": "89",
+        "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+        "Type": "MatMulV2",
+        "OP State": "static",
+        "Accelerator Core": "AI_CORE",
+        "Start Time(us)": "1793152958888196.636\t",
+        "Duration(us)": "264.455",
+        "Wait Time(us)": "0.991000",
+        "Block Num": "20",
+        "Mix Block Num": "0",
+        "HF32 Eligible": "NO",
+        "Input Shapes": "\"3,6144;25600,6144\"",
+        "Input Data Types": "DT_BF16;DT_BF16",
+        "Input Formats": "ND;ND",
+        "Output Shapes": "\"3,25600\"",
+        "Output Data Types": "DT_BF16",
+        "Output Formats": "ND",
+        "Context ID": "N/A",
+        "aicore_time(us)": "257.147",
+        "aic_total_cycles": "9257283",
+        "aic_mac_time(us)": "32.177",
+        "aic_mac_ratio": "0.125",
+        "aic_scalar_time(us)": "86.054",
+        "aic_scalar_ratio": "0.335",
+        "aic_mte1_time(us)": "81.592",
+        "aic_mte1_ratio": "0.317",
+        "aic_mte2_time(us)": "252.719",
+        "aic_mte2_ratio": "0.983",
+        "aic_fixpipe_time(us)": "0.776",
+        "aic_fixpipe_ratio": "0.003",
+        "aic_icache_miss_rate": "0.002",
+        "aiv_time(us)": "0.0",
+        "aiv_total_cycles": "0",
+        "aiv_vec_time(us)": "0.0",
+        "aiv_vec_ratio": "0.0",
+        "aiv_scalar_time(us)": "0.0",
+        "aiv_scalar_ratio": "0.0",
+        "aiv_mte2_time(us)": "0.0",
+        "aiv_mte2_ratio": "0.0",
+        "aiv_mte3_time(us)": "0.0",
+        "aiv_mte3_ratio": "0.0",
+        "aiv_icache_miss_rate": "0.0",
+        "cube_utilization(%)": "81.030"
+      },
+      "nearest_pmu_timestamp_ns": 1793152958888460931,
+      "nearest_pmu_delta_ns": -160
+    },
+    {
+      "target": {
+        "run": 2,
+        "after_layer": 0,
+        "stream": 89,
+        "model": 49,
+        "start_ns": 1793152960187571215,
+        "end_ns": 1793152960187858669
+      },
+      "globalTaskId": 18536,
+      "csv_all_fields": {
+        "Device_id": "8",
+        "Model ID": "49",
+        "Task ID": "72",
+        "Stream ID": "89",
+        "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+        "Type": "MatMulV2",
+        "OP State": "static",
+        "Accelerator Core": "AI_CORE",
+        "Start Time(us)": "1793152960187571.215\t",
+        "Duration(us)": "287.454",
+        "Wait Time(us)": "0.820000",
+        "Block Num": "20",
+        "Mix Block Num": "0",
+        "HF32 Eligible": "NO",
+        "Input Shapes": "\"3,6144;25600,6144\"",
+        "Input Data Types": "DT_BF16;DT_BF16",
+        "Input Formats": "ND;ND",
+        "Output Shapes": "\"3,25600\"",
+        "Output Data Types": "DT_BF16",
+        "Output Formats": "ND",
+        "Context ID": "N/A",
+        "aicore_time(us)": "275.648",
+        "aic_total_cycles": "9923340",
+        "aic_mac_time(us)": "32.15",
+        "aic_mac_ratio": "0.117",
+        "aic_scalar_time(us)": "85.711",
+        "aic_scalar_ratio": "0.311",
+        "aic_mte1_time(us)": "81.386",
+        "aic_mte1_ratio": "0.295",
+        "aic_mte2_time(us)": "271.421",
+        "aic_mte2_ratio": "0.985",
+        "aic_fixpipe_time(us)": "0.777",
+        "aic_fixpipe_ratio": "0.003",
+        "aic_icache_miss_rate": "0.002",
+        "aiv_time(us)": "0.0",
+        "aiv_total_cycles": "0",
+        "aiv_vec_time(us)": "0.0",
+        "aiv_vec_ratio": "0.0",
+        "aiv_scalar_time(us)": "0.0",
+        "aiv_scalar_ratio": "0.0",
+        "aiv_mte2_time(us)": "0.0",
+        "aiv_mte2_ratio": "0.0",
+        "aiv_mte3_time(us)": "0.0",
+        "aiv_mte3_ratio": "0.0",
+        "aiv_icache_miss_rate": "0.0",
+        "cube_utilization(%)": "79.911"
+      },
+      "nearest_pmu_timestamp_ns": 1793152960187858529,
+      "nearest_pmu_delta_ns": -140
+    },
+    {
+      "target": {
+        "run": 2,
+        "after_layer": 13,
+        "stream": 89,
+        "model": 49,
+        "start_ns": 1793152960198990467,
+        "end_ns": 1793152960199259541
+      },
+      "globalTaskId": 19042,
+      "csv_all_fields": {
+        "Device_id": "8",
+        "Model ID": "49",
+        "Task ID": "730",
+        "Stream ID": "89",
+        "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+        "Type": "MatMulV2",
+        "OP State": "static",
+        "Accelerator Core": "AI_CORE",
+        "Start Time(us)": "1793152960198990.467\t",
+        "Duration(us)": "269.074",
+        "Wait Time(us)": "0.950000",
+        "Block Num": "20",
+        "Mix Block Num": "0",
+        "HF32 Eligible": "NO",
+        "Input Shapes": "\"3,6144;25600,6144\"",
+        "Input Data Types": "DT_BF16;DT_BF16",
+        "Input Formats": "ND;ND",
+        "Output Shapes": "\"3,25600\"",
+        "Output Data Types": "DT_BF16",
+        "Output Formats": "ND",
+        "Context ID": "N/A",
+        "aicore_time(us)": "260.622",
+        "aic_total_cycles": "9382385",
+        "aic_mac_time(us)": "32.148",
+        "aic_mac_ratio": "0.123",
+        "aic_scalar_time(us)": "86.168",
+        "aic_scalar_ratio": "0.331",
+        "aic_mte1_time(us)": "81.497",
+        "aic_mte1_ratio": "0.313",
+        "aic_mte2_time(us)": "256.179",
+        "aic_mte2_ratio": "0.983",
+        "aic_fixpipe_time(us)": "0.8",
+        "aic_fixpipe_ratio": "0.003",
+        "aic_icache_miss_rate": "0.002",
+        "aiv_time(us)": "0.0",
+        "aiv_total_cycles": "0",
+        "aiv_vec_time(us)": "0.0",
+        "aiv_vec_ratio": "0.0",
+        "aiv_scalar_time(us)": "0.0",
+        "aiv_scalar_ratio": "0.0",
+        "aiv_mte2_time(us)": "0.0",
+        "aiv_mte2_ratio": "0.0",
+        "aiv_mte3_time(us)": "0.0",
+        "aiv_mte3_ratio": "0.0",
+        "aiv_icache_miss_rate": "0.0",
+        "cube_utilization(%)": "80.716"
+      },
+      "nearest_pmu_timestamp_ns": 1793152960199259401,
+      "nearest_pmu_delta_ns": -140
+    },
+    {
+      "target": {
+        "run": 3,
+        "after_layer": 0,
+        "stream": 89,
+        "model": 49,
+        "start_ns": 1793152960263910410,
+        "end_ns": 1793152960264191964
+      },
+      "globalTaskId": 18536,
+      "csv_all_fields": {
+        "Device_id": "8",
+        "Model ID": "49",
+        "Task ID": "72",
+        "Stream ID": "89",
+        "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+        "Type": "MatMulV2",
+        "OP State": "static",
+        "Accelerator Core": "AI_CORE",
+        "Start Time(us)": "1793152960263910.410\t",
+        "Duration(us)": "281.554",
+        "Wait Time(us)": "0.950000",
+        "Block Num": "20",
+        "Mix Block Num": "0",
+        "HF32 Eligible": "NO",
+        "Input Shapes": "\"3,6144;25600,6144\"",
+        "Input Data Types": "DT_BF16;DT_BF16",
+        "Input Formats": "ND;ND",
+        "Output Shapes": "\"3,25600\"",
+        "Output Data Types": "DT_BF16",
+        "Output Formats": "ND",
+        "Context ID": "N/A",
+        "aicore_time(us)": "274.705",
+        "aic_total_cycles": "9889366",
+        "aic_mac_time(us)": "32.15",
+        "aic_mac_ratio": "0.117",
+        "aic_scalar_time(us)": "85.676",
+        "aic_scalar_ratio": "0.312",
+        "aic_mte1_time(us)": "81.417",
+        "aic_mte1_ratio": "0.296",
+        "aic_mte2_time(us)": "270.346",
+        "aic_mte2_ratio": "0.984",
+        "aic_fixpipe_time(us)": "0.828",
+        "aic_fixpipe_ratio": "0.003",
+        "aic_icache_miss_rate": "0.002",
+        "aiv_time(us)": "0.0",
+        "aiv_total_cycles": "0",
+        "aiv_vec_time(us)": "0.0",
+        "aiv_vec_ratio": "0.0",
+        "aiv_scalar_time(us)": "0.0",
+        "aiv_scalar_ratio": "0.0",
+        "aiv_mte2_time(us)": "0.0",
+        "aiv_mte2_ratio": "0.0",
+        "aiv_mte3_time(us)": "0.0",
+        "aiv_mte3_ratio": "0.0",
+        "aiv_icache_miss_rate": "0.0",
+        "cube_utilization(%)": "81.306"
+      },
+      "nearest_pmu_timestamp_ns": 1793152960264191824,
+      "nearest_pmu_delta_ns": -140
+    },
+    {
+      "target": {
+        "run": 3,
+        "after_layer": 13,
+        "stream": 89,
+        "model": 49,
+        "start_ns": 1793152960275488198,
+        "end_ns": 1793152960275759213
+      },
+      "globalTaskId": 19042,
+      "csv_all_fields": {
+        "Device_id": "8",
+        "Model ID": "49",
+        "Task ID": "730",
+        "Stream ID": "89",
+        "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+        "Type": "MatMulV2",
+        "OP State": "static",
+        "Accelerator Core": "AI_CORE",
+        "Start Time(us)": "1793152960275488.198\t",
+        "Duration(us)": "271.015",
+        "Wait Time(us)": "1.010000",
+        "Block Num": "20",
+        "Mix Block Num": "0",
+        "HF32 Eligible": "NO",
+        "Input Shapes": "\"3,6144;25600,6144\"",
+        "Input Data Types": "DT_BF16;DT_BF16",
+        "Input Formats": "ND;ND",
+        "Output Shapes": "\"3,25600\"",
+        "Output Data Types": "DT_BF16",
+        "Output Formats": "ND",
+        "Context ID": "N/A",
+        "aicore_time(us)": "263.408",
+        "aic_total_cycles": "9482677",
+        "aic_mac_time(us)": "32.156",
+        "aic_mac_ratio": "0.122",
+        "aic_scalar_time(us)": "86.157",
+        "aic_scalar_ratio": "0.327",
+        "aic_mte1_time(us)": "81.578",
+        "aic_mte1_ratio": "0.31",
+        "aic_mte2_time(us)": "258.799",
+        "aic_mte2_ratio": "0.983",
+        "aic_fixpipe_time(us)": "0.778",
+        "aic_fixpipe_ratio": "0.003",
+        "aic_icache_miss_rate": "0.002",
+        "aiv_time(us)": "0.0",
+        "aiv_total_cycles": "0",
+        "aiv_vec_time(us)": "0.0",
+        "aiv_vec_ratio": "0.0",
+        "aiv_scalar_time(us)": "0.0",
+        "aiv_scalar_ratio": "0.0",
+        "aiv_mte2_time(us)": "0.0",
+        "aiv_mte2_ratio": "0.0",
+        "aiv_mte3_time(us)": "0.0",
+        "aiv_mte3_ratio": "0.0",
+        "aiv_icache_miss_rate": "0.0",
+        "cube_utilization(%)": "80.994"
+      },
+      "nearest_pmu_timestamp_ns": 1793152960275758993,
+      "nearest_pmu_delta_ns": -220
+    }
+  ],
+  "all_pmu_by_reused_globalTaskId": {
+    "18536": {
+      "rows": [
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 272615.9166666667
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9814173
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32177.305555555555
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.11803164668077483
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 85705.27777777778
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.31438104871393646
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81433.86111111111
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.29871279016581426
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 268363.2777777778
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9844006214278065
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 787.6944444444446
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0028893927180619295
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0017804539508502841
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958829005499,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 274710.6666666667
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9889584
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32178.888888888883
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.11713738414072826
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 85668.5
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3118499220998578
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81417.58333333334
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.2963757626205511
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 270345.02777777775
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9841082294260305
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 799.7777777777778
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0029113459170780087
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.001807554378925314
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958878193756,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 275648.3333333333
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9923340
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32149.77777777777
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.11663331096183341
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 85710.75
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3109423843181832
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81386.05555555555
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.29525321111641845
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 271420.7222222222
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9846630267631664
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 777.0833333333333
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0028191113072816207
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0018369738178788796
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960187858529,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 274704.6111111111
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9889366
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32150.02777777778
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.11703490395643158
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 85676.05555555556
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3118843007731739
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81417.00000000001
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.2963801723993227
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 270345.55555555556
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.984131844245627
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 827.7222222222224
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.003013135523551257
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.001852730879347647
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960264191824,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 274746.4166666667
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9890871
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32150.222222222226
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.11701780358878404
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 85648.38888888889
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.31173614538092753
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81399.30555555556
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.29627067221885717
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 270267.88888888893
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9836994133277039
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 769.8055555555557
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0028018765991387412
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0017529955335592706
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960339700735,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 274408.02777777775
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9878689
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32149.222222222223
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.11715846100631369
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 85697.91666666667
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3123010553323422
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81437.91666666667
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.2967767281670675
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 269962.4166666666
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9837992672914392
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 781.6111111111111
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.002848353663122708
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0018135672818473405
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960414024010,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 274858.5833333333
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9894909
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32149.44444444445
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.11696722021395042
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 85675.41666666666
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3117072627954436
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81392.36111111111
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.29612450200401036
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 270492.5
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9841151646771082
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 769.9722222222223
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.002801339557544188
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0018390216404872608
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961150923287,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        }
+      ],
+      "counter_names": [
+        "aic_fixpipe_ratio",
+        "aic_fixpipe_time",
+        "aic_icache_miss_rate",
+        "aic_mac_ratio",
+        "aic_mac_time",
+        "aic_mte1_ratio",
+        "aic_mte1_time",
+        "aic_mte2_ratio",
+        "aic_mte2_time",
+        "aic_scalar_ratio",
+        "aic_scalar_time",
+        "aic_total_cycles",
+        "aic_total_time",
+        "aiv_icache_miss_rate",
+        "aiv_mac_ratio",
+        "aiv_mac_time",
+        "aiv_mte1_ratio",
+        "aiv_mte1_time",
+        "aiv_mte2_ratio",
+        "aiv_mte2_time",
+        "aiv_mte3_ratio",
+        "aiv_mte3_time",
+        "aiv_scalar_ratio",
+        "aiv_scalar_time",
+        "aiv_total_cycles",
+        "aiv_total_time",
+        "aiv_vec_ratio",
+        "aiv_vec_time"
+      ],
+      "compute_task_info": {
+        "name": 138,
+        "globalTaskId": 18536,
+        "blockNum": 20,
+        "mixBlockNum": 0,
+        "taskType": 139,
+        "opType": 140,
+        "inputFormats": 15,
+        "inputDataTypes": 141,
+        "inputShapes": 351,
+        "outputFormats": 18,
+        "outputDataTypes": 135,
+        "outputShapes": 352,
+        "attrInfo": 1248,
+        "opState": 7,
+        "hf32Eligible": 8,
+        "gridDim": 5,
+        "blockDim": 5
+      }
+    },
+    "19042": {
+      "rows": [
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 255690.9166666667
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9204873
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32184.138888888887
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.12587126405763555
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 86174.83333333334
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3370273549673092
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81660.16666666667
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.3193706203225183
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 251184.61111111112
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9823759654261389
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 778.1944444444446
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0030434966348802423
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0018700574910245236
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958839327853,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 257146.75
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9257283
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32176.611111111113
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.12512937111245276
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 86054.30555555556
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3346505664783069
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81592.41666666667
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.3172990390376961
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 252719.33333333334
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9827825291718963
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 775.9166666666666
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0030174080234989034
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0018419482475506485
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152958888460931,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 260621.80555555556
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9382385
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32147.722222222223
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.12335008635863909
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 86167.72222222223
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3306236100948746
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81496.77777777778
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.312701301428155
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 256179.19444444447
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9829538011923408
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 799.8055555555555
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.003068835908993289
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.001894582852026684
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960199259401,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 263407.6944444445
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9482677
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32155.80555555556
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.1220761816520799
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 86157.13888888889
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.327086644414863
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81577.72222222223
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.309701363865921
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 258799.36111111112
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9825049403243409
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 777.6944444444446
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0029524363215155383
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.001846504331491492
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960275758993,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 261927.4444444444
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9429388
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32152.66666666666
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.12275409602404737
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 86206.52777777777
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.329123692863206
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81577.38888888888
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.3114503295441867
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 257388.88888888885
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9826724703660513
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 778.6666666666666
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0029728334436975126
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.001814336553938818
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960350756934,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 260379.52777777775
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9373663
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32151.138888888887
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.1234779829400737
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 86086.33333333333
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.3306186706306809
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81621.11111111111
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.3134697716356989
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 255964.16666666663
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9830425949812789
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 815.1388888888888
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0031305797957532715
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.001852281083154832
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152960425293005,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3060,
+          "counter_name": "aic_total_time",
+          "value": 263467.72222222225
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3061,
+          "counter_name": "aic_total_cycles",
+          "value": 9484838
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3062,
+          "counter_name": "aic_mac_time",
+          "value": 32149.222222222223
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3063,
+          "counter_name": "aic_mac_ratio",
+          "value": 0.12202338089485555
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3064,
+          "counter_name": "aic_scalar_time",
+          "value": 86274.86111111111
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3065,
+          "counter_name": "aic_scalar_ratio",
+          "value": 0.32745894025812566
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3066,
+          "counter_name": "aic_mte1_time",
+          "value": 81566.69444444445
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3067,
+          "counter_name": "aic_mte1_ratio",
+          "value": 0.30958894606318
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3068,
+          "counter_name": "aic_mte2_time",
+          "value": 258938.08333333334
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3069,
+          "counter_name": "aic_mte2_ratio",
+          "value": 0.9828076135828572
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3070,
+          "counter_name": "aic_fixpipe_time",
+          "value": 777.5000000000001
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3071,
+          "counter_name": "aic_fixpipe_ratio",
+          "value": 0.0029510256263733763
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3072,
+          "counter_name": "aic_icache_miss_rate",
+          "value": 0.0018719876133156857
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3073,
+          "counter_name": "aiv_total_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3074,
+          "counter_name": "aiv_total_cycles",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3075,
+          "counter_name": "aiv_vec_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3076,
+          "counter_name": "aiv_vec_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3077,
+          "counter_name": "aiv_mac_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3078,
+          "counter_name": "aiv_mac_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3079,
+          "counter_name": "aiv_scalar_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3080,
+          "counter_name": "aiv_scalar_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3081,
+          "counter_name": "aiv_mte1_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3082,
+          "counter_name": "aiv_mte1_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3083,
+          "counter_name": "aiv_mte2_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3084,
+          "counter_name": "aiv_mte2_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3085,
+          "counter_name": "aiv_mte3_time",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3086,
+          "counter_name": "aiv_mte3_ratio",
+          "value": 0
+        },
+        {
+          "timestampNs": 1793152961162345839,
+          "name": 3087,
+          "counter_name": "aiv_icache_miss_rate",
+          "value": 0
+        }
+      ],
+      "counter_names": [
+        "aic_fixpipe_ratio",
+        "aic_fixpipe_time",
+        "aic_icache_miss_rate",
+        "aic_mac_ratio",
+        "aic_mac_time",
+        "aic_mte1_ratio",
+        "aic_mte1_time",
+        "aic_mte2_ratio",
+        "aic_mte2_time",
+        "aic_scalar_ratio",
+        "aic_scalar_time",
+        "aic_total_cycles",
+        "aic_total_time",
+        "aiv_icache_miss_rate",
+        "aiv_mac_ratio",
+        "aiv_mac_time",
+        "aiv_mte1_ratio",
+        "aiv_mte1_time",
+        "aiv_mte2_ratio",
+        "aiv_mte2_time",
+        "aiv_mte3_ratio",
+        "aiv_mte3_time",
+        "aiv_scalar_ratio",
+        "aiv_scalar_time",
+        "aiv_total_cycles",
+        "aiv_total_time",
+        "aiv_vec_ratio",
+        "aiv_vec_time"
+      ],
+      "compute_task_info": {
+        "name": 138,
+        "globalTaskId": 19042,
+        "blockNum": 20,
+        "mixBlockNum": 0,
+        "taskType": 139,
+        "opType": 140,
+        "inputFormats": 15,
+        "inputDataTypes": 141,
+        "inputShapes": 351,
+        "outputFormats": 18,
+        "outputDataTypes": 135,
+        "outputShapes": 352,
+        "attrInfo": 1248,
+        "opState": 7,
+        "hf32Eligible": 8,
+        "gridDim": 5,
+        "blockDim": 5
+      }
+    }
+  },
+  "limitations": [
+    "Nearest PMU time is a candidate, not a proven replay mapping; globalTaskId is reused.",
+    "CSV icache is instruction cache, not L2 or HBM; field semantics require version-matched documentation.",
+    "No absence in these exports proves that no raw or binary profiler counters exist.",
+    "Cannot infer cache misses, HBM saturation, internal wait or speedup from pipeline ratios alone."
+  ],
+  "script_sha256": "2f06fa9b8534d5ff0e53feb9ffd89ab4955980e631137e8ccc0c3c87773543d3",
+  "no_device_work": true
+}

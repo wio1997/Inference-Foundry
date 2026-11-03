@@ -1,0 +1,103 @@
+{
+  "variants": [
+    {
+      "id": "F23-VECTOR-FRESH",
+      "state": "CONDITIONAL_OPERATOR_REORGANIZATION_REVIEWED",
+      "graph": "AIC full INT32 Down -> GM -> AIV original dequant -> original BF16 S cast in UB -> original Add with ready BF16 R -> BF16 Z -> GM -> remaining hooks/HC",
+      "preserves_R": true,
+      "requires_R_last_reader": false,
+      "requires_no_other_S_materialization_reader": true,
+      "benefit": "Avoid S BF16 GM store and reload (4n value bytes) if every S reader is contained or otherwise served. Raw INT32 Cube->Vector GM bridge remains.",
+      "extra_storage_reference": "A simple explicit FP32 merge plan adds R_BF16 2t+R_FP32 4t+S_widen_FP32 4t =10t tile bytes; reusing a dead dequant FP32 buffer can make this 6t. Neither is a universal storage floor or current-tiling fit proof.",
+      "assumptions": [
+        "Use the exact current dequant branch/arithmetic, complete INT32 K sum, channel and per-token scales, then the original BF16 S rounding before original Add rounding.",
+        "Bind each routed tile after its pre-add reduction/scaling/output transform and token/feature trim, with matching rank,row,pad,layout and generation. Do not substitute raw MC2 M816/834 for merge M800.",
+        "Audit all S/R readers, hooks, aliases and observable mutation/error/capture contracts. Keep required post-add reduction, truncation, ZeroExpertRouter and HC boundaries in original order.",
+        "Readiness is tile-local: a new R-ready edge must be acyclic. A persistent shared epilogue cannot wait on routed work queued behind it on the same stream or occupy all resources needed by that producer.",
+        "Price changed stream/event joins, extended INT32/FP32/BF16 liveness, UB and GM buffering, finite Cube/Vector contention, graph publication and all-rank progress. No free overlap or removed-launch gain is inferred."
+      ],
+      "legal_native_fusion_proved": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F23-BF16-ATOMIC-INPLACE",
+      "state": "CONDITIONAL_API_SUPPORT_WITH_NUMERICAL_AND_ALIAS_GATES",
+      "graph": "Original BF16 S in AIV UB -> one BF16 atomic add into fully ready existing R GM -> writer-completion fence -> original downstream consumers",
+      "preserves_R": false,
+      "requires_R_last_reader": true,
+      "requires_one_full_K_contribution_per_element": true,
+      "assumptions": [
+        "Use the exact current dequant branch/arithmetic, complete INT32 K sum, channel and per-token scales, then the original BF16 S rounding before original Add rounding.",
+        "Bind each routed tile after its pre-add reduction/scaling/output transform and token/feature trim, with matching rank,row,pad,layout and generation. Do not substitute raw MC2 M816/834 for merge M800.",
+        "Audit all S/R readers, hooks, aliases and observable mutation/error/capture contracts. Keep required post-add reduction, truncation, ZeroExpertRouter and HC boundaries in original order.",
+        "Readiness is tile-local: a new R-ready edge must be acyclic. A persistent shared epilogue cannot wait on routed work queued behind it on the same stream or occupy all resources needed by that producer.",
+        "Price changed stream/event joins, extended INT32/FP32/BF16 liveness, UB and GM buffering, finite Cube/Vector contention, graph publication and all-rank progress. No free overlap or removed-launch gain is inferred.",
+        "Destination is initialized to exact ready R, not unconditionally zeroed; each element has one S contribution. Disjoint M/N tiles are allowed, BF16 K partial accumulation is not equivalent in general.",
+        "Public A3 SetAtomicAdd supports BF16 UB->GM, but native add precision/rounding, NaN payload/operand order, signed zero, saturation mode and completion visibility must match original Add. No-contention is not a throughput proof.",
+        "Scope atomic state and DisableDmaAtomic so later stores are unaffected. Device-level BF16 saturation mode is not changed or queried in this analysis."
+      ],
+      "atomic_source_transport_bytes_per_element": 2,
+      "destination_RMW_value_bytes_per_element": 4,
+      "source_transport_and_RMW_are_not_both_HBM_traffic": true,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F23-COPY-R-THEN-ATOMIC",
+      "state": "CONDITIONAL_FRESH_OUTPUT_VARIANT_WITH_COPY_COST",
+      "graph": "Copy R to fresh Z, then atomically add already-rounded S; preserve old R for other readers",
+      "reference_copy_bytes_per_element": 4,
+      "destination_RMW_value_bytes_per_element": 4,
+      "net_reference_value_byte_saving_vs_baseline": 0,
+      "critical_path_gain_us": null,
+      "assumptions": [
+        "Use the exact current dequant branch/arithmetic, complete INT32 K sum, channel and per-token scales, then the original BF16 S rounding before original Add rounding.",
+        "Bind each routed tile after its pre-add reduction/scaling/output transform and token/feature trim, with matching rank,row,pad,layout and generation. Do not substitute raw MC2 M816/834 for merge M800.",
+        "Audit all S/R readers, hooks, aliases and observable mutation/error/capture contracts. Keep required post-add reduction, truncation, ZeroExpertRouter and HC boundaries in original order.",
+        "Readiness is tile-local: a new R-ready edge must be acyclic. A persistent shared epilogue cannot wait on routed work queued behind it on the same stream or occupy all resources needed by that producer.",
+        "Price changed stream/event joins, extended INT32/FP32/BF16 liveness, UB and GM buffering, finite Cube/Vector contention, graph publication and all-rank progress. No free overlap or removed-launch gain is inferred.",
+        "Copy completion before atomic and atomic completion before readers are separate edges. Atomic resource traffic/rate is unknown."
+      ]
+    },
+    {
+      "id": "F23-ROUTED-DIRECT-DEST-ATOMIC",
+      "state": "JOINT_F21_F23_PRODUCER_AND_OUTPUT_BANK_CONDITION",
+      "graph": "Routed producer writes final rounded/transformed R directly to final Z bank; one rounded S atomic contribution follows",
+      "avoids_R_copy_only_if": "All old-R readers/aliases, routed transform/trim, bank ownership and generation permit this producer rewrite.",
+      "assumptions": [
+        "Use the exact current dequant branch/arithmetic, complete INT32 K sum, channel and per-token scales, then the original BF16 S rounding before original Add rounding.",
+        "Bind each routed tile after its pre-add reduction/scaling/output transform and token/feature trim, with matching rank,row,pad,layout and generation. Do not substitute raw MC2 M816/834 for merge M800.",
+        "Audit all S/R readers, hooks, aliases and observable mutation/error/capture contracts. Keep required post-add reduction, truncation, ZeroExpertRouter and HC boundaries in original order.",
+        "Readiness is tile-local: a new R-ready edge must be acyclic. A persistent shared epilogue cannot wait on routed work queued behind it on the same stream or occupy all resources needed by that producer.",
+        "Price changed stream/event joins, extended INT32/FP32/BF16 liveness, UB and GM buffering, finite Cube/Vector contention, graph publication and all-rank progress. No free overlap or removed-launch gain is inferred."
+      ],
+      "not_additive_with_VectorFresh_or_MergePost": true,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F23-RAW-INT32-FIXPIPE-BF16-ATOMIC",
+      "state": "NOT_ESTABLISHED_BY_PUBLISHED_A3_FIXPIPE_API",
+      "exclusion_scope": "Public A3 Fixpipe V220 type table has INT32->INT8/UINT8/HALF/INT32, not INT32->BF16. FLOAT->BF16 exists, but current INT8 dot is INT32 and per-token processing remains. Newer 950 INT32->BF16 support must not be imported into A3.",
+      "not_a_hardware_impossibility_proof": true,
+      "not_a_drop_in_current_ABI": true,
+      "critical_path_gain_us": null
+    }
+  ],
+  "common_gates": [
+    "Use the exact current dequant branch/arithmetic, complete INT32 K sum, channel and per-token scales, then the original BF16 S rounding before original Add rounding.",
+    "Bind each routed tile after its pre-add reduction/scaling/output transform and token/feature trim, with matching rank,row,pad,layout and generation. Do not substitute raw MC2 M816/834 for merge M800.",
+    "Audit all S/R readers, hooks, aliases and observable mutation/error/capture contracts. Keep required post-add reduction, truncation, ZeroExpertRouter and HC boundaries in original order.",
+    "Readiness is tile-local: a new R-ready edge must be acyclic. A persistent shared epilogue cannot wait on routed work queued behind it on the same stream or occupy all resources needed by that producer.",
+    "Price changed stream/event joins, extended INT32/FP32/BF16 liveness, UB and GM buffering, finite Cube/Vector contention, graph publication and all-rank progress. No free overlap or removed-launch gain is inferred."
+  ],
+  "preferred_analysis_frontier": "Post-BF16-cast Vector epilogue with fresh output: fewer alias/atomic-specific assumptions than in-place atomic. This is a conditional candidate, not an implementation design or speedup claim.",
+  "native_precision_or_aliases_or_all_reader_closure_proved": false,
+  "numerical_counterexamples": "epilogue-rounding-witnesses-v82.json",
+  "primary_API_semantics": {
+    "SetAtomicAdd": "A3 BF16 and UB/L0C/L1->GM documented; no automatic zero, atomic mode scope, device-level 2201 BF16 saturation.",
+    "Fixpipe": "A3 V220 conversion table; Fixpipe floating saturation CTRL mode is distinct from atomic device-level mode. Published support is not combined cast-before-add proof."
+  },
+  "no_new_maincandidate": true,
+  "implementation": false,
+  "native_benchmark": false,
+  "overall_complete": false
+}

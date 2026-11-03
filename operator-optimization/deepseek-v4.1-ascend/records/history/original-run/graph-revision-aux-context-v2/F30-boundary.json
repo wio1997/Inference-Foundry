@@ -1,0 +1,620 @@
+{
+  "id": "F30_G5_AUX_CONTEXT_V2",
+  "template": "DSPARK_BOUNDARIES",
+  "old_candidate_path": "candidates/F30-G5.json",
+  "old_candidate_sha256": "04c4f57ebd2c9764485541d55b7e78c94c332d44b440a5115e1b869f3cc70974",
+  "nodes": [
+    {
+      "id": "collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "logits",
+      "kind": "LM_HEAD",
+      "resource": "NPU"
+    },
+    {
+      "id": "embed_0",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "bias_0",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "add_0",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "sample_0",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "embed_1",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "bias_1",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "add_1",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "sample_1",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "embed_2",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "bias_2",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "add_2",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "sample_2",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "embed_3",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "bias_3",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "add_3",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "sample_3",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "embed_4",
+      "kind": "MARKOV_EMBED",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "bias_4",
+      "kind": "MARKOV_BIAS",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "add_4",
+      "kind": "LOGITS_BIAS_ADD",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "sample_4",
+      "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+      "resource": "NPU",
+      "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+    },
+    {
+      "id": "sp_gather_slice",
+      "kind": "CONDITIONAL_SP_GATHER_SLICE",
+      "resource": "COMM_NPU",
+      "condition": "use_sequence_parallel_moe, else identity"
+    },
+    {
+      "id": "sample_select_pad",
+      "kind": "GATHER_SELECT_AND_CONDITIONAL_PAD",
+      "resource": "NPU"
+    },
+    {
+      "id": "stack_probs",
+      "kind": "CONDITIONAL_STACK_PROBS",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "norm",
+      "consumer": "logits",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "embed_0",
+      "consumer": "bias_0",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "bias_0",
+      "consumer": "add_0",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "logits",
+      "consumer": "add_0",
+      "value": "raw logits slice 0",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "add_0",
+      "consumer": "sample_0",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "sample_0",
+      "consumer": "embed_1",
+      "value": "draft token at index 1",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "embed_1",
+      "consumer": "bias_1",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "bias_1",
+      "consumer": "add_1",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "logits",
+      "consumer": "add_1",
+      "value": "raw logits slice 1",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "add_1",
+      "consumer": "sample_1",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "sample_1",
+      "consumer": "embed_2",
+      "value": "draft token at index 2",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "embed_2",
+      "consumer": "bias_2",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "bias_2",
+      "consumer": "add_2",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "logits",
+      "consumer": "add_2",
+      "value": "raw logits slice 2",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "add_2",
+      "consumer": "sample_2",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "sample_2",
+      "consumer": "embed_3",
+      "value": "draft token at index 3",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "embed_3",
+      "consumer": "bias_3",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "bias_3",
+      "consumer": "add_3",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "logits",
+      "consumer": "add_3",
+      "value": "raw logits slice 3",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "add_3",
+      "consumer": "sample_3",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "sample_3",
+      "consumer": "embed_4",
+      "value": "draft token at index 4",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "embed_4",
+      "consumer": "bias_4",
+      "value": "markov embedding",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "bias_4",
+      "consumer": "add_4",
+      "value": "markov bias",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "logits",
+      "consumer": "add_4",
+      "value": "raw logits slice 4",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "add_4",
+      "consumer": "sample_4",
+      "value": "biased logits slice",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "collapse",
+      "consumer": "sp_gather_slice",
+      "value": "collapsed hidden states",
+      "source": "models/deepseek_v41/dspark.py:272-276",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sp_gather_slice",
+      "consumer": "sample_select_pad",
+      "value": "last hidden states",
+      "source": "spec_decode/llm_base_proposer.py:1510-1534",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sample_select_pad",
+      "consumer": "norm",
+      "value": "sample hidden states",
+      "source": "spec_decode/llm_base_proposer.py:1534,1577; models/deepseek_v41/dspark.py:326-336",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sample_0",
+      "consumer": "stack_probs",
+      "value": "probabilities for step 0",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sample_1",
+      "consumer": "stack_probs",
+      "value": "probabilities for step 1",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sample_2",
+      "consumer": "stack_probs",
+      "value": "probabilities for step 2",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sample_3",
+      "consumer": "stack_probs",
+      "value": "probabilities for step 3",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sample_4",
+      "consumer": "stack_probs",
+      "value": "probabilities for step 4",
+      "source": "spec_decode/llm_base_proposer.py:1590-1606",
+      "condition": "probabilistic branch and probabilities returned",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "block2",
+      "consumer": "collapse",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "seed",
+      "consumer": "embed_0",
+      "value": "draft token at index 0",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1577-1602",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "sample_indices",
+      "consumer": "sample_select_pad",
+      "value": "selection indices and conditional padding",
+      "source": "spec_decode/llm_base_proposer.py:1510-1534",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sampling_metadata",
+      "consumer": "sample_0",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rng_state",
+      "consumer": "sample_0",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL"
+    },
+    {
+      "producer": "sampling_metadata",
+      "consumer": "sample_1",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rng_state",
+      "consumer": "sample_1",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL"
+    },
+    {
+      "producer": "sampling_metadata",
+      "consumer": "sample_2",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rng_state",
+      "consumer": "sample_2",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL"
+    },
+    {
+      "producer": "sampling_metadata",
+      "consumer": "sample_3",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rng_state",
+      "consumer": "sample_3",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL"
+    },
+    {
+      "producer": "sampling_metadata",
+      "consumer": "sample_4",
+      "value": "sampling parameters",
+      "source": "spec_decode/llm_base_proposer.py:1590-1595",
+      "condition": "probabilistic sampling only",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rng_state",
+      "consumer": "sample_4",
+      "value": "randomness state",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_READ_CONDITIONAL"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "sample_0",
+      "consumer": "draft_token_output",
+      "value": "sampled token 1",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+    },
+    {
+      "producer": "sample_1",
+      "consumer": "draft_token_output",
+      "value": "sampled token 2",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+    },
+    {
+      "producer": "sample_2",
+      "consumer": "draft_token_output",
+      "value": "sampled token 3",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+    },
+    {
+      "producer": "sample_3",
+      "consumer": "draft_token_output",
+      "value": "sampled token 4",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+    },
+    {
+      "producer": "sample_4",
+      "consumer": "draft_token_output",
+      "value": "sampled token 5",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+      "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+    },
+    {
+      "producer": "stack_probs",
+      "consumer": "probability_output",
+      "value": "draft_probs_step0",
+      "source": "spec_decode/llm_base_proposer.py:1603-1606,1636-1641",
+      "condition": "probabilistic branch and nonempty probabilities",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "sample_0",
+      "consumer": "rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL"
+    },
+    {
+      "producer": "sample_1",
+      "consumer": "rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL"
+    },
+    {
+      "producer": "sample_2",
+      "consumer": "rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL"
+    },
+    {
+      "producer": "sample_3",
+      "consumer": "rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL"
+    },
+    {
+      "producer": "sample_4",
+      "consumer": "rng_state",
+      "value": "random state side effect",
+      "source": "vllm/v1/spec_decode/llm_base_proposer.py:1848-1886",
+      "condition": "non-greedy probabilistic branch; exact state binding UNKNOWN",
+      "dependency_kind": "STATE_WRITE_CONDITIONAL"
+    }
+  ],
+  "status": "STRUCTURAL_ONLY",
+  "all_consumers_and_aliases": "UNKNOWN",
+  "template_graph_sha256": "b03954a51a7ded678179554d8a430cd33cea0528a453aab96d24e843d5b75ae3"
+}

@@ -1,0 +1,25 @@
+{
+  "workflow":"EXHAUST_RELEVANT_PROFILE_THEN_NARROW_SOURCE",
+  "profile_evidence":["moe-profile-query-v7.json","../archived-ep3-dspark-moe-evidence166-v7-v2.json","../archived-ep3-dspark-pipeline-audit166-v7-v2.json","../observed-moe-counts-evidence166-v7.json"],
+  "questions":[
+    {"id":"F21_NATIVE_OUTPUT_AND_BRANCH","profile_finding":"1280target composites;8selected anchors bindmoe_comm_method591.39draft composites haveM2/3,K3,8local experts;166same-call counts independently verified.","unsettled":"Which native call/branch publishes the count tensor, and can historical attributes supply internal tiling or stage times?","allowed_files":["ops/fused_moe/moe_comm_method.py:573-615"],"reuse_existing_contracts":["F21-MC2-DISPATCH-ACTIVATION-PIPELINE.md"],"limits":"No new nativeC++ audit. Static source cannot provide historical internal stage duration or actual binary/flag identity."},
+    {"id":"F28_INITIALIZATION_ORDER","profile_finding":"13actual repeats atdspark249;20->24padding->firstHCpre3rows or15->16->2rows;6HCpre/postperordered repeat group.","unsettled":"Which exact repeat/SP/padding/premix order and initial residual consumers must be preserved?","allowed_files":["models/deepseek_v41/dspark.py:248-276","models/deepseek_v41/model.py:884-899"],"reuse_existing_contracts":["F28-FIRST-DRAFT-HC-STRUCTURE.md","F03-HC-SOURCE-CONTRACT-AND-TILING.md"],"limits":"Physical shapes/callstacks do not establish premix values, alias lifetime or bitwise onehot identity."},
+    {"id":"F29_CONTEXT_KV_NUMERICS_AND_STATE","profile_finding":"39context projection/norm/RoPE/cat/scatter chains;nativeRotaryPositionEmbeddingV2 hasBF16x/cos/sin;156contextIndex records;own standard-cache helper atdspark246.","unsettled":"Which per-layer weights/norm,448/64split,nativeRoPE dtype and slot/page semantics constrain fusion, crosslayer packaging and cos/sin reuse?","allowed_files":["models/deepseek_v41/dspark.py:55-68","models/deepseek_v41/dspark.py:227-246","models/deepseek_v41/dspark.py:284-310","ops/rope_dsv4.py:382-402"],"reuse_existing_contracts":["F29-DSPARK-CONTEXT-KV-PIPELINE.md","DSPARK-PER-GROUP-DEPENDENCIES.md"],"limits":"Do not reuse target InplacePartialRotaryMul semantics for this observed native branch; actual positions/slots/storage versions not encoded by source."},
+    {"id":"F30_SCOPE_CORRECTION_AND_REUSE","profile_finding":"F30has13base-head MatMul,65Markov embeddings and65Markov bias MatMul. F29iscontextKV, notlogits/Markov.","unsettled":"Retain existing logits/Markov numerical/state contracts and actual operator associations without assigning them toF29.","new_source_required":false,"reuse_existing_contracts":["DSPARK-COMPUTE-AND-STATE-REVIEW.md"]}
+  ],
+  "F28_helper_followup":{
+    "question":"For the observed repeat20->pad24->shard3 and15->pad16->shard2 path, are sp_shard and sp_padding_mask token-axis operations so shard-before-repeat is a valid structural candidate?",
+    "resolved_import":"models/common/ops/sequence_parallel.py fromdspark.py37-40",
+    "allowed_symbols":["sp_shard","sp_padding_mask"],
+    "limits":"This still does not prove same floating-point HC bypass or safe zero-stride aliasing."
+  },
+  "F28_collective_followup":{
+    "profile":"13embedding HCCL Allreduce connections plus SPshard directly observed; nativeGather sourceops/vocab_parallel_embedding422 and reduction435.",
+    "question":"Is the local output a masked SUM contribution, permitting a coupled ReduceScatter/SP-local result candidate while retaining token mapping and numerical contract?",
+    "allowed_files":["vllm_ascend/ops/vocab_parallel_embedding.py:394-436","vllm/distributed/device_communicators/base_device_communicator.py:220-235"],
+    "limits":"Do not assume ReduceScatter is bitwise equivalent or that full embedding has no other consumers. Dummy/proposal and normal-SP/no-SP cases must stay separate."
+  },
+  "F29_per_layer_empty_guard_followup":{"allowed_file":"models/deepseek_v41/dspark.py:223-227","question":"Does a per-layerNone/empty slot list return only after projection was already computed? Preserve dummy/profile allocation purpose before considering skips."},
+  "repository_wide_source_audit":false,
+  "overall_complete":false
+}

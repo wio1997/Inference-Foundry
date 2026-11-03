@@ -1,0 +1,57 @@
+{
+  "id": "F16_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "o_a": "o_a",
+    "o_b": "o_b",
+    "reduce_scatter": "reduce_scatter"
+  },
+  "nodes": [
+    {
+      "id": "o_a",
+      "kind": "GROUPED_LINEAR",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "o_b",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "reduce_scatter",
+      "kind": "COLLECTIVE",
+      "resource": "COMM",
+      "row_domain": "global_or_restored"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "o_a",
+      "consumer": "o_b",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "o_b",
+      "consumer": "reduce_scatter",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "restore_heads",
+      "consumer": "o_a",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

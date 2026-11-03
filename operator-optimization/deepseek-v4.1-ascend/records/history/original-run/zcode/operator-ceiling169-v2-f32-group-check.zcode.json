@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_0ab78d56-3f20-4446-a153-e67b0ea97b68",
+  "traceId": "6da45a81-11d4-4fea-99bd-d63d8be8a955",
+  "turnId": "turn_5a570c41-209d-4f98-b9d3-490f073f1ffe",
+  "response": "Read only `agents/fusion/f32-ep3-tensor-group.json` (1507 bytes, the sole file opened). No writes, no network, no NPU, no service.\n\n## Command\n\n```bash\ncd /Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41 && python3 -c \"\nimport json\nd = json.load(open('agents/fusion/f32-ep3-tensor-group.json'))\ng = d['matched_groups']\ncalls = d['fixed_host_calls']\nprint('matched_groups count:', len(g))\nfor i, m in enumerate(g):\n    print(f'  [{i}] category={m[\\\"category\\\"]!r} group_rank(local)={m[\\\"group_rank\\\"]!r} global_ranks={m[\\\"global_ranks\\\"]!r}')\n    print(f'      matches_communicator_key={m[\\\"matches_communicator_key\\\"]!r} matches_group_name={m[\\\"matches_group_name\\\"]!r}')\nprint('fixed_host_calls count:', len(calls))\nall_null_dtypes = all(c.get('inputDtypes') is None for c in calls)\nall_null_shapes = all(c.get('inputShapes') is None for c in calls)\nprint('all inputDtypes null:', all_null_dtypes, '| all inputShapes null:', all_null_shapes, '| both:', all_null_dtypes and all_null_shapes)\nfor c in calls:\n    print(f'  conn={c[\\\"connectionId\\\"]} name={c[\\\"name\\\"]!r} inputDtypes={c.get(\\\"inputDtypes\\\")!r} inputShapes={c.get(\\\"inputShapes\\\")!r}')\n\"\n```\n\n## Result\n\n```\nmatched_groups count: 1\n  [0] category='tp' group_rank(local)=3 global_ranks=[0, 1, 2, 3, 4, 5, 6, 7]\n      matches_communicator_key=True matches_group_name=False\nfixed_host_calls count: 4\nall inputDtypes null: True | all inputShapes null: True | both: True\n  conn=431371 name='HcclAllGather' inputDtypes=None inputShapes=None\n  conn=431372 name='aclnnMatmul' inputDtypes=None inputShapes=None\n  conn=431373 name='aclnnMatmul' inputDtypes=None inputShapes=None\n  conn=431383 name='aclnnMatmul' inputDtypes=None inputShapes=None\n```\n\n## Reading of the fields\n\n- **matched_groups: 1 entry.** `category` = `\"tp\"`; local rank `group_rank` = 3; `global_ranks` = 0–7 (8 ranks).\n- **All 4 `fixed_host_calls` have null `inputDtypes` and null `inputShapes`** — true. The calls are one `HcclAllGather` (conn 431371) and three `aclnnMatmul` (431372, 431373, 431383).\n- Inside the single match, `matches_communicator_key` is true while `matches_group_name` is false — so the match rests on the communicator key, not the group-name string.\n\n## Scope limits (as you specified, and as the file itself states)\n\nThis is a shape-only record. The file's own `limits` field says: \"shape only, no tensor pointers/storage IDs; same string is a clue subject to 9.2 exporter contract; absence of match is not no group.\" Accordingly this output does **not** establish runtime tensor identity, the semantics of the `tp` group, or any rank-to-token mapping. The null dtypes/shapes mean the captured calls carry no operand type or shape information at all, so nothing here constrains per-call tensor layouts or sizes. `metadata_rows: 1` and `groupName_string_present: true` are recorded facts only, not evidence of group membership beyond the single key-matched entry.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 4,
+    "inputTokens": 36772,
+    "outputTokens": 1689,
+    "totalTokens": 38461,
+    "cacheReadTokens": 27264,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1115,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 38461,
+    "contextUsed": 11014,
+    "contextWindow": 200000
+  }
+}

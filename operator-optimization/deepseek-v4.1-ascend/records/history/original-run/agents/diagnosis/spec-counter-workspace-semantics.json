@@ -1,0 +1,5125 @@
+{
+  "root": "/vllm-workspace/vllm/vllm/v1",
+  "scope": [
+    "metrics",
+    "spec_decode",
+    "core",
+    "engine",
+    "sample"
+  ],
+  "paths_count": 73,
+  "files": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py",
+      "sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "lines": [
+        {
+          "line": 1978,
+          "text": "                scheduler_output.scheduled_spec_decode_tokens.get(req_id)"
+        },
+        {
+          "line": 1979,
+          "text": "            )"
+        },
+        {
+          "line": 1980,
+          "text": "            if scheduled_spec_token_ids and ("
+        },
+        {
+          "line": 1981,
+          "text": "                generated_token_ids or self.num_sampled_tokens_per_step == 0"
+        },
+        {
+          "line": 1982,
+          "text": "            ):"
+        },
+        {
+          "line": 1983,
+          "text": "                num_draft_tokens = len(scheduled_spec_token_ids)"
+        },
+        {
+          "line": 1984,
+          "text": "                num_sampled = self.num_sampled_tokens_per_step"
+        },
+        {
+          "line": 1985,
+          "text": "                num_accepted = max(len(generated_token_ids) - num_sampled, 0)"
+        },
+        {
+          "line": 1986,
+          "text": "                num_rejected = num_draft_tokens - num_accepted"
+        },
+        {
+          "line": 1987,
+          "text": "                # Rejections roll back num_computed_tokens (and, under async"
+        },
+        {
+          "line": 1988,
+          "text": "                # scheduling, num_output_placeholders, which covers the spec"
+        },
+        {
+          "line": 1989,
+          "text": "                # tokens). A stale rejection count predates the preemption"
+        },
+        {
+          "line": 1990,
+          "text": "                # rollback and must not apply."
+        },
+        {
+          "line": 1991,
+          "text": "                if not output_is_stale:"
+        },
+        {
+          "line": 1992,
+          "text": "                    if request.num_computed_tokens > 0:"
+        },
+        {
+          "line": 1993,
+          "text": "                        request.num_computed_tokens -= num_rejected"
+        },
+        {
+          "line": 1994,
+          "text": "                    if request.num_output_placeholders > 0:"
+        },
+        {
+          "line": 1995,
+          "text": "                        request.num_output_placeholders -= num_rejected"
+        },
+        {
+          "line": 1996,
+          "text": "                spec_decoding_stats = self.make_spec_decoding_stats("
+        },
+        {
+          "line": 1997,
+          "text": "                    spec_decoding_stats,"
+        },
+        {
+          "line": 1998,
+          "text": "                    num_draft_tokens=num_draft_tokens,"
+        },
+        {
+          "line": 1999,
+          "text": "                    num_accepted_tokens=num_accepted,"
+        },
+        {
+          "line": 2000,
+          "text": "                    num_invalid_spec_tokens=scheduler_output.num_invalid_spec_tokens,"
+        },
+        {
+          "line": 2001,
+          "text": "                    request_id=req_id,"
+        },
+        {
+          "line": 2002,
+          "text": "                )"
+        },
+        {
+          "line": 2003,
+          "text": "                if request.spec_decode_metrics is not None:"
+        },
+        {
+          "line": 2004,
+          "text": "                    # Exclude grammar-invalidated drafts from the proposed"
+        },
+        {
+          "line": 2005,
+          "text": "                    # count, mirroring make_spec_decoding_stats; the accepted"
+        },
+        {
+          "line": 2006,
+          "text": "                    # bucket (j) is unaffected."
+        },
+        {
+          "line": 2007,
+          "text": "                    adj_draft_tokens = num_draft_tokens"
+        },
+        {
+          "line": 2008,
+          "text": "                    if scheduler_output.num_invalid_spec_tokens:"
+        },
+        {
+          "line": 2009,
+          "text": "                        adj_draft_tokens -= ("
+        },
+        {
+          "line": 2010,
+          "text": "                            scheduler_output.num_invalid_spec_tokens.get(req_id, 0)"
+        },
+        {
+          "line": 2011,
+          "text": "                        )"
+        },
+        {
+          "line": 2012,
+          "text": "                    request.spec_decode_metrics.observe("
+        },
+        {
+          "line": 2013,
+          "text": "                        num_draft_tokens=adj_draft_tokens,"
+        },
+        {
+          "line": 2014,
+          "text": "                        num_accepted=num_accepted,"
+        },
+        {
+          "line": 2015,
+          "text": "                        detailed=self.spec_decode_metrics_level == \"detailed\","
+        },
+        {
+          "line": 2016,
+          "text": "                    )"
+        },
+        {
+          "line": 2017,
+          "text": ""
+        },
+        {
+          "line": 2018,
+          "text": "            # Free encoder inputs only after the step has actually executed."
+        },
+        {
+          "line": 2019,
+          "text": "            if request.has_encoder_inputs:"
+        },
+        {
+          "line": 2020,
+          "text": "                self._free_encoder_inputs(request)"
+        },
+        {
+          "line": 2021,
+          "text": ""
+        },
+        {
+          "line": 2796,
+          "text": "        )"
+        },
+        {
+          "line": 2797,
+          "text": ""
+        },
+        {
+          "line": 2798,
+          "text": "    def make_spec_decoding_stats("
+        },
+        {
+          "line": 2799,
+          "text": "        self,"
+        },
+        {
+          "line": 2800,
+          "text": "        spec_decoding_stats: SpecDecodingStats | None,"
+        },
+        {
+          "line": 2801,
+          "text": "        num_draft_tokens: int,"
+        },
+        {
+          "line": 2802,
+          "text": "        num_accepted_tokens: int,"
+        },
+        {
+          "line": 2803,
+          "text": "        num_invalid_spec_tokens: dict[str, int] | None,"
+        },
+        {
+          "line": 2804,
+          "text": "        request_id: str,"
+        },
+        {
+          "line": 2805,
+          "text": "    ) -> SpecDecodingStats | None:"
+        },
+        {
+          "line": 2806,
+          "text": "        if not self.log_stats or not num_draft_tokens:"
+        },
+        {
+          "line": 2807,
+          "text": "            return None"
+        },
+        {
+          "line": 2808,
+          "text": "        if spec_decoding_stats is None:"
+        },
+        {
+          "line": 2809,
+          "text": "            spec_decoding_stats = SpecDecodingStats.new(self.num_spec_tokens)"
+        },
+        {
+          "line": 2810,
+          "text": "        if num_invalid_spec_tokens:"
+        },
+        {
+          "line": 2811,
+          "text": "            num_draft_tokens -= num_invalid_spec_tokens.get(request_id, 0)"
+        },
+        {
+          "line": 2812,
+          "text": "        spec_decoding_stats.observe_draft("
+        },
+        {
+          "line": 2813,
+          "text": "            num_draft_tokens=num_draft_tokens, num_accepted_tokens=num_accepted_tokens"
+        },
+        {
+          "line": 2814,
+          "text": "        )"
+        },
+        {
+          "line": 2815,
+          "text": "        return spec_decoding_stats"
+        },
+        {
+          "line": 2816,
+          "text": ""
+        },
+        {
+          "line": 2817,
+          "text": "    def shutdown(self) -> None:"
+        },
+        {
+          "line": 2818,
+          "text": "        logger.debug_once(\"[shutdown] Scheduler: start\")"
+        },
+        {
+          "line": 2819,
+          "text": "        if self.kv_event_publisher:"
+        },
+        {
+          "line": 2820,
+          "text": "            self.kv_event_publisher.shutdown()"
+        },
+        {
+          "line": 2821,
+          "text": "        if self.connector is not None:"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/metrics/reader.py",
+      "sha256": "76bc2d10a267e203a768216f95a6048e26e6431edc40722c0e24228b807d524e",
+      "lines": [
+        {
+          "line": 31,
+          "text": "@dataclass"
+        },
+        {
+          "line": 32,
+          "text": "class Vector(Metric):"
+        },
+        {
+          "line": 33,
+          "text": "    \"\"\"An ordered array of integer counters."
+        },
+        {
+          "line": 34,
+          "text": ""
+        },
+        {
+          "line": 35,
+          "text": "    This type - which doesn't exist in Prometheus - models one very"
+        },
+        {
+          "line": 36,
+          "text": "    specific metric, vllm:spec_decode_num_accepted_tokens_per_pos."
+        },
+        {
+          "line": 37,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 38,
+          "text": ""
+        },
+        {
+          "line": 39,
+          "text": "    values: list[int]"
+        },
+        {
+          "line": 40,
+          "text": ""
+        },
+        {
+          "line": 41,
+          "text": ""
+        },
+        {
+          "line": 42,
+          "text": "@dataclass"
+        },
+        {
+          "line": 43,
+          "text": "class Gauge(Metric):"
+        },
+        {
+          "line": 44,
+          "text": "    \"\"\"A numerical value that can go up or down.\"\"\""
+        },
+        {
+          "line": 93,
+          "text": "                collected.append("
+        },
+        {
+          "line": 94,
+          "text": "                    Gauge(name=metric.name, labels=s.labels, value=s.value)"
+        },
+        {
+          "line": 95,
+          "text": "                )"
+        },
+        {
+          "line": 96,
+          "text": "        elif metric.type == \"counter\":"
+        },
+        {
+          "line": 97,
+          "text": "            samples = _get_samples(metric, \"_total\")"
+        },
+        {
+          "line": 98,
+          "text": "            if metric.name == \"vllm:spec_decode_num_accepted_tokens_per_pos\":"
+        },
+        {
+          "line": 99,
+          "text": "                #"
+        },
+        {
+          "line": 100,
+          "text": "                # Ugly vllm:num_accepted_tokens_per_pos special case."
+        },
+        {
+          "line": 101,
+          "text": "                #"
+        },
+        {
+          "line": 102,
+          "text": "                # This metric is a vector of counters - for each spec"
+        },
+        {
+          "line": 103,
+          "text": "                # decoding token position, we observe the number of"
+        },
+        {
+          "line": 104,
+          "text": "                # accepted tokens using a Counter labeled with 'position'."
+        },
+        {
+          "line": 105,
+          "text": "                # We convert these into a vector of integer values."
+        },
+        {
+          "line": 106,
+          "text": "                #"
+        },
+        {
+          "line": 107,
+          "text": "                for labels, values in _digest_num_accepted_by_pos_samples(samples):"
+        },
+        {
+          "line": 108,
+          "text": "                    collected.append("
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/metrics/stats.py",
+      "sha256": "af1983ddc32fa4d3284e72212c6525daf961dd84429023a02d612b68b3112cf3",
+      "lines": [
+        {
+          "line": 315,
+          "text": "    Fields:"
+        },
+        {
+          "line": 316,
+          "text": "        num_spec_tokens: Configured ``num_speculative_tokens`` (the max ``k``);"
+        },
+        {
+          "line": 317,
+          "text": "            also the histogram's upper bound."
+        },
+        {
+          "line": 318,
+          "text": "        histogram: Dense counts indexed by accepted draft tokens ``j``"
+        },
+        {
+          "line": 319,
+          "text": "            (length ``num_spec_tokens + 1``)."
+        },
+        {
+          "line": 320,
+          "text": "        num_draft_tokens: Total proposed draft tokens, after the"
+        },
+        {
+          "line": 321,
+          "text": "            grammar-invalidated (``num_invalid_spec_tokens``) adjustment."
+        },
+        {
+          "line": 322,
+          "text": "        per_step_accepted: Ordered accepted-draft count per verify step"
+        },
+        {
+          "line": 323,
+          "text": "            (``detailed`` only; empty otherwise)."
+        },
+        {
+          "line": 324,
+          "text": "        per_step_drafted: Ordered proposed-draft count per verify step"
+        },
+        {
+          "line": 325,
+          "text": "            (``detailed`` only; empty otherwise)."
+        },
+        {
+          "line": 326,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 327,
+          "text": ""
+        },
+        {
+          "line": 328,
+          "text": "    num_spec_tokens: int"
+        },
+        {
+          "line": 329,
+          "text": "    histogram: list[int] = field(default_factory=list)"
+        },
+        {
+          "line": 330,
+          "text": "    num_draft_tokens: int = 0"
+        },
+        {
+          "line": 331,
+          "text": "    per_step_accepted: list[int] = field(default_factory=list)"
+        },
+        {
+          "line": 332,
+          "text": "    per_step_drafted: list[int] = field(default_factory=list)"
+        },
+        {
+          "line": 333,
+          "text": ""
+        },
+        {
+          "line": 334,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 335,
+          "text": "    def new(cls, num_spec_tokens: int) -> \"RequestSpecDecodeMetrics\":"
+        },
+        {
+          "line": 336,
+          "text": "        return cls("
+        },
+        {
+          "line": 337,
+          "text": "            num_spec_tokens=num_spec_tokens,"
+        },
+        {
+          "line": 338,
+          "text": "            histogram=[0] * (num_spec_tokens + 1),"
+        },
+        {
+          "line": 339,
+          "text": "        )"
+        },
+        {
+          "line": 340,
+          "text": ""
+        },
+        {
+          "line": 341,
+          "text": "    def observe("
+        },
+        {
+          "line": 342,
+          "text": "        self, num_draft_tokens: int, num_accepted: int, detailed: bool = False"
+        },
+        {
+          "line": 343,
+          "text": "    ) -> None:"
+        },
+        {
+          "line": 344,
+          "text": "        self.histogram[num_accepted] += 1"
+        },
+        {
+          "line": 345,
+          "text": "        self.num_draft_tokens += num_draft_tokens"
+        },
+        {
+          "line": 346,
+          "text": "        if detailed:"
+        },
+        {
+          "line": 347,
+          "text": "            self.per_step_accepted.append(num_accepted)"
+        },
+        {
+          "line": 348,
+          "text": "            self.per_step_drafted.append(num_draft_tokens)"
+        },
+        {
+          "line": 349,
+          "text": ""
+        },
+        {
+          "line": 350,
+          "text": "    def to_dict(self) -> dict[str, Any]:"
+        },
+        {
+          "line": 351,
+          "text": "        \"\"\"Payload matching ``SpeculativeDecodingMetrics`` for the response."
+        },
+        {
+          "line": 352,
+          "text": ""
+        },
+        {
+          "line": 353,
+          "text": "        ``acceptance_histogram`` is a dense list indexed by accepted draft count"
+        },
+        {
+          "line": 354,
+          "text": "        ``j`` (length ``num_spec_tokens + 1``). ``mean_acceptance_length``"
+        },
+        {
+          "line": 355,
+          "text": "        includes the bonus token (``j + 1``); ``draft_acceptance_rate`` is"
+        },
+        {
+          "line": 356,
+          "text": "        draft-only, full precision. Per-step arrays are included only when"
+        },
+        {
+          "line": 357,
+          "text": "        populated (``detailed`` level)."
+        },
+        {
+          "line": 358,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 359,
+          "text": "        num_spec_steps = sum(self.histogram)"
+        },
+        {
+          "line": 360,
+          "text": "        num_accepted = sum(j * count for j, count in enumerate(self.histogram))"
+        },
+        {
+          "line": 361,
+          "text": "        mean_al = 1.0 + num_accepted / num_spec_steps if num_spec_steps else 1.0"
+        },
+        {
+          "line": 362,
+          "text": "        rate = num_accepted / self.num_draft_tokens if self.num_draft_tokens else 0.0"
+        },
+        {
+          "line": 363,
+          "text": "        result: dict[str, Any] = {"
+        },
+        {
+          "line": 364,
+          "text": "            \"mean_acceptance_length\": mean_al,"
+        },
+        {
+          "line": 365,
+          "text": "            \"draft_acceptance_rate\": rate,"
+        },
+        {
+          "line": 366,
+          "text": "            \"acceptance_histogram\": list(self.histogram),"
+        },
+        {
+          "line": 367,
+          "text": "            \"num_spec_steps\": num_spec_steps,"
+        },
+        {
+          "line": 368,
+          "text": "            \"num_accepted_draft_tokens\": num_accepted,"
+        },
+        {
+          "line": 369,
+          "text": "            \"num_draft_tokens\": self.num_draft_tokens,"
+        },
+        {
+          "line": 370,
+          "text": "            \"num_spec_tokens\": self.num_spec_tokens,"
+        },
+        {
+          "line": 371,
+          "text": "        }"
+        },
+        {
+          "line": 372,
+          "text": "        if self.per_step_accepted:"
+        },
+        {
+          "line": 373,
+          "text": "            result[\"per_step_accepted\"] = self.per_step_accepted"
+        },
+        {
+          "line": 374,
+          "text": "            result[\"per_step_drafted\"] = self.per_step_drafted"
+        },
+        {
+          "line": 375,
+          "text": "        return result"
+        },
+        {
+          "line": 376,
+          "text": ""
+        },
+        {
+          "line": 377,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/sample/logits_processor/builtin.py",
+      "sha256": "6105816ece77e5b1dbee0d07abc90ce039d650bac2ddb85c93280c48b00f2ebe",
+      "lines": [
+        {
+          "line": 288,
+          "text": "        return logits"
+        },
+        {
+          "line": 289,
+          "text": ""
+        },
+        {
+          "line": 290,
+          "text": "    def apply_with_spec_decode("
+        },
+        {
+          "line": 291,
+          "text": "        self,"
+        },
+        {
+          "line": 292,
+          "text": "        logits: torch.Tensor,"
+        },
+        {
+          "line": 293,
+          "text": "        num_draft_tokens: list[int],"
+        },
+        {
+          "line": 294,
+          "text": "    ) -> torch.Tensor:"
+        },
+        {
+          "line": 295,
+          "text": "        \"\"\"Spec-decode version of apply()."
+        },
+        {
+          "line": 296,
+          "text": ""
+        },
+        {
+          "line": 297,
+          "text": "        Stop tokens stay masked unless masking them would leave every logit"
+        },
+        {
+          "line": 298,
+          "text": "        in a row at -inf."
+        },
+        {
+          "line": 299,
+          "text": ""
+        },
+        {
+          "line": 300,
+          "text": "        Example: ``num_draft_tokens = [2, 3, 1]``"
+        },
+        {
+          "line": 301,
+          "text": "          -> ``logits`` shape ``[6, V]``, ``cumsum = [0, 2, 5, 6]``"
+        },
+        {
+          "line": 302,
+          "text": "          -> request 0 owns rows 0-1, request 1 rows 2-4, request 2 row 5."
+        },
+        {
+          "line": 303,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 304,
+          "text": "        if not self.min_toks:"
+        },
+        {
+          "line": 305,
+          "text": "            return logits"
+        },
+        {
+          "line": 306,
+          "text": ""
+        },
+        {
+          "line": 307,
+          "text": "        num_draft_arr = np.array(num_draft_tokens, dtype=np.int64)"
+        },
+        {
+          "line": 308,
+          "text": "        cumsum = np.concatenate([[0], np.cumsum(num_draft_arr)])"
+        },
+        {
+          "line": 309,
+          "text": ""
+        },
+        {
+          "line": 310,
+          "text": "        entries = ["
+        },
+        {
+          "line": 311,
+          "text": "            ("
+        },
+        {
+          "line": 312,
+          "text": "                req_idx,"
+        },
+        {
+          "line": 313,
+          "text": "                min_tok,"
+        },
+        {
+          "line": 314,
+          "text": "                len(out_tok_ids),"
+        },
+        {
+          "line": 315,
+          "text": "                list(stop_tok_ids),"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/sample/ops/bad_words.py",
+      "sha256": "0b1d0a9b13b92ddcae2c83393c07a34c0f107813725700dee794caa7fe7f3b12",
+      "lines": [
+        {
+          "line": 38,
+          "text": ""
+        },
+        {
+          "line": 39,
+          "text": "def apply_bad_words_with_drafts("
+        },
+        {
+          "line": 40,
+          "text": "    logits: torch.Tensor,"
+        },
+        {
+          "line": 41,
+          "text": "    bad_words_token_ids: dict[int, list[list[int]]],"
+        },
+        {
+          "line": 42,
+          "text": "    past_tokens_ids: list[list[int]],"
+        },
+        {
+          "line": 43,
+          "text": "    num_draft_tokens: list[int],"
+        },
+        {
+          "line": 44,
+          "text": ") -> None:"
+        },
+        {
+          "line": 45,
+          "text": "    start_idx = 0"
+        },
+        {
+          "line": 46,
+          "text": "    remaining = len(bad_words_token_ids)"
+        },
+        {
+          "line": 47,
+          "text": "    for i, n in enumerate(num_draft_tokens):"
+        },
+        {
+          "line": 48,
+          "text": "        if (bad_words_ids := bad_words_token_ids.get(i)) is not None:"
+        },
+        {
+          "line": 49,
+          "text": "            for draft_idx in range(start_idx, start_idx + n):"
+        },
+        {
+          "line": 50,
+          "text": "                _apply_bad_words_single_batch("
+        },
+        {
+          "line": 51,
+          "text": "                    logits[draft_idx],"
+        },
+        {
+          "line": 52,
+          "text": "                    bad_words_ids,"
+        },
+        {
+          "line": 53,
+          "text": "                    past_tokens_ids[draft_idx],"
+        },
+        {
+          "line": 54,
+          "text": "                )"
+        },
+        {
+          "line": 55,
+          "text": "            remaining -= 1"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/sample/rejection_sampler.py",
+      "sha256": "0bb9d224887ccb1355e16199005cc23a4afc6fa75156eca419851b7247d99750",
+      "lines": [
+        {
+          "line": 179,
+          "text": "        # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 180,
+          "text": "        # NOTE(woosuk): `target_logits` can be updated in place inside the"
+        },
+        {
+          "line": 181,
+          "text": "        # `apply_sampling_constraints` function."
+        },
+        {
+          "line": 182,
+          "text": "        target_logits = apply_sampling_constraints("
+        },
+        {
+          "line": 183,
+          "text": "            target_logits,"
+        },
+        {
+          "line": 184,
+          "text": "            metadata.cu_num_draft_tokens,"
+        },
+        {
+          "line": 185,
+          "text": "            sampling_metadata,"
+        },
+        {
+          "line": 186,
+          "text": "        )"
+        },
+        {
+          "line": 187,
+          "text": ""
+        },
+        {
+          "line": 188,
+          "text": "        output_token_ids = rejection_sample("
+        },
+        {
+          "line": 189,
+          "text": "            metadata.draft_token_ids,"
+        },
+        {
+          "line": 190,
+          "text": "            metadata.num_draft_tokens,"
+        },
+        {
+          "line": 191,
+          "text": "            metadata.max_spec_len,"
+        },
+        {
+          "line": 192,
+          "text": "            metadata.cu_num_draft_tokens,"
+        },
+        {
+          "line": 193,
+          "text": "            draft_probs,"
+        },
+        {
+          "line": 194,
+          "text": "            target_logits,"
+        },
+        {
+          "line": 195,
+          "text": "            bonus_token_ids,"
+        },
+        {
+          "line": 196,
+          "text": "            sampling_metadata,"
+        },
+        {
+          "line": 197,
+          "text": "            synthetic_mode=self.synthetic_mode,"
+        },
+        {
+          "line": 198,
+          "text": "            synthetic_conditional_rates=self.synthetic_conditional_rates,"
+        },
+        {
+          "line": 199,
+          "text": "            use_fp64_gumbel=self.use_fp64_gumbel,"
+        },
+        {
+          "line": 200,
+          "text": "        )"
+        },
+        {
+          "line": 322,
+          "text": "        repeat_indices: torch.Tensor | None = None"
+        },
+        {
+          "line": 323,
+          "text": "        need_repeat_indices = ("
+        },
+        {
+          "line": 324,
+          "text": "            sampling_metadata.allowed_token_ids_mask is not None or has_penalties"
+        },
+        {
+          "line": 325,
+          "text": "        )"
+        },
+        {
+          "line": 326,
+          "text": "        if need_repeat_indices:"
+        },
+        {
+          "line": 327,
+          "text": "            num_requests = len(metadata.num_draft_tokens)"
+        },
+        {
+          "line": 328,
+          "text": "            num_draft_tokens = torch.tensor(metadata.num_draft_tokens, device=\"cpu\")"
+        },
+        {
+          "line": 329,
+          "text": "            original_indices = torch.arange(num_requests, device=\"cpu\")"
+        },
+        {
+          "line": 330,
+          "text": "            repeat_indices_cpu = original_indices.repeat_interleave(num_draft_tokens)"
+        },
+        {
+          "line": 331,
+          "text": "            repeat_indices = async_tensor_h2d(repeat_indices_cpu, logits.device)"
+        },
+        {
+          "line": 332,
+          "text": "            logits = self.apply_penalties("
+        },
+        {
+          "line": 333,
+          "text": "                logits, sampling_metadata, metadata, repeat_indices, output_token_ids"
+        },
+        {
+          "line": 334,
+          "text": "            )"
+        },
+        {
+          "line": 335,
+          "text": ""
+        },
+        {
+          "line": 336,
+          "text": "            # Apply allowed token ids."
+        },
+        {
+          "line": 337,
+          "text": "            if sampling_metadata.allowed_token_ids_mask is not None:"
+        },
+        {
+          "line": 338,
+          "text": "                token_mask = sampling_metadata.allowed_token_ids_mask[repeat_indices]"
+        },
+        {
+          "line": 339,
+          "text": "                logits.masked_fill_(token_mask, float(\"-inf\"))"
+        },
+        {
+          "line": 340,
+          "text": ""
+        },
+        {
+          "line": 341,
+          "text": "        # Apply bad words exclusion."
+        },
+        {
+          "line": 342,
+          "text": "        if bad_words_token_ids := sampling_metadata.bad_words_token_ids:"
+        },
+        {
+          "line": 343,
+          "text": "            apply_bad_words_with_drafts("
+        },
+        {
+          "line": 344,
+          "text": "                logits, bad_words_token_ids, output_token_ids, metadata.num_draft_tokens"
+        },
+        {
+          "line": 345,
+          "text": "            )"
+        },
+        {
+          "line": 346,
+          "text": ""
+        },
+        {
+          "line": 347,
+          "text": "        for processor in sampling_metadata.logitsprocs.non_argmax_invariant:"
+        },
+        {
+          "line": 348,
+          "text": "            if isinstance(processor, MinTokensLogitsProcessor):"
+        },
+        {
+          "line": 349,
+          "text": "                logits = processor.apply_with_spec_decode("
+        },
+        {
+          "line": 350,
+          "text": "                    logits, metadata.num_draft_tokens"
+        },
+        {
+          "line": 351,
+          "text": "                )"
+        },
+        {
+          "line": 352,
+          "text": "        holder = sampling_metadata.thinking_budget_state_holder"
+        },
+        {
+          "line": 353,
+          "text": "        if holder is not None and holder.has_tracked_requests():"
+        },
+        {
+          "line": 354,
+          "text": "            logits = holder.apply_to_logits("
+        },
+        {
+          "line": 355,
+          "text": "                logits,"
+        },
+        {
+          "line": 356,
+          "text": "                predict_bonus_token=False,"
+        },
+        {
+          "line": 357,
+          "text": "                spec_token_ids=sampling_metadata.spec_token_ids,"
+        },
+        {
+          "line": 358,
+          "text": "            )"
+        },
+        {
+          "line": 406,
+          "text": ""
+        },
+        {
+          "line": 407,
+          "text": "def rejection_sample("
+        },
+        {
+          "line": 408,
+          "text": "    # [num_tokens]"
+        },
+        {
+          "line": 409,
+          "text": "    draft_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 410,
+          "text": "    # [batch_size]"
+        },
+        {
+          "line": 411,
+          "text": "    num_draft_tokens: list[int],"
+        },
+        {
+          "line": 412,
+          "text": "    max_spec_len: int,"
+        },
+        {
+          "line": 413,
+          "text": "    # [batch_size]"
+        },
+        {
+          "line": 414,
+          "text": "    cu_num_draft_tokens: torch.Tensor,"
+        },
+        {
+          "line": 415,
+          "text": "    # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 416,
+          "text": "    draft_probs: torch.Tensor | None,"
+        },
+        {
+          "line": 417,
+          "text": "    # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 418,
+          "text": "    target_logits: torch.Tensor,"
+        },
+        {
+          "line": 419,
+          "text": "    # [batch_size, 1]"
+        },
+        {
+          "line": 420,
+          "text": "    bonus_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 421,
+          "text": "    sampling_metadata: SamplingMetadata,"
+        },
+        {
+          "line": 422,
+          "text": "    synthetic_mode: bool = False,"
+        },
+        {
+          "line": 423,
+          "text": "    synthetic_conditional_rates: torch.Tensor | None = None,"
+        },
+        {
+          "line": 424,
+          "text": "    use_fp64_gumbel: bool = False,"
+        },
+        {
+          "line": 425,
+          "text": ") -> torch.Tensor:"
+        },
+        {
+          "line": 426,
+          "text": "    assert draft_token_ids.ndim == 1"
+        },
+        {
+          "line": 427,
+          "text": "    assert draft_probs is None or draft_probs.ndim == 2"
+        },
+        {
+          "line": 428,
+          "text": "    assert cu_num_draft_tokens.ndim == 1"
+        },
+        {
+          "line": 429,
+          "text": "    assert target_logits.ndim == 2"
+        },
+        {
+          "line": 430,
+          "text": ""
+        },
+        {
+          "line": 431,
+          "text": "    batch_size = len(num_draft_tokens)"
+        },
+        {
+          "line": 432,
+          "text": "    num_tokens = draft_token_ids.shape[0]"
+        },
+        {
+          "line": 433,
+          "text": "    vocab_size = target_logits.shape[-1]"
+        },
+        {
+          "line": 434,
+          "text": "    device = target_logits.device"
+        },
+        {
+          "line": 435,
+          "text": "    assert draft_token_ids.is_contiguous()"
+        },
+        {
+          "line": 436,
+          "text": "    assert draft_probs is None or draft_probs.is_contiguous()"
+        },
+        {
+          "line": 437,
+          "text": "    assert bonus_token_ids.is_contiguous()"
+        },
+        {
+          "line": 438,
+          "text": "    assert target_logits.shape == (num_tokens, vocab_size)"
+        },
+        {
+          "line": 439,
+          "text": ""
+        },
+        {
+          "line": 456,
+          "text": "    # [num_tokens]"
+        },
+        {
+          "line": 457,
+          "text": "    uniform_probs: torch.Tensor | None = None"
+        },
+        {
+          "line": 458,
+          "text": "    if synthetic_mode or not sampling_metadata.all_greedy:"
+        },
+        {
+          "line": 459,
+          "text": "        uniform_probs = generate_uniform_probs("
+        },
+        {
+          "line": 460,
+          "text": "            num_tokens,"
+        },
+        {
+          "line": 461,
+          "text": "            num_draft_tokens,"
+        },
+        {
+          "line": 462,
+          "text": "            sampling_metadata.generators,"
+        },
+        {
+          "line": 463,
+          "text": "            device,"
+        },
+        {
+          "line": 464,
+          "text": "        )"
+        },
+        {
+          "line": 465,
+          "text": ""
+        },
+        {
+          "line": 466,
+          "text": "    if not sampling_metadata.all_random:"
+        },
+        {
+          "line": 467,
+          "text": "        # Rejection sampling for greedy sampling requests."
+        },
+        {
+          "line": 468,
+          "text": "        target_argmax = target_logits.argmax(dim=-1)"
+        },
+        {
+          "line": 469,
+          "text": "        _rejection_greedy_sample("
+        },
+        {
+          "line": 470,
+          "text": "            output_token_ids,"
+        },
+        {
+          "line": 471,
+          "text": "            cu_num_draft_tokens,"
+        },
+        {
+          "line": 472,
+          "text": "            draft_token_ids,"
+        },
+        {
+          "line": 473,
+          "text": "            target_argmax,"
+        },
+        {
+          "line": 474,
+          "text": "            bonus_token_ids,"
+        },
+        {
+          "line": 475,
+          "text": "            is_greedy,"
+        },
+        {
+          "line": 476,
+          "text": "            max_spec_len,"
+        },
+        {
+          "line": 477,
+          "text": "            uniform_probs,"
+        },
+        {
+          "line": 478,
+          "text": "            synthetic_conditional_rates,"
+        },
+        {
+          "line": 479,
+          "text": "        )"
+        },
+        {
+          "line": 486,
+          "text": ""
+        },
+        {
+          "line": 487,
+          "text": "    # Sample recovered tokens for each position."
+        },
+        {
+          "line": 488,
+          "text": "    # [num_tokens]"
+        },
+        {
+          "line": 489,
+          "text": "    recovered_token_ids = sample_recovered_tokens("
+        },
+        {
+          "line": 490,
+          "text": "        max_spec_len,"
+        },
+        {
+          "line": 491,
+          "text": "        num_draft_tokens,"
+        },
+        {
+          "line": 492,
+          "text": "        cu_num_draft_tokens,"
+        },
+        {
+          "line": 493,
+          "text": "        draft_token_ids,"
+        },
+        {
+          "line": 494,
+          "text": "        draft_probs,"
+        },
+        {
+          "line": 495,
+          "text": "        target_probs,"
+        },
+        {
+          "line": 496,
+          "text": "        sampling_metadata,"
+        },
+        {
+          "line": 497,
+          "text": "        device,"
+        },
+        {
+          "line": 498,
+          "text": "        use_fp64_gumbel,"
+        },
+        {
+          "line": 499,
+          "text": "    )"
+        },
+        {
+          "line": 500,
+          "text": ""
+        },
+        {
+          "line": 501,
+          "text": "    # Rejection sampling for random sampling requests."
+        },
+        {
+          "line": 502,
+          "text": "    assert uniform_probs is not None"
+        },
+        {
+          "line": 503,
+          "text": "    _rejection_random_sample("
+        },
+        {
+          "line": 504,
+          "text": "        output_token_ids,"
+        },
+        {
+          "line": 505,
+          "text": "        cu_num_draft_tokens,"
+        },
+        {
+          "line": 506,
+          "text": "        draft_token_ids,"
+        },
+        {
+          "line": 507,
+          "text": "        draft_probs,"
+        },
+        {
+          "line": 508,
+          "text": "        target_probs,"
+        },
+        {
+          "line": 509,
+          "text": "        bonus_token_ids,"
+        },
+        {
+          "line": 510,
+          "text": "        recovered_token_ids,"
+        },
+        {
+          "line": 511,
+          "text": "        uniform_probs,"
+        },
+        {
+          "line": 512,
+          "text": "        is_greedy,"
+        },
+        {
+          "line": 513,
+          "text": "        max_spec_len,"
+        },
+        {
+          "line": 516,
+          "text": "    return output_token_ids"
+        },
+        {
+          "line": 517,
+          "text": ""
+        },
+        {
+          "line": 518,
+          "text": ""
+        },
+        {
+          "line": 519,
+          "text": "def apply_sampling_constraints("
+        },
+        {
+          "line": 520,
+          "text": "    logits: torch.Tensor,  # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 521,
+          "text": "    cu_num_draft_tokens: torch.Tensor,  # [batch_size]"
+        },
+        {
+          "line": 522,
+          "text": "    sampling_metadata: SamplingMetadata,"
+        },
+        {
+          "line": 523,
+          "text": ") -> torch.Tensor:"
+        },
+        {
+          "line": 524,
+          "text": "    \"\"\"Process logits based on sampling metadata."
+        },
+        {
+          "line": 525,
+          "text": ""
+        },
+        {
+          "line": 526,
+          "text": "    This function applies temperature scaling to the logits,"
+        },
+        {
+          "line": 527,
+          "text": "    as well as top-k and top-p. For greedy decoding, it returns"
+        },
+        {
+          "line": 528,
+          "text": "    the original logits."
+        },
+        {
+          "line": 529,
+          "text": ""
+        },
+        {
+          "line": 530,
+          "text": "    Args:"
+        },
+        {
+          "line": 531,
+          "text": "        logits: Input logits tensor to be processed."
+        },
+        {
+          "line": 532,
+          "text": "        cu_num_draft_tokens: Cumulative number of draft tokens."
+        },
+        {
+          "line": 533,
+          "text": "        sampling_metadata: Metadata containing sampling parameters such as"
+        },
+        {
+          "line": 534,
+          "text": "            temperature and whether greedy sampling is used."
+        },
+        {
+          "line": 535,
+          "text": ""
+        },
+        {
+          "line": 536,
+          "text": "    Returns:"
+        },
+        {
+          "line": 537,
+          "text": "        torch.Tensor: Processed logits if non-greedy sampling is used,"
+        },
+        {
+          "line": 538,
+          "text": "        otherwise returns the original logits."
+        },
+        {
+          "line": 539,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 540,
+          "text": "    assert logits.ndim == 2"
+        },
+        {
+          "line": 541,
+          "text": "    assert cu_num_draft_tokens.ndim == 1"
+        },
+        {
+          "line": 542,
+          "text": "    if sampling_metadata.all_greedy:"
+        },
+        {
+          "line": 543,
+          "text": "        return logits"
+        },
+        {
+          "line": 544,
+          "text": ""
+        },
+        {
+          "line": 545,
+          "text": "    num_tokens = logits.shape[0]"
+        },
+        {
+          "line": 546,
+          "text": "    temperature = expand_batch_to_tokens("
+        },
+        {
+          "line": 547,
+          "text": "        sampling_metadata.temperature,"
+        },
+        {
+          "line": 548,
+          "text": "        cu_num_draft_tokens,"
+        },
+        {
+          "line": 549,
+          "text": "        num_tokens,"
+        },
+        {
+          "line": 550,
+          "text": "        replace_from=GREEDY_TEMPERATURE,"
+        },
+        {
+          "line": 551,
+          "text": "        replace_to=1,"
+        },
+        {
+          "line": 552,
+          "text": "    )"
+        },
+        {
+          "line": 553,
+          "text": "    # NOTE(woosuk): Update `logits` in place to avoid allocating a new tensor."
+        },
+        {
+          "line": 554,
+          "text": "    logits.div_(temperature.unsqueeze(-1))"
+        },
+        {
+          "line": 555,
+          "text": ""
+        },
+        {
+          "line": 556,
+          "text": "    # Get expanded top_k and top_p tensors."
+        },
+        {
+          "line": 557,
+          "text": "    top_k = None"
+        },
+        {
+          "line": 558,
+          "text": "    if sampling_metadata.top_k is not None:"
+        },
+        {
+          "line": 559,
+          "text": "        top_k = expand_batch_to_tokens("
+        },
+        {
+          "line": 560,
+          "text": "            sampling_metadata.top_k,"
+        },
+        {
+          "line": 561,
+          "text": "            cu_num_draft_tokens,"
+        },
+        {
+          "line": 562,
+          "text": "            num_tokens,"
+        },
+        {
+          "line": 563,
+          "text": "        )"
+        },
+        {
+          "line": 564,
+          "text": "    top_p = None"
+        },
+        {
+          "line": 565,
+          "text": "    if sampling_metadata.top_p is not None:"
+        },
+        {
+          "line": 566,
+          "text": "        top_p = expand_batch_to_tokens("
+        },
+        {
+          "line": 567,
+          "text": "            sampling_metadata.top_p,"
+        },
+        {
+          "line": 568,
+          "text": "            cu_num_draft_tokens,"
+        },
+        {
+          "line": 569,
+          "text": "            num_tokens,"
+        },
+        {
+          "line": 570,
+          "text": "        )"
+        },
+        {
+          "line": 571,
+          "text": ""
+        },
+        {
+          "line": 572,
+          "text": "    # NOTE(woosuk): `apply_top_k_top_p` uses sorting to calculate the mask,"
+        },
+        {
+          "line": 573,
+          "text": "    # which is slow for large vocab sizes. This may cause performance issues."
+        },
+        {
+          "line": 574,
+          "text": "    return apply_top_k_top_p(logits, top_k, top_p)"
+        },
+        {
+          "line": 575,
+          "text": ""
+        },
+        {
+          "line": 576,
+          "text": ""
+        },
+        {
+          "line": 613,
+          "text": "    return expanded_x"
+        },
+        {
+          "line": 614,
+          "text": ""
+        },
+        {
+          "line": 615,
+          "text": ""
+        },
+        {
+          "line": 616,
+          "text": "def generate_uniform_probs("
+        },
+        {
+          "line": 617,
+          "text": "    num_tokens: int,"
+        },
+        {
+          "line": 618,
+          "text": "    num_draft_tokens: list[int],"
+        },
+        {
+          "line": 619,
+          "text": "    generators: dict[int, torch.Generator],"
+        },
+        {
+          "line": 620,
+          "text": "    device: torch.device,"
+        },
+        {
+          "line": 621,
+          "text": ") -> torch.Tensor:"
+        },
+        {
+          "line": 622,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 623,
+          "text": "    Generates a batch of uniform random samples, with optional seeding"
+        },
+        {
+          "line": 624,
+          "text": "    if available."
+        },
+        {
+          "line": 625,
+          "text": ""
+        },
+        {
+          "line": 626,
+          "text": "    This method creates a tensor of shape `(num_tokens, )` filled"
+        },
+        {
+          "line": 630,
+          "text": "    without a seed."
+        },
+        {
+          "line": 631,
+          "text": ""
+        },
+        {
+          "line": 632,
+          "text": "    Args:"
+        },
+        {
+          "line": 633,
+          "text": "        num_tokens: int"
+        },
+        {
+          "line": 634,
+          "text": "            Total number of tokens."
+        },
+        {
+          "line": 635,
+          "text": "        num_draft_tokens: List[List[int]]"
+        },
+        {
+          "line": 636,
+          "text": "            Number of draft tokens per request."
+        },
+        {
+          "line": 637,
+          "text": "        generators: Optional[Dict[int, torch.Generator]]"
+        },
+        {
+          "line": 638,
+          "text": "            A dictionary mapping indices in the batch to"
+        },
+        {
+          "line": 639,
+          "text": "            `torch.Generator` objects."
+        },
+        {
+          "line": 640,
+          "text": "        device: torch.device"
+        },
+        {
+          "line": 641,
+          "text": "            The device on which to allocate the tensor."
+        },
+        {
+          "line": 642,
+          "text": "    Returns:"
+        },
+        {
+          "line": 643,
+          "text": "        uniform_rand: torch.Tensor"
+        },
+        {
+          "line": 653,
+          "text": "        (num_tokens,),"
+        },
+        {
+          "line": 654,
+          "text": "        dtype=torch.float64,"
+        },
+        {
+          "line": 655,
+          "text": "        device=device,"
+        },
+        {
+          "line": 656,
+          "text": "    )"
+        },
+        {
+          "line": 657,
+          "text": "    start_idx = 0"
+        },
+        {
+          "line": 658,
+          "text": "    for req_idx, n in enumerate(num_draft_tokens):"
+        },
+        {
+          "line": 659,
+          "text": "        # Do not generate random numbers for requests with no draft tokens."
+        },
+        {
+          "line": 660,
+          "text": "        # This can be important for reproducibility."
+        },
+        {
+          "line": 661,
+          "text": "        if n == 0:"
+        },
+        {
+          "line": 662,
+          "text": "            continue"
+        },
+        {
+          "line": 663,
+          "text": "        end_idx = start_idx + n"
+        },
+        {
+          "line": 664,
+          "text": "        generator = generators.get(req_idx)"
+        },
+        {
+          "line": 665,
+          "text": "        if generator is not None:"
+        },
+        {
+          "line": 666,
+          "text": "            uniform_probs[start_idx:end_idx].uniform_(generator=generator)"
+        },
+        {
+          "line": 668,
+          "text": "    return uniform_probs"
+        },
+        {
+          "line": 669,
+          "text": ""
+        },
+        {
+          "line": 670,
+          "text": ""
+        },
+        {
+          "line": 671,
+          "text": "def sample_recovered_tokens("
+        },
+        {
+          "line": 672,
+          "text": "    max_spec_len: int,"
+        },
+        {
+          "line": 673,
+          "text": "    num_draft_tokens: list[int],"
+        },
+        {
+          "line": 674,
+          "text": "    # [batch_size]"
+        },
+        {
+          "line": 675,
+          "text": "    cu_num_draft_tokens: torch.Tensor,"
+        },
+        {
+          "line": 676,
+          "text": "    # [num_tokens]"
+        },
+        {
+          "line": 677,
+          "text": "    draft_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 678,
+          "text": "    # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 679,
+          "text": "    draft_probs: torch.Tensor | None,"
+        },
+        {
+          "line": 680,
+          "text": "    # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 681,
+          "text": "    target_probs: torch.Tensor,"
+        },
+        {
+          "line": 682,
+          "text": "    sampling_metadata: SamplingMetadata,"
+        },
+        {
+          "line": 683,
+          "text": "    device: torch.device,"
+        },
+        {
+          "line": 684,
+          "text": "    use_fp64_gumbel: bool = False,"
+        },
+        {
+          "line": 685,
+          "text": ") -> torch.Tensor:"
+        },
+        {
+          "line": 686,
+          "text": "    # NOTE(woosuk): Create only one distribution for each request."
+        },
+        {
+          "line": 687,
+          "text": "    batch_size = len(num_draft_tokens)"
+        },
+        {
+          "line": 688,
+          "text": "    vocab_size = target_probs.shape[-1]"
+        },
+        {
+          "line": 689,
+          "text": "    q_dtype = torch.float64 if use_fp64_gumbel else torch.float32"
+        },
+        {
+          "line": 690,
+          "text": "    q = torch.empty("
+        },
+        {
+          "line": 691,
+          "text": "        (batch_size, vocab_size),"
+        },
+        {
+          "line": 692,
+          "text": "        dtype=q_dtype,"
+        },
+        {
+          "line": 693,
+          "text": "        device=device,"
+        },
+        {
+          "line": 694,
+          "text": "    )"
+        },
+        {
+          "line": 695,
+          "text": "    q.exponential_()"
+        },
+        {
+          "line": 696,
+          "text": "    for i, generator in sampling_metadata.generators.items():"
+        },
+        {
+          "line": 697,
+          "text": "        # Do not generate random numbers for requests with no draft tokens."
+        },
+        {
+          "line": 698,
+          "text": "        # This can be important for reproducibility."
+        },
+        {
+          "line": 699,
+          "text": "        if num_draft_tokens[i] > 0:"
+        },
+        {
+          "line": 700,
+          "text": "            q[i].exponential_(generator=generator)"
+        },
+        {
+          "line": 701,
+          "text": ""
+        },
+        {
+          "line": 702,
+          "text": "    inv_q = q.reciprocal()"
+        },
+        {
+          "line": 703,
+          "text": ""
+        },
+        {
+          "line": 704,
+          "text": "    recovered_token_ids = torch.empty_like(draft_token_ids)"
+        },
+        {
+          "line": 705,
+          "text": "    _sample_recovered_tokens("
+        },
+        {
+          "line": 706,
+          "text": "        recovered_token_ids,"
+        },
+        {
+          "line": 707,
+          "text": "        cu_num_draft_tokens,"
+        },
+        {
+          "line": 708,
+          "text": "        draft_token_ids,"
+        },
+        {
+          "line": 709,
+          "text": "        draft_probs,"
+        },
+        {
+          "line": 710,
+          "text": "        target_probs,"
+        },
+        {
+          "line": 711,
+          "text": "        inv_q,"
+        },
+        {
+          "line": 712,
+          "text": "        max_spec_len=max_spec_len,"
+        },
+        {
+          "line": 713,
+          "text": "    )"
+        },
+        {
+          "line": 714,
+          "text": "    return recovered_token_ids"
+        },
+        {
+          "line": 715,
+          "text": ""
+        },
+        {
+          "line": 716,
+          "text": ""
+        },
+        {
+          "line": 717,
+          "text": "# NOTE(woosuk): Avoid specialization to prevent unnecessary recompilation."
+        },
+        {
+          "line": 718,
+          "text": "@triton.jit(do_not_specialize=[\"max_spec_len\"])"
+        },
+        {
+          "line": 719,
+          "text": "def rejection_greedy_sample_kernel("
+        },
+        {
+          "line": 720,
+          "text": "    output_token_ids_ptr,  # [batch_size, max_spec_len + 1]"
+        },
+        {
+          "line": 721,
+          "text": "    cu_num_draft_tokens_ptr,  # [batch_size]"
+        },
+        {
+          "line": 722,
+          "text": "    draft_token_ids_ptr,  # [num_tokens]"
+        },
+        {
+          "line": 723,
+          "text": "    target_argmax_ptr,  # [num_tokens]"
+        },
+        {
+          "line": 724,
+          "text": "    bonus_token_ids_ptr,  # [batch_size]"
+        },
+        {
+          "line": 725,
+          "text": "    is_greedy_ptr,  # [batch_size] or None"
+        },
+        {
+          "line": 726,
+          "text": "    max_spec_len,"
+        },
+        {
+          "line": 727,
+          "text": "    uniform_probs_ptr,  # [num_tokens] or None (synthetic mode only)"
+        },
+        {
+          "line": 728,
+          "text": "    synthetic_conditional_rates_ptr,  # [num_speculative_tokens] or None"
+        },
+        {
+          "line": 729,
+          "text": "    SYNTHETIC_MODE: tl.constexpr,"
+        },
+        {
+          "line": 735,
+          "text": "    if not is_greedy:"
+        },
+        {
+          "line": 736,
+          "text": "        # Early exit for non-greedy sampling requests."
+        },
+        {
+          "line": 737,
+          "text": "        return"
+        },
+        {
+          "line": 738,
+          "text": ""
+        },
+        {
+          "line": 739,
+          "text": "    start_idx = ("
+        },
+        {
+          "line": 740,
+          "text": "        tl.zeros([], dtype=cu_num_draft_tokens_ptr.dtype.element_ty)"
+        },
+        {
+          "line": 741,
+          "text": "        if req_idx == 0"
+        },
+        {
+          "line": 742,
+          "text": "        else tl.load(cu_num_draft_tokens_ptr + req_idx - 1)"
+        },
+        {
+          "line": 743,
+          "text": "    )"
+        },
+        {
+          "line": 744,
+          "text": "    end_idx = tl.load(cu_num_draft_tokens_ptr + req_idx)"
+        },
+        {
+          "line": 745,
+          "text": "    num_draft_tokens = end_idx - start_idx"
+        },
+        {
+          "line": 746,
+          "text": ""
+        },
+        {
+          "line": 747,
+          "text": "    rejected = False"
+        },
+        {
+          "line": 748,
+          "text": "    for pos in range(num_draft_tokens):"
+        },
+        {
+          "line": 749,
+          "text": "        if not rejected:"
+        },
+        {
+          "line": 750,
+          "text": "            draft_token_id = tl.load(draft_token_ids_ptr + start_idx + pos)"
+        },
+        {
+          "line": 751,
+          "text": "            target_argmax_id = tl.load(target_argmax_ptr + start_idx + pos).to(tl.int32)"
+        },
+        {
+          "line": 752,
+          "text": "            if SYNTHETIC_MODE:"
+        },
+        {
+          "line": 753,
+          "text": "                uniform_prob = tl.load(uniform_probs_ptr + start_idx + pos)"
+        },
+        {
+          "line": 754,
+          "text": "                rate = tl.load(synthetic_conditional_rates_ptr + pos)"
+        },
+        {
+          "line": 755,
+          "text": "                # -1 is used for padded draft token ids that should be rejected."
+        },
+        {
+          "line": 756,
+          "text": "                accepted = (uniform_prob < rate) and draft_token_id >= 0"
+        },
+        {
+          "line": 766,
+          "text": ""
+        },
+        {
+          "line": 767,
+          "text": "    if not rejected:"
+        },
+        {
+          "line": 768,
+          "text": "        # If all tokens are accepted, append the bonus token."
+        },
+        {
+          "line": 769,
+          "text": "        bonus_token_id = tl.load(bonus_token_ids_ptr + req_idx)"
+        },
+        {
+          "line": 770,
+          "text": "        tl.store("
+        },
+        {
+          "line": 771,
+          "text": "            output_token_ids_ptr + req_idx * (max_spec_len + 1) + num_draft_tokens,"
+        },
+        {
+          "line": 772,
+          "text": "            bonus_token_id,"
+        },
+        {
+          "line": 773,
+          "text": "        )"
+        },
+        {
+          "line": 774,
+          "text": ""
+        },
+        {
+          "line": 775,
+          "text": ""
+        },
+        {
+          "line": 776,
+          "text": "def _rejection_greedy_sample_warmup_inputs("
+        },
+        {
+          "line": 777,
+          "text": "    *, synthetic_mode: bool"
+        },
+        {
+          "line": 778,
+          "text": ") -> dict[str, object]:"
+        },
+        {
+          "line": 779,
+          "text": "    all_greedy = WarmupChoices(False, True)"
+        },
+        {
+          "line": 780,
+          "text": "    int32 = TritonWarmupTensor(torch.int32)"
+        },
+        {
+          "line": 781,
+          "text": "    return dict("
+        },
+        {
+          "line": 782,
+          "text": "        output_token_ids=int32,"
+        },
+        {
+          "line": 783,
+          "text": "        cu_num_draft_tokens=int32,"
+        },
+        {
+          "line": 784,
+          "text": "        draft_token_ids=int32,"
+        },
+        {
+          "line": 785,
+          "text": "        target_argmax=TritonWarmupTensor(torch.int64),"
+        },
+        {
+          "line": 786,
+          "text": "        bonus_token_ids=TritonWarmupTensor(torch.int64),"
+        },
+        {
+          "line": 787,
+          "text": "        is_greedy=None if all_greedy else TritonWarmupTensor(torch.bool),"
+        },
+        {
+          "line": 788,
+          "text": "        max_spec_len=5,"
+        },
+        {
+          "line": 789,
+          "text": "        uniform_probs=("
+        },
+        {
+          "line": 790,
+          "text": "            None"
+        },
+        {
+          "line": 791,
+          "text": "            if all_greedy and not synthetic_mode"
+        },
+        {
+          "line": 801,
+          "text": "    kernel=rejection_greedy_sample_kernel,"
+        },
+        {
+          "line": 802,
+          "text": "    warmup_inputs=_rejection_greedy_sample_warmup_inputs,"
+        },
+        {
+          "line": 803,
+          "text": ")"
+        },
+        {
+          "line": 804,
+          "text": "def _rejection_greedy_sample("
+        },
+        {
+          "line": 805,
+          "text": "    output_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 806,
+          "text": "    cu_num_draft_tokens: torch.Tensor,"
+        },
+        {
+          "line": 807,
+          "text": "    draft_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 808,
+          "text": "    target_argmax: torch.Tensor,"
+        },
+        {
+          "line": 809,
+          "text": "    bonus_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 810,
+          "text": "    is_greedy: torch.Tensor | None,"
+        },
+        {
+          "line": 811,
+          "text": "    max_spec_len: int,"
+        },
+        {
+          "line": 812,
+          "text": "    uniform_probs: torch.Tensor | None,"
+        },
+        {
+          "line": 813,
+          "text": "    synthetic_conditional_rates: torch.Tensor | None,"
+        },
+        {
+          "line": 814,
+          "text": ") -> DispatchSpec:"
+        },
+        {
+          "line": 819,
+          "text": ""
+        },
+        {
+          "line": 820,
+          "text": "# NOTE(woosuk): Avoid specialization to prevent unnecessary recompilation."
+        },
+        {
+          "line": 821,
+          "text": "@triton.jit(do_not_specialize=[\"max_spec_len\"])"
+        },
+        {
+          "line": 822,
+          "text": "def rejection_random_sample_kernel("
+        },
+        {
+          "line": 823,
+          "text": "    output_token_ids_ptr,  # [batch_size, max_spec_len + 1]"
+        },
+        {
+          "line": 824,
+          "text": "    cu_num_draft_tokens_ptr,  # [batch_size]"
+        },
+        {
+          "line": 825,
+          "text": "    draft_token_ids_ptr,  # [num_tokens]"
+        },
+        {
+          "line": 826,
+          "text": "    draft_probs_ptr,  # [num_tokens, vocab_size] or None"
+        },
+        {
+          "line": 827,
+          "text": "    target_probs_ptr,  # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 828,
+          "text": "    bonus_token_ids_ptr,  # [batch_size]"
+        },
+        {
+          "line": 829,
+          "text": "    recovered_token_ids_ptr,  # [num_tokens]"
+        },
+        {
+          "line": 830,
+          "text": "    uniform_probs_ptr,  # [num_tokens]"
+        },
+        {
+          "line": 831,
+          "text": "    is_greedy_ptr,  # [batch_size]"
+        },
+        {
+          "line": 832,
+          "text": "    max_spec_len,"
+        },
+        {
+          "line": 840,
+          "text": "    if is_greedy:"
+        },
+        {
+          "line": 841,
+          "text": "        # Early exit for greedy sampling requests."
+        },
+        {
+          "line": 842,
+          "text": "        return"
+        },
+        {
+          "line": 843,
+          "text": ""
+        },
+        {
+          "line": 844,
+          "text": "    start_idx = ("
+        },
+        {
+          "line": 845,
+          "text": "        tl.zeros([], dtype=cu_num_draft_tokens_ptr.dtype.element_ty)"
+        },
+        {
+          "line": 846,
+          "text": "        if req_idx == 0"
+        },
+        {
+          "line": 847,
+          "text": "        else tl.load(cu_num_draft_tokens_ptr + req_idx - 1)"
+        },
+        {
+          "line": 848,
+          "text": "    )"
+        },
+        {
+          "line": 849,
+          "text": "    end_idx = tl.load(cu_num_draft_tokens_ptr + req_idx)"
+        },
+        {
+          "line": 850,
+          "text": "    num_draft_tokens = end_idx - start_idx"
+        },
+        {
+          "line": 851,
+          "text": ""
+        },
+        {
+          "line": 852,
+          "text": "    rejected = False"
+        },
+        {
+          "line": 853,
+          "text": "    for pos in range(num_draft_tokens):"
+        },
+        {
+          "line": 854,
+          "text": "        if not rejected:"
+        },
+        {
+          "line": 855,
+          "text": "            draft_token_id = tl.load(draft_token_ids_ptr + start_idx + pos)"
+        },
+        {
+          "line": 856,
+          "text": "            uniform_prob = tl.load(uniform_probs_ptr + start_idx + pos)"
+        },
+        {
+          "line": 857,
+          "text": "            if draft_token_id < 0:"
+        },
+        {
+          "line": 858,
+          "text": "                # -1 is used for padded draft token ids that should be rejected."
+        },
+        {
+          "line": 859,
+          "text": "                accepted = False"
+        },
+        {
+          "line": 860,
+          "text": "            elif SYNTHETIC_MODE:"
+        },
+        {
+          "line": 861,
+          "text": "                rate = tl.load(synthetic_conditional_rates_ptr + pos)"
+        },
+        {
+          "line": 886,
+          "text": ""
+        },
+        {
+          "line": 887,
+          "text": "    if not rejected:"
+        },
+        {
+          "line": 888,
+          "text": "        # If all tokens are accepted, append the bonus token."
+        },
+        {
+          "line": 889,
+          "text": "        bonus_token_id = tl.load(bonus_token_ids_ptr + req_idx)"
+        },
+        {
+          "line": 890,
+          "text": "        tl.store("
+        },
+        {
+          "line": 891,
+          "text": "            output_token_ids_ptr + req_idx * (max_spec_len + 1) + num_draft_tokens,"
+        },
+        {
+          "line": 892,
+          "text": "            bonus_token_id,"
+        },
+        {
+          "line": 893,
+          "text": "        )"
+        },
+        {
+          "line": 894,
+          "text": ""
+        },
+        {
+          "line": 895,
+          "text": ""
+        },
+        {
+          "line": 896,
+          "text": "def _rejection_random_sample_warmup_inputs("
+        },
+        {
+          "line": 897,
+          "text": "    *, synthetic_mode: bool"
+        },
+        {
+          "line": 898,
+          "text": ") -> dict[str, object]:"
+        },
+        {
+          "line": 899,
+          "text": "    vocab_size: Any = WarmupChoices(2, 16)"
+        },
+        {
+          "line": 903,
+          "text": "        torch.float32,"
+        },
+        {
+          "line": 904,
+          "text": "        shape=(1, vocab_size),"
+        },
+        {
+          "line": 905,
+          "text": "    )"
+        },
+        {
+          "line": 906,
+          "text": "    return dict("
+        },
+        {
+          "line": 907,
+          "text": "        output_token_ids=int32,"
+        },
+        {
+          "line": 908,
+          "text": "        cu_num_draft_tokens=int32,"
+        },
+        {
+          "line": 909,
+          "text": "        draft_token_ids=int32,"
+        },
+        {
+          "line": 910,
+          "text": "        draft_probs=None if no_draft_probs else probabilities,"
+        },
+        {
+          "line": 911,
+          "text": "        target_probs=probabilities,"
+        },
+        {
+          "line": 912,
+          "text": "        bonus_token_ids=TritonWarmupTensor(torch.int64),"
+        },
+        {
+          "line": 913,
+          "text": "        recovered_token_ids=int32,"
+        },
+        {
+          "line": 914,
+          "text": "        uniform_probs=TritonWarmupTensor(torch.float64),"
+        },
+        {
+          "line": 915,
+          "text": "        is_greedy=TritonWarmupTensor(torch.bool),"
+        },
+        {
+          "line": 916,
+          "text": "        max_spec_len=5,"
+        },
+        {
+          "line": 924,
+          "text": "    kernel=rejection_random_sample_kernel,"
+        },
+        {
+          "line": 925,
+          "text": "    warmup_inputs=_rejection_random_sample_warmup_inputs,"
+        },
+        {
+          "line": 926,
+          "text": ")"
+        },
+        {
+          "line": 927,
+          "text": "def _rejection_random_sample("
+        },
+        {
+          "line": 928,
+          "text": "    output_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 929,
+          "text": "    cu_num_draft_tokens: torch.Tensor,"
+        },
+        {
+          "line": 930,
+          "text": "    draft_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 931,
+          "text": "    draft_probs: torch.Tensor | None,"
+        },
+        {
+          "line": 932,
+          "text": "    target_probs: torch.Tensor,"
+        },
+        {
+          "line": 933,
+          "text": "    bonus_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 934,
+          "text": "    recovered_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 935,
+          "text": "    uniform_probs: torch.Tensor,"
+        },
+        {
+          "line": 936,
+          "text": "    is_greedy: torch.Tensor,"
+        },
+        {
+          "line": 937,
+          "text": "    max_spec_len: int,"
+        },
+        {
+          "line": 994,
+          "text": ""
+        },
+        {
+          "line": 995,
+          "text": ""
+        },
+        {
+          "line": 996,
+          "text": "@triton.jit"
+        },
+        {
+          "line": 997,
+          "text": "def sample_recovered_tokens_kernel("
+        },
+        {
+          "line": 998,
+          "text": "    output_token_ids_ptr,  # [num_tokens]"
+        },
+        {
+          "line": 999,
+          "text": "    cu_num_draft_tokens_ptr,  # [batch_size]"
+        },
+        {
+          "line": 1000,
+          "text": "    draft_token_ids_ptr,  # [num_tokens]"
+        },
+        {
+          "line": 1001,
+          "text": "    draft_probs_ptr,  # [num_tokens, vocab_size] or None"
+        },
+        {
+          "line": 1002,
+          "text": "    target_probs_ptr,  # [num_tokens, vocab_size]"
+        },
+        {
+          "line": 1003,
+          "text": "    inv_q_ptr,  # [batch_size, vocab_size]"
+        },
+        {
+          "line": 1004,
+          "text": "    vocab_size,"
+        },
+        {
+          "line": 1005,
+          "text": "    BLOCK_SIZE: tl.constexpr,"
+        },
+        {
+          "line": 1006,
+          "text": "    NO_DRAFT_PROBS: tl.constexpr,"
+        },
+        {
+          "line": 1007,
+          "text": "    USE_FP64_GUMBEL: tl.constexpr,"
+        },
+        {
+          "line": 1008,
+          "text": "):"
+        },
+        {
+          "line": 1009,
+          "text": "    req_idx = tl.program_id(0)"
+        },
+        {
+          "line": 1010,
+          "text": "    start_idx = ("
+        },
+        {
+          "line": 1011,
+          "text": "        tl.zeros([], dtype=cu_num_draft_tokens_ptr.dtype.element_ty)"
+        },
+        {
+          "line": 1012,
+          "text": "        if req_idx == 0"
+        },
+        {
+          "line": 1013,
+          "text": "        else tl.load(cu_num_draft_tokens_ptr + req_idx - 1)"
+        },
+        {
+          "line": 1014,
+          "text": "    )"
+        },
+        {
+          "line": 1015,
+          "text": "    end_idx = tl.load(cu_num_draft_tokens_ptr + req_idx)"
+        },
+        {
+          "line": 1016,
+          "text": "    num_draft_tokens = end_idx - start_idx"
+        },
+        {
+          "line": 1017,
+          "text": ""
+        },
+        {
+          "line": 1018,
+          "text": "    # Early exit for out-of-range positions."
+        },
+        {
+          "line": 1019,
+          "text": "    pos = tl.program_id(1)"
+        },
+        {
+          "line": 1020,
+          "text": "    if pos >= num_draft_tokens:"
+        },
+        {
+          "line": 1021,
+          "text": "        return"
+        },
+        {
+          "line": 1022,
+          "text": ""
+        },
+        {
+          "line": 1023,
+          "text": "    token_idx = start_idx + pos"
+        },
+        {
+          "line": 1024,
+          "text": ""
+        },
+        {
+          "line": 1025,
+          "text": "    if NO_DRAFT_PROBS:"
+        },
+        {
+          "line": 1026,
+          "text": "        draft_token_id = tl.load(draft_token_ids_ptr + token_idx)"
+        },
+        {
+          "line": 1027,
+          "text": ""
+        },
+        {
+          "line": 1028,
+          "text": "    if USE_FP64_GUMBEL:"
+        },
+        {
+          "line": 1087,
+          "text": "        torch.float32,"
+        },
+        {
+          "line": 1088,
+          "text": "        shape=(1, vocab_size),"
+        },
+        {
+          "line": 1089,
+          "text": "    )"
+        },
+        {
+          "line": 1090,
+          "text": "    return dict("
+        },
+        {
+          "line": 1091,
+          "text": "        output_token_ids=int32,"
+        },
+        {
+          "line": 1092,
+          "text": "        cu_num_draft_tokens=int32,"
+        },
+        {
+          "line": 1093,
+          "text": "        draft_token_ids=int32,"
+        },
+        {
+          "line": 1094,
+          "text": "        draft_probs=None if no_draft_probs else probabilities,"
+        },
+        {
+          "line": 1095,
+          "text": "        target_probs=probabilities,"
+        },
+        {
+          "line": 1096,
+          "text": "        inv_q=TritonWarmupTensor("
+        },
+        {
+          "line": 1097,
+          "text": "            torch.float64 if use_fp64_gumbel else torch.float32,"
+        },
+        {
+          "line": 1098,
+          "text": "            shape=(1, vocab_size),"
+        },
+        {
+          "line": 1099,
+          "text": "        ),"
+        },
+        {
+          "line": 1100,
+          "text": "        max_spec_len=5,"
+        },
+        {
+          "line": 1105,
+          "text": "    kernel=sample_recovered_tokens_kernel,"
+        },
+        {
+          "line": 1106,
+          "text": "    warmup_inputs=_sample_recovered_tokens_warmup_inputs,"
+        },
+        {
+          "line": 1107,
+          "text": ")"
+        },
+        {
+          "line": 1108,
+          "text": "def _sample_recovered_tokens("
+        },
+        {
+          "line": 1109,
+          "text": "    output_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 1110,
+          "text": "    cu_num_draft_tokens: torch.Tensor,"
+        },
+        {
+          "line": 1111,
+          "text": "    draft_token_ids: torch.Tensor,"
+        },
+        {
+          "line": 1112,
+          "text": "    draft_probs: torch.Tensor | None,"
+        },
+        {
+          "line": 1113,
+          "text": "    target_probs: torch.Tensor,"
+        },
+        {
+          "line": 1114,
+          "text": "    inv_q: torch.Tensor,"
+        },
+        {
+          "line": 1115,
+          "text": "    *,"
+        },
+        {
+          "line": 1116,
+          "text": "    max_spec_len: int,"
+        },
+        {
+          "line": 1117,
+          "text": ") -> DispatchSpec:"
+        },
+        {
+          "line": 1118,
+          "text": "    return (cu_num_draft_tokens.shape[0], max_spec_len), dict("
+        },
+        {
+          "line": 1119,
+          "text": "        vocab_size=target_probs.shape[1],"
+        },
+        {
+          "line": 1120,
+          "text": "        BLOCK_SIZE=8192,"
+        },
+        {
+          "line": 1121,
+          "text": "        NO_DRAFT_PROBS=draft_probs is None,"
+        },
+        {
+          "line": 1122,
+          "text": "        USE_FP64_GUMBEL=inv_q.dtype == torch.float64,"
+        },
+        {
+          "line": 1123,
+          "text": "    )"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/spec_decode/llm_base_proposer.py",
+      "sha256": "5bd11c41f0a8cf1272b5880d9878043f876bee6c7e04fb781e613f92930b15ab",
+      "lines": [
+        {
+          "line": 1124,
+          "text": "        num_rejected_tokens_gpu = torch.empty("
+        },
+        {
+          "line": 1125,
+          "text": "            (num_reqs,), dtype=torch.int32, device=device"
+        },
+        {
+          "line": 1126,
+          "text": "        )"
+        },
+        {
+          "line": 1127,
+          "text": ""
+        },
+        {
+          "line": 1128,
+          "text": "        _eagle_prepare_inputs_padded("
+        },
+        {
+          "line": 1129,
+          "text": "            spec_decode_metadata.cu_num_draft_tokens,"
+        },
+        {
+          "line": 1130,
+          "text": "            valid_sampled_tokens_count,"
+        },
+        {
+          "line": 1131,
+          "text": "            common_attn_metadata.query_start_loc,"
+        },
+        {
+          "line": 1132,
+          "text": "            token_indices_to_sample,"
+        },
+        {
+          "line": 1133,
+          "text": "            num_rejected_tokens_gpu,"
+        },
+        {
+          "line": 1134,
+          "text": "            num_reqs,"
+        },
+        {
+          "line": 1135,
+          "text": "        )"
+        },
+        {
+          "line": 1136,
+          "text": ""
+        },
+        {
+          "line": 1137,
+          "text": "        query_start_loc_cpu = common_attn_metadata.query_start_loc_cpu"
+        },
+        {
+          "line": 1162,
+          "text": ""
+        },
+        {
+          "line": 1163,
+          "text": "    def prepare_inputs("
+        },
+        {
+          "line": 1164,
+          "text": "        self,"
+        },
+        {
+          "line": 1165,
+          "text": "        common_attn_metadata: CommonAttentionMetadata,"
+        },
+        {
+          "line": 1166,
+          "text": "        sampled_token_ids: list[list[int]],"
+        },
+        {
+          "line": 1167,
+          "text": "        num_draft_tokens: list[int],"
+        },
+        {
+          "line": 1168,
+          "text": "    ) -> tuple[CommonAttentionMetadata, torch.Tensor]:"
+        },
+        {
+          "line": 1169,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 1170,
+          "text": "        This function is used to prepare the inputs for speculative decoding."
+        },
+        {
+          "line": 1171,
+          "text": "        It updates to the common_attn_metadata to account for the rejected"
+        },
+        {
+          "line": 1172,
+          "text": "        tokens (and newly sampled tokens). It also returns the token indices"
+        },
+        {
+          "line": 1173,
+          "text": "        of the tokens that should be fed to the speculator."
+        },
+        {
+          "line": 1174,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 1175,
+          "text": "        # E.g."
+        },
+        {
+          "line": 1188,
+          "text": "        #                 q1, q1 + 1, ..., q1 + q2 - n2 - 1,"
+        },
+        {
+          "line": 1189,
+          "text": "        #                 q1 + q2, q1 + q2 + 1, ..., q1 + q2 + q3 - n3 - 1]"
+        },
+        {
+          "line": 1190,
+          "text": ""
+        },
+        {
+          "line": 1191,
+          "text": "        num_rejected_tokens = ["
+        },
+        {
+          "line": 1192,
+          "text": "            n + 1 - len(sampled_token_ids[i]) if n > 0 else 0"
+        },
+        {
+          "line": 1193,
+          "text": "            for i, n in enumerate(num_draft_tokens)"
+        },
+        {
+          "line": 1194,
+          "text": "        ]"
+        },
+        {
+          "line": 1195,
+          "text": "        num_rejected_tokens = torch.tensor(num_rejected_tokens, dtype=torch.int32)"
+        },
+        {
+          "line": 1196,
+          "text": ""
+        },
+        {
+          "line": 1197,
+          "text": "        device = common_attn_metadata.query_start_loc.device"
+        },
+        {
+          "line": 1198,
+          "text": "        query_start_loc_cpu = common_attn_metadata.query_start_loc_cpu"
+        },
+        {
+          "line": 1199,
+          "text": "        # upper_bound - rejected = actual post-rejection seq_lens (no D2H sync)."
+        },
+        {
+          "line": 1200,
+          "text": "        assert common_attn_metadata.seq_lens_cpu_upper_bound is not None"
+        },
+        {
+          "line": 1201,
+          "text": "        new_seq_lens_cpu = ("
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/spec_decode/metadata.py",
+      "sha256": "a6696487b3c8823c119f601de81504341bdefefe95bafe673c1f570ab2028da8",
+      "lines": [
+        {
+          "line": 9,
+          "text": "@dataclass"
+        },
+        {
+          "line": 10,
+          "text": "class SpecDecodeMetadata:"
+        },
+        {
+          "line": 11,
+          "text": "    # [num_tokens]"
+        },
+        {
+          "line": 12,
+          "text": "    draft_token_ids: torch.Tensor"
+        },
+        {
+          "line": 13,
+          "text": "    # [batch_size]"
+        },
+        {
+          "line": 14,
+          "text": "    num_draft_tokens: list[int]"
+        },
+        {
+          "line": 15,
+          "text": "    # [batch_size]"
+        },
+        {
+          "line": 16,
+          "text": "    cu_num_draft_tokens: torch.Tensor"
+        },
+        {
+          "line": 17,
+          "text": "    # [batch_size]"
+        },
+        {
+          "line": 18,
+          "text": "    cu_num_sampled_tokens: torch.Tensor"
+        },
+        {
+          "line": 19,
+          "text": "    # [num_tokens]"
+        },
+        {
+          "line": 20,
+          "text": "    target_logits_indices: torch.Tensor"
+        },
+        {
+          "line": 21,
+          "text": "    # [batch_size]"
+        },
+        {
+          "line": 22,
+          "text": "    bonus_logits_indices: torch.Tensor"
+        },
+        {
+          "line": 23,
+          "text": "    # [num_tokens + batch_size]"
+        },
+        {
+          "line": 24,
+          "text": "    logits_indices: torch.Tensor"
+        },
+        {
+          "line": 25,
+          "text": ""
+        },
+        {
+          "line": 26,
+          "text": "    def __post_init__(self):"
+        },
+        {
+          "line": 27,
+          "text": "        self.max_spec_len = max(self.num_draft_tokens)"
+        },
+        {
+          "line": 28,
+          "text": ""
+        },
+        {
+          "line": 29,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 30,
+          "text": "    def make_dummy("
+        },
+        {
+          "line": 31,
+          "text": "        cls,"
+        },
+        {
+          "line": 32,
+          "text": "        draft_token_ids: list[list[int]],"
+        },
+        {
+          "line": 33,
+          "text": "        device: torch.device,"
+        },
+        {
+          "line": 34,
+          "text": "    ) -> \"SpecDecodeMetadata\":"
+        },
+        {
+          "line": 35,
+          "text": "        batch_size = len(draft_token_ids)"
+        },
+        {
+          "line": 36,
+          "text": "        num_draft_tokens = [len(ids) for ids in draft_token_ids]"
+        },
+        {
+          "line": 37,
+          "text": "        num_sampled_tokens = [len(ids) + 1 for ids in draft_token_ids]"
+        },
+        {
+          "line": 38,
+          "text": "        flattened_draft_token_ids = sum(draft_token_ids, [])"
+        },
+        {
+          "line": 39,
+          "text": "        num_tokens = len(flattened_draft_token_ids)"
+        },
+        {
+          "line": 40,
+          "text": ""
+        },
+        {
+          "line": 41,
+          "text": "        draft_token_ids_tensor = torch.tensor("
+        },
+        {
+          "line": 42,
+          "text": "            flattened_draft_token_ids, dtype=torch.int32, device=device"
+        },
+        {
+          "line": 43,
+          "text": "        )"
+        },
+        {
+          "line": 44,
+          "text": "        cu_num_draft_tokens = np.cumsum(num_draft_tokens, dtype=np.int32)"
+        },
+        {
+          "line": 45,
+          "text": "        cu_num_draft_tokens_tensor = torch.from_numpy(cu_num_draft_tokens).to(device)"
+        },
+        {
+          "line": 46,
+          "text": "        cu_num_sampled_tokens = np.cumsum(num_sampled_tokens, dtype=np.int32)"
+        },
+        {
+          "line": 47,
+          "text": "        cu_num_sampled_tokens_tensor = torch.from_numpy(cu_num_sampled_tokens).to("
+        },
+        {
+          "line": 48,
+          "text": "            device"
+        },
+        {
+          "line": 49,
+          "text": "        )"
+        },
+        {
+          "line": 50,
+          "text": ""
+        },
+        {
+          "line": 51,
+          "text": "        target_logits_indices = torch.zeros("
+        },
+        {
+          "line": 52,
+          "text": "            num_tokens, dtype=torch.int32, device=device"
+        },
+        {
+          "line": 53,
+          "text": "        )"
+        },
+        {
+          "line": 55,
+          "text": "        logits_indices = torch.zeros("
+        },
+        {
+          "line": 56,
+          "text": "            num_tokens + batch_size, dtype=torch.int32, device=device"
+        },
+        {
+          "line": 57,
+          "text": "        )"
+        },
+        {
+          "line": 58,
+          "text": "        return cls("
+        },
+        {
+          "line": 59,
+          "text": "            draft_token_ids=draft_token_ids_tensor,"
+        },
+        {
+          "line": 60,
+          "text": "            num_draft_tokens=num_draft_tokens,"
+        },
+        {
+          "line": 61,
+          "text": "            cu_num_draft_tokens=cu_num_draft_tokens_tensor,"
+        },
+        {
+          "line": 62,
+          "text": "            cu_num_sampled_tokens=cu_num_sampled_tokens_tensor,"
+        },
+        {
+          "line": 63,
+          "text": "            target_logits_indices=target_logits_indices,"
+        },
+        {
+          "line": 64,
+          "text": "            bonus_logits_indices=bonus_logits_indices,"
+        },
+        {
+          "line": 65,
+          "text": "            logits_indices=logits_indices,"
+        },
+        {
+          "line": 66,
+          "text": "        )"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/spec_decode/metrics.py",
+      "sha256": "35e0a709042471559937f1a1979a721af9b910476efaa8b6e29865bace985afe",
+      "lines": [
+        {
+          "line": 22,
+          "text": "    aggregated across requests by the scheduler and returned to the"
+        },
+        {
+          "line": 23,
+          "text": "    frontend in EngineCoreOutputs->SchedulerStats."
+        },
+        {
+          "line": 24,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 25,
+          "text": ""
+        },
+        {
+          "line": 26,
+          "text": "    num_spec_tokens: int"
+        },
+        {
+          "line": 27,
+          "text": "    num_drafts: int = 0"
+        },
+        {
+          "line": 28,
+          "text": "    num_draft_tokens: int = 0"
+        },
+        {
+          "line": 29,
+          "text": "    num_accepted_tokens: int = 0"
+        },
+        {
+          "line": 30,
+          "text": "    num_accepted_tokens_per_pos: list[int] = field(default_factory=list)"
+        },
+        {
+          "line": 31,
+          "text": "    num_draft_tokens_per_pos: list[int] = field(default_factory=list)"
+        },
+        {
+          "line": 32,
+          "text": ""
+        },
+        {
+          "line": 33,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 34,
+          "text": "    def new(cls, num_spec_tokens: int) -> \"SpecDecodingStats\":"
+        },
+        {
+          "line": 35,
+          "text": "        return cls("
+        },
+        {
+          "line": 36,
+          "text": "            num_spec_tokens=num_spec_tokens,"
+        },
+        {
+          "line": 37,
+          "text": "            num_accepted_tokens_per_pos=[0] * num_spec_tokens,"
+        },
+        {
+          "line": 38,
+          "text": "            num_draft_tokens_per_pos=[0] * num_spec_tokens,"
+        },
+        {
+          "line": 39,
+          "text": "        )"
+        },
+        {
+          "line": 40,
+          "text": ""
+        },
+        {
+          "line": 41,
+          "text": "    def observe_draft(self, num_draft_tokens: int, num_accepted_tokens: int):"
+        },
+        {
+          "line": 42,
+          "text": "        self.num_drafts += 1"
+        },
+        {
+          "line": 43,
+          "text": "        self.num_draft_tokens += num_draft_tokens"
+        },
+        {
+          "line": 44,
+          "text": "        self.num_accepted_tokens += num_accepted_tokens"
+        },
+        {
+          "line": 45,
+          "text": "        assert num_accepted_tokens <= self.num_spec_tokens"
+        },
+        {
+          "line": 46,
+          "text": "        for i in range(num_accepted_tokens):"
+        },
+        {
+          "line": 47,
+          "text": "            self.num_accepted_tokens_per_pos[i] += 1"
+        },
+        {
+          "line": 48,
+          "text": "        for i in range(num_draft_tokens):"
+        },
+        {
+          "line": 49,
+          "text": "            self.num_draft_tokens_per_pos[i] += 1"
+        },
+        {
+          "line": 50,
+          "text": ""
+        },
+        {
+          "line": 51,
+          "text": ""
+        },
+        {
+          "line": 52,
+          "text": "class SpecDecodingLogging:"
+        },
+        {
+          "line": 53,
+          "text": "    \"\"\"Aggregate and log spec decoding metrics."
+        },
+        {
+          "line": 54,
+          "text": ""
+        },
+        {
+          "line": 55,
+          "text": "    LoggingStatLogger aggregates per-iteration metrics over a set"
+        },
+        {
+          "line": 56,
+          "text": "    time interval using observe() and then logs them using log()"
+        },
+        {
+          "line": 57,
+          "text": "    before resetting to zero."
+        },
+        {
+          "line": 63,
+          "text": "        # token, per-position vector) is logged with diffusion-native terms."
+        },
+        {
+          "line": 64,
+          "text": "        self.is_diffusion = is_diffusion"
+        },
+        {
+          "line": 65,
+          "text": "        self.reset()"
+        },
+        {
+          "line": 66,
+          "text": ""
+        },
+        {
+          "line": 67,
+          "text": "    def reset(self):"
+        },
+        {
+          "line": 68,
+          "text": "        self.num_drafts: list[int] = []"
+        },
+        {
+          "line": 69,
+          "text": "        self.num_draft_tokens: list[int] = []"
+        },
+        {
+          "line": 70,
+          "text": "        self.num_accepted_tokens: list[int] = []"
+        },
+        {
+          "line": 71,
+          "text": "        self.accepted_tokens_per_pos_lists: list[list[int]] = []"
+        },
+        {
+          "line": 72,
+          "text": "        self.last_log_time = time.monotonic()"
+        },
+        {
+          "line": 73,
+          "text": ""
+        },
+        {
+          "line": 74,
+          "text": "    def observe(self, spec_decoding_stats: SpecDecodingStats):"
+        },
+        {
+          "line": 75,
+          "text": "        self.num_drafts.append(spec_decoding_stats.num_drafts)"
+        },
+        {
+          "line": 76,
+          "text": "        self.num_draft_tokens.append(spec_decoding_stats.num_draft_tokens)"
+        },
+        {
+          "line": 77,
+          "text": "        self.num_accepted_tokens.append(spec_decoding_stats.num_accepted_tokens)"
+        },
+        {
+          "line": 78,
+          "text": "        self.accepted_tokens_per_pos_lists.append("
+        },
+        {
+          "line": 79,
+          "text": "            spec_decoding_stats.num_accepted_tokens_per_pos"
+        },
+        {
+          "line": 80,
+          "text": "        )"
+        },
+        {
+          "line": 81,
+          "text": ""
+        },
+        {
+          "line": 82,
+          "text": "    def log(self, log_fn=logger.info):"
+        },
+        {
+          "line": 83,
+          "text": "        if not self.num_drafts:"
+        },
+        {
+          "line": 84,
+          "text": "            return"
+        },
+        {
+          "line": 85,
+          "text": "        num_drafts = np.sum(self.num_drafts)"
+        },
+        {
+          "line": 86,
+          "text": "        num_draft_tokens = np.sum(self.num_draft_tokens)"
+        },
+        {
+          "line": 87,
+          "text": "        num_accepted_tokens = np.sum(self.num_accepted_tokens)"
+        },
+        {
+          "line": 88,
+          "text": "        draft_throughput = 0"
+        },
+        {
+          "line": 89,
+          "text": "        accepted_throughput = 0"
+        },
+        {
+          "line": 90,
+          "text": ""
+        },
+        {
+          "line": 91,
+          "text": "        elapsed_time = time.monotonic() - self.last_log_time"
+        },
+        {
+          "line": 92,
+          "text": "        if elapsed_time > 0:"
+        },
+        {
+          "line": 93,
+          "text": "            draft_throughput = num_draft_tokens / elapsed_time"
+        },
+        {
+          "line": 94,
+          "text": "            accepted_throughput = num_accepted_tokens / elapsed_time"
+        },
+        {
+          "line": 95,
+          "text": ""
+        },
+        {
+          "line": 96,
+          "text": "        if self.is_diffusion:"
+        },
+        {
+          "line": 97,
+          "text": "            self._log_diffusion("
+        },
+        {
+          "line": 98,
+          "text": "                log_fn,"
+        },
+        {
+          "line": 99,
+          "text": "                num_denoising_steps=num_drafts,"
+        },
+        {
+          "line": 100,
+          "text": "                num_canvas_tokens=num_draft_tokens,"
+        },
+        {
+          "line": 101,
+          "text": "                num_committed_tokens=num_accepted_tokens,"
+        },
+        {
+          "line": 102,
+          "text": "                committed_throughput=accepted_throughput,"
+        },
+        {
+          "line": 103,
+          "text": "            )"
+        },
+        {
+          "line": 104,
+          "text": "            self.reset()"
+        },
+        {
+          "line": 105,
+          "text": "            return"
+        },
+        {
+          "line": 106,
+          "text": ""
+        },
+        {
+          "line": 107,
+          "text": "        draft_acceptance_rate = ("
+        },
+        {
+          "line": 108,
+          "text": "            num_accepted_tokens / num_draft_tokens * 100"
+        },
+        {
+          "line": 109,
+          "text": "            if num_draft_tokens > 0"
+        },
+        {
+          "line": 110,
+          "text": "            else float(\"nan\")"
+        },
+        {
+          "line": 111,
+          "text": "        )"
+        },
+        {
+          "line": 112,
+          "text": ""
+        },
+        {
+          "line": 113,
+          "text": "        # Conventionally, mean acceptance length includes the bonus token"
+        },
+        {
+          "line": 114,
+          "text": "        mean_acceptance_length = 1 + (num_accepted_tokens / num_drafts)"
+        },
+        {
+          "line": 115,
+          "text": ""
+        },
+        {
+          "line": 116,
+          "text": "        pos_matrix = np.array(self.accepted_tokens_per_pos_lists)"
+        },
+        {
+          "line": 117,
+          "text": "        acceptance_rates = np.sum(pos_matrix, axis=0) / num_drafts"
+        },
+        {
+          "line": 118,
+          "text": "        rates_str = \", \".join(f\"{p:.3f}\" for p in acceptance_rates)"
+        },
+        {
+          "line": 119,
+          "text": ""
+        },
+        {
+          "line": 120,
+          "text": "        log_fn("
+        },
+        {
+          "line": 121,
+          "text": "            \"SpecDecoding metrics: \""
+        },
+        {
+          "line": 122,
+          "text": "            \"Mean acceptance length: %.2f, \""
+        },
+        {
+          "line": 123,
+          "text": "            \"Accepted throughput: %.2f tokens/s, \""
+        },
+        {
+          "line": 124,
+          "text": "            \"Drafted throughput: %.2f tokens/s, \""
+        },
+        {
+          "line": 125,
+          "text": "            \"Accepted: %d tokens, \""
+        },
+        {
+          "line": 127,
+          "text": "            \"Per-position acceptance rate: %s, \""
+        },
+        {
+          "line": 128,
+          "text": "            \"Avg Draft acceptance rate: %.1f%%\","
+        },
+        {
+          "line": 129,
+          "text": "            mean_acceptance_length,"
+        },
+        {
+          "line": 130,
+          "text": "            accepted_throughput,"
+        },
+        {
+          "line": 131,
+          "text": "            draft_throughput,"
+        },
+        {
+          "line": 132,
+          "text": "            num_accepted_tokens,"
+        },
+        {
+          "line": 133,
+          "text": "            num_draft_tokens,"
+        },
+        {
+          "line": 134,
+          "text": "            rates_str,"
+        },
+        {
+          "line": 135,
+          "text": "            draft_acceptance_rate,"
+        },
+        {
+          "line": 136,
+          "text": "        )"
+        },
+        {
+          "line": 137,
+          "text": "        self.reset()"
+        },
+        {
+          "line": 138,
+          "text": ""
+        },
+        {
+          "line": 139,
+          "text": "    def _log_diffusion("
+        },
+        {
+          "line": 140,
+          "text": "        self,"
+        },
+        {
+          "line": 141,
+          "text": "        log_fn,"
+        },
+        {
+          "line": 177,
+          "text": "class SpecDecodingProm:"
+        },
+        {
+          "line": 178,
+          "text": "    \"\"\"Record spec decoding metrics in Prometheus."
+        },
+        {
+          "line": 179,
+          "text": ""
+        },
+        {
+          "line": 180,
+          "text": "    The acceptance rate can be calculated using a PromQL query:"
+        },
+        {
+          "line": 181,
+          "text": ""
+        },
+        {
+          "line": 182,
+          "text": "      rate(vllm:spec_decode_num_accepted_tokens_total[$interval]) /"
+        },
+        {
+          "line": 183,
+          "text": "      rate(vllm:spec_decode_num_draft_tokens_total[$interval])"
+        },
+        {
+          "line": 184,
+          "text": ""
+        },
+        {
+          "line": 185,
+          "text": "    The mean acceptance length (conventionally including bonus tokens)"
+        },
+        {
+          "line": 186,
+          "text": "    can be calculated using:"
+        },
+        {
+          "line": 187,
+          "text": ""
+        },
+        {
+          "line": 188,
+          "text": "      1 + ("
+        },
+        {
+          "line": 189,
+          "text": "      rate(vllm:spec_decode_num_accepted_tokens_total[$interval]) /"
+        },
+        {
+          "line": 190,
+          "text": "      rate(vllm:spec_decode_num_drafts_total[$interval]))"
+        },
+        {
+          "line": 191,
+          "text": ""
+        },
+        {
+          "line": 192,
+          "text": "    A per-position acceptance rate vector can be computed using"
+        },
+        {
+          "line": 193,
+          "text": ""
+        },
+        {
+          "line": 194,
+          "text": "      vllm:spec_decode_num_accepted_tokens_per_pos_total[$interval] /"
+        },
+        {
+          "line": 195,
+          "text": "      vllm:spec_decode_num_drafts_total[$interval]"
+        },
+        {
+          "line": 196,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 197,
+          "text": ""
+        },
+        {
+          "line": 198,
+          "text": "    _counter_cls = prometheus_client.Counter"
+        },
+        {
+          "line": 199,
+          "text": ""
+        },
+        {
+          "line": 200,
+          "text": "    def __init__("
+        },
+        {
+          "line": 201,
+          "text": "        self,"
+        },
+        {
+          "line": 202,
+          "text": "        speculative_config: SpeculativeConfig | None,"
+        },
+        {
+          "line": 203,
+          "text": "        labelnames: list[str],"
+        },
+        {
+          "line": 224,
+          "text": "                    \"Number of committed (finalized) tokens.\","
+        },
+        {
+          "line": 225,
+          "text": "                ),"
+        },
+        {
+          "line": 226,
+          "text": "            ]"
+        },
+        {
+          "line": 227,
+          "text": "        else:"
+        },
+        {
+          "line": 228,
+          "text": "            counter_specs = ["
+        },
+        {
+          "line": 229,
+          "text": "                (\"vllm:spec_decode_num_drafts\", \"Number of spec decoding drafts.\"),"
+        },
+        {
+          "line": 230,
+          "text": "                (\"vllm:spec_decode_num_draft_tokens\", \"Number of draft tokens.\"),"
+        },
+        {
+          "line": 231,
+          "text": "                (\"vllm:spec_decode_num_accepted_tokens\", \"Number of accepted tokens.\"),"
+        },
+        {
+          "line": 232,
+          "text": "            ]"
+        },
+        {
+          "line": 233,
+          "text": ""
+        },
+        {
+          "line": 234,
+          "text": "        counters = ["
+        },
+        {
+          "line": 235,
+          "text": "            create_metric_per_engine("
+        },
+        {
+          "line": 236,
+          "text": "                self._counter_cls(name=name, documentation=doc, labelnames=labelnames),"
+        },
+        {
+          "line": 237,
+          "text": "                per_engine_labelvalues,"
+        },
+        {
+          "line": 238,
+          "text": "            )"
+        },
+        {
+          "line": 239,
+          "text": "            for name, doc in counter_specs"
+        },
+        {
+          "line": 240,
+          "text": "        ]"
+        },
+        {
+          "line": 241,
+          "text": "        # num_drafts/num_draft_tokens/num_accepted_tokens map onto denoising"
+        },
+        {
+          "line": 242,
+          "text": "        # steps/canvas positions/committed tokens in the diffusion path."
+        },
+        {
+          "line": 243,
+          "text": "        self.counter_spec_decode_num_drafts = counters[0]"
+        },
+        {
+          "line": 244,
+          "text": "        self.counter_spec_decode_num_draft_tokens = counters[1]"
+        },
+        {
+          "line": 245,
+          "text": "        self.counter_spec_decode_num_accepted_tokens = counters[2]"
+        },
+        {
+          "line": 246,
+          "text": ""
+        },
+        {
+          "line": 247,
+          "text": "        self.counter_spec_decode_num_accepted_tokens_per_pos: dict["
+        },
+        {
+          "line": 248,
+          "text": "            int, list[prometheus_client.Counter]"
+        },
+        {
+          "line": 249,
+          "text": "        ] = {}"
+        },
+        {
+          "line": 250,
+          "text": "        if not is_diffusion:"
+        },
+        {
+          "line": 251,
+          "text": "            assert speculative_config is not None"
+        },
+        {
+          "line": 252,
+          "text": "            num_spec_tokens = speculative_config.num_speculative_tokens"
+        },
+        {
+          "line": 253,
+          "text": "            pos_labelnames = labelnames + [\"position\"]"
+        },
+        {
+          "line": 254,
+          "text": "            base_counter = self._counter_cls("
+        },
+        {
+          "line": 255,
+          "text": "                name=\"vllm:spec_decode_num_accepted_tokens_per_pos\","
+        },
+        {
+          "line": 256,
+          "text": "                documentation=\"Accepted tokens per draft position.\","
+        },
+        {
+          "line": 257,
+          "text": "                labelnames=pos_labelnames,"
+        },
+        {
+          "line": 258,
+          "text": "            )"
+        },
+        {
+          "line": 259,
+          "text": "            self.counter_spec_decode_num_accepted_tokens_per_pos = {"
+        },
+        {
+          "line": 260,
+          "text": "                idx: ["
+        },
+        {
+          "line": 261,
+          "text": "                    base_counter.labels(*lv, str(pos)) for pos in range(num_spec_tokens)"
+        },
+        {
+          "line": 262,
+          "text": "                ]"
+        },
+        {
+          "line": 263,
+          "text": "                for idx, lv in per_engine_labelvalues.items()"
+        },
+        {
+          "line": 264,
+          "text": "            }"
+        },
+        {
+          "line": 265,
+          "text": ""
+        },
+        {
+          "line": 266,
+          "text": "    def observe(self, spec_decoding_stats: SpecDecodingStats, engine_idx: int = 0):"
+        },
+        {
+          "line": 267,
+          "text": "        if not self.spec_decoding_enabled:"
+        },
+        {
+          "line": 268,
+          "text": "            return"
+        },
+        {
+          "line": 269,
+          "text": "        self.counter_spec_decode_num_drafts[engine_idx].inc("
+        },
+        {
+          "line": 270,
+          "text": "            spec_decoding_stats.num_drafts"
+        },
+        {
+          "line": 271,
+          "text": "        )"
+        },
+        {
+          "line": 272,
+          "text": "        self.counter_spec_decode_num_draft_tokens[engine_idx].inc("
+        },
+        {
+          "line": 273,
+          "text": "            spec_decoding_stats.num_draft_tokens"
+        },
+        {
+          "line": 274,
+          "text": "        )"
+        },
+        {
+          "line": 275,
+          "text": "        self.counter_spec_decode_num_accepted_tokens[engine_idx].inc("
+        },
+        {
+          "line": 276,
+          "text": "            spec_decoding_stats.num_accepted_tokens"
+        },
+        {
+          "line": 277,
+          "text": "        )"
+        },
+        {
+          "line": 278,
+          "text": "        for pos, counter in enumerate("
+        },
+        {
+          "line": 279,
+          "text": "            self.counter_spec_decode_num_accepted_tokens_per_pos.get(engine_idx, [])"
+        },
+        {
+          "line": 280,
+          "text": "        ):"
+        },
+        {
+          "line": 281,
+          "text": "            counter.inc(spec_decoding_stats.num_accepted_tokens_per_pos[pos])"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/spec_decode/ngram_proposer.py",
+      "sha256": "5051e1bca645fe4befec0a6340f0dfc169fbcbe070ac1da508b72f8ee9c91736",
+      "lines": [
+        {
+          "line": 27,
+          "text": "        self.max_model_len = vllm_config.model_config.max_model_len"
+        },
+        {
+          "line": 28,
+          "text": ""
+        },
+        {
+          "line": 29,
+          "text": "        # Pre-allocate buffers for numba batch propose."
+        },
+        {
+          "line": 30,
+          "text": "        max_num_seqs = vllm_config.scheduler_config.max_num_seqs"
+        },
+        {
+          "line": 31,
+          "text": "        self.valid_ngram_draft = np.zeros((max_num_seqs, self.k), dtype=np.int32)"
+        },
+        {
+          "line": 32,
+          "text": "        self.valid_ngram_num_drafts = np.zeros((max_num_seqs), dtype=np.int32)"
+        },
+        {
+          "line": 33,
+          "text": ""
+        },
+        {
+          "line": 34,
+          "text": "        # Threshold of total number of tokens in the batch to enable"
+        },
+        {
+          "line": 35,
+          "text": "        # multi-threading in numba batch propose."
+        },
+        {
+          "line": 36,
+          "text": "        self.num_tokens_threshold = 8192"
+        },
+        {
+          "line": 37,
+          "text": "        tp_size = vllm_config.parallel_config.tensor_parallel_size"
+        },
+        {
+          "line": 38,
+          "text": "        cpu_count = os.cpu_count()"
+        },
+        {
+          "line": 39,
+          "text": "        # Max number of threads for numba parallel processing."
+        },
+        {
+          "line": 40,
+          "text": "        if cpu_count:"
+        },
+        {
+          "line": 114,
+          "text": "                self.min_n,"
+        },
+        {
+          "line": 115,
+          "text": "                self.max_n,"
+        },
+        {
+          "line": 116,
+          "text": "                self.max_model_len,"
+        },
+        {
+          "line": 117,
+          "text": "                k,"
+        },
+        {
+          "line": 118,
+          "text": "                self.valid_ngram_draft,"
+        },
+        {
+          "line": 119,
+          "text": "                self.valid_ngram_num_drafts,"
+        },
+        {
+          "line": 120,
+          "text": "            )"
+        },
+        {
+          "line": 121,
+          "text": ""
+        },
+        {
+          "line": 122,
+          "text": "            # Restore original number of threads."
+        },
+        {
+          "line": 123,
+          "text": "            set_num_threads(original_num_numba_threads)"
+        },
+        {
+          "line": 124,
+          "text": ""
+        },
+        {
+          "line": 125,
+          "text": "        for i in range(num_requests):"
+        },
+        {
+          "line": 126,
+          "text": "            if i in valid_ngram_requests and self.valid_ngram_num_drafts[i] > 0:"
+        },
+        {
+          "line": 127,
+          "text": "                draft_token_ids.append("
+        },
+        {
+          "line": 128,
+          "text": "                    self.valid_ngram_draft[i, : self.valid_ngram_num_drafts[i]].tolist()"
+        },
+        {
+          "line": 129,
+          "text": "                )"
+        },
+        {
+          "line": 130,
+          "text": "            else:"
+        },
+        {
+          "line": 131,
+          "text": "                draft_token_ids.append([])"
+        },
+        {
+          "line": 132,
+          "text": ""
+        },
+        {
+          "line": 133,
+          "text": "        return draft_token_ids"
+        },
+        {
+          "line": 134,
+          "text": ""
+        },
+        {
+          "line": 135,
+          "text": "    def propose("
+        },
+        {
+          "line": 136,
+          "text": "        self,"
+        },
+        {
+          "line": 182,
+          "text": "    min_n: int,"
+        },
+        {
+          "line": 183,
+          "text": "    max_n: int,"
+        },
+        {
+          "line": 184,
+          "text": "    max_model_len: int,"
+        },
+        {
+          "line": 185,
+          "text": "    k: int,"
+        },
+        {
+          "line": 186,
+          "text": "    valid_ngram_draft: np.ndarray,"
+        },
+        {
+          "line": 187,
+          "text": "    valid_ngram_num_drafts: np.ndarray,"
+        },
+        {
+          "line": 188,
+          "text": "):"
+        },
+        {
+          "line": 189,
+          "text": "    for i in prange(len(valid_ngram_requests)):"
+        },
+        {
+          "line": 190,
+          "text": "        idx = valid_ngram_requests[i]"
+        },
+        {
+          "line": 191,
+          "text": "        num_tokens = num_tokens_no_spec[idx]"
+        },
+        {
+          "line": 192,
+          "text": "        context_token_ids = token_ids_cpu[idx, :num_tokens]"
+        },
+        {
+          "line": 193,
+          "text": "        drafter_output = _find_longest_matched_ngram_and_propose_tokens("
+        },
+        {
+          "line": 194,
+          "text": "            origin_tokens=context_token_ids,"
+        },
+        {
+          "line": 195,
+          "text": "            min_ngram=min_n,"
+        },
+        {
+          "line": 196,
+          "text": "            max_ngram=max_n,"
+        },
+        {
+          "line": 197,
+          "text": "            max_model_len=max_model_len,"
+        },
+        {
+          "line": 198,
+          "text": "            k=k,"
+        },
+        {
+          "line": 199,
+          "text": "        )"
+        },
+        {
+          "line": 200,
+          "text": ""
+        },
+        {
+          "line": 201,
+          "text": "        valid_ngram_num_drafts[idx] = drafter_output.shape[0]"
+        },
+        {
+          "line": 202,
+          "text": "        if len(drafter_output):"
+        },
+        {
+          "line": 203,
+          "text": "            valid_ngram_draft[idx, : drafter_output.shape[0]] = drafter_output"
+        },
+        {
+          "line": 204,
+          "text": ""
+        },
+        {
+          "line": 205,
+          "text": ""
+        },
+        {
+          "line": 206,
+          "text": "@jit(nopython=True)"
+        },
+        {
+          "line": 207,
+          "text": "def _find_longest_matched_ngram_and_propose_tokens("
+        },
+        {
+          "line": 208,
+          "text": "    origin_tokens: np.ndarray,"
+        },
+        {
+          "line": 209,
+          "text": "    min_ngram: int,"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/spec_decode/ngram_proposer_gpu.py",
+      "sha256": "6b304fb5a2b7a2e4b6ac05c90c49d228975a7b1f7d566dc1445f048992163b72",
+      "lines": [
+        {
+          "line": 48,
+          "text": "        self,"
+        },
+        {
+          "line": 49,
+          "text": "        token_ids: torch.Tensor,"
+        },
+        {
+          "line": 50,
+          "text": "        seq_lengths: torch.Tensor,"
+        },
+        {
+          "line": 51,
+          "text": "        min_ngram_len: int,"
+        },
+        {
+          "line": 52,
+          "text": "        max_ngram_len: int,"
+        },
+        {
+          "line": 53,
+          "text": "        num_draft_tokens: int,"
+        },
+        {
+          "line": 54,
+          "text": "    ) -> torch.Tensor:"
+        },
+        {
+          "line": 55,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 56,
+          "text": "        Find suffix n-gram matches and extract following tokens."
+        },
+        {
+          "line": 57,
+          "text": "        Searches for the earliest prior occurrence of the trailing n-gram,"
+        },
+        {
+          "line": 58,
+          "text": "        tries multiple lengths, and picks the longest valid match."
+        },
+        {
+          "line": 59,
+          "text": ""
+        },
+        {
+          "line": 60,
+          "text": "        Args:"
+        },
+        {
+          "line": 61,
+          "text": "            token_ids: Token IDs for each sequence"
+        },
+        {
+          "line": 62,
+          "text": "            seq_lengths: Actual length of each sequence (excluding padding)"
+        },
+        {
+          "line": 63,
+          "text": "            min_ngram_len: Minimum n-gram size to search for (e.g., 2)"
+        },
+        {
+          "line": 64,
+          "text": "            max_ngram_len: Maximum n-gram size to search for (e.g., 5)"
+        },
+        {
+          "line": 65,
+          "text": "            num_draft_tokens: Number of tokens to extract after match (k)"
+        },
+        {
+          "line": 66,
+          "text": ""
+        },
+        {
+          "line": 67,
+          "text": "        Returns:"
+        },
+        {
+          "line": 68,
+          "text": "            Draft token predictions; -1 means invalid/no match."
+        },
+        {
+          "line": 69,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 70,
+          "text": "        batch_size = token_ids.shape[0]"
+        },
+        {
+          "line": 71,
+          "text": "        max_seq_len = token_ids.shape[1]"
+        },
+        {
+          "line": 72,
+          "text": "        device = token_ids.device"
+        },
+        {
+          "line": 73,
+          "text": "        num_ngram_sizes = max_ngram_len - min_ngram_len + 1"
+        },
+        {
+          "line": 131,
+          "text": "        )"
+        },
+        {
+          "line": 132,
+          "text": "        tokens_available = seq_lengths - draft_start"
+        },
+        {
+          "line": 133,
+          "text": ""
+        },
+        {
+          "line": 134,
+          "text": "        # Gather indices for draft tokens."
+        },
+        {
+          "line": 135,
+          "text": "        draft_indices = draft_start.unsqueeze(1) + torch.arange("
+        },
+        {
+          "line": 136,
+          "text": "            num_draft_tokens, device=device"
+        },
+        {
+          "line": 137,
+          "text": "        )"
+        },
+        {
+          "line": 138,
+          "text": "        draft_indices.clamp_(min=0, max=max_seq_len - 1)"
+        },
+        {
+          "line": 139,
+          "text": ""
+        },
+        {
+          "line": 140,
+          "text": "        # Extract draft tokens; gather always runs."
+        },
+        {
+          "line": 141,
+          "text": "        draft_tokens = torch.gather(token_ids, 1, draft_indices)"
+        },
+        {
+          "line": 142,
+          "text": ""
+        },
+        {
+          "line": 143,
+          "text": "        # Mask positions beyond available tokens."
+        },
+        {
+          "line": 144,
+          "text": "        position_indices = torch.arange(num_draft_tokens, device=device).unsqueeze(0)"
+        },
+        {
+          "line": 145,
+          "text": "        valid_positions = position_indices < tokens_available.unsqueeze(1)"
+        },
+        {
+          "line": 146,
+          "text": ""
+        },
+        {
+          "line": 147,
+          "text": "        draft_tokens = torch.where("
+        },
+        {
+          "line": 148,
+          "text": "            valid_positions,"
+        },
+        {
+          "line": 149,
+          "text": "            draft_tokens,"
+        },
+        {
+          "line": 150,
+          "text": "            torch.full_like(draft_tokens, -1),"
+        },
+        {
+          "line": 151,
+          "text": "        )"
+        },
+        {
+          "line": 152,
+          "text": ""
+        },
+        {
+          "line": 194,
+          "text": "        results = self._find_first_and_extract_all_n_parallel("
+        },
+        {
+          "line": 195,
+          "text": "            token_ids_gpu,"
+        },
+        {
+          "line": 196,
+          "text": "            num_tokens_no_spec,"
+        },
+        {
+          "line": 197,
+          "text": "            min_ngram_len=self.min_n,"
+        },
+        {
+          "line": 198,
+          "text": "            max_ngram_len=self.max_n,"
+        },
+        {
+          "line": 199,
+          "text": "            num_draft_tokens=self.k,"
+        },
+        {
+          "line": 200,
+          "text": "        )"
+        },
+        {
+          "line": 201,
+          "text": ""
+        },
+        {
+          "line": 202,
+          "text": "        draft_tokens = torch.where(combined_mask.unsqueeze(1), results, -1)"
+        },
+        {
+          "line": 203,
+          "text": ""
+        },
+        {
+          "line": 204,
+          "text": "        # Count leading contiguous valid (non -1) tokens per request."
+        },
+        {
+          "line": 205,
+          "text": "        is_valid = draft_tokens != -1  # [batch, k]"
+        },
+        {
+          "line": 206,
+          "text": "        cum_valid = is_valid.int().cumsum(dim=1)  # [batch, k]"
+        },
+        {
+          "line": 207,
+          "text": "        positions = torch.arange(1, self.k + 1, device=device).unsqueeze(0)"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/spec_decode/utils.py",
+      "sha256": "318067397e6827153b484953b4f245e64b0a04308cfe05fa6760418b83a15ed8",
+      "lines": [
+        {
+          "line": 188,
+          "text": "    )"
+        },
+        {
+          "line": 189,
+          "text": ""
+        },
+        {
+          "line": 190,
+          "text": ""
+        },
+        {
+          "line": 191,
+          "text": "@triton.jit"
+        },
+        {
+          "line": 192,
+          "text": "def eagle_prepare_inputs_padded_kernel("
+        },
+        {
+          "line": 193,
+          "text": "    cu_num_draft_tokens_ptr,  # [num_reqs]"
+        },
+        {
+          "line": 194,
+          "text": "    valid_sampled_tokens_count_ptr,  # [num_reqs]"
+        },
+        {
+          "line": 195,
+          "text": "    query_start_loc_gpu_ptr,  # [num_reqs + 1]"
+        },
+        {
+          "line": 196,
+          "text": "    token_indices_to_sample_ptr,  # [num_reqs] (output)"
+        },
+        {
+          "line": 197,
+          "text": "    num_rejected_tokens_gpu_ptr,  # [num_reqs] (output)"
+        },
+        {
+          "line": 198,
+          "text": "    num_reqs,  # tl.int32"
+        },
+        {
+          "line": 199,
+          "text": "):"
+        },
+        {
+          "line": 200,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 201,
+          "text": "    Fused kernel for Eagle prepare_input_padded. This kernel computes the"
+        },
+        {
+          "line": 205,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 206,
+          "text": "    req_idx = tl.program_id(axis=0)"
+        },
+        {
+          "line": 207,
+          "text": "    if req_idx >= num_reqs:"
+        },
+        {
+          "line": 208,
+          "text": "        return"
+        },
+        {
+          "line": 209,
+          "text": ""
+        },
+        {
+          "line": 210,
+          "text": "    # Calculate num_draft_tokens from cu_num_draft_tokens, which is an inclusive"
+        },
+        {
+          "line": 211,
+          "text": "    # cumulative sum (first entry is the first value, not zero)."
+        },
+        {
+          "line": 212,
+          "text": "    cu_draft_curr = tl.load(cu_num_draft_tokens_ptr + req_idx)"
+        },
+        {
+          "line": 213,
+          "text": ""
+        },
+        {
+          "line": 214,
+          "text": "    if req_idx == 0:"
+        },
+        {
+          "line": 215,
+          "text": "        num_draft_tokens = cu_draft_curr"
+        },
+        {
+          "line": 216,
+          "text": "    else:"
+        },
+        {
+          "line": 217,
+          "text": "        cu_draft_prev = tl.load(cu_num_draft_tokens_ptr + req_idx - 1)"
+        },
+        {
+          "line": 218,
+          "text": "        num_draft_tokens = cu_draft_curr - cu_draft_prev"
+        },
+        {
+          "line": 219,
+          "text": ""
+        },
+        {
+          "line": 220,
+          "text": "    valid_count = tl.load(valid_sampled_tokens_count_ptr + req_idx)"
+        },
+        {
+          "line": 221,
+          "text": "    num_rejected_tokens = num_draft_tokens + 1 - valid_count"
+        },
+        {
+          "line": 222,
+          "text": "    num_rejected_tokens = tl.where(num_draft_tokens > 0, num_rejected_tokens, 0)"
+        },
+        {
+          "line": 223,
+          "text": ""
+        },
+        {
+          "line": 224,
+          "text": "    # query_start_loc[req_idx + 1] is the start position of the next request,"
+        },
+        {
+          "line": 225,
+          "text": "    # which is one past the last token of this request."
+        },
+        {
+          "line": 226,
+          "text": "    q_last_tok_idx = tl.load(query_start_loc_gpu_ptr + req_idx + 1) - 1"
+        },
+        {
+          "line": 227,
+          "text": ""
+        },
+        {
+          "line": 228,
+          "text": "    index_to_sample = q_last_tok_idx - num_rejected_tokens"
+        },
+        {
+          "line": 229,
+          "text": "    tl.store(token_indices_to_sample_ptr + req_idx, index_to_sample)"
+        },
+        {
+          "line": 230,
+          "text": "    tl.store(num_rejected_tokens_gpu_ptr + req_idx, num_rejected_tokens)"
+        },
+        {
+          "line": 231,
+          "text": ""
+        },
+        {
+          "line": 232,
+          "text": ""
+        },
+        {
+          "line": 233,
+          "text": "def _eagle_prepare_inputs_warmup_inputs(*, max_batch_size: int):"
+        },
+        {
+          "line": 234,
+          "text": "    int32 = TritonWarmupTensor(torch.int32)"
+        },
+        {
+          "line": 235,
+          "text": "    return dict("
+        },
+        {
+          "line": 236,
+          "text": "        cu_num_draft_tokens=int32,"
+        },
+        {
+          "line": 237,
+          "text": "        valid_sampled_tokens_count=int32,"
+        },
+        {
+          "line": 238,
+          "text": "        query_start_loc_gpu=int32,"
+        },
+        {
+          "line": 239,
+          "text": "        token_indices_to_sample=int32,"
+        },
+        {
+          "line": 240,
+          "text": "        num_rejected_tokens_gpu=int32,"
+        },
+        {
+          "line": 241,
+          "text": "        num_reqs=WarmupIntRange(1, max_batch_size + 1),"
+        },
+        {
+          "line": 242,
+          "text": "    )"
+        },
+        {
+          "line": 243,
+          "text": ""
+        },
+        {
+          "line": 244,
+          "text": ""
+        },
+        {
+          "line": 245,
+          "text": "@triton_kernel_dispatcher_with_warmup("
+        },
+        {
+          "line": 246,
+          "text": "    kernel=eagle_prepare_inputs_padded_kernel,"
+        },
+        {
+          "line": 247,
+          "text": "    warmup_inputs=_eagle_prepare_inputs_warmup_inputs,"
+        },
+        {
+          "line": 248,
+          "text": ")"
+        },
+        {
+          "line": 249,
+          "text": "def _eagle_prepare_inputs_padded("
+        },
+        {
+          "line": 250,
+          "text": "    cu_num_draft_tokens: torch.Tensor,"
+        },
+        {
+          "line": 251,
+          "text": "    valid_sampled_tokens_count: torch.Tensor,"
+        },
+        {
+          "line": 252,
+          "text": "    query_start_loc_gpu: torch.Tensor,"
+        },
+        {
+          "line": 253,
+          "text": "    token_indices_to_sample: torch.Tensor,"
+        },
+        {
+          "line": 254,
+          "text": "    num_rejected_tokens_gpu: torch.Tensor,"
+        },
+        {
+          "line": 255,
+          "text": "    num_reqs: int,"
+        },
+        {
+          "line": 256,
+          "text": ") -> DispatchSpec:"
+        },
+        {
+          "line": 257,
+          "text": "    return (num_reqs,), {}"
+        },
+        {
+          "line": 258,
+          "text": ""
+        },
+        {
+          "line": 819,
+          "text": ""
+        },
+        {
+          "line": 820,
+          "text": ""
+        },
+        {
+          "line": 821,
+          "text": "@torch.compile(dynamic=True, backend=current_platform.simple_compile_backend)"
+        },
+        {
+          "line": 822,
+          "text": "def update_num_computed_tokens_for_batch_change("
+        },
+        {
+          "line": 823,
+          "text": "    num_computed_tokens: torch.Tensor,"
+        },
+        {
+          "line": 824,
+          "text": "    num_accepted_tokens: torch.Tensor,"
+        },
+        {
+          "line": 825,
+          "text": "    prev_positions: torch.Tensor,"
+        },
+        {
+          "line": 826,
+          "text": "    valid_sampled_token_count: torch.Tensor,"
+        },
+        {
+          "line": 827,
+          "text": "    prev_num_draft_tokens: torch.Tensor,"
+        },
+        {
+          "line": 828,
+          "text": "    cpu_num_computed_tokens: torch.Tensor,"
+        },
+        {
+          "line": 829,
+          "text": ") -> None:"
+        },
+        {
+          "line": 830,
+          "text": "    \"\"\"Correct num_computed_tokens for async spec decode drift."
+        },
+        {
+          "line": 831,
+          "text": ""
+        },
+        {
+          "line": 832,
+          "text": "    Requests that had drafts: corrected = prev_gpu + valid_count."
+        },
+        {
+          "line": 833,
+          "text": "    New requests or non-draft (e.g. prefills): use CPU value directly."
+        },
+        {
+          "line": 834,
+          "text": "    \"\"\""
+        },
+        {
+          "line": 835,
+          "text": "    # Clamp because prev_positions can be -1 for new requests"
+        },
+        {
+          "line": 836,
+          "text": "    gather_indices = prev_positions.clamp(min=0)"
+        },
+        {
+          "line": 837,
+          "text": ""
+        },
+        {
+          "line": 838,
+          "text": "    valid_counts = valid_sampled_token_count[gather_indices]"
+        },
+        {
+          "line": 839,
+          "text": "    prev_computed = num_computed_tokens[gather_indices]"
+        },
+        {
+          "line": 840,
+          "text": "    prev_drafts = prev_num_draft_tokens[gather_indices]"
+        },
+        {
+          "line": 841,
+          "text": ""
+        },
+        {
+          "line": 842,
+          "text": "    participating = (prev_positions >= 0) & (prev_drafts > 0)"
+        },
+        {
+          "line": 843,
+          "text": "    corrected = prev_computed + valid_counts.int()"
+        },
+        {
+          "line": 844,
+          "text": ""
+        },
+        {
+          "line": 845,
+          "text": "    n = prev_positions.shape[0]"
+        },
+        {
+          "line": 846,
+          "text": "    num_computed_tokens[:n].copy_("
+        },
+        {
+          "line": 847,
+          "text": "        torch.where(participating, corrected, cpu_num_computed_tokens)"
+        },
+        {
+          "line": 848,
+          "text": "    )"
+        },
+        {
+          "line": 849,
+          "text": "    num_accepted_tokens.copy_("
+        },
+        {
+          "line": 850,
+          "text": "        torch.where(participating, valid_counts, num_accepted_tokens)"
+        },
+        {
+          "line": 851,
+          "text": "    )"
+        },
+        {
+          "line": 852,
+          "text": ""
+        },
+        {
+          "line": 853,
+          "text": ""
+        },
+        {
+          "line": 854,
+          "text": "def unconditional_to_conditional_rates(rates: list[float]) -> list[float]:"
+        },
+        {
+          "line": 855,
+          "text": "    \"\"\"Convert per-position unconditional rates to per-position conditional"
+        },
+        {
+          "line": 856,
+          "text": "    rates for the early-terminating rejection loop (c_i = p_i / p_{i-1}).\"\"\""
+        },
+        {
+          "line": 857,
+          "text": "    return [p / q if q > 0.0 else 0.0 for p, q in zip(rates, [1.0, *rates[:-1]])]"
+        }
+      ]
+    }
+  ],
+  "bytes": 1652606,
+  "container": "wio-vllm-v41-repro169-stage-20261028",
+  "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "no_device_work": true
+}

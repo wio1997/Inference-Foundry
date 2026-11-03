@@ -1,0 +1,17 @@
+# v163：共享取证入口与图代次合同
+
+完整Goal已恢复active。上一轮真实联合探针、服务恢复及v162工厂入口核对属于进展。本轮读取171自有容器的三个精确源文件，完成有界补充观察接口和35项新的CPU合同检查。未启动新NPU上下文、未发模型请求、未重启服务，旧单次探针授权保持已消耗。全部G00–G14及跨算子/层/卡/迭代范围保留，整体未完成。
+
+精确Ascend profiler工厂没有转发record_shapes；配置项存在不等于该工厂实际使用。此前两行临时补丁及with_memory配置要求继续有效，但尚未安装。下一采集方向保留相同完整C8输入32768输出1024/前缀90%的Case：共享builtin字段与必要的startup graph/guard入口，不要求全部native/读者采集器先就绪才允许准备任何profile。未能观察的原生参数、offset/epoch、读者等继续按缺口保留，不缩减整体目标。
+
+新观察器只补storage offset/nbytes、view指针、可用的版本字段及图边界；按TensorImpl与内置记录关联。输入/输出张量内容不读取，内置全部基础字段不再复制成一套全量logger。Python graph对象用process UUID、弱身份token、成功capture_begin代次和独立begin/end状态记录；begin/end失败不伪造成功代次。Python scope结束、event.record、weak reference和对象token都不当GPU读者完成或allocator generation。native join核心要求独立核实的同run/process/device/context/API witness与有效task/stream，并拒绝缺失、哨兵、复用歧义及signature矛盾；这些字段目前没有真实producer，不能靠状态字符串自证。
+
+官方[Task查询文档](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/920beta2/API/runtimeapi/aclcppdevg_03_1829.html)将查询域限定在当前线程、用户显式创建stream上最后下发的任务。它是9.2beta2文档，不自动证明本机9.2.0全部内部/error/bypass路径。官方[PyTorch2.10推理模式文档](https://docs.pytorch.org/docs/2.10/generated/torch.autograd.grad_mode.inference_mode.html)说明版本计数可能缺失；补充接口将这种失败记为UNKNOWN，不记0，也不把版本计数当完整参数更新代次。两份原始页面均已下载并pin。
+
+精确UpdatableGraph源码另表明：缺key且use_max_workspace时可先后调用两次factory；缓存可被更大候选替换，capture_end再改为weak references。不能把每次factory候选大小相加当同时存活工作空间。GraphUpdateTask.bind允许provider参数覆盖capture初始kwargs；只看初始参数不能代表所有replay。局部PA分支在每次update新建ws_buffer，同key可给多个task赋同一个workspace Tensor，但这个结论只在确实执行该PA/update分支时成立。当前DSv41是否走该路线尚无实际guard证据，不把通用框架分支当当前优化对象，也不据不同key推独立。
+
+为此增加了实际runner.use_compress/use_sparse、backend MRO、wrapper运行模式及graph绑定的观察入口。当前检查点compress_ratios嵌在text_config里，不能仅凭原始JSON替代实际对象属性或继承关系。后续先取实际guard，再决定哪些分支值得补证。
+
+35项CPU检查采用精确图Python源码与假的设备方法，验证原operation/factory/provider/replay调用次数、返回别名、异常对象、失败cleanup/epoch、哨兵/复用拒绝、元数据失败和配额footer等。它们不验证真实Torch dispatch、CANN、编译或NPU capture兼容性。可选TorchDispatchMode默认关闭；开启前仍需验证其是否改变编译路径。首次用系统Python3.9导入slots dataclass失败，已改用现有Python3.12；没有安装软件、改写目标兼容源码或新做设备工作。
+
+下一步完成共享builtin完整Case采集包的全局产物/时间/占用护栏、profiler-off参考、phase和恢复，再对具体新窗口请求授权。不是逐模块重复采集，也不是逐对做383次验证。原9/1352、849PMU、16phase、3136归属、G14 copy/control、数值/读者/物理容量与最低MFU缺口继续open。新增配对、独立性、历史native回填和整模块闭合均为0。

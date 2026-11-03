@@ -1,0 +1,163 @@
+{
+  "files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+      "functions": [
+        {
+          "name": "_clear_dummy_slot_mappings",
+          "start": 359,
+          "end": 363,
+          "source": [
+            "359:     def _clear_dummy_slot_mappings(self) -> None:",
+            "360:         for buf in self._per_group_query_slot_mapping_buffers.values():",
+            "361:             buf.fill_(-1)",
+            "362:         for buf in self._per_group_context_slot_mapping_buffers.values():",
+            "363:             buf.fill_(-1)"
+          ]
+        },
+        {
+          "name": "dummy_run",
+          "start": 366,
+          "end": 429,
+          "source": [
+            "366:     def dummy_run(",
+            "367:         self,",
+            "368:         num_tokens: int,",
+            "369:         num_reqs: int = 0,",
+            "370:         num_tokens_across_dp: torch.Tensor | None = None,",
+            "371:         aclgraph_runtime_mode: CUDAGraphMode = CUDAGraphMode.NONE,",
+            "372:         batch_descriptor=None,",
+            "373:         dummy_compute_logits=lambda hidden_states: None,",
+            "374:         is_profile=False,",
+            "375:         **kwargs,",
+            "376:     ) -> None:",
+            "377:         num_query_total = num_reqs * self.num_query_per_req",
+            "378:         num_query_tokens = min(num_query_total if num_reqs > 0 else num_tokens, self.max_query_tokens)",
+            "379: ",
+            "380:         (",
+            "381:             num_input_tokens,",
+            "382:             num_tokens_across_dp,",
+            "383:             _,",
+            "384:         ) = self.runner._sync_metadata_across_dp(num_query_tokens, is_draft_model=True)",
+            "385: ",
+            "386:         if not self.use_cuda_graph:",
+            "387:             aclgraph_runtime_mode = CUDAGraphMode.NONE",
+            "388: ",
+            "389:         context_positions = self._context_positions_buffer[:num_input_tokens]",
+            "390:         context_states = self.hidden_states[:num_input_tokens]",
+            "391: ",
+            "392:         self.token_indices_to_sample.fill_(0)",
+            "393:         self._clear_dummy_slot_mappings()",
+            "394: ",
+            "395:         with set_ascend_forward_context(",
+            "396:             None,",
+            "397:             self.vllm_config,",
+            "398:             num_tokens=num_input_tokens,",
+            "399:             num_tokens_across_dp=num_tokens_across_dp,",
+            "400:             num_actual_tokens=num_input_tokens,",
+            "401:             in_profile_run=is_profile,",
+            "402:             batch_descriptor=batch_descriptor,",
+            "403:             aclgraph_runtime_mode=aclgraph_runtime_mode,",
+            "404:             is_draft_model=True,",
+            "405:             model_instance=self.model,",
+            "406:             draft_attn_metadatas=[],",
+            "407:             eplb_heat_collection_status=(",
+            "408:                 self.runner.eplb_heat_collection_status if self.runner.dynamic_eplb else False",
+            "409:             ),",
+            "410:         ):",
+            "411:             if is_profile:",
+            "412:                 self.model.precompute_and_store_context_kv(context_states, context_positions)",
+            "413:                 self.model(",
+            "414:                     input_ids=self.input_ids[:num_query_total],",
+            "415:                     positions=self._get_positions(num_query_total),",
+            "416:                     inputs_embeds=None,",
+            "417:                 )",
+            "418: ",
+            "419:             else:",
+            "420:                 self._dflash_num_context = num_input_tokens",
+            "421:                 self._runnable(",
+            "422:                     num_input_tokens=num_input_tokens,",
+            "423:                     batch_size=num_reqs,",
+            "424:                     token_indices_to_sample=self.token_indices_to_sample[: num_reqs * self.num_speculative_tokens],",
+            "425:                     target_positions=self._get_positions(num_input_tokens),",
+            "426:                     inputs_embeds=None,",
+            "427:                     multi_steps_attn_metadata=[],",
+            "428:                     num_tokens=num_input_tokens,",
+            "429:                 )"
+          ]
+        }
+      ],
+      "statements": []
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "functions": [],
+      "statements": [
+        {
+          "start": 1061,
+          "end": 1061,
+          "source": [
+            "1061:             token_indices_to_sample = common_attn_metadata.query_start_loc[1:] - 1"
+          ],
+          "guards": [
+            {
+              "line": 1060,
+              "test": "token_indices_to_sample is None",
+              "arm": "BODY"
+            }
+          ]
+        },
+        {
+          "start": 1212,
+          "end": 1212,
+          "source": [
+            "1212:         self.slot_mapping_group[0][slot_mapping_lens:].fill_(-1)"
+          ],
+          "guards": []
+        },
+        {
+          "start": 1216,
+          "end": 1216,
+          "source": [
+            "1216:         self.seq_lens_group[0][num_reqs_padded:].fill_(0)"
+          ],
+          "guards": []
+        },
+        {
+          "start": 1220,
+          "end": 1220,
+          "source": [
+            "1220:         self.query_start_loc_group[0][num_reqs_padded + 1 :].fill_(0)"
+          ],
+          "guards": []
+        },
+        {
+          "start": 1246,
+          "end": 1246,
+          "source": [
+            "1246:             used_update_positions = self.positions[token_indices_to_sample]"
+          ],
+          "guards": [
+            {
+              "line": 1243,
+              "test": "self.uses_mrope",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1343,
+          "end": 1343,
+          "source": [
+            "1343:         self.token_indices_to_sample[token_indices_to_sample_len:].fill_(0)"
+          ],
+          "guards": []
+        }
+      ]
+    }
+  ],
+  "no_model_or_torch_import": true,
+  "scope": "Onlypositivecurrentdummy361/363/392and_propose1061/1212/1216/1220/1246/1343gapclauses;novelinterfacefieldsnotcoveredbyv37metadata selector."
+}

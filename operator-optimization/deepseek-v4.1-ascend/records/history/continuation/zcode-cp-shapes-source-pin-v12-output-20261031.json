@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_00c52b11-ef9c-41e7-8662-09e9858fae80",
+  "traceId": "8900e786-7906-406f-a2b9-4321c7ca4ef0",
+  "turnId": "turn_04192f2f-1729-44e5-8fd2-9d4478602050",
+  "response": "执行完成，rc=0，单文件 SHA 与冻结缓存完全一致。\n\n**执行与核验结果**\n\n- 实际返回码：`rc=0`（外层 `remote_run.py` 与远端脚本均成功，stderr 为空，本次原始 stdout 中没有出现 plog 写警告行）。\n- 唯一 CP 文件：`/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py`\n- 实测 SHA-256：`039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e`\n- 与冻结缓存比对：`matches_cached_source: true`（逐字符一致）。\n- 脚本内的另一处断言也通过了：既有 profile 衍生文件 `prepare-field-origins-v12.json` 的 SHA 仍为 `c23b75f3fbd3ae3d3d7152f6882524e899bade53001ea2f1befa09ce943f091f`，说明读取的是未变动的既有提取结果。\n- 约束遵守：仅对文件字节做哈希，未读源码正文（`no_target_source_body_read: true`）；未导入 NPU、未推理、未改服务（`no_inference_or_service_operation: true`）。\n\n产物：远端 `.../hostprof-20261030T212812Z-360e0c72/analysis/CP-metadata-shapes-and-source-pin-v12.json`（sha256 `87ff67c39aecfac0ba892872463c2ef60b79d50f1f151ac0f99e8b0527ffae78`），本地回执 `/Users/wio/work/166-vllm-analysis-continuation-20261030/cp-metadata-shapes-source-pin166-v12.json`。\n\n**131 / 140 两处已提取的完整链组引用**\n\n两个调用点各自只挂一条链键，组内均为 88 roots / 32 databases：\n\n- `dsa_v41_cp.py(131): build` → 链键 `8a8674e93fe6e3a814cc833faa8b3b443b32141511f05a8e4765b59fc01c1065`，共 3 组：\n  - `acl_memcpy_host_to_device`，2288 条，shape/dtype 均为 null（该层不记录参数）\n  - `aten::_pin_memory`，2288 条，`input_shapes` 为 `3;`（416 条）/ `5;`（1872 条），dtype 为 `int;None`\n  - `aten::copy_`，4576 条，shape 为 `3;3;`（832 条）/ `5;5;`（3744 条），dtype 为 `int;int;Scalar`\n- `dsa_v41_cp.py(140): build` → 链键 `b484d63617ac71a3a70f97952602f4b88dbd09899868453e074f9bf42d170717`，共 5 组：\n  - `acl_memcpy_host_to_device`，2288 条，null\n  - `aten::_pin_memory`，2288 条，shape 为 `2;`（416）/ `4;`（1872），dtype 为 `int;None`\n  - `aten::_to_copy`，2288 条，shape 为 `2;`+6 个空槽（416）/ `4;`+6 个空槽（1872），dtype 为 `int;Scalar;Scalar;None;None;Scalar;None`\n  - `aten::copy_`，4576 条，shape 为 `2;2;`（832）/ `4;4;`（3744），dtype 为 `int;int;Scalar`\n  - `aten::to`，2288 条，shape 为 `2;`+7 个空槽（416）/ `4;`+7 个空槽（1872），dtype 为 `int;Scalar;Scalar;None;None;Scalar;Scalar;None`\n\n两点解读提醒：这些 `3;`/`5;` 数值是“每个参数槽的维度数”按 `;\\r\\n` 拼接的 token，不是完整 dim 尺寸，因此 131 与 140 的差异应读作整体相差一维，并且 140 多出 `_to_copy`/`to` 的额外参数槽，而不是字面 shape。另外结果里 `overall_complete: false` 是脚本固定写入的占位字段，不代表本次失败。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 105659,
+    "outputTokens": 7426,
+    "totalTokens": 113085,
+    "cacheReadTokens": 92416,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4831,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 113085,
+    "contextUsed": 19795,
+    "contextWindow": 200000
+  }
+}

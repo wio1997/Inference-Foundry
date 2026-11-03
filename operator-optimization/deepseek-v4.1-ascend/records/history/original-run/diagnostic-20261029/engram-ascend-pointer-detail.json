@@ -1,0 +1,291 @@
+{
+  "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/driver.py",
+  "sha256": "ab4d1031efdfb07492ca95d9405089e3b7166ccee0555dbc756f191abe53b1e7",
+  "sections": [
+    {
+      "line": 590,
+      "lines": [
+        {
+          "line": 586,
+          "text": "  void* dev_ptr;"
+        },
+        {
+          "line": 587,
+          "text": "  bool valid;"
+        },
+        {
+          "line": 588,
+          "text": "} DevicePtrInfo;"
+        },
+        {
+          "line": 589,
+          "text": ""
+        },
+        {
+          "line": 590,
+          "text": "static inline DevicePtrInfo getPointer(PyObject* obj, int idx) {"
+        },
+        {
+          "line": 591,
+          "text": "  DevicePtrInfo ptr_info;"
+        },
+        {
+          "line": 592,
+          "text": "  ptr_info.dev_ptr = nullptr;"
+        },
+        {
+          "line": 593,
+          "text": "  ptr_info.valid = true;"
+        },
+        {
+          "line": 594,
+          "text": "  if (PyLong_Check(obj)) {"
+        },
+        {
+          "line": 595,
+          "text": "    ptr_info.dev_ptr = reinterpret_cast<void*>(PyLong_AsUnsignedLongLong(obj));"
+        },
+        {
+          "line": 596,
+          "text": "    return ptr_info;"
+        },
+        {
+          "line": 597,
+          "text": "  }"
+        },
+        {
+          "line": 598,
+          "text": "  if (obj == Py_None) {"
+        }
+      ]
+    },
+    {
+      "line": 592,
+      "lines": [
+        {
+          "line": 588,
+          "text": "} DevicePtrInfo;"
+        },
+        {
+          "line": 589,
+          "text": ""
+        },
+        {
+          "line": 590,
+          "text": "static inline DevicePtrInfo getPointer(PyObject* obj, int idx) {"
+        },
+        {
+          "line": 591,
+          "text": "  DevicePtrInfo ptr_info;"
+        },
+        {
+          "line": 592,
+          "text": "  ptr_info.dev_ptr = nullptr;"
+        },
+        {
+          "line": 593,
+          "text": "  ptr_info.valid = true;"
+        },
+        {
+          "line": 594,
+          "text": "  if (PyLong_Check(obj)) {"
+        },
+        {
+          "line": 595,
+          "text": "    ptr_info.dev_ptr = reinterpret_cast<void*>(PyLong_AsUnsignedLongLong(obj));"
+        },
+        {
+          "line": 596,
+          "text": "    return ptr_info;"
+        },
+        {
+          "line": 597,
+          "text": "  }"
+        },
+        {
+          "line": 598,
+          "text": "  if (obj == Py_None) {"
+        },
+        {
+          "line": 599,
+          "text": "    return ptr_info;"
+        },
+        {
+          "line": 600,
+          "text": "  }"
+        }
+      ]
+    },
+    {
+      "line": 595,
+      "lines": [
+        {
+          "line": 591,
+          "text": "  DevicePtrInfo ptr_info;"
+        },
+        {
+          "line": 592,
+          "text": "  ptr_info.dev_ptr = nullptr;"
+        },
+        {
+          "line": 593,
+          "text": "  ptr_info.valid = true;"
+        },
+        {
+          "line": 594,
+          "text": "  if (PyLong_Check(obj)) {"
+        },
+        {
+          "line": 595,
+          "text": "    ptr_info.dev_ptr = reinterpret_cast<void*>(PyLong_AsUnsignedLongLong(obj));"
+        },
+        {
+          "line": 596,
+          "text": "    return ptr_info;"
+        },
+        {
+          "line": 597,
+          "text": "  }"
+        },
+        {
+          "line": 598,
+          "text": "  if (obj == Py_None) {"
+        },
+        {
+          "line": 599,
+          "text": "    return ptr_info;"
+        },
+        {
+          "line": 600,
+          "text": "  }"
+        },
+        {
+          "line": 601,
+          "text": "  // Cache the interned \"data_ptr\" key once instead of rebuilding a temporary"
+        },
+        {
+          "line": 602,
+          "text": "  // PyUnicode on every call. Function-local static init is thread-safe in C++11"
+        },
+        {
+          "line": 603,
+          "text": "  // and the GIL is held here, so the one-time init is safe."
+        }
+      ]
+    },
+    {
+      "line": 615,
+      "lines": [
+        {
+          "line": 611,
+          "text": "      ptr_info.valid = false;"
+        },
+        {
+          "line": 612,
+          "text": "      Py_DECREF(ret);"
+        },
+        {
+          "line": 613,
+          "text": "      return ptr_info;"
+        },
+        {
+          "line": 614,
+          "text": "    }"
+        },
+        {
+          "line": 615,
+          "text": "    ptr_info.dev_ptr = reinterpret_cast<void*>(PyLong_AsUnsignedLongLong(ret));"
+        },
+        {
+          "line": 616,
+          "text": "    Py_DECREF(ret);"
+        },
+        {
+          "line": 617,
+          "text": "    if (!ptr_info.dev_ptr) {"
+        },
+        {
+          "line": 618,
+          "text": "      return ptr_info;"
+        },
+        {
+          "line": 619,
+          "text": "    }"
+        },
+        {
+          "line": 620,
+          "text": "    return ptr_info;"
+        },
+        {
+          "line": 621,
+          "text": "  }"
+        },
+        {
+          "line": 622,
+          "text": "  PyErr_SetString(PyExc_TypeError, \"Pointer argument must be either uint64 or have data_ptr method\");"
+        },
+        {
+          "line": 623,
+          "text": "  ptr_info.valid = false;"
+        }
+      ]
+    },
+    {
+      "line": 956,
+      "lines": [
+        {
+          "line": 952,
+          "text": ""
+        },
+        {
+          "line": 953,
+          "text": "    # generate glue code"
+        },
+        {
+          "line": 954,
+          "text": "    newline = '\\n  '"
+        },
+        {
+          "line": 955,
+          "text": "    ptr_decls = ["
+        },
+        {
+          "line": 956,
+          "text": "        f\"DevicePtrInfo ptr_info{i} = getPointer(_arg{i}, {i}); if (!ptr_info{i}.valid) return nullptr;\""
+        },
+        {
+          "line": 957,
+          "text": "        for i, ty in signature.items()"
+        },
+        {
+          "line": 958,
+          "text": "        if ty[0] == \"*\""
+        },
+        {
+          "line": 959,
+          "text": "    ]"
+        },
+        {
+          "line": 960,
+          "text": "    grid_info = {'X': 'i32', 'Y': 'i32', 'Z': 'i32'}"
+        },
+        {
+          "line": 961,
+          "text": "    # TODO: automatically check if gather load ops are used."
+        },
+        {
+          "line": 962,
+          "text": ""
+        },
+        {
+          "line": 963,
+          "text": "    arch = metadata.target.arch"
+        },
+        {
+          "line": 964,
+          "text": "    target_support_ffts = is_ffts_supported(arch) and (not force_disable_ffts(arch))"
+        }
+      ]
+    }
+  ]
+}

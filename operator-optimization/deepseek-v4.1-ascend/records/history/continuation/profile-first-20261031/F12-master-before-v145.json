@@ -1,0 +1,284 @@
+{
+  "id": "F12_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "qli": "qli",
+    "fixup": "fixup",
+    "indices_store": "indices_store"
+  },
+  "nodes": [
+    {
+      "id": "qli",
+      "kind": "INDEX_SCORE_TOPK_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "fixup",
+      "kind": "INDEX_FIXUP",
+      "resource": "NPU"
+    },
+    {
+      "id": "indices_store",
+      "kind": "PERSISTENT_INDEX_PUBLICATION",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "qli",
+      "consumer": "fixup",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "fixup",
+      "consumer": "indices_store",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "iq_quant",
+      "consumer": "qli",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "iw_scale",
+      "consumer": "qli",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ik_store",
+      "consumer": "qli",
+      "value": "key cache",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "scale_store",
+      "consumer": "qli",
+      "value": "key scales",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "indices_store",
+      "consumer": "attention",
+      "value": "selected indices",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v43": {
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Role/candidate/length/publication branches and local query-row readers bound. Existing postprocess already accepts direct output bank; ordinary same-width INT32 bank formatting need not execute padding/cast kernels."
+  },
+  "review_v60": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-profile-and-edges-v60.json",
+    "models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-work-traffic-models-v60.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-native-numerical-contract-v60.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-fusion-reorganization-variants-v60.json",
+    "semantic_inventory": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M09-M10-operator-branch-inventory-v60.json",
+    "relation": "51regimes/6863nativeexecutions reconciled. SMLAalreadyfusedwithGMscore/exp/PVqueues;QLImode2fullQKthenVectorpenalty. 13conditional/rejectiondecisions includebitmap544Bvs8192Blist,prefilterwithfillers,preparedindexepilogue,source-resolvedselfcopy,quant/cache/weight/SMLAepilogueandcrosscard/iterationlimits.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v64": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-regime-models-v64.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-native-chains-v64.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-operator-contract-v64.json",
+    "work_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-fusion-costs-v64.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-fusion-variants-v64.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v64.json",
+    "candidate_specific_scope": "24nativefreshcandidateoutputcopiesmode1→bank;newoutABI/capture/readerconditions,existingprepareindicesaliasnotanewcopyclaim.",
+    "relation": "242regimes15976nativeexecutions:237previouspending/15712plus5M18geometry/264nowwithownconsumercontracts. 26operatorchoicesandtypedtraffic/compute/padding/precisionconditions;noimplementation/nativebenchmark.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-28"
+    ],
+    "peers": [
+      "F31"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v83": {
+    "new_clause_ids": [
+      "REL83-04",
+      "REL83-05",
+      "REL83-06",
+      "REL83-08",
+      "REL83-09",
+      "REL83-20"
+    ],
+    "footprints": "candidate-operator-footprints-v83.json",
+    "joint_costs": "attention-joint-interface-models-v83.json",
+    "joint_capacity_proof": "joint-operator-resource-cut-proof-v83.json",
+    "relations": "candidate-relation-clauses-v83.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v100": {
+    "evidence": [
+      "attention-projected-state-inputs-v100.json",
+      "attention-projected-state-source-contract-v100.json",
+      "attention-output-owner-frontiers-v100.json",
+      "attention-headwise-merge-and-linear-state-v100.json",
+      "attention-projection-rounding-and-position-v100.json",
+      "attention-preprojected-value-work-and-storage-v100.json",
+      "attention-projected-state-variants-v100.json",
+      "attention-projected-state-composition-clauses-v100.json"
+    ],
+    "frontiers": 3200,
+    "reused_native_TASKs": 23680,
+    "selection_frontiers": 640,
+    "headwise_state_and_precision_counterexamples": true,
+    "actual_checkpoint_rank_or_state_reachability_known": false,
+    "preprojected_value_work_models": 105,
+    "preprojected_value_storage_models": 24,
+    "new_relation_ids": [
+      "REL100-02"
+    ],
+    "extended_group": "HG83-ATTENTION-OUTPUT",
+    "implementation": false,
+    "native_test": false,
+    "native_gain_proved": false
+  },
+  "review_v103": {
+    "evidence": [
+      "selection-attention-inputs-v103.json",
+      "selection-attention-source-contract-v103.json",
+      "selection-attention-native-frontiers-v103.json",
+      "selection-winner-readiness-and-cover-v103.json",
+      "selection-attention-retraction-and-rounding-v103.json",
+      "selection-attention-speculation-cost-models-v103.json",
+      "selection-attention-variants-v103.json"
+    ],
+    "reused_frontiers": 640,
+    "reused_TASKs": 1920,
+    "partition_cases": 15088,
+    "reference_tie_cases": 1215,
+    "real_retraction_cases": 2187,
+    "work_storage_models": 36,
+    "rounded_summary_and_BF16_rebase_reference_counterexamples": true,
+    "new_relation_ids": [],
+    "refined_relation": "REL83-08",
+    "implementation": false,
+    "native_test": false,
+    "new_runtime_executions": 0
+  },
+  "review_v124": {
+    "evidence": [
+      "sparse-index-inputs-v124.json",
+      "sparse-index-source-contract-v124.json",
+      "sparse-index-multiset-and-rounding-v124.json",
+      "sparse-index-request-reuse-and-cost-v124.json",
+      "sparse-index-profile-scope-v124.json",
+      "operator-graph-G9-v124.json",
+      "operator-graph-node-coverage-v124.json",
+      "operator-graph-edge-coverage-v124.json",
+      "operator-graph-candidate-bindings-v124.json",
+      "operator-graph-coverage-audit-v124.json"
+    ],
+    "reused_profile_frontiers": 640,
+    "reused_unique_TASKs": 1920,
+    "profile_root_bound_frontiers": 512,
+    "profile_phase_unbound_frontiers": 128,
+    "multiset_reference_cases": 7500,
+    "request_interval_reference_cases": 1680,
+    "metadata_layout_models": 9,
+    "new_source_graph_nodes": 41,
+    "new_source_graph_edges": 49,
+    "partial_graph_node_rows": 854,
+    "partial_graph_edge_rows": 1346,
+    "structural_pair_hints": 48,
+    "new_semantic_rows": 2,
+    "no_actual_duplicate_rate_or_new_native_traffic": true,
+    "new_pairs": 0,
+    "new_groups": 0,
+    "new_native_promotions": 0,
+    "new_device_work": false,
+    "whole_requirement_closed": false
+  },
+  "review_v138": {
+    "evidence": [
+      "hc-sparse-inputs-v138.json",
+      "hc-sparse-eager-native-frontiers-v138.json",
+      "hc-sparse-shared-topk-views-v138.json",
+      "hc-sparse-source-and-join-contract-v138.json",
+      "hc-sparse-fork-and-join-DAG-models-v138.json",
+      "hc-sparse-partial-state-information-witnesses-v138.json",
+      "hc-sparse-publication-and-work-cuts-v138.json",
+      "hc-sparse-composition-clauses-v138.json"
+    ],
+    "pairs": [
+      [
+        "F01",
+        "F12"
+      ],
+      [
+        "F01",
+        "F13"
+      ]
+    ],
+    "source_bound_TASKs": 3480,
+    "source_positive_shared_TopK_views": 720,
+    "scoped_conclusion_changing_gap": "NeedactualselectedIDmultiset/physicalemittedorder/queryrow/candidateTopKbankepoch/pointers/currentmetadataandalllaterreaders,source20logicalmembershipfiniteness/visibility/offset/filler/tiecontracts. NewpartialSMLAneedscompatiblehead-resolvednormalizers/numerators/sinkonce/emptysemantics/nativeBF16exp/PV/onlinetile/reduction/output/rotary/Oprojectionandallalias/capturecontracts;ordinarymixedprojectionisnotalosslessjoin. NeedactualCube/Vector/SFU/GM/linkresourcecapacity,partialhandoffworkspace/lifetimes/transportandfiniteprogress,HCcoeff/Y/newpre4/Postdeadlines/currentrawXretirement. No transformednativeprecision/actualoverlap/physicalMFU/lowest/speedup/allvariants/wholeclosure. Existing9/1352native/849PMU/16phase/3136ambiguityandbroadercandidategapsremain.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "one_HC_sparse_baseline": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  },
+  "review_v139": {
+    "evidence": [
+      "hc-index-inputs-v139.json",
+      "hc-index-query-weight-native-producers-v139.json",
+      "hc-index-typed-input-and-round-contract-v139.json",
+      "hc-index-profile-coverage-and-streams-v139.json",
+      "hc-index-aux-stream-and-coeff-DAGs-v139.json",
+      "hc-index-scalar-round-and-cycle-witnesses-v139.json",
+      "hc-index-product-delivery-and-work-v139.json",
+      "hc-index-composition-clauses-v139.json"
+    ],
+    "pairs": [
+      [
+        "F01",
+        "F09"
+      ],
+      [
+        "F01",
+        "F10"
+      ]
+    ],
+    "new_source_bound_producer_TASKs": 1728,
+    "combined_known_frontiers": 832,
+    "scoped_conclusion_changing_gap": "NeedactualnormalizedY/QRgenerationandQ_B-vs-IndexQquantizeridentity,loadedparams/gamma/beta/newM/nativeFP16FTZ/nonfinite/amax-RoPE-roundcontract,row/head/tileownership/16headscalealignmentandallscalar/INT8/QR/bankreaders. QAWeightpanelneedscontiguity/rounding/newoutputABI;IndexQandWeightaredistinctinputs. PreserveWeightBF16→F32/64→F16beforeproductandbreakchangedfirst-readercast/quantcycle. Compactalpha-onlynewABIvsalpha+unit-scaleexistingQLIneedseparatecontent/constantbank/epoch/nativeproductidentity/other-usegates;originalM16broadcastworkspaceworknotautomaticallyremoved. NeedactualsharedCube/Vector/linkcapacityandHCcoeff/Post/pre4/rawX/queue/retirementdeadlines;TASKoverlapnotcounterfactualspeedup. No transformednativeparity/physicalMFU/lowest/actualgain/wholepair/allbranchesclosure;9/1352native/849PMU/16phase/3136ambiguityandbroadercandidategapsremain.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "one_HC_index_baseline": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  }
+}

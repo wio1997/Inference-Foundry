@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_20ded980-d7c3-45c8-b98f-8fbc20bc3eca",
+  "traceId": "7df6b798-877f-418f-a2da-393fb3c6dbf6",
+  "turnId": "turn_a8f5ee43-9ca5-484b-8298-61e32d39ceda",
+  "response": "轮询已按指定命令执行一次并成功返回（rc=0，receipt 无 stderr）。结论：controller 确认存活且未终止，当前处于 `EXPORT_WAIT`（等待导出）阶段；诊断容器 running，原容器已 exited(0)。这只是进行中的快照，不代表完成，也不存在超时。\n\n**存活与 controller 状态（已由 PID+starttime 核实）**\n- run_id: `hostprof-20261030T212812Z-360e0c72`；controller PID **1351606**，`/proc` 中 starttime_ticks **862458845** 与 launch 记录一致，进程 state=`S`（非 zombie），`controller_live_verified_by_pid_start: true`。\n- `controller-state.json`: `state=EXPORT_WAIT`，时间 2026-10-30T21:37:20Z，`process_pid=1351606`，run_id 匹配。\n- 轮询序列显示状态在推进：`DIAGNOSTIC_LOADING`（21:30:58Z）→ `PROFILER_OFF_BASELINE_RUNNING`（21:36:33Z）→ `EXPORT_WAIT`（21:37:20Z），不是停滞。\n- 尚无 `controller-finished.json`、`controller-error.json`、`top-level-error.json`、`restore-result.json`、`trace-inventory.json`、`capture-index.json`；launch 记录中 `overall_goal_complete=false`。因此既未完成，也未被观测到终止。\n\n**容器状态**\n| 容器 | 状态 | exit code |\n|---|---|---|\n| `wio-vllm-v41-hostprof-20261030T212812Z-360e0c72`（诊断） | running | 0 |\n| `wio-vllm-v41-repro166-20261030`（原容器） | exited | 0 |\n\n诊断启动前的 baseline_prestate 记录原容器为 running，本次快照中已正常退出（0），controller 未见异常。\n\n**工作负载与 profile 元数据**\n- 三个阶段 `warmup` / `baseline` / `profile` 均 `valid=true`，计数器一致（prompt 262144、generation 8192、prefix queries 262144/hits 235904、success 8、preemptions 0）。\n- profile 阶段记录了两个窗口：`initial` 约 5.49 s，`later_decode_candidate` 约 2.57 s。\n- metadata 事件：`installed=16`、`profiler_created=16`（dp0/dp1 × tp0–tp7 共 16 个 rank）、`execute_enter/exit` 各 3712；16 条 `profiler_created` 均为 `with_stack=true`、`record_shapes=true`、`max_iterations=3`，source sha256 一致；metadata 共 4,217,731 字节，逐文件 ≤64 MiB 断言通过。\n\n**错误面**\n- controller stderr 为空，无 controller/top-level error 文件。\n- service.log 末尾有一次 profiler 停止（21:37:04Z，`POST /stop_profile` 返回 200，`Profiler stopped.`），随后 `GET /health` 200，running 请求在 21:37:27Z 降到 0，KV cache 0.0%。\n- 唯一 ERROR 行来自 Worker_DP0_TP7_EP7：torch_npu 提示 profiling 数据在 daemon 进程内无法解析、需用离线接口解析。这是该 profiler 停止时的固定提示，本身不是崩溃或采集失败的直接证据；当前控制器仍在 EXPORT_WAIT，采集导出尚未走完。\n\n**边界说明**\n本次仅执行了这一条只读轮询命令；未重启、未重复 launch、未 kill、未改任何内容。轮询本身未超时；即便观察超时，也不构成诊断终止的证据。另注意远端时钟比本地 receipt 的 `observed_utc` 快约 1 分钟，跨端比较时间应使用 state 文件内的远端 UTC 时间序列。\n\nReceipt: `/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-poll166-v12-04.json`",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 68468,
+    "outputTokens": 8012,
+    "totalTokens": 76480,
+    "cacheReadTokens": 50304,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 7284,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 76480,
+    "contextUsed": 25898,
+    "contextWindow": 200000
+  }
+}

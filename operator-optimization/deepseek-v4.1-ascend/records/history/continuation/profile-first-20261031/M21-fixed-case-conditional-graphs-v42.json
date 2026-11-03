@@ -1,0 +1,124 @@
+{
+  "generated_utc": "2026-10-31T12:14:19.813262+00:00",
+  "graphs": {
+    "conditional_projection": {
+      "nodes": [
+        {
+          "id": "rank_local_padded_hidden"
+        },
+        {
+          "id": "all_required_local_projections"
+        },
+        {
+          "id": "gather_projected_planes"
+        },
+        {
+          "id": "restore_global_rows"
+        },
+        {
+          "id": "SWA_and_compressed_consumers"
+        },
+        {
+          "id": "C2_pool_history_ring"
+        }
+      ],
+      "edges": [
+        {
+          "a": "rank_local_padded_hidden",
+          "b": "all_required_local_projections",
+          "kind": "SAME_ROW_FUNCTION_AND_WEIGHT_OWNERS"
+        },
+        {
+          "a": "all_required_local_projections",
+          "b": "gather_projected_planes",
+          "kind": "ALL_RANKS_PARTICIPATE"
+        },
+        {
+          "a": "gather_projected_planes",
+          "b": "restore_global_rows",
+          "kind": "EXACT_RESTORE_INDICES"
+        },
+        {
+          "a": "restore_global_rows",
+          "b": "SWA_and_compressed_consumers",
+          "kind": "NO_DROPPED_GLOBAL_HIDDEN_CONSUMER"
+        },
+        {
+          "a": "SWA_and_compressed_consumers",
+          "b": "C2_pool_history_ring",
+          "kind": "KEEP_REQUEST_ORDER_AND_STATE_OWNER"
+        }
+      ]
+    },
+    "conditional_no_query": {
+      "nodes": [
+        {
+          "id": "input_ready_and_prior_reader_fence"
+        },
+        {
+          "id": "empty_callback_keep_frontier"
+        },
+        {
+          "id": "eager_forward_no_query_guard"
+        },
+        {
+          "id": "global_cache_and_output_collectives"
+        },
+        {
+          "id": "all_last_readers"
+        },
+        {
+          "id": "reuse_fence"
+        },
+        {
+          "id": "next_positive_full_overwrite"
+        },
+        {
+          "id": "next_plan_reader"
+        }
+      ],
+      "edges": [
+        {
+          "a": "input_ready_and_prior_reader_fence",
+          "b": "empty_callback_keep_frontier",
+          "kind": "TASK_EXISTS_NO_VALUE_WRITE"
+        },
+        {
+          "a": "empty_callback_keep_frontier",
+          "b": "eager_forward_no_query_guard",
+          "kind": "EVENT_PROTOCOL_RETAINED"
+        },
+        {
+          "a": "eager_forward_no_query_guard",
+          "b": "global_cache_and_output_collectives",
+          "kind": "QUERY_PLAN_NOT_READ"
+        },
+        {
+          "a": "global_cache_and_output_collectives",
+          "b": "all_last_readers",
+          "kind": "PRESERVE_CACHE_OUTPUT_WORK"
+        },
+        {
+          "a": "all_last_readers",
+          "b": "reuse_fence",
+          "kind": "NO_OVERWRITE_BEFORE_LAST_READER"
+        },
+        {
+          "a": "reuse_fence",
+          "b": "next_positive_full_overwrite",
+          "kind": "NEXT_GENERATION"
+        },
+        {
+          "a": "next_positive_full_overwrite",
+          "b": "next_plan_reader",
+          "kind": "FULL_BANK_VALUE_READY"
+        }
+      ]
+    }
+  },
+  "graphs_acyclic": true,
+  "scope": "Conditional data/protocol graphs, not measured timing graphs or proven live alias/readiness graphs.",
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

@@ -1,0 +1,134 @@
+{
+  "id": "F21_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MC2_INTERNAL_KNOWN_STAGES",
+  "original_node_mapping": {
+    "dispatch": "dispatch",
+    "gmm1": "gmm1",
+    "swiglu": "swiglu",
+    "gmm2": "gmm2",
+    "combine": "combine"
+  },
+  "nodes": [
+    {
+      "id": "dispatch",
+      "kind": "REMOTE_DATA_COPY",
+      "resource": "COMM",
+      "already_one_kernel": true
+    },
+    {
+      "id": "gmm1",
+      "kind": "INT8_GROUPED_LINEAR",
+      "resource": "NPU",
+      "already_one_kernel": true
+    },
+    {
+      "id": "swiglu",
+      "kind": "SWIGLU_CLAMP_QUANT_COMPOSITE",
+      "resource": "NPU",
+      "already_one_kernel": true
+    },
+    {
+      "id": "gmm2",
+      "kind": "INT8_GROUPED_LINEAR",
+      "resource": "NPU",
+      "already_one_kernel": true
+    },
+    {
+      "id": "combine",
+      "kind": "REMOTE_DATA_COPY_REDUCE",
+      "resource": "COMM",
+      "already_one_kernel": true
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "dispatch",
+      "consumer": "gmm1",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "gmm1",
+      "consumer": "swiglu",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "swiglu",
+      "consumer": "gmm2",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "gmm2",
+      "consumer": "combine",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "counts",
+      "consumer": "dispatch",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v50": {
+    "loading": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-dynamic-loading-contract-v50.json",
+    "publication": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-multiplane-buffers-and-publication-contract-v50.json",
+    "frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-unrolled-dynamic-publication-frontier-v50.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-placement-publication-variants-v50.json",
+    "frozen_inputs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-source-snapshot-index-v50.json",
+    "source_provenance": "Threehistorical166matchedfiles(runner,routedexperts,W8A8producer);threeadaptor/updator/D2Ddependencieslocalreferenceonly.",
+    "relation": "Staticfilealone doesnotselectrunnerdynamicadaptorwarmup. load_model disablesDefaultModelLoaderEPfilter,not a positiveslot-reconciliationproof. ReferenceW8A8MC2registryhas6namedplanes andper-keysharedbufferbanks. Referencewait→CPUmap→log2phy→plane-copy calls are not proven crossstream/native/allrankpublication.",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v51": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-checkpoint-map-commutation-contract-v51.json",
+    "identity_condition": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-load-identity-witness-v51.json",
+    "source_flow": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-loading-source-flow-v51.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-loader-conditions-v51.json",
+    "frozen_source_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-checkpoint-source-index-v51.json",
+    "relation": "TargetquerymethodpassesR0,butactualprivateloadersuppliesselfR. QualifiedreferencecoremappinguseslogicalcheckpointnameP0[p]andphysicalcallbackIDp;ordinarybasecallbackusescanonicalmanagerPhi. Fullcompositeexecutionrouteandloadedpayloadmustcommute. Filefilter-noop/queryR0/generic3Dentrycannotstandinforactualstaticpairing.",
+    "source_scope": "3historical166matchedsourceinputs;2frozenreferencebridgeinputs. P0body/actualcallback/actualmapsandweightsnotrecovered.",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v52": {
+    "callback_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-quant-callback-forwarding-contract-v52.json",
+    "initial_runtime_planes": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-initial-parameters-to-runtime-planes-v52.json",
+    "lifecycle_flow": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-callback-and-plane-lifecycle-flow-v52.json",
+    "refined_conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-loader-registration-refinements-v52.json",
+    "frozen_inputs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-callback-source-index-v52.json",
+    "relation": "QualifiedModelSlimfactorywrapsinstanceweight_loaderbeforecorecaptureskwargs;classinheritancealoneisnotactualcallbackproof. Wrapperonlyaliasesw13/w2scale_biasleafnamesandforwardsphysicalexpert_idunchanged. InitialsixW8A8parametersarenotone-to-onesixruntimeEPLBplanes. Knownwrapperisnotstaticplacementreconciliation.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v53": {
+    "source": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/restored-source-point-contracts-v53.json",
+    "initial_map_helper": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-initial-map-and-attribute-helper-contract-v53.json",
+    "source_cache": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/original-source-cache-index-v53.json",
+    "relation": "Original166stage files now match the previously reference-only ModelSlim andEPLB dependencies. P0 is identity then round-robin redundant copies;set_weight_attrs asserts absence,may sync-wrap weight_loader,then captures callable. Inspected adapter postload delegates. Actual deployed objects/placement/payload pairing remains conditional.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v56": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-operator-profile-v56.json",
+    "kernel": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-kernel-boundary-and-tiling-contract-v56.json",
+    "receiver_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-receiver-work-and-communication-model-v56.json",
+    "relation": "MC2alreadyfusesrouteddispatch/GMM1/SwiGLUquant/GMM2/combine;sharedactivation isseparate. InternalFP16/INT8/FP32barriers andGMaliasedbuffers bound. Work usesreceiverassignments/activeexperts;5conditionalvariants refineexistingcandidates. Sharedoverlaporacle excludesdependentfinaladd.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

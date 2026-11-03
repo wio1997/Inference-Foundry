@@ -1,0 +1,17 @@
+本轮补齐F34的缓存对象与V4.1专用分配证据，并在明确合同下关闭“ring单独减半能否减少pool分配”的局部问题：若tuple内不变的SWA页仍不小于原ring页，单独把ring改为16槽不会缩小该tuple backing。状态写入裁剪与容量收益分开判断。整体仍未完成，没有实现优化或运行NPU。
+
+沿profile已定位的对象定点读取后，确认CircularBufferSpec只保留每请求一个block，不参与前缀缓存，也不使用普通slot mapping。DeepseekV41CacheLayer只注册/绑定cache视图并提供spec/backend；在本次限定model/DSA标识范围中，pool_projected是ring的显式取值入口。这不等于完整raw backing没有其他读者：对象会进入static_forward_context和worker的缓存列表。
+
+关键分配路径是V4.1专用逻辑。hook的V41分支选择group_cache_specs、get_deepseek_v41_kv_cache_config及专用pool-byte divisor，三个module-level安装赋值也已取证。每个tuple有独立backing，tuple内部的long-KV/index/可选folded及ring/SWA别名复用该backing。worker在早期V41分支按descriptor分别分配并以block_stride构造视图。通用upstream按最大group计算的规则不能直接替代这个V41按tuple容量之和定预算的合同；KVPP等优先分支另列条件，没有从源码冒充历史Python对象snapshot。
+
+tuple容量为max(long/index/folded总payload,各alias的未填充页大小)。令不变SWA页S>=原ring页R>=新ring页R'，则对任何其他payloadL都有max(L,S,R)=max(L,S,R')。profile相容的页几何中，128×512 BF16 SWA页与32×1024 FP32 ring页同为131,072字节；16槽ring为65,536字节，但SWA下限仍在。因此在不改变tuple成员、其他页、预算及override的域内，容量之和、num_blocks和descriptor allocation均不变。原先2.268GB→1.134GB只是ring逻辑视图模型，不能当作额外独立分配或可释放显存。若改变SWA表示或tuple/pool策略，属于更大的整缓存重组，需另审所有消费者和生命周期。
+
+F34-A的奇数位置维护裁剪仍保留条件：必须维护所有偶数FP32值、写顺序及旧读→新写WAR。状态命名空间应包括descriptor/tuple、global block ID、slot与generation。不同Tensor视图可能覆盖同一backing，安全依据是有效block所有权与回收/重新初始化合同，不能只说“ring对象私有”。完整byte ABI、transfer/checkpoint等外部观察者仍未全部闭合，prefix_cacheable=False不自动排除它们。F34单独变体保留原update→norm及index publish→long publish顺序，F18/F19重排仍是独立条件组合。
+
+进一步复用本次采集controller指定的service.log，确认10月30日21:35初始化采用LBNHC、可用KV预算日志为8.72GiB，启动参数每个engine max_num_seqs=4。日志另报353,802 tokens与34,816-token请求的10.16并发估计；这些是配置和sizing估计，不是新健康/空闲观测、吞吐测试或硬件上界。先前runtime/home中选到的10月27日历史日志没有用来替代这些当前采集证据。
+
+还取回保存runtime中的73个编译metadata条目，其中C2 pool/update各14个，分别有14个不同binary/TTIR hash。.source后缀文件实际是IR，并非原始Python文件；存在缓存也不证明某个实例被执行，ComputeInfo的_pool_kernel名称不足以从14个候选中选择一个。未按名字、mtime或最近时间配binary，也没有把这些编译选项当成实际已加载内核的精度证明。
+
+F34候选图原先有2个未声明的简写端点，本轮已改成10个明确节点、13条定义完整的边，并保留原顺序约束。结构DAG校验不能替代native语义验证。一项本地摘录因upstream文件未在本地快照中保存而停止，错误保留；修正版只使用两个已与服务器SHA核对的必要快照完成72组容量算术检查，没有实现优化。
+
+主台账保持34项模型候选、7项框架候选。新增15项缓存对象/分配/alias/编译证据条件，并将F34-B的独立容量收益在当前SWA-anchor域内标为排除，避免重复追查这个已回答问题。全模块、其他消费者、当前EngineCore成本、MC2内部原因与同域理论比较仍有缺口，26整模块未标闭合，Goal继续active。最后健康观测仍是旧v12post。

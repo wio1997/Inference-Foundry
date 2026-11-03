@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_489c746b-5fe1-4fdf-9c5a-149a89cc8a60",
+  "traceId": "5ff569d5-a085-411c-a44b-629c05b2290e",
+  "turnId": "turn_375a3c7f-3db0-4a1a-91a6-88a9c1622eec",
+  "response": "查询已按要求执行且仅执行一次，实际结果：**失败**。receipt 记录的 `returncode` 为 **1**，stdout 为空，没有产生 summary 或结果 SHA。\n\n原始错误（stderr 原文）：\n\n```\nTraceback (most recent call last):\n  File \"<string>\", line 18, in <module>\nsqlite3.OperationalError: interrupted\n```\n\n以下为可核实的事实，未做任何推断：\n\n- 本地 receipt 文件 `native-fullchains166-v14.json`（349 字节，2026-10-31 07:25）内容与命令返回一致：`\"returncode\": 1`、`\"stdout\": \"\"`，stderr 即上面的 traceback。\n- 失败点在脚本第 18 行，即对 `PYTORCH_CALLCHAINS` 与 `STRING_IDS` 的批量 JOIN 查询。该脚本第 14 行安装了 `db.set_progress_handler(lambda: elapsed > 145 秒, 100000)`，因此错误里的 `interrupted` 是脚本自身的 145 秒墙钟保护触发、中止了该 SQL 查询，而非宿主或数据库崩溃。\n- 结果文件 `native-compute-fullchains-v14.json` 只在脚本第 28 行写盘，位于所有数据库循环之后；本次在第 18 行即中止，所以远端没有写出该结果文件，也就没有 `summary` 和 `result_sha256` 可供报告。\n- 按指令未修改脚本、未扩展、未重试，也未进行任何模型/设备工作；未对 MFU 或提速做任何推断。\n\n该失败已记录到项目记忆（`native-fullchains-v14-timeout-failure`），并注明：同一脚本原样重跑会在同一个 DB 上再次触发该超时。若要取得结果，需要事先准备好修正版脚本（例如放宽时限或缩小单次查询范围）并由你确认后再执行。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 70470,
+    "outputTokens": 3481,
+    "totalTokens": 73951,
+    "cacheReadTokens": 60032,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2101,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 73951,
+    "contextUsed": 13234,
+    "contextWindow": 200000
+  }
+}

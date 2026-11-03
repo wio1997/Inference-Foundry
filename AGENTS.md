@@ -3,6 +3,7 @@
 先按任务目标选择作用域，避免加载其他模型的规则和历史：
 
 - GLM任务：读[glm5-3/AGENTS.md](glm5-3/AGENTS.md)和[局部HANDOFF](glm5-3/HANDOFF.md)。本仓库中为GLM修改共享代码时也采用该任务规则；局部规则覆盖旧DeepSeek身份、模型分工和kernel许可。
+- **DeepSeek V4.1 算子优化检查/分析复用（W8A8/A3/C8/DSpark5）**：先读[operator-optimization/deepseek-v4.1-ascend/HANDOFF.md](operator-optimization/deepseek-v4.1-ascend/HANDOFF.md)及[复用规则](operator-optimization/deepseek-v4.1-ascend/REUSE_AND_DEDUP.md)，查knowledge事实/问题再取证。此案例独立于DeepSeek Extreme P0；历史next_action/授权/PID不自动执行。
 - DeepSeek任务：读[原AGENTS全文](docs/deepseek/AGENTS.md)，再恢复根目录HANDOFF/当前Task。原规则原样保留，其中原根目录相对引用仍按仓库根解析。
 - 跨模型方法：按问题查FOUNDRY_METHOD、performance_knowledge及相关证据，不默认通读。
 

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_6245e205-4341-47ee-94a6-1848e418f7ab",
+  "traceId": "818564db-0b9b-4680-b8de-19609d12eba5",
+  "turnId": "turn_20740e54-a05d-4cea-989c-9413c8cbce1d",
+  "response": "The final section's counterexample is arithmetically correct. It's at `agents/fusion/F22-SHARED-EXPERT-REVIEW.md:165`.\n\n**Setup.** With `silu(x) = x / (1 + exp(-x))` and inputs from the flat vector `[1,2,3,4]`, the half split (positions 1,2 vs 3,4) gives gate `[1,2]`, up `[3,4]`; the even-odd split gives gate `[1,3]`, up `[2,4]`. With `limit=10` all inputs lie in `[-10,10]`, so the wrapper's gate upper clamp and up two-sided clamp (stage229, `activation.py:41–48`) are inactive; `alpha=1`, `bias=0` make those factors identity. So both outputs are plain elementwise `silu(gate)·up`.\n\n**Vectors.**\n\n- Half split: `[silu(1)·3, silu(2)·4]` = `[2.193175735890015, 7.046376623823059]`\n- Even-odd split: `[silu(1)·2, silu(3)·4]` = `[1.4621171572600098, 11.430889521869199]`\n\n**First component.** Yes, it differs. The half-split value is `3·silu(1) = 2.193175735890015`; the even-odd value is `2·silu(1) = 1.4621171572600098`. Since `silu(1) = 0.7310585786300049`, the gap is exactly `silu(1) ≈ 0.73106`, not a rounding artifact — it holds in exact real arithmetic, so no clamp or scale choice inside the stated parameters can restore equivalence. As the file notes, the second component also moves (`silu(2)·4 ≈ 7.046` vs `silu(3)·4 ≈ 11.431`), which the file doesn't need but confirms the pairing changes the whole result.\n\nThe reason is structural: `silu` is nonlinear, so permuting which values are gate versus up changes both the activation input and the multiplier simultaneously; the map from flat input to paired output is not permutation-invariant. That is exactly what supports the file's conclusion that mode-1 even/odd pairing cannot be assumed equivalent to the wrapper's consecutive-halves pairing under the same layout, which is why any F22 reorder candidate must re-check permutation, weight/activation scale alignment, clamp and quantization boundaries, intermediate rounding, groupIndex, and other consumers before blocking.\n\nScope caveats, consistent with the file: this is an ideal-real, pre-quantization arrangement counterexample. It shows the two layouts disagree numerically under the stated inputs; it does not establish that any device kernel is wrong, that deployment output is erroneous, or anything about quantization error magnitude, and the file explicitly leaves open that projections and scales could be rearranged together under a full contract. No files were modified, no device code or network was used.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 84840,
+    "outputTokens": 5034,
+    "totalTokens": 89874,
+    "cacheReadTokens": 72320,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4197,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 89874,
+    "contextUsed": 17052,
+    "contextWindow": 200000
+  }
+}

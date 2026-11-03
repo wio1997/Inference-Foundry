@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_d54068b8-29d3-4bbf-96a9-c2374f41bfde",
+  "traceId": "1fc02516-0f28-4bc4-ade7-6d2982c4aa8f",
+  "turnId": "turn_24399374-0123-4a12-a524-96a6c8caac2f",
+  "response": "查询已按原样执行一次，未修改、未扩展、未重试。真实 rc=0（远程命令与本地包装器一致），stderr 为空；stdout 只有一行 JSON（1866 字节，本次没有出现此前 v12-v2 那种 JSON 行后附加 plog 警告的情况）。\n\n## 结果\n\n**OpenAPI 契约（当前 166 服务）**\n- `CompletionRequest.add_special_tokens` 默认值 = `true`\n- `TokenizeCompletionRequest.add_special_tokens` 声明默认值 = `true`\n- 实际 `/tokenize` 请求显式传入 `add_special_tokens=true`\n\n**Token 身份与前缀（8 formal + 2 seed，均来自服务器内固定文本）**\n- formal：8 条全部 32768 tokens；**8 个完整 token 序列哈希互不相同**（distinct=8）\n- seed：2 条均为 29696 tokens\n- 8 条 formal 的**公共前缀 = 29440 tokens**\n- 两两前缀长度：除对角线 32768 外，绝大多数为 29440；`(1,3)`、`(1,6)`、`(3,6)` 三对为 29568（0 基索引）\n- formal 与 seed 的前缀长度为 29440 或 29568，与对应 formal 的聚类一致\n- 输入集合 SHA-256 = `755b8230…87e8c8`，与脚本内置断言一致（脚本在远端断言通过后才会写文件）\n\n**保存路径与 SHA**\n- 远端结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/frozen-input-token-identity-v12.json`\n- 远端进程给出的结果载荷 SHA-256（`result_sha256`，对写入磁盘的 exact payload 计算）= `c5403c90764a731917b9baae121e8a9cca3535edaf7a1154dc6dc461b1de7156`\n- 本地回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/frozen-token-identity166-v12.json`，SHA-256 = `22c00965096d5c006def6afb9bcc70b6bef02d17f27b8674483af5f3836788bc`\n- 远端创建时间 2026-10-30T21:54:33Z，本地观测 2026-10-30T21:53:28Z；结果文件为新写入（脚本先断言目标不存在）\n\n**边界（按查询自身声明）**\n- 仅调用 `/openapi.json` 和 `/tokenize`，未调用 completions/inference\n- 每次调用记录的是 `HTTP_elapsed_ns`，并显式标记 `elapsed_is_not_hash_CPU_time=true`；**HTTP 耗时不得当作哈希 CPU 成本**\n- `resolved_hash_block_size=UNKNOWN`，`overall_complete=false`，`whole_modules_closed=0`；该证据仅证明当前 166 同模型/tokenizer 对固定提示的 tokenization 身份与前缀，不构成对历史 169 缓冲值的论证，也未证明缓存哈希的额外命名空间或线上复用。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 89236,
+    "outputTokens": 5185,
+    "totalTokens": 94421,
+    "cacheReadTokens": 77696,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3883,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 94421,
+    "contextUsed": 16207,
+    "contextWindow": 200000
+  }
+}

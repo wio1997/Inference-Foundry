@@ -1,0 +1,131 @@
+{
+  "generated_utc": "2026-10-31T02:42:37.245726+00:00",
+  "graph_order": {
+    "created_utc": "2026-10-31T02:39:26.233808+00:00",
+    "graph_executions": 80,
+    "blocks": 3200,
+    "counts": {
+      "blocks": 3200,
+      "all_shared_before": 0,
+      "all_shared_after": 3200,
+      "any_overlap": 0
+    },
+    "block_phase_counts": {
+      "PHASE_UNBOUND": 640,
+      "ALL_SCHEDULED_CONTEXT_GE32768_SPEC5_DECODE_COMPATIBLE": 2560
+    },
+    "shared_stage_order_and_stream_counts": {
+      "INPUT_QUANT": {
+        "AFTER": 3200,
+        "SAME_STREAM": 3200
+      },
+      "GATE_UP": {
+        "AFTER": 3200,
+        "SAME_STREAM": 3200
+      },
+      "ACTIVATION_QUANT": {
+        "AFTER": 3200,
+        "SAME_STREAM": 3200
+      },
+      "DOWN": {
+        "AFTER": 3200,
+        "SAME_STREAM": 3200
+      },
+      "ROUTED_SHARED_ADD": {
+        "AFTER": 3200,
+        "SAME_STREAM": 3200
+      }
+    },
+    "signed_after_gap_from_MC2_end_ns": {
+      "INPUT_QUANT": {
+        "n": 3200,
+        "minimum": 640,
+        "median": 980.0,
+        "maximum": 2520
+      },
+      "GATE_UP": {
+        "n": 3200,
+        "minimum": 4360,
+        "median": 4860.0,
+        "maximum": 6760
+      },
+      "ACTIVATION_QUANT": {
+        "n": 3200,
+        "minimum": 27741,
+        "median": 30580.0,
+        "maximum": 37740
+      },
+      "DOWN": {
+        "n": 3200,
+        "minimum": 33481,
+        "median": 36650.5,
+        "maximum": 43861
+      },
+      "ROUTED_SHARED_ADD": {
+        "n": 3200,
+        "minimum": 53821,
+        "median": 59241.0,
+        "maximum": 70622
+      }
+    },
+    "no_new_source_DB_model_device_or_service_work": true,
+    "overall_complete": false,
+    "limits": [
+      "Exact temporal graph marker blocks and recorded native TASK streams/times,not nearest-step matching or tensor-consumer proof.",
+      "Different stream IDs do not prove potential concurrent scheduling;resource reservations,graph event/control edges and actual enable flags remain separate.",
+      "Shared-stage AFTER gaps include whatever lies between recorded tasks;not removable launch latency or causal wait without dependency evidence.",
+      "No observed overlap in this capture does not prove the feature is absent,incorrect,globally disabled or beneficial to change.",
+      "Unboundgraph phase stays unbound. No source/device/config mutation or inference run."
+    ]
+  },
+  "all32DB_native_M12_M13_interval_sum": {
+    "M12_union_ns": 19419331609,
+    "M13_union_ns": 506727392,
+    "intersection_ns": 0,
+    "M13_without_M12_ns": 506727392,
+    "union_both_ns": 19926059001
+  },
+  "observed_overlap_ns": 0,
+  "existing_source_capability_is_not_observed_activation": true,
+  "causal_hypotheses": [
+    {
+      "id": "S1",
+      "mechanism": "Actual overlap enable/config/guard branch selected a serial route",
+      "support": "All3200graphblocks put shared stages afterMC2 on the same recorded stream.",
+      "counterexample_or_limit": "Source asynchronous capability exists;current historical enable/guard values are not attested by these time intervals."
+    },
+    {
+      "id": "S2",
+      "mechanism": "Capture/graph event or stream construction serialized the device work",
+      "support": "All80replay graphs have this same staged order,including64bounddecode-compatible and16unbound graphs.",
+      "counterexample_or_limit": "Recorded stream IDs alone do not reconstruct host torch stream/event construction or prove an unintended dependency."
+    },
+    {
+      "id": "S3",
+      "mechanism": "Hardware/kernel reservations or scheduling would limit useful overlap even after independent submission",
+      "support": "MC2 compound andshared GEMMs useCube/Vector resources;lowreportedMAC does not show all cores/resources are free.",
+      "counterexample_or_limit": "This capture submits/records same-stream sequential work,so it does not test concurrency capacity or establish this as the cause."
+    }
+  ],
+  "remaining": [
+    "Read saved run/env/capture configuration first for actual shared/router overlap guard values.",
+    "If saved profile/config cannot settle selection,read exact AscendMoERunner._forward_impl and its shared-overlap guard/prepare callees plus shared_experts prepare/enqueue gates. No repository-wide source audit.",
+    "Any future independent scheduling/fusion must retain input quantization,probability scaling,combine rounding,resource contention,graph addresses andready/event lifetimes. No measured gain or correctness proof from ordering alone."
+  ],
+  "evidence_refs": [
+    {
+      "label": "resource-audit166-v20",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/resource-attribution-ranking-and-overlap-review-v20.json",
+      "sha256": "e547dba33490bd52979e24f0c7512701838477f836d64d9cef508eb39b8bc22e"
+    },
+    {
+      "label": "shared-order166-v20",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/graph-shared-expert-and-MC2-order-v20.json",
+      "sha256": "4687150875ea9059499bebf74917a0a250f3362647515e673fa5b4c6f522ee74"
+    }
+  ],
+  "new_source_read": false,
+  "implementation": false,
+  "performance_gain": null,
+  "overall_complete": false
+}

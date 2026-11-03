@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_873c364d-5ada-4135-ba20-272b1f507ed6",
+  "traceId": "f88e50d8-9c13-42e5-ae9e-258a91b1ecf6",
+  "turnId": "turn_3d302159-030d-406e-a5a5-c75c0cdfbe6f",
+  "response": "## 结果\n\n查询命令已按原样执行**恰好一次**，但执行失败，未获得任何设备属性值。失败发生在预备脚本自身的外层解析步骤，不是 ACL API 调用失败；按“不重试、不修改、不扩展”的要求，我已停止，没有再次执行、没有猜值、没有改用其他 API。\n\n## 恢复门禁（执行前已核对通过）\n\n- `controller-finished.json`：`state = CAPTURED_AND_RESTORED`，`capture_error = null`。\n- `restore-result.json`：`status = PASS_ORIGINAL_BASELINE_RESTORED`，`all_npu_pids_owned = true`，`target_source_or_serve_modified = false`。\n- 原 BASE 容器 `wio-vllm-v41-repro166-20261030` 正在运行，ID `8757dcc7a2f8db672bbf6ddfc1ed29e6cff74d5dd89199770b7b6f3b27fd48e3`。\n- 查询用 stage 容器正在运行；远端结果文件执行前不存在。\n\n## 执行情况\n\n- 命令：`remote_run.py 166 query_readonly_core_attributes_v12_166.py readonly-core-attributes166-v12`\n- 外层返回码：**1**\n- 报错：`JSONDecodeError: Extra data: line 2 column 1 (char 7274)`，位置 `query_readonly_core_attributes_v12_166.py:35`\n- 关键点：第 34 行 `assert r.returncode == 0` 已通过，说明 `docker exec` 内层查询进程返回 0，16 个逻辑 device × 6 个属性共 96 次 `aclrtGetDeviceInfo` 调用已完成，并输出了第一段约 7273 字节的合法 JSON；随后 stdout 多出一行附加数据，导致外层 `json.loads` 失败。该内层 stdout 没有被任何文件保存，失败回执的 `stdout` 字段为空，因此**每个 API 的原始返回码和属性值已无法在不重跑的情况下取回**。\n- 远端结果文件 `.../hostprof-20261030T212812Z-360e0c72/analysis/readonly-device-core-attributes-v12.json` 未创建（已只读核实）。\n- 未调用 `aclInit`、未 setdevice/context、未推理、未 kernel、未改服务；执行路径仅 `ctypes.CDLL(libascendcl)` 与 `aclrtGetDeviceInfo`。\n\n## SHA256\n\n| 对象 | SHA256 |\n|---|---|\n| 预备查询脚本 `query_readonly_core_attributes_v12_166.py` | `bf0944f26fab1cd127da8b13da2cc8a8ada6dab4f160f5a097e5fe02bf658835` |\n| 执行器 `remote_run.py` | `f980ec5942a104197515ab43e66b1a15289e52dc2efd81f66a22cd26b90c6669` |\n| 失败回执 `readonly-core-attributes166-v12.json` | `4a7d7326926a55b1a1b1a14d01e8e56ba3215bf64fd5dd55d88d6e60841987b5` |\n\n查询脚本自身应输出的 `result_sha256` **无法提供**，因为该 JSON 在解析前就已被丢弃。执行前只读观测到的头文件 SHA256 为 `8cce153ef9eb5ed49b0f5bfb5608de706e8d466c836ad2eb50745ec2e8629bc9`（这是环境观测值，不是本次查询结果）。\n\n如需继续，需要另行授权重跑或授权对预备脚本做最小修正（例如只解析首个 JSON 文档）；在获得授权前我不会再执行。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 11,
+    "inputTokens": 230970,
+    "outputTokens": 11626,
+    "totalTokens": 242596,
+    "cacheReadTokens": 208768,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 9382,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 242596,
+    "contextUsed": 33142,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,296 @@
+{
+  "generated_utc": "2026-10-30T20:11:38.731607+00:00",
+  "candidates": [
+    {
+      "id": "H01",
+      "title": "响应等待路径的轮询开销与重复等待工作",
+      "modules": [
+        "M03",
+        "M25"
+      ],
+      "status": "SUPPORTED_ACTIVE_PATH; CPU_COST_CAUSALITY_AND_LATENCY_VALUE_UNRESOLVED",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED"
+      ],
+      "profile_evidence": [
+        "Original sampled full stacks: step_with_batch_queue706 -> FutureWrapper.result98 -> _wait_for_response103 -> get_response433 -> shm.dequeue889 -> acquire_read786 -> wait204.",
+        "Both EngineCore leader threads consumed15.12CPU seconds over15.43385706s (~0.979664 cores);76/78 leader state observations were R.",
+        "Samples also reach timeout_ms/should_warn/check/memory_fence/sched_yield. Capture sample weights include idle tail and are not per-function CPU time."
+      ],
+      "source_answer": "Existing SHM wait already combines a busy/yield branch with idle poller notifications and cancellation. check() is defined inside the retry loop; FIFO Future draining and optional output_rank selection are present.",
+      "candidate_graph": "Retain response publication/read/ack semantics while reviewing repeated readiness/deadline/check bookkeeping and the existing busy/idle policy as separate possible causes.",
+      "rejected_overclaims": [
+        "Event-driven waiting is absent.",
+        "70.9/77.8% sample weight equals removable latency or CPU time.",
+        "Every call waits for all ranks.",
+        "The scheduler itself is proven slow."
+      ],
+      "constraints": [
+        "memory-fence and written/read flag publication order",
+        "per-slot generation and reader ack",
+        "Future FIFO and selected output rank",
+        "deadline/warning policy",
+        "shutdown/cancel wakeups",
+        "response latency and throughput protection"
+      ],
+      "competing_explanations": [
+        "Busy waiting may spend CPU while the worker is legitimately running.",
+        "Other on-CPU functions and profiler overhead may contribute.",
+        "A shorter busy interval may save CPU yet delay a ready response."
+      ],
+      "resource": "Host CPU occupancy is observed. No NPU utilization or end-to-end gain is assigned.",
+      "minimal_missing_evidence": [
+        "Time-aligned on-CPU attribution and producer-ready/read-complete boundaries for the same requests.",
+        "Resolved busy interval/output_rank and queue identities for the observed run."
+      ],
+      "source_evidence": "framework-source-slices166-v8.json; three fixed-image files and narrow ranges",
+      "across": [
+        "worker->EngineCore",
+        "request/response queues",
+        "successive Future generations"
+      ]
+    },
+    {
+      "id": "H02",
+      "title": "输入准备中剩余小拷贝、锁页和元数据工作的合并重组",
+      "modules": [
+        "M04",
+        "M21",
+        "M22",
+        "M24"
+      ],
+      "status": "REPEATED_WORK_OBSERVED; FIELD_BINDING_READINESS_AND_CRITICAL_PATH_OPEN",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED"
+      ],
+      "profile_evidence": [
+        "24 roots on ranks0/8; each6956 descendants,86 H2D calls,57 _pin_memory calls and4 Event::synchronize calls.",
+        "Full113-name/166944-record aggregate;24 exclusive partitions and22 same-trace prepare/gap intersections match.",
+        "Median recorded prepare wall45.926825ms(rank0)/44.87814ms(rank8); uncovered wall16.589875/15.403085ms is not CPU-active time."
+      ],
+      "source_answer": "Persistent batch buffers, early block-table commit, GPU accepted-token correction, optimistic CPU length correction and avoidance of an extra seq_lens D2H/sync already exist. Prepare scope includes persistent-state update and other conditional work, not only _prepare_inputs. Batch/group metadata sharing and CP RoPE view reuse also already exist; remaining work must be reviewed within their scopes.",
+      "candidate_graph": "Review remaining field-compatible metadata production/copy groups and repeated allocation/pinning under the existing persistent-state and graph-buffer contract; retain early-ready copies and late-dependent corrections.",
+      "rejected_overclaims": [
+        "All86 H2D calls are redundant.",
+        "All buffers are fresh allocations.",
+        "Async corrections are missing.",
+        "Four synchronizations can be deleted.",
+        "Host/device exported timestamp overlap proves causal hiding or removable gap."
+      ],
+      "constraints": [
+        "exact field dtype/layout/padding and meaningful extents",
+        "graph-captured buffer addresses and lifetime",
+        "request ID/index remapping and newly admitted/removed requests",
+        "accepted/rejected token generations",
+        "block allocation and slot mapping",
+        "early-ready overlap vs late field readiness",
+        "zero-token DP coordination and connector semantics"
+      ],
+      "competing_explanations": [
+        "Many copies may carry different layer/metadata fields.",
+        "Recorded wait wall can be device/previous-generation dependency rather than preparation compute.",
+        "Apparent uniform roots need phase association before generalizing."
+      ],
+      "resource": "Host API counts and recorded wall only. No physical copy byte total, indispensable bandwidth floor or inference gain is established.",
+      "minimal_missing_evidence": [
+        "A new bounded same-call profile with Python/native field callsite and copy/pin/event readiness. Official existing DBs explicitly lack callchains; older stacked capture has no prepare intervals.",
+        "Exact field dtype/layout/extent, pointer/alias and generation/producer/consumer contracts; phase/request binding and calibrated dependency boundaries."
+      ],
+      "source_evidence": "Existing prepare-input-analysis.json.sources worker SHA568c3049...; question-gated slices only",
+      "across": [
+        "scheduler->persistent batch",
+        "host->device",
+        "metadata->many layers",
+        "previous sample->next prepare",
+        "prepare->graph replay"
+      ],
+      "metadata_refinement_v9": {
+        "status": "REFINED_EXISTING_H02; NO_GAIN_OR_REDUNDANCY_CLAIM",
+        "measured_origins": [
+          "CP build140-142:350/350/1050 native API records in this DB.",
+          "DSA build1008-1028 and C2 metadata1327-1368 fallback primitives have source-linked records."
+        ],
+        "existing_optimizations": [
+          "Batch metadata dictionary is already reset once per build and shared independent of physical block IDs.",
+          "Slot mapping coordinate/flat buffers already share within a framework KV group using compression ratio and storage block size keys.",
+          "C2 lengths share through batch_shared[lengths:c2]; SMLA/QLI metadata have staged publication.",
+          "C2 ring metadata publication stays group-local; skip-update and actual token/request limits are semantic fields.",
+          "CP local RoPE reuses slices of global cos/sin to avoid overwriting still-referenced process-wide buffers."
+        ],
+        "remaining_candidate": "Remaining CP local offset/device-seq-length suffix operations and fallback field transforms may be fused/reorganized only under their exact group/query/version/readiness and graph-address contract.",
+        "exclusions": [
+          "Do not claim cross-group metadata sharing is absent.",
+          "Do not replace authoritative device seq_lens with optimistic CPU lengths after rejection.",
+          "Do not hoist group-local physical slots or ring owners as batch-global fields.",
+          "Do not infer repeated350source records represent350 identical tensors or removable work."
+        ],
+        "source_snapshots": [
+          {
+            "path": "vllm_ascend/attention/dsa_v41.py",
+            "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd"
+          },
+          {
+            "path": "vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+            "sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e"
+          }
+        ],
+        "missing": [
+          "Per-build shared dictionary hits/misses, common-field and slot generations, all graph consumers and actual copy/event linkage."
+        ]
+      },
+      "profile_exhaustion_v11": {
+        "generated_utc": null,
+        "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/prepare-copy-pin-event-origins-v11.json",
+        "result_sha256": "dd01460b703f575ffd5e9a3a73edc1b3e04d32d1a8e7fed140b0c793a7614883",
+        "populations": [
+          {
+            "population": "OFFICIAL_LATER_WINDOW",
+            "rank": 0,
+            "database": "/data/tiankuan/wio/migration-166-20261030/source169-project/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/official-20261030T084726Z-cb252d1d/analysis/operator-export/copies/dp0_pp0_tp0_dcp0_ep0_rank0_758_20261030085238249_ascend_pt/ASCEND_PROFILER_OUTPUT/ascend_pytorch_profiler_0.db",
+            "sha256": "d969d6cb651e8084442b65cef80a75420ee86de8b9530951e0ffd39e02e49899",
+            "roots": 12,
+            "selected_records": 14412,
+            "selected_name_counts": {
+              "Event::synchronize": 48,
+              "aten::copy_": 4596,
+              "acl_memcpy_host_to_device": 1032,
+              "Enqueue@acl_memcpy_host_to_device": 1032,
+              "aten::to": 5232,
+              "aten::_to_copy": 1788,
+              "aten::_pin_memory": 684
+            },
+            "non_null_chain_ids": 0,
+            "callchains_present": 0,
+            "records_with_project_frames": 0,
+            "has_callchains_table": false,
+            "source_location_counts": {}
+          },
+          {
+            "population": "OFFICIAL_LATER_WINDOW",
+            "rank": 8,
+            "database": "/data/tiankuan/wio/migration-166-20261030/source169-project/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/official-20261030T084726Z-cb252d1d/analysis/operator-export/copies/dp1_pp0_tp0_dcp0_ep8_rank0_759_20261030085238248_ascend_pt/ASCEND_PROFILER_OUTPUT/ascend_pytorch_profiler_8.db",
+            "sha256": "8f69217101752b420741f1f33187a3a25d04437972ca99c2e2fc9ebb34d459a8",
+            "roots": 12,
+            "selected_records": 14412,
+            "selected_name_counts": {
+              "Event::synchronize": 48,
+              "aten::copy_": 4596,
+              "acl_memcpy_host_to_device": 1032,
+              "Enqueue@acl_memcpy_host_to_device": 1032,
+              "aten::to": 5232,
+              "aten::_to_copy": 1788,
+              "aten::_pin_memory": 684
+            },
+            "non_null_chain_ids": 0,
+            "callchains_present": 0,
+            "records_with_project_frames": 0,
+            "has_callchains_table": false,
+            "source_location_counts": {}
+          },
+          {
+            "population": "EARLIER_DIAGNOSTIC_WITH_STACKS",
+            "rank": 3,
+            "database": "/data/tiankuan/wio/migration-166-20261030/source169-project/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/runtime/diagnostic-traces/dp0_pp0_tp3_dcp0_ep3_rank3_2128_20261029023525650_ascend_pt/ASCEND_PROFILER_OUTPUT/ascend_pytorch_profiler_3.db",
+            "sha256": "084b8718888e33271435ec79d7573c95ca1615f3e7484c807ea24590fad234c4",
+            "roots": 0,
+            "selected_records": 0,
+            "selected_name_counts": {},
+            "non_null_chain_ids": 0,
+            "callchains_present": 0,
+            "records_with_project_frames": 0,
+            "has_callchains_table": true,
+            "source_location_counts": {}
+          }
+        ],
+        "interpretation": "Official later-window rank0 and rank8 each contain12exact prepare roots and14412selected nested API records, including1032H2D/684pin/48sync. Both databases lack PYTORCH_CALLCHAINS and all selected callchainId values are null. Earlier EP3with-stacks capture contains0prepare roots. No cross-capture association is inferred.",
+        "exact_field_sources_from_existing_capture": "NOT_AVAILABLE",
+        "historical_CPU_cost_from_source": "NOT_RECOVERABLE",
+        "existing_profile_query_exhausted_for_this_question": true,
+        "next_evidence": "Bounded fresh worker-input diagnostic on166, full native/Python source stacks and shapes/field/copy-ready/event generations tied to the same model-call IDs; compare observed counts within the new population only.",
+        "no_new_source_read": true,
+        "no_inference_NPU_or_service_mutation": true,
+        "whole_modules_closed": 0,
+        "overall_complete": false
+      }
+    },
+    {
+      "id": "H03",
+      "title": "前缀块哈希的跨请求重复工作",
+      "modules": [
+        "M02",
+        "M24"
+      ],
+      "status": "CONDITIONAL_UNPRICED_HYPOTHESIS; NO_FUNCTION_PROFILE_COST_OR_TOKEN_IDENTITY",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED",
+        "UNKNOWN"
+      ],
+      "profile_evidence": [
+        "Validated original run has235904/262144 prefix hits,8 successful requests and0 recorded preemptions.",
+        "Frozen8 text requests have8 distinct full hashes and share at least117286 characters;2 prefix seeds are outside formal statistics.",
+        "Frontend exported traces contain only profiler-window markers; no hash/tokenizer function costs."
+      ],
+      "source_answer": "The existing request block hasher already computes only new complete blocks and chains each block to its previous prefix hash. Incremental hashing within a request is already implemented.",
+      "candidate_graph": "A conditional cross-request reuse edge may avoid recomputing an exactly identical hash prefix; this is distinct from already implemented per-request append hashing.",
+      "rejected_overclaims": [
+        "Full requests are identical.",
+        "Character prefix proves token/block identity.",
+        "Hashing is a measured bottleneck.",
+        "Historical resolved hash block size is established as128.",
+        "Zero preemptions means zero evictions."
+      ],
+      "constraints": [
+        "exact token IDs and stable prefix boundary",
+        "hash function/version and resolved hash block size",
+        "parent hash and full extra-key namespace including multimodal/LoRA/cache_salt",
+        "model/tokenizer version as relevant",
+        "collision-safe identity, immutable generation, eviction/invalidation and ownership"
+      ],
+      "competing_explanations": [
+        "Hash cost may be negligible.",
+        "Existing host caches or request construction may already avoid some repeated work.",
+        "Shared text prefixes can tokenize differently at a boundary."
+      ],
+      "resource": "No hash CPU cost, retained cache bytes or same-domain time bound is known; do not rank by prefix-hit fraction.",
+      "minimal_missing_evidence": [
+        "Actual hash call counts/cost and repeated exact token/hash-extra identities under the same resolved H.",
+        "Existing reuse/invalidation path only if measured cost makes that question conclusion-changing."
+      ],
+      "source_evidence": "Reused stage-kv-hash-source.json SHA2666c9f1... slices812-869 and block-size resolution; no new target file read",
+      "across": [
+        "requests",
+        "prefix hash chain->KV lookup",
+        "seed->formal request",
+        "cache ownership/lifetime"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "a": "H01",
+      "b": "H02",
+      "relation": "interacts",
+      "scope": "Host contention and request/response pipeline; not measured; no additive gains."
+    },
+    {
+      "a": "H02",
+      "b": "F31",
+      "relation": "overlaps",
+      "scope": "Existing draft/target metadata preparation; field mapping needed before deduplication."
+    },
+    {
+      "a": "H02",
+      "b": "H03",
+      "relation": "interacts",
+      "scope": "Both touch KV lookup/ownership and subsequent metadata. Neither candidate requires implementing the other; not a demonstrated performance interaction."
+    }
+  ],
+  "no_implementation": true,
+  "no_speedup_claim": true,
+  "whole_modules_closed": 0,
+  "overall_complete": false,
+  "parent_ledger": "framework-candidate-ledger-v9.json"
+}

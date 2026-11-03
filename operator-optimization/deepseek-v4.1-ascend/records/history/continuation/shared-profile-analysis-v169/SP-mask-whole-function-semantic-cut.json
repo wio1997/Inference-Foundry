@@ -1,0 +1,101 @@
+{
+  "status": "REVIEWED_EXACT_SEMANTIC_REDUCTION_IN_DECLARED_PUBLIC_FUNCTION_DOMAIN",
+  "source": {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/common/ops/sequence_parallel.py",
+    "sha256": "73bcf07050bce8b049dd0bbdb0a7504f6eba157a1e97a5033849ef31ef05fcb0",
+    "first_line": 104,
+    "last_line": 123,
+    "source_lines": [
+      "def _ascend_sp_padding_mask_impl(is_padding: torch.Tensor) -> torch.Tensor:",
+      "    \"\"\"Pad with True rows up to the TP multiple, then take this rank's chunk.",
+      "",
+      "    The output row layout matches ``sp_shard`` so the mask stays aligned with",
+      "    the sharded hidden states. Same ``if sp_pad > 0`` pad guard as the",
+      "    upstream ``sp_padding_mask``. A custom op keeps the modulo padding",
+      "    invisible to dynamo (same shape-baking hazard as ``sp_shard``), so like",
+      "    ``sp_shard`` the no-pad slice is cloned to avoid returning a view of an",
+      "    input from a functional custom op.",
+      "    \"\"\"",
+      "    tp_size = get_tensor_model_parallel_world_size()",
+      "    tp_rank = get_tensor_model_parallel_rank()",
+      "    sp_pad = (-is_padding.shape[0]) % tp_size",
+      "    # Upstream counterpart: vllm/models/common/ops/sequence_parallel.py",
+      "    # sp_padding_mask L63-65.",
+      "    if sp_pad > 0:",
+      "        is_padding = F.pad(is_padding, (0, sp_pad), value=True)",
+      "    chunk = is_padding.shape[0] // tp_size",
+      "    out = is_padding[tp_rank * chunk : (tp_rank + 1) * chunk]",
+      "    return out.clone() if sp_pad == 0 else out"
+    ]
+  },
+  "actual_profile": {
+    "profiles": 16,
+    "public_padding_calls": 32,
+    "native_executions": 160,
+    "native_expansion_per_public_call": [
+      "BOOL20->INT8_20",
+      "BOOL_scalar->INT8_scalar",
+      "MemSet_private_workspace_unknown",
+      "INT8_20+paddingINT32_2+INT8_scalar->INT8_24",
+      "INT8_24->BOOL24"
+    ],
+    "cumulative_native_work_ns": 698275,
+    "scope": "Startup dummy/warmup/creation; not formal C8 baseline timing.",
+    "catalog_empty_exact_20_to24_field_correction": "The old diagnostic required the entire serialized inputShapes string to equal 20. PadV3 has compound inputShapes 20;2;, so the empty list did not mean absent execution. Exact CPU call, source line and per-native datatype/shape audit locate all 32 actual BOOL20->BOOL24 public calls."
+  },
+  "declared_domain": {
+    "input": "One-dimensional arbitrary Boolean is_padding of length n; TP size p>=1, rank 0<=r<p.",
+    "contract": "Preserve Boolean values/dtype, output length, rank row ownership and a result that does not alias input. Input is not modified.",
+    "allowed": "Replace the whole functional padding-and-rank-slice computation and its internal representation.",
+    "additional_guard": "No required observer relies on the original full padded base allocation, its storage_offset or intermediate INT8 tensors. If such an observer exists, retain its observable contract or narrow the candidate.",
+    "not_this_domain": "Deleting an individual native MemSet in the old captured graph without proving its private workspace/readiness contract."
+  },
+  "derivation": {
+    "chunk": "c=ceil(n/p)=(n+((-n) mod p))/p",
+    "output": "out[j]=is_padding[r*c+j] when r*c+j<n, otherwise True, for 0<=j<c.",
+    "proof": "F.pad appends exactly (-n) mod p True values. Restricting that padded vector to the returned rank interval gives the formula pointwise. The no-pad branch clones its slice, so a replacement must preserve no input aliasing. The formula covers n=0, n divisible by p, positive padding, partial local chunks and fully padded local chunks.",
+    "n20_p8": {
+      "chunk": 3,
+      "input_values_demanded_by_rank": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        2,
+        0
+      ],
+      "output_values_per_rank": 3
+    },
+    "logical_external_array_bytes_in_byte_addressed_materialized_domain": {
+      "full_pad20_to24": 44,
+      "rank_function_n20_p8": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        5,
+        3
+      ],
+      "basis": "Arbitrary demanded BOOL inputs must be read and fresh materialized BOOL outputs written once in a byte-addressed uncached external-array model. This is a conditional necessary logical I/O floor, not measured HBM traffic, wire bytes or time; zero-length output requires zero array bytes."
+    },
+    "small_model_pointwise_formula_checks": 10230,
+    "review_limit": "Algebra plus finite checks; not formal verification of native fusion, storage lifetime or a performance claim."
+  },
+  "candidate_reuse": [
+    "F21",
+    "F31",
+    "F32"
+  ],
+  "conclusion": "The entire public semantic boundary is a supported combination/reorganization candidate. Individual private native work is not proven removable. No more private MemSet argument probes are needed for this whole-function semantic conclusion.",
+  "ceiling": {
+    "state": "SYMBOLIC_CEILING",
+    "formula": "T>=B_required/B_external_upper only in the stated uncached byte-addressed materialized domain; actual required physical transfers and B_external_upper remain unknown.",
+    "physical_speedup": null
+  },
+  "new_whole_module_closures": 0,
+  "overall_complete": false
+}

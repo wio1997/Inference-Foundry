@@ -1,0 +1,160 @@
+{
+  "generated_utc": "2026-10-31T08:50:26.731612+00:00",
+  "variants": [
+    {
+      "id": "F28-v35-LOCAL-REPEAT",
+      "parent": "F28",
+      "transformation": "Shard the single-channel embedding before four-way repeat; preserve global-mask input and local ID/premix alignment.",
+      "argument": "S_p pad(E repeated4)=repeat4(S_p pad(E)); identical value/copy map including padding zeros. Source still needs a full initial four-channel residual at its eventual HCpost consumer.",
+      "conditions": "Maintain no-pad clone/custom-op alias contract, contiguous local layout, original mask values and all bank lifetimes. Logical output-byte reduction is not measured traffic or peak memory.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F28-v35-EMBED-RS",
+      "parent": "F28",
+      "transformation": "Replace full-row embedding SUM AllReduce followed by SP shard with a correctly padded SUM ReduceScatter, then local repeat.",
+      "argument": "For masked vocab contributions E_r, S_p pad(sum_r E_r)=sum_r S_p pad(E_r). Current plan output reduction and SP use the TP group in the reviewed domains; required PCP/token exchange stays before this transformation.",
+      "conditions": "Same rank order/group and token rows, zero padding, dtype/reduction numerical contract and all embedding observers required. Padding can offset communication savings for small N.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F28-v35-ID-MASK-PUBLISH",
+      "parent": "F28",
+      "transformation": "Publish local IDs and padding mask together with existing input metadata or local embedding publication.",
+      "argument": "SP IDs/mask are deterministic slices/pad of the same original global generation. A shared producer may supply those views rather than independent private pad/cast/copy stages.",
+      "conditions": "Preserve incoming non-None mask values, global outputs still needed by embedding/KV, rejected/anchor/DCP metadata effects and original captured banks. Linked to existing F31, not a new candidate.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F28-v35-BROADCAST-RESIDUAL",
+      "parent": "F28",
+      "transformation": "Delay materialization of identical initial HC channels through first-pre consumers and reconstruct the required residual at first-post or keep a suitable view.",
+      "argument": "The first HC state is a logical four-channel broadcast of one embedding row. Layout representation can be specialized if every first-pre and first-post read is represented.",
+      "conditions": "Full initial residual is still required. Existing operator may require contiguous storage; new view/tiling/alias interface and all numerical paths remain conditional, overlapping local-repeat and F02.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F28-v35-PADDING-ROWS",
+      "parent": "F28",
+      "transformation": "Prune local row-local HC/FFN arithmetic for provably dead padding while retaining original collective ABI and global model-parallel work.",
+      "argument": "N10 pads to16 physical rows and N20 to24 under TP8 shard; selected noQ patterns show reachable empty local query domains.",
+      "conditions": "NoQ does not prove an entire rank dead. Keep globalKV, head AllToAll, Wo_a/Wo_b, collective participation, MC2 uniform domains, output padding and all possible observers. No row count alone establishes safe pruning.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F02-v35-FIRST-PRE",
+      "parent": "F02",
+      "transformation": "Use the draft initial broadcast/onehot pre_mix contract to specialize first-pre y and/or coefficient input projection.",
+      "argument": "Current104first entries are source-consistent initial repeats plus FP32 onehot premix. A real-algebra coefficient prefold or y shortcut can be considered only within a specified numerical domain.",
+      "conditions": "Do not delete data-dependent coefficients needed by HCpost/next premix. Infinity times zero, NaN payload, signed zero, accumulation and BF16/native rounding can defeat an unconditional y=E shortcut.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F03-v35-DECODER-LINK",
+      "parent": "F03",
+      "transformation": "Tile HCpost into the next HCpre/norm consumer, with explicit residual and premix outputs at both attention/FFN and layer boundaries.",
+      "argument": "Current common decoder returns hidden and ffn_pre and retains post state as a later residual; producer/consumer stages may share loads or tiles while emitting required state.",
+      "conditions": "The complete HC residual is not dead merely because next pre consumes it. Preserve current scaling, rounded add, collective finalization, separate pre_mix and last-layer collapse. F23/F04 effects are not additive.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F32-v35-KV-OWNER",
+      "parent": "F32",
+      "transformation": "Compute512D KV/norm/RoPE at SP row owners before full5120D hidden gather; exchange KV and keep local Q_a where CP-query ownership matches.",
+      "argument": "KV is a row-local replicated-weight map. Under exact SP-to-CP row ownership, global cache consumers can receive512D values while Q reads its own normalized rows.",
+      "conditions": "CP start/num_actual/per_rank and FlashComm suffix are real metadata, not inferred solely from ceil(N/8). Preserve global cache writes on noQ ranks, positions/slots, parameter generations and all full-hidden observers.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F32-v35-DUAL-PROJECT",
+      "parent": "F32",
+      "transformation": "Compute local BF16 Q_a1280 and KV512 before gather, optionally as a1792-output joint contraction; route/select Q_a by the CP query map and publish global KV.",
+      "argument": "Both Wq_a and Wkv are declared ReplicatedLinear. A packed local row map can publish separate1280D Q_a and512D KV results instead of5120D hidden; Qnorm/quant/Q_b and each KV norm remain separate.",
+      "conditions": "This changes current unequal-M layout rather than claiming naive existing-input concatenation. Preserve BF16 contraction barriers, exact row mapping/duplicates, collective/new-launch costs and live parameters. Linked to F06; alternative to the512-only aligned-owner case.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F29-v35-CONTEXT-QUERY",
+      "parent": "F29",
+      "transformation": "Prepare context KV lazily per layer and pack its rows with that layer query KV rows into one same-weight WKV contraction when both inputs are ready.",
+      "argument": "Context bank main_norm rows and query input_layernorm rows are different inputs to the same layer attn.wkv. Row concatenation computes the two independent maps; no input-value equality is required.",
+      "conditions": "Keep distinct row/position/slot metadata and512D norms/RoPE, context-before-query duplicate-write order, noncausal cache readiness and dummy/no-context domains. Changed-M tiling needs a precision contract. Joint preparation may delay the first ready layer; overlap/savings are not free or additive.",
+      "implementation": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    }
+  ],
+  "logical_domain_examples": [
+    {
+      "global_rows": 10,
+      "TP": 8,
+      "physical_rows": 16,
+      "local_rows": 2,
+      "original_repeat_output_bytes": 409600,
+      "local_repeat_output_bytes": 81920,
+      "original_full_HC_pad_output_bytes": 655360,
+      "single_channel_pad_output_bytes": 163840,
+      "embedding_allreduce_ring_payload_bytes": 179200,
+      "padded_embedding_reducescatter_ring_payload_bytes": 143360,
+      "current_decoder_input_gather_logical_send_bytes": 143360,
+      "aligned_KV512_gather_logical_send_bytes": 14336,
+      "dual_Qa1280_KV512_gather_logical_send_bytes": 50176,
+      "note": "Illustrative ring/allgather payload convention and logical tensor output extents; not physical traffic, peak allocation, causal benefit or per-request pairing."
+    },
+    {
+      "global_rows": 20,
+      "TP": 8,
+      "physical_rows": 24,
+      "local_rows": 3,
+      "original_repeat_output_bytes": 819200,
+      "local_repeat_output_bytes": 122880,
+      "original_full_HC_pad_output_bytes": 983040,
+      "single_channel_pad_output_bytes": 245760,
+      "embedding_allreduce_ring_payload_bytes": 358400,
+      "padded_embedding_reducescatter_ring_payload_bytes": 215040,
+      "current_decoder_input_gather_logical_send_bytes": 215040,
+      "aligned_KV512_gather_logical_send_bytes": 21504,
+      "dual_Qa1280_KV512_gather_logical_send_bytes": 75264,
+      "note": "Illustrative ring/allgather payload convention and logical tensor output extents; not physical traffic, peak allocation, causal benefit or per-request pairing."
+    }
+  ],
+  "invalid_shortcuts": [
+    "Native N10/20 query rows are not F27 context12/24 or target aux24 rows. Never transfer row plans by equal counts.",
+    "No localQ does not imply no globalKV or no output rank contribution: restore_tp_heads can deliver valid-token head shards to that rank.",
+    "Existing localQ_a M2/3 and globalKV M10/20 cannot be naively concatenated as identical input domains. F32 alternatives explicitly change ownership/interfaces.",
+    "Replacing full embedding AllReduce with padded ReduceScatter has payload ratio ceil(N/P)*P/(2N) under the illustrative ring convention; for N1,P8 it is4, not universally a reduction.",
+    "Initial onehot premix does not make all HCpre outputs constant or prove floating-point y identity for every special value.",
+    "Context and query KV share a layer weight but differ in hidden-state provenance. Equal slot/position does not justify reusing one for the other across accepted/rolled-back iterations.",
+    "Current output path already writes projected result into the caller buffer. Do not count a hypothetical second full hidden output copy as a new removal."
+  ],
+  "relationships": [
+    "F28 local repeat, ReduceScatter/local embedding and broadcast residual overlap the same repeat/pad materialization; jointly count once.",
+    "F02 draft first-pre specialization and F28 broadcast representation are dependent variants, not independent full-repeat savings.",
+    "F32 aligned512-only and dual1792 projected exchange are ownership alternatives. Nominal feature ratios10 and20/7 are not speedups.",
+    "Context/query WKV row packing can compose only after resolving row ownership/epochs; keeping full-hidden gather removes the corresponding F32 communication claim.",
+    "F03 decoder boundary composition retains F23 merge/finalization and existing F04 dual-output rounding; avoid double-counting their intermediates.",
+    "Padding row pruning preserves all collective participation and global model-parallel work; zero-query branch is already implemented."
+  ],
+  "evidence_grade": "DERIVED_CONDITIONAL_ALGEBRA",
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

@@ -1,0 +1,588 @@
+{
+  "scope": "current stage source only; historical process binding unproven",
+  "files": {
+    "entrypoints/openai/completion/serving.py": {
+      "sha256": "75d05ddddf303734a078a3e42fcb173fef58ea56da09bc0b5c7525cb9bbbf527",
+      "slices": [
+        {
+          "first": 88,
+          "last": 107,
+          "lines": [
+            "    async def render_completion_request(",
+            "        self,",
+            "        request: CompletionRequest,",
+            "    ) -> list[EngineInput] | ErrorResponse:",
+            "        \"\"\"",
+            "        Validate the model and preprocess a completion request.",
+            "",
+            "        Delegates preprocessing logic to OnlineRenderer, adding the",
+            "        engine-aware checks (LoRA model validation, engine health).",
+            "",
+            "        Returns:",
+            "            A list of engine_inputs on success, or an ErrorResponse on failure.",
+            "        \"\"\"",
+            "        error_check_ret = await self._check_model(request)",
+            "        if error_check_ret is not None:",
+            "            return error_check_ret",
+            "",
+            "        self._preflight(request.n or 1)",
+            "",
+            "        return await self.online_renderer.render_completion(request)"
+          ]
+        },
+        {
+          "first": 127,
+          "last": 141,
+          "lines": [
+            "    async def _create_completion(",
+            "        self,",
+            "        request: CompletionRequest,",
+            "        raw_request: Request | None = None,",
+            "    ) -> AsyncGenerator[str, None] | CompletionResponse | ErrorResponse:",
+            "        if request.stream and request.use_beam_search:",
+            "            return self.create_error_response(",
+            "                \"Streaming is not currently supported with beam search\"",
+            "            )",
+            "",
+            "        result = await self.render_completion_request(request)",
+            "        if isinstance(result, ErrorResponse):",
+            "            return result",
+            "",
+            "        engine_inputs = result"
+          ]
+        }
+      ]
+    },
+    "renderers/online_renderer.py": {
+      "sha256": "147ac64103d7ffa842cc6b91e916c5de8aaab35f79762451e2c0ee8cb5513c0e",
+      "slices": [
+        {
+          "first": 538,
+          "last": 568,
+          "lines": [
+            "    async def render_completion(",
+            "        self,",
+            "        request: CompletionRequest,",
+            "        *,",
+            "        skip_mm_cache: bool = False,",
+            "    ) -> list[EngineInput] | ErrorResponse:",
+            "        \"\"\"Core preprocessing logic for completion requests (no model/engine check).",
+            "",
+            "        Called directly by render_completion_request and delegated to by",
+            "        OpenAIServingCompletion.render_completion_request after its engine-aware checks.",
+            "        \"\"\"",
+            "        # Return error for unsupported features.",
+            "        if request.suffix is not None:",
+            "            return self.create_error_response(\"suffix is not currently supported\")",
+            "",
+            "        if request.echo and request.prompt_embeds is not None:",
+            "            return self.create_error_response(\"Echo is unsupported with prompt embeds.\")",
+            "",
+            "        if request.prompt_logprobs is not None and request.prompt_embeds is not None:",
+            "            return self.create_error_response(",
+            "                \"prompt_logprobs is not compatible with prompt embeds.\"",
+            "            )",
+            "",
+            "        engine_inputs = await self.preprocess_completion(",
+            "            request,",
+            "            prompt_input=request.prompt,",
+            "            prompt_embeds=request.prompt_embeds,",
+            "            skip_mm_cache=skip_mm_cache,",
+            "        )",
+            "",
+            "        return engine_inputs"
+          ]
+        },
+        {
+          "first": 600,
+          "last": 637,
+          "lines": [
+            "    async def preprocess_completion(",
+            "        self,",
+            "        request: Any,",
+            "        prompt_input: str | list[str] | list[int] | list[list[int]] | None,",
+            "        prompt_embeds: bytes | list[bytes] | None,",
+            "        *,",
+            "        skip_mm_cache: bool = False,",
+            "    ) -> list[EngineInput]:",
+            "        \"\"\"Copied from GenerateBaseServing._preprocess_completion.\"\"\"",
+            "        prompts = list[SingletonPrompt | bytes]()",
+            "        if prompt_embeds is not None:  # embeds take higher priority",
+            "            prompts.extend(prompt_to_seq(prompt_embeds))",
+            "        if prompt_input is not None:",
+            "            prompts.extend(prompt_to_seq(prompt_input))",
+            "        return await self.preprocess_cmpl(request, prompts, skip_mm_cache=skip_mm_cache)",
+            "",
+            "    async def preprocess_cmpl(",
+            "        self,",
+            "        request: Any,",
+            "        prompts: Sequence[PromptType | bytes],",
+            "        *,",
+            "        skip_mm_cache: bool = False,",
+            "    ) -> list[EngineInput]:",
+            "        \"\"\"Copied from GenerateBaseServing._preprocess_cmpl.\"\"\"",
+            "        renderer = self.renderer",
+            "        model_config = self.model_config",
+            "",
+            "        parsed_prompts = [",
+            "            (",
+            "                prompt",
+            "                if isinstance(prompt, bytes)",
+            "                else parse_model_prompt(model_config, prompt)",
+            "            )",
+            "            for prompt in prompts",
+            "        ]",
+            "        tok_params = request.build_tok_params(model_config)",
+            "",
+            "        return await renderer.render_cmpl_async("
+          ]
+        }
+      ]
+    },
+    "renderers/base.py": {
+      "sha256": "4db44560f4d331bf0f184626ed7cac97b350355a5c64bce648bf1fa971b16d68",
+      "slices": [
+        {
+          "first": 1084,
+          "last": 1102,
+          "lines": [
+            "    async def process_for_engine_async(",
+            "        self,",
+            "        prompt: TokPrompt,",
+            "        arrival_time: float,",
+            "        *,",
+            "        skip_mm_cache: bool = False,",
+            "    ) -> EngineInput:",
+            "        engine_input: EngineInput",
+            "        if \"encoder_prompt\" in prompt:",
+            "            engine_input = await self._process_enc_dec_async(",
+            "                prompt,  # type: ignore[arg-type]",
+            "                skip_mm_cache=skip_mm_cache,",
+            "            )",
+            "        else:",
+            "            engine_input = await self._process_singleton_async(",
+            "                prompt, skip_mm_cache=skip_mm_cache",
+            "            )",
+            "",
+            "        engine_input[\"arrival_time\"] = arrival_time"
+          ]
+        },
+        {
+          "first": 1130,
+          "last": 1154,
+          "lines": [
+            "    async def render_cmpl_async(",
+            "        self,",
+            "        prompts: Sequence[DictPrompt | bytes],",
+            "        tok_params: TokenizeParams | None = None,",
+            "        *,",
+            "        prompt_extras: dict[str, Any] | None = None,",
+            "        skip_mm_cache: bool = False,",
+            "    ):",
+            "        arrival_time = time.time()",
+            "",
+            "        if tok_params is None:",
+            "            tok_params = self.default_cmpl_tok_params",
+            "",
+            "        dict_prompts = await self.render_prompts_async(prompts)",
+            "        tok_prompts = await self.tokenize_prompts_async(dict_prompts, tok_params)",
+            "",
+            "        self._apply_prompt_extras(tok_prompts, prompt_extras)",
+            "",
+            "        return await asyncio.gather(",
+            "            *(",
+            "                self.process_for_engine_async(",
+            "                    p, arrival_time, skip_mm_cache=skip_mm_cache",
+            "                )",
+            "                for p in tok_prompts",
+            "            )"
+          ]
+        }
+      ]
+    },
+    "v1/engine/input_processor.py": {
+      "sha256": "c8abd8e4e14d99929d45a7ff3b2a74898269c5e2a7fa30b826623ee85e4ce813",
+      "slices": [
+        {
+          "first": 309,
+          "last": 313,
+          "lines": [
+            "        if isinstance(prompt, dict) and \"type\" in prompt:",
+            "            if arrival_time is None:",
+            "                arrival_time = prompt.get(\"arrival_time\", time.time())  # type: ignore[assignment]",
+            "",
+            "            engine_input: EngineInput = prompt  # type: ignore[assignment]"
+          ]
+        }
+      ]
+    },
+    "v1/engine/async_llm.py": {
+      "sha256": "52cbf404f1dbc99c6bebf4a50a7eb18ff842a1f53106a45f365523192d816be1",
+      "slices": [
+        {
+          "first": 437,
+          "last": 445,
+          "lines": [
+            "            if isinstance(prompt, dict) and \"type\" in prompt:",
+            "                # Rendered EngineInput; no blocking preprocessing needed.",
+            "                request = self.input_processor.process_inputs(",
+            "                    request_id,",
+            "                    prompt,",
+            "                    params,",
+            "                    supported_tasks=await self.get_supported_tasks(),",
+            "                    arrival_time=arrival_time,",
+            "                    lora_request=lora_request,"
+          ]
+        },
+        {
+          "first": 785,
+          "last": 805,
+          "lines": [
+            "        async def output_handler():",
+            "            try:",
+            "                while True:",
+            "                    # 1) Pull EngineCoreOutputs from the EngineCore.",
+            "                    outputs = await engine_core.get_output_async()",
+            "                    num_outputs = len(outputs.outputs)",
+            "",
+            "                    iteration_stats = (",
+            "                        IterationStats() if (log_stats and num_outputs) else None",
+            "                    )",
+            "",
+            "                    # Split outputs into chunks of at most",
+            "                    # VLLM_V1_OUTPUT_PROC_CHUNK_SIZE, so that we don't block the",
+            "                    # event loop for too long.",
+            "                    engine_core_outputs = outputs.outputs",
+            "                    for start in range(0, num_outputs, chunk_size):",
+            "                        end = start + chunk_size",
+            "                        outputs_slice = engine_core_outputs[start:end]",
+            "                        # 2) Process EngineCoreOutputs.",
+            "                        processed_outputs = output_processor.process_outputs(",
+            "                            outputs_slice, outputs.timestamp, iteration_stats"
+          ]
+        }
+      ]
+    },
+    "v1/engine/core.py": {
+      "sha256": "268bf40534a853812867ae8e80040f190983cb364b41182b55969aace20c93f5",
+      "slices": [
+        {
+          "first": 224,
+          "last": 233,
+          "lines": [
+            "        self.request_block_hasher: Callable[[Request], list[BlockHash]] | None = None",
+            "        if vllm_config.cache_config.enable_prefix_caching or kv_connector is not None:",
+            "            caching_hash_fn = get_hash_fn_by_name(",
+            "                vllm_config.cache_config.prefix_caching_hash_algo",
+            "            )",
+            "            init_none_hash(caching_hash_fn)",
+            "",
+            "            self.request_block_hasher = get_request_block_hasher(",
+            "                hash_block_size, caching_hash_fn",
+            "            )"
+          ]
+        },
+        {
+          "first": 484,
+          "last": 484,
+          "lines": [
+            "        self.scheduler.add_request(request)"
+          ]
+        },
+        {
+          "first": 980,
+          "last": 1002,
+          "lines": [
+            "    def preprocess_add_request(self, request: EngineCoreRequest) -> tuple[Request, int]:",
+            "        \"\"\"Preprocess the request.",
+            "",
+            "        This function could be directly used in input processing thread to allow",
+            "        request initialization running in parallel with Model forward",
+            "        \"\"\"",
+            "        # Note on thread safety: no race condition.",
+            "        # `mm_receiver_cache` is reset at the end of LLMEngine init,",
+            "        # and will only be accessed in the input processing thread afterwards.",
+            "        if self.mm_receiver_cache is not None and request.mm_features:",
+            "            request.mm_features = self.mm_receiver_cache.get_and_update_features(",
+            "                request.mm_features",
+            "            )",
+            "",
+            "        req = Request.from_engine_core_request(request, self.request_block_hasher)",
+            "        if req.use_structured_output:",
+            "            # Note on thread safety: no race condition.",
+            "            # `grammar_init` is only invoked in input processing thread. For",
+            "            # `structured_output_manager`, each request is independent and",
+            "            # grammar compilation is async. Scheduler always checks grammar",
+            "            # compilation status before scheduling request.",
+            "            self.structured_output_manager.grammar_init(req)",
+            "        return req, request.current_wave"
+          ]
+        },
+        {
+          "first": 1754,
+          "last": 1759,
+          "lines": [
+            "                    # Deserialize the request data.",
+            "                    request: Any",
+            "                    if request_type == EngineCoreRequestType.ADD:",
+            "                        req: EngineCoreRequest = add_request_decoder.decode(data_frames)",
+            "                        try:",
+            "                            request = self.preprocess_add_request(req)"
+          ]
+        }
+      ]
+    },
+    "v1/engine/__init__.py": {
+      "sha256": "4e59828787634123026a6b424f48c21d691913dd338b59dd13f25fa260f2284b",
+      "slices": [
+        {
+          "first": 188,
+          "last": 193,
+          "lines": [
+            "    @classmethod",
+            "    def new_event(",
+            "        cls, event_type: EngineCoreEventType, timestamp: float | None = None",
+            "    ) -> \"EngineCoreEvent\":",
+            "        timestamp = time.monotonic() if timestamp is None else timestamp",
+            "        return cls(event_type, timestamp)"
+          ]
+        },
+        {
+          "first": 279,
+          "last": 281,
+          "lines": [
+            "    def __post_init__(self):",
+            "        if self.timestamp == 0.0:",
+            "            self.timestamp = time.monotonic()"
+          ]
+        }
+      ]
+    },
+    "v1/engine/output_processor.py": {
+      "sha256": "e47b86cd69ce1c1e3f53dac655eaa75c32a4057d10f4a1db16bb83a397f2a329",
+      "slices": [
+        {
+          "first": 186,
+          "last": 186,
+          "lines": [
+            "        self.stats = RequestStateStats(arrival_time=arrival_time) if log_stats else None"
+          ]
+        },
+        {
+          "first": 279,
+          "last": 279,
+          "lines": [
+            "            arrival_time=request.arrival_time,"
+          ]
+        },
+        {
+          "first": 659,
+          "last": 690,
+          "lines": [
+            "        for engine_core_output in engine_core_outputs:",
+            "            req_id = engine_core_output.request_id",
+            "            req_state = self.request_states.get(req_id)",
+            "            if req_state is None:",
+            "                # Ignore output for already-aborted request.",
+            "                continue",
+            "",
+            "            # 1) Compute stats for this iteration.",
+            "            self._update_stats_from_output(",
+            "                req_state, engine_core_output, engine_core_timestamp, iteration_stats",
+            "            )",
+            "",
+            "            new_token_ids = engine_core_output.new_token_ids",
+            "            pooling_output = engine_core_output.pooling_output",
+            "            finish_reason = engine_core_output.finish_reason",
+            "            stop_reason = engine_core_output.stop_reason",
+            "            kv_transfer_params = engine_core_output.kv_transfer_params",
+            "            ec_transfer_params = engine_core_output.ec_transfer_params",
+            "            if engine_core_output.routed_experts is not None:",
+            "                req_state.routed_experts_chunks.append(",
+            "                    engine_core_output.routed_experts",
+            "                )",
+            "",
+            "            if req_state.is_prefilling:",
+            "                if engine_core_output.prefill_stats is not None:",
+            "                    req_state.num_cached_tokens = (",
+            "                        engine_core_output.prefill_stats.num_cached_tokens",
+            "                    )",
+            "                    req_state.num_cache_creation_tokens = (",
+            "                        engine_core_output.prefill_stats.num_cache_creation_tokens",
+            "                    )",
+            "                req_state.is_prefilling = False"
+          ]
+        }
+      ]
+    },
+    "v1/core/sched/scheduler.py": {
+      "sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "slices": [
+        {
+          "first": 600,
+          "last": 600,
+          "lines": [
+            "        scheduled_timestamp = time.monotonic()"
+          ]
+        },
+        {
+          "first": 2255,
+          "last": 2259,
+          "lines": [
+            "        # Create EngineCoreOutputs for all clients that have requests with",
+            "        # outputs in this step.",
+            "        engine_core_outputs = {",
+            "            client_index: EngineCoreOutputs(outputs=outs)",
+            "            for client_index, outs in outputs.items()"
+          ]
+        },
+        {
+          "first": 2485,
+          "last": 2496,
+          "lines": [
+            "            if request.resumable:",
+            "                request.streaming_queue = deque()",
+            "            self._enqueue_waiting_request(request)",
+            "            self.requests[request.request_id] = request",
+            "            if self.spec_decode_metrics_level != \"none\":",
+            "                request.spec_decode_metrics = RequestSpecDecodeMetrics.new(",
+            "                    self.num_spec_tokens",
+            "                )",
+            "            if self.connector is not None:",
+            "                self.connector.on_new_request(request)",
+            "            if self.log_stats:",
+            "                request.record_event(EngineCoreEventType.QUEUED)"
+          ]
+        }
+      ]
+    },
+    "v1/request.py": {
+      "sha256": "da610d5203e72d2d524adc5fb39df11502a23520f2f31d9a44cf13d343f9c25d",
+      "slices": [
+        {
+          "first": 219,
+          "last": 224,
+          "lines": [
+            "        self.block_hashes: list[BlockHash] = []",
+            "        # Store the block hasher without binding self to avoid creating a",
+            "        # reference cycle (Request -> partial -> Request) that prevents",
+            "        # immediate garbage collection via reference counting.",
+            "        self._block_hasher: Callable[[Request], list[BlockHash]] | None = block_hasher",
+            "        self.update_block_hashes()"
+          ]
+        },
+        {
+          "first": 280,
+          "last": 281,
+          "lines": [
+            "        if self._block_hasher is not None:",
+            "            self.block_hashes.extend(self._block_hasher(self))"
+          ]
+        }
+      ]
+    },
+    "v1/metrics/stats.py": {
+      "sha256": "af1983ddc32fa4d3284e72212c6525daf961dd84429023a02d612b68b3112cf3",
+      "slices": [
+        {
+          "first": 224,
+          "last": 230,
+          "lines": [
+            "    # This is an engine frontend timestamp (wall-clock)",
+            "    arrival_time: float = 0.0",
+            "",
+            "    # These are engine core timestamps (monotonic)",
+            "    queued_ts: float = 0.0",
+            "    scheduled_ts: float = 0.0",
+            "    first_token_ts: float = 0.0"
+          ]
+        },
+        {
+          "first": 427,
+          "last": 453,
+          "lines": [
+            "class IterationStats:",
+            "    \"\"\"Stats associated with a single set of EngineCoreOutputs.\"\"\"",
+            "",
+            "    def __init__(self):",
+            "        self.iteration_timestamp = time.time()",
+            "        self.num_generation_tokens = 0",
+            "        self.prompt_token_stats = PromptTokenStats()",
+            "        self.num_preempted_reqs = 0",
+            "        self.finished_requests: list[FinishedRequestStats] = []",
+            "        self.max_num_generation_tokens_iter: list[int] = []",
+            "        self.n_params_iter: list[int] = []",
+            "        self.time_to_first_tokens_iter: list[float] = []",
+            "        self.inter_token_latencies_iter: list[float] = []",
+            "        self.num_corrupted_reqs: int = 0",
+            "",
+            "    def __repr__(self) -> str:",
+            "        field_to_value_str = \", \".join(f\"{k}={v}\" for k, v in vars(self).items())",
+            "        return f\"{self.__class__.__name__}({field_to_value_str})\"",
+            "",
+            "    @property",
+            "    def num_prompt_tokens(self) -> int:",
+            "        \"\"\"Total prompt tokens (for backward compatibility).\"\"\"",
+            "        return self.prompt_token_stats.total",
+            "",
+            "    def _time_since(self, start: float) -> float:",
+            "        \"\"\"Calculate an interval relative to this iteration's timestamp.\"\"\"",
+            "        return self.iteration_timestamp - start"
+          ]
+        },
+        {
+          "first": 467,
+          "last": 473,
+          "lines": [
+            "        if is_prefilling:",
+            "            if output.prefill_stats is not None:",
+            "                self.prompt_token_stats.update_from_output(output.prefill_stats)",
+            "",
+            "            first_token_latency = self._time_since(req_stats.arrival_time)",
+            "            self.time_to_first_tokens_iter.append(first_token_latency)",
+            "            req_stats.first_token_latency = first_token_latency"
+          ]
+        },
+        {
+          "first": 497,
+          "last": 499,
+          "lines": [
+            "        # Process the batch-level \"new tokens\" engine core event",
+            "        if is_prefilling:",
+            "            req_stats.first_token_ts = engine_core_timestamp"
+          ]
+        },
+        {
+          "first": 518,
+          "last": 525,
+          "lines": [
+            "        for event in events:",
+            "            if event.type == EngineCoreEventType.QUEUED:",
+            "                req_stats.queued_ts = event.timestamp",
+            "                lora_states.request_waiting(req_id, lora_name)",
+            "            elif event.type == EngineCoreEventType.SCHEDULED:",
+            "                if req_stats.scheduled_ts == 0.0:  # ignore preemptions",
+            "                    req_stats.scheduled_ts = event.timestamp",
+            "                lora_states.request_running(req_id, lora_name)"
+          ]
+        },
+        {
+          "first": 542,
+          "last": 551,
+          "lines": [
+            "        # Queued interval is from first QUEUED event to first SCHEDULED",
+            "        queued_time = req_stats.scheduled_ts - req_stats.queued_ts",
+            "",
+            "        # Prefill interval is from first SCHEDULED to first NEW_TOKEN",
+            "        # Any preemptions during prefill is included in the interval",
+            "        prefill_time = req_stats.first_token_ts - req_stats.scheduled_ts",
+            "",
+            "        # Decode interval is from first NEW_TOKEN to last NEW_TOKEN",
+            "        # Any preemptions during decode are included",
+            "        decode_time = req_stats.last_token_ts - req_stats.first_token_ts"
+          ]
+        }
+      ]
+    }
+  }
+}

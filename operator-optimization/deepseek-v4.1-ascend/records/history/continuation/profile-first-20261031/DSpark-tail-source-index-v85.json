@@ -1,0 +1,453 @@
+{
+  "source_files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "bytes": 89106,
+      "archive_member": "vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "clauses": [
+        {
+          "first": 852,
+          "last": 856,
+          "source": [
+            "        return normalized, normalized.float()",
+            "",
+            "    @staticmethod",
+            "    def hc_collapse(x, pre_mix):",
+            "        return (pre_mix.unsqueeze(-1) * x.float()).sum(-2).to(x.dtype)"
+          ]
+        },
+        {
+          "first": 974,
+          "last": 988,
+          "source": [
+            "        self.hc_mult = config.hc_mult",
+            "        spec_config = vllm_config.speculative_config",
+            "        needs_mtp_hidden_states = spec_config is not None and (",
+            "            spec_config.use_eagle() or spec_config.uses_draft_model()",
+            "        )",
+            "        self._mtp_hidden_buffer = (",
+            "            torch.empty(",
+            "                vllm_config.scheduler_config.max_num_batched_tokens,",
+            "                self.hc_mult * config.hidden_size,",
+            "                dtype=vllm_config.model_config.dtype,",
+            "                device=self.device,",
+            "            )",
+            "            if get_pp_group().is_last_rank and needs_mtp_hidden_states",
+            "            else None",
+            "        )"
+          ]
+        },
+        {
+          "first": 1554,
+          "last": 1564,
+          "source": [
+            "        last_layer = None",
+            "        aux_hidden_states = []",
+            "        for layer in self.layers:",
+            "            last_layer = layer",
+            "            # DSpark consumes the residual stream entering its configured",
+            "            # target layers. The runner expresses checkpoint IDs as one-based.",
+            "            if layer.layer_idx + 1 in self.aux_hidden_state_layers:",
+            "                aux_hidden_state = hidden_states.mean(dim=1)",
+            "                if use_sequence_parallel:",
+            "                    aux_hidden_state = sp_all_gather(aux_hidden_state)[:full_num_tokens]",
+            "                aux_hidden_states.append(aux_hidden_state)"
+          ]
+        },
+        {
+          "first": 1592,
+          "last": 1608,
+          "source": [
+            "            hidden_states, pre_mix = layer(positions, hidden_states, pre_mix, None, input_ids=input_ids)",
+            "        assert last_layer is not None, \"Hyper-connection collapse requires at least one decoder layer\"",
+            "        # MTP needs full HC states",
+            "        if self._mtp_hidden_buffer is not None:",
+            "            if use_sequence_parallel:",
+            "                hidden_states = sp_all_gather(hidden_states)[:full_num_tokens]",
+            "                pre_mix = sp_all_gather(pre_mix)[:full_num_tokens]",
+            "            num_tokens = hidden_states.shape[0]",
+            "            self._mtp_hidden_buffer[:num_tokens].copy_(hidden_states.flatten(1))",
+            "",
+            "        hidden_states = last_layer.hc_collapse(hidden_states, pre_mix)",
+            "        if use_sequence_parallel and self._mtp_hidden_buffer is None:",
+            "            hidden_states = sp_all_gather(hidden_states)[:full_num_tokens]",
+            "        hidden_states = self.norm(hidden_states)",
+            "        if aux_hidden_states:",
+            "            return hidden_states, aux_hidden_states",
+            "        return hidden_states"
+          ]
+        },
+        {
+          "first": 1798,
+          "last": 1802,
+          "source": [
+            "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:",
+            "        \"\"\"Pre-hc_head residual stream buffer (max_num_batched_tokens,",
+            "        hc_mult * hidden_size) for the MTP draft model. Populated by",
+            "        forward(); valid after each target step.\"\"\"",
+            "        return getattr(self.model, \"_mtp_hidden_buffer\", None)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+      "sha256": "bb98a2e2a0e24c18aafe17229eb593937aaed2e37c1fd7cc2003c45ce872d282",
+      "bytes": 12094,
+      "archive_member": "vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+      "clauses": [
+        {
+          "first": 277,
+          "last": 287,
+          "source": [
+            "    def compute_logits(self, hidden_states: torch.Tensor) -> torch.Tensor | None:",
+            "        return self.language_model.compute_logits(hidden_states)",
+            "",
+            "    def get_expert_mapping(self) -> list[tuple[str, str, int, str]]:",
+            "        return self.language_model.get_expert_mapping()",
+            "",
+            "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:",
+            "        return self.language_model.get_mtp_target_hidden_states()",
+            "",
+            "    def set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:",
+            "        self.language_model.set_aux_hidden_state_layers(layers)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "bytes": 319391,
+      "archive_member": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "clauses": [
+        {
+          "first": 750,
+          "last": 766,
+          "source": [
+            "        if self.speculative_config:",
+            "            spec_token_num = self.speculative_config.num_speculative_tokens",
+            "            assert spec_token_num > 0",
+            "            self.decode_token_per_req = 1 + spec_token_num",
+            "            if get_pp_group().is_last_rank:",
+            "                self.drafter = self._get_drafter()",
+            "                if self.speculative_config.method == \"eagle3\":",
+            "                    assert isinstance(self.drafter, AscendEagleProposer)",
+            "                    self.use_aux_hidden_state_outputs = self.drafter.eagle3_use_aux_hidden_state",
+            "                elif self.speculative_config.method == \"extract_hidden_states\":",
+            "                    assert isinstance(self.drafter, AscendExtractHiddenStatesProposer)",
+            "                    self.use_aux_hidden_state_outputs = True",
+            "                elif self.speculative_config.use_dspark():",
+            "                    assert isinstance(self.drafter, AscendDSparkProposer)",
+            "                    self.use_aux_hidden_state_outputs = True",
+            "                self.rejection_sampler = AscendRejectionSampler(",
+            "                    self.sampler, self.speculative_config, self.device"
+          ]
+        },
+        {
+          "first": 2052,
+          "last": 2092,
+          "source": [
+            "            # Let the target override the hidden state fed to the drafter",
+            "            # (e.g. DeepSeek V4 MTP needs the pre-hc_head residual). Safe to",
+            "            # rebind here: hidden_states was already consumed for sampling",
+            "            # above and is not used again in this branch.",
+            "            mtp_hidden_states = getattr(",
+            "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None",
+            "            )()",
+            "            if self.speculative_config.method == \"mtp\" and mtp_hidden_states is not None:",
+            "                hidden_states = mtp_hidden_states",
+            "",
+            "            num_rejected_tokens_gpu = None",
+            "            if spec_decode_metadata is None:",
+            "                token_indices_to_sample = None",
+            "                # input_ids can be None for multimodal models.",
+            "                target_token_ids = self.input_ids.gpu[:num_scheduled_tokens]",
+            "                target_positions = self._get_positions(num_scheduled_tokens)",
+            "                if self.use_aux_hidden_state_outputs:",
+            "                    target_hidden_states = torch.cat([h[:num_scheduled_tokens] for h in aux_hidden_states], dim=-1)",
+            "                else:",
+            "                    target_hidden_states = hidden_states[:num_scheduled_tokens]",
+            "            else:",
+            "                if self.vllm_config.speculative_config.disable_padded_drafter_batch:",
+            "                    token_indices_to_sample = None",
+            "                    assert self.drafter is not None",
+            "                    common_attn_metadata, token_indices = self.drafter.prepare_inputs(",
+            "                        common_attn_metadata, sampled_token_ids, spec_decode_metadata.num_draft_tokens",
+            "                    )",
+            "                else:",
+            "                    assert self.drafter is not None",
+            "                    common_attn_metadata, token_indices, token_indices_to_sample, num_rejected_tokens_gpu = (",
+            "                        self.drafter.prepare_inputs_padded(",
+            "                            common_attn_metadata, spec_decode_metadata, valid_sampled_tokens_count",
+            "                        )",
+            "                    )",
+            "                target_token_ids = self.input_ids.gpu[token_indices]",
+            "                target_positions = self._get_positions(token_indices)",
+            "                if self.use_aux_hidden_state_outputs:",
+            "                    target_hidden_states = torch.cat([h[token_indices] for h in aux_hidden_states], dim=-1)",
+            "                else:",
+            "                    target_hidden_states = hidden_states[token_indices]",
+            "            assert self.drafter is not None"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/config/speculative.py",
+      "sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "bytes": 87011,
+      "archive_member": "vllm/vllm/config/speculative.py",
+      "clauses": [
+        {
+          "first": 1909,
+          "last": 1913,
+          "source": [
+            "    def use_eagle(self) -> bool:",
+            "        # NOTE: This method is usually a stand-in for \"speculative decoding using",
+            "        # target model hidden states\"",
+            "        # TODO(ben): Refactor this so the naming is clearer",
+            "        return self.method in (\"eagle\", \"eagle3\", \"mtp\", \"dflash\", \"dspark\")"
+          ]
+        },
+        {
+          "first": 1922,
+          "last": 1929,
+          "source": [
+            "    def use_dspark(self) -> bool:",
+            "        return self.method == \"dspark\"",
+            "",
+            "    def uses_dynamic_speculative_decoding(self) -> bool:",
+            "        return self.num_speculative_tokens_per_batch_size is not None",
+            "",
+            "    def uses_draft_model(self) -> bool:",
+            "        return self.method == \"draft_model\""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/worker/gpu_model_runner.py",
+      "sha256": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51",
+      "bytes": 340999,
+      "archive_member": "vllm/vllm/v1/worker/gpu_model_runner.py",
+      "clauses": [
+        {
+          "first": 5207,
+          "last": 5229,
+          "source": [
+            "            # Let the target override the hidden state fed to the drafter",
+            "            # (e.g. DeepSeek V4 MTP needs the pre-hc_head residual). Safe to",
+            "            # rebind here: hidden_states was already consumed for sampling",
+            "            # above and is not used again in this branch.",
+            "            alt = getattr(",
+            "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None",
+            "            )()",
+            "            if alt is not None:",
+            "                hidden_states = alt",
+            "",
+            "            num_rejected_tokens_gpu = None",
+            "            if spec_decode_metadata is None:",
+            "                token_indices_to_sample = None",
+            "                # input_ids can be None for multimodal models.",
+            "                target_token_ids = self.input_ids.gpu[:num_scheduled_tokens]",
+            "                target_positions = self._get_positions(num_scheduled_tokens)",
+            "                if self.use_aux_hidden_state_outputs:",
+            "                    assert aux_hidden_states is not None",
+            "                    target_hidden_states = torch.cat(",
+            "                        [h[:num_scheduled_tokens] for h in aux_hidden_states], dim=-1",
+            "                    )",
+            "                else:",
+            "                    target_hidden_states = hidden_states[:num_scheduled_tokens]"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "bytes": 140692,
+      "archive_member": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "clauses": [
+        {
+          "first": 1048,
+          "last": 1077,
+          "source": [
+            "        # Dynamic SD may schedule K == 0 draft tokens for the current batch",
+            "        # size. Return an empty [batch_size, 0] draft so downstream copy/unpack",
+            "        # paths (which key off ``draft_token_ids.shape[1]``) stay consistent.",
+            "        # Mirrors vLLM's llm_base_proposer._propose empty-draft early return.",
+            "        if self.num_speculative_tokens == 0:",
+            "            return torch.empty(",
+            "                batch_size,",
+            "                0,",
+            "                device=target_token_ids.device,",
+            "                dtype=torch.int64,",
+            "            )",
+            "",
+            "        if token_indices_to_sample is None:",
+            "            token_indices_to_sample = common_attn_metadata.query_start_loc[1:] - 1",
+            "",
+            "        if self.method in (\"eagle3\", \"dflash\", \"dspark\"):",
+            "            model = self.model",
+            "            if isinstance(model, BreakableACLGraphWrapper):",
+            "                model = model.unwrap()",
+            "            assert isinstance(model, _HIDDEN_STATE_DRAFTER_TYPES)",
+            "            target_hidden_states = cast(_HiddenStateDrafter, model).combine_hidden_states(target_hidden_states)",
+            "            assert target_hidden_states.shape[-1] == self.hidden_size",
+            "",
+            "        num_tokens, token_indices_to_sample, common_attn_metadata, long_seq_args = self.set_inputs_first_pass(",
+            "            target_token_ids=target_token_ids,",
+            "            next_token_ids=next_token_ids,",
+            "            target_positions=target_positions,",
+            "            target_hidden_states=target_hidden_states,",
+            "            token_indices_to_sample=token_indices_to_sample,",
+            "            cad=common_attn_metadata,"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+      "sha256": "fcee256905928917154d8dac94d6611bb83d02da441e8aa154a525ef51e6a601",
+      "bytes": 25784,
+      "archive_member": "vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+      "clauses": [
+        {
+          "first": 281,
+          "last": 282,
+          "source": [
+            "    def combine_hidden_states(self, aux_hidden_states: torch.Tensor) -> torch.Tensor:",
+            "        return self.main_norm(self.main_proj(aux_hidden_states))"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+      "bytes": 20230,
+      "archive_member": "vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "clauses": [
+        {
+          "first": 257,
+          "last": 259,
+          "source": [
+            "        self._context_slot_mapping_buffers = None",
+            "        self._dflash_num_context = int(cad.query_start_loc_cpu[batch_size])",
+            "        self._dflash_hidden_states[: self._dflash_num_context] = target_hidden_states[: self._dflash_num_context]"
+          ]
+        }
+      ]
+    }
+  ],
+  "original_archive": {
+    "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-sources.zip",
+    "sha256": "ce1c110c6a558c4ce736495fb843312571a9510a5755f20b0576a3018d9570b9"
+  },
+  "symbol_reference_inventory": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "line": 2057,
+      "source": "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/worker/gpu_model_runner.py",
+      "line": 5212,
+      "source": "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "line": 979,
+      "source": "        self._mtp_hidden_buffer = ("
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "line": 1595,
+      "source": "        if self._mtp_hidden_buffer is not None:"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "line": 1600,
+      "source": "            self._mtp_hidden_buffer[:num_tokens].copy_(hidden_states.flatten(1))"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "line": 1603,
+      "source": "        if use_sequence_parallel and self._mtp_hidden_buffer is None:"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "line": 1798,
+      "source": "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "line": 1802,
+      "source": "        return getattr(self.model, \"_mtp_hidden_buffer\", None)"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+      "line": 283,
+      "source": "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+      "line": 284,
+      "source": "        return self.language_model.get_mtp_target_hidden_states()"
+    }
+  ],
+  "exact_named_search_scope": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot",
+  "search_is_not_framework_catalog_audit": true,
+  "saved_runtime_script": {
+    "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/original-profile-cache-v53/runtime/scripts/serve.sh",
+    "sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
+    "bytes": 2311,
+    "selected_arguments": {
+      "spec_method": "dspark",
+      "num_speculative_tokens": 5,
+      "max_num_batched_tokens": 8192,
+      "TP": 8
+    }
+  },
+  "reused_local_operator_reader_files": 8,
+  "new_target_source_files_obtained": 0,
+  "new_remote_source_read": false,
+  "overall_complete": false,
+  "prior_installed_symbol_inventory": {
+    "input_receipts": [
+      {
+        "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F26-consumer-contract-v11.json",
+        "bytes": 5023,
+        "sha256": "3a715af45b8a0e145f9553df11a14a4a38cb890204a27592164b1abdb190da83"
+      },
+      {
+        "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/installed-fullhc-consumers166-v11.json",
+        "bytes": 18276,
+        "sha256": "28d204f460bfd53d7721b285c82de51ba01bded38560faa405eb3e069606ccd8"
+      }
+    ],
+    "matches": 90,
+    "matched_files": 26,
+    "roots": [
+      "/vllm-workspace/vllm",
+      "/vllm-workspace/vllm-ascend",
+      "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/instrumentation"
+    ],
+    "partial_frozen_inventory_is_not_a_replacement": true,
+    "alternative_paths_to_preserve": [
+      "Ascend method == mtp",
+      "GPU v1 unconditional consumer",
+      "GPU v2 model_runner and speculator callers",
+      "Ascend worker/v2/model_runner.py getter caller",
+      "other models or external/public getter observers"
+    ],
+    "limits": [
+      "Exact symbol references in declared installed source roots, not proof against arbitrary dynamic reflection or external clients.",
+      "Source matching the recorded version defines the stated program contract, not every historical loaded byte or tensor alias value.",
+      "No source is executed/imported; stdlib Python is only used to search/hash text."
+    ]
+  },
+  "frozen_reference_inventory_scope": "4 files /10 references within partial frozen snapshot; not full installed-source coverage or a new all-reader proof."
+}

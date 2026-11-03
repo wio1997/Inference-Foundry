@@ -1,0 +1,116 @@
+{
+  "generated_utc": "2026-10-31T10:19:57.060581+00:00",
+  "source_pins": {
+    "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/compute_slot_mapping.py": "f349fdd683bc36ef3f13b78b91c0e84b930d4850f172220e2627e5ea98de996b",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/worker/block_table.py": "215305c699a9df9c118f47c6f7b71d8457ef54e98b5b8571536fd373de7b21ed",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/spec_decode/utils.py": "f3c121111d07f08d0de0498faa64529700dd6089ff7e46303eecf4947e516a95",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/utils.py": "94a569fa2b54fcd206d6992c29e13a852ee5f6596d6d483fd4a33ca182c3f1f7",
+    "/vllm-workspace/vllm/vllm/v1/worker/gpu_model_runner.py": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51"
+  },
+  "evidence_refs": [
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M21-slot166-v38-v2.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M21-profile-selected-slot-and-rejected-input-contract-v38-v2.json",
+      "sha256": "bbf9bf76d3c88431895e7d7d03e7f193e48618e644ef564f3bf80c5beaf79b86"
+    },
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M21-state166-v38.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M21-slot-helper-ownership-and-rejection-state-v38.json",
+      "sha256": "6b4a5a6a169fc05ac039d83b77188b050577a29cf74ec7a9b5c3efd42c7e423b"
+    },
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M21-native166-v37.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M21-allrank-input-and-attention-metadata-native-scope-v37.json",
+      "sha256": "8d8115d611461fdc669c627b2bd062bb00ed9410197e57815d12d12974dfe5cd"
+    }
+  ],
+  "profile_positive": {
+    "ordinary_slot": {
+      "chain": "9dcba1bc2f537f68199920e0f6a14959a68f181f6e1d9053afa9e92ee7fbad44",
+      "TASKs": 24,
+      "token_extents": {
+        "6400": 8,
+        "6528": 8,
+        "6668": 8
+      }
+    },
+    "adaptive_slot": {
+      "chain": "48f262051bfd7484de921099633ebd2ca2cad63b7bad9b6d4f50df0c9f3222f8",
+      "TASKs": 64,
+      "token_extents": {
+        "12": 16,
+        "24": 48
+      }
+    },
+    "padded_selector": {
+      "chain": "140f15f5cbce2071e43f8dfc37b70696a55765344ada4b1ccd7546ccced19746",
+      "TASKs": 72,
+      "request_extents": {
+        "2": 16,
+        "4": 56
+      }
+    }
+  },
+  "facts": [
+    {
+      "grade": "MEASURED",
+      "statement": "Ordinary24/adaptive64 kernel calls have13-entry UINT64 block-table and slot-output pointer arrays. These are address arrays; their typed output is not a 13-element logical slot vector or measured slot-write byte count."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "BlockTable gate requires more than one active group and dcp_world_size==1 for every active group. Fused path also requires no compressed positions/request-index lists. Pointer arrays own distinct group tables/output addresses plus group strides/block sizes/circular flags; max output extent comes from first active table. Fallback per-group/Mamba/compressed branches are separate."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Existing implementation already fuses groups in one launch and selects ordinary versus adaptive request tiles. Tile starts from capped1024, uses power-of-two average request length with minimum16; ordinary parallel tiles cap4 with special1/2-request policy. Adaptive runs one group/request program and chooses small tile versus1024 by actual request length. These are existing behavior, not new optimization gains."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Both kernels reserve a program per group to write PAD_ID through [num_tokens,max_num_tokens). Active rows load QSL/positions, cast positionsINT32, compute group-specific block page/remainder, gather block numbers through a window, then write INT32 slot IDs to dereferenced group buffers. Circular groups force page0 and negative positions to PAD_ID."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Block numbers are loaded asINT32, converted toFP32 for tl.gather, then converted backINT32 before block_size multiplication. Direct integer lookup must preserve baseline rounding or prove representable IDs. Window sizing assumes appropriate page-span/address bounds; no unsupported layout change or current bug is inferred."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Adaptive helper has generic CP mapping, but its selected fused callers pass TOTAL_CP_WORLD_SIZE=1. CP>1 fallback mapping is not established by the selected fused ancestry and must retain its separate interleave/rank ownership domain."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "Padded-input kernel72calls already emits both rejection count and selector from cumulative draft counts,INT64 valid counts,QSL. It does not compact rejected queries: original token arange,QSL,positions,slot mapping and sequence-length banks pass through; both CPU sequence-length mirrors are retained. The no-blocking-CPU comment does not make CPU shape/item work an NPU synchronization."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Previous-batch correction gathers valid count,old computed state,previous draft count at max(prev_position,0), then uses participating=(prev_position>=0)&(previous_draft>0). It commits computed prefix and accepted counts only after these gather temporaries exist. A naive in-place fused row update can race with other old-row readers."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Normal worker position path derives int64(computed[req_indices])+query_pos; seq_len=computed+scheduled and tail fill0. Existing CP rebuild/positions-ready alternatives bypass the normal position expression and cannot be silently replaced by it."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Input-ID packing waits pending PP receive, preserves no-prev normal CPU input/optional embeds upload, current→previous row map,new/prefill rows,optional is_token_ids refresh,existing contiguous no-spec fastpath,live sampled IDs and flattened draft IDs. General path constructs four index arrays and scatters sampled before draft IDs withINT32 conversion."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_DERIVED",
+      "statement": "Draft metadata performs consecutive input_ids[logits_indices] then that temporary[target_logits_indices+1]. On valid baseline index domains and stable input/indices, compose the row indices to avoid the intermediate gathered ID vector. Preserve dtype/order/bounds/error domain; count all checks/launch savings only after measurement."
+    },
+    {
+      "grade": "UNKNOWN",
+      "statement": "Actual pointer/content equality across groups,old-state alias epochs,tail first/last readers,critical-path/physical traffic andnew tiling cost are not proved by these profiles. They are explicit conditions of the scoped opportunities, not automatic demands for implementing a kernel before recording analysis."
+    }
+  ],
+  "local_questions_closed": [
+    "Existing group fusion/adaptive policy and typed pointer-array meaning",
+    "Exact fused slot active/tail/circular/dcp1 behavior",
+    "Padded rejection formula and retained input banks",
+    "Previous-batch remap read-before-write contract",
+    "General input-ID packing and composed draft gather"
+  ],
+  "no_implementation": true,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

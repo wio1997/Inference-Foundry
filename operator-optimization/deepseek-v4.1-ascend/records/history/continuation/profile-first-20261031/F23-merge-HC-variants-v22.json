@@ -1,0 +1,102 @@
+{
+  "generated_utc": "2026-10-31T03:28:33.870191+00:00",
+  "variants": [
+    {
+      "id": "F23-V22-A",
+      "arity": "TWO_OPERATORS",
+      "graph": "ForeachAddList -> HcPost",
+      "state": "CONDITIONAL_CANDIDATE",
+      "domain": "Final shared/routed add inputs are ready; all post-add transformations are identity or included; BF16 merge rounding and HC semantics/consumers preserved.",
+      "open": [
+        "Native HC exact contract/tiling",
+        "Aliases/generations/all consumers",
+        "External tile readiness and resource limits"
+      ]
+    },
+    {
+      "id": "F23-V22-B",
+      "arity": "THREE_OPERATORS",
+      "graph": "SharedDown -> ForeachAddList -> HcPost",
+      "state": "CONDITIONAL_CANDIDATE",
+      "domain": "Routed final output and HC residual/coefficients ready; preserve shared down dequantization/scales/output rounding, then plain-add BF16 rounding and HC order.",
+      "open": [
+        "Shared/routed finalization and row mapping",
+        "Down output contract and consumers",
+        "Native capacity and numerical compatibility"
+      ]
+    },
+    {
+      "id": "F23-V22-C",
+      "arity": "MULTI_OPERATOR_REORGANIZATION",
+      "graph": "Routed finalization + shared pipeline + merge + HC with a changed producer order",
+      "state": "CONDITIONAL_DOMAIN_ONLY",
+      "domain": "Allows changing producer schedule/communication boundary rather than pretending current MC2 epilogue can wait on later same-order work.",
+      "open": [
+        "New order/ready/progress protocol",
+        "Runtime reduction, row domain, native resource and numeric contracts",
+        "Graph lifetimes"
+      ]
+    },
+    {
+      "id": "F23-V22-D",
+      "arity": "RESTRICTED_UPSTREAM_EPILOGUE",
+      "graph": "Put merge into MC2 completion; retain current MC2 -> SharedDown producer-order edges",
+      "state": "EXCLUDED_IN_STATED_DOMAIN",
+      "domain": "Conditional DAG has MC2_COMPLETE -> SharedDown -> MC2_COMPLETE cycle.",
+      "open": [
+        "Does not exclude a redesigned kernel or changed order."
+      ]
+    },
+    {
+      "id": "F23-V22-E",
+      "arity": "NUMERICAL_REWRITE",
+      "graph": "Delete BF16 merge/scaling boundaries or replace both by one high-precision expression",
+      "state": "UNCONDITIONAL_IDENTITY_REJECTED_IN_EXPLICIT_ARITHMETIC_MODEL",
+      "domain": "N22-A/B finite FP32/BF16-RNE model; actual native binary/effective gamma/reachable input domain unbound.",
+      "open": [
+        "Accepted tolerance or independently proved exact domain may allow a conditional change."
+      ]
+    },
+    {
+      "id": "F23-V22-F",
+      "arity": "EXISTING_LEGACY_BRANCH",
+      "graph": "tuple muls_add / FP16 reciprocal path -> conditional collective -> HC",
+      "state": "SEPARATE_SOURCE_DOMAIN;NOT_CAPTURED_FOREACH_GRAPH",
+      "domain": "Reuse prior tuple contracts, not a new fusion or current alpha formula.",
+      "open": [
+        "Actual legacy-domain invocation and native contract if that domain is later in scope."
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "kind": "requires",
+      "a": "F23-V22-A/B",
+      "b": "Correct post-hook and row-domain finalization plus BF16 boundaries",
+      "evidence": "merge-to-HC-contract-v22.json"
+    },
+    {
+      "kind": "conflicts",
+      "a": "F23-V22-D",
+      "b": "Unchanged current MC2->SharedDown producer order",
+      "evidence": "merge-rounding-and-dependency-review-v22.json"
+    },
+    {
+      "kind": "interacts",
+      "a": "F20/F21 backend/placement/reduction domain",
+      "b": "F22/F23 final inputs and resource schedule",
+      "evidence": "F20-F23-shared-overlap-domains-v21.json"
+    },
+    {
+      "kind": "requires",
+      "a": "Any cross-layer extension",
+      "b": "F03/F26 ffn_pre, Engram and auxiliary consumer contracts",
+      "evidence": "F26-consumer-contract-v11.json"
+    }
+  ],
+  "new_main_candidate_ids": false,
+  "implementation": false,
+  "legal_native_fusion_proved": false,
+  "measured_gain": null,
+  "overall_complete": false
+}

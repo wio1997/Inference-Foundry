@@ -1,0 +1,90 @@
+{
+  "id": "F29_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "DSPARK_SHARED_KV",
+  "original_node_mapping": {
+    "proj": "proj",
+    "norm": "norm",
+    "rope": "rope",
+    "cat": "cat",
+    "slots": "slots",
+    "scatter": "scatter"
+  },
+  "nodes": [
+    {
+      "id": "proj",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "cat",
+      "kind": "COPY_OR_VIEW",
+      "resource": "NPU"
+    },
+    {
+      "id": "slots",
+      "kind": "SLOT_FIXUP",
+      "resource": "NPU"
+    },
+    {
+      "id": "scatter",
+      "kind": "PERSISTENT_SCATTER",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "proj",
+      "consumer": "norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rope",
+      "consumer": "cat",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cat",
+      "consumer": "scatter",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "slots",
+      "consumer": "scatter",
+      "value": "validated physical slots",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "context",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

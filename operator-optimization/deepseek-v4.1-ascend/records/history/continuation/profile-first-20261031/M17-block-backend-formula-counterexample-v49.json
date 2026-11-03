@@ -1,0 +1,132 @@
+{
+  "generated_utc": "2026-10-31T14:51:56.783624+00:00",
+  "evidence_grade": "DERIVED_FROM_HASH_MATCHED_SOURCE_AND_EXACT_RATIONAL_ALGEBRA",
+  "evidence": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-pytorch-fallback-source-v49.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/M17-kernel166-v33.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/M17-source166-v33-v2.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-current-probability-and-guard-scope-v33.json"
+  ],
+  "historical_inputs": [
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M17-kernel166-v33.json",
+      "sha256": "ed669841238cff307310da1686d41a663cca4e3233017e649f6a9c4c46a2272d",
+      "historical_manifest_match": true
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M17-source166-v33-v2.json",
+      "sha256": "74c57807e87af16e5c9e64764eda21a80e2c6045eeeffccf41103d66016b8b50",
+      "historical_manifest_match": true
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-current-probability-and-guard-scope-v33.json",
+      "sha256": "79ca04635e0ac0ba909de23decd9406438ecb3437684e9eeea6dd925d22e1a39",
+      "historical_manifest_match": true
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-probability-consumer-and-RNG-contract-v33.json",
+      "sha256": "c4f689121b597dacb2b9b94783d64417629cb46787aa61d165b4cc1200a067c7",
+      "historical_manifest_match": true
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-probability-branch-ledger-v33.json",
+      "sha256": "9dca186a2160991abaf268c67e7bc154ebb367d89dee36041c23f17a24179dda",
+      "historical_manifest_match": true
+    }
+  ],
+  "formulas": {
+    "Triton": "b0=1;bi=min(b(i-1)*ri,1)",
+    "PyTorch": "ai=product(j<=i,min(rj,1))",
+    "uniform": "ci=product(j<=i,uj);last=max{i:prefix_i>=ci},or-1"
+  },
+  "witness": {
+    "scope": "DERIVED_EXACT_RATIONAL_SOURCE_FORMULAS;NO_TORCH_TRITON_OR_DEVICE_EXECUTION",
+    "flags": {
+      "non_greedy": true,
+      "entropy_verify": false,
+      "synthetic": false,
+      "placeholders": false
+    },
+    "draft_probs": [
+      [
+        "1/2",
+        "1/2"
+      ],
+      [
+        "1/2",
+        "1/2"
+      ]
+    ],
+    "target_probs": [
+      [
+        "1/4",
+        "3/4"
+      ],
+      [
+        "0",
+        "1"
+      ]
+    ],
+    "draft_token_ids": [
+      0,
+      1
+    ],
+    "selected_ratios": [
+      "1/2",
+      "2"
+    ],
+    "uniform_probs": [
+      "9/10",
+      "9/10"
+    ],
+    "triton_prefix": [
+      "1/2",
+      "1"
+    ],
+    "pytorch_prefix": [
+      "1/2",
+      "1/2"
+    ],
+    "cumulative_uniform": [
+      "9/10",
+      "81/100"
+    ],
+    "triton_last_accepted": 1,
+    "pytorch_last_accepted": -1,
+    "bonus_token_id": 0,
+    "supplied_recovery_ids": [
+      1,
+      1
+    ],
+    "recovery_consistency": "For these distributions ordinary positive-residual recovery has only vocabulary1positive in either row;any finite positive request exponential values select1.",
+    "triton_logical_output": [
+      0,
+      1,
+      0
+    ],
+    "pytorch_logical_output": [
+      1,
+      -1,
+      -1
+    ],
+    "interpretation": "Both inputs are normalized valid two-vocabulary distributions. A later Triton ratio>1can restore cumulative acceptance;clipping each factor first cannot. This rejects unconditional backend unification,not current workload correctness.",
+    "floating_native_execution_or_bitwise_equivalence_tested": false
+  },
+  "finite_checks": {
+    "cases": 6174,
+    "differing_last_accepted": 214,
+    "all_ratios_at_most1_cases_equal": 1884,
+    "does_not_estimate_runtime_frequency": true
+  },
+  "general_domain_proof": "For finite nonnegative ratios,induction gives ai<=bi:ri<=1multiplies both;ri>1leaves ai unchanged while min(bprev*ri,1)>=bprev>=aprev. With the same thresholds,the PyTorch accepted-position set is a subset and its last position cannot exceed Triton. This is real arithmetic,not a floating-point reordering certificate.",
+  "sufficient_equality_domain": "All ri<=1 gives identical real prefixes. In NO_DRAFT_PROBS mode q=1and normalized finite selected probabilities satisfy this;also require no placeholder and matching uniform/entropy values. F64/F32 and reduction-order distinctions remain.",
+  "placeholder_distinction": "Triton placeholder=-1sets cumulative pi=0and skips that uniform update. PyTorch substitutes safe token0forgather,still multiplies its probability/uniform,and only masks that position. A later accepted position may publish the earlier placeholder as part of the prefix. This matters only if a placeholder occurs inside the declared valid span;no such live input is asserted.",
+  "exclusions": [
+    "No zero/negative/nonfinite draft denominator or probability reassociation is covered by the real-positive-domain identity.",
+    "Uniforms enter PyTorch asFLOAT64butTritoncaller castsFLOAT32;even otherwise equal real formulas need their own native numerical contract.",
+    "No current non-greedy/block/fallback runtime occurrence or defect inferred from this counterexample."
+  ],
+  "implemented": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

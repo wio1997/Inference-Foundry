@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_b99f0cfe-5b22-433c-a525-9752cfcb00e0",
+  "traceId": "9061c7f4-52b9-40fc-af4c-eb256d7e360c",
+  "turnId": "turn_b3de6923-7d7d-4cdc-a802-ae73a53e93d7",
+  "response": "## 结论\n\n指定的只读轮询已执行一次并成功返回（`returncode=0`，无 stderr、无超时）。控制器 PID/starttime 存活校验通过，采集已完成，诊断容器干净退出、原容器已重新 running；未见任何 controller 错误或终止证据。目前 controller 停在 `PROFILE_COLLECTED_PENDING_ANALYSIS`，属于采集完成后的原服务恢复等待阶段，`restore-result.json` / `controller-finished.json` 尚未落盘，因此还不能宣称恢复闭环，但绝不是终止。\n\n本次未重启、未重复 launch、未 kill、未改远端任何内容；只执行了该只读轮询，唯一新增是 `remote_run.py` 本地回执 `host-profile-poll166-v12-06.json`。\n\n## 1. 轮询回执\n\n- 回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-poll166-v12-06.json`\n- 远端检查时刻 `checked_utc`：2026-10-30T21:42:20.817161Z；轮询耗时约 65 s，没有触发 180 s 超时。\n- v12-06 与 v12-05（21:39:55Z 检查）除 `checked_utc` 外内容逐字段完全一致；即约 2 分 25 秒内状态无变化。\n\n## 2. 控制器 PID/starttime 存活（已确认）\n\n- `run_id`：`hostprof-20261030T212812Z-360e0c72`\n- PID：`1351606`\n- `/proc/1351606/stat` 中 starttime：`862458845`\n- 进程状态：`S`（可中断睡眠），`controller_live_verified_by_pid_start = true`\n- 控制器启动：2026-10-30T21:30:08.516Z，检查时已存活约 12.2 分钟\n- 部署控制器 SHA256 `107b8714e924ef47cd5655cfec96a6e539cda82c56601949a128544b21c25b57` 与本机 `host_profile_controller166_v12.py` 完全一致\n- 脚本对 `host-profile-latest.json` 的 `run_id == EXPECTED` 断言通过\n\n## 3. Controller 状态\n\n- `controller-state.json`：`PROFILE_COLLECTED_PENDING_ANALYSIS`，写入时间 2026-10-30T21:37:42.548746Z，`process_pid=1351606`，与 v12-05 相同、未再更新。\n- `controller-finished.json`、`controller-error.json`、`top-level-error.json`、`restore-result.json` 均不存在。\n- 对照控制器源码，`PROFILE_COLLECTED_PENDING_ANALYSIS` 是在 `finally` 进入恢复流程前写出的状态；随后恢复函数会停诊断容器、启动原 BASE、等待 `/health` 且指标 idle、校验 NPU ownership 与 serve SHA，成功后才写 `restore-result.json` 和状态 `RESTORED`，最后写 `controller-finished.json`。因此当前缺失这些文件与“处于恢复等待”一致。\n- 该等待有界：`wait_health` 超时 2400 s（40 分钟），controller 总时限 3600 s（60 分钟）。观察点距状态写入仅 4 分 38 秒，远未触及上限。仅凭状态停留或单次观察超时都不能判为终止。\n\n## 4. 容器状态（诊断 / 原容器）\n\n- 原容器 `wio-vllm-v41-repro166-20261030`：id `8757dcc7a2f8db672bbf6ddfc1ed29e6cff74d5dd89199770b7b6f3b27fd48e3`，`running=true`、`status=running`、`exit_code=0`。\n- 诊断克隆 `wio-vllm-v41-hostprof-20261030T212812Z-360e0c72`：id `7514283edf388d5a31bb556c382c98ea66d5f08f48ee8244d38341feedeb0dab`，`status=exited`、`exit_code=0`（干净退出）。\n- `diagnostic-identity.json` 中 clone id 与 baseline id 均与上表一致，镜像 `sha256:ce42d65b...` 一致；原 BASE 在 v12-02～v12-04 期间为 exited，v12-05 起已 running，说明恢复启动已发生，尚待健康/ownership 完成确认。\n\n## 5. 采集结果与 profiler flags\n\n- 三个客户端阶段 `warmup` / `baseline` / `profile` 均为 `valid: true`；profile 窗口齐全：`initial` 与 `later_decode_candidate`。\n- 每阶段计数一致：8 个请求成功、0 preemption、prefix cache 查询 262144 / 命中 235904、生成 8192 tokens；profil 阶段 spec draft/accepted = 8765/6453，baseline 8785/6449，warmup 8725/6462。\n- 元数据事件：`installed` 16、`execute_enter` 3712、`execute_exit` 3712、`profiler_created` 16，enter/exit 配平；元数据总字节 4,217,731，每文件 ≤64 MiB 断言通过。\n- 生效 profiler flags（16 个 rank 均记录）：`with_stack=true`、`record_shapes=true`、`max_iterations=3`；`activities`、`with_modules`、`profile_memory`、`experimental_config`、`trace_handler` 保持原 factory 设置。注意 `object_attributes` 读回为 null（对象不暴露这些属性），有效 flag 的证据来自 factory 强制 kwargs 日志，不是属性回读。\n- 导出物：`trace-inventory.json` 记录 32 个 trace roots；`capture-index.json` 总字节 3,853,367,778（约 3.59 GiB），并明确 `complete_semantic_coverage_proved=false`、`no_speedup_claim=true`。\n\n## 6. 错误\n\n- 轮询本身及 controller：无错误。poll stderr 为空，controller stderr 尾为空，无 `controller-error.json` / `top-level-error.json`。\n- 诊断服务日志尾部在 21:37:45Z（状态写入 `PROFILE_COLLECTED_PENDING_ANALYSIS` 之后约 3 秒、`docker stop` 期间）出现 `EngineDeadError: EngineCore encountered an issue`，其前有 engine manager stopped、向 `VLLM_DP_Coordinator` 发 SIGTERM 的 shutdown 日志；随后还有 16 个 leaked semaphore、20 个 leaked shared_memory 的退出警告。诊断容器 exit code 为 0、三个客户端阶段均已 valid、profile 在 EXPORT_WAIT 后完成，因此这组错误定位为有序关停时的 shutdown 竞争/退出噪声，不是采集失败。\n- 限制：poll 只读取了 `service.log` 末尾 5000 字节，`EngineDeadError` 指向的根因栈在该窗口之上，本次未观察到；没有额外发起远端读取。原 BASE 的 `/health` 与 idle 指标也尚未由 controller 落盘确认（`restore-result.json` 缺失），当前只能确认其 Docker 状态为 running。\n\n## 7. 状态判定\n\n已确认：控制器存活（PID 1351606 / starttime 862458845，状态 S）、采集完成且数据配平、诊断容器 exit 0、原容器已 running。当前唯一未闭环项是 controller 的恢复健康/ownership 确认尚未写入 `restore-result.json` 和 `controller-finished.json`。这不是终止信号，也不构成重启、重复 launch 或 kill 的理由；后续只应继续只读轮询确认该恢复回执，不应对现有进程做任何操作。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 15,
+    "inputTokens": 349845,
+    "outputTokens": 14164,
+    "totalTokens": 364009,
+    "cacheReadTokens": 316544,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 11528,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 364009,
+    "contextUsed": 46293,
+    "contextWindow": 200000
+  }
+}

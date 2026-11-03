@@ -1,0 +1,124 @@
+{
+  "id": "F24_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ENGRAM",
+  "original_node_mapping": {
+    "hash": "hash",
+    "lookup": "lookup",
+    "ready": "ready",
+    "rows": "rows"
+  },
+  "nodes": [
+    {
+      "id": "hash",
+      "kind": "STATEFUL_HASH",
+      "resource": "CPU"
+    },
+    {
+      "id": "lookup",
+      "kind": "MAPPED_HOST_LOOKUP",
+      "resource": "CPU"
+    },
+    {
+      "id": "ready",
+      "kind": "EVENT",
+      "resource": "CPU_NPU"
+    },
+    {
+      "id": "rows",
+      "kind": "ROW_VIEW_OR_SHARD",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "hash",
+      "consumer": "lookup",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "lookup",
+      "consumer": "ready",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ready",
+      "consumer": "rows",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "tokens",
+      "consumer": "hash",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "rows",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v30": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v30.json#F24",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-lookup-publication-and-gate-contract-v30.json",
+    "variants": [
+      {
+        "id": "F24-v30-EXISTING",
+        "state": "ALREADY_IMPLEMENTED",
+        "change": "UVAhostgather+dequant,request-indexhoist,all-layerhash/sharedDPgather.",
+        "requires": "Do notcountthesecurrentmechanismsasnewgain."
+      },
+      {
+        "id": "F24-v30-PREZERO",
+        "state": "LOCAL_FULLWRITE_QUESTION_CLOSED;CONDITIONAL_CANDIDATE",
+        "change": "Omit176lookup-prezerooperationsinthecurrentfullwriteUVApath.",
+        "requires": "Currentlaunch/layout,all-elements-store,noearlyobserverandvalidcapture/allocatorABI;retainotherzeros/backends."
+      },
+      {
+        "id": "F24-v30-ROW-HEAD-EXCHANGE",
+        "state": "DERIVED_CONDITIONAL_REORGANIZATION",
+        "change": "TPheadAllGather+SProwshard->destination-row/headAlltoAll+localpublication.",
+        "requires": "DP/TProwgroupmapping,allconsumers,capturebankABI/per-layerreadyandidenticalpadding/headtrim."
+      },
+      {
+        "id": "F24-v30-DIRECT-PUBLISH",
+        "state": "CONDITIONAL_FUSION_OR_LAYOUT",
+        "change": "Lookup/exchangewritesconsumer-readybankoracceptsstride-awareIDs;avoidintermediatecontiguous/transpose/copywhenownershipallows.",
+        "requires": "Sourcegeneration/strides,registeredhostlifetime,heads/rowslayout,unchangedallliveviews/tails/lastread;currentTP1DP1directshortcutalreadyexists."
+      },
+      {
+        "id": "F24-v30-HISTORY",
+        "state": "CONDITIONAL_CROSS_ITERATION_STATE",
+        "change": "Useexisting/changedsufficientlookbackpublicationtoavoidunneededslotcachewrites/readbacks.",
+        "requires": "Wholelifetimehistorycoverage,accepted/rollback/remap/deadsemanticsandnoothercacheobserver;88currentwritesremainnecessaryunlessprovedotherwise."
+      },
+      {
+        "id": "F24-v30-PIPELINE",
+        "state": "CONDITIONAL_SPLIT_SCHEDULING",
+        "change": "Tile/pipelinehash,registeredhostlookup,DP/TPexchangeandper-layerready.",
+        "requires": "Dependency/tilevisibility/hostregistration/bandwidthcontracts;preservegroupcollectiveparticipationandearlylayerpublication."
+      },
+      {
+        "id": "F24-v30-EXCLUDED",
+        "state": "EXCLUDED_AS_BLANKET_REWRITE",
+        "change": "Dedupcurrent/lookbackmasks,dropall-deadrankcollectives,skipdummy/tailpublicationorcachewritebywindowwidthalone.",
+        "reason": "Differentinputs,stateobserversandgroup/protocoleffectsaredistinguishable."
+      }
+    ],
+    "conditions": 18,
+    "implementation": false,
+    "new_performance_result": false
+  }
+}

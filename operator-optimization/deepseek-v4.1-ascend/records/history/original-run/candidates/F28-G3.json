@@ -1,0 +1,63 @@
+{
+  "id": "F28_G3",
+  "source_template_path": "graphs/source-templates-G3.json",
+  "nodes": [
+    {
+      "id": "embedding",
+      "kind": "EMBEDDING",
+      "resource": "NPU"
+    },
+    {
+      "id": "repeat",
+      "kind": "HC_REPEAT_AND_INIT",
+      "resource": "NPU"
+    },
+    {
+      "id": "block0",
+      "kind": "DECODER_OPAQUE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "embedding",
+      "consumer": "repeat",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "repeat",
+      "consumer": "block0",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "tokens",
+      "consumer": "embedding",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "kv_state",
+      "consumer": "block0",
+      "value": "relevant cached context subranges",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing."
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "block0",
+      "consumer": "block1",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "runner_binding": "SUPPORTED_IN_STATED_BRANCHES",
+  "consumer_completeness": "UNKNOWN",
+  "semantic_equivalence_or_savings_proven": false,
+  "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Preserve KV state, complete numerical semantics, all consumers and actual stream order."
+}

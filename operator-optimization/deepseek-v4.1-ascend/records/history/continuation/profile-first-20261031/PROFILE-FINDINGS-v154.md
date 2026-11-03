@@ -1,0 +1,17 @@
+本轮补齐F03与F28/F29/F30/F35四项条件组合，并深化F03/F26：draft初始化/上下文、层间Post→Pre、末端collapse/norm/confidence及目标采样的行需求。F03与其它34项主候选均已有有范围的条件分析，整个候选和整体目标仍未完成。
+
+104组draft调用关联312条层内attention Post→FFN Pre、208条跨层FFN Post→下一attention Pre，以及24组目标模型末端路径，共3064个原生任务。source ancestry为16组DUMMY、88组PROPOSE，不是正式client phase。draft repeat和head norm有10/20个全局query行，HC/Post通常只有2/3个owner行，必须保留shard/padding/transport映射，不能按相同H5120当同一输入。
+
+初始draft embedding四通道重复、first premix onehot只在该初始化域成立。之后Post使用完整16个resmix与4个postmix FLOAT参数、产生逐通道舍入的BF16 raw；构造反例中，舍入前rank≤2而BF16结果rank4，不能直接用线性低秩因子替代下一Pre要读的raw值。这不排除保留原始因子并逐通道忠实重算。
+
+一个新的有条件表示方案是保留原始E_BF16、每次attention/FFN更新向量及每次完整Post参数，消费时按原顺序恢复每次BF16舍入。仅算这些公开输入，深度d的内容为2H(d+1)+80d B/row，另有实际scratch/math-state/consumer ABI等S_other。H5120时，raw4H为40960B/row；d1为20560B、d2为30880B、d3已到41200B。当前draft owner通常仅2/3行，不能把此每行参考放大成目标模型的大缓冲收益。原CANN消费者仍需GM raw时可能重新需要完整scratch；新tile/encoded消费者、重复计算、参数及输入延长生存期、精度/副作用/错误/进展都待证明。这里不是实际分配量或通用存储下界。
+
+上下文使用目标模型特定进入层的aux mean，经main projection/norm和各draft层Wkv/norm/C/S/slots；query使用draft embedding/current HC/input norm。早期context预计算和延迟到context/query联合投影会改变不同bank的最后读者，不能同时领取彼此冲突的退休收益。目标weighted Y、末端norm、aux mean、draft raw collapse和confidence输入也不因H相同而可复用。
+
+末端draft最后Post没有凭空出现的下一Pre：它进入collapse，原始collapsed BF16仍可能供confidence读取，head RMS是另一份值。当前Markov seed来自先前sampler-derived IDs，proposal keep、下一次target verification接受结果及next seed属于不同代次；后来的confidence/keep不能回头裁掉产生它的当前非因果decoder或metadata。104次head RMS本身不证明confidence启用或关闭，None-metadata zero分支另留。
+
+24组target末端保留完整G×4H MTP snapshot和48条通信控制证据；其中cached native-API没有linked TASK不表示没有通信，raw connection族仍有168条控制成员，不能晋升为唯一Compute角色。后续collapse/norm可在实际U行及全部读者合同成立时选择较少行，同时保留完整raw snapshot。512个接口用例将裁剪与剩余接口融合做一次集合计价，保留抽象raw-collapsed读者与有序重复head K行；draft confidence是此类raw读者的例子，没有声称target存在同一confidence分支。12288个独立回溯图再次表明，前面各层需要的是query/KV/state/aux传递闭包，不只是末端head U/K。
+
+条件关系208→212，待核对387→383，联合组26。F01/F02/F03各34个有范围的伙伴不证明所有变体或融合实现成立。原9类/1352次COMPUTE操作数、849个PMU缺口、16个phase未绑定图、3136项归属歧义、G14拷贝/同步范围及全模块物理容量/MFU/最低利用率均未关闭；整模块关闭0。下一步优先审计能改变融合合法性和物理上限结论的关键原生证据，保留其余383项关系与全体分支范围。没有新增服务器或设备运行。
+
+本轮同时把上一轮post-verifier的T变量覆盖错误登记入Run历史：保留原sealed153文件，独立153p修正版已PASS446521；它是本地校验脚本失败，不是native算子失败。本轮新校验使用独立TASK_DIR/LOOP_DIR变量。

@@ -1,0 +1,75 @@
+{
+  "fullrow_scale_witness": {
+    "shard_maxima": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      64.0
+    ],
+    "one_global_scale": 0.5039370078740157,
+    "global_quantized_values": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      127
+    ],
+    "independently_quantized_shard_values": [
+      127,
+      127,
+      127,
+      127,
+      127,
+      127,
+      127,
+      127
+    ],
+    "scope": "Eight positive shard maxima;arithmetic reference,not native input replay. Values lie strictly inside the clamp-related activation magnitude envelope;this is not proof of a captured full-model input. A per-shard scale changes full-I quantization."
+  },
+  "early_BF16_partial_witness": {
+    "partial_INT32_dots": [
+      257,
+      -256
+    ],
+    "common_effective_scale": 1.0,
+    "full_sum_then_BF16": 1.0,
+    "BF16_partials_then_BF16_sum": 0.0,
+    "realizability": "257=16*16+1*1;-256=(-16)*16,remaining integer dot terms zero. Abstract valid INT8 dot/scale witness,not a captured model tensor. Extrazero-weight q127 can set a legal rowmax without changing dot.",
+    "implication": "BF16 ReduceScatter of separately rounded partial Down results is not generally identical to current full INT32-dot→dequant→BF16 contract."
+  },
+  "conventional_INT32_domain": {
+    "K_up": 5120,
+    "K_down": 2304,
+    "max_abs_INT8_product": 16384,
+    "full_up_bound": 83886080,
+    "full_down_bound": 37748736,
+    "INT32max": 2147483647,
+    "proof": "Triangle bound applies to every subset/intermediate reduction of at mostK terms;no INT32 overflow in this bias-free conventional dot domain. Does not prove loadednative algorithm or FP32 dequant sequence."
+  },
+  "precision_preserving_graph": [
+    "Construct TP-sharded GateUp/Down weights with correct gated-half/output-column packing;owner/checkpoint/capture contracts must change consistently.",
+    "Quantize each original full-H input row once, optionally gather its INT8 values+FLOATrowScale instead of BF16;retain exact quantizer and all BF16 readers.",
+    "Compute paired local GateUp columns in INT32, apply the original FP32 dequant/clamped activation, then all-reduce full-row amax across I-shards before original INT8 rounding.",
+    "Compute rawINT32 partial Down dots;integerSUM ReduceScatter before any FP32 dequant or BF16round. Owner applies original common scale/dequant ordering and one BF16round.",
+    "Join routed branch and execute original BF16merge/HC rounds with full rowmaps, output masks and stream/rank generations."
+  ],
+  "gates": [
+    "New raw-INT32 Down accumulator/output interface;current BF16-output ABI is not a drop-in.",
+    "Native dequant operation/order,rounding/NaN/zero/amax and stored BF16weight-scales must match. RawINT32 integer-domain proof alone is insufficient.",
+    "INT32SUM ReduceScatter and FLOATMAX AllReduce legality/capture/native collective contracts not attested by this proposed graph.",
+    "If sharedgroup has uneven validrows/padding,prove validN/P owner map and preserve padding/fulloutput contracts rather than assumeN=P*m.",
+    "No all-rank parameteridentity,exactloadedquantizer,actualnetworkuppercapacity or speedup proof."
+  ],
+  "status": "CONDITIONAL_OPERATOR_REPARTITION_AND_SYMBOLIC_CEILING",
+  "implementation": false,
+  "native_test": false,
+  "overall_complete": false,
+  "prepublication_review": "Genericquantizationwitness100 tightened to64strictlyinterior toclamp-related magnitudeenvelope. No fullmodel/nativeinputrealizabilityclaimed."
+}

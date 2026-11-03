@@ -1,0 +1,19 @@
+本轮优先补原生实参缺口的取证边界，未再扩展假设性融合候选。上一轮v124的源码分支与G9图是实质进展；已用修正版v124b复核通过190项，保留原封存核验脚本的变量名冲突和修复记录。本轮不修改历史结论，也没有新的服务器、Torch、NPU、模型或服务操作。
+
+对32份缓存原始profiler数据库重新核对SHA、只读打开并验证stat未变，逐一复查原9类/1352次待补任务。正确关联链是PYTORCH_API.connectionId→CONNECTION_IDS.id→CONNECTION_IDS.connectionId→TASK.connectionId；CANN_API使用runtime connection namespace。不能直接把framework group ID与runtime ID数值相等当作关联，也没有用最近时间、同名或同shape补齐缺失关联。
+
+结果明确分成两条不同取证路径：1272次MemSet全部是eager任务，modelId为UINT32_MAX，每次都能精确关联到CPU backend aclnnConstantPadNd以及CANN launch。这个结果保留已有的Pad owner结论，但调用栈不包含原生destination、length、写重叠或workspace/payload身份，仍不能据此删除某个MemSet helper。只在NPUGraph完成后枚举graph tasks的方案，会漏掉全部七类待补MemSet，不能作为这部分原始证据的完整采集方案。
+
+另80次BOOL[24] ZerosLike均为捕获图任务；原数据库找不到与它们runtime connection匹配的CPU producer。不存在的CPU关联并不表示没有算子工作，也不能用replay时附近的CPU初始化替代capture时的字段身份。这里真正需要的是原capture-creation/value/storage及后续参数update epoch与全读者信息，而不只是再打开with_stack或按replay任务名查询。
+
+已核对所有16条CPU BOOL[24] aten::zeros_like：其叶栈都是dsa_v41.py第1342行build_c2_metadata。冻结源码对应skip_ring_update分支中的complete=torch.zeros_like(complete)，随后写入持久C2 complete-mask bank。沿嵌套aclnnInplaceZero的实际connection group继续关联，它们恰好指向16个不同的eager native任务，与80个待补graph任务的精确键交集为0。
+
+数据库0给出一个具体误关联反例：该CPU complete-mask初始化关联eager TASK row817/globalTaskId811；原待补BOOL对应捕获图TASK row880/globalTaskId5535。两者同为BOOL[24]、相似ZerosLike名字，但不是同一算子值。这个CPU栈能够解释自己的调用来源，不能据此宣称原prefix BOOL字段已经定案，更不能删除原图中的初始化或忽略其读者。
+
+另一个真实碰撞出现在display modelId：先前自己的Pad小探针debug dump也为modelId49，而80个原待补graph BOOL任务也都使用数值49，来自原16个进程。新probe的进程14525与原763/764等进程和采集时间均不同。modelId不是跨进程/跨run全局唯一ID，更不是modelRI handle；至少要同时保留host/run/process/rank/device、capture及update epoch、stream/task等身份，不能把新探针的32B写范围带入原图。
+
+先前Pad探针还有一个实际接口事实：五个成功的kernel GetParams查询全部isHostArgs=0。返回的是设备侧参数地址与metadata，不能把opaque地址交给ctypes.string_at当主机包读取，argsSize也不是写长度。既有debug dump及有界32B source-span证明仍只属于自己的那次捕获。此处没有新增参数解引用、device-to-host复制或探针，也没有把已消耗的Pad授权当成新的授权。
+
+本轮据此更新了当前方法表：eager MemSet需要同调用launch/argument/provider/分配与读写生命周期证据；captured BOOL需要capture-creation和具体字段/storage/update/读者证据。只重采普通profile/callstack或只采graph参数都不足。下一步先准备能覆盖这两类的定点取证入口；若必须新增设备窗口，应先形成可审查、有限范围的采集器，再请求相应授权。目前没有新的device permission等待回复，也没有启动模型采集。
+
+前置5565项精确关联核验通过；初始两个本地慢查询尝试已中止并保留记录，改为每库一次批量lookup后完成。所有旧1352任务的destination/length/BOOL-field/readers仍为未知，9类pending没有被提升或关闭。35模型候选、7历史框架记录、358语义行/26模块、135条件关系/26联合组/460待核对pair、部分图854/1346/48、849缺PMU、16 phase未绑定图及3136含糊归属均保持，整模块关闭0。这里的进展是已用完整现存profile证据修正后续采集路线、排除了具体的错误字段绑定；整体目标仍未完成。

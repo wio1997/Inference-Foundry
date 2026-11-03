@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_2f735c37-ee54-4982-886c-88d9e19c978e",
+  "traceId": "96cd9eb6-5cec-4d8e-9bae-bc3489eff864",
+  "turnId": "turn_cafa32af-9113-4fcf-8e16-cc18360140ce",
+  "response": "已只读读取两个文件（未修改/创建任何文件，未联网、未接触服务器/NPU/权重/请求）。以下为摘录。\n\n## 1. MC2 同 scope 相对 SparseFlashMla 的比较次数\n\n按 `MIX-AIC-IN-SCOPE-COMPARISON.md` 中「同一 EP/digest/layer scope 内、CSV 报 `Accelerator Core=MIX_AIC`」的配对口径：\n\n| 指标 | MC2 较低的 scope 数 | 分母 | 其余 |\n|---|---:|---:|---:|\n| AIC | 1,219 | 1,280 | 61 个 scope 为 MC2 更高（文件明确“比较的每一项没有相等值”，1,280−1,219=61 为算术导出） |\n| AIV | 1,280 | 1,280 | 0 |\n\n即 AIV 维度上，这批配对中 MC2 的周期加权导出比例在**全部 1,280 个 scope 都严格低于** SparseFlashMla 的同 scope 聚合；AIC 维度有 61 个 scope 例外。文件同时记录：四个 digest 各 320 个 scope（320 = 8 EP × 40 层，与 16rank 文件的“每卡 80 scope × 16 卡 = 1,280”算术对齐，此对齐为我的推导）。同文件的其他比较对象：HcPre 1,213/1,280（AIC）、1,280/1,280（AIV）；QuantBatchMatmulV3 1,253/1,280、1,280/1,280；VllmAscendQuantLightningIndexerV2 222/256、256/256。\n\n字段差异需注意：MC2、HcPre、SparseFlashMla、Indexer 的 `Block Num`/`Mix Block Num` 均为 24/48；QuantBatchMatmulV3 为 24/24。文件明确这两个字段的版本定义未核实，不能当作实际参与的 AIC/AIV 物理核数。\n\n## 2. 32 个 rank/digest 组的占比情况\n\n按 `16RANK-SELECTED-DEVICE-TIME-COVERAGE.md` 的「本卡 trace 设备时间上所选任务区间并集」口径：**32/32 组中 MC2（`DispatchFFNCombine`）都是该口径下并集最长的单个已选类型**，每组恰好 40 条 MC2。\n\n| digest | EP 数 | MC2/所选并集 最低 | 中位 | 最高 |\n| --- | ---: | ---: | ---: | ---: |\n| `1b826883…` | 8 | 82.92% | 83.18% | 85.03% |\n| `7ddf7ae9…` | 8 | 40.44% | 57.09% | 82.96% |\n| `8c18c293…` | 8 | 90.66% | 90.75% | **90.79%** |\n| `db852bff…` | 8 | 42.15% | 44.43% | 76.27% |\n\n32 组整体占比最高的是 `8c18c293…` 组中的一个 EP（90.79%）；文件只给出该 digest 的 min/median/max，**未写明 90.79% 对应哪个 EP 编号**，因此不能说它等于正文点名的 EP9。\n\n组内长尾方面：各组最长单条占该组 40 条 MC2 时长之和的 3.70%–18.18%，无单条超过一半。占比最低的是 EP3/`7ddf7ae9`（MC2 最短/最长 1.536/4.183 ms，最长是第 20 层，占该组 MC2 时长和 4.09%）；单条份额最高的是 EP9/`8c18c293`（最短/最长 11.252/273.565 ms，最长是第 0 层，占 18.17%——注意正文前句写区间上界 18.18%，此处写 18.17%，文件内部这两个数值不一致，摘录保留原样）。各组任务数约 1579–1980。`7ddf7ae9` 同组分母差异明显，EP3 为 252.624 ms，另一个 EP 最高 1273.8 ms。\n\n## 这些结果不能证明什么\n\n文件自身限定的边界，均为口径性事实：\n\n- **两个文件的分母都不是设备忙碌时间。** MIX 的数是任务级 `total_cycles × ratio` 的加权算术字段，不是模块全时窗利用率，也不覆盖该类核心的全部计算操作；AIC 与 AIV 分母各自独立，不能相加成总利用率。16rank 的数是“已选任务区间并集”，不是墙钟、关键路径、纯计算或纯通信时间。\n- **比较不是等量比较。** 跨算子的计算量、数据量、时长、任务数、内部通信都不同，1,219/1,280 只表示“同 scope 内周期加权导出比例更低”，不是性能更差或效率更低的证明；1,280 个 scope 不是 1,280 次独立实验，32 个组也不是 32 次独立服务实验。\n- **不能归因。** MIX 文件明确不能把低比例归因于通信等待、调度、缓存或算子缺陷，也不表明整个设备空闲，更不能得出模型或整卡范围内的最低模块。16rank 文件明确 MC2 是复合任务，占比高不能断言通信等待或计算是根因，也不能把 digest/卡间差异解释为卡性能或可达提速，273.565 ms 仅是这一次 profiler 导出的单条设备任务记录。\n- **覆盖不全。** 两文件都只统计已选中/已关联任务：非选中流、缺失或不可关联事件不在分母（每卡 2445–2448 条 `EVENT WAIT`/`EVENT RECORD` 因无 CSV 行未入榜，另有每卡 240 条 device X 缺名称或 task 身份，均为 80 scope 汇总、非每组 40 scope 的确切数）。区间交集为零与“无跨 scope 重复”只在已选记录、同卡导出时间坐标内成立，不能排除未选流或完整请求时间窗重叠。\n\n因此，这两个文件能支持的事实限于：在这批冻结的 16rank 提取数据里，MC2 在同 scope 的 AIC/AIV 周期加权导出比例上低于 SparseFlashMla（AIV 全部、AIC 绝大多数），且在 32/32 组的已选设备区间并集中是最长类型；这构成继续调查 MC2 内部执行的线索，不构成通信根因、模块最低利用率或线上收益的结论。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 30812,
+    "outputTokens": 4272,
+    "totalTokens": 35084,
+    "cacheReadTokens": 18560,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3979,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 35084,
+    "contextUsed": 16407,
+    "contextWindow": 200000
+  }
+}

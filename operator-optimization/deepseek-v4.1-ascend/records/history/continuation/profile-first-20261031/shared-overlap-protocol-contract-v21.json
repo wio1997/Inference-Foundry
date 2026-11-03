@@ -1,0 +1,23 @@
+{
+  "generated_utc": "2026-10-31T02:59:42.599304+00:00",
+  "source_refs": [
+    {
+      "label": "overlap-guards166-v21",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-guard-sources-v21.json",
+      "sha256": "90bab761f4e18d4742de04b24d2642489b80c3ae416c61e85772c65d003198b7"
+    },
+    {
+      "label": "overlap-protocol166-v21",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-validation-call-and-protocol-v21.json",
+      "sha256": "24f961153530eb47684a3784c8af5c0112706282d5d8c4c7244fcc73ba40116e"
+    }
+  ],
+  "findings": [
+    "SharedVector/input preparation is submitted before theinternalroutermatmul whenearly pathenabled;GateUp waitsrouter_output_ready andissubmittedbeforeTopK/dispatch. FalseflagreturnNone selectsforward528afterrouted.",
+    "W8A8INTsharedactivation waits shared_activation_overlap_start andDownwaitsrouted_combine_start onlywhen fine-grainedroutedstageeventsareexposed;requiredmilestonesmustexistwhenoverlaphelperisactive.",
+    "Fusedrouted stage-comment describeslackingintermediateevents,butcurrentFUSED_MC2=1configurationdisablesoverlap. Commentalone isnotcompatibilityproof.",
+    "Outputjoin isstream-based underopaqueACLGraph customop;SP-only deferredoutput differsfromSEDP/localDP/tensor modes.",
+    "Loadtimeconsistencyhook tests10randomrows in[-1,1]withallclose. Thisread-onlyanalysisneitherexecutedthatcheck norprovedprotectedshape/numeric/async correctness."
+  ],
+  "overall_complete": false
+}

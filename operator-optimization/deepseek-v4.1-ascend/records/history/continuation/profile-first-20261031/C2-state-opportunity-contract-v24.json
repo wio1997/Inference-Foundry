@@ -1,0 +1,188 @@
+{
+  "generated_utc": "2026-10-31T03:59:40.131169+00:00",
+  "status": "FINITE_SOURCE_STATE_AND_CURRENT_PROFILE_DOMAINS_REVIEWED",
+  "findings": [
+    {
+      "id": "C24-1",
+      "grade": "MEASURED",
+      "finding": "All80 current166 graph executions contain exactly one C2 pool/update pair in each structural source block2/8/14:240pairs. They all follow pool->ring_update->pooled512norm on one TASK stream. The only intervening compute between pool and norm is ring_update.192C2blocks are decode-compatible,48 remain phase-unbound.",
+      "evidence": {
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/compressor-boundaries166-v24.json",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/current-compressor-state-and-pool-norm-boundaries-v24.json",
+        "sha256": "b5b12c5860c862c3c824bb2f4e3e805b1fd0fdebf01c3a895beed3d5bace13b4"
+      }
+    },
+    {
+      "id": "C24-2",
+      "grade": "MEASURED",
+      "finding": "Pool->update and update->norm gaps are20ns median; pool->norm median5360ns includes the intervening update. This is recorded ordering,not a necessary dependency,causal critical-path cost or removable time.",
+      "evidence": {
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/compressor-boundaries166-v24.json",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/current-compressor-state-and-pool-norm-boundaries-v24.json",
+        "sha256": "b5b12c5860c862c3c824bb2f4e3e805b1fd0fdebf01c3a895beed3d5bace13b4"
+      }
+    },
+    {
+      "id": "C24-3",
+      "grade": "MEASURED",
+      "finding": "Current native C2 pool/norm callers retain72executions over physical global-cache row regimes6400/6528/6668,24each. Current C1 native norm24 is separate. Do not mix these current166 records with old archived169 C2 scopes96/C1scopes32.",
+      "evidence": [
+        {
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/compressor-boundaries166-v24.json",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/current-compressor-state-and-pool-norm-boundaries-v24.json",
+          "sha256": "b5b12c5860c862c3c824bb2f4e3e805b1fd0fdebf01c3a895beed3d5bace13b4"
+        },
+        "generic-helper-semantic-review-v18.json"
+      ]
+    },
+    {
+      "id": "C24-4",
+      "grade": "DOCUMENTED",
+      "finding": "Pinned pool_projected passes a private FP32 state cache and separate token-aligned BF16 pooled output. Pool reads old ring,update reads FP32 kv/score+metadata and writes ring,norm reads pooled output. Empty helper launch bounds still zero output and return to the caller norm;skip metadata sets used_len0 rather than proving all surrounding work dead.",
+      "evidence": {
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/C2-source166-v24.json",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/C2-pool-ring-norm-and-row-source-contract-v24.json",
+        "sha256": "421aae17d288d7ddaf0630ae625c0454b6db2522806498ec1cabb0e6fcad42d8"
+      }
+    },
+    {
+      "id": "C24-5",
+      "grade": "DERIVED",
+      "finding": "Under disjoint storage and listed-effect contracts,pool->update WAR andpool->norm RAW are necessary,while the intermediate update->norm host-order edge is not. A fork/deferred-update analysis must preserve update completion before future ring readers and before kv/score/metadata reuse. It cannot remove the old-read-before-write constraint.",
+      "evidence": [
+        "C2-ring-observability-integer-review-v24.json",
+        {
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/C2-source166-v24.json",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/C2-pool-ring-norm-and-row-source-contract-v24.json",
+          "sha256": "421aae17d288d7ddaf0630ae625c0454b6db2522806498ec1cabb0e6fcad42d8"
+        }
+      ]
+    },
+    {
+      "id": "C24-6",
+      "grade": "DERIVED",
+      "finding": "For TOKEN_ALIGNED=True,RATIO=2,CACHE_SIZE=32,write start=2q+r. Only local_group0 withr=1 can read history,and its sole old position is2q. Therefore all effective historical ring reads use even absolute positions/even slots. Preserving every even-slot FP32 write and generation preserves future current-helper history values,including rollback,in the stated abstract state domain. Other consumers/state ABI/native binding remain obligations.",
+      "evidence": [
+        "C2-ring-observability-integer-review-v24.json",
+        {
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/C2-source166-v24.json",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/C2-pool-ring-norm-and-row-source-contract-v24.json",
+          "sha256": "421aae17d288d7ddaf0630ae625c0454b6db2522806498ec1cabb0e6fcad42d8"
+        }
+      ]
+    },
+    {
+      "id": "C24-7",
+      "grade": "DERIVED",
+      "finding": "New F34 studies observable-state pruning: omit odd-position maintenance with existing layout,or separately study a16-slot representation. It does not permit retaining only the last token:after processingpositions0..5,a rollback nextstart1needs oldposition0,not latestevenposition4. A consumer of an odd ring entry also distinguishes full andfiltered state,so full-buffer equality and arbitrary-reader domains exclude this rewrite.",
+      "evidence": "F34-C2-ring-observability-candidate-v24.json"
+    },
+    {
+      "id": "C24-8",
+      "grade": "DOCUMENTED",
+      "finding": "The same _pool_kernel already has a nonTOKEN_ALIGNED fused RMS branch. The current wrapper selects TOKEN_ALIGNED=True,passes out as the ignored norm-weight pointer andeps0,and uses token-completion row layout. Flipping that flag alone would expose placeholder weights/epsilon andcompact row addressing;it is not a drop-in existing pool+nativeRMS implementation. Native RMS arithmetic equivalence remains open.",
+      "evidence": {
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/C2-source166-v24.json",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/C2-pool-ring-norm-and-row-source-contract-v24.json",
+        "sha256": "421aae17d288d7ddaf0630ae625c0454b6db2522806498ec1cabb0e6fcad42d8"
+      }
+    },
+    {
+      "id": "C24-9",
+      "grade": "DERIVED",
+      "finding": "Exact graph-root metadata binds64graphs:16 with2requests x6scheduledtokens and48 with4x6. If each corresponding C2 device chunk uses those contiguous n positions,there are2016 pair endpoints across192sourceblocks versus4608physical normrows,fraction7/16. This is conditional schedule arithmetic across rank/graph/source records,not measured valid device rows or a compute/time saving. Invalid pages/slots/skip andpostcorrection metadata remain unobserved.",
+      "evidence": {
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/C2-row-domains166-v24.json",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/C2-exact-graph-schedule-row-domain-v24.json",
+        "sha256": "9aaf6179fe938556de2de75b6df23f8003b589da1bada4aeda72adf446d3dc0b"
+      }
+    },
+    {
+      "id": "C24-10",
+      "grade": "DERIVED",
+      "finding": "Under the same conditional six-token chunks,the full ring tail update covers4032row records;even-only2016. At4096logical FP32 kv+score bytes per row,the interface models are16515072 vs8257536bytes. The native[17306,32,1024]FP32 array model is2268332032bytes and16slots1134166016bytes. Neither model establishes HBM traffic,resident memory,allocator savings,necessary I/O or speedup.",
+      "evidence": "C2-ring-observability-integer-review-v24.json"
+    },
+    {
+      "id": "C24-11",
+      "grade": "UNKNOWN",
+      "finding": "All ring consumers/aliases andstate ABI,page/request write ownership,actual metadata generations,packed/legacy paths,allocator padding and native compilation binding remain open. No NPU implementation,legal native fusion,capacity ceiling or measured gain is claimed.",
+      "evidence": "M08-C2-state-condition-ledger-v24.json"
+    }
+  ],
+  "source_files": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/compressor.py",
+      "sha256": "31516e5ba234e34fa01e73e864fbc88bd6473d4a5274a1d43da8a79bab3cf494",
+      "functions": [
+        {
+          "name": "pool_projected",
+          "start": 55,
+          "end": 67
+        }
+      ],
+      "ranges": []
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/compressor/compressor_triton.py",
+      "sha256": "1c26f996fa91bcd3ae497e1ae33e88a2e0bf38c2e734f8af85baee06492a87ee",
+      "functions": [
+        {
+          "name": "_pooled_blocked",
+          "start": 85,
+          "end": 197
+        },
+        {
+          "name": "_pool_kernel",
+          "start": 201,
+          "end": 320
+        },
+        {
+          "name": "_cache_update_kernel",
+          "start": 329,
+          "end": 364
+        },
+        {
+          "name": "compressor_from_projected",
+          "start": 647,
+          "end": 720
+        }
+      ],
+      "ranges": [
+        [
+          16,
+          84
+        ],
+        [
+          366,
+          410
+        ]
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+      "functions": [
+        {
+          "name": "_write_compressed_source",
+          "start": 497,
+          "end": 565
+        }
+      ],
+      "ranges": [
+        [
+          195,
+          242
+        ],
+        [
+          1283,
+          1388
+        ]
+      ]
+    }
+  ],
+  "legal_native_fusion_proved": false,
+  "measured_gain": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

@@ -1,0 +1,76 @@
+{
+  "cases": 32768,
+  "whole_output_early_KVnorm_comparison": {
+    "equal": 11264,
+    "better": 5096,
+    "worse": 16408
+  },
+  "witnesses": {
+    "worse": {
+      "durations": {
+        "QA": 1,
+        "KV": 1,
+        "Qnorm_quant": 1,
+        "QB": 1,
+        "KVnorm_rope": 1
+      },
+      "completion": {
+        "original_stage_join": 3,
+        "joint_projection_whole_output_keep_stage_join": 4,
+        "joint_projection_whole_output_release_KVnorm_early": 4,
+        "QA_panel_release_and_KVnorm_early": 3
+      }
+    },
+    "equal": {
+      "durations": {
+        "QA": 1,
+        "KV": 1,
+        "Qnorm_quant": 1,
+        "QB": 1,
+        "KVnorm_rope": 2
+      },
+      "completion": {
+        "original_stage_join": 4,
+        "joint_projection_whole_output_keep_stage_join": 5,
+        "joint_projection_whole_output_release_KVnorm_early": 4,
+        "QA_panel_release_and_KVnorm_early": 4
+      }
+    },
+    "better": {
+      "durations": {
+        "QA": 1,
+        "KV": 1,
+        "Qnorm_quant": 2,
+        "QB": 1,
+        "KVnorm_rope": 4
+      },
+      "completion": {
+        "original_stage_join": 7,
+        "joint_projection_whole_output_keep_stage_join": 8,
+        "joint_projection_whole_output_release_KVnorm_early": 6,
+        "QA_panel_release_and_KVnorm_early": 6
+      }
+    }
+  },
+  "definitions": {
+    "a": "QA",
+    "b": "KV",
+    "c": "Qnorm+quant",
+    "d": "QB",
+    "e": "KVnorm+RoPE/publication"
+  },
+  "formulas": {
+    "original": "a+max(b,c)+max(d,e)",
+    "joint_keep_stage_join": "a+b+c+max(d,e)",
+    "joint_early_KVnorm": "a+b+max(c+d,e)",
+    "panel_early_KVnorm": "a+max(max(b,c)+d,b+e)"
+  },
+  "domain": "Idealunchangedservicetimes/singleCubeQA→KV→QB;independentorunlimitedVectorresource relaxation,allinputsreadyatstart,nowire/aliascost. Notmeasuredfusedtimesorvalidcapacitylowerbound. C1serviceanditsreadersareseparateadditionalwork.",
+  "conclusions": [
+    "Keepingoldstagejoinwithwhole-projectionoutputbarrierlosesmin(b,c)inthismodel.",
+    "ReleasingKVnormearliercanmakewhole-outputjoinbetterorevenworse;fusionisnotuniversallyfasterorslower.",
+    "PublishingcompletedQArowpanelsrestoresitsshorterdependencywithoutrequiringallKV/C1rowsready;thisisacandidateinterface,notanimplementednativehandoff."
+  ],
+  "actual_speedup_or_achievable_schedule_proved": false,
+  "overall_complete": false
+}

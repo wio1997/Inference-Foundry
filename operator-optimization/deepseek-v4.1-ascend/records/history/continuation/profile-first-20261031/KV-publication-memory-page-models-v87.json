@@ -1,0 +1,117 @@
+{
+  "row_bank_models": [
+    {
+      "N_physical_bank_capacity": 24,
+      "retained_layers": 1,
+      "D": 512,
+      "unaliased_KV_BF16_bank_reference_bytes": 24576,
+      "normalized_hidden_BF16_input_bank_reference_bytes": 245760,
+      "input_HC4_BF16_bank_reference_bytes": 983040,
+      "actual_incremental_allocation_or_usable_budget_cost": null
+    },
+    {
+      "N_physical_bank_capacity": 24,
+      "retained_layers": 40,
+      "D": 512,
+      "unaliased_KV_BF16_bank_reference_bytes": 983040,
+      "normalized_hidden_BF16_input_bank_reference_bytes": 9830400,
+      "input_HC4_BF16_bank_reference_bytes": 39321600,
+      "actual_incremental_allocation_or_usable_budget_cost": null
+    },
+    {
+      "N_physical_bank_capacity": 8192,
+      "retained_layers": 1,
+      "D": 512,
+      "unaliased_KV_BF16_bank_reference_bytes": 8388608,
+      "normalized_hidden_BF16_input_bank_reference_bytes": 83886080,
+      "input_HC4_BF16_bank_reference_bytes": 335544320,
+      "actual_incremental_allocation_or_usable_budget_cost": null
+    },
+    {
+      "N_physical_bank_capacity": 8192,
+      "retained_layers": 40,
+      "D": 512,
+      "unaliased_KV_BF16_bank_reference_bytes": 335544320,
+      "normalized_hidden_BF16_input_bank_reference_bytes": 3355443200,
+      "input_HC4_BF16_bank_reference_bytes": 13421772800,
+      "actual_incremental_allocation_or_usable_budget_cost": null
+    }
+  ],
+  "page_examples": [
+    {
+      "start_offset_in_128row_page": 0,
+      "scheduled_current_rows": 6,
+      "touched_128row_pages": 1,
+      "raw_page_payload_bytes": 131072,
+      "one_old_partial_page_present": false,
+      "full_old_partial_page_copy_rw_reference_bytes": 0,
+      "visible_prefix_rows_copy_payload_reference_bytes": 0,
+      "actual_allocator_block_cost_or_incremental_copy_measured": false
+    },
+    {
+      "start_offset_in_128row_page": 1,
+      "scheduled_current_rows": 6,
+      "touched_128row_pages": 1,
+      "raw_page_payload_bytes": 131072,
+      "one_old_partial_page_present": true,
+      "full_old_partial_page_copy_rw_reference_bytes": 262144,
+      "visible_prefix_rows_copy_payload_reference_bytes": 1024,
+      "actual_allocator_block_cost_or_incremental_copy_measured": false
+    },
+    {
+      "start_offset_in_128row_page": 122,
+      "scheduled_current_rows": 6,
+      "touched_128row_pages": 1,
+      "raw_page_payload_bytes": 131072,
+      "one_old_partial_page_present": true,
+      "full_old_partial_page_copy_rw_reference_bytes": 262144,
+      "visible_prefix_rows_copy_payload_reference_bytes": 124928,
+      "actual_allocator_block_cost_or_incremental_copy_measured": false
+    },
+    {
+      "start_offset_in_128row_page": 123,
+      "scheduled_current_rows": 6,
+      "touched_128row_pages": 2,
+      "raw_page_payload_bytes": 262144,
+      "one_old_partial_page_present": true,
+      "full_old_partial_page_copy_rw_reference_bytes": 262144,
+      "visible_prefix_rows_copy_payload_reference_bytes": 125952,
+      "actual_allocator_block_cost_or_incremental_copy_measured": false
+    },
+    {
+      "start_offset_in_128row_page": 127,
+      "scheduled_current_rows": 6,
+      "touched_128row_pages": 2,
+      "raw_page_payload_bytes": 262144,
+      "one_old_partial_page_present": true,
+      "full_old_partial_page_copy_rw_reference_bytes": 262144,
+      "visible_prefix_rows_copy_payload_reference_bytes": 130048,
+      "actual_allocator_block_cost_or_incremental_copy_measured": false
+    }
+  ],
+  "four_request_six_row_example": {
+    "current_rows": 24,
+    "row_bank_bytes": 24576,
+    "independent_touched_private_pages_range": [
+      4,
+      8
+    ],
+    "raw_128row_page_payload_range_bytes": [
+      524288,
+      1048576
+    ],
+    "worst_four_full_leading_page_copy_rw_reference_bytes": 1048576
+  },
+  "capacity_credit_example": {
+    "raw_snapshot_requested_bytes": 335544320,
+    "forty_layer_8192x512_BF16_row_bank_reference_bytes": 335544320,
+    "remainder_if_both_assumed_fully_incremental_and_fully_reclaimed_bytes": 0,
+    "actual_free_memory_or_usable_pool_credit_proved": false
+  },
+  "liveness_domain": "Explicit unaliased row banks retained across1or40layers until dependent acceptance,no early commit/recompute/compression. Reference absolute liveness,not universal minimum or actual incremental allocation. Per-request/tile schedules can lower peak;existing graph buffers may already cover some banks.",
+  "page_domain": "Illustrative append-only disjoint logical128row SWA pages and512BF16 latent width,within existing PA pool. Private pages can preserve visible prefix and adopt whole pages with rejected suffix logically masked. Only prefix values demanded by observers need copying;full-page copy is a reference,not necessary universal work.",
+  "tuple_alias_scope": "v25 V41 tuple backing/globalblock-ID allocation couples SWA/state/longKV/index aliases. Raw128KiB page payload is NOT independently allocatable cost. A changed shared map may require coherent contents for every affected plane;do not swap only one SWA view or multiply overlapping allocations as independent bytes.",
+  "one_shared_budget": "Raw-snapshot actual usable credit minus genuinely additional overlay/COW/recompute/WKV/private-C2/metadata/workspace allocations uses one common pool remainder. No double spending. Actual DeltaB and each Dextra remain unknown.",
+  "actual_token_capacity_or_latency_gain_proved": false,
+  "overall_complete": false
+}

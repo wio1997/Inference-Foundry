@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_8dcca871-917d-4a6a-a7f7-4bef7869cf98",
+  "traceId": "ce8f8907-cca8-45c9-8ad0-b6a3699284d0",
+  "turnId": "turn_a7a910cb-7cd5-48d8-97c7-19e3db80c60e",
+  "response": "已按原命令执行一次，未修改、未扩展、未重试，也没有任何模型或设备操作。本地包装器和远端脚本的真实 rc 都是 0，stderr 为空。\n\n- 结果 SHA-256：`6de529df96fa255becf4febdc3de48d5bde1417d59605ff56729db9c2cc5af56`\n- 回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/graph-projection-domains166-v15.json`\n- 远端结果：`.../native-execution-identity-v14/graph-projection-domains-v15.json`\n\nsummary 要点：\n\n- `marker_blocks=3200`，其中 `unique_Q_and_KV=3120`，即 3120 个 block 同时有唯一的 Q_A 与 KV 候选。\n- `Q_M_counts={\"3\": 3200}`：每个 marker block 的 Q_A 候选 M 都是 3。\n- `KV_M_counts={\"24\": 3280}`：共 3280 个 KV 候选，比 3200 多出的 80 个说明有 80 个 block 各带有两个 KV 候选（这些 block 因此不计入 unique 的 3120）。\n- `same_M_pairs=0`，`no_source_DB_or_device_work=true`，`overall_complete=false`。\n\n口径按脚本自身的 limits 保留：Q_A/KV 角色仅由每 block 的 op/dtype/权重形状匹配推导，不是 tensor 指针同一性或全消费者证明；M 不相等只排除“保持当前行域的同一行直接拼接”，不排除重分区/ragged 联合算法，也不构成任何收益证明。本次只做了 saved-profile 的 CPU 只读归约（脚本内 pin 了两个 v14 产物的 SHA 并断言输出文件原先不存在）。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 69077,
+    "outputTokens": 4411,
+    "totalTokens": 73488,
+    "cacheReadTokens": 57728,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3255,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 73488,
+    "contextUsed": 15328,
+    "contextWindow": 200000
+  }
+}

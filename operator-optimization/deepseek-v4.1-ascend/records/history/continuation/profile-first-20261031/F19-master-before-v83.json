@@ -1,0 +1,162 @@
+{
+  "id": "F19_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "compress_norm": "compress_norm",
+    "ik": "ik",
+    "ik_norm": "ik_norm",
+    "ik_rope": "ik_rope",
+    "cmp_rope": "cmp_rope",
+    "cmp_store": "cmp_store"
+  },
+  "nodes": [
+    {
+      "id": "compress_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "ik",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "ik_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "ik_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "cmp_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "cmp_store",
+      "kind": "PERSISTENT_SCATTER",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "compress_norm",
+      "consumer": "ik",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ik",
+      "consumer": "ik_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ik_norm",
+      "consumer": "ik_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "compress_norm",
+      "consumer": "cmp_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cmp_rope",
+      "consumer": "cmp_store",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "ring_pool",
+      "consumer": "compress_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "ik_rope",
+      "consumer": "ik_quant",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cmp_store",
+      "consumer": "attention",
+      "value": "compressed KV cache",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v39": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-metadata-fill-and-existing-fusion-contract-v39.json",
+    "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-C2-existing-fused-builder-equivalence-v39.json",
+    "fill": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-initialization-write-ownership-review-v39.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-and-initialization-variants-v39.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v39.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "C2sourcecos/sinfeedbothindexkeyupdate andinplacelonglatentRoPE;lazylookup/newABIkeepsbothreadersandpublicationorder."
+  },
+  "review_v62": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-regime-models-v62.json",
+    "graph_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-graph-operator-chains-v62.json",
+    "C2_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/C2-state-and-pool-costs-v62.json",
+    "Engram_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-UVA-and-gate-costs-v62.json",
+    "operator_contracts": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-operator-contract-v62.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-fusion-variants-v62.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v62.json",
+    "relation": "276M08member/M14strictregimes13704exactnativeexecutions,13projectionoverlap808;263newregimes12896exec. 25conditional/rejectiondecisionswithsourcework/logicalIOandtypedcapacitygates,31semanticfamilies. No wholemodelcompletion.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-15",
+      "REL73-18"
+    ],
+    "peers": [
+      "F11",
+      "F18"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v74": {
+    "relation_clause_ids": [
+      "REL74-13"
+    ],
+    "peers": [
+      "F33"
+    ],
+    "central_relations": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v74.json",
+    "relation_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v74.json",
+    "source_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/QB-head-RMS-RoPE-applicability-v74.json",
+    "joint_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-costs-v74.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-math-v74.json",
+    "scope": "Fifteen selected relation clauses and three higher-order groups only; all whole-pair/full-model gates remain open.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_17381e3e-5cb7-4706-aead-cd58f9bafdf6",
+  "traceId": "7a41c76f-33fd-42f2-810c-515659e785b0",
+  "turnId": "turn_79f62910-6a72-4505-a608-6044cc50f871",
+  "response": "已按原命令执行，未改动脚本、未扩展查询。实际 **rc = 0**（外层执行器与远端脚本均返回 0，stderr 为空）。\n\n**实际 SHA**\n- 远端结果 payload（`result_sha256`）：`f3a511a5410af47572750f0e8691cff5ab4dd805155ade69de95ed1b1df21d77`\n- 本地回执 `sdk-device-attribute-header166-v12.json` 文件 SHA-256：`6469aba9ab95e84548da2885dbbcfca949ed9ed1578bb71dc9fcbacf5dd2ae30`\n- 头文件哈希（仅脚本列出的 4 个路径中实际存在的 2 个）：\n  - `acl/acl_rt.h`：`62d127fbb899b1476e054b1815ca6e0c71a362868c655f0e3da4616fb7598fb7`（6088 行，7 处命中）\n  - `acl/acl_base.h`：`f7c6c5c7538585c7656aa1240a402035d967d49183dce2d294429e18dca4faae`（19 行，0 处命中）\n\n**核验结果**\n脚本只做静态读文件，输出中 `no_runtime_library_loaded: true`；未导入 torch/NPU，未调用任何运行时 API。toolkit 实际解析到 `/usr/local/Ascend/cann-9.2.0`。远端结果写入 `/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/sdk-device-attribute-header-contract-v12.json`。\n\n关键声明位于 `acl_rt.h`：`aclrtDevAttr` 枚举中定义了 `ACL_DEV_ATTR_AICORE_CORE_NUM = 101`、`ACL_DEV_ATTR_CUBE_CORE_NUM = 102`、`ACL_DEV_ATTR_VECTOR_CORE_NUM = 201`、`ACL_DEV_ATTR_AICPU_CORE_NUM = 1`，并声明了只读查询接口 `aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t* value)`（仅为声明，未调用）。可据此把 AIC/AIV 核数作为设备属性读取，作为 PMU 活动度分母。\n\n需要注意：脚本列出的 4 个路径中，`include/runtime/dev.h` 和 `include/runtime/rt.h` 在该 toolkit 下不存在，脚本按 `continue` 跳过且未报错，因此本次实际覆盖是 2 个头文件而非 4 个；`acl_base.h` 仅 19 行、无相关声明。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 71587,
+    "outputTokens": 2987,
+    "totalTokens": 74574,
+    "cacheReadTokens": 59776,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2108,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 74574,
+    "contextUsed": 14281,
+    "contextWindow": 200000
+  }
+}

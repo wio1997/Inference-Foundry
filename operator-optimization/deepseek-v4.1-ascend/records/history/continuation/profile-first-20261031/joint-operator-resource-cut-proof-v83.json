@@ -1,0 +1,40 @@
+{
+  "proof": {
+    "declaration": "Fix algorithm/precision/representation domain D and one physical shared resource cut. Let W_j be a lower bound on necessary completed work of typed class j during the measured window, after removing duplicate work and granting allowed initial residency once.",
+    "capacity_premise": "For nonnegative lambda_j, prove for every legal instantaneous allocation/mode/frequency in D that sum_j lambda_j*r_j(t) <= beta(lambda). beta must be a capacity UPPER, not measured best throughput or independent-peak compatibility guess.",
+    "derivation": [
+      "Integrate the capacity inequality over the entire window: integral sum(lambda_j*r_j(t))dt <= T*beta(lambda).",
+      "Necessary service is sum_j lambda_j*W_j <= integral sum(lambda_j*r_j(t))dt, including only work proven necessary in D.",
+      "Therefore T >= sum_j lambda_j*W_j / beta(lambda). Take the supremum over valid nonnegative weights, and max with other resource/cut/dependency bounds.",
+      "Overlapping kernel execution and distributing modes among different AICs do not invalidate an aggregate cut if beta bounds that whole device cut. Initial warm capacity/duplicate work must not be granted once per kernel."
+    ],
+    "independent_peaks_limit": "Knowing Q8<=T*C8 and Qhalf<=T*Chalf alone gives max(Q8/C8,Qhalf/Chalf). It does NOT prove Q8/C8+Qhalf/Chalf<=T; that requires the joint simplex/exclusive-service capacity premise. Do not claim free overlap either.",
+    "trivially_safe_but_weak": "From valid individual rate upper bounds one may use beta(lambda)=sum(lambda_j*C_j), but this may be weaker than choosing an axis. A tighter beta needs architecture/issue/service proof.",
+    "matching_Vector_rule": "Exp/Div/Sort/cast/INT64/FP32 classes need their own joint capacity support. A Vector label does not prove serial issue or a common full-rate arithmetic peak.",
+    "theorem_grade": "DERIVED_ANALYTIC_CONDITIONAL_BOUND;NO_SOLVER_OR_DEVICE_PROOF",
+    "physical_numeric_beta_for_actual_A3_INT8_plus_BF16_or_Vector": null,
+    "published_752TOP_and_376TF_joint_simplex_not_proved": true
+  },
+  "illustrative_joint_window": {
+    "domain": "Illustrative3validqueries,eachfullQLIscan17408keys andSMLA128SWA+512CMPkeys. Conventional stated exact typed algorithms,not inferred device-visible lengths.",
+    "valid_queries": 3,
+    "QLI_keys_per_query": 17408,
+    "SMLA_keys_per_query": 640,
+    "QLI_sum_L": 52224,
+    "SMLA_sum_n": 1920,
+    "QLI_INT8_direct_ops": 427819008,
+    "QLI_useful_FP16_headreduce_ops": 3342336,
+    "SMLA_BF16_direct_QK_PV_ops": 251658240,
+    "QLI_scalar_score_GM_interface_bytes": 417792,
+    "SMLA_score_and_exponential_GM_interfaces_bytes": 1474560,
+    "query_INT8_VC_GM_interface_bytes": 24576,
+    "private_query_scale_plus_weight_interface_budget_bytes": 768,
+    "joint_Cube_bound": "T >= [lambda8*427819008 + lambdah*(3342336+251658240)] / beta_Cube(lambda8,lambdah), only if the useful headreduce class is FP16 and beta jointly bounds the selected mixed modes. Native M16 padding belongs to current implementation, not universal necessary work.",
+    "only_the_named_scale_interfaces_removed": true,
+    "internal_GM_interfaces_are_not_HBM_bytes": true,
+    "actual_capacity_bound_or_latency_or_speedup": null
+  },
+  "relation_to_previous": "Refines the max-of-separate-types model with an optional joint support-function capacity cut; no actual joint capacity is invented. Fixed current GM queue volume stays a stated-domain interface model, not an all-algorithm lower bound.",
+  "conditional_operator_analysis_deliverable": true,
+  "overall_complete": false
+}

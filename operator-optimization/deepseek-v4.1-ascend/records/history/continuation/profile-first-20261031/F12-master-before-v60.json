@@ -1,0 +1,87 @@
+{
+  "id": "F12_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "qli": "qli",
+    "fixup": "fixup",
+    "indices_store": "indices_store"
+  },
+  "nodes": [
+    {
+      "id": "qli",
+      "kind": "INDEX_SCORE_TOPK_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "fixup",
+      "kind": "INDEX_FIXUP",
+      "resource": "NPU"
+    },
+    {
+      "id": "indices_store",
+      "kind": "PERSISTENT_INDEX_PUBLICATION",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "qli",
+      "consumer": "fixup",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "fixup",
+      "consumer": "indices_store",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "iq_quant",
+      "consumer": "qli",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "iw_scale",
+      "consumer": "qli",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ik_store",
+      "consumer": "qli",
+      "value": "key cache",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "scale_store",
+      "consumer": "qli",
+      "value": "key scales",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "indices_store",
+      "consumer": "attention",
+      "value": "selected indices",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v43": {
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Role/candidate/length/publication branches and local query-row readers bound. Existing postprocess already accepts direct output bank; ordinary same-width INT32 bank formatting need not execute padding/cast kernels."
+  }
+}

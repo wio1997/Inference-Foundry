@@ -1,0 +1,28 @@
+{
+  "weight_planes": {
+    "Q_A_BF16_bytes": 13107200,
+    "Q_B_INT8_raw_bytes": 41943040,
+    "WO_A_local_G1_BF16_bytes": 8388608,
+    "WO_B_BF16_bytes": 10485760,
+    "router_FLOAT_bytes": 7864320,
+    "shared_gate_up_INT8_raw_bytes": 23592960,
+    "shared_down_INT8_raw_bytes": 11796480,
+    "routed_one_expert_INT8_raw_bytes": 35389440
+  },
+  "cold_plane_gate": "Any positive selected-row GEMM can still traverse its entire conventional uncompressed weight plane; row reduction alone does not proportionally reduce weight service. Quant scales/metadata, cache residency and packing are additional domains.",
+  "routed_active_expert_gate": "Active expert union depends on exact retained router outputs. Under6distinct experts/row, union size is6..min(384,6U) forU>0, not automatically6U; actual receiver placement and cached weights remain unknown.",
+  "dependency_cut": "A last-layer output can depend only on selected query results while last-layer KV/cache publication still demands all required scheduled rows of the preceding layer. Thus output-only demand cannot justify deleting previous-layer FFN/attention rows needed by that KV branch.",
+  "fusion_vs_deletion": "It can remain possible to fuse preceding-layer output directly into full-demand KV/HcPre consumers and avoid an interface plane. That changes materialization, not the set of necessary values or preceding-layer arithmetic.",
+  "state_guards": [
+    "Keep all3pre-layer aux means/context consumers; they are not final normalized rows.",
+    "Preserve raw snapshot/output external and registered observers and capture aliases/lifetime.",
+    "Keep original global row/request/position/query length/causal/sink/cache-slot maps; compact ordinals are not positions.",
+    "Keep all future KV/compressor/index state writers,accepted/rejected rollback and publication epochs.",
+    "EPLB load/heat/counter/weight updates may observe omitted routing/receiver work. Extra guards or retained side-effect computations are required.",
+    "Empty query owners must still participate in required cache writers and rank-uniform collectives. Unknown metadata/zero/pad outputs are not free."
+  ],
+  "no_new_consumer_closure": true,
+  "implementation": false,
+  "native_test": false,
+  "overall_complete": false
+}

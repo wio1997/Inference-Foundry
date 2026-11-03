@@ -1,0 +1,106 @@
+{
+  "exact_kernel_files": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/compressor/compressor_triton.py",
+      "sha256": "1c26f996fa91bcd3ae497e1ae33e88a2e0bf38c2e734f8af85baee06492a87ee",
+      "bytes": 30477,
+      "local_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/state-engram-operator-source-v62/vllm_ascend/ops/triton/compressor/compressor_triton.py",
+      "historical_source_hash_matches": true
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/engram_hash.py",
+      "sha256": "0bb9010805a80e3ced046bea6dff08e40166eb36e9aee18c63798f08866b3e1e",
+      "bytes": 5933,
+      "local_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/state-engram-operator-source-v62/vllm_ascend/ops/triton/engram_hash.py",
+      "historical_source_hash_matches": true
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/engram_lookup.py",
+      "sha256": "c2b1b46ea4eeb70513cb4a53a5fc584bd024c81269fff9f997431a3ff172899b",
+      "bytes": 4625,
+      "local_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/state-engram-operator-source-v62/vllm_ascend/ops/triton/engram_lookup.py",
+      "historical_source_hash_matches": true
+    }
+  ],
+  "existing_pinned_operator_callers": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/common.py",
+      "sha256": "4797b8962264d137cdb142a9988825288283092fb797ddbd334c6ab2223eb58d",
+      "existing_pinned_source_reused": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/layer.py",
+      "sha256": "dc9457c88aa3c90133115bc608447e037b0693f8db71bb8da37f1ead44021f80",
+      "existing_pinned_source_reused": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/embedding.py",
+      "sha256": "a7741ed16522be4fe607e062e1c988c4e2435af7d258fe7db99f672d4508c4c9",
+      "existing_pinned_source_reused": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "existing_pinned_source_reused": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/common/ops/sequence_parallel.py",
+      "sha256": "73bcf07050bce8b049dd0bbdb0a7504f6eba157a1e97a5033849ef31ef05fcb0",
+      "existing_pinned_source_reused": true
+    }
+  ],
+  "historical_contract_refs": [
+    "C2-state-opportunity-contract-v24.json",
+    "C2-ring-observability-integer-review-v24.json",
+    "C2-cache-object-and-allocation-contract-v25.json",
+    "Engram-hash-lookup-publication-and-gate-contract-v30.json",
+    "projection-operator-numerical-contract-v61.json",
+    "attention-indexer-native-numerical-contract-v60.json"
+  ],
+  "contracts": [
+    {
+      "question": "DoesC2poolalreadyhavefusednormmathandcanitbedirectlyused?",
+      "source": "compressor_triton.py:201-321,647-721",
+      "answer": "NonTOKEN_ALIGNEDbranchalreadyroundsBF16thenFLOATbeforenorm,notunroundedFP32normalization. CurrentTOKEN_ALIGNEDtrueusesdummyoutweight/eps0 andcompletiontokenrows. Reusemathneedsrealweights/eps/independentnormflagandcurrentrowmap;newnumericalpolicyconditional."
+    },
+    {
+      "question": "HowmuchstateIOoccurspercall?",
+      "source": "compressor_triton.py:85-196,329-364",
+      "answer": "Oldringonlyfirstresidualpairperoddstartsegment;score3passes/KV1. Updateonlylastmin(n,32)rowsandvalid0<p<N. Allocation2.268GBnottraffic. Preserveint64addressandread-before-write."
+    },
+    {
+      "question": "Canlatentnorm/rope/cachefusewithoutlosingotherconsumer?",
+      "source": "pinned dsa_v41.py:500-571,compressor.py:52-71 plusv60Indexercontract",
+      "answer": "C1norm(wkv)orC2norm(pool)latentfirstfeedsIndexerupdate_keys,theninplace64tailRoPEandlongcachewrite. FusionrequirespreRoPEIndexKeyconsumerfork/BF16boundary,slotvalidityandpublication;cannotoverwritelatentearly."
+    },
+    {
+      "question": "Canrequestsearchorcachewriteblindlymerge/reorderwithhash?",
+      "source": "engram_hash.py:10-167;oldhash_stateforwardv30:95-172",
+      "answer": "Requestsearchalreadyoncepertoken;sourceexplicitmergedbackendLLVMreleasedbufferabort. Cachewritesbeforefallbackreads;needphysicalslotaliasproof,notlogicalin_batchpreferencealone."
+    },
+    {
+      "question": "Whatishasharithmeticandhistoryreuse?",
+      "source": "engram_hash.py:86-167",
+      "answer": "Layerprogram2,shift4each,3ngramlengths×8heads=>8TINT64rollingupdatesand48TINT64remainders,INT32output192T. In-batch>knownwindow>fallback,blockednegative/DEADprefix. Commonhistoryconditional;modcostnotBF16peak."
+    },
+    {
+      "question": "WhichUVAreads/outputzeros/copiescanreduce?",
+      "source": "engram_lookup.py:68-124;embedding.py:335-369",
+      "answer": "INT8scalerefs256to8groupbroadcastbutunique32Bsame;MXFP8alreadygrouped. !ownedfallbackrow0canmaskloadswhilefullwritingzeros,benefitunknown. lookupfullwrites3heads×256so176localprezeroselidable. Hostcode/scalesnotHBM. IDstrideparameterallowsperlayerstridedviewintheUVAbranch;othertargetsconditional."
+    },
+    {
+      "question": "WhichexistingEngrammatrixandgateworkisrequired?",
+      "source": "layer.py:34-57,common.py:47-72",
+      "answer": "WKV6144→25600alreadycombines4keys+sharedvalueBF16. Rotationblock32FLOATonhiddenforgate;originalhiddenusedresidual. q*kprep3tasks/bodyandrotationcastcanversioncache. FullHtwoRMS/dotbarrier,signbit/NaN/mask/BF16roundpreserved."
+    },
+    {
+      "question": "WhencanTPbank/clone/finalcopyvanish?",
+      "source": "model.py:1203-1239,1570-1590;sequence_parallel.py:32-43",
+      "answer": "TPfullheadbankandpreparecopy+SPclonecanconditionaldirectrowlayout,retainingglobalbankallreaders/padding/readiness/clonelifetime. NativefinalhiddenTensorMovecanbefinalgateoutputonlywithaliasmutationproof;graph38TASKbodycontainsnosuchcopyandcannotclaimitsgain."
+    }
+  ],
+  "current_loaded_native_binary_identity_proved": false,
+  "broader_framework_audit": false,
+  "no_new_Torch_NPU_model_service_capture_implementation": true,
+  "overall_complete": false
+}

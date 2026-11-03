@@ -1,0 +1,17 @@
+本轮完成了 HostArgs 取证适配器的 Linux CPU 验证。适配器独立放在评估目录中，默认关闭；通过显式开关、输出目录和 run ID 启用。它只在真实 HostArgs API 边界复制主机参数及 placeholder，不读取参数里设备地址指向的内容。模型、框架和算子实现没有修改，适配器没有装入模型进程。
+
+在166对应的原105主机、既有容器内，以纯 CPU 假运行库完成6次编译和23个测试场景，其中4个包含ASan/UBSan。编译器将警告作为错误处理。测试库没有依赖或加载真实CANN/Torch，也没有建立NPU上下文。对安装CANN库只做固定SHA检查及readelf导出检查，不构成真实调用验证。所有测试进程已结束，SSH控制连接已明确关闭，容器PID保持2032500。
+
+CPU后端核对了转发的blocks、stream、cfg、参数和placeholder，验证后端返回值及C errno仍能到达原调用方。后端会修改原参数中的一个指针槽，而记录保留修改前的零槽，因此测试覆盖了调用前快照。它没有证明CANN内部错误状态或实际元数据getter无副作用；真实运行库的这些性质仍需独立证据。
+
+采集默认上限为单包4096B、32个placeholder、56条记录、1MiB和60秒，可配置硬上限为256条、16MiB和3600秒。8线程共调用160次，7条记录配额下写入7条并报告153次配额跳过；sanitizer场景写56条并报告104次跳过。时间到期后仍转发调用并停止元数据查询，1024B预算场景放弃正文但留下footer。未arm、非目标、名称查询失败、超大包、零配额及后端失败也有明确检查。footer表示日志结构结束，不表示原工作负载全部被观察；所有跳过和未知范围必须保留。
+
+保留了两次有价值的失败记录：第一次编译因忽略write返回值被-Werror拒绝，修复后重编；第二次的递归测试虽然返回成功，但编译器生成的库内直接递归绕过了拦截入口，实际没有测到TLS保护。第三次通过RTLD_DEFAULT强制走公共入口，普通及sanitizer递归场景均得到后端调用2次、observer见2次、跳过递归1次、只写外层快照1条。没有把前一次测试成功误算为保护生效。
+
+递归场景还证实：外层调用结束后查询的最后任务ID可以属于内层调用。即使reentrant_skips为0，库内绕过仍可能存在，所以该计数也不能证明一次API恰好对应一个任务。必须依靠同run的完整process/rank/device/thread/stream/task/connection/capture/update关联，rc0也只表示提交成功，不等于执行完成。
+
+另一个负例直接通过backend句柄dlsym并成功执行，却没有observer日志；RTLD_LOCAL延迟加载则在显式已加载库回退路径下采集成功。这些结果限定了preload的覆盖范围，不能用缺少日志推断没有算子。fork子进程只转发、不声称采集；_exit留下正文但没有footer，判定不完整；目录不可写仍转发成功并没有文件。实际CANN/provider是否经过同一入口、是否存在类似绕过，尚未验证。
+
+原profile已证明的1272次eager MemSet均经HostArgs，但本轮没有新增任何真实CANN host packet，更没有恢复旧destination、count、workspace或实际读写范围。真实provider布局、allocation/alias generation、workspace/payload角色和全部读者退役仍是融合合法性前提。80次捕获图BOOL24还需要单独追踪creation/value/storage/update/readers，不能由这个eager适配器代替。
+
+本轮只是取证工具的准备与CPU验证。已消耗的v120 Pad授权没有扩展为新的NPU探针、模型运行或capture/replay授权。原9类/1352次pending、849个PMU缺口、16个phase未绑定图及3136项归属歧义保持原状；358条语义分支/26模块、135条条件关系/26联合组/460待核对pair、854节点/1346边/48提示的部分图也未作完成性提升。整模块关闭仍为0，全模块可比较的物理MFU和最低时间下界仍未建立，整体目标继续ACTIVE。

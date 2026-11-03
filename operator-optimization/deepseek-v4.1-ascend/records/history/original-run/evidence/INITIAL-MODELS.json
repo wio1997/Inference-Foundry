@@ -1,0 +1,145 @@
+{
+  "status": "SYMBOLIC_CEILING",
+  "hardware_parameters": {
+    "P8": {
+      "value": null,
+      "status": "UNKNOWN",
+      "unit": "MAC/s per specified device/resource set",
+      "needed_evidence": "Dense INT8 native capacity upper bound at applicable maximum frequency; instruction existence alone is insufficient"
+    },
+    "B_HBM": {
+      "value": null,
+      "status": "UNKNOWN",
+      "unit": "byte/s per specified device",
+      "needed_evidence": "Applicable aggregate read/write capacity upper bound and sharing rules"
+    },
+    "B_L2": {
+      "value": null,
+      "status": "UNKNOWN",
+      "unit": "byte/s per specified device",
+      "needed_evidence": "L2-to-core capacity upper bound and sharing rules"
+    }
+  },
+  "operators": [
+    {
+      "id": "Q_B_DENSE",
+      "scope": "One independent standard dense INT8 GEMM. No sparsity, answer lookup, alternate matrix algorithms or value-dependent fast paths. M query rows; full N=32768 output features under current enable_dsa_cp replicated-weight path.",
+      "M": "unknown_runtime_rows",
+      "N": 32768,
+      "K": 1280,
+      "weight_bytes": 41943040,
+      "weight_MiB": 40,
+      "necessary_MAC_expression": "41943040 * M",
+      "L0_compute_seconds": "(41943040 * M) / P8",
+      "cold_HBM_boundary": {
+        "assumptions": [
+          "INT8 A and dense W initially in HBM; W absent from all faster/remote caches",
+          "BF16 C must be materialized in HBM",
+          "No intermediate compression or alternate remote source; scale/offset traffic omitted optimistically"
+        ],
+        "minimum_bytes_expression": "41943040 + 66816 * M",
+        "L1_seconds": "max((41943040 * M)/P8, (41943040+66816*M)/B_HBM)"
+      },
+      "warm_boundary": {
+        "assumptions": [
+          "W may already be in cache; A initially HBM and BF16 C materialized HBM"
+        ],
+        "weight_HBM_bytes_lower": 0,
+        "minimum_boundary_bytes_expression": "66816 * M",
+        "note": "Zero lower bound on weight HBM traffic is an optimistic omission, not a claim that actual traffic is zero."
+      },
+      "throughput_upper_expression": "M / L (query rows/s, not accepted model tokens/s)",
+      "source_refs": [
+        "readonly-inventory.json:tensor_headers.layers.0.attn.wq_b.weight",
+        "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py:init_attention_projections"
+      ]
+    },
+    {
+      "id": "ONE_EXPERT_DENSE_FFN",
+      "scope": "One selected expert processes m_e rows using standard gate/up/down dense products, H=5120,I=2304. Intermediate activation/scale/communication costs optimistically omitted.",
+      "H": 5120,
+      "I": 2304,
+      "necessary_MAC_expression": "35389440 * m_e",
+      "weight_bytes": 35389440,
+      "L0_compute_seconds": "(35389440 * m_e)/P8",
+      "subgraph_rule": "Keep both GEMMs and true activation semantics; do not sum independent-operator I/O lower bounds. Intermediate results may remain on chip in ideal fused model.",
+      "whole_layer_routed_MAC_expression": "35389440 * sum_e(m_e) = 212336640 * T for exactly top_k=6 valid non-dropped assignments/token",
+      "whole_layer_routed_weight_traffic": "Depends on actual expert union, batch reuse, residency and sharding; unknown. Cannot multiply every expert weight by every token."
+    }
+  ],
+  "framework_selected_work_chain": {
+    "status": "SYMBOLIC_CEILING",
+    "scope": "Standard target forward evaluation domain, top_k=6 plus one shared expert, all40 layers; selected INT8 products only. No response cache, no substituted model, no alternative dense algorithms. Fusion, ideal sharding/balance/overlap are allowed.",
+    "effective_output_Q": 8192,
+    "P8_all_devices": null,
+    "P8_all_devices_unit": "aggregate dense INT8 MAC/s capacity upper bound",
+    "necessary_INT8_MAC_per_target_position_selected_products": 11586764800,
+    "stages": [
+      {
+        "id": "C0_PREFILL_ONLY",
+        "target_positions_lower": 26240,
+        "necessary_MAC": 304036708352000,
+        "L_expression": "304036708352000/P8_all_devices",
+        "U_expression": "8192*P8_all_devices/304036708352000",
+        "relaxations": [
+          "All decode and draft computation omitted",
+          "BF16/FP32/vector/attention work omitted",
+          "All traffic, scheduling and dependencies relaxed"
+        ]
+      },
+      {
+        "id": "C1_ADD_ACCEPTED_TARGET_POSITIONS",
+        "target_positions_lower": 34424,
+        "necessary_MAC": 398862791475200,
+        "L_expression": "398862791475200/P8_all_devices",
+        "U_expression": "8192*P8_all_devices/398862791475200",
+        "proof_condition": "In this standard target-evaluation domain, generating 1024 tokens/request needs target evaluation at >=1023 newly generated input positions/request; the last returned token need not be fed back. Speculative parallel verification changes grouping, not these accepted-prefix target positions. If exact target computation may be bypassed, this constraint does not apply.",
+        "relaxations": [
+          "Rejected speculative positions and entire DSpark draft work omitted",
+          "All other compute and traffic remain relaxed"
+        ]
+      }
+    ],
+    "not_claimed": [
+      "Achievability",
+      "Numerical strict hardware ceiling",
+      "Current model graph optimal among all algorithms",
+      "A largest operator gap without kernel durations"
+    ]
+  },
+  "reference_M_scenarios": [
+    {
+      "M": 1,
+      "label": "ILLUSTRATIVE_SCENARIO_NOT_OBSERVED_RUNTIME_SHAPE",
+      "Q_B_MAC": 41943040,
+      "cold_HBM_min_bytes": 42009856
+    },
+    {
+      "M": 3,
+      "label": "ILLUSTRATIVE_SCENARIO_NOT_OBSERVED_RUNTIME_SHAPE",
+      "Q_B_MAC": 125829120,
+      "cold_HBM_min_bytes": 42143488
+    },
+    {
+      "M": 24,
+      "label": "ILLUSTRATIVE_SCENARIO_NOT_OBSERVED_RUNTIME_SHAPE",
+      "Q_B_MAC": 1006632960,
+      "cold_HBM_min_bytes": 43546624
+    },
+    {
+      "M": 8192,
+      "label": "ILLUSTRATIVE_SCENARIO_NOT_OBSERVED_RUNTIME_SHAPE",
+      "Q_B_MAC": 343597383680,
+      "cold_HBM_min_bytes": 589299712
+    }
+  ],
+  "unknowns": [
+    "Native dense INT8 capacity upper bound and maximum frequency guarantee",
+    "HBM and L2 aggregate capacity upper bounds/units",
+    "Actual per-call M and padding/tiling selection",
+    "Per-operator times and cross-rank exposed critical-path intervals",
+    "MoE expert union and per-expert row counts",
+    "Shape-specific MMAD/GEMV throughput bounds",
+    "Actual necessary host/Engram/network bytes and overlap"
+  ]
+}

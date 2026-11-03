@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_497895a2-3f62-4d20-8e5c-7221a314d7ae",
+  "traceId": "cd7da389-243d-4a87-8027-6dc973a778fd",
+  "turnId": "turn_c948cedc-17a5-4769-a315-35e3a18383e9",
+  "response": "运行未成功，真实返回码为 **rc=255**，本次没有任何合同数据或结果 SHA 可用。\n\n执行情况：\n\n- 命令已按原样执行一次（`python3 remote_run.py 166 .../read_blocktable_copy_contract_v13_166.py blocktable-copy-contract166-v13`），未修改、未扩展、未重试。\n- 失败发生在 SSH 连接阶段，stderr 为 `Permission denied (password,publickey)`，目标是 `10.55.0.166` 跳板机。远端 `python3` 从未启动，因此两个文件的读取、`copy_to_gpu` 方法抽取、dirty/generation 关键字扫描都没有发生。\n- 由于远端脚本没有执行，`result_sha256` 不存在。我不会用任何旧分析的 SHA 冒充本次结果，也不对 profile 中的 13 次 block-table H2D 是否对应同一份物理表数据作任何结论。\n- 本地回执已由 runner 正常写入：`/Users/wio/work/166-vllm-analysis-continuation-20261030/blocktable-copy-contract166-v13.json`（内容为 host、时间戳、rc=255、空 stdout 和上述 stderr）。远端输出文件 `block-table-copy-contract-v13.json` 未产生。\n\n已确认脚本本身符合只读合同：仅解析 `vllm_ascend/worker/block_table.py` 与 `vllm/v1/utils.py` 两个文件，不导入目标模块、不做全仓 AST、不触碰设备或服务；但这些约束是否在远端成立，本次因为没有连上主机而无法验证。按“不重试”要求，我在此停止，等待主机访问恢复后再原样执行。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 52461,
+    "outputTokens": 3949,
+    "totalTokens": 56410,
+    "cacheReadTokens": 41600,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3409,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 56410,
+    "contextUsed": 14566,
+    "contextWindow": 200000
+  }
+}

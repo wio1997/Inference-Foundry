@@ -1,0 +1,15 @@
+本轮取得实质进展：从保存的32份 profile 和完整调用链定位出 CP 的缓存命中后死生产者；整体分析仍未完成。本轮只做 CPU 离线查询和定点源码核对，没有启动设备任务、修改服务或实现优化。
+
+88个非空输入准备区间中，CP局部元数据各构建26次，但现有DSA batch缓存每区间只初始化一次。后25次仍各上传suffix并执行Sub、ClipByValueV2、Greater、Fill、SelectV2。原生CONNECTION_IDS关联到11,000个实际计算执行，各类型2,200个，88个区间均为125个，无歧义连接；另有2,200次suffix H2D及对应锁页工作。保留全部原DB/API/任务执行身份，未用邻近时间或算子名补配，未把重复定义当单次执行。
+
+定点核对回答了profile不能单独回答的读者问题：worker每次attention构建创建一个共享batch字典，CP global使用独立子字典；local DSA只在首次缺失时复制seq_lens并构造坐标。后续返回值和延迟回调使用缓存的长度，common.seq_lens只另有形状查询。两层metadata均为dataclass，replace没有隐藏的长度内容读取。因此在当前固定路径中，可把suffix和设备长度计算放到现有cache miss分支，保留首次计算。消除未被读取的结果不要求证明后25份输入值相等。
+
+这个结论不覆盖整个CP build。固定图地址query_start_loc仍直接服务于分组slot/SMLA/QLI/C2消费者；CPU局部query元数据、max值、每KV组物理映射和首次拒绝修正后的设备长度必须保留。cp_global共享、C2长度共享、RoPE切片复用原本已经存在。候选尚未实现或计价，profile中的算子时间不能作为请求收益。
+
+7,392次H2D已分成互斥来源族，其中copy_to_gpu的2,064次对应13类完整caller字段。块表1,144次=每非空区间13份，commit已提前执行；已查的小型行更新/commit方法没有脏行版本跟踪，后续候选是保留物理映射语义的脏行/版本发布。Spec的五个索引向量可评估按完整几何key复用，实际draft token IDs仍实时GPU取得；源码已有pinned tuple加event/deque生命周期保护。稳定uniform-spec输入可另评估带步长打包，已有连续无spec快路不能重复当缺失优化。
+
+query_start_loc的第二次上传不能简单删除：两次之间有GPU尾部fill，64次padding发布里16次实际为2请求/12token，48次为4请求/24token，均发布4请求的padding形状。CPU值或shape相同不保证GPU状态相同。lookback上传位于input-prep同步guard之外，不能继承该guard的暂存生命周期结论。num_decode_draft_tokens设备副本的完整消费者尚未闭合，保留为待定项。
+
+312次同步分为accepted计数就绪88、valid计数就绪72、input-prep复用屏障96、valid计数读取56。最初事件查询把两个valid同步的先后方向写反，相关零writer推论已作废并保留；v2用实际API时间重新排序，保留原记录与源位置。没有仅凭没有观察到record而宣称同代际，也没有删除同步。
+
+32份DB的PMU指标名称、原值范围、TASK身份重数与频率样本已另存为资源清单。它们仍需对应采样/平均、单位、硬件和模块窗口，不能直接换算MFU。H01/H03其他进程成本、全模块/条件/跨边和理论界仍有缺口；Goal保持active，关闭的整模块为0。

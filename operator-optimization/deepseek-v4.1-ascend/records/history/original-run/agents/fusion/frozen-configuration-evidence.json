@@ -1,0 +1,67 @@
+{
+  "classification": "CONFIGURATION_DERIVATION_NOT_RUNTIME_OBJECT_CAPTURE",
+  "snapshot_sha256": {
+    "evidence/frozen-serve.sh": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
+    "sources/vllm-workspace/vllm/vllm/config/speculative.py": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/patch/__init__.py": "54adc792ddb7b3d78a4f2ded4bf4a89a0f8227f8915a80a53f52a5460b968ec0",
+    "evidence/baseline-result.json": "ee173c7966ec74a530b4ca34b8b2b9399eb5acaa7b7678c53d39f72c9e78db21",
+    "agents/fusion/speculative-source-provenance.json": "c0994cfe0d334d054eb3e5b5640b7f751919ca8130903bdaf2d17b1410f48aa5",
+    "sources/vllm-workspace/vllm/vllm/config/parallel.py": "f012ace89e3fb730a467f729f602679bc145c49f0d10721811c9d818570e7b2b",
+    "agents/fusion/parallel-source-provenance.json": "16b5dab55ff47a09abf713ec354f0a31a2e4bf9d26bd40d63d24889e59042715",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/patch/platform/patch_parallel_config.py": "9e9da2af17be05caa7e4684cf1fb35081b8cf9448a44b614d46b9b40b3ab7665",
+    "agents/fusion/parallel-patch-source-provenance.json": "e278ef82cbcb7c11951e88731e04a0f2c7036d8883f4fab8ecec3f4754cb2956"
+  },
+  "chain": [
+    {
+      "fact": "Frozen startup explicitly method dspark, num speculative 5, DP2 TP8 EP, enable_flashcomm1 and enable_dsa_cp; no explicit pipeline-parallel-size.",
+      "source": "evidence/frozen-serve.sh:28",
+      "status": "DOCUMENTED_FROZEN_LAUNCH_NOT_PROCESS_CONFIG_DUMP"
+    },
+    {
+      "fact": "SpeculativeConfig.use_eagle returns true for dspark",
+      "source": "sources/vllm-workspace/vllm/vllm/config/speculative.py:1909-1912",
+      "status": "DOCUMENTED"
+    },
+    {
+      "fact": "When speculative config is retained as dspark and process is PP last rank, needs_mtp_hidden_states true; model allocates _mtp_hidden_buffer and writes it in forward",
+      "source": "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py:975-986,1592-1600",
+      "status": "DERIVED_CONDITIONAL"
+    },
+    {
+      "fact": "SP+buffer branch gathers both states before buffer copy and collapse; SP without buffer branch gathers collapse output instead",
+      "source": "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py:1595-1605",
+      "status": "DOCUMENTED_BRANCH"
+    },
+    {
+      "fact": "Frozen launch omitted pipeline size but default and live resolved value are not present in this evidence; flashcomm requested does not itself establish predicate use_sequence_parallel_moe",
+      "source": "evidence/frozen-serve.sh:28; sources/vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py:751-806",
+      "status": "UNKNOWN"
+    },
+    {
+      "fact": "ParallelConfig default PP=1; launch does not specify PP; absent CLI/env/patch overrides this means a single pipeline group, all ranks are last PP rank",
+      "source": "sources/vllm-workspace/vllm/vllm/config/parallel.py:122; evidence/frozen-serve.sh:28",
+      "status": "DERIVED_FROM_DECLARED_DEFAULT_UNOBSERVED_RESOLVED_VALUE"
+    },
+    {
+      "fact": "Base ParallelConfig all2all_backend default allgather_reducescatter; base use_sequence_parallel_moe returns true when supported backend, EP=true, TP>1 and DP>1; frozen launch requests EP,TP8,DP2,FlashComm",
+      "source": "sources/vllm-workspace/vllm/vllm/config/parallel.py:197,715-729; evidence/frozen-serve.sh:28",
+      "status": "DERIVED_CONDITIONAL_ON_NO_RUNTIME_OVERRIDE_AND_PATCH"
+    },
+    {
+      "fact": "Ascend patch removes DP>1 from SP predicate and adds deepep_v2 backend. For declared EP=true, TP8, DP2 and default allowed backend allgather_reducescatter, both base and patched predicates return true. This patch file does not itself set PP size.",
+      "source": "sources/vllm-workspace/vllm-ascend/vllm_ascend/patch/platform/patch_parallel_config.py:4-28; sources/vllm-workspace/vllm/vllm/config/parallel.py:197,715-729",
+      "status": "DERIVED_CONFIGURATION_CONDITIONAL_PATCH_ACTIVATION_UNKNOWN"
+    }
+  ],
+  "unknowns": [
+    "resolved PP size and per-rank last-rank status (default PP=1; overrides not excluded)",
+    "resolved all2all backend and other overrides; application of Ascend property patch in actual process",
+    "runtime allocation/copy actually observed",
+    "MTP buffer consumer actual DSpark runner data flow",
+    "compiled graph lowering and output equivalence after suggested fusion"
+  ],
+  "method": "Inspect recorded startup, source and SHA; do not infer runtime invocation solely from configuration",
+  "no_device_work": true
+}

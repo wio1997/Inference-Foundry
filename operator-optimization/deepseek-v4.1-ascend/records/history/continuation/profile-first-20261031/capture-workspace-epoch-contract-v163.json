@@ -1,0 +1,74 @@
+{
+  "status": "EXACT_INSTALLED_SOURCE_CONDITIONAL_CONTRACT_NOT_RUNTIME_BRANCH_ATTESTATION",
+  "source_receipt": {
+    "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/graph-entrypoint-sources-v163.json",
+    "bytes": 1076,
+    "sha256": "50c7bf2801d6ac87303f74a5af1f6396ce916a5d64600f20b69cb4d012233303"
+  },
+  "affected_modules": [
+    "M04",
+    "M10",
+    "M21",
+    "M22",
+    "M24"
+  ],
+  "capture_resources": {
+    "source_range": [
+      101,
+      118
+    ],
+    "first_missing_key_with_use_max_workspace_can_call_factory_twice": true,
+    "same_existing_key_without_max_can_return_same_cached_Tensor": true,
+    "max_candidate_can_replace_cached_Tensor": true,
+    "capture_end_rewrites_resource_references_with_weak_ref_tensors": true,
+    "implication": "Do not sum all factory candidates as simultaneously live workspaces or infer retirement from a weak Python reference. Actual roles/overlap/lifetimes need same-run evidence."
+  },
+  "resolved_update_parameters": {
+    "bind_overlay": "runtime_kwargs = {**self.kwargs, **params}",
+    "provider_resolved_once_per_provider_then_selected_by_provider_index": true,
+    "implication": "Captured initial kwargs alone are insufficient for every replay epoch; source permits provider overrides. The observer must not invoke resolve/factory/operation a second time."
+  },
+  "PA_workspace_cache": {
+    "scope_guard": "Only tasks whose operation == torch_npu._npu_paged_attention inside an actually selected UpdatableGraph.update path.",
+    "fresh_ws_buffer_each_update_call": true,
+    "same_key_assigns_same_workspace_Tensor_in_that_call": true,
+    "key_fields": [
+      "context_lens.data_ptr",
+      "context_lens.shape",
+      "query shape/dtype",
+      "key_cache shape/dtype",
+      "value_cache shape/dtype",
+      "block_table shape/dtype",
+      "out shape/dtype",
+      "num_kv_heads",
+      "num_heads",
+      "scale_value"
+    ],
+    "does_not_encode_all_parameter_values_pointers_or_storage_generations": true,
+    "actual_DeepSeek_V41_branch_selected": null,
+    "implication": "This is a conditional alias/rebinding source contract,not independent buffers or a new fusion credit. Do not spend per-pair work on this generic PA route before the actual backend/guard is recorded."
+  },
+  "completion": {
+    "source_order": "graph_task_update_begin -> operation -> graph_task_update_end -> event.record",
+    "source_host_return_or_event_record_proves_GPU_reader_completion": false,
+    "weak_resource_reference_is_all_reader_retirement": false
+  },
+  "current_config_scope": {
+    "raw_checkpoint_has_compress_ratios_under_text_config": true,
+    "raw_nested_config_proves_every_live_hf_config_attribute": false,
+    "must_observe": [
+      "runner.use_compress",
+      "runner.use_sparse",
+      "actual attn_backend MRO",
+      "wrapper runtime/forward mode",
+      "enable_enpu/use_eagle",
+      "same graph Python instance/capture state"
+    ],
+    "guard_snapshot_is_prepared_not_collected": true
+  },
+  "new_historical_native_promotions": 0,
+  "new_independence_proofs": 0,
+  "physical_storage_or_time_or_MFU_bound_proved": false,
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

@@ -1,0 +1,796 @@
+{
+  "id": "SAMPLER_FILTER_RACE_G7_V92",
+  "templates": [
+    {
+      "id": "ASCEND_DEFAULT_PROBABILITY_CUTOFF_AND_RACE",
+      "nodes": [
+        {
+          "id": "input_logits",
+          "kind": "WORKING_FLOAT_LOGITS_OLD_EPOCH",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "filter_P",
+          "kind": "ORIGINAL_FP32_SOFTMAX",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "sort_P",
+          "kind": "ASCENDING_PROBABILITY_SORT_VALUES",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "discarded_sort_idx",
+          "kind": "UNUSED_SORT_INDEX_OUTPUT",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "K",
+          "kind": "OPTIONAL_K_PARAMETER",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Pparam",
+          "kind": "OPTIONAL_P_PARAMETER",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "cutK",
+          "kind": "PROBABILITY_ORDER_STATISTIC_AND_KV_NOOP",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "cdf",
+          "kind": "ORIGINAL_PROBABILITY_CDF",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "cdf_mask",
+          "kind": "LE_ONE_MINUS_P_LAST_FALSE",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "countP",
+          "kind": "COUNT_MASKED_SORTED_POSITIONS",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "cutP",
+          "kind": "SORTED_PROBABILITY_AT_COUNT",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "maskK",
+          "kind": "ORIGINAL_P_LT_CUTK",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "maskP",
+          "kind": "ORIGINAL_P_LT_CUTP",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "logits_afterK",
+          "kind": "MASKED_LOGITS_K_EPOCH",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "filtered_logits",
+          "kind": "MASKED_LOGITS_P_EPOCH",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "returned_scores",
+          "kind": "OPTIONAL_FILTERED_LOGITS_OR_LOGSOFTMAX",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "race_P",
+          "kind": "POST_FILTER_FP32_SOFTMAX",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "rng_old",
+          "kind": "OLD_GLOBAL_AND_REQUEST_GENERATOR_STATES",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Qdefault",
+          "kind": "DEFAULT_BV_EXPONENTIAL_IF_G_NE_B",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Qseed",
+          "kind": "SEEDED_ROW_EXPONENTIAL_OVERWRITES_DICT_ORDER",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "rng_new",
+          "kind": "ADVANCED_GENERATOR_STATES",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Qwait",
+          "kind": "CURRENT_WAIT_GLOBAL_AND_RECORD_STREAM",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "ratio_P",
+          "kind": "INPLACE_P_DIV_Q",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "random_ID",
+          "kind": "FULL_VOCAB_RATIO_ARGMAX",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "greedy_ID",
+          "kind": "OTHER_GREEDY_ID_INPUT",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "mixed_mask",
+          "kind": "TEMPERATURE_LT_1E_MINUS5",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "chosen_ID",
+          "kind": "MIXED_WHERE_OR_ALLRANDOM_ID",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "batch_invariant",
+          "kind": "UPSTREAM_DELEGATION_GUARD",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "upstream_filter_boundary",
+          "kind": "UPSTREAM_TRITON_OR_PYTORCH_FILTER_DIFFERENT_CONTRACT",
+          "resource": "DECLARED_OPERATOR_OR_STATE",
+          "source_resolution_v92": {
+            "template": "UPSTREAM_MONOLITHIC_PIVOT_FILTER",
+            "condition": "DeclaredNPUroutewithSPLIT_COVERS_PONLYFalse;nativecompilation/entryflagsunbound"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "producer": "input_logits",
+          "consumer": "filter_P",
+          "value": "initialprobabilityvalues",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "anyfilter",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "filter_P",
+          "consumer": "sort_P",
+          "value": "onealreadysharedsort",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "anyfilter",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "filter_P",
+          "consumer": "discarded_sort_idx",
+          "value": "sortindexsideproduct",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "anyfilter",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "sort_P",
+          "consumer": "cutK",
+          "value": "sameoriginalsortedP",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "kpresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "K",
+          "consumer": "cutK",
+          "value": "V-k,kVflag",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "kpresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "sort_P",
+          "consumer": "cdf",
+          "value": "sameoriginalsortedP",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "Pparam",
+          "consumer": "cdf_mask",
+          "value": "actual1-p",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "cdf",
+          "consumer": "cdf_mask",
+          "value": "CDFvalues",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "cdf_mask",
+          "consumer": "countP",
+          "value": "boolsum",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "countP",
+          "consumer": "cutP",
+          "value": "count",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "sort_P",
+          "consumer": "cutP",
+          "value": "probabilitycutoff",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "filter_P",
+          "consumer": "maskK",
+          "value": "sameoriginalP",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "kpresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "cutK",
+          "consumer": "maskK",
+          "value": "cutoff",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "kpresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "filter_P",
+          "consumer": "maskP",
+          "value": "sameoriginalP",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "cutP",
+          "consumer": "maskP",
+          "value": "cutoff",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "input_logits",
+          "consumer": "logits_afterK",
+          "value": "oldlogits",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "kpresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "maskK",
+          "consumer": "logits_afterK",
+          "value": "masked_fill-inf",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "kpresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "logits_afterK",
+          "consumer": "filtered_logits",
+          "value": "orderedlogitsbank",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "kandp",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "input_logits",
+          "consumer": "filtered_logits",
+          "value": "oldlogits",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "notk",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "maskP",
+          "consumer": "filtered_logits",
+          "value": "masked_fill-inf",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "ppresent",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "filtered_logits",
+          "consumer": "returned_scores",
+          "value": "samefilteredbankorlogsoftmax",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "processedmode",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "filtered_logits",
+          "consumer": "race_P",
+          "value": "newsoftmax",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "randompath",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "rng_old",
+          "consumer": "Qdefault",
+          "value": "globalstate",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "G!=B",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "rng_old",
+          "consumer": "Qseed",
+          "value": "seededgeneratorstates",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "G>0",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "Qdefault",
+          "consumer": "Qseed",
+          "value": "defaultbankthenoverwrites",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "0<G<B",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "Qdefault",
+          "consumer": "rng_new",
+          "value": "globalstateadvanced",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "G!=B",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "Qseed",
+          "consumer": "rng_new",
+          "value": "perrequeststatesadvanced",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "G>0",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "Qdefault",
+          "consumer": "Qwait",
+          "value": "globalstreamQready",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "G!=B",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "Qseed",
+          "consumer": "Qwait",
+          "value": "globalstreamQready",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "G>0",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "Qwait",
+          "consumer": "ratio_P",
+          "value": "sameQvaluesandlifetime",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "randompath",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "race_P",
+          "consumer": "ratio_P",
+          "value": "Pmutatedinplace",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "randompath",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "ratio_P",
+          "consumer": "random_ID",
+          "value": "sourcecomparator",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "randompath",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "random_ID",
+          "consumer": "chosen_ID",
+          "value": "randomresult",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "randomormixed",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "greedy_ID",
+          "consumer": "chosen_ID",
+          "value": "greedyresult",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "mixed",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "mixed_mask",
+          "consumer": "chosen_ID",
+          "value": "rowselection",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "mixed",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "batch_invariant",
+          "consumer": "upstream_filter_boundary",
+          "value": "notdefaultfilter",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_OR_EFFECT",
+          "condition": "batchinvariant",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "input_logits",
+          "consumer": "race_P",
+          "value": "branchvalue",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE",
+          "condition": "nokandnop",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "input_logits",
+          "consumer": "returned_scores",
+          "value": "branchvalue",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE",
+          "condition": "nokandnopandprocessed",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "logits_afterK",
+          "consumer": "race_P",
+          "value": "branchvalue",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE",
+          "condition": "kandnotp",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        },
+        {
+          "producer": "logits_afterK",
+          "consumer": "returned_scores",
+          "value": "branchvalue",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE",
+          "condition": "kandnotpandprocessed",
+          "source": "sampling-filter-race-source-contract-v91.json"
+        }
+      ]
+    },
+    {
+      "id": "UPSTREAM_MONOLITHIC_PIVOT_FILTER",
+      "nodes": [
+        {
+          "id": "L",
+          "kind": "UNCHANGED_INPUT_LOGITS_EPOCH",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "params",
+          "kind": "K_P_ROUTE_AND_ROW_PARAMETERS",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "sample",
+          "kind": "FIRST_TILE_STATISTICS",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "tables",
+          "kind": "READONLY_LOOKUP_TABLES_READY_EPOCH",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "fullscan",
+          "kind": "FULL_STATS_AND_OUTLIER_PREFIX",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Ksearch",
+          "kind": "TWO_PIVOT_COUNT_MIN_FUZZY_QUOTA_SCAN",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Kquota",
+          "kind": "K_PIVOT_AND_DUPLICATE_STATE",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "KPnormalizer",
+          "kind": "SELECTED_K_NORMALIZER_AND_PROB_BANK",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Pnormalizer",
+          "kind": "STANDALONE_HEURISTIC_SHIFT_NORMALIZER",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Pbank",
+          "kind": "COMPACT_OR_FULL_CURRENT_PROB_PREFIX",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "Psearch",
+          "kind": "PIVOT_MASS_MIN_FUZZY_QUOTA_SCAN",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "descriptor",
+          "kind": "FINAL_PIVOT_QUOTA_ACTIVE_GUARD",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "finalmask",
+          "kind": "ORDERED_VOCAB_MASK_STORE",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "output",
+          "kind": "UPDATED_LOGITS_OR_ORIGINAL_NOP",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "workspace_owner",
+          "kind": "MUTABLE_SCRATCH_BANK_GENERATION",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        },
+        {
+          "id": "publication",
+          "kind": "WORKSPACE_LAST_READ_AND_RELEASE",
+          "resource": "DECLARED_OPERATOR_OR_STATE"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "L",
+          "consumer": "sample",
+          "value": "row sample",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "params",
+          "consumer": "sample",
+          "value": "activebranch",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "sample",
+          "consumer": "fullscan",
+          "value": "Kheuristic",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "tables",
+          "consumer": "fullscan",
+          "value": "percentiles",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "L",
+          "consumer": "fullscan",
+          "value": "fullrow",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "fullscan",
+          "consumer": "Ksearch",
+          "value": "OorVrange",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "workspace_owner",
+          "consumer": "fullscan",
+          "value": "exclusivebank",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Ksearch",
+          "consumer": "Kquota",
+          "value": "orderedhelperstate",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "params",
+          "consumer": "Kquota",
+          "value": "k",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Kquota",
+          "consumer": "KPnormalizer",
+          "value": "selectedK/quota",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "L",
+          "consumer": "KPnormalizer",
+          "value": "maskedExpinputs",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "fullscan",
+          "consumer": "KPnormalizer",
+          "value": "originaloutlierbuffer",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "sample",
+          "consumer": "Pnormalizer",
+          "value": "heuristicshift",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "tables",
+          "consumer": "Pnormalizer",
+          "value": "pheuristic",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "L",
+          "consumer": "Pnormalizer",
+          "value": "fullrows",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "KPnormalizer",
+          "consumer": "Pbank",
+          "value": "postKprefix",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Pnormalizer",
+          "consumer": "Pbank",
+          "value": "outlierorfullprefix",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Pbank",
+          "consumer": "Psearch",
+          "value": "psearchrange",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "params",
+          "consumer": "Psearch",
+          "value": "p",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Kquota",
+          "consumer": "descriptor",
+          "value": "Konly",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Psearch",
+          "consumer": "descriptor",
+          "value": "Pcase",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "descriptor",
+          "consumer": "finalmask",
+          "value": "activepivot/quota",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "L",
+          "consumer": "finalmask",
+          "value": "originalrows",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "finalmask",
+          "consumer": "output",
+          "value": "maskedwrites",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "L",
+          "consumer": "output",
+          "value": "guardednopunchanged",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "workspace_owner",
+          "consumer": "Pbank",
+          "value": "currentgeneration",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Ksearch",
+          "consumer": "publication",
+          "value": "Klastread",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        },
+        {
+          "producer": "Psearch",
+          "consumer": "publication",
+          "value": "Plastread",
+          "dependency_kind": "CONDITIONAL_SOURCE_VALUE_STATE_OR_CONTROL",
+          "condition": "Seev92branchinventory;notallpathscoexecute",
+          "source": "pivot-filter-source-contract-v92.json"
+        }
+      ]
+    }
+  ],
+  "scope": "OnlydefaultAscendfilter/race andupstreamdelegationboundary. Otherbackends/processorprimitivesnotimplicitlymapped.",
+  "complete": false,
+  "overall_complete": false,
+  "parent": "operator-graph-G7-v91.json"
+}

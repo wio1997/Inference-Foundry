@@ -1,0 +1,121 @@
+{
+  "nodes": [
+    {
+      "id": "registered_payload_views_v"
+    },
+    {
+      "id": "shared_buffer_layout_by_key"
+    },
+    {
+      "id": "old_CPU_map_v"
+    },
+    {
+      "id": "build_send_and_recv_tasks"
+    },
+    {
+      "id": "post_P2P_requests"
+    },
+    {
+      "id": "wait_requests_call"
+    },
+    {
+      "id": "copy_CPU_map_v1"
+    },
+    {
+      "id": "copy_log2phy_v1"
+    },
+    {
+      "id": "enqueue_payload_plane_copies_v1"
+    },
+    {
+      "id": "set_WAITING_v1"
+    },
+    {
+      "id": "all_old_readers_finished"
+    },
+    {
+      "id": "all_new_planes_native_ready"
+    },
+    {
+      "id": "all_rank_map_generation_agreed"
+    },
+    {
+      "id": "next_reader_v1"
+    }
+  ],
+  "edges": [
+    {
+      "a": "registered_payload_views_v",
+      "b": "build_send_and_recv_tasks",
+      "kind": "SOURCE_SENDS_FROM_BOUND_OLD_VIEWS"
+    },
+    {
+      "a": "shared_buffer_layout_by_key",
+      "b": "build_send_and_recv_tasks",
+      "kind": "SOURCE_RECEIVES_TO_BUFFER_BANKS"
+    },
+    {
+      "a": "old_CPU_map_v",
+      "b": "build_send_and_recv_tasks",
+      "kind": "SOURCE_GLOBAL_TO_LOCAL_SEND_LOOKUP"
+    },
+    {
+      "a": "build_send_and_recv_tasks",
+      "b": "post_P2P_requests",
+      "kind": "STATE_WAITING_TO_READY"
+    },
+    {
+      "a": "post_P2P_requests",
+      "b": "wait_requests_call",
+      "kind": "STATE_READY_TO_TRANSFERRING"
+    },
+    {
+      "a": "wait_requests_call",
+      "b": "copy_CPU_map_v1",
+      "kind": "SOURCE_CALL_ORDER_NOT_NATIVE_COMPLETION_PROOF"
+    },
+    {
+      "a": "copy_CPU_map_v1",
+      "b": "copy_log2phy_v1",
+      "kind": "SOURCE_CALL_ORDER"
+    },
+    {
+      "a": "copy_log2phy_v1",
+      "b": "enqueue_payload_plane_copies_v1",
+      "kind": "SOURCE_CALL_ORDER"
+    },
+    {
+      "a": "enqueue_payload_plane_copies_v1",
+      "b": "set_WAITING_v1",
+      "kind": "SOURCE_CALL_ORDER_NOT_ASYNC_COMPLETION_PROOF"
+    },
+    {
+      "a": "all_old_readers_finished",
+      "b": "enqueue_payload_plane_copies_v1",
+      "kind": "REQUIRED_LAST_READER_EDGE_UNPROVED"
+    },
+    {
+      "a": "enqueue_payload_plane_copies_v1",
+      "b": "all_new_planes_native_ready",
+      "kind": "REQUIRED_NATIVE_READY_EDGE_UNPROVED"
+    },
+    {
+      "a": "all_new_planes_native_ready",
+      "b": "next_reader_v1",
+      "kind": "REQUIRED_PUBLICATION_EDGE_UNPROVED"
+    },
+    {
+      "a": "all_rank_map_generation_agreed",
+      "b": "next_reader_v1",
+      "kind": "REQUIRED_DISTRIBUTED_GENERATION_EDGE_UNPROVED"
+    },
+    {
+      "a": "set_WAITING_v1",
+      "b": "next_reader_v1",
+      "kind": "CONDITIONAL_HOST_SCHEDULE_EDGE_NOT_NATIVE_FENCE"
+    }
+  ],
+  "scope": "One unrolled generation of the local-reference dynamic updater;not the globalmodel DAG or an actual timestamp/native event certificate.",
+  "native_publication_proved": false,
+  "overall_complete": false
+}

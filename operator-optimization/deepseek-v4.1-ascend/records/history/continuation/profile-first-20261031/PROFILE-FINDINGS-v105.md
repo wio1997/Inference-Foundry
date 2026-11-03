@@ -1,0 +1,15 @@
+本轮审计了当前353条算子语义记录的证据依赖，并针对会影响跨卡算子路径的两个缺失定义补证。输入台账原有388份唯一证据文件；加入新源码合同后核对391份文件。引用存在和哈希匹配只证明资料完整性，不等于这些资料已经证明全部分支、融合或理论上限。
+
+原容器只读取回attention/utils.py与attention/context_parallel/common_cp.py，另读取已知model_runner控制文件校验。166实际主机105身份、原采集索引及控制源码SHA均匹配；未启动容器内进程、模型、Torch/NPU或新采集，没有健康/进程/配置扫描，完成后关闭本轮SSH控制连接。新文件的历史加载对象身份仍未被反向证明。
+
+两个此前未读的定义现在明确：enable_pcp检查当前配置上下文的prefill_context_parallel_size>1；is_pcp_decode_sharding_enabled检查传入配置的PCP>1、DCP=1且speculative_config为None。enable_dsa_cp另读AscendConfig singleton。已有factory禁止legacy DSA-CP和PCP同时开启。上下文、singleton、builder参数与draft clone并非自动同一个配置，不能用单个默认值代替它们的实际身份。
+
+这会改变候选适用范围。在声明的main K=5/speculative_config存在的源码域里，现有PCP helper的decode分片谓词为False；pure decode返回local metadata，不进入该PCP global hidden restore路径。启用PCP本身不会让这段代码自动分片 speculative decode。global batch若有prefill，仍需global metadata和对应缓存/恢复参与；空local query也不能删除全局义务。full graph标志没有覆盖这个谓词。6个factory与96个builder/metadata条件用例已保存；这些不是实际运行标志取证。
+
+已有v42已经登记replicated decode的局部路径，本轮将其精确前提补齐，没有把原本不存在的PCP restore当成新增收益，也没有声称全部通信为0。若要对speculative decode采用另一种分片，需要新的多token因果行、KV发布/恢复、capture及全读者协议，不能只修改选择开关。实际main PCP度、上下文/参数关系、draft clone和已加载helper仍有未绑定条件。
+
+另将M12-OP19的容量描述与v98对齐：3200条target记录已有raw C=65536；1272条其他容量仍缺。原生ABI、same-call receiver demand、跨rank输入上界、写范围和真实分配生命周期仍未知。raw容量不是实际GEMM行数，也没有产生新的流量、显存或算力收益。
+
+旧remaining列表累计55条历史状态，含不同版本的计数和已补齐的源码缺口。本轮逐条原样保留在历史归档及路由表，当前待办改列14项证据义务，覆盖原有9项需求：完整算子范围、版本/加载身份、实际负载分支、9个native操作数、MC2需求与存储安全、读者/代际、数值合法性、组合必要工作、物理能力、图/源码域、候选组合、归属/因果、全模块利用率及具名待复核问题。未以重排而关闭任何原需求。
+
+当前353条记录/26个暂定模块、35项模型候选；131条条件关系/25组联合合同/464对待汇入或复核，局部图813节点行/1297边行未变。9个regime/1352次执行关键字段、849 PMU/16阶段图/3136归属歧义及最低模块MFU均仍未补齐。整体目标保持进行中。

@@ -1,0 +1,145 @@
+{
+  "nodes": [
+    {
+      "id": "Y0",
+      "label": "Current target sampled IDs"
+    },
+    {
+      "id": "S0",
+      "label": "Literal next-ID andvalid-count summary"
+    },
+    {
+      "id": "P0",
+      "label": "Input/rejection/position preparation"
+    },
+    {
+      "id": "M0",
+      "label": "Current draft input/attention metadata"
+    },
+    {
+      "id": "D0",
+      "label": "Full selected noncausal draft decoder"
+    },
+    {
+      "id": "L0",
+      "label": "Basehead andMarkov recurrence"
+    },
+    {
+      "id": "C0",
+      "label": "Optional confidence rawhidden/orderedembedding"
+    },
+    {
+      "id": "B0",
+      "label": "Periodic budget state update"
+    },
+    {
+      "id": "K0",
+      "label": "Global selection/request histogram keepcounts"
+    },
+    {
+      "id": "T0",
+      "label": "Host retrieval cappedprefix/request IDs"
+    },
+    {
+      "id": "A1",
+      "label": "Next scheduled rowidentity andprefixmetadata"
+    },
+    {
+      "id": "V1",
+      "label": "Next target verification/sample result"
+    },
+    {
+      "id": "S1",
+      "label": "Next accepted-state next-ID/count summary"
+    }
+  ],
+  "edges": [
+    {
+      "producer": "Y0",
+      "consumer": "S0",
+      "dependency": "RAW sampled values"
+    },
+    {
+      "producer": "S0",
+      "consumer": "P0",
+      "dependency": "next-ID/count,rejection correction"
+    },
+    {
+      "producer": "P0",
+      "consumer": "M0",
+      "dependency": "positions/lengths/slots"
+    },
+    {
+      "producer": "M0",
+      "consumer": "D0",
+      "dependency": "input ready/frontiers"
+    },
+    {
+      "producer": "D0",
+      "consumer": "L0",
+      "dependency": "hidden/query rows"
+    },
+    {
+      "producer": "D0",
+      "consumer": "C0",
+      "dependency": "rawhidden"
+    },
+    {
+      "producer": "L0",
+      "consumer": "C0",
+      "dependency": "ordered Markov inputs"
+    },
+    {
+      "producer": "C0",
+      "consumer": "B0",
+      "dependency": "survival andperiodic state",
+      "value_read_condition": "Periodic budget recompute consumes survival;otherwise the known budget/counter path does not require a new survival-value wait."
+    },
+    {
+      "producer": "B0",
+      "consumer": "K0",
+      "dependency": "final current budget"
+    },
+    {
+      "producer": "C0",
+      "consumer": "K0",
+      "dependency": "global candidate scores"
+    },
+    {
+      "producer": "K0",
+      "consumer": "T0",
+      "dependency": "samegeneration keepbank"
+    },
+    {
+      "producer": "L0",
+      "consumer": "T0",
+      "dependency": "draft ID lists"
+    },
+    {
+      "producer": "T0",
+      "consumer": "A1",
+      "dependency": "returnedprefix+scheduledrowmap"
+    },
+    {
+      "producer": "A1",
+      "consumer": "V1",
+      "dependency": "metadata ready/targetinput"
+    },
+    {
+      "producer": "V1",
+      "consumer": "S1",
+      "dependency": "new sampled/rejection outcome"
+    }
+  ],
+  "domain": "Selected padded DSpark merged first-pass/early-return domain plus optionaldynamic branch and eligible puredecode next scheduled prefix. Nonparallel autoregressive continuation remains a separate branch. Crossiteration nodeindices are symbolic,not captured request binding.",
+  "forbidden_rewrites": [
+    "C0/K0cannotremoveM0orD0 by a later verification cutoff.",
+    "K0isnotS0valid_count anddoesnotpredictS1accepted_count.",
+    "RawTopKposition set isnotT0publishedprefix.",
+    "A1cannotbindbyshape/totalalone orreusebankbeforeoldreadersretire."
+  ],
+  "readiness": "Only value/range dependencies shown. No new whole-operator/global barrier is inferred;finalize each range when its prerequisite counts/cutoffs and reader retirement are proven.",
+  "native_graph_nodes_added": 0,
+  "new_central_pair_reconciliation": true,
+  "overall_complete": false
+}

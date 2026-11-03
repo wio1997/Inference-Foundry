@@ -1,0 +1,274 @@
+{
+  "source_files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "bytes": 89106,
+      "clauses": [
+        {
+          "first": 837,
+          "last": 843,
+          "source": [
+            "        has_engram = _engram_enabled_for_runtime(config, vllm_config)",
+            "        self.engram: AscendEngram | None",
+            "        if has_engram and not is_draft_layer and self.layer_idx in config.engram_layer_ids:",
+            "            self.engram = AscendEngram(config, quant_config, f\"{prefix}.engram\")",
+            "        else:",
+            "            self.engram = None",
+            ""
+          ]
+        },
+        {
+          "first": 879,
+          "last": 920,
+          "source": [
+            "    def forward(",
+            "        self,",
+            "        positions,",
+            "        hidden_states,",
+            "        pre_mix,",
+            "        llama_4_scaling=None,",
+            "        input_ids=None,",
+            "    ):",
+            "        use_sequence_parallel = getattr(self, \"use_sequence_parallel\", False)",
+            "        residual = hidden_states",
+            "        x, attn_post, attn_comb, attn_pre = self.hc_pre(",
+            "            hidden_states,",
+            "            self.hc_attn_fn,",
+            "            self.hc_attn_scale,",
+            "            self.hc_attn_base,",
+            "            pre_mix,",
+            "        )",
+            "        x = self.input_layernorm(x)",
+            "        if use_sequence_parallel:",
+            "            x = sp_all_gather(x)[: positions.shape[0]]",
+            "        x = self.self_attn(positions, x, llama_4_scaling)",
+            "        if use_sequence_parallel:",
+            "            x = sp_reduce_scatter(x)",
+            "        hidden_states = self.hc_post(x, residual, attn_post, attn_comb)",
+            "",
+            "        residual = hidden_states",
+            "        x, ffn_post, ffn_comb, ffn_pre = self.hc_pre(",
+            "            hidden_states,",
+            "            self.hc_ffn_fn,",
+            "            self.hc_ffn_scale,",
+            "            self.hc_ffn_base,",
+            "            attn_pre,",
+            "        )",
+            "        x, x_fp32 = self.rms_norm_cast(x)",
+            "        x = self.mlp(",
+            "            x,",
+            "            input_ids=input_ids,",
+            "            hidden_states_fp32=x_fp32,",
+            "            already_sequence_parallel=use_sequence_parallel,",
+            "        )",
+            "        hidden_states = self.hc_post(x, residual, ffn_post, ffn_comb)",
+            "        return hidden_states, ffn_pre"
+          ]
+        },
+        {
+          "first": 1554,
+          "last": 1607,
+          "source": [
+            "        last_layer = None",
+            "        aux_hidden_states = []",
+            "        for layer in self.layers:",
+            "            last_layer = layer",
+            "            # DSpark consumes the residual stream entering its configured",
+            "            # target layers. The runner expresses checkpoint IDs as one-based.",
+            "            if layer.layer_idx + 1 in self.aux_hidden_state_layers:",
+            "                aux_hidden_state = hidden_states.mean(dim=1)",
+            "                if use_sequence_parallel:",
+            "                    aux_hidden_state = sp_all_gather(aux_hidden_state)[:full_num_tokens]",
+            "                aux_hidden_states.append(aux_hidden_state)",
+            "            if layer.engram is not None and token_mask.numel():",
+            "                # Without SP the earlier mask slices are views. Delay the wait",
+            "                # until the first actual consumer so early layers can overlap",
+            "                # hash/lookup production, rather than blocking at graph entry.",
+            "                if engram_mask_ready_event is not None:",
+            "                    AscendParallelEngramEmbedding.wait_lookup(engram_mask_ready_event, external=engram_graph_events)",
+            "                    engram_mask_ready_event = None",
+            "                if engram_pending is not None and layer.layer_idx in engram_pending:",
+            "                    AscendParallelEngramEmbedding.wait_lookup(",
+            "                        engram_pending[layer.layer_idx],",
+            "                        external=engram_graph_events,",
+            "                    )",
+            "                n = hidden_states.shape[0]",
+            "                # Graph captures keep lookup buffers at static capacity; the",
+            "                # model's actual token dimension remains scheduler-dynamic.",
+            "                # SP can copy rows, so shard only after this table is ready.",
+            "                lookup = lookups[layer.layer_idx]",
+            "                if use_sequence_parallel:",
+            "                    lookup = sp_shard(lookup)",
+            "                lookup = lookup[:n]",
+            "                active_mask = token_mask[:n]",
+            "                hidden_states[:n] = layer.engram(",
+            "                    hidden_states[:n],",
+            "                    lookup,",
+            "                    active_mask,",
+            "                    self.engram_rotation if self.engram_rotated else None,",
+            "                )",
+            "            hidden_states, pre_mix = layer(positions, hidden_states, pre_mix, None, input_ids=input_ids)",
+            "        assert last_layer is not None, \"Hyper-connection collapse requires at least one decoder layer\"",
+            "        # MTP needs full HC states",
+            "        if self._mtp_hidden_buffer is not None:",
+            "            if use_sequence_parallel:",
+            "                hidden_states = sp_all_gather(hidden_states)[:full_num_tokens]",
+            "                pre_mix = sp_all_gather(pre_mix)[:full_num_tokens]",
+            "            num_tokens = hidden_states.shape[0]",
+            "            self._mtp_hidden_buffer[:num_tokens].copy_(hidden_states.flatten(1))",
+            "",
+            "        hidden_states = last_layer.hc_collapse(hidden_states, pre_mix)",
+            "        if use_sequence_parallel and self._mtp_hidden_buffer is None:",
+            "            hidden_states = sp_all_gather(hidden_states)[:full_num_tokens]",
+            "        hidden_states = self.norm(hidden_states)",
+            "        if aux_hidden_states:",
+            "            return hidden_states, aux_hidden_states"
+          ]
+        }
+      ],
+      "grade": "REUSED_PINNED_LOCAL_OPERATOR_CALLER;NOT_NEW_TARGET_SOURCE_OR_LOADED_BINARY_ATTESTATION"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/layer.py",
+      "sha256": "dc9457c88aa3c90133115bc608447e037b0693f8db71bb8da37f1ead44021f80",
+      "bytes": 2193,
+      "clauses": [
+        {
+          "first": 18,
+          "last": 56,
+          "source": [
+            "    def __init__(self, config, quant_config, prefix: str) -> None:",
+            "        super().__init__()",
+            "        self.dim = config.hidden_size",
+            "        self.hc_mult = config.hc_mult",
+            "        self.eps = config.rms_norm_eps",
+            "        self.wkv = ReplicatedLinear(",
+            "            (config.engram_max_ngram_size - 1) * config.engram_n_heads * config.engram_head_dim,",
+            "            (self.hc_mult + 1) * self.dim,",
+            "            bias=False,",
+            "            quant_config=quant_config,",
+            "            prefix=f\"{prefix}.wkv\",",
+            "            return_bias=False,",
+            "        )",
+            "        self.q_weight = nn.Parameter(torch.empty(self.hc_mult, self.dim, dtype=torch.bfloat16))",
+            "        self.k_weight = nn.Parameter(torch.empty(self.hc_mult, self.dim, dtype=torch.bfloat16))",
+            "",
+            "    def forward(",
+            "        self,",
+            "        hidden_states: torch.Tensor,",
+            "        rows: torch.Tensor,",
+            "        token_mask: torch.Tensor,",
+            "        rotation: torch.Tensor | None,",
+            "    ) -> torch.Tensor:",
+            "        kv = self.wkv(rows)",
+            "        if (",
+            "            rotation is None",
+            "            and hidden_states.device.type == \"npu\"",
+            "            and get_current_hardware_profile().supports(HardwareCapability.ENGRAM_UNROTATED_GATE)",
+            "        ):",
+            "            return fused_engram_gate(hidden_states, kv, self.q_weight, self.k_weight, token_mask, self.eps)",
+            "        key, value = kv.split([self.hc_mult * self.dim, self.dim], -1)",
+            "        return engram_gate(",
+            "            hidden_states,",
+            "            key.view(hidden_states.shape[0], self.hc_mult, self.dim),",
+            "            value,",
+            "            self.q_weight.float() * self.k_weight.float(),",
+            "            rotation,",
+            "            token_mask,",
+            "            self.eps,"
+          ]
+        }
+      ],
+      "grade": "REUSED_PINNED_LOCAL_OPERATOR_CALLER;NOT_NEW_TARGET_SOURCE_OR_LOADED_BINARY_ATTESTATION"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/common.py",
+      "sha256": "4797b8962264d137cdb142a9988825288283092fb797ddbd334c6ab2223eb58d",
+      "bytes": 2932,
+      "clauses": [
+        {
+          "first": 46,
+          "last": 72,
+          "source": [
+            "def engram_gate(",
+            "    hidden: torch.Tensor,",
+            "    key: torch.Tensor,",
+            "    value: torch.Tensor,",
+            "    channel_weight: torch.Tensor,",
+            "    rotation_block: torch.Tensor | None,",
+            "    token_mask: torch.Tensor,",
+            "    eps: float,",
+            ") -> torch.Tensor:",
+            "    \"\"\"Apply original-basis gating, undoing checkpoint rotation when present.",
+            "",
+            "    ``hidden`` and ``key`` have shape [tokens, hc_mult, hidden_size].",
+            "    The saved rotation consists of identical diagonal blocks. Restore hidden",
+            "    in FP32; the value projection already includes the forward rotation.",
+            "    \"\"\"",
+            "    dim = hidden.shape[-1]",
+            "    original = hidden.float()",
+            "    if rotation_block is not None:",
+            "        original = (original.unflatten(-1, (-1, rotation_block.shape[0])) @ rotation_block.float().T).flatten(-2)",
+            "    key = key.float()",
+            "    rstd = torch.rsqrt(original.square().mean(-1) + eps)",
+            "    rstd *= torch.rsqrt(key.square().mean(-1) + eps)",
+            "    dot = (original * channel_weight.float() * key).sum(-1) * rstd * dim**-0.5",
+            "    magnitude = dot.abs().clamp_min(1e-6).sqrt()",
+            "    gate = torch.sigmoid(torch.where(torch.signbit(dot), -magnitude, magnitude))",
+            "    gate = gate.masked_fill(~token_mask.unsqueeze(-1), 0)",
+            "    return (hidden.float() + gate.unsqueeze(-1) * value.float().unsqueeze(-2)).to(hidden.dtype)"
+          ]
+        }
+      ],
+      "grade": "REUSED_PINNED_LOCAL_OPERATOR_CALLER;NOT_NEW_TARGET_SOURCE_OR_LOADED_BINARY_ATTESTATION"
+    }
+  ],
+  "config": {
+    "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/sampling-guard-source-v55/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8/config.json",
+    "sha256": "43d3b2bc55626893d59275b32e04068c0fc916f5c382eb91de73bdbade9c88f7",
+    "target_layers": [
+      1,
+      14
+    ],
+    "draft_Engram_constructed": false,
+    "hc": 4,
+    "H": 5120
+  },
+  "facts": [
+    {
+      "id": "WKV-PURE-ROWS",
+      "statement": "AscendEngram.forward line41 computes wkv(rows) before the gate. It has no hidden-value input. Rows/weight/quantizer/device/layout/numerical generation still constrain legal hoist/reuse."
+    },
+    {
+      "id": "KEY-RSTD-PURE",
+      "statement": "Common gate line67 computes rsqrt(mean(key.float()**2)+eps), independent of hidden. Cache this scalar only if original square/mean/add/rsqrt arithmetic and FP32 bits are preserved. Later multiply hidden_rstd by key_rstd in original order."
+    },
+    {
+      "id": "NO-PREWEIGHT-KEY",
+      "statement": "Original numerator is sum((rotated_hidden*channel_weight)*key), then *combined_rstd*dim^-0.5. Preweighting or normalizing key before this dot reassociates FP32 operations; not an unconditional exact rewrite."
+    },
+    {
+      "id": "MUTATE-BEFORE-HC",
+      "statement": "Model copies gate result into hidden_states[:n], then invokes layer. Decoder first binds residual=hidden_states and HcPre consumes this post-Engram BF16 value. Both coefficient and collapsed-Y branches require that updated value."
+    },
+    {
+      "id": "NON-ENGRAM-AND-DRAFT",
+      "statement": "Construction is enabled only at configured target layers1/14 and explicitly excludes draft layers. Guard token_mask.numel() plus lookup-ready/shard/slice precedes the gate; do not hoist into inactive branches or claim all layers have this boundary."
+    },
+    {
+      "id": "OLD-HIDDEN-READERS",
+      "statement": "Rotation and gate residual use old hidden, while HcPre/current HcPost residual use updated hidden. Direct gate output to the existing slice needs all old readers finished, exact BF16 rounding, row ownership and capture bank/alias/error semantics; no pointer proof is inferred."
+    },
+    {
+      "id": "EARLY-LOOKUP-BASELINE",
+      "statement": "One hash/DP production already feeds both configured layers. Early WKV is additional pure projection scheduling after lookup/TP/SP readiness, not credit for repeating/deleting already-shared hash or collective work."
+    }
+  ],
+  "numerical_policy": "Keep WKV BF16, original FLOAT rotation and separate FP32 multiply/add/reduction order, BF16 gate result, HcPre BF16Y then norm, HF32 coefficient/A2 and current epsilon/rowFactor contract.",
+  "local_operator_clauses_read": true,
+  "new_source_files_obtained": 0,
+  "new_remote_source_read": false,
+  "no_target_execution": true,
+  "overall_complete": false
+}

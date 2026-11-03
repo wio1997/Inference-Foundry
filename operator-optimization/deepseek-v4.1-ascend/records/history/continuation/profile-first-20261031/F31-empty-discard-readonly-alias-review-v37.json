@@ -1,0 +1,33 @@
+{
+  "generated_utc": "2026-10-31T10:08:49.712886+00:00",
+  "candidate": "F31",
+  "related": [
+    "F35",
+    "H02"
+  ],
+  "evidence_grade": "MEASURED_CONDITION_PLUS_LOCAL_VALUE_PROOF",
+  "measured": {
+    "host_clone_calls": 88,
+    "host_index_fill_calls": 88,
+    "index_dtype": "INT64",
+    "index_extent": 0,
+    "sampled_domains": [
+      "INT32[2,1]",
+      "INT32[2,6]",
+      "INT32[4,6]"
+    ]
+  },
+  "argument": "For an empty valid index tensor, index_fill_ changes no sampled value. The remainder of the helper only reads the cloned matrix and returns next IDs/counts. Under a stable readonly original epoch, directly using the original matrix gives the exact same predicates,counts,count-1 selection and zero-count fallback, without a private clone/empty fill call.",
+  "guard": "Shape/numel inspection of an already available empty-index argument can select this domain without a new data-dependent device .item(). Preserve normal dtype/dim/error conditions and input stability.",
+  "not_proved": [
+    "No native IndexFill kernel or physical clone-DMA count was measured by host-call counts.",
+    "Empty discard does not mean valid count>0: a row containing only -1 sentinels still needs backup.",
+    "All original sampled-ID response/logprob/count consumers and concurrent last-reader ordering remain."
+  ],
+  "retained_formula": "v36 literal(x!=-1)&(x<V),count-1,backup andINT32next/INT64count unchanged.",
+  "local_question_closed": true,
+  "implemented": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

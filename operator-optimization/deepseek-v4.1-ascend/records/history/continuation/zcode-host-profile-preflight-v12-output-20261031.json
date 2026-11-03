@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_a68fae25-9ed4-422d-81b8-f5791b8df680",
+  "traceId": "617cf9d7-c0ff-42d2-9354-44ee992c6da5",
+  "turnId": "turn_477c0c8f-b8f3-49d0-8f76-ccd797c763b0",
+  "response": "命令已按原样执行一次，未修改、未扩展、未重试。实际 returncode 为 **0**，stderr 为空。\n\n**回执与结果位置**\n\n- 本地回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-preflight166-v12.json`\n- 远端完整结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/host-profile-draft-v12/preflight.json`\n- **结果 SHA-256**：`37c79d0fb4a3fe9b397d7579b763b16bf29e5b77821bfbf016f31292bf1eeaa6`\n\n**Lazy import 检查（无 torch / torch_npu）**\n\n状态为 `PASS_LAZY_IMPORT_NO_TORCH_NPU`，CANN 版本 9.2.0。容器内冒烟测试在加载 `sitecustomize.py` 钩子、`import wio_host_profile` 前后各断言一次，结果 `torch_imported=False`、`torch_npu_imported=False`，两次断言均通过。\n\n**已安装 profiler 参数来源（命中 4 个源文件）**\n\n| 文件 | SHA-256 | 参数来源 |\n|---|---|---|\n| `vllm/config/profiler.py` | `04d24fa1…c93e5` | 参数字段定义处：`torch_profiler_with_stack` 默认 `True`（83 行）、`torch_profiler_record_shapes` 默认 `False`（97 行）、`torch_profiler_with_memory` 默认 `False`（100 行）、`max_iterations` 默认 `0`（127 行） |\n| `vllm/profiler/wrapper.py` | `b1d3fff5…30f4` | 主 torch profiler 构造处（246 行起）：`record_shapes`/`with_stack`/`profile_memory` 均取自 `profiler_config.torch_profiler_*` 字段；`_max_iters` 取自 `profiler_config.max_iterations`（39 行） |\n| `vllm/profiler/layerwise_profile.py` | `dfb0042b…f91e` | layerwise profiler 处硬编码 `record_shapes=True`、`with_stack=True`，不走配置字段 |\n| `vllm_ascend/profiler/torch_npu_profiler.py` | `5242ee15…75f4` | 实际 TorchNPU profiler：`with_stack=False` 硬编码（67 行），`with_modules=profiler_config.torch_profiler_with_stack`（71 行，注释说明 torch_npu 的 `with_modules` 等价于 torch 的 `with_stack`），`profile_memory` 取自配置字段（68 行） |\n\n**边界确认**\n\n本次仅新建并写入 `host-profile-draft-v12` 暂存目录、对既有 stage 容器 `wio-vllm-v41-repro166-stage-20261030`（ID 前缀 `bd6ff19d…`，运行中）做 `docker inspect` 与一次容器内 CPU 冒烟 `docker exec`。未启动或停止任何模型服务，未导入 torch/torch_npu 等设备库，未修改目标 vLLM/vLLM-Ascend 源码，也未发生任何重试。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 56467,
+    "outputTokens": 3489,
+    "totalTokens": 59956,
+    "cacheReadTokens": 42368,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2845,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 59956,
+    "contextUsed": 17241,
+    "contextWindow": 200000
+  }
+}

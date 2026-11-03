@@ -1,0 +1,174 @@
+{
+  "generated_utc": "2026-10-31T03:37:28.431983+00:00",
+  "status": "RAW_DECODE_CONVENTION_SUPPORTED;OWN_OP_SEMANTICS_OPEN",
+  "findings": [
+    {
+      "id": "C23-1",
+      "grade": "DOCUMENTED",
+      "finding": "Official CANN9.1.0-beta.1 DB schema explicitly maps attrInfo through STRING_IDS and describes it as operator shape/custom-parameter metadata. This supports the decoding convention, not an exact installed9.2 writer/graph ownership binding.",
+      "evidence": {
+        "url": "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta1/devaids/Profiling/atlasprofiling_16_1144.html",
+        "version": "CANN9.1.0-beta.1;context reference,not an exact installed9.2 exporter binding",
+        "section": "COMPUTE_TASK_INFO attrInfo and STRING_IDS",
+        "snapshot_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/official-msprof-db-schema-910beta1-v23.html",
+        "sha256": "9123cd4e5cf4635b099357d54a7ea265478ed1a32a8fd6adc9bd92ffa35b6ec7",
+        "supports": "Documented attrInfo -> STRING_IDS mapping and descriptive operator metadata intent;does not establish exact current graph attribute ownership."
+      }
+    },
+    {
+      "id": "C23-2",
+      "grade": "MEASURED",
+      "finding": "Saved132000 graph compute executions contain14480 adjacent nonempty same-attribute-ID pair occurrences in18 op-pair groups;13840 cross operator types. Adjacency here is chronological(startNs,endNs,TASKrowid), not proven producer/parent/API association or causal order across streams. Repeated literal values may legitimately share string IDs.",
+      "evidence": {
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/export-route166-v23-v2.json",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/export-route-localization-and-graph-attribute-reuse-v23-v2.json",
+        "sha256": "815649f17092d0ab895e2375f356d424845c96da7992a55acd2f29e26b65a2f9"
+      }
+    },
+    {
+      "id": "C23-3",
+      "grade": "MEASURED",
+      "finding": "The already exact3200Foreach->FFN_HC pairs reuse one attribute ID/text. Additional chronological cross-type equality includes InplacePartialRotaryMul->ScatterNdUpdateSk3520, reverse3200, MatMulV2->Cast640, Cast->Mul640, Indexer->prepare_indices640. These do not establish wrong metadata or native attribute values.",
+      "evidence": [
+        {
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/export-route166-v23-v2.json",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/export-route-localization-and-graph-attribute-reuse-v23-v2.json",
+          "sha256": "815649f17092d0ab895e2375f356d424845c96da7992a55acd2f29e26b65a2f9"
+        },
+        "merge-to-HC-contract-v22.json"
+      ]
+    },
+    {
+      "id": "C23-4",
+      "grade": "DOCUMENTED",
+      "finding": "Bounded literal attrInfo/COMPUTE_TASK_INFO localization in installed Torch/CANN profiler Python analysis found only the Torch table constant and a task-info reader. No writer is identified by these literal matches. This is a bounded negative search result, not proof all writers are absent.",
+      "evidence": {
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/attrInfo-localization166-v23-v2.json",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/attrInfo-exporter-field-localization-v23-v2.json",
+        "sha256": "025c33f4a88c91327a4434f188c0f0f79c0f1c0780a4dc718c1e37459786efcc"
+      }
+    },
+    {
+      "id": "C23-5",
+      "grade": "DOCUMENTED",
+      "finding": "Installed Torch CANNExportParser.run selects an external msprof --export=on --type=db branch for Db export. The exact CANN9.2 msprof.py entry is a28line dynamic importer of msinterface.msprof_entrance.MsprofEntrance().main(). Neither observed branch source alone attests the exact historical export invocation or attrInfo assignment.",
+      "evidence": [
+        {
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/export-route166-v23-v2.json",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/export-route-localization-and-graph-attribute-reuse-v23-v2.json",
+          "sha256": "815649f17092d0ab895e2375f356d424845c96da7992a55acd2f29e26b65a2f9"
+        },
+        {
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/attrInfo-route-leaf166-v23-v2.json",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/attrInfo-export-route-leaf-source-v23-v2.json",
+          "sha256": "2f53dc556d5db0b378acd461a64b72a5419d7046f67b97b30f05a7fd4775c17d"
+        }
+      ]
+    },
+    {
+      "id": "C23-6",
+      "grade": "UNKNOWN",
+      "finding": "The precise current attrInfo population/ownership rule, why graph HC shares preceding metadata, and any relationship to loaded kernel scalar/tiling values remain open. No exporter bug, copied-parent rule or actual HC parameter is concluded.",
+      "evidence": "PROFILE-CODE-QUESTION-GATE-v23.json"
+    }
+  ],
+  "observed_graph_attribute_adjacency": [
+    {
+      "previous_op": "Mul",
+      "op": "LogicalNot",
+      "executions": 80
+    },
+    {
+      "previous_op": "InplacePartialRotaryMul",
+      "op": "ScatterNdUpdateSk",
+      "executions": 3520
+    },
+    {
+      "previous_op": "ScatterNdUpdateSk",
+      "op": "InplacePartialRotaryMul",
+      "executions": 3200
+    },
+    {
+      "previous_op": "ForeachAddList",
+      "op": "HcPost",
+      "executions": 3200
+    },
+    {
+      "previous_op": "Cast",
+      "op": "Cast",
+      "executions": 320
+    },
+    {
+      "previous_op": "Rsqrt",
+      "op": "Mul",
+      "executions": 160
+    },
+    {
+      "previous_op": "Mul",
+      "op": "Mul",
+      "executions": 320
+    },
+    {
+      "previous_op": "Neg",
+      "op": "SelectV2",
+      "executions": 160
+    },
+    {
+      "previous_op": "SelectV2",
+      "op": "Sigmoid",
+      "executions": 160
+    },
+    {
+      "previous_op": "Sigmoid",
+      "op": "LogicalNot",
+      "executions": 160
+    },
+    {
+      "previous_op": "Mul",
+      "op": "Add",
+      "executions": 160
+    },
+    {
+      "previous_op": "MatMulV2",
+      "op": "Cast",
+      "executions": 640
+    },
+    {
+      "previous_op": "Cast",
+      "op": "Mul",
+      "executions": 640
+    },
+    {
+      "previous_op": "ZerosLike",
+      "op": "_pool_kernel",
+      "executions": 240
+    },
+    {
+      "previous_op": "_pool_kernel",
+      "op": "_cache_update_kernel",
+      "executions": 240
+    },
+    {
+      "previous_op": "DynamicQuant",
+      "op": "ScatterNdUpdateSk",
+      "executions": 320
+    },
+    {
+      "previous_op": "Cast",
+      "op": "ScatterNdUpdateSk",
+      "executions": 320
+    },
+    {
+      "previous_op": "VllmAscendQuantLightningIndexerV2",
+      "op": "_prepare_indexer_indices_kernel",
+      "executions": 640
+    }
+  ],
+  "chronological_adjacency_is_causal_proof": false,
+  "actual_own_operator_parameter_values_proved": false,
+  "loaded_binary_or_tiling_proved": false,
+  "new_model_source_read": false,
+  "new_device_or_service_work": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

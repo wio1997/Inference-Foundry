@@ -1,0 +1,48 @@
+{
+  "id": "F26_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "collapse": "collapse",
+    "final_norm": "final_norm"
+  },
+  "nodes": [
+    {
+      "id": "collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "final_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "collapse",
+      "consumer": "final_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "ffn_post",
+      "consumer": "collapse",
+      "value": "terminal-layer HC state",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "collapse",
+      "value": "terminal pre_mix",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

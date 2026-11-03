@@ -1,0 +1,78 @@
+{
+  "models": [
+    {
+      "sender_rows": 800,
+      "T": 6400,
+      "frontiers": 24,
+      "profile_E_or_active_rows_not_bound": true,
+      "full_token_norm_value_IO": 13107200,
+      "full_token_norm_rstd_descriptor_value_content": 25600,
+      "pool_norm_interface_budget": "2*512*(E+T); if no intermediate observer; logical only",
+      "with_full_final_generation_budget": "2*512*E+4*512*T; alternative total, not additive to preceding budget",
+      "pool_BF16_delivery_content": "1024*E",
+      "normalized_BF16_delivery_content": "1024*E if same row map, all noncompletion outputs reconstructed/closed and receiver-specific norm parameters match",
+      "optional_private_Y_and_normedY_content": 16384000,
+      "HC_X_value_content": 32768000,
+      "C2_full_current_projection_dense_ops_per_active_row": 10485760,
+      "C2_projection_row_deletion_from_even_state_or_E_only_norm": 0,
+      "old_state_representation_choice_not_free_pool_capacity": true
+    },
+    {
+      "sender_rows": 816,
+      "T": 6528,
+      "frontiers": 24,
+      "profile_E_or_active_rows_not_bound": true,
+      "full_token_norm_value_IO": 13369344,
+      "full_token_norm_rstd_descriptor_value_content": 26112,
+      "pool_norm_interface_budget": "2*512*(E+T); if no intermediate observer; logical only",
+      "with_full_final_generation_budget": "2*512*E+4*512*T; alternative total, not additive to preceding budget",
+      "pool_BF16_delivery_content": "1024*E",
+      "normalized_BF16_delivery_content": "1024*E if same row map, all noncompletion outputs reconstructed/closed and receiver-specific norm parameters match",
+      "optional_private_Y_and_normedY_content": 16711680,
+      "HC_X_value_content": 33423360,
+      "C2_full_current_projection_dense_ops_per_active_row": 10485760,
+      "C2_projection_row_deletion_from_even_state_or_E_only_norm": 0,
+      "old_state_representation_choice_not_free_pool_capacity": true
+    },
+    {
+      "sender_rows": 834,
+      "T": 6668,
+      "frontiers": 24,
+      "profile_E_or_active_rows_not_bound": true,
+      "full_token_norm_value_IO": 13656064,
+      "full_token_norm_rstd_descriptor_value_content": 26672,
+      "pool_norm_interface_budget": "2*512*(E+T); if no intermediate observer; logical only",
+      "with_full_final_generation_budget": "2*512*E+4*512*T; alternative total, not additive to preceding budget",
+      "pool_BF16_delivery_content": "1024*E",
+      "normalized_BF16_delivery_content": "1024*E if same row map, all noncompletion outputs reconstructed/closed and receiver-specific norm parameters match",
+      "optional_private_Y_and_normedY_content": 17080320,
+      "HC_X_value_content": 34160640,
+      "C2_full_current_projection_dense_ops_per_active_row": 10485760,
+      "C2_projection_row_deletion_from_even_state_or_E_only_norm": 0,
+      "old_state_representation_choice_not_free_pool_capacity": true
+    }
+  ],
+  "cuts": [
+    {
+      "id": "PRESERVE_ALL_T_NORM",
+      "native": "Original token-aligned zeroT/poolE, receiver fullT RMS512 plus optional bias. Projection-only owner path leaves norm params local."
+    },
+    {
+      "id": "LOCAL_POOL_NORM_FUSION_FULL_T_FINAL",
+      "native": "Compute exact BF16 pool, RMS512 and optional bias for completions; generate all final noncompletion rows under original semantics. No global pooled buffer if every other observer closed; preserve latent old-index fork."
+    },
+    {
+      "id": "OWNER_POOL_THEN_RECEIVER_NORM",
+      "native": "Send BF16 pooledE, reconstruct original zeroT and completion map, retain fullT receiver norm/bias. No owner gamma equality requirement beyond unchanged projection/pool gates."
+    },
+    {
+      "id": "OWNER_POOL_NORM_WITH_RECONSTRUCTION",
+      "native": "Send normalized BF16 completions; receiver must reconstruct every demanded noncompletion final value or prove it dead. Requires loaded gamma/eps/beta/native-M math and all row/position/state/capture gates; ring state still separate."
+    }
+  ],
+  "state_maintenance_references": "FullU and retained-evenUe writes change state service, not valid current projection row union. Ue<=U; neither per-request tail count nor E alone prices active valid rows.",
+  "one_graph_credit": "Choose one baseline/transformed boundary graph. Pool-norm interface deletion, moving norm to owner and eliminating a retained pool bank are not independent additive bytes. Price required original final rows, optional bias, rstd observer, output stores and new transport/snapshots once.",
+  "resource_cut": "Necessary value/operation demand only in declared operator domain. T>=sup_lambda lambda.W_necessary/beta_joint_upper remains symbolic: mixed HC/C2/SWA Cube/Vector/SFU/link joint capacity, physical traffic and actual native services are unbound.",
+  "new_device_work": false,
+  "overall_complete": false
+}

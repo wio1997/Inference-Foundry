@@ -1,0 +1,311 @@
+{
+  "generated_utc": "2026-10-31T08:50:26.731612+00:00",
+  "source_consistent_liveQ_baseline": {
+    "nodes": [
+      {
+        "id": "masked_vocab_parts"
+      },
+      {
+        "id": "embedding_AR"
+      },
+      {
+        "id": "global_repeat"
+      },
+      {
+        "id": "SP_hidden"
+      },
+      {
+        "id": "SP_mask_IDs"
+      },
+      {
+        "id": "initial_premix"
+      },
+      {
+        "id": "HCpre"
+      },
+      {
+        "id": "norm_BF16"
+      },
+      {
+        "id": "SP_input_gather"
+      },
+      {
+        "id": "CPquery_slice"
+      },
+      {
+        "id": "Qa_Qb"
+      },
+      {
+        "id": "global_KV"
+      },
+      {
+        "id": "attention"
+      },
+      {
+        "id": "local_output_pad"
+      },
+      {
+        "id": "head_A2A"
+      },
+      {
+        "id": "Wo_a_Wo_b"
+      },
+      {
+        "id": "SP_output_RS"
+      },
+      {
+        "id": "HCpost"
+      },
+      {
+        "id": "FFN_pre_norm_MoE_post"
+      },
+      {
+        "id": "next_layer_state_premix"
+      },
+      {
+        "id": "collapse_exit_gather"
+      }
+    ],
+    "edges": [
+      {
+        "a": "masked_vocab_parts",
+        "b": "embedding_AR",
+        "kind": "SUM"
+      },
+      {
+        "a": "embedding_AR",
+        "b": "global_repeat",
+        "kind": "BF16"
+      },
+      {
+        "a": "global_repeat",
+        "b": "SP_hidden",
+        "kind": "PAD_SHARD"
+      },
+      {
+        "a": "SP_hidden",
+        "b": "HCpre",
+        "kind": "FOUR_CHANNEL_STATE"
+      },
+      {
+        "a": "initial_premix",
+        "b": "HCpre",
+        "kind": "ONEHOT_FIRST_ONLY"
+      },
+      {
+        "a": "SP_mask_IDs",
+        "b": "FFN_pre_norm_MoE_post",
+        "kind": "ROW_METADATA"
+      },
+      {
+        "a": "HCpre",
+        "b": "norm_BF16",
+        "kind": "BF16_BARRIER"
+      },
+      {
+        "a": "norm_BF16",
+        "b": "SP_input_gather",
+        "kind": "LOCAL_NORMALIZED_ROWS"
+      },
+      {
+        "a": "SP_input_gather",
+        "b": "CPquery_slice",
+        "kind": "METADATA_START"
+      },
+      {
+        "a": "CPquery_slice",
+        "b": "Qa_Qb",
+        "kind": "LOCAL_VALID_QUERY"
+      },
+      {
+        "a": "SP_input_gather",
+        "b": "global_KV",
+        "kind": "GLOBAL_CACHE_ROWS"
+      },
+      {
+        "a": "global_KV",
+        "b": "attention",
+        "kind": "CACHE_READY"
+      },
+      {
+        "a": "Qa_Qb",
+        "b": "attention",
+        "kind": "QUERY"
+      },
+      {
+        "a": "attention",
+        "b": "local_output_pad",
+        "kind": "LOCAL_VALID_RESULT"
+      },
+      {
+        "a": "local_output_pad",
+        "b": "head_A2A",
+        "kind": "FIXED_LOCAL_EXTENT"
+      },
+      {
+        "a": "head_A2A",
+        "b": "Wo_a_Wo_b",
+        "kind": "GLOBAL_TOKENS_LOCAL_HEADS"
+      },
+      {
+        "a": "Wo_a_Wo_b",
+        "b": "SP_output_RS",
+        "kind": "PARTIAL_OUTPUT"
+      },
+      {
+        "a": "SP_output_RS",
+        "b": "HCpost",
+        "kind": "LOCAL_RESULT"
+      },
+      {
+        "a": "SP_hidden",
+        "b": "HCpost",
+        "kind": "RESIDUAL"
+      },
+      {
+        "a": "HCpost",
+        "b": "FFN_pre_norm_MoE_post",
+        "kind": "STATE_AND_PREMIX"
+      },
+      {
+        "a": "FFN_pre_norm_MoE_post",
+        "b": "next_layer_state_premix",
+        "kind": "BOTH_OUTPUTS"
+      },
+      {
+        "a": "next_layer_state_premix",
+        "b": "collapse_exit_gather",
+        "kind": "LAST_LAYER_STATE"
+      }
+    ]
+  },
+  "conditional_projected_exchange": {
+    "nodes": [
+      {
+        "id": "local_norm_BF16"
+      },
+      {
+        "id": "local_Qa1280_KV512"
+      },
+      {
+        "id": "projected_row_exchange"
+      },
+      {
+        "id": "CPquery_selection"
+      },
+      {
+        "id": "global_KV_cache"
+      },
+      {
+        "id": "Qnorm_quant_Qb"
+      },
+      {
+        "id": "attention_and_output_pipeline"
+      }
+    ],
+    "edges": [
+      {
+        "a": "local_norm_BF16",
+        "b": "local_Qa1280_KV512",
+        "kind": "REPLICATED_WEIGHT_MAPS"
+      },
+      {
+        "a": "local_Qa1280_KV512",
+        "b": "projected_row_exchange",
+        "kind": "BF16_BARRIERS"
+      },
+      {
+        "a": "projected_row_exchange",
+        "b": "CPquery_selection",
+        "kind": "EXACT_CP_ROW_MAP"
+      },
+      {
+        "a": "projected_row_exchange",
+        "b": "global_KV_cache",
+        "kind": "GLOBAL_KV_PUBLICATION"
+      },
+      {
+        "a": "CPquery_selection",
+        "b": "Qnorm_quant_Qb",
+        "kind": "Q_A_ROWS"
+      },
+      {
+        "a": "global_KV_cache",
+        "b": "attention_and_output_pipeline",
+        "kind": "CACHE_READY"
+      },
+      {
+        "a": "Qnorm_quant_Qb",
+        "b": "attention_and_output_pipeline",
+        "kind": "QUERY"
+      }
+    ]
+  },
+  "conditional_context_query_pack": {
+    "nodes": [
+      {
+        "id": "context_bank_rows"
+      },
+      {
+        "id": "current_query_norm_rows"
+      },
+      {
+        "id": "same_layer_WKV_pack"
+      },
+      {
+        "id": "separate512norm_and_RoPE_maps"
+      },
+      {
+        "id": "context_cache_writes"
+      },
+      {
+        "id": "query_cache_writes"
+      },
+      {
+        "id": "same_layer_attention"
+      }
+    ],
+    "edges": [
+      {
+        "a": "context_bank_rows",
+        "b": "same_layer_WKV_pack",
+        "kind": "CONTEXT_PROVENANCE"
+      },
+      {
+        "a": "current_query_norm_rows",
+        "b": "same_layer_WKV_pack",
+        "kind": "QUERY_PROVENANCE"
+      },
+      {
+        "a": "same_layer_WKV_pack",
+        "b": "separate512norm_and_RoPE_maps",
+        "kind": "BF16_PER_ROW"
+      },
+      {
+        "a": "separate512norm_and_RoPE_maps",
+        "b": "context_cache_writes",
+        "kind": "CONTEXT_SLOTS"
+      },
+      {
+        "a": "separate512norm_and_RoPE_maps",
+        "b": "query_cache_writes",
+        "kind": "QUERY_SLOTS"
+      },
+      {
+        "a": "context_cache_writes",
+        "b": "query_cache_writes",
+        "kind": "PRESERVE_CONFLICT_ORDER"
+      },
+      {
+        "a": "query_cache_writes",
+        "b": "same_layer_attention",
+        "kind": "NONCAUSAL_READY"
+      }
+    ]
+  },
+  "branch_note": "LiveQ skeleton only: cache-only replaces local Q/attention with empty output preparation while retaining global KV/output collectives. Dummy follows zero-metadata branch. Graphs are not new schedules or fabricated invocation pairings.",
+  "graphs_acyclic": true,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

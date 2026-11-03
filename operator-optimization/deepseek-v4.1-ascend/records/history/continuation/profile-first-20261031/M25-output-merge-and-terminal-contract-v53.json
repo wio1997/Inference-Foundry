@@ -1,0 +1,138 @@
+{
+  "generated_utc": "2026-10-31T17:00:39.345853+00:00",
+  "source": [
+    "M25-output-lifecycle-source-v53.json",
+    "M25-output-terminal-dependency-source-v53.json",
+    "restored-source-point-contracts-v53.json"
+  ],
+  "existing_mechanisms": [
+    "Native DecodeStream is already primed with prompt IDs.",
+    "Collector buffers one pending result; DELTA aggregates, other RequestOutput modes replace matched completion snapshots.",
+    "Async handler already chunks output batches and yields between chunks; generate already uses get_nowait before awaiting.",
+    "FINAL_ONLY suppresses unfinished output. stream_interval condition preserves first/final paths; sent_tokens_offset update is DELTA-only in inspected source."
+  ],
+  "add_assignment_targets": [
+    "completion.cumulative_logprob",
+    "completion.finish_reason",
+    "completion.stop_reason",
+    "completion.text",
+    "completion.token_ids",
+    "self.ec_transfer_params",
+    "self.finished",
+    "self.kv_transfer_params",
+    "self.outputs[i]"
+  ],
+  "add_semantics": {
+    "request_fields": "finished OR;kv_transfer_params and ec_transfer_params take next values.",
+    "matched_DELTA": "Append text and token IDs;append truthy next logprobs with existing nonNone assertion;take next cumulative logprob,finish_reason,stop_reason.",
+    "matched_nonDELTA": "Replace the completion object.",
+    "unmatched_index": "Append the next completion object.",
+    "fields_not_explicitly_refreshed_by_add": [
+      "prompt_logprobs",
+      "metrics",
+      "num_cached_tokens",
+      "num_cache_creation_tokens",
+      "sampling_mask",
+      "routed_experts",
+      "spec_decode_metrics"
+    ],
+    "scope": "No explicit refresh in this method is not a claim that all values are immutable or lost in the current run; ownership,mode,flags and external mutation matter."
+  },
+  "stop_semantics": "check_stop_strings uses earliest match end;ties preserve configured list order. update decodes all IDs in each supplied chunk before checking stop and may truncate text without trimming token history.",
+  "independent_stop_specification_witnesses": [
+    {
+      "text": "AB",
+      "stops": [
+        "B",
+        "AB"
+      ],
+      "result": {
+        "stop": "B",
+        "end": 2,
+        "list_index": 0,
+        "visible_excluding_stop": "A"
+      }
+    },
+    {
+      "text": "AB",
+      "stops": [
+        "AB",
+        "B"
+      ],
+      "result": {
+        "stop": "AB",
+        "end": 2,
+        "list_index": 0,
+        "visible_excluding_stop": ""
+      }
+    },
+    {
+      "text": "abc",
+      "stops": [
+        "bc",
+        "ab"
+      ],
+      "result": {
+        "stop": "ab",
+        "end": 2,
+        "list_index": 1,
+        "visible_excluding_stop": ""
+      }
+    }
+  ],
+  "pre_stop_fusion_counterexample": {
+    "kind": "Independent abstract string/token-state witness,not native tokenizer/model test.",
+    "decoder": {
+      "0": "E",
+      "1": "N",
+      "2": "D",
+      "3": "x"
+    },
+    "stop": [
+      "END"
+    ],
+    "min_tokens": 0,
+    "include_stop": false,
+    "chunks": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3
+      ]
+    ],
+    "separate": "First chunk stops and finishes request with empty visible text and3token IDs;later output ignored after state removal.",
+    "fused": "One ENDx chunk stops with the same empty visible text but4token IDs because stop check follows the entire chunk.",
+    "implication": "Text equality alone is insufficient for moving aggregation ahead of semantic detokenization/stop/finish."
+  },
+  "finish_metadata_counterexample": {
+    "kind": "Conditional source-level pending-DELTA witness.",
+    "pending": "Existing completion index0 has sampling_mask/routed_experts/spec_decode_metrics=None.",
+    "next": "Final completion index0 supplies a nonNone finish-only field.",
+    "aggregate_result": "add updates finish_reason/stop_reason but does not assign those3fields in the matched aggregate branch.",
+    "scope": "Requires actual enabled fields and pending merge without shared-object update;not a currentC8failure claim. NonDELTA replacement has different behavior."
+  },
+  "lifetime_constraints": [
+    "Stop string detection follows decoder update,then logprobs update,then emission;reordering must preserve this state boundary.",
+    "DELTA prompt_logprobs is a one-shot nonempty pop;empty text/IDs can still carry finish or metadata.",
+    "Parent n>1 aggregation may change request finished independently of child finish.",
+    "streaming_input originates from resumable input,not SSE stream flag;final input marker,queued updates and identity of STREAM_FINISHED matter.",
+    "Cancel/GeneratorExit abort,errors have distinct abort behavior,finally closes input-stream task. Offloaded late results need request generation/owner checks.",
+    "Collector put/Event mutation is not an arbitrary-thread safety contract."
+  ],
+  "API_stream_observers": [
+    "Actual selected completion generator serializes per completion;echo/token-ID/logprob/text-offset branches constrain visible chunks.",
+    "Initial empty chunked-prefill suppression already exists;do not generalize it to arbitrary terminal/metadata output.",
+    "Continuous usage,optional final usage metrics,terminal fingerprint,error messages and [DONE] are separate observable outputs.",
+    "SSE source analysis does not prove actual socket flush,client latency or every API path."
+  ],
+  "semantic_source_review_complete_for_selected_functions": true,
+  "original26module_scope_complete": false,
+  "implementation": false,
+  "new_model_native_test": false,
+  "performance_gain": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

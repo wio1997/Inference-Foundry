@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+import base64,json,pathlib,shlex,subprocess
+root=pathlib.Path(__file__).resolve().parent;src=(root/'audit_cann_tensor_slice_inside.py').read_bytes();e=base64.b64encode(src).decode();inner='import base64;exec(compile(base64.b64decode('+repr(e)+'),"<cann-tensor-info-aggregate>","exec"))';outer='import subprocess;raise SystemExit(subprocess.call('+repr(['docker','exec','-e','PYTHONDONTWRITEBYTECODE=1','wio-vllm-v41-repro169-stage-20261028','nice','-n','15','python3','-c',inner])+'))';r=subprocess.run(['/Users/wio/work/169-sglang-deepseek-v41/ssh169.sh',shlex.join(['python3','-c',outer])],capture_output=True,text=True,timeout=120)
+if r.returncode:print('safe error',r.stderr[-500:]);raise SystemExit(r.returncode)
+v=json.loads(r.stdout);o=root/'cann-tensor-slice-aggregate.json';o.write_text(json.dumps(v,indent=2)+'\n');print('records',v['total_records'],'decode failures',v['decode_fail'],'magic failures',v['magic_fail'],'worker-matches',v['matching_worker_tid_records'])

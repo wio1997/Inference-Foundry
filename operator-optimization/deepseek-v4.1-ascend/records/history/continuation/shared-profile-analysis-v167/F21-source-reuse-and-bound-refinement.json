@@ -1,0 +1,58 @@
+{
+  "status": "CONDITIONAL_SOURCE_REUSE_AND_WORK_MODEL_REFINEMENT",
+  "source_contract": {
+    "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-kernel-boundary-and-tiling-contract-v56.json",
+    "bytes": 50067,
+    "sha256": "60293a8828035bcb8f30bf41fe4e0d6491cfe92f9d6ed23aa07d405f95d6fd67",
+    "identity_scope": "Currentoriginal166stage filesystem withW8historicalcontrol;not per-execution loadedbinary proof."
+  },
+  "questions_already_answered_do_not_repeat": [
+    {
+      "question": "Can route/dispatch/GMM1/activation/GMM2/combine be newly fused at their existing outer native boundary?",
+      "answer": "The inspected source already combines them;new native profile has this boundary. Any additional opportunity is internal scheduling/interfaces or fusion with other branches,not a fresh combination of these outer launches.",
+      "scope": "Source contract plus observed native boundary;not all implementation variants."
+    },
+    {
+      "question": "Can zero-expert GMM arithmetic be newly removed in this source?",
+      "answer": "currentM==0 already bypasses blockMmad. Preserve count/readiness/progress effects;do not price full dense GMM work for empty experts.",
+      "scope": "Existing source path only;does not assert runtime counts."
+    },
+    {
+      "question": "Does L1TileM128 imply every tiny expert computes128fullrows?",
+      "answer": "No:source passes actualBlockShape and actual currentM. Instruction-level padded work requires actual kernel/tiling evidence."
+    }
+  ],
+  "capacity_aware_receiver_work": {
+    "reason": "The source clips currentM by a rank-local prefix capacity. Raw receiver rows and executed GMM rows must be separate variables.",
+    "raw_slots": "sum_e n_e <= K*N_valid (equality additionally requires all K slots kept and valid).",
+    "executed_prefix": "For expert e in original rank-local order: p_e=sum_{j<e}m_j; m_e=min(n_e,max(C_r-p_e,0)).",
+    "necessary_direct_MAC": "Q_r=35389440*sum_e(m_e),in the direct dense executed-assignment domain.",
+    "conditional_time_lower_bound": "T >= max_r(Q_r/P_MAC_upper_r);actual C_r,n_e,matched hardware upper remain unknown here.",
+    "hash_or_duplicate_safe": "Without distinct-ID proof,n_e<=K*N_valid. If expert IDs are distinct within each token,n_e<=N_valid.",
+    "joint_M3_consequences": "Only if all16senders in the SAME exchange have M<=3: N_valid<=48,totalraw/executed assignments<=288,nonemptyraw/exec experts<=288,andatleast96of384empty. This cardinality result does NOT require distinct IDs.",
+    "no_clipping_sufficient_condition": "C_r>=288 for every rank suffices in that conditional jointM3domain;not asserted from profile.",
+    "effect_on_v166": "The96-empty cardinality conclusion survives duplicate routing and clipping under jointM3premise. Per-expert48bound requires distinct IDs;time lower bound must use executed m_e,not unqualified raw n_e."
+  },
+  "padding_only_logical_byte_ceiling": {
+    "domain": "Same raw INT8 hidden vector and bitwise4B scale per delivered row;only remove unused padding;no value compression,delivery changes or other scheduling/kernel changes.",
+    "hidden_bytes": 5120,
+    "mandatory_scale_bytes": 4,
+    "source_record_bytes": 5152,
+    "minimum_record_bytes_in_domain": 5124,
+    "max_logical_byte_ratio_exact": "184/183",
+    "max_logical_byte_ratio": 1.005464480874317,
+    "maximum_source_record_bytes_removed_fraction": 0.005434782608695652,
+    "maximum_source_record_bytes_removed_percent": 0.5434782608695652,
+    "proof": "For n>0 fixed deliveries,D_old=n*5152,D_new>=n*5124;thereforeD_old/D_new<=1288/1281. Other metadata/traffic only weakens the total-byte fraction.",
+    "not_proved": [
+      "Physical wire/HBM savings",
+      "Latency bound or actual speedup",
+      "Native ABI/alignment/legal reader compatibility"
+    ],
+    "routing": "Low priority as a byte-volume-only hypothesis;retain separate startup/packet/layout hypotheses if supported."
+  },
+  "new_independence_proofs": 0,
+  "historical_native_or_phase_promotions": 0,
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

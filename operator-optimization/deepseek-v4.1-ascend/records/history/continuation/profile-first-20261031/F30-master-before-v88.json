@@ -1,0 +1,326 @@
+{
+  "id": "F30_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "DSPARK_BOUNDARIES",
+  "original_node_mapping": {
+    "collapse": "collapse",
+    "norm": "norm",
+    "logits": "logits",
+    "markov": "markov",
+    "confidence": "confidence",
+    "accept": "accept"
+  },
+  "nodes": [
+    {
+      "id": "collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "logits",
+      "kind": "LM_HEAD",
+      "resource": "NPU"
+    },
+    {
+      "id": "markov",
+      "kind": "MARKOV_HEAD_OPAQUE",
+      "resource": "NPU"
+    },
+    {
+      "id": "confidence",
+      "kind": "CONFIDENCE_HEAD_OPAQUE",
+      "resource": "NPU"
+    },
+    {
+      "id": "accept",
+      "kind": "TARGET_ACCEPT_OPAQUE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "collapse",
+      "consumer": "norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "logits",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "logits",
+      "consumer": "accept",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "confidence",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "markov",
+      "consumer": "logits",
+      "value": "bias",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "markov",
+      "consumer": "confidence",
+      "value": "Markov features",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "block2",
+      "consumer": "collapse",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v32": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v32.json#F30",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-head-partition-postprocess-and-layout-contract-v32.json",
+    "variants": [
+      {
+        "id": "F30-STRIDED-ADD-ARGMAX",
+        "status": "CONDITIONAL_LOCAL_SEMANTIC_CANDIDATE_WITH_MEASURED_BRANCH",
+        "graph": "Read the current strided logits slice and bias, preserve BF16 add rounding and optional writeback, reduce with existing argmax semantics, produce INT64 IDs and keep token remap/copy order.",
+        "supports": "65 Add+ArgMax+Cast records plus195 Slice/143 ViewCopy records; source binds each logical step.",
+        "constraints": [
+          "BF16 materialization/rounding before compare",
+          "NaN/tie/index semantics",
+          "same logits writeback and any external aliases",
+          "output INT64 and vocabulary remap",
+          "row padding/mask and stable buffer generation",
+          "per-step token recurrence and existing stream/event dependencies"
+        ],
+        "open": "Historical stride/storage ownership and native Slice/ViewCopy semantics are not attested. A shape reporting the full base allocation does not prove all bytes are physically copied. Score-write deletion requires stronger all-consumer proof."
+      },
+      {
+        "id": "F30-VOCAB-OWNERSHIP",
+        "status": "CONDITIONAL_CROSS_CARD_REORGANIZATION",
+        "graph": "Keep base-head and compatible Markov work in matching vocabulary partitions through greedy selection; preserve global tie/index semantics and publish the same selected IDs.",
+        "constraints": [
+          "matching vocabulary partitions/group/rank ownership",
+          "same bias and add numerical boundary",
+          "token-space mapping and selected ID publication",
+          "probability/entropy/logprobs paths need their full distribution contract",
+          "other model/head consumers and graph lifetime"
+        ],
+        "open": "This does not prove an AllGather can be removed. No per-rank ownership/complete consumer or end-to-end benefit is established."
+      },
+      {
+        "id": "F30-MARKOV-ROW-REUSE",
+        "status": "CONDITIONAL_CROSS_ITERATION_COMPUTE_MEMORY_TRADEOFF; UNPRICED",
+        "graph": "Reuse an exactly computed Markov bias row for a repeated Markov input ID under frozen embedding/projection parameters; partial cache and full precomputation are distinct domains.",
+        "constraints": [
+          "actual Markov input token space",
+          "immutable parameter/version namespace",
+          "matching GEMM reduction/rounding and inference numeric mode",
+          "no stochastic/stateful embedding/projection behavior",
+          "cache invalidation/capacity/lookup overhead and device ownership"
+        ],
+        "open": "Actual repeated-ID frequency and memory headroom are absent. A full dense BF16 table is33426636800 logical bytes before indices/replication; this is not a feasible-capacity or speedup claim."
+      },
+      {
+        "id": "F30-v32-SHARDED-MARKOV",
+        "status": "CONDITIONAL_ALTERNATIVE_PARTITION_OR_OWNER",
+        "change": "PartitionMarkovw2tomatchbasecolumnownership,keepper-stepbase+Markovpostprocessing/BF16sumlocal,andgloballyselect/publishtheIDbeforedependentnextMarkovlookup.",
+        "requires": "SmallerlocalGEMM/weightdomainbutnewsmallselectioncollectiveoneachrecurrencystep;startup/syncanddifferentNtilingparityunknown."
+      },
+      {
+        "id": "F30-v32-OWNER-MARKOV",
+        "status": "CONDITIONAL_ALTERNATIVE_PARTITION_OR_OWNER",
+        "change": "Gatherbaseheadrowsonthedesignatedowner;keepfullMarkovinnerloopthere,thenpublishsameproposalIDsandallneededstates/probabilities/outputs.",
+        "requires": "Avoidother-rankduplicateMarkovexecutionandmayavoidper-stepselectioncollectivesifonlyownerconsumestheinnerloop,butownerstilldoesfullGEMM;allrankstate/RNG/scoreobserverandresultpublicationprotocolrequired."
+      },
+      {
+        "id": "F30-v32-FUSED-MARKOV-SELECT",
+        "status": "CONDITIONAL_LARGER_KERNEL",
+        "change": "JoinMarkovGEMMtiles,requiredper-headpostprocessing,base-rowBF16addandgreedyreductionwithseparatebaselineboundaries.",
+        "requires": "KeepbasebatchedKreuse,distinctbase/MarkovGEMMroundingandsoftcap/scaleorder;naiveconcatenatedsingleGEMM/singleroundnotproved."
+      }
+    ],
+    "condition_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-vocab-variants-and-conditions-v32.json",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v33": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-probability-consumer-and-RNG-contract-v33.json",
+    "relation": "draft_probsselectedp/qandselected-rowfullresidualproviderforF35;owner/shardedMarkovprotocolmustpreservetheprobability/RNGrowABI.",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v36": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-Markov-confidence-and-verification-contract-v36.json",
+    "next_ID": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-next-ID-and-acceptance-summary-review-v36.json",
+    "budget": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F30-dynamic-verify-budget-and-prefix-bounds-v36.json",
+    "framework": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-H06-verification-length-publication-review-v36.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-variants-and-condition-ledger-v36.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-source-and-conditional-budget-graphs-v36.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "variants": [
+      {
+        "id": "F30-v36-SELECTED-BASE",
+        "parent": "F30",
+        "transformation": "Feed base norm/head from ordered selected hidden rows without a private Index materialization where legal.",
+        "conditions": "Current104Index/Check entries are positive; same row count is not identity. Keep raw hidden for confidence, ordered duplicates and BF16/head layout.",
+        "implemented": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F30-v36-MARKOV-EMBED",
+        "parent": "F30",
+        "transformation": "Reuse or stream seed-inclusive Markov input embeddings into confidence.",
+        "conditions": "SameE_i=Embed(T[:,i]) for loop and schedulerT[:,:D]; preserve parameter/input generation, dtype conversion, row order and readonly lifetime. Confidence-active branch only.",
+        "implemented": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F30-v36-CONFIDENCE-PIPE",
+        "parent": "F30",
+        "transformation": "Direct two-input FP32 confidence projection/sigmoid and compatible probability/prefix publication.",
+        "conditions": "Keep one FP32 dot boundary from raw hidden plus embedding; Cat/widen planes may be private. No normalized-hidden substitution or unproved split-dot sum.",
+        "implemented": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F30-v36-DEVICE-BUDGET",
+        "parent": "F30",
+        "transformation": "Fuse clamp/cumprod/statistics/global selection-to-counts and keep budget state on device under a new selection ABI.",
+        "conditions": "Preserve native arithmetic, topK boundary/ties, periodic counter/zeroB/odd-round ordering, outputINT32 bank and host publication. Not a flag-only change to torch.topk.",
+        "implemented": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F30-v36-BOUNDED-PREFIX",
+        "parent": "F30",
+        "transformation": "Use rigorous future-survival bounds to avoid post-decoder tail evaluation when it cannot affect final prefix allocation.",
+        "conditions": "Fixed finalL, enough evaluated candidates, strict upper-bound separation, native/tie/RNG/observer conditions. Periodic budget may need interval resolution; retain full noncausal decoder input domain.",
+        "implemented": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      }
+    ]
+  },
+  "review_v40": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-coordinate-draft-cache-and-QLI-consumer-contract-v40.json",
+    "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-slot-fusion-domain-and-draft-cache-gap-proof-v40.json",
+    "QLI": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-QLI-empty-query-and-capture-reader-review-v40.json",
+    "CP": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-CP-target-dummy-draft-publication-review-v40.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-field-reconciliation-variants-v40.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v40.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "DSparkseed/zero-tail/uniformQSLandGPUlengthpublicationfeedMarkov/decodercontracts;keepcorrectQ/seedepochandoldinputreadbeforemetadatamutation."
+  },
+  "review_v41": {
+    "scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-requirement-completion-audit-v41.json",
+    "semantic_branches": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-semantic-branch-inventory-v41.json",
+    "outside_profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-profile-gap-reconciliation-v41.json",
+    "initialization": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-dummy-and-proposal-initialization-contract-v41.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-M21-initialization-variants-v41.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "10outsideM21entrychains4472TASKexactlymatchM20v36Markov/stepbufferreview;notnewworkornewgain. Dummyinitmustretainstepbank/readiness/collectives."
+  },
+  "review_v42": {
+    "configuration": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-captured-config-and-selected-dispatch-contract-v42.json",
+    "pcp": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-PCP-alternative-case-and-consumer-contract-v42.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-fixed-case-conditional-variants-v42.json",
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v42.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "dspark algorithm selector and dynamic_spec_config adaptive-budget method are separate. Default None is not a live object snapshot; anchor default and 20/24 constructor capacities remain separate from positive repeat-row counts."
+  },
+  "review_v65": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-regime-models-v65.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-native-chains-v65.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-operator-contract-v65.json",
+    "work_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-fusion-costs-v65.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-fusion-variants-v65.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v65.json",
+    "candidate_specific_scope": "520Markovsteps/BF16barriers/24BV+24Bprivatebudget,owner-vocabshard/cold-firstcachelambda/warm0,confidenceinputseedembeddings/globalbudget,6xnaivecombinedwork/.75shardeddualaccumulator,versionedbiasmemo/certifiedblockbounds.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-22"
+    ],
+    "peers": [
+      "F35"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v80": {
+    "primary_architecture": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-datapath-primary-evidence-v80.json",
+    "typed_cycle_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-typed-ingress-regime-models-v80.json",
+    "Markov_frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Markov-warm-ingress-frontier-v80.json",
+    "joint_resource_cut": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-joint-ingress-cut-proof-v80.json",
+    "candidate_frontiers": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-fusion-interface-frontiers-v80.json",
+    "shared_interfaces": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/shared-CV-interface-revaluation-v80.json",
+    "capacity_ranking_scope": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-local-capacity-and-ceiling-scope-v80.json",
+    "router_interfaces": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-CV-interface-domains-v80.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v85": {
+    "prior_direct_drafter_content_answer_version": 11,
+    "all_snapshot_observers_closed": false,
+    "evidence": [
+      "DSpark-tail-source-index-v85.json",
+      "DSpark-tail-reader-closure-v85.json",
+      "DSpark-tail-native-boundaries-v85.json",
+      "DSpark-tail-reorganization-variants-v85.json",
+      "DSpark-tail-row-local-proof-v85.json",
+      "DSpark-tail-work-communication-models-v85.json",
+      "DSpark-tail-rounding-witnesses-v85.json",
+      "DSpark-tail-transfer-credit-v85.json",
+      "DSpark-tail-composition-clauses-v85.json",
+      "tail-shared-memory-budget-v85.json",
+      "tail-shared-memory-relations-v85.json",
+      "DSpark-tail-prior-evidence-reconciliation-v85.json",
+      "DSpark-tail-ceiling-domains-v85.json"
+    ],
+    "relation_ids": [
+      "REL85-04",
+      "REL85-07"
+    ],
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  }
+}

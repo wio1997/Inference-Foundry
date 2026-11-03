@@ -1,0 +1,1043 @@
+{
+  "clauses": [
+    {
+      "id": "REL73-01",
+      "a": "F02",
+      "b": "F03",
+      "relation": "COMPOSE_WITH_LIVE_RESIDUAL_FANOUT",
+      "operator_claim": "Next collapse/norm may consume rounded HcPost tiles, but current coefficient, future post, aux/Engram and tail readers keep residual materialization live. Whole4MhH removal is not implied.",
+      "evidence": [
+        "HC-fusion-split-reorganization-variants-v59.json"
+      ],
+      "applicable_domain": "Current rounded BF16 HcPost→next delayed collapse; all readers/row generation must match.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-02",
+      "a": "F02",
+      "b": "F04",
+      "relation": "SHARED_COLLAPSE_NORM_EDGE",
+      "operator_claim": "Y collapse+RmsNormCast can remove one4MH Y interface; the FFN rounded BF16 plane and widened FLOAT semantics remain. Splitting Y/coefficient branch alone does not remove arithmetic.",
+      "evidence": [
+        "HC-fusion-split-reorganization-variants-v59.json",
+        "router-vector-fusion-variants-v63.json"
+      ],
+      "applicable_domain": "Same FFN row/Y generation, all BF16/FLOAT/rstd observers retained.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-03",
+      "a": "F03",
+      "b": "F23",
+      "relation": "OVERLAPPING_MERGE_INTERFACE",
+      "operator_claim": "SingletonAdd, down-projection Add epilogue, and merge into HcPost are alternative cuts through the same merge. Preserve Down BF16 then merge BF16 before FP32 HC arithmetic.",
+      "evidence": [
+        "HC-fusion-split-reorganization-variants-v59.json",
+        "shared-expert-fusion-variants-and-interactions-v57.json"
+      ],
+      "applicable_domain": "Shared+routed merge at a specific layer and row generation; not every Post boundary.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-04",
+      "a": "F02",
+      "b": "F28",
+      "relation": "COMPOSE_ONLY_WITH_UNCHANGED_HC_DOMAIN",
+      "operator_claim": "Direct local HC4 initialization preserves copy values but does not remove full4H HC coefficient normalization/projection. Initialization and first-pre producer fusion share the same initialized plane and need a joint all-reader cost.",
+      "evidence": [
+        "HC-fusion-split-reorganization-variants-v59.json",
+        "embedding-initialization-operator-contract-v67.json",
+        "pad-fusion-variants-v72.json"
+      ],
+      "applicable_domain": "Draft initialization only; HcPre full-row numerics/parameter generation retained.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-05",
+      "a": "F04",
+      "b": "F20",
+      "relation": "COMPOSE_WITH_ROUNDED_BF16_FANOUT",
+      "operator_claim": "Router widening and full-E router epilogue may remove distinct FLOAT/logit interfaces; shared/routed experts still need rounded BF16 normalized values. Do not delete all normalized storage.",
+      "evidence": [
+        "router-vector-fusion-variants-v63.json",
+        "shared-expert-fusion-variants-and-interactions-v57.json"
+      ],
+      "applicable_domain": "Current FLOAT router branch; native nonlinear/ranking/tie/bias/weight and all reader contracts.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-06",
+      "a": "F04",
+      "b": "F22",
+      "relation": "SHARED_INPUT_REPRESENTATION_GATE",
+      "operator_claim": "Shared quantization consumes rounded normalized BF16. Removing the router FLOAT plane is compatible only if this BF16 consumer remains; changing norm precision or reusing pre-round values is not implied.",
+      "evidence": [
+        "HC-fusion-split-reorganization-variants-v59.json",
+        "router-vector-fusion-variants-v63.json",
+        "shared-expert-fusion-variants-and-interactions-v57.json"
+      ],
+      "applicable_domain": "Identical norm generation and shared input row map; no private quantizer identity inferred.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-07",
+      "a": "F20",
+      "b": "F21",
+      "relation": "PAD_ABI_AND_EXISTING_FUSION_GATE",
+      "operator_claim": "Full constant-pad replacement may remove private helpers; virtual padding/row pruning additionally changes MC2 dispatch counts/workspace/mask ABI. Existing dispatch/FFN/combine fusion is the baseline.",
+      "evidence": [
+        "router-vector-fusion-variants-v63.json",
+        "pad-fusion-variants-v72.json",
+        "shared-expert-fusion-variants-and-interactions-v57.json",
+        "padding-route-domain-v77.json",
+        "padding-route-semantic-proof-v77.json",
+        "padding-route-cost-models-v77.json",
+        "padding-route-variants-v77.json",
+        "padding-route-source-index-v77.json"
+      ],
+      "applicable_domain": "Observed800→816 prepare domain; unchanged MC2 EP/count protocol unless explicitly replaced.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null,
+      "refinement_v77": {
+        "operator_claim": "Full raw P×k result preservation allows constant-padding route reuse without proving that dispatch ignores every padding output. Keep unchanged postmapping/shared/EPLB/RNG and all MC2 receiver/protocol work. This is distinct from pruning externally visible outputs or EP receiver work.",
+        "gates": [
+          "Native result/precision/tie and per-layer/rank generation",
+          "originalN/P provenance",
+          "full output publication before unchanged postprocessing",
+          "no double count with existing direct producer padding budget"
+        ],
+        "evidence": [
+          "padding-route-domain-v77.json",
+          "padding-route-semantic-proof-v77.json",
+          "padding-route-cost-models-v77.json",
+          "padding-route-variants-v77.json",
+          "padding-route-source-index-v77.json"
+        ],
+        "critical_path_gain_us": null,
+        "all_runtime_gates_proved": false
+      }
+    },
+    {
+      "id": "REL73-08",
+      "a": "F21",
+      "b": "F22",
+      "relation": "COMMON_QUANTIZER_REQUIRES_NEW_ABI",
+      "operator_claim": "Shared/routed common INT8 producer needs same rounded input, row map, mask, scales, quantizer and lifetime. Current MC2 BF16 input is not already the common prequantized ABI.",
+      "evidence": [
+        "shared-expert-fusion-variants-and-interactions-v57.json"
+      ],
+      "applicable_domain": "Same input generation only; identical dtype is insufficient.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-09",
+      "a": "F22",
+      "b": "F23",
+      "relation": "READINESS_BUFFER_AND_ROUNDING_TRADEOFF",
+      "operator_claim": "DownAdd may extend the shared branch producer through merge; it must wait for routed tiles, retain both BF16 rounds and account for changed overlap/buffering. Generic Add removal is counted once.",
+      "evidence": [
+        "shared-expert-fusion-variants-and-interactions-v57.json",
+        "HC-fusion-split-reorganization-variants-v59.json",
+        "shared-layout-guard-cases-v78.json",
+        "shared-shard-precision-proof-v78.json",
+        "shared-layout-work-communication-models-v78.json",
+        "shared-layout-source-index-v78.json",
+        "shared-collective-API-evidence-v78.json"
+      ],
+      "applicable_domain": "Matching rows/current scaling and full fanout; finite Cube/Vector/HBM competition.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null,
+      "refinement_v78": {
+        "operator_claim": "TP-sharding shared weights is a joint quantization/reduction/output-layout rewrite. Current SP constructors replicate linears;generic modeflag is insufficient. Full-I amax and rawINT32 reduction before Down dequant preserve the stated contract;naive per-shard quant andBF16partial RS have counterexamples.",
+        "work": "Balanced m localrows:GEMM6mHI staysunchanged;new allgather/globalamax/INT32RS and new owner BF16merge join must be priced. GenericONEADD/MergePost/DownAdd still count mergeonce.",
+        "evidence": [
+          "all-module-fixed-case-domain-audit-v78.json",
+          "shared-layout-guard-cases-v78.json",
+          "shared-shard-precision-proof-v78.json",
+          "shared-layout-work-communication-models-v78.json",
+          "shared-layout-source-index-v78.json",
+          "shared-collective-API-evidence-v78.json"
+        ],
+        "all_runtime_gates_proved": false,
+        "critical_path_gain_us": null
+      }
+    },
+    {
+      "id": "REL73-10",
+      "a": "F05",
+      "b": "F09",
+      "relation": "OVERLAPPING_SHARED_QR_PRODUCER",
+      "operator_claim": "QA norm/quant and Q_B/IndexQ sharing refer to one QR quantized plane. Count its write/read once; distinct QB/IndexQ weights, outputs and row scales remain.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json"
+      ],
+      "applicable_domain": "Same QR generation and exact quantizer; M3 interface examples are not whole-request savings.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-11",
+      "a": "F06",
+      "b": "F09",
+      "relation": "JOINT_PROJECTION_AND_QUANT_REUSE",
+      "operator_claim": "Q_B+IndexQ input reuse and joint output tiling can compose only with distinct output/scales/packing. The15384B example already includes the11532B quant-producer budget.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json"
+      ],
+      "applicable_domain": "Declared M3 QR1280, QB32768 and IndexQ4096; packed stride/layout support conditional.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-12",
+      "a": "F06",
+      "b": "F10",
+      "relation": "COMPOSE_WITH_SEPARATE_NORM_DOMAIN",
+      "operator_claim": "QA+IndexWeight joint input must keep separate1280 and32 outputs. QA RMS cannot become RMS over1312 concatenated values.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json"
+      ],
+      "applicable_domain": "Same query hidden generation; preserve weight BF16→FP32 scale→FP16 rounding.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-13",
+      "a": "F06",
+      "b": "F32",
+      "relation": "ROW_DOMAIN_AND_PARTITION_DEPENDENCY",
+      "operator_claim": "Local QA and global KV cannot be concatenated at identical M by shape convenience. Project-before-gather requires role-specific projected planes and actual ownership/readiness.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "Current QA3 vs KV24 example; global fallback/local-row repartition distinct.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-14",
+      "a": "F08",
+      "b": "F32",
+      "relation": "COMPOSE_ONLY_AFTER_GLOBAL_ROW_READY",
+      "operator_claim": "KV projection/norm/RoPE/cache fusion can stream complete incoming rows or move compatible projections before gather. Global cache publication/full512 norm and reader/slot ownership remain.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "Current BF16 round boundaries and row-generations; no free communication removal.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-15",
+      "a": "F11",
+      "b": "F19",
+      "relation": "PRE_ROPE_LATENT_FORK_WAR",
+      "operator_claim": "IndexKey projection reads pre-RoPE compressor latent; fusing its long-KV norm/RoPE/cache path must retain the fork and finish old latent readers before in-place stores.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "state-engram-fusion-variants-v62.json"
+      ],
+      "applicable_domain": "Compatible C1/C2 long-cache branch; key scale and physical slot publication coherent.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-16",
+      "a": "F17",
+      "b": "F32",
+      "relation": "PROJECTED_PLANE_COMMUNICATION_COST",
+      "operator_claim": "C2 projected-row exchange may share local input cast/tiles, but both FLOAT WKV/WGATE outputs remain distinct and global pool state cannot be replaced by independent local pool.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "state-engram-fusion-variants-v62.json",
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "C2 direct dense FLOAT arithmetic; local/global row plan and input feature quantization fixed.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-17",
+      "a": "F17",
+      "b": "F18",
+      "relation": "ROW_POOL_NORM_DEPENDENCY",
+      "operator_claim": "Joint WKV/WGATE projections feed pool then BF16 round/norm; separate output fields and pooling max/exp/sum order remain. Joint producer savings do not erase required pooled output work.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "state-engram-fusion-variants-v62.json"
+      ],
+      "applicable_domain": "C2 pool domain and FLOAT parameter arithmetic; no reassociation across nonlinearity.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-18",
+      "a": "F18",
+      "b": "F19",
+      "relation": "POOL_NORM_FORK_INTERFACE",
+      "operator_claim": "Pool+norm and norm/RoPE/cache fusion overlap the normalized latent interface; pre-RoPE IndexKey readers prevent unconditional in-place deletion or assigning the same norm interface saving twice.",
+      "evidence": [
+        "state-engram-fusion-variants-v62.json"
+      ],
+      "applicable_domain": "BF16 pool/norm boundaries, all slot masks and latent readers retained.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-19",
+      "a": "F18",
+      "b": "F34",
+      "relation": "FORK_OR_FUSE_WITH_OLD_STATE_BARRIER",
+      "operator_claim": "Pool may fork norm and ring maintenance; one pool/update kernel needs all old observable ring reads before overwrite, physical page ownership and cross-program synchronization. Even-only maintenance is not half current projections or half unchanged allocation.",
+      "evidence": [
+        "state-engram-fusion-variants-v62.json"
+      ],
+      "applicable_domain": "Ratio2 observable ring domain, rollback/generation/all future observers retained.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-20",
+      "a": "F24",
+      "b": "F25",
+      "relation": "PARTITION_ALTERNATIVES_AND_DEDUP_COMPOSITION",
+      "operator_claim": "F24 owner/dedup/cache reduces lookup work jointly on Uowned. Row-exchange WKV and head-partial WKV are alternative partitions; compare full downstream gate/norm/partial communication, not two independent TP factors.",
+      "evidence": [
+        "state-engram-fusion-variants-v62.json",
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "Active table format/version, head/shard/owner and post-lookup exact numerics required.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-21",
+      "a": "F26",
+      "b": "F35",
+      "relation": "OVERLAPPING_HEAD_ROW_SELECTION",
+      "operator_claim": "Tail row selection and lazy target-head/rejection pruning must use the union of all observer demands and one baseline. The native head already has row selection; removing norm/head rows cannot be counted twice.",
+      "evidence": [
+        "heads-sampling-fusion-variants-v65.json",
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "Target tail/head only; raw/probability/entropy/recovery/logprob/all future observers included.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-22",
+      "a": "F30",
+      "b": "F35",
+      "relation": "DISTINCT_TARGET_AND_DRAFT_RECURRENCES",
+      "operator_claim": "Draft Markov serial token recurrence and target rejection/head rows are different computations. A confidence-derived budget must be known before a pruned prefix; it does not make noncausal decoder queries or raw hidden consumers dead.",
+      "evidence": [
+        "heads-sampling-fusion-variants-v65.json"
+      ],
+      "applicable_domain": "Frozen five-step Markov and target rejection contracts; RNG/global IDs/readiness preserved.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-23",
+      "a": "F14",
+      "b": "F15",
+      "relation": "PACK_INTERFACE_CHANGES_WITH_PARTITION",
+      "operator_claim": "Direct attention send-layout writes may remove pack only for the chosen restore protocol. Moving WA before A2A changes the transmitted representation and weights; cannot additionally count elimination of the old pack twice.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "BF16 attention/inverse-RoPE boundaries and actual rank/head/row layout.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-24",
+      "a": "F15",
+      "b": "F16",
+      "relation": "NESTED_PARTITION_ALTERNATIVES",
+      "operator_claim": "WA-before-A2A and token-owner WA+WB are different whole output partitions; full owner extends compute/weight replication and replaces communication. Count chosen partition payload and weights, not sum both communication savings.",
+      "evidence": [
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "Current M=A condition; native per-group BF16 rounds and reduction policy retained.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-25",
+      "a": "F03",
+      "b": "F16",
+      "relation": "COMPOSE_WITH_ONE_PUBLISHED_PARTIAL",
+      "operator_claim": "WO_B→RS and RS→HCPost can tile pipeline, but each partial must undergo native BF16 reduction before HCPost. Same output/consumer buffer interface is removed once and both Cube stages share capacity.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "communication-fusion-variants-v66.json",
+        "HC-fusion-split-reorganization-variants-v59.json"
+      ],
+      "applicable_domain": "Exact TP group, row padding, native reduction order/all reader frontier.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-26",
+      "a": "F31",
+      "b": "F35",
+      "relation": "FULLWRITE_ACCEPT_STATE_FRONTIER",
+      "operator_claim": "Rejection full-write/count epilogue can feed accepted-state update. Preserve literal predicates/INT64 count vs INT32 destination and preload old values before in-place gather-map stores.",
+      "evidence": [
+        "heads-sampling-fusion-variants-v65.json"
+      ],
+      "applicable_domain": "Same B2/4 snapshot/generation and mixed-greedy/RNG ownership, not arbitrary per-row concurrent update.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-27",
+      "a": "F13",
+      "b": "F31",
+      "relation": "PLAN_REUSE_DOES_NOT_IMPLY_ATTENTION_VALUE_REUSE",
+      "operator_claim": "Equal normalized planner keys can reuse a scheduling plan; those fields do not encode Q/K/V contents. New KV/query values still require attention. Cached plan identity is not activation identity.",
+      "evidence": [
+        "planner-source-algorithm-contract-v71.json",
+        "planner-fusion-variants-v71.json"
+      ],
+      "applicable_domain": "SWA saturated effective lengths/QSL/attrs fixed; actual cache bank/current token values may change.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL73-28",
+      "a": "F12",
+      "b": "F31",
+      "relation": "PLAN_METADATA_NOT_SCORE_OR_INDEX_IDENTITY",
+      "operator_claim": "A schedule key based on lengths/QSL/attrs does not establish equal index scores or selected indices. Reusing topK/indices needs their own source-value/key/generation and all-reader proof.",
+      "evidence": [
+        "planner-source-algorithm-contract-v71.json",
+        "projection-fusion-variants-and-interactions-v61.json"
+      ],
+      "applicable_domain": "Planner-defined fields only; no pointer/shape equality used for value CSE.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-01",
+      "a": "F01",
+      "b": "F27",
+      "relation": "SHARED_HC_INPUT_NOT_EQUAL_OUTPUT",
+      "operator_claim": "HC mean may share HcPre loads at fixed checkpoints, but weighted Y is not the BF16 arithmetic mean. New coefficient outputs and aux mean stores/readiness remain.",
+      "evidence": [
+        "HC-fusion-split-reorganization-variants-v59.json",
+        "index-context-operator-contract-v64.json",
+        "index-context-fusion-variants-v64.json"
+      ],
+      "applicable_domain": "Same checkpoint37/38/39 source generation without Engram mutation; all mean/Pre observers.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-02",
+      "a": "F01",
+      "b": "F02",
+      "relation": "SPLIT_COEFFICIENT_AND_Y_READINESS",
+      "operator_claim": "Delayed external-premix collapse/Y norm and current coefficients can be scheduled separately; joining mean/Y outputs must not silently delay earlier auxiliary or attention consumers.",
+      "evidence": [
+        "HC-fusion-split-reorganization-variants-v59.json",
+        "index-context-operator-contract-v64.json"
+      ],
+      "applicable_domain": "Current HC full4H coefficient norm/HF32 and all BF16 stage boundaries; new output/event ABI conditional.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-03",
+      "a": "F05",
+      "b": "F07",
+      "relation": "ACTIVE_QR1280_NORM;LEGACY_HEAD512_OUTSIDE_CASE",
+      "operator_claim": "Current V4.1 QR1280 normalization precedes QB;its output and quantizer remain distinct from rotary. Legacy CP head512 RMS is not in target/draft V4.1 query forward and contributes no current-case work.",
+      "evidence": [
+        "projection-operator-numerical-contract-v61.json",
+        "index-context-operator-contract-v64.json",
+        "QB-head-RMS-RoPE-applicability-v74.json",
+        "V41-query-operator-path-contract-v75.json",
+        "V41-QB-native-source-binding-v75.json",
+        "V41-QB-RoPE-work-and-bound-models-v75.json"
+      ],
+      "applicable_domain": "Target/draft V4.1 operator entry and both ordinary/multistream preprocess branches;legacy program mathematics is separate.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null,
+      "supersedes_current_case_head_RMS_claim_v74": true
+    },
+    {
+      "id": "REL74-04",
+      "a": "F06",
+      "b": "F07",
+      "relation": "JOINT_QB_INDEXQ_WITHOUT_LEGACY_HEAD_RMS",
+      "operator_claim": "Current QB/IndexQ shared quant/input tiling preserves distinct outputs,scales and the QB BF16→tail64 RoPE chain. Do not impose a post-QB head512 reduction from unused legacy query forward.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "router-vector-fusion-variants-v63.json",
+        "QB-head-RMS-RoPE-applicability-v74.json",
+        "V41-query-operator-path-contract-v75.json",
+        "V41-QB-native-source-binding-v75.json",
+        "V41-QB-RoPE-work-and-bound-models-v75.json"
+      ],
+      "applicable_domain": "V4.1 target/draft source and exact direct-call stack bindings;captured graph role evidence retains its own grade.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null,
+      "supersedes_current_case_head_RMS_claim_v74": true
+    },
+    {
+      "id": "REL74-05",
+      "a": "F07",
+      "b": "F13",
+      "relation": "QUERY_ROPE_CONSUMER_FUSION_WITH_CURRENT_NUMERICS",
+      "operator_claim": "QB/tail64 RoPE into attention retains source BF16 query rounding and full512 score-dot dependencies. Current V4.1 has no head512 RMS barrier;both kernels share finite compute/Vector resources.",
+      "evidence": [
+        "projection-fusion-variants-and-interactions-v61.json",
+        "router-vector-fusion-variants-v63.json",
+        "QB-head-RMS-RoPE-applicability-v74.json",
+        "V41-query-operator-path-contract-v75.json",
+        "V41-QB-native-source-binding-v75.json",
+        "V41-QB-RoPE-work-and-bound-models-v75.json"
+      ],
+      "applicable_domain": "Current V4.1 path;no query-transform deletion or claimed whole512 intermediate traffic removal from a tail-only fusion.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null,
+      "supersedes_current_case_head_RMS_claim_v74": true
+    },
+    {
+      "id": "REL74-06",
+      "a": "F07",
+      "b": "F14",
+      "relation": "FORWARD_AND_INVERSE_ROTATE_DIFFERENT_VALUES",
+      "operator_claim": "QB query RoPE changes attention scores, whereas inverse RoPE acts on attention output. They are not inverse functions on one unchanged tensor and cannot mutually cancel.",
+      "evidence": [
+        "router-vector-numerical-contract-v63.json",
+        "communication-fusion-variants-v66.json",
+        "QB-head-RMS-RoPE-applicability-v74.json"
+      ],
+      "applicable_domain": "Preserve BF16 attention result before inverse RoPE; direct pack requires new output layout ABI.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-07",
+      "a": "F27",
+      "b": "F29",
+      "relation": "CHOOSE_ROW_OR_FEATURE_PARTITION_BEFORE_COST",
+      "operator_claim": "Main15360→5120 context path requires full5120 RMS, then three distinct512 KV maps/norms. Complete-weight row ownership and feature-partial RS/AG are alternatives with different weights/padding/retained-bank costs.",
+      "evidence": [
+        "index-context-operator-contract-v64.json",
+        "index-context-fusion-variants-v64.json",
+        "F27-F29-row-feature-and-KV-reorganization-v34.json"
+      ],
+      "applicable_domain": "Main and each KV BF16 rounding, actual I/positions/groups/slots and query-weight readers retained.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-08",
+      "a": "F26",
+      "b": "F27",
+      "relation": "DISTINCT_CHECKPOINT_AND_TAIL_GENERATIONS",
+      "operator_claim": "Final HC collapse/norm and three earlier auxiliary checkpoint means are distinct values. Equal row shape or a reused buffer is insufficient for cross-layer activation CSE.",
+      "evidence": [
+        "index-context-operator-contract-v64.json",
+        "heads-sampling-fusion-variants-v65.json"
+      ],
+      "applicable_domain": "All checkpoint means and final/raw tail observers retain their own semantic generation.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-09",
+      "a": "F27",
+      "b": "F31",
+      "relation": "ORDERED_SELECTOR_AND_OLD_SOURCE_LIFETIME",
+      "operator_claim": "Late selective gather and indirect main projection share one ordered I plan, including duplicates. I arrives after target sampling; retain required checkpoint means and snapshot/last-reader state until then.",
+      "evidence": [
+        "index-context-operator-contract-v64.json",
+        "index-context-fusion-variants-v64.json",
+        "selected-input-def-use-and-guard-proof-v70.json"
+      ],
+      "applicable_domain": "Bounds/negative indexing/error and capture bank publication preserved; native prep budgets counted once.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-10",
+      "a": "F29",
+      "b": "F31",
+      "relation": "SLOT_INLINE_AND_CSE_ALTERNATIVES",
+      "operator_claim": "Slot pair inline production and CSE remove overlapping metadata work. Reuse needs identical group bank/blocksize/slot generation; different layer caches and per-layer KV writes remain.",
+      "evidence": [
+        "index-context-operator-contract-v64.json",
+        "index-context-fusion-variants-v64.json",
+        "F27-F29-row-feature-and-KV-reorganization-v34.json"
+      ],
+      "applicable_domain": "All negative slots map invalid, INT32/INT64 policy and duplicate-slot write order unchanged.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-11",
+      "a": "F08",
+      "b": "F33",
+      "relation": "SWA_CHAIN_AND_JOINT_C1_SHARE_PROJECTION",
+      "operator_claim": "C1/SWA joint projection overlaps the SWA producer in its norm/RoPE/cache fusion. Keep two distinct512 weights/norms and both cache publications; a single1024 RMS is not equivalent.",
+      "evidence": [
+        "F33-consumer-and-numerical-contract-v27.json",
+        "F33-projection-algebra-and-layout-v27.json",
+        "F33-joint-projection-variants-v27.json",
+        "projection-fusion-variants-and-interactions-v61.json"
+      ],
+      "applicable_domain": "C1 source layer/role only, BF16 boundaries/packing/readiness retained.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-12",
+      "a": "F11",
+      "b": "F33",
+      "relation": "C1_PRE_ROPE_KEY_FORK_WAR",
+      "operator_claim": "Joint C1/SWA projection and IndexKey full-chain fusion still require reading the C1 normalized latent before in-place long RoPE overwrites overlapping rows/tiles. Index publication is not automatically a universal whole-operator barrier.",
+      "evidence": [
+        "F33-consumer-and-numerical-contract-v27.json",
+        "F33-joint-projection-variants-v27.json",
+        "index-context-fusion-variants-v64.json"
+      ],
+      "applicable_domain": "All key/scale/long/SWA generation consumers retained; no tensor identity inferred by cache shape.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-13",
+      "a": "F19",
+      "b": "F33",
+      "relation": "C1_LATENT_FORK_OVERLAPPING_INTERFACES",
+      "operator_claim": "C1 part of compressor latent-fork fusion and C1/SWA joint projection touch the same C1 latent interfaces. Count shared loads once and keep pre-RoPE IndexKey versus post-RoPE long-KV outputs distinct.",
+      "evidence": [
+        "F33-consumer-and-numerical-contract-v27.json",
+        "F33-joint-projection-variants-v27.json",
+        "projection-fusion-variants-and-interactions-v61.json"
+      ],
+      "applicable_domain": "C1 layer-specific graph; C2 pool/state branch remains a separate mode.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-14",
+      "a": "F32",
+      "b": "F33",
+      "relation": "PROJECT_THEN_EXCHANGE_TWO_ROLE_PLANES",
+      "operator_claim": "C1/SWA may project local rows and exchange two512 BF16 planes rather than5120 hidden features. The5x content ratio requires equivalent replicated weights, all global readers, row/slot/position plan and new publication layout.",
+      "evidence": [
+        "F33-joint-projection-variants-v27.json",
+        "F33-projection-algebra-and-layout-v27.json",
+        "communication-fusion-variants-v66.json"
+      ],
+      "applicable_domain": "Feature content only, not5x wire/time speedup; no extra ratio from already-sharded queries.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL74-15",
+      "a": "F17",
+      "b": "F33",
+      "relation": "DIFFERENT_COMPRESSOR_MODE_AND_DTYPE",
+      "operator_claim": "C1 BF16 single projection and C2 two FLOAT projections with gate/pool are distinct roles, even with512-wide outputs. Cross-mode weight/output/normalization CSE is unsupported; choose the relevant per-layer mode.",
+      "evidence": [
+        "F33-consumer-and-numerical-contract-v27.json",
+        "projection-fusion-variants-and-interactions-v61.json",
+        "index-context-operator-contract-v64.json"
+      ],
+      "applicable_domain": "C1 and C2 modes can coexist at different model layers; not mutually exclusive whole-model alternatives.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL75-01",
+      "a": "F07",
+      "b": "F08",
+      "relation": "QUERY_ROPE_BEFORE_KV_JOIN;SHARED_VECTOR_RESOURCE_GATE",
+      "operator_claim": "Current V4.1 joins the KV stream after QB and only then rotates the query. Study moving pair-local query RoPE before that join,or fusing it into QB,while retaining KV publication/join before actual attention/compressor/cache consumers. Query C/S generation and all aliases/readiness must be preserved;Vector/memory contention can erase a toy overlap budget.",
+      "evidence": [
+        "V41-query-operator-path-contract-v75.json",
+        "V41-QB-native-source-binding-v75.json",
+        "V41-QB-query-RoPE-frontier-v75.json"
+      ],
+      "applicable_domain": "Positive-query V4.1 target/draft branch. No-query ranks still execute required KV/cache/global collective work. No legacy head512 norm barrier in this query chain.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null,
+      "new_main_candidate": false,
+      "new_schedule_subvariant_recorded": true
+    },
+    {
+      "id": "REL76-01",
+      "a": "F20",
+      "b": "F24",
+      "relation": "SHARED_RAW_ID_LOAD_ONLY;DISTINCT_ROUTER_ENGRAM_PREDICATES",
+      "operator_claim": "TopK hash table routing is absent in all4472descriptors but vision bias/IDpredicate remains. Router sentinel range and Engram image-dead/keep are different predicates;SPpadding also depends on row identity. Share raw-ID loads only at matching source/row generation and preserve distinct flags/history-minus1 semantics.",
+      "evidence": [
+        "router-predicate-guard-models-v76.json",
+        "router-ID-predicate-source-proof-v76.json",
+        "router-predicate-fusion-variants-v76.json"
+      ],
+      "applicable_domain": "Current target/draft native nohash TopK and separate Engram current/lookback/dead/validcount contracts;do not infer actual image-row population.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL79-01",
+      "a": "F31",
+      "b": "F34",
+      "relation": "STATE_OWNER_HALF_AND_GENERATION_ABI",
+      "operator_claim": "Private/paired C2ring representation requires explicit request-owner slot/half/generation metadata and new native/capture ABI. Current globalblockp-onlymetadata cannot be reinterpreted by pointer equality;all oldreads/queuedwrites must retire before slot/wholeID reuse.",
+      "evidence": [
+        "ring-storage-source-contract-v79.json",
+        "ring-storage-capacity-models-v79.json",
+        "ring-state-layout-and-lifetime-proof-v79.json",
+        "M22-adjacent-operator-boundary-crosswalk-v79.json"
+      ],
+      "applicable_domain": "NormalV41sharedglobalIDpool and statedC2even-observation/private32domains;actualresidentS/capacityU/physicalaliases/nativebindings unknown.",
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    }
+  ],
+  "higher_order_groups": [
+    {
+      "id": "HG73-MOE",
+      "members": [
+        "F04",
+        "F20",
+        "F21",
+        "F22",
+        "F23",
+        "F03"
+      ],
+      "contract": "Keep rounded BF16 shared/routed plane, separate FLOAT router/logit/removable interfaces; choose native/virtual padding ABI and quantizer before cost; preserve both merge rounds/HC consumers.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false,
+      "shared_layout_refinement_v78": {
+        "contract": "Choose consistent parameter layout plus fullrow quantizer/rawINT32 reduction and rawoutput ABI before overlap/merge pricing. Kernel-HCCL multi-layer submission-domain count constraints apply only in that declared API domain,not general modeldepth/host capture.",
+        "evidence": [
+          "shared-layout-guard-cases-v78.json",
+          "shared-shard-precision-proof-v78.json",
+          "shared-layout-work-communication-models-v78.json",
+          "shared-layout-source-index-v78.json",
+          "shared-collective-API-evidence-v78.json"
+        ],
+        "all_subsets_analyzed": false
+      }
+    },
+    {
+      "id": "HG73-Q",
+      "members": [
+        "F05",
+        "F06",
+        "F09",
+        "F10",
+        "F32"
+      ],
+      "contract": "One QR quant producer, distinct query/globalKV domains and QA1280 norm. Joint packed layouts and projected-feature exchange must use the same role/row plan.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG73-C2",
+      "members": [
+        "F17",
+        "F18",
+        "F19",
+        "F34",
+        "F32",
+        "F31"
+      ],
+      "contract": "Distinct FLOAT projection fields→global row pool→rounded BF16 norm→preRoPE IndexKey fork/long-KV publication; old-ring WAR and observable-history retention survive new partitions.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false,
+      "state_representation_refinement_v79": {
+        "contract": "Pick unchangedtuple/private32/private16/paired16state representation andmetadata ownerprotocol beforeF18poolnorm/F19cachefork/F34maintenancesavings. Compactphysicalstorage/read-writequotient and projection/quantization work are not independent gains.",
+        "evidence": [
+          "ring-storage-source-contract-v79.json",
+          "ring-storage-capacity-models-v79.json",
+          "ring-state-layout-and-lifetime-proof-v79.json",
+          "M22-adjacent-operator-boundary-crosswalk-v79.json"
+        ],
+        "all_combinations_analyzed": false
+      }
+    },
+    {
+      "id": "HG73-OUTPUT",
+      "members": [
+        "F14",
+        "F15",
+        "F16",
+        "F03"
+      ],
+      "contract": "Select one send/compute partition, preserve attention/WA/WB/reduction BF16 boundaries, price selected weights and all Cube/network/Vector resources jointly.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG73-TAIL",
+      "members": [
+        "F26",
+        "F30",
+        "F31",
+        "F35"
+      ],
+      "contract": "Target observer row-demand closure and separate draft recurrence, rawhidden/confidence, global best/RNG and accepted-state snapshot publication. A smaller row set is not blanket decoder liveness.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG74-Q-ATTENTION",
+      "members": [
+        "F05",
+        "F06",
+        "F07",
+        "F13",
+        "F14"
+      ],
+      "contract": "Current V4.1 QR1280 norm/quant→QB BF16→tail64 RoPE→attention BF16→inverse tail RoPE. No legacy post-QB head512 RMS in this entry. Preserve full512 attention score reductions and choose one materialization/pack graph;shared typed resource capacities still constrain fusion.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG74-AUX-CONTEXT",
+      "members": [
+        "F01",
+        "F02",
+        "F27",
+        "F29",
+        "F31"
+      ],
+      "contract": "Same HC input may serve distinct mean/coefficient/Y outputs; choose early/full vs late/selected aux work, full5120 global norm/three512 KV norms, and exact ordered slot-bank publication.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG74-C1",
+      "members": [
+        "F08",
+        "F11",
+        "F19",
+        "F32",
+        "F33"
+      ],
+      "contract": "Two distinct512 BF16 projections/norms; C1 pre-longRoPE IndexKey WAR/fork and both cache publications remain under local projection/new row exchange.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG75-Q-KV-JOIN",
+      "members": [
+        "F06",
+        "F07",
+        "F08",
+        "F13"
+      ],
+      "contract": "Keep local query vs global KV row domains and distinct producer outputs;query RoPE may precede the existing control join only with C/S/alias/readiness proof. Required KV cache/attention frontier and finite shared Cube/Vector/memory capacity remain.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG76-TOKEN-PREDICATES",
+      "members": [
+        "F02",
+        "F20",
+        "F24",
+        "F31"
+      ],
+      "contract": "Raw IDs/embedding/error domain,TopK sentinel-bias predicate,Engram image/validcount/lookback dead propagation and SP/metadata padding flags have different semantics. Common producer/rowplan/generation may share loads but must emit distinct flags and keep raw bank/history unchanged.",
+      "scope_state": "SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG80-A3-LOCAL-PATH",
+      "members": [
+        "F04",
+        "F05",
+        "F07",
+        "F09",
+        "F10",
+        "F13",
+        "F16",
+        "F20",
+        "F21",
+        "F22",
+        "F23",
+        "F30",
+        "F35"
+      ],
+      "contract": "Chooseonelegalalgorithm/precision/operandownershipanddatapathdomainbeforepricinginterfaces. A3CVusesGMbridge;CCmayuseAICL1,VVmayreuseAIVUB. ForL1-onlydenseweights,accumulatenecessarysharedingressworkoncewithboundedinitialL0residency;maxwithotherresources. NoGM=HBM,no capturedclock=max,andnoall-onchipCube/Vectorassumption.",
+      "evidence": [
+        "A3-datapath-primary-evidence-v80.json",
+        "A3-typed-ingress-regime-models-v80.json",
+        "Markov-warm-ingress-frontier-v80.json",
+        "A3-joint-ingress-cut-proof-v80.json",
+        "A3-fusion-interface-frontiers-v80.json",
+        "shared-CV-interface-revaluation-v80.json",
+        "A3-local-capacity-and-ceiling-scope-v80.json",
+        "router-CV-interface-domains-v80.json"
+      ],
+      "scope_state": "CONDITIONAL_ARCHITECTURE_AND_TYPED_RESOURCE_CUT_REVIEWED;ALL_TRANSFORMED_GRAPHS_OPEN",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    }
+  ],
+  "clause_count": 46,
+  "selected_pair_count": 46,
+  "touched_candidates": [
+    "F01",
+    "F02",
+    "F03",
+    "F04",
+    "F05",
+    "F06",
+    "F07",
+    "F08",
+    "F09",
+    "F10",
+    "F11",
+    "F12",
+    "F13",
+    "F14",
+    "F15",
+    "F16",
+    "F17",
+    "F18",
+    "F19",
+    "F20",
+    "F21",
+    "F22",
+    "F23",
+    "F24",
+    "F25",
+    "F26",
+    "F27",
+    "F28",
+    "F29",
+    "F30",
+    "F31",
+    "F32",
+    "F33",
+    "F34",
+    "F35"
+  ],
+  "no_new_maincandidate": true,
+  "overall_complete": false
+}

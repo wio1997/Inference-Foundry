@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_e8b704a9-9e28-40cd-bb99-f94516616170",
+  "traceId": "3aac27bc-2d66-48e0-8e48-e4852b6419a8",
+  "turnId": "turn_b16f28b5-dd2c-4f97-a3d0-ee05f0d38d96",
+  "response": "执行成功：本地 `remote_run.py` 实际退出码 **0**，回执 `returncode` 也为 **0**，`stderr` 为空，回执中 `no_database_or_device_work: True`。回执文件为 `archived-ep3-embedding-frames166-v7.json`（`source_sha256: e806fc67206b77a7d90d1d70f289eab84656e78fb813c1636509c901d51c4a98`），仅有两行既有 JSON 记录，未新增 DB 查询。\n\n**API 1：aclnnEmbedding（GatherV2，taskId 38632，7 帧）**\n\n| 深度 | 帧 |\n|---|---|\n| 0 | `torch/nn/functional.py(2567): embedding` |\n| 1 | `vllm/model_executor/layers/vocab_parallel_embedding.py(85): embedding` |\n| 2 | `vllm_ascend/ops/vocab_parallel_embedding.py(422): _forward_standard` |\n| 3 | `vllm_ascend/ops/vocab_parallel_embedding.py(296): forward` |\n| 6 | `vllm_ascend/models/deepseek_v41/dspark.py(249): forward` |\n| 10 | `vllm_ascend/models/deepseek_v41/dspark.py(409): forward` |\n| 13 | `vllm_ascend/spec_decode/dspark_proposer.py(421): dummy_run` |\n\n**API 2：HcclAllreduce（hcom_allReduce_，taskId 26432，9 帧）**\n\n| 深度 | 帧 |\n|---|---|\n| 0 | `torch/distributed/distributed_c10d.py(3007): all_reduce` |\n| 1 | `torch/distributed/c10d_logger.py(83): wrapper` |\n| 2 | `vllm/distributed/device_communicators/base_device_communicator.py(232): all_reduce` |\n| 3 | `vllm/distributed/parallel_state.py(748): _all_reduce_out_place` |\n| 6 | `vllm_ascend/ops/vocab_parallel_embedding.py(435): _forward_standard` |\n| 7 | `vllm_ascend/ops/vocab_parallel_embedding.py(296): forward` |\n| 10 | `vllm_ascend/models/deepseek_v41/dspark.py(249): forward` |\n| 14 | `vllm_ascend/models/deepseek_v41/dspark.py(409): forward` |\n| 17 | `vllm_ascend/spec_decode/dspark_proposer.py(421): dummy_run` |\n\n**对判断入口的意义：** 两处调用栈共享同一父路径，分叉点在 `vllm_ascend/ops/vocab_parallel_embedding.py` 的 `_forward_standard`：embedding gather 在 **422 行**，随后的 AllReduce 在 **435 行**，其上游入口是 `VocabParallelEmbedding.forward`（296 行）。也就是说，embedding AllReduce→SP 分片的跨卡重组逻辑直接位于 `_forward_standard` 第 435 行附近，而不是在 `parallel_state` 或 device communicator 层；帧深度跳跃（如 3→6、7→10）只是提取器裁剪掉的中间帧，不是缺失的调用层。调用来源为 `dspark_proposer.dummy_run` 的 `dspark` 前向路径。\n\n按要求未读取远端源码、未做设备/推理/服务操作、未改脚本、未开 agent，失败自修路径未触发。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 43620,
+    "outputTokens": 3023,
+    "totalTokens": 46643,
+    "cacheReadTokens": 34688,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2410,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 46643,
+    "contextUsed": 11673,
+    "contextWindow": 200000
+  }
+}

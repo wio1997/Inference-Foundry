@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_a79f52db-e36c-4d03-a3fb-1299b62f8ca2",
+  "traceId": "c2b35253-42ab-4c76-955f-35fa52092143",
+  "turnId": "turn_d3dd03c7-736f-4eed-9a26-b48fbc8b3115",
+  "response": "按给定命令原样执行一次，**实际 rc=0**，lazy import 预检通过，未发生任何模型、设备或推理服务操作。\n\n**执行结果**\n- 命令：`python3 .../remote_run.py 166 .../stage_host_profile_v12c_166.py host-profile-preflight166-v12c`\n- 本地 receipt：`/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-preflight166-v12c.json`\n- 远端完整结果：`/data/tiankuan/.../host-profile-draft-v12c/preflight.json`\n- 内层 `docker exec` 声明 `returncode=0`，stderr 为空。\n\n**Lazy import 无 torch/NPU 结果**\n- `status = PASS_LAZY_IMPORT_NO_TORCH_NPU`\n- `CANN = 9.2.0`\n- `torch_imported = false`\n- `torch_npu_imported = false`\n- 扫描到 4 个 profiler 源文件；其中 `vllm_ascend/profiler/torch_npu_profiler.py` 的 SHA-256 前缀 `5242ee153033afcf` 与脚本内固定的 `PROFILER_SOURCE_SHA` 一致。\n\n**SHA-256**\n| 对象 | SHA-256 |\n|---|---|\n| `stage_host_profile_v12c_166.py` | `f030a683f1fbdd0f865ba4e36b49f7891050d50c50d62b4ce99d911fb1574231` |\n| 内嵌 `sitecustomize.py` | `9b596aa1907b2c8a1a307482640c3bc22ae4e081ed98a8a5bef93dfc66577a4a` |\n| 内嵌 `wio_host_profile.py` | `85e744d8dc7f8e8261605eec1e8e4939ef232cadb77c7481d5f30aa78ce107a0` |\n| 远端 `preflight.json` | `37c79d0fb4a3fe9b397d7579b763b16bf29e5b77821bfbf016f31292bf1eeaa6` |\n\n两个内嵌文件 SHA 与内嵌 `PLAN.json` 的 `code_hashes` 完全一致。v12c 中的同调用 CPU 标量已确认存在：`scheduled_tokens`、`cached_request_state`（含 `num_computed_tokens`/`num_output_tokens`）、`new_request_state`（含 `num_computed_tokens`），且不读取 tensor。\n\n**保留情况**\n- `stage_host_profile_v12_166.py`：`68f9a42c3fcd2d679cbf6fbcb8a47f052079420338d3fc40e1d53164bfc1aafb`\n- `stage_host_profile_v12b_166.py`：`a5ec3e3f579cb7dd397f8624a27d85ed6c2aab0bbef9459078931cb5e3cc340e`\n- 两者均未被修改；本次仅新增 v12c 暂存与 receipt，无重试、无扩展。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 115137,
+    "outputTokens": 5310,
+    "totalTokens": 120447,
+    "cacheReadTokens": 95232,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3827,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 120447,
+    "contextUsed": 24808,
+    "contextWindow": 200000
+  }
+}

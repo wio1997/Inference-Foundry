@@ -1,0 +1,33 @@
+{
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/common/ops/sequence_parallel.py",
+  "sha256": "73bcf07050bce8b049dd0bbdb0a7504f6eba157a1e97a5033849ef31ef05fcb0",
+  "function": "sp_shard",
+  "start": 62,
+  "end": 64,
+  "source": [
+    "62: def sp_shard(x: torch.Tensor) -> torch.Tensor:",
+    "63:     \"\"\"Shard the token axis across TP ranks for sequence parallelism.\"\"\"",
+    "64:     return torch.ops.vllm.ascend_sp_shard_impl(x)"
+  ],
+  "scope": "Exactimportresolvedfrompinnedmodel.py;frozen-sourcecontractnotexecutionbinarybinding",
+  "overall_complete": false,
+  "implementation": {
+    "name": "_ascend_sp_shard_impl",
+    "start": 32,
+    "end": 43,
+    "source": [
+      "32: def _ascend_sp_shard_impl(x: torch.Tensor) -> torch.Tensor:",
+      "33:     \"\"\"Pad the token axis (dim 0) to the TP multiple, then take this rank's chunk.\"\"\"",
+      "34:     tp_size = get_tensor_model_parallel_world_size()",
+      "35:     tp_rank = get_tensor_model_parallel_rank()",
+      "36:     sp_pad = (-x.shape[0]) % tp_size",
+      "37:     # Upstream counterpart: vllm/models/common/ops/sequence_parallel.py",
+      "38:     # sp_shard L45-48 (introduced in 38a466e7b6, #46789).",
+      "39:     if sp_pad > 0:",
+      "40:         x = F.pad(x, (0, 0) * (x.ndim - 1) + (0, sp_pad))",
+      "41:     chunk = x.shape[0] // tp_size",
+      "42:     out = x[tp_rank * chunk : (tp_rank + 1) * chunk]",
+      "43:     return out.clone() if sp_pad == 0 else out"
+    ]
+  }
+}

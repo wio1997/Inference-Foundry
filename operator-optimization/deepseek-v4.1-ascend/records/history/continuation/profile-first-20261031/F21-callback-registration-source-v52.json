@@ -1,0 +1,279 @@
+{
+  "generated_utc": "2026-10-31T15:46:25.218438+00:00",
+  "files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/model_executor/layers/fused_moe/routed_experts.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F21-callback-source-v52/00-routed_experts.py",
+      "sha256": "68c48e5df0ea4a7cc1f04436b7b9153eb53802ecd9bb55d38db8738508daac6d",
+      "role": "CORE_INIT_CALLBACK",
+      "historical166_hash_matched": true,
+      "metadata": {},
+      "parts": [
+        {
+          "start": 123,
+          "end": 127,
+          "source": [
+            "123:         self.quant_method = self._get_quant_method(",
+            "124:             self.layer_name,",
+            "125:             self.quant_config,",
+            "126:             self.moe_config,",
+            "127:         )"
+          ]
+        },
+        {
+          "start": 159,
+          "end": 169,
+          "source": [
+            "159:         moe_quant_params: dict[str, Any] = {",
+            "160:             \"num_experts\": moe_config.num_local_experts,",
+            "161:             \"hidden_size\": self.hidden_size,",
+            "162:             \"unpadded_hidden_size\": self.moe_config.hidden_dim_unpadded,",
+            "163:             \"intermediate_size_per_partition\": (",
+            "164:                 self.moe_config.intermediate_size_per_partition",
+            "165:             ),",
+            "166:             \"params_dtype\": params_dtype,",
+            "167:             \"weight_loader\": self.weight_loader,",
+            "168:             \"global_num_experts\": moe_config.num_experts,",
+            "169:         }"
+          ]
+        },
+        {
+          "start": 171,
+          "end": 171,
+          "source": [
+            "171:         self.quant_method.create_weights(layer=self, **moe_quant_params)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F21-source-snapshot-v50/vllm_ascend/ops/fused_moe/routed_experts.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F21-callback-source-v52/01-routed_experts.py",
+      "sha256": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77",
+      "role": "ASCEND_INHERITANCE",
+      "historical166_hash_matched": true,
+      "metadata": {
+        "class_name": "AscendRoutedExperts",
+        "bases": [
+          "RoutedExperts"
+        ],
+        "directly_defined_methods": [
+          "__init__",
+          "get_expert_weights",
+          "init_eplb",
+          "_promote_attr_to_buffer",
+          "_get_quant_method",
+          "get_eplb_parameter",
+          "ascend_expert_map",
+          "ascend_expert_map",
+          "update_expert_map",
+          "get_log2phy_map",
+          "ep_rank",
+          "clear_moe_load",
+          "quant_type",
+          "_select_experts",
+          "forward_impl"
+        ],
+        "own_weight_loader_defined": false,
+        "own_global_to_local_override": false
+      },
+      "parts": [
+        {
+          "start": 588,
+          "end": 591,
+          "source": [
+            "588:     def _get_quant_method(self, prefix, quant_config, moe_config):",
+            "589:         if quant_config is None:",
+            "590:             return super()._get_quant_method(prefix, quant_config, moe_config)",
+            "591:         return quant_config.get_quant_method(self, prefix, tid2eid=self.tid2eid)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F21-source-snapshot-v50/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F21-callback-source-v52/02-w8a8_dynamic.py",
+      "sha256": "a67601ee596d9aa4ae72ea3638f67ff7236cd8df884564bcd19f33653a1e0910",
+      "role": "W8A8_SCHEME_LAYOUT",
+      "historical166_hash_matched": true,
+      "metadata": {},
+      "parts": [
+        {
+          "start": 177,
+          "end": 187,
+          "source": [
+            "177:     def get_weight(",
+            "178:         self, num_experts: int, intermediate_size_per_partition: int, hidden_sizes: int, params_dtype: torch.dtype",
+            "179:     ) -> dict[str, Any]:",
+            "180:         param_dict = {}",
+            "181:         param_dict[\"w13_weight\"] = torch.empty(",
+            "182:             num_experts, 2 * intermediate_size_per_partition, hidden_sizes, dtype=torch.int8",
+            "183:         )",
+            "184:         param_dict[\"w2_weight\"] = torch.empty(",
+            "185:             num_experts, hidden_sizes, intermediate_size_per_partition, dtype=torch.int8",
+            "186:         )",
+            "187:         return param_dict"
+          ]
+        },
+        {
+          "start": 189,
+          "end": 201,
+          "source": [
+            "189:     def get_dynamic_quant_param(",
+            "190:         self, num_experts: int, intermediate_size_per_partition: int, hidden_sizes: int, params_dtype: torch.dtype",
+            "191:     ) -> dict[str, Any]:",
+            "192:         param_dict = {}",
+            "193:         param_dict[\"w13_weight_scale\"] = torch.empty(",
+            "194:             num_experts, 2 * intermediate_size_per_partition, 1, dtype=params_dtype",
+            "195:         )",
+            "196:         param_dict[\"w13_weight_offset\"] = torch.empty(",
+            "197:             num_experts, 2 * intermediate_size_per_partition, 1, dtype=params_dtype",
+            "198:         )",
+            "199:         param_dict[\"w2_weight_scale\"] = torch.empty(num_experts, hidden_sizes, 1, dtype=params_dtype)",
+            "200:         param_dict[\"w2_weight_offset\"] = torch.empty(num_experts, hidden_sizes, 1, dtype=params_dtype)",
+            "201:         return param_dict"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/quantization/method_adapters.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F21-callback-source-v52/03-method_adapters.py",
+      "sha256": "341d93cae5774414a810444a50eb752cd425330156f404d1b9a10381e6bc0138",
+      "role": "MOE_PARAM_ADAPTER",
+      "historical166_hash_matched": false,
+      "metadata": {},
+      "parts": [
+        {
+          "start": 287,
+          "end": 318,
+          "source": [
+            "287:     def create_weights(",
+            "288:         self,",
+            "289:         layer: torch.nn.Module,",
+            "290:         num_experts: int,",
+            "291:         hidden_size: int,",
+            "292:         intermediate_size_per_partition: int,",
+            "293:         params_dtype: torch.dtype,",
+            "294:         **extra_weight_attrs,",
+            "295:     ) -> None:",
+            "296:         weight_param = self.quant_method.get_weight(",
+            "297:             num_experts, intermediate_size_per_partition, hidden_size, params_dtype",
+            "298:         )",
+            "299:         for param_key, param_value in weight_param.items():",
+            "300:             param = torch.nn.Parameter(param_value, requires_grad=False)",
+            "301:             layer.register_parameter(param_key, param)",
+            "302:             set_weight_attrs(param, extra_weight_attrs)",
+            "303: ",
+            "304:         extra_weight_attrs.update({\"quant_method\": FusedMoeWeightScaleSupported.CHANNEL.value})",
+            "305:         per_group_param = [\"weight_scale_second\", \"weight_offset_second\", \"scale_bias\"] + (",
+            "306:             [\"weight_scale\", \"weight_offset\"]",
+            "307:             if hasattr(self.quant_method, \"group_size\") and self.quant_method.group_size > 0",
+            "308:             else []",
+            "309:         )",
+            "310:         dynamic_quant_param = self.quant_method.get_dynamic_quant_param(",
+            "311:             num_experts, intermediate_size_per_partition, hidden_size, params_dtype",
+            "312:         )",
+            "313:         for param_key, param_value in dynamic_quant_param.items():",
+            "314:             param = torch.nn.Parameter(param_value, requires_grad=False)",
+            "315:             layer.register_parameter(param_key, param)",
+            "316:             set_weight_attrs(param, extra_weight_attrs)",
+            "317:             if any(fields in param_key for fields in per_group_param):",
+            "318:                 param.quant_method = FusedMoeWeightScaleSupported.GROUP.value"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/quantization/configs/modelslim_config.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F21-callback-source-v52/04-modelslim_config.py",
+      "sha256": "92c924abc0af1ae37d7614ee01cbae0b3be1da86ef6abc885b2208560f3dcbb1",
+      "role": "MODELSLIM_MOE_SELECTION",
+      "historical166_hash_matched": false,
+      "metadata": {
+        "ancestor_arms": [
+          {
+            "line": 697,
+            "condition": "isinstance(layer, LinearBase)",
+            "arm": "ORELSE"
+          },
+          {
+            "line": 708,
+            "condition": "isinstance(layer, AttentionLayerBase)",
+            "arm": "ORELSE"
+          }
+        ]
+      },
+      "parts": [
+        {
+          "start": 744,
+          "end": 757,
+          "source": [
+            "744:         elif is_fused_moe_layer(layer):",
+            "745:             if quant_type is None:",
+            "746:                 # Delayed import to avoid circular import",
+            "747:                 from vllm_ascend.ops.fused_moe.routed_experts import AscendUnquantizedFusedMoEMethod",
+            "748: ",
+            "749:                 logger.debug(\"Select AscendUnquantizedFusedMoEMethod for %s (layer=%s)\", prefix, \"FusedMoE\")",
+            "750:                 return AscendUnquantizedFusedMoEMethod(layer.moe_config)",
+            "751:             # RoutedExperts resolves its quant method before creating weights.",
+            "752:             # Install the ModelSlim-specific loader now so every subsequently",
+            "753:             # registered MoE parameter receives the mapped loader.",
+            "754:             layer.weight_loader = _make_modelslim_moe_weight_loader(layer.weight_loader)",
+            "755:             scheme = create_scheme_for_layer(quant_type, prefix, \"moe\")",
+            "756:             logger.debug(\"Select AscendFusedMoEMethod for %s (layer=%s)\", prefix, \"FusedMoE\")",
+            "757:             return AscendFusedMoEMethod(scheme, layer.moe_config, tid2eid)"
+          ]
+        },
+        {
+          "start": 78,
+          "end": 104,
+          "source": [
+            "78: def _make_modelslim_moe_weight_loader(",
+            "79:     weight_loader: Callable[..., bool | None],",
+            "80: ) -> Callable[..., bool | None]:",
+            "81:     \"\"\"Map ModelSlim MoE scale-bias names to the upstream scale path.\"\"\"",
+            "82: ",
+            "83:     @wraps(weight_loader)",
+            "84:     def modelslim_moe_weight_loader(",
+            "85:         param: torch.nn.Parameter,",
+            "86:         loaded_weight: torch.Tensor,",
+            "87:         weight_name: str,",
+            "88:         shard_id: str,",
+            "89:         expert_id: int,",
+            "90:         return_success: bool = False,",
+            "91:     ) -> bool | None:",
+            "92:         prefix, separator, param_name = weight_name.rpartition(\".\")",
+            "93:         mapped_name = _MOE_WEIGHT_LOADER_NAME_MAP.get(param_name, param_name)",
+            "94:         mapped_weight_name = f\"{prefix}{separator}{mapped_name}\"",
+            "95:         return weight_loader(",
+            "96:             param=param,",
+            "97:             loaded_weight=loaded_weight,",
+            "98:             weight_name=mapped_weight_name,",
+            "99:             shard_id=shard_id,",
+            "100:             expert_id=expert_id,",
+            "101:             return_success=return_success,",
+            "102:         )",
+            "103: ",
+            "104:     return modelslim_moe_weight_loader"
+          ]
+        },
+        {
+          "start": 53,
+          "end": 56,
+          "source": [
+            "53: _MOE_WEIGHT_LOADER_NAME_MAP = {",
+            "54:     \"w13_scale_bias\": \"w13_scale\",",
+            "55:     \"w2_scale_bias\": \"w2_scale\",",
+            "56: }"
+          ]
+        }
+      ]
+    }
+  ],
+  "scope": "Core/Ascend/scheme files matchhistorical166hashes;adapterandconfigarelocalreferenceonly. Do not infer actualglobalfactory/callbackobject identity.",
+  "no_model_import_remote_or_device_work": true,
+  "implementation_changed": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

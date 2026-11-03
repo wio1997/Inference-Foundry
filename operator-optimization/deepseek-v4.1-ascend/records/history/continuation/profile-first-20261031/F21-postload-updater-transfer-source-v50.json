@@ -1,0 +1,547 @@
+{
+  "generated_utc": "2026-10-31T15:06:03.010075+00:00",
+  "files": [
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/eplb/adaptor/vllm_adaptor.py",
+      "sha256": "e372c2e515cee4711f919e65e14bc2a81666b10c3074aca181ba519e2d186b99",
+      "historical166dependency_hash_attested": false,
+      "parts": [
+        {
+          "name": "EPLB_EXPERT_WEIGHT_NAMES",
+          "start": 29,
+          "end": 66,
+          "source": [
+            "29: EPLB_EXPERT_WEIGHT_NAMES = {",
+            "30:     (QuantType.NONE, False): (\"w13_weight\", \"w2_weight\"),",
+            "31:     (QuantType.NONE, True): (\"w13_weight_list\", \"w2_weight_list\"),",
+            "32:     (QuantType.W8A8, False): (",
+            "33:         \"w13_weight_list\",",
+            "34:         \"w2_weight_list\",",
+            "35:         \"w13_weight_scale_fp32_list\",",
+            "36:         \"w2_weight_scale_list\",",
+            "37:     ),",
+            "38:     (QuantType.W8A8, True): (",
+            "39:         \"w13_weight_list\",",
+            "40:         \"w2_weight_list\",",
+            "41:         \"w13_weight_scale_fp32_list\",",
+            "42:         \"w2_weight_scale_list\",",
+            "43:         \"fused_w1_scale_list\",",
+            "44:         \"fused_w2_scale_list\",",
+            "45:     ),",
+            "46:     (QuantType.W4A8, True): (",
+            "47:         \"w13_weight_list\",",
+            "48:         \"w2_weight_list\",",
+            "49:         \"w13_weight_scale_list\",",
+            "50:         \"w2_weight_scale_list\",",
+            "51:         \"w13_scale_bias_list\",",
+            "52:         \"w2_scale_bias_list\",",
+            "53:     ),",
+            "54:     (QuantType.W4A8, False): (",
+            "55:         \"w13_weight_list\",",
+            "56:         \"w2_weight_list\",",
+            "57:         \"w13_weight_scale_list\",",
+            "58:         \"w2_weight_scale_list\",",
+            "59:         \"w13_scale_bias_list\",",
+            "60:         \"w2_scale_bias_list\",",
+            "61:     ),",
+            "62:     (QuantType.W4A4MXFP, False): (\"w13_weight\", \"w2_weight\", \"w13_weight_scale\", \"w2_weight_scale\"),",
+            "63:     (QuantType.W4A4MXFP, True): (\"w13_weight\", \"w2_weight\", \"w13_weight_scale\", \"w2_weight_scale\"),",
+            "64:     (QuantType.W8A8MXFP, False): (\"w13_weight\", \"w2_weight\", \"w13_weight_scale\", \"w2_weight_scale\"),",
+            "65:     (QuantType.W8A8MXFP, True): (\"w13_weight\", \"w2_weight\", \"w13_weight_scale\", \"w2_weight_scale\"),",
+            "66: }"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/eplb/eplb_updator.py",
+      "sha256": "a734e8e12a69526c185cca305bc6bed7124bc30447da4a9f1e9e4aec48c53915",
+      "historical166dependency_hash_attested": false,
+      "parts": [
+        {
+          "name": "EplbUpdator.__init__",
+          "start": 33,
+          "end": 40,
+          "source": [
+            "33:     def __init__(self, eplb_config, loader: D2DExpertWeightLoader, eplb_process: EplbProcess, process):",
+            "34:         self.eplb_config = eplb_config",
+            "35:         self.multi_stage = eplb_config.eplb_policy_type == 3",
+            "36:         self.init_eplb(self.eplb_config.expert_map_path, process)",
+            "37:         self.eplb_loader = loader",
+            "38:         self.eplb_process = eplb_process",
+            "39:         self.shared_dict = self.eplb_process.shared_dict",
+            "40:         self.comm_group = get_dynamic_eplb_group()"
+          ]
+        },
+        {
+          "name": "EplbUpdator.set_adaptor",
+          "start": 42,
+          "end": 49,
+          "source": [
+            "42:     def set_adaptor(self, adaptor: VllmEplbAdaptor):",
+            "43:         self.pp_rank = get_pp_group().rank_in_group",
+            "44:         self.adaptor = adaptor",
+            "45:         self.num_moe_layers = self.adaptor.num_moe_layers",
+            "46:         local_load = self.adaptor.get_rank_expert_workload()",
+            "47:         self.world_size = dist.get_world_size()",
+            "48:         self.device = local_load.device",
+            "49:         self.eplb_loader.num_layers = self.adaptor.num_dense_layers + self.adaptor.num_moe_layers"
+          ]
+        },
+        {
+          "name": "EplbUpdator.init_eplb",
+          "start": 51,
+          "end": 77,
+          "source": [
+            "51:     def init_eplb(self, expert_map_path, process):",
+            "52:         self.rank_id = dist.get_rank()",
+            "53:         self.num_expert_load_gather = 10",
+            "54:         self.periodic_load_gather = True",
+            "55:         self.expert_heat_collection_interval: torch.int64 = self.eplb_config.expert_heat_collection_interval",
+            "56:         self.expert_map_path = expert_map_path",
+            "57:         self.expert_map_record_path = self.eplb_config.expert_map_record_path",
+            "58: ",
+            "59:         try:",
+            "60:             if not envs.VLLM_ALLOW_EXPERT_LOAD_COLLECTING:",
+            "61:                 self.num_expert_load_gather = self.expert_heat_collection_interval",
+            "62:                 self.periodic_load_gather = False",
+            "63:         except Exception:",
+            "64:             logger.debug(\"[eplb/updator] VLLM_ALLOW_EXPERT_LOAD_COLLECTING unavailable in current vllm version.\")",
+            "65:             self.num_expert_load_gather = self.expert_heat_collection_interval",
+            "66:             self.periodic_load_gather = False",
+            "67: ",
+            "68:         self.reqs = []",
+            "69:         self.update_info_all = []",
+            "70: ",
+            "71:         self.cur_iterations: torch.int64 = 0",
+            "72: ",
+            "73:         self.algorithm_execution_interval: torch.int64 = self.eplb_config.algorithm_execution_interval",
+            "74: ",
+            "75:         self.process = process",
+            "76: ",
+            "77:         logger.info(\"[eplb/updator] Launched EPLB subprocess, pid=%s\", self.process.pid)"
+          ]
+        },
+        {
+          "name": "EplbUpdator.update_iteration",
+          "start": 79,
+          "end": 89,
+          "source": [
+            "79:     def update_iteration(self):",
+            "80:         self.cur_iterations += 1",
+            "81:         if self.cur_iterations == (",
+            "82:             self.expert_heat_collection_interval + self.algorithm_execution_interval + self.num_moe_layers",
+            "83:         ):",
+            "84:             logger.debug(\"[eplb/updator] Full EPLB cycle completed, clearing moe loads and resetting iteration counter\")",
+            "85:             if self.expert_map_record_path is not None:",
+            "86:                 self.adaptor._export_tensor_to_file(self.shared_dict[\"expert_maps\"], self.expert_map_record_path)",
+            "87: ",
+            "88:             self.adaptor.clear_all_moe_loads()",
+            "89:             self.cur_iterations = 0"
+          ]
+        },
+        {
+          "name": "EplbUpdator.get_update_info_flag",
+          "start": 91,
+          "end": 92,
+          "source": [
+            "91:     def get_update_info_flag(self):",
+            "92:         return self.cur_iterations == (self.expert_heat_collection_interval + self.algorithm_execution_interval - 1)"
+          ]
+        },
+        {
+          "name": "EplbUpdator.wakeup_eplb_worker_flag",
+          "start": 94,
+          "end": 95,
+          "source": [
+            "94:     def wakeup_eplb_worker_flag(self):",
+            "95:         return self.cur_iterations == (self.expert_heat_collection_interval - 1)"
+          ]
+        },
+        {
+          "name": "EplbUpdator.update_expert_weight_flag",
+          "start": 97,
+          "end": 101,
+          "source": [
+            "97:     def update_expert_weight_flag(self):",
+            "98:         weight_update_counter = self.cur_iterations - (",
+            "99:             self.expert_heat_collection_interval + self.algorithm_execution_interval",
+            "100:         )",
+            "101:         return weight_update_counter >= 0 and weight_update_counter < self.num_moe_layers"
+          ]
+        },
+        {
+          "name": "EplbUpdator.forward_before",
+          "start": 106,
+          "end": 127,
+          "source": [
+            "106:     def forward_before(self):",
+            "107:         # Batch after eplb process being triggered, get update info provided by eplb process",
+            "108:         if self.get_update_info_flag():",
+            "109:             self.update_info_all = self.eplb_process.block_update_q.get()",
+            "110:         if self.update_expert_weight_flag():",
+            "111:             with record_function_or_nullcontext(\"EPLB generate p2p task\"):",
+            "112:                 (expert_send_info, expert_recv_info, updated_expert_map, log2phy_map, layer_id) = (",
+            "113:                     self.update_info_all.pop(0)",
+            "114:                 )",
+            "115:                 log2phy_map_this_rank = torch.from_numpy(numpy.array(log2phy_map))",
+            "116:                 self.eplb_loader.set_log2phy_map(log2phy_map_this_rank)",
+            "117:                 updated_expert_map_this_rank = torch.from_numpy(numpy.array(updated_expert_map))",
+            "118:                 self.eplb_loader.generate_expert_d2d_transfer_task(",
+            "119:                     expert_send_info,",
+            "120:                     expert_recv_info,",
+            "121:                     updated_expert_map_this_rank,",
+            "122:                     layer_id,",
+            "123:                 )",
+            "124: ",
+            "125:                 # set asynchronous stream for d2d expert weight update",
+            "126:                 self.reqs = []",
+            "127:                 self.eplb_loader.asyn_expert_weight_transfer(self.reqs)"
+          ]
+        },
+        {
+          "name": "EplbUpdator.forward_end",
+          "start": 129,
+          "end": 143,
+          "source": [
+            "129:     def forward_end(self, eplb_heat_collection_status: bool = True):",
+            "130:         if self.wakeup_eplb_worker_flag():",
+            "131:             with record_function_or_nullcontext(\"EPLB gather moe load\"):",
+            "132:                 self.compute_and_set_moe_load()",
+            "133:                 self.wakeup_eplb_worker()",
+            "134: ",
+            "135:         if self.update_expert_weight_flag() and self.expert_map_record_path is None:",
+            "136:             self.eplb_loader.update_expert_map_and_weight(self.reqs)",
+            "137: ",
+            "138:         # One circle of eplb update includes expert_heat_collection_interval + algorithm_execution_interval",
+            "139:         # + num_moe_layers (for weight update). In expert_heat_collection stage, we only update the counter",
+            "140:         # when eplb_heat_collection_status is True. In later stages, the counter is always updated.",
+            "141:         # TODO(Angazenn): Decouple algorithm execution && weight update with heat collection iterations.",
+            "142:         if self.cur_iterations >= self.expert_heat_collection_interval - 1 or eplb_heat_collection_status:",
+            "143:             self.update_iteration()"
+          ]
+        },
+        {
+          "name": "EplbUpdator.warm_up_eplb",
+          "start": 157,
+          "end": 183,
+          "source": [
+            "157:     def warm_up_eplb(self):",
+            "158:         logger.info(\"[eplb/updator] Starting EPLB warm-up, rank=%s, world_size=%s\", self.rank_id, self.world_size)",
+            "159:         self.shared_dict[\"expert_maps\"] = self.adaptor.get_global_expert_map()",
+            "160:         self.compute_and_set_moe_load()",
+            "161: ",
+            "162:         src_tensor = torch.empty((1,), device=self.device)",
+            "163: ",
+            "164:         comm_op_list = []",
+            "165:         reqs = []",
+            "166: ",
+            "167:         for dst_rank in range(self.comm_group.world_size):",
+            "168:             if dst_rank == self.comm_group.rank_in_group:",
+            "169:                 continue",
+            "170:             global_dst = self.comm_group.ranks[dst_rank]",
+            "171:             comm_op_list.append(dist.P2POp(dist.isend, src_tensor, global_dst, group=self.comm_group.device_group))",
+            "172: ",
+            "173:         for src_rank in range(self.comm_group.world_size):",
+            "174:             if src_rank == self.comm_group.rank_in_group:",
+            "175:                 continue",
+            "176:             global_src = self.comm_group.ranks[src_rank]",
+            "177:             comm_op_list.append(dist.P2POp(dist.irecv, src_tensor, global_src, group=self.comm_group.device_group))",
+            "178:         if comm_op_list:",
+            "179:             reqs = dist.batch_isend_irecv(comm_op_list)",
+            "180: ",
+            "181:         for req in reqs:",
+            "182:             req.wait()",
+            "183:         logger.info(\"[eplb/updator] EPLB warm-up completed\")"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/eplb/core/eplb_device_transfer_loader.py",
+      "sha256": "db1023bd25fbae05eddd3e6650e3d7680c4b522048997cda1d6f5549b3539130",
+      "historical166dependency_hash_attested": false,
+      "parts": [
+        {
+          "name": "D2DExpertWeightLoader.__init__",
+          "start": 33,
+          "end": 41,
+          "source": [
+            "33:     def __init__(self):",
+            "34:         self.comm_op_list = None",
+            "35:         self.updated_expert_map = None",
+            "36:         self.updated_log2phy_map = None",
+            "37:         self.layer_id = -1  # layer id to be updated",
+            "38:         self.state = ExpertWeightUpdateState.WAITING",
+            "39:         self.recv_expert_list = []",
+            "40:         self.num_layers = 0",
+            "41:         self.comm_group = get_dynamic_eplb_group()"
+          ]
+        },
+        {
+          "name": "D2DExpertWeightLoader.generate_expert_d2d_transfer_task",
+          "start": 46,
+          "end": 80,
+          "source": [
+            "46:     def generate_expert_d2d_transfer_task(self, expert_send_info, expert_recv_info, updated_expert_map, layer_id):",
+            "47:         # When current send/recv and weight.expert_map update tasks are not finished, cannot accept new d2d task",
+            "48:         if self.state != ExpertWeightUpdateState.WAITING:",
+            "49:             logger.warning_once(",
+            "50:                 \"[eplb/d2d_loader] Current D2D weight update is on-going, cannot accept new update task\"",
+            "51:             )",
+            "52:             return",
+            "53: ",
+            "54:         self.updated_expert_map = updated_expert_map",
+            "55: ",
+            "56:         self.layer_id = layer_id",
+            "57:         self.comm_op_list = []",
+            "58:         for send_info in expert_send_info:",
+            "59:             dst_rank, global_expert_id_to_send = send_info",
+            "60:             local_expert_id = self.eplb_adaptor.expert_map_per_layer_cpu[layer_id][global_expert_id_to_send].item()",
+            "61:             for src_tensor in self.eplb_adaptor.expert_param_per_layer[layer_id][local_expert_id]:",
+            "62:                 self.comm_op_list.append(",
+            "63:                     dist.P2POp(",
+            "64:                         dist.isend, src_tensor, self.comm_group.ranks[dst_rank], group=self.comm_group.device_group",
+            "65:                     )",
+            "66:                 )",
+            "67: ",
+            "68:         for buffer_tensor_id, recv_info in enumerate(expert_recv_info):",
+            "69:             recv_rank, global_expert_id_to_recv = recv_info",
+            "70:             expert_weight_key = self.eplb_adaptor.expert_weight_key_per_layer[layer_id]",
+            "71:             for buffer_tensor in self.eplb_adaptor.buffer_tensor_list[expert_weight_key][buffer_tensor_id]:",
+            "72:                 self.comm_op_list.append(",
+            "73:                     dist.P2POp(",
+            "74:                         dist.irecv, buffer_tensor, self.comm_group.ranks[recv_rank], group=self.comm_group.device_group",
+            "75:                     )",
+            "76:                 )",
+            "77:             local_expert_to_replace = self.updated_expert_map[global_expert_id_to_recv].item()",
+            "78:             self.recv_expert_list.append((local_expert_to_replace, buffer_tensor_id))",
+            "79: ",
+            "80:         self.state = ExpertWeightUpdateState.READY"
+          ]
+        },
+        {
+          "name": "D2DExpertWeightLoader.asyn_expert_weight_transfer",
+          "start": 85,
+          "end": 95,
+          "source": [
+            "85:     def asyn_expert_weight_transfer(self, reqs):",
+            "86:         # Only when send/recv tasks are parsed into self.comm_op_list, d2d send/recv tasks can be launched",
+            "87:         if self.state != ExpertWeightUpdateState.READY:",
+            "88:             return",
+            "89: ",
+            "90:         # set asynchronous stream for d2d expert weight transfer",
+            "91:         if self.comm_op_list:",
+            "92:             ret_list = dist.batch_isend_irecv(self.comm_op_list)",
+            "93:             reqs.extend(ret_list)",
+            "94: ",
+            "95:         self.state = ExpertWeightUpdateState.TRANSFERRING"
+          ]
+        },
+        {
+          "name": "D2DExpertWeightLoader.update_expert_map_and_weight",
+          "start": 97,
+          "end": 138,
+          "source": [
+            "97:     def update_expert_map_and_weight(self, reqs):",
+            "98:         # Only after send/recv tasks have been launched, expert_map and weight can be updated",
+            "99:         if self.state != ExpertWeightUpdateState.TRANSFERRING:",
+            "100:             return",
+            "101: ",
+            "102:         # Waiting for send/recv tasks finish",
+            "103:         if reqs:",
+            "104:             with record_function_or_nullcontext(\"EPLB weight D2D wait\"):",
+            "105:                 for req in reqs:",
+            "106:                     req.wait()",
+            "107: ",
+            "108:         if self.comm_op_list is not None:",
+            "109:             self.comm_op_list = None",
+            "110: ",
+            "111:         # update expert_map",
+            "112:         self.eplb_adaptor.do_update_expert_map(self.layer_id, self.updated_expert_map)",
+            "113: ",
+            "114:         # update log2phy_map",
+            "115:         self.eplb_adaptor.do_update_log2phy_map(self.layer_id, self.updated_log2phy_map)",
+            "116: ",
+            "117:         # update expert weight",
+            "118:         buffer_tensor_id = 0",
+            "119:         for recv_expert_info in self.recv_expert_list:",
+            "120:             local_expert_to_replace, buffer_tensor_id = recv_expert_info",
+            "121:             self.eplb_adaptor.do_update_expert_weight(self.layer_id, local_expert_to_replace, buffer_tensor_id)",
+            "122: ",
+            "123:         logger.debug(",
+            "124:             \"[eplb/d2d_loader] Layer %s D2D transfer completed, updated_experts=%s\",",
+            "125:             self.layer_id,",
+            "126:             len(self.recv_expert_list),",
+            "127:         )",
+            "128: ",
+            "129:         if self.layer_id == self.eplb_adaptor.num_moe_layers - 1:",
+            "130:             logger.info(",
+            "131:                 \"[eplb/d2d_loader] Full expert weight update cycle completed, total_layers=%s\",",
+            "132:                 self.eplb_adaptor.num_moe_layers,",
+            "133:             )",
+            "134: ",
+            "135:         self.recv_expert_list = []",
+            "136:         self.updated_expert_map = None",
+            "137:         self.layer_id = -1",
+            "138:         self.state = ExpertWeightUpdateState.WAITING"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/ops/fused_moe/routed_experts.py",
+      "sha256": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77",
+      "historical166dependency_hash_attested": true,
+      "parts": [
+        {
+          "name": "AscendRoutedExperts.get_eplb_parameter",
+          "start": 593,
+          "end": 595,
+          "source": [
+            "593:     def get_eplb_parameter(self, name: str):",
+            "594:         \"\"\"Return an expert parameter from the refactored weight owner.\"\"\"",
+            "595:         return getattr(self, name)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "sha256": "a67601ee596d9aa4ae72ea3638f67ff7236cd8df884564bcd19f33653a1e0910",
+      "historical166dependency_hash_attested": true,
+      "parts": [
+        {
+          "name": "AscendW8A8DynamicFusedMoEMethod.process_weights_after_loading",
+          "start": 279,
+          "end": 333,
+          "source": [
+            "279:     def process_weights_after_loading(self, layer):",
+            "280:         layer.w13_weight.data = layer.w13_weight.data.transpose(1, 2).contiguous()",
+            "281:         layer.w2_weight.data = layer.w2_weight.data.transpose(1, 2).contiguous()",
+            "282:         # TODO(zzzzwwjj): Currently, `torch_npu.npu_grouped_matmul_swiglu_quant`",
+            "283:         # can only support weight nz.",
+            "284:         if self.quant_type == QuantType.W8A8:",
+            "285:             layer.w13_weight.data = torch_npu.npu_format_cast(layer.w13_weight.data, ACL_FORMAT_FRACTAL_NZ)",
+            "286:             layer.w2_weight.data = torch_npu.npu_format_cast(layer.w2_weight.data, ACL_FORMAT_FRACTAL_NZ)",
+            "287:         layer.w13_weight_scale.data = layer.w13_weight_scale.data.view(layer.w13_weight_scale.data.shape[0], -1)",
+            "288:         layer.w13_weight_scale_fp32 = layer.w13_weight_scale.data.to(torch.float32)",
+            "289:         layer.w13_weight_offset.data = layer.w13_weight_offset.data.view(layer.w13_weight_offset.data.shape[0], -1)",
+            "290:         layer.w2_weight_scale.data = layer.w2_weight_scale.data.view(layer.w2_weight_scale.data.shape[0], -1)",
+            "291:         layer.w2_weight_offset.data = layer.w2_weight_offset.data.view(layer.w2_weight_offset.data.shape[0], -1)",
+            "292: ",
+            "293:         if get_ascend_config().enable_fused_mc2 == 1:",
+            "294:             layer.fused_w1_scale = scale_from_float_to_int64(layer.w13_weight_scale.data)",
+            "295:             layer.fused_w2_scale = scale_from_float_to_int64(layer.w2_weight_scale.data)",
+            "296:             layer.fused_w1_scale_bias = [torch.tensor([], dtype=torch.float32)]",
+            "297:             layer.fused_w2_scale_bias = [torch.tensor([], dtype=torch.float32)]",
+            "298: ",
+            "299:         if self.use_expert_weight_list:",
+            "300:             layer.w13_weight_list = [weight.clone() for weight in layer.w13_weight.data.unbind(dim=0)]",
+            "301:             layer.w2_weight_list = [weight.clone() for weight in layer.w2_weight.data.unbind(dim=0)]",
+            "302:             layer.w13_weight_scale_fp32_list = [",
+            "303:                 weight.clone() for weight in layer.w13_weight_scale_fp32.data.unbind(dim=0)",
+            "304:             ]",
+            "305:             layer.w2_weight_scale_list = [weight.clone() for weight in layer.w2_weight_scale.data.unbind(dim=0)]",
+            "306:             if get_ascend_config().enable_fused_mc2 == 1:",
+            "307:                 layer.fused_w1_scale_list = [",
+            "308:                     weight.clone()",
+            "309:                     for weight in layer.fused_w1_scale.view(len(layer.w13_weight_list), -1).data.unbind(dim=0)",
+            "310:                 ]",
+            "311:                 layer.fused_w2_scale_list = [",
+            "312:                     weight.clone()",
+            "313:                     for weight in layer.fused_w2_scale.view(len(layer.w2_weight_list), -1).data.unbind(dim=0)",
+            "314:                 ]",
+            "315:             del layer.w13_weight",
+            "316:             del layer.w2_weight",
+            "317:             del layer.w13_weight_scale",
+            "318:             del layer.w13_weight_scale_fp32",
+            "319:             del layer.w2_weight_scale",
+            "320:             if get_ascend_config().enable_fused_mc2 == 1:",
+            "321:                 del layer.fused_w1_scale",
+            "322:                 del layer.fused_w2_scale",
+            "323:             torch.npu.empty_cache()",
+            "324: ",
+            "325:         elif use_cann_megamoe(get_current_vllm_config()):",
+            "326:             layer.cann_mega_moe_w13_weight_list = list(layer.w13_weight.data.unbind(dim=0))",
+            "327:             layer.cann_mega_moe_w2_weight_list = list(layer.w2_weight.data.unbind(dim=0))",
+            "328:             layer.cann_mega_moe_fused_w1_scale_list = list(",
+            "329:                 layer.fused_w1_scale.view(layer.w13_weight.shape[0], -1).data.unbind(dim=0)",
+            "330:             )",
+            "331:             layer.cann_mega_moe_fused_w2_scale_list = list(",
+            "332:                 layer.fused_w2_scale.view(layer.w2_weight.shape[0], -1).data.unbind(dim=0)",
+            "333:             )"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "historical166dependency_hash_attested": true,
+      "parts": [
+        {
+          "name": "eplb_warmup/EPLB_entry",
+          "start": 4354,
+          "end": 4360,
+          "source": [
+            "4354:     def eplb_warmup(self):",
+            "4355:         if self.dynamic_eplb and not self.is_eplb_warmuped:",
+            "4356:             self.is_eplb_warmuped = True",
+            "4357:             self.eplb_adaptor = VllmEplbAdaptor(model=self.model)",
+            "4358:             self.eplb_loader.set_adator(self.eplb_adaptor)",
+            "4359:             self.eplb_updator.set_adaptor(self.eplb_adaptor)",
+            "4360:             self.eplb_updator.warm_up_eplb()"
+          ]
+        },
+        {
+          "name": "load_model/if self.eplb_enable",
+          "start": 4408,
+          "end": 4412,
+          "source": [
+            "4408:             if self.eplb_enable:",
+            "4409:                 def mock_pass(param1, param2):",
+            "4410:                     return",
+            "4411:                 from vllm.model_executor.model_loader.default_loader import DefaultModelLoader",
+            "4412:                 DefaultModelLoader._init_ep_weight_filter = mock_pass"
+          ]
+        },
+        {
+          "name": "__init__/EPLB_eligibility",
+          "start": 577,
+          "end": 577,
+          "source": [
+            "577:         self.dynamic_eplb = eplb_config.dynamic_eplb"
+          ]
+        },
+        {
+          "name": "__init__/EPLB_eligibility",
+          "start": 578,
+          "end": 578,
+          "source": [
+            "578:         self.eplb_enable = self.dynamic_eplb or (eplb_config.expert_map_path is not None)"
+          ]
+        }
+      ],
+      "load_model_selected_call_locations": [
+        {
+          "line": 4413,
+          "function": "get_model"
+        },
+        {
+          "line": 4508,
+          "function": "self.get_model"
+        },
+        {
+          "line": 4424,
+          "function": "self.drafter.load_model"
+        }
+      ]
+    }
+  ],
+  "no_model_or_torch_import": true,
+  "no_remote_or_device_work": true,
+  "scope": "Only selected direct updater/transfer/registry bodies and exact runner entry. Most dependency bytes are local-reference-only until original hash can be checked.",
+  "whole_module_closed": false,
+  "overall_complete": false
+}

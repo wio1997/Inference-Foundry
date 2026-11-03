@@ -1,0 +1,60 @@
+{
+  "generated_utc": "2026-10-31T06:20:19.729215+00:00",
+  "evidence_grade": "DERIVED_CONDITIONAL_GRAPH_REORGANIZATION",
+  "candidate": "F24",
+  "variant": "F24-v30-ROW-HEAD-EXCHANGE",
+  "baseline": "X_r=concat_heads_s B_s[M,h,d]; pad_rows(X_r,P); take_rows(rank_r,Q); trim_heads(n_hash_cols);flattenandfeedlocalWKV.",
+  "candidate_graph_identity": "Eachsources sendsto destinationr onlyB_s[rows_r,h,d],includingidenticalzero-rowpadding. DestinationrconcatenatesreceivedheadblocksinsameTP-rankorderandappliessameheadtrim/flatten. Entry(r,j,s,h,c)equalsB_s[rQ+j,h,c]orzeroinbothgraphs;noarithmeticreductionorreassociation.",
+  "actual_signature": {
+    "TP": 8,
+    "local_heads": 3,
+    "width": 256,
+    "global_heads": 24,
+    "global_features": 6144,
+    "rows": [
+      24,
+      6400,
+      6528,
+      6672
+    ],
+    "rows_per_rank": [
+      3,
+      800,
+      816,
+      834
+    ]
+  },
+  "finite_illustrations": [
+    {
+      "tokens": 23,
+      "TP": 8,
+      "local_heads": 3,
+      "width": 2,
+      "rows_per_rank": 3,
+      "zero_padding": 1,
+      "all_ranks_equal": true
+    },
+    {
+      "tokens": 24,
+      "TP": 8,
+      "local_heads": 3,
+      "width": 2,
+      "rows_per_rank": 3,
+      "zero_padding": 0,
+      "all_ranks_equal": true
+    }
+  ],
+  "prerequisites": [
+    "SameTPgroup/rankorderandphysicalrowgeneration/rowplanonallparticipants;DProwexchangealreadycomplete.",
+    "UseexactSPzero-pad/contiguous-rankchunkmapandheadtrim;retainscheduled/padded/validrows,sentinelsandmetadata.",
+    "Allconsumerscovered:ifanyreaderneedsfullglobalrows,retainitorgiveaseparateview;do notdropfullbankunconditionally.",
+    "Newlocalbank/captureABIhasfixedaddresses,correctupdate/lifetime/tails,andreadyisrecordedonlyafterallitsrows/headsarevalid.",
+    "Keepmaskreadyandper-layerpublication;groupingbothlayersmustnotdelaylayer1withoutanexplicittradeoff.",
+    "TP1/nonSP/unequalmetadata/capture/dummy/empty/DP-sharedvariantsretaintheirrequiredprotocol."
+  ],
+  "logical_payload_only": "ForMdivisiblebyP,remoteelementsreceivedperrankare(P-1)*M*h*dforAllGatherand(P-1)*(M/P)*h*dforrow/headexchange;thelogicalpayloadratioisP. Thisisnotphysicalwirebytes,HBMtraffic,collectiveschedulingorlatencyspeedup.",
+  "native_or_interface_validation": false,
+  "performance_gain": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

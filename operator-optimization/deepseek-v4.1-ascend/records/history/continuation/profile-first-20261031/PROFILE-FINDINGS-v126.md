@@ -1,0 +1,15 @@
+本轮把v125提出的eager取证路线推进到一个已核实、可测试的主机参数入口。复查32份原始缓存数据库，1272次待补MemSet的runtime connection均精确指向一个generic launch；该scope内同globalTid恰好有一个aclrtLaunchKernelWithHostArgs事件，覆盖1272/1272。这里使用已绑定runtimeCID及明确的API嵌套边界，不按最近时间或同名shape猜测字段。原始profile仍没有保存hostArgs内容，所以尚未恢复旧destination/length。
+
+安装版本9.2的固定acl_rt.h声明了该入口的hostArgs、字节argsSize和aclrtPlaceHolderInfo{addrOffset,dataOffset}。官方HostArgs文档说明参数区位于主机，placeholder描述待更新指针槽及inline数据区偏移；LaunchKernel/V2的device参数指针不能套用同一复制规则。公开页面为9.1/8.5补充资料，已直接HTTP归档并核对本地声明；它们不是安装库导出、910C动态绑定或observer实际生效的运行证明。[HostArgs接口说明](https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1961.html)
+
+围绕这个入口已实现并运行纯CPU快照核心，未接入模型：disabled或device-source时在任何payload读取前返回；每次最多4096B参数和32个placeholder；检查独立输出、边界及唯一inline relocation，原参数只读。核心不解析设备地址指向的内容，不分配CANN内存、不写日志、不解析动态符号、不调用或转发CANN。调用者仍须提供真实live HostArgs API中的有效主机span，不能把任意数值或GetParamsisHostArgs0地址标成主机内存来读取。
+
+在本地Darwin arm64上，C编译、边界测试、ASan/UBSan及ctypes测试通过；快照结构4368B，placeholder结构8B。正常CPU动态库只依赖主机系统库，没有加载CANN或Torch/NPU。初始两次测试驱动把旧JSON中的rendered_uint64_words计数19误当数组，已保留失败记录并改为读取实际debug-dump Kernel Args文本，原封存数据未改变。
+
+解析测试使用一个明确构造的fixture：取v120自己Pad捕获的152B post-relocation字节，把指针槽置零，再提供addrOffset8/dataOffset24，复制后只按所给偏移取96B source record，结果仍是既有32B source-span。输入字节未改变，重复/歧义placeholder和越界数据被拒绝。它没有观测新的真实hostArgs，更不能证明原1272次都采用slot8/data24、固定三指针prefix或32B写范围；未知尾部字节仍保留，不称padding或多余工作。
+
+下一层native adapter还未安装或测试。它必须先验证Linux/CANN真实符号和interposition路径、函数/provider与参数布局，确保原指针/cfg/stream/参数和返回值原样转发；再加入按目标kernel选择、完整run/process/rank/device/thread/stream/task/capture/update identity以及总记录/输出/时长预算。现有单次复制边界不等于整次采集预算已生效，也不能证明不会漏掉未匹配provider。
+
+可选ThreadLastTaskId只描述当前线程在用户显式创建stream上的最后任务，不能替代完整关联，失败、重复或歧义须保持未知。未来实际参数观察应与同run的API/task证据结合；只取得host packet也仍需证明目标allocation/alias generation、workspace/payload角色、重叠读写与读者退役，才可判断helper删除或融合合法性。[线程任务ID说明](https://www.hiascend.com/doc_center/source/en/canncommercial/850/API/appdevgapi/aclcppdevg_03_1829.html)
+
+本轮没有新增设备窗口、模型加载、replay、服务重启或NPU探针，Padv120授权保持已消耗。80次捕获图BOOL字段仍须单独追踪capture-creation/value/storage/update及全部读者；eager入口本身不能解决它们。前置3939项核验通过，原9类/1352次pending没有提升；35模型候选、7历史框架记录、358语义行/26模块、135条件关系/26联合组/460待核对pair、部分图854/1346/48和全部原生/PMU/phase/归属不确定性均保留，整模块关闭0。新增的是已由原profile覆盖、由CPU测试支撑的取证能力，整体优化分析与理论上限仍未全部完成。

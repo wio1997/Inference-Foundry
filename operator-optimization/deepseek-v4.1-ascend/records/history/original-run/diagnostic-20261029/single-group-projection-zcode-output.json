@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_ee34fd6f-b33d-40bf-87a4-4e56e6a4061e",
+  "traceId": "be9dc39b-6dbc-4ee1-bf27-f21454513ae3",
+  "turnId": "turn_7c13044c-8337-42e8-9a7c-9cd71ab0bcf1",
+  "response": "退出码为 **0**（`EXIT_CODE=0`），本次诊断得到完整测量记录。不过启动器最终状态标为 `UNPARSED_DIAGNOSTIC_STOPPED`——它没能自动解析出 JSON 记录，原因是设备侧日志警告和 JSON 在同一行（`[LOG_WARNING] ... Read-only file system.{\"scope\": ...}`）。原始测量记录其实完整存在，下面直接给出。按你的要求，我没有重试、没有调试、也没有再执行其他命令。\n\n**前置校验（全部通过，guard_after 复查仍为空闲）**\n- 本人服务 running/waiting = [0, 0, 0, 0]，空闲。\n- 芯片 0 上的进程为 2139578、2165416，均属本人服务。\n- 芯片 0 空余显存 5967 MiB，满足 ≥4 GiB。\n- 未重启服务、未改配置；SSH 返回码 0，容器侧诊断进程返回码 0。\n\n**测量结果**（BF16，x=[24,1,4096]，w=[1,4096,1024]，device 0，同形状同输入、预热后各 16 个区间）\n\n| 接口 | 事件间隔中位数 |\n|---|---|\n| `native_transpose_batchmatmul` | 66.0 µs |\n| `plain_2d_matmul` | 48.8 µs |\n\n- 输出一致性：非逐位相等，最大绝对差 0.000244140625（2⁻¹²），参考值最大绝对值 2.59375，两路输出均有限。\n- 显存：峰值 allocated 29,658,112 B（≈28.3 MiB），reserved 46,137,344 B（44 MiB）。\n- 版本：torch 2.10.0+cpu，torch_npu 2.10.0.post7。\n- 记录内状态为 `MEASURED_ISOLATED_EAGER_INTERVALS`。\n\n**两点需要如实保留的限定**\n1. 记录自身声明：这是合成形状的孤立 eager 诊断，事件间隔包含 eager 下发间隔、缓存已预热、无 graph/profiler，不能用于验证历史张量路径、模型精度或端到端提速；两接口的差异只说明该形状下 `plain_2d_matmul` 的中位间隔低约 17.2 µs，不是可推广的提速结论。\n2. 外层状态 `UNPARSED_DIAGNOSTIC_STOPPED` 是本轮唯一的异常标记，属启动器解析环节而非设备测量失败；输出中的 `previous_attempts`（07:41:40、07:44:56）是历史记录，本次实际执行的是 07:48:03 这一次。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 2,
+    "inputTokens": 22227,
+    "outputTokens": 4468,
+    "totalTokens": 26695,
+    "cacheReadTokens": 10624,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4333,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 26695,
+    "contextUsed": 16024,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,544 @@
+{
+  "generated_utc": "2026-10-31T13:21:52.468460+00:00",
+  "guard_dataflow_reconciled": [
+    {
+      "id": "8f28850582488195:837:8:838:51:If",
+      "owner": "NPUModelRunner._sync_metadata_across_dp",
+      "line": 837,
+      "condition": "self.dp_size == 1",
+      "semantics": "DP1 exits; current savedDP2 does not by itself select skip branch.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:840:8:842:71:If",
+      "owner": "NPUModelRunner._sync_metadata_across_dp",
+      "line": 840,
+      "condition": "should_skip_allreduce_across_dp_group(self.vllm_config, is_draft_model)",
+      "semantics": "Skip decision returns replicated local count without DP collective; actual policy must be bound,not inferred from graph shape.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:857:39:857:114:BoolOp",
+      "owner": "NPUModelRunner._sync_metadata_across_dp",
+      "line": 857,
+      "condition": "comm_method == MoECommType.FUSED_MC2 and use_cann_megamoe(self.vllm_config)",
+      "semantics": "FUSED_MC2 alone insufficient; CANN MegaMoe predicate controls uniformity.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:861:24:866:13:Tuple:comprehension",
+      "owner": "NPUModelRunner._sync_metadata_across_dp",
+      "line": 861,
+      "condition": "size in (finegrained_tp.oproj_tensor_parallel_size, finegrained_tp.lmhead_tensor_parallel_size, finegrained_tp.embedding_tensor_parallel_size, finegrained_tp.mlp_tensor_parallel_size)",
+      "semantics": "Any finegrained TP dimension>1 adds uniformity requirement.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:872:8:883:65:If",
+      "owner": "NPUModelRunner._sync_metadata_across_dp",
+      "line": 872,
+      "condition": "synced_cudagraph_mode != CUDAGraphMode.NONE or is_draft_model or needs_uniform_moe_input or needs_uniform_mega_moe_input or needs_finegrained_tp",
+      "semantics": "Uniform max when any graph/draft/comm/finegrained predicate holds; eager alone does not waive it.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:873:12:877:35:BoolOp",
+      "owner": "NPUModelRunner._sync_metadata_across_dp",
+      "line": 873,
+      "condition": "synced_cudagraph_mode != CUDAGraphMode.NONE or is_draft_model or needs_uniform_moe_input or needs_uniform_mega_moe_input or needs_finegrained_tp",
+      "semantics": "Preserve all OR terms including draft/MC2 even if graph modeNONE.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3278:8:3279:58:If",
+      "owner": "NPUModelRunner._pad_for_sequence_parallelism",
+      "line": 3278,
+      "condition": "enable_sp(self.vllm_config) or enable_dsa_cp()",
+      "semantics": "TP round-up if DSA-CP or SP; else preserve input count.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3278:11:3278:57:BoolOp",
+      "owner": "NPUModelRunner._pad_for_sequence_parallelism",
+      "line": 3278,
+      "condition": "enable_sp(self.vllm_config) or enable_dsa_cp()",
+      "semantics": "TP round-up if DSA-CP or SP; else preserve input count.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3343:8:3356:77:If",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3343,
+      "condition": "self.use_dcp or self.model_config.is_hybrid",
+      "semantics": "DCP/hybrid adds prefill-state checks.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3343:11:3343:54:BoolOp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3343,
+      "condition": "self.use_dcp or self.model_config.is_hybrid",
+      "semantics": "DCP/hybrid adds prefill-state checks.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3350:12:3355:79:If",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3350,
+      "condition": "not self.use_dcp and self.model_config.is_hybrid and is_pd_decode_recompute_scheduler_enabled(self.vllm_config)",
+      "semantics": "PD recompute exception only for hybrid,non-DCP,enabled scheduler.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3351:16:3353:78:BoolOp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3351,
+      "condition": "not self.use_dcp and self.model_config.is_hybrid and is_pd_decode_recompute_scheduler_enabled(self.vllm_config)",
+      "semantics": "Keep all three recompute predicates.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3356:32:3356:77:BoolOp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3356,
+      "condition": "has_initial_state and np.all(done_prefilling)",
+      "semantics": "Initial state and per-request done-prefilling both required.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3358:12:3364:37:IfExp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3358,
+      "condition": "force_uniform_decode is None",
+      "semantics": "Explicit force_uniform_decode overrides computed criterion.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3359:16:3361:71:BoolOp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3359,
+      "condition": "has_initial_state and max_num_scheduled_tokens == self.uniform_decode_query_len and (num_tokens == max_num_scheduled_tokens * num_reqs)",
+      "semantics": "Default uniform requires initial state,width equality,total=width*requests.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3368:29:3368:90:BoolOp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3368,
+      "condition": "self.model_config.is_encoder_decoder and num_encoder_reqs > 0",
+      "semantics": "Encoder output can invalidate FULL.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3370:12:3372:62:IfExp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3370,
+      "condition": "force_num_active_loras is not None",
+      "semantics": "Forced active-LoRA count differs from runtime request count.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3374:19:3374:85:IfExp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3374,
+      "condition": "force_has_lora is None",
+      "semantics": "Forced has_lora overrides derived boolean.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3378:12:3379:79:If",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding.dispatch_cudagraph",
+      "line": 3378,
+      "condition": "force_eager",
+      "semantics": "Force eager returns NONE but later DP synchronization still executes.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3386:30:3386:76:IfExp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding.dispatch_cudagraph",
+      "line": 3386,
+      "condition": "disable_full",
+      "semantics": "disable_full creates FULL exclusion; not a general no graph flag.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3390:81:3390:119:BoolOp",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3390,
+      "condition": "use_cascade_attn or has_encoder_output",
+      "semantics": "Cascade or encoder output disables initialFULL dispatch.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3392:8:3395:13:If",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3392,
+      "condition": "enable_sp(self.vllm_config)",
+      "semantics": "SP token alignment asserted after dispatcher.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3393:12:3395:13:Assert",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3393,
+      "condition": "batch_descriptor.num_tokens % self.vllm_config.parallel_config.tensor_parallel_size == 0",
+      "semantics": "Selected physical rows divisible by TP under SP.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3399:8:3416:71:If",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3399,
+      "condition": "self.vllm_config.parallel_config.data_parallel_size > 1",
+      "semantics": "DP>1 enters metadata coordination.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3406:12:3416:71:If",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3406,
+      "condition": "num_tokens_across_dp is not None",
+      "semantics": "Non-None coordinated vector drives rank-specific padded count and redispatch.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3416:16:3416:71:Assert",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3416,
+      "condition": "batch_descriptor.num_tokens == num_tokens_padded",
+      "semantics": "Redispatch must exactly preserve agreed DP count.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3418:8:3424:13:If",
+      "owner": "NPUModelRunner._determine_batch_execution_and_padding",
+      "line": 3418,
+      "condition": "self.vllm_config.observability_config.cudagraph_metrics",
+      "semantics": "Optional graph metrics observes unpadded/padded rows; no overhead/gain inferred from source presence.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6358:12:6359:113:BoolOp",
+      "owner": "NPUModelRunner._should_align_cudagraph_capture_sizes",
+      "line": 6358,
+      "condition": "self.compilation_config.cudagraph_mode.decode_mode() == CUDAGraphMode.FULL and (enable_dsa_cp() or enable_sp(self.vllm_config) or self.compilation_config.pass_config.enable_sp)",
+      "semantics": "Alignment requires FULL decode mode plus CP/SP/pass-SP disjunction.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6359:17:6359:112:BoolOp",
+      "owner": "NPUModelRunner._should_align_cudagraph_capture_sizes",
+      "line": 6359,
+      "condition": "enable_dsa_cp() or enable_sp(self.vllm_config) or self.compilation_config.pass_config.enable_sp",
+      "semantics": "DSA-CP,SP and compiler pass-SP are distinct enabling predicates.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6370:8:6380:63:For",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6370,
+      "condition": "(attn_backend_set, kv_cache_group) in zip(attention_backends, kv_cache_groups)",
+      "semantics": "Visit all backend sets paired with KV specs.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6373:12:6380:63:For",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6373,
+      "condition": "attn_backend in attn_backend_set",
+      "semantics": "Each backend builder contributes capability.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6378:16:6380:63:If",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6378,
+      "condition": "cg_support.value < min_cg_support.value",
+      "semantics": "Use minimum capability across groups,not first/most capable backend.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6385:12:6388:49:If",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6385,
+      "condition": "self._should_align_cudagraph_capture_sizes()",
+      "semantics": "LCM prealignment conditional; happens before backend mode resolution.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6402:8:6414:66:If",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6402,
+      "condition": "self.speculative_config and self.drafter is not None and (self.speculative_config.use_eagle() or self.speculative_config.uses_extract_hidden_states())",
+      "semantics": "Only eligible speculative/drafter algorithms get their own key initialization.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6403:12:6408:13:BoolOp",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6403,
+      "condition": "self.speculative_config and self.drafter is not None and (self.speculative_config.use_eagle() or self.speculative_config.uses_extract_hidden_states())",
+      "semantics": "Speculative config+drafter+algorithm predicates all retained.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6406:16:6407:71:BoolOp",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6406,
+      "condition": "self.speculative_config.use_eagle() or self.speculative_config.uses_extract_hidden_states()",
+      "semantics": "EAGLE or extract-hidden eligibility distinct from method namealone.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6410:12:6413:13:Assert",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6410,
+      "condition": "isinstance(self.drafter, AscendEagleProposer | AscendDflashProposer | AscendExtractHiddenStatesProposer | AscendGemma4Proposer)",
+      "semantics": "Required drafter interface types must match eligible branch.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6419:28:6419:41:Name:comprehension",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6419,
+      "condition": "(_, descs) in capture_descs",
+      "semantics": "Capture sizes derived from every resolved mode descriptor list.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6420:24:6420:29:Name:comprehension",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6420,
+      "condition": "desc in descs",
+      "semantics": "Each descriptor contributes physical num_tokens; set deduplicates.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6425:8:6428:53:If",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6425,
+      "condition": "self.use_aclgraph",
+      "semantics": "Only use_aclgraph initializes parameter maps.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:6427:12:6428:53:If",
+      "owner": "NPUModelRunner._check_and_update_cudagraph_mode",
+      "line": 6427,
+      "condition": "self.speculative_config",
+      "semantics": "Speculative config may initialize draft registry regardless of actual outer replay.",
+      "evidence": [
+        "M22-mode-padding-point-source-v46.json",
+        "M22-mode-padding-and-DP-contract-v46.json",
+        "H06-mode-aware-alignment-domain-proof-v46.json",
+        "M22-DP-mode-padding-and-skip-domain-proof-v46.json"
+      ]
+    }
+  ],
+  "original_S04_sites": 37,
+  "alignment_helper_sites_reclassified": 4,
+  "new_exact_local_guards": 41,
+  "total_local_core_guards": 110,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

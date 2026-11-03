@@ -1,0 +1,15 @@
+本轮取得实质进展：10次计算的源码来源已补齐，通信记录层级和投影行域得到全16卡补证；整体分析仍未完成。本轮只有CPU离线分析和定点源码核对，没有新模型、设备或服务操作。
+
+原先10次计算都有CANN launch和后台Dequeue，但按PYTORCH_API.connectionId原值直接找Enqueue会失败。数据库关系显示它是CONNECTION_IDS中的列表外键，不同列表编号可共享同一flow。解码后，10条都得到唯一Enqueue、同进程、操作名一致及正确CPU先后关系，并有唯一最内层源码范围。它们分别落在MoE汇合、共享expert投影、位置索引和DSA metadata。当前计算执行分账为154,940条原生直接源码关联+10条队列多步关联+132,000条原生图关联=286,950，原始记录未被改写；这不代表全部消费者或图源码已闭合。
+
+通信表完整保留14,720个操作、557,688条内部记录和3,192个schedule定义，三层不能叠加时长。操作族为AllReduce272、AllGather5552、Alltoall4424、ReduceScatter4472；14,720个操作的rankSize字段都是8，不能据此排除原生MoE的EP内部通信。10,080个通信操作落在80个图控制范围，每图126个；9,600个在mHC层区间内，480个在区间外。8个精确调度TP8 cohort均通过通信序列一致性检查。
+
+计算表的fullchain索引不能覆盖所有通信API。另行解析后，4,639个原生通信API全部有完整栈，归约为21种链；还有1个图外AlltoAll未绑定来源。后续必须看完整caller来区分输入gather、输出恢复、embedding和其他通信，而非只按collective名称归类。
+
+从实际调用点定点读到Q_a467、KV475、Q norm477、KV norm487、Wo_a1784和Wo_b1795。1,167个eager Q_a与同数KV记录的M集合不相交；图中Q候选均为M3、KV形状候选均为M24，3,120个层区间有唯一Q/KV匹配，另80个保留额外同形KV候选。当前行域不支持直接同M拼接的朴素融合，更一般的分块、选择性联合投影和F32前移通信仍是条件候选。源码已有条件共享量化及三阶段Cube/Vector重叠，不能重复报告缺失，也不能用少一次launch直接宣称收益。
+
+新增H06 padding域/图bucket重组条件候选。64个已绑定decode图中，16个是2请求/12逻辑token、48个是4请求/24token，记录的通信序列完全相同，物理形状有24行。12token按TP8做算术对齐可得16行，但当前24行究竟由uniform query6、DP/EP最大值还是其他bucket约束造成，仍须核对指定赋值点；不能直接改成16，必须保留EP参与、接收/combine和所需全局buffer。完整3,712条ARMED sidecar中，CPU上下文条件下uniform6形状为B2 48、B4 3472、B3 8、B1 24次，窗口里的小batch比例明显不能当整轮比例，也不能由CPU条件推断窗口外物理padding或提速。
+
+SDK字段公式也补出了重要限制。CANN cube_usage对MAC ratio做有效/非零检查，但计算式使用total_cycles、频率、核数及duration，没有乘MAC ratio。函数注释称duration为ns，而调用方索引Task Duration(us)；常量、转换顺序及适用calculator仍需核实，当前不应用归一化，更不称MFU。首份DB的NPU_INFO.name记录Ascend910B，这是SDK家族字段，不能直接拿它判断910C服务器标签错误或套某个物理峰值。
+
+还剩21条通信链的语义归属、1个通信来源、80个同形投影候选、原生EP内部/专家数量、资源分母、16个图阶段和其他进程成本等缺口。26模块与所有条件/跨边仍未闭合，Goal保持active。

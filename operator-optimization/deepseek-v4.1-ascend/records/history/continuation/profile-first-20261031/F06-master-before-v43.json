@@ -1,0 +1,65 @@
+{
+  "id": "F06_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "q_a": "q_a",
+    "kv": "kv"
+  },
+  "nodes": [
+    {
+      "id": "q_a",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU",
+      "row_domain": "query_local"
+    },
+    {
+      "id": "kv",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    }
+  ],
+  "internal_edges": [],
+  "external_inputs": [
+    {
+      "producer": "x",
+      "consumer": "q_a",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "x",
+      "consumer": "kv",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "q_a",
+      "consumer": "q_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "kv",
+      "consumer": "kv_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v35": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-embedding-HC-CP-row-and-consumer-contract-v35.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-layout-ownership-and-context-query-reorganization-v35.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-optimization-condition-ledger-v35.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-source-and-conditional-decoder-graphs-v35.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "F32 local1792-output Qa/KV contraction is conditional after explicitly changing unequal current row domains; two separate BF16 outputs and norms remain. Not naive same-M current concat."
+  }
+}

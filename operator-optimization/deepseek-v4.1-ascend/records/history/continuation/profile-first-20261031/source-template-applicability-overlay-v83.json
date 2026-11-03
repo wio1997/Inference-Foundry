@@ -1,0 +1,41 @@
+{
+  "parent": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/graphs/source-templates-G5.json",
+  "templates": 12,
+  "nodes": 287,
+  "edges": 344,
+  "corrections": [
+    {
+      "id": "V41-QUERY",
+      "contract": "V41-query-operator-path-contract-v75.json",
+      "rule": "Active V4.1 QR RMS1280 precedes Q_B. There is no post-QB head512 RMS in current target/draft query entry; legacyCP reference stays outside it."
+    },
+    {
+      "id": "INDEX-INPUT-DQ",
+      "contract": "index-context-fusion-variants-v64.json",
+      "rule": "The q_norm->iq composite edge hides ordinary input DynamicQuant. Current Q_B and IndexQ have separate native quant calls in observed graphs; possible PreparedLinearInput reuse is conditional, not already one quantization."
+    },
+    {
+      "id": "QUANT-OUTPUT-OWNER",
+      "contract": "quant-epilogue-source-contract-v82.json",
+      "rule": "INT8->BF16 quantized projection may finish in a Vector epilogue after INT32 GM. A matrix label does not establish Cube ownership of final BF16 or all-onchip fusion."
+    },
+    {
+      "id": "ROW-GENERATION",
+      "contract": "projection-operator-numerical-contract-v61.json",
+      "rule": "Old global_or_restored/query_local labels are symbolic roles, not equal row sets or pointer identities. Bind actual query/KV/CP-SP/pad maps before any joint computation."
+    },
+    {
+      "id": "OPAQUE-BASELINE",
+      "contract": "attention-indexer-native-numerical-contract-v60.json",
+      "rule": "QLI already fuses INT8 QK, FP16 dequant/ReLU, weighted head reduce, keyscale/membership/TopK. SMLA already fuses SWA+selected compressed attention. Do not register these baseline stages as new fusion gains."
+    },
+    {
+      "id": "PERSISTENT-FANOUT",
+      "contract": "state-engram-operator-contract-v62.json",
+      "rule": "IndexKey consumes the pre-RoPE BF16 latent; compressedKV and SWA caches and index/candidate banks retain future readers. A current consumer join does not close future cache/state readers."
+    }
+  ],
+  "original_graph_modified": false,
+  "full_primitive_or_runtime_graph_proved": false,
+  "overall_complete": false
+}

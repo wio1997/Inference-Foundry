@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_1f61f31b-8179-445e-864c-0e1319d1e390",
+  "traceId": "397c79a1-616e-434b-a7b8-f924141e215b",
+  "turnId": "turn_291d8e17-3ee4-4165-82eb-89ad0bd19625",
+  "response": "v2 已执行完成，返回码 rc=0，stderr 为空，结果文件已写入，脚本中“结果已存在”的断言未触发。\n\n**任务数**\n\n| 分支 | compute 执行数 |\n|---|---|\n| 全部（native CONNECTION_IDS 关联且有完整 source 绑定） | 11440 |\n| 死生产者（dead-producer） | 11000 |\n| 存活/歧义（live/ambiguous） | 440 |\n\n死分支按 op 类型各 2200：Sub、ClipByValueV2、Greater、Fill、SelectV2；存活/歧义按同一类型各 88。死任务集中在 88 个 root，每个 root 恰好 125 个任务，直方图为 `{\"125\": 88}`。`ambiguous_execution_links=0`，即每条执行都唯一对应一个 root 和一个分支判定。\n\n**NULL 处理**：84656 条 source-bound API 中 73216 条 `connectionId=NULL`，计数完整保留，未置 0、未猜测关联。v2 只把 NULL 从 SQL `IN` 的绑定值中过滤掉（NULL 本来不会匹配任何行），API 原始记录与 NULL 计数不受影响。\n\n**SHA-256**：`6b4129c1e711a369b6ca4ce9f3bd8d304d57ffe72ca19db7a7782fff3052fdf0`\n\n**边界**：首个 root `0:23951` 的 125 个任务落在 stream 45，其 192681 ns 是已采到设备任务的区间并集，仅表示观测到的设备工作，不是 CPU 成本、请求关键路径收益或可达加速比。`overall_complete=false`、`whole_modules_closed=0`，本次未做任何新采集，也未改动服务。\n\n结果文件在 166 主机：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/CP-dead-producer-device-tasks-v13-v2.json`，本地 receipt 为 `cp-dead-producer-device-tasks166-v13-v2.json`。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 65434,
+    "outputTokens": 4045,
+    "totalTokens": 69479,
+    "cacheReadTokens": 53504,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2811,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 69479,
+    "contextUsed": 15487,
+    "contextWindow": 200000
+  }
+}

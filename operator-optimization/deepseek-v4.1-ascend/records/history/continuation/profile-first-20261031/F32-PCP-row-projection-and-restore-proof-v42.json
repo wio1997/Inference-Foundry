@@ -1,0 +1,47 @@
+{
+  "generated_utc": "2026-10-31T12:14:19.813262+00:00",
+  "grade": "DERIVED",
+  "identity": "F_j(S_pi concat_r H_r) = S_pi concat_r F_j(H_r)",
+  "domain": "Same row-local affine function F_j(x)=xW_j+b_j on every rank, same physical carrier rows and restoration indices. Selection may repeat rows; it need not be a permutation.",
+  "finite_integer_examples": 682,
+  "examples_passed": true,
+  "counterexample": {
+    "physical": [
+      1,
+      100,
+      2,
+      200
+    ],
+    "restore": [
+      0,
+      2,
+      1,
+      3
+    ],
+    "pool_after_restoration": [
+      3,
+      300
+    ],
+    "pool_before_restoration": [
+      101,
+      202
+    ]
+  },
+  "implication": "Project each required row-local global-hidden consumer before PCP gather and restore the projected planes. Keep C2 pooling/history/ring writes after correct row restoration unless separately proved.",
+  "complete_consumer_requirement": [
+    "SWA KV projection and cache write",
+    "compressed-source projection when role.is_kv_source",
+    "multistream preprocessing when enabled; its downstream consumers must also be transformed or retain original input"
+  ],
+  "logical_payload_comparison": "Per equal carrier row: original D*b_H versus sum_j P_j*b_j for every required output plane. Include any remaining hidden consumer and additional quant/scale planes. This is not a measured wire-byte or latency model.",
+  "native_precision_limit": "Different per-rank GEMM shape/quantization/reduction tiling may change numerical results; integer row identity does not establish BF16/native bitwise equivalence.",
+  "not_proved": [
+    "actual owner-specific weights/layouts and all consumers",
+    "physical padding/mask/restore validity and capture banks",
+    "native roundings, quant scales, actual transfer bytes, topology, overlap, and causal gain"
+  ],
+  "implementation": false,
+  "native_validation": false,
+  "critical_path_gain_us": null,
+  "overall_complete": false
+}

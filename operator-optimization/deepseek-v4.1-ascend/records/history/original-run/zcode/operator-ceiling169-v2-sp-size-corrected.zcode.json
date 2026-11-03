@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_e0c53c7b-3094-4769-9271-45b83b2d3ef2",
+  "traceId": "e3187138-5769-4798-9a76-35dd7e1e34f8",
+  "turnId": "turn_34c4351b-4074-44be-b07c-d6b8d14c4516",
+  "response": "Corrected: 5120, 1280, and 512 are **element counts**, not byte counts. With BF16 at 2 bytes per element:\n\n| Quantity | Arithmetic | Bytes |\n|---|---|---|\n| Input row (5120 elements) | 5120 × 2 | 10,240 |\n| 1280-element row | 1280 × 2 | 2,560 |\n| 512-element row | 512 × 2 | 1,024 |\n| Combined (1280 + 512) | 1792 × 2 | 3,584 |\n\nThe combined rows are **3,584 / 10,240 = 0.35** of the input row (exactly 7/20), i.e. 35%.\n\nCommand run and output:\n\n```console\n$ python3 -c \"bpe=2; inp=5120*bpe; comb=(1280+512)*bpe; print('input_row_bytes =', inp); print('combined_row_bytes =', comb); print('ratio =', comb/inp); print('exact_ratio = 3584/10240 =', __import__('fractions').Fraction(comb,inp))\"\ninput_row_bytes = 10240\ncombined_row_bytes = 3584\nratio = 0.35\nexact_ratio = 3584/10240 = 7/20\n```\n\nThese are logical tensor sizes only — not measured memory traffic, bandwidth, or a speedup claim. No NPU, network, service, or file edits were involved.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 2,
+    "inputTokens": 17722,
+    "outputTokens": 984,
+    "totalTokens": 18706,
+    "cacheReadTokens": 8960,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 877,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 18706,
+    "contextUsed": 9611,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,582 @@
+{
+  "id": "F11_CONDITIONAL_PARTITION_V180",
+  "original_graph_id": "G0_FIXED_SOURCE_PUBLIC_CONDITIONAL_V180",
+  "original_graph_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/graphs/G0-current-v180.json",
+  "original_graph_sha256": "e79b3df3ff21e45568d720feaeaa03f01af01ce72c339a2ae84d74837f742ee6",
+  "source_instance_ids": [
+    "target.layers.2.attention.detail",
+    "target.layers.8.attention.detail",
+    "target.layers.14.attention.detail",
+    "target.layers.20.attention.detail"
+  ],
+  "source_case_templates": [
+    "ATTN_C2_SOURCE",
+    "ATTN_C1_SOURCE"
+  ],
+  "original_atom_union": [
+    "index.K_projection",
+    "index.K.norm128",
+    "index.K.tail64_RoPE",
+    "index.K.FLOAT_scale_quant",
+    "state.index_K_scale_publish"
+  ],
+  "original_specific_node_mapping": {
+    "ik_norm": "ik_norm",
+    "ik_rope": "ik_rope",
+    "ik_quant": "ik_quant",
+    "ik_store": "ik_store",
+    "scale_cast": "scale_cast",
+    "scale_store": "scale_store"
+  },
+  "nodes": [
+    {
+      "id": "F11/conditional_region",
+      "kind": "PROPOSED_FUSION_SPLIT_OR_REPARTITION_REGION",
+      "not_all_footprint_nodes_must_be_fused_simultaneously": true
+    },
+    {
+      "id": "KV_RING_INDEX_CACHE",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "KV_RING_INDEX_CACHE",
+        "modules": [
+          "M02",
+          "M08",
+          "M09",
+          "M10",
+          "M18",
+          "M21",
+          "M24"
+        ],
+        "writer_ports": [
+          "SWA scatter",
+          "compressed pool/key/scale writes",
+          "draft shared-KV scatter",
+          "accept/reset/recycle"
+        ],
+        "reader_ports": [
+          "current and future attention",
+          "index scoring",
+          "C2 old-ring pool",
+          "prefix reuse"
+        ],
+        "identity_and_epoch": "cache family,source layer,request,page/slot generation,logical position,committed prefix",
+        "conditional_fusion_split_or_reorder_answer": "write/read/retire/overwrite ordered per physical range; duplicate logical indices retain attention multiplicity Full32/private16/paired compact-owner alternatives retain SWAanchor/globalID reservation,half-owner lifetime,ABA generation,lastqueuedwriter and oldpoolread-before-update;not universalhalf-capacity saving.",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "POSITION_COUNT_SLOT_METADATA",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "POSITION_COUNT_SLOT_METADATA",
+        "modules": [
+          "M02",
+          "M04",
+          "M08",
+          "M09",
+          "M10",
+          "M14",
+          "M18",
+          "M21",
+          "M22",
+          "M24"
+        ],
+        "writer_ports": [
+          "scheduler/metadata publication"
+        ],
+        "reader_ports": [
+          "SWA and compressed KV",
+          "indexer",
+          "compressor ring",
+          "Engram hash/cache",
+          "draft context/query",
+          "graph replay"
+        ],
+        "identity_and_epoch": "request,page lease generation,token position,actual/padded rows,rank ownership",
+        "conditional_fusion_split_or_reorder_answer": "share arithmetic only for identical logical domains; identical shape or zero local count is insufficient",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "producer": "F11/conditional_region",
+      "consumer": "KV_RING_INDEX_CACHE",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F11/conditional_region",
+      "consumer": "POSITION_COUNT_SLOT_METADATA",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    }
+  ],
+  "original_node_mapping": [
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/x",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/q_a",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/q_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/q_quant",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/q_b",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/q_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/kv",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/kv_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/kv_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/swa_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/attention",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/inverse_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/pad",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/restore_heads",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/o_a",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/o_b",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/reduce_scatter",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/iq",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/iq_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/iq_quant",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/iw",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/iw_scale",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/qli",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/fixup",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/indices_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/compress_proj",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/compress_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/x_cast",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/score_proj",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/ring_pool",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/ik",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/ik_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/ik_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/ik_quant",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/ik_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/scale_cast",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/scale_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/cmp_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/cmp_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/index_cache_history",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/index_metadata",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/candidate_state_and_lengths",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/index_output_consumers",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C2_SOURCE/key_state_consumers",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/x",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/q_a",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/q_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/q_quant",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/q_b",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/q_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/kv",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/kv_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/kv_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/swa_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/attention",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/inverse_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/pad",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/restore_heads",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/o_a",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/o_b",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/reduce_scatter",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/iq",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/iq_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/iq_quant",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/iw",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/iw_scale",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/qli",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/fixup",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/indices_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/compress_proj",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/compress_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/ik",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/ik_norm",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/ik_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/ik_quant",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/ik_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/scale_cast",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/scale_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/cmp_rope",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/cmp_store",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/index_cache_history",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/index_metadata",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/candidate_state_and_lengths",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/index_output_consumers",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ATTN_C1_SOURCE/key_state_consumers",
+      "proposed_region": "F11/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    }
+  ],
+  "allowed_transformations": "Existingfamily-specific variants and typed conditions in immutable candidate/semantic/cost records;region is a footprint,not proof that its union is oneinvocation or onelegal kernel.",
+  "specific_variant_authorities": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v179.json#F11",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v179/semantic-contract-sufficiency-review.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v174/all42-composition-coverage.json"
+  ],
+  "conditional_limits": {
+    "candidate": "F11",
+    "templates": [
+      "ATTN_C2_SOURCE",
+      "ATTN_C1_SOURCE"
+    ],
+    "instance_ids": [
+      "target.layers.2.attention.detail",
+      "target.layers.8.attention.detail",
+      "target.layers.14.attention.detail",
+      "target.layers.20.attention.detail"
+    ],
+    "conditional_template_refs": [],
+    "state_envelope_refs": [
+      "KV_RING_INDEX_CACHE",
+      "POSITION_COUNT_SLOT_METADATA"
+    ],
+    "conditional_native_legality_not_promoted": true
+  },
+  "implemented": false,
+  "performance_gain_measured": false
+}

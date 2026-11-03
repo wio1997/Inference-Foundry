@@ -1,0 +1,18 @@
+{
+  "mask_fusion": "GivenidenticaloriginalP,cutoffK,cutoffP andsameoldlogits,twomasked_fill(-inf) writes equalonewriteunder (P<cutoffK)OR(P<cutoffP). Keep originalgathers/validationandnointermediateobserver. UnderorderednonNaNcutoffs,thisisP<max(cutoffK,cutoffP);NaNcasesmustretainORorprovedNaN-awarehandling.",
+  "CDF_search": "ForanexistingnondecreasingnonNaNCDF andsameactualthresholdt=1-p,source count=sum(CDF<=t) withlastmaskforcedfalse equalsmin(upper_bound(CDF,t),V-1). ReusesexactexistingCDFvalues;doesnotchangeFP32scanorder. Binarysearchworstcase<=ceil(log2(V+1))probes;fusing/replacingtheCDFproducerneedsitsownnative-roundingproof.",
+  "top_k_only": "Anexactorder-statisticselection ontheSAMEroundedprobabilities canreplacefullsortwhentopPabsent,retainingallties. Logitselection/exactkoutputs areseparateprecision/tie contracts. No-topKallkV,pNone canbe aconditionalno-opguardifmetadataanderrors preserved.",
+  "race": "GivenidenticalP/Qanddivisionresults,streamingDiv→argmaxcan avoidratioGMwrite/read. GenerichelpermustretainmodifiedP unlessprivate;withwriteback keepPstore butavoidargmaxreread. PreserveallQ/RNG/stream/lifetime effects andsame comparator.",
+  "mixed_rows": "WithinSampler.samplemixedpath,the randomIDisunusedonrows selectedgreedybytemperature<1e-5. AfterALLoriginalQdraws,privatePDiv/argmax mayonlycomputeactive randomrows;otherlogit/score/processorworkremains. Qshape/statecannotbecompactedwithoutanew RNGprotocol.",
+  "precision_fences": [
+    "Initialfiltersoftmax/sort alreadyshared acrossk/p;do notcountthat asnewfusion.",
+    "Do notrenameAscendprobabilitycutofffilterasanupstreamsequentialtopK/topPfilter.",
+    "Do notreplacefinalsoftmaxwithzeroedoriginalP solelybecausea positivecommonfactor cancelsinreal arithmetic;FP32probability/division rounding canchange winner.",
+    "Do notcomputeprocessed_logprobs aslog(roundedP) underunderflow.",
+    "p==1 isnot automaticallyno-opifinitialPcontainszero afterrounding;sourceprobabilitycutoff canmaskfiniteunderflowedlogits.",
+    "No highlevelsort/CDF/softmax/argmaxcapacity isassignedfroma genericVectorAdd/Maxrate."
+  ],
+  "theoretical_domains": "FullSort32/MrgSortcase only:atleastoneSort32pass overallroundedvalues;selection/otheralgorithms outside. Exactunstructuredrowargmax needsallrelevantvalues withoutcertificate;thisisnotHBMbytes orphysicalMFU.",
+  "new_physical_speedup_or_native_precision_proved": false,
+  "overall_complete": false
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_54ec220b-54c2-46a6-91d9-e0d4fb7a527c",
+  "traceId": "e310d191-519f-4835-bd5c-b5ea93a29d58",
+  "turnId": "turn_006d73a0-faa3-41d4-9f46-79338ebd57c4",
+  "response": "轮询已按只读方式完成，返回码 0，stderr 为空，未见任何超时或异常。\n\n**PID/starttime 存活确认（已核对）**\n- `controller_live_verified_by_pid_start: true`\n- PID `1351606`，`/proc` 状态 `S`，starttime ticks `862458845`，与 `host-profile-latest.json` 中记录的 `controller_starttime_ticks` 完全一致。进程确实存活，不是僵尸或 PID 复用。\n\n**Controller 状态**\n- `controller-state.json`（21:36:33Z，本次检查于 21:36:41Z，心跳距今约 8 秒）：`PROFILER_OFF_BASELINE_RUNNING`，其中 `process_pid` 为 `1351606`，与存活 PID 吻合。\n- `run_id` 为 `hostprof-20261030T212812Z-360e0c72`，与预期值断言一致。\n- 当前仅存在 `client-warmup/window-status.json`（`valid: true`，counter deltas 正常），baseline/profile 阶段窗口尚未生成，符合当前处于 baseline 阶段的进度。\n\n**容器状态**\n| 容器 | 状态 | 说明 |\n|---|---|---|\n| 原容器 `wio-vllm-v41-repro166-20261030` | exited，exit_code 0 | 干净退出，与切换到诊断容器一致 |\n| 诊断容器 `wio-vllm-v41-hostprof-20261030T212812Z-360e0c72` | running | id `7514283e...`，baseline_id 与原容器 id 匹配 |\n\n**错误检查（无）**\n- 控制器 stderr 尾部为空。\n- 未发现 `controller-error.json`、`controller-finished.json`、`top-level-error.json`；`controller-finished.json` 不存在说明控制器未提前收尾。\n- 服务日志尾部正常：4 个请求运行中、无等待、NPU KV 使用率约 2.5%，`/v1/completions` 全部 200 OK，spec-decode 指标持续输出，无 traceback。\n\n**结论**：控制器 PID 1351606（starttime 862458845）存活并经 starttime 校验确认，处于 `PROFILER_OFF_BASELINE_RUNNING` 正常推进中；诊断容器 running，原容器已干净退出（exit 0）；本轮未观察到任何错误，也未发生超时。回执保存在 `host-profile-poll166-v12-03.json`。必要时可在下一轮继续用同一方式只读轮询。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 49588,
+    "outputTokens": 3384,
+    "totalTokens": 52972,
+    "cacheReadTokens": 37248,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2639,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 52972,
+    "contextUsed": 15295,
+    "contextWindow": 200000
+  }
+}

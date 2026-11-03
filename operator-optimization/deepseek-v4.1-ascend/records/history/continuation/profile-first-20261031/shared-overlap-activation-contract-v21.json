@@ -1,0 +1,140 @@
+{
+  "generated_utc": "2026-10-31T02:59:42.599304+00:00",
+  "status": "CURRENT_SERIAL_PATH_QUESTION_CLOSED_IN_STATED_CONFIG_AND_SOURCE_CONTRACT",
+  "findings": [
+    {
+      "id": "C21-1",
+      "grade": "MEASURED_SAVED_CONFIGURATION",
+      "finding": "Both capturedserve.sh andserve-host-profile.sh explicitly set enable_fused_mc2=1 andenable_shared_expert_dp=True,with FULL_DECODE_ONLY/capture24. SavedDockerargv andserve.env have no explicit selectedoverlapvariable. Absencealone isnotfalse.",
+      "evidence": {
+        "label": "overlap-config166-v21",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/saved-overlap-configuration-v21.json",
+        "sha256": "014eba9796a66381a851382d66884541edcf298e572a4cfc4cb52a8772a9d298"
+      }
+    },
+    {
+      "id": "C21-2",
+      "grade": "DOCUMENTED_EXACT_SOURCE",
+      "finding": "AscendConfig.multistream_overlap_shared_expert defaultsFalse(578). derive_and_validate842-846 forcesitFalse if enable_fused_mc2==1 andrequestedoverlapTrue. init_ascend_config callsderive_and_validate1918 before publishingthevalidatedsingleton. This is a sourcepolicy constraint,not a physical impossibility theorem.",
+      "evidence": [
+        {
+          "label": "overlap-default166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-config-default-and-caller-branch-v21.json",
+          "sha256": "5b6c59c66f47f0ef300abd265c6593d5cb74c50af04a3ca09e1a9543c698e734"
+        },
+        {
+          "label": "overlap-protocol166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-validation-call-and-protocol-v21.json",
+          "sha256": "24f961153530eb47684a3784c8af5c0112706282d5d8c4c7244fcc73ba40116e"
+        }
+      ]
+    },
+    {
+      "id": "C21-3",
+      "grade": "DERIVED_CONFIG_AND_PROFILE_CALLER_CONTROL_FLOW",
+      "finding": "AscendSharedExperts copies this field at125. False makes _prepare_shared_for_router_overlap returnNone; runner _forward_impl then invokes shared.forward528 after routed.forward_impl516. False also disables npu_stream_switch inshared.forward. The savednative12sharedchains/5087directexecutions all take528;oneexactqueuegate-up shares528,so5088nativefour-stageexecutions are covered. No runtimeobjectboolean snapshot is claimed.",
+      "evidence": [
+        {
+          "label": "overlap-guards166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-guard-sources-v21.json",
+          "sha256": "90bab761f4e18d4742de04b24d2642489b80c3ae416c61e85772c65d003198b7"
+        },
+        {
+          "label": "overlap-default166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-config-default-and-caller-branch-v21.json",
+          "sha256": "5b6c59c66f47f0ef300abd265c6593d5cb74c50af04a3ca09e1a9543c698e734"
+        },
+        "execution-origin-partition-v15.json"
+      ]
+    },
+    {
+      "id": "C21-4",
+      "grade": "MEASURED_PROFILE_AND_SCOPED_CAUSAL_RECONCILIATION",
+      "finding": "Thev20sameTASKstream/afterMC2 order on3200graphblocks and0M12/M13intervalintersection is explained by the selected serial software path. Agraph-only serialization fault orhardwareconcurrencyfailure neednot be assumed to explain this capture. Future enabled-path graph/concurrency capability remainsuntested.",
+      "evidence": [
+        "shared-MC2-observed-order-contract-v20.json",
+        {
+          "label": "overlap-guards166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-guard-sources-v21.json",
+          "sha256": "90bab761f4e18d4742de04b24d2642489b80c3ae416c61e85772c65d003198b7"
+        },
+        {
+          "label": "overlap-default166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-config-default-and-caller-branch-v21.json",
+          "sha256": "5b6c59c66f47f0ef300abd265c6593d5cb74c50af04a3ca09e1a9543c698e734"
+        }
+      ]
+    },
+    {
+      "id": "C21-5",
+      "grade": "DOCUMENTED_CAPABILITY_SCOPE",
+      "finding": "TheKimi/latenttransform capabilityguard _can_overlap_sp_shared_with governs early-gather/deferred-output transforms;it isnot theglobal shared-overlap switch. Do not useitscomment todeclare DeepSeek hasno overlap sourcecapability. Conversely,theMC2concurrent-workload comment in_wait_for_routed_stage doesnot override theconfigmutex.",
+      "evidence": [
+        {
+          "label": "overlap-guards166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-guard-sources-v21.json",
+          "sha256": "90bab761f4e18d4742de04b24d2642489b80c3ae416c61e85772c65d003198b7"
+        },
+        {
+          "label": "overlap-protocol166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-validation-call-and-protocol-v21.json",
+          "sha256": "24f961153530eb47684a3784c8af5c0112706282d5d8c4c7244fcc73ba40116e"
+        }
+      ]
+    },
+    {
+      "id": "C21-6",
+      "grade": "DOCUMENTED_CONFIGURATION_RELATION",
+      "finding": "_check_mix_placement1046-1049 rejectsmix_placement withsharedexpertDP ormultistreamoverlap. CurrentDPTrue thereforeprevents simplecomposition withmixplacement. TheBooleanmatrixcovers onlythese2shownchecks/check-timeMC2values,notallfactory/hardwarevalidation orpostvalidationoverrides.",
+      "evidence": [
+        {
+          "label": "overlap-default166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-config-default-and-caller-branch-v21.json",
+          "sha256": "5b6c59c66f47f0ef300abd265c6593d5cb74c50af04a3ca09e1a9543c698e734"
+        },
+        {
+          "label": "overlap-protocol166-v21",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-overlap-validation-call-and-protocol-v21.json",
+          "sha256": "24f961153530eb47684a3784c8af5c0112706282d5d8c4c7244fcc73ba40116e"
+        },
+        "shared-overlap-configuration-submatrix-v21.json"
+      ]
+    }
+  ],
+  "source_files": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py",
+      "sha256": "2f42ce56a7636bf618204dbc2c1aeb2a2c95fed69fe9e5bcfac995354a00beb4",
+      "symbols": [
+        "__init__",
+        "_can_overlap_sp_shared_with",
+        "_prepare_shared_for_router_overlap",
+        "_prepare_router_and_milestones",
+        "_forward_impl"
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/shared_experts.py",
+      "sha256": "471db26e9e9e4ba70c2ccd43502ad39bff6699bbd4ca191319a9b66fc20458f9",
+      "symbols": [
+        "__init__",
+        "parallel_mode",
+        "prepare_for_router_overlap",
+        "enqueue_gate_up_after_router",
+        "forward"
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py",
+      "sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+      "field": "multistream_overlap_shared_expert"
+    }
+  ],
+  "direct_shared_caller_executions": 5087,
+  "queue_shared_gate_up_executions": 1,
+  "graph_blocks_serial": 3200,
+  "direct_runtime_boolean_snapshot_available": false,
+  "arithmetic_or_hardware_speedup_proved": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

@@ -1,0 +1,17 @@
+本轮按profile优先推进M15最终HC collapse、norm和MTP辅助状态。全部32份保存分片的7条原生完整调用链共672 API、760 TASK；80张图尾各有8条compute：两个hcom、raw-HC TensorMove、Cast/Mul/ReduceSum/Cast、RmsNorm。结合24个eager尾段，共104次target norm、104次snapshot、416条target collapse TASK。另有416条来自DSpark的collapse helper TASK，独立归为draft，不因算子名/数量相同混入target，也不把4个API当作4次Python函数调用。16张图尾阶段仍未唯一绑定。
+
+88个runner2634 Index API各带IndexCheck和Index，全部按同线程execute/prepare-root包含关系绑定；行域与对应norm/图尾一致：8个root6400→2，8个6528→2，8个6672→14，16个24→12，48个24→24。另8个root没有关联此选择。native COMM独立确认24个fullHC gather和24个FP32 premix gather；图尾另有160个COMM。native ancestry compute只选到24个premix hcom TASK，不补造另外24条ComputeInfo，也不把不同层级的API/COMM/compute相加为延迟。当前selector含M19 draft和M16 Index，不替换v20 M15功能资源账1040。
+
+profile将代码问题收敛到collapse856、norm99、Index2634的直接消费者。定点源码确认collapse按4路HC做FP32加权sum后cast BF16；RMS对5120特征归约，之后保留相同可选bias。collapse→RMS融合必须保留中间BF16舍入；不能直接把未舍入FP32和塞进RMS。RMS第二个返回值在wrapper只绑定到局部而未返回，typed stats输出形状不能直接当作已发生的HBM写流量。选择indices在2357输入准备产生，早于2596 model调用，提示可新增model-tail selector接口；但当前capture/CP/输入代际仍需保持。
+
+关键新证据是全normalized hidden并非只在2634选行。它会在2658进入ExecuteModelState，后续sample_tokens解包后分别传proposal与bookkeeping。显式记录If的BODY/ORELSE后，DSpark auxTrue分支在2069/2089消费的是独立aux状态，2071/2091的normalized hidden属于auxFalse分支，mtp-only raw snapshot rebind仍与DSpark不同。保存metadata的96个root均dspark+auxTrue，但不能把它推广到16个阶段未绑定的初始图。
+
+继续沿唯一关键逃逸追踪bookkeeping，3131–3134无条件把normalized hidden前缀交给确切继承的_get_prompt_logprobs_dict。helper5649只有num_prompt_logprobs字典为空才直接返回；有请求且num_logits为正时，从5711的请求offset区间读取prompt hidden，再5712 compute_logits。因此prompt-logprobs是final logits selection以外真实存在的内容消费者。现有native fullcaller中没有该helper API帧，但metadata并未记录该字典，不能据此判它为空：可能是早返回或无设备工作。保留UNKNOWN，不用客户端未传字段代替worker当前状态。
+
+由此F26的行裁剪从“只取logits行”修正为“所有活跃normalized-content读者所需行的并集U”，并通过逆映射恢复每个消费者的顺序和重复行。U还需覆盖prompt行、其他proposal/PP/pooling/外部读者；U等于全部行时没有这项裁剪。现有raw-HC snapshot的独立观察者条件仍沿用v11，不能因为normalized行少就删除原始HC状态或辅助checkpoint。
+
+按逐行索引可以推导：选择I与保留相同舍入的row-local collapse/norm可交换；在相同gamma/eps/bias、TP行序、padding/trim下，TP行拼接也可与这两种row-local运算交换。这支持五类既有F26条件变体：先选U再collapse/norm；local collapse+norm再gather；collapse/RMS局部融合；owner-rank按U稀疏发布；最后HCpost直接供collapse/norm。保留中间BF16、所有HC项/全feature归约、所有读者及capture ABI。索引恒等式不证明不同batch形状/新native kernel的bitwise等价，更不是物理带宽或请求收益。
+
+F26a/b保持为既有变体，另补这些重组及20项明确条件；模型主候选仍35、框架7，不新增编号。本轮6次远端CPU只读作业全部pass，没有torch/模型导入、NPU负载、服务或新健康检查。最后健康证据仍v12post。完整26模块仍open，26项理论比较仍INCOMPLETE；报告和manifest完成不改变整体状态。
+
+下一批转M16 LM head/词表分区与重建。已从保存profile定位216个primary-target head API、3条完整链，含88次head GEMM来源和88+40次gather来源API；这只是入口，尚未完成typed TASK/COMM、词表padding/trim与后处理/所有score消费者闭合。继续先查完整profile，复用M17/F35已有消费者结论，再对真正缺失的分区/行序/非线性后处理点补代码。

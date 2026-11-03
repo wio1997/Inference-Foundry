@@ -1,0 +1,129 @@
+{
+  "id": "F28",
+  "graph_id": "SOURCE_TEMPLATES_G5_DATA_CONTROL",
+  "template": "DSPARK_BOUNDARIES",
+  "nodes": [
+    {
+      "id": "tokens",
+      "kind": "PRODUCED_DRAFT_INPUT",
+      "resource": "NPU"
+    },
+    {
+      "id": "embedding",
+      "kind": "EMBEDDING",
+      "resource": "NPU"
+    },
+    {
+      "id": "repeat",
+      "kind": "HC_REPEAT_AND_INIT",
+      "resource": "NPU"
+    },
+    {
+      "id": "block0",
+      "kind": "DECODER_OPAQUE",
+      "resource": "NPU"
+    },
+    {
+      "id": "input_expand",
+      "kind": "DRAFT_INPUT_EXPAND_COMPOSITE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "tokens",
+      "consumer": "embedding",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "embedding",
+      "consumer": "repeat",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "repeat",
+      "consumer": "block0",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "input_expand",
+      "consumer": "tokens",
+      "value": "expanded draft input IDs",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "kv_state",
+      "consumer": "block0",
+      "value": "relevant cached context subranges",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing."
+    },
+    {
+      "producer": "next_token_ids",
+      "consumer": "input_expand",
+      "value": "next-token IDs",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "draft_input_metadata",
+      "consumer": "input_expand",
+      "value": "position/slot/index metadata",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "query_positions",
+      "consumer": "block0",
+      "value": "positions",
+      "source": "spec_decode/llm_base_proposer.py:1473-1495; models/deepseek_v41/dspark.py:248-270",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "block0",
+      "consumer": "block1",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "input_expand",
+      "consumer": "sample_indices",
+      "value": "token_indices_to_sample",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "input_expand",
+      "consumer": "query_positions",
+      "value": "query positions",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "input_expand",
+      "consumer": "slot_outputs",
+      "value": "context/query slot mappings",
+      "source": "spec_decode/dspark_proposer.py:240-307",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "status": "STRUCTURAL_BOUNDARY_ONLY",
+  "semantic_equivalence_or_savings_proven": false,
+  "all_consumers_and_aliases": "UNKNOWN"
+}

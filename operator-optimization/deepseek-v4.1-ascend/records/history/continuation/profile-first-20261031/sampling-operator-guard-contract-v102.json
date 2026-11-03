@@ -1,0 +1,603 @@
+{
+  "parts": [
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/original-profile-cache-v53/runtime/official_profile_client.py",
+      "bytes": 9039,
+      "sha256": "42a6d9e54ea0a922843e8ab37f4096e52c54fb4dbcdd23b77bb60d69293f3131",
+      "segments": [
+        {
+          "first_line": 34,
+          "last_line": 42,
+          "source": [
+            "",
+            "def run_request(row, index, stream, barrier, firsts, finished):",
+            "    body = {'model':'dsv41', 'prompt':row['prompt'], 'max_tokens':row['max_tokens'],",
+            "            'temperature':0, 'ignore_eos':True, 'stream':stream,",
+            "            'request_id':f'official-{PHASE}-{index}'}",
+            "    if stream: body['stream_options'] = {'include_usage':True}",
+            "    barrier.wait(timeout=120)",
+            "    result = {'start_ns':time.monotonic_ns(), 'chunks':[], 'text':''}",
+            "    try:"
+          ]
+        },
+        {
+          "first_line": 81,
+          "last_line": 89,
+          "source": [
+            "              'semantics':'first nonempty text is a client-visible boundary, not a device prefill-completion timestamp'}",
+            "    rows = [json.loads(x) for x in next(INPUT.rglob('*.requests.jsonl')).read_text().splitlines()]",
+            "    assert len(rows) == 8",
+            "    status['input_sha256'] = hashlib.sha256(json.dumps([x['question'] for x in rows], ensure_ascii=False).encode()).hexdigest()",
+            "    seeds = json.loads((INPUT/'warmup.json').read_text())",
+            "    seeded = parallel(seeds)",
+            "    assert all(x['usage']['prompt_tokens']==29696 and x['usage']['completion_tokens']==1 for x in seeded)",
+            "    (ROOT/'seeds.json').write_text(json.dumps(seeded, ensure_ascii=False))",
+            "    before = metrics()"
+          ]
+        },
+        {
+          "first_line": 133,
+          "last_line": 136,
+          "source": [
+            "        requests = [{'prompt':x['question'],'max_tokens':1024,",
+            "                     **({'dp_rank':x['dp_rank']} if x.get('dp_rank') is not None else {})} for x in rows]",
+            "        responses = parallel(requests, True, window)",
+            "    finally:"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/host_profile_controller166_v12.py",
+      "bytes": 35619,
+      "sha256": "107b8714e924ef47cd5655cfec96a6e539cda82c56601949a128544b21c25b57",
+      "segments": [
+        {
+          "first_line": 470,
+          "last_line": 472,
+          "source": [
+            "    client_source=Path('/data/tiankuan/wio/migration-166-20261030/source169-project/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/official_profile_client.py')",
+            "    if hashlib.sha256(client_source.read_bytes()).hexdigest()!='42a6d9e54ea0a922843e8ab37f4096e52c54fb4dbcdd23b77bb60d69293f3131':raise RuntimeError('Frozen client source changed')",
+            "    shutil.copy2(client_source,dst/'official_profile_client.py')"
+          ]
+        },
+        {
+          "first_line": 511,
+          "last_line": 515,
+          "source": [
+            "def client(phase):",
+            "    free_guard()",
+            "    if phase=='profile':",
+            "        json_write(Path(HOST_RUN)/'runtime/host-profile/ARMED.json',{'phase':'fixed-measure1-profile','epoch_ns':time.time_ns(),'note':'Client seeds precede profile start;only exact profiler marker/sidecar association identifies captured calls.'})",
+            "    proc=subprocess.Popen(['docker','exec','-e','WIO_PHASE='+phase,'-e','WIO_OUTPUT='+APP+'/client-'+phase,DIAG,'timeout','--kill-after=10s','600s','python3',APP+'/official_profile_client.py'],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/entrypoints/openai/completion/protocol.py",
+      "bytes": 27534,
+      "sha256": "5f7930635fd3924826015211032fb298206b27c7f04cd6cd2224bb128e4a3a50",
+      "segments": [
+        {
+          "first_line": 330,
+          "last_line": 333,
+          "source": [
+            "        if (temperature := self.temperature) is None:",
+            "            temperature = default_sampling_params.get(",
+            "                \"temperature\", self._DEFAULT_SAMPLING_PARAMS[\"temperature\"]",
+            "            )"
+          ]
+        },
+        {
+          "first_line": 369,
+          "last_line": 381,
+          "source": [
+            "        if self.ec_transfer_params:",
+            "            # Pass in ec_transfer_params via extra_args",
+            "            extra_args[\"ec_transfer_params\"] = self.ec_transfer_params",
+            "        return SamplingParams.from_optional(",
+            "            n=self.n,",
+            "            presence_penalty=self.presence_penalty,",
+            "            frequency_penalty=self.frequency_penalty,",
+            "            repetition_penalty=repetition_penalty,",
+            "            temperature=temperature,",
+            "            watermarking=self.watermarking,",
+            "            top_p=top_p,",
+            "            top_k=top_k,",
+            "            min_p=min_p,"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/contract-source-supplement/frozen-source-snapshot/vllm/vllm/sampling_params.py",
+      "bytes": 56186,
+      "sha256": "f21efc98bf8ce8aab88eb67adb4207285e509a167d976e14d3e2e8282e024bea",
+      "segments": [
+        {
+          "first_line": 27,
+          "last_line": 27,
+          "source": [
+            "_SAMPLING_EPS = 1e-5"
+          ]
+        },
+        {
+          "first_line": 454,
+          "last_line": 456,
+          "source": [
+            "            else repetition_penalty,",
+            "            temperature=1.0 if temperature is None else temperature,",
+            "            watermarking=watermarking,"
+          ]
+        },
+        {
+          "first_line": 487,
+          "last_line": 497,
+          "source": [
+            "    def __post_init__(self) -> None:",
+            "        if 0 < self.temperature < _MAX_TEMP:",
+            "            logger.warning(",
+            "                \"temperature %s is less than %s, which may cause numerical \"",
+            "                \"errors nan or inf in tensors. We have maxed it out to %s.\",",
+            "                self.temperature,",
+            "                _MAX_TEMP,",
+            "                _MAX_TEMP,",
+            "            )",
+            "            self.temperature = max(self.temperature, _MAX_TEMP)",
+            ""
+          ]
+        },
+        {
+          "first_line": 533,
+          "last_line": 538,
+          "source": [
+            "        if self.temperature < _SAMPLING_EPS:",
+            "            # Zero temperature means greedy sampling.",
+            "            self.top_p = 1.0",
+            "            self.top_k = 0",
+            "            self.min_p = 0.0",
+            "            self._verify_greedy_sampling()"
+          ]
+        },
+        {
+          "first_line": 782,
+          "last_line": 788,
+          "source": [
+            "    def sampling_type(self) -> SamplingType:",
+            "        if self.temperature < _SAMPLING_EPS:",
+            "            return SamplingType.GREEDY",
+            "        if self.seed is not None:",
+            "            return SamplingType.RANDOM_SEED",
+            "        return SamplingType.RANDOM",
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/sampling-applicability-source-v102/npu_input_batch.py",
+      "bytes": 11605,
+      "sha256": "091187802ece762ecd8a18b1b269dab254f48bf7decc926933cb496ffaf1b870",
+      "segments": [
+        {
+          "first_line": 33,
+          "last_line": 39,
+          "source": [
+            "from vllm.v1.worker.gpu_input_batch import InputBatch",
+            "",
+            "from vllm_ascend.worker.block_table import MultiGroupBlockTable",
+            "",
+            "",
+            "class NPUInputBatch(InputBatch):",
+            "    # main2main compat: `use_replayssm` and `slot_mapping_modes` were"
+          ]
+        },
+        {
+          "first_line": 146,
+          "last_line": 153,
+          "source": [
+            "        # Sampling-related.",
+            "        self.temperature = torch.empty((max_num_reqs,), dtype=torch.float32, device=device)",
+            "        self.temperature_cpu_tensor = torch.empty(",
+            "            (max_num_reqs,), dtype=torch.float32, device=\"cpu\", pin_memory=pin_memory",
+            "        )",
+            "        self.temperature_cpu = self.temperature_cpu_tensor.numpy()",
+            "        self.greedy_reqs: set[str] = set()",
+            "        self.random_reqs: set[str] = set()"
+          ]
+        },
+        {
+          "first_line": 244,
+          "last_line": 245,
+          "source": [
+            "        # This is updated each time the batch constituents change.",
+            "        self.sampling_metadata = self._make_sampling_metadata()"
+          ]
+        }
+      ],
+      "receipt": {
+        "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/sampling-guard-source166-v55.json",
+        "bytes": 192284,
+        "sha256": "a8e48396cdbedfa0a67eafa1ef553fcb10ba956d3e3e136e7c9cc30abdb964b4"
+      },
+      "original_path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/npu_input_batch.py",
+      "historical_control_match": false,
+      "provenance_limit": "Saved v55 source body; historical_control_match=False is not a pinned original loaded-module identity, nor evidence of a mismatch by itself."
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/worker/gpu_input_batch.py",
+      "bytes": 48714,
+      "sha256": "18cf455c9d0eea61cc581c7932f2e6cd09786914e82dd35eef1c1430da359a0f",
+      "segments": [
+        {
+          "first_line": 397,
+          "last_line": 406,
+          "source": [
+            "",
+            "        if sampling_params := request.sampling_params:",
+            "            if sampling_params.sampling_type == SamplingType.GREEDY:",
+            "                # Should avoid division by zero later when apply_temperature.",
+            "                self.temperature_cpu[req_index] = 0.0",
+            "                self.greedy_reqs.add(req_id)",
+            "            else:",
+            "                self.temperature_cpu[req_index] = sampling_params.temperature",
+            "                self.random_reqs.add(req_id)",
+            ""
+          ]
+        },
+        {
+          "first_line": 561,
+          "last_line": 564,
+          "source": [
+            "        self.greedy_reqs.discard(req_id)",
+            "        self.random_reqs.discard(req_id)",
+            "        self.top_p_reqs.discard(req_id)",
+            "        self.top_k_reqs.discard(req_id)"
+          ]
+        },
+        {
+          "first_line": 939,
+          "last_line": 945,
+          "source": [
+            "        return SamplingMetadata(",
+            "            temperature=temperature,",
+            "            all_greedy=self.all_greedy,",
+            "            all_random=self.all_random,",
+            "            top_p=None if self.no_top_p else self.top_p[:num_reqs],",
+            "            top_k=None if self.no_top_k else self.top_k[:num_reqs],",
+            "            generators=self.generators,"
+          ]
+        },
+        {
+          "first_line": 1113,
+          "last_line": 1120,
+          "source": [
+            "",
+            "    @property",
+            "    def all_greedy(self) -> bool:",
+            "        return len(self.random_reqs) == 0",
+            "",
+            "    @property",
+            "    def all_random(self) -> bool:",
+            "        return len(self.greedy_reqs) == 0"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "bytes": 319391,
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "segments": [
+        {
+          "first_line": 238,
+          "last_line": 238,
+          "source": [
+            "from vllm_ascend.worker.npu_input_batch import NPUInputBatch"
+          ]
+        },
+        {
+          "first_line": 611,
+          "last_line": 618,
+          "source": [
+            "        self.input_batch = NPUInputBatch(",
+            "            max_num_reqs=self.max_num_reqs,",
+            "            max_model_len=max(self.model_config.max_model_len, self.max_encoder_len),",
+            "            max_num_batched_tokens=self.max_num_tokens,",
+            "            device=self.device,",
+            "            pin_memory=self.pin_memory,",
+            "            vocab_size=self.model_config.get_vocab_size(),",
+            "            block_sizes=[self.block_size],"
+          ]
+        },
+        {
+          "first_line": 2972,
+          "last_line": 2999,
+          "source": [
+            "    # overwrite _sample for lmhead_tp_enable and need_accepted_tokens",
+            "    def _sample(self, logits, spec_decode_metadata):",
+            "        # Sample the next token and get logprobs if needed.",
+            "        self.input_batch.update_async_output_token_ids()",
+            "        sampling_metadata = self.input_batch.sampling_metadata",
+            "        if spec_decode_metadata is None:",
+            "            if lmhead_tp_enable() and logits is not None:",
+            "                logits = logits[: self.input_batch.num_reqs]",
+            "            return self.sampler(",
+            "                logits=logits,",
+            "                sampling_metadata=sampling_metadata,",
+            "            )",
+            "",
+            "        if lmhead_tp_enable() and logits is not None:",
+            "            logits = logits[: len(spec_decode_metadata.logits_indices)]",
+            "        draft_probs = self._get_spec_decode_draft_probs(spec_decode_metadata)",
+            "        sampler_output = self.rejection_sampler(",
+            "            spec_decode_metadata,",
+            "            draft_probs,",
+            "            logits,",
+            "            sampling_metadata,",
+            "        )",
+            "        return sampler_output",
+            "",
+            "    def _get_nans_in_logits(self, logits: torch.Tensor | None) -> dict[str, int]:",
+            "        \"\"\"Count NaNs per request with an NPU-compatible reduction.\"\"\"",
+            "        try:",
+            "            with gpu_sync_allowed():"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/rejection_sampler.py",
+      "bytes": 56889,
+      "sha256": "bb1d39de851540c16c2dd2b16df60c60a1fc4957cedb88bdce9417efc0d55eda",
+      "segments": [
+        {
+          "first_line": 209,
+          "last_line": 222,
+          "source": [
+            "        raw_target_logits = logits[target_logits_indices]",
+            "        # Use float32 for the target_logits.",
+            "        raw_target_logits = raw_target_logits.to(torch.float32)",
+            "        target_logits = raw_target_logits",
+            "        if not self.is_processed_logprobs_mode:",
+            "            # Clone raw_target_logits before applying processors to preserve",
+            "            # the original raw logits for logprobs computation, since",
+            "            # apply_logits_processors modifies the tensor in-place.",
+            "            target_logits = target_logits.clone()",
+            "        target_logits = self.apply_logits_processors(target_logits, sampling_metadata, metadata)",
+            "        # [num_tokens, vocab_size]",
+            "        # NOTE(woosuk): `target_logits` can be updated in place inside the",
+            "        # `apply_sampling_constraints` function.",
+            "        target_logits = apply_sampling_constraints(target_logits, metadata.cu_num_draft_tokens, sampling_metadata)"
+          ]
+        },
+        {
+          "first_line": 321,
+          "last_line": 346,
+          "source": [
+            "def apply_sampling_constraints(",
+            "    logits: torch.Tensor,  # [num_tokens, vocab_size//tp_size]",
+            "    cu_num_draft_tokens: torch.Tensor,  # [batch_size]",
+            "    sampling_metadata: SamplingMetadata,",
+            ") -> torch.Tensor:",
+            "    \"\"\"Process logits based on sampling metadata for distributed scenario.",
+            "",
+            "    This function applies temperature scaling to the logits,",
+            "    then top-k and top-p. For greedy decoding, it returns",
+            "    the original logits.",
+            "",
+            "    Args:",
+            "        logits: Input logits tensor to be processed (local vocab partition).",
+            "        cu_num_draft_tokens: Cumulative number of draft tokens.",
+            "        sampling_metadata: Metadata containing sampling parameters such as",
+            "            temperature and whether greedy sampling is used.",
+            "",
+            "    Returns:",
+            "        torch.Tensor:",
+            "            - Processed logits of shape [num_tokens, vocab_size//tp_size].",
+            "    \"\"\"",
+            "    assert logits.ndim == 2",
+            "    assert cu_num_draft_tokens.ndim == 1",
+            "    if sampling_metadata.all_greedy:",
+            "        # return logits",
+            "        return logits"
+          ]
+        },
+        {
+          "first_line": 435,
+          "last_line": 447,
+          "source": [
+            "    using_block_verify = max_spec_len >= 3 and bool(get_ascend_config().rejection_sampler_config.enable_block_verify)",
+            "    using_entropy_verify = bool(get_ascend_config().rejection_sampler_config.enable_entropy_verify)",
+            "    # Synthetic mode uses per-token rate acceptance with first-rejection",
+            "    # semantics, which is incompatible with block-verify's joint (cumprod)",
+            "    # verification. Disable block-verify under synthetic_mode so the standard",
+            "    # random kernel's SYNTHETIC_MODE branch handles it. entropy_verify is left",
+            "    # as-is: in synthetic mode the SYNTHETIC_MODE branch short-circuits it.",
+            "    if synthetic_mode and using_block_verify:",
+            "        raise ValueError(",
+            "            \"synthetic_mode is incompatible with block-verify (joint verification). \"",
+            "            \"Please disable block-verify when using synthetic rejection sampling. \"",
+            "            \"Synthetic acceptance requires the standard per-token random kernel.\"",
+            "        )"
+          ]
+        },
+        {
+          "first_line": 461,
+          "last_line": 490,
+          "source": [
+            "    if using_entropy_verify and ori_target_logits is not None:",
+            "        ori_target_probs = ori_target_logits.softmax(dim=-1, dtype=torch.float32)",
+            "    else:",
+            "        ori_target_probs = None",
+            "",
+            "    # Create output buffer.",
+            "    output_token_ids = torch.empty(",
+            "        (batch_size, max_spec_len + 1),",
+            "        dtype=torch.int32,  # Consistent with SamplerOutput.sampled_token_ids.",
+            "        device=device,",
+            "    )",
+            "    output_token_ids.fill_(PLACEHOLDER_TOKEN_ID)",
+            "",
+            "    if sampling_metadata.all_greedy:",
+            "        is_greedy = None",
+            "    else:",
+            "        is_greedy = sampling_metadata.temperature == GREEDY_TEMPERATURE",
+            "    if HAS_TRITON:",
+            "        grid, block_size = cal_grid_and_block_size(batch_size)",
+            "",
+            "    # Synthetic mode needs uniform random numbers in the greedy path too",
+            "    # (standard greedy does not). generate_uniform_probs produces fp64 (matches",
+            "    # upstream, avoids sampling exact 0.0); force fp32 before passing to the",
+            "    # fp32-only Ascend triton kernels. Mirrors vllm/v1/sample/rejection_sampler.py.",
+            "    uniform_probs_for_greedy: torch.Tensor | None = None",
+            "    if synthetic_mode and not sampling_metadata.all_random:",
+            "        uniform_probs_for_greedy = generate_uniform_probs(",
+            "            num_tokens,",
+            "            num_draft_tokens,",
+            "            sampling_metadata.generators,"
+          ]
+        },
+        {
+          "first_line": 509,
+          "last_line": 554,
+          "source": [
+            "    if not sampling_metadata.all_random:",
+            "        target_argmax = target_logits.argmax(dim=-1).view(-1)",
+            "",
+            "        if HAS_TRITON:",
+            "            rejection_greedy_sample_with_triton(",
+            "                output_token_ids,",
+            "                num_draft_tokens,",
+            "                cu_num_draft_tokens,",
+            "                draft_token_ids,",
+            "                target_argmax,",
+            "                bonus_token_ids,",
+            "                is_greedy,",
+            "                max_spec_len,",
+            "                grid,",
+            "                block_size,",
+            "                uniform_probs=uniform_probs_for_greedy,",
+            "                synthetic_conditional_rates=synthetic_conditional_rates,",
+            "                synthetic_mode=synthetic_mode,",
+            "            )",
+            "        else:",
+            "            if min(num_draft_tokens) == 1 and max(num_draft_tokens) == 1 and sampling_metadata.all_greedy:",
+            "                rejection_greedy_sample_spec_len_1_pytorch(",
+            "                    output_token_ids,",
+            "                    draft_token_ids,",
+            "                    target_argmax,",
+            "                    bonus_token_ids,",
+            "                    uniform_probs=uniform_probs_for_greedy,",
+            "                    synthetic_conditional_rates=synthetic_conditional_rates,",
+            "                    synthetic_mode=synthetic_mode,",
+            "                )",
+            "            else:",
+            "                rejection_greedy_sample_pytorch(",
+            "                    output_token_ids,",
+            "                    cu_num_draft_tokens,",
+            "                    draft_token_ids,",
+            "                    target_argmax,",
+            "                    bonus_token_ids,",
+            "                    num_draft_tokens,",
+            "                    max_spec_len,",
+            "                    is_greedy,",
+            "                    uniform_probs=uniform_probs_for_greedy,",
+            "                    synthetic_conditional_rates=synthetic_conditional_rates,",
+            "                    synthetic_mode=synthetic_mode,",
+            "                )",
+            "        if sampling_metadata.all_greedy:",
+            "            return output_token_ids"
+          ]
+        },
+        {
+          "first_line": 556,
+          "last_line": 580,
+          "source": [
+            "    # For random sampling",
+            "    vocab_size = target_logits.shape[-1]",
+            "    global_vocab_size = draft_probs.shape[-1] if draft_probs is not None else vocab_size",
+            "",
+            "    # Compute probability distribution from target logits",
+            "    target_probs = target_logits.softmax(dim=-1, dtype=torch.float32)",
+            "    assert target_probs.is_contiguous()",
+            "",
+            "    # Generate uniform probabilities for rejection sampling",
+            "    uniform_probs = generate_uniform_probs(",
+            "        num_tokens,",
+            "        num_draft_tokens,",
+            "        sampling_metadata.generators,",
+            "        device,",
+            "    )",
+            "",
+            "    # Sample recovered tokens for each position",
+            "    recovered_token_ids = sample_recovered_tokens(",
+            "        max_spec_len,",
+            "        num_draft_tokens,",
+            "        cu_num_draft_tokens,",
+            "        draft_token_ids,",
+            "        draft_probs,",
+            "        target_probs,",
+            "        sampling_metadata,"
+          ]
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "id": "REQ0",
+      "grade": "DERIVED_FROM_PINNED_CLIENT",
+      "fact": "All run_request calls submit explicit numeric zero temperature, for prefix seeds and measured requests. No truthiness-default assumption."
+    },
+    {
+      "id": "PARAM0",
+      "grade": "DERIVED_IN_PINNED_SOURCE_DOMAIN",
+      "fact": "Explicit zero bypasses only-None default; SamplingParams classifies temperature<1e-5 as GREEDY and normalizes top_p=1, top_k=0, min_p=0."
+    },
+    {
+      "id": "BATCH0",
+      "grade": "DERIVED_IN_SOURCE_MRO_DOMAIN",
+      "fact": "NPUInputBatch initializes empty greedy/random sets and defines only __init__; base add/remove/_make_sampling_metadata/all_greedy/all_random are inherited in this source MRO. Valid admitted zero-temperature requests populate greedy_reqs only; removal discards from both."
+    },
+    {
+      "id": "NONEMPTY0",
+      "grade": "DERIVED_CONDITIONAL_INVARIANT",
+      "fact": "If every valid active request has that contract, metadata is current, and the active greedy set is nonempty, random_reqs is empty: all_greedy=True and all_random=False. Empty active set instead makes both True and is not licensed as the same helper execution."
+    },
+    {
+      "id": "HELPER0",
+      "grade": "DERIVED_IN_SOURCE_DOMAIN",
+      "fact": "all_greedy skips temperature/top-k/top-p expansion in apply_sampling_constraints. In rejection_sample, !all_random enters target argmax/greedy writer; nested all_greedy returns before processed target softmax, ordinary uniform, recovery and random/block verifier."
+    },
+    {
+      "id": "KEEP0",
+      "grade": "DOCUMENTED_SOURCE_ORDER",
+      "fact": "Raw/working processors and snapshots precede helper; synthetic&&block error guard, optional ori softmax, output Fill and optional synthetic uniforms precede return. These cannot all be pruned from temperature alone."
+    },
+    {
+      "id": "NATIVE0",
+      "grade": "MEASURED_SAVED_PROFILE",
+      "fact": "72 observed greedy kernel chains corroborate greedy-capable execution; mixed requests also enter that kernel, so its presence does not identify all_greedy."
+    },
+    {
+      "id": "EPOCH0",
+      "grade": "UNKNOWN",
+      "fact": "Actual per-call effective flags, patched/loaded class/module identity, closed external admission, metadata epoch and unbound/dummy/capture cases are not directly attested. Source implication is not a global promotion."
+    }
+  ],
+  "recorded_model_runner_source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+  "installed_records_matching_model_runner_source": 16,
+  "source_binding_limit": "All saved installed records report the same model_runner source hash as this snapshot; no equivalent per-call source/flag attestation for InputBatch, SamplingParams or rejection helper is present.",
+  "guards_for_sealed_nonempty_greedy_domain": [
+    "explicit zero admitted unchanged",
+    "all valid active requests originate in this contract",
+    "chosen pinned source/MRO selects these bodies without runtime overrides",
+    "current metadata epoch, valid request ownership and nonempty greedy set",
+    "all earlier observable checks/processors/synthetic/raw/logprob/entropy/RNG effects preserved"
+  ],
+  "internal_guard_attested": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

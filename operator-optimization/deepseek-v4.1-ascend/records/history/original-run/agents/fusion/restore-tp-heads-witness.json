@@ -1,0 +1,37 @@
+{
+  "source_sha256": {
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91"
+  },
+  "cases": [
+    {
+      "world_size": 2,
+      "tokens_per_source": 2,
+      "global_heads": 4,
+      "local_heads": 2,
+      "width": 2,
+      "each_source_chunk_elements": 8,
+      "received_elements": 16,
+      "all_output_elements_checked": 32,
+      "mapping": "recv[receiver][source*tokens+token][local_head][channel] = input[source][token][receiver*local_heads+local_head][channel]"
+    },
+    {
+      "world_size": 8,
+      "tokens_per_source": 3,
+      "global_heads": 64,
+      "local_heads": 8,
+      "width": 4,
+      "each_source_chunk_elements": 96,
+      "received_elements": 768,
+      "all_output_elements_checked": 6144,
+      "mapping": "recv[receiver][source*tokens+token][local_head][channel] = input[source][token][receiver*local_heads+local_head][channel]"
+    }
+  ],
+  "limitations": [
+    "Model assumes equal-sized all_to_all_single chunks and rank-order concatenation.",
+    "Abstract index example does not execute collective, measure throughput, or prove runtime resolved config.",
+    "Actual head_dim=512; width 4 in second case abbreviates index domain."
+  ]
+}

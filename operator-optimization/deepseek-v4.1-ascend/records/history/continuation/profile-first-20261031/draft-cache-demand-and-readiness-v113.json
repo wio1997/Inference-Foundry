@@ -1,0 +1,35 @@
+{
+  "current_graph": [
+    "aux_selected→MainGEMM→full5120RMS→contextbank",
+    "metadata→context_slots/query_slots/IDs/positions",
+    "contextbank→ContextKV_l→Wc_l",
+    "IDs→embedding/HC/querynorm→QueryKV_l,Q_l",
+    "Wq_l→Attention_l",
+    "Attention_l→later_decoder_l+1"
+  ],
+  "split": "Separate the independent metadata/ID production from the current method context-bank copy;actual output,mutation,error,seed,stream andcapture epochs remain explicit. Do not move the whole mutating method blindly.",
+  "required_edges": [
+    "Wc_l(s)→Wq_l(s) on conflicting bytes if retaining both writes",
+    "Last required cache writer→each attention reader ofthat slot",
+    "all required first-layerKVreadiness→that attention tile,not necessarily every later-layer context write",
+    "layerlqueryoutput→nextlayerqueryinput;layer-specific WKV weights/norms andpositions remain distinct"
+  ],
+  "work_elision": "If Wc_l(s) has no observer before a guaranteed full Wq_l(s) overwrite,its private producer can be removed only after all other producer readers are excluded. Keep required final cache bytes andpreserve allnumeric boundaries.",
+  "context_demand": "D_l = context source rows with any remaining demanded KVoutput/cachewrite orotherobserver atlayerl.",
+  "main_demand": "D_main = union_l D_l union D_other_contextbank_readers. Only the complement ofthis union is eligible for removing context main projection/full5120norm/bankwork.",
+  "cross_layer_rule": "A row overwritten atone layer is not enough to prune F27. Differentgroups/slots/weights/masks/readers can keep it live elsewhere. Physical masks must map back to original ordered context rows.",
+  "no_full_layer_barrier_or_free_overlap_assumed": true,
+  "backend_forced_collectives_not_deleted": true,
+  "native_no_context_dummy_andzeroQ_cases_remain_distinct": true,
+  "observers_andepochs": [
+    "intermediateKV/cache readers",
+    "persistentcontextbank prefix/tail/capturedaddresses",
+    "query/context groups andCOWpagegenerations",
+    "duplicate-slot sourceorder",
+    "nextiteration queuedreaders/writers/retirement",
+    "normalmetadata/errors/RNG/seedstate",
+    "numericalcontraction/rounding andallTP/CPparticipation"
+  ],
+  "actual_allreader_or_epoch_closure_proved": false,
+  "overall_complete": false
+}

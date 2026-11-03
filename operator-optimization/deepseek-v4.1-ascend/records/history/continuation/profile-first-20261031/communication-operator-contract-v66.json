@@ -1,0 +1,57 @@
+{
+  "source_files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "original166_hash_binding": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+      "sha256": "fcee256905928917154d8dac94d6611bb83d02da441e8aa154a525ef51e6a601",
+      "original166_hash_binding": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/ops/vocab_parallel_embedding.py",
+      "sha256": "4e06e8bc22d693659818a117790ee604cda041b11d66902b49d756714d61ca0f",
+      "original166_hash_binding": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "sha256": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305",
+      "original166_hash_binding": true
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+      "original166_hash_binding": true
+    }
+  ],
+  "config_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/sampling-guard-source-v55/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8/config.json",
+  "config_sha256": "43d3b2bc55626893d59275b32e04068c0fc916f5c382eb91de73bdbade9c88f7",
+  "local_operator_clause_scope": "restore_tp_heads77-90;DSAv41_project_output208-229;Woa/Wob1754-1803;modelSPboundary895-902;vocab_standard408-435. Existingv35/v61/v65pinsreused,no remote/frameworkaudit.",
+  "facts": [
+    "restore_tp_headsreorders[localtokens,all64heads,512]intosend[TP,localtokens,8heads,512],thenuniformAlltoAll→[alltokens,8heads,512]. COMMcountisperpeer;M24count12288represents196608Bfullrankplaneand172032Bremotesend,not24576Btotal.",
+    "CurrentWoaG1[alltokens,4096]→BF16[alltokens,1024],Wob[1024,5120]→BF16partial,thenSPReduceScatter. Woa-beforeexchangeisnewall8group-weightreplication,notfreecommutationwithcurrentonegroupweight.",
+    "BeforeA2Acurrentoutputpadsqueryrowstoper_rank;afterA2Aitmaypadtohiddenrowsandtrimsbeforeprojection. Sourcefullrow/padding/CP-SPmappingmustbind;A6668vs6672andM20vs24cannotbeignored.",
+    "WobpartialBF16thenHCCLreduceisnativeprecisionboundary. Localall-groupssumrequiresmatchingnativeaccumulation/orderorapprovederrorcriterion;BF16witnessrefutesunconditionalassociativity.",
+    "HC/premixpurecopyAllGathershavedifferentdtypes. Bytepackcancombineonlywithnewlayout/ABIandsamegeneration/readiness;doNOTdowncastpremixorclaimpayloadreduction.",
+    "Threeauxgathersoccuratdifferentcheckpoints;coalescingrequiresdeferringandretainingallsources/allreaders. FutureattentionlayersdependoninterveningHcPost/FFNstate,notbatchablebyshape.",
+    "VocabularyembeddingARoutputfeedscompletefirst-layersequenceandmultiplepreprocess/raw/HC/CPreaders;AR→RSisconditionalnewownershipprotocol,notexistingclone-removal.",
+    "3192COMMopswithoutComputeInfoseparatelyretained. COMMUNICATION_SCHEDULEhas3192definitionsbutop134examplejoinsNOTIFY_RECORD/WAITbyconnection,notoneexactScheduleTASK. Countcoincidencedoesnotprovebijection.",
+    "All14720HCCLopsrankSize8;MC2EP16internalcommunication/CPU-Gloo-DPmetadataarenotmadevisiblebythiscensus. Existingv56EPmodelsremainseparate."
+  ],
+  "primary_API_references": [
+    {
+      "url": "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/80RC3alpha003/apiref/hcclapiref/CANN%208.0.RC3.alpha003%20%E9%9B%86%E5%90%88%E9%80%9A%E4%BF%A1%E6%8E%A5%E5%8F%A3%E5%8F%82%E8%80%83%2001.pdf",
+      "supports": "HcclAlltoAllsendCount/recvCountperpeer;APIaritycorroboratedbyfixedsourceP8restorelayout/nativecounts."
+    },
+    {
+      "url": "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/82RC1alpha001/API/hcclapiref/hcclcpp_07_0024.html",
+      "supports": "ReduceScatterrecvCount;inputPtimesrecvCount. OlderAPIarityreference,notcurrent9.2algorithm/capacityproof."
+    }
+  ],
+  "new_remote_source_read": false,
+  "new_model_NPU_capture_service_process_or_implementation": false,
+  "current_physical_network_ceiling_proved": false,
+  "overall_complete": false
+}

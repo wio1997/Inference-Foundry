@@ -1,0 +1,72 @@
+{
+  "generated_utc": "2026-10-31T03:59:40.131169+00:00",
+  "current_graph": [
+    "zero_pooled",
+    "pool_old_ring",
+    "ring_update",
+    "pooled_norm",
+    "index_key_then_longKV"
+  ],
+  "observed_current_pairs": 240,
+  "baseline_happens_before": [
+    [
+      "zero_pooled",
+      "pool_old_ring"
+    ],
+    [
+      "pool_old_ring",
+      "ring_update"
+    ],
+    [
+      "ring_update",
+      "pooled_norm"
+    ]
+  ],
+  "conditional_semantic_edges": [
+    {
+      "a": "zero_pooled",
+      "b": "pool_writes_completed_rows",
+      "kind": "WAW"
+    },
+    {
+      "a": "pool_old_ring_reads",
+      "b": "ring_update_same_slot",
+      "kind": "WAR"
+    },
+    {
+      "a": "pooled_BF16",
+      "b": "norm",
+      "kind": "RAW"
+    },
+    {
+      "a": "ring_update",
+      "b": "future_ring_reader",
+      "kind": "RAW_AND_GENERATION"
+    }
+  ],
+  "variants": [
+    {
+      "id": "F18-V24-A",
+      "graph": "Pool/norm value path andringmaintenance fork afteroldringread completion",
+      "status": "CONDITIONAL_DISJOINT_EFFECTS_DOMAIN"
+    },
+    {
+      "id": "F18-V24-B",
+      "graph": "Pool+norm semanticboundary withtoken-aligned zero/completeoutput andunchangedRMScontract",
+      "status": "CONDITIONAL;NOT_A_NEW_MISSING_FUSED_MATH_PRIMITIVE"
+    },
+    {
+      "id": "F18-V24-C",
+      "graph": "Flip currentTOKEN_ALIGNED flagonly",
+      "status": "EXCLUDED_IN_UNCHANGED_ARGUMENT_AND_LAYOUT_DOMAIN",
+      "reason": "Wrapperpassesoutasnormweight,eps0,andtoken-aligned metadata;nonalignedbranchusescompactrows."
+    }
+  ],
+  "limits": [
+    "Retain original BF16pool boundary and full-row RMS arithmetic.",
+    "No current barrier is removed or native scheduleimplemented.",
+    "Existing kernel nonaligned fused-math source isnot proof ofcurrentloaded path/equivalence.",
+    "F34even-state pruning cannot deleteold-read-before-write WAR."
+  ],
+  "overall_complete": false
+}

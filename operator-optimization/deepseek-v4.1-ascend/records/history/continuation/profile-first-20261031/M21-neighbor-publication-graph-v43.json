@@ -1,0 +1,81 @@
+{
+  "generated_utc": "2026-10-31T12:31:10.494185+00:00",
+  "conditional_graph": {
+    "nodes": [
+      {
+        "id": "current_forward_source_generation"
+      },
+      {
+        "id": "prepared_query_and_weights"
+      },
+      {
+        "id": "actual_quantize_done"
+      },
+      {
+        "id": "index_select_and_prepare"
+      },
+      {
+        "id": "indices_lengths_candidates_publication"
+      },
+      {
+        "id": "same_forward_reuse_readers"
+      },
+      {
+        "id": "SMLA_query_reads"
+      },
+      {
+        "id": "all_last_readers"
+      },
+      {
+        "id": "next_forward_overwrite"
+      }
+    ],
+    "edges": [
+      {
+        "a": "current_forward_source_generation",
+        "b": "prepared_query_and_weights",
+        "kind": "CORRECT_LOCAL_ROWS_AND_ROLE"
+      },
+      {
+        "a": "prepared_query_and_weights",
+        "b": "actual_quantize_done",
+        "kind": "GUARDED_QUANT_PRODUCER_OR_EXISTING_FIELDS"
+      },
+      {
+        "a": "actual_quantize_done",
+        "b": "index_select_and_prepare",
+        "kind": "WAIT_IF_EVENT_RECORDED"
+      },
+      {
+        "a": "index_select_and_prepare",
+        "b": "indices_lengths_candidates_publication",
+        "kind": "PRESERVE_ALL_OUTPUT_PLANES"
+      },
+      {
+        "a": "indices_lengths_candidates_publication",
+        "b": "same_forward_reuse_readers",
+        "kind": "SOURCE_BEFORE_CONSUMER_GENERATION"
+      },
+      {
+        "a": "same_forward_reuse_readers",
+        "b": "SMLA_query_reads",
+        "kind": "LOCAL_ROW_COUNT_AND_FIXED_FORMAT"
+      },
+      {
+        "a": "SMLA_query_reads",
+        "b": "all_last_readers",
+        "kind": "ALIAS_CAPTURE_OTHER_OBSERVERS"
+      },
+      {
+        "a": "all_last_readers",
+        "b": "next_forward_overwrite",
+        "kind": "REUSE_FENCE_NOT_POINTER_CSE"
+      }
+    ]
+  },
+  "graphs_acyclic": true,
+  "note": "Data/ordering obligations, not measured causal timing or complete actual aliases.",
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

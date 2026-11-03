@@ -1,0 +1,95 @@
+{
+  "scope": "Recorded Ascend model_runner_v1 DSpark path, pure-text frozen workload. Not all implementations or external getter observers.",
+  "profile_trigger": "The captured graph tail contains [24,20480] TensorMove before HC collapse, plus two TP gathers; eager full callchains bind the same full-HC producer contract. DSpark auxiliary context has 3x5120 input width.",
+  "question": "Does the full-HC snapshot have a tensor-content reader on this exact Ascend DSpark call path?",
+  "search": {
+    "exact_symbols": [
+      "get_mtp_target_hidden_states",
+      "_mtp_hidden_buffer"
+    ],
+    "roots": [
+      "/vllm-workspace/vllm",
+      "/vllm-workspace/vllm-ascend",
+      "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/instrumentation"
+    ],
+    "matches": 90,
+    "matched_files": 26,
+    "reason_for_installed_search": "Frozen snapshot is partial; searching the installed roots for the two exact symbols avoids treating missing frozen files as missing consumers.",
+    "broad_source_audit": false
+  },
+  "source_sha256": {
+    "vllm-ascend/vllm_ascend/models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+    "vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py": "bb98a2e2a0e24c18aafe17229eb593937aaed2e37c1fd7cc2003c45ce872d282",
+    "vllm-ascend/vllm_ascend/worker/model_runner_v1.py": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+    "vllm/vllm/v1/worker/gpu_model_runner.py": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51"
+  },
+  "narrow_reads": [
+    {
+      "file": "model.py",
+      "lines": "950-992;1595-1605 (existing v10 contract);1798-1802",
+      "answer": "Broad speculative allocation; forward copies full HC before collapse; getter is a pure buffer return."
+    },
+    {
+      "file": "vl_model.py",
+      "lines": "283-284",
+      "answer": "Getter delegates directly to the language model."
+    },
+    {
+      "file": "worker/model_runner_v1.py",
+      "lines": "2052-2124",
+      "answer": "Returned buffer replaces hidden_states only if method == mtp; both later branches use auxiliary context when enabled, otherwise the existing hidden_states. No later use of the mtp_hidden_states local."
+    },
+    {
+      "file": "gpu_model_runner.py",
+      "lines": "5190-5240",
+      "answer": "Counterexample: another implementation can rebind unconditionally when the buffer is present; preserve its contract."
+    }
+  ],
+  "scoped_answer": "DOCUMENTED: On the inspected Ascend v1 DSpark path, the full-HC getter is invoked, but the returned buffer contents are not used to replace or construct target_hidden_states. Auxiliary hidden states are a separate live consumer. This settles the direct drafter-content question for this call path.",
+  "not_global_dead_state": true,
+  "other_paths_to_preserve": [
+    "Ascend method == mtp",
+    "GPU v1 unconditional consumer",
+    "GPU v2 model_runner and speculator callers",
+    "Ascend worker/v2/model_runner.py getter caller",
+    "other models or external/public getter observers"
+  ],
+  "variants": [
+    {
+      "id": "F26a",
+      "status": "SCOPED_CONDITIONAL_CANDIDATE",
+      "change": "Suppress only the unobserved snapshot write on the supported Ascend v1 DSpark path while retaining existing gather/collapse/norm order and addresses.",
+      "numeric_effect": "No arithmetic reordering in the proposal; no implementation or numerical validation performed.",
+      "guards": [
+        "Exact active implementation and speculative method",
+        "No additional registered/external content observer",
+        "Captured output/buffer/event lifetime and parameter update contract"
+      ],
+      "logical_snapshot_bytes": 983040,
+      "byte_status": "DERIVED_LOGICAL_TENSOR_PAYLOAD_NOT_MEASURED_HBM_OR_GAIN"
+    },
+    {
+      "id": "F26b",
+      "status": "STRONGER_SEPARATE_CONDITIONAL_CANDIDATE",
+      "change": "Avoid producing the unobserved raw-HC buffer; use the existing buffer-is-None branch that collapses locally and then gathers collapsed hidden.",
+      "change_in_graph": "Two full-HC/premix gathers plus copy may be replaced by local collapse and a collapsed-hidden gather, subject to proof; existing alternative is not a newly implemented optimization.",
+      "guards": [
+        "All F26a observer/lifetime conditions",
+        "Exact BF16/FP32 product/reduction/rounding and lowering across changed local/global row shapes",
+        "TP group order, graph outputs/addresses, readiness and all normalized-hidden consumers"
+      ],
+      "speedup": null
+    }
+  ],
+  "remaining": [
+    "External/unrecorded observers and precise alias/event/lifetime contract for any edit",
+    "All normalized-hidden consumers and required row identities for row-select fusion",
+    "Numerical and collective proof for F26b",
+    "Measured resource/critical-path value"
+  ],
+  "historical_loaded_bytes_attested": false,
+  "code_changes": false,
+  "candidate_closed": false,
+  "legal_fusion_proved": false,
+  "overall_complete": false
+}

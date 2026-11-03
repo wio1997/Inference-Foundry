@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_cf3642d9-bf65-4dce-80da-f3efdc28bb6a",
+  "traceId": "3674a494-733d-4de7-b240-c81767adee6f",
+  "turnId": "turn_63748214-47e4-4587-8f6b-26483a3ca9d6",
+  "response": "核对完成：`anchor`（即查询中所说的 MC2）时长 160.365956 ms，AI CPU 与 MC2 的区间相交 95.231037 ms，通信大算子 `hcom_reduceScatter__097_209_1` 的开始比 MC2 结束晚 227.463356 ms。`relative` 中六个派生值与直接整数相减的结果逐项一致。\n\n**字段映射前提**：文件内没有出现 \"MC2\" 字样。我把 `anchor`（`taskType` 3017、`streamId` 47、`taskId` 44217、`deviceId` 8）当作 MC2 记录，依据是 `relative` 全部以 `anchor` 为基准且与 `taskType` 3014 的 `aicpu` 记录成对出现。若 MC2 指的不是这条记录，下面的数值需整体重算。\n\n**`relative` 复核**（差值与被记录值完全相等，单位 ns）：\n\n| relative 键 | 记录值 | 直接相减 |\n|---|---|---|\n| aicpu.start_from_anchor_ns | 65,134,919 | 65,134,919 |\n| aicpu.end_from_anchor_ns | 161,236,859 | 161,236,859 |\n| aicpu.start_from_anchor_end_ns | −95,231,037 | −95,231,037 |\n| comm_op.start_from_anchor_ns | 387,829,312 | 387,829,312 |\n| comm_op.end_from_anchor_ns | 388,313,282 | 388,313,282 |\n| comm_op.start_from_anchor_end_ns | 227,463,356 | 227,463,356 |\n\n**逐项结果**\n\n- **MC2 时长**：1,793,241,329,300,879,144 − 1,793,241,329,140,513,188 = **160,365,956 ns = 160.365956 ms**（整数毫秒为 160 ms 余 365,956 ns）。\n- **AI CPU 时长**：1,793,241,329,301,750,047 − 1,793,241,329,205,648,107 = 96,101,940 ns = 96.101940 ms。\n- **AI CPU ∩ MC2**：相交起点为 1,793,241,329,205,648,107，终点为 1,793,241,329,300,879,144，长度 **95,231,037 ns = 95.231037 ms**（整数毫秒为 95 ms 余 231,037 ns），占 MC2 时长的 59.3836%，占 AI CPU 时长的 99.0938%。AI CPU 起始比 MC2 起始晚 65.134919 ms，结束比 MC2 结束晚 0.870903 ms，因此是**尾部部分重叠**，不是包含关系。\n- **通信大算子相对 MC2 结束**：1,793,241,329,528,342,500 − 1,793,241,329,300,879,144 = **227,463,356 ns = 227.463356 ms**；该算子自身跨度 483,970 ns = 0.483970 ms。它与 MC2 的间隙为正，区间不相交，起点在 MC2 起始后 387.829312 ms、在 AI CPU 结束后 226.592453 ms。\n\n**适用范围**：以上仅是对同设备（`deviceId` 8）导出整数纳秒计数器的差值与区间运算，未做任何时钟校准之外的修正。三条记录 `connectionId` 不同（anchor 95418、aicpu 98566、communication_op 98554），毫秒间隙既不能推出物理链路上的传输时长，也不能推出同一请求、同一算子语义、生产者—消费者依赖、等待关系或因果关系；文件自带的 `limits` 字段也明确否认这类关联。时间戳数值一致不构成对硬件行为的证据。未修改或创建任何文件，未访问网络、服务器、NPU、权重或请求。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 58533,
+    "outputTokens": 5536,
+    "totalTokens": 64069,
+    "cacheReadTokens": 45952,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4536,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 64069,
+    "contextUsed": 17876,
+    "contextWindow": 200000
+  }
+}

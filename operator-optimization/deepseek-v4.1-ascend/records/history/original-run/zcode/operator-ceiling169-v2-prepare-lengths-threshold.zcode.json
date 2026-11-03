@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_f594d887-8f92-4c68-bd0f-f151adc6dfb7",
+  "traceId": "dfaa0d43-58e5-4c5f-88ac-cb884b48d4b0",
+  "turnId": "turn_9cc52049-2099-416d-b7c9-fd4603cffa8e",
+  "response": "## Answer\n\nThe condition passes for 1023 and 1024 rows, and fails for 1025 rows. At topk=512 the boundary sits exactly at 1024 rows and the comparison is inclusive, so 1024 is the last passing value.\n\n**Source chain** (all in `agents/fusion/frozen-source/vllm_ascend/ops/triton/prepare_indexer_indices.py`):\n\n- Line 12: `_FUSED_LENGTHS_MAX_ELEMENTS = 1024 * 512` = **524288** elements.\n- Lines 109–110: `block_cols = triton.next_power_of_2(topk)` = 512 for a 512-column TopK; `reduction_cols = max(block_cols, 32)` = **512** (the 32 floor is inactive here).\n- Line 111: `write_lengths = lengths_output is not None and num_rows * reduction_cols <= _FUSED_LENGTHS_MAX_ELEMENTS`\n\nWith `lengths_output` present, the predicate reduces to `num_rows * 512 <= 524288`, i.e. `num_rows <= 1024`:\n\n| num_rows | product | vs 524288 | margin | write_lengths |\n|---|---|---|---|---|\n| 1023 | 523776 | ≤ | +512 | True |\n| 1024 | 524288 | ≤ (equal) | 0 | True |\n| 1025 | 524800 | > | −512 | False |\n\n**Exact computation and exit code.** The numbers above came from this command, run from the task directory, using only integer arithmetic and a local re-implementation of `next_power_of_2` (no torch import, no device access, no files written):\n\n```\npython3 -c '\ndef next_power_of_2(x):\n    return 1 << (x - 1).bit_length()\nMAXE = 1024 * 512\ntopk = 512\nblock_cols = next_power_of_2(topk)\nreduction_cols = max(block_cols, 32)\nprint(\"_FUSED_LENGTHS_MAX_ELEMENTS =\", MAXE)\nprint(\"next_power_of_2(512) =\", block_cols, \" reduction_cols =\", reduction_cols)\nfor n in (1023, 1024, 1025):\n    lhs = n * reduction_cols\n    print(f\"num_rows={n:5d}  product={lhs:8d}  <= {MAXE}: {lhs <= MAXE}  margin={MAXE - lhs:+8d}  write_lengths={lhs <= MAXE}\")\n'; echo \"EXIT_CODE=$?\"\n```\n\nOutput:\n\n```\n_FUSED_LENGTHS_MAX_ELEMENTS = 524288\nnext_power_of_2(512) = 512  reduction_cols = 512\nnum_rows= 1023  product=  523776  <= 524288: True  margin=    +512  write_lengths=True\nnum_rows= 1024  product=  524288  <= 524288: True  margin=      +0  write_lengths=True\nnum_rows= 1025  product=  524800  <= 524288: False  margin=    -512  write_lengths=False\nEXIT_CODE=0\n```\n\n`EXIT_CODE=0` is the exit status of that arithmetic helper process only; it says nothing about the module under test.\n\n**What each branch does** (for context on the consequence of the predicate, not a claim of measured effect): when `write_lengths` is True, the kernel computes `tl.sum(valid.to(tl.int32), axis=1)` and stores lengths inline (lines 54–56), and line 112–113 applies `block_cols = max(block_cols, 32)` which is a no-op at 512. When it is False, the kernel is launched with `WRITE_LENGTHS=False` so the inline store is skipped, and lines 141–148 instead run `torch.sum(output >= 0, dim=-1, keepdim=True, dtype=torch.int32, out=lengths_output)` as a separate pass over the output tensor.\n\n**Scope of this result.** This is a source-level evaluation of a branch predicate under the stated shapes (`topk=512`, `lengths_output` non-None, `num_rows` in {1023,1024,1025}). It establishes only what the code computes for those inputs. It does not show that `prepare_indexer_indices` was ever invoked with these shapes in any recorded run, does not establish how often either branch was taken historically, and does not establish any performance or utilization consequence of the branch flip — no measurement, trace, or timing was performed here, and no NPU was touched. Treat it as a required condition for any dispatch claim, to be combined with captured call-site evidence before being used as a finding about actual behavior.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 33376,
+    "outputTokens": 2723,
+    "totalTokens": 36099,
+    "cacheReadTokens": 21888,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2371,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 36099,
+    "contextUsed": 14108,
+    "contextWindow": 200000
+  }
+}

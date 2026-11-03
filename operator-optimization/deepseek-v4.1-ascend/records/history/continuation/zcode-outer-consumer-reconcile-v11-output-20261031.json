@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_0f6713f8-7d9b-4441-b290-877015737b29",
+  "traceId": "59c10f72-ee08-43d0-8421-9eb932edb3ac",
+  "turnId": "turn_6c7b9794-9362-4332-8a58-205f048da751",
+  "response": "脚本已按原样执行完毕，未做任何修改。真实退出码为 **0**，共写出 **11 个 v11 文件**，111/561/90 三组守恒全部成立。\n\n## 退出码\n\n我在 `python3 .../reconcile_outer_consumers_v11.py` 执行后立即捕获到 `EXIT_CODE=0`。脚本自带的防重复保护 `assert not (O/'outer-consumer-summary-v11.json').exists()` 通过，没有出现二次覆盖。\n\n## 生成文件数\n\n脚本写入了 11 个以 v11 命名的产物，全部位于 `profile-first-20261031/`，修改时间均为 05:10：\n\n- 新生成的 10 个文件：`outer-compute-owner-ledger-v11.json`、`F26-consumer-contract-v11.json`、`PROFILE-CODE-QUESTION-REVIEW-v11.json`、`graph-copy-accounting-v11.json`、`candidate-profile-ledger-v11.json`、`module-profile-ledger-v11.json`、`module-phase-branch-matrix-v11.json`、`outer-consumer-summary-v11.json`、`module-coverage-gaps-v11.json`、`PROFILE-FINDINGS-v11.md`\n- `PROFILE-CODE-QUESTION-GATE-v11.json` 是预先准备好的输入，被脚本读取后原地重写，并追加了 `actual_source_reads`。\n\n另外，目录中另有一个 0 字节的 `zcode-outer-consumer-reconcile-v11-output-20261031.json`；它并非该脚本写入，因此我没有对它做任何操作。\n\n## 111/561/90 守恒检查\n\n| 口径 | 脚本内断言 | 我从本地产物独立复核 |\n|---|---|---|\n| 定义为 111 条 | `graph_definition_location_variants == {'1':111}`；`sum(group tasks) == 111`；`len(owners) == 111` | 七段 `[21,38,38,2,2,2,8]` 合计 **111**；台账中 `definitions` 恰好 **111** 条；111 × 11 次重放 = **1221** 条记录，与 `outer_compute_records` 一致 |\n| 复制匹配为 561 条 | `exact_interval_trace_match_count_hist == {'1':561}` | 直方图 `{'1':561}`，`graph_MEMCPY_tasks` 为 561，42 次重放 × 每次 51 条 = **561**；位置分布 4+41+6+0 = 51/次 |\n| 消费者搜索为 90 处 | `len(matches) == 90` 且 `len(matched_files) == 26` | 本地回执中 matches = **90**，覆盖 **26** 个文件，汇总里的 census 同为 90/26 |\n\n附加检查也一致：两处 Engram 的 8 项类型序列比较 8/8 通过；继承台账保留候选 32 个、模块 26 个；汇总状态为 `whole_modules_closed=0`、`overall_complete=false`。\n\n需要说明一点：脚本最后打印的 `copy_matches=561` 和 `consumer_search_matches=90` 是字面常量，但打印前有对应断言从本地回执强制校验这两个值，因此它们并非未经核验的回显；`definitions` 则是运行时计算的 `len(owners)`。\n\n## 未越界确认\n\n没有重新查询服务器。脚本只读取了本地保存的 4 个 v11 回执，其修改时间在 04:48–05:04，均早于本次运行 05:10；没有修改模型、源码或优化逻辑，只产出了上述汇总文件。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 199854,
+    "outputTokens": 8258,
+    "totalTokens": 208112,
+    "cacheReadTokens": 172928,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4990,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 208112,
+    "contextUsed": 34724,
+    "contextWindow": 200000
+  }
+}

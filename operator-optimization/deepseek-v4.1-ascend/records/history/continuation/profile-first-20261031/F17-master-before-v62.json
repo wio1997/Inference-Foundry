@@ -1,0 +1,88 @@
+{
+  "id": "F17_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "x_cast": "x_cast",
+    "compress_proj": "compress_proj",
+    "score_proj": "score_proj"
+  },
+  "nodes": [
+    {
+      "id": "x_cast",
+      "kind": "POINTWISE_CAST",
+      "resource": "NPU"
+    },
+    {
+      "id": "compress_proj",
+      "kind": "LINEAR_FP32",
+      "resource": "NPU"
+    },
+    {
+      "id": "score_proj",
+      "kind": "LINEAR_FP32",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "x_cast",
+      "consumer": "compress_proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "x_cast",
+      "consumer": "score_proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "x",
+      "consumer": "x_cast",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "compress_proj",
+      "consumer": "ring_pool",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "score_proj",
+      "consumer": "ring_pool",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v43": {
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "C1 BF16 versus C2 FP32 projections/pool, COMPRESSOR metadata wait and source cos/sin fallback are source-case bound; old index-latent read before long RoPE retained."
+  },
+  "review_v61": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-graph-chains-v61.json",
+    "work_bounds": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-work-and-reference-bounds-v61.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-and-partition-costs-v61.json",
+    "numerics": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "full_observed_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v61.json",
+    "relation": "69coreprojectionregimes/24814execplus5distinctM18lookalikes/264exec havecostmodels. 16conditional/rejectionchoices includeG1GEMM,QRquantreuse,QA+indexweight,C2joint/cast,typedproject-before-gather andBF16-preservingoutputpanels/RS. Precompositionfailsroundingandraiseswork/weights20/9.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

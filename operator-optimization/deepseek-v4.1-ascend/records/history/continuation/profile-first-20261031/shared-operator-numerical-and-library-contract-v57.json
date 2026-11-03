@@ -1,0 +1,222 @@
+{
+  "generated_utc": "2026-10-31T18:11:46.209710+00:00",
+  "caller": {
+    "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-operator-source-v57/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/shared_experts.py",
+    "sha256": "471db26e9e9e4ba70c2ccd43502ad39bff6699bbd4ca191319a9b66fc20458f9",
+    "parts": [
+      {
+        "name": "enqueue_gate_up_after_router",
+        "first_line": 455,
+        "last_line": 498,
+        "source": [
+          "    def enqueue_gate_up_after_router(",
+          "        self,",
+          "        prepared_execution: PreparedSharedExpertExecution,",
+          "        router_output_ready: torch.npu.Event | None,",
+          "    ) -> SubmittedSharedExpertGateUp:",
+          "        \"\"\"Submit Gate-Up before routed TopK/dispatch are enqueued.",
+          "",
+          "        Gate-Up remains ordered after the router through ``router_output_ready``",
+          "        but is placed on the auxiliary stream immediately, allowing its Cube",
+          "        work to cover routed TopK and dispatch instead of missing that window",
+          "        because of host-side submission order.",
+          "        \"\"\"",
+          "        path = self._select_mlp_path()",
+          "        gate_up_input_scale = None",
+          "        with npu_stream_switch(shared_experts_calculation_stream(), enabled=self.multistream_overlap):",
+          "            self._wait_for_milestone(router_output_ready, \"router_output_ready\")",
+          "            if path is SharedExpertMLPPath.A8_INT_FUSED:",
+          "                # W8A8/W4A8: INT8 activations with INT8 or INT4 weights.",
+          "                assert isinstance(prepared_execution.gate_up_input, tuple)",
+          "                quantized_x, gate_up_input_scale = prepared_execution.gate_up_input",
+          "                gate_up = torch_npu.npu_quant_matmul(",
+          "                    quantized_x,",
+          "                    self.layer.gate_up_proj.weight,",
+          "                    self.layer.gate_up_proj.weight_scale,",
+          "                    pertoken_scale=None,",
+          "                    bias=None,",
+          "                    output_dtype=torch.int32,",
+          "                )",
+          "            elif path is SharedExpertMLPPath.A8_MXFP_FUSED:",
+          "                # W4A8MXFP only: MXFP8 activations with MXFP4 weights.",
+          "                # W8A8MXFP remains on the registered linear-wrapper path.",
+          "                assert isinstance(prepared_execution.gate_up_input, tuple)",
+          "                quantized_x, pertoken_scale = prepared_execution.gate_up_input",
+          "                gate_up = self.layer.gate_up_proj((quantized_x, pertoken_scale))[0]",
+          "            else:",
+          "                gate_up = self.part1(prepared_execution.gate_up_input)",
+          "",
+          "        return SubmittedSharedExpertGateUp(",
+          "            hidden_states=prepared_execution.hidden_states,",
+          "            gate_up=gate_up,",
+          "            gate_up_input_scale=gate_up_input_scale,",
+          "            local_dp_metadata=prepared_execution.local_dp_metadata,",
+          "            path=path,",
+          "        )"
+        ]
+      },
+      {
+        "name": "_run_a8_int_mlp",
+        "first_line": 500,
+        "last_line": 564,
+        "source": [
+          "    def _run_a8_int_mlp(",
+          "        self,",
+          "        submitted_gate_up: SubmittedSharedExpertGateUp,",
+          "        milestones: RoutedMoEMilestones,",
+          "    ) -> torch.Tensor:",
+          "        \"\"\"Finish the fused W8A8/W4A8 INT-activation shared MLP.",
+          "",
+          "        Both quantization modes use INT8 activations. W8A8 supplies INT8",
+          "        weights, while W4A8 supplies INT4 weights. Gate-Up has already been",
+          "        submitted before routed TopK/dispatch; this stage performs fused",
+          "        activation/requantization and the Down projection.",
+          "        \"\"\"",
+          "        pertoken_scale = submitted_gate_up.gate_up_input_scale",
+          "        assert pertoken_scale is not None",
+          "        self._wait_for_routed_stage(",
+          "            milestones,",
+          "            milestones.shared_activation_overlap_start,",
+          "            \"shared_activation_overlap_start\",",
+          "        )",
+          "        if self.situ_activation is not None:",
+          "            quantized_x, swiglu_out_scale = torch.ops._C_ascend.dequant_situ_quant(",
+          "                x=submitted_gate_up.gate_up,",
+          "                weight_scale=self.layer.gate_up_proj.weight_scale_fp32,",
+          "                activation_scale=pertoken_scale,",
+          "                bias=None,",
+          "                quant_scale=None,",
+          "                quant_offset=None,",
+          "                group_index=None,",
+          "                beta=self.situ_activation.beta,",
+          "                linear_beta=self.situ_activation.linear_beta or 0.0,",
+          "                activate_left=True,",
+          "                quant_mode=\"dynamic\",",
+          "            )",
+          "        else:",
+          "            quantized_x, swiglu_out_scale = torch.ops._C_ascend.npu_dequant_swiglu_quant(",
+          "                x=submitted_gate_up.gate_up,",
+          "                weight_scale=self.layer.gate_up_proj.weight_scale_fp32,",
+          "                activation_scale=pertoken_scale,",
+          "                bias=None,",
+          "                quant_scale=None,",
+          "                quant_offset=None,",
+          "                group_index=None,",
+          "                activate_left=True,",
+          "                quant_mode=1,",
+          "                swiglu_mode=1,",
+          "                clamp_limit=self.swiglu_limit,",
+          "                **(",
+          "                    {}",
+          "                    if not get_current_hardware_profile().supports(HardwareCapability.FUSED_SWIGLU_TUNING_ARGS)",
+          "                    else {\"glu_alpha\": self.swiglu_alpha, \"glu_bias\": self.swiglu_beta}",
+          "                ),",
+          "            )",
+          "        self._wait_for_routed_stage(",
+          "            milestones,",
+          "            milestones.routed_combine_start,",
+          "            \"routed_combine_start\",",
+          "        )",
+          "        return torch_npu.npu_quant_matmul(",
+          "            quantized_x,",
+          "            self.layer.down_proj.weight,",
+          "            self.layer.down_proj.weight_scale,",
+          "            pertoken_scale=swiglu_out_scale,",
+          "            bias=None,",
+          "            output_dtype=submitted_gate_up.hidden_states.dtype,",
+          "        )"
+        ]
+      }
+    ]
+  },
+  "SDK_headers": [
+    {
+      "path": "/usr/local/Ascend/ascend-toolkit/latest/include/aclnnop/aclnn_grouped_matmul_swiglu_quant_weight_nz_v2.h",
+      "status": "READ",
+      "sha256": "1596da4ff7b0392cdbe8a57a7f01e498fb3df8f75df9985f667c6f1c1b801a28",
+      "bytes": 4721,
+      "local_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-operator-source-v57/usr/local/Ascend/ascend-toolkit/latest/include/aclnnop/aclnn_grouped_matmul_swiglu_quant_weight_nz_v2.h"
+    },
+    {
+      "path": "/usr/local/Ascend/ascend-toolkit/latest/include/aclnnop/aclnn_grouped_matmul_swiglu_quant_v2.h",
+      "status": "READ",
+      "sha256": "679e73bdf38240097810dde232654bef3aa110fe9a440f98c9c38c9211479999",
+      "bytes": 4698,
+      "local_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-operator-source-v57/usr/local/Ascend/ascend-toolkit/latest/include/aclnnop/aclnn_grouped_matmul_swiglu_quant_v2.h"
+    },
+    {
+      "path": "/usr/local/Ascend/ascend-toolkit/latest/include/aclnnop/aclnn_dequant_swiglu_quant_v2.h",
+      "status": "READ",
+      "sha256": "2d5e92771ebbcc7dc12dd0ed72ce5168b3a392b1b9f1b30dc832234e40d96914",
+      "bytes": 2009,
+      "local_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-operator-source-v57/usr/local/Ascend/ascend-toolkit/latest/include/aclnnop/aclnn_dequant_swiglu_quant_v2.h"
+    }
+  ],
+  "model_text_config": {
+    "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/sampling-guard-source-v55/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8/config.json",
+    "sha256": "43d3b2bc55626893d59275b32e04068c0fc916f5c382eb91de73bdbade9c88f7",
+    "H": 5120,
+    "I": 2304,
+    "swiglu_limit": 10.0
+  },
+  "profile_typed_path": "BF16→DynamicQuant(INT8,FLOATscale)→GEMM1 INT32→DequantSwigluQuant(INT8,FLOATscale)→GEMM2 BF16→BF16merge.",
+  "numerical_constraints": [
+    "SharedGEMM1 INT32 boundary differs fromroutedMC2 FP16 intermediate;do not reuseoneprecisionmodel blindly.",
+    "Caller preservesINT32gateup,FP32weight/pertokenscales,activate_leftTrue,quant_mode1,swiglu_mode1,clamp_limit andoptionalglu tuningargs.",
+    "Per-token dynamic quantization has oneoutputscale perrow;fullrow scale/reduction precedes finalINT8values. Per-tileindependent scales change the operator.",
+    "FusingDown withmerge mustpreserve the existingBF16Down rounding beforeBF16addition;it can be on-chip if allreaders/ownership/readiness permit.",
+    "GEMM1 scale operand is stilla descriptor;this analysis doesnot assume its compulsoryreads disappear merelybecauseoutput isINT32. Token-scale application is deferred in thecaller."
+  ],
+  "installed_fused_API": {
+    "name": "aclnnGroupedMatmulSwigluQuantWeightNzV2",
+    "header_present": true,
+    "matching_domain": "INT8 x/weightNZ,FP32row/weightscales,INT8out+rowScale;singleexpert requiresvalidonegroupmetadata/layout/typeadaptation.",
+    "exposed_clamp_or_swiglu_mode": false,
+    "drop_in_equivalence_proved": false,
+    "conclusion": "PublishedstandardSwiGLUformula andinstalledV2signature do not supply currentclamp10/mode1 contract. A direct replacement isnot established;clippedkernel/customvariant mustpreserve these semantics.",
+    "no_claim_all_library_variants_absent": true,
+    "active_kernel_or_python_binding_not_executed": true
+  },
+  "clamp_counterexample": {
+    "kind": "Independentreal-valuedsemanticwitness,notcurrenttensor/native test.",
+    "gate": 20,
+    "linear": 1,
+    "limit": 10,
+    "clipped": 9.999546021312975,
+    "unclipped": 19.999999958776925,
+    "observation": "Evenifone-elementINT8q is127bothways,returnedquantScale differs andchangesDown dequantization."
+  },
+  "tile_scale_counterexample": {
+    "activation": [
+      1,
+      100
+    ],
+    "fullrow_scale": 0.7874015748031497,
+    "fullrow_quant_RINT": [
+      1,
+      127
+    ],
+    "per_tile_quant": [
+      127,
+      127
+    ],
+    "observation": "A single rowScale cannot in general reconstructthefullrow result fromindependentlyquantizedtiles."
+  },
+  "safe_INT32_dot_bounds": {
+    "max_INT8_product_abs": 16384,
+    "K_up": 5120,
+    "absolute_partial_sum_bound_up": 83886080,
+    "K_down": 2304,
+    "absolute_partial_sum_bound_down": 37748736,
+    "INT32_max": 2147483647,
+    "scope": "Conventionalintegerdot withoutbias;allpartial sums fitINT32. SubsequentFP32dequant/activation/roundorder stillmust match."
+  },
+  "public_primary_references": [
+    "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-transformer/aclnnGroupedMatmulSwigluQuantWeightNzV2.md",
+    "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDequantSwigluQuantV2.md"
+  ],
+  "website_limitation": "Openreturnedclientnavigation;indexedofficialtextprovidedstandardformula/operatorpurpose. Installedheadersandpinnedcaller usedforcurrentsignature;noBrowserused.",
+  "current_loaded_object_or_binary_identity_proved": false,
+  "implementation": false,
+  "overall_complete": false
+}

@@ -1,0 +1,58 @@
+{
+  "generated_utc": "2026-10-31T04:45:16.519807+00:00",
+  "evidence_grades": [
+    "MEASURED",
+    "DOCUMENTED",
+    "DERIVED",
+    "UNKNOWN"
+  ],
+  "profile_trigger": "88 external target embedding collectives and 88 copy_ calls; exact 64 replay-root associations leave producer purity and buffer consumers unanswered by trace.",
+  "files": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/model_executor/layers/vocab_parallel_embedding.py",
+      "sha256": "d42574ac79bd7d7847548784d2272c7c40cbd93fe6cdadb15e8c2db79d2074d7"
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/worker/gpu_model_runner.py",
+      "sha256": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+      "sha256": "bb98a2e2a0e24c18aafe17229eb593937aaed2e37c1fd7cc2003c45ce872d282"
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/nn/functional.py",
+      "sha256": "f6335e443ce93ddf21ecf9d94bbb4d4a4d92e128c5bfb59826f35495c9c28703"
+    }
+  ],
+  "source_excerpt_receipt": {
+    "label": "H07-source166-v26",
+    "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/H07-source166-v26.json",
+    "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/H07-persistent-buffer-and-embedding-primitive-contract-v26.json",
+    "sha256": "d62a28af6c0ce7688c2c6748bbebe399b58986fc2def455afca65d82950989f4"
+  },
+  "reuse_capture_contract": "profile-raised-source-contract-v16.json",
+  "local_questions_answered": [
+    "All 88 recorded external primitive calls reach upstream vocab_parallel_embedding.py:85, owned by UnquantizedEmbeddingMethod.embedding:84-85.",
+    "This method calls F.embedding(input_, layer.weight) without max_norm; installed Torch functional.embedding:2457 defaults max_norm=None and :2555-2566 guards weight renorm with max_norm is not None. The Python renorm concern is excluded in this recorded call branch.",
+    "VL embed_input_ids:190-209 returns the language embedding unchanged when multimodal_embeddings is absent/empty; the nonempty merge branch must remain supported.",
+    "The upstream persistent buffer has initialization, prompt copy/fill, multimodal preprocessing, prompt text insertion, dummy/capture and randomization uses. The Ascend override has prompt CPU fill and dummy/capture uses.",
+    "In both named execute_model methods, local inputs_embeds is obtained from preprocessing and handed to forward. No direct inputs_embeds identifier handoff was found in the specifically named sample_tokens/propose_draft_token_ids methods. This is a bounded identifier result, not an alias/lifetime proof.",
+    "Reuse v16: raw-ID capture selects inputs_embeds=None; cached ACL entry replays captured storage and ignores runtime args/kwargs. Raw IDs are independently required for Engram/history/routing."
+  ],
+  "not_proved": [
+    "Actual original captured-entry input bindings, its precise hit guard and every affected rank taking the same collective schedule.",
+    "No future read of the external persistent-buffer generation through aliases, hooks, capture, branch transitions or padded tails before overwrite.",
+    "All implicit event/dependency effects remain preserved when the external collective/copy is omitted.",
+    "Any general purity statement for quantized or max_norm-enabled embedding variants, arbitrary native binaries, or all model branches.",
+    "Removable critical-path latency or numerical equivalence of an unimplemented graph transformation."
+  ],
+  "stop_rule": "The Python max_norm question is answered. Do not expand into all Torch/backend internals to repeat a conditional candidate. Only inspect a specific alias/entry/event consumer if it changes the current conclusion.",
+  "target_implementation_changed": false,
+  "whole_consumer_closure": false,
+  "overall_complete": false
+}

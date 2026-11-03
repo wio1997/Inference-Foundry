@@ -1,0 +1,103 @@
+{
+  "created_utc": "2026-10-31T03:51:05.432252+00:00",
+  "scope": "Integer address/read-set reasoning and finite abstract-state checks for TOKEN_ALIGNED=True,RATIO=2,CACHE_SIZE=32;no arithmetic kernel/device implementation.",
+  "source_semantic_proof_steps": [
+    "Write s=2q+r with r in{0,1}. Completed group indices are q+j for j>=0.",
+    "For j>=1,2(q+j)>s,so neither group member is historical.",
+    "For j=0,r=0 has no historical member; r=1 has exactly historical position2q,which is even.",
+    "All historical ring value reads therefore use even absolute positions and even slots modulo32.",
+    "If initially all even slots agree, keeping identical valid-page/tail/FP32 writes for every even position preserves this invariant after each call.",
+    "The invariant supplies identical history values to every later current-helper pool,including rollback calls; unchanged arithmetic and other inputs then produce the same pool outputs in this abstract semantic domain."
+  ],
+  "conditional_opportunity": "Study suppressing odd-position ring maintenance,or a separate16-slot representation,only if no other model/ABI consumer observes odd ring entries and all alias/page/generation contracts are preserved.",
+  "integer_cases": 12804,
+  "historical_row_cases": 6336,
+  "finite_abstract_sequences": 9,
+  "finite_abstract_updates": 59,
+  "finite_abstract_history_reads": 12,
+  "finite_checks_are_not_formal_or_native_validation": true,
+  "rollback_singleton_retention_counterexample": {
+    "initial_chunk": [
+      0,
+      6
+    ],
+    "conditional_next_chunk_start": 1,
+    "next_used_len": 1,
+    "required_old_position": 0,
+    "latest_even_position": 4,
+    "conclusion": "Retaining only the latest even token cannot supply older even positions after rollback. Preserve the needed even suffix/generation;this is not an observed acceptance event."
+  },
+  "full_state_byte_equality_counterexample": {
+    "position": 1,
+    "full_after_update": "new-generation-token1",
+    "filtered_after_update": "old-odd-slot",
+    "equal": false
+  },
+  "pool_update_norm_reorganization": {
+    "update_reads": [
+      "K_FP32",
+      "S_FP32",
+      "metadata"
+    ],
+    "update_writes": [
+      "ring_state"
+    ],
+    "norm_reads": [
+      "epsilon",
+      "norm_weight",
+      "pooled_BF16"
+    ],
+    "norm_writes": [
+      "inverse_RMS",
+      "latent_BF16"
+    ],
+    "conditional_dependency_edges": [
+      [
+        "pool_reads_old_ring",
+        "ring_update"
+      ],
+      [
+        "pool_output",
+        "norm"
+      ],
+      [
+        "ring_update",
+        "future_ring_reader"
+      ]
+    ],
+    "conclusion": "The intermediate ring_update->norm edge is not required by these disjoint abstract read/write sets. Any deferred update still must join before future ring readers and before projected inputs/metadata are reused.",
+    "preconditions": "Source operations have only listed effects;storage sets are disjoint;all aliases,metadata/page generations and asynchronous lifetimes must be bound for native execution."
+  },
+  "current_schedule_conditional_accounting": {
+    "graphs": 64,
+    "C2_blocks": 192,
+    "physical_norm_rows": 4608,
+    "completed_pair_endpoints": 2016,
+    "endpoint_fraction": 0.4375,
+    "conditional_ring_tail_rows_before": 4032,
+    "conditional_even_ring_tail_rows": 2016,
+    "bytes_per_ring_row": 4096,
+    "logical_ring_tail_write_bytes_before": 16515072,
+    "logical_even_ring_tail_write_bytes": 8257536,
+    "qualification": "Conditional host-schedule/helper-domain arithmetic across captured rank/graph/source records,not unique user tokens,measured valid device rows,actual HBM traffic or gain."
+  },
+  "storage_representation_model": {
+    "recorded_FP32_shape": [
+      17306,
+      32,
+      1024
+    ],
+    "logical_full_bytes": 2268332032,
+    "conditional16slot_logical_bytes": 1134166016,
+    "qualification": "Logical array model only. CircularBufferSpec,page padding,shared cache allocation,packed backend,graph addresses andallreaders mayprevent real allocation savings;not resident memory or a universal lower bound."
+  },
+  "remaining": [
+    "All ring consumers/aliases andstate-ABI observability",
+    "Actual metadata/skip/valid-page/padded-request payloads",
+    "Packed/backend/legacy nonTOKEN_ALIGNED domains",
+    "Native compiler/purity/lifetime/capture binding",
+    "No native fusion implementation or measured gain"
+  ],
+  "no_model_import_or_device_or_service_work": true,
+  "overall_complete": false
+}

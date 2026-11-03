@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-10-28T09:59:34.597384+00:00",
+  "source_sha256": {
+    "graphs/source-templates-G3.json": "5eb6c9c10386406f9c996f7626d4e7dd8f1f77631c034a8af486b7f9b4d54ce2",
+    "graphs/source-templates-G4.json": "1a6c9a95eb1249ff6c2f0f1daf0568f7183fb29bd141b19a8656ba312f65aa8f",
+    "evidence/frozen-serve.sh": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/ascend_config.py": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/hash_state.py": "62dd8271db66f4a735de7e9f764b3a1a4b7e66b56c352352f27093f3ef40eb38",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/embedding.py": "a7741ed16522be4fe607e062e1c988c4e2435af7d258fe7db99f672d4508c4c9",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/layer.py": "dc9457c88aa3c90133115bc608447e037b0693f8db71bb8da37f1ead44021f80",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/npu.py": "2b2594a2126ef50ee6d77f508ab8e0d2f5b360d15ea700eea0d39923af8bc64f",
+    "sources/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91"
+  },
+  "corrections": [
+    "Engram hash executes Triton kernels on NPU; host-UVA path is device kernel accessing host-mapped data, CPU reference is a separate branch.",
+    "Engram hash depends on runtime metadata, conditional cache state, and mapped/device table; retain state writes and gate inputs/outputs. Mask readiness is separate and lookup readiness occurs after conditional row exchange/gather/padding.",
+    "The five Markov/sample steps are sequential within the same drafting loop; raw logits are not the accept operation.",
+    "Dynamic confidence is disabled by the frozen shell config and default method None; configuration overrides and scheduler internals not proven.",
+    "G3 remains historical; G4 does not claim all primitive paths, execution branches, consumers or aliasing are complete."
+  ],
+  "structural_indices": {
+    "ENGRAM": {
+      "path": "candidates/engram-G4-structural-index.json",
+      "count": 23,
+      "categories": {
+        "PAIR": 8,
+        "TRIPLE": 7,
+        "MULTI_OPERATOR": 6,
+        "BRANCH_MULTICONSUMER": 2
+      }
+    },
+    "DSPARK_BOUNDARIES": {
+      "path": "candidates/dspark_boundaries-G4-structural-index.json",
+      "count": 239,
+      "categories": {
+        "PAIR": 38,
+        "TRIPLE": 60,
+        "MULTI_OPERATOR": 128,
+        "BRANCH_MULTICONSUMER": 13
+      }
+    }
+  },
+  "no_target_code_modified": true,
+  "no_device_work": true
+}

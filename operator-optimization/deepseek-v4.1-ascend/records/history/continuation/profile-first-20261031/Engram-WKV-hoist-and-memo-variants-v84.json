@@ -1,0 +1,95 @@
+{
+  "variants": [
+    {
+      "id": "F25-WKV-LOOKUP-READY",
+      "state": "CONDITIONAL_OPERATOR_REORDERING_REVIEWED",
+      "graph": "lookup/TP/SP rows ready -> WKV_BF16 ahead of layer hidden; current hidden -> original rotation/gate; join -> original BF16 gate result -> HcPre",
+      "permits": "Projection for target layer14 can be scheduled earlier than its hidden input when the exact row table is ready. Not across a weight/table/row generation change.",
+      "work_deleted": false,
+      "all_original_hash_collective_sharing_is_baseline": true,
+      "conditions": [
+        "The current target guard is active, rows[:n] and exact DP/TP/SP row/head mapping and lookup-ready generation are known. Preserve original table ownership/zeros, dtype/device/packing/native BF16 WKV numerical policy and all collective participation.",
+        "WKV layer/weight/quantizer version and packed/native algorithm contract stay fixed. Current hidden values are not inputs to WKV, but gate and following HcPre coefficients/Y still depend on current updated hidden.",
+        "Hoisted outputs have private immutable generation/row banks until last reader; old readers AND writers retire before reuse. No stale capture bank/address/ABA substitution or tensor-shape equality as value proof.",
+        "Early scheduling preserves conditional errors/side effects and the original native numerical contract. It may extend GM liveness and compete with current HF32/INT8/BF16 Cube work, Vector, memory and communications; no free overlap or removed-work claim."
+      ],
+      "actual_gain": null
+    },
+    {
+      "id": "F25-KEY-RSTD-EARLY",
+      "state": "CONDITIONAL_SCALAR_HOIST_REVIEWED",
+      "graph": "WKV_BF16 -> original key.float/square/mean/eps/rsqrt -> cached4FP32scalars pertoken; later multiply original hidden_rstd in original order",
+      "conditions": [
+        "The current target guard is active, rows[:n] and exact DP/TP/SP row/head mapping and lookup-ready generation are known. Preserve original table ownership/zeros, dtype/device/packing/native BF16 WKV numerical policy and all collective participation.",
+        "WKV layer/weight/quantizer version and packed/native algorithm contract stay fixed. Current hidden values are not inputs to WKV, but gate and following HcPre coefficients/Y still depend on current updated hidden.",
+        "Hoisted outputs have private immutable generation/row banks until last reader; old readers AND writers retire before reuse. No stale capture bank/address/ABA substitution or tensor-shape equality as value proof.",
+        "Early scheduling preserves conditional errors/side effects and the original native numerical contract. It may extend GM liveness and compete with current HF32/INT8/BF16 Cube work, Vector, memory and communications; no free overlap or removed-work claim.",
+        "Ordinary common-gate branch only (captured rotated path). Unrotated native fused-gate branch does not expose a proven compatible scalar handoff.",
+        "Preserve exact reduction/cast arithmetic and eps. Keeping BF16 KV plus only scalar may require another key read/cast later; retaining original FP32 key instead requires larger live backing."
+      ],
+      "work_deleted": false,
+      "actual_gain": null
+    },
+    {
+      "id": "F25-WKV-MEMO",
+      "state": "CONDITIONAL_CROSS_ITERATION_PURE_OUTPUT_CACHE_REVIEWED",
+      "graph": "Generation-keyed identical row content -> immutable original WKV_BF16 output; misses compute original dense WKV; every current hidden still gates freshly",
+      "key": "LayerID + exact24head IDs/full equality and table/storage/dequant/ownership versions producing identical6144BF16 rows + WKVweight/packing/device/quant/native numeric algorithm generation. RMS cache additionally keys eps/reduction policy. If ID tuple cannot certify row content use exact content/generation proof.",
+      "does_not_require_same_hidden_value": true,
+      "does_not_reuse_hidden_gate_or_HC_coefficients": true,
+      "conditions": [
+        "The current target guard is active, rows[:n] and exact DP/TP/SP row/head mapping and lookup-ready generation are known. Preserve original table ownership/zeros, dtype/device/packing/native BF16 WKV numerical policy and all collective participation.",
+        "WKV layer/weight/quantizer version and packed/native algorithm contract stay fixed. Current hidden values are not inputs to WKV, but gate and following HcPre coefficients/Y still depend on current updated hidden.",
+        "Hoisted outputs have private immutable generation/row banks until last reader; old readers AND writers retire before reuse. No stale capture bank/address/ABA substitution or tensor-shape equality as value proof.",
+        "Early scheduling preserves conditional errors/side effects and the original native numerical contract. It may extend GM liveness and compete with current HF32/INT8/BF16 Cube work, Vector, memory and communications; no free overlap or removed-work claim.",
+        "Capture-compatible output materialization, lookup/insert/eviction/lastreader protocol and miss packing remain costs. No actual duplicate/hit rate or available cache budget was recorded.",
+        "Plan here keeps current lookup/DP/TP/SP production; a hit does not automatically delete those collectives/UVA reads. Crossrank result distribution can be51200B/row versus12288B original full feature input, so no automatic8x saving.",
+        "Key equality must include every row-content dependency and use collision-safe equality. Cache output/shape-specific native tiling must preserve the original BF16 result; different M can change numerical algorithms.",
+        "Exact reuse requires deterministic or otherwise proved equivalent original BF16 WKV output, not just identical row bytes. Native determinism/shape-dependent algorithm equivalence is not newly attested."
+      ],
+      "actual_gain": null
+    },
+    {
+      "id": "F25-GATE-HC-COLLAPSE",
+      "state": "CONDITIONAL_POST_BF16_VECTOR_HANDOFF_REVIEWED",
+      "graph": "original gate BF16 E tile -> original external-premix collapse -> BF16Y -> norm; publish E for current coefficient/HcPost residual and other live readers",
+      "conditions": [
+        "The current target guard is active, rows[:n] and exact DP/TP/SP row/head mapping and lookup-ready generation are known. Preserve original table ownership/zeros, dtype/device/packing/native BF16 WKV numerical policy and all collective participation.",
+        "WKV layer/weight/quantizer version and packed/native algorithm contract stay fixed. Current hidden values are not inputs to WKV, but gate and following HcPre coefficients/Y still depend on current updated hidden.",
+        "Hoisted outputs have private immutable generation/row banks until last reader; old readers AND writers retire before reuse. No stale capture bank/address/ABA substitution or tensor-shape equality as value proof.",
+        "Early scheduling preserves conditional errors/side effects and the original native numerical contract. It may extend GM liveness and compete with current HF32/INT8/BF16 Cube work, Vector, memory and communications; no free overlap or removed-work claim.",
+        "Do not cancel the gate BF16 round (5vs4 witness). Engram-enabled boundaries cannot run HcPre on pre-gate hidden. Gate full-H norms/dot and HC full-H norm/sync are real dependencies.",
+        "Keep updated residual publication and original HcPre HF32 coefficient/A2 FLOAT input GM path. A3 Vector->Cube workspace cannot be declared gone from fusion name alone."
+      ],
+      "actual_gain": null
+    },
+    {
+      "id": "F25-DIRECT-HIDDEN-SLICE",
+      "state": "CONDITIONAL_SOURCE_COMPATIBLE_OUTPUT_BANK_REWRITE",
+      "graph": "Gate final BF16 stores directly into original hidden[:n] destination instead of private temp then source slice-copy",
+      "conditions": [
+        "The current target guard is active, rows[:n] and exact DP/TP/SP row/head mapping and lookup-ready generation are known. Preserve original table ownership/zeros, dtype/device/packing/native BF16 WKV numerical policy and all collective participation.",
+        "WKV layer/weight/quantizer version and packed/native algorithm contract stay fixed. Current hidden values are not inputs to WKV, but gate and following HcPre coefficients/Y still depend on current updated hidden.",
+        "Hoisted outputs have private immutable generation/row banks until last reader; old readers AND writers retire before reuse. No stale capture bank/address/ABA substitution or tensor-shape equality as value proof.",
+        "Early scheduling preserves conditional errors/side effects and the original native numerical contract. It may extend GM liveness and compete with current HF32/INT8/BF16 Cube work, Vector, memory and communications; no free overlap or removed-work claim.",
+        "All original hidden rotation/gate/residual readers complete before overwriting affected slots. Crossprogram full-H reduction and split view/capture aliases constrain write ordering.",
+        "Saved160MEMCPY_ASYNC records are structurally between gate Cast and HcPre but have no address/length; source slice-copy is not an exact native pointer-binding proof."
+      ],
+      "same_copy_credit_as_previous_ENG_FINAL_STORE": true,
+      "actual_gain": null
+    }
+  ],
+  "common_conditions": [
+    "The current target guard is active, rows[:n] and exact DP/TP/SP row/head mapping and lookup-ready generation are known. Preserve original table ownership/zeros, dtype/device/packing/native BF16 WKV numerical policy and all collective participation.",
+    "WKV layer/weight/quantizer version and packed/native algorithm contract stay fixed. Current hidden values are not inputs to WKV, but gate and following HcPre coefficients/Y still depend on current updated hidden.",
+    "Hoisted outputs have private immutable generation/row banks until last reader; old readers AND writers retire before reuse. No stale capture bank/address/ABA substitution or tensor-shape equality as value proof.",
+    "Early scheduling preserves conditional errors/side effects and the original native numerical contract. It may extend GM liveness and compete with current HF32/INT8/BF16 Cube work, Vector, memory and communications; no free overlap or removed-work claim."
+  ],
+  "no_new_maincandidate": true,
+  "conditional_operator_analysis_deliverable": true,
+  "implementation": false,
+  "native_test": false,
+  "actual_hit_rate": null,
+  "lookup_ready_time_or_free_hoist_window": null,
+  "overall_complete": false
+}

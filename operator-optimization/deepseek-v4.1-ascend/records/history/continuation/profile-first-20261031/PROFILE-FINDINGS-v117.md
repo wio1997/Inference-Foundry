@@ -1,0 +1,17 @@
+本轮只追查一个影响算子删除结论的问题：已有 profile 的 greedy kernel 没有列出 is_greedy BOOL，能否据此判定全批次都是 greedy？结论是不能。
+
+只读取得当前166原容器的 Triton Ascend 3.6.0+dev20260923230212 launcher 文本与 CANN9.2 profiler 头文件。aprof_pub.h 明确 MSPROF_GE_TENSOR_DATA_NUM=5、shape rank 上限8；driver 的上报循环把输入和输出放进同一个5条预算，INPUT_OUTPUT还可能占两条。它不是“最多5个输入、再加5个输出”。数据类型也只为前5个指针签名生成。shape收集会跳过 None、size失败或空shape，因此一般也不能把shape表当完整参数表。这里的反例不依赖空shape、DCE或潜在错位。
+
+拒绝采样kernel的参数顺序是：output、cu_num_draft_tokens、draft_token_ids、target_argmax、bonus_token_ids，然后才是可选 is_greedy，后面还有synthetic uniform/rates。现有3类、72次greedy执行恰好记录一个INT32输出及前四个输入 INT32/INT32/INT64/INT32。按当前上报规则，前五项已经填满报文；全greedy与混合批次、普通与synthetic模式，四种源码兼容状态都能产生完全相同的这份描述。三种几何共12个等投影参考核对通过，不能从缺少BOOL推出None，也不能从缺少uniform/rates推出synthetic关闭。
+
+这也解释了一项已有现象：88次Engram _hash_ids_kernel只记录input_ids/token_map/dead_mask/positions/block_table五个输入，输出为N/A。源码输出指针是第14个张量参数，前五项上报已饱和。N/A不能证明没有写hash IDs、没有下游读者或在CPU执行。v114的历史因子、48个INT32 ID接口、commit/rollback和参数epoch合同保持原有条件，本轮没有新增融合机会。
+
+上述结论分两层：当前安装文件的5条上限有精确源码和SHA证据；它们与已有profile前缀一致，给出不能反推标志的具体反例。但当前launcher文本和SO没有被逐任务绑定到历史72次调用，CANN控制头SHA一致也不能替代这种绑定。因此不宣称已重建历史内部标志。现有固定客户端温度0意图证据继续保留，与实际逐调用元数据区分。
+
+对融合和理论界的影响是具体的：F35随机/混合/synthetic分支继续保留条件；不能把未列出的参数当作不存在的读者、零随机副作用或可删除分支，更不能把条件预算当作本负载确定可节省的HBM字节。仍保留Fill的-1未接受后缀、提前返回之前的RNG/entropy/error/raw/logprob观察及数值、别名和跨迭代状态要求。已有纯ID和保留raw接口的必要工作模型不因上报截断而改变。本轮没有获得物理能力上界或新的数值时间下界、MFU、提速倍数。
+
+真正能改变分支结论的是与原任务绑定的launcher/source或SO digest、编译specialization key/常量、all_greedy/all_random与请求/元数据epoch，以及可选指针和提前返回前副作用的正面证据。应先复用已保存的缓存或日志；无绑定的另一枚小算子探针不能证明旧模型调用的采样标志。此项限定不会阻止继续分析其他未展开的算子关系。
+
+本轮仅stdlib路径/包元数据查询和精确只读文件复制，没有导入Triton/Torch/CANN、创建NPU上下文、capture、replay、模型推理或修改目标。一个猜测的runtime头路径不存在，已如实记录；一次本地提取遇到重复控制文件后停止，随后只在本地核对字节并提取余下文件。SSH已关闭。独立复核前置235项通过，另有78个共享输入/输出预算边界参考。v111的44B原生Pad探针仍未执行，等待其单独明确回复。
+
+覆盖数保持355条语义分支、26个暂定模块、134条条件关系、26个联合组和461对待核对；9类/1352次原生执行关键字段、849缺PMU、16个未绑定phase图及3136项含糊归属仍待补齐。0个整模块关闭，整体目标继续进行；本轮报告成稿不代表全部优化点分析完成。

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd /data/tiankuan/wio/projects/910c-deepseek-v4.1-flash
+source config/serve.env
+export PYTHONPATH="/wio-diagnostic:${PYTHONPATH:-}"
+export HOME="$PWD/home"
+export TMPDIR="$PWD/tmp"
+export XDG_CACHE_HOME="$PWD/cache/xdg"
+export HF_HOME="$PWD/cache/huggingface"
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+export VLLM_CACHE_ROOT="$PWD/cache/vllm"
+export TORCHINDUCTOR_CACHE_DIR="$PWD/cache/torchinductor"
+export TRITON_CACHE_DIR="$PWD/cache/triton"
+export ASCEND_CACHE_PATH="$PWD/cache/ascend"
+export ASCEND_WORK_PATH="$PWD/cache/ascend-work"
+export ASCEND_PROCESS_LOG_PATH="$PWD/logs/ascend"
+export ASCEND_SLOG_PRINT_TO_STDOUT=0
+export ASCEND_GLOBAL_LOG_LEVEL=3
+export PYTHONDONTWRITEBYTECODE=1
+export VLLM_USE_V2_MODEL_RUNNER=0
+export VLLM_ENGINE_READY_TIMEOUT_S=36000
+export HCCL_BUFFSIZE=1024 HCCL_OP_EXPANSION_MODE=AIV
+export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+if [[ -f /usr/lib/aarch64-linux-gnu/libjemalloc.so.2 ]]; then
+  export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libjemalloc.so.2
+fi
+# First bring-up: eager, short context, no speculative decoding.
+# Sixteen logical devices: DP2 x TP8 / EP16 with Engram CPU offload only.
+exec /usr/local/python3.12.13/bin/vllm serve /data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8 --host 0.0.0.0 --port 8172 --served-model-name dsv41 --data-parallel-size 2 --tensor-parallel-size 8 --enable-expert-parallel --api-server-count 1 --max-model-len 34816 --gpu-memory-utilization 0.9 --block-size 128 --quantization ascend --tokenizer-mode deepseek_v41 --reasoning-parser deepseek_v41 --tool-call-parser deepseek_v41 --enable-auto-tool-choice --safetensors-load-strategy lazy --model-loader-extra-config '{"enable_multithread_load":true,"num_threads":32}' --engram-config '{"cpu_offload":true,"dp_shared_memory":true}' --async-scheduling --max-num-batched-tokens 8192 --max-num-seqs 4 --seed 0 --additional-config '{"enable_cpu_binding":true,"enable_fused_mc2":1,"enable_dsa_cp":true,"enable_flashcomm1":true,"enable_shared_expert_dp":true,"ascend_compilation_config":{"enable_npugraph_ex":true,"enable_static_kernel":false}}' --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY","cudagraph_capture_sizes":[1,2,4,8,16,24],"max_cudagraph_capture_size":24}' --speculative-config '{"method":"dspark","num_speculative_tokens":5,"enforce_eager":true}' --profiler-config '{"profiler":"torch","torch_profiler_dir":"/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/diagnostics/formal","torch_profiler_with_memory":true,"torch_profiler_with_stack":true,"torch_profiler_record_shapes":true,"ignore_frontend":true,"max_iterations":3}'

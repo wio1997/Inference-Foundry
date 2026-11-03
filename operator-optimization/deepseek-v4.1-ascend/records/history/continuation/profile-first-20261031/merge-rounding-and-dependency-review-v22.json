@@ -1,0 +1,77 @@
+{
+  "created_utc": "2026-10-31T03:24:56.062909+00:00",
+  "scope": "Finite arithmetic examples and conditional DAG analysis only.",
+  "numeric_model": "Finite FP32 arithmetic rounded after each listed operation; BF16 RNE storage boundaries. No claim that native HC uses this exact precision/order.",
+  "counterexamples": [
+    {
+      "id": "N22-A",
+      "proposition": "Unconditionally delete the BF16 merge-result rounding before subsequent FP32 coefficient multiplication.",
+      "inputs": {
+        "shared": 1.0,
+        "postscaled_routed": 0.0029296875,
+        "post": 1.5,
+        "other_HC_contribution": 0
+      },
+      "merge_before_bf16": 1.0029296875,
+      "merge_bf16": 1.0,
+      "original_output": 1.5,
+      "rewritten_output": 1.5078125,
+      "conclusion": "Identity fails in the explicitly stated finite arithmetic model. The BF16 merge boundary must be preserved unless the accepted numerical contract allows a change.",
+      "limit": "Not an observed frozen-model input or validation of the loaded native HC binary."
+    },
+    {
+      "id": "N22-B",
+      "proposition": "Replace a separate BF16 routed scaling followed by plain addition with a single higher-precision scaled addition.",
+      "inputs": {
+        "shared": -2.0,
+        "routed": 1.3359375,
+        "conditional_gamma": 1.5
+      },
+      "product_before_bf16": 2.00390625,
+      "scaled_routed_bf16": 2.0,
+      "original_output": 0.0,
+      "rewritten_output": 0.00390625,
+      "conclusion": "Identity fails in the explicitly stated finite arithmetic model.",
+      "limit": "Conditional source branch only; does not claim the captured runner effective gamma equals 1.5 or differs from 1."
+    }
+  ],
+  "graph_review": {
+    "baseline_edges": [
+      [
+        "MC2_COMPLETE",
+        "SHARED_DEQUANT"
+      ],
+      [
+        "SHARED_DEQUANT",
+        "SHARED_GATE_UP"
+      ],
+      [
+        "SHARED_GATE_UP",
+        "SHARED_ACT_QUANT"
+      ],
+      [
+        "SHARED_ACT_QUANT",
+        "SHARED_DOWN"
+      ],
+      [
+        "SHARED_DOWN",
+        "MERGE"
+      ],
+      [
+        "MERGE",
+        "HC_POST"
+      ]
+    ],
+    "baseline_acyclic": true,
+    "proposed_extra_edge": [
+      "SHARED_DOWN",
+      "MC2_COMPLETE"
+    ],
+    "proposed_graph_cyclic": true,
+    "excluded_domain": "Move the shared+routed merge only into the upstream MC2 epilogue, make MC2 completion wait for SharedDown, and retain all shown baseline order edges.",
+    "conclusion": "This epilogue-only change creates a dependency cycle in the stated domain.",
+    "limit": "Not a baseline deadlock, not a theorem excluding a redesigned kernel, changed producer order, or a different stream schedule. Hardware feasibility/gain is not proved."
+  },
+  "no_model_import_or_device_or_service_work": true,
+  "overall_complete": false
+}

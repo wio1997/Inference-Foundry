@@ -1,0 +1,33 @@
+{
+  "variants": [
+    {
+      "id": "RQ95-CANONICAL-PREQUANT",
+      "decision": "CONDITIONAL_NEW_ABI",
+      "contract": "Share existing shared INT8q/FLOATscale with routing only after quantizer identity,all-row masks/generation/readers and new prequantized MC2 contract. New producer precedes MC2 and may change critical path."
+    },
+    {
+      "id": "RQ95-DUAL-QUANT",
+      "decision": "CONDITIONAL_INPUT_AND_STATISTIC_REUSE",
+      "contract": "If quantizers differ,produce both outputs with exact distinct arithmetic. Common finite nonzero amax requires compatible reduction semantics;pay extra routing q+scale storage/reads. It does not prove native sharing or remove row statistics."
+    },
+    {
+      "id": "RQ95-ROW-ALIGNED",
+      "decision": "CONDITIONAL_PARTITION_ALTERNATIVE",
+      "contract": "Align assignment intervals to full token route groups to eliminate cross-core repeat quantization;may reduce available quant partitions from18to3 forM3K6. Sort/mapping/events/banks/counters still preserved,not a measured improvement."
+    },
+    {
+      "id": "RQ95-EXPERT-SMOOTH",
+      "decision": "OUTSIDE_CURRENT_HOST_SMOOTH0;SEPARATE_DOMAIN",
+      "contract": "Perexpert smoothing can change quantized codes andscales even for the same token. Generic row-cache key cannot omit expert/smooth generation. Current hostscaleDim0=0 selects no smooth;other branches not promoted to current."
+    },
+    {
+      "id": "RQ95-QUANT-THEN-DISPATCH",
+      "decision": "BASELINE_SOURCE_REUSE_RETAINED",
+      "contract": "Current full/gather no-smooth path already reuses q inside a core interval;do not assume independent per-route quantization everywhere or treat work ratios as time ratios."
+    }
+  ],
+  "new_maincandidate": false,
+  "implementation": false,
+  "native_test": false,
+  "overall_complete": false
+}

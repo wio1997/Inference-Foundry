@@ -1,0 +1,16 @@
+这是现有 169 性能分析任务的一次简单离线整理。只运行下面这一条命令一次，返回退出码及输出；不访问服务器、不用 NPU、不搜索资料、不编辑目标源码或其他文件。若失败停止并报告。不要调用其他模型。
+
+python3 - <<'PY'
+import json, hashlib
+from pathlib import Path
+r = Path("/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41")
+p = r/'publication-draft/f16-conditional-example.json'
+j = json.loads(p.read_text())
+rows=[]
+for x in j['rows']:
+    ideal = x['logical_MAC']/j['assumed_capacity_MAC_per_s']*1e6
+    rows.append({'physical_rows':x['physical_rows'], 'projection':x['projection'], 'profiled_task_us':x['profiled_task_us'], 'nominal_compute_only_us':ideal, 'profile_over_nominal':x['profiled_task_us']/ideal})
+out={'source':'publication-draft/f16-conditional-example.json','sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'rows':rows,'limits':'Independent profiled task examples under an assumed BF16 capacity; physical rows do not prove effective rows, hard capacity or common workload. Ratios are not actual efficiency or speedup.'}
+(r/'diagnostic-20261029/moe-phase-zcode-facts.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps(out,ensure_ascii=False))
+PY

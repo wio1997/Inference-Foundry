@@ -1,0 +1,27 @@
+{
+  "original_dependency_graph": [
+    "lookup->TP/SP rows->WKV_BF16",
+    "current_hidden->originalFLOATrotation",
+    "WKV_BF16->key_rstd",
+    "(originalFLOATrotation,rawkey,channel_weight,key_rstd,mask,value,current_hidden)->gate_E_BF16",
+    "gate_E_BF16->copy_into_current_hidden_slice->HcPre",
+    "(updated_hidden,old_external_pre_mix)->Y_BF16->norm_BF16_and_widened_rounded_FLOAT->router/shared/routed",
+    "updated_hidden->HF32_AB_A2_new_coefficients",
+    "(expert_or_attention_output,updated_hidden,current_coefficients)->HcPost"
+  ],
+  "legal_hoist_frontier": "WKV/key_rstd may be ready earlier once exact row/weight generation is ready; gate and both HcPre branches must wait for updated current hidden. Current native whole-HcPre completion/SyncAll needs new visibility contract for earlyY split.",
+  "conditional_unlimited_resource_gate_ready": "max(T_hidden_ready+T_rotation_hidden_prep, T_lookup_rows_ready+T_WKV+T_key_rstd_if_prepared)+T_remaining_gate_join",
+  "conditional_unlimited_resource_post_ready": "max(T_current_coefficients_after_updated_hidden, T_collapse_Y+T_norm+T_router_experts)+T_HcPost; max models are optimistic dependency models, NOT physical lower bounds or measured speedups unless scheduling/resource premises are proved.",
+  "lower_bound_policy": "Use necessary workload/resource cuts and true dependency lower bounds. A feasible or unlimited-resource candidate schedule time must not be inverted into a universal throughput upper bound.",
+  "preserved_outputs": [
+    "updated hidden residual for currentHcPost",
+    "new pre/post/comb",
+    "any aux/fullHC snapshots",
+    "current lookup/metadata/collective publications unless separately closed"
+  ],
+  "copy_and_fusion_credit_rule": "PreviousENG-FINAL-STORE budget andnew160source-compatiblememcpyfrontier refer tosamecopy;countonce. Gate->collapse readbudget andYinterface budget aredistinct. Mandatoryupdatedhidden publication andHF32FLOATCVworkspace remain in currentownership.",
+  "implementation": false,
+  "native_test": false,
+  "new_native_legality_or_gain": null,
+  "overall_complete": false
+}

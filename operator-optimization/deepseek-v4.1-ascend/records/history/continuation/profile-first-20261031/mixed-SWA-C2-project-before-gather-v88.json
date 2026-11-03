@@ -1,0 +1,35 @@
+{
+  "N": 24,
+  "M": 3,
+  "P": 8,
+  "H": 5120,
+  "D": 512,
+  "old_full_hidden_BF16_per_rank_ring_send_reference_bytes": 215040,
+  "projected_SWA_BF16_send_reference_bytes": 21504,
+  "projected_two_C2_FLOAT_send_reference_bytes": 86016,
+  "projected_joint_typed_send_reference_bytes": 107520,
+  "joint_send_ratio": 0.5,
+  "individual_SWA_only_reference_ratio": 0.1,
+  "individual_C2_only_reference_ratio": 0.4,
+  "one_shared_input_gather_cannot_credit_two_full_baselines": true,
+  "owner_local_dense_ops": {
+    "SWA_BF16": 15728640,
+    "C2_FLOAT": 31457280
+  },
+  "original_dense_ops": {
+    "SWA_BF16": 125829120,
+    "C2_FLOAT": 251658240
+  },
+  "local_CAST_FLOAT_GM_store_read_reference_bytes": 122880,
+  "forcing_QA_into_original_global_N_plan_additional_BF16_dense_ops": 275251200,
+  "domain": "Same SP→CP owner-normalized BF16 source rows;project complete SWA/C2 outputs atowners,retain localQ,exchange exact typed planes before global C2pool/cache consumers. N24=8M only;actual padded6668/6672/830/834 and ragged maps remain separate.",
+  "conditions": [
+    "All numerical full-hidden consumers covered;source-pointer/value/weight epoch and new M-vs-N arithmetic policy preserved.",
+    "C2pool/globalroworder/oldring/score and all current/future KV/index/cache writes receive identical values.",
+    "TwoFLOATandoneBF16 planes need multiple typed collectives or bit-preserving packed ABI;startup/packing/layout/queue costs not zero.",
+    "Byte ratio1/2 and arithmeticN/M=8 are separate from runtime speedup;weight-ingress plane set is unchanged.",
+    "Q_A source localM is not globalN. A same-row jointGEMM on globalN adds redundant Qwork unless ownership algorithm changes."
+  ],
+  "actual_new_collective_or_native_precision_or_critical_path_proved": false,
+  "overall_complete": false
+}

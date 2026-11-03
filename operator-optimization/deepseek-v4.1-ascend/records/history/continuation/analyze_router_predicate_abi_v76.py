@@ -1,0 +1,147 @@
+"""Profile optional-input guards, exact ID semantics and cross-field predicate cuts.
+
+No model/torch/device work. Source-supported native variants remain distinct
+from loaded-binary attestation and actual measured improvement.
+"""
+from collections import Counter,defaultdict
+from copy import deepcopy
+from pathlib import Path
+import hashlib,ast,re
+from finalize_origin_coverage_v9 import N,O,W,read,write
+from mirror_saved_profile_core_v53 import CACHE
+from analyze_state_engram_v62 import dimensions,fullkey
+from analyze_projection_ceiling_v61 import stat
+
+
+def aligned_ID_models():
+    out=[]
+    for n,p,l in [(800,816,40),(816,816,40),(3,3,40),(2,2,3),(3,3,3)]:
+        # This is the TopK-local ID row plan,not global pre-SP draft10/20 rows.
+        pad64=8*(n+p) if p>n else 0
+        pad32=4*(n+p) if p>n else 0
+        source=l*(12*n+pad64+34*p+8)
+        same=l*(12*n+pad64+8*p)
+        i32=l*(pad32+4*p)
+        pred=4*n+(l+1)*p
+        assert source-same==l*(26*p+8)
+        out.append(dict(raw_ID_rows=n,aligned_TopK_rows=p,layers=l,source_Cast_pad_cleanup_consumer_reference_bytes=source,same_I64_no_sanitizer_reference_bytes=same,same_I64_cleanup_budget_bytes=source-same,native_I32_with_same_value_padding_reference_bytes=i32,I32_full_reference_budget_bytes=source-i32,new_BOOL_once_with_false_padded_tail_reference_bytes=pred,predicate_once_budget_bytes=source-pred,positive_sentinel_base_makes_zero_ID_padding_predicate_false=True,actual_TopK_paired_invocation_attested=False,scope='Declared ID-plane N→P row map only;not inferred from hidden shape. Positive-padding traffic is one-read/full-write value reference,private helper bytes unknown;dtype-specific implementation/packing/comm cost not priced.'))
+    return out
+
+
+def main():
+    assert not(O/'router-predicate-guard-models-v76.json').exists()
+    root=W/'frozen-source-snapshot/vllm-ascend/vllm_ascend'
+    previous_inputs=read(O/'router-vector-operator-inputs-v63.json')['files']
+    native_parts=[]
+    for suffix in ['/op_host/moe_gating_top_k_hash_tiling.cpp','/op_kernel/moe_gating_top_k_hash.cpp','/op_kernel/moe_gating_top_k_hash_without_group.h']:
+        row=next(r for r in previous_inputs if r['path'].endswith(suffix));p=Path(row['local_path'])
+        assert hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256'];native_parts.append(dict(path=str(p),sha256=row['sha256'],binding='Exact original166 source receipt router-vector-operator-inputs-v63.json;loaded native binary not attested.'))
+    files=[root/'ops/fused_moe/router/fused_topk_router.py',root/'models/deepseek_v41/model.py',root/'models/deepseek_v41/engram/hash_state.py',root/'models/common/ops/sequence_parallel.py',root/'ops/fused_moe/prepare_finalize.py',W/'initialization-source-supplement/frozen-source-snapshot/vllm/vllm/transformers_utils/configs/deepseek_v41.py',N/'sampling-guard-source-v55/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8/config.json']
+    sources=native_parts+[dict(path=str(p),sha256=hashlib.sha256(p.read_bytes()).hexdigest(),binding='Reused frozen local operator/config clause;current source interpretation only,not loaded-config/native-binary attestation.')for p in files]
+    py=files[0].read_text();model=files[1].read_text();dead_src=files[2].read_text();sp=files[3].read_text();ctor=files[5].read_text();config=read(files[6]);host=Path(native_parts[0]['path']).read_text();entry=Path(native_parts[1]['path']).read_text();kernel=Path(native_parts[2]['path']).read_text()
+    assert 'DEEPSEEK_V4_IMAGE_SENTINEL_BASE_ID = 129257'in py and'DEEPSEEK_V4_IMAGE_SENTINEL_COUNT = 5'in py
+    assert 'input_ids = torch.where(input_ids == -1, 0, input_ids)'in py
+    assert 'tokenId = tokenId == static_cast<U1>(-1) ? static_cast<U1>(0) : tokenId;'in kernel
+    assert 'inputIdsDtype != ge::DataType::DT_INT32 && inputIdsDtype != ge::DataType::DT_INT64'in host
+    assert 'vision_n_layers = vision_config.get("num_hidden_layers", 0)'in ctor
+    assert config['vision_config']['num_hidden_layers']==32
+    assert not any('image_sentinel_base_id'in d for d in [config,config['text_config']])
+    lo=129257;count=5;hi=lo+count
+    image=config['image_token_id'];pad=config.get('image_pad_token_id',image+1)
+    assert image==129264 and pad==129265
+    # Host and device use different suffix naming; compare NUMERIC tiling keys.
+    host_keys={k:int(v)for k,v in re.findall(r'const static uint64_t\s+(TILING_KEY_WITHOUT_GROUP(?:_\d+)?)\s*=\s*(\d+)',host)}
+    device_keys={k:int(v)for k,v in re.findall(r'#define\s+(TILING_KEY_WITHOUT_GROUP(?:_\d+)?)\s+(\d+)',entry)}
+    assert host_keys['TILING_KEY_WITHOUT_GROUP_1']==device_keys['TILING_KEY_WITHOUT_GROUP_2']==4
+    assert host_keys['TILING_KEY_WITHOUT_GROUP_3']==device_keys['TILING_KEY_WITHOUT_GROUP_4']==6
+    assert 'MoeGatingTopKHashWithoutGroup<DTYPE_X, int32_t, int32_t>'in entry and'MoeGatingTopKHashWithoutGroup<DTYPE_X, int64_t, int32_t>'in entry
+    selected=[r for r in read(O/'router-vector-regime-models-v63.json')['regimes']if r['operator']=='MoeGatingTopKHash']
+    assert sum(r['executions']for r in selected)==4472
+    guards=[];expert_counts=Counter();native_keys=[]
+    for r in selected:
+        sig=r['signature'];types=sig['inputDataTypes_text'].split(';');shapes=dimensions(sig['inputShapes_text']);e=shapes[0][1]
+        assert types==['FLOAT','FLOAT','INT64','DT_UNDEFINED','FLOAT']and len(shapes)==5
+        assert shapes[1]==[e]and shapes[4]==[e]and e in [128,384]
+        expert_counts[e]+=r['executions'];native_keys+=r['native_TASK_keys']
+        guards.append(dict(regime_id=r['regime_id'],executions=r['executions'],origin=r['origin'],context=r['context'],M=shapes[0][0],experts=e,native_TASK_keys=r['native_TASK_keys'],signature=sig,described_text_bias_present=True,described_vision_bias_present=True,described_token_IDs_INT64_present=True,tid2eid_DT_UNDEFINED=True,source_hashFlag_from_optional_input_presence=0,source_addBiasVl_from_optional_input_presence=1,source_requires_groupCount1_with_biasVl=True,actual_token_values_or_vision_row_population_known=False,loaded_native_tiling_blob_attested=False))
+    assert expert_counts=={384:4160,128:312}and len(native_keys)==len(set(map(tuple,native_keys)))==4472
+    write(O/'router-predicate-guard-models-v76.json',dict(regimes=guards,regime_count=len(guards),native_executions=4472,expert_populations={str(k):v for k,v in expert_counts.items()},typed_optional_input_guard_scope='All4472descriptors:tid2eid absent,IDs+text bias+vision bias present. Under pinned op ABI hash table routing disabled but image-row bias selection remains. No inference of actual IDs/which bias branch hit.',vision_config_num_hidden_layers=32,config_constructor_explanation='Flattening text_config does not remove vision_config:the pinned constructor derives vision_n_layers from top-level vision_config. Native optional input presence independently confirms both bias planes,not image-encoder execution.',router_sentinel_interval=[lo,hi],engram_image_IDs=[image,pad],overall_complete=False))
+    # C(C(x))=C(x) is an integer identity; existing INT64 route can omit caller
+    # Equal/Fill/Select while retaining cast,rowplan,stride and the same native key.
+    clean=lambda x:0 if x==-1 else x
+    pred=lambda x:lo<=clean(x)<hi
+    raw_pred=lambda x:lo<=x<hi
+    values=list(range(config['text_config']['vocab_size']))+list(range(-256,0))+[-(1<<63),-(1<<31),(1<<31)-1,(1<<63)-1,lo-1,lo,hi-1,hi]
+    for x in values:assert pred(clean(x))==pred(x)
+    i32_values=[x for x in values if -(1<<31)<=x<(1<<31)]
+    for x in i32_values:assert pred(x)==pred(int(x))==raw_pred(x)
+    cases=[(-(1<<31),-2,False),(-1,-1,False),(0,lo-1,False),(lo,hi-1,True),(hi,(1<<31)-1,False)]
+    assert sum(b-a+1 for a,b,_ in cases)==1<<32
+    for i,(a,b,result)in enumerate(cases):
+        assert pred(a)==pred(b)==raw_pred(a)==raw_pred(b)==result
+        if i:assert cases[i-1][1]+1==a
+    assert (0<=clean(-1)<5)and not(0<=-1<5) # counterexample if sentinel base were0
+    witnesses=[]
+    for x in [-1,0,lo,hi-1,hi,image,pad]:
+        witnesses.append(dict(token_ID=x,router_image_row=pred(x),engram_image_dead=x in [image,pad],engram_keep_before_validcount=x not in [image,pad]))
+    assert pred(lo)and lo not in [image,pad]and not pred(image)and image in [image,pad]
+    write(O/'router-ID-predicate-source-proof-v76.json',dict(same_INT64_ABI_cleanup_elision=dict(statement='C(C(x))=C(x),C(-1)=0,C(x)=x otherwise. Current nohash source reads prepared IDs only through IsImageRow,which applies C again. Remove private caller Equal/Fill/Select without removing its INT64 cast/rowplan;source FP32 score/bias choice and all selection/weight work unchanged.',domain='All signed INT64 IDs in the current well-formed nohash,without-group source path. No Torch fallback/general-group/current loaded-negative-ID semantics attestation.',finite_checks=len(values)),existing_INT32_route=dict(host_supported_types=['INT32','INT64'],default_absent_tid2eid_type='INT32',current_I64_numeric_key=6,source_I32_numeric_key=4,host_device_suffix_names_are_different_but_numeric_keys_match=True,complete_signed32_interval_cases=[dict(lo=a,hi=b,result=z)for a,b,z in cases],domain_cardinality=1<<32,finite_checks=len(i32_values),raw_I32_to_I64_sign_extension_preserves_predicate=True,extra_I32_kernel_source_codegen_required=False,loaded_key4_or_bridge_variant_attested=False,contiguous_stride_and_rowplan_must_be_preserved=True),positive_base_simplification=dict(lo=lo,count=count,can_omit_minus1_clean_inside_predicate_in_stated_domain=True,counterexample_base0_minus1_old=True,counterexample_base0_minus1_raw=False),cross_field_witnesses=witnesses,padding_not_function_of_ID_alone=dict(raw_ID=0,real_prefix_padding=False,zero_filled_alignment_tail_padding=True),formal_solver_or_native_test=False,raw_ID_bank_and_Engram_lookback_minus1_semantics_unchanged=True,overall_complete=False))
+    native_chains=read(O/'router-vector-graph-chains-v63.json')['chains'];assert len(native_chains)==3200
+    cleanup_times=[];all_prep_times=[];deleted_keys=[]
+    for c in native_chains:
+        s=c['router_stages'];xs=[s[k]for k in ['ID_equal','ID_fill','ID_select']]
+        assert [x['operator']for x in xs]==['Equal','Fill','SelectV2']
+        cleanup_times.append(sum(x['duration_ns']for x in xs));all_prep_times.append(s['ID_cast']['duration_ns']+cleanup_times[-1])
+        deleted_keys +=[(c['database_index'],x['TASK_rowid'])for x in xs]
+    assert len(deleted_keys)==len(set(deleted_keys))==9600
+    costs=[]
+    for m,l in [(3,40),(2,3),(3,3),(800,40),(816,40)]:
+        baseline=l*(46*m+8);same_i64=l*20*m;i32=l*4*m;bool_once=(l+5)*m
+        costs.append(dict(M=m,layers=l,source_INT64_prep_and_TopK_ID_reference_bytes=baseline,same_INT64_native_no_caller_sanitizer_reference_bytes=same_i64,same_INT64_sanitizer_budget_bytes=baseline-same_i64,same_INT64_cast_once_plus_native_consumers_reference_bytes=(12+8*l)*m,existing_v63_sanitize_once_plus_native_consumers_reference_bytes=38*m+8+8*l*m,native_I32_ID_reference_bytes=i32,native_I32_full_ID_prep_budget_bytes=baseline-i32,new_BOOL_predicate_once_reference_bytes=bool_once,new_BOOL_total_budget_bytes=baseline-bool_once,new_BOOL_incremental_budget_over_native_I32=i32-bool_once,source_raw_ID_readonly_bank_retained=True,pad_gather_pack_changes_not_priced=True,scope='Only no-extra-pad identical rowplan private preparation/consumer value references. Different dtype padding/gather/contiguous or new BOOL ABI/generation/packing costs must be repriced;not actual HBM/time savings.'))
+    assert costs[0]['same_INT64_sanitizer_budget_bytes']==3440 and costs[0]['native_I32_full_ID_prep_budget_bytes']==5360 and costs[0]['new_BOOL_predicate_once_reference_bytes']==135
+    old_model=read(O/'router-vector-fusion-costs-v63.json')['graph_ID_value_IO_model']
+    assert old_model['baseline_all_layers_bytes']==costs[0]['source_INT64_prep_and_TopK_ID_reference_bytes']and old_model['inline_budget_bytes']==costs[0]['native_I32_full_ID_prep_budget_bytes']
+    write(O/'router-predicate-fusion-costs-v76.json',dict(models=costs,aligned_ID_plane_models=aligned_ID_models(),existing_v63_I32_budget_preserved=True,newly_supported_same_INT64_current_native_ABI_route=True,graph_native_cleanup_groups=3200,graph_native_Equal_Fill_Select_records=9600,deleted_kernel_keys_if_variant_legal=deleted_keys,three_cleanup_native_TASK_sum_ns=stat(cleanup_times),all_four_prep_native_TASK_sum_ns=stat(all_prep_times),task_sums_are_not_request_critical_path_or_host_launch_counts=True,logical_bias_planes=dict(current_two_FLOAT_bias_unique_bytes_per_layer_E384=3072,current_two_FLOAT_bias_unique_bytes_per_layer_E128=1024,source_CopyInBiasAndInitExpertId_before_row_loop=True,select_one_bias_only_when_source_program_row_predicate_uniform=True,all_token_values_or_program_uniformity_known=False),theory=dict(status='SYMBOLIC_CEILING',bound='Rebuild one legal graph thenT>=max_r(Qnecessary_r/Cupper_r). ID compares/conversions/scalar loads/newBOOLpacking need their own typed capacity;do not use BF16 Cube peak for them. TopK nonlinear,sort,selected-unbiased weights and required bias data remain.',physical_HBM_or_native_Vector_capacity_attested=False,actual_request_numeric_ceiling=None),actual_measured_speedup=None,overall_complete=False))
+    variants=[
+        dict(id='F20-I64-NATIVE-NO-SANITIZER',mechanism='Keep INT64 cast and all alignment;pass its private IDs directly to the existing native nohash without-group operator,whose IsImageRow already maps-1→0.',existing_related_variant='v63ID-ONCE/ID-IN-TOPK;this same-dtype route does not require a new TopK dtype or kernel.',new_source_kernel_required=False,conditions=['Pinned native semantics include the existing-1normalization;loaded binary behavior not attested by this profile','Native fused vision path,not Torch fallback/general-group path','Remove only private Equal/Fill/Select;rebuild captured liveness,retain all ID row/pad/comm and error contracts']),
+        dict(id='F20-I32-EXISTING-SOURCE-ABI',mechanism='After unchanged row alignment,pass contiguous rawINT32 IDs through source-supported numeric tiling key4 rather than currentINT64/key6.',new_source_kernel_required=False,conditions=['INT32source values/sign-extension equivalence and same stride/rowplan','Loaded bridge/key4 availability and precision not attested;source-supported option only','Reprice INT32 pad/gather/packing and captured buffer protocol;do not assume all integer paths hash/general-group equivalent']),
+        dict(id='F20-IMAGE-PREDICATE-ONCE',mechanism='Compute token sentinel-range predicate once perinput generation/rowplan and feed BOOL flags to all eligible layer TopK consumers.',new_source_kernel_required=True,conditions=['New consumer ABI;all current hashFlag0 consumers use ID only for this predicate','Keep sentinel attrs/owner/rowmap/generation;recompute on everynewinput generation even same address','Price creation/read/write/packing/launch;do not add its whole budget to the nativeI32 alternative']),
+        dict(id='F20-SELECTIVE-BIAS-PROGRAM',mechanism='For a source program whose rows all select the same bias,load that bias plane only;single-row programs are the simplest domain.',new_source_kernel_required=True,conditions=['Do not assume actual IDs are alltext because client is plain completion','Account for uniformity scan/predicate caching/extraUB and new tiling;current copyboth-once-perprogram already amortizes over multiple rows','Keep chosen bias values and all FP32 ranking/unbiasedweight semantics']),
+        dict(id='EXCLUDED-ONE-IMAGE-BOOLEAN',mechanism='Reuse the TopK sentinel-range flag as Engram dead/keep or SPpadding mask.',new_source_kernel_required=None,conditions=['Excluded by exactpredicatewitnesses:router129257..129261 vsEngram129264/129265;realID0andpadID0differentSPflags. Shared raw ID loads require distinct outputs and matching row generations.']),
+    ]
+    for v in variants:v.update(new_main_candidate=False,actual_measured_speedup=None,loaded_native_variant_validated=False)
+    write(O/'router-predicate-fusion-variants-v76.json',dict(variants=variants,variant_count=len(variants),scope='Source-semantic routes and explicit native-binary/rowplan/alias/consumer gates;no implementation or benchmark.',overall_complete=False))
+    # Revisit only the actual prefix-zero→copy frontier. The four DMA records
+    # contain no memory operands/byte lengths in the saved common DB schema.
+    pending=read(O/'operator-analysis-coverage-ledger-v75.json')['regimes'];ids={r['regime_id']for r in pending if r['state'].startswith('REGIME_')and r['operator']=='ZerosLike'}
+    br=[r for r in read(O/'operator-shape-ceiling-ledger-v55.json')['observed_regimes']if r['regime_id']in ids];assert len(br)==2 and sum(r['executions']for r in br)==80
+    bl={fullkey(r['module_candidates'],r['operator'],r['role'],r['origin'],r['context'],r['signature']):r for r in br};assign=defaultdict(dict)
+    for a in read(CACHE/'analysis/native-PMU-complete-v18/resource-functional-attribution-and-uncertainty-v20-v3.json')['execution_assignments']:assign[a[0]][a[1]]=a
+    bool_rows=[];copycounts=Counter()
+    for db in range(32):
+        x=read(CACHE/f'analysis/native-execution-identity-v14/db-{db:02d}.json');ts={t['task_record_rowid']:t for t in x['TASK_records']};ds={d['globalTaskId']:d for d in x['COMPUTE_definitions']}
+        for tid,a in assign[db].items():
+            t=ts[tid];d=ds[t['globalTaskId']];key=fullkey(a[3],d['opType_text'],a[5],a[2],a[6],d)
+            if key not in bl:continue
+            later=[z for z in x['TASK_records']if z['globalPid']==t['globalPid']and z['streamId']==t['streamId']and z['modelId']==t['modelId']and z['startNs']>=t['endNs']]
+            later.sort(key=lambda z:(z['startNs'],z['task_record_rowid']))
+            tile=next(z for z in later if ds.get(z['globalTaskId'],{}).get('opType_text')=='Tile')
+            middle=[z for z in later if z['endNs']<=tile['startNs']];copies=[z for z in middle if z['task_type_name']=='MEMCPY_ASYNC'];copycounts[len(copies)]+=1
+            bool_rows.append(dict(database_index=db,TASK_rowid=tid,regime_id=bl[key]['regime_id'],BOOL_written_elements=24,following_HC_Tile_TASK_rowid=tile['task_record_rowid'],following_HC_Tile_signature=ds[tile['globalTaskId']],middle_native_types=dict(Counter(z['task_type_name']for z in middle)),native_copy_TASKs=copies,copy_roles_addresses_and_lengths_bound=False,field_or_reader_identity_proved=False,source_hypothesis='Compatible with None-SP-padding-mask zero followed by mask/hidden/ID/tokenmask clones;matching order/shape still not field binding.'))
+    assert len(bool_rows)==80
+    cap=read(CACHE/'analysis/profile-capabilities-index-v12-v2.json');assert cap['summary']['schema_variants']==1
+    write(O/'BOOL-prefix-copy-frontier-v76.json',dict(records=bool_rows,regimes=2,executions=80,total_known_BOOL_value_write_bytes=1920,copy_count_histogram=dict(copycounts),unchanged_assignment=['M05','M21'],copied_byte_extents_and_addresses_available_in_saved_DB=False,capability_schema_variants=1,profile_memory_flags=[p['flags']['config.common_config.profile_memory']for p in cap['profiler_infos']],local_mirrored_model_FX_or_graph_IR_found=False,server_capture_cache_file_existence_rechecked=False,pending_regimes_promoted=0,pending_executions_promoted=0,source_compatible_does_not_equal_field_proof=True,overall_complete=False))
+    write(O/'router-predicate-source-index-v76.json',dict(source_files=sources,new_remote_source_read=False,new_source_files_obtained=0,no_model_Torch_NPU_capture_service_or_process_work=True,source_scope='Only optional-input/ID/bias dispatch and exact row-predicate/config-normalization/SP-tail/Engram dead-mask clauses. One saved common DB schema inspected for memcpy descriptor fields;no repeated32DBmissing-argsaudit.',overall_complete=False))
+    # New cross-module relation disallows image/dead/padding boolean CSE while
+    # allowing conditional sharing of raw-ID preparation at the same row plan.
+    rel=deepcopy(read(O/'candidate-relation-clauses-v75.json'));assert len(rel['clauses'])==44
+    assert not any({r['a'],r['b']}=={'F20','F24'}for r in rel['clauses'])
+    rel['clauses'].append(dict(id='REL76-01',a='F20',b='F24',relation='SHARED_RAW_ID_LOAD_ONLY;DISTINCT_ROUTER_ENGRAM_PREDICATES',operator_claim='TopK hash table routing is absent in all4472descriptors but vision bias/IDpredicate remains. Router sentinel range and Engram image-dead/keep are different predicates;SPpadding also depends on row identity. Share raw-ID loads only at matching source/row generation and preserve distinct flags/history-minus1 semantics.',evidence=['router-predicate-guard-models-v76.json','router-ID-predicate-source-proof-v76.json','router-predicate-fusion-variants-v76.json'],applicable_domain='Current target/draft native nohash TopK and separate Engram current/lookback/dead/validcount contracts;do not infer actual image-row population.',conditional_compatibility=True,all_runtime_gates_proved=False,speedup_additive=False,critical_path_gain_us=None))
+    rel['clause_count']=rel['selected_pair_count']=45
+    rel['higher_order_groups'].append(dict(id='HG76-TOKEN-PREDICATES',members=['F02','F20','F24','F31'],contract='Raw IDs/embedding/error domain,TopK sentinel-bias predicate,Engram image/validcount/lookback dead propagation and SP/metadata padding flags have different semantics. Common producer/rowplan/generation may share loads but must emit distinct flags and keep raw bank/history unchanged.',scope_state='SCOPED_COMPOSITION_CONSTRAINTS_RECORDED;ALL_VARIANTS_AND_HIGHER_ORDER_CLOSURE_OPEN',all_subsets_analyzed=False,legal_joint_fusion_proved=False));write(O/'candidate-relation-clauses-v76.json',rel)
+    cg=deepcopy(read(O/'candidate-relation-coverage-v75.json'));pair=next(r for r in cg['pairs']if(r['a'],r['b'])==('F20','F24'));assert not pair['clauses'];pair.update(scope_state='SCOPED_OPERATOR_RELATION_REVIEWED_CONDITIONAL',clauses=['REL76-01'])
+    cg.update(parent_relation_index='candidate-relation-coverage-v75.json',scoped_conditional_pairs=45,remaining_pair_relations=550,higher_order_groups=10,scope='45scopedpairclauses/10groups/all35nodes;550centralpairreconciliations/full-variant/full-model discovery gates stillopen. Added token-predicate nonidentity and guarded raw-ID sharing relation.');write(O/'candidate-relation-coverage-v76.json',cg)
+    print(dict(TopK_regimes=len(guards),TopK_executions=4472,typed_nohash=4472,typed_vision_bias_present=4472,experts=dict(expert_counts),vision_layers=32,source_same_INT64_cleanup_elision=True,source_I32_numeric_key=4,current_I64_numeric_key=6,graph_cleanup_groups=3200,EqualFillSelect_native_records=9600,signed32_case_coverage=1<<32,BOOL_pending=80,BOOL_copy_counts=dict(copycounts),relations=45,central_pending=550,higher_order_groups=10,overall_complete=False))
+
+
+if __name__=='__main__':main()

@@ -1,0 +1,77 @@
+{
+  "id": "F08_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "kv": "kv",
+    "kv_norm": "kv_norm",
+    "kv_rope": "kv_rope",
+    "swa_store": "swa_store"
+  },
+  "nodes": [
+    {
+      "id": "kv",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "kv_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "kv_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "swa_store",
+      "kind": "PERSISTENT_SCATTER",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "kv",
+      "consumer": "kv_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "kv_norm",
+      "consumer": "kv_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "kv_rope",
+      "consumer": "swa_store",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "x",
+      "consumer": "kv",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "swa_store",
+      "consumer": "attention",
+      "value": "current cache subranges",
+      "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

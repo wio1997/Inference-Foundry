@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_f4a42885-9a27-40ac-942b-e8df5b064fe5",
+  "traceId": "94a570ae-2184-4ae7-8ea5-60e6f51c2a28",
+  "turnId": "turn_dddebcbb-2622-4cf1-95d5-5d28a09437b1",
+  "response": "The script exited with code 0 and printed the JSON audit. ep3_db852 values (each list is min / median / max, in microseconds):\n\n**short, n = 29**\n- `scatter_us_min_med_max`: 16.68 / 17.7 / 19.76\n- `pair_hull_us_min_med_max`: 310.86 / 330.08 / 345.54\n\n**long, n = 11**\n- `scatter_us_min_med_max`: 252.88 / 261.08 / 265.06\n- `pair_hull_us_min_med_max`: 314.1 / 324.5 / 331.3\n\n**What these numbers do not mean.** The `pair_hull` is the span of a paired record — in the short regime every pair places the matmul after the scatter (position `mat_after`, n=29), so the hull is simply the union of the scatter interval and the following matmul interval with zero overlap; the reported `outside_fraction` (median ≈ 2.24 for short) shows how much of the hull lies outside the scatter's own span. In the long regime the two intervals overlap for all 11 pairs (`overlap` position), which is why the hull min–max band is narrow (314.1–331.3) and the hull-minus-matmul excess is small (median 17.78).\n\nNone of this establishes a critical path. The script itself labels this a *selection* heuristic (\"nearest by temporal distance… no data dependency claim\") and records the limitation that the hull is a pair record span, \"not critical path, module duration, or removable end-to-end time,\" with endpoint-invariance not demonstrated. So the hull cannot be read as a lower bound on time, nor as the amount of end-to-end latency that fusion could remove — a proven speedup would require a separately derived lower bound with an explicit dependency and resource argument, which this audit does not provide. The overlap in the long regime also means the two intervals already co-execute, so subtracting them additively would be double counting.\n\nOne caveat visible in the data: the long regime has n=11 for ep3_db852 versus n=609 in the `all` aggregate, and the script's own `middle` bucket is empty (n=0) in every scope, so any conclusion drawn from the long regime rests on a small, non-empty-but-thin sample rather than a population.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 2,
+    "inputTokens": 20424,
+    "outputTokens": 834,
+    "totalTokens": 21258,
+    "cacheReadTokens": 9344,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 797,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 21258,
+    "contextUsed": 11797,
+    "contextWindow": 200000
+  }
+}

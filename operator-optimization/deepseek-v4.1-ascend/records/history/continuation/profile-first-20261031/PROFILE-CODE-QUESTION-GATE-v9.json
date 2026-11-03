@@ -1,0 +1,64 @@
+{
+  "workflow": "FULL_RETAINED_PROFILE_ORIGIN_FIRST_THEN_SPECIFIC_UNSETTLED_SEMANTICS",
+  "profile_receipts": [
+    "../profile-all-compute-origins166-v9-v2.json",
+    "../profile-origin-source-audit166-v9-v2.json"
+  ],
+  "questions": [
+    {
+      "id": "H02_METADATA_SHARING_BOUNDARY",
+      "profile": "All14821 linked native API records have full stacks. Repeated CP builder140-142, DSA builder1008-1028 and C2 metadata1327-1368 are observed, so the blanket input-prep count can be refined to actual builder paths.",
+      "question": "Which batch/group-local computations and RoPE views are already shared/deferred, and which remaining CP/C2 work has a different field/readiness/lifetime contract?",
+      "source": "Reuse prepare-input-analysis.json.sources only: dsa_v41.py SHA3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd and dsa_v41_cp.py SHA039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+      "ranges_reviewed": {
+        "dsa_v41.py": [
+          [
+            930,
+            1045
+          ],
+          [
+            1257,
+            1418
+          ]
+        ],
+        "dsa_v41_cp.py": [
+          [
+            73,
+            167
+          ]
+        ]
+      },
+      "answer_so_far": "Batch metadata and C2 lengths already share across groups; slot mappings and C2 publication remain scoped to KV groups. CP local query offsets and authoritative device-length suffix correction remain explicit. Global/local RoPE views already reuse a slice to avoid overwriting a still-referenced process-wide cache.",
+      "limits": "Counts do not prove two builders had identical input generations or that all pin/copy/sync work is redundant. Source was reused, not reacquired; no timing inferred."
+    },
+    {
+      "id": "F30_PROPOSER_POSTPROCESS_AND_CONFIDENCE",
+      "profile": "v7 already bound Markov embeddings/bias GEMMs and draft base-head calls. New all-origin query observes llm_base_proposer._run_merged_draft1534-1602 and _propose1212-1246 native postprocessing, outside the prior model-frame-only selection.",
+      "question": "Does the executed proposer path require full logits/bias/score tensors after the add/argmax, and what confidence/RNG/invalid-row contract prevents selecting only local top1 or fusing the pointwise/reduction boundary?",
+      "allowed_source": "Existing frozen vllm_ascend/spec_decode/llm_base_proposer.py only",
+      "allowed_ranges": [
+        [
+          1200,
+          1262
+        ],
+        [
+          1510,
+          1620
+        ],
+        [
+          1620,
+          1705
+        ]
+      ],
+      "required_profile_followup": "Query saved all-origin JSON for all proposer add/argmax/gather/score operations and complete parent stacks; no DB or inference rerun needed.",
+      "limits": "Source can define consumer and rounding contracts, not recover historical tensor values/aliases or exact client phase.",
+      "tail_followup_question": "Trace all local raw_logits/logits, draft_probs_step0 and early-return consumers after the observed Markov add/argmax loop; do not infer no consumer from a truncated method.",
+      "initialization_followup": {
+        "source": "Existing frozen vllm_ascend/spec_decode/dspark_proposer.py:50-78",
+        "question": "The Markov loop has a dynamic_spec branch. Which exact runtime configuration key activates that consumer? Do not treat its presence or absence of CPU samples as the resolved historical flag."
+      }
+    }
+  ],
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

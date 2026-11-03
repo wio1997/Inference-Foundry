@@ -1,0 +1,38 @@
+{
+  "generated_utc": "2026-10-31T05:45:35.657033+00:00",
+  "candidate_id": "F04",
+  "variants": [
+    {
+      "id": "F04-A",
+      "status": "ALREADY_IMPLEMENTED_CURRENT_FUSED_BOUNDARY",
+      "change": "RMSNormplusBF16/FLOAToutputproduction.",
+      "scope": "4472native/graphinstances;reviewedsourcewidensroundedBF16. Notanewfusionorspeedup."
+    },
+    {
+      "id": "F04-B",
+      "status": "CONDITIONAL_COMPOSITION_WITH_F20",
+      "change": "AvoidseparateFP32globalplane byanexactrouterconsumerthatwidensBF16internally whileBF16expert/sharedplane remains.",
+      "requires": "SameBF16rounding,FP32routerweight/accumulationandallliveconsumers;currentF.linearFLOATinterfacecannotjustreceiveadifferentdtype."
+    },
+    {
+      "id": "F04-C",
+      "status": "CONDITIONAL_LARGER_SUBGRAPH",
+      "change": "JointlyreviewHC-FFNpre/RMS/router/gatingboundaries orsharedquantizationfanout.",
+      "requires": "PreserveallHCcoefficients/residuals,normalizationparameters,FP32gateweights/IDs,bothrouted/sharedconsumers andexistingprecision/readiness;overlapsF01/F20/F22."
+    },
+    {
+      "id": "F04-D",
+      "status": "CONDITIONAL_SPLIT_REORGANIZATION",
+      "change": "Reviewrow/featuretilingorvalid-row-awareexecution forsmallM.",
+      "requires": "Fullrowreduction/rounding,actualvalidmask/padded-rowvalues,allshared/residual/auxconsumers andcross-coretimingcost;nohardwarecapacityorbenefitproof."
+    },
+    {
+      "id": "F04-E",
+      "status": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+      "change": "Removeoneplane,skipBF16rounding,cancelnormscalefromrouting,orreusehiddennormacrosslayersbysameshape.",
+      "reason": "Liveexpert/shared/routerconsumers,nonlinear/biasweightedrouting andchanginghiddenvaluesdistinguishthesechanges."
+    }
+  ],
+  "source_contract": "F04-precision-routing-and-row-contract-v29.json",
+  "overall_complete": false
+}

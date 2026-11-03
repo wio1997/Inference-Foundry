@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c6e72fff-7ba0-4976-b51d-12530be426a5",
+  "traceId": "a906b1ea-8146-4ffc-b82c-77549ccc5c12",
+  "turnId": "turn_0e3df548-a638-4ba6-a825-e9f00ca0cac2",
+  "response": "执行完成：命令只运行了一次，返回码 0，没有重试；过程中未做任何新采集、推理或服务操作。盘点对象是已完成离线解析的工作副本 DB（32 个 DB，读前读后 stat 均为 `stat_unchanged=True`），原 32 个 profile 由 `database-index.json` 的 `original_raw_unchanged` 断言保护且断言通过。\n\n**32 DB 与栈表**\n\n- 32 个 `ascend_pytorch_profiler_*.db`（16 个 rank × 2 个 profiler 窗口；目录时间戳分别对应 21:36:56 与 21:37:02 两批），合计 3,278,102,528 字节。\n- 32/32 个 DB 都含 `PYTORCH_CALLCHAINS`，全部 DB 的 schema 只有 1 个变体（`01ad5034…`），选中的表为 `PYTORCH_API / PYTORCH_CALLCHAINS / CANN_API / CONNECTION_IDS / TASK / COMPUTE_TASK_INFO`。\n- 表行数合计：`PYTORCH_API` 1,896,527；`PYTORCH_CALLCHAINS` 145,332,188；`CANN_API` 952,703；`TASK` 1,108,212；`CONNECTION_IDS` 2,531,002；`COMPUTE_TASK_INFO` 207,750。单 DB 范围：`PYTORCH_CALLCHAINS` 586,056–9,412,322，`PYTORCH_API` 37,158–99,847。\n\n**prepare / same-callmarker**\n\n- 每个 DB 的 `prepare input` 根节点都是 3 个，32 个 DB 合计 **96**。\n- 每个 DB 的 `wio_hostdiag::execute_model/%` 同调用标记也都是 3 个，合计 **96**（两个窗口各一套，16 rank 对齐）。\n\n**CPU copy / pin / sync 的栈与 shape 计数**\n\n公开回执中因体积上限只保留了第一个 DB（rank0，窗口 21:36:56）的计数，且是全窗口扫描（非窗口裁剪）：\n\n| API | records | 非空 callchain | 非空 inputShapes |\n|---|---|---|---|\n| Event::synchronize | 7 | 7 | 0 |\n| acl_memcpy_host_to_device | 235 | 235 | 0 |\n| aten::_pin_memory | 165 | 165 | 165 |\n| aten::_to_copy | 728 | 728 | 728 |\n| aten::copy_ | 1,707 | 1,707 | 1,707 |\n| aten::to | 1,977 | 1,977 | 1,977 |\n\n**profiler_info flags**\n\n32 个 `profiler_info*.json` 共 16 种组合，仅 `rank_id` 0–15 不同（每个 rank 有 2 个文件，对应两个窗口）。公共 flags 为：`record_shapes=true`、`with_stack=true`、`with_modules=true`、`profile_memory=false`、`cann_version=9.2.0`、`torch_npu_version=2.10.0.post7`。说明：v2 的公共 stdout 因超过 30KB 被脚本自行截断（`display_truncated=true`），flags 与 schema 示例未打印，但已写入远端完整结果；上述 flags 取自同一 run、同一 32 个文件、同一 `input_sha256`、同一窗口集的 v12 回执（v1，`host-profile-inventory166-v12.json`），我已核对两版 summary 的 `run_id`、`profiler_info_files=32`、`metadata_files=16`、`input_sha256=755b8230…` 完全一致。\n\n**结果 SHA 与状态**\n\n- 本次完整结果 SHA-256：`79ba556ef3855b9066392e438371a0a9d3b38ea7511269ce7ff2a6814529a095`，远端路径 `…/hostprof-20261030T212812Z-360e0c72/analysis/profile-capabilities-index-v12-v2.json`；本地回执为 `host-profile-inventory166-v12-v2.json`。\n- 控制器状态 `CAPTURED_AND_RESTORED`，恢复 `PASS_ORIGINAL_BASELINE_RESTORED`；16 个 metadata 文件事件计数 `installed=16`、`execute_enter=3712`、`execute_exit=3712`、`profiler_created=16`；`all_case_counters_valid=true`；窗口为 initial 与 later_decode_candidate，input SHA `755b823003b4d200a4590424a245cdfb484d9b8c3d0b5225a7a058790b87e8c8`。\n- 脚本自带的边界仍成立：`whole_modules_closed=0`、`overall_complete=false`，即本次只是盘点，不证明字段/数值/别名/事件合法性，也不把 166 新群体与旧 169 采集按时间戳或序号关联。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 158179,
+    "outputTokens": 9119,
+    "totalTokens": 167298,
+    "cacheReadTokens": 135296,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 6763,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 167298,
+    "contextUsed": 31390,
+    "contextWindow": 200000
+  }
+}

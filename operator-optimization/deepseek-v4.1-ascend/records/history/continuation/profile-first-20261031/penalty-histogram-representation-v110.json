@@ -1,0 +1,41 @@
+{
+  "valid_domain": "Valid request/row/parameter epochs;V>0;after -1→V sanitation tokens0..V;sentinelV ignored;per-bin counts<2^31;preserve exact INT32→FLOAT cast/native arithmetic policy.",
+  "identities": {
+    "P_jv": "OR over prompt positions of token==v",
+    "C_jv": "committed output occurrence count ofv",
+    "C_jdv": "C_jv + sum(1[spec_j[r]==v] for r<d)",
+    "O_jdv": "C_jdv>0",
+    "repetition": "P_jv OR O_jdv",
+    "frequency": "FLOAT(C_jdv)",
+    "presence": "FLOAT(O_jdv)"
+  },
+  "choices": [
+    {
+      "id": "P110-1",
+      "opportunity": "Compute output_mask predicate in penalty consumer from its already loaded INT32 count.",
+      "preserve": "Compare as INT32 before FLOAT conversion;keep source count bounds/aliases/all consumers.",
+      "new_cost": "Predicate/flags stay live in consumer;do not remove count values needed by frequency."
+    },
+    {
+      "id": "P110-2",
+      "opportunity": "Specialize prompt call-site producer to presence,optionally a packed per-request bitmap.",
+      "preserve": "Only prompt consumer set is established here;do not globally replace helper counts. Need race-free OR/ownership,initialization,packing/tails and native publication.",
+      "new_cost": "Presence construction/zeroing/word access or alternative reduction work;native atomic-bit operation support/capacity is unknown."
+    },
+    {
+      "id": "P110-3",
+      "opportunity": "One per-request prompt presence and committed-output histogram plus row-specific draft prefix deltas,instead of repeated full histories/histograms.",
+      "preserve": "Actual ragged cu/request ownership,zero-draft omission,repeated-token multiplicity andparameter/slot epochs.",
+      "new_cost": "Base count construction/updates,prefix delta access or small histogram,metadata/map/index/publish and invalidation costs."
+    },
+    {
+      "id": "P110-4",
+      "opportunity": "Penalty FLOAT result can flow into selected mask/MinTokens/forcing/argmax graph,retaining required rounding without standalone write/read.",
+      "preserve": "v108 A/B/H must see post-penalty,post-earlier-mask values;preserve finite forcing order,state effects and all raw/processed/random/logprob/mutation observers.",
+      "new_cost": "Needed score outputs and reduction/state metadata remain;no full working-plane removal if it has live readers."
+    }
+  ],
+  "integer_count_reassociation_is_not_FLOAT_penalty_reassociation": true,
+  "no_implementation_or_native_speedup": true,
+  "overall_complete": false
+}

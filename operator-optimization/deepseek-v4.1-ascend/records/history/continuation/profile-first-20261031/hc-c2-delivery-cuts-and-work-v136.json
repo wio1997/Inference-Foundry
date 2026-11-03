@@ -1,0 +1,162 @@
+{
+  "profile_geometry_models": [
+    {
+      "sender_rows": 800,
+      "global_rows": 6400,
+      "QA_rows": 800,
+      "frontiers": 24,
+      "uniform_AG_rows": 6400,
+      "original_hidden_sender_content": 8192000,
+      "original_typed_SWA_and_C2_sender_content": 4096000,
+      "with_QA_typed_sender_content": 6144000,
+      "C2_pair_current_dense_ops": 67108864000,
+      "C2_pair_owner_dense_ops": 8388608000,
+      "BF16_to_FLOAT_cast_logical_value_IO": 196608000,
+      "C2_FLOAT_weights": 20971520,
+      "SWA_BF16_weights": 5242880,
+      "HC_FLOAT_coeff_weights": 1966080,
+      "union_HC_SWA_C2_weight_contents": 28180480,
+      "with_QA_union_weight_contents": 41287680,
+      "metadata_E_B_U_and_actual_wire_HBM_or_new_native_mathmode_bound": false
+    },
+    {
+      "sender_rows": 816,
+      "global_rows": 6528,
+      "QA_rows": 816,
+      "frontiers": 24,
+      "uniform_AG_rows": 6528,
+      "original_hidden_sender_content": 8355840,
+      "original_typed_SWA_and_C2_sender_content": 4177920,
+      "with_QA_typed_sender_content": 6266880,
+      "C2_pair_current_dense_ops": 68451041280,
+      "C2_pair_owner_dense_ops": 8556380160,
+      "BF16_to_FLOAT_cast_logical_value_IO": 200540160,
+      "C2_FLOAT_weights": 20971520,
+      "SWA_BF16_weights": 5242880,
+      "HC_FLOAT_coeff_weights": 1966080,
+      "union_HC_SWA_C2_weight_contents": 28180480,
+      "with_QA_union_weight_contents": 41287680,
+      "metadata_E_B_U_and_actual_wire_HBM_or_new_native_mathmode_bound": false
+    },
+    {
+      "sender_rows": 834,
+      "global_rows": 6668,
+      "QA_rows": 830,
+      "frontiers": 3,
+      "uniform_AG_rows": 6672,
+      "original_hidden_sender_content": 8540160,
+      "original_typed_SWA_and_C2_sender_content": 4270080,
+      "with_QA_typed_sender_content": 6405120,
+      "C2_pair_current_dense_ops": 69919047680,
+      "C2_pair_owner_dense_ops": 8745123840,
+      "BF16_to_FLOAT_cast_logical_value_IO": 204840960,
+      "C2_FLOAT_weights": 20971520,
+      "SWA_BF16_weights": 5242880,
+      "HC_FLOAT_coeff_weights": 1966080,
+      "union_HC_SWA_C2_weight_contents": 28180480,
+      "with_QA_union_weight_contents": 41287680,
+      "metadata_E_B_U_and_actual_wire_HBM_or_new_native_mathmode_bound": false
+    },
+    {
+      "sender_rows": 834,
+      "global_rows": 6668,
+      "QA_rows": 834,
+      "frontiers": 21,
+      "uniform_AG_rows": 6672,
+      "original_hidden_sender_content": 8540160,
+      "original_typed_SWA_and_C2_sender_content": 4270080,
+      "with_QA_typed_sender_content": 6405120,
+      "C2_pair_current_dense_ops": 69919047680,
+      "C2_pair_owner_dense_ops": 8745123840,
+      "BF16_to_FLOAT_cast_logical_value_IO": 204840960,
+      "C2_FLOAT_weights": 20971520,
+      "SWA_BF16_weights": 5242880,
+      "HC_FLOAT_coeff_weights": 1966080,
+      "union_HC_SWA_C2_weight_contents": 28180480,
+      "with_QA_union_weight_contents": 41287680,
+      "metadata_E_B_U_and_actual_wire_HBM_or_new_native_mathmode_bound": false
+    }
+  ],
+  "cuts": [
+    {
+      "id": "ORIGINAL_TYPED_PROJECTIONS",
+      "sender_content": "SWA BF16 512 + C2 K FLOAT512 + score FLOAT512 = 5120*m; optional QA BF16 1280 adds2560*m.",
+      "receiver": "Original global pool/zero/norm and replicated ring update; global row trimming and all raw readers must close."
+    },
+    {
+      "id": "PAIR_OWNER_POOL_WITH_REPLICATED_STATE",
+      "application_content": "C2 pooled BF16:1024*E plus K+score FP32 tails:4096*U; SWA1024*T and optional QA2560*T additional. Halo source data4096*X and remote genuine history4096*B_remote if needed.",
+      "receiver": "Reconstruct original T token-aligned zero buffer and completion map, original norm/reader pipeline; install original ring tail before future demand. Delivery fanout/header/alignment/metadata, raw readers and residency additional."
+    },
+    {
+      "id": "PAIR_OWNER_POOL_WITH_STATE_OWNER",
+      "application_content": "Pooled endpoints plus current-pair halos and routed history/state-owner work; no declared numeric byte minimum.",
+      "receiver": "New state-owner routing/migration/page-generation/rollback/capture protocol required; current local ring ABI cannot be reused unchanged."
+    }
+  ],
+  "fixed_count_rule": "For separate fixed-count collectives: pooled per-sender cap1024*max_p e_p; tail cap4096*max_p u_p. Independent sum of caps is an upper provisioning reference; a jointly packed per-sender buffer may instead use max_p(1024*e_p+4096*u_p), plus metadata/alignment. E/P and U/P are not safe caps without distribution proof.",
+  "reference": {
+    "T": 6400,
+    "P": 8,
+    "sender_rows": 800,
+    "segments": [
+      {
+        "s": 0,
+        "n": 3200,
+        "base": 0
+      },
+      {
+        "s": 0,
+        "n": 3200,
+        "base": 3200
+      }
+    ],
+    "E": 3200,
+    "U": 64,
+    "per_sender_completed": [
+      400,
+      400,
+      400,
+      400,
+      400,
+      400,
+      400,
+      400
+    ],
+    "per_sender_tail": [
+      0,
+      0,
+      0,
+      32,
+      0,
+      0,
+      0,
+      32
+    ],
+    "per_sender_even_tail": [
+      0,
+      0,
+      0,
+      16,
+      0,
+      0,
+      0,
+      16
+    ],
+    "cross_owner_current_pair_halos": 0,
+    "aggregate_C2_value_content": 3538944,
+    "fixed_count_C2_content_per_sender": 540672,
+    "fixed_count_C2_even_only_content_per_sender": 475136,
+    "with_SWA_fixed_per_sender": 1359872,
+    "with_SWA_QA_fixed_per_sender": 3407872,
+    "wrong_mean_tail_cap": 32768,
+    "full_tail_cap": 131072,
+    "original_C2_pair_sender_content": 3276800,
+    "original_hidden_sender_content": 8192000,
+    "actual_profile_metadata_or_even_observer_closure_proved": false
+  },
+  "retention": "After pool, deferred update can retain an explicit FP32 tail snapshot rather than all projected rows if all other readers and metadata generations are closed; copy/queue/visibility costs remain. Even-only F34 savings cannot be added to unchanged full-state ABI.",
+  "theory": "SYMBOLIC_CEILING: T>=sup_lambda(lambda.W_necessary)/beta_joint_upper only with a mandatory servicedomain, one initial warm grant and valid joint-capacity upper. These logical plane contents/dense references do not establish HBM traffic, physical MFU, latency or optimality.",
+  "new_device_work": false,
+  "overall_complete": false
+}

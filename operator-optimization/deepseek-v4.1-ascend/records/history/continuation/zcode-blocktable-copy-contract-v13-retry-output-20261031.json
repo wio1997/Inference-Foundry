@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_65357725-0a75-446a-ab51-bf2522a4c29a",
+  "traceId": "68c07dd1-0bee-4c09-8c63-b516dd0c075e",
+  "turnId": "turn_c471eaf6-c877-48ee-9f6d-f0c75f0c8768",
+  "response": "重试成功。同一条命令只执行了一次，未改动凭据或脚本。\n\n**真实结果**\n- runner rc = 0，远端脚本 rc = 0，stderr 为空（这次没有 SSH 255）。\n- `result_sha256` = `443d6f94ba872c51adf3985b679ce86f9ac734127ff0840fadeacd84a86e16f3`\n- 本地 receipt 文件（`blocktable-copy-contract166-v13-retry.json`）sha256 = `6ed469ca0c190c6e85dad5c3a59d0f3a4aeae1d3b87ca558bc4b9362b44e82aa`\n\n**只读了两个明确文件**\n\n1. `vllm_ascend/worker/block_table.py`，sha256 `215305c699a9df9c118f47c6f7b71d8457ef54e98b5b8571536fd373de7b21ed`\n   - 单表 `commit_block_table` 在 298–299 行，只有一句 `self.block_table.copy_to_gpu(num_reqs)`。\n   - 多表包装类的 `commit_block_table` 在 519–521 行，对 `self.block_tables` 逐个调用，因此一次 root 级 commit 会扇出为每张物理表一次 H2D。\n   - 该文件的 `dirty_or_generation_symbols` 为空——这里没有 dirty 关键字。\n\n2. `vllm/v1/utils.py`，sha256 `5b6015d60ea96ab24b0f2e0b7701abaa90d6107bca01b51ac3d4bc361fbdfcff`\n   - `copy_to_gpu` 在 139–143 行：按 `n` 切片后执行 `gpu.copy_(cpu.pin_memory() if PIN_MEMORY else cpu, non_blocking=True)`，即每张表一次非阻塞 pinned H2D。\n   - 命中的 “generation” 全部是 814–867 行的 `num_generation_requests/tokens` 统计字段，不是 dirty 标志；两个文件都没有被 dirty 关键字门控的拷贝路径。\n\n**关于 13 与 88 的口径**：1144 恰好等于 13 × 88，即每 root 一次 commit、每次对 13 张物理表各发一次 H2D，与代码里 `MultiBlockTable` 的逐表循环完全吻合。但这 13 张是各自独立的物理 block table（各有自己的 tensor 和行布局），不能当作同一份数据合并或去重；2064 次 helper 调用无法由这两个文件解释。本次为只读代码合同读取，未导入目标、未做全仓 AST、未触碰设备或服务。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 50392,
+    "outputTokens": 4617,
+    "totalTokens": 55009,
+    "cacheReadTokens": 40192,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3658,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 55009,
+    "contextUsed": 14311,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,21 @@
+本轮补齐 F01–F28/F29/F30/F31/F35：HC 与草稿初始化、context/query、Markov/confidence、metadata 及目标采样的条件关系。整体目标仍未完成。
+
+104组已有草稿入口，通过repeat和seed的精确API/CID确定CPU调用窗口，关联312个decoder层：1872个HC阶段TASK、416个最终collapse TASK及208个repeat/seed TASK，共2496个。16组dummy与88组proposal调用栈分开；它们不是同一client/request/迭代或实际tensor bank身份的证明。另复核72组既有target辅助均值前沿，其mean在当前HC之前，输入来自上一FFNPost。
+
+数据边界明确：target attention前的HC weighted Y、target最终归一化输出、三个checkpoint均值、main_proj/main_norm后的context、draft embedding以及draft最终未归一化collapse互不等价。5120维形状相同不能合并。辅助均值观察的是进入配置层的完整残差，不是该层HCPre的weighted Y。
+
+草稿首层的四通道repeat和FP32 onehot premix允许研究有限数值域内的collapse捷径、广播残差表示及首系数投影重组。但数据相关系数仍供Post和后续pre4，firstPost仍需要初始残差；原算子的连续4H输入ABI不能自动接受新广播表示。Inf×0会使onehot表达式出现NaN；参考FP32累加反例也说明实数权重预折叠不自动保持舍入。没有宣称新的native数值等价。
+
+目前三层context预计算都早于draft repeat。若seed、输入ID、mask、位置和slot metadata已就绪，可研究让embedding、HC及Query准备与context预计算重叠，在每层SWA真正读取前等待它需要的cache行，并保留重叠slot的WAW顺序。它不把context当成query输入，也不自动减少矩阵计算。将context投影延迟到每层query就绪再联合打包，是另一个版本；它会延长全局context bank的读者期限，不能同时领取提前退休的收益。三个draft层或target/draft的同形权重也没有被证明相同。
+
+1536个任意服务时间的三层完整前沿DAG保留了系数/Post/FFN和context就绪期限。加入资源代价后992组较快、544组较慢；理想组合中768组的单项收益之和重复计算了共同缩短的时间，768组与单项之和相同。这些说明组合必须联合计价，不是实测胜率、可达速度或物理上限。当前模型采用充分的全前沿等待，没有把它说成不可拆的全算子barrier。dummy的None-metadata零输出仍单独保留。
+
+draft最终collapse是BF16加权和，不是另一次HcPre。其未归一化结果在可选confidence路径中仍有读者；给LM head的RMS结果不能替代。构造例中两个不同原值经BF16 RMS可得到同一结果，而原值的confidence线性观察不同，因此不能仅因logits已经产生就删除raw collapse。
+
+当前proposal的seed来自当前采样输出计算的next-ID，在decoder之前已写入输入准备；decoder之后复制到输出第0列不等于此时才生成seed。五步Markov有真实ID递归，之后的可选confidence/keep只可能影响后续兼容的验证前缀。若反用这个keep裁剪当前decoder或metadata，会形成“metadata→decoder→confidence→keep→metadata”的依赖环。随后target接受/拒绝还会产生新的next-ID/count，不能由旧proposal keep预测。相同shape、总行数或graph bucket也不足以复用mask、slot和请求世代bank。
+
+目标采样的最终行需求可以有条件限制末层Query/Post/FFN结果，但不能越过必要KV和状态写入边界删除更早层的HC行。构造的causal attention只选择最后一个Query，仍需要另一token的KV：删掉它会把结果6改成10。原始score、重复/有序head行、RNG、bonus、accepted-state及zero-query的cache效果均保留。
+
+原始profile的13个数据库有部分stack ID缺失字符串；本轮2496个选中TASK所需正帧全部解析成功。缺失ID被保留，不补造callchain，也不据此断言路径未运行。脚本修正及原始缺口已登记。
+
+条件关系157→162，待核对438→433，联合组仍26。F01与其它34个主候选的中央两两关系均已在明确范围内条件核对；F01自身的全部分支、实现变体、native合法性及高阶组合仍未关闭。35主候选、7历史框架记录、358语义行/26模块、4472次SP关联、854节点/1346边/48提示的部分图不变。9类/1352次原生证据、849个PMU缺口、16个phase未绑定图、3136项归属歧义仍待补齐；整模块关闭0，全模块物理MFU与最低时间尚未建立。没有新增服务器或NPU运行。

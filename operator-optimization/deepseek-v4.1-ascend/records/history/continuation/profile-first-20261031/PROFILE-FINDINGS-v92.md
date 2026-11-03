@@ -1,0 +1,25 @@
+本轮只围绕上游monolithic Triton过滤kernel的算子问题，核对四个函数及最小NPU路由条款；没有导入Torch、编译kernel或访问服务器。当前profile没有提供此随机过滤路径的执行/参数正证，源码合同与实际A3可运行性保持分开。
+
+先扣除已经实现的融合：首次全词表扫描已合并max/min、有限项计数和outlier压缩；两个top-k pivot共用一次候选读取；pivot的质量和最小值/重复数也共用一次扫描；最终mask已在同一个kernel内。不能再将这些记为新收益。一个kernel仍可能包含多轮依赖扫描：五处while均有18轮或容差退出，搜索范围按分支为outlier前缀O或完整V。
+
+重要的新限制是1e-9近似同值统计。helper对“新最小值”使用严格比较，对“同值计数”使用abs差<1e-9，且遇到更小值时会重置计数。设epsilon=1e-9，按0再epsilon/2合并得到计数2，反序得到1；0、epsilon/2、epsilon/5按不同括号分组得到3与2。这不是可任意树形归约的min/count幺半群。相同数据跨不同tile边界也会改变结果，因此不能把8192改为4096或拆行后无序合并当作数值等价。
+
+可以保留原8192逻辑tile，让各program先生成同样的tile局部count/mass/min/near-count，再由小合并阶段按原顺序更新。整数计数、FP32质量累加和每轮pivot依赖均需保持其合同。V=129280有16个原tile；两pivot top-k局部摘要每行每轮384B，单pivot top-p为192B，另计写回和读取。它可能增加行内并行度，但每轮新增handoff/launch和原生局部归约结果仍未定，不能按program数量推定提速。
+
+这段kernel也不能简单视作标准精确TopK。源码计数的标量模型中，一行前面为0、最后为1，k=2时，18轮回退后正pivot仅保留1项；常量行的pivot达到max则最终guard不做mask、保留全部。该例子使用同样的分支、计数及退出公式，不是已安装CANN kernel的实测结果。它足以说明不能跳过迭代回退、重复项和最终guard，直接套用精确排序合同。v91的Sort32服务界也不适用于这个没有full-sort的pivot算法。
+
+Exp复用须按操作数判断。standalone top-p的前两次全行扫描确实计算相同exp(originalL−max_sample)，可研究第一遍存E、第二遍读E，代价是增加4BV逻辑存储、减少BV次Exp。顺序扫描时，整个tile先读完再向前压缩，可原地覆盖；并行tile可能覆盖其他program尚未读取的E，需要屏障或独立bank。fallback仍须重建完整P。post-k分支第三遍的Exp来自选择后的masked logits，第四遍却来自原buffer logits；它们不是可无条件CSE的同一表达式。
+
+standalone归一化shift取首块mean+10std，并非全行max。首8192项为0而后部有1000时，该shift不能保证FP32 Exp有限。在线稳定max或全局max方案可能改善数值范围，但会改变现有舍入和18轮搜索轨迹，必须作为新的数值合同分析，不能偷偷替换。复用同一调用的sample/max/min也不能消掉仍需计算Exp分母的扫描，且当前编译器是否已消除部分重复load尚未取证。
+
+另一种重组是虚拟最终mask：输出active标志、pivot、duplicate logit和quota，让后续consumer从同一原始L生成完全相同的过滤值。近似重复组须按原词表序号计数，包括未通过严格pivot的同组值；inactive guard必须返回原L，不能把原-inf改为其他mask值。该谓词通过15360组模型对照。若filtered logits或原地修改仍有读者，就必须保留原输出或调整ABI；新的softmax/argmax消费者也须另证原生数值。
+
+可选prefix bank每行17个uint32条目，帮助后续分块定位重复项配额。descriptor-only方案可少一次最终全行读写接口，但要重算部分group/prefix；保留一次prefix生产扫描的方案仅省masked输出存储的一部分。描述符、prefix、多次consumer读取、额外比较、生命周期和启动均另计，不能把两方案额度直接叠加。
+
+缓存workspace按(device,dtype,V)索引，没有stream或调用generation。相同地址证明分配复用，不能证明激活内容可重用或允许并发覆盖。源码六种BUFFER分支只读取本调用已写的O/O2/V前缀；因此隔离新bank不需要复制旧内容，但必须保留前缀、行与last-read协议。B=2/4、num_sm≥B的声明分配中，单bank为1034240/2068480B；并发新bank和readonly表的ready状态均需计价。
+
+成本共68个声明场景，分别记录O/V范围、1或18轮、standalone是否重建P、源请求load/store和Exp/Div工作；不把它们当作实际HBM流量。每行完整FLOAT workspace为517120B，大于单AIV 196608B UB，仅排除整行驻留方案；小O仍可研究有上限的片上bank，需为其他活跃向量留空间。源码每行一个逻辑program不等于已证明每program一个AIV，48-AIV峰值与B-program条件界分别保留，也没有观测频率缩放。
+
+已验证4096组原tile有序摘要、1944组充分分隔/精确同值域、15360组虚拟mask与1024组顺序原地压缩。它们是源语义/数学模型检查，没有原生性能结论。八项条件变体及五条局部组合关系已记录，中央候选pair/group数量没有因内部变体而增加。
+
+G7新增16行monolithic子图节点、28行边，当前部分图724/1187行与版本绑定；这不是唯一算子或全分支覆盖率。累计354条分支记录、24个语义模块；115条条件关系、24组联合合同，中央仍有480对待汇入或复核。2073个regime/285598次执行已作条件分析，9个regime/1352次仍待补；849条PMU缺失、16张阶段未绑定图、3136条模块归属歧义不变。整体任务继续，没有整模块关闭。

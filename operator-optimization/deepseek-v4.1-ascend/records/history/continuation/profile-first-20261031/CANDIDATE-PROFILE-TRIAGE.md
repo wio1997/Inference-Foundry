@@ -1,0 +1,44 @@
+# 候选的 Profile 证据分级
+
+32个既有候选全部登记，26个暂定模块关联。只是完整登记和部分切片复核；未证明全范围分析完成。
+
+|候选|本轮profile状态|仍影响判断的缺口|下一步|
+|---|---|---|---|
+|F01|EXISTING_COMPOSITE_OBSERVED_FURTHER_BOUNDARIES_OPEN|复合边界已出现；内部阶段和系数消费者没有由任务标签展开。|在现有target/draft窗口分别检查HcPre输入输出与相邻调用，不把复合调用再计新增融合。|
+|F02|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|embedding行与首层四路mHC输入尚无同调用内容/身份绑定。|先定位首层scope中的embedding、初始化、系数投影及norm记录，区分启动、prefill和decode。|
+|F03|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|跨层残差版本、多消费者和生命周期没有由相邻任务证明。|连接同rank相邻层post/pre窗口，查Engram、aux及tail交叉消费者的已有scope/flow。|
+|F04|EXISTING_COMPOSITE_OBSERVED_FURTHER_BOUNDARIES_OPEN|已观察到norm/cast复合边界；尚未证明内部重新组织等价。|对target/draft各自对应的RmsNormCast记录复核shape/dtype与后继，不重复计已有复合段。|
+|F05|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|同形量化记录尚不等于同一Q归一化值；indexer旁路消费者须保留。|复用F05/F09已存host-scope和量化关联，逐调用区分Q_b与index query的消费。|
+|F06|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|共享输入及CP行域未由family汇总绑定。|先查Q/KV两投影scope的输入shape、stream和gather前后行域，核对已存双投影host-flow样本。|
+|F07|SELECTED_PROFILE_SLICE_REVIEWED|所选记录有交叠和事件标签，但缺event对象配对及Q/RoPE实际tensor身份。|已读1920窗及9窗27事件记录；复用现有局部等待/别名合同，历史事件身份继续保留为运行时缺口。|
+|F08|SELECTED_PROFILE_SLICE_REVIEWED|1280个选定三任务scope不是tensor身份、实际有效槽或全部持久消费者证明。|已读全部选定三任务和320个T4760交叠分类；复用局部cache合同，实际slot/alias属于运行时缺口。|
+|F09|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|query的行/head归约域及scale消费者尚未由汇总绑定。|先核对已存shared-QR量化调用scope，定位投影→RoPE→量化的flow与head形状。|
+|F10|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|FP16舍入和query-scale分叉不能由算子名或时长确定。|先在已存indexer提交栈与selected scope中绑定weight投影、cast/scale和query scale消费者。|
+|F11|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|分页key/scale状态和实际stride、rounding消费者没有由时间相邻闭合。|先核对key侧任务与cache写入的host-scope、shape和分支，复用既有F11绑定审计。|
+|F12|SELECTED_PROFILE_SLICE_REVIEWED|两个提交栈可定位调用位置，不能证明输出ID→prepare输入实际tensor边或跨层行版本。|已读CONNECTION_IDS和两个callchain；下一步复用prepare/发布的局部合同，真实长度和运行值保留缺口。|
+|F13|EXISTING_COMPOSITE_OBSERVED_FURTHER_BOUNDARIES_OPEN|复合attention任务已经存在，内部稀疏/SWA分支和所有可观察输出未由标签展开。|先核对所有选定attention scope的shape、索引和cache角色，不重复计已有复合调用。|
+|F14|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|attention后同形RoPE的角色、layout及投影消费者仍需逐调用关联。|利用已有pre/post RoPE筛选，查post-attention候选到布局恢复和输出投影的scope/flow。|
+|F15|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|CP padding/恢复、有效行和通信所有权尚未由类型汇总证明。|先关联已有CP投影scope、restore任务及collective记录，保留有效行与padding差别。|
+|F16|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|两级投影之间的数值边界与逐块collective可见性不由记录时长推出。|先复核已存两投影host-flow-device样本、通信组/count/连接，再区分受限dense模型与通用融合域。|
+|F17|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|Compressor双投影的实例归属、行stride和ring消费者尚未由GEMM同形证明。|先按已有compressor scope绑定两投影、FP32路径、pool和ring更新，避免按全局MatMul计量。|
+|F18|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|状态池化与norm的tensor版本、历史页和舍入语义没有被RmsNorm标签证明。|先定位已存pool/norm的同调用scope及状态写入，查全部导出消费者和phase。|
+|F19|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|latent两路分叉及跨层持久发布没有由family名称证明。|先定位compressor/index-key/压缩KV的分支scope与写入，核对现有跨片段发布映射。|
+|F20|SELECTED_PROFILE_SLICE_REVIEWED|已存320组pad/where/gate栈支持提交位置；ID内容、全消费者和历史binary身份仍缺。|先复核320组pad/gate/MC2键和已有栈审计；已有整数映射合同可复用，运行值缺口不能靠再读源码补出。|
+|F21|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|外部复合任务已存在；内部资源争用、ready flag与实际分阶段耗时未由一个区间展开。|复用MC2到达、其他流事件及166同调用计数证据；各采集域分开，禁止旧profile时长与新计数同调用拼接。|
+|F22|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|激活量化段已是复合调用；gate/up半区的块就绪与scale发布没有由类型名证明。|先核对shared expert投影→DequantSwigluQuant→down的同scope签名和既有消费者审计。|
+|F23|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|shared/routed归约域、scale和BF16边界没有由add或collective标签闭合。|先关联merge、scaling/add和HC的实际通信分支scope，区分两分支归约和重复工作。|
+|F24|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|四个精确Engram kernel只覆盖局部，不覆盖全部host/UVA生命周期和物理流量。|先复用精确kernel→CANN连接、host查找与ready/event记录，查投影和后续消费者的已有scope。|
+|F25|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|Engram gate/residual与全局GEMM同名不能建立模块归属或残差版本。|先用Engram相关已存scope/flow绑定投影、gate与residual，不把全部同形MatMul归给Engram。|
+|F26|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|tail collapse/norm和MTP条件消费者、独立buffer生命周期未由decoder窗口覆盖。|先查尾部及MTP的既有scope、copy和消费者记录，区分启动分配、写入与数值消费。|
+|F27|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|辅助上下文投影的token/output分片所有权不能由shape推断。|先核对DSpark context投影、通信group和行域的已有scope，查off-diagonal信息来源。|
+|F28|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|draft embedding/初始化是否重复及状态消费者尚未逐调用绑定。|先结合strict draft窗口和已有first-draft scope，定位embedding、HC init与decoder输入。|
+|F29|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|context buffer的dtype、slot容量和跨层消费者不由target形状候选替代。|先按draft/context独立scope核对投影、cache写入、metadata copy及空请求/padding记录。|
+|F30|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|target/draft词表、bonus和拒绝分支未由全局ArgMax/GEMM名称区分。|先绑定sampling/rejection与logits的已有CPU栈、词表shape和请求temperature；区分greedy与概率分支。|
+|F31|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|metadata全消费者、跨步alias及空行分支没有由small-op汇总证明。|先关联已存prepare-input、slot/index/length和跨迭代发布scope，逐buffer区分host与device读者。|
+|F32|FAMILY_INTAKE_DONE_SCOPE_STACK_REVIEW_PENDING|gather与Q/KV实例的所有权、CP/PCP恢复次序及多消费者未由shape证明。|先复用8个host-flow-device投影样本和已有group元数据，检查gather前后有效行与消费者。|
+
+F01/F04/F13已观察到复合边界；F21和F22也包含既有复合段，不计作尚未发生的独立融合收益。family命中仅是类型出现，不证明模块角色或同调用生产消费边。
+
+F07/F08/F12/F20的本地切片结果见selected-slice-recheck.json。未加入新目标源码审阅或设备采集。历史事件/张量/有效值的缺口不能通过静态源码补成实测。
+
+其余候选保留scope/stack查询，只有相关profile查尽仍无法回答具体语义时才定点补源码。当前Loop继续，0整模块关闭。

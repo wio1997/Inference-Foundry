@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_b9ff6df3-29ad-4ac2-8c45-71891be14752",
+  "traceId": "1373e313-5530-4c50-b9d7-52e935dac7c4",
+  "turnId": "turn_2521c02a-7877-44c3-9ea8-a18651f0fd96",
+  "response": "## 结论\n\n本次只读轮询正常返回（returncode 0，无超时），唯一有限诊断已完成收尾：诊断容器已退出且 exit code 0，原容器仍在运行，恢复结果为 PASS；controller 按 PID/starttime 核验已不存活，但这是**完成 CAPTURED_AND_RESTORED 后的正常退出**，并非超时被当成终止。全程未重启、未重复 launch、未 kill、未改任何内容。\n\n## PID/starttime 存活\n\n- 启动记录中的 controller PID 为 **1351606**，starttime ticks 为 **862458845**。\n- 轮询核验 `controller_live_verified_by_pid_start = false`，`controller_proc = null`，即该 PID/starttime 不在存活状态。\n- 同时存在 `controller-finished.json`：state **CAPTURED_AND_RESTORED**，`capture_error: null`，`watchdog_pid: 1352226`。因此该有限诊断是完成后退出，而非观察超时。\n- `overall_goal_complete: false`（仅记录该字段，不代表本次诊断失败）。\n\n## Controller 状态\n\n- run_id：`hostprof-20261030T212812Z-360e0c72`。\n- `controller-state.json`：state **RESTORED**，时间 `2026-10-30T21:43:59.783768Z`（距本次检查约 4 秒），`process_pid: 1352226`。\n- 恢复后健康检查：**health 200，idle true**，两个 engine 的 `num_requests_running` / `num_requests_waiting` 均为 0。\n- `restore-result.json`：**PASS_ORIGINAL_BASELINE_RESTORED**，`all_npu_pids_owned: true`（17 个 NPU PID），`target_source_or_serve_modified: false`，`prefix_cache_cold_reseed_required: true`。\n- controller stderr 为空。\n\n## 容器状态\n\n| 容器 | 状态 | exit code |\n|---|---|---|\n| `wio-vllm-v41-repro166-20261030`（原容器） | running | 0 |\n| `wio-vllm-v41-hostprof-20261030T212812Z-360e0c72`（诊断容器） | exited | 0 |\n\n原容器 ID 与恢复结果、baseline 一致：`8757dcc7...48e3`。诊断前基线状态为 running（Pid 397611）。\n\n## 诊断产出\n\n- 共 **32 个 trace 根目录 = 16 个 rank × 2 个采集窗口**，每个 rank 两个窗口齐全。\n  - 窗口一：`...213656303/304`（约 21:36:56）\n  - 窗口二：`...213702042–046`（约 21:37:02）\n- `file_count: 3067`，`total_bytes: 3,849,149,850`（约 3.85 GB / 3.58 GiB），`export_observation_complete: true`。\n- profiler_created 16 次，覆盖全部 16 个 rank（PID 763–4949）；`max_iterations` 均为 3；强制采集参数统一为 `with_stack=true, record_shapes=true`；source sha256 一致。\n- 元数据 4,217,731 字节；事件计数 `installed=16`、`execute_enter=3712`、`execute_exit=3712`（进出对称，无明显悬挂）、`profiler_created=16`。\n\n## 错误与告警\n\n- `service_tail` 末尾在 **21:37:45 的 shutdown 阶段**出现 `AsyncLLM output_handler failed` → `EngineDeadError: EngineCore encountered an issue. See stack trace (above)`；根因堆栈在采集到的 22 行 tail 之上，本次回执未包含，无法据此定位根因。\n- 同段 shutdown 日志还有 resource_tracker 告警：16 个 leaked semaphore objects、20 个 leaked shared_memory objects。\n- 这些错误发生在 trace 导出（21:36:56 / 21:37:02）**之后**、容器 shutdown 期间；容器最终 exit 0，且恢复 PASS，说明诊断采集与恢复已先行完成。\n- `capture_error: null`，controller stderr 为空。\n\n## 限制\n\ntrace-inventory 自带限制说明：仅凭文件稳定性和根目录数量，不能证明每个 phase 都被覆盖。虽然实际观察到 16 rank × 2 窗口齐全，但 phase 级覆盖仍需后续离线解析确认。\n\n回执文件：`/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-poll166-v12-07.json`。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 137800,
+    "outputTokens": 8767,
+    "totalTokens": 146567,
+    "cacheReadTokens": 118272,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 7169,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 146567,
+    "contextUsed": 27736,
+    "contextWindow": 200000
+  }
+}

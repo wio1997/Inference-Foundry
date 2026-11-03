@@ -1,0 +1,72 @@
+{
+  "stages": [
+    {
+      "stage": "last_layer_input_HC_and_pre_layer_aux",
+      "demand": "FULL_REQUIRED_ROWS",
+      "conditions": "All final-layer KV inputs and all configured earlier/pre-layer auxiliary readers remain."
+    },
+    {
+      "stage": "attention_HcPre_and_input_RMS",
+      "demand": "FULL_KV_DEMAND_PLUS_SELECTED_Q",
+      "conditions": "Q demand alone cannot prune common HC/RMS input needed by full required KV projection."
+    },
+    {
+      "stage": "SWA_KV_projection_norm_RoPE_cache_write",
+      "demand": "FULL_REQUIRED_STATE_ROWS",
+      "conditions": "Keep required scheduled-token writes/slots/positions/visibility and native pad protocol; selected output rows are not the KV writer set."
+    },
+    {
+      "stage": "compressor_index_cache_branches_if_applicable",
+      "demand": "OWN_STATE_AND_QUERY_DEMANDS",
+      "conditions": "No deletion from absence in this35node schema; alternate layers/branches retain pool/cache/index state contracts."
+    },
+    {
+      "stage": "Q_A_QR_norm_quant_Q_B_query_RoPE",
+      "demand": "SELECTED_QUERY_ROWS_CONDITIONAL",
+      "conditions": "Exact SP/CP owner and original positions/sequence/causal metadata, same per-row quant/rounding. New empty/ragged ABI required."
+    },
+    {
+      "stage": "SparseFlashMla_query_output",
+      "demand": "SELECTED_QUERY_ROWS_CONDITIONAL",
+      "conditions": "Keep all required historical/current keys/values and causal windows; compact query ordinal cannot replace original position/sequence identity."
+    },
+    {
+      "stage": "inverse_RoPE_A2A_WO_A_WO_B_RS",
+      "demand": "SELECTED_GLOBAL_OUTPUT_ROWS_CONDITIONAL",
+      "conditions": "Retain all head-group partials for each selected row, original BF16/RS order and group-uniform ragged/capture mapping."
+    },
+    {
+      "stage": "attention_Post_and_FFN_HcPre_RMSNormCast",
+      "demand": "SELECTED_ROWS_CONDITIONAL",
+      "conditions": "Both HC and FFN branch coefficients/residuals and BF16 barriers retain their individual row generation."
+    },
+    {
+      "stage": "router_shared_routed_experts_combine",
+      "demand": "SELECTED_ROWS_CONDITIONAL",
+      "conditions": "Keep input-ID/vision/hash predicates and original expert maps/weight epochs. EPLB heat/load counters or other batch/state observers may require retained work; MC2 physical receiver padding is not linear in selected count."
+    },
+    {
+      "stage": "final_Post_collapse_Norm",
+      "demand": "UNION_OF_ALL_FINAL_READERS_CONDITIONAL",
+      "conditions": "Need no additional raw/normalized observers and exact aliases/lifetime. Preserve Post/C/Norm rounds, prompt J and inverse ordered maps."
+    },
+    {
+      "stage": "LM_head_and_sampling",
+      "demand": "ORIGINAL_ORDERED_K_ROWS",
+      "conditions": "Head selection already precedes GEMM. Do not claim N→U pruning also removes K-row head/probability work. Preserve duplicates/order and all prompt/processor/RNG contracts."
+    },
+    {
+      "stage": "previous_layer_output",
+      "demand": "FULL_LAST_LAYER_KV_INPUT_DEMAND",
+      "conditions": "Cannot propagate output-only row deletion through the last-layer KV/state writer cut. Fusion may remove a materialization while retaining full necessary values/work."
+    }
+  ],
+  "definition": "I is ordered head selector incl duplicates/pad; J all active additional final-normalized content rows, including prompt. U=distinct valid rows in union(I,J). Rawsnapshot and intermediate layer observers impose independent demands.",
+  "applicability": "Conditional operator graph only. Exact active branch/all observers/numeric+mapping+capture+state side effects still unproved. Source ordering and separability do not establish native new-shape parity.",
+  "source_advance_not_new_reader_closure": true,
+  "previous_layer_pruning_or_future_cache_write_deletion_authorized": false,
+  "no_new_maincandidate": true,
+  "implementation": false,
+  "native_test": false,
+  "overall_complete": false
+}

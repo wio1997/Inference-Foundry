@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_7c5fc46a-3d54-4187-91c9-6423c7929bf4",
+  "traceId": "55ee0b20-11ee-4ad8-aae9-6cb1b9cfe7e1",
+  "turnId": "turn_69094ce8-26ee-412b-91e7-41983bf8e7b3",
+  "response": "已按原命令原样执行一次，未修改、未扩展、未重试。真实 `rc=0`，stderr 为空，stdout 恰好一行 JSON（无上次那种 trailing plog 警告）。v12 产物 SHA 固定值校验通过（`c23b75f3…`），且远端输出文件此前不存在、本次为首次写入（脚本内 `assert not OUT.exists()`）。\n\n**执行回执与产物**\n- 本地回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/saved-prepare-consumers166-v13.json`，observed_utc `2026-10-30T22:30:15Z`，`returncode: 0`。\n- 远端完整结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/saved-prepare-consumers-v13.json`\n- 结果 SHA256：`6ba784cac70931d7764111832ba40fc8ca3927f80c58d63ab70341594fab62eb`。产物内嵌 v12 的 99 条 canonical fullchains 与 32 个来源 DB 引用；脚本自检 `no_new_source_read: true`、`no_new_DB_or_device_work: true`，未做任何新 DB/源代码/NPU/服务操作。\n\n**903 batch copy 来源分类（`dsa_v41.py(903)`）**\n共 176 条，正好是 88 个根各 2 条：`CP_GLOBAL` 88（首帧含 `dsa_v41_cp.py(114)`）、`CP_LOCAL` 88（含 `dsa_v41_cp.py(166)`）、`OTHER_NATIVE` 0。其余 8 个根在 903 处没有 copy（这 8 个根只有 `Event::synchronize`），与直方图 `{CP_GLOBAL:{0:8,1:88}, CP_LOCAL:{0:8,1:88}, OTHER_NATIVE:{0:96}}` 一致。\n\n**26 条 suffix 相对首次写入的次序**\n88 个根非空，每根 26 条 `acl_memcpy_host_to_device`（首帧 `dsa_v41_cp.py(140)`），合计 2288 条。每根有 25 条（合计 2200 条）的 startNs 晚于该根第一条 root 级 batch 初始化 copy 的 endNs，即每根恰好有 1 条不在其之后。以 `CP_LOCAL` 为基准时结果相同（88 根 local 计数恰为 1，直方图同为 25）；8 个无 copy 根为 `None`。\n\n**2064 条 utility H2D（`vllm/v1/utils.py(143)`）的完整 caller**\n按完整 canonical chain 聚合为 13 条链，2064 条全部有唯一的同链最内层 `aten::copy_` 父记录（不是按最近时间配的，是同一 fullchain、同一 root、host 区间包含）：\n\n| 记录/根 | 区分性调用帧（括号内为完整链第二帧） |\n|---|---|\n| 88/88 | `model_runner_v1.py(1500): _prepare_inputs` |\n| 88/88 | `model_runner_v1.py(1437): _prepare_inputs` |\n| 64/64 | `model_runner_v1.py(1105): _pad_query_start_loc_for_fia` |\n| 72/72 | `model_runner_v1.py(1354): _prepare_inputs` |\n| 88/88 | `model_runner_v1.py(1490): _prepare_inputs` |\n| 72/72 | `model_runner_v1.py(1521): _prepare_inputs` |\n| 1144/88 | `block_table.py(299) → block_table.py(521) → model_runner_v1.py(1304): _prepare_inputs` |\n| 88/88 | `model_runner_v1.py(1542): _prepare_inputs` |\n| 88/88 | `gpu_model_runner.py(1088): _prepare_lookback_token_ids` |\n| 88/88 | `model_runner_v1.py(1537): _prepare_inputs` |\n| 72/72 | `model_runner_v1.py(1679): _prepare_inputs` |\n| 24/24 | `gpu_model_runner.py(1872): _prepare_input_ids` |\n| 88/88 | `model_runner_v1.py(1540): _prepare_inputs` |\n\n每条链的完整 8–9 帧列表已保留在本地回执的 `utility_callers` 中；远端产物还保留了全部 2064 条记录级的 H2D↔最内层父记录对应及 shape/dtype。\n\n**312 条 sync**\n聚合为 4 条完整链：`gpu_model_runner.py(3849): synchronize_input_prep` 96/96、`gpu_model_runner.py(4987): _get_valid_sampled_token_count` 56/56、`model_runner_v1.py(1495): _prepare_inputs` 88/88、`model_runner_v1.py(1867): _correct_optimistic_seq_lens_cpu` 72/72。完整帧列表在回执 `sync_callers` 中。\n\n**边界**\n`whole_modules_closed: 0`、`overall_complete: false`；产物自带的限制声明仍然成立：时序 API 顺序本身不能证明死值；H2D 父关系是同一完整链/同一 root/host 区间包含，不是最近时间补配、也不是张量/存储身份或物理 DMA 字节；first project helper 只是一致性索引约定，不是唯一字段。因此本轮只做来源分类与次序归并，未据此判定任何死值。\n",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 12,
+    "inputTokens": 260773,
+    "outputTokens": 11390,
+    "totalTokens": 272163,
+    "cacheReadTokens": 234880,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 8656,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 272163,
+    "contextUsed": 36644,
+    "contextWindow": 200000
+  }
+}

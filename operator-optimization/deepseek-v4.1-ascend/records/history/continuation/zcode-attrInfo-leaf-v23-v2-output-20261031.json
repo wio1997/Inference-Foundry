@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_a9bfaf2a-69fa-48fb-9939-08d7ff0af98f",
+  "traceId": "94b87d0b-96f4-4ca9-afcf-135f39ef5a12",
+  "turnId": "turn_3be605ab-9d75-481f-958c-ecbd5cafbcd7",
+  "response": "执行已完成：只运行了一次，真实返回码为 0。\n\n**rc = 0**\n\n**receipt**：`/Users/wio/work/166-vllm-analysis-continuation-20261030/attrInfo-route-leaf166-v23-v2.json`\n\nreceipt 中脚本 stdout 的结果摘要如下（以下内容均来自该 receipt，未额外追读任何 SDK 文件）：\n\n- `one_hop_msprof_entry` 已定位到同一入口：`/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/msprof/msprof.py`，sha256 为 `f110cac92111fb3bb36904422f6e66469d434f9dc13f57b41c892caa941d8bdb`，共 28 行。\n- 顶层代码只包含 `if __name__ == '__main__':` 保护的主体：`sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))`，`MODEL_PATH = \"msinterface.msprof_entrance\"`，`MSPROF_ENTRANCE_CLASS = \"MsprofEntrance\"`，`os.umask(0o027)`，`importlib.import_module(MODEL_PATH)`，再通过 `hasattr` 检查后调用 `getattr(..., MSPROF_ENTRANCE_CLASS)().main()`；导入项只有 `importlib`、`os`、`sys`，没有函数定义、没有 `exact_route_context`。也就是说，该入口本身把执行完全委托给 `msinterface.msprof_entrance.MsprofEntrance.main()`。\n- `stored_torch_route`（`_cann_export.py`，sha256 为 `a0f6ed83…`）记录了两处 `run`：CANNExportParser.run 在 55–108 行，通过 `subprocess.run` 调 `msprof --export=on --type=db` 或 `--export=on`；CANNTimelineParser.run 在 205–236 行，轮询等待 `msprof_*.db` 或 csv 输出。\n- `overall_complete: false`；`no_model_import_or_device_or_service_work: true`；`result_sha256: 2f53dc556d5db0b378acd461a64b72a5419d7046f67b97b30f05a7fd4775c17d`；远端 full_result 位于 `…/native-PMU-complete-v18/attrInfo-export-route-leaf-source-v23-v2.json`。\n\n未修改文件、未重试、未写 memory、未执行任何模型/NPU/服务操作。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 50031,
+    "outputTokens": 1682,
+    "totalTokens": 51713,
+    "cacheReadTokens": 38528,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1166,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 51713,
+    "contextUsed": 12977,
+    "contextWindow": 200000
+  }
+}

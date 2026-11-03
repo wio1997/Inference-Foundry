@@ -1,0 +1,766 @@
+{
+  "id": "SPARSE_INDEX_SOURCE_G9_V124",
+  "templates": [
+    {
+      "id": "PREPARE_VISIBLE_MULTISET",
+      "module": "M09",
+      "nodes": [
+        {
+          "id": "selected",
+          "kind": "SELECTED_INT32_INDEX_SLOTS",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "positions",
+          "kind": "QUERY_POSITIONS",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "empty",
+          "kind": "ZERO_ROWS_RETURN",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "load",
+          "kind": "MASKED_SELECTED_LOAD",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "visible",
+          "kind": "POSITION_PLUS_ONE_FLOORDIV_RATIO",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12",
+            "F31"
+          ]
+        },
+        {
+          "id": "valid",
+          "kind": "GE_ZERO_AND_LT_VISIBLE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "sentinel",
+          "kind": "WHERE_VALID_ELSE_INT32_MAX",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "encode",
+          "kind": "INT32_TO_NORMAL_FLOAT_BIT_KEYS",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "sort",
+          "kind": "SORT_KEYS_PERMUTATION",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "decode",
+          "kind": "FLOAT_BITS_TO_ORIGINAL_INT32_KEYS",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "negative",
+          "kind": "SENTINEL_TO_MINUS_ONE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12"
+          ]
+        },
+        {
+          "id": "indices_out",
+          "kind": "GRAPH_STABLE_INDEX_PUBLICATION",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12",
+            "F31"
+          ]
+        },
+        {
+          "id": "length_sum",
+          "kind": "SUM_VALID_SLOT_OCCURRENCES",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12",
+            "F31"
+          ]
+        },
+        {
+          "id": "length_out",
+          "kind": "OPTIONAL_STABLE_LENGTH_PUBLICATION",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12",
+            "F31"
+          ]
+        },
+        {
+          "id": "consumer",
+          "kind": "SMLA_INDEX_AND_LENGTH_INPUT",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13",
+            "F31"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "producer": "selected",
+          "consumer": "empty",
+          "value": "T==0",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "selected",
+          "consumer": "load",
+          "value": "slots",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "positions",
+          "consumer": "visible",
+          "value": "positions",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "load",
+          "consumer": "valid",
+          "value": "selected",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "visible",
+          "consumer": "valid",
+          "value": "visibility",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "load",
+          "consumer": "sentinel",
+          "value": "original IDs",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "valid",
+          "consumer": "sentinel",
+          "value": "mask",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "sentinel",
+          "consumer": "encode",
+          "value": "multiset",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "encode",
+          "consumer": "sort",
+          "value": "bit keys",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "sort",
+          "consumer": "decode",
+          "value": "sorted bit keys",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "decode",
+          "consumer": "negative",
+          "value": "indices",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "negative",
+          "consumer": "indices_out",
+          "value": "chronological valid IDs and -1 suffix",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "valid",
+          "consumer": "length_sum",
+          "value": "slot validity,not uniqueness",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "length_sum",
+          "consumer": "length_out",
+          "value": "count",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "indices_out",
+          "consumer": "consumer",
+          "value": "all current readers",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "length_out",
+          "consumer": "consumer",
+          "value": "optional lengths",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        }
+      ],
+      "complete": false,
+      "native_runtime_parameters_or_all_lowerings_attested": false
+    },
+    {
+      "id": "DSPARK_LOGICAL_WINDOW_BROADCAST",
+      "module": "M21",
+      "nodes": [
+        {
+          "id": "qstart",
+          "kind": "PER_REQUEST_QUERY_STARTS",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "seq",
+          "kind": "PER_REQUEST_SEQUENCE_LENGTHS",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "diff",
+          "kind": "QUERY_LENGTH_DIFFERENCES",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "prefix",
+          "kind": "SEQ_MINUS_QUERY_LENGTH",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "start",
+          "kind": "MAX_PREFIX_MINUS_WINDOW_ZERO",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "visible",
+          "kind": "SEQ_MINUS_START",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "columns",
+          "kind": "ARANGE_FIXED_INDEX_WIDTH",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "positions",
+          "kind": "START_PLUS_COLUMNS",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "mask",
+          "kind": "COLUMN_LT_VISIBLE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "int32",
+          "kind": "LOGICAL_POSITIONS_INT32",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "where",
+          "kind": "INVALID_SUFFIX_MINUS_ONE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "repeat_indices",
+          "kind": "REPEAT_REQUEST_INDEX_ROW_BY_QUERY_LENGTH",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "repeat_lengths",
+          "kind": "REPEAT_REQUEST_VISIBLE_LENGTH",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "stable_indices",
+          "kind": "PERSISTENT_INDICES_COPY",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "stable_lengths",
+          "kind": "PERSISTENT_LENGTH_COPY",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "consumer",
+          "kind": "NATIVE_SMLA_PER_QUERY_INDEX_READER",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13",
+            "F31"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "producer": "qstart",
+          "consumer": "diff",
+          "value": "adjacent difference",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "seq",
+          "consumer": "prefix",
+          "value": "length",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "diff",
+          "consumer": "prefix",
+          "value": "query count",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "prefix",
+          "consumer": "start",
+          "value": "context",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "seq",
+          "consumer": "visible",
+          "value": "length",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "start",
+          "consumer": "visible",
+          "value": "start",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "start",
+          "consumer": "positions",
+          "value": "first logical position",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "columns",
+          "consumer": "positions",
+          "value": "offset",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "columns",
+          "consumer": "mask",
+          "value": "column",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "visible",
+          "consumer": "mask",
+          "value": "valid limit",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "positions",
+          "consumer": "int32",
+          "value": "logical branch",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "int32",
+          "consumer": "where",
+          "value": "IDs",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "mask",
+          "consumer": "where",
+          "value": "validity",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "where",
+          "consumer": "repeat_indices",
+          "value": "one row per request",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "diff",
+          "consumer": "repeat_indices",
+          "value": "repeat count",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "visible",
+          "consumer": "repeat_lengths",
+          "value": "one count per request",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "diff",
+          "consumer": "repeat_lengths",
+          "value": "repeat count",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "repeat_indices",
+          "consumer": "stable_indices",
+          "value": "fresh values",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "repeat_lengths",
+          "consumer": "stable_lengths",
+          "value": "fresh values",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "stable_indices",
+          "consumer": "consumer",
+          "value": "capture-stable bank",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "stable_lengths",
+          "consumer": "consumer",
+          "value": "capture-stable bank",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        }
+      ],
+      "complete": false,
+      "native_runtime_parameters_or_all_lowerings_attested": false
+    },
+    {
+      "id": "SMLA_PA_INDEX_OCCURRENCES",
+      "module": "M10",
+      "nodes": [
+        {
+          "id": "offset",
+          "kind": "SPARSE_LOGICAL_SLOT_OFFSET",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13"
+          ]
+        },
+        {
+          "id": "blocksize",
+          "kind": "SPARSE_BLOCK_SIZE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13"
+          ]
+        },
+        {
+          "id": "topk",
+          "kind": "TOPK_INDEX_BANK",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F12",
+            "F31"
+          ]
+        },
+        {
+          "id": "which",
+          "kind": "SLOT_DIV_BLOCKSIZE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13"
+          ]
+        },
+        {
+          "id": "read",
+          "kind": "READ_ONE_INDEX_OCCURRENCE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13"
+          ]
+        },
+        {
+          "id": "real",
+          "kind": "INDEX_TIMES_BLOCKSIZE_PLUS_OFFSET",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13"
+          ]
+        },
+        {
+          "id": "valid",
+          "kind": "REAL_POSITION_RANGE_CHECK",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13"
+          ]
+        },
+        {
+          "id": "pages",
+          "kind": "REQUEST_BLOCK_TABLE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F31"
+          ]
+        },
+        {
+          "id": "address",
+          "kind": "PAGED_ADDRESS_FROM_LOGICAL_BLOCK_AND_OFFSET",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13",
+            "F31"
+          ]
+        },
+        {
+          "id": "gather",
+          "kind": "VALID_KV_COPY_RETAINING_OCCURRENCE",
+          "resource": "SOURCE_OPERATOR_OR_STATE",
+          "candidate_associations": [
+            "F13"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "producer": "offset",
+          "consumer": "which",
+          "value": "offset",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "blocksize",
+          "consumer": "which",
+          "value": "size",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "topk",
+          "consumer": "read",
+          "value": "index slots",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "which",
+          "consumer": "read",
+          "value": "selected slot",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "read",
+          "consumer": "real",
+          "value": "index",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "blocksize",
+          "consumer": "real",
+          "value": "size",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "offset",
+          "consumer": "real",
+          "value": "in-block remainder",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "real",
+          "consumer": "valid",
+          "value": "position",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "valid",
+          "consumer": "address",
+          "value": "valid or -1",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "real",
+          "consumer": "address",
+          "value": "block and offset",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "pages",
+          "consumer": "address",
+          "value": "request map",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        },
+        {
+          "producer": "address",
+          "consumer": "gather",
+          "value": "valid address",
+          "dependency_kind": "SOURCE_DATA_CONTROL_OR_PUBLICATION",
+          "condition": "Only the declared logical/noncausal/PA source branch;not all arms coexecute.",
+          "source": "sparse-index-source-contract-v124.json"
+        }
+      ],
+      "complete": false,
+      "native_runtime_parameters_or_all_lowerings_attested": false
+    }
+  ],
+  "scope": "Three selected source-level index producer/publication/consumer branches,not the complete QLI or SMLA lowering.",
+  "complete": false,
+  "overall_complete": false
+}

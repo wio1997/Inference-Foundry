@@ -1,0 +1,99 @@
+{
+  "repo": "cann/ops-nn",
+  "commit": "a61e016a71f422cb280af0c024975f13629ca100",
+  "source_facts": [
+    {
+      "id": "ENTRY",
+      "file": "quant_batch_matmul_v3.cpp",
+      "lines": [
+        [
+          18,
+          28
+        ],
+        [
+          126,
+          161
+        ],
+        [
+          431,
+          574
+        ]
+      ],
+      "statement": "220-class entry has BF16/per-token TBE, OPT and BASIC <REDACTED_CREDENTIAL>, including perTokenScale input. Compile/format/transpose/template gates matter; not the no-perToken MC2 third-party header."
+    },
+    {
+      "id": "OPT",
+      "file": "quant_batch_matmul_v3_pertoken_opt.h",
+      "lines": [
+        [
+          160,
+          166
+        ],
+        [
+          407,
+          415
+        ],
+        [
+          541,
+          593
+        ],
+        [
+          625,
+          650
+        ]
+      ],
+      "statement": "AIC INT32 GetTensorC writes GM workspace. AIV waits for C event, reads INT32 to UB, does FP32 processing and final yType CAST_RINT in UB, then writes yGm. When yType=BF16, the final output producer is AIV. Pre-scale/bias arithmetic is branch-specific and must not be reassociated."
+    },
+    {
+      "id": "TBE",
+      "file": "quant_batch_matmul_v3_pertoken.h",
+      "lines": [
+        [
+          477,
+          498
+        ],
+        [
+          513,
+          546
+        ],
+        [
+          550,
+          565
+        ]
+      ],
+      "statement": "GetTensorC returns GM workspace consumed as INT32 by DequantCompute, followed by per-token multiplication, optional pre-cast bias, yType CAST_RINT and UB-to-GM output. The BF16 cast can precede a subsequent Vector operation without a BF16 GM interface in a transformed graph."
+    },
+    {
+      "id": "BASIC",
+      "file": "quant_batch_matmul_v3_pertoken_basic.h",
+      "lines": [
+        [
+          227,
+          278
+        ]
+      ],
+      "statement": "AIC computes INT32 workspace, AIV waits then invokes EpilogueDequant. This is a Cube-to-Vector bridge plus a Vector output epilogue, not direct AIC BF16 ownership."
+    },
+    {
+      "id": "BASIC-EPILOGUE",
+      "file": "quant_batch_matmul_v3_basic_epilogue.h",
+      "lines": [
+        [
+          196,
+          255
+        ],
+        [
+          259,
+          290
+        ]
+      ],
+      "statement": "DequantCompute reads INT32 GM, dequantizes and applies per-token scale/bias; CopyOutToGM performs yType CAST_RINT in UB before GM copy. For BF16 output the legal splice point is after that cast, preserving the exact dequant arithmetic."
+    }
+  ],
+  "grade": "DOCUMENTED_PINNED_PUBLIC_OPERATOR_SOURCE",
+  "loaded_CANN_9p2_binary_or_tiling_key_attested": false,
+  "saved_profile_support": "22 BF16-output regimes /9671 executions have positive AIV work; INT32 GateUp control9/4472 has none. This is supporting evidence, not source-to-binary proof.",
+  "supersedes_unconditional_owner_reading_of_v80": "v80 Cube-owned BF16->Vector interface remains a valid conditional model. It is not an established ownership fact for these per-token quantized outputs.",
+  "new_target_source_files": 0,
+  "overall_complete": false
+}

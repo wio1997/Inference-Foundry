@@ -1,0 +1,291 @@
+{
+  "generated_utc": "2026-10-31T09:21:07.620510+00:00",
+  "variants": [
+    {
+      "id": "F30-v36-SELECTED-BASE",
+      "parent": "F30",
+      "transformation": "Feed base norm/head from ordered selected hidden rows without a private Index materialization where legal.",
+      "conditions": "Current104Index/Check entries are positive; same row count is not identity. Keep raw hidden for confidence, ordered duplicates and BF16/head layout.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F30-v36-MARKOV-EMBED",
+      "parent": "F30",
+      "transformation": "Reuse or stream seed-inclusive Markov input embeddings into confidence.",
+      "conditions": "SameE_i=Embed(T[:,i]) for loop and schedulerT[:,:D]; preserve parameter/input generation, dtype conversion, row order and readonly lifetime. Confidence-active branch only.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F30-v36-CONFIDENCE-PIPE",
+      "parent": "F30",
+      "transformation": "Direct two-input FP32 confidence projection/sigmoid and compatible probability/prefix publication.",
+      "conditions": "Keep one FP32 dot boundary from raw hidden plus embedding; Cat/widen planes may be private. No normalized-hidden substitution or unproved split-dot sum.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F30-v36-DEVICE-BUDGET",
+      "parent": "F30",
+      "transformation": "Fuse clamp/cumprod/statistics/global selection-to-counts and keep budget state on device under a new selection ABI.",
+      "conditions": "Preserve native arithmetic, topK boundary/ties, periodic counter/zeroB/odd-round ordering, outputINT32 bank and host publication. Not a flag-only change to torch.topk.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F30-v36-BOUNDED-PREFIX",
+      "parent": "F30",
+      "transformation": "Use rigorous future-survival bounds to avoid post-decoder tail evaluation when it cannot affect final prefix allocation.",
+      "conditions": "Fixed finalL, enough evaluated candidates, strict upper-bound separation, native/tie/RNG/observer conditions. Periodic budget may need interval resolution; retain full noncausal decoder input domain.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F31-v36-NEXT-ID-FUSE",
+      "parent": "F31",
+      "transformation": "Fuse virtual discard, exact predicate/count, count-1 gather and backup select.",
+      "conditions": "Local two-output proof in F31 review; preserve negative-other-than-1 behavior, holes, output dtypes, backup production, no mutation of original IDs and existing event consumers.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "F31-v36-PRODUCER-SUMMARY",
+      "parent": "F31",
+      "transformation": "Have the sampling/output producer publish the same next-ID and valid-count summary.",
+      "conditions": "Producer must apply this consumer discard/vocab rule or pass sufficient information for exact correction. R+1 and rightmost-valid shortcuts need extra prefix/valid-ID proofs; preserve original sampled matrix observers.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "H02-v36-BACKUP-GEN",
+      "parent": "H02",
+      "transformation": "Maintain/reuse a device backup-token bank under exact request-state generations, or skip dead fallback production under an already-proved host invariant.",
+      "conditions": "Do not infer all counts positive from shapes. Preserve prompt onboarding/async accepted state/rollback/request moves and normal error domain; no new blocking .item guard.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "H02-v36-LENGTH-BULK",
+      "parent": "H02",
+      "transformation": "Batch asynchronous verification-length D2H with draft-ID publication and consume one matching generation envelope.",
+      "conditions": "Preserve req_id order, k caps/zip, producer/readiness/last-reader and buffer overwrite epochs. Source scalar consumption is not a measured synchronization count.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "H06-v36-COST-POLICY",
+      "parent": "H06",
+      "transformation": "Calibrate verification budget to actual fixed-model/hardware/workload cost geometry.",
+      "conditions": "A changed policy needs speculative correctness/RNG contracts and real padding/communication cost evidence; oldA3 odd-budget comment is not current910C evidence.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "H06-v36-GEOMETRY",
+      "parent": "H06",
+      "transformation": "Couple logical verify prefixes to compatible physical buckets/packing after preserving global allocation.",
+      "conditions": "Keep original global cohort and request identities, prefix cache/slot/state and DP/TP/MC2 participation. Logical length reduction is not automatically less physical work.",
+      "implemented": false,
+      "native_validation": false,
+      "critical_path_gain_us": null
+    }
+  ],
+  "conditions": [
+    {
+      "id": "M20-v36-VISIBILITY",
+      "requirement": "Actual dynamic/parallel flags and branch costs remain UNKNOWN; exact0ComputeInfo hits are not absent CPU/transfers or disabled flags.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-SUMROUND",
+      "requirement": "Keep BF16 base/bias output and BF16 addition before argmax, existing ties/NaN/vocab postprocessing and writeback observers.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-RNG",
+      "requirement": "Preserve all probability/draft_probs/full selected residual/RNG consumers; greedy Markov trace is not target all_greedy.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-TOKENSPACE",
+      "requirement": "Embedding/cache keys use the actual post-remap Markov input token space and model/weight namespace, not raw draft columns.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-HIDDENROWS",
+      "requirement": "Confidence uses raw last_hidden_states row order; base-head Index/normalization is a distinct consumer plane, even for equal shapes.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-SEED",
+      "requirement": "T0is seed, loopE_i consumesT_i and writesT_(i+1); confidence readsT[:D]. Do not shift reused embeddings to just-produced outputs.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-EMBEDGEN",
+      "requirement": "Retained embedding values readonly through confidence, with matching input/parameter/dtype/generation; actual repeat-hit rates not inferred.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-CONFIDENCEFP32",
+      "requirement": "Preserve embedding-to-hidden-dtype then concatenation/widening, one FP32 projection and sigmoid; split dots/other norm need separate numerical proof.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-PROBPREFIX",
+      "requirement": "Preserve clamping/NaN and FP32 cumprod association/underflow/threshold values; log-domain replacement is not exact by real algebra alone.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-TOPKTIE",
+      "requirement": "Global flattened candidate window, sortedFalse boundary ties and request-count outcomes retained or explicit strict boundary conditions used.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-GLOBALBUDGET",
+      "requirement": "Allocation is global acrossB requests with min_k and bounded extra budget, not independent per-request uniform caps.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-PERIODICSTATE",
+      "requirement": "Counter increment/reset, B0 behavior, ceil/odd adjustment/clamp and same-update use of new budget preserved.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-DEVICEABI",
+      "requirement": "Device budget requires a compatible dynamic-budget selection/publication interface; old Python topk-k consumption cannot be assumed removed.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-TAKEOUTPUT",
+      "requirement": "Retrieval caps each int(k), preserves out.req_ids order and current zip/prefix-list behavior; it is post-generation output trimming.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-PUBGEN",
+      "requirement": "Length and draft-ID envelopes refer to the same request/producer generation; reusable GPU banks and async copies respect all last readers.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-SCALARCOST",
+      "requirement": "Host scalar consumption and .item are source facts, not measured Bsync calls/latency; retain profile cost uncertainty.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-BOUNDDOMAIN",
+      "requirement": "Prefix pruning needs finite-domain validated/conservative bounds on actual published native survival and strict separation/unique selection or original ties.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-BOUNDBUDGET",
+      "requirement": "Final extraL must be fixed/known. On periodic updates resolve new-budget bounds first or disable pruning; oldL and U<threshold alone are insufficient.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-DECODERDOMAIN",
+      "requirement": "Prune only dead post-decoder work; original noncausal draft decoder future query/KV inputs still influence prefix hidden states.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-TAILREADERS",
+      "requirement": "All omitted tail IDs/scores/probabilities/bank writes/RNG/error observers preserved or independently proved dead.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-VALIDPRED",
+      "requirement": "Literal(x!=-1)&(x<V), including negative values other than-1, preserved; do not substitute nonnegative validity.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-DISCARD",
+      "requirement": "Virtual discard reproduces original clone+index_fill normal-domain reads and leaves original sampled matrix unchanged.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-COUNTINDEX",
+      "requirement": "Selection uses max(count-1,0), not max true position. Hole behavior remains unless a valid-prefix invariant is separately established.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-COUNTDTYPE",
+      "requirement": "Current K1/6 boolean count exactly0..6; output countINT64 and nextIDINT32 retained, no unbounded overflow/dtype generalization.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-ERRORDOMAIN",
+      "requirement": "K>=1 and valid discard indices chosen for new normal path; retain fallback/errors for empty width/out-of-range/other domains.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-BACKUP",
+      "requirement": "Zero-count fallback and authoritative request.get_token_id generation retained; default fusion keeps original backup publication.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-EVENTNONE",
+      "requirement": "valid_sampled_token_count_eventNone returns before later GPU/reference/prev-ID updates; preserve this branch.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-COUNTREADY",
+      "requirement": "Default-to-copy-stream wait, nonblocking CPU count copy/event, async GPU count reference and nextID prev-state readiness/last-read preserved.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-SUMMARYINPUT",
+      "requirement": "Sampler summary applies exact discard and vocab filtering; accepted boundary+1 is not automatically this count.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-BACKUPGEN",
+      "requirement": "Device backup reuse includes request/position/no-spec/accept-reject/rollback/permutation/prompt-onboarding generations, not address/shape.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-NOBLOCKGUARD",
+      "requirement": "Do not introduce count.all().item() or other new blocking device test to avoid backup/packing work.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-COSTPOLICY",
+      "requirement": "Policy changes are distinct from semantic-preserving fusion; actual910C/CANN9.2 padded-bucket cost and speculative/RNG correctness required.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-COHORT",
+      "requirement": "Regroup after preserving global allocation cohort and request map; changing batch membership changes TopK allocation.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-PHYSICALWORK",
+      "requirement": "Logical rows/bytes/TASK sums are not transport/peak-memory/request speedup; new launch/packing/communication/interference costs counted jointly.",
+      "actual_current_legality_proved": false
+    },
+    {
+      "id": "M20-v36-BRANCHUNIVERSE",
+      "requirement": "Zero-spec/one-spec/parallel/selector/probabilistic/nonDSpark/autoregressive/empty/config-error branches remain explicit and not closed by current counts.",
+      "actual_current_legality_proved": false
+    }
+  ],
+  "relationships": [
+    "F31 standalone fusion and producer summary remove overlapping private scans/copies; count the joint graph once.",
+    "Embedding CSE and streaming confidence are composable but reuse the same256D values once; no cache-hit speedup inferred.",
+    "Device scheduler and bulk host publication are dependent protocols; preserving current policy and changing cost policy are different counterfactuals.",
+    "Bounded post-decoder pruning does not remove model-forward work; lazily splitting batched base heads has a separate throughput/launch tradeoff.",
+    "H06 physical bucketing preserves the policy global cohort and fixed-group collective ABI; do not add nominal logical token savings as hardware gain."
+  ],
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c46ce7e9-1886-4c05-8fe0-57a7c8ea72a0",
+  "traceId": "bb6d1231-51a0-48a0-a0cb-f31ea0e4c894",
+  "turnId": "turn_d6bb10b4-f9fc-4f3a-a176-aabd80933b56",
+  "response": "rc=0。只执行了一次准备脚本，未重试、未改动、未扫描其他 kernel，未写 memory。\n\n## Receipt\n\n- receipt: `/Users/wio/work/166-vllm-analysis-continuation-20261030/M17-kernel166-v33.json`\n- host 166, returncode = 0, stderr 为空\n- result_sha256 = `fc31119e3cd7996c8bdbcc12f393f3d6dfe5cb74b4243df62d02f896193308d0`\n- full_result（166 侧）: `/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M17-exact-recovery-random-and-block-entropy-kernel-contract-v33.json`\n- `no_model_or_torch_import=true`，`no_model_import_device_service_work=true`，`overall_complete=false`（脚本固定置 false）\n- 保护全过：根 `sample/rejection_sampler.py` SHA 固定为 `bb1d39de851540c16c2dd2b16df60c60a1fc4957cedb88bdce9417efc0d55eda`；每个函数行数 <310；四段源码合计 392 行 <720 行；305 行 helper 未读。\n\n## 四个函数（确切行号）\n\n| 函数 | 文件 | 行 | 行数 | 参数数 |\n|---|---|---|---|---|\n| sample_recovered_tokens | `vllm_ascend/sample/rejection_sampler.py` | 729–795 | 67 | 9 |\n| sample_recovered_tokens_kernel | `vllm_ascend/ops/triton/reject_sample.py` | 344–423 | 80 | 9 |\n| rejection_random_sample_kernel | `vllm_ascend/ops/triton/reject_sample.py` | 177–306 | 130 | 24 |\n| rejection_random_sample_block_verify_kernel | `vllm_ascend/ops/triton/reject_sample.py` | 494–608 | 115 | 22 |\n\n`reject_sample.py` 的 SHA 为 `dced4b94b74e31e9105d2f7c3bf16b0a096fb6c74983647ce7d056111807f2c3`，三个 kernel 都来自同一份文件。\n\n## Subscript callee 的 ImportFrom 解析\n\nlaunch 形态在 729–795 内确认为 Subscript callee：`sample_recovered_tokens_kernel[(batch_size, max_spec_len)](...)`（760–772 行，含 `NO_DRAFT_PROBS=draft_probs is None`、`SUB_BLOCK=4*1024`、`multibuffer=False`）。三个 kernel 在 `rejection_sampler.py` 里都不是本地定义，均被解析到：\n\n- module = `vllm_ascend.ops.triton.reject_sample`\n- ImportFrom 所在行 = `rejection_sampler.py` 第 24 行（即 `from vllm_ascend.ops.triton.reject_sample import <symbol>`）\n- symbol 分别为 `sample_recovered_tokens_kernel`、`rejection_random_sample_kernel`、`rejection_random_sample_block_verify_kernel`，local_name 与 symbol 同名\n\n`sample_recovered_tokens` 自身是本地定义，`resolved_import=null`。receipt 记录的是结构化 module/symbol/line，未存 ImportFrom 的整行字面文本。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 94654,
+    "outputTokens": 4574,
+    "totalTokens": 99228,
+    "cacheReadTokens": 79488,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3634,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 99228,
+    "contextUsed": 19350,
+    "contextWindow": 200000
+  }
+}

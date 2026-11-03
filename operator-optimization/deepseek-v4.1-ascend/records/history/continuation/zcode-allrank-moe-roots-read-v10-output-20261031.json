@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_479ee5ea-b9cb-4692-91f8-3453edebed46",
+  "traceId": "74e2735a-c046-4e97-b640-7ab200834d53",
+  "turnId": "turn_d0ac5b71-8694-485d-8687-59b09e38b017",
+  "response": "作业执行成功。真实退出码为 0（`remote_run.py` 子进程 returncode=0，shell rc=0，stderr 为空），未触碰原始 16 个 CSV。\n\n**16 卡 MC2 物理域（EP 0–15 完全一致）**\n\n每卡均为 559 条 MC2 记录，其中 440 条为 graph MC2、440 条被保留（全部为 M3/E24/K6），5 个物理域如下：\n\n| physical_M | K | local_experts | model_id | 每卡记录数 | core / block / mix_block |\n|---|---|---|---|---|---|\n| 3 | 6 | 24 | 49 | 440 | MIX_AIC / 24 / 48 |\n| 2 | 3 | 8 | 4294967295 | 3 | MIX_AIC / 24 / 48 |\n| 3 | 3 | 8 | 4294967295 | 36 | MIX_AIC / 24 / 48 |\n| 643 | 6 | 24 | 4294967295 | 40 | MIX_AIC / 24 / 48 |\n| 1023 | 6 | 24 | 4294967295 | 40 | MIX_AIC / 24 / 48 |\n\n合计：MC2 8944 行，保留 graph 7040 行；物理 M 汇总为 `{3: 7616, 2: 48, 643: 640, 1023: 640}`。\n\n**完整产物核验（host 166）**\n\n- 路径：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/allrank-moe-regimes-and-ep3-graph-roots-v10.json`\n- stat：大小 2,327,338 字节，mtime `2026-10-31 04:34:49 +0800`，mode 644\n- SHA-256：`da30720a8a2b39c4818f675725fbb98e3c01390385bc131330b6dbe7d477b3c5`\n- 结构：合法 JSON，顶键为 `summary`、`rank_rows`（16 项）、`source_manifest`（16 项）、`EP3_outside_marker_rows`（11 个执行块）\n- 该 SHA 与回执中 `result_sha256` 完全一致，且 `all_source_stats_unchanged=true`、`source_stats_unchanged=true`\n\n**本地回执**\n\n- `profile-allrank-moe-roots-read166-v10.json`，34,252 字节，mtime `2026-10-31T04:35:27Z`\n- SHA-256：`099272faa9a03c4c138ee1659f76cdd92b91f26b7b0a9bf8f3400e2e69545ef0`\n- stdout 29,907 字符，stderr 0；命令行仅显示 `saved to receipt`，有界摘要保存在回执 stdout 内\n\n**展示是否截断：是。** `first_outside_groups_display_truncated=true`，展示列表 54 组，而完整产物中 `signature_groups` 为 57 组，省略 3 组；其余摘要字段与完整产物一致。\n\n补充事实：`original_job_status` 为 `FULL_DATA_WRITTEN; STDOUT_DISPLAY_GUARD_ONLY_FAILED_AFTER_SAVE; NO_CSV_REQUERY`；`overall_complete=false`，原因由摘要中的 5 条 limits 给出（如物理 M3 签名不证明实际 mask/同调用 cohort、其他 rank 的 graph ordinal 未假定同调用等），并非本轮读取失败。期间我自己的两次只读结构校验因字段名/类型假设错误退出 1，修正后通过，与作业真实 returncode 无关。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 15,
+    "inputTokens": 283192,
+    "outputTokens": 10128,
+    "totalTokens": 293320,
+    "cacheReadTokens": 260608,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 6391,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 293320,
+    "contextUsed": 31676,
+    "contextWindow": 200000
+  }
+}

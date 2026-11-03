@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_57a4212c-e3b7-4c7e-9dc0-d52b9f5aaed6",
+  "traceId": "4121f997-6793-4bbb-8584-e06c7f36594a",
+  "turnId": "turn_dc28df43-f700-40b0-b2bf-16a248d8675e",
+  "response": "已只读解析 `agents/fusion/f31-ep7-copy-link.json`（共 7 条设备 task，stream 均为 47），结果如下。\n\n**前三条 task**（`streamId` 均为 47）：\n\n| taskId | globalTaskId | startNs | endNs | 时长 | cann_name |\n|---|---|---|---|---|---|\n| 39195 | 9684 | …9800757413 | …9800762033 | 4.620 µs | `launch` |\n| 39196 | 95514 | …9800762053 | …9800762853 | 0.800 µs | `aclnnInplaceCopy` |\n| 39197 | 95515 | …9800762893 | …9800763653 | 0.760 µs | `aclnnInplaceCopy` |\n\n三条 CANN 调用名依次为 **`launch`、`aclnnInplaceCopy`、`aclnnInplaceCopy`**（host 侧对应 `Dequeue@_build_dspark_swa_indices_kernel`、`Dequeue@aclnnInplaceCopy`、`Dequeue@aclnnInplaceCopy`，同一 `globalTid` 20912195771055）。\n\n顺序检查：全部 7 条记录均满足 `startNs ≤ endNs`；前三条 start/end 严格递增、互不重叠（相邻间隙 20 ns 和 40 ns）。需注意 task 39199（`aclrtRecordEvent`）的 startNs 与 endNs 相等，是零时长区间；其余后段 39198 = 2.760 µs、39200 = 2.740 µs、39201 = 0.020 µs。\n\n**后两条设备区间时长**：task 39200（`aclrtMemcpyAsync`）为 **2.740 µs**；task 39201（`aclrtRecordEvent`）为 **0.020 µs**（20 ns）。\n\n这些只是同流上的时间邻近与调用名记录，不构成 tensor 身份、拷贝源/目的或端到端收益的证据（文件 `limitations` 也如此声明）。未访问服务器、未使用 NPU、未写任何文件。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 30908,
+    "outputTokens": 2599,
+    "totalTokens": 33507,
+    "cacheReadTokens": 19584,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2438,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 33507,
+    "contextUsed": 13751,
+    "contextWindow": 200000
+  }
+}

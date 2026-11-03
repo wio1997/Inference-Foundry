@@ -1,0 +1,18 @@
+"""Read-only candidate lookup/gather chain; not tensor identity proof."""
+from pathlib import Path
+import sqlite3,json
+T=Path('/work/vllm-ascend-reproduce-172-on-169-20261028/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41')
+p='/work/vllm-ascend-reproduce-172-on-169-20261028/analysis/operator-ceiling-20261028/diagnostic/runtime/diagnostic-traces/dp1_pp0_tp1_dcp0_ep9_rank1_743_20261028020238580_ascend_pt/ASCEND_PROFILER_OUTPUT/ascend_pytorch_profiler_9.db'
+c=sqlite3.connect('file:'+p+'?mode=ro',uri=True);c.execute('pragma query_only=ON');c.execute('pragma temp_store=MEMORY')
+def one(rows,label):assert len(rows)==1,(label,len(rows),rows[:5]);return rows[0]
+base=1793152959201223440
+lookup=one(c.execute("select cast(p.startNs as integer),cast(p.endNs as integer),p.globalTid,p.connectionId from PYTORCH_API p join STRING_IDS s on s.id=p.name where s.value='_engram_host_uva_gather_dequant_kernel' and cast(p.startNs as integer)=?",(base,)).fetchall(),'lookup');assert lookup[3]==54721
+ag=one(c.execute("select cast(p.startNs as integer),cast(p.endNs as integer),p.connectionId from PYTORCH_API p join STRING_IDS s on s.id=p.name where s.value='vllm::all_gather' and p.globalTid=? and cast(p.startNs as integer) between ? and ?",(lookup[2],base,base+500000)).fetchall(),'nearby_vllm_gather')
+h=one(c.execute("select cast(p.startNs as integer),cast(p.endNs as integer),p.connectionId from PYTORCH_API p join STRING_IDS s on s.id=p.name where s.value='HcclAllGather' and p.globalTid=? and cast(p.startNs as integer)>=? and cast(p.endNs as integer)<=?",(lookup[2],ag[0],ag[1])).fetchall(),'nested_hccl');assert h[2]==54722
+ids1=[x[0] for x in c.execute('select connectionId from CONNECTION_IDS where id=?',(lookup[3],))];ids2=[x[0] for x in c.execute('select connectionId from CONNECTION_IDS where id=?',(h[2],))];assert ids1==[93393] and set(ids2)=={93402,93418}
+for i in (93393,93402):
+ launch=one(c.execute('select s.value from CANN_API a join STRING_IDS s on s.id=a.name where a.connectionId=?',(i,)).fetchall(),'cann_launch');assert launch[0]=='launch'
+task=one(c.execute('select t.startNs,t.endNs,t.streamId,s.value,sh.value,dt.value from TASK t join COMPUTE_TASK_INFO i on i.globalTaskId=t.globalTaskId join STRING_IDS s on s.id=i.name left join STRING_IDS sh on sh.id=i.outputShapes left join STRING_IDS dt on dt.id=i.outputDataTypes where t.connectionId=93393').fetchall(),'lookup_task');assert task[3]=='_engram_host_uva_gather_dequant_kernel' and task[4]=='"19200,256"' and task[5]=='DT_BF16'
+op=one(c.execute('select o.opId,o.startNs,o.endNs,o.count,e.name,o.rankSize,s.value from COMMUNICATION_OP o join ENUM_HCCL_DATA_TYPE e on e.id=o.dataType join STRING_IDS s on s.id=o.groupName where o.connectionId=93402').fetchall(),'comm_op');assert op[0]==366 and op[3]==19200*256 and op[4]=='BFP16' and op[5]==8
+x={'status':'LOOKUP_GATHER_CANDIDATE_NOT_PROVEN_DATA_DEPENDENCY','database':p,'lookup_api':lookup,'vllm_all_gather_api':ag,'nested_hccl_api':h,'lookup_connections':ids1,'hccl_connections':ids2,'lookup_task':task,'communication_op':op,'device_gap_ns':op[1]-task[1],'selection_window_ns':500000,'limitations':['Same thread nesting and equal count do not establish tensor identity, direct dependency, or TP group mapping.','500us is a selection window chosen to reproduce this one sample; it cannot be generalized to all operations.','Event identity, critical path exposure and actual wait remain unknown.'],'no_device_work':True}
+c.close();f=T/'evidence/engram-gather-candidate-example.json';assert not f.exists();f.write_text(json.dumps(x,indent=2)+'\n');print(json.dumps({'status':x['status'],'communication_count':op[3],'device_gap_ns':x['device_gap_ns']}))

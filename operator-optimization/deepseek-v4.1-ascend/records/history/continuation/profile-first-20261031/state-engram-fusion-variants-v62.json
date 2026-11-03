@@ -1,0 +1,287 @@
+{
+  "variants": [
+    {
+      "id": "C2-NORM",
+      "candidate": "F18",
+      "choice": "Pool→BF16round→RMS in token-alignedrows",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "2H(E+T)intermediatebytes;additional2HTzeroonlyifallfinalrowswritten",
+      "conditions": "Realnormweight/eps,newnormflag,keepBF16intermediateandnativeprecision/auxrstd;incompleterowssemantics/allreaders.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "C2-RES2",
+      "candidate": "F18",
+      "choice": "Specializeresidualratio2 toone scoreload/exp",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "16HBlogicalread+2HBexp budget;B≤requests",
+      "conditions": "Keephistory/new-rowselection,max/sub/exp/sum/divorder;registerpressureandactualB.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "C2-SPLIT",
+      "candidate": "F18",
+      "choice": "Pool completion forks norm and ringmaintenance",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "Update→normiscontrolnotRAW;nofree5.38ussaving",
+      "conditions": "Oldringreadcompletion,resources/streams,cacheownership/consumerwait;bothVectorandmemory.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "C2-UPDATE-FUSE",
+      "candidate": "F34",
+      "choice": "Pool+ringupdateperrequestonekernel",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "Canreuseprojectedtailtilesonchip;16HUlogicalupdateIOceiling",
+      "conditions": "Readalloldneededringbeforewrite,requestphysicalpagedisjointness/crossprogramsync;noautomaticgridbarrier.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "C2-EVEN",
+      "candidate": "F34",
+      "choice": "OnlyobservableevenpositionsinRATIO2ring",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "~halfupdatewritesundermetadata;stateallocatorunchanged",
+      "conditions": "Rollback/allreaders/nativeABIandpageownership;keepolderobservableevenhistory,notjustlatest.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "C2-ALLOC",
+      "candidate": "F34",
+      "choice": "Halfarray=>halfcurrentpoolcapacity",
+      "decision": "EXCLUDED_IN_UNCHANGED_ALLOCATION",
+      "work_IO_or_partition_effect": "2.268GBdescriptorisnotpercalltrafficorindependentlyallocatedsaving",
+      "conditions": "Priorv25SWAanchoredtupleallocationanswerretained;noframeworkreaudit.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "C2-FANOUT",
+      "candidate": "F19",
+      "choice": "Norm/RoPE/cachewrite withIndexKeyfork",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "Tail64only+selectedscatterrows;wholecacheextentnotIO",
+      "conditions": "PreRoPElatentneededbyIndexKeymatmul;retainsBF16normboundary,allslotmasksandpublication;neverinplacerewritebeforeforkreads.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "C1-COMPOSE",
+      "candidate": "F33",
+      "choice": "C1linear norm tailRoPE selectedscatter",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "v61projectioncost+norm/RoPEselectedpayload;nomandatewholenormalizedGMplane",
+      "conditions": "Full512normbarrier,preRoPEIndexerconsumer,BF16roundand128slotlongcachevsSWAphysicalrows;1600ambiguousassignmentsnotrewritten.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-PARAM",
+      "candidate": "F25",
+      "choice": "Prepareq*kFP32androtationFP32oncepergeneration",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "491520+6144BprepIO/body;624+208TASKsexposure",
+      "conditions": "Actualweightdevice/dtype/version/staticlifetimeandcapturedreaderbanks;noactivationreuseacrosslayers.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-GATE",
+      "candidate": "F25",
+      "choice": "FuseordinaryrotatedgateafterWKV",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "FullHnorm/dot+sharedVidealvs2passIOmodels",
+      "conditions": "PreserveBF16WKVround,rotationresidualdistinction,specialfunctions/signbit/reductionorderandNaNmasksemantics;capacity/tilingexplicit.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-WKV-GATE",
+      "candidate": "F25",
+      "choice": "WKVpanelsfeedBF16gatepartials",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "4T(h+1)Hintermediatebudget,notallguaranteedremovable",
+      "conditions": "FullHkeynorm/dotrequiresbarrier/partials;sharedvaluefanout/BF16round;mode/resourcejointcost.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-EARLY-HIDDEN",
+      "candidate": "F25",
+      "choice": "Rotation+hiddennorm independentofWKV",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "NoRAWfromWKVtohiddenprep;bothbranchescomputeadditive",
+      "conditions": "HiddenBF16ready+residualretained;bothrotationandWKVmaycompeteCube;nofree7usgain.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-HEAD-WKV",
+      "candidate": "F25",
+      "choice": "HeadshardedpartialWKV thenreduce-scatter",
+      "decision": "CONDITIONAL_WITH_COST_PENALTY",
+      "work_IO_or_partition_effect": "PercardFunchanged,weight/8;partialFP32plane200/3timeshead-rowinputcontent",
+      "conditions": "ComparebestF24rowexchange,collectiveprotocol,pad/rowownership anddifferentFP32sum→BF16roundorder.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-SCALE",
+      "candidate": "F24",
+      "choice": "INT8group32scalesload8+broadcast",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "256→8logicalrefs;unique32Bunchanged",
+      "conditions": "ActiveINT8format/strides/groupgen;MXFP8alreadybroadcast;coalescing/cachetrafficnotinferred.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-OWNED",
+      "candidate": "F24",
+      "choice": "Skiprow0fallbackhostloadsfor!owned",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "288*(A-Aowned)INT8uniquevaluebudget;couldzero",
+      "conditions": "Actualownedcounts,fulloutputzeros;deadtokenandunownednotidentical;collectivesretainparticipation.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-DEDUP",
+      "candidate": "F24",
+      "choice": "SameIDlookupdedup orversioneddevicerowcache",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "INT8host288Aowned→288Uowned;hitratio/capacityunknown",
+      "conditions": "Immutabletable/code/scalegeneration,head/shard,decodedroundidentical;nocrosslayerreuseofnonidenticalIDs.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-HISTORY",
+      "candidate": "F24",
+      "choice": "Resolvehistoryonceforbothhashlayers",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "Samein_batch/window/fallbacksourcesreused;48Tmodsstillremain",
+      "conditions": "Keepsseparatereqsearchbaseline,INT64wrap/sourcepriority/blockedprefix;registeroccupancy/parallelismtradeoff.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-MOD",
+      "candidate": "F24",
+      "choice": "Exactconstant-primeINT64remainder",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "48T%replacebyexactmulhi/correctiononlyunderproof",
+      "conditions": "Primes/offsetsgeneration,TLsignedsemantics,64bitoverflowandspecializationcodecapacity;noFP32reciprocal/low32truncate.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-REQ-MERGE",
+      "candidate": "F24",
+      "choice": "Directmergeexistingbinarysearch+hash",
+      "decision": "REJECT_DROPIN_ON_CURRENT_DOCUMENTED_BACKEND",
+      "work_IO_or_partition_effect": "Reqsearchalreadyoncepertoken,not2;12Tinterfaceonlytheoretical",
+      "conditions": "CurrentbishengirsourceexplicitlydocumentsmergedkernelLLVMreleasedbufferabort. Newalgorithm/compilerfixwouldbeaseparatevalidatedchoice.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-HASH-CACHE-ORDER",
+      "candidate": "F24",
+      "choice": "Writecacheafterhashorblindcurrentdeadskip",
+      "decision": "NOT_UNCONDITIONALLY_LEGAL",
+      "work_IO_or_partition_effect": "No48Tmodsorcollectivesdeclareddead",
+      "conditions": "Physicalfallbackslotread/writealias,negativehistory/pad/DEAD_IDpropagationandfutureaccepted/rollbackstate.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-ZERO",
+      "candidate": "F24",
+      "choice": "Elidelookup-localoutzeros",
+      "decision": "CONDITIONAL_SOURCE_DOMAIN_PROVED",
+      "work_IO_or_partition_effect": "176prezeros*2Tglobal*3*256Bwrite;otherzerosretained",
+      "conditions": "Kernelalllocalhead/widthfullwrite,allocationnotaliasinflightreaders;dummybank/masktaildifferentsemanticwrites.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-ROW-EXCHANGE",
+      "candidate": "F24",
+      "choice": "TPhead→rowalltoall anddirectrowlayout",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "12288T→1536Tperrankcontent;transpose/bank/SPcopybudgetsnotadditive",
+      "conditions": "DPpad/chunk/headorder/TPparticipation,clonelifetimeandfixedglobalbankallreaders;contentnotwiretimegain.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-FINAL-STORE",
+      "candidate": "F25",
+      "choice": "Gatewritehiddenbankdirectly",
+      "decision": "CONDITIONAL",
+      "work_IO_or_partition_effect": "4ThHBF16copyinterfacebudget",
+      "conditions": "Readoriginalhiddenbeforewrite,nootheraliasreaderandcapturedbankmutation/lifetimeobservers;shortgraph38TASKbodydoesnotcontainnativeTensorMove.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-NORM-REUSE",
+      "candidate": "F25",
+      "choice": "Cancelrotationnorm/reuseacrosslayeroriteration",
+      "decision": "EXCLUDED_WITHOUT_VALUE_PROOF",
+      "work_IO_or_partition_effect": "SameH/blockshapeisnotorthogonalityorvalueidentity",
+      "conditions": "Currentweights/hiddenchange;fullHnormandsourceBF16/FP32contractsretained.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    },
+    {
+      "id": "ENG-ID-VIEW",
+      "candidate": "F24",
+      "choice": "PassperlayerstridedhashIDviewdirectlytoUVAlookup",
+      "decision": "CONDITIONAL_SOURCE_STRIDE_DOMAIN",
+      "work_IO_or_partition_effect": "176Slice/contiguouscopies,192TselectedINT32read+writebytesperlayer",
+      "conditions": "Hashoutput[T,2,24]perlayerstride48/inner1;UVAkernelacceptsids_stride_t. Keepallotherlookup/collectivebranchcontiguityrequirementsandbanklifetime.",
+      "conditional_operator_analysis_deliverable": true,
+      "new_implementation_or_benchmark": false,
+      "physical_gain_unproved": true
+    }
+  ],
+  "interaction_rules": [
+    "C2NORMinterface/zeroandC1/C2projection/v61budgetsnotoverlapaddtwice. Fusionnorm+RopekeeppreRoPEfork.",
+    "ENGPARAM+GATEjointcostexcludesrepeatparamprep,whilepreparedparamreadsremain. WKVpanelsneedfullHbarrier;noallintermediateelisionpromise.",
+    "Lookupscale8refsdonotchangeunique32Bhostpayload. Dedupcache/ownedskipbenefitsjointlyuseUowned,notindependentpercentssummed.",
+    "TProwexchange andheadpartialWKVarealternativesinpartitioncost; compareagainstbestrowexchange,notclaimboth8x.",
+    "Vector/GEMM/UVA/commsharefinitecapacity;separatestagesumsandexposureare notcausale2egain."
+  ],
+  "overall_complete": false
+}

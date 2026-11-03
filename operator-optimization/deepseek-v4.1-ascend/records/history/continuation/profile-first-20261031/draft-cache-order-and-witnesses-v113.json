@@ -1,0 +1,121 @@
+{
+  "schedules": [
+    {
+      "order": [
+        "Wc",
+        "Wq",
+        "Read"
+      ],
+      "observed": "query",
+      "final": "query",
+      "source_equivalent": true
+    },
+    {
+      "order": [
+        "Wq",
+        "Wc",
+        "Read"
+      ],
+      "observed": "context",
+      "final": "context",
+      "source_equivalent": false
+    },
+    {
+      "order": [
+        "Wq",
+        "Read",
+        "Wc"
+      ],
+      "observed": "query",
+      "final": "context",
+      "source_equivalent": false
+    }
+  ],
+  "witnesses": [
+    {
+      "id": "REJECTED_TAIL_OVERLAP",
+      "n": 3,
+      "seq_len": 10,
+      "rejected": 2,
+      "q": 5,
+      "block_size": 4,
+      "context_logical": [
+        7,
+        8,
+        9
+      ],
+      "query_logical": [
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "overlap": [
+        8,
+        9
+      ],
+      "context_values": [
+        "C7",
+        "C8",
+        "C9"
+      ],
+      "query_values": [
+        "Q8",
+        "Q9",
+        "Q10",
+        "Q11",
+        "Q12"
+      ],
+      "consequence": "Unordered lateC8/C9 can overwrite Q8/Q9. No input or weight value equality is available."
+    },
+    {
+      "id": "CROSS_REQUEST_ALIAS_WITH_R_ZERO",
+      "requestA_context_slot": 20,
+      "requestB_query_slot": 20,
+      "rejected": [
+        0,
+        0
+      ],
+      "consequence": "Per-request logical nonoverlap alone doesnotprove physical disjointness across request/page epochs."
+    },
+    {
+      "id": "ROPE_IS_NOT_LINEAR_CACHE_INDEX",
+      "context_RoPE_positions": [
+        100,
+        100
+      ],
+      "seq_len": 20,
+      "rejected": 1,
+      "first_query_RoPE_position": 101,
+      "first_query_linear_slot_position": 19,
+      "consequence": "Building the conflict predicate from RoPEposition instead of linear slots can be wrong."
+    },
+    {
+      "id": "OVERWRITE_IS_NOT_ENOUGH_TO_DELETE",
+      "order": [
+        "Wc",
+        "ExtraRead",
+        "Wq"
+      ],
+      "extra_reader_needs": "context",
+      "consequence": "Finalquerywinner doesnotmake Wc dead when an intervening reader orerror/state observer exists."
+    },
+    {
+      "id": "EMPTY_LOCAL_QUERY_STILL_WRITES",
+      "local_query_rows": 0,
+      "global_query_KV_rows": 10,
+      "consequence": "Current savedcache-only rankcases stillpublishglobalKV;noQ isnot noWq/nohazard."
+    }
+  ],
+  "CPU_reference": {
+    "cases": 25344,
+    "colliding_cases": 20736,
+    "max_overlap": 6,
+    "fixture_digest": "771a9de580e906d45f02eefacc446a55cb3240e7c829a36302265025de295cae",
+    "domain": "CPU finite reference:n1..8,r0..n,q1..6,prefix0/7,DCP1..4,interleave1/2/4,block1/2/4/8,injective pages;not native runtime parity."
+  },
+  "rule": "For conflicting materialized bytes preserve Wc→Wq and required RAW to readers. Nonconflicting stores need no invented whole-batch barrier;new scheduling/publication protocol must be priced.",
+  "no_native_test_or_unconditional_bug_claim": true,
+  "overall_complete": false
+}

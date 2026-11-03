@@ -1,0 +1,52 @@
+{
+  "candidate": "F35",
+  "variants": [
+    {
+      "id": "F35-v91-CUTOFF-MASK",
+      "state": "POINTWISE_CONDITIONAL_FUSION",
+      "change": "RetainoriginalP/cutoffs,combine two-infmaskedwrites byOR;withorderednonNaNcutoffs,useoneP<max(cK,cP).",
+      "gates": "SameoriginalP/sort/cutoff/CDFvalues,originalvalidationandnobetween-writesobserver. Do notsubstituteupstreamsequentialfilter."
+    },
+    {
+      "id": "F35-v91-CDF-SEARCH",
+      "state": "EXACT_EXISTING_VALUE_CONDITIONAL_REORGANIZATION",
+      "change": "ExistingorderednonNaNCDF:count=min(upper_bound(CDF,actual1-p),V-1). Avoidfullbooleanmask/sumforcount.",
+      "gates": "PreserveactualCDFvalues/scanroundingandthreshold;nonmonotonic/NaNCDFrequiresoriginallogic. Newdependentsearchloadlatencyunpriced."
+    },
+    {
+      "id": "F35-v91-K-SELECTION",
+      "state": "CONDITIONAL_ALGORITHM_SUBSTITUTION",
+      "change": "TopKonly:selectsameprobabilityorderstatistic,retainallboundaryties;allkV/pNonecanbeexplicitmetadata-noop.",
+      "gates": "Roundedprobabilitydomain,validmetadata/errors andsameall-tiebehavior;notexactk/logitTopKwithoutproof."
+    },
+    {
+      "id": "F35-v91-DIV-ARGMAX",
+      "state": "POINTWISE_FIXED_OPERAND_CONDITIONAL_FUSION",
+      "change": "FuseexistingP/Qdivisionwithargmaxstream,omitratiointermediateifPprivate;withgenericPmutationkeepwriteback.",
+      "gates": "SameP/Q/FP32division/comparator,Qstreamwait/record_stream andallRNGcalls. NoimportedQzero/Inf recoveryguards."
+    },
+    {
+      "id": "F35-v91-MIXED-RACE-DEMAND",
+      "state": "CONDITIONAL_CONSUMER_PROJECTION",
+      "change": "KeepfullB-sizedQdrawsandotheroutputs,computeprivatePDiv/argmaxonlyrowswhosefinaltemperature<1e-5selectorusesrandomID.",
+      "gates": "ExactbonusSamplerpredicate/flagsandrowplan;notautomaticallyrejectionEQ0mask. Fullscore/processorandgeneratorstatesretained."
+    },
+    {
+      "id": "F35-v91-SOFTMAX-RACE",
+      "state": "UNPROVED_NATIVE_REDUCTION_FUSION",
+      "change": "Potentiallystreampostfiltersoftmax→Div→argmaxandremoveP/ratiointerfaces.",
+      "gates": "Whole-rowUBplanfails;pricepasses/tiling,exactnativeProunding/reductions,returnedscoreandaliasrequirements. ReusingzeroedoriginalP hasFP32winnercounterexample."
+    },
+    {
+      "id": "F35-v91-LOGPROB-STATS",
+      "state": "UNPROVED_NATIVE_LOGSOFTMAX_STATISTICS_SHARING",
+      "change": "Potentiallysharestatsforprocessedlog_softmaxandpostfiltersoftmax.",
+      "gates": "log(roundedP)isnotlog_softmax;keepunderflow/precision,fullreturnedbankandsamefilteredvalueepoch. Noautomaticlosslessconversion."
+    }
+  ],
+  "new_maincandidate": false,
+  "implementation": false,
+  "native_test": false,
+  "actual_speedup": null,
+  "overall_complete": false
+}

@@ -1,0 +1,710 @@
+{
+  "scope": "fixed source line ranges only; no profile data",
+  "files": [
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/profiler/analysis/prof_view/_kernel_view_parser.py",
+      "sha256": "d8c4c75c6ce95726726b20399cf05cd752be22d730ae49117ca9f2f4db0261fc",
+      "first_line": 1,
+      "last_line": 95,
+      "lines": [
+        {
+          "line": 1,
+          "text": "from ._base_parser import BaseParser"
+        },
+        {
+          "line": 2,
+          "text": "from ..prof_common_func._constant import Constant, convert_ns2us_str"
+        },
+        {
+          "line": 3,
+          "text": "from ..prof_common_func._csv_headers import CsvHeaders"
+        },
+        {
+          "line": 4,
+          "text": "from ..prof_common_func._file_manager import FileManager"
+        },
+        {
+          "line": 5,
+          "text": "from ..prof_common_func._log import ProfilerLogger"
+        },
+        {
+          "line": 6,
+          "text": "from ..prof_bean._op_summary_bean import OpSummaryBean"
+        },
+        {
+          "line": 7,
+          "text": "from ..prof_parse._cann_file_parser import CANNFileParser, CANNDataEnum"
+        },
+        {
+          "line": 8,
+          "text": "from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser"
+        },
+        {
+          "line": 9,
+          "text": "from .._profiler_config import ProfilerConfig"
+        },
+        {
+          "line": 10,
+          "text": ""
+        },
+        {
+          "line": 11,
+          "text": "__all__ = []"
+        },
+        {
+          "line": 12,
+          "text": ""
+        },
+        {
+          "line": 13,
+          "text": ""
+        },
+        {
+          "line": 14,
+          "text": "class KernelViewParser(BaseParser):"
+        },
+        {
+          "line": 15,
+          "text": "    KERNEL_VIEW = \"kernel_details.csv\""
+        },
+        {
+          "line": 16,
+          "text": ""
+        },
+        {
+          "line": 17,
+          "text": "    def __init__(self, name: str, param_dict: dict):"
+        },
+        {
+          "line": 18,
+          "text": "        super().__init__(name, param_dict)"
+        },
+        {
+          "line": 19,
+          "text": "        self.step_range = []"
+        },
+        {
+          "line": 20,
+          "text": ""
+        },
+        {
+          "line": 21,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 22,
+          "text": "    def _project_map_for_headers(cls, input_headers: list):"
+        },
+        {
+          "line": 23,
+          "text": "        project_map_dict = {}"
+        },
+        {
+          "line": 24,
+          "text": "        for index, header in enumerate(CsvHeaders.OP_SUMMARY_SHOW_HEADERS):"
+        },
+        {
+          "line": 25,
+          "text": "            project_map_dict[header] = CsvHeaders.OP_SUMMARY_KERNEL_BASE_HEADERS[index]"
+        },
+        {
+          "line": 26,
+          "text": ""
+        },
+        {
+          "line": 27,
+          "text": "        output_headers = []"
+        },
+        {
+          "line": 28,
+          "text": "        for header in input_headers:"
+        },
+        {
+          "line": 29,
+          "text": "            if header in project_map_dict:"
+        },
+        {
+          "line": 30,
+          "text": "                output_headers.append(project_map_dict.get(header))"
+        },
+        {
+          "line": 31,
+          "text": "            else:"
+        },
+        {
+          "line": 32,
+          "text": "                output_headers.append(header)"
+        },
+        {
+          "line": 33,
+          "text": "        return output_headers"
+        },
+        {
+          "line": 34,
+          "text": ""
+        },
+        {
+          "line": 35,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 36,
+          "text": "    def _get_kernel_headers(cls, all_headers: list, is_all_kernel_headers: bool) -> list:"
+        },
+        {
+          "line": 37,
+          "text": "        if is_all_kernel_headers:"
+        },
+        {
+          "line": 38,
+          "text": "            return all_headers"
+        },
+        {
+          "line": 39,
+          "text": "        shape_headers = [header for header in CsvHeaders.OP_SUMMARY_ADDITIONAL_HEADERS if header in all_headers]"
+        },
+        {
+          "line": 40,
+          "text": "        return CsvHeaders.OP_SUMMARY_SHOW_HEADERS + shape_headers"
+        },
+        {
+          "line": 41,
+          "text": ""
+        },
+        {
+          "line": 42,
+          "text": "    def run(self, deps_data: dict):"
+        },
+        {
+          "line": 43,
+          "text": "        ProfilerLogger.init(self._profiler_path, \"KernelViewParser\")"
+        },
+        {
+          "line": 44,
+          "text": "        self.logger = ProfilerLogger.get_instance()"
+        },
+        {
+          "line": 45,
+          "text": "        self.logger.info(\"KernelViewParser start.\")"
+        },
+        {
+          "line": 46,
+          "text": "        try:"
+        },
+        {
+          "line": 47,
+          "text": "            ProfilerConfig().load_info(self._profiler_path)"
+        },
+        {
+          "line": 48,
+          "text": "            self._init_step_range(deps_data)"
+        },
+        {
+          "line": 49,
+          "text": "            self.generate_view()"
+        },
+        {
+          "line": 50,
+          "text": "        except Exception as e:"
+        },
+        {
+          "line": 51,
+          "text": "            self.logger.exception(\"Failed to generate kernel_details.csv.\")"
+        },
+        {
+          "line": 52,
+          "text": "            return Constant.FAIL, None"
+        },
+        {
+          "line": 53,
+          "text": "        self.logger.info(\"KernelViewParser finish.\")"
+        },
+        {
+          "line": 54,
+          "text": "        return Constant.SUCCESS, None"
+        },
+        {
+          "line": 55,
+          "text": ""
+        },
+        {
+          "line": 56,
+          "text": "    def generate_view(self) -> None:"
+        },
+        {
+          "line": 57,
+          "text": "        op_summary_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.OP_SUMMARY)"
+        },
+        {
+          "line": 58,
+          "text": "        summary_data = []"
+        },
+        {
+          "line": 59,
+          "text": "        output_headers = CsvHeaders.OP_SUMMARY_KERNEL_BASE_HEADERS"
+        },
+        {
+          "line": 60,
+          "text": "        for file_path in op_summary_file_set:"
+        },
+        {
+          "line": 61,
+          "text": "            all_data = FileManager.read_csv_file(file_path, OpSummaryBean)"
+        },
+        {
+          "line": 62,
+          "text": "            if all_data:"
+        },
+        {
+          "line": 63,
+          "text": "                OpSummaryBean.headers = self._get_kernel_headers("
+        },
+        {
+          "line": 64,
+          "text": "                    all_data[0].all_headers, ProfilerConfig().is_all_kernel_headers())"
+        },
+        {
+          "line": 65,
+          "text": "                output_headers = self._project_map_for_headers(OpSummaryBean.headers)"
+        },
+        {
+          "line": 66,
+          "text": "            if not self.step_range:"
+        },
+        {
+          "line": 67,
+          "text": "                summary_data.extend([data.row for data in all_data])"
+        },
+        {
+          "line": 68,
+          "text": "                continue"
+        },
+        {
+          "line": 69,
+          "text": "            for data in all_data:"
+        },
+        {
+          "line": 70,
+          "text": "                step_id = None"
+        },
+        {
+          "line": 71,
+          "text": "                for step_data in self.step_range:"
+        },
+        {
+          "line": 72,
+          "text": "                    if step_data.get(Constant.START_TS) <= data.ts <= step_data.get(Constant.END_TS):"
+        },
+        {
+          "line": 73,
+          "text": "                        step_id = step_data.get(Constant.STEP_ID)"
+        },
+        {
+          "line": 74,
+          "text": "                        break"
+        },
+        {
+          "line": 75,
+          "text": "                summary_data.append([step_id] + data.row)"
+        },
+        {
+          "line": 76,
+          "text": ""
+        },
+        {
+          "line": 77,
+          "text": "        headers = [\"Step Id\"] + output_headers if self.step_range else output_headers"
+        },
+        {
+          "line": 78,
+          "text": "        FileManager.create_csv_file(self._output_path, summary_data, self.KERNEL_VIEW, headers)"
+        },
+        {
+          "line": 79,
+          "text": ""
+        },
+        {
+          "line": 80,
+          "text": "    def _init_step_range(self, deps_data: dict):"
+        },
+        {
+          "line": 81,
+          "text": "        torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])"
+        },
+        {
+          "line": 82,
+          "text": "        if torch_op_node:"
+        },
+        {
+          "line": 83,
+          "text": "            kernel_dict = deps_data.get(Constant.RELATION_PARSER, {})"
+        },
+        {
+          "line": 84,
+          "text": "            if not kernel_dict:"
+        },
+        {
+          "line": 85,
+          "text": "                self.logger.error(\"Kernel view failed to get the step range; the kernel dict is empty.\")"
+        },
+        {
+          "line": 86,
+          "text": "                return"
+        },
+        {
+          "line": 87,
+          "text": "            step_range = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], kernel_dict)"
+        },
+        {
+          "line": 88,
+          "text": "            if not step_range:"
+        },
+        {
+          "line": 89,
+          "text": "                self.logger.warning(\"Kernel view failed to get the step range; the step range is empty.\")"
+        },
+        {
+          "line": 90,
+          "text": "            for step_data in step_range:"
+        },
+        {
+          "line": 91,
+          "text": "                step_id = step_data.get(Constant.STEP_ID)"
+        },
+        {
+          "line": 92,
+          "text": "                step_start = convert_ns2us_str(step_data.get(Constant.START_TS, 0))"
+        },
+        {
+          "line": 93,
+          "text": "                step_end = convert_ns2us_str(step_data.get(Constant.END_TS, 0))"
+        },
+        {
+          "line": 94,
+          "text": "                self.step_range.append("
+        },
+        {
+          "line": 95,
+          "text": "                    {Constant.STEP_ID: step_id, Constant.START_TS: step_start, Constant.END_TS: step_end})"
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/common_func/data_manager.py",
+      "sha256": "f02b37be762a8c9cbe31e3764ad6f7ffb7e497bea317825598b620c917c55221",
+      "first_line": 65,
+      "last_line": 95,
+      "lines": [
+        {
+          "line": 65,
+          "text": "        config_dict[ai_core_num] = InfoConfReader().get_data_under_device(ai_core_num)"
+        },
+        {
+          "line": 66,
+          "text": "        config_dict[aic_frequency] = InfoConfReader().get_data_under_device(aic_frequency)"
+        },
+        {
+          "line": 67,
+          "text": "        if not is_number(config_dict[aic_frequency]):"
+        },
+        {
+          "line": 68,
+          "text": "            logging.error(\"aic_frequency is not number.\")"
+        },
+        {
+          "line": 69,
+          "text": "            return"
+        },
+        {
+          "line": 70,
+          "text": "        config_dict[aic_frequency] = float(config_dict[aic_frequency])"
+        },
+        {
+          "line": 71,
+          "text": "        if NumberConstant.is_zero(config_dict[ai_core_num]) or NumberConstant.is_zero(config_dict[aic_frequency]):"
+        },
+        {
+          "line": 72,
+          "text": "            logging.error(\"ai_core_num or aic_frequency is zero, calculate cube usage failed.\")"
+        },
+        {
+          "line": 73,
+          "text": "            return"
+        },
+        {
+          "line": 74,
+          "text": "        if mac_ratio in headers or \"aic_mac_ratio\" in headers:"
+        },
+        {
+          "line": 75,
+          "text": "            config_dict[mac_ratio_index] = \\"
+        },
+        {
+          "line": 76,
+          "text": "                headers.index(mac_ratio) if mac_ratio in headers else headers.index(\"aic_mac_ratio\")"
+        },
+        {
+          "line": 77,
+          "text": "        if total_cycles in headers or \"aic_total_cycles\" in headers:"
+        },
+        {
+          "line": 78,
+          "text": "            config_dict[total_cycles_index] = \\"
+        },
+        {
+          "line": 79,
+          "text": "                headers.index(total_cycles) if total_cycles in headers else headers.index(\"aic_total_cycles\")"
+        },
+        {
+          "line": 80,
+          "text": "        config_dict[task_duration_index] = \\"
+        },
+        {
+          "line": 81,
+          "text": "            headers.index(\"Task Duration(us)\") if \"Task Duration(us)\" in headers else None"
+        },
+        {
+          "line": 82,
+          "text": "        if config_dict.get(task_duration_index, None) and config_dict.get(total_cycles_index, None) and \\"
+        },
+        {
+          "line": 83,
+          "text": "                config_dict.get(mac_ratio_index, None):"
+        },
+        {
+          "line": 84,
+          "text": "            headers.append(\"cube_utilization(%)\")"
+        },
+        {
+          "line": 85,
+          "text": "            for index, row in enumerate(data):"
+        },
+        {
+          "line": 86,
+          "text": "                data[index] = cube_usage(config_dict, list(row))"
+        },
+        {
+          "line": 87,
+          "text": ""
+        },
+        {
+          "line": 88,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 89,
+          "text": "    def add_memory_bound(cls: any, headers: list, data: list) -> None:"
+        },
+        {
+          "line": 90,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 91,
+          "text": "        add memory bound data"
+        },
+        {
+          "line": 92,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 93,
+          "text": "        if all(header in headers for header in (\"mac_ratio\", \"vec_ratio\", \"mte2_ratio\")):"
+        },
+        {
+          "line": 94,
+          "text": "            mte2_index = headers.index(\"mte2_ratio\")"
+        },
+        {
+          "line": 95,
+          "text": "            vec_index = headers.index(\"vec_ratio\")"
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/tuning/data_manager.py",
+      "sha256": "0ee81d35a28e3fa60876f378d8409dc6eac64a50be811eceb2c3f806fecd039b",
+      "first_line": 255,
+      "last_line": 295,
+      "lines": [
+        {
+          "line": 255,
+          "text": "                    headers, data, _ = get_task_based_core_data(project_path, DBNameConstant.DB_RUNTIME,"
+        },
+        {
+          "line": 256,
+          "text": "                                                                param)"
+        },
+        {
+          "line": 257,
+          "text": "                elif sample_config.get(StrConstant.AIV_PROFILING_MODE) == StrConstant.AIC_SAMPLE_BASED_MODE:"
+        },
+        {
+          "line": 258,
+          "text": "                    headers, data, _ = AiCoreReport.get_core_sample_data(project_path,"
+        },
+        {
+          "line": 259,
+          "text": "                                                                         DBNameConstant.DB_NAME_AI_VECTOR_CORE, param)"
+        },
+        {
+          "line": 260,
+          "text": "        return headers, data"
+        },
+        {
+          "line": 261,
+          "text": ""
+        },
+        {
+          "line": 262,
+          "text": "    @classmethod"
+        },
+        {
+          "line": 263,
+          "text": "    def _get_extend_data(cls: any, operator_dict: dict) -> dict:"
+        },
+        {
+          "line": 264,
+          "text": "        extend_data_dict = {}"
+        },
+        {
+          "line": 265,
+          "text": "        cls.get_core_number(extend_data_dict)"
+        },
+        {
+          "line": 266,
+          "text": "        cls.get_vector_bound(extend_data_dict, operator_dict)"
+        },
+        {
+          "line": 267,
+          "text": "        operator_dict.update(extend_data_dict)"
+        },
+        {
+          "line": 268,
+          "text": "        return extend_data_dict"
+        },
+        {
+          "line": 269,
+          "text": ""
+        },
+        {
+          "line": 270,
+          "text": ""
+        },
+        {
+          "line": 271,
+          "text": "class ModelSummaryTuningDataHandle(OpSummaryTuningDataHandle):"
+        },
+        {
+          "line": 272,
+          "text": "    TAG_KEY = StrConstant.CUBE_UTILIZATION"
+        },
+        {
+          "line": 273,
+          "text": "    BOUND_TYPE = {"
+        },
+        {
+          "line": 274,
+          "text": "        StrConstant.CUBE_UTILIZATION: ["
+        },
+        {
+          "line": 275,
+          "text": "            StrConstant.MAC_RATIO,"
+        },
+        {
+          "line": 276,
+          "text": "            StrConstant.AIC_MAC_RATIO"
+        },
+        {
+          "line": 277,
+          "text": "        ],"
+        },
+        {
+          "line": 278,
+          "text": "        StrConstant.VECTOR_UTILIZATION: ["
+        },
+        {
+          "line": 279,
+          "text": "            StrConstant.VEC_RATIO,"
+        },
+        {
+          "line": 280,
+          "text": "            StrConstant.AIV_VEC_RATIO"
+        },
+        {
+          "line": 281,
+          "text": "        ],"
+        },
+        {
+          "line": 282,
+          "text": "        StrConstant.SCALAR_UTILIZATION: ["
+        },
+        {
+          "line": 283,
+          "text": "            StrConstant.SCALAR_RATIO,"
+        },
+        {
+          "line": 284,
+          "text": "            StrConstant.AIC_SCALAR_RATIO,"
+        },
+        {
+          "line": 285,
+          "text": "            StrConstant.AIV_SCALAR_RATIO"
+        },
+        {
+          "line": 286,
+          "text": "        ],"
+        },
+        {
+          "line": 287,
+          "text": "        StrConstant.MTE_UTILIZATION: ["
+        },
+        {
+          "line": 288,
+          "text": "            StrConstant.MTE1_RATIO,"
+        },
+        {
+          "line": 289,
+          "text": "            StrConstant.MTE2_RATIO,"
+        },
+        {
+          "line": 290,
+          "text": "            StrConstant.MTE3_RATIO,"
+        },
+        {
+          "line": 291,
+          "text": "            StrConstant.AIC_MTE1_RATIO,"
+        },
+        {
+          "line": 292,
+          "text": "            StrConstant.AIC_MTE2_RATIO,"
+        },
+        {
+          "line": 293,
+          "text": "            StrConstant.AIC_MTE3_RATIO,"
+        },
+        {
+          "line": 294,
+          "text": "            StrConstant.AIV_MTE1_RATIO,"
+        },
+        {
+          "line": 295,
+          "text": "            StrConstant.AIV_MTE2_RATIO,"
+        }
+      ]
+    }
+  ],
+  "historical_binding": "current source hashes do not prove history runtime/execution",
+  "no_device_work": true,
+  "inventory_sha256": "b9eaeb31ed0daff3f5509d2e6cd3d93402023c2b0c44bf12845b263a87363583",
+  "script_sha256": "6a89ddd84999b72243a045cb8c075401cbbb2393eeb81ae1d740f5c06725e86b",
+  "wrapper_sha256": "13cba89a9884b690e0df4041fb3f5ba88819233c3f163fa9896673fcc3456bf4",
+  "fixed_image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "stage_id": "42a5ed03e3a3014d64e47af56a0304a3e9724573bf8df0c98adc47866c587602",
+  "diagnostic_id": "238c1fae630aff68ef3a7c77d4a4fdd26e55019b35cd2f8e2ae3a3c776d182f3",
+  "source_roots_not_overmounted_at_inspection": true,
+  "limitations": [
+    "Inspections and same current image do not prove historical file versions or loaded objects",
+    "Fixed line excerpts do not establish complete data flow or compiled exporter semantics"
+  ]
+}

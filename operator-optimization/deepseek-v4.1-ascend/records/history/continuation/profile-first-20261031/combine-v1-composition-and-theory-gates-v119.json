@@ -1,0 +1,35 @@
+{
+  "variants": [
+    {
+      "id": "F21-V1-WITHIN-EXPERT-ROWS",
+      "change": "Redistribute keptrows across48workerswithinexistingexpertreadiness/completion,usingoriginalrowepilogue.",
+      "old_work_unchanged": "SameFP16C2rows/scales/BF16peerdataandweightedunpermute;sameVectorconversions/Muls andGMlogicalcontent. No new arithmetic savings or return-byte reduction.",
+      "extra_cost": "Existingprefixmetadata can be readondevice,not newhostsync;chargeintervalcuts/lookup/functionentries,pipelineoccupancy,peercontention andintegerdivision. Withb1theoriginalRrowDMAs/per-roweventcountstayunchanged;batchingrequiresseparatefragment/tailcost."
+    },
+    {
+      "id": "F21-V1-ROW-BATCH",
+      "change": "Separateoption:batchbrowsperprivateUBstage to reducehighlevelCast/copy/event grouping.",
+      "cost": "CurrentprivateUBlayout81920B;keepingallthreebuffersandtwofullstageswoulduse81920*b B. Stillbrow-scales andHRMuls;no b-foldinstructionthroughput orfit/occupancy claim.",
+      "dependency": "Newcopy/broadcast/perrowscale/event/mask/UBalias designandtypedcapacity required. Can retainb1forloadbalance;V2paddingtrimcreditnotapplicable."
+    }
+  ],
+  "symbolic_original_source_bound": "ForoldfixedpeerownershipandRNErowpath,per-workernecessarysourceconversions/Muls areH*S_d each. Givenindependentlyvalidper-workertypedcapacityupperboundsU_e,T_old_source>=max_d,e(H*S_d/U_e). This is not a universalboundonreorganizedimplementations.",
+  "transformed_bound": "ReorganizedrowpathstillprocessesH*Rsourceelements/type,unlessseparatelyvalidatedrepresentation/fusionremoveswork. Useglobaltypedresourcecuts plusper-peer2HRwrite/requiredstorage/linkcuts;do notaddoverlappableresourcecuts or treatcounterfactualscheduleasphysicaltime lowerbound.",
+  "preserved": [
+    "FP16GMM2round→FP32scale→BF16RINTreturn→originalweightedunpermuteorder/probmetadata.",
+    "Originalexpert/peerclipselection,allsource-scale-peerrowmaps,remotealiases,capacityandoldC2/Aretirement lifetimes.",
+    "AllAIVexpertflags/barriers andper-stageFinalize,allrankcompletion beforeunpermute;multiplewritersneedrealcompiledextent/disjointstore/protocolproof.",
+    "Peerreturnpayload/content unchanged;onehotpeerlinkinjectioncanremainserialdespitemoreAIVworkers.",
+    "F21-FINEonchip handoff/F21-CUTexpertpartition arepriorproposals;withinexpertrowbalancecannotdouble-counttheirinterface/work savings."
+  ],
+  "unknown": [
+    "Actualhistoricalcompiledbranch/coremapping andV1phase times",
+    "Perexpert-perpeerjointcountsforlaterhostprof andallsource/destallocatorlifetimes",
+    "TypedVector/Cast/Muls/GM-L2-HBM/link/injectioncapacitiesandnewfragmentcost",
+    "Nonlinearclipping/fullbankreadersandphysicalstoreextents"
+  ],
+  "no_new_pair_group_or_candidate_root": true,
+  "new_native_promotions": 0,
+  "new_device_work": false,
+  "overall_complete": false
+}

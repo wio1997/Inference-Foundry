@@ -1,0 +1,1585 @@
+{
+  "root": "/vllm-workspace/vllm-ascend/csrc/mc2/dispatch_ffn_combine",
+  "target_names": [
+    "hccl_shmem.hpp",
+    "moe_token_unpermute.h"
+  ],
+  "files": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/unpermute/moe_token_unpermute.h",
+      "size_bytes": 16454,
+      "status": "read",
+      "sha256": "08982836ca51157eb674d447c66730cfeffdf8080d7172a157d887c7e58c3a0d",
+      "line_count": 375,
+      "hit_count": 79,
+      "selected_line_count": 228,
+      "snippet_truncated": true,
+      "snippet": [
+        {
+          "line": 16,
+          "text": ""
+        },
+        {
+          "line": 17,
+          "text": "/*!"
+        },
+        {
+          "line": 18,
+          "text": " * \\file moe_token_unpermute.h"
+        },
+        {
+          "line": 19,
+          "text": " * \\brief"
+        },
+        {
+          "line": 20,
+          "text": " */"
+        },
+        {
+          "line": 21,
+          "text": ""
+        },
+        {
+          "line": 22,
+          "text": "#ifndef MOE_TOKEN_UNPERMUTE"
+        },
+        {
+          "line": 23,
+          "text": "#define MOE_TOKEN_UNPERMUTE"
+        },
+        {
+          "line": 24,
+          "text": ""
+        },
+        {
+          "line": 25,
+          "text": "#include \"kernel_operator.h\""
+        },
+        {
+          "line": 26,
+          "text": "#include \"moe_token_unpermute_tiling.h\""
+        },
+        {
+          "line": 27,
+          "text": "using namespace AscendC;"
+        },
+        {
+          "line": 28,
+          "text": ""
+        },
+        {
+          "line": 29,
+          "text": ""
+        },
+        {
+          "line": 30,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS> class KernelMoeTokenUnpermute {"
+        },
+        {
+          "line": 31,
+          "text": "public:"
+        },
+        {
+          "line": 32,
+          "text": "    __aicore__ inline KernelMoeTokenUnpermute()"
+        },
+        {
+          "line": 33,
+          "text": "    {"
+        },
+        {
+          "line": 34,
+          "text": "    }"
+        },
+        {
+          "line": 35,
+          "text": ""
+        },
+        {
+          "line": 36,
+          "text": "    __aicore__ inline void Init(GM_ADDR permuted_tokens, GM_ADDR sorted_indices, GM_ADDR probs,"
+        },
+        {
+          "line": 37,
+          "text": "                                GM_ADDR unpermuted_tokens, const MoeTokenUnpermuteTilingData *__restrict tiling_data);"
+        },
+        {
+          "line": 38,
+          "text": "    __aicore__ inline void Process();"
+        },
+        {
+          "line": 39,
+          "text": ""
+        },
+        {
+          "line": 40,
+          "text": "protected:"
+        },
+        {
+          "line": 44,
+          "text": "                                           const int64_t out_token_index);"
+        },
+        {
+          "line": 45,
+          "text": "    __aicore__ inline void CopyTokenIn(const T2 in_token_index, const int64_t h_index, const int64_t h_length);"
+        },
+        {
+          "line": 46,
+          "text": "    __aicore__ inline void CalFirstToken(const float prob_value, const int64_t h_length);"
+        },
+        {
+          "line": 47,
+          "text": "    __aicore__ inline void CalToken(const float prob_value, const int64_t h_length);"
+        },
+        {
+          "line": 48,
+          "text": "    __aicore__ inline void CopyOut(const int64_t out_token_index, const int64_t h_index, const int64_t h_length);"
+        },
+        {
+          "line": 49,
+          "text": ""
+        },
+        {
+          "line": 50,
+          "text": "    TPipe pipe;"
+        },
+        {
+          "line": 51,
+          "text": "    TQue<QuePosition::VECIN, 1> tokens_inque, indices_inque, probs_inque;"
+        },
+        {
+          "line": 52,
+          "text": "    TBuf<TPosition::VECCALC> temp_buffer0, temp_buffer1, temp_buffer2;"
+        },
+        {
+          "line": 53,
+          "text": "    TQue<QuePosition::VECOUT, 1> outque;"
+        },
+        {
+          "line": 54,
+          "text": "    GlobalTensor<T1> tokensGM, outGM;"
+        },
+        {
+          "line": 55,
+          "text": "    GlobalTensor<T2> indicesGM;"
+        },
+        {
+          "line": 56,
+          "text": "    GlobalTensor<T3> probsGM;"
+        },
+        {
+          "line": 57,
+          "text": "    LocalTensor<T2> indicesLocal;"
+        },
+        {
+          "line": 58,
+          "text": "    LocalTensor<float> token_tensor0, token_tensor1, probs_tensor;"
+        },
+        {
+          "line": 59,
+          "text": "    DataCopyPadExtParams<T1> extParams1{false, 0, 0, 0};"
+        },
+        {
+          "line": 60,
+          "text": "    DataCopyPadExtParams<T2> extParams2{false, 0, 0, 0};"
+        },
+        {
+          "line": 61,
+          "text": "    DataCopyPadExtParams<T3> extParams3{false, 0, 0, 0};"
+        },
+        {
+          "line": 62,
+          "text": "    DataCopyExtParams copyParams{1, 0, 0, 0, 0};"
+        },
+        {
+          "line": 63,
+          "text": ""
+        },
+        {
+          "line": 64,
+          "text": "    constexpr static uint32_t BLOCK_SIZE = 32;"
+        },
+        {
+          "line": 80,
+          "text": "};"
+        },
+        {
+          "line": 81,
+          "text": ""
+        },
+        {
+          "line": 82,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 83,
+          "text": "__aicore__ inline void"
+        },
+        {
+          "line": 84,
+          "text": "KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::Init(GM_ADDR permuted_tokens, GM_ADDR sorted_indices, GM_ADDR probs,"
+        },
+        {
+          "line": 85,
+          "text": "                                                 GM_ADDR unpermuted_tokens,"
+        },
+        {
+          "line": 86,
+          "text": "                                                 const MoeTokenUnpermuteTilingData *__restrict tiling_data)"
+        },
+        {
+          "line": 87,
+          "text": "{"
+        },
+        {
+          "line": 88,
+          "text": "    this->blockIdx = get_block_idx() + get_subblockid() * get_block_num();"
+        },
+        {
+          "line": 130,
+          "text": "    }"
+        },
+        {
+          "line": 131,
+          "text": ""
+        },
+        {
+          "line": 132,
+          "text": "    this->tokensGM.SetGlobalBuffer((__gm__ T1 *)permuted_tokens);"
+        },
+        {
+          "line": 133,
+          "text": "    this->indicesGM.SetGlobalBuffer((__gm__ T2 *)sorted_indices + block_offset, block_length);"
+        },
+        {
+          "line": 134,
+          "text": ""
+        },
+        {
+          "line": 147,
+          "text": "    }"
+        },
+        {
+          "line": 148,
+          "text": ""
+        },
+        {
+          "line": 149,
+          "text": "    this->outGM.SetGlobalBuffer((__gm__ T1 *)unpermuted_tokens + out_block_offset,"
+        },
+        {
+          "line": 150,
+          "text": "                                this->tokens_core_length * this->hidden_size);"
+        },
+        {
+          "line": 151,
+          "text": ""
+        },
+        {
+          "line": 161,
+          "text": "    }"
+        },
+        {
+          "line": 162,
+          "text": ""
+        },
+        {
+          "line": 163,
+          "text": "    if constexpr (PROBS) {"
+        },
+        {
+          "line": 164,
+          "text": "        this->probsGM.SetGlobalBuffer((__gm__ T3 *)probs + block_offset, block_length);"
+        },
+        {
+          "line": 165,
+          "text": "        this->pipe.InitBuffer(probs_inque, 1, block_splited_length * (sizeof(T3)));"
+        },
+        {
+          "line": 166,
+          "text": "        if constexpr (!IsSameType<T3, float>::value) {"
+        },
+        {
+          "line": 167,
+          "text": "            this->pipe.InitBuffer(temp_buffer2, block_splited_length * sizeof(float));"
+        },
+        {
+          "line": 168,
+          "text": "            this->probs_tensor = this->temp_buffer2.template Get<float>();"
+        },
+        {
+          "line": 169,
+          "text": "        }"
+        },
+        {
+          "line": 170,
+          "text": "    }"
+        },
+        {
+          "line": 171,
+          "text": "};"
+        },
+        {
+          "line": 172,
+          "text": ""
+        },
+        {
+          "line": 173,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 174,
+          "text": "__aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::Process()"
+        },
+        {
+          "line": 175,
+          "text": "{"
+        },
+        {
+          "line": 176,
+          "text": ""
+        },
+        {
+          "line": 187,
+          "text": "}"
+        },
+        {
+          "line": 188,
+          "text": ""
+        },
+        {
+          "line": 189,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 190,
+          "text": "__aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::CalMultiOutToken(const int64_t out_offset,"
+        },
+        {
+          "line": 191,
+          "text": "                                                                                    const int64_t out_tokens_number)"
+        },
+        {
+          "line": 192,
+          "text": "{"
+        },
+        {
+          "line": 194,
+          "text": "    int64_t in_offset = out_offset * this->top_k;"
+        },
+        {
+          "line": 195,
+          "text": "    this->copyParams.blockLen = out_tokens_number * this->top_k * sizeof(T2);"
+        },
+        {
+          "line": 196,
+          "text": "    DataCopyPad(this->indicesLocal, this->indicesGM[in_offset], this->copyParams, this->extParams2);"
+        },
+        {
+          "line": 197,
+          "text": "    this->indices_inque.template EnQue(this->indicesLocal);"
+        },
+        {
+          "line": 198,
+          "text": ""
+        },
+        {
+          "line": 199,
+          "text": "    if constexpr (PROBS) {"
+        },
+        {
+          "line": 200,
+          "text": "        LocalTensor<T3> temp_probs_tensor = this->probs_inque.template AllocTensor<T3>();"
+        },
+        {
+          "line": 201,
+          "text": "        this->copyParams.blockLen = out_tokens_number * this->top_k * sizeof(T3);"
+        },
+        {
+          "line": 202,
+          "text": "        DataCopyPad(temp_probs_tensor, this->probsGM[in_offset], this->copyParams, this->extParams3);"
+        },
+        {
+          "line": 203,
+          "text": "        this->probs_inque.template EnQue(temp_probs_tensor);"
+        },
+        {
+          "line": 204,
+          "text": "        temp_probs_tensor = this->probs_inque.template DeQue<T3>();"
+        },
+        {
+          "line": 205,
+          "text": "        if constexpr (!IsSameType<T3, float>::value) {"
+        },
+        {
+          "line": 206,
+          "text": "            Cast(this->probs_tensor, temp_probs_tensor, RoundMode::CAST_NONE, out_tokens_number * this->top_k);"
+        },
+        {
+          "line": 207,
+          "text": "            this->probs_inque.FreeTensor(temp_probs_tensor);"
+        },
+        {
+          "line": 208,
+          "text": "            PipeBarrier<PIPE_V>();"
+        },
+        {
+          "line": 209,
+          "text": "        } else {"
+        },
+        {
+          "line": 210,
+          "text": "            this->probs_tensor = temp_probs_tensor;"
+        },
+        {
+          "line": 211,
+          "text": "        }"
+        },
+        {
+          "line": 212,
+          "text": "    }"
+        },
+        {
+          "line": 219,
+          "text": "    // Free Tensor"
+        },
+        {
+          "line": 220,
+          "text": "    this->indices_inque.FreeTensor(this->indicesLocal);"
+        },
+        {
+          "line": 221,
+          "text": "    if constexpr (PROBS && IsSameType<T3, float>::value) {"
+        },
+        {
+          "line": 222,
+          "text": "        this->probs_inque.FreeTensor(this->probs_tensor);"
+        },
+        {
+          "line": 223,
+          "text": "    }"
+        },
+        {
+          "line": 224,
+          "text": "}"
+        },
+        {
+          "line": 225,
+          "text": ""
+        },
+        {
+          "line": 226,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 227,
+          "text": "__aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::CalSingleOutToken(const int64_t start_token,"
+        },
+        {
+          "line": 228,
+          "text": "                                                                                     const int64_t out_token_idx)"
+        },
+        {
+          "line": 229,
+          "text": "{"
+        },
+        {
+          "line": 237,
+          "text": "}"
+        },
+        {
+          "line": 238,
+          "text": ""
+        },
+        {
+          "line": 239,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 240,
+          "text": "__aicore__ inline void"
+        },
+        {
+          "line": 241,
+          "text": "KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::CalPartOutToken(const int64_t start_token, const int64_t h_index,"
+        },
+        {
+          "line": 242,
+          "text": "                                                            const int64_t h_length, const int64_t out_token_index)"
+        },
+        {
+          "line": 243,
+          "text": "{"
+        },
+        {
+          "line": 250,
+          "text": "    // Handle the first token"
+        },
+        {
+          "line": 251,
+          "text": "    if (cal_token_idx < this->num_out_tokens) {"
+        },
+        {
+          "line": 252,
+          "text": "        float probsValue = 0;"
+        },
+        {
+          "line": 253,
+          "text": "        if constexpr (PROBS) {"
+        },
+        {
+          "line": 254,
+          "text": "            probsValue = this->probs_tensor.GetValue(start_token);"
+        },
+        {
+          "line": 255,
+          "text": "        }"
+        },
+        {
+          "line": 256,
+          "text": ""
+        },
+        {
+          "line": 257,
+          "text": "        CopyTokenIn(cal_token_idx, h_index, h_length);"
+        },
+        {
+          "line": 258,
+          "text": "        PipeBarrier<PIPE_V>();"
+        },
+        {
+          "line": 259,
+          "text": "        CalFirstToken(probsValue, h_length);"
+        },
+        {
+          "line": 260,
+          "text": "    } else {"
+        },
+        {
+          "line": 261,
+          "text": "        PipeBarrier<PIPE_V>();"
+        },
+        {
+          "line": 262,
+          "text": "        Duplicate(this->token_tensor0, static_cast<float>(0), h_length);"
+        },
+        {
+          "line": 263,
+          "text": "    }"
+        },
+        {
+          "line": 264,
+          "text": ""
+        },
+        {
+          "line": 267,
+          "text": "        cal_token_idx = this->indicesLocal.GetValue(token_index);"
+        },
+        {
+          "line": 268,
+          "text": "        if (cal_token_idx < this->num_out_tokens) {"
+        },
+        {
+          "line": 269,
+          "text": "            float probsValue = 0;"
+        },
+        {
+          "line": 270,
+          "text": "            if constexpr (PROBS) {"
+        },
+        {
+          "line": 271,
+          "text": "                probsValue = this->probs_tensor.GetValue(token_index);"
+        },
+        {
+          "line": 272,
+          "text": "            }"
+        },
+        {
+          "line": 273,
+          "text": "        "
+        },
+        {
+          "line": 274,
+          "text": "            CopyTokenIn(cal_token_idx, h_index, h_length);"
+        },
+        {
+          "line": 275,
+          "text": "            PipeBarrier<PIPE_V>();"
+        },
+        {
+          "line": 276,
+          "text": "            CalToken(probsValue, h_length);"
+        },
+        {
+          "line": 277,
+          "text": "        }"
+        },
+        {
+          "line": 278,
+          "text": "    }"
+        },
+        {
+          "line": 282,
+          "text": "}"
+        },
+        {
+          "line": 283,
+          "text": ""
+        },
+        {
+          "line": 284,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 285,
+          "text": "__aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::CopyTokenIn(const T2 in_token_index,"
+        },
+        {
+          "line": 286,
+          "text": "                                                                               const int64_t h_index,"
+        },
+        {
+          "line": 287,
+          "text": "                                                                               const int64_t h_length)"
+        },
+        {
+          "line": 291,
+          "text": ""
+        },
+        {
+          "line": 292,
+          "text": "    if (likely((h_length * sizeof(T1)) % BLOCK_SIZE == 0)) {"
+        },
+        {
+          "line": 293,
+          "text": "        DataCopy(tokensLocal, this->tokensGM[offset], h_length);"
+        },
+        {
+          "line": 294,
+          "text": "    } else {"
+        },
+        {
+          "line": 295,
+          "text": "        this->copyParams.blockLen = h_length * sizeof(T1);"
+        },
+        {
+          "line": 296,
+          "text": "        DataCopyPad(tokensLocal, this->tokensGM[offset], this->copyParams, this->extParams1);"
+        },
+        {
+          "line": 297,
+          "text": "    }"
+        },
+        {
+          "line": 298,
+          "text": ""
+        },
+        {
+          "line": 300,
+          "text": "}"
+        },
+        {
+          "line": 301,
+          "text": ""
+        },
+        {
+          "line": 302,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 303,
+          "text": "__aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::CalFirstToken(const float prob_value,"
+        },
+        {
+          "line": 304,
+          "text": "                                                                                 const int64_t h_length)"
+        },
+        {
+          "line": 305,
+          "text": "{"
+        },
+        {
+          "line": 307,
+          "text": ""
+        },
+        {
+          "line": 308,
+          "text": "    if constexpr (!IsSameType<T1, float>::value) {"
+        },
+        {
+          "line": 309,
+          "text": "        Cast(this->token_tensor0, tokensLocal, RoundMode::CAST_NONE, h_length);"
+        },
+        {
+          "line": 310,
+          "text": "    } else {"
+        },
+        {
+          "line": 311,
+          "text": "        uint64_t byteAlign32 = (h_length * sizeof(float) + BLOCK_SIZE - 1) & ~(BLOCK_SIZE - 1);"
+        },
+        {
+          "line": 312,
+          "text": "        DataCopy(this->token_tensor0, tokensLocal, byteAlign32 / sizeof(float));"
+        },
+        {
+          "line": 313,
+          "text": "    }"
+        },
+        {
+          "line": 314,
+          "text": ""
+        },
+        {
+          "line": 315,
+          "text": "    this->tokens_inque.FreeTensor(tokensLocal);"
+        },
+        {
+          "line": 316,
+          "text": ""
+        },
+        {
+          "line": 317,
+          "text": "    if constexpr (PROBS) {"
+        },
+        {
+          "line": 318,
+          "text": "        PipeBarrier<PIPE_V>();"
+        },
+        {
+          "line": 319,
+          "text": "        Muls(this->token_tensor0, this->token_tensor0, prob_value, h_length);"
+        },
+        {
+          "line": 320,
+          "text": "    }"
+        },
+        {
+          "line": 321,
+          "text": "}"
+        },
+        {
+          "line": 322,
+          "text": ""
+        },
+        {
+          "line": 323,
+          "text": "template <typename T1, typename T2, typename T3, bool PROBS>"
+        },
+        {
+          "line": 324,
+          "text": "__aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::CalToken(const float prob_value,"
+        },
+        {
+          "line": 325,
+          "text": "                                                                            const int64_t h_length)"
+        },
+        {
+          "line": 326,
+          "text": "{"
+        },
+        {
+          "line": 328,
+          "text": ""
+        },
+        {
+          "line": 329,
+          "text": "    if constexpr (!IsSameType<T1, float>::value) {"
+        },
+        {
+          "line": 330,
+          "text": "        Cast(this->token_tensor1, tokensLocal, RoundMode::CAST_NONE, h_length);"
+        },
+        {
+          "line": 331,
+          "text": "        this->tokens_inque.FreeTensor(tokensLocal);"
+        },
+        {
+          "line": 332,
+          "text": "        if constexpr (PROBS) {"
+        },
+        {
+          "line": 333,
+          "text": "            PipeBarrier<PIPE_V>();"
+        },
+        {
+          "line": 334,
+          "text": "            Muls(this->token_tensor1, this->token_tensor1, prob_value, h_length);"
+        },
+        {
+          "line": 335,
+          "text": "        }"
+        },
+        {
+          "line": 336,
+          "text": "        PipeBarrier<PIPE_V>();"
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/utils/hccl_shmem.hpp",
+      "size_bytes": 12006,
+      "status": "read",
+      "sha256": "596bc8a0c28748aade2e5f2e978f18a6e593d146a8cf07fe4aeac8d36c19bad6",
+      "line_count": 327,
+      "hit_count": 56,
+      "selected_line_count": 186,
+      "snippet_truncated": false,
+      "snippet": [
+        {
+          "line": 1,
+          "text": "#ifndef SYNC_UTIL_HPP"
+        },
+        {
+          "line": 2,
+          "text": "#define SYNC_UTIL_HPP"
+        },
+        {
+          "line": 3,
+          "text": ""
+        },
+        {
+          "line": 4,
+          "text": ""
+        },
+        {
+          "line": 11,
+          "text": ""
+        },
+        {
+          "line": 12,
+          "text": "#else"
+        },
+        {
+          "line": 13,
+          "text": "#include \"shmem_api.h\""
+        },
+        {
+          "line": 14,
+          "text": "#endif"
+        },
+        {
+          "line": 15,
+          "text": ""
+        },
+        {
+          "line": 16,
+          "text": "#define FORCE_INLINE_AICORE inline __attribute__((always_inline)) __aicore__"
+        },
+        {
+          "line": 17,
+          "text": "constexpr int32_t MAX_RANK_SIZE = 32;"
+        },
+        {
+          "line": 18,
+          "text": "constexpr int32_t SHMEM_MEM = 700 * MB_SIZE;"
+        },
+        {
+          "line": 19,
+          "text": ""
+        },
+        {
+          "line": 20,
+          "text": "constexpr uint16_t SEND_SYNC_EVENT_ID = 9;"
+        },
+        {
+          "line": 21,
+          "text": "constexpr uint16_t RECV_SYNC_EVENT_ID = 10;"
+        },
+        {
+          "line": 22,
+          "text": ""
+        },
+        {
+          "line": 23,
+          "text": "constexpr uint32_t SELF_STATE_OFFSET = 256 * 1024;"
+        },
+        {
+          "line": 24,
+          "text": "constexpr uint32_t STATE_OFFSET = 512;"
+        },
+        {
+          "line": 25,
+          "text": ""
+        },
+        {
+          "line": 26,
+          "text": "FORCE_INLINE_AICORE void AicSyncAll() {"
+        },
+        {
+          "line": 27,
+          "text": "    AscendC::CrossCoreSetFlag<0x0, PIPE_FIX>(8);"
+        },
+        {
+          "line": 28,
+          "text": "    AscendC::CrossCoreWaitFlag<0x0>(8);"
+        },
+        {
+          "line": 29,
+          "text": "}"
+        },
+        {
+          "line": 30,
+          "text": ""
+        },
+        {
+          "line": 51,
+          "text": "}"
+        },
+        {
+          "line": 52,
+          "text": ""
+        },
+        {
+          "line": 53,
+          "text": "FORCE_INLINE_AICORE int32_t gm_signal_wait_until_eq_for_barrier(__gm__ int32_t *sig_addr, int32_t cmp_val) {"
+        },
+        {
+          "line": 54,
+          "text": "    do {"
+        },
+        {
+          "line": 55,
+          "text": "        gm_dcci((__gm__ uint8_t *)sig_addr);"
+        },
+        {
+          "line": 64,
+          "text": "}"
+        },
+        {
+          "line": 65,
+          "text": ""
+        },
+        {
+          "line": 66,
+          "text": "FORCE_INLINE_AICORE void gm_signal_wait_until_ne(__gm__ int32_t *sig_addr, int32_t cmp_val) {"
+        },
+        {
+          "line": 67,
+          "text": "    do {"
+        },
+        {
+          "line": 68,
+          "text": "        AscendC::LocalTensor<int32_t> ub;"
+        },
+        {
+          "line": 71,
+          "text": "        AscendC::GlobalTensor<int32_t> sig;"
+        },
+        {
+          "line": 72,
+          "text": "        sig.SetGlobalBuffer(sig_addr);"
+        },
+        {
+          "line": 73,
+          "text": "        AscendC::DataCopy(ub, sig, 8);"
+        },
+        {
+          "line": 74,
+          "text": "        AscendC::SetFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID0);"
+        },
+        {
+          "line": 75,
+          "text": "        AscendC::WaitFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID0);"
+        },
+        {
+          "line": 76,
+          "text": "        if (ub(0) != cmp_val) {"
+        },
+        {
+          "line": 77,
+          "text": "            return;"
+        },
+        {
+          "line": 82,
+          "text": ""
+        },
+        {
+          "line": 83,
+          "text": ""
+        },
+        {
+          "line": 84,
+          "text": "class HcclShmem {"
+        },
+        {
+          "line": 85,
+          "text": "public:"
+        },
+        {
+          "line": 86,
+          "text": "    #ifdef HCCL_COMM    // HCCL needs to initialize the HCCL context"
+        },
+        {
+          "line": 89,
+          "text": "        AscendC::LocalTensor<int32_t> ub;"
+        },
+        {
+          "line": 90,
+          "text": "        FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 91,
+          "text": "        HcclShmem(){"
+        },
+        {
+          "line": 92,
+          "text": "            auto contextGM0 = AscendC::GetHcclContext<HCCL_GROUP_ID_0>();"
+        },
+        {
+          "line": 93,
+          "text": "            WinContext_ = (__gm__ HcclOpResParamCustom *)contextGM0;"
+        },
+        {
+          "line": 99,
+          "text": "    #else"
+        },
+        {
+          "line": 100,
+          "text": "        FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 101,
+          "text": "        HcclShmem(){"
+        },
+        {
+          "line": 102,
+          "text": "            m_segmentSize = SHMEM_MEM;"
+        },
+        {
+          "line": 103,
+          "text": "        }"
+        },
+        {
+          "line": 104,
+          "text": "        FORCE_INLINE_AICORE "
+        },
+        {
+          "line": 105,
+          "text": "        void initShmem(GM_ADDR symmetricPtr_, size_t rank, size_t rankSize) {"
+        },
+        {
+          "line": 106,
+          "text": "            symmetricPtr = symmetricPtr_;"
+        },
+        {
+          "line": 107,
+          "text": "            m_rank = rank;"
+        },
+        {
+          "line": 111,
+          "text": ""
+        },
+        {
+          "line": 112,
+          "text": "    FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 113,
+          "text": "    GM_ADDR operator() () const {   // No parameters: return pointer to local peermem"
+        },
+        {
+          "line": 114,
+          "text": "        #ifdef HCCL_COMM"
+        },
+        {
+          "line": 115,
+          "text": "            return (GM_ADDR)(WinContext_->localWindowsIn);"
+        },
+        {
+          "line": 116,
+          "text": "        #else"
+        },
+        {
+          "line": 117,
+          "text": "            return reinterpret_cast<GM_ADDR>(shmem_ptr(symmetricPtr, m_rank));"
+        },
+        {
+          "line": 118,
+          "text": "        #endif"
+        },
+        {
+          "line": 119,
+          "text": "    }"
+        },
+        {
+          "line": 120,
+          "text": ""
+        },
+        {
+          "line": 121,
+          "text": "    FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 122,
+          "text": "    GM_ADDR operator() (int32_t index) const {  // With index parameter: return pointer to the base address of remote peermem"
+        },
+        {
+          "line": 123,
+          "text": "        #ifdef HCCL_COMM"
+        },
+        {
+          "line": 124,
+          "text": "            return (GM_ADDR)((index == m_rank) ? WinContext_->localWindowsIn :"
+        },
+        {
+          "line": 125,
+          "text": "                                    ((HcclRankRelationResV2Custom *)(WinContext_->remoteRes[index].nextDevicePtr))->windowsIn);"
+        },
+        {
+          "line": 126,
+          "text": "        #else"
+        },
+        {
+          "line": 127,
+          "text": "            return reinterpret_cast<GM_ADDR>(shmem_ptr(symmetricPtr, index));"
+        },
+        {
+          "line": 128,
+          "text": "        #endif"
+        },
+        {
+          "line": 129,
+          "text": "    }"
+        },
+        {
+          "line": 141,
+          "text": "                                    ((HcclRankRelationResV2Custom *)(WinContext_->remoteRes[rankId].nextDevicePtr))->windowsIn) + offset;"
+        },
+        {
+          "line": 142,
+          "text": "        #else"
+        },
+        {
+          "line": 143,
+          "text": "            return reinterpret_cast<GM_ADDR>(shmem_ptr((symmetricPtr + offset), rankId));"
+        },
+        {
+          "line": 144,
+          "text": "        #endif"
+        },
+        {
+          "line": 145,
+          "text": "    }"
+        },
+        {
+          "line": 159,
+          "text": ""
+        },
+        {
+          "line": 160,
+          "text": "    FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 161,
+          "text": "    ~HcclShmem() {"
+        },
+        {
+          "line": 162,
+          "text": "    }"
+        },
+        {
+          "line": 163,
+          "text": ""
+        },
+        {
+          "line": 164,
+          "text": ""
+        },
+        {
+          "line": 165,
+          "text": "    FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 166,
+          "text": "    void CrossRankSync() {"
+        },
+        {
+          "line": 167,
+          "text": "        uint64_t flag_offset = (m_segmentSize - MB_SIZE) / sizeof(int32_t);"
+        },
+        {
+          "line": 168,
+          "text": "        __gm__ int32_t* sync_counter = (__gm__ int32_t*)(*this)() + flag_offset;"
+        },
+        {
+          "line": 169,
+          "text": "        __gm__ int32_t* sync_base = (__gm__ int32_t*)(*this)() + flag_offset + 2048;"
+        },
+        {
+          "line": 170,
+          "text": "        int count = gm_load(sync_base) + 1;"
+        },
+        {
+          "line": 171,
+          "text": "        int vec_id = AscendC::GetBlockIdx();"
+        },
+        {
+          "line": 172,
+          "text": "        int vec_size = AscendC::GetBlockNum() * AscendC::GetTaskRation();"
+        },
+        {
+          "line": 173,
+          "text": "        for(int i = vec_id; i < m_rankSize; i += vec_size) {"
+        },
+        {
+          "line": 174,
+          "text": "            __gm__ int32_t* sync_remote = (__gm__ int32_t*)((*this)(i)) + flag_offset + m_rank * 16;"
+        },
+        {
+          "line": 175,
+          "text": "            gm_store(sync_remote, count);"
+        },
+        {
+          "line": 176,
+          "text": "            gm_dcci((__gm__ uint8_t*)sync_remote);"
+        },
+        {
+          "line": 177,
+          "text": "            auto sync_check = sync_counter + i * 16;"
+        },
+        {
+          "line": 178,
+          "text": "            gm_signal_wait_until_eq_for_barrier(sync_check, count);"
+        },
+        {
+          "line": 179,
+          "text": "        }"
+        },
+        {
+          "line": 180,
+          "text": ""
+        },
+        {
+          "line": 181,
+          "text": "        AscendC::SyncAll<true>();"
+        },
+        {
+          "line": 182,
+          "text": "        gm_store(sync_base, count);"
+        },
+        {
+          "line": 183,
+          "text": "    }"
+        },
+        {
+          "line": 184,
+          "text": ""
+        },
+        {
+          "line": 214,
+          "text": ""
+        },
+        {
+          "line": 215,
+          "text": "    FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 216,
+          "text": "    void CrossRankSyncV2Set(AscendC::LocalTensor<int32_t> ctrBuffer) {"
+        },
+        {
+          "line": 217,
+          "text": "        //subblockid = 0"
+        },
+        {
+          "line": 218,
+          "text": "        uint32_t stateOffset_ =  STATE_OFFSET;"
+        },
+        {
+          "line": 224,
+          "text": "        int vec_id = get_block_idx();"
+        },
+        {
+          "line": 225,
+          "text": " "
+        },
+        {
+          "line": 226,
+          "text": "        AscendC::CrossCoreSetFlag<0x0, PIPE_MTE3>(RECV_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 227,
+          "text": "        AscendC::CrossCoreSetFlag<0x0, PIPE_MTE3>(SEND_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 228,
+          "text": "        AscendC::CrossCoreWaitFlag(SEND_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 229,
+          "text": "        AscendC::PipeBarrier<PIPE_ALL>();"
+        },
+        {
+          "line": 230,
+          "text": " "
+        },
+        {
+          "line": 231,
+          "text": "        ctrBuffer.SetValue(0, epStateValue_);"
+        },
+        {
+          "line": 232,
+          "text": "        AscendC::SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);"
+        },
+        {
+          "line": 233,
+          "text": "        AscendC::WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);"
+        },
+        {
+          "line": 234,
+          "text": "        for (uint32_t dstEpIdx = vec_id; dstEpIdx < m_rankSize; dstEpIdx += vec_size) {"
+        },
+        {
+          "line": 235,
+          "text": "            AscendC::GlobalTensor<int32_t> gmDstStates;"
+        },
+        {
+          "line": 236,
+          "text": "            gmDstStates.SetGlobalBuffer((__gm__ int32_t*)((*this)(flag_offset, dstEpIdx)));"
+        },
+        {
+          "line": 237,
+          "text": "            DataCopy(gmDstStates, ctrBuffer, 8);"
+        },
+        {
+          "line": 238,
+          "text": "        }"
+        },
+        {
+          "line": 239,
+          "text": "        AscendC::CrossCoreWaitFlag(RECV_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 240,
+          "text": "    }"
+        },
+        {
+          "line": 241,
+          "text": ""
+        },
+        {
+          "line": 242,
+          "text": "    FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 243,
+          "text": "    void CrossRankSyncV2Wait(AscendC::LocalTensor<float> statusTensor, AscendC::LocalTensor<float> gatherMaskOutTensor,"
+        },
+        {
+          "line": 244,
+          "text": "        AscendC::LocalTensor<uint32_t> gatherTmpTensor, AscendC::LocalTensor<float> statusSumOutTensor) {"
+        },
+        {
+          "line": 245,
+          "text": ""
+        },
+        {
+          "line": 259,
+          "text": "        }"
+        },
+        {
+          "line": 260,
+          "text": "        uint32_t endRankId_ = startRankId_ + sendRankNum_;"
+        },
+        {
+          "line": 261,
+          "text": "        AscendC::CrossCoreSetFlag<0x0, PIPE_MTE3>(SEND_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 262,
+          "text": ""
+        },
+        {
+          "line": 263,
+          "text": "        AscendC::GlobalTensor<float> epStatusSpaceGlobalTensor_;"
+        },
+        {
+          "line": 265,
+          "text": ""
+        },
+        {
+          "line": 266,
+          "text": "        if (startRankId_ < m_rankSize) {"
+        },
+        {
+          "line": 267,
+          "text": "            AscendC::PipeBarrier<PIPE_ALL>();"
+        },
+        {
+          "line": 268,
+          "text": "            gatherTmpTensor.SetValue(0, 1);"
+        },
+        {
+          "line": 269,
+          "text": "            uint32_t mask = 1;  // gatherMask + sum"
+        },
+        {
+          "line": 270,
+          "text": "            uint64_t rsvdCnt = 0;"
+        },
+        {
+          "line": 271,
+          "text": "            // DataCopyParams intriParams{static_cast<uint16_t>(sendRankNum_), 1,"
+        },
+        {
+          "line": 272,
+          "text": "            //                         static_cast<uint16_t>((moeSendNum_ > 512) ? 7 : 15), 0}; "
+        },
+        {
+          "line": 273,
+          "text": "            AscendC::DataCopyParams intriParams{static_cast<uint16_t>(sendRankNum_), 1,"
+        },
+        {
+          "line": 274,
+          "text": "                                    static_cast<uint16_t>(15), 0}; "
+        },
+        {
+          "line": 275,
+          "text": ""
+        },
+        {
+          "line": 280,
+          "text": ""
+        },
+        {
+          "line": 281,
+          "text": "            AscendC::SetFlag<AscendC::HardEvent::S_V>(EVENT_ID0);"
+        },
+        {
+          "line": 282,
+          "text": "            AscendC::WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID0);"
+        },
+        {
+          "line": 283,
+          "text": ""
+        },
+        {
+          "line": 284,
+          "text": "            while ((sumOfFlag < minTarget) || (sumOfFlag > maxTarget)) {"
+        },
+        {
+          "line": 285,
+          "text": "                AscendC::DataCopy<float>(statusTensor, epStatusSpaceGlobalTensor_[startRankId_ * stateOffset_ / sizeof(float)],"
+        },
+        {
+          "line": 286,
+          "text": "                                intriParams);"
+        },
+        {
+          "line": 287,
+          "text": "                AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);"
+        },
+        {
+          "line": 288,
+          "text": "                AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);"
+        },
+        {
+          "line": 289,
+          "text": ""
+        },
+        {
+          "line": 290,
+          "text": "                GatherMask(gatherMaskOutTensor, statusTensor, gatherTmpTensor, true, mask,"
+        },
+        {
+          "line": 291,
+          "text": "                        {1, (uint16_t)sendRankNum_, 1, 0}, rsvdCnt);"
+        },
+        {
+          "line": 292,
+          "text": ""
+        },
+        {
+          "line": 293,
+          "text": "                AscendC::PipeBarrier<PIPE_V>();"
+        },
+        {
+          "line": 294,
+          "text": "                AscendC::Sum(statusSumOutTensor, gatherMaskOutTensor, sumParams);"
+        },
+        {
+          "line": 295,
+          "text": "                AscendC::SetFlag<AscendC::HardEvent::V_S>(EVENT_ID0);"
+        },
+        {
+          "line": 296,
+          "text": "                AscendC::WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID0);"
+        },
+        {
+          "line": 297,
+          "text": "                sumOfFlag = statusSumOutTensor.GetValue(0);"
+        },
+        {
+          "line": 298,
+          "text": "            }"
+        },
+        {
+          "line": 299,
+          "text": "        }"
+        },
+        {
+          "line": 300,
+          "text": ""
+        },
+        {
+          "line": 301,
+          "text": "        AscendC::CrossCoreSetFlag<0x0, PIPE_MTE3>(RECV_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 302,
+          "text": "        AscendC::CrossCoreWaitFlag(RECV_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 303,
+          "text": ""
+        },
+        {
+          "line": 304,
+          "text": "        //unpermute"
+        },
+        {
+          "line": 305,
+          "text": "        AscendC::CrossCoreWaitFlag(SEND_SYNC_EVENT_ID);"
+        },
+        {
+          "line": 306,
+          "text": "    }"
+        },
+        {
+          "line": 307,
+          "text": ""
+        },
+        {
+          "line": 308,
+          "text": ""
+        },
+        {
+          "line": 309,
+          "text": "    FORCE_INLINE_AICORE"
+        },
+        {
+          "line": 310,
+          "text": "    __gm__ int32_t* SyncBaseAddr() {"
+        },
+        {
+          "line": 311,
+          "text": "        uint64_t flag_offset = (m_segmentSize - MB_SIZE) / sizeof(int32_t);"
+        },
+        {
+          "line": 312,
+          "text": "        return (__gm__ int32_t*)(*this)() + flag_offset + 2048;"
+        }
+      ]
+    }
+  ],
+  "scan_complete": true,
+  "entries_seen": 56,
+  "missing_names": [],
+  "container": "wio-vllm-v41-repro169-stage-20261028",
+  "image_id": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "source_subtree_overmounted": false,
+  "script_sha256": "4728156c384c30e764cb20b7c965d928e23a81dbdf5509ad5d2f73674e6c105d",
+  "no_device_work": true
+}

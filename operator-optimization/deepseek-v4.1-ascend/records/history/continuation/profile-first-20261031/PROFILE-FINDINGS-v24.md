@@ -1,0 +1,19 @@
+本轮新增一个独立机会F34：C2 ring状态的可观测性裁剪、稀疏维护与表示重组。它来自当前166 profile提出的状态边界问题及三文件定点源码，不是重复登记F17投影融合、F18 pool/norm或F19双cache发布。整体仍未完成，没有实现内核、运行NPU或改变服务。
+
+当前80个图中的source层块2/8/14合计240次C2 pool/update/norm边界已全部核对：同一TASK stream，pool到norm之间唯一计算是ring更新。两侧间隔中位数均20ns，pool到norm中位数5360ns包含这次更新；不能把它当可省时延。192个C2块decode-compatible，48个阶段仍未绑定。当前原生C2 pool共72次，global-cache行数6400/6528/6668各24次；这些与旧169的96个C2采样分开。
+
+定点源码将两种依赖区分开：pool可能读取旧ring，所以同槽更新必须在旧值读取完成后；norm读取的是独立pooled BF16输出，ring更新读取FP32 kv/score并写ring。在无别名且副作用仅限这些集合的合同下，更新不必夹在pool与norm之间。可以登记值路径与状态维护分叉、pool/norm边界重组等条件域；任何延后更新都必须在未来ring读者及kv/score/metadata复用前完成。源码同流次序是当前保护方式，不是所有新排程的必要全局屏障。
+
+新F34的整数读集合结论是：当前TOKEN_ALIGNED=True、RATIO=2、CACHE_SIZE=32。把start写成2q+r，后续完整组无需历史；首组仅在r=1时读取旧token2q。因此历史值只从偶数token位置、偶数ring槽取出。若初态的全部偶数槽相同，且保留所有偶数位置的FP32写值、顺序、页和代际，则每次更新后这一不变量仍成立，未来同一helper的pool会看到相同历史值，接受回滚也不破坏这个整数性质。
+
+这支持两个不同条件变体：保留32槽布局而研究省去奇数位置维护；或另行研究16槽表示并相应审查全部读写、缓存规格、页padding、分配、packed backend及固定graph地址。前提是没有其他模型消费者或状态ABI观察奇数槽。一个读奇数槽的消费者会直接区分新旧状态，所以没有宣称完整state buffer逐字节相等。该结论也未推广到任意ratio或legacy接口。F34并未消除pool旧读→ring新写的WAR：原有token0/32同槽冲突仍发生在必须保留的偶数槽。
+
+不能进一步只保留“最后一个token”或“最后一个偶数token”：处理positions0..5后，若接受回滚使下一chunk从1开始，pool需要旧position0，而最后偶数token是4。此次12,804个整数地址用例及9组/59次抽象状态更新验证了声明模型的性质和反例；自然数论证限定于所列源码语义，有限检查不是形式化验证、已加载二进制证明或native正确性测试。
+
+还确认了一个既有能力与排除域：_pool_kernel的非TOKEN_ALIGNED分支已经包含pool后BF16转换和RMS数学。但当前wrapper选择TOKEN_ALIGNED=True，norm权重参数位置传的是被忽略的out，epsilon传0，metadata采用token对齐行。只翻转该常量会启用不适配的权重/epsilon和compact行寻址，不能直接作为当前native RMS的替代。候选仍需保留实际权重、epsilon、池化BF16舍入、全行RMS和native数值合同。
+
+profile已有精确graph-root连接，可把64图分为16个B2×6scheduled tokens与48个B4×6。若对应device used_len确为这些连续位置，每个请求有3个完成pair，192个source块共2,016个pair-endpoint行，对比4,608个physical norm行为7/16；这不是固定“省一半”。它只是跨rank/graph/source记录的条件计数，不是已测有效cache行或计算收益。device actual-token截断、skip、null/invalid page、slot和metadata代际仍须绑定，不能从host schedule直接补出。
+
+同一条件下ring tail写行会计为4,032行，偶数位置2,016行；每行两个512维FP32值，逻辑写入模型16,515,072与8,257,536字节。原生[17306,32,1024]FP32数组的逻辑大小2,268,332,032字节，16槽模型1,134,166,016字节。它们不是实际HBM流量、resident显存、可释放分配或时延收益；统一cache page padding等因素可能使逻辑缩小无法兑现为分配节省。
+
+已新增20项C2有限条件、F18的三种重组/排除域及F34候选图，并将主台账扩至34项模型候选、7项框架候选。所有ring读者、状态ABI、并发写所有权、真实metadata、native编译及allocator等缺口仍明确记录，26整模块均未宣称闭合。此前33项计数不再作为最新总数；旧报告统计保留其历史范围。Goal保持active，最后健康观测仍是旧v12post。

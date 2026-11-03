@@ -1,0 +1,96 @@
+{
+  "id": "F30_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "DSPARK_BOUNDARIES",
+  "original_node_mapping": {
+    "collapse": "collapse",
+    "norm": "norm",
+    "logits": "logits",
+    "markov": "markov",
+    "confidence": "confidence",
+    "accept": "accept"
+  },
+  "nodes": [
+    {
+      "id": "collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "logits",
+      "kind": "LM_HEAD",
+      "resource": "NPU"
+    },
+    {
+      "id": "markov",
+      "kind": "MARKOV_HEAD_OPAQUE",
+      "resource": "NPU"
+    },
+    {
+      "id": "confidence",
+      "kind": "CONFIDENCE_HEAD_OPAQUE",
+      "resource": "NPU"
+    },
+    {
+      "id": "accept",
+      "kind": "TARGET_ACCEPT_OPAQUE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "collapse",
+      "consumer": "norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "logits",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "logits",
+      "consumer": "accept",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "confidence",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "markov",
+      "consumer": "logits",
+      "value": "bias",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "markov",
+      "consumer": "confidence",
+      "value": "Markov features",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "block2",
+      "consumer": "collapse",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

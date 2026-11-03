@@ -1,0 +1,235 @@
+{
+  "generated_utc": "2026-10-31T15:02:11.484848+00:00",
+  "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/eplb/adaptor/vllm_adaptor.py",
+  "sha256": "e372c2e515cee4711f919e65e14bc2a81666b10c3074aca181ba519e2d186b99",
+  "caller_path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/ops/fused_moe/routed_experts.py",
+  "caller_historical166sha": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77",
+  "dependency_historical166hash_attested": false,
+  "functions": [
+    {
+      "name": "VllmEplbAdaptor.register_layer",
+      "start": 73,
+      "end": 79,
+      "source": [
+        "73:     def register_layer(layer: \"torch.nn.Module\") -> None:",
+        "74:         \"\"\"Register a MoE layer for EPLB. Called during layer initialization.",
+        "75: ",
+        "76:         Only real layers call this; PPMissingLayer won't, so the registry",
+        "77:         naturally contains only layers on this PP rank.",
+        "78:         \"\"\"",
+        "79:         VllmEplbAdaptor._registered_moe_layers.append(layer)"
+      ],
+      "calls": [
+        "VllmEplbAdaptor._registered_moe_layers.append"
+      ]
+    },
+    {
+      "name": "VllmEplbAdaptor.__init__",
+      "start": 81,
+      "end": 113,
+      "source": [
+        "81:     def __init__(self, model, **args):",
+        "82:         super().__init__(**args)",
+        "83:         if hasattr(model, \"language_model\"):",
+        "84:             self.model = model.language_model",
+        "85:             self.config = model.config.text_config",
+        "86:         else:",
+        "87:             self.model = model",
+        "88:             self.config = model.config",
+        "89:         self.rank_id = dist.get_rank()",
+        "90:         self.world_size = dist.get_world_size()",
+        "91:         self.num_dense_layers = getattr(self.config, \"first_k_dense_replace\", 0)",
+        "92: ",
+        "93:         self.moe_layers = VllmEplbAdaptor._registered_moe_layers",
+        "94:         self.num_moe_layers = len(self.moe_layers)",
+        "95: ",
+        "96:         self.expert_map_per_layer_cpu = dict()  # copy of expert map on CPU to avoid device synchronize frequently",
+        "97: ",
+        "98:         # Get num_local_experts from first real MoE layer",
+        "99:         first_layer = self.moe_layers[0]",
+        "100:         self.num_local_experts = first_layer.local_num_experts",
+        "101:         self.ep_rank = first_layer.ep_rank",
+        "102: ",
+        "103:         self.expert_param_per_layer = dict()",
+        "104:         self.expert_weight_key_per_layer = dict()",
+        "105:         self.init_expert_param_per_layer()",
+        "106: ",
+        "107:         num_buffer_tensor = self.num_local_experts",
+        "108:         self.buffer_tensor_list: dict[Any, list[list[Any]]] = dict()",
+        "109:         self.init_buffer_tensor(num_buffer_tensor)",
+        "110: ",
+        "111:         self.log2phy_map_per_layer = dict()",
+        "112:         for local_idx, layer in enumerate(self.moe_layers):",
+        "113:             self.log2phy_map_per_layer[local_idx] = layer.get_log2phy_map()"
+      ],
+      "calls": [
+        "dict",
+        "dist.get_rank",
+        "dist.get_world_size",
+        "enumerate",
+        "getattr",
+        "hasattr",
+        "layer.get_log2phy_map",
+        "len",
+        "self.init_buffer_tensor",
+        "self.init_expert_param_per_layer",
+        "super",
+        "super().__init__"
+      ]
+    },
+    {
+      "name": "VllmEplbAdaptor.init_buffer_tensor",
+      "start": 115,
+      "end": 133,
+      "source": [
+        "115:     def init_buffer_tensor(self, num_buffer_tensor):",
+        "116:         buffer_tensor_shapes: dict[Any, list[torch.Size]] = dict()",
+        "117:         for local_idx, _ in enumerate(self.moe_layers):",
+        "118:             expert_weight_key = self.expert_weight_key_per_layer[local_idx]",
+        "119:             expert_weight_names = EPLB_EXPERT_WEIGHT_NAMES[expert_weight_key]",
+        "120:             expert_tensors = [self.param_dict[f\"{local_idx}.{name}\"][0] for name in expert_weight_names]",
+        "121:             expert_tensor_shapes = [tensor.shape for tensor in expert_tensors]",
+        "122:             if expert_weight_key in self.buffer_tensor_list:",
+        "123:                 assert expert_tensor_shapes == buffer_tensor_shapes[expert_weight_key], (",
+        "124:                     f\"EPLB expert weight shapes mismatch for {expert_weight_key}: \"",
+        "125:                     f\"expected {buffer_tensor_shapes[expert_weight_key]}, got {expert_tensor_shapes}\"",
+        "126:                 )",
+        "127:                 continue",
+        "128:             buffer_tensor_shapes[expert_weight_key] = expert_tensor_shapes",
+        "129:             self.buffer_tensor_list[expert_weight_key] = [[] for _ in range(num_buffer_tensor)]",
+        "130:             for buffer_id in range(num_buffer_tensor):",
+        "131:                 for expert_tensor in expert_tensors:",
+        "132:                     buffer_tensor = torch.empty_like(expert_tensor)",
+        "133:                     self.buffer_tensor_list[expert_weight_key][buffer_id].append(buffer_tensor)"
+      ],
+      "calls": [
+        "dict",
+        "enumerate",
+        "range",
+        "self.buffer_tensor_list[expert_weight_key][buffer_id].append",
+        "torch.empty_like"
+      ]
+    },
+    {
+      "name": "VllmEplbAdaptor.init_expert_param_per_layer",
+      "start": 135,
+      "end": 164,
+      "source": [
+        "135:     def init_expert_param_per_layer(self):",
+        "136:         self.param_dict = dict()",
+        "137: ",
+        "138:         for local_idx, layer in enumerate(self.moe_layers):",
+        "139:             quant_type = QuantType.NONE if self.model.quant_config is None else layer.quant_type",
+        "140:             expert_weight_key = (quant_type, get_ascend_config().enable_fused_mc2 == 1)",
+        "141:             if expert_weight_key[0] == QuantType.W4A8MXFP:",
+        "142:                 raise RuntimeError(f\"EPLB not support {quant_type}\")",
+        "143:             if expert_weight_key not in EPLB_EXPERT_WEIGHT_NAMES:",
+        "144:                 raise ValueError(f\"EPLB not support {quant_type} with fused MC2 {expert_weight_key[1]}\")",
+        "145:             expert_weight_names = EPLB_EXPERT_WEIGHT_NAMES[expert_weight_key]",
+        "146:             self.expert_weight_key_per_layer[local_idx] = expert_weight_key",
+        "147:             self.expert_param_per_layer[local_idx] = list()",
+        "148:             for name in expert_weight_names:",
+        "149:                 param_key = f\"{local_idx}.{name}\"",
+        "150:                 # Inspect the attribute without invoking __getattr__. Besides",
+        "151:                 # avoiding side effects from dynamic proxies, this prevents an",
+        "152:                 # unspecced MagicMock from fabricating the optional accessor.",
+        "153:                 # The refactored MoERunner declares the accessor because its",
+        "154:                 # RoutedExperts child owns weights; legacy layers expose them",
+        "155:                 # directly.",
+        "156:                 get_parameter = (",
+        "157:                     layer.get_eplb_parameter if getattr_static(layer, \"get_eplb_parameter\", None) is not None else None",
+        "158:                 )",
+        "159:                 self.param_dict[param_key] = get_parameter(name) if get_parameter is not None else getattr(layer, name)",
+        "160:             for local_expert_id in range(self.num_local_experts):",
+        "161:                 per_expert_param = list()",
+        "162:                 for name in expert_weight_names:",
+        "163:                     per_expert_param.append(self.param_dict[f\"{local_idx}.{name}\"][local_expert_id])",
+        "164:                 self.expert_param_per_layer[local_idx].append(per_expert_param)"
+      ],
+      "calls": [
+        "RuntimeError",
+        "ValueError",
+        "dict",
+        "enumerate",
+        "get_ascend_config",
+        "get_parameter",
+        "getattr",
+        "getattr_static",
+        "list",
+        "per_expert_param.append",
+        "range",
+        "self.expert_param_per_layer[local_idx].append"
+      ]
+    },
+    {
+      "name": "VllmEplbAdaptor.do_update_expert_map",
+      "start": 199,
+      "end": 200,
+      "source": [
+        "199:     def do_update_expert_map(self, layer_id, updated_expert_map):",
+        "200:         self.expert_map_per_layer_cpu[layer_id].copy_(updated_expert_map)"
+      ],
+      "calls": [
+        "self.expert_map_per_layer_cpu[layer_id].copy_"
+      ]
+    },
+    {
+      "name": "VllmEplbAdaptor.do_update_expert_weight",
+      "start": 202,
+      "end": 209,
+      "source": [
+        "202:     def do_update_expert_weight(self, layer_id, local_expert_to_replace, buffer_tensor_id):",
+        "203:         expert_weight_key = self.expert_weight_key_per_layer[layer_id]",
+        "204:         for expert_tensor, buffer_tensor in zip(",
+        "205:             self.expert_param_per_layer[layer_id][local_expert_to_replace],",
+        "206:             self.buffer_tensor_list[expert_weight_key][buffer_tensor_id],",
+        "207:         ):",
+        "208:             expert_tensor.copy_(buffer_tensor)",
+        "209:             logger.debug(\"Expert tensor shape is :%s\", expert_tensor.shape)"
+      ],
+      "calls": [
+        "expert_tensor.copy_",
+        "logger.debug",
+        "zip"
+      ]
+    },
+    {
+      "name": "VllmEplbAdaptor.do_update_log2phy_map",
+      "start": 211,
+      "end": 213,
+      "source": [
+        "211:     def do_update_log2phy_map(self, layer_id, updated_log2phy_map):",
+        "212:         if self.log2phy_map_per_layer[layer_id] is not None:",
+        "213:             self.log2phy_map_per_layer[layer_id].copy_(updated_log2phy_map)"
+      ],
+      "calls": [
+        "self.log2phy_map_per_layer[layer_id].copy_"
+      ]
+    },
+    {
+      "name": "VllmEplbAdaptor.get_global_expert_map",
+      "start": 215,
+      "end": 222,
+      "source": [
+        "215:     def get_global_expert_map(self):",
+        "216:         all_layer_global_expert_map = []",
+        "217:         for local_idx, layer in enumerate(self.moe_layers):",
+        "218:             map_cpu = layer.global_expert_map.cpu()",
+        "219:             all_layer_global_expert_map.append(map_cpu)",
+        "220:             self.expert_map_per_layer_cpu[local_idx] = map_cpu[self.ep_rank]",
+        "221: ",
+        "222:         return torch.stack(all_layer_global_expert_map)"
+      ],
+      "calls": [
+        "all_layer_global_expert_map.append",
+        "enumerate",
+        "layer.global_expert_map.cpu",
+        "torch.stack"
+      ]
+    }
+  ],
+  "scope": "Local installed-source dependency snapshot with a caller matching historical166SHA. Adaptor bytes have no historical166pin yet;any result about them is conditional on this dependency identity.",
+  "no_target_implementation_changed": true,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

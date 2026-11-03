@@ -1,0 +1,279 @@
+{
+  "generated_utc": "2026-10-31T13:05:11.116276+00:00",
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/compilation/acl_graph.py",
+  "sha256": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955",
+  "functions": [
+    {
+      "owner": "",
+      "name": "_is_stream_resource_capture_error",
+      "start": 42,
+      "end": 47,
+      "source": [
+        "42: def _is_stream_resource_capture_error(exc: RuntimeError) -> bool:",
+        "43:     message = str(exc)",
+        "44:     lowered_message = message.lower()",
+        "45:     has_error_code = _STREAM_RESOURCE_ERROR_CODE in message",
+        "46:     has_stream_resource_marker = any(marker in lowered_message for marker in _STREAM_RESOURCE_ERROR_MARKERS)",
+        "47:     return has_stream_resource_marker or (has_error_code and \"stream resource\" in lowered_message)"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "_is_old_hdk_capture_error",
+      "start": 50,
+      "end": 52,
+      "source": [
+        "50: def _is_old_hdk_capture_error(exc: RuntimeError) -> bool:",
+        "51:     message = str(exc).lower()",
+        "52:     return any(marker in message for marker in _OLD_HDK_CAPTURE_ERROR_MARKERS)"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "weak_ref_workspaces",
+      "start": 322,
+      "end": 328,
+      "source": [
+        "322: def weak_ref_workspaces(params):",
+        "323:     if params is None:",
+        "324:         return",
+        "325:     for num_tokens in params.workspaces:",
+        "326:         if params.workspaces[num_tokens] is None:",
+        "327:             continue",
+        "328:         params.workspaces[num_tokens] = weak_ref_tensors(params.workspaces[num_tokens])"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "update_full_graph_params",
+      "start": 331,
+      "end": 357,
+      "source": [
+        "331: def update_full_graph_params(",
+        "332:     attn_backend,",
+        "333:     update_stream,",
+        "334:     forward_context,",
+        "335:     num_tokens,",
+        "336:     vllm_config,",
+        "337:     speculative_config=None,",
+        "338:     draft_attn_metadatas=None,",
+        "339: ):",
+        "340:     if use_updatable_graph(attn_backend):",
+        "341:         return",
+        "342: ",
+        "343:     # vLLM >= 0.27.1 (main) makes get_current_vllm_config() raise",
+        "344:     # AssertionError outside set_current_vllm_config(); the SFA backend",
+        "345:     # resolution in get_impl_cls() needs the config.",
+        "346:     from vllm.config import set_current_vllm_config",
+        "347: ",
+        "348:     with set_current_vllm_config(vllm_config):",
+        "349:         impl_cls = attn_backend.get_impl_cls()",
+        "350:         impl_cls.update_graph_params(",
+        "351:             update_stream,",
+        "352:             forward_context,",
+        "353:             num_tokens,",
+        "354:             vllm_config,",
+        "355:             speculative_config,",
+        "356:             draft_attn_metadatas=draft_attn_metadatas,",
+        "357:         )"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "set_graph_params",
+      "start": 371,
+      "end": 380,
+      "source": [
+        "371: def set_graph_params(aclgraph_capture_sizes: list[int]):",
+        "372:     global _graph_params",
+        "373:     if _graph_params is not None:",
+        "374:         raise ValueError(\"Graph parameters have already been set!\")",
+        "375:     _graph_params = GraphParams(",
+        "376:         {size: [] for size in aclgraph_capture_sizes},",
+        "377:         {size: None for size in aclgraph_capture_sizes},",
+        "378:         {size: [] for size in aclgraph_capture_sizes},",
+        "379:         {size: [] for size in aclgraph_capture_sizes},",
+        "380:     )"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "update_graph_params_workspaces",
+      "start": 383,
+      "end": 386,
+      "source": [
+        "383: def update_graph_params_workspaces(num_tokens: int, workspace: torch.Tensor):",
+        "384:     global _graph_params",
+        "385:     if _graph_params is not None:",
+        "386:         _graph_params.workspaces[num_tokens] = workspace"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "get_graph_params",
+      "start": 389,
+      "end": 390,
+      "source": [
+        "389: def get_graph_params():",
+        "390:     return _graph_params"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "set_draft_graph_params",
+      "start": 396,
+      "end": 405,
+      "source": [
+        "396: def set_draft_graph_params(aclgraph_capture_sizes: list[int]):",
+        "397:     global _draft_graph_params",
+        "398:     if _draft_graph_params is not None:",
+        "399:         raise ValueError(\"DraftGraph parameters have already been set!\")",
+        "400:     _draft_graph_params = GraphParams(",
+        "401:         {size: [] for size in aclgraph_capture_sizes},",
+        "402:         {size: None for size in aclgraph_capture_sizes},",
+        "403:         {size: [] for size in aclgraph_capture_sizes},",
+        "404:         {size: [] for size in aclgraph_capture_sizes},",
+        "405:     )"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "update_draft_graph_params_workspaces",
+      "start": 408,
+      "end": 411,
+      "source": [
+        "408: def update_draft_graph_params_workspaces(num_tokens: int, workspace: Any):",
+        "409:     global _draft_graph_params",
+        "410:     if _draft_graph_params is not None:",
+        "411:         _draft_graph_params.workspaces[num_tokens] = workspace"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "get_draft_graph_params",
+      "start": 414,
+      "end": 415,
+      "source": [
+        "414: def get_draft_graph_params():",
+        "415:     return _draft_graph_params"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "set_draft_graph_prefill_params",
+      "start": 421,
+      "end": 430,
+      "source": [
+        "421: def set_draft_graph_prefill_params(aclgraph_capture_sizes: list[int]):",
+        "422:     global _draft_graph_prefill_params",
+        "423:     if _draft_graph_prefill_params is not None:",
+        "424:         raise ValueError(\"DraftGraph preill parameters have already been set!\")",
+        "425:     _draft_graph_prefill_params = GraphParams(",
+        "426:         {size: [] for size in aclgraph_capture_sizes},",
+        "427:         {size: None for size in aclgraph_capture_sizes},",
+        "428:         {size: [] for size in aclgraph_capture_sizes},",
+        "429:         {size: [] for size in aclgraph_capture_sizes},",
+        "430:     )"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "update_draft_graph_prefill_params_workspaces",
+      "start": 433,
+      "end": 436,
+      "source": [
+        "433: def update_draft_graph_prefill_params_workspaces(num_tokens: int, workspace: Any):",
+        "434:     global _draft_graph_prefill_params",
+        "435:     if _draft_graph_prefill_params is not None:",
+        "436:         _draft_graph_prefill_params.workspaces[num_tokens] = workspace"
+      ]
+    },
+    {
+      "owner": "",
+      "name": "get_draft_graph_prefill_params",
+      "start": 439,
+      "end": 440,
+      "source": [
+        "439: def get_draft_graph_prefill_params():",
+        "440:     return _draft_graph_prefill_params"
+      ]
+    },
+    {
+      "owner": "ACLGraphWrapper",
+      "name": "__getattr__",
+      "start": 142,
+      "end": 150,
+      "source": [
+        "142:     def __getattr__(self, key: str):",
+        "143:         # allow accessing the attributes of the runnable.",
+        "144:         if hasattr(self.runnable, key):",
+        "145:             return getattr(self.runnable, key)",
+        "146:         if self.is_debugging_mode:",
+        "147:             raise AttributeError(",
+        "148:                 f\"Attribute {key} not exists in the runnable of aclgraph wrapper: {self._runnable_str}\"",
+        "149:             )",
+        "150:         raise AttributeError(f\"Attribute {key} not found. Set VLLM_LOGGING_LEVEL=DEBUG for more details.\")"
+      ]
+    }
+  ],
+  "declarations": [
+    {
+      "start": 361,
+      "end": 365,
+      "source": [
+        "361: class GraphParams:",
+        "362:     events: dict[int, list[torch.npu.ExternalEvent]]",
+        "363:     workspaces: dict[int, torch.Tensor]",
+        "364:     handles: dict[int, list[torch_npu._C._NPUTaskGroupHandle]]",
+        "365:     attn_params: dict[int, list[tuple]]"
+      ]
+    },
+    {
+      "start": 34,
+      "end": 34,
+      "source": [
+        "34: _STREAM_RESOURCE_ERROR_CODE = \"207008\""
+      ]
+    },
+    {
+      "start": 35,
+      "end": 38,
+      "source": [
+        "35: _STREAM_RESOURCE_ERROR_MARKERS = (",
+        "36:     \"insufficient_stream_resources\",",
+        "37:     \"stream resources are insufficient\",",
+        "38: )"
+      ]
+    },
+    {
+      "start": 39,
+      "end": 39,
+      "source": [
+        "39: _OLD_HDK_CAPTURE_ERROR_MARKERS = (\"alloc sq cq fail\",)"
+      ]
+    },
+    {
+      "start": 368,
+      "end": 368,
+      "source": [
+        "368: _graph_params: GraphParams | None = None"
+      ]
+    },
+    {
+      "start": 393,
+      "end": 393,
+      "source": [
+        "393: _draft_graph_params: GraphParams | None = None"
+      ]
+    },
+    {
+      "start": 418,
+      "end": 418,
+      "source": [
+        "418: _draft_graph_prefill_params: GraphParams | None = None"
+      ]
+    }
+  ],
+  "no_model_or_torch_import": true,
+  "scope": "14small functions incl3branch-free getters+GraphParams/global declarations. No native backend update implementation read."
+}

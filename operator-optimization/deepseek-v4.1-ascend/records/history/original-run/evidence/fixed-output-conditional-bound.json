@@ -1,0 +1,63 @@
+{
+  "status": "CONDITIONAL_FIXED_OUTPUT_PAYLOAD_BOUND_ONLY",
+  "timestamp": "2026-10-28T10:02:29.670996+00:00",
+  "samples": [
+    {
+      "input_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/benchmark-20261028/raw-results/results/measure1/20261027_195847/performances/final-best-measure1_20261026_231410-vllm169/final-best-measure1_20261026_231410_details.jsonl",
+      "sha256": "7f175801a7f9d181126aaf30c9cec3deb5966f1a14e51695eab8549cc664c96f",
+      "requests": 8,
+      "output_tokens": 8192,
+      "per_response_text_utf8_bytes": [
+        4068,
+        4078,
+        4081,
+        4087,
+        4095,
+        4078,
+        4075,
+        4066
+      ],
+      "total_text_utf8_bytes": 32628,
+      "conditional_bound_formula": "tokens_per_second <= 8192 * B_out_max_bytes_per_second / 32628"
+    },
+    {
+      "input_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/benchmark-20261028/raw-results/results/measure2/20261027_195953/performances/final-best-measure2_20261026_231500-vllm169/final-best-measure2_20261026_231500_details.jsonl",
+      "sha256": "5415bc0250c26c021b449031eb8dd816ff7a7d17b7d2caf969497d7cf75845ef",
+      "requests": 8,
+      "output_tokens": 8192,
+      "per_response_text_utf8_bytes": [
+        4120,
+        4109,
+        4142,
+        4120,
+        4128,
+        4139,
+        4122,
+        4144
+      ],
+      "total_text_utf8_bytes": 33024,
+      "conditional_bound_formula": "tokens_per_second <= 8192 * B_out_max_bytes_per_second / 33024"
+    }
+  ],
+  "logic": "T >= D_out/B_out_max follows if each byte of those specific text outputs must cross the measured boundary with no compression or reuse and B_out_max is a proven hard upper bound for that exact boundary. Work overlap means combine with other valid latency bounds by max, not addition.",
+  "necessary_conditions": [
+    "Fixed measured output texts and token count",
+    "The chosen metric measures through receipt of last relevant output",
+    "Uncompressed delivery and no content sharing/caching or bypass across that output boundary",
+    "B_out_max is a justified hard maximum for the local service-to-client path; not assumed equal to network card bandwidth"
+  ],
+  "conditions_not_established": [
+    "Compression or reuse not completely excluded",
+    "Hard local output path capacity unavailable",
+    "Alternative implementations may use another boundary or eliminate serialization"
+  ],
+  "benchmark_source_evidence": [
+    "benchmark-20261028/raw-results/measure1.py: local 127.0.0.1:8172, stream=True, batch_size=8",
+    "package/tools/aisbench-7bcb6440da11/plugins/prefix_cache/ais_bench_prefix_cache/models/vllm_prefix_cache_api.py:150-185: send, receive and parse chunks",
+    "ais_bench/benchmark/models/api_models/vllm_custom_api.py:179-184: accumulate chunk text",
+    "ais_bench/benchmark/calculators/default_perf_metric_calculator.py:80-81: maximum end minus minimum start"
+  ],
+  "not_universal_or_numeric": true,
+  "not_network_bandwidth_claim": true,
+  "no_target_code_modified": true
+}

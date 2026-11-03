@@ -1,0 +1,56 @@
+{
+  "generated_utc": "2026-10-31T15:31:05.510874+00:00",
+  "branches": [
+    {
+      "id": "F21-B1-default-linear",
+      "condition": "EP>1,no expert_map_path,dynamic_eplb false",
+      "finding": "init_eplb_config returns linear expert_map,log2phy=None; observed observer metadata is linear/redundant0,without promoting absent historical map values."
+    },
+    {
+      "id": "F21-B2-custom-file",
+      "condition": "expert_map_path truthy",
+      "finding": "Source reads layer_list[layer_id].device_list[].device_expert,returns per-rank logical expert lists and physical_count; constructor builds local maps and log2phy. Arbitrary same-slot permutations can be expressed here under map invariants,not through a new placement_strategy string."
+    },
+    {
+      "id": "F21-B3-file-layer-boundary",
+      "condition": "moe_instance_id compared with moe_layer_count",
+      "finding": "The index is AscendRoutedExperts constructor counter. Equal-to-count uses a default MTP/eagle placement with first layer capacity; greater-than-count raises. Do not assume one target-only file explicitly covers all three draft layers or that constructor IDs equal model layer indices."
+    },
+    {
+      "id": "F21-B4-map-invariants",
+      "condition": "Candidate permutation/replica mapping",
+      "finding": "Require rectangular equal-capacity lists,legal IDs,complete expert coverage and no duplicate same-logical ID within a rank for an unambiguous inverse slot map. Unique bijection for relocation; replica membership for replication. These are analysis requirements,not a claim that the file reader validates them all."
+    },
+    {
+      "id": "F21-B5-replica-selection",
+      "condition": "generate_log2phy_map with TP=8,EP=16",
+      "finding": "Existing initializer chooses replica_index=(ep_rank%8+ep_rank//8+logical_key)%R. All assignments from one source rank to one logical expert go to one replica; R16 has only9 reachable indices over all16 sources."
+    },
+    {
+      "id": "F21-B6-quant-payload",
+      "condition": "FUSED_MC2 W8A8 ordinary/list/Mega branches",
+      "finding": "Weights,FP scale views,packed INT64 fused scales,bias/activation and masks must stay paired; native operand bytes omit possible co-resident representations."
+    },
+    {
+      "id": "F21-B7-hash-versus-ordinary",
+      "condition": "layer_idx<num_hash_layers and not draft",
+      "finding": "Preserve original hash/ordinary router result,TopK slot order and probabilities before any physical-ID remap; draft is excluded from the target hash constructor branch."
+    },
+    {
+      "id": "F21-B8-postload-and-capture",
+      "condition": "Custom/static mapping and any replica policy",
+      "finding": "v50separatesstatic/dynamicpaths. Historicalrunneronlycreatesadaptorunderdynamicwarmup;staticfileenablesanoopDefaultModelLoaderfilter,notanexplicitweight-slotreorderproof. Local-referenceupdatecopiesallregisteredquantplaneswithsharedper-keybanks;actualstaticreconciliationandnativebank/capturegenerationsremainopen. v51locatesactualtargetprivate_load(selfR)vsquery(R0),physicalp/logicalcheckpointnametupleandordinarymanagerPhi. Fullroute/loadpayloadcommutationisrequired;filter-noopdoesnotestablishit. Firstsuccessreplicacoverageandseparategeneric3Dloader/reloadnamespacesnowdocumented;actualcallback/P0/bridge/staticpairingremainopen.",
+      "evidence": [
+        "F21-static-dynamic-loading-contract-v50.json",
+        "F21-multiplane-buffers-and-publication-contract-v50.json",
+        "F21-checkpoint-map-commutation-contract-v51.json",
+        "F21-static-load-identity-witness-v51.json"
+      ]
+    }
+  ],
+  "evidence": "EP-mapping-and-weight-contract-v19.json",
+  "whole_module_closed": false,
+  "overall_complete": false,
+  "parent": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-interface-branch-ledger-v50.json",
+  "source_dependency_identity_scope": "Threehistorical166matchedfiles;threelocal-reference-onlydependencies."
+}

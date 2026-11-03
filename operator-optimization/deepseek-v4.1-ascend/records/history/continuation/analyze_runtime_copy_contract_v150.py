@@ -1,0 +1,53 @@
+"""Bound the operator conclusions licensed by saved copy control records."""
+from collections import Counter,defaultdict
+from finalize_origin_coverage_v9 import N,O,read,write
+from analyze_runtime_copy_v150 import pin
+import math
+
+WIDTHS={'bool':1,'char':1,'byte':1,'short':2,'int':4,'long':8,'long int':8,'half':2,'float':4,'double':8,'bfloat16':2,'c10::BFloat16':2,'complex64':8,'complex128':16}
+
+def extents(a):
+ ss=[s.strip()for s in a['input_shapes_text'].split(';')];dd=[s.strip()for s in a['input_dtypes_text'].split(';')];out=[]
+ for i,(s,d)in enumerate(zip(ss,dd)):
+  if not d or d=='Scalar':continue
+  assert s and d in WIDTHS and all(z.strip().isdigit()for z in s.split(',')),(s,d)
+  dims=[int(z)for z in s.split(',')];out.append(dict(input_index=i,shape=dims,reported_dtype=d,declared_element_bytes=WIDTHS[d],numel=math.prod(dims),logical_extent_bytes=math.prod(dims)*WIDTHS[d]))
+ assert len(out)==2
+ return out
+
+
+def tags(frames):
+ s='\n'.join(frames);out=[]
+ for needles,name in [([': _dummy_run',': dummy_run'],'DUMMY_ANCESTRY'),([': _prepare_inputs',': _preprocess'],'INPUT_PREPARATION'),([': prepare_next_token_ids_padded'],'NEXT_ID_HELPER'),([': _copy_valid_sampled_token_count'],'VALID_COUNT_PUBLICATION'),([': take_draft_token_ids'],'DRAFT_ID_RETRIEVAL'),([': _build_batch_metadata',': build_mla_metadata',': _build_global_metadata'],'ATTENTION_METADATA'),([': commit_block_table'],'BLOCK_TABLE_PUBLICATION'),([': sample_tokens'],'SAMPLING_ANCESTRY'),([': propose_draft_token_ids','/spec_decode/'],'DRAFT_ANCESTRY'),([': _gather_cp_hidden_states','dsa_v41_cp.py'],'CONTEXT_PARALLEL_ANCESTRY')]:
+  if any(t in s for t in needles):out.append(name)
+ return out or ['OTHER_SAVED_PROJECT_ANCESTRY']
+
+
+def main():
+ assert not(O/'runtime-copy-field-and-legality-contract-v150.json').exists()
+ x=read(O/'runtime-copy-control-origins-v150.json');gr=read(O/'runtime-copy-existing-graph-controls-v150.json');groups={};logical=[];order=[];graphgroups=defaultdict(list);taskpartition=Counter();direction=Counter();dt=Counter();srcs=Counter();shapes=Counter()
+ for r in x['records']:
+  di=r['database_index'];tid=r['TASK']['TASK_rowid'];pp=r['host_control_paths'];gg=r['graph_control_candidates'];assert(len(pp),len(gg))in[(1,0),(0,1)]
+  if pp:
+   p=pp[0];assert p['chain_text_complete']and len(p['innermost_same_chain_copy_parents'])==1;a=p['innermost_same_chain_copy_parents'][0];es=extents(a);rec=dict(database_index=di,TASK_rowid=tid,CANN_connection=p['CANN_API']['connectionId'],source_API_rowid=p['source_API']['api_rowid'],copy_parent_API_rowid=a['api_rowid'],source_chain_key=p['source_chain_key'],logical_tensor_inputs=es,source_primitive_label=p['source_API']['name_text'],source_direction_label=p['direction_source_label'],actual_DMA_bytes_direction_addresses_or_lifetimes_proved=False);logical.append(rec)
+   key=(p['source_API']['name_text'],p['source_chain_key']);ch=x['canonical_chains'][key[1]]
+   groups.setdefault(key,dict(source_primitive=key[0],chain_key=key[1],project_frames=ch['project_frames'],provenance_tags=tags(ch['project_frames']),TASK_records=[],logical_tensor_input_signatures=Counter()))
+   groups[key]['TASK_records'].append([di,tid]);groups[key]['logical_tensor_input_signatures'][a['input_shapes_text'],a['input_dtypes_text']]+=1
+   if not p['CPU_enqueue_not_after_dequeue']:order.append(dict(database_index=di,TASK_rowid=tid,Enqueue=p['Enqueue'],Dequeue=p['Dequeue'],queue_flow_ids=p['queue_flow_ids'],source_API=p['source_API'],explicit_flow_not_end_before_start_is_identity_proof=True))
+   taskpartition['UNIQUE_HOST_QUEUE_SOURCE_CONTROL']+=1;direction[p['direction_source_label']]+=1;srcs[di,p['source_API']['api_rowid']]+=1;shapes[es[0]['logical_extent_bytes'],p['source_API']['name_text']]+=1
+   for z in es:dt[z['reported_dtype']]+=1
+  else:
+   g=gg[0];graphgroups[di,g['CANN_connection']].append(tid);taskpartition['EXISTING_GRAPH_CONTROL_ONLY_TEMPLATE_UNBOUND']+=1
+ out=[]
+ for g in groups.values():
+  h=g.pop('logical_tensor_input_signatures');g['logical_tensor_input_signatures']=[dict(input_shapes=k[0],input_dtypes=k[1],records=v)for k,v in h.items()];g['records']=len(g['TASK_records']);out.append(g)
+ assert len(logical)==12262 and len(out)==79 and len(srcs)==12262 and len(graphgroups)==80 and set(map(len,graphgroups.values()))=={51}
+ write(O/'runtime-copy-source-role-and-logical-extents-v150.json',dict(count=len(logical),records=logical,declared_logical_dtype_widths=WIDTHS,width_domain='Torchreportedtypelabelint32,long/longint64,c10::BFloat16BF16etc interpretedinthislogicalmodel. NotDMAABI/length/address/physicaltrafficproof.',logical_destination_extent_sum_bytes=sum(r['logical_tensor_inputs'][0]['logical_extent_bytes']for r in logical),logical_source_extent_sum_bytes=sum(r['logical_tensor_inputs'][1]['logical_extent_bytes']for r in logical),reported_dtype_inputs=dict(dt),source_groups=out,groups=len(out),source_API_TASK_cardinality_hist=dict(Counter(map(str,srcs.values()))),logical_destination_byte_hist=[dict(bytes=k[0],source_primitive=k[1],records=v)for k,v in sorted(shapes.items())],native_physical_byte_MFU_ceiling_or_gain=False,overall_complete=False))
+ write(O/'runtime-copy-control-boundary-witnesses-v150.json',dict(explicit_queue_identity_despite_recorded_endpoint_overlap=order,endpoint_overlap_count=len(order),recorded_order_not_used_as_proof='8EnqueueintervalsoverlapDequeueintervals. Explicit shared flowID+operationlabel+samePIDandhostcontainmentsremainidentity;noenqueue-endbeforedequeue-startrequirement,queue-waitlatencyorclockcoherenceisclaimed.',logical_copy_removal=[dict(producer_source=[4,9],old_destination=[1,2],consumer_expected=[4,9],remove_copy_but_leave_consumer_on_destination=[1,2],direct_producer_to_destination=[4,9],old_reader_before_original_publication_expected=[1,2],early_direct_producer_old_reader_result=[4,9],actual_native_pointer_or_reader_schedule_attested=False)],logical_extent_vs_DMA_descriptor=dict(logical_tensor_elements=4,declared_element_bytes=4,logical_extent_bytes=16,possible_descriptor_partitions=[[16],[8,8],[4,4,4,4]],same_total_logical_copy_can_have_distinct_per_TASK_length=True,actual_native_partition_selected=False),bank_epoch_early_staging_late_read_evidence='ta<REDACTED_TOKEN>.json',native_gain_or_physical_traffic_proved=False,overall_complete=False))
+ contract=dict(count=16342,record_partition=dict(taskpartition),native_CANN_linked12262_unique_source_calls=True,canonical_source_chains=79,all_selected_source_chain_frame_text_resolved=True,source_direction_label_counts=dict(direction),actual_DMA_direction_bytes_pointer_epoch_or_all_readers_proved=False,source_dtype_logical_extent_records=12262,logical_extent_not_DMA_length_or_traffic=True,graph_control_only_records=4080,graph_controls=80,copies_per_control=51,graph_control_rule=gr['member_identity_rule'],graph_phase_markers_already_present_records=sum(len(v)for k,v in graphgroups.items()if next(g for g in gr['controls']if(g['database_index'],g['CANN_API']['connectionId'])==k)['phase_records']),graph_phase_unbound_records=sum(len(v)for k,v in graphgroups.items()if not next(g for g in gr['controls']if(g['database_index'],g['CANN_API']['connectionId'])==k)['phase_records']),new_graph_phase_bindings=0,graph_template_source_dataflow_not_bound=True,graph_members=[dict(database_index=k[0],CANN_connection=k[1],TASK_rowids=v)for k,v in graphgroups.items()],endpoint_overlap_control_cases=len(order),raw_numeric_CONNECTION_IDS_family_match_records=sum(bool(z['connection_family_IDs'])for z in read(O/'ta<REDACTED_TOKEN>.json')['runtime_copy_records']),raw_family_match_with_no_PYTORCH_API_is_not_source_identity=True,native_direct_PYTORCH_API_match_records=0,unused_raw_callchain_missing_STRING_ID_correction_retained=True,selected_source_chain_missing_text=0,scope_limits=['3159TASKconnectionnumbershavematchingCONNECTION_IDSfamilyIDsbutall0directPYTORCHAPIrecords;zeroTorchAPIlinkisnotzerorawfamilytablematches. Donotinfersourceidentityfromnumberalone.', 'SourceprimitiveH2D/D2Hlabelsareobservedcallerlabels;notper-TASKnativeDMAkindfield. aclnnInplaceCopydirectionunresolved.', 'All12262sourcecallsandtheiruniqueaten::copy_parentsarecontrol/provenance. Shapes/dtypeslackstrides,pointers,deviceallocations,bytecounts,workspace,lifetimes,quant/formatandfutureconsumercontracts.', '4080recordsgroupintoproven80graphcontrolintervalsusingPID/device/model/containment;notmodelId-alone,taskordinal,51count,phase/shapeornearest-time. Capturetemplate/address/sourcephaseunbound. 816recordsbelong16previousphase-unboundcontrols;notnewgaporclosure.', '9/1352originalCOMPUTE-nativegapsremainseparatefromall16342runtimecopyoperandgaps. Other223941runtime/sync/profilingrecordownership/dependenciesremainopen.', '32DBschema+capturedconfigonly:profile_memory/record_op_argsdisabled,notproofallothersavedfileslackpayload. Localcache155filesisnotthewholeoriginalserverprofile.', 'Nochange14720HCCLcalls,192pairs26groups403pending,358semantic26modules,854nodes1346edges48hints,2073/285598conditional,849PMU16phase3136assignments,0wholemodulesorphysicalMFU-lowest.'],fusion_legal_gates=['Bindactualvalue/layout/dtype/conversion/strideandsource/destinationrange/slot/capturegeneration.', 'Proveallcurrent/futurereadersandwriters,oldstate/RNG/errors/observationpoints;directproducerintodestinationmustnotpublishearlyacrossoldreader.', 'Coalesceonlywhereallrequiredestinationbytes/epochsandorderingremainpreserved;same-shapedcopiesnotduplicates. D2Hvisibleoutputcontractsremain.', 'Proveactualresourcebytes/capacityupperandcriticalpathbeforephysicalspeedup/ceiling.'],conditional_resource_bound=dict(domain='Selectedliteraltransfer/materializedgraphwithcertifiednecessaryper-resourceworkandvalidcapacityupper;notalllegalrewrites.',formula='T >= max_r (W_required_r(G,D) / C_valid_upper_r)',native_required_bytes_or_valid_capacity_uppers_available=False,logical_input_extent_substituted_for_W_required=False,shared_compute_network_HBM_resource_work_must_be_unioned=True,caller_TASK_duration_sum_used_as_latency_or_gain=False,all_module_physical_MFU_or_lowest='NOT_ESTABLISHED'),source_read=False,new_device_work=False,new_remote_activity=False,overall_complete=False)
+ write(O/'runtime-copy-field-and-legality-contract-v150.json',contract)
+ inp=read(O/'runtime-copy-inputs-v150.json');inp['inputs'] += [pin(O/'ta<REDACTED_TOKEN>.json')];write(O/'runtime-copy-inputs-v150.json',inp)
+ print(__import__('json').dumps({k:contract[k]for k in ['count','record_partition','source_direction_label_counts','graph_controls','graph_phase_unbound_records','endpoint_overlap_control_cases','source_dtype_logical_extent_records','overall_complete']}))
+
+
+if __name__=='__main__':main()

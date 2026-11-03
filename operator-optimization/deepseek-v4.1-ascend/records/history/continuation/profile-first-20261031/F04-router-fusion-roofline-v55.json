@@ -1,0 +1,227 @@
+{
+  "generated_utc": "2026-10-31T17:29:34.115514+00:00",
+  "focus": "RmsNormCast→FP32router MatMulV3→MoeGatingTopKHash;existingF04/F20",
+  "measured_graph_chains": 3200,
+  "root_bound_chains": 2560,
+  "phase_unbound_chains": 640,
+  "selected_PMU_groups": 9600,
+  "graph_regime_kernel_times": [
+    {
+      "op_type": "RmsNormCast",
+      "inputShapes": "\"3,5120;5120\"",
+      "inputDtypes": "DT_BF16;DT_BF16",
+      "blockNum": 3,
+      "count": 3200,
+      "sum_ns": 10207084,
+      "minimum_ns": 2880,
+      "median_ns": 3160.0,
+      "p90_ns": 3380,
+      "maximum_ns": 4000
+    },
+    {
+      "op_type": "MatMulV3",
+      "inputShapes": "\"3,5120;384,5120\"",
+      "inputDtypes": "FLOAT;FLOAT",
+      "blockNum": 24,
+      "count": 3200,
+      "sum_ns": 55868837,
+      "minimum_ns": 15760,
+      "median_ns": 17360.0,
+      "p90_ns": 18420,
+      "maximum_ns": 21461
+    },
+    {
+      "op_type": "MoeGatingTopKHash",
+      "inputShapes": "\"3,384;384;3;;384\"",
+      "inputDtypes": "FLOAT;FLOAT;INT64;DT_UNDEFINED;FLOAT",
+      "blockNum": 3,
+      "count": 3200,
+      "sum_ns": 16606202,
+      "minimum_ns": 4140,
+      "median_ns": 4820.0,
+      "p90_ns": 6500,
+      "maximum_ns": 7340
+    }
+  ],
+  "chain_kernel_sum": {
+    "count": 2560,
+    "sum_ns": 66142483,
+    "minimum_ns": 23641,
+    "median_ns": 25601.0,
+    "p90_ns": 27361,
+    "maximum_ns": 29781
+  },
+  "chain_observed_span": {
+    "count": 2560,
+    "sum_ns": 86125998,
+    "minimum_ns": 30841,
+    "median_ns": 33340.0,
+    "p90_ns": 35581,
+    "maximum_ns": 38681
+  },
+  "observed_span_minus_union": {
+    "count": 2560,
+    "sum_ns": 19983515,
+    "minimum_ns": 6741,
+    "median_ns": 7660.0,
+    "p90_ns": 8660,
+    "maximum_ns": 10580
+  },
+  "numerical_contract": "Existing BF16 output is rounded,thenFP32plane widens those roundedvalues. RetainBF16expert/sharedconsumers,FP32gateweights andsqrtsoftplus/bias/hash/ID/topK semantics.",
+  "symbolic_bounds": [
+    "Normmaterialized scalar algorithm:4MH+M ordinaryscalarops plusMrsqrt;reductionorder/precision matters.",
+    "Dense router GEMM conventionalwork 2MHE;this is a stated densealgorithm model,not allalgorithm lowerbound.",
+    "T_reference>=max(F/P_dtype,Q_HBM/B_HBM,Q_L2/B_L2,other pipeline/dep bounds). Logical interface bytes are not measured HBM traffic.",
+    "WhenFP32norm plane is unused elsewhere,newrouter may widenBF16internally:8MH logical write/read bytes can disappear;BF16consumer plane remains.",
+    "MatMul→topK fusion may avoid8ME logitwrite/read bytes ifall other scoreconsumers absent;ignoredthirdcustom-op output is not priced as written."
+  ],
+  "shape_models": [
+    {
+      "M": 2,
+      "H": 5120,
+      "E": 384,
+      "norm_scalar_arithmetic_ops": 40962,
+      "norm_rsqrt_ops": 2,
+      "norm_min_logical_bytes_with_two_outputs": 92160,
+      "norm_bytes_without_FP32_output": 51200,
+      "router_dense_flops": 7864320,
+      "router_min_logical_bytes": 7908352,
+      "router_arithmetic_intensity_flop_per_logical_byte": 0.9944322154603134,
+      "norm_router_FP32_interface_write_read_bytes": 81920,
+      "router_topk_logits_write_read_bytes": 6144,
+      "norm_materialized_cold_HBM_reference_us": 0.0576,
+      "router_materialized_cold_HBM_reference_us": 4.94272,
+      "FP32_interface_reference_transfer_time_us": 0.0512,
+      "logit_interface_reference_transfer_time_us": 0.00384,
+      "interface_bytes_over_router_weight_bytes": 0.011197916666666667
+    },
+    {
+      "M": 3,
+      "H": 5120,
+      "E": 384,
+      "norm_scalar_arithmetic_ops": 61443,
+      "norm_rsqrt_ops": 3,
+      "norm_min_logical_bytes_with_two_outputs": 133120,
+      "norm_bytes_without_FP32_output": 71680,
+      "router_dense_flops": 11796480,
+      "router_min_logical_bytes": 7930368,
+      "router_arithmetic_intensity_flop_per_logical_byte": 1.4875072632190587,
+      "norm_router_FP32_interface_write_read_bytes": 122880,
+      "router_topk_logits_write_read_bytes": 9216,
+      "norm_materialized_cold_HBM_reference_us": 0.08320000000000001,
+      "router_materialized_cold_HBM_reference_us": 4.95648,
+      "FP32_interface_reference_transfer_time_us": 0.0768,
+      "logit_interface_reference_transfer_time_us": 0.00576,
+      "interface_bytes_over_router_weight_bytes": 0.016796875
+    },
+    {
+      "M": 800,
+      "H": 5120,
+      "E": 384,
+      "norm_scalar_arithmetic_ops": 16384800,
+      "norm_rsqrt_ops": 800,
+      "norm_min_logical_bytes_with_two_outputs": 32778240,
+      "norm_bytes_without_FP32_output": 16394240,
+      "router_dense_flops": 3145728000,
+      "router_min_logical_bytes": 25477120,
+      "router_arithmetic_intensity_flop_per_logical_byte": 123.47266881028939,
+      "norm_router_FP32_interface_write_read_bytes": 32768000,
+      "router_topk_logits_write_read_bytes": 2457600,
+      "norm_materialized_cold_HBM_reference_us": 20.4864,
+      "router_materialized_cold_HBM_reference_us": 15.9232,
+      "FP32_interface_reference_transfer_time_us": 20.48,
+      "logit_interface_reference_transfer_time_us": 1.536,
+      "interface_bytes_over_router_weight_bytes": 4.479166666666667
+    },
+    {
+      "M": 816,
+      "H": 5120,
+      "E": 384,
+      "norm_scalar_arithmetic_ops": 16712496,
+      "norm_rsqrt_ops": 816,
+      "norm_min_logical_bytes_with_two_outputs": 33433600,
+      "norm_bytes_without_FP32_output": 16721920,
+      "router_dense_flops": 3208642560,
+      "router_min_logical_bytes": 25829376,
+      "router_arithmetic_intensity_flop_per_logical_byte": 124.2245480494767,
+      "norm_router_FP32_interface_write_read_bytes": 33423360,
+      "router_topk_logits_write_read_bytes": 2506752,
+      "norm_materialized_cold_HBM_reference_us": 20.896,
+      "router_materialized_cold_HBM_reference_us": 16.143359999999998,
+      "FP32_interface_reference_transfer_time_us": 20.8896,
+      "logit_interface_reference_transfer_time_us": 1.5667200000000001,
+      "interface_bytes_over_router_weight_bytes": 4.56875
+    },
+    {
+      "M": 834,
+      "H": 5120,
+      "E": 384,
+      "norm_scalar_arithmetic_ops": 17081154,
+      "norm_rsqrt_ops": 834,
+      "norm_min_logical_bytes_with_two_outputs": 34170880,
+      "norm_bytes_without_FP32_output": 17090560,
+      "router_dense_flops": 3279421440,
+      "router_min_logical_bytes": 26225664,
+      "router_arithmetic_intensity_flop_per_logical_byte": 125.0462691812112,
+      "norm_router_FP32_interface_write_read_bytes": 34160640,
+      "router_topk_logits_write_read_bytes": 2562048,
+      "norm_materialized_cold_HBM_reference_us": 21.3568,
+      "router_materialized_cold_HBM_reference_us": 16.39104,
+      "FP32_interface_reference_transfer_time_us": 21.3504,
+      "logit_interface_reference_transfer_time_us": 1.6012799999999998,
+      "interface_bytes_over_router_weight_bytes": 4.66953125
+    }
+  ],
+  "hardware_reference": {
+    "source": "https://arxiv.org/html/2506.12708v1#S3.SS3.SSS1",
+    "publisher": "Huawei authors,CloudMatrix384",
+    "per_die_BF16_FP16_TFLOPS": 376,
+    "per_die_INT8_TOPS": 752,
+    "per_die_HBM_TB_per_s": 1.6,
+    "per_die_Cube": 24,
+    "per_die_Vector": 48,
+    "per_die_GB": 64,
+    "current_clock_cached_MHz": 1800,
+    "reference_clock_unknown": true,
+    "qualification": "Published reference die,not measuredcurrentservercapacity. FP32router peak not supplied by thisBF16table;no FP32MFU calculation orclockscaling invented."
+  },
+  "reference_time_qualification": "Numerical transfer floors assume every counted logicalbyte crossesHBM and1.6TB/s applies. Cache-resident traffic,duplicate loads,actualSKU/clock andlatency invalidate an unconditional HBMbound. Removed-transfer/B is a traffic valuation,not endtoend gain.",
+  "verdicts": [
+    {
+      "id": "F04-A",
+      "state": "ALREADY_FUSED",
+      "conclusion": "Norm+cast dual output alreadyfused;no newgain."
+    },
+    {
+      "id": "F04-B/F20-NORM",
+      "state": "CONDITIONAL_LEGAL",
+      "conclusion": "WidenroundedBF16 inside router;eliminateFP32interface ifall consumers accounted. LargeM muchlargerbyteopportunity;smallM primarilylaunch/reduction/occupancy question."
+    },
+    {
+      "id": "F20-GATE",
+      "state": "CONDITIONAL_LEGAL",
+      "conclusion": "RouterGEMM epilogue+nonlinear/bias/hash/topK can avoidscoresurface with equivalentFP32/BF16barriers andexactties;fullrow reduction and newtiling stillneedproof."
+    },
+    {
+      "id": "F04-D",
+      "state": "CONDITIONAL_SPLIT",
+      "conclusion": "SmallMnorm uses3blocks;feature-splitting may increaseparallelism but adds crossblock reduction/state. Blockcount is not measuredphysicalutilization."
+    },
+    {
+      "id": "F04-E",
+      "state": "EXCLUDED",
+      "conclusion": "DroppingBF16rounding/liveBF16plane,norm-scale cancellation undernonlinearrouter,orcrosslayer same-shape reuse are notunconditional rewrites."
+    }
+  ],
+  "nonadditive_limits": [
+    "Exact3200graphblock identities do not prove tensor aliases or actualnewkernelnumerics.",
+    "Span gaps include otherID/control/overlapped work;notidle/removablebydefinition.",
+    "M800norm andM816routing usepadding domains;not a same-callpair bycount/time. Models forlargeM are independent stateddomains.",
+    "SmallM logicalbyte savings cannot be added to removedlaunch times as an observedcriticalpath gain."
+  ],
+  "implementation": false,
+  "native_test": false,
+  "measured_speedup": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

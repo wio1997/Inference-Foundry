@@ -1,0 +1,365 @@
+{
+  "generated_utc": "2026-10-31T12:40:59.433859+00:00",
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/compilation/acl_graph.py",
+  "sha256": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955",
+  "ranges": [
+    {
+      "start": 56,
+      "end": 63,
+      "source": [
+        "56: class ACLGraphEntry:",
+        "57:     batch_descriptor: BatchDescriptor",
+        "58:     aclgraph: torch.npu.NPUGraph | None = None",
+        "59:     output: Any | None = None",
+        "60: ",
+        "61:     # for aclgraph debugging, track the input addresses",
+        "62:     # during capture, and check if they are the same during replay",
+        "63:     input_addresses: list[int] | None = None"
+      ]
+    },
+    {
+      "start": 175,
+      "end": 185,
+      "source": [
+        "175: ",
+        "176:         if entry.aclgraph is None:",
+        "177:             if self.aclgraph_options.debug_log_enable:",
+        "178:                 # Since we capture aclgraph for many different shapes and",
+        "179:                 # capturing is fast, we don't need to log it for every",
+        "180:                 # shape. E.g. we only log it for the first subgraph in",
+        "181:                 # piecewise mode.",
+        "182:                 logger.debug(\"Capturing ACL graph (%s, %s)\", self.runtime_mode.name, entry.batch_descriptor)",
+        "183:             # validate that aclgraph capturing is legal at this point.",
+        "184:             validate_cudagraph_capturing_enabled()",
+        "185: "
+      ]
+    },
+    {
+      "start": 189,
+      "end": 207,
+      "source": [
+        "189: ",
+        "190:             with ExitStack() as stack:",
+        "191:                 if self.aclgraph_options.gc_disable:",
+        "192:                     # during every model forward for piecewise aclgraph",
+        "193:                     # mode, we will capture many pieces of aclgraphs",
+        "194:                     # (roughly one per layer). running gc again and again",
+        "195:                     # across layers will make the aclgraph capture very slow.",
+        "196:                     # therefore, we only run gc for the first graph,",
+        "197:                     # and disable gc for the rest of the graphs.",
+        "198:                     stack.enter_context(patch(\"gc.collect\", lambda: None))",
+        "199:                     stack.enter_context(patch(\"torch.npu.empty_cache\", lambda: None))",
+        "200: ",
+        "201:                 # mind-exploding: carefully manage the reference and memory.",
+        "202: ",
+        "203:                 # Sync offloader's copy stream before capture.",
+        "204:                 # Ensure any pre-capture prefetches from offloader are complete.",
+        "205:                 from vllm.model_executor.offloader.base import get_offloader",
+        "206: ",
+        "207:                 get_offloader().sync_prev_onload()"
+      ]
+    },
+    {
+      "start": 215,
+      "end": 244,
+      "source": [
+        "215:                         # unjoined stream error. The last layer's start_prefetch",
+        "216:                         # forks copy_stream, but wait_prefetch only happens in",
+        "217:                         # the next forward pass.",
+        "218:                         get_offloader().join_after_forward()",
+        "219:                         if self.aclgraph_options.weak_ref_output:",
+        "220:                             # by converting it to weak ref,",
+        "221:                             # the original `output` will immediately be released",
+        "222:                             # to save memory. It is only safe to do this for",
+        "223:                             # the last graph in piecewise aclgraph mode, because",
+        "224:                             # the output of the last graph will not be used by",
+        "225:                             # any other acl graph.",
+        "226:                             output = weak_ref_tensors(output)",
+        "227:                 except RuntimeError as exc:",
+        "228:                     if _is_old_hdk_capture_error(exc):",
+        "229:                         raise RuntimeError(",
+        "230:                             \"ACL graph capture failed with an old Ascend HDK/CANN stack \"",
+        "231:                             \"signature (`Alloc sq cq fail`). Please upgrade Ascend HDK to \"",
+        "232:                             \"25.5.1 or later and use the matching CANN stack.\\n\"",
+        "233:                             f\"Original error:\\n{exc}\"",
+        "234:                         ) from exc",
+        "235:                     elif _is_stream_resource_capture_error(exc):",
+        "236:                         raise RuntimeError(",
+        "237:                             \"ACL graph capture failed with a known stream-resource exhaustion \"",
+        "238:                             \"signature. Consider reducing cudagraph_capture_sizes, lowering \"",
+        "239:                             \"max_cudagraph_capture_size, preferring FULL or FULL_DECODE_ONLY for \"",
+        "240:                             \"mostly uniform decode workloads, or temporarily disabling graph mode \"",
+        "241:                             \"to confirm the failure is capture-related.\\n\"",
+        "242:                             f\"Original error:\\n{exc}\"",
+        "243:                         ) from exc",
+        "244:                     raise"
+      ]
+    },
+    {
+      "start": 245,
+      "end": 264,
+      "source": [
+        "245: ",
+        "246:             if self.enable_super_kernel:",
+        "247:                 aclgraph.super_kernel_optimize(",
+        "248:                     optimize_options={",
+        "249:                         \"dcci_after_kernel_end\": [\".*\"],",
+        "250:                     },",
+        "251:                 )",
+        "252:                 logger.info_once(\"Super kernel optimization is enabled for ACL graph capture.\")",
+        "253: ",
+        "254:             # here we always use weak ref for the workspaces",
+        "255:             # to save memory",
+        "256:             global _graph_params",
+        "257:             global _draft_graph_params",
+        "258:             global _draft_graph_prefill_params",
+        "259:             weak_ref_workspaces(_graph_params)",
+        "260:             weak_ref_workspaces(_draft_graph_params)",
+        "261:             weak_ref_workspaces(_draft_graph_prefill_params)",
+        "262: ",
+        "263:             # here we always use weak ref for the output",
+        "264:             # to save memory"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "_updatable_graph_replay",
+      "start": 304,
+      "end": 319,
+      "source": [
+        "304:     def _updatable_graph_replay(",
+        "305:         self,",
+        "306:         forward_context,",
+        "307:         graph: UpdatableGraph,",
+        "308:     ):",
+        "309:         assert self.update_stream is not None",
+        "310:         if _EXTRA_CTX.is_draft_model:",
+        "311:             resolved_tasks = graph.resolve_tasks(SharedSource(self.draft_model_metadata))",
+        "312:         else:",
+        "313:             resolved_tasks = graph.resolve_tasks(ContextSource(forward_context.attn_metadata))",
+        "314:         if self.enable_enpu:",
+        "315:             graph.update(self.update_stream, resolved_tasks)",
+        "316:             graph.replay()",
+        "317:         else:",
+        "318:             graph.replay()",
+        "319:             graph.update(self.update_stream, resolved_tasks)"
+      ]
+    }
+  ],
+  "constructor_statements": [
+    {
+      "start": 103,
+      "end": 103,
+      "source": [
+        "103:         self.vllm_config = vllm_config"
+      ]
+    },
+    {
+      "start": 104,
+      "end": 104,
+      "source": [
+        "104:         self.runtime_mode = runtime_mode"
+      ]
+    },
+    {
+      "start": 114,
+      "end": 114,
+      "source": [
+        "114:         self.is_debugging_mode = envs.VLLM_LOGGING_LEVEL == \"DEBUG\""
+      ]
+    },
+    {
+      "start": 121,
+      "end": 121,
+      "source": [
+        "121:         self.aclgraph_options = cudagraph_options"
+      ]
+    },
+    {
+      "start": 125,
+      "end": 125,
+      "source": [
+        "125:         self.enable_enpu = enable_enpu"
+      ]
+    },
+    {
+      "start": 126,
+      "end": 126,
+      "source": [
+        "126:         self.use_eagle = use_eagle"
+      ]
+    },
+    {
+      "start": 128,
+      "end": 128,
+      "source": [
+        "128:         self.attn_backend = None"
+      ]
+    }
+  ],
+  "update_predicate": {
+    "import_module": "..utils",
+    "name": "use_updatable_graph",
+    "local_file": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/utils.py",
+    "local_file_available": true,
+    "sha256": "5f88fd83bcba539c3d24324ed104469914254989996342b27bb36a326e3f8458",
+    "start": 1896,
+    "end": 1901,
+    "source": [
+      "1896: def use_updatable_graph(",
+      "1897:     attn_backend,",
+      "1898: ) -> bool:",
+      "1899:     from vllm_ascend.attention.attention_v1 import AscendAttentionBackend",
+      "1900: ",
+      "1901:     return attn_backend is not None and issubclass(attn_backend, AscendAttentionBackend)"
+    ],
+    "actual166_hash_attested_this_turn": false
+  },
+  "reused_v16_ranges": [
+    {
+      "start": 156,
+      "end": 174,
+      "source": [
+        "156:     def __call__(self, *args, **kwargs):",
+        "157:         forward_context = get_forward_context()",
+        "158:         batch_descriptor = forward_context.batch_descriptor",
+        "159:         aclgraph_runtime_mode = forward_context.cudagraph_runtime_mode",
+        "160: ",
+        "161:         if aclgraph_runtime_mode == CUDAGraphMode.NONE or aclgraph_runtime_mode != self.runtime_mode:",
+        "162:             # CUDAGraphMode.NONE could mean the profile run, a warmup run, or",
+        "163:             # running without aclgraphs.",
+        "164:             # We do not trigger capture/replay if the runtime mode is not",
+        "165:             # matches. This enables properly dispatching to the correct",
+        "166:             # CUDAGraphWrapper when nesting multiple instances with different",
+        "167:             # runtime modes.",
+        "168:             return self.runnable(*args, **kwargs)",
+        "169: ",
+        "170:         if batch_descriptor not in self.concrete_aclgraph_entries:",
+        "171:             # create a new entry for this batch descriptor",
+        "172:             self.concrete_aclgraph_entries[batch_descriptor] = ACLGraphEntry(batch_descriptor=batch_descriptor)",
+        "173: ",
+        "174:         entry = self.concrete_aclgraph_entries[batch_descriptor]"
+      ]
+    },
+    {
+      "start": 186,
+      "end": 188,
+      "source": [
+        "186:             input_addresses = [x.data_ptr() for x in args if isinstance(x, torch.Tensor)]",
+        "187:             entry.input_addresses = input_addresses",
+        "188:             aclgraph = UpdatableGraph()"
+      ]
+    },
+    {
+      "start": 208,
+      "end": 214,
+      "source": [
+        "208:                 forward_context.capturing = True",
+        "209:                 try:",
+        "210:                     with torch.npu.graph(aclgraph, pool=self.graph_pool):",
+        "211:                         # `output` is managed by pytorch's aclgraph pool",
+        "212:                         with super_kernel_scope(\"full_model\", self.enable_super_kernel):",
+        "213:                             output = self.runnable(*args, **kwargs)",
+        "214:                         # Join offloader's copy stream after forward to avoid"
+      ]
+    },
+    {
+      "start": 265,
+      "end": 273,
+      "source": [
+        "265:             entry.output = weak_ref_tensors(output)",
+        "266:             entry.aclgraph = aclgraph",
+        "267: ",
+        "268:             compilation_counter.num_cudagraph_captured += 1",
+        "269: ",
+        "270:             # important: we need to return the output, rather than",
+        "271:             # the weak ref of the output, so that pytorch can correctly",
+        "272:             # manage the memory during acl graph capture",
+        "273:             return output"
+      ]
+    },
+    {
+      "start": 275,
+      "end": 302,
+      "source": [
+        "275:         if self.is_debugging_mode:",
+        "276:             # check if the input addresses are the same",
+        "277:             new_input_addresses = [x.data_ptr() for x in args if isinstance(x, torch.Tensor)]",
+        "278:             assert new_input_addresses == entry.input_addresses, (",
+        "279:                 f\"Input addresses for aclgraphs are different \"",
+        "280:                 f\"during replay. Expected {entry.input_addresses}, \"",
+        "281:                 f\"got {new_input_addresses}\"",
+        "282:             )",
+        "283: ",
+        "284:         # In async scheduling or multi-threaded (MT) scenarios, it is possible that",
+        "285:         # the CPU's record event (from update_attn_params) for the iteration i completes",
+        "286:         # before the grph replay of iteration i-1.",
+        "287:         # To ensure proper ordering, we must call synchronize here before replaying,",
+        "288:         # so that update_attn_params only executes after the previous graph replay has fully completed.",
+        "289:         # If we do not in main model and in full-graph mode when using merge-eagle-graph,",
+        "290:         # we do not need to synchronize.",
+        "291:         # When enable_enpu is on, model_runner orders update vs replay; skip here.",
+        "292:         # When FULL + EAGLE draft (merge path), replay does not need this barrier.",
+        "293:         is_draft_eagle = _EXTRA_CTX.is_draft_model and self.use_eagle",
+        "294:         need_sync = self.runtime_mode == CUDAGraphMode.FULL and not is_draft_eagle",
+        "295:         if not self.enable_enpu and need_sync:",
+        "296:             torch.npu.current_stream().synchronize()",
+        "297:         if self.runtime_mode == CUDAGraphMode.FULL and use_updatable_graph(self.attn_backend):",
+        "298:             self._updatable_graph_replay(forward_context, entry.aclgraph)",
+        "299:         else:",
+        "300:             entry.aclgraph.replay()",
+        "301:         logger.info_once(\"ACL graph replay is active (logged once).\")",
+        "302:         return entry.output"
+      ]
+    }
+  ],
+  "no_model_or_torch_import": true,
+  "scope": "Missing capture blocks/entry fields/selected ctor/small replay helper only. No full worker/capture file audit.",
+  "constructor_lifetime_range": {
+    "start": 91,
+    "end": 130,
+    "source": [
+      "91:     def __init__(",
+      "92:         self,",
+      "93:         runnable: Callable,",
+      "94:         vllm_config: VllmConfig,",
+      "95:         runtime_mode: CUDAGraphMode,",
+      "96:         cudagraph_options: CUDAGraphOptions | None = None,",
+      "97:         *,",
+      "98:         use_eagle: bool = False,",
+      "99:         enable_enpu: bool = False,",
+      "100:         update_stream: torch.npu.Stream | None = None,",
+      "101:     ):",
+      "102:         self.runnable = runnable",
+      "103:         self.vllm_config = vllm_config",
+      "104:         self.runtime_mode = runtime_mode",
+      "105: ",
+      "106:         # A NONE runtime mode does not use ACL Graph, so avoid initializing",
+      "107:         # graph-specific state (including the Ascend config lookup).",
+      "108:         assert self.runtime_mode != CUDAGraphMode.NONE",
+      "109: ",
+      "110:         self.compilation_config = vllm_config.compilation_config",
+      "111:         self.enable_super_kernel = get_ascend_config().ascend_compilation_config.enable_super_kernel",
+      "112: ",
+      "113:         self.first_run_finished = False",
+      "114:         self.is_debugging_mode = envs.VLLM_LOGGING_LEVEL == \"DEBUG\"",
+      "115:         self._runnable_str = str(runnable) if self.is_debugging_mode else None",
+      "116: ",
+      "117:         self.graph_pool = current_platform.get_global_graph_pool()",
+      "118: ",
+      "119:         if cudagraph_options is None:",
+      "120:             cudagraph_options = CUDAGraphOptions()",
+      "121:         self.aclgraph_options = cudagraph_options",
+      "122:         # the entries for different batch descriptors that we need to capture",
+      "123:         # aclgraphs for.",
+      "124:         self.concrete_aclgraph_entries: dict[BatchDescriptor, ACLGraphEntry] = {}",
+      "125:         self.enable_enpu = enable_enpu",
+      "126:         self.use_eagle = use_eagle",
+      "127:         self.update_stream = update_stream",
+      "128:         self.attn_backend = None",
+      "129:         self.draft_model_metadata: list[dict[str, Any]] = []",
+      "130:         _acl_graph_wrappers.add(self)"
+    ]
+  }
+}

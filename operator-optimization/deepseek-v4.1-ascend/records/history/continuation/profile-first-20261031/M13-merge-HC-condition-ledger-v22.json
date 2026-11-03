@@ -1,0 +1,126 @@
+{
+  "generated_utc": "2026-10-31T03:28:33.870191+00:00",
+  "branches": [
+    {
+      "id": "MERGE-PRESENCE",
+      "condition": "shared present / None",
+      "current": "PRESENT_IN4472MERGES",
+      "judgment": "Observed shared-present path; shared-absent returns routed output without foreach.",
+      "obligation": "Retain the absent/shared/mix domain as a separate branch."
+    },
+    {
+      "id": "MERGE-RETURN",
+      "condition": "runner Tensor / model legacy tuple",
+      "current": "TENSOR_SOURCE_RETURN_BOUND",
+      "judgment": "Current foreach runner path is separate from legacy tuple muls_add and FP16 reciprocal scaling.",
+      "obligation": "Do not import tuple formulas into this plain-add path."
+    },
+    {
+      "id": "MERGE-ALPHA",
+      "condition": "explicit/default foreach alpha",
+      "current": "SOURCE_OMITS_ALPHA;STATIC_SCHEMA_DEFAULT1",
+      "judgment": "Default alpha=1 in the pinned source contract.",
+      "obligation": "Raw HC attr reuse is not independent scalar proof."
+    },
+    {
+      "id": "ROUTED-SCALE",
+      "condition": "gamma==1 / gamma!=1 and dtype FP16/nonFP16",
+      "current": "EFFECTIVE_GAMMA_UNBOUND;CAPTURED_MERGE_INPUTS_BF16",
+      "judgment": "NonFP16 conditional branch scales routed in place before transform/add; FP16 shared branch scales shared reciprocally.",
+      "obligation": "Preserve source dtype-rounding if absorbing scale; a boundary accepting already postscaled routed input need not invent gamma."
+    },
+    {
+      "id": "ROUTED-TRANSFORM",
+      "condition": "input/output transforms present/None; pretransformed input",
+      "current": "WRAPPERS_SOURCE_BOUND;GLOBAL_IDENTITY_NOT_ASSUMED",
+      "judgment": "Input gather/readiness and output transform/join wrappers precede the add.",
+      "obligation": "Preserve transform semantics, layout, reduction and event dependencies."
+    },
+    {
+      "id": "ROUTED-REDUCTION",
+      "condition": "runtime MoECommType and static early-reduce policy",
+      "current": "ASCEND_CONTEXT_AWARE_OVERRIDE_BOUND",
+      "judgment": "ALLTOALL/MC2/FUSED_MC2 or ALLGATHER+SP may be reduced; local-DP shared mode requests early routed reduction.",
+      "obligation": "Do not freeze capture-specialized output_is_reduced as replay-invariant."
+    },
+    {
+      "id": "SHARED-REDUCTION",
+      "condition": "physical TP/SP/shared-replica parallel mode",
+      "current": "FINITE_MODE_SUBTREE_FROMV21_REUSED",
+      "judgment": "NonTP shared modes skip this helper; TP mode uses static early policy or context-aware custom reduction.",
+      "obligation": "Preserve both branch contribution domains; shared DP flag is not overlap flag."
+    },
+    {
+      "id": "FINAL-HOOKS",
+      "condition": "not SP/not early-reduce; feature truncation; ZeroExpertRouter",
+      "current": "SOURCE_BRANCHES_BOUND;ALL_REPLAY_EFFECTS_NOT_CLOSED",
+      "judgment": "Final context-aware reduce, last-dimension slice and optional zero-expert addition follow foreach.",
+      "obligation": "Either include their effects before HC or prove identity in the stated execution domain."
+    },
+    {
+      "id": "ROW-DOMAIN",
+      "condition": "graphM3 / target nativeM800,816,834 / draftM2,3",
+      "current": "ALL9MERGE_REGIMES;M800_MISMATCH320",
+      "judgment": "Same raw-MC2 and merge row domain cannot be assumed globally.",
+      "obligation": "Bind valid-row/finalization mapping using exact calls; feature padding helper is not token-row mapping."
+    },
+    {
+      "id": "MERGE-ROUNDING",
+      "condition": "materialize BF16 X / round BF16 in fused temporary / retain higher precision",
+      "current": "BF16_INTERFACE_BOUND;NATIVE_ARITHMETIC_UNBOUND",
+      "judgment": "Dropping materialization and dropping rounding are different transformations.",
+      "obligation": "Preserve accepted numerical contract; N22-A/B are explicit-model counterexamples, not native validation."
+    },
+    {
+      "id": "HC-INPUTS",
+      "condition": "x/residual/post/comb all ready for selected token-feature tile",
+      "current": "CALLER_AND_SHAPES_BOUND;TILE_READY_UNBOUND",
+      "judgment": "All4 HC streams/channels, coefficients and original accumulation order remain required under their contracts.",
+      "obligation": "No partial-rank sum, expert-only completion or unproven external tile-ready protocol."
+    },
+    {
+      "id": "HC-CONSUMERS",
+      "condition": "next-layer ffn_pre/outer Engram/auxiliary/final consumers",
+      "current": "DECODER_RETURNS_FFN_PRE;PRIOR_OUTER_CONTRACT_REUSED",
+      "judgment": "HC output and auxiliary pre_mix are distinct live results.",
+      "obligation": "Retain aliases, fixed addresses and generations; ordinary source use is not whole-program all-consumer proof."
+    },
+    {
+      "id": "UPSTREAM-ONLY-FUSION",
+      "condition": "retain MC2->SharedDown order and wait for SharedDown within MC2 completion",
+      "current": "CONDITIONAL_DAG_CYCLE",
+      "judgment": "Excluded only in that unchanged-producer-order domain.",
+      "obligation": "A changed producer schedule or combined kernel is a different conditional candidate."
+    },
+    {
+      "id": "GRAPH-LIFETIME",
+      "condition": "captured decode / unbound graphs / eager / replay generation",
+      "current": "2560DECODE_COMPATIBLE;640UNBOUNDPAIRS",
+      "judgment": "All3200 typed graph pairs reviewed structurally; phase not invented for640.",
+      "obligation": "Retain stream/control events, graph addresses and cross-iteration buffer lifetime."
+    },
+    {
+      "id": "ATTRIBUTE-OWNERSHIP",
+      "condition": "raw attrInfo lookup / actual own-op attribute / inherited API-context metadata",
+      "current": "ALL3200_FFN_HC_REUSE_PRECEDING_MERGE_ID",
+      "judgment": "Raw attribute lookup is complete for retained executions, semantic ownership is not.",
+      "obligation": "Next source question is exact installed exporter attrInfo binding, not a broad model/SDK audit."
+    },
+    {
+      "id": "PAYLOAD-AND-GAIN",
+      "condition": "logical interface / actual storage traffic / necessary I/O / request critical path",
+      "current": "LOGICAL_BYTES_ONLY",
+      "judgment": "8135065600 output bytes;16270131200 one-write/read model, not measured traffic or a lower bound.",
+      "obligation": "Re-derive fused required work/I/O and capacity bounds; no sum-of-duration speedup."
+    }
+  ],
+  "scope": "Finite profile-raised merge/HC boundary subtree; neither all M13 nor all model branches.",
+  "source_contract_questions_answered": [
+    "default plain-add alpha",
+    "inherited scale location",
+    "Tensor/tuple separation",
+    "post-hook/feature-trim and HC caller state"
+  ],
+  "whole_module_closed": false,
+  "overall_complete": false
+}

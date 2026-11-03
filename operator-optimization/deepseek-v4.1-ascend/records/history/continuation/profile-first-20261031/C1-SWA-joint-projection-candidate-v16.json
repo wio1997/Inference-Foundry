@@ -1,0 +1,112 @@
+{
+  "generated_utc": "2026-10-31T01:04:40.057506+00:00",
+  "candidate": {
+    "id": "F33",
+    "name": "C1 compressor 与 SWA KV 的同域投影共享、联合分块与前移通信",
+    "profile_review_state": "SOURCE_STREAM_CONSTRAINED_C1_SWA_PAIR;CONDITIONAL_LAYOUT_NUMERICS_AND_SCHEDULE",
+    "family_name_hits_not_role_proof": {},
+    "scoped_detail": {
+      "source_layer": 20,
+      "captured_graph_pairs": 80,
+      "input_shape": [
+        24,
+        5120
+      ],
+      "two_weight_shapes": [
+        [
+          512,
+          5120
+        ],
+        [
+          512,
+          5120
+        ]
+      ],
+      "dtype": "BF16",
+      "source_input_shared": true,
+      "source_norms": "Two independent512-wide normalizations; never one1024-wide RMSNorm.",
+      "variants": [
+        "Shared input tile and separate output buffers/independent norms.",
+        "Packed1024-wide GEMM with explicit output stride/layout handling and preserved consumer readiness.",
+        "Joint local-row projections followed by role-specific communication, coupled toF32; preserve both SWA and C1 latent consumers."
+      ],
+      "current_graph_logical_operand_bytes": {
+        "shared_input": 245760,
+        "each_weight": 5242880,
+        "both_weights": 10485760
+      },
+      "conditional_F32_C1_interface": {
+        "original_BF16_hidden_bytes_per_row": 10240,
+        "SWA512_BF16_plus_C1_512_BF16_bytes_per_row": 2048,
+        "feature_width_ratio": 5,
+        "meaning": "Conditional interface payload only,not observed HBM/network traffic,universal bound or speedup. Norm/rounding/ownership/positions/graph-address contracts required."
+      },
+      "branch_limits": [
+        "C1 source layer20 only; other36 non-KV-source layers have no C1 consumer in reviewed path.",
+        "C2 source layers2/8/14 use FP32 compressor projections; no naive common-BF16 GEMM. ExistingF17/F32 C2 variants remain distinct.",
+        "Empty-query/cache-update and empty-cache branches remain separately conditional.",
+        "Current source-bound typed path is BF16; quantized KV paths require a different input-format contract."
+      ]
+    },
+    "conclusion_changing_gap": "Runtime tensor/storage identity and actual weight equality/replication, numerical boundary, output strides/contiguity, fixed addresses, event generations and all consumers; joint scheduling can lose current overlap.",
+    "next_profile_or_contract_action": "Use saved native source chains and graph streams for role coverage; only investigate a specific missing consumer/layout/backend numerical contract before final legality/gain. Do not reread the whole module.",
+    "target_source_gate": "PROFILE-CODE-QUESTION-GATE-v16.json",
+    "runtime_gap_policy": "Source cannot recover absent historical storage identities or readiness generations.",
+    "legal_fusion_proved": false,
+    "candidate_closed": false,
+    "critical_path_gain_us": null,
+    "critical_path_gain_status": "UNKNOWN_NOT_SUM_OF_TASK_TIMES",
+    "evidence_files": [
+      "projection-role-review-v16.json",
+      "profile-raised-source-contract-v16.json",
+      "communication-role-contract-v16.json"
+    ]
+  },
+  "source_and_stream_role": {
+    "generated_utc": "2026-10-31T01:04:40.057506+00:00",
+    "parent": "projection-row-domain-review-v15.json",
+    "profile": {
+      "created_utc": "2026-10-31T00:49:13.570892+00:00",
+      "native_COMM_source_operations": 4639,
+      "canonical_communication_chains": 21,
+      "graph_count": 80,
+      "per_graph_marker_block_COMM_hist": {
+        "{\"3\": 40}": 80
+      },
+      "graph_sequence_signatures": 1,
+      "ambiguous_projection_blocks": 80,
+      "ambiguous_block_ordinals": {
+        "20": 80
+      },
+      "graphs_with_one_unambiguous_KV_stream": 80,
+      "ambiguous_with_one_candidate_on_unique_KV_stream": 80,
+      "no_source_read_or_device_work": true,
+      "overall_complete": false,
+      "limits": [
+        "Communication source role requires full caller review; direct chains do not assign Python source to graph-only operations.",
+        "Same stream association is an observed invariant, not tensor pointer or all-consumer proof. No typed candidate was discarded.",
+        "No operation-duration sum is interpreted as request gain."
+      ]
+    },
+    "stream_interpretation": "80extra typed candidates all in block20. Every graph has39 unambiguous KV nodes on one stream; exactly one block20 candidate shares that stream. Source singleton aux-stream branch selects a unique SWA-KV-consistent candidate; the other main-stream candidate is C1-consistent.",
+    "evidence_grade": "DERIVED_SOURCE_STREAM_ROLE;NOT_TENSOR_POINTER_OR_ALL_CONSUMER_PROOF",
+    "typed_candidates_discarded": 0,
+    "naive_same_M_Q_KV_concatenation": "EXCLUDED_IN_OBSERVED_ROW_DOMAINS_Q3_KV24",
+    "C1_SWA_shared_input_contract": "Same cache_hidden source expression; two BF16 matrices[512,5120],source layer20; seeF33.",
+    "saved_evidence": [
+      {
+        "label": "communication-roles166-v16",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-communications-v15/communication-roles-and-projection-streams-v16.json",
+        "sha256": "bb5db68a578e4802304450f01c90460fe33f590fab850d284ef4a7b80210a2b1"
+      },
+      {
+        "label": "final-scoped166-v16",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-communications-v15/C1-and-padding-adjustment-contracts-v16.json",
+        "sha256": "5170f39fa4909892a4ca276ff8fcb9f4c684e6d529350ef38ca8450e961f2716"
+      }
+    ],
+    "overall_complete": false
+  },
+  "implementation": false,
+  "overall_complete": false
+}

@@ -1,0 +1,3605 @@
+{
+  "templates": [
+    {
+      "id": "ATTN_SWA",
+      "source": "attention/dsa_v41.py:320-715; context_parallel/dsa_v41_cp.py:189-224; models/deepseek_v41/indexer.py:110-295",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "q_a",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_b",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "kv",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "swa_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "attention",
+          "kind": "SPARSE_FLASH_COMPOSITE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "inverse_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "pad",
+          "kind": "PAD_OR_VIEW",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "restore_heads",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_a",
+          "kind": "GROUPED_LINEAR",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_b",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "reduce_scatter",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x",
+          "consumer": "q_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_a",
+          "consumer": "q_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "q_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_quant",
+          "consumer": "q_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_b",
+          "consumer": "q_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_rope",
+          "consumer": "attention",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attention",
+          "consumer": "inverse_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "inverse_rope",
+          "consumer": "pad",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "pad",
+          "consumer": "restore_heads",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "restore_heads",
+          "consumer": "o_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_a",
+          "consumer": "o_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_b",
+          "consumer": "reduce_scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "kv",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv",
+          "consumer": "kv_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_norm",
+          "consumer": "kv_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_rope",
+          "consumer": "swa_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swa_store",
+          "consumer": "attention",
+          "value": "current cache subranges",
+          "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    },
+    {
+      "id": "ATTN_C2_SOURCE",
+      "source": "attention/dsa_v41.py:320-715; context_parallel/dsa_v41_cp.py:189-224; models/deepseek_v41/indexer.py:110-295",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "q_a",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_b",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "kv",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "swa_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "attention",
+          "kind": "SPARSE_FLASH_COMPOSITE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "inverse_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "pad",
+          "kind": "PAD_OR_VIEW",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "restore_heads",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_a",
+          "kind": "GROUPED_LINEAR",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_b",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "reduce_scatter",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "iq",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "iq_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "iq_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU"
+        },
+        {
+          "id": "iw",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "iw_scale",
+          "kind": "POINTWISE_CAST_SCALE",
+          "resource": "NPU"
+        },
+        {
+          "id": "qli",
+          "kind": "INDEX_SCORE_TOPK_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "fixup",
+          "kind": "INDEX_FIXUP",
+          "resource": "NPU"
+        },
+        {
+          "id": "indices_store",
+          "kind": "PERSISTENT_INDEX_PUBLICATION",
+          "resource": "NPU"
+        },
+        {
+          "id": "compress_proj",
+          "kind": "LINEAR_FP32",
+          "resource": "NPU"
+        },
+        {
+          "id": "compress_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "x_cast",
+          "kind": "POINTWISE_CAST",
+          "resource": "NPU"
+        },
+        {
+          "id": "score_proj",
+          "kind": "LINEAR_FP32",
+          "resource": "NPU"
+        },
+        {
+          "id": "ring_pool",
+          "kind": "STATEFUL_POOL_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU"
+        },
+        {
+          "id": "scale_cast",
+          "kind": "POINTWISE_CAST",
+          "resource": "NPU"
+        },
+        {
+          "id": "scale_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU"
+        },
+        {
+          "id": "cmp_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "cmp_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU"
+        },
+        {
+          "id": "index_cache_history",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "index_metadata",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "candidate_state_and_lengths",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "index_output_consumers",
+          "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+          "resource": "UNKNOWN"
+        },
+        {
+          "id": "key_state_consumers",
+          "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+          "resource": "UNKNOWN"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x",
+          "consumer": "q_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_a",
+          "consumer": "q_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "q_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_quant",
+          "consumer": "q_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_b",
+          "consumer": "q_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_rope",
+          "consumer": "attention",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attention",
+          "consumer": "inverse_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "inverse_rope",
+          "consumer": "pad",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "pad",
+          "consumer": "restore_heads",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "restore_heads",
+          "consumer": "o_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_a",
+          "consumer": "o_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_b",
+          "consumer": "reduce_scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "kv",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv",
+          "consumer": "kv_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_norm",
+          "consumer": "kv_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_rope",
+          "consumer": "swa_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swa_store",
+          "consumer": "attention",
+          "value": "current cache subranges",
+          "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "iq",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq",
+          "consumer": "iq_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq_rope",
+          "consumer": "iq_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq_quant",
+          "consumer": "qli",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "qli",
+          "consumer": "fixup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "fixup",
+          "consumer": "indices_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "iw",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iw",
+          "consumer": "iw_scale",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iw_scale",
+          "consumer": "qli",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "indices_store",
+          "consumer": "attention",
+          "value": "selected indices",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "x_cast",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x_cast",
+          "consumer": "compress_proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "compress_proj",
+          "consumer": "ring_pool",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ring_pool",
+          "consumer": "compress_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x_cast",
+          "consumer": "score_proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "score_proj",
+          "consumer": "ring_pool",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "compress_norm",
+          "consumer": "ik",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik",
+          "consumer": "ik_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_norm",
+          "consumer": "ik_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_rope",
+          "consumer": "ik_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_quant",
+          "consumer": "ik_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_quant",
+          "consumer": "scale_cast",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "scale_cast",
+          "consumer": "scale_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "compress_norm",
+          "consumer": "cmp_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cmp_rope",
+          "consumer": "cmp_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_store",
+          "consumer": "qli",
+          "value": "key cache",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "scale_store",
+          "consumer": "qli",
+          "value": "key scales",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cmp_store",
+          "consumer": "attention",
+          "value": "compressed KV cache",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "index_cache_history",
+          "consumer": "qli",
+          "value": "index_cache_history",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "index_metadata",
+          "consumer": "qli",
+          "value": "index_metadata",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "candidate_state_and_lengths",
+          "consumer": "qli",
+          "value": "candidate_state_and_lengths",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "indices_store",
+          "consumer": "index_output_consumers",
+          "value": "stable selected indices and downstream/shared uses",
+          "dependency_kind": "RAW",
+          "condition": "future consumers and lengths not exhaustively expanded"
+        },
+        {
+          "producer": "ik_store",
+          "consumer": "key_state_consumers",
+          "value": "persistent key cache writes",
+          "dependency_kind": "RAW",
+          "condition": "future cache consumers and aliasing not exhaustively expanded"
+        },
+        {
+          "producer": "scale_store",
+          "consumer": "key_state_consumers",
+          "value": "persistent index scale writes",
+          "dependency_kind": "RAW",
+          "condition": "future cache consumers and aliasing not exhaustively expanded"
+        },
+        {
+          "producer": "cmp_store",
+          "consumer": "key_state_consumers",
+          "value": "persistent compressed KV writes",
+          "dependency_kind": "RAW",
+          "condition": "future cache consumers and aliasing not exhaustively expanded"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    },
+    {
+      "id": "ATTN_C2_CONSUMER",
+      "source": "attention/dsa_v41.py:320-715; context_parallel/dsa_v41_cp.py:189-224; models/deepseek_v41/indexer.py:110-295",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "q_a",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_b",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "kv",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "swa_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "attention",
+          "kind": "SPARSE_FLASH_COMPOSITE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "inverse_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "pad",
+          "kind": "PAD_OR_VIEW",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "restore_heads",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_a",
+          "kind": "GROUPED_LINEAR",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_b",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "reduce_scatter",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "indices_in",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "NPU"
+        },
+        {
+          "id": "cache_in",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "NPU"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x",
+          "consumer": "q_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_a",
+          "consumer": "q_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "q_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_quant",
+          "consumer": "q_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_b",
+          "consumer": "q_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_rope",
+          "consumer": "attention",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attention",
+          "consumer": "inverse_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "inverse_rope",
+          "consumer": "pad",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "pad",
+          "consumer": "restore_heads",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "restore_heads",
+          "consumer": "o_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_a",
+          "consumer": "o_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_b",
+          "consumer": "reduce_scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "kv",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv",
+          "consumer": "kv_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_norm",
+          "consumer": "kv_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_rope",
+          "consumer": "swa_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swa_store",
+          "consumer": "attention",
+          "value": "current cache subranges",
+          "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+        },
+        {
+          "producer": "indices_in",
+          "consumer": "attention",
+          "value": "reused selection from source layer",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cache_in",
+          "consumer": "attention",
+          "value": "long KV from source layer",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    },
+    {
+      "id": "ATTN_C1_SOURCE",
+      "source": "attention/dsa_v41.py:320-715; context_parallel/dsa_v41_cp.py:189-224; models/deepseek_v41/indexer.py:110-295",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "q_a",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_b",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "kv",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "swa_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "attention",
+          "kind": "SPARSE_FLASH_COMPOSITE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "inverse_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "pad",
+          "kind": "PAD_OR_VIEW",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "restore_heads",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_a",
+          "kind": "GROUPED_LINEAR",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_b",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "reduce_scatter",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "iq",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "iq_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "iq_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU"
+        },
+        {
+          "id": "iw",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "iw_scale",
+          "kind": "POINTWISE_CAST_SCALE",
+          "resource": "NPU"
+        },
+        {
+          "id": "qli",
+          "kind": "INDEX_SCORE_TOPK_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "fixup",
+          "kind": "INDEX_FIXUP",
+          "resource": "NPU"
+        },
+        {
+          "id": "indices_store",
+          "kind": "PERSISTENT_INDEX_PUBLICATION",
+          "resource": "NPU"
+        },
+        {
+          "id": "compress_proj",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU"
+        },
+        {
+          "id": "compress_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU"
+        },
+        {
+          "id": "ik_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU"
+        },
+        {
+          "id": "scale_cast",
+          "kind": "POINTWISE_CAST",
+          "resource": "NPU"
+        },
+        {
+          "id": "scale_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU"
+        },
+        {
+          "id": "cmp_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "cmp_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU"
+        },
+        {
+          "id": "index_cache_history",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "index_metadata",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "candidate_state_and_lengths",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "index_output_consumers",
+          "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+          "resource": "UNKNOWN"
+        },
+        {
+          "id": "key_state_consumers",
+          "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+          "resource": "UNKNOWN"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x",
+          "consumer": "q_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_a",
+          "consumer": "q_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "q_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_quant",
+          "consumer": "q_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_b",
+          "consumer": "q_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_rope",
+          "consumer": "attention",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attention",
+          "consumer": "inverse_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "inverse_rope",
+          "consumer": "pad",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "pad",
+          "consumer": "restore_heads",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "restore_heads",
+          "consumer": "o_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_a",
+          "consumer": "o_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_b",
+          "consumer": "reduce_scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "kv",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv",
+          "consumer": "kv_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_norm",
+          "consumer": "kv_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_rope",
+          "consumer": "swa_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swa_store",
+          "consumer": "attention",
+          "value": "current cache subranges",
+          "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "iq",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq",
+          "consumer": "iq_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq_rope",
+          "consumer": "iq_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq_quant",
+          "consumer": "qli",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "qli",
+          "consumer": "fixup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "fixup",
+          "consumer": "indices_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "iw",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iw",
+          "consumer": "iw_scale",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iw_scale",
+          "consumer": "qli",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "indices_store",
+          "consumer": "attention",
+          "value": "selected indices",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "compress_proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "compress_proj",
+          "consumer": "compress_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "compress_norm",
+          "consumer": "ik",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik",
+          "consumer": "ik_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_norm",
+          "consumer": "ik_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_rope",
+          "consumer": "ik_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_quant",
+          "consumer": "ik_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_quant",
+          "consumer": "scale_cast",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "scale_cast",
+          "consumer": "scale_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "compress_norm",
+          "consumer": "cmp_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cmp_rope",
+          "consumer": "cmp_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ik_store",
+          "consumer": "qli",
+          "value": "key cache",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "scale_store",
+          "consumer": "qli",
+          "value": "key scales",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cmp_store",
+          "consumer": "attention",
+          "value": "compressed KV cache",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "index_cache_history",
+          "consumer": "qli",
+          "value": "index_cache_history",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "index_metadata",
+          "consumer": "qli",
+          "value": "index_metadata",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "candidate_state_and_lengths",
+          "consumer": "qli",
+          "value": "candidate_state_and_lengths",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "indices_store",
+          "consumer": "index_output_consumers",
+          "value": "stable selected indices and downstream/shared uses",
+          "dependency_kind": "RAW",
+          "condition": "future consumers and lengths not exhaustively expanded"
+        },
+        {
+          "producer": "ik_store",
+          "consumer": "key_state_consumers",
+          "value": "persistent key cache writes",
+          "dependency_kind": "RAW",
+          "condition": "future cache consumers and aliasing not exhaustively expanded"
+        },
+        {
+          "producer": "scale_store",
+          "consumer": "key_state_consumers",
+          "value": "persistent index scale writes",
+          "dependency_kind": "RAW",
+          "condition": "future cache consumers and aliasing not exhaustively expanded"
+        },
+        {
+          "producer": "cmp_store",
+          "consumer": "key_state_consumers",
+          "value": "persistent compressed KV writes",
+          "dependency_kind": "RAW",
+          "condition": "future cache consumers and aliasing not exhaustively expanded"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    },
+    {
+      "id": "ATTN_C1_INDEX_SOURCE",
+      "source": "attention/dsa_v41.py:320-715; context_parallel/dsa_v41_cp.py:189-224; models/deepseek_v41/indexer.py:110-295",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "q_a",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_b",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "kv",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "swa_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "attention",
+          "kind": "SPARSE_FLASH_COMPOSITE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "inverse_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "pad",
+          "kind": "PAD_OR_VIEW",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "restore_heads",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_a",
+          "kind": "GROUPED_LINEAR",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_b",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "reduce_scatter",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "iq",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "iq_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "iq_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU"
+        },
+        {
+          "id": "iw",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "iw_scale",
+          "kind": "POINTWISE_CAST_SCALE",
+          "resource": "NPU"
+        },
+        {
+          "id": "qli",
+          "kind": "INDEX_SCORE_TOPK_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "fixup",
+          "kind": "INDEX_FIXUP",
+          "resource": "NPU"
+        },
+        {
+          "id": "indices_store",
+          "kind": "PERSISTENT_INDEX_PUBLICATION",
+          "resource": "NPU"
+        },
+        {
+          "id": "cache_in",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "NPU"
+        },
+        {
+          "id": "index_cache_history",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "index_metadata",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "candidate_state_and_lengths",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "coverage": "PARTIAL_VALUE_AND_ALIAS_DETAIL_UNKNOWN"
+        },
+        {
+          "id": "index_output_consumers",
+          "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+          "resource": "UNKNOWN"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x",
+          "consumer": "q_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_a",
+          "consumer": "q_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "q_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_quant",
+          "consumer": "q_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_b",
+          "consumer": "q_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_rope",
+          "consumer": "attention",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attention",
+          "consumer": "inverse_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "inverse_rope",
+          "consumer": "pad",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "pad",
+          "consumer": "restore_heads",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "restore_heads",
+          "consumer": "o_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_a",
+          "consumer": "o_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_b",
+          "consumer": "reduce_scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "kv",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv",
+          "consumer": "kv_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_norm",
+          "consumer": "kv_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_rope",
+          "consumer": "swa_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swa_store",
+          "consumer": "attention",
+          "value": "current cache subranges",
+          "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "iq",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq",
+          "consumer": "iq_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq_rope",
+          "consumer": "iq_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iq_quant",
+          "consumer": "qli",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "qli",
+          "consumer": "fixup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "fixup",
+          "consumer": "indices_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "iw",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iw",
+          "consumer": "iw_scale",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "iw_scale",
+          "consumer": "qli",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "indices_store",
+          "consumer": "attention",
+          "value": "selected indices",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cache_in",
+          "consumer": "attention",
+          "value": "long KV from source layer",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "index_cache_history",
+          "consumer": "qli",
+          "value": "index_cache_history",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "index_metadata",
+          "consumer": "qli",
+          "value": "index_metadata",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "candidate_state_and_lengths",
+          "consumer": "qli",
+          "value": "candidate_state_and_lengths",
+          "dependency_kind": "RAW",
+          "condition": "candidate state used only in enabled source/filter branches; exact valid ranges unknown",
+          "source": "attention/dsa_v41.py:568-611"
+        },
+        {
+          "producer": "indices_store",
+          "consumer": "index_output_consumers",
+          "value": "stable selected indices and downstream/shared uses",
+          "dependency_kind": "RAW",
+          "condition": "future consumers and lengths not exhaustively expanded"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    },
+    {
+      "id": "ATTN_C1_CONSUMER",
+      "source": "attention/dsa_v41.py:320-715; context_parallel/dsa_v41_cp.py:189-224; models/deepseek_v41/indexer.py:110-295",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "q_a",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_b",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "q_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "query_local"
+        },
+        {
+          "id": "kv",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "kv_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "swa_store",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "attention",
+          "kind": "SPARSE_FLASH_COMPOSITE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "inverse_rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "pad",
+          "kind": "PAD_OR_VIEW",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "restore_heads",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_a",
+          "kind": "GROUPED_LINEAR",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "o_b",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "reduce_scatter",
+          "kind": "COLLECTIVE",
+          "resource": "COMM",
+          "row_domain": "global_or_restored"
+        },
+        {
+          "id": "indices_in",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "NPU"
+        },
+        {
+          "id": "cache_in",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "NPU"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x",
+          "consumer": "q_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_a",
+          "consumer": "q_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_norm",
+          "consumer": "q_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_quant",
+          "consumer": "q_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_b",
+          "consumer": "q_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "q_rope",
+          "consumer": "attention",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attention",
+          "consumer": "inverse_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "inverse_rope",
+          "consumer": "pad",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "pad",
+          "consumer": "restore_heads",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "restore_heads",
+          "consumer": "o_a",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_a",
+          "consumer": "o_b",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "o_b",
+          "consumer": "reduce_scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "kv",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv",
+          "consumer": "kv_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_norm",
+          "consumer": "kv_rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "kv_rope",
+          "consumer": "swa_store",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swa_store",
+          "consumer": "attention",
+          "value": "current cache subranges",
+          "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+        },
+        {
+          "producer": "indices_in",
+          "consumer": "attention",
+          "value": "reused selection from source layer",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cache_in",
+          "consumer": "attention",
+          "value": "long KV from source layer",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    },
+    {
+      "id": "MHC_BLOCK_AND_CROSS_LAYER",
+      "source": "models/deepseek_v41/model.py:844-920,1555-1605",
+      "nodes": [
+        {
+          "id": "residual",
+          "kind": "EXTERNAL",
+          "resource": "NPU"
+        },
+        {
+          "id": "pre_mix",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "NPU"
+        },
+        {
+          "id": "attn_pre",
+          "kind": "HC_PRE_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "input_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "all_gather",
+          "kind": "COLLECTIVE",
+          "resource": "COMM"
+        },
+        {
+          "id": "attention",
+          "kind": "ATTENTION_OPAQUE",
+          "resource": "NPU"
+        },
+        {
+          "id": "reduce_scatter",
+          "kind": "COLLECTIVE",
+          "resource": "COMM"
+        },
+        {
+          "id": "attn_post",
+          "kind": "HC_POST_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "ffn_pre",
+          "kind": "HC_PRE_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "norm_cast",
+          "kind": "ROW_REDUCTION_NORM_CAST",
+          "resource": "NPU"
+        },
+        {
+          "id": "moe",
+          "kind": "MOE_OPAQUE",
+          "resource": "NPU"
+        },
+        {
+          "id": "ffn_post",
+          "kind": "HC_POST_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "next_pre",
+          "kind": "HC_PRE_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "aux_mean",
+          "kind": "HC_MEAN",
+          "resource": "NPU"
+        },
+        {
+          "id": "engram",
+          "kind": "ENGRAM_OPAQUE",
+          "resource": "NPU"
+        },
+        {
+          "id": "collapse",
+          "kind": "HC_FP32_REDUCE_BF16",
+          "resource": "NPU"
+        },
+        {
+          "id": "final_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "residual",
+          "consumer": "attn_pre",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attn_pre",
+          "consumer": "input_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "input_norm",
+          "consumer": "all_gather",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "all_gather",
+          "consumer": "attention",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attention",
+          "consumer": "reduce_scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "reduce_scatter",
+          "consumer": "attn_post",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attn_post",
+          "consumer": "ffn_pre",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_pre",
+          "consumer": "norm_cast",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "norm_cast",
+          "consumer": "moe",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "moe",
+          "consumer": "ffn_post",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "pre_mix",
+          "consumer": "attn_pre",
+          "value": "previous layer coefficient",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "attn_post",
+          "value": "residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attn_pre",
+          "consumer": "attn_post",
+          "value": "post/comb",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attn_pre",
+          "consumer": "ffn_pre",
+          "value": "attn_pre coefficient",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "attn_post",
+          "consumer": "ffn_post",
+          "value": "residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_pre",
+          "consumer": "ffn_post",
+          "value": "post/comb",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_post",
+          "consumer": "aux_mean",
+          "value": "residual before optional Engram",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_post",
+          "consumer": "engram",
+          "value": "optional next-layer Engram",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "engram",
+          "consumer": "next_pre",
+          "value": "Engram-updated residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_pre",
+          "consumer": "next_pre",
+          "value": "delayed coefficient",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_post",
+          "consumer": "collapse",
+          "value": "terminal-layer HC state",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_pre",
+          "consumer": "collapse",
+          "value": "terminal pre_mix",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "collapse",
+          "consumer": "final_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ffn_post",
+          "consumer": "next_pre",
+          "value": "prior HC residual",
+          "dependency_kind": "RAW",
+          "condition": "next-layer Engram does not modify this residual",
+          "source": "models/deepseek_v41/model.py:919-920,1556-1592"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+      "branch_note": "Direct residual edge applies only when next-layer Engram does not modify it; separate Engram path and optional pre-Engram aux mean must preserve order and aliasing."
+    },
+    {
+      "id": "MOE_WRAPPER",
+      "source": "models/deepseek_v41/model.py:105-326; ops/fused_moe/moe_comm_method.py:563-611",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU"
+        },
+        {
+          "id": "x_fp32",
+          "kind": "EXTERNAL",
+          "resource": "NPU"
+        },
+        {
+          "id": "router",
+          "kind": "LINEAR_FP32_OR_HASH",
+          "resource": "NPU"
+        },
+        {
+          "id": "topk",
+          "kind": "ROUTING_TOPK_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "dispatch_ffn_combine",
+          "kind": "MC2_OPAQUE_EXISTING_FUSION",
+          "resource": "NPU"
+        },
+        {
+          "id": "shared_quant",
+          "kind": "ROW_REDUCTION_INT8_QUANT",
+          "resource": "NPU"
+        },
+        {
+          "id": "shared_gate_up",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "swiglu_quant",
+          "kind": "SWIGLU_CLAMP_QUANT_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "shared_down",
+          "kind": "INT8_LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "merge",
+          "kind": "POINTWISE_SCALE_ADD",
+          "resource": "NPU"
+        },
+        {
+          "id": "returned_moe_output",
+          "kind": "EXTERNAL_OUTPUT",
+          "resource": "UNKNOWN"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x_fp32",
+          "consumer": "router",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "router",
+          "consumer": "topk",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "topk",
+          "consumer": "dispatch_ffn_combine",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "dispatch_ffn_combine",
+          "consumer": "merge",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "dispatch_ffn_combine",
+          "value": "hidden",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "x",
+          "consumer": "shared_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "shared_quant",
+          "consumer": "shared_gate_up",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "shared_gate_up",
+          "consumer": "swiglu_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swiglu_quant",
+          "consumer": "shared_down",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "shared_down",
+          "consumer": "merge",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "merge",
+          "consumer": "returned_moe_output",
+          "value": "final_hidden_states",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:300-326,913-919",
+          "condition": "merge branch as modeled; exact reductions and output alias require separate review"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    },
+    {
+      "id": "MC2_INTERNAL_KNOWN_STAGES",
+      "source": "csrc/mc2/dispatch_ffn_combine/op_kernel/dispatch_ffn_combine_kernel.hpp:213-234,435-538,539-635,795-970",
+      "nodes": [
+        {
+          "id": "x",
+          "kind": "EXTERNAL",
+          "resource": "NPU",
+          "already_one_kernel": true
+        },
+        {
+          "id": "route_quant",
+          "kind": "ROUTING_QUANT",
+          "resource": "NPU",
+          "already_one_kernel": true
+        },
+        {
+          "id": "counts",
+          "kind": "TOKEN_COUNTS_EXCHANGE",
+          "resource": "COMM",
+          "already_one_kernel": true
+        },
+        {
+          "id": "dispatch",
+          "kind": "REMOTE_DATA_COPY",
+          "resource": "COMM",
+          "already_one_kernel": true
+        },
+        {
+          "id": "gmm1",
+          "kind": "INT8_GROUPED_LINEAR",
+          "resource": "NPU",
+          "already_one_kernel": true
+        },
+        {
+          "id": "swiglu",
+          "kind": "SWIGLU_CLAMP_QUANT_COMPOSITE",
+          "resource": "NPU",
+          "already_one_kernel": true
+        },
+        {
+          "id": "gmm2",
+          "kind": "INT8_GROUPED_LINEAR",
+          "resource": "NPU",
+          "already_one_kernel": true
+        },
+        {
+          "id": "combine",
+          "kind": "REMOTE_DATA_COPY_REDUCE",
+          "resource": "COMM",
+          "already_one_kernel": true
+        }
+      ],
+      "edges": [
+        {
+          "producer": "x",
+          "consumer": "route_quant",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "route_quant",
+          "consumer": "counts",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "counts",
+          "consumer": "dispatch",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "dispatch",
+          "consumer": "gmm1",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "gmm1",
+          "consumer": "swiglu",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "swiglu",
+          "consumer": "gmm2",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "gmm2",
+          "consumer": "combine",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+      "dependency_note": "Stage edges denote needed subranges; actual implementation contains per-expert cross-core flags, epilogue granularity and SyncAll. No universal full-stage serialization is inferred."
+    },
+    {
+      "id": "ENGRAM",
+      "source": "engram/embedding.py; models/deepseek_v41/engram/layer.py:35-57; model.py:1498-1591; engram/hash_state.py:90-148; engram/embedding.py:378-405",
+      "nodes": [
+        {
+          "id": "tokens",
+          "kind": "EXTERNAL",
+          "resource": "UNKNOWN"
+        },
+        {
+          "id": "hash",
+          "kind": "STATEFUL_NPU_HASH_COMPOSITE",
+          "resource": "NPU",
+          "source": "engram/hash_state.py:102-148",
+          "condition": "num_tokens > 0; optional slot-cache writes"
+        },
+        {
+          "id": "lookup",
+          "kind": "ENGRAM_LOOKUP_BRANCH_COMPOSITE",
+          "resource": "CONDITIONAL_NPU_OR_CPU",
+          "source": "engram/embedding.py:378-405",
+          "condition": "host UVA branch uses NPU kernel reading mapped host memory; device-table branch NPU; CPU reference fallback exists"
+        },
+        {
+          "id": "ready",
+          "kind": "EVENT",
+          "resource": "CPU_NPU"
+        },
+        {
+          "id": "rows",
+          "kind": "ROW_VIEW_OR_SHARD",
+          "resource": "NPU"
+        },
+        {
+          "id": "proj",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "gate",
+          "kind": "FUSED_GATE_OR_ROTATED_GATE",
+          "resource": "NPU"
+        },
+        {
+          "id": "residual",
+          "kind": "EXTERNAL",
+          "resource": "NPU"
+        },
+        {
+          "id": "rows_collective_pad",
+          "kind": "CONDITIONAL_DP_EXCHANGE_TP_GATHER_PAD",
+          "resource": "COMM_NPU",
+          "condition": "branch on DP/TP and output-buffer configuration"
+        },
+        {
+          "id": "mask_derive",
+          "kind": "MASK_GENERATION",
+          "resource": "NPU"
+        },
+        {
+          "id": "mask_ready",
+          "kind": "EVENT",
+          "resource": "CPU_NPU",
+          "condition": "when mask_ready_event is provided"
+        },
+        {
+          "id": "hash_runtime_metadata",
+          "kind": "EXTERNAL_METADATA",
+          "resource": "UNKNOWN",
+          "description": "positions, query_start_loc, dead_mask, lookback IDs and lookback masks"
+        },
+        {
+          "id": "hash_slot_state",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "UNKNOWN",
+          "description": "conditional block_table, slot_mapping and cache; cache writes occur only if use_slot_cache"
+        },
+        {
+          "id": "mapped_or_device_table",
+          "kind": "EXTERNAL_SHARED_STATE",
+          "resource": "CONDITIONAL_HOST_MAPPED_OR_NPU_OR_CPU",
+          "description": "codes and scales; selected by lookup branch"
+        },
+        {
+          "id": "token_mask_rotation",
+          "kind": "EXTERNAL_METADATA",
+          "resource": "UNKNOWN"
+        },
+        {
+          "id": "gate_result",
+          "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+          "resource": "UNKNOWN"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "tokens",
+          "consumer": "hash",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "hash",
+          "consumer": "lookup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "tokens",
+          "consumer": "mask_derive",
+          "value": "input IDs and dead-mask inputs",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "mask_derive",
+          "value": "valid count and optional token indices",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "mask_derive",
+          "consumer": "mask_ready",
+          "value": "published active mask",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1156-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "hash",
+          "value": "positions, query_start_loc, masks and lookback",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:102-148",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_slot_state",
+          "consumer": "hash",
+          "value": "cache and slot/block mappings",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:109-148",
+          "condition": "when use_slot_cache, hash reads and writes state; alias and cross-invocation dependencies not fully expanded"
+        },
+        {
+          "producer": "hash",
+          "consumer": "hash_slot_state",
+          "value": "conditional token cache update",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:111-128",
+          "condition": "when use_slot_cache; state side effect; not a same-invocation acyclic precedence edge"
+        },
+        {
+          "producer": "mapped_or_device_table",
+          "consumer": "lookup",
+          "value": "codes and scales",
+          "dependency_kind": "RAW",
+          "source": "engram/embedding.py:378-405",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+      "conditions": "Mapped host lookup uses a device kernel when UVA branch selected; separate CPU fallback. Event, communication, aliases and branch consumer completeness remain UNKNOWN."
+    },
+    {
+      "id": "DSPARK_BOUNDARIES",
+      "source": "models/deepseek_v41/dspark.py:143-336; model.py:1555-1564; spec_decode/llm_base_proposer.py:1550-1644; spec_decode/dspark_proposer.py:61-65,108-124",
+      "nodes": [
+        {
+          "id": "aux",
+          "kind": "EXTERNAL",
+          "resource": "NPU"
+        },
+        {
+          "id": "main_proj",
+          "kind": "LINEAR",
+          "resource": "NPU"
+        },
+        {
+          "id": "main_norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "tokens",
+          "kind": "EXTERNAL",
+          "resource": "NPU"
+        },
+        {
+          "id": "embedding",
+          "kind": "EMBEDDING",
+          "resource": "NPU"
+        },
+        {
+          "id": "repeat",
+          "kind": "HC_REPEAT_AND_INIT",
+          "resource": "NPU"
+        },
+        {
+          "id": "block0",
+          "kind": "DECODER_OPAQUE",
+          "resource": "NPU"
+        },
+        {
+          "id": "block1",
+          "kind": "DECODER_OPAQUE",
+          "resource": "NPU"
+        },
+        {
+          "id": "block2",
+          "kind": "DECODER_OPAQUE",
+          "resource": "NPU"
+        },
+        {
+          "id": "collapse",
+          "kind": "HC_FP32_REDUCE_BF16",
+          "resource": "NPU"
+        },
+        {
+          "id": "norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "logits",
+          "kind": "LM_HEAD",
+          "resource": "NPU"
+        },
+        {
+          "id": "confidence",
+          "kind": "CONFIDENCE_HEAD_OPAQUE",
+          "resource": "NPU",
+          "condition": "dynamic_spec is not configured in frozen-serve.sh and default method is None; inactive under that config unless overridden elsewhere",
+          "connection": "UNKNOWN: scheduler implementation absent in current snapshot; proposer helper exists but direct use is unproved"
+        },
+        {
+          "id": "context_buffer",
+          "kind": "COPY_OR_VIEW",
+          "resource": "NPU"
+        },
+        {
+          "id": "context_slots",
+          "kind": "EXTERNAL_SLOT_METADATA",
+          "resource": "NPU"
+        },
+        {
+          "id": "kv_precompute",
+          "kind": "CONTEXT_KV_PRECOMPUTE_COMPOSITE",
+          "resource": "NPU"
+        },
+        {
+          "id": "kv_state",
+          "kind": "PERSISTENT_SWA_STATE",
+          "resource": "NPU"
+        },
+        {
+          "id": "seed",
+          "kind": "EXTERNAL_DRAFT_SEED",
+          "resource": "NPU"
+        },
+        {
+          "id": "draft_token_output",
+          "kind": "EXTERNAL_OUTPUT",
+          "resource": "UNKNOWN"
+        },
+        {
+          "id": "last_hidden_dynamic_input",
+          "kind": "EXTERNAL_OR_UNRESOLVED_VALUE",
+          "resource": "UNKNOWN",
+          "condition": "dynamic_spec branch only; scheduler binding UNKNOWN"
+        },
+        {
+          "id": "dynamic_scheduler",
+          "kind": "OPAQUE_CONDITIONAL_SCHEDULER",
+          "resource": "UNKNOWN",
+          "condition": "only if dynamic_spec enabled; implementation absent from source snapshot"
+        },
+        {
+          "id": "embed_0",
+          "kind": "MARKOV_EMBED",
+          "resource": "NPU",
+          "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "bias_0",
+          "kind": "MARKOV_BIAS",
+          "resource": "NPU",
+          "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "add_0",
+          "kind": "LOGITS_BIAS_ADD",
+          "resource": "NPU",
+          "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "sample_0",
+          "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+          "resource": "NPU",
+          "condition": "dspark, idx=0; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "embed_1",
+          "kind": "MARKOV_EMBED",
+          "resource": "NPU",
+          "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "bias_1",
+          "kind": "MARKOV_BIAS",
+          "resource": "NPU",
+          "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "add_1",
+          "kind": "LOGITS_BIAS_ADD",
+          "resource": "NPU",
+          "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "sample_1",
+          "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+          "resource": "NPU",
+          "condition": "dspark, idx=1; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "embed_2",
+          "kind": "MARKOV_EMBED",
+          "resource": "NPU",
+          "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "bias_2",
+          "kind": "MARKOV_BIAS",
+          "resource": "NPU",
+          "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "add_2",
+          "kind": "LOGITS_BIAS_ADD",
+          "resource": "NPU",
+          "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "sample_2",
+          "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+          "resource": "NPU",
+          "condition": "dspark, idx=2; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "embed_3",
+          "kind": "MARKOV_EMBED",
+          "resource": "NPU",
+          "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "bias_3",
+          "kind": "MARKOV_BIAS",
+          "resource": "NPU",
+          "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "add_3",
+          "kind": "LOGITS_BIAS_ADD",
+          "resource": "NPU",
+          "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "sample_3",
+          "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+          "resource": "NPU",
+          "condition": "dspark, idx=3; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "embed_4",
+          "kind": "MARKOV_EMBED",
+          "resource": "NPU",
+          "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "bias_4",
+          "kind": "MARKOV_BIAS",
+          "resource": "NPU",
+          "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "add_4",
+          "kind": "LOGITS_BIAS_ADD",
+          "resource": "NPU",
+          "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+        },
+        {
+          "id": "sample_4",
+          "kind": "GREEDY_ARGMAX_OR_PROBABILISTIC_SAMPLE",
+          "resource": "NPU",
+          "condition": "dspark, idx=4; probabilistic sampling is a conditional branch"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "aux",
+          "consumer": "main_proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "main_proj",
+          "consumer": "main_norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "tokens",
+          "consumer": "embedding",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "embedding",
+          "consumer": "repeat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "repeat",
+          "consumer": "block0",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "block0",
+          "consumer": "block1",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "block1",
+          "consumer": "block2",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "block2",
+          "consumer": "collapse",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "collapse",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "norm",
+          "consumer": "logits",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "main_norm",
+          "consumer": "context_buffer",
+          "value": "combined target auxiliary states copied to draft context buffer",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1062-1081; spec_decode/dspark_proposer.py:255-259",
+          "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ."
+        },
+        {
+          "producer": "context_buffer",
+          "consumer": "kv_precompute",
+          "value": "draft context hidden states",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/dflash_proposer.py:300-319; spec_decode/llm_base_proposer.py:1478-1494",
+          "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ."
+        },
+        {
+          "producer": "context_slots",
+          "consumer": "kv_precompute",
+          "value": "per-layer context slot mapping",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/dspark_proposer.py:267-313; spec_decode/dflash_proposer.py:300-319",
+          "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ."
+        },
+        {
+          "producer": "kv_precompute",
+          "consumer": "kv_state",
+          "value": "per-layer context SWA cache writes",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ."
+        },
+        {
+          "producer": "kv_state",
+          "consumer": "block0",
+          "value": "relevant cached context subranges",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+          "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing."
+        },
+        {
+          "producer": "kv_state",
+          "consumer": "block1",
+          "value": "relevant cached context subranges",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+          "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing."
+        },
+        {
+          "producer": "kv_state",
+          "consumer": "block2",
+          "value": "relevant cached context subranges",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:248-276,295-309; attention/dsa_v41.py:614-625",
+          "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Does not establish a universal all-layers barrier or stream timing."
+        },
+        {
+          "producer": "last_hidden_dynamic_input",
+          "consumer": "dynamic_scheduler",
+          "value": "last_hidden_states",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1611-1617",
+          "condition": "dynamic_spec != None; exact scheduler implementation UNKNOWN"
+        },
+        {
+          "producer": "seed",
+          "consumer": "embed_0",
+          "value": "draft token at index 0",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "embed_0",
+          "consumer": "bias_0",
+          "value": "markov embedding",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "bias_0",
+          "consumer": "add_0",
+          "value": "markov bias",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "logits",
+          "consumer": "add_0",
+          "value": "raw logits slice 0",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "add_0",
+          "consumer": "sample_0",
+          "value": "biased logits slice",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "sample_0",
+          "consumer": "draft_token_output",
+          "value": "sampled token 1",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+          "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+        },
+        {
+          "producer": "sample_0",
+          "consumer": "embed_1",
+          "value": "draft token at index 1",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "embed_1",
+          "consumer": "bias_1",
+          "value": "markov embedding",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "bias_1",
+          "consumer": "add_1",
+          "value": "markov bias",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "logits",
+          "consumer": "add_1",
+          "value": "raw logits slice 1",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "add_1",
+          "consumer": "sample_1",
+          "value": "biased logits slice",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "sample_1",
+          "consumer": "draft_token_output",
+          "value": "sampled token 2",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+          "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+        },
+        {
+          "producer": "sample_1",
+          "consumer": "embed_2",
+          "value": "draft token at index 2",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "embed_2",
+          "consumer": "bias_2",
+          "value": "markov embedding",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "bias_2",
+          "consumer": "add_2",
+          "value": "markov bias",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "logits",
+          "consumer": "add_2",
+          "value": "raw logits slice 2",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "add_2",
+          "consumer": "sample_2",
+          "value": "biased logits slice",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "sample_2",
+          "consumer": "draft_token_output",
+          "value": "sampled token 3",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+          "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+        },
+        {
+          "producer": "sample_2",
+          "consumer": "embed_3",
+          "value": "draft token at index 3",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "embed_3",
+          "consumer": "bias_3",
+          "value": "markov embedding",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "bias_3",
+          "consumer": "add_3",
+          "value": "markov bias",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "logits",
+          "consumer": "add_3",
+          "value": "raw logits slice 3",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "add_3",
+          "consumer": "sample_3",
+          "value": "biased logits slice",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "sample_3",
+          "consumer": "draft_token_output",
+          "value": "sampled token 4",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+          "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+        },
+        {
+          "producer": "sample_3",
+          "consumer": "embed_4",
+          "value": "draft token at index 4",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "embed_4",
+          "consumer": "bias_4",
+          "value": "markov embedding",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "bias_4",
+          "consumer": "add_4",
+          "value": "markov bias",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "logits",
+          "consumer": "add_4",
+          "value": "raw logits slice 4",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "add_4",
+          "consumer": "sample_4",
+          "value": "biased logits slice",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1577-1602",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "sample_4",
+          "consumer": "draft_token_output",
+          "value": "sampled token 5",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1590-1602,1636-1644",
+          "condition": "output return requires parallel_drafting or K=1; other runner path unresolved"
+        },
+        {
+          "producer": "draft_token_output",
+          "consumer": "dynamic_scheduler",
+          "value": "draft_token_ids",
+          "dependency_kind": "RAW",
+          "source": "spec_decode/llm_base_proposer.py:1611-1617",
+          "condition": "dynamic_spec != None; exact scheduler implementation UNKNOWN"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+      "unresolved": "No raw logits -> accept direct edge. Draft return and downstream rejection binding only in supported branches; confidence scheduler internals unknown; aliases and full output consumers incomplete.",
+      "runner_binding": "SUPPORTED for stated branches by proposer source and matching frozen-image file hashes; some branches, wrapper timing and alias details remain UNKNOWN."
+    },
+    {
+      "id": "DSPARK_SHARED_KV",
+      "source": "models/deepseek_v41/dspark.py:233-312",
+      "nodes": [
+        {
+          "id": "context",
+          "kind": "EXTERNAL",
+          "resource": "NPU"
+        },
+        {
+          "id": "proj",
+          "kind": "LINEAR_BF16",
+          "resource": "NPU"
+        },
+        {
+          "id": "norm",
+          "kind": "ROW_REDUCTION_NORM",
+          "resource": "NPU"
+        },
+        {
+          "id": "rope",
+          "kind": "POINTWISE_ROPE",
+          "resource": "NPU"
+        },
+        {
+          "id": "cat",
+          "kind": "COPY_OR_VIEW",
+          "resource": "NPU"
+        },
+        {
+          "id": "slots",
+          "kind": "SLOT_FIXUP",
+          "resource": "NPU"
+        },
+        {
+          "id": "scatter",
+          "kind": "PERSISTENT_SCATTER",
+          "resource": "NPU"
+        },
+        {
+          "id": "persistent_swa_state",
+          "kind": "EXTERNAL_OUTPUT_OR_PERSISTENT_STATE",
+          "resource": "UNKNOWN"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "context",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "proj",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "slots",
+          "consumer": "scatter",
+          "value": "validated physical slots",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "scatter",
+          "consumer": "persistent_swa_state",
+          "value": "context KV cache state",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+        }
+      ],
+      "runtime_graph": false,
+      "complete_primitive_lowering": false,
+      "precision_rule": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established"
+    }
+  ],
+  "scope": "Partial source-boundary templates; external consumers, aliases, dynamic branches and inner kernels still incomplete.",
+  "whole_model_complete": false,
+  "id": "SOURCE_TEMPLATES_G4_ENGRAM_DSPARK",
+  "parent": "graphs/source-templates-G3.json"
+}

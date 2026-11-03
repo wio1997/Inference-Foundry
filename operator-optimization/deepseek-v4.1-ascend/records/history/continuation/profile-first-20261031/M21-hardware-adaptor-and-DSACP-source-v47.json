@@ -1,0 +1,277 @@
+{
+  "generated_utc": "2026-10-31T13:45:47.775250+00:00",
+  "files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/device_op.py",
+      "sha256": "01ce13ea60e46f901ad69ad4c71e4be0e31cd69fbc56ebb7d898f957d5e54f67",
+      "items": [
+        {
+          "kind": "function",
+          "name": "BaseDeviceAdaptor.get_dsv41_packed_cache_ops",
+          "start": 52,
+          "end": 54,
+          "decorators": [
+            "staticmethod"
+          ],
+          "source": [
+            "52:     def get_dsv41_packed_cache_ops() -> type[\"MixedQuantPackedCacheOps\"] | None:",
+            "53:         \"\"\"Return the packed-cache ABI implementation, or use standard caches.\"\"\"",
+            "54:         return None"
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "A5DeviceAdaptor.get_dsv41_packed_cache_ops",
+          "start": 1033,
+          "end": 1036,
+          "decorators": [
+            "staticmethod"
+          ],
+          "source": [
+            "1033:     def get_dsv41_packed_cache_ops() -> type[\"MixedQuantPackedCacheOps\"]:",
+            "1034:         from vllm_ascend.models.deepseek_v41.mixed_quant_attention import MixedQuantPackedCacheOps",
+            "1035: ",
+            "1036:         return MixedQuantPackedCacheOps"
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "get_device_adaptor",
+          "start": 2032,
+          "end": 2038,
+          "decorators": [],
+          "source": [
+            "2032: def get_device_adaptor() -> type[\"BaseDeviceAdaptor\"]:",
+            "2033:     adaptor_by_family = {",
+            "2034:         DeviceAdaptorFamily.STANDARD: BaseDeviceAdaptor,",
+            "2035:         DeviceAdaptorFamily.FP8_OPTIMIZED: A5DeviceAdaptor,",
+            "2036:         DeviceAdaptorFamily.COMPATIBILITY: Ascend310PDeviceAdaptor,",
+            "2037:     }",
+            "2038:     return adaptor_by_family[get_current_hardware_profile().device_adaptor_family]"
+          ]
+        },
+        {
+          "kind": "binding",
+          "name": "DeviceOperator",
+          "start": 2041,
+          "end": 2041,
+          "decorators": [],
+          "source": [
+            "2041: DeviceOperator: type[\"BaseDeviceAdaptor\"] = get_device_adaptor()"
+          ]
+        }
+      ],
+      "source_grade": "HISTORICALLY_STAGE_HASH_MATCH",
+      "compatibility_inheritance": {
+        "class_name": "Ascend310PDeviceAdaptor",
+        "bases": [
+          "BaseDeviceAdaptor"
+        ],
+        "overrides_packed_getter": false
+      }
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/hardware_profile.py",
+      "sha256": "efc6d0f3856be400c62b20c6a39229ccc1a2771ec4351a03328ec535824691f5",
+      "items": [
+        {
+          "kind": "function",
+          "name": "get_hardware_profile",
+          "start": 390,
+          "end": 396,
+          "decorators": [],
+          "source": [
+            "390: def get_hardware_profile(device_type: AscendDeviceType) -> HardwareProfile:",
+            "391:     \"\"\"Return the immutable profile registered for ``device_type``.\"\"\"",
+            "392: ",
+            "393:     try:",
+            "394:         return _HARDWARE_PROFILES[device_type]",
+            "395:     except KeyError as exc:",
+            "396:         raise RuntimeError(f\"No hardware profile is registered for device type: {device_type}.\") from exc"
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "get_current_hardware_profile",
+          "start": 402,
+          "end": 405,
+          "decorators": [],
+          "source": [
+            "402: def get_current_hardware_profile() -> HardwareProfile:",
+            "403:     \"\"\"Return the profile selected by the current device configuration.\"\"\"",
+            "404: ",
+            "405:     return _CURRENT_HARDWARE_PROFILE"
+          ]
+        },
+        {
+          "kind": "class_fields",
+          "name": "DeviceAdaptorFamily",
+          "start": 182,
+          "end": 187,
+          "decorators": [],
+          "source": [
+            "182: class DeviceAdaptorFamily(Enum):",
+            "183:     \"\"\"Device operation adaptor implementation families.\"\"\"",
+            "184: ",
+            "185:     STANDARD = auto()",
+            "186:     FP8_OPTIMIZED = auto()",
+            "187:     COMPATIBILITY = auto()"
+          ]
+        },
+        {
+          "kind": "binding",
+          "name": "_CURRENT_HARDWARE_PROFILE",
+          "start": 399,
+          "end": 399,
+          "decorators": [],
+          "source": [
+            "399: _CURRENT_HARDWARE_PROFILE = get_hardware_profile(get_device_config()._device_type)"
+          ]
+        }
+      ],
+      "source_grade": "DOCUMENTED_FROZEN_SOURCE;NO_FRESH_166_DEPENDENCY_HASH_ATTESTATION",
+      "selected_profile_entries": [
+        {
+          "device_key": "AscendDeviceType.A2",
+          "adaptor_family": "DeviceAdaptorFamily.STANDARD",
+          "start": 291,
+          "end": 291,
+          "source": [
+            "291:             device_adaptor_family=DeviceAdaptorFamily.STANDARD,"
+          ]
+        },
+        {
+          "device_key": "AscendDeviceType.A3",
+          "adaptor_family": "DeviceAdaptorFamily.STANDARD",
+          "start": 303,
+          "end": 303,
+          "source": [
+            "303:             device_adaptor_family=DeviceAdaptorFamily.STANDARD,"
+          ]
+        },
+        {
+          "device_key": "AscendDeviceType._310P",
+          "adaptor_family": "DeviceAdaptorFamily.COMPATIBILITY",
+          "start": 320,
+          "end": 320,
+          "source": [
+            "320:             device_adaptor_family=DeviceAdaptorFamily.COMPATIBILITY,"
+          ]
+        },
+        {
+          "device_key": "AscendDeviceType.A5",
+          "adaptor_family": "DeviceAdaptorFamily.FP8_OPTIMIZED",
+          "start": 343,
+          "end": 343,
+          "source": [
+            "343:             device_adaptor_family=DeviceAdaptorFamily.FP8_OPTIMIZED,"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/device_config.py",
+      "sha256": "1e7e971dba588801bf79fb9f9d2d0b51da9476a7eccc4689f83b7cfd4c4705fb",
+      "items": [
+        {
+          "kind": "function",
+          "name": "_device_type_from_build_info",
+          "start": 29,
+          "end": 41,
+          "decorators": [],
+          "source": [
+            "29: def _device_type_from_build_info() -> AscendDeviceType:",
+            "30:     from vllm_ascend import _build_info  # type: ignore",
+            "31: ",
+            "32:     device_type = getattr(_build_info, \"__device_type__\", None)",
+            "33:     if device_type is not None:",
+            "34:         try:",
+            "35:             return AscendDeviceType[device_type]",
+            "36:         except KeyError as exc:",
+            "37:             raise RuntimeError(f\"Unsupported built-in device type: {device_type}.\") from exc",
+            "38: ",
+            "39:     # Compatibility for packages generated before __device_type__ was added.",
+            "40:     soc_version = getattr(_build_info, \"__soc_version__\", \"ASCEND910B1\")",
+            "41:     return device_type_from_soc_version(soc_version)"
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "get_device_config",
+          "start": 45,
+          "end": 48,
+          "decorators": [
+            "lru_cache(maxsize=1)"
+          ],
+          "source": [
+            "45: def get_device_config() -> DeviceConfig:",
+            "46:     \"\"\"Return the immutable hardware configuration for this installation.\"\"\"",
+            "47: ",
+            "48:     return DeviceConfig(_device_type=_device_type_from_build_info())"
+          ]
+        },
+        {
+          "kind": "class_fields",
+          "name": "DeviceConfig",
+          "start": 23,
+          "end": 26,
+          "decorators": [
+            "dataclass(frozen=True)"
+          ],
+          "source": [
+            "23: class DeviceConfig:",
+            "24:     \"\"\"Immutable configuration selected for the current hardware family.\"\"\"",
+            "25: ",
+            "26:     _device_type: AscendDeviceType"
+          ]
+        }
+      ],
+      "source_grade": "DOCUMENTED_FROZEN_SOURCE;NO_FRESH_166_DEPENDENCY_HASH_ATTESTATION"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/utils.py",
+      "sha256": "5f88fd83bcba539c3d24324ed104469914254989996342b27bb36a326e3f8458",
+      "items": [
+        {
+          "kind": "function",
+          "name": "enable_dsa_cp",
+          "start": 1589,
+          "end": 1596,
+          "decorators": [
+            "lru_cache(maxsize=1)"
+          ],
+          "source": [
+            "1589: def enable_dsa_cp() -> bool:",
+            "1590:     # Read from the validated AscendConfig singleton instead of bypassing it",
+            "1591:     # via additional_config[\"enable_dsa_cp\"]. This converges the bypass read",
+            "1592:     # (architecture debt #7) onto the canonical get_ascend_config() path, so",
+            "1593:     # the value benefits from @config type validation (bool lax coercion).",
+            "1594:     from vllm_ascend.ascend_config import get_ascend_config",
+            "1595: ",
+            "1596:     return get_ascend_config().enable_dsa_cp"
+          ]
+        }
+      ],
+      "source_grade": "HISTORICALLY_STAGE_HASH_MATCH"
+    }
+  ],
+  "historical_build_info": {
+    "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/agents/fusion/frozen-source/vllm_ascend/_build_info.py",
+    "sha256": "65edd0c22127fac498174576a99758e422052ed0180ed332570c19cddab0197a",
+    "fields": [
+      {
+        "start": 2,
+        "end": 2,
+        "source": [
+          "2: __device_type__ = 'A3'"
+        ],
+        "literal": "A3"
+      }
+    ],
+    "provenance": "Historical source169 frozen artifact;not fresh166generated build-info snapshot."
+  },
+  "current166_build_info_attested": false,
+  "no_model_or_torch_import": true,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

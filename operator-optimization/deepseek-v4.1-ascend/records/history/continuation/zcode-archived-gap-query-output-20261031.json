@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_1a77aebe-e479-48ed-9992-e5eec4515ec1",
+  "traceId": "864e1550-774d-4a33-9bc4-2c3fe0c51052",
+  "turnId": "turn_d46fb198-6098-41dc-a4fe-ad1f6dd7d747",
+  "response": "执行完成：`remote_run.py` 外层 returncode = 0（shell 退出码也是 0），内层查询脚本的 returncode 也是 0，stderr 为空。原始异常没有出现，因此没有重跑或修复。\n\n从 `archived-ep3-gap-evidence166.json` 读出的结果：\n\n| label | gap_ns | overlap_task_count | event_wait_like_records |\n|---|---:|---:|---:|\n| F22_LONG_L4 | 1765200 | 1 | 0 |\n| F22_SHORT_L38 | 860 | 6 | 5 |\n| F17_LONG_L14 | 2370080 | 0 | 0 |\n\n`full_result` 文件路径是：\n`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/ep3-gap-task-evidence.json`\n\n其他关键字段：`host` 为 166，数据库 SHA-256 为 `084b8718888e33271435ec79d7573c95ca1615f3e7484c807ea24590fad234c4`，`database_stat_unchanged` 为 true，`observed_utc` 为 2026-10-30T17:26:18Z，`no_device_work` 为 true。\n\n补充细节（不改变上表的读数）：F22_LONG_L4 的 1 条重叠记录是 stream 47 上的 `KERNEL_MIX_AIC`；F22_SHORT_L38 的 6 条重叠记录包括 1 条 `EVENT WAIT`（stream 39）、1 条 `KERNEL_MIX_AIC`（stream 47）和 4 条 `NOTIFY_WAIT_SQE`，同 stream 47 记录并集为 840 ns；F17_LONG_L14 则该窗口内没有任何导出记录。\n\n需要强调的边界（来自回执自带的 limits）：这些 gap 只是相邻导出 TASK 记录之间的时间差；`EVENT WAIT` 与 `NOTIFY_WAIT_SQE` 同样是导出记录，不能当作独占硬件空闲、等待或忙碌的测量；也没有证明任何 event 对象身份或记录到等待的因果边。因此 F17_LONG_L14 的“无记录”不能解释为真实空闲或可节省时间，F22_SHORT_L38 的 5 条 event-wait-like 记录也不能据此判定为可优化等待。三个 label 来自不同层/digest 的长短示例，不构成等工作量对照。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 24247,
+    "outputTokens": 1157,
+    "totalTokens": 25404,
+    "cacheReadTokens": 14592,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 943,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 25404,
+    "contextUsed": 10731,
+    "contextWindow": 200000
+  }
+}

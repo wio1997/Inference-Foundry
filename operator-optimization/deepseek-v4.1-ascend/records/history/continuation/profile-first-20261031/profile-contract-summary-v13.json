@@ -1,0 +1,175 @@
+{
+  "generated_utc": "2026-10-30T23:16:29.179992+00:00",
+  "status": "PROGRESS",
+  "workflow": "PROFILE_FIRST;EXACT_CODE_QUESTIONS_ONLY",
+  "new_device_or_service_work": false,
+  "source_optimization_implementation": false,
+  "CP_cache_hit_dead_producer": {
+    "id": "H02_CP_SUFFIX_ON_BATCH_MISS",
+    "status": "STRUCTURALLY_SUPPORTED_IN_OBSERVED_FIXED_PATH; NOT_IMPLEMENTED_OR_TIMED",
+    "evidence_kind": [
+      "MEASURED",
+      "DOCUMENTED",
+      "DERIVED"
+    ],
+    "scope": "Fresh166 fixed model/image/CANN9.2.0; LegacyAscendDSAV41CPMetadataBuilder local branch with same-call shared batch dictionary. Other CP/draft/backend paths remain separate.",
+    "graph": "Move CPU suffix/pin/H2D and device Sub/Clip/Greater/Fill/Select production behind the existing local batch-cache miss; on a hit preserve cached authoritative lengths and all live per-builder fields.",
+    "observed": {
+      "nonempty_prepare_roots": 88,
+      "CP_builds_per_root": 26,
+      "CP_LOCAL_batch_initialization_copies_per_root": 1,
+      "CP_GLOBAL_batch_initialization_copies_per_root": 1,
+      "post_local_initialization_suffix_H2D_per_root": 25,
+      "post_local_initialization_suffix_H2D": 2200,
+      "source_bound_native_compute_tasks": 11000,
+      "tasks_per_root": 125,
+      "op_type_counts": {
+        "Sub": 2200,
+        "ClipByValueV2": 2200,
+        "Greater": 2200,
+        "Fill": 2200,
+        "SelectV2": 2200
+      }
+    },
+    "proof": [
+      "Worker3823 creates common_v41_batch_metadata once per build; per-KV cm=copy(cm_base) is shallow and CP common fields are retained. Per-group block/slot state stays separate.",
+      "CP global helper87-95 uses a cp_global child batch dictionary. The local builder receives the root batch dictionary; first local DSA903 copy is observed once in every nonempty root.",
+      "DSA964-967 builds batch coordinates only on a cache miss. Later common.seq_lens content is not read;945 is shape metadata only. Returned and deferred consumers use cached coordinate seq_lens.",
+      "Metadata.replace is dataclasses.replace; both metadata classes have no custom init/post_init/getattr/seq_lens property. Constructing local_common introduces no hidden length-content reader.",
+      "Native CONNECTION_IDS links, then exact same-thread root/build containment, map all125 later-branch kernels per root without ambiguous execution links. NULL host connections are retained but not matched.",
+      "For this unused-result elimination, equality of all later input values is not required; the first cache miss and live query offsets remain required."
+    ],
+    "must_keep": [
+      "First local cache miss and its authoritative post-rejection GPU seq_lens computation; never substitute optimistic CPU lengths.",
+      "Per-builder fixed-address query_start_loc publication: group-specific slots/SMLA/QLI/C2 callbacks directly read common.query_start_loc.",
+      "CPU local query metadata/max values and group-specific physical KV/slot/ring data; do not skip the whole CP helper.",
+      "Existing cp_global cache, RoPE views, shared C2 lengths, graph addresses, stream readiness and host/device lifetimes.",
+      "Original path when shared batch context is missing or cache misses; no blanket model/backend change."
+    ],
+    "no_content_reader_closed_for": "Later local GPU length temporary in the inspected fixed program path; not all metadata or all modes.",
+    "pricing": {
+      "profiled_kernel_interval_union_ns_per_root": {
+        "minimum": 190128,
+        "median": 197635.0,
+        "maximum": 213720,
+        "samples": 88
+      },
+      "critical_path_gain": null,
+      "unprofiled_CPU_cost": null,
+      "attainable_speedup": null
+    },
+    "implementation": false,
+    "performance_verified": false
+  },
+  "field_ledger": "H02-field-and-synchronization-ledger-v13.json",
+  "resource_inventory": {
+    "created_utc": "2026-10-30T23:13:16.182373+00:00",
+    "databases": 32,
+    "corrected_valid_count_sync_pairs": 56,
+    "actual_first_source_counts": {
+      "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py(1867): _correct_optimistic_seq_lens_cpu": 56
+    },
+    "all_pairs_same_thread": true,
+    "all_pairs_nonoverlapping": true,
+    "pairs_with_observed_valid_count_writer_between": 0,
+    "pair_gap_ns": {
+      "minimum": 5555480,
+      "median": 7554690.0,
+      "maximum": 695925070,
+      "samples": 56
+    },
+    "PMU_metric_record_counts": {
+      "aic_total_time": 286101,
+      "aic_total_cycles": 286101,
+      "aic_mac_time": 286101,
+      "aic_mac_ratio": 286101,
+      "aic_scalar_time": 286101,
+      "aic_scalar_ratio": 286101,
+      "aic_mte1_time": 286101,
+      "aic_mte1_ratio": 286101,
+      "aic_mte2_time": 286101,
+      "aic_mte2_ratio": 286101,
+      "aic_fixpipe_time": 286101,
+      "aic_fixpipe_ratio": 286101,
+      "aic_icache_miss_rate": 286101,
+      "aiv_total_time": 286101,
+      "aiv_total_cycles": 286101,
+      "aiv_vec_time": 286101,
+      "aiv_vec_ratio": 286101,
+      "aiv_mac_time": 286101,
+      "aiv_mac_ratio": 286101,
+      "aiv_scalar_time": 286101,
+      "aiv_scalar_ratio": 286101,
+      "aiv_mte1_time": 286101,
+      "aiv_mte1_ratio": 286101,
+      "aiv_mte2_time": 286101,
+      "aiv_mte2_ratio": 286101,
+      "aiv_mte3_time": 286101,
+      "aiv_mte3_ratio": 286101,
+      "aiv_icache_miss_rate": 286101
+    },
+    "frequency_value_counts": {
+      "1800": 32
+    },
+    "CP_dead_value_kernel_union_ns_per_root": {
+      "minimum": 190128,
+      "median": 197635.0,
+      "maximum": 213720,
+      "samples": 88
+    },
+    "CP_dead_value_kernel_union_ns_per_execution": {
+      "minimum": 980,
+      "median": 1560.0,
+      "maximum": 2920,
+      "samples": 11000
+    },
+    "no_target_source_read": true,
+    "no_device_or_service_work": true,
+    "whole_modules_closed": 0,
+    "overall_complete": false,
+    "corrections": [
+      "First resource query stopped at its 145s SQLite progress bound while evaluating a correlated TASK membership query. v2 uses equivalent set membership without changing identities; original interrupted receipt retained.",
+      "Supersedes reversed early/late ordering and invalid zero-writer conclusion in event-resource-schema-and-field-shapes-v13.json; original result retained."
+    ],
+    "limits": [
+      "No event handle/generation identity asserted by timestamp order or absence of observed writer. Source/DCP recorder coverage still required for wait removal.",
+      "PMU names/ranges and sampled frequency raw values are inventory only; no units/averaging/MFU claim.",
+      "Profiled kernel duration and interval union are not request latency gains or unprofiled costs."
+    ]
+  },
+  "saved_evidence": [
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/saved-prepare-consumers-v13.json",
+      "sha256": "6ba784cac70931d7764111832ba40fc8ca3927f80c58d63ab70341594fab62eb"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/CP-dead-producer-device-tasks-v13-v2.json",
+      "sha256": "6b4129c1e711a369b6ca4ce9f3bd8d304d57ffe72ca19db7a7782fff3052fdf0"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/metadata-replace-and-source-contract-v13-v2.json",
+      "sha256": "7053b8909fe18dea659bded9cb01473a2f42494c529311e784f9bc8fdfd1cb62"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/block-table-copy-contract-v13.json",
+      "sha256": "443d6f94ba872c51adf3985b679ce86f9ac734127ff0840fadeacd84a86e16f3"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/event-resource-schema-and-field-shapes-v13.json",
+      "sha256": "aab4ca0839c2ab1085a9a1d5a9c554ebf2d60f4074cfb41b0ce353d310e2efc5"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/saved-event-order-and-resource-metrics-v13-v2.json",
+      "sha256": "9fbd1d6ef2b7661a987465dfd555e43b7e6d3d43bcc68b67e1d4bfaba32b4080"
+    }
+  ],
+  "remaining": [
+    "H02 scoped dead-producer candidate is structurally supported, but implementation/performance and remaining query/geometry/block/optional-field consumers/lifetimes are not validated. No source optimization edits in this pass.",
+    "Sync generation and recorder/producer-ready contracts remain open; corrected56pair ordering is not proof a wait is removable.",
+    "Use new16611exactTP8cohorts and32DBs for native forward/graph/MC2/COMM/module/resource association. Raw PMU names/values/frequency inventory does not settle normalized utilization or lowest-module causes.",
+    "H01 EngineCore on-CPU/producer-ready attribution, H03 actual hash/frontend costs and namespace remain unmeasured by worker-only profile.",
+    "All26module finite branches/consumers, cross-operator/layer/card/iteration alternatives, same-domain hardware ceilings and causal ranking remain incomplete."
+  ],
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

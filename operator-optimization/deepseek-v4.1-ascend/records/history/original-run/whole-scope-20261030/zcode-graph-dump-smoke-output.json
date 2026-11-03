@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_d8aefee4-8cd9-4335-a2f5-1368079c1af2",
+  "traceId": "b25dce41-6eca-4090-a081-2eabf5be3c10",
+  "turnId": "turn_731eb210-fc86-415d-9d2c-3944333851e9",
+  "response": "**结果：单次执行已发生，脚本返回码 1；合成能力测试在容器内创建运行目录时即失败，未实际执行到任何 NPU/图导出动作。已按要求停止，未重试、未修改、未追加设备命令。**\n\n- 执行记录已写入 `whole-scope-20261030/zcode-graph-dump-smoke-execution.json`（1088 字节），含真实 command、returncode=1、stdout、stderr（stderr 为空）。\n- 脚本自身还写出 `graph-dump-capability-smoke.json`（17907 字节）和空的 `graph-dump-capability-smoke.stderr`。\n\n实际结果：\n\n- 前置校验全部通过：baseline ID `b00f4d20…39092` 为 stopped，stage ID `42a5ed03…87602` 为 running，两者 image 均为 `sha256:ce42d65b…c5e98b`；开跑前 npu-smi 明确 8 张卡均无进程。\n- 远程 run_id 为 `dump-capability-20261030T133755Z-20b685b8`，远程输出目录为 `/work/vllm-ascend-reproduce-172-on-169-20261028/.../whole-scope-20261030/dump-capability-20261030T133755Z-20b685b8`。\n- 失败原因：stage 容器内执行 `root.mkdir(exist_ok=False)` 时抛出 `FileNotFoundError`，即该 `/work/vllm-ascend-reproduce-172-on-169-20261028/...` 父路径在容器内不存在。测试 stdout 为空，stderr 为这段 traceback，returncode=1。\n- 结束状态已核实：baseline 仍 stopped、stage 仍 running，前后 npu-smi 均为 8 卡无进程；未启动模型/推理，未启动或停止原服务，未改动目标或部署。\n\n该 synthetic smoke 没有产生任何模型专家计数、完整目标结论或性能验证；由于在目录创建处失败，本次也未取得 torch_npu 图导出 API 的能力结论。\n\n执行模型名：`bc10aa1f-6d2d-4158-be40-7017fe6bf933/deepseek-flash`。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 100094,
+    "outputTokens": 10862,
+    "totalTokens": 110956,
+    "cacheReadTokens": 80640,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 9120,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 110956,
+    "contextUsed": 29909,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "generated_utc": "2026-10-31T05:09:57.441788+00:00",
+  "evidence_grades": [
+    "MEASURED",
+    "DOCUMENTED",
+    "DERIVED",
+    "UNKNOWN"
+  ],
+  "source_files": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/sample/sampler.py",
+      "sha256": "f95805b2c6d06218c724826aa5f881a606e8d0a534a566aee7c85948520dd216"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "sha256": "867f1770614bb594baf5ecfb858aa4a20dc413cbfbe4f94e06b3786900b581ee"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/sample/rejection_sampler.py",
+      "sha256": "bb1d39de851540c16c2dd2b16df60c60a1fc4957cedb88bdce9417efc0d55eda"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/reject_sample.py",
+      "sha256": "dced4b94b74e31e9105d2f7c3bf16b0a096fb6c74983647ce7d056111807f2c3"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c"
+    }
+  ],
+  "source_receipts": [
+    {
+      "label": "sampler-source166-v28-v2",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/sampler-source166-v28-v2.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/sampler-native-greedy-and-rejection-branch-contract-v28-v2.json",
+      "sha256": "9673d6aa9e46a814a8685e7dc118bf7ff3d8828634c7eed7a939f2602eb7c9f3"
+    },
+    {
+      "label": "rejection-raw-consumer166-v28-v2",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/rejection-raw-consumer166-v28-v2.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/rejection-raw-logits-argument-consumers-v28-v2.json",
+      "sha256": "8f2449eb10bf7a98b358c780ddba7842bc9cc2d67feb05562348643be5d1c2fa"
+    }
+  ],
+  "reviewed_facts": [
+    "Worker_sample:2977-2994 dispatches normal Sampler when spec_decode_metadata is None;otherwise obtains draft_probs and calls rejection_sampler. It updates async token IDs first and respects lmhead-TP row trimming.",
+    "Rejectionforward:192 selects bonus rows;:193-203 forces max_num_logprobs=-1 and overrides mode to processed_logits or raw_logits. Usernotrequestinglogprobs doesnot alone mean thisinternal tensor wasnevergenerated.",
+    "Base Sampler.forward:87-94 captures requested raw logits/logprobs beforeprocessors;:97 makes an FP32 workingtensor;:99 appliesprocessors;:103 samples. Optionalspecific-token/topk/full-output consumers andprocessed-logit modes remain.",
+    "In this rejectionforward subtree,bonus_sampler_output.logprobs_tensors.logprobs is consumed at:247 only inside original sampling_metadata.max_num_logprobs is not None. The bonusIDs are independently live.",
+    "Rejectionforward:209 selects target rows,:211 promotes toFP32,:217 clones when notis_processed_logprobs_mode to preserve raw values beforeinplaceprocessors/constraints. Exactnative217 clone ispositivelyrecorded72times.",
+    "Target raw logits also flow through ori_target_logits into rejection_sample. Its onlydata load is:462 softmax under using_entropy_verify and ori_target_logits is notNone;using_entropy_verify is Ascend rejection_sampler_config.enable_entropy_verify at:436. No-final-logprobs alone doesnot make rawtarget dead.",
+    "Base sample:261 computes greedy argmax whenever notall_random. It returns early at:262-272 onlywhen all_greedy;otherwise continues temperature,argmax-invariant processors,top-k/p andmixing. Greedy nativecalls cannot establish all_greedy bythemselves.",
+    "Native rejectionlaunch is guardedbynotall_random andHAS_TRITON;wrapper443 has a special uniformspec_len1/is_greedyNone path,whileactualgeneric456pathisobserved. Preserve raggedcu_num_draft_tokens,per-rowis_greedy,syntheticRNG/rates andprobability alternatives.",
+    "Sampler.forward:110 promotesIDs tolong foroptional index consumers,then:140 returnsint32;PyTorchargmax alreadyreturnsint64 whileCANNArgMaxV2 TASK outputsint32 anditslowering addsacast. Removingcastsrequiresretainingactualconsumers/ABI.",
+    "Rejectionoutput:467-472 allocatesint32[B,max_spec_len+1] andfillsPLACEHOLDER beforethekernel. Fusinginitializationrequireswritingeveryobservableoutputslot,not leavingtailuninitialized."
+  ],
+  "answered_local_questions": [
+    "Actualnative samplingbranches/typed staging",
+    "Forcedbonusrawscoregeneration anditsdirectgetter",
+    "Targetrawclone/rawmode andentropyconsumer",
+    "Greedy-vs-mixed guard distinction",
+    "OptionalID-index/logprob andplaceholderoutput consumers"
+  ],
+  "unresolved": [
+    "Actualper-call originalmax_num_logprobs/logprob_token_ids,all_greedy/all_random,processorconstraints andentropy flag values are notfully attested bydevicecalls.",
+    "Non-greedybody of305-line rejectionhelperwasnotfullyread;itremainsaseparate explicitbranchgap.",
+    "Historicalrowindex/alias/storage/producerreadiness andnumericalNaN/tie policy fornewreductions.",
+    "SamplingCPUcost,currentcriticalpath andfutureconsumer generation/lifetime;noimplementationorNPUexperiment."
+  ],
+  "source_quality": "Firstwholemethodexcerptstoppedat260-lineguard. v2usesnamedmethods plusnativecontexts/ancestorconditions forlonghelper. Rawconsumer v1mislabelledloadinIf.testasorelse;v2correctedtest/body againstsourcewithoutchangingfileSHA.",
+  "stop_rule": "Do not expand whole sampler/repository to strengthen alreadyconditionaldataflow. Nextprofilefrontier is orphanF04 dual-outputFFNnorm/cast roles,or a specificallydecisive unresolvedsamplingflag.",
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

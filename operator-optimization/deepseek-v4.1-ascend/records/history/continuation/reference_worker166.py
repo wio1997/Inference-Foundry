@@ -1,0 +1,25 @@
+import pathlib,json,subprocess,socket,urllib.request,time,re,datetime,traceback,hashlib
+P=pathlib.Path('/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030');R=P/'analysis/whole-scope-continuation-20261030';B='wio-vllm-v41-repro166-20261030';ID='8757dcc7a2f8db672bbf6ddfc1ed29e6cff74d5dd89199770b7b6f3b27fd48e3';APP='/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash';runid='reference-'+datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ');D=R/runid;D.mkdir();state={'state':'PRECHECK','run_id':runid,'started_unix':time.time(),'scope':'one unprofiled full fixed case, baseline observation not optimization claim'}
+def save():
+ p=D/'state.tmp';p.write_text(json.dumps(state));p.replace(D/'state.json');(R/'reference-latest.json').write_text(json.dumps({'run_id':runid,'root':str(D),'state':state['state']}))
+def check(idle):
+ c=json.loads(subprocess.check_output(['docker','inspect',B]))[0];assert c['Id']==ID and c['State']['Running'] and c['Image']=='sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b';assert dict(x.split('=',1) for x in c['Config']['Env'])['CANN_VERSION']=='9.2.0'
+ smi=subprocess.check_output(['npu-smi','info'],text=True);pids=set()
+ for l in smi.splitlines():
+  a=[x.strip() for x in l.split('|')]
+  if len(a)>4 and re.fullmatch(r'\d+\s+\d+',a[1]) and a[2].isdigit():pids.add(int(a[2]))
+ own={int(x) for x in subprocess.check_output(['docker','top',B,'-eo','pid'],text=True).splitlines() if x.strip().isdigit()};assert pids and pids<=own
+ o=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+ with o.open('http://127.0.0.1:30075/health',timeout=5) as response:assert response.status==200
+ with o.open('http://127.0.0.1:30075/metrics',timeout=5) as response:text=response.read().decode()
+ requests=[x for x in text.splitlines() if not x.startswith('#') and x.startswith(('vllm:num_requests_running{','vllm:num_requests_waiting{'))]
+ assert not idle or (len(requests)>=4 and all(float(x.rsplit(None,1)[-1])==0 for x in requests))
+ return {'container_id':c['Id'],'started_at':c['State']['StartedAt'],'cann':'9.2.0','health':200,'requests':requests,'all_npu_processes_owned':True}
+try:
+ assert socket.gethostname()=='bm-jn-zs-zone1-910C-64G-10-105';state['before']=check(True);save();script=P/'runtime/tools/whole_scope166_reference_client.py';assert hashlib.sha256(script.read_bytes()).hexdigest()=='06f8356a07e72a7e20a1ee17d737dbf1f466c5855e80e2057dcd7d2de870a578'
+ output=APP+'/runs/'+runid;state.update(state='RUNNING_FIXED_C8_REFERENCE',container_output=output);save()
+ q=subprocess.run(['docker','exec','-e','WIO_PHASE=baseline','-e','WIO_OUTPUT='+output,B,'timeout','--kill-after=10s','600s','python3',APP+'/tools/whole_scope166_reference_client.py'],capture_output=True,text=True,timeout=625);(D/'client-output.json').write_text(json.dumps({'returncode':q.returncode,'stdout':q.stdout,'stderr':q.stderr},indent=2));assert q.returncode==0,(q.returncode,q.stdout[-2000:],q.stderr[-2000:])
+ clientroot=P/'runtime/runs'/runid;status=json.loads((clientroot/'window-status.json').read_text());assert status['valid'];responses=json.loads((clientroot/'responses.json').read_text());seconds=(max(x['end_ns'] for x in responses)-min(x['start_ns'] for x in responses))/1e9
+ result={'status':'PASS_FIXED_C8_REFERENCE_SINGLE_OBSERVATION','environment':'166CANN9.2','concurrency':8,'prompt_tokens_per_request':32768,'output_tokens_per_request':1024,'prefix_queries':status['counter_deltas']['prefix_cache_queries_total'],'prefix_hits':status['counter_deltas']['prefix_cache_hits_total'],'no_preemptions':status['counter_deltas']['num_preemptions_total']==0,'returned_tokens':8192,'client_wall_seconds':seconds,'client_returned_output_tokens_per_second':8192/seconds,'one_observation_not_stability_or_speedup_proof':True,'counter_deltas_by_engine':status['counter_deltas_by_engine'],'client_results':str(clientroot),'client_script_sha256':'06f8356a07e72a7e20a1ee17d737dbf1f466c5855e80e2057dcd7d2de870a578'};(D/'reference-result.json').write_text(json.dumps(result,indent=2)+'\n')
+ state.update(state='PASS_FIXED_C8_REFERENCE',result=result,after=check(True),finished_unix=time.time());assert state['before']['started_at']==state['after']['started_at'],'Baseline was restarted unexpectedly';save()
+except BaseException:state.update(state='FAILED',error=traceback.format_exc(),finished_unix=time.time());save();raise

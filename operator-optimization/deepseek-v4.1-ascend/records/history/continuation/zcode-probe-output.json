@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_23678401-57dc-4b55-80af-0dbc86dfdfcf",
+  "traceId": "805e1992-3e64-43f0-a4e1-4c268ad536ce",
+  "turnId": "turn_1906f8b8-39f6-4ed4-947b-ee68c7903051",
+  "response": "The prepared bounded observer probe completed successfully. Actual exit was **0**, and the receipt is at `/Users/wio/work/166-vllm-analysis-continuation-20261030/probe-dump166.json` (status `PASS_PROBE`, `service_preserved: true`, run `dump-api-probe-20261030T151349Z-0ca378`).\n\nGuard evidence from the receipt:\n\n- **Identity/CANN**: both own containers matched their pinned IDs and image; base and stage were running before and after. `CANN_VERSION=9.2.0` on the base, and the pinned `torch_npu/graphs.py` hash check passed.\n- **NPU ownership/health**: the NPU process PID set was identical before and after and was fully contained in the own base container's PID set; all 16 devices reported `OK`.\n- **Service idle and preserved**: `/health` returned 200 before and after, and every `num_requests_running` / `num_requests_waiting` metric was `0.0` in both guards. No model request was made.\n- **Bounded probe execution**: inner test returncode 0, 5.30 GB free on device0 (> 2 GiB guard), 1 warmup plus 3 graph replays. Snapshots matched expected values 3, 8, 1 with epoch 1, 2, 3 respectively, and each retained its pre-`out.zero_()` value, validating single/list tensor observer behavior before alias overwrite. Raw snapshots were only `single_device_0_0.pt` and `multiple_device_0_0.pt`; the <1 MiB cap held.\n- The only remote stderr line was the CANN/HDK 32-byte padding warning, consistent with the accepted driver/firmware difference given CANN matched.\n\nNo framework or weights changes, no additional commands, no credentials read, and no performance claim is made from this synthetic capability probe.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 63288,
+    "outputTokens": 4669,
+    "totalTokens": 67957,
+    "cacheReadTokens": 50432,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3740,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 67957,
+    "contextUsed": 16955,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,13 @@
+193已成功登录，root及主机身份匹配。用同一新账号核验原10.55.0.166和记录中的172.16.10.105，均返回“未发现匹配的资产”；虽然SSH退出码为0，远端Python并未执行，不能标成成功。193上原profile及已知项目路径不存在，限定的public目录查找也未发现匹配项；这不是全盘无资料的证明。已询问原资产可用入口或共享/备份路径。尚未将193替代原数据集，也没有迁移环境、改服务或启动模型负载。
+
+密码仅经关闭回显的stdin和匿名pipe FD用于认证，未写入工作目录、进程参数或结果文件。连接测试和资料路径读取均已结束；其它会话未改动。
+
+独立分析补齐了部分旧predicate定义。normal factory按HardwareProfile选择adapter：A2/A3使用标准Base getter返回None，310P兼容分支也继承None，A5分支才返回MixedQuantPackedCacheOps。DeviceConfig按构建字段选择，profile及DeviceOperator在模块初始化时绑定；canonical enable_dsa_cp读取validated AscendConfig singleton。已有历史A3 build资料与legacy SMLA/QLI轨迹相符，但历史source169 build-info和新读的冻结依赖文件没有冒充新166运行时attestation。当前是否存在外部override、生成文件变化及精确PCP selectors仍保留缺口。A3可复用某纯坐标helper，不等于可以直接选择完整A5 packed ABI。
+
+本轮还校正了全局资源口径。之前“3136资源行”的表述不准确：它是4组模块归属仍有歧义的ComputeInfo执行数。283814条确定单模块归属，加3136条歧义执行，共286950；2082才是shape/role/context聚合regime数。35项模型候选、7项框架候选的索引覆盖，与每个变体是否完成资源定价是不同问题；不能用模型候选数或旧资源表完成度代替后者。
+
+26模块已建立明确的成本分母需求：控制/进程、条件计算模型、复合动态算量、内存/状态、通信层级分别需要不同证据。M00/M01/M02/M03/M22/M25没有ComputeInfo主归属记录，不意味着零CPU、graph、allocator或transport开销。M19功能bucket1560不等于14191条native ancestry；M21功能76943不等于84297关联导航；M22主归属0不等于132000图内子任务或host开销为0。也不能把COMM区间、HCCL命名ComputeInfo和MC2内部通信相加。没有将MAC0、缺PMU或缺容量补成0，没有新增理论峰值/收益结论；26理论比较仍INCOMPLETE。
+
+6项登记为4pass、2error。错误是原166/105两次资产匹配失败，已按应用层结果记录。193只读核验、定点source、条件硬件分派与全26分母审计、正式持久化审核通过。35模型候选、7框架候选、0整模块关闭；286950计算执行、3136模块归属歧义执行、849缺PMU、16phase-unbound保持。
+
+整体目标仍未完成。原始完整profile入口、实际graph/bank/native epoch及全部读者、剩余模块/分支/进程边界和同分母资源上界仍待补证。Goal active，不以新服务器登录、局部source证明或报告成稿代替整体完成。

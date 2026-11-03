@@ -1,0 +1,74 @@
+{
+  "generated_utc": "2026-10-31T04:54:59.211479+00:00",
+  "evidence_grades": [
+    "MEASURED",
+    "DOCUMENTED",
+    "DERIVED",
+    "UNKNOWN"
+  ],
+  "source_files": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/linear.py",
+      "sha256": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/cv_linear.py",
+      "sha256": "d2bf17c189f8748a9b7e5cbd42325c798eeb238da894755065792da982450b6d"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/layernorm.py",
+      "sha256": "d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/indexer.py",
+      "sha256": "d5d6a438bbced4e63d729dac94c08869df30dab4a71ceacecdea211386b3db33"
+    }
+  ],
+  "reviewed_source_receipts": [
+    {
+      "label": "F33-source166-v27",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F33-source166-v27.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/F33-consumer-and-native-primitive-point-contract-v27.json",
+      "sha256": "ce40420e1af55fe6fe5a9f9d07e888aa0866147d9c61012338baa51515261109"
+    },
+    {
+      "label": "F33-index-consumer166-v27",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/F33-index-consumer166-v27.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/F33-indexer-update-keys-latent-consumer-v27.json",
+      "sha256": "b269a2b30f3bb2c4a8023d2bd32bd3bf1bf350e441dd3c6d5ce94c0db1ae9b13"
+    }
+  ],
+  "reuse": "profile-raised-source-contract-v16.json;C1-and-padding-adjustment-contracts-v16.json",
+  "reviewed_facts": [
+    "Native SWA projection frames reach cv_linear.matmul:172 -> unquantized_gemm:54 -> torch.nn.functional.linear. Quantized/communicating branches in matmul remain distinct.",
+    "Native C1 calls are owned by compressor.forward:71 -> self.norm(self.wkv(x));v16 constructor has a distinct bias-free BF165120->512 nn.Linear and a distinct512-wide RMSNorm.",
+    "Actual norm frame layernorm.py:99 calls torch_npu.npu_rms_norm(x,self.weight,self.variance_epsilon),then optional bias if loaded. Profile inputs are BF16;preserve both independent parameter/epsilon/bias contracts and GEMM->BF16 boundary.",
+    "DSA_write_compressed_source:544 calls indexer.update_keys(latent,...),then:550 views the same latent and:551 performs in-place long-KV RoPE,then:553-565 publishes to packed backend or scatter.",
+    "Indexer.update_keys:108 returns when !owns_k or empty;:110 computes self.wk(latent) then independent128-wide k_norm;:111 rotates the newly projected key,not the512-wide latent.",
+    "Indexer.update_keys packed branch writes key/scale and optionally folded index cache;fallback quantizes INT8 key then separately publishes key and FP16 scale.",
+    "SWA cache writer has packed backend kind=win or scatter;long-KV writer has kind=cmp or scatter. Same typed cache shape is not proof same physical address.",
+    "For each overlapping latent value,the index-key projection old-value read must complete before in-place long-RoPE overwrites it,unless a candidate preserves an independent original-value copy. Rows/tiles may pipeline;this does not require a universal whole-operator barrier. Index publication->long-RoPE is current control order,not proved a universal semantic dependency.",
+    "Requested _write_index_cache/_write_long_cache names are absent from DSA;actual publication is inline and in indexer.update_keys. Their absence was not treated as absence of cache writes."
+  ],
+  "local_questions_answered": [
+    "Actual primitive入口",
+    "Two independent512norm boundaries",
+    "Unrotated latent index reader versus in-place long-RoPE writer",
+    "SWA/index/scale/long packed/fallback publication branches"
+  ],
+  "still_unknown": [
+    "Historical tensor pointers/strides/storage aliases and actual capture-address/event generations.",
+    "Exact backend numerical equivalence for a new tiling or elimination of the materialized BF16 boundary.",
+    "Actual post-load cross-rank parameter replication if projections move across row allgather;not needed as equality between the two distinct matrices for local joint projection.",
+    "Every future cache/rollback/folded-cache observer and ownership generation beyond the scoped direct source subtree.",
+    "End-to-end causal performance of any unimplemented candidate."
+  ],
+  "stop_rule": "Do not reread entire DSA/indexer/SDK. These direct consumer and primitive questions are now answered. Further source reads require a particular conclusion-changing boundary.",
+  "target_implementation_changed": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

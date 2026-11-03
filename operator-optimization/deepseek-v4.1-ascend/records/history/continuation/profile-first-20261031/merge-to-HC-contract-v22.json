@@ -1,0 +1,340 @@
+{
+  "generated_utc": "2026-10-31T03:28:33.870191+00:00",
+  "status": "SCOPED_PROFILE_AND_SOURCE_CONTRACT_REFINED",
+  "findings": [
+    {
+      "id": "C22-1",
+      "grade": "MEASURED",
+      "finding": "All 4472 ForeachAddList executions are retained: 1271 DIRECT, 3200 GRAPH, 1 QUEUE, in 9 shape/context regimes. The 3200 graph pairs are exact structural layer-block pairs, not nearest-time native invocation guesses.",
+      "evidence": {
+        "label": "merge-HC166-v22",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-routed-merge-to-HC-boundary-v22.json",
+        "sha256": "67ea56947962067c41cd3942a6cc37d791dea4db9beec5c609d63eff226fd7db",
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-HC166-v22.json"
+      }
+    },
+    {
+      "id": "C22-2",
+      "grade": "MEASURED",
+      "finding": "All 3200 graph ForeachAddList -> FFN HcPost pairs use the same recorded TASK stream, with 20/20/41 ns minimum/median/maximum boundary gap, no intervening ComputeInfo operator and no overlapping native COMM_OP interval in the gap. 2560 pairs are decode-compatible and 640 remain phase-unbound. This is visible-order evidence, not tensor-pointer identity or causal removable time.",
+      "evidence": [
+        {
+          "label": "merge-HC166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/shared-routed-merge-to-HC-boundary-v22.json",
+          "sha256": "67ea56947962067c41cd3942a6cc37d791dea4db9beec5c609d63eff226fd7db",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-HC166-v22.json"
+        },
+        "shared-MC2-observed-order-contract-v20.json"
+      ]
+    },
+    {
+      "id": "C22-3",
+      "grade": "DERIVED",
+      "finding": "Removing global definition IDs leaves one typed graph-pair signature: BF16 [3,5120] merge -> BF16 [1,3,5120] HC input, with BF16 residual [1,3,4,5120] and FP32 post [1,3,4]/comb [1,3,4,4]. The original 680 full-definition signatures are not 680 shape groups.",
+      "evidence": {
+        "label": "merge-domain-review166-v22",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-row-domain-attribute-identity-and-payload-review-v22.json",
+        "sha256": "765ff128cff0fa1f0cdf6e068d60ed6f80d9c50711c044b182dcb231850150e5",
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-domain-review166-v22.json"
+      }
+    },
+    {
+      "id": "C22-4",
+      "grade": "DOCUMENTED",
+      "finding": "Pinned AscendMoERunner.forward calls torch._foreach_add([shared_output],[fused_output])[0] without alpha. Installed Torch static list-list declaration defaults alpha=1. Any nonunit runner routed scaling is applied earlier by the inherited helper, before the routed output transform and plain add. The effective runner gamma is not newly bound; the model config literal or raw attr_7 cannot substitute for it.",
+      "evidence": [
+        {
+          "label": "merge-HC-source166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-HC-output-source-contract-v22.json",
+          "sha256": "b1e32ce7e9e7534b9147c7ced944c9d23ad04f224fb269b358d747c2086f7db8",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-HC-source166-v22.json"
+        },
+        {
+          "label": "merge-hooks166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-inherited-scale-reduction-and-schema-v22.json",
+          "sha256": "34ef1f4c2104cc05423d44f6188b4c2d7f84aa9b69cecf54f92c26f673ec3342",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-hooks166-v22.json"
+        }
+      ]
+    },
+    {
+      "id": "C22-5",
+      "grade": "DOCUMENTED",
+      "finding": "The current runner returns Tensor; the model legacy tuple muls_add/FP16 reciprocal-scaling path is a separate conditional domain. Runtime comm-dependent reduction hooks, feature-dimension trims, output transforms and optional ZeroExpertRouter contribution cannot be globally deleted. The final reduction override uses static layer/SP policy and context-aware custom ops rather than freezing a capture-time output_is_reduced boolean.",
+      "evidence": [
+        {
+          "label": "merge-HC-source166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-HC-output-source-contract-v22.json",
+          "sha256": "b1e32ce7e9e7534b9147c7ced944c9d23ad04f224fb269b358d747c2086f7db8",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-HC-source166-v22.json"
+        },
+        {
+          "label": "merge-hooks166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-inherited-scale-reduction-and-schema-v22.json",
+          "sha256": "34ef1f4c2104cc05423d44f6188b4c2d7f84aa9b69cecf54f92c26f673ec3342",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-hooks166-v22.json"
+        }
+      ]
+    },
+    {
+      "id": "C22-6",
+      "grade": "DERIVED",
+      "finding": "320 target native merge tensors have M=800, while the raw target native MC2 M regimes are 816 x640 and 834 x320. This rejects a universal same-M raw-MC2-to-final-merge replacement. No individual M800 merge has been assigned to an M816/M834 invocation by ordinal or nearest time. The newly read _maybe_pad_hidden_states helper pads/trims feature dimensions, so it does not explain the token-row mismatch.",
+      "evidence": [
+        {
+          "label": "merge-hooks166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-inherited-scale-reduction-and-schema-v22.json",
+          "sha256": "34ef1f4c2104cc05423d44f6188b4c2d7f84aa9b69cecf54f92c26f673ec3342",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-hooks166-v22.json"
+        },
+        {
+          "label": "merge-domain-review166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-row-domain-attribute-identity-and-payload-review-v22.json",
+          "sha256": "765ff128cff0fa1f0cdf6e068d60ed6f80d9c50711c044b182dcb231850150e5",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-domain-review166-v22.json"
+        }
+      ]
+    },
+    {
+      "id": "C22-7",
+      "grade": "DOCUMENTED",
+      "finding": "The decoder passes final MoE x, the attention-HC residual, FFN post and comb to HC post, then returns hidden_states and ffn_pre. A fusion must preserve all HC channels and the independent next-layer ffn_pre state; previous Engram/auxiliary consumer constraints also persist. Source flow does not close external alias, generation or native tile-ready obligations.",
+      "evidence": [
+        {
+          "label": "merge-HC-source166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-HC-output-source-contract-v22.json",
+          "sha256": "b1e32ce7e9e7534b9147c7ced944c9d23ad04f224fb269b358d747c2086f7db8",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-HC-source166-v22.json"
+        },
+        "F26-consumer-contract-v11.json"
+      ]
+    },
+    {
+      "id": "C22-8",
+      "grade": "DERIVED",
+      "finding": "Two finite FP32/BF16-RNE arithmetic examples distinguish removing a materialization from removing a BF16 rounding boundary: bypassing merge rounding gives 1.5 vs1.5078125; collapsing conditional routed scaling and add gives 0 vs0.00390625. These refute unconditional identities in the explicitly stated arithmetic model, not actual captured-input reachability or native HC binary equivalence.",
+      "evidence": "merge-rounding-and-dependency-review-v22.json"
+    },
+    {
+      "id": "C22-9",
+      "grade": "DERIVED",
+      "finding": "With the observed producer order retained as a constraint, making MC2 completion wait for later SharedDown adds a cycle. Therefore an upstream MC2-epilogue-only merge that preserves this order is excluded in that limited domain. A redesigned kernel or producer schedule is a different domain, not mathematically excluded here.",
+      "evidence": [
+        "merge-rounding-and-dependency-review-v22.json",
+        "shared-MC2-observed-order-contract-v20.json"
+      ]
+    },
+    {
+      "id": "C22-10",
+      "grade": "MEASURED",
+      "finding": "Raw attrInfo->STRING_IDS lookup is retained for all286950 executions/83 types:121920 nonempty string candidates,165030 empty/placeholders,181 op/string groups. All3200 FFN HcPost rows reuse the exact attrInfo ID/text of preceding ForeachAddList. Attribute ownership/exporter association remains unbound; input_2:1 is not an HC parameter and no exporter bug is asserted.",
+      "evidence": [
+        {
+          "label": "compute-attrs166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/saved-COMPUTE-attribute-field-census-v22.json",
+          "sha256": "46e59d2de1773f4e8f9fd0e717b5ae68a99094644986d1613a8cc8b9caf6f147",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/compute-attrs166-v22.json"
+        },
+        {
+          "label": "merge-domain-review166-v22",
+          "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-row-domain-attribute-identity-and-payload-review-v22.json",
+          "sha256": "765ff128cff0fa1f0cdf6e068d60ed6f80d9c50711c044b182dcb231850150e5",
+          "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-domain-review166-v22.json"
+        }
+      ]
+    },
+    {
+      "id": "C22-11",
+      "grade": "DERIVED",
+      "finding": "The summed BF16 merge-output interface payload is8135065600 bytes; a one-write/one-read model is16270131200 bytes, of which graph-only196608000 bytes. These are logical models across captured rank/process records, not actual HBM/network traffic, necessary I/O, request latency or achievable gain. Preserving BF16 rounding does not itself require a DRAM store.",
+      "evidence": {
+        "label": "merge-domain-review166-v22",
+        "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/merge-row-domain-attribute-identity-and-payload-review-v22.json",
+        "sha256": "765ff128cff0fa1f0cdf6e068d60ed6f80d9c50711c044b182dcb231850150e5",
+        "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/merge-domain-review166-v22.json"
+      }
+    },
+    {
+      "id": "C22-12",
+      "grade": "UNKNOWN",
+      "finding": "Loaded native HC rounding/tiling, tensor pointers/all consumers, actual per-tile ready generations, post-hook effects for every replay and physical gain remain unproved. No legal native fusion or complete M06/M12/M13 closure is claimed.",
+      "evidence": "M13-merge-HC-condition-ledger-v22.json"
+    }
+  ],
+  "source_files": [
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py",
+      "sha256": "2f42ce56a7636bf618204dbc2c1aeb2a2c95fed69fe9e5bcfac995354a00beb4",
+      "functions": [
+        {
+          "name": "forward",
+          "start": 157,
+          "end": 246
+        },
+        {
+          "name": "_maybe_reduce_shared_expert_output",
+          "start": 318,
+          "end": 332
+        },
+        {
+          "name": "_maybe_reduce_routed_output_before_transform",
+          "start": 334,
+          "end": 342
+        },
+        {
+          "name": "_maybe_reduce_final_output",
+          "start": 344,
+          "end": 357
+        },
+        {
+          "name": "apply_routed_input_transform",
+          "start": 364,
+          "end": 378
+        },
+        {
+          "name": "apply_routed_output_transform",
+          "start": 380,
+          "end": 387
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "functions": [
+        {
+          "name": "hc_post",
+          "start": 871,
+          "end": 877
+        },
+        {
+          "name": "forward",
+          "start": 879,
+          "end": 920
+        },
+        {
+          "name": "forward_tail",
+          "start": 300,
+          "end": 328
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm/vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+      "sha256": "05893188402fe37229bf72d75088d66193c417d5d502daafd3a55e1bfedaa60c",
+      "functions": [
+        {
+          "name": "_maybe_apply_routed_scale_to_output",
+          "start": 400,
+          "end": 417
+        },
+        {
+          "name": "_fused_output_is_reduced",
+          "start": 420,
+          "end": 424
+        },
+        {
+          "name": "_maybe_pad_hidden_states",
+          "start": 527,
+          "end": 584
+        },
+        {
+          "name": "_maybe_add_zero_expert_output",
+          "start": 665,
+          "end": 679
+        }
+      ]
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py",
+      "sha256": "2f42ce56a7636bf618204dbc2c1aeb2a2c95fed69fe9e5bcfac995354a00beb4",
+      "functions": [
+        {
+          "name": "_fused_output_is_reduced",
+          "start": 277,
+          "end": 288
+        },
+        {
+          "name": "_get_shared_expert_parallel_mode",
+          "start": 290,
+          "end": 294
+        },
+        {
+          "name": "_should_reduce_routed_before_combine",
+          "start": 305,
+          "end": 313
+        }
+      ]
+    }
+  ],
+  "installed_torch_static_schema": {
+    "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_C/_VariableFunctions.pyi",
+    "sha256": "c478a2696e0e72fe8d1c5cff8984078bae9c9af2c340e7bc5ca3c6a4e0d29226",
+    "definition_lines": [
+      1572,
+      1577,
+      1584,
+      1591
+    ],
+    "exact_schema_context": [
+      "1571: @overload",
+      "1572: def _foreach_add(",
+      "1573:     self: tuple[Tensor, ...] | list[Tensor] | None,",
+      "1574:     scalars: Sequence[Number | _complex],",
+      "1575: ) -> tuple[Tensor, ...]: ...",
+      "1576: @overload",
+      "1577: def _foreach_add(",
+      "1578:     self: tuple[Tensor, ...] | list[Tensor] | None,",
+      "1579:     other: tuple[Tensor, ...] | list[Tensor] | None,",
+      "1580:     *,",
+      "1581:     alpha: Number | _complex = 1,",
+      "1582: ) -> tuple[Tensor, ...]: ...",
+      "1583: @overload",
+      "1584: def _foreach_add(",
+      "1585:     self: tuple[Tensor, ...] | list[Tensor] | None,",
+      "1586:     other: Tensor,",
+      "1587:     *,",
+      "1588:     alpha: Number | _complex = 1,",
+      "1589: ) -> tuple[Tensor, ...]: ...",
+      "1590: @overload",
+      "1591: def _foreach_add(",
+      "1592:     self: tuple[Tensor, ...] | list[Tensor] | None,",
+      "1593:     scalar: Number | _complex,",
+      "1594: ) -> tuple[Tensor, ...]: ...",
+      "1595: @overload",
+      "1596: def _foreach_add_(",
+      "1597:     self: tuple[Tensor, ...] | list[Tensor] | None,",
+      "1598:     scalars: Sequence[Number | _complex],"
+    ]
+  },
+  "graph_boundary_shape_signature": {
+    "signature": {
+      "HC": {
+        "blockNum": 3,
+        "inputDataTypes_text": "DT_BF16;DT_BF16;FLOAT;FLOAT",
+        "inputShapes_text": "\"1,3,5120;1,3,4,5120;1,3,4;1,3,4,4\"",
+        "mixBlockNum": 0,
+        "opType_text": "HcPost",
+        "outputDataTypes_text": "DT_BF16",
+        "outputShapes_text": "\"1,3,4,5120\""
+      },
+      "merge": {
+        "blockNum": 48,
+        "inputDataTypes_text": "DT_BF16;DT_BF16;FLOAT",
+        "inputShapes_text": "\"3,5120;3,5120;\"",
+        "mixBlockNum": 0,
+        "opType_text": "ForeachAddList",
+        "outputDataTypes_text": "DT_BF16",
+        "outputShapes_text": "\"3,5120\""
+      }
+    },
+    "pairs": 3200
+  },
+  "current_add_alpha": 1,
+  "current_effective_runner_gamma": null,
+  "loaded_native_HC_rounding_proved": false,
+  "legal_native_fusion_proved": false,
+  "measured_gain": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

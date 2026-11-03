@@ -1,0 +1,232 @@
+{
+  "wio-vllm-v41-repro169-stage-20261028": {
+    "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+    "readonlyrootfs": true,
+    "mount_destinations": [
+      "/usr/local/Ascend/driver",
+      "/usr/local/bin/npu-smi",
+      "/work",
+      "/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8"
+    ]
+  },
+  "wio-vllm-v41-binding-diag2-169-20261029": {
+    "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+    "readonlyrootfs": true,
+    "mount_destinations": [
+      "/bench-inputs",
+      "/data/tiankuan/wio/DeepSeek-V4.1-Flash-1017-w8a8",
+      "/tmp",
+      "/etc/hccn.conf",
+      "/usr/local/bin/npu-smi",
+      "/etc/ascend_install.info",
+      "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash",
+      "/usr/local/Ascend/driver",
+      "/usr/local/dcmi"
+    ]
+  },
+  "source": {
+    "engram/common.py": {
+      "sha256": "4797b8962264d137cdb142a9988825288283092fb797ddbd334c6ab2223eb58d",
+      "lines": [
+        [
+          55,
+          "    \"\"\"Apply original-basis gating, undoing checkpoint rotation when present."
+        ],
+        [
+          56,
+          ""
+        ],
+        [
+          57,
+          "    ``hidden`` and ``key`` have shape [tokens, hc_mult, hidden_size]."
+        ],
+        [
+          58,
+          "    The saved rotation consists of identical diagonal blocks. Restore hidden"
+        ],
+        [
+          59,
+          "    in FP32; the value projection already includes the forward rotation."
+        ],
+        [
+          60,
+          "    \"\"\""
+        ],
+        [
+          61,
+          "    dim = hidden.shape[-1]"
+        ],
+        [
+          62,
+          "    original = hidden.float()"
+        ],
+        [
+          63,
+          "    if rotation_block is not None:"
+        ],
+        [
+          64,
+          "        original = (original.unflatten(-1, (-1, rotation_block.shape[0])) @ rotation_block.float().T).flatten(-2)"
+        ],
+        [
+          65,
+          "    key = key.float()"
+        ],
+        [
+          66,
+          "    rstd = torch.rsqrt(original.square().mean(-1) + eps)"
+        ],
+        [
+          67,
+          "    rstd *= torch.rsqrt(key.square().mean(-1) + eps)"
+        ],
+        [
+          68,
+          "    dot = (original * channel_weight.float() * key).sum(-1) * rstd * dim**-0.5"
+        ],
+        [
+          69,
+          "    magnitude = dot.abs().clamp_min(1e-6).sqrt()"
+        ],
+        [
+          70,
+          "    gate = torch.sigmoid(torch.where(torch.signbit(dot), -magnitude, magnitude))"
+        ],
+        [
+          71,
+          "    gate = gate.masked_fill(~token_mask.unsqueeze(-1), 0)"
+        ],
+        [
+          72,
+          "    return (hidden.float() + gate.unsqueeze(-1) * value.float().unsqueeze(-2)).to(hidden.dtype)"
+        ]
+      ]
+    },
+    "engram/embedding.py": {
+      "sha256": "a7741ed16522be4fe607e062e1c988c4e2435af7d258fe7db99f672d4508c4c9",
+      "lines": [
+        [
+          333,
+          "    def embed_gathered(self, gathered: torch.Tensor, num_tokens: int) -> torch.Tensor:"
+        ],
+        [
+          334,
+          "        \"\"\"Embed ids already gathered across the EDP group."
+        ],
+        [
+          335,
+          ""
+        ],
+        [
+          336,
+          "        ``gathered`` is ``[slot * EDP, n_hash_cols]`` rank-major; each replica"
+        ],
+        [
+          337,
+          "        keeps its own ``num_tokens`` window. Returns ``[num_tokens, n_hash_cols,"
+        ],
+        [
+          338,
+          "        dim]`` bf16 with the heads back in checkpoint order."
+        ],
+        [
+          339,
+          "        \"\"\""
+        ],
+        [
+          340,
+          "        # The kernel walks ids as [token, columns] with a unit inner stride, and"
+        ],
+        [
+          341,
+          "        # `gathered` is a slice of a [tokens, layers, columns] buffer."
+        ],
+        [
+          342,
+          "        gathered = gathered.contiguous()"
+        ],
+        [
+          343,
+          "        out = torch.zeros("
+        ],
+        [
+          344,
+          "            (gathered.shape[0], self.part_n_hash_cols, self.dim),"
+        ],
+        [
+          345,
+          "            dtype=torch.bfloat16,"
+        ],
+        [
+          346,
+          "            device=gathered.device,"
+        ],
+        [
+          347,
+          "        )"
+        ],
+        [
+          348,
+          "        self.lookup(gathered, out)"
+        ]
+      ]
+    },
+    "engram/layer.py": {
+      "sha256": "dc9457c88aa3c90133115bc608447e037b0693f8db71bb8da37f1ead44021f80",
+      "lines": [
+        [
+          41,
+          "        kv = self.wkv(rows)"
+        ],
+        [
+          42,
+          "        if ("
+        ],
+        [
+          43,
+          "            rotation is None"
+        ],
+        [
+          44,
+          "            and hidden_states.device.type == \"npu\""
+        ],
+        [
+          45,
+          "            and get_current_hardware_profile().supports(HardwareCapability.ENGRAM_UNROTATED_GATE)"
+        ],
+        [
+          46,
+          "        ):"
+        ],
+        [
+          47,
+          "            return fused_engram_gate(hidden_states, kv, self.q_weight, self.k_weight, token_mask, self.eps)"
+        ],
+        [
+          48,
+          "        key, value = kv.split([self.hc_mult * self.dim, self.dim], -1)"
+        ],
+        [
+          49,
+          "        return engram_gate("
+        ],
+        [
+          50,
+          "            hidden_states,"
+        ],
+        [
+          51,
+          "            key.view(hidden_states.shape[0], self.hc_mult, self.dim),"
+        ],
+        [
+          52,
+          "            value,"
+        ],
+        [
+          53,
+          "            self.q_weight.float() * self.k_weight.float(),"
+        ]
+      ]
+    }
+  }
+}

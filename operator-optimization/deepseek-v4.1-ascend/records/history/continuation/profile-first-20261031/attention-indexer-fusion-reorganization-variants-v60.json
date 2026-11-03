@@ -1,0 +1,108 @@
+{
+  "generated_utc": "2026-10-31T18:57:16.434209+00:00",
+  "variants": [
+    {
+      "id": "F12-BITMAP",
+      "proposal": "Publishcandidate membershipbitmap oncepersource-query andshare4consumer layers, replacingrepeated2048blocksort/membershipsearch.",
+      "decision": "CONDITIONAL_PRIORITY",
+      "conditions": "Currentlogicaluniverse≤4352blocks→544B vs8192Blist/query. Preserveoriginalscoreorderedcandidateoutput ifotherreadersneed;newbitsetsameisOut;row/generation/clearinvalidsuffix/producerreadinessmustmatch. Existingcandidatebanksharingisbaseline.",
+      "work_delta": "RemoveconsumerlocalSortAll2048 anddistance-membershiploops;bitmapbuild/readcosts andnativeS2partitionrepetitionnotmeasured. NoQKworkreductionfrombitmapalone."
+    },
+    {
+      "id": "F12-PREFILTER-FILL",
+      "proposal": "Gathercandidate-memberkeys beforeCube andsynthesizeexcludedNEG_HUGEscorepositionsforunchangedsort/merge.",
+      "decision": "CONDITIONAL_PRIORITY",
+      "conditions": "FiniteFP16weightproduct/keyscale andsameINT8/DEQF16/head-reduce path;fixednativefillers/ties/masks/outputoffset/pin preserved. Insufficienteligiblekeys needoriginaloutsidefillerpositions;nonfinite fallback/separatecontract. Physicalpage/scale stride and64bitaddressing retained.",
+      "work_delta": "CurrentconsumerfullLQK→eligibleE,withE≤min(L,2048*8),notautomatic2xspeedup. Retainingoriginalfullscoresortcanpreservefiller/tiecontractandcost."
+    },
+    {
+      "id": "F12-PREPARE",
+      "proposal": "QLIfinalTopKepilogue performvisibilityfilter/chronologicalsort/lengths andwritestablepreparedindexbank.",
+      "decision": "CONDITIONAL",
+      "conditions": "Keepcandidate_outforlaterlayers andallvalidity/sentinel/int32ordering/outputbankreaders. CurrentallT≤834 areunderfusedlengththreshold1024whenlengthoutputprovided. Stablebankwrite4T512 remains.",
+      "work_delta": "Eliminate8T512 rawselectedwrite/read,notallpublishedindices. TopKglobalmerge completionandsortcostremain."
+    },
+    {
+      "id": "F12-SELF-COPY",
+      "proposal": "Elidepostpreparepublicationcopyontoidenticalstableoutputrange.",
+      "decision": "SOURCE_ALIAS_RESOLVED_CONDITIONAL",
+      "conditions": "Exactcurrenthelperreturnsindices_output. Keepstorageversion/debug/capture/autogradhookobserversifpresent. NoextraTensorMovekernelcountorHBMgainasserted.",
+      "work_delta": "Potentialsubmission/selfcopyoverheadonly;sourceidentitydoesnotmeasuredevicecopywork."
+    },
+    {
+      "id": "F12-HEAD-REDUCE",
+      "proposal": "Reduce16duplicatedFP16head-reductionrows oruseequivalentVectorreduction.",
+      "decision": "CONDITIONAL_NUMERICAL_VARIANT",
+      "conditions": "PreserveINT32→DEQF16ReLU/1024,FP16(weight*queryScale) andFP32Cubeheadreductionnumerics;Vectorordernotautomaticallysame. RepriceCube/VectorandweightGMbroadcast.",
+      "work_delta": "CurrentComputeWs requestsM16 butFixpoutputsoneusefulrow;16xrequest/usefulFP16headops isnot16xwholeoperatorpotential."
+    },
+    {
+      "id": "F09-ROPE-QUANT",
+      "proposal": "FuseindexquerypartialRoPE andperheadINT8quantization.",
+      "decision": "CONDITIONAL",
+      "conditions": "RoundrotatedvaluesasBF16beforerowamax;full128headscale,roundedFP16scale/div_rn/nearbyint/min2^-24 andquant/scaleownershippreserved. Preexistingquantizekernelalreadyfusesamax/quant.",
+      "work_delta": "RemoveonlyintermediateRotatedqueryinterfaces/launches;scalereductionandquantremain."
+    },
+    {
+      "id": "F10-WEIGHT-EPILOGUE",
+      "proposal": "Projectweightsepilogue emitsrequiredFP16scaledweights.",
+      "decision": "CONDITIONAL",
+      "conditions": "PreserveBF16projectionround→FP32cast*weights_scale→FP16round andallreaders;separateQLIFP16weight*queryScale round stilllive.",
+      "work_delta": "RemoveCast/Mul/recastexternalinterfaces onlyifnootherFP32reader;notfoldunroundedaccumulator."
+    },
+    {
+      "id": "F11-KEY-CACHE",
+      "proposal": "FuseindexkeyNorm/RoPE/DynamicQuant/FP16scalepublication withkey+scaleScatter.",
+      "decision": "CONDITIONAL",
+      "conditions": "PreserveBF16norm/RoPE,inputquantizerandfloat→halfscaleorder,slotskip/physicalpage/stridesandcoherentkey-scalevisibility. Queryquantizerisnotassumedkeydrop-in.",
+      "work_delta": "Reducekey/scaleintermediatesandlaunches;cachewrites remainforfutureiterations/readers."
+    },
+    {
+      "id": "F13-INTERNAL-QUEUE",
+      "proposal": "RetileSMLA score/exponential/PV/gatherGMqueues forcachelocality orsupportedonchip handoff.",
+      "decision": "CONDITIONAL_HARDWARE_AND_NUMERICS",
+      "conditions": "Architecture22legalhandoff/capacity/ownershipandflags required;wholematrixdoesnotfitautomatically. PreserveBF16exptilecast,onlineSoftmax/sink/max/sum/PVorder. Ifnodirecthandoff,GMqueue/L2reuse remains.",
+      "work_delta": "Source12Hsum(n) score+expGMinterface islogicalnotHBM;neverclaimall12Hsum(n) eliminatedwithoutlegalhandoff."
+    },
+    {
+      "id": "F13-SWA-CMP-SPLIT",
+      "proposal": "RunSWApartialattentionbeforeIndexerfinishes,thenmergecompressedattention.",
+      "decision": "CONDITIONAL_NEW_STATE_AND_NUMERICS",
+      "conditions": "Expose(m,l,a)partialstatesorcompatiblecontract,includeSinkexactlyonce;keeporiginalonlineBF16tilerounding/orderifexactfidelityrequired. ExistingnormalizedBF16outputs alone+disabledLSE areinsufficient. SWAKVready/resourcecompetition/extralaunches priced.",
+      "work_delta": "SWAdoesnotdependonselectedcompressedindices,sooffersdependencyreordering. NeitherSWAworknorcompressionworkisdeleted."
+    },
+    {
+      "id": "F14-SMLA-ROPE-LAYOUT",
+      "proposal": "SMLAepilogue producesinverse-RoPEandsend-layout outputdirectly.",
+      "decision": "CONDITIONAL",
+      "conditions": "PreserveSMLABF16round→64tailrotaryBF16round;unchangedunrotated448dims,valid/paddingrows,aliasconsumers/row-headcollectiveprotocol.",
+      "work_delta": "Tailonly4TH64 plusmaterializedlayout4TH512 bytes;M3combined442368B. SMLAfinaloutput/collectiveinputnotdeleted."
+    },
+    {
+      "id": "F12-CROSSCARD-KEYPARTITION",
+      "proposal": "RepartitionkeyscansacrossTPandmergelocalTopK.",
+      "decision": "CONDITIONAL_REPARTITION_NOT_FREE_TP_FACTOR",
+      "conditions": "Fullquery/headscoreidentity andkey/cacheownership/candidateblock8groups first. TopK(localcomplete-key-scores)merge needscommontiecomparator;headpartialTopKunionisnotgenerallyvalid. Numerics/communication/rowownership preserved.",
+      "work_delta": "IfcurrentrowsareTPsharded,changingfromMlocal*LtoTP*Mlocal*(L/TP) keepspercardarithmetic unchanged,plusexchange. Shape/full32heads doesnotprove8xduplicatequerywork."
+    },
+    {
+      "id": "F12-CROSSITER-DELTA",
+      "proposal": "ReuseoldperkeyQLIscores andscoreonlyappendedkeys.",
+      "decision": "REJECT_UNCONDITIONAL_CONDITIONAL_IDENTITY_DOMAIN",
+      "conditions": "Oldquantizedquery/roundedqscale/FP16weights+product,oldkey/scalegenerations,visiblemask/candidate/pin/outputoffset/tiepolicy mustallmatch;appendedkeys/rollbackthenupdateexacttopK. Newtokennormallychangesquery,so cachegrowthalone doesnotqualify.",
+      "work_delta": "Explicit2keyquery-change witness reversesTopK. Noautomaticcrossiterationfullscanremoval orscore reusegainclaimed."
+    }
+  ],
+  "interactions": [
+    "BITMAPandPREFILTER composebutmembershipwork countedonce;bitmapalonekeepsfullCube scan.",
+    "PREPAREplusQLI-SMLAcompositecannoterasestableindices/candidatesbecauseotherlayersreadthem.",
+    "SWA-CMP-SPLIT competeswithfullSMLAfusion/queueelimination andchangesonlineorder/newstate,soitsgaincannotbeaddedfreely.",
+    "SMLA-ROPEandlayoutinterfacebytescountedonce;RoPEtailonlyandfulltransposearetwodistinctoperations.",
+    "Crosscardkeypartition isanalternativeworkpartition,notadditionalTPdivisiononexistingquerysharding."
+  ],
+  "conditional_operator_analysis_deliverable": true,
+  "implementation": false,
+  "native_test": false,
+  "measured_speedup": null,
+  "overall_complete": false
+}

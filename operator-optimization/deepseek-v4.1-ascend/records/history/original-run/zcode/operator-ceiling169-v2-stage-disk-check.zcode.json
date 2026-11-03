@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_0efe4ea5-e105-4fad-87c4-a6f3ba668200",
+  "traceId": "00dba07f-5e12-474f-beca-e97a2dcdd4df",
+  "turnId": "turn_9374d192-1fe8-473c-b7e5-7fc90838a05f",
+  "response": "Command ran successfully — exit code **0**, no stderr output.\n\nFull output verbatim:\n\n```\nFilesystem                      Size  Used Avail Use% Mounted on\noverlay                          56T  2.7T   54T   5% /\n/dev/mapper/data--vg-data--lvm   56T  2.7T   54T   5% /work\n```\n\nTwo things worth noting for the failed temporary-file diagnosis:\n\n- `/tmp` is not a separate mount. `df` resolved it to the container's overlay root filesystem (the `overlay` line, mounted at `/`), so the `/tmp` capacity is the root filesystem's: 56T total, 2.7T used, 54T available, 5% used.\n- `/work` is a distinct block device (`/dev/mapper/data--vg-data--lvm`) with identical figures: 56T size, 2.7T used, 54T available, 5% used.\n\nNeither filesystem is near capacity, so the earlier \"no space left\" style failure on temporary-file creation is not explained by running out of bytes on `/tmp` or `/work`. Possible causes that this output does not rule out include inode exhaustion (not shown by `df -h`, would need `df -i`), an overlay upper-dir or quota limit, a different `TMPDIR` path on another mount, or a limit on file size/count. I ran only the requested command and did not investigate further.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 2,
+    "inputTokens": 19174,
+    "outputTokens": 1237,
+    "totalTokens": 20411,
+    "cacheReadTokens": 9600,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1164,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 20411,
+    "contextUsed": 10677,
+    "contextWindow": 200000
+  }
+}

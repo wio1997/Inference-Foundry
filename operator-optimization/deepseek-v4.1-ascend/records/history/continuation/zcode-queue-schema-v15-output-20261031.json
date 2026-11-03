@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_ad6ce1d6-1727-43bd-90d0-0e7fe4e50b57",
+  "traceId": "4d46e914-0314-4c71-8d58-301ad088c23c",
+  "turnId": "turn_01a353ab-c6af-44dd-bf22-367f28c5a03f",
+  "response": "已执行一次准备好的只读查询，未修改、未扩展、未重试。\n\n**真实结果**\n\n- rc = 0（remote_run 回执与脚本内均无异常；stderr 为空，stdout 除一行 JSON 外无 plog 残留）\n- result_sha256 = `3e3bb9f5723fb8815e43111914c7649f6b774ea4010d1cd0f751d30837615a7a`\n- 回执: `queue-schema166-v15.json`；完整结果: `/data/.../native-execution-identity-v14/queue-schema-and-ID-relations-v15.json`（输出文件原本不存在，`assert not OUT.exists()` 通过）\n- 观测时间: 2026-10-30T23:53:52Z（回执）/ 23:54:58Z（结果生成）\n\n**summary**\n\n- databases = 5，tasks = 10\n- queue_table_names = `CONNECTION_IDS`, `ENUM_API_TYPE`, `PYTORCH_API`, `PYTORCH_CALLCHAINS`\n- tasks_with_CONNECTION_IDS_rows = 10/10\n- tasks_with_shared_value_API_candidates = 10/10\n- no_target_source_or_device_work = true，overall_complete = false\n\n**schema 事实（非推断）**\n\n- `CONNECTION_IDS` 只有两列 `id INTEGER`、`connectionId INTEGER`，无主键。\n- `PYTORCH_API` 的 `name` 是整数外键（STRING_IDS），连接键为 `connectionId`。\n- 全部 `Enqueue@*` / `Dequeue@*` 行的 `type` 都是 50002；仅两条 vLLM Python 侧名字（`shm_broadcast.py(823): enqueue`、`multiproc_executor.py(982): enqueue_output`）为 50003。每个 op 名的 Enqueue 与 Dequeue 计数成对相等。\n- 示例中一个 `id` 可对应多个 `connectionId`（同一 connectionId 值也出现在多行），因此按\"共享数值\"匹配出的 PYTORCH_API 行仍只是候选。\n\n**边界**：这些 Enqueue→Dequeue/PYTORCH_API 关联只是诊断性候选；未做跨数值空间的提升、未按最近时间提升，`overall_complete=false`，不能当作已确认的队列语义或完整链路。结果与本次结论已存入项目记忆。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 78585,
+    "outputTokens": 2839,
+    "totalTokens": 81424,
+    "cacheReadTokens": 60416,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1673,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 81424,
+    "contextUsed": 20571,
+    "contextWindow": 200000
+  }
+}

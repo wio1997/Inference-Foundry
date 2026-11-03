@@ -1,0 +1,89 @@
+{
+  "variants": [
+    {
+      "id": "F20-PAD3",
+      "mechanism": "Replace three MC2 pure padding calls by one three-output producer",
+      "effect": "Remove private call helper subgraphs under complete output/API contract; same required pad payload, plus removal of known BOOL conversions.",
+      "condition": "All outputs ready at required readers; hidden/logits/mask ownership and generation/capture/error semantics preserved. No automatic critical-path gain.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "F20-PRODUCER",
+      "mechanism": "Write padded hidden/logits in their respective upstream producers and generate aligned mask directly",
+      "effect": "Avoid intermediates rather than copy them through a second pad kernel.",
+      "condition": "Preserve full-row RMS/router FP32 numerical domain, BF16 rounding, shared live hidden readers and MC2 output ABI. Existing F20 mechanism; no unproved cross-layer CSE.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "F20-VIRTUAL",
+      "mechanism": "Teach MC2/routing readers to interpret virtual zero/false padded rows",
+      "effect": "May avoid materialized padding and padded row work.",
+      "condition": "Requires new consumer/dispatch/EP-count/workspace contract. Existing fused MC2 baseline and distributed ordering retained; cannot merely change 816 to 800.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "F28-LOCAL",
+      "mechanism": "Directly materialize only the SP-owned output rows of each pure pad",
+      "effect": "Cut the full global pad invocation and its private helpers; rank-specific row map, true/zero tails preserved.",
+      "condition": "Fresh functional outputs/capture ownership; input row readiness and downstream row correspondence. Entire native operator replacement, not independent MemSet deletion.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "F28-JOINT",
+      "mechanism": "Combine SP row selection with HC4 initialization, IDs, mask and initial premix",
+      "effect": "Use existing v67 direct initializer value map; new owner evidence identifies which pad helper subgraphs are in scope.",
+      "condition": "No hidden numerical arithmetic added; supplied True prefix retained; no-query KV/global restore/collectives still live. IDs/mask/premix all reader and bank protocols remain.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "F28-NOPAD",
+      "mechanism": "Specialize aligned no-pad branch",
+      "effect": "Can create a new direct functional output but cannot replace current clone by input view under existing alias contract.",
+      "condition": "No such no-pad invocation is established by this 104-initialization padding population.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "EXCLUDED-MEMSET-ONLY",
+      "mechanism": "Delete an isolated MemSet because PadV3 follows",
+      "effect": "EXCLUDED_AS_UNPROVED",
+      "condition": "1272 owners are bound; actual destination, byte length, overlap and workspace-vs-payload remain absent.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "EXCLUDED-DOUBLECOUNT",
+      "mechanism": "Add unknown MemSet bytes to mandatory full Pad output writes as independent traffic",
+      "effect": "EXCLUDED_AS_UNPROVED",
+      "condition": "Overlap between helper writes and required output/pad writes is unknown; logical copy model is not HBM traffic.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    },
+    {
+      "id": "EXCLUDED-ZERO-RANK",
+      "mechanism": "Drop the full draft decoder on ranks owning no query rows",
+      "effect": "EXCLUDED_BY_EXISTING_GLOBAL_KV_AND_COLLECTIVE_CONTRACT",
+      "condition": "SP output row V=0 does not remove KV publication/head restoration/global collective participants.",
+      "candidate_newly_discovered": false,
+      "legal_fusion_proved": false,
+      "measured_speedup": null
+    }
+  ],
+  "count": 9,
+  "new_model_candidates": 0,
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

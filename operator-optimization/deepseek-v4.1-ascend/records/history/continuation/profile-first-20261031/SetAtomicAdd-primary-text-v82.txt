@@ -1,0 +1,397 @@
+
+
+
+  
+
+    
+
+    
+
+    
+Ascend C
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+var _hmt=_hmt||[];(function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?0814059bc7b4d1effb73a5726d6763fb";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)})();
+
+    
+(()=>{const e=localStorage.getItem("vitepress-theme-appearance")||"auto",a=window.matchMedia("(prefers-color-scheme: dark)").matches;(!e||e==="auto"?a:e==="dark")&&document.documentElement.classList.add("dark")})();
+
+    
+document.documentElement.classList.toggle("mac",/Mac|iPhone|iPod|iPad/i.test(navigator.platform));
+
+    
+const load=()=>{import("/pagefind/pagefind.js").then(e=>{window.__pagefind__=e,e.init()}).catch(()=>{})};window.requestIdleCallback?window.requestIdleCallback(load):setTimeout(load,0);
+
+  
+
+  
+
+    
+Skip to content
+Ascend C
+搜索
+ Main Navigation 
+首页
+AscendC算子开发指南
+Ascend C API
+Appearance
+版本
+全量
+Ascend 950
+Atlas A3
+Atlas A2
+Atlas 训练系列
+Atlas 推理系列
+Atlas 200I/500 A2
+Kirin X90处理器系列产品
+Kirin 9030处理器系列产品
+Menu
+Return to top
+ Sidebar Navigation 
+本页内容
+1. 产品支持情况
+2. 功能说明
+3. 函数原型
+4. 参数说明
+5. 数据类型
+6. 返回值说明
+7. 约束说明
+8. 调用示例
+On this page
+Ascend C API
+SIMD API
+基础API
+原子操作
+SetAtomicAdd
+...
+SetAtomicAdd
+产品支持情况
+​
+Ascend 950PR&950DT系列产品：支持
+Atlas A3系列产品：支持
+Atlas A2系列产品：支持
+Atlas 200I/500 A2推理产品：支持
+Atlas推理系列产品AI Core：支持
+Atlas推理系列产品Vector Core：不支持
+Atlas训练系列产品：支持
+功能说明
+​
+头文件路径为：
+"basic_api/kernel_operator_set_atomic_intf.h"
+。
+对后续目的地址为GM的数据搬运开启原子累加。原子累加过程：将待拷贝的内容和GM已有内容进行求和，然后将求和结果写入GM。SetAtomicAdd接口可通过模板参数设定不同的累加数据类型。
+函数原型
+​
+C++
+template
+ 
+<
+typename
+ 
+T
+>
+
+
+__aicore__
+ 
+inline
+ 
+void
+ 
+SetAtomicAdd
+()
+
+
+参数说明
+​
+表1
+ 模板参数说明
+参数名
+描述
+T
+设定不同的原子累加操作数据类型。
+数据类型
+​
+Ascend 950PR&950DT系列产品，支持的数据类型为int8_t、int16_t、half、bfloat16_t、int32_t、float。
+Atlas A3系列产品，支持的数据类型为int8_t、int16_t、half、bfloat16_t、int32_t、float。
+Atlas A2系列产品，支持的数据类型为int8_t、int16_t、half、bfloat16_t、int32_t、float。
+Atlas 200I/500 A2推理产品，支持的数据类型为int16_t、half、int32_t、float。
+Atlas推理系列产品AI Core，支持的数据类型为int16_t、half、float。
+Atlas训练系列产品，支持的数据类型为float。
+返回值说明
+​
+无
+约束说明
+​
+Ascend 950PR&950DT系列产品，支持的数据通路为UB/L0C Buffer->GM。
+Atlas A3系列产品，支持的数据通路为UB/L0C Buffer/L1 Buffer->GM。
+Atlas A2系列产品，支持的数据通路为UB/L0C Buffer/L1 Buffer->GM。
+Atlas 200I/500 A2推理产品，支持的数据通路为UB/L0C Buffer/L1 Buffer->GM。
+Atlas推理系列产品AI Core，支持的数据通路为UB->GM。
+Atlas训练系列产品，支持的数据通路为UB->GM。
+累加操作完成后，建议通过
+DisableDmaAtomic
+关闭原子累加，以免影响后续相关指令功能。
+该接口执行前不会自动清零GM数据。开发者需根据算子逻辑判断是否清零，如需清零，请在执行前手动完成。
+SetAtomicAdd内部已集成与
+SetAtomicType
+相同的功能。建议调用上述接口时，通过设置模板参数显式指定原子操作的数据类型，无需额外调用SetAtomicType接口。
+针对
+NPU架构版本2201
+，整数类型和bfloat16_t数据类型的默认计算模式
+均为非饱和模式
+。原子累加的饱和模式无法通过
+SetSaturationStrategy
+或
+SetCtrlSpr
+设置，需通过
+npu-smi
+命令在设备级进行配置，各命令的详细说明请参考
+Ascend HDK对应产品的《npu-smi命令参考》
+。CANN与Ascend HDK的对应关系，请参考
+版本配套查询助手
+。
+整数类型：设置饱和模式（溢出值饱和为目标数据类型的最大值或最小值）或截断模式（即非饱和模式，溢出值保留低位、舍弃高位，默认为非饱和模式）。
+Bash
+# 设置整数类型的饱和模式，value取1表示饱和模式，取0表示截断模式（非饱和模式，默认值）
+
+npu-smi
+ 
+set
+ 
+-t
+ 
+int-saturation-mode
+ 
+-d
+ 
+value
+
+
+# 查询当前配置
+
+npu-smi
+ 
+info
+ 
+-t
+ 
+int-saturation-mode
+
+bfloat16_t：设置饱和模式（INF饱和为±MAX、NAN饱和为0）或非饱和模式（INF/NAN保持原输出，默认为非饱和模式）。
+Bash
+# 设置bfloat16_t的饱和模式，value取1表示饱和模式，取0表示非饱和模式（默认值）
+
+npu-smi
+ 
+set
+ 
+-t
+ 
+bf16-saturation-mode
+ 
+-d
+ 
+value
+
+
+# 查询当前配置
+
+npu-smi
+ 
+info
+ 
+-t
+ 
+bf16-saturation-mode
+
+若未设置过bfloat16_t的饱和计算模式（例如设备重启后配置被清除），查询命令的回显如下：
+Text
+The valid state is not set, please set saturation mode first.
+Failed to query "bf16-saturation-mode" info.
+
+若当前设备不支持上述命令，设置命令与查询命令的回显如下（以int-saturation-mode为例）：
+Text
+This device does not support setting int-saturation-mode.
+This device does not support querying int-saturation-mode.
+
+上述命令需由root用户在物理机+特权容器场景或直通虚拟机+特权容器场景下执行；设备重启后配置不保留，整数类型的饱和模式恢复为默认的截断模式，bfloat16_t的饱和模式配置被清除。
+调用示例
+​
+C++
+AscendC
+::
+LocalMemAllocator
+<
+AscendC
+::
+Hardware
+::
+UB
+>
+ 
+ubAllocator
+;
+
+
+AscendC
+::
+LocalTensor
+<
+T
+>
+ 
+srcLocal
+ 
+=
+ 
+ubAllocator
+.
+Alloc
+<
+T
+,
+ 
+SIZE
+>
+();
+
+
+
+AscendC
+::
+DisableDmaAtomic
+();
+
+
+AscendC
+::
+DataCopy
+(
+srcLocal
+,
+ 
+srcGlobal
+,
+ 
+SIZE
+);
+
+
+AscendC
+::
+SetFlag
+<
+AscendC
+::
+HardEvent
+::
+MTE2_MTE3
+>
+(
+EVENT_ID0
+);
+
+
+AscendC
+::
+WaitFlag
+<
+AscendC
+::
+HardEvent
+::
+MTE2_MTE3
+>
+(
+EVENT_ID0
+);
+
+
+AscendC
+::
+SyncAll
+();
+
+
+
+// 开启原子累加，将Unified Buffer（UB）数据原子累加到GM
+
+
+AscendC
+::
+SetAtomicAdd
+<
+T
+>
+();
+
+
+AscendC
+::
+DataCopy
+(
+dstGlobal
+,
+ 
+srcLocal
+,
+ 
+SIZE
+);
+
+
+
+// 关闭原子累加
+
+
+AscendC
+::
+DisableDmaAtomic
+();
+
+
+完整样例请参考
+DataMovementWithAtomicOperations样例
+。
+版本 
+master
+ 提交 
+91c071aff07f
+构建于 
+2026/10/31 19:08:59
+包含未提交修改
+ 在 Gitcode 上打开此页 
+源文档更新于: 
+Pager
+上一页
+2.2.12.2. 关键特性说明
+下一页
+2.2.12.4. SetAtomicType
+免责声明：本站内容由 
+asc-devkit
+ 仓 master 分支自动编译生成，属于持续开发版本，可能存在缺陷，仅供预览与参考。如需稳定及商用资料，请查阅官方 
+昇腾社区
+。
+Copyright Huawei Technologies Co., Ltd.
+
+    
+    
+  
+

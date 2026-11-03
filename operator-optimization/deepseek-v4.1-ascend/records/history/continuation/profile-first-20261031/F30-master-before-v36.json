@@ -1,0 +1,170 @@
+{
+  "id": "F30_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "DSPARK_BOUNDARIES",
+  "original_node_mapping": {
+    "collapse": "collapse",
+    "norm": "norm",
+    "logits": "logits",
+    "markov": "markov",
+    "confidence": "confidence",
+    "accept": "accept"
+  },
+  "nodes": [
+    {
+      "id": "collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "logits",
+      "kind": "LM_HEAD",
+      "resource": "NPU"
+    },
+    {
+      "id": "markov",
+      "kind": "MARKOV_HEAD_OPAQUE",
+      "resource": "NPU"
+    },
+    {
+      "id": "confidence",
+      "kind": "CONFIDENCE_HEAD_OPAQUE",
+      "resource": "NPU"
+    },
+    {
+      "id": "accept",
+      "kind": "TARGET_ACCEPT_OPAQUE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "collapse",
+      "consumer": "norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "logits",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "logits",
+      "consumer": "accept",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "confidence",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "markov",
+      "consumer": "logits",
+      "value": "bias",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "markov",
+      "consumer": "confidence",
+      "value": "Markov features",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "block2",
+      "consumer": "collapse",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v32": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v32.json#F30",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-head-partition-postprocess-and-layout-contract-v32.json",
+    "variants": [
+      {
+        "id": "F30-STRIDED-ADD-ARGMAX",
+        "status": "CONDITIONAL_LOCAL_SEMANTIC_CANDIDATE_WITH_MEASURED_BRANCH",
+        "graph": "Read the current strided logits slice and bias, preserve BF16 add rounding and optional writeback, reduce with existing argmax semantics, produce INT64 IDs and keep token remap/copy order.",
+        "supports": "65 Add+ArgMax+Cast records plus195 Slice/143 ViewCopy records; source binds each logical step.",
+        "constraints": [
+          "BF16 materialization/rounding before compare",
+          "NaN/tie/index semantics",
+          "same logits writeback and any external aliases",
+          "output INT64 and vocabulary remap",
+          "row padding/mask and stable buffer generation",
+          "per-step token recurrence and existing stream/event dependencies"
+        ],
+        "open": "Historical stride/storage ownership and native Slice/ViewCopy semantics are not attested. A shape reporting the full base allocation does not prove all bytes are physically copied. Score-write deletion requires stronger all-consumer proof."
+      },
+      {
+        "id": "F30-VOCAB-OWNERSHIP",
+        "status": "CONDITIONAL_CROSS_CARD_REORGANIZATION",
+        "graph": "Keep base-head and compatible Markov work in matching vocabulary partitions through greedy selection; preserve global tie/index semantics and publish the same selected IDs.",
+        "constraints": [
+          "matching vocabulary partitions/group/rank ownership",
+          "same bias and add numerical boundary",
+          "token-space mapping and selected ID publication",
+          "probability/entropy/logprobs paths need their full distribution contract",
+          "other model/head consumers and graph lifetime"
+        ],
+        "open": "This does not prove an AllGather can be removed. No per-rank ownership/complete consumer or end-to-end benefit is established."
+      },
+      {
+        "id": "F30-MARKOV-ROW-REUSE",
+        "status": "CONDITIONAL_CROSS_ITERATION_COMPUTE_MEMORY_TRADEOFF; UNPRICED",
+        "graph": "Reuse an exactly computed Markov bias row for a repeated Markov input ID under frozen embedding/projection parameters; partial cache and full precomputation are distinct domains.",
+        "constraints": [
+          "actual Markov input token space",
+          "immutable parameter/version namespace",
+          "matching GEMM reduction/rounding and inference numeric mode",
+          "no stochastic/stateful embedding/projection behavior",
+          "cache invalidation/capacity/lookup overhead and device ownership"
+        ],
+        "open": "Actual repeated-ID frequency and memory headroom are absent. A full dense BF16 table is33426636800 logical bytes before indices/replication; this is not a feasible-capacity or speedup claim."
+      },
+      {
+        "id": "F30-v32-SHARDED-MARKOV",
+        "status": "CONDITIONAL_ALTERNATIVE_PARTITION_OR_OWNER",
+        "change": "PartitionMarkovw2tomatchbasecolumnownership,keepper-stepbase+Markovpostprocessing/BF16sumlocal,andgloballyselect/publishtheIDbeforedependentnextMarkovlookup.",
+        "requires": "SmallerlocalGEMM/weightdomainbutnewsmallselectioncollectiveoneachrecurrencystep;startup/syncanddifferentNtilingparityunknown."
+      },
+      {
+        "id": "F30-v32-OWNER-MARKOV",
+        "status": "CONDITIONAL_ALTERNATIVE_PARTITION_OR_OWNER",
+        "change": "Gatherbaseheadrowsonthedesignatedowner;keepfullMarkovinnerloopthere,thenpublishsameproposalIDsandallneededstates/probabilities/outputs.",
+        "requires": "Avoidother-rankduplicateMarkovexecutionandmayavoidper-stepselectioncollectivesifonlyownerconsumestheinnerloop,butownerstilldoesfullGEMM;allrankstate/RNG/scoreobserverandresultpublicationprotocolrequired."
+      },
+      {
+        "id": "F30-v32-FUSED-MARKOV-SELECT",
+        "status": "CONDITIONAL_LARGER_KERNEL",
+        "change": "JoinMarkovGEMMtiles,requiredper-headpostprocessing,base-rowBF16addandgreedyreductionwithseparatebaselineboundaries.",
+        "requires": "KeepbasebatchedKreuse,distinctbase/MarkovGEMMroundingandsoftcap/scaleorder;naiveconcatenatedsingleGEMM/singleroundnotproved."
+      }
+    ],
+    "condition_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-vocab-variants-and-conditions-v32.json",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v33": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-probability-consumer-and-RNG-contract-v33.json",
+    "relation": "draft_probsselectedp/qandselected-rowfullresidualproviderforF35;owner/shardedMarkovprotocolmustpreservetheprobability/RNGrowABI.",
+    "implementation": false,
+    "new_performance_result": false
+  }
+}

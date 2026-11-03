@@ -1,0 +1,58 @@
+{
+  "run_id": "framework-20261030T091949Z-3d9bcf87",
+  "case": "32K input / 1K output / concurrency 8 / 235904 of 262144 prefix cache queries hit",
+  "scope": "one instrumented run, two EngineCore processes; py-spy entire capture includes idle tail",
+  "request_elapsed_s": 15.60019816,
+  "proc_interval_s": 15.43385706,
+  "proc_interval_points": 78,
+  "engines": {
+    "DP0": {
+      "main_stack_sample_count": 876,
+      "empty_stacks": 0,
+      "stderr_empty": true,
+      "response_wait_inclusive_sample_pct": 70.89041095890312,
+      "main_thread_cpu_s": 15.12,
+      "main_thread_mean_cpu_cores": 0.9796643795015165,
+      "process_cpu_s": 15.19,
+      "response_wait_ancestor_sample_weight_s": {
+        "response_in_batch_queue": 12.099999999999831,
+        "response_in_dummy_batch": 0.32
+      }
+    },
+    "DP1": {
+      "main_stack_sample_count": 881,
+      "empty_stacks": 0,
+      "stderr_empty": true,
+      "response_wait_inclusive_sample_pct": 77.7525539160034,
+      "main_thread_cpu_s": 15.12,
+      "main_thread_mean_cpu_cores": 0.9796643795015165,
+      "process_cpu_s": 15.18,
+      "response_wait_ancestor_sample_weight_s": {
+        "response_in_dummy_batch": 0.6800000000000003,
+        "response_in_batch_queue": 13.019999999999811
+      }
+    }
+  },
+  "limitations": [
+    "speedscope sampled weights have no per-sample absolute wall times; cannot precisely crop to requests",
+    "idle and waiting stacks included; weights are not CPU seconds or communication duration",
+    "nonblocking may produce partial stacks; no native attribution or per-request attribution",
+    "proc ticks are time-windowed per process and leader thread, not per Python function"
+  ],
+  "sampling": "py-spy 0.4.1 --nonblocking --idle --threads, nominal 50 Hz, 20 s; sampled stacks are not exact CPU time",
+  "scheduler_interpretation": "response-wait stack is a candidate investigation path, not proof of a critical-path bottleneck or a communication duration",
+  "batch_queue_observation": {
+    "caller_chain": [
+      "step_with_batch_queue",
+      "future.result",
+      "_wait_for_response",
+      "get_response",
+      "dequeue",
+      "acquire_read",
+      "wait"
+    ],
+    "max_concurrent_batches": 2,
+    "basis": "derived from saved PP=1 startup log, --async-scheduling and frozen vLLM config source; not a runtime object snapshot",
+    "caution": "sample weights include tail idle; nested frames must not be summed; no proof of critical-path savings"
+  }
+}

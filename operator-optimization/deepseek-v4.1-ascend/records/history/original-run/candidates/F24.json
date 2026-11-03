@@ -1,0 +1,323 @@
+{
+  "id": "F24_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ENGRAM",
+  "original_node_mapping": {
+    "hash": "hash",
+    "lookup": "lookup",
+    "ready": "ready",
+    "rows": "rows"
+  },
+  "nodes": [
+    {
+      "id": "hash",
+      "kind": "STATEFUL_HASH",
+      "resource": "CPU"
+    },
+    {
+      "id": "lookup",
+      "kind": "MAPPED_HOST_LOOKUP",
+      "resource": "CPU"
+    },
+    {
+      "id": "ready",
+      "kind": "EVENT",
+      "resource": "CPU_NPU"
+    },
+    {
+      "id": "rows",
+      "kind": "ROW_VIEW_OR_SHARD",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "hash",
+      "consumer": "lookup",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "lookup",
+      "consumer": "ready",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ready",
+      "consumer": "rows",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "tokens",
+      "consumer": "hash",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "rows",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v30": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v30.json#F24",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-lookup-publication-and-gate-contract-v30.json",
+    "variants": [
+      {
+        "id": "F24-v30-EXISTING",
+        "state": "ALREADY_IMPLEMENTED",
+        "change": "UVAhostgather+dequant,request-indexhoist,all-layerhash/sharedDPgather.",
+        "requires": "Do notcountthesecurrentmechanismsasnewgain."
+      },
+      {
+        "id": "F24-v30-PREZERO",
+        "state": "LOCAL_FULLWRITE_QUESTION_CLOSED;CONDITIONAL_CANDIDATE",
+        "change": "Omit176lookup-prezerooperationsinthecurrentfullwriteUVApath.",
+        "requires": "Currentlaunch/layout,all-elements-store,noearlyobserverandvalidcapture/allocatorABI;retainotherzeros/backends."
+      },
+      {
+        "id": "F24-v30-ROW-HEAD-EXCHANGE",
+        "state": "DERIVED_CONDITIONAL_REORGANIZATION",
+        "change": "TPheadAllGather+SProwshard->destination-row/headAlltoAll+localpublication.",
+        "requires": "DP/TProwgroupmapping,allconsumers,capturebankABI/per-layerreadyandidenticalpadding/headtrim."
+      },
+      {
+        "id": "F24-v30-DIRECT-PUBLISH",
+        "state": "CONDITIONAL_FUSION_OR_LAYOUT",
+        "change": "Lookup/exchangewritesconsumer-readybankoracceptsstride-awareIDs;avoidintermediatecontiguous/transpose/copywhenownershipallows.",
+        "requires": "Sourcegeneration/strides,registeredhostlifetime,heads/rowslayout,unchangedallliveviews/tails/lastread;currentTP1DP1directshortcutalreadyexists."
+      },
+      {
+        "id": "F24-v30-HISTORY",
+        "state": "CONDITIONAL_CROSS_ITERATION_STATE",
+        "change": "Useexisting/changedsufficientlookbackpublicationtoavoidunneededslotcachewrites/readbacks.",
+        "requires": "Wholelifetimehistorycoverage,accepted/rollback/remap/deadsemanticsandnoothercacheobserver;88currentwritesremainnecessaryunlessprovedotherwise."
+      },
+      {
+        "id": "F24-v30-PIPELINE",
+        "state": "CONDITIONAL_SPLIT_SCHEDULING",
+        "change": "Tile/pipelinehash,registeredhostlookup,DP/TPexchangeandper-layerready.",
+        "requires": "Dependency/tilevisibility/hostregistration/bandwidthcontracts;preservegroupcollectiveparticipationandearlylayerpublication."
+      },
+      {
+        "id": "F24-v30-EXCLUDED",
+        "state": "EXCLUDED_AS_BLANKET_REWRITE",
+        "change": "Dedupcurrent/lookbackmasks,dropall-deadrankcollectives,skipdummy/tailpublicationorcachewritebywindowwidthalone.",
+        "reason": "Differentinputs,stateobserversandgroup/protocoleffectsaredistinguishable."
+      }
+    ],
+    "conditions": 18,
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v44": {
+    "placement": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-named-metadata-graph-placement-derivation-v44.json",
+    "capture_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-capture-replay-input-output-and-update-contract-v44.json",
+    "address_check": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-positional-address-check-domain-proof-v44.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-graph-generation-conditional-variants-v44.json",
+    "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v44.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Runner prepares live Engram routing before replay or graph input banks during capture; existing history/DP/mask/generation contracts remain. Graph reuse does not make route/cache values reusable across accepted-history iterations."
+  },
+  "review_v62": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-regime-models-v62.json",
+    "graph_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-graph-operator-chains-v62.json",
+    "C2_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/C2-state-and-pool-costs-v62.json",
+    "Engram_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-UVA-and-gate-costs-v62.json",
+    "operator_contracts": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-operator-contract-v62.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-fusion-variants-v62.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v62.json",
+    "relation": "276M08member/M14strictregimes13704exactnativeexecutions,13projectionoverlap808;263newregimes12896exec. 25conditional/rejectiondecisionswithsourcework/logicalIOandtypedcapacitygates,31semanticfamilies. No wholemodelcompletion.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v66": {
+    "native_population": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-native-operator-population-v66.json",
+    "operator_regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-regime-models-v66.json",
+    "count_work_payload_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-work-payload-models-v66.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-contract-v66.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-fusion-variants-v66.json",
+    "candidate_specific_scope": "Engramgatherrole176callsandtypedcontentpayloadreconciledwithv62row-head/UVA/allreaderandgenerationmodels;notwholeparentextentwirevolume.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-20"
+    ],
+    "peers": [
+      "F25"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v76": {
+    "native_guards": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-predicate-guard-models-v76.json",
+    "ID_predicate_source_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-ID-predicate-source-proof-v76.json",
+    "work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-predicate-fusion-costs-v76.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-predicate-fusion-variants-v76.json",
+    "BOOL_frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/BOOL-prefix-copy-frontier-v76.json",
+    "source_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-predicate-source-index-v76.json",
+    "cross_module_relation": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v76.json",
+    "scope": "Typedoptionalguard/IDsourceABI/privatepreparation/rowpredicate nonidentity andgenerationonly;no framework research or nativeimplementation.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v84": {
+    "clause_ids": [
+      "REL84-05",
+      "REL84-12",
+      "REL84-14"
+    ],
+    "source_contract": "Engram-HC-operator-source-contract-v84.json",
+    "native_frontiers": "Engram-HC-native-frontiers-v84.json",
+    "pure_WKV_variants": "Engram-WKV-hoist-and-memo-variants-v84.json",
+    "work_storage_models": "Engram-WKV-storage-and-work-models-v84.json",
+    "joint_credit": "Engram-HC-transfer-credit-v84.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v114": {
+    "evidence": [
+      "sample-hash-inputs-v114.json",
+      "sample-hash-profile-scope-v114.json",
+      "sample-hash-source-contract-v114.json",
+      "Engram-normal-INT64-range-proof-v114.json",
+      "Engram-history-factorization-v114.json",
+      "sample-hash-integer-validation-v114.json",
+      "sample-hash-joint-work-and-capacity-v114.json",
+      "sample-hash-state-and-publication-v114.json",
+      "sample-hash-composition-v114.json"
+    ],
+    "existing_hash_triples": 88,
+    "existing_UVAlookups": 176,
+    "normal_constructor_INT64range_proof": true,
+    "history_packet_bytes": 48,
+    "full_hash_ID_packet_bytes": 192,
+    "source_factor_cases": 12288,
+    "hash_ID_checks": 589824,
+    "independent_factor_cases": 12288,
+    "independent_range_cases": 4001,
+    "new_relation": "REL114-01",
+    "new_group": "HG114-SELECT-HISTORY-HASH",
+    "actualruntime_parameters_history_andpublication_bound": false,
+    "selected_resource_scope": "Selectednativehash/UVAlookup=NPUtasks;UVAinputtier=hostmapped;legacyprovisionalCPUtemplateisnotdenominator",
+    "new_device_work": false,
+    "implementation": false
+  },
+  "review_v118": {
+    "evidence": [
+      "engram-mask-inputs-v118.json",
+      "engram-mask-source-contract-v118.json",
+      "engram-mask-profile-scope-v118.json",
+      "engram-mask-residual-reference-v118.json",
+      "engram-ma<REDACTED_TOKEN>.json",
+      "engram-ma<REDACTED_TOKEN>.json"
+    ],
+    "false_gate_mask_not_automatic_lookup_or_history_deletion": true,
+    "value_only_WKV_keeps_dense_lookup_row_demand": true,
+    "new_native_or_runtime_mask_promotion": false
+  },
+  "review_v121": {
+    "evidence": [
+      "row-cache-budget-inputs-v121.json",
+      "row-cache-representation-contract-v121.json",
+      "row-cache-common-budget-models-v121.json",
+      "row-cache-miss-traffic-and-memo-demand-v121.json",
+      "row-cache-retirement-and-numerical-contract-v121.json"
+    ],
+    "new_relation": "REL121-01",
+    "budget_models": 144,
+    "capacity_reference_models": 36,
+    "actual_memory_credit_hitrate_or_allocator_binding": false,
+    "new_native_promotions": 0,
+    "whole_requirement_closed": false
+  },
+  "review_v147": {
+    "evidence": [
+      "post-pre-inputs-v147.json",
+      "post-pre-native-frontiers-v147.json",
+      "post-pre-source-contract-v147.json",
+      "post-pre-observed-frontiers-v147.json",
+      "post-pre-interface-union-cases-v147.json",
+      "post-pre-symbolic-resource-and-retention-v147.json",
+      "post-pre-round-quant-version-progress-witnesses-v147.json",
+      "post-pre-composition-v147.json"
+    ],
+    "pairs": [
+      [
+        "F03",
+        "F20"
+      ],
+      [
+        "F03",
+        "F21"
+      ],
+      [
+        "F03",
+        "F22"
+      ],
+      [
+        "F03",
+        "F24"
+      ],
+      [
+        "F03",
+        "F27"
+      ],
+      [
+        "F03",
+        "F31"
+      ]
+    ],
+    "source_Post_Pre_edges": 2416,
+    "unique_TASKs": 14111,
+    "pad_groups": 960,
+    "interface_cases": 768,
+    "scoped_conclusion_changing_gap": "NeedactualrawX0/X1/Post/coeff/pre4/Y/ZB/ZF/paddedZP/logit/mask/IDsamevalues/storage/row/parameters/generations,newtileproducer/stride/alias/capture andallfuturePost/aux/Engram/rstd/state/error/RNG/EPLBreaders. 2416savednativeedgesdonotattestnewpublication;currentPostBF16/YBF16/ZBF16/FLOATwiden/quant/TRUNC/FP16/amax/routerHF32boundariesstay. SharedM800 vsMC2P816mustpricevalid-view/paddedproducers;oldquantpacketnotgeneralPost-affinehomomorphism. 960PadV3/MemSetsharedAPIgroups2880siblingsbindlogicalpadding/casts,notoriginalMemSetaddress/length/workspace/destination.ThreeM12MemSetregimes320eachremainpending;oneAPI-onlyMERGEselecteddoesnotresolveotherglobalAPI-onlyroles. Inchosenmaterializedrawresidualgraph,forwardingPostPredeletes8MHloadnotalso8MHstore;store/futurePostreadstay.768port-unioncasesarenotHBM/alloc/time. Alternatefullrow-retentionneeds40960B/rowplusreservesatH5120,butsmallerHtiling/recompute/representationarealternativeallowedgraphs;actualbudget/finiteprogressunknown. Classicalcoeff/router/shared/receiverworkandcommonsame-modecapacityareconditional;actualreceiverA/notM*k,loadednativeprecision/capacityupper/physicalIOcutsunbound. Noactualnumericphysicalceiling/MFU/lowest/speedup/wholevariantclosure;9/1352native849PMU16phase3136assignmentsandbroadergapsretained.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  },
+  "review_v148": {
+    "evidence": [
+      "precision-field-inputs-v148.json",
+      "precision-field-population-v148.json",
+      "precision-regime-module-projection-v148.json",
+      "precision-primary-receipts-v148.json",
+      "precision-field-source-and-primary-contract-v148.json",
+      "precision-gated-cycle-and-state-cases-v148.json",
+      "precision-flag-rounding-inference-witnesses-v148.json"
+    ],
+    "raw_databases": 32,
+    "regimes_flag_reconciled": 2082,
+    "exported_flag_not_instruction_mode": true,
+    "scoped_conclusion_changing_gap": "Saved32DBexportedhf32Eligibledecodeisnowcompleteforall207750COMPUTErecords/286950TASKjoins/2082regimes. Thisclosesforeignkey/labelscope,notactualexecutedMmadmode.1120YESareAI_VECTOR_CORE;explicitmatrix/HC/MC2flagsNOdonotinventoryinternalarithmetic. NeedhistoricallyloadedmatchingHC/operatorbinary/opcodecoverage/initialHF32androundstate,actual9.2header/overload/runtimecontextcontracts. FrozenHCABtogglesON/RTZ-context/OFFwhilewholeHCflagNO;do notselectanexplanationwithoutobjectevidence. Legacy8.5booltrueRTZdocisnotnewCAPIenum1orinstalled9.2attestation. Retain24restrictedclassicalcyclecases/24AICreference:actualmode/pool/requirednonduplicatework/capacityupper/clock/storage/networkcutsandrequestendpointstillunbound. SourceshowsintegerindexworkwithYESflags;do notapplyHF32CubepeaktoVector/integerworkorusebool(rawStringID). 821262outsidefieldjoinTASKsretaintheirperDBSTRING_IDSdecodedtypelabels;notzero-work/newarithmetickernelsbycountandnotallTASKprecisionfieldsavailable.26modulecandidate-projectionsarenotexclusiveMFU;6moduleswithoutmatchingregimesnotzero-utilization. Nooriginalnativeoperand/phase/PMU/alias/readergapclosed:9/1352native849PMU16phase3136assignmentsandallbroadercandidategapsremain;wholemodule/physicalMFU/lowest/speedupnotestablished.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_5adb391b-1b08-47d3-8e60-8f1be59f29bd",
+  "traceId": "17efc201-5f4a-42e1-9737-ef52021b31b1",
+  "turnId": "turn_8aac3ded-f03d-4859-afa3-5526241cd64e",
+  "response": "轮询命令已按原样执行一次并正常返回（rc=0，stderr 为空），回执保存为 `host-profile-poll166-v12-02.json`。结论：**controller 确认存活（PID+starttime 双重匹配），诊断容器运行中且仍在加载，未确认任何错误或终止；原容器处于 exit 0 的停泊状态**。\n\n**PID/starttime 存活确认**\n- launch 记录：controller PID `1351606`，starttime_ticks `862458845`。\n- `/proc/1351606/stat` 实测：state `S`，starttime_ticks `862458845`，与 launch 记录完全一致，`controller_live_verified_by_pid_start=true`。\n- watchdog PID `1352226` 仅由 controller-state 记录，本次轮询脚本未独立验证其存活。\n\n**controller 状态**\n- `controller-state.json`：`DIAGNOSTIC_LOADING`，时间戳 `2026-10-30T21:30:58.954651Z`（与 21:31:08 的上一次轮询相同，尚未推进到下一状态）。\n- 尚无 `controller-finished.json`、`controller-error.json`、`top-level-error.json`、`restore-result.json`、`trace-inventory.json`、`capture-index.json`；controller stderr 为空。\n- 按 launch 时间约 21:28:12Z 计算，本次轮询时已运行约 4 分 56 秒；加载阶段持续数分钟属正常范围，本次不是超时判定，也不构成终止依据。\n\n**容器状态**\n- 诊断容器 `wio-vllm-v41-hostprof-20261030T212812Z-360e0c72`（ID `7514283e…`）：`running=true`，状态 `running`，exit code 0。\n- 原容器 `wio-vllm-v41-repro166-20261030`（ID `8757dcc7…`）：`running=false`，状态 `exited`，exit code 0。这与 RECOVERY 记录的“原 BASE 由授权 v12 隔离诊断临时停泊”一致，属预期停泊，不是崩溃；恢复由 controller finally 与独立 watchdog 负责，目前尚未到恢复点。\n\n**日志与错误**\n- `service.log` 末尾显示诊断服务在 21:33:05–06 仍有新活动（vLLM 插件激活、model loader 注册等启动序列），说明加载在推进，非冻结。\n- 唯一值得注意的行是 21:33:08 的 WARNING：`NPU Triton causal_conv1d_update is unavailable … falling back to the PyTorch implementation, which … stalls ACL graph capture at decode-FULL`。这是回退告警，不是错误；但对后续 ACL graph capture 有停滞风险，分析时需留意。\n- 未发现错误文件、异常退出或 controller stderr 输出。\n\n**约束遵守**：本次仅执行了指定的只读轮询，未重启、未重复 launch、未 kill、未修改任何内容；原容器停泊早于本次轮询，不是本次操作造成。诊断仍在 `DIAGNOSTIC_LOADING`，后续应以同样的 PID+starttime 方式继续只读观察其状态转换。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 88579,
+    "outputTokens": 6429,
+    "totalTokens": 95008,
+    "cacheReadTokens": 71936,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5370,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 95008,
+    "contextUsed": 22630,
+    "contextWindow": 200000
+  }
+}

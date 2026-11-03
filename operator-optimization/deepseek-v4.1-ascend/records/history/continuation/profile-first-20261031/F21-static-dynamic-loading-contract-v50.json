@@ -1,0 +1,85 @@
+{
+  "generated_utc": "2026-10-31T15:11:59.183837+00:00",
+  "evidence": [
+    "F21-postload-adaptor-entry-source-v50.json",
+    "F21-postload-updater-transfer-source-v50.json",
+    "EP-mapping-and-weight-contract-v19.json",
+    "F21-interface-branch-ledger-v19.json"
+  ],
+  "source_provenance": [
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/eplb/adaptor/vllm_adaptor.py",
+      "sha256": "e372c2e515cee4711f919e65e14bc2a81666b10c3074aca181ba519e2d186b99",
+      "historical166_hash_attested": false
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/eplb/eplb_updator.py",
+      "sha256": "a734e8e12a69526c185cca305bc6bed7124bc30447da4a9f1e9e4aec48c53915",
+      "historical166_hash_attested": false
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/eplb/core/eplb_device_transfer_loader.py",
+      "sha256": "db1023bd25fbae05eddd3e6650e3d7680c4b522048997cda1d6f5549b3539130",
+      "historical166_hash_attested": false
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/ops/fused_moe/routed_experts.py",
+      "sha256": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77",
+      "historical166_hash_attested": true
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "sha256": "a67601ee596d9aa4ae72ea3638f67ff7236cd8df884564bcd19f33653a1e0910",
+      "historical166_hash_attested": true
+    },
+    {
+      "path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "historical166_hash_attested": true
+    }
+  ],
+  "evidence_grades": [
+    "DOCUMENTED_HISTORICAL166_HASH_MATCHED_SOURCE",
+    "DOCUMENTED_LOCAL_DEPENDENCY_REFERENCE",
+    "DERIVED",
+    "UNKNOWN"
+  ],
+  "findings": [
+    {
+      "id": "PL50-01",
+      "grade": "DOCUMENTED_HISTORICAL166_HASH_MATCHED_SOURCE",
+      "finding": "Runner577-578setsdynamic_eplbfromconfigand eplb_enable=dynamicOR(pathisnotNone). Runner4354-4360createsadaptor/setsloader/updator/warmuponlyifdynamicandnotalreadywarmed. Astaticfilealone doesnotselectthisdynamicwarmup."
+    },
+    {
+      "id": "PL50-02",
+      "grade": "DOCUMENTED_HISTORICAL166_HASH_MATCHED_SOURCE",
+      "finding": "Within load_model4408-4412,eplb_enable replacesDefaultModelLoader._init_ep_weight_filter withanoopclassfunction. That is a filter-change edge,not an explicit physical-slot weight permutation or payload reconciliation. Actual selected loader and any other hooks remain separate."
+    },
+    {
+      "id": "PL50-03",
+      "grade": "DOCUMENTED_HISTORICAL166_HASH_MATCHED_SOURCE",
+      "finding": "RoutedExperts init_eplb preserves upstream physical map duringcheckpointloading while Ascendexecution usesascend_expert_map. get_eplb_parameter returnsnamedattribute. W8A8postload transposes/formats weights,createsFP32/packed scales,andmaycloneper-expertlists/deleteoriginals. Binding stale pre-postload views is not generally valid."
+    },
+    {
+      "id": "PL50-04",
+      "grade": "DOCUMENTED_LOCAL_DEPENDENCY_REFERENCE",
+      "finding": "Local adaptor uses a class-global registered-layer list andlocalenumeration,firstlayerlocalcapacity,quant/fusedkey registry,andexplicitper-planemutableviews. This doesnotattest actual166registeredtarget/draftorder or dependencyfilehash."
+    },
+    {
+      "id": "PL50-05",
+      "grade": "DERIVED_CONDITIONAL",
+      "finding": "Staticplacement eligibility needs a positive loader/remap proof that eachdesiredslot containsitslogicalexpert payload afterquantpostload. Dynamicadaptor existence or disabling a filefilter cannot substitute for that proof. No claim that the complete installation has no other reconciliation hook."
+    },
+    {
+      "id": "PL50-06",
+      "grade": "DERIVED_CONDITIONAL",
+      "finding": "Aplacement-aware checkpoint plan may load directlyintodesiredslots/replicas andfilteronlytheactualneededlogicalexperts. It must preserve checkpoint shard order/quantplanes,corephysicalmap,Ascendlogicalmap,log2phy,andtarget/draftlayeridentity. Startup-only saving is not formalC8decode saving."
+    }
+  ],
+  "static_postload_weight_pairing_proved": false,
+  "actual_dynamic_or_custom_map_enabled": "UNKNOWN_FROM_THIS_REVIEW",
+  "no_new_model_import_remote_or_device_work": true,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

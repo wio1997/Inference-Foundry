@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_9b904014-7d69-426d-996c-36c2988bcfe3",
+  "traceId": "99ab2a34-bce6-4f16-b107-84e762af8087",
+  "turnId": "turn_2548633e-7ba1-4884-89b5-393bac435ae0",
+  "response": "query_prepare_origins_v11_166.py 在 host 166 上执行完成，**实际 returncode 为 0**，无重试。\n\n**结果路径**\n- 远端结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/prepare-copy-pin-event-origins-v11.json`\n- 结果 SHA-256：`dd01460b703f575ffd5e9a3a73edc1b3e04d32d1a8e7fed140b0c793a7614883`\n- 本地收据：`/Users/wio/work/166-vllm-analysis-continuation-20261030/prepare-copy-pin-event-origins166-v11.json`\n\n**三个 population 的计数**（在结果中各自独立，未合并）\n\n| Population | Rank | 根区间数 (roots) | 选中记录数 | 有调用栈记录 (callchains_present) | 有效 chain id | 含项目帧记录 | 有 callchains 表 | 来源调用栈计数 (source_location) |\n|---|---|---|---|---|---|---|---|---|\n| OFFICIAL_LATER_WINDOW | 0 | 12 | 14412 | 0 | 0 | 0 | 否 | 空 `{}` |\n| OFFICIAL_LATER_WINDOW | 8 | 12 | 14412 | 0 | 0 | 0 | 否 | 空 `{}` |\n| EARLIER_DIAGNOSTIC_WITH_STACKS | 3 | 0 | 0 | 0 | 0 | 0 | **是** | 空 `{}` |\n\n**要点**\n\n两个官方窗口（rank 0 与 rank 8）数据完全对称：各 12 个根、14412 条选中记录，选中名称计数一致（`Event::synchronize` 48、`aten::copy_` 4596、`acl_memcpy_host_to_device` 1032、`Enqueue@acl_memcpy_host_to_device` 1032、`aten::to` 5232、`aten::_to_copy` 1788、`aten::_pin_memory` 684）。但这两个库**不含 callchains 表**，因此来源调用栈计数为空，non-null chain id 为 0。\n\n早期有栈诊断（rank 3）的库**有 callchains 表**，但本次口径下匹配到的根区间和选中记录均为 0，故同样没有得到来源调用栈计数。\n\n即：本次调用没有产出任何可用的来源调用栈归属——官方侧因库无 callchains 表，早期侧因选区为空。全程仅执行该预置只读查询，未做模型/NPU/服务操作，未新增源码读取，官方窗口与早期诊断结果以独立 population 分别呈现。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 22978,
+    "outputTokens": 1839,
+    "totalTokens": 24817,
+    "cacheReadTokens": 14592,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1630,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 24817,
+    "contextUsed": 10060,
+    "contextWindow": 200000
+  }
+}

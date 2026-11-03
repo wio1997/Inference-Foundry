@@ -1,0 +1,19 @@
+本轮按profile优先推进F33，复核保存的80个graph block20中的C1/SWA双投影。两个5120→512 BF16 MatMul本身在80组中均无重叠；C1启动晚于SWA结束89.742–98.362微秒，中位94.771微秒。这个间隔包含其他计算与缓存工作，不是空闲时间或可删除延迟。进一步逐图核对发现，SWA投影与Q norm、SWA512 norm与Q_b、C1投影与index-query量化在全部80组中都有交叠，中位交叠分别4.260、11.990、5.480微秒。联合投影必须比较完整排程，不能只数两次调用。
+
+每组保留两个独立24×512 norm候选，原始TASK行键、stream、顺序、COMM和全部block计算记录均保留。角色由已有源码和唯一SWA辅助流约束，不冒充历史tensor pointer证明。2382条原生来源TASK分为target SWA投影/norm各960、target C1投影/norm各24、draft SWA投影/norm各207。target C1的24条投影分别为6400、6528、6668行各8条；没有把所有SWA或draft算子当作第20层，也没用最近时间配出native同层关系。
+
+Trace不能独自说明latent别名和具体副作用，所以仅定点读取DSA压缩源/写缓存/旋转方法，以及实际native帧指向的F.linear、CV matmul和RMSNorm入口。SWA当前记录命中unquantized_gemm→torch.nn.functional.linear，norm命中torch_npu.npu_rms_norm。C1的既有constructor/forward资料复用。GEMM输出与norm输入均为BF16；融合可研究保留舍入边界而不物化到HBM，但不能直接把FP32 accumulator输入norm当作等价。精确后端算术与历史stride仍未知。
+
+DSA先调用indexer.update_keys(latent)，随后view同一latent并原位做long-KV RoPE。沿profile已有indexer.py:110 caller和这一个直接callee补查update_keys，确认它先将未做long-RoPE的512维latent投到128维index key，再独立norm、旋转新key，并选择packed/folded缓存发布，或INT8 key与FP16 scale分别scatter。因此必须保留index投影读完旧latent→原位long-RoPE写latent的WAR；若提前旋转而不另存原值，会改变index输入。当前整个index发布在long-RoPE之前是源码控制顺序，不能自动升级为所有实现都必须等待的语义屏障。F33单独变体保留它，F19式重排另审。
+
+SWA有packed kind=win与scatter分支，long KV有kind=cmp与scatter分支；indexer还有!owns_k/empty早退与folded缓存分支。请求的_write_index_cache/_write_long_cache方法名在DSA不存在，实际发布为inline代码和update_keys，不据缺少名字推断没有写缓存。形状相同也不证明SWA/long缓存为同一物理地址；保留分配、block所有权、generation和未来读者条件。
+
+上述WAR约束按被覆盖的旧值成立，可按行或tile细分流水，不要求所有新实现都等待整个index投影算子结束。
+
+数学/布局记录区分三个问题。第一，共享输入联合计算X*A^T和X*B^T不要求A=B，必须保留两个参数矩阵；同形状不能支持把结果去重。第二，两个512宽norm不可改成一个1024宽norm，精确有理数反例展示全1/全2两组具有不同分母。第三，连续24×1024的两半视图行stride为1024，与连续24×512的512不同；可用支持stride的消费者、独立输出或显式转换，不能断言任何实现都必须多一次copy。
+
+另列24/6400/6528/6668行的逻辑operand计数。它只说明在“各operand读一次”的示例域中，联合读入可少一份输入；没有把字节当HBM、带宽下界或收益。F32的先本地投影后row allgather在精确算术、同rank参数/相同行序条件下成立，但实际跨rank权重、精度、padding、位置、全局hidden消费者与缓存所有权仍须满足；特征宽度比5不是网络提速比。
+
+F33新保存原始source图与条件联合图，明确移除需要重新审查的SWA发布→C1启动控制边，避免把旧控制边错误保留为joint节点自依赖。保留index旧latent WAR、两个norm与全部后续发布。新增20项条件记录，补齐M09/M10/M22/M24的F33跨边界链接，并新增自包含candidates/F33.json。
+
+本轮4项CPU-only取证均成功，无新模型导入、NPU负载、服务修改或健康检查。34项模型、7项框架候选不变，整模块闭合数仍0，目标继续active。F33直接消费者问题已回答，应转入尚未闭合的有限模块/条件边界，避免为已可定性的条件候选继续扫整库。历史地址/事件、后端精度、所有缓存观察者及全范围理论证据仍按未知保留。

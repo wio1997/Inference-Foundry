@@ -1,0 +1,106 @@
+{
+  "id": "G1-source-conditional-overlay-candidate-and-premix",
+  "parents": {
+    "G1.json": "9bece982c89be6320c4f3ef986ec33030a2e71327f0f0a96ae1159a19bb187cc",
+    "source-templates-G5.json": "a3a4e82afb8fed8894300148791a22ed1ca954288a0ed8fd79ef9a3879c56731",
+    "evidence/model-config.json": "43d3b2bc55626893d59275b32e04068c0fc916f5c382eb91de73bdbade9c88f7"
+  },
+  "source_sha256": {
+    "models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+    "models/deepseek_v41/indexer.py": "d5d6a438bbced4e63d729dac94c08869df30dab4a71ceacecdea211386b3db33",
+    "attention/dsa_v41.py": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd"
+  },
+  "scope": "Frozen-source conditional dependency overlay; not an observed runtime graph and not a full fusion enumeration.",
+  "remove_g1_edges": [
+    {
+      "producer": "embedding",
+      "consumer": "target.layers.0.hc_attn_pre",
+      "value": "initial pre_mix",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "add_g1_nodes": [
+    {
+      "id": "target.hidden_after_optional_sp_shard_metadata",
+      "kind": "EXTERNAL_SHAPE_DEVICE_METADATA",
+      "module": "target",
+      "source": "models/deepseek_v41/model.py:1519,1543-1553"
+    },
+    {
+      "id": "target.initial_pre_mix",
+      "kind": "SHAPE_DEVICE_DEPENDENT_INITIALIZATION",
+      "module": "target",
+      "source": "models/deepseek_v41/model.py:1543-1553"
+    }
+  ],
+  "add_g1_edges": [
+    {
+      "producer": "target.hidden_after_optional_sp_shard_metadata",
+      "consumer": "target.initial_pre_mix",
+      "value": "local row shape and device, not embedding contents",
+      "dependency_kind": "SHAPE_DEVICE_METADATA"
+    },
+    {
+      "producer": "target.initial_pre_mix",
+      "consumer": "target.layers.0.hc_attn_pre",
+      "value": "initial FP32 pre_mix",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "target.layers.20.attention",
+      "consumer": "target.layers.24.attention",
+      "value": "candidate block IDs, relevant active rows",
+      "dependency_kind": "RAW_PERSISTENT_SUBRANGE",
+      "whole_producer_barrier_required": null,
+      "condition": "non-empty query and cache, non-packed source mode 1 and filter mode 2; packed and empty branches need separate modeling",
+      "publication_granularity": "unknown; logical row relevance alone does not prove partial publication or synchronization",
+      "source_detail": "ATTN_C1_SOURCE.qli candidate_out -> conditional shared.candidates copy",
+      "consumer_detail": "ATTN_C1_INDEX_SOURCE.candidate_state_and_lengths -> qli candidate input"
+    },
+    {
+      "producer": "target.layers.20.attention",
+      "consumer": "target.layers.28.attention",
+      "value": "candidate block IDs, relevant active rows",
+      "dependency_kind": "RAW_PERSISTENT_SUBRANGE",
+      "whole_producer_barrier_required": null,
+      "condition": "non-empty query and cache, non-packed source mode 1 and filter mode 2; packed and empty branches need separate modeling",
+      "publication_granularity": "unknown; logical row relevance alone does not prove partial publication or synchronization",
+      "source_detail": "ATTN_C1_SOURCE.qli candidate_out -> conditional shared.candidates copy",
+      "consumer_detail": "ATTN_C1_INDEX_SOURCE.candidate_state_and_lengths -> qli candidate input"
+    },
+    {
+      "producer": "target.layers.20.attention",
+      "consumer": "target.layers.32.attention",
+      "value": "candidate block IDs, relevant active rows",
+      "dependency_kind": "RAW_PERSISTENT_SUBRANGE",
+      "whole_producer_barrier_required": null,
+      "condition": "non-empty query and cache, non-packed source mode 1 and filter mode 2; packed and empty branches need separate modeling",
+      "publication_granularity": "unknown; logical row relevance alone does not prove partial publication or synchronization",
+      "source_detail": "ATTN_C1_SOURCE.qli candidate_out -> conditional shared.candidates copy",
+      "consumer_detail": "ATTN_C1_INDEX_SOURCE.candidate_state_and_lengths -> qli candidate input"
+    },
+    {
+      "producer": "target.layers.20.attention",
+      "consumer": "target.layers.36.attention",
+      "value": "candidate block IDs, relevant active rows",
+      "dependency_kind": "RAW_PERSISTENT_SUBRANGE",
+      "whole_producer_barrier_required": null,
+      "condition": "non-empty query and cache, non-packed source mode 1 and filter mode 2; packed and empty branches need separate modeling",
+      "publication_granularity": "unknown; logical row relevance alone does not prove partial publication or synchronization",
+      "source_detail": "ATTN_C1_SOURCE.qli candidate_out -> conditional shared.candidates copy",
+      "consumer_detail": "ATTN_C1_INDEX_SOURCE.candidate_state_and_lengths -> qli candidate input"
+    }
+  ],
+  "source_scope": [
+    "models/deepseek_v41/model.py:490-502,510-549,1543-1553",
+    "attention/dsa_v41.py:575-610",
+    "models/deepseek_v41/indexer.py:274-298"
+  ],
+  "conditions_and_gaps": [
+    "Assumes frozen configuration and indicated source branches; historical binary and tensor identities are unbound.",
+    "Candidate buffer publication and consumption require correct active rows, metadata, lifetime, packed/unpacked paths and empty-cache behavior.",
+    "G5 templates are not instance graphs; the cross-layer mapping above is an overlay, not a modification of either template.",
+    "Shape/device metadata follows optional SP shard and may originate from input embeddings rather than the embedding node; runtime allocation, stream order and numerical behavior still need proof.",
+    "Existing G1 enumeration and fusion inventory were not regenerated for this overlay; raw G1 edge indices must never be reused after deletion."
+  ]
+}

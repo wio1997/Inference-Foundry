@@ -1,0 +1,132 @@
+{
+  "generated_utc": "2026-10-31T15:52:06.399674+00:00",
+  "initial_parameter_definitions": [
+    {
+      "name": "w13_weight",
+      "producer": "get_weight",
+      "allocation_expression": "torch.empty(num_experts, 2 * intermediate_size_per_partition, hidden_sizes, dtype=torch.int8)",
+      "callback_attribute_call": "set_weight_attrs(param,extra_weight_attrs)",
+      "actual_field_value_or_native_allocation_proved": false
+    },
+    {
+      "name": "w2_weight",
+      "producer": "get_weight",
+      "allocation_expression": "torch.empty(num_experts, hidden_sizes, intermediate_size_per_partition, dtype=torch.int8)",
+      "callback_attribute_call": "set_weight_attrs(param,extra_weight_attrs)",
+      "actual_field_value_or_native_allocation_proved": false
+    },
+    {
+      "name": "w13_weight_scale",
+      "producer": "get_dynamic_quant_param",
+      "allocation_expression": "torch.empty(num_experts, 2 * intermediate_size_per_partition, 1, dtype=params_dtype)",
+      "callback_attribute_call": "set_weight_attrs(param,extra_weight_attrs)",
+      "actual_field_value_or_native_allocation_proved": false
+    },
+    {
+      "name": "w13_weight_offset",
+      "producer": "get_dynamic_quant_param",
+      "allocation_expression": "torch.empty(num_experts, 2 * intermediate_size_per_partition, 1, dtype=params_dtype)",
+      "callback_attribute_call": "set_weight_attrs(param,extra_weight_attrs)",
+      "actual_field_value_or_native_allocation_proved": false
+    },
+    {
+      "name": "w2_weight_scale",
+      "producer": "get_dynamic_quant_param",
+      "allocation_expression": "torch.empty(num_experts, hidden_sizes, 1, dtype=params_dtype)",
+      "callback_attribute_call": "set_weight_attrs(param,extra_weight_attrs)",
+      "actual_field_value_or_native_allocation_proved": false
+    },
+    {
+      "name": "w2_weight_offset",
+      "producer": "get_dynamic_quant_param",
+      "allocation_expression": "torch.empty(num_experts, hidden_sizes, 1, dtype=params_dtype)",
+      "callback_attribute_call": "set_weight_attrs(param,extra_weight_attrs)",
+      "actual_field_value_or_native_allocation_proved": false
+    }
+  ],
+  "runtime_W8A8_MC2_registry_names": [
+    "w13_weight_list",
+    "w2_weight_list",
+    "w13_weight_scale_fp32_list",
+    "w2_weight_scale_list",
+    "fused_w1_scale_list",
+    "fused_w2_scale_list"
+  ],
+  "producer_rows": [
+    {
+      "initial": "w13_weight",
+      "initial_layout": "INT8[C,2I,H]",
+      "runtime": [
+        "w13_weight_list"
+      ],
+      "transformation": "Transpose/contiguous;W8A8NZformatcast;optionalper-expertclone/list.",
+      "source": "W8A8postload280-286/299-301"
+    },
+    {
+      "initial": "w2_weight",
+      "initial_layout": "INT8[C,H,I]",
+      "runtime": [
+        "w2_weight_list"
+      ],
+      "transformation": "Transpose/contiguous;W8A8NZformatcast;optionalper-expertclone/list.",
+      "source": "W8A8postload280-286/299-301"
+    },
+    {
+      "initial": "w13_weight_scale",
+      "initial_layout": "params_dtype[C,2I,1]",
+      "runtime": [
+        "w13_weight_scale_fp32_list",
+        "fused_w1_scale_list"
+      ],
+      "transformation": "View;FP32conversionandpackedINT64scaleproducer;optionalclones.",
+      "source": "W8A8postload287-295/302-310"
+    },
+    {
+      "initial": "w2_weight_scale",
+      "initial_layout": "params_dtype[C,H,1]",
+      "runtime": [
+        "w2_weight_scale_list",
+        "fused_w2_scale_list"
+      ],
+      "transformation": "ViewandpackedINT64scaleproducer;optionalclones.",
+      "source": "W8A8postload290-295/305-314"
+    },
+    {
+      "initial": "w13_weight_offset",
+      "initial_layout": "params_dtype[C,2I,1]",
+      "runtime": [],
+      "transformation": "View;notnamedintheinspectedW8A8MC2EPLBregistry,notadeadnessproof.",
+      "source": "W8A8postload289"
+    },
+    {
+      "initial": "w2_weight_offset",
+      "initial_layout": "params_dtype[C,H,1]",
+      "runtime": [],
+      "transformation": "View;notnamedintheinspectedW8A8MC2EPLBregistry,notadeadnessproof.",
+      "source": "W8A8postload291"
+    }
+  ],
+  "evidence": [
+    "F21-callback-registration-source-v52.json",
+    "F21-postload-updater-transfer-source-v50.json"
+  ],
+  "both_counts_six_is_not_one_to_one_identity": true,
+  "lifecycle": [
+    "Quantmethodresolution/wrapperselection.",
+    "Initialparametersregisteredandloadcallbackattributesforwarded.",
+    "Checkpointdatawrittenundercorrectphysicalmapping.",
+    "Postloadtranspose/format/view/cast/packedscales;listmodeclonesanddeletessomerawattributes.",
+    "RuntimeEPLBbindsderivednamedplanesandbufferlifetimes;capturedreadersneedthesamegeneration."
+  ],
+  "conditions": [
+    "List/mega/otherbackendbranchesandactualattributesmustbematched;thisisnotanall-backendautomaticABIproof.",
+    "DeletingrawattributesdoesnotproveTensorstoragefreed;existingexternalrefs/capture/readersmayretainit.",
+    "Do notuseinitialcheckpointcallbackorparameter-namecoverageasruntimepackedplane/generationcoverage.",
+    "Reloadmayneedrecreate/re-registerinitialparamsorbackend-specificruntime-loadinterface;do notassumetheoriginalparams_dictstillnamesdeletedrawweightattributes.",
+    "Fieldcounts/shapesarenotphysicalmemory/traffic/copylatencyorindependentallocationcounts."
+  ],
+  "actual_aliases_or_native_generation_proved": false,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

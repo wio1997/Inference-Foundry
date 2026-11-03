@@ -1,0 +1,193 @@
+{
+  "version": 180,
+  "status": "FINITE_AUTHORIZED_DIAGNOSTICS_COMPLETE_REUSE_CURRENT_EVIDENCE",
+  "question_to_answer": "Can existing DB correlations attribute operator tasks to semantic modules without recollecting?",
+  "required_evidence": [
+    "module/operator/runtime task correlation",
+    "same-metric comparable utilization",
+    "per-case/phase/rank coverage"
+  ],
+  "existing_data_paths": [
+    "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-169-20261028/analysis/operator-ceiling-20261028/diagnostic/runtime/diagnostic-traces"
+  ],
+  "authorization": {
+    "contract_field": "device_measurement_authorized",
+    "session_evidence": "User directs start from current baseline; prior diagnostic authorization retained, unused in this startup",
+    "host_container": null,
+    "allowed_devices_ranks": [],
+    "allowed_entrypoint": null,
+    "allowed_output_directory": null
+  },
+  "versions": {
+    "hardware": "Ascend910_9382",
+    "driver": null,
+    "cann": "9.2.0",
+    "torch": null,
+    "torch_npu": "2.10.0.post7",
+    "msprof": null,
+    "msprof_analyze": null,
+    "source_commit": null
+  },
+  "scope": {
+    "case_ids": [],
+    "phase": null,
+    "module_ids": [],
+    "rank_ids": [],
+    "step_ids": [],
+    "request_count_limit": null,
+    "application_warmup_rule": null,
+    "clock_alignment_evidence": null
+  },
+  "capture": {
+    "layer": null,
+    "tool": null,
+    "version_matched_command_or_config_path": null,
+    "effective_config_path": null,
+    "schedule_suggestion": {
+      "wait": 1,
+      "warmup": 1,
+      "active": 3,
+      "repeat": 1
+    },
+    "schedule_is_statistical_guarantee": false,
+    "actual_schedule": null,
+    "profiler_level": null,
+    "required_metrics": [],
+    "module_attribution_method": null,
+    "marker_scope": null,
+    "export_format": null,
+    "data_simplification": false
+  },
+  "limits": {
+    "max_wall_seconds": null,
+    "max_output_bytes": null,
+    "minimum_free_disk_bytes": null,
+    "stop_method": null,
+    "size_limit_enforceable": null,
+    "incomplete_capture_handling": null
+  },
+  "baseline": {
+    "without_profiler_source_ids": [],
+    "timing_scope": null,
+    "raw_sample_path": null,
+    "profiled_comparison_source_ids": [],
+    "overhead_assessment": null
+  },
+  "output": {
+    "raw_directory": null,
+    "analysis_work_copy": null,
+    "analysis_directory": null,
+    "index_path": "profile-index.json",
+    "summary_path": "profile-summary.json"
+  },
+  "status_reason": "No new NPU collection at startup; all 16 rank raw and parsed data already retained",
+  "instructions": "Reuse existing authorization and data. This template does not authorize collection. Record exact target versions and effective options. The sample schedule is a finite initial diagnostic budget, not sufficient evidence for every workload. Do not alter operator semantics or run optimization experiments.",
+  "six_stage_official_capture_plan_20261030": {
+    "status": "PLANNED_NOT_EXECUTED",
+    "scope": "169 自有 baseline，同镜像同模型和冻结配置；此记录未启动采集或设备负载。",
+    "versions": {
+      "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+      "cann": "9.2.0，历史 profiler_info",
+      "torch_npu": "2.10.0.post7，历史 profiler_info",
+      "npu_smi": "25.5.6，历史 whole-model-preflight",
+      "torch": "待只读确认",
+      "vllm": "待绑定版本、镜像与源码哈希"
+    },
+    "official_sources": [
+      {
+        "title": "vLLM-Ascend Service Profiling Guide，main（在线版本非冻结版本）",
+        "url": "https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html",
+        "use": "服务端 profiler 和 MS Service Profiler；实际配置以冻结源码为准"
+      },
+      {
+        "title": "CANN Commercial 8.0 PyTorch 最小扰动说明（跨版本参考）",
+        "url": "https://www.hiascend.com/doc_center/source/en/canncommercial/800/devaids/profiling/atlasprofiling_16_0134.html",
+        "use": "CPU/NPU、Level1、PipeUtilization 和扰动，不证明 9.2 兼容"
+      },
+      {
+        "title": "CANN Community 9.2 beta.1 msprof AI 任务采集（相近但非同一版本）",
+        "url": "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920beta1/devaids/Profiling/atlasprofiling_16_0011.html",
+        "use": "采样参考；版本及多 rank 适用性未验证"
+      }
+    ],
+    "scenario": {
+      "input_tokens": 32768,
+      "output_tokens": 1024,
+      "concurrency": 8,
+      "prefix_target": 0.9,
+      "input": "现有 /bench-inputs/workload/frozen warmup 和 measure1 输入，逐文件记录哈希",
+      "validation": "8 次各 32768/1024 token；指标增量 queries 262144、hits 235904（约 89.99%）、generation 8192、success 8、preemption 0；两 DP 的分布和采集覆盖须查数据确认",
+      "frozen": "evidence/frozen-serve.sh 保留 DP2 TP8 EP、W8A8、DSpark 5、FULL_DECODE_ONLY、max-num-seqs 4 等配置"
+    },
+    "feasibility": {
+      "current_service": "baseline 空闲，16 卡进程均归本人；未配置 profiler、OpenAPI 无 profile 入口。懒初始化仅适用于已配置 profiler。",
+      "second_instance": "历史 snapshot 各卡 HBM 已用 59008–59570/65536 MB，剩余 5966–6528 MB；每卡现有 worker 约 56158 MB。没有依据证明同配置完整副本可并行，不能通过试探 OOM 处理。",
+      "impact": "切换本人 baseline 会短暂停服、重载模型、重建缓存及预热；停前排空，停服与恢复耗时实测。只有出现他人占用才暂停，自有容器不是他人占用。"
+    },
+    "layers": [
+      {
+        "layer": "服务和设备整体",
+        "method": "相同请求的客户端时间、token、前后 /metrics；容器内每秒 npu-smi info 并记录 UTC、monotonic、版本、PID 和 rank 映射。",
+        "limit": "粗粒度采样不等于逐算子利用率，不能直接归因请求或相加。"
+      },
+      {
+        "layer": "框架与算子时间线",
+        "method": "冻结 vLLM-Ascend 原生 TorchNPUProfilerWrapper：CPU+NPU、Level1、PipeUtilization、text；start/stop profile 输出每 rank 原始 ascend_pt 并离线 analyse。必要时单独确认官方 MS Service Profiler 的安装版本与启动配置。",
+        "limit": "缺失的依赖、CPU 调度、等待或访存不能推测；MS Service Profiler 需启动前配置且额外扰动。"
+      },
+      {
+        "layer": "设备核/算子",
+        "method": "从同次 16 rank kernel_details、trace_view 和 DB 提取可见 task 时长和 PipeUtilization，缺口再评估本机 CANN 9.2 msprof/msprof op。",
+        "limit": "PipeUtilization 不是统一芯片利用率；MC2、多 rank SHMEM、重放、图属性和依赖需单独验证，不能对运行服务直接套默认 replay。"
+      }
+    ],
+    "native_profiler_config": {
+      "profiler": "torch",
+      "torch_profiler_dir": "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/diagnostic-traces-official",
+      "torch_profiler_with_stack": false,
+      "torch_profiler_with_memory": false,
+      "torch_profiler_record_shapes": false,
+      "ignore_frontend": true,
+      "max_iterations": 12,
+      "delay_iterations": 0
+    },
+    "native_caveats": [
+      "冻结 torch_npu_profiler.py:50–76 固定 Level1、PipeUtilization、data_simplification=true、with_stack=false，with_modules 接 torch_profiler_with_stack；未传 record_shapes，该配置字段不保证生效。",
+      "冻结 wrapper.py:120–131 停止条件是 > max_iterations，12 不是严格 12 次；按实际导出检查。torch_npu_profiler.py:85–86 未调用 profiler.step 且无 schedule，不能把 wait/warmup/active 视为已生效。",
+      "max_iterations 约束 worker；ignore_frontend=true 可避免整个请求期的前端 trace，但缺少前端 profiling。框架调度需单独官方采集或已有证据补足。",
+      "历史 capture-summary 的 16 rank profiler_info 中 with_stack=true、msprof_tx=true、record_op_args=true、data_simplification=false，来自 instrumentation/sitecustomize.py 覆盖，非原生默认；新采集须核查实际 profiler_info。"
+    ],
+    "windows": {
+      "first": "预热并 seed 后 start，发送 measure1 八路请求，finally stop；12 为初始 worker 采样预算，rank 和实际阶段由导出证据确认。",
+      "steady_decode": "第一窗未必覆盖稳定 decode；不足时另一次同场景同输入独立目录采 steady 窗，先核实延迟触发的实际行为，不能将 12 次采样当作覆盖全部 1024 token。",
+      "overhead": "无 profile 与 profile 对照使用同 streaming、seed、输入和请求参数。原 client warmup 非 streaming、profile 是 streaming，不能直接作为严格 TTFT/TPOT 对照，需要 client 最小参数化。",
+      "resources": "先检查原始历史数据大小、剩余磁盘/inode 后制定输出预算；采集和导出期间监控空间、RSS 和 HBM，超预算/低安全余量停止并保留不完整标记。当前没有完整历史原始大小，不能编造预算需求；npu-smi 低频采样不能保证抓到峰值。"
+    },
+    "control": {
+      "reuse": "复用 diagnostic-20261029/start_recapture.py、run_capture_and_restore.py、profile_client.py 的隔离、owner/idle 检查、try/finally、导出和恢复逻辑；三者硬编码旧容器、输出及 launch.json，不能原样重跑。实施前小幅参数化独立标签和目录，不覆盖历史，禁用旧 sitecustomize 覆盖及插桩；当前不改脚本。",
+      "preflight": [
+        "核对本人 baseline 容器 ID、镜像 digest、冻结脚本 SHA、挂载、端口、设备映射、版本与各 NPU 进程归属。",
+        "检查两 engine health 和 running/waiting=0、请求排空；确认输出 bind mount 在 /data/tiankuan/wio/main 对应目录，隔离输出、输入完整、磁盘及 inode 余量。"
+      ],
+      "switch": [
+        "准备同镜像同模型、独立目录的诊断容器，冻结服务参数不变，仅追加原生 profiler-config。",
+        "复核 owner 与 idle，停止本人 baseline，确认其 16 卡进程退出；若他人进程出现，则暂停、不强行抢占。",
+        "启动诊断服务，检查健康、16 rank 与 OpenAPI 的 profile 两入口；预热、执行指定负载并采集。",
+        "成功、失败、超时、空间不足均 finally 尽力停止 profiler，等待或标记导出不完整，只停本诊断容器；确认无他人占用后启动本人 baseline。"
+      ],
+      "restore": [
+        "确认原 baseline 容器 ID、镜像、挂载、配置哈希和端口与切换前一致；等待健康 200、两个 engine running/waiting=0、16 rank 归属、HBM 和日志健康。",
+        "记录停服和恢复时间、导出完整性与错误。重启丢失 prefix/KV 缓存，重新 seed 后再比较，不声称缓存完全恢复。",
+        "如其他占用或加载失败阻止恢复，保留证据告知主控，不停止他人进程、不得标记为已恢复。"
+      ]
+    },
+    "outputs": "保存 16 rank profiler_info、原始 trace、可获得的 kernel_details/trace_view/DB、哈希、采样日志、客户端输出、metrics、同组对照、时间对齐和恢复记录；按 rank 与 prefill/decode 统计覆盖；缺项记 unknown，profile 不直接证明因果或理论上界。"
+  },
+  "current_authorization": "User grants owned-container necessary process/probe operations;no newcollection needed for final audit.",
+  "current_case": {
+    "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v172/fixed-case-branch-contract-reuse.json",
+    "sha256": "904547433f296494ad800085cc372ac35becfdfcb43e5c2f9768cdbba8955301"
+  },
+  "current_index": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/profile-index.json",
+  "authorization_scope": "Owned171container,originalcase andguardedminimalprobes;otherjobs untouched."
+}

@@ -1,0 +1,120 @@
+{
+  "generated_utc": "2026-10-31T06:20:19.729215+00:00",
+  "candidate": "F25",
+  "variants": [
+    {
+      "id": "F25-v30-PARAM",
+      "state": "CONDITIONAL_PARAMETER_GENERATION_CSE",
+      "change": "CacheFP32q*kperlayerandFP32blockrotationperimmutable/versionedparameterstorage.",
+      "requires": "Sameoperationrounding/device/dtypeandload/weight/adaptor/version;invalidateonreload/move/cast/update,keepcapturedaddresses;samematrixshapeisnotparameteridentity."
+    },
+    {
+      "id": "F25-v30-GATE",
+      "state": "CONDITIONAL_FUSION",
+      "change": "Joinblock32rotation,casts,twofull-featureRMS,weighteddot,signedsqrt/sigmoid/maskandresidual.",
+      "requires": "Originalresidualbasis,BF16boundaries,FP32order,eps,signbit/signedzero/NaN/Infand4HCsharedvalueconsumers;orthogonalitydoesnotcancelnumericalnorm/rounding."
+    },
+    {
+      "id": "F25-v30-WKV-TILE",
+      "state": "CONDITIONAL_SPLIT_OR_LARGER_FUSION",
+      "change": "WKVoutputtilesfeedkeynorm/dotandsharedvaluegatewithoutunnecessaryglobalintermediates.",
+      "requires": "All5120featurescontributetonorm/dot;defergateuntilreductionsready,retainBF16WKVroundingandvalueforall4HCstreams."
+    },
+    {
+      "id": "F25-v30-PROJECTION-SHARD",
+      "state": "CONDITIONAL_ALTERNATIVE_PARTITION;NOT_BITWISE_PROVED",
+      "change": "Reviewlocal-headpartialWKVwithrowReduceScatterasanothercommunication/weightpartition.",
+      "requires": "NewsplitreductionchangesFPaccumulation;exactbaselineBF16roundingnotproved. Comparelarger25600output/FP32partialcommunicationvs6144BF16inputexchange,weightsandgroup/captureconstraints;notafreespeedup."
+    },
+    {
+      "id": "F25-v30-EXCLUDED",
+      "state": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+      "change": "Treatrotationasdense5120square,deleteRMSusingidealorthogonality,reusegateactivationsacrosslayersoroverwritevalueafteroneHCstream.",
+      "reason": "Profileblock32,actualrounding/fullfeaturedependenceandfoursharedconsumerscontradictthoseclaims."
+    }
+  ],
+  "conditions": [
+    {
+      "id": "F25-v30-01",
+      "branch": "actual_body",
+      "state": "MEASURED_SOURCE_CONSISTENT",
+      "evidence": "160graph+48nativebodies;208WKV,624parameterprep,7072ordinarygateTASKs."
+    },
+    {
+      "id": "F25-v30-02",
+      "branch": "rotation",
+      "state": "MEASURED_DOCUMENTED",
+      "evidence": "32x32blockalreadyused;notdense5120square."
+    },
+    {
+      "id": "F25-v30-03",
+      "branch": "parameter_values",
+      "state": "DOCUMENTED_CONDITIONAL",
+      "evidence": "q*k81920logicalbytesperlayerandrotation4096logicalbytes;notmeasuredHBMtraffic/gain."
+    },
+    {
+      "id": "F25-v30-04",
+      "branch": "parameter_generation",
+      "state": "UNKNOWN_RUNTIME_LIFETIME",
+      "evidence": "Cachekeymustincludeactualstorage/version/load/device/dtype,notshape;per-layerweightsdistinct."
+    },
+    {
+      "id": "F25-v30-05",
+      "branch": "precision_boundaries",
+      "state": "RETAINED",
+      "evidence": "FP32cast/productoperationcontractandBF16WKV/residualoutputrounding."
+    },
+    {
+      "id": "F25-v30-06",
+      "branch": "full_feature_reductions",
+      "state": "RETAINED",
+      "evidence": "Separatehidden/key5120DRMSplusweighteddot;epsilonandorderrequired."
+    },
+    {
+      "id": "F25-v30-07",
+      "branch": "rotation_residual_basis",
+      "state": "RETAINED",
+      "evidence": "Unrotateforgateoriginal-basiscalculationbutaddtooriginalhidden.floatresidual."
+    },
+    {
+      "id": "F25-v30-08",
+      "branch": "nonfinite_mask",
+      "state": "RETAINED",
+      "evidence": "Signedsqrt/signbit/sigmoid,masked_filland0*Inf/NaN/signedzerosmustretainsemantics."
+    },
+    {
+      "id": "F25-v30-09",
+      "branch": "value_fanout",
+      "state": "RETAINED",
+      "evidence": "5120Dvaluefeedsall4HCstreams;notdeadwhenfirstconsumerfinishes."
+    },
+    {
+      "id": "F25-v30-10",
+      "branch": "tile_visibility",
+      "state": "CONDITIONAL_NEW_INTERFACE",
+      "evidence": "WKV/key/value/reductionsrequireexactpartialready/lastreadercontract;wholekernelcompletiondoesnotprovetilevisibility."
+    },
+    {
+      "id": "F25-v30-11",
+      "branch": "projection_partition",
+      "state": "CONDITIONAL_NOT_BITWISE_PROVED",
+      "evidence": "PartialWKV+ReduceScatterchangesarithmetic/communication;mustretainexactnessorthedeclaredtoleranceandallconsumers."
+    },
+    {
+      "id": "F25-v30-12",
+      "branch": "relations",
+      "state": "NONADDITIVE",
+      "evidence": "F24rowheadexchange,F25projectionpartition/WKVgateandF03/F26residualboundariesoverlap;choosecompatiblegraphnotaddallremovals."
+    },
+    {
+      "id": "F25-v30-13",
+      "branch": "phase_and_gain",
+      "state": "UNKNOWN",
+      "evidence": "16graphphasesunbound;noCPUscope/HBMpeak/requestgainornativenumericalcertificatefromcounts."
+    }
+  ],
+  "all_conditions_closed": false,
+  "implementation": false,
+  "new_performance_result": false,
+  "overall_complete": false
+}

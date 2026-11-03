@@ -1,0 +1,483 @@
+{
+  "id": "F21_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MC2_INTERNAL_KNOWN_STAGES",
+  "original_node_mapping": {
+    "dispatch": "dispatch",
+    "gmm1": "gmm1",
+    "swiglu": "swiglu",
+    "gmm2": "gmm2",
+    "combine": "combine"
+  },
+  "nodes": [
+    {
+      "id": "dispatch",
+      "kind": "REMOTE_DATA_COPY",
+      "resource": "COMM",
+      "already_one_kernel": true
+    },
+    {
+      "id": "gmm1",
+      "kind": "INT8_GROUPED_LINEAR",
+      "resource": "NPU",
+      "already_one_kernel": true
+    },
+    {
+      "id": "swiglu",
+      "kind": "SWIGLU_CLAMP_QUANT_COMPOSITE",
+      "resource": "NPU",
+      "already_one_kernel": true
+    },
+    {
+      "id": "gmm2",
+      "kind": "INT8_GROUPED_LINEAR",
+      "resource": "NPU",
+      "already_one_kernel": true
+    },
+    {
+      "id": "combine",
+      "kind": "REMOTE_DATA_COPY_REDUCE",
+      "resource": "COMM",
+      "already_one_kernel": true
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "dispatch",
+      "consumer": "gmm1",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "gmm1",
+      "consumer": "swiglu",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "swiglu",
+      "consumer": "gmm2",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "gmm2",
+      "consumer": "combine",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "counts",
+      "consumer": "dispatch",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v50": {
+    "loading": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-dynamic-loading-contract-v50.json",
+    "publication": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-multiplane-buffers-and-publication-contract-v50.json",
+    "frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-unrolled-dynamic-publication-frontier-v50.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-placement-publication-variants-v50.json",
+    "frozen_inputs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-source-snapshot-index-v50.json",
+    "source_provenance": "Threehistorical166matchedfiles(runner,routedexperts,W8A8producer);threeadaptor/updator/D2Ddependencieslocalreferenceonly.",
+    "relation": "Staticfilealone doesnotselectrunnerdynamicadaptorwarmup. load_model disablesDefaultModelLoaderEPfilter,not a positiveslot-reconciliationproof. ReferenceW8A8MC2registryhas6namedplanes andper-keysharedbufferbanks. Referencewait→CPUmap→log2phy→plane-copy calls are not proven crossstream/native/allrankpublication.",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v51": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-checkpoint-map-commutation-contract-v51.json",
+    "identity_condition": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-load-identity-witness-v51.json",
+    "source_flow": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-loading-source-flow-v51.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-loader-conditions-v51.json",
+    "frozen_source_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-checkpoint-source-index-v51.json",
+    "relation": "TargetquerymethodpassesR0,butactualprivateloadersuppliesselfR. QualifiedreferencecoremappinguseslogicalcheckpointnameP0[p]andphysicalcallbackIDp;ordinarybasecallbackusescanonicalmanagerPhi. Fullcompositeexecutionrouteandloadedpayloadmustcommute. Filefilter-noop/queryR0/generic3Dentrycannotstandinforactualstaticpairing.",
+    "source_scope": "3historical166matchedsourceinputs;2frozenreferencebridgeinputs. P0body/actualcallback/actualmapsandweightsnotrecovered.",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v52": {
+    "callback_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-quant-callback-forwarding-contract-v52.json",
+    "initial_runtime_planes": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-initial-parameters-to-runtime-planes-v52.json",
+    "lifecycle_flow": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-callback-and-plane-lifecycle-flow-v52.json",
+    "refined_conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-static-loader-registration-refinements-v52.json",
+    "frozen_inputs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-callback-source-index-v52.json",
+    "relation": "QualifiedModelSlimfactorywrapsinstanceweight_loaderbeforecorecaptureskwargs;classinheritancealoneisnotactualcallbackproof. Wrapperonlyaliasesw13/w2scale_biasleafnamesandforwardsphysicalexpert_idunchanged. InitialsixW8A8parametersarenotone-to-onesixruntimeEPLBplanes. Knownwrapperisnotstaticplacementreconciliation.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v53": {
+    "source": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/restored-source-point-contracts-v53.json",
+    "initial_map_helper": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F21-initial-map-and-attribute-helper-contract-v53.json",
+    "source_cache": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/original-source-cache-index-v53.json",
+    "relation": "Original166stage files now match the previously reference-only ModelSlim andEPLB dependencies. P0 is identity then round-robin redundant copies;set_weight_attrs asserts absence,may sync-wrap weight_loader,then captures callable. Inspected adapter postload delegates. Actual deployed objects/placement/payload pairing remains conditional.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v56": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-operator-profile-v56.json",
+    "kernel": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-kernel-boundary-and-tiling-contract-v56.json",
+    "receiver_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-receiver-work-and-communication-model-v56.json",
+    "relation": "MC2alreadyfusesrouteddispatch/GMM1/SwiGLUquant/GMM2/combine;sharedactivation isseparate. InternalFP16/INT8/FP32barriers andGMaliasedbuffers bound. Work usesreceiverassignments/activeexperts;5conditionalvariants refineexistingcandidates. Sharedoverlaporacle excludesdependentfinaladd.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v63": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-regime-models-v63.json",
+    "graph_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-graph-chains-v63.json",
+    "numerical_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-numerical-contract-v63.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-fusion-costs-v63.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-fusion-variants-v63.json",
+    "MemSet_pending": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-MemSet-profile-insufficiency-v63.json",
+    "full_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v63.json",
+    "relation": "145previouslypendingregimes75802nativeexecutionsaudited;142/74842nowexplicitconditionaloperatorreview,3MemSet/960staypending. 23fusion/split/reorganization/rejectionchoicespricecandidate/partial/padworkandprecisionbarriers.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-07",
+      "REL73-08"
+    ],
+    "peers": [
+      "F20",
+      "F22"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v77": {
+    "domain": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/padding-route-domain-v77.json",
+    "semantics": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/padding-route-semantic-proof-v77.json",
+    "costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/padding-route-cost-models-v77.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/padding-route-variants-v77.json",
+    "source_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/padding-route-source-index-v77.json",
+    "scope": "Constant padding rawTopK result reuse,mandatoryoutputconsumerboundary and typed-ceiling conditions only.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v80": {
+    "primary_architecture": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-datapath-primary-evidence-v80.json",
+    "typed_cycle_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-typed-ingress-regime-models-v80.json",
+    "Markov_frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Markov-warm-ingress-frontier-v80.json",
+    "joint_resource_cut": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-joint-ingress-cut-proof-v80.json",
+    "candidate_frontiers": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-fusion-interface-frontiers-v80.json",
+    "shared_interfaces": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/shared-CV-interface-revaluation-v80.json",
+    "capacity_ranking_scope": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-local-capacity-and-ceiling-scope-v80.json",
+    "router_interfaces": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-CV-interface-domains-v80.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v82": {
+    "evidence": [
+      "quant-epilogue-public-source-index-v82.json",
+      "quant-epilogue-primary-details-v82.json",
+      "quant-vector-owner-profile-v82.json",
+      "quant-epilogue-source-contract-v82.json",
+      "DownAdd-epilogue-variants-v82.json",
+      "epilogue-rounding-witnesses-v82.json",
+      "quant-epilogue-boundary-models-v82.json",
+      "Q_B-index-epilogue-extension-v82.json",
+      "shared-quant-owner-CV-interfaces-v82.json"
+    ],
+    "conditional_operator_analysis_deliverable": true,
+    "new_device_work": false,
+    "output_owner": "BF16 per-token quant output can be Vector-owned after internal INT32 CV GM, per pinned public branch; current native instruction owner not attested."
+  },
+  "review_v84": {
+    "clause_ids": [
+      "REL84-06",
+      "REL84-10"
+    ],
+    "source_contract": "Engram-HC-operator-source-contract-v84.json",
+    "native_frontiers": "Engram-HC-native-frontiers-v84.json",
+    "pure_WKV_variants": "Engram-WKV-hoist-and-memo-variants-v84.json",
+    "work_storage_models": "Engram-WKV-storage-and-work-models-v84.json",
+    "joint_credit": "Engram-HC-transfer-credit-v84.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v86": {
+    "evidence": [
+      "terminal-layer-prior-evidence-v86.json",
+      "terminal-layer-operator-source-v86.json",
+      "terminal-layer-native-frontier-v86.json",
+      "terminal-layer-demand-cut-v86.json",
+      "terminal-layer-owner-and-work-models-v86.json",
+      "terminal-layer-weight-and-dependency-proof-v86.json",
+      "terminal-layer-composition-clauses-v86.json"
+    ],
+    "conditional_terminal_demand_analysis": true,
+    "all_readers_closed": false,
+    "relation_ids": [
+      "REL86-07"
+    ],
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v95": {
+    "evidence": [
+      "route-quant-operator-source-contract-v95.json",
+      "route-quant-tiling-and-work-models-v95.json",
+      "route-quant-native-frontiers-v95.json",
+      "route-quant-reuse-interface-models-v95.json",
+      "route-quant-variants-v95.json"
+    ],
+    "graph_frontiers": 3200,
+    "reused_TASKs": 6400,
+    "MC2_existing_executions": 4472,
+    "source_case_count": 5,
+    "source_internal_AIV_budget": 40,
+    "recorded_outer_launch_fields": [
+      24,
+      48
+    ],
+    "these_fields_are_distinct": true,
+    "conditional_same_quantizer_M3_GM_input_difference": 92088,
+    "conditional_dual_quantizer_difference": 76716,
+    "new_pairs": 0,
+    "new_groups": 0,
+    "all_reader_or_loaded_precision_or_gain_proved": false,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v96": {
+    "evidence": [
+      "route-map-operator-source-contract-v96.json",
+      "route-map-source-work-and-interfaces-v96.json",
+      "route-map-native-frontiers-v96.json",
+      "route-map-semantic-and-ceiling-contract-v96.json",
+      "route-map-variants-v96.json",
+      "DataCopyPad-primary-evidence-v96.json"
+    ],
+    "native_frontiers": 3200,
+    "reused_TASKs": 9600,
+    "full_load_saved_calls": 3512,
+    "gathered_calls_not_credited": 960,
+    "exact_inverse_identity_in_stated_domain": true,
+    "current_native_permutation_or_tie_or_scatter_cost_proved": false,
+    "source_Sort_calls_reference": 120240,
+    "inverse_only_reference": 60120,
+    "source_counts_not_all_algorithm_lowerwork": true,
+    "new_pairs": 0,
+    "new_groups": 0,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v97": {
+    "evidence": [
+      "receiver-budget-operator-source-contract-v97.json",
+      "receiver-capacity-evidence-status-v97.json",
+      "receiver-capacity-and-workspace-models-v97.json",
+      "receiver-workspace-shared-live-budget-v97.json",
+      "receiver-budget-composition-clauses-v97.json",
+      "receiver-budget-variants-v97.json"
+    ],
+    "current_MC2_TASKs_reused": 4472,
+    "actual_current_C_attested": false,
+    "capacity_identity_models": 1073280,
+    "source_workspace_models": 24,
+    "clipping_equivalence_only_in_declared_global_bound": true,
+    "native_write_extent_or_allocator_peak_credit_or_actual_speedup_proved": false,
+    "new_relation_ids": [
+      "REL97-01",
+      "REL97-02"
+    ],
+    "extended_group": "HG85-SHARED-MEMORY-BUDGET",
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v98": {
+    "evidence": [
+      "raw-profile-schema-and-args-v98.json",
+      "raw-operator-evidence-extraction-v98.json",
+      "raw-profile-capability-audit-v98.json",
+      "MC2-recorded-attributes-and-executions-v98.json",
+      "remaining-operand-evidence-status-v98.json",
+      "MC2-attribute-to-ceiling-contract-v98.json",
+      "minimal-operator-evidence-plan-v98.json"
+    ],
+    "raw_MC2_C_recorded_executions": 3200,
+    "raw_MC2_C_missing_executions": 1272,
+    "source_count_and_clipping_contract_reviewed": true,
+    "source_reference_ops_per_processed_assignment": 70778880,
+    "actual_receiver_count_or_MFU_or_peak_credit_known": false,
+    "new_relations": 0,
+    "new_regime_promotions": 0,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v104": {
+    "evidence": [
+      "operator-boundary-inputs-v104.json",
+      "operator-boundary-source-contract-v104.json",
+      "operator-boundary-saved-work-domain-v104.json",
+      "operator-boundary-semantic-inventory-v104.json",
+      "operator-boundary-history-crosswalk-v104.json",
+      "operator-boundary-demand-and-theory-contract-v104.json"
+    ],
+    "operator_boundary_scope_only": true,
+    "saved_local_zero_scheduled_entries": 64,
+    "actual_executor_KV_EC_or_zero_device_work_attested": false,
+    "old_chronological_rows_retained": 26,
+    "new_semantic_boundary_rows": 15,
+    "implementation": false,
+    "native_test": false,
+    "new_runtime_executions": 0
+  },
+  "review_v105": {
+    "evidence": [
+      "coverage-dependency-inputs-v105.json",
+      "operator-selector-source-index-v105.json",
+      "operator-selector-contract-v105.json",
+      "operator-selector-case-models-v105.json",
+      "coverage-branch-reconciliations-v105.json",
+      "coverage-semantic-evidence-audit-v105.json",
+      "coverage-gap-history-before-v105.json",
+      "coverage-current-obligations-v105.json",
+      "coverage-gap-history-routing-v105.json"
+    ],
+    "exact_PCP_selectors_source_reviewed": true,
+    "source_spec_present_decode_shard": false,
+    "current_runtime_config_or_historical_helper_binding_proved": false,
+    "source_case_models": 96,
+    "semantic_reference_rows": 353,
+    "evidence_file_pins": 391,
+    "implementation": false,
+    "native_test": false,
+    "new_runtime_executions": 0
+  },
+  "review_v116": {
+    "evidence": [
+      "combine-inputs-v116.json",
+      "combine-profile-branch-map-v116.json",
+      "combine-source-contract-v116.json",
+      "combine-row-and-peer-interval-proof-v116.json",
+      "combine-mask-gated-work-models-v116.json",
+      "combine-guards-and-invalid-rewrites-v116.json"
+    ],
+    "source_predicted_V2": 3512,
+    "source_predicted_V1": 960,
+    "row_reference_cases": 514,
+    "peer_segment_cases": 7565,
+    "mask_actual_unknown": true,
+    "full_Normal_active_Cast_anddependent_UBlayout_candidate": true,
+    "actual_loaded_ABI_writeextents_or_precision_attested": false,
+    "new_device_work": false,
+    "implementation": false
+  },
+  "review_v119": {
+    "evidence": [
+      "combine-v1-inputs-v119.json",
+      "combine-v1-source-contract-v119.json",
+      "combine-v1-later-profile-scope-v119.json",
+      "combine-v1-observer-peer-loads-v119.json",
+      "combine-v1-row-redistribution-proof-v119.json",
+      "combine-v1-composition-and-theory-gates-v119.json"
+    ],
+    "later_profile_source_predicted_V1_executions": 960,
+    "saved_observer_source_predicted_V1_receiver_records": 640,
+    "raw_metadata_records_retrieved": 4736,
+    "raw_compressed_bytes": 1693174,
+    "actual_observer_expert_partition_cases": 15360,
+    "logical_row_reference_cases": 840,
+    "independent_margin_fixtures": 300,
+    "independent_partition_fixtures": 480,
+    "observer_expert_peer_joint_counts_recovered": true,
+    "later_profile_joint_counts_or_internal_phase_time_bound": false,
+    "new_pairs": 0,
+    "new_groups": 0,
+    "new_native_promotions": 0,
+    "whole_requirement_closed": false
+  },
+  "review_v122": {
+    "evidence": [
+      "route-fanout-inputs-v122.json",
+      "route-fanout-source-contract-v122.json",
+      "route-fanout-packet-and-return-models-v122.json",
+      "route-fanout-cohort-evidence-v122.json",
+      "route-fanout-variants-and-legality-v122.json",
+      "route-fanout-local-graph-map-v122.json",
+      "route-fanout-theory-and-measurement-v122.json"
+    ],
+    "saved_snapshot_records": 1392,
+    "formal_cohorts": 87,
+    "source_archive_and_metadata_SHA_checks": 2784,
+    "archive_bytes_read": 35632142,
+    "target_remote_assignment_references": 2565204,
+    "target_remote_token_destination_groups": 2204823,
+    "target_structural_repeated_references": 360381,
+    "draft_remote_assignment_references": 731,
+    "draft_remote_token_destination_groups": 727,
+    "draft_structural_repeated_references": 4,
+    "selected_target_dispatch_logical_bytes_saved": 1714345440,
+    "selected_draft_dispatch_logical_bytes_saved": -133440,
+    "packet_count_layout_models": 12,
+    "independent_descriptor_clip_cases": 6400,
+    "existing_relation_refined": "REL73-07",
+    "existing_group_refined": "HG73-MOE",
+    "new_pairs": 0,
+    "new_groups": 0,
+    "new_native_promotions": 0,
+    "new_device_work": false,
+    "native_quantized_byte_identity_proved": false,
+    "actual_network_traffic_or_speedup_proved": false,
+    "whole_requirement_closed": false
+  },
+  "review_v123": {
+    "evidence": [
+      "route-placement-inputs-v123.json",
+      "route-placement-fixed-mappings-v123.json",
+      "route-placement-cohort-comparisons-v123.json",
+      "route-placement-aggregate-tradeoffs-v123.json",
+      "route-placement-nonadditivity-and-surrogate-v123.json",
+      "route-placement-legality-and-graph-v123.json"
+    ],
+    "saved_records": 1392,
+    "formal_EP16_cohorts": 87,
+    "original_active_recorded_rows": 456660,
+    "archive_file_SHA_checks": 2784,
+    "actual_archived_owner_map_checks": 2784,
+    "archive_bytes_read": 35632142,
+    "new_routing_ID_export_uncompressed_bytes": 7327280,
+    "compressed_bytes": 4021974,
+    "training_layer_domains": 43,
+    "fixed_mapping_scenarios": 215,
+    "cohort_variant_comparisons": 435,
+    "heldout_target_cohorts": 40,
+    "heldout_draft_cohorts": 4,
+    "exhaustive_small_composition_cases": 36000,
+    "nonadditive_small_cases": 29784,
+    "existing_relation_refined": "REL73-07",
+    "existing_group_refined": "HG73-MOE",
+    "new_pairs": 0,
+    "new_groups": 0,
+    "new_native_promotions": 0,
+    "new_device_work": false,
+    "implementation": false,
+    "actual_physical_bytes_time_or_speedup": false,
+    "whole_requirement_closed": false
+  }
+}

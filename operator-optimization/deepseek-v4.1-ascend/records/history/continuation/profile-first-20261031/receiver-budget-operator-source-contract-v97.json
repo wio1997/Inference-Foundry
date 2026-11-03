@@ -1,0 +1,491 @@
+{
+  "parts": [
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/MC2-operator-source-v56/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp",
+      "sha256": "783f76d7869371df949fc5ee80e33dfca8cf81231a65da410fcfea40df89b6f8",
+      "segments": [
+        {
+          "first_line": 46,
+          "last_line": 50,
+          "source": [
+            "    constexpr uint32_t EXPERTID_INDEX = 3;",
+            "    constexpr uint32_t X_ACTIVE_MASK_INDEX = 7;",
+            "    constexpr uint32_t BLOCK_NUM = 20;",
+            "    constexpr uint32_t SYSTEM_NEED_WORKSPACE = 16 * 1024 * 1024;",
+            "    constexpr uint64_t MB_SIZE = 1024 * 1024UL;"
+          ]
+        },
+        {
+          "first_line": 92,
+          "last_line": 112,
+          "source": [
+            "",
+            "    // TODO: set, validate, and print tiling data related to attributes",
+            "    auto groupPtr = attrs->GetAttrPointer<char>(static_cast<int>(ATTR_GROUP_INDEX));",
+            "    auto maxOutputSizePtr = attrs->GetAttrPointer<int>(ATTR_MAX_OUTPUT_SIZE_INDEX);",
+            "    auto is_trans_b = attrs->GetAttrPointer<bool>(ATTR_IS_TRANS_B);",
+            "    auto weight_nz = attrs->GetAttrPointer<bool>(ATTR_WEIGHT_NZ);",
+            "    auto swiglu_limit = attrs->GetAttrPointer<float>(ATTR_SWIGLU_LIMIT);",
+            "    OP_TILING_CHECK(groupPtr == nullptr || strlen(groupPtr) == 0,",
+            "    OP_LOGE(K_INNER_DEBUG, \"group is invalid.\"), return GRAPH_FAILED);",
+            "",
+            "    OP_TILING_CHECK(is_trans_b == nullptr,",
+            "        OP_LOGE(K_INNER_DEBUG, \"is_trans_b is invalid.\"), return GRAPH_FAILED);",
+            "    OP_TILING_CHECK(weight_nz == nullptr,",
+            "        OP_LOGE(K_INNER_DEBUG, \"weight_nz is invalid.\"), return GRAPH_FAILED);",
+            "",
+            "    info.maxOutputSize = *maxOutputSizePtr;",
+            "    info.isTransposeB = *is_trans_b;",
+            "    info.isWeightNz = *weight_nz;",
+            "    info.swigluLimit = swiglu_limit != nullptr ? *swiglu_limit : 0.0f;",
+            "",
+            "    auto worldSizePtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_WORLD_SIZE_INDEX));"
+          ]
+        },
+        {
+          "first_line": 258,
+          "last_line": 286,
+          "source": [
+            "    context->SetTilingKey(tilingKey);",
+            "",
+            "    OP_LOGD(K_INNER_DEBUG, \"tilingKey=%d\", tilingKey);",
+            "",
+            "    optiling::MoeInitRoutingQuantV2TilingBase moeInitRoutingQuantV2TilingBase;",
+            "    int64_t inuptXDtypeSize = sizeof(int16_t);",
+            "    int64_t scaleDim0 = 0;",
+            "    int64_t ubSize = 196352;",
+            "    int64_t expertCapacity = 0;",
+            "    int64_t expertNum = info.expertPerRank * info.worldSize + 1;    // enable expertId == expertNum",
+            "    int64_t activeNum = 0;",
+            "    int64_t dropPadMode = 0;",
+            "     int64_t expertTokensCountOrCumsumFlag = 2;",
+            "     bool expertTokensBeforeCapacityFlag = false;",
+            "     int64_t quantMode = 1;",
+            "     uint32_t aivNumInitRouting = 2 * BLOCK_NUM;",
+            "    moeInitRoutingQuantV2TilingBase.DoTiling(info.M, info.K, info.topK, expertCapacity, expertNum, activeNum, dropPadMode, ",
+            "        expertTokensCountOrCumsumFlag, expertTokensBeforeCapacityFlag, inuptXDtypeSize, quantMode, scaleDim0, aivNumInitRouting, ubSize);",
+            "    uint64_t initRoutingQuantTilingKey = moeInitRoutingQuantV2TilingBase.tilingKey_;",
+            "    size_t initRoutingWorkspace = moeInitRoutingQuantV2TilingBase.workspaceSize_;",
+            "",
+            "    tilingData->cocTiling.moeInitRoutingQuantV2TilingData = moeInitRoutingQuantV2TilingBase.quantTilingData;",
+            "    tilingData->cocTiling.moeInitRoutingQuantV2TilingData.vbsComputeParamsOp = moeInitRoutingQuantV2TilingBase.quantTilingData.vbsComputeParamsOp;",
+            "    tilingData->cocTiling.moeInitRoutingQuantV2TilingData.vmsMiddleComputeParamsOp = moeInitRoutingQuantV2TilingBase.quantTilingData.vmsMiddleComputeParamsOp;",
+            "    tilingData->cocTiling.moeInitRoutingQuantV2TilingData.sortOutComputeParamsOp = moeInitRoutingQuantV2TilingBase.quantTilingData.sortOutComputeParamsOp;",
+            "    tilingData->cocTiling.moeInitRoutingQuantV2TilingData.srcToDstComputeParamsOp = moeInitRoutingQuantV2TilingBase.quantTilingData.srcToDstComputeParamsOp;",
+            "    tilingData->cocTiling.moeInitRoutingQuantV2TilingData.srcToDstCapacityComputeParamsOp = moeInitRoutingQuantV2TilingBase.quantTilingData.srcToDstCapacityComputeParamsOp;",
+            "    tilingData->cocTiling.moeInitRoutingQuantV2TilingData.gatherOutComputeParamsOp = moeInitRoutingQuantV2TilingBase.quantTilingData.gatherOutComputeParamsOp;",
+            "    tilingData->cocTiling.initRoutingQuantTilingKey = initRoutingQuantTilingKey;"
+          ]
+        },
+        {
+          "first_line": 296,
+          "last_line": 315,
+          "source": [
+            "    // 4. workspace",
+            "    size_t *workSpaces = context->GetWorkspaceSizes(1);",
+            "    OP_TILING_CHECK(workSpaces == nullptr, OP_LOGE(nodeName, \"workSpaces is nullptr.\"),",
+            "        return ge::GRAPH_FAILED);",
+            "",
+            "    uint32_t n2 = info.K;",
+            "    uint32_t k2 = info.N / 2;",
+            "",
+            "    uint64_t cocWorkspace = (info.M + 256 - 1) / 256 * 256 * info.topK *sizeof(int32_t) +",
+            "                            info.worldSize * info.worldSize * info.expertPerRank * sizeof(int32_t) * 2 +",
+            "                            info.maxOutputSize * sizeof(float) * 2 +",
+            "                            info.maxOutputSize * n2 * sizeof(int16_t) +",
+            "                            info.maxOutputSize * info.K * sizeof(int8_t) +",
+            "                            info.worldSize  * sizeof(int32_t) * 16 +",
+            "                            (info.expertPerRank + info.worldSize) * sizeof(int32_t) * 16;",
+            "",
+            "    workSpaces[0] = SYSTEM_NEED_WORKSPACE + std::max(cocWorkspace, initRoutingWorkspace);",
+            "",
+            "",
+            "    // 5. communication"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/MC2-operator-source-v56/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/dispatch_ffn_combine_kernel.hpp",
+      "sha256": "7dcef4c08c4c47e38bdd01aef0dee997798658ee4d7b871c8e6c70f7ffe596ba",
+      "segments": [
+        {
+          "first_line": 445,
+          "last_line": 463,
+          "source": [
+            "        uint32_t startCoreIdx = 0;",
+            "        uint32_t syncGroupIdx = 0;",
+            "        int64_t preCurrentmSum = 0;",
+            "        int32_t syncLoopIdx = -1;",
+            "",
+            "        uint16_t syncgmmIdx = 0;",
+            "        AscendC::CrossCoreWaitFlag<0x2>(syncgmmIdx / CROSS_CORE_FLAG_MAX_SET_COUNT); // Wait for AIV to finish cumsum for matmul",
+            "        syncgmmIdx++;",
+            "",
+            "        for (uint32_t groupIdx = 0; groupIdx < params.expertPerRank; ++groupIdx) {",
+            "            uint32_t currentM = cumsumMM((params.EP - 1) * params.expertPerRank + groupIdx);",
+            "            if (preCurrentmSum >= params.maxOutputSize) {",
+            "                currentM = 0;",
+            "            } else if (preCurrentmSum + currentM >= params.maxOutputSize) {",
+            "                currentM = params.maxOutputSize - preCurrentmSum;",
+            "            } ",
+            "            AscendC::GlobalTensor<ElementB> gmB1;",
+            "            AscendC::GlobalTensor<ElementScale> gmS;",
+            "            int32_t arrayGroupIdx = params.listLen == 1 ? 0 : groupIdx;"
+          ]
+        },
+        {
+          "first_line": 557,
+          "last_line": 575,
+          "source": [
+            "        if (params.epilogueGranularity < params.expertPerRank) {",
+            "            lastDequantExpertNum = params.expertPerRank - params.epilogueGranularity;",
+            "        }",
+            "",
+            "        for (uint32_t groupIdx = 0; groupIdx < params.expertPerRank; ++groupIdx) {",
+            "            uint32_t currentM = cumsumMM((params.EP - 1) * params.expertPerRank + groupIdx);",
+            "            if (preCurrentmSum >= params.maxOutputSize) {",
+            "                currentM = 0;",
+            "            } else if (preCurrentmSum + currentM > params.maxOutputSize) {",
+            "                currentM = params.maxOutputSize - preCurrentmSum;",
+            "            } ",
+            "            AscendC::GlobalTensor<ElementB> gmB2;",
+            "            AscendC::GlobalTensor<ElementScale> gmS2;",
+            "            int32_t arrayGroupIdx = params.listLen == 1 ? 0 : groupIdx;",
+            "            gmB2.SetGlobalBuffer(reinterpret_cast<__gm__ ElementB *>(GetTensorAddr<int8_t>(arrayGroupIdx, params.ptrB2)));",
+            "            gmS2.SetGlobalBuffer(reinterpret_cast<__gm__ ElementScale *>(GetTensorAddr<int64_t>(arrayGroupIdx, params.ptrScale2)));",
+            "            if (currentM <= L1TileShape::M) {",
+            "                gmB2.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);",
+            "            }"
+          ]
+        },
+        {
+          "first_line": 1103,
+          "last_line": 1140,
+          "source": [
+            "",
+            "        CATLASS_DEVICE",
+            "        WorkspaceInfo(const Params & params) {",
+            "            uint32_t k2 = params.problemShape.n() / 2;",
+            "            uint32_t n2 = params.problemShape.k();",
+            "            int64_t workspaceOffset = 0;",
+            "            expandedRowIdx = params.ptrWorkspace;",
+            "",
+            "            workspaceOffset += AlignUp(params.problemShape.m(), 256) * params.topK * sizeof(int32_t);",
+            "            ptrcumsumMM = params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            workspaceOffset += (params.EP * params.EP * params.expertPerRank) * sizeof(int32_t);",
+            "",
+            "            ptrPerTokenScale = params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            workspaceOffset += params.maxOutputSize * sizeof(ElementPerTokenScale);",
+            "            ptrPerTokenScale2 = params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            workspaceOffset += params.maxOutputSize * sizeof(ElementPerTokenScale);",
+            "            ptrTokenPerExpert =  params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            workspaceOffset += (params.EP * params.EP * params.expertPerRank) * sizeof(int32_t);",
+            "            ptrC = params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            ptrC2 = params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            workspaceOffset += params.maxOutputSize * n2 * sizeof(ElementC);",
+            "            ptrA = params.ptrWorkspace + workspaceOffset;",
+            "            ptrPermutedToken = params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            workspaceOffset += params.maxOutputSize * params.problemShape.k() * sizeof(ElementA);",
+            "",
+            "            ptrSumBeforeRank = params.ptrWorkspace + workspaceOffset;",
+            "",
+            "            workspaceOffset += params.EP * sizeof(int32_t) * FLAGSTRIDE;",
+            "            ptrSoftFlagBase = reinterpret_cast<__gm__ float*>(params.ptrWorkspace + workspaceOffset);",
+            "        }",
+            "    };"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/ops/fused_moe/moe_comm_method.py",
+      "sha256": "7040f691355bd9acb3c668e698de3f7d3854edbc22e3f979f9b03d99800364d7",
+      "segments": [
+        {
+          "first_line": 418,
+          "last_line": 445,
+          "source": [
+            "        expert_per_rank = max(1, num_experts // int(self.token_dispatcher.ep_world_size))",
+            "        absolute_safe_max_recv_token_num = max(",
+            "            1,",
+            "            num_max_tokens_per_rank * int(self.token_dispatcher.ep_world_size) * min(num_topk, expert_per_rank),",
+            "        )",
+            "",
+            "        if is_decode_only_node:",
+            "            max_recv_token_num = absolute_safe_max_recv_token_num",
+            "        else:",
+            "            # P nodes and PD-mixed nodes use the configured value. This keeps",
+            "            # the existing memory/performance tradeoff for prefill workloads.",
+            "            max_recv_token_num = get_ascend_config().mega_moe_max_tokens",
+            "            # absolute_safe_max_recv_token_num is the max value required by mega moe api",
+            "            if max_recv_token_num > absolute_safe_max_recv_token_num:",
+            "                max_recv_token_num = absolute_safe_max_recv_token_num",
+            "            logger.warning_once(",
+            "                \"MegaMoe symm buffer: max_recv_token_num is set from \"",
+            "                \"mega_moe_max_tokens=%d (reference value) on a P or PD-mixed \"",
+            "                \"node. If the actual per-rank received token count after \"",
+            "                \"dispatch exceeds this value, precision degradation will \"",
+            "                \"occur. The absolute safe upper bound is %d \"",
+            "                \"(num_max_tokens_per_rank=%d, ep_world_size=%d, num_topk=%d, \"",
+            "                \"expert_per_rank=%d). Please tune mega_moe_max_tokens in \"",
+            "                \"additional_config based on actual expert load distribution.\",",
+            "                max_recv_token_num,",
+            "                absolute_safe_max_recv_token_num,",
+            "                num_max_tokens_per_rank,",
+            "                int(self.token_dispatcher.ep_world_size),"
+          ]
+        },
+        {
+          "first_line": 580,
+          "last_line": 616,
+          "source": [
+            "        if self.enable_fused_mc2 == 1:",
+            "            if _EXTRA_CTX.use_mega_moe:",
+            "                out, expert_tokens = self._apply_cann_mega_moe(",
+            "                    fused_experts_input, weights, is_decode_only_node=_EXTRA_CTX.is_decode_only_node",
+            "                )",
+            "            else:",
+            "                assert not (weights.w1_scale_bias is None or weights.w2_scale_bias is None), (",
+            "                    \"w1_scale_bias and w2_scale_bias cannot be None when enable_fused_mc2=1.\"",
+            "                )",
+            "",
+            "                out = torch.empty_like(fused_experts_input.hidden_states)",
+            "                torch.ops._C_ascend.dispatch_ffn_combine(  # type: ignore",
+            "                    x=fused_experts_input.hidden_states,",
+            "                    weight1=weights.w1,",
+            "                    weight2=weights.w2,",
+            "                    expert_idx=fused_experts_input.topk_ids,",
+            "                    scale1=weights.w1_scale,",
+            "                    scale2=weights.w2_scale,",
+            "                    bias1=weights.w1_scale_bias,",
+            "                    bias2=weights.w2_scale_bias,",
+            "                    probs=fused_experts_input.topk_weights.to(torch.float32),",
+            "                    group=self.token_dispatcher.moe_all_to_all_group_name,",
+            "                    max_output_size=get_ascend_config().mega_moe_max_tokens,",
+            "                    swiglu_limit=self.swiglu_limit,",
+            "                    world_size=self.token_dispatcher.ep_world_size,",
+            "                    x_active_mask=fused_experts_input.routing.mc2_mask,",
+            "                    out=out,",
+            "                    expert_token_nums=self.expert_token_nums,",
+            "                )",
+            "                expert_tokens = self.expert_token_nums",
+            "        else:",
+            "            raise ValueError(f\"Wrong value of {self.enable_fused_mc2=}\")",
+            "        return FusedExpertsResult(",
+            "            routed_out=out,",
+            "            expert_tokens=expert_tokens,",
+            "        )"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/ascend_config.py",
+      "sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+      "segments": [
+        {
+          "first_line": 596,
+          "last_line": 604,
+          "source": [
+            "    # This is a reference value: if the actual per-rank received token",
+            "    # count exceeds it, tokens may be truncated, causing precision",
+            "    # degradation. Do not set it too large because workspace memory scales",
+            "    # linearly with this value. Default 65536.",
+            "    mega_moe_max_tokens: int = 65536",
+            "    ascend_log_path: str = dataclasses.field(",
+            "        default_factory=lambda: os.path.join(os.path.expanduser(\"~\"), \"ascend\", \"log\", \"vllm_ascend\")",
+            "    )",
+            "    dump_config_path: str | None = None"
+          ]
+        },
+        {
+          "first_line": 951,
+          "last_line": 955,
+          "source": [
+            "",
+            "        # mega_moe_max_tokens range",
+            "        if self.mega_moe_max_tokens <= 0:",
+            "            raise ValueError(f\"mega_moe_max_tokens must be a positive integer, got {self.mega_moe_max_tokens}\")",
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/moe_init_routing_quant_v2/moe_init_routing_v2_tiling.h",
+      "sha256": "9fd2732cbc821d5e6bd1ae932de2f6979ab750c40a67b4125ef75bf26069da02",
+      "segments": [
+        {
+          "first_line": 240,
+          "last_line": 248,
+          "source": [
+            "bool InnerMoeInitRoutingV2TilingBase::GetWorkspaceSize() {",
+            "  // Calculate workspace size",
+            "  size_t sortWorkspaceSize = totalLength * sizeof(float) * NUM_TWO * NUM_THREE;  // Space needed for sorting",
+            "  size_t scatterWorkspaceSize = totalLength * sizeof(int32_t) * NUM_TWO;",
+            "  size_t expertTokenFlagSize = aivNum * 2 * sizeof(int32_t);",
+            "  workspaceSize_ = sortWorkspaceSize + scatterWorkspaceSize + expertTokenFlagSize + SIZE_16 * LENGTH_1024 * LENGTH_1024;",
+            "  return true;",
+            "}",
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/moe_init_routing_quant_v2/moe_init_routing_quant_v2_tiling.h",
+      "sha256": "ab50821407cad284205dc3bed56f36270760dd68860f90f6fb6ae4ce1bd16330",
+      "segments": [
+        {
+          "first_line": 212,
+          "last_line": 224,
+          "source": [
+            "",
+            "",
+            "bool MoeInitRoutingQuantV2TilingBase::GetWorkspaceSize() {",
+            "  InnerMoeInitRoutingV2TilingBase::GetWorkspaceSize();",
+            "  bool useCols =",
+            "      (dropPadMode == 0 && quantTilingData.gatherOutComputeParamsOp.colLoops > 1) ||",
+            "      (dropPadMode == 1 &&",
+            "       InnerMoeInitRoutingV2TilingBase::moeInitRoutingTilingData.srcToDstCapacityComputeParamsOp.colLoops > 1);",
+            "  if (quantMode == 1 && useCols) {",
+            "    workspaceSize_ += aivNum * InnerMoeInitRoutingV2TilingBase::moeInitRoutingTilingData.cols * sizeof(float);",
+            "  }",
+            "  return true;",
+            "}"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/moe_init_routing_quant_v2/moe_init_routing_quant_v2.cpp",
+      "sha256": "1766ef19445df82378f09c93a76938362e04dee27cf1160e4ae23c208f84fe2e",
+      "segments": [
+        {
+          "first_line": 32,
+          "last_line": 65,
+          "source": [
+            "template <class DTYPE_X = bfloat16_t>",
+            "__aicore__ inline  void moe_init_routing_quant_v2(",
+            "    GM_ADDR x, GM_ADDR expertIdx, GM_ADDR scale, GM_ADDR offset, GM_ADDR expandedX, GM_ADDR expandedRowIdx,",
+            "    GM_ADDR expertTokensCountOrCumsum, GM_ADDR expertTokensBeforeCapacity, GM_ADDR dynamicQuantScale, GM_ADDR workspace,",
+            "    const MoeInitRoutingQuantV2TilingData* tilingData, uint64_t tilingKey) {",
+            "",
+            "  if (g_coreType == AIC) {",
+            "    return;",
+            "  }",
+            "",
+            "  if (workspace == nullptr) {",
+            "    return;",
+            "  }",
+            "",
+            "  if (tilingKey == 20000) {  // quant full load",
+            "    TPipe sortPipe;",
+            "    MoeV2FullLoadQuant<DTYPE_X> op;",
+            "    op.Init(x, expertIdx, scale, offset, expandedX, expandedRowIdx, expertTokensCountOrCumsum, workspace, tilingData, &sortPipe);",
+            "    op.Process();",
+            "    sortPipe.Destroy();",
+            "    return;",
+            "  } ",
+            "  ",
+            "  ",
+            "  else if (tilingKey == 21000) {  // dynamic quant full load",
+            "    TPipe sortPipe;",
+            "    MoeV2FullLoadDynamicQuant<DTYPE_X> op;",
+            "    op.Init(x, expertIdx, expandedX, expandedRowIdx, expertTokensCountOrCumsum, scale, dynamicQuantScale, workspace, tilingData,",
+            "            &sortPipe);",
+            "    op.Process();",
+            "    sortPipe.Destroy();",
+            "    return;",
+            "  }",
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/moe_init_routing_quant_v2/moe_v2_fullload_dynamic_quant.h",
+      "sha256": "ba554c6028122f1efa3813738cf0267c011a86543282552629030ff76e51a51a",
+      "segments": [
+        {
+          "first_line": 313,
+          "last_line": 354,
+          "source": [
+            "                                                          GM_ADDR expandedRowIdx, GM_ADDR expertTokensCountOrCumsum,",
+            "                                                          GM_ADDR quantSmooth, GM_ADDR dynamicQuantScale,",
+            "                                                          GM_ADDR workspace,",
+            "                                                          const MoeInitRoutingQuantV2TilingData* tilingData,",
+            "                                                          TPipe* tPipe) {",
+            "  this->gatherOutTilingData_ = &(tilingData->gatherOutComputeParamsOp);",
+            "  //this->blockIdx_ = GetBlockIdx();",
+            "  this->blockIdx_ = get_block_idx() + get_subblockid() * get_block_num();",
+            "  this->k_ = tilingData->k;",
+            "  this->n_ = tilingData->n;",
+            "  this->cols_ = tilingData->cols;",
+            "  this->cols_scale_ = this->cols_ + UB_ALIGN;",
+            "  this->needCoreNum_ = this->gatherOutTilingData_->needCoreNum;",
+            "  this->perCoreRows_ = this->gatherOutTilingData_->perCoreRows;",
+            "  this->activateRows_ = this->gatherOutTilingData_->activateRows;",
+            "  if (this->blockIdx_ == this->gatherOutTilingData_->needCoreNum - 1) {",
+            "    this->coreRows_ = this->gatherOutTilingData_->lastCoreRows;",
+            "  } else {",
+            "    this->coreRows_ = this->gatherOutTilingData_->perCoreRows;",
+            "  }",
+            "  this->expertNum = tilingData->expertNum;",
+            "  this->dropPadMode = tilingData->dropPadMode;",
+            "  this->expertTokensCountOrCumsumFlag = tilingData->expertTokensCountOrCumsumFlag;",
+            "",
+            "  this->tileLength = Align(tilingData->vbsComputeParamsOp.lastCorePerLoopElements, sizeof(int32_t));",
+            "  this->sortNum_ = Ceil(this->tileLength, ONE_REPEAT_SORT_NUM) * ONE_REPEAT_SORT_NUM;",
+            "  this->totalLength = tilingData->n * tilingData->k;",
+            "  this->smoothType = tilingData->smoothType;",
+            "  this->colsAlign = Align(this->cols_, sizeof(T));",
+            "  this->pipe = tPipe;",
+            "",
+            "  xGm_.SetGlobalBuffer((__gm__ T*)x);",
+            "  expertIdxGm_.SetGlobalBuffer((__gm__ int32_t*)expertIdx, this->tileLength);",
+            "",
+            "  expandedXGm_.SetGlobalBuffer((__gm__ int8_t*)expandedX);",
+            "  expandedRowIdxGm_.SetGlobalBuffer((__gm__ int32_t*)expandedRowIdx, this->tileLength);",
+            "  if (this->expertTokensCountOrCumsumFlag > 0) {",
+            "    // dropless",
+            "    expertTokensCountOrCumsumGm.SetGlobalBuffer((__gm__ int32_t*)expertTokensCountOrCumsum,",
+            "                                                Align(this->expertNum, sizeof(int32_t)));",
+            "  }",
+            "  quantSmoothGm.SetGlobalBuffer((__gm__ float*)quantSmooth);"
+          ]
+        }
+      ]
+    }
+  ],
+  "generic_full_load_workspace_mentions": [
+    {
+      "line": 29,
+      "text": "GM_ADDR workspace, const MoeInitRoutingQuantV2TilingData* tilingData, TPipe* tPipe);"
+    },
+    {
+      "line": 315,
+      "text": "GM_ADDR workspace,"
+    }
+  ],
+  "facts": [
+    "Customdispatch_ffn_combine forwards config mega_moe_max_tokens unchanged to max_output_size. Adjacent CANNMegaMoe safe/clamped sizing is a different use_mega_moe branch.",
+    "Frozen config default is65536;actual current config and loaded max_output_size are not attested by default or old169records.",
+    "Host workspace is16MiB+max(coc(C),initRoutingWorkspace),not a sum of both workspaces. coc(C) includes twoFLOATscales+C*5120*FP16+C*5120*INT8;C1/C2 andA/activation aliases remain counted once.",
+    "For these5120 cases genericinit request=16MiB+32*M*k+320. Full-load21000 kernel ignores its genericworkspace argument;entry requires nonnull. Explicit inverse-map prefix,peermem/quant output/count buffers remain required.",
+    "Eliding genericinit reservation applies only to selected full-load source path with a valid reused nonnull pointer and preserved all explicit args. Large gathered paths and16MiBSYSTEMreservation are not removed.",
+    "Original receiver clipping is part of the program semantics. A reduced capacity must preserve min(A,C_old);increasing C to avoid clipping is a different behavior,not an equivalent optimization."
+  ],
+  "source_default_not_current_native_value": true,
+  "new_target_source_files": 0,
+  "no_model_Torch_NPU_or_native_work": true,
+  "overall_complete": false
+}

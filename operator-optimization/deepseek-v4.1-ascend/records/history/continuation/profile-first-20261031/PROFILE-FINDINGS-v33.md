@@ -1,0 +1,19 @@
+本轮先核对保存的profile，再沿概率变量做定点取证。采样范围仍为840原生API、1144 TASK、14条链，其中72次greedy rejection、72次raw模式working clone。全局4544个分布原语名字候选实际为4472个MoE GatingTopK和72个greedy rejection，未把TopK按名字归成sampling。补上确切recovery/random kernel名字后也没有ComputeInfo命中；所有sampler guard字段仍未记录。没有把零命中解释为all_greedy或entropy等flag的实际值。
+
+局部控制关系已有新结论。rejection_sample在not all_random分支内，当all_greedy为真时于553/554返回；ori_target_probs全部读取发生在这之后，processed target_probs和recovery也在返回之后创建。于是该明确条件域内，即使entropy配置为真，返回前462的原始softmax结果也可能无人读取。若最终raw-logprobs等其他raw读者同样不活跃，可联合省去这条概率计算和用于保存raw的working clone。另一个独立条件域是有效的Triton synthetic模式：其接受分支只看rate/uniform/ID，也不读entropy内容，但拒绝后仍需要processed分布恢复。不能只看all_greedy一个字段，更不能从72次greedy kernel推定这些guard；metadata assert、synthetic/block校验、working processors、target argmax、placeholders和随机数仍需保留。
+
+clone和raw来源也进一步说清。209/211先把选中BF16 entry logits扩成raw_target_logits FP32，217在raw模式克隆的是working target_logits，以便处理器可原地修改而保留raw。稳定的原始BF16 entry与同一row-plan可以重新生成相同FP32 raw值，故可研究以原始只读source/epoch代替第二个FP32 snapshot，或在raw工作平面被修改前只保留需要的entropy摘要。它需要新的消费者接口和真实代际/alias合同，不能靠同地址/shape复用。processed模式不克隆，ori_target_logits可能反映处理后的别名值；不能擅自把它改成“处理前raw entropy”。请求的完整/部分raw score、bonus输出和其他读者仍独立保留。
+
+三个确切Triton kernel把信息需求分开了。普通非greedy接受判断读取草稿token处的p、q（无draft_probs则q=1）、uniform及可选entropy；首次拒绝后不再处理后续位置。block verification则按顺序更新pi=min(pi*p/q,1)和uniform连乘，记录最后一个通过的位置，后面的比较可以在前面失败后重新通过。示例ratio=[0.2,1.8,1.8]、uniform=[0.9,0.5,0.5]会使普通路径在0恢复，而block路径最终全接受。因此不能把block改成首次失败、不能删除之后仍需的概率/entropy。
+
+这里的entropy确实是Hε=-Σ p log(p+1e-10)，按4096列块累加，再用于min(exp(-alpha Hε),posterior_threshold)。它不等于直接套用的Shannon entropy/logZ moment公式。接受阶段可研究只发布selected p/q、这个确切Hε和所需metadata，但softmax、调用者processors/constraints、epsilon、FP32归约顺序与所有外部score消费者都必须保持。source检查没有发现一个假设的apply_sampling_params阶段；实际输入是在调用者218/222处理后传来的target_logits，不能增加或漏掉步骤。
+
+恢复采样仍是完整分布消费者。它对每个请求创建共享Q[batch,V]指数随机向量；有draft_probs时逐列算max(P-D,0)/Q，无draft_probs则屏蔽draft列后P/Q，再按原块顺序argmax，不额外归一化。现有producer为每个合法候选位置都计算恢复ID，且没有is_greedy参数；实际非greedy输出每请求至多读其中一个：普通路径首次拒绝位置，block路径last_accepted+1，全部接受则只读bonus。接受判断不读取恢复ID，所以可以先形成设备上的R-map，再只计算被选行的恢复值。对固定P/D、同一请求Q和同样算术，这是逐点的消费者投影，不只是“分布看起来一样”。新launch、pack、publication和native数值还未验证。
+
+随机数合同不能随裁剪一起省略。uniform工具先生成全局float64 U，再对有seed且非空的请求覆盖；Triton入口再转float32。Q先生成全batch FP32指数样本，再为每个seed generator生成临时Q，即使该请求没有draft也会先生成临时随机数再通过where选择。两个工具的零长度行为不同。基础lazy方案保留全部这些调用和顺序，只省未被使用行的残差/argmax计算。进一步省随机数需要单独证明未来generator状态一致。PyTorch fallback接收float64 U、数值body尚未完整核对，未称它与Triton bitwise相同。
+
+错误分支也已实证：synthetic_mode和block-verify同时开启会在442–447抛ValueError，并不是注释所说的自动关闭block；不能把新的greedy return移到这个错误校验之前。sample_recovered_tokens的use_block_verify默认False，实际573调用没有传该参数，因此不能仅凭后续block kernel就说PyTorch blockwise recovery被选中。
+
+F35新增六类条件变体：greedy提前返回或有效Triton synthetic域中的entropy死结果清理、raw-source代际重组、确切entropy/selected-prob摘要、延后且只算被选行的恢复、mixed请求概率行裁剪、与v32词表owner/分区协议组合。它们重叠，不加算收益；selected p/q和entropy不能代替被选恢复行的完整残差分布。22项条件、source/branch/消费者图和恢复包已更新，仍细化F35，F30作为draft_probs/所有权接口关联，不新增主候选。
+
+本轮7次远端CPU只读作业6 pass；首版AST提取遗漏Assert/控制测试上下文，在draft_probs414断言位置停止，失败保留，修版仅补这两类节点。第一次producer赋值范围审计是pass，后续补in-place Expr/确切uniform导入和错误guard，未改记失败。没有导入模型/torch、新NPU负载、服务或健康检查；最后健康仍v12post。概率分支源码合同不是其在本次负载实际执行的证据，完整26模块仍open、26项理论比较仍INCOMPLETE。下一批转M18 DSpark辅助context projection/norm和发布，从全rank profile及真实行/代际边界继续，不重复已回答的M17核心读取问题。

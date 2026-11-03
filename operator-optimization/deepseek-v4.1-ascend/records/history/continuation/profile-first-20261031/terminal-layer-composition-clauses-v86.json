@@ -1,0 +1,268 @@
+{
+  "clauses": [
+    {
+      "id": "REL86-01",
+      "a": "F01",
+      "b": "F26",
+      "relation": "ATTENTION_PRE_FULL_KV_DEMAND_VS_SELECTED_FFN_PRE",
+      "operator_claim": "First attention HcPre/RMS inputs retain full required KV rows; FFN HcPre after selected attention outputs can be restricted conditionally.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Preserve current HF32/numerical stage semantics,coefficients,prior premix/residual,3aux and all state writers; equal shapes/row-local formulas do not prove native batch-shape parity.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-02",
+      "a": "F04",
+      "b": "F26",
+      "relation": "SELECTED_FFN_NORM_DUAL_OUTPUT_REMAINS",
+      "operator_claim": "Apply final-layer row demand consistently to fused RmsNormCast and all its BF16 expert/shared and widened-FLOAT router readers.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Both outputs from rounded normalization remain for each retained row. Full router/state observers or EPLB may demand additional rows; no use of unrounded FLOAT norm in place of widened BF16.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-03",
+      "a": "F14",
+      "b": "F26",
+      "relation": "SELECTED_ATTENTION_QUERY_OUTPUT_AND_ORIGINAL_COORDINATES",
+      "operator_claim": "Demand can move from final tail back through attention output only with exact original query/position/sequence metadata.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Keep all required historical/current KV and causal/sink/window semantics. Inverse RoPE uses original row positions,not compact ordinals; state publication is a separate full-demand branch.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-04",
+      "a": "F15",
+      "b": "F26",
+      "relation": "SELECTED_WO_A_ROWS_AND_FULL_HEAD_GROUPS",
+      "operator_claim": "Retile selected output rows through attention-head exchange and WO_A while retaining all head-group terms for each row.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Current TP8 G1 weights give Uglobal WO_A rows on every head-weight owner; Q owner u_p is different. New ragged A2A/metadata/order/capture ABI and BF16 intermediate preservation are required.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-05",
+      "a": "F16",
+      "b": "F26",
+      "relation": "SELECTED_WO_B_REDUCESCATTER_AND_HC_ROWS",
+      "operator_claim": "Compose selected WO_B rows,TP partial reduction and attention Post with the final-layer demand graph.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Preserve each per-rank BF16 partial and native SUM/output round. ReduceScatter target owner/inverse mapping must agree on all ranks; old full-M copy/pad and new selected budgets cannot be added independently.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-06",
+      "a": "F20",
+      "b": "F26",
+      "relation": "SELECTED_ROUTER_WITH_FULL_SIDE_EFFECT_GUARDS",
+      "operator_claim": "Final-layer row demand may restrict router work only when exact kept logits/IDs/TopK and all routing state observations are retained.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Keep -1/vision/hash predicate,unbiased weights/scaling,tie/NaN semantics,weight generations and input-ID mapping. EPLB counters/load/heat may observe omitted rows; current false/empty settings are not inferred from trace absence.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-07",
+      "a": "F21",
+      "b": "F26",
+      "relation": "SELECTED_MC2_ROWS_ARE_NOT_RECEIVER_PAD_COUNTS",
+      "operator_claim": "Price selected source rows jointly with fused DispatchFFNCombine and all EP16 receiver demands.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; 6U is source-group assignment reference,not each receiver count. Sum all DP/TP source groups,route maps,padded expert blocks/quant/combine,rank-uniform metadata and state epochs. Retain zero/empty writer contracts.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-08",
+      "a": "F22",
+      "b": "F26",
+      "relation": "SELECTED_SHARED_ROWS_WITH_NONPROPORTIONAL_WEIGHT_COST",
+      "operator_claim": "Shared-expert source rows may reduce to retained u_p while cold shared weight planes and all retained-row quantization remain.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; INT8 dense work and DynamicQuant/activation scales are typed references. Any positive u_p may still traverse the full gate/up/down weights; no proportional latency or weight savings assumption.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-09",
+      "a": "F32",
+      "b": "F26",
+      "relation": "SELECTED_QUERY_BRANCH_DOES_NOT_PRUNE_KV_INPUT_GATHER",
+      "operator_claim": "Separate selected Q from full-required KV input demand; project-before-gather is a different existing F32 graph.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Exact SP→CP row ownership,all normalized-input/cache/index/compressor readers remain. Query pruning alone earns no full input-gather or KV-projection credit; joint F32 representation must be repriced once.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL86-10",
+      "a": "F33",
+      "b": "F26",
+      "relation": "TERMINAL_QUERY_DEMAND_AND_COMPRESSION_STATE_CUT",
+      "operator_claim": "Output-demand restriction does not by itself remove C1/C2/SWA projection/cache or compression state writer branches.",
+      "applicable_domain": "Conditional final target layer39 with complete output-reader union and raw/normalized observer/alias/lifetime guards; Captured terminal schema has an explicit SWA KV/cache path; alternative layers/branches retain their own C1/C2/index/ring writers. No last-layer35node count is proof against other branches or future-state readers.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    }
+  ],
+  "higher_order_groups": [
+    {
+      "id": "HG86-TERMINAL-QUERY-STATE-CUT",
+      "members": [
+        "F01",
+        "F03",
+        "F04",
+        "F14",
+        "F15",
+        "F16",
+        "F20",
+        "F21",
+        "F22",
+        "F23",
+        "F26",
+        "F32",
+        "F33"
+      ],
+      "contract": "Selected final outputs can induce a smaller Q/attention-output/FFN graph under all-reader/numeric/metadata/state guards. Full required KV/cache/aux/previous-layer input demand remains. Typed work/weight and final-Post transfer unions are one changed graph,not additive independent speedups.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "scope_state": "CONDITIONAL_OPERATOR_DEMAND_AND_TYPED_COST_REVIEWED",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    },
+    {
+      "id": "HG86-SELECTED-OWNER-PUBLICATION",
+      "members": [
+        "F26",
+        "F27",
+        "F31",
+        "F35"
+      ],
+      "contract": "Prepared head I and optional prompt J define distinct union U with ordered inverse maps; context acceptance I is later and distinct. Owner u_p/maxq controls equal-count publication. Keep actual headK,all prompt/probability/RNG/aux/state readers; quotas and physical capacity remain conditional.",
+      "evidence": [
+        "terminal-layer-prior-evidence-v86.json",
+        "terminal-layer-operator-source-v86.json",
+        "terminal-layer-native-frontier-v86.json",
+        "terminal-layer-demand-cut-v86.json",
+        "terminal-layer-owner-and-work-models-v86.json",
+        "terminal-layer-weight-and-dependency-proof-v86.json"
+      ],
+      "scope_state": "CONDITIONAL_OPERATOR_DEMAND_AND_TYPED_COST_REVIEWED",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    }
+  ],
+  "new_pair_clauses": 10,
+  "new_higher_order_groups": 2,
+  "new_maincandidates": 0,
+  "refine_existing_relations": [
+    "REL73-21",
+    "REL74-08",
+    "REL85-01",
+    "REL85-02",
+    "REL85-05"
+  ],
+  "overall_complete": false
+}

@@ -1,0 +1,37 @@
+{
+  "status": "PASS_SCOPED_ALGEBRA_AND_DOMAIN_REVIEW",
+  "source_sha256": "47744709d4f6351591818d7198dd8f0e9a6fd9aea67f8fa82af0c2fb650ecc81",
+  "checks": {
+    "all_32_profiles": true,
+    "all_11520_episodes": true,
+    "all_288_graphs": true,
+    "one_native_shape_tuple": true,
+    "zero_analysis_issues": true,
+    "all_episode_relaxation_identities": true,
+    "all_graph_algebra": true
+  },
+  "shape_tuple": [
+    "\"3,5120;24,5120,4608;24,2304,5120;3,6;110592;122880;3,6;3\"",
+    "\"3,5120\"",
+    "\"3,5120;144,320,16,32;4608\"",
+    "\"3,4608;4608;3;;;;\"",
+    "\"3,2304;160,144,16,32;5120;3\"",
+    "\"3,5120;3,5120;\""
+  ],
+  "domain": [
+    "All episodes retain original serial dependency order;only within-episode R versus S may overlap.",
+    "No earlier release outside an episode,no cross-layer or cross-iteration overlap/fusion.",
+    "Measured services R,S,M are fixed,including waits already inside R;changing collective readiness invalidates those service constants.",
+    "Original output and quantization semantics retained;merge waits for both branches.",
+    "Outside episode serial segments/gaps remain fixed;relaxation optimistically permits zero internal gaps and no resource contention.",
+    "Input/alias/last-reader/ownership/numerical legality must hold independently;this analysis does not supply them."
+  ],
+  "proof": "Each episode requires at least max(R,S)+M. Serial composition with fixed outside segments gives Gnew >= Gold - sum(episodeSpan-max(R,S)-M). This derives a lower bound by relaxation,not from an exhibited schedule.",
+  "not_claimed": [
+    "Physical hardware/theoretical algorithm minimum",
+    "Reachable or end-to-end request speedup",
+    "Any all-reader independence proof",
+    "Any global communicator or cross-rank cohort identity"
+  ],
+  "overall_complete": false
+}

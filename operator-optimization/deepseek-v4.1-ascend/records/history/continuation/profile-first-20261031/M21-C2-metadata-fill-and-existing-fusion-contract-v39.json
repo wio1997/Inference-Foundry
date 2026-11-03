@@ -1,0 +1,108 @@
+{
+  "generated_utc": "2026-10-31T10:38:18.329089+00:00",
+  "source_pins": {
+    "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/worker/block_table.py": "215305c699a9df9c118f47c6f7b71d8457ef54e98b5b8571536fd373de7b21ed",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/c2_ring_metadata.py": "f288754cd77f9b5241889f8bc4ff900b3883d17b71754d3a377d24b1f622e8f8",
+    "/vllm-workspace/vllm/vllm/v1/attention/backends/utils.py": "fbc221360d2d54cb21ef3f625dc8711500de345a355801548b4337bb9b8abee0"
+  },
+  "evidence_refs": [
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M21-C2166-v39.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M21-profile-selected-C2-metadata-and-fill-contract-v39.json",
+      "sha256": "887b5238a1ec98ce3b673eb7ee70a6be7b0e811b01b82888f1397fcccb70d670"
+    },
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M21-C2-fields166-v39.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M21-C2-field-readers-and-initialization-geometry-v39.json",
+      "sha256": "c862e146c91ee24fb1ca8bc2480af77e4e9c29229ec88a42c3ba846081d776e6"
+    },
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M21-C2-fused166-v39.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M21-existing-C2-fused-builder-publication-and-PAD-constant-v39.json",
+      "sha256": "903a107491725ef969a5decae54fd376faed31a7ae330c190d187fcae9b04e42"
+    },
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M21-native166-v37.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M21-allrank-input-and-attention-metadata-native-scope-v37.json",
+      "sha256": "8d8115d611461fdc669c627b2bd062bb00ed9410197e57815d12d12974dfe5cd"
+    },
+    {
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/C2-source166-v24.json",
+      "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/C2-pool-ring-norm-and-row-source-contract-v24.json",
+      "sha256": "421aae17d288d7ddaf0630ae625c0454b6db2522806498ec1cabb0e6fcad42d8"
+    }
+  ],
+  "facts": [
+    {
+      "grade": "DOCUMENTED",
+      "statement": "C2 outputs have persistent banks:INT32[5,R]ring metadata,BOOL[N]complete,INT64[N]sourcepositions,FP32[N,1,1,D]cos/sin. Capacity depends onbuild-compressor setting;returnedviews andmetadata_group_id retain fixedbank addresses."
+    },
+    {
+      "grade": "MEASURED_PLUS_DOCUMENTED",
+      "statement": "CurrentpositiveC2elementwise/gather fullcallers are thelegacy callback branch1304-1373. Samecallback already calls build_c2_ring_metadata forpackedcache withfulltables;thehelper isexistingcode,not anew missingproducer."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Legacycallback usesGPU QSL/seq_lens/positions/firstblock,actualrequest/token extents andskip flag. used=max(min(end,A)-start,0)maskedbylive/skip;ringrows are[max(seq_len-query_len,0),used,start,start,firstblock ifused>0else0]."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "complete=(token_index<min(QSL[actual_reqs],actual_tokens))and(position.remainder(2)==1),maskedfalse onskip. sourceposition=position-1 ifcompleteelse0. BothfullFP32tables aregathered attheseindices,includingrow0 forincomplete/skip tokens."
+    },
+    {
+      "grade": "DERIVED",
+      "statement": "Preexisting fusedkernel implements thesamefive rows/complete/sourceposition/two tableloads in one launch. Itswrapper takesplainQSL/seq/positions/firstblock/fulltables/outputviews;no packed-cache object or packed ringdataformat isread. Reusing it outsidepackedguard isaconditional source-levelmechanism;no nativecompilation/numerical/performancevalidation claimed."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Fusedhelper sharescos-table strides forsin loads andcos-outputstrides forsin stores;wrapper checks shapes/width butnot these strideequalities. Preserve matching strides/currentI32/I64/FP32domains oradapt explicitseparatestrides. Negative-position remainder andinteger-narrowing domains mustnot beassumed equivalent outsidevalidatedvalues."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "_publish_task already deduplicates shared[key] andreturns existingbuffer;otherwise schedules aDeviceMetadataTask orrunssynchronously fordisableddevice-metadata/capturedCOMPRESSOR mode. Caller publisheskeyc2:compressor onstablemaskbank. This isexistingdedup/asyncprotocol,not a new sharinggain."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Exactv24sameSHAconsumer waitsCOMPRESSOR frontier,projectsFP32KV/score,pool_projected consumes ring metadata andprivateoldring,then norm. Cachedsourcecos/sin orfallback get_cos/sourcepositions feedindexer.update_keys andinplace latentRoPE beforelongcachewrite. Keepboth consumers andoldring-before-update WAR."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "skip_ring_update clears used andcomplete;ring0,startrows remain dynamic. sourceposition0still publishescos/sin table0values. It doesnotmeanallmetadatazero,identityRoPEorentirecallbackdead."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Nonencoder _get_block_table_and_slot_mapping viewsactualgroup slots/table,then fills slot[num_tokens:num_tokens_padded]with-1 andtable[num_reqs:num_reqs_padded]with0. Encoderbranchallocatesdifferentzero tensors. numpad defaultsnumactual viaor;worker passesactualunpadded/padded extents separately."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_DERIVED",
+      "statement": "ImportedPAD_SLOT_ID isliteral-1;v38fusedslotkernel alreadywrites-1 on[num_source_tokens,fused_max). A later slotfill isidempotentonly ifsamegroupbank/physicalinterval/generation,value,earliercoverage andnointerveningwrite. It doesnotcoverblocktable zeroorQSLsentinel writes anddoesnotprove all936fillTASK removable."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Worker1462 fillsquery_start_loc[num_reqs+1:]with-1. Prefix/invalidtail canbe readbycapturedfixedshapes;dirty-range maintenance needs knowninitialsentinel andall writer footprints,not merelycurrentactiveB."
+    },
+    {
+      "grade": "UNKNOWN",
+      "statement": "Livefield values/strides/pointers/owner generations,complete external/fullbank readers,physicaltraffic/cost andhistoricalexecutedbinaryidentity areunobserved. Keeptheseascandidateconditions;genuineunreviewedcoordinate/CP/proposer/QLI branchesremain separate."
+    }
+  ],
+  "reused_contracts": [
+    "C2-state-opportunity-contract-v24.json",
+    "C2-cache-object-and-allocation-contract-v25.json",
+    "M18-partition-bank-RoPE-and-slot-contract-v34.json",
+    "M21-count-metadata-and-output-publication-contract-v37.json",
+    "M21-slot-rejection-state-and-packing-contract-v38.json"
+  ],
+  "local_questions_closed": [
+    "C2legacycoordinate/mask/source-tableoutputs",
+    "Existingfusedbuilder mechanismanddomainconditions",
+    "DirectC2pool/indexkey/longKVreaders",
+    "Existingpublicationdedup/frontier",
+    "QSL/slot/tablefillownership andconditionalidempotence"
+  ],
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

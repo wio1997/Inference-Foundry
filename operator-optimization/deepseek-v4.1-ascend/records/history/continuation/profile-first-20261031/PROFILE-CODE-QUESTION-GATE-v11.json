@@ -1,0 +1,44 @@
+{
+  "workflow": "PROFILE_SCOPE_AND_CONSUMER_QUESTION_FIRST; EXACT_SYMBOL_FOLLOWUP_ONLY",
+  "questions": [
+    {
+      "id": "F26_FULL_HC_SNAPSHOT_CONSUMER",
+      "profile_evidence": "v11 seven stable outer segments include3 incoming-HC ReduceMean/AllGather pairs at37/38/39 and a final pair of gathers plus TensorMove before collapse/norm. v6/v10 source binds the fullHC snapshot to _mtp_hidden_buffer and exposes get_mtp_target_hidden_states. DSpark contextFC uses3x5120 auxiliary input.",
+      "question": "Within the frozen DSpark workload, what exact callers consume the fullHC snapshot separately from aux_hidden_states, and what allocation/call guards select it? A public getter alone is not proof of a live consumer; a missing native op alone is not proof it is dead.",
+      "allowed_search": "Only exact symbols get_mtp_target_hidden_states and _mtp_hidden_buffer in the existing frozen snapshot; then read only returned callsites/allocation guards and their immediate flow. This is a consumer search, not a repository-wide source audit. Extended to the same two exact symbols in installed source roots because the frozen snapshot is partial; only returned active callsites/allocation/getter guards and one counterexample were read.",
+      "limits": "If consumers depend on runtime flags or external protocol not evidenced, retain that condition and prepare targeted runtime evidence rather than assert dead state. No optimization implementation."
+    },
+    {
+      "id": "M14_CAPTURED_ENGRAM_MATCH",
+      "profile_evidence": "Gaps0->1 and13->14 each have38COMPUTE records. All4same-capture source-bound eager windows have40, with precisely one TensorMove at each end around the same38type sequence. Captured graph also has51separate MEMCPY tasks per replay.",
+      "question": "Can profile associate the missing compute copies with separate MEMCPY records and available byte/pointer metadata?",
+      "answer_so_far": "Only ENUM_MEMCPY_OPERATION exists among memory/copy tables. Read exact memory-event trace arguments before any claim about bytes, addresses, no-copy or legal alias elimination.",
+      "new_source_required": false
+    }
+  ],
+  "whole_modules_closed": 0,
+  "overall_complete": false,
+  "actual_source_reads": [
+    {
+      "file": "model.py",
+      "lines": "950-992;1595-1605 (existing v10 contract);1798-1802",
+      "answer": "Broad speculative allocation; forward copies full HC before collapse; getter is a pure buffer return."
+    },
+    {
+      "file": "vl_model.py",
+      "lines": "283-284",
+      "answer": "Getter delegates directly to the language model."
+    },
+    {
+      "file": "worker/model_runner_v1.py",
+      "lines": "2052-2124",
+      "answer": "Returned buffer replaces hidden_states only if method == mtp; both later branches use auxiliary context when enabled, otherwise the existing hidden_states. No later use of the mtp_hidden_states local."
+    },
+    {
+      "file": "gpu_model_runner.py",
+      "lines": "5190-5240",
+      "answer": "Counterexample: another implementation can rebind unconditionally when the buffer is present; preserve its contract."
+    }
+  ],
+  "no_repository_wide_source_audit": true
+}

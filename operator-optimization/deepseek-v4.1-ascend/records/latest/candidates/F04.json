@@ -1,0 +1,217 @@
+{
+  "id": "F04_CONDITIONAL_PARTITION_V180",
+  "original_graph_id": "G0_FIXED_SOURCE_PUBLIC_CONDITIONAL_V180",
+  "original_graph_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/graphs/G0-current-v180.json",
+  "original_graph_sha256": "e79b3df3ff21e45568d720feaeaa03f01af01ce72c339a2ae84d74837f742ee6",
+  "source_instance_ids": [],
+  "source_case_templates": [
+    "MHC_BLOCK_AND_CROSS_LAYER"
+  ],
+  "original_atom_union": [
+    "norm.ffn_input"
+  ],
+  "original_specific_node_mapping": {
+    "norm_cast": "norm_cast"
+  },
+  "nodes": [
+    {
+      "id": "F04/conditional_region",
+      "kind": "PROPOSED_FUSION_SPLIT_OR_REPARTITION_REGION",
+      "not_all_footprint_nodes_must_be_fused_simultaneously": true
+    },
+    {
+      "id": "MHC_COEFFICIENT_RESIDUAL_AUX",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "MHC_COEFFICIENT_RESIDUAL_AUX",
+        "modules": [
+          "M06",
+          "M14",
+          "M15",
+          "M18",
+          "M19",
+          "M24"
+        ],
+        "writer_ports": [
+          "attn/ffn pre and post",
+          "optional Engram residual modification"
+        ],
+        "reader_ports": [
+          "same-layer post/comb",
+          "next-layer pre_mix",
+          "saved target37/38/39 aux",
+          "terminal collapse",
+          "draft context"
+        ],
+        "identity_and_epoch": "layer,pre_mix generation,rounded residual value and original HC reduction domain",
+        "conditional_fusion_split_or_reorder_answer": "coefficient fork, residual, auxiliary means and terminal pre_mix are distinct uses; Engram breaks a direct residual shortcut",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "EXPERT_DISPATCH_AND_SHARED_OUTPUT",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "EXPERT_DISPATCH_AND_SHARED_OUTPUT",
+        "modules": [
+          "M12",
+          "M13",
+          "M23",
+          "M24"
+        ],
+        "writer_ports": [
+          "router/topK",
+          "peer dispatch",
+          "W8A8 expert FFNs",
+          "shared FFN",
+          "conditional EPLB map"
+        ],
+        "reader_ports": [
+          "receiver GEMMs",
+          "return/combine",
+          "routed/shared merge",
+          "original counters/state"
+        ],
+        "identity_and_epoch": "EP participant,expert,valid received rows,credit/flag generation,quant rounds and scale",
+        "conditional_fusion_split_or_reorder_answer": "existing F21 native fusion retained; sender0 can receive work; tile128 is not128 active rows. EPLBFalse snapshot does not remove other owned branch contracts",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "producer": "F04/conditional_region",
+      "consumer": "MHC_COEFFICIENT_RESIDUAL_AUX",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F04/conditional_region",
+      "consumer": "EXPERT_DISPATCH_AND_SHARED_OUTPUT",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    }
+  ],
+  "original_node_mapping": [
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/residual",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/pre_mix",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/attn_pre",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/input_norm",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/all_gather",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/attention",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/reduce_scatter",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/attn_post",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/ffn_pre",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/norm_cast",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/moe",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/ffn_post",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/next_pre",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/aux_mean",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/engram",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/collapse",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MHC_BLOCK_AND_CROSS_LAYER/final_norm",
+      "proposed_region": "F04/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    }
+  ],
+  "allowed_transformations": "Existingfamily-specific variants and typed conditions in immutable candidate/semantic/cost records;region is a footprint,not proof that its union is oneinvocation or onelegal kernel.",
+  "specific_variant_authorities": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v179.json#F04",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v179/semantic-contract-sufficiency-review.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v174/all42-composition-coverage.json"
+  ],
+  "conditional_limits": {
+    "candidate": "F04",
+    "templates": [
+      "MHC_BLOCK_AND_CROSS_LAYER"
+    ],
+    "instance_ids": [],
+    "conditional_template_refs": [
+      "MHC_BLOCK_AND_CROSS_LAYER"
+    ],
+    "state_envelope_refs": [
+      "MHC_COEFFICIENT_RESIDUAL_AUX",
+      "EXPERT_DISPATCH_AND_SHARED_OUTPUT"
+    ],
+    "conditional_native_legality_not_promoted": true
+  },
+  "implemented": false,
+  "performance_gain_measured": false
+}

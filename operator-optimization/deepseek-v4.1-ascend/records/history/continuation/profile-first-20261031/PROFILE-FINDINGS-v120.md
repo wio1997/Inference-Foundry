@@ -1,0 +1,15 @@
+用户新批准的Pad最小探针已完成一次实际捕获。没有加载模型、replay图、读取张量内容、解引用opaque设备参数或修改既有模型任务。应用输入/输出为BOOL[20]→BOOL[24]、右侧补4个True，共44B；另有上下文、分配器和内部转换开销。
+
+第一次wrapper的空闲表格解析把chip号当成卡号，检查在设备初始化前停止，实际捕获次数为0；该代码和记录已保留。修正为物理ID0/1检查后，重新核对容器、CANN头/库及MemSet/Pad metadata和binary SHA、可见设备映射和卡0空闲状态，使用完全相同的已批准探针脚本，完成一次捕获。进程墙钟约6.54秒，不是算子延迟。没有重启或启动原容器。结束后16个AICore利用率为0、8张卡均无运行进程，原容器PID2032500不变，SSH已关闭。
+
+自有图有1条流、6个任务：输入Cast、常量Cast、原生MemSet、PadV3、输出Cast、NOTIFY。5个内核GetParams均成功，NOTIFY的DEFAULT查询返回107000。选中的MemSet_1a686...为48 blocks、argsSize152/opInfo48；PadV3_f466...为1 block。这次得到的是原生MemSet内核，区别于v109的byte/D32 API→MEMCPY路径，但没有把新图与原模型执行关联。debug dump的ts/dur只是捕获图展示坐标，不作实测时间。
+
+参数包还纠正了旧假设。metadata的3个pointer槽和opParaSize104曾给出128B整包预测；实际GetParams和dump一致为152B，旧严格helper因此拒绝它。保留该失败，不能宣布旧打包ABI已验证。新包中argword1恰好为报告的args_address+24，唯一落在已渲染包内部且能容纳96B源码record的prefix指针，据此只对已经渲染在CPU上的96B解码。128B之后额外24个零字节的语义仍未知，不称padding或其它字段。
+
+这个受控record给出need_core_num=1、core_num=48、last_elems=8、tail_burst=1、gap=0、FLOAT32零值。按对应源码条件，只有writer0提交workspace+[0,32)的零写，其余worker不进入该行写入分支。它是源码推导的请求范围，既没有replay验证存储内容，也不是PMU/HBM交易字节。launch48不能解释为48个writer；args152、record96也都不是填充长度。
+
+MemSet首workspace输入指针与Pad参数中workspace位置的指针一致，且不同于已知应用BOOL输入/输出地址。选中Pad metadata声明一个FLOAT32零初始化workspace、size1536，匹配TIK sync_workspace的用途；该1536是metadata声明范围，不是本次已查询的allocator容量或已写字节。本次source请求32B，与1536声明容量必须区分，不能用静态声明加地址差推出分配重叠、越界或可缩小缓冲。完整native参数ABI、实际分配范围和物理store仍有边界。
+
+融合判断也保持范围：原整个Pad/initializer可在保留BOOL前缀、True后缀、mask读者、别名、capture及错误/同步语义的条件下研究替换；不能只删除原MemSet或根据这个单block小图删除其它多block Pad的barrier初始化。更不能把该32B套到原1272次MemSet，或据此识别原80次BOOL[24]的语义字段。原7类MemSet及2类BOOL的9类/1352次执行缺口保持。
+
+本轮前置109项核对通过；台账仍为356条语义记录/26个模块、134条件关系/26联合组/461对待核对，整模块关闭0。单次授权已完成并消耗，不再等待本次回复、不重复等价探针；完整模型采集/replay或额外NPU诊断没有由本次授权自动获得。其他未分析算子范围和关键证据继续推进，整体目标未完成。

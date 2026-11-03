@@ -1,0 +1,3735 @@
+{
+  "id": "F20_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MOE_WRAPPER",
+  "original_node_mapping": {
+    "router": "router",
+    "topk": "topk",
+    "dispatch_ffn_combine": "dispatch_ffn_combine"
+  },
+  "nodes": [
+    {
+      "id": "router",
+      "kind": "LINEAR_FP32_OR_HASH",
+      "resource": "NPU"
+    },
+    {
+      "id": "topk",
+      "kind": "ROUTING_TOPK_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "dispatch_ffn_combine",
+      "kind": "MC2_OPAQUE_EXISTING_FUSION",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "router",
+      "consumer": "topk",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "topk",
+      "consumer": "dispatch_ffn_combine",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "x_fp32",
+      "consumer": "router",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "x",
+      "consumer": "dispatch_ffn_combine",
+      "value": "hidden",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "dispatch_ffn_combine",
+      "consumer": "merge",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v29": {
+    "source_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F04-precision-routing-and-row-contract-v29.json",
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v29.json#F20",
+    "scope": "Existingboundary/currentfanoutrefinement;notimplementationorgain."
+  },
+  "ID_reuse_v29": {
+    "id": "F20-ID",
+    "parent_candidate": "F20",
+    "registry_status": "REFINES_EXISTING_F20_VARIANT;NOT_NEW_MAIN_CANDIDATE",
+    "name": "MoE 路由 token-ID 类型转换与占位修正的层间复用和代际重组",
+    "modules": [
+      "M04",
+      "M12",
+      "M21",
+      "M22",
+      "M23",
+      "M24"
+    ],
+    "profile_review_state": "3200_EXACT_GRAPH_ID_QUADS_5088_NATIVE_PREP_TASKS_AND_MC2_COMMUTATION_REVIEWED;CONDITIONAL_UNPRICED",
+    "scoped_detail": {
+      "graphs": 80,
+      "layers_per_graph": 40,
+      "quad_records": 3200,
+      "quad_TASKs": 12800,
+      "native_prepare_TASKs": 5088,
+      "quad_source": [
+        "fused_topk_router.py163",
+        "fused_topk_router.py176"
+      ],
+      "actual_same_value_or_generation_proved": false
+    },
+    "source_graph": {
+      "nodes": [
+        {
+          "id": "input_IDs"
+        },
+        {
+          "id": "row_plans"
+        },
+        {
+          "id": "L0_cast"
+        },
+        {
+          "id": "L0_align"
+        },
+        {
+          "id": "L0_sanitize"
+        },
+        {
+          "id": "L0_gate"
+        },
+        {
+          "id": "L1_cast"
+        },
+        {
+          "id": "L1_align"
+        },
+        {
+          "id": "L1_sanitize"
+        },
+        {
+          "id": "L1_gate"
+        },
+        {
+          "id": "L2_cast"
+        },
+        {
+          "id": "L2_align"
+        },
+        {
+          "id": "L2_sanitize"
+        },
+        {
+          "id": "L2_gate"
+        },
+        {
+          "id": "L3_cast"
+        },
+        {
+          "id": "L3_align"
+        },
+        {
+          "id": "L3_sanitize"
+        },
+        {
+          "id": "L3_gate"
+        },
+        {
+          "id": "L4_cast"
+        },
+        {
+          "id": "L4_align"
+        },
+        {
+          "id": "L4_sanitize"
+        },
+        {
+          "id": "L4_gate"
+        },
+        {
+          "id": "L5_cast"
+        },
+        {
+          "id": "L5_align"
+        },
+        {
+          "id": "L5_sanitize"
+        },
+        {
+          "id": "L5_gate"
+        },
+        {
+          "id": "L6_cast"
+        },
+        {
+          "id": "L6_align"
+        },
+        {
+          "id": "L6_sanitize"
+        },
+        {
+          "id": "L6_gate"
+        },
+        {
+          "id": "L7_cast"
+        },
+        {
+          "id": "L7_align"
+        },
+        {
+          "id": "L7_sanitize"
+        },
+        {
+          "id": "L7_gate"
+        },
+        {
+          "id": "L8_cast"
+        },
+        {
+          "id": "L8_align"
+        },
+        {
+          "id": "L8_sanitize"
+        },
+        {
+          "id": "L8_gate"
+        },
+        {
+          "id": "L9_cast"
+        },
+        {
+          "id": "L9_align"
+        },
+        {
+          "id": "L9_sanitize"
+        },
+        {
+          "id": "L9_gate"
+        },
+        {
+          "id": "L10_cast"
+        },
+        {
+          "id": "L10_align"
+        },
+        {
+          "id": "L10_sanitize"
+        },
+        {
+          "id": "L10_gate"
+        },
+        {
+          "id": "L11_cast"
+        },
+        {
+          "id": "L11_align"
+        },
+        {
+          "id": "L11_sanitize"
+        },
+        {
+          "id": "L11_gate"
+        },
+        {
+          "id": "L12_cast"
+        },
+        {
+          "id": "L12_align"
+        },
+        {
+          "id": "L12_sanitize"
+        },
+        {
+          "id": "L12_gate"
+        },
+        {
+          "id": "L13_cast"
+        },
+        {
+          "id": "L13_align"
+        },
+        {
+          "id": "L13_sanitize"
+        },
+        {
+          "id": "L13_gate"
+        },
+        {
+          "id": "L14_cast"
+        },
+        {
+          "id": "L14_align"
+        },
+        {
+          "id": "L14_sanitize"
+        },
+        {
+          "id": "L14_gate"
+        },
+        {
+          "id": "L15_cast"
+        },
+        {
+          "id": "L15_align"
+        },
+        {
+          "id": "L15_sanitize"
+        },
+        {
+          "id": "L15_gate"
+        },
+        {
+          "id": "L16_cast"
+        },
+        {
+          "id": "L16_align"
+        },
+        {
+          "id": "L16_sanitize"
+        },
+        {
+          "id": "L16_gate"
+        },
+        {
+          "id": "L17_cast"
+        },
+        {
+          "id": "L17_align"
+        },
+        {
+          "id": "L17_sanitize"
+        },
+        {
+          "id": "L17_gate"
+        },
+        {
+          "id": "L18_cast"
+        },
+        {
+          "id": "L18_align"
+        },
+        {
+          "id": "L18_sanitize"
+        },
+        {
+          "id": "L18_gate"
+        },
+        {
+          "id": "L19_cast"
+        },
+        {
+          "id": "L19_align"
+        },
+        {
+          "id": "L19_sanitize"
+        },
+        {
+          "id": "L19_gate"
+        },
+        {
+          "id": "L20_cast"
+        },
+        {
+          "id": "L20_align"
+        },
+        {
+          "id": "L20_sanitize"
+        },
+        {
+          "id": "L20_gate"
+        },
+        {
+          "id": "L21_cast"
+        },
+        {
+          "id": "L21_align"
+        },
+        {
+          "id": "L21_sanitize"
+        },
+        {
+          "id": "L21_gate"
+        },
+        {
+          "id": "L22_cast"
+        },
+        {
+          "id": "L22_align"
+        },
+        {
+          "id": "L22_sanitize"
+        },
+        {
+          "id": "L22_gate"
+        },
+        {
+          "id": "L23_cast"
+        },
+        {
+          "id": "L23_align"
+        },
+        {
+          "id": "L23_sanitize"
+        },
+        {
+          "id": "L23_gate"
+        },
+        {
+          "id": "L24_cast"
+        },
+        {
+          "id": "L24_align"
+        },
+        {
+          "id": "L24_sanitize"
+        },
+        {
+          "id": "L24_gate"
+        },
+        {
+          "id": "L25_cast"
+        },
+        {
+          "id": "L25_align"
+        },
+        {
+          "id": "L25_sanitize"
+        },
+        {
+          "id": "L25_gate"
+        },
+        {
+          "id": "L26_cast"
+        },
+        {
+          "id": "L26_align"
+        },
+        {
+          "id": "L26_sanitize"
+        },
+        {
+          "id": "L26_gate"
+        },
+        {
+          "id": "L27_cast"
+        },
+        {
+          "id": "L27_align"
+        },
+        {
+          "id": "L27_sanitize"
+        },
+        {
+          "id": "L27_gate"
+        },
+        {
+          "id": "L28_cast"
+        },
+        {
+          "id": "L28_align"
+        },
+        {
+          "id": "L28_sanitize"
+        },
+        {
+          "id": "L28_gate"
+        },
+        {
+          "id": "L29_cast"
+        },
+        {
+          "id": "L29_align"
+        },
+        {
+          "id": "L29_sanitize"
+        },
+        {
+          "id": "L29_gate"
+        },
+        {
+          "id": "L30_cast"
+        },
+        {
+          "id": "L30_align"
+        },
+        {
+          "id": "L30_sanitize"
+        },
+        {
+          "id": "L30_gate"
+        },
+        {
+          "id": "L31_cast"
+        },
+        {
+          "id": "L31_align"
+        },
+        {
+          "id": "L31_sanitize"
+        },
+        {
+          "id": "L31_gate"
+        },
+        {
+          "id": "L32_cast"
+        },
+        {
+          "id": "L32_align"
+        },
+        {
+          "id": "L32_sanitize"
+        },
+        {
+          "id": "L32_gate"
+        },
+        {
+          "id": "L33_cast"
+        },
+        {
+          "id": "L33_align"
+        },
+        {
+          "id": "L33_sanitize"
+        },
+        {
+          "id": "L33_gate"
+        },
+        {
+          "id": "L34_cast"
+        },
+        {
+          "id": "L34_align"
+        },
+        {
+          "id": "L34_sanitize"
+        },
+        {
+          "id": "L34_gate"
+        },
+        {
+          "id": "L35_cast"
+        },
+        {
+          "id": "L35_align"
+        },
+        {
+          "id": "L35_sanitize"
+        },
+        {
+          "id": "L35_gate"
+        },
+        {
+          "id": "L36_cast"
+        },
+        {
+          "id": "L36_align"
+        },
+        {
+          "id": "L36_sanitize"
+        },
+        {
+          "id": "L36_gate"
+        },
+        {
+          "id": "L37_cast"
+        },
+        {
+          "id": "L37_align"
+        },
+        {
+          "id": "L37_sanitize"
+        },
+        {
+          "id": "L37_gate"
+        },
+        {
+          "id": "L38_cast"
+        },
+        {
+          "id": "L38_align"
+        },
+        {
+          "id": "L38_sanitize"
+        },
+        {
+          "id": "L38_gate"
+        },
+        {
+          "id": "L39_cast"
+        },
+        {
+          "id": "L39_align"
+        },
+        {
+          "id": "L39_sanitize"
+        },
+        {
+          "id": "L39_gate"
+        }
+      ],
+      "edges": [
+        {
+          "a": "input_IDs",
+          "b": "L0_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L0_cast",
+          "b": "L0_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L0_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L0_align",
+          "b": "L0_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L0_sanitize",
+          "b": "L0_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L1_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L1_cast",
+          "b": "L1_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L1_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L1_align",
+          "b": "L1_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L1_sanitize",
+          "b": "L1_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L2_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L2_cast",
+          "b": "L2_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L2_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L2_align",
+          "b": "L2_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L2_sanitize",
+          "b": "L2_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L3_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L3_cast",
+          "b": "L3_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L3_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L3_align",
+          "b": "L3_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L3_sanitize",
+          "b": "L3_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L4_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L4_cast",
+          "b": "L4_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L4_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L4_align",
+          "b": "L4_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L4_sanitize",
+          "b": "L4_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L5_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L5_cast",
+          "b": "L5_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L5_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L5_align",
+          "b": "L5_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L5_sanitize",
+          "b": "L5_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L6_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L6_cast",
+          "b": "L6_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L6_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L6_align",
+          "b": "L6_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L6_sanitize",
+          "b": "L6_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L7_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L7_cast",
+          "b": "L7_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L7_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L7_align",
+          "b": "L7_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L7_sanitize",
+          "b": "L7_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L8_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L8_cast",
+          "b": "L8_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L8_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L8_align",
+          "b": "L8_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L8_sanitize",
+          "b": "L8_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L9_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L9_cast",
+          "b": "L9_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L9_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L9_align",
+          "b": "L9_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L9_sanitize",
+          "b": "L9_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L10_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L10_cast",
+          "b": "L10_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L10_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L10_align",
+          "b": "L10_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L10_sanitize",
+          "b": "L10_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L11_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L11_cast",
+          "b": "L11_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L11_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L11_align",
+          "b": "L11_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L11_sanitize",
+          "b": "L11_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L12_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L12_cast",
+          "b": "L12_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L12_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L12_align",
+          "b": "L12_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L12_sanitize",
+          "b": "L12_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L13_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L13_cast",
+          "b": "L13_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L13_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L13_align",
+          "b": "L13_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L13_sanitize",
+          "b": "L13_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L14_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L14_cast",
+          "b": "L14_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L14_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L14_align",
+          "b": "L14_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L14_sanitize",
+          "b": "L14_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L15_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L15_cast",
+          "b": "L15_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L15_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L15_align",
+          "b": "L15_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L15_sanitize",
+          "b": "L15_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L16_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L16_cast",
+          "b": "L16_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L16_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L16_align",
+          "b": "L16_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L16_sanitize",
+          "b": "L16_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L17_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L17_cast",
+          "b": "L17_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L17_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L17_align",
+          "b": "L17_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L17_sanitize",
+          "b": "L17_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L18_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L18_cast",
+          "b": "L18_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L18_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L18_align",
+          "b": "L18_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L18_sanitize",
+          "b": "L18_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L19_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L19_cast",
+          "b": "L19_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L19_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L19_align",
+          "b": "L19_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L19_sanitize",
+          "b": "L19_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L20_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L20_cast",
+          "b": "L20_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L20_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L20_align",
+          "b": "L20_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L20_sanitize",
+          "b": "L20_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L21_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L21_cast",
+          "b": "L21_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L21_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L21_align",
+          "b": "L21_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L21_sanitize",
+          "b": "L21_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L22_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L22_cast",
+          "b": "L22_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L22_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L22_align",
+          "b": "L22_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L22_sanitize",
+          "b": "L22_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L23_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L23_cast",
+          "b": "L23_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L23_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L23_align",
+          "b": "L23_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L23_sanitize",
+          "b": "L23_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L24_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L24_cast",
+          "b": "L24_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L24_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L24_align",
+          "b": "L24_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L24_sanitize",
+          "b": "L24_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L25_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L25_cast",
+          "b": "L25_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L25_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L25_align",
+          "b": "L25_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L25_sanitize",
+          "b": "L25_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L26_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L26_cast",
+          "b": "L26_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L26_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L26_align",
+          "b": "L26_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L26_sanitize",
+          "b": "L26_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L27_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L27_cast",
+          "b": "L27_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L27_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L27_align",
+          "b": "L27_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L27_sanitize",
+          "b": "L27_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L28_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L28_cast",
+          "b": "L28_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L28_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L28_align",
+          "b": "L28_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L28_sanitize",
+          "b": "L28_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L29_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L29_cast",
+          "b": "L29_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L29_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L29_align",
+          "b": "L29_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L29_sanitize",
+          "b": "L29_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L30_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L30_cast",
+          "b": "L30_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L30_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L30_align",
+          "b": "L30_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L30_sanitize",
+          "b": "L30_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L31_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L31_cast",
+          "b": "L31_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L31_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L31_align",
+          "b": "L31_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L31_sanitize",
+          "b": "L31_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L32_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L32_cast",
+          "b": "L32_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L32_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L32_align",
+          "b": "L32_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L32_sanitize",
+          "b": "L32_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L33_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L33_cast",
+          "b": "L33_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L33_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L33_align",
+          "b": "L33_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L33_sanitize",
+          "b": "L33_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L34_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L34_cast",
+          "b": "L34_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L34_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L34_align",
+          "b": "L34_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L34_sanitize",
+          "b": "L34_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L35_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L35_cast",
+          "b": "L35_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L35_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L35_align",
+          "b": "L35_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L35_sanitize",
+          "b": "L35_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L36_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L36_cast",
+          "b": "L36_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L36_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L36_align",
+          "b": "L36_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L36_sanitize",
+          "b": "L36_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L37_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L37_cast",
+          "b": "L37_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L37_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L37_align",
+          "b": "L37_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L37_sanitize",
+          "b": "L37_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L38_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L38_cast",
+          "b": "L38_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L38_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L38_align",
+          "b": "L38_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L38_sanitize",
+          "b": "L38_gate",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "input_IDs",
+          "b": "L39_cast",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L39_cast",
+          "b": "L39_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "row_plans",
+          "b": "L39_align",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L39_align",
+          "b": "L39_sanitize",
+          "kind": "DATA_OR_PLAN"
+        },
+        {
+          "a": "L39_sanitize",
+          "b": "L39_gate",
+          "kind": "DATA_OR_PLAN"
+        }
+      ]
+    },
+    "candidate_graphs": {
+      "shared_cast": {
+        "nodes": [
+          {
+            "id": "input_IDs"
+          },
+          {
+            "id": "row_plans"
+          },
+          {
+            "id": "shared_cast"
+          },
+          {
+            "id": "L0_align"
+          },
+          {
+            "id": "L0_sanitize"
+          },
+          {
+            "id": "L0_gate"
+          },
+          {
+            "id": "L1_align"
+          },
+          {
+            "id": "L1_sanitize"
+          },
+          {
+            "id": "L1_gate"
+          },
+          {
+            "id": "L2_align"
+          },
+          {
+            "id": "L2_sanitize"
+          },
+          {
+            "id": "L2_gate"
+          },
+          {
+            "id": "L3_align"
+          },
+          {
+            "id": "L3_sanitize"
+          },
+          {
+            "id": "L3_gate"
+          },
+          {
+            "id": "L4_align"
+          },
+          {
+            "id": "L4_sanitize"
+          },
+          {
+            "id": "L4_gate"
+          },
+          {
+            "id": "L5_align"
+          },
+          {
+            "id": "L5_sanitize"
+          },
+          {
+            "id": "L5_gate"
+          },
+          {
+            "id": "L6_align"
+          },
+          {
+            "id": "L6_sanitize"
+          },
+          {
+            "id": "L6_gate"
+          },
+          {
+            "id": "L7_align"
+          },
+          {
+            "id": "L7_sanitize"
+          },
+          {
+            "id": "L7_gate"
+          },
+          {
+            "id": "L8_align"
+          },
+          {
+            "id": "L8_sanitize"
+          },
+          {
+            "id": "L8_gate"
+          },
+          {
+            "id": "L9_align"
+          },
+          {
+            "id": "L9_sanitize"
+          },
+          {
+            "id": "L9_gate"
+          },
+          {
+            "id": "L10_align"
+          },
+          {
+            "id": "L10_sanitize"
+          },
+          {
+            "id": "L10_gate"
+          },
+          {
+            "id": "L11_align"
+          },
+          {
+            "id": "L11_sanitize"
+          },
+          {
+            "id": "L11_gate"
+          },
+          {
+            "id": "L12_align"
+          },
+          {
+            "id": "L12_sanitize"
+          },
+          {
+            "id": "L12_gate"
+          },
+          {
+            "id": "L13_align"
+          },
+          {
+            "id": "L13_sanitize"
+          },
+          {
+            "id": "L13_gate"
+          },
+          {
+            "id": "L14_align"
+          },
+          {
+            "id": "L14_sanitize"
+          },
+          {
+            "id": "L14_gate"
+          },
+          {
+            "id": "L15_align"
+          },
+          {
+            "id": "L15_sanitize"
+          },
+          {
+            "id": "L15_gate"
+          },
+          {
+            "id": "L16_align"
+          },
+          {
+            "id": "L16_sanitize"
+          },
+          {
+            "id": "L16_gate"
+          },
+          {
+            "id": "L17_align"
+          },
+          {
+            "id": "L17_sanitize"
+          },
+          {
+            "id": "L17_gate"
+          },
+          {
+            "id": "L18_align"
+          },
+          {
+            "id": "L18_sanitize"
+          },
+          {
+            "id": "L18_gate"
+          },
+          {
+            "id": "L19_align"
+          },
+          {
+            "id": "L19_sanitize"
+          },
+          {
+            "id": "L19_gate"
+          },
+          {
+            "id": "L20_align"
+          },
+          {
+            "id": "L20_sanitize"
+          },
+          {
+            "id": "L20_gate"
+          },
+          {
+            "id": "L21_align"
+          },
+          {
+            "id": "L21_sanitize"
+          },
+          {
+            "id": "L21_gate"
+          },
+          {
+            "id": "L22_align"
+          },
+          {
+            "id": "L22_sanitize"
+          },
+          {
+            "id": "L22_gate"
+          },
+          {
+            "id": "L23_align"
+          },
+          {
+            "id": "L23_sanitize"
+          },
+          {
+            "id": "L23_gate"
+          },
+          {
+            "id": "L24_align"
+          },
+          {
+            "id": "L24_sanitize"
+          },
+          {
+            "id": "L24_gate"
+          },
+          {
+            "id": "L25_align"
+          },
+          {
+            "id": "L25_sanitize"
+          },
+          {
+            "id": "L25_gate"
+          },
+          {
+            "id": "L26_align"
+          },
+          {
+            "id": "L26_sanitize"
+          },
+          {
+            "id": "L26_gate"
+          },
+          {
+            "id": "L27_align"
+          },
+          {
+            "id": "L27_sanitize"
+          },
+          {
+            "id": "L27_gate"
+          },
+          {
+            "id": "L28_align"
+          },
+          {
+            "id": "L28_sanitize"
+          },
+          {
+            "id": "L28_gate"
+          },
+          {
+            "id": "L29_align"
+          },
+          {
+            "id": "L29_sanitize"
+          },
+          {
+            "id": "L29_gate"
+          },
+          {
+            "id": "L30_align"
+          },
+          {
+            "id": "L30_sanitize"
+          },
+          {
+            "id": "L30_gate"
+          },
+          {
+            "id": "L31_align"
+          },
+          {
+            "id": "L31_sanitize"
+          },
+          {
+            "id": "L31_gate"
+          },
+          {
+            "id": "L32_align"
+          },
+          {
+            "id": "L32_sanitize"
+          },
+          {
+            "id": "L32_gate"
+          },
+          {
+            "id": "L33_align"
+          },
+          {
+            "id": "L33_sanitize"
+          },
+          {
+            "id": "L33_gate"
+          },
+          {
+            "id": "L34_align"
+          },
+          {
+            "id": "L34_sanitize"
+          },
+          {
+            "id": "L34_gate"
+          },
+          {
+            "id": "L35_align"
+          },
+          {
+            "id": "L35_sanitize"
+          },
+          {
+            "id": "L35_gate"
+          },
+          {
+            "id": "L36_align"
+          },
+          {
+            "id": "L36_sanitize"
+          },
+          {
+            "id": "L36_gate"
+          },
+          {
+            "id": "L37_align"
+          },
+          {
+            "id": "L37_sanitize"
+          },
+          {
+            "id": "L37_gate"
+          },
+          {
+            "id": "L38_align"
+          },
+          {
+            "id": "L38_sanitize"
+          },
+          {
+            "id": "L38_gate"
+          },
+          {
+            "id": "L39_align"
+          },
+          {
+            "id": "L39_sanitize"
+          },
+          {
+            "id": "L39_gate"
+          }
+        ],
+        "edges": [
+          {
+            "a": "input_IDs",
+            "b": "shared_cast",
+            "kind": "EXACT_INT64_PROMOTION"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L0_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L0_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L0_align",
+            "b": "L0_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L0_sanitize",
+            "b": "L0_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L1_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L1_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L1_align",
+            "b": "L1_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L1_sanitize",
+            "b": "L1_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L2_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L2_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L2_align",
+            "b": "L2_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L2_sanitize",
+            "b": "L2_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L3_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L3_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L3_align",
+            "b": "L3_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L3_sanitize",
+            "b": "L3_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L4_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L4_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L4_align",
+            "b": "L4_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L4_sanitize",
+            "b": "L4_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L5_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L5_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L5_align",
+            "b": "L5_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L5_sanitize",
+            "b": "L5_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L6_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L6_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L6_align",
+            "b": "L6_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L6_sanitize",
+            "b": "L6_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L7_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L7_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L7_align",
+            "b": "L7_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L7_sanitize",
+            "b": "L7_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L8_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L8_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L8_align",
+            "b": "L8_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L8_sanitize",
+            "b": "L8_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L9_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L9_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L9_align",
+            "b": "L9_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L9_sanitize",
+            "b": "L9_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L10_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L10_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L10_align",
+            "b": "L10_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L10_sanitize",
+            "b": "L10_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L11_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L11_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L11_align",
+            "b": "L11_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L11_sanitize",
+            "b": "L11_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L12_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L12_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L12_align",
+            "b": "L12_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L12_sanitize",
+            "b": "L12_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L13_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L13_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L13_align",
+            "b": "L13_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L13_sanitize",
+            "b": "L13_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L14_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L14_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L14_align",
+            "b": "L14_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L14_sanitize",
+            "b": "L14_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L15_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L15_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L15_align",
+            "b": "L15_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L15_sanitize",
+            "b": "L15_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L16_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L16_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L16_align",
+            "b": "L16_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L16_sanitize",
+            "b": "L16_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L17_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L17_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L17_align",
+            "b": "L17_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L17_sanitize",
+            "b": "L17_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L18_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L18_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L18_align",
+            "b": "L18_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L18_sanitize",
+            "b": "L18_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L19_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L19_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L19_align",
+            "b": "L19_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L19_sanitize",
+            "b": "L19_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L20_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L20_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L20_align",
+            "b": "L20_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L20_sanitize",
+            "b": "L20_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L21_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L21_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L21_align",
+            "b": "L21_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L21_sanitize",
+            "b": "L21_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L22_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L22_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L22_align",
+            "b": "L22_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L22_sanitize",
+            "b": "L22_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L23_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L23_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L23_align",
+            "b": "L23_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L23_sanitize",
+            "b": "L23_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L24_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L24_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L24_align",
+            "b": "L24_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L24_sanitize",
+            "b": "L24_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L25_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L25_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L25_align",
+            "b": "L25_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L25_sanitize",
+            "b": "L25_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L26_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L26_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L26_align",
+            "b": "L26_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L26_sanitize",
+            "b": "L26_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L27_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L27_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L27_align",
+            "b": "L27_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L27_sanitize",
+            "b": "L27_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L28_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L28_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L28_align",
+            "b": "L28_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L28_sanitize",
+            "b": "L28_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L29_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L29_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L29_align",
+            "b": "L29_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L29_sanitize",
+            "b": "L29_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L30_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L30_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L30_align",
+            "b": "L30_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L30_sanitize",
+            "b": "L30_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L31_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L31_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L31_align",
+            "b": "L31_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L31_sanitize",
+            "b": "L31_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L32_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L32_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L32_align",
+            "b": "L32_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L32_sanitize",
+            "b": "L32_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L33_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L33_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L33_align",
+            "b": "L33_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L33_sanitize",
+            "b": "L33_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L34_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L34_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L34_align",
+            "b": "L34_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L34_sanitize",
+            "b": "L34_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L35_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L35_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L35_align",
+            "b": "L35_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L35_sanitize",
+            "b": "L35_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L36_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L36_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L36_align",
+            "b": "L36_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L36_sanitize",
+            "b": "L36_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L37_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L37_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L37_align",
+            "b": "L37_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L37_sanitize",
+            "b": "L37_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L38_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L38_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L38_align",
+            "b": "L38_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L38_sanitize",
+            "b": "L38_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_cast",
+            "b": "L39_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L39_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L39_align",
+            "b": "L39_sanitize",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L39_sanitize",
+            "b": "L39_gate",
+            "kind": "DATA_OR_PLAN"
+          }
+        ]
+      },
+      "shared_pointwise_routing_IDs": {
+        "nodes": [
+          {
+            "id": "input_IDs"
+          },
+          {
+            "id": "row_plans"
+          },
+          {
+            "id": "shared_routing_IDs"
+          },
+          {
+            "id": "L0_align"
+          },
+          {
+            "id": "L0_gate"
+          },
+          {
+            "id": "L1_align"
+          },
+          {
+            "id": "L1_gate"
+          },
+          {
+            "id": "L2_align"
+          },
+          {
+            "id": "L2_gate"
+          },
+          {
+            "id": "L3_align"
+          },
+          {
+            "id": "L3_gate"
+          },
+          {
+            "id": "L4_align"
+          },
+          {
+            "id": "L4_gate"
+          },
+          {
+            "id": "L5_align"
+          },
+          {
+            "id": "L5_gate"
+          },
+          {
+            "id": "L6_align"
+          },
+          {
+            "id": "L6_gate"
+          },
+          {
+            "id": "L7_align"
+          },
+          {
+            "id": "L7_gate"
+          },
+          {
+            "id": "L8_align"
+          },
+          {
+            "id": "L8_gate"
+          },
+          {
+            "id": "L9_align"
+          },
+          {
+            "id": "L9_gate"
+          },
+          {
+            "id": "L10_align"
+          },
+          {
+            "id": "L10_gate"
+          },
+          {
+            "id": "L11_align"
+          },
+          {
+            "id": "L11_gate"
+          },
+          {
+            "id": "L12_align"
+          },
+          {
+            "id": "L12_gate"
+          },
+          {
+            "id": "L13_align"
+          },
+          {
+            "id": "L13_gate"
+          },
+          {
+            "id": "L14_align"
+          },
+          {
+            "id": "L14_gate"
+          },
+          {
+            "id": "L15_align"
+          },
+          {
+            "id": "L15_gate"
+          },
+          {
+            "id": "L16_align"
+          },
+          {
+            "id": "L16_gate"
+          },
+          {
+            "id": "L17_align"
+          },
+          {
+            "id": "L17_gate"
+          },
+          {
+            "id": "L18_align"
+          },
+          {
+            "id": "L18_gate"
+          },
+          {
+            "id": "L19_align"
+          },
+          {
+            "id": "L19_gate"
+          },
+          {
+            "id": "L20_align"
+          },
+          {
+            "id": "L20_gate"
+          },
+          {
+            "id": "L21_align"
+          },
+          {
+            "id": "L21_gate"
+          },
+          {
+            "id": "L22_align"
+          },
+          {
+            "id": "L22_gate"
+          },
+          {
+            "id": "L23_align"
+          },
+          {
+            "id": "L23_gate"
+          },
+          {
+            "id": "L24_align"
+          },
+          {
+            "id": "L24_gate"
+          },
+          {
+            "id": "L25_align"
+          },
+          {
+            "id": "L25_gate"
+          },
+          {
+            "id": "L26_align"
+          },
+          {
+            "id": "L26_gate"
+          },
+          {
+            "id": "L27_align"
+          },
+          {
+            "id": "L27_gate"
+          },
+          {
+            "id": "L28_align"
+          },
+          {
+            "id": "L28_gate"
+          },
+          {
+            "id": "L29_align"
+          },
+          {
+            "id": "L29_gate"
+          },
+          {
+            "id": "L30_align"
+          },
+          {
+            "id": "L30_gate"
+          },
+          {
+            "id": "L31_align"
+          },
+          {
+            "id": "L31_gate"
+          },
+          {
+            "id": "L32_align"
+          },
+          {
+            "id": "L32_gate"
+          },
+          {
+            "id": "L33_align"
+          },
+          {
+            "id": "L33_gate"
+          },
+          {
+            "id": "L34_align"
+          },
+          {
+            "id": "L34_gate"
+          },
+          {
+            "id": "L35_align"
+          },
+          {
+            "id": "L35_gate"
+          },
+          {
+            "id": "L36_align"
+          },
+          {
+            "id": "L36_gate"
+          },
+          {
+            "id": "L37_align"
+          },
+          {
+            "id": "L37_gate"
+          },
+          {
+            "id": "L38_align"
+          },
+          {
+            "id": "L38_gate"
+          },
+          {
+            "id": "L39_align"
+          },
+          {
+            "id": "L39_gate"
+          }
+        ],
+        "edges": [
+          {
+            "a": "input_IDs",
+            "b": "shared_routing_IDs",
+            "kind": "F_NONMUTATING_GENERATION_LOCAL"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L0_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L0_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L0_align",
+            "b": "L0_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L1_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L1_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L1_align",
+            "b": "L1_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L2_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L2_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L2_align",
+            "b": "L2_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L3_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L3_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L3_align",
+            "b": "L3_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L4_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L4_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L4_align",
+            "b": "L4_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L5_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L5_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L5_align",
+            "b": "L5_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L6_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L6_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L6_align",
+            "b": "L6_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L7_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L7_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L7_align",
+            "b": "L7_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L8_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L8_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L8_align",
+            "b": "L8_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L9_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L9_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L9_align",
+            "b": "L9_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L10_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L10_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L10_align",
+            "b": "L10_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L11_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L11_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L11_align",
+            "b": "L11_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L12_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L12_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L12_align",
+            "b": "L12_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L13_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L13_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L13_align",
+            "b": "L13_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L14_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L14_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L14_align",
+            "b": "L14_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L15_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L15_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L15_align",
+            "b": "L15_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L16_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L16_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L16_align",
+            "b": "L16_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L17_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L17_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L17_align",
+            "b": "L17_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L18_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L18_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L18_align",
+            "b": "L18_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L19_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L19_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L19_align",
+            "b": "L19_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L20_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L20_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L20_align",
+            "b": "L20_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L21_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L21_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L21_align",
+            "b": "L21_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L22_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L22_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L22_align",
+            "b": "L22_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L23_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L23_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L23_align",
+            "b": "L23_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L24_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L24_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L24_align",
+            "b": "L24_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L25_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L25_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L25_align",
+            "b": "L25_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L26_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L26_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L26_align",
+            "b": "L26_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L27_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L27_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L27_align",
+            "b": "L27_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L28_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L28_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L28_align",
+            "b": "L28_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L29_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L29_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L29_align",
+            "b": "L29_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L30_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L30_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L30_align",
+            "b": "L30_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L31_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L31_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L31_align",
+            "b": "L31_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L32_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L32_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L32_align",
+            "b": "L32_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L33_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L33_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L33_align",
+            "b": "L33_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L34_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L34_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L34_align",
+            "b": "L34_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L35_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L35_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L35_align",
+            "b": "L35_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L36_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L36_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L36_align",
+            "b": "L36_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L37_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L37_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L37_align",
+            "b": "L37_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L38_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L38_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L38_align",
+            "b": "L38_gate",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "shared_routing_IDs",
+            "b": "L39_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "row_plans",
+            "b": "L39_align",
+            "kind": "DATA_OR_PLAN"
+          },
+          {
+            "a": "L39_align",
+            "b": "L39_gate",
+            "kind": "DATA_OR_PLAN"
+          }
+        ]
+      }
+    },
+    "graph_scope": "Sourceconsistent40layerIDproducer/consumerprojection,notfullpointer/event-completegraph. Per-layerrowplans/weights/vision/hashparamsremainindependent.",
+    "variants": [
+      {
+        "id": "F20-ID-A",
+        "status": "CONDITIONAL_CROSS_LAYER_CSE",
+        "change": "OneINT64castforstableforwardinput_IDgeneration;retainper-layeralignment/sanitization.",
+        "requires": "Sameinputvalues/dtype/layoutandnomutation/concurrentgenerationchange;pad/selectionconsumersmustnotmodifysharedcastsource."
+      },
+      {
+        "id": "F20-ID-B",
+        "status": "CONDITIONAL_CROSS_LAYER_CSE_WITH_DERIVED_COMMUTATION",
+        "change": "Computef onceforroutinginputgeneration,thenkeepeachlayerMC2zero-pad/selectplanP_l.",
+        "requires": "f(P_l x)=P_l f(x)underreviewedzero-padding/selectioncontract;rawIDsremainseparate,allper-layergatingparamsandcommprotocolsremain."
+      },
+      {
+        "id": "F20-ID-C",
+        "status": "CONDITIONAL_NEW_CONSUMER_INTERFACE",
+        "change": "AbsorbIDnormalizationintoHashTopK oritsinputpublication.",
+        "requires": "ExactINT32/INT64 ABI,-1-onlymapping,vision/hashsemantics/errors,allconsumersandgenerationupdates. CurrentAPIconstraintsarenotuniversalno-opportunityproof."
+      },
+      {
+        "id": "F20-ID-D",
+        "status": "CONDITIONAL_CROSS_ITERATION_VARIANT",
+        "change": "ReusepreparedIDsacrossinvocationsonlywithcompletevalue/generationandrow-planidentity.",
+        "requires": "Stableaddress/shapealoneinsufficient;invalidateoninputwrite/requestremap/rollback/graphentry/DP-TPplanchange. Ordinaryper-forward CSEstillrerunseverygraphreplay."
+      },
+      {
+        "id": "F20-ID-E",
+        "status": "EXCLUDED_IN_GENERAL_MODEL_DOMAIN",
+        "change": "ClampallnegativeIDsto0,reusebyaddressorlengthalone,sharetarget/draftbanks,ordropalignment/collectives.",
+        "reason": "ImageIDs,changedcontent,sentinelpolicy,rowmappingandparticipationaredistinguishable."
+      }
+    ],
+    "algebra": "F04-F20-ID-algebra-and-generation-review-v29.json",
+    "dependencies": [
+      "Stableinputvaluegenerationforoneforward;rawIDsdonotmutate",
+      "CurrentMC2zeropad/selectcontractorindependentlyprovedotherplan",
+      "Read-onlysharedpreparationinputs andcapture/update lifetimes",
+      "Separatetarget/draft/TPownership andallplaceholder/visionsemantics"
+    ],
+    "relation_to_existing": [
+      {
+        "candidate": "F20",
+        "relation": "overlaps",
+        "scope": "SameHashTopKfrontier;wholefusedroutercandidatecannotaddallmetadataremovalsagain."
+      },
+      {
+        "candidate": "F31",
+        "relation": "interacts",
+        "scope": "Metadata/rowpublicationgenerations;F20-IDisMoEIDnormalization,notrepeatAttention/DSparkmetadata."
+      },
+      {
+        "candidate": "H07",
+        "relation": "interacts",
+        "scope": "SameoriginaltokenIDlifetimes,butembeddingclampandrouter-1-onlysanitizationarenotinterchangeable."
+      }
+    ],
+    "evidence_root": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031",
+    "evidence_files": [
+      "F04-current-profile-and-fanout-v29.json",
+      "F04-precision-routing-and-row-contract-v29.json",
+      "F04-F20-ID-algebra-and-generation-review-v29.json",
+      "F20-routing-ID-condition-ledger-v29.json"
+    ],
+    "all_consumers_closed": false,
+    "legal_fusion_proved": false,
+    "candidate_closed": false,
+    "critical_path_gain_us": null,
+    "critical_path_gain_status": "UNKNOWN_NOT_QUAD_SPAN_SUM",
+    "implementation": false,
+    "new_performance_result": false,
+    "overall_complete": false
+  },
+  "review_v41": {
+    "scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-requirement-completion-audit-v41.json",
+    "semantic_branches": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-semantic-branch-inventory-v41.json",
+    "outside_profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-profile-gap-reconciliation-v41.json",
+    "initialization": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-dummy-and-proposal-initialization-contract-v41.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-M21-initialization-variants-v41.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "4outsidechains3200TASKareM12prepare/padding/IDABI alreadyreviewedv29;sourceassociationexpanded,notresourceassignmentornewM21savings."
+  },
+  "review_v46": {
+    "mode_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-mode-padding-and-DP-contract-v46.json",
+    "alignment": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-aware-alignment-domain-proof-v46.json",
+    "DP_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-DP-mode-padding-and-skip-domain-proof-v46.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-padding-reorganization-conditions-v46.json",
+    "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v46.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Routing ID/padding reuse keeps DP synchronized mode,full carrier and correct logical-vs-physical mask/row mapping;24targetrows are not blanket one-third savings when requests2 schedule12."
+  },
+  "review_v55": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-fusion-profile-v55.json",
+    "fusion_theory": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F04-router-fusion-roofline-v55.json",
+    "shape_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-shape-ceiling-ledger-v55.json",
+    "focus": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/OPERATOR-FOCUS-REQUIREMENTS-v55.json",
+    "relation": "Exact3200graphblocks bind norm/router/topK shapes;2560root-associated and640phase-unbound keptseparate. Existingnorm+castalreadyfused. ConditionalFP32plane andscoreinterface removal has8MH/8MElogicalbyte accounting;M3vsM800 differ strongly. No cache/FP32peak/nativegain claim.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

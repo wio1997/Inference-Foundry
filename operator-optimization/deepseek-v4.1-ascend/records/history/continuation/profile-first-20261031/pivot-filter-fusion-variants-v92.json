@@ -1,0 +1,64 @@
+{
+  "candidate": "F35",
+  "variants": [
+    {
+      "id": "V92SPLIT",
+      "state": "ORDERED_FIXED_TILE_SUMMARY_SPLIT_CONDITIONAL",
+      "change": "Parallelizeoriginal8192-elementtile computations,thenmergeeachoriginaltile count/mass/min/fuzzycounttupleinoriginalorder.",
+      "gates": "Identicallocalvalues/reductionresults andperiteration pivots;massFP32addition/duplicateupdates retainorder. Tree-reducingfuzzy(min,count) orchangingtilewidth isnotsafe bydefault. Newstage/launch/global-readinesscosts remain."
+    },
+    {
+      "id": "V92EXP",
+      "state": "SAME_EXPRESSION_STANDALONE_CACHE_CONDITIONAL",
+      "change": "StorestandaloneE=exp(originalL-max_sample) duringnormalizerpass,readitinsecondpassinstead ofrecomputingExp;serialinplaceprefixcompactioncandidate.",
+      "gates": "SameFP32Expresult/normalizer/sourceepoch,exclusivebank,loadentiretilebeforecompactwrites. Adds4BVstore;fallbackmustrebuildfullP. PostKmaskedthirdExp isnotfourthfullExp."
+    },
+    {
+      "id": "V92SAMPLE",
+      "state": "SAME_CALL_SAMPLE_STAT_REUSE_CONDITIONAL",
+      "change": "Reuseidenticalfirstsamplevalues/stats acrosssame-callK→standaloneP branchandavoidrequestedtile0rereadwherepossible.",
+      "gates": "SameunchangedL/blocksize/operationresults;alreadycomputedmax/min do notremovethePExp-normalizerpass. CompilerCSEandliveUBpressureunattested. Notcrossiterationactivationreuse."
+    },
+    {
+      "id": "V92VIRTUAL",
+      "state": "FINAL_MASK_DESCRIPTOR_AND_PREFIX_CONDITIONAL",
+      "change": "Exposeactiveflag/pivot/duplicatelogit/quota;consumerreconstructssamefilteredvaluesfromoriginalL,insteadofwritingmaskedL. Prefixmetadataoption supportsparallelconsumerchunks.",
+      "gates": "Exactsourcefuzzygroupandvocabprefixorder,includinggroupvaluesbelowpivot;inactiveguardreturnsoriginalL. Retainlivefilteredlogit/mutationobserversorchangeABI,sourceepoch,lastread andnativeconsumerprecision. ExtraGwork/prefix/launchcostspriced."
+    },
+    {
+      "id": "V92UB",
+      "state": "BOUNDED_OUTLIER_BANK_ONCHIP_CONDITIONAL",
+      "change": "Keepboundedcompactoutlierprefixonchip acrosspivotiterations ratherthanmaterializingeachrequestedBUFFERinterface.",
+      "gates": "4O+alllivetilescratch fitsactualUB/registerschedule;dynamicOcap hasoriginalfallback. WholeVrow517120B>196608BUB;49152floatvaluesisnotausablecapacityonceworkspaceiscounted. NativeLowering/cachetrafficunproved."
+    },
+    {
+      "id": "V92BANK",
+      "state": "EXCLUSIVE_SCRATCH_BANK_REORGANIZATION_CONDITIONAL",
+      "change": "Usegeneration/streamownershiporisolatedscratchbanks for overlappingcallplans;keepreadonlytablesafterready.",
+      "gates": "Cachekeydoesnotcontainstream/generation;newbanksneednotcopyoldcontentsifthecurrentproduced-prefixreadcontractholds. Reuseaddressisnotcontentidentity;actualconcurrencyunobserved."
+    },
+    {
+      "id": "V92NOP",
+      "state": "PARAMETER_NOOP_CALL_ELISION_CONDITIONAL",
+      "change": "Skipanentireknown-noop invocationwhenallkernelrowsareinactiveandmetadata/layoutprotocolisalreadyvalid.",
+      "gates": "Preservewrappercontiguouscopy/returnedalias/stride,parametercasts/asserts,capturebanksandanyrequiredinitialization. ExistingkernelnoprowhaszeroL-sweeps,butwrapper/launchcostisnotzero."
+    },
+    {
+      "id": "V92NUMERIC",
+      "state": "NEW_NUMERIC_CONTRACT_REQUIRED_OR_UNPROVED",
+      "change": "Stableglobal/online-max normalizer,exactselection/fullsort ornewpivotwarmstartmaychangealgorithmicwork/stability.",
+      "gates": "Source18iteration/tolerance/finalguardand1e-9fuzzygroups defineoutputs;newrange/scan/ordercanchangevalues. Heuristicsample shift hasnofinite-expguarantee. No silentdefault/backendsubstitution ornewaccuracybudgetassumed."
+    }
+  ],
+  "already_fused": [
+    "Fullstats/outliergather",
+    "TwoKpivotsoneinputscan",
+    "Pivotmass/min/duplicatecountoneinputscan",
+    "Finalmaskinsideexistingkernel"
+  ],
+  "already_fused_credit_counted_new": false,
+  "new_maincandidate": false,
+  "implementation": false,
+  "native_test": false,
+  "overall_complete": false
+}

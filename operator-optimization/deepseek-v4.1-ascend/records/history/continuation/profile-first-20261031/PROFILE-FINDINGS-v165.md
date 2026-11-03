@@ -1,0 +1,17 @@
+# v165：171完整负载共享profile的实际结果
+
+已完成同一完整C8、每请求32768输入/1024输出、前缀约90%的无profile参照和隔离采集。8个请求的文本与参照逐字相同；原服务已恢复、健康检查200。无profile单次观测501.15输出token/s，只是参照，不是稳定性能结论。首次诊断启动因过早施加文件大小限制而阻止Engram共享文件创建，错误和恢复均保留；修正为模型加载后生效，没有重写失败记录或重复跑参照。
+
+得到16份创建期CPU记录、32份正式CPU/NPU窗口，48份均有张量输入detail。16个NPU worker补充日志都有正常footer。官方离线导出全部返回；32份设备数据库覆盖288846条计算任务执行。官方connection表可将183242条执行唯一连到记录的CPU范围，105604条没有该连接。连接域以各自数据库为界，不补猜旧profile，也不等价于原生参数、全部reader或graph对象映射。
+
+跨卡、跨窗口的累计计算任务时长中，DispatchFFNCombine占68.28%；单列AllReduce、AllToAll、AllGather、ReduceScatter合计约15.08%；PadV3、MemSet、ZerosLike合计0.246%。这是采集窗口的工作暴露，不是请求延迟占比，不能套Amdahl给生产加速倍数。CPU栈和内存记录会扰动调度；第一窗口还包含dummy参与和前端空隙。先分解主要复合算子与卡间等待，避免继续围绕微小清零逐对做探针。
+
+当前171目标模型的aclnnDispatchFFNCombine已通过官方连接及调用栈定位到moe_comm_method.py:591，16个第一窗口均有目标形状记录。无需重读整个框架。目标的本地专家数24、M=211/1023/818等与草稿8专家形状分开；这些形状不是实际receiver行数。M=211域640次的平均报告aic_mac_ratio约1.81%，M=1023域约7.89%；这支持进一步区分计算与等待，不能把其倒数当可实现加速或MFU。沿用已有每assignment35389440MAC的条件式；本次实际receiver分布、内部阶段耗时和匹配的硬件容量上界仍缺，不能把旧166行数与新171时间相除。
+
+同一globalTaskId在图replay中可重复三次。首次聚合把重复PMU键保留为未知；修正版按同vendorDB、同ID且timestamp唯一落入某个任务执行区间配对，239525条所选PMU记录无重复或歧义，不使用最近时间。PMU仍有缺项；28种pipeline字段没有直接给出HBM字节、链路字节或认证物理峰值。
+
+BOOL24样本上限导致的24个遗漏已只对相应24份原始文件定点补扫，未重采模型。全部152条CPU算子范围事件包括32条创建期SP清零、120条正式记录。正式记录中，64条DSA/C2/Engram事件栈明确含execute_dummy_batch；48条是CPU gather；8条SP mask来自真实模型execute。zeros_like与其内部zero_可为嵌套范围，不能当64次独立原生kernel。仅定点读取了profile指向的sp_padding_mask小函数及其本地分片函数：None输入会建立全false mask，TP整除时分片仍clone。可继续研究隐式全有效谓词/消费者融合，但未覆盖全部读者，不能据此删除缓冲区；也不把这些新角色回填到旧80个模板。
+
+实际3728次guard观测compress=True、sparse=False、MLA backend MRO，足以减少本观察域内通用PA分支的无关工作；不宣称所有输入/分支穷尽。另核对本机msprof动态入口并在空闲服务上快速试过PID列表与单PID，均被CLI拒绝为no valid pid values，未形成采集数据，服务保持200。下一步只查其PID namespace/动态注册入口；不能因为help存在就声称已采集，也不需要因此停止现有profile分析。
+
+用户已明确授权本容器的推理、框架与探针进程操作，本范围后续不重复请求许可。当前仍为PROGRESS：35+7候选、26模块358行的穷尽性、G00—G14、原9/1352、849PMU、16phase、3136归属、copy/control、数值/读者/物理容量与最低MFU均保留未闭合。没有新增独立性证明、历史native回填或整模块完成声明。

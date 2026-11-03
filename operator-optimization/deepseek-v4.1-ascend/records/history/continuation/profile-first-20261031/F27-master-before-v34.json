@@ -1,0 +1,54 @@
+{
+  "id": "F27_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "DSPARK_BOUNDARIES",
+  "original_node_mapping": {
+    "aux": "aux",
+    "main_proj": "main_proj",
+    "main_norm": "main_norm"
+  },
+  "nodes": [
+    {
+      "id": "aux",
+      "kind": "EXTERNAL",
+      "resource": "NPU"
+    },
+    {
+      "id": "main_proj",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "main_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "aux",
+      "consumer": "main_proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "main_proj",
+      "consumer": "main_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [],
+  "external_outputs": [
+    {
+      "producer": "main_norm",
+      "consumer": "block0",
+      "value": "combined context; runner binding not expanded",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

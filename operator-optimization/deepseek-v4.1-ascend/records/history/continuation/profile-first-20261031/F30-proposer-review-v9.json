@@ -1,0 +1,122 @@
+{
+  "profile_scope": "All selected postprocessing source ancestry in one EP3 diagnostic DB; native-task identity retained server-side.",
+  "native_counts": {
+    "Slice": 195,
+    "Add": 65,
+    "Cast": 65,
+    "ArgMaxV2": 65,
+    "ViewCopy": 143
+  },
+  "postprocess_signature_groups": 462,
+  "greedy_branch": "MEASURED_AT_65_NATIVE_ARGMAX_CALLS_FROM_LINE1599; does not establish every request/iteration or exclude other branches globally",
+  "phase_records": [
+    {
+      "host_context": "DUMMY_ANCESTRY",
+      "B": 4,
+      "step_records": 5
+    },
+    {
+      "host_context": "PROPOSAL_ANCESTRY",
+      "B": 3,
+      "step_records": 5
+    },
+    {
+      "host_context": "PROPOSAL_ANCESTRY",
+      "B": 4,
+      "step_records": 55
+    }
+  ],
+  "direct_dense_model": {
+    "V": 129280,
+    "embedding_width": 256,
+    "step_row_counts": [
+      3,
+      4
+    ],
+    "BF16_bias_bytes_per_row": 258560,
+    "BF16_full_dense_transition_table_bytes": 33426636800,
+    "direct_bias_MAC_per_step": {
+      "3": 99287040,
+      "4": 132382720
+    },
+    "meaning": "Logical uncompressed BF16 table size and current direct-dense MAC counts only. Not compulsory HBM traffic, an unconditional work lower bound, hardware throughput or a claimed gain."
+  },
+  "source_answers": [
+    "Per-step current code mutates logits[:,idx] with BF16 bias, selects argmax, optionally maps token space and copies the next ID into a stable buffer.",
+    "Each next Markov embedding consumes the preceding selected token. Direct evaluation cannot batch unknown future inputs without additional lookahead/precomputation; this is not a lower bound over all algorithms.",
+    "Probability path calls _sample_draft_from_logits and retains draft_probs; selected65 argmax records establish the greedy else branch for those calls.",
+    "Dynamic DSpark confidence update consumes last_hidden_states and draft_token_ids, not the full summed logits argument. Actual dynamic_spec value remains unverified; initializer activates it when dynamic_spec_config.method == dspark.",
+    "DSpark initializer explicitly sets use_cuda_graph=False. This applies to draft execution, not target graph replay.",
+    "Early return depends on num_speculative_tokens==1 or parallel_drafting; actual resolved parallel_drafting/vocab-map flags are not attested by source alone."
+  ],
+  "variants": [
+    {
+      "id": "F30-STRIDED-ADD-ARGMAX",
+      "status": "CONDITIONAL_LOCAL_SEMANTIC_CANDIDATE_WITH_MEASURED_BRANCH",
+      "graph": "Read the current strided logits slice and bias, preserve BF16 add rounding and optional writeback, reduce with existing argmax semantics, produce INT64 IDs and keep token remap/copy order.",
+      "supports": "65 Add+ArgMax+Cast records plus195 Slice/143 ViewCopy records; source binds each logical step.",
+      "constraints": [
+        "BF16 materialization/rounding before compare",
+        "NaN/tie/index semantics",
+        "same logits writeback and any external aliases",
+        "output INT64 and vocabulary remap",
+        "row padding/mask and stable buffer generation",
+        "per-step token recurrence and existing stream/event dependencies"
+      ],
+      "open": "Historical stride/storage ownership and native Slice/ViewCopy semantics are not attested. A shape reporting the full base allocation does not prove all bytes are physically copied. Score-write deletion requires stronger all-consumer proof."
+    },
+    {
+      "id": "F30-VOCAB-OWNERSHIP",
+      "status": "CONDITIONAL_CROSS_CARD_REORGANIZATION",
+      "graph": "Keep base-head and compatible Markov work in matching vocabulary partitions through greedy selection; preserve global tie/index semantics and publish the same selected IDs.",
+      "constraints": [
+        "matching vocabulary partitions/group/rank ownership",
+        "same bias and add numerical boundary",
+        "token-space mapping and selected ID publication",
+        "probability/entropy/logprobs paths need their full distribution contract",
+        "other model/head consumers and graph lifetime"
+      ],
+      "open": "This does not prove an AllGather can be removed. No per-rank ownership/complete consumer or end-to-end benefit is established."
+    },
+    {
+      "id": "F30-MARKOV-ROW-REUSE",
+      "status": "CONDITIONAL_CROSS_ITERATION_COMPUTE_MEMORY_TRADEOFF; UNPRICED",
+      "graph": "Reuse an exactly computed Markov bias row for a repeated Markov input ID under frozen embedding/projection parameters; partial cache and full precomputation are distinct domains.",
+      "constraints": [
+        "actual Markov input token space",
+        "immutable parameter/version namespace",
+        "matching GEMM reduction/rounding and inference numeric mode",
+        "no stochastic/stateful embedding/projection behavior",
+        "cache invalidation/capacity/lookup overhead and device ownership"
+      ],
+      "open": "Actual repeated-ID frequency and memory headroom are absent. A full dense BF16 table is33426636800 logical bytes before indices/replication; this is not a feasible-capacity or speedup claim."
+    }
+  ],
+  "source_snapshots": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "ranges": [
+        [
+          1200,
+          1262
+        ],
+        [
+          1510,
+          1705
+        ]
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+      "ranges": [
+        [
+          50,
+          78
+        ]
+      ]
+    }
+  ],
+  "closed": false
+}

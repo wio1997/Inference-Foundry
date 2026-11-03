@@ -1,0 +1,105 @@
+{
+  "clauses": [
+    {
+      "id": "REL88-01",
+      "a": "F08",
+      "b": "F17",
+      "relation": "SAME_INPUT_DIFFERENT_BF16_FLOAT_INGRESS",
+      "operator_claim": "Coordinate SWA BF16 and two C2FLOAT projections using the same declared cache_hidden,without equating products/precision/ingress paths.",
+      "applicable_domain": "Original typed input reference16NH becomes12NH with existing F17FLOATpair join. A2NH all-BF16 route needs exact C2weight encoding and original reductions/output types. A3GM bridges/weight ingress remain;C2FLOAT cannot becomeSWA output or be dropped after later BF16norm.",
+      "evidence": [
+        "operator-graph-coverage-audit-v88.json",
+        "operator-graph-candidate-bindings-v88.json",
+        "mixed-SWA-C2-source-contract-v88.json",
+        "mixed-SWA-C2-native-frontiers-v88.json",
+        "mixed-SWA-C2-cost-models-v88.json",
+        "mixed-SWA-C2-project-before-gather-v88.json",
+        "mixed-SWA-C2-precision-witnesses-v88.json",
+        "mixed-SWA-C2-variants-v88.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL88-02",
+      "a": "F06",
+      "b": "F17",
+      "relation": "LOCAL_QUERY_VS_GLOBAL_MIXED_PROJECTION_DOMAIN",
+      "operator_claim": "Compose Q/SWA siblings and C2 projections only after reconciling localQ and global cache row ownership.",
+      "applicable_domain": "N24/M3 captured query/cache domains differ. Forcing oneglobal-rowGEMM adds Qwork;owner-local projection+typed exchange is a separate F32composition. SWA1024B+C2twoFLOAT4096B per row shares one old10240B hidden-gather baseline,not additive independent reductions.",
+      "evidence": [
+        "operator-graph-coverage-audit-v88.json",
+        "operator-graph-candidate-bindings-v88.json",
+        "mixed-SWA-C2-source-contract-v88.json",
+        "mixed-SWA-C2-native-frontiers-v88.json",
+        "mixed-SWA-C2-cost-models-v88.json",
+        "mixed-SWA-C2-project-before-gather-v88.json",
+        "mixed-SWA-C2-precision-witnesses-v88.json",
+        "mixed-SWA-C2-variants-v88.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "REL88-03",
+      "a": "F08",
+      "b": "F18",
+      "relation": "SWA_NORM_AND_C2_POOL_NORM_DISTINCT_VALUES",
+      "operator_claim": "Joint input projections must preserve the different SWA direct512norm and C2perchannel pool→BF16norm branches.",
+      "applicable_domain": "SWA current cache visibility and C2oldring/completion/indexkey/longcache dependencies remain. Equal512width doesnot make norm statistics/latents equal. Mixed output segmentation or additionalFLOAT→BF16service must be priced;no unpriced directAIC→AIV path.",
+      "evidence": [
+        "operator-graph-coverage-audit-v88.json",
+        "operator-graph-candidate-bindings-v88.json",
+        "mixed-SWA-C2-source-contract-v88.json",
+        "mixed-SWA-C2-native-frontiers-v88.json",
+        "mixed-SWA-C2-cost-models-v88.json",
+        "mixed-SWA-C2-project-before-gather-v88.json",
+        "mixed-SWA-C2-precision-witnesses-v88.json",
+        "mixed-SWA-C2-variants-v88.json"
+      ],
+      "conditional_compatibility": true,
+      "all_runtime_gates_proved": false,
+      "speedup_additive": false,
+      "critical_path_gain_us": null
+    }
+  ],
+  "higher_order_groups": [
+    {
+      "id": "HG88-SWA-C2-TYPED-PROJECTION",
+      "members": [
+        "F06",
+        "F08",
+        "F17",
+        "F18",
+        "F32",
+        "F33"
+      ],
+      "contract": "Choose one original-typed/reencoded/owner-local graph. Include all reader/row/numerical/communication/output costs. One shared initial weight-ingress grant;unchanged cold weight set can bound local-row arithmetic gains. F17input sharing and F32communication credits refer to one baseline.",
+      "evidence": [
+        "operator-graph-coverage-audit-v88.json",
+        "operator-graph-candidate-bindings-v88.json",
+        "mixed-SWA-C2-source-contract-v88.json",
+        "mixed-SWA-C2-native-frontiers-v88.json",
+        "mixed-SWA-C2-cost-models-v88.json",
+        "mixed-SWA-C2-project-before-gather-v88.json",
+        "mixed-SWA-C2-precision-witnesses-v88.json",
+        "mixed-SWA-C2-variants-v88.json"
+      ],
+      "scope_state": "CONDITIONAL_MIXED_PROJECTION_AND_RESOURCE_CUT_REVIEWED",
+      "all_subsets_analyzed": false,
+      "legal_joint_fusion_proved": false
+    }
+  ],
+  "new_pairs": 3,
+  "new_groups": 1,
+  "refine_existing_relations": [
+    "REL73-16",
+    "REL74-15"
+  ],
+  "new_maincandidates": 0,
+  "overall_complete": false
+}

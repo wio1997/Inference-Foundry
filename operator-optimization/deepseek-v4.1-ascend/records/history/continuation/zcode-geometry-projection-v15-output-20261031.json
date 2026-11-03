@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_f77d4631-ffc5-44fe-8c74-e2964e6aef9d",
+  "traceId": "3504c548-254a-47c5-acaa-9d3b8c2ae217",
+  "turnId": "turn_13300013-001d-45af-b543-573ccf71bea2",
+  "response": "执行完成，只跑了一次，没有重试，也没有额外远端操作。\n\n**真实结果**\n- rc = 0（`REAL_RC=0`），stderr 为空；回执已写到本地 `geometry-projection166-v15.json`（执行时刻 2026-10-31T00:21:11Z，结果生成 00:22:16Z）\n- result SHA-256：`480588dab541cb70b40bd01a0ccee106009714f4d5b2426b33c187e49d1ebf2e`\n- `overall_complete = false`，`no_source_DB_or_device_work = true`\n\n**summary 要点**\n- 9555 条 source-role execution，覆盖 8 个角色：Q_A / KV / Q_NORM / KV_NORM / Q_B 各 1167 条；WO_A / WO_B 各 1224 条；INPUT_NORM 1272 条。\n- 64 个 exact decode graph，几何直方图只有两档：16 个 graph 是 2 requests / 12 tokens（captured physical row extent 24，TP-divisible arithmetic extent 16）；48 个 graph 是 4 requests / 24 tokens（两者都是 24）。\n- `distinct_recorded_communication_sequences = 1`；`all_armed_metadata_calls = 3712`。\n- 记录到的投影形状只覆盖 4 个角色（Q_A、KV、WO_A、WO_B），且每档签名条数与执行数都能对上（例如 Q_A 6 档合计 1167：800/816/830/834 行与 2/3 行；KV 5 档合计 1167：6400/6528/6668 行与 10/20 行；WO_A/WO_B 各 5 档、WO_B 图内走 MatMulV3 而小批走 MatMulV2）。Q_NORM、KV_NORM、Q_B、INPUT_NORM 只有计数、没有形状明细。\n\n**必须保留的未知/不一致**\n- `all_armed_metadata_calls = 3712`，但 `uniform6_context_ge32768` 的分档明细相加只有 3552（48 + 3472 + 8 + 24，差 160）。结果没有说明这 160 次是落在 context < 32768 还是别处，属于未解释项，我没有推断补齐。\n- 形状只是 native eager 记录到的调用形状；graph definition 与所有 tensor consumer 仍是分离的、未确认。\n- ARMED metadata 含 seeding 与正式 client 活动；只统计了显式 CPU context/schedule 条件，没有 device valid mask，也没有捕获窗口之外的 physical padding。\n- 一次调用命中多个已知 frame 时角色计数可能重叠，所以 9555 不能当作唯一调用数。\n\n**关于解释边界**：结果本身已明确写出 `Rowextent24 follows captured M3×TP8`，且 \"arithmetic 16 for 12 tokens is not an implemented/supported bucket or latency gain\"。因此这些行宽与 TP 整除算术都只是几何观测/算术推导，不是实现、也不是提速证据；source frame 角色绑定和 counter 元数据同样是候选层面的记录，不能当作实现或性能结论。\n\n本次只在本地保存了回执和一条记忆记录，没有改动任何 profile 数据、源码或设备状态。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 106453,
+    "outputTokens": 5330,
+    "totalTokens": 111783,
+    "cacheReadTokens": 93056,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3421,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 111783,
+    "contextUsed": 18266,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_cbb0d709-c811-4a08-9bee-cf61f7ba68db",
+  "traceId": "7ad51d1d-dfdb-4639-b3ed-2ae0ec19754c",
+  "turnId": "turn_fb5846b0-06de-46ce-a4b8-c1e0b8f18047",
+  "response": "已从只读文件 `agents/diagnosis/ep8-15-l14-l39-aicpu-overlap.json` 读出全部 8 个 rank（ep 8–15）的样本，下面数字均为同一文件的字段值；L14 的 duration_ns 取该层 anchor 的 `endNs - startNs`（anchor 类型 `KERNEL_MIX_AIC`），union_ns 与记录数取 `union_ns`、`raw_rows`/`records` 长度。\n\n**L14：各卡相交记录数与 union_ns 对比**\n\n| rank (ep) | L14 相交记录数 | union_ns | MC2 duration_ns | union == duration |\n|---|---|---|---|---|\n| 8 | 9 | 97,497,551 | 160,365,956 | 否 |\n| 9 | 6 | 123,489,393 | 160,367,275 | 否 |\n| 10 | 1 | 160,422,455 | 160,422,455 | 是 |\n| 11 | 1 | 160,378,400 | 160,378,400 | 是 |\n| 12 | 1 | 160,409,775 | 160,409,775 | 是 |\n| 13 | 1 | 160,375,656 | 160,375,656 | 是 |\n| 14 | 1 | 160,365,416 | 160,365,416 | 是 |\n| 15 | 1 | 160,382,476 | 160,382,476 | 是 |\n\nunion_ns 等于 duration_ns 的是 **rank 10、11、12、13、14、15**（6 张卡），全部只有 1 条相交记录且该记录完整覆盖 anchor 区间。不等于的是 **rank 8 和 rank 9**：rank 8 的 union_ns 比 duration_ns 小 62,868,405 ns，rank 9 小 36,877,882 ns。\n\n**L39：各卡相交记录数**\n\nrank 8、9、10、11、12、13、14、15 的 L39 相交记录数**全部为零**（`raw_rows` = 0，`records` 为空列表，`union_ns` = 0）。作为对照，同一文件里 L39 的 MC2 duration_ns 在 8,217,616 到 8,290,414 ns 之间，均大于零，并非零长区间。\n\n**几点口径说明，避免误读字段**\n\n- 所有 rank 的 L14、L39 样本 `duplicate_rows` 与 `nonpositive_rows` 均为 0，所以记录数不需要做去重或剔除修正。\n- 文件顶部的 `scope` 声明各 DB 使用自己的时钟、不做跨 rank 时间运算，因此上表只做同一 rank 内部的 union 与 duration 比较，没有跨卡相加或对齐。\n- `duration_difference_ns` 是另一个独立字段（取值在 −0.75 到 0.5 之间），它与 `union_ns − duration_ns` 不相等（例如 rank 8 该字段为 0.25，而 union 与 duration 之差是 −62,868,405 ns），本回答未使用该字段。\n- 事实性字段差异：L14 anchor 的 `typeName` 各卡都是 `KERNEL_MIX_AIC`，但 `taskType` 在 rank 8–13 为 3017、rank 14 为 3015、rank 15 为 3016；对应相交的 `KERNEL_AICPU` 记录 `taskType` 在 rank 8–13 为 3014、rank 14 为 3012、rank 15 为 3013。这里只记录字段取值不同，不对其物理含义做推论。\n\n按你的要求，本次只读取该文件，未改写或新建任何文件，也未访问网络、服务器、NPU、权重或发送请求。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 4,
+    "inputTokens": 54966,
+    "outputTokens": 3151,
+    "totalTokens": 58117,
+    "cacheReadTokens": 36480,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2693,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 58117,
+    "contextUsed": 21392,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+  "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+  "ranges": [
+    {
+      "start": 544,
+      "end": 548,
+      "source": [
+        "544:         # When True, run update_full_graph_params before self.model (ENPU / graph capture order).",
+        "545:         # Internal / non-public toggle: read C getenv ``ENPU_ENABLE`` from enpu code (not in envs.py).",
+        "546:         _enpu = get_c_env(\"ENPU_ENABLE\")",
+        "547:         self.enable_enpu = _enpu is not None and _enpu.lower() == \"true\"",
+        "548: "
+      ]
+    },
+    {
+      "start": 3147,
+      "end": 3167,
+      "source": [
+        "3147:     def _update_full_graph_params_if_needed(",
+        "3148:         self,",
+        "3149:         forward_context: ForwardContext,",
+        "3150:         num_tokens_padded: int,",
+        "3151:     ) -> None:",
+        "3152:         if (",
+        "3153:             forward_context.cudagraph_runtime_mode == CUDAGraphMode.FULL",
+        "3154:             and not forward_context.capturing",
+        "3155:             and not self.use_sparse and not self.use_compress",
+        "3156:         ):",
+        "3157:             if self.enable_enpu:",
+        "3158:                 torch.npu.current_stream().synchronize()",
+        "3159: ",
+        "3160:             update_full_graph_params(",
+        "3161:                 self.attn_backend,",
+        "3162:                 self.update_stream,",
+        "3163:                 forward_context,",
+        "3164:                 num_tokens_padded,",
+        "3165:                 self.vllm_config,",
+        "3166:                 self.speculative_config,",
+        "3167:             )"
+      ]
+    },
+    {
+      "start": 4524,
+      "end": 4535,
+      "source": [
+        "4524:             )",
+        "4525: ",
+        "4526:         if cudagraph_mode.has_full_cudagraphs():",
+        "4527:             self.update_stream = torch.npu.Stream()",
+        "4528: ",
+        "4529:             if self.drafter is not None:",
+        "4530:                 if hasattr(self.drafter, \"set_update_stream\"):",
+        "4531:                     self.drafter.set_update_stream(self.update_stream)",
+        "4532:                 else:",
+        "4533:                     self.drafter.update_stream = self.update_stream",
+        "4534: ",
+        "4535:         with _torch_cuda_wrapper():"
+      ]
+    },
+    {
+      "start": 4536,
+      "end": 4564,
+      "source": [
+        "4536:             if (",
+        "4537:                 breakable_cudagraph.is_breakable_cudagraph_enabled()",
+        "4538:                 and cudagraph_mode != CUDAGraphMode.NONE",
+        "4539:             ):",
+        "4540:                 self.model = BreakableACLGraphWrapper(",
+        "4541:                     self.model,",
+        "4542:                     self.vllm_config,",
+        "4543:                     use_eagle=self.use_eagle,",
+        "4544:                     enable_enpu=self.enable_enpu,",
+        "4545:                 )",
+        "4546:                 drafter = getattr(self, \"drafter\", None)",
+        "4547:                 if drafter is not None and hasattr(drafter, \"model\"):",
+        "4548:                     drafter.model = BreakableACLGraphWrapper(",
+        "4549:                         drafter.model,",
+        "4550:                         self.vllm_config,",
+        "4551:                         use_eagle=self.use_eagle,",
+        "4552:                         enable_enpu=self.enable_enpu,",
+        "4553:                     )",
+        "4554:             elif cudagraph_mode.has_full_cudagraphs():",
+        "4555:                 self.model = ACLGraphWrapper(",
+        "4556:                     self.model,",
+        "4557:                     self.vllm_config,",
+        "4558:                     runtime_mode=CUDAGraphMode.FULL,",
+        "4559:                     use_eagle=self.use_eagle,",
+        "4560:                     enable_enpu=self.enable_enpu,",
+        "4561:                     update_stream=self.update_stream,",
+        "4562:                 )",
+        "4563: ",
+        "4564:         if self.compilation_config.cudagraph_mode != CUDAGraphMode.NONE:"
+      ]
+    },
+    {
+      "start": 3250,
+      "end": 3260,
+      "source": [
+        "3250:                 hidden_states = run_model()",
+        "3251:                 self._update_full_graph_params_if_needed(forward_context, num_tokens_padded)",
+        "3252:         finally:",
+        "3253:             # A forward that raises must still retire the device-metadata",
+        "3254:             # submission: otherwise the next submit() refuses to start and a",
+        "3255:             # single request error wedges every DP rank of the instance.",
+        "3256:             executor = getattr(forward_context, \"device_metadata_executor\", None)",
+        "3257:             if executor is not None and executor.submission_in_flight:",
+        "3258:                 executor.release()",
+        "3259: ",
+        "3260:         return hidden_states"
+      ]
+    }
+  ],
+  "backend_assignments": [
+    {
+      "start": 483,
+      "end": 491,
+      "source": [
+        "483:         self.attn_backend = get_attn_backend(",
+        "484:             0,",
+        "485:             self.dtype,",
+        "486:             None,",
+        "487:             use_mla=self.model_config.use_mla,",
+        "488:             use_sparse=self.use_sparse,",
+        "489:             use_mm_prefix=self.model_config is not None",
+        "490:             and self.model_config.is_mm_prefix_lm,",
+        "491:         )"
+      ]
+    }
+  ],
+  "reused_v16_forward_ranges": [
+    {
+      "start": 3192,
+      "end": 3251,
+      "source": [
+        "3192:     def _model_forward(",
+        "3193:         self,",
+        "3194:         num_tokens_padded: int,",
+        "3195:         input_ids: torch.Tensor | None = None,",
+        "3196:         positions: torch.Tensor | None = None,",
+        "3197:         intermediate_tensors: IntermediateTensors | None = None,",
+        "3198:         inputs_embeds: torch.Tensor | None = None,",
+        "3199:         **model_kwargs: dict[str, Any],",
+        "3200:     ):",
+        "3201:         assert self.model is not None",
+        "3202:         forward_context = get_forward_context()",
+        "3203:         assert forward_context is not None",
+        "3204:         if forward_context.cudagraph_runtime_mode == CUDAGraphMode.FULL:",
+        "3205:             if hasattr(self.model, \"set_attn_backend\"):",
+        "3206:                 self.model.set_attn_backend(self.attn_backend)",
+        "3207: ",
+        "3208:         model_inputs: dict[str, Any] = {",
+        "3209:             \"input_ids\": input_ids,",
+        "3210:             \"positions\": positions,",
+        "3211:             \"intermediate_tensors\": intermediate_tensors,",
+        "3212:             \"inputs_embeds\": inputs_embeds,",
+        "3213:             **model_kwargs,",
+        "3214:         }",
+        "3215:         # Routing runs before replay on every DP, never inside capture.",
+        "3216:         prepare_engram = getattr(self.model, \"prepare_engram_inputs\", None)",
+        "3217:         if prepare_engram is not None:",
+        "3218:             if (",
+        "3219:                 getattr(self, \"_engram_capture_active\", False)",
+        "3220:                 or getattr(forward_context, \"capturing\", False)",
+        "3221:                 or torch.npu.is_current_stream_capturing()",
+        "3222:             ):",
+        "3223:                 model_inputs.update(self.model.prepare_engram_graph_inputs(num_tokens_padded))",
+        "3224:             else:",
+        "3225:                 # The window is upstream's: ``_preprocess`` already ran",
+        "3226:                 # ``_init_model_kwargs`` -> ``_prepare_lookback_token_ids`` on",
+        "3227:                 # this step's input batch, so ``model_kwargs`` carries the",
+        "3228:                 # prompt-only lookback (column j = position start - 1 - j,",
+        "3229:                 # -1 where that position is not a prompt token).  Generated",
+        "3230:                 # positions stay -1 here and come from the slot cache the hash",
+        "3231:                 # state fills itself, which is what keeps async draft",
+        "3232:                 # placeholders out of the history.",
+        "3233:                 model_inputs.update(",
+        "3234:                     prepare_engram(",
+        "3235:                         input_ids,",
+        "3236:                         positions,",
+        "3237:                         num_tokens_padded,",
+        "3238:                         model_kwargs.get(\"lookback_token_ids\"),",
+        "3239:                         **self._get_engram_device_inputs(),",
+        "3240:                     )",
+        "3241:                 )",
+        "3242:         run_model = partial(self.model, **model_inputs)",
+        "3243: ",
+        "3244:         try:",
+        "3245:             if self.enable_enpu:",
+        "3246:                 # The soft segmentation scenario requires event.record first, then event.wait",
+        "3247:                 self._update_full_graph_params_if_needed(forward_context, num_tokens_padded)",
+        "3248:                 hidden_states = run_model()",
+        "3249:             else:",
+        "3250:                 hidden_states = run_model()",
+        "3251:                 self._update_full_graph_params_if_needed(forward_context, num_tokens_padded)"
+      ]
+    }
+  ],
+  "no_model_or_torch_import": true,
+  "scope": "Only ENPU env binding/update synchronization/graph constructor call and exact backend assignments; not whole runner methods.",
+  "dispatch_flag_assignments": [
+    {
+      "start": 375,
+      "end": 377,
+      "source": [
+        "375:         self.use_compress = (",
+        "376:             hf_config is not None and hasattr(hf_config, \"compress_ratios\")",
+        "377:         )"
+      ]
+    },
+    {
+      "start": 457,
+      "end": 457,
+      "source": [
+        "457:         self.use_sparse = enable_sfa(vllm_config)"
+      ]
+    },
+    {
+      "start": 539,
+      "end": 543,
+      "source": [
+        "539:         self.use_eagle = (",
+        "540:             vllm_config.speculative_config.use_eagle()",
+        "541:             if vllm_config.speculative_config",
+        "542:             else None",
+        "543:         )"
+      ]
+    }
+  ]
+}

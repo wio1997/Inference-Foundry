@@ -1,0 +1,70 @@
+{
+  "reviews": [
+    {
+      "id": "21d81409fc8b2857:671:8:676:37:If",
+      "source": "vllm-ascend/vllm_ascend/ascend_config.py",
+      "source_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+      "line": 671,
+      "owner": "AscendConfig._validate_user_input_ranges",
+      "kind": "If",
+      "condition": "self.enable_fused_mc2 in (0, 1)",
+      "both_arm_effect_summary": "true关闭MegaMoe支持；false继续测试用户值2。",
+      "applicability": "固定用户值1推导true；不把包存在当执行MegaMoe",
+      "fact_kind": "DOCUMENTED_AND_CONDITIONAL_DERIVED",
+      "runtime_directly_observed": false,
+      "all_consumers_closed": false,
+      "whole_module_closed": false,
+      "evidence": "MOE-COUNTER-CONTRACT.md"
+    },
+    {
+      "id": "21d81409fc8b2857:674:8:676:37:If",
+      "source": "vllm-ascend/vllm_ascend/ascend_config.py",
+      "source_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+      "line": 674,
+      "owner": "AscendConfig._validate_user_input_ranges",
+      "kind": "If",
+      "condition": "self.enable_fused_mc2 == 2",
+      "both_arm_effect_summary": "true检查CANN包并将effective enable改1；false不做该覆盖。",
+      "applicability": "固定用户值1此前已命中首分支，本elif不执行",
+      "fact_kind": "DOCUMENTED_AND_CONDITIONAL_DERIVED",
+      "runtime_directly_observed": false,
+      "all_consumers_closed": false,
+      "whole_module_closed": false,
+      "evidence": "MOE-COUNTER-CONTRACT.md"
+    },
+    {
+      "id": "8d6cb209a0c2b0f4:580:8:611:72:If",
+      "source": "vllm-ascend/vllm_ascend/ops/fused_moe/moe_comm_method.py",
+      "source_sha256": "7040f691355bd9acb3c668e698de3f7d3854edbc22e3f979f9b03d99800364d7",
+      "line": 580,
+      "owner": "FusedMC2CommImpl.fused_experts",
+      "kind": "If",
+      "condition": "self.enable_fused_mc2 == 1",
+      "both_arm_effect_summary": "true进入fused实现选择；false抛错。",
+      "applicability": "固定effective值1推导true",
+      "fact_kind": "DOCUMENTED_AND_CONDITIONAL_DERIVED",
+      "runtime_directly_observed": false,
+      "all_consumers_closed": false,
+      "whole_module_closed": false,
+      "evidence": "MOE-COUNTER-CONTRACT.md"
+    },
+    {
+      "id": "8d6cb209a0c2b0f4:581:12:609:54:If",
+      "source": "vllm-ascend/vllm_ascend/ops/fused_moe/moe_comm_method.py",
+      "source_sha256": "7040f691355bd9acb3c668e698de3f7d3854edbc22e3f979f9b03d99800364d7",
+      "line": 581,
+      "owner": "FusedMC2CommImpl.fused_experts",
+      "kind": "If",
+      "condition": "_EXTRA_CTX.use_mega_moe",
+      "both_arm_effect_summary": "true取得fresh CANN counter；false调用custom op写预分配counter。",
+      "applicability": "普通固定初始化推导false；实际二进制和调用身份仍待绑定",
+      "fact_kind": "DOCUMENTED_AND_CONDITIONAL_DERIVED",
+      "runtime_directly_observed": false,
+      "all_consumers_closed": false,
+      "whole_module_closed": false,
+      "evidence": "MOE-COUNTER-CONTRACT.md"
+    }
+  ],
+  "overall_complete": false,
+  "source_ledger": "coverage-ledger-v3"
+}

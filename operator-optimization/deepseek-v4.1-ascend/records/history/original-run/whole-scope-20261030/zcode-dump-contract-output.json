@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_8266b19c-76b9-401e-8256-edcc46b8d326",
+  "traceId": "59fc11f2-3695-4f36-b1b2-f8d5d58425b8",
+  "turnId": "turn_fb64d81b-8894-4e40-b991-8d65c4c7bd2e",
+  "response": "执行已完成（仅一次，未重试、未修改、未追加执行），实际结果如下。\n\n**调用与记录**\n- 通过单个 Python subprocess harness 执行了 `python3 whole-scope-20261030/read_installed_dump_contract.py`，并把真实 command（argv 与 shell 等价形式）、cwd、起止 UTC 时间、returncode、stdout、stderr 写入 `whole-scope-20261030/zcode-dump-contract-execution.json`（590 字节）。\n- returncode = 1，timed_out = false；harness 侧捕获的 stdout 与 stderr 均为空（0 字节），因为脚本把 docker 子进程输出重定向到了自己的文件。\n\n**失败原因**\n- `installed-dump-contract.stderr` 仅 118 字节，内容为：`Error response from daemon: Container b00f4d2018e3d495d876b6e396ba9579e78b47a97111b99c27d6678e31039092 is not running`。\n- 即 `docker exec wio-vllm-v41-repro169-20261028 ...` 因目标容器未运行而失败。\n\n**由此产生的实际后果**\n- 未读取 torch_npu 分布元数据，未命中或保存任何 `save_npugraph_tensor` 源码：`installed-dump-contract.json` 为 0 字节，`installed-dump-source/` 未创建。\n- 脚本在 docker 失败处即退出，后续直接 HTTP 步骤未执行：`references/` 目录未更新（仍为 20:38 的旧内容），没有新的 torchair 文档快照或 SHA 产生。\n- 按指令失败即停，未检查容器原因、未重启或修改任何环境。\n\n**模型名**\n- 当前执行模型：deepseek-flash（bc10aa1f-6d2d-4158-be40-7017fe6bf933/deepseek-flash）。\n\n补充边界说明：本次没有任何 torch_npu 或 torchair 官方源码/文档被实际取得，因此既不能确认 `save_npugraph_tensor` 在当前安装版本中的存在性，更不能推断当前 graph 采集效果——即使该公共 API 存在，也不代表已验证实际采集行为。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 75119,
+    "outputTokens": 5011,
+    "totalTokens": 80130,
+    "cacheReadTokens": 63104,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3847,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 80130,
+    "contextUsed": 16701,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,367 @@
+{
+  "id": "F14_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "attention": "attention",
+    "inverse_rope": "inverse_rope",
+    "pad": "pad",
+    "restore_heads": "restore_heads",
+    "o_a": "o_a"
+  },
+  "nodes": [
+    {
+      "id": "attention",
+      "kind": "SPARSE_FLASH_COMPOSITE",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "inverse_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "pad",
+      "kind": "PAD_OR_VIEW",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "restore_heads",
+      "kind": "COLLECTIVE",
+      "resource": "COMM",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "o_a",
+      "kind": "GROUPED_LINEAR",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "attention",
+      "consumer": "inverse_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "inverse_rope",
+      "consumer": "pad",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "pad",
+      "consumer": "restore_heads",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "restore_heads",
+      "consumer": "o_a",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "q_rope",
+      "consumer": "attention",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "swa_store",
+      "consumer": "attention",
+      "value": "current cache subranges",
+      "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+    },
+    {
+      "producer": "indices_store",
+      "consumer": "attention",
+      "value": "selected indices",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cmp_store",
+      "consumer": "attention",
+      "value": "compressed KV cache",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "o_a",
+      "consumer": "o_b",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v60": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-profile-and-edges-v60.json",
+    "models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-work-traffic-models-v60.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-native-numerical-contract-v60.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-fusion-reorganization-variants-v60.json",
+    "semantic_inventory": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M09-M10-operator-branch-inventory-v60.json",
+    "relation": "51regimes/6863nativeexecutions reconciled. SMLAalreadyfusedwithGMscore/exp/PVqueues;QLImode2fullQKthenVectorpenalty. 13conditional/rejectiondecisions includebitmap544Bvs8192Blist,prefilterwithfillers,preparedindexepilogue,source-resolvedselfcopy,quant/cache/weight/SMLAepilogueandcrosscard/iterationlimits.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v66": {
+    "native_population": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-native-operator-population-v66.json",
+    "operator_regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-regime-models-v66.json",
+    "count_work_payload_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-work-payload-models-v66.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-contract-v66.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-fusion-variants-v66.json",
+    "candidate_specific_scope": "Attention/inverseRoPE→TPsendlayoutdirectproducernewABIretainsbothBF16boundariesandalloutputreaders;AlltoAllperpeercountnotwholeplane.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-23"
+    ],
+    "peers": [
+      "F15"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v74": {
+    "relation_clause_ids": [
+      "REL74-06"
+    ],
+    "peers": [
+      "F07"
+    ],
+    "central_relations": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v74.json",
+    "relation_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v74.json",
+    "source_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/QB-head-RMS-RoPE-applicability-v74.json",
+    "joint_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-costs-v74.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-math-v74.json",
+    "scope": "Fifteen selected relation clauses and three higher-order groups only; all whole-pair/full-model gates remain open.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v75": {
+    "operator_entry": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-query-operator-path-contract-v75.json",
+    "native_source_binding": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-native-source-binding-v75.json",
+    "corrected_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-RoPE-work-and-bound-models-v75.json",
+    "scope_correction": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-head-RMS-scope-correction-v75.json",
+    "baseline_comparisons": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-reference-to-native-comparisons-v75.json",
+    "runtime_carrier_frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-query-RoPE-frontier-v75.json",
+    "placement_variant": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-query-RoPE-placement-variant-v75.json",
+    "relation_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v75.json",
+    "scope": "Correct three earlier pair clauses/onegroup for actual V4.1 entry and add F07/F08 query-before-KV-join relation;no head512RMS work added to frozen case.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v83": {
+    "new_clause_ids": [
+      "REL83-11",
+      "REL83-12"
+    ],
+    "footprints": "candidate-operator-footprints-v83.json",
+    "joint_costs": "attention-joint-interface-models-v83.json",
+    "joint_capacity_proof": "joint-operator-resource-cut-proof-v83.json",
+    "relations": "candidate-relation-clauses-v83.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v86": {
+    "evidence": [
+      "terminal-layer-prior-evidence-v86.json",
+      "terminal-layer-operator-source-v86.json",
+      "terminal-layer-native-frontier-v86.json",
+      "terminal-layer-demand-cut-v86.json",
+      "terminal-layer-owner-and-work-models-v86.json",
+      "terminal-layer-weight-and-dependency-proof-v86.json",
+      "terminal-layer-composition-clauses-v86.json"
+    ],
+    "conditional_terminal_demand_analysis": true,
+    "all_readers_closed": false,
+    "relation_ids": [
+      "REL86-03"
+    ],
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v93": {
+    "evidence": [
+      "HC-attention-fork-source-contract-v93.json",
+      "HC-attention-fork-native-frontiers-v93.json",
+      "HC-attention-shared-resource-models-v93.json",
+      "HC-attention-deadline-and-precision-models-v93.json",
+      "HC-attention-fork-variants-v93.json",
+      "HC-attention-composition-clauses-v93.json",
+      "HC-attention-fork-math-validation-v93.json",
+      "operator-graph-G5-v93.json",
+      "operator-graph-node-coverage-v93.json",
+      "operator-graph-edge-coverage-v93.json",
+      "operator-graph-candidate-bindings-v93.json",
+      "operator-graph-coverage-audit-v93.json"
+    ],
+    "HC_attention_fork_native_frontiers": 3200,
+    "conditional_union_resource_cuts": 8,
+    "current_HC_source_split_prior_version": 58,
+    "existing_split_not_counted_new": true,
+    "new_relation_ids": [
+      "REL93-05"
+    ],
+    "new_joint_contract": "HG93-HC-ATTENTION-FORK-DEADLINE",
+    "one_baseline_not_independent_speedups": true,
+    "native_alias_handoff_or_precision_closed": false,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v100": {
+    "evidence": [
+      "attention-projected-state-inputs-v100.json",
+      "attention-projected-state-source-contract-v100.json",
+      "attention-output-owner-frontiers-v100.json",
+      "attention-headwise-merge-and-linear-state-v100.json",
+      "attention-projection-rounding-and-position-v100.json",
+      "attention-preprojected-value-work-and-storage-v100.json",
+      "attention-projected-state-variants-v100.json",
+      "attention-projected-state-composition-clauses-v100.json"
+    ],
+    "frontiers": 3200,
+    "reused_native_TASKs": 23680,
+    "selection_frontiers": 640,
+    "headwise_state_and_precision_counterexamples": true,
+    "actual_checkpoint_rank_or_state_reachability_known": false,
+    "preprojected_value_work_models": 105,
+    "preprojected_value_storage_models": 24,
+    "new_relation_ids": [
+      "REL100-01",
+      "REL100-02",
+      "REL100-03"
+    ],
+    "extended_group": "HG83-ATTENTION-OUTPUT",
+    "implementation": false,
+    "native_test": false,
+    "native_gain_proved": false
+  },
+  "review_v138": {
+    "evidence": [
+      "hc-sparse-inputs-v138.json",
+      "hc-sparse-eager-native-frontiers-v138.json",
+      "hc-sparse-shared-topk-views-v138.json",
+      "hc-sparse-source-and-join-contract-v138.json",
+      "hc-sparse-fork-and-join-DAG-models-v138.json",
+      "hc-sparse-partial-state-information-witnesses-v138.json",
+      "hc-sparse-publication-and-work-cuts-v138.json",
+      "hc-sparse-composition-clauses-v138.json"
+    ],
+    "pairs": [
+      [
+        "F01",
+        "F12"
+      ],
+      [
+        "F01",
+        "F13"
+      ]
+    ],
+    "source_bound_TASKs": 3480,
+    "source_positive_shared_TopK_views": 720,
+    "scoped_conclusion_changing_gap": "NeedactualselectedIDmultiset/physicalemittedorder/queryrow/candidateTopKbankepoch/pointers/currentmetadataandalllaterreaders,source20logicalmembershipfiniteness/visibility/offset/filler/tiecontracts. NewpartialSMLAneedscompatiblehead-resolvednormalizers/numerators/sinkonce/emptysemantics/nativeBF16exp/PV/onlinetile/reduction/output/rotary/Oprojectionandallalias/capturecontracts;ordinarymixedprojectionisnotalosslessjoin. NeedactualCube/Vector/SFU/GM/linkresourcecapacity,partialhandoffworkspace/lifetimes/transportandfiniteprogress,HCcoeff/Y/newpre4/Postdeadlines/currentrawXretirement. No transformednativeprecision/actualoverlap/physicalMFU/lowest/speedup/allvariants/wholeclosure. Existing9/1352native/849PMU/16phase/3136ambiguityandbroadercandidategapsremain.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "one_HC_sparse_baseline": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  },
+  "review_v145": {
+    "evidence": [
+      "hc-norm-attention-inputs-v145.json",
+      "hc-norm-attention-native-frontiers-v145.json",
+      "hc-norm-attention-A2A-correlation-audit-v145.json",
+      "hc-norm-attention-source-contract-v145.json",
+      "hc-norm-attention-observed-and-work-v145.json",
+      "hc-norm-attention-owner-DAGs-v145.json",
+      "hc-norm-attention-C2-release-refinement-v145.json",
+      "hc-norm-attention-map-release-and-score-witnesses-v145.json",
+      "hc-norm-attention-composition-v145.json"
+    ],
+    "pairs": [
+      [
+        "F02",
+        "F12"
+      ],
+      [
+        "F02",
+        "F13"
+      ],
+      [
+        "F02",
+        "F14"
+      ],
+      [
+        "F02",
+        "F15"
+      ],
+      [
+        "F02",
+        "F16"
+      ]
+    ],
+    "native_TASK_bindings": 10280,
+    "new_output_role_bindings": 2960,
+    "scoped_conclusion_changing_gap": "Needactualallownerrow/parameter/request/slot/cache/membership/readfrontiers,exporterHCCLtagglobalidentity/clocksemantics andnativepartialpublication/finiteprogress.360cohortsareexactrecordedlabelconsistency,notactualcrossrankclientorvaluebinding. Ownernormalized/projectedcarriers mustsupplyallZreaders;fullcollective/headA2A/allTPpartialRSmodelsarechosenreferences,nouniversalwholebarriers. C2globalTprojectioncannotstartfromonlyownerM;6144releasedZcasesremainhypothetical. CurrentG=P*Mcarrier/outputpaddingdiffersTcacheclipandQquery. Fixabsoluteinputinterface2H(G+T+Q),notlegacyT-clippedformula;deadG-Tprojectionrowsnotproved. WO_Bdirectstableout,padpack/inverseepilogue andRSstreamingneedactualout/stride/alias/capture/queue/nativeBF16partial/SUM/round/weightownershipcontracts;oneinterfaceunionnotindependentbytes/time. Keepcurrentcoeff/rawXPost/pre4/nextFFNandcache/state/readers. No physicalcapacity/MFU/lowest/actualgain/wholepair/allbranchclosure;9/1352native849PMU16phase3136assignments andbroadercandidate gapsretained.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "prior_G_T_absolute_scope_reconciled": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  },
+  "review_v153": {
+    "evidence": [
+      "post-attention-inputs-v153.json",
+      "post-attention-native-joins-v153.json",
+      "post-attention-interface-unions-v153.json",
+      "post-attention-projected-head-carrier-v153.json",
+      "post-attention-source-and-carrier-contract-v153.json",
+      "post-attention-composition-v153.json"
+    ],
+    "pairs": [
+      [
+        "F03",
+        "F12"
+      ],
+      [
+        "F03",
+        "F13"
+      ],
+      [
+        "F03",
+        "F14"
+      ],
+      [
+        "F03",
+        "F15"
+      ]
+    ],
+    "native_role_bindings": 12200,
+    "scoped_conclusion_changing_gap": "NeedactualcurrentattentionHCpremix/coeff/rawX/attentionPostupdated4H/nextFFNcoeff/pre4/futureFFNPostvalues,pointers/aliases/weights/row-head-CS-slot-capturegenerations andallold/futurereaders/queuedwriters.960samecontrolPost/HC/sourcekeys12200roles2880collectivesnotclient/tensor/clock/phaseproof;labelcohortsnotformalall-ownerrelease. QLITopK/candidates needcurrentqueries/scores/masses/ties/masks/universe/epochs;staticmembershipnotqueryscorereuse. Preserveper-headSWA/CMPstates/sink/occurrences/nativeonlineBF16rounds/LSEFalseemptyandallcache/metadatareaders. Post-headmixstatecannotgenerallyrecoverheadmasses. CurrentWOA/WOB/copy/RS/inputcarrierrowsG=P*M,includingG6672/T6668/Q830;cacheT/Q/Gdifferent. Oldv143/v151/v152T-clippedreferenceabsoluteinterfacesnotcurrentGmaterialization;actualfullbuffercorrection2H(G-T)=40960Blogicalvalueperrankcase. RelativecommonGcarriercreditsunchanged;G-Trowsnotproveddead,noinventedRS4-rowcat. WOAownerpreprojection4096->1024BF16beforeheadA2Aisnewgraphneedingall8recipientweightgroups/fullheadandpositionmaps/sameKreduction/nativeprecision/newproducerandpaddingNaN/biascontracts. Logicalvaluepacket1/4notwire/time. ExplicitdistinctBF16weightreplicationcontentextra58720256B/rank/layernotactualallocation;streamed/sharedweightsdifferentgraphs. ClassicalWOAworkunchangedbutMby8batches,weights/tiling/mode/resource/progressrepriced. 256API-port-unionsdedupprivatecopy4GHinsidefulloutput8GH;ownerRSPost4MH/PostPreinput8MHrequiresnewtypedhandoff,rawPoststore/futureFFNPoststays. Inplaceinversewriteportnotnewallocation. PartialPostbeforeBF16SUMcounterexample0.224609375vs0.2255859375notactualnativepolicy,butrejectsunconditionalmove. Rowpipelinefinerthanwholeopbarrierallowed;physicalcapacity/traffic/nativeSUM/precision/capture/lastreader/queueprogressunproved. Allbroadercandidategaps,9/1352COMPUTE-native849PMU16phase3136assignments/G14copy16342control223941/allmodulephysicalMFU-lowest/actualgain/wholebranchesremainopen.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  }
+}

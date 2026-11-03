@@ -1,0 +1,1072 @@
+{
+  "version": 1,
+  "objective": "沿用169冻结基线和现有四个Task，开放探索融合与结构重组、模块资源和低效原因；逐步讲清数据的来源、形状、精度、布局、去向、消费者、计算搬运及同步依赖。先建立支持合法分块与重叠的理想模型，再用有证明的约束收紧并与适用实测比较；区分实测、条件推导、假说和严格界，不编造数据。",
+  "baseline": "32K input, 1K output, C8, 89.9902% prefix, unprofiled output 519.8441 token/s",
+  "operational_constraints": [
+    "仅169自有容器和指定任务目录，不影响他人；检查占卡情况后才能进行新诊断",
+    "只读既有数据，不启动新 NPU 负载；不修改目标推理实现，历史采集授权仅描述已完成工作",
+    "原始大日志先聚合，再按需读取局部证据",
+    "GPT主控；本机 ZCode DeepSeek 负责简单调度、启动和结果收集",
+    "复用四个现有Task与有效结果，不为形式新增目录或重复扫描"
+  ],
+  "current_task_dirs": {
+    "fusion": "task-loop-runs/fusion-coverage",
+    "diagnosis": "task-loop-runs/layer0-diagnosis",
+    "bounds": "task-loop-runs/theoretical-ceiling",
+    "scheduler_model": "task-loop-runs/ideal-scheduler-model"
+  },
+  "historical_task_packs": [
+    "task-loop-runs/fusion-coverage/resume-pack.json",
+    "task-loop-runs/layer0-diagnosis/resume-pack.json",
+    "task-loop-runs/theoretical-ceiling/resume-pack.json",
+    "task-loop-runs/ideal-scheduler-model/resume-pack.json"
+  ],
+  "historical_task_packs_note": "The four original task packs preserve historical loop snapshots and can contain stale active-loop/next-action fields; consult them only for original evidence, and use current_execution_limits and latest entries in STATE.json plus CURRENT-FINDINGS.md for current work.",
+  "goal_mode": "active; goal tool is authoritative",
+  "goal_tool_status": "active",
+  "current_execution_limits": "READ_ONLY_EXISTING_DATA_NO_NEW_NPU_LOAD_NO_TARGET_IMPLEMENTATION_CHANGES; prior capture authorization describes completed history only.",
+  "latest_stage_sync": {
+    "status": "SYNCED",
+    "reason": "169 connection restored; public analysis and task records synchronized with per-file compare-and-swap.",
+    "files": [
+      "STATE.json",
+      "PARALLEL-RESUME-PACK.json",
+      "CURRENT-FINDINGS.md",
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/fusion/analyze_f16_prefill_rows.py",
+      "agents/bounds/baseline-client-count-provisional.md",
+      "evidence/IDEAL-MODEL.md",
+      "publication-draft/README.md",
+      "publication-draft/publication-record.json",
+      "agents/bounds/actual_causal_bound.md",
+      "agents/bounds/verify_gf2_cut_witness.py",
+      "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md",
+      "agents/fusion/analyze_f17_fp32_bf16_candidates.py",
+      "agents/fusion/f17_contiguous_split_witness.py",
+      "publication-draft/FUSION-INVENTORY.md",
+      "publication-draft/projection-pairs.json",
+      "publication-draft/verify-projection-pairs.py",
+      "agents/fusion/audit_f17_neighbor_roles.py",
+      "agents/fusion/f17_ring_write_zero_witness.py",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "agents/diagnosis/recheck_baseline_engine_histograms.py",
+      "agents/fusion/ENGRAM-LOCAL-RECOMBINATION.md",
+      "agents/fusion/engram_comm_order_witness.py",
+      "agents/bounds/int8_ceiling_certificate.md",
+      "publication-draft/baseline-engine-histograms.json",
+      "publication-draft/verify-baseline-engines.py",
+      "agents/bounds/f16_conditional_compute_compare.py",
+      "publication-draft/f16-conditional-example.json",
+      "publication-draft/verify-f16-conditional-example.py",
+      "agents/fusion/F02-ATTENTION-HC-BRANCH-EARLY-READY.md",
+      "agents/fusion/F13-SWA-COMPRESSED-SOFTMAX-JOIN.md",
+      "agents/diagnosis/EP8-SP-REDUCE-SCATTER-FLOW.md",
+      "agents/diagnosis/module-priority-evidence.md",
+      "agents/diagnosis/recheck_engine_spec_decode.py",
+      "agents/fusion/F03-HC-SOURCE-CONTRACT-AND-TILING.md",
+      "agents/fusion/analyze_hc_l0_pair_profiles.py",
+      "publication-draft/engine-spec-decode.json",
+      "publication-draft/verify-engine-spec-decode.py",
+      "agents/diagnosis/compare_hc_rope_scope.py",
+      "agents/fusion/F22-SHARED-EXPERT-REVIEW.md",
+      "agents/fusion/F08-EP8-TENSOR-PROVENANCE.md",
+      "publication-draft/spec-acceptance-prefix.json",
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md",
+      "agents/diagnosis/compare_second_quant_matmul_scope.py",
+      "agents/diagnosis/check_second_quant_matmul_gaps.py",
+      "agents/fusion/F29-DSPARK-CONTEXT-KV-PIPELINE.md",
+      "agents/diagnosis/check_quant_matmul_gap_flows.py",
+      "agents/diagnosis/compare_quant_gap_mc2_rank.py",
+      "agents/diagnosis/MC2-DB852-L15-L36.md",
+      "agents/fusion/F11-INDEX-KEY-CACHE-REVIEW.md",
+      "agents/fusion/F14-ATTENTION-ROTATION-PROJECTION-REVIEW.md",
+      "agents/diagnosis/check_quant_gap_scatter_cooccurrence.py",
+      "agents/fusion/COVERAGE-GAP-AUDIT-AND-F10.md",
+      "agents/fusion/F30-VOCAB-TILE-AND-VERIFY-REVIEW.md",
+      "agents/fusion/COMPRESSOR-ENGRAM-REVIEW.md",
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/check_qli_selected_span.py",
+      "evidence/QR-consumers-and-fusion-review.md",
+      "agents/fusion/F23-MERGE-HC-TILE-AND-ROUNDING.md",
+      "agents/fusion/F12-LAYER24-RUN2-REVIEW.md",
+      "agents/diagnosis/recheck_ffn_projection_pair_ratio.py",
+      "agents/diagnosis/RECAPTURE-ALL-KERNEL-RANKING.md",
+      "agents/diagnosis/compare_attention_tail_rank.py",
+      "agents/diagnosis/recheck_sse_gaps_after_all_first.py",
+      "agents/fusion/COMPRESSOR-TILE-DEPENDENCY.md",
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md",
+      "agents/fusion/recheck_f32_projection_trace_order.py",
+      "agents/diagnosis/compare_qli_query_rows_across_digests.py",
+      "agents/fusion/F27-AUX-MAIN-PROJ-PIPELINE-REVIEW.md",
+      "agents/diagnosis/compare_attention_l1_l24_same_digest.py",
+      "agents/bounds/hardware-source-and-shared-bandwidth-20261028.md",
+      "tools/build_aux_context_graph_revision.py",
+      "tools/verify_aux_context_graph_revision.py",
+      "tools/build_dspark_context_cross_template.py",
+      "tools/verify_dspark_context_cross_template.py",
+      "agents/bounds/RECAPTURE-MC2-CONDITIONAL-BOUND-20261029.md",
+      "agents/fusion/F21-MC2-DISPATCH-ACTIVATION-PIPELINE.md",
+      "agents/fusion/F20-ROUTER-AND-DISPATCH-REVIEW.md",
+      "agents/diagnosis/RECAPTURE-MC2-EXPERT-COUNT-20261029.md",
+      "diagnostic-20261029/expert_dump_graph_probe.cpp",
+      "diagnostic-20261029/expert_dump_graph_probe.py",
+      "diagnostic-20261029/expert_dump_graph_probe.md"
+    ],
+    "last_verified_sync_utc": "2026-10-29T23:11:44.661106+00:00",
+    "failure_utc": "2026-10-30T00:02:46.051088+00:00",
+    "last_check_utc": "2026-10-30T06:31:54.717548+00:00",
+    "pending_large_bundle": {
+      "path": "graph-revision-aux-context-v2",
+      "status": "VERIFIED",
+      "manifest_sha256": "b0064060152d35dec3013e6ff8f4da74ad6e48a9d42a160eafed4b6fada035b5",
+      "plan": "After access restored, re-audit pending files and CAS sync scripts; verify all builder input hashes from manifest in own stage container, run create-only CPU builder, compare manifest and run verifier. Do not claim whole sync complete until bundle verified.",
+      "dependent_bundle": {
+        "path": "graph-revision-cross-template-v1",
+        "manifest_sha256": "0a540f5abf0752b70f9971645a679ba2d941738dfae3495a73728931910d084a",
+        "plan": "After parent graph revision rebuild is verified, run dependent create-only CPU builder, compare manifest and verify. Both bundles are required before sync can be marked complete.",
+        "status": "VERIFIED"
+      }
+    }
+  },
+  "previous_goal_turn_classification": {
+    "classification": "progress",
+    "reason": "Published MoE overlap interface findings and linked scheduled token evidence to the workload scope.",
+    "utc": "2026-10-30T04:37:33.740829+00:00"
+  },
+  "latest_qli_candidate_and_pmu_review": {
+    "source": "F12 frozen arch22, named index-K cache shared by layers 20/24/28/32/36 under static config and one context; later layers select with their own query; finite candidate penalty happens after MM1 result and scale, outside positions can remain valid for top-k fill; source callsite has no candidate-mask MM1 skip, upstream tiling not proved",
+    "measurement": "One digest, seven ranks, 28 later-layer/layer20 pairs: displayed-field product ratios AIC cycles*MAC ratio 0.99612/0.99999/1.00426; AIV cycles*vec ratio 2.45114/2.51422/2.56309 (min/median/max), not work or cause, CSV ratios three decimal and historical exporter unbound",
+    "zcode": "Local wrapper math-only counterexample; first assumes n>=2 contrary to prompt, later handles n=1; independently checked 5,-100,-100 top2 vs candidate-only. Provider exact model ID not independently logged.",
+    "limits": "No historical binary/mode/storage/effective candidate count or real task cause proved; no NPU workload or target code changes",
+    "evidence": [
+      "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md",
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "zcode/qli-mask-counterexample-review.task.txt",
+      "zcode/qli-mask-counterexample-review.zcode.json"
+    ],
+    "github_commit": "b054131133a115fc83244e57f610b50a606e869b",
+    "time_utc": "2026-10-29T19:22:02.436441+00:00"
+  },
+  "latest_f31_engram_coverage_review": {
+    "coverage": "fusion-scan.json SHA256 33aeafa1c61e3dd5906ba602d91dd0b080816d30ddb5b8e6829bbd813673be6a: 12 templates x 6 categories, 72 unique records; 48 structurally scanned, 24 partial; all 72 semantic_proof_complete=false. G5 only rescans Engram/DSpark, cross G1 not merged.",
+    "fusion": "F31 candidate direct persistent-view writes for DSpark indices+lengths: existing output/buffer args cause fallback that still copies; async lifetime, concurrent readers, capture address, actual runtime binding unknown; 30840 logical bytes for example T=15,D=256, not actual HBM or gain.",
+    "module": "48 paired Engram-compatible BF16 matmuls, per-run median AIC cycles*MAC ratio products 1.000997/0.999371/0.999085, cycles*MTE2 ratio products 1.079754/1.062086/1.064860; 48/48 latter >1, not bytes, bottleneck or proof of same work.",
+    "bounds": "Subset-shared client capacity bound added only under independent proof of subset rate and exact SSE text interface; arbitrary subset cap not implied by single-stream and aggregate caps; no real hardware bandwidth certificate and not a numerical device TPS ceiling.",
+    "zcode": "Local direct DeepSeek-configured wrapper independently counted structural coverage; GPT recomputed counts and uniqueness. Exact backend model identifier not independently recorded.",
+    "evidence": [
+      "agents/fusion/F31-DRAFT-CP-INDEX-LENGTH-REVIEW.md",
+      "agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md",
+      "agents/diagnosis/recheck_engram_pair_product.py",
+      "agents/bounds/baseline-client-count-provisional.md",
+      "zcode/fusion-coverage-readonly-check.zcode.json"
+    ],
+    "github_commit": "2863fe9d918225f0f1d232bdf9e785aa740b17cc",
+    "time_utc": "2026-10-29T19:28:49.621135+00:00"
+  },
+  "next_read_only_action": "Seek independent existing evidence that binds real per-call expert counts or capacity identity; do not repeat already exhausted fixed PC/metadata queries. Pending 169 file sync requires restored authentication and per-file audit.",
+  "next_actions": [
+    "在现有服务日志中寻找匿名请求位置到入队、首次执行和 prefix 命中的可靠关联；未绑定时保留未知",
+    "继续验证 F08 及其他融合候选的真实数据依赖与覆盖",
+    "继续排查 MC2 与适用严格理论界；保留基线和资源边界",
+    "有实质新发现时审阅并同步公开报告到现有 GitHub 分析分支；原始私有证据继续保留本地"
+  ],
+  "official_ascend_reference_policy": "Consult version-scoped official Ascend documentation first for profiling, operator and communication evidence gaps. Cross-check applicable product and historic runtime version; never infer missing measurements.",
+  "read_first": [
+    "PARALLEL-RESUME-PACK.json"
+  ],
+  "record_policy": "Read targeted sections of evidence files and STATE.json as needed; do not load all history or full CURRENT-FINDINGS by default.",
+  "historical_archive": {
+    "path": "PARALLEL-RESUME-PACK-ARCHIVE-20261030.json",
+    "sha256": "02e087ba3ab24a6fd64b1b9dc9b798cb2335769c1d2c2d8325e8eb4f18443dbf",
+    "note": "完整压缩前恢复记录；旧采集授权和历史待办仅供溯源，不覆盖当前执行限制。"
+  },
+  "current_limits_clarification": "当前仅分析已有数据、无新 NPU 负载、不改推理实现；旧授权只描述历史采集。",
+  "publication": {
+    "repository": "wio1997/Inference-Foundry",
+    "branch": "analysis/ascend-910c-performance",
+    "report": "docs/performance-analysis/ascend-910c-vllm/README.md",
+    "commit": "93ee44b4c3330b9e73bcaf6698bc85b02bdab928"
+  },
+  "latest_f31_queue_engram_credit_review": {
+    "f31": "EP7 frozen DB helper task39195 followed same stream by aclnnInplaceCopy tasks39196/39197 at 0.800/0.760us; same host dequeue thread, no pointer/shape/stack binding. Limited queue group query failed disk I/O in ro and immutable; do not repeat unchanged.",
+    "engram": "48 paired same-card/round task data: MTE2 ratio after0/after13 1.000000–1.005097; AIC total cycle ratio >1 in all 48, so MTE2 product ratio >1 is algebraically implied and not independent causal evidence. Weight/producer/cache state identities remain unbound.",
+    "bound": "Frozen old fixed-output-conditional-bound.json lacks beta; preserve its hash, correct REPORT.md to state zero-credit requirement and general max(0,D−β)/B. The 25B per JSON text output is a fixed-protocol logical interface bound, not NPU work; B and β unknown.",
+    "zcode": "Local wrapper ran prior pair script; its prose incorrectly claimed all MAC product deviations <=0.6%; actual max ratio 1.007973. GPT recomputed; correction retained in Engram record. Exact model ID unverified.",
+    "resume": "Old 115319-byte resume pack archived byte-for-byte at PARALLEL-RESUME-PACK-ARCHIVE-20261030.json SHA256 02e087ba3ab24a6fd64b1b9dc9b798cb2335769c1d2c2d8325e8eb4f18443dbf; compact current pack preserves constraints and pointers; full history remains accessible.",
+    "evidence": [
+      "agents/fusion/F31-DRAFT-CP-INDEX-LENGTH-REVIEW.md",
+      "agents/fusion/f31-ep7-copy-link.json",
+      "agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md",
+      "agents/bounds/baseline-client-count-provisional.md"
+    ],
+    "github_commit": "bf84211db3e4614406517ece2ed1c3f2ae1a4350",
+    "time_utc": "2026-10-29T19:36:25.527575+00:00"
+  },
+  "latest_rejection_overlap_capacity_review": {
+    "fusion": "Frozen rejection_sampler PyTorch fallback uses q[request,vocab] shared by same request draft positions; zero-draft request may still consume its dedicated generator before masking. Finite 3-token counterexample changes recovered candidate if position gets independent q. Historical path and final output distribution not proven.",
+    "diagnosis": "Saved 32 per-device/digest pairs L14 MC2 versus L23 host-scope reduce_scatter AI_CPU: digest 8c18c293 EP8-15 eight fully cover, 7ddf7ae9/db852bff EP4-7 cover and EP0-3 do not, 1b826883 already known. Timing overlap not link activity or causality.",
+    "capacity": "Ascend C master preview asc_sync_block_arrive per-flag 4-bit notification counter <=15 with protocol-specific AIC/AIV sync; not whole-card in-flight task/byte hard cap or beta; 169 binary/version unbound.",
+    "zcode": "Local wrapper rechecked existing F31 time records; result gave both 39196/39197 values correctly but interpreted second requested pair as final two of seven; no new inference. Exact model ID unverified.",
+    "evidence": [
+      "agents/fusion/F30-REJECTION-SCALAR-COUNTEREXAMPLE.md",
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/check_cross_layer_aicpu_attribution.py",
+      "agents/diagnosis/cross-layer-aicpu-attribution.json",
+      "agents/bounds/hardware_sources_audit.md"
+    ],
+    "github_commit": "74c664d1a0415b3e194225d576746ee6ecaff81a",
+    "time_utc": "2026-10-29T19:43:57.736408+00:00"
+  },
+  "latest_greedy_moe_overlap_followup": {
+    "sampling": "Frozen diagnostic clients and unprofiled benchmark config specify temperature=0; if saved protocol/sampler actually used, no override, batch all greedy and metadata all_greedy true, non-greedy recovered q branch not run. Synthetic greedy may still generate uniform. Actual batch/metadata and binary not bound.",
+    "joint_rng": "Mathematical toy: equal residual and iid continuous positive noise, shared row produces equal recovered candidates with probability 1; two independent rows differ with probability 1/2. Same marginal but different candidate joint law, not proof of final service output or runtime path.",
+    "moe_fusion": "EP0 L0 MC2 has BF16 643 rows, shared quant BF16 595 rows; if same 643 original rows, selected shared-DP branch and TP=8 then quant rows ceil(643/8)=81, contradicting recorded 595. Which condition fails unknown; SP slice 643->595 is possible but unproven.",
+    "overlap_diagnosis": "Post-hoc selected no-overlap EPs and full-overlap EPs in each of 7ddf7ae9/db852bff show similar L14 duration ranges ~25.50-25.60 ms and ~22.47-22.53 ms and L14/L39 ratios ~2.64 and ~2.79; excludes chosen local L23 record overlap as necessary for observed values, not overall communication causality. Three shorter no-overlap EPs excluded by selection.",
+    "zcode": "Local wrapper timed out (exit 124, no model response) on a small probability proof; do not claim validation. GPT checked exact two ordering outcomes and independently reasoned the continuous iid case.",
+    "evidence": [
+      "agents/fusion/F30-REJECTION-SCALAR-COUNTEREXAMPLE.md",
+      "agents/fusion/F22-SHARED-EXPERT-REVIEW.md",
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/check_mc2_selected_overlap_counterexample.py"
+    ],
+    "github_commit": "46e8cc90781b076aac86560c8149842515c6c002",
+    "time_utc": "2026-10-29T19:52:00.902915+00:00"
+  },
+  "latest_moe_engram_streaming_review": {
+    "moe": "EP0 L0 scope 736-51/digest 7ddf: scheduler pid690 total4760, shared DynamicQuant BF16 [595,5120], MC2 BF16 [643,5120]; db852 scope 736-6 total8180 and DynamicQuant 1023 rows. Both ceil(scheduled_total/8) match, different processes and hash association, no actual tensor/mode/group identity. Hypothetical routed pad to 643 needs padded_num_tokens=5144, observed 5144 belongs other EP9 digest and is not bound here.",
+    "engram": "Frozen non-dummy PCP path hashes full input chunk then selects local token rows. Candidate may directly materialize selected output but must retain full history, request boundaries, optional slot-cache writes and visibility, row order/duplicates, early mask event; runtime PCP and perf unbound.",
+    "client": "Two 8-request rounds: client SSE mean gap / TPOT proxy =1023/(n-1), ratio range 4.587-4.714 and 4.527-4.895; n differs from output token count, not evidence of additional scheduling delay or per-frame tokens.",
+    "zcode": "Local ZCode wrapper returned 643/8 example: padded 648, 8 contiguous 81-row pieces, last contains 76 original and 5 pad; GPT independently checked. Exact model ID unverified.",
+    "evidence": [
+      "agents/fusion/F22-SHARED-EXPERT-REVIEW.md",
+      "agents/fusion/COMPRESSOR-ENGRAM-REVIEW.md",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md"
+    ],
+    "github_commit": "84b72d510da28947183ed78027d31e3f9fc76b7c",
+    "time_utc": "2026-10-29T20:00:00.196595+00:00"
+  },
+  "latest_scheduler_compressor_scope": {
+    "moe": "scheduler pid690 total4760 descriptors [3200,1548,6,6], two spec fields 5, two null; EP0 worker pid736 same digest 595 shared quant vs643 MC2. EP9 5144 is other pid/digest, not bound to this scope; actual TP/SP, padded_num_tokens and storage identity unknown.",
+    "scheduler": "Saved requested max batch8192 DSpark K5; under saved source/parallel drafting/new-request sequence and no tighter budgets, reserve4 per request leads 8192−3×4=8180 and reproduces [3200,3328,1652] and [3328,3328,1524]. Historical resolved config/order/budget unbound; not observed hardware padding or performance cost.",
+    "fusion": "ratio2 compressor across-segment residual group: frozen source 3 score load passes and 2 exp passes, candidate two score rows kept local; per group 512 channel logical delta 8192 score bytes only, not measured memory or speedup. Ring old values, FP32/BF16, output/update and async lifetimes preserved; actual branch/binary unbound.",
+    "zcode": "Local wrapper independently counted two scheduler summary entries (4760→595, 8180→1023); GPT checked SHA and values. Exact backend model identifier not recorded.",
+    "evidence": [
+      "agents/fusion/F22-SHARED-EXPERT-REVIEW.md",
+      "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md",
+      "agents/diagnosis/RECAPTURE-METADATA-REVIEW-20261029.md"
+    ],
+    "github_commit": "283dd8f9fcd548aa4507e7219835f5f76fa119ba",
+    "time_utc": "2026-10-29T20:08:02.401151+00:00"
+  },
+  "latest_scheduler_projection_router_review": {
+    "scheduler": "Same scheduler sequential calls 8180 then 4760, three anonymous keys match; one progresses 31220 to 32768 by 1548 scheduled. Planned state only; runtime budget/order remains unbound.",
+    "bounds": "Fixed-weight deterministic projection has at most 2^134086656 input states vs independent output family 2^335216640, invalidating inference of independent-output bound from shape; producer/copy storage unbound; recomputation construction conditional.",
+    "fusion": "Router branch-and-bound can exclude expert only with certified intervals and K strictly greater lower bounds; floating point/ties and real score distributions unbound, no claimed savings.",
+    "zcode": "Local wrapper performed arithmetic checks; exact backend model identifier not independently recorded. GPT independently checked results and original records.",
+    "evidence": [
+      "agents/diagnosis/RECAPTURE-METADATA-REVIEW-20261029.md",
+      "agents/bounds/TENSORMOVE-COPY-FUSION-INFORMATION-BOUND.md",
+      "agents/fusion/F20-ROUTER-TOPK-SEMANTICS.md",
+      "zcode/scheduler-draft-budget-check.zcode.json",
+      "zcode/scheduler-progression-check.zcode.json"
+    ],
+    "github_commit": "b94e6117c49f3344598a353e66d6999253b26a9e",
+    "time_utc": "2026-10-29T20:16:48.086862+00:00"
+  },
+  "latest_indexer_preparation_coverage_review": {
+    "scope": "256 matched Indexer→attention scopes, same device track and stream, one prepare task within each gap; preexisting profile aggregation and pair JSON verified by SHA.",
+    "result": "Median recorded prepare/gap 98.1775%; 241/256 >=90%, 212/256 >=95%. Longest gap 1706.98575 us; before prepare 1555.18875 us.",
+    "limits": "Recorded task interval can include waiting; timestamps cannot establish continuous hardware activity, causal dependency, complete device coverage, binary binding, end-to-end contribution or gain.",
+    "low_activity_review": "Existing MC2 and TensorMove analyses already exhaust the examined comparisons; no new causal claim. Actual expert rows, stage traces and PMU contract remain missing.",
+    "evidence": [
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/f08-attention-intervals.json",
+      "diagnostic-20261029/target-layer-all-kernels-16rank.jsonl"
+    ],
+    "github_commit": "98a34fdb4751b947b8e2ecb96ee7faa9f71af75f",
+    "time_utc": "2026-10-29T20:22:44.889103+00:00"
+  },
+  "latest_indexer_host_gap_review": {
+    "scope": "Longest previous Indexer→prepare gap: EP2 L14 own process and device, database hash verified; device TASKs uniquely matched to CANN launch connection IDs, same-thread outer call and PyTorch dequeue interval.",
+    "result": "Device gap 1555.189 us; host CANN outer 2102.520 us, host next prepare launch after outer 15.640 us; zero task starts in matching process/device streams, one crossing record with same stream/task/connection as indexer.",
+    "limits": "Task coverage is process/device scoped; unexported work, other processes, internal waits remain possible. Host and device clocks not subtracted; no causal conclusion or online gain.",
+    "bound_review": "EP0 L0 BF16 [595,5120] DynamicQuant 24.3595 us has host binding, but execution semantics, actual inputs, output storage identity, initial state and short-window hard capacity remain unproven. Do not promote shape or duration to global bound.",
+    "zcode": "This turn zcode executable not found on current PATH and default config file absent; no ZCode run claimed. Continue independently; do not reinstall or alter environment.",
+    "evidence": [
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/query_ep2_indexer_gap.py",
+      "agents/diagnosis/ep2-indexer-gap-query.json"
+    ],
+    "github_commit": "4d12f66d8e7b0e99f6d77d6cd44c249f732d1b5c",
+    "time_utc": "2026-10-29T20:28:30.172226+00:00"
+  },
+  "latest_host_fusion_comm_review": {
+    "indexer": "EP2 L14 2102.520us outer call; 5 recorded same-thread CANN children union 15.450us, 2087.070us lacks finer CANN child records; no conclusion about CPU or waiting. OS scheduling table not found in inspected DB; other artifacts unchecked.",
+    "fusion": "ratio2 stable softmax vs sigmoid rearrangement CPU NumPy FP32 counterexample yields BF16 59.75 vs 59.5; hardware, actual values and precision tolerances unbound.",
+    "communication": "Two digests L23 AICPU selected per EP: EP0-3 0.176-0.221/0.204-0.259ms; EP4-7 27.891-27.981/24.815-24.891ms. Same name/scope/digest does not prove same collective, workload or physical network duration.",
+    "official_reference": "CANN 9.0 published DB field description for CANN_API timing, globalTid, connectionId; historical exact exporter version remains unbound.",
+    "evidence": [
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/query_ep2_indexer_host_children.py",
+      "agents/diagnosis/ep2-indexer-host-children.json",
+      "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md",
+      "agents/fusion/f17_pool_sigmoid_fp32_witness.py",
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/recheck_l23_aicpu_rank_durations.py",
+      "agents/diagnosis/l23-aicpu-rank-durations.json"
+    ],
+    "github_commit": "37386622e087d04e61a5201fc3bfa0e8ff1f7ce1",
+    "time_utc": "2026-10-29T20:34:14.811893+00:00"
+  },
+  "latest_comm_group_and_indexer_callchain_review": {
+    "comm": "Two digests x eight selected records each linked to HcclReduceScatter + one COMMUNICATION_OP; per digest operation name/ID/count/BFP16/TP members match. Unique ID within each DB; cross-DB ID lifetime and many-to-many connection prevent proof of same physical collective or its cause.",
+    "indexer": "Indexer and prepare launch linked via connection ID to Python submission stacks; source conditional path sends selected.squeeze(1) to prepare. Long Dequeue thread has no matching stack; 184 filenames bounded search found no usual OS trace names, binary content not exhausted.",
+    "bound": "Official MindX DL 6.0.RC1 d2d guidance confirms logical read/write divided by time may exceed nominal due to cache/prefetch; no inference of actual local cache behavior or 910C hard short-window capacity.",
+    "evidence": [
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/query_ep2_indexer_callchain.py",
+      "agents/diagnosis/ep2-indexer-callchain.json",
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/query_l23_rank_communication.py",
+      "agents/diagnosis/run_l23_rank_communication.py",
+      "agents/diagnosis/l23-rank-communication.json",
+      "agents/bounds/TENSORMOVE-COPY-FUSION-INFORMATION-BOUND.md"
+    ],
+    "github_commit": "3e891cd207648e880829ab2be3e51afaf5d8733c",
+    "time_utc": "2026-10-29T20:40:30.110400+00:00"
+  },
+  "latest_comm_phase_and_tail_binding_review": {
+    "communication": "16 rank-local selected op entries uniquely found in communication.json; all Elapse exactly equal same-DB op duration. Two groups Elapse 0.294974–0.308014ms / 0.453031–0.481130ms. Transit, Wait and Synchronization exported ranges preserved; same exporter and not decomposition of AI CPU/task or network physical measurement.",
+    "fusion": "EP8 5 tail Cast/Mul/ReduceSum/Cast/RmsNorm tasks exact device identities but same connection ID reused 19,971 TASK rows; no directly matching CANN_API or CONNECTION_IDS. F26 source path and tensor identity not bound; change evidence source.",
+    "official": "MindStudio 6.0 communication analysis describes field semantics; historical exporter version equivalence unproved.",
+    "evidence": [
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/query_l23_comm_json_metrics.py",
+      "agents/diagnosis/run_l23_comm_json_metrics.py",
+      "agents/diagnosis/l23-comm-json-metrics.json",
+      "agents/fusion/F26-TAIL-GATHER-COLLAPSE-REVIEW.md",
+      "agents/fusion/query_f26_tail_api_binding.py",
+      "agents/fusion/run_f26_tail_api_binding.py",
+      "agents/fusion/f26-tail-api-binding.json"
+    ],
+    "github_commit": "200254266fab284273f015a3ac09fb3cffe2a142",
+    "time_utc": "2026-10-29T20:47:12.263618+00:00"
+  },
+  "latest_comm_child_rmsnorm_review": {
+    "communication": "16 selected same-device op groups: earliest child export start precedes op export start in all 16; 14 groups selected child starts follow AI CPU end, EP3 groups have 3/13 child starts inside AI CPU. Cross-track clock calibration, error and replay binding unproven; no actual dependency or performance cause conclusion.",
+    "fusion": "EP8 L14 RMSNorm output BF16 [8180,512] plus FLOAT [8180,1]. Frozen residual=None wrapper discards second Python result; conditional combined norm-RoPE-scatter could avoid externally publishing auxiliary result while retaining row reduction. Runtime wrapper, ABI, other consumers and physical traffic unbound.",
+    "evidence": [
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/query_l23_op_child_timing.py",
+      "agents/diagnosis/run_l23_op_child_timing.py",
+      "agents/diagnosis/l23-op-child-timing.json",
+      "agents/fusion/F08-EP8-TENSOR-PROVENANCE.md"
+    ],
+    "github_commit": "d68df5a2aa592a3a0d9cd67ae78693608ede749b",
+    "time_utc": "2026-10-29T20:51:44.241568+00:00"
+  },
+  "latest_scatter_4760_and_clock_coverage_review": {
+    "scatter": "T=4760 same digest 8 ranks x 40 layers 320 scopes; EP3 scatter median 16.130us vs EP0 152.207us with same recorded signatures. 41 selected short none overlaps other matched track tasks; 279 long each intersects matched QuantBatchMatmulV3. Posthoc groups, same profiled capture, dynamic work/storage/other tracks unbound; no causal conclusion.",
+    "clock": "16 selected AI_CPU TASKs each uniquely found but no COMPUTE_TASK_INFO match. Current analyzer compute/comm overlap join excludes them, so cannot use that source as clock error proof; historical exporter and time anchors unbound.",
+    "evidence": [
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/query_l23_aicpu_compute_membership.py",
+      "agents/diagnosis/run_l23_aicpu_compute_membership.py",
+      "agents/diagnosis/l23-aicpu-compute-membership.json",
+      "agents/fusion/F08-SCOPE-OVERLAP-AND-COMPARABILITY.md",
+      "agents/fusion/f08_4760_matched_rank_overlap.py",
+      "agents/fusion/f08-4760-rank-overlap.json"
+    ],
+    "github_commit": "4a9a5372d0ef0aedea8201e158240b2c55f192dc",
+    "time_utc": "2026-10-29T20:59:11.067742+00:00"
+  },
+  "latest_scatter_span_and_projection_review": {
+    "scatter": "T=4760 320 scopes short scatter 41: norm-start→scatter-end span median 1233.880us; long 279 median 197.576us. Span contains two inter-task gaps and not end-to-end time. EP0/EP3 L9 device tasks and host submissions individually linked, cannot infer cause or subtract host/device times.",
+    "fusion": "EP3 L36 output projection two BF16 recorded tasks separately linked to host API and _forward_o_proj stacks: [8184,1,4096] × [1,4096,1024] → [8184,1,1024], then [8184,1024] and weight [5120,1024] → [8184,5120]. Source reshape path compatible; storage identity, runtime source, stride, copying and synchronization unbound. 20ns device-order gap is no savings claim.",
+    "evidence": [
+      "agents/fusion/F08-SCOPE-OVERLAP-AND-COMPARABILITY.md",
+      "agents/fusion/f08_4760_gap_spans.py",
+      "agents/fusion/f08-4760-gap-spans.json",
+      "agents/fusion/f08_4760_ep0_ep3_db_binding.py",
+      "agents/fusion/f08-4760-ep0-ep3-db-binding.json",
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/fusion/query_f16_ep3_projection_provenance.py",
+      "agents/fusion/run_f16_ep3_projection_provenance.py",
+      "agents/fusion/f16-ep3-projection-provenance.json"
+    ],
+    "github_commit": "95b4d5390ab602e1112ad4cb1aa2b959aa43675a",
+    "time_utc": "2026-10-29T21:05:23.381981+00:00"
+  },
+  "latest_scatter_pmu_and_projection_view_review": {
+    "scatter": "EP0/EP3 L9 paired 4760 row scatter physical metadata 17 exported fields identical, AIV total cycles 1001709/1004199 vs 149.637/14.560us. PMU field interpretation and slot values, stride, tiling, binary absent; no equal-work or wait inference.",
+    "projection": "EP3 L36 host records show reshape and nested view between two attention projection APIs followed by linear; input shape and frozen source positions consistent. Target raw op_range candidate records lacked type-5 tensor metadata; storage/stride/offset and no-copy unproved.",
+    "next_capture_if_authorized": "Same-sample paired scatter aggregate valid/duplicate slots, stride, kernel/tiling and sync/counter semantics; projection stage identity with anonymized storage generation, offsets/strides. Tool support and overhead unverified; not executed.",
+    "evidence": [
+      "agents/fusion/F08-SCOPE-OVERLAP-AND-COMPARABILITY.md",
+      "agents/fusion/f08_4760_pair_metadata_audit.py",
+      "agents/fusion/f08-4760-pair-metadata-audit.json",
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/fusion/f16-ep3-host-tensor-ops.json",
+      "agents/fusion/f16-ep3-oprange-tensor.json"
+    ],
+    "github_commit": "cf2a083771ed738196982cecd990532399f65d14",
+    "time_utc": "2026-10-29T21:11:20.511313+00:00"
+  },
+  "latest_hcpost_scope_and_monitor_freq_review": {
+    "evidence": "agents/fusion/F03-HC-SOURCE-CONTRACT-AND-TILING.md; agents/diagnosis/hcpost-scope-overlap.json; agents/bounds/hardware_sources_audit.md",
+    "finding": "1280 HcPost tasks in two selected 1023-row groups had no direct interval overlap with host-flow-associated CSV-matched other tasks in the same device/layer scope; this does not exclude other activity or prove a cause. CANN 8.5 graph profiling documents a system interconnect collection frequency range of 1–50 Hz for A3, not a physical link capacity or proof of historical setting.",
+    "limits": "No causal diagnosis, global absence of contention, device hard bandwidth or numeric TPS upper bound established."
+  },
+  "latest_moe_alias_counterexample": {
+    "finding": "Conditional group-0 example: with same workspace base and unpadded contiguous FP16 rows, GMM1 width 4608 and GMM2 width 5120, writing full GMM2 row 0 overlaps first 1024 bytes of GMM1 row 1. The relevant last-read dependencies must be by actual byte interval.",
+    "limits": "At least two rows; physical layout, routed MC2 shapes, compiled implementation and runtime values are unbound. This is not a measured race or bottleneck.",
+    "evidence": "agents/fusion/F21-MC2-DISPATCH-ACTIVATION-PIPELINE.md"
+  },
+  "latest_trace_overlap_and_quant_information_review": {
+    "overlap": "32 per-device/digest groups, MC2/other selected task interval intersection relative to MC2 union min/median/max 0.1944%/71.6603%/91.8148%; selected same-stream interval pairs 0, other-stream pairs 1529. Pair counts not independent events; unmatched activity, clock semantics and request binding unknown.",
+    "coverage": "3840 selected flow records with communication names lack device task name or identity; not independent hardware task count.",
+    "bound": "Conditional independent dynamic-quant interface input family yields an existential worst-case distinguishability requirement of 21,320,635 bits; complete cut capacity and actual activation domain/semantics/initial state are unbound; not a TPS ceiling.",
+    "evidence": [
+      "agents/diagnosis/RECAPTURE-ALL-KERNEL-RANKING.md",
+      "agents/diagnosis/recheck_mc2_overlap_streams.py",
+      "agents/bounds/actual_causal_bound.md"
+    ]
+  },
+  "latest_unprofiled_phase_histogram_review": {
+    "measurement": "Each round has per-engine histogram count delta 4+4; queue total 0.2572297/0.3420997 ms, means 0.03215/0.04276 ms; prefill means 374.915/372.292 ms; decode means 14.6626/14.6045 seconds; service TTFT means 750.015/749.230 ms.",
+    "semantics": "Current stage stats source SHA af1983ddc32fa4d3284e72212c6525daf961dd84429023a02d612b68b3112cf3 computes queue as scheduled_ts minus queued_ts, prefill first_token_ts minus scheduled_ts, decode last_token_ts minus first_token_ts. Logger observes finished requests. Historical binary/source not bound.",
+    "limits": "Histogram scrape windows and requests are not individually linked; counters consistent with target 8 but not conclusive. Conditional nonnegative exact request binding permits queue-sum bound, not an exclusion of all scheduling or network overhead.",
+    "evidence": [
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "agents/diagnosis/recheck_baseline_phase_histograms.py"
+    ]
+  },
+  "latest_crosslayer_graph_overlay": {
+    "graph": "graphs/G1-source-conditional-overlay.json",
+    "builder": "tools/build_g1_candidate_overlay.py",
+    "finding": "Conditional source L20 publishes candidate block IDs consumed by index source L24/28/32/36; these data edges are distinct from pre-existing KV edges. Initial pre_mix depends on local shape and device rather than embedding values; residual value edge retained.",
+    "counts": "Four candidate semantic edges share preexisting KV endpoints. Revised shape/init nodes include metadata edges; 2/5/17 connected sets of size 2/3/4 are topological only and not fusion candidates.",
+    "limits": "Original G1/G5 and historical scans unchanged; candidate publication requires nonempty non-packed mode1/mode2 path, partial publication and barriers unknown. Shape metadata originates after optional SP shard and may come from inputs_embeds."
+  },
+  "latest_overlay_binding_and_metrics_cohort_review": {
+    "binding": "Original G1 SHA bound old 22802-item inventory. Deleting edge 644 invalidates 62 references and shifts 5673 references affecting 4383 old records; old indices cannot be applied to overlay. Four candidate value edges need semantic review although endpoints already have KV edges.",
+    "graph": "Overlay rebuilt with source/config SHA validation, atomic write, shape metadata after optional SP shard and no unsupported partial-ready assumption; no full fused graph rescan completed.",
+    "cohort": "Each engine per round: generation histogram count +4; zero observations <=1000 tokens, four <=2000, preemption histogram sum 0. Same finished-request loop in current source but distinct observe calls are non-atomic. Conditional exclusion of 1-token seed depends on historical source, scrape timing, and same cohort.",
+    "residual": "TTFT sum minus queue and prefill sums divided by 8 is 375.068/376.896 ms, purely cross-histogram arithmetic; TTFT and phase intervals use different clocks and update times. Not a measured stage or established cause.",
+    "evidence": [
+      "tools/audit_overlay_index_bindings.py",
+      "tools/build_g1_candidate_overlay.py",
+      "agents/diagnosis/recheck_baseline_phase_histograms.py",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md"
+    ]
+  },
+  "latest_graph_rebinding_and_ttft_event_review": {
+    "graph": "Derived conditional G1 plus old-to-new map and new structural index: old 22802 node sets preserved, 951495 old edge refs checked, new 22820 items independently rebuilt and verified; 18 new are structural only. Shape attributes excluded from adjacency; candidate and KV edges distinct; G5 templates still not fully instantiated.",
+    "large_index": {
+      "path": "candidates/cross-module-G1-conditional-v1.json",
+      "sha256": "c522ab990a462cf617f40065ba2352eab7a036a974141d60ca1a9db07004c67a",
+      "status": "Generated create-only independently on local and stage from identical hash-verified inputs; both generators and independent verifiers passed. Excluded from normal audit byte transfer due 42.5 MB size."
+    },
+    "ttft": "Current stage source conditional event decomposition TTFT - queue - prefill: renderer start to core queued plus core output construction to frontend processing, assuming same request/first output and stable clocks; may include tokenize, request setup, configured prefix hash and IPC. No per-step attribution or historical binding.",
+    "source_evidence": "agents/diagnosis/stage-ttft-source-slices.json",
+    "index_manifest": "evidence/G1-conditional-index-audit-v1.json"
+  },
+  "latest_prefix_hash_and_phase_additivity_review": {
+    "source": "Current stage kv_cache_utils.py SHA 2666c9f113584e52e7521058efd2c0d9598544559dc942d3a3da87001a3fedf2; Request initializes empty block hashes then invokes enabled hasher before scheduler enqueue.",
+    "conditional_accounting": "For initial token count T, empty prior hash list, hasher enabled, fixed resolved hash block size H, saved code loops floor(T/H) times and chains previous hash. T=32768,H=128 ->256 per request. Existing --block-size 128 does not prove H; no actual timing, effective path or runtime version bound.",
+    "measurement": "Each round E2E sum minus TTFT sum minus decode sum equals -0.05960817/-0.05674832 seconds. Different endpoint/time-domain/cohort metrics cannot be treated as additive disjoint stages; negative does not prove error or cause.",
+    "evidence": [
+      "agents/diagnosis/stage-kv-hash-source.json",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "agents/diagnosis/recheck_baseline_phase_histograms.py"
+    ]
+  },
+  "latest_crosslayer_candidate_sort_reuse": {
+    "finding": "Frozen arch22 mode2 BuildCandidateMask loads candidate INT32 row, casts FP32 and SortAll by block number at isFirstS2InnerLoop; downstream function uses sorted values to build mask. Conditional L20->L24/28/32/36 same-version candidate reuse motivates shared sorted representation; requires new operator interface/implementation.",
+    "limits": "Unbound historical kernel/mode/row identity, per-layer physical sort multiplicity, extra GM/UB cost, visibility/lifetime; preserve values, invalid -1, candidate filtering/padding, numeric comparison and source score selection; no measured gain.",
+    "source": "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md"
+  },
+  "latest_prefix_h_and_candidate_reuse_cost_review": {
+    "hash": "Saved startup log SHA 64bfa3d8523ad86e1c466fcca166cdcfe1dc4a3676573fc51b65279a69aa8aba shows 12 KV groups of size 128 for each DP, DCP1 and prefix cache enabled; frozen serve has no explicit --prefix-match-unit. Assuming logs and current resolver match historical runtime, no late override and hasher active, GCD=128 and 32768 input tokens gives 256 complete hash blocks. Historical resolved H and time unbound.",
+    "reuse": "Saved model gives two Python attributes the same candidate tensor. Separate sorted FP32 values of 1023x2048 are 8380416 bytes; 8192x2048 64 MiB. Logical examples, not actual HBM or mandatory allocations. Packed backend carries candidate lengths; cannot apply non-packed full-row proof blindly. Integer comparison can differ from FP32 for large values; actual reachable IDs and runtime CAST semantics unbound.",
+    "evidence": [
+      "agents/diagnosis/recheck_prefix_hash_configuration.py",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md"
+    ]
+  },
+  "latest_client_order_and_cp_candidate_review": {
+    "client": "Within each of two unprofiled eight-request rounds, earlier/later POST-start groups have mean first-SSE delays 568.877/970.861 ms and 570.434/978.852 ms; ranks correlate 0.762/0.738. Posthoc client-only observations, no server ordering/DP/actual cache/request-work matching or causality.",
+    "cp": "Conditional 3 requests each global q=6, TP8, padding24 and 3 local rows: S1000 W128 gives global indices 866..999; incorrectly rebuilding with local q=3 yields 869..999. Current source slices global indices; hypothetical not runtime bug. CPU stale S1003 vs device1000 can yield same length134 but different indices.",
+    "ld": "Bounded arch22 source scan finds valid candidate explicit write in non-LD path; retained 910b design doc claims no LD but 169 910C metadata implementation and binary unbound. Mode1+LD reachability and complete publication unresolved, no bug conclusion.",
+    "evidence": [
+      "agents/diagnosis/recheck_client_first_response_order.py",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "agents/fusion/F31-DRAFT-CP-INDEX-LENGTH-REVIEW.md",
+      "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md"
+    ]
+  },
+  "latest_l15_cross_module_review": {
+    "kind": "profiled per-rank selected task comparison",
+    "reference": "agents/diagnosis/MC2-DB852-L15-L36.md",
+    "scope": "L15 EP0-6; EP7 attention shape differs",
+    "mc2_ratio_range": "4.77685-4.78863",
+    "attention_ratio_range": "1.00106-1.01442",
+    "limits": "No equal work, root cause or production throughput claim"
+  },
+  "latest_c2_shared_state_review": {
+    "kind": "conditional page-size analysis and narrowed builder reachability",
+    "reference": "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md",
+    "limits": "stage source and non-packed assumptions; runtime specs, draft aliases and grouping unbound"
+  },
+  "latest_mc2_multi_layer_review": {
+    "scope": "one profiler capture, 2 digests, 40 layers, EP0-7",
+    "finding": "EP3 MC2 strictly shortest in 79 of 80 sets; other operator categories differ",
+    "reference": "agents/diagnosis/MC2-DB852-L15-L36.md",
+    "limits": "not independent samples, equal work or root cause"
+  },
+  "latest_f12_mask_review": {
+    "kind": "conditional mask equality, tail tile and bitmap construction race",
+    "reference": "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md",
+    "limits": "device lowering, safety, runtime value domain and performance unbound"
+  },
+  "latest_mc2_rank_spread_review": {
+    "reference": "agents/diagnosis/MC2-DB852-L15-L36.md",
+    "scope": "one profiler capture; four digests; two groups each 8 ranks; 40 layers per digest",
+    "finding": "in-group longest/shortest ratio medians differ strongly across groups",
+    "limits": "different digests, dynamic work unknown; not controlled comparison or causal evidence"
+  },
+  "latest_initial_credit_model_correction": {
+    "finding": "Active symbolic model and structured constraint now include initial burst/in-flight credit; TPS Q/L requires positive L and same window.",
+    "reference": "evidence/IDEAL-MODEL.md",
+    "status": "CORRECTED_ACTIVE_MODEL",
+    "legacy_evidence": "Historical fixed-output JSON, old generators, bounds inputs and calculations retained; their F/P or D/B requires zero-credit proof.",
+    "unchanged": "No new strict numeric NPU throughput ceiling; required work and physical capacity unknown."
+  },
+  "latest_moe_id_padding_review": {
+    "reference": "agents/fusion/F20-ROUTER-AND-DISPATCH-REVIEW.md",
+    "scope": "one profiled digest, EP0-7, 40 target layers each",
+    "measured": "320 pad plus each 320 Equal/Fill/Select/gate host stacks matched source positions; no tensor or binary identity proof",
+    "candidate": "Conditional absorption of -1 mapping by saved without-group A3 router; preserves masks, other consumers, input shape and lifetime.",
+    "limits": "Saved source/binary unbound to historical call, no online critical path or proven savings."
+  },
+  "latest_mc2_sampling_resolution_review": {
+    "reference": "agents/diagnosis/RECAPTURE-MC2-INTERNAL-STAGE-OPTIONS.md",
+    "finding": "Saved 9.2 help lists 1-100 Hz sampling; 80 selected EP3 task durations below a 10ms nominal interval.",
+    "limits": "Illustrative point-sample model; actual sample window and mode support unbound. No collection performed."
+  },
+  "latest_pad_gap_mc2_correlation": {
+    "reference": "agents/fusion/F20-ROUTER-AND-DISPATCH-REVIEW.md",
+    "scope": "same profiled digest, rank/layer/scope pairing",
+    "result": "EP3 40/40 and EP2 39/40 have pad-to-gate gap over post-hoc 100us, and MC2 rank first and second shortest respectively; EP2 layer28 exception.",
+    "limits": "Correlation only, no causality, hidden communication or idle claim."
+  },
+  "latest_pad_gap_diagnostic": {
+    "reference": "agents/fusion/F20-ROUTER-AND-DISPATCH-REVIEW.md",
+    "scope": "EP2 L15, EP3 L15, EP2 L28; existing rank DBs; all-stream TASK within each device",
+    "result": "Each queried gap contains only Equal, Fill, Select exported TASK rows; two long 5731.545us and 6550.460us, one short 8.540us.",
+    "limits": "Missing exports, other processes and cross-track clock unknown; not proof of idle or communication absence."
+  },
+  "latest_f20_information_bound": {
+    "reference": "agents/bounds/actual_causal_bound.md",
+    "result": "At least one synthetic independent-interface input needs 10103 bits under stated input/initial-state/channel assumptions.",
+    "limits": "Worst-case interface information only, not HBM traffic, actual input or overall NPU throughput bound."
+  },
+  "latest_f20_tiling_and_layout_review": {
+    "scope": "Three saved profiled samples EP2 L15, EP3 L15, EP2 L28; CPU read-only SQLite with unique TASK to launch connection and same-thread tiling/aclnn/dequeue nesting",
+    "device_pad_gate_gap_us": [
+      5731.545,
+      6550.46,
+      8.54
+    ],
+    "launch_pad_gate_span_us": [
+      5824.69,
+      6715.07,
+      3732.19
+    ],
+    "tiling_equal_fill_select_us": [
+      [
+        1752.39,
+        1482.56,
+        2421.36
+      ],
+      [
+        2032.56,
+        2134.73,
+        2375.56
+      ],
+      [
+        1145.82,
+        1135.9,
+        1297.49
+      ]
+    ],
+    "limitations": "Tiling matching by temporal nesting/name, not own flow; clocks, critical path, profiler perturbation and CPU active time unproven; short-gap case excludes simple direct inference. Source key 6 and AutoContiguous are conditional on actual runtime and binary binding.",
+    "script": "agents/diagnosis/query_pad_launch_tiling.py",
+    "evidence": "agents/fusion/F20-ROUTER-AND-DISPATCH-REVIEW.md"
+  },
+  "latest_f16_conditional_rate_comparison": {
+    "small_scope": "48 selected layer-24 24-row pairs",
+    "small_logical_rate_ratio_first_second_min_median_max": [
+      0.2143244289585753,
+      0.2284099651704102,
+      0.24841934298807014
+    ],
+    "large_scope": "one separate EP3 layer-36 8184-row pair",
+    "large_ratio": 0.9196013289036545,
+    "conditions": "standard dense MAC from physical shapes; profiler sessions, layer and workload differ; not proof of row-count cause, actual work or hardware utilization",
+    "evidence": "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md"
+  },
+  "latest_prefill_projection_and_sse_bound": {
+    "projection_scope": "640 same-rank/layer paired scopes from one profiled capture, different digests; strict shape/dtype/stream/order and source hash checks",
+    "ratio_small_large_EP0_7": [
+      0.8559002121891004,
+      0.9038036677018665
+    ],
+    "ratio_small_large_EP8_15": [
+      0.8212127985968397,
+      0.9009677170082676
+    ],
+    "sse_conditional_bytes": [
+      33108,
+      33504
+    ],
+    "limits": "Different digest inputs, cache and valid rows unbound; client bound applies fixed text and client/usage/window contract only; capacity and beta unknown.",
+    "reproduction": "agents/fusion/analyze_f16_prefill_rows.py",
+    "records": [
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/bounds/baseline-client-count-provisional.md",
+      "evidence/IDEAL-MODEL.md"
+    ]
+  },
+  "latest_f16_counters_and_cut_bound": {
+    "scope": "320 same-rank/layer M5144/8184 pairs from one profiler capture, distinct digests",
+    "second_aic_mac_ratio_large_smaller": 320,
+    "relative_logical_rate_large_greater": 320,
+    "two_point_nonnegative_intercept_fails_second": 320,
+    "conditions": "AIC ratio is exported field, not full-chip utilization; logical rate assumes dense work; changing request/cache/effective rows forbid causal inference.",
+    "fusion_tradeoff": "2048 B BF16 intermediate vs 20480 B hypothetical full FP32 output partial per row; separate padding-tail candidate depends on preserving observable values and communication.",
+    "bound": "GF(2) rank conditional cut lower bound for isolated exact INT32 projection; real input, W rank, cut and need for intermediate remain unproved.",
+    "records": [
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/bounds/actual_causal_bound.md"
+    ],
+    "scripts": [
+      "agents/fusion/analyze_f16_prefill_rows.py",
+      "agents/bounds/verify_gf2_cut_witness.py"
+    ]
+  },
+  "latest_f16_tail_f17_scope_gf2_audit": {
+    "f16_tail": "EP3 L36 selected SMLA 1023 rows and projection 8184; only under same tensor/source and TP8 is post-exchange extra zero-tail branch excluded, not all padding.",
+    "f17_comparison": "96 scopes; FLOAT/BF16 same-shape per-task duration ratio medians 1.975/2.216/2.238 for M=4760/5144/8180; distinct streams and identities unbound; no dtype causality.",
+    "bound_correction": "Fixed tensor output length does not imply r bits per input; only fixed-length transcript does. Deterministic exact protocol, side channels and beta explicit.",
+    "records": [
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md",
+      "agents/bounds/actual_causal_bound.md"
+    ],
+    "script": "agents/fusion/analyze_f17_fp32_bf16_candidates.py"
+  },
+  "latest_f17_layout_overlap_public_evidence": {
+    "layout": "Contiguous [T,1024] split by columns produces noncontiguous [T,512] views for T>1; saved pool rejects them and assumes row stride 512. Address witness is CPU-only; no speed conclusion.",
+    "overlap": "87/96 selected quant records fully within first FLOAT task exported interval, 9/96 quant records end earlier with >100us two-FLOAT gap; no causal or critical path inference.",
+    "public_evidence": "publication-draft/projection-pairs.json; publication-draft/verify-projection-pairs.py",
+    "private_source_repro": "agents/fusion/analyze_f17_fp32_bf16_candidates.py",
+    "records": "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md"
+  },
+  "latest_f17_roles_ring_counterexamples": {
+    "selected_neighbor_scope": "96 scopes, each FLOAT pair has selected Cast before and ZerosLike/pool/cache update after, BF16 target followed by norm/RoPE/scatter on another track. Association is not tensor identity, full-stream adjacency or causal proof.",
+    "ring_counterexample": "33 positions modulo 32: unordered token 0 can overwrite token 32; original writes last 32 rows.",
+    "initialization_counterexample": "Reused pooled output with an incomplete pair can retain stale nonzero if zero initialization is omitted.",
+    "records": "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md",
+    "scripts": [
+      "agents/fusion/audit_f17_neighbor_roles.py",
+      "agents/fusion/f17_ring_write_zero_witness.py"
+    ]
+  },
+  "latest_baseline_engram_bound_review": {
+    "baseline": "Two unprofiled scrape windows, TTFT histogram each engine count 4; engine 0/1 mean milliseconds 860.469/639.561 and 858.479/639.981. No per-request identity or equal-work evidence.",
+    "engram": "Conditional TP8 ring all-gather vs full-output all-reduce per-rank single-direction payload ratio 25/3, not a hardware/observed/best-possible bound.",
+    "bound_warning": "Preserve original conditional-performance-comparisons.json hash; F/P requires zero window credit and measured_throughput is physical rows divided by median task time, not effective token throughput.",
+    "records": [
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "agents/fusion/ENGRAM-LOCAL-RECOMBINATION.md",
+      "agents/bounds/int8_ceiling_certificate.md"
+    ],
+    "scripts": [
+      "agents/diagnosis/recheck_baseline_engine_histograms.py",
+      "agents/fusion/engram_comm_order_witness.py"
+    ]
+  },
+  "latest_f16_ideal_and_engine_counts": {
+    "scope": "conditional independent projection, not a certified physical bound",
+    "assumed_capacity_MAC_per_s": 176947200000000,
+    "zero_credit_required": true,
+    "valid_physical_rows_and_capacity_unproved": true,
+    "conditional_model_us": {
+      "M24": [
+        0.5688889,
+        0.7111111
+      ],
+      "M8184": [
+        193.991111,
+        242.488889
+      ]
+    },
+    "profile_task_us": {
+      "M24": [
+        50.559,
+        14.779
+      ],
+      "M8184": [
+        270.9,
+        311.4
+      ]
+    },
+    "different_captures_and_layers": true,
+    "engine_prompt_tokens": [
+      131072,
+      131072
+    ],
+    "engine_computed_tokens": [
+      13056,
+      13184
+    ],
+    "per_request_binding_missing": true,
+    "counter_proxy_pair_count": 1280,
+    "counter_proxy_ratio_range": [
+      0.999177,
+      1.006732
+    ],
+    "evidence": [
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "publication-draft/f16-conditional-example.json"
+    ]
+  },
+  "latest_hc_f13_comm_f17_review": {
+    "first_layer_hc": "Conditional finite-real first layer equal-lane weight folding 491520->122880 logical MAC/token; FP32 counterexample; actual binding missing.",
+    "f17": "95/96 first FLOAT longer; 9/9 when selected quant interval ends before it; no causal attribution.",
+    "f13": "Conditional tiled dependency max(a,max_i(r_i+b_i)); barrier and positive post-ready work not assumed.",
+    "comm": "Artificial independent BF16 reduce-scatter worst-case transcript 73328640 bits; cannot apply directly to fixed 1024->5120 projection; no numeric 169 bound.",
+    "evidence": [
+      "agents/fusion/F02-ATTENTION-HC-BRANCH-EARLY-READY.md",
+      "agents/fusion/F13-SWA-COMPRESSED-SOFTMAX-JOIN.md",
+      "agents/fusion/F17-COMPRESSOR-DUAL-PROJECTION-PIPELINE.md",
+      "agents/diagnosis/EP8-SP-REDUCE-SCATTER-FLOW.md",
+      "publication-draft/verify-projection-pairs.py"
+    ]
+  },
+  "latest_spec_hc_engram_review": {
+    "spec_length": "Conditional same code K=5, successful observations and matching counters imply every recorded draft length 5; not hardware steps.",
+    "engine_spec": "Two windows: slower decode label has more draft observations; no request binding or causal inference.",
+    "hc_pair": "32 selected L0 scopes; task duration ratio up to 1.098 while two cycle proxies close; proxy semantics/work unknown.",
+    "engram": "Address table may collapse to base + wide offset conditional on device mapping continuity, per-rank mapping, lifetime and precise semantics; no actual traffic or speed claim.",
+    "evidence": [
+      "agents/diagnosis/module-priority-evidence.md",
+      "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+      "agents/diagnosis/recheck_engine_spec_decode.py",
+      "agents/fusion/F03-HC-SOURCE-CONTRACT-AND-TILING.md",
+      "agents/fusion/analyze_hc_l0_pair_profiles.py",
+      "agents/fusion/ENGRAM-LOCAL-RECOMBINATION.md"
+    ]
+  },
+  "latest_prefix_hc_f22_rms_review": {
+    "prefix_distributions": [
+      [
+        0,
+        104,
+        240,
+        453,
+        266,
+        688
+      ],
+      [
+        3,
+        145,
+        309,
+        249,
+        254,
+        786
+      ]
+    ],
+    "conditional_on_matching_counter_cohorts_and_code": true,
+    "draft_plus_accepted_vs_generation": [
+      [
+        8198,
+        8192
+      ],
+      [
+        8202,
+        8192
+      ]
+    ],
+    "hc_rope": "560 scopes; 553 RoPE second/first ratio > HcPost ratio; 80 excluded different physical rows; no causal inference.",
+    "f22": "Half-split width 2304; 256 aligned pairs vs 512 first up block spans two projection blocks; historical layout/tile binding not proven.",
+    "rms": "Independent 512 element interface, specified BF16 exact semantics: all 511 others can affect first; conditional depth ceil(log_F 511)*delta under static fan-in graph; physical applicability unknown.",
+    "evidence": [
+      "agents/diagnosis/module-priority-evidence.md",
+      "agents/diagnosis/compare_hc_rope_scope.py",
+      "agents/fusion/F03-HC-SOURCE-CONTRACT-AND-TILING.md",
+      "agents/fusion/F22-SHARED-EXPERT-REVIEW.md",
+      "agents/fusion/F08-EP8-TENSOR-PROVENANCE.md",
+      "publication-draft/spec-acceptance-prefix.json"
+    ]
+  },
+  "latest_f16_f05_f29_review": {
+    "f16": "Corrected unconditional dependency to direct dense-domain condition; fixed weights/allowed inputs may eliminate terms; preserving output semantics does not mandate intermediate materialization.",
+    "f05": "256 selected scopes; ratio of second dynamic quant time to selected quant+matmul time by group median about 25.55%-30.73%; 15 post-hoc gaps >10us all EP3, no other same-scope same-track matched tasks in gaps; no idle or cause inference.",
+    "f29": "Request-shared SWA index must preserve empty query and invalid padding rows; actual broadcast/ABI/path unverified.",
+    "evidence": [
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md",
+      "agents/diagnosis/compare_second_quant_matmul_scope.py",
+      "agents/diagnosis/check_second_quant_matmul_gaps.py",
+      "agents/fusion/F29-DSPARK-CONTEXT-KV-PIPELINE.md"
+    ]
+  },
+  "latest_ep3_scale_attention_review": {
+    "ep3_gap": "15 selected long gaps have no overlapping same-scope matched tasks even on other tracks, clock alignment and unrecorded events unproved; two same-EP flow-start deltas reverse device gap ordering.",
+    "mc2": "EP3 MC2 shortest in 16 selected eight-rank same-signature groups; 15 long quant gaps, db852 L36 gap 1.38us counterexample; no causation.",
+    "scale": "F11 nonpacked index key scale FP16 rounding may change QLI score order; kernel identity/FTZ and input reachability unknown.",
+    "attention": "F13/F14 corrected wide-domain assumptions: all separate branch computations need not be necessary for special inputs or reorganization; exact output and cache semantics still matter.",
+    "evidence": [
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md",
+      "agents/diagnosis/check_quant_matmul_gap_flows.py",
+      "agents/diagnosis/compare_quant_gap_mc2_rank.py",
+      "agents/diagnosis/MC2-DB852-L15-L36.md",
+      "agents/fusion/F11-INDEX-KEY-CACHE-REVIEW.md",
+      "agents/fusion/F13-SWA-COMPRESSED-SOFTMAX-JOIN.md",
+      "agents/fusion/F14-ATTENTION-ROTATION-PROJECTION-REVIEW.md"
+    ]
+  },
+  "latest_joint_scatter_scale_review": {
+    "joint_capacity": "Conditional lower bound sup over proven nonnegative weights of [λ(F−βF)+μ(D−βD)]_+/H(λ,μ), H>0. 169 F,D,H,beta unknown.",
+    "cooccurrence": "64 selected same digest scopes: posthoc quant gap>10us and scatter duration<50us cooccur in 7 EP3 layers; 57 neither. Same profiled run, no causal inference.",
+    "scale": "F10/F09 moving scaling across independent FP16 rounding can change QLI contribution; FTZ/runtime identity unknown.",
+    "evidence": [
+      "evidence/IDEAL-MODEL.md",
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md",
+      "agents/diagnosis/check_quant_gap_scatter_cooccurrence.py",
+      "agents/fusion/COVERAGE-GAP-AUDIT-AND-F10.md"
+    ]
+  },
+  "latest_joint_credit_bonus_128_review": {
+    "ep3": "Two digests 64 scopes each; posthoc long gap and short scatter 7/8 cooccurrences and 57/56 neither; single profiled run not independent, EP2 L0 outside selection.",
+    "joint_credit": "Conditional credit support Γ yields [(λF+μD−Γ)_+]/H; 169 joint credit and capacity unknown.",
+    "f30": "Target bonus and optional logprob consumers rule out top1-only interface in corresponding conditional cases; sufficient statistics or recomputation allowed, runtime path unknown.",
+    "evidence": [
+      "evidence/IDEAL-MODEL.md",
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md",
+      "agents/diagnosis/check_quant_gap_scatter_cooccurrence.py",
+      "agents/fusion/F30-VOCAB-TILE-AND-VERIFY-REVIEW.md"
+    ]
+  },
+  "latest_ep3_minimum_and_joint_falsification": {
+    "ep3": "Frozen multistream path: if cache write on aux, main wait_stream precedes indexer projection; task/stream/event/tensor historic binding missing; minimum future evidence recorded, new collection requires separate authorization.",
+    "joint": "Narrow assumed F/P+D/B 362.209us vs recorded same-device task window 358.0325us; only conjunction of workload, strict simplex, zero credit and timing can be rejected; actual 169 capacities unknown.",
+    "engram": "Index request mapping and slot write may overlap conditionally; hash reading updated slot needs matching write visibility; alias and execution unproved.",
+    "evidence": [
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md",
+      "agents/fusion/COMPRESSOR-ENGRAM-REVIEW.md",
+      "evidence/IDEAL-MODEL.md"
+    ]
+  },
+  "latest_qli_qr_f23_review": {
+    "qli": "28 selected same-track scopes; three durations cover span median 99.952%, QLI median 82.264%; no task-internal/critical-path evidence.",
+    "qr": "Two consumers of same qr can share one cut transfer, do not add separate sizes; joint output image determines conditional information distinguishability; runtime identity and cut unknown.",
+    "f23": "Changing shared/routed merge relative to rank SUM requires preserving rank contributions and numerical semantics; finite and BF16 counterexamples, no historical SUM binding.",
+    "evidence": [
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/check_qli_selected_span.py",
+      "evidence/QR-consumers-and-fusion-review.md",
+      "agents/fusion/F23-MERGE-HC-TILE-AND-ROUNDING.md"
+    ]
+  },
+  "latest_qli_page_and_projection_ratio_review": {
+    "page": "QLI saved source uses block table and actual FP16 page stride; independent examples show both cannot be replaced by contiguous indexing, width affects offset. Historic mapping/binary unknown.",
+    "qli": "Saved Sort32/MrgSort and candidate block search do not establish scalar comparison count; 2048 is capacity not known effective candidate count.",
+    "projection": "64 same-scope paired tasks, shape-based direct-dense MAC ratio 2:1, durations 1.148–1.472; different output dtypes/layouts/actual work, no cause inference.",
+    "evidence": [
+      "agents/fusion/F11-INDEX-KEY-CACHE-REVIEW.md",
+      "agents/fusion/F12-LAYER24-RUN2-REVIEW.md",
+      "agents/fusion/F22-SHARED-EXPERT-REVIEW.md",
+      "agents/diagnosis/recheck_ffn_projection_pair_ratio.py"
+    ]
+  },
+  "latest_qli_head_topk_counterexample": {
+    "result": "In the stated conditional two-head construction, separate head-wise top512 union excludes the global top item; post-aggregation key-wise topK merge remains separately conditional.",
+    "evidence": "agents/fusion/F12-LAYER24-RUN2-REVIEW.md",
+    "limits": "Not observed production input, device arithmetic contract or proof of an implementation defect.",
+    "publication_commits": [
+      "40b0e317da6f737b7cef9f35b085012d3fc7c4b9",
+      "3448e3b8e37670c77b284a5923900f0a774bd11a"
+    ],
+    "publication_verified": true
+  },
+  "latest_attention_tail_rank_review": {
+    "finding": "Two 40-layer selected groups, 1019-row rank duration divided by same-layer median of 1023-row ranks: 0.9844–1.0185 and 0.9627–1.0115.",
+    "limitations": "Different physical rows and uncontrolled dynamic inputs; post-hoc descriptive comparison only; not an exact-shape ranking or causal estimate.",
+    "evidence": "agents/diagnosis/RECAPTURE-ALL-KERNEL-RANKING.md",
+    "reproduction": "python3 agents/diagnosis/compare_attention_tail_rank.py"
+  },
+  "latest_sse_gap_after_first_review": {
+    "finding": "In each of two rounds, all 11 observed non-DONE SSE data-line gaps >100ms end by the latest of eight first-data-line timestamps; later starting gaps max 73.783/78.371ms.",
+    "limitations": "Retrospective threshold; client time coordinates and data-line recording, not TPOT, prefill duration or root cause.",
+    "evidence": "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md",
+    "reproduction": "agents/diagnosis/recheck_sse_gaps_after_all_first.py",
+    "publication_verified": true
+  },
+  "latest_compressor_rms_fusion_review": {
+    "finding": "Two input rows with identical individual sum-of-squares can yield different pooled sum-of-squares; cross-information or equivalent is needed.",
+    "limitations": "Conditional mathematical model; no historical value/domain or hardware rounding binding and no claim requiring HBM materialization.",
+    "evidence": "agents/fusion/COMPRESSOR-TILE-DEPENDENCY.md",
+    "publication_verified": true,
+    "publication_commits": [
+      "effa4cebbe9e7ca880e9b5e4e5c696029918f6e4",
+      "8d7c61ac79db647567bfd771086a457a0075b46f"
+    ]
+  },
+  "latest_f32_cross_stream_and_pcp": {
+    "observation": "Eight selected per-card Q/KV trace gaps 0.98025-1.2595 us; cross-stream clock calibration remains unknown.",
+    "pcp": "Constructed reorder-before-truncate case; not bound to historical PCP.",
+    "conditional_bound": "Fixed receiver state and required output image K imply worst-case floor(log2 K) distinguishable transcript bits; real K and capacity unknown.",
+    "evidence": "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md",
+    "reproduction": "agents/fusion/recheck_f32_projection_trace_order.py",
+    "zcode_status": "UI changed and user interrupted before task submission; no ZCode result.",
+    "publication_verified": true,
+    "publication_commits": [
+      "26b34a394b6d081cbc4fa8347b305148785150ff",
+      "54bbd54262fe045f58442a1397fd9d2d361ce82e"
+    ]
+  },
+  "latest_qli_cross_digest_and_f27": {
+    "observation": "28 same-EP, same-layer QLI pairs have duration ratio min 1.37983, median 1.55552, max 1.74052 for physical rows 1023/595; metadata and effective workload differ or are unknown.",
+    "f27": "Conditional two-dimensional token and output-weight partition requires information beyond local diagonal blocks.",
+    "evidence": [
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/compare_qli_query_rows_across_digests.py",
+      "agents/fusion/F27-AUX-MAIN-PROJ-PIPELINE-REVIEW.md"
+    ],
+    "limits": "Profiler scope only, not causal, no historical tensor or partition binding, not performance savings.",
+    "publication_verified": true,
+    "publication_commits": [
+      "fded95ccc9caab44976fcd7c307e0d441968f5e0",
+      "34139a038727515286a0bb03cb06d61bfd9f1c4c"
+    ]
+  },
+  "latest_mc2_capacity_evidence_review": {
+    "finding": "Bound expert counts are absent from the reviewed MC2 records; existing hardware documents do not establish a full-resource short-window hard capacity envelope.",
+    "limits": "Bounded local-source search, not proof that all other data lack the fields; no new NPU work.",
+    "expert_evidence": "agents/diagnosis/RECAPTURE-MC2-EXPERT-COUNT-20261029.md",
+    "capacity_evidence": "agents/bounds/9382-HARD-CAPACITY-CHECK.md",
+    "publication_verified": true,
+    "publication_commit": "51203369a9fa41730dceedb7768d5c946d484928"
+  },
+  "latest_fusion_coverage_gap_review": {
+    "status": "CONDITIONAL_REVISION_BUILT_AND_LOCAL_VERIFIED",
+    "finding": "G1 auxiliary layer positions mismatch the documented DSpark fallback conditions; G5 omits context-position and group-slot producer connections.",
+    "limits": "Fallback only; graph and index structure checked; runtime binding and equivalence unknown; previous candidates still reference prior graph.",
+    "evidence": "agents/fusion/COVERAGE-GAP-AUDIT-AND-F10.md",
+    "manifest": "graph-revision-aux-context-v2/manifest.json",
+    "manifest_sha256": "b0064060152d35dec3013e6ff8f4da74ad6e48a9d42a160eafed4b6fada035b5",
+    "verifier": "tools/verify_aux_context_graph_revision.py",
+    "publication_verified": true,
+    "publication_commits": [
+      "067f5b4446c3c022defb8372f381e831465ce88e",
+      "fc5911884113325f8aabe1ebff2f6d0931f770a5"
+    ]
+  },
+  "latest_attention_same_query_noncomparable": {
+    "finding": "Same digest EP0-6 L24/L1 duration ratio 5.102-5.439; L24 has extra paged KV, indices and metadata.",
+    "limits": "Not equal workload or historical data identity; not causal or online speedup.",
+    "evidence": "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+    "reproduction": "agents/diagnosis/compare_attention_l1_l24_same_digest.py"
+  },
+  "latest_dspark_cross_template_review": {
+    "status": "CONDITIONAL_GRAPH_BUILT_AND_VERIFIED",
+    "manifest": "graph-revision-cross-template-v1/manifest.json",
+    "manifest_sha256": "0a540f5abf0752b70f9971645a679ba2d941738dfae3495a73728931910d084a",
+    "verifier": "tools/verify_dspark_context_cross_template.py",
+    "finding": "Three conditional data mappings for context hidden, positions, and per-layer group slots; 25 structural node sets are not fusion opportunities or speedups.",
+    "limits": "No historical storage/replay identity, timing or numerical equivalence; not full branch coverage.",
+    "publication_verified": true,
+    "publication_commits": [
+      "13bca916e86a91935a754047b280a1b127259306",
+      "fac1e03dee5ace493925472fc4c5f2375834650d"
+    ]
+  },
+  "latest_context_buffer_fusion_review": {
+    "candidate": "Conditionally pipeline main_norm output into per-layer KV projection while preserving persistent context-buffer semantics.",
+    "limits": "Overlaps F27/F29; actual dtype, storage, values, events, graph replay and runtime binding unknown; no measured gain.",
+    "counterexample": "Hypothetical FP32->BF16 nearest-even buffer conversion can alter projection: [1+1/256,1] dot [1,-1] changes from 1/256 to 0.",
+    "evidence": "agents/fusion/F29-DSPARK-CONTEXT-KV-PIPELINE.md",
+    "publication_verified": true,
+    "publication_commits": [
+      "e7243ea5ef9c6e1a7f05862512c81677324ca2ef",
+      "c404df094c9b7e065bcf013a55a45aaafa556b74"
+    ]
+  },
+  "latest_goal_turn_review": {
+    "classification": "progress",
+    "reason": "User clarified all NPU occupants are own project. Independent eager synthetic dump produced correct 24 INT32 values; graph synthetic probe crashed with signal 11 and no verified output; user requested clarity and stop tool debugging.",
+    "resource_status": "Existing service left running; post-diagnostic health and metrics HTTP 200. No true MoE counts collected.",
+    "next": "Prioritize original MoE/profile performance analysis; do not repeat or debug synthetic probe without a direct reason.",
+    "utc": "2026-10-30T06:31:23.261290+00:00"
+  },
+  "latest_f30_draft_probs_review": {
+    "finding": "Source getter reorders saved probability rows by current request IDs and draft counts; any missing nonzero request returns None for the entire batch.",
+    "candidate": "Conditionally fuse reorder with rejection reads while preserving request/step layout, whole-batch fallback, randomness, buffer lifetime and equivalent interface.",
+    "limits": "Historical source binary, probability branch, tensor identity and performance not established.",
+    "evidence": "agents/fusion/F30-VOCAB-TILE-AND-VERIFY-REVIEW.md",
+    "publication_verified": true,
+    "publication_commits": [
+      "c51c2144e72654fe84f2bf5f94cffceec5c308a1",
+      "606861623e9911f2b5e2853359072d503835ae54"
+    ],
+    "baseline_qualification": "Frozen default greedy and baseline temperature 0 make probability assembly unlikely if that code/config is used, but history not bound; current all_greedy alone does not prove previous cache empty."
+  },
+  "goal_revision_20261030": {
+    "focus": "Reuse existing four Tasks; prioritize MoE profiling, dataflow and practical conditional engineering model, then compare other profiled modules.",
+    "device_policy": "NPU diagnostics authorized only on user-owned resources without interference or restarting/reconfiguring service.",
+    "source_of_truth": "active goal tool objective",
+    "utc": "2026-10-30T04:12:08.168339+00:00"
+  },
+  "latest_moe_engineering_review": {
+    "scope": "profile EP8 layers 14 and 39, not online baseline",
+    "observations": "160.365956 ms vs 8.290414 ms under profiler; actual expert counts and waiting unobserved.",
+    "model": "35,389,440 MAC per expert row; P_nom 353.8944 TMAC/s implies 0.1 R microseconds, under stated shape and nominal device assumptions.",
+    "example": "R=6135 assumes 8180 valid tokens x 6 routes / 8 perfectly balanced ranks, no capacity clipping; T=0.6135ms. Ratios vs profiler 261.4 and 13.5 are illustrative, not measured efficiency or achievable gain.",
+    "evidence": "agents/bounds/RECAPTURE-MC2-CONDITIONAL-BOUND-20261029.md",
+    "publication_verified": true,
+    "publication_commits": [
+      "d30f8dc5883059b2f1606fdf8874731ae6d135d6",
+      "931c94d9a65408b6913b54d3ec2473be15ef5f2f"
+    ]
+  },
+  "latest_moe_data_reuse_review": {
+    "finding": "For hypothetical R=240, two INT8 GEMMs have equal 8.493 GMAC; with one HBM load per active expert, A=24 vs A=4 yields 849 MB vs 142 MB logical weights.",
+    "limits": "Actual expert rows, active count, cache residency and HBM traffic not known; no measured bottleneck or speedup.",
+    "evidence": "agents/bounds/RECAPTURE-MC2-CONDITIONAL-BOUND-20261029.md"
+  },
+  "latest_moe_workload_scope_review": {
+    "finding": "160/8.29ms are prefill heavy profiler plus hook; a separate target-layer profile matches eight frozen inputs but lacks request-level baseline binding. The unprofiled batch first-all vs final-recorded times show a long subsequent output interval.",
+    "limits": "SSE lines do not identify decode-only time or module occupancy; no online ranking established.",
+    "evidence": "agents/diagnosis/BASELINE-CLIENT-LATENCY-DISTRIBUTION.md"
+  },
+  "latest_moe_stage_review": {
+    "scope": "MoE plus sustained-output baseline; prioritize expert load and overlap, no guessed cause.",
+    "weight_model": "At hypothetical R=240, A=24 vs 4 and one HBM load per expert: 849 vs 142 MB; actual counters and cache unknown.",
+    "tbo_candidate": "SGLang official V4 prefill yields between dispatch/combine stages; potential cross-microbatch overlap differs from existing MC2 expert-group overlap.",
+    "limitations": "V4 decode unsupported in cited implementation; 169 Ascend availability, microbatch independence, memory and events unverified.",
+    "evidence": "agents/fusion/F21-MC2-DISPATCH-ACTIVATION-PIPELINE.md",
+    "publication_verified": true,
+    "publication_commit": "75e2b8a246ed4a98edb31283246a2d2d3a70c878"
+  },
+  "latest_moe_expert_count_review": {
+    "status": "CONDITIONAL_INTERFACE_IDENTIFIED_NOT_COLLECTED",
+    "reason": "Saved custom INT8 source emits reusable per-expert count; same replay, rank, binary and capacity need binding. No GPU/NPU snapshot is implemented or validated.",
+    "next": "Isolated graph-aware capture of counts at output-before-overwrite if resources permit; then compare same-call duration; separately profile Indexer dynamic sizes.",
+    "utc": "2026-10-30T04:37:33.740829+00:00"
+  }
+}

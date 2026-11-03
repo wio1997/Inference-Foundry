@@ -1,0 +1,76 @@
+{
+  "id": "F15_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "pad": "pad",
+    "restore_heads": "restore_heads",
+    "o_a": "o_a"
+  },
+  "nodes": [
+    {
+      "id": "pad",
+      "kind": "PAD_OR_VIEW",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "restore_heads",
+      "kind": "COLLECTIVE",
+      "resource": "COMM",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "o_a",
+      "kind": "GROUPED_LINEAR",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "pad",
+      "consumer": "restore_heads",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "restore_heads",
+      "consumer": "o_a",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "inverse_rope",
+      "consumer": "pad",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "o_a",
+      "consumer": "o_b",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v66": {
+    "native_population": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-native-operator-population-v66.json",
+    "operator_regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-regime-models-v66.json",
+    "count_work_payload_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-work-payload-models-v66.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-contract-v66.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-fusion-variants-v66.json",
+    "candidate_specific_scope": "WAbeforeheadrestore:all8groups/tokenowner,4096→1024exchange,payload/4but+58.72MB/card/layerWA. ActualA/Mpadding/tiling/BF16guardandstreamedA2A-WAalternative.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

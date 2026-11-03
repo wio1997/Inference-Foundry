@@ -1,0 +1,924 @@
+{
+  "scope": "Four fixed CANN profiler Python sources, bounded matching lines with context",
+  "files": [
+    {
+      "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/analyzer/communication_analyzer.py",
+      "sha256": "2e36cf2470571b218131a7a97b6cbe260955e960152a635958f571fa6296c59c",
+      "hit_count": 8,
+      "lines": [
+        {
+          "n": 89,
+          "text": "                print_msg("
+        },
+        {
+          "n": 90,
+          "text": "                    f\"Fail to get hccl events, please check hccl.db from {PathManager.get_host_result_dir(rank_path)}\""
+        },
+        {
+          "n": 91,
+          "text": "                )"
+        },
+        {
+          "n": 92,
+          "text": "                raise ProfException(ProfException.PROF_INVALID_DATA_ERROR)"
+        },
+        {
+          "n": 93,
+          "text": "            op_name_dict = {}"
+        },
+        {
+          "n": 94,
+          "text": "            for op_task in op_task_map.values():"
+        },
+        {
+          "n": 95,
+          "text": "                # get group_name from hccl.db"
+        },
+        {
+          "n": 96,
+          "text": "                op_name = op_task.op_name + \"@\" + op_task.group_name"
+        },
+        {
+          "n": 97,
+          "text": "                merge_op_task(op_name_dict, op_name, op_task)"
+        },
+        {
+          "n": 98,
+          "text": "            self._update_data(op_name_dict, Constant.DEFAULT_INVALID_VALUE)"
+        },
+        {
+          "n": 99,
+          "text": ""
+        },
+        {
+          "n": 100,
+          "text": "    def _update_data(self: any, op_name_dict: dict, rank_id: int) -> None:"
+        },
+        {
+          "n": 101,
+          "text": "        \"\"\""
+        },
+        {
+          "n": 102,
+          "text": "        update self data"
+        },
+        {
+          "n": 103,
+          "text": "        \"\"\""
+        },
+        {
+          "n": 104,
+          "text": "        for hccl_name in op_name_dict:"
+        },
+        {
+          "n": 105,
+          "text": "            if hccl_name not in self.rank_hccl_data_dict:"
+        },
+        {
+          "n": 106,
+          "text": "                self.rank_hccl_data_dict[hccl_name] = {}"
+        },
+        {
+          "n": 107,
+          "text": "            self.rank_hccl_data_dict[hccl_name][rank_id] = op_name_dict.get(hccl_name, [])"
+        },
+        {
+          "n": 108,
+          "text": ""
+        },
+        {
+          "n": 109,
+          "text": "    def _generate_parser(self: any, rank_path) -> CommunicationParser:"
+        },
+        {
+          "n": 110,
+          "text": "        self._get_hccl_data_from_db(rank_path)"
+        },
+        {
+          "n": 111,
+          "text": ""
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/msparser/cluster/communication_parser.py",
+      "sha256": "481c2634fcf0dfcfe016bb8a2dff69f720c59e409523e5e4dc1de28f33b98a89",
+      "hit_count": 10,
+      "lines": [
+        {
+          "n": 49,
+          "text": ""
+        },
+        {
+          "n": 50,
+          "text": "    @staticmethod"
+        },
+        {
+          "n": 51,
+          "text": "    def combine_ops_time_info(part_dict: dict, total_dict: dict):"
+        },
+        {
+          "n": 52,
+          "text": "        no_accumulative_list = ["
+        },
+        {
+          "n": 53,
+          "text": "            OpAnalysisType.WAIT_TIME_RATIO,"
+        },
+        {
+          "n": 54,
+          "text": "            OpAnalysisType.SYNCHRONIZATION_TIME_RATIO,"
+        },
+        {
+          "n": 55,
+          "text": "            OpAnalysisType.START_TIME,"
+        },
+        {
+          "n": 56,
+          "text": "        ]"
+        },
+        {
+          "n": 57,
+          "text": "        # first level combine"
+        },
+        {
+          "n": 58,
+          "text": "        for key, value in part_dict.items():"
+        },
+        {
+          "n": 152,
+          "text": "                    total_ops_dict[com_info] = HcclAnalysisTool.init_bandwidth_dict()"
+        },
+        {
+          "n": 153,
+          "text": "                self.combine_ops_bandwidth_info(com_info_dict, total_ops_dict[com_info])"
+        },
+        {
+          "n": 154,
+          "text": ""
+        },
+        {
+          "n": 155,
+          "text": "    def combine_ops_bandwidth_info(self: any, part_dict: dict, total_dict: dict) -> None:"
+        },
+        {
+          "n": 156,
+          "text": "        add_list = [OpBandWidthType.TRANSIT_TIME_MS, OpBandWidthType.TRANSIT_SIZE_MB]"
+        },
+        {
+          "n": 157,
+          "text": "        dict_list = [OpBandWidthType.SIZE_DISTRIBUTION]"
+        },
+        {
+          "n": 158,
+          "text": "        # first level combine"
+        },
+        {
+          "n": 159,
+          "text": "        for transport_type, part_transport_dict in part_dict.items():"
+        },
+        {
+          "n": 160,
+          "text": "            for bandwidth_msg, value in part_transport_dict.items():"
+        },
+        {
+          "n": 164,
+          "text": "                    self.combine_size_distribution(value, total_dict[transport_type][bandwidth_msg])"
+        },
+        {
+          "n": 165,
+          "text": "        # second level combine"
+        },
+        {
+          "n": 166,
+          "text": "        for transport_type in StrConstant.TRANSIT_TYPE:"
+        },
+        {
+          "n": 167,
+          "text": "            if transport_type == StrConstant.SDMA:"
+        },
+        {
+          "n": 168,
+          "text": "                if total_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] != 0:"
+        },
+        {
+          "n": 169,
+          "text": "                    total_dict[StrConstant.SDMA][OpBandWidthType.BANDWIDTH_GB_S] = round("
+        },
+        {
+          "n": 170,
+          "text": "                        (total_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.MB_TO_GB)"
+        },
+        {
+          "n": 171,
+          "text": "                        / ("
+        },
+        {
+          "n": 172,
+          "text": "                            total_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS]"
+        },
+        {
+          "n": 173,
+          "text": "                            / NumberConstant.CONVERSION_TIME"
+        },
+        {
+          "n": 174,
+          "text": "                        ),"
+        },
+        {
+          "n": 175,
+          "text": "                        4,"
+        },
+        {
+          "n": 176,
+          "text": "                    )"
+        },
+        {
+          "n": 216,
+          "text": "            transit_sections = self._clip_sections_to_window(transit_sections, window_start, window_end)"
+        },
+        {
+          "n": 217,
+          "text": "            wait_sections = self._clip_sections_to_window(wait_sections, window_start, window_end)"
+        },
+        {
+          "n": 218,
+          "text": "        merged_transit = SectionCalculator.merge_continuous_intervals(transit_sections)"
+        },
+        {
+          "n": 219,
+          "text": "        merged_wait = SectionCalculator.merge_continuous_intervals(wait_sections)"
+        },
+        {
+          "n": 220,
+          "text": "        op_time_dict[OpAnalysisType.TRANSIT_TIME] = self._sections_duration_ms(merged_transit)"
+        },
+        {
+          "n": 221,
+          "text": "        # one-drop rule: each wall-clock instant is owned by exactly one category. When any plane is in"
+        },
+        {
+          "n": 222,
+          "text": "        # transit (memcpy) at an instant, that instant counts as transit, so the wait time is the union of"
+        },
+        {
+          "n": 223,
+          "text": "        # Notify_Wait intervals with the transit-covered parts removed."
+        },
+        {
+          "n": 224,
+          "text": "        effective_wait = self._subtract_sections(merged_wait, merged_transit)"
+        },
+        {
+          "n": 225,
+          "text": "        op_time_dict[OpAnalysisType.WAIT_TIME] = self._sections_duration_ms(effective_wait)"
+        },
+        {
+          "n": 226,
+          "text": "        if merged_transit:"
+        },
+        {
+          "n": 227,
+          "text": "            sync_sections = self._clip_sections_before(effective_wait, merged_transit[0].start_time)"
+        },
+        {
+          "n": 228,
+          "text": "        else:"
+        },
+        {
+          "n": 229,
+          "text": "            sync_sections = effective_wait"
+        },
+        {
+          "n": 230,
+          "text": "        op_time_dict[OpAnalysisType.SYNCHRONIZATION_TIME] = self._sections_duration_ms(sync_sections)"
+        },
+        {
+          "n": 231,
+          "text": "        op_time_dict[OpAnalysisType.ELAPSE_TIME] = elapse_ms"
+        },
+        {
+          "n": 232,
+          "text": "        busy_union_ms = self._sections_duration_ms("
+        },
+        {
+          "n": 233,
+          "text": "            SectionCalculator.merge_continuous_intervals(transit_sections + wait_sections)"
+        },
+        {
+          "n": 234,
+          "text": "        )"
+        },
+        {
+          "n": 235,
+          "text": "        op_time_dict[OpAnalysisType.IDLE_TIME] = elapse_ms - busy_union_ms"
+        },
+        {
+          "n": 236,
+          "text": "        HcclAnalysisTool.update_time_ratio(op_time_dict, op_name)"
+        },
+        {
+          "n": 237,
+          "text": "        return op_time_dict"
+        },
+        {
+          "n": 238,
+          "text": ""
+        },
+        {
+          "n": 239,
+          "text": "    def _collect_plane_time_sections(self, plane_tasks: list, op_name: str, rdma_transit_op_num: int) -> tuple:"
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/msparser/cluster/meta_parser.py",
+      "sha256": "d60959f6e2deba9cdd80b433952174bc503dccbce9ebdfe8216e40fe2c53ab66",
+      "hit_count": 23,
+      "lines": [
+        {
+          "n": 38,
+          "text": "    end: int = Constant.DEFAULT_VALUE"
+        },
+        {
+          "n": 39,
+          "text": "    tasks: list = field(default_factory=list)"
+        },
+        {
+          "n": 40,
+          "text": ""
+        },
+        {
+          "n": 41,
+          "text": ""
+        },
+        {
+          "n": 42,
+          "text": "def merge_op_task(op_name_dict: dict, op_name: str, op_task) -> None:"
+        },
+        {
+          "n": 43,
+          "text": "    \"\"\"把一个 op_task(OpTaskData) 合并进按 op_name 归组的 OpTaskBundle 字典\"\"\""
+        },
+        {
+          "n": 44,
+          "text": "    bundle = op_name_dict.get(op_name)"
+        },
+        {
+          "n": 45,
+          "text": "    if bundle is None:"
+        },
+        {
+          "n": 46,
+          "text": "        bundle = OpTaskBundle(op_name=op_task.op_name, start=op_task.start, end=op_task.end)"
+        },
+        {
+          "n": 47,
+          "text": "        op_name_dict[op_name] = bundle"
+        },
+        {
+          "n": 48,
+          "text": "    else:"
+        },
+        {
+          "n": 49,
+          "text": "        bundle.start = min(bundle.start, op_task.start)"
+        },
+        {
+          "n": 50,
+          "text": "        bundle.end = max(bundle.end, op_task.end)"
+        },
+        {
+          "n": 51,
+          "text": "    bundle.tasks.extend(op_task.tasks)"
+        },
+        {
+          "n": 116,
+          "text": ""
+        },
+        {
+          "n": 117,
+          "text": "    @classmethod"
+        },
+        {
+          "n": 118,
+          "text": "    def get_rdma_time_info(cls: any, events: list, idx: int, rdma_transit_op_num: int) -> list:"
+        },
+        {
+          "n": 119,
+          "text": "        transit_size = HcclAnalysisTool.get_value(events[idx].size, 'size') / NumberConstant.BYTES_TO_MB"
+        },
+        {
+          "n": 120,
+          "text": "        transit_time = ("
+        },
+        {
+          "n": 121,
+          "text": "            HcclAnalysisTool.get_value("
+        },
+        {
+          "n": 122,
+          "text": "                events[idx + rdma_transit_op_num - 1].duration"
+        },
+        {
+          "n": 123,
+          "text": "                + events[idx + rdma_transit_op_num - 1].timestamp"
+        },
+        {
+          "n": 124,
+          "text": "                - events[idx].timestamp,"
+        },
+        {
+          "n": 125,
+          "text": "                'duration',"
+        },
+        {
+          "n": 126,
+          "text": "            )"
+        },
+        {
+          "n": 127,
+          "text": "            / NumberConstant.NS_TO_MS"
+        },
+        {
+          "n": 128,
+          "text": "        )"
+        },
+        {
+          "n": 129,
+          "text": "        return [transit_time, transit_size]"
+        },
+        {
+          "n": 130,
+          "text": ""
+        },
+        {
+          "n": 131,
+          "text": "    @classmethod"
+        },
+        {
+          "n": 132,
+          "text": "    def find_consecutive_payload_tasks_count(cls: any, events: list, idx: int) -> int:"
+        },
+        {
+          "n": 133,
+          "text": "        count = 0"
+        },
+        {
+          "n": 149,
+          "text": "        first_payload_time = events[idx].timestamp"
+        },
+        {
+          "n": 150,
+          "text": "        for i in range(idx, idx + payload_cnt):"
+        },
+        {
+          "n": 151,
+          "text": "            saved_size += events[i].size"
+        },
+        {
+          "n": 152,
+          "text": "        transit_size = saved_size / NumberConstant.BYTES_TO_MB"
+        },
+        {
+          "n": 153,
+          "text": "        transit_time = ("
+        },
+        {
+          "n": 154,
+          "text": "            HcclAnalysisTool.get_value("
+        },
+        {
+          "n": 155,
+          "text": "                events[idx + payload_cnt + idx_jump - 2].duration"
+        },
+        {
+          "n": 156,
+          "text": "                + events[idx + payload_cnt + idx_jump - 2].timestamp"
+        },
+        {
+          "n": 157,
+          "text": "                - first_payload_time,"
+        },
+        {
+          "n": 158,
+          "text": "                'duration',"
+        },
+        {
+          "n": 159,
+          "text": "            )"
+        },
+        {
+          "n": 160,
+          "text": "            / NumberConstant.NS_TO_MS"
+        },
+        {
+          "n": 161,
+          "text": "        )"
+        },
+        {
+          "n": 162,
+          "text": "        return [transit_time, transit_size]"
+        },
+        {
+          "n": 163,
+          "text": ""
+        },
+        {
+          "n": 164,
+          "text": "    @classmethod"
+        },
+        {
+          "n": 165,
+          "text": "    def is_send_or_recv_op(cls, op_name: str) -> bool:"
+        },
+        {
+          "n": 166,
+          "text": "        return 'send' in op_name.lower() or 'receive' in op_name.lower()"
+        },
+        {
+          "n": 181,
+          "text": ""
+        },
+        {
+          "n": 182,
+          "text": "    @classmethod"
+        },
+        {
+          "n": 183,
+          "text": "    def update_time_ratio(cls: any, op_time_dict: dict, op_name: str) -> None:"
+        },
+        {
+          "n": 184,
+          "text": "        try:"
+        },
+        {
+          "n": 185,
+          "text": "            op_time_dict[OpAnalysisType.WAIT_TIME_RATIO] = round("
+        },
+        {
+          "n": 186,
+          "text": "                op_time_dict.get(OpAnalysisType.WAIT_TIME)"
+        },
+        {
+          "n": 187,
+          "text": "                / (op_time_dict.get(OpAnalysisType.WAIT_TIME) + op_time_dict.get(OpAnalysisType.TRANSIT_TIME)),"
+        },
+        {
+          "n": 188,
+          "text": "                4,"
+        },
+        {
+          "n": 189,
+          "text": "            )"
+        },
+        {
+          "n": 190,
+          "text": "        except ZeroDivisionError as err:"
+        },
+        {
+          "n": 191,
+          "text": "            logging.warning('%s Transit Time and Wait Time is 0 %s', op_name, err)"
+        },
+        {
+          "n": 192,
+          "text": "        try:"
+        },
+        {
+          "n": 193,
+          "text": "            op_time_dict[OpAnalysisType.SYNCHRONIZATION_TIME_RATIO] = round("
+        },
+        {
+          "n": 194,
+          "text": "                op_time_dict.get(OpAnalysisType.SYNCHRONIZATION_TIME)"
+        },
+        {
+          "n": 195,
+          "text": "                / ("
+        },
+        {
+          "n": 196,
+          "text": "                    op_time_dict.get(OpAnalysisType.SYNCHRONIZATION_TIME)"
+        },
+        {
+          "n": 197,
+          "text": "                    + op_time_dict.get(OpAnalysisType.TRANSIT_TIME)"
+        },
+        {
+          "n": 198,
+          "text": "                ),"
+        },
+        {
+          "n": 199,
+          "text": "                4,"
+        },
+        {
+          "n": 200,
+          "text": "            )"
+        },
+        {
+          "n": 201,
+          "text": "        except ZeroDivisionError as err:"
+        },
+        {
+          "n": 205,
+          "text": "    def update_bandwidth_record("
+        },
+        {
+          "n": 206,
+          "text": "        cls: any, bandwidth_dict: dict, bandwidth_info_type: str, size: float, dur: float"
+        },
+        {
+          "n": 207,
+          "text": "    ) -> None:"
+        },
+        {
+          "n": 208,
+          "text": "        bandwidth_dict[bandwidth_info_type][OpBandWidthType.TRANSIT_SIZE_MB] += size"
+        },
+        {
+          "n": 209,
+          "text": "        bandwidth_dict[bandwidth_info_type][OpBandWidthType.TRANSIT_TIME_MS] += dur"
+        },
+        {
+          "n": 210,
+          "text": "        bandwidth_dict[bandwidth_info_type][OpBandWidthType.SIZE_DISTRIBUTION][size][0] += 1"
+        },
+        {
+          "n": 211,
+          "text": "        bandwidth_dict[bandwidth_info_type][OpBandWidthType.SIZE_DISTRIBUTION][size][1] += dur"
+        },
+        {
+          "n": 212,
+          "text": ""
+        },
+        {
+          "n": 213,
+          "text": "    @classmethod"
+        },
+        {
+          "n": 216,
+          "text": "            bandwidth_dict[StrConstant.HCCS][OpBandWidthType.TRANSIT_SIZE_MB]"
+        },
+        {
+          "n": 217,
+          "text": "            + bandwidth_dict[StrConstant.PCIE][OpBandWidthType.TRANSIT_SIZE_MB]"
+        },
+        {
+          "n": 218,
+          "text": "            + bandwidth_dict[StrConstant.SIO][OpBandWidthType.TRANSIT_SIZE_MB]"
+        },
+        {
+          "n": 219,
+          "text": "        )"
+        },
+        {
+          "n": 220,
+          "text": "        bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] += ("
+        },
+        {
+          "n": 221,
+          "text": "            bandwidth_dict[StrConstant.HCCS][OpBandWidthType.TRANSIT_TIME_MS]"
+        },
+        {
+          "n": 222,
+          "text": "            + bandwidth_dict[StrConstant.PCIE][OpBandWidthType.TRANSIT_TIME_MS]"
+        },
+        {
+          "n": 223,
+          "text": "            + bandwidth_dict[StrConstant.SIO][OpBandWidthType.TRANSIT_TIME_MS]"
+        },
+        {
+          "n": 224,
+          "text": "        )"
+        },
+        {
+          "n": 225,
+          "text": "        if bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] != 0:"
+        },
+        {
+          "n": 226,
+          "text": "            bandwidth_dict[StrConstant.SDMA][OpBandWidthType.BANDWIDTH_GB_S] = round("
+        },
+        {
+          "n": 227,
+          "text": "                (bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.MB_TO_GB)"
+        },
+        {
+          "n": 228,
+          "text": "                / (bandwidth_dict[StrConstant.SDMA][OpBandWidthType.TRANSIT_TIME_MS] / NumberConstant.CONVERSION_TIME),"
+        },
+        {
+          "n": 229,
+          "text": "                4,"
+        },
+        {
+          "n": 230,
+          "text": "            )"
+        },
+        {
+          "n": 231,
+          "text": ""
+        },
+        {
+          "n": 232,
+          "text": "    @classmethod"
+        },
+        {
+          "n": 233,
+          "text": "    def analyze_bandwidth_info(cls: any, bandwidth_dict: dict, transport_type: str) -> None:"
+        },
+        {
+          "n": 234,
+          "text": "        if bandwidth_dict[transport_type][OpBandWidthType.TRANSIT_TIME_MS] != 0:"
+        },
+        {
+          "n": 235,
+          "text": "            bandwidth_dict[transport_type][OpBandWidthType.BANDWIDTH_GB_S] = round("
+        },
+        {
+          "n": 236,
+          "text": "                (bandwidth_dict[transport_type][OpBandWidthType.TRANSIT_SIZE_MB] / NumberConstant.MB_TO_GB)"
+        },
+        {
+          "n": 237,
+          "text": "                / (bandwidth_dict[transport_type][OpBandWidthType.TRANSIT_TIME_MS] / NumberConstant.CONVERSION_TIME),"
+        },
+        {
+          "n": 238,
+          "text": "                4,"
+        },
+        {
+          "n": 239,
+          "text": "            )"
+        },
+        {
+          "n": 240,
+          "text": "        bandwidth_dict[transport_type][OpBandWidthType.BANDWIDTH_UTILIZATION] = round("
+        },
+        {
+          "n": 241,
+          "text": "            bandwidth_dict[transport_type][OpBandWidthType.BANDWIDTH_GB_S]"
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/msmodel/cluster_info/communication_model.py",
+      "sha256": "33066a6591ef6a3f5d9472ad8a512c5936a2231c36c58e35e04d14abb37321e9",
+      "hit_count": 6,
+      "lines": [
+        {
+          "n": 26,
+          "text": ""
+        },
+        {
+          "n": 27,
+          "text": ""
+        },
+        {
+          "n": 28,
+          "text": "@dataclass"
+        },
+        {
+          "n": 29,
+          "text": "class OpTaskData:"
+        },
+        {
+          "n": 30,
+          "text": "    \"\"\"op 与其 task 的聚合：op 侧字段(op_name/group_name/start/end) + 归属的 task 列表\"\"\""
+        },
+        {
+          "n": 31,
+          "text": ""
+        },
+        {
+          "n": 32,
+          "text": "    op_name: str = Constant.NA"
+        },
+        {
+          "n": 33,
+          "text": "    group_name: str = Constant.NA"
+        },
+        {
+          "n": 34,
+          "text": "    start: int = Constant.DEFAULT_VALUE"
+        },
+        {
+          "n": 35,
+          "text": "    end: int = Constant.DEFAULT_VALUE"
+        },
+        {
+          "n": 36,
+          "text": "    tasks: list = field(default_factory=list)"
+        },
+        {
+          "n": 37,
+          "text": ""
+        },
+        {
+          "n": 77,
+          "text": "        for op_table in (DBNameConstant.TABLE_HCCL_OP_SINGLE_DEVICE, DBNameConstant.TABLE_KFC_OP):"
+        },
+        {
+          "n": 78,
+          "text": "            if not DBManager.judge_table_exist(self.cur, op_table):"
+        },
+        {
+          "n": 79,
+          "text": "                continue"
+        },
+        {
+          "n": 80,
+          "text": "            rows = DBManager.fetch_all_data("
+        },
+        {
+          "n": 81,
+          "text": "                self.cur, \"select connection_id, iter_id, op_name, group_name, start, end from {}\".format(op_table)"
+        },
+        {
+          "n": 82,
+          "text": "            )"
+        },
+        {
+          "n": 83,
+          "text": "            for connection_id, iter_id, op_name, group_name, start, end in rows:"
+        },
+        {
+          "n": 84,
+          "text": "                if top_hccl_ops is not None and op_name not in top_hccl_ops:"
+        },
+        {
+          "n": 85,
+          "text": "                    continue"
+        },
+        {
+          "n": 86,
+          "text": "                op_info[(connection_id, iter_id)] = (op_name, group_name, start, end)"
+        },
+        {
+          "n": 87,
+          "text": "        op_task_map = {}"
+        },
+        {
+          "n": 88,
+          "text": "        for task in tasks:"
+        },
+        {
+          "n": 89,
+          "text": "            key = (task.op_id, task.iter_id)"
+        },
+        {
+          "n": 90,
+          "text": "            info = op_info.get(key)"
+        },
+        {
+          "n": 92,
+          "text": "                # 无对应 op 的 task 不合法，跳过不处理"
+        },
+        {
+          "n": 93,
+          "text": "                continue"
+        },
+        {
+          "n": 94,
+          "text": "            op_task = op_task_map.get(key)"
+        },
+        {
+          "n": 95,
+          "text": "            if op_task is None:"
+        },
+        {
+          "n": 96,
+          "text": "                op_task = OpTaskData(op_name=info[0], group_name=info[1], start=info[2], end=info[3])"
+        },
+        {
+          "n": 97,
+          "text": "                op_task_map[key] = op_task"
+        },
+        {
+          "n": 98,
+          "text": "            op_task.tasks.append(task)"
+        },
+        {
+          "n": 99,
+          "text": "        return op_task_map"
+        },
+        {
+          "n": 100,
+          "text": ""
+        }
+      ],
+      "truncated": false
+    }
+  ],
+  "limits": [
+    "Source is installed image version, but exact runtime exporter selection and binary implementation need independent evidence.",
+    "Matching group labels are not per-collective identity; source context must establish uniqueness and reuse.",
+    "Reader and aggregator source does not prove raw hardware subtask capture completeness."
+  ],
+  "script_sha256": "0c269a70fc0470a750863d63ac15936f812729f4ca7d99dda3f0a2cb2211e9ea",
+  "no_device_work": true
+}

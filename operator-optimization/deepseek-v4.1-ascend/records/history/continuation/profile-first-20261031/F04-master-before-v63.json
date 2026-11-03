@@ -1,0 +1,83 @@
+{
+  "id": "F04_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "norm_cast": "norm_cast"
+  },
+  "nodes": [
+    {
+      "id": "norm_cast",
+      "kind": "ROW_REDUCTION_NORM_CAST",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [],
+  "external_inputs": [
+    {
+      "producer": "ffn_pre",
+      "consumer": "norm_cast",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "norm_cast",
+      "consumer": "moe",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "ALREADY_IMPLEMENTED",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v29": {
+    "source_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F04-precision-routing-and-row-contract-v29.json",
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v29.json#F04",
+    "scope": "Existingboundary/currentfanoutrefinement;notimplementationorgain."
+  },
+  "extensions_v29": [
+    {
+      "id": "F04-A",
+      "status": "ALREADY_IMPLEMENTED_CURRENT_FUSED_BOUNDARY",
+      "change": "RMSNormplusBF16/FLOAToutputproduction.",
+      "scope": "4472native/graphinstances;reviewedsourcewidensroundedBF16. Notanewfusionorspeedup."
+    },
+    {
+      "id": "F04-B",
+      "status": "CONDITIONAL_COMPOSITION_WITH_F20",
+      "change": "AvoidseparateFP32globalplane byanexactrouterconsumerthatwidensBF16internally whileBF16expert/sharedplane remains.",
+      "requires": "SameBF16rounding,FP32routerweight/accumulationandallliveconsumers;currentF.linearFLOATinterfacecannotjustreceiveadifferentdtype."
+    },
+    {
+      "id": "F04-C",
+      "status": "CONDITIONAL_LARGER_SUBGRAPH",
+      "change": "JointlyreviewHC-FFNpre/RMS/router/gatingboundaries orsharedquantizationfanout.",
+      "requires": "PreserveallHCcoefficients/residuals,normalizationparameters,FP32gateweights/IDs,bothrouted/sharedconsumers andexistingprecision/readiness;overlapsF01/F20/F22."
+    },
+    {
+      "id": "F04-D",
+      "status": "CONDITIONAL_SPLIT_REORGANIZATION",
+      "change": "Reviewrow/featuretilingorvalid-row-awareexecution forsmallM.",
+      "requires": "Fullrowreduction/rounding,actualvalidmask/padded-rowvalues,allshared/residual/auxconsumers andcross-coretimingcost;nohardwarecapacityorbenefitproof."
+    },
+    {
+      "id": "F04-E",
+      "status": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+      "change": "Removeoneplane,skipBF16rounding,cancelnormscalefromrouting,orreusehiddennormacrosslayersbysameshape.",
+      "reason": "Liveexpert/shared/routerconsumers,nonlinear/biasweightedrouting andchanginghiddenvaluesdistinguishthesechanges."
+    }
+  ],
+  "review_v55": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-fusion-profile-v55.json",
+    "fusion_theory": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F04-router-fusion-roofline-v55.json",
+    "shape_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-shape-ceiling-ledger-v55.json",
+    "focus": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/OPERATOR-FOCUS-REQUIREMENTS-v55.json",
+    "relation": "Exact3200graphblocks bind norm/router/topK shapes;2560root-associated and640phase-unbound keptseparate. Existingnorm+castalreadyfused. ConditionalFP32plane andscoreinterface removal has8MH/8MElogicalbyte accounting;M3vsM800 differ strongly. No cache/FP32peak/nativegain claim.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

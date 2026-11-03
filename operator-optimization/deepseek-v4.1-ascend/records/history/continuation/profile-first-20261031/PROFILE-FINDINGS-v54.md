@@ -1,0 +1,11 @@
+本轮补齐请求参数与两个直接输出消费者的证据。已读取4个历史哈希匹配的捕获记录和6个定点原166 stage源码文件，并查询全部32份本地数据库的相关META_DATA与调用栈字符串。没有模型、设备、新采集、服务/进程操作。
+
+22项参数来源中，正式C8请求显式temperature=0；所查初始化会在贪心模式下把top-p/top-k/min-p归一化为1/0/0。n=1、logprobs为空、stopstrings为空、DELTA输出以及最终usage要求已通过客户端和默认参数源码连接起来。engine日志明确关闭逐请求spec metrics及routed-expert返回。请求seed为空不能当成引擎seed=0；内部拒绝采样概率和entropy也不能因外部不返回logprobs而删除。
+
+保留三个会影响方案的条件：repetition penalty依赖模型生成默认值；watermarking字段默认True但实际processor消费未证实；流式间隔仍取服务器设置。字段值、保存栈和实际参数对象分别记录，没有把缺少watermark调用栈当成禁用证明。
+
+M01由7条历史时间线改为12个部分语义分支族。M25仍为11族，补读ParentRequest及结束哨兵：parent按模式、child索引和seed处理；空缓冲的结束单例被identity检查过滤，有待发内容时则合并finished并发送payload。复制单例或丢弃所有终止插入会改变行为。当前C8源路径n=1，不走多子请求fanout。
+
+32份保存元数据确认两个TP8逻辑组及EP/MC216-rank组，group_rank均与rank映射一致；这不证明物理拓扑和native事件。每份数据库两条环境记录值不同，不能按最后一条覆盖后声称是worker实际环境。
+
+35项模型候选、7项框架候选、0个整模块关闭。仍有真实分支、消费者、进程及资源上界缺口；本轮没有优化实现或收益测试，整体Goal继续。

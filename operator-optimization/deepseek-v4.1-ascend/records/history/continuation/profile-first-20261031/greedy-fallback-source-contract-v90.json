@@ -1,0 +1,226 @@
+{
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/rejection_sampler.py",
+  "sha256": "bb1d39de851540c16c2dd2b16df60c60a1fc4957cedb88bdce9417efc0d55eda",
+  "functions": [
+    {
+      "name": "rejection_greedy_sample_spec_len_1_pytorch",
+      "first_line": 798,
+      "last_line": 822,
+      "source": [
+        "def rejection_greedy_sample_spec_len_1_pytorch(",
+        "    output_token_ids,  # [batch_size, 2]",
+        "    draft_token_ids,  # [num_tokens]",
+        "    target_argmax,  # [num_tokens]",
+        "    bonus_token_ids,  # [batch_size]",
+        "    uniform_probs=None,",
+        "    synthetic_conditional_rates=None,",
+        "    synthetic_mode=False,",
+        "):",
+        "    batch_size = output_token_ids.size(0)",
+        "    num_tokens = draft_token_ids.size(0)",
+        "    assert batch_size == num_tokens",
+        "    if synthetic_mode:",
+        "        assert uniform_probs is not None and synthetic_conditional_rates is not None",
+        "        # spec_len == 1 => only position 0. Accept the draft token with prob",
+        "        # rate[0]; on accept emit the draft token (pos 0) + bonus (pos 1),",
+        "        # otherwise emit target_argmax (pos 0).",
+        "        rate = synthetic_conditional_rates[0]",
+        "        accept_req_mask = (uniform_probs < rate) & (draft_token_ids >= 0)",
+        "        output_token_ids[:, 0] = torch.where(accept_req_mask, draft_token_ids, target_argmax)",
+        "    else:",
+        "        accept_req_mask = draft_token_ids == target_argmax",
+        "        output_token_ids[:, 0] = target_argmax",
+        "    bonus_token_ids = bonus_token_ids.squeeze(1)",
+        "    output_token_ids[:, 1] = torch.where(accept_req_mask, bonus_token_ids, output_token_ids[:, 1])"
+      ]
+    },
+    {
+      "name": "rejection_greedy_sample_pytorch",
+      "first_line": 825,
+      "last_line": 894,
+      "source": [
+        "def rejection_greedy_sample_pytorch(",
+        "    output_token_ids,  # [batch_size, max_spec_len + 1]",
+        "    cu_num_draft_tokens,  # [batch_size]",
+        "    draft_token_ids,  # [num_tokens]",
+        "    target_argmax,  # [num_tokens]",
+        "    bonus_token_ids,  # [batch_size]",
+        "    draft_tokens_per_req,  # [batch_size], list",
+        "    max_spec_len,",
+        "    is_greedy=None,  # [batch_size] or None",
+        "    uniform_probs=None,",
+        "    synthetic_conditional_rates=None,",
+        "    synthetic_mode=False,",
+        "):",
+        "    batch_size = output_token_ids.size(0)",
+        "    num_tokens = draft_token_ids.size(0)",
+        "    device = output_token_ids.device",
+        "    draft_tokens_per_req = torch.tensor(draft_tokens_per_req).to(device, non_blocking=True)",
+        "    if is_greedy is None:",
+        "        is_greedy = torch.ones(batch_size, dtype=torch.bool, device=device)",
+        "",
+        "    start_indices = cu_num_draft_tokens - draft_tokens_per_req",
+        "    req_ids = torch.arange(batch_size, device=device)",
+        "    token_req_ids = torch.repeat_interleave(req_ids, draft_tokens_per_req)",
+        "    token_positions = torch.arange(num_tokens, device=device) - start_indices[token_req_ids]",
+        "",
+        "    # Find the first mismatch position of each request.",
+        "    if synthetic_mode:",
+        "        assert uniform_probs is not None and synthetic_conditional_rates is not None",
+        "        # Synthetic: accept draft token i with prob conditional_rates[i],",
+        "        # regardless of target match. First rejection (= first mismatch) is the",
+        "        # first position not accepted.",
+        "        rates_per_token = synthetic_conditional_rates[token_positions]",
+        "        accept_per_token = (uniform_probs < rates_per_token) & (draft_token_ids >= 0)",
+        "        mismatch_global = ~accept_per_token",
+        "    else:",
+        "        mismatch_global = draft_token_ids != target_argmax",
+        "    if max_spec_len == 0:",
+        "        first_mismatch_pos_per_req = torch.zeros(batch_size, dtype=torch.long, device=device)",
+        "    else:",
+        "        # [bs, max_spec_len]",
+        "        pos_matrix = torch.full((batch_size, max_spec_len), -1, dtype=torch.long, device=device)",
+        "        pos_matrix[token_req_ids, token_positions] = token_positions",
+        "        mismatch_matrix = torch.full((batch_size, max_spec_len), False, dtype=torch.bool, device=device)",
+        "        mismatch_matrix[token_req_ids, token_positions] = mismatch_global",
+        "        mismatch_positions = torch.where(mismatch_matrix, pos_matrix, max_spec_len * 2)",
+        "        first_mismatch_pos_per_req, _ = torch.min(mismatch_positions, dim=1)",
+        "        no_mismatch_mask = first_mismatch_pos_per_req == max_spec_len * 2",
+        "        first_mismatch_pos_per_req[no_mismatch_mask] = draft_tokens_per_req[no_mismatch_mask]",
+        "",
+        "    # Copy matched target tokens into output.",
+        "    copy_len = torch.minimum(first_mismatch_pos_per_req + 1, draft_tokens_per_req)",
+        "    copy_indices = torch.arange(max_spec_len + 1, device=device).expand(batch_size, -1)",
+        "    copy_mask = copy_indices < copy_len.unsqueeze(1)",
+        "    greedy_mask = is_greedy.unsqueeze(1)",
+        "    final_copy_mask = copy_mask & greedy_mask",
+        "    global_idx = start_indices.unsqueeze(1) + copy_indices",
+        "    if synthetic_mode:",
+        "        # Accepted positions emit the draft token; the first rejected position",
+        "        # emits target_argmax (greedy recovery).",
+        "        copy_tokens = torch.where(accept_per_token, draft_token_ids, target_argmax)",
+        "    else:",
+        "        copy_tokens = target_argmax",
+        "    output_token_ids[final_copy_mask] = copy_tokens[global_idx[final_copy_mask]].to(output_token_ids.dtype)",
+        "    # Fill bonus token.",
+        "    needs_bonus = is_greedy & (first_mismatch_pos_per_req >= draft_tokens_per_req)",
+        "    if torch.any(needs_bonus):",
+        "        bonus_rows = torch.where(needs_bonus)[0]",
+        "        bonus_cols = draft_tokens_per_req[bonus_rows]",
+        "        bonus_token_ids = bonus_token_ids.squeeze(1)",
+        "        output_token_ids[bonus_rows, bonus_cols] = bonus_token_ids[bonus_rows]"
+      ]
+    }
+  ],
+  "local_if_cases": [
+    {
+      "function": "rejection_greedy_sample_spec_len_1_pytorch",
+      "line": 810,
+      "test": "synthetic_mode",
+      "arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "function": "rejection_greedy_sample_pytorch",
+      "line": 842,
+      "test": "is_greedy is None",
+      "arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "function": "rejection_greedy_sample_pytorch",
+      "line": 851,
+      "test": "synthetic_mode",
+      "arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "function": "rejection_greedy_sample_pytorch",
+      "line": 861,
+      "test": "max_spec_len == 0",
+      "arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "function": "rejection_greedy_sample_pytorch",
+      "line": 881,
+      "test": "synthetic_mode",
+      "arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "function": "rejection_greedy_sample_pytorch",
+      "line": 890,
+      "test": "torch.any(needs_bonus)",
+      "arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    }
+  ],
+  "local_if_sites": 6,
+  "local_if_arms": 12,
+  "source_capture_is_preexisting": true,
+  "new_target_source_files": 0,
+  "caller_specialization": {
+    "line": 529,
+    "test": "min(num_draft_tokens) == 1 and max(num_draft_tokens) == 1 and sampling_metadata.all_greedy",
+    "source": [
+      "            if min(num_draft_tokens) == 1 and max(num_draft_tokens) == 1 and sampling_metadata.all_greedy:",
+      "                rejection_greedy_sample_spec_len_1_pytorch(",
+      "                    output_token_ids,",
+      "                    draft_token_ids,",
+      "                    target_argmax,",
+      "                    bonus_token_ids,",
+      "                    uniform_probs=uniform_probs_for_greedy,",
+      "                    synthetic_conditional_rates=synthetic_conditional_rates,",
+      "                    synthetic_mode=synthetic_mode,",
+      "                )",
+      "            else:",
+      "                rejection_greedy_sample_pytorch(",
+      "                    output_token_ids,",
+      "                    cu_num_draft_tokens,",
+      "                    draft_token_ids,",
+      "                    target_argmax,",
+      "                    bonus_token_ids,",
+      "                    num_draft_tokens,",
+      "                    max_spec_len,",
+      "                    is_greedy,",
+      "                    uniform_probs=uniform_probs_for_greedy,",
+      "                    synthetic_conditional_rates=synthetic_conditional_rates,",
+      "                    synthetic_mode=synthetic_mode,",
+      "                )"
+    ],
+    "requires_output_capacity_equals_one": false,
+    "condition_requires_actual_counts_one": true,
+    "outer_reachability": "not all_random AND not HAS_TRITON;specialization also all_greedy,B>0 for caller min/max;valid metadata n<=S."
+  },
+  "facts": [
+    "SpecializedhelperassertsB==N,notoutputwidth==2. Callerchecksmin/max actual draftcounts==1 andall_greedy;doesnotcheckmax_spec_len==1. ForS>1onlycols0/1arewritten,suffixstilldependsontheoriginalfill.",
+    "Specializednormalwritescol0targetArgmax;col1where(accept,bonus,oldcol1). Syntheticaccept=(U<rate0)&draft>=0;col0isacceptedDraftorfailedTarget. It writesallBentriesofcol1evenwhenunchanged.",
+    "Generalhelperconstructsdevicecounts,startindices,repeat_interleavetokenRequestIDs andpositions,thenposition/mismatch/sentinelmatricesB*S forS>0;ordinaryusesfirstmismatch,syntheticfirstnotaccepted.",
+    "Generalcopylength=min(firstMismatch+1,n);maskgreedyBEFOREgather. SyntheticcopiesdraftforacceptedpositionsandtargetArgmaxforfirstreject. Bonusiswrittenatnonlyifallaccepted;tailsandnongreedyrowsretainpreviousoutput.",
+    "S==0branchsetsfirstMismatch0;withvalidn=0,greedyrowsgetbonusat0. B==0caller fallbackmin([]) isnot silently made valid by a body-only rewrite.",
+    "Calleruniform_probs_for_greedy isgeneratedforallN andconvertedFLOAT32 beforeeitherbackend. Mixednon-greedypathlaterdrawsaseparateuniformbankandrequestQ;thoseRNGcallsareeffects,notCSE candidates.",
+    "Only2directgreedybodiesare newly reviewedhere;4random/recoverybodieswerealreadyreviewedv49. Current72greedyTritonlaunchesdo notattestexecutionofthesePyTorchbodies or actualsynthetic/allgreedy flags."
+  ],
+  "preconditions": [
+    "B>0callerwhere min/max used;validboundedS/counts,cumulativepartitionN=sum(n),same ordered row and bonus plan.",
+    "Exact provided row-argmax values/comparator/ties/NaNs preserved;inputs readonly and no unproved output/input alias.",
+    "Synthetic uniforms retain the caller FLOAT32 conversion;rates retain original dtype/values and comparison promotion. All original RNGcalls/state advancement retained;keepvalidation/errors.",
+    "Replacing old-output retention by PLACEHOLDER requires immediate caller-filled bank and no interveningwriter;generichelper retainsarbitraryexistingtails."
+  ],
+  "whole_sampler_branch_universe_closed": false,
+  "native_backend_or_flags_attested": false,
+  "overall_complete": false
+}

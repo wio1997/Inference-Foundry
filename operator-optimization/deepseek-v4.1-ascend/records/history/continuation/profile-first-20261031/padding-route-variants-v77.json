@@ -1,0 +1,88 @@
+{
+  "variants": [
+    {
+      "id": "PAD-TOPK-INTEGRATED-CONSTANT-TAIL",
+      "mechanism": "New valid-prefix/output interface skips tail row calculation and writes exact cached native IDs/weights into full freshPoutput.",
+      "reference_bytes": 1277488,
+      "status": "CONDITIONAL_OPERATOR_REORGANIZATION",
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "native_validated": false
+    },
+    {
+      "id": "PAD-TOPK-NATIVE-PREFIX-THEN-ASSEMBLE",
+      "mechanism": "Existing native N-row call followed by separate fullPassembly.",
+      "reference_bytes": 1354288,
+      "status": "COST_DISFAVORED_IN_FIXED_ROW_MODEL;NOT_UNIVERSALLY_EXCLUDED",
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "native_validated": false
+    },
+    {
+      "id": "PAD-TOPK-JOINT-NO-LOGITSPAD",
+      "mechanism": "Keep router logits atN and combine valid-prefix consumer+constant-tail output while retaining hidden/maskP.",
+      "reference_bytes": 1277488,
+      "status": "CONDITIONAL_F20_DIRECT_PRODUCER_COMPOSITION;NO_DOUBLE_COUNT",
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "native_validated": false
+    },
+    {
+      "id": "PAD-TOPK-PERSISTENT-TAIL",
+      "mechanism": "Reuse already filled tail in persistent raw-output bank.",
+      "reference_bytes": null,
+      "status": "CONDITIONAL_ALL_WRITER_EPOCH;NOT_GENERIC_FRESH_OUTPUT",
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "native_validated": false
+    },
+    {
+      "id": "EXCLUDED-ALGEBRAIC-OR-POSTRNG-TEMPLATE",
+      "mechanism": "Replace weights by1/k, sort bias alone, reuse mapped/randomized outputs, or shrink postprocessor RNG shape.",
+      "reference_bytes": null,
+      "status": "EXCLUDED_WITHOUT_ADDITIONAL_EQUIVALENCE_PROOF",
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "native_validated": false
+    }
+  ],
+  "variant_count": 5,
+  "existing_candidate": "F20 MC2-PAD-TOPK(v63), composed with existing F20 padding and F21 dispatch frontier;not a new main mechanism.",
+  "required_key": [
+    "layer/rank and text-bias value generation",
+    "E,k,norm2,eps,scaling,group attrs,output dtype/index type",
+    "ID0 sentinel classification and hash0/vision-bias mode",
+    "native implementation/precision/tie policy",
+    "shape/tiling class until cross-shape exactness proved"
+  ],
+  "rowplan_guard": "OriginalN/P+explicitpadding provenance required. P816alone cannot distinguish N800→816 from N816→816.",
+  "invalidation": [
+    "Publish template with stream/event and capture replay ordering before readers. Sameaddress does not mean samevalue generation.",
+    "Parameter reload/mode/native changes invalidate. Cached postmapped IDs additionally require mapepoch;current proposal retains mapping outside cache.",
+    "N816realinput overwrites former tail in persistentbank; nextN800mustrestore unless all-writer epoch proves preserved."
+  ],
+  "build_options": [
+    {
+      "kind": "NATIVE_M1_BUILD",
+      "row_evaluations": 1,
+      "condition": "Needs row/shape/native equivalence; symbolic16J−1 rowwork,setup/fill/launch not priced."
+    },
+    {
+      "kind": "NATIVE_SAME_P816_BUILD",
+      "row_evaluations": 816,
+      "strict_positive_rowwork_break_even_uses": 52,
+      "condition": "16J>816⇒J>51 even before setup/fill. Same-shape conservative option."
+    },
+    {
+      "kind": "SNAPSHOT_FIRST_PADDED_NATIVE_RESULT",
+      "extra_TopK_row_evaluations": 0,
+      "reference_copy_bytes": 96,
+      "condition": "Read48+write48template; first call not accelerated,needs later eligible reuse and publication."
+    }
+  ],
+  "repeated_layer_hits_proved": false,
+  "all_EP_receiver_work_preserved": true,
+  "conditional_operator_analysis_complete_for_this_question": true,
+  "whole_candidate_all_variants_closed": false,
+  "overall_complete": false
+}

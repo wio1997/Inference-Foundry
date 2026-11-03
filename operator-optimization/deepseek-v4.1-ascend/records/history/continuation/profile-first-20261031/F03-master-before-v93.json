@@ -1,0 +1,217 @@
+{
+  "id": "F03_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "ffn_post": "ffn_post",
+    "next_pre": "next_pre"
+  },
+  "nodes": [
+    {
+      "id": "ffn_post",
+      "kind": "HC_POST_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "next_pre",
+      "kind": "HC_PRE_COMPOSITE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [],
+  "external_inputs": [
+    {
+      "producer": "moe",
+      "consumer": "ffn_post",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_post",
+      "consumer": "ffn_post",
+      "value": "residual",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "ffn_post",
+      "value": "post/comb",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "engram",
+      "consumer": "next_pre",
+      "value": "Engram-updated residual",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "next_pre",
+      "value": "delayed coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "ffn_post",
+      "consumer": "aux_mean",
+      "value": "residual before optional Engram",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_post",
+      "consumer": "engram",
+      "value": "optional next-layer Engram",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_post",
+      "consumer": "collapse",
+      "value": "terminal-layer HC state",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v35": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-embedding-HC-CP-row-and-consumer-contract-v35.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-layout-ownership-and-context-query-reorganization-v35.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-optimization-condition-ledger-v35.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-source-and-conditional-decoder-graphs-v35.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "variants": [
+      {
+        "id": "F03-v35-DECODER-LINK",
+        "parent": "F03",
+        "transformation": "Tile HCpost into the next HCpre/norm consumer, with explicit residual and premix outputs at both attention/FFN and layer boundaries.",
+        "argument": "Current common decoder returns hidden and ffn_pre and retains post state as a later residual; producer/consumer stages may share loads or tiles while emitting required state.",
+        "conditions": "The complete HC residual is not dead merely because next pre consumes it. Preserve current scaling, rounded add, collective finalization, separate pre_mix and last-layer collapse. F23/F04 effects are not additive.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      }
+    ]
+  },
+  "review_v58": {
+    "profile_edges": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/HC-operator-profile-and-edges-v58.json",
+    "work_traffic_bounds": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/HC-work-traffic-and-reference-bounds-v58.json",
+    "numerical_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/HC-operator-numerical-and-dependency-contract-v58.json",
+    "conditional_variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/HC-fusion-split-reorganization-variants-v58.json",
+    "relation": "HC16regimes/8944eachPrePost,3200graphlayers reconciled. Externalpre_mix makescurrentY independentofcurrentcoefficientprojection/Sinkhorn;7conditionalvariants includeY/coeffsplit+norm,Post→collapse/norm,FP32castworkspace andGramdiagonal workreduction. RetainBF16barriers/residual/newcoeffoutputs/otherconsumers.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false,
+    "conditional_operator_analysis_deliverable": true
+  },
+  "review_v66": {
+    "native_population": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-native-operator-population-v66.json",
+    "operator_regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-regime-models-v66.json",
+    "count_work_payload_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-work-payload-models-v66.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-contract-v66.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-fusion-variants-v66.json",
+    "candidate_specific_scope": "RSoutput→localHcPosttile/purecopycrosslayerbatch/readiness/generationconstraints;noequal-shapeCSE.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v67": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-regime-models-v67.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-native-chains-v67.json",
+    "work_value_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-fusion-costs-v67.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-operator-contract-v67.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-fusion-variants-v67.json",
+    "pending_evidence": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/initialization-profile-insufficiency-v67.json",
+    "candidate_specific_scope": "DummyattentionmetadataNonevirtualzero→HcPostandunusedinputcontentguard;fullHCresidual/newcoefficients/nonfinite/round/collectiveprotocolpreserved,notmetadata-presentno-querybranch.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-01",
+      "REL73-03",
+      "REL73-25"
+    ],
+    "peers": [
+      "F02",
+      "F16",
+      "F23"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v84": {
+    "clause_ids": [
+      "REL84-01",
+      "REL84-04",
+      "REL84-15"
+    ],
+    "source_contract": "Engram-HC-operator-source-contract-v84.json",
+    "native_frontiers": "Engram-HC-native-frontiers-v84.json",
+    "pure_WKV_variants": "Engram-WKV-hoist-and-memo-variants-v84.json",
+    "work_storage_models": "Engram-WKV-storage-and-work-models-v84.json",
+    "joint_credit": "Engram-HC-transfer-credit-v84.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v85": {
+    "prior_direct_drafter_content_answer_version": 11,
+    "all_snapshot_observers_closed": false,
+    "evidence": [
+      "DSpark-tail-source-index-v85.json",
+      "DSpark-tail-reader-closure-v85.json",
+      "DSpark-tail-native-boundaries-v85.json",
+      "DSpark-tail-reorganization-variants-v85.json",
+      "DSpark-tail-row-local-proof-v85.json",
+      "DSpark-tail-work-communication-models-v85.json",
+      "DSpark-tail-rounding-witnesses-v85.json",
+      "DSpark-tail-transfer-credit-v85.json",
+      "DSpark-tail-composition-clauses-v85.json",
+      "tail-shared-memory-budget-v85.json",
+      "tail-shared-memory-relations-v85.json",
+      "DSpark-tail-prior-evidence-reconciliation-v85.json",
+      "DSpark-tail-ceiling-domains-v85.json"
+    ],
+    "relation_ids": [
+      "REL85-01"
+    ],
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v89": {
+    "evidence": [
+      "typed-capacity-primary-receipts-v89.json",
+      "Vector-theoretical-primary-v89.html",
+      "Cube-theoretical-primary-v89.html",
+      "HF32-mode-primary-v89.html",
+      "Vector-primary-tables-v89.json",
+      "Cube-primary-tables-v89.json",
+      "Cube-formula-decoded-v89.json",
+      "typed-capacity-primary-contract-v89.json",
+      "A3-matrix-typed-capacity-cases-v89.json",
+      "mixed-projection-capacity-repricing-v89.json",
+      "router-Vector-instruction-cuts-v89.json",
+      "HC-precision-mode-capacity-cases-v89.json"
+    ],
+    "typed_instruction_capacity_cases_documented": true,
+    "all_legal_algorithms_or_native_mode_closed": false,
+    "existing_HF32_source_fact_not_counted_new": true,
+    "new_pair_clauses": 0,
+    "new_groups": 0,
+    "implementation": false,
+    "native_test": false
+  }
+}

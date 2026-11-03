@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_3a37b64b-b3bb-40bd-8b41-75ddabdb3ad9",
+  "traceId": "8c5ddfb4-5950-4d13-9c58-0787b2c41524",
+  "turnId": "turn_4bc5d4a1-9eae-4432-99f1-92904c72005d",
+  "response": "轮询已完成，返回码 0、无 stderr，回执写入 `/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-poll166-v12.json`。诊断仍在正常运行，未发现任何错误；未做重启、重复 launch、kill 或修改。\n\n**存活与身份确认**\n- Controller PID `1351606`，starttime ticks `862458845`，`/proc` 实测 state=`S`，与 launch 回执记录的 ticks 完全一致，`controller_live_verified_by_pid_start: true`。run_id 为 `hostprof-20261030T212812Z-360e0c72`，与脚本断言期望值一致。\n- Controller 状态文件在 21:30:58.954 UTC 刚更新，状态为 `DIAGNOSTIC_LOADING`，watchdog PID `1352226`。Controller 距启动约 60 秒，仍在推进而非超时终止。\n\n**容器状态**\n- 诊断容器 `wio-vllm-v41-hostprof-20261030T212812Z-360e0c72`：running，exit code 0，容器 ID `7514283edf38...`，与 `diagnostic-identity.json` 中的 diag_id 一致。\n- 原容器 `wio-vllm-v41-repro166-20261030`：当前 exited，exit code 0，ID `8757dcc7a2f8...`，与 baseline_id 一致。其基线快照显示诊断前为 running（PID 397611）；现在的退出是隔离补采期间让出资源所致，`restore-result.json` 尚未出现，说明恢复动作待诊断结束后执行。\n\n**错误面**\n- `controller-finished.json`、`controller-error.json`、`top-level-error.json`、`restore-result.json` 均不存在；controller stderr 尾部为空。\n- `service.log` 尾部显示 21:31:00–21:31:02 的 vLLM 插件加载与 Ascend 平台激活，只有 triton deprecation/`LD_PRELOAD` 提示，无报错。\n- warmup/baseline/profile 的 `window-status.json` 及 trace/capture 索引尚未生成，符合仍处于 DIAGNOSTIC_LOADING 的阶段特征。\n\n结论：PID/starttime 存活验证通过，controller 状态正常推进，诊断容器运行中，原容器干净退出待恢复，无错误信号。本轮只是单次观察，不构成终止依据；后续若要再看，仍应只用同一只读轮询，不重启、不重复 launch、不 kill。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 64971,
+    "outputTokens": 3844,
+    "totalTokens": 68815,
+    "cacheReadTokens": 52224,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2918,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 68815,
+    "contextUsed": 16191,
+    "contextWindow": 200000
+  }
+}

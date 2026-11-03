@@ -1,0 +1,208 @@
+{
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+  "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+  "statements": [
+    {
+      "start": 938,
+      "end": 938,
+      "source": [
+        "938:         common = common_attn_metadata"
+      ]
+    },
+    {
+      "start": 940,
+      "end": 940,
+      "source": [
+        "940:         is_compressor_state = cache_kind == \"compressor_state\""
+      ]
+    },
+    {
+      "start": 941,
+      "end": 941,
+      "source": [
+        "941:         ratio = get_kv_cache_compression_ratio(spec)"
+      ]
+    },
+    {
+      "start": 943,
+      "end": 943,
+      "source": [
+        "943:         storage_block_size = get_storage_block_size(spec)"
+      ]
+    },
+    {
+      "start": 945,
+      "end": 945,
+      "source": [
+        "945:         num_reqs = int(getattr(common, \"num_reqs\", common.seq_lens.shape[0]))"
+      ]
+    },
+    {
+      "start": 946,
+      "end": 946,
+      "source": [
+        "946:         num_actual_reqs = int(kwargs.get(\"num_actual_reqs\", num_reqs))"
+      ]
+    },
+    {
+      "start": 947,
+      "end": 947,
+      "source": [
+        "947:         num_actual_reqs = min(num_actual_reqs, num_reqs)"
+      ]
+    },
+    {
+      "start": 948,
+      "end": 948,
+      "source": [
+        "948:         num_input_tokens = int(getattr(common, \"num_input_tokens\", common.slot_mapping.shape[0]))"
+      ]
+    },
+    {
+      "start": 949,
+      "end": 949,
+      "source": [
+        "949:         num_actual_tokens = int(getattr(common, \"num_actual_tokens\", num_input_tokens))"
+      ]
+    },
+    {
+      "start": 955,
+      "end": 955,
+      "source": [
+        "955:         shared = kwargs.get(\"common_v41_metadata\")"
+      ]
+    },
+    {
+      "start": 958,
+      "end": 958,
+      "source": [
+        "958:         batch_shared = kwargs.get(\"common_v41_batch_metadata\")"
+      ]
+    },
+    {
+      "start": 968,
+      "end": 968,
+      "source": [
+        "968:         coordinates = dict(batch_metadata)"
+      ]
+    },
+    {
+      "start": 969,
+      "end": 969,
+      "source": [
+        "969:         seq_lens = coordinates[\"seq_lens\"]"
+      ]
+    },
+    {
+      "start": 970,
+      "end": 970,
+      "source": [
+        "970:         positions = coordinates[\"positions\"]"
+      ]
+    },
+    {
+      "start": 974,
+      "end": 974,
+      "source": [
+        "974:         compressed = cache_kind in {\"long_kv\", \"index_k\"}"
+      ]
+    },
+    {
+      "start": 957,
+      "end": 957,
+      "source": [
+        "957:             shared = {}"
+      ]
+    },
+    {
+      "start": 960,
+      "end": 960,
+      "source": [
+        "960:             batch_shared = shared"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "build_qli_metadata",
+      "start": 1227,
+      "end": 1250,
+      "source": [
+        "1227:                 def build_qli_metadata() -> None:",
+        "1228:                     if num_actual_tokens == 0 and not metadata_in_graph:",
+        "1229:                         self._qli_metadata.zero_()",
+        "1230:                         return",
+        "1231:                     assert self._device_backend is not None",
+        "1232:                     value = self._device_backend.quant_lightning_indexer_metadata(",
+        "1233:                         cu_seqlens_q=common.query_start_loc[: num_reqs + 1].int(),",
+        "1234:                         seqused_k=coordinates[\"cache_seq_lens\"],",
+        "1235:                         cmp_residual_k=residual,",
+        "1236:                         batch_size=num_reqs,",
+        "1237:                         max_seqlen_q=-1,",
+        "1238:                         max_seqlen_k=-1,",
+        "1239:                         num_heads_q=int(_config_value(text_config, \"index_n_heads\")),",
+        "1240:                         num_heads_k=1,",
+        "1241:                         head_dim=int(_config_value(text_config, \"index_head_dim\")),",
+        "1242:                         topk=index_topk,",
+        "1243:                         mask_mode=3,",
+        "1244:                         cmp_ratio=ratio,",
+        "1245:                         layout_q=\"TND\",",
+        "1246:                         layout_k=\"PA_BBND\",",
+        "1247:                         candidate_topk_blocks=candidate_blocks,",
+        "1248:                         candidate_block_size=candidate_block_size,",
+        "1249:                     )",
+        "1250:                     self._qli_metadata.copy_(value)"
+      ],
+      "guards": [
+        {
+          "line": 1214,
+          "test": "self._uses_a5_packed_cache",
+          "arm": "BODY"
+        },
+        {
+          "line": 1211,
+          "test": "self._build_query_metadata and self._supports_device_ops and (cache_kind == 'index_k')",
+          "arm": "BODY"
+        }
+      ]
+    },
+    {
+      "name": "build_qli_metadata",
+      "start": 1253,
+      "end": 1271,
+      "source": [
+        "1253:                 def build_qli_metadata() -> None:",
+        "1254:                     value = torch.ops._C_ascend.npu_quant_lightning_indexer_v2_metadata(",
+        "1255:                         int(_config_value(text_config, \"index_n_heads\")),",
+        "1256:                         1,",
+        "1257:                         int(_config_value(text_config, \"index_head_dim\")),",
+        "1258:                         index_topk,",
+        "1259:                         2,",
+        "1260:                         cu_seqlens_q=common.query_start_loc[: num_reqs + 1].int(),",
+        "1261:                         seqused_k=coordinates[\"cache_seq_lens\"],",
+        "1262:                         cmp_residual_k=residual,",
+        "1263:                         batch_size=num_reqs,",
+        "1264:                         max_seqlen_q=int(getattr(common, \"max_query_len\", 0)),",
+        "1265:                         max_seqlen_k=coordinates[\"max_cache_seq_len\"],",
+        "1266:                         layout_q=\"TND\",",
+        "1267:                         layout_k=\"PA_BBND\",",
+        "1268:                         mask_mode=3,",
+        "1269:                         cmp_ratio=ratio,",
+        "1270:                     )",
+        "1271:                     self._qli_metadata.copy_(value)"
+      ],
+      "guards": [
+        {
+          "line": 1214,
+          "test": "self._uses_a5_packed_cache",
+          "arm": "ORELSE"
+        },
+        {
+          "line": 1211,
+          "test": "self._build_query_metadata and self._supports_device_ops and (cache_kind == 'index_k')",
+          "arm": "BODY"
+        }
+      ]
+    }
+  ]
+}

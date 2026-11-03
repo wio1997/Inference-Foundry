@@ -1,0 +1,61 @@
+{
+  "generated_utc": "2026-10-31T09:21:07.620510+00:00",
+  "candidate": "F31",
+  "related": [
+    "F35",
+    "H02"
+  ],
+  "evidence_grade": "DERIVED_FROM_PINNED_SOURCE_PLUS_MEASURED_BOUNDED_DOMAINS",
+  "formula": {
+    "virtual_discard": "Lprime[b,k]=-1 if b is discarded, else L[b,k]",
+    "predicate": "p[b,k]=(Lprime[b,k]!=-1) and (Lprime[b,k]<V)",
+    "count": "c[b]=sum_k int(p[b,k])",
+    "index": "j[b]=max(c[b]-1,0)",
+    "next_ID": "Lprime[b,j[b]] if c[b]>0 else backup[b]"
+  },
+  "proof": "Only next_ID and count escape the helper. In the normal K>=1/valid-index domain, directly reading the original matrix through a virtual discard mask gives every same Lprime read and predicate. Computing the same integer count and then the same count-1 lookup gives exactly the same two outputs without a private clone/masked matrix or separately materialized bool/count/index planes. Default variant preserves original backup construction/publication and all copy/event effects.",
+  "counterexamples": [
+    {
+      "input": [
+        7,
+        -1,
+        8
+      ],
+      "V": 100,
+      "count": 2,
+      "next_ID": -1,
+      "not_equivalent": "Searching rightmost true position would return8."
+    },
+    {
+      "input": [
+        -2,
+        -1
+      ],
+      "V": 100,
+      "count": 1,
+      "next_ID": -2,
+      "not_equivalent": "Replacing predicate by0<=x<V would instead choose backup."
+    },
+    {
+      "input": [
+        7,
+        8
+      ],
+      "discarded": true,
+      "count": 0,
+      "next_ID": "backup",
+      "not_equivalent": "Reusing producer accepted count without discard handling is wrong."
+    }
+  ],
+  "exact_current_sum_domain": "K in{1,6},boolean counts in[0,6],exact inFP32 andINT64. Preserve output countINT64 and nextIDINT32.",
+  "other_domains": [
+    "K0 would make original gather(index0) invalid; retain fallback/error behavior or limit new path toK>=1.",
+    "Do not mutate source sampled IDs or delete their response/logprob/acceptance readers.",
+    "Sampler-emitted summaries need identical discard and ID-range filtering, not only an acceptance boundary Rmap.",
+    "Backing bank and count-copy/GPU-reference lifetimes are not removed by this local proof."
+  ],
+  "no_native_kernel_implemented": true,
+  "no_measured_gain": true,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

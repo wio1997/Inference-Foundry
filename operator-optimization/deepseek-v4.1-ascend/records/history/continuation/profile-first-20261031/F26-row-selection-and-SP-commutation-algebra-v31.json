@@ -1,0 +1,53 @@
+{
+  "generated_utc": "2026-10-31T06:36:59.244166+00:00",
+  "candidate": "F26",
+  "evidence_grade": "DERIVED_IN_STATED_ROW_SEPARABLE_CONTRACT",
+  "definitions": {
+    "C": "C(X,A)[n,d]=BF16(sum_h FP32(A[n,h])*FP32(X[n,h,d])) with exact baseline HC reduction/rounding.",
+    "N": "N(z)[n,:]=baseline RMSNorm(z[n,:],gamma,eps) then identical optional bias operation;feature reduction spans5120,notrows.",
+    "S_I": "Orderedrowselection,retainingindexchecks,dtype,duplicatesandoutputorder.",
+    "G": "TP-rankorderedrowconcatenationwithsamepadding/trimming."
+  },
+  "identities": [
+    "S_I N(C(X,A)) = N(C(S_I X,S_I A)) for identicalpureper-rowoperators andallvalidI. Eachoutputrowdependsoneoriginalrow;duplicatesremainidenticalcopiesinoriginalorder.",
+    "C(G X,G A) = G C(X,A), and N(G z)=G N(z), ifallranksuseidenticalparameter/operationcontracts,rowpaddingandtrim. NoHC/featurearithmeticreductioniscrossedwithaTProwreduction;Gisdataordering."
+  ],
+  "implementation_caveat": "Identitiesprovefunctionalrowdependence,notthatanewnativekernel/batchshape/tilingkeepsFP32/BF16roundingorloadedbinarynumerics. RetainBF16collapsedvaluebeforeRMS,eachHCinputrounding,andoptionalbias. CurrentAPIlimitationsdonotproveimpossibilityofaconditionalnewinterface.",
+  "selected_rows": "UseUfromallactivecontentreaders;donotassumeU=logits_indicesfromK<N. ApackedresultneedsinversemapornewconsumerABI;afull-shapedbankwithunwrittenholesrequiresproofnoreaderobservesholes.",
+  "sparse_publication": "IfrawHCsnapshotisindependentlyunobserved,computeowner-localC/NforUrowsandpublishonlyrequiredrowsinexactconsumerrank/order. Requiresgroup-uniformplan,capturebank/update/readinessandall-branchconsumerproof.",
+  "finite_index_illustrations": [
+    {
+      "ordered_indices": [
+        6,
+        0,
+        6,
+        2
+      ],
+      "duplicate_order_preserved": true,
+      "identity_equal": true
+    },
+    {
+      "ordered_indices": [],
+      "duplicate_order_preserved": true,
+      "identity_equal": true
+    },
+    {
+      "ordered_indices": [
+        2,
+        1,
+        0
+      ],
+      "duplicate_order_preserved": true,
+      "identity_equal": true
+    }
+  ],
+  "exclusions": [
+    "DroppingBF16castbetweenC/NorHCpost/Cisnotrow-reorderingandnotproved.",
+    "WholefeatureRMSandallfourHCtermsremain;shape/idealorthogonalitycannotdeletearithmetic.",
+    "Parameterreloading/nonuniformgamma/bias/epsorwrongpadding/rankorderinvalidatesgathercommutation.",
+    "Omittedrowneededbyprompt/external/draftconsumerinvalidateslogits-onlypruning."
+  ],
+  "native_validation": false,
+  "physical_or_request_gain": null,
+  "overall_complete": false
+}

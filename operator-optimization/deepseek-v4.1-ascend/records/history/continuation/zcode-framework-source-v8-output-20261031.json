@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_22a7072c-3ff7-4b8c-96f8-41d31e323dca",
+  "traceId": "e2d2025e-2c25-4ec2-8da9-25aa5936582f",
+  "turnId": "turn_7a5ad1f5-1386-4feb-87a8-f85b71c371f7",
+  "response": "定点源码读取已成功完成，实际返回码为 0，3 个文件的 SHA256 已从回执中核对。\n\n**执行结果**\n- 本地命令退出码：`EXIT_CODE=0`\n- 回执内远程 `returncode`：`0`\n- `stderr`：空\n- 未启动/重启/exec 容器，未导入 torch，无设备/推理/服务操作；仅执行 `docker inspect` 与 3 次只读 `docker cp -L`\n\n**容器核验**（脚本内断言通过）\n- Container ID：`bd6ff19d7328271dc0b82f20414129fca1dc9e8eefa472f259eabcfb3e48f46d`\n- Image：`sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b`\n- 观察到容器本来就在运行（`Running=true`），本次未对其做任何启停操作\n\n**读取来源与 SHA256**\n| 容器内路径 | SHA256 | 总行数 | 读取行段 |\n|---|---|---|---|\n| `/vllm-workspace/vllm/vllm/distributed/device_communicators/shm_broadcast.py` | `f3e7a3f3ff713fccbd535e0d41650ee05bdf8677e83d4b90519910645022c30b` | 1058 | 167–207, 730–812, 878–900 |\n| `/vllm-workspace/vllm/vllm/v1/executor/multiproc_executor.py` | `3ed0149a8a8e1550c4f062af40e645d1b734e70f99981bc5bf15f0360507648a` | 1127 | 70–111, 414–451 |\n| `/vllm-workspace/vllm/vllm/distributed/utils.py` | `792146b357139e705064a68d3b66858de8a0baaca4dc7db1232fa217d45db231` | 733 | 40–52 |\n\n**方法**：远程脚本先核验 hostname、容器 ID 与 image，然后用 `docker cp -L` 将三个确切文件以 tar 流方式取出，在内存中解包并按指定行段切片；SHA256 按完整文件原始字节计算。\n\n**结果路径**\n- 远程结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/framework-source-slices-v8.json`\n- 远程结果内容 SHA256：`55f1a79961ce2e79ec9fec3d0b5133b7436d971473840d352ea6cba261fefaa2`\n- 本地回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/framework-source-slices166-v8.json`（13917 字节，SHA256 `1c063ba4d1dde1ec542ce558837c055c37371cd31b8fccfe0818a28de9607316`）\n- 完整源码 stdout（13001 字节）仅保存在回执中，未注入模型上下文。\n\n脚本还声明了证据边界：这是固定迁移镜像的源码快照读取，不代表历史加载字节或函数 CPU 时间的证明；只审查了上述指定行段，不能据此推断其他代码路径。本步骤完成，未宣称整体任务完成。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 105930,
+    "outputTokens": 4870,
+    "totalTokens": 110800,
+    "cacheReadTokens": 87296,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3787,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 110800,
+    "contextUsed": 23090,
+    "contextWindow": 200000
+  }
+}

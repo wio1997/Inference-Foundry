@@ -1,0 +1,358 @@
+{
+  "status": "PARTIAL_LOCAL_STATE_GRAPH",
+  "scope": "frozen Ascend V1 padded path / DSpark; conditions and global consumers remain open",
+  "edges": [
+    {
+      "id": "XI01",
+      "producer_version": "sampler_output.sampled_token_ids[t]",
+      "reviewed_consumer_subset": "padded next-token preparation[t]",
+      "domain": "current→next draft",
+      "alias_or_order_contract": "original is retained; helper clones before discard masking",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 2033,
+        "containing_unit_id": "8f28850582488195:1898:4:2124:30:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner.propose_draft_token_ids"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI02",
+      "producer_version": "request history/req_ids and CPU num_tokens_no_spec[t]",
+      "reviewed_consumer_subset": "backup_next_token_ids CPU→GPU[t]",
+      "domain": "current request mapping",
+      "alias_or_order_contract": "host mapping and uploaded fallback; validity and reuse not proven",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+        "source_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+        "line": 2212,
+        "containing_unit_id": "b3da5e9fff417f5b:2192:4:2252:57:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.llm_base_proposer.AscendSpecDecodeBaseProposer.prepare_next_token_ids_padded"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI03",
+      "producer_version": "sampled clone + discard indices + vocab_size[t]",
+      "reviewed_consumer_subset": "valid mask and valid_count[t]",
+      "domain": "same step",
+      "alias_or_order_contract": "clone prevents mutation of sampled output; mask intermediates local",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+        "source_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+        "line": 2231,
+        "containing_unit_id": "b3da5e9fff417f5b:2192:4:2252:57:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.llm_base_proposer.AscendSpecDecodeBaseProposer.prepare_next_token_ids_padded"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI04",
+      "producer_version": "valid_count + sampled clone + backup[t]",
+      "reviewed_consumer_subset": "next_token_ids[t]",
+      "domain": "same step",
+      "alias_or_order_contract": "where result; count-1 gather assumes valid prefix as original code",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+        "source_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+        "line": 2246,
+        "containing_unit_id": "b3da5e9fff417f5b:2192:4:2252:57:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.llm_base_proposer.AscendSpecDecodeBaseProposer.prepare_next_token_ids_padded"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI05",
+      "producer_version": "valid_count device[t]",
+      "reviewed_consumer_subset": "side-stream D2H + count_event[t]",
+      "domain": "current→next host mirror",
+      "alias_or_order_contract": "wait current stream; nonblocking copy; record event",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 1884,
+        "containing_unit_id": "8f28850582488195:1876:4:1896:77:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner._copy_valid_sampled_token_count"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI06",
+      "producer_version": "valid_count device[t]",
+      "reviewed_consumer_subset": "valid_sampled_token_count_gpu for next _prepare_inputs[t+1]",
+      "domain": "cross iteration",
+      "alias_or_order_contract": "same tensor retained when async spec; producer completion and lifetime required",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 1893,
+        "containing_unit_id": "8f28850582488195:1876:4:1896:77:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner._copy_valid_sampled_token_count"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI07",
+      "producer_version": "next_token_ids[t]",
+      "reviewed_consumer_subset": "input_batch.prev_sampled_token_ids[t]",
+      "domain": "cross iteration",
+      "alias_or_order_contract": "unsqueeze view; request ordering and storage lifetime required",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 1896,
+        "containing_unit_id": "8f28850582488195:1876:4:1896:77:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner._copy_valid_sampled_token_count"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI08",
+      "producer_version": "cu draft counts + valid_count + query_start_loc[t]",
+      "reviewed_consumer_subset": "rejected_count + token_indices_to_sample[t]",
+      "domain": "same step",
+      "alias_or_order_contract": "existing fused prepare_inputs_padded_kernel; inclusive cumulative counts",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/ops/triton/spec_decode/utils.py",
+        "source_sha256": "f3c121111d07f08d0de0498faa64529700dd6089ff7e46303eecf4947e516a95",
+        "line": 54,
+        "containing_unit_id": "03e89ebcbe4d05af:22:0:65:80:FunctionDef",
+        "owner": "vllm_ascend.ops.triton.spec_decode.utils.prepare_inputs_padded_kernel"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI09",
+      "producer_version": "next_token_ids[t]",
+      "reviewed_consumer_subset": "persistent _dspark_seed_buffer[t]",
+      "domain": "next draft",
+      "alias_or_order_contract": "copy prefix and zero remainder; not merely an alias",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+        "source_sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+        "line": 242,
+        "containing_unit_id": "5ed9d7e9ae9d4e22:226:4:357:75:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.dspark_proposer.AscendDSparkProposer.set_inputs_first_pass"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI10",
+      "producer_version": "selected target auxiliary hidden[t]",
+      "reviewed_consumer_subset": "_dflash_hidden_states context buffer[t]",
+      "domain": "cross model",
+      "alias_or_order_contract": "assignment copies selected context prefix; dtype/capacity and all readers remain open",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+        "source_sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+        "line": 259,
+        "containing_unit_id": "5ed9d7e9ae9d4e22:226:4:357:75:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.dspark_proposer.AscendDSparkProposer.set_inputs_first_pass"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI11",
+      "producer_version": "per-group block tables/slots + rejected_count[t]",
+      "reviewed_consumer_subset": "query/context positions + per-group slots[t]",
+      "domain": "same draft",
+      "alias_or_order_contract": "shared output buffers plus distinct per-group slot buffers; exact group identity open",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+        "source_sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+        "line": 274,
+        "containing_unit_id": "5ed9d7e9ae9d4e22:226:4:357:75:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.dspark_proposer.AscendDSparkProposer.set_inputs_first_pass"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI12",
+      "producer_version": "seq_len + rejected_count[t]",
+      "reviewed_consumer_subset": "draft effective seq_len[t]",
+      "domain": "same draft",
+      "alias_or_order_contract": "subtract rejected then add query width; host mirror follows separate branch",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+        "source_sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+        "line": 315,
+        "containing_unit_id": "5ed9d7e9ae9d4e22:226:4:357:75:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.dspark_proposer.AscendDSparkProposer.set_inputs_first_pass"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI13",
+      "producer_version": "persistent seed[t]",
+      "reviewed_consumer_subset": "draft_buffer[:,0][t]",
+      "domain": "same draft",
+      "alias_or_order_contract": "copy seed into persistent buffer, later Markov loop writes successive columns",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+        "source_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+        "line": 1584,
+        "containing_unit_id": "b3da5e9fff417f5b:1454:4:1780:30:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.llm_base_proposer.AscendSpecDecodeBaseProposer._run_merged_draft"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI14",
+      "producer_version": "draft_buffer[:,i] + base_logits[:,i][t]",
+      "reviewed_consumer_subset": "draft_buffer[:,i+1][t]",
+      "domain": "cross draft position",
+      "alias_or_order_contract": "Markov embed→bias→inplace add→argmax/sample; alias and arithmetic barriers matter",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+        "source_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+        "line": 1587,
+        "containing_unit_id": "b3da5e9fff417f5b:1454:4:1780:30:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.llm_base_proposer.AscendSpecDecodeBaseProposer._run_merged_draft"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI15",
+      "producer_version": "draft_buffer[:,1:][t]",
+      "reviewed_consumer_subset": "worker self._draft_token_ids[t]",
+      "domain": "cross function/iteration",
+      "alias_or_order_contract": "returned view remains backed by persistent buffer; all last reads not closed",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+        "source_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+        "line": 1643,
+        "containing_unit_id": "b3da5e9fff417f5b:1454:4:1780:30:FunctionDef",
+        "owner": "vllm_ascend.spec_decode.llm_base_proposer.AscendSpecDecodeBaseProposer._run_merged_draft"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI16",
+      "producer_version": "worker draft token view[t]",
+      "reviewed_consumer_subset": "conditional CPU draft copy[t]",
+      "domain": "same/next host schedule",
+      "alias_or_order_contract": "async fast guard can return; otherwise stream/event and actual K width apply",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 2175,
+        "containing_unit_id": "8f28850582488195:2163:4:2203:47:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner._copy_draft_token_ids_to_cpu"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI17",
+      "producer_version": "prev device count + request mapping + previous positions/drafts[t]",
+      "reviewed_consumer_subset": "corrected num_computed_tokens[t+1]",
+      "domain": "cross iteration",
+      "alias_or_order_contract": "GPU correction; same request identity and lifetime required",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 1522,
+        "containing_unit_id": "8f28850582488195:1281:4:1694:9:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner._prepare_inputs"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI18",
+      "producer_version": "host count copy + count_event[t]",
+      "reviewed_consumer_subset": "corrected optimistic_seq_lens_cpu[t+1]",
+      "domain": "cross iteration",
+      "alias_or_order_contract": "synchronize precedes host read; actual wait duration UNKNOWN",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 1867,
+        "containing_unit_id": "8f28850582488195:1848:4:1874:9:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner._correct_optimistic_seq_lens_cpu"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    },
+    {
+      "id": "XI19",
+      "producer_version": "corrected num_computed_tokens[t+1]",
+      "reviewed_consumer_subset": "positions/seq_lens/block slot mapping[t+1]",
+      "domain": "next target",
+      "alias_or_order_contract": "downstream row ownership and physical KV state remain open",
+      "source_evidence": {
+        "source": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+        "source_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "line": 1608,
+        "containing_unit_id": "8f28850582488195:1281:4:1694:9:FunctionDef",
+        "owner": "vllm_ascend.worker.model_runner_v1.NPUModelRunner._prepare_inputs"
+      },
+      "fact_kind": "DOCUMENTED_LOCAL_SOURCE_CONTRACT",
+      "runtime_tensor_event_stream_identity": "UNKNOWN",
+      "all_consumers_closed": false,
+      "global_coverage_closed": false
+    }
+  ],
+  "candidate": "WS-NEXT-01",
+  "candidate_status": "CONDITIONAL_UNIMPLEMENTED_NO_MEASURED_GAIN",
+  "overlaps": [
+    "F31",
+    "F33",
+    "WS-REJECT-01 for acceptance preparation boundaries"
+  ],
+  "all_modules_closed": false,
+  "overall_complete": false,
+  "review": "CROSS-ITERATION-REVIEW.md"
+}

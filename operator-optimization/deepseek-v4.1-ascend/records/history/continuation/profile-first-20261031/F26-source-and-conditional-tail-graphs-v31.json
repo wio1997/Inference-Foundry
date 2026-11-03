@@ -1,0 +1,410 @@
+{
+  "generated_utc": "2026-10-31T06:36:59.244166+00:00",
+  "baseline": {
+    "nodes": [
+      {
+        "id": "final_HC_SP"
+      },
+      {
+        "id": "final_premix_SP"
+      },
+      {
+        "id": "TP_HC_gather"
+      },
+      {
+        "id": "TP_mix_gather"
+      },
+      {
+        "id": "global_HC"
+      },
+      {
+        "id": "global_premix"
+      },
+      {
+        "id": "raw_snapshot"
+      },
+      {
+        "id": "raw_other_observer"
+      },
+      {
+        "id": "collapse_FP32"
+      },
+      {
+        "id": "collapse_BF16"
+      },
+      {
+        "id": "final_RMS"
+      },
+      {
+        "id": "normalized_full_bank"
+      },
+      {
+        "id": "Index_I"
+      },
+      {
+        "id": "selected_LM_input"
+      },
+      {
+        "id": "LM_head"
+      },
+      {
+        "id": "ExecuteModelState"
+      },
+      {
+        "id": "sample_tokens"
+      },
+      {
+        "id": "prompt_J"
+      },
+      {
+        "id": "prompt_logits"
+      },
+      {
+        "id": "aux_states"
+      },
+      {
+        "id": "DSpark_aux_proposal"
+      },
+      {
+        "id": "alternative_full_reader"
+      }
+    ],
+    "edges": [
+      {
+        "a": "final_HC_SP",
+        "b": "TP_HC_gather",
+        "kind": "FULL_HC_SP_ROWS"
+      },
+      {
+        "a": "final_premix_SP",
+        "b": "TP_mix_gather",
+        "kind": "FP32_MIX_SP_ROWS"
+      },
+      {
+        "a": "TP_HC_gather",
+        "b": "global_HC",
+        "kind": "TP_ORDER_TRIM"
+      },
+      {
+        "a": "TP_mix_gather",
+        "b": "global_premix",
+        "kind": "TP_ORDER_TRIM"
+      },
+      {
+        "a": "global_HC",
+        "b": "raw_snapshot",
+        "kind": "FIXED_RAW_BANK_COPY"
+      },
+      {
+        "a": "raw_snapshot",
+        "b": "raw_other_observer",
+        "kind": "CONDITIONAL_CONTENT_LIFETIME"
+      },
+      {
+        "a": "global_HC",
+        "b": "collapse_FP32",
+        "kind": "BF16_TO_FP32"
+      },
+      {
+        "a": "global_premix",
+        "b": "collapse_FP32",
+        "kind": "HC4_WEIGHTED_REDUCTION"
+      },
+      {
+        "a": "collapse_FP32",
+        "b": "collapse_BF16",
+        "kind": "REQUIRED_BF16_BOUNDARY"
+      },
+      {
+        "a": "collapse_BF16",
+        "b": "final_RMS",
+        "kind": "FULL_FEATURE_NORMALIZATION"
+      },
+      {
+        "a": "final_RMS",
+        "b": "normalized_full_bank",
+        "kind": "OPTIONAL_BIAS_AND_CAPTURE_ABI"
+      },
+      {
+        "a": "normalized_full_bank",
+        "b": "selected_LM_input",
+        "kind": "ORDERED_INDEX"
+      },
+      {
+        "a": "Index_I",
+        "b": "selected_LM_input",
+        "kind": "PREPARED_ROW_PLAN"
+      },
+      {
+        "a": "selected_LM_input",
+        "b": "LM_head",
+        "kind": "SAMPLE_ROWS"
+      },
+      {
+        "a": "normalized_full_bank",
+        "b": "ExecuteModelState",
+        "kind": "CROSS_METHOD_REFERENCE"
+      },
+      {
+        "a": "ExecuteModelState",
+        "b": "sample_tokens",
+        "kind": "UNPACK_THEN_CLEAR_REFERENCE"
+      },
+      {
+        "a": "sample_tokens",
+        "b": "prompt_J",
+        "kind": "BOOKKEEPING_PROMPT_GUARD"
+      },
+      {
+        "a": "normalized_full_bank",
+        "b": "prompt_J",
+        "kind": "PROMPT_ROW_CONTENT"
+      },
+      {
+        "a": "prompt_J",
+        "b": "prompt_logits",
+        "kind": "PROMPT_FEATURE_POSITIVE_NUM_LOGITS"
+      },
+      {
+        "a": "aux_states",
+        "b": "DSpark_aux_proposal",
+        "kind": "AUX_TRUE_SEPARATE_CONTENT"
+      },
+      {
+        "a": "normalized_full_bank",
+        "b": "alternative_full_reader",
+        "kind": "CONDITIONAL_OTHER_SCOPE"
+      }
+    ]
+  },
+  "select_U_after_existing_full_gathers": {
+    "nodes": [
+      {
+        "id": "global_HC"
+      },
+      {
+        "id": "global_premix"
+      },
+      {
+        "id": "raw_snapshot"
+      },
+      {
+        "id": "raw_other_observer"
+      },
+      {
+        "id": "Index_I"
+      },
+      {
+        "id": "prompt_J_plan"
+      },
+      {
+        "id": "other_rows_plan"
+      },
+      {
+        "id": "required_U"
+      },
+      {
+        "id": "selected_HC"
+      },
+      {
+        "id": "selected_mix"
+      },
+      {
+        "id": "collapse_FP32_U"
+      },
+      {
+        "id": "collapse_BF16_U"
+      },
+      {
+        "id": "RMS_U"
+      },
+      {
+        "id": "normalized_U_bank"
+      },
+      {
+        "id": "consumer_inverse_maps"
+      },
+      {
+        "id": "LM_head"
+      },
+      {
+        "id": "prompt_logits"
+      },
+      {
+        "id": "aux_states"
+      },
+      {
+        "id": "DSpark_aux_proposal"
+      }
+    ],
+    "edges": [
+      {
+        "a": "global_HC",
+        "b": "raw_snapshot",
+        "kind": "RAW_SNAPSHOT_UNCHANGED"
+      },
+      {
+        "a": "raw_snapshot",
+        "b": "raw_other_observer",
+        "kind": "EXISTING_OBSERVER_CONTRACT"
+      },
+      {
+        "a": "Index_I",
+        "b": "required_U",
+        "kind": "LOGITS_ROW_DOMAIN"
+      },
+      {
+        "a": "prompt_J_plan",
+        "b": "required_U",
+        "kind": "ACTIVE_PROMPT_DOMAIN"
+      },
+      {
+        "a": "other_rows_plan",
+        "b": "required_U",
+        "kind": "OTHER_CONTENT_DOMAINS"
+      },
+      {
+        "a": "global_HC",
+        "b": "selected_HC",
+        "kind": "ROW_SELECTION"
+      },
+      {
+        "a": "required_U",
+        "b": "selected_HC",
+        "kind": "SAME_ROW_PLAN"
+      },
+      {
+        "a": "global_premix",
+        "b": "selected_mix",
+        "kind": "ROW_SELECTION"
+      },
+      {
+        "a": "required_U",
+        "b": "selected_mix",
+        "kind": "SAME_ROW_PLAN"
+      },
+      {
+        "a": "selected_HC",
+        "b": "collapse_FP32_U",
+        "kind": "HC4_REDUCTION"
+      },
+      {
+        "a": "selected_mix",
+        "b": "collapse_FP32_U",
+        "kind": "HC4_WEIGHTS"
+      },
+      {
+        "a": "collapse_FP32_U",
+        "b": "collapse_BF16_U",
+        "kind": "PRESERVE_ROUNDING"
+      },
+      {
+        "a": "collapse_BF16_U",
+        "b": "RMS_U",
+        "kind": "FULL_FEATURE_RMS"
+      },
+      {
+        "a": "RMS_U",
+        "b": "normalized_U_bank",
+        "kind": "NEW_OR_SPARSE_ABI_REQUIRED"
+      },
+      {
+        "a": "required_U",
+        "b": "consumer_inverse_maps",
+        "kind": "RESTORE_DUPLICATES_ORDER"
+      },
+      {
+        "a": "consumer_inverse_maps",
+        "b": "LM_head",
+        "kind": "ORDERED_SAMPLE_ROWS"
+      },
+      {
+        "a": "normalized_U_bank",
+        "b": "LM_head",
+        "kind": "REQUIRED_CONTENT"
+      },
+      {
+        "a": "consumer_inverse_maps",
+        "b": "prompt_logits",
+        "kind": "ORDERED_PROMPT_ROWS"
+      },
+      {
+        "a": "normalized_U_bank",
+        "b": "prompt_logits",
+        "kind": "ACTIVE_PROMPT_CONTENT"
+      },
+      {
+        "a": "aux_states",
+        "b": "DSpark_aux_proposal",
+        "kind": "AUX_CONTENT_UNCHANGED"
+      }
+    ]
+  },
+  "local_collapse_norm_then_gather": {
+    "nodes": [
+      {
+        "id": "final_HC_SP"
+      },
+      {
+        "id": "final_mix_SP"
+      },
+      {
+        "id": "local_C_FP32"
+      },
+      {
+        "id": "local_C_BF16"
+      },
+      {
+        "id": "local_RMS"
+      },
+      {
+        "id": "collapsed_norm_gather"
+      },
+      {
+        "id": "normalized_bank"
+      },
+      {
+        "id": "all_content_readers"
+      }
+    ],
+    "edges": [
+      {
+        "a": "final_HC_SP",
+        "b": "local_C_FP32",
+        "kind": "HC4_ROW_LOCAL"
+      },
+      {
+        "a": "final_mix_SP",
+        "b": "local_C_FP32",
+        "kind": "FP32_WEIGHTS"
+      },
+      {
+        "a": "local_C_FP32",
+        "b": "local_C_BF16",
+        "kind": "BASELINE_BF16_BOUNDARY"
+      },
+      {
+        "a": "local_C_BF16",
+        "b": "local_RMS",
+        "kind": "IDENTICAL_PARAMS_PER_ROW"
+      },
+      {
+        "a": "local_RMS",
+        "b": "collapsed_norm_gather",
+        "kind": "TP_ROW_ORDER_PAD_TRIM"
+      },
+      {
+        "a": "collapsed_norm_gather",
+        "b": "normalized_bank",
+        "kind": "RAW_SNAPSHOT_OBSERVER_EXCLUDED_SEPARATELY"
+      },
+      {
+        "a": "normalized_bank",
+        "b": "all_content_readers",
+        "kind": "SAME_GLOBAL_ROWS_AND_ABI"
+      }
+    ]
+  },
+  "scope": "Conditionalsource/dataflowprojections,notcompletepointer/eventDAGs. Selectivevariantandraw-snapshot-removalareseparateconditions.",
+  "overall_complete": false
+}

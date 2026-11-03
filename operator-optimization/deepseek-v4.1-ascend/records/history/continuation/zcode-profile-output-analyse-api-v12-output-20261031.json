@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_2e48801b-c064-40ef-acda-b35c9dd5ddcf",
+  "traceId": "bf95c3d7-b5bf-48e1-898a-c684c1c4cd70",
+  "turnId": "turn_0394dd78-c3dd-4d02-81e7-d7de9f5e8b8c",
+  "response": "执行完成，returncode 0，回执已本地校验（payload SHA-256 重算一致）。以下按你的两个核对点汇报。\n\n## 执行回执\n\n- 本地 receipt：`/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-output-analyse-api166-v12.json`\n- 远端新写入的结果文件：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/profile-output-and-analyse-api-v12.json`（脚本自带 `assert not out.exists()`，仅新建，未改动原始 profile）\n- payload SHA-256：`7bd23ed82ca5553f580924da29f4adb757ff1b5740159a5a4e07068f0c27acc8`，本地重算一致；stderr 为空\n- `capture-index.json` 收录文件数：3084\n\n## DB 命名核对\n\n在本次读取的 capture-index 清单范围内（3084 条路径）结论是：\n\n- **没有任何 `.db` 文件**：`all_database_paths` 为空（对全部 3084 条路径做 `.db` 后缀穷举过滤）。\n- **没有 `trace_view` 命名**：`trace_file_examples` 为空；实际 trace 是 PyTorch 侧导出，例如 `7514283edf38_1.async_llm.1793396221243382380.pt.trace.json.gz`（共看到两个 async_llm trace）。\n- 清单里主要命名是分片工件：`aging.additional.*.slice_N`、`aging.compact.*.slice_N`、`aicpu.data.N.slice_M`，每个分片配套一个 `.done` 标记文件，另有 `ARMED.json`。\n\n需要说明一个边界：`all_file_names` 只返回了排序后的前 100 个去重文件名（共 3084 条），所以它能佐证“可见命名里没有 DB”，但**不能穷举排除** `.DB`、`.sqlite`、`.sqlite3` 这类非 `.db` 后缀的命名；穷举结论只对 `.db` 成立。按“不扩展”的要求，我没有追加读取去补这一项。\n\n## 已安装 `torch_npu.profiler.analyse` 的准确签名/文档\n\n来源：`/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/profiler/profiler.py`，SHA-256 `1a04902572383b74a401449e73929b2c4ce728d6c81bb59341876b03c7a82168`，`analyse` 定义在第 383–416 行。准确签名为：\n\n```python\ndef analyse(\n    profiler_path: str,\n    max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER,\n    export_type: Optional[Union[str, list]] = None,\n):\n```\n\n关于“文档”：**该安装版本的 `analyse` 函数体内没有 docstring**——第 387 行签名结束后，第 388 行直接是 `if not isinstance(max_process_number, int) ...`。因此本文件能提供的“文档”就是源码本身。其行为要点：\n\n- `max_process_number` 非 int 或 ≤0 时，重置为 `Constant.DEFAULT_PROCESS_NUMBER` 并告警；超过 `os.cpu_count()` 时钳制到 CPU 核数并告警。\n- `export_type` 为 str 时转成单元素 list，为 list 时去重；其他类型告警后置 None。随后校验每个元素是否属于 `[Constant.Text, Constant.Db]`，不满足则整体重置为 None 并告警。\n- 最终委托给 `NpuProfiler.analyse(profiler_path, max_process_number=max_process_number, export_type=export_type)`。\n\n`Constant.DEFAULT_PROCESS_NUMBER`、`Constant.Text`、`Constant.Db` 的具体数值不在本次定点读取范围内，未展开读取。\n\n## 约束遵守情况\n\n全程未 import torch 或 torch_npu（远端是用 `ast.parse` 直接解析 profiler.py 源码文本），未发起任何新的 profile 采集，未修改任何原始 profile 文件；远端目录只新增了上述 `analysis/profile-output-and-analyse-api-v12.json` 一个结果文件，本地只新增了对应的 receipt。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 74951,
+    "outputTokens": 8404,
+    "totalTokens": 83355,
+    "cacheReadTokens": 63744,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 7382,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 83355,
+    "contextUsed": 19168,
+    "contextWindow": 200000
+  }
+}

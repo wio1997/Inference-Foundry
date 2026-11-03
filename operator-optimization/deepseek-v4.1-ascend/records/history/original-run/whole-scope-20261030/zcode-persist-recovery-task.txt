@@ -1,0 +1,6 @@
+按顺序只执行以下三个已审核脚本，每个一次：
+python3 whole-scope-20261030/capture_tensor_view_reference.py
+python3 whole-scope-20261030/persist_whole_scope_checkpoint.py
+python3 whole-scope-20261030/verify_recovery_checkpoint.py
+第一个仅用direct HTTP读取一个明确PyTorch官方URL并存快照和SHA，不使用浏览器，HTTP失败会留明确记录。后两个仅更新本地研究记录、记录已完成检查点Run并校验引用；严禁调用close-task、verdict或目标complete。目标/Task保持active、Loop保持pending，0个整模块关闭。
+用一个Python subprocess harness顺序执行，每条完成立即把真实returncode/stdout/stderr写入whole-scope-20261030/zcode-persist-recovery-execution.json。任一脚本非0即停，不改脚本/输入，不重试，不追加读取或命令。不要读取大型JSON，不发远端/NPU/推理操作。仅报告实际结果、模型名和局部校验不等于整体完成。

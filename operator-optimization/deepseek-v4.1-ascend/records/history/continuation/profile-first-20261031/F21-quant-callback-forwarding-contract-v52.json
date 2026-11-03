@@ -1,0 +1,79 @@
+{
+  "generated_utc": "2026-10-31T15:52:06.399674+00:00",
+  "evidence": [
+    "F21-callback-registration-source-v52.json",
+    "F21-checkpoint-map-commutation-contract-v51.json",
+    "F21-multiplane-buffers-and-publication-contract-v50.json"
+  ],
+  "findings": [
+    {
+      "id": "CB52-01",
+      "topic": "resolve_before_capture",
+      "grade": "HISTORICAL166_HASH_MATCHED_SOURCE",
+      "finding": "CoreRoutedExperts resolvesquant_method123beforecapturing self.weight_loaderinmoe_quant_params159-169andcallingcreate_weights171. Ascend_get_quant_method588-591delegatestoquant_configwhenpresent. Classhasnoownweight_loaderormapperoverride,butinstanceassignmentduringquantresolutioncanstillreplacecallback."
+    },
+    {
+      "id": "CB52-02",
+      "topic": "ModelSlim_instance_wrapper",
+      "grade": "LOCAL_REFERENCE_CONFIG_SOURCE",
+      "finding": "UnderModelSlimMoEpredicateandquant_type!=None,config754rebindslayer.weight_loaderto_make_modelslim_moe_weight_loaderbefore returningtheMoEadapter. quant_typeNonechoosesunquantizedmethodanddoesnotinstallthiswrapperinthatbranch. Actualconfig/predicateandcurrent166configbytesarenotattested."
+    },
+    {
+      "id": "CB52-03",
+      "topic": "wrapper_exact_forwarding",
+      "grade": "DERIVED_FROM_REFERENCE_WRAPPER_AST",
+      "finding": "Wrapperonlyrewritesthelastweight_namecomponent: w13_scale_bias→w13_scale,w2_scale_bias→w2_scale. Itforwardsparam,loaded_weight,shard_id,expert_idandreturn_successunchangedtothecapturedloader,andreturnsitsresult. ThiswrapperdoesnotitselfrelocateexpertID,changebuffersorimplementstaticplacement."
+    },
+    {
+      "id": "CB52-04",
+      "topic": "parameter_attribute_registration",
+      "grade": "LOCAL_REFERENCE_ADAPTER_SOURCE",
+      "finding": "Adaptercallsset_weight_attrswiththecapturedextraattributesineachinitialweightloopanddynamicquantparamloop. DynamicquantparamsdefaultCHANNEL,withconditionalGROUPoverridebyfieldnameandgroup_size. TheattributehelperimplementationandactualParam.weight_loaderobjectsarenotmeasuredhere."
+    },
+    {
+      "id": "CB52-05",
+      "topic": "initial_W8A8_parameters",
+      "grade": "HISTORICAL166_HASH_MATCHED_SCHEME_SOURCE",
+      "finding": "W8A8schemereturns2INT8weighttensorsand4scale/offsettensorsinparams_dtype,allwithleadingnum_experts. Theseareinitialregistrationnames/layouts,notallruntimeEPLBplane identities orphysicalmemorycost."
+    },
+    {
+      "id": "CB52-06",
+      "topic": "W8_name_identity",
+      "grade": "DERIVED_CONDITIONAL",
+      "finding": "The sixinitialW8A8namesarenotkeysinthe2-entrybiasaliasmap. Forthosenames,thewrapperisname-identityandkeepsphysicalexpert_idp. Thev51ordinaryPhi(p)conditionthereforeisnotfixedbythiswrapper,assumingthedeclaredregistration/underlyingloaderpath."
+    },
+    {
+      "id": "CB52-07",
+      "topic": "repeated_configuration_and_reload",
+      "grade": "DERIVED_CONDITIONAL",
+      "finding": "Withthisfixedliteralaliasmap,name-rewriteisidempotent;constructingwrappersrepeatedlystillcreatesnewclosuresaroundthecurrentloader. Anewlayer.weight_loaderbindingdoesnotbyitselfproveexistingParamcallbacksorpayloadbanksupdated. Sourceparameterregistrationandpostloadgenerationsmustbematched;actualhelper/settersemanticsandobjectsremainunknown."
+    },
+    {
+      "id": "CB52-08",
+      "topic": "scope_and_next_edge",
+      "grade": "UNKNOWN_ACTUAL_STATE",
+      "finding": "Expectedregistrationpathisnowlocalized;actualModelSlimselection,adapter/config/helperversionandParamcallableidentitystillrequireevidence. P0initializerbody/actualtablevalues,otherpostloadhooks,allquantbackends/consumers/native/capture/resourcegapsremain. Do notrepeattheinheritance-onlyassumptionorclaimthisknownnamemapreconcilesstaticplacement."
+    }
+  ],
+  "expected_registration_scope_analyzed": true,
+  "wrapper_keyword_forwarding": {
+    "param": "param",
+    "loaded_weight": "loaded_weight",
+    "weight_name": "mapped_weight_name",
+    "shard_id": "shard_id",
+    "expert_id": "expert_id",
+    "return_success": "return_success"
+  },
+  "literal_name_map": {
+    "w13_scale_bias": "w13_scale",
+    "w2_scale_bias": "w2_scale"
+  },
+  "name_map_idempotent_under_fixed_literal": true,
+  "changes_expert_id_in_this_wrapper": false,
+  "actual_parameter_callback_proved": false,
+  "actual_static_placement_reconciled": false,
+  "no_model_import_remote_or_device_work": true,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

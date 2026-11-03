@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_5fdb5756-4689-4d05-95a1-4a49f8740fb9",
+  "traceId": "81239210-e5e2-42fa-aa83-fe0c602c4d08",
+  "turnId": "turn_475991ed-98f9-4b33-8c16-77754b4bff3e",
+  "response": "修正后的 v8 离线查询已按指定命令执行，实际子进程 **rc=0**，stderr 为空，未修改脚本（运行前后 SHA-256 均为 `36d0cdaa...bb852a`）。核心结论：原“22 处 gap 不一致”确认为比较对象漏 `gap_ns` 字段的误报，修正后 **`original_recomputed_gap_match_disagreements=0`**；first-invalid 保留的原值仍为 22。\n\n**同 source_dir 与 canonical gap 比较**\n- 两条 rank 记录（rank 0 / rank 8）的 `prepare_input_analysis.trace_sha256` 均与 `iteration_gaps.trace.sha256` 相等，且与 graph/gaps 行的 rank 一致。\n- 按含 `gap_ns` 的 canonical dict（`gap_ordinal`、`overlap_ns`、`gap_ns`）逐 scope 比较：24 个 prepare scope 全部相等，0 处分歧。每个 rank 的 ordinal 0 scope 原本就无 gap 覆盖，其余 11 个各匹配 1 条 gap。\n\n**22 条 trace-derived prepare 覆盖交叉核对：22/22 通过**\n每条为 `scope_clip_ns == trace_prepare_union_ns`（单位 ns）：\n\n| rank | gap ordinal → 值 |\n|---|---|\n| 0 | 0→34,428,345；1→33,938,013；2→34,277,703；3→34,012,603；4→34,783,737；5→34,005,668；6→33,193,130；7→34,056,147；8→33,909,158；9→33,440,477；10→33,554,743 |\n| 8 | 0→31,666,942；1→31,276,870；2→32,829,400；3→31,553,810；4→31,484,804；5→31,601,225；6→30,824,757；7→30,731,764；8→31,693,155；9→30,534,074；10→31,236,280 |\n\n**24 条 partition**\n- `prepare_roots=24`（rank 0 为 12，rank 8 为 12），`recorded_descendant_count=166,944`，`prepare_name_count=113`。\n- `partition_checks_pass=24`：24/24 满足 `duration_ns = descendant_union_ns + root_exclusive_recorded_scope_ns`。\n- 另一项分区守恒 24/24 满足 `descendant_union_ns = Σ by_name.exclusive_sum_ns`；`containment_violations=0`。\n\n**口径限制**\n`root_exclusive_is_cpu_active=false`，`exported_host_device_overlap_is_causal_proof=false`。上述 gap 相交与 prepare 覆盖数值只是导出 epoch 坐标下的区间相交/裁剪量，不是 CPU active 时间，也不能当作可节省时间、因果依赖或时钟校准。Engine 与 worker 仍是独立运行（`all_runs_joined=false`），worker 栈文件仍为空。\n\n**产物**\n已写入 `profile-first-20261031/framework-profile-audit-v8.json`（430,824 B）和 `framework-profile-summary-v8.json`（7,075 B）；first-invalid 脚本与两份结果文件保持独立未改动。本次无源码读取、无服务器/设备/推理操作、未开 agent；`new_source_read=false`、`new_device_or_inference_work=false`、`overall_complete=false`，未标记整体完成。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 10,
+    "inputTokens": 271054,
+    "outputTokens": 9810,
+    "totalTokens": 280864,
+    "cacheReadTokens": 238464,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 6331,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 280864,
+    "contextUsed": 41762,
+    "contextWindow": 200000
+  }
+}

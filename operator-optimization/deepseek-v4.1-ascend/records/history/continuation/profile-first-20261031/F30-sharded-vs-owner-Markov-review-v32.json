@@ -1,0 +1,33 @@
+{
+  "generated_utc": "2026-10-31T07:01:49.384123+00:00",
+  "candidate": "F30",
+  "variant": "F30-VOCAB-OWNERSHIP",
+  "current": {
+    "base_head": "TP8partitionsof16160columns;fullgatherbeforeproposer",
+    "Markov_head": "Replicated129280x256headoncurrentTP-rankinstances",
+    "steps": "520source-boundgreedyBF16Add/Argmax/Caststeps;notper-invocationnearest-timepairing"
+  },
+  "alternatives": [
+    {
+      "id": "F30-v32-SHARDED-MARKOV",
+      "change": "PartitionMarkovw2tomatchbasecolumnownership,keepper-stepbase+Markovpostprocessing/BF16sumlocal,andgloballyselect/publishtheIDbeforedependentnextMarkovlookup.",
+      "tradeoff": "SmallerlocalGEMM/weightdomainbutnewsmallselectioncollectiveoneachrecurrencystep;startup/syncanddifferentNtilingparityunknown."
+    },
+    {
+      "id": "F30-v32-OWNER-MARKOV",
+      "change": "Gatherbaseheadrowsonthedesignatedowner;keepfullMarkovinnerloopthere,thenpublishsameproposalIDsandallneededstates/probabilities/outputs.",
+      "tradeoff": "Avoidother-rankduplicateMarkovexecutionandmayavoidper-stepselectioncollectivesifonlyownerconsumestheinnerloop,butownerstilldoesfullGEMM;allrankstate/RNG/scoreobserverandresultpublicationprotocolrequired."
+    }
+  ],
+  "shared_conditions": [
+    "Matchbase/Markovvocaborder/trim/softcap/scale,eachBF16headoutputandBF16add,mappingafterargmax.",
+    "PreservebasebatchedKrowreuseandunknown-futureMarkovtokenrecurrence;donotclaimsimplebatchofunknownfutureinputs.",
+    "Probabilitypath/draft_probs,confidence(last_hidden/IDs),dynamic/parallelflagsandstableIDbanksmustretainsemantics.",
+    "Owner-onlyexecutionneedsthesamereturns/metadata/RNGandallrankparticipation;existingGatherAPIcurrent-supportisnotassumed.",
+    "Immutableparameter/model/device/versionnamespacesandnewpartition/loadedweight/capturegenerationrequired."
+  ],
+  "relations": "Thesearetwoalternatives;donotaddtheircommunication/workreductionsorcountF35layoutcopytwice.",
+  "no_current_implementation": true,
+  "critical_path_gain_us": null,
+  "overall_complete": false
+}

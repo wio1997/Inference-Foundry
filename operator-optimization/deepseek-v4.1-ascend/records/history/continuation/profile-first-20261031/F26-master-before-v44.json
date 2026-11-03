@@ -1,0 +1,144 @@
+{
+  "id": "F26_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "collapse": "collapse",
+    "final_norm": "final_norm"
+  },
+  "nodes": [
+    {
+      "id": "collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "final_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "collapse",
+      "consumer": "final_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "ffn_post",
+      "consumer": "collapse",
+      "value": "terminal-layer HC state",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "collapse",
+      "value": "terminal pre_mix",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v31": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v31.json#F26",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M15-normalized-content-consumer-and-precision-contract-v31.json",
+    "variants": [
+      {
+        "id": "F26a",
+        "status": "SCOPED_CONDITIONAL_CANDIDATE",
+        "change": "Suppress only the unobserved snapshot write on the supported Ascend v1 DSpark path while retaining existing gather/collapse/norm order and addresses.",
+        "numeric_effect": "No arithmetic reordering in the proposal; no implementation or numerical validation performed.",
+        "guards": [
+          "Exact active implementation and speculative method",
+          "No additional registered/external content observer",
+          "Captured output/buffer/event lifetime and parameter update contract"
+        ],
+        "logical_snapshot_bytes": 983040,
+        "byte_status": "DERIVED_LOGICAL_TENSOR_PAYLOAD_NOT_MEASURED_HBM_OR_GAIN"
+      },
+      {
+        "id": "F26b",
+        "status": "STRONGER_SEPARATE_CONDITIONAL_CANDIDATE",
+        "change": "Avoid producing the unobserved raw-HC buffer; use the existing buffer-is-None branch that collapses locally and then gathers collapsed hidden.",
+        "change_in_graph": "Two full-HC/premix gathers plus copy may be replaced by local collapse and a collapsed-hidden gather, subject to proof; existing alternative is not a newly implemented optimization.",
+        "guards": [
+          "All F26a observer/lifetime conditions",
+          "Exact BF16/FP32 product/reduction/rounding and lowering across changed local/global row shapes",
+          "TP group order, graph outputs/addresses, readiness and all normalized-hidden consumers"
+        ],
+        "speedup": null
+      },
+      {
+        "id": "F26-v31-ROWSELECT",
+        "status": "CONDITIONAL_ROW_DOMAIN_REORGANIZATION",
+        "change": "Afterexistingfullgathers/snapshot,selectallrequiredUrowsofHC/premixbeforecollapseandnorm;restoreeachconsumerroworder.",
+        "requires": "Allactivecontentreadersincludingpromptandstatehandoff;preparedIndex_Igeneration/checks;newpackedorsparsefull-shapedbankcaptureABI. U=allrowsgivesnoprune."
+      },
+      {
+        "id": "F26-v31-LOCAL-NORM",
+        "status": "CONDITIONAL_COMPOSITION_WITH_F26b",
+        "change": "Collapseandnormowner-localSProws,thengathercollapsednormalizedrows.",
+        "requires": "Rawsnapshotobserverconditionsindependentlyclosed;replicatedsamegamma/eps/bias,TPorder/pad/trimandnativeper-rowrounding. Normcostnotrepeatedfullrowsoneveryrank."
+      },
+      {
+        "id": "F26-v31-FUSED-CN",
+        "status": "CONDITIONAL_FUSION",
+        "change": "JoinHCFP32weightedreduction,BF16collapsedboundary,RMSandoptionalbias;retainneededstatsinternally.",
+        "requires": "BothHCandfeaturefullreductions,exactBF16/FP32order/eps/bias;unusedtypedstatsoutputshapedoesnotproveexistingHBMwritewasremoved."
+      },
+      {
+        "id": "F26-v31-SPARSE-PUBLISH",
+        "status": "CONDITIONAL_SPLIT_COMMUNICATION",
+        "change": "Owner-rankcollapse/normforUrows,exchangeonlyneededrowswithconsumerinversemaps.",
+        "requires": "F26snapshot/content/precisionconditionsplusgroup-uniformrowplanandcapturepublication/metadata;notblanketcollectiveskiponzero-senderorK<N."
+      },
+      {
+        "id": "F26-v31-LAST-POST",
+        "status": "CONDITIONAL_LARGER_FUSION_OVERLAPS_F03_F23",
+        "change": "LastHCpostfeedsrow-localcollapse/normwithoutunneededfullHCglobalmaterializationwhenrawHCunobserved.",
+        "requires": "PreserveBF16eachHCpostlaneandcollapsedBF16boundary,last-layerpre_mix/allHCtermsandallaux/rawobservers/nativepostcontract;linearweightfoldingwithouttheseproofsnotvalid."
+      },
+      {
+        "id": "F26-v31-EXCLUDED",
+        "status": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+        "change": "PrunetologitsrowsfromK<Nalone,deleteExecuteModelStatehandoff,assumepromptdictfalsefrommissingprofilefield,orremoveBF16betweenC/N.",
+        "reason": "Concretepersistent/promptreadersandexplicitprecisionbarrierdistinguishthegraphs."
+      }
+    ],
+    "conditions": 20,
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v32": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v32.json#F26",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-head-partition-postprocess-and-layout-contract-v32.json",
+    "variants": [
+      {
+        "id": "F26-v32-NORM-HEAD",
+        "status": "CONDITIONAL_COMPOSITION",
+        "change": "KeepBF16normalizedselected/Urowsontheproducer-consumerboundaryforLMhead,orfuseDSparkheadnormwithprojection.",
+        "requires": "Full5120RMS/gamma/eps/optionalbiasandBF16normboundary;allnormalized/prompt/state/auxconsumers,captureandMatMulprecision;donotcancelpositiveRMSscalarorfoldgammabyrealalgebraalone."
+      }
+    ],
+    "condition_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-vocab-variants-and-conditions-v32.json",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v36": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-Markov-confidence-and-verification-contract-v36.json",
+    "next_ID": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-next-ID-and-acceptance-summary-review-v36.json",
+    "budget": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F30-dynamic-verify-budget-and-prefix-bounds-v36.json",
+    "framework": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-H06-verification-length-publication-review-v36.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-variants-and-condition-ledger-v36.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-source-and-conditional-budget-graphs-v36.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Raw collapsed hidden is a separate confidence consumer; do not replace it by base-head normalized hidden or remove it through head fusion."
+  }
+}

@@ -1,0 +1,17 @@
+本轮回到原profile的7类MemSet/1272次执行。它们全部记录为aclnnConstantPadNd_PadV3AiCore_MemSet，已有v72父调用归属复用，未重新提升归属。全部1272个保存实例的blockNum为48、mixBlockNum为0；这不能说明48个block都在有效写入，也不能给出字节数。
+
+只读取得安装包的原生provider材料。六个初始猜测路径不存在，经一次限时文件名查询找到ops_legacy位置；没有读取无关arch35/grad实现正文。固定了16份A3 MemSet编译元数据、8份相关dtype/contiguity的PadV3元数据，以及与元数据内SHA一致的3个二进制。另定点核对原SP_MASK调用的value=True；本轮没有加载NPU库、运行模型、捕获或replay图。
+
+这组当前A3legacy PadV3元数据均声明一个1536字节workspace，parameters[4]标为float32零初始化。源码对应INT64[48*4]的sync_workspace，使用workspace/atomic标记。它为prependedMemSet的用途提供了具体候选：它可能清理屏障状态，而不是按整个padding输出体积写零。它仍是当前provider的声明，不能替代原profile每次调用的地址、实际加载binary和tiling证据。
+
+新的条件分支会改变融合结论。选定源码在非MODE4时填充输出，再调用block_barrier(sync_workspace)，随后复制输入；MODE4跳过这个外层fill和该文件唯一的sync_workspace屏障读者。因此，精确MODE4/privateworkspace/all-reader/后续reset与retirement合同成立时，可研究跳过无用reset；其他分支不能把逐核清零随意搬进PadV3。若使用新epoch协议，必须证明初态、wrap、参与核和跨调用读者；已有v72的disjoint fullwriter可以改换整个协议，但不是本轮新发现或已实现方案。
+
+写入量也必须按新图重算。选定非4的显式源码参考中，输入I字节、输出O字节，加独立reset W，逻辑访问为2I+O+W；disjoint fullwriter的显式输出参考是I+O，另计映射和必要状态。W=1536目前只是上述provider子域的声明。不能将差额当作HBM、峰值内存、可回收TASK时间或可与v72重复相加的收益。MODE4必须使用自己的成本图，不能沿用外层fill/barrier开销。
+
+动态MemSet的默认FLOAT32零初始化源路径每workspace使用96字节flowtable：24个INT32存储槽，包含18个混合INT32/INT64逻辑字段。已建立CPU字段布局及相对store-span模型。相同1536字节可以由一个writer或48个writer提交；100字节尾部在支持data_move_pad的路径写100字节，在对齐DMA参考路径可写128字节。这些是给定字段后的源码提交范围，不是已证明合法的原生tiling、语义必写量或物理流量。
+
+16份元数据的workspace数量为1..16，parameters个数为N+2，opParaSize=96N+8。opParaSize、参数包大小、96N flowtable和tensor填充范围不能混同。另准备了只解析已经rendered参数包的CPU方法：只有匹配元数据、包长和唯一有界in-packet指针时才定位flowtable，完全不解引用设备指针。这个包布局仍是假设，须受控native dump验证，不能用于强解原profile缺失字段。
+
+为验证这条ABI通路，已准备一次BOOL[20]→BOOL[24]、padding[0,4]/valueTrue的原生ConstantPadNd小图探针，匹配保存SP_MASK的算子形状和值。应用输入/输出共44B，另有内部cast/workspace、驱动和分配器开销；只读取自身任务元数据，不加载模型、不replay、不读取张量内容或opaque设备地址。当前探针未运行，新的明确授权问题待回复；先前v109已完成的小图使用不同MEMCPY路由，不替代这次验证。
+
+本轮细化F20/F28/F31及M12/M19的条件provider合同。35项模型候选、353条语义记录/26暂定模块、132条条件关系/25组/463对待核对均不变；原7类MemSet及2类BOOL[24]共9类/1352次执行仍缺实际字段。没有整模块关闭、物理MFU、实测提速或整体完成结论。

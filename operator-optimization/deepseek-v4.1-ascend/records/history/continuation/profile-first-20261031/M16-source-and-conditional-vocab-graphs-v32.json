@@ -1,0 +1,213 @@
+{
+  "generated_utc": "2026-10-31T07:01:49.384123+00:00",
+  "baseline": {
+    "nodes": [
+      {
+        "id": "selected_hidden"
+      },
+      {
+        "id": "local_head_BF16"
+      },
+      {
+        "id": "TP_rankmajor_gather"
+      },
+      {
+        "id": "Transpose_2D"
+      },
+      {
+        "id": "org_vocab_trim"
+      },
+      {
+        "id": "head_softcap_scale"
+      },
+      {
+        "id": "raw_score_consumers"
+      },
+      {
+        "id": "FP32_working_processors"
+      },
+      {
+        "id": "token_selection"
+      },
+      {
+        "id": "IDs_and_state"
+      }
+    ],
+    "edges": [
+      {
+        "a": "selected_hidden",
+        "b": "local_head_BF16",
+        "kind": "BF16_GEMM_OUTPUT"
+      },
+      {
+        "a": "local_head_BF16",
+        "b": "TP_rankmajor_gather",
+        "kind": "LOCAL_VOCAB"
+      },
+      {
+        "a": "TP_rankmajor_gather",
+        "b": "Transpose_2D",
+        "kind": "ROW_VOCAB_LAYOUT"
+      },
+      {
+        "a": "Transpose_2D",
+        "b": "org_vocab_trim",
+        "kind": "NORMAL_PREFIX_TRIM"
+      },
+      {
+        "a": "org_vocab_trim",
+        "b": "head_softcap_scale",
+        "kind": "SAME_ENTRYWISE_ORDER"
+      },
+      {
+        "a": "head_softcap_scale",
+        "b": "raw_score_consumers",
+        "kind": "CONDITIONAL_RAW_FULL_DISTRIBUTION"
+      },
+      {
+        "a": "head_softcap_scale",
+        "b": "FP32_working_processors",
+        "kind": "F35_WORKING_COPY_AND_PROCESSORS"
+      },
+      {
+        "a": "FP32_working_processors",
+        "b": "token_selection",
+        "kind": "GREEDY_OR_PROBABILITY"
+      },
+      {
+        "a": "token_selection",
+        "b": "IDs_and_state",
+        "kind": "RAGGED_ACCEPTANCE_PUBLICATION"
+      }
+    ]
+  },
+  "conditional_partitioned_ID_selection": {
+    "nodes": [
+      {
+        "id": "selected_hidden"
+      },
+      {
+        "id": "local_head_BF16"
+      },
+      {
+        "id": "baseline_column_validity"
+      },
+      {
+        "id": "same_postprocessing"
+      },
+      {
+        "id": "local_best_pair"
+      },
+      {
+        "id": "global_best_pair"
+      },
+      {
+        "id": "token_remap"
+      },
+      {
+        "id": "IDs_and_state"
+      }
+    ],
+    "edges": [
+      {
+        "a": "selected_hidden",
+        "b": "local_head_BF16",
+        "kind": "SAME_HEAD_ROUNDING"
+      },
+      {
+        "a": "local_head_BF16",
+        "b": "same_postprocessing",
+        "kind": "PARTITION_LOCAL_VALUES"
+      },
+      {
+        "a": "baseline_column_validity",
+        "b": "same_postprocessing",
+        "kind": "EXCLUDE_INVALID_FROM_STATS"
+      },
+      {
+        "a": "same_postprocessing",
+        "b": "local_best_pair",
+        "kind": "DEFINED_BASELINE_COMPARATOR"
+      },
+      {
+        "a": "local_best_pair",
+        "b": "global_best_pair",
+        "kind": "GLOBAL_SELECTION_PROTOCOL"
+      },
+      {
+        "a": "global_best_pair",
+        "b": "token_remap",
+        "kind": "BASELINE_COLUMN_BEFORE_REMAP"
+      },
+      {
+        "a": "token_remap",
+        "b": "IDs_and_state",
+        "kind": "ONLY_ID_CONTRACT_OR_OTHER_CONSUMERS_SEPARATELY_SATISFIED"
+      }
+    ]
+  },
+  "conditional_owner_dense_protocol": {
+    "nodes": [
+      {
+        "id": "local_head_BF16"
+      },
+      {
+        "id": "gather_on_owner"
+      },
+      {
+        "id": "same_dense_postprocess"
+      },
+      {
+        "id": "same_dense_score_consumers"
+      },
+      {
+        "id": "owner_selection"
+      },
+      {
+        "id": "broadcast_required_outputs"
+      },
+      {
+        "id": "all_rank_next_state"
+      }
+    ],
+    "edges": [
+      {
+        "a": "local_head_BF16",
+        "b": "gather_on_owner",
+        "kind": "TP_ORDER_ALL_ROWS_REQUIRED"
+      },
+      {
+        "a": "gather_on_owner",
+        "b": "same_dense_postprocess",
+        "kind": "UNCHANGED_ROUNDING_TRIM"
+      },
+      {
+        "a": "same_dense_postprocess",
+        "b": "same_dense_score_consumers",
+        "kind": "ALL_REQUIRED_DISTRIBUTIONS"
+      },
+      {
+        "a": "same_dense_postprocess",
+        "b": "owner_selection",
+        "kind": "UNCHANGED_SAMPLING_PROTOCOL"
+      },
+      {
+        "a": "same_dense_score_consumers",
+        "b": "broadcast_required_outputs",
+        "kind": "REQUESTED_RESULTS_AND_STATE"
+      },
+      {
+        "a": "owner_selection",
+        "b": "broadcast_required_outputs",
+        "kind": "IDS_ACCEPTANCE_RNG_METADATA"
+      },
+      {
+        "a": "broadcast_required_outputs",
+        "b": "all_rank_next_state",
+        "kind": "SAME_GENERATIONS_READY"
+      }
+    ]
+  },
+  "scope": "Separatepartialsource/dataflowprojections;notcompletealias/eventDAGnoradoptedjointgraph.",
+  "overall_complete": false
+}

@@ -1,0 +1,430 @@
+{
+  "id": "F26_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "collapse": "collapse",
+    "final_norm": "final_norm"
+  },
+  "nodes": [
+    {
+      "id": "collapse",
+      "kind": "HC_FP32_REDUCE_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "final_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "collapse",
+      "consumer": "final_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "ffn_post",
+      "consumer": "collapse",
+      "value": "terminal-layer HC state",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "collapse",
+      "value": "terminal pre_mix",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v31": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v31.json#F26",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M15-normalized-content-consumer-and-precision-contract-v31.json",
+    "variants": [
+      {
+        "id": "F26a",
+        "status": "SCOPED_CONDITIONAL_CANDIDATE",
+        "change": "Suppress only the unobserved snapshot write on the supported Ascend v1 DSpark path while retaining existing gather/collapse/norm order and addresses.",
+        "numeric_effect": "No arithmetic reordering in the proposal; no implementation or numerical validation performed.",
+        "guards": [
+          "Exact active implementation and speculative method",
+          "No additional registered/external content observer",
+          "Captured output/buffer/event lifetime and parameter update contract"
+        ],
+        "logical_snapshot_bytes": 983040,
+        "byte_status": "DERIVED_LOGICAL_TENSOR_PAYLOAD_NOT_MEASURED_HBM_OR_GAIN"
+      },
+      {
+        "id": "F26b",
+        "status": "STRONGER_SEPARATE_CONDITIONAL_CANDIDATE",
+        "change": "Avoid producing the unobserved raw-HC buffer; use the existing buffer-is-None branch that collapses locally and then gathers collapsed hidden.",
+        "change_in_graph": "Two full-HC/premix gathers plus copy may be replaced by local collapse and a collapsed-hidden gather, subject to proof; existing alternative is not a newly implemented optimization.",
+        "guards": [
+          "All F26a observer/lifetime conditions",
+          "Exact BF16/FP32 product/reduction/rounding and lowering across changed local/global row shapes",
+          "TP group order, graph outputs/addresses, readiness and all normalized-hidden consumers"
+        ],
+        "speedup": null
+      },
+      {
+        "id": "F26-v31-ROWSELECT",
+        "status": "CONDITIONAL_ROW_DOMAIN_REORGANIZATION",
+        "change": "Afterexistingfullgathers/snapshot,selectallrequiredUrowsofHC/premixbeforecollapseandnorm;restoreeachconsumerroworder.",
+        "requires": "Allactivecontentreadersincludingpromptandstatehandoff;preparedIndex_Igeneration/checks;newpackedorsparsefull-shapedbankcaptureABI. U=allrowsgivesnoprune."
+      },
+      {
+        "id": "F26-v31-LOCAL-NORM",
+        "status": "CONDITIONAL_COMPOSITION_WITH_F26b",
+        "change": "Collapseandnormowner-localSProws,thengathercollapsednormalizedrows.",
+        "requires": "Rawsnapshotobserverconditionsindependentlyclosed;replicatedsamegamma/eps/bias,TPorder/pad/trimandnativeper-rowrounding. Normcostnotrepeatedfullrowsoneveryrank."
+      },
+      {
+        "id": "F26-v31-FUSED-CN",
+        "status": "CONDITIONAL_FUSION",
+        "change": "JoinHCFP32weightedreduction,BF16collapsedboundary,RMSandoptionalbias;retainneededstatsinternally.",
+        "requires": "BothHCandfeaturefullreductions,exactBF16/FP32order/eps/bias;unusedtypedstatsoutputshapedoesnotproveexistingHBMwritewasremoved."
+      },
+      {
+        "id": "F26-v31-SPARSE-PUBLISH",
+        "status": "CONDITIONAL_SPLIT_COMMUNICATION",
+        "change": "Owner-rankcollapse/normforUrows,exchangeonlyneededrowswithconsumerinversemaps.",
+        "requires": "F26snapshot/content/precisionconditionsplusgroup-uniformrowplanandcapturepublication/metadata;notblanketcollectiveskiponzero-senderorK<N."
+      },
+      {
+        "id": "F26-v31-LAST-POST",
+        "status": "CONDITIONAL_LARGER_FUSION_OVERLAPS_F03_F23",
+        "change": "LastHCpostfeedsrow-localcollapse/normwithoutunneededfullHCglobalmaterializationwhenrawHCunobserved.",
+        "requires": "PreserveBF16eachHCpostlaneandcollapsedBF16boundary,last-layerpre_mix/allHCtermsandallaux/rawobservers/nativepostcontract;linearweightfoldingwithouttheseproofsnotvalid."
+      },
+      {
+        "id": "F26-v31-EXCLUDED",
+        "status": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+        "change": "PrunetologitsrowsfromK<Nalone,deleteExecuteModelStatehandoff,assumepromptdictfalsefrommissingprofilefield,orremoveBF16betweenC/N.",
+        "reason": "Concretepersistent/promptreadersandexplicitprecisionbarrierdistinguishthegraphs."
+      }
+    ],
+    "conditions": 20,
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v32": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v32.json#F26",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-head-partition-postprocess-and-layout-contract-v32.json",
+    "variants": [
+      {
+        "id": "F26-v32-NORM-HEAD",
+        "status": "CONDITIONAL_COMPOSITION",
+        "change": "KeepBF16normalizedselected/Urowsontheproducer-consumerboundaryforLMhead,orfuseDSparkheadnormwithprojection.",
+        "requires": "Full5120RMS/gamma/eps/optionalbiasandBF16normboundary;allnormalized/prompt/state/auxconsumers,captureandMatMulprecision;donotcancelpositiveRMSscalarorfoldgammabyrealalgebraalone."
+      }
+    ],
+    "condition_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-vocab-variants-and-conditions-v32.json",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v36": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-Markov-confidence-and-verification-contract-v36.json",
+    "next_ID": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-next-ID-and-acceptance-summary-review-v36.json",
+    "budget": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F30-dynamic-verify-budget-and-prefix-bounds-v36.json",
+    "framework": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-H06-verification-length-publication-review-v36.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-variants-and-condition-ledger-v36.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-source-and-conditional-budget-graphs-v36.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Raw collapsed hidden is a separate confidence consumer; do not replace it by base-head normalized hidden or remove it through head fusion."
+  },
+  "review_v44": {
+    "placement": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-named-metadata-graph-placement-derivation-v44.json",
+    "capture_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-capture-replay-input-output-and-update-contract-v44.json",
+    "address_check": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-positional-address-check-domain-proof-v44.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-graph-generation-conditional-variants-v44.json",
+    "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v44.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Captured outputs/workspaces use weak-reference protocol; first capture returns output, later replay returns stored output. Cross-boundary norm/head composition must retain all output readers before bank replay overwrite; weak refs are not new device copies."
+  },
+  "review_v45": {
+    "registry_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-and-update-alternative-contract-v45.json",
+    "key_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-key-completeness-and-alias-proof-v45.json",
+    "alternative_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-update-and-sync-mutual-exclusion-proof-v45.json",
+    "refined_conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-refined-generation-conditions-v45.json",
+    "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v45.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Workspace weak-ref conversion only replaces workspace references and skips None; it does not free proven-dead output/storage or erase other registry planes. Preserve all cross-replay norm/head output readers and native owner generations."
+  },
+  "review_v65": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-regime-models-v65.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-native-chains-v65.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-operator-contract-v65.json",
+    "work_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-fusion-costs-v65.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-fusion-variants-v65.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v65.json",
+    "candidate_specific_scope": "104target6TASKtailsplus104draft/helper4TASKcollapses;76NH/72NHprivateinterfacebudgets,rawsnapshot16NH,localSPnorm/live-snapshotcommtradeoff/all-readerrowunion/alreadyselectedheadrows.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v66": {
+    "native_population": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-native-operator-population-v66.json",
+    "operator_regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-regime-models-v66.json",
+    "count_work_payload_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-work-payload-models-v66.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-contract-v66.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-fusion-variants-v66.json",
+    "candidate_specific_scope": "104HCand104FP32premixgathers,mixed-bytebatch2→1launchwithunchangedpayload/P8pack-unpack18qcost;allrawsnapshot/normalizedreadersandreadytime.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-21"
+    ],
+    "peers": [
+      "F35"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v74": {
+    "relation_clause_ids": [
+      "REL74-08"
+    ],
+    "peers": [
+      "F27"
+    ],
+    "central_relations": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v74.json",
+    "relation_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v74.json",
+    "source_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/QB-head-RMS-RoPE-applicability-v74.json",
+    "joint_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-costs-v74.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-math-v74.json",
+    "scope": "Fifteen selected relation clauses and three higher-order groups only; all whole-pair/full-model gates remain open.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v85": {
+    "prior_direct_drafter_content_answer_version": 11,
+    "all_snapshot_observers_closed": false,
+    "evidence": [
+      "DSpark-tail-source-index-v85.json",
+      "DSpark-tail-reader-closure-v85.json",
+      "DSpark-tail-native-boundaries-v85.json",
+      "DSpark-tail-reorganization-variants-v85.json",
+      "DSpark-tail-row-local-proof-v85.json",
+      "DSpark-tail-work-communication-models-v85.json",
+      "DSpark-tail-rounding-witnesses-v85.json",
+      "DSpark-tail-transfer-credit-v85.json",
+      "DSpark-tail-composition-clauses-v85.json",
+      "tail-shared-memory-budget-v85.json",
+      "tail-shared-memory-relations-v85.json",
+      "DSpark-tail-prior-evidence-reconciliation-v85.json",
+      "DSpark-tail-ceiling-domains-v85.json"
+    ],
+    "relation_ids": [
+      "REL85-01",
+      "REL85-02",
+      "REL85-03",
+      "REL85-04",
+      "REL85-05",
+      "REL85-09",
+      "REL85-10"
+    ],
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v86": {
+    "evidence": [
+      "terminal-layer-prior-evidence-v86.json",
+      "terminal-layer-operator-source-v86.json",
+      "terminal-layer-native-frontier-v86.json",
+      "terminal-layer-demand-cut-v86.json",
+      "terminal-layer-owner-and-work-models-v86.json",
+      "terminal-layer-weight-and-dependency-proof-v86.json",
+      "terminal-layer-composition-clauses-v86.json"
+    ],
+    "conditional_terminal_demand_analysis": true,
+    "all_readers_closed": false,
+    "relation_ids": [
+      "REL86-01",
+      "REL86-02",
+      "REL86-03",
+      "REL86-04",
+      "REL86-05",
+      "REL86-06",
+      "REL86-07",
+      "REL86-08",
+      "REL86-09",
+      "REL86-10"
+    ],
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v87": {
+    "evidence": [
+      "KV-publication-prior-evidence-v87.json",
+      "KV-publication-source-contract-v87.json",
+      "KV-publication-native-scope-v87.json",
+      "KV-publication-prefix-and-dependency-proof-v87.json",
+      "KV-publication-variants-v87.json",
+      "KV-publication-value-work-models-v87.json",
+      "KV-publication-memory-page-models-v87.json",
+      "KV-publication-state-plane-conditions-v87.json",
+      "KV-publication-shared-reader-topology-v87.json",
+      "KV-publication-composition-clauses-v87.json"
+    ],
+    "conditional_KV_publication_analysis": true,
+    "all_readers_closed": false,
+    "relation_ids": [
+      "REL87-07"
+    ],
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v97": {
+    "evidence": [
+      "receiver-budget-operator-source-contract-v97.json",
+      "receiver-capacity-evidence-status-v97.json",
+      "receiver-capacity-and-workspace-models-v97.json",
+      "receiver-workspace-shared-live-budget-v97.json",
+      "receiver-budget-composition-clauses-v97.json",
+      "receiver-budget-variants-v97.json"
+    ],
+    "current_MC2_TASKs_reused": 4472,
+    "actual_current_C_attested": false,
+    "capacity_identity_models": 1073280,
+    "source_workspace_models": 24,
+    "clipping_equivalence_only_in_declared_global_bound": true,
+    "native_write_extent_or_allocator_peak_credit_or_actual_speedup_proved": false,
+    "new_relation_ids": [],
+    "extended_group": "HG85-SHARED-MEMORY-BUDGET",
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v142": {
+    "evidence": [
+      "hc-draft-inputs-v142.json",
+      "hc-draft-native-frontiers-v142.json",
+      "hc-draft-source-contract-v142.json",
+      "hc-draft-observed-frontiers-v142.json",
+      "hc-draft-composition-v142.json",
+      "hc-draft-readiness-DAGs-v142.json",
+      "hc-draft-value-epoch-and-demand-witnesses-v142.json",
+      "hc-draft-work-and-lifetimes-v142.json"
+    ],
+    "pairs": [
+      [
+        "F01",
+        "F28"
+      ],
+      [
+        "F01",
+        "F29"
+      ],
+      [
+        "F01",
+        "F30"
+      ],
+      [
+        "F01",
+        "F31"
+      ],
+      [
+        "F01",
+        "F35"
+      ]
+    ],
+    "draft_TASK_bindings": 2496,
+    "target_aux_frontiers_reused": 72,
+    "scoped_conclusion_changing_gap": "Need actual same-call requestgeneration/row ownership/seed-ID/masks/positions/slot metadata andloaded target/draft/context/query weight epochs;source ancestry isnot same-client pairing. First broadcast/onehot/coeffprefold needs finite/numeric/HF32/newstride-ABI/firstPostresidual contracts. Early draft HC/query pluscontext needs demanded cache ranges,WAW/RAW/epochs/VectorCubequeue contention andlastreader/queuedwriter/capture contracts. Raw draft collapse remains optionalconfidence input;runtime confidence/dynamic flags andfull raw/score/RNG/acceptance observers unbound. Laterkeep/newacceptedcount cannot produce current metadata orauthorize earlierfullKV/state deletion. 13rawDB string tables have unresolved stack IDs;selectedpositive2496TASK frames resolve,but wholecallchain completeness/absence isnotpromoted. No transformednative parity,physicalMFU/lowest/actualgain/fullF01/wholepair/allsubset closure;9/1352native849PMU16phase3136assignments andbroadercandidate gaps retained.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "F01_star_scoped_not_whole": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  },
+  "review_v146": {
+    "evidence": [
+      "norm-terminal-inputs-v146.json",
+      "norm-terminal-native-frontiers-v146.json",
+      "norm-terminal-source-contract-v146.json",
+      "norm-terminal-observed-and-work-v146.json",
+      "norm-terminal-backward-demand-cases-v146.json",
+      "norm-terminal-value-row-epoch-witnesses-v146.json",
+      "norm-terminal-composition-v146.json"
+    ],
+    "pairs": [
+      [
+        "F02",
+        "F23"
+      ],
+      [
+        "F02",
+        "F26"
+      ],
+      [
+        "F02",
+        "F27"
+      ],
+      [
+        "F02",
+        "F29"
+      ],
+      [
+        "F02",
+        "F30"
+      ],
+      [
+        "F02",
+        "F31"
+      ],
+      [
+        "F02",
+        "F34"
+      ],
+      [
+        "F02",
+        "F35"
+      ]
+    ],
+    "unique_TASKs": 3528,
+    "new_source_CID_bindings": 248,
+    "backward_demand_cases": 12288,
+    "scoped_conclusion_changing_gap": "Needactualsamevalues/gamma/beta/epsilon/loadedprecision/requestrowmapsandallPost/raw4H/premix/Y/Z/rstd/aux/maincontext/query/head/confidence readers;fullbaselineMTPsnapshotpublicationdoesnotattestactualdownstreamconsumedrows. TargetownerM800/816/834,terminalG6400/6528/6672/cacheT6400/6528/6668;draftownerM2/3 versusheadglobal10/20/maincontext12/24/6400/6528/6668;H5120notCSEproof. Backwardquery/KV/state/auxdemand andaccept/rollback/ringoldgeneration/halo/errors/RNG/collective/capture/finiteprogressmustclosebeforepruning.12288N4twoLayercasesinclude768fullWrequiringall8normrows;notallmodel/nativebranches. Native248newsourceCIDand48COMMbindsavedpositiveepisodesnotclient/loaded/nativephasepromotions;rawAPIconnectionTASKmembershipdifferscachednativeAPIlinksanddoesnotproveuniqueComputecausality. OnechosenYedgedemand+remainingfusionunion;terminal76GHprivateinterfacesand16GHsnapshotcopyarelogicalnotHBM/actualallocation/physicaltime. PreserveBF16Post/Y/Z/collapse/normcastandcurrentpre4/coeff/fullresidual. Allbroadercandidateand9/1352native849PMU16phase3136assignmentuncertaintiesremain;physicalcapacity/MFU/lowest/actualgain/wholepair/allvariants notestablished.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "F02_star34_scoped_not_whole": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  },
+  "review_v148": {
+    "evidence": [
+      "precision-field-inputs-v148.json",
+      "precision-field-population-v148.json",
+      "precision-regime-module-projection-v148.json",
+      "precision-primary-receipts-v148.json",
+      "precision-field-source-and-primary-contract-v148.json",
+      "precision-gated-cycle-and-state-cases-v148.json",
+      "precision-flag-rounding-inference-witnesses-v148.json"
+    ],
+    "raw_databases": 32,
+    "regimes_flag_reconciled": 2082,
+    "exported_flag_not_instruction_mode": true,
+    "scoped_conclusion_changing_gap": "Saved32DBexportedhf32Eligibledecodeisnowcompleteforall207750COMPUTErecords/286950TASKjoins/2082regimes. Thisclosesforeignkey/labelscope,notactualexecutedMmadmode.1120YESareAI_VECTOR_CORE;explicitmatrix/HC/MC2flagsNOdonotinventoryinternalarithmetic. NeedhistoricallyloadedmatchingHC/operatorbinary/opcodecoverage/initialHF32androundstate,actual9.2header/overload/runtimecontextcontracts. FrozenHCABtogglesON/RTZ-context/OFFwhilewholeHCflagNO;do notselectanexplanationwithoutobjectevidence. Legacy8.5booltrueRTZdocisnotnewCAPIenum1orinstalled9.2attestation. Retain24restrictedclassicalcyclecases/24AICreference:actualmode/pool/requirednonduplicatework/capacityupper/clock/storage/networkcutsandrequestendpointstillunbound. SourceshowsintegerindexworkwithYESflags;do notapplyHF32CubepeaktoVector/integerworkorusebool(rawStringID). 821262outsidefieldjoinTASKsretaintheirperDBSTRING_IDSdecodedtypelabels;notzero-work/newarithmetickernelsbycountandnotallTASKprecisionfieldsavailable.26modulecandidate-projectionsarenotexclusiveMFU;6moduleswithoutmatchingregimesnotzero-utilization. Nooriginalnativeoperand/phase/PMU/alias/readergapclosed:9/1352native849PMU16phase3136assignmentsandallbroadercandidategapsremain;wholemodule/physicalMFU/lowest/speedupnotestablished.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  }
+}

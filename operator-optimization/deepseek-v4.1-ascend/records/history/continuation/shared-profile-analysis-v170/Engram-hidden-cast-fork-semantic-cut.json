@@ -1,0 +1,343 @@
+{
+  "status": "REVIEWED_CONDITIONAL_LOCAL_COMMON_CONVERSION_FORK",
+  "id": "CUT170-ENGRAM-HIDDEN-CAST-FORK",
+  "candidate_reuse": [
+    "F25"
+  ],
+  "reuses_old_gate_graph_and_rounding_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-UVA-and-gate-costs-v62.json",
+  "targeted_code_question_and_pin": {
+    "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/common.py",
+    "sha256": "4797b8962264d137cdb142a9988825288283092fb797ddbd334c6ab2223eb58d",
+    "source_lines": [
+      "def engram_gate(",
+      "    hidden: torch.Tensor,",
+      "    key: torch.Tensor,",
+      "    value: torch.Tensor,",
+      "    channel_weight: torch.Tensor,",
+      "    rotation_block: torch.Tensor | None,",
+      "    token_mask: torch.Tensor,",
+      "    eps: float,",
+      ") -> torch.Tensor:",
+      "    \"\"\"Apply original-basis gating, undoing checkpoint rotation when present.",
+      "",
+      "    ``hidden`` and ``key`` have shape [tokens, hc_mult, hidden_size].",
+      "    The saved rotation consists of identical diagonal blocks. Restore hidden",
+      "    in FP32; the value projection already includes the forward rotation.",
+      "    \"\"\"",
+      "    dim = hidden.shape[-1]",
+      "    original = hidden.float()",
+      "    if rotation_block is not None:",
+      "        original = (original.unflatten(-1, (-1, rotation_block.shape[0])) @ rotation_block.float().T).flatten(-2)",
+      "    key = key.float()",
+      "    rstd = torch.rsqrt(original.square().mean(-1) + eps)",
+      "    rstd *= torch.rsqrt(key.square().mean(-1) + eps)",
+      "    dot = (original * channel_weight.float() * key).sum(-1) * rstd * dim**-0.5",
+      "    magnitude = dot.abs().clamp_min(1e-6).sqrt()",
+      "    gate = torch.sigmoid(torch.where(torch.signbit(dot), -magnitude, magnitude))",
+      "    gate = gate.masked_fill(~token_mask.unsqueeze(-1), 0)",
+      "    return (hidden.float() + gate.unsqueeze(-1) * value.float().unsqueeze(-2)).to(hidden.dtype)"
+    ],
+    "first_line": 46,
+    "last_line": 72,
+    "question": "Do the two observed hidden.float() sites read the same unmodified hidden input, and what value/lifetime must be retained?"
+  },
+  "actual_profile": {
+    "first_hidden_float": {
+      "callsite_group": "OG169-156",
+      "CPU_operator": "aclnnInplaceCopy",
+      "source_anchor": {
+        "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/common.py",
+        "line": 62,
+        "reported_symbol": "engram_gate",
+        "enclosing_qualified_symbol": "engram_gate",
+        "call_expressions_on_profile_line": [
+          "hidden.float"
+        ],
+        "source_sha256": "4797b8962264d137cdb142a9988825288283092fb797ddbd334c6ab2223eb58d"
+      },
+      "native_sequence": [
+        {
+          "native_name": "aclnnInplaceCopy_CastAiCore_Cast",
+          "inputDataTypes": "DT_BF16",
+          "outputDataTypes": "FLOAT",
+          "inputShapes": "\"3,4,5120\"",
+          "outputShapes": "\"3,4,5120\"",
+          "inputFormats": "NCL",
+          "outputFormats": "NCL",
+          "taskType": "AI_VECTOR_CORE",
+          "opType": "Cast"
+        }
+      ],
+      "calls": 32,
+      "native_executions": 32,
+      "profiles": [
+        "creation-0c3bd74412a549bba6569dd32bc7352e_3496_20261102190047085_ascend_pt",
+        "creation-1498d10db31246b68580de31a40de9a0_4870_20261102190047376_ascend_pt",
+        "creation-1accd58a73604154ace1f7cc98032ea5_745_20261102190047360_ascend_pt",
+        "creation-1d77cf02a70b4e8e9301e1d07a7bdf5d_4184_20261102190047089_ascend_pt",
+        "creation-28ea7964ccf7412db16482f9d7120369_728_20261102190047349_ascend_pt",
+        "creation-3cb9b122deff404ba07de73a4f023b60_4872_20261102190047086_ascend_pt",
+        "creation-4007cecaf65d4457a4ae57bc105a59e4_727_20261102190047092_ascend_pt",
+        "creation-5e3a2b9cbaaa47d18dff660aa14638a4_1431_20261102190047327_ascend_pt",
+        "creation-697b4f444df64f73970aa2cb733d1237_2120_20261102190047094_ascend_pt",
+        "creation-6a405de528174daabc15b37cf5fece4f_746_20261102190047086_ascend_pt",
+        "creation-c1732e79c4a14d9db1366249f9d58a43_2806_20261102190047324_ascend_pt",
+        "creation-c377319ac2ac43f39e2907cea1c56b56_1432_20261102190047097_ascend_pt",
+        "creation-d0b44570fdef4a88ab07e4713e36fb1f_2808_20261102190047077_ascend_pt",
+        "creation-d69ae984e42d4c21948f321e2af11db4_3494_20261102190047357_ascend_pt",
+        "creation-e3a2aed2dbc8485683a46f00584fdb8b_2118_20261102190047337_ascend_pt",
+        "creation-ec2ce0a0ffb646cd83da5b13920d1ff3_4181_20261102190047357_ascend_pt"
+      ],
+      "CPU_duration_ns": {
+        "n": 32,
+        "sum": 1410790,
+        "min": 41770,
+        "median": 42990.0,
+        "max": 70670
+      },
+      "native_work_ns": {
+        "n": 32,
+        "sum": 88199,
+        "min": 2440,
+        "median": 2750.0,
+        "max": 3120
+      },
+      "native_span_ns": {
+        "n": 32,
+        "sum": 88199,
+        "min": 2440,
+        "median": 2750.0,
+        "max": 3120
+      },
+      "per_sequence_kernel_duration_ns": [
+        {
+          "n": 32,
+          "sum": 88199,
+          "min": 2440,
+          "median": 2750.0,
+          "max": 3120
+        }
+      ],
+      "distinct_globalTaskIds_per_call": {
+        "1": 32
+      },
+      "same_stream_per_call": {
+        "True": 32
+      },
+      "sample_calls": [
+        {
+          "profile": "creation-0c3bd74412a549bba6569dd32bc7352e_3496_20261102190047085_ascend_pt",
+          "CPU_ROW": 25622,
+          "CPU_duration_ns": 44370,
+          "native": [
+            {
+              "TASK_ROW": 960,
+              "globalTaskId": 1312,
+              "stream": 36,
+              "taskType": "KERNEL_AIVEC",
+              "model": 4294967295,
+              "startNs": 1793646049403915402,
+              "endNs": 1793646049403918142
+            }
+          ]
+        },
+        {
+          "profile": "creation-0c3bd74412a549bba6569dd32bc7352e_3496_20261102190047085_ascend_pt",
+          "CPU_ROW": 31591,
+          "CPU_duration_ns": 70670,
+          "native": [
+            {
+              "TASK_ROW": 2077,
+              "globalTaskId": 2007,
+              "stream": 36,
+              "taskType": "KERNEL_AIVEC",
+              "model": 4294967295,
+              "startNs": 1793646049431741647,
+              "endNs": 1793646049431744706
+            }
+          ]
+        }
+      ]
+    },
+    "residual_hidden_float": {
+      "callsite_group": "OG169-091",
+      "CPU_operator": "aclnnInplaceCopy",
+      "source_anchor": {
+        "path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/common.py",
+        "line": 72,
+        "reported_symbol": "engram_gate",
+        "enclosing_qualified_symbol": "engram_gate",
+        "call_expressions_on_profile_line": [
+          "(hidden.float() + gate.unsqueeze(-1) * value.float().unsqueeze(-2)).to",
+          "gate.unsqueeze",
+          "hidden.float",
+          "value.float",
+          "value.float().unsqueeze"
+        ],
+        "source_sha256": "4797b8962264d137cdb142a9988825288283092fb797ddbd334c6ab2223eb58d"
+      },
+      "native_sequence": [
+        {
+          "native_name": "aclnnInplaceCopy_CastAiCore_Cast",
+          "inputDataTypes": "DT_BF16",
+          "outputDataTypes": "FLOAT",
+          "inputShapes": "\"3,4,5120\"",
+          "outputShapes": "\"3,4,5120\"",
+          "inputFormats": "NCL",
+          "outputFormats": "NCL",
+          "taskType": "AI_VECTOR_CORE",
+          "opType": "Cast"
+        }
+      ],
+      "calls": 32,
+      "native_executions": 32,
+      "profiles": [
+        "creation-0c3bd74412a549bba6569dd32bc7352e_3496_20261102190047085_ascend_pt",
+        "creation-1498d10db31246b68580de31a40de9a0_4870_20261102190047376_ascend_pt",
+        "creation-1accd58a73604154ace1f7cc98032ea5_745_20261102190047360_ascend_pt",
+        "creation-1d77cf02a70b4e8e9301e1d07a7bdf5d_4184_20261102190047089_ascend_pt",
+        "creation-28ea7964ccf7412db16482f9d7120369_728_20261102190047349_ascend_pt",
+        "creation-3cb9b122deff404ba07de73a4f023b60_4872_20261102190047086_ascend_pt",
+        "creation-4007cecaf65d4457a4ae57bc105a59e4_727_20261102190047092_ascend_pt",
+        "creation-5e3a2b9cbaaa47d18dff660aa14638a4_1431_20261102190047327_ascend_pt",
+        "creation-697b4f444df64f73970aa2cb733d1237_2120_20261102190047094_ascend_pt",
+        "creation-6a405de528174daabc15b37cf5fece4f_746_20261102190047086_ascend_pt",
+        "creation-c1732e79c4a14d9db1366249f9d58a43_2806_20261102190047324_ascend_pt",
+        "creation-c377319ac2ac43f39e2907cea1c56b56_1432_20261102190047097_ascend_pt",
+        "creation-d0b44570fdef4a88ab07e4713e36fb1f_2808_20261102190047077_ascend_pt",
+        "creation-d69ae984e42d4c21948f321e2af11db4_3494_20261102190047357_ascend_pt",
+        "creation-e3a2aed2dbc8485683a46f00584fdb8b_2118_20261102190047337_ascend_pt",
+        "creation-ec2ce0a0ffb646cd83da5b13920d1ff3_4181_20261102190047357_ascend_pt"
+      ],
+      "CPU_duration_ns": {
+        "n": 32,
+        "sum": 1456640,
+        "min": 41760,
+        "median": 43975.0,
+        "max": 71580
+      },
+      "native_work_ns": {
+        "n": 32,
+        "sum": 157460,
+        "min": 4260,
+        "median": 4870.0,
+        "max": 5880
+      },
+      "native_span_ns": {
+        "n": 32,
+        "sum": 157460,
+        "min": 4260,
+        "median": 4870.0,
+        "max": 5880
+      },
+      "per_sequence_kernel_duration_ns": [
+        {
+          "n": 32,
+          "sum": 157460,
+          "min": 4260,
+          "median": 4870.0,
+          "max": 5880
+        }
+      ],
+      "distinct_globalTaskIds_per_call": {
+        "1": 32
+      },
+      "same_stream_per_call": {
+        "True": 32
+      },
+      "sample_calls": [
+        {
+          "profile": "creation-0c3bd74412a549bba6569dd32bc7352e_3496_20261102190047085_ascend_pt",
+          "CPU_ROW": 25741,
+          "CPU_duration_ns": 43960,
+          "native": [
+            {
+              "TASK_ROW": 992,
+              "globalTaskId": 1405,
+              "stream": 36,
+              "taskType": "KERNEL_AIVEC",
+              "model": 4294967295,
+              "startNs": 1793646049404031920,
+              "endNs": 1793646049404036260
+            }
+          ]
+        },
+        {
+          "profile": "creation-0c3bd74412a549bba6569dd32bc7352e_3496_20261102190047085_ascend_pt",
+          "CPU_ROW": 31710,
+          "CPU_duration_ns": 71580,
+          "native": [
+            {
+              "TASK_ROW": 2109,
+              "globalTaskId": 2035,
+              "stream": 36,
+              "taskType": "KERNEL_AIVEC",
+              "model": 4294967295,
+              "startNs": 1793646049431859004,
+              "endNs": 1793646049431863344
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "semantic_derivation": "The pure function reads hidden.float() atline62 and again atline72. It never assigns to or writes hidden. Optional rotation rebinds original to a new matrix result; local rstd*= updates only rstd. If inputbytes/conversionsemantics remain unchanged and casts have no required external allocation observer, both casts produce the same FP32 values. A single pre-rotation cast may feed both the rotation/gate branch and the final unrotated residual branch.",
+  "candidate_graph": "Cast_BF16_to_FLOAT(hidden) -> fork{optional_rotation->gate, unchanged_FP32_hidden->ordered_residual_add->BF16_round}",
+  "important_non_equivalence": {
+    "input_hidden": [
+      1,
+      2
+    ],
+    "rotation": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "gate_times_value": [
+      0,
+      0
+    ],
+    "correct_unrotated_residual": [
+      1,
+      2
+    ],
+    "wrong_reuse_of_rotated_original": [
+      2,
+      1
+    ]
+  },
+  "guards": [
+    "No concurrent relevant input mutation and identical conversion semantics across the two original sites.",
+    "Retain the pre-rotation FP32 value; the rotated value is not a residual substitute.",
+    "Preserve full norm/dot/special/mask evaluation, FP32 multiply/add order, final BF16 round, NaN/Inf/signed-zero semantics and every output consumer.",
+    "Preserve any required input/storage/allocator/capture/error observer; actual native allocation and safe new handoff are not proved.",
+    "Account for extended lifetime of the FP32 activation using the same shared memory budget as other candidates."
+  ],
+  "logical_value_and_lifetime_model": {
+    "shape": [
+      3,
+      4,
+      5120
+    ],
+    "elements": 61440,
+    "one_removed_conversion_interface_bytes": 368640,
+    "additional_live_FP32_storage_at_most_bytes_per_call": 245760,
+    "calls_with_each_observed_site": 32,
+    "logical_removed_conversion_interface_bytes_over_observed_calls": 11796480,
+    "scope": "One potential 2B-read+4B-write conversion interface;not measuredHBM. Keeping the first FP32 allocation live can increase memory peak before the second cast. Do not sum per-call lifetime bytes into simultaneous capacity or count an ideal-gate/wholefusion credit twice."
+  },
+  "what_is_new": "Actual duplicated BF16->FP32 input-conversion sites and a precise local fork/lifetime condition are bound to the same pinned function. Existing versioned q/k-parameter and rotation-weight preparation are not counted as new discoveries.",
+  "symbolic_ceiling": {
+    "state": "SYMBOLIC_CEILING",
+    "physical_capacity_or_speedup": null,
+    "note": "The fullgate necessary work and resource lower bounds must be recomputed jointly;do not sum independent operator lower bounds or infer gain from one Cast duration."
+  },
+  "new_native_reader_or_alias_proofs": 0,
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

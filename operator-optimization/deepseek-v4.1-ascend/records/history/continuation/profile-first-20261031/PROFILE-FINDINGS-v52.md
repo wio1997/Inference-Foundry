@@ -1,0 +1,11 @@
+本轮定位并分析了一个具体的ModelSlim/W8A8参数注册路径。3份源码与历史166哈希匹配，ModelSlim配置和适配层2份依赖只有本地参考身份。保存调用栈中的量化适配层linear apply仅用于定位，没有冒充MoE加载回调对象证据。没有连接服务器或执行模型/设备工作。
+
+核心构造器先解析quant_method，再把self.weight_loader放进参数属性字典。参考ModelSlim配置会在这一解析过程中给layer实例安装包装器；因此，类没有重写weight_loader并不能证明参数直接持有原始Base回调。适配层在权重和动态量化参数两个注册循环中都转交该属性字典。实际属性helper与Param字段仍未核验。
+
+该包装器仅改写w13_scale_bias→w13_scale、w2_scale_bias→w2_scale尾名，expert_id等参数原样转发。它没有实施静态expert槽位重排；在所查W8A8初始参数名上，名称映射也为恒等。因此v51的物理ID、加载map与完整执行route一致性条件仍然需要证明。
+
+初始注册六张参数与runtime EPLB的六个字段不能一一配对：前者包括两张weight、两张scale和两张offset；后者含两张weight、FP32/普通scale及两张packed scale。中间经过view、cast、NZ格式、可选clone及部分raw属性删除。数量相同不证明张量、存储或代际相同，也不证明offset已死或存储释放。
+
+新增6项条件细化现有F21静态加载方案，覆盖正确hook时机、回调元数据、producer变换与reload边界。已保留3次本地检查/选择器错误并修正；源代码与条件分析结果仍需最终完整性校验。原166实际配置/依赖/回调对象、P0与映射表、静态权重对齐、全部消费者及资源证据仍待补齐。
+
+35模型候选、7框架候选、0整模块关闭。没有新增优化实现、native测试或实测收益；整体Goal继续进行。

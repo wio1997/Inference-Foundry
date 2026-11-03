@@ -1,0 +1,59 @@
+{
+  "generated_utc": "2026-10-31T10:08:49.712886+00:00",
+  "framework_candidates": [
+    "H02"
+  ],
+  "related": [
+    "H05",
+    "H06"
+  ],
+  "host_positive_payloads": [
+    {
+      "B": 2,
+      "K": 1,
+      "calls": 16,
+      "backup_INT32_bytes": 8,
+      "count_INT64_bytes": 16,
+      "sampled_INT32_bytes": 8,
+      "note": "Per-record logical tensor payload only; not measured DMA/wire/protocol/peak-memory bytes."
+    },
+    {
+      "B": 2,
+      "K": 6,
+      "calls": 16,
+      "backup_INT32_bytes": 8,
+      "count_INT64_bytes": 16,
+      "sampled_INT32_bytes": 48,
+      "note": "Per-record logical tensor payload only; not measured DMA/wire/protocol/peak-memory bytes."
+    },
+    {
+      "B": 4,
+      "K": 6,
+      "calls": 56,
+      "backup_INT32_bytes": 16,
+      "count_INT64_bytes": 32,
+      "sampled_INT32_bytes": 96,
+      "note": "Per-record logical tensor payload only; not measured DMA/wire/protocol/peak-memory bytes."
+    }
+  ],
+  "baseline": [
+    "BackupINT32[B]H2D during next-ID preparation.",
+    "CountINT64[B]D2H on its named count-copy stream/event before draft proposal finishes.",
+    "Target sampledINT32[B,K]D2H in AsyncGPUModelRunnerOutput after proposal, on an output-copy stream/event with optional output fields."
+  ],
+  "opportunities": [
+    "Schedule a readonly sampled-ID snapshot after its actual sampler-ready event, avoiding an unnecessarily broad wait on later proposal work where source lifetimes permit.",
+    "Publish counts and target IDs in a matching mixed-dtype generation envelope if compatible, preserving their different CPU/GPU consumers and readiness.",
+    "Pack compatible CP QSL/suffix inputs into persistent views, or reuse immutable components under the existing exact geometry contract; do not re-count v13 dead suffix producers as a new saving."
+  ],
+  "invariants": [
+    "SecondD2H is target sampled IDs, not draft proposal IDs or dynamic verify lengths.",
+    "Count-copy eventNone behavior,GPU reference/next-ID state and both copy last readers retained.",
+    "Async result final readiness covers optional logprobs/routing/NaN/fault data and invalid-request parsing, not only IDs.",
+    "Actual CANN copy completion/queue source bridge/frontend stall attribution not proven.",
+    "Packing may add copying/waiting/peak live storage; fewer host copies is not a speedup proof."
+  ],
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

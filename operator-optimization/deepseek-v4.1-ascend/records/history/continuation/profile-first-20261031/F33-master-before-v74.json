@@ -1,0 +1,399 @@
+{
+  "id": "F33",
+  "name": "C1 compressor 与 SWA KV 的同域投影共享、联合分块与前移通信",
+  "profile_review_state": "EXACT80_ORDER_AND_OVERLAP_REVIEWED;DIRECT_CONSUMER_WAR_AND_NATIVE_PRIMITIVES_BOUND;CONDITIONAL",
+  "family_name_hits_not_role_proof": {},
+  "scoped_detail": {
+    "source_layer": 20,
+    "captured_graph_pairs": 80,
+    "input_shape": [
+      24,
+      5120
+    ],
+    "two_weight_shapes": [
+      [
+        512,
+        5120
+      ],
+      [
+        512,
+        5120
+      ]
+    ],
+    "dtype": "BF16",
+    "source_input_shared": true,
+    "source_norms": "Two independent512-wide normalizations; never one1024-wide RMSNorm.",
+    "variants": [
+      "Shared input tile and separate output buffers/independent norms.",
+      "Packed1024-wide GEMM with explicit output stride/layout handling and preserved consumer readiness.",
+      "Joint local-row projections followed by role-specific communication, coupled toF32; preserve both SWA and C1 latent consumers."
+    ],
+    "current_graph_logical_operand_bytes": {
+      "shared_input": 245760,
+      "each_weight": 5242880,
+      "both_weights": 10485760
+    },
+    "conditional_F32_C1_interface": {
+      "original_BF16_hidden_bytes_per_row": 10240,
+      "SWA512_BF16_plus_C1_512_BF16_bytes_per_row": 2048,
+      "feature_width_ratio": 5,
+      "meaning": "Conditional interface payload only,not observed HBM/network traffic,universal bound or speedup. Norm/rounding/ownership/positions/graph-address contracts required."
+    },
+    "branch_limits": [
+      "C1 source layer20 only; other36 non-KV-source layers have no C1 consumer in reviewed path.",
+      "C2 source layers2/8/14 use FP32 compressor projections; no naive common-BF16 GEMM. ExistingF17/F32 C2 variants remain distinct.",
+      "Empty-query/cache-update and empty-cache branches remain separately conditional.",
+      "Current source-bound typed path is BF16; quantized KV paths require a different input-format contract."
+    ]
+  },
+  "conclusion_changing_gap": "Actualstorage/strides/capture/eventgenerations,backendnumerics andcompletecacheownership/consumers;cross-rankreplication onlyforF32composition. Localjointprojectiondoesnotrequireequalitybetweenthetwomatrices.",
+  "next_profile_or_contract_action": "Do not repeat settled direct consumers. Advance finite wholemodule/phase/crossboundary coverage;point-query only a particular missing contract that changes conclusions.",
+  "target_source_gate": "PROFILE-CODE-QUESTION-GATE-v16.json",
+  "runtime_gap_policy": "Source cannot recover absent historical storage identities or readiness generations.",
+  "legal_fusion_proved": false,
+  "candidate_closed": false,
+  "critical_path_gain_us": null,
+  "critical_path_gain_status": "UNKNOWN_NOT_SUM_OF_TASK_TIMES",
+  "evidence_files": [
+    "projection-role-review-v16.json",
+    "profile-raised-source-contract-v16.json",
+    "communication-role-contract-v16.json",
+    "F33-profile-order-contract-v27.json",
+    "F33-consumer-and-numerical-contract-v27.json",
+    "F33-projection-algebra-and-layout-v27.json",
+    "F33-joint-projection-variants-v27.json",
+    "F33-condition-ledger-v27.json"
+  ],
+  "generic_caller_review_v18": "generic-helper-semantic-review-v18.json",
+  "PMU_resource_scope_v18": "complete-PMU-resource-contract-v18.json;resource-candidate-review-v18.json;reported nonexclusivecycle fractions,not physicalpeak/MFU/requestgain.",
+  "captured_resource_attribution_v20": "resource-coverage-summary-v20.json;reported-resource-ranking-v20.json;counter-onlyfunctional attribution,not wholemodule legal/gain closure.",
+  "resource_assignment_uncertainty_v20": "3136explicitcandidate-set records:80prefixbool,1280Q/Indexerquant,1600SWA/compressor typedroles,176execute_modelindex. M12counter-lowest unaffected;no all-consumer proof.",
+  "raw_attribute_evidence_policy_v23": "profile-attribute-quality-contract-v23.json;STRING_IDS convention supported by contextual schema;own-op scalar/tiling values need independent binding. Existing source-contract conclusions are separate.",
+  "review_v27": {
+    "profile": "F33-profile-order-contract-v27.json",
+    "consumer": "F33-consumer-and-numerical-contract-v27.json",
+    "math": "F33-projection-algebra-and-layout-v27.json",
+    "graphs": "F33-joint-projection-variants-v27.json",
+    "conditions": "F33-condition-ledger-v27.json",
+    "two_GEMMs_overlap": false,
+    "other_work_overlap": true,
+    "old_latent_WAR_required": true,
+    "whole_module_closed": false
+  },
+  "source_graph": {
+    "nodes": [
+      {
+        "id": "hidden"
+      },
+      {
+        "id": "swa_project"
+      },
+      {
+        "id": "swa_norm"
+      },
+      {
+        "id": "swa_rope"
+      },
+      {
+        "id": "swa_publish"
+      },
+      {
+        "id": "c1_project"
+      },
+      {
+        "id": "c1_norm"
+      },
+      {
+        "id": "index_read"
+      },
+      {
+        "id": "index_key_scale_publish"
+      },
+      {
+        "id": "long_rope"
+      },
+      {
+        "id": "long_publish"
+      },
+      {
+        "id": "future_index"
+      },
+      {
+        "id": "future_attention"
+      }
+    ],
+    "edges": [
+      {
+        "a": "hidden",
+        "b": "swa_project",
+        "kind": "RAW"
+      },
+      {
+        "a": "hidden",
+        "b": "c1_project",
+        "kind": "RAW"
+      },
+      {
+        "a": "swa_project",
+        "b": "swa_norm",
+        "kind": "BF16_RAW"
+      },
+      {
+        "a": "swa_norm",
+        "b": "swa_rope",
+        "kind": "RAW"
+      },
+      {
+        "a": "swa_rope",
+        "b": "swa_publish",
+        "kind": "RAW"
+      },
+      {
+        "a": "swa_publish",
+        "b": "c1_project",
+        "kind": "CURRENT_JOIN_CONTROL"
+      },
+      {
+        "a": "c1_project",
+        "b": "c1_norm",
+        "kind": "BF16_RAW"
+      },
+      {
+        "a": "c1_norm",
+        "b": "index_read",
+        "kind": "RAW_PRE_LONG_ROPE_LATENT"
+      },
+      {
+        "a": "c1_norm",
+        "b": "long_rope",
+        "kind": "RAW"
+      },
+      {
+        "a": "index_read",
+        "b": "index_key_scale_publish",
+        "kind": "RAW"
+      },
+      {
+        "a": "index_read",
+        "b": "long_rope",
+        "kind": "WAR_COMPLETE_OLD_LATENT_READ"
+      },
+      {
+        "a": "index_key_scale_publish",
+        "b": "long_rope",
+        "kind": "CURRENT_CONTROL_RETAINED_FOR_F33_ALONE"
+      },
+      {
+        "a": "long_rope",
+        "b": "long_publish",
+        "kind": "RAW"
+      },
+      {
+        "a": "index_key_scale_publish",
+        "b": "future_index",
+        "kind": "PERSISTENT_GENERATION"
+      },
+      {
+        "a": "swa_publish",
+        "b": "future_attention",
+        "kind": "PERSISTENT_GENERATION"
+      },
+      {
+        "a": "long_publish",
+        "b": "future_attention",
+        "kind": "PERSISTENT_GENERATION"
+      }
+    ]
+  },
+  "candidate_graph": {
+    "nodes": [
+      {
+        "id": "hidden"
+      },
+      {
+        "id": "swa_norm"
+      },
+      {
+        "id": "swa_rope"
+      },
+      {
+        "id": "swa_publish"
+      },
+      {
+        "id": "c1_norm"
+      },
+      {
+        "id": "index_read"
+      },
+      {
+        "id": "index_key_scale_publish"
+      },
+      {
+        "id": "long_rope"
+      },
+      {
+        "id": "long_publish"
+      },
+      {
+        "id": "future_index"
+      },
+      {
+        "id": "future_attention"
+      },
+      {
+        "id": "joint_project"
+      }
+    ],
+    "edges": [
+      {
+        "a": "hidden",
+        "b": "joint_project",
+        "kind": "RAW"
+      },
+      {
+        "a": "joint_project",
+        "b": "swa_norm",
+        "kind": "BF16_RAW"
+      },
+      {
+        "a": "swa_norm",
+        "b": "swa_rope",
+        "kind": "RAW"
+      },
+      {
+        "a": "swa_rope",
+        "b": "swa_publish",
+        "kind": "RAW"
+      },
+      {
+        "a": "joint_project",
+        "b": "c1_norm",
+        "kind": "BF16_RAW"
+      },
+      {
+        "a": "c1_norm",
+        "b": "index_read",
+        "kind": "RAW_PRE_LONG_ROPE_LATENT"
+      },
+      {
+        "a": "c1_norm",
+        "b": "long_rope",
+        "kind": "RAW"
+      },
+      {
+        "a": "index_read",
+        "b": "index_key_scale_publish",
+        "kind": "RAW"
+      },
+      {
+        "a": "index_read",
+        "b": "long_rope",
+        "kind": "WAR_COMPLETE_OLD_LATENT_READ"
+      },
+      {
+        "a": "index_key_scale_publish",
+        "b": "long_rope",
+        "kind": "CURRENT_CONTROL_RETAINED_FOR_F33_ALONE"
+      },
+      {
+        "a": "long_rope",
+        "b": "long_publish",
+        "kind": "RAW"
+      },
+      {
+        "a": "index_key_scale_publish",
+        "b": "future_index",
+        "kind": "PERSISTENT_GENERATION"
+      },
+      {
+        "a": "swa_publish",
+        "b": "future_attention",
+        "kind": "PERSISTENT_GENERATION"
+      },
+      {
+        "a": "long_publish",
+        "b": "future_attention",
+        "kind": "PERSISTENT_GENERATION"
+      }
+    ]
+  },
+  "variants": [
+    {
+      "id": "F33-A",
+      "status": "CONDITIONAL",
+      "change": "Shared hidden input tiles with two distinct projections,independent output buffers and512norms.",
+      "preserves": "Both matrices/biases,normparameters and BF16 boundaries,index old-latent read,SWA/index/scale/long publications.",
+      "open": "Tiling/numerics,livebuffer/capture generations and comparisonagainst the fullcurrent multistream schedule."
+    },
+    {
+      "id": "F33-B",
+      "status": "CONDITIONAL",
+      "change": "Packed1024-output projection with two512norm groups.",
+      "open": "Rowstride1024 rather than512;consumer strided support/separate outputs/conversion and exact precision. No1024-wide combinednorm."
+    },
+    {
+      "id": "F33-C",
+      "status": "CONDITIONAL_COMPOSITION_WITH_F32",
+      "change": "Project local rows then redistribute two512-wide role outputs rather than original5120 hidden features.",
+      "open": "Loaded cross-rank weight/precision equivalence,rowrouting,padding,all globalhidden consumers,slot/position andpersistent/captureownership.",
+      "logical_feature_ratio": 5,
+      "physical_network_or_latency_gain": null
+    },
+    {
+      "id": "F33-D",
+      "status": "EXCLUDED_AS_UNCONDITIONAL_SUBSTITUTION",
+      "change": "Replace both512norms by one1024norm.",
+      "reason": "Different reduction domain;exactcounterexample recorded."
+    },
+    {
+      "id": "F33-E",
+      "status": "EXCLUDED_WITHOUT_VALUE_PRESERVATION",
+      "change": "Move in-place long-RoPE beforeindexlatentread.",
+      "reason": "Changes indexprojectioninput unless oldvaluecopied/proveninvariant. KeepWAR,notuniversalwhole-index-publication barrier."
+    },
+    {
+      "id": "F33-F",
+      "status": "UNSUPPORTED_PARAMETER_DEDUPLICATION",
+      "change": "Compute one512projection anduseitforbothroles.",
+      "reason": "Sharedinput/weightshape doesnotprove equalmatrices. Localjointprojection doesnotrequire them equal."
+    }
+  ],
+  "implementation": false,
+  "new_performance_result": false,
+  "overall_complete": false,
+  "review_v43": {
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Reuse v27 old-latent WAR/independent norm/stream-overlap proofs; source-case crosswalk adds no new pair count or idle-gap saving. Main-vs-aux cache publication retained."
+  },
+  "review_v61": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-graph-chains-v61.json",
+    "work_bounds": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-work-and-reference-bounds-v61.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-and-partition-costs-v61.json",
+    "numerics": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "full_observed_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v61.json",
+    "relation": "69coreprojectionregimes/24814execplus5distinctM18lookalikes/264exec havecostmodels. 16conditional/rejectionchoices includeG1GEMM,QRquantreuse,QA+indexweight,C2joint/cast,typedproject-before-gather andBF16-preservingoutputpanels/RS. Precompositionfailsroundingandraiseswork/weights20/9.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v62": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-regime-models-v62.json",
+    "graph_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-graph-operator-chains-v62.json",
+    "C2_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/C2-state-and-pool-costs-v62.json",
+    "Engram_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-UVA-and-gate-costs-v62.json",
+    "operator_contracts": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-operator-contract-v62.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-fusion-variants-v62.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v62.json",
+    "relation": "276M08member/M14strictregimes13704exactnativeexecutions,13projectionoverlap808;263newregimes12896exec. 25conditional/rejectiondecisionswithsourcework/logicalIOandtypedcapacitygates,31semanticfamilies. No wholemodelcompletion.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "generated_utc": "2026-10-31T02:05:54.008035+00:00",
+  "workflow": "EXHAUST_RELEVANT_PROFILE_THEN_NARROW_SOURCE",
+  "previous_turn_classification": "PROGRESS:v18 checkpoint/28PMU fields/70caller review verified",
+  "profile_evidence": [
+    "transport-scope166-v19.json",
+    "EP-routing-and-placement-contract-v17.json",
+    "F21-placement-and-hotspot-variants-v17.json"
+  ],
+  "questions": [
+    {
+      "id": "F21_NATIVE_LOGICAL_WEIGHT_ABI",
+      "unsettled": "Native profile shows INT32 expert IDs and local expert weight/scale tensors, but cannot reveal checkpoint/logical ID→physical slots or any runtime remap before dispatch. Determine whether candidate static permutations/replicas require changes to this interface,including hash routing and quantized scale associations.",
+      "allowed_files": [
+        "models/deepseek_v41/model.py:DeepseekV41MoE",
+        "ops/fused_moe/moe_comm_method.py:dispatch_ffn_combine caller",
+        "quantization/methods/w8a8/w8a8_dynamic.py:AscendW8A8DynamicFusedMoEMethod",
+        "vllm/model_executor/layers/fused_moe/expert_map_manager.py",
+        "vllm/model_executor/layers/fused_moe/routed_experts.py:weight_loader",
+        "ops/fused_moe/fused_moe.py:AscendMoERunner"
+      ],
+      "initial_action": "Locate exact symbols in six files,then read only enclosing functions or bounded relevant sections; no whole repository AST/callgraph.",
+      "not_recoverable_from_code": [
+        "Historical resident tensor values/ID permutation",
+        "Same-call MC2 internal phase durations",
+        "Actualphysical topology/packets",
+        "Measured numeric equivalence or gains"
+      ]
+    }
+  ],
+  "transport_scope": "Saved analysis has HCCS/SIO/SDMA labels and two rankSize8 HCCL groups; matrix has top/middle/total aggregates and blank op-name totals. Not an EP16 physical topology map.",
+  "new_device_work": false,
+  "repository_wide_source_audit": false,
+  "overall_complete": false,
+  "exact_callee_followup": {
+    "reason": "W8A8.apply passes expert_map into build_fused_experts_input; AscendRoutedExperts overrides expert selection and can alter IDs before native call. Determine actual remap instead of inferring from absence of native map argument.",
+    "allowed_files": [
+      "ops/fused_moe/routed_experts.py:init_eplb,_select_experts,forward_impl slice,properties/class-base",
+      "ops/fused_moe/dataclass/fused_experts.py:build_fused_experts_input and dataclass fields"
+    ],
+    "no_other_source_followup_without_new_question": true
+  },
+  "initializer_followup": {
+    "profile_raised_question": "Is expert_map merely stored metadata or used to relabel IDs before MC2? Ascend select_experts shows log2phy indexing, so bind the one named constructor callee to distinguish existing capability from hypothetical new ABI.",
+    "allowed_symbol": "vllm_ascend/eplb/core/eplb_utils.py:init_eplb_config",
+    "max_function_lines": 250,
+    "no_repository_audit": true
+  },
+  "map_builder_followup": {
+    "allowed_symbols": [
+      "eplb/core/eplb_utils.py:expert_file_to_tensor",
+      "eplb/core/eplb_utils.py:generate_log2phy_map",
+      "eplb/core/eplb_utils.py:generate_global_placement"
+    ],
+    "reason": "Constructor confirms existing expert_map_path→log2phy support. Bind file schema/slot choice and replica selection granularity; no need to inspect other EPLB policies.",
+    "not_claimed": "No actual runtime config/mapping values or numeric/gain validation."
+  },
+  "answered_by": [
+    "EP-mapping-and-weight-contract-v19.json",
+    "F21-interface-branch-ledger-v19.json",
+    "F21-replica-source-granularity-contract-v19.json"
+  ],
+  "closed_questions": [
+    "Existing post-router ID remap/callee payload/quant scale association capabilities",
+    "Current initializer replica-selection granularity and file index fallback",
+    "Retained HCCL transport evidence scope"
+  ],
+  "still_open": [
+    "Whole26module finite-branch/consumer/cross-boundary scan and same-scope resource/theory comparison remain incomplete. Conditional analysis does not require implementation,but cannot imply measured gains.",
+    "F21 source remap capability and current initializer source granularity are resolved. Exact custom-map checkpoint/post-load reconciliation and map/weight/capture generations remain a specific source/measurement edge,not a generic missing-ABI label.",
+    "Native saved HCCL rankSize8 matrix is not EP16 physical topology. If topology changes a conclusion,use exact saved rank/device metadata or a bounded readonly topology query;do not infer links from logicalTP8halves.",
+    "Current166EngineCore/producerready/prefixhash CPU cost remains absent from retained CPU traces. Historical169 samples stay separate;new diagnostic,if needed,must reuse fixed workload/health/restore/clone guards.",
+    "Use the complete v18 PMU and reviewed caller/graph roles for module resource comparison before further source. Counter-derived nonexclusive pipe fractions are not physical peak/MFU. MC2 internal stage timing remains absent.",
+    "H07/F33/compressor/ring/rollback/other graph consumers still retain their exact numerical,buffer,phase andlifetime obligations.16unboundgraph phases remain capture-limited;no nearest/ordinal invention."
+  ],
+  "no_model_import_or_device_work": true
+}

@@ -1,0 +1,101 @@
+{
+  "Triton": {
+    "count_dtype": "INT32",
+    "allocated_count_shape": "[T,V]",
+    "mask_dtype": "BOOL",
+    "request_parameters": "Selected source gathers prompt and penalty parameters byrepeat_indices before the provider call.",
+    "relevant_domain": "Valid ragged request mapping,bounded positive counts,noPenaltiesFalse andHAS_TRITONTrue."
+  },
+  "fallback": {
+    "count_dtype": "INT64(torch.long)",
+    "allocated_count_shape": "[T,V+1],returned[:,:V] view",
+    "mask_dtype": "BOOL",
+    "repetition": "Delegates to vllm._custom_ops.apply_repetition_penalties;actual Ascend native dispatch/numerics unbound.",
+    "request_parameters": "Ascend HAS_TRITONFalse delegates directly to Sampler.apply_penalties without the repeat_indices gathers used by its Triton branch.",
+    "condition": "If metadata arrays remain request-rowB,do not assume they are valid target-rowT inputs. T=B alone is insufficient forragged ownership.",
+    "precision": "I64counts and custom repetition provider are distinct from Triton I32/explicit reciprocal source;do not transfer native precision/resource claims."
+  },
+  "row_cases": [
+    {
+      "drafts": [
+        1,
+        1
+      ],
+      "B": 2,
+      "T": 2,
+      "expected_request_owners": [
+        0,
+        1
+      ],
+      "request_and_target_rows_match": true
+    },
+    {
+      "drafts": [
+        2,
+        2
+      ],
+      "B": 2,
+      "T": 4,
+      "expected_request_owners": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "coefficient_tensor_shape_problem": "[2,1] and[4,V] are not broadcastable under documented tensor semantics;if supplied params are request-rowB."
+    },
+    {
+      "drafts": [
+        0,
+        2
+      ],
+      "B": 2,
+      "T": 2,
+      "expected_request_owners": [
+        1,
+        1
+      ],
+      "unexpanded_request_rows": [
+        0,
+        1
+      ],
+      "same_T_B_does_not_prove_owner_match": true,
+      "scalar_contract_row0_witness": {
+        "prompt_rows": [
+          [],
+          [
+            0
+          ]
+        ],
+        "rho_rows": [
+          2,
+          2
+        ],
+        "logits": [
+          2.0,
+          1.5
+        ],
+        "correct_owner_ID": 1,
+        "unexpanded_owner_ID": 0
+      }
+    },
+    {
+      "drafts": [
+        2
+      ],
+      "B": 1,
+      "T": 2,
+      "expected_request_owners": [
+        0,
+        0
+      ],
+      "documented_scatter_model": "A[1,L] prompt index updates onlyrow0 of an allocated[2,V+1] count tensor;there is no implicit prompt-row broadcast.",
+      "full_custom_repetition_provider_compatibility": "UNKNOWN;parameter broadcast in frequency terms alone is not whole-backend compatibility."
+    }
+  ],
+  "documentation_index": "penalty-public-contract-index-v110.json",
+  "source_analysis_not_actual_runtime_failure": true,
+  "actual_fallback_reachability_or_preexpanded_arrays_attested": false,
+  "no_target_repair_or_execution": true,
+  "overall_complete": false
+}

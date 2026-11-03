@@ -1,0 +1,15 @@
+本轮取得实质进展；整体分析仍未完成。所有新增结果都来自已保存profile、专家计数或元数据，没有新增模型源码读取、NPU运行、服务变更或优化实现。
+
+4,736份专家快照归为296个完整EP16 cohort。每组都通过“有效发送行×K = 总接收分配数”及逐专家发送直方图→接收计数守恒。正式主模型有240次本卡零发送、接收仍为268～10,894行的观测，草稿有6次；因此不能按本地输入为空跳过这些卡。当前观测放置策略为linear、冗余专家为0。计数来自独立observer run，不能与稍后hostprof中的MC2耗时按时间或序号强配；40个阶段不明的捕获样本也未改称正式decode。
+
+F21现在明确区分三类重组。第一类是固定专家位置重排：每层只用第一个正式样本生成映射，在后续40个主模型样本评估，不重新训练。全EP16重排的“原最大接收行数/反事实最大行数”中位数为1.5343，但22/40样本会增加跨TP8分区分配数。另一种只在原TP8分区内部重排，40/40后续样本的最大行数下降，中位数比1.5323，跨分区分配数按构造保持不变；每卡专家槽数不变，也没有新增副本。这些是计数反事实，不是1.53倍提速，实际native ID/权重映射、数值、固定地址和链路成本仍需满足。
+
+第二类是热点专家复制或按token拆分。正式草稿多数样本的最忙卡38行里，单个专家就占37行；在不拆分该专家的前提下，仅交换专家位置通常空间有限。复制/拆分必须保留同一个逻辑专家函数、每个assignment只选一个副本、完整量化尺度和combine顺序，并付出额外权重/scale槽位与内存。当前记录的INT8权重和INT64尺度维度对应每专家35,467,264字节逻辑operand，不能据此认定实际resident大小或副本一定放得下。第三类仍是原生compound内部GMM/激活/dispatch/combine流水；本轮数据没有拆出其内部时间。32个count buffer也被跨层复用，延迟读取须保留版本。
+
+辅助DB的实际内容已查清：32个analysis.db只有通信带宽/矩阵/时间和StepTraceTime表，不能当32份额外CPU进程profile。当前CPU API数据来自16个worker的32窗口，frontend Python事件来自PID1。H01中15.12 CPU秒等EngineCore样本实际属于归档source169-project运行，已将来源写清，未转成当前166测量。H03前缀hash成本也不能由worker或frontend通用__hash__调用替代；此前“frontend只有marker”的旧表述已移除。
+
+通信导出指标不再只凭列名解释。14,720条CommAnalyzerTime均唯一匹配native操作名，native durationNs/raw elapse恰为1e6，说明本样本elapse_time为毫秒。32份StepTraceTime的computing、communication、overlapped、communication_not_overlapped、stage，乘1000后分别精确等于native计算区间并集、HCCL区间并集、交集、HCCL减计算区间及两者hull，五项均32/32通过。stage与全TASK跨度32份都不相等，差2.85～64.42ms，其他任务不能被当作不存在。计算kernel区间可能包含MC2内部等待与通信，这些指标不是算力活跃率/MFU；局部未重叠通信也不是可直接移除的请求延迟。wait/sync/transit/bandwidth字段仍需各自的聚合/单位定义。
+
+保存的硬件头覆盖设备0～15的两个窗口：platform_version=5、Cube24、Vector48、aic/aiv_frequency字符串1800。它补齐了实际捕获字段；下一步只需定点绑定已定位的SDK ChipManager/factory与FFTS频率/counter导出路径，仍未套用物理峰值或宣称MFU。两个查询初版的字段名/非JSON文件处理失败均保留，修正版本成功，未隐去失败证据。
+
+台账保持33项模型候选、7项框架候选。原生内部阶段、实际映射/数值合同、当前EngineCore/hash成本及其他模块条件仍有缺口，26个整体模块尚未全部闭合，Goal保持active。

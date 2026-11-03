@@ -1,0 +1,430 @@
+{
+  "id": "F32",
+  "name": "SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信",
+  "profile_review_state": "SELECTED_GATHER_PROJECTION_PROFILE_AND_ROLE_DEPENDENT_CONTRACT_REVIEWED",
+  "family_name_hits_not_role_proof": {
+    "old_all_ranks": [
+      {
+        "type": "MatMulV2",
+        "sample_count": 16,
+        "all_sample_call_count": 24557
+      },
+      {
+        "type": "QuantBatchMatmulV3",
+        "sample_count": 16,
+        "all_sample_call_count": 21957
+      },
+      {
+        "type": "hcom_allGather_",
+        "sample_count": 16,
+        "all_sample_call_count": 15744
+      }
+    ],
+    "official_window_1": [
+      {
+        "type": "MatMulV2",
+        "sample_count": 16,
+        "all_sample_call_count": 20789
+      },
+      {
+        "type": "QuantBatchMatmulV3",
+        "sample_count": 16,
+        "all_sample_call_count": 18669
+      },
+      {
+        "type": "hcom_allGather_",
+        "sample_count": 16,
+        "all_sample_call_count": 13208
+      }
+    ],
+    "official_window_2": [
+      {
+        "type": "MatMulV2",
+        "sample_count": 16,
+        "all_sample_call_count": 30072
+      },
+      {
+        "type": "QuantBatchMatmulV3",
+        "sample_count": 16,
+        "all_sample_call_count": 26232
+      },
+      {
+        "type": "hcom_allGather_",
+        "sample_count": 16,
+        "all_sample_call_count": 20352
+      }
+    ]
+  },
+  "scoped_detail": {
+    "profile": {
+      "q_rows": [
+        1023,
+        1023,
+        1023,
+        1023,
+        1023,
+        1023,
+        1023,
+        1019
+      ],
+      "kv_rows": [
+        8180,
+        8180,
+        8180,
+        8180,
+        8180,
+        8180,
+        8180,
+        8180
+      ],
+      "sum_q_rows": 8180,
+      "same_physical_M_domain": false,
+      "naive_same_input_concatenation_preserving_current_M_domains": "EXCLUDED_FOR_SELECTED_RECORD_SHAPES",
+      "more_general_reorganization": "CONDITIONAL_REQUIRES_ROW_MAPPING_CONSUMERS_NUMERICAL_AND_COMMUNICATION_CONTRACTS",
+      "group_metadata": [
+        {
+          "matches_communicator_key": true,
+          "matches_group_name": false,
+          "category": "tp",
+          "group_rank": 3,
+          "global_ranks": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        }
+      ],
+      "group_metadata_limits": "shape only, no tensor pointers/storage IDs; same string is a clue subject to 9.2 exporter contract; absence of match is not no group",
+      "communication_fields": {
+        "count": 5237760,
+        "rankSize": 8,
+        "dataType": 11,
+        "dtype": "BFP16"
+      },
+      "conditional_rows_per_rank_from_count": 1023,
+      "conditional_total_rows_from_equal_size_gather": 8184,
+      "actual_padding_rows_proved": false
+    },
+    "role_counts": {
+      "NONE_BEYOND_SWA_KV_IN_REVIEWED_PATH": 36,
+      "C2_FP32_COMPRESSOR_WKV_WGATE": 3,
+      "C1_COMPRESSOR": 1
+    },
+    "role_contract": "projection-source-contract.json",
+    "C2_joint_interface_model": {
+      "domain": "Conditional row-independent projections before equal-size gather; preserve SWA BF16, both compressor FP32 outputs, ring/metadata/layout and numerical contracts",
+      "original_BF16_hidden_bytes_per_row": 10240,
+      "SWA_BF16_plus_two_FP32_projection_bytes_per_row": 5120,
+      "logical_feature_payload_ratio": 2,
+      "example_original_bytes_per_rank_1023rows": 10475520,
+      "example_joint_bytes_per_rank_1023rows": 5237760,
+      "limits": "Pure conditional interface byte accounting, not network/HBM traffic, a universal lower bound, measured savings or2x speedup. Packing/call overhead, weight/row ownership and changed-M numerical effects unproved. C1 is a separate graph."
+    }
+  },
+  "conclusion_changing_gap": "gather与Q/KV实例的所有权、CP/PCP恢复次序及多消费者未由shape证明。",
+  "next_profile_or_contract_action": "36个非KV-source层与4个KV-source层分开考察；前者仍需行映射/数值/输出地址合同，后者替换hidden gather必须同时保留或重组F17/F19压缩消费者。",
+  "target_source_gate": "Specific profile gap recorded; relevant local source/precision contracts reviewed or reused. No whole-repository scan.",
+  "runtime_gap_policy": "Code cannot recover historical values, storage identity or event generations absent from the capture.",
+  "legal_fusion_proved": false,
+  "candidate_closed": false,
+  "critical_path_gain_us": null,
+  "critical_path_gain_status": "UNKNOWN_NOT_SUM_OF_TASK_TIMES",
+  "evidence_files": [
+    "projection-pipeline-summary.json",
+    "projection-source-contract.json",
+    "PROJECTION-CODE-QUESTION-GATE.json",
+    "compressor-gap-reconciliation-v4.json"
+  ],
+  "fresh_allrank_evidence_v14": "allrank-execution-evidence-v14.json; current166populationseparatefromold169",
+  "projection_source_roles_v15": "projection-source-role-contract-v15.json;projection-row-domain-review-v15.json",
+  "communication_and_queue_v15": "communication-profile-contract-v15.json;execution-origin-partition-v15.json",
+  "padding_relation_v15": "H06conditionalalternative,preserveEPbuffersandallconsumers;notadditivegains",
+  "communication_roles_v16": "communication-role-contract-v16.json",
+  "projection_role_v16": "projection-role-review-v16.json;C1-SWA-joint-projection-candidate-v16.json",
+  "conditional_C1_interface_v16": {
+    "original_BF16_hidden_bytes_per_row": 10240,
+    "SWA512_BF16_plus_C1_512_BF16_bytes_per_row": 2048,
+    "feature_width_ratio": 5,
+    "meaning": "Conditional interface payload only,not observed HBM/network traffic,universal bound or speedup. Norm/rounding/ownership/positions/graph-address contracts required."
+  },
+  "communication_interval_scope_v17": "communication-interval-contract-v17.json;local recorded intervals,not physical utilization/request gain.",
+  "generic_caller_review_v18": "generic-helper-semantic-review-v18.json",
+  "PMU_resource_scope_v18": "complete-PMU-resource-contract-v18.json;resource-candidate-review-v18.json;reported nonexclusivecycle fractions,not physicalpeak/MFU/requestgain.",
+  "empty_local_query_branch_v18": "cache-only-KV-branch-reconciliation-v18.json;57nativecache-onlyKV/normpairs. No blindwholeKV/cache/collective/output removal.",
+  "captured_resource_attribution_v20": "resource-coverage-summary-v20.json;reported-resource-ranking-v20.json;counter-onlyfunctional attribution,not wholemodule legal/gain closure.",
+  "resource_assignment_uncertainty_v20": "3136explicitcandidate-set records:80prefixbool,1280Q/Indexerquant,1600SWA/compressor typedroles,176execute_modelindex. M12counter-lowest unaffected;no all-consumer proof.",
+  "raw_attribute_evidence_policy_v23": "profile-attribute-quality-contract-v23.json;STRING_IDS convention supported by contextual schema;own-op scalar/tiling values need independent binding. Existing source-contract conclusions are separate.",
+  "evidence_root": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031",
+  "authoritative_record": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v28.json#F32",
+  "registry_note": "Rehydratedexistingcandidatefornavigation;nonewprooforgain.",
+  "implementation": false,
+  "overall_complete": false,
+  "review_v35": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-embedding-HC-CP-row-and-consumer-contract-v35.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-layout-ownership-and-context-query-reorganization-v35.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-optimization-condition-ledger-v35.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-source-and-conditional-decoder-graphs-v35.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "variants": [
+      {
+        "id": "F32-v35-KV-OWNER",
+        "parent": "F32",
+        "transformation": "Compute512D KV/norm/RoPE at SP row owners before full5120D hidden gather; exchange KV and keep local Q_a where CP-query ownership matches.",
+        "argument": "KV is a row-local replicated-weight map. Under exact SP-to-CP row ownership, global cache consumers can receive512D values while Q reads its own normalized rows.",
+        "conditions": "CP start/num_actual/per_rank and FlashComm suffix are real metadata, not inferred solely from ceil(N/8). Preserve global cache writes on noQ ranks, positions/slots, parameter generations and all full-hidden observers.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      },
+      {
+        "id": "F32-v35-DUAL-PROJECT",
+        "parent": "F32",
+        "transformation": "Compute local BF16 Q_a1280 and KV512 before gather, optionally as a1792-output joint contraction; route/select Q_a by the CP query map and publish global KV.",
+        "argument": "Both Wq_a and Wkv are declared ReplicatedLinear. A packed local row map can publish separate1280D Q_a and512D KV results instead of5120D hidden; Qnorm/quant/Q_b and each KV norm remain separate.",
+        "conditions": "This changes current unequal-M layout rather than claiming naive existing-input concatenation. Preserve BF16 contraction barriers, exact row mapping/duplicates, collective/new-launch costs and live parameters. Linked to F06; alternative to the512-only aligned-owner case.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      }
+    ]
+  },
+  "review_v42": {
+    "configuration": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-captured-config-and-selected-dispatch-contract-v42.json",
+    "pcp": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-PCP-alternative-case-and-consumer-contract-v42.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-fixed-case-conditional-variants-v42.json",
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v42.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "PCP project-before-gather/restoration row identity derived; SWA KV and compressed-source/multistream consumers must all be included or original hidden gather remains."
+  },
+  "review_v46": {
+    "mode_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-mode-padding-and-DP-contract-v46.json",
+    "alignment": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-aware-alignment-domain-proof-v46.json",
+    "DP_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-DP-mode-padding-and-skip-domain-proof-v46.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-padding-reorganization-conditions-v46.json",
+    "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v46.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Projection/query-domain repartition must retain global DP/EP carrier,modes,feedback and row map. TP-only16row legality is not unchanged FULLuniform6/TP8 legality; cannot infer fewer communication rows or work from local query count."
+  },
+  "review_v61": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-graph-chains-v61.json",
+    "work_bounds": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-work-and-reference-bounds-v61.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-and-partition-costs-v61.json",
+    "numerics": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "full_observed_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v61.json",
+    "relation": "69coreprojectionregimes/24814execplus5distinctM18lookalikes/264exec havecostmodels. 16conditional/rejectionchoices includeG1GEMM,QRquantreuse,QA+indexweight,C2joint/cast,typedproject-before-gather andBF16-preservingoutputpanels/RS. Precompositionfailsroundingandraiseswork/weights20/9.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v66": {
+    "native_population": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-native-operator-population-v66.json",
+    "operator_regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-regime-models-v66.json",
+    "count_work_payload_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-work-payload-models-v66.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-operator-contract-v66.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/communication-fusion-variants-v66.json",
+    "candidate_specific_scope": "4472attentioninputSPgathers,streamedownedrowprojection/project-before-gatherrolemodelsandAIVVectorcontention/row-ready/fullcachepublicationconstraints;nofreequeryTPfactor.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-13",
+      "REL73-14",
+      "REL73-16"
+    ],
+    "peers": [
+      "F06",
+      "F08",
+      "F17"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v74": {
+    "relation_clause_ids": [
+      "REL74-14"
+    ],
+    "peers": [
+      "F33"
+    ],
+    "central_relations": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v74.json",
+    "relation_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v74.json",
+    "source_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/QB-head-RMS-RoPE-applicability-v74.json",
+    "joint_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-costs-v74.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-math-v74.json",
+    "scope": "Fifteen selected relation clauses and three higher-order groups only; all whole-pair/full-model gates remain open.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v86": {
+    "evidence": [
+      "terminal-layer-prior-evidence-v86.json",
+      "terminal-layer-operator-source-v86.json",
+      "terminal-layer-native-frontier-v86.json",
+      "terminal-layer-demand-cut-v86.json",
+      "terminal-layer-owner-and-work-models-v86.json",
+      "terminal-layer-weight-and-dependency-proof-v86.json",
+      "terminal-layer-composition-clauses-v86.json"
+    ],
+    "conditional_terminal_demand_analysis": true,
+    "all_readers_closed": false,
+    "relation_ids": [
+      "REL86-09"
+    ],
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v88": {
+    "evidence": [
+      "operator-graph-coverage-audit-v88.json",
+      "operator-graph-G1-v88.json",
+      "operator-graph-G5-v88.json",
+      "operator-graph-node-coverage-v88.json",
+      "operator-graph-edge-coverage-v88.json",
+      "operator-graph-candidate-bindings-v88.json",
+      "mixed-SWA-C2-source-contract-v88.json",
+      "mixed-SWA-C2-native-frontiers-v88.json",
+      "mixed-SWA-C2-cost-models-v88.json",
+      "mixed-SWA-C2-project-before-gather-v88.json",
+      "mixed-SWA-C2-precision-witnesses-v88.json",
+      "mixed-SWA-C2-variants-v88.json",
+      "mixed-SWA-C2-composition-clauses-v88.json"
+    ],
+    "conditional_mixed_projection_analysis": true,
+    "graph_coverage_reconciliation_is_not_new_semantic_closure": true,
+    "all_readers_closed": false,
+    "relation_ids": [],
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v105": {
+    "evidence": [
+      "coverage-dependency-inputs-v105.json",
+      "operator-selector-source-index-v105.json",
+      "operator-selector-contract-v105.json",
+      "operator-selector-case-models-v105.json",
+      "coverage-branch-reconciliations-v105.json",
+      "coverage-semantic-evidence-audit-v105.json",
+      "coverage-gap-history-before-v105.json",
+      "coverage-current-obligations-v105.json",
+      "coverage-gap-history-routing-v105.json"
+    ],
+    "exact_PCP_selectors_source_reviewed": true,
+    "source_spec_present_decode_shard": false,
+    "current_runtime_config_or_historical_helper_binding_proved": false,
+    "source_case_models": 96,
+    "semantic_reference_rows": 353,
+    "evidence_file_pins": 391,
+    "implementation": false,
+    "native_test": false,
+    "new_runtime_executions": 0
+  },
+  "review_v130": {
+    "evidence": [
+      "context-sp-inputs-v130.json",
+      "context-sp-profile-frontiers-v130.json",
+      "context-sp-source-contract-v130.json",
+      "context-sp-hybrid-owner-models-v130.json",
+      "context-sp-recipient-owner-models-v130.json",
+      "context-sp-order-and-sharing-witnesses-v130.json",
+      "context-sp-joint-graph-and-conditions-v130.json"
+    ],
+    "pair": [
+      "F29",
+      "F32"
+    ],
+    "relation_clause": "REL130-01",
+    "same_weight_not_same_input_value": true,
+    "proposal_and_dummy_KV_domains_separated": true,
+    "retained_main_feature_gathers": 88,
+    "hybrid_owner_vs_replicated_context": true,
+    "actual_cache_recipient_or_native_numeric_or_joint_fusion_proved": false,
+    "no_new_native_or_physical_gain": true
+  },
+  "review_v131": {
+    "evidence": [
+      "aux-sp-inputs-v131.json",
+      "aux-sp-checkpoint-profile-v131.json",
+      "aux-sp-selector-profile-v131.json",
+      "aux-sp-source-contract-v131.json",
+      "aux-sp-ordered-selection-models-v131.json",
+      "aux-sp-owner-balance-and-loss-witnesses-v131.json",
+      "aux-sp-packet-work-and-capacity-models-v131.json",
+      "aux-sp-causality-and-variant-graph-v131.json",
+      "aux-sp-numeric-and-snapshot-gates-v131.json"
+    ],
+    "pair": [
+      "F27",
+      "F32"
+    ],
+    "relation_clause": "REL131-01",
+    "aux_not_projected_SWA": true,
+    "early_vs_late_selector_readiness_separated": true,
+    "ordered_selection_models": 7742,
+    "full_weight_or_feature_accumulator_costs_explicit": true,
+    "actual_I_or_native_numeric_or_joint_fusion_proved": false,
+    "no_new_native_or_physical_gain": true
+  },
+  "review_v132": {
+    "evidence": [
+      "init-sp-inputs-v132.json",
+      "init-sp-native-frontiers-v132.json",
+      "init-sp-source-contract-v132.json",
+      "init-sp-copy-and-mask-models-v132.json",
+      "init-sp-QA-owner-routing-models-v132.json",
+      "init-sp-joint-work-content-v132.json",
+      "init-sp-first-layer-token-reuse-v132.json",
+      "init-sp-selected-graph-and-guards-v132.json"
+    ],
+    "pair": [
+      "F28",
+      "F32"
+    ],
+    "relation_clause": "REL132-01",
+    "positive_QA_cacheonly_dummy_separated": true,
+    "first_draft_init_frontiers": 104,
+    "actual_SP_CP_owner_or_native_numeric_or_joint_fusion_proved": false,
+    "first_token_pre_RoPE_reuse_conditional": true,
+    "no_new_native_or_physical_gain": true
+  },
+  "review_v133": {
+    "evidence": [
+      "hc-sp-inputs-v133.json",
+      "hc-sp-native-frontiers-v133.json",
+      "hc-sp-source-and-branch-contract-v133.json",
+      "hc-sp-rank-fork-schedule-models-v133.json",
+      "hc-sp-interface-work-and-resource-cut-v133.json",
+      "hc-sp-reader-generation-and-row-witnesses-v133.json",
+      "hc-sp-composition-scope-v133.json"
+    ],
+    "relation_clause_ids": [
+      "REL133-01",
+      "REL133-02",
+      "REL133-03"
+    ],
+    "target_graph_frontiers": 3200,
+    "draft_frontiers": 312,
+    "one_shared_HC_baseline": true,
+    "actual_pointer_new_handoff_or_native_fusion_proved": false,
+    "no_new_native_or_physical_gain": true
+  }
+}

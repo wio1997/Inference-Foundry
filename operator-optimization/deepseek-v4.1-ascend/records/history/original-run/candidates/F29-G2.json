@@ -1,0 +1,90 @@
+{
+  "id": "F29_G2",
+  "original_template_graph_id": "DSPARK_SHARED_KV",
+  "source_template_path": "graphs/source-templates-G2.json",
+  "nodes": [
+    {
+      "id": "proj",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "cat",
+      "kind": "COPY_OR_VIEW",
+      "resource": "NPU"
+    },
+    {
+      "id": "slots",
+      "kind": "SLOT_FIXUP",
+      "resource": "NPU"
+    },
+    {
+      "id": "scatter",
+      "kind": "PERSISTENT_SCATTER",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "proj",
+      "consumer": "norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rope",
+      "consumer": "cat",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cat",
+      "consumer": "scatter",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "slots",
+      "consumer": "scatter",
+      "value": "validated physical slots",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "context",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "scatter",
+      "consumer": "persistent_swa_state",
+      "value": "context KV cache state",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/dspark.py:284-309",
+      "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+    }
+  ],
+  "consumer_completeness": "UNKNOWN",
+  "precision_and_alias_conditions": "Original precision/rounding, every alias, persistent write and consumer remain required; no equivalence or gain proof.",
+  "case_conditions": "Current frozen branch and valid state/shape conditions only."
+}

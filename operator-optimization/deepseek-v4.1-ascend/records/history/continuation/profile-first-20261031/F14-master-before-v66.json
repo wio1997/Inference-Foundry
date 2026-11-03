@@ -1,0 +1,120 @@
+{
+  "id": "F14_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "attention": "attention",
+    "inverse_rope": "inverse_rope",
+    "pad": "pad",
+    "restore_heads": "restore_heads",
+    "o_a": "o_a"
+  },
+  "nodes": [
+    {
+      "id": "attention",
+      "kind": "SPARSE_FLASH_COMPOSITE",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "inverse_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "pad",
+      "kind": "PAD_OR_VIEW",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "restore_heads",
+      "kind": "COLLECTIVE",
+      "resource": "COMM",
+      "row_domain": "global_or_restored"
+    },
+    {
+      "id": "o_a",
+      "kind": "GROUPED_LINEAR",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "attention",
+      "consumer": "inverse_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "inverse_rope",
+      "consumer": "pad",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "pad",
+      "consumer": "restore_heads",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "restore_heads",
+      "consumer": "o_a",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "q_rope",
+      "consumer": "attention",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "swa_store",
+      "consumer": "attention",
+      "value": "current cache subranges",
+      "dependency_kind": "RAW_PERSISTENT_SUBRANGE"
+    },
+    {
+      "producer": "indices_store",
+      "consumer": "attention",
+      "value": "selected indices",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cmp_store",
+      "consumer": "attention",
+      "value": "compressed KV cache",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "o_a",
+      "consumer": "o_b",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v60": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-profile-and-edges-v60.json",
+    "models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-work-traffic-models-v60.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-native-numerical-contract-v60.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-fusion-reorganization-variants-v60.json",
+    "semantic_inventory": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M09-M10-operator-branch-inventory-v60.json",
+    "relation": "51regimes/6863nativeexecutions reconciled. SMLAalreadyfusedwithGMscore/exp/PVqueues;QLImode2fullQKthenVectorpenalty. 13conditional/rejectiondecisions includebitmap544Bvs8192Blist,prefilterwithfillers,preparedindexepilogue,source-resolvedselfcopy,quant/cache/weight/SMLAepilogueandcrosscard/iterationlimits.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

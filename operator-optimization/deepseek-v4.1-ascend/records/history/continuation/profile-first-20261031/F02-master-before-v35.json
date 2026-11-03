@@ -1,0 +1,67 @@
+{
+  "id": "F02_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "attn_pre": "attn_pre",
+    "input_norm": "input_norm"
+  },
+  "nodes": [
+    {
+      "id": "attn_pre",
+      "kind": "HC_PRE_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "input_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "attn_pre",
+      "consumer": "input_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "residual",
+      "consumer": "attn_pre",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "pre_mix",
+      "consumer": "attn_pre",
+      "value": "previous layer coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "input_norm",
+      "consumer": "all_gather",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_pre",
+      "consumer": "attn_post",
+      "value": "post/comb",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_pre",
+      "consumer": "ffn_pre",
+      "value": "attn_pre coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

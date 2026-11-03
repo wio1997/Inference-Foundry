@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_fdaedcbc-8065-49cc-bbab-360fc1db409b",
+  "traceId": "62152af2-f298-49fc-bc3c-5d9f1b96c4b0",
+  "turnId": "turn_6823f38d-1623-411a-8ae4-2914ae6f077b",
+  "response": "在该聚合所定义的 CPU sidecar 墙钟区间上，EP8 的两个 conditional_target 层 scope（L14/L39，scope 737-20/737-45）分别是 73.130740 ms 和 43.264720 ms。\n\n保存的 hook 源码 active 分支先发送 `call_begin`，进入 `torch.profiler.record_function`、调用原函数，再发送 `call_end` 并退出上下文，其中 `_emit` 在锁内生成时间戳与 JSON 并执行文件 open/write/close。\n\n之所以不能把两层时间差当成 hook 开销，是因为该 begin→end 区间还混入了 begin 时间戳之后该条日志的序列化写入、上下文进入和原函数调用，却不含 end 之后那条日志的后续写入与上下文退出，其间其他工作、等待与采集开销也没有拆分。\n\n更根本地，这两个数字是主机包围范围而非同时段的设备工作或单条 MC2 持续时间，异步下发使设备任务与主机调用范围并不重合，因此时间差不能归因于 hook 成本、MC2 或框架调度开销。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 3,
+    "inputTokens": 28322,
+    "outputTokens": 809,
+    "totalTokens": 29131,
+    "cacheReadTokens": 17408,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 589,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 29131,
+    "contextUsed": 11538,
+    "contextWindow": 200000
+  }
+}

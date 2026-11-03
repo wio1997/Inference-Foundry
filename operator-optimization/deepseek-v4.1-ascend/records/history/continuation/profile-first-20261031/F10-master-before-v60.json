@@ -1,0 +1,49 @@
+{
+  "id": "F10_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "iw": "iw",
+    "iw_scale": "iw_scale"
+  },
+  "nodes": [
+    {
+      "id": "iw",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "iw_scale",
+      "kind": "POINTWISE_CAST_SCALE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "iw",
+      "consumer": "iw_scale",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "x",
+      "consumer": "iw",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "iw_scale",
+      "consumer": "qli",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_15673a85-0576-4a3f-a386-e24c02c43df9",
+  "traceId": "0983c698-9be5-4e23-b3b4-938519f654e7",
+  "turnId": "turn_f0245e8f-0cb1-4691-9124-fc37d063fa28",
+  "response": "**Result: 5120 bytes versus 1792 bytes — the first row is exactly 20/7 ≈ 2.857× the two smaller rows combined, i.e. 3328 bytes larger.**\n\n| Quantity | Value |\n|---|---|\n| One BF16 row, width given as bytes | 5120 bytes |\n| Two rows combined (1280 + 512) | 1792 bytes |\n| Difference | 3328 bytes |\n| Exact ratio | 20/7 (gcd 256) |\n| Floor division | 2 remainder 1536 |\n| Decimal | 2.857142857143 |\n| Permille (integer) | 2857‰ |\n\nAll values came from integer arithmetic (`gcd`, `divmod`, integer permille); the only float is the display line `%.12f`.\n\nCommand actually run:\n\n```\npython3 -c \"\nfrom fractions import Fraction\na = 5120            # one dense BF16 row, bytes\nb = 1280 + 512      # two rows combined, bytes\ng = __import__('math').gcd(a, b)\nprint('A_bytes        =', a)\nprint('B_bytes        =', b)\nprint('B_parts        = 1280 + 512')\nprint('diff_bytes     =', a - b)\nprint('ratio_exact    = %d/%d' % (a//g, b//g))\nq, r = divmod(a, b)\nprint('ratio_floor    = %d + %d/%d' % (q, r, b))\nprint('ratio_float    = %.12f' % (a / b))\nprint('ratio_permille =', a * 1000 // b)\n\"\n```\n\nScope caveat: this compares declared logical tensor sizes only — widths were taken as byte counts, no dtype padding, alignment, descriptor, or transport overhead is modeled. It is not a network-byte measurement, a memory-traffic measurement, or a speedup estimate, and nothing here bounds achievable performance. No files were written, and no service, network, or NPU was touched.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 2,
+    "inputTokens": 17719,
+    "outputTokens": 1106,
+    "totalTokens": 18825,
+    "cacheReadTokens": 8960,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 908,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 18825,
+    "contextUsed": 9744,
+    "contextWindow": 200000
+  }
+}

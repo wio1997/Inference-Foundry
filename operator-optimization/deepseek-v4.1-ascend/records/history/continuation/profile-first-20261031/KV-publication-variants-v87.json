@@ -1,0 +1,139 @@
+{
+  "variants": [
+    {
+      "id": "KV87-DELAY-WITHOUT-CURRENT-READ-PATH",
+      "decision": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+      "graph": "Move existing cache scatter after acceptance,leave current cache-only attention unchanged.",
+      "reason": "Current verify needs candidate KV before acceptance;stale-value witness and dependency cycle distinguish it.",
+      "evidence": [
+        "KV-publication-source-contract-v87.json",
+        "KV-publication-native-scope-v87.json",
+        "KV-publication-prefix-and-dependency-proof-v87.json",
+        "KV-publication-prior-evidence-v87.json"
+      ],
+      "conditions": [
+        "Exact all current/future KV,compressed,indexer,aux,external/transfer/debug observers and original row/request/position/group/slot generations.",
+        "Preserve cache BF16 casting/normalization/RoPE and attention reduction/softmax/sink/order semantics. New storage/layout/kernel paths do not inherit native parity automatically.",
+        "Actual accepted-prefix and additional future-reader row demand,including no-draft/prefill/padded/invalid/duplicate-slot cases.",
+        "All data/maps/metadata/aliases published before reads,old readers and queued writers retired before reuse;native capture addresses and CP/TP epochs coherent.",
+        "Compare one complete changed graph against both source Scatter and conditional direct-producer-to-cache fusion;GM logical bytes,physical HBM/cache traffic and time are distinct."
+      ],
+      "implementation": false,
+      "native_test": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "KV87-RETAIN-ROTATED-GM-BANK",
+      "decision": "CONDITIONAL",
+      "graph": "Retain already-produced rounded rotated KV bank;current attention reads old-cache plus current-bank overlay;commit required A rows after acceptance.",
+      "resource": "Can remove2(R-A)b Scatter/commit reference bytes against source bank+Scatter,while extending bank lifetime. Against direct fused cache store,extra2Ab remains in this fixed GM domain.",
+      "evidence": [
+        "KV-publication-source-contract-v87.json",
+        "KV-publication-native-scope-v87.json",
+        "KV-publication-prefix-and-dependency-proof-v87.json",
+        "KV-publication-prior-evidence-v87.json"
+      ],
+      "conditions": [
+        "Exact all current/future KV,compressed,indexer,aux,external/transfer/debug observers and original row/request/position/group/slot generations.",
+        "Preserve cache BF16 casting/normalization/RoPE and attention reduction/softmax/sink/order semantics. New storage/layout/kernel paths do not inherit native parity automatically.",
+        "Actual accepted-prefix and additional future-reader row demand,including no-draft/prefill/padded/invalid/duplicate-slot cases.",
+        "All data/maps/metadata/aliases published before reads,old readers and queued writers retired before reuse;native capture addresses and CP/TP epochs coherent.",
+        "Compare one complete changed graph against both source Scatter and conditional direct-producer-to-cache fusion;GM logical bytes,physical HBM/cache traffic and time are distinct."
+      ],
+      "implementation": false,
+      "native_test": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "KV87-COPY-TO-PRIVATE-GM-BANK",
+      "decision": "CONDITIONAL_WITH_ADDITIONAL_VALUE_TRAFFIC",
+      "graph": "Copy current rotated KV into a separate private bank,read through overlay,then commit A rows.",
+      "resource": "Copy costs2Rb and commit2Ab. Relative to source bank+Scatter this adds2Ab;do not claim rejected-write savings without copy cost.",
+      "evidence": [
+        "KV-publication-source-contract-v87.json",
+        "KV-publication-native-scope-v87.json",
+        "KV-publication-prefix-and-dependency-proof-v87.json",
+        "KV-publication-prior-evidence-v87.json"
+      ],
+      "conditions": [
+        "Exact all current/future KV,compressed,indexer,aux,external/transfer/debug observers and original row/request/position/group/slot generations.",
+        "Preserve cache BF16 casting/normalization/RoPE and attention reduction/softmax/sink/order semantics. New storage/layout/kernel paths do not inherit native parity automatically.",
+        "Actual accepted-prefix and additional future-reader row demand,including no-draft/prefill/padded/invalid/duplicate-slot cases.",
+        "All data/maps/metadata/aliases published before reads,old readers and queued writers retired before reuse;native capture addresses and CP/TP epochs coherent.",
+        "Compare one complete changed graph against both source Scatter and conditional direct-producer-to-cache fusion;GM logical bytes,physical HBM/cache traffic and time are distinct."
+      ],
+      "implementation": false,
+      "native_test": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "KV87-COW-PAGES-IN-EXISTING-PA-POOL",
+      "decision": "CONDITIONAL_SEPARATE_REPRESENTATION",
+      "graph": "Current KV writes go to owned private PA pages within existing cache pool;current block tables select them;adopt required pages with logical prefix publication.",
+      "resource": "Existing attention cache argument can be retained. All R current KV stores still occur;old visible prefix copy,tuple-alias coherence,allocation/lifetime/maps add costs. Rejected suffix bytes need not be erased if unobservable;this is not A-only physical write pruning.",
+      "evidence": [
+        "KV-publication-source-contract-v87.json",
+        "KV-publication-native-scope-v87.json",
+        "KV-publication-prefix-and-dependency-proof-v87.json",
+        "KV-publication-prior-evidence-v87.json"
+      ],
+      "conditions": [
+        "Exact all current/future KV,compressed,indexer,aux,external/transfer/debug observers and original row/request/position/group/slot generations.",
+        "Preserve cache BF16 casting/normalization/RoPE and attention reduction/softmax/sink/order semantics. New storage/layout/kernel paths do not inherit native parity automatically.",
+        "Actual accepted-prefix and additional future-reader row demand,including no-draft/prefill/padded/invalid/duplicate-slot cases.",
+        "All data/maps/metadata/aliases published before reads,old readers and queued writers retired before reuse;native capture addresses and CP/TP epochs coherent.",
+        "Compare one complete changed graph against both source Scatter and conditional direct-producer-to-cache fusion;GM logical bytes,physical HBM/cache traffic and time are distinct."
+      ],
+      "implementation": false,
+      "native_test": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "KV87-RETAIN-UNTIL-ACCEPT-ONCHIP",
+      "decision": "CONDITIONAL_NEW_STORAGE_AND_SCHEDULE_DOMAIN",
+      "graph": "Keep necessary current KV in resident on-chip storage until dependent acceptance,then publish A.",
+      "resource": "Must price cross-layer retained state and other live work versus actual tier capacity. No assumption that normal separate kernels retain arbitrary on-chip banks across launches;tile/request pipelining may change peak.",
+      "evidence": [
+        "KV-publication-source-contract-v87.json",
+        "KV-publication-native-scope-v87.json",
+        "KV-publication-prefix-and-dependency-proof-v87.json",
+        "KV-publication-prior-evidence-v87.json"
+      ],
+      "conditions": [
+        "Exact all current/future KV,compressed,indexer,aux,external/transfer/debug observers and original row/request/position/group/slot generations.",
+        "Preserve cache BF16 casting/normalization/RoPE and attention reduction/softmax/sink/order semantics. New storage/layout/kernel paths do not inherit native parity automatically.",
+        "Actual accepted-prefix and additional future-reader row demand,including no-draft/prefill/padded/invalid/duplicate-slot cases.",
+        "All data/maps/metadata/aliases published before reads,old readers and queued writers retired before reuse;native capture addresses and CP/TP epochs coherent.",
+        "Compare one complete changed graph against both source Scatter and conditional direct-producer-to-cache fusion;GM logical bytes,physical HBM/cache traffic and time are distinct."
+      ],
+      "implementation": false,
+      "native_test": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "KV87-RECOMPUTE-AFTER-ACCEPT",
+      "decision": "CONDITIONAL_COMPUTE_STORAGE_TRADEOFF",
+      "graph": "Current attention consumes transient current KV;after acceptance recompute required A KV from preserved per-layer inputs or another exact replay route,then commit.",
+      "resource": "Retaining normalized5120D inputs costs10times512D KV values in the explicit same-row BF16 bank model. Recompute adds dense projections,norm/RoPE,possibly weight service and new-shape numeric proof;no free discard of all inputs.",
+      "evidence": [
+        "KV-publication-source-contract-v87.json",
+        "KV-publication-native-scope-v87.json",
+        "KV-publication-prefix-and-dependency-proof-v87.json",
+        "KV-publication-prior-evidence-v87.json"
+      ],
+      "conditions": [
+        "Exact all current/future KV,compressed,indexer,aux,external/transfer/debug observers and original row/request/position/group/slot generations.",
+        "Preserve cache BF16 casting/normalization/RoPE and attention reduction/softmax/sink/order semantics. New storage/layout/kernel paths do not inherit native parity automatically.",
+        "Actual accepted-prefix and additional future-reader row demand,including no-draft/prefill/padded/invalid/duplicate-slot cases.",
+        "All data/maps/metadata/aliases published before reads,old readers and queued writers retired before reuse;native capture addresses and CP/TP epochs coherent.",
+        "Compare one complete changed graph against both source Scatter and conditional direct-producer-to-cache fusion;GM logical bytes,physical HBM/cache traffic and time are distinct."
+      ],
+      "implementation": false,
+      "native_test": false,
+      "critical_path_gain_us": null
+    }
+  ],
+  "no_new_maincandidate": true,
+  "all_runtime_conditions_closed": false,
+  "overall_complete": false
+}

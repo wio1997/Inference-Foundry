@@ -1,0 +1,78 @@
+{
+  "generated_utc": "2026-10-31T01:04:40.057506+00:00",
+  "candidate": {
+    "id": "H06",
+    "title": "固定 speculative 宽度下的 padding 域拆分与图 bucket 重组",
+    "modules": [
+      "M04",
+      "M21",
+      "M22",
+      "M23"
+    ],
+    "status": "CURRENT_UNIFORM6_TP8_MINIMUM24_DERIVED;DROP_IN16_EXCLUDED;DOMAIN_REPARTITION_CONDITIONAL",
+    "evidence_kind": [
+      "MEASURED",
+      "DERIVED",
+      "DOCUMENTED"
+    ],
+    "profile_evidence": [
+      "64exactdecodegraphs:16actual2requests/12scheduledtokensand48actual4requests/24tokens;capturedtargetM3×TP8 gives24-rowextent. All64havethesamerecordedcommunicationsequence.",
+      "3712ARMEDexecuteentries:CPUcontext>=32768,no-newrequest,uniform6schedulesinclude48B2/3472B4/8B3/24B1calls. TheseareCPUeligibilitycounts,notphysicalshapeorformalrequestidentityattestationoutsidewindows.",
+      "Pinned source: dispatcher144-145 requires uniform query divisibility;worker3272-3280 and3392-3395 require TP divisibility; config rounds spec sizes and Ascend filters TP sizes. Non-skipped DP synchronization in graph mode uses maximum padded rows across DPs. Serve requests capture sizes[1,2,4,8,16,24],maximum24; final effective list chronology is not asserted."
+    ],
+    "candidate_graph": "With K5 fixed, current FULL uniform descriptor requires rows divisible by6 and TP/DSA-CP requires rows divisible by8. Minimum positive common extent is24,so16 is not a drop-in bucket. Alternative nonuniform/ragged attention/input domains separated from EP buffers remain conditional.",
+    "constraints": [
+      "Do notblindlychange24to16;firstresolveexactbucketandDP/EPcoordinatorcause.",
+      "KeepallEPparticipants,receive/combineworkandanyrequiredglobaluniformMoEbuffers. Smallerquerydomainisnotanidleexpertcard.",
+      "Preserveper-requestquery_start_loc,actualvsdummyrequests,physicalKV/slotgeneration,logitsselection,positionsandgraphaddresses.",
+      "Repartitioningmustpreserverouter/tokenownership,ties,roundingandallstateconsumers;autoregressivefeedbackdoesnotallowblindmergingofsuccessivesteps.",
+      "Do notaddpotentialgainstoper-fieldcopy/projectionvariantsusingthesamepaddingwork."
+    ],
+    "rejected_overclaims": [
+      "16-row uniform6/TP8 graph is available by merely changing a capture-size setting.",
+      "The24-row necessary bound alone explains prefill or all EP-buffer dimensions.",
+      "One-third fewer rows implies one-third less MoE work or latency.",
+      "16/64 window frequency is full-case frequency."
+    ],
+    "minimal_missing_evidence": [
+      "Chronological effective-config mutation and actual DP skip/sync choice if needed to price a different policy; necessary24 lower extent under the present uniform6/TP8 interfaces is already resolved.",
+      "Separate attention/query-domain vs MC2/EP buffer and dummy-request metadata contracts before choosing a reorganization; keepK5 and all logical requests."
+    ],
+    "across": [
+      "operator layouts",
+      "graph buckets",
+      "DP/TP/EP padding ownership",
+      "successive request batches"
+    ]
+  },
+  "minimum_positive_uniform_TP_extent": 24,
+  "source_evidence": [
+    {
+      "label": "embedding-dispatch166-v16",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-communications-v15/embedding-and-dispatch-point-contracts-v16.json",
+      "sha256": "a0ed2a925079069f3e6a64657c2809f9a7cf6c14d48963639d5202286695dd40"
+    },
+    {
+      "label": "padding-buckets166-v16",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-communications-v15/padding-bucket-rules-v16.json",
+      "sha256": "82b62acd2407b8c3551f3ea6f14f58c525070f5bd4e72b5b930576da6a84a65e"
+    },
+    {
+      "label": "dispatch-init166-v16",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-communications-v15/dispatcher-initialization-contract-v16.json",
+      "sha256": "3530d8c6cab5da29670441db85f2252a15952eb7582307939d6069f4182c8009"
+    },
+    {
+      "label": "padding-config166-v16",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-communications-v15/padding-config-normalization-symbols-v16.json",
+      "sha256": "18d6ffaa756c46db1cca287ba38e72286085fb3adceffa5a37fff938d21b3f29"
+    },
+    {
+      "label": "final-scoped166-v16",
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-communications-v15/C1-and-padding-adjustment-contracts-v16.json",
+      "sha256": "5170f39fa4909892a4ca276ff8fcb9f4c684e6d529350ef38ca8450e961f2716"
+    }
+  ],
+  "implementation": false,
+  "overall_complete": false
+}

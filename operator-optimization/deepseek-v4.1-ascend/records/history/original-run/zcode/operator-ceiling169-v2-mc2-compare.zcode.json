@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_09e3daff-2de5-4983-a94c-c67b42dace84",
+  "traceId": "b8970dd1-1386-481b-abf4-a70c09363a7c",
+  "turnId": "turn_4bde2d2c-652c-4d03-be41-5176c8dae982",
+  "response": "Computed from the per-row values in `agents/diagnosis/mc2-db852-extremes.json` with Python `Decimal` (prec=60; also prec=28 for comparison), and cross-checked against the file's own `summary` block, which matches exactly.\n\n## Results\n\n| Layer | Rank count | Duration min (µs) | Duration max (µs) | AIC-cycle-weighted displayed `aic_mac` |\n|---|---|---|---|---|\n| 15 | 8 (8 rows, 8 distinct rank strings, ep 0–7) | 5021.500 (ep 3) | 24046.120 (ep 4) | 0.02786297152594870505057828758 |\n| 36 | 8 (8 rows, 8 distinct rank strings, ep 0–7) | 3502.260 (ep 3) | 4743.485 (ep 1) | 0.2753238839379845850436275941 |\n\nExact rational values: layer 15 = 170,982,236.613 / 6,136,539,904 = `170982236613/6136539904000` (full expansion 0.0278629715259487050505782875782632570655895143348847031305803); layer 36 = 233,592,445.672 / 848,427,831 = `29199055709/106053478875` (full expansion 0.275323883937984585043627594059912445281394829679980170287460). The weighting is Σ(`aic_cycles` × displayed `aic_mac`) / Σ(`aic_cycles`), so cycles are only weights; the numerator sums a rounded, displayed ratio.\n\n**EP3 layer 15:** duration 5021.500 µs, displayed `aic_mac` 0.466, with 59,438,363 AIC cycles. Those cycles are about 0.97% of layer 15's 6,136,539,904 total, so this row contributes roughly 0.0045 to the layer's 0.02786 weighted value — arithmetic decomposition of the weighting, not a statement about why the row differs.\n\n## Exact command and exit code\n\n```bash\npython3 - <<'PY'\nimport json\nfrom decimal import Decimal, getcontext\nfrom fractions import Fraction\n\ngetcontext().prec = 60\nwith open(\"agents/diagnosis/mc2-db852-extremes.json\", encoding=\"utf-8\") as f:\n    doc = json.load(f)\nrows = doc[\"rows\"]\n\nfor layer in (15, 36):\n    rs = [r for r in rows if r[\"layer\"] == layer]\n    ranks = {r[\"rank\"] for r in rs}\n    durs = [Decimal(r[\"duration_us\"]) for r in rs]\n    cyc = [Decimal(r[\"aic_cycles\"]) for r in rs]\n    mac = [Decimal(r[\"aic_mac\"]) for r in rs]\n    sc = sum(cyc, Decimal(0))\n    scm = sum((c * m for c, m in zip(cyc, mac)), Decimal(0))\n    w60 = scm / sc\n    exact = Fraction(scm) / Fraction(sc)\n    getcontext().prec = 28\n    w28 = scm / sc\n    getcontext().prec = 60\n    s = doc[\"summary\"][str(layer)]\n    print(\"layer\", layer)\n    print(\"  rows\", len(rs), \"distinct_ranks\", len(ranks), \"eps\", sorted(r[\"ep\"] for r in rs))\n    print(\"  duration_min_us\", min(durs), \"duration_max_us\", max(durs))\n    print(\"  sum_aic_cycles\", sc)\n    print(\"  sum_cycles_x_displayed_mac\", scm)\n    print(\"  weighted_displayed_aic_mac_prec28\", w28)\n    print(\"  weighted_displayed_aic_mac_prec60\", w60)\n    print(\"  exact_fraction\", exact.numerator, \"/\", exact.denominator)\n    print(\"  summary_match\", (Decimal(s[\"cycles\"]) == sc and Decimal(s[\"cycles_times_display_ratio\"]) == scm\n                              and Decimal(s[\"weighted_ratio\"]) == w28\n                              and Decimal(s[\"duration_min_us\"]) == min(durs)\n                              and Decimal(s[\"duration_max_us\"]) == max(durs)))\n\nr3 = [r for r in rows if r[\"layer\"] == 15 and r[\"ep\"] == 3][0]\nprint(\"ep3_layer15 duration_us\", r3[\"duration_us\"], \"displayed_aic_mac\", r3[\"aic_mac\"], \"aic_cycles\", r3[\"aic_cycles\"])\nPY\nrc=$?\necho \"EXIT_CODE=$rc\"\n```\n\nReal exit code: `EXIT_CODE=0`.\n\n## Scope and caveats\n\nOnly `agents/diagnosis/mc2-db852-extremes.json` was read; no files were modified, no services started or stopped, no requests or weights read, and no NPU used.\n\nThe file's own scope and `limits` state that the two layer groups share a \"same recorded physical signature\" with \"no effective-work equivalence asserted.\" Equal recorded shape does not establish equal expert work — the same tensor shapes and profiled scopes are not evidence that the same experts, token routing, or mask were exercised. Profiler measurements do not identify causes: these values are instrumented task durations and displayed ratios, not baseline serving latency, and rank clocks and scheduling are not interchangeable. The weighted ratio above preserves the displayed (rounded) `aic_mac` values exactly as recorded; it is not a MAC-count ratio and its low value for layer 15 should not be read as a cause, only as a cycle-weighted summary of the observed rows.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 4,
+    "inputTokens": 52319,
+    "outputTokens": 7850,
+    "totalTokens": 60169,
+    "cacheReadTokens": 38400,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 7058,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 60169,
+    "contextUsed": 21464,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "policy": "PROFILE_FIRST_TARGETED_SOURCE_ONLY",
+  "profile_inputs_checked": ["cache-merge-layout-summary.json", "cache-merge-db-targets.json", "archived-ep3-cache-merge-evidence166.json"],
+  "questions": [
+    {
+      "candidate": "F23",
+      "profile_fact": "All1280 retained target scopes contain ForeachAddList and final HcPost candidates. Selected EP3/L36 kernel41461 is explicitly linked to aclnnForeachAddListV2 and fused_moe.py:240 forward; HC41462 is linked to model.py:919.",
+      "minimal_question": "What return/merge branch contains this ForeachAddList call, and does it bypass the outer model tuple muls_add path? Where are scaling and optional reduction owned?",
+      "source_targets": ["vllm_ascend/ops/fused_moe/fused_moe.py:forward around240", "models/deepseek_v41/model.py:MoE.forward around262–326"],
+      "scope_limit": "Read only this caller/callee branch and explicit immediate return/reduction helper if necessary. No repository-wide scan.",
+      "runtime_gaps_code_cannot_fill": ["actual values/scalar bits", "historical loaded code hash", "tensor storage/alias and per-tile ready", "whether a helper performs physical communication on this invocation"]
+    },
+    {
+      "candidate": "F11",
+      "profile_fact": "Selected EP3/L2 five task anchors link to indexer.update_keys:110/119/120/121 and scatter_cache_sk:242.",
+      "minimal_question": "Preserve the separate key/scale dtype and persistent version/stride effects; distinguish packed and nonpacked branches.",
+      "reuse_existing_contract": "F11-INDEX-KEY-CACHE-REVIEW.md already records those local semantics and duplicate-slot/FP16-scale counterexamples; no new broad source read required."
+    },
+    {
+      "candidate": "F14/F15",
+      "profile_fact": "Full DB recovers a rankSize8 AlltoAll in the selected postattention interval and host stacks at dsa_v41_cp.py:215; sidecar zero communication was an extraction gap.",
+      "minimal_question": "Preserve inverse-RoPE rounding, valid rows/padding, head/token ownership and stable output when combining rotation with send layout.",
+      "reuse_existing_contract": "The pinned CP _project_output and DSA forward/_apply_rotary ranges were reviewed in v3; reuse them and do not re-read the tree."
+    }
+  ],
+  "overall_complete": false
+}

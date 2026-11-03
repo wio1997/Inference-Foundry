@@ -1,0 +1,83 @@
+{
+  "id": "F05_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "q_norm": "q_norm",
+    "q_quant": "q_quant",
+    "q_b": "q_b"
+  },
+  "nodes": [
+    {
+      "id": "q_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU",
+      "row_domain": "query_local"
+    },
+    {
+      "id": "q_quant",
+      "kind": "ROW_REDUCTION_INT8_QUANT",
+      "resource": "NPU",
+      "row_domain": "query_local"
+    },
+    {
+      "id": "q_b",
+      "kind": "INT8_LINEAR",
+      "resource": "NPU",
+      "row_domain": "query_local"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "q_norm",
+      "consumer": "q_quant",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "q_quant",
+      "consumer": "q_b",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "q_a",
+      "consumer": "q_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "q_b",
+      "consumer": "q_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "q_norm",
+      "consumer": "iq",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v61": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-graph-chains-v61.json",
+    "work_bounds": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-work-and-reference-bounds-v61.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-and-partition-costs-v61.json",
+    "numerics": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "full_observed_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v61.json",
+    "relation": "69coreprojectionregimes/24814execplus5distinctM18lookalikes/264exec havecostmodels. 16conditional/rejectionchoices includeG1GEMM,QRquantreuse,QA+indexweight,C2joint/cast,typedproject-before-gather andBF16-preservingoutputpanels/RS. Precompositionfailsroundingandraiseswork/weights20/9.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

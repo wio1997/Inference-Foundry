@@ -1,0 +1,45 @@
+{
+  "generated_utc": "2026-10-31T10:38:18.329089+00:00",
+  "evidence_grade": "SOURCE_DERIVATION_WITH_EXPLICIT_DOMAIN",
+  "existing_fused_builder": true,
+  "shared_formulas": {
+    "q": "end-start",
+    "used": "max(min(end,actual_tokens)-start,0) if req<actual_reqs and notskip else0",
+    "ring0": "max(seq_len-q,0)",
+    "ring1": "used",
+    "ring2": "start",
+    "ring3": "start",
+    "ring4": "firstblock ifused>0else0",
+    "complete": "i<min(QSL[actual_reqs],actual_tokens) and pos%2==1 and notskip",
+    "sourcepos": "pos-1 ifcompleteelse0",
+    "cos": "fullcos[sourcepos]",
+    "sin": "fullsin[sourcepos]"
+  },
+  "equivalence_domain": [
+    "ActualQSL/seq_lens andringoutputs fitbaselineINT32,positions/sourceindicesINT64 andvalid0<=actual_reqs<=R;allindex/addressbounds valid.",
+    "Preservetorch.remainder versusTriton% semantics;nonnegativevalidpositions establishthesameparity. Negative unsupportedpositions mustnotbe silentlynormalized.",
+    "Sourcecos/sin FP32tables havecompatiblewidths andthecurrenthelper sharedrow/dimstrides;outputcos/sin havecompatible sharedstrides. Otherwisepassseparatestrides ratherthanreuseunchangedhelper.",
+    "Allpersistentoutputs aredisjointfromstill-readinputs oruseasnapshot-safeprotocol. Input/outputviewextent,capacity,padding andwriteeffects match.",
+    "Bothfulltablesready andsameconfig/layer generation. Fulltableabsent fallback retained;no claimcachedrow0is1/0without valueproof.",
+    "Keep COMPRESSOR publicationkey/group/frontier,capturedmodeandinput/reuse/last-readerfences includingR0/N0/skip. Originalwrappervalidation/errors retainedonvalidcall domain."
+  ],
+  "why_not_packed_only": "Selectedkernel readsno packedcacheobject;itsring5rowandRoPEoutput ABI matcheslegacycallback. Guard/platformbroadening isstillnotanexecuted910C/CANN9.2 correctnessorcompilationproof.",
+  "skip_effects": {
+    "used": 0,
+    "complete": false,
+    "source_positions": 0,
+    "cos_sin": "Actualfulltablerow0 replicated;notassumedidentity.",
+    "retained_dynamic": [
+      "ring0",
+      "ring2",
+      "ring3",
+      "bankfrontier"
+    ]
+  },
+  "plan_reuse_warning": "Identicalskip-inputkey doesnotproveoutputbankstillcontainscachedvaluesafteraninterveningnon-skipwriter. Needbank-generationattestation,invalidation,oraseparateimmutableplan/snapshot withsafeconsumerABI.",
+  "implementation": false,
+  "native_validation": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

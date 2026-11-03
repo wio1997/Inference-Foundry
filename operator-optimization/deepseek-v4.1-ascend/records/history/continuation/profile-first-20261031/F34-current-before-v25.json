@@ -1,0 +1,88 @@
+{
+  "id": "F34",
+  "name": "C2 ring 状态的可观测性裁剪、稀疏维护与表示重组",
+  "profile_review_state": "NEW_CONDITIONAL_SOURCE_STATE_OPPORTUNITY;NATIVE_AND_ALL_CONSUMER_BINDING_OPEN",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "ring_pool": "Source-refined stateful compound:old-ringpool + tail-stateupdate;do not treatrefinement asalreadydistinctG1nodes."
+  },
+  "source_semantics": "TOKEN_ALIGNED=True,RATIO=2,CACHE_SIZE=32. Effective historical reads useeven positions/slots;preserveallvalid even-slot FP32values andgenerations.",
+  "candidate_graph": {
+    "nodes": [
+      "C2_FP32_kv_score",
+      "pool_reads_old_even_ring",
+      "token_aligned_BF16_pooled",
+      "norm_and_dual_publication",
+      "ring_maintenance"
+    ],
+    "retained_edges": [
+      {
+        "a": "C2_FP32_kv_score",
+        "b": "pool_reads_old_even_ring",
+        "kind": "RAW"
+      },
+      {
+        "a": "pool_reads_old_even_ring",
+        "b": "ring_maintenance_same_slot",
+        "kind": "WAR"
+      },
+      {
+        "a": "ring_maintenance",
+        "b": "future_pool_read",
+        "kind": "PERSISTENT_STATE_GENERATION"
+      },
+      {
+        "a": "token_aligned_BF16_pooled",
+        "b": "norm_and_dual_publication",
+        "kind": "RAW"
+      }
+    ]
+  },
+  "variants": [
+    {
+      "id": "F34-A",
+      "change": "Keep32-slot physical layout;study suppressingodd-position maintenance",
+      "status": "CONDITIONAL",
+      "requires": "Onlyspecifiedeven-observing ringconsumers;sameevenwrite values/order/pages/generations;otherodd-byteABIunobservable."
+    },
+    {
+      "id": "F34-B",
+      "change": "Study16-slot representationforevenstate",
+      "status": "CONDITIONAL_SEPARATE_LAYOUT_DOMAIN",
+      "requires": "Remapallreaders/writers,cache-spec/pagepadding,allocation/packedinterfaces,checkpoint/stateABI andgraphaddresses."
+    },
+    {
+      "id": "F34-C",
+      "change": "Retainonlylatesttoken/latest-even token",
+      "status": "EXCLUDED_IN_ROLLBACK_DOMAIN",
+      "reason": "Afterprocessingpositions0..5,nextstart1readsoldposition0,notlatest-even4."
+    },
+    {
+      "id": "F34-D",
+      "change": "Applyfilterwhileallowingfull-bufferobservability orarbitrary foreignreader",
+      "status": "EXCLUDED_IN_THAT_DOMAIN",
+      "reason": "Odd-slot readerdistinguishes newvsoldstate bytes;RATIO!=2notcovered."
+    }
+  ],
+  "proof_scope": "Naturalinteger/read-set argument plusfinite12804addresscases/9abstractsequences/59updates;not a nativecorrectnesstest orformalchecker.",
+  "relation_to_existing": "F17optimizesprojection production,F18pool/normvalueboundary,F19dualpublication.F34changespersistentstateobservablecontent/representationacrossiterations;donotdoublecounttheirboundaries.",
+  "dependencies": [
+    "Allringconsumers/alias/stateABI",
+    "Same-address writeownership andpagegeneration",
+    "Metadata/ready/inputlifetimes",
+    "CurrentTriton/nativecompileandpackedbranch binding",
+    "Allocatorpaddingforcompactvariant"
+  ],
+  "evidence_files": [
+    "C2-state-opportunity-contract-v24.json",
+    "C2-ring-observability-integer-review-v24.json",
+    "M08-C2-state-condition-ledger-v24.json"
+  ],
+  "legal_fusion_proved": false,
+  "candidate_closed": false,
+  "critical_path_gain_us": null,
+  "critical_path_gain_status": "UNKNOWN_NOT_LOGICAL_BYTE_RATIO",
+  "implementation": false,
+  "new_performance_result": false,
+  "overall_complete": false
+}

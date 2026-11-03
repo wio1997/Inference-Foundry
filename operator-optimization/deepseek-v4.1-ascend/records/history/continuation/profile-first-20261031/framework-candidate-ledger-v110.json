@@ -1,0 +1,1595 @@
+{
+  "generated_utc": "2026-11-01T13:26:56.093202+00:00",
+  "candidates": [
+    {
+      "id": "H01",
+      "title": "响应等待路径的轮询开销与重复等待工作",
+      "modules": [
+        "M03",
+        "M25"
+      ],
+      "status": "HISTORICAL169_PATH_SUPPORTED;CURRENT166_ONCPU_READY_COST_UNRESOLVED",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED"
+      ],
+      "profile_evidence": [
+        "Original sampled full stacks: step_with_batch_queue706 -> FutureWrapper.result98 -> _wait_for_response103 -> get_response433 -> shm.dequeue889 -> acquire_read786 -> wait204.",
+        "Both EngineCore leader threads consumed15.12CPU seconds over15.43385706s (~0.979664 cores);76/78 leader state observations were R.",
+        "Samples also reach timeout_ms/should_warn/check/memory_fence/sched_yield. Capture sample weights include idle tail and are not per-function CPU time."
+      ],
+      "source_answer": "Existing SHM wait already combines a busy/yield branch with idle poller notifications and cancellation. check() is defined inside the retry loop; FIFO Future draining and optional output_rank selection are present.",
+      "candidate_graph": "Retain response publication/read/ack semantics while reviewing repeated readiness/deadline/check bookkeeping and the existing busy/idle policy as separate possible causes.",
+      "rejected_overclaims": [
+        "Event-driven waiting is absent.",
+        "70.9/77.8% sample weight equals removable latency or CPU time.",
+        "Every call waits for all ranks.",
+        "The scheduler itself is proven slow."
+      ],
+      "constraints": [
+        "memory-fence and written/read flag publication order",
+        "per-slot generation and reader ack",
+        "Future FIFO and selected output rank",
+        "deadline/warning policy",
+        "shutdown/cancel wakeups",
+        "response latency and throughput protection"
+      ],
+      "competing_explanations": [
+        "Busy waiting may spend CPU while the worker is legitimately running.",
+        "Other on-CPU functions and profiler overhead may contribute.",
+        "A shorter busy interval may save CPU yet delay a ready response."
+      ],
+      "resource": "Host CPU occupancy is observed. No NPU utilization or end-to-end gain is assigned.",
+      "minimal_missing_evidence": [
+        "Time-aligned on-CPU attribution and producer-ready/read-complete boundaries for the same requests.",
+        "Resolved busy interval/output_rank and queue identities for the observed run."
+      ],
+      "source_evidence": "framework-source-slices166-v8.json; three fixed-image files and narrow ranges",
+      "across": [
+        "worker->EngineCore",
+        "request/response queues",
+        "successive Future generations"
+      ],
+      "frontend_window_caution_v14": "Newpid1frontendmonitor/wait spans are a separateprocess fromoldEngineCoreleaderonCPUdata; do not use them toresolve H01.",
+      "evidence_provenance_v17": {
+        "historical_sample_run": "/data/tiankuan/wio/migration-166-20261030/source169-project/runtime/logs/framework-20261030T091949Z-3d9bcf87",
+        "current166_measurement": false,
+        "current166_surface_gap": "CPU-process-coverage-contract-v17.json"
+      },
+      "resource_scope_v20": "resource-coverage-summary-v20.json;CPU/graph-control/child work cannot be zero-filled from absent ComputeInfo records."
+    },
+    {
+      "id": "H02",
+      "title": "输入准备中剩余小拷贝、锁页和元数据工作的合并重组",
+      "modules": [
+        "M04",
+        "M21",
+        "M22",
+        "M24"
+      ],
+      "status": "SCOPED_CP_CACHE_HIT_DEAD_PRODUCER_SUPPORTED;OTHER_FIELDS_AND_SYNC_CONDITIONAL;UNPRICED",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED"
+      ],
+      "profile_evidence": [
+        "24 roots on ranks0/8; each6956 descendants,86 H2D calls,57 _pin_memory calls and4 Event::synchronize calls.",
+        "Full113-name/166944-record aggregate;24 exclusive partitions and22 same-trace prepare/gap intersections match.",
+        "Median recorded prepare wall45.926825ms(rank0)/44.87814ms(rank8); uncovered wall16.589875/15.403085ms is not CPU-active time.",
+        "Current166:96exact label/pid/tid-bound prepare scopes;all96960selected APIs retain full chains;7392H2D/4936pin/312sync.131/140 CPsites each2288H2D andpin=26/site in88nonempty roots;integer shapes2/3and4/5. Not all copies redundant.",
+        "Native-linked11000compute tasks plus2200suffix H2D occur after the existing local batch-cache initialization across88 roots; later length values have no content reader in inspected fixed path. Query buffers remain live."
+      ],
+      "source_answer": "Persistent batch buffers, early block-table commit, GPU accepted-token correction, optimistic CPU length correction and avoidance of an extra seq_lens D2H/sync already exist. Prepare scope includes persistent-state update and other conditional work, not only _prepare_inputs. Batch/group metadata sharing and CP RoPE view reuse also already exist; remaining work must be reviewed within their scopes. v13: The local batch cache already shares the first length result, but CP outer suffix/GPU-length producers execute on25 later cache-hit builds. Metadata constructors do not introduce hidden length reads. Preserve live query buffers and all group-specific fields.",
+      "candidate_graph": "Review remaining field-compatible metadata production/copy groups and repeated allocation/pinning under the existing persistent-state and graph-buffer contract; retain early-ready copies and late-dependent corrections.",
+      "rejected_overclaims": [
+        "All86 H2D calls are redundant.",
+        "All buffers are fresh allocations.",
+        "Async corrections are missing.",
+        "Four synchronizations can be deleted.",
+        "Host/device exported timestamp overlap proves causal hiding or removable gap."
+      ],
+      "constraints": [
+        "exact field dtype/layout/padding and meaningful extents",
+        "graph-captured buffer addresses and lifetime",
+        "request ID/index remapping and newly admitted/removed requests",
+        "accepted/rejected token generations",
+        "block allocation and slot mapping",
+        "early-ready overlap vs late field readiness",
+        "zero-token DP coordination and connector semantics"
+      ],
+      "competing_explanations": [
+        "Many copies may carry different layer/metadata fields.",
+        "Recorded wait wall can be device/previous-generation dependency rather than preparation compute.",
+        "Apparent uniform roots need phase association before generalizing."
+      ],
+      "resource": "Host API counts and recorded wall only. No physical copy byte total, indispensable bandwidth floor or inference gain is established.",
+      "minimal_missing_evidence": [
+        "Unprofiled CPU/function/critical-path cost and implementation validation for the scoped dead producer.",
+        "Remaining query-offset sharing/fixed-address/stream contracts are separate; do not wait for them to recognize unused lengths.",
+        "Full consumer/lifetime and complete key proofs for geometry templates, dirty block publication, lookback sentinel reuse and optional GDN buffer publication."
+      ],
+      "source_evidence": "Existing prepare-input-analysis.json.sources worker SHA568c3049...; question-gated slices only",
+      "across": [
+        "scheduler->persistent batch",
+        "host->device",
+        "metadata->many layers",
+        "previous sample->next prepare",
+        "prepare->graph replay"
+      ],
+      "metadata_refinement_v9": {
+        "status": "REFINED_EXISTING_H02; NO_GAIN_OR_REDUNDANCY_CLAIM",
+        "measured_origins": [
+          "CP build140-142:350/350/1050 native API records in this DB.",
+          "DSA build1008-1028 and C2 metadata1327-1368 fallback primitives have source-linked records."
+        ],
+        "existing_optimizations": [
+          "Batch metadata dictionary is already reset once per build and shared independent of physical block IDs.",
+          "Slot mapping coordinate/flat buffers already share within a framework KV group using compression ratio and storage block size keys.",
+          "C2 lengths share through batch_shared[lengths:c2]; SMLA/QLI metadata have staged publication.",
+          "C2 ring metadata publication stays group-local; skip-update and actual token/request limits are semantic fields.",
+          "CP local RoPE reuses slices of global cos/sin to avoid overwriting still-referenced process-wide buffers."
+        ],
+        "remaining_candidate": "Remaining CP local offset/device-seq-length suffix operations and fallback field transforms may be fused/reorganized only under their exact group/query/version/readiness and graph-address contract.",
+        "exclusions": [
+          "Do not claim cross-group metadata sharing is absent.",
+          "Do not replace authoritative device seq_lens with optimistic CPU lengths after rejection.",
+          "Do not hoist group-local physical slots or ring owners as batch-global fields.",
+          "Do not infer repeated350source records represent350 identical tensors or removable work."
+        ],
+        "source_snapshots": [
+          {
+            "path": "vllm_ascend/attention/dsa_v41.py",
+            "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd"
+          },
+          {
+            "path": "vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+            "sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e"
+          }
+        ],
+        "missing": [
+          "Per-build shared dictionary hits/misses, common-field and slot generations, all graph consumers and actual copy/event linkage."
+        ]
+      },
+      "profile_exhaustion_v11": {
+        "generated_utc": null,
+        "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/prepare-copy-pin-event-origins-v11.json",
+        "result_sha256": "dd01460b703f575ffd5e9a3a73edc1b3e04d32d1a8e7fed140b0c793a7614883",
+        "populations": [
+          {
+            "population": "OFFICIAL_LATER_WINDOW",
+            "rank": 0,
+            "database": "/data/tiankuan/wio/migration-166-20261030/source169-project/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/official-20261030T084726Z-cb252d1d/analysis/operator-export/copies/dp0_pp0_tp0_dcp0_ep0_rank0_758_20261030085238249_ascend_pt/ASCEND_PROFILER_OUTPUT/ascend_pytorch_profiler_0.db",
+            "sha256": "d969d6cb651e8084442b65cef80a75420ee86de8b9530951e0ffd39e02e49899",
+            "roots": 12,
+            "selected_records": 14412,
+            "selected_name_counts": {
+              "Event::synchronize": 48,
+              "aten::copy_": 4596,
+              "acl_memcpy_host_to_device": 1032,
+              "Enqueue@acl_memcpy_host_to_device": 1032,
+              "aten::to": 5232,
+              "aten::_to_copy": 1788,
+              "aten::_pin_memory": 684
+            },
+            "non_null_chain_ids": 0,
+            "callchains_present": 0,
+            "records_with_project_frames": 0,
+            "has_callchains_table": false,
+            "source_location_counts": {}
+          },
+          {
+            "population": "OFFICIAL_LATER_WINDOW",
+            "rank": 8,
+            "database": "/data/tiankuan/wio/migration-166-20261030/source169-project/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/official-20261030T084726Z-cb252d1d/analysis/operator-export/copies/dp1_pp0_tp0_dcp0_ep8_rank0_759_20261030085238248_ascend_pt/ASCEND_PROFILER_OUTPUT/ascend_pytorch_profiler_8.db",
+            "sha256": "8f69217101752b420741f1f33187a3a25d04437972ca99c2e2fc9ebb34d459a8",
+            "roots": 12,
+            "selected_records": 14412,
+            "selected_name_counts": {
+              "Event::synchronize": 48,
+              "aten::copy_": 4596,
+              "acl_memcpy_host_to_device": 1032,
+              "Enqueue@acl_memcpy_host_to_device": 1032,
+              "aten::to": 5232,
+              "aten::_to_copy": 1788,
+              "aten::_pin_memory": 684
+            },
+            "non_null_chain_ids": 0,
+            "callchains_present": 0,
+            "records_with_project_frames": 0,
+            "has_callchains_table": false,
+            "source_location_counts": {}
+          },
+          {
+            "population": "EARLIER_DIAGNOSTIC_WITH_STACKS",
+            "rank": 3,
+            "database": "/data/tiankuan/wio/migration-166-20261030/source169-project/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/runtime/diagnostic-traces/dp0_pp0_tp3_dcp0_ep3_rank3_2128_20261029023525650_ascend_pt/ASCEND_PROFILER_OUTPUT/ascend_pytorch_profiler_3.db",
+            "sha256": "084b8718888e33271435ec79d7573c95ca1615f3e7484c807ea24590fad234c4",
+            "roots": 0,
+            "selected_records": 0,
+            "selected_name_counts": {},
+            "non_null_chain_ids": 0,
+            "callchains_present": 0,
+            "records_with_project_frames": 0,
+            "has_callchains_table": true,
+            "source_location_counts": {}
+          }
+        ],
+        "interpretation": "Official later-window rank0 and rank8 each contain12exact prepare roots and14412selected nested API records, including1032H2D/684pin/48sync. Both databases lack PYTORCH_CALLCHAINS and all selected callchainId values are null. Earlier EP3with-stacks capture contains0prepare roots. No cross-capture association is inferred.",
+        "exact_field_sources_from_existing_capture": "NOT_AVAILABLE",
+        "historical_CPU_cost_from_source": "NOT_RECOVERABLE",
+        "existing_profile_query_exhausted_for_this_question": true,
+        "next_evidence": "Bounded fresh worker-input diagnostic on166, full native/Python source stacks and shapes/field/copy-ready/event generations tied to the same model-call IDs; compare observed counts within the new population only.",
+        "no_new_source_read": true,
+        "no_inference_NPU_or_service_mutation": true,
+        "whole_modules_closed": 0,
+        "overall_complete": false
+      },
+      "fresh_profile_v12": {
+        "roots": 96,
+        "selected_API_records": 96960,
+        "full_chains": 96960,
+        "canonical_chains": 99,
+        "source_groups": 121,
+        "phase": {
+          "roots": 96,
+          "phase_counts": {
+            "ZERO_SCHEDULED_TOKENS": 8,
+            "CONTAINS_PREFILL_CONTEXT_LT32768": 24,
+            "ALL_SCHEDULED_CONTEXT_GE32768_SPEC5_DECODE_COMPATIBLE": 64
+          },
+          "nonempty_schedule_position_cohorts": 11,
+          "cohort_size_hist": {
+            "8": 11
+          },
+          "cohorts_with_unique_eight_ep": 11,
+          "zero_schedule_roots": 8,
+          "phase_copy_histograms": {
+            "ALL_SCHEDULED_CONTEXT_GE32768_SPEC5_DECODE_COMPATIBLE": {
+              "acl_memcpy_host_to_device": {
+                "86": 64
+              },
+              "aten::_pin_memory": {
+                "57": 64
+              },
+              "Event::synchronize": {
+                "3": 16,
+                "4": 48
+              }
+            },
+            "CONTAINS_PREFILL_CONTEXT_LT32768": {
+              "acl_memcpy_host_to_device": {
+                "75": 16,
+                "86": 8
+              },
+              "aten::_pin_memory": {
+                "52": 16,
+                "57": 8
+              },
+              "Event::synchronize": {
+                "2": 16,
+                "4": 8
+              }
+            },
+            "ZERO_SCHEDULED_TOKENS": {
+              "acl_memcpy_host_to_device": {
+                "0": 8
+              },
+              "aten::_pin_memory": {
+                "0": 8
+              },
+              "Event::synchronize": {
+                "1": 8
+              }
+            }
+          },
+          "limits": [
+            "Cohort key uses exact runtime request IDs+scheduledcounts+CPUcomputed-position snapshots+recordeddp. No nearest timestamp or ordinal join.",
+            "CPUposition snapshots can be optimistic;not GPUaccepted-mask/value identity. Repeated same-EP keys remain ambiguous.",
+            "Current166population only;does not repair old169other-rank schedules. Empty schedules are not assigned to cross-card cohorts."
+          ],
+          "overall_complete": false
+        },
+        "source_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/prepare-field-origins-v12.json",
+        "sha256": "c23b75f3fbd3ae3d3d7152f6882524e899bade53001ea2f1befa09ce943f091f"
+      },
+      "CP_reuse_contract_v12": {
+        "generated_utc": "2026-10-30T22:20:00.375139+00:00",
+        "profile": {
+          "nonempty_prepare_roots": 88,
+          "invocations_per_site_per_nonempty_root": 26,
+          "CP_H2D_records": 4576,
+          "all_H2D_records": 7392,
+          "CP_pin_records": 4576,
+          "all_pin_records": 4936,
+          "all_sync_records": 312
+        },
+        "source": {
+          "path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+          "sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+          "installed_matches_cached": true,
+          "narrow_cached_reads": "25-188:class/allocation/global-sharing guard,two build sites and direct returned local/global fields;no other module bodies read for this question.",
+          "fields": {
+            "131": "query_start_loc.copy_(qsl.pin_memory(),non_blocking=True),persistent INT32graph replay buffer",
+            "140": "(authoritative device seq_lens - suffix.pin_memory().to(device,non_blocking=True)).clamp_min(0),then where(query_start_loc difference>0,local_seq_lens,0)"
+          },
+          "existing_optimizations": "cp_global common/batch sharing87-95 andsourceRoPEview reuse156-163 already exist;not counted as new missing work."
+        },
+        "shapes": [
+          {
+            "name": "acl_memcpy_host_to_device",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(131): build",
+            "records": 2288,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "8a8674e93fe6e3a814cc833faa8b3b443b32141511f05a8e4765b59fc01c1065"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": null,
+                "input_dtypes": null,
+                "records": 2288
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24574,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24926,
+                "root_key": "0:23951"
+              }
+            ]
+          },
+          {
+            "name": "acl_memcpy_host_to_device",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(140): build",
+            "records": 2288,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "b484d63617ac71a3a70f97952602f4b88dbd09899868453e074f9bf42d170717"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": null,
+                "input_dtypes": null,
+                "records": 2288
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24593,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24945,
+                "root_key": "0:23951"
+              }
+            ]
+          },
+          {
+            "name": "aten::_pin_memory",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(131): build",
+            "records": 2288,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "8a8674e93fe6e3a814cc833faa8b3b443b32141511f05a8e4765b59fc01c1065"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": "3;\r\n",
+                "input_dtypes": "int;\r\nNone",
+                "records": 416
+              },
+              {
+                "input_shapes": "5;\r\n",
+                "input_dtypes": "int;\r\nNone",
+                "records": 1872
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24570,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24922,
+                "root_key": "0:23951"
+              }
+            ]
+          },
+          {
+            "name": "aten::_pin_memory",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(140): build",
+            "records": 2288,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "b484d63617ac71a3a70f97952602f4b88dbd09899868453e074f9bf42d170717"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": "2;\r\n",
+                "input_dtypes": "int;\r\nNone",
+                "records": 416
+              },
+              {
+                "input_shapes": "4;\r\n",
+                "input_dtypes": "int;\r\nNone",
+                "records": 1872
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24585,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24937,
+                "root_key": "0:23951"
+              }
+            ]
+          },
+          {
+            "name": "aten::_to_copy",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(140): build",
+            "records": 2288,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "b484d63617ac71a3a70f97952602f4b88dbd09899868453e074f9bf42d170717"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": "2;\r\n;\r\n;\r\n;\r\n;\r\n;\r\n",
+                "input_dtypes": "int;\r\nScalar;\r\nScalar;\r\nNone;\r\nNone;\r\nScalar;\r\nNone",
+                "records": 416
+              },
+              {
+                "input_shapes": "4;\r\n;\r\n;\r\n;\r\n;\r\n;\r\n",
+                "input_dtypes": "int;\r\nScalar;\r\nScalar;\r\nNone;\r\nNone;\r\nScalar;\r\nNone",
+                "records": 1872
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24589,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24941,
+                "root_key": "0:23951"
+              }
+            ]
+          },
+          {
+            "name": "aten::copy_",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(131): build",
+            "records": 4576,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "8a8674e93fe6e3a814cc833faa8b3b443b32141511f05a8e4765b59fc01c1065"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": "3;\r\n3;\r\n",
+                "input_dtypes": "int;\r\nint;\r\nScalar",
+                "records": 832
+              },
+              {
+                "input_shapes": "5;\r\n5;\r\n",
+                "input_dtypes": "int;\r\nint;\r\nScalar",
+                "records": 3744
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24572,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24573,
+                "root_key": "0:23951"
+              }
+            ]
+          },
+          {
+            "name": "aten::copy_",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(140): build",
+            "records": 4576,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "b484d63617ac71a3a70f97952602f4b88dbd09899868453e074f9bf42d170717"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": "2;\r\n2;\r\n",
+                "input_dtypes": "int;\r\nint;\r\nScalar",
+                "records": 832
+              },
+              {
+                "input_shapes": "4;\r\n4;\r\n",
+                "input_dtypes": "int;\r\nint;\r\nScalar",
+                "records": 3744
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24587,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24592,
+                "root_key": "0:23951"
+              }
+            ]
+          },
+          {
+            "name": "aten::to",
+            "first_project_location": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py(140): build",
+            "records": 2288,
+            "roots": 88,
+            "databases": 32,
+            "chain_keys": [
+              "b484d63617ac71a3a70f97952602f4b88dbd09899868453e074f9bf42d170717"
+            ],
+            "shape_dtype_counts": [
+              {
+                "input_shapes": "2;\r\n;\r\n;\r\n;\r\n;\r\n;\r\n;\r\n",
+                "input_dtypes": "int;\r\nScalar;\r\nScalar;\r\nNone;\r\nNone;\r\nScalar;\r\nScalar;\r\nNone",
+                "records": 416
+              },
+              {
+                "input_shapes": "4;\r\n;\r\n;\r\n;\r\n;\r\n;\r\n;\r\n",
+                "input_dtypes": "int;\r\nScalar;\r\nScalar;\r\nNone;\r\nNone;\r\nScalar;\r\nScalar;\r\nNone",
+                "records": 1872
+              }
+            ],
+            "example_record_keys": [
+              {
+                "database_index": 0,
+                "api_rowid": 24588,
+                "root_key": "0:23951"
+              },
+              {
+                "database_index": 0,
+                "api_rowid": 24940,
+                "root_key": "0:23951"
+              }
+            ]
+          }
+        ],
+        "variants": [
+          {
+            "id": "H02_CP_HOST_STAGING",
+            "scope": "Observed LegacyDSV4.1 DSACP builder131/140;otherPCP/draft paths separate",
+            "graph": "Repeated CPU qsl/suffix construction +pin -> per-builder H2D becomes shared immutable per-call pinned staging -> original per-builder H2D/destinations.",
+            "keeps": "Original fixed GPUquery addresses and group-specific seq_lens computation/consumer order.",
+            "conditions": [
+              "Prove identical complete CPUvalue/dtype/partition key,not only shape or callsite",
+              "Keep shared pinned contents immutable until all async DMA readers complete;generation and allocator/event lifetime",
+              "Preserve causal/noncausal branch and actual token interval/padding"
+            ],
+            "status": "CONDITIONAL_CANDIDATE_NOT_IMPLEMENTED"
+          },
+          {
+            "id": "H02_CP_DEVICE_SUFFIX",
+            "graph": "Identical CPU suffix +pin +H2D across repeated builds becomes one shared device suffix per matching model-call key;retain group-specific device seq_lens subtraction/clamp/where.",
+            "conditions": [
+              "Same query CPUmap,actual_start/end,num_actual_tokens,causal,dtype/device",
+              "Read-only shared suffix and complete stream readiness/lifetime",
+              "Device seq_lens remains authoritative after rejection;CPUmirror is not a substitute"
+            ],
+            "status": "CONDITIONAL_CANDIDATE_NOT_IMPLEMENTED"
+          },
+          {
+            "id": "H02_CP_DEVICE_RESULTS",
+            "graph": "If complete producer/version and readers match,share query_start_loc or derived local_seq_lens across repeated builds.",
+            "conditions": [
+              "Prove all common metadata inputs and GPUseq_lens versions match across the26invocations",
+              "All aliases/readers and graph parameter updates",
+              "Stable query_start_loc address is explicitly required atsource106-107;fresh per-iteration allocation is not justified",
+              "Check existing common_v41/cp_global/local batch cache interactions before calling work absent or redundant"
+            ],
+            "status": "STRONGER_SEPARATE_CONDITIONAL_CANDIDATE"
+          },
+          {
+            "id": "H02_CP_CROSS_ITERATION",
+            "graph": "Reuse a previously materialized qsl/suffix only when its complete input/value and generation key is unchanged.",
+            "conditions": [
+              "Request-order/position andactual token interval keys;no shape-only cache",
+              "Do not reuse changing post-rejection device seq_lens",
+              "Graph bucket,address ownership and all in-flight readers",
+              "Requires the relevant host/device reuse contract above;not an independent additive saving"
+            ],
+            "status": "DEPENDENT_CONDITIONAL_CANDIDATE"
+          }
+        ],
+        "relationships": [
+          "Host/device variants overlap on the same producers;their hypothetical savings cannot be added.",
+          "Device-result andcross-iteration variants require stronger input/version/reader/address proof thanhost staging reuse."
+        ],
+        "missing_conclusion_changing_evidence": [
+          "Across repeated build invocations:complete commonCPUinput andGPUseq_lens generation identity andexisting local batch-cache key/return consumers",
+          "Pinned/device storage andall async readers/graphupdate readiness",
+          "Unprofiled per-function CPUcost/critical-path contribution;call counts alone do not price the opportunity"
+        ],
+        "legal_fusion_proved": false,
+        "critical_path_gain": null,
+        "implementation": false,
+        "whole_modules_closed": 0,
+        "overall_complete": false
+      },
+      "CP_reuse_contract_v13": "H02-CP-reuse-contract-v13.json",
+      "field_and_synchronization_ledger_v13": "H02-field-and-synchronization-ledger-v13.json",
+      "resource_scope_v20": "resource-coverage-summary-v20.json;CPU/graph-control/child work cannot be zero-filled from absent ComputeInfo records.",
+      "metadata_resource_v20": "20functional buckets includeM04/M21/embedding/draftpreparation;record multiplicity isnot proof allproducerworkisdead/removable.",
+      "review_v36": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-Markov-confidence-and-verification-contract-v36.json",
+        "next_ID": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-next-ID-and-acceptance-summary-review-v36.json",
+        "budget": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F30-dynamic-verify-budget-and-prefix-bounds-v36.json",
+        "framework": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-H06-verification-length-publication-review-v36.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-variants-and-condition-ledger-v36.json",
+        "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-source-and-conditional-budget-graphs-v36.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H02-v36-BACKUP-GEN",
+            "parent": "H02",
+            "transformation": "Maintain/reuse a device backup-token bank under exact request-state generations, or skip dead fallback production under an already-proved host invariant.",
+            "conditions": "Do not infer all counts positive from shapes. Preserve prompt onboarding/async accepted state/rollback/request moves and normal error domain; no new blocking .item guard.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          },
+          {
+            "id": "H02-v36-LENGTH-BULK",
+            "parent": "H02",
+            "transformation": "Batch asynchronous verification-length D2H with draft-ID publication and consume one matching generation envelope.",
+            "conditions": "Preserve req_id order, k caps/zip, producer/readiness/last-reader and buffer overwrite epochs. Source scalar consumption is not a measured synchronization count.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ]
+      },
+      "new_performance_result": false,
+      "implementation": false,
+      "next_profile_or_contract_action": "Retain exact request/generation/event/physical-geometry conditions; continue M21 complete saved-copy/input metadata coverage.",
+      "candidate_closed": false,
+      "critical_path_gain_us": null,
+      "review_v37": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-count-metadata-and-output-publication-contract-v37.json",
+        "count_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-existing-SWA-length-propagation-proof-v37.json",
+        "empty_discard": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-empty-discard-readonly-alias-review-v37.json",
+        "output": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-current-copy-payload-and-output-ready-review-v37.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-variants-and-condition-ledger-v37.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v37.json",
+        "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-source-and-conditional-publication-graphs-v37.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H02-v37-EARLY-SAMPLED-ID",
+            "parent": "H02",
+            "transformation": "Start the target sampled-ID host snapshot at its real readiness frontier where legal.",
+            "conditions": "Constructor currently waits on default after proposal. New producer-specific event/envelope must retain matrix lifetime,other output fields and final consumer readiness.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          },
+          {
+            "id": "H02-v37-RESULT-ENVELOPE",
+            "parent": "H02",
+            "transformation": "Co-publish compatible target sampled IDs and valid counts under one generation envelope.",
+            "conditions": "MixedINT32matrix/INT64vector,request order,discard parsing,GPU count reference and distinct last readers preserved; not a draft-ID/verify-length substitution.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          },
+          {
+            "id": "H02-v37-CP-INPUT-PACK",
+            "parent": "H02",
+            "transformation": "Pack compatible CP query-start/suffix arrays or reuse immutable pieces under exact geometry generations.",
+            "conditions": "Positive draft88+88H2D and dummy416+416H2D are separate domains. Preserve QSL prefix/tail and seq-length values,static addresses and oldv13 sharing; padding/full republish may offset gains.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ],
+        "current_primary_H2D": 8744,
+        "prior_prepare_only_H2D": 7392,
+        "outside_H2D": 1352,
+        "outside_primary_D2H": 176
+      },
+      "review_v38": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-rejection-state-and-packing-contract-v38.json",
+        "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-rejection-count-state-remap-and-index-proof-v38.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-state-variants-and-conditions-v38.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v38.json",
+        "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-state-conditional-graphs-v38.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H02-v38-INPUT-ID-PACK-GEOMETRY",
+            "parent": "H02",
+            "transformation": "Reuse immutable exact packing index templates or produce equivalent sampled/draft scatters directly.",
+            "conditions": "Refines existingv13candidate;key fullprev/current map,scheduled/draft extents andstrides. IDs remain live;keep CPU-prefill/embeds/is-token-ids/PPwait andexisting contiguous fastpath.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ],
+        "relation": "Refinesv13indexgeometry/liveIDscatter andv36-v37count envelopes;PPwait/optionalCPU-payload/indexlifetime retained."
+      },
+      "review_v39": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-metadata-fill-and-existing-fusion-contract-v39.json",
+        "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-C2-existing-fused-builder-equivalence-v39.json",
+        "fill": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-initialization-write-ownership-review-v39.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-and-initialization-variants-v39.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v39.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Init/metadataalreadysharedkey/devicepublication;C2fusiondoesnotprovehostqueue/EngineCorecost. Statefuloutputbanksrequireownlast-writergeneration."
+      },
+      "review_v40": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-coordinate-draft-cache-and-QLI-consumer-contract-v40.json",
+        "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-slot-fusion-domain-and-draft-cache-gap-proof-v40.json",
+        "QLI": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-QLI-empty-query-and-capture-reader-review-v40.json",
+        "CP": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-CP-target-dummy-draft-publication-review-v40.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-field-reconciliation-variants-v40.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v40.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H02-v40-CP-DUMMY-CACHE-HIT",
+            "parent": "H02",
+            "transformation": "ExtendexistingCPcache-hitdeadproducerplacementtothesamesharedworker/dummyflow.",
+            "conditions": "Retainfirstlocal/globalmiss,QSLfixedaddress/groupfields. Do notapplytocurrentdraftfreshmissesorclaim400measured removalswithoutbindings.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ],
+        "relation": "Worker/dummysharedcache-hitdomainbound;draftwrapperdropskwargsandcallerdoesnotprovidesharedbatch,sofreshmisssuffixlive."
+      },
+      "review_v41": {
+        "scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-requirement-completion-audit-v41.json",
+        "semantic_branches": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-semantic-branch-inventory-v41.json",
+        "outside_profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-profile-gap-reconciliation-v41.json",
+        "initialization": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-dummy-and-proposal-initialization-contract-v41.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-M21-initialization-variants-v41.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Host13field/globalcopy/scalar/asyncpublicationreviewretained;finitescopeauditstillneedscompleteprocess/queue/capturebindings."
+      },
+      "review_v42": {
+        "configuration": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-captured-config-and-selected-dispatch-contract-v42.json",
+        "pcp": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-PCP-alternative-case-and-consumer-contract-v42.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-fixed-case-conditional-variants-v42.json",
+        "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v42.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Source can bind draft outer wrapper but cannot fill saved producer CPU/transport timing. No new health/inference was performed."
+      },
+      "review_v43": {
+        "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Layer-plane-only global metadata resolution is located; this does not measure EngineCore/producers/transport CPU cost or prove reusable metadata generations."
+      },
+      "review_v44": {
+        "placement": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-named-metadata-graph-placement-derivation-v44.json",
+        "capture_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-capture-replay-input-output-and-update-contract-v44.json",
+        "address_check": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-positional-address-check-domain-proof-v44.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-graph-generation-conditional-variants-v44.json",
+        "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v44.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Generation-aware metadata producer placement/bank pipeline may refine broad waits only with correct GPU ready/last-reader and CPU native parameter-mutator host completion. ENPU_ENABLE differs from enable_npugraph_ex; no actual sync-cost saving inferred."
+      },
+      "review_v45": {
+        "registry_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-and-update-alternative-contract-v45.json",
+        "key_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-key-completeness-and-alias-proof-v45.json",
+        "alternative_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-update-and-sync-mutual-exclusion-proof-v45.json",
+        "refined_conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-refined-generation-conditions-v45.json",
+        "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v45.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Common stable backend selects either wrapper-updatable or backend-impl update; common ENPU flag selects alternative explicit wrapper/runner syncs. Do not double-count either as additive current work; actual host cost remains unmeasured."
+      },
+      "review_v46": {
+        "mode_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-mode-padding-and-DP-contract-v46.json",
+        "alignment": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-aware-alignment-domain-proof-v46.json",
+        "DP_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-DP-mode-padding-and-skip-domain-proof-v46.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-padding-reorganization-conditions-v46.json",
+        "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v46.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "DP packed all_reduce gathers disjoint column fields,then max tokens/min mode. Force eager does not eliminate coordination;skip predicate recomputed with model-role/comm/recompute context,not memoized by config id."
+      },
+      "review_v47": {
+        "hardware_dispatch": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-hardware-and-DSACP-dispatch-contract-v47.json",
+        "data_access": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/original-profile-access-status-v47.json",
+        "resource_units": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/whole-scope-resource-denominator-audit-v47.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Sixzero-primaryComputeInfo modules include control/process/graph work;no zero CPU/launch cost or MAC roofline inferred. Preserve host/device/copy hierarchy and actual producer-ready evidence."
+      },
+      "review_v48": {
+        "evidence_capabilities": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/saved-profile-evidence-capability-audit-v48.json",
+        "local_proof_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/saved-profile-local-proof-index-v48.json",
+        "scope": "Cached receipts and bounded analysis-query logic;no new model/SDK source or remote read.",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Core24/48 and reference1.8GHz conversion are cached with empirical286101group agreement. All28savedPMUfields read;849groups remain missing,not a four-column omission. Worker wall/helper DB inventories do not provide current EngineCore onCPU;no blanket recollection or invented denominator."
+      },
+      "review_v49": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-pytorch-fallback-contract-v49.json",
+        "counterexample": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-block-backend-formula-counterexample-v49.json",
+        "guard_cases": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-fallback-local-guard-cases-v49.json",
+        "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-fallback-conditional-variants-v49.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Conditional fallback structure-buffer reuse now grounded in exact CPUconstant.to(device)sites,interval owner bitmap and separate blockwise recoverymax().item(). Counts are source sites,not measured executions/time. Keep B/S/device/dtype/generation/capture keys and all RNG draws;no currentfallback host saving asserted."
+      }
+    },
+    {
+      "id": "H03",
+      "title": "前缀块哈希的跨请求重复工作",
+      "modules": [
+        "M02",
+        "M24"
+      ],
+      "status": "CONDITIONAL_UNPRICED; CURRENT_TOKEN_PREFIX_IDENTITY_PROVED; HASH_COST_NAMESPACE_OPEN",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED",
+        "UNKNOWN"
+      ],
+      "profile_evidence": [
+        "Validated original run has235904/262144 prefix hits,8 successful requests and0 recorded preemptions.",
+        "Frozen8 text requests have8 distinct full hashes and share at least117286 characters;2 prefix seeds are outside formal statistics.",
+        "Current166/tokenizeAPI withactual completion special-token default:8distinct32768token prompts share29440token prefix;three share128more;sum seed LCP235904 matchescasehitcounter asconsistency only. No inference orhash CPUcost measured.",
+        "Current166frontend has39544Python function events including tokenizer/detokenizer(v14);prefix-block hashing runs in another process. Current32helperDBs contain communication summaries,not EngineCore CPUfunctions."
+      ],
+      "source_answer": "The existing request block hasher already computes only new complete blocks and chains each block to its previous prefix hash. Incremental hashing within a request is already implemented.",
+      "candidate_graph": "A conditional cross-request reuse edge may avoid recomputing an exactly identical hash prefix; this is distinct from already implemented per-request append hashing.",
+      "rejected_overclaims": [
+        "Full requests are identical.",
+        "Character prefix proves token/block identity.",
+        "Hashing is a measured bottleneck.",
+        "Historical resolved hash block size is established as128.",
+        "Zero preemptions means zero evictions."
+      ],
+      "constraints": [
+        "exact token IDs and stable prefix boundary",
+        "hash function/version and resolved hash block size",
+        "parent hash and full extra-key namespace including multimodal/LoRA/cache_salt",
+        "model/tokenizer version as relevant",
+        "collision-safe identity, immutable generation, eviction/invalidation and ownership"
+      ],
+      "competing_explanations": [
+        "Hash cost may be negligible.",
+        "Existing host caches or request construction may already avoid some repeated work.",
+        "Shared text prefixes can tokenize differently at a boundary."
+      ],
+      "resource": "No hash CPU cost, retained cache bytes or same-domain time bound is known; do not rank by prefix-hit fraction.",
+      "minimal_missing_evidence": [
+        "Actual hash function calls/CPUcost andresolved H,parent-root/hash-extra namespace for the same workload.",
+        "Existing cross-request reuse/invalidation only if measured cost makes it conclusion-changing;do not rediscover per-request incremental hashing."
+      ],
+      "source_evidence": "Reused stage-kv-hash-source.json SHA2666c9f1... slices812-869 and block-size resolution; no new target file read",
+      "across": [
+        "requests",
+        "prefix hash chain->KV lookup",
+        "seed->formal request",
+        "cache ownership/lifetime"
+      ],
+      "token_identity_v12": {
+        "summary": {
+          "created_utc": "2026-10-30T21:54:33.744354+00:00",
+          "formal_requests": 8,
+          "seed_requests": 2,
+          "formal_token_counts": [
+            32768,
+            32768,
+            32768,
+            32768,
+            32768,
+            32768,
+            32768,
+            32768
+          ],
+          "seed_token_counts": [
+            29696,
+            29696
+          ],
+          "distinct_full_formal_token_hashes": 8,
+          "all8_common_prefix_tokens": 29440,
+          "pairwise_formal_token_prefix_lengths": [
+            [
+              32768,
+              29440,
+              29440,
+              29440,
+              29440,
+              29440,
+              29440,
+              29440
+            ],
+            [
+              29440,
+              32768,
+              29440,
+              29568,
+              29440,
+              29440,
+              29568,
+              29440
+            ],
+            [
+              29440,
+              29440,
+              32768,
+              29440,
+              29440,
+              29440,
+              29440,
+              29440
+            ],
+            [
+              29440,
+              29568,
+              29440,
+              32768,
+              29440,
+              29440,
+              29568,
+              29440
+            ],
+            [
+              29440,
+              29440,
+              29440,
+              29440,
+              32768,
+              29440,
+              29440,
+              29440
+            ],
+            [
+              29440,
+              29440,
+              29440,
+              29440,
+              29440,
+              32768,
+              29440,
+              29440
+            ],
+            [
+              29440,
+              29568,
+              29440,
+              29568,
+              29440,
+              29440,
+              32768,
+              29440
+            ],
+            [
+              29440,
+              29440,
+              29440,
+              29440,
+              29440,
+              29440,
+              29440,
+              32768
+            ]
+          ],
+          "formal_to_seed_token_prefix_lengths": [
+            [
+              29440,
+              29440
+            ],
+            [
+              29568,
+              29568
+            ],
+            [
+              29440,
+              29440
+            ],
+            [
+              29568,
+              29568
+            ],
+            [
+              29440,
+              29440
+            ],
+            [
+              29440,
+              29440
+            ],
+            [
+              29568,
+              29568
+            ],
+            [
+              29440,
+              29440
+            ]
+          ],
+          "completion_add_special_tokens_default": true,
+          "tokenize_declared_default": true,
+          "explicit_tokenize_add_special_tokens": true,
+          "input_sha256": "755b823003b4d200a4590424a245cdfb484d9b8c3d0b5225a7a058790b87e8c8",
+          "scope": "Current166same-model/tokenizer HTTP tokenization of exact server-resident frozen prompts;not attestation of historical169buffer values.",
+          "no_inference_endpoint_called": true,
+          "no_hash_function_CPU_cost_measured": true,
+          "resolved_hash_block_size": "UNKNOWN",
+          "cache_hash_extra_namespace_and_live_reuse_not_proved": true,
+          "whole_modules_closed": 0,
+          "overall_complete": false,
+          "sum_formal_to_seed_max_LCP": 235904,
+          "comparison_to_validated_profile_prefix_hit_counter": "Equal235904 for this fixed case; consistency check,not proof of cache-hash key namespace/runtime blocksize or historicalbuffer identity."
+        },
+        "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/frozen-input-token-identity-v12.json",
+        "result_sha256": "c5403c90764a731917b9baae121e8a9cca3535edaf7a1154dc6dc461b1de7156"
+      },
+      "frontend_window_caution_v14": "Frontendtokenization/detokenization functioncost is nowvisible, butgeneric__hash__ doesnotmeasureEngineCoreprefixhash. H03hashcost/namespace remains separate.",
+      "current_process_coverage_v17": "CPU-process-coverage-contract-v17.json",
+      "resource_scope_v20": "resource-coverage-summary-v20.json;CPU/graph-control/child work cannot be zero-filled from absent ComputeInfo records.",
+      "review_v54": {
+        "parameters": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/frozen-request-parameter-provenance-v54.json",
+        "relation": "Requestcache_salt/sessionNone and initialpromptlogprob cache-skipFalse source-resolved. No cache-namespace,H,actualhashCPUtime,allocation/generation orcross-requestalias claim.",
+        "implementation": false,
+        "new_performance_result": false
+      },
+      "candidate_closed": false,
+      "critical_path_gain_us": null
+    },
+    {
+      "id": "H04",
+      "title": "前端长提示 tokenization 的精确复用、排队与批处理",
+      "modules": [
+        "M01"
+      ],
+      "status": "MEASURED_FUNCTION_WORK;CONDITIONAL_REUSE_OR_REORGANIZATION;UNPRICED",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED"
+      ],
+      "profile_evidence": [
+        "Initialfrontendwindow:8_tokenize_prompt records500319.83us inclusive;8nativeencode_batch records478411.39us,all observed ononeworker thread. Parent IDs unique andallresolvededges same-thread/contained.",
+        "Laterwindowhasno_tokenize_prompt occurrences; it samples output handling. These are boundedprofiled windows,notfullcaseCPUcost."
+      ],
+      "source_answer": "Renderer582-597 gets tokenizer andencode kwargs/offset option, calls tokenizer(text,**kwargs), thenbuildsTokensPrompt.666-690already applies pre/posttokenization andawaits_tokenize_prompt_async;124-125already usesmake_async withself._executor. ThreadPoolExecutor exists; observedoneencodingthread doesnotattest configuredworker count. No prompt-result cache is visible in these selected bodies; tokenizer/backend caches remainunresolved.",
+      "candidate_graph": "Under a complete immutable tokenization key, reuse identical complete encodings; separately assess whether existing async worker submission/batch encoding can reduce queue exposure. Shared text-prefix reuse is a stronger, separate algorithm requiring boundary correctness.",
+      "constraints": [
+        "Tokenizer/model/revision and actualbackend namespace",
+        "Exact text afterpreprocessing;encodekwargs/specialtokens/truncation/offset mapping;postprocessing andfresh request outputs",
+        "Concurrency andownership of sharedtokenizer/output buffers;pendingwork/readiness beforechangingpool policy",
+        "BPE/normalization boundary semantics for prefix reuse; do not splice pre-encoded prefixes blindly"
+      ],
+      "rejected_overclaims": [
+        "Async tokenization is absent.",
+        "Existing encode_batch calls prove a missing batch API.",
+        "One observed worker means executor max_workers==1.",
+        "478ms is request gain or unprofiled CPU time."
+      ],
+      "minimal_missing_evidence": [
+        "Exact existing tokenizer cache/backend andpool_workers resolution,only ifthat distinction changes candidate applicability.",
+        "Same-case queue/ready andunprofiledCPUcost for pricing;no mandatory implementation for an explicitlyconditional analysis."
+      ],
+      "across": [
+        "request admissions",
+        "frontend worker threads",
+        "repeat requests"
+      ],
+      "resource_scope_v20": "resource-coverage-summary-v20.json;CPU/graph-control/child work cannot be zero-filled from absent ComputeInfo records."
+    },
+    {
+      "id": "H05",
+      "title": "前端 DecodeStream 早段长调用与输出就绪流水",
+      "modules": [
+        "M25"
+      ],
+      "status": "MEASURED_LONG_MAIN_THREAD_STEPS;CAUSE_AND_REORGANIZATION_CONDITIONAL",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED"
+      ],
+      "profile_evidence": [
+        "Initialwindow45nativeDecodeStream.step records85366.69us,including8above10ms onmainoutput thread;fullPythonparent chains reachdetokenizer.update→process_outputs→output_handler.",
+        "Laterwindow201steps709.56us total,noneabove1ms. Differentphases/work are not an equal-work speed experiment.",
+        "Parent graphhas0duplicatePythonIDs/0invalidedges;firstprocess_outputs87627.2us inclusive but279.56us recordedexclusivewall. Thedecoder child,not genericPythonoutput bookkeeping,containsmostobservedwall."
+      ],
+      "source_answer": "Detokenizer169-209already constructs native DecodeStream(ids=request.prompt_token_ids,skip_special_tokens=...).update96-143processeseachnewtoken,appendsdecodedtext andchecksstopcriteria.224-248usesnative.step andretainsinvalidUTF8reset/retry/errorbehavior. Existingnativepromptpriming mustnotbe calledmissing. Longstep cause/laziness/GIL/CPUpreemption notsettled by Pythonwall profile.",
+      "candidate_graph": "Conditional decoder preparation,per-request serial offload/owner publication,post-semantic emission batching or compatible stop matcher. Preserve current state/terminal/structured-output boundaries;no equal-work gain attested.",
+      "constraints": [
+        "Per-request stream/token_ids/output_text mutation order andin-flight results",
+        "Same skip_special_tokens/special-spacing/min_tokens/stop-string semantics",
+        "Identical invalid-prefix UTF8 recovery andexceptions",
+        "Actualbackend/GIL/CPUcost/readiness; movingwork maynot reduceprocessing orrequestlatency"
+      ],
+      "rejected_overclaims": [
+        "Native prompt priming is absent.",
+        "All8longsteps are independentlyattested firsttokensof8requests.",
+        "Rust/DecodeStream lazyprefill is proved.",
+        "Exclusive recordedwall isthreadCPUtime orremovablelatency."
+      ],
+      "minimal_missing_evidence": [
+        "Backend preparability/thread/GIL/onCPU evidence if needed to choose decoder preparation/offload.",
+        "Actual serverstreaminterval/samplingmask/othermetadata guards,all later request mutations/consumer lifetimes andtransport/error boundaries.",
+        "Producer-ready/consumer latency only for implementation/gain;conditional analysis itself does not require native tests."
+      ],
+      "across": [
+        "worker output→frontend",
+        "successive accepted-token chunks",
+        "frontend event loop andworker threads"
+      ],
+      "resource_scope_v20": "resource-coverage-summary-v20.json;CPU/graph-control/child work cannot be zero-filled from absent ComputeInfo records.",
+      "review_v37": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-count-metadata-and-output-publication-contract-v37.json",
+        "count_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-existing-SWA-length-propagation-proof-v37.json",
+        "empty_discard": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-empty-discard-readonly-alias-review-v37.json",
+        "output": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-current-copy-payload-and-output-ready-review-v37.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-variants-and-condition-ledger-v37.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v37.json",
+        "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-source-and-conditional-publication-graphs-v37.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Worker-side AsyncGPUModelRunnerOutput readiness/sourcecopy nowbound;not causal attribution of frontendDecodeStream walltime orcompleteEngineCore process coverage."
+      },
+      "candidate_closed": false,
+      "critical_path_gain_us": null,
+      "review_v53": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M25-output-merge-and-terminal-contract-v53.json",
+        "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M25-conditional-output-reorganizations-v53.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M25-semantic-coverage-frontier-v53.json",
+        "relation": "Existing collector merge/chunk/yield/native prompt priming are baseline. Per-request owner/order/stop/terminal/error/metadata contracts bound;four conditional reorganizations refine H05 without a new maincandidate.",
+        "implementation": false,
+        "native_test": false,
+        "new_performance_result": false
+      },
+      "review_v54": {
+        "parameters": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/frozen-request-parameter-provenance-v54.json",
+        "parent_sentinel": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M25-parent-and-sentinel-contract-v54.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M25-semantic-coverage-refinement-v54.json",
+        "relation": "C8source pathn1/DELTA/include_usageTrue;stopstrings empty,so matcher variant isalternative. Savedengine disables perrequestspecmetrics/routedexpert return. Parent seed/index/duplicatefinal contracts and singleton-empty-vs-pending terminal semantics reviewed;all owner/abort/metadata/transport guards retained.",
+        "implementation": false,
+        "native_test": false,
+        "new_performance_result": false
+      }
+    },
+    {
+      "id": "H06",
+      "title": "固定 speculative 宽度下的 padding 域拆分与图 bucket 重组",
+      "modules": [
+        "M04",
+        "M21",
+        "M22",
+        "M23"
+      ],
+      "status": "CURRENT_UNIFORM6_TP8_MINIMUM24_DERIVED;DROP_IN16_EXCLUDED;DOMAIN_REPARTITION_CONDITIONAL",
+      "evidence_kind": [
+        "MEASURED",
+        "DERIVED",
+        "DOCUMENTED"
+      ],
+      "profile_evidence": [
+        "64exactdecodegraphs:16actual2requests/12scheduledtokensand48actual4requests/24tokens;capturedtargetM3×TP8 gives24-rowextent. All64havethesamerecordedcommunicationsequence.",
+        "3712ARMEDexecuteentries:CPUcontext>=32768,no-newrequest,uniform6schedulesinclude48B2/3472B4/8B3/24B1calls. TheseareCPUeligibilitycounts,notphysicalshapeorformalrequestidentityattestationoutsidewindows.",
+        "Pinned source: dispatcher144-145 requires uniform query divisibility;worker3272-3280 and3392-3395 require TP divisibility; config rounds spec sizes and Ascend filters TP sizes. Non-skipped DP synchronization in graph mode uses maximum padded rows across DPs. Serve requests capture sizes[1,2,4,8,16,24],maximum24; final effective list chronology is not asserted."
+      ],
+      "candidate_graph": "With K5 fixed, current FULL uniform descriptor requires rows divisible by6 and TP/DSA-CP requires rows divisible by8. Minimum positive common extent is24,so16 is not a drop-in bucket. Alternative nonuniform/ragged attention/input domains separated from EP buffers remain conditional.",
+      "constraints": [
+        "Do notblindlychange24to16;firstresolveexactbucketandDP/EPcoordinatorcause.",
+        "KeepallEPparticipants,receive/combineworkandanyrequiredglobaluniformMoEbuffers. Smallerquerydomainisnotanidleexpertcard.",
+        "Preserveper-requestquery_start_loc,actualvsdummyrequests,physicalKV/slotgeneration,logitsselection,positionsandgraphaddresses.",
+        "Repartitioningmustpreserverouter/tokenownership,ties,roundingandallstateconsumers;autoregressivefeedbackdoesnotallowblindmergingofsuccessivesteps.",
+        "Do notaddpotentialgainstoper-fieldcopy/projectionvariantsusingthesamepaddingwork."
+      ],
+      "rejected_overclaims": [
+        "16-row uniform6/TP8 graph is available by merely changing a capture-size setting.",
+        "The24-row necessary bound alone explains prefill or all EP-buffer dimensions.",
+        "One-third fewer rows implies one-third less MoE work or latency.",
+        "16/64 window frequency is full-case frequency."
+      ],
+      "minimal_missing_evidence": [
+        "Chronological effective-config mutation and actual DP skip/sync choice if needed to price a different policy; necessary24 lower extent under the present uniform6/TP8 interfaces is already resolved.",
+        "Separate attention/query-domain vs MC2/EP buffer and dummy-request metadata contracts before choosing a reorganization; keepK5 and all logical requests."
+      ],
+      "across": [
+        "operator layouts",
+        "graph buckets",
+        "DP/TP/EP padding ownership",
+        "successive request batches"
+      ],
+      "EP_receiver_constraint_v17": "Observed240formal target rank-calls havezero sender rows butpositive268..10894 receiver assignments; keep all EP receiving/combining/protocol work. Counts are from separateobserver run,not same-call timing.",
+      "resource_boundary_v18": "Preservecache-onlyKV andallEP/CP consumers;completePMUpipefractionsdonotconvert24→16logicalrowsinto hardwaregain.",
+      "resource_scope_v20": "resource-coverage-summary-v20.json;CPU/graph-control/child work cannot be zero-filled from absent ComputeInfo records.",
+      "metadata_resource_v20": "20functional buckets includeM04/M21/embedding/draftpreparation;record multiplicity isnot proof allproducerworkisdead/removable.",
+      "review_v36": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-Markov-confidence-and-verification-contract-v36.json",
+        "next_ID": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-next-ID-and-acceptance-summary-review-v36.json",
+        "budget": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F30-dynamic-verify-budget-and-prefix-bounds-v36.json",
+        "framework": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-H06-verification-length-publication-review-v36.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-variants-and-condition-ledger-v36.json",
+        "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-source-and-conditional-budget-graphs-v36.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H06-v36-COST-POLICY",
+            "parent": "H06",
+            "transformation": "Calibrate verification budget to actual fixed-model/hardware/workload cost geometry.",
+            "conditions": "A changed policy needs speculative correctness/RNG contracts and real padding/communication cost evidence; oldA3 odd-budget comment is not current910C evidence.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          },
+          {
+            "id": "H06-v36-GEOMETRY",
+            "parent": "H06",
+            "transformation": "Couple logical verify prefixes to compatible physical buckets/packing after preserving global allocation.",
+            "conditions": "Keep original global cohort and request identities, prefix cache/slot/state and DP/TP/MC2 participation. Logical length reduction is not automatically less physical work.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ]
+      },
+      "new_performance_result": false,
+      "implementation": false,
+      "next_profile_or_contract_action": "Retain exact request/generation/event/physical-geometry conditions; continue M21 complete saved-copy/input metadata coverage.",
+      "candidate_closed": false,
+      "critical_path_gain_us": null,
+      "review_v37": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-count-metadata-and-output-publication-contract-v37.json",
+        "count_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-existing-SWA-length-propagation-proof-v37.json",
+        "empty_discard": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-empty-discard-readonly-alias-review-v37.json",
+        "output": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-current-copy-payload-and-output-ready-review-v37.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-variants-and-condition-ledger-v37.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v37.json",
+        "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-source-and-conditional-publication-graphs-v37.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Metadatafrontiers/zero-querybank updates andlogicalSWAwidth/count relation constrain future bucket regrouping;no measuredphysicalpaddinggain."
+      },
+      "review_v38": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-rejection-state-and-packing-contract-v38.json",
+        "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-rejection-count-state-remap-and-index-proof-v38.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-state-variants-and-conditions-v38.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v38.json",
+        "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-state-conditional-graphs-v38.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Existingadaptive16..1024tiling/fused13groups,tailfullcapacityandcaptureaddressesarebaseline;newbucketing/layoutneedsactual910Ccost,noprofilesumgain."
+      },
+      "review_v39": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-metadata-fill-and-existing-fusion-contract-v39.json",
+        "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-C2-existing-fused-builder-equivalence-v39.json",
+        "fill": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-initialization-write-ownership-review-v39.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-and-initialization-variants-v39.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v39.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H06-v39-REUSE-FUSED-SLOT-TAIL",
+            "parent": "H06",
+            "transformation": "Avoid a later idempotent slot PAD fill when an earlier fused slot tail fully covers it.",
+            "conditions": "Prove exactbank/value/CPextent/generation/nointerveningwriter. Doesnotcoverblocktablezero/QSLsentinel/encoderallocation;refinesv38tailcandidate.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          },
+          {
+            "id": "H06-v39-PAD-DIRTY-RANGE",
+            "parent": "H06",
+            "transformation": "Maintain only newly dirtied inactive ranges of QSL,slot or block-table banks.",
+            "conditions": "Initialsentinelclear/allwriterfootprints/shrink-grow/alias/capturefullreaders andlastreader fences explicit;perbankvaluesandunits retained.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ],
+        "relation": "Perbankinactiveextent/dirtyrange/duplicatePAD rulesconditional;fixedgraphbankreadersretained."
+      },
+      "review_v40": {
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-slot-coordinate-draft-cache-and-QLI-consumer-contract-v40.json",
+        "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-slot-fusion-domain-and-draft-cache-gap-proof-v40.json",
+        "QLI": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-QLI-empty-query-and-capture-reader-review-v40.json",
+        "CP": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-CP-target-dummy-draft-publication-review-v40.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-field-reconciliation-variants-v40.json",
+        "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v40.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H06-v40-SEED-TAIL-DIRTY-RANGE",
+            "parent": "H06",
+            "transformation": "Specializeexistinginactive-rangeanalysisforDSparkseedzero-tailpublication.",
+            "conditions": "Keepinitialseed/tailvalues,activeprefix/invalidrows,batchshrink/grow,allMarkov/capturelastreaders andbankgeneration;refinesv39dirtyrange,notadditivegain.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ],
+        "relation": "Ratio1packedtailmaskstrongerthanlegacy;seed/QSL/paddingdirtyproofneedscaptureextentandbankepochs,notshapeonly."
+      },
+      "review_v41": {
+        "scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-requirement-completion-audit-v41.json",
+        "semantic_branches": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-semantic-branch-inventory-v41.json",
+        "outside_profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-original-profile-gap-reconciliation-v41.json",
+        "initialization": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-dummy-and-proposal-initialization-contract-v41.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-M21-initialization-variants-v41.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "variants": [
+          {
+            "id": "H06-v41-DUMMY-MULTIBANK-INIT",
+            "parent": "H06",
+            "transformation": "Combinecompatibletoken-indexzeroandpergroupquery/contextPADinitializationintooneproducerwithoutchangingbankaddresses.",
+            "conditions": "Keepdifferent0/-1values,perbufferdtype/capacity/allgroupsandDPsync;allcapture/fullbankreadersmustseereadydata. Noassumedinterbufferaliasorpermissiontoskipdummycollectives.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          },
+          {
+            "id": "H06-v41-PROPOSAL-TAIL-INIT",
+            "parent": "H06",
+            "transformation": "Combinecompatibleearlyproposal-tailinitializersorapplygeneration-awareinactive-rangeupdates.",
+            "conditions": "Slot-1/seq0/proposal-QSL0differentbanks;prefixpublicationsmustprecedejointproducer. Keepindependentstepstateandlate1343index-tailuntilseparateproof. Refinesv39-v40dirtyrange,notadditivegain.",
+            "implemented": false,
+            "native_validation": false,
+            "critical_path_gain_us": null
+          }
+        ]
+      },
+      "variants_v41": [
+        {
+          "id": "H06-v41-DUMMY-MULTIBANK-INIT",
+          "parent": "H06",
+          "transformation": "Combinecompatibletoken-indexzeroandpergroupquery/contextPADinitializationintooneproducerwithoutchangingbankaddresses.",
+          "conditions": "Keepdifferent0/-1values,perbufferdtype/capacity/allgroupsandDPsync;allcapture/fullbankreadersmustseereadydata. Noassumedinterbufferaliasorpermissiontoskipdummycollectives.",
+          "implemented": false,
+          "native_validation": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "H06-v41-PROPOSAL-TAIL-INIT",
+          "parent": "H06",
+          "transformation": "Combinecompatibleearlyproposal-tailinitializersorapplygeneration-awareinactive-rangeupdates.",
+          "conditions": "Slot-1/seq0/proposal-QSL0differentbanks;prefixpublicationsmustprecedejointproducer. Keepindependentstepstateandlate1343index-tailuntilseparateproof. Refinesv39-v40dirtyrange,notadditivegain.",
+          "implemented": false,
+          "native_validation": false,
+          "critical_path_gain_us": null
+        }
+      ],
+      "review_v42": {
+        "configuration": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-captured-config-and-selected-dispatch-contract-v42.json",
+        "pcp": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-PCP-alternative-case-and-consumer-contract-v42.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-fixed-case-conditional-variants-v42.json",
+        "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v42.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Eager no-query SMLA plan zero-write elision overlaps F31 and earlier initializer/dirty-range alternatives; preserve task/frontier and do not add duplicate gains."
+      },
+      "review_v43": {
+        "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+        "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Shared-state reset issues no clear; existing direct output/empty-cache initialization and normal index formatting views are baseline. Do not count phantom fills/copies or erase length outputs."
+      },
+      "review_v44": {
+        "placement": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-named-metadata-graph-placement-derivation-v44.json",
+        "capture_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-capture-replay-input-output-and-update-contract-v44.json",
+        "address_check": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-positional-address-check-domain-proof-v44.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-graph-generation-conditional-variants-v44.json",
+        "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v44.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Descriptor×bank graph instances carry pool retention/capture/weak-output memory cost and globally consistent rank decisions; finite bank pipeline is not free bucket or memory reuse."
+      },
+      "review_v45": {
+        "registry_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-and-update-alternative-contract-v45.json",
+        "key_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-key-completeness-and-alias-proof-v45.json",
+        "alternative_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-update-and-sync-mutual-exclusion-proof-v45.json",
+        "refined_conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-registry-refined-generation-conditions-v45.json",
+        "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v45.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Capture bucket reorganization needs main/draft/prefill namespace and all graph/event/handle/param planes, not workspace key alone. One-time setters reject reinit; workspace-only updates can add incomplete keys and pre-init writes no-op. Python map/list initialization is not GPU workspace allocation."
+      },
+      "review_v46": {
+        "mode_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-mode-padding-and-DP-contract-v46.json",
+        "alignment": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-aware-alignment-domain-proof-v46.json",
+        "DP_proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-DP-mode-padding-and-skip-domain-proof-v46.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-mode-padding-reorganization-conditions-v46.json",
+        "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v46.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Uniform6+TP8 necessary24 bound retained; worker prealignment and post-resolution registry chronology now explicit. Mode-aware alignment alternative targets genuinely supported nonuniform/PIECEWISE branches; fixed FULLuniform case has no proved16row drop-in or measured gain."
+      },
+      "variants_v46": [
+        {
+          "id": "H06-v46-MODE-AWARE-CAPTURE-ALIGNMENT",
+          "parent": "H06",
+          "transformation": "Evaluate backend-resolved graph mode before imposing FULL-uniform LCM constraints; nonuniform/PIECEWISE branches may retain TP-only capture domains when all native/metadata/key constraints support them.",
+          "eligibility": "Conditional alternative; current fixed FULLuniform6/TP8 remains24. No setting-only16row replacement or measured fixed-case saving claimed.",
+          "implemented": false,
+          "native_validation": false,
+          "critical_path_gain_us": null
+        }
+      ],
+      "review_v47": {
+        "hardware_dispatch": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-hardware-and-DSACP-dispatch-contract-v47.json",
+        "data_access": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/original-profile-access-status-v47.json",
+        "resource_units": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/whole-scope-resource-denominator-audit-v47.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Normal architecture namespace/adaptor selection and resource-denominator units clarified.193login is not environment reproduction or replacement of oldDP/TP/EP capture evidence."
+      },
+      "review_v48": {
+        "evidence_capabilities": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/saved-profile-evidence-capability-audit-v48.json",
+        "local_proof_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/saved-profile-local-proof-index-v48.json",
+        "scope": "Cached receipts and bounded analysis-query logic;no new model/SDK source or remote read.",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Saved metadata/config census query is prepared-only,not executed on193or166.16phase-unboundgraphs have no saved sidecar envelope candidate;metadata/clock inspection is not promised to bind them. Conditional semantic analysis is distinct from actual capture ABI/epoch eligibility."
+      }
+    },
+    {
+      "id": "H07",
+      "title": "原始 token ID 图回放与图外 embedding 的单一生产路径",
+      "modules": [
+        "M04",
+        "M05",
+        "M22",
+        "M23"
+      ],
+      "status": "EXACT_64_REPLAY_ROOT_ASSOCIATIONS_AND_PYTHON_RENORM_REVIEWED;REMOVAL_CONDITIONAL;UNPRICED",
+      "evidence_kind": [
+        "MEASURED",
+        "DOCUMENTED",
+        "DERIVED"
+      ],
+      "profile_evidence": [
+        "88 native target preprocessing embedding AllReduces;80 graph outer AllReduces with245760-byte BF16 logical array(count122880),plus embedding-like graph prefix already inventoried in v11. Populations are not blindly paired by count.",
+        "64 graph submissions have exact decode schedules.16 graph phases remain unbound; no phase is forced.",
+        "v26:88 external embedding/copy roots=64 exact decode graph roots+24 long-input roots;8 additional empty roots.80 graph embedding prefixes all24x5120,16 remainphase-unbound.",
+        "v26:8 exact observed TP8 cohorts,2 scheduled12 and6 scheduled24. Same-root control lineage does not prove tensor identity,deadness or rank-uniform future cached-entry guards."
+      ],
+      "candidate_graph": "For FULL cached replay captured from raw input_ids and no prompt/multimodal embedding requirement, assess skipping the unused external embedding/copy while keeping input clamp,Engram preparation and all graph input updates. Alternative: capture an inputs_embeds graph that consumes the external producer and avoids internal embedding; compare complete schedules.",
+      "constraints": [
+        "Current replay must have an existing captured raw-ID entry with inputs_embeds=None at capture; eager/prefill/capture are excluded from blanket removal.",
+        "Actual request has no image/soft/prompt embedding substitution. Preserve rawIDs for Engram/history/vision routing.",
+        "Keep input-ID clamp and all live preprocessing/metadata work; never skip entire_preprocess.",
+        "External-skip and internal-skip are alternative graphs,not additive savings. An embedding AllReduce→SP reduceScatter variant also needs exact row/consumer/numeric/communicator contracts.",
+        "No timing or end-to-end gain inferred from counts,wall scopes or logical byte arrays.",
+        "Recorded UnquantizedEmbeddingMethod calls F.embedding without max_norm,so its guarded Python weight renorm is excluded. Persistent-buffer alias/generation,event and actual cached-entry bindings remain conditional.",
+        "Do not delete or stop maintaining the entire persistent inputs_embeds bank across prompt/MM/capture/eager transitions.",
+        "B2 external12 and graph24 are different row domains;maintain padded tails and every raw-ID consumer. TP8 collective omission needs group-uniform guards."
+      ],
+      "rejected_overclaims": [
+        "All88 external embeddings are dead.",
+        "Multimodal/prompt-embedding/eager paths can be removed.",
+        "Count equality proves paired execution or removable latency."
+      ],
+      "minimal_missing_evidence": [
+        "For an unconditional removal conclusion:bind the exact original raw-ID cached-entry/hit guard,all live alias/generation consumers and collective/event schedule for the claimed fixed workload domain.",
+        "Current profile/source supports a conditional opportunity;do not require implementing it to record the analysis. Future numerical/performance checks belong to separately scoped implementation work."
+      ],
+      "across": [
+        "preprocessing→captured graph",
+        "vocab TP collective→SP shard",
+        "graph capture→subsequent replay"
+      ],
+      "embedding_helper_path_v18": "Target embedding mask/GatherV2/MaskedFill andAllReduce separated fromdraft/dummy byfullcallers;actualprimitiveframevllm/model_executor/layers/vocab_parallel_embedding.py85 identified. Purity/entryguards/bufferlifetime remain explicit.",
+      "resource_scope_v20": "resource-coverage-summary-v20.json;CPU/graph-control/child work cannot be zero-filled from absent ComputeInfo records.",
+      "metadata_resource_v20": "20functional buckets includeM04/M21/embedding/draftpreparation;record multiplicity isnot proof allproducerworkisdead/removable.",
+      "review_v26": {
+        "profile": "H07-exact-profile-lineage-v26.json",
+        "source": "H07-primitive-and-buffer-contract-v26.json",
+        "variants": "H07-embedding-producer-variants-v26.json",
+        "condition_ledger": "H07-condition-ledger-v26.json",
+        "local_max_norm_question_closed": true,
+        "all_consumers_closed": false,
+        "whole_module_closed": false
+      },
+      "review_v44": {
+        "placement": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-named-metadata-graph-placement-derivation-v44.json",
+        "capture_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-capture-replay-input-output-and-update-contract-v44.json",
+        "address_check": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-positional-address-check-domain-proof-v44.json",
+        "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-graph-generation-conditional-variants-v44.json",
+        "original_scope_audit": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M22-original-requirement-completion-audit-v44.json",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "Ordinary runner passes model inputs through kwargs, so wrapper positional address list can be empty even in DEBUG. Embedding/input producer changes must preserve actual captured kwargs banks; source debug assertion alone cannot validate them."
+      },
+      "candidate_closed": false,
+      "critical_path_gain_us": null,
+      "review_v48": {
+        "evidence_capabilities": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/saved-profile-evidence-capability-audit-v48.json",
+        "local_proof_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/saved-profile-local-proof-index-v48.json",
+        "scope": "Cached receipts and bounded analysis-query logic;no new model/SDK source or remote read.",
+        "implementation": false,
+        "new_performance_result": false,
+        "relation": "56same-threadnonoverlapping sync pairs and no observed writer between are host-order facts,not native event-generation equality or all-future-reader proof. Preserve actual bank/input generation obligations when considering reuse or sync reorganization."
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "a": "H01",
+      "b": "H02",
+      "relation": "interacts",
+      "scope": "Host contention and request/response pipeline; not measured; no additive gains."
+    },
+    {
+      "a": "H02",
+      "b": "F31",
+      "relation": "overlaps",
+      "scope": "Existing draft/target metadata preparation; field mapping needed before deduplication."
+    },
+    {
+      "a": "H02",
+      "b": "H03",
+      "relation": "interacts",
+      "scope": "Both touch KV lookup/ownership and subsequent metadata. Neither candidate requires implementing the other; not a demonstrated performance interaction."
+    },
+    {
+      "a": "H07",
+      "b": "F02",
+      "relation": "overlaps",
+      "scope": "Embedding producer and first HC state;no additive gain."
+    },
+    {
+      "a": "H06",
+      "b": "F33",
+      "relation": "interacts",
+      "scope": "Projection row domains and communication widths;no additive gain."
+    }
+  ],
+  "no_implementation": true,
+  "no_speedup_claim": true,
+  "whole_modules_closed": 0,
+  "overall_complete": false,
+  "parent_ledger": "framework-candidate-ledger-v109.json",
+  "new_source_read": true,
+  "new_target_source_read": true,
+  "repository_wide_audit": false,
+  "new_device_work": false
+}

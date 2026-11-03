@@ -1,0 +1,178 @@
+{
+  "definition_files": [
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/profiler/analysis/prof_common_func/_constant.py",
+      "excerpts": [
+        {
+          "line": 321,
+          "text": "    TABLE_PYTORCH_API = \"PYTORCH_API\"\n    # api connection ids table name\n    TABLE_CONNECTION_IDS = \"CONNECTION_IDS\"\n    # call chain table name\n    TABLE_PYTORCH_CALLCHAINS = \"PYTORCH_CALLCHAINS\""
+        },
+        {
+          "line": 370,
+          "text": "            (\"type\", Constant.SQL_INTEGER_TYPE),\n            (\"globalTid\", Constant.SQL_INTEGER_TYPE),\n            (\"connectionId\", Constant.SQL_INTEGER_TYPE),\n            (\"name\", Constant.SQL_INTEGER_TYPE),\n        ],"
+        },
+        {
+          "line": 377,
+          "text": "            (\"value\", Constant.SQL_TEXT_TYPE),\n        ],\n        DbConstant.TABLE_CONNECTION_IDS: [\n            (\"id\", Constant.SQL_INTEGER_TYPE),\n            (\"connectionId\", Constant.SQL_INTEGER_TYPE),"
+        },
+        {
+          "line": 379,
+          "text": "        DbConstant.TABLE_CONNECTION_IDS: [\n            (\"id\", Constant.SQL_INTEGER_TYPE),\n            (\"connectionId\", Constant.SQL_INTEGER_TYPE),\n        ],\n        DbConstant.TABLE_PYTORCH_CALLCHAINS: ["
+        },
+        {
+          "line": 398,
+          "text": "            (\"endNs\", Constant.SQL_TEXT_TYPE),\n            (\"globalTid\", Constant.SQL_INTEGER_TYPE),\n            (\"connectionId\", Constant.SQL_INTEGER_TYPE),\n            (\"name\", Constant.SQL_INTEGER_TYPE),\n            (\"sequenceNumber\", Constant.SQL_INTEGER_TYPE),"
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/profiler/analysis/prof_view/prof_db_parse/_fwk_api_db_parser.py",
+      "excerpts": [
+        {
+          "line": 63,
+          "text": "\n        # update connection id for torch op\n        connectionId_manager = ConnectionIdManager()\n        for torch_op_api in torch_op_apis:\n            torch_op_api[TorchOpDataOri.CONNECTION_ID] = ("
+        },
+        {
+          "line": 66,
+          "text": "        for torch_op_api in torch_op_apis:\n            torch_op_api[TorchOpDataOri.CONNECTION_ID] = (\n                connectionId_manager.get_id_from_connection_ids(\n                    torch_op_api[TorchOpDataOri.CONNECTION_ID]\n                )"
+        },
+        {
+          "line": 82,
+          "text": "        for mstx_mark_api in mstx_mark_apis:\n            mstx_mark_api[TorchOpDataOri.CONNECTION_ID] = (\n                connectionId_manager.get_id_from_connection_ids(\n                    mstx_mark_api[TorchOpDataOri.CONNECTION_ID]\n                )"
+        },
+        {
+          "line": 95,
+          "text": "        if not mstx_mark_apis:\n            return\n        sql = f\"select startNs, endNs, globalTid, connectionId from {DbConstant.TABLE_MSTX_EVENTS} order by startNs\"\n        cann_tx_apis = TorchDb().fetch_all_data(sql)\n        if not cann_tx_apis:"
+        },
+        {
+          "line": 120,
+          "text": "            return\n        sql = (\n            f\"select startNs, endNs, globalTid, connectionId from {DbConstant.TABLE_CANN_API} \"\n            f\"where name = {node_launch_str_id} and type = 10000 order by startNs\"\n        )"
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/profiler/analysis/prof_view/prof_db_parse/_step_info_db_parser.py",
+      "excerpts": [
+        {
+          "line": 50,
+          "text": "            print_warn_msg(\"Failed to get api data from db.\")\n            return []\n        sql = f\"select connectionId from {DbConstant.TABLE_CANN_API} \" \\\n              f\"where type={self.NODE_LEVEL} and {begin_ts} <= startNs and endNs <= {end_ts}\"\n        return TorchDb().fetch_all_data(sql)"
+        },
+        {
+          "line": 58,
+          "text": "            print_warn_msg(\"Failed to get api data from db.\")\n            return []\n        sql = f\"select connectionId from {DbConstant.TABLE_CANN_API} where type={self.NODE_LEVEL}\"\n        return TorchDb().fetch_all_data(sql)\n"
+        },
+        {
+          "line": 65,
+          "text": "            print_warn_msg(\"Failed to get task data from db.\")\n            return {}\n        sql = f\"select startNs, endNs, connectionId, globalTaskId from {DbConstant.TABLE_TASK}\"\n        task_data = TorchDb().fetch_all_data(sql)\n        api_connection_ids = {info[0] for info in api_data}"
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/profiler/analysis/prof_view/prof_db_parse/_trace_step_time_db_parser.py",
+      "excerpts": [
+        {
+          "line": 163,
+          "text": "                    startNs,\n                    endNs,\n                    connectionId\n                FROM COMMUNICATION_OP c\n            )"
+        },
+        {
+          "line": 174,
+          "text": "            JOIN (\n                SELECT\n                    connectionId,\n                    deviceId\n                FROM TASK"
+        },
+        {
+          "line": 177,
+          "text": "                    deviceId\n                FROM TASK\n                GROUP BY connectionId\n                HAVING COUNT(DISTINCT deviceId) = 1\n            ) t"
+        },
+        {
+          "line": 180,
+          "text": "                HAVING COUNT(DISTINCT deviceId) = 1\n            ) t\n            ON comm.connectionId = t.connectionId\n            \"\"\"\n            communication_op_data = TorchDb().fetch_all_data(sql)"
+        }
+      ]
+    }
+  ],
+  "nonnull_torch": {
+    "columns": [
+      "startNs",
+      "endNs",
+      "connectionId",
+      "value"
+    ],
+    "rows": [
+      [
+        "1793152958783339500",
+        "1793152958783344080",
+        521009,
+        "aclnnInplaceFillScalar"
+      ],
+      [
+        "1793152958783353240",
+        "1793152958783355080",
+        521010,
+        "aclnnInplaceFillScalar"
+      ],
+      [
+        "1793152958783362820",
+        "1793152958783364250",
+        521011,
+        "aclnnInplaceFillScalar"
+      ],
+      [
+        "1793152958783371420",
+        "1793152958783372810",
+        521012,
+        "aclnnInplaceFillScalar"
+      ],
+      [
+        "1793152958783379750",
+        "1793152958783381170",
+        521013,
+        "aclnnInplaceFillScalar"
+      ]
+    ]
+  },
+  "conn_values": {
+    "columns": [
+      "id",
+      "connectionId"
+    ],
+    "rows": [
+      [
+        494131,
+        1342573270
+      ],
+      [
+        494132,
+        1342573271
+      ],
+      [
+        494133,
+        1342573272
+      ]
+    ]
+  },
+  "conn_task_matches": {
+    "columns": [
+      "count(*)"
+    ],
+    "rows": [
+      [
+        55902
+      ]
+    ]
+  },
+  "cann_apis": {
+    "columns": [
+      "connectionId",
+      "value"
+    ],
+    "rows": [
+      [
+        73614,
+        "aclrtMemcpyAsync"
+      ],
+      [
+        73622,
+        "aclrtMemcpyAsync"
+      ]
+    ]
+  }
+}

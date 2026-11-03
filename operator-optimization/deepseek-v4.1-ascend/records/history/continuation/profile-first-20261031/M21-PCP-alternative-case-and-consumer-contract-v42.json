@@ -1,0 +1,80 @@
+{
+  "generated_utc": "2026-10-31T12:14:19.813262+00:00",
+  "evidence": [
+    "M21-selected-constructor-group-and-PCP-alternative-source-v42.json",
+    "M21-independent-local-global-plan-owner-source-v42.json",
+    "M21-PCP-global-hidden-consumer-point-source-v42.json"
+  ],
+  "current_observed_draft_path": "DIRECT_LEGACY_CP; PCP considered as an alternative rather than measured PCP execution",
+  "main_PCP_degree": "UNKNOWN",
+  "decode_shard_selector": "is_pcp_decode_sharding_enabled(vllm_config), exact definition UNREAD",
+  "cases": [
+    {
+      "case": "PCP_CONSTRUCTOR",
+      "condition": "DCP != 1",
+      "result": "NotImplementedError; replicated cache PCP requires DCP1."
+    },
+    {
+      "case": "GLOBAL_METADATA",
+      "condition": "global_batch.is_prefilling_np.any() OR symbolic_decode_sharded",
+      "result": "All ranks use the same global decision; retain global cache metadata and hidden gather/restore even when local query is empty."
+    },
+    {
+      "case": "REPLICATED_DECODE",
+      "condition": "not global_prefill AND not symbolic_decode_sharded",
+      "result": "Return local metadata; no PCP global hidden restore in this source branch."
+    },
+    {
+      "case": "EMPTY_LOCAL_QUERY",
+      "condition": "needs_global_metadata AND local_common.num_actual_tokens == 0",
+      "result": "Empty local metadata skips SMLA/QLI plan ops, but retains global cache view and all necessary collectives."
+    },
+    {
+      "case": "FULL_GRAPH",
+      "condition": "full_graph_mode",
+      "result": "Preserve common graph shapes; request banks resized before capture, capacity local=max(request_factor*max_reqs,max_capture)+1 and global=max(max_reqs,max_capture)+1."
+    },
+    {
+      "case": "DUMMY",
+      "condition": "explicit skip_ring_state_update OR global_batch.is_dummy",
+      "result": "Skip C2 ring advance; not permission to skip other metadata/cache/communication effects."
+    },
+    {
+      "case": "C2_OWNER",
+      "condition": "needs_global_metadata",
+      "result": "Global cache owner builds compressed-state metadata; local build_compressor_metadata=False. Otherwise local owner builds it."
+    },
+    {
+      "case": "ROPE_OWNER",
+      "condition": "SWA source tables prepared",
+      "result": "Existing per-owner table-pointer dedup plus independent persistent local-Q/global-KV cos/sin banks; keep these owners and addresses."
+    },
+    {
+      "case": "HIDDEN",
+      "condition": "metadata is PCP type",
+      "result": "all_gather(contiguous local padded hidden,dim0) then index_select(hidden_restore_idx); verify exact restored row space before any pool/history update."
+    },
+    {
+      "case": "O_PROJ_WEIGHTS",
+      "condition": "weight_sharding enabled AND needs_global_metadata",
+      "result": "Use full weights, prepare aliases during warmup, wait pending handles and switch back in finally. Source does not prove all-gather happens on every iteration."
+    }
+  ],
+  "global_hidden_consumers": [
+    "SWA KV projection and cache write",
+    "compressed-source projection when role.is_kv_source",
+    "multistream preprocessing when enabled; its downstream consumers must also be transformed or retain original input"
+  ],
+  "existing_optimizations_not_new_gains": [
+    "Replicated decode no gather",
+    "Empty-local no SMLA/QLI build",
+    "source-table pointer dedup",
+    "independent graph-stable RoPE output banks",
+    "global/local C2 ownership split"
+  ],
+  "implementation": false,
+  "native_validation": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

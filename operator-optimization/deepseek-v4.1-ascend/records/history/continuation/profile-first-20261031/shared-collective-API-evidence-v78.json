@@ -1,0 +1,71 @@
+{
+  "primary_sources": [
+    {
+      "name": "ReduceScatter",
+      "url": "https://asc.gitcode.com/api/SIMD-API/adv_api/HCCL_communication/HCCL_Kernel/ReduceScatter.html",
+      "snapshot_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/ReduceScatter-API-source-v78.html",
+      "snapshot_sha256": "bb63b0236164e496182721ccee1d78249c838f8bc3039254530e06e76625bd65",
+      "snapshot_bytes": 30279,
+      "retrieved_UTC": "2026-11-01T01:50:00.963535+00:00",
+      "sections": "Product support,datatype/reduceop parameters,and constraints",
+      "supports": "Current public kernel-HCCL guide lists A3,INT32/FLOAT and SUM/MAX. It also limits total Prepare plus InterHcclGroupSync calls in one A3 communication domain to63.",
+      "version_limit": "Not pinned to installed CANN9.2.0. Kernel-HCCL InitV2/SetCcTilingV2/submission-domain prerequisites;not an assertion about ordinary host-HCCL lifetime or current loaded binary.",
+      "establishes_throughput_or_installed_compatibility": false
+    },
+    {
+      "name": "AllReduce",
+      "url": "https://asc.gitcode.com/api/SIMD-API/adv_api/HCCL_communication/HCCL_Kernel/AllReduce.html",
+      "snapshot_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/AllReduce-API-source-v78.html",
+      "snapshot_sha256": "02877b7b4343d72aa61f144f5d8d8515f15359f196375cb7c2e8a85a5a4424cb",
+      "snapshot_bytes": 27925,
+      "retrieved_UTC": "2026-11-01T01:50:01.307138+00:00",
+      "sections": "Product support,datatype/reduceop parameters,and constraints",
+      "supports": "Current public kernel-HCCL guide lists A3,INT32/FLOAT and SUM/MAX. It also limits total Prepare plus InterHcclGroupSync calls in one A3 communication domain to63.",
+      "version_limit": "Not pinned to installed CANN9.2.0. Kernel-HCCL InitV2/SetCcTilingV2/submission-domain prerequisites;not an assertion about ordinary host-HCCL lifetime or current loaded binary.",
+      "establishes_throughput_or_installed_compatibility": false
+    }
+  ],
+  "saved_actual_collective_type_counts": [
+    {
+      "operator": "hcom_allGather_",
+      "dtype": "BFP16",
+      "calls": 5448
+    },
+    {
+      "operator": "hcom_allGather_",
+      "dtype": "FP32",
+      "calls": 104
+    },
+    {
+      "operator": "hcom_allReduce_",
+      "dtype": "BFP16",
+      "calls": 272
+    },
+    {
+      "operator": "hcom_alltoall_",
+      "dtype": "BFP16",
+      "calls": 4424
+    },
+    {
+      "operator": "hcom_reduceScatter_",
+      "dtype": "BFP16",
+      "calls": 4472
+    }
+  ],
+  "proposed_INT32_RS_observed_in_this_profile": false,
+  "proposed_MAX_reduction_kind_attested_by_typed_count_census": false,
+  "crosslayer_constraint": {
+    "domain": "Only if a single kernel-HCCL submission/communication domain is retained across unrolledlayers,with the quoted current API limit applicable.",
+    "calls_per_layer_minimum_in_three_operation_graph": 3,
+    "forty_layer_calls": 120,
+    "limit": 63,
+    "max_layers_without_any_other_calls": 21,
+    "implication": "Forty-layerone-domain3call/layerfusion exceeds63. Need legal separate domains/resets or other API/protocol. With extra tiled submissions/syncs,21is only an optimistic count cap.",
+    "not_a_limit_on_model_depth_or_ordinary_host_graph_capture": true,
+    "installed_version_applicability_proved": false
+  },
+  "new_public_document_snapshots": 2,
+  "new_target_source_files_obtained": 0,
+  "no_browser_used": true,
+  "overall_complete": false
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_ec7dead7-746f-48b5-aa3b-c4dd8601220f",
+  "traceId": "10470198-5892-44c4-9257-fc594a0140a3",
+  "turnId": "turn_1fbfb6cb-ee03-44b5-930d-464621f8002f",
+  "response": "命令只执行了一次，`rc=0`，stderr 为空，回执已写入 `unassigned-compute166-v14.json`。之后的调用只是读取该回执和结果字段，没有重跑、也没有修改脚本。\n\n**真实结果**\n\n- returncode：`0`（wrapper `{\"host\":\"166\",\"returncode\":0}`）\n- 记录数：10 条 unassigned-compute 记录\n- opType 分布：`Cast` 2 条，`ForeachAddList`、`IndexCheck`、`Index`、`ViewCopy`、`Fill`、`SelectV2`、`QuantBatchMatmulV3`、`GreaterEqual` 各 1 条\n- `native_CANN_API_candidate_count_hist`：`{1: 8, 2: 2}`\n- `host_scope_candidate_count_hist`：`{1: 8, 2: 1, 4: 1}`\n- `no_target_source_or_device_work`：`true`（没有目标源或设备侧工作）\n- `overall_complete`：`false`\n- `result_sha256`：`1d8517a1a1e5c9f7a272db2482ac0550d86cb40b15d9e5c0f5d3a86e3a80e3c8`\n- 完整结果路径：`.../analysis/native-execution-identity-v14/unassigned-compute-native-context-v14.json`\n\n**候选保留情况**\n\n所有候选都按存储原样保留，没有把同线程包含关系升级为直接的 native/PyTorch 链接。有 4 条记录存在多个 connectionId 候选：db14 `ViewCopy`、db24 `SelectV2`、db24 `Cast`、db26 `GreaterEqual`。其中 db14 `ViewCopy`（候选 15848）、db24 `Cast`（候选 27911）、db26 `GreaterEqual`（候选 85163）的候选 connectionId 没有对应的 `native_CANN_API` 行；这些仅作为候选保留，报告层面不做任何提升。\n\n另外说明一下 summary 中两个直方图的计数口径，避免误读：`native_CANN_API_candidate_count_hist` 统计的是 `native_CANN_API` **行数**（不是去重后的 connectionId 候选数），`host_scope_candidate_count_hist` 统计的是嵌套在 host scope 候选内的 PYTORCH_API 总行数（如 db24 `Cast` 为 1+3=4）。本次结果已按项目惯例记入 memory（`unassigned-compute-v14-166-result.md`）。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 92087,
+    "outputTokens": 5433,
+    "totalTokens": 97520,
+    "cacheReadTokens": 80896,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3856,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 97520,
+    "contextUsed": 16184,
+    "contextWindow": 200000
+  }
+}

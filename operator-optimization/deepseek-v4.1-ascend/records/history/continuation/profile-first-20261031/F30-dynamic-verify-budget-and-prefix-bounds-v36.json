@@ -1,0 +1,54 @@
+{
+  "generated_utc": "2026-10-31T09:21:07.620510+00:00",
+  "candidate": "F30",
+  "related": [
+    "H02",
+    "H06"
+  ],
+  "evidence_grade": "DOCUMENTED_PLUS_DERIVED_CONDITIONAL",
+  "current_policy": {
+    "probability": "sigmoid(FP32_linear(float(cat(raw_hidden,cast(markov_embed,hidden_dtype))))) then clamp[1e-6,1]",
+    "survival": "cumprod per request in original FP32 numerical contract",
+    "periodic_budget": "ceil(count(survival>=threshold)/B), odd increment if even and belowD, clamp[min_k,D]",
+    "allocation": "min_k plus request histogram of globalTopK over survival[:,min_k:]",
+    "publication": "INT32 device keep_lens -> retrieval-time host ints/caps/zip/prefix lists"
+  },
+  "same_embedding_proof": "T[:,0]=seed and prediction i writesT[:,i+1]. Loop input embedding E_i=Embed(T[:,i]); scheduler later embeds exactlyT[:,:D]. Under same input/parameter generation and readonly retained outputs, E_0..E_(D-1) can be retained or streamed rather than gathered again. Preserve embedding-to-hidden-dtype conversion and row reshape order.",
+  "confidence_fusion_boundary": "Read raw BF16 hidden and the same markov embedding directly, widen as original, perform one5376D FP32 projection for exampleH5120+R256 and sigmoid. Do not replace raw hidden by normalized base-head hidden, or split into separately rounded h/m scalar dots without numerical proof.",
+  "global_allocation_example": {
+    "B": 2,
+    "D": 3,
+    "min_k": 1,
+    "budget_k": 2,
+    "survival": [
+      [
+        0.9,
+        0.8,
+        0.7
+      ],
+      [
+        0.9,
+        0.6,
+        0.5
+      ]
+    ],
+    "keep_lens": [
+      3,
+      1
+    ],
+    "meaning": "Two extra candidates go to row0 globally; this is not uniform[2,2]. Example is a policy identity, not captured values."
+  },
+  "bounded_prefix_lemma": [
+    "Assume finite clamped probabilities, a validated/conservative upper bound U_i on every future published survival of a request, already-generated mandatory min_k prefix, and a fixed known final extra-budget L for this update.",
+    "Once at least L evaluated candidate values exist, let tau be their Lth-largest value. If U_i<tau, at least L already-evaluated candidates outrank every uncomputed tail value of request i. Adding other candidates can only strengthen exclusion. Preserve a unique boundary or the original tie contract.",
+    "On non-budget-update steps L is the known existing budget. On periodic recompute steps do not use old L: resolve the final budget first (for example threshold-count upper/lower bounds yield the same rounded/clamped budget), or disable this pruning for that update.",
+    "If threshold statistics still need accounting, also prove the uncomputed tail contributes no unknown threshold count, or use an exact count bound. U_i<threshold alone does not fix a global budget that other requests can still change.",
+    "Only post-decoder Markov/confidence and optionally lazily evaluated head rows may be pruned when every tail observer is dead. The noncausal draft decoder still needs its original future query/KV rows; verify-prefix exclusion does not make those decoder inputs dead.",
+    "Preserve all RNG calls/state or restrict to the corresponding deterministic greedy domain, score-write/ID-bank observers, error behavior and metadata generations. A mathematical bound is not proof of native precision or speedup."
+  ],
+  "current_API_boundary": "Python budget_k drives torch.topk k. Keeping budget on device requires a new compatible selection/publication protocol; merely replacing the int with a Tensor does not establish removal of synchronization.",
+  "no_current_flag_or_gain_claim": true,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

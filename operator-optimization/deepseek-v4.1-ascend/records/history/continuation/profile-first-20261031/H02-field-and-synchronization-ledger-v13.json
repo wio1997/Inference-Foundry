@@ -1,0 +1,274 @@
+{
+  "generated_utc": "2026-10-30T23:16:29.179992+00:00",
+  "population": "96 roots /32 worker DBs; counts are profiled API occurrences, not CPU cost or savings.",
+  "H2D_total": 7392,
+  "H2D_families": [
+    {
+      "family": "CP_query_offsets",
+      "H2D": 2288,
+      "status": "LIVE_FIXED_ADDRESS_PUBLICATION"
+    },
+    {
+      "family": "CP_suffix",
+      "H2D": 2288,
+      "status": "88_FIRST_MISS_REQUIRED;2200_CACHE_HIT_DEAD_PRODUCERS"
+    },
+    {
+      "family": "utility_copy_to_gpu",
+      "H2D": 2064,
+      "status": "13_CALLER_FIELDS_PARTITIONED"
+    },
+    {
+      "family": "spec_five_index_vectors",
+      "H2D": 360,
+      "status": "GEOMETRY_TEMPLATE_CONDITIONAL;LIVE_DRAFT_IDS_RECOMPUTED"
+    },
+    {
+      "family": "sample_draft_input_packing_indices",
+      "H2D": 288,
+      "status": "STABLE_UNIFORM_SPEC_STRIDED_PACKING_CONDITIONAL"
+    },
+    {
+      "family": "computed_token_tensor_CPU",
+      "H2D": 88,
+      "status": "DYNAMIC_POST_REJECTION_POSITION_STATE"
+    },
+    {
+      "family": "computed_token_fallback",
+      "H2D": 16,
+      "status": "CONDITIONAL_CPU_TO_DEVICE_FALLBACK"
+    }
+  ],
+  "utility_H2D": 2064,
+  "utility_full_caller_classes": 13,
+  "utility_fields": [
+    {
+      "field": "num_accepted_tokens",
+      "H2D": 88,
+      "source": "Ascend1500",
+      "status": "DYNAMIC_ACCEPTANCE_STATE",
+      "contract": "Keep previous-step acceptance readiness and correction; not geometry-only."
+    },
+    {
+      "field": "query_start_loc_initial",
+      "H2D": 88,
+      "source": "Ascend1437",
+      "status": "MUTABLE_QUERY_BOUNDARIES",
+      "contract": "Full persistent publication; later GPU tail fill1462 changes device contents."
+    },
+    {
+      "field": "query_start_loc_padding_publication",
+      "H2D": 64,
+      "source": "Ascend1105",
+      "status": "CONDITIONAL_NARROW_OR_SKIP",
+      "contract": "16 actual2req/12token and48 actual4req/24token cases; all publish padded4req QSL. CPU equality alone does not preserve GPU tail."
+    },
+    {
+      "field": "prev_positions",
+      "H2D": 72,
+      "source": "Ascend1354",
+      "status": "DYNAMIC_PREVIOUS_REQUEST_MAP",
+      "contract": "Preserve request permutation, generation and async length semantics."
+    },
+    {
+      "field": "discard_request_mask",
+      "H2D": 88,
+      "source": "Ascend1490",
+      "status": "DYNAMIC_REQUEST_MASK",
+      "contract": "Preserve actual acceptance/discard behavior."
+    },
+    {
+      "field": "prev_num_draft_tokens",
+      "H2D": 72,
+      "source": "Ascend1521",
+      "status": "DYNAMIC_PREVIOUS_SPEC_STATE",
+      "contract": "May be uniform only under complete invariant proof, not shape alone."
+    },
+    {
+      "field": "KV_group_block_tables",
+      "H2D": 1144,
+      "source": "block_table299 ->521 -> Ascend1304",
+      "status": "DIRTY_ROW_OR_VERSION_PUBLICATION_CANDIDATE",
+      "contract": "13 tables per nonempty root. Early commit already exists; commit copies active-row prefixes. Inspected append/add/clear/move/swap methods have no dirty/generation tracking. Preserve all physical mappings and changed/padded rows."
+    },
+    {
+      "field": "num_scheduled_tokens",
+      "H2D": 88,
+      "source": "Ascend1542",
+      "status": "GEOMETRY_TEMPLATE_CONDITIONAL",
+      "contract": "Full scheduled counts and request ordering key required."
+    },
+    {
+      "field": "lookback_token_ids",
+      "H2D": 88,
+      "source": "baseGPU1088",
+      "status": "LOOKBACK_SENTINEL_REUSE_UNPROVEN",
+      "contract": "Generated positions use -1 sentinel but consumer writes and depth/position eligibility not closed. _preprocess is outside synchronize_input_prep guard."
+    },
+    {
+      "field": "req_indices",
+      "H2D": 88,
+      "source": "Ascend1537",
+      "status": "GEOMETRY_TEMPLATE_CONDITIONAL",
+      "contract": "Exact row order/shape and consumers/lifetimes required."
+    },
+    {
+      "field": "num_decode_draft_tokens",
+      "H2D": 72,
+      "source": "Ascend1679",
+      "status": "DEVICE_PUBLICATION_CONSUMERS_UNRESOLVED",
+      "contract": "Inspected workers show CPU GDN consumers; no direct GPU read found there. Requires exact installed-symbol consumer/alias inventory before elimination."
+    },
+    {
+      "field": "input_ids",
+      "H2D": 24,
+      "source": "baseGPU1872",
+      "status": "PROMPT_OR_MIXED_INPUT_PUBLICATION",
+      "contract": "Token contents vary; do not cache by shape."
+    },
+    {
+      "field": "query_pos",
+      "H2D": 88,
+      "source": "Ascend1540",
+      "status": "GEOMETRY_TEMPLATE_CONDITIONAL",
+      "contract": "Exact per-request scheduled geometry and row mapping required."
+    }
+  ],
+  "additional_candidates": [
+    {
+      "id": "H02_SPEC_INDEX_GEOMETRY_TEMPLATE",
+      "scope": "72 spec metadata calls /360 index-vector H2D and pins",
+      "conditions": "Exact num_draft_tokens and cumulative scheduled counts/dtype/device; immutable cached vectors and stream lifetime. Draft token IDs remain live GPU gathers. Source already keeps pinned tuple alive via event/deque."
+    },
+    {
+      "id": "H02_UNIFORM_SPEC_INPUT_PACKING",
+      "scope": "Four scatter-index H2Ds per72 calls",
+      "conditions": "Exact stable prev/current request-row map, scheduled/draft geometry, padding, invalid rows, cast and aliases. Existing contiguous no-spec fast path already exists; uniform-spec striding does not generally satisfy it."
+    }
+  ],
+  "synchronization": {
+    "sites": {
+      "Ascend1495_num_accepted_ready": 88,
+      "Ascend1867_valid_counts_ready": 72,
+      "baseGPU3849_input_prep_lifetime": 96,
+      "baseGPU4987_valid_counts_read": 56
+    },
+    "total": 312,
+    "corrected_order": {
+      "created_utc": "2026-10-30T23:13:16.182373+00:00",
+      "databases": 32,
+      "corrected_valid_count_sync_pairs": 56,
+      "actual_first_source_counts": {
+        "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py(1867): _correct_optimistic_seq_lens_cpu": 56
+      },
+      "all_pairs_same_thread": true,
+      "all_pairs_nonoverlapping": true,
+      "pairs_with_observed_valid_count_writer_between": 0,
+      "pair_gap_ns": {
+        "minimum": 5555480,
+        "median": 7554690.0,
+        "maximum": 695925070,
+        "samples": 56
+      },
+      "PMU_metric_record_counts": {
+        "aic_total_time": 286101,
+        "aic_total_cycles": 286101,
+        "aic_mac_time": 286101,
+        "aic_mac_ratio": 286101,
+        "aic_scalar_time": 286101,
+        "aic_scalar_ratio": 286101,
+        "aic_mte1_time": 286101,
+        "aic_mte1_ratio": 286101,
+        "aic_mte2_time": 286101,
+        "aic_mte2_ratio": 286101,
+        "aic_fixpipe_time": 286101,
+        "aic_fixpipe_ratio": 286101,
+        "aic_icache_miss_rate": 286101,
+        "aiv_total_time": 286101,
+        "aiv_total_cycles": 286101,
+        "aiv_vec_time": 286101,
+        "aiv_vec_ratio": 286101,
+        "aiv_mac_time": 286101,
+        "aiv_mac_ratio": 286101,
+        "aiv_scalar_time": 286101,
+        "aiv_scalar_ratio": 286101,
+        "aiv_mte1_time": 286101,
+        "aiv_mte1_ratio": 286101,
+        "aiv_mte2_time": 286101,
+        "aiv_mte2_ratio": 286101,
+        "aiv_mte3_time": 286101,
+        "aiv_mte3_ratio": 286101,
+        "aiv_icache_miss_rate": 286101
+      },
+      "frequency_value_counts": {
+        "1800": 32
+      },
+      "CP_dead_value_kernel_union_ns_per_root": {
+        "minimum": 190128,
+        "median": 197635.0,
+        "maximum": 213720,
+        "samples": 88
+      },
+      "CP_dead_value_kernel_union_ns_per_execution": {
+        "minimum": 980,
+        "median": 1560.0,
+        "maximum": 2920,
+        "samples": 11000
+      },
+      "no_target_source_read": true,
+      "no_device_or_service_work": true,
+      "whole_modules_closed": 0,
+      "overall_complete": false,
+      "corrections": [
+        "First resource query stopped at its 145s SQLite progress bound while evaluating a correlated TASK membership query. v2 uses equivalent set membership without changing identities; original interrupted receipt retained.",
+        "Supersedes reversed early/late ordering and invalid zero-writer conclusion in event-resource-schema-and-field-shapes-v13.json; original result retained."
+      ],
+      "limits": [
+        "No event handle/generation identity asserted by timestamp order or absence of observed writer. Source/DCP recorder coverage still required for wait removal.",
+        "PMU names/ranges and sampled frequency raw values are inventory only; no units/averaging/MFU claim.",
+        "Profiled kernel duration and interval union are not request latency gains or unprofiled costs."
+      ]
+    },
+    "generation_closure": false,
+    "removable_waits_proved": 0,
+    "guard": "Input prep guard covers update/prepare/pad/attention metadata and their CP DMA. It ends before _preprocess/lookback; no automatic lookback-lifetime proof."
+  },
+  "source_pins": {
+    "CP_builder": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+    "DSA_builder": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+    "Ascend_worker": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+    "legacy_CP_helper": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305",
+    "CommonAttentionMetadata": "01ac364372afa75fdb22486aa3a9c7cf9aebb742e3471dfb9e0f9d9d36b734bc",
+    "AscendCommonAttentionMetadata": "67e1c2e33efce8616a6845d605d2ed2522c2e10e91ad4b7752d5084da5813405",
+    "block_table": "215305c699a9df9c118f47c6f7b71d8457ef54e98b5b8571536fd373de7b21ed"
+  },
+  "saved_evidence": [
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/saved-prepare-consumers-v13.json",
+      "sha256": "6ba784cac70931d7764111832ba40fc8ca3927f80c58d63ab70341594fab62eb"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/CP-dead-producer-device-tasks-v13-v2.json",
+      "sha256": "6b4129c1e711a369b6ca4ce9f3bd8d304d57ffe72ca19db7a7782fff3052fdf0"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/metadata-replace-and-source-contract-v13-v2.json",
+      "sha256": "7053b8909fe18dea659bded9cb01473a2f42494c529311e784f9bc8fdfd1cb62"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/block-table-copy-contract-v13.json",
+      "sha256": "443d6f94ba872c51adf3985b679ce86f9ac734127ff0840fadeacd84a86e16f3"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/event-resource-schema-and-field-shapes-v13.json",
+      "sha256": "aab4ca0839c2ab1085a9a1d5a9c554ebf2d60f4074cfb41b0ce353d310e2efc5"
+    },
+    {
+      "path": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/saved-event-order-and-resource-metrics-v13-v2.json",
+      "sha256": "9fbd1d6ef2b7661a987465dfd555e43b7e6d3d43bcc68b67e1d4bfaba32b4080"
+    }
+  ],
+  "no_optimization_implementation": true,
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

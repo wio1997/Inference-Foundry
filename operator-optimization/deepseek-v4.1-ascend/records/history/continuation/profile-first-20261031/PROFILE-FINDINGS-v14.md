@@ -1,0 +1,15 @@
+本轮取得实质进展：完成当前166全部16卡、两窗口的计算执行与PMU对应清点，并找回已保存的前端CPU函数profile。整体分析仍未完成。本轮没有新设备、模型或服务操作。
+
+32份DB中保留1,108,212条TASK记录和286,950次计算执行。80次图提交全部有原生CANN/control pair，对应132,000次计算执行，无重复容器分配；154,940次计算保留原生API关联，另10次缺少上述两种归属。逐条核对发现它们均有同连接键的CANN launch及后台Dequeue包围范围，但尚无Python源码链；混合ID命名空间带来的额外候选未被采用。127,920条相关提交API全部补齐完整调用链，按完整有序帧归约为486种链、229个最内项目位置。曾因多次分块扫描触及145秒SQLite界限，v2改为每DB一次精确ID集合查询并保存分片，未丢弃身份或源码帧。
+
+286,101组PMU均按同一globalTaskId及唯一包含其时间戳的TASK区间对应到独立计算执行，没有靠最近时间配对，也没有把重复图定义去重。另849次计算缺PMU：PadV3 320、SparseFlashMlaMetadata 321、QLI metadata 208。缺测不能写成零利用率。当前仅给出原始cycle加权MAC/Vector代理；平均、单位、资源分母和物理MFU尚未闭合。
+
+80次图执行均满足40组四个mHC标记的结构，每组恰有一次SparseFlashMla和一次DispatchFFNCombine，共3,200个时间区间。64次图执行精确绑定decode兼容调用，组成8个完整TP8 cohort。其余16次图提交没有同线程包围范围，也没有3,712对完整sidecar调用中的候选；保留阶段未定，不能按相邻次序补成正式decode、dummy或warmup。时间区间也不等于所有张量消费者或源码层对象的证明。
+
+全量MoE为4,472次、5种形状：target图M3/E24/K6有3,200次；target M816和M834分别640和320次；draft M3/E8/K3和M2/E8/K3分别216和96次。不能只用小decode形状分析全部专家流水，也不能把静态shape视为实际有效行、路由或专家接收数量。该证据已补到F20—F23候选。
+
+文件清点发现两份原来未解析的前端CPU trace，现已解析39,544条Python函数记录。全部Python ID唯一，已解析父边均同线程且时间包含成立。初始窗口8次_tokenize_prompt共500.32ms inclusive，底层8次encode_batch共478.41ms；实际观察到同一worker线程，不能据此声称配置只有一个worker。现有代码已经make_async并使用ThreadPoolExecutor，候选转向完整key下的编码复用、排队或批处理；BPE前缀不能直接切拼。
+
+初始窗口45次DecodeStream.step共85.37ms，其中8次超过10ms，完整父链到detokenizer.update→process_outputs→output_handler。后续窗口201次step共0.710ms，工作和阶段不同，不能拿差值当实验收益。process_outputs初始inclusive 87.63ms，减去已验证直接子区间后仅约0.280ms记录内exclusive wall，说明应先查decoder子工作。定点源码确认原生DecodeStream(ids=prompt_token_ids) priming已存在，且保留special-token/stop/min_tokens/UTF8错误恢复合同；不能重报缺失，也未证明长step的内部原因。新增H04编码复用/排队与H05早段decoder就绪流水两个条件候选，均无提速承诺。
+
+前端等待、monitor及inclusive/exclusive wall均不是线程CPU占用；前端generic hash也不是EngineCore prefix-hash。H01/H03其他进程因果/函数成本仍有缺口。下一步直接复用486条完整链、全部TASK及8个cohort，完成模块语义和通信、专家内部与资源分母分析。26模块、跨边及全部条件仍未闭合，Goal保持active。

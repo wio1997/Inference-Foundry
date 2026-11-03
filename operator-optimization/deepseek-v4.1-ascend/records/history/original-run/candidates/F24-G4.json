@@ -1,0 +1,112 @@
+{
+  "id": "F24",
+  "graph_id": "SOURCE_TEMPLATES_G4_ENGRAM_DSPARK",
+  "template": "ENGRAM",
+  "nodes": [
+    {
+      "id": "hash",
+      "kind": "STATEFUL_NPU_HASH_COMPOSITE",
+      "resource": "NPU",
+      "source": "engram/hash_state.py:102-148",
+      "condition": "num_tokens > 0; optional slot-cache writes"
+    },
+    {
+      "id": "lookup",
+      "kind": "ENGRAM_LOOKUP_BRANCH_COMPOSITE",
+      "resource": "CONDITIONAL_NPU_OR_CPU",
+      "source": "engram/embedding.py:378-405",
+      "condition": "host UVA branch uses NPU kernel reading mapped host memory; device-table branch NPU; CPU reference fallback exists"
+    },
+    {
+      "id": "ready",
+      "kind": "EVENT",
+      "resource": "CPU_NPU"
+    },
+    {
+      "id": "rows",
+      "kind": "ROW_VIEW_OR_SHARD",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "hash",
+      "consumer": "lookup",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ready",
+      "consumer": "rows",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "tokens",
+      "consumer": "hash",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rows_collective_pad",
+      "consumer": "ready",
+      "value": "rows after conditional collective and padding",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/model.py:1205-1226",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "hash_runtime_metadata",
+      "consumer": "hash",
+      "value": "positions, query_start_loc, masks and lookback",
+      "dependency_kind": "RAW",
+      "source": "engram/hash_state.py:102-148",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "hash_slot_state",
+      "consumer": "hash",
+      "value": "cache and slot/block mappings",
+      "dependency_kind": "RAW",
+      "source": "engram/hash_state.py:109-148",
+      "condition": "when use_slot_cache, hash reads and writes state; alias and cross-invocation dependencies not fully expanded"
+    },
+    {
+      "producer": "mapped_or_device_table",
+      "consumer": "lookup",
+      "value": "codes and scales",
+      "dependency_kind": "RAW",
+      "source": "engram/embedding.py:378-405",
+      "condition": "source branch; precise runtime realization not fully observed"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "rows",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "lookup",
+      "consumer": "rows_collective_pad",
+      "value": "lookup values",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "hash",
+      "consumer": "hash_slot_state",
+      "value": "conditional token cache update",
+      "dependency_kind": "RAW",
+      "source": "engram/hash_state.py:111-128",
+      "condition": "when use_slot_cache; state side effect; not a same-invocation acyclic precedence edge"
+    }
+  ],
+  "status": "STRUCTURAL_BOUNDARY_ONLY",
+  "semantic_equivalence_or_savings_proven": false,
+  "consumer_and_alias_completeness": "UNKNOWN"
+}

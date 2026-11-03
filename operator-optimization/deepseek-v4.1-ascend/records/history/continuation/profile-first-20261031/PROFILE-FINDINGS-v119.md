@@ -1,0 +1,17 @@
+本轮展开MC2 CombineV1的返回行处理，复用v56已读的调用层和v116的V1/V2选择条件；新证据是V1逐行epilogue、peer固定分工，以及从原始观测恢复的expert×peer联合计数。没有新增整体融合边界，也没有把既有FINE/CUT方案重新计为新发现。
+
+V1在每个local expert前等待原cross-core flag并进入SyncAll，按peer=coreIdx、步长coreNum分配工作。每个peer由一个worker负责它在该expert的全部返回行。逐行epilogue读取5120个FP16 C2值，转FP32、乘该行scale、按RINT转BF16，再写回peer。两阶段私有buffer布局为81920B；count形式的Cast/Muls不能套用V2的repeat128、外部false mask或8192 padding模型。完成后仍需Finalize、全AIV同步、CrossRankSync和原weighted unpermute。
+
+后来的profile记录blockNum24/mixBlockNum48，960次输入几何按所选源码预测V1。以24×2的48 worker为声明模型、EP16时，至多16个worker能拥有peer行工作；这不是整算子的硬件利用率，也不是已测出的瓶颈。历史编译内核、get_block_num/subblock映射和原观测的具体launch仍未逐任务绑定。
+
+原独立观测的汇总表提供peer总数和expert总数，但这两类边际不能决定每个expert的最大peer行数之和。例如[[4,0],[0,4]]与[[2,2],[2,2]]边际相同，单位行模型的该和分别为8和4。进一步查看旧v17推导脚本，发现原decoded-records.jsonl.gz保留sender_expert_histogram；已通过SSH只读取回1693174B文件，SHA与v17固定值d6e787...一致。4736条记录组成296个完整EP16组，原capacity均65536且没有计数溢出。SSH已关闭，无容器启动、库加载或设备工作。
+
+在87个formal观测cohort中，640条接收rank记录符合源码M×topK>4096的V1条件。由发送方直方图精确恢复每个receiver的expert×peer联合计数，并逐项对齐原peer矩阵及receiver expert计数。按原分工，这些记录的正行peer owner数量为6..10，中位9；receiver总行数为13..14852，中位2549。它们来自observer-20261030T160315Z，不能与后来960次hostprof执行、耗时或phase作跨采集关联。原观测capacity也不能填补1272次后来执行的缺失字段。
+
+可具体研究的改写是保留expert级就绪与clipping，按每个expert保留行的ordinal区间，把行平分给worker，再与peer前缀区间求交。每个cut继续使用原C2行、scale行和peer目标行；不改变expert/rank保留集合、舍入或weighted unpermute。原观测15360个expert分区、347667个逻辑片段，以及840组额外clipping参考均通过行覆盖核对，另有300组独立边际边界与480组独立行分区核对。它们证明逻辑行映射，不证明编译后DMA字节范围、UB/event私有性或跨卡完成协议。
+
+保留逐行epilogue时，总R次行DMA、转换、Muls、scale引用和peer字节数不变；增加的是worker分工与可能更多的函数片段/metadata处理，不能声称已有整段DMA被进一步切碎。将多行合批是另一个选项，若保留三个buffer及双阶段，私有布局按81920×b增长；是否能放入UB、如何逐行scale、事件和mask如何处理仍需单独证据。新分工不缩小热peer的链路注入量，即使更多AIV参加，链路仍可能主导。
+
+理论模型保留边界：在48个等速单位行worker、无限带宽、无额外片段/metadata开销、expert间同步的抽象域内，旧行服务量可由联合计数计算为sum_e max_d x[e,d]，均分构造的行服务量为sum_e ceil(n_e/48)。计数可用于比较排程，但不是微秒、物理速度上限或可达加速比。原固定peer源程序还有每worker H×S_d个转换/Muls的符号资源约束；重组后不能把该固定分工限制作为所有允许实现的下界。实际typed Vector/GM/L2/HBM/peer链路能力、就绪、开销和V1阶段时间仍未知。FINE片上handoff、expert cut和V2 padding的工作/接口收益不得重复相加。
+
+本轮前置复核4724项通过，细化原M12-V1语义行，356条语义记录、26模块、134条件关系、26联合组、461对待核对不变；9类/1352次关键原生字段、849缺PMU、16未绑定phase图、3136含糊归属和0整模块关闭保持。用户刚明确批准单次44B Pad探针，授权已记录；v119未执行设备工作，下一步按新鲜空闲卡、容器和provider控制执行一次，禁止模型加载和replay。整体目标继续。

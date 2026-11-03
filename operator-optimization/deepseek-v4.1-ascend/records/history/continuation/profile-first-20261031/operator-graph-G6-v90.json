@@ -1,0 +1,940 @@
+{
+  "id": "SAMPLER_GREEDY_SOURCE_G6_V90",
+  "templates": [
+    {
+      "id": "SAMPLER_GREEDY_FALLBACK_ROUTE",
+      "nodes": [
+        {
+          "id": "working_logits",
+          "kind": "FLOAT_WORKING_SCORE_BANK",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "row_argmax",
+          "kind": "FULL_VOCAB_ROW_ARGMAX",
+          "resource": "VECTOR_REDUCTION",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "metadata",
+          "kind": "COUNTS_CU_FLAGS_S_BONUS",
+          "resource": "META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "placeholder_fill",
+          "kind": "INT32_FILL_BxSPLUS1",
+          "resource": "VECTOR_STORE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "guard",
+          "kind": "BACKEND_AND_ACTUAL_COUNT_GUARD",
+          "resource": "CONTROL",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "specialized",
+          "kind": "ACTUAL_N_ONE_GREEDY_BODY",
+          "resource": "VECTOR",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "general",
+          "kind": "GENERAL_RAGGED_GREEDY_BODY",
+          "resource": "VECTOR",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "rng_old",
+          "kind": "RNG_STATE_OLD",
+          "resource": "STATE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "uniform_draws",
+          "kind": "EXISTING_SYNTHETIC_GREEDY_UNIFORMS",
+          "resource": "RNG",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "uniform_F32",
+          "kind": "F64_TO_F32_EXISTING_CONVERSION",
+          "resource": "VECTOR_CAST",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "rng_after_greedy",
+          "kind": "RNG_STATE_AFTER_GREEDY_DRAWS",
+          "resource": "STATE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "later_random_rng",
+          "kind": "DISTINCT_LATER_RANDOM_DRAWS_IF_REACHED",
+          "resource": "RNG",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "output_after_greedy",
+          "kind": "OUTPUT_EPOCH_AFTER_GREEDY_WRITES",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "later_random_writer",
+          "kind": "NONGREEDY_RANDOM_PHASE_NOT_IN_THIS_BODY",
+          "resource": "BOUNDARY",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "output_final",
+          "kind": "OUTPUT_FINAL_EPOCH",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "working_logits",
+          "consumer": "row_argmax",
+          "value": "allNworkingFLOATrows",
+          "dependency_kind": "RAW",
+          "condition": "not all_random",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "metadata",
+          "consumer": "guard",
+          "value": "actualcounts1/allgreedy/HAS_TRITON/S",
+          "dependency_kind": "CONTROL",
+          "condition": "not all_random AND not HAS_TRITON",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "guard",
+          "consumer": "specialized",
+          "value": "allactualn1 ANDallgreedy;Sneednot1",
+          "dependency_kind": "CONTROL",
+          "condition": "specialized guard",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "guard",
+          "consumer": "general",
+          "value": "other reachedgreedyfallback",
+          "dependency_kind": "CONTROL",
+          "condition": "not specialized",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "row_argmax",
+          "consumer": "specialized",
+          "value": "NrowIDs",
+          "dependency_kind": "RAW",
+          "condition": "specialized guard",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "row_argmax",
+          "consumer": "general",
+          "value": "NrowIDs",
+          "dependency_kind": "RAW",
+          "condition": "general guard",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "placeholder_fill",
+          "consumer": "specialized",
+          "value": "oldcol1andtails",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "specialized guard",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "placeholder_fill",
+          "consumer": "general",
+          "value": "oldtails/nongreedyrows",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "general guard",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "rng_old",
+          "consumer": "uniform_draws",
+          "value": "state/drawnamespace",
+          "dependency_kind": "EFFECT_ORDER",
+          "condition": "synthetic ANDnot all_random",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "uniform_draws",
+          "consumer": "uniform_F32",
+          "value": "default+seededuniformvalues",
+          "dependency_kind": "RAW",
+          "condition": "synthetic ANDnot all_random",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "uniform_draws",
+          "consumer": "rng_after_greedy",
+          "value": "advancedgenerators",
+          "dependency_kind": "EFFECT_ORDER",
+          "condition": "existing draws",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "rng_after_greedy",
+          "consumer": "later_random_rng",
+          "value": "samefuturegeneratorstate",
+          "dependency_kind": "EFFECT_ORDER",
+          "condition": "nongreedyrandomphase reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "uniform_F32",
+          "consumer": "specialized",
+          "value": "sameUvalues",
+          "dependency_kind": "RAW",
+          "condition": "synthetic specialized",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "uniform_F32",
+          "consumer": "general",
+          "value": "sameUvalues",
+          "dependency_kind": "RAW",
+          "condition": "synthetic general",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "specialized",
+          "consumer": "output_after_greedy",
+          "value": "cols0/1only;tailsold",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "specialized guard",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "general",
+          "consumer": "output_after_greedy",
+          "value": "greedyprefixandbonus;tailsold",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "general guard",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "output_after_greedy",
+          "consumer": "output_final",
+          "value": "earlyreturnbank",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "allgreedy",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "output_after_greedy",
+          "consumer": "later_random_writer",
+          "value": "preservegreedyrows",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "not allgreedy",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "later_random_rng",
+          "consumer": "later_random_writer",
+          "value": "distinct laterU/Q",
+          "dependency_kind": "EFFECT_ORDER",
+          "condition": "randomphase reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "later_random_writer",
+          "consumer": "output_final",
+          "value": "randomwritesnongreedyrows",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "randomphase reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        }
+      ],
+      "native_occurrence_proved": false,
+      "all_sampler_primitives_complete": false
+    },
+    {
+      "id": "SAMPLER_GREEDY_GENERAL_BODY",
+      "nodes": [
+        {
+          "id": "counts_cu",
+          "kind": "COUNTS_CU_N_S",
+          "resource": "META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "device_counts",
+          "kind": "COUNT_TENSOR_AND_STARTS",
+          "resource": "VECTOR_META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "rowmap",
+          "kind": "REPEAT_INTERLEAVE_REQUEST_AND_TOKEN_POSITIONS",
+          "resource": "VECTOR_META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "draft_ids",
+          "kind": "DRAFT_IDS",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "target_argmax",
+          "kind": "EXACT_TARGET_IDS",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "uniform_rates",
+          "kind": "EXISTING_FLOAT32_U_AND_ORIGINAL_RATE_VALUES",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "mismatch",
+          "kind": "NORMAL_COMPARE_OR_SYNTHETIC_ACCEPT_NOT",
+          "resource": "VECTOR_COMPARE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "pos_matrix",
+          "kind": "INT64_POSITION_SCATTER_BS",
+          "resource": "VECTOR_META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "mismatch_matrix",
+          "kind": "BOOL_MISMATCH_SCATTER_BS",
+          "resource": "VECTOR_META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "sentinel_matrix",
+          "kind": "INT64_WHERE_MISMATCH_ELSE_2S",
+          "resource": "VECTOR_SELECT",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "first_mismatch",
+          "kind": "ROW_MIN_AND_NOFAIL_REPLACEMENT",
+          "resource": "VECTOR_REDUCTION",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "zeroS",
+          "kind": "S0_FIRST_MISMATCH_ZERO",
+          "resource": "CONTROL",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "copylen",
+          "kind": "MIN_FIRSTPLUS1_N",
+          "resource": "VECTOR_META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "output_grid",
+          "kind": "ARANGE_EXPAND_AND_GLOBAL_IDX",
+          "resource": "VECTOR_META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "greedy_mask",
+          "kind": "GREEDY_REQUEST_MASK",
+          "resource": "META",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "copy_mask",
+          "kind": "COPYLEN_AND_GREEDY_MASK",
+          "resource": "VECTOR_COMPARE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "copy_tokens",
+          "kind": "NORMAL_TARGET_OR_SYNTHETIC_DRAFT_TARGET_WHERE",
+          "resource": "VECTOR_SELECT",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "old_output",
+          "kind": "OLD_OUTPUT_EPOCH",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "prefix_write",
+          "kind": "MASKED_GATHER_CAST_STORE",
+          "resource": "VECTOR_STORE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "needs_bonus",
+          "kind": "GREEDY_AND_FIRST_GE_N",
+          "resource": "VECTOR_COMPARE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "any_bonus",
+          "kind": "SOURCE_TENSOR_ANY_HOST_CONDITION",
+          "resource": "CONTROL",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "bonus_write",
+          "kind": "BONUS_AT_COLUMN_N",
+          "resource": "VECTOR_STORE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "new_output",
+          "kind": "NEW_OUTPUT_EPOCH_RETAIN_OTHER_CELLS",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "counts_cu",
+          "consumer": "device_counts",
+          "value": "n,cu",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "device_counts",
+          "consumer": "rowmap",
+          "value": "starts/counts",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "draft_ids",
+          "consumer": "mismatch",
+          "value": "draftID",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "target_argmax",
+          "consumer": "mismatch",
+          "value": "targetID",
+          "dependency_kind": "RAW",
+          "condition": "not synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "uniform_rates",
+          "consumer": "mismatch",
+          "value": "U<rate(position)",
+          "dependency_kind": "RAW",
+          "condition": "synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "rowmap",
+          "consumer": "pos_matrix",
+          "value": "tokenrequest/tokenposition",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "rowmap",
+          "consumer": "mismatch_matrix",
+          "value": "tokenrequest/tokenposition",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "mismatch",
+          "consumer": "mismatch_matrix",
+          "value": "per-tokenmismatch",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "pos_matrix",
+          "consumer": "sentinel_matrix",
+          "value": "candidatepositions",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "mismatch_matrix",
+          "consumer": "sentinel_matrix",
+          "value": "mismatchmask",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "sentinel_matrix",
+          "consumer": "first_mismatch",
+          "value": "rowmin",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "device_counts",
+          "consumer": "first_mismatch",
+          "value": "nofailreplacementn",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "counts_cu",
+          "consumer": "zeroS",
+          "value": "S0",
+          "dependency_kind": "CONTROL",
+          "condition": "S==0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "zeroS",
+          "consumer": "copylen",
+          "value": "first0",
+          "dependency_kind": "RAW",
+          "condition": "S==0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "first_mismatch",
+          "consumer": "copylen",
+          "value": "first+1",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "device_counts",
+          "consumer": "copylen",
+          "value": "n",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "device_counts",
+          "consumer": "output_grid",
+          "value": "starts",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "copylen",
+          "consumer": "copy_mask",
+          "value": "copylength",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "output_grid",
+          "consumer": "copy_mask",
+          "value": "columns",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "greedy_mask",
+          "consumer": "copy_mask",
+          "value": "activegreedy",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "draft_ids",
+          "consumer": "copy_tokens",
+          "value": "accepteddraftvalues",
+          "dependency_kind": "RAW",
+          "condition": "synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "target_argmax",
+          "consumer": "copy_tokens",
+          "value": "targetvalues",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "mismatch",
+          "consumer": "copy_tokens",
+          "value": "syntheticaccept",
+          "dependency_kind": "RAW",
+          "condition": "synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "copy_mask",
+          "consumer": "prefix_write",
+          "value": "maskBEFOREindexgather",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "output_grid",
+          "consumer": "prefix_write",
+          "value": "maskedglobalIDs",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "copy_tokens",
+          "consumer": "prefix_write",
+          "value": "selectedvalues/cast",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "old_output",
+          "consumer": "prefix_write",
+          "value": "oldepoch",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "first_mismatch",
+          "consumer": "needs_bonus",
+          "value": "first>=n",
+          "dependency_kind": "RAW",
+          "condition": "S>0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "zeroS",
+          "consumer": "needs_bonus",
+          "value": "0>=n",
+          "dependency_kind": "RAW",
+          "condition": "S==0",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "device_counts",
+          "consumer": "needs_bonus",
+          "value": "n",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "greedy_mask",
+          "consumer": "needs_bonus",
+          "value": "isgreedy",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "needs_bonus",
+          "consumer": "any_bonus",
+          "value": "torch.any",
+          "dependency_kind": "CONTROL",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "any_bonus",
+          "consumer": "bonus_write",
+          "value": "sourcebranch",
+          "dependency_kind": "CONTROL",
+          "condition": "anytrue",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "prefix_write",
+          "consumer": "bonus_write",
+          "value": "orderedbankupdates",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "anytrue",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "device_counts",
+          "consumer": "bonus_write",
+          "value": "columnn/bonusplan",
+          "dependency_kind": "RAW",
+          "condition": "anytrue",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "prefix_write",
+          "consumer": "new_output",
+          "value": "prefixwrites/othersretained",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "no bonus",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "bonus_write",
+          "consumer": "new_output",
+          "value": "finalwrites/othersretained",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "anytrue",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        }
+      ],
+      "native_occurrence_proved": false,
+      "all_sampler_primitives_complete": false
+    },
+    {
+      "id": "SAMPLER_GREEDY_ACTUAL_N1_BODY",
+      "nodes": [
+        {
+          "id": "old_output",
+          "kind": "OLD_BxSPLUS1_BANK",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "draft_ids",
+          "kind": "DRAFT_IDS_N_EQUALS_B",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "target_argmax",
+          "kind": "EXACT_TARGET_IDS_N_EQUALS_B",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "uniform_rates",
+          "kind": "EXISTING_U_AND_RATE0",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "accept",
+          "kind": "NORMAL_EQUAL_OR_SYNTHETIC_U_RATE_VALID",
+          "resource": "VECTOR_COMPARE",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "col0",
+          "kind": "TARGET_OR_ACCEPTED_DRAFT",
+          "resource": "VECTOR_SELECT",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "bonus",
+          "kind": "BONUS_IDS",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "col1",
+          "kind": "WHERE_ACCEPT_BONUS_OLD_COL1",
+          "resource": "VECTOR_SELECT",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        },
+        {
+          "id": "output",
+          "kind": "UPDATED_COLS0_1_RETAIN_SUFFIX",
+          "resource": "GM",
+          "source_scope": "greedy-fallback-source-contract-v90.json"
+        }
+      ],
+      "edges": [
+        {
+          "producer": "draft_ids",
+          "consumer": "accept",
+          "value": "draftID/validity",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "target_argmax",
+          "consumer": "accept",
+          "value": "targetID",
+          "dependency_kind": "RAW",
+          "condition": "not synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "uniform_rates",
+          "consumer": "accept",
+          "value": "U<rate0",
+          "dependency_kind": "RAW",
+          "condition": "synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "draft_ids",
+          "consumer": "col0",
+          "value": "accepteddraft",
+          "dependency_kind": "RAW",
+          "condition": "synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "target_argmax",
+          "consumer": "col0",
+          "value": "targetwhenrequired",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "accept",
+          "consumer": "col0",
+          "value": "syntheticselection",
+          "dependency_kind": "RAW",
+          "condition": "synthetic",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "old_output",
+          "consumer": "col1",
+          "value": "oldcol1",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "bonus",
+          "consumer": "col1",
+          "value": "bonus",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "accept",
+          "consumer": "col1",
+          "value": "acceptmask",
+          "dependency_kind": "RAW",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "col0",
+          "consumer": "output",
+          "value": "allcol0writes",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "col1",
+          "consumer": "output",
+          "value": "allcol1writes",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "body reached",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        },
+        {
+          "producer": "old_output",
+          "consumer": "output",
+          "value": "cols2..Sretained",
+          "dependency_kind": "STATE_EPOCH",
+          "condition": "S>1",
+          "source": "greedy-fallback-source-contract-v90.json",
+          "grade": "PINNED_SOURCE_OR_DECLARED_EFFECT_ORDER"
+        }
+      ],
+      "native_occurrence_proved": false,
+      "all_sampler_primitives_complete": false
+    }
+  ],
+  "source_contract": "greedy-fallback-source-contract-v90.json",
+  "scope": "Two directgreedy fallback bodies and immediate producer/output/RNG boundaries. Random/recovery/processor bodies remain external or priorv49contracts.",
+  "nodes_are_not_unique_native_operators": true,
+  "complete": false,
+  "overall_complete": false
+}

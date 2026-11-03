@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_860456af-7695-43f8-a4a8-9f602dac57c5",
+  "traceId": "856f18b9-2a5c-4a77-a963-50bfb9d9f532",
+  "turnId": "turn_624c10ab-95c8-4104-b5cf-00c609f0a82e",
+  "response": "执行完成，真实结果如下。\n\n**总体**：远程 rc=0，stderr 为空，stdout 是单行完整 JSON（无尾部告警），`no_target_import=true`，共解析 5 个文件（上限 8）。未改动脚本、未扩展查询、未重试；v1 的失败保留原状。本地回执：`metadata-replace-contract166-v13-v2.json`；远程结果文件：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/metadata-replace-and-source-contract-v13-v2.json`。\n\n**结果 SHA256**：`7053b8909fe18dea659bded9cb01473a2f42494c529311e784f9bc8fdfd1cb62`\n\n**解析链**：`vllm_ascend/attention/utils.py` 的 `AscendCommonAttentionMetadata` → 从 `vllm.v1.attention.backends.utils` 导入 `CommonAttentionMetadata`（该模块只是唯一一条 `from vllm.v1.attention.backend import ...` 精确 re-export，无类定义）→ 定义在 `vllm/v1/attention/backend.py`。两个种子文件的 pin 校验均通过。\n\n| 文件 | SHA256 |\n|---|---|\n| vllm_ascend/attention/dsa_v41.py | `3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd`（pin 匹配） |\n| vllm_ascend/attention/context_parallel/dsa_cp.py | `7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305`（pin 匹配） |\n| vllm_ascend/attention/utils.py | `67e1c2e33efce8616a6845d605d2ed2522c2e10e91ad4b7752d5084da5813405` |\n| vllm/v1/attention/backends/utils.py | `fbc221360d2d54cb21ef3f625dc8711500de345a355801548b4337bb9b8abee0` |\n| vllm/v1/attention/backend.py | `01ac364372afa75fdb22486aa3a9c7cf9aebb742e3471dfb9e0f9d9d36b734bc` |\n\n**方法合同（全部命中查询集合的成员）**\n\n`AscendCommonAttentionMetadata`（utils.py）：decorator `dataclass`，base `CommonAttentionMetadata`；`special_methods` 为空——本类**没有**定义 `replace`、`__init__`、`__post_init__`、`__getattribute__`、`__getattr__`、`__setattr__` 或 `seq_lens_cpu` 方法。全部方法名：`[\"unpadded\"]`。相关导入：`from dataclasses import dataclass, field`、`from vllm.v1.attention.backends.utils import CommonAttentionMetadata`。seq_lens 字段声明：264 `seq_lens_cpu: torch.Tensor = None`、315 `_seq_lens_cpu: torch.Tensor | None = None`、317 `dcp_local_seq_lens_cpu: torch.Tensor | None = None`。\n\n`CommonAttentionMetadata`（backend.py）：decorator `dataclass`，**无基类**；查询集合中仅定义 `replace`，位于 482–483 行，体为 `return replace(self, **kwargs)`，即 `dataclasses.replace` 浅拷贝；同样没有 `__post_init__`/`__init__`/属性钩子/`seq_lens_cpu` 方法。全部方法名：`batch_size`、`naive_query_lens`、`replace`、`compute_num_computed_tokens`、`token_to_req_indices`、`unpadded`。相关导入：`from dataclasses import dataclass, replace`。seq_lens 字段声明：393 `query_start_loc`、394 `query_start_loc_cpu`、397 `seq_lens`、421 `encoder_seq_lens`、422 `encoder_seq_lens_cpu`、424 `dcp_local_seq_lens`、427 `dcp_local_seq_lens_cpu_upper_bound`、443 `seq_lens_cpu_upper_bound`（均为带默认 None 的可选字段，除前三个 torch.Tensor 必填）。\n\n关键结论：构造/post-init 逻辑只存在于父类 `CommonAttentionMetadata`，且父类**没有 `__post_init__`**；`replace` 就是标准库 `dataclasses.replace` 的浅拷贝，Ascend 子类未做任何覆盖。此结果与此前“父类只是 re-export”的 v1 失败背景一致，已在记忆中留存（`metadata-replace-contract-v13-v2-result.md`）。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 96669,
+    "outputTokens": 7101,
+    "totalTokens": 103770,
+    "cacheReadTokens": 83968,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5595,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 103770,
+    "contextUsed": 19206,
+    "contextWindow": 200000
+  }
+}

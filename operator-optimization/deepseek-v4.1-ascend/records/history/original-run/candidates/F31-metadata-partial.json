@@ -1,0 +1,155 @@
+{
+  "id": "F31_PARTIAL_METADATA_SOURCE_GRAPH",
+  "parent_graph_id": "G0_SOURCE_MODULE_GRAPH",
+  "status": "UNKNOWN",
+  "source": "sources/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py:875-899,1160-1215,1216-1279,1288-1422",
+  "nodes": [
+    {
+      "id": "runtime_inputs",
+      "kind": "EXTERNAL_INPUT",
+      "g0_mapping": "EXTERNAL_OR_UNKNOWN",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "shared_key_lookup",
+      "kind": "SHARED_KEY_LOOKUP",
+      "g0_mapping": "metadata",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "smla_builder",
+      "kind": "CONDITIONAL_METADATA_BUILD",
+      "g0_mapping": "metadata",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "qli_builder",
+      "kind": "CONDITIONAL_METADATA_BUILD",
+      "g0_mapping": "metadata",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "c2_builder",
+      "kind": "CONDITIONAL_METADATA_BUILD",
+      "g0_mapping": "metadata",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "existing_buffer",
+      "kind": "EXTERNAL_SHARED_STATE",
+      "g0_mapping": "metadata",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "publish_or_schedule",
+      "kind": "CONDITIONAL_TASK_PUBLICATION",
+      "g0_mapping": "metadata",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "returned_metadata",
+      "kind": "RETURNED_METADATA_OBJECT",
+      "g0_mapping": "metadata",
+      "condition": "source-level; exact runtime branch unknown"
+    },
+    {
+      "id": "external_consumers",
+      "kind": "EXTERNAL_OUTPUT",
+      "g0_mapping": "EXTERNAL_OR_UNKNOWN",
+      "condition": "source-level; exact runtime branch unknown"
+    }
+  ],
+  "edges": [
+    {
+      "producer": "runtime_inputs",
+      "consumer": "smla_builder",
+      "dependency_kind": "RAW",
+      "condition": "query metadata and supported attention branch; zero tokens may zero metadata",
+      "source": "attention/dsa_v41.py:1163-1209"
+    },
+    {
+      "producer": "runtime_inputs",
+      "consumer": "qli_builder",
+      "dependency_kind": "RAW",
+      "condition": "query metadata + device support + index_k branch",
+      "source": "attention/dsa_v41.py:1211-1279"
+    },
+    {
+      "producer": "runtime_inputs",
+      "consumer": "c2_builder",
+      "dependency_kind": "RAW",
+      "condition": "compressor metadata enabled, compressor_state and positions present",
+      "source": "attention/dsa_v41.py:1288-1388"
+    },
+    {
+      "producer": "runtime_inputs",
+      "consumer": "shared_key_lookup",
+      "dependency_kind": "RAW",
+      "condition": "shared key depends on branch",
+      "source": "attention/dsa_v41.py:875-899"
+    },
+    {
+      "producer": "shared_key_lookup",
+      "consumer": "existing_buffer",
+      "dependency_kind": "RAW_CONDITIONAL",
+      "condition": "same shared key previously exists",
+      "source": "attention/dsa_v41.py:883-885"
+    },
+    {
+      "producer": "shared_key_lookup",
+      "consumer": "publish_or_schedule",
+      "dependency_kind": "CONTROL_CONDITIONAL",
+      "condition": "key absent; task recorded if enabled and not in-graph compressor, otherwise run() called",
+      "source": "attention/dsa_v41.py:883-896"
+    },
+    {
+      "producer": "smla_builder",
+      "consumer": "publish_or_schedule",
+      "dependency_kind": "PRODUCER_CALLBACK",
+      "condition": "smla branch; callback may be deferred",
+      "source": "attention/dsa_v41.py:1163-1210"
+    },
+    {
+      "producer": "qli_builder",
+      "consumer": "publish_or_schedule",
+      "dependency_kind": "PRODUCER_CALLBACK",
+      "condition": "qli branch; callback may be deferred",
+      "source": "attention/dsa_v41.py:1211-1279"
+    },
+    {
+      "producer": "c2_builder",
+      "consumer": "publish_or_schedule",
+      "dependency_kind": "PRODUCER_CALLBACK",
+      "condition": "c2 branch; callback may be deferred",
+      "source": "attention/dsa_v41.py:1288-1388"
+    },
+    {
+      "producer": "existing_buffer",
+      "consumer": "returned_metadata",
+      "dependency_kind": "RAW_CONDITIONAL",
+      "condition": "same key reuse",
+      "source": "attention/dsa_v41.py:883-885,1390-1422"
+    },
+    {
+      "producer": "publish_or_schedule",
+      "consumer": "returned_metadata",
+      "dependency_kind": "RAW_CONDITIONAL",
+      "condition": "published buffers exposed via return; actual readiness/wait ordering unresolved",
+      "source": "attention/dsa_v41.py:887-899,1390-1422"
+    },
+    {
+      "producer": "returned_metadata",
+      "consumer": "external_consumers",
+      "dependency_kind": "RAW",
+      "condition": "downstream consumers, aliases and wait frontiers are not fully enumerated",
+      "source": "attention/dsa_v41.py:1390-1422"
+    }
+  ],
+  "unknown": [
+    "Partial source-level graph, not full semantic contract or all consumers",
+    "Task scheduling, exact wait frontiers, aliasing and lifecycle across groups",
+    "Available fusion candidates and semantic equivalence",
+    "Exact G0 instance/subgraph mapping beyond coarse metadata module"
+  ],
+  "equivalence_or_savings_proven": false
+}

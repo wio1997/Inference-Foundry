@@ -1,0 +1,130 @@
+{
+  "generated_utc": "2026-10-31T19:21:54.255250+00:00",
+  "variants": [
+    {
+      "id": "F05-QA-NORM-QUANT",
+      "proposal": "QAepilogue+RMS1280+rowDynamicQuant",
+      "decision": "CONDITIONAL",
+      "conditions": "PreserveQA BF16round,RMSroundedqr/gamma/eps,fullrowrstdandquantamax barriers. IndexQ/liveqrreaders retained;priceNtilepartialreductions/buffering/Cubeparallelism.",
+      "cost": "Reducesintermediates/launches,notfullrowdependencies orQBweightreads."
+    },
+    {
+      "id": "F06-QR-QUANT-SHARE",
+      "proposal": "ReuseQRINT8+rowscale forQ_BandIndexQ",
+      "decision": "CONDITIONAL",
+      "conditions": "Sameqr/currentgeneration/quantizer/rowmap andlifetime;existingPreparedLinearInputmethodcontractcandidate,notprovenwholewrapperdrop-in.",
+      "cost": "M3removeonequantproducer11532Blogicalbudget;832IndexQcalls,640graphpairs;QB/indexweights47.18592MBremain."
+    },
+    {
+      "id": "F09-QB-INDEX-JOINT",
+      "proposal": "JointQ_B+IndexQGEMM withcommonINT8QR",
+      "decision": "CONDITIONAL",
+      "conditions": "Keepdistinct32768/4096outputs/scales/bias/NZawarepacking andBF16outputs. Packedrowstride36864needssupportedstrides orseparateoutputbuffers/copies;notblindweightaxisconcat.",
+      "cost": "M3totalsharedquant+jointinputbudget15384B;doesnoterase47.18592MBweights."
+    },
+    {
+      "id": "F06-F10-QA-WEIGHT",
+      "proposal": "ComputeIndexweightprojectionearlierorjointwithQA",
+      "decision": "CONDITIONAL",
+      "conditions": "SamequeryhiddenBF16generation;keepseparate1280QA/32weightoutputs,QA1280norm andweightBF16→FP32scale→FP16round. Do notRMS1312combinedoutputs.",
+      "cost": "M3oneinputread30720B;mostlylaunch/readinessproposal;newtiling/overlapcostunmeasured."
+    },
+    {
+      "id": "F06-NAIVE-GLOBAL-CONCAT",
+      "proposal": "ComputeQAandKVtogetheroncurrentglobalKVrows",
+      "decision": "REJECT_UNCONDITIONAL_CURRENT_DOMAIN_MERGE",
+      "conditions": "LocalQA3versusglobalKV24 aredifferentdomains. Ragged/repartitionedvariantseparate.",
+      "cost": "Naiveall24rows raisesdensework165.15072M→440.40192M,8/3ratioforcase3/24."
+    },
+    {
+      "id": "F07-QB-ROPE",
+      "proposal": "QBepilogue+partialRoPE",
+      "decision": "CONDITIONAL",
+      "conditions": "RoundQBtoBF16beforeRope,correct64tailpair/positions/cos-sin/headlayout;unrotated448dimsandallreaders preserved.",
+      "cost": "Onlyrotatedtailintermediate access/launchbudget;notfull512Qtraffic."
+    },
+    {
+      "id": "F08-KV-COMPOSITE",
+      "proposal": "KVprojection+RMS512+tailRoPE+cacheScatter",
+      "decision": "CONDITIONAL",
+      "conditions": "PreserveGEMMBF16,normBF16,RopeBF16 andfull512norm;invalidslots/actualrows/cacheownership andpublication complete. Existingmultistreamoverlapisbaseline.",
+      "cost": "Conditionally8M512+4M64 removedvaluebytes;cachewrite2M512 remains."
+    },
+    {
+      "id": "F11-KEY-PROJ-CACHE",
+      "proposal": "Indexkeyprojectionepilogue+norm/Rope/quant/cache",
+      "decision": "CONDITIONAL",
+      "conditions": "Preserve512→128projectionBF16 andnorm/Rope/quantizer/scale rounds,oldlatentreaderbeforelongRoPE(WAR),physicalslots/key-scalecoherence.",
+      "cost": "Fuseonlycompatibleproducer-to-cachechain;futurecachewrites/oldlatentreadersretained."
+    },
+    {
+      "id": "F17-C2-JOINT",
+      "proposal": "JointdistinctFLOATC2WKVandWGATEinputtiles",
+      "decision": "CONDITIONAL",
+      "conditions": "OneFLOATinputcastalreadyshared;keepboth512FLOAToutputs/weights/separatebufferstrides andpoolsemantics. FLOATprecisionpolicy/rankweights/tiling retained.",
+      "cost": "M24save491520BduplicateFLOATread;M6400save131072000Blogical,notactualHBM."
+    },
+    {
+      "id": "F17-CAST-JOINT",
+      "proposal": "JointC2projectionwithcompatibleonchipBF16→FLOATcast",
+      "decision": "CONDITIONAL",
+      "conditions": "KeepFLOATparameter/arithmeticmode;nativeonchiphandoff/capacityrequired. Do notconvertweights toBF16.",
+      "cost": "Baselinecast+2GEMMinput14MK→cast+joint10MK→idealonchipjoint2MK;total12MKsavingnot4MK+12MK."
+    },
+    {
+      "id": "F32-PROJECT-THEN-COMM",
+      "proposal": "Projectlocalrowsbeforegather,exchangeonlyneededroleoutputs",
+      "decision": "CONDITIONAL",
+      "conditions": "Replicatedweight/valueprecision/rowmap/cardownership/inputreadersbindfirst. SourceC1/C2needadditionaloutputs;C2poolstateafterglobalprojectedrows,notlocalrowpool. Padding6668/6672retained.",
+      "cost": "Featurecontentratios10(no compressor)/5(C1)/2(C2) underdeclaredplanes,notHCCLwiretime;no freeTPfactorwherequeryalreadysharded."
+    },
+    {
+      "id": "F16-G1-GEMM",
+      "proposal": "SpecializeallcapturedG1TransposeBatchMatmulintoordinaryGEMM/views",
+      "decision": "CONDITIONAL_PRIORITY",
+      "conditions": "Sameweightversion/stride/orientation,BF16accum/round/output contract. G>1/full-gatherpathkeptseparate. Noexistingnativefastpathabsenceclaim.",
+      "cost": "SameFLOPs/bytes;possibletiling/submissionimprovement. No same-shapepairedGEMMbenchmark or40usgainclaim."
+    },
+    {
+      "id": "F16-TWO-GEMM-PANEL",
+      "proposal": "Panel-pipelinedWO_A→WO_Bkeepingrank1024BF16",
+      "decision": "CONDITIONAL",
+      "conditions": "KeepBF16intermediateandR1024reductionorder;onchipcapacity/handoff/intercorebroadcastorcachequeueprice. BothstagescompeteCube.",
+      "cost": "M24interface98304B;M6400=26.2144MBbutaggregatecompute-limitedreferencefloorunchanged321.26584us."
+    },
+    {
+      "id": "F16-PRECOMPOSE",
+      "proposal": "Precomputefull4096×5120weight",
+      "decision": "REJECT_UNCONDITIONAL;COST_DISFAVORED",
+      "conditions": "FailsBF16intermediateroundingcounterexample;changesfactorization/reduction.",
+      "cost": "Weights18.874368→41.94304MB,compute20/9;IOonlybreak-evenM5632notperformanceendorsement."
+    },
+    {
+      "id": "F16-WOB-REDUCESCATTER",
+      "proposal": "TiledWO_BepilogueandReduceScatter",
+      "decision": "CONDITIONAL",
+      "conditions": "RoundperrankpartialBF16beforecurrentreduce,sameTPpanels/order/rowownership/padding/events. No genericring-wireassumption.",
+      "cost": "MaypipelineCube/network,notdeletepartialresults orsumallkernel/commtimesasgains."
+    },
+    {
+      "id": "F16-ZERO-LOCAL-SKIP",
+      "proposal": "Skipwholeoutputprojectionswhenlocalqueryempty",
+      "decision": "REJECT_UNCONDITIONAL_LOCAL_PREDICATE",
+      "conditions": "Localemptinessdoesnotproveglobal/alltoallresultempty;othercardsmaycontributequeryrows. PreserveKV/cache/collectives.",
+      "cost": "QA/QB4367 versusWOA/WOB4424 difference57notredundantcount."
+    }
+  ],
+  "interactions": [
+    "QRproducerreuseandjointQB/IndexQ shareinputbudgets,countonce;cannotadd11532and15384asindependentM3savings.",
+    "QA+weight canjoinQA+norm onlywithindependent1280/32outputs andunchangednormdomain;packedstrides mayaddcopies.",
+    "KVfullchainfusionandproject-before-gather composeonlywithrealglobalcache/rowreadiness;do notdiscardexistingCube/Vectoroverlap.",
+    "C2cast+joint budgets overlap;C1/SWAexistingF33distinctweights/normsandWARcontractsretained.",
+    "G1specialization,panelWOA/WOBfusion andWOB/RSoverlapmaycompose butsameCube/queues/interfaces cannot yieldindependentlyadditivegain.",
+    "5M18lookalikeroles havegeometryanalysis only;do notapplySWAconsumerfusionbasedonshape."
+  ],
+  "implementation": false,
+  "native_test": false,
+  "measured_speedup": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

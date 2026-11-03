@@ -1,0 +1,28 @@
+{
+  "variants": [
+    {
+      "id": "PAD111-MODE4",
+      "finding": "In the selected source,MODE4 skips the only sync_workspace barrier reference. A reset-removal candidate exists if the actual loaded mode/ABI/privateworkspace/allreaders andlater resets/retirement are proved.",
+      "no_unchanged_kernel_drop_without_actual_guard_or_readers": true
+    },
+    {
+      "id": "PAD111-NON4",
+      "finding": "The same source fills output then globally barriers before copying input. Barrier workspace zeroing must be ready before any reader;simplymoving per-coreclears into the kernel is not automatically legal.",
+      "alternatives": "One-pass disjoint fullwriter alreadyv72 can remove the fill/barrier protocol;or a newepoch protocol must prove initialization/wrap/activeparticipants/concurrentreaders. Neither is implemented."
+    },
+    {
+      "id": "PAD111-WRITERCOUNT",
+      "finding": "48 launched MemSet blocks do not establish48 usefulwriters or1536Bactualwrites;syntheticK1/K48 records can submit the same1536Bspan."
+    }
+  ],
+  "costs": {
+    "selected_barrier_workspace_source_bytes": 1536,
+    "frozen_non4_reference": "I input bytes,O output bytes:Pad readI+copywriteI+fillwriteO;separate resetW gives2I+O+W logical references.",
+    "direct_explicit_output_reference": "I+O withdisjoint one-passoutputwriters;extra mapping/state/readers costs still charged.",
+    "existing_v72_credit": "Refine one chosen baseline;do not add the same Pad/cast/interface credits twice.",
+    "no_numeric_physical_ceiling_MFU_or_speedup": true
+  },
+  "original7MemSet_and2BOOL_fields_still_pending": true,
+  "new_device_work": false,
+  "overall_complete": false
+}

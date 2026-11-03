@@ -1,0 +1,927 @@
+{
+  "version": 1,
+  "objective": "沿用169冻结基线和现有四个Task，开放探索融合与结构重组、模块资源和低效原因；逐步讲清数据的来源、形状、精度、布局、去向、消费者、计算搬运及同步依赖。先建立支持合法分块与重叠的理想模型，再用有证明的约束收紧并与适用实测比较；区分实测、条件推导、假说和严格界，不编造数据。",
+  "last_correction": "先前将部分交付标为完成；已按用户要求重新推进。",
+  "read_first": [
+    "CURRENT-FINDINGS.md",
+    "STATE.json"
+  ],
+  "baseline": "32K input, 1K output, C8, 89.9902% prefix, unprofiled output 519.8441 token/s",
+  "operational_constraints": [
+    "仅169自有容器和指定任务目录，不影响他人；检查占卡情况后才能进行新诊断",
+    "只读既有数据，不启动新 NPU 负载；不修改目标推理实现，历史采集授权仅描述已完成工作",
+    "原始大日志先聚合，再按需读取局部证据",
+    "GPT主控；本机 ZCode DeepSeek 负责简单调度、启动和结果收集",
+    "复用四个现有Task与有效结果，不为形式新增目录或重复扫描"
+  ],
+  "current_task_dirs": {
+    "fusion": "task-loop-runs/fusion-coverage",
+    "diagnosis": "task-loop-runs/layer0-diagnosis",
+    "bounds": "task-loop-runs/theoretical-ceiling",
+    "scheduler_model": "task-loop-runs/ideal-scheduler-model"
+  },
+  "goal_mode_note": "目标工具active；复用现有四个Task与有效证据，不要求新建Loop/Run或目录；记录以当前认知和下一步为准。",
+  "last_checked_utc": "2026-10-29T07:59:56.284999+00:00",
+  "latest_summary": {
+    "fusion": "F11 key/scale缓存融合候选，F22 shared expert单窗出现已融合DequantSwigluQuant；tensor身份和收益未知，见 agents/fusion/F11-INDEX-KEY-CACHE-REVIEW.md、F22-SHARED-EXPERT-REVIEW.md。 F30词表按块归约须覆盖全词表且保留数值和tie/NaN；概率验证需概率分布/RNG，见 agents/fusion/F30-VOCAB-TILE-AND-VERIFY-REVIEW.md。 F23 shared/routed合流到HC可研究逐块准备，但须保留TP归约、4路残差和浮点运算顺序，见 agents/fusion/F23-MERGE-HC-TILE-AND-ROUNDING.md。 F06 CP多流路径局部/全局metadata对象不同，不命中按对象身份判断的share_quant；3行与24行采样仅形状相容，tensor绑定和实际收益未知。 F17双FP32投影→pool/ring状态可研究分块，stage164有对应形状任务及跨流quant时间重合，实际身份、因果与收益未知。 F02外部pre_mix时attention的y路不依赖当次系数，可研究提前进入norm/attention；须保留Engram完成、5120维归约、FP32/BF16舍入与后续系数join；接口和收益未知。 F16历史窗口存在两级BF16输出投影及后续归约相容记录，已有转置与第一级融合；必须保留中间舍入及完整归约，身份/收益未知。 F26 SP+MTP 条件下提前 collapse 仍需完整 residual，替换 mix gather 会扩大逻辑行载荷；stage171 末层附近 shape 相容但不绑定调用和分支，见 F26-TAIL-GATHER-COLLAPSE-REVIEW.md。 F27 辅助状态→草稿投影可条件按层拆分并流水，保留原mean/投影舍入和完整norm；stage172固定EP8窗口有拼接与矩阵乘shape相容记录，身份和收益未知。 F27 默认fallback会将draft配置层号加1；条件下[37,38,39]对应零基层37/38/39入口；stage173/174 setter与PP cache静态核查，仅staging版本。F28 草稿首层重复embedding与[1,0,0,0]可条件拆分HC分支，须保留特殊值、同步和残差。 F29 草稿各层context KV可条件打包投影或跨层流水，norm/RoPE/cache须独立；stage176 EP8固定窗口三对形状相容 MatMul/RmsNorm，tensor/层/请求身份及收益未知。 F14研究按token/head将inverse RoPE移到CP head交换后接入wo_a；需原位置cos/sin、BF16舍入、padding及事件，不能与F15/F16重复计收益。 F19 可条件在index wk读完原latent后并行index后处理和long KV写，保留ring、cache版本和首消费同步；alias/event与收益未知。 F13 可条件拆出窗口SWA与QLI并行，最终保留共同softmax状态、sink与舍入；现有接口未证支持分支/事件。 Runner padded speculative分支在guard和aux就绪条件下，草稿concat/proj/norm可研究与采样并行；后续token/rejected/slot仍依赖采样，运行分支、TP顺序与收益未知。 padded前移guard复核：fits=true不证明rank有drafter；fits要用实例query宽度，K=0仅跳过projection，bookkeeping后续状态不可整体前移。 F24新增request搜索与cache写无直接req_ids输入依赖，可条件并行、hash须等待cache可见；EP8两回看窗名称相容但tensor/请求/关键路径未绑定，Triton原注释存在编译限制，UVA gather/dequant已有组合。见 COMPRESSOR-ENGRAM-REVIEW.md。 F05/F09交叉候选：同一源码qr供主Q和Indexer Q投影，单EP8窗口两条[3,1280]量化与不同投影shape相容；同tensor、量化语义及性能未证，区别于F06和投影后F09，不能重复计收益。见 F05-F09-SHARED-QR-QUANT-REVIEW.md。 stage200/203：模型W8A8_DYNAMIC线性普通apply显式npu_dynamic_quant INT8、支持PreparedLinearInput；主Q CV同API省略dtype，默认和历史实例未知。旧DSA CP有条件复用但V4.1不继承；stage201任务连接复用且无tensor/storage字段，无法绑定同qr。见 F05-F09-SHARED-QR-QUANT-REVIEW.md。 stage204：当前安装 torch_npu 文档表示 dynamic_quant 默认 None 按 INT8，与显式 INT8 类型选择一致；历史二进制、同 tensor 和数值一致性未证。F22 单窗两级矩阵与 shared expert 形状顺序相容，但常规 Python linear 输出 BF16、设备任务 INT32，routed MoE 亦有相同融合算子；身份与实际路径未知。",
+    "diagnosis": "EP1已找到三组queue候选但最后外层op无调用栈，原主流缺口因果未知，停止追邻域。target第0层分组：MC2占AIC周期分母DP0 55.47%、DP1 88.51%，MC2的MAC代理8.664%与1.492%；其他任务代理几乎一致。是统计分解非根因；见 agents/diagnosis/module-priority-evidence.md。 stage160 48个MC2匹配，DP0/DP1导出的完整shape、dtype、format、block和kernel哈希一致；有效token、路由等动态值未知，见 agents/diagnosis/LAYER0-MC2-DP-RECOVERY.md。 40层1920条MC2本地精确关联：第0层三轮DP1−DP0组中位差1757.944/550.749/1307.903us，其他39层绝对差最大17.756us；非同请求控制实验，原因未知。 第0层内起点→MC2局部持续时间每DP每轮中位约378–395us，不能排除跨rank到达时间不同或层外准备，见 LAYER0-MC2-DP-RECOVERY.md。 stage161 169当前权重索引哈希与172参考相同且无hash类权重名称；vLLM V4.1配置类无该字段字面定义，不能由此判历史路由分支。 stage162源码表明无额外注入时V4.1 normalize将缺失num_hash_layers设0，但历史对象及补丁未知，不证明当次无hash路由。 stage163对48条MC2每DP每轮组中位数，DP1/DP0时长比7.434/2.404/4.695，MAC周期代理比1.284/1.001/1.124，MTE2周期代理比1.112/1.019/1.118；采样非同负载对照，不能推物理工作量、等待原因或提速。 stage165/166：按DP2/TP8/PP1/PCP1/world16的正常源码路径，MC2独立communicator的成员集与EP组相同含16 rank；历史runtime组对象、rank映射和同次collective未证。 stage167针对EP0/EP8各一条MC2，attrInfo只有无标签attr_0..5且两者哈希相同；attr索引映射不明，不证明实际group或同次collective，已停止该路径。 stage169两份profile实际metadata均列EP和MC2成员0..15，选中rank分别组内0、8，两个MC2通信键与任务attr_0的UTF8哈希相同；attr索引语义和同次调用/等待仍未证。 已撤回早到等待说法：跨卡同步误差及同次collective身份未知。首层前图包络仅同卡相关，不能解释原因。 MC2 源码的 expert_token_nums/cumsum 对应专家工作规模，但历史逐调用数值及输出槽绑定未发现，不能归因，见 LAYER0-MC2-DP-RECOVERY.md。 六份基线指标HELP/TYPE特定词与16卡导出路径未找到专家计数入口，有限搜索不排除其他内容；小M时L2 hint的触发条件尚未绑定。 Indexer 8层按轮对照，同窗口SparseFlashMla组中位耗时也变化；共同原因、动态长度和因果未证。 stage175 16卡×8层128组，第1→2及1→3轮每组Indexer和attention均变长；同卡同层但并非同请求控制，动态工作量与原因未知。 stage177同卡层窗第24层Indexer占比中位2.45/36.92/38.26%，只描述主流局部占比、不证端到端或跨流不重叠。 stage178 384个Indexer区间：380个无相交其他stream kernel CSV行、较慢4层192窗全部如此，另4窗各有AI_CPU allgather；未导出活动、请求身份与端到端关联未知。 MC2 名称hash只是泛化CSV名字，已存二进制尚未绑定。 stage179 EP8两层三轮短长Indexer导出计数轮廓不同；AIC/AIV字段非实际FLOPs/等待，动态工作量与exporter口径未知。 stage180 对EP0/EP8指定历史profile目录及数据目录作文件名盘点，未发现专家计数入口；不覆盖文件内容、其他目录与rank，不能证明数据不存在。 stage181 EP8 profile版本自述torch_npu 2.10.0.post7/CANN 9.2.0，有限白名单未找到等级/指标配置键；不能判定设置状态、exporter公式或replay映射。 源码异步推测分支CPU seq_lens可为乐观上界，设备长度权威；已有host copy摘要/DB schema未绑定目标query/cache/candidate值。",
+    "pmu": "target层同口径活动代理分组：DP0 AIV Vec第27层最低0.961%、第0层0.988%；DP1第0层最低0.290%。每层每DP 24窗口，不等同整NPU利用率/原因，见 agents/diagnosis/module-priority-evidence.md。 stage182同15rank主流正周期分母：草稿3block池化2.015%低于target第0层3.751%；13/15逐卡草稿低于本卡40层最小，草稿缺126候选及1rank，不能称全框架最低。",
+    "ceiling": "真实BF16 [3,6144]x[25600,6144]^T 逻辑471859200 MAC、300MiB权重；实际必要流量、执行域及硬带宽上限未知，条件公式非真实数值性能界。见 agents/bounds/hardware_sources_audit.md。 单凭16rank/每token top6不能证明必须远端发送：抽象上可全选本地专家，真实模型是否可达未知。 MC2 双GMM传统稠密受限域每有效专家行35389440 MAC，A及硬容量未知；16 rank 288专家行/10192158720 MAC仅在同次、有效行、唯一投递且无裁剪等额外假设下成立，不代表实测或宽域上界。 审计补充逐前缀硬容量及初始突发预算，长期平均带宽不能直接代入短窗界。 96条BF16矩阵样本中位275.765us，对全有效假设模型2.667us或不拼行M=3附加约束模型14.222us；均为未绑定硬峰和tiling的条件对照，不是可达提速或宽域界。 独立复核96条时长和模型算术；3.422 TOPS应称由时长中位数折算，转置属性仅6条EP8 DB独立验证。 Q投影1920汇总未逐条核输出/NZ/权重身份，读取脚本未逐文件验hash；0.356us仅条件敏感性。 官方Triton/PTO文档列出9382支持但未给本机硬算力/带宽上限，不能当真实瓶颈界。 冷态传统稠密 GEMM 条件证书见 agents/bounds/cold_gemm_bound.md；未绑定实际 kernel 或硬件上限，不能计算真实提速。",
+    "bound": "普通completions两结构化字段None时正常路径关闭grammar；历史运行对象和逐事件输出仍未观测",
+    "scheduler_model": "F09 trace同名事件在目标窗口缺shape和dtype，无法确认条件证书适用",
+    "draft_latest": "严格162草稿窗/15rank：MC2占正AIC周期分母78.03%，MC2活动代理0.5755%，其他任务7.1287%，整组2.0151%；target第0层同15rank为81.52%、2.6285%、8.7043%、3.7515%；不同负载并非配对，不能解释根因或收益。草稿legacy CP空本地query仍可能更新全局KV和参与head交换，历史分支/零query未证；见 agents/diagnosis/module-priority-evidence.md 和 agents/fusion/DRAFT-EMPTY-QUERY-CP-EXCHANGE-REVIEW.md。 六窗同卡关联表明通信和MC2不重叠，EP0两者均较长而EP1较短，但两任务间存在其他工作或未导出活动、跨卡未配对，不证明因果。源码可条件研究AIV早期激活与后续dispatch流水，历史二进制绑定未知；草稿top3不能套用target top6条件界。见 DRAFT-EP7-QUERY-METADATA.md、F21-MC2-DISPATCH-ACTIVATION-PIPELINE.md、hardware_sources_audit.md。 stage185六条同shape/format/block，但EP1的一条AIC/MTE2代理低于另两条而时长接近；其Wait Time大于任务时长，不能视为内部等待；厂商同名字段定义为任务间隔，版本绑定未确认。F23另补combine→跨rank同步→unpermute的条件按块候选；stage186/187取得两头文件部分摘录与完整unpermute，确认每token按top-k顺序加权累加及非float末尾CAST_RINT，但内存可见性和历史对象绑定仍未知。 stage189六MC2最近同流CSV前序均MoeGatingTopKHash，EP1前序至CSV内层229.236/215.856/221.316us，接近但不等于Wait字段；同ID MC2 DB外层比CSV内层早0.860–1.420us，不能说整个间隔无活动。 stage188纠正CrossRankSync wait允许count或count+1；源码显示写共享地址、MTE3事件、本地同步及发信号，跨卡payload可见性契约和历史对象未知。 stage191 三个EP1设备窗口已导出DB全流仅MC2外层尾端0.860/1.060/0.900us，CSV无相交正时长任务；不等于设备空闲。 stage190每个边界在CANN/PyTorch找到关联候选；stage192各表同线程候选间隔中CANN API并集30.370/27.190/28.830us，PyTorch各有长外层覆盖全窗，排除外层后61.470/55.350/54.110us；不可推CPU利用率、因果或跨表延迟。 stage193精确识别sync短调用为aclrtGetHardwareSyncAddr，其名称不证明等待；PyTorch外层是vllm::moe_forward_shared，内部存在嵌套。stage194每个gating/MC2各有一对限定队列候选，gating端点4.04/3.56/3.65us、MC2 3.14/3.26/3.39us，不是完整调度耗时或设备缺口原因；F20候选已去重。 stage196将3窗各一条未公开gating/dispatch符号散列匹配到_C_ascend源码符号；另6条仍未识别，不证明张量身份或实际加载源。F20补录router后条件映射/混合/负载均衡和MC2输入准备，历史分支未知。 补回两轮无 profiler 基线草稿接受率 73.64%/73.95%，平均接受 3.682/3.698 每次；位置计数经 ZCode stage205复算，无法绑定 profile 请求。草稿 context KV 与首层准备可条件并行，须守 cache/event/collective 依赖，收益未知。六草稿 MC2 形状 M=1，M=3示例不能套用。",
+    "engram_span": "stage195 16rank×3组，同rank同run两条BF16候选矩阵落0→1和13→14层间且不交40层窗，任务时长/第0层至39层跨度中位1.508%（1.455–1.772%），不证明Engram身份、关键路径、端到端占比或节省。见 agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md。",
+    "target_span_comparison": "stage197 16rank×3轮同卡同轮、同model主流、40层首尾跨度：每组40 MC2+8 Indexer+2 Engram形状矩阵互不重叠，三轮MC2中位35.89/35.88/36.30%，Indexer 0.52/6.65/6.62%，矩阵1.69/1.50/1.48%，三类合计38.12/44.02/44.39%；非全算子排行或端到端收益。见 agents/diagnosis/module-priority-evidence.md。 stage199扩展所有model49所选主流已导出类型；48/48组MC2为最大类型，QuantBatchMatmulV3次之，HcPre第三；三轮中位覆盖88.08/90.36/90.35%，不是整卡占用或端到端。",
+    "indexer_paired_deltas": "stage198对16rank×8层 run1→2和run1→3逐对分解，层窗内Indexer和attention不重叠；1→2的第24层剩余窗口变化16/16为负，第28/32/36层16/16为正；不是因果或匹配负载实验。",
+    "matmul_hcpre_shapes": "stage202 6144量化矩阵乘拆四物理签名：中位42/25.6/21.279/13.8us，前三每层每轮一条，最后仅8层；3840 HcPre一签名每层两条。形状未绑定实际角色、累计跨卡非墙钟。见 agents/diagnosis/non-mc2-priority-evidence.md。",
+    "draft_new": "Stage207 current metric source defines prefix counts; conditional hist 0..5: [0,104,240,453,266,688] and [3,145,309,249,254,786]; stage208 CPU checked. Historical runtime source identity and metric snapshot alignment unknown. Stage210 strict 162 windows 2.0151% versus 126 unclassified 0.6156%, 12/15 rank same direction; not whole device, absence of SMLA not zero query. 48 M=1 candidate tasks 16 ranks no collective binding. F29 same context positions across layers offers conditional RoPE index reuse; runtime/benefit unknown.",
+    "round211_212": "Baseline/stage current metrics.py hashes match; historical live import/patch still unknown. Target first layer sharding occurs before 4-way HC repeat; conditional fusion candidate in F28, no historic physical mapping. Rounding-only sensitivity bounds conditional on 0.001 nearest rounding cannot equal DP duration ratios; no causal diagnosis. 910C hard rate and per-expert effective M remain unknown; source x M=1 does not imply expert M=1.",
+    "engram_reuse": "Engram wkv(rows) independent of current hidden. Reuse full output conditional on same complete rows/layer/versions and matching numeric semantics; preserve gate and collectives. BF16 logical output 50KiB per row; hit rate and observed runtime binding unknown. See agents/fusion/ENGRAM-LOCAL-RECOMBINATION.md.",
+    "round213_215": "126 unclassified windows: MC2 positive AIC denominator share 93.7308%, reported MAC proxy 0.1924%, other types 6.9435%; compared strict162 share 78.0317%, proxy 0.5755%; different samples, not elapsed time or cause. EP8 3 target layer0 MC2 fully overlap EVENT WAIT on two streams; no event pairing or causality. F29 packed KV projection can delay layer1 and conflict with pipeline; abstract counterexample not real latency.",
+    "round216_217": "126 unclassified windows same-stream MC2 sum / window sum 73.0254%; strict162 48.4695%, rank 10/15 higher, medians 172.197/181.186us. Not paired or E2E, stage216 verified. Six EP8 wait events matched prefiltered trace but event identity unknown, stage217 verified. QLI tile local top-k merge exact under same total order; implementation may already do it and real gain unknown (F12).",
+    "round218_221": "Stage220 verified current image arch22 QLI source includes 2048 S2 block sort and merge, Cube/Vector pipeline with GM double-buffer; mode2 can fill reachable outside-candidate positions. Retract treating basic block topk merge as new; history binary not linked. Stage221 verified 16 ranks each have M2 MC2 <300us and >=1ms, no same request/work proof. Stage219 full fields of six EP8 wait events no top-level id/id2 or apparent event/notify/handle args; no producer pairing, six only.",
+    "qli_internal": "Current arch22 source Cube writes FP32 score GM double-slot; vector reads 4*sum(cuS2Len) logical bytes per source path, candidate near-memory transfer must preserve events. Not hardware mandatory HBM traffic or historic result. EP8 layer24 three samples shape/attr identical despite 32/498/498us; same real work not established. attr_8=2 matches current candidate_mode ordinal conditionally only, mapping/historic binary unknown. metadata captures per-core ranges but historical tensor values missing. Details F12 and indexer-per-run-mode-findings.",
+    "round222_223": "QLI arch22 score tile fans out to 2 AIV, per source consumer InitBuffer 184 KiB vs comment budget 192 KiB; no verified hardware or historical instance, cannot claim infeasible. Exact historical QLI task compute name generic, global ID reused 7 times; no binary binding (stage222). Indexer run2/3 16/16 same rank rises 14→20 and 20→24, nonpaired workload, no causal interpretation (stage223).",
+    "round224_225": "QLI arch22 mode2 candidate filtering after QK, outside candidates can fill; pruning requires per-row strict numerical and synchronization proof, history path unknown. HCpre A3 source conditional 20 iterations = 39 dependent row/col normalization steps, not 39 kernels or universal bound. CANN analysis Python/SQL and 4 node attr parsers do not prove attr_N mapping, no native coverage (ZCode stages224/225 verified).",
+    "round226_227": "15rank 45 windows per boundary: 0->1 AIC proxy 11.4573%, 13->14 12.1841%, 12->13 zero denom unknown; BF16 shape candidates 97.96%/97.85% positive cycle denominator, intervals not Engram modules. QLI mode2 outside candidates may be filled with exact H under proven |x|<2^75 and per-step FP32 RN; conditional half finite intermediate gives weaker |x|<2^56, not historical proof. HC comb independent from y/pre/post mathematically, shared scratch and event readiness constrain pipeline. ZCode stages226/227 verified.",
+    "round228": "F13 rational counterexample: exact LSE with BF16-rounded branch outputs may differ bitwise from one-round joint attention; numerical tolerance still unknown. Rank-weight sensitivity draft pooled 2.0151% vs equal-rank 2.7830%, target0 3.7515% vs 5.7023%; paired same-rank leave-one-out preserved order in selected samples, not matched work or full-device metric; ZCode stage228 verified. No additional provable numerical physical bound found.",
+    "round229_231": "Stage229/231 current image activation, linear and linear_op snapshots verified; current source is not bound to historical binary. Stage230: all 144 selected late-layer windows contain main-stream BF16 ReduceMean [3,4,5120]→[3,5120], followed by other-stream allGather export; N/A duplicate same time, do not double count. Compatible with conditional DSpark aux path but tensor identity and dependence unknown; 48 control windows have no positive CSV rows, not device idle. Stages230/231 exit0 model_verified true. Stage231 shared-expert special handling: SP disable_tp alone does not imply TP=1; DP switch and other dispatch conditions matter, historical settings unknown. F22 corrected.",
+    "dspark_information_bound": "Hypothetical fixed-length cut with 15360 independently selectable binary outputs, no receiver prior and no side channel: at least 15360 bits by pigeonhole. Requires proved physical cut and hard rate to produce time bound; assumptions unproved for historic run and cannot multiply across layers or ranks. See agents/bounds/hardware_sources_audit.md.",
+    "shared_expert_config_evidence": "Frozen script and baseline APIServer args request enable_shared_expert_dp=true; diagnostic launch states same script with profiler additions. Actual historical getter, instance, graph identity remain unbound. See F22.",
+    "diagnostic_instance_provenance": "stage230 trace from independent diagnostic container started 2026-10-28T01:49:32Z; older baseline SP-enabled log is not that instance, later baseline restarted. Saved diagnostic log tail lacks resolved SP/aux and tensor binding. See F27.",
+    "graph_and_engram_refinement": "ZCode stage232 exit0 model_verified: 144/144 ReduceMean enclosed in unique same-rank model49 graph wait interval with API association; not node/tensor/request binding or pure wait. F25 gate needs both key dot and norm, conditional tiled dual reduction preserves rounding; alternatives and costs unproven. See F27 and ENGRAM-LOCAL-RECOMBINATION.",
+    "mc2_alias_and_scale": "F21 source aliases GM ptrA with ptrPermutedToken and ptrC with ptrC2; per-core dispatch and activation share UB; int8 rows and per-token scale are separately published. Finer overlap requires last-use, buffer, event, scale visibility and SyncAll correctness; historical binary unbound and gain unknown. Layer0 CPU dispatch linkage remains missing; repeated same neighborhood provides no new evidence.",
+    "mc2_combine_source_refinement": "V2 combine enumerates tiles but same AIV group-level wait counter persists across tiles; not proof each tile has distinct ready event. AIV control flow completes optional second activation + finalize before combine. BlockMmad producer semantics and historical branch unknown. F23 wording corrected. Indexer run-difference still lacks dynamic query/cache/candidate counts.",
+    "mc2_producer_template": "Matched local BlockMmad specialization under HCCL_COMM; conditional non-__TILE_SYNC__ branch finalizes PIPE_FIX flags by per-AIC expert-group progress after last-K output copy, alternative macro differs. Not proof of cross-core visibility, complete group, actual binary or gain. See F21.",
+    "official_mode2_and_f16": "Official CANN 8.5/9.0/9.1 mode2 defines AIC/AIV synchronization inside a single AI Core with AIC→GM→AIV example; not global/cross-rank guarantee, historical profile self-reports 9.2 and compile path unbound. F16 EP8 layer24 run2 same-stream two BF16 tasks 50.559/14.779us, standard dense logical MAC 100663296/125829120; single pair, not same tensor/work proof or cause.",
+    "f16_48_sample": "Stage233 ZCode verified: 16 ranks×3 layer24 windows all unique ordered shape-matched BF16 task pairs. First/second time ratios 3.220–3.733; dense logical MAC ratio 0.8. Tensor, effective work, compiled path and cause unbound, no benefit inferred. See F16.",
+    "f16_counter_formula": "Stages234/235 exit0 model_verified: 48 pairs exported first scalar ratio higher; cube_utilization approximately 21 vs 81%, 96/96 agree to rounding with 100*aic_total_cycles/(1800*24*duration_us), documented candidate formula: percentage is not independent of duration, exporter version unknown. F16 single-group mathematical 2D GEMM conditional candidate; actual stride/rounding and runtime unbound.",
+    "f16_db_and_2d": "stage236 ZCode verified EP8 run2 selected first task attributes perm_x1=[1,0,2], perm_x2=[0,1,2], perm_y=[1,0,2] match current F16 source; second transpose_x1=0/x2=1. Global ID reused 7 times; no source, binary, tensor or stride binding. BF16 inputs FP32 alternative accumulation trees yield 0 vs 1 in conditional counterexample; not proof actual outputs.",
+    "f16_stage237": "Stage237 ZCode verified same EP8 fixed event attribute hash unique batch_split_factor=1, matches source together with three perms. Only one window; global ID reused; cannot infer source/binary/tensor, physical copy or benefit. BF16 FP32 reduction tree counterexample saved F16.",
+    "engram_pairs_norm_tail": "stage238 ZCode verified: 48/48 same-rank/run Engram-shape candidate matmuls after0 longer than after13, median pair differences 18.569/19.240/15.690us; tensor/work/causes unbound. F26 ideal no-bias norm→LM projection reordering conditional; preserve visible norm, actual bias, precision, probability and communication, historical binding unknown.",
+    "engram_meta_rounding_f26": "Stages239/240 verified: EP8 three Engram candidates differ in globalTaskId but selected 16 compute fields and 9 decoded fields agree; no binary/tensor/work proof. With unverified nearest rounding 0.001 and exact cycles, 48 MAC proxy difference intervals include zero; not equality. F26 epsilon0 BF16 counterexample shows algebraic reorder may change output; not historical case.",
+    "draft_rng_scan": "F30 conditional probability sampling mutates logits, uses per-step full-batch exponential noise, preserves FP32 probabilities/request IDs; historical branch unknown. Finite-state function table + PRAM prefix scan demonstrates value dependence is not universally K serial kernels, assuming full random tape/state, unlimited resources and correct side effects; no hardware TPS/benefit bound. See F30 and actual_causal_bound.",
+    "draft_verify_stage241": "EP8 ordinal6/7 fixed wide windows: select four types shows 2 ArgMax/rejection then copy/build, 3 strict draft brackets and 5 ArgMax. Last five span 358.653/356.833us while task sum 86.159/86.658us. Different model ID and no tensor/request binding; cannot claim 5 K sampling, idle, scheduling or end-to-end. Prior bound is MC2 end not full target end. ZCode stage241 verified.",
+    "draft_stage242_first_seed": "ZCode stage242 verified 8 EP8 inter-ArgMax intervals each contain same 10 main-stream tasks, CSV coverage 99.55–99.67%, not device busy, no request/Markov identity. First seed Markov source conditionally independent of draft decoder/base logits after target sample and needed metadata; parallelization requires shared processor, collective and buffer semantics; no gains known. CREW PRAM assumptions clarified in actual_causal_bound.",
+    "draft_stages243_244": "ZCode stages243–244 verified: 80 selected tasks across eight EP8 inter-ArgMax gaps matched CSV. V129280/rank256/K5 shape sequence compatible with current DSpark embedding and full vocabulary projection, without historical call/tensor binding or confirmed effective rows. Existing gathered candidate method is not automatically full-vocabulary equivalent and historical use unknown. See DRAFT-EP7-QUERY-METADATA and F30.",
+    "draft_stage245_bound": "Stage245 ZCode verified EP8 90/90 exact TASK and one candidate CANN/PyTorch link each, no truncation or callchains; grouped operation candidates but no historic DSpark/tensor/request binding. Full direct dense 4-row projection bound 132382720/Pmax applies only restricted domain; precomputed lookup conditional counterexample, physical capacity unknown. Greedy pruning certificate m>U and BF16 rounding counterexample in F30.",
+    "draft_stage246_247": "ZCode stages246/247 verified: five fixed EP8 API candidates same thread and numeric times, eight strict enclosing rows (2/1/2/1/2), no configured source path/function hits or callchains. No identity; stop repeating local proximity queries. Hash dictionary matched four aclnn names; no Python call binding.",
+    "oem_169_official": "Official OEM A800T A3 product page name matches DMI; 8x910C, 8x128GB/3.2TB/s, FP16 5.0 PFLOPS, bidirectional 784GB/s are series nominal values, not proved installed BOM, INT8/BF16 hard rate or single-direction cut. See hardware_sources_audit.",
+    "draft_swa_noncausal": "Frozen source same-request noncausal query rows have same logical index set; if actual SMLA reads later still-unwritten KV slots, each affected row requires readiness of its full read set. Actual branch, alias and gain unknown; see F29.",
+    "oem_technical_whitepaper": "Official A800T A3 whitepaper p36–37: 2 drawers×4 HiAM×2 chip; ID/port mapping; p17 describes L1 links. Structure consistent with saved 169 enumeration, not actual BOM/rank/route/hard directed cut. BF16/INT8 rates and HBM granularity absent from searched extractable text. Official PDFs, links, SHA, and page references in hardware_sources_audit.",
+    "f22_cross_quant": "F22 shared expert dynamic quant vs MC2 routing-quant reuse candidate; ordinary W8A8 supports PreparedLinearInput but MC2 helper is internal and source semantics, input identity, scale/row mapping and lifetime unknown. No inferred benefit.",
+    "rank_device_stage248": "ZCode verified 16 DB rankId=deviceId=ep0..15, but actual profiler deviceId↔npu-smi chip logic ID and BOM/port/comm mapping remain unproven; official CANN8 visible-device docs demonstrate possible remapping, not proof it occurred. See hardware_sources_audit.",
+    "f22_cross_quant_source": "Found existing MC2 routing-quant source: no-smooth full-row absmax/127 resembles documented npu_dynamic_quant, intermediate FP32→half→INT8 casts, expert reorder and attached scale differ; rounding/zero/NaN/runtime identity not proven. 4 source files+host tiler copied into task frozen-source with verified hashes; see F22.",
+    "indexer_tiling_conditional": "Source predicts core0-disabled cleanup early return and, under enabled/no-mask/untruncated range, ceil(compressed effective K/2048) S2 blocks; actual runtime metadata and binary unknown, not evidence of observed cause.",
+    "f22_input_row_boundaries": "ZCode stage251 verified current fixed 169 image shared_experts/prepare_finalize hashes exactly match earlier external copies; source row-domain divergence and early shared scheduling now current-image evidence, historical instance/branch/tensor and timing remain unbound. Under requested EP/TP8/DP2 and default backend SP+shared DP follows conditionally, resolved diagnostic object unknown. See F22.",
+    "stage249_250": "ZCode verified: two prior analysis.db have four communication/step aggregate tables, no columns directly named per-expert counts or QLI lengths, rows uninspected; prior launcher exports ASCEND_RT_VISIBLE_DEVICES 0..15 but target key absent from bounded EP0/EP8 DB metadata. Worker env and deviceId→chip logic contract still unknown. See diagnostics and hardware audit.",
+    "comm_aggregate_semantics": "Existing communication analyzer source conditionally groups raw task by connection+iteration then merges by op/group, while analysis.db tables lack those raw identifiers; no binding of aggregation to historical MC2 replay or exporter version, so no inference on delay or traffic.",
+    "diagnostic_stage255": "ZCode stage255 verified after correcting stage252 mount assumption and stage253 overstrict ordering (stage254 showed same full sorted mount metadata but different order). Dedicated diagnostic log fixed mount/identity, line24 three allowlisted requested fields fused_mc2=1, flashcomm1=true, shared_dp=true; no logger/process context or worker-resolved proof, unmatched keys not false. Current source fused_mc2=1 forces shared multistream off, distinct DSA flag; historical branch unknown. F22, LAYER0 report.",
+    "stages256_257": "Stage256 diagnostic log line24 same frozen SHA category APIServer non-default args, requested not worker resolved. Stage257 ZCode CPU verified 48 40-layer windows: in all three sampled runs every DP1 layer0 MC2 duration exceeds every DP0, and layer0 strictly longest 24/24 DP1 rank-runs vs 0/24 DP0. No same collective, work, cause or end-to-end gain proved; see LAYER0 report.",
+    "stage258_window_decomposition": "ZCode stage258 verified existing 48 layer0 windows, exact same-rank source MC2 endpoints: each round DP0/DP1 before medians 377.846/383.772,394.723/392.252,386.582/390.522us; after 89.118/89.948,88.728/90.459,88.298/90.368us; MC2 DP0/DP1 273.245/2031.189,392.173/942.921,353.973/1661.877us. No cross-clock subtraction, same work, internal wait/cause or E2E benefit. LAYER0 report.",
+    "mc2_empty_tile_waits": "Current-source GMM1 normal AIC path has one cumsum Wait plus expertPerRank group Wait even for no assigned tiles; waits may be ready and cannot establish stall. See F21.",
+    "mc2_counter_ready_boundary": "Current MC2 source: AIV core0 copies expertTokenNums output before publishing cumsum-ready flag; AIC consumes workspace cumsum, not output. Conditional split requires output/EPLB, both AIV flags, visibility, cumsum/UB lifetime and events. No historical internal phase/binary binding or estimated gain; see F21.",
+    "engram_lookup_wkv_input_tile": "F24/F25 new boundary: source host UVA gather+dequant already fused, WKV key/value projection already combined; conditional lookup K tile→WKV accumulation must retain BF16, full 6144 reduction, collectives, ordering/events, and exact semantics; FP32 reduction-tree counterexample. Runtime tensor identity, tile interface and benefit unknown. See ENGRAM-LOCAL-RECOMBINATION.",
+    "lowest_module_coverage_reaudit": "Strict draft 162/288 windows covers 15 ranks, EP15 not strictly attributed; 126 others lacked SMLA, cannot force assignment. Same positive-AIC-cycle proxy as target0, but shapes/workloads differ, nonpositive cycles not idle; 1.1739% for all candidates only sensitivity, not full framework minimum.",
+    "engram_tp8_stage259": "条件 shared TP8 每卡3/24头，TP收集/跨卡数据依赖不可凭DP shared移除；stage259精确8事件原始args均7键、无张量或缓冲区标识；历史绑定未知。见 ENGRAM-LOCAL-RECOMBINATION.md、ENGRAM-MATMUL-DISPATCH.md。",
+    "draft_host_stage260_261": "EP0长/EP1短的三对主机候选各自同表间隔179–225us，不等于MC2内部原因；同请求、因果、工作量均未知。",
+    "draft_markov_dedup": "同一步相同前token条件下可研究共享bias，base logits、采样与RNG仍逐请求；未证明重复率/收益。",
+    "aic_aiv_selection": "stage266：16rank 48窗原规则含全流，AIC不入选/AIV正1104行（主流816/其他288）；曾给出的816只是下界；非整体NPU空闲率。",
+    "int8_small_m": "华为2201 INT8 Mmad模型：若每次≤1/2/3专家行且不能拼行，条件理想分形比例≤6.25/12.5/18.75%；单rank输入M不能代替专家接收M，历史及硬界未知。",
+    "target0_aiv_mc2": "stage267：48窗选定样本MC2占AIV正周期分母86.318%，vec代理0.1736%，其他类型2.1599%，整体0.4454%；算术构成，不是等待或收益。",
+    "mc2_destination_prefix": "F23源码中V1/V2写回地址依赖目的peer上更早expert/rank计数前缀；必须保障计数可见与consumer索引，历史binary未绑定、收益未知。",
+    "metric_document": "9.1 beta op_summary文档提供block-cycle比值语义、理论时间和N/A条件；未绑定历史9.2 kernel_details exporter。",
+    "mc2_peer_scope": "F23 host worldSize→EP及两历史 attr5 hash与16、profiler 24/48与MIX1:2相容；未绑定ABI/二进制/内部核数，不能确认 EP=16/coreNum=48 或历史错误。",
+    "profiler_export_stage268_272": "当前镜像 Python kernel_details 从 CANN op_summary读取，已保留ratio/cycles字段以字符串传递不重算；历史源码与上游采集/舍入/聚合未绑定。",
+    "f05_prepared_input": "W8A8 Linear条件可接PreparedLinearInput；V4.1当前未向Indexer交接主Q量化，需原qr/dtype、tensor身份和跨流事件验证，收益未知。",
+    "pmu_rounding_stage273": "EP8七个时间候选配对，14个字段最近舍入全相符、简单截断8项，replay与历史舍入未证。",
+    "op_summary_stage275": "EP0/EP8固定PROF根无匹配op_summary且两个指定子目录不存在，不代表其他路径不存在。",
+    "latest_review": "连续第二轮无新增可判别证据：转查 F16 输出投影及 HC 融合，前者缺每次执行布局、tiling、有效行与内核身份；后者中间BF16舍入已登记。不能断因或推数值极限。",
+    "blocker": "连续三轮转查MC2/Indexer、F16/HC、prefill/调度及硬件界；现有证据缺同次replay有效工作量/内核身份及169硬容量，继续重复静态形状和时间邻近无法完成目标。"
+  },
+  "next_actions": [
+    "在现有服务日志中寻找匿名请求位置到入队、首次执行和 prefix 命中的可靠关联；未绑定时保留未知",
+    "继续验证 F08 及其他融合候选的真实数据依赖与覆盖",
+    "继续排查 MC2 与适用严格理论界；保留基线和资源边界",
+    "有实质新发现时审阅并同步公开报告到现有 GitHub 分析分支；原始私有证据继续保留本地"
+  ],
+  "goal_mode": "active; goal tool is authoritative",
+  "goal_change": "新增采集完整性/指标语义验证、异常时段分辨不同原因、轻量恢复及阶段性交付后继续；保留原性能、理论、范围和安全目标。",
+  "goal_tool_status": "active",
+  "authorization_revision_20261029": {
+    "new_diagnostics_allowed": true,
+    "original_no_new_npu_superseded": true,
+    "scope": "169本人容器、独立诊断副本、无其他任务占卡时",
+    "status": "DIAGNOSTIC_COMPLETED_BASELINE_HEALTH_200"
+  },
+  "diagnostic_recapture_20261029": {
+    "state": "ANALYZING_COMPLETED_CAPTURE",
+    "baseline": "RUNNING_HEALTH_200, baseline-health-restored.json",
+    "capture": "16/16 parsed; profiler settings and 2304 scope matches checked",
+    "next": "独立审查筛选记录器及覆盖限制，保留旧完整负载和截断记录，具备条件再做定向采集",
+    "active_handles": "此次诊断 controller 与 watchdog 均退出；原服务连续 5 分钟健康、诊断入口已封存。",
+    "ranking": "四个摘要内最低AIC活动代理均为DispatchFFNCombine；仅本次目标层样本，不是全卡或全框架最低。见 agents/diagnosis/RECAPTURE-ALL-KERNEL-RANKING.md",
+    "binary_identity": "三个不同对象均为tilingKey 1000010，采样输入签名与一份相容，但实际加载对象未知；见内部阶段报告",
+    "latest_new_evidence": "同一摘要8 rank第14层AIV MTE2 12.4–12.7%，第39层2.7–6.2%；全融合任务聚合，不是通信耗时。专家capacity worker值未知，见最新两份诊断报告。"
+  },
+  "latest_20261029_focus": "No-profiler run 001d14496b2146bba25dae0f27c780b5 formal 8 requests passed/8 exact matches; 1513 actual int32 NPU Engram metadata from 16 processes report stride [48,1], offsets 0/24, 826 returned pairs. Log capped and status incomplete: no graph/lifetime/full-coverage inference. Baseline exact ID restored HTTP200, controller exited, watchdog observed five minutes healthy and exited; diagnostic launch entries sealed. Maintain original baseline. See CURRENT-FINDINGS.md. Independent process/window audit completed; 826 paired inputs conditionally represent >=1903104 logical intermediate bytes, not HBM or universal bound; F09 requires all 128 values per head before final quant scale (counterexample). Exact per-shape accounting for 826 paired records: 15725568 conditional logical bytes, not physical transfer or savings. L14/L39 AIV MTE2 displayed field 39.24-90.48x across EP8-15; source uses flag polling and payload reads, historical path and metric semantics unknown. F25 signed zero/clamp are conditional equivalence boundaries. Installed CANN 9.2 static archive GetCoreMemBw calls GetLocalMemBw HBM branch uses ddr_rate; adjacent-version and master docs say Byte/cycle, applicability to 9.2/runtime binding/config/clock/sharing/physical hard capacity unknown. Existing 16-rank profile configured pcSampling off, instrProfiling empty and task-based; EP8 exported DB no PC/source trajectory, raw not exhaustively decoded. F22: all 1280 sampled scopes have one DequantSwigluQuant and compatible-shape matmuls in matched sequence, missing flows and tensor identity unresolved. EP8 L14/L39 precise start-bound PMU rows 28/task at one timestamp each, not internal timeline. Non-MC2 1920 MLA tasks AIC/AIV scalar proxies ~57.35%/53.03% despite MAC/vector 3.12%/2.78%; not NPU utilization or cause. F05 384 index-source-layer windows exhibit compatible D-Q-D-I, identity unknown. Conditional F24 joint lookup must preserve per-layer ready event/collectives; no gain proof. EP8 exact L14/L39 cube_utilization 97.990/93.616 is numerically reproduced by installed 9.2 normalized total-cycle formula; MAC ratios .003/.164 are separate. Historical exporter identity/aggregation not fully bound; no utilization/root-cause inference. EP8 layer24 chosen double quant events lack tensor identity; shared HostToDevice ID has 11025 finishes, no start. Short-window work bound requires prefix capacity and initial in-flight credit b. 39160 selected csv_missing flow entries map to trace EVENT RECORD 22783/WAIT 16377, not missing compute ops; reverse uniqueness, all-event coverage and dependency unknown. EP8 raw CSV checked. 3840 selected missing-identity entries named 3 hcom categories; incomplete compute coverage remains. EP8 L14/L39 selected 37/29 sync events all before MC2; two same-stream waits bound to aclrtStreamWaitEvent but not corresponding record/collective. In 43184 matched records in physically complete groups, zero AIC/AIV cycles align with opposite core type; no global inactivity inference. EP15 L14/L39 selected sync/hcom finish before local MC2 as EP8; limited two-rank sample. Conditional interface count construction yields 130-bit worst-case cut info bound with fixed initial state and finite transcript, not actual TPS. Separate highstack filtered 33 Q dynamic quant calls lack tensor identity. Unprofiled client first valid SSE 0.301-1.098s, repeated order across 2 rounds; token content/server queue/cache unknown. F08 1280 scopes show 3 separate shape-compatible norm/rotary/scatter tasks, tensor identity unknown. F08 profiled 1280 selected triples: scatter individually longest 1207, T8180 scatter fraction median 79.43%; not critical-path or online savings. Baseline paired full input strings differ 8/8; no inference about shared prefixes/cache. F08 EP8 L14 exact flow-to-PyTorch APIs all within same dsa forward; no tensor/storage proof. Frozen endpoint /v1/completions; current non-echo serving skips empty text+token output, historical identity/chunk token content unbound; SSE metric not confirmed first token time. F08 T8180 scatter profile 31 short/609 long, EP3 L9/L30 same reported physical signature but 16.68/265.06us; gap/counters/cause unknown. Per-round saved prompts share ~89.9% characters; token/cache unknown. Logical cache values not necessary HBM traffic. EP3 2 scatter PMU sets match CSV, cycles/time 86.4 matches 48*1800/1000 arithmetically; units/causal interpretation unknown. Conditional KV norm->RoPE view shares storage; scatter conversion may copy. Same inputs/slots can have D=0 or 8376320 by cache initial state.",
+  "public_analysis_github": {
+    "repository": "https://github.com/wio1997/Inference-Foundry",
+    "branch": "analysis/ascend-910c-performance",
+    "commit": "ad518f8740638e320d694b7b3c301c5c4974f0b0",
+    "report_path": "docs/performance-analysis/ascend-910c-vllm/README.md",
+    "supporting_files": [
+      "docs/performance-analysis/ascend-910c-vllm/evidence-summary.json",
+      "docs/performance-analysis/ascend-910c-vllm/verify_summary.py",
+      "docs/performance-analysis/ascend-910c-vllm/FUSION-INVENTORY.md"
+    ],
+    "status": "PUBLISHED_AND_REMOTE_BLOBS_VERIFIED",
+    "scope": "sanitized public report and aggregate arithmetic only; original evidence and private artifacts not published",
+    "future_updates": "Publish meaningful reviewed public summaries to this analysis branch when new evidence becomes available; preserve private evidence in task directory",
+    "published_utc": "2026-10-29T09:15:17.099085+00:00",
+    "updated_utc": "2026-10-29T10:52:20.180209+00:00",
+    "update_summary": "Trace selected TensorMove to attention output copy and distinguish displayed zero from nonzero PMU; document F30 rejection counterexample; remote blobs checked."
+  },
+  "latest_readonly_20261029": {
+    "aiv_lowest_identity": "One EP8 selected L0 TensorMove flow uniquely binds to aclnnInplaceCopy within aten::copy_, stack points to CP attention output projection source. The 8-rank group is not fully attributed; file hash and tensor identity unbound at historical runtime.",
+    "pmu_precision": "For same task CSV vector=0.0; DB aiv_vec_ratio=0.00023145867877048598 (0.0231459%), MTE2=0.4199859058 and MTE3=0.4656783289. Not independent tests, no basis for additive utilization, bandwidth, wall-time, or cause.",
+    "f30": "Saved non-greedy rejection fallback counterexample: same selected draft-token probability can yield different recovered tokens; not proof history used probabilistic path or need full materialization.",
+    "evidence": [
+      "agents/diagnosis/TENSORMOVE-EP8-IDENTITY.md",
+      "agents/diagnosis/tensormove_ep8_trace.py",
+      "agents/diagnosis/tensormove-ep8-trace.json",
+      "agents/diagnosis/TENSORMOVE-EP8-PMU-PRECISION.md",
+      "agents/diagnosis/audit_tensormove_pmu.py",
+      "agents/diagnosis/tensormove-ep8-l0-pmu.json",
+      "agents/fusion/F30-REJECTION-SCALAR-COUNTEREXAMPLE.md",
+      "agents/fusion/f30_rejection_counterexample.py"
+    ],
+    "next": "Trace the attention output copy producer/consumer and compare same captured task across rank/shape as evidence permits; investigate effective copy work and actual dependency, not inferred physical traffic. No new NPU load."
+  },
+  "last_update": "2026-10-29T10:52:20.180209+00:00",
+  "current_execution_limits": "READ_ONLY_EXISTING_DATA_NO_NEW_NPU_LOAD_NO_TARGET_IMPLEMENTATION_CHANGES; prior capture authorization describes completed history only.",
+  "latest_zcode_arithmetic_review": {
+    "time_utc": "2026-10-29T10:58:36.028818+00:00",
+    "backend": "DeepSeek via local ZCode wrapper",
+    "mode": "yolo",
+    "tool_profile": "build",
+    "scope": "one read-only existing summary arithmetic script; no NPU or service",
+    "wrapper_exit_code": 0,
+    "reported_inner_exit_code": 0,
+    "independent_gpt_check": "matched",
+    "task": "zcode/operator-ceiling169-v2-current-arithmetic-check.task.txt",
+    "result": "zcode/operator-ceiling169-v2-current-arithmetic-check.zcode.json",
+    "limitation": "arithmetic only; raw measurements and physical bounds not independently verified"
+  },
+  "latest_tensormove_8rank": {
+    "pmu_report": "agents/diagnosis/TENSORMOVE-8RANK-PMU-PRECISION.md",
+    "fusion_report": "agents/fusion/TENSORMOVE-O-PROJ-BUFFER-BOUNDARY.md",
+    "scope": "one historical group EP8–15 L0",
+    "limitation": "same capture, PMU semantics and tensor identity not fully bound"
+  },
+  "latest_public_report_commit": "4aadcdaf21a18d9d6dd728d53ffa95747057188b",
+  "latest_20261029_f08_scale_reordering": {
+    "time_utc": "2026-10-29T11:02:32.999635+00:00",
+    "finding": "Exact arithmetic counterexample shows generally unequal paired norm weights cannot be moved through rotary unchanged; this is a conditional semantic constraint, not measured behavior or evidence fusion is impossible.",
+    "evidence": "agents/fusion/F08-KV-NORM-ROPE-SWA-REVIEW.md",
+    "checker": "agents/fusion/f08_scale_rope_counterexample.py",
+    "limitations": "constructed values; actual weights, position and numerical rounding unknown"
+  },
+  "latest_zcode_evidence_integrity": {
+    "time_utc": "2026-10-29T11:02:32.999635+00:00",
+    "provider": "DeepSeek provider via local ZCode wrapper; exact model identifier not independently logged",
+    "task": "zcode/operator-ceiling169-v2-pmu-evidence-integrity.task.txt",
+    "result": "zcode/operator-ceiling169-v2-pmu-evidence-integrity.zcode.json",
+    "status": "wrapper exit 0, reported inner exit 0; GPT independently matched four SHA-256 values",
+    "scope": "historical evidence files only; not a validation of contents"
+  },
+  "previous_goal_turn_classification": {
+    "classification": "progress",
+    "reason": "Published and synchronized QLI source dataflow, numerical counter comparison and guarded candidate semantics.",
+    "utc": "2026-10-29T19:28:49.621135+00:00"
+  },
+  "latest_attention_projection_review": {
+    "time_utc": "2026-10-29T11:09:05.001926+00:00",
+    "quantization": "wo_a and wo_b 43 description entries each FLOAT; frozen mapping implies unquantized linear conditionally, historical loaded object unbound",
+    "branch": "DSV4 row op may produce partial, SP reduce-scatter follows; output semantics depend on branch",
+    "trace": "EP8 L0 same-stream Matmul then copy; post-copy record/wait inside reduce-scatter host scope; no tensor identity or paired wait event",
+    "fusion_report": "agents/fusion/TENSORMOVE-O-PROJ-LINEAR-INTERFACE.md",
+    "trace_report": "agents/diagnosis/TENSORMOVE-EP8-NEIGHBOR-DATAFLOW.md",
+    "limits": "do not infer historical dtype, proven data dependency, root cause, or benefit"
+  },
+  "latest_mc2_ep8_ratio_decomposition": {
+    "report": "agents/diagnosis/MC2-EP8-RATIO-DECOMPOSITION.md",
+    "pmu_uniqueness": "two selected globalTaskIds unique across 120292 TASK rows, each 28 PMU entries one timestamp; exporter association remains conditional",
+    "result": "L14/L39 cycles-times-ratio 0.319187; not MAC operations or evidence of a causal difference"
+  },
+  "latest_zcode_stage_capacity": {
+    "task": "zcode/operator-ceiling169-v2-stage-disk-check.task.txt",
+    "result": "zcode/operator-ceiling169-v2-stage-disk-check.zcode.json",
+    "status": "wrapper 0, reported command 0",
+    "result_scope": "df -h reports 54T available for /tmp overlay and /work; does not rule out inode, quota, permission or alternate TMPDIR issues"
+  },
+  "next_read_only_action": "Check independent source and saved task links for the F31 temporary-to-persistent buffer dataflow and pending Engram task identity; explore other uncovered model paths rather than treating fixed-shape metric association as cause. No new NPU work.",
+  "latest_attention_bf16_observation": {
+    "time_utc": "2026-10-29T11:16:22.771223+00:00",
+    "sample": "EP8 L0 task 43440 unique host to device flow, nested unquantized_gemm/linear/matmul host calls",
+    "dtype": "host inputs and device CSV BF16; internal instruction and accumulator unverified",
+    "shape": "[8184,1024] x [1024,5120]",
+    "conditional_model": "direct dense 42907729920 MAC; 24 cores, <=1.8GHz, <=4096 MAC/core/cycle, no initial credit or other resources -> 242.489us",
+    "profiled_csv_us": 320.893,
+    "limitations": "not proven hard capacity, necessary work, measured efficiency, service ceiling, or achievable speedup",
+    "report": "agents/bounds/ATTENTION-PROJECTION-EP8-MODEL.md",
+    "host_binding": "agents/diagnosis/TENSORMOVE-EP8-PROJECTION-HOST-BINDING.md"
+  },
+  "latest_ranking_comparability": {
+    "report": "agents/diagnosis/RANK-METRIC-COMPARABILITY.md",
+    "finding": "same raw MatMul name includes multiple physical signatures; raw vector activity for TensorMove is not overall device utilization; fixed MC2 physical groups still vary by layer without proven equal expert work"
+  },
+  "latest_copy_information_bound": "agents/bounds/TENSORMOVE-COPY-FUSION-INFORMATION-BOUND.md",
+  "latest_zcode_coverage_check": {
+    "task": "zcode/operator-ceiling169-v2-capture-coverage-check.task.txt",
+    "result": "zcode/operator-ceiling169-v2-capture-coverage-check.zcode.json",
+    "check": "coverage fields match source; completeness remains limited to declared selected scope",
+    "wrapper_exit_code": 0
+  },
+  "latest_mc2_db852_extremes": {
+    "time_utc": "2026-10-29T11:25:42.550121+00:00",
+    "scope": "8 EP L15/L36 in same digest and physical signature",
+    "finding": "L15 weighted displayed 2.7863%, EP3 DB 46.6499% and 5.0215ms versus seven EP roughly 24ms; L36 3.50-4.74ms",
+    "limitation": "instrumented, router/expert work and rank clock/dependency unknown; no bottleneck established",
+    "report": "agents/diagnosis/MC2-DB852-L15-L36.md"
+  },
+  "latest_f20_conditional_router": {
+    "report": "agents/fusion/F20-VISION-FALLBACK-MASKED-TEXT-ROUTER.md",
+    "finding": "in a specific Python vision fallback, text hash-table expert IDs replace dynamic topk; selected-gate alternative conditional on preserving precision and all consumers",
+    "limits": "history branch and custom op semantics unbound; image rows require dynamic topk"
+  },
+  "latest_ep8_sp_flow": {
+    "report": "agents/diagnosis/EP8-SP-REDUCE-SCATTER-FLOW.md",
+    "finding": "one host call uniquely links hcom and AI CPU events; hcom trace interval inside selected WAIT interval on exported coordinates",
+    "limits": "cross-track clock conversion and WAIT/record handle unverified; no communication-wait causality or savings proven",
+    "zcode_run": "zcode/operator-ceiling169-v2-sp-flow-v3.zcode.json"
+  },
+  "latest_soc_identity_audit": "agents/bounds/9381-9382-PROFILE-AMBIGUITY-20261029.md",
+  "latest_f20_baseline_applicability": {
+    "time_utc": "2026-10-29T11:34:40.307890+00:00",
+    "finding": "Under saved A3 build and frozen A3 capability, fused vision op is selected and Python vision fallback candidate is not reached; absent injected config num_hash_layers also resolves to zero.",
+    "limits": "historical loaded modules, objects, overrides, and op semantics not independently bound",
+    "report": "agents/fusion/F20-VISION-FALLBACK-MASKED-TEXT-ROUTER.md"
+  },
+  "latest_mc2_host_gap": {
+    "scope": "db852 L15 EP3, comparison L15 EP0 and L36 EP3",
+    "finding": "EP3 L15 gating host dequeue ~2055us overlaps task gap on exported timeline; EP0 L15 host dequeue ~1110us while device gap ~1.34us; no causal conclusion",
+    "limits": "profiler overhead, clock mapping, capture completeness, expert work, event identity unverified",
+    "report": "agents/diagnosis/MC2-DB852-EP3-HOST-GAP.md",
+    "metadata": "agents/diagnosis/MC2-DB852-ROUTER-METADATA.md"
+  },
+  "latest_zcode_mc2_comparison": {
+    "task": "zcode/operator-ceiling169-v2-mc2-compare.task.txt",
+    "result": "zcode/operator-ceiling169-v2-mc2-compare.zcode.json",
+    "wrapper_exit_code": 0,
+    "scope": "existing grouped data arithmetic, not runtime cause or identical work"
+  },
+  "latest_native_router_source_review": {
+    "time_utc": "2026-10-29T11:43:36.673725+00:00",
+    "report": "agents/fusion/F20-A3-NATIVE-HASH-DEPENDENCY.md",
+    "finding": "in saved A3 without-group hash text source, hash skips dynamic TopK but computes full expert scores; possible selected-score computation conditional on real hash table, consumers and numerical equivalence",
+    "limits": "saved num_hash_layers default 0 unless injected; loaded binary, actual branch and output consumers unbound; native sum+eps differs from fallback clamp_min"
+  },
+  "latest_ep3_tensorinfo_contract": {
+    "report": "agents/diagnosis/MC2-EP3-TENSORINFO-CONTRACT.md",
+    "result": "35713 decoded descriptions in 18186 groups; 40 groups compatible with target full physical shape, no unique binding or element count field",
+    "limits": "parser/producer versions not fully bound; no claim about other files"
+  },
+  "latest_theoretical_credit_correction": {
+    "files": [
+      "agents/bounds/actual_causal_bound.md",
+      "agents/bounds/baseline-client-count-provisional.md"
+    ],
+    "finding": "resource/service capacity windows require burst/initial credit beta, replace W/P by (W-beta)_+/P unless zero credit proved; beta>=work implies no finite TPS bound from that term",
+    "limits": "client SSE interface is not physical NPU cut; no real hard numerical upper bound"
+  },
+  "latest_gate_tail": {
+    "report": "agents/diagnosis/MC2-DB852-EP3-HOST-GAP.md",
+    "finding": "API continues 2030.75us after identified launch, same saved-thread CANN sub-events absent in 1857.125us within sampled query window",
+    "limits": "source view incomplete, API internal activity and causality unknown; zcode overextended pre-window coverage and was corrected",
+    "zcode": "zcode/operator-ceiling169-v2-gate-host-tail.zcode.json"
+  },
+  "latest_f08_gap_association": {
+    "time_utc": "2026-10-29T11:51:23.318061+00:00",
+    "scope": "640 selected T=8180 triples from one profiled capture, thresholds post hoc",
+    "result": "31 short scatter have rotary-to-scatter interval 283.480–1834.480us; 609 long have 0.0195–0.04075us",
+    "limitations": "not independent requests, causal, device idle, same slot data or online production performance",
+    "report": "agents/fusion/F08-SCATTER-GAP-STRATIFICATION.md"
+  },
+  "latest_f08_multistream": {
+    "report": "agents/fusion/F08-EP8-PIPELINE-OVERLAP.md",
+    "result": "one EP8 L14 selected scatter 258.095us overlaps another stream quantized Matmul by 239.415us in exported device timeline; source contains conditional Q/KV overlap",
+    "limitations": "not proven actual instruction overlap, same resources, identity, source branch or attainable benefit"
+  },
+  "latest_f20_nohash_review": {
+    "report": "agents/fusion/F20-A3-NO-HASH-ROUTER-BOUNDARY.md",
+    "finding": "conditional no-table source path requires dynamic ranking over all experts; candidate gate expert-tiling/local topK/global merge must preserve order, bias, floating point and consumers",
+    "limits": "history optional args and binary unbound; no table-based shortcut assumed"
+  },
+  "latest_zcode_ep3_pattern": {
+    "task": "zcode/operator-ceiling169-v2-ep3-scatter-pattern.task.txt",
+    "result": "zcode/operator-ceiling169-v2-ep3-scatter-pattern.zcode.json",
+    "wrapper_exit_code": 0,
+    "scope": "existing selected per-layer record counts, not causal"
+  },
+  "latest_f08_scope_overlap": {
+    "time_utc": "2026-10-29T12:01:38.425018+00:00",
+    "report": "agents/fusion/F08-SCOPE-OVERLAP-AND-COMPARABILITY.md",
+    "scope": "640 selected triples, one captured profile",
+    "observation": "31/31 short no other matched track overlap in their selected scope; 609/609 long overlap same-scope quant Matmul. Short scope also contains later Matmul.",
+    "limits": "duration affects overlap probability; no causality, shared resource, complete device coverage or identical slot data established"
+  },
+  "latest_f08_ep3_gap": {
+    "report": "agents/fusion/F08-EP3-GAP-SYNC-AND-LAUNCH.md",
+    "observation": "EP3 L9 rotary-scatter 1693.280us, no other exported same-track task in gap; same-thread host launches 1687.370us apart; recorded one tiling 0.670us",
+    "limits": "not a proof of device idle, CANN API exhaustiveness, event dependency or cause"
+  },
+  "latest_f20_tie_semantics": {
+    "report": "agents/fusion/F20-ROUTER-TOPK-SEMANTICS.md",
+    "finding": "CANN 8.0 documented stable equal-score order conditional on version and implementation; arbitrary chunk concatenation can change global topk selection, global positions must be preserved in candidate",
+    "limits": "history CANN version/kernel not bound, NaN, padding and float behavior unknown",
+    "witness": "agents/fusion/f20_topk_stable_order_witness.py"
+  },
+  "latest_zcode_tasks": [
+    "zcode/operator-ceiling169-v2-pair-interval.zcode.json",
+    "zcode/operator-ceiling169-v2-scatter-source-snapshot.zcode.json"
+  ],
+  "latest_f08_host_interval_correction": {
+    "time_utc": "2026-10-29T12:12:01.448148+00:00",
+    "report": "agents/fusion/F08-EP3-HOST-CPU-INTERVAL.md",
+    "finding": "EP3 L9/L30 host launch gaps 99.038%/96.362% overlap rotary dequeue; fully-contained API query omitted parent spans",
+    "limits": "recorded host intervals do not identify CPU busy, lock, profiler effects or device idle"
+  },
+  "latest_f08_pair_hulls": {
+    "report": "agents/fusion/F08-PAIR-INTERVAL-AND-CRITICAL-PATH.md",
+    "finding": "same EP3 digest short/long scatter medians 17.70/261.08us vs nearest-matmul pair hull medians 330.08/324.50us",
+    "limits": "time-nearest pair, not a dependency, critical path or potential benefit; samples from one profile"
+  },
+  "latest_scatter_source_semantics": {
+    "report": "agents/fusion/F08-SCATTER-INSTALLED-KERNEL-SEMANTICS.md",
+    "finding": "installed source has different negative-index read ordering by branch, view stride and duplicate-index caveats",
+    "limits": "historic binary/tiling/strides/index values remain unbound; source snapshot hash verified not binary proof",
+    "snapshot": "agents/fusion/frozen-source/cann-scatter-sk"
+  },
+  "latest_20261029_capture_and_index_review": {
+    "time_utc": "2026-10-29T12:20:31.959677+00:00",
+    "reports": [
+      "agents/fusion/F08-EP3-THREAD-STATE-COVERAGE.md",
+      "agents/fusion/F08-SCATTER-TILING-BINDING.md",
+      "agents/diagnosis/INDEX-PREPARE-LENGTH-SPLIT-BOUNDARY.md"
+    ],
+    "finding": "Host CPU/OS profiling configured off; exported scatter metadata cannot bind historical tiling/binary; K=512 row split crosses length-counting branches with conditional INT32_MAX sentinel counterexample.",
+    "limits": "No thread-state cause, actual historical binary, compiled INT64 semantics, legitimate real-model occurrence or speedup established.",
+    "zcode": "zcode/operator-ceiling169-v2-prepare-lengths-threshold.zcode.json",
+    "next": "Investigate independent recorded module and fusion dependencies without NPU load; do not infer causes from absent data."
+  },
+  "latest_index_fanin_bound": {
+    "report": "agents/bounds/INDEX-PREPARE-DEPENDENCY-COMPARISON-BOUND.md",
+    "finding": "Under fixed fan-in-2 DAG, no precomputed summary and required sorted output, K=512 minimum depends on 512 inputs and has at least 9 logical levels.",
+    "limits": "Not a device cycle or time bound, no binding to historical inputs or hardware primitives, upstream fusion may change the boundary."
+  },
+  "latest_20261029_communication_ranking_review": {
+    "time_utc": "2026-10-29T12:29:08.239444+00:00",
+    "reports": [
+      "agents/diagnosis/EP8-SP-EVENT-CANDIDATES.md",
+      "agents/diagnosis/RANK-SIGNATURE-SELECTION-BIAS.md",
+      "agents/diagnosis/rank-metric-overlap.json"
+    ],
+    "findings": "Communication-side record/wait task/API associations found but event object pairing remains unknown. Within 4930 selected physical groups, AIC/AIV eligibility overlap 672, AIC-only 924, AIV-only 3294, neither 40. Name-based minima may select minority shapes.",
+    "limits": "No confirmed communication wait cause, global utilization ranking, online latency, or speedup.",
+    "zcode": "zcode/operator-ceiling169-v2-ranking-overlap.zcode.json",
+    "next": "Investigate remaining actionable missing evidence from other existing data; no new NPU load."
+  },
+  "latest_f10_scaling_condition": {
+    "report": "agents/fusion/COVERAGE-GAP-AUDIT-AND-F10.md",
+    "script": "agents/fusion/f10_bf16_power2_scale_exhaustive.py",
+    "finding": "CPU model of all 65280 finite BF16 encodings yields same FP16 bits under stated IEEE rounding and exactly 1/64 scalar after prior BF16 projection.",
+    "limits": "Historical scalar lowering, hardware FTZ, binary/tensor identity and non-packed branch not established; no measured benefit."
+  },
+  "latest_20261029_f32_mc2_capacity": {
+    "time_utc": "2026-10-29T12:35:39.593119+00:00",
+    "fusion": "F32 SP gather/QKV reorder candidate with source, CP/PCP, precision and group conditions; F16 has an existing cross-boundary GEMM+reduce-scatter API candidate with version caveats.",
+    "diagnosis": "EP3 one digest 40-layer selected device intervals union 353.614 ms; MC2 union 156.640 ms (44.30%), trace incomplete and profiled.",
+    "bounds": "Official RecSDK 9382 software mapping 24 cores consistent, not a proven physical hardware max; 1800 MHz not certified hard.",
+    "reports": [
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md",
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md",
+      "agents/diagnosis/EP3-SELECTED-DEVICE-TIME-COVERAGE.md",
+      "agents/bounds/9382-HARD-CAPACITY-CHECK.md"
+    ],
+    "limits": "No speedup, full-model utilization, numeric physical ceiling or historical branch identity established.",
+    "next": "Trace F32 and F16 historical tensor/communication group identity, and inspect MC2 internal trace or installed implementation for discriminating evidence without NPU load."
+  },
+  "latest_zcode_sp_size": {
+    "result": "zcode/operator-ceiling169-v2-sp-size-corrected.zcode.json",
+    "scope": "BF16 element-to-byte arithmetic only",
+    "correction": "Initial prompt mislabeled element counts as bytes; corrected task uses two bytes per BF16 element.",
+    "report_consistency_check": "Wrapper timed out after 150 seconds; no result, not claimed as completed."
+  },
+  "latest_mc2_all_rank_and_f32": {
+    "time_utc": "2026-10-29T12:42:50.919842+00:00",
+    "diagnosis": "32 per-rank/digest 40-layer selected collections: MC2 has largest selected-type interval union, fractions 40.44%-90.79%; profiler and incomplete coverage prevent online inference. EP3 L36 four Notify_Wait overlap selected MC2 and map to later allGather opId, no causal event binding.",
+    "fusion": "F32 source and config conditionally select unquantized linear; selected EP8 layer0 Q-compatible 3 rows and KV-compatible 24 rows, no tensor or communication binding. Corrected source of FLOAT labels.",
+    "reports": [
+      "agents/diagnosis/16RANK-SELECTED-DEVICE-TIME-COVERAGE.md",
+      "agents/diagnosis/MC2-EP3-L15-L36-COMM-OVERLAP.md",
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-f32-source-count.zcode.json",
+    "next": "Inspect saved evidence for MC2 work/phase identity and F32 query/cache group ownership without new NPU load; maintain unknown if evidence absent."
+  },
+  "latest_ascend_official_mc2_f32_review": {
+    "time_utc": "2026-10-29T12:52:00.170403+00:00",
+    "official_docs": "CANN 9.0 profiler table and 9.1 HCCL notify semantics; CANN 9.1 beta op_summary wait definition, not proven same-version historical 9.2.",
+    "mc2": "EP3 L36 four selected wait completions occur after MC2 ends in exported coordinates; conditional exclusion of waiting for all four completions, no dependency or general cause established. EP9 CSV wait and previous exported same-stream gap approximately agree.",
+    "fusion": "SP shard and legacy CP query row formulas align conditional on same T/rank/order; Q can stay local, KV global requirements persist.",
+    "reports": [
+      "agents/diagnosis/MC2-EP3-L36-NOTIFY-INTERPRETATION.md",
+      "agents/diagnosis/MC2-OFFICIAL-PROFILING-AND-WAIT-FIELD.md",
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-fusion-inventory-audit.zcode.json",
+    "next": "Prioritize exact-version Ascend official interface documentation and existing event identity or expert counters; no new NPU load."
+  },
+  "latest_official_indexer_mc2_analysis": {
+    "time_utc": "2026-10-29T12:59:52.101333+00:00",
+    "diagnosis": "EP8 Indexer short and long selected tasks all overlap selected other-stream allGather notify records; cross-stream dependency unknown. EP9 long MC2 nonzero database vector and MTE2 metrics, no bound phase data found in named scope.",
+    "fusion": "F32 legacy CP conditionally requires SP; normal HCCL rank order documented, historical custom group and identities unknown.",
+    "bounds": "Vendor idealized load-balance mode is not an established universal TPS bound for same model/outputs.",
+    "reports": [
+      "agents/diagnosis/INDEXER-EP8-WAIT-TRACK-COVERAGE.md",
+      "agents/diagnosis/EP9-MC2-STAGE-AND-PMU-AVAILABILITY.md",
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md",
+      "agents/bounds/actual_causal_bound.md"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-ascend-links.zcode.json",
+    "zcode_note": "Direct HTTP checked two official pages; do not adopt unsupported host/scheduler gap inference. ZCode created two /tmp snapshots despite instruction; removed after verifying their exact hashes.",
+    "next": "Use official documentation and existing bounded data to pursue unresolved effective work, phase, and group bindings; no new NPU load."
+  },
+  "latest_f32_corrected_runtime_evidence": {
+    "time_utc": "2026-10-29T13:08:14.928276+00:00",
+    "fusion": "EP3 layer36 same host scope: attention gather and Q_a/KV/index weights compatible host stacks→flows→device tasks; tensor identity/runtime source/rank order unbound. Corrected earlier overbroad global hidden claim for index-only source layers.",
+    "diagnosis": "20 Indexer metadata tasks in EP8, candidate values/tensor/replay unknown; EP9 existing communication export numeric intervals disjoint from selected MC2 but incomplete and clock not verified.",
+    "reports": [
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md",
+      "agents/diagnosis/INDEXER-EP8-METADATA-PRODUCER-SEARCH.md",
+      "agents/diagnosis/EP9-OFFLINE-PROFILER-INTERFACES.md"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-gather-shape-arithmetic.zcode.json",
+    "next": "Pursue saved data identity/flow and exact-version metadata without new NPU load; keep necessary values and hard capacity unknown."
+  },
+  "latest_f32_tp_index_buffer": {
+    "time_utc": "2026-10-29T13:16:16.865613+00:00",
+    "fusion": "EP3 L36 gather communication key uniquely matches saved TP group metadata; same database enum reports BFP16. Host inputs null and storage IDs unavailable, no actual tensor data-edge proof.",
+    "diagnosis": "Frozen Indexer metadata producer copies into shared buffer before publication, so different storage is not evidence of no dependency; selected replay binding and actual Q/K lengths remain unknown.",
+    "reports": [
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md",
+      "agents/diagnosis/INDEXER-EP8-METADATA-BUFFER-BINDING.md"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-f32-group-check.zcode.json",
+    "next": "Read last MoE scheduler/shape evidence then pursue bounded effective work, data dependency, and physical ceiling without new NPU load."
+  },
+  "latest_ep9_scheduler_scope": {
+    "report": "agents/diagnosis/EP9-SCHEDULER-MC2-WORKLOAD-SCOPE.md",
+    "finding": "Same host scopes: 5144 scheduled / physical M643, and 8180 / M1023; factor 8 matches only first.",
+    "limits": "No valid per-rank rows, expert route or same work; profiler artifacts are not online latency.",
+    "official_citation_fix": "agents/diagnosis/RECAPTURE-MC2-EXPERT-COUNT-20261029.md"
+  },
+  "historical_task_packs": [
+    "task-loop-runs/fusion-coverage/resume-pack.json",
+    "task-loop-runs/layer0-diagnosis/resume-pack.json",
+    "task-loop-runs/theoretical-ceiling/resume-pack.json",
+    "task-loop-runs/ideal-scheduler-model/resume-pack.json"
+  ],
+  "historical_task_packs_note": "The four original task packs preserve historical loop snapshots and can contain stale active-loop/next-action fields; consult them only for original evidence, and use current_execution_limits and latest entries in STATE.json plus CURRENT-FINDINGS.md for current work.",
+  "latest_f32_oprange_indexer_copy_ep9": {
+    "time_utc": "2026-10-29T13:29:02.465577+00:00",
+    "fusion": "Layer36 c10d gather host shapes correspond to input/output under current installed schema; adjacent slice lacks scalar/output/storage, three near-time op-range records lack type5 tensor metadata. Stop repeated fixed-field search.",
+    "diagnosis": "Six candidate metadata-neighbor copies link host to same-stream device copies; no address/producer/consumer binding. EP9 gating and MC2 shapes compatible but mask and expert values unknown.",
+    "reports": [
+      "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md",
+      "agents/diagnosis/INDEXER-EP8-METADATA-COPY-CHAIN.md",
+      "agents/diagnosis/EP9-GATING-AND-MODEL-METADATA.md"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-indexer-copy-check.zcode.json",
+    "zcode_correction": "Ignore the ZCode cross-host/device-clock differences: no clock calibration establishes their physical interpretation.",
+    "next": "Switch to independently recorded module or evidence source; no repeated queries on missing F32 tensor fields, no new NPU load."
+  },
+  "official_ascend_reference_policy": "Consult version-scoped official Ascend documentation first for profiling, operator and communication evidence gaps. Cross-check applicable product and historic runtime version; never infer missing measurements.",
+  "latest_f22_official_abi": {
+    "report": "agents/fusion/F22-SHARED-EXPERT-REVIEW.md",
+    "finding": "CANN 9.1 V1 and V2 have different A3 product support tables; V2 mode1 even/odd layout differs from frozen F22 half-split; direct reuse needs permutation and quantization semantics proof.",
+    "limits": "Public versions and actual historical 9.2 API/kernel are not bound; V1 page internally mentions A3 in constraints; no speedup or runtime error claim.",
+    "next": "Pursue independent profiling or source evidence; do not rerun NPU.",
+    "zcode": "zcode/operator-ceiling169-v2-f22-layout-check.zcode.json"
+  },
+  "latest_official_profiler_support": {
+    "report": "agents/diagnosis/EP9-MC2-STAGE-AND-PMU-AVAILABILITY.md",
+    "finding": "9.1 docs limit PipeTimeline/instrTimeLine to 950 and exclude MC2, PcSampling to 950; own saved 9.2 help does not list these names. MC2 communication timeline is a distinct feature with constraints.",
+    "limits": "9.2 historical runtime and custom shmem operator support remain unbound; saved help does not prove every interface unavailable.",
+    "next": "Seek alternate existing evidence; no NPU recapture."
+  },
+  "latest_bound_gap_review": {
+    "finding": "Independent recheck found no new supportable actual numeric operator ceiling for cross-module ranking. Existing 0.355556us value is conditional on dense operations, modeled capacity, cold/credit and execution domain, not a measured or proven universal latency floor.",
+    "evidence": [
+      "agents/bounds/hardware_sources_audit.md",
+      "agents/bounds/actual_causal_bound.md",
+      "agents/bounds/int8_ceiling_certificate.json",
+      "agents/bounds/cold_gemm_bound.json"
+    ],
+    "next": "Prioritize independent runtime evidence or hardware hard capacity; avoid repeated equivalent symbolic models."
+  },
+  "latest_mc2_conditional_copy_work": {
+    "report": "agents/diagnosis/MC2-AIV-READ-VERSUS-POLL-20261029.md",
+    "source_derived": "For matching int8 helper, K5120, UB_ALIGN32 and clipped row count R, logical GM-to-UB read request bytes 5152*R, calls sum(ceil(r_i/2)).",
+    "unknowns": "Actual row counts, runtime binary and branch; logical bytes not physical traffic or bound.",
+    "next": "Find independent per-peer expert rows and binary binding only if existing source points to them; otherwise pivot.",
+    "zcode": "zcode/operator-ceiling169-v2-mc2-copy-arithmetic.zcode.json"
+  },
+  "latest_engram_paired_decomposition": {
+    "report": "agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md",
+    "query": "agents/diagnosis/recheck_engram_gap_matmul_decomposition.py",
+    "result": "agents/diagnosis/engram-gap-matmul-decomposition.json",
+    "finding": "48 same-rank/run boundary pairs; first gap longer; paired gap differences numerically close to matched matmul duration differences; per-pair residual median 0.050/0.620/0.280 us by round.",
+    "limits": "Descriptive only, sampled event not bound to weight, tensor or request; not cause, saved time, full module or critical path.",
+    "next": "Seek independent identity/input evidence; no repeated residual variants and no new NPU load.",
+    "zcode": "zcode/operator-ceiling169-v2-engram-gap.zcode.json"
+  },
+  "latest_f31_key_contract": {
+    "report": "agents/fusion/F31-DRAFT-CP-INDEX-LENGTH-REVIEW.md",
+    "finding": "Proposer compressed-mode kwarg common_ratio_to_sas_metadata differs from V4.1 builder common_v41_metadata/common_v41_batch_metadata. Forwarding unchanged kwargs alone cannot activate those V4.1 sharing entries.",
+    "limits": "Actual runtime builder, other sharing paths, repeated work, cache scope and performance unbound.",
+    "next": "Inspect independent saved runtime builder identity or consumers without repeated shape-only scans and without new NPU load.",
+    "zcode": "zcode/operator-ceiling169-v2-f31-shared-key.zcode.json"
+  },
+  "latest_f31_builder_source_chain": {
+    "report": "agents/fusion/F31-DRAFT-CP-INDEX-LENGTH-REVIEW.md",
+    "finding": "DSpark SWA cache prefix -> draft AttentionGroup -> V41 CacheBackend -> conditionally CP builder; current stage AttentionGroup calls get_builder_cls. Three frozen source SHAs match current stage.",
+    "limits": "History-loaded objects, effective CP/PCP config, draft group membership, actual duplicated computation and benefit unbound.",
+    "next": "Investigate actual persisted resolved builder identity or independent perf counter data without new NPU load."
+  },
+  "latest_engram_ep8_memory_scope": {
+    "report": "agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md",
+    "query": "agents/diagnosis/query_engram_ep8_memory_scope.py",
+    "result": "agents/diagnosis/engram-ep8-memory-scope.json",
+    "finding": "Same EP8 rank/profile CSV hash as paired sample; hardware_mem/sys_profiling off, HBM DDR L2 entries empty. No matching direct filenames in selected directories.",
+    "limits": "Empty not off, nonrecursive name scan and raw undecoded, no per-task HBM or cache attribution, not all 16 ranks.",
+    "next": "Seek other independent retained data; no new NPU load.",
+    "zcode": "zcode/operator-ceiling169-v2-engram-memory-scope.zcode.json",
+    "zcode_correction": "Only field and filename checks accepted. Empty strings are not proven unset. Its lpmInfoConv memory-related characterization is unsupported and ignored."
+  },
+  "latest_engram_ep8_frequency_scope": {
+    "report": "agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md",
+    "query": "agents/diagnosis/query_engram_ep8_frequency_scope.py",
+    "result": "agents/diagnosis/engram-ep8-frequency-scope.json",
+    "finding": "One EP8 DB has 3 AICORE_FREQ rows, all 1800, none inside six selected matmuls; both adjacent rows show 1800 but are hundreds of ms to seconds away. Installed parser describes LpmInfoConv as frequency/voltage and can initialize frequency.",
+    "limits": "Parser provenance, real frequency completeness, cross-track time relation, historical file semantics and hard max unproven; no direct bandwidth conclusion.",
+    "next": "Seek independent recorded source path or other module, no repeated incomplete frequency proxy queries, no new NPU load."
+  },
+  "latest_zcode_frequency_scope_review": {
+    "task": "zcode/operator-ceiling169-v2-frequency-scope.task.txt",
+    "response": "zcode/operator-ceiling169-v2-frequency-scope.zcode.json",
+    "status": "numerical rows and gaps independently checked; semantics require official and installed-version provenance",
+    "limitations": "ZCode additionally asserted periodic-sampling interpretation, unvalidated control timescale and dieId meaning; these assertions are not accepted as evidence."
+  },
+  "latest_ep8_allstream_overlap": {
+    "scope": "Existing EP8 profiler DB, two specific MC2 tasks; read-only other-stream TASK query and CSV identity checks.",
+    "finding": "L14: 160.365956 ms task, one reduce_scatterAicpuKernel overlaps 95.231037 ms. L39: 8.290414 ms, no overlapping AI_CPU kernel record. Different workloads and profiler perturbation; overlap is not causality or online savings.",
+    "files": [
+      "agents/diagnosis/EP8-MC2-ALLSTREAM-TASK-OVERLAP.md",
+      "agents/diagnosis/ep8-mc2-allstream-overlap.json",
+      "agents/diagnosis/query_ep8_mc2_allstream_overlap.py",
+      "agents/diagnosis/run_ep8_mc2_allstream_overlap.py"
+    ],
+    "next": "Inspect existing host/flow/communication identities for the overlapping reduce-scatter, without assuming it causes MC2 delay.",
+    "official_512B": "MC2-AIV-READ-VERSUS-POLL-20261029.md records conditional poll-start layout; read ranges and runtime remain unknown.",
+    "zcode": "zcode/operator-ceiling169-v2-priorities.zcode.json",
+    "correction": "Recomputed 32 groups: min EP2 3.7018%, max EP13 18.1735%; EP3 and EP9 were examples, not extrema."
+  },
+  "latest_ep8_reduce_scatter_source": {
+    "summary": "The L14 overlapping reduce_scatter AI_CPU task is linked to a host ascend_sp_reduce_scatter_impl call under sidecar-marked layer 23. A different launch linked to the same host maps to a COMMUNICATION_OP whose exported start is 227.463356 ms after the L14 MC2 end. Host scope, link and timestamp association do not establish model instance, request, physical transaction, dependence or cause.",
+    "evidence": [
+      "agents/diagnosis/EP8-L14-REDUCE-SCATTER-SOURCE.md",
+      "agents/diagnosis/query_ep8_l14_reduce_scatter_source.py",
+      "agents/diagnosis/run_ep8_l14_reduce_scatter_source.py",
+      "agents/diagnosis/ep8-l14-reduce-scatter-source.json"
+    ],
+    "zcode": "Initial overlap-check task timed out; shortened task zcode/operator-ceiling169-v2-overlap-short.zcode.json completed and extracted existing durations.",
+    "next": "Examine retained group membership and event identity for this same host-call association; retain UNKNOWN if no binding exists. Continue fusion and theoretical limits within existing data."
+  },
+  "latest_ep8_comm_children_scope": {
+    "finding": "opId 209 has 168 child records each uniquely associated to TASK, zero overlap with selected L14 MC2; earliest child starts 226.807529 ms after MC2 end in exported coordinates. The overlapping AI_CPU task belongs to another connection and is absent from these 168.",
+    "limits": "This covers the associated op and its exported children only; no causal, group-membership, overall communication or internal MC2 claim. Numeric notify IDs are reused across opIds and alone do not identify an event pair.",
+    "evidence": [
+      "agents/diagnosis/EP8-L14-COMM-NOTIFY-SCOPE.md",
+      "agents/diagnosis/query_ep8_l14_comm_notify.py",
+      "agents/diagnosis/run_ep8_l14_comm_notify.py",
+      "agents/diagnosis/ep8-l14-comm-notify.json"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-comm-interval.zcode.json, arithmetic of prior anchor and associated intervals checked",
+    "next": "Check existing group metadata and event object linkage or pursue other unresolved independent bottleneck; avoid repeating static task-level marginal counters. No new device load."
+  },
+  "latest_ep8_15_overlap_and_group": {
+    "finding": "For selected same-digest EP8–15 L14 MC2 windows, all 8 have other-stream KERNEL_AICPU overlap per-device exported coordinates; EP10–15 each have one reduce-scatter record covering the whole window. All 8 corresponding L39 windows have zero such records. EP8 op group key matches a TP-labeled 8-member metadata entry in same DB.",
+    "limits": "Exported intervals are not physical transfer, resource contention, causal proof, or evidence of a shared cross-rank request; L14/L39 work differs potentially. Group association remains subject to exporter, time and lifecycle provenance.",
+    "evidence": [
+      "agents/diagnosis/EP8-15-L14-L39-AICPU-OVERLAP.md",
+      "agents/diagnosis/ep8-15-l14-l39-aicpu-overlap.json",
+      "agents/diagnosis/query_ep8_15_l14_l39_aicpu_overlap.py",
+      "agents/diagnosis/run_ep8_15_l14_l39_aicpu_overlap.py",
+      "agents/diagnosis/EP8-L14-COMM-NOTIFY-SCOPE.md",
+      "agents/diagnosis/ep8-l14-group-key.json"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-notify-scope.zcode.json verified previously saved 168 child summary; anchor not in that file.",
+    "next": "Investigate EP9–15 corresponding overlapping records for existing host association/communication identity; stop if only timestamp and label remain, and pursue independent diagnostics."
+  },
+  "latest_ep9_15_reduce_scatter_source": {
+    "finding": "Each EP9-15 selected task 3999 overlapping the L14 MC2 links to one PYTORCH_API HcclReduceScatter host under sidecar-marked layer23; EP9 task3993 additionally maps layer22. The associated per-DB communication records match TP-labeled 8-member group metadata.",
+    "limits": "Some TASK or communication connections have multiple IDs and other host/API rows, so matching one host in PYTORCH_API is not a unique transaction. No same collective, same request, tensor dependence, contention or causal claim; actual model instance and group metadata lifecycle unverified.",
+    "evidence": [
+      "agents/diagnosis/EP9-15-L14-REDUCE-SCATTER-SOURCE.md",
+      "agents/diagnosis/query_ep9_15_l14_rs_source.py",
+      "agents/diagnosis/run_ep9_15_l14_rs_source.py",
+      "agents/diagnosis/ep9-15-l14-rs-source.json"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-overlap-rank.zcode.json verified previously saved per-rank overlap counts and proportions.",
+    "next": "Investigate existing event identities and actual expert workload evidence; do not assume communication correlation is causal, or repeat searches without a discriminating new entry point."
+  },
+  "latest_ep9_15_comm_child_intervals": {
+    "finding": "EP9-15 each selected L23 host-associated COMMUNICATION_OP and its 168 exactly matched child TASK rows do not overlap the corresponding per-rank L14 MC2 in exported coordinates; earliest child starts 226.753109–226.808049 ms after anchor end.",
+    "limits": "Per-rank single DB coordinates and selected records only, not physical link duration, same transaction, full communication, cause or cross-rank time alignment. Each rank has a child beginning before the corresponding op, so op interval need not enclose children. Connection ID reuse and clock calibration limitations remain.",
+    "evidence": [
+      "agents/diagnosis/EP9-15-L14-COMM-TASK-INTERVALS.md",
+      "agents/diagnosis/query_ep9_15_l14_comm_intervals.py",
+      "agents/diagnosis/run_ep9_15_l14_comm_intervals.py",
+      "agents/diagnosis/ep9-15-l14-comm-intervals.json"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-comm-ranks.zcode.json verified tabulated counts and extrema.",
+    "next": "Find discriminating evidence about actual MC2 execution, profiler interference or valid expert counts in existing artifacts; avoid further host event interval scans unless they establish a new dependency or eliminate a plausible hypothesis."
+  },
+  "latest_hook_and_moe_group_correction": {
+    "diagnosis": "Existing diagnostic includes a logging hook as well as profiler; saved source synchronously emits JSON/file events. Actual loaded source version and independent hook overhead remain unverified; profile vs baseline is not a controlled comparison.",
+    "correction": "Future MC2 expert-count capture must verify and cover all ranks in the actual MC2 group; observed 8 EP ranks or TP group is not the MC2 group size. A different capture describes 16 ranks but is not binding to this call.",
+    "fusion": "Official CANN 9.1 MatmulReduceScatterV2 specifies contiguous x1 and AIV communication for A2/A3 BF16, but history 9.2 API, tensor strides and benefit are unbound.",
+    "evidence": [
+      "agents/diagnosis/RECAPTURE-SCOPE-REVIEW-20261029.md",
+      "agents/diagnosis/RECAPTURE-MC2-EXPERT-COUNT-20261029.md",
+      "agents/fusion/F16-TWO-PROJECTION-TILE-AND-ROUNDING.md"
+    ],
+    "zcode": "zcode/operator-ceiling169-v2-hook-boundary.zcode.json",
+    "next": "Pursue remaining discriminating evidence in saved data; do not run new NPU tests; if diagnostics constraints change, plan controlled hook/profiler separation with matching dynamic workload."
+  },
+  "latest_stage_sync": {
+    "status": "SYNCED",
+    "reason": "Fusion coverage, DSpark buffer and Engram comparisons published; container files verified with per-file compare-and-swap.",
+    "files": [
+      "STATE.json",
+      "PARALLEL-RESUME-PACK.json",
+      "CURRENT-FINDINGS.md",
+      "publication-draft/README.md",
+      "publication-draft/publication-record.json",
+      "agents/fusion/F31-DRAFT-CP-INDEX-LENGTH-REVIEW.md",
+      "agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md",
+      "agents/diagnosis/recheck_engram_pair_product.py",
+      "agents/bounds/baseline-client-count-provisional.md",
+      "zcode/fusion-coverage-readonly-check.task.txt",
+      "zcode/fusion-coverage-readonly-check.zcode.json"
+    ],
+    "last_check_utc": "2026-10-29T19:29:09.813799+00:00"
+  },
+  "latest_f32_kv_only_tensor_comparison": {
+    "finding": "For F32 L36 under strict local Q/index consumer, row domain and semantic conditions, gathering only 512-wide KV rather than 5120-wide hidden yields 10% logical tensor size, whereas earlier 35% included Q_a and KV.",
+    "limits": "Single-rank observed shapes, hypothetical all-rank padding/row agreement and semantic equivalence; not physical network volume, proven gain or implemented optimization.",
+    "evidence": "agents/fusion/SP-GATHER-QKV-PROJECTION-BOUNDARY.md"
+  },
+  "latest_dataflow_report": {
+    "public_commit": "4f4ae46925f9a7e5863ceb66eee4105a4a5ea6c8",
+    "finding": "EP8 KV and MC2 data flows, sampled layer0 group comparison, and EP0 conditional quantization fusion boundary.",
+    "limitations": "No historical tensor identity, matched expert workload, or verified numeric NPU TPS ceiling.",
+    "zcode": "Read-only review timed out; no successful result."
+  },
+  "latest_overlap_and_int8_model": {
+    "finding": "EP8 four-task interval sum 641.0875 µs and union 330.934 µs; candidate INT8 3x5120x4608 25.6 µs profiled median compared against conditional 0.2 µs ideal and 1.0667 µs restricted models.",
+    "limitations": "Task overlap is not gain; bounds are conditional and not bound to real hardware/semantic constraints.",
+    "zcode": "deepseek-configured local ZCode independently checked arithmetic, exit 0; hardware assumptions unverified.",
+    "evidence": [
+      "agents/fusion/F08-EP8-PIPELINE-OVERLAP.md",
+      "agents/bounds/cold_gemm_bound.md",
+      "agents/fusion/F02-ATTENTION-HC-BRANCH-EARLY-READY.md"
+    ],
+    "public_commit": "84aaee3cf39ce373cda438a87bac49557c120fc9",
+    "next": "Investigate distinct saved evidence for actual viable data binding and mandatory resource work; do not repeat existing layer0 count search; proposed new collection requires authorization."
+  },
+  "latest_int8_exact_binding": {
+    "scope": "EP8 layer24 run2: model49 stream89 task1300; CSV and DB exact timestamp match, SHA checked",
+    "duration_us": 25.98,
+    "aic_mac_ratio": 0.112,
+    "aic_mte2_ratio": 0.614,
+    "aic_scalar_ratio": 0.441,
+    "limitation": "Single profiled task, no host/tensor/binary binding; PMU ratios cannot determine device utilization, bandwidth saturation or causal bottleneck.",
+    "evidence": [
+      "agents/diagnosis/non-mc2-priority-evidence.md",
+      "agents/diagnosis/ep8-int32-4608-exact.json",
+      "agents/diagnosis/query_ep8_int32_4608_exact.py"
+    ],
+    "public_commit": "f64b0a87267d7ae6b44d75533aae66501be6095e",
+    "zcode": "DeepSeek-configured local ZCode reviewed aggregated SparseFlashMla numbers, exit 0; not verification of exporter semantics.",
+    "next": "Look for distinct graph-node or source-binding evidence; do not repeat this connection-id query. Determine whether a different profiler record or task can narrow real resource bottleneck without new NPU."
+  },
+  "latest_matmul_1920_and_q_links": {
+    "finding": "Same physical-signature M3 INT8 matmul: 1920 records, median 25.600us, weighted MAC/MTE2/scalar 11.128%/61.438%/46.293%. EP3 L36 two Q quant/projection branches linked individually from host stack to device task.",
+    "limitations": "Profiling samples not independent; ratios may overlap, do not prove device utilization or bandwidth bottleneck; two quant inputs not tensor-bound.",
+    "zcode": "Requested bounded query through DeepSeek; timed out, GPT executed and cross-checked aggregate arithmetic.",
+    "evidence": [
+      "agents/diagnosis/non-mc2-priority-evidence.md",
+      "agents/diagnosis/matmul4608-counters.json",
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md",
+      "agents/bounds/ATTENTION-PROJECTION-EP8-MODEL.md"
+    ],
+    "public_commit": "7db664c48ffc074623a21c365c913c71124a7f5c",
+    "next": "Seek distinct additional evidence binding Q inputs and numerical semantics or another independent module bottleneck; avoid re-querying reused EP8 flow. New device collection requires authorization."
+  },
+  "latest_q_scatter_1920": {
+    "finding": "All 1920 selected windows show same-rank Q-shaped matmul and selected scatter interval intersection; median overlap 22.8295us and median paired union 53.559us.",
+    "limits": "Selected recorded intervals only; no proof of same tensor, event dependency, resource activity, critical path or obtainable gain.",
+    "evidence": [
+      "agents/fusion/F07-QB-ROTARY-STREAM-REVIEW.md",
+      "agents/fusion/q-scatter-16rank-overlap.json",
+      "agents/fusion/F05-F09-SHARED-QR-QUANT-REVIEW.md"
+    ],
+    "zcode": "Local DeepSeek configured ZCode independently checked chosen nine selected windows for a different INT32 matmul, exit 0; selected events only.",
+    "public_commit": "d5f7a29ef1777d528cbe10c30031c4edfbc65177",
+    "next": "Avoid repeated shape and overlap coverage; look for resource/causal identity or distinct operators; new NPU diagnostics require authorization."
+  },
+  "latest_scatter_rope_and_f12": {
+    "finding": "1920 selected windows show selected scatter ends 0.52–1.02us before pre-attention RoPE candidate; EP3 L36 QLI, index preparation and SparseFlashMla separately linked host stack→flow→device task.",
+    "limits": "No event/tensor identity or proof of waiting, same data edge, online critical path, or savings. QLI task example is heavily profiled.",
+    "zcode": "Local DeepSeek-configured ZCode verified prior nine window gap arithmetic; not a 1920-window causality proof.",
+    "evidence": [
+      "agents/fusion/F07-QB-ROTARY-STREAM-REVIEW.md",
+      "agents/fusion/q-scatter-rope-16rank.json",
+      "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md",
+      "agents/scheduler/RESOURCE-WINDOW-BOUND.md"
+    ],
+    "public_commit": "b42d114c87672e6bea1e424c3a06d29dc0d3f7db",
+    "next": "Seek independently distinguishing existing evidence for synchronization object or source binary; avoid repeated timing-only widening. New device capture requires authorization."
+  },
+  "latest_qli_28_scope_and_public_histograms": {
+    "finding": "28 same-triple-signature profiled scopes: QLI duration 5.072–5.743ms (median 5.149ms). Existing candidate mode/valid lengths unknown. Published anonymous separate marginal histograms of 1920 overlap and gap observations with verifier.",
+    "limits": "One intrusive capture; not identical workloads, online latency, causal bottleneck, raw-trace reproduction or proof of event/tensor identity.",
+    "evidence": [
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "agents/diagnosis/qli-target-scope-distribution.json",
+      "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md",
+      "agents/scheduler/RESOURCE-WINDOW-BOUND.md"
+    ],
+    "public_commit": "564dd79a76a0ca315c2c5c6e5c2cddf115c80f25",
+    "zcode": "DeepSeek-configured local ZCode extracted 24 selected EP3 task values, checked against CPU aggregation; not hardware or causal validation.",
+    "next": "Avoid repeating shape-only distributions; use independent saved metadata that could distinguish dynamic work or investigate other module. New NPU captures require authorization."
+  },
+  "latest_20261030_benchmark_and_pmu": {
+    "baseline": "519.844 is 16384 over sum of two disjoint AISBench windows; excludes seed, inter-round and full HTTP completion; first non-DONE SSE data chunk is not proven first token.",
+    "qli": "28 same-signature profiled QLI tasks: AIV vector field median 89.228%, range 79.746-90.081%; AIC MAC median 12.901%; noncausal export counters with unresolved semantics and missing AIC MTE3.",
+    "engram": "Saved UVA and device lookup sources map non-owned IDs to row 0 before expressed loads and write zeros; conditional masked-load candidate requires zero write, exact format and synchronization; actual binary and traffic unbound.",
+    "zcode": "Local DeepSeek source-order review documented in zcode/engram-invalid-index-read.zcode.json.",
+    "public_commit": "ce792a3087c174b830e35e6ebacdc7dfb9997a8d",
+    "next": "Seek independent comparison or defensible resource-bound evidence within existing saved data; do not launch NPU or modify implementation."
+  },
+  "latest_20261030_paired_and_warm_bound": {
+    "qli": "Four same-layer EP6/EP3 pairs: duration and AIV cycles each about 13% greater, cycles*vector_ratio arithmetic product about 0.25% greater; same workload and counter semantics unknown.",
+    "warm_bound": "Restricted warm raw-weight cut bound corrected for burst credit: T >= max(0,D-C-beta)/B. Initial data across the cut vs in-flight traffic must not be counted twice. No actual 169 numerical bound.",
+    "f27": "Conditional SP auxiliary states gather batching candidate; preserves output list, source snapshots, ordering, consumers and collective schedule. Three layers, SP and runtime identities not established; no claimed speedup.",
+    "zcode": "DeepSeek checked the conditional two-rank, one-token gather permutation example; not evidence of actual HCCL ordering.",
+    "public_commit": "62dfe1f0c9d51ebceaec6e92d6a1c293adad4221",
+    "next": "Examine existing target-level evidence for unknown live workload distribution or other independent module, and explore whether certified hardware capacity can be supported by exact SKU documentation without new device work."
+  },
+  "latest_20261030_dynamicquant_and_scatter": {
+    "paired_dynamicquant": "32 same-rank/layer pairs in two distinct profiled batches; physical 595 -> 1023 rows, duration ratios min/median/max 1.030/1.242/1.388. Effective work, tensor identity, overhead cause and speedup unknown.",
+    "f11": "Duplicate-slot abstract counterexample: separate key-only and scale-only scatter with independently chosen winners can produce mixed pairs even after both complete. Actual duplicate slots, allowed winners, binary and runtime unproven. Corrected earlier unconditional semantic assertion.",
+    "shared_bound": "For proven nonduplicated necessary read/write sharing the same cut, T >= (R_min+W_min-beta_shared)_+/B_shared; alternative independent directions use separate bounds. No actual device capacity or numeric TPS inferred.",
+    "zcode": "DeepSeek first misunderstood the two-buffer toy example; discarded, second constrained reply independently checked against four Cartesian combinations.",
+    "public_commit": "73d7e28a545cad4560b116050f51138b200314ad",
+    "next": "Seek new existing evidence for work, cross-module synchronization and resource identity; do not repeat same broad scans, do not start NPU work."
+  },
+  "latest_20261030_gate_chain_and_bound": {
+    "mc2_gate": "EP8–15 same-profile matched L14/L39: gate median 41.579/38.449 us, 4 L14 longer and 4 shorter; MC2 median 160377/8228 us; gate task duration cannot explain MC2 duration gap. Expert routing/effective work/trace perturbation unknown.",
+    "four_task": "32 paired profiles, physical row count 595 to 1023. Median time ratios DynamicQuant 1.242, GMM1-like 1.369, activation-like 1.422, GMM2-like 1.293; signatures and same-stream order matched, no tensor identity or same-work guarantee.",
+    "copy": "Assuming 167608320 required bytes on one shared cut within 37.0995us and zero burst, capacity must be >=4.517805 TB/s to be consistent; actual path, credit, timing and bandwidth unproven. Not a hardware measurement or fusion-universal bound.",
+    "f16": "Conditional BF16 rank partial rounding before reduce vs after reduce has counterexample; actual runtime and fused numerical semantics unbound. ZCode arithmetic independently checked.",
+    "public_commit": "6ac0da4b90dce60eb93ecfd4d338c9b9f9abbffc",
+    "next": "Pursue saved evidence for actual effective expert rows and source-to-consumer bindings, and validated device capability; new NPU collection needs separate authorization."
+  },
+  "latest_20261030_conditional_projection_model": {
+    "comparison": "32 paired existing profiled samples; with unproven full-row dense INT8, exact NZ mapping, P=24*1.8GHz*8192MAC/s and zero credit, G1 595/1023 model 39.667/68.200 us vs profiled medians 76.87/101.86 us; G2 19.833/34.100 us vs 58.58/76.10 us. Values not proven utilization, strict full-domain ceiling or speedup.",
+    "five_task": "Same profiled digest L36, paired EP3/EP6, exact shape/dtype/format/core/block; durations EP6/EP3 MC2 1.346, QLI 1.130, prepare 1.006, SMLA 0.990, activation 0.942; no comparable dynamic work guarantee or causal hardware conclusion.",
+    "gate_output": "Required third output shape does not prove payload written: saved source gates output write by outFlag in one branch, actual historical flag/backend unbound.",
+    "zcode": "DeepSeek crosschecked gated-output source schema and branches; GPT independently reviewed.",
+    "public_commit": "b00a9fa8edad1e2f097c973ad26eeadbd25ed1fc",
+    "next": "Determine whether actual profiler metadata and kernel object can bind effective rows, NZ semantics and computation paths; continue other independent sources if unavailable."
+  },
+  "latest_20261030_nz_and_rank_rows": {
+    "nz": "Official CANN 9.1 aclnnQuantMatmulWeightNz non-transpose shape rule exactly compatible with selected two FFN and two Q INT8 NZ tensors, transpose 9.1 shapes differ; history 9.2 parameters, API/tensor identity and hardware capacity not proven.",
+    "q_pair": "EP3 L36 host→flow selected Q and Indexer Q tasks each INT8 input, BF16 output, BF16 N and FLOAT M inputs; assuming full traditional dense MAC yields 42.908G vs 5.363G and 307.920 vs 50.860 us; not measured MAC or actual throughput.",
+    "f32": "Eight same-digest scope selection Q-like rows 7*1023 + 1019 = 8180; KV-like rows all 8180. Shape arithmetic does not prove same group, tensors, request, valid rows, padding. 9.1 HcclAllGather requires same sendCount and dtype; direct 512-column variable-sized gather is invalid under that version contract.",
+    "zcode": "F32 simple source check timed out; no result. CPU script verified aggregate and source SHA.",
+    "public_commit": "53b1fdfa0404d680ff80dd9143be397589754899",
+    "next": "Pursue direct history 9.2 runtime API and actual group/tensor binding in indexed existing artifacts; stop repeating exhausted metadata paths and switch module if missing."
+  },
+  "latest_20261030_draft_and_client_timing": {
+    "draft_metrics": "Unprofiled service snapshot deltas: drafts 1751/1746, proposed tokens 8755/8730, accepted 6447/6456. Acceptance 73.64%/73.95%, 3.682/3.698 per draft. Two engines aggregate; not accuracy, draft latency, per-request or guaranteed same time window.",
+    "diagnostic_client": "Baseline measure1 pre-JSON first SSE data 300.687–1097.571 ms; heavy profiler diagnostic JSON-parsed first nonempty data 6260.582–9617.801 ms. Different client, process, hook and potential cache/launch conditions; differences cannot isolate profiler overhead or be equated to server TTFT. Prompt-list fingerprint matches, 8/8 output reference matches; no validated client-to-device request binding.",
+    "nz_binding": "128/128 selected projection tasks uniquely match flow and exported device name aclnnQuantMatmulWeightNz and shape; historical 9.2 parameter/transpose/host API and capacity still unbound.",
+    "fusion_copy": "Existing selected EP8 projection, copy and reduce-scatter host/flow records named; tensor/storage, event object identity and producer-consumer dependencies remain unbound.",
+    "zcode": "TensorMove simple check timed out, no result; GPT checked source and evidence.",
+    "public_commit": "dc97e55fad26da5ec4876ceb087fe0d763e1df62",
+    "next": "Investigate evidence for actual effective rows and same-request device bindings via fresh existing sources, and independently bounded numerical capacity; retain profiler-related confounding."
+  },
+  "latest_20261030_same_stream_and_f22": {
+    "matched_mc2_l14_l39_ratio_range": [
+      19.343539528196676,
+      19.516081139471627
+    ],
+    "other_matched_signature_count": 17,
+    "other_pair_count": 136,
+    "other_ratio_range": [
+      0.794392523364486,
+      1.2857142857142858
+    ],
+    "sampled_host_binding": "One scope links shared-expert and routed-MC2 calls to named device tasks through unique flows; historical loaded source hash and tensor/storage identity unbound.",
+    "f08_rounding": "A conditional exact counterexample shows that deleting a BF16 intermediate rounding can alter the final BF16 values; it is not an observed historical error.",
+    "hardware_doc": "CANN 9.2 beta.1 documents A3 V220 unitFlag pipelining but listed L0C-to-L1 dtype constraints do not establish applicability to these sampled projections.",
+    "report": "GitHub analysis branch README and anonymous aggregation updated."
+  },
+  "latest_group_and_overlap_followup": {
+    "mc2_group_medians": "Across 40 selected layers per physical row count, higher EP group / lower EP group median ratio: 1023 rows 0.990-8.528 (33/40 > 1), 643 rows 1.174-10.331 (40/40 > 1); independent digests and unknown actual expert work.",
+    "conditional_routing": "Under same group total and per-rank identical affine nonnegative-intercept timing, short-layer selected share <= 5.1697%; a synthetic routing construction shows conservation does not exclude skew.",
+    "q_rope": "1920 matched samples scatter tail minus RoPE duration 4.899-14.940 us; existing source has auxiliary-stream join before RoPE, data readiness and clock binding unknown.",
+    "zcode": "Completed read-only review of F22 inventory. Output does not identify model, so no model verification claim."
+  },
+  "latest_scheduling_and_bounds_followup": {
+    "client_sse": "Profiler-free baseline two rounds: within-request SSE line gaps pooled p50 65.33/65.13 ms and p99 73.76/78.07 ms; not per-token TPOT; 8 requests per round.",
+    "mc2_intervals": "32 selected single-device ranges each with 40 MC2 intervals; same-stream selected other-task coverage of 39 gaps is 8.52-68.56%, all selected streams 11.34-97.05%; uncovered is not idle or waiting.",
+    "bounded_pipeline": "Fixed n equal blocks with serial load, compute, store and three independent single-capacity resources: exact makespan a+b+c+(n-1)*max(a,b,c); not a whole-engine bound when retiling or reuse are allowed.",
+    "joint_capacity": "A proven joint necessary constraint across alternative computation and transfer strategies can yield a time bound even if individual minima are zero; no 169 hard capacities or universal work constraint established.",
+    "report_correction": "Updated early F22 report paragraph to distinguish bound host call roles in one sample from unproven tensor edges."
+  },
+  "latest_hc_and_f22_followup": {
+    "hc_pairing": "2560 unique selected scopes, each with two HcPre or HcPost tasks matching exported signature and nonoverlapping traces; 1023-row HcPost paired median ratios 0.856 and 0.863. Different inputs/workload and profiler effects unknown.",
+    "f22_int8": "Under zero-init exact signed INT8 dot without intermediate scale, K 5120/2304 absolute partial sums <= 83886080/37748736, both below int32 max; any regrouping safe mathematically, actual kernel contract unbound.",
+    "f12_limited_recheck": "Reviewed 32 paired records, EP3 L36 host-flow bindings and source index preparation; tensor storage and event identities remain unbound; no new evidence changing prior conclusion.",
+    "zcode": "No new ZCode invocation this turn; prior invocation model identity not verified."
+  },
+  "latest_metadata_and_sqlite_followup": {
+    "f13_source": "Frozen non-packed compressed attention chooses operator metadata from long-KV and raw SWA indices/lengths from metadata.swa; separately prove readiness and compatibility when reorganizing; other stream/event ordering may already ensure readiness.",
+    "f22_scale": "CANN 8.5 describes BF16/FP32 weight scale in INT32 output combination and generic formula includes scale; historical API branch behavior and binary are not bound, cannot identify raw accumulator from output dtype alone.",
+    "hc_host_binding": "Attempt on existing EP0 736-51 database: both standard and immutable readonly SQLite queries returned disk I/O error. Header and size readable; no basis to conclude corruption or absence of host calls. Do not rerun the same query without evidence of environment change.",
+    "offline_status": "Other independent source analyses can continue; no NPU runs or inference code changes."
+  },
+  "latest_hc_other_tile_followup": {
+    "conditional_tail_model": "Under 16-row INT8 Mmad accounting, full dense arithmetic and assumed 24-core 1.8GHz 8192 MAC/cycle hard capacity, 595/1023 rows pad to 608/1024; model times 40.53,68.27,20.27,34.13 us. Actual tiling, valid work, capacity and historical instruction unknown.",
+    "f13_cache_keys": "Conditional query metadata builder uses swa key smla:c0 versus compressed long-KV smla:c1/c2; separate keys do not prove distinct tensors, work or missing synchronization.",
+    "hc_ep8_limited": "Other historical small-shape EP8 scope has two uniquely matched device HcPost tasks but the same connection ID is shared with HcPre, no matching CONNECTION_IDS and no PYTORCH_CALLCHAINS table in that library; cannot identify two host roles or explain 1023-row sample.",
+    "no_repeat": "No repeat of EP0 SQLite that failed, and no NPU workload."
+  },
+  "latest_client_qli_and_bound": {
+    "client_overlap": "For each of two no-profiler rounds, 8 client POST-start-to-last-recorded-SSE intervals overlap over 96.35%/92.13% of the corresponding measurement window; not server execution concurrency.",
+    "qli": "One digest, EP0-6, layer20 versus layer24/28/32/36: 28 same-device trace-duration ratios 2.5368-2.6758; INT32 candidate-shaped field appears as output then input, no tensor identity or mode binding. EP7 query rows differ.",
+    "combined_bound": "For the two-window metric, if universal per-window time lower bounds L1,L2 hold with actual allowed initial states, TPS <= 16384/(L1+L2); no proven real values for these bounds.",
+    "offline_only": true
+  },
+  "latest_qli_candidate_and_pmu_review": {
+    "source": "F12 frozen arch22, named index-K cache shared by layers 20/24/28/32/36 under static config and one context; later layers select with their own query; finite candidate penalty happens after MM1 result and scale, outside positions can remain valid for top-k fill; source callsite has no candidate-mask MM1 skip, upstream tiling not proved",
+    "measurement": "One digest, seven ranks, 28 later-layer/layer20 pairs: displayed-field product ratios AIC cycles*MAC ratio 0.99612/0.99999/1.00426; AIV cycles*vec ratio 2.45114/2.51422/2.56309 (min/median/max), not work or cause, CSV ratios three decimal and historical exporter unbound",
+    "zcode": "Local wrapper math-only counterexample; first assumes n>=2 contrary to prompt, later handles n=1; independently checked 5,-100,-100 top2 vs candidate-only. Provider exact model ID not independently logged.",
+    "limits": "No historical binary/mode/storage/effective candidate count or real task cause proved; no NPU workload or target code changes",
+    "evidence": [
+      "agents/fusion/F12-CROSS-LAYER-INDEX-PUBLICATION-REVIEW.md",
+      "agents/diagnosis/F08-ATTENTION-INTERVALS.md",
+      "zcode/qli-mask-counterexample-review.task.txt",
+      "zcode/qli-mask-counterexample-review.zcode.json"
+    ],
+    "github_commit": "b054131133a115fc83244e57f610b50a606e869b",
+    "time_utc": "2026-10-29T19:22:02.436441+00:00"
+  },
+  "latest_f31_engram_coverage_review": {
+    "coverage": "fusion-scan.json SHA256 33aeafa1c61e3dd5906ba602d91dd0b080816d30ddb5b8e6829bbd813673be6a: 12 templates x 6 categories, 72 unique records; 48 structurally scanned, 24 partial; all 72 semantic_proof_complete=false. G5 only rescans Engram/DSpark, cross G1 not merged.",
+    "fusion": "F31 candidate direct persistent-view writes for DSpark indices+lengths: existing output/buffer args cause fallback that still copies; async lifetime, concurrent readers, capture address, actual runtime binding unknown; 30840 logical bytes for example T=15,D=256, not actual HBM or gain.",
+    "module": "48 paired Engram-compatible BF16 matmuls, per-run median AIC cycles*MAC ratio products 1.000997/0.999371/0.999085, cycles*MTE2 ratio products 1.079754/1.062086/1.064860; 48/48 latter >1, not bytes, bottleneck or proof of same work.",
+    "bounds": "Subset-shared client capacity bound added only under independent proof of subset rate and exact SSE text interface; arbitrary subset cap not implied by single-stream and aggregate caps; no real hardware bandwidth certificate and not a numerical device TPS ceiling.",
+    "zcode": "Local direct DeepSeek-configured wrapper independently counted structural coverage; GPT recomputed counts and uniqueness. Exact backend model identifier not independently recorded.",
+    "evidence": [
+      "agents/fusion/F31-DRAFT-CP-INDEX-LENGTH-REVIEW.md",
+      "agents/diagnosis/ENGRAM-BOUNDARY-EVIDENCE.md",
+      "agents/diagnosis/recheck_engram_pair_product.py",
+      "agents/bounds/baseline-client-count-provisional.md",
+      "zcode/fusion-coverage-readonly-check.zcode.json"
+    ],
+    "github_commit": "2863fe9d918225f0f1d232bdf9e785aa740b17cc",
+    "time_utc": "2026-10-29T19:28:49.621135+00:00"
+  }
+}

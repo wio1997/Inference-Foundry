@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_fdb84d24-9574-4753-83da-36a2b66d7ff4",
+  "traceId": "5a532f2f-db7f-4478-a8d1-0dd399e52c02",
+  "turnId": "turn_20cbbf98-cee1-4c05-b9e1-498681335ad5",
+  "response": "冻结只读检查已完成，实际退出码为 **0**，所有核对项均符合预期，未发生任何启停、kill、推理或环境修改。\n\n**宿主机与固定身份**\n- 宿主机名匹配：`bm-jn-zs-zone1-910C-64G-10-105`\n- 基础容器 `wio-vllm-v41-repro166-20261030`：运行中，ID 与镜像均匹配，`RestartCount=0`，`docker top` 成功\n- Stage 容器 `wio-vllm-v41-repro166-stage-20261030`：运行中，ID 与镜像均匹配，`RestartCount=0`\n- 两容器均未发现 instrumentation/sitecustomize 诊断注入环境变量\n- `serve.sh` 的 SHA256 为 `c2972011…730b7bba`，与冻结期望值一致\n\n**健康与服务**\n- `GET /health`：200（0 字节）\n- `GET /v1/models`：200，模型 ID 为 `dsv41`\n- 本任务盘剩余空间约 54.50 TB（54,504,407,179,264 字节）\n\n**NPU 进程归属**\n- `npu-smi info` 进程表存在，枚举到 18 个 NPU PID\n- 这 18 个 PID 全部属于基础容器；`extra_npu_pids_outside_base` 为空，归属判定为 `true`（点-in-time 观测，仅覆盖本次检查时刻）\n\n**结果路径**\n- 远端结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/server-readonly-health-v11.json`\n- 本地执行回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/server-readonly-health166-v11.json`\n- 远端结果载荷 SHA256：`5e1bd9f02390caad053377657b6682ae8556cb6920f7f67a3c18ba08524847ec`",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 65513,
+    "outputTokens": 2812,
+    "totalTokens": 68325,
+    "cacheReadTokens": 53376,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2176,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 68325,
+    "contextUsed": 14535,
+    "contextWindow": 200000
+  }
+}

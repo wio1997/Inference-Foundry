@@ -1,0 +1,229 @@
+{
+  "id": "F25_CONDITIONAL_PARTITION_V180",
+  "original_graph_id": "G0_FIXED_SOURCE_PUBLIC_CONDITIONAL_V180",
+  "original_graph_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/graphs/G0-current-v180.json",
+  "original_graph_sha256": "e79b3df3ff21e45568d720feaeaa03f01af01ce72c339a2ae84d74837f742ee6",
+  "source_instance_ids": [],
+  "source_case_templates": [
+    "ENGRAM"
+  ],
+  "original_atom_union": [
+    "engram.projection",
+    "engram.gate_residual",
+    "engram.WKV",
+    "engram.key_rstd",
+    "state.WKV_output_memo"
+  ],
+  "original_specific_node_mapping": {
+    "proj": "proj",
+    "gate": "gate"
+  },
+  "nodes": [
+    {
+      "id": "F25/conditional_region",
+      "kind": "PROPOSED_FUSION_SPLIT_OR_REPARTITION_REGION",
+      "not_all_footprint_nodes_must_be_fused_simultaneously": true
+    },
+    {
+      "id": "ENGRAM_HISTORY_AND_LOOKUP",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "ENGRAM_HISTORY_AND_LOOKUP",
+        "modules": [
+          "M14",
+          "M21",
+          "M23",
+          "M24"
+        ],
+        "writer_ports": [
+          "hash slot-cache updates",
+          "INT8 code+FP32 scale lookup/dequant",
+          "mask publication"
+        ],
+        "reader_ports": [
+          "hash history",
+          "layer1/14 projection/gate",
+          "conditional DP/TP consumers"
+        ],
+        "identity_and_epoch": "request/slot/position/engram-layer/table version and original masks",
+        "conditional_fusion_split_or_reorder_answer": "lookup uses positive host-UVA NPU path; overlap flagFalse. Preserve rotated/unrotated and pre-rotation residual paths; table capacity is not traffic Inactivegate is originalhidden+0*value,not unconditional identity for NaN/Inf/signbit. Keep originalunrotated residual and fullHnorm/rounds when pruning key/dot branches.",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "MHC_COEFFICIENT_RESIDUAL_AUX",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "MHC_COEFFICIENT_RESIDUAL_AUX",
+        "modules": [
+          "M06",
+          "M14",
+          "M15",
+          "M18",
+          "M19",
+          "M24"
+        ],
+        "writer_ports": [
+          "attn/ffn pre and post",
+          "optional Engram residual modification"
+        ],
+        "reader_ports": [
+          "same-layer post/comb",
+          "next-layer pre_mix",
+          "saved target37/38/39 aux",
+          "terminal collapse",
+          "draft context"
+        ],
+        "identity_and_epoch": "layer,pre_mix generation,rounded residual value and original HC reduction domain",
+        "conditional_fusion_split_or_reorder_answer": "coefficient fork, residual, auxiliary means and terminal pre_mix are distinct uses; Engram breaks a direct residual shortcut",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "producer": "F25/conditional_region",
+      "consumer": "ENGRAM_HISTORY_AND_LOOKUP",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F25/conditional_region",
+      "consumer": "MHC_COEFFICIENT_RESIDUAL_AUX",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    }
+  ],
+  "original_node_mapping": [
+    {
+      "original_ref": "definition:ENGRAM/tokens",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/hash",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/lookup",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/ready",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/rows",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/proj",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/gate",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/residual",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/rows_collective_pad",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/mask_derive",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/mask_ready",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/hash_runtime_metadata",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/hash_slot_state",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/mapped_or_device_table",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/token_mask_rotation",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/gate_result",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/hash_indices_select",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/hash_gather",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:ENGRAM/hash_layer_select",
+      "proposed_region": "F25/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    }
+  ],
+  "allowed_transformations": "Existingfamily-specific variants and typed conditions in immutable candidate/semantic/cost records;region is a footprint,not proof that its union is oneinvocation or onelegal kernel.",
+  "specific_variant_authorities": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v179.json#F25",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v179/semantic-contract-sufficiency-review.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v174/all42-composition-coverage.json"
+  ],
+  "conditional_limits": {
+    "candidate": "F25",
+    "templates": [
+      "ENGRAM"
+    ],
+    "instance_ids": [],
+    "conditional_template_refs": [
+      "ENGRAM"
+    ],
+    "state_envelope_refs": [
+      "ENGRAM_HISTORY_AND_LOOKUP",
+      "MHC_COEFFICIENT_RESIDUAL_AUX"
+    ],
+    "conditional_native_legality_not_promoted": true
+  },
+  "implemented": false,
+  "performance_gain_measured": false
+}

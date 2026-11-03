@@ -1,0 +1,56 @@
+{
+  "N": 800,
+  "P": 816,
+  "E": 384,
+  "k": 6,
+  "original_TopK_reference_bytes": 1302144,
+  "integrated_prefix_plus_tail_reference_bytes": 1277488,
+  "integrated_reference_budget_bytes": 24656,
+  "native_prefix_plus_separate_assembly_reference_bytes": 1354288,
+  "separate_assembly_extra_bytes": 52144,
+  "original_logitsPad_plus_TopK_reference_bytes": 3784320,
+  "joint_no_logitsPad_prefix_plus_tail_reference_bytes": 1277488,
+  "joint_reference_budget_bytes": 2506832,
+  "joint_already_counted_direct_producer_valid_prefix_copy_budget_bytes": 2457600,
+  "joint_incremental_reference_over_that_budget_bytes": 49232,
+  "output_template_bytes": 48,
+  "full_fresh_output_bytes": 39168,
+  "padding_tail_output_bytes": 768,
+  "forty_layer_template_payload_bytes_per_rank": 1920,
+  "optional_shared_weight_payload_bytes_per_rank": 984,
+  "router_GEMM_padded_row_FLOPs_saved": 0,
+  "bias_reference": "Count two unique FLOAT bias planes once,3072B. Actual source loads both once per active program; no claim that unique-value references equal physical traffic.",
+  "boundary": "TopK input logits/IDs, unique biases, materialized weights/IDs and template reference only. Router GEMM/ID preparation, allocation, helper packing, launches/events, state publication and cache generation are excluded and must be priced.",
+  "partition_original": {
+    "rows": 816,
+    "available_programs": 48,
+    "active_programs": 48,
+    "per_program_rows": 17,
+    "last_program_rows": 17
+  },
+  "partition_prefix": {
+    "rows": 800,
+    "available_programs": 48,
+    "active_programs": 48,
+    "per_program_rows": 17,
+    "last_program_rows": 1
+  },
+  "fixed_row_loop_model": {
+    "longest_row_count_before": 17,
+    "longest_row_count_after": 17,
+    "last_program_valid_rows_before": 1,
+    "last_program_padding_rows_before": 16,
+    "last_program_rows_after": 1,
+    "claim": "Removing16 rows reduces total work but does not reduce the maximum17-row loop count with48 programs. This fixed homogeneous-row scheduling reference is not a universal latency lower bound or proof of no benefit."
+  },
+  "theory": {
+    "state": "SYMBOLIC_CEILING",
+    "legal_graph": "Constant padding removes any necessity for per-use nonlinear/sort on those rows if exact result reuse is permitted. Fresh full raw-output materialization remains in this domain.",
+    "bound": "For a declared legal graph and genuinely necessary resource work Q_r with capacity upper bounds C_r, T>=max_r(Q_r/C_r). Under a fresh dense raw-output store interface requiring every byte, Q_output_store>=8Pk; do not identify this with HBM without a hierarchy/initial-state proof.",
+    "numeric_Vector_Sort_Ln_Sqrt_store_bandwidth_capacity_known": false,
+    "request_time_lower_bound_ns": null,
+    "reference_bytes_are_proven_necessary_HBM": false
+  },
+  "actual_measured_speedup": null,
+  "overall_complete": false
+}

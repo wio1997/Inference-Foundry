@@ -1,0 +1,84 @@
+{
+  "scope": "EP8 L14 737-20, selected matched task intervals only",
+  "input_sha256": "0493115eb0a8c9191297f32ee4f845dc69d5d60ec09fce6deb96ec1faeb9a3c4",
+  "tasks": {
+    "norm": {
+      "stream": 35,
+      "task": 13274,
+      "flow_id": "1793241329134062817",
+      "name": "RmsNorm",
+      "start_us": "1793241329134062.817",
+      "duration_us": "35.9195",
+      "end_us": "1793241329134098.7365",
+      "input_shapes": "\"8180,512;512\"",
+      "input_dtypes": "DT_BF16;DT_BF16"
+    },
+    "rope": {
+      "stream": 35,
+      "task": 13275,
+      "flow_id": "1793241329134098777",
+      "name": "InplacePartialRotaryMul",
+      "start_us": "1793241329134098.777",
+      "duration_us": "36.839",
+      "end_us": "1793241329134135.616",
+      "input_shapes": "\"8180,1,1,512;8180,1,1,64;8180,1,1,64\"",
+      "input_dtypes": "DT_BF16;FLOAT;FLOAT"
+    },
+    "swa_scatter": {
+      "stream": 35,
+      "task": 13276,
+      "flow_id": "1793241329134135656",
+      "name": "aclnnScatterNdUpdateSk_ScatterNdUpdateSkAiCore_ScatterNdUpdateSk",
+      "start_us": "1793241329134135.656",
+      "duration_us": "258.095",
+      "end_us": "1793241329134393.751",
+      "input_shapes": "\"17314,128,512;8180,2;8180,512\"",
+      "input_dtypes": "DT_BF16;INT32;DT_BF16"
+    },
+    "q_b_candidate": {
+      "stream": 47,
+      "task": 44167,
+      "flow_id": "1793241329134064837",
+      "name": "aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "start_us": "1793241329134064.837",
+      "duration_us": "310.234",
+      "end_us": "1793241329134375.071",
+      "input_shapes": "\"1023,1280;1024,80,16,32;32768;1023\"",
+      "input_dtypes": "INT8;INT8;DT_BF16;FLOAT"
+    },
+    "indexer": {
+      "stream": 47,
+      "task": 44194,
+      "flow_id": "1793241329136169695",
+      "name": "VllmAscendQuantLightningIndexerV2",
+      "start_us": "1793241329136169.695",
+      "duration_us": "806.924",
+      "end_us": "1793241329136976.619",
+      "input_shapes": "\"1023,32,128;17314,64,1,128;1023,32;1023,32;17314,64,1;4;;;3;3;3,272;;1024;\"",
+      "input_dtypes": "INT8;INT8;FLOAT16;FLOAT16;FLOAT16;INT32;DT_UNDEFINED;DT_UNDEFINED;INT32;INT32;INT32;DT_UNDEFINED;INT32;DT_UNDEFINED"
+    },
+    "attention": {
+      "stream": 47,
+      "task": 44196,
+      "flow_id": "1793241329137197495",
+      "name": "SparseFlashMla",
+      "start_us": "1793241329137197.495",
+      "duration_us": "904.442",
+      "end_us": "1793241329138101.937",
+      "input_shapes": "\"1023,64,512;17314,128,1,512;17314,64,1,512;;1023,1,512;3,272;3,272;4;;;;3;3;3;;;64;1024\"",
+      "input_dtypes": "DT_BF16;DT_BF16;DT_BF16;DT_UNDEFINED;INT32;INT32;INT32;INT32;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;INT32;INT32;INT32;DT_UNDEFINED;DT_UNDEFINED;FLOAT;INT32"
+    }
+  },
+  "overlap_with_q_b_candidate_us": {
+    "norm": "33.8995",
+    "rope": "36.839",
+    "swa_scatter": "239.415"
+  },
+  "attention_start_minus_scatter_end_us": "2803.744",
+  "indexer_start_minus_scatter_end_us": "1775.944",
+  "limits": [
+    "Recorded intervals only; same scope and shape do not establish tensor identity or event edge.",
+    "The candidate Q_b task is compatible with source shape/order but not runtime-call bound.",
+    "Overlap does not show resource utilization, speedup, absence of waits, or effects in unprofiled runs."
+  ]
+}

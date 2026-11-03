@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_fb130703-c28d-460a-b2a3-1e99a7a8413e",
+  "traceId": "a5187e87-f65c-4e9b-bd3f-9e8e870bbebc",
+  "turnId": "turn_42e5fa4a-60f4-4dcd-a8ca-4eaa07f47fa9",
+  "response": "The recomputed result is **identical** to the saved file — not just semantically equal but byte-for-byte (1692 bytes each, zero structural diffs across the whole JSON tree).\n\n**How it was checked.** I ran `agents/diagnosis/recheck_engram_gap_matmul_decomposition.py` with plain `python3` from the run directory. It exited 0 with empty stderr, so its internal guards all held: the two input SHA-256 hashes matched, the boundary samples had no duplicate scopes, the pairwise file had exactly 48 rows with no duplicate `(rank, run)` pairs, and for each of the 96 selected events the MatMulV2 shape filter `\"3,6144;25600,6144\"` matched exactly one event whose duration, clipping state, and paired difference were all consistent. Then I compared `json.loads(stdout)` against the parsed saved JSON: 0 value/type/length differences, `==` true, and equal canonical dumps.\n\n**Scope.** 48 pairs total — 16 same-rank/profile-round pairs in each of runs 1, 2, 3 — each pair comparing the layer-boundary window at the start with the one after layer 13. The script's own label says these are descriptive rather than causal, and the event identity is \"same exported scope and shape-duration match, not tensor/source identity,\" so this validates the arithmetic and parsing, not any causal claim.\n\n**Residual ranges** (µs; residual = gap difference − MatMulV2 duration difference), per run:\n\n| Run | Pairs | First-gap-longer | Gap diff min / median / max | MatMul diff min / median / max | Residual min / median / max |\n|---|---|---|---|---|---|\n| 1 | 16 | 16/16 | 11.30 / 17.48 / 25.42 | 13.66 / 18.57 / 24.98 | −6.80 / 0.05 / 4.90 |\n| 2 | 16 | 16/16 | 7.40 / 20.03 / 29.32 | 11.74 / 19.24 / 28.20 | −6.02 / 0.62 / 4.14 |\n| 3 | 16 | 16/16 | 6.94 / 15.93 / 22.70 | 8.68 / 15.69 / 21.70 | −2.96 / 0.28 / 5.64 |\n\nThe gap difference is positive in all 48 of 48 pairs, and the residual stays within roughly ±7 µs with medians essentially at zero, i.e. the MatMulV2 duration difference accounts for nearly the whole gap difference in the median case while individual pairs scatter across zero.\n\nI wrote no files into the project and touched nothing else: the comparison ran in memory via stdin-fed Python, and two transient capture files I made under `/tmp` during the first run were deleted afterward. No network, no device code, no other directories inspected — the only files read were the script and result you named, plus the two input JSONs the script itself reads.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 63714,
+    "outputTokens": 2664,
+    "totalTokens": 66378,
+    "cacheReadTokens": 52736,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1545,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 66378,
+    "contextUsed": 13153,
+    "contextWindow": 200000
+  }
+}

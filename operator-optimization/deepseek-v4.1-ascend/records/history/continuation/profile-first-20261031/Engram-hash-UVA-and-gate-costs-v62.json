@@ -1,0 +1,350 @@
+{
+  "config": {
+    "layers": 2,
+    "ngram_lengths": [
+      2,
+      3,
+      4
+    ],
+    "hash_heads_each_length": 8,
+    "hash_IDs_per_layer": 24,
+    "TP": 8,
+    "local_heads": 3,
+    "width": 256,
+    "hc": 4,
+    "hidden": 5120,
+    "WKV_input": 6144,
+    "WKV_output": 25600,
+    "rotation_block": 32
+  },
+  "hash_model": {
+    "rolling_updates": "8T INT64mul/XOR pairs across2layers",
+    "remainders": "48T INT64 % prime",
+    "output": "192T INT32bytes",
+    "request_search": "Alreadyoncepertoken,separatekernel;backendabortreasonexplicitlydocumentedifmergedwithhash. Boundbyrequestcount/whileiterations,notBF16TFLOPS.",
+    "history": "Two layerprogramsrepeatresolution. Sharedhistoryprogramconditionalonregisters/parallelism;hashremaining48Tmods unchanged.",
+    "request_intermediate": "4Twrite+8Tread=12Tbytes iflaterelided;compilerbarriermeansnotfreedropin.",
+    "cachewrite": "4VvalidINT32slotswrite plusrawID/map/dead/slotreads underactualstrides. Cachewritebeforehash maynotreorderwithoutphysicalfallback-slotdisjointness.",
+    "remainder_specialization": "Registeredprime/offsetgenerationfixed:exactintegerreciprocal/mulhi/correction canbestudied; proveTLsignedremainder+64bitwrapoverflow. Runtimeprimedescriptordoesnotattestcompileconstant.",
+    "low32_counterexample": {
+      "prime": 16000003,
+      "a": 1,
+      "b": 4294967297,
+      "a_mod": 1,
+      "b_mod": 6966493
+    }
+  },
+  "lookup_model": {
+    "formats": {
+      "BF16": {
+        "code_bytes": 512,
+        "scale_bytes": 0
+      },
+      "INT8_GROUP32": {
+        "code_bytes": 256,
+        "unique_scale_bytes": 32
+      },
+      "MXFP8_GROUP32": {
+        "code_bytes": 256,
+        "unique_scale_bytes": 8
+      }
+    },
+    "format_constexpr_not_attested": true,
+    "host_vs_device": "Hostmappedcode/scalerows pricedbyB_UVAunknown; IDs/pointertables/BF16outputdeviceIOseparate. No1.6TB/sHBMpricingofhosttables.",
+    "int8_scale_broadcast": "256logicalFP32scalerefs→8grouprefs perrow; unique32Bpayloadsame. ExistingMXFP8already8groups; nofake992Bwiregain.",
+    "owned_false": "Kernelusesrow0fallbackloads beforezerooutput. Maskloadscanconditionallyskipfallbackwhen!owned,butmustfullwritezero. DEAD_IDhashrows canstillowned/padhashed;deadmasknotownership.",
+    "row_cache": "ForA_ownedrequestsandUdistinctownedIDs,minimumhostpayload288U vs288A forINT8underimmutableversion. Actualduplicate/hitrateunknown;BF16decodedcache512B/entry vsencoded288B. Head/shard/table/scalegenerationandcollectiveparticipationpreserved.",
+    "full_write": "LOCAL_HEADS=PAD_HEADS=3,all256outputcolumnsownedvaluesorzeros:176lookup-localprezerosconditionallyremovable. Dummybankandmasktailzerosnotcovered."
+  },
+  "parameter_prep": {
+    "per_body_qk_cast_mul_tasks": 3,
+    "bodies": 208,
+    "total_tasks": 624,
+    "one_body_logical_value_IO_bytes": 491520,
+    "cached_product_bytes": 81920,
+    "rotation_cast_tasks": 208,
+    "rotation_cast_one_body_IO_bytes": 6144,
+    "cached_rotation_bytes": 4096,
+    "scope": "Onceperparameterdevice/dtype/versionpreparation;notacrosshiddenactivationlayers. Existingnativeprep13.24usmedianisonlyexposure,notcriticalpathgain."
+  },
+  "gate_models": [
+    {
+      "local_tokens": 2,
+      "WKV_ops_2perMAC": 629145600,
+      "WKV_BF16_weights_bytes": 314572800,
+      "WKV_one_read_write_value_bytes": 314699776,
+      "WKV_reference_compute_us": 1.6732595744680852,
+      "WKV_cold_value_io_us": 196.68735999999998,
+      "WKV_conditional_reference_floor_us": 196.68735999999998,
+      "rotation_M": 1280,
+      "rotation_K": 32,
+      "rotation_N": 32,
+      "rotation_ops_2perMAC": 2621440,
+      "FLOAT_execution_mode_and_capacity_unbound": true,
+      "gate_ordinary_ops_excluding_rotation": 368672,
+      "gate_special_elements": {
+        "rsqrt": 16,
+        "sqrt": 8,
+        "sigmoid": 8,
+        "abs_clamp_sign_select_each": 8
+      },
+      "gate_ideal_prepared_parameter_IO_bytes": 352258,
+      "gate_two_pass_shared_value_IO_bytes": 434242,
+      "gate_two_pass_repeated_value_IO_bytes": 495682,
+      "WKV_gate_BF16_interface_budget_bytes": 204800,
+      "gate_final_copy_interface_budget_bytes": 163840
+    },
+    {
+      "local_tokens": 3,
+      "WKV_ops_2perMAC": 943718400,
+      "WKV_BF16_weights_bytes": 314572800,
+      "WKV_one_read_write_value_bytes": 314763264,
+      "WKV_reference_compute_us": 2.5098893617021276,
+      "WKV_cold_value_io_us": 196.72704000000002,
+      "WKV_conditional_reference_floor_us": 196.72704000000002,
+      "rotation_M": 1920,
+      "rotation_K": 32,
+      "rotation_N": 32,
+      "rotation_ops_2perMAC": 3932160,
+      "FLOAT_execution_mode_and_capacity_unbound": true,
+      "gate_ordinary_ops_excluding_rotation": 553008,
+      "gate_special_elements": {
+        "rsqrt": 24,
+        "sqrt": 12,
+        "sigmoid": 12,
+        "abs_clamp_sign_select_each": 12
+      },
+      "gate_ideal_prepared_parameter_IO_bytes": 485379,
+      "gate_two_pass_shared_value_IO_bytes": 608355,
+      "gate_two_pass_repeated_value_IO_bytes": 700515,
+      "WKV_gate_BF16_interface_budget_bytes": 307200,
+      "gate_final_copy_interface_budget_bytes": 245760
+    },
+    {
+      "local_tokens": 800,
+      "WKV_ops_2perMAC": 251658240000,
+      "WKV_BF16_weights_bytes": 314572800,
+      "WKV_one_read_write_value_bytes": 365363200,
+      "WKV_reference_compute_us": 669.303829787234,
+      "WKV_cold_value_io_us": 228.352,
+      "WKV_conditional_reference_floor_us": 669.303829787234,
+      "rotation_M": 512000,
+      "rotation_K": 32,
+      "rotation_N": 32,
+      "rotation_ops_2perMAC": 1048576000,
+      "FLOAT_execution_mode_and_capacity_unbound": true,
+      "gate_ordinary_ops_excluding_rotation": 147468800,
+      "gate_special_elements": {
+        "rsqrt": 6400,
+        "sqrt": 3200,
+        "sigmoid": 3200,
+        "abs_clamp_sign_select_each": 3200
+      },
+      "gate_ideal_prepared_parameter_IO_bytes": 106582816,
+      "gate_two_pass_shared_value_IO_bytes": 139376416,
+      "gate_two_pass_repeated_value_IO_bytes": 163952416,
+      "WKV_gate_BF16_interface_budget_bytes": 81920000,
+      "gate_final_copy_interface_budget_bytes": 65536000
+    },
+    {
+      "local_tokens": 816,
+      "WKV_ops_2perMAC": 256691404800,
+      "WKV_BF16_weights_bytes": 314572800,
+      "WKV_one_read_write_value_bytes": 366379008,
+      "WKV_reference_compute_us": 682.6899063829787,
+      "WKV_cold_value_io_us": 228.98688,
+      "WKV_conditional_reference_floor_us": 682.6899063829787,
+      "rotation_M": 522240,
+      "rotation_K": 32,
+      "rotation_N": 32,
+      "rotation_ops_2perMAC": 1069547520,
+      "FLOAT_execution_mode_and_capacity_unbound": true,
+      "gate_ordinary_ops_excluding_rotation": 150418176,
+      "gate_special_elements": {
+        "rsqrt": 6528,
+        "sqrt": 3264,
+        "sigmoid": 3264,
+        "abs_clamp_sign_select_each": 3264
+      },
+      "gate_ideal_prepared_parameter_IO_bytes": 108712752,
+      "gate_two_pass_shared_value_IO_bytes": 142162224,
+      "gate_two_pass_repeated_value_IO_bytes": 167229744,
+      "WKV_gate_BF16_interface_budget_bytes": 83558400,
+      "gate_final_copy_interface_budget_bytes": 66846720
+    },
+    {
+      "local_tokens": 830,
+      "WKV_ops_2perMAC": 261095424000,
+      "WKV_BF16_weights_bytes": 314572800,
+      "WKV_one_read_write_value_bytes": 367267840,
+      "WKV_reference_compute_us": 694.4027234042553,
+      "WKV_cold_value_io_us": 229.54240000000001,
+      "WKV_conditional_reference_floor_us": 694.4027234042553,
+      "rotation_M": 531200,
+      "rotation_K": 32,
+      "rotation_N": 32,
+      "rotation_ops_2perMAC": 1087897600,
+      "FLOAT_execution_mode_and_capacity_unbound": true,
+      "gate_ordinary_ops_excluding_rotation": 152998880,
+      "gate_special_elements": {
+        "rsqrt": 6640,
+        "sqrt": 3320,
+        "sigmoid": 3320,
+        "abs_clamp_sign_select_each": 3320
+      },
+      "gate_ideal_prepared_parameter_IO_bytes": 110576446,
+      "gate_two_pass_shared_value_IO_bytes": 144599806,
+      "gate_two_pass_repeated_value_IO_bytes": 170097406,
+      "WKV_gate_BF16_interface_budget_bytes": 84992000,
+      "gate_final_copy_interface_budget_bytes": 67993600
+    },
+    {
+      "local_tokens": 834,
+      "WKV_ops_2perMAC": 262353715200,
+      "WKV_BF16_weights_bytes": 314572800,
+      "WKV_one_read_write_value_bytes": 367521792,
+      "WKV_reference_compute_us": 697.7492425531915,
+      "WKV_cold_value_io_us": 229.70112,
+      "WKV_conditional_reference_floor_us": 697.7492425531915,
+      "rotation_M": 533760,
+      "rotation_K": 32,
+      "rotation_N": 32,
+      "rotation_ops_2perMAC": 1093140480,
+      "FLOAT_execution_mode_and_capacity_unbound": true,
+      "gate_ordinary_ops_excluding_rotation": 153736224,
+      "gate_special_elements": {
+        "rsqrt": 6672,
+        "sqrt": 3336,
+        "sigmoid": 3336,
+        "abs_clamp_sign_select_each": 3336
+      },
+      "gate_ideal_prepared_parameter_IO_bytes": 111108930,
+      "gate_two_pass_shared_value_IO_bytes": 145296258,
+      "gate_two_pass_repeated_value_IO_bytes": 170916738,
+      "WKV_gate_BF16_interface_budget_bytes": 85401600,
+      "gate_final_copy_interface_budget_bytes": 68321280
+    }
+  ],
+  "hash_lookup_partition_models": [
+    {
+      "global_tokens": 24,
+      "local_head_rows": 72,
+      "hash_INT64_mul_and_XOR_updates": 192,
+      "hash_INT64_remainders": 1152,
+      "hash_output_INT32_bytes": 4608,
+      "request_ID_intermediate_write_plus_two_layer_reads_bytes": 288,
+      "lookup_format_payloads_per_layer": {
+        "BF16_host_unique_payload_bytes": 36864,
+        "INT8_host_unique_payload_bytes": 20736,
+        "MXFP8_host_unique_payload_bytes": 19008
+      },
+      "lookup_INT8_repeated_logical_FP32_scale_refs": 18432,
+      "lookup_INT8_group_unique_scale_refs": 576,
+      "lookup_INT8_unique_scale_payload_bytes": 2304,
+      "lookup_device_BF16_full_output_bytes": 36864,
+      "lookup_prezero_write_budget_bytes": 36864,
+      "lookup_owned_false_load_elision_benefit_unbound": true,
+      "TP_full_head_global_content_per_rank_bytes": 294912,
+      "TP_head_to_row_exchange_content_per_rank_bytes": 36864,
+      "content_ratio": 8,
+      "TP_transpose_materialized_read_write_bytes": 589824,
+      "global_bank_copy_materialized_read_write_bytes": 589824,
+      "SP_clone_materialized_read_write_bytes": 73728,
+      "partition_partial_WKV_FP32_plane_bytes": 2457600,
+      "partition_partial_plane_to_head_row_input_content_ratio": 66.66666666666667
+    },
+    {
+      "global_tokens": 6400,
+      "local_head_rows": 19200,
+      "hash_INT64_mul_and_XOR_updates": 51200,
+      "hash_INT64_remainders": 307200,
+      "hash_output_INT32_bytes": 1228800,
+      "request_ID_intermediate_write_plus_two_layer_reads_bytes": 76800,
+      "lookup_format_payloads_per_layer": {
+        "BF16_host_unique_payload_bytes": 9830400,
+        "INT8_host_unique_payload_bytes": 5529600,
+        "MXFP8_host_unique_payload_bytes": 5068800
+      },
+      "lookup_INT8_repeated_logical_FP32_scale_refs": 4915200,
+      "lookup_INT8_group_unique_scale_refs": 153600,
+      "lookup_INT8_unique_scale_payload_bytes": 614400,
+      "lookup_device_BF16_full_output_bytes": 9830400,
+      "lookup_prezero_write_budget_bytes": 9830400,
+      "lookup_owned_false_load_elision_benefit_unbound": true,
+      "TP_full_head_global_content_per_rank_bytes": 78643200,
+      "TP_head_to_row_exchange_content_per_rank_bytes": 9830400,
+      "content_ratio": 8,
+      "TP_transpose_materialized_read_write_bytes": 157286400,
+      "global_bank_copy_materialized_read_write_bytes": 157286400,
+      "SP_clone_materialized_read_write_bytes": 19660800,
+      "partition_partial_WKV_FP32_plane_bytes": 655360000,
+      "partition_partial_plane_to_head_row_input_content_ratio": 66.66666666666667
+    },
+    {
+      "global_tokens": 6528,
+      "local_head_rows": 19584,
+      "hash_INT64_mul_and_XOR_updates": 52224,
+      "hash_INT64_remainders": 313344,
+      "hash_output_INT32_bytes": 1253376,
+      "request_ID_intermediate_write_plus_two_layer_reads_bytes": 78336,
+      "lookup_format_payloads_per_layer": {
+        "BF16_host_unique_payload_bytes": 10027008,
+        "INT8_host_unique_payload_bytes": 5640192,
+        "MXFP8_host_unique_payload_bytes": 5170176
+      },
+      "lookup_INT8_repeated_logical_FP32_scale_refs": 5013504,
+      "lookup_INT8_group_unique_scale_refs": 156672,
+      "lookup_INT8_unique_scale_payload_bytes": 626688,
+      "lookup_device_BF16_full_output_bytes": 10027008,
+      "lookup_prezero_write_budget_bytes": 10027008,
+      "lookup_owned_false_load_elision_benefit_unbound": true,
+      "TP_full_head_global_content_per_rank_bytes": 80216064,
+      "TP_head_to_row_exchange_content_per_rank_bytes": 10027008,
+      "content_ratio": 8,
+      "TP_transpose_materialized_read_write_bytes": 160432128,
+      "global_bank_copy_materialized_read_write_bytes": 160432128,
+      "SP_clone_materialized_read_write_bytes": 20054016,
+      "partition_partial_WKV_FP32_plane_bytes": 668467200,
+      "partition_partial_plane_to_head_row_input_content_ratio": 66.66666666666667
+    },
+    {
+      "global_tokens": 6672,
+      "local_head_rows": 20016,
+      "hash_INT64_mul_and_XOR_updates": 53376,
+      "hash_INT64_remainders": 320256,
+      "hash_output_INT32_bytes": 1281024,
+      "request_ID_intermediate_write_plus_two_layer_reads_bytes": 80064,
+      "lookup_format_payloads_per_layer": {
+        "BF16_host_unique_payload_bytes": 10248192,
+        "INT8_host_unique_payload_bytes": 5764608,
+        "MXFP8_host_unique_payload_bytes": 5284224
+      },
+      "lookup_INT8_repeated_logical_FP32_scale_refs": 5124096,
+      "lookup_INT8_group_unique_scale_refs": 160128,
+      "lookup_INT8_unique_scale_payload_bytes": 640512,
+      "lookup_device_BF16_full_output_bytes": 10248192,
+      "lookup_prezero_write_budget_bytes": 10248192,
+      "lookup_owned_false_load_elision_benefit_unbound": true,
+      "TP_full_head_global_content_per_rank_bytes": 81985536,
+      "TP_head_to_row_exchange_content_per_rank_bytes": 10248192,
+      "content_ratio": 8,
+      "TP_transpose_materialized_read_write_bytes": 163971072,
+      "global_bank_copy_materialized_read_write_bytes": 163971072,
+      "SP_clone_materialized_read_write_bytes": 20496384,
+      "partition_partial_WKV_FP32_plane_bytes": 683212800,
+      "partition_partial_plane_to_head_row_input_content_ratio": 66.66666666666667
+    }
+  ],
+  "partition_contract": "HeadshardedpartialWKV(global8Tlocal,Klocal768,N25600)hasunchangedpercardFLOPs comparedlocalrows/fullK. Weight314.5728MB→39.3216MB,partialFP32plane4Tglobal*25600 addsreduction/comm;ratio200/3vshead→rowinputcontent,notoldfullAllGather. BF16baselineWKVroundandreductionorderchange mustvalidate.",
+  "gate_IO_contract": "Idealonevaluepassrequiresonchipcapacityforrotation+Hwide2norm/dotbarrier+residualandsharedV. 2passmodelsaddcoeff4Thwrite/readandhiddenreread; allarelogicalvaluemodelsnotmeasuredHBM. WKVfusedinterfacebudgetsnonadditivewithgatecopy/layoutbudgets.",
+  "numerical_contract": [
+    "WKV isalreadycombined4keys+1sharedvalue;keepBF16projectedboundarybeforekeynorm/dot.",
+    "Rotationapplieshiddenforgate;residualusesoriginalhidden. Block32FLOATnotdense5120,HF32/fullFP32activepolicyunbound. Noorthogonalitycancellationofnormassumed.",
+    "Gate2RMSoverfullH,weightedFP32dot,eps,clamp1e-6,sqrt,signbit(-0),sigmoid,mask,FP32g*V+BF16residualthenBF16round. NoFMA/reassociationclaimedexactwithouttolerance.",
+    "Deadmaskgate=0 doesnotpermitreturnhiddenforNaN/Inf/signedzero. 0*Inf=NaN;valuefanouttoall4HCstreamsremains.",
+    "Globalfixedbankpublication,TPtranspose/clone/sourceviewaliases/paddingandreadyallreadersneededforcopyelision. DPexchangealreadyfeedsbothlayers. Empty/localdeadcannotunilaterallyskipcollectives.",
+    "Rotatedcurrentprofileordinarygate208bodies distinctfromsourceunrotatedhardwarefusedbranch,CPU/deviceint8/TP1/slotless/dummy/validcountguardfamilies;conditionalcontractslisted,wholemoduleopen."
+  ],
+  "roofline": "Tref>=max(Qhost/B_UVA,Qdevice_HBM/B_HBM,Q_L2/B_L2,Ftyped/Ptyped,Nmod/P_INT64mod,Nspecial/Pspecial,dependencies). Sharedresources/countsaddnotfreelymaxallstages; absenttypednumericcapacitystaysparameter.",
+  "overall_complete": false
+}

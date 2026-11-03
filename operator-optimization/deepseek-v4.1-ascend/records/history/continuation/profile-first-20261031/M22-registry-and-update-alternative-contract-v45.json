@@ -1,0 +1,62 @@
+{
+  "generated_utc": "2026-10-31T13:06:42.810192+00:00",
+  "facts": [
+    {
+      "grade": "DOCUMENTED",
+      "statement": "GraphParams stores four maps keyed by num_tokens: events,workspaces,handles,attn_params. Main,draft,draft-prefill are three separate global namespaces and one-time setters; same integer token key does not identify a complete captured task/parameter/bank generation."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Initializer creates Python maps and per-key empty lists; workspace starts None. It does not allocate a Tensor workspace or native event/handle object here. Distinct registry/list objects do not prove distinct physical backing memory or native-handle epochs."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Each workspace updater is a no-op while its registry is None, else assigns workspaces[num_tokens] with no membership/whole-bucket initialization check. It may add a workspace-only key. Workspace-key presence alone is not graph/event/handle/parameter readiness."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "weak_ref_workspaces iterates actual workspace keys, skips None, and replaces only workspace references through weak_ref_tensors. It does not clear/convert events,handles,attention tuples, nor prove underlying allocation dead or removable device-copy work."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Legacy update helper returns immediately for use_updatable_graph backend. Otherwise get_impl_cls is resolved inside current-vllm-config context and receives update_stream,forward_context,num_tokens,vllm_config,speculative_config,draft_attn_metadatas. Hoisting dispatch needs config/backend/owner/purity proof; no current hot-path cost is measured."
+    },
+    {
+      "grade": "DERIVED_WITH_SOURCE_CONDITIONS",
+      "statement": "For one active ordinary FULL wrapper with same stable backend/predicate as runner helper, updatable graph update and backend-impl update are mutually exclusive. They are alternatives, not two independent updates whose costs can be added."
+    },
+    {
+      "grade": "DERIVED_WITH_SOURCE_CONDITIONS",
+      "statement": "For one runner/ordinary-wrapper pair with the same ENPU boolean passed during construction, wrapper stream synchronize requires not ENPU; runner generic-helper synchronize requires ENPU. At most one of these explicit barriers is selected. This is not a statement about all nested wrappers,backend/native barriers or actual observed wait time."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Attribute proxy delegates current runnable or raises AttributeError, with DEBUG affecting message only. Error recognizers only classify RuntimeError text; no actual HDK/stream failure or hardware recommendation is inferred."
+    }
+  ],
+  "sources": [
+    "M22-registry-workspace-point-source-v45.json",
+    "M22-capture-replay-input-output-and-update-contract-v44.json",
+    "M22-runner-update-and-enpu-binding-point-source-v44.json"
+  ],
+  "actual_registry_snapshots_available": false,
+  "actual_workspace_pointers_available": false,
+  "actual_event_handle_generations_available": false,
+  "actual_ENPU_or_backend_bound": false,
+  "not_new_gains": [
+    "Python registry/list initialization as GPU memory allocation",
+    "weak references as Tensor copies/zeroes",
+    "mutually exclusive update paths as additive native work",
+    "alternative wrapper/runner barriers as two removable waits"
+  ],
+  "retained": [
+    "Actual bucket+namespace+graph/task/layer/event/handle/workspace binding and every owner/readiness/retirement epoch.",
+    "Native backend update implementation/epoch semantics,live ENPU/backend/mode where decisive.",
+    "16phase-unbound graphs,worker adjacent scope,resource/fullprocess/global26 coverage."
+  ],
+  "implementation": false,
+  "native_validation": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

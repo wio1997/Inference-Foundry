@@ -1,0 +1,220 @@
+{
+  "generated_utc": "2026-10-31T15:11:59.183837+00:00",
+  "evidence": [
+    "F21-postload-adaptor-entry-source-v50.json",
+    "F21-postload-updater-transfer-source-v50.json",
+    "EP-mapping-and-weight-contract-v19.json",
+    "F21-interface-branch-ledger-v19.json"
+  ],
+  "dependency_scope": "Adaptor/updator/D2Dloader are local-reference hashes only;current166identity/instances notattested.",
+  "plane_registry": [
+    {
+      "quant_type": "NONE",
+      "fused_mc2": false,
+      "planes": [
+        "w13_weight",
+        "w2_weight"
+      ]
+    },
+    {
+      "quant_type": "NONE",
+      "fused_mc2": true,
+      "planes": [
+        "w13_weight_list",
+        "w2_weight_list"
+      ]
+    },
+    {
+      "quant_type": "W8A8",
+      "fused_mc2": false,
+      "planes": [
+        "w13_weight_list",
+        "w2_weight_list",
+        "w13_weight_scale_fp32_list",
+        "w2_weight_scale_list"
+      ]
+    },
+    {
+      "quant_type": "W8A8",
+      "fused_mc2": true,
+      "planes": [
+        "w13_weight_list",
+        "w2_weight_list",
+        "w13_weight_scale_fp32_list",
+        "w2_weight_scale_list",
+        "fused_w1_scale_list",
+        "fused_w2_scale_list"
+      ]
+    },
+    {
+      "quant_type": "W4A8",
+      "fused_mc2": true,
+      "planes": [
+        "w13_weight_list",
+        "w2_weight_list",
+        "w13_weight_scale_list",
+        "w2_weight_scale_list",
+        "w13_scale_bias_list",
+        "w2_scale_bias_list"
+      ]
+    },
+    {
+      "quant_type": "W4A8",
+      "fused_mc2": false,
+      "planes": [
+        "w13_weight_list",
+        "w2_weight_list",
+        "w13_weight_scale_list",
+        "w2_weight_scale_list",
+        "w13_scale_bias_list",
+        "w2_scale_bias_list"
+      ]
+    },
+    {
+      "quant_type": "W4A4MXFP",
+      "fused_mc2": false,
+      "planes": [
+        "w13_weight",
+        "w2_weight",
+        "w13_weight_scale",
+        "w2_weight_scale"
+      ]
+    },
+    {
+      "quant_type": "W4A4MXFP",
+      "fused_mc2": true,
+      "planes": [
+        "w13_weight",
+        "w2_weight",
+        "w13_weight_scale",
+        "w2_weight_scale"
+      ]
+    },
+    {
+      "quant_type": "W8A8MXFP",
+      "fused_mc2": false,
+      "planes": [
+        "w13_weight",
+        "w2_weight",
+        "w13_weight_scale",
+        "w2_weight_scale"
+      ]
+    },
+    {
+      "quant_type": "W8A8MXFP",
+      "fused_mc2": true,
+      "planes": [
+        "w13_weight",
+        "w2_weight",
+        "w13_weight_scale",
+        "w2_weight_scale"
+      ]
+    }
+  ],
+  "W8A8_fused_MC2_named_planes": [
+    "w13_weight_list",
+    "w2_weight_list",
+    "w13_weight_scale_fp32_list",
+    "w2_weight_scale_list",
+    "fused_w1_scale_list",
+    "fused_w2_scale_list"
+  ],
+  "buffer_model": {
+    "allocation_rule": "C=firstrealMoElayerlocalcapacity;for each distinct(quant_type,MC2==1)key allocateCbuffer tuples,oneempty_likeper namedplane. Reused acrosslayerswiththesamekeyonlyafterequal per-expertshapes assert.",
+    "logical_bytes_expression": "C * sum_over_distinct_keys(sum_over_named_planes(logical_bytes(single_expert_plane)))",
+    "not_multiplied_by_layer_count": true,
+    "exclusions": [
+      "Not a physicalmemory/nzpadding/allocator bound;residentnamedplanesmayaliasandneedseparatestorageaccounting.",
+      "Pipeliningtwo updates thatuseonesharedbankrequiresnewbankcapacityorlast-useordering;layer-independentbufferreuseisnotprovenfreeoverlap.",
+      "No actualC/shape/storage/occupancy values recovered by this review."
+    ]
+  },
+  "source_update_protocol": [
+    "WAITINGacceptstask;sendviewslookupoldCPUmap,receivesuseper-keybuffers;otherstatesrejectnewtask.",
+    "READYpostsbatchP2Pifnonempty,thenTRANSFERRINGevenforemptytasklist.",
+    "TRANSFERRINGcallsreq.waitforpostedrequests;thenCPUmapcopy,log2phycopy,per-receivedexpertpayloadcopies;finallyclearsandsetsWAITING.",
+    "Hostmethodreturn/stateWAITINGaloneisnotan independently attested native completion barrier for another stream/captured reader."
+  ],
+  "iteration_protocol": {
+    "heat": "H=expert_heat_collection_interval",
+    "algorithm": "A=algorithm_execution_interval",
+    "layers": "L=num_moe_layers",
+    "trigger": "iteration==H-1",
+    "get_update_info": "iteration==H+A-1",
+    "update_window": "0<=iteration-(H+A)<L",
+    "commit_guard": "forward_end commits only when update_flag and expert_map_record_path is None",
+    "next_counter": "increment at end when iteration>=H-1 or heat_collection_status;reset exactly atH+A+L",
+    "actual_H_A_L_or_flags": "UNKNOWN;no observedEPLBepochjoin"
+  },
+  "lifetime_conditions": [
+    "Every logicalexpert assignment must use one coherent generation of weights,FP scales,packed scales and anyotherliveexpertattributes;the six-fieldregistryisnotall-backend/adapterconsumerclosure.",
+    "Construct/rebuildviewsafterpostloadclone/format and afterreload;mapobjectidentityaloneisnotpayloadgenerationidentity.",
+    "Keepoldpayloadandsendbuffersuntilallcurrentreaders/transfersfinish;keepreceivebuffersuntilallcopiesandfuturebankreadersareready.",
+    "Allranksagreeonlayer/slot/logicalexpert/replica/MC2groupandgenerationbeforeusingnewroute;registryordinalisnotautomaticallymodel-layerorconstructor-ID.",
+    "In-placecopy_ preservesdestinationbindingsbyintent;actualalias/captureaddresses/nativecompletionareseparateevidence. Map-firstsourcecallorderdoesnotproveaconcurrentraceoratomictransaction."
+  ],
+  "copy_cycle_witness": {
+    "scope": "PURE_LABEL_DATAFLOW_COUNTEREXAMPLE;NOT_MODEL_NUMERICS_OR_TARGET_TEST",
+    "desired": "Swapexpert0and1,keepingallsixplanespaired.",
+    "before": {
+      "0": [
+        "e0/w13_weight_list",
+        "e0/w2_weight_list",
+        "e0/w13_weight_scale_fp32_list",
+        "e0/w2_weight_scale_list",
+        "e0/fused_w1_scale_list",
+        "e0/fused_w2_scale_list"
+      ],
+      "1": [
+        "e1/w13_weight_list",
+        "e1/w2_weight_list",
+        "e1/w13_weight_scale_fp32_list",
+        "e1/w2_weight_scale_list",
+        "e1/fused_w1_scale_list",
+        "e1/fused_w2_scale_list"
+      ]
+    },
+    "naive_forward_overwrite": {
+      "0": [
+        "e1/w13_weight_list",
+        "e1/w2_weight_list",
+        "e1/w13_weight_scale_fp32_list",
+        "e1/w2_weight_scale_list",
+        "e1/fused_w1_scale_list",
+        "e1/fused_w2_scale_list"
+      ],
+      "1": [
+        "e1/w13_weight_list",
+        "e1/w2_weight_list",
+        "e1/w13_weight_scale_fp32_list",
+        "e1/w2_weight_scale_list",
+        "e1/fused_w1_scale_list",
+        "e1/fused_w2_scale_list"
+      ]
+    },
+    "staged_from_old_snapshot": {
+      "0": [
+        "e1/w13_weight_list",
+        "e1/w2_weight_list",
+        "e1/w13_weight_scale_fp32_list",
+        "e1/w2_weight_scale_list",
+        "e1/fused_w1_scale_list",
+        "e1/fused_w2_scale_list"
+      ],
+      "1": [
+        "e0/w13_weight_list",
+        "e0/w2_weight_list",
+        "e0/w13_weight_scale_fp32_list",
+        "e0/w2_weight_scale_list",
+        "e0/fused_w1_scale_list",
+        "e0/fused_w2_scale_list"
+      ]
+    },
+    "inference": "Anynewpermutationimplementationmustprotectcyclesandallplanes;currentreferenceP2Preceivebuffersarepositiveevidenceofstaging,notgenericpermissiontoeliminateit."
+  },
+  "native_ready_last_reader_or_all_rank_transaction_proved": false,
+  "implementation": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

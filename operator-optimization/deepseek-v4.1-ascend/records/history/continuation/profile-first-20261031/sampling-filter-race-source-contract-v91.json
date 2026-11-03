@@ -1,0 +1,663 @@
+{
+  "source_files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "sha256": "867f1770614bb594baf5ecfb858aa4a20dc413cbfbe4f94e06b3786900b581ee",
+      "manifest": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/SOURCE-MANIFEST.json",
+      "manifest_sha256": "544b1cdc305690c9d311f0fdd66ecca15e3465667f2db6a8fb2ffb9dac73184d",
+      "source_manifest_hash_match": true,
+      "parts": [
+        {
+          "name": "random_sample",
+          "first_line": 18,
+          "last_line": 42,
+          "source": [
+            "def random_sample(",
+            "    probs: torch.Tensor,",
+            "    generators: dict[int, torch.Generator],",
+            ") -> torch.Tensor:",
+            "    \"\"\"Randomly sample from the probabilities.",
+            "",
+            "    We use this function instead of torch.multinomial because torch.multinomial",
+            "    causes CPU-NPU synchronization.",
+            "    \"\"\"",
+            "    # NOTE(woosuk): To batch-process the requests without their own seeds,",
+            "    # which is the common case, we first assume that every request does",
+            "    # not have its own seed. Then, we overwrite the values for the requests",
+            "    # that have their own seeds.",
+            "    with npu_stream_switch(global_stream()):",
+            "        q = torch.empty_like(probs)",
+            "        if len(generators) != probs.shape[0]:",
+            "            q.exponential_()",
+            "        if generators:",
+            "            # TODO(woosuk): This can be slow because we handle each request",
+            "            # one by one. Optimize this.",
+            "            for i, generator in generators.items():",
+            "                q[i].exponential_(generator=generator)",
+            "    torch.npu.current_stream().wait_stream(global_stream())",
+            "    q.record_stream(torch.npu.current_stream())",
+            "    return probs.div_(q).argmax(dim=-1).view(-1)"
+          ]
+        },
+        {
+          "name": "AscendTopKTopPSampler.forward_native",
+          "first_line": 92,
+          "last_line": 111,
+          "source": [
+            "    def forward_native(self, logits, generators, k, p):",
+            "        \"\"\"Override pytorch native implementation to torch_npu\"\"\"",
+            "        # when batch_invariant mode is enabled, we should use vllm's implementation.",
+            "        # or it will make batch_invariant mode not working.",
+            "        if envs.VLLM_BATCH_INVARIANT:",
+            "            logger.debug_once(",
+            "                \"[sample/sampler] BATCH_INVARIANT mode enabled, \"",
+            "                \"falling back to vLLM native top-k/top-p implementation.\",",
+            "            )",
+            "            return super().forward_native(logits, generators, k, p)",
+            "",
+            "        logits = self.apply_top_k_top_p(logits, k, p)",
+            "        logits_to_return = None",
+            "        if self.logprobs_mode == \"processed_logits\":",
+            "            logits_to_return = logits",
+            "        elif self.logprobs_mode == \"processed_logprobs\":",
+            "            logits_to_return = logits.log_softmax(dim=-1, dtype=torch.float32)",
+            "",
+            "        probs = logits.softmax(dim=-1, dtype=torch.float32)",
+            "        return random_sample(probs, generators), logits_to_return"
+          ]
+        },
+        {
+          "name": "_apply_top_k_top_p_pytorch",
+          "first_line": 114,
+          "last_line": 147,
+          "source": [
+            "def _apply_top_k_top_p_pytorch(",
+            "    logits: torch.Tensor,  # [B, V_local]",
+            "    k: torch.Tensor,  # [B] or None",
+            "    p: torch.Tensor,  # [B] or None",
+            ") -> torch.Tensor:",
+            "    if p is None and k is None:",
+            "        return logits",
+            "",
+            "    probs = logits.softmax(dim=-1)",
+            "    probs_sort, _ = probs.sort(dim=-1, descending=False)",
+            "",
+            "    if k is not None:",
+            "        top_k_count = probs_sort.size(1) - k.to(torch.long)  # shape: (batch, )",
+            "        top_k_count = top_k_count.unsqueeze(dim=1)",
+            "        top_k_cutoff = probs_sort.gather(-1, top_k_count)",
+            "",
+            "        # Make sure the no top-k rows are no-op.",
+            "        no_top_k_mask = (k == logits.shape[1]).unsqueeze(dim=1)",
+            "        top_k_cutoff.masked_fill_(no_top_k_mask, -float(\"inf\"))",
+            "",
+            "        elements_to_discard = probs < top_k_cutoff",
+            "        logits.masked_fill_(elements_to_discard, -float(\"inf\"))",
+            "",
+            "    if p is not None:",
+            "        cumprob = torch.cumsum(probs_sort, dim=-1)",
+            "        top_p_mask = cumprob <= 1 - p.unsqueeze(dim=1)",
+            "        top_p_mask[:, -1] = False  # at least one",
+            "",
+            "        top_p_count = top_p_mask.sum(dim=-1).unsqueeze(1)",
+            "        top_p_cutoff = probs_sort.gather(-1, top_p_count)",
+            "        elements_to_discard = probs < top_p_cutoff",
+            "        logits.masked_fill_(elements_to_discard, -float(\"inf\"))",
+            "",
+            "    return logits"
+          ]
+        },
+        {
+          "name": "_apply_top_k_top_p_torch_npu",
+          "first_line": 150,
+          "last_line": 160,
+          "source": [
+            "def _apply_top_k_top_p_torch_npu(",
+            "    logits: torch.Tensor,",
+            "    k: torch.Tensor,",
+            "    p: torch.Tensor,",
+            ") -> torch.Tensor:",
+            "    # Use sort-based pytorch implementation.",
+            "    # npu_top_k_top_p degrades severely (5-28ms) when k is large or batch",
+            "    # contains mixed k values, while sort+mask is consistently ~1ms.",
+            "    if p is None and k is None:",
+            "        return logits",
+            "    return _apply_top_k_top_p_pytorch(logits, k, p)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "sha256": "13ea4359832bc914492330958ec4f5ac140f408b8f410cc05c6eaf7ddcd70be4",
+      "manifest": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/SOURCE-MANIFEST.json",
+      "manifest_sha256": "9b8c7af2d15e8d93acea1fac2ed9851675e396687c791f39da02639398c13993",
+      "source_manifest_hash_match": true,
+      "parts": [
+        {
+          "name": "TopKTopPSampler.forward_native",
+          "first_line": 150,
+          "last_line": 172,
+          "source": [
+            "    def forward_native(",
+            "        self,",
+            "        logits: torch.Tensor,",
+            "        generators: dict[int, torch.Generator],",
+            "        k: torch.Tensor | None,",
+            "        p: torch.Tensor | None,",
+            "    ) -> tuple[torch.Tensor, torch.Tensor | None]:",
+            "        \"\"\"",
+            "        PyTorch-native implementation of top-k and top-p sampling.",
+            "",
+            "        The logits tensor may be updated in-place.",
+            "        \"\"\"",
+            "        logits = apply_top_k_top_p(logits, k, p)",
+            "        logits_to_return = None",
+            "        if self.logprobs_mode == \"processed_logits\":",
+            "            logits_to_return = logits",
+            "        elif self.logprobs_mode == \"processed_logprobs\":",
+            "            logits_to_return = logits.log_softmax(dim=-1, dtype=torch.float32)",
+            "        probs = logits.softmax(dim=-1, dtype=torch.float32)",
+            "        return (",
+            "            random_sample(probs, generators, self.use_fp64_gumbel),",
+            "            logits_to_return,",
+            "        )"
+          ]
+        },
+        {
+          "name": "apply_top_k_top_p",
+          "first_line": 368,
+          "last_line": 378,
+          "source": [
+            "def apply_top_k_top_p(",
+            "    logits: torch.Tensor, k: torch.Tensor | None, p: torch.Tensor | None",
+            ") -> torch.Tensor:",
+            "    if p is None and k is None:",
+            "        return logits",
+            "",
+            "    if HAS_TRITON:",
+            "        return apply_top_k_top_p_triton(logits, k, p)",
+            "",
+            "    is_cpu = current_platform.is_cpu()",
+            "    return apply_top_k_top_p_pytorch(logits, k, p, allow_cpu_sync=is_cpu)"
+          ]
+        },
+        {
+          "name": "apply_top_k_top_p_pytorch",
+          "first_line": 381,
+          "last_line": 422,
+          "source": [
+            "def apply_top_k_top_p_pytorch(",
+            "    logits: torch.Tensor,",
+            "    k: torch.Tensor | None,",
+            "    p: torch.Tensor | None,",
+            "    allow_cpu_sync: bool = False,",
+            ") -> torch.Tensor:",
+            "    \"\"\"Apply top-k and top-p masks to the logits.",
+            "",
+            "    If a top-p is used, this function will sort the logits tensor,",
+            "    which can be slow for large batches.",
+            "",
+            "    The logits tensor may be updated in-place.",
+            "    \"\"\"",
+            "    if p is None:",
+            "        if k is None:",
+            "            return logits",
+            "",
+            "        if allow_cpu_sync:",
+            "            # Avoid sorting vocab for top-k only case.",
+            "            return apply_top_k_only(logits, k)",
+            "",
+            "    logits_sort, logits_idx = logits.sort(dim=-1, descending=False)",
+            "",
+            "    if k is not None:",
+            "        # Apply top-k.",
+            "        top_k_mask = logits_sort.size(1) - k.to(torch.long)  # shape: B",
+            "        # Get all the top_k values.",
+            "        top_k_mask = logits_sort.gather(1, top_k_mask.unsqueeze(dim=1))",
+            "        top_k_mask = logits_sort < top_k_mask",
+            "        logits_sort.masked_fill_(top_k_mask, -float(\"inf\"))",
+            "",
+            "    if p is not None:",
+            "        # Apply top-p.",
+            "        probs_sort = logits_sort.softmax(dim=-1)",
+            "        probs_sum = torch.cumsum(probs_sort, dim=-1, out=probs_sort)",
+            "        top_p_mask = probs_sum <= 1 - p.unsqueeze(dim=1)",
+            "        # at least one",
+            "        top_p_mask[:, -1] = False",
+            "        logits_sort.masked_fill_(top_p_mask, -float(\"inf\"))",
+            "",
+            "    # Re-sort the probabilities.",
+            "    return logits.scatter_(dim=-1, index=logits_idx, src=logits_sort)"
+          ]
+        },
+        {
+          "name": "empty_exponential_noise_like",
+          "first_line": 448,
+          "last_line": 452,
+          "source": [
+            "def empty_exponential_noise_like(",
+            "    probs: torch.Tensor, use_fp64_gumbel: bool",
+            ") -> torch.Tensor:",
+            "    dtype = torch.float64 if use_fp64_gumbel else probs.dtype",
+            "    return torch.empty(probs.shape, dtype=dtype, device=probs.device)"
+          ]
+        },
+        {
+          "name": "sample_with_exponential_noise",
+          "first_line": 455,
+          "last_line": 461,
+          "source": [
+            "def sample_with_exponential_noise(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor:",
+            "    if q.dtype == probs.dtype:",
+            "        scores = probs.div_(q)",
+            "    else:",
+            "        scores = q.reciprocal_()",
+            "        scores.mul_(probs)",
+            "    return scores.argmax(dim=-1).view(-1)"
+          ]
+        },
+        {
+          "name": "random_sample",
+          "first_line": 464,
+          "last_line": 486,
+          "source": [
+            "def random_sample(",
+            "    probs: torch.Tensor,",
+            "    generators: dict[int, torch.Generator],",
+            "    use_fp64_gumbel: bool = False,",
+            ") -> torch.Tensor:",
+            "    \"\"\"Randomly sample from the probabilities.",
+            "",
+            "    We use this function instead of torch.multinomial because torch.multinomial",
+            "    causes CPU-GPU synchronization.",
+            "    \"\"\"",
+            "    q = empty_exponential_noise_like(probs, use_fp64_gumbel)",
+            "    # NOTE(woosuk): To batch-process the requests without their own seeds,",
+            "    # which is the common case, we first assume that every request does",
+            "    # not have its own seed. Then, we overwrite the values for the requests",
+            "    # that have their own seeds.",
+            "    if len(generators) != probs.shape[0]:",
+            "        q.exponential_()",
+            "    if generators:",
+            "        # TODO(woosuk): This can be slow because we handle each request",
+            "        # one by one. Optimize this.",
+            "        for i, generator in generators.items():",
+            "            q[i].exponential_(generator=generator)",
+            "    return sample_with_exponential_noise(probs, q)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/sampler.py",
+      "sha256": "f95805b2c6d06218c724826aa5f881a606e8d0a534a566aee7c85948520dd216",
+      "manifest": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/SOURCE-MANIFEST.json",
+      "manifest_sha256": "9b8c7af2d15e8d93acea1fac2ed9851675e396687c791f39da02639398c13993",
+      "source_manifest_hash_match": true,
+      "parts": [
+        {
+          "name": "Sampler.sample",
+          "first_line": 244,
+          "last_line": 303,
+          "source": [
+            "    def sample(",
+            "        self,",
+            "        logits: torch.Tensor,",
+            "        sampling_metadata: SamplingMetadata,",
+            "        logprobs_mode_override: LogprobsMode | None = None,",
+            "    ) -> tuple[torch.Tensor, torch.Tensor | None]:",
+            "        \"\"\"Sample logits based on sampling metadata.",
+            "",
+            "        The various logits processing functions called in this method",
+            "        may update the logits tensor in-place.",
+            "        \"\"\"",
+            "",
+            "        logprobs_mode = logprobs_mode_override or self.logprobs_mode",
+            "        assert not (sampling_metadata.all_greedy and sampling_metadata.all_random)",
+            "        if sampling_metadata.all_random:",
+            "            greedy_sampled = None",
+            "        else:",
+            "            greedy_sampled = self.greedy_sample(logits)",
+            "            if sampling_metadata.all_greedy:",
+            "                processed_logprobs = None",
+            "                if (",
+            "                    sampling_metadata.max_num_logprobs is not None",
+            "                    or sampling_metadata.logprob_token_ids",
+            "                ):",
+            "                    if logprobs_mode == \"processed_logits\":",
+            "                        processed_logprobs = logits",
+            "                    elif logprobs_mode == \"processed_logprobs\":",
+            "                        processed_logprobs = self.compute_logprobs(logits)",
+            "                return greedy_sampled, processed_logprobs",
+            "",
+            "        assert sampling_metadata.temperature is not None",
+            "",
+            "        # Apply temperature.",
+            "        logits = self.apply_temperature(",
+            "            logits, sampling_metadata.temperature, sampling_metadata.all_random",
+            "        )",
+            "",
+            "        # Apply logits processors that only apply to random sampling",
+            "        # (argmax invariant)",
+            "        for processor in sampling_metadata.logitsprocs.argmax_invariant:",
+            "            logits = processor.apply(logits)",
+            "",
+            "        # Apply top_k and/or top_p.",
+            "        random_sampled, processed_logprobs = self.topk_topp_sampler(",
+            "            logits,",
+            "            sampling_metadata.generators,",
+            "            sampling_metadata.top_k,",
+            "            sampling_metadata.top_p,",
+            "        )",
+            "",
+            "        if greedy_sampled is None:",
+            "            return random_sampled, processed_logprobs",
+            "",
+            "        sampled = torch.where(",
+            "            sampling_metadata.temperature < _SAMPLING_EPS,",
+            "            greedy_sampled,",
+            "            random_sampled,",
+            "            out=greedy_sampled,  # Reuse tensor",
+            "        )",
+            "        return sampled, processed_logprobs"
+          ]
+        }
+      ]
+    }
+  ],
+  "named_functions_pinned": 11,
+  "local_if_sites": 27,
+  "local_if_arms": 54,
+  "local_guard_navigation": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "random_sample",
+      "line": 33,
+      "test": "len(generators) != probs.shape[0]",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "random_sample",
+      "line": 35,
+      "test": "generators",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "AscendTopKTopPSampler.forward_native",
+      "line": 96,
+      "test": "envs.VLLM_BATCH_INVARIANT",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "AscendTopKTopPSampler.forward_native",
+      "line": 105,
+      "test": "self.logprobs_mode == 'processed_logits'",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "AscendTopKTopPSampler.forward_native",
+      "line": 107,
+      "test": "self.logprobs_mode == 'processed_logprobs'",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "_apply_top_k_top_p_pytorch",
+      "line": 119,
+      "test": "p is None and k is None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "_apply_top_k_top_p_pytorch",
+      "line": 125,
+      "test": "k is not None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "_apply_top_k_top_p_pytorch",
+      "line": 137,
+      "test": "p is not None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/sampler-source-supplement/frozen-source-snapshot/vllm-ascend/vllm_ascend/sample/sampler.py",
+      "function": "_apply_top_k_top_p_torch_npu",
+      "line": 158,
+      "test": "p is None and k is None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "TopKTopPSampler.forward_native",
+      "line": 164,
+      "test": "self.logprobs_mode == 'processed_logits'",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "TopKTopPSampler.forward_native",
+      "line": 166,
+      "test": "self.logprobs_mode == 'processed_logprobs'",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "apply_top_k_top_p",
+      "line": 371,
+      "test": "p is None and k is None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "apply_top_k_top_p",
+      "line": 374,
+      "test": "HAS_TRITON",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "apply_top_k_top_p_pytorch",
+      "line": 394,
+      "test": "p is None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "apply_top_k_top_p_pytorch",
+      "line": 404,
+      "test": "k is not None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "apply_top_k_top_p_pytorch",
+      "line": 412,
+      "test": "p is not None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "apply_top_k_top_p_pytorch",
+      "line": 395,
+      "test": "k is None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "apply_top_k_top_p_pytorch",
+      "line": 398,
+      "test": "allow_cpu_sync",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "sample_with_exponential_noise",
+      "line": 456,
+      "test": "q.dtype == probs.dtype",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "random_sample",
+      "line": 479,
+      "test": "len(generators) != probs.shape[0]",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/ops/topk_topp_sampler.py",
+      "function": "random_sample",
+      "line": 481,
+      "test": "generators",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/sampler.py",
+      "function": "Sampler.sample",
+      "line": 258,
+      "test": "sampling_metadata.all_random",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/sampler.py",
+      "function": "Sampler.sample",
+      "line": 294,
+      "test": "greedy_sampled is None",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/sampler.py",
+      "function": "Sampler.sample",
+      "line": 262,
+      "test": "sampling_metadata.all_greedy",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/sampler.py",
+      "function": "Sampler.sample",
+      "line": 264,
+      "test": "sampling_metadata.max_num_logprobs is not None or sampling_metadata.logprob_token_ids",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/sampler.py",
+      "function": "Sampler.sample",
+      "line": 268,
+      "test": "logprobs_mode == 'processed_logits'",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/sample/sampler.py",
+      "function": "Sampler.sample",
+      "line": 270,
+      "test": "logprobs_mode == 'processed_logprobs'",
+      "reviewed_arms": [
+        "BODY",
+        "ORELSE_OR_FALLTHROUGH"
+      ]
+    }
+  ],
+  "scope": "Default Ascend filtering/race and direct upstream comparison/delegation/mixed-row boundaries. No CUDA/CPU framework survey;Triton filter body remains a separately open lowering.",
+  "facts": [
+    "DefaultAscendfilter takesoneinitialsoftmax,sortsitsprobabilitiesascending once,andcomputesbothk/p cutoffs fromthat unchangedprobability bank. Thefirstk maskmutateslogits,notprobs_sort/probs.",
+    "TopKcutoffisprobability orderstatistic atV-k;strictP<cutoffkeepsallboundaryties. k==Vsets cutoff-inf. TopPusesoriginalCDF<=1-p,forceslastsortedmaskfalse,thencomparesunsortedP<sortedP[count];alltiesatcutoffretained.",
+    "UpstreamPyTorchfilter sortslogits,appliestopKtolocal sortedlogitsfirst,thencomputessoftmax/CDF onthetruncatedbank andmaskssortedpositionsbefore scatter. This differs inreal arithmetic andtiecardinality;notaninterchangeablefilter.",
+    "Ascend hardware-capability choice selectsPyTorchdirector _torch_npu wrapper,whichalsoonlycalls thesamePyTorchfilter inthissnapshot. Itdoesnotprovea fusednpu_top_k_top_p invocation. BATCH_INVARIANTdelegatesupstream;HAS_TRITONthenchoosesitsdistinctfilterentry;body/nativemode notclosedhere.",
+    "DefaultAscendforward retainsprocessed_logits asfilteredlogitsalias,orcomputesprocessed_logprobs before aseparatesoftmax. Takinglogofroundedsoftmax isnot agenerallog_softmax replacement.",
+    "Ascendrandom_sample drawsQon global_stream,waitsfromcurrentstream,recordsQoncurrentstream,andreturnsargmax ofprobs.div_(Q). Pismutated;Qzero/Inf/NaNisnotreplacedwithfallback-recovery sentinels.",
+    "DefaultQdraw isomitted exactlywhenlen(generators)==B;otherwise itdrawsallB*V then overwrites seededrows in dictionaryorder. Allseededbehavior differsfromthev33rejection-recoverywrapper thatalwaysdrawsdefaultQ. Preservegeneratoridentity/alias andeffects,notjustseednumbers.",
+    "Sampler.sampleallgreedyreturnsbeforethisrandompipeline. Mixedsampling runsrandompipelineforallB then selectswith temperature<1e-5;thatpredicate cannot be assumedidentical to rejectionhelpertemperature==0 withoutanupstreammetadata-domainproof.",
+    "PrivatePfromforwardsoftmaxhasnolocalreturnedobserverbesidesrandom_sample;processedscoreoutputsareseparatefilteredlogits/log_softmaxbanks. Genericdirectrandom_sample(P) stillhasanobservableinplacePcontract;privatecallerorfusedwritebackmustbedeclared."
+  ],
+  "source_math_not_native_backend_attestation": true,
+  "current_probability_execution_or_flags_proved": false,
+  "full_sampler_branch_universe_or_readers_closed": false,
+  "new_target_source_files": 0,
+  "implementation": false,
+  "native_test": false,
+  "overall_complete": false
+}

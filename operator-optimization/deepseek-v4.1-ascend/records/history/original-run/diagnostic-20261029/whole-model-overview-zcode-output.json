@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_88e097b8-f85e-4296-bed3-9073ab0c741c",
+  "traceId": "0974efd4-0542-4c83-aba3-3b4f1d2bdce0",
+  "turnId": "turn_eab49212-23e9-4f61-ad0f-b147fa8871bb",
+  "response": "Ran the command once, exit code 0. It performed a read-modify-write of `publication-draft/evidence-summary.json` via `j['stage_consolidation']['whole_model_overview'] = out`, so all other fields (schema_version, formal_baseline, profiled_sample, and the other stage_consolidation keys) were preserved. I verified the JSON parses and the new block is present with the expected five keys; the file is 246,148 bytes and the only block that changed is `whole_model_overview`.\n\nThe derivation reports `status: EXISTING_PROFILE_COHORTS_NOT_END_TO_END`, meaning the frozen evidence supports two separate, non-comparable cohorts rather than one end-to-end whole-model picture.\n\nTarget mainstream cohort (run 2, 16 ranks, 40 layers):\n- Median per-rank span 37,122 µs; total exported type coverage is 90.36% of that span, and cross-type overlap excess is asserted zero, so the per-type unions are additive across the nine selected types.\n- Largest shares: DispatchFFNCombine 13,319 µs (35.9%), QuantBatchMatmulV3 3,700 µs (10.0%), HcPre 2,838 µs (7.7%), LightningIndexerV2 2,472 µs (6.7%), TransposeBatchMatMul 2,102 µs (5.7%), MatMulV2 1,913 µs (5.2%), SparseFlashMla 1,813 µs (4.9%), HcPost 613 µs (1.6%), ScatterNdUpdateSk 150 µs (0.4%).\n\nEngram block (shape-compatible only): the 16 matched matmul pairs run 551–563 µs (median 556 µs, 1.50% of span, 471,859,200 MAC per task). It is flagged as already contained inside the MatMulV2 label, and its 2.67 µs nominal compute-only figure is a conditional BF16 count, not a measured floor.\n\nDraft cohort (strictly selected, separate): 162 windows from 15 ranks, block windows 671–8,037 µs (median 723 µs), MoE tasks 132–7,515 µs (median 181 µs). Pooled MoE-over-window ratio is 0.485, but the per-window median fraction is only 0.253 — the pooled number is dominated by a few very long windows, so the two should not be quoted interchangeably. Target-0 non-draft windows number 45 (median 880 µs).\n\nThe recorded limits are unchanged in spirit: target span excludes other streams and full requests, exported coverage is not NPU utilization, type labels do not uniquely identify modules, the draft cohort carries different work and was pooled across blocks, and all timings are profiled so no production critical-path share or speedup is inferred.\n\nNo device access, server contact, source edits, or additional tests were performed.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 97055,
+    "outputTokens": 2824,
+    "totalTokens": 99879,
+    "cacheReadTokens": 83200,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1589,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 99879,
+    "contextUsed": 16161,
+    "contextWindow": 200000
+  }
+}

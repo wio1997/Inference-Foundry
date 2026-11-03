@@ -1,0 +1,1295 @@
+{
+  "ceiling_state": "CONDITIONAL_CEILING",
+  "status": "ANALYTIC_BOARD_INGRESS_PAYLOAD_CUT_REVIEWED",
+  "placement_evidence": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v171/current-171-physical-pool-bridge.json",
+  "actual_groups": [
+    {
+      "global_ranks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "NPU_cards": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "compute_devices": 8,
+      "directed_nonself_endpoint_pairs": 56,
+      "directed_SIO_pairs": 8,
+      "directed_HCCS_SW_pairs": 48
+    },
+    {
+      "global_ranks": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "NPU_cards": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "compute_devices": 8,
+      "directed_nonself_endpoint_pairs": 56,
+      "directed_SIO_pairs": 8,
+      "directed_HCCS_SW_pairs": 48
+    }
+  ],
+  "domain": [
+    "EachTP8group occupiesfourNPUcardswithtwocomputedevicespercard.",
+    "Everyrankrequiresallrawshardsaspublicfullallgatheroutputs;arbitraryrequiredinputbytesaresingleownedinitially,withnoremotepriorcopiesorvaluecompression/dedup.",
+    "Onboardforwarding/multicastandpacketaggregationareallowed. Knownpaddingcanbereconstructedonlywhenitsconstantvalueatthecollectiveboundaryandallconsumercontractsareproved.",
+    "Ifconsumerfusionremovesrawsharddemand,ormemo/compression/ownershipchanges,deriveanewcut;thisisnotanunconditionalfloorforallmodelalgorithms."
+  ],
+  "proof": {
+    "general": "LetGbethetotalrequiredindependentrawpayloadandC_bthepayloadinitiallyoncardb. Cardb mustreceiveatleastG-C_bbytesacrossitsboundary. Thusaggregatecardingress>=sum_b(G-C_b)=(k-1)Gforkcards,withnoinitialduplication. Abyteenteringonecardcountsjustonceatthatcardboundary,evenifonboardforwardedtoitsotherrank.",
+    "equal_full_shards": "With8rankshardsSbytesand4cards,eachcardinitiallyowns2Sof8S. Ingress>=6Spercardand>=24Sinaggregate. The48crosscardrank-pairdeliveries*Sisadirectdeliveryreference,notanallalgorithmswirefloor.",
+    "time": "Foranintervalcoveringallrequiredcrossingsandcard-ingresscapacityupperB_b,T>=max_b((G-C_b)/B_b). Anadditionalaggregateboundusestotalingresscapacityupper. Requiredresourcecutsmayoverlapcomputation;donotforcewholeproducercompletionbeforefirstcommunicationtile.",
+    "not_a_schedule_inversion": "Theproofisacutnecessityargument,notaninvertedfeasiblemessageexecutiontime."
+  },
+  "per_rank_S_bytes_example_full_M3_BF16_H5120": 30720,
+  "full_M3_example": {
+    "required_ingress_bytes_per_card": 184320,
+    "required_aggregate_ingress_bytes": 737280,
+    "direct_rank_delivery_crosscard_reference_bytes": 1474560
+  },
+  "known_padding_n20_p8_example": {
+    "status": "CONDITIONAL_FUNCTION_GEOMETRY_EXAMPLE_NOT_A_NATIVE_ALLGATHER_OPERAND_PROMOTION",
+    "source_function_evidence": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v169/SP-ma<REDACTED_TOKEN>.json",
+    "additional_guard": "TheAllGatherinputmustbethecorresponding20->24paddedtensorandpaddingmuststillbeknownconstantatthisboundary;maskshapealonecannotproveit.",
+    "row_bytes_for_BF16_H5120": 10240,
+    "valid_rows_per_rank": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      2,
+      0
+    ],
+    "n": 20,
+    "chunk": 3,
+    "local_valid_rows_per_card": [
+      6,
+      6,
+      6,
+      2
+    ],
+    "required_remote_rows_per_card": [
+      14,
+      14,
+      14,
+      18
+    ],
+    "aggregate_card_ingress_rows": 60,
+    "max_card_ingress_rows": 18,
+    "required_ingress_bytes_per_card": [
+      143360,
+      143360,
+      143360,
+      184320
+    ],
+    "required_aggregate_ingress_bytes": 614400,
+    "required_max_card_ingress_bytes": 184320,
+    "key_result": "Removingknownpaddingreducesaggregateingressfloorfrom720KiBto600KiBbutleavesthemax-cardfloorat180KiB. Withidenticalcardingresscapacities,thisparticularbottleneckcutisunchanged. Thatdoesnotprovenoactualbenefit;itpreventscountingbytefractionaslatencyspeedup."
+  },
+  "candidate_reuse": [
+    "F26",
+    "F32",
+    "F33",
+    "F31"
+  ],
+  "composition": "Forproject-before-gatherorHCcollapsevariants,substitutethenewnecessarypayloadonlyafterexistingnumerical/ownership/allconsumer/readinessconditions;pricearithmetic,localreconstruction,lifetimeandnewcommunicationinonegraph. Existingbaselineprecollapseisnotcountednew. TPandEPtrafficonthe samecardingressshareabudgetwhenoverlapoccurs.",
+  "independent_finite_geometry_checks": 65,
+  "geometry_checks": [
+    {
+      "n": 0,
+      "chunk": 0,
+      "local_valid_rows_per_card": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "aggregate_card_ingress_rows": 0,
+      "max_card_ingress_rows": 0
+    },
+    {
+      "n": 1,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "aggregate_card_ingress_rows": 3,
+      "max_card_ingress_rows": 1
+    },
+    {
+      "n": 2,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        0,
+        2,
+        2,
+        2
+      ],
+      "aggregate_card_ingress_rows": 6,
+      "max_card_ingress_rows": 2
+    },
+    {
+      "n": 3,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        2,
+        1,
+        0,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        1,
+        2,
+        3,
+        3
+      ],
+      "aggregate_card_ingress_rows": 9,
+      "max_card_ingress_rows": 3
+    },
+    {
+      "n": 4,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        2,
+        2,
+        0,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        2,
+        2,
+        4,
+        4
+      ],
+      "aggregate_card_ingress_rows": 12,
+      "max_card_ingress_rows": 4
+    },
+    {
+      "n": 5,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        2,
+        2,
+        1,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        3,
+        3,
+        4,
+        5
+      ],
+      "aggregate_card_ingress_rows": 15,
+      "max_card_ingress_rows": 5
+    },
+    {
+      "n": 6,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        4,
+        4,
+        4,
+        6
+      ],
+      "aggregate_card_ingress_rows": 18,
+      "max_card_ingress_rows": 6
+    },
+    {
+      "n": 7,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "required_remote_rows_per_card": [
+        5,
+        5,
+        5,
+        6
+      ],
+      "aggregate_card_ingress_rows": 21,
+      "max_card_ingress_rows": 6
+    },
+    {
+      "n": 8,
+      "chunk": 1,
+      "local_valid_rows_per_card": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "required_remote_rows_per_card": [
+        6,
+        6,
+        6,
+        6
+      ],
+      "aggregate_card_ingress_rows": 24,
+      "max_card_ingress_rows": 6
+    },
+    {
+      "n": 9,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        1,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        5,
+        5,
+        8,
+        9
+      ],
+      "aggregate_card_ingress_rows": 27,
+      "max_card_ingress_rows": 9
+    },
+    {
+      "n": 10,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        2,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        6,
+        6,
+        8,
+        10
+      ],
+      "aggregate_card_ingress_rows": 30,
+      "max_card_ingress_rows": 10
+    },
+    {
+      "n": 11,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        3,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        7,
+        7,
+        8,
+        11
+      ],
+      "aggregate_card_ingress_rows": 33,
+      "max_card_ingress_rows": 11
+    },
+    {
+      "n": 12,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        4,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        8,
+        8,
+        8,
+        12
+      ],
+      "aggregate_card_ingress_rows": 36,
+      "max_card_ingress_rows": 12
+    },
+    {
+      "n": 13,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        4,
+        1
+      ],
+      "required_remote_rows_per_card": [
+        9,
+        9,
+        9,
+        12
+      ],
+      "aggregate_card_ingress_rows": 39,
+      "max_card_ingress_rows": 12
+    },
+    {
+      "n": 14,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        4,
+        2
+      ],
+      "required_remote_rows_per_card": [
+        10,
+        10,
+        10,
+        12
+      ],
+      "aggregate_card_ingress_rows": 42,
+      "max_card_ingress_rows": 12
+    },
+    {
+      "n": 15,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        4,
+        3
+      ],
+      "required_remote_rows_per_card": [
+        11,
+        11,
+        11,
+        12
+      ],
+      "aggregate_card_ingress_rows": 45,
+      "max_card_ingress_rows": 12
+    },
+    {
+      "n": 16,
+      "chunk": 2,
+      "local_valid_rows_per_card": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "required_remote_rows_per_card": [
+        12,
+        12,
+        12,
+        12
+      ],
+      "aggregate_card_ingress_rows": 48,
+      "max_card_ingress_rows": 12
+    },
+    {
+      "n": 17,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        5,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        11,
+        11,
+        12,
+        17
+      ],
+      "aggregate_card_ingress_rows": 51,
+      "max_card_ingress_rows": 17
+    },
+    {
+      "n": 18,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        6,
+        0
+      ],
+      "required_remote_rows_per_card": [
+        12,
+        12,
+        12,
+        18
+      ],
+      "aggregate_card_ingress_rows": 54,
+      "max_card_ingress_rows": 18
+    },
+    {
+      "n": 19,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        6,
+        1
+      ],
+      "required_remote_rows_per_card": [
+        13,
+        13,
+        13,
+        18
+      ],
+      "aggregate_card_ingress_rows": 57,
+      "max_card_ingress_rows": 18
+    },
+    {
+      "n": 20,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        6,
+        2
+      ],
+      "required_remote_rows_per_card": [
+        14,
+        14,
+        14,
+        18
+      ],
+      "aggregate_card_ingress_rows": 60,
+      "max_card_ingress_rows": 18
+    },
+    {
+      "n": 21,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        6,
+        3
+      ],
+      "required_remote_rows_per_card": [
+        15,
+        15,
+        15,
+        18
+      ],
+      "aggregate_card_ingress_rows": 63,
+      "max_card_ingress_rows": 18
+    },
+    {
+      "n": 22,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        6,
+        4
+      ],
+      "required_remote_rows_per_card": [
+        16,
+        16,
+        16,
+        18
+      ],
+      "aggregate_card_ingress_rows": 66,
+      "max_card_ingress_rows": 18
+    },
+    {
+      "n": 23,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        6,
+        5
+      ],
+      "required_remote_rows_per_card": [
+        17,
+        17,
+        17,
+        18
+      ],
+      "aggregate_card_ingress_rows": 69,
+      "max_card_ingress_rows": 18
+    },
+    {
+      "n": 24,
+      "chunk": 3,
+      "local_valid_rows_per_card": [
+        6,
+        6,
+        6,
+        6
+      ],
+      "required_remote_rows_per_card": [
+        18,
+        18,
+        18,
+        18
+      ],
+      "aggregate_card_ingress_rows": 72,
+      "max_card_ingress_rows": 18
+    },
+    {
+      "n": 25,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        1
+      ],
+      "required_remote_rows_per_card": [
+        17,
+        17,
+        17,
+        24
+      ],
+      "aggregate_card_ingress_rows": 75,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 26,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        2
+      ],
+      "required_remote_rows_per_card": [
+        18,
+        18,
+        18,
+        24
+      ],
+      "aggregate_card_ingress_rows": 78,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 27,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        3
+      ],
+      "required_remote_rows_per_card": [
+        19,
+        19,
+        19,
+        24
+      ],
+      "aggregate_card_ingress_rows": 81,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 28,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        4
+      ],
+      "required_remote_rows_per_card": [
+        20,
+        20,
+        20,
+        24
+      ],
+      "aggregate_card_ingress_rows": 84,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 29,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        5
+      ],
+      "required_remote_rows_per_card": [
+        21,
+        21,
+        21,
+        24
+      ],
+      "aggregate_card_ingress_rows": 87,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 30,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        6
+      ],
+      "required_remote_rows_per_card": [
+        22,
+        22,
+        22,
+        24
+      ],
+      "aggregate_card_ingress_rows": 90,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 31,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        7
+      ],
+      "required_remote_rows_per_card": [
+        23,
+        23,
+        23,
+        24
+      ],
+      "aggregate_card_ingress_rows": 93,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 32,
+      "chunk": 4,
+      "local_valid_rows_per_card": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "required_remote_rows_per_card": [
+        24,
+        24,
+        24,
+        24
+      ],
+      "aggregate_card_ingress_rows": 96,
+      "max_card_ingress_rows": 24
+    },
+    {
+      "n": 33,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        3
+      ],
+      "required_remote_rows_per_card": [
+        23,
+        23,
+        23,
+        30
+      ],
+      "aggregate_card_ingress_rows": 99,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 34,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        4
+      ],
+      "required_remote_rows_per_card": [
+        24,
+        24,
+        24,
+        30
+      ],
+      "aggregate_card_ingress_rows": 102,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 35,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        5
+      ],
+      "required_remote_rows_per_card": [
+        25,
+        25,
+        25,
+        30
+      ],
+      "aggregate_card_ingress_rows": 105,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 36,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        6
+      ],
+      "required_remote_rows_per_card": [
+        26,
+        26,
+        26,
+        30
+      ],
+      "aggregate_card_ingress_rows": 108,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 37,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        7
+      ],
+      "required_remote_rows_per_card": [
+        27,
+        27,
+        27,
+        30
+      ],
+      "aggregate_card_ingress_rows": 111,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 38,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        8
+      ],
+      "required_remote_rows_per_card": [
+        28,
+        28,
+        28,
+        30
+      ],
+      "aggregate_card_ingress_rows": 114,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 39,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        9
+      ],
+      "required_remote_rows_per_card": [
+        29,
+        29,
+        29,
+        30
+      ],
+      "aggregate_card_ingress_rows": 117,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 40,
+      "chunk": 5,
+      "local_valid_rows_per_card": [
+        10,
+        10,
+        10,
+        10
+      ],
+      "required_remote_rows_per_card": [
+        30,
+        30,
+        30,
+        30
+      ],
+      "aggregate_card_ingress_rows": 120,
+      "max_card_ingress_rows": 30
+    },
+    {
+      "n": 41,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        5
+      ],
+      "required_remote_rows_per_card": [
+        29,
+        29,
+        29,
+        36
+      ],
+      "aggregate_card_ingress_rows": 123,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 42,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        6
+      ],
+      "required_remote_rows_per_card": [
+        30,
+        30,
+        30,
+        36
+      ],
+      "aggregate_card_ingress_rows": 126,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 43,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        7
+      ],
+      "required_remote_rows_per_card": [
+        31,
+        31,
+        31,
+        36
+      ],
+      "aggregate_card_ingress_rows": 129,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 44,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        8
+      ],
+      "required_remote_rows_per_card": [
+        32,
+        32,
+        32,
+        36
+      ],
+      "aggregate_card_ingress_rows": 132,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 45,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        9
+      ],
+      "required_remote_rows_per_card": [
+        33,
+        33,
+        33,
+        36
+      ],
+      "aggregate_card_ingress_rows": 135,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 46,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        10
+      ],
+      "required_remote_rows_per_card": [
+        34,
+        34,
+        34,
+        36
+      ],
+      "aggregate_card_ingress_rows": 138,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 47,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        11
+      ],
+      "required_remote_rows_per_card": [
+        35,
+        35,
+        35,
+        36
+      ],
+      "aggregate_card_ingress_rows": 141,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 48,
+      "chunk": 6,
+      "local_valid_rows_per_card": [
+        12,
+        12,
+        12,
+        12
+      ],
+      "required_remote_rows_per_card": [
+        36,
+        36,
+        36,
+        36
+      ],
+      "aggregate_card_ingress_rows": 144,
+      "max_card_ingress_rows": 36
+    },
+    {
+      "n": 49,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        7
+      ],
+      "required_remote_rows_per_card": [
+        35,
+        35,
+        35,
+        42
+      ],
+      "aggregate_card_ingress_rows": 147,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 50,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        8
+      ],
+      "required_remote_rows_per_card": [
+        36,
+        36,
+        36,
+        42
+      ],
+      "aggregate_card_ingress_rows": 150,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 51,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        9
+      ],
+      "required_remote_rows_per_card": [
+        37,
+        37,
+        37,
+        42
+      ],
+      "aggregate_card_ingress_rows": 153,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 52,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        10
+      ],
+      "required_remote_rows_per_card": [
+        38,
+        38,
+        38,
+        42
+      ],
+      "aggregate_card_ingress_rows": 156,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 53,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        11
+      ],
+      "required_remote_rows_per_card": [
+        39,
+        39,
+        39,
+        42
+      ],
+      "aggregate_card_ingress_rows": 159,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 54,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        12
+      ],
+      "required_remote_rows_per_card": [
+        40,
+        40,
+        40,
+        42
+      ],
+      "aggregate_card_ingress_rows": 162,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 55,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        13
+      ],
+      "required_remote_rows_per_card": [
+        41,
+        41,
+        41,
+        42
+      ],
+      "aggregate_card_ingress_rows": 165,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 56,
+      "chunk": 7,
+      "local_valid_rows_per_card": [
+        14,
+        14,
+        14,
+        14
+      ],
+      "required_remote_rows_per_card": [
+        42,
+        42,
+        42,
+        42
+      ],
+      "aggregate_card_ingress_rows": 168,
+      "max_card_ingress_rows": 42
+    },
+    {
+      "n": 57,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        9
+      ],
+      "required_remote_rows_per_card": [
+        41,
+        41,
+        41,
+        48
+      ],
+      "aggregate_card_ingress_rows": 171,
+      "max_card_ingress_rows": 48
+    },
+    {
+      "n": 58,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        10
+      ],
+      "required_remote_rows_per_card": [
+        42,
+        42,
+        42,
+        48
+      ],
+      "aggregate_card_ingress_rows": 174,
+      "max_card_ingress_rows": 48
+    },
+    {
+      "n": 59,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        11
+      ],
+      "required_remote_rows_per_card": [
+        43,
+        43,
+        43,
+        48
+      ],
+      "aggregate_card_ingress_rows": 177,
+      "max_card_ingress_rows": 48
+    },
+    {
+      "n": 60,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        12
+      ],
+      "required_remote_rows_per_card": [
+        44,
+        44,
+        44,
+        48
+      ],
+      "aggregate_card_ingress_rows": 180,
+      "max_card_ingress_rows": 48
+    },
+    {
+      "n": 61,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        13
+      ],
+      "required_remote_rows_per_card": [
+        45,
+        45,
+        45,
+        48
+      ],
+      "aggregate_card_ingress_rows": 183,
+      "max_card_ingress_rows": 48
+    },
+    {
+      "n": 62,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        14
+      ],
+      "required_remote_rows_per_card": [
+        46,
+        46,
+        46,
+        48
+      ],
+      "aggregate_card_ingress_rows": 186,
+      "max_card_ingress_rows": 48
+    },
+    {
+      "n": 63,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        15
+      ],
+      "required_remote_rows_per_card": [
+        47,
+        47,
+        47,
+        48
+      ],
+      "aggregate_card_ingress_rows": 189,
+      "max_card_ingress_rows": 48
+    },
+    {
+      "n": 64,
+      "chunk": 8,
+      "local_valid_rows_per_card": [
+        16,
+        16,
+        16,
+        16
+      ],
+      "required_remote_rows_per_card": [
+        48,
+        48,
+        48,
+        48
+      ],
+      "aggregate_card_ingress_rows": 192,
+      "max_card_ingress_rows": 48
+    }
+  ],
+  "unknown_bandwidths": true,
+  "actual_wire_bytes_or_speedup": null,
+  "new_native_operand_or_phase_promotions": 0,
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

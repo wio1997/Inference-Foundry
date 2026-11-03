@@ -1,0 +1,68 @@
+{
+  "generated_utc": "2026-10-31T09:21:07.620510+00:00",
+  "framework_candidates": [
+    "H02",
+    "H06"
+  ],
+  "evidence_refs": [
+    {
+      "label": "M20-profile166-v36",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M20-profile166-v36.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M20-allrank-merged-draft-confidence-step-and-next-ID-scope-v36.json",
+      "sha256": "6ab7fb525ff4fb57eaeba777005b7bd077621f5b3f247ef7533682bd9e9cac2e"
+    },
+    {
+      "label": "M20-source166-v36-v2",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M20-source166-v36-v2.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M20-confidence-feedback-and-next-ID-consumer-contract-v36-v2.json",
+      "sha256": "197efd5fde52cd3e4ad9d4d9a54c0e10a637be8878f9135ae16e901973462be0"
+    },
+    {
+      "label": "M20-step-audit166-v36",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M20-step-audit166-v36.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M20-source-ordered-five-step-and-next-ID-row-audit-v36.json",
+      "sha256": "22ee2e83e606c791161b2a32756fa839b7c7660f47d0887952ee28fbd912d494"
+    },
+    {
+      "label": "M20-scheduler166-v36",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M20-scheduler166-v36.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M20-dynamic-scheduler-confidence-and-next-ID-handoff-consumers-v36.json",
+      "sha256": "e9500482b5ed70771bf41396e2c80d98c4a46dbc617521327c775c747361a9b8"
+    },
+    {
+      "label": "M20-publication166-v36",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M20-publication166-v36.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M20-confidence-head-Markov-input-and-verify-length-publication-contract-v36.json",
+      "sha256": "87dff2b709bc646cb5501d498624000bda339a30dcc8b6cf6e3dc2fb93dfe68e"
+    },
+    {
+      "label": "M20-verify-consumer166-v36",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M20-verify-consumer166-v36.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M20-exact-verify-prefix-consumer-and-publication-phase-v36.json",
+      "sha256": "028559c96240371c7398f1e66c8e5edd68d12e11a69cd844efe82b0c588f8d09"
+    },
+    {
+      "label": "M20-exact-profile166-v36",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M20-exact-profile166-v36.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M20-exact-confidence-scheduler-and-verify-consumer-native-presence-v36.json",
+      "sha256": "8e568ce9c2c8f5647e31e56fbe637a4f38b6b64192f39dd7011a9df3768d82d6"
+    }
+  ],
+  "H02": [
+    "Next-ID helper CPU backup list/get_token_id and copy_to_gpu are unconditional source work. Reusing a device backup bank requires exact request/position/no-spec/accepted-rollback generation; never add count.all().item() merely to skip fallback publication.",
+    "take_draft_token_ids converts each device keep length viaint(k). This proves host scalar consumption, not B measured synchronize calls. A batched asynchronous length copy can share a generation envelope and readiness event with draft IDs.",
+    "Envelope must preserve out.req_ids order, length shape, producer generation, consumer max/min cap and zip behavior; persistent length bank can be overwritten by later updates.",
+    "Existing valid-count eventNone early return, named-stream wait/copy/event, GPU count reference and prev_sampled token update are preserved. Readiness is not pointer equality."
+  ],
+  "H06": [
+    "Scheduler budget comment cites past Qwen3-8B/A3 behavior; it is not a measured910C/CANN9.2 cost curve. Current actual dynamic params/branch time are unrecorded.",
+    "Verification length is a logical prefix count; physical target padding, graph bucket, DP/TP/MC2 uniform domains and batch completion can leave cost unchanged.",
+    "Cost-policy tuning is a separate semantic counterfactual from preserving the existing policy in a device pipeline; retain target/speculative correctness and RNG/metadata contracts.",
+    "Regroup physical buckets only after preserving the original global allocation cohort and request map. Changing batch membership before globalTopK changes that policy."
+  ],
+  "saved_profile_boundary": "No new on-CPU or transfer timing was measured. Existing H02 prepare-only utility-field census does not prove this outside-prepare backup handoff free or absent.",
+  "implementation": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

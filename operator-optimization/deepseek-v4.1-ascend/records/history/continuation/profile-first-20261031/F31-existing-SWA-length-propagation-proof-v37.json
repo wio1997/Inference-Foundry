@@ -1,0 +1,45 @@
+{
+  "generated_utc": "2026-10-31T10:08:49.712886+00:00",
+  "candidate": "F31",
+  "evidence_grade": "DERIVED_WITH_EXPLICIT_DOMAIN",
+  "producer_already_exists": true,
+  "source_gap": "Global metadata contains ori_topk_length; CP passes only indices, and base unconditionally resets local lengthNone. A new explicit count-input consumer contract plus CP forwarding is needed; adding an unused kwarg alone is insufficient.",
+  "derivation": [
+    "For request sequence lengthL,query lengthQ,windowW, start=max(L-Q-W,0),V=L-start. Logical kernel slot at columnc is start+c if c<V,otherwise-1; start>=0.",
+    "Within safe integer bounds, among columns0..C-1 the number of nonnegative slots is clamp(V,0,C). This is the exact predicate used by local recount, including duplicates of logical values as separate columns.",
+    "When 0<=Q<=configuredSpec and L>=Q and W>=0, V=min(L,W+Q)<=W+configuredSpec<=C by wrapper validation. Then existing raw length equals the recount without capping.",
+    "Otherwise preserve the baseline recount by using the capped length only in this local replacement. Do not mutate existing global raw-length semantics for other consumers.",
+    "Row slicing/selection commutes with column predicate count: local S(I>=0).sum=S(global_count), if CP makes no value-changing transformation. Apply exact actual_start/end,order,empty/padded-row andINT32[R,1] layout.",
+    "Physical slot/block-table backend can contain negative mapped slots despite positive logical lengths; do not extend this logical-Triton proof to it without another predicate proof."
+  ],
+  "kernel_only_capacity_example": {
+    "W": 4,
+    "Q": 3,
+    "L": 100,
+    "C": 5,
+    "raw_visible_len": 7,
+    "stored_nonnegative_columns": 5,
+    "note": "Illustrates required capacity condition/cap; not a claim current valid wrapper metadata violates its contract."
+  },
+  "profile_support": {
+    "global_SWA_kernel": 88,
+    "local_count_groups": 69,
+    "local_count_TASKs": 276,
+    "width": 256,
+    "local_rows": {
+      "2": 27,
+      "3": 42
+    }
+  },
+  "stable_bank_conditions": [
+    "Keep existing global index/length banks and all other raw-length readers.",
+    "Propagated local count or capped view remains valid until metadata callback/consumer last read.",
+    "Preserve dedicated-stream input-ready/frontier/reuse and capture addresses."
+  ],
+  "local_question_closed": true,
+  "implemented": false,
+  "native_numerical_validation": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

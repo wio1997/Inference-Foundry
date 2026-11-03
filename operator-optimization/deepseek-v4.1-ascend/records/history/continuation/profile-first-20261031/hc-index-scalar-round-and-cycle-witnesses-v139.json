@@ -1,0 +1,65 @@
+{
+  "intermediate_FP16": {
+    "BF16_projection": 2.86102294921875e-06,
+    "weight_scale": 0.015625,
+    "FP16_query_scale": 4096,
+    "valid_query_amax": 520192,
+    "required_first_FP16_weight": 5.960464477539063e-08,
+    "required_FP16_product": 0.000244140625,
+    "product_if_first_FP16_round_dropped": 0.00018310546875,
+    "scope": "Finite BF16/F16 round-to-nearest reference,no nativeFTZ/CANNcast attestation. Qamax is a BF16 representable value producing this valid FP16 scale in the declared query quantizer."
+  },
+  "FP16_too_early": {
+    "BF16_value": 1048576,
+    "required_scaled_FP16": 16384,
+    "FP16_first": "Inf"
+  },
+  "RoPE_amax": {
+    "pre_RoPE_tail": [
+      1,
+      0
+    ],
+    "post_RoPE_tail_BF16": [
+      0.70703125,
+      0.70703125
+    ],
+    "nonrot_value": 0.5,
+    "pre_scale": 0.00787353515625,
+    "post_scale": 0.005565643310546875,
+    "wrong_pre_RoPE_quant": 64,
+    "correct_post_RoPE_quant": 90,
+    "scope": "Finite two-coordinate45degree rotation after BF16round,other128headfeatures≤.5. Not actual position/CANN native proof."
+  },
+  "partial_head": {
+    "first_value": 1,
+    "possible_late_value": 127,
+    "wrong_early_quant": 127,
+    "correct_after_full_head_quant": 1,
+    "scope": "Complete perhead128amax changes earlier quant values; per-head information dependency,not whole-op barrier."
+  },
+  "fused_alpha_wait_cycle": {
+    "edges": [
+      [
+        "MAIN_WEIGHT_FP16_DONE",
+        "AUX_QUANT_PRODUCT_DONE"
+      ],
+      [
+        "AUX_QUANT_PRODUCT_DONE",
+        "MAIN_WEIGHT_FP16_START"
+      ],
+      [
+        "MAIN_WEIGHT_FP16_START",
+        "MAIN_WEIGHT_FP16_DONE"
+      ]
+    ],
+    "original_source": "Mainwaitprepared.quantize_done before select_projected line256 WeightFP16. NewauxproductrequiresWeightFP16;unchanged placementcycles.",
+    "acyclic_repairs": [
+      "Perform required WeightFP16 rounding inside aux/fused quant before product,with publication/readiness/lifetime contract.",
+      "Move separate WeightFP16 task before quant first-reader and price event/stream/layout changes.",
+      "Keep product in QLI and separate original Weight/query-scale inputs."
+    ]
+  },
+  "reference_only_not_native_parity": true,
+  "new_device_work": false,
+  "overall_complete": false
+}

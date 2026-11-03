@@ -1,0 +1,94 @@
+{
+  "status": "SYMBOLIC_CEILING",
+  "domain": "One row,V>=3,L>=1 andL<=2^20,finite BF16-representable logits andINT64 output-history tokens0..V-1;rho1,freq1,presence0;exact argmax in word-query domain;no prior counts/summaries/residency. Both arrays must cross one declared storage boundary. Choose exactly one stored-input interface:already materialized FLOAT words or retained BF16 words with exact widening.",
+  "proof": "At history all2 and logits[0.5,0,-1024,...],ID0 wins. Changing any unread history position to0 makesID1 win. Any unread logit can also changeID:lowerx0 to-1,raisex1/other to1,orraisex2 to power2>L+1. All witness logit alternatives are BF16-representable. Thus exact algorithms in this query domain must inspect allV+L words;counts and arithmetic are exact in the stated range.",
+  "reference_adversaries": [
+    {
+      "V": 3,
+      "L": 1,
+      "x": [
+        0.5,
+        0.0,
+        -1024.0
+      ],
+      "history": [
+        2
+      ],
+      "original_ID": 0,
+      "every_individual_logit_or_history_word_can_change_ID": true,
+      "necessary_uncached_materialized_FLOAT_input_bytes": 20,
+      "necessary_uncached_retained_BF16_input_bytes": 14
+    },
+    {
+      "V": 3,
+      "L": 2,
+      "x": [
+        0.5,
+        0.0,
+        -1024.0
+      ],
+      "history": [
+        2,
+        2
+      ],
+      "original_ID": 0,
+      "every_individual_logit_or_history_word_can_change_ID": true,
+      "necessary_uncached_materialized_FLOAT_input_bytes": 28,
+      "necessary_uncached_retained_BF16_input_bytes": 22
+    },
+    {
+      "V": 4,
+      "L": 3,
+      "x": [
+        0.5,
+        0.0,
+        -1024.0,
+        -1024.0
+      ],
+      "history": [
+        2,
+        2,
+        2
+      ],
+      "original_ID": 0,
+      "every_individual_logit_or_history_word_can_change_ID": true,
+      "necessary_uncached_materialized_FLOAT_input_bytes": 40,
+      "necessary_uncached_retained_BF16_input_bytes": 32
+    },
+    {
+      "V": 8,
+      "L": 5,
+      "x": [
+        0.5,
+        0.0,
+        -1024.0,
+        -1024.0,
+        -1024.0,
+        -1024.0,
+        -1024.0,
+        -1024.0
+      ],
+      "history": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "original_ID": 0,
+      "every_individual_logit_or_history_word_can_change_ID": true,
+      "necessary_uncached_materialized_FLOAT_input_bytes": 72,
+      "necessary_uncached_retained_BF16_input_bytes": 56
+    }
+  ],
+  "necessary_bytes": {
+    "materialized_FLOAT": "4V+8L",
+    "retained_BF16": "2V+8L"
+  },
+  "time_lower_bound": "T >= (s_logit*V+8L)/U_selected_storage_capacity_upper,where s_logit=4 or2 for the selected input graph",
+  "effective_input_word_throughput_upper": "(V+L)*U_selected_storage_capacity_upper/(s_logit*V+8L)",
+  "not_applicable_to": "Warm cached/request counts,producer-fused implicit logits,compressed inputs,precomputed summaries,different input/query domain or all algorithms. New state representation requires a new bound.",
+  "actual_storage_capacity_or_native_MFU_or_speedup": "UNKNOWN",
+  "native_measurement_not_lower_bound": true,
+  "overall_complete": false
+}

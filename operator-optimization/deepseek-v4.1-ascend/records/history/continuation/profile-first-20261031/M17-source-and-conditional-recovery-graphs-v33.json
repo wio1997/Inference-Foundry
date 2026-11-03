@@ -1,0 +1,216 @@
+{
+  "generated_utc": "2026-10-31T07:36:46.313421+00:00",
+  "baseline": {
+    "nodes": [
+      {
+        "id": "entry_BF16_logits"
+      },
+      {
+        "id": "target_index"
+      },
+      {
+        "id": "raw_FP32"
+      },
+      {
+        "id": "working_clone"
+      },
+      {
+        "id": "working_processors_constraints"
+      },
+      {
+        "id": "greedy_selection"
+      },
+      {
+        "id": "pre_return_entropy_probs"
+      },
+      {
+        "id": "G_A_return"
+      },
+      {
+        "id": "processed_P"
+      },
+      {
+        "id": "uniforms"
+      },
+      {
+        "id": "request_Q_rng"
+      },
+      {
+        "id": "all_recovery_values"
+      },
+      {
+        "id": "acceptance_prefix_or_block"
+      },
+      {
+        "id": "placeholder_output"
+      },
+      {
+        "id": "published_output"
+      }
+    ],
+    "edges": [
+      {
+        "a": "entry_BF16_logits",
+        "b": "raw_FP32",
+        "kind": "SELECT_AND_WIDEN"
+      },
+      {
+        "a": "target_index",
+        "b": "raw_FP32",
+        "kind": "ORDERED_ROW_PLAN"
+      },
+      {
+        "a": "raw_FP32",
+        "b": "working_clone",
+        "kind": "RAW_MODE_PRESERVATION"
+      },
+      {
+        "a": "working_clone",
+        "b": "working_processors_constraints",
+        "kind": "INPLACE_EFFECTS"
+      },
+      {
+        "a": "working_processors_constraints",
+        "b": "greedy_selection",
+        "kind": "GREEDY_COMPARATOR"
+      },
+      {
+        "a": "raw_FP32",
+        "b": "pre_return_entropy_probs",
+        "kind": "ENTROPY_CONFIG_CONDITIONAL"
+      },
+      {
+        "a": "greedy_selection",
+        "b": "G_A_return",
+        "kind": "GREEDY_EARLY_EXIT"
+      },
+      {
+        "a": "working_processors_constraints",
+        "b": "processed_P",
+        "kind": "NON_GREEDY_SOFTMAX"
+      },
+      {
+        "a": "processed_P",
+        "b": "all_recovery_values",
+        "kind": "FULL_RESIDUAL_DISTRIBUTION"
+      },
+      {
+        "a": "request_Q_rng",
+        "b": "all_recovery_values",
+        "kind": "SHARED_REQUEST_EXPONENTIALS"
+      },
+      {
+        "a": "processed_P",
+        "b": "acceptance_prefix_or_block",
+        "kind": "SELECTED_P_Q"
+      },
+      {
+        "a": "pre_return_entropy_probs",
+        "b": "acceptance_prefix_or_block",
+        "kind": "H_EPSILON_ONLY_IF_LATER_PATH"
+      },
+      {
+        "a": "uniforms",
+        "b": "acceptance_prefix_or_block",
+        "kind": "SAME_DRAWS_AND_CONVERSION"
+      },
+      {
+        "a": "all_recovery_values",
+        "b": "published_output",
+        "kind": "SELECTED_ONE_VALUE"
+      },
+      {
+        "a": "acceptance_prefix_or_block",
+        "b": "published_output",
+        "kind": "DECISION_MAP"
+      },
+      {
+        "a": "placeholder_output",
+        "b": "published_output",
+        "kind": "RETAIN_TAILS"
+      },
+      {
+        "a": "G_A_return",
+        "b": "published_output",
+        "kind": "GREEDY_ROWS"
+      }
+    ]
+  },
+  "conditional_decision_then_selected_recovery": {
+    "nodes": [
+      {
+        "id": "processed_logits_and_draft_probs"
+      },
+      {
+        "id": "actual_entropy_source"
+      },
+      {
+        "id": "same_uniform_rng"
+      },
+      {
+        "id": "same_request_Q_rng"
+      },
+      {
+        "id": "acceptance_summaries"
+      },
+      {
+        "id": "decision_R_map"
+      },
+      {
+        "id": "selected_row_recovery"
+      },
+      {
+        "id": "same_output_bank"
+      }
+    ],
+    "edges": [
+      {
+        "a": "processed_logits_and_draft_probs",
+        "b": "acceptance_summaries",
+        "kind": "IDENTICAL_SELECTED_PROBS"
+      },
+      {
+        "a": "actual_entropy_source",
+        "b": "acceptance_summaries",
+        "kind": "H_EPSILON_IF_NEEDED"
+      },
+      {
+        "a": "same_uniform_rng",
+        "b": "decision_R_map",
+        "kind": "SAME_CURRENT_UNIFORMS"
+      },
+      {
+        "a": "acceptance_summaries",
+        "b": "decision_R_map",
+        "kind": "STANDARD_OR_BLOCK_ORDER"
+      },
+      {
+        "a": "decision_R_map",
+        "b": "selected_row_recovery",
+        "kind": "NON_GREEDY_RECOVERY_ROW_ONLY"
+      },
+      {
+        "a": "processed_logits_and_draft_probs",
+        "b": "selected_row_recovery",
+        "kind": "FULL_SELECTED_RESIDUAL"
+      },
+      {
+        "a": "same_request_Q_rng",
+        "b": "selected_row_recovery",
+        "kind": "UNCHANGED_Q_DRAWS"
+      },
+      {
+        "a": "decision_R_map",
+        "b": "same_output_bank",
+        "kind": "PREFIX_BONUS_PLACEHOLDERS"
+      },
+      {
+        "a": "selected_row_recovery",
+        "b": "same_output_bank",
+        "kind": "SAME_SELECTED_VALUE"
+      }
+    ]
+  },
+  "scope": "Conditionalpartialsource/dataflowDAG,notcompletealias/event/captureproof;G_Aandnon-greedypathsseparate.",
+  "overall_complete": false
+}

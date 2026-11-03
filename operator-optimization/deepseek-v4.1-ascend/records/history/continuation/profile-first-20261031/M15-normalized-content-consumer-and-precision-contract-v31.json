@@ -1,0 +1,85 @@
+{
+  "generated_utc": "2026-10-31T06:36:59.244166+00:00",
+  "candidate": "F26",
+  "evidence_grades": [
+    "MEASURED",
+    "DOCUMENTED",
+    "DERIVED",
+    "UNKNOWN"
+  ],
+  "source_files": {
+    "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/ops/layernorm.py": "d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+    "/vllm-workspace/vllm/vllm/v1/worker/gpu_model_runner.py": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51"
+  },
+  "evidence_refs": [
+    {
+      "label": "M15-profile166-v31",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M15-profile166-v31.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M15-final-HC-norm-row-selection-and-state-scope-v31.json",
+      "sha256": "705e588a6c76c15b292a65c72000103751e1eae1dac673e0ef0ef7a27446fed3"
+    },
+    {
+      "label": "M15-source166-v31",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M15-source166-v31.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M15-normalized-hidden-identifier-use-and-row-contract-v31.json",
+      "sha256": "51286c0de1712f1b08034cdb57d1e274e465e80ee66ba6f93748b69a325a874a"
+    },
+    {
+      "label": "M15-root-audit166-v31",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M15-root-audit166-v31.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M15-root-row-norm-snapshot-and-communication-audit-v31.json",
+      "sha256": "c7085f401e95cf0a60daeb52687ffbeaae2e2ffa07b4a9d7d4ee8082f1827f00"
+    },
+    {
+      "label": "M15-state-source166-v31",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M15-state-source166-v31.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M15-ExecuteModelState-observer-and-branch-arm-contract-v31.json",
+      "sha256": "31e144129d9b5d92f0eca855cf1a65000b0264e6502eaf2ba31df15c10d706d2"
+    },
+    {
+      "label": "M15-prompt-source166-v31",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M15-prompt-source166-v31.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M15-exact-bookkeeping-prompt-logprob-content-consumer-v31.json",
+      "sha256": "c8e2bb534380761393ae42d4cd33a7a087a928e522c9bcefe3f9a5283fe84545"
+    },
+    {
+      "label": "M15-prompt-profile166-v31",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M15-prompt-profile166-v31.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M15-prompt-consumer-presence-and-recorded-guard-scope-v31.json",
+      "sha256": "7aebb5aac27c8eb21334330913d058b4d2de4175cb0899c2ad1d1faabde20ca1"
+    }
+  ],
+  "reviewed_facts": [
+    "Sourcehc_collapse855-856computes(pre_mix.unsqueeze(-1)*x.float()).sum(-2).to(x.dtype):weightedFP32reductionoverHC4followedbyBF16cast;rowdimensionnotreduced.",
+    "Currentfinalnormpositivelyreacheslayernorm99npu_rms_normwithnoresidualargument. Separateadd-residualbranch90-97notthiscall. Weight/epsilonandoptionalbias_loaded100-101mustremain;noassumptionthatbiassettingisfalsefrommissingAddTASKs.",
+    "Normwrapperbindssecondnpu_rms_normreturntolocalresidualbutreturnsxonly. TypedFLOATstatsoutputisnotbyitselfproofofphysicalHBMwrite;newfusionmayretainstatsinternallywithoutpromisingastandalonewritewasremoved.",
+    "Model1595-1605:whenrawMTPbufferexists,SPgathersfullHCandFP32premix,copiesrawflattenedHC,thenfullglobalcollapseandnorm. Existingbuffer-is-Nonebranchcollapseslocallythengatherscollapsedhidden;notanewimplementation.",
+    "Runner_prepare_inputs2357-2364returnslogits_indicesbefore_model_forward2596;runner2634selectsnormalizedhiddenand2635computeslogits. Passingthisselectionintomodeltailwouldbeaninterfacechange,withinput-generation/CP/graphupdaterequirements;sourceorderingdoesnotprovesamehistoricaltensoralias.",
+    "Actualrootconsistentregimes:8roots6400->2,8roots6528->2,8roots6672->14,16roots24->12,48roots24->24. K<Nisopportunitylocalization,notpermissiontodropotherrowsoraperformanceestimate.",
+    "execute_model2658escapesbothfullnormalizedhiddenandselectedhidden/auxintotheNamedTupleExecuteModelState. sample_tokens2786-2799unpacksitand2801clearsthefield. Thisiscross-methodstate/lifetime,notproofofdeadfullhidden.",
+    "sample_tokenspassesfullhiddenandaux/samplehiddenintoproposal2836-2848andfullhiddenintobookkeeping2872-2888. ProposalexplicitIfarmsconfirmauxTrue2069/2089usesconcatenatedaux;thefullnormalizedhiddenalternatives2071/2091areORELSE. mtp-onlyrebind2059-2060doesnotapplytodspark. Reusev11rawsnapshotdirectcontentexclusion.",
+    "Recordedpreparemetadata96rootspositivelydspark+auxTrue;notall16phase-unboundgraphexecutionsattestedbythese96records. Otherproposalmethods/PP/pooling/broadcastbranchesremainseparate.",
+    "_bookkeeping_sync3131-3134unconditionallypassesnormalizedhiddenprefixintoinherited_get_prompt_logprobs_dict. Exactresolvedbasegpu_model_runner5643-5750returnsearlyonlyifnum_prompt_logprobsdictionaryempty;otherwiseper-requestpromptrows5711feedcompute_logits5712whenpositive num_logits.",
+    "Prompthelperpreservesquery_start_locoffsets,chunkedprefillstart/remainingtokens,prompttokenmapping,logprobs_mode/raw-vs-processedscoresemantics,rankandD2Hpublication/completioncleanup. Itisagenuinepotentialnormalized-contentreaderbeyondfinalsampleindices.",
+    "Savednativefullcallerqueryhas0prompt-helperAPIframesbutdoesnotrecordnum_prompt_logprobsstate. Earlyreturn/no-deviceworkcouldexplainabsence. MissingfieldremainsUNKNOWN,notemptydictorfalse. Frozenrequestv8clientcontractisnotsame-callworkerstateattestation.",
+    "Currentheadfrontierpositivelycontains216primary-targetnativeAPIs/3chains:88LM-headGEMMsourcecallsand88+40gather-sourceAPIs. ThisisonlyM16entrylocalization,notwholeTASK/COMM/consumerorvocabpostprocessclosure."
+  ],
+  "source_questions_locally_answered": [
+    "FinalHCcollapseaxis/precisionboundary",
+    "Exactnormalizedhiddenstatehandoffandproposal/bookkeepingconsumers",
+    "Prompt-logprobsadditionalrowreaderanditsguard",
+    "Rowselectionispreparedbeforemodelcall;actualcaptureplumbingstillconditional"
+  ],
+  "retained_unknowns": [
+    "Actualprompt-logprobsdictionarystate/readable-rowsetonallsame-callentries;nozero-fillfromtraceabsence.",
+    "Completeotherexternal/pooling/PP/broadcast/getter/debugobservers,rawbufferaliases/captureaddresses/ready/last-readerandgeneration.",
+    "Nativebatch-shape/tiling/reduction/roundingparityfornewfusedorlocal/selectivevariants;samerealfloatingformuladoesnotprovebitwiseidentity.",
+    "16unboundgraphphases;currentCPU/communicationphysicalcost,resourcecapacityandcausalrequestbenefit."
+  ],
+  "target_changed": false,
+  "all_consumers_closed": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

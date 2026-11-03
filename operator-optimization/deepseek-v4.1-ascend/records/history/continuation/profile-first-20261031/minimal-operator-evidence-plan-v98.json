@@ -1,0 +1,156 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "source_scope": "Only evidence that changes operatorfusion/split/reorganization legality,necessarywork orresourceceilings.",
+  "no_new_capture_or_target_change_authorized_by_this_plan": true,
+  "optional_next_windows": [
+    {
+      "id": "SAMECALL_RECEIVER",
+      "question": "Bind source-row/topK bounds or receiver demand to the exactcustomMC2execution with recordedC.",
+      "fields": [
+        "run/causal communication-instance andgroup/rank identity",
+        "exactrecordedC,M,k,E andloadedkernel/path identity",
+        "same-call expert_token_nums anditsdtype/shape",
+        "workspace source-request vsactualallocation/capturebankgeneration ifclaimingmemorycredit"
+      ],
+      "bound": "One controlled completeEPgroup window;at mostone selectedlayer andone callperrank perworkloadcohort,16rankreference. Nofullactivation orweightdump.",
+      "optional_device_copy": "24INT32counts=96B/rank target,8INT32=32B/rank draft. New NPU-to-CPU read/synchronization requires an authorized finite diagnostic window;latency is perturbed and cannot be used asbaseline.",
+      "source_count_semantics": "GetCumsumForMMAIV accumulates acrossEPsources independentlyforeachexpert. LastsourcevectorcopiedtoExpertTokenNums thereforehasper-local-expert demandbeforemaxOutputSizeclipping;sumofvalidnonnegativeentriesisreceiverdemandinthissourcecontract,notanexpert-prefixsum. Loadedbinaryandinteger-rangedomainstillmustbind.",
+      "source": {
+        "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/MC2-operator-source-v56/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/dispatch_ffn_combine_kernel.hpp",
+        "sha256": "7dcef4c08c4c47e38bdd01aef0dee997798658ee4d7b871c8e6c70f7ffe596ba",
+        "segments": [
+          {
+            "first_line": 401,
+            "last_line": 433,
+            "source": [
+              "    CATLASS_DEVICE",
+              "    void GetCumsumForMMAIV(AscendC::GlobalTensor<int32_t> & tokenPerExpert, AscendC::GlobalTensor<int32_t> & result, uint32_t expertPerRank, uint32_t rankId, uint32_t EP)",
+              "    {",
+              "        int32_t expertPerRankAligned = (expertPerRank + 8 - 1) / 8 * 8;",
+              "        AscendC::LocalTensor<int32_t> tmpBuffer1 = resource.ubBuf.template GetBufferByByte<int32_t>(0);",
+              "        AscendC::LocalTensor<int32_t> tmpResult = resource.ubBuf.template GetBufferByByte<int32_t>(EP * expertPerRank * sizeof(int32_t));",
+              "        #define U16(x) static_cast<uint16_t>(x)",
+              "",
+              "        AscendC::DataCopyPad(",
+              "            tmpBuffer1,",
+              "            tokenPerExpert[rankId * expertPerRank],",
+              "            {U16(EP), U16(expertPerRank * sizeof(int32_t)), U16((paddedExpertNumAligned - expertPerRank) * sizeof(int32_t)), 0},",
+              "            {}",
+              "        );",
+              "",
+              "        AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);",
+              "        AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);",
+              "",
+              "        for (uint32_t i = 1; i < EP; ++i) {",
+              "            AscendC::Add(tmpBuffer1[i * expertPerRankAligned], tmpBuffer1[i * expertPerRankAligned], tmpBuffer1[(i - 1) * expertPerRankAligned], expertPerRank);",
+              "            AscendC::PipeBarrier<PIPE_V>();",
+              "        }",
+              "",
+              "        AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);",
+              "        AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);",
+              "",
+              "        AscendC::DataCopyPad(",
+              "            result,",
+              "            tmpBuffer1,",
+              "            {U16(EP), U16((expertPerRank) * sizeof(int32_t)), 0, 0}",
+              "        );",
+              "    }",
+              ""
+            ]
+          },
+          {
+            "first_line": 821,
+            "last_line": 868,
+            "source": [
+              "            prevSum = preSumBeforeRank(coreIdx * params.expertPerRank);",
+              "        }",
+              "        AscendC::SyncAll<true>();",
+              "        ",
+              "        AscendC::GlobalTensor<int32_t> ExpertTokenNums;",
+              "        ExpertTokenNums.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(params.ptrExpertTokenNums));",
+              "        if(coreIdx == 0)",
+              "        {",
+              "            CopyGMToGM(ExpertTokenNums, cumsumMM[(params.EP - 1) * params.expertPerRank], params.expertPerRank, params.ubMoveNum);",
+              "        }",
+              "        uint16_t syncgmm1Idx = 0;",
+              "        AscendC::CrossCoreSetFlag<0x2, PIPE_MTE3>(syncgmm1Idx / CROSS_CORE_FLAG_MAX_SET_COUNT);",
+              "        syncgmm1Idx++;",
+              "",
+              "        uint32_t prevGroupSum1 = 0, dequantSum1 = 0, dequantSum2 = 0;",
+              "        uint32_t dequantSum = 0;",
+              "",
+              "        icache_preload(8);",
+              "        AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);",
+              "        AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID1);",
+              "        int32_t pingpongIdx = 0;",
+              "        for (int32_t groupIdx = 0; groupIdx < params.expertPerRank; ++groupIdx) {",
+              "            // The ith core reads data from the ith rank's peermem",
+              "            uint32_t currentM = cumsumMM((params.EP - 1) * params.expertPerRank + groupIdx);",
+              "            for(int32_t dstEpIdx = coreIdx; dstEpIdx < params.EP; dstEpIdx += coreNum) {",
+              "                uint32_t rowStart = (dstEpIdx == 0 ? 0 : cumsumMM((dstEpIdx - 1) * params.expertPerRank + groupIdx)) + prevGroupSum1;",
+              "                if (rowStart < params.maxOutputSize) {",
+              "                    uint32_t rows = tokenPerExpert(tokenPerExpertLayout(dstEpIdx, params.rank, groupIdx));",
+              "                    if (rowStart + rows > params.maxOutputSize) {",
+              "                        rows = params.maxOutputSize - rowStart;",
+              "                    }",
+              "                    uint32_t rowSrc = prevSum;",
+              "                    prevSum += rows;",
+              "                    GM_ADDR otherRankPtr = shmem(0, dstEpIdx);",
+              "                    AscendC::GlobalTensor<ElementA> gmRemoteA;",
+              "                    gmRemoteA.SetGlobalBuffer(reinterpret_cast<__gm__ ElementA*>(otherRankPtr + peermemInfo.offsetA));",
+              "                    MatrixCoord offsetA{rowStart, 0};",
+              "                    int64_t gmOffsetA = params.layoutA.GetOffset(offsetA);",
+              "                    int64_t gmOffsetPeer = rowSrc * (params.problemShape.k() + UB_ALIGN);",
+              "                    int32_t ubMoveNum = 2;",
+              "                    CopyGMToGMPerToken(gmA[gmOffsetA], gmPerTokenScale1[rowStart], gmRemoteA[gmOffsetPeer],  rows, params.problemShape.k(), ubMoveNum, pingpongIdx);",
+              "                }",
+              "",
+              "            }",
+              "            AscendC::SyncAll<true>();",
+              "            AscendC::CrossCoreSetFlag<0x2, PIPE_MTE3>(syncgmm1Idx / CROSS_CORE_FLAG_MAX_SET_COUNT);",
+              "            syncgmm1Idx ++;",
+              ""
+            ]
+          }
+        ]
+      },
+      "sufficiency": "Observedreceiverdemand alone doesnotprove allfuturecase safety. Use a boundedsamecall proof forcapturedcase orprovable workloadmax for reusable sizing. sourcebinary/writetile/alias/capturegates remain."
+    },
+    {
+      "id": "MEMSET_OPERANDS",
+      "question": "Which destination bytes are initialized,andwhichproducer/consumer observes them?",
+      "fields": [
+        "parentoperator andexactTASK/callidentity",
+        "destinationaddress+length+fillvalue",
+        "allocation/aliasgeneration",
+        "alloverlappingwritersandreaders andreadiness"
+      ],
+      "bound": "Separate the3M12 and4M19regimes;one representativeperregime plusexplicituniformitycontract. Asteadydecode-onlywindow cannotcoverdummy/prefillbranches.",
+      "mechanism": "Preferalready-savedIR/argumentmetadata ifindexed. Otherwise prepare boundednativeargument/IR diagnostic;PythoncallstackorCPUshapes alone cannot supplynativeMemSet destination/length.",
+      "sufficiency": "Anaddress/lengthsample doesnotcloseallcase writeextents orallreaders;noautomaticzero-elision."
+    },
+    {
+      "id": "BOOL_FIELD_READERS",
+      "question": "What exactBOOL[24]field iszeroed,anddo allreaders permitfusedinitialization?",
+      "fields": [
+        "operatorgraphvalue/aliasidentity",
+        "fieldproducer andallconsumers",
+        "row/paddingdomain andepoch",
+        "materializedsizeandnativewritegranularity"
+      ],
+      "bound": "Bothphase-unbound16 anddecode-compatible64executionregimes;staticnessattributealone isinsufficient.",
+      "mechanism": "Targetedgraph/operandidentity evidence;noframework-widesurvey."
+    }
+  ],
+  "stop_conditions": [
+    "No availableauthorizedfinitecapturewindow:keepplanpreparedandcontinueindependentoperatoranalysis.",
+    "Identity/hash/causalbindingfails:do notmergeotherhost/capture/rankordinalrecords.",
+    "Anynewdiagnosticmustretainunprofiledbaselineandmarkinstrumentationperturbation;nofusionimplementationorconfigurationchange."
+  ],
+  "quantitative_scope": {
+    "new_native_executions": 0,
+    "new_capture": 0,
+    "device_to_host_copies": 0
+  },
+  "overall_complete": false
+}

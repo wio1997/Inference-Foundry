@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_6f91dd80-6e33-46c4-a114-cb4b52f18f7e",
+  "traceId": "42e81022-3ddf-4ed8-8fcc-04e4e0b4aa0e",
+  "turnId": "turn_9fc21e20-54f1-45cc-a26d-90cba68b0eae",
+  "response": "CPU 预检已按原命令执行一次，返回码真实为 **rc=0**，无重试、无修改、无扩展。\n\n**执行结果**\n\n- 回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-preflight166-v12b.json`\n- 远端状态：`PASS_LAZY_IMPORT_NO_TORCH_NPU`\n- CANN：`9.2.0`\n- 无 torch/NPU 导入检查：`torch_imported=False`、`torch_npu_imported=False`（在加载 sitecustomize 和 `wio_host_profile` 前后均断言过，未触发任何模型导入）\n- 远端完整结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/host-profile-draft-v12b/preflight.json`，sha256 `37c79d0fb4a3fe9b397d7579b763b16bf29e5b77821bfbf016f31292bf1eeaa6`\n- stderr 为空，`stdout_tail` 为 `saved to receipt`\n\n**脚本行为确认（未做任何额外操作）**\n\n它在远端新建了独立目录 `host-profile-draft-v12b`（`mkdir(exist_ok=False)`，原 v12 预检目录未触碰），写入 `sitecustomize.py`、`wio_host_profile.py`、`PLAN.json` 并仅对暂存代码做了编译检查。随后对 stage 容器 `wio-vllm-v41-repro166-stage-20261030` 执行 `docker inspect`（校验容器 ID 与 Running 状态）和一次只读 `docker exec python3` 冒烟扫描。全程没有启动、停止或重启任何模型、服务或容器，仅有 inspect 与 exec。\n\n**profiler 构造点确认**\n\n源码扫描命中 4 个文件，其中关键的是 `/vllm-workspace/vllm-ascend/vllm_ascend/profiler/torch_npu_profiler.py`：其工厂硬编码 `with_stack=False` 且不传 `record_shapes`，与 v12b 暂存钩子“只把这两个采集参数改为 True、其余 activities/with_modules/profile_memory/experimental_config/trace_handler 保持不变”的适配一致。钩子安装时还会用 sha256 `5242ee…75f4` 校验 profiler 源文件，不匹配即报错，不会编辑目标源码。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 62389,
+    "outputTokens": 2800,
+    "totalTokens": 65189,
+    "cacheReadTokens": 46976,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2159,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 65189,
+    "contextUsed": 18008,
+    "contextWindow": 200000
+  }
+}

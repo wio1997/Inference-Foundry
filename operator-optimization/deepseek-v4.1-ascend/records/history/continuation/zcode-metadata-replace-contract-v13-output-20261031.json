@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_5d54ba6c-ee01-491d-8518-6fab5ccd6bd2",
+  "traceId": "2d044a18-492a-49af-9cd7-441cfa2ad6c6",
+  "turnId": "turn_bd920230-cc59-47a8-afa3-728f71efc390",
+  "response": "运行结果：**rc=1，查询在内部断言处中止，sourceSHA 未能产出，未做任何重试或修改。**\n\n唯一一次执行的真实返回码是 1。失败点在远程内联脚本第 16 行（外层第 29 行的 `assert r.returncode==0` 将其包装为 AssertionError），断言是：\n\n```\nassert len(matches)==1, (path, clsname)\nAssertionError: ('/vllm-workspace/vllm/vllm/v1/attention/backends/utils.py', 'CommonAttentionMetadata')\n```\n\n即 `utils.py` 中 `AscendCommonAttentionMetadata` 的父类导入被解析到 `vllm.v1.attention.backends.utils`，但该文件中顶层 `ClassDef` 名为 `CommonAttentionMetadata` 的匹配数为 0 或多于 1（脚本未打印具体数量）。这正说明父类很可能是在别处定义后被重导出/别名，而不是在该文件中以唯一顶层类定义——但这一点只是基于断言位置的推断，本次运行没有产出可证实它的数据。\n\n由此带来的后果，需要明确区分：\n\n- `dsa_v41.py` 和 `dsa_cp.py` 两个文件确实被 `read_bytes()` 读取并计算了 SHA256（它们是循环中的前两项），但脚本在第三项断言失败后未打印任何结果；外层对预期 SHA（039ec9d1… 对应 dsa_v41、7e8dd93e… 对应 dsa_cp）的核验代码位于 `assert r.returncode==0` 之后，因此**从未执行**。所以本次不能声称这两个 SHA 已核验，也没有可报告的 sourceSHA。\n- `AscendCommonAttentionMetadata` 的 `replace/__init__/__post_init__/__getattribute__/__getattr__/__setattr__/seq_lens_cpu` 及 seq_lens/query_start_loc 字段声明**均未产出**，因此“排除 local_common 构造隐藏内容读者”这一目标本次未得到验证。\n- 结果文件 `…/analysis/metadata-replace-and-source-contract-v13.json` 不存在（本地检查确认）；脚本在写文件前的断言即失败，未触碰任何输出。\n- 运行仅做了文件读取与 AST 解析，未导入目标模块、未运行 NPU、未改服务；收据在 `/Users/wio/work/166-vllm-analysis-continuation-20261030/metadata-replace-contract166-v13.json`，观察时间 2026-10-30T22:31:58Z。\n\n按你的“不重试、不扩展”约束，我就此停下。若要继续，需要一个新的、允许修正父类定位方式的查询脚本（例如先在该文件内查找 `CommonAttentionMetadata` 的绑定来源，再对其定义处做同样的单类解析），但这属于新合同，需你确认后再准备。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 4,
+    "inputTokens": 37272,
+    "outputTokens": 3648,
+    "totalTokens": 40920,
+    "cacheReadTokens": 28032,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3211,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 40920,
+    "contextUsed": 12698,
+    "contextWindow": 200000
+  }
+}

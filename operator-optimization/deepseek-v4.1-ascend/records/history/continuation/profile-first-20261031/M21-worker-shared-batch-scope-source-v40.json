@@ -1,0 +1,132 @@
+{
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+  "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+  "statements": [
+    {
+      "start": 3655,
+      "end": 3705,
+      "source": [
+        "3655:         cm_base = AscendCommonAttentionMetadata(",
+        "3656:             query_start_loc=self.query_start_loc.gpu[: num_reqs_padded + 1],",
+        "3657:             query_start_loc_cpu=self.query_start_loc.cpu[: num_reqs_padded + 1],",
+        "3658:             seq_lens=self.seq_lens[:num_reqs_padded],",
+        "3659:             # Always pass optimistic_seq_lens_cpu via _seq_lens_cpu so NPU",
+        "3660:             # attention backends can get CPU seq_lens without GPU->CPU sync.",
+        "3661:             # This is separate from seq_lens_cpu (None in async) which eagle",
+        "3662:             # proposer checks to distinguish async/non-async behavior.",
+        "3663:             _seq_lens_cpu=self.optimistic_seq_lens_cpu[:num_reqs_padded],",
+        "3664:             seq_lens_cpu_upper_bound=self.optimistic_seq_lens_cpu[:num_reqs_padded],",
+        "3665:             # TODO",
+        "3666:             seq_lens_cpu=seq_lens_cpu,",
+        "3667:             # TODO",
+        "3668:             # num_computed_tokens_cpu=self.input_batch.num_computed_tokens_cpu_tensor[:num_reqs_padded],",
+        "3669:             num_computed_tokens_cpu=num_computed_tokens_cpu,",
+        "3670:             num_reqs=num_reqs_padded,",
+        "3671:             num_actual_tokens=num_tokens,",
+        "3672:             max_query_len=max_query_len,",
+        "3673:             max_seq_len=max_seq_len,",
+        "3674:             block_table_tensor=block_table_gid_0,",
+        "3675:             slot_mapping=slot_mapping_gid_0,",
+        "3676:             causal=True,",
+        "3677:             is_prefilling=is_prefilling,",
+        "3678:             num_input_tokens=num_tokens_padded,",
+        "3679:             actual_seq_lengths_q=self.actual_seq_lengths_q,",
+        "3680:             positions=self.positions,",
+        "3681:             positions_cpu=self._dsa_positions_cpu_buf if self.use_compress else None,",
+        "3682:             attn_state=self.attn_state,",
+        "3683:             decode_token_per_req=self.decode_token_per_req,",
+        "3684:             context_parallel_metadata=self.long_seq_metadata,",
+        "3685:             group_len = self.group_len.gpu[:num_reqs_padded],",
+        "3686:             group_key_idx = self.group_key_idx.gpu[:num_reqs_padded],",
+        "3687:             group_key_cache_idx = self.group_key_cache_idx.gpu[:num_reqs_padded],",
+        "3688:             req_ids_tensor=(",
+        "3689:                 self._offload_req_ids_tensor.gpu[:num_reqs_padded]",
+        "3690:                 if self._offload_req_ids_tensor is not None",
+        "3691:                 else None",
+        "3692:             ),",
+        "3693:             token_to_req=(",
+        "3694:                 self._offload_token_to_req.gpu[:num_tokens_padded]",
+        "3695:                 if self._offload_token_to_req is not None",
+        "3696:                 else None",
+        "3697:             ),",
+        "3698:             req_topk_buffer_slots=(self._offload_pool_slots.cpu[:num_reqs_padded]",
+        "3699:                                    if self._offload_pool_slots is not None else None),",
+        "3700:             req_topk_buffer_active=(self._offload_pool_active.cpu[:num_reqs_padded]",
+        "3701:                                          if self._offload_pool_active is not None else None),",
+        "3702:             offload_dummy=offload_dummy,",
+        "3703:             copy_sfa_restore_tails=self._copy_sfa_need_eager_tail_restore,",
+        "3704:             mm_req_doc_ranges=req_doc_ranges,",
+        "3705:         )"
+      ]
+    },
+    {
+      "start": 3823,
+      "end": 3823,
+      "source": [
+        "3823:         common_v41_batch_metadata: dict[str, Any] = {}"
+      ]
+    },
+    {
+      "start": 3829,
+      "end": 3829,
+      "source": [
+        "3829:             common_v41_metadata: dict[str, Any] = {}"
+      ]
+    },
+    {
+      "start": 3708,
+      "end": 3708,
+      "source": [
+        "3708:             self.dcp_manager.prepare_common_attn_metadata(cm_base)"
+      ]
+    },
+    {
+      "start": 3711,
+      "end": 3711,
+      "source": [
+        "3711:             cm_base.num_logits_indices = logits_indices.size(0)"
+      ]
+    },
+    {
+      "start": 3712,
+      "end": 3712,
+      "source": [
+        "3712:             cm_base.logits_indices_padded = self._prepare_kv_sharing_fast_prefill(logits_indices)"
+      ]
+    },
+    {
+      "start": 3830,
+      "end": 3830,
+      "source": [
+        "3830:             cm = copy(cm_base)  # shallow copy"
+      ]
+    },
+    {
+      "start": 3876,
+      "end": 3883,
+      "source": [
+        "3876:                 _build_attn_group_metadata(",
+        "3877:                     kv_cache_gid,",
+        "3878:                     attn_gid,",
+        "3879:                     cm,",
+        "3880:                     common_ratio_to_sas_metadata,",
+        "3881:                     common_v41_metadata,",
+        "3882:                     common_v41_batch_metadata,",
+        "3883:                 )"
+      ]
+    },
+    {
+      "start": 3783,
+      "end": 3789,
+      "source": [
+        "3783:                 extra_attn_metadata_args = dict(",
+        "3784:                     num_actual_reqs=num_reqs,",
+        "3785:                     skip_ring_state_update=skip_gdn_state_update,",
+        "3786:                     common_v41_metadata=common_v41_metadata,",
+        "3787:                     common_v41_batch_metadata=common_v41_batch_metadata,",
+        "3788:                     full_graph_mode=cudagraph_runtime_mode == CUDAGraphMode.FULL,",
+        "3789:                 )"
+      ]
+    }
+  ]
+}

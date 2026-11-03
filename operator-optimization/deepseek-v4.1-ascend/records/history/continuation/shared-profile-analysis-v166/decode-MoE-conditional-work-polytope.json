@@ -1,0 +1,73 @@
+{
+  "status": "CONDITIONAL_COMBINATORIAL_WORK_ENVELOPE",
+  "evidence_domain": "Recorded DispatchFFNCombine3-row/24-local-expert capture signature,new171NPU-only cohort.",
+  "profile_evidence": {
+    "matching_regime_rows": 32,
+    "executions": 11520,
+    "first_anchor": {
+      "profile": "dp0_pp0_tp0_dcp0_ep0_rank0_730_20261102163509935_ascend_pt",
+      "signature": [
+        "DispatchFFNCombine",
+        "N/A",
+        "DT_BF16;INT8;INT8;INT32;INT64;INT64;FLOAT;BOOL",
+        "\"3,5120;24,5120,4608;24,2304,5120;3,6;110592;122880;3,6;3\"",
+        "\"3,5120;24\"",
+        24,
+        49
+      ],
+      "executions": 240
+    }
+  },
+  "premises": {
+    "recorded_local_input_rows_upper": 3,
+    "recorded_hidden": 5120,
+    "recorded_local_experts": 24,
+    "recorded_topk_width": 6,
+    "EP_participants": {
+      "value": 16,
+      "basis": "Frozen TP8/DP2/EP16 model deployment;this does not itself match replay ordinals across ranks."
+    },
+    "ownership_contract": "Conditional on one semantic EP16 exchange with disjoint24-expert ownership per rank.",
+    "routing_contract": "Conditional on distinct TopK6 expert IDs per valid token;must preserve original router semantics.",
+    "effective_valid_rows": "Unknown;each input mask may invalidate rows,including dummy participation.",
+    "math_model": "Direct dense two-GMM independent assignments;excludes alternate algorithms,result reuse and structured sparsity.",
+    "joint_input_shape": "Conditional: all16participants in the SAME semantic EP16 exchange have <=3localrows. Local shape anchors alone do not attest synchronized cross-rank participation;do not apply to mixed prefill/decode exchanges.",
+    "general_mixed_case": "For a general exchange use N_valid<=sum_r M_r,not16times one observed localM."
+  },
+  "feasible_receiver_polytope": {
+    "N_valid": "integer in[0,48]",
+    "n_e": "integer in[0,N_valid]",
+    "sum_e_n_e": "6*N_valid",
+    "n_rank_r": "sum(n_e for local24experts)"
+  },
+  "consequences_under_premises": {
+    "global_expert_count": 384,
+    "global_valid_rows_max": 48,
+    "assignment_rows_max": 288,
+    "nonempty_experts_max": 288,
+    "empty_experts_min": 96,
+    "per_expert_receiver_rows_max": 48,
+    "per_rank_receiver_rows_max": 288,
+    "MAC_per_assignment": 35389440,
+    "direct_GMM_MAC_global_layer_max": 10192158720,
+    "INT8_two_weight_matrices_logical_bytes_per_expert": 35389440,
+    "full384expert_logical_weight_domain_bytes": 13589544960,
+    "logical_weight_payload_of_at_least96empty_experts_bytes": 3397386240
+  },
+  "parametric_theory": {
+    "compute_lower_bound": "T >= max_r(35389440*n_rank_r/P_MAC_upper_r),subject to the feasible receiver polytope.",
+    "padding_model": "If the implementation densely computes a row tile B,MAC_padded(B)=35389440*sum_e(B*ceil(n_e/B));for B>=48 each nonempty expert occupies at most48/B of its row tile.",
+    "interpretation": "Use these constraints to prune impossible occupancy/work assumptions and prioritize sparse/small-row schedules;not a numeric speedup or physical-MFU proof."
+  },
+  "limits": [
+    "No physical HBM/wire byte savings inferred from logical parameter domains.",
+    "No Set/Wait/SyncAll or count-buffer protocol can be deleted merely because an expert has zero rows.",
+    "Old166receiver counts are not substituted for new171values.",
+    "No cross-rank graph instances matched by localmodel49or nearbytimestamps.",
+    "A bound on arithmetic work is not a latency upper bound."
+  ],
+  "historical_native_or_phase_promotions": 0,
+  "whole_modules_closed": 0,
+  "overall_complete": false,
+  "condition_application_status": "Mathematical conditional bound;not assigned to any particular cross-rank runtime cohort."
+}

@@ -1,0 +1,440 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="search_title" content=""></head><body><a name="EN-US_TOPIC_0000002502573136"></a><a name="EN-US_TOPIC_0000002502573136"></a>
+
+<h1 class="topictitle1">DataCopyPad(ISASI)</h1>
+<div id="body0000001894460401"><div class="section" id="EN-US_TOPIC_0000002502573136__section618mcpsimp"><h4 class="sectiontitle">Function Usage</h4><p id="EN-US_TOPIC_0000002502573136__p815762322517">Enables data non-aligned movement. The supported channels are as follows:</p>
+<p id="EN-US_TOPIC_0000002502573136__p829683916121">GM-&gt;VECIN/VECOUT</p>
+<p id="EN-US_TOPIC_0000002502573136__p9790195721417"></p>
+<p id="EN-US_TOPIC_0000002502573136__p1627164843318">VECIN/VECOUT-&gt;GM</p>
+<p id="EN-US_TOPIC_0000002502573136__p6447115931414"></p>
+<p id="EN-US_TOPIC_0000002502573136__p10397145153613">VECIN/VECOUT-&gt;TSCM</p>
+<p id="EN-US_TOPIC_0000002502573136__p4370165482512">During data movement from GM to VECIN/VECOUT, you can pad the data as required.</p>
+</div>
+<div class="section" id="EN-US_TOPIC_0000002502573136__section620mcpsimp"><h4 class="sectiontitle">Prototype</h4><ul id="EN-US_TOPIC_0000002502573136__ul268519519347"><li id="EN-US_TOPIC_0000002502573136__li872383120812">dataCopyParams is of the <a href="#EN-US_TOPIC_0000002502573136__table10572141063919">DataCopyExtParams</a> type. It supports a larger value range for parameters such as the operand stride compared to the <a href="#EN-US_TOPIC_0000002502573136__table9182515919">DataCopyParams</a> type.<ul id="EN-US_TOPIC_0000002502573136__ul53320341888"><li id="EN-US_TOPIC_0000002502573136__li12685135163416">Path: GM -&gt; VECIN/VECOUT<div class="code_wrap" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen167294341911"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">DataCopyPad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dstLocal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">GlobalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">srcGlobal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyExtParams</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dataCopyParams</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyPadExtParams</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">padParams</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+</div>
+</li><li id="EN-US_TOPIC_0000002502573136__li15429121143512">Path: VECIN/VECOUT -&gt; GM<div class="code_wrap" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen1268187097"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">DataCopyPad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">GlobalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dstGlobal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">srcLocal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyExtParams</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dataCopyParams</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+</div>
+</li><li id="EN-US_TOPIC_0000002502573136__li10115818350">Channel: VECIN/VECOUT-&gt; TSCM. The actual channel is VECIN/VECOUT-&gt;GM-&gt;TSCM.<p id="EN-US_TOPIC_0000002502573136__p99481554163717"><a name="EN-US_TOPIC_0000002502573136__li10115818350"></a><a name="li10115818350"></a>The <span id="EN-US_TOPIC_0000002502573136__ph7948205473719"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term354143892110">Atlas 200I/500 A2 inference products</term></span> does not support this API prototype.</p>
+<div class="code_wrap" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen210715139910"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">DataCopyPad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dstLocal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">srcLocal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyExtParams</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dataCopyParams</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Nd2NzParams</span><span class="w"> </span><span class="o">&amp;</span><span class="n">nd2nzParams</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+</div>
+</li></ul>
+</li><li id="EN-US_TOPIC_0000002502573136__li683824916813">dataCopyParams is of the <a href="#EN-US_TOPIC_0000002502573136__table9182515919">DataCopyParams</a> type.<ul id="EN-US_TOPIC_0000002502573136__ul1762918515128"><li id="EN-US_TOPIC_0000002502573136__li34739532105">Path: GM -&gt; VECIN/VECOUT<div class="codecoloring" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen2658141415129"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">DataCopyPad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">dstLocal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">GlobalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">srcGlobal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyParams</span><span class="o">&amp;</span><span class="w"> </span><span class="n">dataCopyParams</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyPadParams</span><span class="o">&amp;</span><span class="w"> </span><span class="n">padParams</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+</div>
+</li><li id="EN-US_TOPIC_0000002502573136__li1024021871110">Path: VECIN/VECOUT -&gt; GM<div class="code_wrap" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen16385172016126"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">DataCopyPad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">GlobalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">dstGlobal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">srcLocal</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyParams</span><span class="o">&amp;</span><span class="w"> </span><span class="n">dataCopyParams</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+</div>
+</li><li id="EN-US_TOPIC_0000002502573136__li1313172620118">Channel: VECIN/VECOUT-&gt; TSCM. The actual channel is VECIN/VECOUT-&gt;GM-&gt;TSCM.<p id="EN-US_TOPIC_0000002502573136__p11581531397"><a name="EN-US_TOPIC_0000002502573136__li1313172620118"></a><a name="li1313172620118"></a>The <span id="EN-US_TOPIC_0000002502573136__ph95813311391"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term354143892110_1">Atlas 200I/500 A2 inference products</term></span> does not support this API prototype.</p>
+<div class="code_wrap" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen9678725191211"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">DataCopyPad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">dstLocal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">srcLocal</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DataCopyParams</span><span class="o">&amp;</span><span class="w"> </span><span class="n">dataCopyParams</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Nd2NzParams</span><span class="o">&amp;</span><span class="w"> </span><span class="n">nd2nzParams</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+</div>
+</li></ul>
+</li></ul>
+</div>
+<div class="section" id="EN-US_TOPIC_0000002502573136__section622mcpsimp"><h4 class="sectiontitle">Parameters</h4>
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" id="EN-US_TOPIC_0000002502573136__table4835205712588" frame="border" border="1" rules="all"><caption><b>Table 1 </b>Parameters in the template</caption><thead align="left"><tr id="EN-US_TOPIC_0000002502573136__en-us_topic_0000001429830437_row118356578583"><th align="left" class="cellrowborder" valign="top" width="18.21%" id="mcps1.3.3.2.2.3.1.1"><p id="EN-US_TOPIC_0000002502573136__en-us_topic_0000001429830437_p48354572582">Parameter</p>
+</th>
+<th align="left" class="cellrowborder" valign="top" width="81.78999999999999%" id="mcps1.3.3.2.2.3.1.2"><p id="EN-US_TOPIC_0000002502573136__en-us_topic_0000001429830437_p583535795817">Description</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="EN-US_TOPIC_0000002502573136__en-us_topic_0000001429830437_row1835857145817"><td class="cellrowborder" valign="top" width="18.21%" headers="mcps1.3.3.2.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__en-us_topic_0000001429830437_p5835457165816"><strong id="EN-US_TOPIC_0000002502573136__en-us_topic_0000001429830437_b20905166138">T</strong></p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78999999999999%" headers="mcps1.3.3.2.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__en-us_topic_0000001429830437_p168351657155818">Data type of the operand and <strong id="EN-US_TOPIC_0000002502573136__b1088744212810">paddingValue</strong> (data value to be padded).</p>
+<p id="EN-US_TOPIC_0000002502573136__p5583135802514">For the <span id="EN-US_TOPIC_0000002502573136__ph164521232145312"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term11962195213215">Atlas A2 training products</term>/<term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term184716139811">Atlas A2 inference products</term></span>, the supported data type is half/bfloat16_t/int16_t/uint16_t/float/int32_t/uint32_t/int8_t/uint8_t/int64_t/uint64_t/double.</p>
+<p id="EN-US_TOPIC_0000002502573136__p523904010149">For the <span id="EN-US_TOPIC_0000002502573136__ph16239174011416"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term1253731311225">Atlas A3 training products</term>/<term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term131434243115">Atlas A3 inference products</term></span>, the supported data type is half/bfloat16_t/int16_t/uint16_t/float/int32_t/uint32_t/int8_t/uint8_t/int64_t/uint64_t/double.</p>
+<p id="EN-US_TOPIC_0000002502573136__p10414143619157">For the <span id="EN-US_TOPIC_0000002502573136__ph194146363155"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term354143892110_2">Atlas 200I/500 A2 inference products</term></span>, the supported data type is int8_t/uint8_t/half/bfloat16_t/int16_t/uint16_t/float/int32_t/uint32_t.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" id="EN-US_TOPIC_0000002502573136__en-us_topic_0235751031_table33761356" frame="border" border="1" rules="all"><caption><b>Table 2 </b>Parameters</caption><thead align="left"><tr id="EN-US_TOPIC_0000002502573136__en-us_topic_0235751031_row27598891"><th align="left" class="cellrowborder" valign="top" width="18.54%" id="mcps1.3.3.3.2.4.1.1"><p id="EN-US_TOPIC_0000002502573136__en-us_topic_0235751031_p20917673">Parameter</p>
+</th>
+<th align="left" class="cellrowborder" valign="top" width="10.05%" id="mcps1.3.3.3.2.4.1.2"><p id="EN-US_TOPIC_0000002502573136__en-us_topic_0235751031_p16609919">Input/Output</p>
+</th>
+<th align="left" class="cellrowborder" valign="top" width="71.41%" id="mcps1.3.3.3.2.4.1.3"><p id="EN-US_TOPIC_0000002502573136__en-us_topic_0235751031_p59995477">Description</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="EN-US_TOPIC_0000002502573136__row42461942101815"><td class="cellrowborder" valign="top" width="18.54%" headers="mcps1.3.3.3.2.4.1.1 "><p id="EN-US_TOPIC_0000002502573136__p2925016172518">dstLocal/dstGlobal</p>
+</td>
+<td class="cellrowborder" valign="top" width="10.05%" headers="mcps1.3.3.3.2.4.1.2 "><p id="EN-US_TOPIC_0000002502573136__p199251416112517">Output</p>
+</td>
+<td class="cellrowborder" valign="top" width="71.41%" headers="mcps1.3.3.3.2.4.1.3 "><p id="EN-US_TOPIC_0000002502573136__p188412179332">Destination operand of type LocalTensor or GlobalTensor.</p>
+<p id="EN-US_TOPIC_0000002502573136__p10908340183319">The start address of LocalTensor must be 32-byte aligned.</p>
+<p id="EN-US_TOPIC_0000002502573136__p62441154113319">The start address of GlobalTensor does not require alignment.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row2137145181815"><td class="cellrowborder" valign="top" width="18.54%" headers="mcps1.3.3.3.2.4.1.1 "><p id="EN-US_TOPIC_0000002502573136__p3926171610253">srcLocal/srcGlobal</p>
+</td>
+<td class="cellrowborder" valign="top" width="10.05%" headers="mcps1.3.3.3.2.4.1.2 "><p id="EN-US_TOPIC_0000002502573136__p4926121682518">Input</p>
+</td>
+<td class="cellrowborder" valign="top" width="71.41%" headers="mcps1.3.3.3.2.4.1.3 "><p id="EN-US_TOPIC_0000002502573136__p49261616142516">Source operand of type LocalTensor or GlobalTensor.</p>
+<p id="EN-US_TOPIC_0000002502573136__p1449332363410">The start address of LocalTensor must be 32-byte aligned.</p>
+<p id="EN-US_TOPIC_0000002502573136__p10493102318345">The start address of GlobalTensor does not require alignment.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row19615183817191"><td class="cellrowborder" valign="top" width="18.54%" headers="mcps1.3.3.3.2.4.1.1 "><p id="EN-US_TOPIC_0000002502573136__p1766211402594">dataCopyParams</p>
+</td>
+<td class="cellrowborder" valign="top" width="10.05%" headers="mcps1.3.3.3.2.4.1.2 "><p id="EN-US_TOPIC_0000002502573136__p566110407591">Input</p>
+</td>
+<td class="cellrowborder" valign="top" width="71.41%" headers="mcps1.3.3.3.2.4.1.3 "><p id="EN-US_TOPIC_0000002502573136__p47741322184712">Movement parameter.</p>
+<ul id="EN-US_TOPIC_0000002502573136__ul823117251473"><li id="EN-US_TOPIC_0000002502573136__li1923114257479">DataCopyExtParams type. The definition is as follows. For details about the parameters, see <a href="#EN-US_TOPIC_0000002502573136__table10572141063919">Table 3</a>.<div class="codecoloring" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen51395811571"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">DataCopyExtParams</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">blockCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">blockLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">srcStride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">dstStride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">rsv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// reserved information</span>
+<span class="p">};</span>
+</pre></div></td></tr></table></div>
+</div>
+</li><li id="EN-US_TOPIC_0000002502573136__li1394694934710">DataCopyParams type. The definition is as follows. For details about the parameters, see <a href="#EN-US_TOPIC_0000002502573136__table9182515919">Table 4</a>.<div class="codecoloring" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen1381415355810"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">DataCopyParams</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">blockCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">blockLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">srcStride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">dstStride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div></td></tr></table></div>
+</div>
+</li></ul>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row186451941121915"><td class="cellrowborder" valign="top" width="18.54%" headers="mcps1.3.3.3.2.4.1.1 "><p id="EN-US_TOPIC_0000002502573136__p2645114111914">padParams</p>
+</td>
+<td class="cellrowborder" valign="top" width="10.05%" headers="mcps1.3.3.3.2.4.1.2 "><p id="EN-US_TOPIC_0000002502573136__p136451441191912">Input</p>
+</td>
+<td class="cellrowborder" valign="top" width="71.41%" headers="mcps1.3.3.3.2.4.1.3 "><p id="EN-US_TOPIC_0000002502573136__p461505125714">When moving data from GM to VECIN/VECOUT, pad data on the left or right of the data to be moved as required. <strong id="EN-US_TOPIC_0000002502573136__b199444934718">padParams</strong> is used to control data padding. It is of the DataCopyPadExtParams type and is defined as follows. For details about the parameters, see <a href="#EN-US_TOPIC_0000002502573136__table844881954715">Table 5</a>.</p>
+<div class="codecoloring" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen13305112125814"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">DataCopyPadExtParams</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">isPad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">leftPadding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">rightPadding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">T</span><span class="w"> </span><span class="n">paddingValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div></td></tr></table></div>
+</div>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row250163914199"><td class="cellrowborder" valign="top" width="18.54%" headers="mcps1.3.3.3.2.4.1.1 "><p id="EN-US_TOPIC_0000002502573136__p266017409595">nd2nzParams</p>
+</td>
+<td class="cellrowborder" valign="top" width="10.05%" headers="mcps1.3.3.3.2.4.1.2 "><p id="EN-US_TOPIC_0000002502573136__p1265944005915">Input</p>
+</td>
+<td class="cellrowborder" valign="top" width="71.41%" headers="mcps1.3.3.3.2.4.1.3 "><p id="EN-US_TOPIC_0000002502573136__p1656164065914">When moving data from VECIN/VECOUT to TSCM, you can convert the data format from ND to NZ. <strong id="EN-US_TOPIC_0000002502573136__b280984420519">nd2nzParams</strong> is used to control data format conversion. It is of the Nd2NzParams type and is defined as follows. For details about the parameters, see <a href="atlasascendc_api_07_00127.html#EN-US_TOPIC_0000002502733238__table844881954715">Table 3</a>.</p>
+<div class="codecoloring" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen1818922010599"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Nd2NzParams</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">ndNum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">nValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">dValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">srcNdMatrixStride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">srcDValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">dstNzC0Stride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">dstNzNStride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">dstNzMatrixStride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div></td></tr></table></div>
+</div>
+<p id="EN-US_TOPIC_0000002502573136__p199142613277">Note: <strong id="EN-US_TOPIC_0000002502573136__b157428220438">ndNum</strong> of Nd2NzParams can only be set to <strong id="EN-US_TOPIC_0000002502573136__b1085420291436">1</strong>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="tablenoborder"><a name="EN-US_TOPIC_0000002502573136__table10572141063919"></a><a name="table10572141063919"></a><table cellpadding="4" cellspacing="0" summary="" id="EN-US_TOPIC_0000002502573136__table10572141063919" frame="border" border="1" rules="all"><caption><b>Table 3 </b>Parameters in the DataCopyExtParams structure</caption><thead align="left"><tr id="EN-US_TOPIC_0000002502573136__row185738102393"><th align="left" class="cellrowborder" valign="top" width="15%" id="mcps1.3.3.4.2.3.1.1"><p id="EN-US_TOPIC_0000002502573136__p1573101033918">Parameter</p>
+</th>
+<th align="left" class="cellrowborder" valign="top" width="85%" id="mcps1.3.3.4.2.3.1.2"><p id="EN-US_TOPIC_0000002502573136__p7573191019395">Meaning</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="EN-US_TOPIC_0000002502573136__row16573210153915"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.4.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p1457312101394">blockCount</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.4.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p18573121053915">Number of data chunks. The data type is uint16_t, and <strong id="EN-US_TOPIC_0000002502573136__b12442195424614">blockCount</strong> ∈ [1, 4095].</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row1657315104398"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.4.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p19573171073914">blockLen</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.4.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p15731210203917">Length of each data chunk, in byte, <strong id="EN-US_TOPIC_0000002502573136__b20183132012">which supports non-aligned movement. The length unit of each data chunk is byte.</strong> The data type is uint32_t, and <strong id="EN-US_TOPIC_0000002502573136__b183716710475">blockLen</strong> ∈ [1, 2097151].</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row17573201017390"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.4.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p175731610183919">srcStride</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.4.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p757311106394">Source operand, that is, the interval between adjacent data chunks (the interval between the tail of the previous data chunk and the head of the next data chunk). <strong id="EN-US_TOPIC_0000002502573136__b06221428145514">If the logical position of the source operand is VECIN/VECOUT, the unit is data block (32 bytes). If the logical position of the source operand is GM, the unit is byte.</strong> The data type is uint32_t. The value of <strong id="EN-US_TOPIC_0000002502573136__b111721718491">srcStride</strong> cannot exceed the value range of this data type.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row125738105397"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.4.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p057351013919">dstStride</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.4.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p1857315102399">Destination operand, that is, the interval between adjacent data chunks (the interval between the tail of the previous data chunk and the head of the next data chunk). <strong id="EN-US_TOPIC_0000002502573136__b58171413567">If the logical position of the destination operand is VECIN/VECOUT, the unit is data block (32 bytes). If the logical position of the destination operand is GM, the unit is byte.</strong> The data type is uint32_t. The value of <strong id="EN-US_TOPIC_0000002502573136__b16496434134915">dstStride</strong> cannot exceed the value range of this data type.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row13428122712551"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.4.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p17428152705514">rsv</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.4.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p842842719551">Reserved</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="tablenoborder"><a name="EN-US_TOPIC_0000002502573136__table9182515919"></a><a name="table9182515919"></a><table cellpadding="4" cellspacing="0" summary="" id="EN-US_TOPIC_0000002502573136__table9182515919" frame="border" border="1" rules="all"><caption><b>Table 4 </b>Parameters in the DataCopyParams structure</caption><thead align="left"><tr id="EN-US_TOPIC_0000002502573136__row151816516917"><th align="left" class="cellrowborder" valign="top" width="15%" id="mcps1.3.3.5.2.3.1.1"><p id="EN-US_TOPIC_0000002502573136__p18182513916">Parameter</p>
+</th>
+<th align="left" class="cellrowborder" valign="top" width="85%" id="mcps1.3.3.5.2.3.1.2"><p id="EN-US_TOPIC_0000002502573136__p41815515920">Meaning</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="EN-US_TOPIC_0000002502573136__row1818105113916"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.5.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p17780347142614">blockCount</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.5.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p478014752618">Number of data chunks. The data type is uint16_t, and <strong id="EN-US_TOPIC_0000002502573136__b31329470483">blockCount</strong> ∈ [1, 4095].</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row2968131992515"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.5.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p878011470264">blockLen</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.5.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p11780174752617">Length of each data chunk, in byte, <strong id="EN-US_TOPIC_0000002502573136__b2109875494">which supports non-aligned movement. The length unit of each data chunk is byte.</strong> The data type is uint16_t. The value of <strong id="EN-US_TOPIC_0000002502573136__b816805612492">blockLen</strong> cannot exceed the value range of this data type.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row1589112062510"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.5.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p378018478265">srcStride</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.5.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p19780547162614">Source operand, that is, the interval between adjacent data chunks (the interval between the tail of the previous data chunk and the head of the next data chunk). <strong id="EN-US_TOPIC_0000002502573136__b1252446730">If the logical position of the source operand is VECIN/VECOUT, the unit is data block (32 bytes). If the logical position of the source operand is GM, the unit is byte.</strong> The data type is uint16_t. The value of <strong id="EN-US_TOPIC_0000002502573136__b20953945693485">srcStride</strong> cannot exceed the value range of this data type.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row3593192082512"><td class="cellrowborder" valign="top" width="15%" headers="mcps1.3.3.5.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p18780347152610">dstStride</p>
+</td>
+<td class="cellrowborder" valign="top" width="85%" headers="mcps1.3.3.5.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p18780947162613">Destination operand, that is, the interval between adjacent data chunks (the interval between the tail of the previous data chunk and the head of the next data chunk). <strong id="EN-US_TOPIC_0000002502573136__b8398641125815">If the logical position of the destination operand is VECIN/VECOUT, the unit is data block (32 bytes). If the logical position of the destination operand is GM, the unit is byte.</strong> The data type is uint16_t. The value of <strong id="EN-US_TOPIC_0000002502573136__b206999892134817">dstStride</strong> cannot exceed the value range of this data type.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="tablenoborder"><a name="EN-US_TOPIC_0000002502573136__table844881954715"></a><a name="table844881954715"></a><table cellpadding="4" cellspacing="0" summary="" id="EN-US_TOPIC_0000002502573136__table844881954715" frame="border" border="1" rules="all"><caption><b>Table 5 </b>Parameters in the DataCopyPadExtParams structure</caption><thead align="left"><tr id="EN-US_TOPIC_0000002502573136__row11449201964714"><th align="left" class="cellrowborder" valign="top" width="18.44%" id="mcps1.3.3.6.2.3.1.1"><p id="EN-US_TOPIC_0000002502573136__p18449151934710">Parameter</p>
+</th>
+<th align="left" class="cellrowborder" valign="top" width="81.56%" id="mcps1.3.3.6.2.3.1.2"><p id="EN-US_TOPIC_0000002502573136__p11449719134719">Meaning</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="EN-US_TOPIC_0000002502573136__row5449161919474"><td class="cellrowborder" valign="top" width="18.44%" headers="mcps1.3.3.6.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p8928559104716">isPad</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.56%" headers="mcps1.3.3.6.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p844917194478">Whether to pad custom data. The options are as follows:</p>
+<p id="EN-US_TOPIC_0000002502573136__p13122201371214"><strong id="EN-US_TOPIC_0000002502573136__b191612419575">true</strong>: Set a padding value.</p>
+<p id="EN-US_TOPIC_0000002502573136__p1012231371217"><strong id="EN-US_TOPIC_0000002502573136__b137561014135816">false</strong>: No padding value is specified, and a random value is used.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row1944911994712"><td class="cellrowborder" valign="top" width="18.44%" headers="mcps1.3.3.6.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p102019313485">leftPadding</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.56%" headers="mcps1.3.3.6.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p0613279142">Range of the data to be padded on the left of the data chunk. The unit is the number of elements.</p>
+<p id="EN-US_TOPIC_0000002502573136__p16581027171419">The values of <strong id="EN-US_TOPIC_0000002502573136__b17138956706">leftPadding</strong> and <strong id="EN-US_TOPIC_0000002502573136__b191717594012">rightPadding</strong> cannot exceed 32 bytes.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row1944916196475"><td class="cellrowborder" valign="top" width="18.44%" headers="mcps1.3.3.6.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p1397111514816">rightPadding</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.56%" headers="mcps1.3.3.6.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p144493191478">Range of the data to be padded on the right of the data chunk. The unit is the number of elements.</p>
+<p id="EN-US_TOPIC_0000002502573136__p1190468201516">The values of <strong id="EN-US_TOPIC_0000002502573136__b14277501610">leftPadding</strong> and <strong id="EN-US_TOPIC_0000002502573136__b52771706113">rightPadding</strong> cannot exceed 32 bytes.</p>
+</td>
+</tr>
+<tr id="EN-US_TOPIC_0000002502573136__row2449119174717"><td class="cellrowborder" valign="top" width="18.44%" headers="mcps1.3.3.6.2.3.1.1 "><p id="EN-US_TOPIC_0000002502573136__p1217581074813">paddingValue</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.56%" headers="mcps1.3.3.6.2.3.1.2 "><p id="EN-US_TOPIC_0000002502573136__p1445013195477">Values of the data to be padded on the left and right. The values must be within the byte range occupied by the data.</p>
+<p id="EN-US_TOPIC_0000002502573136__p1126181121313">The data type must be the same as that of the source operand. The data type is T.</p>
+<p id="EN-US_TOPIC_0000002502573136__p1091511149345"><strong id="EN-US_TOPIC_0000002502573136__b19927154412552">When the data type length is 64 bits, this parameter can only be set to 0.</strong></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul id="EN-US_TOPIC_0000002502573136__ul11312175791915"><li id="EN-US_TOPIC_0000002502573136__li73127579197"><strong id="EN-US_TOPIC_0000002502573136__b17986494011">GM</strong> -&gt; <strong id="EN-US_TOPIC_0000002502573136__b16986179303">VECIN/VECOUT</strong><ul id="EN-US_TOPIC_0000002502573136__ul163506126202"><li id="EN-US_TOPIC_0000002502573136__li1271113012017">Description<ul id="EN-US_TOPIC_0000002502573136__ul11626181312152"><li id="EN-US_TOPIC_0000002502573136__li158371240192611">When <strong id="EN-US_TOPIC_0000002502573136__b107377346132">blockLen + leftPadding + rightPadding</strong> meets the 32-byte alignment requirement, if <strong id="EN-US_TOPIC_0000002502573136__b1078616443133">isPad</strong> is <strong id="EN-US_TOPIC_0000002502573136__b12904124611310">false</strong>, the values padded on the left and right sides are random numbers by default; if not, the values padded on the left and right sides are configured padding values.</li><li id="EN-US_TOPIC_0000002502573136__li8256182718200">When <strong id="EN-US_TOPIC_0000002502573136__b1787162472011">blockLen + leftPadding + rightPadding</strong> does not meet the 32-byte alignment requirement, the framework pads some dummy data to ensure the 32-byte alignment. When both <strong id="EN-US_TOPIC_0000002502573136__b10361111372114">leftPadding</strong> and <strong id="EN-US_TOPIC_0000002502573136__b8842161519216">rightPadding</strong> are 0, the first element value of the data chunk to be transferred is padded by default. When <strong id="EN-US_TOPIC_0000002502573136__b7651916145">leftPadding</strong> or <strong id="EN-US_TOPIC_0000002502573136__b17361225151410">rightPadding</strong> is not 0, if <strong id="EN-US_TOPIC_0000002502573136__b2070513537212">isPad</strong> is set to <strong id="EN-US_TOPIC_0000002502573136__b130564142215">false</strong>, the data values padded on the left and right sides and dummy values are random numbers; if not, the data values padded on the left and right sides and dummy values are configured padding values.</li></ul>
+</li></ul>
+<ul id="EN-US_TOPIC_0000002502573136__ul16419142414168"><li id="EN-US_TOPIC_0000002502573136__li16495132182919">Configuration example 1<ul id="EN-US_TOPIC_0000002502573136__ul4481046172912"><li id="EN-US_TOPIC_0000002502573136__li12419124201616">The value of <strong id="EN-US_TOPIC_0000002502573136__b659244792710">blockLen</strong> is 64, meaning each data chunk contains 64 bytes. The value of <strong id="EN-US_TOPIC_0000002502573136__b5821503302">srcStride</strong> is 1. Because the logical position of the source operand is GM and the unit of <strong id="EN-US_TOPIC_0000002502573136__b107361559163112">srcStride</strong> is byte, there is 1-byte interval between adjacent data chunks of the source operand. The value of <strong id="EN-US_TOPIC_0000002502573136__b1474619823218">dstStride</strong> is 1. Because the logical position of the destination operand is VECIN/VECOUT and the unit of <strong id="EN-US_TOPIC_0000002502573136__b1932952453218">dstStride</strong> is a 32-byte data block, there is an interval of one data block between adjacent data chunks of the destination operand.</li><li id="EN-US_TOPIC_0000002502573136__li56034197195">When <strong id="EN-US_TOPIC_0000002502573136__b14456154252514">blockLen + leftPadding + rightPadding</strong> meets the 32-byte alignment requirement, if <strong id="EN-US_TOPIC_0000002502573136__b18587152112619">isPad</strong> is set to <strong id="EN-US_TOPIC_0000002502573136__b3801549260">false</strong>, the data values padded on the left and right sides are random numbers by default; if not, the data values padded on the left and right sides are configured padding values. In this example, both <strong id="EN-US_TOPIC_0000002502573136__b7792181132711">leftPadding</strong> and <strong id="EN-US_TOPIC_0000002502573136__b4710973275">rightPadding</strong> are 0, indicating that padding is not performed.</li><li id="EN-US_TOPIC_0000002502573136__li5419102451619">When <strong id="EN-US_TOPIC_0000002502573136__b661419508270">blockLen + leftPadding + rightPadding</strong> does not meet the 32-byte alignment requirement, the framework pads some dummy data to ensure the 32-byte alignment. When <strong id="EN-US_TOPIC_0000002502573136__b11614175092715">leftPadding</strong> or <strong id="EN-US_TOPIC_0000002502573136__b96141450202715">rightPadding</strong> is not 0, if <strong id="EN-US_TOPIC_0000002502573136__b17614125018278">isPad</strong> is set to <strong id="EN-US_TOPIC_0000002502573136__b0614195011277">false</strong>, the data values padded on the left and right sides and dummy values are random numbers; if not, the data values padded on the left and right sides are configured padding values.</li></ul>
+<p id="EN-US_TOPIC_0000002502573136__p636445261413"><span><img class="eddx" id="EN-US_TOPIC_0000002502573136__image13364165291413" src="figure/en-us_image_0000002502734540.png"></span></p>
+</li><li id="EN-US_TOPIC_0000002502573136__li38861224173016">Configuration example 2<ul id="EN-US_TOPIC_0000002502573136__ul1442914473304"><li id="EN-US_TOPIC_0000002502573136__li459434493011">The value of <strong id="EN-US_TOPIC_0000002502573136__b102441348183410">blockLen</strong> is 47, meaning each data chunk contains 47 bytes. The value of <strong id="EN-US_TOPIC_0000002502573136__b1553545923415">srcStride</strong> is 1, indicating that there is 1-byte interval between adjacent data chunks of the source operand. The value of <strong id="EN-US_TOPIC_0000002502573136__b1046551319352">dstStride</strong> is 1, indicating that there is an interval of one data block between adjacent data chunks of the destination operand.</li><li id="EN-US_TOPIC_0000002502573136__li231210017315">When <strong id="EN-US_TOPIC_0000002502573136__b2684163263917">blockLen + leftPadding + rightPadding</strong> does not meet the 32-byte alignment requirement, and both <strong id="EN-US_TOPIC_0000002502573136__b116859327397">leftPadding</strong> and <strong id="EN-US_TOPIC_0000002502573136__b8685113283917">rightPadding</strong> are 0, the first element value of the data chunk to be transferred is padded with dummy values by default.</li><li id="EN-US_TOPIC_0000002502573136__li93128016319">When <strong id="EN-US_TOPIC_0000002502573136__b10682114173920">blockLen + leftPadding + rightPadding</strong> does not meet the 32-byte alignment requirement, and <strong id="EN-US_TOPIC_0000002502573136__b668216453919">leftPadding</strong> or <strong id="EN-US_TOPIC_0000002502573136__b96827453916">rightPadding</strong> is not 0, if <strong id="EN-US_TOPIC_0000002502573136__b8951833163910">isPad</strong> is <strong id="EN-US_TOPIC_0000002502573136__b21111335203919">false</strong>, the data values padded on the left and right sides and dummy values are random numbers; if not, the data values padded on the left and right sides and dummy values are configured padding values.</li></ul>
+<p id="EN-US_TOPIC_0000002502573136__p1969213563111"><span><img class="eddx" id="EN-US_TOPIC_0000002502573136__image536405261410" src="figure/en-us_image_0000002502734532.png"></span></p>
+</li></ul>
+</li></ul>
+</div>
+<ul id="EN-US_TOPIC_0000002502573136__ul8390516172114"><li id="EN-US_TOPIC_0000002502573136__li1526352412213"><strong id="EN-US_TOPIC_0000002502573136__b095165611277">VECIN/VECOUT</strong> -&gt; <strong id="EN-US_TOPIC_0000002502573136__b13951165618275">GM</strong><strong id="EN-US_TOPIC_0000002502573136__b295195672719"></strong><ul id="EN-US_TOPIC_0000002502573136__ul15111828102116"><li id="EN-US_TOPIC_0000002502573136__li839015167219">When <strong id="EN-US_TOPIC_0000002502573136__b18630116154113">blockLen</strong> of each data chunk is 32-byte aligned, an example of <strong id="EN-US_TOPIC_0000002502573136__b1463071612411">DataCopyParams</strong> to be input is shown in the following figure. The value of <strong id="EN-US_TOPIC_0000002502573136__b623318156422">blockLen</strong> is 64, meaning each data chunk contains 64 bytes. The value of <strong id="EN-US_TOPIC_0000002502573136__b1674582211428">srcStride</strong> is 1. Because the logical position of the source operand is VECIN/VECOUT and the unit of <strong id="EN-US_TOPIC_0000002502573136__b311311512439">srcStride</strong> is a 32-byte data block, there is one data block between adjacent data blocks of the source operand. The value of <strong id="EN-US_TOPIC_0000002502573136__b1517114224312">dstStride</strong> is 1. Because the logical position of the destination operand is GM and the unit of <strong id="EN-US_TOPIC_0000002502573136__b11217934205617">dstStride</strong> is byte, there is 1-byte interval between adjacent data blocks of the destination operand.<p id="EN-US_TOPIC_0000002502573136__p114650388713"><span><img class="eddx" id="EN-US_TOPIC_0000002502573136__image18464193812712" src="figure/en-us_image_0000002502734534.png"></span></p>
+</li><li id="EN-US_TOPIC_0000002502573136__li1573824813919"> requires 32-byte alignment, but <strong id="EN-US_TOPIC_0000002502573136__b1144283195815">blockLen</strong> of each data chunk does not meet the requirement. In this case, when the data chunk is moved out, the framework automatically pads some dummy data to ensure alignment. When the data chunk is moved to GM, the dummy data is automatically deprecated. The following figure shows an example of <strong id="EN-US_TOPIC_0000002502573136__b12680430165913">DataCopyParams</strong> to be input in this scenario and the principle of padding dummy data. The value of <strong id="EN-US_TOPIC_0000002502573136__b1010152719113">blockLen</strong> is 47, meaning each data chunk contains 47 bytes, which is not 32-byte aligned. The value of <strong id="EN-US_TOPIC_0000002502573136__b1275313119119">srcStride</strong> is 1, indicating that there is an interval of one data block between adjacent data blocks of the source operand. The value of <strong id="EN-US_TOPIC_0000002502573136__b18563105119110">dstStride</strong> is 1, indicating that there is a 1-byte interval between adjacent data blocks of the destination operand. When data is moved out, the framework automatically pads 17-byte dummy data to ensure alignment. When data is moved to GM, the padded dummy data is automatically deprecated.<p id="EN-US_TOPIC_0000002502573136__p1598913271083"><span><img class="eddx" id="EN-US_TOPIC_0000002502573136__image19892271986" src="figure/en-us_image_0000002534494575.png"></span></p>
+</li></ul>
+</li><li id="EN-US_TOPIC_0000002502573136__li1475016332217"><strong id="EN-US_TOPIC_0000002502573136__b1632105011410">VECIN/VECOUT</strong><strong id="EN-US_TOPIC_0000002502573136__b01279410519">-&gt;TSCM</strong><p id="EN-US_TOPIC_0000002502573136__p257633743014"><strong id="EN-US_TOPIC_0000002502573136__b14384330162514">Note</strong>: The internal implementation involves the communication between the AIC and AIV, and the actual transfer path is VECIN/VECOUT -&gt; GM -&gt; TSCM. <strong id="EN-US_TOPIC_0000002502573136__b7313217356">Sending communication messages causes overheads and affects the performance.</strong></p>
+<p id="EN-US_TOPIC_0000002502573136__p1857693793014"><a href="#EN-US_TOPIC_0000002502573136__fig9329040132719">Figure 1 VECIN/VECOUT -&gt; TSCM data transfer</a> illustrates the process of transferring data from VECIN/VECOUT to GM and then to TSCM. In the example, the data type is half, with a single data block (32 bytes) containing 16 half elements, and the source operands A1 to A6, B1 to B6, and C1 to C6 indicate the data to be transferred.</p>
+<ul id="EN-US_TOPIC_0000002502573136__ul208172010153712"><li id="EN-US_TOPIC_0000002502573136__li11501597374">During the transfer from VECIN/VECOUT to GM, the data storage format remains unchanged as ND.<ul id="EN-US_TOPIC_0000002502573136__ul6260173510374"><li id="EN-US_TOPIC_0000002502573136__li1452961853720"><strong id="EN-US_TOPIC_0000002502573136__b7960142118716">blockCount</strong> indicates the number of data chunks. Set it to <strong id="EN-US_TOPIC_0000002502573136__b1096019211376">3</strong>.</li><li id="EN-US_TOPIC_0000002502573136__li108890213375"><strong id="EN-US_TOPIC_0000002502573136__b1186217485712">blockLen</strong> indicates the size (in bytes) of a data chunk. Set it to <strong id="EN-US_TOPIC_0000002502573136__b586204811715">192</strong> (which is 6 x 32).</li><li id="EN-US_TOPIC_0000002502573136__li6143152593720"><strong id="EN-US_TOPIC_0000002502573136__b374910571716">srcStride</strong> indicates the interval between adjacent data chunks of the source operand (the interval between the tail of the previous data chunk and the head of the next data chunk). The logical position of the source operand is VECIN/VECOUT, the unit is data block, and two data chunks (A1 to A6 and B1 to B6) are separated by one A7. Therefore, set <strong id="EN-US_TOPIC_0000002502573136__b174975720717">srtStride</strong> to <strong id="EN-US_TOPIC_0000002502573136__b187495576716">1</strong>.</li><li id="EN-US_TOPIC_0000002502573136__li173141224125418"><strong id="EN-US_TOPIC_0000002502573136__b573915550816">dstStride</strong> indicates the interval between adjacent data chunks of the destination operand (the interval between the tail of the previous data chunk and the head of the next data chunk). The logical position of the destination operand is GM, the unit is byte, and two data chunks (A1 to A6 and B1 to B6) are separated by two empty data blocks. Therefore, set <strong id="EN-US_TOPIC_0000002502573136__b1073912554813">dstStride</strong> to <strong id="EN-US_TOPIC_0000002502573136__b07391655181">64Byte</strong>.</li></ul>
+</li><li id="EN-US_TOPIC_0000002502573136__li19409115419373">During the transfer from GM to TSCM, the data storage format is converted from ND to NZ.<ul id="EN-US_TOPIC_0000002502573136__ul1197716803816"><li id="EN-US_TOPIC_0000002502573136__li123145618377"><strong id="EN-US_TOPIC_0000002502573136__b470995121911">ndNum</strong> is fixed to <strong id="EN-US_TOPIC_0000002502573136__b77097561913">1</strong>. That is, A1 to A6, B1 to B6, and C1 to C6 are considered as an entire ND matrix.</li><li id="EN-US_TOPIC_0000002502573136__li1141215713714"><strong id="EN-US_TOPIC_0000002502573136__b332141781912">nValue</strong> indicates the number of rows in the ND matrix, that is, 3.</li><li id="EN-US_TOPIC_0000002502573136__li14654195843720"><strong id="EN-US_TOPIC_0000002502573136__b7794178172013">dValue</strong> indicates the number of elements in a row of the ND matrix, that is, 96 (which is 6 x 16).</li><li id="EN-US_TOPIC_0000002502573136__li33747033814"><strong id="EN-US_TOPIC_0000002502573136__b1670543972011">srcNdMatrixStride</strong> indicates the distance between adjacent ND matrices. Because only one ND matrix is involved, <strong id="EN-US_TOPIC_0000002502573136__b1470519393208">srcNdMatrixStride</strong> can be set to <strong id="EN-US_TOPIC_0000002502573136__b19706939152014">0</strong>.</li><li id="EN-US_TOPIC_0000002502573136__li207092133810"><strong id="EN-US_TOPIC_0000002502573136__b148920123216">srcDValue</strong> indicates a quantity of elements between the <em id="EN-US_TOPIC_0000002502573136__i88901272110">x</em>th row and the (<em id="EN-US_TOPIC_0000002502573136__i88941215211">x</em>+1)th row of the ND matrix. For example, a distance between A1 and B1 is eight data blocks, and there are 128 (which is 8 x 16) elements.</li><li id="EN-US_TOPIC_0000002502573136__li5648534381"><strong id="EN-US_TOPIC_0000002502573136__b15610185410211">dstNzC0Stride</strong> indicates the number of data blocks between adjacent data blocks in a same row of src in the NZ matrix, for example, a distance between A1 and A2, that is, seven data blocks (A1 + blank + B1 + blank + C1 + blank x 2).</li><li id="EN-US_TOPIC_0000002502573136__li2466165113811"><strong id="EN-US_TOPIC_0000002502573136__b15451529192215">dstNzNStride</strong> indicates the number of data blocks between adjacent rows of src in the NZ matrix, for example, the distance between A1 and B1, that is, two data blocks (A1 + blank).</li><li id="EN-US_TOPIC_0000002502573136__li6251123273710"><strong id="EN-US_TOPIC_0000002502573136__b6258191642314">dstNzMatrixStride</strong> indicates the number of elements between adjacent NZ matrices. Because only one NZ matrix is involved, <strong id="EN-US_TOPIC_0000002502573136__b15258121622317">dstNzMatrixStride</strong> can be set to <strong id="EN-US_TOPIC_0000002502573136__b1625881612237">1</strong>.</li></ul>
+</li></ul>
+<div class="fignone" id="EN-US_TOPIC_0000002502573136__fig9329040132719"><a name="EN-US_TOPIC_0000002502573136__fig9329040132719"></a><a name="fig9329040132719"></a><span class="figcap"><b>Figure 1 </b>VECIN/VECOUT -&gt; TSCM data transfer</span><br><span><img class="eddx" id="EN-US_TOPIC_0000002502573136__image3163170131119" src="figure/en-us_image_0000002534414533.png"></span></div>
+</li></ul>
+<div class="section" id="EN-US_TOPIC_0000002502573136__section640mcpsimp"><h4 class="sectiontitle">Returns</h4><p id="EN-US_TOPIC_0000002502573136__p318914199152">None</p>
+</div>
+<div class="section" id="EN-US_TOPIC_0000002502573136__section631mcpsimp"><h4 class="sectiontitle">Availability</h4><p id="EN-US_TOPIC_0000002502573136__p950443315107"><span id="EN-US_TOPIC_0000002502573136__ph14504143371016"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term11962195213215_1">Atlas A2 training products</term>/<term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term184716139811_1">Atlas A2 inference products</term></span></p>
+<p id="EN-US_TOPIC_0000002502573136__p1311175216519"><span id="EN-US_TOPIC_0000002502573136__ph111112526515"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term1253731311225_1">Atlas A3 training products</term>/<term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term131434243115_1">Atlas A3 inference products</term></span></p>
+<p id="EN-US_TOPIC_0000002502573136__p672131412915"><span id="EN-US_TOPIC_0000002502573136__ph74069191608"><term id="EN-US_TOPIC_0000002502573136__en-us_topic_0000002534508309_term354143892110_3">Atlas 200I/500 A2 inference products</term></span></p>
+</div>
+<div class="section" id="EN-US_TOPIC_0000002502573136__section633mcpsimp"><h4 class="sectiontitle">Constraints</h4><p id="EN-US_TOPIC_0000002502573136__p131131404347">The values of <strong id="EN-US_TOPIC_0000002502573136__b1043216361">leftPadding</strong> and <strong id="EN-US_TOPIC_0000002502573136__b1708436149">rightPadding</strong> cannot exceed 32 bytes.</p>
+</div>
+<div class="section" id="EN-US_TOPIC_0000002502573136__section177231425115410"><h4 class="sectiontitle">Example</h4><div class="p" id="EN-US_TOPIC_0000002502573136__p131287116451">This example implements the non-aligned movement process of GM -&gt; VECIN -&gt; GM.<div class="codecoloring" codetype="Cpp" id="EN-US_TOPIC_0000002502573136__screen5806182914406"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span></pre></div></td><td class="code"><div><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;kernel_operator.h&quot;</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TestDataCopyPad</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="n">TestDataCopyPad</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">(</span><span class="n">__gm__</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">srcGm</span><span class="p">,</span><span class="w"> </span><span class="n">__gm__</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">dstGm</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">srcGlobal</span><span class="p">.</span><span class="n">SetGlobalBuffer</span><span class="p">((</span><span class="n">__gm__</span><span class="w"> </span><span class="n">half</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">srcGm</span><span class="p">);</span>
+<span class="w">        </span><span class="n">dstGlobal</span><span class="p">.</span><span class="n">SetGlobalBuffer</span><span class="p">((</span><span class="n">__gm__</span><span class="w"> </span><span class="n">half</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">dstGm</span><span class="p">);</span>
+<span class="w">        </span><span class="n">pipe</span><span class="p">.</span><span class="n">InitBuffer</span><span class="p">(</span><span class="n">inQueueSrc</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">half</span><span class="p">));</span>
+<span class="w">        </span><span class="n">pipe</span><span class="p">.</span><span class="n">InitBuffer</span><span class="p">(</span><span class="n">outQueueDst</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">half</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">Process</span><span class="p">()</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">CopyIn</span><span class="p">();</span>
+<span class="w">        </span><span class="n">Compute</span><span class="p">();</span>
+<span class="w">        </span><span class="n">CopyOut</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="k">private</span><span class="o">:</span>
+<span class="w">    </span><span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">CopyIn</span><span class="p">()</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">srcLocal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inQueueSrc</span><span class="p">.</span><span class="n">AllocTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">DataCopyExtParams</span><span class="w"> </span><span class="n">copyParams</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">half</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span><span class="w"> </span><span class="c1">// The last parameter of DataCopyExtParams is reserved.</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">DataCopyPadExtParams</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">padParams</span><span class="p">{</span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">DataCopyPad</span><span class="p">(</span><span class="n">srcLocal</span><span class="p">,</span><span class="w"> </span><span class="n">srcGlobal</span><span class="p">,</span><span class="w"> </span><span class="n">copyParams</span><span class="p">,</span><span class="w"> </span><span class="n">padParams</span><span class="p">);</span><span class="w"> </span><span class="c1">// Move 40 bytes from GM to VECIN.</span>
+<span class="w">        </span><span class="n">inQueueSrc</span><span class="p">.</span><span class="n">EnQue</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="p">(</span><span class="n">srcLocal</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">Compute</span><span class="p">()</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">srcLocal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inQueueSrc</span><span class="p">.</span><span class="n">DeQue</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">dstLocal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">outQueueDst</span><span class="p">.</span><span class="n">AllocTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">Adds</span><span class="p">(</span><span class="n">dstLocal</span><span class="p">,</span><span class="w"> </span><span class="n">srcLocal</span><span class="p">,</span><span class="w"> </span><span class="n">scalar</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">);</span>
+<span class="w">        </span><span class="n">outQueueDst</span><span class="p">.</span><span class="n">EnQue</span><span class="p">(</span><span class="n">dstLocal</span><span class="p">);</span>
+<span class="w">        </span><span class="n">inQueueSrc</span><span class="p">.</span><span class="n">FreeTensor</span><span class="p">(</span><span class="n">srcLocal</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">__aicore__</span><span class="w"> </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">CopyOut</span><span class="p">()</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">LocalTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">dstLocal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">outQueueDst</span><span class="p">.</span><span class="n">DeQue</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">DataCopyExtParams</span><span class="w"> </span><span class="n">copyParams</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">half</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="w">        </span><span class="n">AscendC</span><span class="o">::</span><span class="n">DataCopyPad</span><span class="p">(</span><span class="n">dstGlobal</span><span class="p">,</span><span class="w"> </span><span class="n">dstLocal</span><span class="p">,</span><span class="w"> </span><span class="n">copyParams</span><span class="p">);</span><span class="w"> </span><span class="c1">// Move 40 bytes from VECIN to GM.</span>
+<span class="w">        </span><span class="n">outQueueDst</span><span class="p">.</span><span class="n">FreeTensor</span><span class="p">(</span><span class="n">dstLocal</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="k">private</span><span class="o">:</span>
+<span class="w">    </span><span class="n">AscendC</span><span class="o">::</span><span class="n">TPipe</span><span class="w"> </span><span class="n">pipe</span><span class="p">;</span>
+<span class="w">    </span><span class="n">AscendC</span><span class="o">::</span><span class="n">TQue</span><span class="o">&lt;</span><span class="n">AscendC</span><span class="o">::</span><span class="n">QuePosition</span><span class="o">::</span><span class="n">VECIN</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="o">&gt;</span><span class="w"> </span><span class="n">inQueueSrc</span><span class="p">;</span>
+<span class="w">    </span><span class="n">AscendC</span><span class="o">::</span><span class="n">TQue</span><span class="o">&lt;</span><span class="n">AscendC</span><span class="o">::</span><span class="n">QuePosition</span><span class="o">::</span><span class="n">VECOUT</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="o">&gt;</span><span class="w"> </span><span class="n">outQueueDst</span><span class="p">;</span>
+<span class="w">    </span><span class="n">AscendC</span><span class="o">::</span><span class="n">GlobalTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">srcGlobal</span><span class="p">;</span>
+<span class="w">    </span><span class="n">AscendC</span><span class="o">::</span><span class="n">GlobalTensor</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">dstGlobal</span><span class="p">;</span>
+<span class="w">    </span><span class="n">AscendC</span><span class="o">::</span><span class="n">DataCopyPadExtParams</span><span class="o">&lt;</span><span class="n">half</span><span class="o">&gt;</span><span class="w"> </span><span class="n">padParams</span><span class="p">;</span>
+<span class="w">    </span><span class="n">AscendC</span><span class="o">::</span><span class="n">DataCopyExtParams</span><span class="w"> </span><span class="n">copyParams</span><span class="p">;</span>
+<span class="w">    </span><span class="n">half</span><span class="w"> </span><span class="n">scalar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="n">__global__</span><span class="w"> </span><span class="n">__aicore__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel_data_copy_pad_kernel</span><span class="p">(</span><span class="n">__gm__</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">src_gm</span><span class="p">,</span><span class="w"> </span><span class="n">__gm__</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">dst_gm</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">TestDataCopyPad</span><span class="w"> </span><span class="n">op</span><span class="p">;</span>
+<span class="w">    </span><span class="n">op</span><span class="p">.</span><span class="n">Init</span><span class="p">(</span><span class="n">src_gm</span><span class="p">,</span><span class="w"> </span><span class="n">dst_gm</span><span class="p">);</span>
+<span class="w">    </span><span class="n">op</span><span class="p">.</span><span class="n">Process</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div></td></tr></table></div>
+</div>
+</div>
+<div class="p" id="EN-US_TOPIC_0000002502573136__p1067372417569">Result example:<pre class="screen" id="EN-US_TOPIC_0000002502573136__screen642710665614">Input data (src0Global): [1 2 3 ... 32]
+Output data (dstGlobal):[1 2 3 ... 20]</pre>
+</div>
+</div>
+</div>
+<div>
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a href="atlasascendc_api_07_0100.html">Data Movement</a></div>
+</div>
+</div>
+
+</body></html>

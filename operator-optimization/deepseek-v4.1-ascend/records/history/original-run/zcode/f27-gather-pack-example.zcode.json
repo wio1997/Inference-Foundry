@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_9c830d4d-dece-4e33-b450-26e0b045e3fa",
+  "traceId": "5dc567e3-7d61-4f8b-b929-fa0e56935566",
+  "turnId": "turn_bc134837-df9c-4b84-8f4e-e6f0259a5798",
+  "response": "**Gathered sequence (under the stated assumption).** Each rank contributes one local tile of shape `[1 token, 3 aux]`, and the gather concatenates these tiles along the token axis in rank order. The receive buffer is therefore 6 elements:\n\n```\ng:  0     1     2     3     4     5\n   a0    b0    c0    a1    b1    c1\n   └──── rank 0 ────┘└──── rank 1 ────┘\n```\n\nViewed as a `[tokens=2, aux=3]` matrix:\n\n```\nrow 0 (rank 0):  a0  b0  c0\nrow 1 (rank 1):  a1  b1  c1\n```\n\n**Why three equal blocks is wrong.** The buffer length is `tokens × aux = 2 × 3 = 6`, so a contiguous three-way split gives chunks of 2 elements each:\n\n| chunk | contents | what it actually mixes |\n|---|---|---|\n| 0 | `[a0, b0]` | aux A and aux B of token 0 |\n| 1 | `[c0, a1]` | aux C of token 0 plus aux A of token 1 |\n| 2 | `[b1, c1]` | aux B and aux C of token 1 |\n\nThe per-aux vectors are not contiguous in this layout — they are strided by the aux count (3), not laid out one aux after another. The trap is that each chunk happens to have size 2, which is exactly the token count, so the shapes of the three chunks match the shapes of `A`, `B`, `C` and no dimension error is raised. The corruption is silent: chunk 0 is labelled `A` but contains no `a1` at all. Contiguous chunking is only valid when rank count is 1 or aux count is 1 (or when the layout really is aux-major, i.e. each rank's tight local block already holds one aux's tokens — not the case here).\n\n**Inverse permutation.** Flattened index for (aux `j`, rank `r`) is `idx = 3*r + j`, so the reconstruction is a strided slice with stride 3:\n\n```\nA = [g[0], g[3]] = [a0, a1]\nB = [g[1], g[4]] = [b0, b1]\nC = [g[2], g[5]] = [c0, c1]\n```\n\nEquivalently: reshape gathered to `[R, J]` (rank-major × aux) and take columns — `aux_j = G[:, j]`, which in flat terms is `gathered[j::J]` with `J = 3`. The forward permutation is the transpose: element at `(rank r, aux j)` sits at position `r*J + j`, whereas the aux-major layout would have placed it at `j*R + r`. A cheap invariant to assert: the sub-vector for aux `j` should contain exactly one value from each rank, in rank order.\n\n**Scope caveat.** This is an illustrative example of the rank-major-concatenation semantics you specified, not a claim about HCCL's actual `AllGather` ordering. The real order is fixed by the send-buffer layout and by which receive offset each rank writes into, so it needs contract/API evidence (HCCL primitive semantics or the framework's `all_gather_into_tensor` usage) before any permutation is baked into code. If the recv buffer is written with per-rank strided offsets, or the local packing is not token-major, the permutation above changes accordingly.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 1,
+    "inputTokens": 8592,
+    "outputTokens": 2608,
+    "totalTokens": 11200,
+    "cacheReadTokens": 0,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2614,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 11200,
+    "contextUsed": 11200,
+    "contextWindow": 200000
+  }
+}

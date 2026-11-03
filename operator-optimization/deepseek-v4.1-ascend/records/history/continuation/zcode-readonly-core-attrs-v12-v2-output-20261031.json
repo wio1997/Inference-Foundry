@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_e9e207c0-0483-4824-9ccd-736d7caf4a00",
+  "traceId": "aaa27dfc-434f-4f23-8e35-82a2224a00a2",
+  "turnId": "turn_c244f3e7-3d9d-46db-99c1-bb4f27ae17cb",
+  "response": "执行完成：外层 `remote_run.py` 实际返回码 **rc=0**，v2 成功且只解析了原始 stdout 中唯一含 `rows` 的 JSON 行。16 个逻辑设备、6 个属性、共 96 次 `aclrtGetDeviceInfo` 调用全部返回 **0**，没有任何失败值需要猜测。\n\n**实际返回码与回执**\n\n- 外层进程 rc：`0`\n- 本地回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/readonly-core-attributes166-v12-v2.json`\n- 远程完整结果：`.../hostprof-20261030T212812Z-360e0c72/analysis/readonly-device-core-attributes-v12-v2.json`\n- 结果文件 SHA-256：`611d46ada5117640756fd99b6035dd97856d8c3004cfd33f0a74cf20b10b82c5`（已复核，与脚本输出一致）\n- 检查时间：`2026-10-30T21:49:14Z`\n- Toolkit：`/usr/local/Ascend/cann-9.2.0`；头文件 SHA-256：`62d127fbb899b1476e054b1815ca6e0c71a362868c655f0e3da4616fb7598fb7`\n\n**每设备 API 返回码/值**\n\n16 个设备的返回完全一致，下表每行的所有属性 rc 均为 0：\n\n| device | AICORE_CORE_NUM (101) | CUBE_CORE_NUM (102) | VECTOR_CORE_NUM (201) | UBUF_PER_VECTOR_CORE_BYTES (204) | IS_VIRTUAL (501) | NPU_ARCH (601) |\n|---|---|---|---|---|---|---|\n| 0 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 1 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 2 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 3 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 4 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 5 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 6 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 7 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 8 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 9 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 10 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 11 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 12 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 13 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 14 | 24 | 24 | 48 | 0 | 0 | 2201 |\n| 15 | 24 | 24 | 48 | 0 | 0 | 2201 |\n\n`UBUF_PER_VECTOR_CORE_BYTES` 的返回值为 0 且 rc=0，按约定原样报告，不推断其含义。\n\n**运行时退出文本确实存在，v1 失败原因已确认**\n\n保留的原始 stdout 共 7412 字节、2 行：\n\n1. 第 0 行是含 `rows` 的结果 JSON（7273 字符）。\n2. 第 1 行是 JSON 之后的非 JSON 退出文本（138 字符）：`[LOG_WARNING] can not open file, file: /root/ascend/log/run/plog/plog-10504_20261030214914154.log, possible reason: Read-only file system.`\n\n这与 v1 的现象一致：子进程 rc=0，但 JSON 之后还有运行时文本，导致整段 `json.loads` 失败。v2 没有丢弃它，保留路径为：\n\n- stdout：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/readonly-device-core-v12-v2.stdout.txt`\n- stderr：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/readonly-device-core-v12-v2.stderr.txt`（0 字节）\n\n本地回执里保存的是远程汇总脚本的 stdout（单行 JSON），那条 `LOG_WARNING` 只存在于上述远程原始 stdout 文件中。\n\n**禁止项核对**\n\n结果自报的显式调用仅为 `ctypes.CDLL(libascendcl)` 和 `aclrtGetDeviceInfo`；`aclInit_called=false`、`set_device_or_context_called=false`、`inference_or_kernel_launch=false`。这是脚本自报，未做运行时内部的独立认证。该结果只说明 166 同一镜像/toolkit 下 16 个逻辑设备的硬件属性和核数分母事实，不代表吞吐/时延，也不构成旧 169 运行时认证。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 110474,
+    "outputTokens": 6479,
+    "totalTokens": 116953,
+    "cacheReadTokens": 96896,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4531,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 116953,
+    "contextUsed": 19151,
+    "contextWindow": 200000
+  }
+}

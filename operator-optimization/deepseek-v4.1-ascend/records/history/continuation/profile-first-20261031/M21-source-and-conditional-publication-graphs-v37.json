@@ -1,0 +1,216 @@
+{
+  "generated_utc": "2026-10-31T10:08:49.712886+00:00",
+  "source_count_publication": {
+    "nodes": [
+      {
+        "id": "global_query_metadata"
+      },
+      {
+        "id": "SWA_indices_and_rawlength"
+      },
+      {
+        "id": "stable_global_banks"
+      },
+      {
+        "id": "CP_index_slice_only"
+      },
+      {
+        "id": "local_predicate_reduce"
+      },
+      {
+        "id": "SMLA_callback"
+      },
+      {
+        "id": "fixed_plan_bank"
+      },
+      {
+        "id": "stage_ready"
+      },
+      {
+        "id": "attention"
+      },
+      {
+        "id": "reuse_release"
+      }
+    ],
+    "edges": [
+      {
+        "a": "global_query_metadata",
+        "b": "SWA_indices_and_rawlength",
+        "kind": "LOGICAL_TRITON"
+      },
+      {
+        "a": "SWA_indices_and_rawlength",
+        "b": "stable_global_banks",
+        "kind": "BOTH_OUTPUTS"
+      },
+      {
+        "a": "stable_global_banks",
+        "b": "CP_index_slice_only",
+        "kind": "ONLY_INDICES_CURRENT"
+      },
+      {
+        "a": "CP_index_slice_only",
+        "b": "local_predicate_reduce",
+        "kind": "LENGTH_RESET_NONE"
+      },
+      {
+        "a": "local_predicate_reduce",
+        "b": "SMLA_callback",
+        "kind": "INT32_COUNTS"
+      },
+      {
+        "a": "SMLA_callback",
+        "b": "fixed_plan_bank",
+        "kind": "COPY_OR_ZERO"
+      },
+      {
+        "a": "fixed_plan_bank",
+        "b": "stage_ready",
+        "kind": "FRONTIER_RECORD"
+      },
+      {
+        "a": "stage_ready",
+        "b": "attention",
+        "kind": "WAIT_READY"
+      },
+      {
+        "a": "attention",
+        "b": "reuse_release",
+        "kind": "LAST_READER_FENCE"
+      }
+    ]
+  },
+  "conditional_existing_length_forwarding": {
+    "nodes": [
+      {
+        "id": "global_indices"
+      },
+      {
+        "id": "global_rawlength"
+      },
+      {
+        "id": "exact_CP_rowmap"
+      },
+      {
+        "id": "capped_local_count"
+      },
+      {
+        "id": "new_count_input_ABI"
+      },
+      {
+        "id": "same_metadata_frontier"
+      }
+    ],
+    "edges": [
+      {
+        "a": "global_rawlength",
+        "b": "exact_CP_rowmap",
+        "kind": "SAME_ROW_GENERATION"
+      },
+      {
+        "a": "global_indices",
+        "b": "exact_CP_rowmap",
+        "kind": "PREDICATE_PRESERVING"
+      },
+      {
+        "a": "exact_CP_rowmap",
+        "b": "capped_local_count",
+        "kind": "CLAMP_IF_CAPACITY_UNPROVED"
+      },
+      {
+        "a": "capped_local_count",
+        "b": "new_count_input_ABI",
+        "kind": "INT32_Rx1"
+      },
+      {
+        "a": "new_count_input_ABI",
+        "b": "same_metadata_frontier",
+        "kind": "PRESERVE_OUTPUT_AND_EVENTS"
+      }
+    ]
+  },
+  "source_distinct_output_publications": {
+    "nodes": [
+      {
+        "id": "sampler_original_ID_matrix"
+      },
+      {
+        "id": "readonly_next_ID_helper"
+      },
+      {
+        "id": "valid_count"
+      },
+      {
+        "id": "count_copy_event"
+      },
+      {
+        "id": "GPU_count_last_reader"
+      },
+      {
+        "id": "proposal_work"
+      },
+      {
+        "id": "Async_output_constructor"
+      },
+      {
+        "id": "output_copy_event"
+      },
+      {
+        "id": "CPU_parse"
+      }
+    ],
+    "edges": [
+      {
+        "a": "sampler_original_ID_matrix",
+        "b": "readonly_next_ID_helper",
+        "kind": "SAME_SOURCE_EPOCH"
+      },
+      {
+        "a": "readonly_next_ID_helper",
+        "b": "valid_count",
+        "kind": "EXACT_V36_RULE"
+      },
+      {
+        "a": "valid_count",
+        "b": "count_copy_event",
+        "kind": "COPY_STREAM"
+      },
+      {
+        "a": "valid_count",
+        "b": "GPU_count_last_reader",
+        "kind": "ASYNC_REFERENCE"
+      },
+      {
+        "a": "readonly_next_ID_helper",
+        "b": "proposal_work",
+        "kind": "NEXT_ID"
+      },
+      {
+        "a": "proposal_work",
+        "b": "Async_output_constructor",
+        "kind": "CURRENT_HOST_SOURCE_ORDER"
+      },
+      {
+        "a": "sampler_original_ID_matrix",
+        "b": "Async_output_constructor",
+        "kind": "RETAINED_TARGET_MATRIX"
+      },
+      {
+        "a": "Async_output_constructor",
+        "b": "output_copy_event",
+        "kind": "DEFAULT_WAIT_AND_OPTIONAL_FIELDS"
+      },
+      {
+        "a": "output_copy_event",
+        "b": "CPU_parse",
+        "kind": "SYNCHRONIZE_AND_PARSE"
+      }
+    ]
+  },
+  "note": "Graphs show source/data/frontier contracts,not a measured request pairing or devicecriticalpath. Earlier/sharedcopy variant needs new producer-specific readiness protocol.",
+  "graphs_acyclic": true,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

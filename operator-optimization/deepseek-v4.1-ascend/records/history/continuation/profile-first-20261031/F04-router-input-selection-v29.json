@@ -1,0 +1,47 @@
+{
+  "generated_utc": "2026-10-31T05:38:12.336451+00:00",
+  "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py",
+  "actual_server_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py",
+  "sha256": "2f42ce56a7636bf618204dbc2c1aeb2a2c95fed69fe9e5bcfac995354a00beb4",
+  "actual166_pin_reused_from": "overlap-guards166-v21.json",
+  "functions": [
+    {
+      "name": "_prepare_router_input",
+      "start": 389,
+      "end": 399,
+      "source": [
+        "389:     def _prepare_router_input(",
+        "390:         self,",
+        "391:         hidden_states: torch.Tensor,",
+        "392:         router_logits: torch.Tensor,",
+        "393:     ) -> torch.Tensor:",
+        "394:         \"\"\"Prepare only the input needed by a pre-cast FP32 router gate.\"\"\"",
+        "395:         gate = self.gate",
+        "396:         assert gate is not None",
+        "397:         if not hasattr(gate, \"weight_fp32\"):",
+        "398:             return hidden_states",
+        "399:         return router_logits if router_logits.dtype == torch.float32 else hidden_states.float()"
+      ]
+    },
+    {
+      "name": "_apply_router_linear",
+      "start": 401,
+      "end": 410,
+      "source": [
+        "401:     def _apply_router_linear(self, router_input: torch.Tensor) -> torch.Tensor:",
+        "402:         \"\"\"Apply the internal router gate to an already prepared input.\"\"\"",
+        "403:         gate = self.gate",
+        "404:         assert gate is not None",
+        "405:         # Models with pre-cast FP32 weights use the direct linear path; other",
+        "406:         # gates retain their registered forward and its dtype semantics.",
+        "407:         if hasattr(gate, \"weight_fp32\"):",
+        "408:             return F.linear(router_input, gate.weight_fp32)",
+        "409:         gate_out = gate(router_input)",
+        "410:         return gate_out[0] if isinstance(gate_out, tuple) else gate_out"
+      ]
+    }
+  ],
+  "no_model_import_device_or_service_work": true,
+  "scope": "Mainsemanticreview:twoexactcallee functions fromSHA-verified local snapshot;no wholemoduleaudit.",
+  "overall_complete": false
+}

@@ -1,0 +1,87 @@
+{
+  "id": "F02_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "attn_pre": "attn_pre",
+    "input_norm": "input_norm"
+  },
+  "nodes": [
+    {
+      "id": "attn_pre",
+      "kind": "HC_PRE_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "input_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "attn_pre",
+      "consumer": "input_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "residual",
+      "consumer": "attn_pre",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "pre_mix",
+      "consumer": "attn_pre",
+      "value": "previous layer coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "input_norm",
+      "consumer": "all_gather",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_pre",
+      "consumer": "attn_post",
+      "value": "post/comb",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_pre",
+      "consumer": "ffn_pre",
+      "value": "attn_pre coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v35": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-embedding-HC-CP-row-and-consumer-contract-v35.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-layout-ownership-and-context-query-reorganization-v35.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-optimization-condition-ledger-v35.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-source-and-conditional-decoder-graphs-v35.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "variants": [
+      {
+        "id": "F02-v35-FIRST-PRE",
+        "parent": "F02",
+        "transformation": "Use the draft initial broadcast/onehot pre_mix contract to specialize first-pre y and/or coefficient input projection.",
+        "argument": "Current104first entries are source-consistent initial repeats plus FP32 onehot premix. A real-algebra coefficient prefold or y shortcut can be considered only within a specified numerical domain.",
+        "conditions": "Do not delete data-dependent coefficients needed by HCpost/next premix. Infinity times zero, NaN payload, signed zero, accumulation and BF16/native rounding can defeat an unconditional y=E shortcut.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      }
+    ]
+  }
+}

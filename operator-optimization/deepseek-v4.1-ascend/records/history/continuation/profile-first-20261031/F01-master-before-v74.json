@@ -1,0 +1,81 @@
+{
+  "id": "F01_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "attn_pre": "attn_pre"
+  },
+  "nodes": [
+    {
+      "id": "attn_pre",
+      "kind": "HC_PRE_COMPOSITE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [],
+  "external_inputs": [
+    {
+      "producer": "residual",
+      "consumer": "attn_pre",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "pre_mix",
+      "consumer": "attn_pre",
+      "value": "previous layer coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "attn_pre",
+      "consumer": "input_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_pre",
+      "consumer": "attn_post",
+      "value": "post/comb",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_pre",
+      "consumer": "ffn_pre",
+      "value": "attn_pre coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "ALREADY_IMPLEMENTED",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v64": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-regime-models-v64.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-native-chains-v64.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-operator-contract-v64.json",
+    "work_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-fusion-costs-v64.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-fusion-variants-v64.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v64.json",
+    "candidate_specific_scope": "SharedinputHCmean/HcPremultioutputatfixedno-Engramcheckpoints;weightedYnotmean,outputreadinessandresourcecostconditions. No newHCregimeclosure.",
+    "relation": "242regimes15976nativeexecutions:237previouspending/15712plus5M18geometry/264nowwithownconsumercontracts. 26operatorchoicesandtypedtraffic/compute/padding/precisionconditions;noimplementation/nativebenchmark.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v67": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-regime-models-v67.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-native-chains-v67.json",
+    "work_value_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-fusion-costs-v67.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-operator-contract-v67.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-fusion-variants-v67.json",
+    "pending_evidence": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/initialization-profile-insufficiency-v67.json",
+    "candidate_specific_scope": "FirstFP32onehotpremix4TASK28n+8→16nfullwrite/readonlybank/virtualconstantinterfaces,allinputmutation/capture/configlifetimeandfull4H/HF32/BF16Precontracts.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

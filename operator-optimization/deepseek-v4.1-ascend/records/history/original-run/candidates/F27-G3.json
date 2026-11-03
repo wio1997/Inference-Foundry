@@ -1,0 +1,50 @@
+{
+  "id": "F27_G3",
+  "source_template_path": "graphs/source-templates-G3.json",
+  "nodes": [
+    {
+      "id": "aux",
+      "kind": "EXTERNAL",
+      "resource": "NPU"
+    },
+    {
+      "id": "main_proj",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "main_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "aux",
+      "consumer": "main_proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "main_proj",
+      "consumer": "main_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [],
+  "external_outputs": [
+    {
+      "producer": "main_norm",
+      "consumer": "context_buffer",
+      "value": "combined target auxiliary states copied to draft context buffer",
+      "dependency_kind": "RAW",
+      "source": "spec_decode/llm_base_proposer.py:1062-1081; spec_decode/dspark_proposer.py:255-259",
+      "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ."
+    }
+  ],
+  "runner_binding": "SUPPORTED_IN_STATED_BRANCHES",
+  "consumer_completeness": "UNKNOWN",
+  "semantic_equivalence_or_savings_proven": false,
+  "condition": "DSpark proposer, K>0, non-empty context and valid non-null per-layer context slot mappings; branches may differ. Preserve KV state, complete numerical semantics, all consumers and actual stream order."
+}

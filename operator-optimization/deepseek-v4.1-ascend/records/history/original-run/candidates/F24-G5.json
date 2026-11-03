@@ -1,0 +1,178 @@
+{
+  "id": "F24",
+  "graph_id": "SOURCE_TEMPLATES_G5_DATA_CONTROL",
+  "template": "ENGRAM",
+  "nodes": [
+    {
+      "id": "hash",
+      "kind": "STATEFUL_NPU_HASH_COMPOSITE",
+      "resource": "NPU",
+      "source": "engram/hash_state.py:102-148",
+      "condition": "num_tokens > 0; optional slot-cache writes"
+    },
+    {
+      "id": "lookup",
+      "kind": "ENGRAM_LOOKUP_BRANCH_COMPOSITE",
+      "resource": "CONDITIONAL_NPU_OR_CPU",
+      "source": "engram/embedding.py:378-405",
+      "condition": "host UVA branch uses NPU kernel reading mapped host memory; device-table branch NPU; CPU reference fallback exists"
+    },
+    {
+      "id": "ready",
+      "kind": "EVENT",
+      "resource": "CPU_NPU"
+    },
+    {
+      "id": "rows",
+      "kind": "ROW_VIEW_OR_SHARD",
+      "resource": "NPU"
+    },
+    {
+      "id": "rows_collective_pad",
+      "kind": "CONDITIONAL_DP_EXCHANGE_TP_GATHER_PAD",
+      "resource": "COMM_NPU",
+      "condition": "branch on DP/TP and output-buffer configuration"
+    },
+    {
+      "id": "hash_indices_select",
+      "kind": "CONDITIONAL_INDEX_SELECT",
+      "resource": "NPU"
+    },
+    {
+      "id": "hash_gather",
+      "kind": "CONDITIONAL_DP_HASH_GATHER",
+      "resource": "COMM_NPU",
+      "condition": "shared-memory and DP-size dependent; may be identity"
+    },
+    {
+      "id": "hash_layer_select",
+      "kind": "SLOT_SELECT_AND_CONTIGUOUS",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "lookup",
+      "consumer": "rows_collective_pad",
+      "value": "lookup values",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "hash",
+      "consumer": "hash_indices_select",
+      "value": "hashes before optional token selection",
+      "source": "models/deepseek_v41/model.py:1180-1204",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "hash_indices_select",
+      "consumer": "hash_gather",
+      "value": "selected hashes",
+      "source": "models/deepseek_v41/model.py:1191-1209",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "hash_gather",
+      "consumer": "hash_layer_select",
+      "value": "per-layer slot",
+      "source": "models/deepseek_v41/model.py:1206-1218; engram/embedding.py:333-348",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "hash_layer_select",
+      "consumer": "lookup",
+      "value": "contiguous per-layer hash IDs",
+      "source": "models/deepseek_v41/model.py:1209-1218; engram/embedding.py:333-348",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rows_collective_pad",
+      "consumer": "rows",
+      "value": "lookup rows, after conditional collectives/padding",
+      "source": "models/deepseek_v41/model.py:1209-1226,1577-1591",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rows_collective_pad",
+      "consumer": "ready",
+      "value": "record event after production",
+      "source": "models/deepseek_v41/model.py:1221-1226",
+      "condition": "event provided",
+      "dependency_kind": "CONTROL_AFTER"
+    },
+    {
+      "producer": "ready",
+      "consumer": "rows",
+      "value": "wait event before consuming lookup rows",
+      "source": "models/deepseek_v41/model.py:1573-1587",
+      "condition": "event provided",
+      "dependency_kind": "HAPPENS_BEFORE_IF_EVENT"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "tokens",
+      "consumer": "hash",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "hash_runtime_metadata",
+      "consumer": "hash",
+      "value": "positions, query_start_loc, masks and lookback",
+      "dependency_kind": "RAW",
+      "source": "engram/hash_state.py:102-148",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "hash_slot_state",
+      "consumer": "hash",
+      "value": "cache and slot/block mappings",
+      "dependency_kind": "RAW",
+      "source": "engram/hash_state.py:109-148",
+      "condition": "when use_slot_cache, hash reads and writes state; alias and cross-invocation dependencies not fully expanded"
+    },
+    {
+      "producer": "mapped_or_device_table",
+      "consumer": "lookup",
+      "value": "codes and scales",
+      "dependency_kind": "RAW",
+      "source": "engram/embedding.py:378-405",
+      "condition": "source branch; precise runtime realization not fully observed"
+    },
+    {
+      "producer": "mask_derive",
+      "consumer": "hash",
+      "value": "dead mask",
+      "source": "models/deepseek_v41/model.py:1163-1191; engram/hash_state.py:119-147",
+      "condition": "branch-dependent, source level",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "rows",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "hash",
+      "consumer": "hash_slot_state",
+      "value": "conditional token cache update",
+      "dependency_kind": "RAW",
+      "source": "engram/hash_state.py:111-128",
+      "condition": "when use_slot_cache; state side effect; not a same-invocation acyclic precedence edge"
+    }
+  ],
+  "status": "STRUCTURAL_BOUNDARY_ONLY",
+  "semantic_equivalence_or_savings_proven": false,
+  "all_consumers_and_aliases": "UNKNOWN"
+}

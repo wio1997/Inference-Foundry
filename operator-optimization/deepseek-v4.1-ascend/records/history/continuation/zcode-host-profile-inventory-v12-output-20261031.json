@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_66213da1-beea-4b28-bb25-2c24101fd2e6",
+  "traceId": "91789299-efca-4218-ae10-37d032485ab2",
+  "turnId": "turn_8ff81e75-19a4-4eff-a890-6ac240012cbb",
+  "response": "已按原命令执行一次（未重试、未改脚本、未扩展采集），真实 rc=0。核心结果：恢复断言通过，32 个 profiler_info（16 rank × 2 窗口）齐全，但**没有任何 `ascend_pytorch_profiler_*.db` 被盘点脚本匹配到**，因此 DB/stack/prepare/marker 计数全部为 0，这不代表这些调用不存在，而是本次导出没有可被该脚本读取的 DB 证据。\n\n## 执行与前置恢复\n\n- 命令：`python3 .../remote_run.py 166 .../inventory_host_profile_v12_166.py host-profile-inventory166-v12`\n- 真实 returncode：**0**，stderr 为空，observed_utc `2026-10-30T21:44:56Z`\n- 脚本自身断言通过：`controller-finished.json` state = **CAPTURED_AND_RESTORED**（`capture_error: null`），`restore-result.json` status = **PASS_ORIGINAL_BASELINE_RESTORED**\n- 恢复侧：原容器 ID `8757dcc7...48e3`，health **200 / idle true**，两个 engine 的 running/waiting 均为 0，`all_npu_pids_owned: true`（17 个 NPU PID），`target_source_or_serve_modified: false`\n\n## 盘点计数\n\n| 指标 | 值 |\n|---|---|\n| profiler_info 文件 | **32**（rank 0–15，每 rank 2 窗口） |\n| schema variants | 0 |\n| database 文件 | **0** |\n| prepare roots | **0** |\n| same-call markers（`wio_hostdiag::*`） | **0** |\n| databases with callchains | **0** |\n| metadata 文件 | 16 |\n| metadata 事件 | installed=16，execute_enter=3712，execute_exit=3712，profiler_created=16 |\n\n执行窗口：`initial`（`8624996375489940–8625001866802410` ns）与 `later_decode_candidate`（`8625002081044790–8625004653597880` ns）。三轮 case counters 均有效，baseline 与 profile 的 `input_sha256` 一致：`755b823003b4d200a4590424a245cdfb484d9b8c3d0b5225a7a058790b87e8c8`。\n\n## 实际导出的 config flags\n\n32 份 profiler_info 中，16 个 rank 的设置完全一致（仅 `rank_id` 不同）：\n\n- `record_shapes: true`\n- `with_stack: true`\n- `with_modules: true`\n- `profile_memory: false`\n- `torch_npu_version: 2.10.0.post7`\n- `cann_version: 9.2.0`\n- `rank_id`: 0–15 全覆盖，每 rank 两份（两个窗口）\n\n## 原始结果\n\n- 远端原始结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/profile-capabilities-index-v12.json`\n- 结果 SHA-256：`0c12f08fcee0695a8ff23d1bd84019691611872ea1e91e66d6652cbade47c48c`\n- 本地回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-inventory166-v12.json`（20426 B，SHA-256 `7aae477ab3e3c88b2107970b4d190ca5cb46996da1c8544175790bbee637c4c9`）\n\n## 重要限制\n\n`database_files=0` 是本次盘点的关键事实：脚本在 `runtime/official-traces` 下没有找到 `ascend_pytorch_profiler_*.db`，所以 prepare roots、same-call markers 和 callchain/stack 计数都是“无 DB 可计”的 0。`with_stack=true` 只证明导出配置已强制开启，不能证明 DB 内已有调用栈行。`overall_complete=false`，本次未运行新推理、未改服务，也未展开大 trace。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 10,
+    "inputTokens": 218679,
+    "outputTokens": 11873,
+    "totalTokens": 230552,
+    "cacheReadTokens": 190464,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 9663,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 230552,
+    "contextUsed": 39051,
+    "contextWindow": 200000
+  }
+}

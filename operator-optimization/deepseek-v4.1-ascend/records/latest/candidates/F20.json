@@ -1,0 +1,396 @@
+{
+  "id": "F20_CONDITIONAL_PARTITION_V180",
+  "original_graph_id": "G0_FIXED_SOURCE_PUBLIC_CONDITIONAL_V180",
+  "original_graph_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/graphs/G0-current-v180.json",
+  "original_graph_sha256": "e79b3df3ff21e45568d720feaeaa03f01af01ce72c339a2ae84d74837f742ee6",
+  "source_instance_ids": [
+    "target.layers.0.moe.detail",
+    "target.layers.1.moe.detail",
+    "target.layers.2.moe.detail",
+    "target.layers.3.moe.detail",
+    "target.layers.4.moe.detail",
+    "target.layers.5.moe.detail",
+    "target.layers.6.moe.detail",
+    "target.layers.7.moe.detail",
+    "target.layers.8.moe.detail",
+    "target.layers.9.moe.detail",
+    "target.layers.10.moe.detail",
+    "target.layers.11.moe.detail",
+    "target.layers.12.moe.detail",
+    "target.layers.13.moe.detail",
+    "target.layers.14.moe.detail",
+    "target.layers.15.moe.detail",
+    "target.layers.16.moe.detail",
+    "target.layers.17.moe.detail",
+    "target.layers.18.moe.detail",
+    "target.layers.19.moe.detail",
+    "target.layers.20.moe.detail",
+    "target.layers.21.moe.detail",
+    "target.layers.22.moe.detail",
+    "target.layers.23.moe.detail",
+    "target.layers.24.moe.detail",
+    "target.layers.25.moe.detail",
+    "target.layers.26.moe.detail",
+    "target.layers.27.moe.detail",
+    "target.layers.28.moe.detail",
+    "target.layers.29.moe.detail",
+    "target.layers.30.moe.detail",
+    "target.layers.31.moe.detail",
+    "target.layers.32.moe.detail",
+    "target.layers.33.moe.detail",
+    "target.layers.34.moe.detail",
+    "target.layers.35.moe.detail",
+    "target.layers.36.moe.detail",
+    "target.layers.37.moe.detail",
+    "target.layers.38.moe.detail",
+    "target.layers.39.moe.detail"
+  ],
+  "source_case_templates": [
+    "MOE_WRAPPER"
+  ],
+  "original_atom_union": [
+    "moe.router",
+    "moe.TopK",
+    "moe.dispatch_FFN_combine",
+    "moe.route.masked_ID_group_inverse"
+  ],
+  "original_specific_node_mapping": {
+    "router": "router",
+    "topk": "topk",
+    "dispatch_ffn_combine": "dispatch_ffn_combine"
+  },
+  "nodes": [
+    {
+      "id": "F20/conditional_region",
+      "kind": "PROPOSED_FUSION_SPLIT_OR_REPARTITION_REGION",
+      "not_all_footprint_nodes_must_be_fused_simultaneously": true
+    },
+    {
+      "id": "REQUEST_INPUT_BANKS",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "REQUEST_INPUT_BANKS",
+        "modules": [
+          "M04",
+          "M05",
+          "M14",
+          "M18",
+          "M21",
+          "M22",
+          "M24"
+        ],
+        "writer_ports": [
+          "previous accepted IDs",
+          "host packing",
+          "device copy/scatter"
+        ],
+        "reader_ports": [
+          "target/draft embedding",
+          "Engram hash",
+          "sampling/penalty input",
+          "next iteration packing"
+        ],
+        "identity_and_epoch": "request generation, current/previous row map, capture-bank address and valid range",
+        "conditional_fusion_split_or_reorder_answer": "direct-prefix/permuted and untouched-row branches differ; preserve last-reader retirement before mutation Source negative advanced indices wrap but destination negatives/errors differ;duplicates/sample-then-draft priority and oldsourcealias snapshots survive combined scatters. Batchcorrection needs all3gathers beforefirstwrite plus original computedwrite->acceptedELSEread order if cross-planealiases,not per-row ordering.",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "EXPERT_DISPATCH_AND_SHARED_OUTPUT",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "EXPERT_DISPATCH_AND_SHARED_OUTPUT",
+        "modules": [
+          "M12",
+          "M13",
+          "M23",
+          "M24"
+        ],
+        "writer_ports": [
+          "router/topK",
+          "peer dispatch",
+          "W8A8 expert FFNs",
+          "shared FFN",
+          "conditional EPLB map"
+        ],
+        "reader_ports": [
+          "receiver GEMMs",
+          "return/combine",
+          "routed/shared merge",
+          "original counters/state"
+        ],
+        "identity_and_epoch": "EP participant,expert,valid received rows,credit/flag generation,quant rounds and scale",
+        "conditional_fusion_split_or_reorder_answer": "existing F21 native fusion retained; sender0 can receive work; tile128 is not128 active rows. EPLBFalse snapshot does not remove other owned branch contracts",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "COLLECTIVE_OWNER_AND_READINESS",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "COLLECTIVE_OWNER_AND_READINESS",
+        "modules": [
+          "M07",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M16",
+          "M18",
+          "M19",
+          "M22",
+          "M23"
+        ],
+        "writer_ports": [
+          "DP/TP/EP/CP participants and original producer writes"
+        ],
+        "reader_ports": [
+          "rank-local readers",
+          "peer receivers",
+          "collective output consumers",
+          "cross-stream waiters"
+        ],
+        "identity_and_epoch": "group,rank,physical-card mapping,shard/range,collective epoch and publication flags",
+        "conditional_fusion_split_or_reorder_answer": "retain participant counts and source protocol; raw link accounting is pool/topology-specific, not a universal wire floor or measured overlap",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "BATCH_CORRECTION_SNAPSHOT",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "BATCH_CORRECTION_SNAPSHOT",
+        "modules": [
+          "M04",
+          "M21",
+          "M24"
+        ],
+        "writer_ports": [
+          "num_computed_tokens[:n]INT32firstwrite",
+          "num_accepted_tokensINT32secondwrite",
+          "new request/remap generation"
+        ],
+        "reader_ports": [
+          "3oldgathersbeforecomputedwrite",
+          "CPUcomputedfallbackbeforefirstwrite",
+          "acceptedELSEreadAFTERcomputedwrite",
+          "next input/position packing",
+          "asynchronous original consumers"
+        ],
+        "identity_and_epoch": "3gather snapshot plus original per-plane read epoch;acceptedELSE cannot be blindly hoisted across computedwrite if planesalias",
+        "conditional_fusion_split_or_reorder_answer": "SmallNone-program gathered snapshot or immutableoldstate can fuse updates. Per-row inplace gather-map is incorrect:[1,0] gives[21,22] instead of[21,11]. Snapshot-all-sources needs disjointplanes or explicit emulation of original computedwrite->acceptedELSEread. Preserve CPUfallback,int32overflow,promotedwhere/copy,negative/sentinel/bounds/error and queuedreader semantics.",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_ALL_ORIGINAL_EFFECTS;actual pointer aliases require binding only for stronger private elision",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/heads-sampling-operator-contract-v65.json"
+        ]
+      }
+    },
+    {
+      "id": "SP_VALIDITY_MASK",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "SP_VALIDITY_MASK",
+        "modules": [
+          "M05",
+          "M11",
+          "M12",
+          "M14",
+          "M19",
+          "M21",
+          "M22",
+          "M23"
+        ],
+        "writer_ports": [
+          "None-mask false-prefix initialization",
+          "provided-mask copy",
+          "Truepadding tail"
+        ],
+        "reader_ports": [
+          "SPpacking/sharding",
+          "selected attention/MoE/Engram/collective valid-row readers",
+          "graphbank consumers"
+        ],
+        "identity_and_epoch": "mask purpose,actualprefix values,provided-vsNone branch,N/Pandrequest/capture generation;not C2mask bank identity",
+        "conditional_fusion_split_or_reorder_answer": "Full-write public pad replacement may combine prefix/tail stores while preserving suppliedTrueprefix,clone/noalias semantics and allvalid-row readers. BOOLshape or old16680records cannot identify current171C2/SP masks.",
+        "unknown_native_alias_or_unlisted_observer": "Keep native helper/workspace effects unless whole public call is equivalently replaced",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/embedding-initialization-operator-contract-v67.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "producer": "F20/conditional_region",
+      "consumer": "REQUEST_INPUT_BANKS",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F20/conditional_region",
+      "consumer": "EXPERT_DISPATCH_AND_SHARED_OUTPUT",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F20/conditional_region",
+      "consumer": "COLLECTIVE_OWNER_AND_READINESS",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F20/conditional_region",
+      "consumer": "BATCH_CORRECTION_SNAPSHOT",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F20/conditional_region",
+      "consumer": "SP_VALIDITY_MASK",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    }
+  ],
+  "original_node_mapping": [
+    {
+      "original_ref": "definition:MOE_WRAPPER/x",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/x_fp32",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/router",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/topk",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/dispatch_ffn_combine",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/shared_quant",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/shared_gate_up",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/swiglu_quant",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/shared_down",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/merge",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:MOE_WRAPPER/returned_moe_output",
+      "proposed_region": "F20/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    }
+  ],
+  "allowed_transformations": "Existingfamily-specific variants and typed conditions in immutable candidate/semantic/cost records;region is a footprint,not proof that its union is oneinvocation or onelegal kernel.",
+  "specific_variant_authorities": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v179.json#F20",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v179/semantic-contract-sufficiency-review.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v174/all42-composition-coverage.json"
+  ],
+  "conditional_limits": {
+    "candidate": "F20",
+    "templates": [
+      "MOE_WRAPPER"
+    ],
+    "instance_ids": [
+      "target.layers.0.moe.detail",
+      "target.layers.1.moe.detail",
+      "target.layers.2.moe.detail",
+      "target.layers.3.moe.detail",
+      "target.layers.4.moe.detail",
+      "target.layers.5.moe.detail",
+      "target.layers.6.moe.detail",
+      "target.layers.7.moe.detail",
+      "target.layers.8.moe.detail",
+      "target.layers.9.moe.detail",
+      "target.layers.10.moe.detail",
+      "target.layers.11.moe.detail",
+      "target.layers.12.moe.detail",
+      "target.layers.13.moe.detail",
+      "target.layers.14.moe.detail",
+      "target.layers.15.moe.detail",
+      "target.layers.16.moe.detail",
+      "target.layers.17.moe.detail",
+      "target.layers.18.moe.detail",
+      "target.layers.19.moe.detail",
+      "target.layers.20.moe.detail",
+      "target.layers.21.moe.detail",
+      "target.layers.22.moe.detail",
+      "target.layers.23.moe.detail",
+      "target.layers.24.moe.detail",
+      "target.layers.25.moe.detail",
+      "target.layers.26.moe.detail",
+      "target.layers.27.moe.detail",
+      "target.layers.28.moe.detail",
+      "target.layers.29.moe.detail",
+      "target.layers.30.moe.detail",
+      "target.layers.31.moe.detail",
+      "target.layers.32.moe.detail",
+      "target.layers.33.moe.detail",
+      "target.layers.34.moe.detail",
+      "target.layers.35.moe.detail",
+      "target.layers.36.moe.detail",
+      "target.layers.37.moe.detail",
+      "target.layers.38.moe.detail",
+      "target.layers.39.moe.detail"
+    ],
+    "conditional_template_refs": [],
+    "state_envelope_refs": [
+      "REQUEST_INPUT_BANKS",
+      "EXPERT_DISPATCH_AND_SHARED_OUTPUT",
+      "COLLECTIVE_OWNER_AND_READINESS",
+      "BATCH_CORRECTION_SNAPSHOT",
+      "SP_VALIDITY_MASK"
+    ],
+    "conditional_native_legality_not_promoted": true
+  },
+  "implemented": false,
+  "performance_gain_measured": false
+}

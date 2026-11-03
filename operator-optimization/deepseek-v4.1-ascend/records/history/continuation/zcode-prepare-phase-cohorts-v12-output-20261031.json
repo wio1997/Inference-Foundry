@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c3899828-d3b8-45b8-8d99-2150f108a9c1",
+  "traceId": "0ab4d2e1-5264-4265-a3ea-794b9014c101",
+  "turnId": "turn_1002bea8-df96-44a2-92d5-f973f9efbbda",
+  "response": "执行完成，真实 rc=0，未重试、未修改脚本、未做任何源码/NPU/推理/服务操作。\n\n**执行**：`remote_run.py 166 derive_prepare_phase_cohorts_v12_166.py prepare-phase-cohorts166-v12`，远端输入 `analysis/prepare-field-origins-v12.json` 的 SHA 断言通过（`c23b75f3…f091f`），输出文件此前不存在（脚本内 `assert not out.exists()` 通过），一次性写入。\n\n**计数（96 个既有 prepare roots）**\n- `ZERO_SCHEDULED_TOKENS`：8\n- `CONTAINS_PREFILL_CONTEXT_LT32768`：24\n- `ALL_SCHEDULED_CONTEXT_GE32768_SPEC5_DECODE_COMPATIBLE`：64\n- 非空调度位置 cohort：11 个，大小直方图 `{8: 11}`\n- 每个 cohort 唯一 EP：11/11 满足（每 cohort 8 个 root 对应 8 个不同 EP rank，合计 88 root）\n- 8 个 0-token root 未强配入任何 cohort（88 + 8 = 96）\n\n这正是严格按已录请求 ID、调度 token 数、CPU computed 位置与记录 dp 归并的结果；未按时间/ordinal 对齐，cohort 仅代表 CPU 位置快照，不代表 GPU 有效 mask，也不涉及旧 169 身份。\n\n**产物与 SHA**\n- 远端结果：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/prepare-phase-and-schedule-cohorts-v12.json`\n- 脚本报告 payload SHA-256：`55ab5a2ebb4775f0af61039b2c2ba6e82457f97dcec79fc0033b30c733f77563`\n- 只读 `sha256sum` 复核磁盘文件：完全一致，大小 100040 字节\n- 本地回执：`prepare-phase-cohorts166-v12.json`（stderr 为空）",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 101765,
+    "outputTokens": 4124,
+    "totalTokens": 105889,
+    "cacheReadTokens": 88832,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2754,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 105889,
+    "contextUsed": 16440,
+    "contextWindow": 200000
+  }
+}

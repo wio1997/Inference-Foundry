@@ -1,0 +1,15 @@
+按用户约定先充分使用profile，本轮从M14 Engram的全捕获范围补覆盖。全部32份保存分片中，26条原生完整调用链关联3536个API、3632条TASK；80张图的两个Engram外段共160段，每段38条compute，共6080。这里是Engram调用祖先/图段范围，合计9712不能自动替换v20的9680条功能资源归属，更不能用作延迟之和。完整COMM表另有176次源码绑定的TP8 BF16 AllGather，ComputeInfo只出现128次hcom是统计层级差异，不是少48个collective。
+
+176次TP通信全部经原生来源、同线程execute marker和prepare root包含关系唯一绑定88个上下文，每个两层各一次：64个短输入上下文对应M24与128个已绑定图段，24个长输入上下文对应M6400/6528/6672及eager投影行800/816/834。还保留32个图段（16张图）阶段未绑定，以及48条没有唯一prepare root的原生TASK；未按次数或最近时间强配。8个root没有关联到所选hash/lookup，不等于该root没有任何活动。
+
+先由profile锁定176个embedding343预清零及176次UVA lookup，再定点读实际导入kernel。当前lookup输出实际是[M,3,256]，IDs[M,24]，TP8重建24×256=6144特征；不能根据总元素数猜成6×128。wrapper发射tokens×local_heads个program，kernel按(token,local_head)逐行写全部WIDTH，越界ID也显式写零，完全不读旧output；当前PAD_HEADS=LOCAL_HEADS，输出连续。因此当前非空UVA路径的预清零在指定源码合同内属于完整覆写前的初始化，已登记F24条件变体。还需保持分配/capture地址、无提前观察和正常完成；没有实现删除，也不删除dummy、mask、固定bank尾部零或推广其他lookup后端。
+
+第二项F24重组来自完整跨卡消费域：当前完整头AllGather后，model1581–1584才按SP切行，再给WKV。profile不能说明分片行序，因此仅解析已验SHA model.py的sp_shard导入，读取确切wrapper及12行实现：行轴先补零到TP倍数，再按rank取连续块，整除路径clone。由逐元素索引可证，在相同行/头rank顺序、padding和trim下，“拼完整heads再按目的rank取行”与“各源rank先发送目的行块、目的rank再拼heads”逐字节相同。登记按目标行/头AlltoAll及本地bank发布的条件变体。M整除P时每rank远端接收逻辑元素量的比值为P=8，但这不是物理链路流量或8倍提速；当前新bank ABI、其他完整bank消费者、图更新/别名/ready代际和所有参与rank仍需保持。DP行交换仍先完成，mask及每层ready不能被一个全层barrier延后第一层消费。
+
+哈希链也由profile的88组req-index/cache-write/hash锁定，再补指定kernel。优先级确认为当前chunk、已知非负lookback token、可选slot cache回退；负位置和DEAD_ID形成blocked ngram。cache写入按有效slot写映射ID或DEAD_ID，并先于hash；代码不能恢复历史hit数和slot内容。只有整个声明生命周期的所需历史均由正确request-generation的chunk/window覆盖且没有其他当前/未来cache观察者，才允许用slotless路径省写。窗口宽度够大但元素为-1是反例，本轮全命中却下一轮回退也是反例。因此没有删除88次cache写。两次dead-mask分别接收当前IDs和lookback IDs，不是同输入重复，不能直接去重。当前一次hash覆盖全部层、一次DP gather供两层、UVA gather+dequant已组合，均不报成新优化。
+
+F25从少量选段扩展到全部160图内及48原生body：共208个WKV、624个q/k参数cast和乘积TASK、7072个ordinary gate TASK。typed-shape核对证明每个body是1+3+34；参数q*k为4×5120 FP32，rotation实际是32×32 FP32分块旋转，不能虚构5120平方dense rotation。参数代际缓存归入既有F25，必须按真正storage/version/load/device/dtype失效并保留相同FP32算术/capture地址；shape相同不代表权重相同。gate复用v6精度合同：两路5120维RMS、加权dot、signed sqrt/sigmoid/mask、原始hidden.float残差以及4路HC共享value均保留。WKV tile到gate、分块旋转融合和本地head部分投影再ReduceScatter保留为条件替代；后者改变累加与通信量，不声称bitwise等价或免费收益。
+
+F24补18项条件，F25补13项条件。所有机会均细化既有F24/F25，模型主候选仍35项、框架7项，不新增F36。第一次kernel读取只查top-level import，未解析wrapper内lazy import，在保护处停止；第一次role audit把导出FP32标签误写DT_FLOAT，也在保护处停止。两份失败保留，修正版分别限定lazy import和明确FLOAT/DT_FLOAT标签，未扩大仓库搜索。六次远端CPU作业4 pass/2保留error，本地只读确切SP helper并做索引证明，没有导入torch/模型或执行NPU/服务/新健康检查。最后健康证据仍v12post。
+
+完整覆盖目标仍未完成，26个整模块全部保持open，26项理论比较仍INCOMPLETE。局部full-write/优先级/SP行序问题已回答，不再泛称“源码未知”；真实状态/消费者/代际/native精度/因果收益缺口独立保留。下一批转M15最终HC collapse、norm及MTP辅助状态的真实消费者，从保存fullcaller和图尾开始，复用F26/v11与F35/v28已有证据，再对新出现的确切缺口补代码。

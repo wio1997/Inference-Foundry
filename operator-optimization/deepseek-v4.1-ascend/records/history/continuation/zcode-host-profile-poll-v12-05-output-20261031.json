@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_0c775c47-3173-4a84-a6b1-6d08475be47a",
+  "traceId": "85a1accc-4981-4d87-bb25-66274c81731c",
+  "turnId": "turn_749529f8-c463-4045-9124-d1abcfe76a50",
+  "response": "轮询命令已按原样执行完成，`returncode=0`，回执写入 `/Users/wio/work/166-vllm-analysis-continuation-20261030/host-profile-poll166-v12-05.json`。本次没有重启、没有重复 launch、没有 kill，也没有改动远端任何内容；该脚本仅做读取。轮询在 180 秒限制内正常返回，不存在“观察超时”的情况。\n\n**PID/starttime 存活确认**\n- Controller PID `1351606`，`/proc` 中 starttime_ticks `862458845`，进程状态 `S`。\n- 与 launch 记录中的 `controller_pid=1351606`、`controller_starttime_ticks=862458845` 完全一致，`controller_live_verified_by_pid_start=true`，因此在 `checked_utc 2026-10-30T21:39:55Z`（本地 10-31 05:39:55）controller 确实存活，且是同一进程，而非 PID 复用。\n\n**Controller 状态**\n- `controller-state.json` 为 `PROFILE_COLLECTED_PENDING_ANALYSIS`，时间 `2026-10-30T21:37:42.548Z`。\n- 不存在 `controller-finished.json`、`controller-error.json`、`top-level-error.json`；controller 的 stderr 为空。即 controller 仍活着并处于“采集完成、待分析”阶段，未被判定终止。\n\n**诊断容器 / 原容器**\n- 诊断容器 `wio-vllm-v41-hostprof-20261030T212812Z-360e0c72`（id `7514283e…`）：`running=false`，`status=exited`，`exit_code=0`。这是诊断任务自身跑完后正常退出，不是异常终止。\n- 原容器 `wio-vllm-v41-repro166-20261030`（id `8757dcc7…`）：`running=true`，`status=running`，`exit_code=0`，仍保持运行。\n\n**错误**\n- controller 侧无错误文件、stderr 为空。\n- `service.log` 尾部在 21:37:45 的 vLLM 关停过程中出现 `AsyncLLM output_handler failed` / `vllm.v1.engine.exceptions.EngineDeadError`，其根因位于所截取的 5 KB 日志尾部之上，本次回执未覆盖；同时有 `resource_tracker` 泄漏 semaphore/shared_memory 的告警。结合诊断容器 `exit_code=0` 和 controller 无错误产物，这属于关停阶段日志，不足以单独判定本次诊断失败；如需根因需另取更早日志。\n\n**采集证据**\n- 16 个 rank 均出现 `profiler_created`（共 16 次），`installed` 16 次，`execute_enter/exit` 各 3712 次；metadata 共 4,217,731 字节，单文件均未超 64 MiB 约束。\n- `capture-index.json`：`total_bytes=3,853,367,778`（约 3.85 GB），`complete_semantic_coverage_proved=false`，`no_speedup_claim=true`。\n- warmup / baseline / profile 三个客户端阶段均 `valid=true`，profile 窗口记录了 `initial` 和 `later_decode_candidate` 两段。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 95747,
+    "outputTokens": 5450,
+    "totalTokens": 101197,
+    "cacheReadTokens": 77568,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4454,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 101197,
+    "contextUsed": 23083,
+    "contextWindow": 200000
+  }
+}

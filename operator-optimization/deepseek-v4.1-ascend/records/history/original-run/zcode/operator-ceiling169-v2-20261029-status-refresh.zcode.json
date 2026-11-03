@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_f8d4a645-4986-4be9-9174-fbf86bbf614e",
+  "traceId": "88ab92d7-b731-49a6-879a-2002decddde8",
+  "turnId": "turn_553dfe27-7ddd-48c0-909d-ac354f319edf",
+  "response": "Status check completed read-only; all six remote commands returned 0 and produced no stderr. Evidence file:\n\n`/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/status-refresh-20261029.txt`\n\nCommand statuses:\n\n| Check | Return code |\n|---|---|\n| Host identity (`hostname`, `date -u`, `id`, `uname`) | 0 |\n| `docker exec wio-vllm-v41-repro169-stage-20261028 npu-smi info` | 0 |\n| Compact `docker inspect` of `wio-vllm-v41-repro169-20261028` | 0 |\n| Full `docker inspect` of `wio-vllm-v41-repro169-20261028` | 0 |\n| Compact `docker inspect` of `wio-vllm-v41-ceiling-diag169-20261029` | 0 |\n| Full `docker inspect` of `wio-vllm-v41-ceiling-diag169-20261029` | 0 |\n\nWhat the outputs show:\n\n- `wio-vllm-v41-repro169-20261028` is **running**, PID 1515275, started 2026-10-29T02:45:08Z, label `wio.task=vllm172-reproduce169-20261028`, port 127.0.0.1:30075 mapped to 8172/tcp.\n- `wio-vllm-v41-ceiling-diag169-20261029` is **exited** with exit code 0, ran from 02:29:19Z to 02:45:02Z, label `wio.task=operator-ceiling169-20261029`.\n- `npu-smi info` inside the stage container reports 8 NPUs / 16 chips, all health OK, AICore 0% on every chip, and HBM roughly 59,000–59,300 MB used of 65,536 MB per die. It lists 17 PIDs, mostly at ~56,158 MB each.\n\nTwo caveats recorded in the file and worth repeating: PIDs appearing in `npu-smi` are **not ownership proof** — PID 1515275 coincidentally equals the running diagnostic container's PID, but that coincidence alone does not establish which container owns the NPU processes. Also, the remote host clock read 2026-10-29T03:30:18Z while the local check time was 03:31:31Z, about 73 seconds of skew; both timestamps are preserved verbatim in the file.\n\nNo processes or services were started, stopped, or modified, no workloads were run, and only the two named containers were inspected. File SHA-256: `0f05e4dfbca2353023bf3563504b5e9eb356ea1164337f179d3c1d6a9289a092`.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 136806,
+    "outputTokens": 10384,
+    "totalTokens": 147190,
+    "cacheReadTokens": 115456,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 8168,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 147190,
+    "contextUsed": 31101,
+    "contextWindow": 200000
+  }
+}

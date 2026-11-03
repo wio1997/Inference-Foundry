@@ -1,0 +1,36 @@
+{
+  "error": "A graphlayer block contains other MatMulV3 shapes;op type alone is not a unique router identity.",
+  "example": [
+    [
+      "MatMulV3",
+      "\"24,5120;512,5120\"",
+      "\"24,512\"",
+      1128
+    ],
+    [
+      "MatMulV3",
+      "\"24,5120;512,5120\"",
+      "\"24,512\"",
+      1132
+    ],
+    [
+      "RmsNormCast",
+      "\"3,5120;5120\"",
+      "\"3,5120;3,5120\"",
+      1181
+    ],
+    [
+      "MatMulV3",
+      "\"3,5120;384,5120\"",
+      "\"3,384\"",
+      1183
+    ],
+    [
+      "MoeGatingTopKHash",
+      "\"3,384;384;3;;384\"",
+      "\"3,6;3,6;3,384\"",
+      1189
+    ]
+  ],
+  "correction": "Select router byexact FLOAT [3,5120]x[384,5120]\u2192[3,384];otherMatMulV3 [24,5120]x[512,5120] is excluded byshape,notbytime."
+}

@@ -1,0 +1,675 @@
+{
+  "id": "F35",
+  "name": "目标采样的按需raw logits、行选择/转换/argmax与拒绝输出重组",
+  "modules": [
+    "M16",
+    "M17",
+    "M21",
+    "M24"
+  ],
+  "profile_review_state": "840_NATIVE_APIS_1144_TASKS_AND_DIRECT_SCORE_CONSUMERS_BOUND;CONDITIONAL_UNPRICED",
+  "original_node_mapping": {
+    "bonus": "rejection_sampler.forward192-204;Sampler.forward87-150",
+    "target": "rejection_sampler.forward209-249",
+    "greedy": "AscendSampler84;rejection_sample510/513",
+    "raw_entropy": "rejection_sample436/461-464"
+  },
+  "candidate_graph": {
+    "nodes": [
+      {
+        "id": "vocab_logits"
+      },
+      {
+        "id": "bonus_select"
+      },
+      {
+        "id": "bonus_raw_scores"
+      },
+      {
+        "id": "bonus_working_FP32"
+      },
+      {
+        "id": "bonus_processors"
+      },
+      {
+        "id": "bonus_argmax"
+      },
+      {
+        "id": "bonus_ID64"
+      },
+      {
+        "id": "bonus_ID32"
+      },
+      {
+        "id": "target_select"
+      },
+      {
+        "id": "target_raw_FP32"
+      },
+      {
+        "id": "target_clone"
+      },
+      {
+        "id": "target_processors_constraints"
+      },
+      {
+        "id": "target_argmax"
+      },
+      {
+        "id": "entropy_probs"
+      },
+      {
+        "id": "output_fill"
+      },
+      {
+        "id": "rejection"
+      },
+      {
+        "id": "final_logprobs"
+      },
+      {
+        "id": "next_iteration"
+      }
+    ],
+    "edges": [
+      {
+        "a": "vocab_logits",
+        "b": "bonus_select",
+        "kind": "RAW"
+      },
+      {
+        "a": "bonus_select",
+        "b": "bonus_raw_scores",
+        "kind": "FORCED_RAW_OR_PROCESSED_LOGIT_RETURN"
+      },
+      {
+        "a": "bonus_select",
+        "b": "bonus_working_FP32",
+        "kind": "RAW"
+      },
+      {
+        "a": "bonus_working_FP32",
+        "b": "bonus_processors",
+        "kind": "INPLACE_EFFECT"
+      },
+      {
+        "a": "bonus_processors",
+        "b": "bonus_argmax",
+        "kind": "RAW"
+      },
+      {
+        "a": "bonus_argmax",
+        "b": "bonus_ID64",
+        "kind": "ABI_CONVERSION"
+      },
+      {
+        "a": "bonus_ID64",
+        "b": "bonus_ID32",
+        "kind": "ABI_CONVERSION"
+      },
+      {
+        "a": "bonus_ID32",
+        "b": "rejection",
+        "kind": "RAW"
+      },
+      {
+        "a": "vocab_logits",
+        "b": "target_select",
+        "kind": "RAW"
+      },
+      {
+        "a": "target_select",
+        "b": "target_raw_FP32",
+        "kind": "RAW"
+      },
+      {
+        "a": "target_raw_FP32",
+        "b": "target_clone",
+        "kind": "RAW_RAW_MODE"
+      },
+      {
+        "a": "target_clone",
+        "b": "target_processors_constraints",
+        "kind": "INPLACE_EFFECT"
+      },
+      {
+        "a": "target_processors_constraints",
+        "b": "target_argmax",
+        "kind": "RAW"
+      },
+      {
+        "a": "target_argmax",
+        "b": "rejection",
+        "kind": "RAW"
+      },
+      {
+        "a": "output_fill",
+        "b": "rejection",
+        "kind": "OBSERVABLE_PLACEHOLDER_INIT"
+      },
+      {
+        "a": "target_raw_FP32",
+        "b": "entropy_probs",
+        "kind": "CONDITIONAL_ENTROPY_VERIFY"
+      },
+      {
+        "a": "entropy_probs",
+        "b": "rejection",
+        "kind": "CONDITIONAL_PROBABILITY_PATH"
+      },
+      {
+        "a": "bonus_raw_scores",
+        "b": "final_logprobs",
+        "kind": "CONDITIONAL_ORIGINAL_MAX_LOGPROBS"
+      },
+      {
+        "a": "target_raw_FP32",
+        "b": "final_logprobs",
+        "kind": "CONDITIONAL_RAW_LOGPROBS"
+      },
+      {
+        "a": "bonus_ID64",
+        "b": "final_logprobs",
+        "kind": "CONDITIONAL_INDEX_CONSUMER"
+      },
+      {
+        "a": "rejection",
+        "b": "final_logprobs",
+        "kind": "CONDITIONAL_SELECTED_IDS"
+      },
+      {
+        "a": "rejection",
+        "b": "next_iteration",
+        "kind": "ID_AND_ACCEPTANCE_STATE"
+      }
+    ]
+  },
+  "graph_scope": "Partialsource-refinedraw-mode branchgraph;notpointer/event-complete,notanadoptedjointgraphforallvariants.",
+  "variants": [
+    {
+      "id": "F35-A",
+      "status": "CONDITIONAL_LOCAL_DATAFLOW_OPPORTUNITY",
+      "change": "Generate/return fullbonus raw/processedscoretensor onlywhen itscallerhasaliveconsumer.",
+      "requires": "Originalmax_num_logprobs=None,nootherrequestedscoreconsumer/errorobservable;preservebonusprocessors,predict_bonus_token behavior andselectedID. Rejectioncaller currentlyforcesinternal-1evenwhenitsfinalgetterisnotused.",
+      "excludes": "Do not turnoffbonus token sampling orrequestedlogprobs;HTTPomissionisnotruntimeflagattestation. Inprocessedmode returnedscoremayaliasliveworkinglogits,soavoidingreturnaloneisnotamatrix-copy saving."
+    },
+    {
+      "id": "F35-B",
+      "status": "CONDITIONAL",
+      "change": "Avoid targetraw-preservation clone when nofinalraw-scoreconsumer andentropy verificationdoesnotreadoldvalues.",
+      "requires": "Noaliveoriginalrawlogprobconsumer,enable_entropy_verify=False orseparatelypreservedentropyinput;workingFP32processors/constraintsremainexact.",
+      "excludes": "No-final-logprobs aloneis insufficient. Do notchange entropy/synthetic/probabilitysemantics."
+    },
+    {
+      "id": "F35-C",
+      "status": "CONDITIONAL_FUSION_AND_REORGANIZATION",
+      "change": "Fuse requiredrowselection,allowedpromotion andgreedyreduction withoutmaterializingeachintermediatematrix.",
+      "requires": "Exactbonus/targetrowmapsincludingduplicates/raggedcases;allprocessors/masks retainFP32arithmetic andorder;anyscoreconsumers retained. BF16-onlyreductiononlyinaprovedorder-preservingdomainwithsameNaN/tie/indexrules.",
+      "excludes": "Do notblindlydropfloatconversionacrosspenalties,scaling,rawlogprobs orentropyconsumers."
+    },
+    {
+      "id": "F35-D",
+      "status": "CONDITIONAL",
+      "change": "Retainint32IDs end-to-endwherelong-onlyindexconsumersareinactive;combineplaceholderinitializationwithrejectiononlyifeveryobservedslotiswritten.",
+      "requires": "VocabIDsfitint32,allindex/ABIconsumerspreserved;exactfirstrejection,bonusplacement,raggedlengths,per-rowgreedymask,PLACEHOLDER andacceptanceupdates.",
+      "excludes": "Do notleaveunusedtailuninitialized orskiprequiredint64 indexing."
+    },
+    {
+      "id": "F35-E",
+      "status": "RULED_OUT_AS_UNCONDITIONAL_DELETION",
+      "change": "Removeallrawscores/clones becauserequesttemperatureis0 orlogprobsomitted.",
+      "reason": "Internalbonusoverride andoptionalentropy/processor/logprobconsumers distinguishthischange."
+    }
+  ],
+  "profile_evidence": {
+    "created_utc": "2026-10-31T04:59:24.784838+00:00",
+    "selected_native_APIs": 840,
+    "selected_TASKs": 1144,
+    "selected_fullchains": 14,
+    "context_API_counts": {
+      "TARGET_SAMPLER_CALLER": 840
+    },
+    "context_TASK_op_counts": [
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "TASKs": 480
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "ArgMaxV2",
+        "TASKs": 160
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "IndexCheck",
+        "TASKs": 144
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Index",
+        "TASKs": 144
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "TensorMove",
+        "TASKs": 72
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Fill",
+        "TASKs": 72
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "rejection_greedy_sample_triton",
+        "TASKs": 72
+      }
+    ],
+    "context_shape_counts": [
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"2,129280\"",
+        "inputDtypes": "DT_BF16",
+        "outputShapes": "\"2,129280\"",
+        "outputDtypes": "FLOAT",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "ArgMaxV2",
+        "inputShapes": "\"2,129280;\"",
+        "inputDtypes": "FLOAT;INT64",
+        "outputShapes": "\"2\"",
+        "outputDtypes": "INT32",
+        "TASKs": 32
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"2\"",
+        "inputDtypes": "INT32",
+        "outputShapes": "\"2\"",
+        "outputDtypes": "INT64",
+        "TASKs": 32
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"2\"",
+        "inputDtypes": "INT64",
+        "outputShapes": "\"2\"",
+        "outputDtypes": "INT32",
+        "TASKs": 32
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "IndexCheck",
+        "inputShapes": "\"1;2\"",
+        "inputDtypes": "INT64;INT32",
+        "outputShapes": "N/A",
+        "outputDtypes": "N/A",
+        "TASKs": 16
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Index",
+        "inputShapes": "\"12,129280;1;2;2\"",
+        "inputDtypes": "DT_BF16;INT64;INT64;INT32",
+        "outputShapes": "\"2,129280\"",
+        "outputDtypes": "DT_BF16",
+        "TASKs": 16
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "IndexCheck",
+        "inputShapes": "\"1;10\"",
+        "inputDtypes": "INT64;INT32",
+        "outputShapes": "N/A",
+        "outputDtypes": "N/A",
+        "TASKs": 24
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Index",
+        "inputShapes": "\"12,129280;1;2;10\"",
+        "inputDtypes": "DT_BF16;INT64;INT64;INT32",
+        "outputShapes": "\"10,129280\"",
+        "outputDtypes": "DT_BF16",
+        "TASKs": 16
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"10,129280\"",
+        "inputDtypes": "DT_BF16",
+        "outputShapes": "\"10,129280\"",
+        "outputDtypes": "FLOAT",
+        "TASKs": 24
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "TensorMove",
+        "inputShapes": "\"10,129280\"",
+        "inputDtypes": "FLOAT",
+        "outputShapes": "\"10,129280\"",
+        "outputDtypes": "FLOAT",
+        "TASKs": 24
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Fill",
+        "inputShapes": "\"2;\"",
+        "inputDtypes": "INT64;INT32",
+        "outputShapes": "\"2,6\"",
+        "outputDtypes": "INT32",
+        "TASKs": 16
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "ArgMaxV2",
+        "inputShapes": "\"10,129280;\"",
+        "inputDtypes": "FLOAT;INT64",
+        "outputShapes": "\"10\"",
+        "outputDtypes": "INT32",
+        "TASKs": 24
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"10\"",
+        "inputDtypes": "INT32",
+        "outputShapes": "\"10\"",
+        "outputDtypes": "INT64",
+        "TASKs": 24
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "rejection_greedy_sample_triton",
+        "inputShapes": "\"2;10;10;2,1\"",
+        "inputDtypes": "INT32;INT32;INT64;INT32",
+        "outputShapes": "\"2,6\"",
+        "outputDtypes": "INT32",
+        "TASKs": 16
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "IndexCheck",
+        "inputShapes": "\"1;4\"",
+        "inputDtypes": "INT64;INT32",
+        "outputShapes": "N/A",
+        "outputDtypes": "N/A",
+        "TASKs": 56
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Index",
+        "inputShapes": "\"24,129280;1;2;4\"",
+        "inputDtypes": "DT_BF16;INT64;INT64;INT32",
+        "outputShapes": "\"4,129280\"",
+        "outputDtypes": "DT_BF16",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"4,129280\"",
+        "inputDtypes": "DT_BF16",
+        "outputShapes": "\"4,129280\"",
+        "outputDtypes": "FLOAT",
+        "TASKs": 112
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "ArgMaxV2",
+        "inputShapes": "\"4,129280;\"",
+        "inputDtypes": "FLOAT;INT64",
+        "outputShapes": "\"4\"",
+        "outputDtypes": "INT32",
+        "TASKs": 56
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"4\"",
+        "inputDtypes": "INT32",
+        "outputShapes": "\"4\"",
+        "outputDtypes": "INT64",
+        "TASKs": 56
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"4\"",
+        "inputDtypes": "INT64",
+        "outputShapes": "\"4\"",
+        "outputDtypes": "INT32",
+        "TASKs": 56
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "IndexCheck",
+        "inputShapes": "\"1;20\"",
+        "inputDtypes": "INT64;INT32",
+        "outputShapes": "N/A",
+        "outputDtypes": "N/A",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Index",
+        "inputShapes": "\"24,129280;1;2;20\"",
+        "inputDtypes": "DT_BF16;INT64;INT64;INT32",
+        "outputShapes": "\"20,129280\"",
+        "outputDtypes": "DT_BF16",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"20,129280\"",
+        "inputDtypes": "DT_BF16",
+        "outputShapes": "\"20,129280\"",
+        "outputDtypes": "FLOAT",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "TensorMove",
+        "inputShapes": "\"20,129280\"",
+        "inputDtypes": "FLOAT",
+        "outputShapes": "\"20,129280\"",
+        "outputDtypes": "FLOAT",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Fill",
+        "inputShapes": "\"2;\"",
+        "inputDtypes": "INT64;INT32",
+        "outputShapes": "\"4,6\"",
+        "outputDtypes": "INT32",
+        "TASKs": 56
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "ArgMaxV2",
+        "inputShapes": "\"20,129280;\"",
+        "inputDtypes": "FLOAT;INT64",
+        "outputShapes": "\"20\"",
+        "outputDtypes": "INT32",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Cast",
+        "inputShapes": "\"20\"",
+        "inputDtypes": "INT32",
+        "outputShapes": "\"20\"",
+        "outputDtypes": "INT64",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "rejection_greedy_sample_triton",
+        "inputShapes": "\"4;20;20;4,1\"",
+        "inputDtypes": "INT32;INT32;INT64;INT32",
+        "outputShapes": "\"4,6\"",
+        "outputDtypes": "INT32",
+        "TASKs": 48
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Index",
+        "inputShapes": "\"14,129280;1;2;4\"",
+        "inputDtypes": "DT_BF16;INT64;INT64;INT32",
+        "outputShapes": "\"4,129280\"",
+        "outputDtypes": "DT_BF16",
+        "TASKs": 8
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "Index",
+        "inputShapes": "\"14,129280;1;2;10\"",
+        "inputDtypes": "DT_BF16;INT64;INT64;INT32",
+        "outputShapes": "\"10,129280\"",
+        "outputDtypes": "DT_BF16",
+        "TASKs": 8
+      },
+      {
+        "context": "TARGET_SAMPLER_CALLER",
+        "opType": "rejection_greedy_sample_triton",
+        "inputShapes": "\"4;10;10;4,1\"",
+        "inputDtypes": "INT32;INT32;INT64;INT32",
+        "outputShapes": "\"4,6\"",
+        "outputDtypes": "INT32",
+        "TASKs": 8
+      }
+    ],
+    "ambiguous_contexts": [],
+    "TASK_native_link_field_states": {
+      "ABSENT_UNLINKED": 821262,
+      "PRESENT": 286950
+    },
+    "no_new_source_DB_model_device_or_service_work": true,
+    "overall_complete": false,
+    "limits": [
+      "Exact savednative-API source links only;unlinked graph/otherTASK work isnot invented or zero-filled.",
+      "Dummy/profile iscallerpath context,not proofstartup/removablecost;draft-propose callers remainseparate.",
+      "Observedgreedy/probability kernels do not alone resolve every sampler metadata flag or requested logprobs consumer.",
+      "NativeAPI count isnot samplerinvocation count;full-vocab producer andCPU metadata costs areseparate."
+    ]
+  },
+  "source_contract": "M17-sampling-source-and-liveness-v28.json",
+  "evidence_root": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031",
+  "evidence_files": [
+    "M17-sampler-profile-contract-v28.json",
+    "M17-sampling-source-and-liveness-v28.json",
+    "F35-sampling-condition-ledger-v28.json"
+  ],
+  "relation_to_existing": [
+    {
+      "candidate": "F30",
+      "relation": "overlaps",
+      "scope": "F30draftMarkov/vocabownershipmayreorganizescores;F35targetbonus/rejectionstaging isdistinctbutjointownershipsavingsnotadditive."
+    },
+    {
+      "candidate": "F31",
+      "relation": "interacts",
+      "scope": "Raggedspecmetadata,outputIDs,acceptedcounts andnextstep publicationmustremainconsistent."
+    }
+  ],
+  "all_consumers_closed": false,
+  "legal_fusion_proved": false,
+  "candidate_closed": false,
+  "critical_path_gain_us": null,
+  "critical_path_gain_status": "UNKNOWN_NOT_SUM_OF_TASK_TIMES_OR_LOGICAL_ARRAY_BYTES",
+  "implementation": false,
+  "new_performance_result": false,
+  "overall_complete": false,
+  "review_v32": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v32.json#F35",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-head-partition-postprocess-and-layout-contract-v32.json",
+    "variants": [
+      {
+        "id": "F35-v32-LAYOUT",
+        "status": "CONDITIONAL_LAYOUT_FUSION",
+        "change": "F35consumerreadsTP-rank-major/partitionedlogitsdirectly;combinevalidity/rowselect/promotion/processors/reductionormaterializerequested2Drows on demand.",
+        "requires": "Explicitnonaffinevocabmap;alllivefullscoreinterfacesandpostprocessing/capturebanksemanticsretained. Notordinary2Dview."
+      },
+      {
+        "id": "F35-v32-SHARD-TOP1",
+        "status": "CONDITIONAL_CROSS_CARD_REORGANIZATION",
+        "change": "Useexistingskip_gatherinterfaceasbuildingblockforlocalprocessedbest+globalIDselection.",
+        "requires": "ID-onlydomainorsufficientseparatescoreprotocol;actualcomparator/validcolumns/orderedrowmaps/rounding/stateandallconsumers. Localtop1alonecannotserveentropy/prob/logprobs."
+      },
+      {
+        "id": "F35-v32-OWNER-SAMPLER",
+        "status": "CONDITIONAL_OWNERSHIP_PROTOCOL",
+        "change": "Reconstructdensevocabonlyondesignedconsumerowner(s),retainfullscore/samplingthere,andpublishidenticalneededoutputs/states.",
+        "requires": "Newworker/nonownerNonehandling/groupuniformity/RNG/state/score-observerprotocol and supportedcollectiveinterface;notjusttoggleuse_all_gather."
+      }
+    ],
+    "condition_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M16-vocab-variants-and-conditions-v32.json",
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v33": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-probability-consumer-and-RNG-contract-v33.json",
+    "raw_source": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F35-greedy-return-and-raw-source-review-v33.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F35-probability-summary-and-lazy-recovery-algebra-v33.json",
+    "condition_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F35-distribution-variants-and-conditions-v33.json",
+    "variants": [
+      {
+        "id": "F35-v33-ENTROPY-DEAD-DOMAINS",
+        "status": "LOCAL_CONTROL_QUESTION_CLOSED;CONDITIONAL_VARIANT",
+        "change": "UnderG&&AearlyreturnortheseparatelyprovedvalidTritonsyntheticdomain,omitunusedentropyprobabilitycontentand,whenotherrawreadersinactive,avoidtheworkingcloneusedtopreserveraw.",
+        "requires": "ActualG&&AorHAS_TRITON&&synthetic&&effective!block,allotherrawreadersexcluded;retainasserts/synthetic-blockValueError/processors/targetargmax/placeholders/RNG. Notcurrentflagattestation."
+      },
+      {
+        "id": "F35-v33-RAW-SOURCE",
+        "status": "CONDITIONAL_SNAPSHOT_REBASE",
+        "change": "Retainread-onlyBF16entryandrow-planepochasrawsource;usethefirstFP32planeasworkingplaneandrecreaterequiredrawvalues/summaryon demand.",
+        "requires": "Explicitrawmode,sameBF16entry/indexgeneration/wideningcontract,allrawscoreinterfacesandcapturelifetime;processedaliasmodeandotherdtypesnotgeneralized. Re-read/conversioncostunknown."
+      },
+      {
+        "id": "F35-v33-ENTROPY-SUMMARY",
+        "status": "CONDITIONAL_PRODUCER_CONSUMER_INTERFACE",
+        "change": "ProvideexactrequiredH_epsilonandselectedp/qstatisticstotheacceptanceconsumerwithoutunneededfullraw-probabilityintermediates.",
+        "requires": "Actualentropy-sourcevalue/epsilon/chunks/FP32orderandcallerconstraints;otherfullprobability/recovery/logprobreadersremain. Raw-before-mutationtimingonlyunderrawmodesnapshotguard."
+      },
+      {
+        "id": "F35-v33-LAZY-RECOVERY",
+        "status": "DERIVED_CONDITIONAL_SPLIT_REORGANIZATION",
+        "change": "ComputeacceptancemapRwithoutrecoveredvalues,thenrununchangedfull-vocabrecoveryonlyattheonechosenrowpernon-greedyrejectedrequest.",
+        "requires": "Ordinaryfirstrejectvsblocklastaccepted+1correctlydistinguished;sameP/D/Q/metadata/comparator;keepallRNGcalls/order,outputtails/capture/readiness. Newlaunch/syncoverheadunpriced."
+      },
+      {
+        "id": "F35-v33-MIXED-ROW-MASK",
+        "status": "CONDITIONAL_ROW_DOMAIN_PRUNING",
+        "change": "Avoidprobability-onlysoftmax/recoveryworkforgreedyrequestsandrowsunreadbytheactiveacceptance/recoverypath.",
+        "requires": "Consumer-greedymaskandrowmaps,modifiedrecoverywhichcurrentlyhasnois_greedy,inputtransform/scoremutationobserversandALLRNGdrawspreserved. Blockcannotstopearlyatfirstfailure."
+      },
+      {
+        "id": "F35-v33-DISTRIBUTION-PROTOCOL",
+        "status": "CONDITIONAL_COMPOSITION_WITH_V32",
+        "change": "Usepartitionednormalization/selectedstats/H_epsilonandselected-rowresidualraceorownerexecutionratherthanassumefullscoremustbereplicatedeverywhere.",
+        "requires": "Fullglobalnormalization/constraints/scoreoutputs,RNG/state/capture/nativeprecisionandallvocabmaps. Scalaracceptanceinformationalonecannotrecoverafull-distributiondraw."
+      }
+    ],
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v36": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-Markov-confidence-and-verification-contract-v36.json",
+    "next_ID": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-next-ID-and-acceptance-summary-review-v36.json",
+    "budget": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F30-dynamic-verify-budget-and-prefix-bounds-v36.json",
+    "framework": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H02-H06-verification-length-publication-review-v36.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-variants-and-condition-ledger-v36.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M20-source-and-conditional-budget-graphs-v36.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Sampler-emitted next/count summary must reproduce downstream discard/vocab/count-1/backup rule and count-copy events; Rmap+1 is insufficient without extra invariants."
+  }
+}

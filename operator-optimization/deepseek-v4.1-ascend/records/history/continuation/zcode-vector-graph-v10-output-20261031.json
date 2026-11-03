@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_90a54338-460d-4b72-bdcb-ec2057410a50",
+  "traceId": "bf22f8c7-c107-4a05-bc7c-d9ec865468e1",
+  "turnId": "turn_ae507d1f-eaea-42c3-9fef-36d8ae182c08",
+  "response": "执行成功，已按要求原样停止，无重试、无自修。\n\n## 结果\n\n命令真实 `returncode 0`，stderr 为空；数据库读取前后 `stat` 不变（`database_stat_unchanged=true`），数据库 SHA256 = `084b8718…34c4`；两个固定输入 SHA 与脚本内钉值一致。\n\n**242 条未配向量记录的原键差异**\n- CSV 未匹配 242 条，DB 未代表计算记录 242 条，类型集合一致。\n- 原键 `(op_type, streamId, taskId, modelId)` 的候选数直方图：全部 242 条均为 **0**。\n- 精确起点 `(op_type, startNs)` 候选数直方图：全部 242 条均为 **1**。\n- 4 个类型示例显示：CSV 的 `Model ID=4294967295`（无效哨兵值），而精确起点命中的 DB 记录为 `modelId=49`，`startNs/endNs` 与 CSV 起止时间逐纳秒完全一致。即原键差异集中在 Model ID 字段，时间与 stream/task 键吻合；脚本明确标注这些是诊断观测，不是已接受的等价匹配。\n\n**图表 schema 与 Graph 关联**\n- 没有名称含 `MODEL`/`GRAPH` 的独立表，`graph_tables=[]`；图信息位于 `CANN_API`、`STRING_IDS` 与 `TASK.taskType`。\n- 图相关 API 名称：`aclmdlRICaptureGetInfo` 4484 条，`aclmdlRIExecuteAsync` 11 条。\n- 11 条 GraphExecute API 每条按原 `connectionId` 对应 **2** 个 device 3 的 MODEL 任务候选（`MODEL_EXECUTE` + `MODEL_WAIT_COMPLETE`），共 22 条 MODEL 任务；11 条 API 的候选数直方图全为 `2`。\n- 按原 connection 关联到的 PyTorch API 记录为 **0**，`exact_connection_pytorch_apis` 为空。\n- 首例：API rowid 76003、`connectionId=76003`，候选 device connection 为 `76003` 与 `1342583911`，对应 MODEL 任务 rowid 657/673（globalTaskId 68160/68163）。\n\n**产物路径**\n- 远端完整记录：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/ep3-vector-identities-and-graph-links-v10.json`，SHA256 `8b7345ae…30bb7`，388791 字节。\n- 本地回执（含完整 stdout 公共摘要）：`/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-vector-graph-links166-v10.json`，SHA256 `6e1489db…42d3`，6110 字节。\n\n脚本自述 `overall_complete=false`：候选差异仅为诊断观测，未做最近时间修复或时间偏移猜测，同类型/同数量不构成张量同一性证明。未读目标源码、未做推理、未改服务、未调用 agent。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 154779,
+    "outputTokens": 4500,
+    "totalTokens": 159279,
+    "cacheReadTokens": 128768,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3263,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 159279,
+    "contextUsed": 29989,
+    "contextWindow": 200000
+  }
+}

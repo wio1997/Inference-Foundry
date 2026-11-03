@@ -1,0 +1,6 @@
+按顺序只执行：
+1. python3 /Users/wio/work/166-vllm-analysis-continuation-20261030/prepare_dspark_moe_v7.py
+2. 第1步退出码0才执行：python3 /Users/wio/work/166-vllm-analysis-continuation-20261030/remote_run.py 166 /Users/wio/work/166-vllm-analysis-continuation-20261030/query_dspark_moe_v7_166.py archived-ep3-dspark-moe-evidence166-v7
+
+该脚本只查归档原DB，按已有DSpark调用栈记录做全范围关联，并绑定8个指定MC2外层任务。固定SHA、immutable/query_only，批量读取，限定50000compute/API预算，派生JSON保留全记录，摘要<=32KB。无目标源码读取、无NPU/推理/重启、不改脚本、不开agent。
+失败保留异常停止，不自修、扩展或重跑；即使控制端超时，也先检查固定结果/同一进程状态，不能直接重启查询。成功检查远端实际returncode、database_stat_unchanged，简报source_frame_counts、task_count、op_type_counts及结果路径/sha，不向上下文发送大stdout，不标整体完成。

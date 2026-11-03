@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_06f01273-5ba7-4b1e-8d48-39e9fc41ce93",
+  "traceId": "bf7ef72a-9a91-41b9-823c-0e1f1ba465a1",
+  "turnId": "turn_0b02d04f-cb58-4a48-8bb0-6ced56cae124",
+  "response": "Executed exactly as given. The launcher exited **0** and wrote its receipt.\n\n**Receipt** (`/Users/wio/work/166-vllm-analysis-continuation-20261030/launch-reference166.json`):\n\n```json\n{\n  \"host\": \"166\",\n  \"script\": \"/Users/wio/work/166-vllm-analysis-continuation-20261030/launch_reference166.py\",\n  \"observed_utc\": \"2026-10-30T15:19:28.381901+00:00\",\n  \"returncode\": 0,\n  \"stdout\": \"{\\\"state\\\": \\\"FIXED_C8_REFERENCE_STARTED\\\", \\\"pid\\\": 2967767}\\n\",\n  \"stderr\": \"\"\n}\n```\n\nThe launcher is designed to detach the guarded validation worker (`start_new_session`, stdin closed), so the receipt confirms only the guarded start, not the run outcome. The worker (pid 2967767 on 166) now performs the prechecks (exact baseline container/image/CANN 9.2.0, own-only NPU processes, health 200, idle metrics), runs the server-derived client with 8 one-token prefix seeds plus one C8 32768/1024 round under a 600s client timeout, validates 262144 prefix queries / 235904 hits / 8192 returned tokens / zero preemptions, then re-checks baseline unchanged and idle. Its final state and result land remotely under the analysis directory as `reference-latest.json`, `reference-<runid>/state.json`, and `reference-result.json`.\n\nPer your guard I ran no additional commands and read no credentials, so I did not poll or report the detached worker's PASS/FAIL — only the actual launcher exit and receipt above.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 104986,
+    "outputTokens": 6670,
+    "totalTokens": 111656,
+    "cacheReadTokens": 92288,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5972,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 111656,
+    "contextUsed": 18898,
+    "contextWindow": 200000
+  }
+}

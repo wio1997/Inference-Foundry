@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_3c72d98b-15b5-4eed-bfa1-0abd2fb0c344",
+  "traceId": "422b00bb-a9dd-463e-9a46-be1762940f11",
+  "turnId": "turn_f1fe6d6b-d3f3-44d1-9605-33fcb90515a3",
+  "response": "## 核对结果\n\n文件：`agents/diagnosis/engram-ep8-frequency-scope.json`（1728 B，只读打开，未做任何写入）。顶层另有 `db_sha256 = 67d14f…3de58`，以及自述范围 `\"EP8 only, DB exported timestamp comparisons; no raw decode, clock/export completeness not proven\"`。\n\n### freq_rows：共 3 行\n\n| # | deviceId | timestampNs | freq | dieId |\n|---|---|---|---|---|\n| 0 | 8 | 1793152958618859000 | 1800 | -1 |\n| 1 | 8 | 1793152958620013435 | 1800 | -1 |\n| 2 | 8 | 1793152961241141000 | 1800 | -1 |\n\n列名取自同目录 `query_engram_ep8_frequency_scope.py` 中的 `select deviceId,timestampNs,freq,dieId from AICORE_FREQ`；`freq` 的单位（MHz）在文件与脚本里都没有声明，只能标为 ASSUMED。相邻行间隔：第 0→1 行 1,154,435 ns（≈1.154 ms），第 1→2 行 2,621,127,565 ns（≈2.621 s），三行总跨度 ≈2.622 s。三行的 deviceId 全为 8，dieId 全为 -1。\n\n### task_count 与各任务\n\n`task_count = 6`，`tasks` 数组长度也是 6，二者一致。\n\n| run | after_layer | last_prior_freq | next_freq | inside_frequency_rows | prior_gap_us | next_gap_us |\n|---|---|---|---|---|---|---|\n| 1 | 0 | 1800 | 1800 | 0 | 257,899.867 | 2,362,947.124 |\n| 1 | 13 | 1800 | 1800 | 0 | 268,183.201 | 2,352,679.909 |\n| 2 | 0 | 1800 | 1800 | 0 | 1,567,557.780 | 1,053,282.331 |\n| 2 | 13 | 1800 | 1800 | 0 | 1,578,977.032 | 1,041,881.459 |\n| 3 | 0 | 1800 | 1800 | 0 | 1,643,896.975 | 976,949.036 |\n| 3 | 13 | 1800 | 1800 | 0 | 1,655,474.763 | 965,381.787 |\n\n六个任务的 `inside_frequency_rows` **全部为 0**。\n\n- `prior_gap_us`：最小 257,899.867（run1/layer0），最大 1,655,474.763（run3/layer13）。\n- `next_gap_us`：最小 965,381.787（run3/layer13），最大 2,362,947.124（run1/layer0）。\n\n按同目录脚本的口径，`prior_gap_us` 是\"任务 start_ns 到最近一条更早 AICORE_FREQ 行\"的距离，`next_gap_us` 是\"任务 end_ns 到最近一条更晚 AICORE_FREQ 行\"的距离，单位微秒；`inside_frequency_rows` 是落在 `(start_ns, end_ns)` 开区间内的行数。也就是说这 6 个窗口的最小未观测前史是 0.258 s，最大达到 2.363 s。\n\n### 这些导出行不能证明实际频率恒定\n\n1. **只有区间外的端点，没有区间内的观测。** `last_prior_freq`/`next_freq` 是按时间戳取\"最近的前一条/后一条\"样本，六个窗口的 `inside_frequency_rows` 全为 0。两端读数都是 1800 只说明这两个孤立采样点相等，不约束中间任意时刻的取值——在两个相等样本之间，频率可以任意变化而完全不被这张表记录。\n\n2. **采样不是等间隔，因此\"没有行\"不能当作\"没有变化\"。** 三条行之间的间隔分别是 1.154 ms 和 2.621 s，相差三个数量级，说明 AICORE_FREQ 的导出既非常规周期采样，也无法从缺行推断保持。最小间隔（0.258 s）也已远大于常见调频控制环的反应时间尺度，因此不能排除采样间隙内发生过短时降频。\n\n3. **这些字段是派生量而非测量量。** `1800` 是最近邻查找结果；`prior_gap_us`/`next_gap_us` 只是\"离最近样本多远\"，度量的是覆盖稀疏度，不是频率稳定度。间隔越大反而说明该窗口越不可证，而不是越证明恒定。文件自己的 `scope` 也写明 \"DB exported timestamp comparisons; no raw decode, clock/export completeness not proven\"，即导出完整性本身未证。\n\n4. **覆盖面对不上结论的适用范围。** 全库只有 3 条记录，且 deviceId 全为 8、dieId 全为 -1（后者很可能是无效/未填值），来自单个 rank 的 profiler DB。它们既不能覆盖 EP8 的其他设备/die，也无法从文件中直接读出哪几条行对应哪个 (run, after_layer) 窗口，缺少行与窗口的映射。\n\n5. **即便 AI Core 时钟真为 1800，也不等于\"有效算力恒定\"。** 这一列只对应 AICORE_FREQ 一个时钟域；HBM/HCCS、总线、核占用率都是独立变量。恒定频率不推出恒定吞吐，更不能支撑\"利用率差异与调频无关\"这类更强的结论。\n\n结论：该文件能支撑的命题只有\"在每个任务窗口紧邻的前后各一个 AICORE_FREQ 采样点上，freq 记录值均为 1800，且窗口内部没有任何频率采样\"。据此不能断言窗口内实际频率恒定——它是端点一致 + 区间无观测，而不是覆盖整个区间的测量证据。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 6,
+    "inputTokens": 67955,
+    "outputTokens": 6798,
+    "totalTokens": 74753,
+    "cacheReadTokens": 56320,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5846,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 74753,
+    "contextUsed": 18084,
+    "contextWindow": 200000
+  }
+}

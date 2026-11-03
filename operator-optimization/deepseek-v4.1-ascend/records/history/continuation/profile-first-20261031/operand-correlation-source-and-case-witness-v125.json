@@ -1,0 +1,98 @@
+{
+  "source_part": {
+    "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+    "bytes": 67632,
+    "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+    "first_line": 1334,
+    "last_line": 1350,
+    "source": [
+      "                ring_meta[1].copy_(used)",
+      "                ring_meta[2].copy_(starts)",
+      "                ring_meta[3].copy_(starts)",
+      "                ring_meta[4].copy_(torch.where(used > 0, common.block_table_tensor[:num_reqs, 0], 0))",
+      "                valid_end = common.query_start_loc[num_actual_reqs].clamp_max(num_actual_tokens)",
+      "                valid = torch.arange(num_input_tokens, device=input_positions.device) < valid_end",
+      "                complete = (input_positions.remainder(2) == 1) & valid",
+      "                if skip_ring_update:",
+      "                    complete = torch.zeros_like(complete)",
+      "                self._c2_complete_mask[:num_input_tokens].copy_(complete)",
+      "                self._c2_source_positions[:num_input_tokens].copy_(",
+      "                    torch.where(",
+      "                        complete,",
+      "                        input_positions - 1,",
+      "                        torch.zeros_like(input_positions),",
+      "                    )",
+      "                )"
+    ]
+  },
+  "source_fact": "C2 complete=(input_positions%2==1)&valid;under skip_ring_update,complete=torch.zeros_like(complete),then copy into persistent complete-mask bank. This is a source role for the matching CPU stack only,not a promotion of the separate unresolved graph tasks.",
+  "cases": [
+    {
+      "database_index": 0,
+      "root": {
+        "pytorch_api_rowid": 22260,
+        "startNs": "1793396216650219530",
+        "endNs": "1793396216650389860",
+        "globalTid": 3277060047611,
+        "connectionId": null,
+        "name": 268435965,
+        "sequenceNumber": -1,
+        "fwdThreadId": 0,
+        "inputDtypes": 268436080,
+        "inputShapes": 268436079,
+        "callchainId": 6436,
+        "type": 50001,
+        "name_text": "aten::zeros_like",
+        "inputDtypes_text": "bool;\r\nNone;\r\nNone;\r\nNone;\r\nScalar;\r\nNone",
+        "inputShapes_text": "24;\r\n;\r\n;\r\n;\r\n;\r\n",
+        "stack_ref": "0:6436"
+      },
+      "backend_children": [
+        {
+          "pytorch_api_rowid": 22265,
+          "startNs": "1793396216650360900",
+          "endNs": "1793396216650388840",
+          "globalTid": 3277060047611,
+          "connectionId": 15638,
+          "name": 268435818,
+          "sequenceNumber": -1,
+          "fwdThreadId": 0,
+          "inputDtypes": null,
+          "inputShapes": null,
+          "callchainId": 6434,
+          "type": 50001,
+          "name_text": "aclnnInplaceZero",
+          "inputDtypes_text": null,
+          "inputShapes_text": null,
+          "stack_ref": "0:6434"
+        }
+      ],
+      "exact_native_links": [
+        {
+          "child_pytorch_api_rowid": 22265,
+          "connection_group_id": 15638,
+          "runtime_connection_id": 26880,
+          "TASK": {
+            "task_record_rowid": 817,
+            "startNs": 1793396216650436248,
+            "endNs": 1793396216650437628,
+            "deviceId": 0,
+            "connectionId": 26880,
+            "globalTaskId": 811,
+            "globalPid": 763,
+            "taskType": 1575,
+            "contextId": 4294967295,
+            "streamId": 35,
+            "taskId": 29074,
+            "modelId": 4294967295
+          },
+          "native_operator": "ZerosLike",
+          "native_input_shape": "\"24\"",
+          "is_one_of_original_pending_tasks": false
+        }
+      ]
+    }
+  ],
+  "no_native_duplicate_field_binding_by_shape": true,
+  "overall_complete": false
+}

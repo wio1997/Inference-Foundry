@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_26fc31de-fe4c-4bd7-9dd0-b32bfd448946",
+  "traceId": "a0b1a9c3-8abd-4e1f-a46b-527b4bf544f0",
+  "turnId": "turn_d2eaadae-bf7f-49ce-81c1-cd7345f95bf8",
+  "response": "Read only `evidence/model-config.json`; all values below come from its `text_config` block.\n\n## Command run\n\n```bash\ncd /Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41 && python3 - <<'PY'\nimport json\ntc = json.load(open(\"evidence/model-config.json\"))[\"text_config\"]\nn   = tc[\"num_hidden_layers\"]\nidx = tc[\"index_source_layer_ids\"]\nkv  = tc[\"kv_source_layer_ids\"]\nT = set(range(n)); I = set(idx); K = set(kv); U = I | K\nassert len(idx) == len(I) and len(kv) == len(K), \"duplicate ids present\"\nassert I <= T and K <= T, \"source id outside 0..n-1\"\nprint(\"num_hidden_layers      :\", n, \"-> target layer numbers 0..%d\" % (n-1))\nprint(\"index_source_layer_ids :\", idx)\nprint(\"kv_source_layer_ids    :\", kv)\nprint(\"index subset of kv     :\", I <= K)\nprint(\"union (|U|=%d)         :\" % len(U), sorted(U))\nprint(\"complement (|C|=%d)    :\" % len(T-U), sorted(T-U))\nprint(\"partition check        :\", len(U) + len(T-U) == n, \"| U & C ==\", sorted(U & (T-U)))\nPY\necho \"exit=$?\"\n```\n\n## Exact values\n\n| Field | Value |\n|---|---|\n| `num_hidden_layers` | `40` (target layer numbers `0..39`) |\n| `index_source_layer_ids` | `[2, 8, 14, 20, 24, 28, 32, 36]` |\n| `kv_source_layer_ids` | `[2, 8, 14, 20]` |\n\nUnion of source layer IDs, 8 elements: `[2, 8, 14, 20, 24, 28, 32, 36]`. The KV set is wholly contained in the index set (`kv \\ index` is empty; intersection is `[2, 8, 14, 20]`; index-only is `[24, 28, 32, 36]`), so the union equals `index_source_layer_ids` exactly.\n\nComplement inside `0..39`, 32 elements: `[0, 1, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31, 33, 34, 35, 37, 38, 39]`.\n\nPartition check holds: 8 + 32 = 40 and `U ∩ C = ∅`; both lists are duplicate-free and fully in range. Exit status was `0` for this consolidated run (and `0` for the two earlier inspection runs, which read the same file). No files were created or modified.\n\nTwo adjacent roles present in the same block, recorded here only as context since you asked for the four fields: `candidate_source_layer_id = 20` and `dspark_target_layer_ids = [37, 38, 39]` (the latter overlaps the complement).\n\nScope limit, as you stated: these are saved configuration roles. They show which layer numbers the config assigns role membership; they do not establish which branches actually executed, nor do they prove that every one of the 32 non-source layers can drop communication. Confirming either would need runtime evidence, which this step neither gathered nor claims.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 48491,
+    "outputTokens": 2319,
+    "totalTokens": 50810,
+    "cacheReadTokens": 38400,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1224,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 50810,
+    "contextUsed": 12108,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_d6f668d4-986a-4217-aae4-0f3a9f7f7bdb",
+  "traceId": "1b3e0fd7-39a0-468c-ba8b-0d654023404e",
+  "turnId": "turn_4f56984c-debf-47b7-ba5e-404634684777",
+  "response": "执行完成，结果如下。\n\n**真实 returncode：0**（远端 `remote_run.py` 记录的 `returncode` 为 0，本地 wrapper 退出码也为 0；`stderr` 为空，脚本内预先固定的 SHA 断言通过）。回执已写入 `npu-profiler-constructor166-v12.json`，观测时间 2026-10-30T21:23:41Z。\n\n**唯一已知 profiler 文件 SHA256**\n\n- 路径：`/vllm-workspace/vllm-ascend/vllm_ascend/profiler/torch_npu_profiler.py`\n- SHA256：`5242ee153033afcf12dbfe022dbd807fa248d991ff5c53efbd1adb372d5575f4`\n- 与脚本中固定的期望值一致，文件共 86 行（查询上限 130 行，实际读到文件末尾）。\n\n**构造函数与参数**\n\n类 `TorchNPUProfilerWrapper(WorkerProfiler)`，构造签名为 `__init__(profiler_config: ProfilerConfig, trace_name: str)`，内部调用 `_create_profiler(profiler_config, trace_name)`：\n\n- 前置条件：`profiler_config.profiler` 必须为 `\"torch\"`，否则 `RuntimeError`；`torch_profiler_dir` 不能为空；`msmonitor_use_daemon` 为真时同样报错（两者不能同时启用）。\n- `_ExperimentalConfig`：`export_type=ExportType.Text`、`profiler_level=ProfilerLevel.Level1`、`msprof_tx=False`、`aic_metrics=AiCMetrics.PipeUtilization`、`l2_cache=False`、`op_attr=False`、`data_simplification=True`、`record_op_args=False`、`gc_detect_threshold=None`。\n- `torch_npu.profiler.profile`：`activities=[CPU, NPU]`、`with_stack=False`、`profile_memory=profiler_config.torch_profiler_with_memory`、`with_modules=profiler_config.torch_profiler_with_stack`、`experimental_config=上述配置`、`on_trace_ready=tensorboard_trace_handler(torch_profiler_dir, worker_name=trace_name)`。\n- 另有 `_start()` 调 `profiler.start()`、`_stop()` 调 `profiler.stop()`、`_profiler_step()` 恒返回 `True`。\n\n同前约束：本地未导入 torch/torch_npu，远端仅在容器内用 `Path.read_bytes()` 读源码并计算哈希，未加载该模块、未触碰任何服务，除新增回执 JSON 外没有修改。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 70800,
+    "outputTokens": 2367,
+    "totalTokens": 73167,
+    "cacheReadTokens": 59392,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 1794,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 73167,
+    "contextUsed": 13336,
+    "contextWindow": 200000
+  }
+}

@@ -1,0 +1,1256 @@
+{
+  "scope": "ENGRAM source-level template; known branches, not primitive lowering",
+  "parent_graph": "graphs/source-templates-G4.json",
+  "count": 23,
+  "categories": {
+    "PAIR": 8,
+    "TRIPLE": 7,
+    "MULTI_OPERATOR": 6,
+    "BRANCH_MULTICONSUMER": 2
+  },
+  "whole_model_exhaustion": false,
+  "items": [
+    {
+      "nodes": [
+        "gate",
+        "mask_ready"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_derive",
+          "consumer": "mask_ready",
+          "value": "published active mask",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1156-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "gate",
+        "proj"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "hash",
+        "lookup"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "hash",
+          "consumer": "lookup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "tokens",
+          "consumer": "hash",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "hash",
+          "value": "positions, query_start_loc, masks and lookback",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:102-148",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_slot_state",
+          "consumer": "hash",
+          "value": "cache and slot/block mappings",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:109-148",
+          "condition": "when use_slot_cache, hash reads and writes state; alias and cross-invocation dependencies not fully expanded"
+        },
+        {
+          "producer": "mapped_or_device_table",
+          "consumer": "lookup",
+          "value": "codes and scales",
+          "dependency_kind": "RAW",
+          "source": "engram/embedding.py:378-405",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash",
+          "consumer": "hash_slot_state",
+          "value": "conditional token cache update",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:111-128",
+          "condition": "when use_slot_cache; state side effect; not a same-invocation acyclic precedence edge"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "lookup",
+        "rows_collective_pad"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "hash",
+          "consumer": "lookup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mapped_or_device_table",
+          "consumer": "lookup",
+          "value": "codes and scales",
+          "dependency_kind": "RAW",
+          "source": "engram/embedding.py:378-405",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "mask_derive",
+        "mask_ready"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "mask_derive",
+          "consumer": "mask_ready",
+          "value": "published active mask",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1156-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "tokens",
+          "consumer": "mask_derive",
+          "value": "input IDs and dead-mask inputs",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "mask_derive",
+          "value": "valid count and optional token indices",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "proj",
+        "rows"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "ready",
+        "rows"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "ready",
+        "rows_collective_pad"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "gate",
+        "mask_derive",
+        "mask_ready"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "mask_derive",
+          "consumer": "mask_ready",
+          "value": "published active mask",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1156-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "tokens",
+          "consumer": "mask_derive",
+          "value": "input IDs and dead-mask inputs",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "mask_derive",
+          "value": "valid count and optional token indices",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "gate",
+        "mask_ready",
+        "proj"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_derive",
+          "consumer": "mask_ready",
+          "value": "published active mask",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1156-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "gate",
+        "proj",
+        "rows"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "hash",
+        "lookup",
+        "rows_collective_pad"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "hash",
+          "consumer": "lookup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "tokens",
+          "consumer": "hash",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "hash",
+          "value": "positions, query_start_loc, masks and lookback",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:102-148",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_slot_state",
+          "consumer": "hash",
+          "value": "cache and slot/block mappings",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:109-148",
+          "condition": "when use_slot_cache, hash reads and writes state; alias and cross-invocation dependencies not fully expanded"
+        },
+        {
+          "producer": "mapped_or_device_table",
+          "consumer": "lookup",
+          "value": "codes and scales",
+          "dependency_kind": "RAW",
+          "source": "engram/embedding.py:378-405",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash",
+          "consumer": "hash_slot_state",
+          "value": "conditional token cache update",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:111-128",
+          "condition": "when use_slot_cache; state side effect; not a same-invocation acyclic precedence edge"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "lookup",
+        "ready",
+        "rows_collective_pad"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "hash",
+          "consumer": "lookup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mapped_or_device_table",
+          "consumer": "lookup",
+          "value": "codes and scales",
+          "dependency_kind": "RAW",
+          "source": "engram/embedding.py:378-405",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "proj",
+        "ready",
+        "rows"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "ready",
+        "rows",
+        "rows_collective_pad"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "gate",
+        "mask_derive",
+        "mask_ready",
+        "proj"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_derive",
+          "consumer": "mask_ready",
+          "value": "published active mask",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1156-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "tokens",
+          "consumer": "mask_derive",
+          "value": "input IDs and dead-mask inputs",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "mask_derive",
+          "value": "valid count and optional token indices",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1163-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "gate",
+        "mask_ready",
+        "proj",
+        "rows"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mask_derive",
+          "consumer": "mask_ready",
+          "value": "published active mask",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1156-1177",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "gate",
+        "proj",
+        "ready",
+        "rows"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "residual",
+          "consumer": "gate",
+          "value": "HC residual",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "mask_ready",
+          "consumer": "gate",
+          "value": "token mask ready; then shard/slice",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1565-1591",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "token_mask_rotation",
+          "consumer": "gate",
+          "value": "mask and rotation",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "gate",
+          "consumer": "gate_result",
+          "value": "updated hidden states",
+          "dependency_kind": "RAW",
+          "source": "engram/layer.py:35-57",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "hash",
+        "lookup",
+        "ready",
+        "rows_collective_pad"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "hash",
+          "consumer": "lookup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "tokens",
+          "consumer": "hash",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "hash_runtime_metadata",
+          "consumer": "hash",
+          "value": "positions, query_start_loc, masks and lookback",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:102-148",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "hash_slot_state",
+          "consumer": "hash",
+          "value": "cache and slot/block mappings",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:109-148",
+          "condition": "when use_slot_cache, hash reads and writes state; alias and cross-invocation dependencies not fully expanded"
+        },
+        {
+          "producer": "mapped_or_device_table",
+          "consumer": "lookup",
+          "value": "codes and scales",
+          "dependency_kind": "RAW",
+          "source": "engram/embedding.py:378-405",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "hash",
+          "consumer": "hash_slot_state",
+          "value": "conditional token cache update",
+          "dependency_kind": "RAW",
+          "source": "engram/hash_state.py:111-128",
+          "condition": "when use_slot_cache; state side effect; not a same-invocation acyclic precedence edge"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "lookup",
+        "ready",
+        "rows",
+        "rows_collective_pad"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        },
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "hash",
+          "consumer": "lookup",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "mapped_or_device_table",
+          "consumer": "lookup",
+          "value": "codes and scales",
+          "dependency_kind": "RAW",
+          "source": "engram/embedding.py:378-405",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "proj",
+        "ready",
+        "rows",
+        "rows_collective_pad"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "ready",
+          "consumer": "rows",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rows",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rows_collective_pad",
+          "consumer": "ready",
+          "value": "rows after conditional collective and padding",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "lookup",
+          "consumer": "rows_collective_pad",
+          "value": "lookup values",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/model.py:1205-1226; engram/embedding.py:333-355",
+          "condition": "source branch; precise runtime realization not fully observed"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "proj",
+          "consumer": "gate",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "hash",
+        "mask_derive"
+      ],
+      "shared_input": "tokens",
+      "category": "BRANCH_MULTICONSUMER",
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "hash",
+        "mask_derive"
+      ],
+      "shared_input": "hash_runtime_metadata",
+      "category": "BRANCH_MULTICONSUMER",
+      "status": "STRUCTURAL_ONLY",
+      "branch_feasibility_and_full_consumer_completeness": "UNKNOWN"
+    }
+  ]
+}

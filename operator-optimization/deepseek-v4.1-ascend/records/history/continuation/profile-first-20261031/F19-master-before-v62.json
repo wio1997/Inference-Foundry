@@ -1,0 +1,113 @@
+{
+  "id": "F19_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "compress_norm": "compress_norm",
+    "ik": "ik",
+    "ik_norm": "ik_norm",
+    "ik_rope": "ik_rope",
+    "cmp_rope": "cmp_rope",
+    "cmp_store": "cmp_store"
+  },
+  "nodes": [
+    {
+      "id": "compress_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "ik",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "ik_norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "ik_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "cmp_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "cmp_store",
+      "kind": "PERSISTENT_SCATTER",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "compress_norm",
+      "consumer": "ik",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ik",
+      "consumer": "ik_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ik_norm",
+      "consumer": "ik_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "compress_norm",
+      "consumer": "cmp_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cmp_rope",
+      "consumer": "cmp_store",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "ring_pool",
+      "consumer": "compress_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "ik_rope",
+      "consumer": "ik_quant",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cmp_store",
+      "consumer": "attention",
+      "value": "compressed KV cache",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v39": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-metadata-fill-and-existing-fusion-contract-v39.json",
+    "proof": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F31-C2-existing-fused-builder-equivalence-v39.json",
+    "fill": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/H06-initialization-write-ownership-review-v39.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-C2-and-initialization-variants-v39.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-profile-chain-coverage-frontier-v39.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "C2sourcecos/sinfeedbothindexkeyupdate andinplacelonglatentRoPE;lazylookup/newABIkeepsbothreadersandpublicationorder."
+  }
+}

@@ -1,0 +1,516 @@
+{
+  "files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+      "functions": [
+        {
+          "name": "compressed_slot_mapping",
+          "start": 195,
+          "end": 202,
+          "source": [
+            "195: def compressed_slot_mapping(slot_mapping: torch.Tensor, ratio: int) -> torch.Tensor:",
+            "196:     \"\"\"Convert original-token physical slots to completed compressed slots.",
+            "197: ",
+            "198:     Logical block sizes must be divisible by ratio. Negative/padded slots and",
+            "199:     incomplete compression groups never produce a write.",
+            "200:     \"\"\"",
+            "201:     valid = (slot_mapping >= 0) & ((slot_mapping + 1) % ratio == 0)",
+            "202:     return torch.where(valid, slot_mapping // ratio, -1)"
+          ]
+        },
+        {
+          "name": "_build_batch_metadata",
+          "start": 902,
+          "end": 927,
+          "source": [
+            "902:     def _build_batch_metadata(self, common, num_reqs, num_actual_reqs, num_input_tokens):",
+            "903:         self._seq_lens[:num_reqs].copy_(common.seq_lens[:num_reqs])",
+            "904:         if num_actual_reqs < num_reqs:",
+            "905:             self._seq_lens[num_actual_reqs:num_reqs].zero_()",
+            "906:         seq_lens_cpu = getattr(common, \"seq_lens_cpu\", None)",
+            "907:         if seq_lens_cpu is None:",
+            "908:             seq_lens_cpu = getattr(common, \"_seq_lens_cpu\", None)",
+            "909:         max_seq_len = int(getattr(common, \"max_seq_len\", 0))",
+            "910:         if seq_lens_cpu is not None:",
+            "911:             max_seq_len = int(seq_lens_cpu[:num_actual_reqs].max().item()) if num_actual_reqs else 0",
+            "912:         num_decodes, num_decode_tokens, num_prefills, num_prefill_tokens = _request_counts(common, num_reqs)",
+            "913:         positions = common.positions",
+            "914:         if positions is not None:",
+            "915:             positions = positions[:num_input_tokens].long()",
+            "916:         return dict(",
+            "917:             query_start_loc=common.query_start_loc[: num_reqs + 1],",
+            "918:             query_start_loc_cpu=getattr(common, \"query_start_loc_cpu\", None),",
+            "919:             seq_lens=self._seq_lens[:num_reqs],",
+            "920:             seq_lens_cpu=seq_lens_cpu,",
+            "921:             positions=positions,",
+            "922:             max_cache_seq_len=max_seq_len,",
+            "923:             num_decodes=num_decodes,",
+            "924:             num_decode_tokens=num_decode_tokens,",
+            "925:             num_prefills=num_prefills,",
+            "926:             num_prefill_tokens=num_prefill_tokens,",
+            "927:         )"
+          ]
+        }
+      ],
+      "statements": [
+        {
+          "start": 1008,
+          "end": 1008,
+          "source": [
+            "1008:                     valid = active_slots >= 0"
+          ],
+          "guards": [
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1011,
+          "end": 1011,
+          "source": [
+            "1011:                             valid.zero_()"
+          ],
+          "guards": [
+            {
+              "line": 1010,
+              "test": "kwargs.get('skip_ring_state_update', False)",
+              "arm": "BODY"
+            },
+            {
+              "line": 1009,
+              "test": "compressed and ratio == 2",
+              "arm": "BODY"
+            },
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1013,
+          "end": 1013,
+          "source": [
+            "1013:                             valid_end = common.query_start_loc[num_actual_reqs].clamp_max(num_actual_tokens)"
+          ],
+          "guards": [
+            {
+              "line": 1010,
+              "test": "kwargs.get('skip_ring_state_update', False)",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 1009,
+              "test": "compressed and ratio == 2",
+              "arm": "BODY"
+            },
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1014,
+          "end": 1014,
+          "source": [
+            "1014:                             valid &= torch.arange(num_input_tokens, device=active_slots.device) < valid_end"
+          ],
+          "guards": [
+            {
+              "line": 1010,
+              "test": "kwargs.get('skip_ring_state_update', False)",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 1009,
+              "test": "compressed and ratio == 2",
+              "arm": "BODY"
+            },
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1016,
+          "end": 1016,
+          "source": [
+            "1016:                                 valid &= positions.remainder(2) == 1"
+          ],
+          "guards": [
+            {
+              "line": 1015,
+              "test": "positions is not None",
+              "arm": "BODY"
+            },
+            {
+              "line": 1010,
+              "test": "kwargs.get('skip_ring_state_update', False)",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 1009,
+              "test": "compressed and ratio == 2",
+              "arm": "BODY"
+            },
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1017,
+          "end": 1017,
+          "source": [
+            "1017:                     physical = active_slots.clamp_min(0)"
+          ],
+          "guards": [
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1018,
+          "end": 1024,
+          "source": [
+            "1018:                     self._slot_mapping_2d[:num_input_tokens, 0].copy_(",
+            "1019:                         torch.where(",
+            "1020:                             valid,",
+            "1021:                             torch.div(physical, storage_block_size, rounding_mode=\"floor\"),",
+            "1022:                             -1,",
+            "1023:                         )",
+            "1024:                     )"
+          ],
+          "guards": [
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1025,
+          "end": 1027,
+          "source": [
+            "1025:                     self._slot_mapping_2d[:num_input_tokens, 1].copy_(",
+            "1026:                         torch.where(valid, physical.remainder(storage_block_size), -1)",
+            "1027:                     )"
+          ],
+          "guards": [
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1028,
+          "end": 1028,
+          "source": [
+            "1028:                     self._flat_slot_mapping[:num_input_tokens].copy_(torch.where(valid, active_slots, -1))"
+          ],
+          "guards": [
+            {
+              "line": 990,
+              "test": "self._uses_a5_packed_cache and active_slots.device.type == 'npu'",
+              "arm": "ORELSE"
+            },
+            {
+              "line": 988,
+              "test": "prepared_slots is None or prepared_flat_slots is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 975,
+              "test": "is_compressor_state",
+              "arm": "ORELSE"
+            }
+          ]
+        },
+        {
+          "start": 1041,
+          "end": 1041,
+          "source": [
+            "1041:                 torch.div(seq_lens, ratio, rounding_mode=\"floor\", out=self._cache_seq_lens[:num_reqs])"
+          ],
+          "guards": [
+            {
+              "line": 1040,
+              "test": "compressed_lengths is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 1038,
+              "test": "compressed and ratio == 2",
+              "arm": "BODY"
+            }
+          ]
+        },
+        {
+          "start": 1042,
+          "end": 1042,
+          "source": [
+            "1042:                 torch.remainder(seq_lens, ratio, out=self._cmp_residual[:num_reqs])"
+          ],
+          "guards": [
+            {
+              "line": 1040,
+              "test": "compressed_lengths is None",
+              "arm": "BODY"
+            },
+            {
+              "line": 1038,
+              "test": "compressed and ratio == 2",
+              "arm": "BODY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+      "functions": [
+        {
+          "name": "set_inputs_first_pass",
+          "start": 226,
+          "end": 357,
+          "source": [
+            "226:     def set_inputs_first_pass(",
+            "227:         self,",
+            "228:         target_token_ids: torch.Tensor,",
+            "229:         next_token_ids: torch.Tensor,",
+            "230:         target_positions: torch.Tensor,",
+            "231:         target_hidden_states: torch.Tensor,",
+            "232:         token_indices_to_sample: torch.Tensor | None,",
+            "233:         cad: CommonAttentionMetadata,",
+            "234:         num_rejected_tokens_gpu: torch.Tensor | None,",
+            "235:         req_scheduled_tokens=None,",
+            "236:         long_seq_metadata=None,",
+            "237:         num_prefill_reqs=0,",
+            "238:         num_decode_reqs=0,",
+            "239:     ) -> tuple[int, torch.Tensor, CommonAttentionMetadata, tuple[Any, Any] | None]:",
+            "240:         # The initial input token of markovHead is the next token",
+            "241:         n = next_token_ids.shape[0]",
+            "242:         self._dspark_seed_buffer[:n].copy_(next_token_ids)",
+            "243:         self._dspark_seed_buffer[n:].fill_(0)",
+            "244:         batch_size = cad.num_reqs",
+            "245:         num_query_total = batch_size * self.num_query_per_req",
+            "246:         num_sample_total = batch_size * self.num_speculative_tokens",
+            "247:         has_num_rejected = num_rejected_tokens_gpu is not None",
+            "248:         dcp_size = getattr(self, \"dcp_size\", 1)",
+            "249:         dcp_rank = getattr(self, \"dcp_rank\", 0)",
+            "250:         cp_interleave_size = self.vllm_config.parallel_config.cp_kv_cache_interleave_size if dcp_size > 1 else 1",
+            "251:         long_seq_args = None",
+            "252:         primary_gid = getattr(self, \"kv_cache_gid\", 0)",
+            "253:         self._per_group_block_table_buffers = {",
+            "254:             attn_group.kv_cache_group_id: self._per_group_block_tables[attn_group.kv_cache_group_id]",
+            "255:             for attn_group in self.draft_attn_groups",
+            "256:         }",
+            "257:         self._context_slot_mapping_buffers = None",
+            "258:         self._dflash_num_context = int(cad.query_start_loc_cpu[batch_size])",
+            "259:         self._dflash_hidden_states[: self._dflash_num_context] = target_hidden_states[: self._dflash_num_context]",
+            "260: ",
+            "261:         token_indices_to_sample = torch.empty(",
+            "262:             num_sample_total,",
+            "263:             dtype=torch.int32,",
+            "264:             device=self.device,",
+            "265:         )",
+            "266: ",
+            "267:         # Query block: reuse the DFlash inputs kernel logic (host-side ref)",
+            "268:         # per kv-cache-group to fill positions / input_ids / query slot_mapping",
+            "269:         # / token_indices.",
+            "270:         for attn_group in self.draft_attn_groups:",
+            "271:             gid = attn_group.kv_cache_group_id",
+            "272:             gid_block_table = self._per_group_block_table_buffers[gid]",
+            "273:             kernel_block_size = self._per_group_kernel_block_sizes[gid]",
+            "274:             copy_and_expand_dflash_and_dspark_inputs_kernel[",
+            "275:                 (_compute_num_programs(self._dflash_num_context, num_query_total),)",
+            "276:             ](",
+            "277:                 # Inputs",
+            "278:                 next_token_ids_ptr=next_token_ids,",
+            "279:                 target_positions_ptr=target_positions,",
+            "280:                 context_slot_mapping_ptr=self._per_group_slot_mappings[gid],",
+            "281:                 # Outputs",
+            "282:                 out_input_ids_ptr=self.input_ids,",
+            "283:                 out_context_positions_ptr=self._context_positions_buffer,",
+            "284:                 out_query_positions_ptr=self.positions,",
+            "285:                 out_context_slot_mapping_ptr=self._per_group_context_slot_mapping_buffers[gid],",
+            "286:                 out_query_slot_mapping_ptr=self._per_group_query_slot_mapping_buffers[gid],",
+            "287:                 out_token_indices_ptr=token_indices_to_sample,",
+            "288:                 # Block table",
+            "289:                 block_table_ptr=gid_block_table,",
+            "290:                 block_table_stride=gid_block_table.stride(0),",
+            "291:                 # Metadata",
+            "292:                 query_start_loc_ptr=cad.query_start_loc,",
+            "293:                 seq_lens_ptr=cad.seq_lens,",
+            "294:                 num_rejected_tokens_ptr=num_rejected_tokens_gpu,",
+            "295:                 # Scalars",
+            "296:                 parallel_drafting_token_id=self.parallel_drafting_token_id,",
+            "297:                 block_size=kernel_block_size,",
+            "298:                 num_query_per_req=self.num_query_per_req,",
+            "299:                 num_speculative_tokens=self.num_speculative_tokens,",
+            "300:                 total_input_tokens=self._dflash_num_context,",
+            "301:                 batch_size=batch_size,",
+            "302:                 HAS_NUM_REJECTED=has_num_rejected,",
+            "303:                 SAMPLE_FROM_ANCHOR=self.sample_from_anchor,",
+            "304:                 DCP_SIZE=dcp_size,",
+            "305:                 DCP_RANK=dcp_rank,",
+            "306:                 CP_INTERLEAVE_SIZE=cp_interleave_size,",
+            "307:             )",
+            "308:         # to compute self._context_slot_mapping_buffers from dict to list",
+            "309:         self._context_slot_mapping_buffers = [",
+            "310:             self._per_group_context_slot_mapping_buffers[gidx] for gidx in self._layer_group_idx",
+            "311:         ]",
+            "312: ",
+            "313:         effective_seq_lens = cad.seq_lens",
+            "314:         if has_num_rejected:",
+            "315:             effective_seq_lens = effective_seq_lens - num_rejected_tokens_gpu",
+            "316: ",
+            "317:         cad.query_start_loc = self.arange_dflash[: batch_size + 1] * self.num_query_per_req",
+            "318:         cad.seq_lens = effective_seq_lens + self.num_query_per_req",
+            "319:         # The model runner has already corrected this canonical host mirror",
+            "320:         # with the accepted-token count. Extend it on CPU alongside the device",
+            "321:         # lengths, without another reject D2H copy or attention-side wait.",
+            "322:         if cad._seq_lens_cpu is not None:",
+            "323:             draft_seq_lens_cpu = cad._seq_lens_cpu.clone()",
+            "324:             draft_seq_lens_cpu[:batch_size].add_(self.num_query_per_req)",
+            "325:             cad._seq_lens_cpu = draft_seq_lens_cpu",
+            "326:             if getattr(cad, \"seq_lens_cpu\", None) is not None:",
+            "327:                 cad.seq_lens_cpu = draft_seq_lens_cpu",
+            "328:         cad.query_start_loc_cpu = (",
+            "329:             torch.from_numpy(self.token_arange_np[: batch_size + 1]).clone() * self.num_query_per_req",
+            "330:         ).to(torch.int32)",
+            "331: ",
+            "332:         if hasattr(cad, \"actual_seq_lengths_q\"):",
+            "333:             cad.actual_seq_lengths_q = [self.num_query_per_req] * batch_size",
+            "334:         if hasattr(cad, \"decode_token_per_req\"):",
+            "335:             cad.decode_token_per_req = self.num_query_per_req",
+            "336: ",
+            "337:         cad.num_actual_tokens = num_query_total",
+            "338:         cad.num_input_tokens = num_query_total",
+            "339:         cad.max_query_len = self.num_query_per_req",
+            "340:         cad.max_seq_len = cad.max_seq_len + self.num_query_per_req",
+            "341:         cad.slot_mapping = self._per_group_query_slot_mapping_buffers[primary_gid][:num_query_total]",
+            "342:         cad.positions = self.positions  # this would be sliced in attention backend",
+            "343:         if hasattr(self.model, \"get_draft_attn_causal\"):",
+            "344:             # Currently, attention causality across draft layers are uniform.",
+            "345:             cad.causal = self.model.get_draft_attn_causal()[0]",
+            "346:         else:",
+            "347:             cad.causal = False",
+            "348:         cad.attn_mask = None",
+            "349:         cad.attn_state = AscendAttentionState.ChunkedPrefill",
+            "350: ",
+            "351:         if dcp_size > 1:",
+            "352:             assert self.runner is not None",
+            "353:             dcp_manager = getattr(self.runner, \"dcp_manager\", None)",
+            "354:             assert dcp_manager is not None",
+            "355:             dcp_manager.prepare_parallel_draft_metadata(cad, self.draft_attn_groups)",
+            "356: ",
+            "357:         return num_query_total, token_indices_to_sample, cad, long_seq_args"
+          ]
+        }
+      ],
+      "statements": []
+    }
+  ],
+  "no_model_or_torch_import": true,
+  "server_source_hashes_matched": true,
+  "scope": "Exactprofile-locatedcoordinatefunctions/statementsandfirstpasspublisher;no broadrepo/SDK audit."
+}

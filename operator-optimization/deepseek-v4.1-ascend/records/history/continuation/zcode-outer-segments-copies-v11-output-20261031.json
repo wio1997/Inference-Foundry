@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_49840431-80ac-437c-a469-53de04818fde",
+  "traceId": "d7716190-ee21-4ed0-b709-47f96d4949c3",
+  "turnId": "turn_e6f18855-0987-4267-929f-34b422e6fb88",
+  "response": "审计已成功完成：真实 `returncode=0`，stderr 为空，`database_stat_unchanged=true`，数据库 SHA 为 `084b8718…fad234c4`；脚本自报 `no_target_source_read=true`、`no_device_or_inference_work=true`。\n\n- **分组**：共 77 个 outer segment、1221 条外计算记录；首次执行分 7 组——`BEFORE_FIRST_MARKER` 21 条、`GAP_0_1` 38 条、`GAP_13_14` 38 条、`GAP_36_37` 2 条、`GAP_37_38` 2 条、`GAP_38_39` 2 条、`AFTER_LAST_MARKER` 8 条。\n- **稳定性**：`graph_definition_location_variants = {\"1\": 111}`，即汇总中只有一个位置变体覆盖全部 111 个 definition，未出现按 definition 分裂的前/后/层间位置变体。\n- **eager 对比**：4 个同 capture、source-bound 的 eager 窗口（`7ddf7ae9`/`db852bff` × `L0_L1`/`L13_L14`），各 40 条；去掉首尾各一个 `TensorMove` 后，其 38 条类型序列与 `GAP_0_1`、`GAP_13_14` 全部一致（4/4）。三个 `GAP_36/37/38` 组彼此一致，均为 `ReduceMean → hcom_allGather_`。\n- **复制字段可用性**：仅命中内存表 `ENUM_MEMCPY_OPERATION`，共 9 行，schema 只有 `id`/`name` 两列，示例为 `host to host`、`host to device`。MEMCPY/MEMSET TASK 共 2156 行：model `4294967295` 有 1595 行，model `49` 有 561 行（11 个图各 51 行）。脚本 limits 明确：TASK 与内存表只暴露已记录字段，缺失的指针/字节/数值不假设存在，因此没有把所有复制都当作 COMPUTE 表内容。\n- **路径**：本地回执 `/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-outer-segments-copies166-v11.json`；服务器全量结果 `/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/ep3-outer-segments-and-memory-tasks-v11.json`，SHA256 `bce26cca…b3483bda2f`。stdout 19,301 字节且未截断。\n- **范围备注**：`overall_complete=false`、`whole_modules_closed=0`，本次结果仅是外计算段与复制审计，不代表整模块闭合。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 8,
+    "inputTokens": 91675,
+    "outputTokens": 8903,
+    "totalTokens": 100578,
+    "cacheReadTokens": 80512,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 6962,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 100578,
+    "contextUsed": 19495,
+    "contextWindow": 200000
+  }
+}

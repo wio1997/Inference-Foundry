@@ -1,0 +1,280 @@
+{
+  "generated_utc": "2026-10-31T16:11:48.341192+00:00",
+  "files": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/engine/output_processor.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M25-output-source-v53/output_processor.py",
+      "sha256": "e47b86cd69ce1c1e3f53dac655eaa75c32a4057d10f4a1db16bb83a397f2a329",
+      "historical166_hash_matched": false,
+      "parts": [
+        {
+          "name": "RequestOutputCollector.close",
+          "start": 104,
+          "end": 107,
+          "source": [
+            "104:     def close(self):",
+            "105:         if self._input_stream_task is not None:",
+            "106:             self._input_stream_task.cancel()",
+            "107:         self._input_stream_task = None"
+          ]
+        },
+        {
+          "name": "RequestState.apply_streaming_update",
+          "start": 202,
+          "end": 219,
+          "source": [
+            "202:     def apply_streaming_update(self, update: StreamingUpdate) -> None:",
+            "203:         # Apply the update to the request state.",
+            "204:         self.streaming_input = not update.final",
+            "205:         # TODO also include relevant output tokens in new prompt here",
+            "206:         #     (match scheduler behavior).",
+            "207:         if update.prompt:",
+            "208:             self.prompt = (",
+            "209:                 (self.prompt + update.prompt) if self.prompt else update.prompt",
+            "210:             )",
+            "211:         if self.prompt_token_ids:",
+            "212:             self.prompt_token_ids.extend(update.prompt_token_ids or ())",
+            "213:         else:",
+            "214:             self.prompt_token_ids = update.prompt_token_ids or []",
+            "215:         assert self.prompt_token_ids is not None",
+            "216:         self.prompt_len = len(self.prompt_token_ids)",
+            "217:         if self.stats is not None:",
+            "218:             self.stats.arrival_time = update.arrival_time",
+            "219:         self.is_prefilling = True"
+          ]
+        },
+        {
+          "name": "OutputProcessor.abort_requests",
+          "start": 500,
+          "end": 562,
+          "source": [
+            "500:     def abort_requests(self, request_ids: Iterable[str], internal: bool) -> list[str]:",
+            "501:         \"\"\"Abort a list of requests.",
+            "502: ",
+            "503:         The request_ids may be either external request IDs (those passed to",
+            "504:         InputProcessor.process_inputs()) or internal request IDs (those randomly",
+            "505:         generated when creating the EngineCoreRequest).",
+            "506: ",
+            "507:         If an external request ID is provided, and that external request ID",
+            "508:         was used for multiple requests, all requests associated with that external",
+            "509:         request ID are aborted.",
+            "510: ",
+            "511:         In the case of parallel sampling, a request ID may be used to identify",
+            "512:         a parent request, in which case the associated child requests are aborted",
+            "513:         also.",
+            "514:         \"\"\"",
+            "515:         internal_req_ids = []",
+            "516:         for request_id in request_ids:",
+            "517:             if internal:",
+            "518:                 # Internal ID - this may be a parent request",
+            "519:                 internal_req_ids.append(request_id)",
+            "520: ",
+            "521:                 # Remove internal ID from the external->internal mapping",
+            "522:                 if req_state := self.request_states.get(request_id):",
+            "523:                     external_req_id = req_state.external_req_id",
+            "524:                     internal_ids = self.external_req_ids[external_req_id]",
+            "525:                     internal_ids.remove(request_id)",
+            "526:                     if not internal_ids:",
+            "527:                         del self.external_req_ids[external_req_id]",
+            "528:             elif internal_ids := self.external_req_ids.pop(request_id, []):",
+            "529:                 # External ID - abort all requests in the external->internal mapping",
+            "530:                 internal_req_ids.extend(internal_ids)",
+            "531: ",
+            "532:         request_ids_to_abort = []",
+            "533:         for request_id in internal_req_ids:",
+            "534:             req_state = self.request_states.pop(request_id, None)",
+            "535:             if req_state is not None:",
+            "536:                 self.lora_states.request_finished(request_id, req_state.lora_name)",
+            "537:                 request_ids_to_abort.append(request_id)",
+            "538:                 # Produce final abort output.",
+            "539:                 if req_state.queue is not None and (",
+            "540:                     request_output := req_state.make_request_output(",
+            "541:                         new_token_ids=[],",
+            "542:                         # Set pooling_output is not None to",
+            "543:                         # correctly enter the abort pooling branch",
+            "544:                         pooling_output=EMPTY_CPU_TENSOR",
+            "545:                         if req_state.detokenizer is None",
+            "546:                         else None,",
+            "547:                         finish_reason=FinishReason.ABORT,",
+            "548:                         stop_reason=None,",
+            "549:                         kv_transfer_params=None,",
+            "550:                         ec_transfer_params=None,",
+            "551:                     )",
+            "552:                 ):",
+            "553:                     req_state.queue.put(request_output)",
+            "554:             elif parent := self.parent_requests.get(request_id):",
+            "555:                 # Abort children prior to removing the parent.",
+            "556:                 if parent.child_requests:",
+            "557:                     child_reqs = list(parent.child_requests)",
+            "558:                     child_reqs = self.abort_requests(child_reqs, internal=True)",
+            "559:                     request_ids_to_abort.extend(child_reqs)",
+            "560:                 self.parent_requests.pop(request_id, None)",
+            "561:         self._update_admission_stats()",
+            "562:         return request_ids_to_abort"
+          ]
+        },
+        {
+          "name": "OutputProcessor.propagate_error",
+          "start": 493,
+          "end": 498,
+          "source": [
+            "493:     def propagate_error(self, e: Exception):",
+            "494:         \"\"\"Propagate error to all generate() tasks.\"\"\"",
+            "495: ",
+            "496:         for _, state in self.request_states.items():",
+            "497:             assert state.queue is not None",
+            "498:             state.queue.put(e)"
+          ]
+        },
+        {
+          "name": "RequestState.output_mode_state",
+          "start": 193,
+          "end": 193,
+          "source": [
+            "193:         self.stream_interval = stream_interval"
+          ]
+        },
+        {
+          "name": "RequestState.output_mode_state",
+          "start": 194,
+          "end": 194,
+          "source": [
+            "194:         self.sent_tokens_offset = 0  # Offset of sent tokens"
+          ]
+        },
+        {
+          "name": "RequestState.output_mode_state",
+          "start": 197,
+          "end": 197,
+          "source": [
+            "197:         self.streaming_input = stream_input"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/engine/detokenizer.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M25-output-source-v53/detokenizer.py",
+      "sha256": "213d71cf6eefcea061b28b656cf8a08af60c9f3513403e724b16876995f3de93",
+      "historical166_hash_matched": true,
+      "parts": [
+        {
+          "name": "check_stop_strings",
+          "start": 310,
+          "end": 362,
+          "source": [
+            "310: def check_stop_strings(",
+            "311:     output_text: str,",
+            "312:     new_char_count: int,",
+            "313:     stop: list[str],",
+            "314:     include_in_output: bool,",
+            "315: ) -> tuple[str, int] | None:",
+            "316:     \"\"\"Check if any stop strings are matched and truncate sequence",
+            "317:     output text accordingly.",
+            "318: ",
+            "319:     Returns tuple (stop_string, offset) if matched or else None.",
+            "320: ",
+            "321:     Where stop_string is the matched stop string and offset is the",
+            "322:     length to which output_text should be truncated, or -1 for no",
+            "323:     truncation.",
+            "324: ",
+            "325:     When several stop strings match within the newly generated text (for",
+            "326:     example when speculative decoding appends multiple tokens in a single",
+            "327:     step), the stop string that completes earliest in the text is selected,",
+            "328:     so the result matches appending one token at a time. Ties are broken by",
+            "329:     stop-list order.",
+            "330:     \"\"\"",
+            "331:     if not new_char_count or not stop:",
+            "332:         return None",
+            "333: ",
+            "334:     best_stop_str: str | None = None",
+            "335:     best_stop_index = 0",
+            "336:     best_end = sys.maxsize",
+            "337:     for stop_str in stop:",
+            "338:         stop_string_len = len(stop_str)",
+            "339:         # Avoid searching already-searched text.",
+            "340:         stop_index = output_text.find(stop_str, 1 - new_char_count - stop_string_len)",
+            "341:         if stop_index == -1:",
+            "342:             continue",
+            "343: ",
+            "344:         # Prefer the stop string that completes earliest in the text.",
+            "345:         end = stop_index + stop_string_len",
+            "346:         if end < best_end:",
+            "347:             best_stop_str = stop_str",
+            "348:             best_stop_index = stop_index",
+            "349:             best_end = end",
+            "350: ",
+            "351:     if best_stop_str is None:",
+            "352:         return None",
+            "353: ",
+            "354:     if include_in_output:",
+            "355:         # Truncate to end of stop string.",
+            "356:         if best_end >= len(output_text):",
+            "357:             # No truncation required.",
+            "358:             return best_stop_str, -1",
+            "359:         return best_stop_str, best_end",
+            "360: ",
+            "361:     # Truncate the output text to the beginning of the stop string.",
+            "362:     return best_stop_str, best_stop_index"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/engine/logprobs.py",
+      "frozen_path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M25-output-source-v53/logprobs.py",
+      "sha256": "14bbe78d92a2c451d79b3d9dd9d5268bc57e16bad5079e44ce9ed2cd805e873e",
+      "historical166_hash_matched": false,
+      "parts": [
+        {
+          "name": "LogprobsProcessor.pop_prompt_logprobs",
+          "start": 189,
+          "end": 206,
+          "source": [
+            "189:     def pop_prompt_logprobs(self) -> PromptLogprobs | None:",
+            "190:         \"\"\"Pop and return all request prompt logprobs",
+            "191: ",
+            "192:         The logprobs processor aggregates prompt chunk logprobs",
+            "193:         over one or more prefill chunks. This method returns",
+            "194:         all prompt logprobs at once and then forgets them.",
+            "195:         Ensures correct RequestOutputKind.DELTA semantics",
+            "196:         wherein all prompt logprobs are returned at once at",
+            "197:         the end of prefill.",
+            "198: ",
+            "199:         Returns:",
+            "200:           None if prompt logprobs are disabled for this request.",
+            "201:           List of all prompt logprobs, otherwise.",
+            "202:         \"\"\"",
+            "203:         plp = self.prompt_logprobs",
+            "204:         if plp:",
+            "205:             self.prompt_logprobs = []",
+            "206:         return plp"
+          ]
+        }
+      ]
+    }
+  ],
+  "stream_input_constructor_origins": [
+    {
+      "line": 263,
+      "constructor": "cls",
+      "expression": "request.resumable"
+    }
+  ],
+  "same_version_RequestOutput_add_lookup": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/outputs.py",
+      "exists": false
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/sources/vllm-workspace/vllm/vllm/outputs.py",
+      "exists": false
+    }
+  ],
+  "add_field_merge_semantics_attested": false,
+  "scope": "Directselectedcallee/referencebytesonly. No claim of exactRequestOutput.addfieldmerges,actual166helperidentities orbackendGIL/CPUcost.",
+  "no_model_import_remote_or_device_work": true,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

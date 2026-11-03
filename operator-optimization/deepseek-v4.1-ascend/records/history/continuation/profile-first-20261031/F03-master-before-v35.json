@@ -1,0 +1,78 @@
+{
+  "id": "F03_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "original_node_mapping": {
+    "ffn_post": "ffn_post",
+    "next_pre": "next_pre"
+  },
+  "nodes": [
+    {
+      "id": "ffn_post",
+      "kind": "HC_POST_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "next_pre",
+      "kind": "HC_PRE_COMPOSITE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [],
+  "external_inputs": [
+    {
+      "producer": "moe",
+      "consumer": "ffn_post",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_post",
+      "consumer": "ffn_post",
+      "value": "residual",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "ffn_post",
+      "value": "post/comb",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "engram",
+      "consumer": "next_pre",
+      "value": "Engram-updated residual",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "next_pre",
+      "value": "delayed coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "ffn_post",
+      "consumer": "aux_mean",
+      "value": "residual before optional Engram",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_post",
+      "consumer": "engram",
+      "value": "optional next-layer Engram",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_post",
+      "consumer": "collapse",
+      "value": "terminal-layer HC state",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

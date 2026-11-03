@@ -1,0 +1,122 @@
+{
+  "generated_utc": "2026-10-31T10:19:57.060581+00:00",
+  "snapshot_safe_state_pipeline": {
+    "nodes": [
+      {
+        "id": "old_request_state"
+      },
+      {
+        "id": "snapshot_gathers"
+      },
+      {
+        "id": "current_request_map"
+      },
+      {
+        "id": "corrected_computed_and_accepted"
+      },
+      {
+        "id": "published_positions_and_seq_lens"
+      },
+      {
+        "id": "group_specific_slot_outputs"
+      },
+      {
+        "id": "attention_cache_consumers"
+      },
+      {
+        "id": "reuse_release"
+      }
+    ],
+    "edges": [
+      {
+        "a": "old_request_state",
+        "b": "snapshot_gathers",
+        "kind": "READ_BEFORE_COMMIT"
+      },
+      {
+        "a": "current_request_map",
+        "b": "snapshot_gathers",
+        "kind": "PREV_POSITION_CLAMP"
+      },
+      {
+        "a": "snapshot_gathers",
+        "b": "corrected_computed_and_accepted",
+        "kind": "EXACT_PARTICIPATING_OR_CPU_FALLBACK"
+      },
+      {
+        "a": "corrected_computed_and_accepted",
+        "b": "published_positions_and_seq_lens",
+        "kind": "NORMAL_OR_EXISTING_CP_ALTERNATIVE"
+      },
+      {
+        "a": "published_positions_and_seq_lens",
+        "b": "group_specific_slot_outputs",
+        "kind": "GROUP_TABLE_OWNERSHIP_AND_PAD_TAIL"
+      },
+      {
+        "a": "group_specific_slot_outputs",
+        "b": "attention_cache_consumers",
+        "kind": "PUBLISHED_READY"
+      },
+      {
+        "a": "attention_cache_consumers",
+        "b": "reuse_release",
+        "kind": "LAST_READER_FENCE"
+      }
+    ]
+  },
+  "conditional_count_selector": {
+    "nodes": [
+      {
+        "id": "original_sampled_matrix"
+      },
+      {
+        "id": "exact_valid_count"
+      },
+      {
+        "id": "same_epoch_D_and_QSL"
+      },
+      {
+        "id": "conditional_rejection_and_selector"
+      },
+      {
+        "id": "unchanged_padded_inputs"
+      },
+      {
+        "id": "draft_consumer"
+      }
+    ],
+    "edges": [
+      {
+        "a": "original_sampled_matrix",
+        "b": "exact_valid_count",
+        "kind": "V36_LITERAL_RULE"
+      },
+      {
+        "a": "exact_valid_count",
+        "b": "conditional_rejection_and_selector",
+        "kind": "SAME_REQUEST_GENERATION"
+      },
+      {
+        "a": "same_epoch_D_and_QSL",
+        "b": "conditional_rejection_and_selector",
+        "kind": "MUST_BE_READY"
+      },
+      {
+        "a": "unchanged_padded_inputs",
+        "b": "draft_consumer",
+        "kind": "DO_NOT_COMPACT_QUERY_KV"
+      },
+      {
+        "a": "conditional_rejection_and_selector",
+        "b": "draft_consumer",
+        "kind": "INT32_SELECTOR_AND_REJECT"
+      }
+    ]
+  },
+  "graphs_acyclic": true,
+  "note": "Source/conditional dependency graphs,not measured invocation pairings or device criticalpath. Newglobal barrier/protocol mayoffset launchremoval.",
+  "implemented": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

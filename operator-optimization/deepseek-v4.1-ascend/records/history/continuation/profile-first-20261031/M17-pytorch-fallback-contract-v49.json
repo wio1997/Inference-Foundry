@@ -1,0 +1,118 @@
+{
+  "generated_utc": "2026-10-31T14:51:56.783624+00:00",
+  "source": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-pytorch-fallback-source-v49.json",
+  "evidence": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-pytorch-fallback-source-v49.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/M17-kernel166-v33.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/M17-source166-v33-v2.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M17-current-probability-and-guard-scope-v33.json"
+  ],
+  "measured_scope": {
+    "created_utc": "2026-10-31T07:07:01.807765+00:00",
+    "sampler_native_APIs": 840,
+    "sampler_native_TASKs": 1144,
+    "sampler_native_chains": 14,
+    "sampler_TASK_types": {
+      "Cast": 480,
+      "ArgMaxV2": 160,
+      "IndexCheck": 144,
+      "Index": 144,
+      "TensorMove": 72,
+      "Fill": 72,
+      "rejection_greedy_sample_triton": 72
+    },
+    "global_distribution_candidate_TASKs": 4544,
+    "global_distribution_candidate_types": [
+      {
+        "op": "MoeGatingTopKHash",
+        "source_kind": "NO_NATIVE_API_SOURCE_IN_FULLCHAIN_EXPORT",
+        "TASKs": 3200
+      },
+      {
+        "op": "MoeGatingTopKHash",
+        "source_kind": "OTHER_NATIVE_ANCESTRY",
+        "TASKs": 1272
+      },
+      {
+        "op": "rejection_greedy_sample_triton",
+        "source_kind": "SAMPLER",
+        "TASKs": 72
+      }
+    ],
+    "recorded_sampler_guard_fields": [],
+    "missing_guard_fields": "UNKNOWN_NOT_FALSE_OR_EMPTY",
+    "whole_module_closed": false,
+    "overall_complete": false
+  },
+  "findings": [
+    {
+      "id": "FB49-01",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "ordinary_acceptance",
+      "lines": "897-1054",
+      "finding": "VectorizesB×Swithcu-derivedstart/counts and clamped flattened indices;safe placeholdercolumn0gathers before late masking. NGRAMusesq=1;else selecteddenseq. Ordinary/entropy decisions requireq>0andp/q>=uorh*u. Synthetic usesu<rate and bypassesentropydecision,butselectedP/QandallrecoveredIDgathers already happened. Firstvalidfailure getsrecovery;laterpositions retain prioroutput;allacceptedgetbonus atn. Greedyrequestsretainprioroutput."
+    },
+    {
+      "id": "FB49-02",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "block_acceptance",
+      "lines": "1190-1282",
+      "finding": "Uses per-factor upper clamp then cumprod,not Triton running-prefix clamp. Multiplies all uniforms then optional per-position entropy threshold. legalmask addsq>0/valid/notplaceholder;lastlegalposition controls publicationofALLdraftpositions through it,thenrecoveryatlast+1orbonus. It is not ordinaryfirstfailure. Padded/greedyrows still participate in probability/entropy/gather work before publication masking."
+    },
+    {
+      "id": "FB49-03",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "entropy_readers",
+      "lines": "990-995;1251-1256",
+      "finding": "Usesori_target_probswhenpresent,elseprocessedtarget_probs. GathersB×S×Vbefore per-row-H_epsilon reduction. Reducing unique flatNrows first then gathering small summaries is a conditional same-row transformation;retainepsilon,sourcegeneration,dtype/reduction behavior and any original/raw observers."
+    },
+    {
+      "id": "FB49-04",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "ordinary_recovery",
+      "lines": "1104-1187",
+      "finding": "ReturnsifN=0. Maps eachflat token to request withN×Bintervalmask/argmaxandunmatchedfallback0. NGRAMclonesPthenzerosvaliddraftcolumn;placeholderdoesnotzeroanycolumn. Denseusesmax(P-D,0). Expandsrequest-sharedQtoN×V;Q==0orInfgetsfinalscore-1e10,NaNnotexplicitlysanitized. Fullrowtorch.argmaxpublishesallrecoveredIDs."
+    },
+    {
+      "id": "FB49-05",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "blockwise_recovery",
+      "lines": "1285-1378",
+      "finding": "Separateexplicitoption. ReturnsifN=0;mapsrequestandposition;hostmax().item()sizesgrid. selectedp/qusesdraftdenominatorclampmin1e-10andzero-invalidguards;runningprefixclampsaftermultiply. p_iisEXCLUSIVEprefixbeforecurrentposition. NGRAMresidual=max(p_i*P_withoutdraft,0);dense=max(p_i*P-D,0). SameQzero/Infscoreprotectionandfullrowargmax. This residual is not genericordinaryP-D."
+    },
+    {
+      "id": "FB49-06",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "actual_recovery_dispatch",
+      "lines": "savedcaller573;wrapper738-795",
+      "finding": "Rootcaller573doesnotpassuse_block_verify,whichdefaultsFalse. HAS_TRITONselectsTritonrecoveryfirst;elseexplicituse_block_verifychoosesblockwisefallback;otherwiseordinaryfallback. Selectingblockverificationlaterdoesnotitselfactivateblockwiserecovery."
+    },
+    {
+      "id": "FB49-07",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "RNG_and_precision",
+      "lines": "existingv33contract",
+      "finding": "TwoacceptancebodiesdrawnoRNGthemselves. ExistinguniformgenerationprecedesQgeneration;Qdefaultandseededdrawsincludeexistingzero-draft/greedyeffects. Pruningrecoveryrowscanretainallexistingdraws;skippingdrawsrequiresanindependentstate-advancecontract. F64uniformfallbackandF32Tritonremainseparate."
+    },
+    {
+      "id": "FB49-08",
+      "grade": "DOCUMENTED_FROZEN_SOURCE",
+      "topic": "input_and_output_boundaries",
+      "lines": "all4selectedbodies",
+      "finding": "Callerbounds/cumulativepartition/shapes/dtypes/device,validIDsandN/Sarepreconditions;latevalid/greedymasksdonotproveearlygatherssafe. Helpersdo notconstituteanempty-all-draftcallerproof. Outputismutatedinplaceandunwritten/greedypositionspreservepreviousbank. Noalias/capture/lifetimeclaimfromshape. Fullmodulecontrol/processor/logprobobserversareoutsidethesefourbodies."
+    }
+  ],
+  "local_questions_answered": [
+    "Twofallbackacceptancebodies",
+    "Two directlydispatched recoverybodies",
+    "Blockrecurrence/backendnonidentity",
+    "Recoveryoptiondispatchandoutputselectedposition"
+  ],
+  "local_body_review_complete": true,
+  "all_sampler_branches_or_consumers_closed": false,
+  "no_new_model_import_device_service_or_remote_work": true,
+  "implemented": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

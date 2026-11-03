@@ -1,0 +1,17 @@
+import json,collections,hashlib
+from pathlib import Path
+h=Path(__file__).resolve().parent;d=json.loads((h/'creation-cpu-probe-offline-review.json').read_text());r=d['review'];t=r['tables'];s={a['id']:a['value'] for a in t['STRING_IDS']['rows']};sets=collections.defaultdict(set)
+for a in json.loads((h/'creation-cpu-connection-sets.json').read_text())['rows']:sets[a['id']].add(a['connectionId'])
+comp={a['globalTaskId']:a for a in t['COMPUTE_TASK_INFO']['rows']};rows=[]
+for task in t['TASK']['rows']:
+ if task['modelId']==4294967295 or task['globalTaskId'] not in comp:continue
+ cpus=[a for a in t['PYTORCH_API']['rows'] if a['type']==50001 and task['connectionId'] in sets.get(a['connectionId'],set())]
+ assert len(cpus)==1;cpu=cpus[0]
+ marks=[m for m in t['MSTX_EVENTS']['rows'] if m['globalTid']==cpu['globalTid'] and m['startNs']<=int(cpu['startNs'])<=int(cpu['endNs'])<=m['endNs']];assert len(marks)==1
+ chain=[dict(a,text=s[a['stack']]) for a in t['PYTORCH_CALLCHAINS']['rows'] if a['id']==cpu['callchainId']];assert len(chain)==2
+ rows.append({'native_task':task,'native_name':s[comp[task['globalTaskId']]['name']],'CPU_api':dict(cpu,name_text=s[cpu['name']]),'official_connection_set':sorted(sets[cpu['connectionId']]),'source_marker':s[marks[0]['message']],'source_callchain':chain})
+assert len(rows)==6 and collections.Counter(a['source_marker'] for a in rows)=={'wio_history167/creator/add':2,'wio_history167/creator/scatter':4}
+checks={'three_native_kernels_created_and_replayed_twice':len(rows)==6 and len({a['native_task']['globalTaskId'] for a in rows})==3,'official_connection_sets_no_temporal_source_guess':True,'actual_history_values_correct':d['probe_result']['history_equal'],'raw_inputs_unchanged':r['raw_inputs_unchanged'],'main_service_unchanged_healthy':d['service']['started_at']=='2026-11-02T16:35:50.989061765Z' and d['service']['health']==200}
+assert all(checks.values())
+out={'status':'PASS_OFFICIAL_CPU_CREATOR_TO_CAPTURED_NATIVE_KERNEL_ROUTE','database_sha256':r['sha256'],'checks':checks,'bindings':rows,'method':'Native TASK.connectionId in CONNECTION_IDS set selected by exact PYTORCH_API.connectionId;CPU api callchain and same-thread MSTX containment establish creator. No matching by nearest time or native name.','actual_CPU_api_connection_groups':{'20':[48],'21':[60,65]},'meaning':'NPU+CPU collection while graph is CREATED supplies retained kernel/source connections for later captured replays in this synthetic domain. NPU-only creation supplies launch connections but lacks Python async-source transport.','next_action':'Use one shared inference creation+runtime capture with targeted receiver-count history;stop per-operator route probes. Validate actual inference schema and graph coverage,without assuming the synthetic route covers every native custom kernel.','limits':['Only this two-source/three-native-kernel controlled graph.','No original169/166 or existing171 gap backfill.','No kernel operand/all-reader/numerical independence proof.','Creator identity differs from invocation epoch;MSTX replay/runtime connection and device-indexed history supply separate epoch evidence.','Profiler stop warning preserved;review proves only the expected observed creation/replay/history facts.'],'historical_native_or_phase_promotions':0,'new_whole_module_closures':0,'overall_complete':False}
+(h/'creation-cpu-route-reviewed.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({'status':out['status'],'checks':checks,'native_compute_instances':len(rows),'unique_native_kernels':3}))

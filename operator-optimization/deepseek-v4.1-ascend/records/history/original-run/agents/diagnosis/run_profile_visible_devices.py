@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""Run bounded read-only metadata query inside the existing staging container."""
+from pathlib import Path
+import hashlib
+import json
+import shlex
+import subprocess
+root = Path(__file__).resolve().parents[2]
+script = root / 'agents/diagnosis/query_profile_visible_devices.py'
+ssh = '/Users/wio/work/169-sglang-deepseek-v41/ssh169.sh'
+container = 'wio-vllm-v41-repro169-stage-20261028'
+remote_task = '/work/vllm-ascend-reproduce-172-on-169-20261028/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41'
+remote_trace = '/work/vllm-ascend-reproduce-172-on-169-20261028/analysis/operator-ceiling-20261028/diagnostic/runtime/diagnostic-traces'
+output = root / 'agents/diagnosis/profile-visible-devices.json'
+if output.exists():
+    raise SystemExit('STOP: output already exists')
+source = script.read_text()
+command = shlex.join(['docker', 'exec', container, 'python3', '-c', source,
+                      '--task-root', remote_task, '--trace-root', remote_trace])
+result = subprocess.run([ssh, command], capture_output=True, text=True, timeout=180)
+if result.returncode:
+    raise RuntimeError('read-only query failed: '+result.stderr[:2000])
+payload = json.loads(result.stdout)
+if len(payload.get('samples', [])) != 2:
+    raise RuntimeError('expected exactly two profiles')
+payload['script_sha256'] = hashlib.sha256(source.encode()).hexdigest()
+payload['no_npu_work'] = True
+with output.open('x', encoding='utf-8') as f:
+    json.dump(payload, f, ensure_ascii=False, indent=2)
+    f.write('\n')
+print(json.dumps({'status': 'QUERY_COMPLETED', 'output': str(output), 'profiles': 2}))

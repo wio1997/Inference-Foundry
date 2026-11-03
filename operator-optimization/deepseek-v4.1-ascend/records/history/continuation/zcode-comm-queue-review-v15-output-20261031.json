@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c927177e-c8b2-42be-9fce-0c5e0d4cca3a",
+  "traceId": "7b7c5b24-4060-4fca-8e63-bb6b0dbbca1a",
+  "turnId": "turn_366b7015-3c8f-455a-b42d-ddb507779b57",
+  "response": "执行一次完成，真实 rc=0，SHA 已用远端只读 `sha256sum` 校验一致。\n\n**结果**\n- 回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/comm-queue-review166-v15.json`（`returncode: 0`，stderr 为空）\n- 完整产物：166 上 `.../native-communications-v15/communication-and-queue-review-v15.json`，16,233,700 字节\n- **结果 SHA-256：`c196d5083904a75a794c81fadfaf9d528d11461fdd5d81a6e941cad1e9693d6c`**（与脚本打印的 `result_sha256` 完全一致）\n\n**Summary 要点**\n- 14720 条 COMM_OP：allReduce 272、allGather 5552、alltoall 4424、reduceScatter 4472；dtype 为 BFP16 14616、FP32 104。\n- 图归属：10080 条可对应图内操作，其中 9600 条落在单一 marker block 内，480 条在 marker block 外，部分重叠为 0；80 个图各 126 条操作。\n- 8 个 exact-schedule cohort，8/8 的操作序列签名一致（这是结构对称性，不代表逐 tensor 路由内容或因果）。\n- 1448 条操作绑定了 native source chain；1 条 COMM_OP 未归属，保留其原始 transport/record-type 计数和空的候选列表，未强行挂接。\n- 队列侧 10 个 task，10/10 都有唯一 innermost source，且 PID/name/CPU order 校验均有效；这是解码 CONNECTION_IDS 后的多跳派生关联，不是原生的直接流量。\n- `overall_complete=false`，该标志如实保留。\n\n**口径**\n所有源关系、层级和多候选均原样保留：未归属记录不提升为直接链接，队列关联保持“候选/派生”语义，cohort 只做同序签名比较。`local_comm_sum_ns` 的 min/max 仅表示各 rank 本地区间时长求和，不是请求关键路径，也不与 kernel 时间相加，未当作收益。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 9,
+    "inputTokens": 105411,
+    "outputTokens": 5412,
+    "totalTokens": 110823,
+    "cacheReadTokens": 92672,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3404,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 110823,
+    "contextUsed": 17431,
+    "contextWindow": 200000
+  }
+}

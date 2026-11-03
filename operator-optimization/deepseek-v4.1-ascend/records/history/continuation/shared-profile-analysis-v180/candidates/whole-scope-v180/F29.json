@@ -1,0 +1,240 @@
+{
+  "id": "F29_CONDITIONAL_PARTITION_V180",
+  "original_graph_id": "G0_FIXED_SOURCE_PUBLIC_CONDITIONAL_V180",
+  "original_graph_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/graphs/G0-current-v180.json",
+  "original_graph_sha256": "e79b3df3ff21e45568d720feaeaa03f01af01ce72c339a2ae84d74837f742ee6",
+  "source_instance_ids": [
+    "draft.shared_kv.layer40",
+    "draft.shared_kv.layer41",
+    "draft.shared_kv.layer42"
+  ],
+  "source_case_templates": [
+    "DSPARK_SHARED_KV"
+  ],
+  "original_atom_union": [
+    "context.KV_projection",
+    "context.KV_norm",
+    "context.KV_RoPE",
+    "context.assembly",
+    "context.slot_publish"
+  ],
+  "original_specific_node_mapping": {
+    "proj": "proj",
+    "norm": "norm",
+    "rope": "rope",
+    "cat": "cat",
+    "slots": "slots",
+    "scatter": "scatter"
+  },
+  "nodes": [
+    {
+      "id": "F29/conditional_region",
+      "kind": "PROPOSED_FUSION_SPLIT_OR_REPARTITION_REGION",
+      "not_all_footprint_nodes_must_be_fused_simultaneously": true
+    },
+    {
+      "id": "DRAFT_CONTEXT_AND_LAYER_OWNED_KV",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "DRAFT_CONTEXT_AND_LAYER_OWNED_KV",
+        "modules": [
+          "M15",
+          "M18",
+          "M19",
+          "M21",
+          "M24"
+        ],
+        "writer_ports": [
+          "common ordered target aux concat/proj/full5120norm/contextbank",
+          "3layer-specific WKV+norm/RoPE/scatter"
+        ],
+        "reader_ports": [
+          "layer40query->layer40KV",
+          "layer41query->layer41KV",
+          "layer42query->layer42KV",
+          "futureeligible generation readers"
+        ],
+        "identity_and_epoch": "context positions,slots,accepted/request generation,shared cache layer",
+        "conditional_fusion_split_or_reorder_answer": "Share common context loads or joint1536projection input,retain3distinct512outputs,3norms,per-layerparameters/rotary/cache-group/slots and first-layer readiness. Common context/shared method name is not equal KV results;original guards/store ordering preserved.",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-operator-contract-v64.json"
+        ]
+      }
+    },
+    {
+      "id": "KV_RING_INDEX_CACHE",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "KV_RING_INDEX_CACHE",
+        "modules": [
+          "M02",
+          "M08",
+          "M09",
+          "M10",
+          "M18",
+          "M21",
+          "M24"
+        ],
+        "writer_ports": [
+          "SWA scatter",
+          "compressed pool/key/scale writes",
+          "draft shared-KV scatter",
+          "accept/reset/recycle"
+        ],
+        "reader_ports": [
+          "current and future attention",
+          "index scoring",
+          "C2 old-ring pool",
+          "prefix reuse"
+        ],
+        "identity_and_epoch": "cache family,source layer,request,page/slot generation,logical position,committed prefix",
+        "conditional_fusion_split_or_reorder_answer": "write/read/retire/overwrite ordered per physical range; duplicate logical indices retain attention multiplicity Full32/private16/paired compact-owner alternatives retain SWAanchor/globalID reservation,half-owner lifetime,ABA generation,lastqueuedwriter and oldpoolread-before-update;not universalhalf-capacity saving.",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    },
+    {
+      "id": "POSITION_COUNT_SLOT_METADATA",
+      "kind": "PRESERVED_PUBLIC_STATE_OR_CONSUMER_INTERFACE",
+      "contract": {
+        "id": "POSITION_COUNT_SLOT_METADATA",
+        "modules": [
+          "M02",
+          "M04",
+          "M08",
+          "M09",
+          "M10",
+          "M14",
+          "M18",
+          "M21",
+          "M22",
+          "M24"
+        ],
+        "writer_ports": [
+          "scheduler/metadata publication"
+        ],
+        "reader_ports": [
+          "SWA and compressed KV",
+          "indexer",
+          "compressor ring",
+          "Engram hash/cache",
+          "draft context/query",
+          "graph replay"
+        ],
+        "identity_and_epoch": "request,page lease generation,token position,actual/padded rows,rank ownership",
+        "conditional_fusion_split_or_reorder_answer": "share arithmetic only for identical logical domains; identical shape or zero local count is insufficient",
+        "unknown_native_alias_or_unlisted_observer": "PRESERVE_INTERFACE_AND_ALL_ORIGINAL_EFFECTS;not proof of absence",
+        "actual_all_native_consumers_or_complete_retirement_proved": false,
+        "authority": [
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/module-phase-branch-matrix-v177.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/operator-conclusions-from-profile.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v176/public-bank-epoch-and-role-review.json",
+          "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v178/exact-guard-operator-contract-review.json"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "producer": "F29/conditional_region",
+      "consumer": "DRAFT_CONTEXT_AND_LAYER_OWNED_KV",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F29/conditional_region",
+      "consumer": "KV_RING_INDEX_CACHE",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    },
+    {
+      "producer": "F29/conditional_region",
+      "consumer": "POSITION_COUNT_SLOT_METADATA",
+      "kind": "PRESERVE_ALL_NAMED_PUBLIC_READ_WRITE_ALIAS_AND_EPOCH_EFFECTS"
+    }
+  ],
+  "original_node_mapping": [
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/context",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/proj",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/norm",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/rope",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/cat",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/slots",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/scatter",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/persistent_swa_state",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    },
+    {
+      "original_ref": "definition:DSPARK_SHARED_KV/context_positions",
+      "proposed_region": "F29/conditional_region",
+      "mapping_kind": "CONDITIONAL_PARTITION_MEMBERSHIP;KEEP_REQUIRED_PORTS"
+    }
+  ],
+  "allowed_transformations": "Existingfamily-specific variants and typed conditions in immutable candidate/semantic/cost records;region is a footprint,not proof that its union is oneinvocation or onelegal kernel.",
+  "specific_variant_authorities": [
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v179.json#F29",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v179/semantic-contract-sufficiency-review.json",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v174/all42-composition-coverage.json"
+  ],
+  "conditional_limits": {
+    "candidate": "F29",
+    "templates": [
+      "DSPARK_SHARED_KV"
+    ],
+    "instance_ids": [
+      "draft.shared_kv.layer40",
+      "draft.shared_kv.layer41",
+      "draft.shared_kv.layer42"
+    ],
+    "conditional_template_refs": [],
+    "state_envelope_refs": [
+      "DRAFT_CONTEXT_AND_LAYER_OWNED_KV",
+      "KV_RING_INDEX_CACHE",
+      "POSITION_COUNT_SLOT_METADATA"
+    ],
+    "conditional_native_legality_not_promoted": true,
+    "common_input_is_not_common_output": true
+  },
+  "implemented": false,
+  "performance_gain_measured": false
+}

@@ -1,0 +1,32 @@
+{
+  "policy": "PROFILE_FIRST_TARGETED_SOURCE_ONLY",
+  "new_target_source_read_yet": false,
+  "questions": [
+    {
+      "candidates": ["F06", "F32"],
+      "profile_checked": ["f32-ep0-7-projection-rows.json", "f32-ep3-projection-stacks.json", "f32-ep3-layer36-device-flows.json", "f32-ep3-layer36-scope.json", "f32-ep3-tensor-group.json", "f32-ep3-oprange-tensor.json"],
+      "profile_fact": "Selected Q physical M differs from global KV M; allgather host/connection/group metadata recorded; selected op_range candidates have no tensor metadata.",
+      "minimal_semantic_question": "For the frozen CP path, is local Q a subview of global KV hidden, and which consumers require global hidden after moving projection before allgather?",
+      "minimal_source_locations_if_needed": ["context_parallel/dsa_v41_cp.py:_prepare_inputs_and_caches", "dsa_v41.py:_preprocess and _prepare_indexer_inputs", "model.py:DeepseekV41DecoderLayer.forward"],
+      "reuse_first": "F06-CP-SHARED-INPUT-ROW-DOMAINS.md already proves the nonempty local/global subview condition; inspect only unresolved global consumers if this changes a candidate judgment.",
+      "code_cannot_settle": "Historical tensor identity, allocation generation, actual CP range or same physical collective across rank databases."
+    },
+    {
+      "candidates": ["F10"],
+      "profile_checked": ["f32-ep3-projection-stacks.json", "f32-ep3-layer36-device-flows.json"],
+      "minimal_semantic_question": "Which projection rounding, packed/nonpacked consumer and weight/query-scale casts must be retained when combining the weight epilogue?",
+      "minimal_source_locations_if_needed": ["indexer.py:project_weights and select_projected"],
+      "reuse_first": "COVERAGE-GAP-AUDIT-AND-F10.md contains the finite-BF16 power-of-two conditional result and FP16 scale-move counterexample.",
+      "code_cannot_settle": "Scalar value/lowering in the historical call or identity of same-shape cast/mul tasks."
+    },
+    {
+      "candidates": ["F16"],
+      "profile_checked": ["f16-ep3-projection-provenance.json", "f16-ep3-host-tensor-ops.json", "f16-ep3-oprange-tensor.json", "f16-ep8-task-metadata.json"],
+      "minimal_semantic_question": "Does the first projection's BF16 output cross an observable rounding boundary, and which padding/collective domain must a tiled rewrite retain?",
+      "minimal_source_locations_if_needed": ["dsa_cp.py:_forward_o_proj and _apply_wo_b", "dsa_v41_cp.py:_project_output"],
+      "reuse_first": "F16-TWO-PROJECTION-TILE-AND-ROUNDING.md already records these local contracts and distinguishes pre-exchange padding from post-exchange tail rows.",
+      "code_cannot_settle": "Historical view strides/storage and whether a particular tail branch actually executed."
+    }
+  ],
+  "overall_complete": false
+}

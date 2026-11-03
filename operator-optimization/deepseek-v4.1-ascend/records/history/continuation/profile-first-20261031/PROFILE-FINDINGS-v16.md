@@ -1,0 +1,17 @@
+本轮取得实质进展，整体优化分析仍未完成。继续采用“充分使用已保存profile，仅对影响结论的具体问题补查代码”。本轮没有模型运行、NPU操作、服务变更或优化实现。
+
+14,720条通信记录现已全部归属：4,639条原生直接源码关联、1条队列补链来源、10,080条图控制关联。最后一条图外AlltoAll通过原生connection→CANN launch→Dequeue→解码flow→唯一Enqueue及最内层调用栈，确认是attention的restore_tp_heads；同进程、操作名和CPU顺序都通过。原始记录未被改写。
+
+21条完整通信栈的语义已审查。原生来源分为主模型3,352次、草稿propose1,144次、execute_dummy_batch路径144次。dummy是调用路径标签，不能当成启动开销或直接从固定负载成本中删除。主模型的embedding、Engram、attention输入gather、head恢复、输出reduce-scatter、DSpark辅助残差、MTP完整HC状态/FP32 premix和词表logits均已分开。80次图执行的通信序列完全一致，每图126次，每层恰好3次，层外6次；图结构角色与Python直接来源采用不同证据等级。原生EP/MC2内部路由和16个图的阶段仍未解决。
+
+80个同形KV歧义都集中于第20层。每图其他39个SWA KV都在一条流上，第20层也恰有一个候选在同一流；另一候选在主流。定点源码确认SWA KV使用持久aux stream，C1 compressor使用主流。由此得到受源码/执行流约束的角色判断，仍保留全部候选，不把它写成tensor pointer或全部消费者证明。Q仍是3行，SWA KV仍是24行，直接同M拼接Q/KV的方案不适用。
+
+新增F33：第20层C1 compressor和SWA KV使用同一cache_hidden，都是BF16的5120→512无bias投影，可研究共享读入、联合分块或联合投影。必须保留两个独立512宽norm，不能换成一次1024宽norm；还要保留C1向index/longKV发布与SWA缓存发布、输出stride/固定地址和已有流重叠。它只属于C1分支，C2的FP32投影另行处理。若与F32前移通信联合分析，C1层条件接口为原始hidden每行10,240字节，对比两路512宽BF16每行2,048字节，逻辑特征宽度比5；这不是实测网络/HBM节省或5倍提速。
+
+新增H07：当前VL模型要求原始token IDs，预处理仍会生成embedding；无prompt embeds的dummy捕获选择inputs_embeds=None，图内因此再次embedding，而缓存图回放不重新执行Python输入选择。对已捕获原始ID图的纯文本回放，可研究保留图内producer、跳过图外embedding/copy；另一互斥方案是捕获消费inputs_embeds的图，保留外部producer。它们都须先补齐实际entry条件、embedding primitive副作用、持久buffer消费者和生命周期。不能把88次图外embedding全部判死，不能跳过整个_preprocess，也不能删除prefill/eager/图像/soft或prompt embedding路径。
+
+H06得到一个明确的否定结论：K5保持不变时，当前uniform descriptor要求行数是6的倍数，TP/DSA-CP又要求是8的倍数，最小正公共行数是24。16行不能通过简单改capture-size设置直接替换。源码还确认了spec尺寸取整、TP过滤，以及未跳过DP同步时图执行采用各DP最大padding。attention/query域与EP buffer分离或非uniform/ragged图仍是条件重组方案，不能据此减少EP参与和receive/combine。
+
+SDK定点证据补出NS_TO_US=1000、FFTS委托公式和calculator对应chip_model列表；实际捕获chip_model、频率单位/来源、counter聚合及duration导出转换仍未绑定。没有应用物理归一化，也没有MFU结论。
+
+当前台账为33项模型候选、7项框架候选，26个整体模块仍未全部闭合。下一步优先用已保存profile补EngineCore/前缀hash/原生EP与资源分母的关键证据；保留本轮各项条件，不重复做已闭合的通信来源查询。Goal保持active。

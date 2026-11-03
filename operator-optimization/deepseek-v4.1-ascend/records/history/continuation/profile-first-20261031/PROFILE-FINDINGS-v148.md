@@ -1,0 +1,15 @@
+本轮补齐 profile 精度字段这一关键证据问题；没有新增融合关系，也没有关闭实际内核精度或物理理论上限。整体目标仍未完成。
+
+32份原始DB中的207750条COMPUTE_TASK_INFO记录及286950条TASK关联，已逐库通过STRING_IDS解码hf32Eligible；零缺失标记字符串、零重复globalTaskId定义组。关联结果为NO 284070、YES 1120、N/A 1760。它们覆盖全部2082个既有算子用例，并投影到26个模块候选集合，原归属歧义保留。另821262条TASK没有该表的关联信息，本轮保留其逐库解码的类型标签，不据此推断为零工作或新增缺失算术任务；COMPUTE表命名空间本身也含通信标签。
+
+官方schema要求通过STRING_IDS读取标记，N/A表示未识别。直接把非零整数ID转为bool，会把本次全部286950条关联误判为启用；这是非法推断，不是本任务曾采用的精度结论。[官方字段说明](https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta1/devaids/Profiling/atlasprofiling_16_1144.html)。该文档为9.1beta1背景资料，未证明与历史9.2导出实现完全相同。
+
+1120条YES的Host标签全部为AI_VECTOR_CORE；显式MatMul/QuantBatchMatmul/TransposeBatchMatMul、HC和MC2均为NO。定点读取的DSpark索引kernel只包含整数索引、比较、归约和存储，没有dot或浮点转换；同算子名的88条记录含87条YES和1条NO。这里没有证明二进制相同，但足以阻止仅凭YES就把该任务当成HF32矩阵工作、套用Cube峰值。28367条已有关联角色、23975个唯一TASK也完成字段投影；一条API-only记录继续保留。
+
+另一方面，已审查的HC源码在AB乘法前显式开启HF32、设置转换模式，乘法后关闭；A2 Gram路径首次进入时的模式仍未绑定。任务级NO没有单独回答历史加载的是哪份二进制、内部每段Mmad用了什么模式。可能是源码对应的混合控制没有被该外层标记完整描述，也可能历史加载实现不同，本轮不选择缺乏证据的解释，更不直接判定profile错误。
+
+旧版SetHF32TransMode的布尔参数有独立语义：true对应向零，false对应最近偶数。[旧版接口文档](https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/850/API/ascendcopapi/atlasascendc_api_07_0259.html)。在该布尔重载下源码字面量1会转为true；这仍不是已安装9.2头文件或加载对象的证明，也不能按数值把它换成新版C接口的枚举。当前HF32文档描述的转换与模式适用范围也需保留版本边界。[HF32说明](https://asc.gitcode.com/api/SIMD-API/c_api/cube_compute/mmad_compute_key_features/HF32.html)。融合若合并原有kernel上下文，需要保留每阶段控制和舍入合同，不能采用一个任务标记或一个全局模式替代。
+
+理论分析保留24个HC/router和C2 KV/score的受限经典程序模式案例，以及8个HC源码模式状态机。采用既有2201、24 AIC参考，分别保留FLOAT/HF32的每周期容量；只有实际模式和共同资源池匹配时才能合并工作切面。它们不是全算法下界、实际物理时钟上界或提速倍数。历史加载二进制、首次模式、舍入状态、真实物理容量和同请求端点仍缺证据。
+
+六个模块在既有归属映射中没有匹配的native regime，这不代表零利用率。全模块MFU与最低利用率仍为NOT_ESTABLISHED。条件关系192组、联合组26组、待核对403组保持不变；35模型候选、7历史框架记录、358语义行/26模块及部分图保留。9类/1352次原生输入、849个PMU缺口、16个phase未绑定图、3136项归属歧义均未关闭。没有服务器登录、设备上下文、模型、采集或replay运行。

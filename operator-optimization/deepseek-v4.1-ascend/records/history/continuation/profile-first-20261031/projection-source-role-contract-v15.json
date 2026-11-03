@@ -1,0 +1,68 @@
+{
+  "role_map": {
+    "Q_A": {
+      "source_file": "attention/dsa_v41.py",
+      "line": 467,
+      "role": "Q low-rank projection",
+      "output_width": 1280
+    },
+    "KV": {
+      "source_file": "attention/dsa_v41.py",
+      "line": 475,
+      "role": "SWA KV projection",
+      "output_width": 512
+    },
+    "Q_NORM": {
+      "source_file": "attention/dsa_v41.py",
+      "line": 477,
+      "role": "Q normalization"
+    },
+    "KV_NORM": {
+      "source_file": "attention/dsa_v41.py",
+      "line": 487,
+      "role": "KV normalization"
+    },
+    "WO_A": {
+      "source_file": "attention/context_parallel/dsa_cp.py",
+      "line": 1784,
+      "role": "grouped attention output projection A"
+    },
+    "WO_B": {
+      "source_file": "attention/context_parallel/dsa_cp.py",
+      "line": 1795,
+      "role": "attention output projection B"
+    }
+  },
+  "source_pins": {
+    "attention/dsa_v41.py": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+    "models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+    "attention/context_parallel/dsa_cp.py": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305"
+  },
+  "reviewed_ranges": {
+    "attention/dsa_v41.py": [
+      448,
+      492
+    ],
+    "models/deepseek_v41/model.py": [
+      884,
+      906
+    ],
+    "attention/context_parallel/dsa_cp.py": [
+      1774,
+      1800
+    ]
+  },
+  "existing_optimizations": [
+    "Conditional Q/KV quantization sharing at451-460 already exists.",
+    "Q_a Cube overlaps KV quantization; KV Cube overlaps Q normalization/quantization; Q_b Cube overlaps KV norm/RoPE,with explicitstream events andjoin.",
+    "SPallgather898 andSP reduce_scatter901 are explicit layer boundaries."
+  ],
+  "conclusions": [
+    "Directsame-rowconcatenation cannot simplymerge observedCPQ/KV domains. Ragged/selectiveprojectionorrepartitionedalgorithms areseparateconditionalvariants.",
+    "Removing eitherstreamjoin or currentoverlap cannotbe priced fromshorterlaunchcount.",
+    "F32mustretain36vs4global-raw-consumerrolesandcompleteownership/numerical/cachecontracts;nodeidentitiesat80ambiguousblocksremainexplicit."
+  ],
+  "scope": "NarrowSHA-pinnedcachedsourcequestions;notfullmodulesourceaudit",
+  "optimization_implementation": false,
+  "overall_complete": false
+}

@@ -1,0 +1,101 @@
+{
+  "id": "F25_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ENGRAM",
+  "original_node_mapping": {
+    "proj": "proj",
+    "gate": "gate"
+  },
+  "nodes": [
+    {
+      "id": "proj",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "gate",
+      "kind": "FUSED_GATE_OR_ROTATED_GATE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "proj",
+      "consumer": "gate",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "rows",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "residual",
+      "consumer": "gate",
+      "value": "HC residual",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v30": {
+    "model_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-profile-ledger-v30.json#F25",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-lookup-publication-and-gate-contract-v30.json",
+    "variants": [
+      {
+        "id": "F25-v30-PARAM",
+        "state": "CONDITIONAL_PARAMETER_GENERATION_CSE",
+        "change": "CacheFP32q*kperlayerandFP32blockrotationperimmutable/versionedparameterstorage.",
+        "requires": "Sameoperationrounding/device/dtypeandload/weight/adaptor/version;invalidateonreload/move/cast/update,keepcapturedaddresses;samematrixshapeisnotparameteridentity."
+      },
+      {
+        "id": "F25-v30-GATE",
+        "state": "CONDITIONAL_FUSION",
+        "change": "Joinblock32rotation,casts,twofull-featureRMS,weighteddot,signedsqrt/sigmoid/maskandresidual.",
+        "requires": "Originalresidualbasis,BF16boundaries,FP32order,eps,signbit/signedzero/NaN/Infand4HCsharedvalueconsumers;orthogonalitydoesnotcancelnumericalnorm/rounding."
+      },
+      {
+        "id": "F25-v30-WKV-TILE",
+        "state": "CONDITIONAL_SPLIT_OR_LARGER_FUSION",
+        "change": "WKVoutputtilesfeedkeynorm/dotandsharedvaluegatewithoutunnecessaryglobalintermediates.",
+        "requires": "All5120featurescontributetonorm/dot;defergateuntilreductionsready,retainBF16WKVroundingandvalueforall4HCstreams."
+      },
+      {
+        "id": "F25-v30-PROJECTION-SHARD",
+        "state": "CONDITIONAL_ALTERNATIVE_PARTITION;NOT_BITWISE_PROVED",
+        "change": "Reviewlocal-headpartialWKVwithrowReduceScatterasanothercommunication/weightpartition.",
+        "requires": "NewsplitreductionchangesFPaccumulation;exactbaselineBF16roundingnotproved. Comparelarger25600output/FP32partialcommunicationvs6144BF16inputexchange,weightsandgroup/captureconstraints;notafreespeedup."
+      },
+      {
+        "id": "F25-v30-EXCLUDED",
+        "state": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+        "change": "Treatrotationasdense5120square,deleteRMSusingidealorthogonality,reusegateactivationsacrosslayersoroverwritevalueafteroneHCstream.",
+        "reason": "Profileblock32,actualrounding/fullfeaturedependenceandfoursharedconsumerscontradictthoseclaims."
+      }
+    ],
+    "conditions": 13,
+    "implementation": false,
+    "new_performance_result": false
+  },
+  "review_v62": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-regime-models-v62.json",
+    "graph_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-graph-operator-chains-v62.json",
+    "C2_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/C2-state-and-pool-costs-v62.json",
+    "Engram_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-hash-UVA-and-gate-costs-v62.json",
+    "operator_contracts": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-operator-contract-v62.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/state-engram-fusion-variants-v62.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v62.json",
+    "relation": "276M08member/M14strictregimes13704exactnativeexecutions,13projectionoverlap808;263newregimes12896exec. 25conditional/rejectiondecisionswithsourcework/logicalIOandtypedcapacitygates,31semanticfamilies. No wholemodelcompletion.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

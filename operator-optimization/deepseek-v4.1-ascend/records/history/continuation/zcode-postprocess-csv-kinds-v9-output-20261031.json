@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_af4b1d70-26c3-4d68-9e92-a6619622ba92",
+  "traceId": "334cca44-6954-4102-9517-563076a6a9f3",
+  "turnId": "turn_50acae46-5614-4273-a2af-c1ee797f9b0c",
+  "response": "审计已原样跑完，未做任何修复或推断。\n\n**执行结果**\n- 外层 `remote_run.py` 真实 returncode = 0；回执内 `returncode` = 0。\n- 固定 SHA 来源库 `database_sha256 = 084b8718…fad234c4`，`database_stat_unchanged = true`。\n- `no_target_source_read = true`，`no_device_or_inference_work = true`；未读目标源码、未动服务。\n- 完整大结果留在服务器：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/ep3-postprocess-and-csv-kind-audit-v9.json`（sha256 `f9c90952…d6e1c0850`）；本地只落回执 `profile-postprocess-csv-kinds166-v9.json`。\n\n**F30 proposer 后处理数量**\n- 后处理签名组 462 个，compute 记录 5131 条。\n- 选中的 add/argmax/copy 组 24 个，计数：Slice 195、Add 65、Cast 65、ArgMaxV2 65、ViewCopy 143。\n\n**COMM / TASK 严格匹配（仅对 CSV 未匹配条目）**\n- COMM 行 1849 条，全部按原 name/start/end 精确命中 1 条 COMM：`hcom_allGather_` 698、`hcom_reduceScatter_` 559、`hcom_alltoall_` 556、`hcom_allReduce_` 36。\n- TASK 总行 120420；本次未匹配条目中，AICPU kernel 按完整四字段精确命中 TASK 共 278 条：`allgatherAicpuKernel` 116、`alltoallAicpuKernel` 80、`reduce_scatterAicpuKernel` 80、`allreduceAicpuKernel` 2（均 `KERNEL_AICPU`）。\n\n**仍未匹配（保持未匹配，未做时间近邻/来源猜测）**\n- 4 个 AI_VECTOR_CORE kernel 类型，共 242 行，COMM=0、TASK=0：\n- `_prepare_indexer_indices_kernel` 88\n- `_quantize_indexer_query_kernel` 88\n- `_cache_update_kernel` 33\n- `_pool_kernel` 33\n\n**状态与口径**\n- `overall_complete = false`，原因是上述 242 行仍未匹配；这是审计脚本按“未匹配保持未匹配”的冻结口径给出的结果，不是执行失败。\n- 按要求，COMM 区间与嵌套的物理 kernel 时长未相加、未合并为不重叠工作量。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 42369,
+    "outputTokens": 2937,
+    "totalTokens": 45306,
+    "cacheReadTokens": 32896,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2178,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 45306,
+    "contextUsed": 12181,
+    "contextWindow": 200000
+  }
+}

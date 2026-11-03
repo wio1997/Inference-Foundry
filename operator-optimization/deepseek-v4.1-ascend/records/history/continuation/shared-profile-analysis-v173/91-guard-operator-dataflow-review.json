@@ -1,0 +1,1255 @@
+{
+  "status": "ALL91_EXISTING_FRONTIER_SITES_REVIEWED_IN25_OPERATOR_EFFECT_DOMAINS",
+  "site_count": 91,
+  "family_count": 25,
+  "source_receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v173/lifecycle-operator-effects-source.json",
+  "families": [
+    {
+      "id": "STREAM_ENTRY",
+      "line_first": 326,
+      "line_last": 333,
+      "operator_owners": "M22/M23",
+      "source_effect": "Different current/capture streams require the original wait_stream producer ordering. Same stream needs no new cross-stream edge.",
+      "fusion_split_reorganization_contract": "Fusion/repartition may change granularity, but cannot drop a producer-ready fence merely because a graph pointer or output shape is stable."
+    },
+    {
+      "id": "METADATA_ENABLE",
+      "line_first": 3909,
+      "line_last": 3921,
+      "operator_owners": "M21/M22",
+      "source_effect": "Dummy attention metadata is built iff force_attention or runtime mode FULL; is_profile is passed but not read by this base predicate.",
+      "fusion_split_reorganization_contract": "A torch profiler being active is not the _dummy_run is_profile argument. Preserve override selection; metadataNone is not an all-model no-op certificate."
+    },
+    {
+      "id": "VALID_ENTRY",
+      "line_first": 3943,
+      "line_last": 3949,
+      "operator_owners": "M04/M21",
+      "source_effect": "Encoder-only early return and valid runtime mode assertion remain before downstream work.",
+      "fusion_split_reorganization_contract": "Outside the current text-model domain preserve baseline branches and errors; do not expand framework validation as a kernel-research task."
+    },
+    {
+      "id": "SCHEDULED_ROWS",
+      "line_first": 3963,
+      "line_last": 3985,
+      "operator_owners": "M04/M21/M23",
+      "source_effect": "Uniform decode partitions ceil(T/q) requests with an exact short final request; profile_cpp uses one request; ordinary mode balances across min(T,Rmax). create_mixed raises.",
+      "fusion_split_reorganization_contract": "Preserve ordered per-request token counts and row ownership. T=0 is not licensed as a valid helper invocation by this body; unchanged errors remain. Shape or total count equality does not prove request identity."
+    },
+    {
+      "id": "EPLB_BEFORE_AND_PADDING",
+      "line_first": 3987,
+      "line_last": 4035,
+      "operator_owners": "M12/M21/M23/M24",
+      "source_effect": "EPLB hooks surround work; DP padding uses repeat in eager NONE and np.pad otherwise; padded token/request domains are distinct.",
+      "fusion_split_reorganization_contract": "Fuse input/metadata generation only from the same authoritative ordered schedule. Keep allocated/sent/received rows separate and heat/owner updates if enabled; no full-buffer hoist from stable capacity."
+    },
+    {
+      "id": "ATTENTION_STATE_AND_LENGTHS",
+      "line_first": 4047,
+      "line_last": 4091,
+      "operator_owners": "M07/M10/M21/M23",
+      "source_effect": "Built metadata selects DecodeOnly except MTP/MLA alternatives, chooses profile/PA/default lengths, permits DCP adjustment, writes current valid lengths and clears the remaining length bank before copy.",
+      "fusion_split_reorganization_contract": "A combined metadata kernel may directly emit the final padded bank only if every consumed tail, DCP ownership and copy-ready edge is preserved. DSpark and MTP are different domains; no whole-schedule default substitution."
+    },
+    {
+      "id": "START_LOC_AND_CIRCULAR_STATE",
+      "line_first": 4093,
+      "line_last": 4130,
+      "operator_owners": "M02/M21/M24",
+      "source_effect": "Cumsum/start-location/GDN buffers have separate shapes; GDN skip emits zero starts. Circular cache groups may reset block table and per-layer cache state before commit.",
+      "fusion_split_reorganization_contract": "Partial bank writes require invalid-tail invariants. Do not reuse across groups/layers/generations from equal count; circular state clears and commit are observable writes, not dummy bookkeeping."
+    },
+    {
+      "id": "SLOT_MAPPING",
+      "line_first": 4134,
+      "line_last": 4149,
+      "operator_owners": "M02/M21/M22/M24",
+      "source_effect": "Outside capture every group slot map is filled -1; capture clears a prefix only for the stated uniform DeepSeekV41 cache groups.",
+      "fusion_split_reorganization_contract": "Sentinel initialization can fold into a full final writer or generation-aware virtual representation; cannot delete if any native/cache/other-layer reader can observe stale valid slots. Prefix-only and full-bank extents differ."
+    },
+    {
+      "id": "POSITION_AND_METADATA_PUBLICATION",
+      "line_first": 4151,
+      "line_last": 4180,
+      "operator_owners": "M07/M08/M09/M21",
+      "source_effect": "Compressed attention publishes position127 to device and CPU buffers; alternative position-using path clears a prefix. Metadata build consumes padded/unpadded/request/group descriptors.",
+      "fusion_split_reorganization_contract": "Constant position specialization may share position-derived work under exact dtype/order/config keys, but cache/slot effects and all consumers remain. Both CPU and device banks and copied epochs must agree."
+    },
+    {
+      "id": "LORA_STATE_CONTEXT",
+      "line_first": 4181,
+      "line_last": 4190,
+      "operator_owners": "M04/M07/M11/M12/M16/M22",
+      "source_effect": "Dummy LoRA context receives scheduled/sample counts,remove_lora and configured max_loras or requested active count.",
+      "fusion_split_reorganization_contract": "Adapter/weight generations and graph specialization are part of the value key. Preserve active-adapter context and restoration; identical base model weights or zero local requests do not authorize folding different adapter states."
+    },
+    {
+      "id": "INPUT_AND_POSITION_VIEWS",
+      "line_first": 4192,
+      "line_last": 4210,
+      "operator_owners": "M04/M05/M07",
+      "source_effect": "Select input IDs or embedding bank and ordinary/mRoPE position views under the actual feature guards.",
+      "fusion_split_reorganization_contract": "A public fused producer must keep valid extents and selected representation. Identical shape does not establish equal IDs, embedding values or multimodal expansion."
+    },
+    {
+      "id": "PP_INTERMEDIATE_ROWS",
+      "line_first": 4215,
+      "line_last": 4234,
+      "operator_owners": "M04/M05/M23",
+      "source_effect": "First PP rank has no intermediate tensor input; later stages allocate/view an intermediate bank, with ceil(T/TP) rows under SP.",
+      "fusion_split_reorganization_contract": "Repartition must keep stage and row-owner contracts; no free global visibility or pre-padded logical row count. Current PP1 can bypass only the non-first-stage domain when configuration is bound."
+    },
+    {
+      "id": "DUMMY_LOGIT_DEMAND",
+      "line_first": 4237,
+      "line_last": 4255,
+      "operator_owners": "M16/M20/M21/M23",
+      "source_effect": "INT32 zero indices of length Rmax*uniform_decode_query_len are allocated; both callbacks read them only when need_dummy_logits is true, and draft callback also requires its model method.",
+      "fusion_split_reorganization_contract": "Guarded dead index allocation when no callback demands it; if demanded, repeated index0 is a conditional same-row head-work reuse opportunity. Keep all collectives and original output dimensions, precision/readers and publication. No blanket dummy head skipping."
+    },
+    {
+      "id": "FORCE_EPLB_AND_CONTEXT",
+      "line_first": 4273,
+      "line_last": 4276,
+      "operator_owners": "M12/M21/M23/M24",
+      "source_effect": "Forward context carries graph mode, model instance, sinks and optional EPLB heat; forced top-k is built only under its full non-capture/MoE/config guard.",
+      "fusion_split_reorganization_contract": "Route IDs/counts, heat and expert state are not ordinary discardable outputs. Keep original before/after state protocol and peer participation."
+    },
+    {
+      "id": "METADATA_EXECUTOR_RETIRE",
+      "line_first": 4281,
+      "line_last": 4281,
+      "operator_owners": "M21/M22/M24",
+      "source_effect": "An in-flight metadata submission is released after model forward.",
+      "fusion_split_reorganization_contract": "Release is tied to actual submission/consumer readiness. A pending writer as well as a last reader can prevent bank reuse; pointer/descriptor equality is insufficient."
+    },
+    {
+      "id": "OUTPUT_SELECTION",
+      "line_first": 4284,
+      "line_last": 4284,
+      "operator_owners": "M15/M18/M19",
+      "source_effect": "Auxiliary outputs change tuple unpacking; the selected hidden bank feeds target/draft heads.",
+      "fusion_split_reorganization_contract": "Demand pruning retains all required auxiliary/KV/state readers and precise output contract, not only the sampled rows."
+    },
+    {
+      "id": "DRAFT_PARTICIPATION",
+      "line_first": 4290,
+      "line_last": 4290,
+      "operator_owners": "M18/M19/M20/M23",
+      "source_effect": "Draft dummy_run occurs when drafter exists and not profile_cpp; receives padded counts, DP counts, descriptor/mode and in_graph_capturing=not force_attention.",
+      "fusion_split_reorganization_contract": "Preserve DP/EP participation, all receiver expert work and KV/state publication. The argument called in_graph_capturing here is not independently inferred from the ambient profiler or outer eager mode."
+    },
+    {
+      "id": "EPLB_AFTER",
+      "line_first": 4302,
+      "line_last": 4304,
+      "operator_owners": "M12/M24",
+      "source_effect": "Profile and non-profile paths clear/adapt or finish EPLB state differently.",
+      "fusion_split_reorganization_contract": "No state elimination from absent sampled outputs. Keep logical step and expert/parameter generations; warmup profiling and actual serving gains are separate."
+    },
+    {
+      "id": "POSITION_RESET",
+      "line_first": 4307,
+      "line_last": 4307,
+      "operator_owners": "M07/M08/M09/M24",
+      "source_effect": "Compressed forced-attention path resets device positions and CPU position buffer to0 after use.",
+      "fusion_split_reorganization_contract": "Combining set127/work/reset requires retaining the working value until all readers retire and restoring both banks. Replacing it by permanent0 or hoisting across calls is invalid without a stronger consumer certificate."
+    },
+    {
+      "id": "DUMMY_SAMPLER",
+      "line_first": 4318,
+      "line_last": 4318,
+      "operator_owners": "M16/M21",
+      "source_effect": "Encoder-only returns empty; otherwise select the final hidden row of each scheduled request then compute logits.",
+      "fusion_split_reorganization_contract": "This helper does not itself run the random sampler. Do not confuse it with real sampling, or infer raw/logprob/entropy readers dead from its name."
+    },
+    {
+      "id": "OFFLOAD_PROFILE_ALLOCATION",
+      "line_first": 4338,
+      "line_last": 4340,
+      "operator_owners": "M02/M10/M22",
+      "source_effect": "Optional sparse-KV-offload profiling buffers use existing cache specs or query them.",
+      "fusion_split_reorganization_contract": "Startup/profile allocation sizes are not steady-state per-request HBM work or universal necessary bytes. Preserve the applicable cache ownership/capacity contract."
+    },
+    {
+      "id": "MC2_PROFILE_CAPACITY",
+      "line_first": 4346,
+      "line_last": 4346,
+      "operator_owners": "M12/M22",
+      "source_effect": "When full token capacity exceeds MC2 capacity and selected comm is MC2/FUSED_MC2, run a compilation-disabled capped dummy profile before parent profiling.",
+      "fusion_split_reorganization_contract": "Allocated launch rows and receiver expert work remain distinct. A profile/cold-start cost is not repeated serving savings; no transfer of capped workspace identity to later captured graph banks."
+    },
+    {
+      "id": "EPLB_WARMUP",
+      "line_first": 4355,
+      "line_last": 4355,
+      "operator_owners": "M12/M22/M24",
+      "source_effect": "Only dynamic,not-yet-warmed EPLB initializes adaptor/loader/updater and warmup state.",
+      "fusion_split_reorganization_contract": "This is parameter/state setup with one-time guards; preserve its state/error order and do not count it as an every-iteration fusion win."
+    },
+    {
+      "id": "CAPTURE_FINALLY",
+      "line_first": 6434,
+      "line_last": 6434,
+      "operator_owners": "M14/M22",
+      "source_effect": "Engram capture-active flag is reset in finally even when capture raises; wrappers select the parent capture implementation.",
+      "fusion_split_reorganization_contract": "Successful-graph optimization must still keep exception cleanup and capture visibility; do not extend temporary capture state into future serving."
+    },
+    {
+      "id": "ENCODER_UPDATE_STREAM",
+      "line_first": 6441,
+      "line_last": 6441,
+      "operator_owners": "M05/M22",
+      "source_effect": "Encoder graph manager update stream is rebound only if manager and stream exist.",
+      "fusion_split_reorganization_contract": "Retain graph-owned stream/order compatibility. A stable graph descriptor is not native parameter or weak-reference lifetime proof."
+    }
+  ],
+  "site_reviews": [
+    {
+      "site_id": "8f28850582488195:330:4:331:39:If",
+      "line": 330,
+      "condition": "curr_stream != stream",
+      "enclosing_guards": [],
+      "family": "STREAM_ENTRY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3921:15:3921:78:BoolOp",
+      "line": 3921,
+      "condition": "force_attention or cudagraph_runtime_mode == CUDAGraphMode.FULL",
+      "enclosing_guards": [],
+      "family": "METADATA_ENABLE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3943:8:3946:53:If",
+      "line": 3943,
+      "condition": "mm_config and mm_config.mm_encoder_only",
+      "enclosing_guards": [],
+      "family": "VALID_ENTRY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3943:11:3943:50:BoolOp",
+      "line": 3943,
+      "condition": "mm_config and mm_config.mm_encoder_only",
+      "enclosing_guards": [],
+      "family": "VALID_ENTRY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3949:8:3949:93:Assert",
+      "line": 3949,
+      "condition": "cudagraph_runtime_mode is None or cudagraph_runtime_mode.valid_runtime_modes()",
+      "enclosing_guards": [],
+      "family": "VALID_ENTRY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3949:15:3949:93:BoolOp",
+      "line": 3949,
+      "condition": "cudagraph_runtime_mode is None or cudagraph_runtime_mode.valid_runtime_modes()",
+      "enclosing_guards": [],
+      "family": "VALID_ENTRY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3963:24:3963:87:IfExp",
+      "line": 3963,
+      "condition": "uniform_decode",
+      "enclosing_guards": [],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3967:8:3967:73:Assert",
+      "line": 3967,
+      "condition": "num_tokens <= self.scheduler_config.max_num_batched_tokens",
+      "enclosing_guards": [],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3969:8:3983:66:If",
+      "line": 3969,
+      "condition": "create_mixed_batch",
+      "enclosing_guards": [],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3971:8:3983:66:If",
+      "line": 3971,
+      "condition": "uniform_decode",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:3969:8:3983:66:If",
+          "variant": "false"
+        }
+      ],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3974:12:3975:74:If",
+      "line": 3974,
+      "condition": "num_tokens % max_query_len != 0",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:3969:8:3983:66:If",
+          "variant": "false"
+        },
+        {
+          "decision_id": "8f28850582488195:3971:8:3983:66:If",
+          "variant": "true"
+        }
+      ],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3976:8:3983:66:If",
+      "line": 3976,
+      "condition": "profile_cpp",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:3969:8:3983:66:If",
+          "variant": "false"
+        },
+        {
+          "decision_id": "8f28850582488195:3971:8:3983:66:If",
+          "variant": "false"
+        }
+      ],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3984:8:3984:59:Assert",
+      "line": 3984,
+      "condition": "sum(num_scheduled_tokens_list) == num_tokens",
+      "enclosing_guards": [],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3985:8:3985:57:Assert",
+      "line": 3985,
+      "condition": "len(num_scheduled_tokens_list) == num_reqs",
+      "enclosing_guards": [],
+      "family": "SCHEDULED_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3987:8:3988:46:If",
+      "line": 3987,
+      "condition": "not is_profile and self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:3987:11:3987:47:BoolOp",
+      "line": 3987,
+      "condition": "not is_profile and self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4001:24:4001:99:BoolOp",
+      "line": 4001,
+      "condition": "is_profile or cudagraph_runtime_mode == CUDAGraphMode.NONE or profile_cpp",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4014:8:4020:13:If",
+      "line": 4014,
+      "condition": "cudagraph_runtime_mode is None",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4017:12:4020:13:Assert",
+      "line": 4017,
+      "condition": "cudagraph_runtime_mode == _cudagraph_mode",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4014:8:4020:13:If",
+          "variant": "false"
+        }
+      ],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4022:26:4022:94:IfExp",
+      "line": 4022,
+      "condition": "batch_desc.num_reqs is not None",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4023:8:4032:100:If",
+      "line": 4023,
+      "condition": "num_tokens_across_dp is not None and num_tokens_padded != num_tokens",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4023:11:4023:79:BoolOp",
+      "line": 4023,
+      "condition": "num_tokens_across_dp is not None and num_tokens_padded != num_tokens",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4025:12:4032:100:If",
+      "line": 4025,
+      "condition": "_cudagraph_mode == CUDAGraphMode.NONE",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4023:8:4032:100:If",
+          "variant": "true"
+        }
+      ],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4034:8:4035:92:If",
+      "line": 4034,
+      "condition": "self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "EPLB_BEFORE_AND_PADDING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4047:12:4180:17:If",
+      "line": 4047,
+      "condition": "self._should_build_dummy_attn_metadata(force_attention, is_profile, cudagraph_runtime_mode)",
+      "enclosing_guards": [],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4048:16:4051:21:If",
+      "line": 4048,
+      "condition": "create_mixed_batch",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4053:16:4058:77:If",
+      "line": 4053,
+      "condition": "self.speculative_config and self.speculative_config.method == 'mtp'",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4053:19:4053:86:BoolOp",
+      "line": 4053,
+      "condition": "self.speculative_config and self.speculative_config.method == 'mtp'",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4055:20:4058:77:If",
+      "line": 4055,
+      "condition": "self.vllm_config.model_config.use_mla",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4053:16:4058:77:If",
+          "variant": "true"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4064:16:4071:21:If",
+      "line": 4064,
+      "condition": "profile_seq_lens is not None",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4068:24:4070:42:IfExp",
+      "line": 4068,
+      "condition": "is_graph_capturing and using_paged_attention(num_tokens, self.vllm_config)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4064:16:4071:21:If",
+          "variant": "false"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4069:27:4069:101:BoolOp",
+      "line": 4069,
+      "condition": "is_graph_capturing and using_paged_attention(num_tokens, self.vllm_config)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4064:16:4071:21:If",
+          "variant": "false"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4073:16:4087:61:If",
+      "line": 4073,
+      "condition": "self.use_dcp",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4086:20:4087:61:If",
+      "line": 4086,
+      "condition": "dcp_dummy_metadata is not None",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4073:16:4087:61:If",
+          "variant": "true"
+        }
+      ],
+      "family": "ATTENTION_STATE_AND_LENGTHS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4097:16:4104:58:If",
+      "line": 4097,
+      "condition": "self._has_gdn",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "START_LOC_AND_CIRCULAR_STATE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4098:20:4103:42:If",
+      "line": 4098,
+      "condition": "skip_gdn_state_update",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4097:16:4104:58:If",
+          "variant": "true"
+        }
+      ],
+      "family": "START_LOC_AND_CIRCULAR_STATE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4106:16:4114:21:If",
+      "line": 4106,
+      "condition": "not profile_cpp",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "START_LOC_AND_CIRCULAR_STATE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4121:16:4129:73:For",
+      "line": 4121,
+      "condition": "(gid, group) in enumerate(self.kv_cache_config.kv_cache_groups)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "START_LOC_AND_CIRCULAR_STATE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4122:20:4123:32:If",
+      "line": 4122,
+      "condition": "skip_gdn_state_update or not is_circular_kv_cache_spec(group.kv_cache_spec)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "START_LOC_AND_CIRCULAR_STATE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4122:23:4122:98:BoolOp",
+      "line": 4122,
+      "condition": "skip_gdn_state_update or not is_circular_kv_cache_spec(group.kv_cache_spec)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "START_LOC_AND_CIRCULAR_STATE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4128:20:4129:73:For",
+      "line": 4128,
+      "condition": "name in group.layer_names",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "START_LOC_AND_CIRCULAR_STATE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4134:16:4149:80:If",
+      "line": 4134,
+      "condition": "not is_graph_capturing",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "SLOT_MAPPING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4135:20:4137:60:For",
+      "line": 4135,
+      "condition": "kv_cache_gid in range(len(self.kv_cache_config.kv_cache_groups))",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4134:16:4149:80:If",
+          "variant": "true"
+        }
+      ],
+      "family": "SLOT_MAPPING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4139:20:4149:80:For",
+      "line": 4139,
+      "condition": "(kv_cache_gid, group) in enumerate(self.kv_cache_config.kv_cache_groups)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4134:16:4149:80:If",
+          "variant": "false"
+        }
+      ],
+      "family": "SLOT_MAPPING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4141:24:4144:36:If",
+      "line": 4141,
+      "condition": "not isinstance(group_spec, UniformTypeKVCacheSpecs) or not is_deepseek_v41_cache(self.kv_cache_config.kv_cache_groups)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4134:16:4149:80:If",
+          "variant": "false"
+        }
+      ],
+      "family": "SLOT_MAPPING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4141:27:4143:92:BoolOp",
+      "line": 4141,
+      "condition": "not isinstance(group_spec, UniformTypeKVCacheSpecs) or not is_deepseek_v41_cache(self.kv_cache_config.kv_cache_groups)",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4134:16:4149:80:If",
+          "variant": "false"
+        }
+      ],
+      "family": "SLOT_MAPPING",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4153:16:4165:63:If",
+      "line": 4153,
+      "condition": "self.use_compress",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "POSITION_AND_METADATA_PUBLICATION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4156:16:4165:63:If",
+      "line": 4156,
+      "condition": "self.uses_positions_for_attention",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        },
+        {
+          "decision_id": "8f28850582488195:4153:16:4165:63:If",
+          "variant": "false"
+        }
+      ],
+      "family": "POSITION_AND_METADATA_PUBLICATION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4172:34:4172:85:IfExp",
+      "line": 4172,
+      "condition": "pad_attn",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4047:12:4180:17:If",
+          "variant": "true"
+        }
+      ],
+      "family": "POSITION_AND_METADATA_PUBLICATION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4189:30:4189:110:IfExp",
+      "line": 4189,
+      "condition": "self.lora_config is not None",
+      "enclosing_guards": [],
+      "family": "LORA_STATE_CONTEXT",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4192:12:4192:59:Assert",
+      "line": 4192,
+      "condition": "num_tokens_padded <= self.max_num_tokens",
+      "enclosing_guards": [],
+      "family": "INPUT_AND_POSITION_VIEWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4193:12:4205:36:If",
+      "line": 4193,
+      "condition": "self.supports_mm_inputs and (not self.model_config.is_encoder_decoder) and (not self.model_config.requires_raw_input_tokens) or self.enable_prompt_embeds",
+      "enclosing_guards": [],
+      "family": "INPUT_AND_POSITION_VIEWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4194:16:4199:44:BoolOp",
+      "line": 4194,
+      "condition": "self.supports_mm_inputs and (not self.model_config.is_encoder_decoder) and (not self.model_config.requires_raw_input_tokens) or self.enable_prompt_embeds",
+      "enclosing_guards": [],
+      "family": "INPUT_AND_POSITION_VIEWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4195:20:4197:71:BoolOp",
+      "line": 4195,
+      "condition": "self.supports_mm_inputs and (not self.model_config.is_encoder_decoder) and (not self.model_config.requires_raw_input_tokens)",
+      "enclosing_guards": [],
+      "family": "INPUT_AND_POSITION_VIEWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4207:12:4210:62:If",
+      "line": 4207,
+      "condition": "self.uses_mrope",
+      "enclosing_guards": [],
+      "family": "INPUT_AND_POSITION_VIEWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4215:12:4235:17:If",
+      "line": 4215,
+      "condition": "get_pp_group().is_first_rank",
+      "enclosing_guards": [],
+      "family": "PP_INTERMEDIATE_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4223:16:4225:86:If",
+      "line": 4223,
+      "condition": "enable_sp()",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4215:12:4235:17:If",
+          "variant": "false"
+        }
+      ],
+      "family": "PP_INTERMEDIATE_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4226:16:4232:21:If",
+      "line": 4226,
+      "condition": "self.intermediate_tensors is None",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4215:12:4235:17:If",
+          "variant": "false"
+        }
+      ],
+      "family": "PP_INTERMEDIATE_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4228:20:4229:90:If",
+      "line": 4228,
+      "condition": "enable_sp()",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4215:12:4235:17:If",
+          "variant": "false"
+        },
+        {
+          "decision_id": "8f28850582488195:4226:16:4232:21:If",
+          "variant": "true"
+        }
+      ],
+      "family": "PP_INTERMEDIATE_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4234:60:4234:93:Call:comprehension",
+      "line": 4234,
+      "condition": "(k, v) in self.intermediate_tensors.items()",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4215:12:4235:17:If",
+          "variant": "false"
+        }
+      ],
+      "family": "PP_INTERMEDIATE_ROWS",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4237:32:4237:69:BoolOp",
+      "line": 4237,
+      "condition": "not is_profile and lmhead_tp_enable()",
+      "enclosing_guards": [],
+      "family": "DUMMY_LOGIT_DEMAND",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4248:16:4249:31:If",
+      "line": 4248,
+      "condition": "not need_dummy_logits",
+      "enclosing_guards": [],
+      "family": "DUMMY_LOGIT_DEMAND",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4253:16:4254:26:If",
+      "line": 4253,
+      "condition": "not need_dummy_logits or self.drafter is None",
+      "enclosing_guards": [],
+      "family": "DUMMY_LOGIT_DEMAND",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4253:19:4253:64:BoolOp",
+      "line": 4253,
+      "condition": "not need_dummy_logits or self.drafter is None",
+      "enclosing_guards": [],
+      "family": "DUMMY_LOGIT_DEMAND",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4255:16:4256:90:If",
+      "line": 4255,
+      "condition": "hasattr(self.drafter, 'model') and hasattr(self.drafter.model, 'compute_logits')",
+      "enclosing_guards": [],
+      "family": "DUMMY_LOGIT_DEMAND",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4255:19:4255:99:BoolOp",
+      "line": 4255,
+      "condition": "hasattr(self.drafter, 'model') and hasattr(self.drafter.model, 'compute_logits')",
+      "enclosing_guards": [],
+      "family": "DUMMY_LOGIT_DEMAND",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4273:44:4273:108:IfExp",
+      "line": 4273,
+      "condition": "self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "FORCE_EPLB_AND_CONTEXT",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4275:16:4277:75:If",
+      "line": 4275,
+      "condition": "not is_graph_capturing and self.ascend_config.enable_force_eplb and self.vllm_config.model_config.is_moe",
+      "enclosing_guards": [],
+      "family": "FORCE_EPLB_AND_CONTEXT",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4275:19:4276:60:BoolOp",
+      "line": 4275,
+      "condition": "not is_graph_capturing and self.ascend_config.enable_force_eplb and self.vllm_config.model_config.is_moe",
+      "enclosing_guards": [],
+      "family": "FORCE_EPLB_AND_CONTEXT",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4281:12:4282:57:If",
+      "line": 4281,
+      "condition": "active_device_metadata_executor is not None and active_device_metadata_executor.submission_in_flight",
+      "enclosing_guards": [],
+      "family": "METADATA_EXECUTOR_RETIRE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4281:15:4281:115:BoolOp",
+      "line": 4281,
+      "condition": "active_device_metadata_executor is not None and active_device_metadata_executor.submission_in_flight",
+      "enclosing_guards": [],
+      "family": "METADATA_EXECUTOR_RETIRE",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4284:12:4287:39:If",
+      "line": 4284,
+      "condition": "self.use_aux_hidden_state_outputs",
+      "enclosing_guards": [],
+      "family": "OUTPUT_SELECTION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4290:12:4301:17:If",
+      "line": 4290,
+      "condition": "self.drafter and (not profile_cpp)",
+      "enclosing_guards": [],
+      "family": "DRAFT_PARTICIPATION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4290:15:4290:47:BoolOp",
+      "line": 4290,
+      "condition": "self.drafter and (not profile_cpp)",
+      "enclosing_guards": [],
+      "family": "DRAFT_PARTICIPATION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4302:12:4303:63:If",
+      "line": 4302,
+      "condition": "is_profile and self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "EPLB_AFTER",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4302:15:4302:47:BoolOp",
+      "line": 4302,
+      "condition": "is_profile and self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "EPLB_AFTER",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4304:12:4305:79:If",
+      "line": 4304,
+      "condition": "not is_profile and self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "EPLB_AFTER",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4304:15:4304:51:BoolOp",
+      "line": 4304,
+      "condition": "not is_profile and self.dynamic_eplb",
+      "enclosing_guards": [],
+      "family": "EPLB_AFTER",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4307:12:4309:52:If",
+      "line": 4307,
+      "condition": "self.use_compress and force_attention",
+      "enclosing_guards": [],
+      "family": "POSITION_RESET",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4307:15:4307:52:BoolOp",
+      "line": 4307,
+      "condition": "self.use_compress and force_attention",
+      "enclosing_guards": [],
+      "family": "POSITION_RESET",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4318:8:4320:35:If",
+      "line": 4318,
+      "condition": "mm_config and mm_config.mm_encoder_only",
+      "enclosing_guards": [],
+      "family": "DUMMY_SAMPLER",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4318:11:4318:50:BoolOp",
+      "line": 4318,
+      "condition": "mm_config and mm_config.mm_encoder_only",
+      "enclosing_guards": [],
+      "family": "DUMMY_SAMPLER",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4338:8:4343:13:If",
+      "line": 4338,
+      "condition": "self.sparse_kv_offload_enabled",
+      "enclosing_guards": [],
+      "family": "OFFLOAD_PROFILE_ALLOCATION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4340:16:4340:80:BoolOp",
+      "line": 4340,
+      "condition": "getattr(self, 'kv_cache_spec', None) or self.get_kv_cache_spec()",
+      "enclosing_guards": [
+        {
+          "decision_id": "8f28850582488195:4338:8:4343:13:If",
+          "variant": "true"
+        }
+      ],
+      "family": "OFFLOAD_PROFILE_ALLOCATION",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4346:8:4351:88:If",
+      "line": 4346,
+      "condition": "self.max_num_tokens > mc2_tokens_capacity and select_moe_comm_method(mc2_tokens_capacity, self.vllm_config) in {MoECommType.MC2, MoECommType.FUSED_MC2}",
+      "enclosing_guards": [],
+      "family": "MC2_PROFILE_CAPACITY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4346:11:4348:53:BoolOp",
+      "line": 4346,
+      "condition": "self.max_num_tokens > mc2_tokens_capacity and select_moe_comm_method(mc2_tokens_capacity, self.vllm_config) in {MoECommType.MC2, MoECommType.FUSED_MC2}",
+      "enclosing_guards": [],
+      "family": "MC2_PROFILE_CAPACITY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4355:8:4360:44:If",
+      "line": 4355,
+      "condition": "self.dynamic_eplb and (not self.is_eplb_warmuped)",
+      "enclosing_guards": [],
+      "family": "EPLB_WARMUP",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:4355:11:4355:58:BoolOp",
+      "line": 4355,
+      "condition": "self.dynamic_eplb and (not self.is_eplb_warmuped)",
+      "enclosing_guards": [],
+      "family": "EPLB_WARMUP",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:6434:8:6438:47:Try",
+      "line": 6434,
+      "condition": "try/exception/finally",
+      "enclosing_guards": [],
+      "family": "CAPTURE_FINALLY",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:6441:8:6442:50:If",
+      "line": 6441,
+      "condition": "mgr is not None and self.update_stream is not None",
+      "enclosing_guards": [],
+      "family": "ENCODER_UPDATE_STREAM",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    },
+    {
+      "site_id": "8f28850582488195:6441:11:6441:61:BoolOp",
+      "line": 6441,
+      "condition": "mgr is not None and self.update_stream is not None",
+      "enclosing_guards": [],
+      "family": "ENCODER_UPDATE_STREAM",
+      "state": "CONDITIONAL_OPERATOR_EFFECTS_AND_RESTRUCTURING_REVIEWED",
+      "runtime_branch_taken": "NOT_AUTOMATICALLY_PROMOTED"
+    }
+  ],
+  "count_is_not_runtime_coverage": true,
+  "original900_other_navigation_sites_not_claimed_individually_reviewed": true,
+  "no_new_NPU_work": true,
+  "overall_complete": false
+}

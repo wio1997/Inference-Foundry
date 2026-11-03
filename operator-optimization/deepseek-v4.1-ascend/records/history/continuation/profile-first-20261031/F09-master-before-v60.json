@@ -1,0 +1,69 @@
+{
+  "id": "F09_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "iq": "iq",
+    "iq_rope": "iq_rope",
+    "iq_quant": "iq_quant"
+  },
+  "nodes": [
+    {
+      "id": "iq",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "iq_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "iq_quant",
+      "kind": "ROW_REDUCTION_INT8_QUANT",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "iq",
+      "consumer": "iq_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "iq_rope",
+      "consumer": "iq_quant",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "q_norm",
+      "consumer": "iq",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "iq_quant",
+      "consumer": "qli",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v43": {
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Index-source/long-context roles and five-term quantize guard, query/weight inputs, RoPE order and quantize_done consumer wait explicitly reconciled; floating query and optional quantized query remain separate."
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_0c383ff8-c765-4e97-8b2c-8898a460a7bf",
+  "traceId": "659d5983-6f98-421b-889d-994c2aaa9687",
+  "turnId": "turn_30b6a4c2-212b-4a74-ba61-57b0e9080dde",
+  "response": "## Result\n\nSelecting `ep == 3` and `digest` starting with `db852bff` yields **40 samples** (all `ep=3`, all the same full digest `db852bff98…eefc8`, matching group `3|db852bff98…` in `by_rank_digest`). Those 40 cover layers 0–39 exactly once each, and they split cleanly into two groups with **nothing in between**:\n\n**`duration_us < 50` — 29 samples**\n```\nlayers 1-20, 22-29, 32\n```\nIndividual values run 16.68–19.76 µs (lowest: layer 9 and layer 24 at 16.68 µs; highest in this group: layer 10 at 19.76 µs).\n\n**`duration_us > 200` — 11 samples**\n```\nlayers 0, 21, 30, 31, 33, 34, 35, 36, 37, 38, 39\n```\nValues run 252.88–265.06 µs: 21→252.88, 39→254.48, 38→259.82, 33→260.18, 36→260.88, 34→261.08, 35→261.58, 37→261.88, 0→263.86, 31→264.74, 30→265.06.\n\n**Middle (`50 ≤ duration_us ≤ 200`) — 0 samples.** The band 50–200 µs is completely empty: the largest short value is 19.76 µs and the smallest long value is 252.88 µs, a ~12.8× gap. So the requested \"middle values\" list is empty.\n\nGroup sizes sum to 29 + 0 + 11 = 40, matching the selection. Note the file's own whole-file aggregate shows the same pattern (`n=640`, `short_n=31`, `middle_n=0`, `long_n=609`), with thresholds declared as `short_lt: 50`, `long_gt: 200`.\n\n## Command and exit code\n\nI ran the filter as a Python heredoc against the file, reading it only (no writes):\n\n```bash\npython3 - <<'PY'\nimport json\nd = json.load(open('agents/fusion/f08-scatter-variation.json'))\nsel = [s for s in d['all_samples_sorted']\n       if s['ep'] == 3 and str(s['digest']).startswith('db852bff')]\nshort  = [s for s in sel if s['duration_us'] < 50]\nlong_  = [s for s in sel if s['duration_us'] > 200]\nmiddle = [s for s in sel if 50 <= s['duration_us'] <= 200]\nfmt = lambda xs: [(s['layer'], round(s['duration_us'],2))\n                  for s in sorted(xs, key=lambda s: s['layer'])]\nprint('SHORT ', len(short), fmt(short))\nprint('MIDDLE', len(middle), fmt(middle))\nprint('LONG  ', len(long_), fmt(long_))\nPY\necho \"EXIT_CODE=$?\"\n```\n\n**Real exit code: 0** (captured immediately after the `python3` invocation; `json.load` succeeded and all three groups printed). A second read-only call used the same selection to compute the gap and per-layer long values, also exit code 0.\n\nI did not modify the file, touch model weights, run anything on NPU, or start/stop services. Per the file's own `limitations`, these durations are profile-on measurements from a selected sample; the short/long clustering at this `ep`/digest is an observation about this slice only — it does not establish causality, and same rank/digest is not proof of equal input values or dynamic workload.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 80477,
+    "outputTokens": 4056,
+    "totalTokens": 84533,
+    "cacheReadTokens": 68224,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 2623,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 84533,
+    "contextUsed": 15732,
+    "contextWindow": 200000
+  }
+}

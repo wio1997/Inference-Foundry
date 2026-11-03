@@ -1,0 +1,69 @@
+{
+  "id": "F23_G2",
+  "original_template_graph_id": "MOE_WRAPPER",
+  "source_template_path": "graphs/source-templates-G2.json",
+  "nodes": [
+    {
+      "id": "dispatch_ffn_combine",
+      "kind": "MC2_OPAQUE_EXISTING_FUSION",
+      "resource": "NPU"
+    },
+    {
+      "id": "shared_down",
+      "kind": "INT8_LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "merge",
+      "kind": "POINTWISE_SCALE_ADD",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "dispatch_ffn_combine",
+      "consumer": "merge",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "shared_down",
+      "consumer": "merge",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "topk",
+      "consumer": "dispatch_ffn_combine",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "x",
+      "consumer": "dispatch_ffn_combine",
+      "value": "hidden",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "swiglu_quant",
+      "consumer": "shared_down",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "merge",
+      "consumer": "returned_moe_output",
+      "value": "final_hidden_states",
+      "dependency_kind": "RAW",
+      "source": "models/deepseek_v41/model.py:300-326,913-919",
+      "condition": "merge branch as modeled; exact reductions and output alias require separate review"
+    }
+  ],
+  "consumer_completeness": "UNKNOWN",
+  "precision_and_alias_conditions": "Original precision/rounding, every alias, persistent write and consumer remain required; no equivalence or gain proof.",
+  "case_conditions": "Current frozen branch and valid state/shape conditions only."
+}

@@ -1,0 +1,71 @@
+{
+  "variants": [
+    {
+      "id": "F20-I64-NATIVE-NO-SANITIZER",
+      "mechanism": "Keep INT64 cast and all alignment;pass its private IDs directly to the existing native nohash without-group operator,whose IsImageRow already maps-1→0.",
+      "existing_related_variant": "v63ID-ONCE/ID-IN-TOPK;this same-dtype route does not require a new TopK dtype or kernel.",
+      "new_source_kernel_required": false,
+      "conditions": [
+        "Pinned native semantics include the existing-1normalization;loaded binary behavior not attested by this profile",
+        "Native fused vision path,not Torch fallback/general-group path",
+        "Remove only private Equal/Fill/Select;rebuild captured liveness,retain all ID row/pad/comm and error contracts"
+      ],
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "loaded_native_variant_validated": false
+    },
+    {
+      "id": "F20-I32-EXISTING-SOURCE-ABI",
+      "mechanism": "After unchanged row alignment,pass contiguous rawINT32 IDs through source-supported numeric tiling key4 rather than currentINT64/key6.",
+      "new_source_kernel_required": false,
+      "conditions": [
+        "INT32source values/sign-extension equivalence and same stride/rowplan",
+        "Loaded bridge/key4 availability and precision not attested;source-supported option only",
+        "Reprice INT32 pad/gather/packing and captured buffer protocol;do not assume all integer paths hash/general-group equivalent"
+      ],
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "loaded_native_variant_validated": false
+    },
+    {
+      "id": "F20-IMAGE-PREDICATE-ONCE",
+      "mechanism": "Compute token sentinel-range predicate once perinput generation/rowplan and feed BOOL flags to all eligible layer TopK consumers.",
+      "new_source_kernel_required": true,
+      "conditions": [
+        "New consumer ABI;all current hashFlag0 consumers use ID only for this predicate",
+        "Keep sentinel attrs/owner/rowmap/generation;recompute on everynewinput generation even same address",
+        "Price creation/read/write/packing/launch;do not add its whole budget to the nativeI32 alternative"
+      ],
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "loaded_native_variant_validated": false
+    },
+    {
+      "id": "F20-SELECTIVE-BIAS-PROGRAM",
+      "mechanism": "For a source program whose rows all select the same bias,load that bias plane only;single-row programs are the simplest domain.",
+      "new_source_kernel_required": true,
+      "conditions": [
+        "Do not assume actual IDs are alltext because client is plain completion",
+        "Account for uniformity scan/predicate caching/extraUB and new tiling;current copyboth-once-perprogram already amortizes over multiple rows",
+        "Keep chosen bias values and all FP32 ranking/unbiasedweight semantics"
+      ],
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "loaded_native_variant_validated": false
+    },
+    {
+      "id": "EXCLUDED-ONE-IMAGE-BOOLEAN",
+      "mechanism": "Reuse the TopK sentinel-range flag as Engram dead/keep or SPpadding mask.",
+      "new_source_kernel_required": null,
+      "conditions": [
+        "Excluded by exactpredicatewitnesses:router129257..129261 vsEngram129264/129265;realID0andpadID0differentSPflags. Shared raw ID loads require distinct outputs and matching row generations."
+      ],
+      "new_main_candidate": false,
+      "actual_measured_speedup": null,
+      "loaded_native_variant_validated": false
+    }
+  ],
+  "variant_count": 5,
+  "scope": "Source-semantic routes and explicit native-binary/rowplan/alias/consumer gates;no implementation or benchmark.",
+  "overall_complete": false
+}

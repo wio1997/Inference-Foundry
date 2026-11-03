@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_c1198a9c-dd49-4b7e-b3a7-496dd896a944",
+  "traceId": "d4a0db92-4c87-4eb2-81e5-a398950b7aaf",
+  "turnId": "turn_f1b6c380-80f6-4893-96ef-28bdcd4b1799",
+  "response": "命令已按约定执行一次，退出码 **0**（工具未报告非零退出），没有重试，也没有运行其他命令。脚本自报 `device_work: false`，即未向 NPU 发负载。\n\n**169 上的两个既有容器均在运行，镜像相同**\n- `wio-vllm-v41-repro169-20261028`：running，id `b00f4d20…`，镜像 `sha256:ce42d65b…`\n- `wio-vllm-v41-repro169-stage-20261028`：running，id `42a5ed03…`，同一镜像\n\n**NPU 状态（npu-smi 25.5.6，退出码 0）**：8 张 Ascend910、16 个 chip，健康状态全部 `OK`。采样瞬间各 chip AICore 为 0%，功耗 158.3–175.6 W/卡，温度 39–42 °C。HBM 每 chip 已用 59008–59322 MB / 65536 MB，约 **90%**，即显存基本被常驻进程占满但未满。进程表显示 1 个 `vllm` 前端进程（PID 2139578，106 MB）加 16 个 `Worker_DP` 进程，每个 chip 一个、各约 56.1 GB。\n\n**服务健康与排队计数：未能取得。** `health` 与 `metrics` 两个端点都返回 `URLError: [Errno 111] Connection refused`，不是超时也不是空值。按你的要求失败即停，我没有重试、没有换地址、没有进容器排查。\n\n因此本次预检的结论是：容器与 NPU 侧正常（16 chip 全 OK、负载已常驻），但脚本探测的服务 HTTP 端点在该执行位置被拒绝连接，健康状态和等待/运行队列计数**未知（不等于 0）**。常见原因是探测地址落在 vllm 容器命名空间之外或服务尚未监听该端口，这需要你授权后才能进一步定位。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 2,
+    "inputTokens": 20678,
+    "outputTokens": 3372,
+    "totalTokens": 24050,
+    "cacheReadTokens": 9600,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 3268,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 24050,
+    "contextUsed": 14445,
+    "contextWindow": 200000
+  }
+}

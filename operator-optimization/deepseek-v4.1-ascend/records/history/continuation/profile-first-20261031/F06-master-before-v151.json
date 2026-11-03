@@ -1,0 +1,312 @@
+{
+  "id": "F06_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "q_a": "q_a",
+    "kv": "kv"
+  },
+  "nodes": [
+    {
+      "id": "q_a",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU",
+      "row_domain": "query_local"
+    },
+    {
+      "id": "kv",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU",
+      "row_domain": "global_or_restored"
+    }
+  ],
+  "internal_edges": [],
+  "external_inputs": [
+    {
+      "producer": "x",
+      "consumer": "q_a",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "x",
+      "consumer": "kv",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "q_a",
+      "consumer": "q_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "kv",
+      "consumer": "kv_norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v35": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-embedding-HC-CP-row-and-consumer-contract-v35.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-layout-ownership-and-context-query-reorganization-v35.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-optimization-condition-ledger-v35.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-source-and-conditional-decoder-graphs-v35.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "F32 local1792-output Qa/KV contraction is conditional after explicitly changing unequal current row domains; two separate BF16 outputs and norms remain. Not naive same-M current concat."
+  },
+  "review_v43": {
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Existing metadata-identity/type/communication guarded quant reuse analyzed; partial query/cache row alternative requires equivalent nontrivial row quantizer and exact row-ready routing."
+  },
+  "review_v61": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-graph-chains-v61.json",
+    "work_bounds": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-work-and-reference-bounds-v61.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-and-partition-costs-v61.json",
+    "numerics": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "full_observed_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v61.json",
+    "relation": "69coreprojectionregimes/24814execplus5distinctM18lookalikes/264exec havecostmodels. 16conditional/rejectionchoices includeG1GEMM,QRquantreuse,QA+indexweight,C2joint/cast,typedproject-before-gather andBF16-preservingoutputpanels/RS. Precompositionfailsroundingandraiseswork/weights20/9.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v63": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-regime-models-v63.json",
+    "graph_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-graph-chains-v63.json",
+    "numerical_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-numerical-contract-v63.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-fusion-costs-v63.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-vector-fusion-variants-v63.json",
+    "MemSet_pending": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-MemSet-profile-insufficiency-v63.json",
+    "full_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v63.json",
+    "relation": "145previouslypendingregimes75802nativeexecutionsaudited;142/74842nowexplicitconditionaloperatorreview,3MemSet/960staypending. 23fusion/split/reorganization/rejectionchoicespricecandidate/partial/padworkandprecisionbarriers.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-11",
+      "REL73-12",
+      "REL73-13"
+    ],
+    "peers": [
+      "F09",
+      "F10",
+      "F32"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v74": {
+    "relation_clause_ids": [
+      "REL74-04"
+    ],
+    "peers": [
+      "F07"
+    ],
+    "central_relations": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v74.json",
+    "relation_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v74.json",
+    "source_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/QB-head-RMS-RoPE-applicability-v74.json",
+    "joint_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-costs-v74.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/remaining-fusion-edge-math-v74.json",
+    "scope": "Fifteen selected relation clauses and three higher-order groups only; all whole-pair/full-model gates remain open.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v75": {
+    "operator_entry": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-query-operator-path-contract-v75.json",
+    "native_source_binding": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-native-source-binding-v75.json",
+    "corrected_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-RoPE-work-and-bound-models-v75.json",
+    "scope_correction": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-head-RMS-scope-correction-v75.json",
+    "baseline_comparisons": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-reference-to-native-comparisons-v75.json",
+    "runtime_carrier_frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-QB-query-RoPE-frontier-v75.json",
+    "placement_variant": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/V41-query-RoPE-placement-variant-v75.json",
+    "relation_ledger": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v75.json",
+    "scope": "Correct three earlier pair clauses/onegroup for actual V4.1 entry and add F07/F08 query-before-KV-join relation;no head512RMS work added to frozen case.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v88": {
+    "evidence": [
+      "operator-graph-coverage-audit-v88.json",
+      "operator-graph-G1-v88.json",
+      "operator-graph-G5-v88.json",
+      "operator-graph-node-coverage-v88.json",
+      "operator-graph-edge-coverage-v88.json",
+      "operator-graph-candidate-bindings-v88.json",
+      "mixed-SWA-C2-source-contract-v88.json",
+      "mixed-SWA-C2-native-frontiers-v88.json",
+      "mixed-SWA-C2-cost-models-v88.json",
+      "mixed-SWA-C2-project-before-gather-v88.json",
+      "mixed-SWA-C2-precision-witnesses-v88.json",
+      "mixed-SWA-C2-variants-v88.json",
+      "mixed-SWA-C2-composition-clauses-v88.json"
+    ],
+    "conditional_mixed_projection_analysis": true,
+    "graph_coverage_reconciliation_is_not_new_semantic_closure": true,
+    "all_readers_closed": false,
+    "relation_ids": [
+      "REL88-02"
+    ],
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v93": {
+    "evidence": [
+      "HC-attention-fork-source-contract-v93.json",
+      "HC-attention-fork-native-frontiers-v93.json",
+      "HC-attention-shared-resource-models-v93.json",
+      "HC-attention-deadline-and-precision-models-v93.json",
+      "HC-attention-fork-variants-v93.json",
+      "HC-attention-composition-clauses-v93.json",
+      "HC-attention-fork-math-validation-v93.json",
+      "operator-graph-G5-v93.json",
+      "operator-graph-node-coverage-v93.json",
+      "operator-graph-edge-coverage-v93.json",
+      "operator-graph-candidate-bindings-v93.json",
+      "operator-graph-coverage-audit-v93.json"
+    ],
+    "HC_attention_fork_native_frontiers": 3200,
+    "conditional_union_resource_cuts": 8,
+    "current_HC_source_split_prior_version": 58,
+    "existing_split_not_counted_new": true,
+    "new_relation_ids": [
+      "REL93-03"
+    ],
+    "new_joint_contract": "HG93-HC-ATTENTION-FORK-DEADLINE",
+    "one_baseline_not_independent_speedups": true,
+    "native_alias_handoff_or_precision_closed": false,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v94": {
+    "evidence": [
+      "norm-quant-operator-source-contract-v94.json",
+      "norm-quant-native-frontiers-v94.json",
+      "norm-quant-precision-and-row-models-v94.json",
+      "norm-quant-interface-and-resource-models-v94.json",
+      "norm-quant-variants-v94.json"
+    ],
+    "graph_frontiers": 3200,
+    "index_query_forks": 640,
+    "refined_native_regimes": 22,
+    "refined_native_executions": 9566,
+    "BF16_to_INT8_rounding_witness": [
+      42,
+      43
+    ],
+    "exact_real_identity_not_native_precision": true,
+    "new_pairs": 0,
+    "new_groups": 0,
+    "single_interface_graph_no_additive_credits": true,
+    "native_or_all_readers_closed": false,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v99": {
+    "evidence": [
+      "projection-panel-inputs-v99.json",
+      "projection-panel-source-contract-v99.json",
+      "projection-panel-native-frontiers-v99.json",
+      "projection-panel-work-and-resource-models-v99.json",
+      "projection-panel-reduction-and-precision-v99.json",
+      "projection-panel-release-DAG-models-v99.json",
+      "projection-panel-mode-atom-audit-v99.json",
+      "projection-panel-composition-clauses-v99.json"
+    ],
+    "graph_frontiers": 3200,
+    "strict_root_frontiers": 2496,
+    "reused_native_TASKs": 19200,
+    "new_relation_ids": [
+      "REL99-01",
+      "REL99-02",
+      "REL99-03"
+    ],
+    "extended_group": "HG75-Q-KV-JOIN",
+    "mode_qualified_norms": false,
+    "whole_output_barrier_not_universal": true,
+    "ragged_resource_models": 2,
+    "DAG_cases": 32768,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v134": {
+    "evidence": [
+      "hc-sp-eager-inputs-v134.json",
+      "hc-sp-eager-intake-v134.json",
+      "hc-sp-eager-native-frontiers-v134.json",
+      "hc-sp-eager-coverage-reconciliation-v134.json",
+      "hc-sp-eager-observed-timing-and-geometry-v134.json",
+      "hc-sp-eager-typed-carrier-and-padding-models-v134.json",
+      "hc-sp-eager-operator-source-contract-v134.json"
+    ],
+    "saved_attention_SP_frontiers": 4472,
+    "new_large_eager_frontiers": 960,
+    "positive_C1": 24,
+    "positive_C2_pairs": 72,
+    "all_saved_HC_SP_source_joins_done": true,
+    "actual_pointer_weight_native_new_ABI_or_all_readers_closed": false,
+    "new_pair_clauses": 0,
+    "no_native_or_physical_gain": true
+  },
+  "review_v143": {
+    "evidence": [
+      "hc-norm-projection-inputs-v143.json",
+      "hc-norm-projection-native-frontiers-v143.json",
+      "hc-norm-projection-source-contract-v143.json",
+      "hc-norm-projection-observed-and-work-v143.json",
+      "hc-norm-projection-stat-and-round-witnesses-v143.json",
+      "hc-norm-projection-readiness-DAGs-v143.json",
+      "hc-norm-projection-composition-v143.json"
+    ],
+    "pairs": [
+      [
+        "F02",
+        "F05"
+      ],
+      [
+        "F02",
+        "F06"
+      ],
+      [
+        "F02",
+        "F07"
+      ],
+      [
+        "F02",
+        "F08"
+      ],
+      [
+        "F02",
+        "F33"
+      ]
+    ],
+    "native_TASK_bindings": 10824,
+    "QR_source_roles": 1920,
+    "scoped_conclusion_changing_gap": "NeedactualY/Z/gamma/eps/beta/rstd/weightparameter-generations,fullHreduction/rsqrt/BF16 andHF32nativeaccuracy/toleranceandlegalVector/Cubehandoff. Raw4HHCstatsnotYstats;initialrepeatstatreuseisarestrictednewABI,notalllayers. OwnernormalizedZ,recipientrawY+unionnorm andownerprojectedcarriersarealternatives;priceN-Mnormalizerrowduplication,CPqueryQvsNpanelwork,strides/queues/memoryandcollective/rankmatches. KeepC1/C2/192IndexWeight/QRnativequant/IndexQandallotherY/Z/rstdreaders orprovecompatibleextraoutputs;optionalbiasBF16Addandallnative/debug/hookobserversremain. Currentcoeff/Post/raw4HX/pre4andcacheCS/slot/epoch/lastreader+queuedwriterlifetimesremain. QueryRoPEtail64afterQBnotdirectinputRMSfold;preserveallrounds/scales/nativequant. No newnativeparity/physicalcapacity/MFU/lowest/actualspeedup/wholepair/allbranchesclosure;9/1352native849PMU16phase3136assignments andbroadercandidate gaps retained.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  }
+}

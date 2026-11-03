@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_33e2474e-2a65-4bab-aa45-0d155df78b5c",
+  "traceId": "6657bc72-c43b-4eeb-89e9-2087adca82c9",
+  "turnId": "turn_c6de5385-d7e9-46c9-99a5-6ac416fc6c48",
+  "response": "启动已按给定命令执行一次，返回 rc=0，未重复运行，未等待解析。\n\n**实际 rc 与进程身份**\n\n- `remote_run.py` 返回码：0，stderr 为空；回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/launch-offline-host-profile-db166-v12.json`\n- 宿主进程 PID：**2104663**，`/proc` starttime：**862591856**（只读复核 state=S，starttime 与 launch 记录一致）\n- 命令行为 `docker exec wio-vllm-v41-repro166-stage-20261030 timeout --kill-after=20s 900s python3 …/offline_host_profile_db_worker_v12.py`\n- worker SHA-256：`7865b6ffa41fa6c601d17c5f1cae34c84f604e56be44610bf79ef4a9052d218c`，与本地准备版本一致（启动前已比对）\n\n**已确认进入的阶段**\n\n远端 `status.json` 显示 `ANALYSING_ALL32_WITH_MAX4_PROFILE_PROCESSES`：32 个 profile 目录已逐个复制并完成逐文件 SHA/尺寸/mtime 校验（`input-copy-manifest.json` 已写入，3064 个文件、3,848,318,961 字节），随后以 `max_process_number=4, export_type=db` 调用 SDK `analyse`，stdout 已出现各 rank 的 parsing 日志，stderr 为 0 字节。900s 硬超时由 `timeout --kill-after=20s` 包裹。\n\n**边界与后续**\n\n- 未等待解析完成，因此 worker 自身最终 rc 和解析后的原始数据前后 SHA 复核结果尚未产生；复核断言已内置在 worker 末尾，原始数据若有任何变化会以 `FAILED` 落盘并退出非零。\n- 未修改/重启任何服务，未启动新设备采集或推理；原 BASE 在启动前核查为已恢复、health 200、idle、NPU 进程归属正确。\n- 唯一性已保证：`offline-db-v12` 作业目录此前不存在，worker 文件由启动脚本首次写入。\n- 作业根目录：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/offline-db-v12`；stdout/stderr 位于同级的 `offline-db-v12.stdout` / `.stderr`。只读存活核查回执：`check-offline-host-profile-db166-v12.json`。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 11,
+    "inputTokens": 215108,
+    "outputTokens": 7803,
+    "totalTokens": 222911,
+    "cacheReadTokens": 194176,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5735,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 222911,
+    "contextUsed": 28194,
+    "contextWindow": 200000
+  }
+}

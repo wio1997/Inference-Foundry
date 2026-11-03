@@ -1,0 +1,77 @@
+{
+  "generated_utc": "2026-10-31T18:11:46.209710+00:00",
+  "variants": [
+    {
+      "id": "F22-IN",
+      "proposal": "Fuse inputdynamicquant withGateUp",
+      "condition": "OnefullHrow scale beforeINT8GEMM;reusequantrow/scale acrossNtiles,avoid unpriced duplicatequantization andpreservecurrentquantizer."
+    },
+    {
+      "id": "F22-UP",
+      "proposal": "Fuse INT32GateUp,dequant/SwiGLU androwquant",
+      "condition": "PreserveINT32→FP32 andclamp10/mode1/alltuningargs. FullIrowamax barrier/crosscolumncoordination required;3smallMrows canloseCubeparallelism ifonecoreperrow."
+    },
+    {
+      "id": "F22-SPLIT",
+      "proposal": "GEMMepilogue producesFP32SwiGLUtiles+amax;finishrowquant separately",
+      "condition": "Conditionalfinite/NaN/zero-aware maxcomposition;FP32activationwrite/read8MI versusINT32gateupwrite/read16MI,sohalve thisinterface butretain a rowbarrier andpriceextra storage/reduction."
+    },
+    {
+      "id": "F22-LIB",
+      "proposal": "Reuse installedGroupedMatmulSwigluQuantWeightNzV2",
+      "condition": "Header/dtype/shape candidateonly. Currentclamp10/mode1 not exposed;unclampedpublishedformula failswitness. NeedcompatibleclampedAPI/kernel or anexplicitdifferent/unclampeddomain;not currentdrop-in."
+    },
+    {
+      "id": "F23-DOWNADD",
+      "proposal": "Downprojection epilogue+shared/routedadd",
+      "condition": "RoundDown toBF16onchip beforeadd/finalBF16round;allotherreaders/hooks/row/transforms androutedtilereadiness retained."
+    },
+    {
+      "id": "F21-F22-QCOMMON",
+      "proposal": "Commonquantizedinput forshared androutedbranches",
+      "condition": "Firstprove sameinputgeneration/rowmap/mask andsamequantizer/scale/round/zero semantics;MC2currentBF16input ABI needsnewprequantizedroutingcontract. SameINT8dtypeisnotsemanticidentity."
+    },
+    {
+      "id": "F23-ONEADD",
+      "proposal": "Specialize singleton ForeachAddList to normal Add",
+      "condition": "Preserveexistingalpha1/Tensorsemantics/alllayouts/numerics;profilecrossshapereferenceispriorityevidence,not measuredgain."
+    }
+  ],
+  "interactions": [
+    {
+      "a": "F22-UP",
+      "b": "F22-LIB",
+      "relation": "ALTERNATIVES_WITH_CLAMP_COMPATIBILITY_GATE"
+    },
+    {
+      "a": "F23-DOWNADD",
+      "b": "F22-OVERLAP-v56",
+      "relation": "READINESS_AND_BUFFER_TRADEOFF;NOT_FREE_ADDITIVE"
+    },
+    {
+      "a": "F22-IN",
+      "b": "F21-F22-QCOMMON",
+      "relation": "SHARED_QUANT_PRODUCER_OR_DUPLICATED_WORK;PRICETOGETHER"
+    },
+    {
+      "a": "F22-UP",
+      "b": "F22-SPLIT",
+      "relation": "ALTERNATIVES_FOR_ROW_REDUCTION_AND_STORAGE"
+    },
+    {
+      "a": "F23-DOWNADD",
+      "b": "F23-MERGE-HC",
+      "relation": "PRESERVE_BF16_ROUNDING_AND_HC_DEPENDENCIES_FROMv22"
+    },
+    {
+      "a": "F23-ONEADD",
+      "b": "F23-DOWNADD",
+      "relation": "ALTERNATIVE_WAYS_TO_REMOVE_GENERIC_MERGE;DO_NOT_ADD_BOTH_GAINS"
+    }
+  ],
+  "no_new_maincandidate": true,
+  "measured_speedup": null,
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

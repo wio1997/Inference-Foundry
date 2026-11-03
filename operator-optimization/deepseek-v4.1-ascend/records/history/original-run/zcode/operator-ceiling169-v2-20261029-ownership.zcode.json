@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_e6a5ea87-05a7-40e1-82a3-73de324100ae",
+  "traceId": "68853d7b-c387-4259-abfd-60c93019ffe6",
+  "turnId": "turn_d5c346f6-a589-4740-9b24-18171feb3ca3",
+  "response": "**Result file:** `diagnostic-20261029/ownership-check-20261029.txt` (raw evidence saved alongside as `ownership-check-20261029.raw.json`).\n\n**PID set comparison** (UTC 2026-10-29T03:32:04Z–03:32:06Z; both commands return code 0, no parse errors):\n\n- `docker top wio-vllm-v41-repro169-20261028 -eo pid` → 21 PIDs: `[1515275, 1525507, 1525509, 1527538, 1534209, 1541373, 1541374, 1549245, 1549249, 1553024, 1553437, 1558826, 1559296, 1565157, 1565330, 1570086, 1570743, 1575482, 1575574, 1581840, 1582004]`\n- `npu-smi info` via the stage container → 17 device PIDs: `[1515275, 1541373, 1541374, 1549245, 1549249, 1553024, 1553437, 1558826, 1559296, 1565157, 1565330, 1570086, 1570743, 1575482, 1575574, 1581840, 1582004]`\n- Device PIDs outside the baseline PID set: **none** (intersection = all 17; baseline-only PIDs = 4: `1525507, 1525509, 1527538, 1534209`).\n\nSo at this single sample the device PID set is non-empty and is a subset of the running baseline container's PID set; no foreign NPU process was observed. This is not a clearance: one sample cannot distinguish an idle baseline from one with in-flight service requests, and the stopped diagnostic container contributes no running PIDs. No process, container, service, or workload was started, stopped, or restarted.",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 151166,
+    "outputTokens": 13063,
+    "totalTokens": 164229,
+    "cacheReadTokens": 131840,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 9523,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 164229,
+    "contextUsed": 31911,
+    "contextWindow": 200000
+  }
+}

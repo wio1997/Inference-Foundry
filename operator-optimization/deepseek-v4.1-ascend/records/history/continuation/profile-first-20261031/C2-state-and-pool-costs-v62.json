@@ -1,0 +1,221 @@
+{
+  "H": 512,
+  "ratio": 2,
+  "ring_rows": 32,
+  "state_descriptor_bytes": 2268332032,
+  "definitions": {
+    "T": "physicalprojectedrows;mayincludepad. Eachrequestsegmenthasstart s,usedlength n,physicalrowbase andpage p.",
+    "E": "sum(valid_page * (floor((s+n)/2)-floor(s/2))). OnlycompletiontokenrowiswrittenbyTOKEN_ALIGNEDpool.",
+    "B": "count(valid_page and s odd and at least one completedpair). Atmostonehistorypairperrequest,notE.",
+    "U": "sum(valid_page * min(n,32)). Currentkernelmaintainsonlytail32,notallT.",
+    "valid_page": "0<p<NUM_CACHE_BLOCKS. Actuals,n,p,skip/generationandownershipnotinthecapturedshapes."
+  },
+  "current_pool_work_per_nonresidual_pair": {
+    "max_comparisons": 512,
+    "ordinary_score_subtractions": 1024,
+    "exp_elements": 1024,
+    "denominator_additions": 512,
+    "divisions": 1024,
+    "weighted_multiplies": 1024,
+    "weighted_sum_additions": 512,
+    "BF16_round_elements": 512
+  },
+  "residual_three_pass_extra": {
+    "score_reread_logical_bytes": 8192,
+    "exp_recomputation_elements": 1024,
+    "score_subtractions_recomputed": 1024,
+    "qualification": "Conventionalpairalgorithmcount;sourceincludesneutralinitializations/reductiontreeandaddresswork. Doesnotstateexactcompiledinstructioncount."
+  },
+  "traffic_formulas": {
+    "pool_values_read": "16H(E+B)",
+    "pool_old_ring_read": "16HB",
+    "pool_BF16_write": "2HE",
+    "zero_write": "2HT",
+    "external_norm_read_write": "4HT+2H+4T includingrstd",
+    "ring_update_read_write": "16HU",
+    "ring_update_write_only": "8HU",
+    "pool_norm_interface_elision_budget": "2H(E+T)",
+    "with_full_final_initialization_in_same_fusion": "2HE+4HT total,notaddintermediatebudgettwice"
+  },
+  "examples": [
+    {
+      "case": "T24_four_even_chunks",
+      "T": 24,
+      "start_positions": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "used_lengths": [
+        6,
+        6,
+        6,
+        6
+      ],
+      "all_pages_assumed_valid": true,
+      "completed_pairs": 12,
+      "residual_pairs": 0,
+      "ring_updated_rows": 24,
+      "pool_input_logical_bytes": 98304,
+      "old_ring_reads_logical_bytes": 0,
+      "pool_output_BF16_write_bytes": 12288,
+      "zero_output_write_bytes": 24576,
+      "norm_input_read_bytes": 24576,
+      "norm_output_write_bytes": 24576,
+      "norm_weight_read_bytes": 1024,
+      "norm_auxiliary_rstd_write_bytes": 96,
+      "ring_update_read_plus_write_bytes": 196608,
+      "ring_update_write_only_bytes": 98304,
+      "residual_singleload_save_logical_bytes": 0,
+      "residual_duplicate_exp_elements_removable": 0,
+      "pool_norm_intermediate_budget_bytes": 36864,
+      "additional_zero_write_budget_if_fused_full_final_output": 24576,
+      "total_pool_norm_zero_interface_budget_bytes": 61440,
+      "ring_update_all_T_naive_overcount_factor": 1.0
+    },
+    {
+      "case": "T24_four_odd_chunks",
+      "T": 24,
+      "start_positions": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "used_lengths": [
+        6,
+        6,
+        6,
+        6
+      ],
+      "all_pages_assumed_valid": true,
+      "completed_pairs": 12,
+      "residual_pairs": 4,
+      "ring_updated_rows": 24,
+      "pool_input_logical_bytes": 131072,
+      "old_ring_reads_logical_bytes": 32768,
+      "pool_output_BF16_write_bytes": 12288,
+      "zero_output_write_bytes": 24576,
+      "norm_input_read_bytes": 24576,
+      "norm_output_write_bytes": 24576,
+      "norm_weight_read_bytes": 1024,
+      "norm_auxiliary_rstd_write_bytes": 96,
+      "ring_update_read_plus_write_bytes": 196608,
+      "ring_update_write_only_bytes": 98304,
+      "residual_singleload_save_logical_bytes": 32768,
+      "residual_duplicate_exp_elements_removable": 4096,
+      "pool_norm_intermediate_budget_bytes": 36864,
+      "additional_zero_write_budget_if_fused_full_final_output": 24576,
+      "total_pool_norm_zero_interface_budget_bytes": 61440,
+      "ring_update_all_T_naive_overcount_factor": 1.0
+    },
+    {
+      "case": "T6400_two_even_chunks",
+      "T": 6400,
+      "start_positions": [
+        0,
+        0
+      ],
+      "used_lengths": [
+        3200,
+        3200
+      ],
+      "all_pages_assumed_valid": true,
+      "completed_pairs": 3200,
+      "residual_pairs": 0,
+      "ring_updated_rows": 64,
+      "pool_input_logical_bytes": 26214400,
+      "old_ring_reads_logical_bytes": 0,
+      "pool_output_BF16_write_bytes": 3276800,
+      "zero_output_write_bytes": 6553600,
+      "norm_input_read_bytes": 6553600,
+      "norm_output_write_bytes": 6553600,
+      "norm_weight_read_bytes": 1024,
+      "norm_auxiliary_rstd_write_bytes": 25600,
+      "ring_update_read_plus_write_bytes": 524288,
+      "ring_update_write_only_bytes": 262144,
+      "residual_singleload_save_logical_bytes": 0,
+      "residual_duplicate_exp_elements_removable": 0,
+      "pool_norm_intermediate_budget_bytes": 9830400,
+      "additional_zero_write_budget_if_fused_full_final_output": 6553600,
+      "total_pool_norm_zero_interface_budget_bytes": 16384000,
+      "ring_update_all_T_naive_overcount_factor": 100.0
+    },
+    {
+      "case": "T6528_two_even_chunks",
+      "T": 6528,
+      "start_positions": [
+        0,
+        0
+      ],
+      "used_lengths": [
+        3264,
+        3264
+      ],
+      "all_pages_assumed_valid": true,
+      "completed_pairs": 3264,
+      "residual_pairs": 0,
+      "ring_updated_rows": 64,
+      "pool_input_logical_bytes": 26738688,
+      "old_ring_reads_logical_bytes": 0,
+      "pool_output_BF16_write_bytes": 3342336,
+      "zero_output_write_bytes": 6684672,
+      "norm_input_read_bytes": 6684672,
+      "norm_output_write_bytes": 6684672,
+      "norm_weight_read_bytes": 1024,
+      "norm_auxiliary_rstd_write_bytes": 26112,
+      "ring_update_read_plus_write_bytes": 524288,
+      "ring_update_write_only_bytes": 262144,
+      "residual_singleload_save_logical_bytes": 0,
+      "residual_duplicate_exp_elements_removable": 0,
+      "pool_norm_intermediate_budget_bytes": 10027008,
+      "additional_zero_write_budget_if_fused_full_final_output": 6684672,
+      "total_pool_norm_zero_interface_budget_bytes": 16711680,
+      "ring_update_all_T_naive_overcount_factor": 102.0
+    },
+    {
+      "case": "T6668_two_even_chunks",
+      "T": 6668,
+      "start_positions": [
+        0,
+        0
+      ],
+      "used_lengths": [
+        3334,
+        3334
+      ],
+      "all_pages_assumed_valid": true,
+      "completed_pairs": 3334,
+      "residual_pairs": 0,
+      "ring_updated_rows": 64,
+      "pool_input_logical_bytes": 27312128,
+      "old_ring_reads_logical_bytes": 0,
+      "pool_output_BF16_write_bytes": 3414016,
+      "zero_output_write_bytes": 6828032,
+      "norm_input_read_bytes": 6828032,
+      "norm_output_write_bytes": 6828032,
+      "norm_weight_read_bytes": 1024,
+      "norm_auxiliary_rstd_write_bytes": 26672,
+      "ring_update_read_plus_write_bytes": 524288,
+      "ring_update_write_only_bytes": 262144,
+      "residual_singleload_save_logical_bytes": 0,
+      "residual_duplicate_exp_elements_removable": 0,
+      "pool_norm_intermediate_budget_bytes": 10242048,
+      "additional_zero_write_budget_if_fused_full_final_output": 6828032,
+      "total_pool_norm_zero_interface_budget_bytes": 17070080,
+      "ring_update_all_T_naive_overcount_factor": 104.1875
+    }
+  ],
+  "scope": "Illustrativevalidallpagesmetadata,notattesteddevicevalidrows. State2.268GBisallocationfootprint;pooldoesnotstreamit. HBMcachetraffic/cachetier/Vectorandspecialfunctioncapacityunbound.",
+  "numerical_contract": [
+    "Keepstablemax/exp/sum/divweightedpool andFP32score/KV. PreserveFP32→BF16pooledroundBEFOREnorm; nonTOKEN_ALIGNEDsourcealreadydoes this.",
+    "CurrentTOKEN_ALIGNEDtrue,eps0 andplaceholdernorm_w=out disablefusednorm. Existingfalsebranchcannotbedirectlyselected:compactrowmap,wrongweights/eps. Newindependentnormflagandrealweights/epsneeded.",
+    "Incomplete/unwrittenrowsstart+0,thenexternalRMScomputeswithactualgamma/eps. Signedzero/Inf/NaNandallconsumersmatter; poolonlycompletedrows cannotblindskipremainingnorm.",
+    "Ringmustreadoldhistorybeforeoverwritingitsphysicalslots. Pool+updatefusionneedsrequestpageownershipandcrossprogramordering;Vectorworkisnotfreeoverlap.",
+    "Even-onlystatewrites underRATIO2observabilityproofremainconditionalonrollback/allreaders; doesnotshrinkcurrentSWAanchoredallocation. Keepint64pageoffsetmath.",
+    "NormBF16latentfansouttoIndexerupdate_keysbeforeinplace64tailRoPEandlongKVpublication. Do not overwritepreRoPElatentbeforeallIndexerreads; preserveownercard/slots/padding."
+  ],
+  "boundary_reference": "Tref >= max(Q_HBM/B_HBM,Q_L2/B_L2,F_vector/P_vector,N_exp/P_exp,N_div/P_div,dependencychain) in a namedalgorithm/cache/capacitydomain. QlogicalisnotQ_HBM; noactualnumericphysicalceilings.",
+  "overall_complete": false
+}

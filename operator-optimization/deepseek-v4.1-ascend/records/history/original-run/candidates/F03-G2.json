@@ -1,0 +1,82 @@
+{
+  "id": "F03_G2",
+  "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+  "source_template_path": "graphs/source-templates-G2.json",
+  "nodes": [
+    {
+      "id": "ffn_post",
+      "kind": "HC_POST_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "next_pre",
+      "kind": "HC_PRE_COMPOSITE",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "ffn_post",
+      "consumer": "next_pre",
+      "value": "prior HC residual",
+      "dependency_kind": "RAW",
+      "condition": "next-layer Engram does not modify this residual",
+      "source": "models/deepseek_v41/model.py:919-920,1556-1592"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "moe",
+      "consumer": "ffn_post",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "attn_post",
+      "consumer": "ffn_post",
+      "value": "residual",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "ffn_post",
+      "value": "post/comb",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "engram",
+      "consumer": "next_pre",
+      "value": "Engram-updated residual",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_pre",
+      "consumer": "next_pre",
+      "value": "delayed coefficient",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "ffn_post",
+      "consumer": "aux_mean",
+      "value": "residual before optional Engram",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_post",
+      "consumer": "engram",
+      "value": "optional next-layer Engram",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ffn_post",
+      "consumer": "collapse",
+      "value": "terminal-layer HC state",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "consumer_completeness": "UNKNOWN",
+  "precision_and_alias_conditions": "Original precision/rounding, every alias, persistent write and consumer remain required; no equivalence or gain proof.",
+  "case_conditions": "Direct adjacent-layer residual path only if next Engram does not modify it; aux mean may consume the residual first."
+}

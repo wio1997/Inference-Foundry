@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_23510fac-5a8f-416d-8118-e10f1dcffde3",
+  "traceId": "be605722-edd3-479d-b301-1731ee29165c",
+  "turnId": "turn_23d0d7d6-dc4c-4876-ba26-d449609854bd",
+  "response": "三个脚本按顺序各执行一次，全部返回 0，harness 未提前停止，执行记录已写入 `whole-scope-20261030/zcode-persist-recovery-execution.json`。\n\n**实际结果**\n\n1. `capture_tensor_view_reference.py`（rc=0，35.2 秒）：通过 direct HTTP 读取 `https://docs.pytorch.org/docs/2.10/tensor_view.html`，快照保存成功，SHA-256 为 `c6921140a629364cefa26929cc67b72aef136be4a81bb89c1f09aed1d54d3247`。stderr 为空。\n2. `persist_whole_scope_checkpoint.py`（rc=0，0.16 秒）：输出 `LOCAL_ACTIVE_CHECKPOINT_PERSISTED`，记录 566 个源文件、23 个本地合同，`whole_modules_closed: 0`，`goal_and_task_still_active: true`，未改动目标或服务。\n3. `verify_recovery_checkpoint.py`（rc=0，0.17 秒）：输出 `PASS_LOCAL_RECOVERY_CHECKPOINT_ONLY`，校验 34 个本地链接、14 个目录本地哈希，`taskctl_validate_returncode: 0`，引用快照状态为已保存。其自身明确标注 `overall_goal_complete: false`。\n\n**边界说明**\n\n本次执行代理模型为 `bc10aa1f-6d2d-4158-be40-7017fe6bf933/deepseek-flash`。第三个脚本的 PASS 仅限本地检查点身份、引用和显式开放状态的局部校验，不等于整体任务完成，也不构成理论上界复核结论；目标/Task 按脚本输出保持 active，0 个整模块关闭。我没有调用 close-task、verdict 或任何 complete 操作，也没有执行这三个脚本之外的读取或命令。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 2,
+    "inputTokens": 22671,
+    "outputTokens": 5458,
+    "totalTokens": 28129,
+    "cacheReadTokens": 13312,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4407,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 28129,
+    "contextUsed": 14713,
+    "contextWindow": 200000
+  }
+}

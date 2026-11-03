@@ -1,0 +1,49 @@
+{
+  "generated_utc": "2026-10-31T01:04:40.057506+00:00",
+  "candidate": {
+    "id": "H07",
+    "title": "原始 token ID 图回放与图外 embedding 的单一生产路径",
+    "modules": [
+      "M04",
+      "M05",
+      "M22",
+      "M23"
+    ],
+    "status": "PROFILE_AND_CAPTURE_BRANCH_SUPPORTED;REMOVAL_CONDITIONAL;UNPRICED",
+    "evidence_kind": [
+      "MEASURED",
+      "DOCUMENTED",
+      "DERIVED"
+    ],
+    "profile_evidence": [
+      "88 native target preprocessing embedding AllReduces;80 graph outer AllReduces with245760-byte BF16 logical array(count122880),plus embedding-like graph prefix already inventoried in v11. Populations are not blindly paired by count.",
+      "64 graph submissions have exact decode schedules.16 graph phases remain unbound; no phase is forced."
+    ],
+    "candidate_graph": "For FULL cached replay captured from raw input_ids and no prompt/multimodal embedding requirement, assess skipping the unused external embedding/copy while keeping input clamp,Engram preparation and all graph input updates. Alternative: capture an inputs_embeds graph that consumes the external producer and avoids internal embedding; compare complete schedules.",
+    "constraints": [
+      "Current replay must have an existing captured raw-ID entry with inputs_embeds=None at capture; eager/prefill/capture are excluded from blanket removal.",
+      "Actual request has no image/soft/prompt embedding substitution. Preserve rawIDs for Engram/history/vision routing.",
+      "Keep input-ID clamp and all live preprocessing/metadata work; never skip entire_preprocess.",
+      "Actual embedding primitive purity, all persistent-buffer consumers, event/lifetime and update/replay generations still require proof before removal.",
+      "External-skip and internal-skip are alternative graphs,not additive savings. An embedding AllReduce→SP reduceScatter variant also needs exact row/consumer/numeric/communicator contracts.",
+      "No timing or end-to-end gain inferred from counts,wall scopes or logical byte arrays."
+    ],
+    "rejected_overclaims": [
+      "All88 external embeddings are dead.",
+      "Multimodal/prompt-embedding/eager paths can be removed.",
+      "Count equality proves paired execution or removable latency."
+    ],
+    "minimal_missing_evidence": [
+      "Bind all exact cached-entry guards and external inputs_embeds buffer consumers/purity/lifetimes only as needed for a final removal judgment.",
+      "If implementation is chosen later, compare complete baseline/candidate schedules and numerical outputs under the fixed workload; current scope is analysis only."
+    ],
+    "across": [
+      "preprocessing→captured graph",
+      "vocab TP collective→SP shard",
+      "graph capture→subsequent replay"
+    ]
+  },
+  "source_contract": "profile-raised-source-contract-v16.json",
+  "implementation": false,
+  "overall_complete": false
+}

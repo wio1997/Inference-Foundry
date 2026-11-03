@@ -1,0 +1,295 @@
+{
+  "id": "F09_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ATTN_C2_SOURCE",
+  "original_node_mapping": {
+    "iq": "iq",
+    "iq_rope": "iq_rope",
+    "iq_quant": "iq_quant"
+  },
+  "nodes": [
+    {
+      "id": "iq",
+      "kind": "LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "iq_rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "iq_quant",
+      "kind": "ROW_REDUCTION_INT8_QUANT",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "iq",
+      "consumer": "iq_rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "iq_rope",
+      "consumer": "iq_quant",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "q_norm",
+      "consumer": "iq",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "iq_quant",
+      "consumer": "qli",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v43": {
+    "guard_crosswalk": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-adjacent-guard-crosswalk-v43.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-guard-and-index-publication-contract-v43.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M21-neighbor-conditional-variants-v43.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "relation": "Index-source/long-context roles and five-term quantize guard, query/weight inputs, RoPE order and quantize_done consumer wait explicitly reconciled; floating query and optional quantized query remain separate."
+  },
+  "review_v60": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-profile-and-edges-v60.json",
+    "models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-work-traffic-models-v60.json",
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-native-numerical-contract-v60.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/attention-indexer-fusion-reorganization-variants-v60.json",
+    "semantic_inventory": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M09-M10-operator-branch-inventory-v60.json",
+    "relation": "51regimes/6863nativeexecutions reconciled. SMLAalreadyfusedwithGMscore/exp/PVqueues;QLImode2fullQKthenVectorpenalty. 13conditional/rejectiondecisions includebitmap544Bvs8192Blist,prefilterwithfillers,preparedindexepilogue,source-resolvedselfcopy,quant/cache/weight/SMLAepilogueandcrosscard/iterationlimits.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v61": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-graph-chains-v61.json",
+    "work_bounds": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-work-and-reference-bounds-v61.json",
+    "fusion_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-and-partition-costs-v61.json",
+    "numerics": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json",
+    "full_observed_coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v61.json",
+    "relation": "69coreprojectionregimes/24814execplus5distinctM18lookalikes/264exec havecostmodels. 16conditional/rejectionchoices includeG1GEMM,QRquantreuse,QA+indexweight,C2joint/cast,typedproject-before-gather andBF16-preservingoutputpanels/RS. Precompositionfailsroundingandraiseswork/weights20/9.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v64": {
+    "regime_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-regime-models-v64.json",
+    "native_chains": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-native-chains-v64.json",
+    "operator_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-operator-contract-v64.json",
+    "work_costs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-fusion-costs-v64.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/index-context-fusion-variants-v64.json",
+    "coverage": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/operator-analysis-coverage-ledger-v64.json",
+    "candidate_specific_scope": "RemainingordinaryIndexQinputDQandqueryRoPEtypedcostsreconcileexistingFP16headscalecontract;notrepeatQLIsemanticstudy.",
+    "relation": "242regimes15976nativeexecutions:237previouspending/15712plus5M18geometry/264nowwithownconsumercontracts. 26operatorchoicesandtypedtraffic/compute/padding/precisionconditions;noimplementation/nativebenchmark.",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-10",
+      "REL73-11"
+    ],
+    "peers": [
+      "F05",
+      "F06"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v80": {
+    "primary_architecture": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-datapath-primary-evidence-v80.json",
+    "typed_cycle_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-typed-ingress-regime-models-v80.json",
+    "Markov_frontier": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Markov-warm-ingress-frontier-v80.json",
+    "joint_resource_cut": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-joint-ingress-cut-proof-v80.json",
+    "candidate_frontiers": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-fusion-interface-frontiers-v80.json",
+    "shared_interfaces": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/shared-CV-interface-revaluation-v80.json",
+    "capacity_ranking_scope": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/A3-local-capacity-and-ceiling-scope-v80.json",
+    "router_interfaces": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/router-CV-interface-domains-v80.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v82": {
+    "evidence": [
+      "quant-epilogue-public-source-index-v82.json",
+      "quant-epilogue-primary-details-v82.json",
+      "quant-vector-owner-profile-v82.json",
+      "quant-epilogue-source-contract-v82.json",
+      "DownAdd-epilogue-variants-v82.json",
+      "epilogue-rounding-witnesses-v82.json",
+      "quant-epilogue-boundary-models-v82.json",
+      "Q_B-index-epilogue-extension-v82.json",
+      "shared-quant-owner-CV-interfaces-v82.json"
+    ],
+    "conditional_operator_analysis_deliverable": true,
+    "new_device_work": false,
+    "output_owner": "BF16 per-token quant output can be Vector-owned after internal INT32 CV GM, per pinned public branch; current native instruction owner not attested."
+  },
+  "review_v83": {
+    "new_clause_ids": [
+      "REL83-02",
+      "REL83-03",
+      "REL83-04",
+      "REL83-18",
+      "REL83-22"
+    ],
+    "footprints": "candidate-operator-footprints-v83.json",
+    "joint_costs": "attention-joint-interface-models-v83.json",
+    "joint_capacity_proof": "joint-operator-resource-cut-proof-v83.json",
+    "relations": "candidate-relation-clauses-v83.json",
+    "conditional_operator_analysis_deliverable": true,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v94": {
+    "evidence": [
+      "norm-quant-operator-source-contract-v94.json",
+      "norm-quant-native-frontiers-v94.json",
+      "norm-quant-precision-and-row-models-v94.json",
+      "norm-quant-interface-and-resource-models-v94.json",
+      "norm-quant-variants-v94.json"
+    ],
+    "graph_frontiers": 3200,
+    "index_query_forks": 640,
+    "refined_native_regimes": 22,
+    "refined_native_executions": 9566,
+    "BF16_to_INT8_rounding_witness": [
+      42,
+      43
+    ],
+    "exact_real_identity_not_native_precision": true,
+    "new_pairs": 0,
+    "new_groups": 0,
+    "single_interface_graph_no_additive_credits": true,
+    "native_or_all_readers_closed": false,
+    "implementation": false,
+    "native_test": false
+  },
+  "review_v106": {
+    "evidence": [
+      "index-projection-inputs-v106.json",
+      "index-projection-source-contract-v106.json",
+      "index-projection-native-frontiers-v106.json",
+      "index-projection-work-and-resource-models-v106.json",
+      "index-projection-rounding-and-readiness-v106.json",
+      "index-weight-partition-and-precision-v106.json",
+      "index-projection-composition-v106.json"
+    ],
+    "saved_frontiers": 640,
+    "reused_TASKs": 5760,
+    "shape_domains": [
+      3,
+      800,
+      816,
+      830,
+      834
+    ],
+    "projection_cohorts": 10,
+    "new_relation_ids": [
+      "REL106-01"
+    ],
+    "refined_relation": "REL83-02",
+    "extended_group": "HG75-Q-KV-JOIN",
+    "safe_rounding_cases": 448,
+    "ideal_DAG_examples": 256,
+    "splitK_reference_graphs": 30,
+    "actual_MFU_or_physical_speedup_proved": false,
+    "implementation": false,
+    "native_test": false,
+    "new_runtime_executions": 0
+  },
+  "review_v139": {
+    "evidence": [
+      "hc-index-inputs-v139.json",
+      "hc-index-query-weight-native-producers-v139.json",
+      "hc-index-typed-input-and-round-contract-v139.json",
+      "hc-index-profile-coverage-and-streams-v139.json",
+      "hc-index-aux-stream-and-coeff-DAGs-v139.json",
+      "hc-index-scalar-round-and-cycle-witnesses-v139.json",
+      "hc-index-product-delivery-and-work-v139.json",
+      "hc-index-composition-clauses-v139.json"
+    ],
+    "pairs": [
+      [
+        "F01",
+        "F09"
+      ],
+      [
+        "F01",
+        "F10"
+      ]
+    ],
+    "new_source_bound_producer_TASKs": 1728,
+    "combined_known_frontiers": 832,
+    "scoped_conclusion_changing_gap": "NeedactualnormalizedY/QRgenerationandQ_B-vs-IndexQquantizeridentity,loadedparams/gamma/beta/newM/nativeFP16FTZ/nonfinite/amax-RoPE-roundcontract,row/head/tileownership/16headscalealignmentandallscalar/INT8/QR/bankreaders. QAWeightpanelneedscontiguity/rounding/newoutputABI;IndexQandWeightaredistinctinputs. PreserveWeightBF16→F32/64→F16beforeproductandbreakchangedfirst-readercast/quantcycle. Compactalpha-onlynewABIvsalpha+unit-scaleexistingQLIneedseparatecontent/constantbank/epoch/nativeproductidentity/other-usegates;originalM16broadcastworkspaceworknotautomaticallyremoved. NeedactualsharedCube/Vector/linkcapacityandHCcoeff/Post/pre4/rawX/queue/retirementdeadlines;TASKoverlapnotcounterfactualspeedup. No transformednativeparity/physicalMFU/lowest/actualgain/wholepair/allbranchesclosure;9/1352native/849PMU/16phase/3136ambiguityandbroadercandidategapsremain.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "one_HC_index_baseline": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  },
+  "review_v143": {
+    "evidence": [
+      "hc-norm-projection-inputs-v143.json",
+      "hc-norm-projection-native-frontiers-v143.json",
+      "hc-norm-projection-source-contract-v143.json",
+      "hc-norm-projection-observed-and-work-v143.json",
+      "hc-norm-projection-stat-and-round-witnesses-v143.json",
+      "hc-norm-projection-readiness-DAGs-v143.json",
+      "hc-norm-projection-composition-v143.json"
+    ],
+    "pairs": [
+      [
+        "F02",
+        "F05"
+      ],
+      [
+        "F02",
+        "F06"
+      ],
+      [
+        "F02",
+        "F07"
+      ],
+      [
+        "F02",
+        "F08"
+      ],
+      [
+        "F02",
+        "F33"
+      ]
+    ],
+    "native_TASK_bindings": 10824,
+    "QR_source_roles": 1920,
+    "scoped_conclusion_changing_gap": "NeedactualY/Z/gamma/eps/beta/rstd/weightparameter-generations,fullHreduction/rsqrt/BF16 andHF32nativeaccuracy/toleranceandlegalVector/Cubehandoff. Raw4HHCstatsnotYstats;initialrepeatstatreuseisarestrictednewABI,notalllayers. OwnernormalizedZ,recipientrawY+unionnorm andownerprojectedcarriersarealternatives;priceN-Mnormalizerrowduplication,CPqueryQvsNpanelwork,strides/queues/memoryandcollective/rankmatches. KeepC1/C2/192IndexWeight/QRnativequant/IndexQandallotherY/Z/rstdreaders orprovecompatibleextraoutputs;optionalbiasBF16Addandallnative/debug/hookobserversremain. Currentcoeff/Post/raw4HX/pre4andcacheCS/slot/epoch/lastreader+queuedwriterlifetimesremain. QueryRoPEtail64afterQBnotdirectinputRMSfold;preserveallrounds/scales/nativequant. No newnativeparity/physicalcapacity/MFU/lowest/actualspeedup/wholepair/allbranchesclosure;9/1352native849PMU16phase3136assignments andbroadercandidate gaps retained.",
+    "existing_broad_conclusion_gap_preserved": true,
+    "no_native_fusion_or_physical_gain_proved": true
+  }
+}

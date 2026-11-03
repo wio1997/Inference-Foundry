@@ -1,0 +1,166 @@
+{
+  "nodes": [
+    {
+      "id": "MAIN",
+      "label": "Existingglobalmainnormcontext"
+    },
+    {
+      "id": "CR",
+      "label": "Replicatedcontextsubset"
+    },
+    {
+      "id": "CS",
+      "label": "Ownercontextsubset"
+    },
+    {
+      "id": "QH",
+      "label": "Currentlayerlocalqueryhidden"
+    },
+    {
+      "id": "QRAW",
+      "label": "LocalqueryQA/otherrawreaders"
+    },
+    {
+      "id": "PROJ",
+      "label": "ConditionalperlayerrowpackedWKV512"
+    },
+    {
+      "id": "NORM",
+      "label": "Separateperrow512norm/BF16"
+    },
+    {
+      "id": "KVAG",
+      "label": "Newtagged512carrier"
+    },
+    {
+      "id": "CROPE",
+      "label": "OriginalcontextRoPE"
+    },
+    {
+      "id": "QROPE",
+      "label": "OriginalqueryRoPE"
+    },
+    {
+      "id": "CW",
+      "label": "Contextcachewrite"
+    },
+    {
+      "id": "QW",
+      "label": "Querycachewrite"
+    },
+    {
+      "id": "READ",
+      "label": "SWAreadrange"
+    },
+    {
+      "id": "NEXT",
+      "label": "Nextlayerqueryhidden"
+    }
+  ],
+  "edges": [
+    {
+      "producer": "MAIN",
+      "consumer": "CR",
+      "dependency": "localreplicatedsubset"
+    },
+    {
+      "producer": "MAIN",
+      "consumer": "CS",
+      "dependency": "ownerselect"
+    },
+    {
+      "producer": "CR",
+      "consumer": "PROJ",
+      "dependency": "contextRrows"
+    },
+    {
+      "producer": "CS",
+      "consumer": "PROJ",
+      "dependency": "contextSrows"
+    },
+    {
+      "producer": "QH",
+      "consumer": "PROJ",
+      "dependency": "ownedqueryrows"
+    },
+    {
+      "producer": "QH",
+      "consumer": "QRAW",
+      "dependency": "retainedrawconsumer"
+    },
+    {
+      "producer": "PROJ",
+      "consumer": "NORM",
+      "dependency": "full512row"
+    },
+    {
+      "producer": "NORM",
+      "consumer": "KVAG",
+      "dependency": "ownedtaggedrows"
+    },
+    {
+      "producer": "NORM",
+      "consumer": "CROPE",
+      "dependency": "localreplicatedCrows"
+    },
+    {
+      "producer": "KVAG",
+      "consumer": "CROPE",
+      "dependency": "receivedCrows"
+    },
+    {
+      "producer": "KVAG",
+      "consumer": "QROPE",
+      "dependency": "receivedQrows"
+    },
+    {
+      "producer": "CROPE",
+      "consumer": "CW",
+      "dependency": "correctcontextslotvalues"
+    },
+    {
+      "producer": "QROPE",
+      "consumer": "QW",
+      "dependency": "correctqueryslotvalues"
+    },
+    {
+      "producer": "CW",
+      "consumer": "QW",
+      "dependency": "WAWonlyonactualoverlap"
+    },
+    {
+      "producer": "CW",
+      "consumer": "READ",
+      "dependency": "requiredcontextrows"
+    },
+    {
+      "producer": "QW",
+      "consumer": "READ",
+      "dependency": "requiredqueryrows"
+    },
+    {
+      "producer": "QRAW",
+      "consumer": "READ",
+      "dependency": "queryQready"
+    },
+    {
+      "producer": "READ",
+      "consumer": "NEXT",
+      "dependency": "serialdecoderlayer"
+    }
+  ],
+  "pair": [
+    "F29",
+    "F32"
+  ],
+  "domain": "SelecteddraftSWAonly sourcewithsameper-layerparameters andnewexplicitlocalQ/projectedKVABI;cache-demand andnumeric applicability unknown.",
+  "alternatives": "Replicated/globalrecipient vsrecipient-local/storageowner ands-hybrid aredifferentgraphs,notindependentgains.",
+  "capacity": "Currentmainweightsunchanged;includeexistingglobalcontextbank,oldcache/readers,newC/Qpacks/carrier/queues andKVweightworking-set underoneactualmemorybudget. No fitclaim.",
+  "readiness": "Use actualper-range RAW/WAW/reader-retirement edges. No wholeoperator/globalbarrier inferred from thislocaldependencydiagram.",
+  "context_bank_lifetime": "Delayingcontextprojectionuntileachquerylayerisreadyextendsglobalcontext-bankreaders fromearlyprecompute throughthelastselectedlayer. Preserveinteriterationbankreuse andnewpack/queuecapacity;no freeearlierretirement.",
+  "native_graph_nodes_added": 0,
+  "new_pair_clauses": 1,
+  "new_higher_order_groups": 0,
+  "new_device_work": false,
+  "overall_complete": false
+}

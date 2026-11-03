@@ -1,0 +1,101 @@
+{
+  "id": "F22_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "MOE_WRAPPER",
+  "original_node_mapping": {
+    "shared_gate_up": "shared_gate_up",
+    "swiglu_quant": "swiglu_quant",
+    "shared_down": "shared_down"
+  },
+  "nodes": [
+    {
+      "id": "shared_gate_up",
+      "kind": "INT8_LINEAR",
+      "resource": "NPU"
+    },
+    {
+      "id": "swiglu_quant",
+      "kind": "SWIGLU_CLAMP_QUANT_COMPOSITE",
+      "resource": "NPU"
+    },
+    {
+      "id": "shared_down",
+      "kind": "INT8_LINEAR",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "shared_gate_up",
+      "consumer": "swiglu_quant",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "swiglu_quant",
+      "consumer": "shared_down",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "shared_quant",
+      "consumer": "shared_gate_up",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "shared_down",
+      "consumer": "merge",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v56": {
+    "profile": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-operator-profile-v56.json",
+    "kernel": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-kernel-boundary-and-tiling-contract-v56.json",
+    "receiver_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/MC2-receiver-work-and-communication-model-v56.json",
+    "relation": "MC2alreadyfusesrouteddispatch/GMM1/SwiGLUquant/GMM2/combine;sharedactivation isseparate. InternalFP16/INT8/FP32barriers andGMaliasedbuffers bound. Work usesreceiverassignments/activeexperts;5conditionalvariants refineexistingcandidates. Sharedoverlaporacle excludesdependentfinaladd.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  },
+  "review_v57": {
+    "shape_ceiling": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/shared-expert-shape-ceiling-v57.json",
+    "numerical_library_contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/shared-operator-numerical-and-library-contract-v57.json",
+    "variants": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/shared-expert-fusion-variants-and-interactions-v57.json",
+    "singleton_merge": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F23-singleton-merge-specialization-v57.json",
+    "relation": "All42capturedM13regimes/5x4472stages modeled. INT32GateUp differsfromMC2FP16;rowquant/clamp10 constrainfusion. InstalledGMM-SwiGLUQuantV2header isnotclamp-equivalence proof. SingletonForeach specialization andDownBF16mergefusion arealternatives;overlapreadiness andaggregatecompute ceilings preventaddingallbyte/time savings.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false,
+    "conditional_operator_analysis_deliverable": true
+  },
+  "review_v73": {
+    "relation_clause_ids": [
+      "REL73-06",
+      "REL73-08",
+      "REL73-09"
+    ],
+    "peers": [
+      "F04",
+      "F21",
+      "F23"
+    ],
+    "clauses": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-clauses-v73.json",
+    "central_pair_index": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-relation-coverage-v73.json",
+    "joint_work_models": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/joint-candidate-work-models-v73.json",
+    "math_checks": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/candidate-composition-math-validation-v73.json",
+    "scope": "Selected scoped pair/multi-candidate composition only. Existing single-candidate facts preserved; whole pair variants, all candidate pairs and whole-model discovery not closed.",
+    "implementation": false,
+    "native_test": false,
+    "new_performance_result": false
+  }
+}

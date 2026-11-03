@@ -1,0 +1,151 @@
+{
+  "variants": [
+    {
+      "id": "INPUT-COMPOSE",
+      "choice": "Reusev38composedIDgatherasoneoperator",
+      "logical_cost_model": "24S+24D→20D selectedonly OR8S+12D retainingfullLvalidation/localreuse.",
+      "conditions": "L/Jready,INT32J+1wrap/negativeper-levelnormalization;preservevalidationofunselectedL/errorstatusorprovelegaldomain;publishedLmetadataisnotdeleted.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-COMPOSE-VALIDATE",
+      "choice": "Dropfirst-indexvalidationusingonlyselectedL",
+      "logical_cost_model": "ExcludedforunprovenfullLdomain: A[10,20],L[7,0],J[0] selectedcompose10butbaselineerrors.",
+      "conditions": "Fullindexvalidityisscope-specific,notinferredbyselectedoutputs.",
+      "decision": "EXCLUDED_WITH_COUNTEREXAMPLE",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-AUX-JOINT",
+      "choice": "Fuse3auxgatherswithconcat",
+      "logical_cost_model": "24T+24TH→4T+12TH,materializedoutput6THkept.",
+      "conditions": "All3sourcebounds/negativewrap/order/repeats/readiness/strides;indexonceperrowreference,physicalcache/spillingunbound.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-AUX-PREFIX",
+      "choice": "Usepaddedarangeasthreeprefixviewsbeforeconcat",
+      "logical_cost_model": "24T+24TH→12THwhenstableprefixidentity;arbitraryunpaddedselectionseparate.",
+      "conditions": "Sourcearangebankimmutable/rangeandallsourceoldgenerations;viewsnotcopiesrequirelastreader/aliasfences.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-AUX-F27",
+      "choice": "ReuseexistingF27-v34-INDIRECTsingle15360Dprojection",
+      "logical_cost_model": "Avoidselectedplanes+concatprep;inputloadandprojection2*T*15360*640perrankstillrequired.",
+      "conditions": "New3source/ordered-rowABI,singleKcontraction,BF16projectionboundary/fullfeatureRMS/TPdataready;donotthreeindependentlyroundedGEMMs. Notanewmissingmechanism.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-AUX-ORIGINAL-CONCAT",
+      "choice": "ReadoriginalthreeprefixplanesdirectlyinF27",
+      "logical_cost_model": "16nativeconcat:12THprep→0;T6400budget393216000Bpercalllogical.",
+      "conditions": "Sameexistingindirectcontract;all3auxlastreaders/overlapandoldcheckpointsstilllive;nospeedproportionalbytesclaim.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-ID-POS-PREFIX",
+      "choice": "UseprefixcopyforpaddedID/INT64positiongathers",
+      "logical_cost_model": "TwoTASK(8+2w)T→2wT preservescopy,viewcanremoveprivatecopyseparately.",
+      "conditions": "T<=sourcecapacity,arangevalues0:Tnoexternalwriters;samepositionsemantics/MMbranch;othernonpaddedselectionkept.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-SHARED-INDEX",
+      "choice": "Shareindexload/checkandjointpublishID/position/auxfields",
+      "logical_cost_model": "EachfieldscanssameIcurrently;oneproducerundernewmultioutABIcanamortize;countoverlapwithauxfusiononce.",
+      "conditions": "Allfieldsreadytogether,sourceextentintersection/negativeper-sourcewrap,copydestinationbanks/typesandlastreader;largerworking-set/latewaitcanloseoverlap.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-SAMPLE-HIDDEN",
+      "choice": "Useidentitysamplevieworindirectheadrowreader",
+      "logical_cost_model": "2TASK(8+20480)T→prefixcopy20480TorseparateheadABI0prep.",
+      "conditions": "Onlyactualidentity,not104allcalls;dummyzeroindicesandlmheadpaddingretainrowmap/snapshot;BF16inputandTProwsame.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-SHAPE-IDENTITY",
+      "choice": "Treatsameinput/outputhiddenrowcountasidentity",
+      "logical_cost_model": "Excluded: all-zeroindexhasidenticalshapeandduplicatesrow0.",
+      "conditions": "Realqueryproducer/range/aliasproofrequired.",
+      "decision": "EXCLUDED_WITH_COUNTEREXAMPLE",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-UNUSED-INITIAL",
+      "choice": "EliminateQSLminus1temporaryoverwrittenbyDSparkfirstpass",
+      "logical_cost_model": "16SubTASKknown16B/call→0valuework.",
+      "conditions": "Matchingoverrideunconditionallyignoresincomingselector,nootherobserver/failureeffects;othermethods/brancheskept.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-UNUSED-POS",
+      "choice": "Guardused_update_positionsbygenuinefuture-stepconsumer",
+      "logical_cost_model": "88IndexCheck+IndexgroupsvalueunusedwhenparallelTrue;16Tknownbytescanbeavoidedunderlegaldomain.",
+      "conditions": "Only2loadsitesunder!parallel/CPguard;DSparkconfigparallelTrue+constructorcopylocalSHAsame166revisioncondition;keepboundsvalidationunlessproducerprovesdomain.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-TAIL-DIRTY",
+      "choice": "Maintainfourbankconstanttailsusingexistingv69suffixlemma",
+      "logical_cost_model": "88calls4Fill11531424B;steadyBdirtywrites0;B4→2clears24INT32=96B.",
+      "conditions": "Capacities8208/8200/8200/8192areDRAFTbanks,notunknowntargetG13slotC;establishfulltails,allwriters/epochs/dummy/reset/addressrebindtracked;prefixcopyworkstillrequired.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-TAIL-COALESCE",
+      "choice": "Coalescefirstthreetailfieldsorpublishprefix+tailfromproducer",
+      "logical_cost_model": "Potential3Fill→1butalltheirwritesremainunlessdirty/elisioncontract.",
+      "conditions": "First3beforemetadatareader,lastsampletailafterotherwork;donotdelayearlywritesuntil4thfillwithoutreaderproof.Producer-outABIcanavoidprivatecopiesonlyallreadersbound.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-SEED-DIRECT",
+      "choice": "FeedfirstMarkovembeddingdirectseedinsteadofcolumn0copy",
+      "logical_cost_model": "104ViewCopywritesB8bytes,16Bknowncopytraffic;descriptor192Bnotactualcopy.",
+      "conditions": "dynamic_specreceivesfullbankargumentincludingseedcolumn;mustretainmaterializationoradaptallconsumers/disableguard;seedbankoldgenerationlastreaderprotected.",
+      "decision": "CONDITIONAL_OPERATOR_OPTION",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    },
+    {
+      "id": "INPUT-SEED-RETURN",
+      "choice": "Deletecolumn0becausereturnsliceexcludesseed",
+      "logical_cost_model": "Notproved: dynamic_spec.update(draft_token_ids=fullbuffer) is anotherobserver before return.",
+      "conditions": "Do notinferdeadnessfromreturnalone;internaldynamicconsumerreadsetunbound.",
+      "decision": "EXCLUDED_WITH_UNCLOSED_CONSUMER",
+      "legal_for_all_actual_values_proved": false,
+      "native_speedup": null
+    }
+  ],
+  "variant_count": 16,
+  "whole_modules_closed": 0,
+  "overall_complete": false
+}

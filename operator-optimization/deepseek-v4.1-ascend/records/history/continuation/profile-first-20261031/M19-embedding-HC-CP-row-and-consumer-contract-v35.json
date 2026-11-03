@@ -1,0 +1,124 @@
+{
+  "generated_utc": "2026-10-31T08:50:26.731612+00:00",
+  "facts": [
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "DSpark159 constructs VocabParallelEmbedding;249 embeds then repeats four HC channels before SP. Source258 shards hidden and259 input IDs,260 creates FP32 pre_mix zeros and261 sets column0 to1.104positive repeats and source-order first-HC entries bind the draft initialization domain; not all312attention-HCpre calls are first entries."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "v7 sp_shard zero-pads only dim0 to TP multiple and takes TP-rank chunk, cloning a no-pad slice. Repeating channels commutes with this copy map. sp_padding_mask uses hidden only for global row count; it also preserves supplied mask values. Do not replace the supplied mask by all-false merely because rows are within N."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "Actual embedding standard path429-435 invokes torch.ops.vllm.all_reduce(output_parallel, output_reduce_group.unique_name). It does not call the newly inspected upstream communication_op helper. Constructor190 takes group from plan; STANDARD and PCPxTP token-embedding plans use get_tp_group(). Fine-grained token exchange, PCP exchange and replicated/TP1 branches remain distinct."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "DSpark decoder class140 attention_cls=DeepseekV41DSparkAttention; that class derives DeepseekV41SWAAttention. Base decoder797 selects self.attention_cls. SWA constructor608 sets compress_ratio0. No directly declared DSpark decoder __init__ exists; absence is not absence of inherited construction."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "Active CP input owner is context_parallel/dsa_v41_cp189-192: global_metadata=_global_layer_metadata(...); start=metadata.swa.cp_token_range[0]; _preprocess(hidden_states[start:],hidden_states,metadata,global_metadata). Base dsa_v41.py347 passes identical metadata and is another branch, not the current owner."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "Base _preprocess351/352 truncates query/cache using their own num_actual_tokens. No local query updates global caches then returnsNone; current57KV rows10/20 are positive. Live Q_a rows2/3 differ from globalKV rows10/20, so naive same-M Q/KV concatenation is excluded for the existing layout."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "model397 declares Wq_a ReplicatedLinear; current BF16 outputs1280. Wkv ReplicatedLinear512 is pinned in v34; current global WKV264 is207multistream+57cache-only. Input is the already BF16-rounded input_layernorm output before SP gather, not raw HC state. Replicated declarations do not measure live parameter equality."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "Current CP output209-225 pads local attention output to metadata per_rank, restores heads using TP AllToAll, restores any DP/FlashComm suffix, then projects full hidden_states extent. _forward_o_proj1754-1799 applies active grouped Wo_a then Wo_b, writing into caller output.264Wo_a/264Wo_b positive calls include noQ ranks; full output direct publication is already implemented."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "restore_tp_heads maps [local tokens,all heads] to [all tokens,local heads] by reshape/permute/contiguous then all_to_all_single on TP device_group. A noQ rank can receive nonzero valid-token head shards and must contribute its output weights and required ReduceScatter participation."
+    },
+    {
+      "grade": "DOCUMENTED_PLUS_MEASURED",
+      "statement": "Decoder900-920 does attention ReduceScatter then HCpost, retains hidden as next residual, computes FFN HCpre using attn_pre, existing dual-output RMSNormCast, MLP, HCpost, and returns hidden plus ffn_pre. Next layer needs both state and pre_mix; final collapse is a distinct consumer. Current624HCpre/624HCpost bind the shared decoder structure."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Existing RMSNormCast already supplies BF16 norm and FP32 widening of rounded BF16 under v29. Any post/pre/norm fusion retains that boundary, routed/shared hooks and per-layer residual, not an unrounded FP32 norm substitution."
+    },
+    {
+      "grade": "DOCUMENTED",
+      "statement": "Context precompute v34 and query decoder both use that layer attn.wkv, but consume different5120D inputs and position/slot metadata. Same layer weight permits a conditional row-batch packing; same position or slot alone does not make context/query KV interchangeable across acceptance or rollback."
+    },
+    {
+      "grade": "UNKNOWN",
+      "statement": "Exact live CP-start versus SP-owner row relation, prefix mask values, slot/position identities, buffer aliases/capture/last-reader events, native math order, all external observers and causal gain are not recorded by these selected packets."
+    }
+  ],
+  "source_files": {
+    "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py": "fcee256905928917154d8dac94d6611bb83d02da441e8aa154a525ef51e6a601",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/ops/vocab_parallel_embedding.py": "4e06e8bc22d693659818a117790ee604cda041b11d66902b49d756714d61ca0f",
+    "/vllm-workspace/vllm/vllm/model_executor/layers/vocab_parallel_embedding.py": "d42574ac79bd7d7847548784d2272c7c40cbd93fe6cdadb15e8c2db79d2074d7",
+    "/vllm-workspace/vllm/vllm/distributed/communication_op.py": "3c3f8ac60db38ece891d39dc1e2f6f1947ad438685893d2e5777d072320bd1b8",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305"
+  },
+  "evidence_refs": [
+    {
+      "label": "M19-profile166-v35",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M19-profile166-v35.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M19-allrank-DSpark-forward-embedding-HC-decoder-and-communication-scope-v35.json",
+      "sha256": "abdd564691080a7f537a4f65668d72768461ad637e29633641c77e05a5ba5fa6"
+    },
+    {
+      "label": "M19-pattern166-v35",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M19-pattern166-v35.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M19-source-ordered-forward-patterns-typed-rows-and-group-audit-v35.json",
+      "sha256": "967543a3b4b953d6b974e8e943297387da4c01d53eb05fae5e81dafd61d49333"
+    },
+    {
+      "label": "M19-source166-v35",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M19-source166-v35.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M19-selected-decoder-tail-embedding-TP-owner-and-attention-output-contract-v35.json",
+      "sha256": "9e8bdcb13df7c0cdbc1cbaced5356cbb2651310831be0f0bd9d876dad73cecb0"
+    },
+    {
+      "label": "M19-owner166-v35-v2",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M19-owner166-v35-v2.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M19-actual-embedding-plan-and-query-KV-output-owner-contract-v35-v2.json",
+      "sha256": "d6f8f9e88051ecce6f3cb47b48430c02e1bb81fddde426f715a8299aba52916f"
+    },
+    {
+      "label": "M19-callers166-v35",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M19-callers166-v35.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M19-exact-live-query-cache-only-and-output-fullcallers-v35.json",
+      "sha256": "11c5fd1dba44a9d7abfe6459b1078ad7172ca455d0bc8ea31c176f9e80c8e3d2"
+    },
+    {
+      "label": "M19-CP166-v35-v2",
+      "receipt": "/Users/wio/work/166-vllm-analysis-continuation-20261030/M19-CP166-v35-v2.json",
+      "full_result": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/hostprof-20261030T212812Z-360e0c72/analysis/native-PMU-complete-v18/M19-profile-positive-CP-overrides-and-DSpark-class-binding-v35-v2.json",
+      "sha256": "ba3aa283aca4043629145f279da826696e24bdfb03cee654ab13f0d666d12e19"
+    }
+  ],
+  "reuse": [
+    "moe-draft-reconciliation-v7.json",
+    "profile-raised-source-contract-v16.json",
+    "cache-only-KV-branch-reconciliation-v18.json",
+    "M15-normalized-content-consumer-and-precision-contract-v31.json",
+    "M16-head-partition-postprocess-and-layout-contract-v32.json",
+    "M18-partition-bank-RoPE-and-slot-contract-v34.json"
+  ],
+  "local_questions_answered": [
+    "Actual embedding reduce-plan group versus SP",
+    "Draft initial repeat/premix/firstHC domain",
+    "Active CP override rather than identically-named base method",
+    "Global cache-only work and mandatory output exchange on noQ ranks",
+    "DSpark SWA class selection and inherited decoder post/pre/residual/premix fanout"
+  ],
+  "stop_rule": "These local contracts are now answered. Record runtime/numerical conditions and move to M20/M21, without broad source/SDK audits or requiring an optimization implementation.",
+  "implementation": false,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

@@ -1,0 +1,993 @@
+{
+  "candidates": [
+    {
+      "id": "F01",
+      "name": "注意力前 mHC 复合边界",
+      "operator_atom_union": [
+        "mhc.attn_pre"
+      ],
+      "modules": [
+        "M06",
+        "M18"
+      ],
+      "captured_master_sha256": "7f457c8e8a07ff768b5ffc82ca99d7624ddc31d8c25519b856438e176c680d2c",
+      "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+      "original_node_mapping": {
+        "attn_pre": "attn_pre"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F02",
+      "name": "embedding → 首层 mHC 系数投影；mHC pre → 输入归一化",
+      "operator_atom_union": [
+        "token.embedding",
+        "mhc.attn_pre",
+        "norm.attn_input"
+      ],
+      "modules": [
+        "M00",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M10",
+        "M11",
+        "M12",
+        "M18",
+        "M19",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "5c2a93ab479678be279c0f05342631374f248b9a841cfe2eb768d5f3b5c5c4f2",
+      "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+      "original_node_mapping": {
+        "attn_pre": "attn_pre",
+        "input_norm": "input_norm"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F03",
+      "name": "attention 或 FFN mHC post → 下一次 mHC pre，跨边界重组",
+      "operator_atom_union": [
+        "mhc.attn_post",
+        "mhc.ffn_post",
+        "mhc.next_pre",
+        "mhc.final_ffn_post"
+      ],
+      "modules": [
+        "M00",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M10",
+        "M11",
+        "M12",
+        "M18",
+        "M19",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "d3f8132bfde3327653501d19a0e8bb0dac089fb61e7e71e35de89e67c8f15f1c",
+      "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+      "original_node_mapping": {
+        "ffn_post": "ffn_post",
+        "next_pre": "next_pre"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F04",
+      "name": "FFN 归一化与类型转换",
+      "operator_atom_union": [
+        "norm.ffn_input"
+      ],
+      "modules": [
+        "M06",
+        "M12",
+        "M13",
+        "M22"
+      ],
+      "captured_master_sha256": "adba025a6aceb0b233c56316bfb54bbd08e9cd8109f492d982b05278f35b81d2",
+      "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+      "original_node_mapping": {
+        "norm_cast": "norm_cast"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F05",
+      "name": "Q norm → 动态量化 → Q 投影，多算子链",
+      "operator_atom_union": [
+        "attn.qr.norm1280",
+        "attn.qr.quant_for_QB",
+        "attn.QB"
+      ],
+      "modules": [
+        "M07"
+      ],
+      "captured_master_sha256": "44ac33c1c7f6cc132f8ae3f7412b485aa1a294b98aa6eae20f5df613ca8ba564",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "q_norm": "q_norm",
+        "q_quant": "q_quant",
+        "q_b": "q_b"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F06",
+      "name": "Q 与 KV 投影，共享输入或合并投影",
+      "operator_atom_union": [
+        "attn.QA",
+        "attn.SWA_KV_projection",
+        "index.Q_projection",
+        "index.W_projection"
+      ],
+      "modules": [
+        "M07",
+        "M21",
+        "M23"
+      ],
+      "captured_master_sha256": "5e9ccd2ec86d64db81a89d8ddcab04169faa6cd753c7ff975e837a4669a91fcf",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "q_a": "q_a",
+        "kv": "kv"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F07",
+      "name": "Q 投影 → RoPE，生产者与消费者组合",
+      "operator_atom_union": [
+        "attn.QB",
+        "attn.query.tail64_RoPE"
+      ],
+      "modules": [
+        "M07",
+        "M22"
+      ],
+      "captured_master_sha256": "132003a2082f42cf047081d2e062d064c13abfe07369cb2e7dbb3d298acd7660",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "q_b": "q_b",
+        "q_rope": "q_rope"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F08",
+      "name": "KV 投影 → norm → RoPE → SWA 缓存写入",
+      "operator_atom_union": [
+        "attn.SWA_KV_projection",
+        "attn.SWA_KV.norm512",
+        "attn.SWA_KV.tail64_RoPE",
+        "state.SWA_publish",
+        "KV.current_read_overlay",
+        "KV.accepted_prefix_publication",
+        "KV.PA_COW_page_adoption",
+        "mixed.SWA_C2_projection_input"
+      ],
+      "modules": [
+        "M02",
+        "M07",
+        "M08",
+        "M10",
+        "M15",
+        "M21",
+        "M22",
+        "M24"
+      ],
+      "captured_master_sha256": "261cd2eb58cfb620ba716a88e909eaec2f750d72f674fb2fc64fa524cacea69c",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "kv": "kv",
+        "kv_norm": "kv_norm",
+        "kv_rope": "kv_rope",
+        "swa_store": "swa_store"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct.",
+      "scope_v87": "Conditional KV publication alternatives;module links are analytical navigation,not changed native attribution."
+    },
+    {
+      "id": "F09",
+      "name": "Index query 投影 → RoPE → 量化",
+      "operator_atom_union": [
+        "attn.qr.quant_for_IndexQ",
+        "index.Q_projection",
+        "index.Q.tail64_RoPE",
+        "index.Q.quant128"
+      ],
+      "modules": [
+        "M07",
+        "M09",
+        "M21"
+      ],
+      "captured_master_sha256": "e8d3f0c7b98f2954d57addb2d64c5d5c9ce19d160fbbd335cab5d9c2be9cc1a1",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "iq": "iq",
+        "iq_rope": "iq_rope",
+        "iq_quant": "iq_quant"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F10",
+      "name": "Index weight 投影 → 转换与缩放",
+      "operator_atom_union": [
+        "index.W_projection",
+        "index.W.cast_scale_cast"
+      ],
+      "modules": [
+        "M07",
+        "M09"
+      ],
+      "captured_master_sha256": "a8cbf4b8040a35d2d1516d0af328b6cfd6c2fb2e8f18e5f0397c0d202f76f29f",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "iw": "iw",
+        "iw_scale": "iw_scale"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F11",
+      "name": "Index key norm → RoPE → 量化 → key/scale 缓存写入",
+      "operator_atom_union": [
+        "index.K_projection",
+        "index.K.norm128",
+        "index.K.tail64_RoPE",
+        "index.K.FLOAT_scale_quant",
+        "state.index_K_scale_publish"
+      ],
+      "modules": [
+        "M07",
+        "M09"
+      ],
+      "captured_master_sha256": "3e7693ac6fd7da9d73cf9494a3956bc83fedae35d873844ee88cf5b792401ad4",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "ik_norm": "ik_norm",
+        "ik_rope": "ik_rope",
+        "ik_quant": "ik_quant",
+        "ik_store": "ik_store",
+        "scale_cast": "scale_cast",
+        "scale_store": "scale_store"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F12",
+      "name": "Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask",
+      "operator_atom_union": [
+        "index.QLI",
+        "index.prepare_indices",
+        "state.selected_indices_publish",
+        "state.C1_candidates_publish"
+      ],
+      "modules": [
+        "M09",
+        "M21",
+        "M24"
+      ],
+      "captured_master_sha256": "099f55683ab1785933e38a114f39c576db8be6ef8122cfa575bba563255624de",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "qli": "qli",
+        "fixup": "fixup",
+        "indices_store": "indices_store"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F13",
+      "name": "稀疏注意力复合边界",
+      "operator_atom_union": [
+        "attn.SMLA"
+      ],
+      "modules": [
+        "M10"
+      ],
+      "captured_master_sha256": "3848752eb4b1f93271e00e786f195bb6ee739626a50e275cd750d214a6f9697f",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "attention": "attention"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F14",
+      "name": "Attention → 逆 RoPE → 布局恢复 → 输出投影",
+      "operator_atom_union": [
+        "attn.SMLA",
+        "attn.output.inverse_tail64_RoPE",
+        "attn.output.pad_pack",
+        "attn.output.restore_heads",
+        "attn.OA"
+      ],
+      "modules": [
+        "M10",
+        "M11",
+        "M23"
+      ],
+      "captured_master_sha256": "0b08c3d76f9125c09334fb09d21658991d61a58f4f128b8bf251152df0d989e7",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "attention": "attention",
+        "inverse_rope": "inverse_rope",
+        "pad": "pad",
+        "restore_heads": "restore_heads",
+        "o_a": "o_a"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F15",
+      "name": "Attention 输出填充/恢复 → 投影",
+      "operator_atom_union": [
+        "attn.output.pad_pack",
+        "attn.output.restore_heads",
+        "attn.OA"
+      ],
+      "modules": [
+        "M11",
+        "M23"
+      ],
+      "captured_master_sha256": "90fd206c69f4329fc25a01e1291410ab1134522b10beffbe966106ae4012da5c",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "pad": "pad",
+        "restore_heads": "restore_heads",
+        "o_a": "o_a"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F16",
+      "name": "两级输出投影与 reduce-scatter 的分块重组",
+      "operator_atom_union": [
+        "attn.OA",
+        "attn.OB",
+        "attn.output.reduce_scatter"
+      ],
+      "modules": [
+        "M11",
+        "M19",
+        "M21",
+        "M23"
+      ],
+      "captured_master_sha256": "e50ea9b95c55b854c538ed80db36644aac1a3677dbb454915bd5d609d855d062",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "o_a": "o_a",
+        "o_b": "o_b",
+        "reduce_scatter": "reduce_scatter"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F17",
+      "name": "Compressor 两路输入投影，共享转换或分块",
+      "operator_atom_union": [
+        "compress.C2.FLOAT_input",
+        "compress.C2.Wkv",
+        "compress.C2.Wscore",
+        "mixed.SWA_C2_projection_input"
+      ],
+      "modules": [
+        "M07",
+        "M08",
+        "M21"
+      ],
+      "captured_master_sha256": "753ce528e17bc22a7b5ff7bd96e47b4d5a5a5a307f03ae7d8bffdd4ea2bb268e",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "x_cast": "x_cast",
+        "compress_proj": "compress_proj",
+        "score_proj": "score_proj"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F18",
+      "name": "Compressor 状态池化 → norm",
+      "operator_atom_union": [
+        "compress.C2.pool",
+        "compress.latent.norm512"
+      ],
+      "modules": [
+        "M08"
+      ],
+      "captured_master_sha256": "2cfba5d19f1ffd44da8bd4a62b8ba639621a818b350d7b26834b4658672b727b",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "ring_pool": "ring_pool",
+        "compress_norm": "compress_norm"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F19",
+      "name": "Compressor latent 分叉 → index key 与压缩 KV",
+      "operator_atom_union": [
+        "compress.latent.norm512",
+        "index.K_projection",
+        "index.K.norm128",
+        "index.K.tail64_RoPE",
+        "compress.latent.tail64_RoPE",
+        "state.compressed_KV_publish"
+      ],
+      "modules": [
+        "M08",
+        "M09",
+        "M24"
+      ],
+      "captured_master_sha256": "7796b957fbb9bbdbe89fee0fb97eec42ee36c4c7e9ff3856f05f0494553e7b6c",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "compress_norm": "compress_norm",
+        "ik": "ik",
+        "ik_norm": "ik_norm",
+        "ik_rope": "ik_rope",
+        "cmp_rope": "cmp_rope",
+        "cmp_store": "cmp_store"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F20",
+      "name": "MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用",
+      "operator_atom_union": [
+        "moe.router",
+        "moe.TopK",
+        "moe.dispatch_FFN_combine"
+      ],
+      "modules": [
+        "M04",
+        "M12",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "bb01f49c1b5e3a6d428b2f198a82554e193eef73d390b129ce14ba76c9ba3f9a",
+      "original_template_graph_id": "MOE_WRAPPER",
+      "original_node_mapping": {
+        "router": "router",
+        "topk": "topk",
+        "dispatch_ffn_combine": "dispatch_ffn_combine"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F21",
+      "name": "MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水",
+      "operator_atom_union": [
+        "moe.dispatch",
+        "moe.GMM1",
+        "moe.Swiglu",
+        "moe.GMM2",
+        "moe.combine"
+      ],
+      "modules": [
+        "M00",
+        "M12",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "5c07bc360b2adb59e28338eb1105fa51581df6b0bd2b8c5e5b554c35027380e5",
+      "original_template_graph_id": "MC2_INTERNAL_KNOWN_STAGES",
+      "original_node_mapping": {
+        "dispatch": "dispatch",
+        "gmm1": "gmm1",
+        "swiglu": "swiglu",
+        "gmm2": "gmm2",
+        "combine": "combine"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F22",
+      "name": "共享 expert 的投影 → 激活量化 → 下投影",
+      "operator_atom_union": [
+        "moe.shared.DQ",
+        "moe.shared.GateUp",
+        "moe.shared.DSQ",
+        "moe.shared.Down"
+      ],
+      "modules": [
+        "M12",
+        "M13",
+        "M23"
+      ],
+      "captured_master_sha256": "98fe8ae1e351fc9ba120d8efb7c91c359504581a3583f9f9ad66f1195201cc5a",
+      "original_template_graph_id": "MOE_WRAPPER",
+      "original_node_mapping": {
+        "shared_gate_up": "shared_gate_up",
+        "swiglu_quant": "swiglu_quant",
+        "shared_down": "shared_down"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F23",
+      "name": "共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC",
+      "operator_atom_union": [
+        "moe.shared.Down",
+        "moe.dispatch_FFN_combine",
+        "moe.shared_routed_merge",
+        "mhc.ffn_post"
+      ],
+      "modules": [
+        "M06",
+        "M13",
+        "M23"
+      ],
+      "captured_master_sha256": "a0d97f5f5dd25b3c71f847a05cc32f6b63a7b5784b6d402108815e84f0e0660b",
+      "original_template_graph_id": "MOE_WRAPPER",
+      "original_node_mapping": {
+        "shared_down": "shared_down",
+        "dispatch_ffn_combine": "dispatch_ffn_combine",
+        "merge": "merge"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F24",
+      "name": "Engram hash/lookup → ready → 行视图或分片；host-UVA 寻址",
+      "operator_atom_union": [
+        "engram.hash",
+        "engram.UVA_lookup",
+        "engram.ready",
+        "engram.row_partition"
+      ],
+      "modules": [
+        "M00",
+        "M04",
+        "M06",
+        "M14",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "0abd64bfc46deaaf27863971d83f6fbd3ef42e42705c4ad7e9febd6bb3dc4496",
+      "original_template_graph_id": "ENGRAM",
+      "original_node_mapping": {
+        "hash": "hash",
+        "lookup": "lookup",
+        "ready": "ready",
+        "rows": "rows"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F25",
+      "name": "Engram 投影 → gate/残差",
+      "operator_atom_union": [
+        "engram.projection",
+        "engram.gate_residual",
+        "engram.WKV",
+        "engram.key_rstd",
+        "state.WKV_output_memo"
+      ],
+      "modules": [
+        "M02",
+        "M14",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "ce1ce962887e60d4cedc3f3bcdbd1ac9bcc1090ab76c87b8620b070cc3490db4",
+      "original_template_graph_id": "ENGRAM",
+      "original_node_mapping": {
+        "proj": "proj",
+        "gate": "gate"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct.",
+      "variant_scope_v84": "TargetEngram1/14;WKVpure-rows hoist/memo separatefromhidden-dependentgate;ordinarykey-rstdhandoffonly,notunrotatednativeABI."
+    },
+    {
+      "id": "F26",
+      "name": "最终 HC collapse → norm 及 logits 边界",
+      "operator_atom_union": [
+        "target.final_HC_collapse",
+        "target.final_norm",
+        "target.head",
+        "state.target.raw_HC_snapshot",
+        "mhc.final_ffn_post",
+        "terminal.query_output_demand",
+        "terminal.FFN_output_demand",
+        "state.KV_writer_demand_cut"
+      ],
+      "modules": [
+        "M02",
+        "M04",
+        "M06",
+        "M07",
+        "M10",
+        "M11",
+        "M12",
+        "M13",
+        "M15",
+        "M16",
+        "M17",
+        "M18",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "591864ce87a75d151b64ef46c6b57f82f47b21fa049eda6bb853a5ad2e5c38e2",
+      "original_template_graph_id": "MHC_BLOCK_AND_CROSS_LAYER",
+      "original_node_mapping": {
+        "collapse": "collapse",
+        "final_norm": "final_norm"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct.",
+      "source_scope_v85": "Prior v11 direct DSpark drafter-content answer revalidated; registered/external/native observers and alias/lifetime guards remain open.",
+      "source_scope_v86": "Conditional terminal-layer output demand; full KV/state branch preserved. Module links are analytical navigation,not altered native assignment."
+    },
+    {
+      "id": "F27",
+      "name": "DSpark 辅助上下文投影 → norm，候选流水",
+      "operator_atom_union": [
+        "target.aux_HC_mean",
+        "context.main_projection",
+        "context.main_norm"
+      ],
+      "modules": [
+        "M02",
+        "M04",
+        "M06",
+        "M07",
+        "M15",
+        "M18",
+        "M19",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "07cebe39e83c455605a139385e75f17323454e7a6b3914e699a9325a8dfedcd8",
+      "original_template_graph_id": "DSPARK_BOUNDARIES",
+      "original_node_mapping": {
+        "aux": "aux",
+        "main_proj": "main_proj",
+        "main_norm": "main_norm"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F28",
+      "name": "DSpark embedding → HC 重复/初始化 → decoder",
+      "operator_atom_union": [
+        "draft.embedding",
+        "draft.HC_repeat",
+        "draft.decoder0"
+      ],
+      "modules": [
+        "M00",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M10",
+        "M11",
+        "M12",
+        "M18",
+        "M19",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "f1888d665e88a8aae711748f0a72762f1f4829af3c65c412d42223a88b7b9515",
+      "original_template_graph_id": "DSPARK_BOUNDARIES",
+      "original_node_mapping": {
+        "embedding": "embedding",
+        "repeat": "repeat",
+        "block0": "block0"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F29",
+      "name": "DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引",
+      "operator_atom_union": [
+        "context.KV_projection",
+        "context.KV_norm",
+        "context.KV_RoPE",
+        "context.assembly",
+        "context.slot_publish"
+      ],
+      "modules": [
+        "M00",
+        "M02",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M10",
+        "M11",
+        "M12",
+        "M15",
+        "M18",
+        "M19",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "e9cd0f4209495585866f4a7cf82d4db0c7a661fd296a283cdd5cd8105f027570",
+      "original_template_graph_id": "DSPARK_SHARED_KV",
+      "original_node_mapping": {
+        "proj": "proj",
+        "norm": "norm",
+        "rope": "rope",
+        "cat": "cat",
+        "slots": "slots",
+        "scatter": "scatter"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F30",
+      "name": "DSpark collapse/norm → Markov bias、logits/置信度/验证",
+      "operator_atom_union": [
+        "draft.HC_collapse",
+        "draft.norm",
+        "draft.head",
+        "draft.Markov",
+        "draft.confidence",
+        "draft.accept_verify"
+      ],
+      "modules": [
+        "M01",
+        "M03",
+        "M04",
+        "M15",
+        "M16",
+        "M17",
+        "M18",
+        "M19",
+        "M20",
+        "M21",
+        "M22",
+        "M23",
+        "M24",
+        "M25"
+      ],
+      "captured_master_sha256": "bad5e08bca9ee5265ebb28afd4efa6b1aae180db0b9c81812956ca803f8082df",
+      "original_template_graph_id": "DSPARK_BOUNDARIES",
+      "original_node_mapping": {
+        "collapse": "collapse",
+        "norm": "norm",
+        "logits": "logits",
+        "markov": "markov",
+        "confidence": "confidence",
+        "accept": "accept"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct.",
+      "partial_source_graph_binding_v88": {
+        "graph": "operator-graph-G5-v88.json",
+        "template": "DSPARK_BOUNDARIES",
+        "source_answer_version": 36,
+        "scope": "Only raw confidence/dynamic-policy branch;not full primitive or native all-variant graph."
+      }
+    },
+    {
+      "id": "F31",
+      "name": "Attention/DSpark 相关 metadata 构造、共享与发布",
+      "operator_atom_union": [
+        "metadata.attention",
+        "metadata.index",
+        "metadata.CP_SP_rows",
+        "metadata.accept_reject",
+        "metadata.state_generation",
+        "metadata.WKV_generation"
+      ],
+      "modules": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09",
+        "M10",
+        "M15",
+        "M16",
+        "M17",
+        "M18",
+        "M19",
+        "M20",
+        "M21",
+        "M22",
+        "M23",
+        "M24",
+        "M25"
+      ],
+      "captured_master_sha256": "b6c8bdd1b15cb6e4b01c3dac9e4559d4203d7896b758b29f72173e9edb7c461d",
+      "original_template_graph_id": null,
+      "original_node_mapping": null,
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct.",
+      "partial_source_graph_binding_v88": {
+        "graph": "operator-graph-G5-v88.json",
+        "template": "DSPARK_BOUNDARIES",
+        "source_answer_version": 36,
+        "scope": "Only raw confidence/dynamic-policy branch;not full primitive or native all-variant graph."
+      }
+    },
+    {
+      "id": "F32",
+      "name": "SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信",
+      "operator_atom_union": [
+        "attn.input.gather",
+        "attn.QA",
+        "attn.SWA_KV_projection",
+        "compress.C2.Wkv",
+        "compress.C2.Wscore"
+      ],
+      "modules": [
+        "M00",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M10",
+        "M11",
+        "M12",
+        "M18",
+        "M19",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "5b69f2244d603fc50e98d10216a64d688d45a7f94632ac3a64153e60e2f519b4",
+      "original_template_graph_id": null,
+      "original_node_mapping": null,
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F33",
+      "name": "C1 compressor 与 SWA KV 的同域投影共享、联合分块与前移通信",
+      "operator_atom_union": [
+        "compress.C1.projection",
+        "attn.SWA_KV_projection",
+        "compress.latent.norm512",
+        "index.K_projection"
+      ],
+      "modules": [
+        "M07",
+        "M08",
+        "M09",
+        "M10",
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ],
+      "captured_master_sha256": "c45de5026b6384d1f0632616fee78d90d7dc6542df4a32e5edd1ac89fe809d65",
+      "original_template_graph_id": null,
+      "original_node_mapping": null,
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F34",
+      "name": "C2 ring 状态的可观测性裁剪、稀疏维护与表示重组",
+      "operator_atom_union": [
+        "compress.C2.pool",
+        "state.C2.old_ring_read",
+        "state.C2.tail_update",
+        "state.C2.physical_owner"
+      ],
+      "modules": [
+        "M02",
+        "M08",
+        "M21",
+        "M22",
+        "M24"
+      ],
+      "captured_master_sha256": "b57329da406d06ac9dad618bf3c9c88e25c872bbbfad3830d3232a2f132f6918",
+      "original_template_graph_id": "ATTN_C2_SOURCE",
+      "original_node_mapping": {
+        "ring_pool": "Source-refined stateful compound:old-ringpool + tail-stateupdate;do not treatrefinement asalreadydistinctG1nodes."
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    },
+    {
+      "id": "F35",
+      "name": "目标采样的按需raw logits、行选择/转换/argmax与拒绝输出重组",
+      "operator_atom_union": [
+        "target.head",
+        "target.score_processors",
+        "target.greedy",
+        "target.raw_scores",
+        "target.reject_output"
+      ],
+      "modules": [
+        "M04",
+        "M16",
+        "M17",
+        "M20",
+        "M21",
+        "M22",
+        "M23",
+        "M24",
+        "M25"
+      ],
+      "captured_master_sha256": "ad3307705bcad429164467cdaa29990953a6b1744decdc460f8b8c8a894a2a77",
+      "original_template_graph_id": null,
+      "original_node_mapping": {
+        "bonus": "rejection_sampler.forward192-204;Sampler.forward87-150",
+        "target": "rejection_sampler.forward209-249",
+        "greedy": "AscendSampler84;rejection_sample510/513",
+        "raw_entropy": "rejection_sample436/461-464"
+      },
+      "simultaneous_variant_or_runtime_binding_proved": false,
+      "union_scope": "Navigation union of named operator variants. Same atom requires same invocation/row/position/weights/config/value generation and compatible partition; target and draft namespaces stay distinct."
+    }
+  ],
+  "count": 35,
+  "source": "Exact v84 master hashes before mutation. Final-Post/common-budget associations are conditional navigation, not native functional attribution.",
+  "no_new_maincandidate": true,
+  "not_full_primitive_graph": true,
+  "overall_complete": false,
+  "parent": "candidate-operator-footprints-v88.json",
+  "typed_capacity_refinement_v89": {
+    "evidence": [
+      "typed-capacity-primary-contract-v89.json",
+      "A3-matrix-typed-capacity-cases-v89.json",
+      "mixed-projection-capacity-repricing-v89.json",
+      "router-Vector-instruction-cuts-v89.json",
+      "HC-precision-mode-capacity-cases-v89.json"
+    ],
+    "new_pair_clauses": 0,
+    "new_groups": 0,
+    "no_runtime_closure": true
+  }
+}

@@ -1,0 +1,16 @@
+"""Conditional payload bound for the two fixed observed benchmark outputs."""
+from pathlib import Path
+import json,hashlib,datetime
+T=Path(__file__).resolve().parents[1]
+B=Path('/Users/wio/work/169-vllm-ascend-reproduce-172/benchmark-20261028/raw-results/results')
+files=[B/'measure1/20261027_195847/performances/final-best-measure1_20261026_231410-vllm169/final-best-measure1_20261026_231410_details.jsonl',B/'measure2/20261027_195953/performances/final-best-measure2_20261026_231500-vllm169/final-best-measure2_20261026_231500_details.jsonl']
+expected=['7f175801a7f9d181126aaf30c9cec3deb5966f1a14e51695eab8549cc664c96f','5415bc0250c26c021b449031eb8dd816ff7a7d17b7d2caf969497d7cf75845ef']
+rows=[]
+for p,digest in zip(files,expected):
+ b=p.read_bytes();assert hashlib.sha256(b).hexdigest()==digest
+ entries=[json.loads(line) for line in b.splitlines() if line.strip()];assert len(entries)==8 and all(x['success'] and x['output_tokens']==1024 for x in entries)
+ lens=[len(x['prediction'].encode('utf-8')) for x in entries];rows.append({'input_path':str(p),'sha256':digest,'requests':len(entries),'output_tokens':sum(x['output_tokens'] for x in entries),'per_response_text_utf8_bytes':lens,'total_text_utf8_bytes':sum(lens),'conditional_bound_formula':f"tokens_per_second <= {sum(x['output_tokens'] for x in entries)} * B_out_max_bytes_per_second / {sum(lens)}"})
+assert [x['total_text_utf8_bytes'] for x in rows]==[32628,33024]
+o={'status':'CONDITIONAL_FIXED_OUTPUT_PAYLOAD_BOUND_ONLY','timestamp':datetime.datetime.now(datetime.timezone.utc).isoformat(),'samples':rows,'logic':'T >= D_out/B_out_max follows if each byte of those specific text outputs must cross the measured boundary with no compression or reuse and B_out_max is a proven hard upper bound for that exact boundary. Work overlap means combine with other valid latency bounds by max, not addition.','necessary_conditions':['Fixed measured output texts and token count','The chosen metric measures through receipt of last relevant output','Uncompressed delivery and no content sharing/caching or bypass across that output boundary','B_out_max is a justified hard maximum for the local service-to-client path; not assumed equal to network card bandwidth'], 'conditions_not_established':['Compression or reuse not completely excluded','Hard local output path capacity unavailable','Alternative implementations may use another boundary or eliminate serialization'],'benchmark_source_evidence':['benchmark-20261028/raw-results/measure1.py: local 127.0.0.1:8172, stream=True, batch_size=8','package/tools/aisbench-7bcb6440da11/plugins/prefix_cache/ais_bench_prefix_cache/models/vllm_prefix_cache_api.py:150-185: send, receive and parse chunks','ais_bench/benchmark/models/api_models/vllm_custom_api.py:179-184: accumulate chunk text','ais_bench/benchmark/calculators/default_perf_metric_calculator.py:80-81: maximum end minus minimum start'], 'not_universal_or_numeric':True,'not_network_bandwidth_claim':True,'no_target_code_modified':True}
+p=T/'evidence/fixed-output-conditional-bound.json';assert not p.exists();p.write_text(json.dumps(o,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'samples':rows,'status':o['status']},ensure_ascii=False))

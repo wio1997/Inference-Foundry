@@ -1,0 +1,46 @@
+{
+  "generated_utc": "2026-10-31T10:38:18.329089+00:00",
+  "framework_candidate": "H06",
+  "related": [
+    "F31",
+    "H02"
+  ],
+  "evidence_grade": "DOCUMENTED_EFFECTS_PLUS_CONDITIONAL_STORE_IDENTITY",
+  "effects": [
+    {
+      "bank": "QSL",
+      "extent": "[num_reqs+1,capacity)",
+      "value": -1
+    },
+    {
+      "bank": "group_slot",
+      "extent": "[num_tokens,num_tokens_padded)",
+      "value": -1
+    },
+    {
+      "bank": "group_table",
+      "extent": "[num_reqs,num_reqs_padded)",
+      "value": 0
+    }
+  ],
+  "duplicate_slot_proof": "IfearlierfusedwriteE=[sourceN,fusedMax)andlaterL=[metaN,metaPadded) useidenticalphysicalbank/generation/value-1,sourceN<=metaN<=metaPadded<=fusedMax,andnointerveningwrites toL,thenremovinglaterunused-returnfillleavesallvaluesandrequiredconsumerreadiness unchanged. Thisisconditional,notcurrentallgroupbinding.",
+  "dirty_tail_proof": "LetbankcapacityCbeinitializedtosentinelv,allnewnon-sentinelwritesbeprefix[0,a),andpreviouspublishedtail[a_prev,C)remainunchanged. Ifa<a_prevonly[a,a_prev)needsreset;ifa>=a_prevtail[a,C)alreadyhasv. Preserveinitialfullclear andinvalidatewhenanyotherwriter/alias/reallocation/reset changesinactivebytes.",
+  "shrink_example": {
+    "previous_active_end": 4,
+    "current_active_end": 2,
+    "must_reset": "[2,4)",
+    "retained_tail": "[4,C)",
+    "warning": "Skippingalltailwritesonshrinkwouldleaveoldactivevalues;shapeorgraphbucketaloneisnotdirtytracking."
+  },
+  "obligations": [
+    "ActualCP/SP/globalunpadded extents andgroupidentity,notordinalcounts.",
+    "Allcaptured/fullbankreaders andallwriterfootprints,includingrequestshrink/grow/slotreassignment.",
+    "Previouslastreader completebeforeinplaceoverwrite;retainproducerready/reusefences.",
+    "Do notremoveencoderzeroallocation orblocktable/QSLwritesbasedonslotPADproof.",
+    "Noall936TASK/hostfillAPI/physicalbyte/time savinginferred."
+  ],
+  "implemented": false,
+  "critical_path_gain_us": null,
+  "whole_module_closed": false,
+  "overall_complete": false
+}

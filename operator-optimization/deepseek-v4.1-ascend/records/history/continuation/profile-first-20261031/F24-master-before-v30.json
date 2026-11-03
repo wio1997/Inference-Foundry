@@ -1,0 +1,73 @@
+{
+  "id": "F24_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "ENGRAM",
+  "original_node_mapping": {
+    "hash": "hash",
+    "lookup": "lookup",
+    "ready": "ready",
+    "rows": "rows"
+  },
+  "nodes": [
+    {
+      "id": "hash",
+      "kind": "STATEFUL_HASH",
+      "resource": "CPU"
+    },
+    {
+      "id": "lookup",
+      "kind": "MAPPED_HOST_LOOKUP",
+      "resource": "CPU"
+    },
+    {
+      "id": "ready",
+      "kind": "EVENT",
+      "resource": "CPU_NPU"
+    },
+    {
+      "id": "rows",
+      "kind": "ROW_VIEW_OR_SHARD",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "hash",
+      "consumer": "lookup",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "lookup",
+      "consumer": "ready",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "ready",
+      "consumer": "rows",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "tokens",
+      "consumer": "hash",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [
+    {
+      "producer": "rows",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false
+}

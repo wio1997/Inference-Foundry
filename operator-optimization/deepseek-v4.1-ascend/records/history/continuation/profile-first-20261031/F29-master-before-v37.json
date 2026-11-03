@@ -1,0 +1,157 @@
+{
+  "id": "F29_BOUNDARY_CANDIDATE",
+  "original_template_graph_id": "DSPARK_SHARED_KV",
+  "original_node_mapping": {
+    "proj": "proj",
+    "norm": "norm",
+    "rope": "rope",
+    "cat": "cat",
+    "slots": "slots",
+    "scatter": "scatter"
+  },
+  "nodes": [
+    {
+      "id": "proj",
+      "kind": "LINEAR_BF16",
+      "resource": "NPU"
+    },
+    {
+      "id": "norm",
+      "kind": "ROW_REDUCTION_NORM",
+      "resource": "NPU"
+    },
+    {
+      "id": "rope",
+      "kind": "POINTWISE_ROPE",
+      "resource": "NPU"
+    },
+    {
+      "id": "cat",
+      "kind": "COPY_OR_VIEW",
+      "resource": "NPU"
+    },
+    {
+      "id": "slots",
+      "kind": "SLOT_FIXUP",
+      "resource": "NPU"
+    },
+    {
+      "id": "scatter",
+      "kind": "PERSISTENT_SCATTER",
+      "resource": "NPU"
+    }
+  ],
+  "internal_edges": [
+    {
+      "producer": "proj",
+      "consumer": "norm",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "norm",
+      "consumer": "rope",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "rope",
+      "consumer": "cat",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "cat",
+      "consumer": "scatter",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    },
+    {
+      "producer": "slots",
+      "consumer": "scatter",
+      "value": "validated physical slots",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_inputs": [
+    {
+      "producer": "context",
+      "consumer": "proj",
+      "value": "intermediate",
+      "dependency_kind": "RAW"
+    }
+  ],
+  "external_outputs": [],
+  "retained_persistent_consumers": "All future cache/index consumers in G1 must retain persistent outputs; template list alone does not enumerate all invocations",
+  "rewrite": "Candidate composite boundary preserving original semantic operations and value versions; no reassociation or removal proved",
+  "status": "CONDITIONAL",
+  "precision_conditions": "Preserve all existing casts, rounding, reduction order and mutable state unless equivalence is independently established",
+  "new_performance_result": false,
+  "review_v34": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M18-partition-bank-RoPE-and-slot-contract-v34.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/F27-F29-row-feature-and-KV-reorganization-v34.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M18-optimization-condition-ledger-v34.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M18-source-and-conditional-reorganization-graphs-v34.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "variants": [
+      {
+        "id": "F29-v34-KV-EPILOGUE",
+        "parent": "F29",
+        "transformation": "Fuse private KV512 norm, 64-tail rotary result assembly and standard cache row publication, retaining original numerical stages.",
+        "argument": "Each512-row normalization and BF16 barrier precedes the same64D interleaved rotary; private448+64 assembly can be represented as the same cache-row stores.",
+        "limits": "Keep ViewCopy effects unless the original tail is proved private. Packed-cache writer, negative slots, duplicate-slot input order, current-query writers and SWA readiness remain separate domains."
+      },
+      {
+        "id": "F29-v34-JOINT-OR-STREAM",
+        "parent": "F29",
+        "transformation": "Pack three distinct KV weights into one1536-output contraction with three512D norms, or pipeline per-layer preparation/consumption.",
+        "argument": "A block concatenation of three output-channel weight matrices represents the three independent linear maps in real algebra; common context loads can be shared.",
+        "limits": "Distinct matrices remain distinct. BF16 contraction outputs and separate512D norms/configs/caches remain. Joint output readiness may delay first-layer consumption; joint and streaming gains overlap and are not additive."
+      },
+      {
+        "id": "F29-v34-LOOKUP",
+        "parent": "F29",
+        "transformation": "Use existing required-config filtering and/or hoist one FP32 RoPE query over the context-KV loop, selecting each layer entry afterward.",
+        "argument": "Default query185/186 is a pure lookup of stable tables at stable position values. A query for the union of requested configs contains each selected layer result; layers need not share one config.",
+        "limits": "Source same Tensor argument is not mutation/readiness proof. Preserve layer/group rules, bounds/errors for the chosen normal domain and readonly C/S. Filtering and hoisting overlap. No automatic internal Cast removal or cross-iteration address-only cache."
+      },
+      {
+        "id": "F29-v34-SLOT-CSE",
+        "parent": "F29",
+        "related": "F31",
+        "transformation": "Compute standard INT32 slot pairs once per shared group bank/block-size/value generation and reuse them across eligible layer caches.",
+        "argument": "f_b(s)=(-1,-1) for s<0, else(floor(s/b),s%b) is independent of layer values; same group bank and stable b/s epoch gives identical metadata.",
+        "limits": "Actual _layer_group_idx values are unknown. Different groups/block sizes/slot generations cannot be merged by shape. Per-layer cache writes remain; packed-cache route and updates to query slots are not deleted."
+      },
+      {
+        "id": "F29-v34-ROW-OWNER-KV",
+        "parent": "F29",
+        "related": "F27",
+        "transformation": "After complete-weight row-local main projection/full5120 norm, compute the three replicated KV maps at row owners and gather per-layer KV rows instead of full context rows.",
+        "argument": "Each row-local KV/norm/RoPE can commute with an ordered row exchange when every owner uses the same per-layer parameters and correct post-metadata position for that row. Receivers then execute the original slot-write input sequence.",
+        "limits": "ReplicatedLinear declaration is supporting source evidence, not measured equality. Requires complete main W, positions/rejection/DCP row mapping, all context-bank consumers closed or retained, and unchanged cache contracts. Direct remote cache writes are a stronger different protocol."
+      }
+    ]
+  },
+  "review_v35": {
+    "contract": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-embedding-HC-CP-row-and-consumer-contract-v35.json",
+    "algebra": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-layout-ownership-and-context-query-reorganization-v35.json",
+    "conditions": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-optimization-condition-ledger-v35.json",
+    "graphs": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/M19-source-and-conditional-decoder-graphs-v35.json",
+    "implementation": false,
+    "new_performance_result": false,
+    "variants": [
+      {
+        "id": "F29-v35-CONTEXT-QUERY",
+        "parent": "F29",
+        "transformation": "Prepare context KV lazily per layer and pack its rows with that layer query KV rows into one same-weight WKV contraction when both inputs are ready.",
+        "argument": "Context bank main_norm rows and query input_layernorm rows are different inputs to the same layer attn.wkv. Row concatenation computes the two independent maps; no input-value equality is required.",
+        "conditions": "Keep distinct row/position/slot metadata and512D norms/RoPE, context-before-query duplicate-write order, noncausal cache readiness and dummy/no-context domains. Changed-M tiling needs a precision contract. Joint preparation may delay the first ready layer; overlap/savings are not free or additive.",
+        "implementation": false,
+        "native_validation": false,
+        "critical_path_gain_us": null
+      }
+    ]
+  }
+}

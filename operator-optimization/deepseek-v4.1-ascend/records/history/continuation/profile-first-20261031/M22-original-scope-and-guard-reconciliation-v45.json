@@ -1,0 +1,1004 @@
+{
+  "generated_utc": "2026-10-31T13:06:42.810192+00:00",
+  "original_surface": {
+    "id": "M22",
+    "name": "graph捕获、replay、更新与多流生命周期",
+    "source_selectors": [
+      "*/compilation/acl_graph.py",
+      "*/worker/model_runner_v1.py"
+    ],
+    "indexed_source_paths": [
+      "vllm-ascend/vllm_ascend/compilation/acl_graph.py",
+      "vllm-ascend/vllm_ascend/worker/model_runner_v1.py"
+    ],
+    "associations_are_many_to_many": true,
+    "candidate_crosswalk": [],
+    "status": "OPEN_EXISTING_EVIDENCE_NEEDS_FULL_CROSSWALK",
+    "mandatory_gates": {
+      "scope_and_dispatch": {
+        "status": "OPEN",
+        "evidence": []
+      },
+      "all_relevant_branches": {
+        "status": "OPEN",
+        "evidence": []
+      },
+      "value_and_all_consumers": {
+        "status": "OPEN",
+        "evidence": []
+      },
+      "alias_and_state_lifetime": {
+        "status": "OPEN",
+        "evidence": []
+      },
+      "cross_stream_rank_iteration_dependencies": {
+        "status": "PARTIAL_LOCAL_VERSIONED_STATE_EDGES; GLOBAL_AND_RUNTIME_OPEN",
+        "evidence": []
+      },
+      "fusion_split_regroup_rules": {
+        "status": "OPEN",
+        "evidence": []
+      },
+      "resource_performance_and_bounds": {
+        "status": "OPEN",
+        "evidence": []
+      },
+      "evidence_and_literature_reanalysis": {
+        "status": "OPEN",
+        "evidence": []
+      }
+    },
+    "conclusion_changing_gaps": [
+      "每次graph/replay到任务/请求映射",
+      "静态地址、更新handle与event身份",
+      "跨流收敛、异常和回退条件"
+    ],
+    "complete": false,
+    "local_review_evidence": [
+      "CROSS-ITERATION-REVIEW.md",
+      "cross-iteration-state-ledger.json"
+    ]
+  },
+  "indexed_units": 142,
+  "indexed_static_sites": 1101,
+  "source_hashes_verified": {
+    "vllm-ascend/vllm_ascend/compilation/acl_graph.py": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955",
+    "vllm-ascend/vllm_ascend/worker/model_runner_v1.py": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c"
+  },
+  "guard_dataflow_reconciled": [
+    {
+      "id": "4c5154c54e5e1e7b:108:8:108:54:Assert",
+      "owner": "ACLGraphWrapper.__init__",
+      "line": 108,
+      "kind": "Assert",
+      "condition": "self.runtime_mode != CUDAGraphMode.NONE",
+      "semantics": "NONE constructor prohibited; non-graph fallback belongs outer dispatch.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:115:29:115:78:IfExp",
+      "owner": "ACLGraphWrapper.__init__",
+      "line": 115,
+      "kind": "IfExp",
+      "condition": "self.is_debugging_mode",
+      "semantics": "Debug runnable repr only; does not validate runtime banks.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:119:8:120:50:If",
+      "owner": "ACLGraphWrapper.__init__",
+      "line": 119,
+      "kind": "If",
+      "condition": "cudagraph_options is None",
+      "semantics": "Default options object created only if absent; caller overrides remain distinct.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:161:8:168:49:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 161,
+      "kind": "If",
+      "condition": "aclgraph_runtime_mode == CUDAGraphMode.NONE or aclgraph_runtime_mode != self.runtime_mode",
+      "semantics": "NONE or different runtime mode calls callable directly, including nested wrappers/warmup.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:161:11:161:100:BoolOp",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 161,
+      "kind": "BoolOp",
+      "condition": "aclgraph_runtime_mode == CUDAGraphMode.NONE or aclgraph_runtime_mode != self.runtime_mode",
+      "semantics": "NONE or different runtime mode calls callable directly, including nested wrappers/warmup.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:170:8:172:111:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 170,
+      "kind": "If",
+      "condition": "batch_descriptor not in self.concrete_aclgraph_entries",
+      "semantics": "Descriptor-keyed entry allocation; no graph yet.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:176:8:273:25:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 176,
+      "kind": "If",
+      "condition": "entry.aclgraph is None",
+      "semantics": "Capture only if entry lacks graph; subsequent calls replay.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:177:12:182:108:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 177,
+      "kind": "If",
+      "condition": "self.aclgraph_options.debug_log_enable",
+      "semantics": "Debug capture logging is not runtime work/gain.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:186:53:186:57:Name:comprehension",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 186,
+      "kind": "comprehension",
+      "condition": "x in args if isinstance(x, torch.Tensor)",
+      "semantics": "Capture address inventory checks only direct positional tensors.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:191:16:199:85:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 191,
+      "kind": "If",
+      "condition": "self.aclgraph_options.gc_disable",
+      "semantics": "GC/empty-cache patches scoped by ExitStack during capture.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:209:16:244:25:Try",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 209,
+      "kind": "Try",
+      "condition": "try/exception/finally",
+      "semantics": "Capture joins offloader and wraps/rethrows errors; failed capture does not publish entry graph/output.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:219:24:226:61:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 219,
+      "kind": "If",
+      "condition": "self.aclgraph_options.weak_ref_output",
+      "semantics": "Optional weak-ref output before capture exit requires last-piecewise-output lifetime condition.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:228:20:243:34:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 228,
+      "kind": "If",
+      "condition": "_is_old_hdk_capture_error(exc)",
+      "semantics": "Old-stack-signature branch wraps RuntimeError; no actual failure or upgrade request is inferred.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:235:20:243:34:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 235,
+      "kind": "If",
+      "condition": "_is_stream_resource_capture_error(exc)",
+      "semantics": "Stream-resource-signature branch wraps RuntimeError; no actual failure inferred.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:246:12:252:95:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 246,
+      "kind": "If",
+      "condition": "self.enable_super_kernel",
+      "semantics": "Super-kernel optimization separate config; not implied by static-kernel flag.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:275:8:282:13:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 275,
+      "kind": "If",
+      "condition": "self.is_debugging_mode",
+      "semantics": "Debug-only positional address check.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:277:57:277:61:Name:comprehension",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 277,
+      "kind": "comprehension",
+      "condition": "x in args if isinstance(x, torch.Tensor)",
+      "semantics": "Replay inventory omits kwargs/nested containers.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:278:12:282:13:Assert",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 278,
+      "kind": "Assert",
+      "condition": "new_input_addresses == entry.input_addresses",
+      "semantics": "Equality covers listed positional pointers only; runner kwargs call can yield empty lists.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:293:25:293:69:BoolOp",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 293,
+      "kind": "BoolOp",
+      "condition": "_EXTRA_CTX.is_draft_model and self.use_eagle",
+      "semantics": "Draft EAGLE flag conjunct, not generic draft detection.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:294:20:294:82:BoolOp",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 294,
+      "kind": "BoolOp",
+      "condition": "self.runtime_mode == CUDAGraphMode.FULL and (not is_draft_eagle)",
+      "semantics": "FULL and non-draft-EAGLE determine sync eligibility.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:295:8:296:52:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 295,
+      "kind": "If",
+      "condition": "not self.enable_enpu and need_sync",
+      "semantics": "Non-ENPU eligible replay uses host current-stream synchronization; do not remove without full generation/CPU mutation proof.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:295:11:295:45:BoolOp",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 295,
+      "kind": "BoolOp",
+      "condition": "not self.enable_enpu and need_sync",
+      "semantics": "Non-ENPU eligible replay uses host current-stream synchronization; do not remove without full generation/CPU mutation proof.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:297:8:300:35:If",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 297,
+      "kind": "If",
+      "condition": "self.runtime_mode == CUDAGraphMode.FULL and use_updatable_graph(self.attn_backend)",
+      "semantics": "FULL and eligible backend use updatable path; others direct graph replay.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:297:11:297:93:BoolOp",
+      "owner": "ACLGraphWrapper.__call__",
+      "line": 297,
+      "kind": "BoolOp",
+      "condition": "self.runtime_mode == CUDAGraphMode.FULL and use_updatable_graph(self.attn_backend)",
+      "semantics": "FULL and eligible backend use updatable path; others direct graph replay.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:309:8:309:45:Assert",
+      "owner": "ACLGraphWrapper._updatable_graph_replay",
+      "line": 309,
+      "kind": "Assert",
+      "condition": "self.update_stream is not None",
+      "semantics": "Updatable path requires update_stream.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:310:8:313:94:If",
+      "owner": "ACLGraphWrapper._updatable_graph_replay",
+      "line": 310,
+      "kind": "If",
+      "condition": "_EXTRA_CTX.is_draft_model",
+      "semantics": "Draft SharedSource differs from target ContextSource metadata owner.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:314:8:319:60:If",
+      "owner": "ACLGraphWrapper._updatable_graph_replay",
+      "line": 314,
+      "kind": "If",
+      "condition": "self.enable_enpu",
+      "semantics": "ENPU orders update→replay, non-ENPU replay→update; native epoch semantics remain opaque.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3152:8:3167:13:If",
+      "owner": "NPUModelRunner._update_full_graph_params_if_needed",
+      "line": 3152,
+      "kind": "If",
+      "condition": "forward_context.cudagraph_runtime_mode == CUDAGraphMode.FULL and (not forward_context.capturing) and (not self.use_sparse) and (not self.use_compress)",
+      "semantics": "Generic update requires FULL&&!capturing&&!sparse&&!compress.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3153:12:3155:61:BoolOp",
+      "owner": "NPUModelRunner._update_full_graph_params_if_needed",
+      "line": 3153,
+      "kind": "BoolOp",
+      "condition": "forward_context.cudagraph_runtime_mode == CUDAGraphMode.FULL and (not forward_context.capturing) and (not self.use_sparse) and (not self.use_compress)",
+      "semantics": "All four conditions retained; sparse kernel name is not live Python flag.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3157:12:3158:56:If",
+      "owner": "NPUModelRunner._update_full_graph_params_if_needed",
+      "line": 3157,
+      "kind": "If",
+      "condition": "self.enable_enpu",
+      "semantics": "ENPU branch of generic update includes synchronization.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3201:8:3201:37:Assert",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3201,
+      "kind": "Assert",
+      "condition": "self.model is not None",
+      "semantics": "Model object must exist.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3203:8:3203:42:Assert",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3203,
+      "kind": "Assert",
+      "condition": "forward_context is not None",
+      "semantics": "Forward context must exist.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3204:8:3206:62:If",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3204,
+      "kind": "If",
+      "condition": "forward_context.cudagraph_runtime_mode == CUDAGraphMode.FULL",
+      "semantics": "FULL path may bind backend to wrapper.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3205:12:3206:62:If",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3205,
+      "kind": "If",
+      "condition": "hasattr(self.model, 'set_attn_backend')",
+      "semantics": "Bind backend only when setter supported; actual class remains separate.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3217:8:3241:17:If",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3217,
+      "kind": "If",
+      "condition": "prepare_engram is not None",
+      "semantics": "Engram producer only if exposed by model.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3218:12:3241:17:If",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3218,
+      "kind": "If",
+      "condition": "getattr(self, '_engram_capture_active', False) or getattr(forward_context, 'capturing', False) or torch.npu.is_current_stream_capturing()",
+      "semantics": "Any capture condition selects graph inputs instead of live per-iteration routing.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3219:16:3221:58:BoolOp",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3219,
+      "kind": "BoolOp",
+      "condition": "getattr(self, '_engram_capture_active', False) or getattr(forward_context, 'capturing', False) or torch.npu.is_current_stream_capturing()",
+      "semantics": "Capture-active/forward-capturing/NPU-capturing are alternative signals; do not infer all from one flag.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3244:8:3258:34:Try",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3244,
+      "kind": "Try",
+      "condition": "try/exception/finally",
+      "semantics": "Finally releases in-flight metadata even on forward error.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3245:12:3251:92:If",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3245,
+      "kind": "If",
+      "condition": "self.enable_enpu",
+      "semantics": "Runner ENPU controls generic update before vs after model.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3257:12:3258:34:If",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3257,
+      "kind": "If",
+      "condition": "executor is not None and executor.submission_in_flight",
+      "semantics": "Release only if executor exists and has an in-flight submission; preserve exception recovery.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "8f28850582488195:3257:15:3257:69:BoolOp",
+      "owner": "NPUModelRunner._model_forward",
+      "line": 3257,
+      "kind": "BoolOp",
+      "condition": "executor is not None and executor.submission_in_flight",
+      "semantics": "Release only if executor exists and has an in-flight submission; preserve exception recovery.",
+      "evidence": [
+        "M22-capture-replay-input-output-and-update-contract-v44.json",
+        "M22-named-metadata-graph-placement-derivation-v44.json",
+        "M22-positional-address-check-domain-proof-v44.json"
+      ]
+    },
+    {
+      "id": "4c5154c54e5e1e7b:46:77:46:107:Name:comprehension",
+      "owner": "_is_stream_resource_capture_error",
+      "line": 46,
+      "kind": "comprehension",
+      "condition": "marker in _STREAM_RESOURCE_ERROR_MARKERS",
+      "semantics": "Check each marker substring against lowercased RuntimeError text; CPU diagnostic predicate only, not device failure/performance evidence.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:47:11:47:98:BoolOp",
+      "owner": "_is_stream_resource_capture_error",
+      "line": 47,
+      "kind": "BoolOp",
+      "condition": "has_stream_resource_marker or (has_error_code and 'stream resource' in lowered_message)",
+      "semantics": "Either explicit resource marker, or error-code AND stream-resource text qualifies; code alone is insufficient. Caller wraps then raises the error.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:47:42:47:97:BoolOp",
+      "owner": "_is_stream_resource_capture_error",
+      "line": 47,
+      "kind": "BoolOp",
+      "condition": "has_error_code and 'stream resource' in lowered_message",
+      "semantics": "Either explicit resource marker, or error-code AND stream-resource text qualifies; code alone is insufficient. Caller wraps then raises the error.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:52:47:52:77:Name:comprehension",
+      "owner": "_is_old_hdk_capture_error",
+      "line": 52,
+      "kind": "comprehension",
+      "condition": "marker in _OLD_HDK_CAPTURE_ERROR_MARKERS",
+      "semantics": "Old-stack predicate case-folds text and checks marker substring; no model/device work or current upgrade requirement follows from this helper.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:144:8:145:46:If",
+      "owner": "ACLGraphWrapper.__getattr__",
+      "line": 144,
+      "kind": "If",
+      "condition": "hasattr(self.runnable, key)",
+      "semantics": "Missing wrapper attribute delegates to current runnable only when runnable has that attribute. Do not cache a delegated owner across runnable/config replacement without proof.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:146:8:149:13:If",
+      "owner": "ACLGraphWrapper.__getattr__",
+      "line": 146,
+      "kind": "If",
+      "condition": "self.is_debugging_mode",
+      "semantics": "Debug flag selects richer AttributeError text; it does not validate graph tensor addresses, mutate graph state or change missing-attribute control outcome.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:323:4:324:14:If",
+      "owner": "weak_ref_workspaces",
+      "line": 323,
+      "kind": "If",
+      "condition": "params is None",
+      "semantics": "None registry is a no-op for weak-ref conversion; source default None is not an actual runtime registry snapshot.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:325:4:328:87:For",
+      "owner": "weak_ref_workspaces",
+      "line": 325,
+      "kind": "For",
+      "condition": "num_tokens in params.workspaces",
+      "semantics": "Visit every currently present workspace key, not only initial capture sizes; other registry planes are not modified here.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:326:8:327:20:If",
+      "owner": "weak_ref_workspaces",
+      "line": 326,
+      "kind": "If",
+      "condition": "params.workspaces[num_tokens] is None",
+      "semantics": "None workspace is skipped; non-None reference is replaced by weak_ref_tensors. Preserve lifetime/alias owners; this is not a tensor copy/clear or evidence that memory is free.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:340:4:341:14:If",
+      "owner": "update_full_graph_params",
+      "line": 340,
+      "kind": "If",
+      "condition": "use_updatable_graph(attn_backend)",
+      "semantics": "Eligible updatable backend returns before context/backend-impl update. Otherwise set_current_vllm_config protects get_impl_cls resolution and forwards current metadata/scalars/spec/draft data.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:373:4:374:67:If",
+      "owner": "set_graph_params",
+      "line": 373,
+      "kind": "If",
+      "condition": "_graph_params is not None",
+      "semantics": "Main registry initializer is one-time in this helper interface and raises if already non-None; graph resizing cannot simply re-call setter.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:376:30:376:52:Name:comprehension",
+      "owner": "set_graph_params",
+      "line": 376,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Initialize main events with a distinct empty list per capture-size key; no ExternalEvent objects allocated by this comprehension.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:377:32:377:54:Name:comprehension",
+      "owner": "set_graph_params",
+      "line": 377,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Initialize main workspace values None for capture keys; this does not allocate GPU workspace storage.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:378:30:378:52:Name:comprehension",
+      "owner": "set_graph_params",
+      "line": 378,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Initialize main handle lists per key; Python container identity does not prove unique native handle generations.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:379:30:379:52:Name:comprehension",
+      "owner": "set_graph_params",
+      "line": 379,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Initialize main attention-parameter lists per key; equal empty contents are not shareable mutable list identity.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:385:4:386:56:If",
+      "owner": "update_graph_params_workspaces",
+      "line": 385,
+      "kind": "If",
+      "condition": "_graph_params is not None",
+      "semantics": "Only a non-None main registry receives workspace assignment. Assignment may add a new num_tokens key without adding events/handles/attn_params keys.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:398:4:399:72:If",
+      "owner": "set_draft_graph_params",
+      "line": 398,
+      "kind": "If",
+      "condition": "_draft_graph_params is not None",
+      "semantics": "Draft registry has its own one-time initialization guard; it is not main registry even if token-key set is equal.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:401:30:401:52:Name:comprehension",
+      "owner": "set_draft_graph_params",
+      "line": 401,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft events are fresh lists per key/namespace; preserve actual event pairing/order/generation.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:402:32:402:54:Name:comprehension",
+      "owner": "set_draft_graph_params",
+      "line": 402,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft workspace starts None; no actual draft allocation/activity inferred, especially with current outer eager draft.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:403:30:403:52:Name:comprehension",
+      "owner": "set_draft_graph_params",
+      "line": 403,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft handle lists are distinct Python lists, not proof of native task identity or different backing memory.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:404:30:404:52:Name:comprehension",
+      "owner": "set_draft_graph_params",
+      "line": 404,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft attention parameters stay in draft namespace and layer/capture order; same num_tokens does not identify main parameters.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:410:4:411:62:If",
+      "owner": "update_draft_graph_params_workspaces",
+      "line": 410,
+      "kind": "If",
+      "condition": "_draft_graph_params is not None",
+      "semantics": "Draft workspace update silently does nothing before registry creation, and otherwise may add a workspace-only key.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:423:4:424:79:If",
+      "owner": "set_draft_graph_prefill_params",
+      "line": 423,
+      "kind": "If",
+      "condition": "_draft_graph_prefill_params is not None",
+      "semantics": "Draft-prefill registry is another independent initializer; source presence does not prove current dspark execution uses it.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:426:30:426:52:Name:comprehension",
+      "owner": "set_draft_graph_prefill_params",
+      "line": 426,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft-prefill events are fresh per key, not automatically interchangeable with draft-decode events.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:427:32:427:54:Name:comprehension",
+      "owner": "set_draft_graph_prefill_params",
+      "line": 427,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft-prefill workspace initial None is a placeholder, not no future native workspace requirement.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:428:30:428:52:Name:comprehension",
+      "owner": "set_draft_graph_prefill_params",
+      "line": 428,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft-prefill native-handle list needs its own captured task/order/generation proof before reuse.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:429:30:429:52:Name:comprehension",
+      "owner": "set_draft_graph_prefill_params",
+      "line": 429,
+      "kind": "comprehension",
+      "condition": "size in aclgraph_capture_sizes",
+      "semantics": "Draft-prefill attention-param tuples are independently stored; no cross-phase CSE by token count alone.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    },
+    {
+      "id": "4c5154c54e5e1e7b:435:4:436:70:If",
+      "owner": "update_draft_graph_prefill_params_workspaces",
+      "line": 435,
+      "kind": "If",
+      "condition": "_draft_graph_prefill_params is not None",
+      "semantics": "Draft-prefill workspace assignment requires initialized registry; adding workspace key does not register a complete graph bucket.",
+      "evidence": [
+        "M22-registry-workspace-point-source-v45.json",
+        "M22-registry-and-update-alternative-contract-v45.json"
+      ],
+      "state": "EXACT_GUARD_LOCAL_DATAFLOW_AND_CONDITIONAL_DOMAIN_RECONCILED",
+      "actual_native_handle_or_workspace_generation_proved": false
+    }
+  ],
+  "local_reconciled_sites": 69,
+  "other_static_sites_not_automatically_proved": 1032,
+  "source_selector_identity_is_module_proof": false,
+  "note": "Most worker source sites are adjacent-module associations. Their ownership/case evidence remains to be reconciled, not silently excluded or all declared graph branches.",
+  "whole_module_closed": false,
+  "overall_complete": false,
+  "parent_scope": "M22-original-scope-and-guard-reconciliation-v44.json",
+  "graphfile_reconciled_static_sites": 55,
+  "remaining_graphfile_helper_sites": 0
+}

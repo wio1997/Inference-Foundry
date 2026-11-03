@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_5862025c-f419-4d28-9735-70923b58abb7",
+  "traceId": "d1a8ba18-a22f-4b44-8f8d-11138ec6abf7",
+  "turnId": "turn_a2b74460-5eae-4bb8-a142-c42d463cd218",
+  "response": "轮询命令已按原样执行，返回 rc=0，回执已落盘：`/Users/wio/work/166-vllm-analysis-continuation-20261030/offline-host-profile-db-poll166-v12.json`（远端检查时间 2026-10-30T21:56:37Z）。结论是：**job 已正常完成（ANALYSE_RETURNED），所有 DB 都已导出；PID 2104663 已随任务完成退出，因此“不存活”属于结束而非失败。**\n\n## 存活与 job 状态\n\n- 启动记录：`host_pid=2104663`，`host_starttime_ticks=862591856`，包装命令为 `docker exec ... timeout --kill-after=20s 900s python3 offline_host_profile_db_worker_v12.py`。\n- 本次轮询 `/proc/2104663` 已不存在，`host_process_live_verified_by_pid_start=false`、`host_proc=null`。此前 21:51:27Z 的检查曾看到该 PID `state=S` 且 starttime 完全匹配，说明它是在解析结束后才退出的。\n- 远端 `job/status.json`（21:54:08Z 写入）：\n  - `state: ANALYSE_RETURNED`\n  - `database_files: 64`，`databases_with_API_and_callchains: 32`\n  - `original_raw_unchanged: true`\n  - 容器内 worker `pid=10526`，`process_starttime_ticks=862591866`\n  - 备注原文：DB 存在不等于完整语义覆盖，仍需后续核对 same-call marker、prepare 根、source 链、shape 与 32 份 schema/phase。\n\n## 实际导出的 DB / 栈表计数\n\n共 64 个 DB 文件：32 个 `analysis.db`（配套库，无目标表）＋ 32 个 `ascend_pytorch_profiler_0..15.db`，分布在 32 个 profile 目录（16 个 dp/tp 组合 × 2 个时间窗）。\n\n| 表 | 总行数（32 个 profiler DB 合计） |\n|---|---|\n| PYTORCH_CALLCHAINS（栈表） | 145,332,188 |\n| PYTORCH_API | 1,896,527 |\n| TASK | 1,108,212 |\n| CANN_API | 952,703 |\n| CONNECTION_IDS | 2,531,002 |\n| COMPUTE_TASK_INFO | 207,750 |\n| STRING_IDS | 118,363 |\n| **合计** | **152,146,745** |\n\n容量：profiler DB 合计 3,278,102,528 B（约 3.05 GiB），analysis.db 合计 3,571,712 B。单个 profiler DB 的调用栈行数范围 586,056–9,412,322。\n\n## 原始 stderr 摘要\n\n- 外层 `remote_run.py` 的 stderr：空（0 字节）。\n- 远端 job 的 `offline-db-v12.stderr`：空；`stdout` 尾部为解析进度条和最终状态 JSON，唯一告警是非致命的：\n  `[LOG_WARNING] can not open file, file: /root/ascend/log/run/plog/plog-10526_20261030215228774.log, possible reason: Read-only file system.`\n\n本次仅执行只读轮询，未重启、未重跑、未扩展；观察在超时前正常返回，不存在把只读超时当失败的情况。需要下一步做语义覆盖核验时，可基于这 32 份 DB 继续读取。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 13,
+    "inputTokens": 328962,
+    "outputTokens": 9991,
+    "totalTokens": 338953,
+    "cacheReadTokens": 297856,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 6897,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 338953,
+    "contextUsed": 40352,
+    "contextWindow": 200000
+  }
+}

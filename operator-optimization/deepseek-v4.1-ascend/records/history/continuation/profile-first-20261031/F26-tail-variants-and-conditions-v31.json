@@ -1,0 +1,194 @@
+{
+  "generated_utc": "2026-10-31T06:36:59.244166+00:00",
+  "candidate": "F26",
+  "variants": [
+    {
+      "id": "F26a",
+      "status": "SCOPED_CONDITIONAL_CANDIDATE",
+      "change": "Suppress only the unobserved snapshot write on the supported Ascend v1 DSpark path while retaining existing gather/collapse/norm order and addresses.",
+      "numeric_effect": "No arithmetic reordering in the proposal; no implementation or numerical validation performed.",
+      "guards": [
+        "Exact active implementation and speculative method",
+        "No additional registered/external content observer",
+        "Captured output/buffer/event lifetime and parameter update contract"
+      ],
+      "logical_snapshot_bytes": 983040,
+      "byte_status": "DERIVED_LOGICAL_TENSOR_PAYLOAD_NOT_MEASURED_HBM_OR_GAIN"
+    },
+    {
+      "id": "F26b",
+      "status": "STRONGER_SEPARATE_CONDITIONAL_CANDIDATE",
+      "change": "Avoid producing the unobserved raw-HC buffer; use the existing buffer-is-None branch that collapses locally and then gathers collapsed hidden.",
+      "change_in_graph": "Two full-HC/premix gathers plus copy may be replaced by local collapse and a collapsed-hidden gather, subject to proof; existing alternative is not a newly implemented optimization.",
+      "guards": [
+        "All F26a observer/lifetime conditions",
+        "Exact BF16/FP32 product/reduction/rounding and lowering across changed local/global row shapes",
+        "TP group order, graph outputs/addresses, readiness and all normalized-hidden consumers"
+      ],
+      "speedup": null
+    },
+    {
+      "id": "F26-v31-ROWSELECT",
+      "status": "CONDITIONAL_ROW_DOMAIN_REORGANIZATION",
+      "change": "Afterexistingfullgathers/snapshot,selectallrequiredUrowsofHC/premixbeforecollapseandnorm;restoreeachconsumerroworder.",
+      "requires": "Allactivecontentreadersincludingpromptandstatehandoff;preparedIndex_Igeneration/checks;newpackedorsparsefull-shapedbankcaptureABI. U=allrowsgivesnoprune."
+    },
+    {
+      "id": "F26-v31-LOCAL-NORM",
+      "status": "CONDITIONAL_COMPOSITION_WITH_F26b",
+      "change": "Collapseandnormowner-localSProws,thengathercollapsednormalizedrows.",
+      "requires": "Rawsnapshotobserverconditionsindependentlyclosed;replicatedsamegamma/eps/bias,TPorder/pad/trimandnativeper-rowrounding. Normcostnotrepeatedfullrowsoneveryrank."
+    },
+    {
+      "id": "F26-v31-FUSED-CN",
+      "status": "CONDITIONAL_FUSION",
+      "change": "JoinHCFP32weightedreduction,BF16collapsedboundary,RMSandoptionalbias;retainneededstatsinternally.",
+      "requires": "BothHCandfeaturefullreductions,exactBF16/FP32order/eps/bias;unusedtypedstatsoutputshapedoesnotproveexistingHBMwritewasremoved."
+    },
+    {
+      "id": "F26-v31-SPARSE-PUBLISH",
+      "status": "CONDITIONAL_SPLIT_COMMUNICATION",
+      "change": "Owner-rankcollapse/normforUrows,exchangeonlyneededrowswithconsumerinversemaps.",
+      "requires": "F26snapshot/content/precisionconditionsplusgroup-uniformrowplanandcapturepublication/metadata;notblanketcollectiveskiponzero-senderorK<N."
+    },
+    {
+      "id": "F26-v31-LAST-POST",
+      "status": "CONDITIONAL_LARGER_FUSION_OVERLAPS_F03_F23",
+      "change": "LastHCpostfeedsrow-localcollapse/normwithoutunneededfullHCglobalmaterializationwhenrawHCunobserved.",
+      "requires": "PreserveBF16eachHCpostlaneandcollapsedBF16boundary,last-layerpre_mix/allHCtermsandallaux/rawobservers/nativepostcontract;linearweightfoldingwithouttheseproofsnotvalid."
+    },
+    {
+      "id": "F26-v31-EXCLUDED",
+      "status": "EXCLUDED_AS_UNCONDITIONAL_REWRITE",
+      "change": "PrunetologitsrowsfromK<Nalone,deleteExecuteModelStatehandoff,assumepromptdictfalsefrommissingprofilefield,orremoveBF16betweenC/N.",
+      "reason": "Concretepersistent/promptreadersandexplicitprecisionbarrierdistinguishthegraphs."
+    }
+  ],
+  "conditions": [
+    {
+      "id": "F26-v31-01",
+      "branch": "actual_target_tail",
+      "state": "MEASURED_SOURCE_CONSISTENT",
+      "evidence": "104norm/snapshotand416collapseTASK:24native+80graph;16graphsuffixunboundretained."
+    },
+    {
+      "id": "F26-v31-02",
+      "branch": "shared_helper",
+      "state": "MEASURED_EXCLUSION",
+      "evidence": "Separate416draftcollapseTASKnottargetpopulation;helperAPIrecordcountisnotPythoninvocationcount."
+    },
+    {
+      "id": "F26-v31-03",
+      "branch": "communication_scope",
+      "state": "MEASURED_PARTIAL_HIERARCHY",
+      "evidence": "24HC+24premixnativeCOMM,160graphCOMM;notfabricatedmissingComputeInfooradditivelatency."
+    },
+    {
+      "id": "F26-v31-04",
+      "branch": "row_selection",
+      "state": "MEASURED_ROOT_CONSISTENT",
+      "evidence": "88Index+88IndexCheck,rootN6400/6528/6672->K2/2/14and24->12/24;noindexvalues/aliasesinferred."
+    },
+    {
+      "id": "F26-v31-05",
+      "branch": "collapse_contract",
+      "state": "DOCUMENTED_LOCAL_QUESTION_CLOSED",
+      "evidence": "FP32pre_mix*x.floatsumoverHC4thenBF16cast;rowlocal."
+    },
+    {
+      "id": "F26-v31-06",
+      "branch": "norm_contract",
+      "state": "DOCUMENTED_LOCAL_QUESTION_CLOSED",
+      "evidence": "NPU RMSno-residualcall99,feature5120reduction,gamma/epsandoptionalbias;returnsxnotstats."
+    },
+    {
+      "id": "F26-v31-07",
+      "branch": "rounding_and_native",
+      "state": "CONDITIONAL",
+      "evidence": "PreserveeachHC/BF16collapsedboundary;batchshape/kerneltilingandnativebitparitynotprovedbyrowalgebra."
+    },
+    {
+      "id": "F26-v31-08",
+      "branch": "selection_availability",
+      "state": "DOCUMENTED_CONDITIONAL",
+      "evidence": "Index_Iprepared2357before_model_forward2596;newmodeltail/captureinputplumbingstillrequired."
+    },
+    {
+      "id": "F26-v31-09",
+      "branch": "state_handoff",
+      "state": "DOCUMENTED_LOCAL_QUESTION_CLOSED",
+      "evidence": "FullnormalizedhiddenescapesExecuteModelState2658,unpacksin sample_tokens;referenceclearisnotcontentdeadnessproof."
+    },
+    {
+      "id": "F26-v31-10",
+      "branch": "DSpark_aux",
+      "state": "DOCUMENTED_RUNTIME_GUARD_SUPPORTED",
+      "evidence": "96rootsdspark+auxTrue;explicitIfBODY2069/2089usesaux,ORELSE2071/2091fullhidden;16unboundgraphsnotallattested."
+    },
+    {
+      "id": "F26-v31-11",
+      "branch": "prompt_content_reader",
+      "state": "DOCUMENTED_LOCAL_QUESTION_CLOSED",
+      "evidence": "bookkeeping3131->prompthelper5643;activepositivepromptrowsslice5711->compute_logits5712."
+    },
+    {
+      "id": "F26-v31-12",
+      "branch": "prompt_runtime_guard",
+      "state": "UNKNOWN_NOT_ZERO_FILLED",
+      "evidence": "Noactualnum_prompt_logprobsfield;0nativehelperframesdoesnotproveemptydict/functioninactive."
+    },
+    {
+      "id": "F26-v31-13",
+      "branch": "all_required_rows",
+      "state": "DERIVED_CONDITIONAL",
+      "evidence": "UnionUofactivecontentreaders;restoreeveryordered/duplicateconsumer;U=Nmeansnoexactrowprune."
+    },
+    {
+      "id": "F26-v31-14",
+      "branch": "snapshot_removal",
+      "state": "REUSED_V11_CONDITIONAL",
+      "evidence": "DirectAscendv1DSparkgettercontentexcluded;external/otherMTP/GPU/v2observersandcapturelifetimeconditionsremain."
+    },
+    {
+      "id": "F26-v31-15",
+      "branch": "SP_commutation",
+      "state": "DERIVED_CONDITIONAL",
+      "evidence": "Rowconcatcommuteswithidenticalrow-localC/N;TPorder,pad/trimandreplicatedparamsrequired,nativeprecisionseparate."
+    },
+    {
+      "id": "F26-v31-16",
+      "branch": "capture_layout",
+      "state": "UNKNOWN_RUNTIME_GENERATION",
+      "evidence": "PackedUorfull-shapedholesneedallreader/stride/address/update/ready/lastreadcontract."
+    },
+    {
+      "id": "F26-v31-17",
+      "branch": "other_branches",
+      "state": "OPEN_RETAINED",
+      "evidence": "auxFalse/mtp/eagle/extract/Medusa/PP/pooling/broadcast/othergettersnotcoveredbyoneDSparkexclusion."
+    },
+    {
+      "id": "F26-v31-18",
+      "branch": "prompt_semantics",
+      "state": "RETAINED",
+      "evidence": "Chunkedprefilloffsets/prompttoken/scores/ranks/D2Hsyncandcompletioncleanupmustsurvivenewrowplan."
+    },
+    {
+      "id": "F26-v31-19",
+      "branch": "relations",
+      "state": "NONADDITIVE",
+      "evidence": "F26a/b/rowselect/localnorm/sparsepublish/fusedpostoverlap;F03/F23/F27/F35interfacescannotaddallremovalsagain."
+    },
+    {
+      "id": "F26-v31-20",
+      "branch": "gain_capacity",
+      "state": "UNKNOWN",
+      "evidence": "Logicalrowratioandtypedbytesnotphysicaltraffic/peak/requestgain;v20M15bucket1040unchanged."
+    }
+  ],
+  "all_conditions_closed": false,
+  "new_main_candidate": false,
+  "implementation": false,
+  "new_performance_result": false,
+  "overall_complete": false
+}

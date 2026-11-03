@@ -1,0 +1,21 @@
+{
+  "generated_utc": "2026-10-31T02:17:09.625803+00:00",
+  "status": "CONDITIONAL_ALGEBRAIC_IDENTITY;NOT_NATIVE_CORRECTNESS_OR_GAIN",
+  "original": "y_t=sum_k p[t,k]*f[e[t,k]](x_t),with the same external routed scaling/shared-expert contract.",
+  "relocation": "For a bijection P,keep original TopK slots/probabilities,send P(e[t,k]),and define f_new[P(e)]=f_old[e]. Then every summand and the ordered sum agree in this abstract function domain.",
+  "replication": "For each assignment (t,k),select exactly one physical member in replicas(e[t,k]),each computing the same f[e]. Keep its original coefficient and combine position. Sending every assignment to all replicas changes the sum.",
+  "conditions": [
+    "Packed weights/scales/offsets/activation/SwiGLU limit and any adapters preserve the same expert function.",
+    "Native grouped arithmetic/quantization/tile changes must satisfy the declared numeric tolerance; algebra alone does not prove bitwise identity.",
+    "Map and weight generations,buffer lifetime,capture addresses,rank/collective agreement and exactly-one assignment hold.",
+    "Changing score-column order before TopK may change ties. Post-original-routing ID relabel is the scoped identity,not an assumption that all gate permutations preserve selection."
+  ],
+  "excluded_shortcuts": [
+    "Changing IDs while retaining old weights in the selected physical slots.",
+    "Moving only weights while dispatch IDs still name the old physical owners.",
+    "Moving INT8 weights without their floating and packed scales.",
+    "Treating FORCE_EPLB/random IDs as the same model."
+  ],
+  "source_evidence": "EP-mapping-and-weight-contract-v19.json",
+  "overall_complete": false
+}

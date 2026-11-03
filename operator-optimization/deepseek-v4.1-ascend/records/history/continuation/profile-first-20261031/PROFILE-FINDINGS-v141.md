@@ -1,0 +1,21 @@
+本轮补齐 F01–F20/F21/F22/F23：HC 与路由、MC2、共享专家及汇合/Post 的条件组合。整体目标仍未完成。
+
+已有 profile 的960组FFN前沿对应8638个明确的源码/API/CID/TASK关联，另2个仅有API证据：db10、forward29531、block31的ForeachAdd API44868，及db24、forward77363、block39的共享Up API95736。两者未按时间邻近补配，不增加原生证据关闭数。输入M800→路由/MC2 P816、M816→816、M834→834各320组；不能推广成ceil16规则。960组共享分支都在MC2结束之后于同一stream开始，现有多流代码能力不等于这份profile已启用重叠。
+
+MoE实际输入是attention HCPost的4H结果Z1，经FFN HCPre collapse，再经RmsNormCast得到BF16 U及其FLOAT扩展。不能将attention前的HC输出直接给router或expert。FFN collapse仍需要当前attention pre4；FFN系数分支仍读取完整Z1，并在FFNPost汇合，FFN pre4还要供下一层。提前发布FFN collapse是新的native合同，不会自动删除系数、残差或pre4工作。
+
+RmsNormCast的FLOAT输入是已经BF16舍入后再扩展的值，不是未舍入的FP32归一化。Norm/router融合需保留这个舍入点、实际HF32/累加与TopK的排名、无偏权重、scale、tie/NaN政策。逻辑FLOAT临时plane的store/read参考为8MH B；若改由router重新读取BF16 U，另有2MH B读取，所选版本净参考6MH B；片上交接是另一版本，不能同时领取两份收益。当前BF16 U仍被MC2和共享分支需要。
+
+DispatchFFNCombine已经把dispatch、两次GMM、激活/量化、return与weighted unpermute放入一个算子。不能凭内部阶段名称再主张删除独立launch。其常规矩阵工作参考为70778880×实际接收且处理的assignment数；owner本地M×6和物理capacity均不能代替该数。即使本地M为0也可能处理远端assignment并承担collective进度。原有EP16、capacity65536、H+32记录步长、内部GM别名、flag与分组合同继续保留，不能把另一轮服务器观察中的计数接到旧profile时延上。
+
+共享分支采用INT32 Up、clamp10激活量化、全2304维row amax及BF16 Down，和MC2内部FP16路径不同。共享输入量化是否能复用给MC2，仍须证明实际行、mask、量化政策和scale一致，并引入相应prequant ABI。相同INT8类型不足以定案。
+
+Down、共享/路由Merge和HCPost可以登记融合，但必须保留Down→BF16、Merge→BF16、Post→BF16三个数值边界。有限BF16反例说明将add系数分配进去会把1.5变为1.5078125；跨Post取消内层舍入也能改变下一collapse。融合可以把这些cast留在寄存器中，不能直接代数消掉。R代表原源码预处理/缩放后送入ForeachAdd的routed值，不再次乘路由因子。Merge之后的可选最终reduce也必须保留；完整Down/Merge/Post融合需该reduce不活跃，或有另行证明且计价的新handoff。
+
+共享分支若完全提前执行，Down可能在routed及FFN系数之前结束；要同时删除Down/Merge临时接口，需要保留结果、占用片上资源，或延迟Down。因此不能将“最大共享重叠”与“全部epilogue流量节省”直接相加。3072个任意假设服务的完整前沿DAG保留两次HC系数/pre4期限：竞争重新计价后2140组较快、912组较慢、20组相同；即使服务时间不变，延后Down的融合版本也有1536组晚于完整重叠、1536组相同。这些是反例与条件排程，不是实测胜率、最优时间或物理上限。
+
+所选Down与Merge的私有BF16接口读写各4MH B，联合去重为8MH B。它们是声明版本的逻辑接口参考，须满足最终reduce/其它reader已合法内部化；不是HBM流量、分配量或节省时间。FFNPost完整4H内容为8MH B，因仍有下一系数、残差等读者，本轮删除信用为0。
+
+936条精确相邻层关联中，48条有Engram正调用、72条有辅助读者；816条未发现该CPU范围内source/CID关联的Compute TASK。没有Compute关联不等于没有reader、alias或写者。下一HC collapse可研究与Post组合，但需保留Post的BF16舍入、下一pre4及完整4H观察者；Engram修改与辅助读取均是明确保护条件。
+
+本轮新增4条条件关系：153→157，待核对442→438；26个联合组的全子集和native合法性仍开放。35主候选、7历史框架记录、358语义行/26模块、4472次固定SP关联以及854节点/1346边/48提示的部分图保留。9类/1352次原生证据、849个PMU缺口、16个phase未绑定图和3136项归属歧义仍待补齐；整模块关闭0，全部模块的物理MFU及最低时间尚未建立。没有执行新的服务器或NPU任务。

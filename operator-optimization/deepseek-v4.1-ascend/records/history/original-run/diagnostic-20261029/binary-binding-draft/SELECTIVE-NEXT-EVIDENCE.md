@@ -1,0 +1,17 @@
+# Selective binary-binding recorder: review draft
+
+This is an independent CPU-tested draft for a future diagnostic. It has not been injected into any NPU process; it does not alter the current capture. `selective_recorder_next.c` is distinct from the earlier `recorder.c`.
+
+The current capture reached its shared file cap, so absence of a target name in that capture proves nothing about execution. The draft keeps bounded in-memory binary/function maps, hashes only binary inputs before the real load call, and emits selected candidate records. The default pending ring holds 512 early unknown ByEntry launches, with at most 64 emitted when a matching binary generation is later associated with a target name. Ring overwrite and batch truncation increment `pending_drops` and make `state_incomplete` sticky. A first unclassified-launch statistic and process-exit statistics expose `pending_seen` if the records survive. Calls pending when a binary is never classified remain unclassified. Missing bin state and overlapping load/get/unload wrapper intervals make `state_incomplete` sticky; all binding records remain `candidate_unverified`, even if it reads false at an earlier instant.
+
+The draft does not prove a function is DispatchFFNCombine from its binary or entry alone; timestamps on retrospective events are from the original observed wrapper call, not device timestamps. The pre-call hash does not prove the bytes actually consumed by the runtime. Captured graph association is based only on API calls made by the real program within the observed wrapper context; it does not prove graph-to-profiler-task identity. LD_PRELOAD cannot guarantee interception of statically linked, hidden, or other API paths. Log lock contention, cap, process crash/SIGKILL, missing final statistics, unsupported launch paths, and data races outside observed wrappers can lose observations; missing statistics and missing target events never establish absence. Do not use output as a complete binding proof without an independent chain.
+
+Default shared file limit is 16 MiB; tables and pending ring are fixed size. Neither tensor contents, prompts, weights nor binary contents are logged. The recording machinery can perturb timing, and was not checked against production NPU execution.
+
+CPU-only tests ran on the user's own stage container in `/work/vllm-ascend-reproduce-172-on-169-20261028/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/binary-binding-draft/next-selective-revision2/next-selective-tests/`:
+
+- `run.N9S12P`: 12,000 unrelated mock iterations; 22 records / 6,392 bytes; preclassification ByEntry launch recovered as candidate; mock dispatch, graph and lifecycle tests passed.
+- `stress.rLk6if`: eviction, 4 KiB shared cap, missing bin and shortened pending ring/batch overflow tests passed.
+- Concurrency: two overlapping load/get/unload sequences marked incomplete, `mutation_overlaps=3`; candidate records remain explicitly unverified.
+
+CPU mocks validate forwarding and the tested bookkeeping only; they do not establish real firmware interception or production stability. The first concurrency run failed because its compiler temporary directory was read-only; the isolated script was corrected to use its dedicated temporary directory, then rerun successfully. Do not start or inject a real service using this draft without independent review and a new coordinated execution plan.

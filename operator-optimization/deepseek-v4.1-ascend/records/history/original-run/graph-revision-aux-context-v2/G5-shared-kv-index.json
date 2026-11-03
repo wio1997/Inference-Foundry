@@ -1,0 +1,579 @@
+{
+  "id": "DSPARK_SHARED_KV_STRUCTURAL_V2",
+  "template_graph_sha256": "b03954a51a7ded678179554d8a430cd33cea0528a453aab96d24e843d5b75ae3",
+  "template": "DSPARK_SHARED_KV",
+  "count": 12,
+  "items": [
+    {
+      "nodes": [
+        "cat",
+        "rope"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "cat",
+        "scatter"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "slots",
+          "consumer": "scatter",
+          "value": "validated physical slots",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "scatter",
+          "consumer": "persistent_swa_state",
+          "value": "context KV cache state",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "norm",
+        "proj"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "proj",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "context",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "norm",
+        "rope"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "proj",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "scatter",
+        "slots"
+      ],
+      "category": "PAIR",
+      "internal_edges": [
+        {
+          "producer": "slots",
+          "consumer": "scatter",
+          "value": "validated physical slots",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "scatter",
+          "consumer": "persistent_swa_state",
+          "value": "context KV cache state",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "cat",
+        "norm",
+        "rope"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "proj",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "cat",
+        "rope",
+        "scatter"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "slots",
+          "consumer": "scatter",
+          "value": "validated physical slots",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "scatter",
+          "consumer": "persistent_swa_state",
+          "value": "context KV cache state",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "cat",
+        "scatter",
+        "slots"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "slots",
+          "consumer": "scatter",
+          "value": "validated physical slots",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "scatter",
+          "consumer": "persistent_swa_state",
+          "value": "context KV cache state",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "norm",
+        "proj",
+        "rope"
+      ],
+      "category": "TRIPLE",
+      "internal_edges": [
+        {
+          "producer": "proj",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "context",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "cat",
+        "norm",
+        "proj",
+        "rope"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "proj",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "context",
+          "consumer": "proj",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "cat",
+        "norm",
+        "rope",
+        "scatter"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "proj",
+          "consumer": "norm",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "slots",
+          "consumer": "scatter",
+          "value": "validated physical slots",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "scatter",
+          "consumer": "persistent_swa_state",
+          "value": "context KV cache state",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    },
+    {
+      "nodes": [
+        "cat",
+        "rope",
+        "scatter",
+        "slots"
+      ],
+      "category": "MULTI_OPERATOR",
+      "internal_edges": [
+        {
+          "producer": "rope",
+          "consumer": "cat",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "cat",
+          "consumer": "scatter",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "slots",
+          "consumer": "scatter",
+          "value": "validated physical slots",
+          "dependency_kind": "RAW"
+        }
+      ],
+      "external_inputs": [
+        {
+          "producer": "norm",
+          "consumer": "rope",
+          "value": "intermediate",
+          "dependency_kind": "RAW"
+        },
+        {
+          "producer": "context_positions",
+          "consumer": "rope",
+          "value": "context position for RoPE tables",
+          "dependency_kind": "RAW",
+          "semantic_class": "CONDITIONAL_POSITION_OR_SLOT_METADATA",
+          "source": "models/deepseek_v41/dspark.py:55-68,284-309",
+          "condition": "nonempty context and slots supplied"
+        }
+      ],
+      "external_outputs": [
+        {
+          "producer": "scatter",
+          "consumer": "persistent_swa_state",
+          "value": "context KV cache state",
+          "dependency_kind": "RAW",
+          "source": "models/deepseek_v41/dspark.py:284-309",
+          "condition": "slot mapping and future readers are retained; exact consumer set unknown"
+        }
+      ],
+      "status": "STRUCTURAL_ONLY",
+      "feasibility_and_semantic_equivalence": "UNKNOWN"
+    }
+  ],
+  "limitations": [
+    "Metadata/control nodes may be enumerated as structure; not proof of fuseable arithmetic or same-branch reachability."
+  ]
+}

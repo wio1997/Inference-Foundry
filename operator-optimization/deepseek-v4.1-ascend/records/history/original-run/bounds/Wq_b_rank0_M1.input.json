@@ -1,0 +1,57 @@
+{
+  "scope": "Standard dense Wq_b, per logical device, fixed conditional nominal1800MHz capacity; all counted MACs execute on the modeled INT8 Cube pool; no equivalent mixed-resource implementation included",
+  "time_unit": "second",
+  "work_unit": "query_row",
+  "effective_work": "1",
+  "bound_status": "CONDITIONAL_CEILING",
+  "conditions_path": "evidence/conditional-nominal-capacity.json",
+  "terms": [
+    {
+      "id": "necessary_dense_INT8_MAC",
+      "kind": "resource",
+      "work_lower": "41943040",
+      "rate_upper": "353894400000000",
+      "work_unit": "MAC",
+      "rate_unit": "MAC/second",
+      "evidence": "Under explicitly restricted independent dense position calculation and exclusive INT8 Cube pool as applicable; observed domain membership and nominal hardware capacity are not fully proved."
+    },
+    {
+      "id": "necessary_HBM",
+      "kind": "resource",
+      "work_lower": null,
+      "rate_upper": null,
+      "symbolic_expression": "D_HBM_min(initial_residency, fusion, capacity, reuse)/B_HBM_max"
+    },
+    {
+      "id": "necessary_interconnect",
+      "kind": "resource",
+      "work_lower": null,
+      "rate_upper": null,
+      "symbolic_expression": "D_cut_min(placement, algorithm)/B_cut_max"
+    },
+    {
+      "id": "unavoidable_causal_chain",
+      "kind": "delay",
+      "time_lower": null,
+      "symbolic_expression": "Only proven indispensable block/value dependencies; current Python barriers and chosen tiling are not universal"
+    }
+  ],
+  "layers": [
+    {
+      "id": "ideal_dense_compute",
+      "term_ids": [
+        "necessary_dense_INT8_MAC"
+      ]
+    },
+    {
+      "id": "partial_required_resources",
+      "term_ids": [
+        "necessary_dense_INT8_MAC",
+        "necessary_HBM",
+        "necessary_interconnect",
+        "unavoidable_causal_chain"
+      ]
+    }
+  ],
+  "broad_ideal_domain_numeric_upper": "UNKNOWN"
+}

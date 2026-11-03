@@ -1,0 +1,1377 @@
+{
+  "status": "SUPERSEDED_STAGED_DRAFTS_NOT_CURRENT_CONCLUSIONS",
+  "reason": "Draft scope/novelty overstated the direct-reader fact. Immutable v11 already settled it; all-observer guards remain open.",
+  "artifacts": {
+    "DSpark-tail-source-index-v85.json": {
+      "source_files": [
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+          "bytes": 89106,
+          "archive_member": "vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "clauses": [
+            {
+              "first": 852,
+              "last": 856,
+              "source": [
+                "        return normalized, normalized.float()",
+                "",
+                "    @staticmethod",
+                "    def hc_collapse(x, pre_mix):",
+                "        return (pre_mix.unsqueeze(-1) * x.float()).sum(-2).to(x.dtype)"
+              ]
+            },
+            {
+              "first": 974,
+              "last": 988,
+              "source": [
+                "        self.hc_mult = config.hc_mult",
+                "        spec_config = vllm_config.speculative_config",
+                "        needs_mtp_hidden_states = spec_config is not None and (",
+                "            spec_config.use_eagle() or spec_config.uses_draft_model()",
+                "        )",
+                "        self._mtp_hidden_buffer = (",
+                "            torch.empty(",
+                "                vllm_config.scheduler_config.max_num_batched_tokens,",
+                "                self.hc_mult * config.hidden_size,",
+                "                dtype=vllm_config.model_config.dtype,",
+                "                device=self.device,",
+                "            )",
+                "            if get_pp_group().is_last_rank and needs_mtp_hidden_states",
+                "            else None",
+                "        )"
+              ]
+            },
+            {
+              "first": 1554,
+              "last": 1564,
+              "source": [
+                "        last_layer = None",
+                "        aux_hidden_states = []",
+                "        for layer in self.layers:",
+                "            last_layer = layer",
+                "            # DSpark consumes the residual stream entering its configured",
+                "            # target layers. The runner expresses checkpoint IDs as one-based.",
+                "            if layer.layer_idx + 1 in self.aux_hidden_state_layers:",
+                "                aux_hidden_state = hidden_states.mean(dim=1)",
+                "                if use_sequence_parallel:",
+                "                    aux_hidden_state = sp_all_gather(aux_hidden_state)[:full_num_tokens]",
+                "                aux_hidden_states.append(aux_hidden_state)"
+              ]
+            },
+            {
+              "first": 1592,
+              "last": 1608,
+              "source": [
+                "            hidden_states, pre_mix = layer(positions, hidden_states, pre_mix, None, input_ids=input_ids)",
+                "        assert last_layer is not None, \"Hyper-connection collapse requires at least one decoder layer\"",
+                "        # MTP needs full HC states",
+                "        if self._mtp_hidden_buffer is not None:",
+                "            if use_sequence_parallel:",
+                "                hidden_states = sp_all_gather(hidden_states)[:full_num_tokens]",
+                "                pre_mix = sp_all_gather(pre_mix)[:full_num_tokens]",
+                "            num_tokens = hidden_states.shape[0]",
+                "            self._mtp_hidden_buffer[:num_tokens].copy_(hidden_states.flatten(1))",
+                "",
+                "        hidden_states = last_layer.hc_collapse(hidden_states, pre_mix)",
+                "        if use_sequence_parallel and self._mtp_hidden_buffer is None:",
+                "            hidden_states = sp_all_gather(hidden_states)[:full_num_tokens]",
+                "        hidden_states = self.norm(hidden_states)",
+                "        if aux_hidden_states:",
+                "            return hidden_states, aux_hidden_states",
+                "        return hidden_states"
+              ]
+            },
+            {
+              "first": 1798,
+              "last": 1802,
+              "source": [
+                "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:",
+                "        \"\"\"Pre-hc_head residual stream buffer (max_num_batched_tokens,",
+                "        hc_mult * hidden_size) for the MTP draft model. Populated by",
+                "        forward(); valid after each target step.\"\"\"",
+                "        return getattr(self.model, \"_mtp_hidden_buffer\", None)"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+          "sha256": "bb98a2e2a0e24c18aafe17229eb593937aaed2e37c1fd7cc2003c45ce872d282",
+          "bytes": 12094,
+          "archive_member": "vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+          "clauses": [
+            {
+              "first": 277,
+              "last": 287,
+              "source": [
+                "    def compute_logits(self, hidden_states: torch.Tensor) -> torch.Tensor | None:",
+                "        return self.language_model.compute_logits(hidden_states)",
+                "",
+                "    def get_expert_mapping(self) -> list[tuple[str, str, int, str]]:",
+                "        return self.language_model.get_expert_mapping()",
+                "",
+                "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:",
+                "        return self.language_model.get_mtp_target_hidden_states()",
+                "",
+                "    def set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:",
+                "        self.language_model.set_aux_hidden_state_layers(layers)"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+          "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "bytes": 319391,
+          "archive_member": "vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+          "clauses": [
+            {
+              "first": 750,
+              "last": 766,
+              "source": [
+                "        if self.speculative_config:",
+                "            spec_token_num = self.speculative_config.num_speculative_tokens",
+                "            assert spec_token_num > 0",
+                "            self.decode_token_per_req = 1 + spec_token_num",
+                "            if get_pp_group().is_last_rank:",
+                "                self.drafter = self._get_drafter()",
+                "                if self.speculative_config.method == \"eagle3\":",
+                "                    assert isinstance(self.drafter, AscendEagleProposer)",
+                "                    self.use_aux_hidden_state_outputs = self.drafter.eagle3_use_aux_hidden_state",
+                "                elif self.speculative_config.method == \"extract_hidden_states\":",
+                "                    assert isinstance(self.drafter, AscendExtractHiddenStatesProposer)",
+                "                    self.use_aux_hidden_state_outputs = True",
+                "                elif self.speculative_config.use_dspark():",
+                "                    assert isinstance(self.drafter, AscendDSparkProposer)",
+                "                    self.use_aux_hidden_state_outputs = True",
+                "                self.rejection_sampler = AscendRejectionSampler(",
+                "                    self.sampler, self.speculative_config, self.device"
+              ]
+            },
+            {
+              "first": 2052,
+              "last": 2092,
+              "source": [
+                "            # Let the target override the hidden state fed to the drafter",
+                "            # (e.g. DeepSeek V4 MTP needs the pre-hc_head residual). Safe to",
+                "            # rebind here: hidden_states was already consumed for sampling",
+                "            # above and is not used again in this branch.",
+                "            mtp_hidden_states = getattr(",
+                "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None",
+                "            )()",
+                "            if self.speculative_config.method == \"mtp\" and mtp_hidden_states is not None:",
+                "                hidden_states = mtp_hidden_states",
+                "",
+                "            num_rejected_tokens_gpu = None",
+                "            if spec_decode_metadata is None:",
+                "                token_indices_to_sample = None",
+                "                # input_ids can be None for multimodal models.",
+                "                target_token_ids = self.input_ids.gpu[:num_scheduled_tokens]",
+                "                target_positions = self._get_positions(num_scheduled_tokens)",
+                "                if self.use_aux_hidden_state_outputs:",
+                "                    target_hidden_states = torch.cat([h[:num_scheduled_tokens] for h in aux_hidden_states], dim=-1)",
+                "                else:",
+                "                    target_hidden_states = hidden_states[:num_scheduled_tokens]",
+                "            else:",
+                "                if self.vllm_config.speculative_config.disable_padded_drafter_batch:",
+                "                    token_indices_to_sample = None",
+                "                    assert self.drafter is not None",
+                "                    common_attn_metadata, token_indices = self.drafter.prepare_inputs(",
+                "                        common_attn_metadata, sampled_token_ids, spec_decode_metadata.num_draft_tokens",
+                "                    )",
+                "                else:",
+                "                    assert self.drafter is not None",
+                "                    common_attn_metadata, token_indices, token_indices_to_sample, num_rejected_tokens_gpu = (",
+                "                        self.drafter.prepare_inputs_padded(",
+                "                            common_attn_metadata, spec_decode_metadata, valid_sampled_tokens_count",
+                "                        )",
+                "                    )",
+                "                target_token_ids = self.input_ids.gpu[token_indices]",
+                "                target_positions = self._get_positions(token_indices)",
+                "                if self.use_aux_hidden_state_outputs:",
+                "                    target_hidden_states = torch.cat([h[token_indices] for h in aux_hidden_states], dim=-1)",
+                "                else:",
+                "                    target_hidden_states = hidden_states[token_indices]",
+                "            assert self.drafter is not None"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/config/speculative.py",
+          "sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+          "bytes": 87011,
+          "archive_member": "vllm/vllm/config/speculative.py",
+          "clauses": [
+            {
+              "first": 1909,
+              "last": 1913,
+              "source": [
+                "    def use_eagle(self) -> bool:",
+                "        # NOTE: This method is usually a stand-in for \"speculative decoding using",
+                "        # target model hidden states\"",
+                "        # TODO(ben): Refactor this so the naming is clearer",
+                "        return self.method in (\"eagle\", \"eagle3\", \"mtp\", \"dflash\", \"dspark\")"
+              ]
+            },
+            {
+              "first": 1922,
+              "last": 1929,
+              "source": [
+                "    def use_dspark(self) -> bool:",
+                "        return self.method == \"dspark\"",
+                "",
+                "    def uses_dynamic_speculative_decoding(self) -> bool:",
+                "        return self.num_speculative_tokens_per_batch_size is not None",
+                "",
+                "    def uses_draft_model(self) -> bool:",
+                "        return self.method == \"draft_model\""
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/worker/gpu_model_runner.py",
+          "sha256": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51",
+          "bytes": 340999,
+          "archive_member": "vllm/vllm/v1/worker/gpu_model_runner.py",
+          "clauses": [
+            {
+              "first": 5207,
+              "last": 5229,
+              "source": [
+                "            # Let the target override the hidden state fed to the drafter",
+                "            # (e.g. DeepSeek V4 MTP needs the pre-hc_head residual). Safe to",
+                "            # rebind here: hidden_states was already consumed for sampling",
+                "            # above and is not used again in this branch.",
+                "            alt = getattr(",
+                "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None",
+                "            )()",
+                "            if alt is not None:",
+                "                hidden_states = alt",
+                "",
+                "            num_rejected_tokens_gpu = None",
+                "            if spec_decode_metadata is None:",
+                "                token_indices_to_sample = None",
+                "                # input_ids can be None for multimodal models.",
+                "                target_token_ids = self.input_ids.gpu[:num_scheduled_tokens]",
+                "                target_positions = self._get_positions(num_scheduled_tokens)",
+                "                if self.use_aux_hidden_state_outputs:",
+                "                    assert aux_hidden_states is not None",
+                "                    target_hidden_states = torch.cat(",
+                "                        [h[:num_scheduled_tokens] for h in aux_hidden_states], dim=-1",
+                "                    )",
+                "                else:",
+                "                    target_hidden_states = hidden_states[:num_scheduled_tokens]"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+          "sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+          "bytes": 140692,
+          "archive_member": "vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+          "clauses": [
+            {
+              "first": 1048,
+              "last": 1077,
+              "source": [
+                "        # Dynamic SD may schedule K == 0 draft tokens for the current batch",
+                "        # size. Return an empty [batch_size, 0] draft so downstream copy/unpack",
+                "        # paths (which key off ``draft_token_ids.shape[1]``) stay consistent.",
+                "        # Mirrors vLLM's llm_base_proposer._propose empty-draft early return.",
+                "        if self.num_speculative_tokens == 0:",
+                "            return torch.empty(",
+                "                batch_size,",
+                "                0,",
+                "                device=target_token_ids.device,",
+                "                dtype=torch.int64,",
+                "            )",
+                "",
+                "        if token_indices_to_sample is None:",
+                "            token_indices_to_sample = common_attn_metadata.query_start_loc[1:] - 1",
+                "",
+                "        if self.method in (\"eagle3\", \"dflash\", \"dspark\"):",
+                "            model = self.model",
+                "            if isinstance(model, BreakableACLGraphWrapper):",
+                "                model = model.unwrap()",
+                "            assert isinstance(model, _HIDDEN_STATE_DRAFTER_TYPES)",
+                "            target_hidden_states = cast(_HiddenStateDrafter, model).combine_hidden_states(target_hidden_states)",
+                "            assert target_hidden_states.shape[-1] == self.hidden_size",
+                "",
+                "        num_tokens, token_indices_to_sample, common_attn_metadata, long_seq_args = self.set_inputs_first_pass(",
+                "            target_token_ids=target_token_ids,",
+                "            next_token_ids=next_token_ids,",
+                "            target_positions=target_positions,",
+                "            target_hidden_states=target_hidden_states,",
+                "            token_indices_to_sample=token_indices_to_sample,",
+                "            cad=common_attn_metadata,"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+          "sha256": "fcee256905928917154d8dac94d6611bb83d02da441e8aa154a525ef51e6a601",
+          "bytes": 25784,
+          "archive_member": "vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+          "clauses": [
+            {
+              "first": 281,
+              "last": 282,
+              "source": [
+                "    def combine_hidden_states(self, aux_hidden_states: torch.Tensor) -> torch.Tensor:",
+                "        return self.main_norm(self.main_proj(aux_hidden_states))"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+          "sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+          "bytes": 20230,
+          "archive_member": "vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+          "clauses": [
+            {
+              "first": 257,
+              "last": 259,
+              "source": [
+                "        self._context_slot_mapping_buffers = None",
+                "        self._dflash_num_context = int(cad.query_start_loc_cpu[batch_size])",
+                "        self._dflash_hidden_states[: self._dflash_num_context] = target_hidden_states[: self._dflash_num_context]"
+              ]
+            }
+          ]
+        }
+      ],
+      "original_archive": {
+        "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-sources.zip",
+        "sha256": "ce1c110c6a558c4ce736495fb843312571a9510a5755f20b0576a3018d9570b9"
+      },
+      "symbol_reference_inventory": [
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+          "line": 2057,
+          "source": "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/v1/worker/gpu_model_runner.py",
+          "line": 5212,
+          "source": "                self.get_model(), \"get_mtp_target_hidden_states\", lambda: None"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "line": 979,
+          "source": "        self._mtp_hidden_buffer = ("
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "line": 1595,
+          "source": "        if self._mtp_hidden_buffer is not None:"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "line": 1600,
+          "source": "            self._mtp_hidden_buffer[:num_tokens].copy_(hidden_states.flatten(1))"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "line": 1603,
+          "source": "        if use_sequence_parallel and self._mtp_hidden_buffer is None:"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "line": 1798,
+          "source": "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "line": 1802,
+          "source": "        return getattr(self.model, \"_mtp_hidden_buffer\", None)"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+          "line": 283,
+          "source": "    def get_mtp_target_hidden_states(self) -> torch.Tensor | None:"
+        },
+        {
+          "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/vl_model.py",
+          "line": 284,
+          "source": "        return self.language_model.get_mtp_target_hidden_states()"
+        }
+      ],
+      "exact_named_search_scope": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot",
+      "search_is_not_framework_catalog_audit": true,
+      "saved_runtime_script": {
+        "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/original-profile-cache-v53/runtime/scripts/serve.sh",
+        "sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
+        "bytes": 2311,
+        "selected_arguments": {
+          "spec_method": "dspark",
+          "num_speculative_tokens": 5,
+          "max_num_batched_tokens": 8192,
+          "TP": 8
+        }
+      },
+      "reused_local_operator_reader_files": 8,
+      "new_target_source_files_obtained": 0,
+      "new_remote_source_read": false,
+      "overall_complete": false
+    },
+    "DSpark-tail-reader-closure-v85.json": {
+      "decision": "SOURCE_VALUE_READER_CLOSURE_IN_STATED_FROZEN_DSPARK_SERVING_PIPELINE",
+      "scope": "Pinned normal Ascend serving method=dspark, DSpark auxiliary-output path, model API returns normalized2D hidden plus3aux means. Excludes out-of-band getter clients/custom hooks, other methods and unbound runtime code replacements; not an assertion about arbitrary public API callers.",
+      "proof": [
+        "Constructor allocates rawHC buffer for use_eagle() OR uses_draft_model(); use_eagle includes dspark, so allocation guard is broader than the Ascend getter-consumption guard.",
+        "Model copies pre-collapse HC into this buffer. Named references elsewhere are only delegated getter and two runner callsites; current Ascend local result is loaded only in method==mtp guarded rebind.",
+        "Saved serve method is dspark, so this guarded value flow is inactive. Ascend constructor independently forces auxiliary outputs true for DSpark; drafter context argument is selected3aux concatenation, then main_proj/main_norm.",
+        "GPU base caller can consume getter output in nonaux paths and is preserved as another scope; it is not a basis for declaring all methods raw-dead.",
+        "Buffer presence also chooses tail control flow. Removing the copy alone leaves rawHC/premix gathers; switching buffer representation toNone enables existing localcollapse->collapsedAG branch. These are separate rewrites.",
+        "The normalized target output, all3checkpoint means and draft raw hidden used by confidence remain live. Current final HC residual has no further model value reader after collapse once the scoped raw snapshot is removed."
+      ],
+      "current_source_aux_output_forced": true,
+      "current_method_is_mtp": false,
+      "raw_buffer_source_value_read_in_this_pipeline": false,
+      "buffer_presence_has_control_effect": true,
+      "allocation_capacity_rows": 8192,
+      "BF16_full_HC_buffer_requested_bytes": 335544320,
+      "allocated_or_reclaimable_physical_memory_measured": false,
+      "eight_consumer_guard_cases": [
+        {
+          "buffer_exists": false,
+          "method_is_mtp": false,
+          "aux_output_path": false,
+          "Ascend_getter_result_rebinds_hidden": false,
+          "raw_values_reach_drafter_via_this_argument": false,
+          "runtime_hit_claimed": false
+        },
+        {
+          "buffer_exists": false,
+          "method_is_mtp": false,
+          "aux_output_path": true,
+          "Ascend_getter_result_rebinds_hidden": false,
+          "raw_values_reach_drafter_via_this_argument": false,
+          "runtime_hit_claimed": false
+        },
+        {
+          "buffer_exists": false,
+          "method_is_mtp": true,
+          "aux_output_path": false,
+          "Ascend_getter_result_rebinds_hidden": false,
+          "raw_values_reach_drafter_via_this_argument": false,
+          "runtime_hit_claimed": false
+        },
+        {
+          "buffer_exists": false,
+          "method_is_mtp": true,
+          "aux_output_path": true,
+          "Ascend_getter_result_rebinds_hidden": false,
+          "raw_values_reach_drafter_via_this_argument": false,
+          "runtime_hit_claimed": false
+        },
+        {
+          "buffer_exists": true,
+          "method_is_mtp": false,
+          "aux_output_path": false,
+          "Ascend_getter_result_rebinds_hidden": false,
+          "raw_values_reach_drafter_via_this_argument": false,
+          "runtime_hit_claimed": false
+        },
+        {
+          "buffer_exists": true,
+          "method_is_mtp": false,
+          "aux_output_path": true,
+          "Ascend_getter_result_rebinds_hidden": false,
+          "raw_values_reach_drafter_via_this_argument": false,
+          "runtime_hit_claimed": false
+        },
+        {
+          "buffer_exists": true,
+          "method_is_mtp": true,
+          "aux_output_path": false,
+          "Ascend_getter_result_rebinds_hidden": true,
+          "raw_values_reach_drafter_via_this_argument": true,
+          "runtime_hit_claimed": false
+        },
+        {
+          "buffer_exists": true,
+          "method_is_mtp": true,
+          "aux_output_path": true,
+          "Ascend_getter_result_rebinds_hidden": true,
+          "raw_values_reach_drafter_via_this_argument": false,
+          "runtime_hit_claimed": false
+        }
+      ],
+      "native_aliases_or_loaded_binary_observers_proved": false,
+      "numerical_repartition_or_new_graph_legality_proved": false,
+      "whole_module_closed": false,
+      "overall_complete": false
+    },
+    "DSpark-tail-reorganization-variants-v85.json": {
+      "variants": [
+        {
+          "id": "F26-DSPARK-SNAPSHOT-COPY-DEAD",
+          "state": "SOURCE_VALUE_READER_CLOSED_IN_STATED_PIPELINE",
+          "graph": "Keep current buffer/control/RAW-HC+premix gathers and arithmetic; omit only the unused raw snapshot copy.",
+          "conditions": [
+            "Pinned method=dspark normal Ascend serving callgraph; no extra out-of-band raw getter client/custom hook. Other MTP/nonaux/GPU caller cases retain their own observers.",
+            "All participating TP ranks use the same selected rewrite and unchanged padded row ownership/concat/trim. Preserve per-row BF16 R, FLOAT premix, original within-row reduction/rounding policy and initialized storage/error behavior.",
+            "Keep all normalized target output rows,3aux checkpoint means/context inputs,draft raw confidence inputs,current sampling/raw/probability/RNG/acceptance outputs. Removing target raw HC is not evidence those values are dead.",
+            "Native numerical equivalence under changed batch shape/tiling and new fused ownership/output ABI/capture liveness is not attested here. Source row-local identities do not prove device bitwise parity or speedup."
+          ],
+          "arithmetic_reordered": false,
+          "requested_buffer_capacity_unchanged": true,
+          "actual_gain": null
+        },
+        {
+          "id": "F26-DSPARK-NO-RAW-BUFFER",
+          "state": "CONDITIONAL_ROW_LOCAL_REPARTITION_REVIEWED",
+          "graph": "Existing bufferNone tail: local BF16 HC collapse -> BF16 collapsed AllGather -> original global-row RMS -> unchanged target outputs",
+          "conditions": [
+            "Pinned method=dspark normal Ascend serving callgraph; no extra out-of-band raw getter client/custom hook. Other MTP/nonaux/GPU caller cases retain their own observers.",
+            "All participating TP ranks use the same selected rewrite and unchanged padded row ownership/concat/trim. Preserve per-row BF16 R, FLOAT premix, original within-row reduction/rounding policy and initialized storage/error behavior.",
+            "Keep all normalized target output rows,3aux checkpoint means/context inputs,draft raw confidence inputs,current sampling/raw/probability/RNG/acceptance outputs. Removing target raw HC is not evidence those values are dead.",
+            "Native numerical equivalence under changed batch shape/tiling and new fused ownership/output ABI/capture liveness is not attested here. Source row-local identities do not prove device bitwise parity or speedup.",
+            "NoRaw is a buffer-presence/control rewrite, not just deleting a copy. Norm remains after gather with its original per-rank gamma/eps and global N shape."
+          ],
+          "source_existing_alternate_path": true,
+          "actual_gain": null
+        },
+        {
+          "id": "F26-LOCAL-NORM-BEFORE-GATHER",
+          "state": "CONDITIONAL_REPLICATED_NORMALIZER_REPARTITION_REVIEWED",
+          "graph": "Local HC collapse BF16 -> local RMS BF16 -> normalized BF16 AllGather -> unchanged full normalized output",
+          "conditions": [
+            "Pinned method=dspark normal Ascend serving callgraph; no extra out-of-band raw getter client/custom hook. Other MTP/nonaux/GPU caller cases retain their own observers.",
+            "All participating TP ranks use the same selected rewrite and unchanged padded row ownership/concat/trim. Preserve per-row BF16 R, FLOAT premix, original within-row reduction/rounding policy and initialized storage/error behavior.",
+            "Keep all normalized target output rows,3aux checkpoint means/context inputs,draft raw confidence inputs,current sampling/raw/probability/RNG/acceptance outputs. Removing target raw HC is not evidence those values are dead.",
+            "Native numerical equivalence under changed batch shape/tiling and new fused ownership/output ABI/capture liveness is not attested here. Source row-local identities do not prove device bitwise parity or speedup.",
+            "Gamma,eps and numerical normalization policy must be equal across participating TP ranks. Native M-versus-N reduction policy must preserve the required BF16 result. This extra premise is not needed by the preceding collapsed-AG/global-norm plan."
+          ],
+          "actual_gain": null
+        },
+        {
+          "id": "F03-F26-LAST-POST-COLLAPSE",
+          "state": "CONDITIONAL_FINAL_OUTPUT_READER_FRONTIER_REVIEWED",
+          "graph": "Last FFN HcPost BF16 tiles -> final weighted collapse BF16 -> optional local RMS -> one chosen BF16 AllGather",
+          "conditions": [
+            "Pinned method=dspark normal Ascend serving callgraph; no extra out-of-band raw getter client/custom hook. Other MTP/nonaux/GPU caller cases retain their own observers.",
+            "All participating TP ranks use the same selected rewrite and unchanged padded row ownership/concat/trim. Preserve per-row BF16 R, FLOAT premix, original within-row reduction/rounding policy and initialized storage/error behavior.",
+            "Keep all normalized target output rows,3aux checkpoint means/context inputs,draft raw confidence inputs,current sampling/raw/probability/RNG/acceptance outputs. Removing target raw HC is not evidence those values are dead.",
+            "Native numerical equivalence under changed batch shape/tiling and new fused ownership/output ABI/capture liveness is not attested here. Source row-local identities do not prove device bitwise parity or speedup.",
+            "Only final FFN post output is private after raw observer closure. Its input residual/current post+comb and final premix remain inputs. Interior post outputs still feed later post/aux/Engram and cannot inherit this elision.",
+            "This final collapse is pure weighted HC sum, not another HcPre: do not invent HF32/A2/Sinkhorn coefficient work after the final post. Retile/co-own all4HC streams per output H tile, preserve separate post Mul/Add order and both BF16 barriers."
+          ],
+          "actual_gain": null
+        },
+        {
+          "id": "F23-F26-LAST-MERGE-POST-TAIL",
+          "state": "CONDITIONAL_HIGHER_ORDER_VALUE_AND_RESOURCE_FRONTIER_REVIEWED",
+          "graph": "shared+routed BF16 merge -> last HCPost BF16 -> HCcollapse BF16 -> local RMS BF16 -> selected AG/head path",
+          "conditions": [
+            "Pinned method=dspark normal Ascend serving callgraph; no extra out-of-band raw getter client/custom hook. Other MTP/nonaux/GPU caller cases retain their own observers.",
+            "All participating TP ranks use the same selected rewrite and unchanged padded row ownership/concat/trim. Preserve per-row BF16 R, FLOAT premix, original within-row reduction/rounding policy and initialized storage/error behavior.",
+            "Keep all normalized target output rows,3aux checkpoint means/context inputs,draft raw confidence inputs,current sampling/raw/probability/RNG/acceptance outputs. Removing target raw HC is not evidence those values are dead.",
+            "Native numerical equivalence under changed batch shape/tiling and new fused ownership/output ABI/capture liveness is not attested here. Source row-local identities do not prove device bitwise parity or speedup.",
+            "Keep effective routed scaling/row transforms,merge BF16 rounding and the post/collapse/norm rounds. Count merge,post and collapse temporaries once; optional DownAdd is a separate Vector-owner/readiness domain with INT32 CV bridge retained.",
+            "Head selection/processors/fullscore/probability/entropy/bonus output protocols remain separate contracts. Raw HC snapshot closure alone does not authorize a best-ID-only head."
+          ],
+          "actual_gain": null
+        }
+      ],
+      "common_conditions": [
+        "Pinned method=dspark normal Ascend serving callgraph; no extra out-of-band raw getter client/custom hook. Other MTP/nonaux/GPU caller cases retain their own observers.",
+        "All participating TP ranks use the same selected rewrite and unchanged padded row ownership/concat/trim. Preserve per-row BF16 R, FLOAT premix, original within-row reduction/rounding policy and initialized storage/error behavior.",
+        "Keep all normalized target output rows,3aux checkpoint means/context inputs,draft raw confidence inputs,current sampling/raw/probability/RNG/acceptance outputs. Removing target raw HC is not evidence those values are dead.",
+        "Native numerical equivalence under changed batch shape/tiling and new fused ownership/output ABI/capture liveness is not attested here. Source row-local identities do not prove device bitwise parity or speedup."
+      ],
+      "source_observer_question_closed": true,
+      "native_alias_or_new_numerical_pipeline_proved": false,
+      "no_new_maincandidate": true,
+      "implementation": false,
+      "native_test": false,
+      "overall_complete": false
+    },
+    "DSpark-tail-row-local-proof-v85.json": {
+      "domain": "Ordered raw rows R_p[r,j,h] and premix a_p[r,j] from same SP group and row generation; C preserves original per-row h-reduction and BF16 rounding. G concatenates rank rows in the same order then trims the same suffix.",
+      "collapse_identity": "For every retained output row k=p*M+r, C(G(R),G(a))[k,:] is exactly C(R_p[r,:,:],a_p[r,:]); hence C(G(R),G(a))=G(C(R,a)) for the same row function, including casts/rounding.",
+      "norm_identity": "G(N_p(C_p))=N_receiver(G(C_p)) only when the row-normalizer gamma/eps/numerical policy of every owner equals the receiver. The existing localC->G->globalN plan does not need this crossrank-normalizer equality premise.",
+      "final_post_identity": "P computes rounded BF16 R_j using original separate FP32 Mul/Add order. C(P(...)) may consume those rounded values locally; replacing P by unrounded partials before C is not equivalent.",
+      "padding_and_empty_domain": "Preserve exact initialized physical row range/group participation and final trim; a locally empty logical row set is not permission to drop a collective. New computations on padded rows must stay within valid storage and preserve observable numerical/error behavior.",
+      "protected_readers": [
+        "full normalized target hidden",
+        "three pre-layer aux mean tensors",
+        "draft raw collapsed hidden for confidence",
+        "last post input residual,post/comb/final premix"
+      ],
+      "native_kernel_batchshape_or_tiling_equivalence_attested": false,
+      "formal_solver_or_device_test": false,
+      "overall_complete": false
+    },
+    "DSpark-tail-work-communication-models-v85.json": {
+      "models": [
+        {
+          "N": 24,
+          "M": 3,
+          "P": 8,
+          "h": 4,
+          "H": 5120,
+          "observed_tail_shape": true,
+          "snapshot_copy_logical_read_write_bytes": 1966080,
+          "ring_reference_raw_HC_send_bytes": 860160,
+          "ring_reference_premix_send_bytes": 336,
+          "ring_reference_collapsed_or_normalized_send_bytes": 215040,
+          "ring_reference_send_reduction_bytes": 645456,
+          "current_lastPost_plus_globalTail_FP32_ordinary_ops": 1904664,
+          "existing_None_localCollapse_globalNorm_FP32_ordinary_ops": 1152024,
+          "localCollapse_localNorm_FP32_ordinary_ops": 721923,
+          "current_norm_rsqrt_elements": 24,
+          "local_norm_rsqrt_elements": 3,
+          "current_per_rank_collapse_rows": 24,
+          "new_owner_collapse_rows": 3,
+          "current_tail_noncollective_value_reference_bytes": 12544480,
+          "None_localCollapse_globalNorm_noncollective_value_reference_bytes": 1761424,
+          "fused_localCollapseNorm_noncollective_value_reference_bytes": 163900,
+          "finalPost_output_plane_private_reference_bytes": 245760,
+          "partial_rstd_outputs_in_references_are_legacy_API_cost_not_universal_needed_stores": true,
+          "actual_valid_rows_HBM_wire_or_latency_gain": null
+        },
+        {
+          "N": 6400,
+          "M": 800,
+          "P": 8,
+          "h": 4,
+          "H": 5120,
+          "observed_tail_shape": true,
+          "snapshot_copy_logical_read_write_bytes": 524288000,
+          "ring_reference_raw_HC_send_bytes": 229376000,
+          "ring_reference_premix_send_bytes": 89600,
+          "ring_reference_collapsed_or_normalized_send_bytes": 57344000,
+          "ring_reference_send_reduction_bytes": 172121600,
+          "current_lastPost_plus_globalTail_FP32_ordinary_ops": 507910400,
+          "existing_None_localCollapse_globalNorm_FP32_ordinary_ops": 307206400,
+          "localCollapse_localNorm_FP32_ordinary_ops": 192512800,
+          "current_norm_rsqrt_elements": 6400,
+          "local_norm_rsqrt_elements": 800,
+          "current_per_rank_collapse_rows": 6400,
+          "new_owner_collapse_rows": 800,
+          "current_tail_noncollective_value_reference_bytes": 3342474240,
+          "None_localCollapse_globalNorm_noncollective_value_reference_bytes": 466992640,
+          "fused_localCollapseNorm_noncollective_value_reference_bytes": 40986240,
+          "finalPost_output_plane_private_reference_bytes": 65536000,
+          "partial_rstd_outputs_in_references_are_legacy_API_cost_not_universal_needed_stores": true,
+          "actual_valid_rows_HBM_wire_or_latency_gain": null
+        },
+        {
+          "N": 6528,
+          "M": 816,
+          "P": 8,
+          "h": 4,
+          "H": 5120,
+          "observed_tail_shape": true,
+          "snapshot_copy_logical_read_write_bytes": 534773760,
+          "ring_reference_raw_HC_send_bytes": 233963520,
+          "ring_reference_premix_send_bytes": 91392,
+          "ring_reference_collapsed_or_normalized_send_bytes": 58490880,
+          "ring_reference_send_reduction_bytes": 175564032,
+          "current_lastPost_plus_globalTail_FP32_ordinary_ops": 518068608,
+          "existing_None_localCollapse_globalNorm_FP32_ordinary_ops": 313350528,
+          "localCollapse_localNorm_FP32_ordinary_ops": 196363056,
+          "current_norm_rsqrt_elements": 6528,
+          "local_norm_rsqrt_elements": 816,
+          "current_per_rank_collapse_rows": 6528,
+          "new_owner_collapse_rows": 816,
+          "current_tail_noncollective_value_reference_bytes": 3409323520,
+          "None_localCollapse_globalNorm_noncollective_value_reference_bytes": 476332288,
+          "fused_localCollapseNorm_noncollective_value_reference_bytes": 41805760,
+          "finalPost_output_plane_private_reference_bytes": 66846720,
+          "partial_rstd_outputs_in_references_are_legacy_API_cost_not_universal_needed_stores": true,
+          "actual_valid_rows_HBM_wire_or_latency_gain": null
+        },
+        {
+          "N": 6672,
+          "M": 834,
+          "P": 8,
+          "h": 4,
+          "H": 5120,
+          "observed_tail_shape": true,
+          "snapshot_copy_logical_read_write_bytes": 546570240,
+          "ring_reference_raw_HC_send_bytes": 239124480,
+          "ring_reference_premix_send_bytes": 93408,
+          "ring_reference_collapsed_or_normalized_send_bytes": 59781120,
+          "ring_reference_send_reduction_bytes": 179436768,
+          "current_lastPost_plus_globalTail_FP32_ordinary_ops": 529496592,
+          "existing_None_localCollapse_globalNorm_FP32_ordinary_ops": 320262672,
+          "localCollapse_localNorm_FP32_ordinary_ops": 200694594,
+          "current_norm_rsqrt_elements": 6672,
+          "local_norm_rsqrt_elements": 834,
+          "current_per_rank_collapse_rows": 6672,
+          "new_owner_collapse_rows": 834,
+          "current_tail_noncollective_value_reference_bytes": 3484528960,
+          "None_localCollapse_globalNorm_noncollective_value_reference_bytes": 486839392,
+          "fused_localCollapseNorm_noncollective_value_reference_bytes": 42727720,
+          "finalPost_output_plane_private_reference_bytes": 68321280,
+          "partial_rstd_outputs_in_references_are_legacy_API_cost_not_universal_needed_stores": true,
+          "actual_valid_rows_HBM_wire_or_latency_gain": null
+        }
+      ],
+      "buffer_requested_capacity_bytes": 335544320,
+      "buffer_requested_capacity_MiB": 320,
+      "capacity_is_tensor_request_not_measured_reclaimable_memory": true,
+      "comparison_graphs": [
+        "G0current rawHC+premixAG,snapshot,globalC/globalNorm",
+        "G0Sonly omitdead snapshot copy",
+        "G1existingNone path localC/AGcollapsed/globalNorm",
+        "G2localC/localNorm/AGnormalized",
+        "G3post+C+optionalNorm fusion after localization"
+      ],
+      "vector_work_domain": "Conventional evaluation of original formulas on every physical row in the chosen graph:Post=36MH ordinaryFP32;C=7rows*H;RMS=(4H+1)rows plus1rsqrt/row. Not issued instruction counts or all-algorithm universal lower bounds.",
+      "value_reference_domain": "Noncollective semantic value reads/writes of the explicit source-like graph, including retainedweight/rstd APIcost; communication staging/caches/repeatloads/mapping not included. References across different graphs are differences, not independent gains to sum.",
+      "ring_domain": "Declared P8 ringlike AllGather per-rank send reference=(P-1)*localinputbytes. Actual captured raw/premix count/dtype/P used. Not physical HCCS/SIO/SDMA byte measurements or a universal topology lower bound.",
+      "symbolic_joint_bound": "With necessary node-work in a declared algorithm/reader/capacity domain: T>=max(sum_j(lambda_j*W_j)/beta_Vector(lambda),Q_GMread/Bread,Q_GMwrite/Bwrite,Q_linkcut/Bcut,L_true_tile_dependencies). beta/B must be capacity uppers; cast/reduction/rsqrt modes and actual rates remain unbound.",
+      "data_dependency_order": "G1movesCbeforecommunication;G2movesRMSbeforecommunication. This changes overlap/deadlines. Fewerbytes/ops/collectivecalls do not prove latency dominance. Never sum old native TASK/COMM durations into a speedup.",
+      "actual_numeric_capacity_or_speedup_proved": false,
+      "overall_complete": false
+    },
+    "DSpark-tail-transfer-credit-v85.json": {
+      "graph_domain": "After choosing G1/G2 localization and matching original row/generation. G0snapshot/globalAG credits and G1/G2privatefusion credits are sequential graph comparisons, not independent original-graph transfer removals.",
+      "transfer_atoms": [
+        {
+          "id": "merge.write",
+          "bytes_per_extent": 2,
+          "extent": "M*H"
+        },
+        {
+          "id": "merge.read",
+          "bytes_per_extent": 2,
+          "extent": "M*H"
+        },
+        {
+          "id": "finalPost_R.write",
+          "bytes_per_extent": 2,
+          "extent": "M*h*H"
+        },
+        {
+          "id": "localC_R.read",
+          "bytes_per_extent": 2,
+          "extent": "M*h*H"
+        },
+        {
+          "id": "C_Rfloat.write",
+          "bytes_per_extent": 4,
+          "extent": "M*h*H"
+        },
+        {
+          "id": "C_Rfloat.read",
+          "bytes_per_extent": 4,
+          "extent": "M*h*H"
+        },
+        {
+          "id": "C_Mulfloat.write",
+          "bytes_per_extent": 4,
+          "extent": "M*h*H"
+        },
+        {
+          "id": "C_Mulfloat.read",
+          "bytes_per_extent": 4,
+          "extent": "M*h*H"
+        },
+        {
+          "id": "C_Yfloat.write",
+          "bytes_per_extent": 4,
+          "extent": "M*H"
+        },
+        {
+          "id": "C_Yfloat.read",
+          "bytes_per_extent": 4,
+          "extent": "M*H"
+        },
+        {
+          "id": "C_Ybf16.write",
+          "bytes_per_extent": 2,
+          "extent": "M*H"
+        },
+        {
+          "id": "Norm_Ybf16.read",
+          "bytes_per_extent": 2,
+          "extent": "M*H"
+        }
+      ],
+      "conditional_private_interface_models": [
+        {
+          "M": 3,
+          "merge_Post_localC_private_interface_budget_bytes": 1413120,
+          "merge_Post_localC_localNorm_private_interface_budget_bytes": 1474560,
+          "above_plus_VectorDownAdd_private_S_budget_bytes": 1536000,
+          "chosen_localC_to_localNorm_Y_interface_is_already_in_76MH_collapseNorm_budget": true,
+          "final_normalized_or_collapsed_local_write_to_AG_is_retained": true,
+          "previous_input_residual_and_coefficients_retained": true,
+          "original_down_INT32_CV_bridge_not_deleted": true
+        },
+        {
+          "M": 800,
+          "merge_Post_localC_private_interface_budget_bytes": 376832000,
+          "merge_Post_localC_localNorm_private_interface_budget_bytes": 393216000,
+          "above_plus_VectorDownAdd_private_S_budget_bytes": 409600000,
+          "chosen_localC_to_localNorm_Y_interface_is_already_in_76MH_collapseNorm_budget": true,
+          "final_normalized_or_collapsed_local_write_to_AG_is_retained": true,
+          "previous_input_residual_and_coefficients_retained": true,
+          "original_down_INT32_CV_bridge_not_deleted": true
+        },
+        {
+          "M": 816,
+          "merge_Post_localC_private_interface_budget_bytes": 384368640,
+          "merge_Post_localC_localNorm_private_interface_budget_bytes": 401080320,
+          "above_plus_VectorDownAdd_private_S_budget_bytes": 417792000,
+          "chosen_localC_to_localNorm_Y_interface_is_already_in_76MH_collapseNorm_budget": true,
+          "final_normalized_or_collapsed_local_write_to_AG_is_retained": true,
+          "previous_input_residual_and_coefficients_retained": true,
+          "original_down_INT32_CV_bridge_not_deleted": true
+        },
+        {
+          "M": 834,
+          "merge_Post_localC_private_interface_budget_bytes": 392847360,
+          "merge_Post_localC_localNorm_private_interface_budget_bytes": 409927680,
+          "above_plus_VectorDownAdd_private_S_budget_bytes": 427008000,
+          "chosen_localC_to_localNorm_Y_interface_is_already_in_76MH_collapseNorm_budget": true,
+          "final_normalized_or_collapsed_local_write_to_AG_is_retained": true,
+          "previous_input_residual_and_coefficients_retained": true,
+          "original_down_INT32_CV_bridge_not_deleted": true
+        }
+      ],
+      "derivation": "LocalC/Norm private intermediates=8MhH(Rfloat)+8MhH(Mulfloat)+8MH(Yfloat)+4MH(Ybf16)=76MH;finalPostR=4MhH=16MH;merge=4MH. Union96MH;withoutlocalNormYsurface=92MH. OptionalDownS4MHonlyinitsseparatepostcastVectorowner/allreader/readinessdomain.",
+      "no_sum_with_full_76NH_global_tail_credit_or_old_snapshot_copy_credit_as_independent_same_graph_savings": true,
+      "actual_HBM_or_critical_path_gain": null,
+      "overall_complete": false
+    },
+    "DSpark-tail-composition-clauses-v85.json": {
+      "clauses": [
+        {
+          "id": "REL85-01",
+          "a": "F03",
+          "b": "F26",
+          "relation": "FINAL_POST_OUTPUT_PRIVATE_AFTER_DSPARK_RAW_READER_CLOSURE",
+          "operator_claim": "Compose final FFN HcPost BF16 output with final HC collapse and optional local RMS.",
+          "applicable_domain": "Final boundary has no next HcPre/coefficient stage; only final collapse remains after scoped raw snapshot closure. Retain HcPost input residual/post/comb and final premix. Interior post outputs still have next-post/aux/Engram readers. Preserve post BF16 then collapse BF16 and native row policy; new4-stream tile ownership/ABI/capture required.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-02",
+          "a": "F23",
+          "b": "F26",
+          "relation": "LAST_MERGE_POST_COLLAPSE_NORM_WITH_DISTINCT_TRANSFER_CREDIT",
+          "operator_claim": "Join last shared+routed merge through HCPost to localized final collapse/norm.",
+          "applicable_domain": "Keep effective routed scaling/mapped rows, merge BF16, post BF16, collapse BF16 and norm BF16. Snapshot,localization and private fusion are successive graph changes. Count merge plane,finalR plane and72/76MHcollapse intermediates once. OptionalDownAdd retains raw INT32 CV and all routed-ready/progress gates.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-03",
+          "a": "F26",
+          "b": "F29",
+          "relation": "TARGET_RAW_HC_IS_NOT_DSPARK_AUX_CONTEXT",
+          "operator_claim": "Remove scoped unused target raw snapshot while preserving3aux->main->perlayer contextKV pipeline.",
+          "applicable_domain": "DSpark combines3aux means, not final4Hraw snapshot or target normalized head value. Preserve all three checkpoint gathers/currentselectedI and context cache publication. Current raw-HC gather role labelMTP does not imply active methodmtp. Existing contextKV reuse is baseline.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-04",
+          "a": "F26",
+          "b": "F30",
+          "relation": "TARGET_RAW_SNAPSHOT_AND_DRAFT_CONFIDENCE_RAW_HIDDEN_DIFFER",
+          "operator_claim": "Apply target raw-reader closure only to the target tail; price draft collapse/head/confidence separately.",
+          "applicable_domain": "Draft confidence consumes raw draft hidden and orderedseed/input embeddings; it is not the target fullHCsnapshot or normalized target output. Removing target snapshot does not license deletion of draft raw collapse or full probability/entropy/recovery outputs. Target/draft widths/row generations are distinct.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-05",
+          "a": "F26",
+          "b": "F31",
+          "relation": "METHOD_GUARD_BUFFER_PRESENCE_AND_TAIL_PROTOCOL",
+          "operator_claim": "Select no-copy or no-buffer/localcollapse tail based on actual observer demand with coherent rank/capture generation.",
+          "applicable_domain": "Pinned dspark source consumes no raw value;othermethods/getterclients retain their branches. Buffer presence also chooses communication. All participating ranks must transition together with same row/pad/trim mappings;capture/output banks and native numerical variants remain explicit. Keep allnormalized targetrows until a separate all-reader/Iproof.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-06",
+          "a": "F27",
+          "b": "F35",
+          "relation": "ACCEPTANCE_SELECTOR_FEEDS_AUX_CONTEXT_NOT_RAW_FINAL_HC",
+          "operator_claim": "Connect target verify/acceptance output to ordered3aux selection and context main projection.",
+          "applicable_domain": "prepare_inputs(_padded) I is produced after sampling/rejection. Preserve acceptedcounts/rowduplicates/bounds/positions and raw/probability/RNG/sentinel branches; no unconditional earlyI. Source actual selection remains before mainGEMM, while late aux gather needs its own communication/liveness cost. Raw target snapshot is not this argument.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-07",
+          "a": "F28",
+          "b": "F30",
+          "relation": "DRAFT_INITIALIZATION_TO_RAW_CONFIDENCE_AND_NORMALIZED_HEAD_FORK",
+          "operator_claim": "Compose draft embedding/HC initialization/decoder/final collapse with the two draft head consumers.",
+          "applicable_domain": "Preserve row/pad/onehot and all decoder queries. Final raw collapsed draft hidden feeds confidence; rounded norm feeds base head. Target raw snapshot closure does not make either draft branch dead. Current head rows already selected; Markov recurrence still needs each preceding chosenID.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-08",
+          "a": "F29",
+          "b": "F35",
+          "relation": "ACCEPTED_CONTEXT_KV_PUBLICATION_AND_NEXT_QUERY_GENERATION",
+          "operator_claim": "Match target accepted/selected rows and positions to next DSpark contextKV publication.",
+          "applicable_domain": "Keep per-layer group/slot maps,duplicate-slot write order,accepted-prefix rollback and allfuture readers. Stableaddress or acceptedcount alone is not equalcontextvalue;contextKVprecompute is already shared across draft decode/Markov. Preserve sourcefullwrite and all-rank protocol; no deletion of future query/context work from head prefix pruning.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        }
+      ],
+      "higher_order_groups": [
+        {
+          "id": "HG85-FINAL-HC-HEAD",
+          "members": [
+            "F03",
+            "F23",
+            "F26",
+            "F31",
+            "F35"
+          ],
+          "contract": "FixedDSpark raw-HCvalueclosure permits distinguishing final private output from interior live residual. ChooseG0S/G1/G2/G3;preserveBF16merge/post/collapse/norm,postinputresidual/coefficients and fullnormalized/head/probability outputs. Source-derived320MiBcapacity and ring/privatebytebudgets are separate from actualmemory/latency.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "scope_state": "SCOPED_OPERATOR_READER_AND_REORGANIZATION_CONSTRAINTS_REVIEWED",
+          "all_subsets_analyzed": false,
+          "legal_joint_fusion_proved": false
+        },
+        {
+          "id": "HG85-VERIFY-CONTEXT-DRAFT",
+          "members": [
+            "F27",
+            "F28",
+            "F29",
+            "F30",
+            "F31",
+            "F35"
+          ],
+          "contract": "Acceptance/row selector follows target head/verification;threeaux checkpointmeans generate context,while draft raw/normalized hidden fork toconfidence/basehead. Keep seed/query/context row namespaces,KVgroup/slot/acceptedprefix epochs and allobserved fullwrite/RNG/probability outputs. No target-raw-to-aux substitution or free crossiteration cache.",
+          "evidence": [
+            "DSpark-tail-source-index-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "DSpark-tail-native-boundaries-v85.json",
+            "DSpark-tail-reorganization-variants-v85.json",
+            "DSpark-tail-row-local-proof-v85.json",
+            "DSpark-tail-work-communication-models-v85.json",
+            "DSpark-tail-rounding-witnesses-v85.json",
+            "DSpark-tail-transfer-credit-v85.json",
+            "heads-sampling-operator-contract-v65.json",
+            "index-context-operator-contract-v64.json",
+            "joint-operator-resource-cut-proof-v83.json"
+          ],
+          "scope_state": "SCOPED_OPERATOR_READER_AND_REORGANIZATION_CONSTRAINTS_REVIEWED",
+          "all_subsets_analyzed": false,
+          "legal_joint_fusion_proved": false
+        }
+      ],
+      "new_pair_clauses": 8,
+      "new_higher_order_groups": 2,
+      "refine_existing_relations": [
+        "REL73-21:F26/F35 normalized-row reader frontier remains open;rawHCsourceobserver closed only in fixedDSpark.",
+        "REL74-08:F26/F27 distinct final andcheckpointgenerations;threeaux are the live DSpark argument.",
+        "REL74-07:F27/F29 context main/norm/KV inputs remain;targetsnapshot elision is independent of context partition."
+      ],
+      "new_maincandidates": 0,
+      "overall_complete": false
+    },
+    "tail-shared-memory-budget-v85.json": {
+      "input_receipts": [
+        {
+          "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/ring-storage-capacity-models-v79.json",
+          "bytes": 50375,
+          "sha256": "d2cb5e33e11d1b4b9f13064631c94552a19c45b97e8a7d193e5e72594e0aa6ba"
+        },
+        {
+          "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/ring-storage-source-contract-v79.json",
+          "bytes": 8658,
+          "sha256": "d50882849ef7d3c8c9cc6293e3b31153812f7541e1a3f9f9a34d5e2b09a27148"
+        },
+        {
+          "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/ring-state-layout-and-lifetime-proof-v79.json",
+          "bytes": 6005,
+          "sha256": "e07af57189b657b8d55d7c351826a99cc60f65163efc40ec1d86aa886d9955dd"
+        },
+        {
+          "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/Engram-WKV-storage-and-work-models-v84.json",
+          "bytes": 15738,
+          "sha256": "51f1976fd294ebab57e2bd8e85bdfea24293770462309add5150ca76c510aecd"
+        }
+      ],
+      "models": [
+        {
+          "case": "raw_credit_only",
+          "assumed_usable_budget_credit_bytes": 335544320,
+          "extra_private_ring_bytes": 0,
+          "extra_WKV_cache_bytes": 0,
+          "other_extra_metadata_workspace_bytes_assumed": 0,
+          "released_old_common_ID_reservations": 0,
+          "pool_divisor_bytes": 540928,
+          "min_net_free_global_ID_change": 620,
+          "max_net_free_global_ID_change": 621,
+          "owner_and_cache_counts_are_illustrative": true,
+          "actual_device_budget_or_capacity_gain_proved": false
+        },
+        {
+          "case": "private32_only",
+          "assumed_usable_budget_credit_bytes": 0,
+          "extra_private_ring_bytes": 1572864,
+          "extra_WKV_cache_bytes": 0,
+          "other_extra_metadata_workspace_bytes_assumed": 0,
+          "released_old_common_ID_reservations": 4,
+          "pool_divisor_bytes": 540928,
+          "min_net_free_global_ID_change": 1,
+          "max_net_free_global_ID_change": 2,
+          "owner_and_cache_counts_are_illustrative": true,
+          "actual_device_budget_or_capacity_gain_proved": false
+        },
+        {
+          "case": "memo256_only",
+          "assumed_usable_budget_credit_bytes": 0,
+          "extra_private_ring_bytes": 0,
+          "extra_WKV_cache_bytes": 13131776,
+          "other_extra_metadata_workspace_bytes_assumed": 0,
+          "released_old_common_ID_reservations": 0,
+          "pool_divisor_bytes": 540928,
+          "min_net_free_global_ID_change": -25,
+          "max_net_free_global_ID_change": -24,
+          "owner_and_cache_counts_are_illustrative": true,
+          "actual_device_budget_or_capacity_gain_proved": false
+        },
+        {
+          "case": "raw_private32_memo256",
+          "assumed_usable_budget_credit_bytes": 335544320,
+          "extra_private_ring_bytes": 1572864,
+          "extra_WKV_cache_bytes": 13131776,
+          "other_extra_metadata_workspace_bytes_assumed": 0,
+          "released_old_common_ID_reservations": 4,
+          "pool_divisor_bytes": 540928,
+          "min_net_free_global_ID_change": 597,
+          "max_net_free_global_ID_change": 598,
+          "owner_and_cache_counts_are_illustrative": true,
+          "actual_device_budget_or_capacity_gain_proved": false
+        },
+        {
+          "case": "raw_private16_memo256",
+          "assumed_usable_budget_credit_bytes": 335544320,
+          "extra_private_ring_bytes": 786432,
+          "extra_WKV_cache_bytes": 13131776,
+          "other_extra_metadata_workspace_bytes_assumed": 0,
+          "released_old_common_ID_reservations": 4,
+          "pool_divisor_bytes": 540928,
+          "min_net_free_global_ID_change": 598,
+          "max_net_free_global_ID_change": 599,
+          "owner_and_cache_counts_are_illustrative": true,
+          "actual_device_budget_or_capacity_gain_proved": false
+        },
+        {
+          "case": "raw_paired16_no_cache",
+          "assumed_usable_budget_credit_bytes": 335544320,
+          "extra_private_ring_bytes": 0,
+          "extra_WKV_cache_bytes": 0,
+          "other_extra_metadata_workspace_bytes_assumed": 0,
+          "released_old_common_ID_reservations": 2,
+          "pool_divisor_bytes": 540928,
+          "min_net_free_global_ID_change": 622,
+          "max_net_free_global_ID_change": 623,
+          "owner_and_cache_counts_are_illustrative": true,
+          "actual_device_budget_or_capacity_gain_proved": false
+        }
+      ],
+      "formula": "LetB=qC+r,0<=r<C. DeltaB is ACTUAL usable pool-budget credit, Dextra is ACTUAL incremental private/cache/hoist/protocol allocation, Srelease is removed common-ID reservation count. DeltaFree=Srelease+floor((r+DeltaB-Dextra)/C). One common budget remainder, not one per candidate.",
+      "illustrative_raw_credit_only_global_ID_range": [
+        620,
+        621
+      ],
+      "independent_range_if_wrongly_combining_separate_unknown_remainders": [
+        596,
+        599
+      ],
+      "correctly_shared_remainder_joint_range": [
+        597,
+        598
+      ],
+      "premise": "Illustrations assume all335544320requestedrawbytesbecomeusablebudget,unchanged540928tupledivisor,privateownerU=S=4,nosentinel/extrametadata,256totalWKVentries128perlayerwith51200Bvalue+96BIDs. These premises are not current allocation/hit/resident-owner observations.",
+      "scope_limits": [
+        "Tensor requested capacity is NOT a measured physical release or usable KV-budget credit; actual DeltaB remains unknown. Allocator pooling/rounding and changed graph peak memory can alter it.",
+        "Scheduled max_num_seqs4 is not a bound on all resident state owners. U/S4 only illustrates a valid stated case, not the frozen workload occupancy.",
+        "Dextra must count genuinely additional storage relative to baseline. Two hoisted KV planes absolute liveness is not automatically incremental allocation; old buffers may already exist or be reused.",
+        "C2even compactionaloneleavesSWAanchoredtupledivisor unchanged. PrivatebankreleasesonecommonID/requestnot3;pairedstateowner/ABA/rollback/lastreaderANDwriter conditions remain.",
+        "Extra cache/privatebank cost and benefit cannot be counted using the same freed bytes twice. Feasible budget also requires retained allocations/reservations fit; no token-capacity or speedup conversion."
+      ],
+      "actual_DeltaB_or_new_KV_block_count": null,
+      "overall_complete": false
+    },
+    "tail-shared-memory-relations-v85.json": {
+      "clauses": [
+        {
+          "id": "REL85-09",
+          "a": "F25",
+          "b": "F26",
+          "relation": "RAW_SNAPSHOT_CREDIT_VS_PURE_WKV_CACHE_BUDGET",
+          "operator_claim": "A source-unused target raw snapshot can change the memory budget available to pure WKV memo/hoist.",
+          "applicable_domain": "Use actual usable DeltaB,notrequestedcapacityasmeasuredfreeVRAM. Memo hit/equivalent-output generation still required. Cache/hoist extra capacity must be deducted before claiming KV-pool gain; each freed byte is spent once.",
+          "evidence": [
+            "tail-shared-memory-budget-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "Engram-WKV-storage-and-work-models-v84.json",
+            "ring-storage-capacity-models-v79.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-10",
+          "a": "F26",
+          "b": "F34",
+          "relation": "TAIL_MEMORY_CREDIT_AND_C2_PRIVATE_STATE_SHARE_ONE_POOL_BUDGET",
+          "operator_claim": "Price raw-snapshot representation removal jointly with C2 private/paired state capacity changes.",
+          "applicable_domain": "Keep unchangedSWAanchoreddivisor,onecommonID/requestandallowner/ABA/rollbackretirementgates. UseDeltaFree=Srelease+floor((r+DeltaB-Dextra)/C);rawbufferbytesandringcompactionarenotindependentKVgains. ScheduledB4isnotresidentSbound.",
+          "evidence": [
+            "tail-shared-memory-budget-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "Engram-WKV-storage-and-work-models-v84.json",
+            "ring-storage-capacity-models-v79.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        },
+        {
+          "id": "REL85-11",
+          "a": "F25",
+          "b": "F34",
+          "relation": "WKV_CACHE_AND_STATE_BANK_COMPETE_FOR_LIVE_CAPACITY",
+          "operator_claim": "Jointly budget versioned WKV cache/hoist and C2 private state rather than treating each fit independently.",
+          "applicable_domain": "Sum genuinely additional live storage/protocol metadata under one peak/budget. Pure WKV content equality does not imply ring-state or current hidden equality. Exact cache hit/owner occupancy/allocator and communication costs remain separate evidence.",
+          "evidence": [
+            "tail-shared-memory-budget-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "Engram-WKV-storage-and-work-models-v84.json",
+            "ring-storage-capacity-models-v79.json"
+          ],
+          "conditional_compatibility": true,
+          "all_runtime_gates_proved": false,
+          "speedup_additive": false,
+          "critical_path_gain_us": null
+        }
+      ],
+      "higher_order_groups": [
+        {
+          "id": "HG85-SHARED-MEMORY-BUDGET",
+          "members": [
+            "F25",
+            "F26",
+            "F34",
+            "F31"
+          ],
+          "contract": "Actualusablememorycreditminusgenuinelyincrementalcache/private/hoist/protocolstorageunderonecommonbudgetremainder. Preserve all live banks/epochs/owners and source numerical equality;requestedcapacity/hitrate/allocatorknowledgeare separate.",
+          "evidence": [
+            "tail-shared-memory-budget-v85.json",
+            "DSpark-tail-reader-closure-v85.json",
+            "Engram-WKV-storage-and-work-models-v84.json",
+            "ring-storage-capacity-models-v79.json"
+          ],
+          "scope_state": "CONDITIONAL_COMMON_BUDGET_CAPACITY_CUT_REVIEWED",
+          "all_subsets_analyzed": false,
+          "legal_joint_fusion_proved": false
+        }
+      ],
+      "new_pair_clauses": 3,
+      "new_higher_order_groups": 1,
+      "overall_complete": false
+    }
+  },
+  "original_receipts": [
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/DSpark-tail-source-index-v85.json",
+      "bytes": 23255,
+      "sha256": "9aa0c579e59340e5c05182e6698ea5ab28daaa9b331b51e579bad117c5e31287"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/DSpark-tail-reader-closure-v85.json",
+      "bytes": 4183,
+      "sha256": "85ee796794c2f66ed8070063e9e0f175219f9fb69b081448d2d88056a6a0cacb"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/DSpark-tail-reorganization-variants-v85.json",
+      "bytes": 8543,
+      "sha256": "31c5fd381bdf8aa277489debd392925ef8d8f6d95990a71624b56fe5bd24190f"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/DSpark-tail-row-local-proof-v85.json",
+      "bytes": 1538,
+      "sha256": "a3b508c7490fb0956d20af1efa7c98103a668e8bcdfef43ce948bcdc5e7c827e"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/DSpark-tail-work-communication-models-v85.json",
+      "bytes": 6805,
+      "sha256": "ffac82c64a3723fe9d4d0891d3de2a661a9b3ace9b53a1ab2166d22ceca22def"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/DSpark-tail-transfer-credit-v85.json",
+      "bytes": 4026,
+      "sha256": "4599cd27f80d85903d2c1f051c0a3c6735b63ea1a58ee7d2affe7aebe9418fad"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/DSpark-tail-composition-clauses-v85.json",
+      "bytes": 14016,
+      "sha256": "7a4222f9b4f9cd51cbbf9d6b0c2cf29730e205a7ae36310647e13bf9eb0a1531"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/tail-shared-memory-budget-v85.json",
+      "bytes": 6062,
+      "sha256": "280f9f6d92cb2f80539c45b601b9be0b024c0ac09d113adb8aca708bf1273102"
+    },
+    {
+      "path": "/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-first-20261031/tail-shared-memory-relations-v85.json",
+      "bytes": 3665,
+      "sha256": "49bbcbdae09acc6cabeb6f2c91f685f9f8f0900c0ba5b2263864ed7762f1d565"
+    }
+  ],
+  "overall_complete": false
+}

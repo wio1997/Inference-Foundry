@@ -1,0 +1,303 @@
+{
+  "generated_utc": "2026-10-31T07:01:49.384123+00:00",
+  "variants": {
+    "F26": [
+      {
+        "id": "F26-v32-NORM-HEAD",
+        "status": "CONDITIONAL_COMPOSITION",
+        "change": "KeepBF16normalizedselected/Urowsontheproducer-consumerboundaryforLMhead,orfuseDSparkheadnormwithprojection.",
+        "requires": "Full5120RMS/gamma/eps/optionalbiasandBF16normboundary;allnormalized/prompt/state/auxconsumers,captureandMatMulprecision;donotcancelpositiveRMSscalarorfoldgammabyrealalgebraalone."
+      }
+    ],
+    "F30": [
+      {
+        "id": "F30-STRIDED-ADD-ARGMAX",
+        "status": "CONDITIONAL_LOCAL_SEMANTIC_CANDIDATE_WITH_MEASURED_BRANCH",
+        "graph": "Read the current strided logits slice and bias, preserve BF16 add rounding and optional writeback, reduce with existing argmax semantics, produce INT64 IDs and keep token remap/copy order.",
+        "supports": "65 Add+ArgMax+Cast records plus195 Slice/143 ViewCopy records; source binds each logical step.",
+        "constraints": [
+          "BF16 materialization/rounding before compare",
+          "NaN/tie/index semantics",
+          "same logits writeback and any external aliases",
+          "output INT64 and vocabulary remap",
+          "row padding/mask and stable buffer generation",
+          "per-step token recurrence and existing stream/event dependencies"
+        ],
+        "open": "Historical stride/storage ownership and native Slice/ViewCopy semantics are not attested. A shape reporting the full base allocation does not prove all bytes are physically copied. Score-write deletion requires stronger all-consumer proof."
+      },
+      {
+        "id": "F30-VOCAB-OWNERSHIP",
+        "status": "CONDITIONAL_CROSS_CARD_REORGANIZATION",
+        "graph": "Keep base-head and compatible Markov work in matching vocabulary partitions through greedy selection; preserve global tie/index semantics and publish the same selected IDs.",
+        "constraints": [
+          "matching vocabulary partitions/group/rank ownership",
+          "same bias and add numerical boundary",
+          "token-space mapping and selected ID publication",
+          "probability/entropy/logprobs paths need their full distribution contract",
+          "other model/head consumers and graph lifetime"
+        ],
+        "open": "This does not prove an AllGather can be removed. No per-rank ownership/complete consumer or end-to-end benefit is established."
+      },
+      {
+        "id": "F30-MARKOV-ROW-REUSE",
+        "status": "CONDITIONAL_CROSS_ITERATION_COMPUTE_MEMORY_TRADEOFF; UNPRICED",
+        "graph": "Reuse an exactly computed Markov bias row for a repeated Markov input ID under frozen embedding/projection parameters; partial cache and full precomputation are distinct domains.",
+        "constraints": [
+          "actual Markov input token space",
+          "immutable parameter/version namespace",
+          "matching GEMM reduction/rounding and inference numeric mode",
+          "no stochastic/stateful embedding/projection behavior",
+          "cache invalidation/capacity/lookup overhead and device ownership"
+        ],
+        "open": "Actual repeated-ID frequency and memory headroom are absent. A full dense BF16 table is33426636800 logical bytes before indices/replication; this is not a feasible-capacity or speedup claim."
+      },
+      {
+        "id": "F30-v32-SHARDED-MARKOV",
+        "status": "CONDITIONAL_ALTERNATIVE_PARTITION_OR_OWNER",
+        "change": "PartitionMarkovw2tomatchbasecolumnownership,keepper-stepbase+Markovpostprocessing/BF16sumlocal,andgloballyselect/publishtheIDbeforedependentnextMarkovlookup.",
+        "requires": "SmallerlocalGEMM/weightdomainbutnewsmallselectioncollectiveoneachrecurrencystep;startup/syncanddifferentNtilingparityunknown."
+      },
+      {
+        "id": "F30-v32-OWNER-MARKOV",
+        "status": "CONDITIONAL_ALTERNATIVE_PARTITION_OR_OWNER",
+        "change": "Gatherbaseheadrowsonthedesignatedowner;keepfullMarkovinnerloopthere,thenpublishsameproposalIDsandallneededstates/probabilities/outputs.",
+        "requires": "Avoidother-rankduplicateMarkovexecutionandmayavoidper-stepselectioncollectivesifonlyownerconsumestheinnerloop,butownerstilldoesfullGEMM;allrankstate/RNG/scoreobserverandresultpublicationprotocolrequired."
+      },
+      {
+        "id": "F30-v32-FUSED-MARKOV-SELECT",
+        "status": "CONDITIONAL_LARGER_KERNEL",
+        "change": "JoinMarkovGEMMtiles,requiredper-headpostprocessing,base-rowBF16addandgreedyreductionwithseparatebaselineboundaries.",
+        "requires": "KeepbasebatchedKreuse,distinctbase/MarkovGEMMroundingandsoftcap/scaleorder;naiveconcatenatedsingleGEMM/singleroundnotproved."
+      }
+    ],
+    "F35": [
+      {
+        "id": "F35-v32-LAYOUT",
+        "status": "CONDITIONAL_LAYOUT_FUSION",
+        "change": "F35consumerreadsTP-rank-major/partitionedlogitsdirectly;combinevalidity/rowselect/promotion/processors/reductionormaterializerequested2Drows on demand.",
+        "requires": "Explicitnonaffinevocabmap;alllivefullscoreinterfacesandpostprocessing/capturebanksemanticsretained. Notordinary2Dview."
+      },
+      {
+        "id": "F35-v32-SHARD-TOP1",
+        "status": "CONDITIONAL_CROSS_CARD_REORGANIZATION",
+        "change": "Useexistingskip_gatherinterfaceasbuildingblockforlocalprocessedbest+globalIDselection.",
+        "requires": "ID-onlydomainorsufficientseparatescoreprotocol;actualcomparator/validcolumns/orderedrowmaps/rounding/stateandallconsumers. Localtop1alonecannotserveentropy/prob/logprobs."
+      },
+      {
+        "id": "F35-v32-OWNER-SAMPLER",
+        "status": "CONDITIONAL_OWNERSHIP_PROTOCOL",
+        "change": "Reconstructdensevocabonlyondesignedconsumerowner(s),retainfullscore/samplingthere,andpublishidenticalneededoutputs/states.",
+        "requires": "Newworker/nonownerNonehandling/groupuniformity/RNG/state/score-observerprotocol and supportedcollectiveinterface;notjusttoggleuse_all_gather."
+      }
+    ]
+  },
+  "conditions": [
+    {
+      "id": "M16-v32-01",
+      "branch": "populations",
+      "candidates": [
+        "F26",
+        "F30",
+        "F35"
+      ],
+      "state": "MEASURED",
+      "evidence": "1080headTASK/12chainsand192COMM;target88,draftbase104,Markov520,norm104,Transpose192,hcom72distinctroles."
+    },
+    {
+      "id": "M16-v32-02",
+      "branch": "target_row_chain",
+      "candidates": [
+        "F26",
+        "F35"
+      ],
+      "state": "MEASURED_ROOT_CONSISTENT",
+      "evidence": "88exactrootIndexK->headK->COMM K*16160->Transpose[8,K,16160];notvalue/aliasproof."
+    },
+    {
+      "id": "M16-v32-03",
+      "branch": "normal_dispatch",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "POSITIVE_SOURCE_BRANCH",
+      "evidence": "555/598/144/82/90bindnormalplainF.linearandhead_dtypeNone-or-inputtype;selectedcallsnotPCP/fine/castbranch."
+    },
+    {
+      "id": "M16-v32-04",
+      "branch": "Markov_replica",
+      "candidates": [
+        "F30"
+      ],
+      "state": "DOCUMENTED_PROFILE_SUPPORTED",
+      "evidence": "DSparkMarkovHeaddisable_tpTrue;520full129280x256GEMM;currentreplicatednormalpathskipsgather."
+    },
+    {
+      "id": "M16-v32-05",
+      "branch": "BF16_values",
+      "candidates": [
+        "F26",
+        "F30",
+        "F35"
+      ],
+      "state": "RETAINED",
+      "evidence": "BF16base/MarkovGEMMoutputsand520BF16Addbeforeargmax;donotcompareunroundedaccumulators."
+    },
+    {
+      "id": "M16-v32-06",
+      "branch": "validity_mapping",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "CONDITIONAL",
+      "evidence": "Physical16160x8notallorg/added/remapflags;matchnormalprefixtrimandanyhighermapping,untruncatedskiprequiresvalidityhandling."
+    },
+    {
+      "id": "M16-v32-07",
+      "branch": "postprocessing",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "DOCUMENTED_CONDITIONAL",
+      "evidence": "Trimthenper-entrysoftcapthen scale;per-headpostprocessbeforeMarkovsum. Actualflagvaluesnotfullyrecorded."
+    },
+    {
+      "id": "M16-v32-08",
+      "branch": "layout",
+      "candidates": [
+        "F35"
+      ],
+      "state": "LOCAL_SOURCE_AND_ALGEBRA_QUESTION_CLOSED",
+      "evidence": "Rank-majorA[p,m,v]->row-majorB[m,pVp+v];M>1naive2Dview/flattenwrong;newconsumerABIpossible."
+    },
+    {
+      "id": "M16-v32-09",
+      "branch": "skip_gather",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "ALREADY_IMPLEMENTED_INTERFACE",
+      "evidence": "544-545returnslocaluntruncatedhead;currentcallersnormal. ExistinglocalAPIaloneisnotnewoptimizationorlegaloldsamplerinput."
+    },
+    {
+      "id": "M16-v32-10",
+      "branch": "comparator",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "DERIVED_CONDITIONAL",
+      "evidence": "Local/globalbestproofunderidenticalprocessedscore/comparator/validity;baselinecolumnbeforetokenremap,NaN/tiepolicyunattested."
+    },
+    {
+      "id": "M16-v32-11",
+      "branch": "score_fanout",
+      "candidates": [
+        "F35"
+      ],
+      "state": "REUSED_LIVE_CONSUMER_CONTRACT",
+      "evidence": "F35forcedbonusraw/targetclone/entropy/prob/logprobsandF26promptreaderretained;temperature0/HTTPomissionnotsufficient."
+    },
+    {
+      "id": "M16-v32-12",
+      "branch": "distribution_alternatives",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "NOT_CLOSED_PROTOCOL",
+      "evidence": "Activefullscoresmeanlocaltop1insufficient,notuniversalno-crosscard-opportunity;owner/distributed-statistics/probabilitycontractsseparate."
+    },
+    {
+      "id": "M16-v32-13",
+      "branch": "row_metadata",
+      "candidates": [
+        "F26",
+        "F30",
+        "F35"
+      ],
+      "state": "CONDITIONAL",
+      "evidence": "Bonus/target/ragged/padding/PP/CProworderandselectedduplicatesmustmatchallranks andinputgeneration."
+    },
+    {
+      "id": "M16-v32-14",
+      "branch": "Markov_recurrence",
+      "candidates": [
+        "F30"
+      ],
+      "state": "DOCUMENTED_CONDITIONAL",
+      "evidence": "EachnextinputdependspreviousselectedID;shardedvariantaddsstepsync,ownerloopneedsresult/statepublication. Fivecountratioisnotsamecallpairing."
+    },
+    {
+      "id": "M16-v32-15",
+      "branch": "owner_state",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "UNKNOWN_NEW_INTERFACE",
+      "evidence": "NonownerlogitsNonehandling,allrequiredscore/ID/acceptance/RNG/asyncstates,captureandgroupuniformityrequired;nooneflagtoggleclaim."
+    },
+    {
+      "id": "M16-v32-16",
+      "branch": "norm_head",
+      "candidates": [
+        "F26",
+        "F30"
+      ],
+      "state": "CONDITIONAL",
+      "evidence": "FullfeatureRMS/BF16normalizedboundaryandallhidden/aux/confidenceconsumers;noalgebraicgamma/scalecancellation."
+    },
+    {
+      "id": "M16-v32-17",
+      "branch": "parameter_reuse",
+      "candidates": [
+        "F26",
+        "F30",
+        "F35"
+      ],
+      "state": "UNKNOWN_GENERATIONS",
+      "evidence": "Sameweightsizesnotweightidentity;newshard/prepack/cachemustinvalidateonload/model/device/dtype/versionchanges."
+    },
+    {
+      "id": "M16-v32-18",
+      "branch": "capture_lifetime",
+      "candidates": [
+        "F26",
+        "F30",
+        "F35"
+      ],
+      "state": "UNKNOWN_RUNTIME",
+      "evidence": "Partitionlists/rank-major/newownerbankneedaddress/stride/readiness/lastreader/generationcontracts."
+    },
+    {
+      "id": "M16-v32-19",
+      "branch": "other_branches",
+      "candidates": [
+        "F30",
+        "F35"
+      ],
+      "state": "RETAINED_UNATTESTED",
+      "evidence": "skip/PCP/fine/head-dtype/quant/added-vocab/logits-as-input/Gather/prob/dynamic/parallel/vocab-mapbranchesnotgloballyclosedbyselectednormalcalls."
+    },
+    {
+      "id": "M16-v32-20",
+      "branch": "resource_gain",
+      "candidates": [
+        "F26",
+        "F30",
+        "F35"
+      ],
+      "state": "UNKNOWN_NOT_ADDITIVE",
+      "evidence": "Logicalbytes/columnpartition/192transposecountsnotphysicaltraffic/peak/requestgain;v20candidateuncertaintyand26INCOMPLETEtheoryrowsretained."
+    }
+  ],
+  "all_conditions_closed": false,
+  "new_main_candidate": false,
+  "implementation": false,
+  "new_performance_result": false,
+  "overall_complete": false
+}

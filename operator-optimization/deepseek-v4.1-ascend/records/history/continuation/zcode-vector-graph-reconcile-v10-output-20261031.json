@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_f6a8bed0-6cf8-46fa-96b8-7e8e944c6519",
+  "traceId": "10d2b2e8-4d5b-4efe-8a6f-0c278415ab20",
+  "turnId": "turn_13165b70-501b-417b-a2ad-9e3de68cd7ca",
+  "response": "作业已按原命令执行，**真实返回码为 1，已在首个失败断言处原样停止**；未做自修、重跑、重启或时间近邻匹配。\n\n## 执行与回执\n\n- 命令：`remote_run.py 166 <reconcile_vector_graph_records_v10_166.py> profile-vector-graph-blocks166-v10`\n- 本地回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/profile-vector-graph-blocks166-v10.json`\n- 回执 stat：333 bytes，mtime `2026-10-31 04:22:34`，inode `42335653`（本次新建，未被后续改动）\n- 真实 returncode：`1`\n- stdout：空\n- stderr：`File \"<string>\", line 68, in <module> AssertionError`\n- 失败点：`reconcile_vector_graph_records_v10_166.py:68`，即 11 组图执行记录并集与全部 `modelId==49` 任务集合的归属断言（`len(all_ids)==len(set(all_ids))==len(graph_tasks)` 且集合相等）。具体是重复归属、数量不符还是集合不一致，脚本未输出细分；按“失败原样停止”要求未继续排查。\n\n## 失败前已通过的前置断言（按脚本顺序）\n\n- 六个输入/统计文件的 SHA-256 与读取前后 stat 一致（`pinned()` 断言通过）。\n- 242 条非 model 六字段完全相同记录：断言 `len==242`、行号唯一、`Model ID` 冲突保留（CSV `4294967295` vs TASK `49`）均通过。\n- 完整 overlay：`242 + 36321 = 36521` 与任务总数一致，唯一性断言通过。\n- 11 组图执行：每组各 1 条 `MODEL_WAIT_COMPLETE` + 1 条 `MODEL_EXECUTE`，且 `connectionId`、`modelId` 与 CANN API 原连接一致的断言全部通过（循环完整执行）。\n- CPU 同线程包含域：仅作为候选记录（`connection_proof=False`），未升级为直接连接；该部分代码在失败点之前完成，但未写出。\n\n## 未产出项\n\n- 四 mHC 标记结构、逐块 `HcPre/HcPost` 与 attention/MoE 检查、未归属块记录：仅在内存中计算，尚未汇总输出即因 line 68 失败。\n- 服务器完整结果预期路径：`/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/analysis/whole-scope-continuation-20261030/profile-readonly-20261031/ep3-vector-overlay-and-graph-blocks-v10.json` —— **本次未写入**（脚本在所有校验通过后才落盘）。\n- 数据库 stat 未核验：脚本在打开数据库前已停止；本次无任何服务、数据库或远端文件写操作。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 5,
+    "inputTokens": 100213,
+    "outputTokens": 5817,
+    "totalTokens": 106030,
+    "cacheReadTokens": 76928,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 4986,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 106030,
+    "contextUsed": 28846,
+    "contextWindow": 200000
+  }
+}

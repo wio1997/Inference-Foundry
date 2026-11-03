@@ -1,0 +1,170 @@
+{
+  "workflow": "PROFILE_AND_CALLSTACK_FIRST_SPECIFIC_UNDECIDABLE_QUESTION_ONLY",
+  "profile_evidence": [
+    "framework-profile-audit-v8.json",
+    "../archived-framework-speedscope-callsites166-v8.json",
+    "../169-vllm-v41/diagnostic-20261029/official-analysis/framework-cpu.json"
+  ],
+  "questions": [
+    {
+      "id": "H01_RESPONSE_WAIT_PROTOCOL",
+      "profile": "OriginalDP0/DP1 samples bindstep_with_batch_queue706 -> RPCfuture_wait103 -> get_response433 -> shmdeque889 -> acquire_read786 -> wait204; leaderproc0.98CPUcore,76/78R-state observations.",
+      "unsettled": "Is the recorded waiting path spinning/yielding, and which ordering/close/timeout/publication protocol must adaptive or event waits retain? Cost and critical-path attribution cannot be obtained from source.",
+      "allowed_files": [
+        "vllm/distributed/device_communicators/shm_broadcast.py:167-207,730-812,878-900",
+        "vllm/v1/executor/multiproc_executor.py:70-111,414-451",
+        "vllm/distributed/utils.py:40-52"
+      ],
+      "source_acquisition": "Read only three exact files from own fixed-image stage container withdocker cp; no start/restart/import/device operation."
+    },
+    {
+      "id": "H02_INPUT_PREP_FIELDS_AND_READY",
+      "profile": "24prepare roots each6956recorded descendants,86H2D calls,57_pin_memory calls,4EventSynchronize; full113name aggregation and22same-trace gapcoverage matches.",
+      "unsettled": "Which copies are persistent input/state fields, which work is already fused/deferred, and what accepted/rejected-state dependency prevents reuse or removing waits?",
+      "allowed_existing_snapshot": "prepare-input-analysis.json.sources[vllm_ascend/worker/model_runner_v1.py] sha568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "allowed_ranges": [
+        [
+          1299,
+          1306
+        ],
+        [
+          1435,
+          1467
+        ],
+        [
+          1491,
+          1543
+        ],
+        [
+          1603,
+          1627
+        ],
+        [
+          2287,
+          2311
+        ],
+        [
+          2344,
+          2385
+        ]
+      ],
+      "limits": "No worker Python stacks were produced in separate validation run. Exclusive recorded wall is not CPUactive and no exactcopy-to-field binding is asserted."
+    },
+    {
+      "id": "H03_PREFIX_HASH_STATE",
+      "profile": "Validatedcase prefixhit235904/262144 andpreemptions0; frontendtraceonlyprofiler-window marker, no usabletokenization/hash function scopes.",
+      "unsettled": "Existing hash-source contracts can define conditional reuse keys/append behavior but cannot establish actualCPUcost or historicalresolvedHashBlockSize.",
+      "reuse_existing_evidence": [
+        "agents/diagnosis/stage-kv-hash-source.json",
+        "latest_prefix_hash_and_phase_additivity_review",
+        "latest_prefix_h_and_candidate_reuse_cost_review"
+      ],
+      "new_source_required": false
+    },
+    {
+      "id": "M01_M25_FRONTEND_GAP",
+      "profile": "Frontend2tracefiles eachonly1profilerXwindow, no detailedrequest/tokenizer/detokenizer/SSEscopes.8worker-validation requests produce217-224nonemptylines per1024tokens.",
+      "unsettled": "Actualfrontend/response critical path and perfunctioncost unavailable; SSEline gaps cannot close it.",
+      "new_source_required": false,
+      "policy": "Register missingprofiling/sourceassociation; no broadfrontendcodeaudit can supply the absent historicaltiming."
+    }
+  ],
+  "whole_modules_closed": 0,
+  "overall_complete": false,
+  "review_answers": {
+    "H01": {
+      "answer": "Existing SHM wait already combines a busy/yield branch with idle poller notifications and cancellation. check() is defined inside the retry loop; FIFO Future draining and optional output_rank selection are present.",
+      "still_missing": [
+        "Time-aligned on-CPU attribution and producer-ready/read-complete boundaries for the same requests.",
+        "Resolved busy interval/output_rank and queue identities for the observed run."
+      ]
+    },
+    "H02": {
+      "answer": "Persistent batch buffers, early block-table commit, GPU accepted-token correction, optimistic CPU length correction and avoidance of an extra seq_lens D2H/sync already exist. Prepare scope includes persistent-state update and other conditional work, not only _prepare_inputs.",
+      "still_missing": [
+        "Copy/allocation/event -> exact field/source callsite mapping, plus producer-ready and all consumers.",
+        "Prepare-root phase/request association and calibrated dependency/stream boundaries."
+      ]
+    },
+    "H03": {
+      "answer": "The existing request block hasher already computes only new complete blocks and chains each block to its previous prefix hash. Incremental hashing within a request is already implemented.",
+      "still_missing": [
+        "Actual hash call counts/cost and repeated exact token/hash-extra identities under the same resolved H.",
+        "Existing reuse/invalidation path only if measured cost makes that question conclusion-changing."
+      ]
+    }
+  },
+  "case_transport_answer": {
+    "input_transport": "text",
+    "semantic_input_tokens_each": 32768,
+    "requests": 8,
+    "prefix_seed_requests": 2,
+    "question_char_lengths": [
+      130380,
+      130384,
+      130385,
+      130374,
+      130421,
+      130360,
+      130403,
+      130377
+    ],
+    "distinct_full_prompt_hashes": 8,
+    "common_text_prefix_chars": 117286,
+    "original_framework_prompt_sha256": "755b823003b4d200a4590424a245cdfb484d9b8c3d0b5225a7a058790b87e8c8",
+    "hash_binds_original_framework_run": true,
+    "formal_DP_header": "not supplied by the frozen request rows; actual dispatch must come from runtime evidence",
+    "seed_DP_headers": [
+      0,
+      1
+    ],
+    "client_body_contract": {
+      "temperature": 0,
+      "ignore_eos": true,
+      "max_tokens": 1024,
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      },
+      "logprobs": "not explicitly requested",
+      "top_p": "not explicitly supplied",
+      "seed": "not explicitly supplied"
+    },
+    "client_contract_sources": [
+      {
+        "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/official_profile_client.py",
+        "sha256": "42a6d9e54ea0a922843e8ab37f4096e52c54fb4dbcdd23b77bb60d69293f3131",
+        "lines": "36-41,133-135"
+      },
+      {
+        "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/diagnostic-20261029/official-analysis/enginecore_framework_controller.py",
+        "sha256": "44ebcfd41bbf8b579dbaea600a842e72fa58494afae20ac6ea26d3c3e67b5b4d",
+        "lines": "168-172,216-219,256-259"
+      }
+    ],
+    "fixture_seed_metadata": [
+      {
+        "dp_rank": 0,
+        "group_id": "group-0",
+        "input_tokens": 29696,
+        "max_tokens": 1,
+        "shared_prefix_tokens": 29568,
+        "included_in_formal_statistics": false
+      },
+      {
+        "dp_rank": 1,
+        "group_id": "group-0",
+        "input_tokens": 29696,
+        "max_tokens": 1,
+        "shared_prefix_tokens": 29568,
+        "included_in_formal_statistics": false
+      }
+    ],
+    "limits": [
+      "Character prefix does not prove a token-prefix boundary or identical hash extras.",
+      "Fixture seed shared_prefix_tokens=29568 is declared metadata, not measured per-request cache hits.",
+      "Body fields are the frozen diagnostic client contract; runtime function timing and unsupplied defaults remain unproven.",
+      "Existing Task shape/dtype describes tokenized semantic input, not the HTTP transport type."
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_a48dfd8a-ee44-4acd-8586-a86e079add25",
+  "traceId": "9022f21b-cf1c-4710-9084-724f8b18743b",
+  "turnId": "turn_9882394c-9fae-4c9d-9dd4-5c6dece3e9de",
+  "response": "运行完成，只执行了这一次，未改脚本、未重试、未做模型或设备操作。\n\n**实际结果**\n- `returncode`：`0`\n- `result_sha256`：`8fb765f82d81c22508d2d175aa50350e14eba8a1c55ec0daf1f3e75f35342586`\n- 命中数：`9` 个文件\n- 搜索方式：`bounded_literal_python_scan`，`scanned_files_if_fallback = 849`\n- 搜索根：`/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/profiler/analysis`、`/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis`\n- 回执：`/Users/wio/work/166-vllm-analysis-continuation-20261030/profiler-metric-sources166-v15.json`\n- `stderr` 为空；`stdout` 内还给出了远端完整索引路径 `/data/tiankuan/.../native-communications-v15/profiler-metric-source-index-v15.json`。该完整索引没有同步到本地，我也未再发起远端读取，因此下面只报告回执 `result` 中实际返回的内容。\n\n**9 个命中位置（均为字面量/标识符出现位置）**\n\n| 文件 | 侧 | 命中字面量（摘要） | 文件 sha256 前缀 |\n|---|---|---|---|\n| `prof_common_func/_constant.py` | torch_npu | `TABLE_CONNECTION_IDS=\"CONNECTION_IDS\"`、列 `id`/`connectionId`、`PYTORCH_API`、`PYTORCH_CALLCHAINS` | `4643479478fb` |\n| `prof_view/prof_db_parse/_fwk_api_db_parser.py` | torch_npu | 写入 `CONNECTION_IDS` 表：`save_connection_ids.append([index, conn_id])` 后 create/insert | `8a8c558bee49` |\n| `common_func/data_manager.py` | CANN | `mac_ratio`/`aic_mac_ratio`、`total_cycles`/`aic_total_cycles`、`Task Duration(us)` 的 header 查找 | `f02b37be762a` |\n| `common_func/msvp_common.py` | CANN | `total_time`/`aic_total_time` 改写为 `aicore_time`，以及 `aiv_total_time` | `356f6f85632c` |\n| `viewer/ai_core_op_report.py` | CANN | 追加 `total_time`、`aic_total_time`、`aiv_total_time` 列 | `74d7c67a29fd` |\n| `viewer/runtime_report.py` | CANN | 用 `total_cycles_index`、`task_duration_index` 等计算 usage；第 275 行注释含 formula 文本 | `2a979d667448` |\n| `common_func/ms_constant/str_constant.py` | CANN | `ratio_extra`、`mac_ratio`、`aic_mac_ratio`、`vec_ratio`、`aiv_vec_ratio` 常量 | `2887ff7c99d3` |\n| `mscalculate/stars/chip6_pmu_calculator.py` | CANN | `aic_total_time`/`aiv_total_time`、`aic_total_cycle`、`duration_from_syscnt`、`round` 等 | `e8e830708a7d` |\n| `mscalculate/stars/ffts_pmu_calculator.py` | CANN | `calculate_total_time`、`aic/aiv_total_time`、`aic/aiv_total_cycle` | `72b65a386260` |\n\n**边界说明**\n这些结果只证明上述文件里存在对应字面字段名及其写入/读取位置，不构成“同名即同一公式/单位”的证明。特别是 `runtime_report.py:275` 的 formula 只是被扫描到的源码注释文本，本次没有做公式语义或单位校验；`data_manager.py` 中的字段映射也只是 header 名称查找逻辑的定位。",
+  "usage": {
+    "source": "provider",
+    "modelRequestCount": 7,
+    "inputTokens": 87509,
+    "outputTokens": 6453,
+    "totalTokens": 93962,
+    "cacheReadTokens": 73088,
+    "cacheWriteTokens": 0,
+    "reasoningTokens": 0,
+    "webFetchRequests": 0,
+    "webSearchRequests": 0
+  },
+  "eventCount": 5494,
+  "projection": {
+    "status": "idle",
+    "turnCount": 1,
+    "totalTokenCount": 93962,
+    "contextUsed": 20558,
+    "contextWindow": 200000
+  }
+}

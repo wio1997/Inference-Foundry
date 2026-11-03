@@ -1,0 +1,2114 @@
+[
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/msparser/add_info/tensor_add_info_parser.py",
+    "sha256": "a89f63b1207d759a6ad4fe04e024a780f1f269c7e09b2a6d7b5dd9c8167ea07c",
+    "lines": [
+      {
+        "line": 1,
+        "text": "# -------------------------------------------------------------------------"
+      },
+      {
+        "line": 2,
+        "text": "# Copyright (c) 2025 Huawei Technologies Co., Ltd."
+      },
+      {
+        "line": 3,
+        "text": "# This file is part of the MindStudio project."
+      },
+      {
+        "line": 4,
+        "text": "#"
+      },
+      {
+        "line": 5,
+        "text": "# MindStudio is licensed under Mulan PSL v2."
+      },
+      {
+        "line": 6,
+        "text": "# You can use this software according to the terms and conditions of the Mulan PSL v2."
+      },
+      {
+        "line": 7,
+        "text": "# You may obtain a copy of Mulan PSL v2 at:"
+      },
+      {
+        "line": 8,
+        "text": "#"
+      },
+      {
+        "line": 9,
+        "text": "#    http://license.coscl.org.cn/MulanPSL2"
+      },
+      {
+        "line": 10,
+        "text": "#"
+      },
+      {
+        "line": 11,
+        "text": "# THIS SOFTWARE IS PROVIDED ON AN \"AS IS\" BASIS, WITHOUT WARRANTIES OF ANY KIND,"
+      },
+      {
+        "line": 12,
+        "text": "# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,"
+      },
+      {
+        "line": 13,
+        "text": "# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE."
+      },
+      {
+        "line": 14,
+        "text": "# See the Mulan PSL v2 for more details."
+      },
+      {
+        "line": 15,
+        "text": "# -------------------------------------------------------------------------"
+      },
+      {
+        "line": 16,
+        "text": ""
+      },
+      {
+        "line": 17,
+        "text": "import logging"
+      },
+      {
+        "line": 18,
+        "text": "import sqlite3"
+      },
+      {
+        "line": 19,
+        "text": ""
+      },
+      {
+        "line": 20,
+        "text": "from common_func.constant import Constant"
+      },
+      {
+        "line": 21,
+        "text": "from common_func.hash_dict_constant import HashDictData"
+      },
+      {
+        "line": 22,
+        "text": "from common_func.ms_constant.str_constant import StrConstant"
+      },
+      {
+        "line": 23,
+        "text": "from common_func.ms_multi_process import MsMultiProcess"
+      },
+      {
+        "line": 24,
+        "text": "from msmodel.add_info.tensor_add_info_model import TensorAddInfoModel"
+      },
+      {
+        "line": 25,
+        "text": "from msparser.add_info.tensor_add_info_bean import TensorAddInfoBean"
+      },
+      {
+        "line": 26,
+        "text": "from msparser.data_struct_size_constant import StructFmt"
+      },
+      {
+        "line": 27,
+        "text": "from msparser.interface.data_parser import DataParser"
+      },
+      {
+        "line": 28,
+        "text": "from profiling_bean.prof_enum.data_tag import DataTag"
+      },
+      {
+        "line": 29,
+        "text": ""
+      },
+      {
+        "line": 30,
+        "text": ""
+      },
+      {
+        "line": 31,
+        "text": "class TensorAddInfoParser(DataParser, MsMultiProcess):"
+      },
+      {
+        "line": 32,
+        "text": "    \"\"\""
+      },
+      {
+        "line": 33,
+        "text": "    ge tensor info data parser"
+      },
+      {
+        "line": 34,
+        "text": "    \"\"\""
+      },
+      {
+        "line": 35,
+        "text": ""
+      },
+      {
+        "line": 36,
+        "text": "    def __init__(self: any, file_list: dict, sample_config: dict) -> None:"
+      },
+      {
+        "line": 37,
+        "text": "        super().__init__(sample_config)"
+      },
+      {
+        "line": 38,
+        "text": "        super(DataParser, self).__init__(sample_config)"
+      },
+      {
+        "line": 39,
+        "text": "        self._sample_config = sample_config"
+      },
+      {
+        "line": 40,
+        "text": "        self._file_list = file_list"
+      },
+      {
+        "line": 41,
+        "text": "        self._ge_tensor_info_data = []"
+      },
+      {
+        "line": 42,
+        "text": "        self._project_path = sample_config.get(StrConstant.SAMPLE_CONFIG_PROJECT_PATH)"
+      },
+      {
+        "line": 43,
+        "text": ""
+      },
+      {
+        "line": 44,
+        "text": "    @staticmethod"
+      },
+      {
+        "line": 45,
+        "text": "    def _get_tensor_info_data(bean_data: any) -> list:"
+      },
+      {
+        "line": 46,
+        "text": "        if not bean_data:"
+      },
+      {
+        "line": 47,
+        "text": "            return []"
+      },
+      {
+        "line": 48,
+        "text": "        return [bean_data.level, bean_data.struct_type, bean_data.thread_id, bean_data.timestamp,"
+      },
+      {
+        "line": 49,
+        "text": "                bean_data.node_id, bean_data.tensor_num,"
+      },
+      {
+        "line": 50,
+        "text": "                bean_data.input_format, bean_data.input_data_type, bean_data.input_shape,"
+      },
+      {
+        "line": 51,
+        "text": "                bean_data.output_format, bean_data.output_data_type, bean_data.output_shape]"
+      },
+      {
+        "line": 52,
+        "text": ""
+      },
+      {
+        "line": 53,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 54,
+        "text": "    def _generate_new_hash_dict_data(cls: any, hash_dict: dict, key: any, data: list) -> None:"
+      },
+      {
+        "line": 55,
+        "text": "        hash_dict[key] = {"
+      },
+      {
+        "line": 56,
+        "text": "            'level': data[0],"
+      },
+      {
+        "line": 57,
+        "text": "            'add_info_type': data[1],"
+      },
+      {
+        "line": 58,
+        "text": "            'thread_id': data[2],"
+      },
+      {
+        "line": 59,
+        "text": "            'timestamp': data[3],"
+      },
+      {
+        "line": 60,
+        "text": "            'node_id': data[4],"
+      },
+      {
+        "line": 61,
+        "text": "            'tensor_num': 0,"
+      },
+      {
+        "line": 62,
+        "text": "            'input_format': [],"
+      },
+      {
+        "line": 63,
+        "text": "            'input_data_type': [],"
+      },
+      {
+        "line": 64,
+        "text": "            'input_shape': [],"
+      },
+      {
+        "line": 65,
+        "text": "            'output_format': [],"
+      },
+      {
+        "line": 66,
+        "text": "            'output_data_type': [],"
+      },
+      {
+        "line": 67,
+        "text": "            'output_shape': [],"
+      },
+      {
+        "line": 68,
+        "text": "        }"
+      },
+      {
+        "line": 69,
+        "text": "        cls._update_hash_dict_data(hash_dict, key, data)"
+      },
+      {
+        "line": 70,
+        "text": ""
+      },
+      {
+        "line": 71,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 72,
+        "text": "    def _update_hash_dict_data(cls: any, hash_dict: dict, key: any, data: list) -> None:"
+      },
+      {
+        "line": 73,
+        "text": "        value = hash_dict.get(key, {})"
+      },
+      {
+        "line": 74,
+        "text": "        value['tensor_num'] += data[5]"
+      },
+      {
+        "line": 75,
+        "text": "        if data[6] or data[7] or data[8]:"
+      },
+      {
+        "line": 76,
+        "text": "            value['input_format'].append(str(data[6]) if data[6] else '')"
+      },
+      {
+        "line": 77,
+        "text": "            value['input_data_type'].append(str(data[7]) if data[7] else '')"
+      },
+      {
+        "line": 78,
+        "text": "            value['input_shape'].append(str(data[8]) if data[8] else '')"
+      },
+      {
+        "line": 79,
+        "text": "        if data[9] or data[10] or data[11]:"
+      },
+      {
+        "line": 80,
+        "text": "            value['output_format'].append(str(data[9]) if data[9] else '')"
+      },
+      {
+        "line": 81,
+        "text": "            value['output_data_type'].append(str(data[10]) if data[10] else '')"
+      },
+      {
+        "line": 82,
+        "text": "            value['output_shape'].append(str(data[11]) if data[11] else '')"
+      },
+      {
+        "line": 83,
+        "text": "        hash_dict[key] = value"
+      },
+      {
+        "line": 84,
+        "text": ""
+      },
+      {
+        "line": 85,
+        "text": "    def parse(self: any) -> None:"
+      },
+      {
+        "line": 86,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 87,
+        "text": "        parse ge tensor info data"
+      },
+      {
+        "line": 88,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 89,
+        "text": "        tensor_info_files = self._file_list.get(DataTag.TENSOR_ADD_INFO, [])"
+      },
+      {
+        "line": 90,
+        "text": "        tensor_info_files = self.group_aging_file(tensor_info_files)"
+      },
+      {
+        "line": 91,
+        "text": "        for file_list in tensor_info_files.values():"
+      },
+      {
+        "line": 92,
+        "text": "            self._ge_tensor_info_data.extend(self.parse_bean_data(file_list, StructFmt.TENSOR_ADD_INFO_SIZE,"
+      },
+      {
+        "line": 93,
+        "text": "                                                                  TensorAddInfoBean,"
+      },
+      {
+        "line": 94,
+        "text": "                                                                  format_func=self._get_tensor_info_data,"
+      },
+      {
+        "line": 95,
+        "text": "                                                                  check_func=self.check_magic_num,"
+      },
+      {
+        "line": 96,
+        "text": "                                                                  ))"
+      },
+      {
+        "line": 97,
+        "text": "        self._update_tensor_data()"
+      },
+      {
+        "line": 98,
+        "text": ""
+      },
+      {
+        "line": 99,
+        "text": "    def save(self: any) -> None:"
+      },
+      {
+        "line": 100,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 101,
+        "text": "        save data"
+      },
+      {
+        "line": 102,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 103,
+        "text": "        if not self._ge_tensor_info_data:"
+      },
+      {
+        "line": 104,
+        "text": "            return"
+      },
+      {
+        "line": 105,
+        "text": "        model = TensorAddInfoModel(self._project_path)"
+      },
+      {
+        "line": 106,
+        "text": "        with model as _model:"
+      },
+      {
+        "line": 107,
+        "text": "            _model.flush(self._transform_tensor_info_data(self._ge_tensor_info_data))"
+      },
+      {
+        "line": 108,
+        "text": ""
+      },
+      {
+        "line": 109,
+        "text": "    def ms_run(self: any) -> None:"
+      },
+      {
+        "line": 110,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 111,
+        "text": "        parse and save ge tensor info data"
+      },
+      {
+        "line": 112,
+        "text": "        :return:"
+      },
+      {
+        "line": 113,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 114,
+        "text": "        if not self._file_list.get(DataTag.TENSOR_ADD_INFO, []):"
+      },
+      {
+        "line": 115,
+        "text": "            logging.info(\"No ge tensor info data, exit without parser running.\")"
+      },
+      {
+        "line": 116,
+        "text": "            return"
+      },
+      {
+        "line": 117,
+        "text": "        try:"
+      },
+      {
+        "line": 118,
+        "text": "            self.parse()"
+      },
+      {
+        "line": 119,
+        "text": "        except (OSError, SystemError, ValueError, TypeError, RuntimeError) as err:"
+      },
+      {
+        "line": 120,
+        "text": "            logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)"
+      },
+      {
+        "line": 121,
+        "text": "            return"
+      },
+      {
+        "line": 122,
+        "text": "        try:"
+      },
+      {
+        "line": 123,
+        "text": "            self.save()"
+      },
+      {
+        "line": 124,
+        "text": "        except sqlite3.Error as err:"
+      },
+      {
+        "line": 125,
+        "text": "            logging.error(str(err), exc_info=Constant.TRACE_BACK_SWITCH)"
+      },
+      {
+        "line": 126,
+        "text": ""
+      },
+      {
+        "line": 127,
+        "text": "    def _update_tensor_data(self: any) -> None:"
+      },
+      {
+        "line": 128,
+        "text": "        hash_dict = {}"
+      },
+      {
+        "line": 129,
+        "text": "        for data in self._ge_tensor_info_data:"
+      },
+      {
+        "line": 130,
+        "text": "            if len(data) < 12:"
+      },
+      {
+        "line": 131,
+        "text": "                continue"
+      },
+      {
+        "line": 132,
+        "text": "            # 3 timestamp 2 thread_id 4 node_id"
+      },
+      {
+        "line": 133,
+        "text": "            key = (str(data[3]), str(data[2]), str(data[4]))"
+      },
+      {
+        "line": 134,
+        "text": "            if key not in hash_dict.keys():"
+      },
+      {
+        "line": 135,
+        "text": "                self._generate_new_hash_dict_data(hash_dict, key, data)"
+      },
+      {
+        "line": 136,
+        "text": "            else:"
+      },
+      {
+        "line": 137,
+        "text": "                self._update_hash_dict_data(hash_dict, key, data)"
+      },
+      {
+        "line": 138,
+        "text": "        self._assemble_tensor_data(hash_dict)"
+      },
+      {
+        "line": 139,
+        "text": ""
+      },
+      {
+        "line": 140,
+        "text": "    def _assemble_tensor_data(self: any, hash_dict: dict) -> None:"
+      },
+      {
+        "line": 141,
+        "text": "        self._ge_tensor_info_data = []"
+      },
+      {
+        "line": 142,
+        "text": "        for key, value in hash_dict.items():"
+      },
+      {
+        "line": 143,
+        "text": "            timestamp, thread_id, node_id = key"
+      },
+      {
+        "line": 144,
+        "text": "            self._ge_tensor_info_data.append("
+      },
+      {
+        "line": 145,
+        "text": "                ["
+      },
+      {
+        "line": 146,
+        "text": "                    value['level'], value['add_info_type'], thread_id, timestamp, node_id, value['tensor_num'],"
+      },
+      {
+        "line": 147,
+        "text": "                    \";\".join(value['input_format']) if value['input_format'] else \"N/A\","
+      },
+      {
+        "line": 148,
+        "text": "                    \";\".join(value['input_data_type']) if value['input_data_type'] else \"N/A\","
+      },
+      {
+        "line": 149,
+        "text": "                    \"\\\"\" + \";\".join(value['input_shape']) + \"\\\"\" if value['input_shape'] else \"N/A\","
+      },
+      {
+        "line": 150,
+        "text": "                    \";\".join(value['output_format']) if value['output_format'] else \"N/A\","
+      },
+      {
+        "line": 151,
+        "text": "                    \";\".join(value['output_data_type']) if value['output_data_type'] else \"N/A\","
+      },
+      {
+        "line": 152,
+        "text": "                    \"\\\"\" + \";\".join(value['output_shape']) + \"\\\"\" if value['output_shape'] else \"N/A\""
+      },
+      {
+        "line": 153,
+        "text": "                ]"
+      },
+      {
+        "line": 154,
+        "text": "            )"
+      },
+      {
+        "line": 155,
+        "text": ""
+      },
+      {
+        "line": 156,
+        "text": "    def _transform_tensor_info_data(self: any, data_list: list) -> list:"
+      },
+      {
+        "line": 157,
+        "text": "        hash_dict_data = HashDictData(self._project_path)"
+      },
+      {
+        "line": 158,
+        "text": "        type_hash_dict = hash_dict_data.get_type_hash_dict()"
+      },
+      {
+        "line": 159,
+        "text": "        ge_hash_dict = hash_dict_data.get_ge_hash_dict()"
+      },
+      {
+        "line": 160,
+        "text": "        for data in data_list:"
+      },
+      {
+        "line": 161,
+        "text": "            # 1 type hash, 4 node hash"
+      },
+      {
+        "line": 162,
+        "text": "            data[1] = type_hash_dict.get('node', {}).get(data[1], data[1])"
+      },
+      {
+        "line": 163,
+        "text": "            data[4] = ge_hash_dict.get(data[4], data[4])"
+      },
+      {
+        "line": 164,
+        "text": "        return data_list"
+      }
+    ]
+  },
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/profiling_bean/db_dto/tensor_info_dto.py",
+    "sha256": "5ddca0298ed285eaa356d80e88f2b56e40480a9a9d9ff1592ca75d0b5227d177",
+    "lines": [
+      {
+        "line": 1,
+        "text": "# -------------------------------------------------------------------------"
+      },
+      {
+        "line": 2,
+        "text": "# Copyright (c) 2025 Huawei Technologies Co., Ltd."
+      },
+      {
+        "line": 3,
+        "text": "# This file is part of the MindStudio project."
+      },
+      {
+        "line": 4,
+        "text": "#"
+      },
+      {
+        "line": 5,
+        "text": "# MindStudio is licensed under Mulan PSL v2."
+      },
+      {
+        "line": 6,
+        "text": "# You can use this software according to the terms and conditions of the Mulan PSL v2."
+      },
+      {
+        "line": 7,
+        "text": "# You may obtain a copy of Mulan PSL v2 at:"
+      },
+      {
+        "line": 8,
+        "text": "#"
+      },
+      {
+        "line": 9,
+        "text": "#    http://license.coscl.org.cn/MulanPSL2"
+      },
+      {
+        "line": 10,
+        "text": "#"
+      },
+      {
+        "line": 11,
+        "text": "# THIS SOFTWARE IS PROVIDED ON AN \"AS IS\" BASIS, WITHOUT WARRANTIES OF ANY KIND,"
+      },
+      {
+        "line": 12,
+        "text": "# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,"
+      },
+      {
+        "line": 13,
+        "text": "# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE."
+      },
+      {
+        "line": 14,
+        "text": "# See the Mulan PSL v2 for more details."
+      },
+      {
+        "line": 15,
+        "text": "# -------------------------------------------------------------------------"
+      },
+      {
+        "line": 16,
+        "text": ""
+      },
+      {
+        "line": 17,
+        "text": "from dataclasses import dataclass"
+      },
+      {
+        "line": 18,
+        "text": "from profiling_bean.db_dto.dto_meta_class import InstanceCheckMeta"
+      },
+      {
+        "line": 19,
+        "text": ""
+      },
+      {
+        "line": 20,
+        "text": ""
+      },
+      {
+        "line": 21,
+        "text": "@dataclass"
+      },
+      {
+        "line": 22,
+        "text": "class TensorInfoDto(metaclass=InstanceCheckMeta):"
+      },
+      {
+        "line": 23,
+        "text": "    data_len: int = None"
+      },
+      {
+        "line": 24,
+        "text": "    input_data_types: str = None"
+      },
+      {
+        "line": 25,
+        "text": "    input_formats: str = None"
+      },
+      {
+        "line": 26,
+        "text": "    input_shapes: str = None"
+      },
+      {
+        "line": 27,
+        "text": "    level: str = None"
+      },
+      {
+        "line": 28,
+        "text": "    op_name: str = None"
+      },
+      {
+        "line": 29,
+        "text": "    output_data_types: str = None"
+      },
+      {
+        "line": 30,
+        "text": "    output_formats: str = None"
+      },
+      {
+        "line": 31,
+        "text": "    output_shapes: str = None"
+      },
+      {
+        "line": 32,
+        "text": "    struct_type: str = None"
+      },
+      {
+        "line": 33,
+        "text": "    tensor_num: int = None"
+      },
+      {
+        "line": 34,
+        "text": "    thread_id: int = None"
+      },
+      {
+        "line": 35,
+        "text": "    timestamp: float = None"
+      }
+    ]
+  },
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/common_func/file_name_manager.py",
+    "sha256": "66edf5f24f59be1158a9eac0dc98dbb5093e8d5337d7198bf4297618c91db100",
+    "lines": [
+      {
+        "line": 81,
+        "text": "    GE_TASK_TRAINING_FILE_PATTERN = r\"^Framework\\.host\\.task_desc_info\\.(\\d+)\\.slice_\\d+\""
+      },
+      {
+        "line": 82,
+        "text": ""
+      },
+      {
+        "line": 83,
+        "text": "    GE_STEP_INFO_PATTERN = r\"^Framework\\.step_info\\.(\\d+)\\.slice_\\d+\""
+      },
+      {
+        "line": 84,
+        "text": ""
+      },
+      {
+        "line": 85,
+        "text": "    GE_TENSOR_INFO_PATTERN = r\"^Framework\\.tensor_data_info\\.(\\d+)\\.slice_\\d+\""
+      },
+      {
+        "line": 86,
+        "text": "    GE_TENSOR_INFO_SINGLE_PATTERN = r\"^Framework\\.single_op_tensor_info\\.(\\d+)\\.slice_\\d+\""
+      },
+      {
+        "line": 87,
+        "text": ""
+      },
+      {
+        "line": 88,
+        "text": "    GE_SESSION_INFO_PATTERN = r\"^Framework\\.id_map_info\\.(\\d+)\\.slice_\\d+\""
+      },
+      {
+        "line": 89,
+        "text": ""
+      },
+      {
+        "line": 90,
+        "text": "    GE_HASH_PATTERN = r\"^Framework\\.hash_dic\\.(\\d+)\\.slice_\\d+\""
+      },
+      {
+        "line": 91,
+        "text": ""
+      },
+      {
+        "line": 92,
+        "text": "    GE_MODEL_LOAD_FILE_PATTERN = r\"^Framework\\.model_load_info_(\\d+)\\.(\\d+)\\.slice_\\d+\""
+      },
+      {
+        "line": 230,
+        "text": "    API_EVENT_FILE_PATTERN = r\"^(aging|unaging)\\.api_event\\.data\\.slice_\\d+\""
+      },
+      {
+        "line": 231,
+        "text": "    HASH_DATA_FILE_PATTERN = r\"^(aging|unaging)\\.additional\\.(hash_dic|type_info_dic)\\.slice_\\d+\""
+      },
+      {
+        "line": 232,
+        "text": "    HCCL_INFO_FILE_PATTERN = r\"^(unaging|aging)\\.additional\\.hccl_info\\.slice_\\d+\""
+      },
+      {
+        "line": 233,
+        "text": "    MULTI_THREAD_FILE_PATTERN = r\"^(unaging|aging)\\.additional\\.Multi_Thread\\.slice_\\d+\""
+      },
+      {
+        "line": 234,
+        "text": "    TENSOR_ADD_INFO_FILE_PATTERN = r\"^(unaging|aging)\\.additional\\.tensor_info\\.slice_\\d+\""
+      },
+      {
+        "line": 235,
+        "text": "    NODE_BASIC_INFO_FILE_PATTERN = r\"^(unaging|aging)\\.compact\\.node_basic_info\\.slice_\\d+\""
+      },
+      {
+        "line": 236,
+        "text": "    NODE_ATTR_INFO_FILE_PATTERN = r\"^(unaging|aging)\\.compact\\.node_attr_info\\.slice_\\d+\""
+      },
+      {
+        "line": 237,
+        "text": "    GRAPH_ADD_INFO_FILE_PATTERN = r\"^(unaging|aging)\\.additional\\.graph_id_map\\.slice_\\d+\""
+      },
+      {
+        "line": 238,
+        "text": "    FUSION_ADD_INFO_PATTERN = r\"^(unaging|aging)\\.additional\\.fusion_op_info\\.slice_\\d+\""
+      },
+      {
+        "line": 239,
+        "text": "    MEMORY_APPLICATION_FILE_PATTERN = r\"^(unaging|aging)\\.additional\\.memory_application\\.slice_\\d+\""
+      },
+      {
+        "line": 240,
+        "text": "    STATIC_OP_MEM_FILE_PATTERN = r\"^(unaging|aging)\\.additional\\.static_op_mem\\.slice_\\d+\""
+      },
+      {
+        "line": 511,
+        "text": "    \"\"\""
+      },
+      {
+        "line": 512,
+        "text": "    return (re.compile(FileNameManagerConstant.GE_SESSION_INFO_PATTERN),)"
+      },
+      {
+        "line": 513,
+        "text": ""
+      },
+      {
+        "line": 514,
+        "text": ""
+      },
+      {
+        "line": 515,
+        "text": "def get_ge_tensor_info_compiles() -> tuple:"
+      },
+      {
+        "line": 516,
+        "text": "    \"\"\""
+      },
+      {
+        "line": 517,
+        "text": "    get ge tensor info compiles"
+      },
+      {
+        "line": 518,
+        "text": "    \"\"\""
+      },
+      {
+        "line": 519,
+        "text": "    return re.compile(FileNameManagerConstant.GE_TENSOR_INFO_PATTERN), re.compile("
+      },
+      {
+        "line": 520,
+        "text": "        FileNameManagerConstant.GE_TENSOR_INFO_SINGLE_PATTERN"
+      },
+      {
+        "line": 521,
+        "text": "    )"
+      },
+      {
+        "line": 522,
+        "text": ""
+      },
+      {
+        "line": 523,
+        "text": ""
+      },
+      {
+        "line": 524,
+        "text": "def get_ge_hash_compiles() -> tuple:"
+      },
+      {
+        "line": 525,
+        "text": "    \"\"\""
+      },
+      {
+        "line": 526,
+        "text": "    get ge hash compiles"
+      }
+    ]
+  },
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/framework/file_dispatch.py",
+    "sha256": "5ed67d50680c37bca9011e29f5cd1b2e5b36863659d4ffea068c939af14d4cf1",
+    "lines": [
+      {
+        "line": 53,
+        "text": "from common_func.file_name_manager import get_ge_session_info_compiles"
+      },
+      {
+        "line": 54,
+        "text": "from common_func.file_name_manager import get_ge_step_info_compiles"
+      },
+      {
+        "line": 55,
+        "text": "from common_func.file_name_manager import get_ge_task_compiles"
+      },
+      {
+        "line": 56,
+        "text": "from common_func.file_name_manager import get_ge_tensor_add_info_compiles"
+      },
+      {
+        "line": 57,
+        "text": "from common_func.file_name_manager import get_ge_tensor_info_compiles"
+      },
+      {
+        "line": 58,
+        "text": "from common_func.file_name_manager import get_hash_data_compiles"
+      },
+      {
+        "line": 59,
+        "text": "from common_func.file_name_manager import get_hbm_compiles"
+      },
+      {
+        "line": 60,
+        "text": "from common_func.file_name_manager import get_hccl_hcom_compiles"
+      },
+      {
+        "line": 61,
+        "text": "from common_func.file_name_manager import get_hccl_info_compiles"
+      },
+      {
+        "line": 62,
+        "text": "from common_func.file_name_manager import get_hccs_compiles"
+      },
+      {
+        "line": 63,
+        "text": "from common_func.file_name_manager import get_helper_model_with_q_compiles"
+      },
+      {
+        "line": 120,
+        "text": "        DataTag.ACL: get_acl_compiles(),"
+      },
+      {
+        "line": 121,
+        "text": "        DataTag.ACL_HASH: get_acl_hash_compiles(),"
+      },
+      {
+        "line": 122,
+        "text": "        DataTag.GE_TASK: get_ge_task_compiles(),"
+      },
+      {
+        "line": 123,
+        "text": "        DataTag.GE_SESSION: get_ge_session_info_compiles(),"
+      },
+      {
+        "line": 124,
+        "text": "        DataTag.GE_TENSOR: get_ge_tensor_info_compiles(),"
+      },
+      {
+        "line": 125,
+        "text": "        DataTag.GE_STEP: get_ge_step_info_compiles(),"
+      },
+      {
+        "line": 126,
+        "text": "        DataTag.GE_MODEL_TIME: get_ge_model_time_compiles(),"
+      },
+      {
+        "line": 127,
+        "text": "        DataTag.GE_FUSION_OP_INFO: get_ge_fusion_op_compiles(),"
+      },
+      {
+        "line": 128,
+        "text": "        DataTag.GE_MODEL_LOAD: get_ge_model_load_compiles(),"
+      },
+      {
+        "line": 129,
+        "text": "        DataTag.GE_HASH: get_ge_hash_compiles(),"
+      },
+      {
+        "line": 130,
+        "text": "        DataTag.GE_HOST: get_ge_host_compiles(),"
+      }
+    ]
+  },
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/msconfig/tables_config.py",
+    "sha256": "49b334a500244aadfe34d8a996a4ecbe9c6aa89bb1c2f6c8f7b446ff753fdeda",
+    "lines": [
+      {
+        "line": 1214,
+        "text": "            ('timestamp', 'NUMERIC,null'),"
+      },
+      {
+        "line": 1215,
+        "text": "            ('thread_num', 'INTEGER,null'),"
+      },
+      {
+        "line": 1216,
+        "text": "            ('sub_thread_id', 'TEXT,null'),"
+      },
+      {
+        "line": 1217,
+        "text": "        ],"
+      },
+      {
+        "line": 1218,
+        "text": "        'TensorInfoV2Map': ["
+      },
+      {
+        "line": 1219,
+        "text": "            ('level', 'TEXT,null'),"
+      },
+      {
+        "line": 1220,
+        "text": "            ('struct_type', 'TEXT,null'),"
+      },
+      {
+        "line": 1221,
+        "text": "            ('thread_id', 'INTEGER,null'),"
+      },
+      {
+        "line": 1222,
+        "text": "            ('timestamp', 'NUMERIC,null'),"
+      },
+      {
+        "line": 1223,
+        "text": "            ('op_name', 'TEXT,null'),"
+      },
+      {
+        "line": 1224,
+        "text": "            ('tensor_num', 'INTEGER,null'),"
+      }
+    ]
+  },
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/mscalculate/cann/cann_analysis_gear.py",
+    "sha256": "b7e077b2ade1bd9ee477b402b377b0190aaf113403f1063c904c94e95c0b8c60",
+    "lines": [
+      {
+        "line": 46,
+        "text": "from profiling_bean.db_dto.mem_copy_info_dto import MemCopyInfoDto"
+      },
+      {
+        "line": 47,
+        "text": "from profiling_bean.db_dto.node_attr_info_dto import NodeAttrInfoDto"
+      },
+      {
+        "line": 48,
+        "text": "from profiling_bean.db_dto.node_basic_info_dto import NodeBasicInfoDto"
+      },
+      {
+        "line": 49,
+        "text": "from profiling_bean.db_dto.task_track_dto import TaskTrackDto"
+      },
+      {
+        "line": 50,
+        "text": "from profiling_bean.db_dto.tensor_info_dto import TensorInfoDto"
+      },
+      {
+        "line": 51,
+        "text": ""
+      },
+      {
+        "line": 52,
+        "text": ""
+      },
+      {
+        "line": 53,
+        "text": "class CANNGear:"
+      },
+      {
+        "line": 54,
+        "text": "    \"\"\""
+      },
+      {
+        "line": 55,
+        "text": "    Gears, the basic <REDACTED_CREDENTIAL> in the analysis chain of CANN software stacks,"
+      },
+      {
+        "line": 56,
+        "text": "    each instance processing data in one layer of CANN."
+      },
+      {
+        "line": 306,
+        "text": "    class NodeDesc:"
+      },
+      {
+        "line": 307,
+        "text": "        def __init__("
+      },
+      {
+        "line": 308,
+        "text": "            self,"
+      },
+      {
+        "line": 309,
+        "text": "            node_basic_info=NodeBasicInfoDto(),"
+      },
+      {
+        "line": 310,
+        "text": "            tensor_info=TensorInfoDto(),"
+      },
+      {
+        "line": 311,
+        "text": "            ctx_info=CtxIdDto(),"
+      },
+      {
+        "line": 312,
+        "text": "            node_attr_info=NodeAttrInfoDto(),"
+      },
+      {
+        "line": 313,
+        "text": "        ):"
+      },
+      {
+        "line": 314,
+        "text": "            self.node_basic_info = node_basic_info"
+      },
+      {
+        "line": 315,
+        "text": "            self.tensor_info = tensor_info"
+      },
+      {
+        "line": 316,
+        "text": "            self.ctx_info = ctx_info"
+      },
+      {
+        "line": 317,
+        "text": "            self.node_attr_info = node_attr_info"
+      },
+      {
+        "line": 318,
+        "text": ""
+      },
+      {
+        "line": 319,
+        "text": "        @staticmethod"
+      },
+      {
+        "line": 320,
+        "text": "        def get_hash(dto: Union[NodeBasicInfoDto, TensorInfoDto, CtxIdDto, NodeAttrInfoDto, HCCLOpInfoDto]):"
+      },
+      {
+        "line": 321,
+        "text": "            return dto.op_name + \"-\" + str(int(dto.timestamp))"
+      },
+      {
+        "line": 322,
+        "text": ""
+      },
+      {
+        "line": 323,
+        "text": "        def is_invalid(self):"
+      },
+      {
+        "line": 324,
+        "text": "            return self.node_basic_info is not None and self.tensor_info is not None"
+      },
+      {
+        "line": 325,
+        "text": ""
+      },
+      {
+        "line": 326,
+        "text": "    class HcclDesc:"
+      },
+      {
+        "line": 327,
+        "text": "        def __init__(self, hccl_info=HCCLInfoDto(), ctx_info=CtxIdDto()):"
+      },
+      {
+        "line": 328,
+        "text": "            self.hccl_info = hccl_info"
+      },
+      {
+        "line": 329,
+        "text": "            self.ctx_info = ctx_info"
+      },
+      {
+        "line": 330,
+        "text": ""
+      },
+      {
+        "line": 335,
+        "text": "    def __init__(self, project_path):"
+      },
+      {
+        "line": 336,
+        "text": "        super().__init__(project_path)"
+      },
+      {
+        "line": 337,
+        "text": "        self.cann_level = Constant.TASK_LEVEL"
+      },
+      {
+        "line": 338,
+        "text": "        self.task_info = []"
+      },
+      {
+        "line": 339,
+        "text": "        self.tensor_info = []"
+      },
+      {
+        "line": 340,
+        "text": "        self.hccl_task_info = []"
+      },
+      {
+        "line": 341,
+        "text": "        self.host_tasks = []"
+      },
+      {
+        "line": 342,
+        "text": "        self.mismatch_hccl = 0"
+      },
+      {
+        "line": 343,
+        "text": "        self.hccl_op_info = []"
+      },
+      {
+        "line": 344,
+        "text": "        self.hccl_node_keys = set()"
+      },
+      {
+        "line": 345,
+        "text": "        self.hccl_node_mismatch = 0"
+      },
+      {
+        "line": 398,
+        "text": "        for record in event.additional_record:"
+      },
+      {
+        "line": 399,
+        "text": "            if isinstance(record.dto, NodeBasicInfoDto):"
+      },
+      {
+        "line": 400,
+        "text": "                node_desc = node_descs.set_default_call_obj_later(event.id, self.NodeDesc)"
+      },
+      {
+        "line": 401,
+        "text": "                node_desc.node_basic_info = record.dto"
+      },
+      {
+        "line": 402,
+        "text": "            elif isinstance(record.dto, TensorInfoDto):"
+      },
+      {
+        "line": 403,
+        "text": "                node_desc = node_descs.set_default_call_obj_later(event.id, self.NodeDesc)"
+      },
+      {
+        "line": 404,
+        "text": "                node_desc.tensor_info = record.dto"
+      },
+      {
+        "line": 405,
+        "text": "            elif isinstance(record.dto, CtxIdDto):"
+      },
+      {
+        "line": 406,
+        "text": "                node_desc = node_descs.set_default_call_obj_later(event.id, self.NodeDesc)"
+      },
+      {
+        "line": 407,
+        "text": "                node_desc.ctx_info = record.dto"
+      },
+      {
+        "line": 408,
+        "text": "            elif isinstance(record.dto, NodeAttrInfoDto):"
+      },
+      {
+        "line": 409,
+        "text": "                node_desc = node_descs.set_default_call_obj_later(event.id, self.NodeDesc)"
+      },
+      {
+        "line": 410,
+        "text": "                node_desc.node_attr_info = record.dto"
+      },
+      {
+        "line": 697,
+        "text": "        hccl_event = hccl_info[0]"
+      },
+      {
+        "line": 698,
+        "text": "        hccl_dto = hccl_info[1]"
+      },
+      {
+        "line": 699,
+        "text": "        model_id = model_info[0]"
+      },
+      {
+        "line": 700,
+        "text": "        request_id = model_info[1]"
+      },
+      {
+        "line": 701,
+        "text": "        tensor_info_dto: TensorInfoDto = node_desc.tensor_info"
+      },
+      {
+        "line": 702,
+        "text": "        has_tensor_info = tensor_info_dto.tensor_num is not None and tensor_info_dto.tensor_num > 0"
+      },
+      {
+        "line": 703,
+        "text": "        ctx_id_dto: CtxIdDto = node_desc.ctx_info"
+      },
+      {
+        "line": 704,
+        "text": "        cxt_ids = str(ctx_id_dto.ctx_id).split(',')"
+      },
+      {
+        "line": 705,
+        "text": "        op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id"
+      },
+      {
+        "line": 706,
+        "text": "        op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)"
+      },
+      {
+        "line": 707,
+        "text": "        task_type = Constant.NA"
+      },
+      {
+        "line": 708,
+        "text": "        if self.is_hccl_task(hccl_event, add_dto):"
+      },
+      {
+        "line": 723,
+        "text": "                    request_id,"
+      },
+      {
+        "line": 724,
+        "text": "                    add_dto.thread_id,"
+      },
+      {
+        "line": 725,
+        "text": "                    add_dto.timestamp,"
+      },
+      {
+        "line": 726,
+        "text": "                    add_dto.batch_id,"
+      },
+      {
+        "line": 727,
+        "text": "                    tensor_info_dto.tensor_num if has_tensor_info else None,"
+      },
+      {
+        "line": 728,
+        "text": "                    tensor_info_dto.input_formats if has_tensor_info else None,"
+      },
+      {
+        "line": 729,
+        "text": "                    tensor_info_dto.input_data_types if has_tensor_info else None,"
+      },
+      {
+        "line": 730,
+        "text": "                    tensor_info_dto.input_shapes if has_tensor_info else None,"
+      },
+      {
+        "line": 731,
+        "text": "                    tensor_info_dto.output_formats if has_tensor_info else None,"
+      },
+      {
+        "line": 732,
+        "text": "                    tensor_info_dto.output_data_types if has_tensor_info else None,"
+      },
+      {
+        "line": 733,
+        "text": "                    tensor_info_dto.output_shapes if has_tensor_info else None,"
+      },
+      {
+        "line": 734,
+        "text": "                    add_dto.device_id,"
+      },
+      {
+        "line": 735,
+        "text": "                    int(cxt_id),"
+      },
+      {
+        "line": 736,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 737,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 738,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 739,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 748,
+        "text": "        hccl_dto = hccl_info[1]"
+      },
+      {
+        "line": 749,
+        "text": "        model_id = model_info[0]"
+      },
+      {
+        "line": 750,
+        "text": "        request_id = model_info[1]"
+      },
+      {
+        "line": 751,
+        "text": "        node_basic_info_dto: NodeBasicInfoDto = node_desc.node_basic_info"
+      },
+      {
+        "line": 752,
+        "text": "        tensor_info_dto: TensorInfoDto = node_desc.tensor_info"
+      },
+      {
+        "line": 753,
+        "text": "        ctx_id_dto: CtxIdDto = node_desc.ctx_info"
+      },
+      {
+        "line": 754,
+        "text": "        node_attr_info: NodeAttrInfoDto = node_desc.node_attr_info"
+      },
+      {
+        "line": 755,
+        "text": "        cxt_ids = str(ctx_id_dto.ctx_id).split(',')"
+      },
+      {
+        "line": 756,
+        "text": "        op_name = ctx_id_dto.op_name if ctx_id_dto.op_name else node_dto.item_id"
+      },
+      {
+        "line": 757,
+        "text": "        op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, op_name)"
+      },
+      {
+        "line": 758,
+        "text": "        task_type = node_basic_info_dto.task_type"
+      },
+      {
+        "line": 781,
+        "text": "                    request_id,"
+      },
+      {
+        "line": 782,
+        "text": "                    add_dto.thread_id,"
+      },
+      {
+        "line": 783,
+        "text": "                    add_dto.timestamp,"
+      },
+      {
+        "line": 784,
+        "text": "                    add_dto.batch_id,"
+      },
+      {
+        "line": 785,
+        "text": "                    tensor_info_dto.tensor_num,"
+      },
+      {
+        "line": 786,
+        "text": "                    tensor_info_dto.input_formats,"
+      },
+      {
+        "line": 787,
+        "text": "                    tensor_info_dto.input_data_types,"
+      },
+      {
+        "line": 788,
+        "text": "                    tensor_info_dto.input_shapes,"
+      },
+      {
+        "line": 789,
+        "text": "                    tensor_info_dto.output_formats,"
+      },
+      {
+        "line": 790,
+        "text": "                    tensor_info_dto.output_data_types,"
+      },
+      {
+        "line": 791,
+        "text": "                    tensor_info_dto.output_shapes,"
+      },
+      {
+        "line": 792,
+        "text": "                    add_dto.device_id,"
+      },
+      {
+        "line": 793,
+        "text": "                    int(cxt_id),"
+      },
+      {
+        "line": 794,
+        "text": "                    \"YES\" if node_basic_info_dto.op_flag else \"NO\","
+      },
+      {
+        "line": 795,
+        "text": "                    Constant.NA if not node_attr_info.hashid else node_attr_info.hashid,"
+      },
+      {
+        "line": 796,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 797,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 802,
+        "text": "        node_dto = node_info[0]"
+      },
+      {
+        "line": 803,
+        "text": "        node_desc = node_info[1]"
+      },
+      {
+        "line": 804,
+        "text": "        model_id = model_info[0]"
+      },
+      {
+        "line": 805,
+        "text": "        request_id = model_info[1]"
+      },
+      {
+        "line": 806,
+        "text": "        tensor_info_dto: TensorInfoDto = node_desc.tensor_info"
+      },
+      {
+        "line": 807,
+        "text": "        has_tensor_info = tensor_info_dto.tensor_num is not None and tensor_info_dto.tensor_num > 0"
+      },
+      {
+        "line": 808,
+        "text": "        ctx_id_dto: CtxIdDto = node_desc.ctx_info"
+      },
+      {
+        "line": 809,
+        "text": "        cxt_ids = str(ctx_id_dto.ctx_id).split(',')"
+      },
+      {
+        "line": 810,
+        "text": "        op_name = self.resolve_task_op_name(node_dto.item_id, add_dto.kernel_name, node_dto.item_id)"
+      },
+      {
+        "line": 811,
+        "text": "        op_type = op_name"
+      },
+      {
+        "line": 812,
+        "text": "        task_type = self.RTS_TASK_TYPE_MAP.get(add_dto.task_type, add_dto.task_type)"
+      },
+      {
+        "line": 813,
+        "text": "        # \u672c\u8def\u5f84\u4e0eC++ AddTaskInfoForReferToKernelName\u4fdd\u6301\u76f8\u540c\u7684\u5217\u7ed3\u6784\uff0c\u4f46runtime track\u56db\u5217\u53d6\u503c\u4e0d\u540c\uff1a"
+      },
+      {
+        "line": 828,
+        "text": "                    request_id,"
+      },
+      {
+        "line": 829,
+        "text": "                    add_dto.thread_id,"
+      },
+      {
+        "line": 830,
+        "text": "                    add_dto.timestamp,"
+      },
+      {
+        "line": 831,
+        "text": "                    add_dto.batch_id,"
+      },
+      {
+        "line": 832,
+        "text": "                    tensor_info_dto.tensor_num if has_tensor_info else 0,"
+      },
+      {
+        "line": 833,
+        "text": "                    tensor_info_dto.input_formats if has_tensor_info else Constant.NA,"
+      },
+      {
+        "line": 834,
+        "text": "                    tensor_info_dto.input_data_types if has_tensor_info else Constant.NA,"
+      },
+      {
+        "line": 835,
+        "text": "                    tensor_info_dto.input_shapes if has_tensor_info else Constant.NA,"
+      },
+      {
+        "line": 836,
+        "text": "                    tensor_info_dto.output_formats if has_tensor_info else Constant.NA,"
+      },
+      {
+        "line": 837,
+        "text": "                    tensor_info_dto.output_data_types if has_tensor_info else Constant.NA,"
+      },
+      {
+        "line": 838,
+        "text": "                    tensor_info_dto.output_shapes if has_tensor_info else Constant.NA,"
+      },
+      {
+        "line": 839,
+        "text": "                    add_dto.device_id,"
+      },
+      {
+        "line": 840,
+        "text": "                    int(cxt_id),"
+      },
+      {
+        "line": 841,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 842,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 843,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 844,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 869,
+        "text": "        )  # op_flag\u5728level0 \u6216\u8005\u65e0\u8865\u5145\u4fe1\u606f\u65f6\u586bNA"
+      },
+      {
+        "line": 870,
+        "text": "        op_flag = Constant.NA if (is_level0 or not op_info.is_valid) else (\"YES\" if op_info.op_flag else \"NO\")"
+      },
+      {
+        "line": 871,
+        "text": ""
+      },
+      {
+        "line": 872,
+        "text": "        if is_level0:"
+      },
+      {
+        "line": 873,
+        "text": "            has_tensor_info = op_info.is_valid and op_info.tensor_num is not None and op_info.tensor_num > 0"
+      },
+      {
+        "line": 874,
+        "text": "            self.task_info.append("
+      },
+      {
+        "line": 875,
+        "text": "                ["
+      },
+      {
+        "line": 876,
+        "text": "                    op_info.model_id,"
+      },
+      {
+        "line": 877,
+        "text": "                    op_name,"
+      },
+      {
+        "line": 878,
+        "text": "                    rts_trk.stream_id,"
+      },
+      {
+        "line": 879,
+        "text": "                    rts_trk.task_id,"
+      },
+      {
+        "line": 885,
+        "text": "                    request_id,"
+      },
+      {
+        "line": 886,
+        "text": "                    rts_trk.thread_id,"
+      },
+      {
+        "line": 887,
+        "text": "                    rts_trk.timestamp,"
+      },
+      {
+        "line": 888,
+        "text": "                    rts_trk.batch_id,"
+      },
+      {
+        "line": 889,
+        "text": "                    op_info.tensor_num if has_tensor_info else None,"
+      },
+      {
+        "line": 890,
+        "text": "                    op_info.input_formats if has_tensor_info else None,"
+      },
+      {
+        "line": 891,
+        "text": "                    op_info.input_data_types if has_tensor_info else None,"
+      },
+      {
+        "line": 892,
+        "text": "                    op_info.input_shapes if has_tensor_info else None,"
+      },
+      {
+        "line": 893,
+        "text": "                    op_info.output_formats if has_tensor_info else None,"
+      },
+      {
+        "line": 894,
+        "text": "                    op_info.output_data_types if has_tensor_info else None,"
+      },
+      {
+        "line": 895,
+        "text": "                    op_info.output_shapes if has_tensor_info else None,"
+      },
+      {
+        "line": 896,
+        "text": "                    rts_trk.device_id,"
+      },
+      {
+        "line": 897,
+        "text": "                    context_id,"
+      },
+      {
+        "line": 898,
+        "text": "                    op_flag,"
+      },
+      {
+        "line": 899,
+        "text": "                    op_info.hash_id,"
+      },
+      {
+        "line": 900,
+        "text": "                    Constant.NA,"
+      },
+      {
+        "line": 901,
+        "text": "                    Constant.NA,"
+      }
+    ]
+  },
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/mscalculate/cann/cann_event_generator.py",
+    "sha256": "39336650982ef56e412b13b3a60f5abe4978cb38b53c26b580478175ac3a0c4d",
+    "lines": [
+      {
+        "line": 46,
+        "text": "from profiling_bean.db_dto.mem_copy_info_dto import MemCopyInfoDto"
+      },
+      {
+        "line": 47,
+        "text": "from profiling_bean.db_dto.node_basic_info_dto import NodeBasicInfoDto"
+      },
+      {
+        "line": 48,
+        "text": "from profiling_bean.db_dto.node_attr_info_dto import NodeAttrInfoDto"
+      },
+      {
+        "line": 49,
+        "text": "from profiling_bean.db_dto.task_track_dto import TaskTrackDto"
+      },
+      {
+        "line": 50,
+        "text": "from profiling_bean.db_dto.tensor_info_dto import TensorInfoDto"
+      },
+      {
+        "line": 51,
+        "text": "from viewer.api_viewer import ApiViewer"
+      },
+      {
+        "line": 52,
+        "text": ""
+      },
+      {
+        "line": 53,
+        "text": ""
+      },
+      {
+        "line": 54,
+        "text": "class CANNThreadDB:"
+      },
+      {
+        "line": 55,
+        "text": "    def __init__(self, thread_id: int,"
+      },
+      {
+        "line": 56,
+        "text": "                 event_q: EventQueue = EventQueue(-1),"
+      },
+      {
+        "line": 88,
+        "text": "        self.api_data_model = ApiDataModel(self._project_path)"
+      },
+      {
+        "line": 89,
+        "text": "        self.event_data_model = EventDataModel(self._project_path)"
+      },
+      {
+        "line": 90,
+        "text": "        self.node_basic_info_model = NodeBasicInfoModel(self._project_path)"
+      },
+      {
+        "line": 91,
+        "text": "        self.node_attr_info_model = NodeAttrInfoModel(self._project_path)"
+      },
+      {
+        "line": 92,
+        "text": "        self.tensor_info_model = TensorAddInfoModel(self._project_path)"
+      },
+      {
+        "line": 93,
+        "text": "        self.task_track_model = TaskTrackModel(self._project_path, [DBNameConstant.TABLE_TASK_TRACK])"
+      },
+      {
+        "line": 94,
+        "text": "        self.mem_copy_model = MemcpyInfoModel(self._project_path)"
+      },
+      {
+        "line": 95,
+        "text": "        self.ctx_id_model = CtxIdModel(self._project_path)"
+      },
+      {
+        "line": 96,
+        "text": "        self.hccl_info_model = HcclInfoModel(self._project_path)"
+      },
+      {
+        "line": 97,
+        "text": "        self.graph_id_map_model = GraphAddInfoModel(self._project_path)"
+      },
+      {
+        "line": 98,
+        "text": "        self.fusion_op_info_model = FusionAddInfoModel(self._project_path)"
+      },
+      {
+        "line": 178,
+        "text": "        with self.node_attr_info_model as node_attr_model:"
+      },
+      {
+        "line": 179,
+        "text": "            node_attr_infos = node_attr_model.get_all_data(DBNameConstant.TABLE_NODE_ATTR_INFO, NodeAttrInfoDto)"
+      },
+      {
+        "line": 180,
+        "text": "            self.record_additional_info(node_attr_infos)"
+      },
+      {
+        "line": 181,
+        "text": ""
+      },
+      {
+        "line": 182,
+        "text": "    def generate_tensor_info_event(self):"
+      },
+      {
+        "line": 183,
+        "text": "        if not self.tensor_info_model.check_db():"
+      },
+      {
+        "line": 184,
+        "text": "            return"
+      },
+      {
+        "line": 185,
+        "text": "        with self.tensor_info_model as tensor_info_model:"
+      },
+      {
+        "line": 186,
+        "text": "            tensor_infos = tensor_info_model.get_all_data(DBNameConstant.TABLE_TENSOR_ADD_INFO, TensorInfoDto)"
+      },
+      {
+        "line": 187,
+        "text": "            self.record_additional_info(tensor_infos)"
+      },
+      {
+        "line": 188,
+        "text": ""
+      },
+      {
+        "line": 189,
+        "text": "    def generate_task_track_event(self):"
+      },
+      {
+        "line": 190,
+        "text": "        if not self.task_track_model.check_db():"
+      },
+      {
+        "line": 191,
+        "text": "            return"
+      },
+      {
+        "line": 192,
+        "text": "        with self.task_track_model as task_track_model:"
+      },
+      {
+        "line": 193,
+        "text": "            task_tracks = task_track_model.get_all_data(DBNameConstant.TABLE_TASK_TRACK, TaskTrackDto)"
+      },
+      {
+        "line": 257,
+        "text": "        self.generate_api_event()"
+      },
+      {
+        "line": 258,
+        "text": ""
+      },
+      {
+        "line": 259,
+        "text": "        self.generate_node_basic_info_event()"
+      },
+      {
+        "line": 260,
+        "text": "        self.generate_node_attr_info_event()"
+      },
+      {
+        "line": 261,
+        "text": "        self.generate_tensor_info_event()"
+      },
+      {
+        "line": 262,
+        "text": "        self.generate_task_track_event()"
+      },
+      {
+        "line": 263,
+        "text": "        self.generate_mem_copy_info_event()"
+      },
+      {
+        "line": 264,
+        "text": "        self.generate_graph_id_map_event()"
+      },
+      {
+        "line": 265,
+        "text": "        self.generate_fusion_op_info_event()"
+      },
+      {
+        "line": 266,
+        "text": "        self.generate_ctx_id_event()"
+      },
+      {
+        "line": 267,
+        "text": "        self.generate_hccl_op_info_event()"
+      }
+    ]
+  },
+  {
+    "path": "/usr/local/Ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/common_func/db_name_constant.py",
+    "sha256": "ee41807e12c3afcb293caa396d54b2ea6c087debe9e4ac0a4e8798b6e8de1630",
+    "lines": [
+      {
+        "line": 85,
+        "text": "    DB_FREQ = \"freq.db\""
+      },
+      {
+        "line": 86,
+        "text": "    DB_API_EVENT = \"api_event.db\""
+      },
+      {
+        "line": 87,
+        "text": "    DB_HCCL_INFO = \"hccl_info.db\""
+      },
+      {
+        "line": 88,
+        "text": "    DB_MULTI_THREAD = \"multi_thread.db\""
+      },
+      {
+        "line": 89,
+        "text": "    DB_TENSOR_ADD_INFO = \"tensor_info.db\""
+      },
+      {
+        "line": 90,
+        "text": "    DB_NODE_BASIC_INFO = \"node_basic_info.db\""
+      },
+      {
+        "line": 91,
+        "text": "    DB_FUSION_ADD_INFO = \"fusion_op_info.db\""
+      },
+      {
+        "line": 92,
+        "text": "    DB_GRAPH_ADD_INFO = \"graph_id_map.db\""
+      },
+      {
+        "line": 93,
+        "text": "    DB_CTX_ID = \"ctx_id.db\""
+      },
+      {
+        "line": 94,
+        "text": "    DB_STATIC_OP_MEM = \"static_op_mem.db\""
+      },
+      {
+        "line": 95,
+        "text": "    DB_MEMORY_APPLICATION = \"memory_application.db\""
+      },
+      {
+        "line": 343,
+        "text": "    TABLE_API_DATA = 'ApiData'"
+      },
+      {
+        "line": 344,
+        "text": "    TABLE_EVENT_DATA = 'EventData'"
+      },
+      {
+        "line": 345,
+        "text": "    TABLE_HCCL_INFO_DATA = 'HcclInfoData'"
+      },
+      {
+        "line": 346,
+        "text": "    TABLE_MULTI_THREAD_DATA = 'MultiThreadData'"
+      },
+      {
+        "line": 347,
+        "text": "    TABLE_TENSOR_ADD_INFO = \"TensorInfoV2\""
+      },
+      {
+        "line": 348,
+        "text": "    TABLE_NODE_BASIC_INFO = \"NodeBasicInfo\""
+      },
+      {
+        "line": 349,
+        "text": "    TABLE_FUSION_ADD_INFO = \"FusionOPInfo\""
+      },
+      {
+        "line": 350,
+        "text": "    TABLE_GRAPH_ADD_INFO = \"GraphIdMap\""
+      },
+      {
+        "line": 351,
+        "text": "    TABLE_CTX_ID_ADD_INFO = \"CtxId\""
+      },
+      {
+        "line": 352,
+        "text": "    TABLE_CTX_ID = \"CtxId\""
+      },
+      {
+        "line": 353,
+        "text": "    TABLE_STATIC_OP_MEM = \"StaticOpMem\""
+      }
+    ]
+  }
+]

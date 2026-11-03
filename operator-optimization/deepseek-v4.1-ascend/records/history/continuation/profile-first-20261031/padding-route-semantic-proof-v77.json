@@ -1,0 +1,59 @@
+{
+  "domain": "Pinned nohash without-group source, normType2, FLOAT logits+weights/textbias, INT64 IDs, E384/k6, positive sentinel129257..129261, out_flagFalse. Literal +0 logits and ID0 only on explicitly identified alignment tail.",
+  "source_claims": [
+    {
+      "kind": "DERIVED",
+      "claim": "ID0 chooses text bias; current nohash path has no row/core-dependent arithmetic apart from input/output addressing."
+    },
+    {
+      "kind": "DERIVED",
+      "claim": "Literal-zero tail result is a function of text-bias value generation, all scalar attributes, dtype/native numerical and tie semantics. Router GEMM/FFN weights are not inputs to this literal-zero subproblem."
+    },
+    {
+      "kind": "DERIVED",
+      "claim": "Exact native result reuse can avoid repeated row nonlinear/rank/weight calculation while still emitting every required raw P×k ID/weight before all unchanged postprocessors."
+    },
+    {
+      "kind": "UNKNOWN",
+      "claim": "Loaded native determinism, exact bias values/scaling, cross-shape equivalence and native result bank are not attested; no actual template values obtained."
+    }
+  ],
+  "reference_FP32_witness": {
+    "phi": 0.8325546383857727,
+    "six_term_sum": 4.995327949523926,
+    "stage_rounded_weight": 0.1666666567325592,
+    "algebraic_one_over_k": 0.1666666716337204,
+    "reference_model": "Python binary32 rounding after explicit scalar stages. Not Ascend Exp/Ln/Sqrt/reduction measurement; demonstrates why algebra alone is insufficient."
+  },
+  "ranking_witness": {
+    "bias": [
+      0.0,
+      9.313225746154785e-10
+    ],
+    "rounded_phi_plus_bias": [
+      0.8325546383857727,
+      0.8325546383857727
+    ],
+    "implication": "Bias-only sorting can reverse winner relative to equal rounded ranking scores and a stable input-index tie rule; do not replace native ranking by bias-only argsort."
+  },
+  "retained_precision_gates": [
+    "Keep Exp→+1→Ln→Sqrt stage semantics, unbiased gather, selected-k sum+eps, Div and scaling; do not inject1/k.",
+    "Keep native tie/NaN/Inf and initialized expert-index semantics. Cache exact output bits rather than CPU-derived approximate results.",
+    "out_flagFalse full score output is unwritten in source/caller discarded; no E-wide third-output HBM saving claimed."
+  ],
+  "consumer_frontier": {
+    "placement": "Inside raw inner-router output boundary; materialize full P×k before routed_experts._select_experts postprocessing.",
+    "unchanged": [
+      "logical→physical mapping",
+      "shared-expert ID/weight append",
+      "forced EPLB",
+      "full P-shaped RNG draws and argsort",
+      "all observers/capture alias lifetimes",
+      "MC2 hidden/mask/output dimensions and collective receiver work"
+    ],
+    "profile_run_flag": "in_profile_run is dummy/profile-run lifecycle state; it is not equivalent to Torch profiler being enabled.",
+    "no_router_logits_after_select_in_scoped_forward": true,
+    "all_global_hooks_or_aliases_closed": false
+  },
+  "overall_complete": false
+}
