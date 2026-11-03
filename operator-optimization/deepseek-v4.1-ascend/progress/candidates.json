@@ -1382,31 +1382,47 @@
       "id": "F20",
       "name": "MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用",
       "updated_at": "2026-11-03",
-      "kind": "路由/TopK/dispatch 输入准备融合或复用",
+      "kind": "已有TopK内部算法优化、周边重复消除与跨算子融合候选",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
+      "review_status": "TopK已有融合与周边重复清理已复核；加载路径、正确性、收益及其他变体待验证",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
-      "operator_binding": "历史语义链：router → 评分/TopK/renorm → route pack / dispatch。",
-      "baseline_flow": "历史登记的原流程：Router FP32 GEMM → sqrtsoftplus / topk / renorm / route pack。本页登记不等于对当前运行二进制完成重新绑定。",
-      "proposal": "Router收尾/TopK/ID清理打包直接供dispatch，同代ID准备按条件共享。",
-      "mechanism": "将路由收尾与 ID 准备接合，按同一输入代际复用已证明相同的准备工作。",
-      "conditions": "评分/tie/bias用途/renorm和原始ID读者不变。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
+      "operator_binding": "归档moe_gating_top_k_hash的without-group/norm2路径已融合评分变换、bias、全排序/选专家和权重计算；旧profile有M3×384→Top6。非171当前二进制重绑定。",
+      "baseline_flow": "Router FP32矩阵乘法→编号转换/对齐及Equal/Fill/Select清理→已有融合TopK→原dispatch/FFN/combine。评分偏置与最终权重分开。",
+      "proposal": "本次优先F20-I64-NATIVE-NO-SANITIZER；部分选择和Router GEMM→TopK为独立备选，不重复宣称内部已有融合。",
+      "mechanism": "原生消费者已有同样-1→0规则时，省去外部重复清理；先减少已观测任务，再比较更高成本算法/融合。",
+      "conditions": "限定已证明无hash、without-group原生路径；保留INT64接口、行对齐、bias/tie/未加bias权重/eps及ID其他读者。加载分支与实际正确性、完整链性能和图内存/KV代价待验收。",
       "next_steps": [
         {
           "id": "F20-01",
-          "title": "分清选 expert 的评分与最终路由权重",
-          "description": "保留 bias 用途、top6/tie/renorm/scaling；区分原始 token ID 准备与各层不同的 expert 路由。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+          "title": "核对已有TopK融合、偏置与权重规则以及输入清理合同",
+          "status": "DONE",
+          "evidence": [
+            "evidence/F20-topk-opportunities-review-20261103.json"
+          ],
+          "description": "已复用v63/v76合同，钉源码哈希并核对caller、IsImageRow与Sort；按root-bound重算旧清理任务和。仅完成所选源域复核。",
+          "decision_rule": "不把已有内部融合重算为收益，不把任务时间当关键路径；F20其他变体未关闭。"
         },
         {
           "id": "F20-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "title": "若实施，先验证同INT64接口的私有清理消除",
+          "description": "未来确认目标加载的是已证明原生无hash/without-group路径，固定M3/E384/k6、同输入/权重/行计划，仅去调用方Equal/Fill/Select；保留cast与通信/pad，比较专家编号和路由权重。",
+          "decision_rule": "包含-1、真实0、vision边界及同分/非有限值保护域；fallback/有hash另证。不启动本侧聊服务器实验。"
+        },
+        {
+          "id": "F20-03",
+          "title": "同条件比较完整路由段、图内存与KV容量",
+          "description": "未来对选定替换方案测实际完整路由/worker/request指标，记录捕获后常驻、replay峰值、KV容量和吞吐；固定图集合与负载。",
+          "decision_rule": "旧6.14微秒任务和不是新方案收益；原新两份图临时共存不当部署增量。"
+        },
+        {
+          "id": "F20-04",
+          "title": "有剩余价值时再选部分选择或GEMM-TopK融合",
+          "description": "分别估计Sort可减部分、整行分数交接与局部候选workspace；与F04 Router输入融合及其他F20变体共同计价。",
+          "decision_rule": "每次只选一机制；保留原评分/bias/tie/权重数值，列宽16候选写读反而更大是现成反例，不盲扫tile。"
         }
       ],
       "evidence": [
@@ -1424,12 +1440,27 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F20.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "本次TopK优化机会与优先级复核",
+          "path": "evidence/F20-topk-opportunities-review-20261103.json",
+          "scope": "固定源合同、旧profile任务统计与条件建议；没有新kernel、native正确性或提速验收。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "details_markdown": "\n## 本次回答：MoE路由TopK还能怎么优化\n\n用户点名检查本族。本次选定的低成本子方案是 **F20-I64-NATIVE-NO-SANITIZER**：保留原INT64接口，让原生TopK中已有的编号处理承接调用方重复清理。另讨论部分选择和打分矩阵乘法融合，但不将它们升级为已验证方案。原F05顺序讨论位置不因此关闭。\n\n### 当前已经融合了什么\n\n固定调用为 `torch.ops._C_ascend.moe_gating_top_k_hash`，`norm_type=2`、`out_flag=False`。所查without-group源码内部已有：\n\n```text\n路由矩阵乘法 → 每个专家的原始分数\n                  ↓\n现有TopK：[按原规则变换分数 → 按token类型加bias → 全排序并选前K\n          → 取未加bias的选中分数 → 归一化/缩放权重]\n                  ↓\n专家编号＋合并权重 → 既有dispatch/FFN/combine接口\n```\n\n这里分数变换是原FP32的Exp→+1→Ln→Sqrt，不直接替换为普通Softmax。用来选专家的加bias分数，与最终合并权重所用的未加bias分数不能混淆。此处已有融合不再计一次“首次融合”收益；目标已加载二进制/171当前分支仍未在本侧聊重新绑定。\n\n### 推荐先看：TopK前面的输入编号清理\n\n这处理的是**输入token编号，不是TopK输出的专家编号**。原调用会转换为INT64、对齐行，再把-1改为0；所选旧图中清理对应Equal、Fill、SelectV2三个任务。已钉原生IsImageRow内部也做-1→0。\n\n```text\n原来：转换/对齐编号 → [比较-1 → 准备0 → 选择替换结果] → 原生TopK再处理-1\n候选：转换/对齐编号 ────────────────────────────→ 原生TopK处理-1\n```\n\n在已证明的无hash、without-group原生分支中，两次相同清理满足C(C(ID))=C(ID)，因此可研究省掉外面一次，可能只需调整调用，不需新增kernel源码。不是删除全部输入准备：INT64转换、行映射、通信/pad、原ID及其其他读者仍保留。Torch fallback、有hash或其他分组分支不能直接套用，加载实现和实际输出尚未验收。\n\n### 第二个方向：只选前6，不把384个分数全部排好\n\n所查主模型E384/k6源码对完整E做Sort，然后取前6。部分选择可能少做比较，但并非只计算6个专家分数；偏置及原评分规则仍须满足。硬件已有Sort可能比新选择算法高效，因此“理论比较量少”不是实测提速。\n\n同分顺序、NaN/Inf、精度和原路由权重必须保留；改K或换评分公式属于改变模型规则，不算当前等价优化。\n\n### 真正跨算子融合：路由打分矩阵乘法＋TopK\n\n可以研究同一实现算出整行专家分数后直接选择，减少logits写出和再读取。E384/FLOAT时逻辑一写一读是3072B/行，M3合计9216B（9KiB）；这不是已测HBM差值，也不删除矩阵计算。\n\n难点是矩阵乘法可能分块产生分数，TopK要得到全行一致结果。整行交接、局部候选合并和临时空间必须一起计价。例如列宽16时产生144个局部候选；每项12B的一写一读为3456B/行，比原3072B/行更大。融合范围更大未必更省显存或更快。\n\n### 旧profile支持什么\n\n以下来自旧166归档，不能当171新测量、不能将独立中位数相加为整段中位数：\n\n|范围|样本数|观测中位任务耗时|\n|---|---:|---:|\n|M3、E384、k6的root-bound TopK整算子|2560|4.82微秒|\n|同一批root-bound链中的Equal＋Fill＋SelectV2任务耗时之和|2560|6.14微秒|\n|M816、E384、k6的direct TopK整算子|640|35.191微秒|\n\n清理三步不比整TopK轻，支持优先验证低成本的重复消除。6.14微秒是观测任务耗时之和，不是承诺可节省的请求延迟。TopK任务内排序、非线性和其他阶段没有单独计时，不能把4.82微秒全归为排序。\n\n### 本次判断与缺口\n\n**有优化空间；TopK内部已有融合，推荐先验证周边重复编号清理，再判断是否值得改选择算法或做GEMM-TopK融合。** 不把“合成一个算子”本身作为目标。正确性、加载分支、完整路由耗时及图内存/KV容量需一起验收。本次没有新实现、设备实验或提速结果，F20其他变体仍有未复核范围。\n",
+      "questions_and_answers": [
+        {
+          "date": "2026-11-03",
+          "question": "MoE路由TopK里面有没有优化空间，能否融合？",
+          "answer": "有条件空间。已核对源码的TopK已融合分数变换、偏置、选专家和合并权重计算；优先验证原生内部已有-1→0时能否去掉调用方重复Equal/Fill/Select。旧166 root-bound TopK整任务中位4.82微秒，三步清理任务和中位6.14微秒，仅支持筛选方向，不是提速。部分选择代替完整Sort和GEMM→TopK融合是其他候选，需保留bias/tie/权重规则并计入临时空间。",
+          "evidence": "evidence/F20-topk-opportunities-review-20261103.json",
+          "kind": "SOURCE_AND_ARCHIVED_PROFILE_REVIEW_NOT_IMPLEMENTATION"
+        }
+      ]
     },
     {
       "id": "F21",

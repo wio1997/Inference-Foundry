@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "candidate": "F20",
+  "selected_variant": "F20-I64-NATIVE-NO-SANITIZER",
+  "status": "SOURCE_AND_ARCHIVED_PROFILE_REVIEW_NOT_NEW_KERNEL_OR_BENCHMARK",
+  "scope": "用户点名MoE路由TopK的只读复核；复用v63/v76已有证明与旧166profile汇总，仅重算root-bound输入清理任务耗时，不操作服务器或新采集。",
+  "sources": {
+    "contract": "records/history/continuation/profile-first-20261031/router-vector-numerical-contract-v63.json",
+    "variants": "records/history/continuation/profile-first-20261031/router-vector-fusion-variants-v63.json",
+    "costs": "records/history/continuation/profile-first-20261031/router-vector-fusion-costs-v63.json",
+    "regimes": "records/history/continuation/profile-first-20261031/router-vector-regime-models-v63.json",
+    "chains": "records/history/continuation/profile-first-20261031/router-vector-graph-chains-v63.json.gz",
+    "predicate": "records/history/continuation/profile-first-20261031/router-ID-predicate-source-proof-v76.json",
+    "predicateVariants": "records/history/continuation/profile-first-20261031/router-predicate-fusion-variants-v76.json",
+    "caller": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/ops/fused_moe/router/fused_topk_router.py"
+  },
+  "source_binding": {
+    "caller_lines": "159-176,180-223",
+    "native_file": "moe_gating_top_k_hash_without_group.h",
+    "native_sha256": "f18d63bda201eb407a3861da0f5189d45d439b6630abf52058a6eaa0420d8fdb",
+    "native_lines": {
+      "score_transform_and_bias": "144-216",
+      "minus_one_handling": "218-228",
+      "sort": "244-268",
+      "unbiased_weights": "273-302",
+      "processing_and_optional_output": "404-418"
+    },
+    "native_sha_checked_this_review": true,
+    "current_loaded_binary_identity_proved": false,
+    "current_171_runtime_path_rebound": false
+  },
+  "existing_behavior": [
+    "固定源码norm_type=2以FP32执行Exp→+1→Ln→Sqrt，再根据token类型加对应bias用于专家选择；当前主模型观测E384、k6。",
+    "已核对without-group路径在同一kernel中做分数变换、bias、全E排序/选择以及选中权重归一化/缩放；不是多个现存kernel可再首次融合。",
+    "最终权重从未加bias的变换分数取值，按选中值之和加eps后除法再缩放；不能拿排序用的加bias分数直接当合并权重。",
+    "调用方where(ID==-1,0,ID)对应所选图中的Equal/Fill/SelectV2；原native IsImageRow内部也有-1→0。",
+    "所选无hash、without-group原输入ID仅通过该谓词使用时，C(C(ID))=C(ID)支持移除调用方私有清理；INT64转换、行映射、pad/通信及原ID银行不随之删除。",
+    "out_flag=False路径本来不写第三个全分数输出；不能再计一次删除该HBM写出的收益。"
+  ],
+  "proposals": [
+    {
+      "id": "F20-I64-NATIVE-NO-SANITIZER",
+      "type": "重复处理消除/原生消费者承接",
+      "rank": "FIRST_LOW_COST_VALIDATION",
+      "mechanism": "保留INT64调用和原行协议，只省调用方Equal/Fill/Select；使用原native已有-1处理。",
+      "constraints": "限定已核对无hash、without-group、原生vision分支；fallback/有hash/其他组不能外推，当前加载实现及输出正确性待验。",
+      "new_kernel_source_required_in_reviewed_source_path": false,
+      "expected_extra_large_workspace": "方案本身不要求新增大工作区；实际capture后常驻/峰值未测。"
+    },
+    {
+      "id": "ROUTER-PARTIAL-SELECT",
+      "type": "现有TopK内部算法替换",
+      "rank": "AFTER_CHEAP_BOUNDARY_CHECK",
+      "mechanism": "E384只需要前6，可比较部分选择与现有完整排序。",
+      "constraints": "仍按原规则计算所需评分；保留同分顺序、NaN/Inf、bias和未加bias权重规则。硬件全排序可高效，比较量减少不保证延迟下降。"
+    },
+    {
+      "id": "ROUTER-ROW-EPILOGUE",
+      "type": "路由矩阵乘法与TopK真正跨算子融合",
+      "rank": "CONDITIONAL_HIGHER_ENGINEERING_COST",
+      "mechanism": "同一实现生成整行路由logits后继续计算TopK，减少logits接口。",
+      "constraints": "必须有完整E维分数、合适的矩阵/向量交接和片上容量，保持FP32及全部消费者；不能因接口消失认定矩阵乘法计算消失。",
+      "logical_logit_write_read_bytes_per_row": 3072,
+      "logical_M3_interface_bytes": 9216,
+      "logical_bytes_not_measured_HBM_or_speedup": true
+    },
+    {
+      "id": "ROUTER-COLUMN-TOPK",
+      "type": "局部选择再合并的备选实现",
+      "rank": "REQUIRES_REPRICING",
+      "mechanism": "按专家列分区产生局部前k再全局合并。",
+      "counterexample": "E384/k6/列宽16需要24组×6=144个候选；每候选12B时写读3456B/行，已大于原logit写读3072B/行，还未计合并/同步。",
+      "constraints": "说明盲目融合可能增加workspace/流量；更宽tile是另一个资源与并行折中。"
+    }
+  ],
+  "decision": "先验证同INT64接口下的私有清理消除；部分选择和GEMM-TopK是独立备选，不把互相重叠的收益相加。F20整个候选族不关闭。",
+  "correctness": "NOT_RUN",
+  "implementation": false,
+  "new_measured_speedup": false,
+  "memory_and_e2e_gate": "固定图集合、负载和并发，比较完整路由段与请求/worker指标，捕获后常驻HBM、重放峰值、KV容量及吞吐一起决策；不能把任务耗时之和当请求可省时间。",
+  "public_reference": {
+    "url": "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/850/API/aolapi/context/ops-transformer/aclnnMoeGatingTopK.md",
+    "use": "通用集成TopK API背景；不替代本case custom hash/vision norm2源合同。"
+  },
+  "archived_timing": {
+    "cohort": "old166-v63-root-bound-M3-main384-k6",
+    "topk_task": {
+      "n": 2560,
+      "min_ns": 4140,
+      "median_ns": 4820.0,
+      "p90_ns": 6480,
+      "max_ns": 7340
+    },
+    "three_cleanup_task_sum": {
+      "n": 2560,
+      "min_ns": 5421,
+      "median_ns": 6140.0,
+      "p90_ns": 7000,
+      "max_ns": 8580
+    },
+    "recompute_rule": "Filter chains.root_bound=true; sum duration_ns of ID_equal/ID_fill/ID_select within each chain, then median and nearest-rank p90; never sum independent medians.",
+    "not_request_critical_path_or_measured_gain": true,
+    "large_direct": [
+      {
+        "regime_id": "OPR-ca2d7301f2a0f3ed",
+        "M": 816,
+        "E": 384,
+        "k": 6,
+        "native_task_ns": {
+          "n": 640,
+          "minimum": 30881,
+          "median": 35191.0,
+          "p90": 39581,
+          "maximum": 48440
+        }
+      },
+      {
+        "regime_id": "OPR-b6c3e84a3716f19c",
+        "M": 834,
+        "E": 384,
+        "k": 6,
+        "native_task_ns": {
+          "n": 320,
+          "minimum": 32040,
+          "median": 35400.5,
+          "p90": 39881,
+          "maximum": 48401
+        }
+      }
+    ]
+  }
+}

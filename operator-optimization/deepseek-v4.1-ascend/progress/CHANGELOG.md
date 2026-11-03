@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F20-TOPK-OPPORTUNITIES-REVIEW
+
+涉及：[F20](F20.md)
+
+类型：SOURCE_LOGIC_AND_ARCHIVED_TIMING_PARTIAL_REVIEW；依据：用户点名MoE TopK；复用v63/v76合同并核对钉住源文件哈希、caller、Sort和IsImageRow，重算2560条旧166 root-bound清理任务和。
+
+确认非线性/bias/TopK/权重已有融合；优先低成本F20-I64-NATIVE-NO-SANITIZER，另保留部分选择/GEMM-TopK备选。记录6.14微秒清理任务和对比4.82微秒整TopK，但不提升为收益/关键路径。图内存和KV代价纳入验收，F20全族未关闭。
+
 ## 2026-11-03 · 20261103-F05-GRAPH-MEMORY-COST-CONSTRAINT
 
 涉及：[F05](F05.md)
