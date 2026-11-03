@@ -243,3 +243,5 @@ recall17 第0层固定前8个核心输入和零状态时，8 与 41 token 分块
 recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实际41 token的前8个输出，最终状态也不同；该候选不可据此部署。[记录](validation/chunk-padding-round457.json)。
 
 直接启动 rank 时若未设置 WORLD_SIZE，launcher 会将校验过的默认值4传给 worker；四 rank 实机验证见 [记录](validation/launcher-world-size-round458.json)。
+
+稀疏KDA与40+1预填的archive-v2恢复后，续算完整logits及45层状态在受测配置下相等，见 [记录](validation/sparsearchive40-round460.json)。

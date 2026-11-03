@@ -165,3 +165,5 @@ CLI的40 token dense及第4层sparse KDA组合与逐token MoE范围见 [验证�
 KDA 分块长度对所测第0位置核心输出有影响；这是单输入受控比较，不是整模型精度结论。[记录](validation/chunk-shape-round456.json)。
 
 KDA 前8 token 补零至41的候选未复现实际41 token前缀，补零状态也不同；不得作为已验证修复。[记录](validation/chunk-padding-round457.json)。
+
+稀疏KDA 40+1预填的恢复与未恢复续算对比见 [记录](validation/sparsearchive40-round460.json)。
