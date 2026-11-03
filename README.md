@@ -120,7 +120,7 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 
 ### 实验性 rank 批量事务
 
-`PreparedTextRunner` 在已启用 rank commit agreement 且为逐 token 栈执行时，可在创建请求前显式调用 `enable_rank_batch_commit(max_tokens=2)`；上限可设 1–8。所有 rank 必须按相同顺序启用和调用。该路径先核对元数据与 token，再逐行执行，完成同步准备后一次提交状态；不接受页面绑定，也不启用 layer-major chunk。四 rank 实测了单 rank 过期位置、格式错误和 token 不一致，以及第二 token head 同步异常；45 层状态保持不变，重试 logits 与状态匹配干净逐 token 执行。测试为固定短例，不覆盖栈内 collective 异常或进程、设备故障。[探针](portable/rank_batch_probe.py) 需要操作者提供已持锁登记的四 rank 分配和 PID/die 屏障；[范围](validation/rank-batch-commit-round411.json)。
+`PreparedTextRunner` 在已启用 rank commit agreement 且为逐 token 栈执行时，可在创建请求前显式调用 `enable_rank_batch_commit(max_tokens=2)`；上限可设 1–8。所有 rank 必须按相同顺序启用和调用。该路径先核对元数据与 token，再逐行执行，完成同步准备后一次提交状态；不接受页面绑定。四 rank 实测了单 rank 过期位置、格式错误和 token 不一致，以及第二 token head 同步异常；45 层状态保持不变，重试 logits 与状态匹配干净逐 token 执行。测试为固定短例，不覆盖栈内 collective 异常或进程、设备故障。[探针](portable/rank_batch_probe.py) 需要操作者提供已持锁登记的四 rank 分配和 PID/die 屏障；[范围](validation/rank-batch-commit-round411.json)。 实验调用也可显式设置 `layer_major_dense_kda=True`；调用者须先将选定 dense KDA 层设为 `ascendc_chunk_prefill` 并启用 `native_chunk_prefill`，所有层保持 `native_tokenwise`。各 rank 在执行前核对层掩码；sparse 与 DSA 仍逐 token。四 rank 双行回滚通过，但同权重 recall17 的首 token 与参考仍不同（99419 对 1474，154880 logits RMSE 约 0.712）；这不是质量通过。[实测范围](validation/dense-layer-prefill-round411.json)。
 
 ### 实验性单层 chunk 预填入口
 

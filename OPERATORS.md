@@ -61,3 +61,5 @@ DSA：make_experimental_fp32_expanded_dsa_operations（显式实验路径）
 仍未完成：参考差异根因与整模型精度验收、生产级 TP/EP 与 paged-KV、服务/批处理、长上下文质量、端到端性能，以及便携部署入口的真实复现。后续新增或替换后端时，应同步更新本清单及实测配置，不能仅累计“已适配算子数量”。
 
 实验性 rank 批量事务提供最多 8 个 token 的逐行状态事务，并非 chunk 内核或生产批处理；四 rank 短例的输入预检、head 异常和状态回滚范围见 [验证记录](validation/rank-batch-commit-round411.json)。
+
+实验性 layer-major 模式仅对显式选择的 dense KDA 层调用 chunk，其余 sparse/DSA 逐 token；层掩码一致性、回滚及 recall17 首 token 未对齐的实测见 [记录](validation/dense-layer-prefill-round411.json)。

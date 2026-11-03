@@ -51,6 +51,7 @@ class PreparedTextRunner(nn.Module):
         self._lock,self._requests=Lock(),{}
         self._rank_commit_enabled,self._rank_commit_group=False,None
         self._rank_batch_limit=0
+        self._rank_batch_layer_major=False
         self._validate_components()
 
     def enable_rank_commit_agreement(self, *, group=None):
@@ -69,13 +70,14 @@ class PreparedTextRunner(nn.Module):
             self._rank_commit_group=group
             self._rank_commit_enabled=True
 
-    def enable_rank_batch_commit(self, *, max_tokens):
+    def enable_rank_batch_commit(self, *, max_tokens, layer_major_dense_kda=False):
         """Explicit token-major rank transaction, 1..8 rows; no page writes.
 
         All ranks must opt in and call in the same order. Live-rank failures
         before stack entry, in the head, and while capturing state are agreed.
         Process/device loss and errors inside stack collectives are not recovered.
-        This does not enable layer-major chunk prefill.
+        Optional layer-major execution requires explicit dense KDA chunk layers;
+        DSA and sparse layers retain their tokenwise fallbacks.
         """
         with self._exclusive():
             if self._requests:raise RuntimeError('enable batch agreement before opening requests')
@@ -83,6 +85,17 @@ class PreparedTextRunner(nn.Module):
                 raise ValueError('rank batch requires tokenwise rank commit agreement')
             if type(max_tokens) is not int or not 1<=max_tokens<=8:
                 raise ValueError('rank batch bound must be 1..8')
+            if type(layer_major_dense_kda) is not bool:raise ValueError('layer-major flag must be boolean')
+            if layer_major_dense_kda:
+                selected=0
+                for layer in self.stack.layers:
+                    if not layer.native_tokenwise:raise ValueError('all native layers must preserve tokenwise fallback')
+                    if getattr(layer,'native_chunk_prefill',False):
+                        if layer.attention_kind!='linear_attention' or layer.mlp_kind!='dense' or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill':
+                            raise ValueError('layer-major supports only explicit dense KDA chunks')
+                        selected+=1
+                if not selected:raise ValueError('layer-major requires an explicit dense KDA chunk layer')
+            self._rank_batch_layer_major=layer_major_dense_kda
             self._rank_batch_limit=max_tokens
 
     def _validate_components(self):
@@ -174,9 +187,19 @@ class TextRequest:
             if bool(((token_ids<0)|(token_ids>=r.boundary.manifest.vocab_size)).any()):raise ValueError('rank batch token out of vocabulary')
             ids=token_ids.to(dtype=torch.int64).tolist()
             request_hash=int.from_bytes(hashlib.sha256(self.request_id.encode()).digest()[:7],'big')
-            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end]
+            layer_mask=0
+            if r._rank_batch_layer_major:
+                for layer in r.stack.layers:
+                    if not layer.native_tokenwise:raise ValueError('layer-major fallback configuration changed')
+                    if getattr(layer,'native_chunk_prefill',False):
+                        if (type(layer.layer_id) is not int or not 0<=layer.layer_id<63 or layer.attention_kind!='linear_attention'
+                                or layer.mlp_kind!='dense' or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill'):
+                            raise ValueError('invalid layer-major chunk configuration')
+                        layer_mask |= 1<<layer.layer_id
+                if not layer_mask:raise ValueError('layer-major chunk configuration is empty')
+            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask]
         except Exception as exc:
-            failure=exc;metadata=[1,0,0,0,0,0,0];ids=[]
+            failure=exc;metadata=[1,0,0,0,0,0,0,0,0];ids=[]
         header=torch.tensor(metadata,dtype=torch.int64,device=device);headers=[torch.empty_like(header) for _ in range(size)]
         dist.all_gather(headers,header,group=group)
         if any(int(h[0].item()) for h in headers) or not all(torch.equal(headers[0],h) for h in headers[1:]):
@@ -193,8 +216,16 @@ class TextRequest:
         except Exception as exc:failure=exc
         agree(failure,'rank batch embedding failed')
         working=self._state;hidden_rows=[];logit_rows=[]
-        for row in embedded.split(1,dim=0):
-            streams,working=r.stack(row,working)
+        if r._rank_batch_layer_major:
+            streams,working=r.stack(embedded,working)
+            stream_rows=streams.split(1,dim=0)
+        else:
+            stream_rows=None
+        for index,row in enumerate(embedded.split(1,dim=0)):
+            if stream_rows is None:
+                streams,working=r.stack(row,working)
+            else:
+                streams=stream_rows[index]
             failure=None
             try:
                 hidden=r.boundary.final_hidden(streams);logits=r.head(hidden)
