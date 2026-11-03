@@ -61,8 +61,8 @@ def main():
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
     world_size = args.world_size
-    if args.experimental_kda_prefill40 and (not args.experimental_layer_major_kda or args.experimental_sparse_kda_layer4):
-        parser.error('--experimental-kda-prefill40 requires layer-major dense KDA and excludes sparse KDA layer4')
+    if args.experimental_kda_prefill40 and not args.experimental_layer_major_kda:
+        parser.error('--experimental-kda-prefill40 requires layer-major KDA')
     if args.experimental_sparse_kda_layer4 and not args.experimental_layer_major_kda:
         parser.error('--experimental-sparse-kda-layer4 requires --experimental-layer-major-kda')
     if args.experimental_layer_major_kda and (world_size != 4 or args.kda_backend != 'ascendc' or args.rollback_probe or args.rollback40_probe or args.reference_probe or args.snapshot_probe or args.cache_equivalence_probe):
