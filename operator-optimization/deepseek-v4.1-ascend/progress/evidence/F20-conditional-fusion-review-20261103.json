@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "candidate": "F20",
+  "status": "CONDITIONAL_FUSION_DESIGN_CLARIFICATION_NOT_IMPLEMENTATION",
+  "question": "A后接if B else C能否改为if AB else AC，或将条件和两支放在一个融合算子里？",
+  "prior_coverage": "v76 M12-OP-03/04/07/08已分析部分norm/bias/hash/ID条件，M12-OP-15明确保留其他路径和未观测条件；不能宣称所有条件融合覆盖完成。",
+  "evidence": [
+    "records/history/continuation/profile-first-20261031/router-predicate-branch-inventory-v76.json",
+    "records/history/continuation/profile-first-20261031/router-vector-numerical-contract-v63.json",
+    "progress/evidence/F20-topk-opportunities-review-20261103.json"
+  ],
+  "variants": [
+    {
+      "id": "CONDITIONAL_AB_OR_AC",
+      "meaning": "原先t=A(x);if p:B(t) else:C(t)，改为if p:AB(x) else:AC(x)。",
+      "A_evaluations_per_invocation": 1,
+      "active_kernels_in_simplified_before": 2,
+      "active_kernels_in_simplified_after": 1,
+      "conditions": [
+        "p在执行A前可获得，重排不改变原求值/状态/错误行为",
+        "两个分支互斥；不与A同时给B和C两个消费者的情形混淆",
+        "AB和AC各自满足真正底层融合的数值、全部读者、完整统计/同步和容量要求"
+      ],
+      "memory": "有两种代码实现不等于两份运行中间结果；但后端可能保留多份capture图/内存池，需实际计价。"
+    },
+    {
+      "id": "A_THEN_DEVICE_IF_INSIDE_KERNEL",
+      "meaning": "单个融合kernel内部先算t=A(x)，再按p执行对应B或C；若p来自t，先算t再判断。",
+      "A_evaluations_per_invocation": 1,
+      "conditions": [
+        "条件与所选支路在设备侧可合法执行，跨块依赖/全局统计/同步须有可实现方案",
+        "保持各支路输入输出、状态、通信参与及所有活跃读者；不能执行原先未选分支的副作用",
+        "运行时条件下编译器如何执行及每行不同条件的资源/成本须验证"
+      ],
+      "memory": "条件分支在同一binary不表示临时空间一定只有选中分支大小；编译器buffer生命周期、工作区和图池决定实际常驻/峰值。"
+    },
+    {
+      "id": "COMPUTE_BOTH_THEN_SELECT_IS_DIFFERENT",
+      "meaning": "where(p,B(t),C(t))这类表达式不能当作只执行一支的证明。",
+      "conditions": [
+        "在eager求值中B和C实参可能均先计算；编译后是否短路、谓词化或两边执行必须核对",
+        "若改成两边计算再选择，需计入额外算力/临时空间并保留原未执行分支的语义约束"
+      ]
+    }
+  ],
+  "actual_source_example": {
+    "source": "已钉moe_gating_top_k_hash_without_group.h，哈希复用上一轮核验结果",
+    "sha256": "f18d63bda201eb407a3861da0f5189d45d439b6630abf52058a6eaa0420d8fdb",
+    "lines": "196-201,218-228,404-419",
+    "description": "同一kernel内部按行判useVisionBias，在图像bias、文本bias及无bias路径间选择，随后继续专家选择及权重计算。也有hashFlag&&!useVisionBias的选择分支；所选旧profile tid2eid未定义，不将该hash分支当已观测执行。",
+    "not_current_171_binary_attestation": true
+  },
+  "graph_count_caveat": "互斥条件情形按每次运行原为A+所选B/C两次执行，候选可为一次；静态代码中有A/B/C三种操作，不等于每次捕获图都含三项，host条件可能按路径分别捕获。真正native任务数须看后端与capture。",
+  "next_decision": "每个候选检查共同前缀/互斥支路与条件来源；优先比较保留原语义的分支特化和内部条件，不把未观测分支当无关或已覆盖。",
+  "native_test": false,
+  "implemented": false,
+  "measured_speedup": false,
+  "public_reference": {
+    "url": "https://www.hiascend.com/doc_center/source/en/canncommercial/800/apiref/ascendcopapi/atlas_ascendc_api_07_0217.html",
+    "use": "官方TILING_KEY_IS说明存在不同kernel实现分支；不证明本候选运行性能、图份数或当前加载配置。"
+  }
+}

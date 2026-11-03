@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F20-CONDITIONAL-FUSION-CLARIFICATION
+
+涉及：[F20](F20.md)
+
+类型：CONDITIONAL_FUSION_CANDIDATE_MODEL_CLARIFICATION；依据：用户提出共同前缀A与互斥B/C的分支专用融合及内部条件融合；复用v76条件清单和已钉TopK源码的bias/hash条件。
+
+区分互斥支路每次A仍算一次与双消费者重算A；记录条件来源/特化/内部if/where区别及图内存验收，补入复用方法。已有部分分支不升级全覆盖，无新实施或性能结论。
+
 ## 2026-11-03 · 20261103-F20-TOPK-OPPORTUNITIES-REVIEW
 
 涉及：[F20](F20.md)
