@@ -133,3 +133,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 当前 rank-commit 源码在四 die 上通过 archive-v2 的45层保存与恢复检查：固定 8+5 提示后恢复续写的完整 logits、IDs 和全部最终层状态一致。[实测记录](validation/archive-restore-round415.json)。[参数化 probe](portable/rank_snapshot_probe.py) 已接入发布 runner 的 `--snapshot-probe`；需提供现有 operator 配置，runner 使用配置中的互斥、登记及映射校验。固定 probe 不接受自由消息参数，worker 超时900秒。运行命令见实测记录。
 
 当前源码的四 rank 45 层固定 7+6 请求中，逐次加载与128 MiB可复用专家会话的28个逐步 logits 均一致；会话关闭后无驻留字节或活动 lease。测试观测零 cache hit，不代表重用或性能收益。runner 的 `--cache-equivalence-probe` 已实测；固定输入及命令见 [记录](validation/cache-equivalence-round416.json)。
+
+当前源码的四 rank 三消息 recall17 在第一个生成 token 后进行 archive-v2 恢复，生成的38个 IDs 与保留的未恢复适配运行一致，正常以配置 stop 结束；独立参考的首 token 仍不同。该检查未比较完整 logits 或全部状态。[实测记录](validation/recall-restore-round417.json)。
