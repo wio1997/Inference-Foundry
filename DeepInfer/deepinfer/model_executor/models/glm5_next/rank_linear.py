@@ -11,7 +11,7 @@ class RankW8A8OutputLinear(nn.Module):
  Four-rank mode gathers BF16 local outputs in rank order. No expert routing,
  row-parallel reductions, bias, uneven partitions or model integration implied.
  """
- def __init__(self,reader,prefix,device,*,rank,world_size,row_start,row_stop,max_output_rows,group=None):
+ def __init__(self,reader,prefix,device,*,rank,world_size,row_start,row_stop,max_output_rows,group=None,max_input_tokens=8):
   super().__init__()
   if torch.device(device).type!='npu':raise ValueError('explicit NPU device required')
   if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
@@ -20,11 +20,13 @@ class RankW8A8OutputLinear(nn.Module):
   elif dist.is_initialized():raise ValueError('one-rank path requires no initialized group')
   self.rank,self.world_size,self.group,self.row_start,self.row_stop=rank,world_size,group,row_start,row_stop
   self.device=torch.device(device)
+  self.max_input_tokens=max_input_tokens
   # Reserve the control flag before loading a local shard. All live ranks
   # must agree that initialization succeeded before any proceeds to forward.
   status=torch.zeros((1,),dtype=torch.int32,device=self.device) if world_size>1 else None
   failure=None
   try:
+   if type(max_input_tokens) is not int or not 1<=max_input_tokens<=40:raise ValueError('input token bound must be 1..40')
    if any(type(v) is not int for v in (row_start,row_stop,max_output_rows)) or not 0<=row_start<row_stop or max_output_rows<1 or row_stop-row_start>max_output_rows:raise ValueError('invalid bounded output rows')
    if not isinstance(prefix,str) or not prefix:raise ValueError('nonempty projection prefix required')
    self._prefix_fingerprint=int.from_bytes(hashlib.sha256(prefix.encode('utf-8')).digest()[:8],'big',signed=True)
@@ -45,14 +47,14 @@ class RankW8A8OutputLinear(nn.Module):
    if int(status.item()):raise RuntimeError('one or more ranks failed linear initialization') from failure
   elif failure is not None:raise failure
  def forward(self,x):
-  valid=(isinstance(x,torch.Tensor) and x.device.type=='npu' and x.dtype==torch.bfloat16 and x.ndim==2 and 1<=x.shape[0]<=8 and x.shape[1]==self.input_size)
+  valid=(isinstance(x,torch.Tensor) and x.device.type=='npu' and x.dtype==torch.bfloat16 and x.ndim==2 and 1<=x.shape[0]<=self.max_input_tokens and x.shape[1]==self.input_size)
   if self.world_size==1:
    if not valid:raise ValueError('bounded BF16 NPU token matrix required')
-   return self.local(x).contiguous()
+   return torch.cat([self.local(tile) for tile in x.split(8,dim=0)],dim=0).contiguous()
   if not dist.is_initialized() or dist.get_world_size(self.group)!=self.world_size or dist.get_rank(self.group)!=self.rank:raise RuntimeError('rank group changed after construction')
   # Exchange fixed-size status and geometry before any variable-size collective.
   # This diagnostic correctness path requires identical replicated inputs.
-  meta=torch.tensor([0,x.shape[0],x.shape[1],self.row_start,self.row_stop,self._prefix_fingerprint] if valid else [1,0,0,0,0,0],dtype=torch.int64,device=self.device)
+  meta=torch.tensor([0,x.shape[0],x.shape[1],self.row_start,self.row_stop,self._prefix_fingerprint,self.max_input_tokens] if valid else [1,0,0,0,0,0,0],dtype=torch.int64,device=self.device)
   metadata=[torch.empty_like(meta) for _ in range(self.world_size)];dist.all_gather(metadata,meta,group=self.group)
   if any(int(item[0].item()) for item in metadata) or not all(torch.equal(metadata[0],item) for item in metadata[1:]):raise ValueError('rank linear input preflight failed or geometry differs')
   # Preallocate the control flag before the potentially failing input buffers.
@@ -72,7 +74,7 @@ class RankW8A8OutputLinear(nn.Module):
   if not all(torch.equal(inputs[0],item) for item in inputs[1:]):raise ValueError('rank linear inputs differ')
   failure=None;local=None;parts=None
   try:
-   local=self.local(value).contiguous()
+   local=torch.cat([self.local(tile) for tile in value.split(8,dim=0)],dim=0).contiguous()
    if local.shape!=(value.shape[0],self.local_stop-self.local_start) or local.dtype!=value.dtype or local.device!=value.device:raise ValueError('rank linear output geometry differs')
    parts=[torch.empty_like(local) for _ in range(self.world_size)]
    # Surface synchronous device errors before the coordinated status exchange.
