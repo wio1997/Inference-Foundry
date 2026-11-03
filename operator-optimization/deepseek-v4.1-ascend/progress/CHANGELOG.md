@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F06-SCOPE-VS-DENSE-CONCAT-CORRECTION
+
+涉及：[F06](F06.md)
+
+类型：EXPLANATION_SCOPE_CORRECTION_NOT_NEW_TECHNICAL_EVIDENCE；依据：用户指出3/24直接拼接必然多算21条Q_A；复用上一条行域计算反例，无新代码/运行证据。
+
+明确一个融合算子不必采用普通稠密权重拼接；直接拼接统一24行必然多算Q，按各自有效行范围调度是另一未验证实现。F06仅两个投影的范围澄清，不升级技术成熟度或推荐3/24直接拼接。
+
 ## 2026-11-04 · 20261104-F06-JOINT-PROJECTION-PARTIAL-REVIEW
 
 涉及：[F06](F06.md)
