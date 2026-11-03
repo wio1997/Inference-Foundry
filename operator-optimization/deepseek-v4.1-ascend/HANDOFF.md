@@ -2,8 +2,11 @@
 
 - 项目：DeepSeek V4.1 Ascend算子优化检查与分析逻辑归档。
 - 当前：原任务v180记录为分析验收完成；42候选仍为条件式，未实施优化。
-- 当前任务：把分析记录和复用方法提交此分支，不采profile、不启动旧实验。
-- 首读：REPORT.md、CANDIDATES.md、ANALYSIS_WORKFLOW.md、REUSE_AND_DEDUP.md。
+- 当前任务：按用户要求维护每个候选的逻辑分析、验证状态和待办。入口为[逐条进展](progress/README.md)；历史归档已提交，不从旧记录自动启动实验。
+- 当前候选：[F01 EARLY-Y](progress/F01.md)。有外部pre_mix时的源依赖与每块执行顺序已澄清；可实现性、数值正确性与收益未验证。该子方案属于拆分/交付重组，不称为新增融合。
+- 首读：progress/README.md、当前候选页、REUSE_AND_DEDUP.md；再按需要查REPORT.md、CANDIDATES.md和证据。不要通读历史。
+- 独立复核：用户已请求GPT-6.1/xhigh；当前临时侧聊禁止子代理，尚未启动。任务恢复包在[progress/tasks/f01-early-y/](progress/tasks/f01-early-y/README.md)。
 - 事实缓存：knowledge/facts.jsonl；问题状态：knowledge/questions.json。
 - 原始profile/trace/DB不在仓库；以后有新数据，再建立新的run/cohort，不覆盖历史结论。
 - 下次若开始实施：由用户选定具体候选和案例，先查已有事实/反例/条件，仅对改变决策的缺证据取证。不能因归档存在旧授权或next_action自动操作服务器。
+- 更新记录：修改progress/candidates.json、向events.jsonl追加决策增量，再运行tools/render_progress.py。每次实质证据、纠正、失败或下一步变化都提交；重复阅读/讲解不记为技术进展。

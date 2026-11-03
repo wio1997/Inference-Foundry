@@ -1,0 +1,162 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-11-03T12:06:02Z",
+  "context_policy": {
+    "max_knowledge": 20,
+    "max_loops": 5,
+    "max_cases": 12,
+    "dtype_filter": null,
+    "case_group_filter": null,
+    "raw_runs_loaded": false
+  },
+  "task": {
+    "task_dir": "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y",
+    "task_id": "f01-early-y",
+    "title": "F01 · HcPre 提前交付 Y 的逻辑与验证",
+    "goal": "针对有外部pre_mix的指定路径，记录源码依赖、当前可实现性、数值要求及同条件性能结论；不能因记录成稿标记性能方案完成。",
+    "operator": "HcPre EARLY-Y",
+    "framework": "vLLM-Ascend / Ascend C / CANN9.2.0",
+    "source_root": "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend",
+    "status": "ACTIVE",
+    "phase": "DESIGNING",
+    "evidence_level": "E0_SPEC_ONLY",
+    "active_loop": null,
+    "next_action": "先取得用户要求的独立只读审查（GPT-6.1/xhigh尚未启动，需在允许代理的主对话执行），再按F01-02复用171既有同批次基线。未来实验F01-03仍为计划，不从本记录自动操作服务。",
+    "blockers": [],
+    "skill_route": {
+      "coordinator": "operator-task-loop",
+      "decision": null,
+      "execution": null
+    }
+  },
+  "case_summary": {
+    "total": 1,
+    "groups": {
+      "archived-target-small": 1
+    },
+    "selected": [
+      {
+        "id": "target-m3-external-premix",
+        "shape": [
+          3,
+          4,
+          5120
+        ],
+        "numel": 61440,
+        "dtype": "bf16",
+        "layout": "ND",
+        "attributes": {},
+        "weight": 1.0,
+        "group": "archived-target-small",
+        "protected": true,
+        "reason": "旧166已观测的小行数源码域，外部pre_mix为FP32[3,4]；当前只做归档审查，不宣称171同call绑定或数值测试通过。",
+        "created_at": "2026-11-03T12:04:53Z",
+        "updated_at": "2026-11-03T12:04:53Z"
+      }
+    ]
+  },
+  "baseline_summary": [],
+  "knowledge_summary": {
+    "total": 3,
+    "selected": [
+      {
+        "id": "F01-K01",
+        "kind": "fact",
+        "statement": "归档有外部pre_mix分支中，Y使用原X及已有pre_mix；新post/comb供当前HcPost，新pre供后续FFNPre。没有pre_mix的分支不覆盖。",
+        "status": "limited",
+        "confidence": "high",
+        "scope": {
+          "source": "archived-A3-v58/v59/v93",
+          "profile_time_scope": "166-20261030 only;171 replay evidence separate",
+          "variant": "EARLY-Y with external pre_mix",
+          "native_binary_identity": "not-established"
+        },
+        "supporting_evidence": [
+          "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/evidence/F01-review-20261103.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "L001-early-y-review",
+        "staged_at": "2026-11-03T12:06:02Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-11-03T12:06:02Z"
+      },
+      {
+        "id": "F01-K02",
+        "kind": "fact",
+        "statement": "归档A3源码第一阶段有全同步；第二阶段每处理块按新pre、Y写出、post/comb推进。已有内部流水不等于下游可单独等待Y。",
+        "status": "limited",
+        "confidence": "high",
+        "scope": {
+          "source": "archived-A3-v58/v59/v93",
+          "profile_time_scope": "166-20261030 only;171 replay evidence separate",
+          "variant": "EARLY-Y with external pre_mix",
+          "native_binary_identity": "not-established"
+        },
+        "supporting_evidence": [
+          "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/evidence/F01-review-20261103.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "L001-early-y-review",
+        "staged_at": "2026-11-03T12:06:02Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-11-03T12:06:02Z"
+      },
+      {
+        "id": "F01-K03",
+        "kind": "constraint",
+        "statement": "旧166的2560组HC→norm中位耗时35.401µs、间隔0.980µs、norm3.960µs；不能迁移到171，不能推导内部Y就绪时刻、全局CPU瓶颈或端到端可省时间。",
+        "status": "limited",
+        "confidence": "high",
+        "scope": {
+          "source": "archived-A3-v58/v59/v93",
+          "profile_time_scope": "166-20261030 only;171 replay evidence separate",
+          "variant": "EARLY-Y with external pre_mix",
+          "native_binary_identity": "not-established"
+        },
+        "supporting_evidence": [
+          "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/evidence/F01-review-20261103.json"
+        ],
+        "contradicting_evidence": [],
+        "replaces": [],
+        "global_candidate": false,
+        "source_loop": "L001-early-y-review",
+        "staged_at": "2026-11-03T12:06:02Z",
+        "verdict": "INCONCLUSIVE",
+        "updated_at": "2026-11-03T12:06:02Z"
+      }
+    ]
+  },
+  "recent_loops": [
+    {
+      "loop_id": "L001-early-y-review",
+      "title": "EARLY-Y 源码依赖与实现证据边界",
+      "mode": "design",
+      "cases": [
+        "target-m3-external-premix"
+      ],
+      "hypothesis": "在有外部pre_mix的路径中，Y能与当前新系数生产分离，并存在保持原语义的提前交付实现；当前仅核对归档证据。",
+      "verdict": "INCONCLUSIVE",
+      "reason": "源码依赖允许研究EARLY-Y，当前输出交付约束已澄清；新接口/调度与资源可执行性尚无native证据，没有改动后正确性/性能对照。不能把源依赖成立升级为已验证并行或收益。",
+      "evidence_paths": [
+        "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/evidence/F01-review-20261103.json"
+      ],
+      "decided_at": "2026-11-03T12:06:02Z"
+    }
+  ],
+  "active_loop_summary": null,
+  "read_first": [
+    "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y/README.md",
+    "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y/index.json",
+    "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y/status.md",
+    "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y/knowledge-state.json"
+  ],
+  "history_indexes": {
+    "loops": "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y/loop-index.jsonl",
+    "knowledge": "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y/knowledge-events.jsonl",
+    "task_events": "/Users/wio/work/Inference-Foundry-operator-optimization/operator-optimization/deepseek-v4.1-ascend/progress/tasks/f01-early-y/task-events.jsonl"
+  }
+}

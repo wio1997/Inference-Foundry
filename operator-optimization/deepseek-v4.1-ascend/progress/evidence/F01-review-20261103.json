@@ -1,0 +1,80 @@
+{
+  "candidate": "F01",
+  "variant": "HC93-EARLY-Y",
+  "review_date": "2026-11-03",
+  "kind": "ARCHIVED_SOURCE_AND_PROFILE_REVIEW_NOT_NATIVE_TEST",
+  "status": "PASS",
+  "checks": {
+    "source_selects_external_premix_for_Y": true,
+    "source_Y_before_Post_and_comb_per_processed_block": true,
+    "source_global_sync_after_first_stage": true,
+    "model_norm_after_hc_pre": true,
+    "model_current_coeffs_live_at_post_and_next_ffn_pre": true,
+    "archive_new_variant_not_implemented": true
+  },
+  "evidence": [
+    {
+      "path": "records/history/continuation/profile-first-20261031/HC-attention-fork-source-contract-v93.json",
+      "sha256": "a4a788d17144c4f1b07e94942209103207b1036fd54f4349ea7e6772d949658e"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/HC-operator-numerical-and-dependency-contract-v59.json",
+      "sha256": "b744ea3893e1bb389433c0ecf537fe3878d73223a0517eef777f1ad466f539ae"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/HC-attention-fork-variants-v93.json",
+      "sha256": "94afdeaa5540a6f1ddfd698fe0f82e93dd0cf28391b14cef0ce1ee9a331f9e76"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/HC-operator-profile-and-edges-v58.json.gz",
+      "sha256": "899aced3bf4582c91f447854cbd035403570c14425993207e37e88eaee450ac7"
+    },
+    {
+      "path": "records/history/continuation/shared-profile-analysis-v166/graph-replay-containment-focus.json",
+      "sha256": "6f9f836530a8bac3e39c84e0e59e337c00b128cf7553e3d1b4544a7fa4e4648c"
+    },
+    {
+      "path": "records/history/continuation/HC-operator-source-v58/vllm-workspace/vllm-ascend/csrc/moe/hc_pre/op_kernel/hc_pre_m_k_split_core.h",
+      "sha256": "4d697b15e541216722369284cbd8c9bd5f4154cd0d2251cdb06a6cd46f42fc14"
+    }
+  ],
+  "source_claim": "有外部pre_mix时，源码中Y由X和该pre_mix生成，不依赖本次新系数；当前每块Y先于post/comb写出，但下游按整体HcPre完成执行。",
+  "profile_166_20261030": {
+    "population": "root-bound target graph attention HC->norm;16logicaldevices/2windows;not171",
+    "pairs": 2560,
+    "same_stream_all_registered_edges": true,
+    "HcPre_median_us": 35.401,
+    "gap_median_us": 0.98,
+    "RmsNorm_median_us": 3.96,
+    "does_not_prove": [
+      "Y内部就绪时刻",
+      "全部HcPre时间可省",
+      "CPU不是全局瓶颈",
+      "端到端关键路径收益"
+    ]
+  },
+  "profile_171_20261102": {
+    "profile": "dp0_pp0_tp0_dcp0_ep0_rank0_727_20261102152817241_ascend_pt",
+    "recorded_runtime_modes": [
+      "FULL"
+    ],
+    "claim": "记录有FULL图回放；不借此迁移166耗时或证明每个native HcPre的creator绑定。"
+  },
+  "not_established": [
+    "171加载二进制与归档底层源码逐指令一致",
+    "多队列任务可同时驻留执行",
+    "新接口和事件交接可实现",
+    "改动后数值正确性",
+    "有效资源重叠与同条件性能收益",
+    "独立代理复核"
+  ],
+  "no_new_profile_no_server_action_no_kernel_implementation": true,
+  "source_contract_notes": [
+    "All8capturedHcPre regimes include external pre_mix; the16totalHCregimes consistof8HcPre+8HcPost. Current collapsedY does not depend on currentprojection/coefficients, but newpre/post/comb remain live.",
+    "Projection AB explicitly enables HF32 onFLOATinputs; A2 computes16x16 Gram blocks and stage2 selects diagonal. Native exact reduction/precision differs from genericFP32dot assumptions.",
+    "Preserve BF16 outputY before RMSNorm; RmsNormCast outputsBF16 andFLOAT widened fromroundedBF16 per priorF04 contract. Preserve downstreamrouted/shared consumers.",
+    "HcPost creates fresh output and widensBF16x/residual toFP32; separate Mul/Add in increasingresidual-i order followedRINTtoBF16. Do not replace with unrounded producer or reassociated/FMAexpression without fidelity contract.",
+    "Post output is nextPre input and nextPost residual, and may feed aux/Engram/tail. Post→Pre fusion does not eliminate all residual materialization.",
+    "Original source usesglobal SyncAll between stage1 andstage2 and whole-kernelcompletion before downstreamnorm. EarlyY visibility requires explicit operator split/handoff, not a launch-order-only change."
+  ]
+}
