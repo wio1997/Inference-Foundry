@@ -117,3 +117,7 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 ### 实验性 world size 参数
 
 普通文本模式可显式传入 `--world-size`（默认 4，候选 2、4、8、16）；分配数量、授权、登记和有界 helper 必须匹配该值。当前 helper 与实际硬件验收仅覆盖四 rank；其他数量的资源、通信、显存和完整模型行为均未验证。参考与回滚探针仍限定四 rank。更新源码后须重新生成并固定源码清单，不能沿用旧配置的源码哈希。[四 rank 实测](validation/rank-portable-round408.json) 仅覆盖固定短案例，不构成其他规模或独立质量验收。
+
+### 实验性单层 chunk 预填入口
+
+[chunk_prefill.py](DeepInfer/deepinfer/model_executor/models/glm5_next/chunk_prefill.py) 提供单序列、1–64 token、已投影和已卷积输入的显式 chunk 调用，返回输出与新的 FP32 状态，不修改输入状态。四 die 实测 41 token 入口及 20+21 分段的状态交接与对应安装版算子调用一致；第0位置与独立参考捕获一致。它尚未接入完整文本 runner，分段与整块的数值等价、整体模型精度和性能均未验收。[验证记录](validation/chunk-prefill-entry-round409.json)。
