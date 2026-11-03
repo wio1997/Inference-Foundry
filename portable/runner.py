@@ -146,7 +146,7 @@ def main():
             request = {'run_id': args.run_id, 'mode': 'rollback_probe',
                        'kda_backend': 'ascendc', 'context_tokens': 32, 'cache_mib': 0,
                        'tokens': [154822, 154824, 154826, 25062],
-                       'injected_rank': min(2, world_size-1), 'failure_points': ['head_after_stack', 'rank_input_mismatch'], 'mismatch_token': 25063,
+                       'injected_rank': min(2, world_size-1), 'failure_points': ['legacy_stale_preflight', 'head_after_stack', 'rank_input_mismatch'], 'mismatch_token': 25063,
                        'committed_prefix_tokens': 3}
         elif args.cache_equivalence_probe:
             request = {'run_id': args.run_id, 'mode': 'cache_equivalence_probe', 'world_size': 4,
