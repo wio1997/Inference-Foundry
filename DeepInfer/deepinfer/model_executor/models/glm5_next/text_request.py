@@ -259,24 +259,31 @@ class TextRequest:
         r=self._runner
         with r._exclusive():
             if r._rank_batch_limit:return self._rank_batch_step(token_ids,expected_tokens_seen)
-            self._require_open();r._validate_components()
-            if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
-                raise ValueError('stale or invalid expected request token position')
-            if not isinstance(token_ids,torch.Tensor) or token_ids.ndim!=1:
-                raise ValueError('text step requires a one-dimensional token tensor')
-            count=len(token_ids);start=self._state.tokens_seen
-            if r._rank_commit_enabled and (count!=1 or self._page_bindings is not None):
-                raise ValueError('rank commit agreement requires one token and no page bindings')
+            failure=None
+            try:
+                self._require_open();r._validate_components()
+                if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
+                    raise ValueError('stale or invalid expected request token position')
+                if not isinstance(token_ids,torch.Tensor) or token_ids.ndim!=1:
+                    raise ValueError('text step requires a one-dimensional token tensor')
+                count=len(token_ids);start=self._state.tokens_seen
+                if r._rank_commit_enabled and (count!=1 or self._page_bindings is not None):
+                    raise ValueError('rank commit agreement requires one token and no page bindings')
+                if count>min(r.boundary.max_tokens,r.head.max_tokens) or start+count>r.max_context_tokens:
+                    raise ValueError('text step exceeds explicit token/context bound')
+                if r._rank_commit_enabled and any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers):
+                    raise ValueError('reference projection requires layer-major rank preflight')
+            except Exception as exc:
+                failure=exc
             if r._rank_commit_enabled:
-                # The projection experiment is coordinated only by the
-                # layer-major batch preflight; reject it collectively here.
+                # Peers must agree on local validation before any rank enters
+                # stack collectives; otherwise one invalid rank strands peers.
                 import torch.distributed as dist
-                invalid=any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers)
-                status=torch.tensor([int(invalid)],dtype=torch.int32,device=r.boundary.norm_weight.device)
+                status=torch.tensor([int(failure is not None)],dtype=torch.int32,device=r.boundary.norm_weight.device)
                 dist.all_reduce(status,op=dist.ReduceOp.MAX,group=r._rank_commit_group)
-                if int(status.item()):raise ValueError('reference projection requires layer-major rank preflight')
-            if count>min(r.boundary.max_tokens,r.head.max_tokens) or start+count>r.max_context_tokens:
-                raise ValueError('text step exceeds explicit token/context bound')
+                if int(status.item()):raise ValueError('rank commit preflight failed') from failure
+            elif failure is not None:
+                raise failure
             hidden=r.boundary.embed(token_ids)
             if count:
                 if r.native_tokenwise and count>1:

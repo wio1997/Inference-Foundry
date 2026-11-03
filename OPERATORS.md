@@ -69,3 +69,5 @@ DSA：make_experimental_fp32_expanded_dsa_operations（显式实验路径）
 实验性的四分片 KDA 输入投影默认关闭；本地逐次构造权重，开销尚未测量。单层与四 rank 检查通过，但 recall17 与参考仍不一致，见 [记录](validation/reference-projection-round413.json)。
 
 投影实验开关在非 layer-major 分布式路径会协同拒绝；旧单 token rank commit 增加一次 all-reduce，开销未测。[状态验证](validation/reference-projection-guard-round413.json)。
+
+旧单 token rank commit 对本地校验失败先执行协同汇总，避免一方提前退出而其他 rank 进入后续 collective；位置失效的四 rank 检查见 [记录](validation/legacy-rank-preflight-round414.json)。
