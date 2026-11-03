@@ -134,4 +134,4 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 
 当前源码的四 rank 45 层固定 7+6 请求中，逐次加载与128 MiB可复用专家会话的28个逐步 logits 均一致；会话关闭后无驻留字节或活动 lease。测试观测零 cache hit，不代表重用或性能收益。runner 的 `--cache-equivalence-probe` 已实测；固定输入及命令见 [记录](validation/cache-equivalence-round416.json)。
 
-当前源码的四 rank 三消息 recall17 在第一个生成 token 后进行 archive-v2 恢复，生成的38个 IDs 与保留的未恢复适配运行一致，正常以配置 stop 结束；独立参考的首 token 仍不同。该检查未比较完整 logits 或全部状态。[实测记录](validation/recall-restore-round417.json)。
+当前源码的四 rank 三消息 recall17 在第一个生成 token 后进行 archive-v2 恢复，生成的38个 IDs 与保留的未恢复适配运行一致，正常以配置 stop 结束；独立参考的首 token 仍不同。该检查未比较完整 logits 或全部状态。[实测记录](validation/recall-restore-round417.json)。 恢复时现在逐层比较快照与反序列化状态，并先跨 rank 确认；同一 recall17 在四 rank 的45层状态均逐位相等。

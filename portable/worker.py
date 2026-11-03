@@ -29,6 +29,14 @@ model=pathlib.Path(os.environ['GLM_MODEL_DIR']);source=pathlib.Path(os.environ['
 report={'rank':rank,'die':die,'world_size':world_size,'architecture':platform.machine(),'device':torch_npu.npu.get_device_name(0),'weight_index_sha256':sha(model/'quant_model_weights.safetensors.index.json'),'config_sha256':sha(model/'config.json'),'template_sha256':sha(model/'chat_template.jinja'),'install_sha256':sha(source/'rank_text_install.py'),'probe_sha256':sha(__file__),'library_sha256':sha(lib),'versions':{n:importlib.metadata.version(n) for n in ('torch','torch-npu','flash-linear-attention-npu-a3')},'status':'running','phase':'setup','scope':'distributed 45-layer one recall chat; replicated attention/router/embedding/head, sharded dense gate/up and selected experts; same-runtime baseline, not independent quality or production EP','started_at':datetime.datetime.now(datetime.timezone.utc).isoformat()}
 def save():
  p=out/'result.json';q=p.with_suffix('.tmp');q.write_text(json.dumps(report,indent=2,allow_nan=False)+'\n');q.replace(p)
+def archive_state_equal(a,b,config):
+ checks={}
+ for i,spec in enumerate(config.layers):
+  x,y=a.layers[i],b.layers[i]
+  if spec.attention=='linear_attention':same=x.tokens_seen==y.tokens_seen and torch.equal(x.recurrent,y.recurrent) and all(torch.equal(u,v) for u,v in zip(x.conv,y.conv,strict=True))
+  else:same=x.tokens_seen==y.tokens_seen and all(torch.equal(getattr(x,k),getattr(y,k)) for k in ('latent','compressed','tail','tail_positions'))
+  checks[str(i)]=bool(same)
+ return checks
 save()
 try:
  assert report['weight_index_sha256']=='dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4' and report['config_sha256']=='33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943' and report['template_sha256']=='34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891'
@@ -75,14 +83,22 @@ try:
     if request['restore_after_first_token'] and i==0:
      snapshot=q.snapshot();blob=serialize_snapshot(snapshot,config,runner.stack.layout,max_tokens=context,max_archive_bytes=512*1024**2)
      report['archive_sha256']=hashlib.sha256(blob).hexdigest();report['archive_bytes']=len(blob);report['archive_tokens_seen']=pos;report['archive_schema_version']=torch.load(__import__('io').BytesIO(blob),map_location='cpu',weights_only=True)['version'];assert report['archive_schema_version']==2
-     q.close();restored=deserialize_snapshot(blob,config,runner.stack.layout,expected_request_id=request['run_id'],expected_tokens_seen=pos,device='npu',max_tokens=context,max_archive_bytes=512*1024**2);q=runner.open_request(restored)
+     q.close();failure=None;restored=None
+     try:
+      restored=deserialize_snapshot(blob,config,runner.stack.layout,expected_request_id=request['run_id'],expected_tokens_seen=pos,device='npu',max_tokens=context,max_archive_bytes=512*1024**2)
+      report['archive_state_equal']=archive_state_equal(snapshot,restored,config)
+      if snapshot.request_id!=restored.request_id or snapshot.tokens_seen!=restored.tokens_seen or len(report['archive_state_equal'])!=45 or not all(report['archive_state_equal'].values()):raise ValueError('restored archive state mismatch')
+     except Exception as exc:failure=exc
+     restore_status=torch.tensor([int(failure is not None)],dtype=torch.int32,device='npu');dist.all_reduce(restore_status,op=dist.ReduceOp.MAX)
+     if int(restore_status.item()):raise RuntimeError('rank archive restore verification failed') from failure
+     report['archive_state_rank_agreement']=True;q=runner.open_request(restored)
      report['restore_after_first_token_completed']=True;save()
    report['stop_set_reached']=generated[-1] in stops;report['stop_token_id']=generated[-1] if report['stop_set_reached'] else None;report['stop_marker']=tok.decode([generated[-1]],skip_special_tokens=False) if report['stop_set_reached'] else None;report['tokenizer_eos_reached']=generated[-1]==tok.eos_token_id;report['cap_reached']=len(generated)==cap and not report['stop_set_reached'];report['generated_text']=tok.decode(generated,skip_special_tokens=False)
    body=generated[:-1] if report['stop_set_reached'] else generated
    text=tok.decode(body,skip_special_tokens=False);report['reason_final_boundary_present']='</think>' in text
    report['reasoning_text'],report['final_text']=(text.rsplit('</think>',1) if report['reason_final_boundary_present'] else (text,None))
    report['final_answer_exact']=report['final_text'] is not None and report['final_text'].strip()==expected if expected is not None else None
-   report['semantic_pass']=report['rank_agreement'] and report['stop_set_reached'] and not report['cap_reached'] and report['final_text'] is not None and bool(report['final_text'].strip()) and (expected is None or report['final_answer_exact']) and (not request['restore_after_first_token'] or report.get('restore_after_first_token_completed',False))
+   report['semantic_pass']=report['rank_agreement'] and report['stop_set_reached'] and not report['cap_reached'] and report['final_text'] is not None and bool(report['final_text'].strip()) and (expected is None or report['final_answer_exact']) and (not request['restore_after_first_token'] or (report.get('restore_after_first_token_completed',False) and report.get('archive_state_rank_agreement',False) and len(report.get('archive_state_equal',{}))==45 and all(report['archive_state_equal'].values())))
    save();assert report['semantic_pass'], 'recall did not produce naturally terminated exact final answer'
 
   finally:

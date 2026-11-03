@@ -80,5 +80,13 @@
   "tokenizer_eos_reached": false,
   "cap_reached": false,
   "checks": "四 rank 生成38个 token，prompt argmax 与生成 IDs 匹配当前权重下保留的未恢复适配运行；每个 rank 均完成恢复，答案17通过，进程组退出。",
-  "limits": "只比较 prompt argmax 与生成 IDs，未比较恢复前后完整 logits 或全部状态；参考生成13个 token，首 token 即不同，不能据此宣称独立精度通过。"
+  "limits": "该检查比较45层恢复状态与生成 IDs，未比较完整续写 logits；独立参考首 token 仍不同。不声称设备丢失恢复、质量或性能通过。",
+  "archive_state_validation": {
+    "worker_sha256": "7957fc9436d06422b999982ee82d53cc8acd0629a1e6f48bf62a69369d213adf",
+    "source_manifest_sha256": "6fb936ac02cd5a79ce059074158d22035428195a87468ada09f4bdc73c2aa331",
+    "result": "四 rank 在恢复第一个生成 token 后，各自对全部45层 KDA/DSA 状态逐位比较并经 all-reduce 协同确认；生成 IDs 和 prompt argmax 与上一轮适配运行一致。",
+    "test_worker_timeout_seconds": 1200,
+    "published_normal_timeout_seconds": 2100,
+    "normal_path": "非恢复 8+5 在四 rank 匹配前版 prompt IDs、argmax 和生成 IDs；完整 logits 未比较；隔离 runner 超时480秒。"
+  }
 }
