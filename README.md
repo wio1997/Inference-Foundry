@@ -253,3 +253,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 请求构造器更新后的默认回退路径，在省略后端和实验开关时选择 `ascendc_installed_decode`，四rank固定用例验证见 [记录](validation/default-builder-round463.json)。
 
 请求构造器更新后的四rank参考模式固定用例与保留参考输出的对比见 [记录](validation/reference-builder-round464.json)。
+
+四rank归档请求身份不匹配的协调拒绝及探针重试验证见 [记录](validation/archive-identity-round465.json)。
