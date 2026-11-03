@@ -41,3 +41,28 @@ def chunk_prefill(q, k, v, raw_gate, raw_beta, state, a_log, dt_bias, *, lower_b
     if output.shape != (1, t, h, dim) or final_state.shape != (1, h, dim, dim):
         raise RuntimeError('chunk kernel returned unexpected geometry')
     return output.squeeze(0), final_state.squeeze(0)
+
+@torch.inference_mode()
+def chunk_prefill_sharded(q, k, v, raw_gate, raw_beta, state, a_log, dt_bias, *, shards, lower_bound=-5.0):
+    """Reconstruct one replicated KDA result from explicit equal head shards.
+
+    Shards are evaluated locally; this is a correctness experiment, not TP or
+    a serving prefill implementation. The caller retains ownership of state.
+    """
+    if type(shards) is not int or shards < 1 or q.ndim != 3 or q.shape[1] % shards:
+        raise ValueError('explicit equal head shards required')
+    _, heads, dim = q.shape
+    if a_log.numel() != heads or dt_bias.numel() != heads * dim:
+        raise ValueError('gate parameters do not match head geometry')
+    biases = dt_bias.reshape(heads, dim)
+    outputs, states = [], []
+    for index in range(shards):
+        lo, hi = index * (heads // shards), (index + 1) * (heads // shards)
+        output, next_state = chunk_prefill(
+            q[:, lo:hi], k[:, lo:hi], v[:, lo:hi], raw_gate[:, lo:hi],
+            raw_beta[:, lo:hi], state[lo:hi], a_log.reshape(-1)[lo:hi], biases[lo:hi],
+            lower_bound=lower_bound,
+        )
+        outputs.append(output)
+        states.append(next_state)
+    return torch.cat(outputs, dim=1), torch.cat(states, dim=0)

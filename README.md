@@ -121,3 +121,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 ### 实验性单层 chunk 预填入口
 
 [chunk_prefill.py](DeepInfer/deepinfer/model_executor/models/glm5_next/chunk_prefill.py) 提供单序列、1–64 token、已投影和已卷积输入的显式 chunk 调用，返回输出与新的 FP32 状态，不修改输入状态。四 die 实测 41 token 入口及 20+21 分段的状态交接与对应安装版算子调用一致；第0位置与独立参考捕获一致。它尚未接入完整文本 runner，分段与整块的数值等价、整体模型精度和性能均未验收。[验证记录](validation/chunk-prefill-entry-round409.json)。
+
+实验层 `Glm5NextKDA.from_checkpoint(..., backend="ascendc_chunk_prefill")` 对 2–64 token 使用四个本地 head 分片调用 chunk，单 token 切换到 `ascendc` 递推；不改变已有后端。四 die 单层使用真实 41 token 输入后接一个重复输入，验证 chunk 核心第0位置与参考捕获一致、输入状态不变及 41→42 token 状态交接。四个本地分片不是分布式 TP；该选项不接入文本 runner，也不表示整模型 chunk、质量或性能已验收。[结果](validation/kda-chunk-handoff-round409.json)。

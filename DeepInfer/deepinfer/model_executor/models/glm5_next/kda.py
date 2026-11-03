@@ -183,7 +183,7 @@ class Glm5NextKDA(nn.Module):
         config = Glm5NextConfig.from_checkpoint(reader.root)
         if not 0 <= layer_id < config.num_hidden_layers or config.layers[layer_id].attention != 'linear_attention':
             raise ValueError('requested layer is not a GLM KDA backbone layer')
-        if backend not in ('torch','ascendc','ascendc_installed_decode'):
+        if backend not in ('torch','ascendc','ascendc_installed_decode','ascendc_chunk_prefill'):
             raise ValueError('unknown KDA backend')
         self = cls()
         lc = config.linear_attn_config
@@ -203,7 +203,7 @@ class Glm5NextKDA(nn.Module):
         # Rebind the original module weights as views of the fused storage so
         # access to q/k/v remains available without doubling persistent HBM.
         self.in_proj_qkvbfg_a = None
-        if backend in ('ascendc','ascendc_installed_decode'):
+        if backend in ('ascendc','ascendc_installed_decode','ascendc_chunk_prefill'):
             from deepinfer.hugging_face.modelslim910c import FloatLinear
             projections = (self.q_proj, self.k_proj, self.v_proj, self.b_proj, self.f_a_proj, self.g_a_proj)
             if all(type(m) is FloatLinear and m.weight.dtype == torch.bfloat16 for m in projections):
@@ -236,6 +236,8 @@ class Glm5NextKDA(nn.Module):
     def forward(self, x, state=None):
         if x.ndim!=2 or x.shape[-1]!=self.hidden_size:
             raise ValueError('expected hidden states [tokens,hidden_size]')
+        if self.backend == 'ascendc_chunk_prefill' and not 1 <= x.shape[0] <= 64:
+            raise ValueError('experimental chunk KDA requires 1..64 tokens')
         state = self.initial_state() if state is None else state
         if self.in_proj_qkvbfg_a is None:
             q, k, v = (self.q_proj(x), self.k_proj(x), self.v_proj(x))
@@ -251,8 +253,12 @@ class Glm5NextKDA(nn.Module):
             value, tail = conv(projected,weight.squeeze(1),history)
             qkv.append(value.reshape(-1,self.num_heads,self.head_dim)); histories.append(tail)
         raw_gate = self.f_b_proj(f_a).reshape(-1,self.num_heads,self.head_dim)
-        core = {'torch':recurrent_kda,'ascendc':ascendc_recurrent_kda,'ascendc_installed_decode':installed_decode_recurrent_kda}[self.backend]
-        output, recurrent = core(*qkv,raw_gate,raw_beta,state.recurrent,self.a_log,self.dt_bias,lower_bound=self.lower_bound)
+        if self.backend == 'ascendc_chunk_prefill' and x.shape[0] > 1:
+            from .chunk_prefill import chunk_prefill_sharded
+            output, recurrent = chunk_prefill_sharded(*qkv,raw_gate,raw_beta,state.recurrent,self.a_log,self.dt_bias,shards=4,lower_bound=self.lower_bound)
+        else:
+            core = {'torch':recurrent_kda,'ascendc':ascendc_recurrent_kda,'ascendc_installed_decode':installed_decode_recurrent_kda,'ascendc_chunk_prefill':ascendc_recurrent_kda}[self.backend]
+            output, recurrent = core(*qkv,raw_gate,raw_beta,state.recurrent,self.a_log,self.dt_bias,lower_bound=self.lower_bound)
         gate = self.g_b_proj(g_a).reshape(-1,self.num_heads,self.head_dim)
         normed = output.float() * torch.rsqrt(output.float().square().mean(-1,keepdim=True)+self.norm_eps)
         gated = (normed*self.o_norm_weight.float()*gate.float().sigmoid()).to(x.dtype)
