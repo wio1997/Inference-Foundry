@@ -131,3 +131,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 显式实验工厂参数 `load_native_decoder(..., kda_backend="ascendc_chunk_prefill", chunk_prefill=True)` 仅允许 dense KDA 层、每次最多 8 行；DSA、sparse 专家层和完整文本 runner 尚未接入。四 die 真实权重两行测试检查了分派、状态不变和上限，并与同层显式批处理对照；默认逐 token 整模型 8+5 回归的提示 argmax 与生成 ID 保持一致。前者使用参考归一化注意力行作为确定性残差输入，不是整模型精度对照；完整 logits 未比较。[验证范围](validation/decoder-chunk-round410.json)。
 
 当前 rank-commit 源码在四 die 上通过 archive-v2 的45层保存与恢复检查：固定 8+5 提示后恢复续写的完整 logits、IDs 和全部最终层状态一致。[实测记录](validation/archive-restore-round415.json)。[参数化 probe](portable/rank_snapshot_probe.py) 已接入发布 runner 的 `--snapshot-probe`；需提供现有 operator 配置，runner 使用配置中的互斥、登记及映射校验。固定 probe 不接受自由消息参数，worker 超时900秒。运行命令见实测记录。
+
+当前源码的四 rank 45 层固定 7+6 请求中，逐次加载与128 MiB可复用专家会话的28个逐步 logits 均一致；会话关闭后无驻留字节或活动 lease。测试观测零 cache hit，不代表重用或性能收益。runner 的 `--cache-equivalence-probe` 已实测；固定输入及命令见 [记录](validation/cache-equivalence-round416.json)。

@@ -52,26 +52,31 @@ def main():
     parser.add_argument('--rollback-probe', action='store_true', help='run the bounded nonzero-state rollback probe')
     parser.add_argument('--reference-probe', action='store_true', help='run the installed four-rank reference')
     parser.add_argument('--snapshot-probe', action='store_true', help='run the bounded four-rank archive-v2 restore probe')
+    parser.add_argument('--cache-equivalence-probe', action='store_true', help='compare default and reusable cache on the fixed four-rank request')
     args = parser.parse_args()
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
     world_size = args.world_size
-    timeout_seconds = 900 if args.snapshot_probe else 2100
-    if args.snapshot_probe and world_size != 4:
+    timeout_seconds = 1200 if args.cache_equivalence_probe else 900 if args.snapshot_probe else 2100
+    if args.cache_equivalence_probe and world_size != 4:
+        parser.error('cache equivalence probe requires four ranks')
+    if args.reference_probe and world_size != 4:
         parser.error('snapshot probe requires four ranks')
     if args.reference_probe and world_size != 4:
         parser.error('reference probe requires four ranks')
     if args.rollback_probe and world_size not in (2,4):
         parser.error('rollback probe requires two or four ranks')
-    if sum((args.rollback_probe, args.reference_probe, args.snapshot_probe)) > 1:
+    if sum((args.rollback_probe, args.reference_probe, args.snapshot_probe, args.cache_equivalence_probe)) > 1:
         parser.error('select at most one probe mode')
+    if args.cache_equivalence_probe and args.kda_backend != 'ascendc_installed_decode':
+        parser.error('--cache-equivalence-probe requires --kda-backend ascendc_installed_decode')
     if args.snapshot_probe and args.kda_backend != 'ascendc':
         parser.error('--snapshot-probe requires --kda-backend ascendc')
     if args.rollback_probe and args.kda_backend != 'ascendc':
         parser.error('--rollback-probe requires --kda-backend ascendc')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', args.run_id):
         parser.error('invalid run ID')
-    if args.rollback_probe or args.snapshot_probe:
+    if args.rollback_probe or args.snapshot_probe or args.cache_equivalence_probe:
         if (args.messages is not None or args.context_tokens is not None or
                 args.max_new_tokens is not None or args.cache_mib is not None or
                 args.expected_final is not None or args.restore_after_first_token):
@@ -93,7 +98,7 @@ def main():
     if len(manifest_pins) != 1 or sha(manifest_path) != manifest_pins[0]['sha256']:
         raise RuntimeError('base source manifest must have exactly one matching SHA256 pin')
     root = Path(cfg['task_root']).resolve()
-    if not (args.rollback_probe or args.snapshot_probe):
+    if not (args.rollback_probe or args.snapshot_probe or args.cache_equivalence_probe):
         messages = Path(args.messages).resolve()
         if not messages.is_file() or not messages.is_relative_to(root) or messages.stat().st_size > 16384:
             parser.error('message file must be under task root and <=16 KiB')
@@ -132,7 +137,7 @@ def main():
         for rel, digest in manifest.items():
             if not rel.startswith('cli:') and sha(Path(cfg['source_host']) / rel) != digest:
                 raise RuntimeError('source manifest mismatch: ' + rel)
-        for file in ('worker.py', 'launcher.py', 'runner.py') + (('rollback_probe.py',) if args.rollback_probe else ('reference_probe.py',) if args.reference_probe else ('rank_snapshot_probe.py',) if args.snapshot_probe else ()):
+        for file in ('worker.py', 'launcher.py', 'runner.py') + (('rollback_probe.py',) if args.rollback_probe else ('reference_probe.py',) if args.reference_probe else ('rank_snapshot_probe.py',) if args.snapshot_probe else ('rank_cache_equivalence_probe.py',) if args.cache_equivalence_probe else ()):
             manifest['portable:' + file] = sha(Path(__file__).resolve().parent / file)
         manifest['portable:world-size'] = hashlib.sha256(str(world_size).encode()).hexdigest()
         payload = json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
@@ -143,6 +148,11 @@ def main():
                        'tokens': [154822, 154824, 154826, 25062],
                        'injected_rank': min(2, world_size-1), 'failure_points': ['head_after_stack', 'rank_input_mismatch'], 'mismatch_token': 25063,
                        'committed_prefix_tokens': 3}
+        elif args.cache_equivalence_probe:
+            request = {'run_id': args.run_id, 'mode': 'cache_equivalence_probe', 'world_size': 4,
+                       'kda_backend': 'ascendc_installed_decode', 'context_tokens': 32, 'generation_cap': 6,
+                       'prompt': 'What is 7 plus 6? Reply only with the number.',
+                       'expected_generated_ids': [154842, 99366, 154827], 'cache_mib': 128}
         elif args.snapshot_probe:
             request = {'run_id': args.run_id, 'mode': 'snapshot_probe', 'world_size': 4,
                        'kda_backend': 'ascendc', 'context_tokens': 32, 'generation_cap': 4,
@@ -194,6 +204,8 @@ def main():
                     argv += ['-e', key + '=' + value]
                 if args.rollback_probe:
                     argv += [cfg['container'], 'timeout', '-k', '10', str(timeout_seconds), 'python3', str(Path(cfg['launcher_container']).with_name('rollback_probe.py')), str(rank), str(die), str(port), 'bounded']
+                elif args.cache_equivalence_probe:
+                    argv += [cfg['container'], 'timeout', '-k', '10', str(timeout_seconds), 'python3', str(Path(cfg['launcher_container']).with_name('rank_cache_equivalence_probe.py')), str(rank), str(die), str(port)]
                 elif args.snapshot_probe:
                     argv += [cfg['container'], 'timeout', '-k', '10', str(timeout_seconds), 'python3', str(Path(cfg['launcher_container']).with_name('rank_snapshot_probe.py')), str(rank), str(die), str(port)]
                 elif args.reference_probe:
@@ -216,7 +228,7 @@ def main():
             (run / 'mapping.txt').write_text(top + '\n' + info)
             for item, proc, log in workers:
                 rank, die = item['rank'], item['die']
-                worker_name = 'rollback_probe.py' if args.rollback_probe else 'reference_probe.py' if args.reference_probe else 'rank_snapshot_probe.py' if args.snapshot_probe else 'worker.py'
+                worker_name = 'rollback_probe.py' if args.rollback_probe else 'reference_probe.py' if args.reference_probe else 'rank_snapshot_probe.py' if args.snapshot_probe else 'rank_cache_equivalence_probe.py' if args.cache_equivalence_probe else 'worker.py'
                 worker_args = [str(rank), str(die), str(port), 'bounded'] if args.rollback_probe else [str(rank), str(die), str(port)]
                 rows = [line for line in top.splitlines() if len(line.split(None, 2)) == 3 and line.split(None, 2)[2].startswith('python3 ') and worker_name in line and line.split()[-len(worker_args):] == worker_args]
                 if len(rows) != 1:
@@ -252,6 +264,8 @@ def main():
                     x = read(run / f'rank{rank}' / 'result.json')
                     if args.rollback_probe:
                         passed = (x['status'] == 'passed' and x['rank_commit_agreement_enabled'] and x['failure_coordinated'] and x['failure_tokens_seen'] == 3 and x['nonzero_kda'] and all(x['prefix_logits_equal']) and len(x['failure_state_equal']) == 45 and all(x['failure_state_equal'].values()) and x['rank_input_mismatch_coordinated'] and x['rank_input_mismatch_tokens_seen'] == 3 and len(x['rank_input_mismatch_state_equal']) == 45 and all(x['rank_input_mismatch_state_equal'].values()) and x['retry_logits_equal'] and len(x['retry_state_equal']) == 45 and all(x['retry_state_equal'].values()) and x['request_owners_remaining'] == 0 and x['destroyed'])
+                    elif args.cache_equivalence_probe:
+                        passed = (x['status'] == 'passed' and x['destroyed'] and x['rank_commit_agreement_enabled'] and x['semantic_pass'] and len(x['logit_equal']) > 0 and all(x['logit_equal']) and x['generated_equal'] and x['prompt_argmax_equal'] and x['cache_after_close']['closed'] and x['cache_after_close']['used_bytes'] == 0 and not x['cache_after_close']['active_lease'] and x['stop_set_reached'] and not x['cap_reached'])
                     elif args.snapshot_probe:
                         passed = (x['status'] == 'passed' and x['destroyed'] and x['rank_commit_agreement_enabled'] and x['archive_schema_version'] == 2 and x['baseline_tokens_equal'] and x['restore_generated_equal'] and len(x['restore_logits_equal']) > 0 and all(x['restore_logits_equal']) and len(x['restore_state_equal']) == 45 and all(x['restore_state_equal'].values()) and x['owners_closed'] and x['stop_set_reached'] and not x['cap_reached'])
                     elif args.reference_probe:

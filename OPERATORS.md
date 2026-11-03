@@ -75,3 +75,5 @@ DSA：make_experimental_fp32_expanded_dsa_operations（显式实验路径）
 当前 rank-commit 源码的45层 archive-v2 保存、恢复和续写检查见 [记录](validation/archive-restore-round415.json)；这是受控单请求状态验证，不是设备故障恢复或生产验收。
 
 四 rank archive-v2 固定 probe 已通过发布 runner 的 `--snapshot-probe` 实际调用；资源仍由 operator 配置和已有互斥登记控制。[记录](validation/archive-restore-round415.json)。
+
+当前源码的45层专家缓存对照已接入 runner `--cache-equivalence-probe`；逐步 logits 和关闭清理通过，但四 rank 均为零 hit，不作重用或性能结论。[记录](validation/cache-equivalence-round416.json)。
