@@ -101,7 +101,10 @@ def main():
         for name in ('task_id', 'generation', 'executor'):
             if assignment[name] != ownership[name] or assignment[name] != cfg[name]:
                 raise RuntimeError('assignment/ownership identity mismatch: ' + name)
-        if assignment['host'] != os.uname().nodename or assignment['authorized_physical_dies'] != [x['die'] for x in allocation] or ownership['active_jobs']:
+        allowed_dies = assignment['authorized_physical_dies']
+        if (assignment['host'] != os.uname().nodename or not isinstance(allowed_dies, list)
+                or len(set(allowed_dies)) != len(allowed_dies)
+                or not set(x['die'] for x in allocation).issubset(allowed_dies) or ownership['active_jobs']):
             raise RuntimeError('host, allocation, or ownership mismatch')
         if run.exists():
             raise RuntimeError('run ID already exists')

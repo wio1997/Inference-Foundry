@@ -64,7 +64,7 @@ sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b
 
 ## 便携运行入口与复现边界
 
-[portable/runner.py](portable/runner.py) 是操作者持有的参数化分布式运行器（当前仅四 rank 实测）：它使用既有共享锁和登记文件，核对分配、卡占用、镜像及源码/权重哈希，调用操作者的有界预算 helper，启动并登记进程，确认宿主 PID 到 card/chip 的映射后释放 `go` 屏障。它不停止其他工作负载。运行器配合 [launcher.py](portable/launcher.py) 与 [worker.py](portable/worker.py) 在四 rank 上执行一次短多轮恢复：每个 rank 的 prompt argmax 与 44 个生成 token 均匹配 round 360，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round361.json](validation/restore-round361.json)。
+[portable/runner.py](portable/runner.py) 是操作者持有的参数化分布式运行器（两 rank 和四 rank 固定短例已实测）：它使用既有共享锁和登记文件，核对分配、卡占用、镜像及源码/权重哈希，调用操作者的有界预算 helper，启动并登记进程，确认宿主 PID 到 card/chip 的映射后释放 `go` 屏障。它不停止其他工作负载。运行器配合 [launcher.py](portable/launcher.py) 与 [worker.py](portable/worker.py) 在四 rank 上执行一次短多轮恢复：每个 rank 的 prompt argmax 与 44 个生成 token 均匹配 round 360，archive-v2 在 42 token 后恢复，停止 token 为 154827，进程组均已销毁。脱敏结果见 [restore-round361.json](validation/restore-round361.json)。
 
 可显式传入 `--kda-backend ascendc` 选择显式归一化的实验递推路径；默认仍为 `ascendc_installed_decode`，可通过同一选项明确回退。实际便携命令在四 rank 短多轮案例中验证了 `ascendc` 选项传播、首 token 后 archive-v2 恢复和自然停止，生成 45 个 token 与 round 373 一致；见 [结果](validation/portable-recurrent-round376.json)。这不是全模型质量或生产验收。
 
@@ -116,7 +116,7 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 
 ### 实验性 world size 参数
 
-普通文本模式可显式传入 `--world-size`（默认 4，候选 2、4、8、16）；分配数量、授权、登记和有界 helper 必须匹配该值。当前 helper 与实际硬件验收仅覆盖四 rank；其他数量的资源、通信、显存和完整模型行为均未验证。参考与回滚探针仍限定四 rank。更新源码后须重新生成并固定源码清单，不能沿用旧配置的源码哈希。[四 rank 实测](validation/rank-portable-round408.json) 仅覆盖固定短案例，不构成其他规模或独立质量验收。 launcher 的 rank 边界现随 `WORLD_SIZE` 检查；模拟执行覆盖 2、4、8、16 的边界，四 rank 固定短例回归通过，其他规模仍未进行硬件或整模型验证。[记录](validation/rank-launcher-round410.json)。
+普通文本模式可显式传入 `--world-size`（默认 4，候选 2、4、8、16）；分配数量、授权、登记和有界 helper 必须匹配该值。实际硬件检查覆盖两 rank 和四 rank 的固定短例；8/16 rank 的资源、通信、显存和完整模型行为均未验证。参考与回滚探针仍限定四 rank。更新源码后须重新生成并固定源码清单，不能沿用旧配置的源码哈希。[四 rank 实测](validation/rank-portable-round408.json) 仅覆盖固定短案例，不构成其他规模或独立质量验收。 launcher 的 rank 边界现随 `WORLD_SIZE` 检查；模拟执行覆盖 2、4、8、16 的边界，四 rank 固定短例回归通过，其他规模尚未由该项验证。[记录](validation/rank-launcher-round410.json)。运行器允许使用任务分配内的不同 die 子集，同时保留共享锁与占用核验；两 rank 固定短例在授权 die 实测通过，提示 argmax 和生成 ID 与四 rank 一致，未比较完整 logits。[结果](validation/rank-subset-round410.json)。8/16 rank 硬件与整模型行为仍未验证。
 
 ### 实验性单层 chunk 预填入口
 
