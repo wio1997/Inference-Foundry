@@ -2,6 +2,22 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F05-NORM-QUANT-REVIEW
+
+涉及：[F05](F05.md)
+
+类型：SOURCE_CHAIN_AND_NUMERICAL_REVIEW；依据：核对固定Attention/Indexer源码，复用v61量化方法、v63变体及v94公开库数值合同。
+
+本轮仅选择RMSNorm→普通DynamicQuant融合；保留BF16 qr及Indexer读者、整行统计和原舍入。Q_B仍存在，库NormQuant接口和其他量化器不能直接视为等价；无新实现/运行/收益。
+
+## 2026-11-03 · 20261103-F04-USER-UNDERSTANDING-COST
+
+涉及：[F04](F04.md)
+
+类型：USER_UNDERSTANDING_NOT_EXPERIMENT；依据：用户表示了解并要求转下一条、记录问题逻辑。
+
+记录已理解F04整体耗时与纯转换未拆分的区别；保留低成本试验意向，试验仍未执行，未关闭候选。
+
 ## 2026-11-03 · 20261103-F04-TIMING-COST-SCREEN
 
 涉及：[F04](F04.md)

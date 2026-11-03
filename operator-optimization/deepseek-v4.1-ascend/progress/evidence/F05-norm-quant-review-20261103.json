@@ -1,0 +1,66 @@
+{
+  "candidate": "F05",
+  "variant": "QR-NORM-QUANT",
+  "date": "2026-11-03",
+  "kind": "ARCHIVED_SOURCE_AND_NUMERICAL_INTERFACE_REVIEW",
+  "status": "SOURCE_CHAIN_AND_GUARDS_CLARIFIED_NOT_NATIVE_VALIDATED",
+  "checks": {
+    "q_norm_then_qb_dynamic_quant": true,
+    "same_qr_passed_to_indexer": true,
+    "original_project_q_returns_qr": true,
+    "quant_method_has_prepared_input_and_ordinary_quant": true,
+    "variant_keeps_BF16_round_and_not_implemented": true,
+    "public_other_kernel_not_attested_as_loaded": true
+  },
+  "evidence": [
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd"
+    },
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/indexer.py",
+      "sha256": "d5d6a438bbced4e63d729dac94c08869df30dab4a71ceacecdea211386b3db33"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/projection-operator-numerical-contract-v61.json",
+      "sha256": "a1c8c9e2344089993cbb3f0ddad91cb9698ff0b121bca8e7e48caf4e5c07dc2f"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/router-vector-fusion-variants-v63.json",
+      "sha256": "4dab18372a8cc9b49ae9ed4f9bf9fe0524ca00563bf98c86d4b81d987d03dc46"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/norm-quant-operator-source-contract-v94.json",
+      "sha256": "6fec5c190f50ac3b14835a718aa1440cde3d22764a4a17ff8cbbf7d7c94d4f6e"
+    }
+  ],
+  "baseline": "Q_A projection -> q_norm producing BF16 qr -> ordinary DynamicQuant producing INT8 plus FLOAT row scale -> Q_B quantized projection. Indexer projection also consumes qr in its applicable source branch.",
+  "proposed_scope": "Fuse q_norm and ordinary row DynamicQuant while retaining original BF16 rounding, full-row normalization/amax and any live BF16/rstd outputs. Q_B projection remains unless a separately selected extension is validated.",
+  "known_input_domain": "QR hidden width1280 in saved native signatures; not FFN norm5120; per-head Indexer query128 FP16-scale quant is a different operation.",
+  "input_adapter_limit": "PreparedLinearInput is supported at the recorded W8 quant_method.apply boundary; this does not prove every Linear wrapper/TP/bias/output path accepts it.",
+  "logical_example": {
+    "M": 3,
+    "QR_H": 1280,
+    "BF16_QR_bytes": 7680,
+    "if_other_BF16_readers_live": "retain the QR write; a fused local consumer may avoid one selected 7680B read",
+    "if_all_BF16_readers_legally_adapted": "write+read interface up to15360B; stronger domain,not proved",
+    "not_HBM_or_measured_gain": true
+  },
+  "public_library_limit": "Pinned public AddRmsNormDynamicQuant keys1/2 quantize FLOAT normalized values without original BF16 normalized roundtrip; not a proved drop-in. Other keys or installed9.2 objects not thereby ruled out.",
+  "not_established": [
+    "new fused implementation and consumer interface",
+    "exact native normalization/quant scale/rounding/nonfinite parity",
+    "all other readers and generations",
+    "on-chip row storage and resource scheduling",
+    "same-case correctness and performance gain"
+  ],
+  "excluded_subvariants_this_review": [
+    "Q_A epilogue plus RMS",
+    "common QR quant producer for Q_B/IndexQ",
+    "full Norm+Quant+GEMM compound",
+    "Indexer per-head FP16-scale query quant"
+  ],
+  "new_native_execution": false,
+  "new_implementation": false,
+  "independent_review": false
+}
