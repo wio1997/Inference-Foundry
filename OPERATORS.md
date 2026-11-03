@@ -97,3 +97,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 四 rank 真实 recall17 首 token 对照显示，实验性输出分片会改变全模型 logits；本例 argmax 与参考一致，但完整 logits 不一致且未验收后续生成。[实测范围](validation/recall17-output-tree-round422.json)。
 
 实验性输出分片的四 rank 固定 recall17 未强制生成结果与参考13个 token 一致；首 token 的全部 logits 不逐位相同，见 [结果](validation/recall17-output-tree-round422.json)。
+
+实验性输出分片在四 rank recall42 的48 token生成序列与45 token参考在索引2开始不同；最终答案相同不代表完整精度一致。[结果](validation/recall42-output-tree-round423.json)。
