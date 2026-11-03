@@ -157,3 +157,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 默认关闭的 `reference_sharded_projection` 实验选项还将输出投影拆为四个本地 BF16 分片并以平衡树相加。单 die、真实 recall17 第0层 position0 的40 token回放中 core 和输出与保留参考逐位相等；8 token 仍有差异。默认选项关闭时，四 die 的短算术请求 token 结果与此前同运行时记录一致；未验证一般输入的 HCCL 等价、完整 logits、整模型精度或性能。[范围](validation/kda-eight-boundary-round421.json)。
 
 同一当前源码的四 die recall17 首生成 token 对照中，仅切换实验性 KDA 输出分片：开启时 argmax 与保留参考均为 1474，关闭时为 99419；对参考的 154880 logits RMSE 分别为约 0.7751 和 0.8634，仍有大量不同值。该单一提示没有预设精度阈值，尚未验证后续生成或整体质量。[范围与原始指标](validation/recall17-output-tree-round422.json)。
+
+使用上述实验路径对该 recall17 提示执行未强制生成时，四 rank 的13个生成 token 与保留参考完全一致，以配置停止 token 154827 结束，未到 tokenizer EOS 或32 token 上限；首 token 完整 logits 仍不一致。这仅是一个固定例子，不代表整体验收。[结果](validation/recall17-output-tree-round422.json)。

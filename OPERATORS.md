@@ -95,3 +95,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 实验性四分片输出投影复用同一默认关闭的参考分片开关，在本地以 BF16 平衡树汇合；单 die 的真实 recall17 第0层40 token回放位置0与保留参考逐位一致，8 token 仍有差异。一般 HCCL 等价及性能未测。[记录](validation/kda-eight-boundary-round421.json)。
 
 四 rank 真实 recall17 首 token 对照显示，实验性输出分片会改变全模型 logits；本例 argmax 与参考一致，但完整 logits 不一致且未验收后续生成。[实测范围](validation/recall17-output-tree-round422.json)。
+
+实验性输出分片的四 rank 固定 recall17 未强制生成结果与参考13个 token 一致；首 token 的全部 logits 不逐位相同，见 [结果](validation/recall17-output-tree-round422.json)。
