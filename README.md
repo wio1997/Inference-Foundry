@@ -167,3 +167,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 实验性 layer-major KDA 分块和本地参考投影路径在四 rank 的短输入中，非零状态归档恢复后全部45层状态一致；随后两 token 分块续算的 logits 和最终状态与未中断路径逐位一致，所有请求 owner 已释放。该检查不覆盖设备丢失、跨版本恢复或整模型独立精度。[范围](validation/chunk-archive-round423.json)。
 
 便携文本命令可显式增加 `--experimental-layer-major-kda --kda-backend ascendc`，选择四 rank 下前3个 dense KDA 层的分块预填与本地参考形状投影；每组最多8 token，其余层逐 token。该选项默认关闭，不能与固定探针或参考模式组合；所有 rank 必须执行相同选项。四 rank 的实际CLI短算术案例以 `[8,8,8,2]` 分组并返回13；默认路径的提示 argmax 与生成 token 也匹配先前记录，默认回归的测试运行器仅将超时缩短至1200秒。recall42仍存在生成序列差异，未证明整体精度或性能。[实测范围](validation/layer-major-cli-round424.json)。
+
+实际便携CLI开启实验分块后，四 rank 的 recall17 提示分组 `[8,8,8,8,8,1]`，未强制生成的13个 token 与保留参考一致，停止于配置 token 154827，未到 tokenizer EOS 或上限。该CLI测试仅将运行器超时缩短至1200秒；同例首 token 全 logits 仍存在差异，recall42 token序列不一致，不能据此宣称整体精度通过。[结果](validation/layer-major-cli-round424.json)。
