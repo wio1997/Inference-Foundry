@@ -345,5 +345,156 @@
     },
     "首8个记录的QKV、raw gate、raw beta、beta sigmoid和初始状态": "两种输入之间逐位相等。"
   },
-  "limitations": "仅单 die、rank0、position0；真实与零尾输入各重复两次的核心输出各自一致，但尾部变化对应首位置数值差异。尚不能确定算子内部机制、逻辑因果或对整体首 token 分歧的贡献；不能据此判定精度通过。首次八/四十比较因探针变量遮蔽在写结果时失败，修正后第二次成功。"
+  "limitations": "仅单 die、rank0、position0；真实与零尾输入各重复两次的核心输出各自一致，但尾部变化对应首位置数值差异。尚不能确定算子内部机制、逻辑因果或对整体首 token 分歧的贡献；不能据此判定精度通过。首次八/四十比较因探针变量遮蔽在写结果时失败，修正后第二次成功。",
+  "单因子尾部控制": {
+    "source_manifest_sha256": "fbb8cdedae0e32f37e657bb758b8519db7f8145e190fd79bfc850e28d08a6988",
+    "说明": "在相同40 token形状和相同首8个 Q/K/V、raw gate、raw beta以及初始状态下，分别只把一个输入组的后32项替换为零尾回放的对应值。直接核心结果与原始回放及全部替换回放分别一致。",
+    "first8_input_checks": {
+      "q": {
+        "shape": [
+          8,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 0.010896939784288406,
+        "relative_rmse": 0.0
+      },
+      "k": {
+        "shape": [
+          8,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 0.005663171876221895,
+        "relative_rmse": 0.0
+      },
+      "v": {
+        "shape": [
+          8,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 0.006435703951865435,
+        "relative_rmse": 0.0
+      },
+      "raw_gate": {
+        "shape": [
+          8,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 0.5121786594390869,
+        "relative_rmse": 0.0
+      },
+      "raw_beta": {
+        "shape": [
+          8,
+          16
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 2.4691474437713623,
+        "relative_rmse": 0.0
+      }
+    },
+    "first_output_comparisons": {
+      "q": {
+        "shape": [
+          1,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 5.602965029538609e-05,
+        "relative_rmse": 0.0
+      },
+      "k": {
+        "shape": [
+          1,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 5.602965029538609e-05,
+        "relative_rmse": 0.0
+      },
+      "v": {
+        "shape": [
+          1,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 5.602965029538609e-05,
+        "relative_rmse": 0.0
+      },
+      "raw_gate": {
+        "shape": [
+          1,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "max_abs": 9.5367431640625e-07,
+        "rmse": 4.693420407875237e-08,
+        "reference_rms": 5.602965029538609e-05,
+        "relative_rmse": 0.0008376672678004791
+      },
+      "raw_beta": {
+        "shape": [
+          1,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rmse": 0.0,
+        "reference_rms": 5.602965029538609e-05,
+        "relative_rmse": 0.0
+      },
+      "all_tail": {
+        "shape": [
+          1,
+          16,
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "max_abs": 9.5367431640625e-07,
+        "rmse": 4.693420407875237e-08,
+        "reference_rms": 5.602965029538609e-05,
+        "relative_rmse": 0.0008376672678004791
+      }
+    },
+    "结论": "此单一输入和单 die 条件下，单独替换后续 raw gate 与全部尾部替换得到相同的首位置差异；单独替换后续 Q、K、V 或 raw beta 没有逐位差异。不能据此判定算子内部机制或整模型精度。"
+  }
 }
