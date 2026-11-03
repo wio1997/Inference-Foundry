@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F06-DEFER-IMPLEMENTATION-WITHOUT-MARGINAL-GAIN
+
+涉及：[F06](F06.md)
+
+类型：IMPLEMENTATION_PRIORITY_DECISION_NOT_MEASURED_REJECTION；依据：用户追问必要性；复用3/24稠密拼接工作量反例、已有share_quant/CV交错及边际收益缺口，无新运行。
+
+当前3/24域不推荐直接拼接，按范围定制联合暂缓实施、降为备选；不把能组织成一个算子当必要性证明。记录基于同条件profile/合法资源与行域方案的重开条件，不关闭F06全族。
+
 ## 2026-11-04 · 20261104-F06-SCOPE-VS-DENSE-CONCAT-CORRECTION
 
 涉及：[F06](F06.md)
