@@ -241,3 +241,5 @@ recall17 前8 token 的第0层第0位置投影、门控及QKV卷积与参考逐�
 recall17 第0层固定前8个核心输入和零状态时，8 与 41 token 分块的第0位置核心输出不同，41 token 结果与保留参考逐位相同。[记录](validation/chunk-shape-round456.json)。
 
 recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实际41 token的前8个输出，最终状态也不同；该候选不可据此部署。[记录](validation/chunk-padding-round457.json)。
+
+直接启动 rank 时若未设置 WORLD_SIZE，launcher 会将校验过的默认值4传给 worker；四 rank 实机验证见 [记录](validation/launcher-world-size-round458.json)。

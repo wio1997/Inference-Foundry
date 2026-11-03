@@ -38,6 +38,8 @@ def main():
             parser.error('invalid rank, die or port')
         if os.environ.get('ASCEND_RT_VISIBLE_DEVICES') != str(args.die):
             parser.error('one-die visibility must match --die')
+        # The worker requires WORLD_SIZE; carry the validated default across exec.
+        os.environ['WORLD_SIZE'] = str(world_size)
         worker = Path(__file__).resolve().with_name('worker.py')
         os.execvp('python3', ['python3', str(worker), str(args.rank), str(args.die), str(args.port)])
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', args.run_id):
