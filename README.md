@@ -172,4 +172,6 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 
 实际便携CLI的实验分块与 `--restore-after-first-token` 组合在四 rank 固定8+5案例通过：位置27的 archive-v2 恢复后45层状态均一致，rank协调成功并返回预期3个 token。该CLI案例未比较续算全部logits；测试运行器超时缩短为420秒。[范围](validation/layer-major-cli-round424.json)。
 
-实验分块的实际便携CLI recall42 输出与此前探针48 token一致，仍与独立参考45 token在索引2开始不同；最终答案42，停止于配置token 154827，未到EOS或上限。[结果](validation/layer-major-cli-round424.json)。另一个四rank独立探针对固定7+6在缓存关闭与128 MiB会话缓存之间逐位比较了每rank六个完整logits张量和生成token，全部一致；关闭后缓存零字节且无活动租约，记录到命中但未测性能。此探针不等于CLI缓存选项验收。[范围](validation/layer-major-cache-round425.json)，[探针](portable/layer_major_cache_probe.py)。
+实验分块的实际便携CLI recall42 输出与此前探针48 token一致，仍与独立参考45 token在索引2开始不同；最终答案42，停止于配置token 154827，未到EOS或上限。[结果](validation/layer-major-cli-round424.json)。另一个四rank独立探针对固定7+6在缓存关闭与128 MiB会话缓存之间逐位比较了每rank六个完整logits张量和生成token，全部一致；关闭后缓存零字节且无活动租约，记录到命中但未测性能。独立探针与CLI缓存测试为不同检查。[范围](validation/layer-major-cache-round425.json)，[探针](portable/layer_major_cache_probe.py)。
+
+实际便携CLI实验分块与128 MiB缓存组合在四rank固定8+5案例中与缓存关闭的提示argmax和生成token一致；关闭后各rank缓存零字节、无活动租约。此CLI案例未比较完整logits，独立7+6探针另做了完整logits对照；均未测性能。[结果](validation/layer-major-cache-round425.json)。
