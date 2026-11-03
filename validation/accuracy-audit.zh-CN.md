@@ -227,3 +227,5 @@
 以四个参考形状的分片投影重建适配侧完整投影，并在相同输入和零初态下回放第 0 层位置 0：四个 rank 的融合投影、`f_b`、`g_b` 和卷积输出均与参考逐位一致；首个不同捕获边界移到递推核心，最大绝对差分别为 0.000003814697265625、0.0000019073486328125、0.0000019073486328125、0.000003814697265625。完整注意力输出仍有差异。
 
 相同对齐输入下，现有显式 Torch 与 installed decode 两种核心均未与参考 chunk prefill 核心逐位一致；在记录精度下显式 Torch 的 RMSE 与 AscendC 相同，installed decode 的 RMSE 在四个 rank 均更大。具体数字和针脚见 [记录](recall17-sharded-core-round407.json)。这不是默认实现修复，也不构成整体精度或生产验收。
+
+尝试用已安装的 chunk 核心对同一首 token 和零初态单独执行时，四个 rank 均在 `aclnnChunkKdaFwdGetWorkspaceSize` 返回 161002，因此没有获得 chunk 数值对照；原因尚未确定。管理器的总体 pass 只覆盖其余探针检查，不能视为 chunk 通过。详见 [失败记录](recall17-chunk-attempt-round407.json)。
