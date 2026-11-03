@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "candidate": "F07",
+  "selected_variant": "QB-ROPE",
+  "status": "PARTIAL_SOURCE_AND_ARCHIVED_TIMING_REVIEW_NOT_IMPLEMENTATION",
+  "sources": [
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/device_op.py",
+    "records/history/continuation/profile-first-20261031/router-vector-numerical-contract-v63.json",
+    "records/history/continuation/profile-first-20261031/router-vector-fusion-variants-v63.json",
+    "records/history/continuation/profile-first-20261031/router-vector-regime-models-v63.json",
+    "records/history/continuation/profile-first-20261031/router-vector-graph-chains-v63.json.gz",
+    "records/history/continuation/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json"
+  ],
+  "operator_binding": {
+    "producer": "attn.wq_b / cv_wq_b.matmul: Q_B矩阵投影，原输出BF16",
+    "consumer": "torch.ops._C_ascend.inplace_partial_rotary_mul",
+    "adapter": "DeviceOperator.apply_partial_rotary_inplace，rotary_mode=interleave，partial_slice=[nope_head_dim,head_dim]",
+    "caller_lines": "dsa_v41.py 291-294,320-324,369-374,480-495；device_op.py 76-91"
+  },
+  "baseline": "Q_B→BF16输出→原位部分RoPE读/写tail→主Q供Attention；原RoPE已是局部旋转融合kernel，不是多个Mul/Add首次融合。",
+  "proposal": "Q_B收尾先按原规则得到BF16值，在片上继续原FP32部分RoPE，再写最终Q；保留448维未旋转部分、原cos/sin/位置/布局与所有读者。",
+  "rotation_algorithm": {
+    "pair_rule": "u'=u*cos(theta)-v*sin(theta);v'=u*sin(theta)+v*cos(theta)",
+    "purpose": "按位置及维度对对应角度旋转Q的指定部分，以便与K共同表达位置信息。",
+    "toy_example": {
+      "input": [
+        2,
+        3
+      ],
+      "theta_degrees": 90,
+      "output": [
+        -3,
+        2
+      ],
+      "scope": "整数示意，不代表真实模型统一用90度，也不是native精度测试。"
+    }
+  },
+  "case_geometry": {
+    "M": 3,
+    "heads": 64,
+    "head_width": 512,
+    "rotated_tail": 64,
+    "unrotated_dimensions": 448,
+    "dtype": "BF16",
+    "not_divided_by_TP8": true
+  },
+  "conditions": [
+    "Q_B原BF16舍入必须在旋转前发生，不能直接用未舍入FP32累加值旋转；原RoPE再转FP32并按CAST_RINT输出BF16",
+    "保持interleave成对关系、对应位置cos/sin、head布局和所有原消费者",
+    "tile内能得到正确配对输出，跨核同步/收尾接口/原生GEMM性能与资源竞争须证明",
+    "cos/sin及原缓存表生命周期、KV分支及既有CV交错不被破坏；不从源码顺序推断整体关键路径",
+    "未旋转448维仍写出，最终完整Q仍必须存在；仅覆盖全部相关原读者时才能省未旋转tail中间交接",
+    "CANN现有量化matmul接口能否低成本接入收尾未证明；若需重写矩阵核导致性能退化，应停止该实现路线"
+  ],
+  "cost_interpretation": "M3/head64/tail64时，未旋转tail为24576B，条件可省未旋转tail写+独立旋转读合计49152B（48KiB）。旋转后的最终tail和完整Q仍写出。原RoPE原位处理，不存在一份必然可删的额外完整Q输出；不声称容量减少48KiB或完整192KiB。",
+  "priority": "有直接生产者/消费者接合依据，值得先检查低成本收尾接口；整体收益与工程价值尚未证明，不为省约4微秒任务就重写并拖慢GEMM。",
+  "new_implementation": false,
+  "native_correctness": "NOT_RUN",
+  "new_measured_speedup": false,
+  "whole_family_closed": false,
+  "public_reference": {
+    "url": "https://arxiv.org/abs/2104.09864",
+    "use": "原始RoPE论文用于旋转位置编码解释；本case部分维度、精度与实现以归档源合同为准。"
+  },
+  "archived_timing": {
+    "cohort": "old166-v63-root-bound-Q-RoPE",
+    "stats": {
+      "n": 2560,
+      "minimum_ns": 3740,
+      "median_ns": 4040.0,
+      "p90_ns": 4480,
+      "maximum_ns": 5240
+    },
+    "recompute_rule": "chains.root_bound=true; take query_RoPE.duration_ns; median and nearest-rank p90",
+    "not_request_critical_path_or_actual_savings": true
+  },
+  "logical_interface_model": {
+    "tail_bytes": 24576,
+    "conditional_intermediate_write_read_bytes": 49152,
+    "final_complete_Q_bytes_retained": 196608,
+    "not_allocation_savings": true
+  }
+}

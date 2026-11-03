@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F07-QB-ROPE-PARTIAL-REVIEW
+
+涉及：[F07](F07.md)
+
+类型：NEXT_EXAMPLE_SOURCE_AND_ARCHIVED_TIMING_PARTIAL_REVIEW；依据：用户认可F06当前不优先并要求下一条；核对Q_B/部分RoPE接口，复用v61/v63精度与tail合同并提取旧166 root-bound Q旋转任务统计。
+
+明确仅Q_B收尾接部分RoPE，保留BF16舍入与448未旋转维；M3逻辑tail交接上限48KiB，原位操作不等于可删完整Q分配。建议先查低成本收尾，不以约4微秒旧任务承诺收益或重写整GEMM。无新实现/验收，前面候选不关闭。
+
 ## 2026-11-04 · 20261104-F06-DEFER-IMPLEMENTATION-WITHOUT-MARGINAL-GAIN
 
 涉及：[F06](F06.md)
