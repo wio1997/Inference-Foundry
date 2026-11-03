@@ -127,3 +127,5 @@ rank W8A8 输出投影可显式配置最多40个输入 token，以8行分块；[
 KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入结果见 [记录](validation/prefill40-round436.json)；默认界限仍为8。
 
 40+1 实验路径的 recall17 完整生成范围与差异见 [记录](validation/recall17-prefill40-round437.json)。
+
+40+1 实验路径的 recall42 完整生成范围与差异见 [记录](validation/recall42-prefill40-round438.json)。
