@@ -67,3 +67,5 @@ DSA：make_experimental_fp32_expanded_dsa_operations（显式实验路径）
 显式 singleton KDA 预填开关及跨 rank 掩码校验为实验接口；调用者必须在预填结束时关闭。单层、四 rank 交接和 recall17 仍未对齐的结果见 [记录](validation/single-prefill-round412.json)。
 
 实验性的四分片 KDA 输入投影默认关闭；本地逐次构造权重，开销尚未测量。单层与四 rank 检查通过，但 recall17 与参考仍不一致，见 [记录](validation/reference-projection-round413.json)。
+
+投影实验开关在非 layer-major 分布式路径会协同拒绝；旧单 token rank commit 增加一次 all-reduce，开销未测。[状态验证](validation/reference-projection-guard-round413.json)。

@@ -206,6 +206,8 @@ class TextRequest:
                         raise ValueError('experimental KDA modes require a selected dense KDA layer')
                 if not layer_mask:raise ValueError('layer-major chunk configuration is empty')
                 if single_mask and count!=1:raise ValueError('singleton prefill mode requires one token')
+            elif any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers):
+                raise ValueError('reference projection requires layer-major rank preflight')
             metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask,single_mask,projection_mask]
         except Exception as exc:
             failure=exc;metadata=[1,0,0,0,0,0,0,0,0,0,0];ids=[]
@@ -265,6 +267,14 @@ class TextRequest:
             count=len(token_ids);start=self._state.tokens_seen
             if r._rank_commit_enabled and (count!=1 or self._page_bindings is not None):
                 raise ValueError('rank commit agreement requires one token and no page bindings')
+            if r._rank_commit_enabled:
+                # The projection experiment is coordinated only by the
+                # layer-major batch preflight; reject it collectively here.
+                import torch.distributed as dist
+                invalid=any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers)
+                status=torch.tensor([int(invalid)],dtype=torch.int32,device=r.boundary.norm_weight.device)
+                dist.all_reduce(status,op=dist.ReduceOp.MAX,group=r._rank_commit_group)
+                if int(status.item()):raise ValueError('reference projection requires layer-major rank preflight')
             if count>min(r.boundary.max_tokens,r.head.max_tokens) or start+count>r.max_context_tokens:
                 raise ValueError('text step exceeds explicit token/context bound')
             hidden=r.boundary.embed(token_ids)
