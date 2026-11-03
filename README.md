@@ -213,3 +213,5 @@ rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地�
 公共 CLI 40+1 预填充的 recall42 生成与参考 token 对比见记录；完整 logits 未比较。[记录](validation/cli-recall42-prefill40-round441.json)。
 
 实验性40 token续算在非零前缀后的受控 head 故障回滚与重试范围见 [记录](validation/rollback40-round442.json)。
+
+公共CLI可显式使用 `--rollback40-probe --kda-backend ascendc --experimental-fp32-dsa` 运行40 token事务受控回滚验证；须按既有方式配置四rank设备互斥。[范围](validation/cli-rollback40-round443.json)。

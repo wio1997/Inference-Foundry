@@ -137,3 +137,5 @@ KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入�
 公共 CLI 40+1 实验路径的 recall42 完整生成范围与差异见 [记录](validation/cli-recall42-prefill40-round441.json)。
 
 40 token分布式事务受控回滚及重试见 [记录](validation/rollback40-round442.json)。
+
+40 token受控事务回滚探针已接入公共CLI，范围见 [记录](validation/cli-rollback40-round443.json)。
