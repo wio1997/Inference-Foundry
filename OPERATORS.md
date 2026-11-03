@@ -163,3 +163,5 @@ CLI的40 token dense及第4层sparse KDA组合与逐token MoE范围见 [验证�
 8 token 分块下第0位置的输入投影、门控与QKV卷积逐位一致，核心输出存在差异；见 [记录](validation/first8-operands-round455.json)。
 
 KDA 分块长度对所测第0位置核心输出有影响；这是单输入受控比较，不是整模型精度结论。[记录](validation/chunk-shape-round456.json)。
+
+KDA 前8 token 补零至41的候选未复现实际41 token前缀，补零状态也不同；不得作为已验证修复。[记录](validation/chunk-padding-round457.json)。
