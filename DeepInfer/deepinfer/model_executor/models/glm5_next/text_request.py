@@ -71,7 +71,10 @@ class PreparedTextRunner(nn.Module):
             self._rank_commit_enabled=True
 
     def enable_rank_batch_commit(self, *, max_tokens, layer_major_dense_kda=False):
-        """Explicit token-major rank transaction, 1..8 rows; no page writes.
+        """Explicit rank transaction, 1..40 rows; no page writes.
+
+        Bounds above eight require an explicit layer-major opt-in and components
+        independently configured for that size; this does not configure them.
 
         All ranks must opt in and call in the same order. Live-rank failures
         before stack entry, in the head, and while capturing state are agreed.
@@ -83,9 +86,11 @@ class PreparedTextRunner(nn.Module):
             if self._requests:raise RuntimeError('enable batch agreement before opening requests')
             if not self._rank_commit_enabled or not self.native_tokenwise:
                 raise ValueError('rank batch requires tokenwise rank commit agreement')
-            if type(max_tokens) is not int or not 1<=max_tokens<=8:
-                raise ValueError('rank batch bound must be 1..8')
             if type(layer_major_dense_kda) is not bool:raise ValueError('layer-major flag must be boolean')
+            if type(max_tokens) is not int or not 1<=max_tokens<=40:
+                raise ValueError('rank batch bound must be 1..40')
+            if max_tokens>8 and not layer_major_dense_kda:
+                raise ValueError('rank batches above 8 require explicit layer-major mode')
             if layer_major_dense_kda:
                 selected=0
                 for layer in self.stack.layers:
@@ -187,7 +192,7 @@ class TextRequest:
             if bool(((token_ids<0)|(token_ids>=r.boundary.manifest.vocab_size)).any()):raise ValueError('rank batch token out of vocabulary')
             ids=token_ids.to(dtype=torch.int64).tolist()
             request_hash=int.from_bytes(hashlib.sha256(self.request_id.encode()).digest()[:7],'big')
-            layer_mask=0;single_mask=0;projection_mask=0
+            layer_mask=0;single_mask=0;projection_mask=0;extended_mask=0
             if r._rank_batch_layer_major:
                 for layer in r.stack.layers:
                     if not layer.native_tokenwise:raise ValueError('layer-major fallback configuration changed')
@@ -196,6 +201,9 @@ class TextRequest:
                                 or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill'):
                             raise ValueError('invalid layer-major chunk configuration')
                         layer_mask |= 1<<layer.layer_id
+                        limit=getattr(layer,'native_chunk_max_tokens',8)
+                        if type(limit) is not int or limit not in (8,40) or count>limit:raise ValueError('invalid or exceeded KDA chunk bound')
+                        if limit==40:extended_mask |= 1<<layer.layer_id
                         single=getattr(layer.attention,'chunk_prefill_single',False)
                         if type(single) is not bool:raise ValueError('singleton prefill mode must be boolean')
                         if single:single_mask |= 1<<layer.layer_id
@@ -208,14 +216,14 @@ class TextRequest:
                 if single_mask and count!=1:raise ValueError('singleton prefill mode requires one token')
             elif any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers):
                 raise ValueError('reference projection requires layer-major rank preflight')
-            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask,single_mask,projection_mask]
+            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask,single_mask,projection_mask,extended_mask]
         except Exception as exc:
-            failure=exc;metadata=[1,0,0,0,0,0,0,0,0,0,0];ids=[]
+            failure=exc;metadata=[1,0,0,0,0,0,0,0,0,0,0,0];ids=[]
         header=torch.tensor(metadata,dtype=torch.int64,device=device);headers=[torch.empty_like(header) for _ in range(size)]
         dist.all_gather(headers,header,group=group)
         if any(int(h[0].item()) for h in headers) or not all(torch.equal(headers[0],h) for h in headers[1:]):
             raise ValueError('rank batch preflight failed or metadata differs') from failure
-        values=torch.tensor(ids+[0]*(8-len(ids)),dtype=torch.int64,device=device);copies=[torch.empty_like(values) for _ in range(size)]
+        values=torch.tensor(ids+[0]*(40-len(ids)),dtype=torch.int64,device=device);copies=[torch.empty_like(values) for _ in range(size)]
         dist.all_gather(copies,values,group=group)
         if not all(torch.equal(copies[0],v) for v in copies[1:]):raise ValueError('rank batch token inputs differ')
         def agree(exc, message):

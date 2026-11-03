@@ -123,3 +123,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 实验性 sparse KDA CLI 的 cache 与首 token 后恢复组合见 [记录](validation/sparse-kda-cli-restore-round431.json)。
 
 rank W8A8 输出投影可显式配置最多40个输入 token，以8行分块；[验证范围](validation/rank-linear-tiles-round434.json)仅覆盖算子与受控 rank 故障。
+
+KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入结果见 [记录](validation/prefill40-round436.json)；默认界限仍为8。

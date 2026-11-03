@@ -15,7 +15,8 @@ from .rank_linear import RankW8A8OutputLinear
 from .rank_expert_adapter import install_rank_experts
 
 def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
-                            max_assembled_bytes,max_intermediate_rows,max_packed_rows,group=None,cache_session=None):
+                            max_assembled_bytes,max_intermediate_rows,max_packed_rows,group=None,cache_session=None,
+                            max_dense_input_tokens=8):
     if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:
         raise ValueError('explicit supported rank/world required')
     if world_size>1:
@@ -26,6 +27,7 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
         try:
             layers=runner.stack.layers
             if len(layers)!=len(runner.stack.config.layers):raise ValueError('complete native backbone required')
+            if type(max_dense_input_tokens) is not int or not 1<=max_dense_input_tokens<=40:raise ValueError('dense input token bound must be 1..40')
             from .state_archive import _layout_fingerprint
             from .cache import DSACacheLayout
             layout=runner.stack.layout
@@ -54,7 +56,7 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
                     shape.append(['sparse',layer.layer_id,spec.attention])
                 else:raise ValueError('unsupported or already installed layer')
             # Replicated ranks must agree on dimensions and runtime model settings too.
-            digest=hashlib.sha256(json.dumps({'layers':shape,'config':runner.stack.config.to_dict(),'layout_sha256':layout_hash},sort_keys=True,separators=(',',':')).encode()).digest()
+            digest=hashlib.sha256(json.dumps({'layers':shape,'config':runner.stack.config.to_dict(),'layout_sha256':layout_hash,'max_dense_input_tokens':max_dense_input_tokens},sort_keys=True,separators=(',',':')).encode()).digest()
             signature=[int.from_bytes(digest[i:i+8],'big',signed=True) for i in range(0,32,8)]
             count=len(shape)
         except Exception as exc:failure=exc
@@ -72,7 +74,7 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
             if isinstance(layer.mlp,GlmDenseMLP):
                 saved.append(('dense',layer,layer.mlp.gate_proj,layer.mlp.up_proj))
                 install_rank_dense(layer,reader,'npu',rank=rank,world_size=world_size,
-                                   max_intermediate_rows=max_intermediate_rows,group=group)
+                                   max_intermediate_rows=max_intermediate_rows,group=group,max_input_tokens=max_dense_input_tokens)
                 dense.append(layer.layer_id)
             elif isinstance(layer.mlp,GlmMoEMLP) and isinstance(layer.mlp.experts,CheckpointSelectedExperts):
                 saved.append(('sparse',layer,layer.mlp.experts,None))

@@ -106,7 +106,8 @@ class GlmHybridDecoder(Glm5NextDenseDecoder):
         super().__init__(**components)
         self.attention_kind,self.mlp_kind=attention_kind,mlp_kind
         self.native_tokenwise=False  # explicitly enabled by diagnostic native factory
-        self.native_chunk_prefill=False  # explicit KDA prototype, at most 8 rows
+        self.native_chunk_prefill=False  # explicit KDA prototype
+        self.native_chunk_max_tokens=8  # explicit extended mode may raise to 40
 
     @classmethod
     def from_checkpoint(cls,*args,**kwargs):
@@ -152,7 +153,7 @@ class GlmHybridDecoder(Glm5NextDenseDecoder):
         if type(chunk) is not bool:raise ValueError('native chunk flag must be boolean')
         if chunk and (not self.native_tokenwise or self.attention_kind!='linear_attention' or getattr(self.attention,'backend',None)!='ascendc_chunk_prefill'):
             raise ValueError('chunk prefill requires tokenwise KDA and the explicit chunk backend')
-        if chunk and len(hidden)>8:raise ValueError('native chunk prefill is bounded to eight rows')
+        if chunk and (type(self.native_chunk_max_tokens) is not int or self.native_chunk_max_tokens not in (8,40) or len(hidden)>self.native_chunk_max_tokens):raise ValueError('native chunk prefill exceeds explicit bound')
         if self.native_tokenwise and len(hidden)>1 and not chunk:
             if type(selected) is CPUProjectedDSAOperation:raise ValueError('CPU projected plans cannot be split by native tokenwise mode')
             current=state;parts=[]

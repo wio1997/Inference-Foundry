@@ -199,3 +199,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 实验性 sparse KDA CLI 在短输入、128 MiB cache 和首 token 后状态恢复组合下，四 rank 的45层状态及输出检查通过；完整续算 logits 未比较。[范围](validation/sparse-kda-cli-restore-round431.json)。
 
 rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地投影分为最多8行；默认仍为8。四 rank 算子范围验证见 [记录](validation/rank-linear-tiles-round434.json)；40 token 整模型路径尚未集成。
+
+实验性45层40+1 token预填充在四 rank 完成，recall17 首生成 token 与保留参考一致；完整 logits 和生成序列尚未比较。[范围](validation/prefill40-round436.json)。默认仍是8 token，公共 CLI 尚未接入此模式。
