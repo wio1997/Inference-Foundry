@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a bounded request or start one rank for an operator's allocator.
 
-The allocator must hold its shared device lock, register and verify all four
+The allocator must hold its shared device lock, register and verify all allocated
 host PID-to-die mappings, then create each rank's go file. This program does
 not acquire devices or stop other workloads.
 """
@@ -30,7 +30,11 @@ def main():
     rank.add_argument('--port', type=int, required=True)
     args = parser.parse_args()
     if args.command == 'rank':
-        if not (0 <= args.rank < 4 and args.die >= 0 and 1024 <= args.port <= 65535):
+        try:
+            world_size = int(os.environ.get('WORLD_SIZE', '4'))
+        except ValueError:
+            parser.error('invalid WORLD_SIZE')
+        if world_size not in (2, 4, 8, 16) or not (0 <= args.rank < world_size and args.die >= 0 and 1024 <= args.port <= 65535):
             parser.error('invalid rank, die or port')
         if os.environ.get('ASCEND_RT_VISIBLE_DEVICES') != str(args.die):
             parser.error('one-die visibility must match --die')
