@@ -116,7 +116,7 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 
 ### 实验性 world size 参数
 
-普通文本模式可显式传入 `--world-size`（默认 4，候选 2、4、8、16）；分配数量、授权、登记和有界 helper 必须匹配该值。实际硬件检查覆盖两 rank 和四 rank 的固定短例；8/16 rank 的资源、通信、显存和完整模型行为均未验证。参考与回滚探针仍限定四 rank。更新源码后须重新生成并固定源码清单，不能沿用旧配置的源码哈希。[四 rank 实测](validation/rank-portable-round408.json) 仅覆盖固定短案例，不构成其他规模或独立质量验收。 launcher 的 rank 边界现随 `WORLD_SIZE` 检查；模拟执行覆盖 2、4、8、16 的边界，四 rank 固定短例回归通过，其他规模尚未由该项验证。[记录](validation/rank-launcher-round410.json)。运行器允许使用任务分配内的不同 die 子集，同时保留共享锁与占用核验；两 rank 固定短例在授权 die 实测通过，提示 argmax 和生成 ID 与四 rank 一致，未比较完整 logits。[结果](validation/rank-subset-round410.json)。8/16 rank 硬件与整模型行为仍未验证。
+普通文本模式可显式传入 `--world-size`（默认 4，候选 2、4、8、16）；分配数量、授权、登记和有界 helper 必须匹配该值。实际硬件检查覆盖两 rank 和四 rank 的固定短例；8/16 rank 的资源、通信、显存和完整模型行为均未验证。参考探针仍限定四 rank；回滚探针允许两或四 rank。更新源码后须重新生成并固定源码清单，不能沿用旧配置的源码哈希。[四 rank 实测](validation/rank-portable-round408.json) 仅覆盖固定短案例，不构成其他规模或独立质量验收。 launcher 的 rank 边界现随 `WORLD_SIZE` 检查；模拟执行覆盖 2、4、8、16 的边界，四 rank 固定短例回归通过，其他规模尚未由该项验证。[记录](validation/rank-launcher-round410.json)。运行器允许使用任务分配内的不同 die 子集，同时保留共享锁与占用核验；两 rank 固定短例在授权 die 实测通过，提示 argmax 和生成 ID 与四 rank 一致，未比较完整 logits。[结果](validation/rank-subset-round410.json)。8/16 rank 硬件与整模型行为仍未验证。 两和四 rank 的非零状态回滚也分别检查了同步故障、输入不一致及重试；实验超时与发布版超时的差异见 [记录](validation/rollback-ranks-round410.json)。
 
 ### 实验性单层 chunk 预填入口
 

@@ -55,8 +55,10 @@ def main():
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
     world_size = args.world_size
-    if world_size != 4 and (args.rollback_probe or args.reference_probe):
-        parser.error('reference and rollback probes require four ranks')
+    if args.reference_probe and world_size != 4:
+        parser.error('reference probe requires four ranks')
+    if args.rollback_probe and world_size not in (2,4):
+        parser.error('rollback probe requires two or four ranks')
     if args.rollback_probe and args.reference_probe:
         parser.error('select at most one probe mode')
     if args.rollback_probe and args.kda_backend != 'ascendc':
@@ -133,7 +135,7 @@ def main():
             request = {'run_id': args.run_id, 'mode': 'rollback_probe',
                        'kda_backend': 'ascendc', 'context_tokens': 32, 'cache_mib': 0,
                        'tokens': [154822, 154824, 154826, 25062],
-                       'injected_rank': 2, 'failure_points': ['head_after_stack', 'rank_input_mismatch'], 'mismatch_token': 25063,
+                       'injected_rank': min(2, world_size-1), 'failure_points': ['head_after_stack', 'rank_input_mismatch'], 'mismatch_token': 25063,
                        'committed_prefix_tokens': 3}
         else:
             prepare = ['docker', 'exec', '-i', '-e', 'GLM_MODEL_DIR=' + cfg['model_container'],
@@ -180,7 +182,7 @@ def main():
                 for key, value in env.items():
                     argv += ['-e', key + '=' + value]
                 if args.rollback_probe:
-                    argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', str(Path(cfg['launcher_container']).with_name('rollback_probe.py')), str(rank), str(die), str(port), 'four']
+                    argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', str(Path(cfg['launcher_container']).with_name('rollback_probe.py')), str(rank), str(die), str(port), 'bounded']
                 elif args.reference_probe:
                     argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', str(Path(cfg['launcher_container']).with_name('reference_probe.py')), str(rank), str(die), str(port)]
                 else:
@@ -202,7 +204,7 @@ def main():
             for item, proc, log in workers:
                 rank, die = item['rank'], item['die']
                 worker_name = 'rollback_probe.py' if args.rollback_probe else 'reference_probe.py' if args.reference_probe else 'worker.py'
-                worker_args = [str(rank), str(die), str(port), 'four'] if args.rollback_probe else [str(rank), str(die), str(port)]
+                worker_args = [str(rank), str(die), str(port), 'bounded'] if args.rollback_probe else [str(rank), str(die), str(port)]
                 rows = [line for line in top.splitlines() if len(line.split(None, 2)) == 3 and line.split(None, 2)[2].startswith('python3 ') and worker_name in line and line.split()[-len(worker_args):] == worker_args]
                 if len(rows) != 1:
                     raise RuntimeError('worker PID mapping ambiguous')
