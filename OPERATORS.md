@@ -79,3 +79,5 @@ DSA：make_experimental_fp32_expanded_dsa_operations（显式实验路径）
 当前源码的45层专家缓存对照已接入 runner `--cache-equivalence-probe`；逐步 logits 和关闭清理通过，但四 rank 均为零 hit，不作重用或性能结论。[记录](validation/cache-equivalence-round416.json)。
 
 CLI 请求开启恢复时，反序列化后比较45层状态并跨 rank 汇总结果，验证通过才继续生成；recall17 的四 rank 实测见 [记录](validation/recall-restore-round417.json)。
+
+发布回滚探针覆盖单 rank 过期位置协同拒绝、45层状态保持及重试，worker 上限900秒；固定案例与普通路径回归见 [记录](validation/legacy-rollback-runner-round418.json)。

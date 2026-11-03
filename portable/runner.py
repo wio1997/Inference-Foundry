@@ -57,7 +57,7 @@ def main():
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
     world_size = args.world_size
-    timeout_seconds = 1200 if args.cache_equivalence_probe else 900 if args.snapshot_probe else 2100
+    timeout_seconds = 1200 if args.cache_equivalence_probe else 900 if (args.snapshot_probe or args.rollback_probe) else 2100
     if args.cache_equivalence_probe and world_size != 4:
         parser.error('cache equivalence probe requires four ranks')
     if args.reference_probe and world_size != 4:
@@ -263,7 +263,7 @@ def main():
                 try:
                     x = read(run / f'rank{rank}' / 'result.json')
                     if args.rollback_probe:
-                        passed = (x['status'] == 'passed' and x['rank_commit_agreement_enabled'] and x['failure_coordinated'] and x['failure_tokens_seen'] == 3 and x['nonzero_kda'] and all(x['prefix_logits_equal']) and len(x['failure_state_equal']) == 45 and all(x['failure_state_equal'].values()) and x['rank_input_mismatch_coordinated'] and x['rank_input_mismatch_tokens_seen'] == 3 and len(x['rank_input_mismatch_state_equal']) == 45 and all(x['rank_input_mismatch_state_equal'].values()) and x['retry_logits_equal'] and len(x['retry_state_equal']) == 45 and all(x['retry_state_equal'].values()) and x['request_owners_remaining'] == 0 and x['destroyed'])
+                        passed = (x['status'] == 'passed' and x['rank_commit_agreement_enabled'] and x['legacy_stale_coordinated'] and x['legacy_stale_tokens_seen'] == 3 and len(x['legacy_stale_state_equal']) == 45 and all(x['legacy_stale_state_equal'].values()) and x['failure_coordinated'] and x['failure_tokens_seen'] == 3 and x['nonzero_kda'] and all(x['prefix_logits_equal']) and len(x['failure_state_equal']) == 45 and all(x['failure_state_equal'].values()) and x['rank_input_mismatch_coordinated'] and x['rank_input_mismatch_tokens_seen'] == 3 and len(x['rank_input_mismatch_state_equal']) == 45 and all(x['rank_input_mismatch_state_equal'].values()) and x['retry_logits_equal'] and len(x['retry_state_equal']) == 45 and all(x['retry_state_equal'].values()) and x['request_owners_remaining'] == 0 and x['destroyed'])
                     elif args.cache_equivalence_probe:
                         passed = (x['status'] == 'passed' and x['destroyed'] and x['rank_commit_agreement_enabled'] and x['semantic_pass'] and len(x['logit_equal']) > 0 and all(x['logit_equal']) and x['generated_equal'] and x['prompt_argmax_equal'] and x['cache_after_close']['closed'] and x['cache_after_close']['used_bytes'] == 0 and not x['cache_after_close']['active_lease'] and x['stop_set_reached'] and not x['cap_reached'])
                     elif args.snapshot_probe:

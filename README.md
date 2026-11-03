@@ -92,7 +92,7 @@ python3 portable/runner.py --config /path/to/operator-config.json \
 
 [portable/rollback_probe.py](portable/rollback_probe.py) 的四 rank 硬件结果见 [验证记录](validation/portable-rollback-round388.json)。它是实验探针，要求由操作者提供已持锁且已登记的四 rank 分配、隔离容器、超时、独立运行目录和 host PID 到 die/card/chip 的核验；探针不会停止或接管其他作业。各 rank 运行前将 `GLM_MODEL_DIR`、`GLM_SOURCE_DIR`、`GLM_ASCEND_LIBRARY`、`GLM_EXPERIMENT_RUN_DIR` 只含该 die 的 `ASCEND_RT_VISIBLE_DEVICES` 和 `WORLD_SIZE` 设置为现场真实路径、设备及 2 或 4，并以 `python3 rollback_probe.py <rank> <die> <共同端口> bounded` 启动。各 rank 创建 `rankN/ready` 后，操作者须验证宿主 PID 与授权设备映射，再分别创建对应的 `rankN/go`；启动、登记、错误处理和回收由操作者负责。权重索引、配置、运行时依赖和实际 probe 哈希必须与验证记录核对；该示例不替代现场的资源策略。
 
-公开运行器也支持在已有配置和消息文件的调用中增加 `--rollback-probe`，使用同一互斥、登记、授权、PID 映射和 2100 秒工作进程上限启动探针；仍需 `--experimental-fp32-dsa`；回滚模式不接受消息或文本生成选项。示例：
+公开运行器也支持在已有配置和消息文件的调用中增加 `--rollback-probe`，使用同一互斥、登记、授权、PID 映射和 900 秒工作进程上限启动探针；仍需 `--experimental-fp32-dsa`；回滚模式不接受消息或文本生成选项。示例：
 
 ```bash
 python3 portable/runner.py --config "$OPERATOR_CONFIG" --run-id rollback-check --goal reproducible-release --experimental-fp32-dsa --rollback-probe --kda-backend ascendc
@@ -135,3 +135,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 当前源码的四 rank 45 层固定 7+6 请求中，逐次加载与128 MiB可复用专家会话的28个逐步 logits 均一致；会话关闭后无驻留字节或活动 lease。测试观测零 cache hit，不代表重用或性能收益。runner 的 `--cache-equivalence-probe` 已实测；固定输入及命令见 [记录](validation/cache-equivalence-round416.json)。
 
 当前源码的四 rank 三消息 recall17 在第一个生成 token 后进行 archive-v2 恢复，生成的38个 IDs 与保留的未恢复适配运行一致，正常以配置 stop 结束；独立参考的首 token 仍不同。该检查未比较完整 logits 或全部状态。[实测记录](validation/recall-restore-round417.json)。 恢复时现在逐层比较快照与反序列化状态，并先跨 rank 确认；同一 recall17 在四 rank 的45层状态均逐位相等。
+
+发布回滚探针现包含旧单 token 路径的单 rank 过期位置预检；四 rank 的45层状态保持与重试结果见 [实测记录](validation/legacy-rollback-runner-round418.json)。

@@ -1,0 +1,32 @@
+{
+  "scope": "四 rank、45层、非零请求状态下旧单 token 提交路径的过期位置协同预检与重试；通过发布 runner 的固定回滚探针执行。",
+  "architecture": "aarch64",
+  "device": "Ascend910_9382",
+  "world_size": 4,
+  "versions": {
+    "torch": "2.10.0+cpu",
+    "torch-npu": "2.10.0.post7",
+    "flash-linear-attention-npu-a3": "26.9.1+deva4a7958"
+  },
+  "checkpoint_index_sha256": "dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4",
+  "config_sha256": "33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943",
+  "template_sha256": "34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891",
+  "source_manifest_sha256": "d54966f767202769e654ab2cc2cd5ce7558dac36d3c4e2c61bf37c6d5478a1d6",
+  "runner_sha256": "611a81fefbd06ffe0ccc5ba68d062e6139fc9ab3f6a3f1f31b98729e1db9a5d7",
+  "probe_sha256": "10541ed1e3163a492b845514aa12e7cf62aba2b14896ac5f93037555e5fa396b",
+  "checks": "rank 2 注入过期位置后四 rank 均拒绝；每 rank 的45层状态与3 token 前缀相同。head异常和 rank 输入不一致也协同回滚；随后重试 logits 和45层状态匹配干净执行，所有请求和进程组已关闭。",
+  "probe_timeout_seconds": 900,
+  "command": "python3 portable/runner.py --config <operator-config.json> --goal reproducible-release --run-id <unique-id> --world-size 4 --kda-backend ascendc --experimental-fp32-dsa --rollback-probe",
+  "normal_runner_regression": {
+    "source_manifest_sha256": "bb9d1b0fff8fea812e222e0f320ad8767546204438c5b102995e00de741d4c50",
+    "result": "四 rank 固定8+5普通请求的 prompt IDs、prompt argmax 和生成 IDs 与上一版本一致；未比较完整 logits。",
+    "generated_ids": [
+      154842,
+      99366,
+      154827
+    ],
+    "test_timeout_seconds": 480,
+    "published_timeout_seconds": 2100
+  },
+  "limits": "仅覆盖固定短例的协同预检、回滚和重试；不覆盖 collective 中断、设备丢失或独立整模型精度及生产验收。"
+}

@@ -61,6 +61,18 @@ try:
    report['prefix_logits_equal']=[torch.equal(x,y) for x,y in zip(clean[:3],prefix,strict=True)]
    report['nonzero_kda']=any(bool(torch.count_nonzero(before.layers[i].recurrent).item()) for i,spec in enumerate(config.layers) if spec.attention=='linear_attention')
    assert before.tokens_seen==3 and all(report['prefix_logits_equal']) and report['nonzero_kda']
+   report['phase']='legacy_stale_preflight';save()
+   original_batch_limit=runner._rank_batch_limit;runner._rank_batch_limit=0
+   try:
+    try:q.step(torch.tensor([tokens[3]],dtype=torch.int64),expected_tokens_seen=2 if rank==injected_rank else 3)
+    except ValueError as exc:
+     assert str(exc)=='rank commit preflight failed'
+     assert (isinstance(exc.__cause__,ValueError) and str(exc.__cause__)=='stale or invalid expected request token position')==(rank==injected_rank)
+    else:raise AssertionError('rank-specific stale position unexpectedly entered stack')
+   finally:runner._rank_batch_limit=original_batch_limit
+   stale=q.snapshot();report['legacy_stale_coordinated']=True;report['legacy_stale_tokens_seen']=stale.tokens_seen;report['legacy_stale_state_equal']=state_eq(before,stale,config)
+   assert stale.tokens_seen==3 and len(report['legacy_stale_state_equal'])==45 and all(report['legacy_stale_state_equal'].values())
+   del stale
    report['phase']='inject';save();original_head=runner.head.forward
    def injected_head(hidden):
     if rank==injected_rank:raise RuntimeError('injected nonzero-state selected-rank head failure')
