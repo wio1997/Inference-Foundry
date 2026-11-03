@@ -175,3 +175,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 实验分块的实际便携CLI recall42 输出与此前探针48 token一致，仍与独立参考45 token在索引2开始不同；最终答案42，停止于配置token 154827，未到EOS或上限。[结果](validation/layer-major-cli-round424.json)。另一个四rank独立探针对固定7+6在缓存关闭与128 MiB会话缓存之间逐位比较了每rank六个完整logits张量和生成token，全部一致；关闭后缓存零字节且无活动租约，记录到命中但未测性能。独立探针与CLI缓存测试为不同检查。[范围](validation/layer-major-cache-round425.json)，[探针](portable/layer_major_cache_probe.py)。
 
 实际便携CLI实验分块与128 MiB缓存组合在四rank固定8+5案例中与缓存关闭的提示argmax和生成token一致；关闭后各rank缓存零字节、无活动租约。此CLI案例未比较完整logits，独立7+6探针另做了完整logits对照；均未测性能。[结果](validation/layer-major-cache-round425.json)。
+
+实验分块、128 MiB 专家缓存和首生成 token 后 archive-v2 恢复组合，在四 rank 固定 8+5 请求中恢复了全部45层记录状态并得到预期生成 token；各 rank 关闭后缓存为零且无活动租约。此案例未比较恢复后续算完整 logits，亦未测性能。[结果](validation/layer-major-cache-restore-round426.json)。
