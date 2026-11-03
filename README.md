@@ -237,3 +237,5 @@ rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地�
 recall17 前8 token 的第0层第0位置对比发现 core、gated 和最终 attention 均与保留参考不同，首个已测差异在 core；详情见 [记录](validation/first8-boundary-round454.json)。
 
 recall17 前8 token 的第0层第0位置投影、门控及QKV卷积与参考逐位一致，核心输出存在差异；详情见 [记录](validation/first8-operands-round455.json)。
+
+recall17 第0层固定前8个核心输入和零状态时，8 与 41 token 分块的第0位置核心输出不同，41 token 结果与保留参考逐位相同。[记录](validation/chunk-shape-round456.json)。
