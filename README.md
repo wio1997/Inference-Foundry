@@ -223,3 +223,5 @@ rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地�
 实验性 40+1 预填在固定 recall17 输入上的首 token 与保留参考相同，但完整 logits 存在差异；具体数值和范围见 [记录](validation/reference40-logits-round447.json)。
 
 实验性40 token预填的跨rank分块上限不一致和重试验证见 [记录](validation/bound40-round448.json)。
+
+实验性40 token预填的第4层sparse KDA独立probe验证见 [记录](validation/sparse40-round449.json)。

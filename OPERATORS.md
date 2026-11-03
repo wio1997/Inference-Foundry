@@ -147,3 +147,5 @@ KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入�
 40+1 预填首 token 的参考完整 logits 对照及限制见 [记录](validation/reference40-logits-round447.json)。
 
 40 token预填的跨rank分块上限不一致和重试验证见 [记录](validation/bound40-round448.json)。
+
+40 token预填的第4层sparse KDA独立probe验证见 [记录](validation/sparse40-round449.json)。
