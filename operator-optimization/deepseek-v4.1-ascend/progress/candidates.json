@@ -474,6 +474,12 @@
           "title": "其他F05变体单独选择和计价",
           "description": "Q_A→RMS、Q_B/IndexQ共用一次量化，以及再接GEMM都保留为其他条件变体；本轮未实施或全部复核。",
           "decision_rule": "同一qr/quant接口只能计算一次收益，公共量化还需同值、同规则和同代际证明。"
+        },
+        {
+          "id": "F05-05",
+          "title": "若选择两支路接口，先界定各自可融合子区域",
+          "description": "复用现有fork/join依赖，分别列出主Q准备、Indexer准备/选择的真实操作及共同生产者；区分两个接口与两个真实kernel，不复制共同归一化。",
+          "decision_rule": "单支路内不兼容的阶段保留多kernel，不为凑一个算子改变数值/状态；跨F07/F09/F12等只计一次收益。"
         }
       ],
       "evidence": [
@@ -537,7 +543,7 @@
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
-      "details_markdown": "## 本轮只看哪一段\n\nF05是Attention内部Q路径的候选族。本轮先看 **RMSNorm→普通DynamicQuant**，不把Q_A投影收尾、跨消费者量化复用、完整GEMM融合和Indexer head量化混成一个已证方案。\n\n### 原来的三个操作\n\n|操作|算法或作用|结果|\n|---|---|---|\n|q_norm / RMSNorm|对Q_A的输出按完整行平方均值等原规则归一化|舍入后的BF16 qr|\n|普通DynamicQuant|按当前完整行数值生成量化比例，按原比例/舍入规则把qr量化成整数|INT8数据和FLOAT行scale|\n|Q_B投影|对量化输入和权重做原矩阵乘法，并按原scale等规则输出|Attention后续需要的Q数据|\n\n量化比例说明整数对应原数值的尺度。模型原流程本来就有这次INT8量化，融合不是新增量化或额外降低精度。\n\n源码CV路径的关键关系为：\n\n```python\nqr = attn.q_norm(q_a)\nq_b_quant, q_b_scale = wq_b.quantize(qr)\n# 后面仍由Q_B的matmul消费量化输入\n```\n\nW8方法普通Tensor输入时调用npu_dynamic_quant，再调用npu_quant_matmul；PreparedLinearInput可以在该方法边界复用预量化结果。但整层Linear、TP、bias、布局/输出约束不能仅由这个方法存在就判定可接入。\n\n### 怎么融合\n\n```text\n原来：归一化 → 发布BF16 qr → DynamicQuant重新读取 → INT8+scale → Q_B\n候选：[归一化 → 原BF16舍入 → 继续按原规则量化] → INT8+scale → Q_B\n```\n\n候选仍要完成整行归一化统计和量化的整行amax/scale，不能每块独立生成不同的行scale。也不能用未经BF16舍入的归一化FP32临时值直接量化。\n\n### qr还有谁要用\n\n适用Indexer分支中，`indexer.project_query(qr)`也消费同一qr，模型辅助接口还返回qr。所以本轮默认保留仍需的BF16输出，不把中间写出全删掉。\n\n```text\n融合NormQuant\n   ├→ INT8+行scale → Q_B\n   └→ BF16 qr → 仍需要它的Indexer或其他原消费者\n```\n\n以后若要让Q_B与Indexer投影共用预量化输入，要另查同一量化器、行映射、参数和代际；不能因都是INT8就直接共享。\n\n### 一个已知的库替代边界\n\n已钉的公开AddRmsNormDynamicQuant源码keys1/2在FLOAT归一化临时值上量化，缺少当前需求的BF16归一化输出roundtrip。它不是本case已证的直接替代。其他key或安装CANN9.2对象的实际能力没有因此被排除，完整native归约和量化规则仍待验证。\n\n普通qr量化按1280维整行产生FLOAT scale；Indexer投影后的query每head128维并有FP16 scale舍入，是另一量化器，后者归后续F09等问题。\n\n### 可省什么，不能先承诺什么\n\nM=3、QR宽1280、BF16时，qr为7680B（7.5KiB）。若其他BF16读者仍需要qr写出，融合最多研究少一个选定7680B读取及独立交接；不能同时声称qr写入消失。没有其他BF16读者的更强域，才有15360B一写一读的条件接口量。逻辑接口量不是已测HBM或收益。\n\n本轮没有删除Q_B矩阵计算；将量化输入继续送入GEMM是另一实现边界，需要兼容tiling、全行scale和有限存储，不能由相邻源码调用推断必然融合。\n\n### 本轮结论\n\n**原Norm→普通DQ→Q_B源链和qr其他消费者有依据；NormQuant是待验证融合候选。** 新接口、native数值等价、运行正确性和同条件收益尚未建立；F05全族保持CONDITIONAL。\n\n## 问题：BF16结果送到的索引分支做什么\n\n它为稀疏Attention挑选要读取的长上下文缓存位置。Indexer从qr生成自己的查询，与索引key缓存打分，选择位置并发布编号，SparseFlashMla使用这些索引读取对应长上下文/压缩缓存。\n\n```mermaid\nflowchart TD\n  QR[同一份BF16归一化结果qr] --> Q[主Q投影]\n  QR --> IQ[Indexer查询投影]\n  IQ --> S[打分并选择位置]\n  IK[索引用的历史key缓存] --> S\n  Q --> A[正式SparseAttention]\n  S -->|位置索引| A\n  KV[正式Attention使用的K/V缓存] --> A\n```\n\n因此，这份qr不只给主Q路径的DynamicQuant使用。当前Indexer接口还接收它；优化主Q量化不能直接删掉这个消费者。以后若改变Indexer输入、证明同一量化器/数值/行域/代际兼容，可以另研究共用INT8输入，但不是现有接口自动支持。\n\n这段选择主要对应长上下文/压缩缓存；滑动窗口的缓存与索引路径仍按原逻辑保留。Indexer本身也有打分/TopK成本；并非每层都重新选择，有些层复用源层已发布的索引。本次是职责和解释补充，不提高实现或性能成熟度。\n\n## 问题：为什么叫分支，是否先选缓存再算Attention\n\n用户对先后关系的理解正确：所讨论路径先得到位置索引，再将主Q、位置索引和对应K/V等输入交给正式Attention。`_select_sparse_indices`调用在`_forward_attention`之前，后者同时接收q和compressed_indices。\n\n“分支”描述的是同一qr有主Q投影、Indexer查询投影两个消费者，不表示Indexer和正式Attention互不依赖，也不证明这两个投影在当前实现中并行。两路在正式Attention处汇合；前一版图没有明确画出汇合，已修正。\n\nIndexer先用索引查询和索引key缓存打分/选位置，正式Attention随后使用主Q和对应K/V等输入；这两个缓存角色/用途不能因“都读缓存”就当成同一计算。保留BF16的直接原因仍是当前Indexer查询投影消费qr，而非要求保留一份只供后面读取KV的BF16拷贝。\n",
+      "details_markdown": "## 本轮只看哪一段\n\nF05是Attention内部Q路径的候选族。本轮先看 **RMSNorm→普通DynamicQuant**，不把Q_A投影收尾、跨消费者量化复用、完整GEMM融合和Indexer head量化混成一个已证方案。\n\n### 原来的三个操作\n\n|操作|算法或作用|结果|\n|---|---|---|\n|q_norm / RMSNorm|对Q_A的输出按完整行平方均值等原规则归一化|舍入后的BF16 qr|\n|普通DynamicQuant|按当前完整行数值生成量化比例，按原比例/舍入规则把qr量化成整数|INT8数据和FLOAT行scale|\n|Q_B投影|对量化输入和权重做原矩阵乘法，并按原scale等规则输出|Attention后续需要的Q数据|\n\n量化比例说明整数对应原数值的尺度。模型原流程本来就有这次INT8量化，融合不是新增量化或额外降低精度。\n\n源码CV路径的关键关系为：\n\n```python\nqr = attn.q_norm(q_a)\nq_b_quant, q_b_scale = wq_b.quantize(qr)\n# 后面仍由Q_B的matmul消费量化输入\n```\n\nW8方法普通Tensor输入时调用npu_dynamic_quant，再调用npu_quant_matmul；PreparedLinearInput可以在该方法边界复用预量化结果。但整层Linear、TP、bias、布局/输出约束不能仅由这个方法存在就判定可接入。\n\n### 怎么融合\n\n```text\n原来：归一化 → 发布BF16 qr → DynamicQuant重新读取 → INT8+scale → Q_B\n候选：[归一化 → 原BF16舍入 → 继续按原规则量化] → INT8+scale → Q_B\n```\n\n候选仍要完成整行归一化统计和量化的整行amax/scale，不能每块独立生成不同的行scale。也不能用未经BF16舍入的归一化FP32临时值直接量化。\n\n### qr还有谁要用\n\n适用Indexer分支中，`indexer.project_query(qr)`也消费同一qr，模型辅助接口还返回qr。所以本轮默认保留仍需的BF16输出，不把中间写出全删掉。\n\n```text\n融合NormQuant\n   ├→ INT8+行scale → Q_B\n   └→ BF16 qr → 仍需要它的Indexer或其他原消费者\n```\n\n以后若要让Q_B与Indexer投影共用预量化输入，要另查同一量化器、行映射、参数和代际；不能因都是INT8就直接共享。\n\n### 一个已知的库替代边界\n\n已钉的公开AddRmsNormDynamicQuant源码keys1/2在FLOAT归一化临时值上量化，缺少当前需求的BF16归一化输出roundtrip。它不是本case已证的直接替代。其他key或安装CANN9.2对象的实际能力没有因此被排除，完整native归约和量化规则仍待验证。\n\n普通qr量化按1280维整行产生FLOAT scale；Indexer投影后的query每head128维并有FP16 scale舍入，是另一量化器，后者归后续F09等问题。\n\n### 可省什么，不能先承诺什么\n\nM=3、QR宽1280、BF16时，qr为7680B（7.5KiB）。若其他BF16读者仍需要qr写出，融合最多研究少一个选定7680B读取及独立交接；不能同时声称qr写入消失。没有其他BF16读者的更强域，才有15360B一写一读的条件接口量。逻辑接口量不是已测HBM或收益。\n\n本轮没有删除Q_B矩阵计算；将量化输入继续送入GEMM是另一实现边界，需要兼容tiling、全行scale和有限存储，不能由相邻源码调用推断必然融合。\n\n### 本轮结论\n\n**原Norm→普通DQ→Q_B源链和qr其他消费者有依据；NormQuant是待验证融合候选。** 新接口、native数值等价、运行正确性和同条件收益尚未建立；F05全族保持CONDITIONAL。\n\n## 问题：BF16结果送到的索引分支做什么\n\n它为稀疏Attention挑选要读取的长上下文缓存位置。Indexer从qr生成自己的查询，与索引key缓存打分，选择位置并发布编号，SparseFlashMla使用这些索引读取对应长上下文/压缩缓存。\n\n```mermaid\nflowchart TD\n  QR[同一份BF16归一化结果qr] --> Q[主Q投影]\n  QR --> IQ[Indexer查询投影]\n  IQ --> S[打分并选择位置]\n  IK[索引用的历史key缓存] --> S\n  Q --> A[正式SparseAttention]\n  S -->|位置索引| A\n  KV[正式Attention使用的K/V缓存] --> A\n```\n\n因此，这份qr不只给主Q路径的DynamicQuant使用。当前Indexer接口还接收它；优化主Q量化不能直接删掉这个消费者。以后若改变Indexer输入、证明同一量化器/数值/行域/代际兼容，可以另研究共用INT8输入，但不是现有接口自动支持。\n\n这段选择主要对应长上下文/压缩缓存；滑动窗口的缓存与索引路径仍按原逻辑保留。Indexer本身也有打分/TopK成本；并非每层都重新选择，有些层复用源层已发布的索引。本次是职责和解释补充，不提高实现或性能成熟度。\n\n## 问题：为什么叫分支，是否先选缓存再算Attention\n\n用户对先后关系的理解正确：所讨论路径先得到位置索引，再将主Q、位置索引和对应K/V等输入交给正式Attention。`_select_sparse_indices`调用在`_forward_attention`之前，后者同时接收q和compressed_indices。\n\n“分支”描述的是同一qr有主Q投影、Indexer查询投影两个消费者，不表示Indexer和正式Attention互不依赖，也不证明这两个投影在当前实现中并行。两路在正式Attention处汇合；前一版图没有明确画出汇合，已修正。\n\nIndexer先用索引查询和索引key缓存打分/选位置，正式Attention随后使用主Q和对应K/V等输入；这两个缓存角色/用途不能因“都读缓存”就当成同一计算。保留BF16的直接原因仍是当前Indexer查询投影消费qr，而非要求保留一份只供后面读取KV的BF16拷贝。\n\n## 问题：每条分支能否单独做一个算子\n\n可以把两条分支分别视作候选区域/对外接口，但这不是已有单kernel实现的证明：\n\n```text\n共享归一化结果qr\n   ├→ 区域A：主Q准备 ─────────┐\n   └→ 区域B：索引查询/选择 ────┤\n                              ↓\n               主Attention使用两路结果及KV等输入\n```\n\n当前主Q投影和Indexer查询投影已经是不同算子调用；一条分支里还可能有矩阵乘法、位置旋转、量化、缓存打分/TopK等多个操作。新的工作不是仅为两条分支起两个名字，而是检查各自哪些相邻操作能在合法实现中融合。\n\n一个接口内部可以先包含几个kernel。要声称整支路只有一个融合kernel，仍需数值边界、完整行统计、tile容量、缓存/状态和运行时实现证据。把几个Python调用包起来不等于已经融合。\n\n共同归一化作为共享生产者，不在两条分支各算一遍。两路能否共用一次量化是另一个已有条件候选，需要相同数值、量化器、行域和代际，并保留当前仍需的BF16输出。\n\n两个算子也不保证同时执行；资源与调度允许才可重叠，正式Attention仍必须等所需主Q、索引与缓存等输入。若选择主Q/Indexer内部的RoPE、量化、TopK接合，要与F07、F09、F12等既有候选共同计价，不新增重复收益。\n\n本次只记录用户提出的分区视角；没有选择整支路单kernel实现，没有新增运行或性能结论。\n",
       "questions_and_answers": [
         {
           "date": "2026-11-03",
@@ -550,6 +556,37 @@
           "question": "为什么说是分支，不是先看KV缓存再进入Attention？",
           "answer": "qr被主Q投影和Indexer查询投影两处消费，是数据流分叉。Indexer用其查询和索引缓存先选位置，主Attention随后汇合主Q、选出的索引及对应K/V等输入。当前调用先选择再forward_attention；分支不等于执行独立或已并行。",
           "evidence": "evidence/F05-indexer-attention-join-20261103.json"
+        },
+        {
+          "date": "2026-11-03",
+          "question": "如果是两个算子，每个分支可以单独出一个算子吗？",
+          "answer": "可以按主Q准备与Indexer准备/选择定义两个候选区域或接口；当前本来就有不同投影调用。每个区域能否成为单个融合kernel仍需逐操作的数值、输入输出、完整行统计、存储和资源证明。共同归一化应作为共享生产者，不在两路重复算；两路仍在Attention汇合，两个算子不保证并行。",
+          "evidence": [
+            "evidence/F05-norm-quant-review-20261103.json",
+            "evidence/F05-indexer-attention-join-20261103.json"
+          ],
+          "kind": "USER_PROPOSED_PARTITION_NOT_IMPLEMENTED"
+        }
+      ],
+      "partition_options": [
+        {
+          "id": "F05-BRANCH-REGIONS",
+          "status": "PROPOSED_NOT_IMPLEMENTED",
+          "shared_producer": "原归一化qr；量化是否共同生产依量化器和接口另证",
+          "region_A": "主Q准备中的兼容操作",
+          "region_B": "Indexer查询准备/索引选择中的兼容操作；不假定整条区域可一核完成",
+          "join": "主Q与位置索引及相应KV等输入就绪后进入主Attention",
+          "conditions": [
+            "共同工作不重复生产",
+            "保留所有BF16/量化/scale/索引与状态输出",
+            "每个区域明确API与真实kernel边界",
+            "依赖分支不等于硬件并行",
+            "与F07/F09/F12等边界重叠的收益只计一次"
+          ],
+          "evidence": [
+            "evidence/F05-norm-quant-review-20261103.json",
+            "evidence/F05-indexer-attention-join-20261103.json"
+          ]
         }
       ]
     },

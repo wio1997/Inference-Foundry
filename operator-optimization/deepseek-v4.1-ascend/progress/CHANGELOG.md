@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F05-BRANCH-REGION-QUESTION
+
+涉及：[F05](F05.md)
+
+类型：USER_PROPOSED_PARTITION_NOT_IMPLEMENTATION；依据：用户提出每个分支单独做一个算子；复用已核对qr双消费者和Attention汇合证据。
+
+记录两条分支作为候选融合区域/接口，保留共同归一化；一个接口不保证单kernel，两个算子不保证并行。当前投影调用本已分开，新增机会在兼容操作的内部接合；不升级可实现性或收益。
+
 ## 2026-11-03 · 20261103-F05-DATAFLOW-JOIN-CORRECTION
 
 涉及：[F05](F05.md)
