@@ -161,3 +161,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 使用上述实验路径对该 recall17 提示执行未强制生成时，四 rank 的13个生成 token 与保留参考完全一致，以配置停止 token 154827 结束，未到 tokenizer EOS 或32 token 上限；首 token 完整 logits 仍不一致。这仅是一个固定例子，不代表整体验收。[结果](validation/recall17-output-tree-round422.json)。
 
 同一实验路径的四 die recall42 未强制生成返回最终答案42，但生成序列为48 token，保留参考为45 token，首个差异在索引2。初始32 token上限到达后扩至64，最终以配置停止 token 154827 结束，未到 tokenizer EOS 或最终上限；此例没有完整参考 logits 对照，不能判定整体精度通过。[实测范围](validation/recall42-output-tree-round423.json)。
+
+针对 recall42 的前两个相同生成 token，四 rank 对位置42的44层输出与保留参考比较：第一个已捕获差异位于第0层，最大绝对差约0.0007324；第43层最大绝对差为2.3125。参考与候选 prefill 形状不同，未据此判定内部因果或质量阈值。[范围](validation/recall42-output-tree-round423.json)。
