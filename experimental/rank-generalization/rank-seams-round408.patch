@@ -1,0 +1,212 @@
+--- a/rank_linear.py
++++ b/rank_linear.py
+@@ -14,15 +14,15 @@
+  def __init__(self,reader,prefix,device,*,rank,world_size,row_start,row_stop,max_output_rows,group=None):
+   super().__init__()
+   if torch.device(device).type!='npu':raise ValueError('explicit NPU device required')
+-  if type(world_size) is not int or world_size not in (1,4) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
+-  if world_size==4:
++  if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
++  if world_size>1:
+    if not dist.is_initialized() or dist.get_world_size(group)!=world_size or dist.get_rank(group)!=rank:raise ValueError('explicit initialized matching process group required')
+   elif dist.is_initialized():raise ValueError('one-rank path requires no initialized group')
+   self.rank,self.world_size,self.group,self.row_start,self.row_stop=rank,world_size,group,row_start,row_stop
+   self.device=torch.device(device)
+   # Reserve the control flag before loading a local shard. All live ranks
+   # must agree that initialization succeeded before any proceeds to forward.
+-  status=torch.zeros((1,),dtype=torch.int32,device=self.device) if world_size==4 else None
++  status=torch.zeros((1,),dtype=torch.int32,device=self.device) if world_size>1 else None
+   failure=None
+   try:
+    if any(type(v) is not int for v in (row_start,row_stop,max_output_rows)) or not 0<=row_start<row_stop or max_output_rows<1 or row_stop-row_start>max_output_rows:raise ValueError('invalid bounded output rows')
+@@ -36,11 +36,11 @@
+    self.local_start,self.local_stop=first,last;self.input_size=d['shape'][1]
+    self.local=reader.load_linear(prefix,device,output_slice=slice(first,last))
+    if self.local.output_size!=width or self.local.input_size!=self.input_size:raise ValueError('loader returned incorrect local geometry')
+-   if world_size==4:
++   if world_size>1:
+     import torch_npu
+     torch_npu.npu.synchronize()
+   except Exception as exc:failure=exc
+-  if world_size==4:
++  if world_size>1:
+    status.fill_(int(failure is not None));dist.all_reduce(status,op=dist.ReduceOp.MAX,group=group)
+    if int(status.item()):raise RuntimeError('one or more ranks failed linear initialization') from failure
+   elif failure is not None:raise failure
+--- a/replicated_rank_moe.py
++++ b/replicated_rank_moe.py
+@@ -21,9 +21,9 @@
+                         cache_bytes, max_assembled_bytes, max_packed_rows,
+                         max_checkpoint_bytes=512*1024**2,
+                         max_resident_bytes=512*1024**2, group=None, cache_session=None):
+-    if type(world_size) is not int or world_size not in (1,4) or type(rank) is not int or not 0<=rank<world_size:
++    if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:
+         raise ValueError('explicit rank and supported world required')
+-    if world_size==4:
++    if world_size>1:
+         if not dist.is_initialized() or dist.get_rank(group)!=rank or dist.get_world_size(group)!=world_size:
+             raise ValueError('matching initialized group required')
+     elif dist.is_initialized():
+@@ -50,7 +50,7 @@
+     # participate in the preflight, provided the group and device remain usable.
+     except Exception as exc:
+         local_error=exc
+-    if world_size==4:
++    if world_size>1:
+         if local_error is None:
+             # Fixed-length vector: validity, tensor geometry/dtypes and
+             # layer/packing parameters that determine collective shapes.
+@@ -68,7 +68,7 @@
+             raise ValueError('rank input preflight failed or metadata differs') from local_error
+     elif local_error is not None:
+         raise local_error
+-    if world_size==4:
++    if world_size>1:
+         # Compare actual replicated tensors before loading any weights. Every
+         # rank performs the same collectives and checks the same inputs.
+         for value in (hidden.contiguous(),routes.expert_ids.contiguous(),routes.weights.contiguous()):
+@@ -107,7 +107,7 @@
+             # before any peer enters broadcast or all_gather.
+             stats={k:v for k,v in cache.stats().items() if k!='keys_lru'}
+             padded=gathered=None
+-            if world_size==4:
++            if world_size>1:
+                 capacity=max(1,packed.expert_ids.numel())
+                 padded=hidden.new_zeros((capacity,hidden.shape[1]));padded[:len(local)].copy_(local)
+                 gathered=[torch.empty_like(padded) for _ in range(world_size)]
+@@ -116,7 +116,7 @@
+             torch_npu.npu.synchronize()
+             return local,shared,stats,padded,gathered
+         local,shared,stats,padded,gathered=coordinated_local_stage(local_stage,device=hidden.device,rank=rank,world_size=world_size,group=group)
+-        if world_size==4:
++        if world_size>1:
+             dist.broadcast(shared,src=(dist.get_global_rank(group,0) if group is not None else 0),group=group)
+             dist.all_gather(gathered,padded,group=group)
+             outputs=[value[:plan.partitions[i].packed_indices.numel()] for i,value in enumerate(gathered)]
+--- a/coordinated_bank_lease.py
++++ b/coordinated_bank_lease.py
+@@ -12,9 +12,9 @@
+ 
+ @contextmanager
+ def coordinated_bank_lease(lease, *, device, rank, world_size, group=None):
+-    if type(world_size) is not int or world_size not in (1, 4) or type(rank) is not int or not 0 <= rank < world_size:
++    if type(world_size) is not int or world_size not in (1, 2, 4, 8, 16) or type(rank) is not int or not 0 <= rank < world_size:
+         raise ValueError('explicit supported rank/world required')
+-    if world_size == 4 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
++    if world_size > 1 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
+         raise ValueError('matching initialized group required')
+     with ExitStack() as stack:
+         failure = None
+@@ -23,7 +23,7 @@
+             value = stack.enter_context(lease)
+         except Exception as exc:
+             failure = exc
+-        if world_size == 4:
++        if world_size > 1:
+             status = torch.tensor([int(failure is not None)], dtype=torch.int32, device=device)
+             dist.all_reduce(status, op=dist.ReduceOp.MAX, group=group)
+             if int(status.item()) != 0:
+@@ -51,9 +51,9 @@
+     Process loss, a failed status collective and later errors remain outside
+     this guarantee.
+     """
+-    if type(world_size) is not int or world_size not in (1, 4) or type(rank) is not int or not 0 <= rank < world_size:
++    if type(world_size) is not int or world_size not in (1, 2, 4, 8, 16) or type(rank) is not int or not 0 <= rank < world_size:
+         raise ValueError('explicit supported rank/world required')
+-    if world_size == 4 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
++    if world_size > 1 and (not dist.is_initialized() or dist.get_rank(group) != rank or dist.get_world_size(group) != world_size):
+         raise ValueError('matching initialized group required')
+     failure = None
+     value = None
+@@ -61,7 +61,7 @@
+         value = operation()
+     except Exception as exc:
+         failure = exc
+-    if world_size == 4:
++    if world_size > 1:
+         status = torch.tensor([int(failure is not None)], dtype=torch.int32, device=device)
+         dist.all_reduce(status, op=dist.ReduceOp.MAX, group=group)
+         if int(status.item()) != 0:
+--- a/rank_text_install.py
++++ b/rank_text_install.py
+@@ -16,9 +16,11 @@
+ 
+ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
+                             max_assembled_bytes,max_intermediate_rows,max_packed_rows,group=None,cache_session=None):
+-    if world_size==4:
++    if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:
++        raise ValueError('explicit supported rank/world required')
++    if world_size>1:
+         import hashlib,json,torch,torch.distributed as dist
+-        if not dist.is_initialized() or dist.get_world_size(group)!=4 or dist.get_rank(group)!=rank:
++        if not dist.is_initialized() or dist.get_world_size(group)!=world_size or dist.get_rank(group)!=rank:
+             raise ValueError('explicit initialized matching process group required')
+         failure=None;signature=[0,0,0,0];count=0
+         try:
+@@ -57,7 +59,7 @@
+             count=len(shape)
+         except Exception as exc:failure=exc
+         metadata=torch.tensor([int(failure is not None),count,*signature],dtype=torch.int64,device='npu')
+-        gathered=[torch.empty_like(metadata) for _ in range(4)]
++        gathered=[torch.empty_like(metadata) for _ in range(world_size)]
+         dist.all_gather(gathered,metadata,group=group)
+         if any(int(item[0].item()) for item in gathered) or not all(torch.equal(gathered[0],item) for item in gathered[1:]):
+             raise RuntimeError('rank text installation structure differs or is invalid') from failure
+@@ -76,20 +78,20 @@
+                 saved.append(('sparse',layer,layer.mlp.experts,None))
+                 # A sparse adapter can reject rank-local reader/session state.
+                 # Agree before any peer can enter the next dense collective.
+-                if world_size==4:
++                if world_size>1:
+                     import torch,torch.distributed as dist
+-                    if not dist.is_initialized() or dist.get_world_size(group)!=4 or dist.get_rank(group)!=rank:
++                    if not dist.is_initialized() or dist.get_world_size(group)!=world_size or dist.get_rank(group)!=rank:
+                         raise ValueError('explicit initialized matching process group required')
+                     status=torch.zeros((1,),dtype=torch.int32,device='npu')
+                 failure=None
+                 try:
+                     install_rank_experts(layer,reader,rank=rank,world_size=world_size,cache_bytes=cache_bytes,
+                         max_assembled_bytes=max_assembled_bytes,max_packed_rows=max_packed_rows,group=group,cache_session=cache_session)
+-                    if world_size==4:
++                    if world_size>1:
+                         import torch_npu
+                         torch_npu.npu.synchronize()
+                 except Exception as exc:failure=exc
+-                if world_size==4:
++                if world_size>1:
+                     status.fill_(int(failure is not None));dist.all_reduce(status,op=dist.ReduceOp.MAX,group=group)
+                     if int(status.item()):raise RuntimeError('one or more ranks failed sparse installation') from failure
+                 elif failure is not None:raise failure
+--- a/rank_expert_cache.py
++++ b/rank_expert_cache.py
+@@ -31,7 +31,7 @@
+  NPU execution, shared-expert handling or cross-rank dispatch is implied.
+  """
+  def __init__(self,reader,*,rank,world_size,max_bytes):
+-  if type(world_size) is not int or world_size not in (1,4) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
++  if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:raise ValueError('supported explicit rank/world required')
+   if type(max_bytes) is not int or max_bytes<1:raise ValueError('positive host payload budget required')
+   text=reader.config['text_config'];self._count=text['n_routed_experts'];self._layers=text['mlp_layer_types'];self.reader=reader;self.rank=rank;self.world_size=world_size;self.max_bytes=max_bytes
+   self._entries=OrderedDict();self._used=0;self._closed=False;self._lock=RLock();self._hits=0;self._misses=0
+--- a/rank_routes.py
++++ b/rank_routes.py
+@@ -26,8 +26,8 @@
+ 
+ 
+ def partition_routes(routes, *, world_size, max_packed_rows):
+-    if type(world_size) is not int or world_size not in (1,4):
+-        raise ValueError('world size must be explicitly 1 or 4')
++    if type(world_size) is not int or world_size not in (1,2,4,8,16):
++        raise ValueError('world size must be explicitly 1, 2, 4, 8 or 16')
+     if type(max_packed_rows) is not int or max_packed_rows < 0:
+         raise ValueError('nonnegative packed-row bound required')
+     if not isinstance(routes,PackedRoutes):
+@@ -49,7 +49,7 @@
+ 
+ 
+ def combine_rank_outputs(plan, rank_outputs, *, shared_output=None):
+-    if not isinstance(plan,RankRoutePlan) or type(plan.world_size) is not int or plan.world_size not in (1,4):
++    if not isinstance(plan,RankRoutePlan) or type(plan.world_size) is not int or plan.world_size not in (1,2,4,8,16):
+         raise ValueError('explicit rank route plan required')
+     routes=plan.routes
+     compact_expert_plan(routes)

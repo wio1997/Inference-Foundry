@@ -233,3 +233,7 @@
 进一步使用实际 41 行输入和参考 chunk 形状时，四个 rank 的 chunk 调用仍返回 161002；管理器语义结果为失败，没有得到 chunk 数值对照。详见 [批量失败记录](recall17-batch-chunk-attempt-round407.json)。后续需先找到调用条件的实际差异，不能把该失败当作模型精度结果。
 
 进一步核对检查点和参考调用：`A_log`、`dt_bias` 检查点张量为 BF16，参考参数为 FP32。将独立 chunk 调用参数转为 FP32 后，四个 rank 仍返回 161002，未获得数值对照；参数 dtype 不是充分修复，实际原因未知。详见 [记录](recall17-fp32-chunk-attempt-round408.json)。
+
+## Rank 接缝泛化隔离验证
+
+六个模型 rank 组件的实验补丁在授权四 die 上完成 45 层同运行时 direct/ranked 比较：四个 rank 的前后缀 logits、生成 ID、45 层状态及 archive-v2 恢复匹配，进程组正常销毁。短请求生成达到四 token 上限；不是完整答复或独立质量验收。补丁、范围和针脚见 [试验说明](../experimental/rank-generalization/README.zh-CN.md)。其他 world size 和参数化启动器尚未验证。
