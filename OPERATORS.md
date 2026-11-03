@@ -153,3 +153,5 @@ KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入�
 CLI的40 token dense及第4层sparse KDA组合与逐token MoE范围见 [验证记录](validation/cli-sparse40-round450.json)，不代表独立质量或性能通过。
 
 40+1 sparse KDA CLI状态恢复验证及限制见 [记录](validation/cli-sparse40-restore-round451.json)。
+
+40+1 sparse KDA CLI的recall42固定例和参考差异见 [记录](validation/cli-sparse40-recall42-round452.json)。
