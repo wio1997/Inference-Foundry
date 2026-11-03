@@ -24,6 +24,9 @@ def main():
     prep.add_argument('--kda-backend', choices=('ascendc_installed_decode', 'ascendc'), default='ascendc_installed_decode')
     prep.add_argument('--expected-final')
     prep.add_argument('--restore-after-first-token', action='store_true')
+    prep.add_argument('--experimental-layer-major-kda', action='store_true')
+    prep.add_argument('--experimental-kda-prefill40', action='store_true')
+    prep.add_argument('--experimental-sparse-kda-layer4', action='store_true')
     rank = commands.add_parser('rank')
     rank.add_argument('--rank', type=int, required=True)
     rank.add_argument('--die', type=int, required=True)
@@ -42,6 +45,10 @@ def main():
         os.environ['WORLD_SIZE'] = str(world_size)
         worker = Path(__file__).resolve().with_name('worker.py')
         os.execvp('python3', ['python3', str(worker), str(args.rank), str(args.die), str(args.port)])
+    if (args.experimental_kda_prefill40 or args.experimental_sparse_kda_layer4) and not args.experimental_layer_major_kda:
+        parser.error('experimental prefill options require layer-major KDA')
+    if args.experimental_layer_major_kda and args.kda_backend != 'ascendc':
+        parser.error('experimental layer-major KDA requires ascendc')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', args.run_id):
         parser.error('invalid run ID')
     if not (1 <= args.context_tokens <= 128 and 1 <= args.max_new_tokens <= 64 and 0 <= args.cache_mib <= 128):
@@ -68,10 +75,14 @@ def main():
     ids = encoded['input_ids'] if hasattr(encoded, 'keys') else encoded
     if not ids or len(ids) + args.max_new_tokens > args.context_tokens:
         parser.error('prompt and generation exceed the context bound')
-    print(json.dumps({'run_id': args.run_id, 'messages': messages, 'prompt_ids': ids,
-                      'context_tokens': args.context_tokens, 'max_new_tokens': args.max_new_tokens,
-                      'cache_mib': args.cache_mib, 'kda_backend': args.kda_backend, 'expected_final': args.expected_final,
-                      'restore_after_first_token': args.restore_after_first_token}))
+    request = {'run_id': args.run_id, 'messages': messages, 'prompt_ids': ids,
+               'context_tokens': args.context_tokens, 'max_new_tokens': args.max_new_tokens,
+               'cache_mib': args.cache_mib, 'kda_backend': args.kda_backend, 'expected_final': args.expected_final,
+               'restore_after_first_token': args.restore_after_first_token}
+    for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4'):
+        if getattr(args, name):
+            request[name] = True
+    print(json.dumps(request))
 
 
 if __name__ == '__main__':

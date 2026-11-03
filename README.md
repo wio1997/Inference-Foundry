@@ -247,3 +247,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 稀疏KDA与40+1预填的archive-v2恢复后，续算完整logits及45层状态在受测配置下相等，见 [记录](validation/sparsearchive40-round460.json)。
 
 分配器在启动 worker 前以 `npu-smi info -m` 核对卡/芯片到逻辑 die 的映射；不匹配或无法解析时拒绝启动。[验证](validation/allocator-mapping-round461.json)。
+
+独立 `launcher.py prepare` 支持显式 `--experimental-layer-major-kda`、`--experimental-kda-prefill40` 和 `--experimental-sparse-kda-layer4`；后两项要求前者，且该模式要求 `ascendc`。runner 验证构造结果与所请求选项一致。[四rank验证](validation/prepare-options-round462.json)。

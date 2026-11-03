@@ -206,14 +206,16 @@ def main():
                 prepare += ['--expected-final', args.expected_final]
             if args.restore_after_first_token:
                 prepare.append('--restore-after-first-token')
+            for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4'):
+                if getattr(args, name):
+                    prepare.append('--' + name.replace('_', '-'))
             result = subprocess.run(prepare, input=input_text, capture_output=True, text=True, timeout=90, check=True)
             request = json.loads(result.stdout.strip().splitlines()[-1])
             if request['run_id'] != args.run_id or request['messages'] != json.loads(input_text) or request['kda_backend'] != args.kda_backend:
                 raise RuntimeError('request builder returned a different request')
-            if args.experimental_layer_major_kda:
-                request['experimental_layer_major_kda'] = True
-                if args.experimental_kda_prefill40:request['experimental_kda_prefill40'] = True
-                if args.experimental_sparse_kda_layer4:request['experimental_sparse_kda_layer4'] = True
+            for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4'):
+                if request.get(name, False) is not getattr(args, name):
+                    raise RuntimeError('request builder returned different experimental options: ' + name)
             if args.reference_probe:
                 request.pop('kda_backend')
                 request['mode'] = 'reference_probe'
