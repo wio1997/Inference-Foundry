@@ -191,3 +191,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 加入第4层选项后的默认 CLI 四 rank 固定8+5回归与先前默认记录的提示 IDs、argmax、生成 IDs 和停止字段一致；未比较完整 logits。[范围](validation/sparse-cli-default-round429.json)。
 
 四 rank 非零状态下，仅 rank2 关闭第4层 sparse KDA 分块时，所有 rank 均在 chunk 执行前协同拒绝，45层状态保持不变；恢复一致配置后重试 logits 和状态与干净运行逐位一致。该受控检查不覆盖设备丢失或整体精度。[范围](validation/sparse-kda-mask-round430.json)。
+
+四 rank 实验分块选择第4层 sparse KDA 时，非零45层状态归档恢复后的8 token 加 singleton 续算，与未中断路径的完整 logits 和最终45层状态逐位一致；该 sparse MoE 逐 token 调用。仅固定短输入，不覆盖独立精度、性能或设备故障。[范围](validation/sparse-kda-archive-round431.json)。

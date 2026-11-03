@@ -115,3 +115,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 第4层 sparse KDA CLI 的 recall42 序列亦与参考从首 token 起不同，见 [记录](validation/sparse-kda-recall42-round429.json)。
 
 第4层 sparse KDA 分块选择跨 rank 不一致的预检、回滚与重试范围见 [记录](validation/sparse-kda-mask-round430.json)。
+
+第4层 sparse KDA 的非零状态归档恢复及8加1 token 续算对照见 [记录](validation/sparse-kda-archive-round431.json)。
