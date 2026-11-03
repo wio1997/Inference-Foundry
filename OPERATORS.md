@@ -141,3 +141,5 @@ KDA 层和 rank 事务具备显式40 token 实验界限，实际45层40+1输入�
 40 token受控事务回滚探针已接入公共CLI，范围见 [记录](validation/cli-rollback40-round443.json)。
 
 40 token预填后的状态序列化、恢复和续算验证见 [记录](validation/archive40-round444.json)。
+
+40 token预填的专家缓存等价验证见 [记录](validation/cache40-round445.json)。
