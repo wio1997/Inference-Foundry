@@ -185,3 +185,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 便携 CLI 在 `--experimental-layer-major-kda --kda-backend ascendc` 基础上可另加默认关闭的 `--experimental-sparse-kda-layer4`，显式选择已测的第4层 sparse MoE KDA；该选项要求四 rank，MoE 仍逐 token。固定8+5实际命令四 rank 返回预期 token，未比较完整 logits 或独立整模型质量。[范围](validation/sparse-kda-cli-round429.json)。
 
 启用第4层 sparse KDA 的实际 CLI recall17 固定例返回最终答案17，但生成4个 token，与保留参考13个 token 从首 token 起不同；所有 rank 一致且以配置停止 token 结束。这是未解决的质量差异，实验选项保持默认关闭。[结果](validation/sparse-kda-recall17-round429.json)。
+
+同一第4层 sparse KDA 实验选项的 recall42 实际 CLI 固定例返回最终答案42，但生成4个 token，与保留参考45个 token 从首 token 起不同；四 rank 一致，以配置停止 token 结束且未到上限。未比较完整 logits。[结果](validation/sparse-kda-recall42-round429.json)。

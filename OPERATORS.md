@@ -111,3 +111,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 实验性便携 CLI 可另行显式选择第4层 sparse KDA chunk；MoE 仍逐 token，实际四 rank 短例见 [记录](validation/sparse-kda-cli-round429.json)。
 
 第4层 sparse KDA CLI 的 recall17 生成序列与参考从首 token 起不同；实验范围及未解决质量差异见 [记录](validation/sparse-kda-recall17-round429.json)。
+
+第4层 sparse KDA CLI 的 recall42 序列亦与参考从首 token 起不同，见 [记录](validation/sparse-kda-recall42-round429.json)。
