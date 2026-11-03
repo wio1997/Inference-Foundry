@@ -51,25 +51,31 @@ def main():
     parser.add_argument('--experimental-fp32-dsa', action='store_true')
     parser.add_argument('--rollback-probe', action='store_true', help='run the bounded nonzero-state rollback probe')
     parser.add_argument('--reference-probe', action='store_true', help='run the installed four-rank reference')
+    parser.add_argument('--snapshot-probe', action='store_true', help='run the bounded four-rank archive-v2 restore probe')
     args = parser.parse_args()
     if not args.experimental_fp32_dsa:
         parser.error('explicit --experimental-fp32-dsa is required')
     world_size = args.world_size
+    timeout_seconds = 900 if args.snapshot_probe else 2100
+    if args.snapshot_probe and world_size != 4:
+        parser.error('snapshot probe requires four ranks')
     if args.reference_probe and world_size != 4:
         parser.error('reference probe requires four ranks')
     if args.rollback_probe and world_size not in (2,4):
         parser.error('rollback probe requires two or four ranks')
-    if args.rollback_probe and args.reference_probe:
+    if sum((args.rollback_probe, args.reference_probe, args.snapshot_probe)) > 1:
         parser.error('select at most one probe mode')
+    if args.snapshot_probe and args.kda_backend != 'ascendc':
+        parser.error('--snapshot-probe requires --kda-backend ascendc')
     if args.rollback_probe and args.kda_backend != 'ascendc':
         parser.error('--rollback-probe requires --kda-backend ascendc')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', args.run_id):
         parser.error('invalid run ID')
-    if args.rollback_probe:
+    if args.rollback_probe or args.snapshot_probe:
         if (args.messages is not None or args.context_tokens is not None or
                 args.max_new_tokens is not None or args.cache_mib is not None or
                 args.expected_final is not None or args.restore_after_first_token):
-            parser.error('text request options are not valid with --rollback-probe')
+            parser.error('text request options are not valid with fixed probe modes')
     else:
         if args.messages is None:
             parser.error('--messages is required for text mode')
@@ -87,7 +93,7 @@ def main():
     if len(manifest_pins) != 1 or sha(manifest_path) != manifest_pins[0]['sha256']:
         raise RuntimeError('base source manifest must have exactly one matching SHA256 pin')
     root = Path(cfg['task_root']).resolve()
-    if not args.rollback_probe:
+    if not (args.rollback_probe or args.snapshot_probe):
         messages = Path(args.messages).resolve()
         if not messages.is_file() or not messages.is_relative_to(root) or messages.stat().st_size > 16384:
             parser.error('message file must be under task root and <=16 KiB')
@@ -126,7 +132,7 @@ def main():
         for rel, digest in manifest.items():
             if not rel.startswith('cli:') and sha(Path(cfg['source_host']) / rel) != digest:
                 raise RuntimeError('source manifest mismatch: ' + rel)
-        for file in ('worker.py', 'launcher.py', 'runner.py') + (('rollback_probe.py',) if args.rollback_probe else ('reference_probe.py',) if args.reference_probe else ()):
+        for file in ('worker.py', 'launcher.py', 'runner.py') + (('rollback_probe.py',) if args.rollback_probe else ('reference_probe.py',) if args.reference_probe else ('rank_snapshot_probe.py',) if args.snapshot_probe else ()):
             manifest['portable:' + file] = sha(Path(__file__).resolve().parent / file)
         manifest['portable:world-size'] = hashlib.sha256(str(world_size).encode()).hexdigest()
         payload = json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
@@ -137,6 +143,11 @@ def main():
                        'tokens': [154822, 154824, 154826, 25062],
                        'injected_rank': min(2, world_size-1), 'failure_points': ['head_after_stack', 'rank_input_mismatch'], 'mismatch_token': 25063,
                        'committed_prefix_tokens': 3}
+        elif args.snapshot_probe:
+            request = {'run_id': args.run_id, 'mode': 'snapshot_probe', 'world_size': 4,
+                       'kda_backend': 'ascendc', 'context_tokens': 32, 'generation_cap': 4,
+                       'prompt': 'What is 8 plus 5? Reply only with the number.',
+                       'expected_generated_ids': [154842, 99366, 154827], 'archive_version': 2}
         else:
             prepare = ['docker', 'exec', '-i', '-e', 'GLM_MODEL_DIR=' + cfg['model_container'],
                        '-e', 'HF_HUB_OFFLINE=1', '-e', 'TRANSFORMERS_OFFLINE=1', cfg['container'],
@@ -161,7 +172,7 @@ def main():
         spec = importlib.util.spec_from_file_location('operator_unit_budget', helper)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        reservation = module.reserve(root, lock, args.goal, source_digest, 'bounded-cli-' + args.run_id, workers=world_size, timeout_seconds=2100)
+        reservation = module.reserve(root, lock, args.goal, source_digest, 'bounded-cli-' + args.run_id, workers=world_size, timeout_seconds=timeout_seconds)
         run.mkdir(parents=True, exist_ok=False)
         write(run / 'reservation.json', reservation)
         (run / 'source-manifest.json').write_bytes(payload + b'\n')
@@ -182,14 +193,16 @@ def main():
                 for key, value in env.items():
                     argv += ['-e', key + '=' + value]
                 if args.rollback_probe:
-                    argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', str(Path(cfg['launcher_container']).with_name('rollback_probe.py')), str(rank), str(die), str(port), 'bounded']
+                    argv += [cfg['container'], 'timeout', '-k', '10', str(timeout_seconds), 'python3', str(Path(cfg['launcher_container']).with_name('rollback_probe.py')), str(rank), str(die), str(port), 'bounded']
+                elif args.snapshot_probe:
+                    argv += [cfg['container'], 'timeout', '-k', '10', str(timeout_seconds), 'python3', str(Path(cfg['launcher_container']).with_name('rank_snapshot_probe.py')), str(rank), str(die), str(port)]
                 elif args.reference_probe:
-                    argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', str(Path(cfg['launcher_container']).with_name('reference_probe.py')), str(rank), str(die), str(port)]
+                    argv += [cfg['container'], 'timeout', '-k', '10', str(timeout_seconds), 'python3', str(Path(cfg['launcher_container']).with_name('reference_probe.py')), str(rank), str(die), str(port)]
                 else:
-                    argv += [cfg['container'], 'timeout', '-k', '10', '2100', 'python3', cfg['launcher_container'], 'rank', '--rank', str(rank), '--die', str(die), '--port', str(port)]
+                    argv += [cfg['container'], 'timeout', '-k', '10', str(timeout_seconds), 'python3', cfg['launcher_container'], 'rank', '--rank', str(rank), '--die', str(die), '--port', str(port)]
                 proc = subprocess.Popen(argv, stdout=log, stderr=subprocess.STDOUT)
                 workers.append((item, proc, log))
-                ownership['active_jobs'].append({'job_id': f'bounded-cli-{args.run_id}-rank{rank}', 'host': os.uname().nodename, 'physical_die': die, 'rank': rank, 'docker_exec_pid': proc.pid, 'started_at': stamp, 'command': argv, 'log': str(run / f'rank{rank}.log'), 'stop_condition': '2100-second timeout, 180-second mapping barrier'})
+                ownership['active_jobs'].append({'job_id': f'bounded-cli-{args.run_id}-rank{rank}', 'host': os.uname().nodename, 'physical_die': die, 'rank': rank, 'docker_exec_pid': proc.pid, 'started_at': stamp, 'command': argv, 'log': str(run / f'rank{rank}.log'), 'stop_condition': f'{timeout_seconds}-second timeout, 180-second mapping barrier'})
                 write(cfg['ownership'], ownership)
             deadline = time.monotonic() + 180
             while time.monotonic() < deadline and not all((run / f"rank{x['rank']}" / 'ready').exists() for x, _, _ in workers):
@@ -203,7 +216,7 @@ def main():
             (run / 'mapping.txt').write_text(top + '\n' + info)
             for item, proc, log in workers:
                 rank, die = item['rank'], item['die']
-                worker_name = 'rollback_probe.py' if args.rollback_probe else 'reference_probe.py' if args.reference_probe else 'worker.py'
+                worker_name = 'rollback_probe.py' if args.rollback_probe else 'reference_probe.py' if args.reference_probe else 'rank_snapshot_probe.py' if args.snapshot_probe else 'worker.py'
                 worker_args = [str(rank), str(die), str(port), 'bounded'] if args.rollback_probe else [str(rank), str(die), str(port)]
                 rows = [line for line in top.splitlines() if len(line.split(None, 2)) == 3 and line.split(None, 2)[2].startswith('python3 ') and worker_name in line and line.split()[-len(worker_args):] == worker_args]
                 if len(rows) != 1:
@@ -219,7 +232,7 @@ def main():
             fatal = repr(error)
         finally:
             results = []
-            deadline = time.monotonic() + 2160
+            deadline = time.monotonic() + timeout_seconds + 60
             for item, proc, log in workers:
                 try:
                     code = proc.wait(timeout=max(0, deadline - time.monotonic()))
@@ -239,6 +252,8 @@ def main():
                     x = read(run / f'rank{rank}' / 'result.json')
                     if args.rollback_probe:
                         passed = (x['status'] == 'passed' and x['rank_commit_agreement_enabled'] and x['failure_coordinated'] and x['failure_tokens_seen'] == 3 and x['nonzero_kda'] and all(x['prefix_logits_equal']) and len(x['failure_state_equal']) == 45 and all(x['failure_state_equal'].values()) and x['rank_input_mismatch_coordinated'] and x['rank_input_mismatch_tokens_seen'] == 3 and len(x['rank_input_mismatch_state_equal']) == 45 and all(x['rank_input_mismatch_state_equal'].values()) and x['retry_logits_equal'] and len(x['retry_state_equal']) == 45 and all(x['retry_state_equal'].values()) and x['request_owners_remaining'] == 0 and x['destroyed'])
+                    elif args.snapshot_probe:
+                        passed = (x['status'] == 'passed' and x['destroyed'] and x['rank_commit_agreement_enabled'] and x['archive_schema_version'] == 2 and x['baseline_tokens_equal'] and x['restore_generated_equal'] and len(x['restore_logits_equal']) > 0 and all(x['restore_logits_equal']) and len(x['restore_state_equal']) == 45 and all(x['restore_state_equal'].values()) and x['owners_closed'] and x['stop_set_reached'] and not x['cap_reached'])
                     elif args.reference_probe:
                         passed = (x['status'] == 'passed' and bool(x['checks']) and all(x['checks'].values()) and not x['cap_reached'])
                     else:
