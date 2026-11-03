@@ -59,3 +59,5 @@ DSA：make_experimental_fp32_expanded_dsa_operations（显式实验路径）
 - [源码单文件哈希](validation/source-files.sha256.json)：用于核对被验证的源码身份。
 
 仍未完成：参考差异根因与整模型精度验收、生产级 TP/EP 与 paged-KV、服务/批处理、长上下文质量、端到端性能，以及便携部署入口的真实复现。后续新增或替换后端时，应同步更新本清单及实测配置，不能仅累计“已适配算子数量”。
+
+实验性 rank 批量事务提供最多 8 个 token 的逐行状态事务，并非 chunk 内核或生产批处理；四 rank 短例的输入预检、head 异常和状态回滚范围见 [验证记录](validation/rank-batch-commit-round411.json)。

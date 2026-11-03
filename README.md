@@ -118,6 +118,10 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 
 普通文本模式可显式传入 `--world-size`（默认 4，候选 2、4、8、16）；分配数量、授权、登记和有界 helper 必须匹配该值。实际硬件检查覆盖两 rank 和四 rank 的固定短例；8/16 rank 的资源、通信、显存和完整模型行为均未验证。参考探针仍限定四 rank；回滚探针允许两或四 rank。更新源码后须重新生成并固定源码清单，不能沿用旧配置的源码哈希。[四 rank 实测](validation/rank-portable-round408.json) 仅覆盖固定短案例，不构成其他规模或独立质量验收。 launcher 的 rank 边界现随 `WORLD_SIZE` 检查；模拟执行覆盖 2、4、8、16 的边界，四 rank 固定短例回归通过，其他规模尚未由该项验证。[记录](validation/rank-launcher-round410.json)。运行器允许使用任务分配内的不同 die 子集，同时保留共享锁与占用核验；两 rank 固定短例在授权 die 实测通过，提示 argmax 和生成 ID 与四 rank 一致，未比较完整 logits。[结果](validation/rank-subset-round410.json)。8/16 rank 硬件与整模型行为仍未验证。 两和四 rank 的非零状态回滚也分别检查了同步故障、输入不一致及重试；实验超时与发布版超时的差异见 [记录](validation/rollback-ranks-round410.json)。
 
+### 实验性 rank 批量事务
+
+`PreparedTextRunner` 在已启用 rank commit agreement 且为逐 token 栈执行时，可在创建请求前显式调用 `enable_rank_batch_commit(max_tokens=2)`；上限可设 1–8。所有 rank 必须按相同顺序启用和调用。该路径先核对元数据与 token，再逐行执行，完成同步准备后一次提交状态；不接受页面绑定，也不启用 layer-major chunk。四 rank 实测了单 rank 过期位置、格式错误和 token 不一致，以及第二 token head 同步异常；45 层状态保持不变，重试 logits 与状态匹配干净逐 token 执行。测试为固定短例，不覆盖栈内 collective 异常或进程、设备故障。[探针](portable/rank_batch_probe.py) 需要操作者提供已持锁登记的四 rank 分配和 PID/die 屏障；[范围](validation/rank-batch-commit-round411.json)。
+
 ### 实验性单层 chunk 预填入口
 
 [chunk_prefill.py](DeepInfer/deepinfer/model_executor/models/glm5_next/chunk_prefill.py) 提供单序列、1–64 token、已投影和已卷积输入的显式 chunk 调用，返回输出与新的 FP32 状态，不修改输入状态。四 die 实测 41 token 入口及 20+21 分段的状态交接与对应安装版算子调用一致；第0位置与独立参考捕获一致。它尚未接入完整文本 runner，分段与整块的数值等价、整体模型精度和性能均未验收。[验证记录](validation/chunk-prefill-entry-round409.json)。

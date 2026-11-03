@@ -50,6 +50,7 @@ class PreparedTextRunner(nn.Module):
         self.max_context_tokens,self.max_requests=max_context_tokens,max_requests
         self._lock,self._requests=Lock(),{}
         self._rank_commit_enabled,self._rank_commit_group=False,None
+        self._rank_batch_limit=0
         self._validate_components()
 
     def enable_rank_commit_agreement(self, *, group=None):
@@ -67,6 +68,22 @@ class PreparedTextRunner(nn.Module):
                 raise ValueError('initialized multi-rank process group required')
             self._rank_commit_group=group
             self._rank_commit_enabled=True
+
+    def enable_rank_batch_commit(self, *, max_tokens):
+        """Explicit token-major rank transaction, 1..8 rows; no page writes.
+
+        All ranks must opt in and call in the same order. Live-rank failures
+        before stack entry, in the head, and while capturing state are agreed.
+        Process/device loss and errors inside stack collectives are not recovered.
+        This does not enable layer-major chunk prefill.
+        """
+        with self._exclusive():
+            if self._requests:raise RuntimeError('enable batch agreement before opening requests')
+            if not self._rank_commit_enabled or not self.native_tokenwise:
+                raise ValueError('rank batch requires tokenwise rank commit agreement')
+            if type(max_tokens) is not int or not 1<=max_tokens<=8:
+                raise ValueError('rank batch bound must be 1..8')
+            self._rank_batch_limit=max_tokens
 
     def _validate_components(self):
         m=self.boundary.manifest;c=self.stack.config
@@ -138,10 +155,68 @@ class TextRequest:
             self._require_open();r=self._runner
             return MixedRequestState.capture(self.request_id,r.stack.config,r.stack.layout,self._state.layers)
 
+    def _rank_batch_step(self, token_ids, expected_tokens_seen):
+        """Execute under runner lock; publish only after all rank votes."""
+        import hashlib
+        import torch.distributed as dist
+        r=self._runner;group=r._rank_commit_group;device=r.boundary.norm_weight.device
+        size=dist.get_world_size(group);failure=None
+        try:
+            self._require_open();r._validate_components()
+            if self._page_bindings is not None:raise ValueError('rank batch excludes page bindings')
+            if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
+                raise ValueError('stale or invalid expected request token position')
+            if not isinstance(token_ids,torch.Tensor) or token_ids.ndim!=1 or token_ids.device.type!='cpu' or token_ids.dtype not in (torch.int32,torch.int64):
+                raise ValueError('rank batch requires CPU integer token vector')
+            count=len(token_ids);start=self._state.tokens_seen
+            if not 1<=count<=r._rank_batch_limit or count>min(r.boundary.max_tokens,r.head.max_tokens) or start+count>r.max_context_tokens:
+                raise ValueError('rank batch exceeds explicit token/context bound')
+            if bool(((token_ids<0)|(token_ids>=r.boundary.manifest.vocab_size)).any()):raise ValueError('rank batch token out of vocabulary')
+            ids=token_ids.to(dtype=torch.int64).tolist()
+            request_hash=int.from_bytes(hashlib.sha256(self.request_id.encode()).digest()[:7],'big')
+            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end]
+        except Exception as exc:
+            failure=exc;metadata=[1,0,0,0,0,0,0];ids=[]
+        header=torch.tensor(metadata,dtype=torch.int64,device=device);headers=[torch.empty_like(header) for _ in range(size)]
+        dist.all_gather(headers,header,group=group)
+        if any(int(h[0].item()) for h in headers) or not all(torch.equal(headers[0],h) for h in headers[1:]):
+            raise ValueError('rank batch preflight failed or metadata differs') from failure
+        values=torch.tensor(ids+[0]*(8-len(ids)),dtype=torch.int64,device=device);copies=[torch.empty_like(values) for _ in range(size)]
+        dist.all_gather(copies,values,group=group)
+        if not all(torch.equal(copies[0],v) for v in copies[1:]):raise ValueError('rank batch token inputs differ')
+        def agree(exc, message):
+            status=torch.tensor([int(exc is not None)],dtype=torch.int32,device=device)
+            dist.all_reduce(status,op=dist.ReduceOp.MAX,group=group)
+            if int(status.item()):raise RuntimeError(message) from exc
+        failure=None
+        try:embedded=r.boundary.embed(token_ids)
+        except Exception as exc:failure=exc
+        agree(failure,'rank batch embedding failed')
+        working=self._state;hidden_rows=[];logit_rows=[]
+        for row in embedded.split(1,dim=0):
+            streams,working=r.stack(row,working)
+            failure=None
+            try:
+                hidden=r.boundary.final_hidden(streams);logits=r.head(hidden)
+            except Exception as exc:failure=exc
+            agree(failure,'rank batch head failed')
+            hidden_rows.append(hidden);logit_rows.append(logits)
+        failure=None
+        try:
+            committed=MixedRequestState.capture(self.request_id,r.stack.config,r.stack.layout,working.layers)
+            if working.request_id!=self.request_id or working.tokens_seen!=start+count or committed.tokens_seen!=start+count:
+                raise ValueError('decoder returned the wrong request commit')
+            result=TextStepResult(start,start+count,torch.cat(hidden_rows),torch.cat(logit_rows),r.head.vocab_start,r.head.vocab_end)
+        except Exception as exc:failure=exc
+        agree(failure,'rank batch commit preparation failed')
+        self._state=committed
+        return result
+
     @torch.inference_mode()
     def step(self,token_ids,*,expected_tokens_seen):
         r=self._runner
         with r._exclusive():
+            if r._rank_batch_limit:return self._rank_batch_step(token_ids,expected_tokens_seen)
             self._require_open();r._validate_components()
             if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
                 raise ValueError('stale or invalid expected request token position')
