@@ -1,0 +1,65 @@
+{
+  "candidate": "F03",
+  "variant": "ATTENTION_POST_TO_FFN_PRE_Y_HANDOFF",
+  "date": "2026-11-03",
+  "kind": "ARCHIVED_SOURCE_CONSUMER_AND_NUMERICAL_REVIEW",
+  "status": "SOURCE_BOUNDARY_CLARIFIED_NOT_NATIVE_VALIDATED",
+  "checks": {
+    "attention_Post_precedes_FFN_Pre": true,
+    "updated_residual_saved_between_Post_and_Pre": true,
+    "FFN_Pre_uses_earlier_attention_pre": true,
+    "later_FFN_Post_still_reads_saved_residual": true,
+    "Post_source_retains_mul_add_and_BF16_round": true,
+    "historical_contract_does_not_claim_native_gates_closed": true
+  },
+  "evidence": [
+    {
+      "path": "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91"
+    },
+    {
+      "path": "records/history/continuation/HC-operator-source-v58/vllm-workspace/vllm-ascend/csrc/moe/hc_post/op_kernel/hc_post_d_split.h",
+      "sha256": "9b7a4a6e1d0fde01632813589566f173ac6561522d0c0cf62463589004f2d58a"
+    },
+    {
+      "path": "records/history/continuation/profile-first-20261031/post-pre-source-contract-v147.json",
+      "sha256": "22dff10fd665e7d67061b26422aa9483dd7fed69440a5243276d700f8d4297a7"
+    }
+  ],
+  "baseline": "Attention HcPost produces new 4H residual R; following FFN HcPre consumes R with earlier attn_pre, while R is retained as later FFN HcPost residual and as current coefficient input.",
+  "algorithm": "Post combines scaled new Attention output with weighted old residual streams in the original multiply/add order and rounds to BF16 R; next Pre Y path forms its original BF16 weighted collapse using R and attn_pre.",
+  "proposal": "Study forwarding the rounded Post values into the next Pre Y-generation portion inside a legal fused/reorganized implementation; current coefficient work and all live residual outputs remain.",
+  "logical_interface_example": {
+    "M": 3,
+    "H": 5120,
+    "streams": 4,
+    "bytes_per_BF16": 2,
+    "one_selected_R_read_bytes": 122880,
+    "KiB": 120,
+    "remaining": [
+      "R publication/store for live readers",
+      "next coefficient branch input",
+      "later FFN Post residual read"
+    ],
+    "not_claimed": [
+      "R store deletion",
+      "all nextPre reads eliminated",
+      "physical HBM traffic",
+      "measured speedup"
+    ]
+  },
+  "not_established": [
+    "new consumer interface or fused implementation",
+    "tile readiness/layout/resource legality",
+    "native numerical parity",
+    "all observer/lifetime closure",
+    "same-case performance gain"
+  ],
+  "excluded_subvariants_this_review": [
+    "cross-layer Engram/aux branches",
+    "F02 extra norm fusion credit",
+    "algebraic prefolding without intermediate BF16 R"
+  ],
+  "new_native_execution": false,
+  "independent_review": false
+}

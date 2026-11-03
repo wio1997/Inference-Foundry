@@ -2,6 +2,22 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-03 · 20261103-F03-POST-PRE-REVIEW
+
+涉及：[F03](F03.md)
+
+类型：SOURCE_CONSUMER_AND_INTERFACE_REVIEW；依据：核对固定模型同层Attention Post→FFNPre→后续FFNPost的消费者，HcPost底层舍入及v147源合同。
+
+先研究Post结果直接交下一Y生成的一项读取；R仍须保留给下一系数生产和后续Post。不声称省掉R写入、跨过Engram/aux或预折叠等价；未实施、无新profile或性能对照。
+
+## 2026-11-03 · 20261103-F02-USER-BOUNDARY-CONFIRMATION
+
+涉及：[F02](F02.md)
+
+类型：USER_UNDERSTANDING_CONFIRMATION_NOT_VALIDATION；依据：用户确认“把归一化放到hcpre里面”，随后说“这个可以记录一下，下一个”。
+
+记录用户已确认的方案表述及转向下一条；保留原系数输出和Y精度边界。此事件不新增正确性、实现或性能验收。
+
 ## 2026-11-03 · 20261103-F02-PRENORM-REVIEW
 
 涉及：[F02](F02.md)

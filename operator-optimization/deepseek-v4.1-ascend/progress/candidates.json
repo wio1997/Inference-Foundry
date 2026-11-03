@@ -182,37 +182,48 @@
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
-      "details_markdown": "## 本轮只讨论哪一项\n\nF02 是候选族。本轮只讨论 **Attention 输入侧的 Y→RMSNorm 融合**。首层 embedding 复用和 FFN 的 RMSNormCast 双输出保留为其他子方案，未在本轮重新核对。\n\n### 两个已有操作\n\n原代码的关键关系是：\n\n```python\nx, attn_post, attn_comb, attn_pre = self.hc_pre(...)\nx = self.input_layernorm(x)\n```\n\n第一行的 x 就是 BF16 的 Y。HcPre 其他三个输出仍有后续消费者。第二行使用学习到的权重和构造时传入的 self.norm_eps，不是任意换一个默认 epsilon。\n\nHcPre 自己为新系数计算所做的4路X统计，与这里对1路Y的归一化是不同数据域；不能直接复用同一平方和。\n\n### RMSNorm 的底层算法\n\n把 Y 看成一排数字，学习权重 gamma 也是一排数字。对每一排：\n\n1. 每个 Y 数字平方，求平均值。\n2. 平均值加原 epsilon，再开平方，得到这一排共同的缩放分母。\n3. 每个 Y 数字除以这个分母。\n4. 再乘该位置的学习权重。\n\n数学语义为 `Z[i] = gamma[i] * Y[i] / sqrt(mean(Y*Y) + epsilon)`。这不是对 native 指令/结合顺序的等价证明；融合实现还必须匹配原有归约与舍入要求。\n\n### 怎样融合\n\n```text\n原来：生成Y → Y写入中间输出 → 独立RMSNorm读取Y → 计算并输出Z\n候选：生成Y → 按原BF16舍入 → 在片上保留并做RMSNorm → 输出Z\n```\n\n新 pre/post/comb、原 residual 和其他有效输出仍保留。如果有别的读者需要原 Y，仍要为它保留输出，不能直接删除。\n\n新融合接口需要接入原RMSNorm的gamma/epsilon，并约定归一化结果及仍存活的原输出；当前aclnnHcPre并没有因此自动具备输出归一化结果的能力。调用端也必须选择这个新接口，不能静默改变原HcPre输出含义。\n\n片上是NPU内部的暂存空间。归一化需要完整5120维行的统计；不能把每个小块分别归一化后拼起来。若暂存不下，额外搬运或重算必须重新定价。\n\n这里做的是生产者与消费者接合，属于新增融合候选；它不依赖 F01 提前交付 Y 的并行安排。两方案未来可以组合，但相同 Y 接口不能重复计算收益。\n\n### 为什么原来的舍入必须保留\n\n原来先把加权求和结果变为BF16的Y，RMSNorm处理的就是这份已经舍入的数据。融合后仍要在内部产生同样的数值，不能直接使用未舍入的FP32累加值去归一化。\n\n```text\n保留：加权求和 → BF16舍入后的Y → 原RMSNorm\n未证明等价：加权求和的FP32临时值 → 直接RMSNorm\n```\n\n所以可以省去中间结果的外部交接，但不等于可以省去这个数值边界。\n\n### 机会量与未证明事项\n\n以旧profile登记的M=3、H=5120、BF16为例：Y本身是30720B（30KiB）；如果允许完全消除一次中间写和一次读，则逻辑接口为61440B（60KiB）。\n\n这只是条件式逻辑字节数，不证明原数据必经HBM，不证明全部物理字节能删除，也不代表60KiB带宽换算就是端到端收益。原来的RMSNorm计算仍需执行，不能把它的整段耗时当成可省时间。\n\n### 本轮结论\n\n**源调用与数学语义支持把Y的生产和紧随的RMSNorm视为一个融合候选；片上容量、native归约等价、其他读者、新实现正确性及实测收益仍未验证。** F02 全族保持 CONDITIONAL，未实现、未声称提速。\n"
+      "details_markdown": "## 本轮只讨论哪一项\n\nF02 是候选族。本轮只讨论 **Attention 输入侧的 Y→RMSNorm 融合**。首层 embedding 复用和 FFN 的 RMSNormCast 双输出保留为其他子方案，未在本轮重新核对。\n\n### 两个已有操作\n\n原代码的关键关系是：\n\n```python\nx, attn_post, attn_comb, attn_pre = self.hc_pre(...)\nx = self.input_layernorm(x)\n```\n\n第一行的 x 就是 BF16 的 Y。HcPre 其他三个输出仍有后续消费者。第二行使用学习到的权重和构造时传入的 self.norm_eps，不是任意换一个默认 epsilon。\n\nHcPre 自己为新系数计算所做的4路X统计，与这里对1路Y的归一化是不同数据域；不能直接复用同一平方和。\n\n### RMSNorm 的底层算法\n\n把 Y 看成一排数字，学习权重 gamma 也是一排数字。对每一排：\n\n1. 每个 Y 数字平方，求平均值。\n2. 平均值加原 epsilon，再开平方，得到这一排共同的缩放分母。\n3. 每个 Y 数字除以这个分母。\n4. 再乘该位置的学习权重。\n\n数学语义为 `Z[i] = gamma[i] * Y[i] / sqrt(mean(Y*Y) + epsilon)`。这不是对 native 指令/结合顺序的等价证明；融合实现还必须匹配原有归约与舍入要求。\n\n### 怎样融合\n\n```text\n原来：生成Y → Y写入中间输出 → 独立RMSNorm读取Y → 计算并输出Z\n候选：生成Y → 按原BF16舍入 → 在片上保留并做RMSNorm → 输出Z\n```\n\n新 pre/post/comb、原 residual 和其他有效输出仍保留。如果有别的读者需要原 Y，仍要为它保留输出，不能直接删除。\n\n新融合接口需要接入原RMSNorm的gamma/epsilon，并约定归一化结果及仍存活的原输出；当前aclnnHcPre并没有因此自动具备输出归一化结果的能力。调用端也必须选择这个新接口，不能静默改变原HcPre输出含义。\n\n片上是NPU内部的暂存空间。归一化需要完整5120维行的统计；不能把每个小块分别归一化后拼起来。若暂存不下，额外搬运或重算必须重新定价。\n\n这里做的是生产者与消费者接合，属于新增融合候选；它不依赖 F01 提前交付 Y 的并行安排。两方案未来可以组合，但相同 Y 接口不能重复计算收益。\n\n### 为什么原来的舍入必须保留\n\n原来先把加权求和结果变为BF16的Y，RMSNorm处理的就是这份已经舍入的数据。融合后仍要在内部产生同样的数值，不能直接使用未舍入的FP32累加值去归一化。\n\n```text\n保留：加权求和 → BF16舍入后的Y → 原RMSNorm\n未证明等价：加权求和的FP32临时值 → 直接RMSNorm\n```\n\n所以可以省去中间结果的外部交接，但不等于可以省去这个数值边界。\n\n### 机会量与未证明事项\n\n以旧profile登记的M=3、H=5120、BF16为例：Y本身是30720B（30KiB）；如果允许完全消除一次中间写和一次读，则逻辑接口为61440B（60KiB）。\n\n这只是条件式逻辑字节数，不证明原数据必经HBM，不证明全部物理字节能删除，也不代表60KiB带宽换算就是端到端收益。原来的RMSNorm计算仍需执行，不能把它的整段耗时当成可省时间。\n\n### 本轮结论\n\n**源调用与数学语义支持把Y的生产和紧随的RMSNorm视为一个融合候选；片上容量、native归约等价、其他读者、新实现正确性及实测收益仍未验证。** F02 全族保持 CONDITIONAL，未实现、未声称提速。\n\n## 用户确认的表述\n\n2026-11-03，用户确认本子方案可理解为“把归一化放到HcPre里面”，随后要求记录并转向下一条。此确认指方案边界的理解；没有新增实现、正确性或收益证据。\n",
+      "user_understanding_confirmation": {
+        "date": "2026-11-03",
+        "statement": "将原来紧随HcPre的归一化接入HcPre底层实现；保留原系数输出和Y的精度边界。",
+        "meaning": "确认讨论对象和表述，不是实现/正确性/性能验收。"
+      }
     },
     {
       "id": "F03",
       "name": "attention 或 FFN mHC post → 下一次 mHC pre，跨边界重组",
       "updated_at": "2026-11-03",
-      "kind": "跨边界融合/残差交接重组",
+      "kind": "生产者/消费者融合或交接重组（本轮仅Attention Post→FFN Pre）",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
+      "review_status": "层内Post→Pre交接已澄清；新实现/数值/收益待验证",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
-      "operator_binding": "历史语义链：HcPost → 下一 HcPre / norm。",
-      "baseline_flow": "历史登记的原流程：attention / MoE 的 mHC post → 下一次 mHC pre → norm。本页登记不等于对当前运行二进制完成重新绑定。",
-      "proposal": "Post结果分块交给下一Pre/norm，减少残差中间物化。",
-      "mechanism": "把已完成的残差块交给下一消费者，减少部分重复读写；原残差仍可能供别的读者使用。",
-      "conditions": "Engram、aux和其他残差读者保留；不能穿过非线性预乘权重。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
+      "operator_binding": "模型 self.hc_post → npu_hc_post（历史profile名HcPost）；随后 self.hc_pre → npu_hc_pre_v3（HcPre）。本轮只看Attention后的Post到同层FFN前Pre，且只研究指定交接。",
+      "baseline_flow": "Attention结果和旧4路residual经HcPost产生新的4路R；保存R作为后续FFN HcPost的residual；FFN HcPre读取R，以先前attn_pre生成Y，并计算本次新的ffn系数。",
+      "proposal": "研究把HcPost已按原BF16舍入的结果，直接交给下一HcPre中生成Y的部分，减少一次指定中间读取；其余系数工作和仍存活的R输出保留。必须覆盖实际生产者/消费者实现，不能仅在Python中包裹两次原调用。",
+      "mechanism": "生产者完成的4路数据就地供消费者继续乘配比/相加，避免该部分再次从中间输出读取。不是把矩阵权重预乘后跳过原舍入，也不假设整个4路residual可删除。",
+      "conditions": "保持Post原乘法/加法次序及BF16 R，再按原配比生成下一Y并保留其舍入。R还供下一系数生产和未来FFN Post残差使用。真实tile布局、容量、就绪/存活协议及数值需验证；跨层Engram/aux读者不纳入本轮快捷路径，F02的norm收益不重复计算。",
       "next_steps": [
         {
           "id": "F03-01",
-          "title": "界定能够转交的残差块及其他读者",
-          "description": "复用旧合同，只确认拟改动是否影响 Engram、aux、后续 Post 等读者；不能预乘权重跨越非线性和舍入。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+          "title": "界定一个可实现的Post→下一Y接口",
+          "description": "复用已证实的消费者和中间舍入，只检查所选tile如何从Post传给下一Y生成、需要哪些新接口。现有HcPre若仍照常重读/重算Y就没有这项节省，不能只改Python包装。",
+          "decision_rule": "没有合法交接/消费端改造依据就保留有条件，不声称原API直接支持。"
         },
         {
           "id": "F03-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "title": "只对剩余读者保留必要发布并核对数值",
+          "description": "保留R写出、下一系数输入及后续FFN Post读R，按选定实现核对全部输出和BF16边界。新存活方案才重开相关alias/捕获/进展问题。",
+          "decision_rule": "不能把一个省掉的R读取再算成R写入也省了；跨层Engram/aux路径单独审查。"
+        },
+        {
+          "id": "F03-03",
+          "title": "候选通过约束后再做完整范围对照",
+          "description": "未来用同输入、权重、配比与精度对比原Post→Pre和选定改造，计入保留的写读、启动、额外暂存/重算；本次没有实施或计时。",
+          "decision_rule": "正确性和有效同条件收益均有证据才接受；与F01/F02共用接口只计一次，不由逻辑字节数换算提速。"
         }
       ],
       "evidence": [
@@ -230,12 +241,38 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F03.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "本次Post→Pre复核摘要",
+          "path": "evidence/F03-post-pre-review-20261103.json",
+          "scope": "归档源调用、消费者和精度边界检查；无新native执行。"
+        },
+        {
+          "label": "固定模型的Post/Pre调用",
+          "path": "../records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+          "scope": "同层Post→保存residual→FFNPre及后续FFNPost读者，约第887–919行。"
+        },
+        {
+          "label": "HcPost底层乘加及舍入",
+          "path": "../records/history/continuation/HC-operator-source-v58/vllm-workspace/vllm-ascend/csrc/moe/hc_post/op_kernel/hc_post_d_split.h",
+          "scope": "DoCompute中的原乘法、累加、BF16 CAST_RINT及写出；不证明新交接可实现。"
+        },
+        {
+          "label": "Post/Pre源合同",
+          "path": "../records/history/continuation/profile-first-20261031/post-pre-source-contract-v147.json",
+          "scope": "保留R发布时只删除选定读取；跨层其他观察者、数值和资源限制。"
+        },
+        {
+          "label": "早期重组变体与已排除无条件预折叠",
+          "path": "../records/history/continuation/profile-first-20261031/HC-fusion-split-reorganization-variants-v59.json",
+          "scope": "POST-COLLAPSE-NORM与ALGEBRAIC-PREFOLD条件；本轮只审查前者的Post→Y交接部分。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "details_markdown": "## 本轮只看哪一段\n\nF03覆盖Post与后续Pre的重组。本轮先看最直接的**同一层内Attention HcPost→FFN HcPre**，不把跨层Engram/aux分支一起判定，也不把F02的归一化再次计入。\n\n### 两个算子各自做什么\n\n|操作|输入与算法|输出/用途|\n|---|---|---|\n|HcPost|把Attention新结果按post配比分到4路，再按comb配比混合旧4路residual，按原顺序相加并舍入|新的4路数据R|\n|下一HcPre的Y生成部分|读取R，按先前Attention HcPre已产出的attn_pre逐项乘配比并沿4路相加，按原精度舍入|给FFN后续计算用的1路Y|\n|下一HcPre的系数部分|另用完整R计算新的ffn_pre/post/comb|仍是必须保留的工作|\n\n原模型关系为：\n\n```python\nhidden_states = self.hc_post(x, residual, attn_post, attn_comb)\nresidual = hidden_states\nx, ffn_post, ffn_comb, ffn_pre = self.hc_pre(\n    hidden_states, ..., attn_pre\n)\n# 中间还有FFN计算\nhidden_states = self.hc_post(x, residual, ffn_post, ffn_comb)\n```\n\n以上为保留关键调用的摘录，省略参数不构成新实现。`residual = hidden_states`说明R在下一Pre消费后仍然被后面的FFN Post使用。\n\n### 怎么接合\n\n```text\n原来：HcPost生成R → 写出4路R → 下一Pre重新读取R → 按配比生成Y\n候选：HcPost生成并舍入R → 直接交给下一Y生成部分 → 输出原精度的Y\n                      └→ R仍按其他读者的需要写出/保留\n```\n\n这属于生产者与消费者的融合/交接重组候选。新实现需要覆盖双方接口：既把R正确交过去，又让该消费者不再重复读取/重算这一部分。只把原HcPost和原HcPre放进一个Python函数不会自动实现。\n\n### 为什么不能删掉R\n\n当前R至少仍是：\n\n- 下一HcPre中新系数生产的输入。\n- 后续FFN HcPost的residual。\n\n因此，本轮选定保留原4路数据发布的方案，只研究减少**下一Y生成的一个读取**，不声称R的写入或全部Pre读者都消失。\n\n若以后另做长期片上保留、重算或状态表示方案，需要单独验证容量和所有读者，不能把它当作本轮已满足条件。跨层场景还可能有aux读取或Engram改写，不能跨过它们直接转交旧版本。\n\n### 数值与代价约束\n\n必须先保留HcPost的原BF16舍入，再做下一次加权混合。把两个矩阵/配比直接预乘、删除中间舍入，未证明等价；HcPre的新系数还依赖完整R及非线性处理。\n\n以M=3、H=5120、4路BF16为例，一个选定R读取的逻辑大小为122880B（120KiB）。它不是已测HBM流量或提速，R写入及其他读者仍在。若进一步接norm，与F02相同接口只计一次。\n\n### 本轮结论\n\n**源码证明了指定的层内Post→Pre数据链及R的其他存活用途，支持研究直接交接；新接口/切块调度、数值等价和收益未验证。** F03全族保持CONDITIONAL，转下一条不代表之前方案实施完成。\n"
     },
     {
       "id": "F04",
@@ -2306,7 +2343,7 @@
     }
   ],
   "current_focus": {
-    "candidate": "F02",
-    "variant": "PRENORM：Attention侧 Y→RMSNorm"
+    "candidate": "F03",
+    "variant": "Attention HcPost→FFN HcPre 的Y生成交接"
   }
 }

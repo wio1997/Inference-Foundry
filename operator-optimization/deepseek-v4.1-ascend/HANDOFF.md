@@ -3,7 +3,8 @@
 - 项目：DeepSeek V4.1 Ascend算子优化检查与分析逻辑归档。
 - 当前：原任务v180记录为分析验收完成；42候选仍为条件式，未实施优化。
 - 当前任务：按用户要求维护每个候选的逻辑分析、验证状态和待办。入口为[逐条进展](progress/README.md)；历史归档已提交，不从旧记录自动启动实验。
-- 当前候选：[F02 PRENORM（Attention侧Y→RMSNorm）](progress/F02.md)。原调用、归一化数学语义、BF16中间边界和条件式逻辑流量已核对；新增实现、native归约数值等价及收益未验证。首层embedding复用和FFN双输出子方案本轮未展开。
+- 当前候选：[F03 层内Attention Post→FFN Pre的Y交接](progress/F03.md)。原调用、其他R读者与中间BF16舍入已核对；研究减少一个选定读取，不能删R写入。新接口、数值与收益未验证；跨层Engram/aux子方案未展开。
+- [F02 PRENORM](progress/F02.md)已记录用户确认“把后面的归一化接入HcPre”的方案边界。该理解确认不表示实现/正确性/性能通过，其他F02子方案未关闭。
 - [F01 EARLY-Y](progress/F01.md)保留源码依赖已澄清、可实现性/正确性/收益待验证的状态；转第二条不关闭F01，也不改变其独立复核未启动的事实。
 - 首读：progress/README.md、当前候选页、REUSE_AND_DEDUP.md；再按需要查REPORT.md、CANDIDATES.md和证据。不要通读历史。
 - 独立复核：用户已请求GPT-6.1/xhigh；当前临时侧聊禁止子代理，尚未启动。任务恢复包在[progress/tasks/f01-early-y/](progress/tasks/f01-early-y/README.md)。

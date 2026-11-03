@@ -6,7 +6,7 @@
 
 ## 日常只读这些入口
 
-当前逐条讨论的入口是 **[进展看板](progress/README.md)**，当前候选是 **[F02 · Y→RMSNorm](progress/F02.md)**。[F01 · EARLY-Y](progress/F01.md)保留未验证状态。42条均有独立页面；已有历史分析、源码复核、新实现正确性、同条件性能及独立审查分别记状态。登记页面不等于完成验证。
+当前逐条讨论的入口是 **[进展看板](progress/README.md)**，当前候选是 **[F03 · Post→下一Pre交接](progress/F03.md)**。[F02 · Y→RMSNorm](progress/F02.md)已记录用户确认的方案表述，[F01 · EARLY-Y](progress/F01.md)仍保留未验证状态。42条均有独立页面；已有历史分析、源码复核、新实现正确性、同条件性能及独立审查分别记状态。登记页面不等于完成验证。
 
 1. [HANDOFF.md](HANDOFF.md)：当前状态与恢复边界。
 2. [REPORT.md](REPORT.md)：结果、覆盖、最低活动模块、理论对照和未知。
