@@ -53,7 +53,21 @@ try:
   report['phase']='clean';save()
   q=runner.open_request(MixedRequestState.capture('clean',config,runner.stack.layout,states))
   try:
-   clean=[step(q,t,i) for i,t in enumerate(tokens)];clean_state=q.snapshot()
+   clean=[];position_states={}
+   for i,t in enumerate(tokens):
+    clean.append(step(q,t,i))
+    if i in (1,2):position_states[i+1]=q.snapshot()
+   clean_state=q.snapshot()
+  finally:q.close()
+  position=2 if rank==injected_rank else 3
+  q=runner.open_request(MixedRequestState.capture('position-test',config,runner.stack.layout,position_states[position].layers))
+  try:
+   report['phase']='position_mismatch';save();position_before=q.snapshot()
+   try:q.step(torch.tensor([tokens[3]],dtype=torch.int64),expected_tokens_seen=position)
+   except ValueError as exc:assert str(exc)=='rank commit preflight failed'
+   else:raise AssertionError('locally valid but rank-inconsistent position unexpectedly committed')
+   position_after=q.snapshot();report['position_mismatch_coordinated']=True;report['position_before']=position;report['position_after']=position_after.tokens_seen;report['position_mismatch_state_equal']=state_eq(position_before,position_after,config)
+   assert position_after.tokens_seen==position and len(report['position_mismatch_state_equal'])==45 and all(report['position_mismatch_state_equal'].values())
   finally:q.close()
   q=runner.open_request(MixedRequestState.capture('failure-retry-other' if rank==injected_rank else 'failure-retry',config,runner.stack.layout,states))
   try:
