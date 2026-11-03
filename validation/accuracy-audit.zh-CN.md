@@ -231,3 +231,5 @@
 尝试用已安装的 chunk 核心对同一首 token 和零初态单独执行时，四个 rank 均在 `aclnnChunkKdaFwdGetWorkspaceSize` 返回 161002，因此没有获得 chunk 数值对照；原因尚未确定。管理器的总体 pass 只覆盖其余探针检查，不能视为 chunk 通过。详见 [失败记录](recall17-chunk-attempt-round407.json)。
 
 进一步使用实际 41 行输入和参考 chunk 形状时，四个 rank 的 chunk 调用仍返回 161002；管理器语义结果为失败，没有得到 chunk 数值对照。详见 [批量失败记录](recall17-batch-chunk-attempt-round407.json)。后续需先找到调用条件的实际差异，不能把该失败当作模型精度结果。
+
+进一步核对检查点和参考调用：`A_log`、`dt_bias` 检查点张量为 BF16，参考参数为 FP32。将独立 chunk 调用参数转为 FP32 后，四个 rank 仍返回 161002，未获得数值对照；参数 dtype 不是充分修复，实际原因未知。详见 [记录](recall17-fp32-chunk-attempt-round408.json)。
