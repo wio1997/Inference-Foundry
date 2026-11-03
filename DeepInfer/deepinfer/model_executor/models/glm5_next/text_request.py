@@ -187,7 +187,7 @@ class TextRequest:
             if bool(((token_ids<0)|(token_ids>=r.boundary.manifest.vocab_size)).any()):raise ValueError('rank batch token out of vocabulary')
             ids=token_ids.to(dtype=torch.int64).tolist()
             request_hash=int.from_bytes(hashlib.sha256(self.request_id.encode()).digest()[:7],'big')
-            layer_mask=0
+            layer_mask=0;single_mask=0
             if r._rank_batch_layer_major:
                 for layer in r.stack.layers:
                     if not layer.native_tokenwise:raise ValueError('layer-major fallback configuration changed')
@@ -196,10 +196,16 @@ class TextRequest:
                                 or layer.mlp_kind!='dense' or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill'):
                             raise ValueError('invalid layer-major chunk configuration')
                         layer_mask |= 1<<layer.layer_id
+                        single=getattr(layer.attention,'chunk_prefill_single',False)
+                        if type(single) is not bool:raise ValueError('singleton prefill mode must be boolean')
+                        if single:single_mask |= 1<<layer.layer_id
+                    elif getattr(layer.attention,'chunk_prefill_single',False):
+                        raise ValueError('singleton prefill requires a selected dense KDA layer')
                 if not layer_mask:raise ValueError('layer-major chunk configuration is empty')
-            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask]
+                if single_mask and count!=1:raise ValueError('singleton prefill mode requires one token')
+            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask,single_mask]
         except Exception as exc:
-            failure=exc;metadata=[1,0,0,0,0,0,0,0,0];ids=[]
+            failure=exc;metadata=[1,0,0,0,0,0,0,0,0,0];ids=[]
         header=torch.tensor(metadata,dtype=torch.int64,device=device);headers=[torch.empty_like(header) for _ in range(size)]
         dist.all_gather(headers,header,group=group)
         if any(int(h[0].item()) for h in headers) or not all(torch.equal(headers[0],h) for h in headers[1:]):

@@ -190,6 +190,7 @@ class Glm5NextKDA(nn.Module):
         self.num_heads, self.head_dim = lc['num_heads'], lc['head_dim']
         self.hidden_size, self.conv_width = config.hidden_size, lc['short_conv_kernel_size']
         self.lower_bound, self.backend = lc['gate_lower_bound'], backend
+        self.chunk_prefill_single = False  # explicit singleton prefill, not decode
         self.norm_eps = 1e-5  # FusedRMSNormGated GLM default; independent of hc_eps.
         prefix = f'model.language_model.layers.{layer_id}.self_attn'
         for attr, suffix in [('q_proj','q_proj'),('k_proj','k_proj'),('v_proj','v_proj'),
@@ -253,7 +254,9 @@ class Glm5NextKDA(nn.Module):
             value, tail = conv(projected,weight.squeeze(1),history)
             qkv.append(value.reshape(-1,self.num_heads,self.head_dim)); histories.append(tail)
         raw_gate = self.f_b_proj(f_a).reshape(-1,self.num_heads,self.head_dim)
-        if self.backend == 'ascendc_chunk_prefill' and x.shape[0] > 1:
+        if type(self.chunk_prefill_single) is not bool or (self.chunk_prefill_single and self.backend != 'ascendc_chunk_prefill'):
+            raise ValueError('singleton prefill requires explicit chunk backend')
+        if self.backend == 'ascendc_chunk_prefill' and (x.shape[0] > 1 or self.chunk_prefill_single):
             from .chunk_prefill import chunk_prefill_sharded
             output, recurrent = chunk_prefill_sharded(*qkv,raw_gate,raw_beta,state.recurrent,self.a_log,self.dt_bias,shards=4,lower_bound=self.lower_bound)
         else:

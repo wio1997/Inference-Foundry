@@ -1,0 +1,33 @@
+{
+  "scope": "实验性单 token 预填 chunk，默认逐 token 递推保持不变",
+  "architecture": "aarch64",
+  "device": "Ascend910_9382",
+  "world_size": 4,
+  "checkpoint_index_sha256": "dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4",
+  "config_sha256": "33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943",
+  "kda_source_sha256": "b727c963dd24e2d2e784608b30faeb4dd8d88e27ef0ed51839072a58908fc7ea",
+  "request_source_sha256": "2eb6e6e47e0365ab9a8b07667f08f3335b2e3bd7ebd2187ed14223c0d046b068",
+  "probe_sha256": "1bbe5ed07d8c99c0c5f9952c5d86c4b3c59c52a6f8506b5010c7d3b143e16aee",
+  "checks": "四 die 单层 40+1 预填与递推交接通过；四 rank 45 层 singleton 模式不一致在入栈前协同拒绝并保持状态，启用后调用三个 dense KDA singleton chunk，关闭后恢复递推。",
+  "recall17": {
+    "prompt_tokens": 41,
+    "groups": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      1
+    ],
+    "experimental_argmax": 99419,
+    "reference_argmax": 1474,
+    "prior_mixed_argmax": 99419,
+    "reference_max_abs": 4.4453125,
+    "reference_rmse": 0.7099692225456238,
+    "prior_mixed_delta_max_abs": 2.6953125,
+    "prior_mixed_delta_rmse": 0.4506163001060486,
+    "status": "未对齐；无预先批准阈值"
+  },
+  "default": "选项关闭，四 rank 完整模型 8+5 的 prompt argmax 和生成 ID 匹配前版；未比较完整 logits；实验运行器超时 480 秒，发布运行器保留 2100 秒。",
+  "limits": "调用者须在 singleton 预填前显式开启并在解码前关闭；未完成生成、独立质量、性能或生产验收；不覆盖栈内 collective 或进程/设备故障。"
+}
