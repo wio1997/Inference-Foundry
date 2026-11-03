@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F09-INDEX-QUERY-ROPE-QUANT-PARTIAL-REVIEW
+
+涉及：[F09](F09.md)
+
+类型：NEXT_EXAMPLE_SOURCE_NUMERICAL_PARTIAL_REVIEW；依据：用户认可F08为融合候选并要求下一条；复用v60/v64合同，核对Indexer投影/尾64旋转、自定义128维query量化源码和异步提交/读者条件。
+
+限定F09-ROPE-QUANT，强调32×128与主Q512/QR1280区别、原BF16及先FP16比例舍入；量化内amax等已有融合不重复计收益。保守保留BF16输出仅省独立tail读，不宣布24KiB写读全删。无新实现/收益，其他变体不关闭。
+
 ## 2026-11-04 · 20261104-F08-Q-AND-SHARED-KV-ROTARY-TARGETS
 
 涉及：[F08](F08.md)

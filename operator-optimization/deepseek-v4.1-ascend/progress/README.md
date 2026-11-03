@@ -5,13 +5,13 @@
 当前记录：2026-11-04（Asia/Shanghai）。
 
 - 42/42 个既有候选族已建立独立记录入口；这是记录覆盖，不是优化验证完成率。
-- 本轮有新的逻辑复核记录：9/42。复核范围见各页；子方案澄清不关闭整个候选族。
-- 其余 33/42 沿用历史条件分析，待按用户顺序逐条复核。
+- 本轮有新的逻辑复核记录：10/42。复核范围见各页；子方案澄清不关闭整个候选族。
+- 其余 32/42 沿用历史条件分析，待按用户顺序逐条复核。
 - 新实现：0/42；新实现正确性通过：0/42；有同条件性能结论：0/42；已完成独立复核：0/42。
 
 ## 从这里看
 
-- 当前讨论：[F08 · 非packed BF16 SWA：RMS512→tail64 RoPE→cacheScatter（待验证）](F08.md)。
+- 当前讨论：[F09 · 非packed Index query尾64 RoPE→整128 INT8量化（待验证）](F09.md)。
 - 更新规则：[记录规范](PROCESS.md)；新记录使用[模板](TEMPLATE.md)。
 - 所有进展：[变更记录](CHANGELOG.md)；结构化状态：[candidates.json](candidates.json)；追加事件：[events.jsonl](events.jsonl)。
 - 已登记 F01 Task 的机器恢复入口：[Task README](tasks/f01-early-y/README.md)和[恢复包](tasks/f01-early-y/resume-pack.json)。转向下一候选不代表关闭 F01。
@@ -28,7 +28,7 @@
 |[F06](F06.md)|Q 与 KV 投影，共享输入或合并投影|共享输入的多输出投影重组|同行输入联合投影已解释；已知行域反例及已有复用/重叠已复核，native与收益待验证|若实施，先选真实同行输入的分支|
 |[F07](F07.md)|Q 投影 → RoPE，生产者与消费者组合|投影收尾与 RoPE 融合|Q_B→部分RoPE源链、BF16边界与tail范围已复核；收尾接口、正确性和收益待证|先判断能否低成本接入Q_B收尾|
 |[F08](F08.md)|KV 投影 → norm → RoPE → SWA 缓存写入|投影/归一化/旋转/缓存发布融合|已复核非packed BF16 SWA的norm→部分RoPE→SK scatter；小边界实现、精度、收益和其他变体待证|若实施，先固定非packed BF16 SWA小原型|
-|[F09](F09.md)|Index query 投影 → RoPE → 量化|Index query 的 RoPE 与量化融合|沿用历史分析；待本轮逐条复核|复用 query 专有的 scale 与舍入合同|
+|[F09](F09.md)|Index query 投影 → RoPE → 量化|Index query 的 RoPE 与量化融合|Index query尾64旋转→整128量化及FP16比例规则已复核；融合实现、读者/调度和收益待证|若实施，先选择保留BF16结果的最小融合|
 |[F10](F10.md)|Index weight 投影 → 转换与缩放|投影收尾的转换/缩放融合|沿用历史分析；待本轮逐条复核|固定三次精度阶段和有效消费者|
 |[F11](F11.md)|Index key norm → RoPE → 量化 → key/scale 缓存写入|Index key 处理与持久缓存发布融合|沿用历史分析；待本轮逐条复核|复用 key 与 scale 的联合发布合同|
 |[F12](F12.md)|Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask|索引发布融合、表示重组与条件复用|沿用历史分析；待本轮逐条复核|先选定 TopK 发布或 membership 表示子方案|

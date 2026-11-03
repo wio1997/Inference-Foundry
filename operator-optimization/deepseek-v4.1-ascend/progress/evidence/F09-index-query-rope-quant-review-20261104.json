@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "candidate": "F09",
+  "selected_variant": "F09-ROPE-QUANT",
+  "status": "PARTIAL_SOURCE_NUMERICAL_CONTRACT_REVIEW_NOT_IMPLEMENTATION",
+  "scope": "非packed INT8 Indexer query的部分RoPE＋每head量化，投影保留外部；不是F05投影前QR量化，也不覆盖MXFP4/packed或Q_B与IndexQ联合GEMM。",
+  "sources": [
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/indexer.py",
+    "records/history/original-run/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+    "records/history/continuation/profile-first-20261031/attention-indexer-native-numerical-contract-v60.json",
+    "records/history/continuation/profile-first-20261031/attention-indexer-fusion-reorganization-variants-v60.json",
+    "records/history/continuation/profile-first-20261031/index-context-operator-contract-v64.json",
+    "records/history/continuation/profile-first-20261031/projection-fusion-variants-and-interactions-v61.json"
+  ],
+  "operators": {
+    "producer": "indexer.project_query / indexer.wq_b: 从qr生成Indexer query，BF16每head128维，保留为外部投影",
+    "rotation": "indexer.apply_query_rope→DeviceOperator.apply_partial_rotary_inplace→inplace_partial_rotary_mul，末尾64维",
+    "quantization": "quantize_indexer_query→_quantize_indexer_query_kernel，已有整head amax/scale/量化融合",
+    "consumer": "npu_quant_lightning_indexer_v3消费INT8 query和FP16 query_scale，供位置选择"
+  },
+  "geometry": {
+    "index_heads": 32,
+    "head_width": 128,
+    "rotated_tail": 64,
+    "unrotated_prefix": 64,
+    "ordinary_QR_quant_width": 1280
+  },
+  "baseline": "Indexer投影BF16→原位tail64 RoPE/BF16舍入→整128 custom quant→INT8＋FP16 per-head scale；RoPE和量化不是当前同一个kernel。",
+  "proposal": "量化kernel加载完整head后在片上先旋转tail64，按原规则舍入BF16，保留front64，再做整128 amax及原量化。默认保留任何需要的BF16旋转结果和所有读者/事件。",
+  "quantizer_contract": [
+    "输入每个token/head独立一行128维；转FP32求abs_max",
+    "scale=div_rn(abs_max,127)，先转FP16舍入再转FP32，随后与2^-24取max",
+    "query/scale使用div_rn，nearbyint，夹到[-127,127]再转INT8；scale输出FP16",
+    "先旋转并按原BF16舍入，再求全128 amax；不能仅用旋转64维求比例",
+    "现有量化已把amax、scale、舍入及INT8输出融合，不能再声称首次融合这些内部操作",
+    "每核原按16行组织，FP16 scale整32B组写出避免部分cache line写竞争；新tiling须保持合法所有权",
+    "query.contiguous原包装器语义保留；非连续输入不因融合就自动变成合法原位映射"
+  ],
+  "consumer_and_schedule_constraints": [
+    "prepared.query仍作为BF16张量传到select_projected；所选INT8分支有shape读取，其他分支/读者不能因此推断不存在",
+    "保留BF16输出的保守融合可少一次独立tail读取及交接，不能同时宣称tail写出也消失；省掉BF16写出需额外读者证明",
+    "_should_quantize_indexer保留prepared/已有量化/空query/无历史cache等条件；不将未需要量化的路径强制多做",
+    "当前RoPE位于prepare，quant由后续aux stream提前提交并以quantize_done等待；移动/合并需核对所有中间读者和准备时刻，不能只按源码间距决定",
+    "packed_cache_ops使用MXFP4分支，不套本INT8规则；IndexKey FP32 scale后转FP16与本query FP16先舍入不同",
+    "保留独立index weights、缓存、位置、candidate/TopK及cache metadata协议，完整位置选择逻辑不纳入本轮"
+  ],
+  "logical_io_model": {
+    "domain": "M tokens，32heads，tail64，BF16；保持旋转后BF16输出的保守方案",
+    "saved_read_formula": "2*M*32*64 bytes",
+    "illustrative_M": 3,
+    "illustrative_saved_tail_read_bytes": 12288,
+    "optional_if_no_BF16_observer_write_read_bytes": 24576,
+    "qualification": "只有无需旋转后BF16输出时才可同时省tail写；原投影BF16输出、融合输入读取、INT8/scale结果仍需，逻辑流量不是实测HBM或显存容量减少。"
+  },
+  "priority": "可先评估在已有Triton量化核中接入局部旋转的小范围方案；cos/sin读取、行映射、原并行及完整Indexer就绪需计价。尚无实施或实际收益证据。",
+  "new_implementation": false,
+  "native_correctness": "NOT_RUN",
+  "new_measured_speedup": false,
+  "whole_family_closed": false,
+  "quantizer_source_binding": {
+    "file": "quantize_indexer_query.py",
+    "sha256": "6065b79f0f764e99bafae71347c8c8dfd0625ad52b0d695639c47e71338d0bba",
+    "cached_contract_lines": [
+      12,
+      37
+    ],
+    "kernel_matches_published_cached_source": true,
+    "wrapper_lines": [
+      40,
+      70
+    ],
+    "wrapper_properties": {
+      "QUANT_MAX": 127,
+      "MIN_SCALE": "2**-24",
+      "output_scale_dtype": "FP16",
+      "block_rows": 16,
+      "contiguous_input": true
+    },
+    "current_loaded_binary_identity_proved": false
+  }
+}
