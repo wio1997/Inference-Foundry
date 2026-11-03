@@ -251,3 +251,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 独立 `launcher.py prepare` 支持显式 `--experimental-layer-major-kda`、`--experimental-kda-prefill40` 和 `--experimental-sparse-kda-layer4`；后两项要求前者，且该模式要求 `ascendc`。runner 验证构造结果与所请求选项一致。[四rank验证](validation/prepare-options-round462.json)。
 
 请求构造器更新后的默认回退路径，在省略后端和实验开关时选择 `ascendc_installed_decode`，四rank固定用例验证见 [记录](validation/default-builder-round463.json)。
+
+请求构造器更新后的四rank参考模式固定用例与保留参考输出的对比见 [记录](validation/reference-builder-round464.json)。
