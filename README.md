@@ -207,3 +207,5 @@ rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地�
 40+1 预填充的 recall42 生成结果和参考 token 对比见证据；完整 logits 未比较。[记录](validation/recall42-prefill40-round438.json)。
 
 公共 CLI 支持显式 `--experimental-layer-major-kda --experimental-kda-prefill40 --kda-backend ascendc`，不能与 `--experimental-sparse-kda-layer4` 合用；单 token 预填余项走 chunk。实际四 rank recall17 结果与范围见 [记录](validation/cli-prefill40-round439.json)。默认仍保持先前路径。
+
+当前源码默认 tokenwise CLI 的四 rank 固定输入回归与先前基线 token 和逐位置 argmax 一致；完整 logits 未比较。[记录](validation/default-cli-round440.json)。
