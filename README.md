@@ -189,3 +189,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 同一第4层 sparse KDA 实验选项的 recall42 实际 CLI 固定例返回最终答案42，但生成4个 token，与保留参考45个 token 从首 token 起不同；四 rank 一致，以配置停止 token 结束且未到上限。未比较完整 logits。[结果](validation/sparse-kda-recall42-round429.json)。
 
 加入第4层选项后的默认 CLI 四 rank 固定8+5回归与先前默认记录的提示 IDs、argmax、生成 IDs 和停止字段一致；未比较完整 logits。[范围](validation/sparse-cli-default-round429.json)。
+
+四 rank 非零状态下，仅 rank2 关闭第4层 sparse KDA 分块时，所有 rank 均在 chunk 执行前协同拒绝，45层状态保持不变；恢复一致配置后重试 logits 和状态与干净运行逐位一致。该受控检查不覆盖设备丢失或整体精度。[范围](validation/sparse-kda-mask-round430.json)。

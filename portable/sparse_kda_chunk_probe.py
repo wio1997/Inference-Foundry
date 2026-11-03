@@ -75,6 +75,18 @@ try:
    report['prefix_logits_equal']=[torch.equal(x,y) for x,y in zip(clean[:2],prefix,strict=True)]
    report['nonzero_kda']=any(bool(torch.count_nonzero(before.layers[i].recurrent).item()) for i,spec in enumerate(config.layers) if spec.attention=='linear_attention')
    assert before.tokens_seen==2 and all(report['prefix_logits_equal']) and report['nonzero_kda']
+   report['phase']='sparse-layer-mask-mismatch';save()
+   if rank==injected_rank:
+    sparse_kda.native_chunk_prefill=False;sparse_kda.attention.reference_sharded_projection=False
+   try:
+    try:q.step(torch.tensor(tokens[2:],dtype=torch.int64),expected_tokens_seen=2)
+    except ValueError as exc:assert str(exc)=='rank batch preflight failed or metadata differs'
+    else:raise AssertionError('unequal sparse KDA layer mask unexpectedly committed')
+   finally:
+    if rank==injected_rank:
+     sparse_kda.native_chunk_prefill=True;sparse_kda.attention.reference_sharded_projection=True
+   after_mask=q.snapshot();report['sparse_mask_mismatch_coordinated']=True;report['sparse_mask_state_equal']=state_eq(before,after_mask,config);report['sparse_mask_chunk_calls']=list(chunk_calls)
+   assert after_mask.tokens_seen==2 and all(report['sparse_mask_state_equal'].values()) and not chunk_calls
    report['phase']='batch-metadata-mismatch';save()
    try:q.step(torch.tensor(tokens[2:],dtype=torch.int64),expected_tokens_seen=1 if rank==injected_rank else 2)
    except ValueError as exc:assert str(exc)=='rank batch preflight failed or metadata differs'
