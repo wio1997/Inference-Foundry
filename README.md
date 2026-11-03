@@ -235,3 +235,5 @@ rank W8A8 输出投影支持显式启用最多40个输入 token，并将本地�
 实验性稀疏KDA与稀疏KDA与40 token预填的专家缓存等价验证见 [记录](validation/sparsecache40-round453.json)。
 
 recall17 前8 token 的第0层第0位置对比发现 core、gated 和最终 attention 均与保留参考不同，首个已测差异在 core；详情见 [记录](validation/first8-boundary-round454.json)。
+
+recall17 前8 token 的第0层第0位置投影、门控及QKV卷积与参考逐位一致，核心输出存在差异；详情见 [记录](validation/first8-operands-round455.json)。

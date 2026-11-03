@@ -159,3 +159,5 @@ CLI的40 token dense及第4层sparse KDA组合与逐token MoE范围见 [验证�
 稀疏KDA与40 token预填的专家缓存等价验证见 [记录](validation/sparsecache40-round453.json)。
 
 8 token 分块下第0层的核心边界与参考存在差异，不能沿用 40 token 分块的位置0相等结论；见 [记录](validation/first8-boundary-round454.json)。
+
+8 token 分块下第0位置的输入投影、门控与QKV卷积逐位一致，核心输出存在差异；见 [记录](validation/first8-operands-round455.json)。
