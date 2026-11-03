@@ -239,3 +239,5 @@
 六个模型 rank 组件的实验补丁在授权四 die 上完成 45 层同运行时 direct/ranked 比较：四个 rank 的前后缀 logits、生成 ID、45 层状态及 archive-v2 恢复匹配，进程组正常销毁。短请求生成达到四 token 上限；不是完整答复或独立质量验收。补丁、范围和针脚见 [试验说明](../experimental/rank-generalization/README.zh-CN.md)。其他 world size 和参数化启动器尚未验证。
 
 参数化普通文本入口与上述六个模型接缝组合后，在四 die 上实际运行固定 `8+5`：四 rank 的提示 argmax 和生成 `[154842,99366,154827]` 与保留基线一致，答案 13，按配置停止且未达到上限，进程组销毁；未比较完整 logits。[逐 rank 记录](rank-portable-round408.json)。其他 world size 尚未运行或验收。
+
+参数化运行器的四 rank 参考与回滚模式也已回归：参考模式首次因隔离配置缺少 `GLM_REFERENCE_ROOT` 而在模型加载前失败，补齐后第二次运行与保留基线生成 token 一致，答案 13，未达上限。回滚模式对 rank 2 head 失败与输入不一致均完成协调，重试 logits 和全部 45 层状态一致，进程组销毁。[记录](rank-portable-modes-round408.json) 不覆盖其他 world size 或独立质量。
