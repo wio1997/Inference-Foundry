@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-04 · 20261104-F09-WORKED-EXAMPLE-AND-FUSION-BOUNDARIES
+
+涉及：[F09](F09.md)
+
+类型：EXPLANATORY_NUMERICAL_EXAMPLE_NOT_NATIVE_PROOF；依据：用户要求细说；复用F09原算法合同，进行4维标量示意计算，旋转后按完整行或错误尾部比例分别量化。
+
+用可复算例子解释RoPE→BF16边界→全head比例→INT8，错误tail统计将8表示为约4；明确保守融合只减少独立读取/任务边界，仍保留必要BF16输出、计算和性能/内存验收。无native实现或成熟度提升。
+
 ## 2026-11-04 · 20261104-F09-INDEX-QUERY-ROPE-QUANT-PARTIAL-REVIEW
 
 涉及：[F09](F09.md)
