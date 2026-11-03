@@ -179,3 +179,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 实验分块、128 MiB 专家缓存和首生成 token 后 archive-v2 恢复组合，在四 rank 固定 8+5 请求中恢复了全部45层记录状态并得到预期生成 token；各 rank 关闭后缓存为零且无活动租约。此案例未比较恢复后续算完整 logits，亦未测性能。[结果](validation/layer-major-cache-restore-round426.json)。
 
 四 rank 实验分块路径对非零45层状态进行归档恢复后，依次续算8 token与1 token；恢复路径和未中断路径的完整续算 logits、全部45层状态逐位一致，所有请求 owner 已释放。该短输入测试不覆盖设备丢失、跨版本恢复或独立整模型精度。[范围](validation/chunk-archive-tail-round427.json)。
+
+实验性 layer-major 接口现在可显式选择 linear-attention + sparse MoE 层进行 KDA 分块；该层的 MoE 仍逐 token 调用。四 rank 实测选择第4层及三个 dense 层，两 token 的受控失败回滚保留全部45层状态，重试 logits 和状态与干净运行逐位一致；改变后的默认 CLI 固定短例也匹配先前结果。现有 CLI 实验开关仍只选择 dense 层；此结果不代表独立质量或性能通过。[范围](validation/sparse-kda-chunk-round428.json)。

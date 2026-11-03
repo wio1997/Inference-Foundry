@@ -106,7 +106,7 @@ class GlmHybridDecoder(Glm5NextDenseDecoder):
         super().__init__(**components)
         self.attention_kind,self.mlp_kind=attention_kind,mlp_kind
         self.native_tokenwise=False  # explicitly enabled by diagnostic native factory
-        self.native_chunk_prefill=False  # isolated dense KDA prototype, at most 8 rows
+        self.native_chunk_prefill=False  # explicit KDA prototype, at most 8 rows
 
     @classmethod
     def from_checkpoint(cls,*args,**kwargs):
@@ -150,8 +150,8 @@ class GlmHybridDecoder(Glm5NextDenseDecoder):
         # not a throughput optimization; ordinary prepared paths remain batched.
         chunk = self.native_chunk_prefill
         if type(chunk) is not bool:raise ValueError('native chunk flag must be boolean')
-        if chunk and (not self.native_tokenwise or self.attention_kind!='linear_attention' or self.mlp_kind!='dense' or getattr(self.attention,'backend',None)!='ascendc_chunk_prefill'):
-            raise ValueError('chunk prefill requires tokenwise dense KDA and the explicit chunk backend')
+        if chunk and (not self.native_tokenwise or self.attention_kind!='linear_attention' or getattr(self.attention,'backend',None)!='ascendc_chunk_prefill'):
+            raise ValueError('chunk prefill requires tokenwise KDA and the explicit chunk backend')
         if chunk and len(hidden)>8:raise ValueError('native chunk prefill is bounded to eight rows')
         if self.native_tokenwise and len(hidden)>1 and not chunk:
             if type(selected) is CPUProjectedDSAOperation:raise ValueError('CPU projected plans cannot be split by native tokenwise mode')
@@ -162,7 +162,14 @@ class GlmHybridDecoder(Glm5NextDenseDecoder):
             return torch.cat(parts,dim=0),current
         start=0 if state is None else state.tokens_seen
         attention=None if dsa_operation is None else lambda x,s:self.attention(x,s,operation=dsa_operation)
-        output,next_state=super().forward(hidden,state,attention_forward=attention)
+        # The distributed sparse expert path remains one token per call.
+        # Chunking applies only to KDA; it must not batch MoE collectives.
+        mlp_forward=None
+        if chunk and self.mlp_kind=='sparse':
+            def mlp_forward(x):
+                if len(x)==0:return self.mlp(x)
+                return torch.cat([self.mlp(row) for row in x.split(1,dim=0)],dim=0)
+        output,next_state=super().forward(hidden,state,attention_forward=attention,mlp_forward=mlp_forward)
         if not isinstance(next_state,expected) or next_state.tokens_seen!=start+len(hidden):raise ValueError('decoder state must advance exactly by input rows')
         if output.ndim!=3 or output.shape!=(len(hidden),self.attn_hc.streams,self.attn_hc.hidden_size) or output.dtype!=hidden.dtype or output.device!=hidden.device:
             raise ValueError('decoder must preserve materialized residual stream contract')

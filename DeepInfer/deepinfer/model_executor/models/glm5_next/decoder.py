@@ -112,7 +112,7 @@ class Glm5NextDenseDecoder(nn.Module):
                    mlp=mlp,norm_eps=c.hf_config['text_config']['rms_norm_eps']).eval()
 
     @torch.inference_mode()
-    def forward(self,hidden_states,state=None,*,attention_forward=None):
+    def forward(self,hidden_states,state=None,*,attention_forward=None,mlp_forward=None):
         if hidden_states.ndim==2:
             if self.layer_id!=0:
                 raise ValueError('only the first backbone layer expands collapsed input')
@@ -124,5 +124,6 @@ class Glm5NextDenseDecoder(nn.Module):
         output,next_state=attention(rms_norm(attn_input,self.input_norm,self.norm_eps),state)
         residual=self.attn_hc.post(output,residual,mix)
         ffn_input,mix=self.ffn_hc.pre(residual)
-        output=self.mlp(rms_norm(ffn_input,self.ffn_norm,self.norm_eps))
+        mlp=self.mlp if mlp_forward is None else mlp_forward
+        output=mlp(rms_norm(ffn_input,self.ffn_norm,self.norm_eps))
         return self.ffn_hc.post(output,residual,mix),next_state

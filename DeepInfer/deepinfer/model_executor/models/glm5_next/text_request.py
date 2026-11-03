@@ -76,8 +76,8 @@ class PreparedTextRunner(nn.Module):
         All ranks must opt in and call in the same order. Live-rank failures
         before stack entry, in the head, and while capturing state are agreed.
         Process/device loss and errors inside stack collectives are not recovered.
-        Optional layer-major execution requires explicit dense KDA chunk layers;
-        DSA and sparse layers retain their tokenwise fallbacks.
+        Optional layer-major execution requires explicit KDA chunk layers;
+        DSA and sparse MoE calls retain their tokenwise fallbacks.
         """
         with self._exclusive():
             if self._requests:raise RuntimeError('enable batch agreement before opening requests')
@@ -91,10 +91,10 @@ class PreparedTextRunner(nn.Module):
                 for layer in self.stack.layers:
                     if not layer.native_tokenwise:raise ValueError('all native layers must preserve tokenwise fallback')
                     if getattr(layer,'native_chunk_prefill',False):
-                        if layer.attention_kind!='linear_attention' or layer.mlp_kind!='dense' or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill':
-                            raise ValueError('layer-major supports only explicit dense KDA chunks')
+                        if layer.attention_kind!='linear_attention' or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill':
+                            raise ValueError('layer-major supports only explicit KDA chunks')
                         selected+=1
-                if not selected:raise ValueError('layer-major requires an explicit dense KDA chunk layer')
+                if not selected:raise ValueError('layer-major requires an explicit KDA chunk layer')
             self._rank_batch_layer_major=layer_major_dense_kda
             self._rank_batch_limit=max_tokens
 
@@ -193,7 +193,7 @@ class TextRequest:
                     if not layer.native_tokenwise:raise ValueError('layer-major fallback configuration changed')
                     if getattr(layer,'native_chunk_prefill',False):
                         if (type(layer.layer_id) is not int or not 0<=layer.layer_id<63 or layer.attention_kind!='linear_attention'
-                                or layer.mlp_kind!='dense' or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill'):
+                                or getattr(layer.attention,'backend',None)!='ascendc_chunk_prefill'):
                             raise ValueError('invalid layer-major chunk configuration')
                         layer_mask |= 1<<layer.layer_id
                         single=getattr(layer.attention,'chunk_prefill_single',False)
@@ -203,7 +203,7 @@ class TextRequest:
                         if type(projection) is not bool:raise ValueError('reference projection mode must be boolean')
                         if projection:projection_mask |= 1<<layer.layer_id
                     elif getattr(layer.attention,'chunk_prefill_single',False) or getattr(layer.attention,'reference_sharded_projection',False):
-                        raise ValueError('experimental KDA modes require a selected dense KDA layer')
+                        raise ValueError('experimental KDA modes require a selected KDA layer')
                 if not layer_mask:raise ValueError('layer-major chunk configuration is empty')
                 if single_mask and count!=1:raise ValueError('singleton prefill mode requires one token')
             elif any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers):

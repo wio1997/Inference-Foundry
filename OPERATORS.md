@@ -105,3 +105,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 四 rank 便携CLI现可显式开启实验性 dense KDA 分块预填；默认保持原逐 token 路径。固定短算术与默认回归范围见 [结果](validation/layer-major-cli-round424.json)，不代表整体质量验收。
 
 实验分块的四rank缓存关闭/开启完整logits一致性及清理范围见 [结果](validation/layer-major-cache-round425.json)；此独立探针不代表性能收益；实际CLI缓存选项另有固定案例记录。
+
+实验接口支持在显式选中的 sparse MoE KDA 层执行 chunk，MoE 逐 token 调用；四 rank 的第4层短例与受控回滚范围见 [记录](validation/sparse-kda-chunk-round428.json)。默认 CLI 选择与其他 sparse 层执行方式未改变。
