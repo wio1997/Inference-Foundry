@@ -269,6 +269,13 @@ class TextRequest:
                 count=len(token_ids);start=self._state.tokens_seen
                 if r._rank_commit_enabled and (count!=1 or self._page_bindings is not None):
                     raise ValueError('rank commit agreement requires one token and no page bindings')
+                if r._rank_commit_enabled:
+                    if token_ids.device.type!='cpu' or token_ids.dtype not in (torch.int32,torch.int64):
+                        raise ValueError('rank commit requires CPU integer token vector')
+                    if bool(((token_ids<0)|(token_ids>=r.boundary.manifest.vocab_size)).any()):
+                        raise ValueError('rank commit token out of vocabulary')
+                    import hashlib
+                    identity=int.from_bytes(hashlib.sha256(self.request_id.encode()).digest()[:7],'big')
                 if count>min(r.boundary.max_tokens,r.head.max_tokens) or start+count>r.max_context_tokens:
                     raise ValueError('text step exceeds explicit token/context bound')
                 if r._rank_commit_enabled and any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers):
@@ -278,10 +285,8 @@ class TextRequest:
             if r._rank_commit_enabled:
                 # Validate both local state and shared request identity/position
                 # before ranks enter any stack collective or publish state.
-                import hashlib
                 import torch.distributed as dist
                 if failure is None:
-                    identity=int.from_bytes(hashlib.sha256(self.request_id.encode()).digest()[:7],'big')
                     metadata=[0,start,count,identity]
                 else:
                     metadata=[1,0,0,0]
@@ -292,7 +297,15 @@ class TextRequest:
                     raise ValueError('rank commit preflight failed') from failure
             elif failure is not None:
                 raise failure
-            hidden=r.boundary.embed(token_ids)
+            if r._rank_commit_enabled:
+                failure=None
+                try:hidden=r.boundary.embed(token_ids)
+                except Exception as exc:failure=exc
+                status=torch.tensor([int(failure is not None)],dtype=torch.int32,device=r.boundary.norm_weight.device)
+                dist.all_reduce(status,op=dist.ReduceOp.MAX,group=r._rank_commit_group)
+                if int(status.item()):raise RuntimeError('rank embedding preparation failed') from failure
+            else:
+                hidden=r.boundary.embed(token_ids)
             if count:
                 if r.native_tokenwise and count>1:
                     # Preserve token-major execution order across the complete

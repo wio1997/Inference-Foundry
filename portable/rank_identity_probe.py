@@ -69,6 +69,33 @@ try:
    position_after=q.snapshot();report['position_mismatch_coordinated']=True;report['position_before']=position;report['position_after']=position_after.tokens_seen;report['position_mismatch_state_equal']=state_eq(position_before,position_after,config)
    assert position_after.tokens_seen==position and len(report['position_mismatch_state_equal'])==45 and all(report['position_mismatch_state_equal'].values())
   finally:q.close()
+  q=runner.open_request(MixedRequestState.capture('embedding-fix-test',config,runner.stack.layout,states))
+  try:
+   report['phase']='invalid_token_preflight';save();before_embedding=q.snapshot();original_embed=runner.boundary.embed
+   def forbidden_embed(ids):raise AssertionError('embedding entered for invalid token dtype')
+   runner.boundary.embed=forbidden_embed
+   try:
+    try:q.step(torch.tensor([tokens[0]],dtype=torch.float32 if rank==injected_rank else torch.int64),expected_tokens_seen=0)
+    except ValueError as exc:assert str(exc)=='rank commit preflight failed'
+    else:raise AssertionError('invalid rank token dtype unexpectedly committed')
+   finally:runner.boundary.embed=original_embed
+   invalid_after=q.snapshot();report['invalid_dtype_coordinated']=True;report['invalid_dtype_state_equal']=state_eq(before_embedding,invalid_after,config)
+   assert invalid_after.tokens_seen==0 and all(report['invalid_dtype_state_equal'].values())
+   report['phase']='embedding_failure';save()
+   def injected_embed(ids):
+    if rank==injected_rank:raise RuntimeError('injected embedding reader failure')
+    return original_embed(ids)
+   runner.boundary.embed=injected_embed
+   try:
+    try:q.step(torch.tensor([tokens[0]],dtype=torch.int64),expected_tokens_seen=0)
+    except RuntimeError as exc:
+     assert str(exc)=='rank embedding preparation failed'
+     assert (isinstance(exc.__cause__,RuntimeError) and str(exc.__cause__)=='injected embedding reader failure')==(rank==injected_rank)
+    else:raise AssertionError('rank embedding failure unexpectedly committed')
+   finally:runner.boundary.embed=original_embed
+   embedding_after=q.snapshot();report['embedding_failure_coordinated']=True;report['embedding_failure_state_equal']=state_eq(before_embedding,embedding_after,config)
+   assert embedding_after.tokens_seen==0 and all(report['embedding_failure_state_equal'].values())
+  finally:q.close()
   q=runner.open_request(MixedRequestState.capture('failure-retry-other' if rank==injected_rank else 'failure-retry',config,runner.stack.layout,states))
   try:
    report['phase']='identity_mismatch';save();identity_before=q.snapshot()

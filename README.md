@@ -143,3 +143,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 旧单 token rank 提交路径现会在入栈前比较请求身份指纹、位置和 token 数。四 rank 实测发现旧版允许不同请求 ID 提交；修正后协同拒绝并保持45层状态，详见 [验证记录](validation/rank-request-identity-round419.json)。该检查使用56位指纹，存在碰撞可能；新增 collective 的开销尚未测量。
 
 同一 preflight 也已实测各 rank 自身位置有效但跨 rank 不一致：2/3 token 状态均保持不变，随后正常重试通过。[结果](validation/rank-request-identity-round419.json)。
+
+单 token rank 路径在共享 preflight 中校验 CPU 整数 token 和词表范围；embedding 读取异常在入栈前跨 rank 汇总。四 rank 注入与状态重试见 [结果](validation/rank-embedding-preflight-round419.json)；新增 collective 的性能未测。

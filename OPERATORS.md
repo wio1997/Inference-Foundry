@@ -83,3 +83,5 @@ CLI 请求开启恢复时，反序列化后比较45层状态并跨 rank 汇总�
 发布回滚探针覆盖单 rank 过期位置协同拒绝、45层状态保持及重试，worker 上限900秒；固定案例与普通路径回归见 [记录](validation/legacy-rollback-runner-round418.json)。
 
 单 token rank 提交 preflight 现同步校验请求身份指纹、位置和 token 数；[四 rank 结果](validation/rank-request-identity-round419.json) 不覆盖进程或设备故障，collective 开销未测。
+
+单 token rank preflight 包含 token 类型及词表范围检查，embedding 读取故障在进入 stack 前协同汇总；[注入结果](validation/rank-embedding-preflight-round419.json) 不涵盖设备/进程故障。

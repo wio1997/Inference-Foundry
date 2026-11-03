@@ -1,0 +1,32 @@
+{
+  "scope": "四 rank 单 token 请求：输入 token dtype/范围协同预检、embedding 读取失败协同处理和回滚重试",
+  "architecture": "aarch64",
+  "device": "Ascend910_9382",
+  "world_size": 4,
+  "versions": {
+    "torch": "2.10.0+cpu",
+    "torch-npu": "2.10.0.post7",
+    "flash-linear-attention-npu-a3": "26.9.1+deva4a7958"
+  },
+  "checkpoint_index_sha256": "dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4",
+  "config_sha256": "33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f943",
+  "template_sha256": "34d5ee66b12fa6446cdae131c352b8f68cd85369e0e6fda115583805fada3891",
+  "old_source_manifest_sha256": "21c1777f2afbc3c113be71b06c415006293fc5074d261d1e974ec7ed1750fc6f",
+  "fixed_source_manifest_sha256": "113c1561ad250a7494708ad6c0a52731db9f3751373509b81b87d43f96d3911b",
+  "text_request_sha256": "e4a8042797759d1d59ef6b862484a58473975ce09937ee2f13969441b2a722b2",
+  "probe_sha256": "1955822e4e516be18b5bf7a0ad0757b18f4fab92f098f746c3c3a05979d7a4f4",
+  "before": "rank 2 的浮点 token 越过旧共享预检，在 embedding 输入检查处报错；探针在其他 rank 的 embedding 入口主动停止，避免它们进入后续栈 collective。由此确认错误边界不同，不声称实际发生或复现了设备死锁。",
+  "after": "rank 2 浮点 token 在 embedding 前被四 rank 协同拒绝；另外注入 rank 2 embedding 读取失败，四 rank 均协同拒绝。两次每 rank 的45层状态与 token 计数不变；后续正常前缀、故障回滚和完整 logits/45层状态重试通过。",
+  "normal_regression": {
+    "source_manifest_sha256": "aceb8787661c2982756e6abd7e199cc510d5a744a3c3cfd2bb34843a3761e631",
+    "result": "四 rank 固定8+5请求的 prompt IDs、prompt argmax、生成 IDs 与前一版本一致；未比较完整 logits。",
+    "generated_ids": [
+      154842,
+      99366,
+      154827
+    ],
+    "test_timeout_seconds": 480,
+    "published_timeout_seconds": 2100
+  },
+  "limitations": "仅覆盖参与预检的存活 rank；进程/设备丢失、stack 内 collective 及不可控副作用未覆盖。额外 all-reduce 的性能开销未测；独立模型精度和生产验收未完成。"
+}
