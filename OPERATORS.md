@@ -99,3 +99,5 @@ reusable 专家 cache 的适配器预算与请求一致；64 MiB 及零 session 
 实验性输出分片的四 rank 固定 recall17 未强制生成结果与参考13个 token 一致；首 token 的全部 logits 不逐位相同，见 [结果](validation/recall17-output-tree-round422.json)。
 
 实验性输出分片在四 rank recall42 的48 token生成序列与45 token参考在索引2开始不同；最终答案相同不代表完整精度一致。[结果](validation/recall42-output-tree-round423.json)。
+
+实验性 KDA 分块与本地参考投影的四 rank 非零状态归档恢复及续算检查见 [结果](validation/chunk-archive-round423.json)；仅覆盖受控短输入。
