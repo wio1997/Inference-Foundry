@@ -193,3 +193,5 @@ python3 portable/compare_reference.py "$REFERENCE_RUN_DIR" "$ADAPTATION_RUN_DIR"
 四 rank 非零状态下，仅 rank2 关闭第4层 sparse KDA 分块时，所有 rank 均在 chunk 执行前协同拒绝，45层状态保持不变；恢复一致配置后重试 logits 和状态与干净运行逐位一致。该受控检查不覆盖设备丢失或整体精度。[范围](validation/sparse-kda-mask-round430.json)。
 
 四 rank 实验分块选择第4层 sparse KDA 时，非零45层状态归档恢复后的8 token 加 singleton 续算，与未中断路径的完整 logits 和最终45层状态逐位一致；该 sparse MoE 逐 token 调用。仅固定短输入，不覆盖独立精度、性能或设备故障。[范围](validation/sparse-kda-archive-round431.json)。
+
+四 rank 的 sparse KDA 归档恢复测试中，8 token 后仅 rank2 在 singleton head 注入故障；各 rank 协同失败且45层状态不变，重试后的完整续算 logits 和状态与干净路径逐位一致。仅受控 head 失败，不覆盖设备或通信故障。[范围](validation/sparse-kda-singleton-rollback-round431.json)。

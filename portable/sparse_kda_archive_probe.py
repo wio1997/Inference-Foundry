@@ -64,11 +64,26 @@ try:
   tokens=[154822,154824,154826,25062];continuation=[287,29905,371,25,12035,154827,5050,6234,1372]
   def step(q,token,pos):
    z=q.step(torch.tensor([token],dtype=torch.int64),expected_tokens_seen=pos);torch_npu.npu.synchronize();assert torch.isfinite(z.logits).all();return z.logits.detach().cpu().clone()
-  def advance(q):
+  def advance(q,*,inject_singleton_failure=False):
    big=q.step(torch.tensor(continuation[:8],dtype=torch.int64),expected_tokens_seen=4);torch_npu.npu.synchronize();large=big.logits.detach().cpu().clone()
    assert chunk_calls==[8,8,8,8];dispatch=list(chunk_calls);chunk_calls.clear()
    for i in selected:runner.stack.layers[i].attention.chunk_prefill_single=True
    try:
+    if inject_singleton_failure:
+     before_single=q.snapshot();old_head=runner.head.forward
+     def injected_singleton_head(hidden):
+      if rank==injected_rank:raise RuntimeError('injected singleton head failure')
+      return old_head(hidden)
+     runner.head.forward=injected_singleton_head
+     try:
+      try:q.step(torch.tensor(continuation[8:],dtype=torch.int64),expected_tokens_seen=12)
+      except RuntimeError as exc:
+       assert str(exc)=='rank batch head failed'
+       assert (isinstance(exc.__cause__,RuntimeError) and str(exc.__cause__)=='injected singleton head failure')==(rank==injected_rank)
+      else:raise AssertionError('singleton head failure unexpectedly committed')
+     finally:runner.head.forward=old_head
+     after_single=q.snapshot();report['singleton_failure_coordinated']=True;report['singleton_failure_state_equal']=state_eq(before_single,after_single,config);report['singleton_failure_chunk_calls']=list(chunk_calls)
+     assert after_single.tokens_seen==12 and all(report['singleton_failure_state_equal'].values()) and chunk_calls==[1,1,1,1];chunk_calls.clear()
     small=q.step(torch.tensor(continuation[8:],dtype=torch.int64),expected_tokens_seen=12);torch_npu.npu.synchronize();last=small.logits.detach().cpu().clone()
    finally:
     for i in selected:runner.stack.layers[i].attention.chunk_prefill_single=False
@@ -84,7 +99,7 @@ try:
   restored=deserialize_snapshot(blob,config,runner.stack.layout,expected_request_id='clean',expected_tokens_seen=4,device='npu',max_tokens=32,max_archive_bytes=512*1024**2);report['restored_state_equal']=state_eq(clean_state,restored,config);assert all(report['restored_state_equal'].values())
   q=runner.open_request(restored)
   try:
-   resumed_logits,restored_dispatch=advance(q);restored_state=q.snapshot();report['restored_continuation_logits_equal']=bool(torch.equal(continuation_logits,resumed_logits));report['restored_continuation_state_equal']=state_eq(continuation_state,restored_state,config);report['restored_chunk_calls']=restored_dispatch;assert restored_state.tokens_seen==13 and report['restored_continuation_logits_equal'] and all(report['restored_continuation_state_equal'].values())
+   resumed_logits,restored_dispatch=advance(q,inject_singleton_failure=True);restored_state=q.snapshot();report['restored_continuation_logits_equal']=bool(torch.equal(continuation_logits,resumed_logits));report['restored_continuation_state_equal']=state_eq(continuation_state,restored_state,config);report['restored_chunk_calls']=restored_dispatch;assert restored_state.tokens_seen==13 and report['restored_continuation_logits_equal'] and all(report['restored_continuation_state_equal'].values())
   finally:q.close()
   q=runner.open_request(MixedRequestState.capture('batch',config,runner.stack.layout,states))
   try:
