@@ -105,9 +105,17 @@ try:
     if token in stops or i==cap-1:break
     logits=step(token,pos);pos+=1
     if request['restore_after_first_token'] and i==0:
-     snapshot=q.snapshot();blob=serialize_snapshot(snapshot,config,runner.stack.layout,max_tokens=context,max_archive_bytes=512*1024**2)
-     report['archive_sha256']=hashlib.sha256(blob).hexdigest();report['archive_bytes']=len(blob);report['archive_tokens_seen']=pos;report['archive_schema_version']=torch.load(__import__('io').BytesIO(blob),map_location='cpu',weights_only=True)['version'];assert report['archive_schema_version']==2
-     q.close();failure=None;restored=None
+     # Every live rank must finish archive preparation before any rank
+     # enters restore verification. A local failure must not strand peers.
+     prepare_status=torch.zeros((1,),dtype=torch.int32,device='npu');failure=None;snapshot=None;blob=None
+     try:
+      snapshot=q.snapshot();blob=serialize_snapshot(snapshot,config,runner.stack.layout,max_tokens=context,max_archive_bytes=512*1024**2)
+      report['archive_sha256']=hashlib.sha256(blob).hexdigest();report['archive_bytes']=len(blob);report['archive_tokens_seen']=pos;report['archive_schema_version']=torch.load(__import__('io').BytesIO(blob),map_location='cpu',weights_only=True)['version'];assert report['archive_schema_version']==2
+      q.close()
+     except Exception as exc:failure=exc
+     prepare_status.fill_(int(failure is not None));dist.all_reduce(prepare_status,op=dist.ReduceOp.MAX)
+     if int(prepare_status.item()):raise RuntimeError('rank archive preparation failed') from failure
+     failure=None;restored=None
      try:
       restored=deserialize_snapshot(blob,config,runner.stack.layout,expected_request_id=request['run_id'],expected_tokens_seen=pos,device='npu',max_tokens=context,max_archive_bytes=512*1024**2)
       report['archive_state_equal']=archive_state_equal(snapshot,restored,config)

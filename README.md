@@ -257,3 +257,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 四rank归档请求身份不匹配的协调拒绝及探针重试验证见 [记录](validation/archive-identity-round465.json)。
 
 稀疏层4 KDA 40+1预填的缓存、设备和进程内存采样见 [记录](validation/sparse40-memory-round466.json)。
+
+归档准备阶段支持存活rank错误协调；注入失败与正常恢复的四rank验证见 [记录](validation/archive-prepare-round467.json)。
