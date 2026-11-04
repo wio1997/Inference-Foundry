@@ -14,7 +14,7 @@ for _ in range(1800):
  time.sleep(.1)
 else:raise RuntimeError('host PID/device mapping not verified')
 sha=lambda p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
-w=pathlib.Path('/opt/tiankuan/yxy/models/GLM-5.3-Flash-w8a8');ref=root.parent/'round406-ref-batch-a1'/f'rank{rank}'
+w=pathlib.Path(os.environ['GLM_MODEL_DIR']);ref=pathlib.Path(os.environ['GLM_REFERENCE_DIR'])/f'rank{rank}'
 report={'rank':rank,'die':die,'architecture':platform.machine(),'device':torch_npu.npu.get_device_name(0),'probe_sha256':sha(__file__),'kda_sha256':sha(kda.__file__),'chunk_prefill_sha256':sha(pref.__file__),'index_sha256':sha(w/'quant_model_weights.safetensors.index.json'),'config_sha256':sha(w/'config.json'),'status':'running'}
 def save():
  p=out/'result.json';q=p.with_suffix('.tmp');q.write_text(json.dumps(report,indent=2,allow_nan=False)+'\n');q.replace(p)
