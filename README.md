@@ -261,3 +261,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 归档准备阶段支持存活rank错误协调；注入失败与正常恢复的四rank验证见 [记录](validation/archive-prepare-round467.json)。
 
 归档恢复后的请求准入支持存活rank错误协调；注入失败与正常恢复的四rank验证见 [记录](validation/archive-open-round468.json)。
+
+全部34个KDA层40 token预填的隔离回滚探针通过，尚未集成CLI，验证见 [记录](validation/all-kda-round469.json)。
